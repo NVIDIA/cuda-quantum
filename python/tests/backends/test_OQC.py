@@ -58,6 +58,29 @@ def startUpMockServer():
     cudaq.reset_target()
 
 
+@cudaq.kernel(atomic_quantum_region=True)
+def oqc_atomic_workload(q: cudaq.qview):
+    h(q[0])
+    x.ctrl(q[0], q[1])
+    x.ctrl(q[1], q[2])
+
+
+@cudaq.kernel
+def oqc_atomic_round_trip():
+    q = cudaq.qvector(3)
+    oqc_atomic_workload(q)
+    cudaq.adjoint(oqc_atomic_workload, q)
+    mz(q)
+
+
+def test_OQC_atomic_quantum_region_resources():
+    resources = cudaq.estimate_resources(oqc_atomic_round_trip)
+    assert resources.to_dict() == {"cx": 4, "h": 2, "mz": 3}
+    assert resources.num_qubits == 3
+    assert resources.depth == 7
+    assert resources.multi_qubit_depth == 4
+
+
 def test_OQC_sample():
     # Create the kernel we'd like to execute on OQC
     kernel = cudaq.make_kernel()

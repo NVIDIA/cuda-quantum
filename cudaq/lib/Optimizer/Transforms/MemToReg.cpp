@@ -17,9 +17,10 @@
 /// load/store form (QLS), is required and performed.
 
 #include "PassDetails.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
+#include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "llvm/ADT/MapVector.h"
+#include "llvm/ADT/SetVector.h"
 #include "mlir/IR/Dominance.h"
 #include "mlir/IR/IRMapping.h"
 #include "mlir/Transforms/DialectConversion.h"
@@ -143,8 +144,22 @@ private:
       for (auto *u : a->getUsers()) {
         // Don't convert quake.custom unitary ops as they have ambiguous
         // semantics.
+        //
+        // cc.instantiate_callable always escapes any pointer-typed operand it
+        // captures: the closure holds onto that raw address for later
+        // dereference from a completely different function, not a load-like
+        // use here. isMemoryUse's op-level MemoryEffectOpInterface check
+        // can't tell escaping capture operands apart from ordinary ones.
+        // InstantiateCallableOp::getEffects reports a blanket Read (to keep
+        // CSE from merging distinct instantiations of a closure that
+        // captures a quantum reference; see its definition in CCOps.cpp),
+        // which makes isMemoryUse return true for the whole op regardless of
+        // which operand is being examined, so a classical alloca captured
+        // alongside an unrelated quantum capture would otherwise look like a
+        // harmless load and get promoted out from under the closure.
         if (isa<cudaq::quake::CustomUnitaryCallOp,
-                cudaq::quake::CustomUnitaryConstantOp>(u) ||
+                cudaq::quake::CustomUnitaryConstantOp,
+                cudaq::cc::InstantiateCallableOp>(u) ||
             (!isMemoryUse(u) && !nonEscapingDef(u, v))) {
           add = nullptr;
           break;
@@ -185,6 +200,332 @@ static Type dereferencedType(Type ty) {
   return cast<cudaq::cc::PointerType>(ty).getElementType();
 }
 
+/// Returns the element index of \p ext, if statically known. This inspects both
+/// the trivial attribute case as well as the case when the SSA value is itself
+/// a constant operation to decouple from canonicalization.
+static std::optional<std::size_t>
+constantExtractIndex(cudaq::quake::ExtractRefOp ext) {
+  if (ext.hasConstantIndex())
+    return ext.getConstantIndex();
+  if (auto v = cudaq::opt::factory::getIntIfConstant(ext.getIndex()))
+    if (*v >= 0)
+      return static_cast<std::size_t>(*v);
+  return std::nullopt;
+}
+
+/// Return the lower bound of \p sub, if statically known. Same rationale as
+/// constantExtractIndex.
+static std::optional<std::size_t>
+constantSubVeqLower(cudaq::quake::SubVeqOp sub) {
+  if (sub.hasConstantLowerBound())
+    return sub.getConstantLowerBound();
+  if (auto v = cudaq::opt::factory::getIntIfConstant(sub.getLower()))
+    if (*v >= 0)
+      return static_cast<std::size_t>(*v);
+  return std::nullopt;
+}
+
+/// Peel a chain of `quake.subveq`/`quake.relax_size` views off \p veq to find
+/// the underlying veq it is ultimately a view of (an alloca, init_state
+/// result, function/block argument, or any other op result that isn't itself
+/// a further view), accumulating the element offset of the view within that
+/// root. Returns nullopt when a view's offset is not a compile-time constant,
+/// i.e. the view's position within the root is unknown.
+static std::optional<std::pair<Value, std::size_t>> resolveVeqBase(Value veq) {
+  std::size_t offset = 0;
+  while (true) {
+    if (auto sub = veq.getDefiningOp<cudaq::quake::SubVeqOp>()) {
+      auto lo = constantSubVeqLower(sub);
+      if (!lo)
+        return std::nullopt;
+      offset += *lo;
+      veq = sub.getVeq();
+      continue;
+    }
+    if (auto relax = veq.getDefiningOp<cudaq::quake::RelaxSizeOp>()) {
+      veq = relax.getInputVec();
+      continue;
+    }
+    return std::make_pair(veq, offset);
+  }
+}
+
+namespace {
+/// A qubit's abstract location: a storage root plus an element index within
+/// it. Two distinct SSA `!quake.ref` values that resolve to the same location
+/// name the same physical qubit.
+using QubitLoc = std::pair<Value, std::size_t>;
+
+/// Resolve the abstract location \p ref names, if it has one. Returns nullopt
+/// when the position is not statically knowable, which callers must treat as
+/// "may be any qubit in the root".
+static std::optional<QubitLoc> resolveRefLocation(Value ref) {
+  if (auto *def = ref.getDefiningOp()) {
+    if (auto alloc = dyn_cast<cudaq::quake::AllocaOp>(def))
+      if (isa<cudaq::quake::RefType>(alloc.getType()))
+        return QubitLoc{alloc, 0}; // a standalone qubit is its own root
+    if (auto ext = dyn_cast<cudaq::quake::ExtractRefOp>(def)) {
+      auto idx = constantExtractIndex(ext);
+      if (!idx)
+        return std::nullopt;
+      auto base = resolveVeqBase(ext.getVeq());
+      if (!base)
+        return std::nullopt;
+      return QubitLoc{base->first, base->second + *idx};
+    }
+    return std::nullopt;
+  }
+  // A ref-typed block argument (notably a function parameter) is its own
+  // single-qubit root.
+  return QubitLoc{ref, 0};
+}
+
+/// Merge `quake.extract_ref` ops that name the same qubit.
+///
+/// A `!quake.ref` is a reference-to-a-wire and this pass keys its bindings on
+/// the SSA ref value, so two distinct refs naming one qubit would be tracked as
+/// two independent memory locations, issuing both loads before either store and
+/// silently dropping the first gate. `extract_ref` is Pure, so CSE merges them,
+/// but depending on that makes correctness a property of pass ordering rather
+/// than of this pass. Do it here instead, so memtoreg is correct on whatever IR
+/// it is handed.
+///
+/// Only merges into a reference that dominates the ones it replaces. Where no
+/// such reference exists the duplicates are left alone and the analysis below
+/// blacklists the location.
+static void dedupQuantumRefs(func::FuncOp func) {
+  llvm::MapVector<QubitLoc, SmallVector<Value, 2>> byLoc;
+  func.walk([&](cudaq::quake::ExtractRefOp ext) {
+    if (auto loc = resolveRefLocation(ext.getResult()))
+      byLoc[*loc].push_back(ext.getResult());
+  });
+  if (llvm::none_of(byLoc, [](auto &e) { return e.second.size() > 1; }))
+    return;
+
+  DominanceInfo dom(func);
+  for (auto &[loc, refs] : byLoc) {
+    if (refs.size() < 2)
+      continue;
+    Value rep;
+    for (Value cand : refs)
+      if (llvm::all_of(refs, [&](Value other) {
+            return other == cand ||
+                   dom.properlyDominates(cand, other.getDefiningOp());
+          })) {
+        rep = cand;
+        break;
+      }
+    if (!rep)
+      continue;
+    for (Value r : refs)
+      if (r != rep) {
+        LLVM_DEBUG(llvm::dbgs()
+                   << "memtoreg: merging duplicate reference " << r << '\n');
+        r.replaceAllUsesWith(rep);
+        r.getDefiningOp()->erase();
+      }
+  }
+}
+
+/// Determines, for every `!quake.ref` value in a function, the abstract qubit
+/// location it names and whether that location may be promoted to a wire.
+///
+/// A `!quake.ref` behaves as a reference-to-a-wire: `quake.unwrap` loads and
+/// `quake.wrap` stores. Promoting a location to SSA wires is only valid while
+/// nothing *else* reaches that qubit through memory, because such an access
+/// would read (or write) the cell while the live value sits in a register.
+///
+/// So each root is scanned for accesses that touch its elements in memory
+/// form, and each contributes the element range it spans:
+///
+///   - a whole-veq operand to a gate/measure/call/init_state/closure spans
+///     that view's extent (a `quake.subveq %q, 0, 1` used as a control spans
+///     [0,2) of %q, not all of %q -- this is compact notation for "every
+///     element of this view", not an aliasing event);
+///   - a dynamic-index `quake.extract_ref`, or any view whose offset or
+///     extent is not statically known, spans the whole root;
+///   - a constant-index `quake.extract_ref` spans nothing: it names one
+///     location, which is what we are trying to promote.
+///
+/// A location is promotable if and only if no such range covers it.
+/// Transparency must be proven here. An op this analysis does not recognize is
+/// treated as spanning the whole root, so an unmodelled operation makes the
+/// output less optimized, never wrong.
+class QuantumRefAnalysis {
+public:
+  explicit QuantumRefAnalysis(func::FuncOp f) { compute(f); }
+
+  /// True if \p ref must be left in memory (reference) form.
+  bool isBlacklisted(Value ref) const { return blacklist.count(ref); }
+
+  /// The location \p ref names, or nullopt if it could not be resolved.
+  std::optional<QubitLoc> locationOf(Value ref) const {
+    auto it = locs.find(ref);
+    if (it == locs.end())
+      return std::nullopt;
+    return it->second;
+  }
+
+  /// Every ref value that resolves to \p loc, in program order.
+  ArrayRef<Value> refsAt(QubitLoc loc) const {
+    auto it = refsAtLoc.find(loc);
+    return it == refsAtLoc.end() ? ArrayRef<Value>{}
+                                 : ArrayRef<Value>(it->second);
+  }
+
+  /// Counts for the pass statistics.
+  std::size_t numBlacklisted() const { return blacklist.size(); }
+  std::size_t numLocations() const { return refsAtLoc.size(); }
+
+  /// True if every element of veq-typed \p root is promotable, so the root
+  /// itself can be replaced by per-element wires.
+  bool rootFullyPromotable(Value root) const {
+    auto extent = cudaq::quake::getVeqSize(root);
+    if (!extent)
+      return false;
+    auto it = opaque.find(root);
+    if (it == opaque.end())
+      return true;
+    return it->second.empty();
+  }
+
+private:
+  /// Record that [lo, lo+len) of \p root is accessed in memory form.
+  void markOpaque(Value root, std::size_t lo, std::optional<std::size_t> len) {
+    auto &ranges = opaque[root];
+    if (!len) {
+      // Unknown extent: the access may touch anything in the root.
+      ranges.assign(1, std::make_pair(std::size_t{0},
+                                      std::numeric_limits<std::size_t>::max()));
+      return;
+    }
+    ranges.emplace_back(lo, lo + *len);
+  }
+
+  bool isCovered(Value root, std::size_t index) const {
+    auto it = opaque.find(root);
+    if (it == opaque.end())
+      return false;
+    for (auto [lo, hi] : it->second)
+      if (index >= lo && index < hi)
+        return true;
+    return false;
+  }
+
+  /// Walk every use of \p veq (a view at \p offset within \p root) and record
+  /// the memory-form accesses it exposes.
+  void scanVeqUses(Value root, Value veq, std::size_t offset,
+                   SmallPtrSetImpl<Operation *> &visited) {
+    for (Operation *user : veq.getUsers()) {
+      if (isa<cudaq::quake::DeallocOp>(user))
+        continue;
+      if (auto ext = dyn_cast<cudaq::quake::ExtractRefOp>(user)) {
+        if (constantExtractIndex(ext))
+          continue; // names a single location; not a range
+        markOpaque(root, 0, std::nullopt);
+        continue;
+      }
+      if (auto sub = dyn_cast<cudaq::quake::SubVeqOp>(user)) {
+        auto lo = constantSubVeqLower(sub);
+        if (!lo) {
+          markOpaque(root, 0, std::nullopt);
+          continue;
+        }
+        if (visited.insert(sub).second)
+          scanVeqUses(root, sub.getResult(), offset + *lo, visited);
+        continue;
+      }
+      if (auto relax = dyn_cast<cudaq::quake::RelaxSizeOp>(user)) {
+        if (visited.insert(relax).second)
+          scanVeqUses(root, relax.getResult(), offset, visited);
+        continue;
+      }
+      // Anything else -- a gate with a veq control or broadcast target, a
+      // measure, a call, init_state, a concat feeding elsewhere, a closure
+      // capture, or an op we simply do not model -- reaches these qubits
+      // through memory. It spans this view's extent.
+      LLVM_DEBUG({
+        llvm::dbgs() << "memtoreg: memory-form access forces ";
+        if (auto n = cudaq::quake::getVeqSize(veq))
+          llvm::dbgs() << "[" << offset << ", " << (offset + *n) << ")";
+        else
+          llvm::dbgs() << "all";
+        llvm::dbgs() << " of ";
+        root.printAsOperand(llvm::dbgs(), OpPrintingFlags());
+        llvm::dbgs() << " into memory form, due to: " << *user << '\n';
+      });
+      markOpaque(root, offset, cudaq::quake::getVeqSize(veq));
+    }
+  }
+
+  void compute(func::FuncOp f) {
+    // 1. gather every ref and veq typed SSA value. Op results and block
+    // arguments are exhaustive.  An SSA value has no other origin.
+    // Set-vectors: `walk` visits the function op itself as well as its nested
+    // ops, so a plain vector would collect the entry block's arguments twice
+    // and the duplicate-location rule below would then blacklist every
+    // reference-typed function parameter.
+    SetVector<Value> refs;
+    SetVector<Value> veqs;
+    auto note = [&](Value v) {
+      if (isa<cudaq::quake::RefType>(v.getType()))
+        refs.insert(v);
+      else if (isa<cudaq::quake::VeqType>(v.getType()))
+        veqs.insert(v);
+    };
+    for (auto arg : f.getArguments())
+      note(arg);
+    f.walk([&](Operation *op) {
+      for (Value r : op->getResults())
+        note(r);
+      for (auto &region : op->getRegions())
+        for (auto &b : region)
+          for (auto arg : b.getArguments())
+            note(arg);
+    });
+
+    // 2. for each veq that is a root (not itself a view), scan its uses to
+    // build the set of memory-form access ranges.
+    for (Value veq : veqs) {
+      auto base = resolveVeqBase(veq);
+      if (!base || base->first != veq)
+        continue; // a view; scanned via its root
+      SmallPtrSet<Operation *, 8> visited;
+      scanVeqUses(veq, veq, 0, visited);
+    }
+
+    // 3. classify each ref. An unresolvable location, or a location covered by
+    // a memory-form access, means the ref stays in memory form.
+    for (Value ref : refs) {
+      auto loc = resolveRefLocation(ref);
+      if (!loc || isCovered(loc->first, loc->second)) {
+        blacklist.insert(ref);
+        continue;
+      }
+      locs[ref] = *loc;
+      refsAtLoc[*loc].push_back(ref);
+    }
+
+    // A location still named by more than one reference is one that
+    // deduplication could not merge (no single dominating reference). Tracking
+    // either of them independently would reintroduce the split-state bug, so
+    // leave the qubit in memory form.
+    for (auto &[loc, refsHere] : refsAtLoc)
+      if (refsHere.size() > 1)
+        for (Value r : refsHere) {
+          blacklist.insert(r);
+          locs.erase(r);
+        }
+  }
+
+  DenseSet<Value> blacklist;
+  DenseMap<Value, QubitLoc> locs;
+  DenseMap<QubitLoc, SmallVector<Value, 2>> refsAtLoc;
+  /// Per root, the element ranges reached in memory form.
+  DenseMap<Value, SmallVector<std::pair<std::size_t, std::size_t>, 2>> opaque;
+};
+} // namespace
+
 namespace {
 /// For operations that contain Regions, a data-flow analysis is done over all
 /// the Regions in the Op to determine the use-def information for scalar memory
@@ -211,6 +552,15 @@ public:
   using SSAReg = Value; // A value that is an SSA virtual register.
 
   explicit RegionDataFlow(Operation *op) {
+    // Snapshot every block's argument count as it stood before this function
+    // does anything. This may run any number of times, so whatever arguments
+    // preexisted must stay exactly where they are; only arguments we add here
+    // are free to be reordered for cross-region consistency (see
+    // canonicalizeArgumentOrder).
+    for (auto &region : op->getRegions())
+      for (auto &b : region)
+        originalArgCount[&b] = b.getNumArguments();
+
     // Stitch together the control-flow across op's regions.
     SmallPtrSet<Block *, 2> entryBlocks;
     SmallPtrSet<Block *, 2> exitBlocks;
@@ -228,13 +578,17 @@ public:
         for (auto &b : region)
           if (b.hasNoSuccessors())
             regionExitBlocks.push_back(&b);
-        auto *terminator = region.back().getTerminator();
-        if (auto terminatorOp =
-                dyn_cast<RegionBranchTerminatorOpInterface>(terminator))
-          regionOp.getSuccessorRegions(terminatorOp, successors);
-        // Every region has exactly one entry and one or more exits.
-        for (auto *b : regionExitBlocks)
-          for (auto iter : successors) {
+        for (auto *b : regionExitBlocks) {
+          auto *terminator = b->getTerminator();
+          SmallVector<RegionSuccessor> blockSuccessors;
+          if (auto terminatorOp =
+                  dyn_cast<RegionBranchTerminatorOpInterface>(terminator))
+            regionOp.getSuccessorRegions(terminatorOp, blockSuccessors);
+          if (blockSuccessors.empty()) {
+            exitBlocks.insert(b);
+            continue;
+          }
+          for (auto iter : blockSuccessors) {
             auto *succ = iter.getSuccessor();
             if (succ) {
               auto *s = &succ->front();
@@ -243,6 +597,7 @@ public:
               exitBlocks.insert(b);
             }
           }
+        }
       }
     } else {
       for (auto &region : op->getRegions())
@@ -297,7 +652,7 @@ public:
   void addBlock(Block *block) {
     assert(block);
     if (!rMap.count(block)) {
-      rMap.insert({block, DenseMap<MemRef, SSAReg>{}});
+      rMap.insert({block, llvm::MapVector<MemRef, SSAReg>{}});
       liveInMap.insert({block, llvm::MapVector<MemRef, SSAReg>{}});
     }
   }
@@ -419,11 +774,168 @@ public:
       }
 
     LLVM_DEBUG(
-        std::for_each(result.begin() + offset, result.end(), [](MemRef mr) {
-          if (!mr)
-            llvm::dbgs() << "block argument value must be present\n";
-        }));
+        if (std::distance(result.begin(), result.end()) > offset)
+            std::for_each(result.begin() + offset, result.end(), [](MemRef mr) {
+              if (!mr)
+                llvm::dbgs() << "block argument value must be present\n";
+            }));
     return offset;
+  }
+
+  // After the initial per-region scan, each region of a multi-region parent
+  // has independently assigned its own block arguments to whatever memrefs it
+  // locally references. A region-branch terminator forwards a single operand
+  // list across regions that must agree on slot order. Just select a region as
+  // the canonical and physically permute every other region's block arguments
+  // to match it, remapping their uses accordingly.
+  void canonicalizeArgumentOrder(Operation *parent) {
+    if (entryCFG.empty())
+      return;
+    const bool noRegionArguments = neverTakesRegionArguments(parent);
+    if (noRegionArguments)
+      return;
+    const bool onlyLinearTypes = onlyTakesLinearTypeArguments(parent);
+
+    // Build a canonical order for the whole of the op's regions.
+    SmallVector<MemRef> canonicalOrder;
+    DenseSet<MemRef> seen;
+    auto addFromBlock = [&](Block *block) {
+      SmallVector<MemRef> order(block->getNumArguments(), MemRef{});
+      getLiveInToBlock(order, block);
+      for (auto mr : order)
+        if (mr && seen.insert(mr).second)
+          canonicalOrder.push_back(mr);
+    };
+    addFromBlock(entryCFG.front());
+    for (auto &region : parent->getRegions()) {
+      if (region.empty())
+        continue;
+      Block *block = &region.front();
+      if (block != entryCFG.front())
+        addFromBlock(block);
+    }
+    for (auto mr : liveOutSet)
+      if (seen.insert(mr).second)
+        canonicalOrder.push_back(mr);
+    if (onlyLinearTypes)
+      llvm::erase_if(canonicalOrder, [](MemRef mr) {
+        return !cudaq::quake::isQuantumReferenceType(mr.getType());
+      });
+    if (canonicalOrder.empty())
+      return;
+
+    LLVM_DEBUG(llvm::dbgs() << "canonicalizeArgumentOrder: canonicalOrder=[";
+               for (auto mr : canonicalOrder) mr.dump(); llvm::dbgs() << "]\n");
+    for (auto &region : parent->getRegions()) {
+      if (!region.empty())
+        unifyBlockArguments(&region.front(), canonicalOrder);
+    }
+    reorderLiveOut(canonicalOrder, onlyLinearTypes);
+  }
+
+  // The live-out set fixes the parent's appended result order and the operand
+  // order of every exit terminator, both of which must agree with the block
+  // arguments just canonicalized. Permute it to match canonicalOrder. memrefs
+  // with no block argument (classical ones, under LinearTypeArgs) keep their
+  // relative order and follow.
+  void reorderLiveOut(ArrayRef<MemRef> canonicalOrder, bool onlyLinearTypes) {
+    if (liveOutSet.empty())
+      return;
+    DenseMap<MemRef, unsigned> canonicalPos;
+    for (auto [i, mr] : llvm::enumerate(canonicalOrder))
+      canonicalPos[mr] = i;
+    SmallVector<MemRef> ordered(liveOutSet.begin(), liveOutSet.end());
+    llvm::stable_sort(ordered, [&](MemRef a, MemRef b) {
+      auto ai = canonicalPos.find(a);
+      auto bi = canonicalPos.find(b);
+      bool aKnown = ai != canonicalPos.end();
+      bool bKnown = bi != canonicalPos.end();
+      if (aKnown != bKnown)
+        return aKnown;
+      return aKnown && ai->second < bi->second;
+    });
+    liveOutSet.clear();
+    for (auto mr : ordered)
+      liveOutSet.insert(mr);
+
+    // Rebuild liveInArgs, which was built from liveOutSet's previous order.
+    liveInArgs.clear();
+    for (auto liveOut : liveOutSet) {
+      assert(promotedDefs.count(liveOut));
+      if (onlyLinearTypes && !isLinearType(promotedDefs[liveOut]))
+        continue;
+      liveInArgs.push_back(promotedDefs[liveOut]);
+    }
+  }
+
+  // Ensure block arguments are in a canonicalOrder.
+  void unifyBlockArguments(Block *block, ArrayRef<MemRef> canonicalOrder) {
+    unsigned prefix = originalArgCount.lookup(block);
+    SmallVector<MemRef> order(block->getNumArguments(), MemRef{});
+    getLiveInToBlock(order, block);
+
+    if (order.size() - prefix == canonicalOrder.size()) {
+      bool identity = true;
+      for (unsigned i = 0; i < canonicalOrder.size(); ++i)
+        if (order[prefix + i] != canonicalOrder[i]) {
+          identity = false;
+          break;
+        }
+      if (identity)
+        return;
+    }
+
+    DenseMap<MemRef, unsigned> canonicalPos;
+    for (auto [i, mr] : llvm::enumerate(canonicalOrder))
+      canonicalPos[mr] = i;
+
+    unsigned oldCount = block->getNumArguments();
+    SmallVector<BlockArgument> newArgs;
+    for (auto mr : canonicalOrder)
+      newArgs.push_back(
+          block->addArgument(dereferencedType(mr.getType()), mr.getLoc()));
+
+    // Map each of block's current suffix arguments (added before this pass
+    // touched anything vs. this pass's own earlier additions -- either way,
+    // about to be erased) to the new argument replacing it.
+    DenseMap<Value, Value> oldToNew;
+    for (unsigned i = prefix; i < oldCount; ++i) {
+      MemRef mr = order[i];
+      if (!mr)
+        continue;
+      auto it = canonicalPos.find(mr);
+      assert(it != canonicalPos.end() &&
+             "canonicalOrder must be a superset of every region's own order");
+      oldToNew[block->getArgument(i)] = newArgs[it->second];
+    }
+
+    // RAUW every real IR use of an old suffix argument.
+    for (auto [oldVal, newVal] : oldToNew)
+      oldVal.replaceAllUsesWith(newVal);
+
+    // A different memref's binding may itself alias one of these old arguments,
+    // because its genuinely correct value happens to equal one.
+    if (rMap.count(block))
+      for (auto &[mr, val] : rMap[block])
+        if (auto it = oldToNew.find(val); it != oldToNew.end())
+          val = it->second;
+    if (liveInMap.count(block))
+      for (auto &[mr, val] : liveInMap[block])
+        if (auto it = oldToNew.find(val); it != oldToNew.end())
+          val = it->second;
+
+    block->eraseArguments(prefix, oldCount - prefix);
+
+    // Establish liveInMap/rMap for every canonical memref at its new
+    // position, including ones block never referenced before (the
+    // pass-through case: its own value, for the duration of this block, is
+    // simply whatever comes in).
+    for (unsigned i = 0; i < canonicalOrder.size(); ++i) {
+      MemRef mr = canonicalOrder[i];
+      liveInMap[block][mr] = newArgs[i];
+      if (!rMap.count(block) || !rMap[block].count(mr))
+        rMap[block][mr] = newArgs[i];
+    }
   }
 
   std::optional<SSAReg> hasLiveInToBlock(Block *block, MemRef mr) {
@@ -437,10 +949,10 @@ public:
     return {};
   }
 
-  /// Promote the memory dereference \p memuse to immediately before the parent
-  /// operation. This allows uses within the regions of the parent to use the
-  /// new dominating dereference. These will be converted to live-in arguments
-  /// if the op takes region arguments.
+  // Promote the memory dereference \p memuse to immediately before the parent
+  // operation. This allows uses within the regions of the parent to use the
+  // new dominating dereference. These will be converted to live-in arguments
+  // if the op takes region arguments.
   SSAReg createPromotedValue(Operation *parent, Value memref) {
     if (promotedDefs.count(memref))
       return promotedDefs[memref];
@@ -462,21 +974,24 @@ public:
     return result;
   }
 
-  /// If \p parent takes region arguments, convert the live-out parent results
-  /// to live-in parent arguments. Convert the promoted loads to parent op
-  /// arguments. Replace any uses of the promoted loads to uses of block
-  /// arguments and insert modified blocks and their preds on the worklist.
+  /// Convert the promoted loads for live-out values to block arguments and
+  /// insert modified blocks and their predecessors on the worklist. If \p
+  /// parent takes region arguments, also pass those loads as parent operands.
+  /// Otherwise its region entries capture the promoted loads directly while
+  /// internal CFG blocks continue to receive block arguments.
   void updatePromotedDefs(Operation *parent, std::deque<Block *> &worklist) {
-    if (liveOutSet.empty() || neverTakesRegionArguments(parent))
+    if (liveOutSet.empty())
       return;
+    const bool noRegionArguments = neverTakesRegionArguments(parent);
     const bool onlyLinearTypes = onlyTakesLinearTypeArguments(parent);
     assert(liveInArgs.empty() && "parent's live-in args should not be set");
-    for (auto liveOut : liveOutSet) {
-      assert(promotedDefs.count(liveOut));
-      if (onlyLinearTypes && !isLinearType(promotedDefs[liveOut]))
-        continue;
-      liveInArgs.push_back(promotedDefs[liveOut]);
-    }
+    if (!noRegionArguments)
+      for (auto liveOut : liveOutSet) {
+        assert(promotedDefs.count(liveOut));
+        if (onlyLinearTypes && !isLinearType(promotedDefs[liveOut]))
+          continue;
+        liveInArgs.push_back(promotedDefs[liveOut]);
+      }
     // Phase 1: In one pass, collect unique blocks and snapshot (user, block)
     // pairs per def. Snapshotting here avoids re-traversing promotedDefs and
     // re-calling findParentBlock in phase 3.
@@ -502,8 +1017,23 @@ public:
     // a binding for memref to the promoted load value. That binding will be
     // overwritten.
     for (auto *block : blockSet) {
+      // NoRegionArguments applies to physical region entry blocks, not to
+      // internal CFG blocks. Entry blocks capture the dominating promoted
+      // values directly; internal blocks still need arguments to thread defs
+      // from their predecessors.
+      if (noRegionArguments && block->isEntryBlock())
+        continue;
       for (auto memref : liveOutSet) {
         if (onlyLinearTypes && !isLinearType(promotedDefs[memref]))
+          continue;
+        // block landed in blockSet because some memref's promoted value has
+        // a user here. If this memref was already threaded into block as a
+        // genuine live-in, it must be left alone: the "unsafe" call below
+        // always appends a fresh argument, so calling it again here would leave
+        // that first, already-live argument orphaned (unused, uncounted)
+        // instead of overwriting it.
+        if (auto it = liveInMap[block].find(memref);
+            it != liveInMap[block].end() && it->second != promotedDefs[memref])
           continue;
         unsafeAddLiveInToBlock(block, memref);
       }
@@ -565,8 +1095,11 @@ private:
   }
 
   /// A map for each block to its bindings from a memory reference to a
-  /// virtual register value.
-  DenseMap<Block *, DenseMap<MemRef, SSAReg>> rMap;
+  /// virtual register value. Insertion-order-preserving so that ops emitted
+  /// while iterating a block's bindings come out in a deterministic order
+  /// instead of DenseMap's pointer-hash
+  /// bucket order, which varies run to run.
+  DenseMap<Block *, llvm::MapVector<MemRef, SSAReg>> rMap;
   /// For a CFG, maintain a distinct map for each block of the definitions
   /// that are live-in to each block.
   DenseMap<Block *, llvm::MapVector<MemRef, SSAReg>> liveInMap;
@@ -584,6 +1117,10 @@ private:
   /// regions and thus must be returned as results. The parent cannot be a
   /// function.
   SetVector<MemRef> liveOutSet;
+
+  /// Each block's argument count as it stood before this pass added
+  /// anything -- see the RegionDataFlow constructor.
+  DenseMap<Block *, unsigned> originalArgCount;
 
   SmallVector<Block *> entryCFG;
   SmallVector<Block *> exitCFG;
@@ -626,6 +1163,41 @@ public:
     assert(isa<cudaq::quake::RefType>(opnd.getType()));
     Value target = cudaq::quake::UnwrapOp::create(rewriter, loc, wireTy, opnd);
     rewriter.replaceOpWithNewOp<cudaq::quake::SinkOp>(op, target);
+    return success();
+  }
+};
+
+/// The evince operation is also an oddball like the reset operation.
+class EvinceOpPattern : public OpRewritePattern<cudaq::quake::EvinceOp> {
+public:
+  using OpRewritePattern::OpRewritePattern;
+
+  LogicalResult matchAndRewrite(cudaq::quake::EvinceOp op,
+                                PatternRewriter &rewriter) const override {
+    auto loc = op.getLoc();
+    auto wireTy = cudaq::quake::WireType::get(rewriter.getContext());
+    auto qrefTy = cudaq::quake::RefType::get(rewriter.getContext());
+
+    SmallVector<Value> refArgs;
+    SmallVector<Value> newArgs;
+    for (Value arg : op.getArgs()) {
+      if (arg.getType() == qrefTy) {
+        Value wire = cudaq::quake::UnwrapOp::create(rewriter, loc, wireTy, arg);
+        newArgs.push_back(wire);
+        refArgs.push_back(arg);
+      } else {
+        newArgs.push_back(arg);
+      }
+    }
+
+    auto newOp = cudaq::quake::EvinceOp::create(rewriter, loc, newArgs);
+    for (auto namedAttr : op->getAttrs())
+      newOp->setAttr(namedAttr.getName(), namedAttr.getValue());
+
+    for (auto [ref, wireResult] : llvm::zip(refArgs, newOp.getOuts()))
+      cudaq::quake::WrapOp::create(rewriter, loc, wireResult, ref);
+
+    rewriter.eraseOp(op);
     return success();
   }
 };
@@ -767,10 +1339,22 @@ public:
       return;
 
     // 2) Convert load/store memory ops to value form.
+    // Merge references naming the same qubit before anything keys a binding
+    // on one of them. This is what makes the pass independent of whether CSE
+    // ran ahead of it.
+    if (quantumValues)
+      dedupQuantumRefs(func);
+
     MemoryAnalysis memAnalysis(func);
+    // Decide up front which qubits may be promoted. Everything the analysis
+    // cannot prove is reached through exactly one reference is left in memory
+    // form.
+    QuantumRefAnalysis refAnalysis(func);
+    numBlacklistedRefs += refAnalysis.numBlacklisted();
+    numPromotedLocations += refAnalysis.numLocations();
     SmallPtrSet<Operation *, 4> cleanUps;
     std::optional<DominanceInfo> domOpt;
-    processOpWithRegions(func, memAnalysis, cleanUps, domOpt);
+    processOpWithRegions(func, memAnalysis, refAnalysis, cleanUps, domOpt);
 
     // 3) Cleanup the dead ops. Make sure to delay erasing wrap ops since they
     // may still have uses.
@@ -803,13 +1387,15 @@ public:
   }
 
   void handleSubRegions(Operation *parent, const MemoryAnalysis &memAnalysis,
+                        const QuantumRefAnalysis &refAnalysis,
                         SmallPtrSetImpl<Operation *> &cleanUps,
                         std::optional<DominanceInfo> &domOpt) {
     for (auto &region : parent->getRegions())
       for (auto &block : region)
         for (auto &op : block)
           if (op.getNumRegions())
-            processOpWithRegions(&op, memAnalysis, cleanUps, domOpt);
+            processOpWithRegions(&op, memAnalysis, refAnalysis, cleanUps,
+                                 domOpt);
   }
 
   /// Process the operation \p parent, which must contain regions, and derive
@@ -820,10 +1406,16 @@ public:
   /// successor blocks. (It is not possible to construct a \em fully pruned SSA
   /// IR in the MLIR design of Ops with Regions as both exits and backedges must
   /// have the exact same signatures regardless of liveness.)
-  void processOpWithRegions(Operation *parent,
-                            const MemoryAnalysis &memAnalysis,
-                            SmallPtrSetImpl<Operation *> &cleanUps,
-                            std::optional<DominanceInfo> &domOpt) {
+  ///
+  /// Returns the operation that should be treated as \p parent's identity
+  /// from here on: \p parent itself, unless it had live-outs that required
+  /// rebuilding it with extra results, in which case the newly built
+  /// replacement is returned instead.
+  Operation *processOpWithRegions(Operation *parent,
+                                  const MemoryAnalysis &memAnalysis,
+                                  const QuantumRefAnalysis &refAnalysis,
+                                  SmallPtrSetImpl<Operation *> &cleanUps,
+                                  std::optional<DominanceInfo> &domOpt) {
     ++numProcessOpWithRegionsCalls;
     auto *ctx = &getContext();
     auto wireTy = cudaq::quake::WireType::get(ctx);
@@ -841,10 +1433,19 @@ public:
       }
     }
 
+    // Precompute, once, every memref that's the target of a cc.store
+    // anywhere within `parent`'s regions. `handleUse` (below) needs this to
+    // decide whether an external-scope load requires cross-region live-in
+    // threading.
+    DenseSet<Value> writtenWithinParent;
+    parent->walk([&](cudaq::cc::StoreOp store) {
+      writtenWithinParent.insert(store.getPtrvalue());
+    });
+
     // 1. If any operations held by the blocks of \p parent contain regions,
     // recursively process those operations. This establishes the value
     // semantics interface for these macro ops.
-    handleSubRegions(parent, memAnalysis, cleanUps, domOpt);
+    handleSubRegions(parent, memAnalysis, refAnalysis, cleanUps, domOpt);
 
     // 2. Traverse each basic block threading the defs to their uses. This will
     // construct the liveIn and liveOut maps for each block. If parent is not a
@@ -861,7 +1462,7 @@ public:
         // into the function, promote them to wire values immediately.
         if (quantumValues && isFunctionEntryBlock(block)) {
           for (auto arg : block->getArguments()) {
-            if (arg.getType() == qrefTy) {
+            if (arg.getType() == qrefTy && !refAnalysis.isBlacklisted(arg)) {
               OpBuilder builder(ctx);
               builder.setInsertionPointToStart(block);
               Value v = cudaq::quake::UnwrapOp::create(builder, arg.getLoc(),
@@ -880,6 +1481,13 @@ public:
           // reference to get the wire.
           if (opResultOfType(op, qrefTy)) {
             if (!quantumValues)
+              continue;
+            // A blacklisted result names a qubit that is also reached through
+            // memory, so it must stay in reference form: leave the op and its
+            // unwrap/wrap pairs exactly as they are.
+            if (llvm::any_of(op->getResults(), [&](Value r) {
+                  return r.getType() == qrefTy && refAnalysis.isBlacklisted(r);
+                }))
               continue;
             // If this op defines a quantum reference, record it in the maps.
             if (auto alloc = dyn_cast<cudaq::quake::AllocaOp>(op);
@@ -901,14 +1509,34 @@ public:
             } else {
               OpBuilder builder(ctx);
               builder.setInsertionPoint(op);
+              // Track (memref, freshRef) pairs so the wires captured by op's
+              // ref-typed operands can be reclaimed with an unwrap placed
+              // after op.
+              SmallVector<std::pair<Value, Value>> toReclaim;
               for (auto v : op->getOperands())
                 if (v.getType() == qrefTy)
                   if (auto vBinding = dataFlow.lookupBinding(block, v)) {
-                    cudaq::quake::WrapOp::create(builder, op->getLoc(),
-                                                 vBinding, v);
-                    dataFlow.cancelBinding(block, v);
+                    // v may be an alloca-promoted ref that is about to be
+                    // erased, so op cannot keep using it directly. Bind the
+                    // current wire to a fresh reference for op to consume
+                    // (see quake.wrap_new) and reclaim the wire with an
+                    // unwrap placed after op.
+                    auto newRef = cudaq::quake::WrapNewOp::create(
+                        builder, op->getLoc(), qrefTy, vBinding);
+                    op->replaceUsesOfWith(v, newRef);
+                    toReclaim.emplace_back(v, newRef);
                   }
               builder.setInsertionPointAfter(op);
+              for (auto [v, newRef] : toReclaim) {
+                Value newWire = cudaq::quake::UnwrapOp::create(
+                    builder, op->getLoc(), wireTy, newRef);
+                dataFlow.addBinding(block, v, newWire);
+                // This unwrap's own ref operand is newRef, not v: bind it
+                // too so the walk loop's own re-visit of this synthetic
+                // unwrap (below) resolves to a known def instead of
+                // reporting a spurious "use before def".
+                dataFlow.addBinding(block, newRef, newWire);
+              }
               for (auto r : op->getResults())
                 if (r.getType() == qrefTy) {
                   Value v = cudaq::quake::UnwrapOp::create(
@@ -971,7 +1599,7 @@ public:
             if (isFunctionEntryBlock(block)) {
               // This is a function's entry block. This use can't come before a
               // def in a valid program. Raise an error.
-              operRef.emitError("use before def in function");
+              operRef.emitError(DEBUG_TYPE ": use before def in function");
               signalPassFailure();
               return;
             }
@@ -979,11 +1607,28 @@ public:
             // Parent is not a function.
             if (!isDescendantOf(parent, memuse)) {
               // `block` is using a value from another scope.
-              // Create a promoted value that dominates parent.
-              auto newUseopVal = dataFlow.createPromotedValue(parent, memuse);
-              dataFlow.addBinding(block, memuse, newUseopVal);
-              dataFlow.addLiveInToBlock(block, memuse, newUseopVal);
-              useop.replaceAllUsesWith(newUseopVal);
+              //
+              // Normal path: memuse is live-in to `parent` from outside. If
+              // `parent` doesn't support real region arguments, or `memuse` is
+              // never written anywhere inside `parent`, fall back to a single
+              // promoted value reused everywhere. Otherwise thread it as a
+              // genuine live-in block argument instead, with no fixed value,
+              // and let the live-in/worklist machinery (steps 3-4) resolve the
+              // correct per-block value, including revisiting sibling regions
+              // when a later-discovered live-in requires it.
+              if (neverTakesRegionArguments(parent) ||
+                  (onlyTakesLinearTypeArguments(parent) &&
+                   !cudaq::quake::isQuantumReferenceType(memuse.getType())) ||
+                  !writtenWithinParent.contains(memuse)) {
+                auto newUseopVal = dataFlow.createPromotedValue(parent, memuse);
+                dataFlow.addBinding(block, memuse, newUseopVal);
+                dataFlow.addLiveInToBlock(block, memuse, newUseopVal);
+                useop.replaceAllUsesWith(newUseopVal);
+              } else {
+                auto newDef = dataFlow.addLiveInToBlock(block, memuse);
+                dataFlow.addBinding(block, memuse, newDef);
+                useop.replaceAllUsesWith(newDef);
+              }
               cleanUps.insert(useop);
               return;
             }
@@ -995,7 +1640,9 @@ public:
             cleanUps.insert(useop);
           };
           if (auto unwrap = dyn_cast<cudaq::quake::UnwrapOp>(op)) {
-            if (quantumValues)
+            // A load from a blacklisted reference stays a real load.
+            if (quantumValues &&
+                !refAnalysis.isBlacklisted(unwrap.getRefValue()))
               handleUse(unwrap, unwrap.getRefValue());
             continue;
           }
@@ -1026,7 +1673,8 @@ public:
             cleanUps.insert(defop);
           };
           if (auto wrap = dyn_cast<cudaq::quake::WrapOp>(op)) {
-            if (quantumValues)
+            // A store to a blacklisted reference stays a real store.
+            if (quantumValues && !refAnalysis.isBlacklisted(wrap.getRefValue()))
               handleDefinition(wrap, wrap.getWireValue(), wrap.getRefValue());
             continue;
           }
@@ -1043,15 +1691,36 @@ public:
           }
 
           // If op uses a quantum reference, then halt forwarding the unwrap
-          // use chain and leave a wrap dominating op.
-          for (auto v : op->getOperands())
-            if (v.getType() == qrefTy)
-              if (auto vBinding = dataFlow.lookupBinding(block, v)) {
-                OpBuilder builder(op);
-                cudaq::quake::WrapOp::create(builder, op->getLoc(), vBinding,
-                                             v);
-                dataFlow.cancelBinding(block, v);
+          // use chain and leave a wrap dominating op. Since v may be an
+          // alloca-promoted ref that is about to be erased, op cannot keep
+          // using it directly: bind the current wire to a fresh reference
+          // for op to consume (see quake.wrap_new) and reclaim the wire
+          // with an unwrap placed after op.
+          {
+            SmallVector<std::pair<Value, Value>> toReclaim;
+            OpBuilder builder(op);
+            for (auto v : op->getOperands())
+              if (v.getType() == qrefTy)
+                if (auto vBinding = dataFlow.lookupBinding(block, v)) {
+                  auto newRef = cudaq::quake::WrapNewOp::create(
+                      builder, op->getLoc(), qrefTy, vBinding);
+                  op->replaceUsesOfWith(v, newRef);
+                  toReclaim.emplace_back(v, newRef);
+                }
+            if (!toReclaim.empty()) {
+              builder.setInsertionPointAfter(op);
+              for (auto [v, newRef] : toReclaim) {
+                Value newWire = cudaq::quake::UnwrapOp::create(
+                    builder, op->getLoc(), wireTy, newRef);
+                dataFlow.addBinding(block, v, newWire);
+                // This unwrap's own ref operand is newRef, not v: bind it
+                // too so the walk loop's own re-visit of this synthetic
+                // unwrap (below) resolves to a known def instead of
+                // reporting a spurious "use before def".
+                dataFlow.addBinding(block, newRef, newWire);
               }
+            }
+          }
 
         } // end loop over ops
       } // end loop over blocks
@@ -1067,6 +1736,16 @@ public:
     // arguments, construct a list of live-in region arguments to add to the new
     // parent and replace uses of promoted defs with block arguments.
     dataFlow.updatePromotedDefs(parent, worklist);
+
+    // 3.5. Steps 2 and 3 each independently assigned block arguments to
+    // whatever regions needed them (region-local uses in step 2; the
+    // liveOutSet-ordered sweep across every block that references a
+    // promoted def in step 3) -- with no coordination between regions. But a
+    // region-branch terminator forwards a single operand list across regions
+    // that must agree on slot order. Bring every region's argument order in
+    // line with the entry region's order now that all such arguments have been
+    // created.
+    dataFlow.canonicalizeArgumentOrder(parent);
 
     LLVM_DEBUG({
       llvm::dbgs() << "After fixing up promoted loads:\n"
@@ -1125,8 +1804,11 @@ public:
               worklist.push_back(succ);
               auto sigma = dataFlow.maybeAddLiveInToBlock(succ, liveOut);
               OpBuilder builder(&succ->front());
-              cudaq::quake::WrapOp::create(builder, term->getLoc(), sigma,
-                                           liveOut);
+              auto sigmaWrap = cudaq::quake::WrapOp::create(
+                  builder, term->getLoc(), sigma, liveOut);
+              // liveOut (the ref) may itself be dead and already destined
+              // for cleanUps
+              cleanUps.insert(sigmaWrap);
             }
           }
         }
@@ -1168,6 +1850,15 @@ public:
           dataFlow.addBinding(block, liveOut, newVal);
           addTerminatorArgument(term, target, newVal, liveOut);
         } else {
+          // Cannot live-in a value from the ether. Give an error.
+          if (isFunctionEntryBlock(block) &&
+              !dataFlow.hasLiveInToBlock(block, liveOut)) {
+            emitError(term->getLoc(), DEBUG_TYPE
+                      ": cannot promote a value that would require threading a "
+                      "new live-in past the function entry block");
+            signalPassFailure();
+            return;
+          }
           auto newArg = dataFlow.maybeAddLiveInToBlock(block, liveOut);
           addTerminatorArgument(term, target, newArg, liveOut);
         }
@@ -1253,6 +1944,7 @@ public:
 
     LLVM_DEBUG(llvm::dbgs() << "After threading inter-block:\n"
                             << *parent << "\n\n");
+    return parent;
   }
 
   LogicalResult preconditionChecks() {
@@ -1276,15 +1968,19 @@ public:
     auto func = getOperation();
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
-    patterns.insert<WRAPPER_QUANTUM_OPS, ResetOpPattern, DeallocOpPattern>(ctx);
+    patterns.insert<WRAPPER_QUANTUM_OPS, ResetOpPattern, DeallocOpPattern,
+                    EvinceOpPattern>(ctx);
     ConversionTarget target(*ctx);
-    target.addDynamicallyLegalOp<RAW_QUANTUM_OPS, cudaq::quake::ResetOp,
-                                 cudaq::quake::DeallocOp>(
-        [](Operation *op) { return !cudaq::quake::hasNonVectorReference(op); });
+    target
+        .addDynamicallyLegalOp<RAW_QUANTUM_OPS, cudaq::quake::ResetOp,
+                               cudaq::quake::DeallocOp, cudaq::quake::EvinceOp>(
+            [](Operation *op) {
+              return !cudaq::quake::hasNonVectorReference(op);
+            });
     target.addLegalOp<cudaq::quake::UnwrapOp, cudaq::quake::WrapOp,
                       cudaq::quake::NullWireOp, cudaq::quake::SinkOp>();
     if (failed(applyPartialConversion(func, target, std::move(patterns)))) {
-      emitError(func.getLoc(), "error converting to QLS form\n");
+      emitError(func.getLoc(), DEBUG_TYPE ": error converting to QLS form\n");
       signalPassFailure();
       return failure();
     }

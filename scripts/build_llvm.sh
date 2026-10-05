@@ -168,7 +168,7 @@ if [ -z "${llvm_projects##*openmp;*}" ]; then
 fi
 if [ -z "${llvm_projects##*mlir;*}" ]; then
   echo "- including MLIR components"
-  llvm_components+="mlir-cmake-exports;mlir-headers;mlir-libraries;mlir-tblgen;"
+  llvm_components+="mlir-cmake-exports;mlir-headers;mlir-libraries;mlir-tblgen;mlir-translate;"
   projects=("${projects[@]/mlir}")
   if [ "$mlir_python_bindings" == "ON" ]; then
     echo "- including MLIR Python bindings"
@@ -184,7 +184,7 @@ fi
 echo "- including general tools and components"
 llvm_components+="cmake-exports;llvm-headers;llvm-libraries;"
 llvm_components+="llvm-config;llc;llvm-ar;llvm-as;llvm-nm;llvm-symbolizer;llvm-profdata;llvm-cov;"
-llvm_components+="FileCheck;count;not;"
+llvm_components+="FileCheck;count;not;split-file;"
 
 if [ "$(echo ${projects[@]} | xargs)" != "" ]; then
   echo "- including additional project(s) "$(echo "${projects[*]}" | xargs | tr ' ' ',')

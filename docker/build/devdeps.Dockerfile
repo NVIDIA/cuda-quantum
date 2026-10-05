@@ -88,7 +88,9 @@ RUN cd /cuda-quantum && git init && \
 ## [Dev Dependencies]
 RUN if [ "$(uname -m)" == "x86_64" ]; then \
     # Pre-built binaries for doxygen are (only) available for x86_64.
-    wget https://www.doxygen.nl/files/doxygen-1.9.7.linux.bin.tar.gz && \
+    # Downloaded from the GitHub release rather than doxygen.nl, since the
+    # latter only hosts the files for the most recent release.
+    wget https://github.com/doxygen/doxygen/releases/download/Release_1_9_7/doxygen-1.9.7.linux.bin.tar.gz && \
     tar xf doxygen-1.9.7* && mv doxygen-1.9.7/bin/* /usr/local/bin/ && rm -rf doxygen-1.9.7*; \
     else \
     apt-get update && apt-get install -y --no-install-recommends make cmake flex bison g++ && \
@@ -103,6 +105,7 @@ RUN if [ "$(uname -m)" == "x86_64" ]; then \
 ## [Source Dependencies]
 ADD scripts/bootstrap_prerequisites.sh /cuda-quantum/scripts/bootstrap_prerequisites.sh
 ADD scripts/install_prerequisites.sh /cuda-quantum/scripts/install_prerequisites.sh
+ADD scripts/prereqs_common.sh /cuda-quantum/scripts/prereqs_common.sh
 ADD scripts/set_env_defaults.sh /cuda-quantum/scripts/set_env_defaults.sh
 RUN if [ "$toolchain" = "llvm" ]; then \
     export LLVM_PROJECTS='clang;flang;lld;mlir;python-bindings;compiler-rt' && \

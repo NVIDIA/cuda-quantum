@@ -6,7 +6,6 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 target_sources(cudaq-rest-qpu PRIVATE HorizonServerHelper.cpp)
-add_target_config(horizon)
 
 add_library(cudaq-serverhelper-horizon SHARED HorizonServerHelper.cpp )
 target_link_libraries(cudaq-serverhelper-horizon

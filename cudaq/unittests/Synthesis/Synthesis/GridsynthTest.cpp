@@ -8,9 +8,15 @@
 
 #include <gtest/gtest.h>
 
+#include <atomic>
 #include <cmath>
+#include <cstdint>
+#include <optional>
 #include <string>
+#include <thread>
+#include <vector>
 
+#include "Math/Diophantine.h"
 #include "cudaq/Synthesis/Math/Real.h"
 #include "cudaq/Synthesis/Math/Unitary.h"
 #include "cudaq/Synthesis/Synthesis/Gridsynth.h"
@@ -30,6 +36,20 @@ using cudaq::synth::Real;
 static int t_count_upper_bound(double epsilon) {
   return static_cast<int>(std::ceil(4.0 * std::log2(1.0 / epsilon))) + 20;
 }
+
+// Restores the default precision on scope exit so a test that raises it
+// cannot leak the change into the rest of the suite.
+class ScopedPrecision {
+public:
+  explicit ScopedPrecision(mpfr_prec_t prec)
+      : saved_(Real::get_default_precision()) {
+    Real::set_default_precision(prec);
+  }
+  ~ScopedPrecision() { Real::set_default_precision(saved_); }
+
+private:
+  mpfr_prec_t saved_;
+};
 
 // ============================================================
 // Parametrized accuracy test
@@ -284,6 +304,295 @@ TEST(GridsynthZeroTTest, QuarterTurnsAreZeroTAtTightEpsilon) {
   }
 }
 
+// ============================================================
+// Statistics
+// ============================================================
+
+// π/53 at this tolerance is sensitive to the factoring stream: different
+// seeds return different (equally valid) circuits, which is what makes it
+// usable as a probe of the RNG state.
+static constexpr const char *kSeedSensitiveTheta =
+    "0.0592753330865998724238234600618774129093805547051906758674517847";
+static constexpr const char *kSeedSensitiveEpsilon = "1e-20";
+
+using cudaq::synth::GridsynthOutcome;
+using cudaq::synth::GridsynthStats;
+
+static GridsynthStats stats_for(const char *theta, const char *epsilon) {
+  GridsynthStats stats;
+  llvm::FailureOr<Circuit> ignored =
+      cudaq::synth::gridsynth(Real(theta), Real(epsilon), {}, &stats);
+  (void)ignored;
+  return stats;
+}
+
+TEST(GridsynthStatsTest, CountsTheWorkOfASuccessfulSearch) {
+  GridsynthStats stats = stats_for(kSeedSensitiveTheta, "1e-15");
+
+  EXPECT_EQ(stats.outcome, GridsynthOutcome::Success);
+  EXPECT_GT(stats.candidates_enumerated, 0);
+  EXPECT_GT(stats.diophantine_calls, 0);
+  EXPECT_EQ(stats.diophantine_successes, 1)
+      << "the search returns on the first solvable candidate";
+  EXPECT_LE(stats.k_reached, stats.k_max);
+
+  // Every enumerated candidate is either dropped by the residue gate or
+  // handed to the solver; nothing else consumes one.
+  EXPECT_EQ(stats.candidates_enumerated,
+            stats.candidates_residue_rejected + stats.diophantine_calls);
+}
+
+TEST(GridsynthStatsTest, SplitsTimeBetweenEnumerationAndSolving) {
+  GridsynthStats stats = stats_for(kSeedSensitiveTheta, "1e-15");
+
+  ASSERT_EQ(stats.outcome, GridsynthOutcome::Success);
+  EXPECT_GT(stats.working_precision_bits, 0);
+  EXPECT_GT(stats.enumeration_ns, 0);
+  EXPECT_GT(stats.diophantine_ns, 0);
+}
+
+TEST(GridsynthStatsTest, CountsFactoringWork) {
+  GridsynthStats stats = stats_for(kSeedSensitiveTheta, "1e-15");
+
+  ASSERT_EQ(stats.outcome, GridsynthOutcome::Success);
+  EXPECT_GT(stats.factoring_calls, 0);
+  EXPECT_LE(stats.factoring_successes, stats.factoring_calls);
+  EXPECT_GE(stats.factoring_restarts, 0);
+  // Rho iterations are the machine-independent measure of effort, so they
+  // must be attributed even when an attempt fails to split its input.
+  EXPECT_GT(stats.factoring_iterations_total, 0);
+}
+
+// The factoring budget is an iteration count, not a duration, so a run must
+// not depend on host speed. With no timeout set there is no clock in the
+// search at all, and the rho-iteration total has to come out identical.
+TEST(GridsynthDeterminismTest, WallClockDoesNotDecideTheOutcome) {
+  // Deep enough for real factoring work, and where the wall clock used to
+  // fire back when it was the terminating condition.
+  const char *epsilon = "1e-25";
+  ScopedPrecision precision(
+      cudaq::synth::details::required_precision(Real(epsilon)));
+
+  auto synthesize = [&](GridsynthStats &stats) {
+    cudaq::synth::GridsynthOptions options;
+    options.seed = uint64_t{4242};
+    llvm::FailureOr<Circuit> result = cudaq::synth::gridsynth(
+        Real(kSeedSensitiveTheta), Real(epsilon), options, &stats);
+    EXPECT_TRUE(llvm::succeeded(result));
+    return llvm::succeeded(result) ? result->to_string() : std::string();
+  };
+
+  GridsynthStats first_stats, second_stats;
+  std::string first = synthesize(first_stats);
+  std::string second = synthesize(second_stats);
+
+  EXPECT_EQ(first, second);
+  EXPECT_EQ(first_stats.factoring_iterations_total,
+            second_stats.factoring_iterations_total)
+      << "the same seed and budgets did a different amount of factoring work";
+  // Nothing set a timeout, so neither clock can have ended anything.
+  EXPECT_EQ(first_stats.factoring_wall_clock_exits, 0);
+  EXPECT_EQ(second_stats.factoring_wall_clock_exits, 0);
+  EXPECT_EQ(first_stats.diophantine_wall_clock_exits, 0);
+  EXPECT_EQ(second_stats.diophantine_wall_clock_exits, 0);
+  // Not vacuous: this input really does factor.
+  EXPECT_GT(first_stats.factoring_iterations_total, 0);
+}
+
+// The per-attempt budget has to actually bind, or it is not what keeps the
+// search bounded.
+TEST(GridsynthDeterminismTest, TheFactoringBudgetBindsTheSearch) {
+  const char *epsilon = "1e-25";
+  ScopedPrecision precision(
+      cudaq::synth::details::required_precision(Real(epsilon)));
+
+  auto work_done = [&](uint64_t max_factoring_iterations) {
+    cudaq::synth::GridsynthOptions options;
+    options.seed = uint64_t{4242};
+    options.maxFactoringIterations = max_factoring_iterations;
+    GridsynthStats stats;
+    llvm::FailureOr<Circuit> result = cudaq::synth::gridsynth(
+        Real(kSeedSensitiveTheta), Real(epsilon), options, &stats);
+    EXPECT_TRUE(llvm::succeeded(result))
+        << "the search must still succeed on a tight budget, just by "
+           "abandoning more candidates";
+    return stats.factoring_iterations_total;
+  };
+
+  EXPECT_LT(work_done(1000),
+            work_done(cudaq::synth::details::DEFAULT_MAX_FACTORING_ITERATIONS))
+      << "lowering the per-attempt budget did not reduce the factoring work, "
+         "so something other than the budget is ending the attempts";
+}
+
+// The scan limit bounds enumeration, a cost separate from the factoring
+// budgets. Abandoning a scan is safe -- the search moves on to the next k --
+// so the only visible effect of tightening it is fewer candidates.
+TEST(GridsynthScanLimitTest, BoundsEnumerationWithoutBreakingTheSearch) {
+  const char *epsilon = "1e-20";
+  ScopedPrecision precision(
+      cudaq::synth::details::required_precision(Real(epsilon)));
+
+  auto run = [&](uint64_t max_odgp_scan_steps, GridsynthStats &stats) {
+    cudaq::synth::GridsynthOptions options;
+    options.seed = uint64_t{4242};
+    options.maxOdgpScanSteps = max_odgp_scan_steps;
+    llvm::FailureOr<Circuit> result = cudaq::synth::gridsynth(
+        Real(kSeedSensitiveTheta), Real(epsilon), options, &stats);
+    return result;
+  };
+
+  GridsynthStats tight_stats, default_stats;
+  llvm::FailureOr<Circuit> tight = run(4, tight_stats);
+  llvm::FailureOr<Circuit> loose =
+      run(cudaq::synth::details::DEFAULT_MAX_ODGP_SCAN_STEPS, default_stats);
+
+  ASSERT_TRUE(llvm::succeeded(loose));
+  EXPECT_LT(tight_stats.candidates_enumerated,
+            default_stats.candidates_enumerated)
+      << "a four-step scan limit enumerated as much as the shipped one, so "
+         "the limit is not reaching the enumerator";
+
+  // An absurd limit is not promised to find a solution at all, but it must
+  // never return one outside the epsilon region.
+  if (llvm::succeeded(tight)) {
+    Real err(cudaq::synth::rz_gate_sequence_error(kSeedSensitiveTheta, *tight));
+    EXPECT_LE(err, Real(epsilon));
+  }
+}
+
+TEST(GridsynthStatsTest, ReportsTheZeroTShortcutRatherThanASearch) {
+  GridsynthStats stats = stats_for("0.5", "0.3");
+
+  EXPECT_EQ(stats.outcome, GridsynthOutcome::ZeroTShortcut);
+  EXPECT_EQ(stats.candidates_enumerated, 0)
+      << "the shortcut must return before any enumeration";
+}
+
+TEST(GridsynthStatsTest, ReportsInvalidInput) {
+  EXPECT_EQ(stats_for("0.5", "-1").outcome, GridsynthOutcome::InvalidInput);
+  EXPECT_EQ(stats_for("nan", "1e-10").outcome, GridsynthOutcome::InvalidInput);
+}
+
+// The counters have to be readable from another thread mid-search: a call
+// killed for running too long is the one worth measuring, and it never
+// reaches its return.
+TEST(GridsynthStatsTest, CountersAreVisibleWhileTheSearchRuns) {
+  GridsynthStats stats;
+  std::atomic<bool> done{false};
+
+  std::thread worker([&] {
+    llvm::FailureOr<Circuit> ignored = cudaq::synth::gridsynth(
+        Real(kSeedSensitiveTheta), Real("1e-30"), {}, &stats);
+    (void)ignored;
+    done = true;
+  });
+
+  // Reading a counter mid-update can only yield a stale value, never a torn
+  // one: they are word-sized and only ever increase.
+  int64_t observed = 0;
+  while (!done && observed == 0)
+    observed = stats.candidates_enumerated;
+
+  worker.join();
+  EXPECT_GT(stats.candidates_enumerated, 0);
+}
+
+// ============================================================
+// Concurrency
+// ============================================================
+
+// gridsynth raises the default precision to what its epsilon needs, and every
+// Real reads that on construction. Held process-wide, two calls at different
+// tolerances would each build Reals at whichever precision the other set last,
+// and the tighter one would silently return a circuit outside its tolerance.
+TEST(GridsynthConcurrencyTest, ConcurrentCallsAtDifferentEpsilonsStayInBounds) {
+  struct Job {
+    const char *theta;
+    const char *epsilon;
+  };
+  // Spread far enough apart that borrowing another thread's precision cannot
+  // still satisfy the tighter tolerance.
+  const Job jobs[] = {
+      {kSeedSensitiveTheta, "1e-4"},  {kSeedSensitiveTheta, "1e-30"},
+      {kSeedSensitiveTheta, "1e-8"},  {kSeedSensitiveTheta, "1e-25"},
+      {kSeedSensitiveTheta, "1e-12"}, {kSeedSensitiveTheta, "1e-35"},
+  };
+
+  std::vector<std::thread> workers;
+  std::atomic<int> failures{0};
+  std::atomic<int> out_of_tolerance{0};
+
+  for (const Job &job : jobs) {
+    workers.emplace_back([&job, &failures, &out_of_tolerance] {
+      for (int i = 0; i < 8; ++i) {
+        llvm::FailureOr<Circuit> result =
+            cudaq::synth::gridsynth(Real(job.theta), Real(job.epsilon));
+        if (llvm::failed(result)) {
+          failures++;
+          continue;
+        }
+        // Compare at a precision that can represent the tolerance, whatever
+        // the worker threads left behind.
+        ScopedPrecision precision(
+            cudaq::synth::details::required_precision(Real(job.epsilon)));
+        Real err(cudaq::synth::rz_gate_sequence_error(job.theta, *result));
+        if (!(err <= Real(job.epsilon)))
+          out_of_tolerance++;
+      }
+    });
+  }
+  for (std::thread &worker : workers)
+    worker.join();
+
+  EXPECT_EQ(failures, 0);
+  EXPECT_EQ(out_of_tolerance, 0)
+      << "a concurrent call returned a circuit outside its own epsilon, so the "
+         "default precision is being shared across threads";
+}
+
+// ============================================================
+// RNG seeding
+// ============================================================
+
+static std::string synthesize_with(std::optional<uint64_t> seed) {
+  cudaq::synth::GridsynthOptions options;
+  options.seed = seed;
+  llvm::FailureOr<Circuit> result = cudaq::synth::gridsynth(
+      Real(kSeedSensitiveTheta), Real(kSeedSensitiveEpsilon), options);
+  EXPECT_TRUE(llvm::succeeded(result));
+  return llvm::succeeded(result) ? result->to_string() : std::string();
+}
+
+TEST(GridsynthSeedTest, SameSeedReproducesTheCircuit) {
+  EXPECT_EQ(synthesize_with(1234), synthesize_with(1234));
+}
+
+TEST(GridsynthSeedTest, DifferentSeedsExploreDifferentStreams) {
+  EXPECT_NE(synthesize_with(1234), synthesize_with(4321));
+}
+
+// A seeded call must leave the thread's random state where it found it, or
+// every later unseeded call continues the seeded stream and silently depends
+// on what ran before it. Both halves run under an outer seed so the unseeded
+// calls are comparable; the only difference is the seeded call in the middle.
+TEST(GridsynthSeedTest, SeededCallRestoresThePreviousRandomState) {
+  std::string without_intervening_call;
+  {
+    cudaq::synth::ScopedFactoringRngSeed outer(2026);
+    without_intervening_call = synthesize_with(std::nullopt);
+  }
+
+  std::string with_intervening_call;
+  {
+    cudaq::synth::ScopedFactoringRngSeed outer(2026);
+    synthesize_with(999);
+    with_intervening_call = synthesize_with(std::nullopt);
+  }
+
+  EXPECT_EQ(without_intervening_call, with_intervening_call);
+}
+
 // A NaN threshold silently rejects every grid candidate, so an unvalidated
 // non-finite epsilon spins the k-loop forever. These must fail fast instead.
 TEST(GridsynthValidationTest, RejectsInvalidEpsilon) {
@@ -376,20 +685,6 @@ TEST(GridsynthPrecisionTest, RequiredPrecisionIsBoundedAtBothExtremes) {
 // Working-precision changes
 // ============================================================
 
-// Restores the default precision on scope exit so a test that raises it
-// cannot leak the change into the rest of the suite.
-class ScopedPrecision {
-public:
-  explicit ScopedPrecision(mpfr_prec_t prec)
-      : saved_(Real::get_default_precision()) {
-    Real::set_default_precision(prec);
-  }
-  ~ScopedPrecision() { Real::set_default_precision(saved_); }
-
-private:
-  mpfr_prec_t saved_;
-};
-
 // Synthesis caches precision-dependent constants (sqrt(2)/2, the powers of
 // lambda) in function-local statics. A loose-epsilon run materializes them at
 // a low working precision, a later tight-epsilon run must rebuild them rather
@@ -419,6 +714,68 @@ TEST(GridsynthPrecisionTest, TightEpsilonAfterLooseEpsilonStaysWithinEpsilon) {
   EXPECT_LE(Real(err_str), Real(epsilon_str))
       << "error " << err_str << " exceeds epsilon " << epsilon_str
       << " after a lower-precision run poisoned the constant caches";
+}
+
+// ============================================================
+// Regressions found during performance tuning
+// ============================================================
+//
+// Neither test below states a property of the algorithm. Each pins a specific
+// bug the tuning work surfaced, extracted from the corpus run that found it.
+// Reintroducing either threshold reproduces the original symptom. The first
+// test then never returns, the second fails outright.
+//
+// They are kept together because they are the same mistake twice. An absolute
+// threshold compared against a quantity that scales with 1/sqrt(2)^k. That is
+// invisible at loose epsilon and fatal at deep, so the parametrized accuracy
+// test above never reaches the tolerances that expose it. A future change of
+// that shape should fail here first.
+
+// theta just below pi/4 used to run forever. The line-intersection filter
+// judged |z.v| against an absolute 1e-30, so deep-k rays read as parallel and
+// it returned the whole disk chord rather than the sliver. The value is the
+// double nearest pi/4.
+TEST(GridsynthNearMissTest, SynthesizesJustBelowPiOverFour) {
+  const std::string epsilon_str("1e-20");
+  ScopedPrecision high(
+      cudaq::synth::details::required_precision(Real(epsilon_str)));
+
+  const std::string theta(
+      "0.78539816339744827899949086713604629039764404296875");
+  llvm::FailureOr<Circuit> result =
+      cudaq::synth::gridsynth(Real(theta), Real(epsilon_str));
+  ASSERT_TRUE(llvm::succeeded(result));
+
+  const std::string err_str =
+      cudaq::synth::rz_gate_sequence_error(theta, *result);
+  EXPECT_LE(Real(err_str), Real(epsilon_str))
+      << "error " << err_str << " exceeds epsilon " << epsilon_str;
+}
+
+// Odd multiples of pi/4 leave the per-b slope in the ODGP bound refinement at
+// ~1e-47 while b runs to ~1e45. Judging that slope against an absolute
+// threshold emptied every range, so the x-direction anchor found no solution
+// and the search returned KExhausted below epsilon 1e-32.
+TEST(GridsynthDeepEpsilonTest, SynthesizesOddMultiplesOfPiOverFour) {
+  const std::string epsilon_str("1e-33");
+  ScopedPrecision high(
+      cudaq::synth::details::required_precision(Real(epsilon_str)));
+
+  for (const char *theta_str : // pi/4, 3pi/4, 5pi/4
+       {"0.78539816339744830961566084581987572104929234984377645524374",
+        "2.35619449019234492884698253745962716314787704953132936573121",
+        "3.92699081698724154807830422909937860524646174921888227621868"}) {
+    const std::string theta(theta_str);
+    llvm::FailureOr<Circuit> result =
+        cudaq::synth::gridsynth(Real(theta), Real(epsilon_str));
+    ASSERT_TRUE(llvm::succeeded(result)) << "no circuit for theta=" << theta;
+
+    const std::string err_str =
+        cudaq::synth::rz_gate_sequence_error(theta, *result);
+    EXPECT_LE(Real(err_str), Real(epsilon_str))
+        << "error " << err_str << " exceeds epsilon " << epsilon_str
+        << " for theta=" << theta;
+  }
 }
 
 } // namespace

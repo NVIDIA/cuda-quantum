@@ -120,7 +120,8 @@ exclude_patterns = [
     'examples/python/building_kernels.ipynb',
     'examples/python/measuring_kernels.ipynb',
     'examples/python/executing_kernels.ipynb', 'examples/python/operators.ipynb',
-    'examples/plugins/README.md', 'examples/plugins/mock_rest/README.md'
+    'examples/plugins/README.md', 'examples/plugins/mock_rest/README.md',
+    'examples/plugins/mlir_extension/README.md',
 ]
 
 compiler_developer_docs = (
@@ -211,9 +212,22 @@ autosummary_generate = True
 # see also https://github.com/sphinx-doc/sphinx/issues/11211.
 # autodoc_mock_imports = ['cuquantum', 'cupy']
 
+# Prefer the inventories build_docs.sh fetched, falling back to the network.
+# Without this a transient outage upstream fails the whole -W build.
+_inventory_dir = os.environ.get('CUDAQ_INTERSPHINX_INVENTORIES')
+
+
+def _inventory(name):
+    if _inventory_dir:
+        path = os.path.join(_inventory_dir, name + '.inv')
+        if os.path.isfile(path):
+            return (path, None)
+    return None
+
+
 intersphinx_mapping = {
-    'python': ('https://docs.python.org/3/', None),
-    'numpy': ('https://numpy.org/doc/stable/', None),
+    'python': ('https://docs.python.org/3/', _inventory('python')),
+    'numpy': ('https://numpy.org/doc/stable/', _inventory('numpy')),
 }
 
 redirects = {
@@ -242,6 +256,10 @@ nitpick_ignore = [
     ('py:class', 'function'),
     ('py:class', 'type'),
     ('py:class', 'numpy.ndarray[]'),
+    # numpy documents NDArray as py:data, so the py:class reference that
+    # autodoc generates for the annotation cannot resolve via intersphinx
+    ('py:class', 'NDArray'),
+    ('py:class', 'numpy.typing.NDArray'),
     # FIXME: remove these after adding proper documentation
     # (also reexamine why some of the ones above are ignored)
     ('py:class', 'cudaq::sum_op<cudaq::spin_handler>'),

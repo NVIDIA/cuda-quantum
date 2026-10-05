@@ -6,7 +6,6 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 target_sources(cudaq-rest-qpu PRIVATE FakeQuakeServerHelper.cpp) 
-add_target_config(quake_fake)
 
 add_library(cudaq-serverhelper-quake_fake SHARED FakeQuakeServerHelper.cpp)
 target_link_libraries(cudaq-serverhelper-quake_fake PUBLIC cudaq-common fmt::fmt-header-only)

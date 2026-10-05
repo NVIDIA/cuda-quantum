@@ -43,12 +43,22 @@ if(POLICY CMP0116)
   cmake_policy(SET CMP0116 NEW)
 endif()
 
+# CMP0177: install() DESTINATION paths are normalized.
+# New in CMake 3.31. https://cmake.org/cmake/help/latest/policy/CMP0177.html
+if(POLICY CMP0177)
+  cmake_policy(SET CMP0177 NEW)
+endif()
+
 # Project setup
 # ==============================================================================
 project(cudaq LANGUAGES CXX C)
 
 # By default, install everything to the "Runtime" component.
 set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME Runtime)
+
+# Always install to `lib`. This avoids the `lib` vs `lib64` mismatch depending
+# on distribution.
+set(CMAKE_INSTALL_LIBDIR lib CACHE PATH "Object code libraries (lib)" FORCE)
 
 # Prevent In-source builds
 # ==============================================================================
@@ -141,6 +151,11 @@ if (NOT DEFINED CUDAQ_ENABLE_OQC_BACKEND)
   set(CUDAQ_ENABLE_OQC_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the OQC target.")
 endif()
 
+# Enable ORCA target by default.
+if (NOT DEFINED CUDAQ_ENABLE_ORCA_BACKEND)
+  set(CUDAQ_ENABLE_ORCA_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the ORCA target.")
+endif()
+
 # Enable Pasqal target by default.
 if (NOT DEFINED CUDAQ_ENABLE_PASQAL_BACKEND)
   set(CUDAQ_ENABLE_PASQAL_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the Pasqal target.")
@@ -163,11 +178,6 @@ elseif (CUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR AND NOT CMAKE_SYSTEM_NAME STREQUAL "L
   set(CUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR OFF CACHE BOOL "Enable building the Pasqal QRMI connector." FORCE)
 endif()
 
-# Enable Quantum Circuits, Inc. (QCI) target by default.
-if (NOT DEFINED CUDAQ_ENABLE_QCI_BACKEND)
-  set(CUDAQ_ENABLE_QCI_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the Quantum Circuits, Inc. target.")
-endif()
-
 # Enable TII target by default.
 if (NOT DEFINED CUDAQ_ENABLE_TII_BACKEND)
   set(CUDAQ_ENABLE_TII_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the TII target.")
@@ -186,6 +196,16 @@ endif()
 # Enable qBraid target by default.
 if (NOT DEFINED CUDAQ_ENABLE_QBRAID_BACKEND)
   set(CUDAQ_ENABLE_QBRAID_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the qBraid target.")
+endif()
+
+# Enable Quantinuum target by default.
+if (NOT DEFINED CUDAQ_ENABLE_QUANTINUUM_BACKEND)
+  set(CUDAQ_ENABLE_QUANTINUUM_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the Quantinuum target.")
+endif()
+
+# Enable Infleqtion target by default.
+if (NOT DEFINED CUDAQ_ENABLE_INFLEQTION_BACKEND)
+  set(CUDAQ_ENABLE_INFLEQTION_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the Infleqtion target.")
 endif()
 
 # =============================================================================
@@ -268,7 +288,6 @@ endif()
 # Options
 # ==============================================================================
 option(CUDAQ_BUILD_TESTS "Build cudaq tests" ON)
-option(CUDAQ_ENABLE_RPC_LOGGING "Enable verbose printout for client/server qpud connection." OFF)
 option(CUDAQ_TEST_MOCK_SERVERS "Enable Remote QPU Tests via Mock Servers." OFF)
 option(CUDAQ_DISABLE_RUNTIME "Build without the CUDA-Q runtime, just the compiler toolchain." OFF)
 option(CUDAQ_SKIP_MPI "Do not build with MPI, even when it is available." OFF)
@@ -334,6 +353,57 @@ if("python" IN_LIST CUDAQ_ENABLE_PROJECTS)
   set(CUDAQ_ENABLE_PYTHON ON CACHE BOOL "" FORCE)
 endif()
 
+# CUDAQ_ENABLE_PYTHON_BINDINGS controls whether cudaq/ builds its own MLIR
+# Python bindings (Quake, CC, QEC dialects), under cudaq/python/ -- mirroring
+# how LLVM/MLIR builds its own Python bindings as part of the mlir/
+# subproject (MLIR_ENABLE_BINDINGS_PYTHON) rather than in an unrelated
+# downstream consumer project. The python/ subproject REQUIRES these
+# bindings; default this to match whether "python" was requested above, but
+# let a build engineer override either direction explicitly (e.g. build
+# cudaq/'s bindings on their own, to produce a devel SDK for a python/ build
+# configured independently, later, against the installed result).
+if(NOT DEFINED CUDAQ_ENABLE_PYTHON_BINDINGS)
+  if("python" IN_LIST CUDAQ_ENABLE_PROJECTS)
+    set(CUDAQ_ENABLE_PYTHON_BINDINGS ON)
+  else()
+    set(CUDAQ_ENABLE_PYTHON_BINDINGS OFF)
+  endif()
+endif()
+set(CUDAQ_ENABLE_PYTHON_BINDINGS ${CUDAQ_ENABLE_PYTHON_BINDINGS} CACHE BOOL
+  "Build cudaq/'s own MLIR Python bindings (Quake, CC, QEC dialects) under cudaq/python/.")
+
+if("python" IN_LIST CUDAQ_ENABLE_PROJECTS AND NOT CUDAQ_ENABLE_PYTHON_BINDINGS)
+  message(FATAL_ERROR
+    "CUDAQ_ENABLE_PROJECTS includes 'python', but CUDAQ_ENABLE_PYTHON_BINDINGS "
+    "is OFF. The python/ subproject requires cudaq/'s own MLIR Python "
+    "bindings (Quake, CC, QEC dialects, built under cudaq/python/ when "
+    "CUDAQ_ENABLE_PYTHON_BINDINGS is ON). Either set "
+    "-DCUDAQ_ENABLE_PYTHON_BINDINGS=ON, or remove 'python' from "
+    "CUDAQ_ENABLE_PROJECTS.")
+endif()
+
+# Python/nanobind discovery for CUDAQ_ENABLE_PYTHON_BINDINGS must happen
+# before add_subdirectory(cudaq) below, since cudaq/python/ (built as part of
+# the cudaq/ subproject) needs it -- not just python/, which is added later
+# and may not even be enabled here (see the diagnostic above: a build
+# engineer can build cudaq/'s bindings standalone, without "python" in
+# CUDAQ_ENABLE_PROJECTS at all).
+if(CUDAQ_ENABLE_PYTHON_BINDINGS)
+  find_package(Python 3 COMPONENTS Interpreter Development)
+  find_package(Python3 COMPONENTS Interpreter Development)
+
+  # Locate nanobind via find_package. Default to the vendored copy under
+  # tpls/nanobind unless the user points nanobind_DIR (or CMAKE_PREFIX_PATH)
+  # at an alternative install (e.g. one from `pip install nanobind`).
+  # No version constraint here: the vendored tree has no
+  # nanobind-config-version.cmake (that file is only emitted by an install),
+  # so requesting a version would always fail against the in-tree copy.
+  if (NOT nanobind_DIR)
+    set(nanobind_DIR "${CMAKE_SOURCE_DIR}/tpls/nanobind/cmake")
+  endif()
+  find_package(nanobind CONFIG REQUIRED)
+endif()
+
 # Backward compatibility: map the old CUDAQ_ENABLE_STATIC_LINKING to the two
 # new flags. Check both -D (cmake variable) and environment variable paths.
 # Setting cache variables here means the option() calls below will respect
@@ -353,6 +423,7 @@ if(CUDAQ_ENABLE_STATIC_LINKING)
 endif()
 option(CUDAQ_STATIC_CXX_RUNTIME "Statically link libstdc++ and libgcc into CUDA-Q libraries." OFF)
 option(CUDAQ_STATIC_DEPS "Prefer static archives for external dependencies (zlib, OpenSSL, curl, BLAS)." OFF)
+option(CUDAQ_BUNDLE_MLIR_INSTALL "Bundle upstream LLVM/MLIR (headers, libs etc.) in installation" OFF)
 option (CUDAQ_FORCE_COLORED_OUTPUT "Always produce ANSI-colored output (GNU/Clang only)." FALSE)
 if (${CUDAQ_FORCE_COLORED_OUTPUT})
     if ("${CMAKE_CXX_COMPILER_ID}" MATCHES "GNU")
@@ -442,7 +513,7 @@ if(NOT APPLE)
   set(CUDAQ_FORCE_LINK_FLAG "-Wl,--no-as-needed")
 else()
   set(CUDAQ_FORCE_LINK_FLAG "")
-  # Find path to the compiler-rt library
+  # Find path to the compiler-rt library.
   set(_cudaq_builtins "")
   execute_process(
     COMMAND ${CMAKE_CXX_COMPILER} --rtlib=compiler-rt --print-libgcc-file-name
@@ -499,12 +570,6 @@ if (CUDAQ_STATIC_DEPS)
   set(CURL_USE_STATIC_LIBS TRUE)
   message(STATUS "Static external dependencies enabled.")
 endif()
-
-# ZLIB is required when we build LLVM with zlib support. ZLIB support in LLVM is
-# good to have e.g. for the linker, since some binaries will use zlib
-# compression to store symbols.
-find_package(ZLIB REQUIRED)
-include(ExternalProject)
 
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose Release or Debug" FORCE)
@@ -577,7 +642,10 @@ if(NOT LLVM_DIR)
   if(LLVM_CONFIG_RESULT)
     message(FATAL_ERROR
       "Could not find suitable llvm-config(-${LLVM_VERSION_MAJOR}).\
-      \nTry providing valid -DLLVM_DIR=/path/to/llvm/lib/cmake/llvm.")
+      \nTry providing valid -DLLVM_DIR=/path/to/llvm/lib/cmake/llvm, \
+      \nor build LLVM/MLIR/Clang from the tpls/llvm submodule by running \
+      \nbash scripts/build_llvm.sh (see that script for options, e.g. \
+      \nLLVM_INSTALL_PREFIX) and then set -DLLVM_DIR=$LLVM_INSTALL_PREFIX/lib/cmake/llvm.")
   else()
     find_package(LLVM ${LLVM_VERSION_MAJOR}.${LLVM_VERSION_MINOR} REQUIRED CONFIG
       HINTS ${LLVM_CONFIG_CMAKE_DIR} NO_DEFAULT_PATH)
@@ -603,6 +671,12 @@ endif()
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 message(STATUS "Using ClangConfig.cmake in: ${Clang_DIR}")
 message(STATUS "Using MLIRConfig.cmake in: ${MLIR_DIR}")
+
+# ZLIB is required when we build LLVM with zlib support. ZLIB support in LLVM is
+# good to have e.g. for the linker, since some binaries will use zlib
+# compression to store symbols.
+find_package(ZLIB REQUIRED)
+include(ExternalProject)
 
 # Detect C++ standard library headers for cudaq-quake
 # cudaq-quake needs to find C++ stdlib headers for parsing user code.
@@ -738,6 +812,15 @@ if (CUDAQ_ENABLE_REST)
     set(CUDAQ_ENABLE_REST OFF CACHE BOOL "" FORCE)
   endif()
 endif()
+if (CUDAQ_ENABLE_ORCA_BACKEND)
+  if (NOT OPENSSL_FOUND)
+    message(WARNING "OpenSSL not found — disabling the ORCA target. "
+      "OpenSSL is required when CUDAQ_ENABLE_ORCA_BACKEND is enabled (the "
+      "default). Install OpenSSL, set OPENSSL_ROOT_DIR, or pass "
+      "-DCUDAQ_ENABLE_ORCA_BACKEND=OFF to disable the ORCA target.")
+    set(CUDAQ_ENABLE_ORCA_BACKEND OFF CACHE BOOL "" FORCE)
+  endif()
+endif()
 
 if (NOT CUDAQ_SKIP_MPI AND "runtime" IN_LIST CUDAQ_ENABLE_PROJECTS)
   find_package(MPI COMPONENTS CXX)
@@ -751,15 +834,7 @@ endif()
 # Third-party libraries (tpls)
 # ==============================================================================
 set(FMT_INSTALL ON)
-cmake_policy(PUSH)
-# CMP0146: The FindCUDA module is removed.
-# CMake 3.27 and above no longer provide the modules.
-# https://cmake.org/cmake/help/latest/policy/CMP0146.html
-if(POLICY CMP0146)
-  cmake_policy(SET CMP0146 OLD)
-endif()
 add_subdirectory(tpls/fmt)
-cmake_policy(POP)
 include_directories(SYSTEM tpls/json/single_include)
 include_directories(SYSTEM tpls/json/single_include_fwd)
 install(FILES tpls/json/single_include_fwd/nlohmann/json_fwd.hpp
@@ -811,12 +886,12 @@ if (OPENSSL_FOUND AND CUDAQ_ENABLE_REST)
 
   if (CURL_FOUND)
     message(STATUS "Using system curl for CPR.")
-    set(CPR_FORCE_USE_SYSTEM_CURL TRUE)
+    set(CPR_USE_SYSTEM_CURL TRUE)
   elseif (CMAKE_USE_SYSTEM_CURL)
     message(FATAL_ERROR "CMAKE_USE_SYSTEM_CURL defined but a suitable package was not found. Make sure that `curl-config --protocols` lists HTTP and HTTPS.")
   else()
     message(STATUS "Curl not found. Building curl for CPR.")
-    set(CPR_FORCE_USE_SYSTEM_CURL FALSE)
+    set(CPR_USE_SYSTEM_CURL FALSE)
   endif()
 
   # Now, build CPR as needed
@@ -971,20 +1046,8 @@ endif()
 add_subdirectory(utils)
 
 if("python" IN_LIST CUDAQ_ENABLE_PROJECTS)
-  find_package(Python 3 COMPONENTS Interpreter Development)
-  find_package(Python3 COMPONENTS Interpreter Development)
-
-  # Locate nanobind via find_package. Default to the vendored copy under
-  # tpls/nanobind unless the user points nanobind_DIR (or CMAKE_PREFIX_PATH)
-  # at an alternative install (e.g. one from `pip install nanobind`).
-  # No version constraint here: the vendored tree has no
-  # nanobind-config-version.cmake (that file is only emitted by an install),
-  # so requesting a version would always fail against the in-tree copy.
-  if (NOT nanobind_DIR)
-    set(nanobind_DIR "${CMAKE_SOURCE_DIR}/tpls/nanobind/cmake")
-  endif()
-  find_package(nanobind CONFIG REQUIRED)
-
+  # Python/nanobind were already found above (CUDAQ_ENABLE_PYTHON_BINDINGS is
+  # forced ON whenever "python" is requested; see the diagnostic above).
   add_subdirectory(python)
 endif()
 
@@ -1010,6 +1073,10 @@ foreach(_cudaq_ext_proj IN LISTS CUDAQ_EXTERNAL_PROJECTS)
   add_subdirectory("${_cudaq_ext_src}"
                    "${CMAKE_BINARY_DIR}/external/${_cudaq_ext_proj}")
 endforeach()
+
+if("cudaq" IN_LIST CUDAQ_ENABLE_PROJECTS)
+  cudaq_finalize_target_database()
+endif()
 
 if(CUDAQ_BUILD_TESTS AND NOT CUDAQ_DISABLE_CPP_FRONTEND)
   include(CheckCXXCompilerFlag)

@@ -157,9 +157,12 @@ struct ExpandControlNegationsPass
                 ReplaceNegativeControl<cudaq::quake::RyOp>,
                 ReplaceNegativeControl<cudaq::quake::RzOp>,
                 ReplaceNegativeControl<cudaq::quake::R1Op>,
+                ReplaceNegativeControl<cudaq::quake::PhasedRxOp>,
+                ReplaceNegativeControl<cudaq::quake::U2Op>,
                 ReplaceNegativeControl<cudaq::quake::U3Op>,
                 ReplaceNegativeControl<cudaq::quake::SwapOp>,
                 ReplaceNegativeControl<cudaq::quake::ExpPauliOp>,
+                ReplaceNegativeControl<cudaq::quake::PhaseOp>,
                 ReplaceNegativeControl<cudaq::quake::CustomUnitaryCallOp>,
                 ReplaceNegativeControl<cudaq::quake::CustomUnitaryConstantOp>>(
             ctx);

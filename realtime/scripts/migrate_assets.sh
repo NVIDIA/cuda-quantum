@@ -15,6 +15,23 @@ target=/opt/nvidia/cudaq/realtime
 
 
 # Process command line arguments
+# Pre-process long options (getopts only handles short options).
+# The installer invokes this script with the default target already set via -t,
+# so a user-provided --installpath must come later on the command line to win.
+args=()
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --installpath)
+            if [ -z "${2:-}" ]; then
+                echo "Missing argument for --installpath" >&2
+                (return 0 2>/dev/null) && return 1 || exit 1
+            fi
+            args+=(-t "$2"); shift 2 ;;
+        *) args+=("$1"); shift ;;
+    esac
+done
+set -- "${args[@]}"
+
 __optind__=$OPTIND
 OPTIND=1
 while getopts ":t:" opt; do

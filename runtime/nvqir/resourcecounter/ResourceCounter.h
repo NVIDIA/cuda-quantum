@@ -86,6 +86,7 @@ public:
   void setToZeroState() override {
     resourceCounts.clear();
     prepopulated = false;
+    choice = nullptr;
   }
 
   cudaq::Resources *getResourceCounts() { return &this->resourceCounts; }

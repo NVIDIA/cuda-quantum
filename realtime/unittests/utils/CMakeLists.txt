@@ -246,6 +246,10 @@ if (IBVERBS_LIB)
   add_executable(hsb_fpga_emulator
     hsb_fpga_emulator.cpp)
 
+  target_include_directories(hsb_fpga_emulator
+    PRIVATE
+      ${CUDAQ_REALTIME_INCLUDE_DIR})
+
   target_link_libraries(hsb_fpga_emulator
     PRIVATE
       ${IBVERBS_LIB}

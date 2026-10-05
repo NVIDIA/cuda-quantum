@@ -48,6 +48,8 @@ struct observe_policy {
   finalize_execution_manager_impl(ExecutionManager &mgr,
                                   const observe_policy &policy,
                                   ExecutionContext &ctx);
+
+  friend CompileOptions get_compile_options_impl(const observe_policy &);
 };
 
 using async_observe_policy = async_policy_wrapper<observe_policy>;

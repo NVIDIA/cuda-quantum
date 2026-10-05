@@ -1,0 +1,81 @@
+// ========================================================================== //
+// Copyright (c) 2025 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --phase-folding="min-length=0 min-rz-weight=0" %s | FileCheck %s
+
+// Phase folding works on wires entirely within a cc.if block. The block
+// arguments (%a, %b) are backward termination points (no defining op), so
+// the subcircuit is correctly bounded inside the if body.
+//
+// Phase trace within the if block (same as @s_plus_s in phase_folding_z_axis.qke):
+//   s(%b)          -> phase B
+//   cx(a, b)       -> a=A, b=A XOR B
+//   s(cx#1)        -> phase A XOR B
+//   cx(cx#0, s)    -> a=A, b=B
+//   s(cx2#0)       -> phase A
+//   s(cx2#1)       -> phase B  <- same as first s, merge: S+S = Z
+
+func.func @optimize_within_if(%cond: i1) {
+  %w0 = quake.null_wire
+  %w1 = quake.null_wire
+  %res:2 = cc.if (%cond) ((%a = %w0, %b = %w1)) -> (!quake.wire, !quake.wire) {
+    %0 = quake.s %b : (!quake.wire) -> !quake.wire
+    %1:2 = quake.x [%a] %0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    %2 = quake.s %1#1 : (!quake.wire) -> !quake.wire
+    %3:2 = quake.x [%1#0] %2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    %4 = quake.s %3#0 : (!quake.wire) -> !quake.wire
+    %5 = quake.s %3#1 : (!quake.wire) -> !quake.wire
+    %6:2 = quake.x [%5] %4 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    cc.continue %6#0, %6#1 : !quake.wire, !quake.wire
+  } else {
+    cc.continue %a, %b : !quake.wire, !quake.wire
+  }
+  return
+}
+
+// CHECK-LABEL: func.func @optimize_within_if(
+// CHECK:         cc.if(
+// CHECK:           %[[CX0:.*]]:2 = quake.x {{\[}}%{{.*}}{{\]}} %{{.*}} :
+// CHECK:           %[[S0:.*]] = quake.s %[[CX0]]#1 :
+// CHECK:           %[[CX1:.*]]:2 = quake.x {{\[}}%[[CX0]]#0{{\]}} %[[S0]] :
+// CHECK:           %[[S1:.*]] = quake.s %[[CX1]]#0 :
+// CHECK:           %[[Z:.*]] = quake.z %[[CX1]]#1 :
+// CHECK:           quake.x {{\[}}%[[Z]]{{\]}} %[[S1]] :
+// CHECK:         return
+// CHECK:       }
+
+// The cc.if op is a termination point for the subcircuit walker, so Z-axis
+// rotations on either side of a cc.if cannot be merged even when they share
+// the same phase in the absence of the conditional.
+//
+// Without the cc.if, s0 and s1 would both lie on phase B across two CNOTs and
+// would merge to Z. With the cc.if splitting the subcircuits, both survive.
+
+func.func @if_blocks_merge(%cond: i1) {
+  %w0 = quake.null_wire
+  %w1 = quake.null_wire
+  %0 = quake.s %w1 : (!quake.wire) -> !quake.wire
+  %1:2 = quake.x [%w0] %0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %res:2 = cc.if (%cond) ((%a = %1#0, %b = %1#1)) -> (!quake.wire, !quake.wire) {
+    cc.continue %a, %b : !quake.wire, !quake.wire
+  } else {
+    cc.continue %a, %b : !quake.wire, !quake.wire
+  }
+  %2:2 = quake.x [%res#0] %res#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %3 = quake.s %2#1 : (!quake.wire) -> !quake.wire
+  return
+}
+
+// CHECK-LABEL: func.func @if_blocks_merge(
+// CHECK:         %[[S0:.*]] = quake.s
+// CHECK:         %[[CX0:.*]]:2 = quake.x
+// CHECK:         cc.if
+// CHECK:         %[[CX1:.*]]:2 = quake.x {{\[}}%{{.*}}{{\]}} %{{.*}} :
+// CHECK:         %[[S1:.*]] = quake.s %[[CX1]]#1 :
+// CHECK:         return
+// CHECK:       }

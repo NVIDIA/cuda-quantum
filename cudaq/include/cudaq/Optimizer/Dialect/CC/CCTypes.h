@@ -63,4 +63,7 @@ inline unsigned numberOfHiddenArgs(bool thisPtr, bool sret) {
 // Checks if type is device_ptr.
 bool isDevicePtr(mlir::Type argTy);
 
+/// Convert a Type to a string.
+std::string stringOfType(mlir::Type ty);
+
 } // namespace cudaq::cc

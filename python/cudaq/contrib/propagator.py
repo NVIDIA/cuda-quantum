@@ -39,14 +39,12 @@ def _basis_states(dimension: int):
     return states
 
 
-def _state_to_matrix(state,
-                     dimension: int,
-                     column_major: bool = False) -> np.ndarray:
+def _state_to_matrix(state, dimension: int) -> np.ndarray:
     """Convert a `vectorized` propagated identity state back to a matrix.
 
-    The dynamics backend `vectorizes` super-operator states in row-major order
-    for a single system but in column-major order for a batch, so the batched
-    path must transpose to recover the same propagator.
+    The dynamics backend stores super-operator states in column-major order and
+    reports that layout on the returned state, so `np.array` already hands back
+    the matrix in the conventional orientation.
     """
     data = np.array(state).reshape(-1)
     expected_size = dimension * dimension
@@ -55,8 +53,7 @@ def _state_to_matrix(state,
         raise RuntimeError("Expected propagator state with size "
                            f"{expected_size}, got {data.size}.")
 
-    matrix = data.reshape((dimension, dimension))
-    return matrix.T if column_major else matrix
+    return data.reshape((dimension, dimension))
 
 
 def _closed_system_generator(hamiltonian):
@@ -66,18 +63,25 @@ def _closed_system_generator(hamiltonian):
     return generator
 
 
-def _extract_propagator(result,
-                        dimension: int,
-                        store_intermediate_results: bool,
-                        column_major: bool = False):
+def _extract_propagator(result, dimension: int,
+                        store_intermediate_results: bool):
     """Extract closed-system propagators from a CUDA-Q evolve result."""
     if store_intermediate_results:
         return [
-            _state_to_matrix(state, dimension, column_major)
+            _state_to_matrix(state, dimension)
             for state in result.intermediate_states()
         ]
 
-    return _state_to_matrix(result.final_state(), dimension, column_major)
+    return _state_to_matrix(result.final_state(), dimension)
+
+
+def _vectorize_state(state) -> np.ndarray:
+    """Flatten an evolved basis state in the column-major `Liouville` order.
+
+    The evolved states are reported as matrices, so they must be `re-vectorized`
+    in the same column-major order used to build the input basis states.
+    """
+    return np.array(state).reshape(-1, order="F")
 
 
 def _extract_batched_basis_propagator(results,
@@ -90,14 +94,14 @@ def _extract_batched_basis_propagator(results,
         ]
         return [
             np.column_stack([
-                np.array(states[time_index]).reshape(-1)
+                _vectorize_state(states[time_index])
                 for states in intermediate_states
             ])
             for time_index in range(len(intermediate_states[0]))
         ]
 
     columns = [
-        np.array(single_result.final_state()).reshape(-1)
+        _vectorize_state(single_result.final_state())
         for single_result in results
     ]
     return np.column_stack(columns)
@@ -247,10 +251,9 @@ def propagator(
 
     if is_batched:
         return [
-            _extract_propagator(single_result,
-                                propagator_dimension,
-                                store_intermediate_results,
-                                column_major=True) for single_result in result
+            _extract_propagator(single_result, propagator_dimension,
+                                store_intermediate_results)
+            for single_result in result
         ]
 
     return _extract_propagator(result, propagator_dimension,

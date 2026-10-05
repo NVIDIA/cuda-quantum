@@ -76,8 +76,6 @@ def test_simple_sampling_qpe():
                 cudaq.control(oracle, [countingQubits[i]], stateRegister)
         iqft(countingQubits)
         mz(countingQubits)
-        # FIXME: The next line is a workaround for a bug
-        ry(12 * math.pi, stateRegister)  # keep stateRegister live
 
     cudaq.set_random_seed(13)
     counts = cudaq.sample(qpe, 3, 1, xGate, tGate)
@@ -215,7 +213,7 @@ def test_conditional_bare_return():
     @cudaq.kernel
     def kernel(skip: bool):
         q = cudaq.qubit()
-        ry(12 * math.pi, q)
+
         if skip:
             return
         x(q)
@@ -266,7 +264,7 @@ def test_function_scope_bare_return():
     @cudaq.kernel
     def kernel():
         q = cudaq.qubit()
-        ry(12 * math.pi, q)
+
         return
         x(q)
 

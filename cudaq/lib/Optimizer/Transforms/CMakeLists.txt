@@ -18,11 +18,14 @@ add_cudaq_library(OptTransforms
   ApplyOpSpecialization.cpp
   ArgumentSynthesis.cpp
   BasisConversion.cpp
+  BorrowChecking.cpp
   CableRoughIn.cpp
   ClassicalOptimization.cpp
   CliffordTSynthesis.cpp
   CombineMeasurements.cpp
   CombineQuantumAlloc.cpp
+  CommutationAwareRewrite.cpp
+  ConsolidateBroadcasts.cpp
   ConstantPropagation.cpp
   DeadQuantumElimination.cpp
   DeadStoreRemoval.cpp
@@ -35,6 +38,7 @@ add_cudaq_library(OptTransforms
   EraseNopCalls.cpp
   EraseQEC.cpp
   EraseVectorCopyCtor.cpp
+  ExpandBroadcasts.cpp
   ExpandControlNegations.cpp
   ExpandControlVeqs.cpp
   ExpandMeasurements.cpp
@@ -43,26 +47,34 @@ add_cudaq_library(OptTransforms
   GenDeviceCodeLoader.cpp
   GetConcreteMatrix.cpp
   GlobalizeArrayValues.cpp
+  InjectImplicitOutput.cpp
   LambdaLifting.cpp
   LiftArrayAlloc.cpp
   LinearCtrlRelations.cpp
   LoopAnalysis.cpp
+  LoopCableRotation.cpp
+  LoopInductionFusion.cpp
   LoopNormalize.cpp
   LoopPeeling.cpp
   LoopUnroll.cpp
+  LowerPhase.cpp
   LowerToCFG.cpp
   LowerUnwind.cpp
   Mapping.cpp
   MemToReg.cpp
   DependencyAnalysis.cpp
   MultiControlDecomposition.cpp
+  NormalizeAtomicQuantumRegions.cpp
+  NormalizePhasePlacement.cpp
   ObserveAnsatz.cpp
+  OptimizeSingleQubitCliffordT.cpp
   PhaseFolding.cpp
   Pipelines.cpp
   PruneCtrlRelations.cpp
   PruneNegligibleRotations.cpp
   PyFrontendCleanup.cpp
   PySynthCallableBlockArgs.cpp
+  QIRDeviceCall.cpp
   QuakePropagateMetadata.cpp
   QuakeSimplify.cpp
   QuakeSynthesizer.cpp
@@ -75,9 +87,12 @@ add_cudaq_library(OptTransforms
   ResourceCountPreprocess.cpp
   RunSemanticsHackery.cpp
   SROA.cpp
+  ShrinkWrap.cpp
   StackFramePrealloc.cpp
   StatePreparation.cpp
+  StaticQubitTarget.cpp
   UnitarySynthesis.cpp
+  UnwindByDataFlow.cpp
   UpdateRegisterNames.cpp
   VariableCoalesce.cpp
   WiresToWiresets.cpp
@@ -92,6 +107,8 @@ add_cudaq_library(OptTransforms
   LINK_LIBS PUBLIC
     CCDialect
     MLIRIR
+    MLIRTransforms
+    OptAnalysis
     OptimBuilder
     QECDialect
     QuakeDialect
@@ -104,9 +121,7 @@ target_include_directories(OptTransforms SYSTEM
 
 check_registered_mlir_lib(OptTransforms)
 
-target_link_libraries(OptTransforms PRIVATE cudaq-synth)
-target_include_directories(obj.OptTransforms SYSTEM PRIVATE
-  $<TARGET_PROPERTY:cudaq-synth,INTERFACE_INCLUDE_DIRECTORIES>)
+cudaq_target_link_libraries(OptTransforms PRIVATE cudaq-synth)
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
   set_source_files_properties(CliffordTSynthesis.cpp PROPERTIES
     COMPILE_OPTIONS "-Wno-maybe-uninitialized")

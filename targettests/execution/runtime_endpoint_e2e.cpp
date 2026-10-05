@@ -17,7 +17,9 @@
 // RUN: nvq++ %s -o %t && %t | FileCheck %s
 // clang-format on
 
-#include "cudaq/Target/RuntimeEndpoint.h"
+#include "cudaq/platform.h"
+#include "cudaq/platform/RuntimeEndpoint.h"
+#include "cudaq/platform/platform_test_access.h"
 #include "cudaq/platform/quantum_platform.h"
 #include <cstdio>
 #include <cudaq.h>
@@ -51,10 +53,8 @@ int main() {
   ep.impl = 0;
   ep.dispatch.set<sample_policy>(mockSample);
   ep.dispatch.set<observe_policy>(mockObserve);
-  platform.setRuntimeEndpoint(std::move(ep));
-  // Installing the endpoint discards the backing QPU, so the platform installs
-  // a default compile target and warns about it.
-  // CHECK: Overriding compile target with default
+  detail::PlatformTestAccess::setTarget(
+      platform, createDefaultCompileTarget(&platform), ep);
 
   (void)cudaq::sample(10, bell);
   // CHECK: [sample] kernel={{.*}}

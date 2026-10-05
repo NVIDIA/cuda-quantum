@@ -10,8 +10,8 @@
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/IR/PatternMatch.h"
-#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
-#include "mlir/Transforms/Passes.h"
+#include "mlir/Transforms/RegionUtils.h"
+#include "mlir/Transforms/WalkPatternRewriteDriver.h"
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_ERASENOISE
@@ -48,8 +48,9 @@ public:
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
     patterns.insert<EraseApplyNoisePattern>(ctx);
-    if (failed(applyPatternsGreedily(op, std::move(patterns))))
-      signalPassFailure();
+    PatternRewriter rewriter(ctx);
+    (void)eraseUnreachableBlocks(rewriter, op->getRegions());
+    walkAndApplyPatterns(op, FrozenRewritePatternSet(std::move(patterns)));
     LLVM_DEBUG(llvm::dbgs() << "After erasure:\n" << *op << "\n\n");
   }
 };

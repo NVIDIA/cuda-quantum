@@ -1,0 +1,23 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --clifford-t-synthesis='epsilon=1e-3 fail-on-controlled-rotation=true' -verify-diagnostics %s
+// RUN: cudaq-opt --cudaq-fault-tolerant-target='epsilon=1e-3 fail-on-controlled-rotation=true' -verify-diagnostics %s
+
+// A resource boundary must reject a controlled rotation rather than silently
+// preserving an operation the resource counter cannot represent. Global-phase
+// aware synthesis is required before this case can be lowered directly.
+
+func.func @ctrl() {
+  %q = quake.alloca !quake.ref
+  %c = quake.alloca !quake.ref
+  %a = arith.constant 0.7853981633974483 : f64
+  // expected-error @+1 {{controlled rotation requires global-phase-aware synthesis}}
+  quake.rz (%a) [%c] %q : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}

@@ -49,7 +49,7 @@ def test_control_on_adjoint():
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__adj_func
 # CHECK-SAME:      (%[[VAL_0:.*]]: !quake.ref, %[[VAL_1:.*]]: f64,
 # CHECK-SAME:      %[[VAL_2:.*]]: !cc.callable<(!quake.ref, f64) -> ()> {quake.pylifted})
-# CHECK:           quake.apply<adj> %[[VAL_2]] %[[VAL_0]], %[[VAL_1]] : (!quake.ref, f64) -> ()
+# CHECK:           quake.apply<adj> %[[VAL_2]] (%[[VAL_0]], %[[VAL_1]]) : (!quake.ref, f64) -> ()
 # CHECK:           return
 # CHECK:         }
 
@@ -58,8 +58,8 @@ def test_control_on_adjoint():
 # CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.ref
 # CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.ref
 # CHECK:           quake.h %[[VAL_2]] : (!quake.ref) -> ()
-# CHECK:           quake.apply %[[VAL_6]] {{\[}}%[[VAL_2]]] %[[VAL_3]], %[[VAL_0]] : (!quake.ref, !quake.ref, f64) -> ()
-# CHECK:           quake.apply %[[VAL_7]] {{\[}}%[[VAL_2]]] %[[VAL_3]], %[[VAL_0]] : (!quake.ref, !quake.ref, f64) -> ()
+# CHECK:           quake.apply %[[VAL_6]] {{\[}}%[[VAL_2]]] (%[[VAL_3]], %[[VAL_0]]) : (!quake.ref, !quake.ref, f64) -> ()
+# CHECK:           quake.apply %[[VAL_7]] {{\[}}%[[VAL_2]]] (%[[VAL_3]], %[[VAL_0]]) : (!quake.ref, !quake.ref, f64) -> ()
 # CHECK-DAG:       quake.dealloc %[[VAL_3]]
 # CHECK-DAG:       quake.dealloc %[[VAL_2]]
 # CHECK:           return

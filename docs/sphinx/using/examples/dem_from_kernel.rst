@@ -11,11 +11,18 @@ to infer which errors occurred from a circuit's measurement record.
 In CUDA-Q you declare the parity checks (*detectors*) and *logical observables* 
 directly inside a kernel, then extract the DEM with
 :code:`cudaq::dem_from_kernel` (C++) or :code:`cudaq.dem_from_kernel` (Python)
-as text in Stim's standard
+in Stim's standard
 `.dem file format <https://github.com/quantumlib/Stim/blob/main/doc/file_format_dem_detector_error_model.md>`__,
 which ``stim.DetectorErrorModel`` parses back into a decoder-ready model. The
 measurements that feed the declarations are *measurement handles*
 (:doc:`measuring_kernels`).
+
+In Python, ``dem_from_kernel`` returns a :class:`cudaq.DEMResult`. Its ``dem``
+property contains the ``.dem`` text, and ``str(result)`` returns the same text.
+For example, construct a Stim model with
+``stim.DetectorErrorModel(result.dem)``. The result also reports the detector,
+observable, and measurement counts and, by default, contains the measurement
+matrices described below.
 
 Three kernel-side declarations are available in both C++ and Python : 
 ``detector(m0, m1, ...)`` declares one detector as a parity
@@ -184,21 +191,23 @@ Measurement Matrices
 
 The DEM describes how error mechanisms flip detectors, but decoders often also
 need to know how the raw measurement record maps onto the detectors and logical
-observables. ``dem_from_kernel`` can return that mapping alongside the DEM text
-as two sparse binary *measurement matrices*, ``m2d`` and ``m2o``:
+observables. In Python, the :class:`cudaq.DEMResult` returned by
+``dem_from_kernel`` provides that mapping as two sparse binary *measurement
+matrices*, ``m2d_matrix`` and ``m2o_matrix``:
 
-* ``m2d`` has shape ``(num_detectors, num_measurements)``. Entry
-  ``m2d[d, m] == 1`` means measurement ``m`` contributes to detector ``d``.
-* ``m2o`` has shape ``(num_observables, num_measurements)``. Entry
-  ``m2o[k, m] == 1`` means measurement ``m`` contributes to observable ``k``.
+* ``m2d_matrix`` has shape ``(num_detectors, num_measurements)``. Entry
+  ``m2d_matrix[d, m] == 1`` means measurement ``m`` contributes to detector ``d``.
+* ``m2o_matrix`` has shape ``(num_observables, num_measurements)``. Entry
+  ``m2o_matrix[k, m] == 1`` means measurement ``m`` contributes to observable ``k``.
 
 In both matrices the columns are indexed by measurement in chronological order.
 
 .. tab:: Python
 
-   Pass ``return_measurement_matrices=True``. The function then returns a
-   3-tuple ``(dem_text, m2d, m2o)`` instead of a plain string, where ``m2d``
-   and ``m2o`` are ``scipy.sparse.csr_matrix`` objects with binary entries:
+   Measurement matrices are computed by default. The ``m2d_matrix`` and
+   ``m2o_matrix`` properties are ``scipy.sparse.csr_matrix`` objects with
+   binary entries. Pass ``return_measurement_matrices=False`` to skip their
+   computation; both properties will then be ``None``:
 
    .. literalinclude:: ../../snippets/python/using/examples/dem/dem_from_kernel.py
         :language: python

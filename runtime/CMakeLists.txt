@@ -32,8 +32,7 @@ install(DIRECTORY common
         DESTINATION include
         COMPONENT Development
         FILES_MATCHING PATTERN "*.h")
-install(FILES nvqir/AnalysisScope.h
-               nvqir/CircuitSimulator.h
+install(FILES nvqir/CircuitSimulator.h
                nvqir/Gates.h
                nvqir/QIRTypes.h
         DESTINATION include/nvqir

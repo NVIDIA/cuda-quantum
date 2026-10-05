@@ -15,9 +15,8 @@ from typing import List
 import cudaq
 from cudaq import spin
 
-skipIfNoTensorNet = pytest.mark.skipif(
-    not (cudaq.num_available_gpus() > 0 and cudaq.has_target('tensornet')),
-    reason="tensornet backend not available")
+skipIfNoTensorNet = pytest.mark.skipif(not cudaq.has_target('tensornet'),
+                                       reason="tensornet backend not available")
 
 
 @pytest.fixture(autouse=True)
@@ -375,7 +374,6 @@ def test_observe_list_multi_term_operators():
     @cudaq.kernel
     def simple_kernel():
         q = cudaq.qvector(2)
-        ry(12 * np.pi, q)
 
     op_multi1 = spin.z(0) + spin.x(0)
     op_multi2 = spin.y(1) + spin.z(1)

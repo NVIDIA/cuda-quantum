@@ -1,0 +1,45 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt %s | FileCheck %s
+
+// CHECK-LABEL: func.func @reference_forms(
+// CHECK-SAME: %[[THETA:[a-zA-Z0-9_.$-]+]]: f64, %[[C0:[a-zA-Z0-9_.$-]+]]: !quake.ref, %[[C1:[a-zA-Z0-9_.$-]+]]: !quake.ref, %[[ANCHOR:[a-zA-Z0-9_.$-]+]]: !quake.ref
+// CHECK: quake.phase (%[[THETA]]) %[[ANCHOR]] : (f64, !quake.ref) -> ()
+// CHECK: quake.phase<adj> (%[[THETA]]) {{\[}}%[[C0]], %[[C1]] neg [false, true]{{\]}} %[[ANCHOR]] : (f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+func.func @reference_forms(%theta: f64, %c0: !quake.ref, %c1: !quake.ref,
+                           %anchor: !quake.ref) {
+  quake.phase (%theta) %anchor : (f64, !quake.ref) -> ()
+  quake.phase<adj> (%theta) [%c0, %c1 neg [false, true]] %anchor
+      : (f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// Wire results follow the wire operands positionally: controls first, then the
+// scalar anchor.
+// CHECK-LABEL: func.func @wire_form(
+// CHECK-SAME: %[[THETA:[a-zA-Z0-9_.$-]+]]: f32
+// CHECK: %[[C0:.*]] = quake.null_wire
+// CHECK: %[[C1:.*]] = quake.null_wire
+// CHECK: %[[ANCHOR:.*]] = quake.null_wire
+// CHECK: %[[NEXT:.*]]:3 = quake.phase (%[[THETA]]) {{\[}}%[[C0]], %[[C1]] neg [true, false]{{\]}} %[[ANCHOR]] : (f32, !quake.wire, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire, !quake.wire)
+// CHECK: quake.sink %[[NEXT]]#0 : !quake.wire
+// CHECK: quake.sink %[[NEXT]]#1 : !quake.wire
+// CHECK: quake.sink %[[NEXT]]#2 : !quake.wire
+func.func @wire_form(%theta: f32) {
+  %c0 = quake.null_wire
+  %c1 = quake.null_wire
+  %anchor = quake.null_wire
+  %next:3 = quake.phase (%theta) [%c0, %c1 neg [true, false]] %anchor
+      : (f32, !quake.wire, !quake.wire, !quake.wire)
+        -> (!quake.wire, !quake.wire, !quake.wire)
+  quake.sink %next#0 : !quake.wire
+  quake.sink %next#1 : !quake.wire
+  quake.sink %next#2 : !quake.wire
+  return
+}

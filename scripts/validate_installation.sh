@@ -112,59 +112,21 @@ requested_backends=`\
     do echo "$target"; \
     done`
 
+target_resolve="$CUDA_QUANTUM_PATH/bin/cudaq-target-resolve"
+target_resolve_args=(--install-dir="$CUDA_QUANTUM_PATH" --lib-dir="$CUDA_QUANTUM_PATH/lib")
+if $gpu_available; then
+    target_resolve_args+=(--gpu-count="$(nvidia-smi -L | wc -l | tr -d ' ')")
+fi
+
 installed_backends=`\
     echo "default"
-    for file in $(ls $CUDA_QUANTUM_PATH/targets/*.yml); \
-    do basename $file | cut -d "." -f 1; \
-    done`
+    "$target_resolve" --list-targets --include-unavailable "${target_resolve_args[@]}"`
 
-should_skip_install_validation_target() {
-  local target_config=$1
-  local skipped_target_configs=(
-    "opt-test.yml"
-    "compiler-bench-nisq.yml"
-    "compiler-bench-ftqc-logical.yml"
-  )
-
-  for skipped_target_config in "${skipped_target_configs[@]}"; do
-    if [[ "${target_config}" == "${skipped_target_config}" ]]; then
-      return 0
-    fi
-  done
-  return 1
-}
-
-# remote_rest targets are automatically filtered, 
-# so is execution on the photonics backend and the stim backend
-# This will test all NVIDIA-derivative targets in the legacy mode,
-# i.e., nvidia-fp64, nvidia-mgpu, nvidia-mqpu, etc., are treated as standalone targets.
+# Run the notebooks on all available simulators other than stim and benchmark targets
 available_backends=`\
     echo "default"
-    for file in $(ls $CUDA_QUANTUM_PATH/targets/*.yml); \
-    do
-        if grep -q "library-mode-execution-manager: photonics" $file ; then 
-          continue
-        fi 
-        # Skip optimization test targets
-        if should_skip_install_validation_target "$(basename $file)"; then
-          continue
-        fi
-        if grep -q "nvqir-simulation-backend: stim" $file ; then 
-          continue
-        fi 
-        platform=$(cat $file | grep "platform-qpu:")
-        qpu=${platform##* }
-        requirements=$(cat $file | grep "gpu-requirements:")
-        gpus=${requirements##* }
-        # Full pasqal requires QRMI shared libraries and supported cluster.
-        # Generic installation validation skips it unless a dedicated environment is provided.
-        if [ "${qpu}" != "remote_rest" ] \
-        && [ "${qpu}" != "fermioniq" ] && [ "${qpu}" != "orca" ] \
-        && [ "${qpu}" != "pasqal" ] && [ "${qpu}" != "quera" ] \
-        && ($gpu_available || [ -z "$gpus" ] || [ "${gpus,,}" == "false" ]); then \
-            basename $file | cut -d "." -f 1; \
-        fi; \
-    done`
+    "$target_resolve" --list-simulators "${target_resolve_args[@]}" \
+        | grep -vxE "stim|compiler-bench-ftqc-clifford-t"`
 
 missing_backend=false
 if [ $# -eq 0 ]
@@ -251,7 +213,7 @@ do
     echo "Source: $ex"
     let "samples+=1"
 
-    # Look for a --target flag to nvq++ in the 
+    # Look for a --target flag to nvq++ in the
     # comment block at the beginning of the file.
     # Note: using sed instead of grep -P for macOS compatibility
     intended_target=$(sed -e '/^$/,$d' "$ex" | sed -n 's|^//[[:space:]]*nvq++.*--target[[:space:]]\{1,\}\([^[:space:]]\{1,\}\).*|\1|p' | head -1)
@@ -575,7 +537,14 @@ if [ -n "$(find examples/ applications/ -name '*.ipynb')" ]; then
     else
         pip install jupyter ipykernel notebook -q
     fi
-    
+
+    # skqd.ipynb imports mpi4py, which is not shipped in the image.
+    if [ -n "$MPI_ROOT" ] && ! python3 -c "import mpi4py" 2>/dev/null; then
+        echo "Installing mpi4py for notebooks that require it..."
+        pip install "mpi4py~=4.1" -q \
+            || echo "Warning: could not install mpi4py; notebooks importing it will fail."
+    fi
+
     # Register the venv as a Jupyter kernel
     # Notebooks will execute in this environment and can install their own packages
     JUPYTER_KERNEL_NAME="cudaq_nb_validation_container"

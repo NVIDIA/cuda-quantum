@@ -15,22 +15,18 @@
 
 namespace cudaq {
 
-CompileOptions get_compile_options_impl(const other_policies &policy) {
-  const auto *ctx = cudaq::getExecutionContext();
-  CompileOptions opts;
-  opts.emitResourceCounts = ctx && ctx->name == "resource-count";
-  opts.disableQuantumOpts = ctx && ctx->name == "tracer";
-  return opts;
-}
-
 CompileOptions get_compile_options_impl(const sample_policy &policy) {
   CompileOptions opts;
   opts.storeReorderIdx = true;
   // `sample` does not support conditionals on measurement results.
   opts.failOnConditionalsOnMeasureResults = true;
-  // TODO: we would like to set this to true, but local simulators currently
-  // don't work with this flag
-  // opts.addMeasurements = true;
+  opts.addSampleMeasurements = true;
+  return opts;
+}
+
+CompileOptions get_compile_options_impl(const observe_policy &policy) {
+  CompileOptions opts;
+  opts.measureObservable = policy.spin;
   return opts;
 }
 
@@ -39,6 +35,13 @@ CompileOptions get_compile_options_impl(const dem_policy &policy) {
   opts.emitJit = true;
   opts.emitTargetCode = false;
   opts.skipTargetLoweringPipeline = true;
+  return opts;
+}
+
+CompileOptions get_compile_options_impl(const estimate_policy &policy) {
+  CompileOptions opts;
+  opts.emitResourceCounts = true;
+  opts.emitJit = true;
   return opts;
 }
 

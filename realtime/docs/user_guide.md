@@ -52,6 +52,17 @@ Please refer to this [section](#using-docker) for instructions.
 
     <!--- -->
 
+    > **_NOTE:_** To install to a different location (which does not require
+    > `sudo`), pass `--installpath` to the installer, e.g.,
+    >
+    > ```bash
+    > ./install_cuda_quantum_realtime_cu13.arm64 --accept -- --installpath $HOME/.cudaq_realtime
+    > ```
+    >
+    > The paths used in the remaining steps then need to be adjusted accordingly.
+
+    <!--- -->
+
     > **_NOTE:_** After the installation, please follow the instructed
     > post-installation step to set the environment variable, e.g.,
     >

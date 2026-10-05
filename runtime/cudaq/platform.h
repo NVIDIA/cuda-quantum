@@ -14,6 +14,7 @@
 #include "cudaq/platform/quantum_platform.h"
 
 namespace cudaq {
+struct RuntimeTarget;
 quantum_platform *getQuantumPlatformInternal();
 
 /// @brief Return the quantum platform provided by the linked platform library
@@ -37,25 +38,29 @@ inline bool is_emulated_platform() {
   return getQuantumPlatformInternal()->is_emulated();
 }
 
+/// @brief Return true if the quantum platform consumes JIT-compiled artifacts.
+inline bool platform_supports_jit() {
+  return getQuantumPlatformInternal()->supports_jit();
+}
+
 /// @brief Return true if the quantum platform is a simulator.
 inline bool is_simulator_platform() {
   return getQuantumPlatformInternal()->is_simulator();
 }
 
-template <typename Policy>
-cudaq::CompileTarget get_compile_target(const Policy &policy) {
-  return getQuantumPlatformInternal()->getCompileTarget(policy);
+inline cudaq::CompileTarget get_compile_target(std::size_t qpu_id = 0) {
+  return getQuantumPlatformInternal()->getCompileTarget(qpu_id);
 }
 
-/// Get the default compile target configuration for the given platform
-/// (default: current platform).
+/// Get the default compile target configuration for the given platform or
+/// runtime target.
 ///
 /// This is suitable for local simulators, i.e. it will use
 /// AOT-compiled modules as-is if they exist, and otherwise JIT-compile the
 /// module as appropriate for a Python kernel.
-
 cudaq::CompileTarget
-createDefaultCompileTarget(quantum_platform *platform = nullptr);
+createDefaultCompileTarget(const quantum_platform *platform);
+cudaq::CompileTarget createDefaultCompileTarget(const RuntimeTarget *rt);
 
 // Declare this function, implemented elsewhere
 std::string getQIR(const std::string &);

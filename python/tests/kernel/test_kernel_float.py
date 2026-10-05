@@ -6,6 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+import math
 import sys
 
 import pytest
@@ -69,6 +70,222 @@ def test_float_use():
         return np.sin(np.pi / 2 + 1)
 
     assert is_close(np.sin(np.pi / 2 + 1), float_np_use())
+
+
+def test_math_functions_match_python():
+
+    def python_math(function: int, value: float) -> float:
+        if function == 0:
+            return math.sin(value)
+        if function == 1:
+            return math.cos(value)
+        if function == 2:
+            return math.tan(value)
+        if function == 3:
+            return math.asin(value)
+        if function == 4:
+            return math.acos(value)
+        if function == 5:
+            return math.atan(value)
+        if function == 6:
+            return math.sqrt(value)
+        if function == 7:
+            return math.exp(value)
+        return math.log(value)
+
+    @cudaq.kernel
+    def kernel_math(function: int, value: float) -> float:
+        if function == 0:
+            return math.sin(value)
+        if function == 1:
+            return math.cos(value)
+        if function == 2:
+            return math.tan(value)
+        if function == 3:
+            return math.asin(value)
+        if function == 4:
+            return math.acos(value)
+        if function == 5:
+            return math.atan(value)
+        if function == 6:
+            return math.sqrt(value)
+        if function == 7:
+            return math.exp(value)
+        return math.log(value)
+
+    for function in range(9):
+        for value in [0.25, 0.5, 0.75]:
+            assert is_close(python_math(function, value),
+                            kernel_math(function, value))
+
+
+def test_math_floor_and_ceil_match_python():
+
+    @cudaq.kernel
+    def kernel_floor(value: float) -> int:
+        return math.floor(value)
+
+    @cudaq.kernel
+    def kernel_ceil(value: float) -> int:
+        return math.ceil(value)
+
+    for value in [-1.75, -0.25, 0.25, 1.75]:
+        expected_floor = math.floor(value)
+        expected_ceil = math.ceil(value)
+        actual_floor = kernel_floor(value)
+        actual_ceil = kernel_ceil(value)
+        assert type(actual_floor) is type(expected_floor) is int
+        assert type(actual_ceil) is type(expected_ceil) is int
+        assert actual_floor == expected_floor
+        assert actual_ceil == expected_ceil
+
+
+def test_math_and_numpy_floor_ceil_result_types():
+
+    def python_math_floor_div(value: float) -> int:
+        return math.floor(value) // 2
+
+    def python_math_ceil_div(value: float) -> int:
+        return math.ceil(value) // 2
+
+    @cudaq.kernel
+    def kernel_math_floor_div(value: float) -> int:
+        return math.floor(value) // 2
+
+    @cudaq.kernel
+    def kernel_math_ceil_div(value: float) -> int:
+        return math.ceil(value) // 2
+
+    for value in [-1.75, -0.25, 0.25, 1.75]:
+        assert python_math_floor_div(value) == kernel_math_floor_div(value)
+        assert python_math_ceil_div(value) == kernel_math_ceil_div(value)
+
+    @cudaq.kernel
+    def kernel_numpy_floor_div(value: float) -> float:
+        return np.floor(value) // 2.0
+
+    @cudaq.kernel
+    def kernel_numpy_ceil_div(value: float) -> float:
+        return np.ceil(value) // 2.0
+
+    assert isinstance(np.floor(1.75), np.float64)
+    assert isinstance(np.ceil(1.75), np.float64)
+    with pytest.raises(RuntimeError,
+                       match=r"floor division with floating-point operands"):
+        kernel_numpy_floor_div(1.75)
+    with pytest.raises(RuntimeError,
+                       match=r"floor division with floating-point operands"):
+        kernel_numpy_ceil_div(1.75)
+
+
+def test_math_rejects_numpy_only_names():
+    assert not hasattr(math, 'arcsin')
+    assert not hasattr(math, 'float64')
+
+    @cudaq.kernel
+    def kernel_arcsin(value: float) -> float:
+        return math.arcsin(value)
+
+    @cudaq.kernel
+    def kernel_float64(value: float) -> float:
+        return math.float64(value)
+
+    with pytest.raises(RuntimeError, match=r"unsupported math call \(arcsin\)"):
+        kernel_arcsin(0.5)
+    with pytest.raises(RuntimeError,
+                       match=r"unsupported math call \(float64\)"):
+        kernel_float64(0.5)
+
+
+def test_math_rejects_numpy_only_attributes():
+    for name in ['arcsin', 'array', 'euler_gamma', 'float64']:
+        assert not hasattr(math, name)
+
+    @cudaq.kernel
+    def kernel_arcsin_attribute():
+        math.arcsin
+
+    @cudaq.kernel
+    def kernel_array_attribute():
+        math.array
+
+    @cudaq.kernel
+    def kernel_euler_gamma_attribute():
+        math.euler_gamma
+
+    @cudaq.kernel
+    def kernel_float64_attribute():
+        math.float64
+
+    with pytest.raises(RuntimeError, match=r"math\.arcsin is not supported"):
+        kernel_arcsin_attribute()
+    with pytest.raises(RuntimeError, match=r"math\.array is not supported"):
+        kernel_array_attribute()
+    with pytest.raises(RuntimeError,
+                       match=r"math\.euler_gamma is not supported"):
+        kernel_euler_gamma_attribute()
+    with pytest.raises(RuntimeError, match=r"math\.float64 is not supported"):
+        kernel_float64_attribute()
+
+
+def test_math_attributes():
+
+    @cudaq.kernel
+    def kernel_math_constants() -> float:
+        return math.pi + math.e
+
+    assert is_close(kernel_math_constants(), math.pi + math.e)
+
+
+def test_math_rejects_complex_arguments():
+    value = 1.0 + 2.0j
+    with pytest.raises(TypeError):
+        math.sin(value)
+
+    @cudaq.kernel
+    def kernel_sin(value: complex) -> complex:
+        return math.sin(value)
+
+    with pytest.raises(RuntimeError,
+                       match=r"math\.sin does not accept complex arguments"):
+        kernel_sin(value)
+
+
+def test_integer_floor_division_matches_python():
+
+    def python_floor_div(left: int, right: int) -> int:
+        return left // right
+
+    @cudaq.kernel
+    def kernel_floor_div(left: int, right: int) -> int:
+        return left // right
+
+    for left, right in [(9, 2), (-9, 2), (9, -2), (-9, -2)]:
+        assert python_floor_div(left, right) == kernel_floor_div(left, right)
+
+
+def test_float_floor_division_error():
+    error = ("floor division with floating-point operands is not supported; "
+             "use integer operands or math.floor(...), numpy.floor(...), or "
+             "np.floor(...) instead")
+
+    @cudaq.kernel
+    def float64_floor_div(left: float, right: float) -> float:
+        return left // right
+
+    with pytest.raises(RuntimeError,
+                       match=r"floor division with floating") as e:
+        float64_floor_div(9.0, 2.0)
+    assert error in str(e.value)
+
+    @cudaq.kernel
+    def float32_floor_div(left: np.float32, right: np.float32) -> np.float32:
+        return left // right
+
+    with pytest.raises(RuntimeError,
+                       match=r"floor division with floating") as e:
+        float32_floor_div(np.float32(9.0), np.float32(2.0))
+    assert error in str(e.value)
 
 
 # np.float64

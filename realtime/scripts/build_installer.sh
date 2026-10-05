@@ -165,4 +165,8 @@ makeself "${makeself_args[@]}" \
 
 echo ""
 echo "Done! Installer created: $output_dir/$installer_name"
-echo "To install: bash $output_dir/$installer_name --accept"
+echo "To install (default: $default_target):"
+echo "  sudo bash $output_dir/$installer_name --accept"
+echo ""
+echo "To install to a custom location (no sudo required):"
+echo "  bash $output_dir/$installer_name --accept -- --installpath \$HOME/.cudaq_realtime"

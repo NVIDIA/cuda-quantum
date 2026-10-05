@@ -80,12 +80,13 @@ def correlated_checks():
 # [End Options Kernel]
 
 # [Begin Generate]
-# Generate the detector error model as Stim `.dem` text. A noise model must be
-# supplied for the in-kernel `apply_noise` mechanisms to take effect. Parse the
-# text with `stim.DetectorErrorModel(dem)` to drive a decoder.
+# Generate the detector error model. A noise model must be supplied for the
+# in-kernel `apply_noise` mechanisms to take effect. The result's `dem` member
+# contains Stim `.dem` text; pass it to `stim.DetectorErrorModel(result.dem)`
+# to drive a decoder. Converting the result to a string also returns this text.
 noise = cudaq.NoiseModel()
-dem = cudaq.dem_from_kernel(memory_experiment, 2, noise_model=noise)
-print(f"Memory experiment DEM:\n{dem}")
+result = cudaq.dem_from_kernel(memory_experiment, 2, noise_model=noise)
+print(f"Memory experiment DEM:\n{result}")
 # [End Generate]
 
 print()
@@ -105,17 +106,19 @@ print(f"Decomposed DEM:\n{dem_decomposed}")
 
 print()
 # [Begin Measurement Matrices]
-# Set return_measurement_matrices=True to also obtain the sparse
-# measurements-to-detectors (m2d) and measurements-to-observables (m2o)
-# matrices. The function then returns a 3-tuple instead of a plain string.
-# Both matrices are `scipy.sparse.csr_matrix` with binary entries, and their
-# columns are indexed by measurement in chronological order.
-dem_text, m2d, m2o = cudaq.dem_from_kernel(
+# `dem_from_kernel` returns a `cudaq.DEMResult`. By default, its `m2d_matrix`
+# and `m2o_matrix` properties contain the sparse measurements-to-detectors and
+# measurements-to-observables matrices. Both are `scipy.sparse.csr_matrix`
+# objects with binary entries, and their columns are indexed by measurement in
+# chronological order. Set `return_measurement_matrices=False` to skip their
+# computation; both properties will then be `None`.
+result = cudaq.dem_from_kernel(
     memory_experiment,
     2,
     noise_model=noise,
-    return_measurement_matrices=True,
 )
+m2d = result.m2d_matrix
+m2o = result.m2o_matrix
 # m2d has shape `(num_detectors, num_measurements)`: m2d[d, m] == 1 means
 # measurement m contributes to detector d. m2o has shape
 # `(num_observables, num_measurements)` with the same convention for observables.

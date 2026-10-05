@@ -1,0 +1,34 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// REQUIRES: custom-pass-plugin
+// RUN: cudaq-opt %s --load-cudaq-plugin %cudaq_lib_dir/CustomPassPlugin%cudaq_plugin_ext --cudaq-custom-pass  | FileCheck --implicit-check-not=quake.h %s
+
+module {
+    func.func @bell() {
+        %0 = arith.constant 2 : i32
+        %c_0 = arith.constant 0 : i32
+        %c_1 = arith.constant 1 : i32
+        %qubits = quake.alloca !quake.veq<?>[%0 : i32]
+        %q0 = quake.extract_ref %qubits[%c_0] : (!quake.veq<?>,i32) -> !quake.ref
+        %q1 = quake.extract_ref %qubits[%c_1] : (!quake.veq<?>,i32) -> !quake.ref
+
+        quake.h %q0 : (!quake.ref) -> ()
+        quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+        quake.mz %q0 : (!quake.ref) -> !quake.measure
+        quake.mz %q1 : (!quake.ref) -> !quake.measure
+        return
+    }
+}
+
+// CHECK-LABEL:   func.func @bell() {
+// CHECK:           quake.s %[[Q0:[^ ]+]]
+// CHECK:           quake.x {{\[}}%[[Q0]]] %[[Q1:[^ ]+]]
+// CHECK:           quake.mz %[[Q0]]
+// CHECK:           quake.mz %[[Q1]]
+// CHECK:           return

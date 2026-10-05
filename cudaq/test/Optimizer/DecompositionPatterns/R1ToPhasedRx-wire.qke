@@ -1,0 +1,41 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=R1ToPhasedRx})' %s | FileCheck %s
+
+func.func @negative_adjoint_wire(%control: !quake.wire,
+                                 %target: !quake.wire)
+    -> (!quake.wire, !quake.wire) attributes {"cudaq-entrypoint"} {
+  %theta = arith.constant 6.780000e-01 : f64
+  %next:2 = quake.r1<adj> (%theta) [%control neg [true]] %target
+      : (f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  return %next#0, %next#1 : !quake.wire, !quake.wire
+}
+
+func.func @dynamic_control(%theta: f64, %controls: !quake.veq<?>,
+                           %target: !quake.ref) {
+  quake.r1 (%theta) [%controls neg [true]] %target
+      : (f64, !quake.veq<?>, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @negative_adjoint_wire
+// CHECK-SAME: %[[CONTROL:.*]]: !quake.wire, %[[TARGET:.*]]: !quake.wire
+
+// CHECK: %[[P0:.*]]:2 = quake.phased_rx {{.*}} {{\[}}%[[CONTROL]] neg [true]{{\]}} %[[TARGET]]
+// CHECK: %[[P1:.*]]:2 = quake.phased_rx {{.*}} {{\[}}%[[P0]]#0 neg [true]{{\]}} %[[P0]]#1
+// CHECK: %[[P2:.*]]:2 = quake.phased_rx {{.*}} {{\[}}%[[P1]]#0 neg [true]{{\]}} %[[P1]]#1
+// CHECK: %[[PHASE:.*]]:2 = quake.phase {{.*}} {{\[}}%[[P2]]#0 neg [true]{{\]}} %[[P2]]#1
+// CHECK: return %[[PHASE]]#0, %[[PHASE]]#1
+
+// CHECK-LABEL: func.func @dynamic_control
+// CHECK-SAME: %[[THETA:.*]]: f64
+
+// CHECK-COUNT-3: quake.phased_rx {{.*}} neg [true]
+// CHECK: %[[HALF:.*]] = arith.divf %[[THETA]], %{{.*}} : f64
+// CHECK: quake.phase (%[[HALF]]) {{.*}} neg [true]

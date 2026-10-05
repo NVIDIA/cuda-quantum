@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "nvqir/AnalysisScope.h"
+#include "common/AnalysisScope.h"
 #include <string>
 
 namespace nvqir::dem {
@@ -26,6 +26,6 @@ namespace nvqir::dem {
 ///
 /// Throws `std::runtime_error` if an analysis scope is already active on the
 /// current thread or if the plugin shared library cannot be loaded.
-AnalysisScope make_scope(std::string plugin_name = "stim");
+cudaq::detail::AnalysisScope make_scope(std::string plugin_name = "stim");
 
 } // namespace nvqir::dem

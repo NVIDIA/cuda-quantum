@@ -33,6 +33,23 @@ def pytest_configure(config):
     )
 
 
+@pytest.fixture(scope="session", autouse=True)
+def _openfermion_data_directory(tmp_path_factory):
+    """Keep OpenFermion molecule caches out of the working directory.
+
+    `cudaq.chemistry.create_molecular_hamiltonian` has `OpenFermion` write a
+    `<molecule>.hdf5` file to `chemistry.DATA_DIRECTORY`, which defaults to the
+    process working directory. Without this, running the suite from the repo
+    root leaves untracked files (e.g. `H2_sto-3g_singlet.hdf5`) behind.
+    """
+    from cudaq.domains import chemistry
+
+    original = chemistry.DATA_DIRECTORY
+    chemistry.DATA_DIRECTORY = str(tmp_path_factory.mktemp("openfermion"))
+    yield
+    chemistry.DATA_DIRECTORY = original
+
+
 def pytest_collection_modifyitems(config, items):
     """Apply skip markers for ARM64 JIT exception-handling limitations."""
     # platform.machine() == 'arm64'   on macOS ARM64

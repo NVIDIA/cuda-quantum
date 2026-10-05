@@ -17,12 +17,17 @@ set(CONFIG_FILES
   CUDAQEnsmallenConfig.cmake
   CUDAQPlatformDefaultConfig.cmake
   CUDAQPythonInteropConfig.cmake
+  CUDAQPythonBindingsConfig.cmake
 )
 set(LANG_FILES
   CMakeCUDAQCompiler.cmake.in
   CMakeCUDAQInformation.cmake
   CMakeDetermineCUDAQCompiler.cmake
   CMakeTestCUDAQCompiler.cmake
+)
+set(FIND_MODULE_FILES
+  FindGMP.cmake
+  FindMPFR.cmake
 )
 
 # The installed NVQIRConfig.cmake fetches fmt at the commit CUDA-Q was built
@@ -61,6 +66,9 @@ install(FILES ${CONFIG_FILES}
 install(FILES ${LANG_FILES}
         DESTINATION lib/cmake/cudaq
         COMPONENT Development)
+install(FILES ${FIND_MODULE_FILES}
+        DESTINATION lib/cmake/cudaq
+        COMPONENT Development)
 install(FILES ${CMAKE_BINARY_DIR}/cmake/modules/NVQIRConfig.cmake
         DESTINATION lib/cmake/nvqir
         COMPONENT Development)
@@ -79,3 +87,6 @@ install(FILES ${CUDAQ_MLIR_BUNDLED_LIBS_PATH}
 install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/check_mlir_symbols.sh
   DESTINATION lib/cmake/cudaq
   COMPONENT Development)
+
+# Optionally, bundle MLIR with the CUDA-Q installation.
+include(${CMAKE_CURRENT_SOURCE_DIR}/BundleMLIRDevel.cmake)

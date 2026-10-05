@@ -8,32 +8,17 @@
 
 #pragma once
 
-#include "nlohmann/json.hpp"
+#include "nlohmann/json_fwd.hpp"
 #include "cudaq/runtime/logger/cudaq_fmt.h"
+#include <cmath>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <vector>
 
 namespace cudaq {
 namespace ahs {
 using json = nlohmann::json;
-
-// Macros to help reduce redundant field typing for optional fields
-#define TO_JSON_OPT_HELPER(field)                                              \
-  do {                                                                         \
-    if (p.field)                                                               \
-      j[#field] = *p.field;                                                    \
-  } while (0)
-
-#define FROM_JSON_OPT_HELPER(field)                                            \
-  do {                                                                         \
-    if (j.contains(#field))                                                    \
-      p.field = j[#field];                                                     \
-  } while (0)
-
-// Macros to help reduce redundant field typing for non-optional fields
-#define TO_JSON_HELPER(field) j[#field] = p.field
-#define FROM_JSON_HELPER(field) j[#field].get_to(p.field)
 
 /// @brief Convert a double to a JSON string.
 inline std::string doubleAsJsonString(double d) {
@@ -68,29 +53,18 @@ strFromDouble(const std::vector<double> &doubleList) {
 struct AtomArrangement {
   std::vector<std::vector<double>> sites;
   std::vector<int> filling;
-  friend void to_json(json &j, const AtomArrangement &p) {
-    TO_JSON_HELPER(filling);
-    // Note: the schema expects floating point numbers as strings
-    std::vector<std::vector<std::string>> floatAsStrings;
-    for (const auto &site : p.sites)
-      floatAsStrings.push_back(strFromDouble(site));
-    j["sites"] = floatAsStrings;
-  }
-
-  friend void from_json(const json &j, AtomArrangement &p) {
-    FROM_JSON_HELPER(filling);
-    std::vector<std::vector<std::string>> floatAsStrings;
-    j["sites"].get_to(floatAsStrings);
-    for (const auto &row : floatAsStrings)
-      p.sites.push_back(doubleFromStr(row));
-  }
 };
+
+void to_json(json &j, const AtomArrangement &p);
+void from_json(const json &j, AtomArrangement &p);
 
 /// @brief  Represents the setup of neutral atom registers
 struct Setup {
   AtomArrangement ahs_register;
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE(Setup, ahs_register);
 };
+
+void to_json(json &j, const Setup &p);
+void from_json(const json &j, Setup &p);
 
 /// @brief Represents control signal time series
 struct TimeSeries {
@@ -121,20 +95,10 @@ struct TimeSeries {
     }
     return true;
   }
-  friend void to_json(json &j, const TimeSeries &p) {
-    j["values"] = strFromDouble(p.values);
-    j["times"] = strFromDouble(p.times);
-  }
-
-  friend void from_json(const json &j, TimeSeries &p) {
-    std::vector<std::string> floatAsStrings;
-    j["values"].get_to(floatAsStrings);
-    p.values = doubleFromStr(floatAsStrings);
-    floatAsStrings.clear();
-    j["times"].get_to(floatAsStrings);
-    p.times = doubleFromStr(floatAsStrings);
-  }
 };
+
+void to_json(json &j, const TimeSeries &p);
+void from_json(const json &j, TimeSeries &p);
 
 /// @brief Represents the pattern of a control field.
 // This can be a pattern name, e.g., 'uniform', or a vector of scaling
@@ -150,34 +114,20 @@ struct FieldPattern {
   bool operator==(const FieldPattern &other) const {
     return patternStr == other.patternStr && patternVals == other.patternVals;
   }
-
-  friend void to_json(json &j, const FieldPattern &p) {
-    if (p.patternStr.empty())
-      j = strFromDouble(p.patternVals);
-    else
-      j = p.patternStr;
-  }
-
-  friend void from_json(const json &j, FieldPattern &p) {
-    if (j.is_array()) {
-      std::vector<std::string> floatAsStrings;
-      j.get_to(floatAsStrings);
-      p.patternVals = doubleFromStr(floatAsStrings);
-      p.patternStr.clear();
-    } else {
-      j.get_to(p.patternStr);
-      p.patternVals.clear();
-    }
-  }
 };
+
+void to_json(json &j, const FieldPattern &p);
+void from_json(const json &j, FieldPattern &p);
 
 /// @brief Represents the temporal and spatial dependence of a control parameter
 /// affecting the atoms
 struct PhysicalField {
   TimeSeries time_series;
   FieldPattern pattern;
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE(PhysicalField, time_series, pattern);
 };
+
+void to_json(json &j, const PhysicalField &p);
+void from_json(const json &j, PhysicalField &p);
 
 /// @brief Represents the global driving field of neutral atom system
 struct DrivingField {
@@ -187,28 +137,39 @@ struct DrivingField {
   PhysicalField phase;
   // Delta field
   PhysicalField detuning;
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE(DrivingField, amplitude, phase, detuning);
 };
+
+void to_json(json &j, const DrivingField &p);
+void from_json(const json &j, DrivingField &p);
 
 /// @brief Represents the local `detuning`
 struct LocalDetuning {
   PhysicalField magnitude;
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE(LocalDetuning, magnitude);
 };
+
+void to_json(json &j, const LocalDetuning &p);
+void from_json(const json &j, LocalDetuning &p);
 
 /// @brief Represents the neutral atom Hamiltonian (driven parts)
 struct Hamiltonian {
   std::vector<DrivingField> drivingFields;
   std::vector<LocalDetuning> localDetuning = {};
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE(Hamiltonian, drivingFields, localDetuning);
 };
+
+void to_json(json &j, const Hamiltonian &p);
+void from_json(const json &j, Hamiltonian &p);
 
 /// @brief Represents an Analog Hamiltonian Simulation program
 struct Program {
   Setup setup;
   Hamiltonian hamiltonian;
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE(Program, setup, hamiltonian);
 };
+
+void to_json(json &j, const Program &p);
+void from_json(const json &j, Program &p);
+
+/// @brief Serialize an Analog Hamiltonian Simulation program to a JSON string.
+std::string toJsonString(const Program &program);
 
 ///////////////////////////////////////////////////////////////////////////////
 // The following classes represent the result of Analog Hamiltonian Simulation
@@ -217,38 +178,28 @@ struct Program {
 /// @brief Represents the metadata of the shot
 struct ShotMetadata {
   std::string shotStatus;
-
-  friend void to_json(json &j, const ShotMetadata &p) {
-    TO_JSON_HELPER(shotStatus);
-  }
-
-  friend void from_json(const json &j, ShotMetadata &p) {
-    FROM_JSON_HELPER(shotStatus);
-  }
 };
+
+void to_json(json &j, const ShotMetadata &p);
+void from_json(const json &j, ShotMetadata &p);
 
 /// @brief Represents the results of a single shot
 struct ShotResult {
   std::optional<std::vector<int>> preSequence;
   std::optional<std::vector<int>> postSequence;
-
-  friend void to_json(json &j, const ShotResult &p) {
-    TO_JSON_OPT_HELPER(preSequence);
-    TO_JSON_OPT_HELPER(postSequence);
-  }
-
-  friend void from_json(const json &j, ShotResult &p) {
-    FROM_JSON_OPT_HELPER(preSequence);
-    FROM_JSON_OPT_HELPER(postSequence);
-  }
 };
+
+void to_json(json &j, const ShotResult &p);
+void from_json(const json &j, ShotResult &p);
 
 /// @brief Represents the measurement results of a single shot
 struct ShotMeasurement {
   ShotMetadata shotMetadata;
   ShotResult shotResult;
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE(ShotMeasurement, shotMetadata, shotResult);
 };
+
+void to_json(json &j, const ShotMeasurement &p);
+void from_json(const json &j, ShotMeasurement &p);
 
 /// @brief Represents the metadata of a single generic task (not tied to AHS
 /// program)
@@ -261,29 +212,10 @@ struct TaskMetadata {
   std::optional<std::string> endedAt;
   std::optional<std::string> status;
   std::optional<std::string> failureReason;
-
-  friend void to_json(json &j, const TaskMetadata &p) {
-    TO_JSON_HELPER(id);
-    TO_JSON_HELPER(shots);
-    TO_JSON_HELPER(deviceId);
-    TO_JSON_OPT_HELPER(deviceParameters);
-    TO_JSON_OPT_HELPER(createdAt);
-    TO_JSON_OPT_HELPER(endedAt);
-    TO_JSON_OPT_HELPER(status);
-    TO_JSON_OPT_HELPER(failureReason);
-  }
-
-  friend void from_json(const json &j, TaskMetadata &p) {
-    FROM_JSON_HELPER(id);
-    FROM_JSON_HELPER(shots);
-    FROM_JSON_HELPER(deviceId);
-    FROM_JSON_OPT_HELPER(deviceParameters);
-    FROM_JSON_OPT_HELPER(createdAt);
-    FROM_JSON_OPT_HELPER(endedAt);
-    FROM_JSON_OPT_HELPER(status);
-    FROM_JSON_OPT_HELPER(failureReason);
-  }
 };
+
+void to_json(json &j, const TaskMetadata &p);
+void from_json(const json &j, TaskMetadata &p);
 
 /// @brief Represents the metadata of QuEra-specific task
 struct QueraMetadata {
@@ -296,42 +228,30 @@ struct QueraMetadata {
     }
     numSuccessfulShots = n;
   }
-
-  friend void to_json(json &j, const QueraMetadata &p) {
-    TO_JSON_HELPER(numSuccessfulShots);
-  }
-
-  friend void from_json(const json &j, QueraMetadata &p) {
-    FROM_JSON_HELPER(numSuccessfulShots);
-  }
 };
+
+void to_json(json &j, const QueraMetadata &p);
+void from_json(const json &j, QueraMetadata &p);
 
 /// @brief Represents the additional metadata about a task, instead of the
 /// generalized form, this class specializes to QuEra and AHS program.
 struct AdditionalMetadata {
   Program action;
   QueraMetadata queraMetadata;
-  NLOHMANN_DEFINE_TYPE_INTRUSIVE(AdditionalMetadata, action, queraMetadata);
 };
+
+void to_json(json &j, const AdditionalMetadata &p);
+void from_json(const json &j, AdditionalMetadata &p);
 
 /// @brief Represents the task result of Analog Hamiltonian Simulation
 struct TaskResult {
   TaskMetadata taskMetadata;
   std::optional<std::vector<ShotMeasurement>> measurements;
   std::optional<AdditionalMetadata> additionalMetadata;
-
-  friend void to_json(json &j, const TaskResult &p) {
-    TO_JSON_HELPER(taskMetadata);
-    TO_JSON_OPT_HELPER(measurements);
-    TO_JSON_OPT_HELPER(additionalMetadata);
-  }
-
-  friend void from_json(const json &j, TaskResult &p) {
-    FROM_JSON_HELPER(taskMetadata);
-    FROM_JSON_OPT_HELPER(measurements);
-    FROM_JSON_OPT_HELPER(additionalMetadata);
-  }
 };
+
+void to_json(json &j, const TaskResult &p);
+void from_json(const json &j, TaskResult &p);
 
 } // namespace ahs
 

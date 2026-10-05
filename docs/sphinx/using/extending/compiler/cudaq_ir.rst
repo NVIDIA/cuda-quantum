@@ -80,7 +80,7 @@ Run the registered pipeline on a Quake module with:
 
 For example, start with:
 
-.. literalinclude:: ../../../../../cudaq/test/Transforms/convert_to_linear_values.qke
+.. literalinclude:: ../../../../../cudaq/test/Optimizer/convert_to_linear_values.qke
    :language: mlir
    :start-at: func.func private @callee
    :end-at: }
@@ -111,6 +111,12 @@ The command produces:
    }
 
 .. :spellcheck-enable:
+
+Mapped Quake IR
+^^^^^^^^^^^^^^^
+
+The mapping pass emits Mapped Quake IR, in which kernels borrow device wires
+from ``@mapped_wireset``.
 
 CC
 --
@@ -165,4 +171,4 @@ Quake, CC, and QEC declarations are under
 ``cudaq/include/cudaq/Optimizer/CodeGen``, and their implementations are under
 ``cudaq/lib/Optimizer``. Focused C++ tests for dialect operations and interfaces
 are under ``cudaq/unittests/Optimizer``. Textual IR coverage is under
-``cudaq/test/Transforms``, ``cudaq/test/AST-Quake``, and ``python/tests/mlir``.
+``cudaq/test/Optimizer``, ``cudaq/test/Frontend``, and ``python/tests/mlir``.

@@ -27,6 +27,13 @@ using namespace mlir;
 using DeallocationMap = llvm::DenseMap<Operation *, bool>;
 using RegionOpSet = llvm::DenseSet<Operation *>;
 
+// Added to harden this pass when the IR is in a squirrelly mix of alloca and
+// sink operations. Normally, the IR isn't in that state coming out of a bridge.
+static bool isUnwrapImmediatelySunk(cudaq::quake::UnwrapOp unwrap) {
+  Value wire = unwrap.getResult();
+  return wire.hasOneUse() && isa<cudaq::quake::SinkOp>(*wire.user_begin());
+}
+
 namespace {
 struct DeallocationAnalysisInfo {
   DeallocationAnalysisInfo() = default;
@@ -61,6 +68,21 @@ struct DeallocationAnalysisInfo {
               deallocMap[alloc] = true;
             else
               deallocMap.insert(std::make_pair(alloc, true));
+          } else if (auto unwrap = dyn_cast<cudaq::quake::UnwrapOp>(op);
+                     unwrap && isUnwrapImmediatelySunk(unwrap)) {
+            auto val = unwrap.getRefValue();
+            Operation *alloc = val.getDefiningOp();
+            if (alloc && !isa<cudaq::quake::AllocaOp>(alloc)) {
+              auto initState = dyn_cast<cudaq::quake::InitializeStateOp>(alloc);
+              alloc =
+                  initState ? initState.getTargets().getDefiningOp() : nullptr;
+            }
+            if (alloc) {
+              if (deallocMap.count(alloc))
+                deallocMap[alloc] = true;
+              else
+                deallocMap.insert(std::make_pair(alloc, true));
+            }
           }
         }
     for (auto &[_, dealloced] : deallocMap)
@@ -89,6 +111,20 @@ public:
   }
 
 private:
+  // Record that the alloca defining \p val (following through an
+  // InitializeStateOp, if present) has already been deallocated -- whether
+  // by an explicit quake.dealloc or by the value-semantics equivalent.
+  bool markDeallocated(Value val) {
+    if (auto init = val.getDefiningOp<cudaq::quake::InitializeStateOp>())
+      val = init.getTargets();
+    auto alloc = val.getDefiningOp<cudaq::quake::AllocaOp>();
+    if (!alloc)
+      return false;
+    auto *op = alloc.getOperation();
+    allocMap[op] = true;
+    return true;
+  }
+
   // Perform the analysis on \p func.
   void performAnalysis(Operation *func) {
     func->walk([this](Operation *o) {
@@ -105,19 +141,20 @@ private:
                                   << op->getParentOp() << '\n');
         }
       } else if (auto dealloc = dyn_cast<cudaq::quake::DeallocOp>(o)) {
-        auto val = dealloc.getReference();
-        if (auto init = val.getDefiningOp<cudaq::quake::InitializeStateOp>())
-          val = init.getTargets();
-        if (auto alloc = val.getDefiningOp<cudaq::quake::AllocaOp>()) {
-          auto *op = alloc.getOperation();
-          if (allocMap.count(op))
-            allocMap[op] = true;
-          else
-            allocMap.insert(std::make_pair(op, /*deallocated=*/true));
-          LLVM_DEBUG(llvm::dbgs() << "found dealloc of alloca: " << op << '\n');
+        if (markDeallocated(dealloc.getReference())) {
+          LLVM_DEBUG(llvm::dbgs()
+                     << "found dealloc of alloca: "
+                     << dealloc.getReference().getDefiningOp() << '\n');
         } else {
           dealloc->emitWarning("unable to determine associated allocation.");
           hasErrors = true;
+        }
+      } else if (auto unwrap = dyn_cast<cudaq::quake::UnwrapOp>(o)) {
+        if (isUnwrapImmediatelySunk(unwrap) &&
+            markDeallocated(unwrap.getRefValue())) {
+          LLVM_DEBUG(llvm::dbgs()
+                     << "found unwrap+sink of alloca: "
+                     << unwrap.getRefValue().getDefiningOp() << '\n');
         }
       }
     });

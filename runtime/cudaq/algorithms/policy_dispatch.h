@@ -30,7 +30,7 @@ namespace cudaq::policies {
 ///     [&]{ return finalizeExecutionContext(policy, context); },
 ///     [&](sample_result&&  r) { context.sample_data  = std::move(r.data); },
 ///     [&](run_result&&     r) { context.exit_code    = r.exit_code; },
-///     [&](void_result)        { context.result       = {}; }
+///     [&](void_result)        { /* nothing to store */ }
 ///   );
 /// });
 /// @endcode
@@ -83,10 +83,14 @@ decltype(auto) withPolicy(std::string_view name, Func &&func) {
       {"observe", [](FuncRef f) -> Ret { return f(observe_policy{}); }},
       {"run", [](FuncRef f) -> Ret { return f(run_policy{}); }},
       {"dem", [](FuncRef f) -> Ret { return f(dem_policy{}); }},
+      {estimate_policy::name,
+       [](FuncRef f) -> Ret { return f(estimate_policy{}); }},
       {"msm_size", [](FuncRef f) -> Ret { return f(msm_size_policy{}); }},
       {"msm", [](FuncRef f) -> Ret { return f(msm_policy{}); }},
       {"ptsbe-sample",
        [](FuncRef f) -> Ret { return f(ptsbe::sample_policy{}); }},
+      {"orca-sample",
+       [](FuncRef f) -> Ret { return f(orca::sample_policy{}); }},
   };
 
   for (auto &[key, dispatch] : registry) {
@@ -189,7 +193,7 @@ void invokeVisitor(Visitor &&visitor, Func &&func) {
 ///     [&](run_result&&     r) { context.exit_code    = r.exit_code; },
 ///     [&](observe_result&& r) { context.observations =
 ///     std::move(r.observations); },
-///     [&](void_result)        { context.result       = {}; }
+///     [&](void_result)        { /* nothing to store */ }
 ///   );
 /// });
 /// @endcode

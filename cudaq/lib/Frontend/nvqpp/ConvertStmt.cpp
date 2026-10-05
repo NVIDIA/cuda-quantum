@@ -7,7 +7,9 @@
  ******************************************************************************/
 
 #include "cudaq/Frontend/nvqpp/ASTBridge.h"
+#include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
+#include "cudaq/Optimizer/Builder/Marshal.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/Support/Debug.h"
@@ -28,7 +30,7 @@ bool QuakeBridgeVisitor::VisitBreakStmt(clang::BreakStmt *x) {
   // statement. The bridge does not currently support switch statements.
   LLVM_DEBUG(llvm::dbgs() << "%% "; x->dump());
   if (builder.getBlock())
-    cc::UnwindBreakOp::create(builder, toLocation(x));
+    cc::UnwindBreakOp::create(builder, toLocation(x), currentLoopArgs());
   return true;
 }
 
@@ -36,7 +38,7 @@ bool QuakeBridgeVisitor::VisitContinueStmt(clang::ContinueStmt *x) {
   // It is a C++ syntax error if a continue statement is not in a loop.
   LLVM_DEBUG(llvm::dbgs() << "%% "; x->dump());
   if (builder.getBlock())
-    cc::UnwindContinueOp::create(builder, toLocation(x));
+    cc::UnwindContinueOp::create(builder, toLocation(x), currentLoopArgs());
   return true;
 }
 
@@ -201,7 +203,8 @@ bool QuakeBridgeVisitor::TraverseCXXForRangeStmt(clang::CXXForRangeStmt *x,
                            Block &block) {
       OpBuilder::InsertionGuard guard(builder);
       builder.setInsertionPointToStart(&block);
-      Value index = block.getArgument(0);
+      LoopArgsScope loopArgsScope(*this, block.getArguments());
+      Value index = initial ? block.getArgument(1) : block.getArgument(0);
       // May need to create a temporary for the loop variable. Create a new
       // scope.
       auto scopeBuilder = [&](OpBuilder &builder, Location loc) {
@@ -284,6 +287,7 @@ bool QuakeBridgeVisitor::TraverseCXXForRangeStmt(clang::CXXForRangeStmt *x,
                            Block &block) {
       OpBuilder::InsertionGuard guard(builder);
       builder.setInsertionPointToStart(&block);
+      LoopArgsScope loopArgsScope(*this, block.getArguments());
       Value index = block.getArgument(0);
       Value ref =
           cudaq::quake::ExtractRefOp::create(builder, loc, buffer, index);
@@ -377,38 +381,17 @@ bool QuakeBridgeVisitor::VisitReturnStmt(clang::ReturnStmt *x) {
           result = cc::CastOp::create(builder, loc, i1Ty, result);
       }
     }
-    if (auto vecTy = dyn_cast<cc::SpanLikeType>(resTy)) {
+    if (isa<cc::SpanLikeType>(resTy) ||
+        (isa<cc::StructType>(result.getType()) &&
+         cc::isDynamicType(result.getType()))) {
       // Returning vector data that was allocated on the stack is not valid.
       // Allocate space on the heap and make a copy of the vector instead. It
       // will be the responsibility of the calling side to free this memory.
       auto irBuilder = cudaq::IRBuilder::atBlockEnd(module.getBody());
-      if (failed(irBuilder.loadIntrinsic(module, "__nvqpp_vectorCopyCtor")))
+      if (failed(irBuilder.loadIntrinsic(module, "__nvqpp_vectorCopyCtor")) ||
+          failed(irBuilder.loadIntrinsic(module, "malloc")))
         module.emitError("failed to load intrinsic");
-      auto eleTy = vecTy.getElementType();
-      auto createVectorInit = [&](Value eleSize) {
-        auto ptrTy = cudaq::cc::PointerType::get(builder.getI8Type());
-        Value resBuff = cc::SequenceDataOp::create(builder, loc, ptrTy, result);
-        Value dynSize = cc::SequenceSizeOp::create(
-            builder, loc, builder.getI64Type(), result);
-        Value heapCopy =
-            func::CallOp::create(builder, loc, ptrTy, "__nvqpp_vectorCopyCtor",
-                                 ValueRange{resBuff, dynSize, eleSize})
-                .getResult(0);
-        return cc::SequenceInitOp::create(builder, loc, resTy,
-                                          ValueRange{heapCopy, dynSize});
-      };
-      IRBuilder irb(builder);
-      Value tySize;
-      if (!cudaq::cc::isDynamicType(eleTy))
-        tySize = irb.getByteSizeOfType(loc, eleTy);
-      if (!tySize) {
-        // TODO: we need to recursively create copies of all
-        // dynamic memory used within the type. See the
-        // implementation of `visit_Return` in the Python bridge.
-        TODO_x(toLocation(x), x, mangler, "unhandled vector element type");
-        return false;
-      }
-      result = createVectorInit(tySize);
+      result = opt::marshal::copyDynamicValueToHeap(loc, builder, result);
     }
     if (isFuncScope)
       cc::ReturnOp::create(builder, loc, result);
@@ -483,6 +466,7 @@ bool QuakeBridgeVisitor::traverseDoOrWhileStmt(S *x) {
     auto &bodyBlock = region.front();
     OpBuilder::InsertionGuard guard(builder);
     builder.setInsertionPointToStart(&bodyBlock);
+    LoopArgsScope loopArgsScope(*this, ValueRange{});
     if (!TraverseStmt(static_cast<clang::Stmt *>(body))) {
       result = false;
       return;
@@ -599,6 +583,7 @@ bool QuakeBridgeVisitor::TraverseForStmt(clang::ForStmt *x,
     auto &bodyBlock = region.front();
     OpBuilder::InsertionGuard guard(builder);
     builder.setInsertionPointToStart(&bodyBlock);
+    LoopArgsScope loopArgsScope(*this, ValueRange{});
     if (!TraverseStmt(static_cast<clang::Stmt *>(body))) {
       result = false;
       return;
@@ -633,8 +618,11 @@ bool QuakeBridgeVisitor::TraverseForStmt(clang::ForStmt *x,
     });
   } else {
     // If there is no initialization expression, skip creating a `for` scope.
+    // The step builder is still needed regardless of whether there's an init
+    // clause -- an empty init clause says nothing about whether an increment
+    // clause exists (e.g. `for (; i < 4; ++i)`).
     cc::LoopOp::create(builder, loc, ValueRange{}, postCondition, whileBuilder,
-                       bodyBuilder);
+                       bodyBuilder, stepBuilder);
   }
   const auto finalValueDepth = valueStack.size();
   if (finalValueDepth > initialValueDepth) {

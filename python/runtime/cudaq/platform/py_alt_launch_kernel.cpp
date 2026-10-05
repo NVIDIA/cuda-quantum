@@ -14,8 +14,10 @@
 #include "common/Environment.h"
 #include "common/Timing.h"
 #include "cudaq_internal/compiler/ArgumentConversion.h"
+#include "cudaq_internal/compiler/CompiledModuleHelper.h"
 #include "cudaq_internal/compiler/Compiler.h"
 #include "cudaq_internal/compiler/LayoutInfo.h"
+#include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "cudaq_internal/compiler/TracePassInstrumentation.h"
 #include "runtime/cudaq/algorithms/py_utils.h"
 #include "runtime/cudaq/platform/PythonSignalCheck.h"
@@ -56,6 +58,7 @@
 #include <nanobind/stl/complex.h>
 #include <nanobind/stl/function.h>
 #include <nanobind/stl/map.h>
+#include <nanobind/stl/optional.h>
 #include <nanobind/stl/pair.h>
 #include <nanobind/stl/shared_ptr.h>
 #include <nanobind/stl/string.h>
@@ -703,9 +706,9 @@ static std::pair<cudaq::CompileTarget, cudaq::CompileOptions>
 getCompileConfig(std::optional<cudaq::CompileTarget> target = std::nullopt) {
   auto *ctx = cudaq::getExecutionContext();
   cudaq::CompileOptions options;
+  if (!target)
+    target = cudaq::get_compile_target();
   if (!ctx) {
-    if (!target)
-      target = cudaq::get_compile_target(cudaq::other_policies{});
     options = cudaq::get_compile_options(cudaq::other_policies{});
   } else {
     cudaq::policies::withPolicy(ctx->name, [&](auto policy) {
@@ -714,14 +717,18 @@ getCompileConfig(std::optional<cudaq::CompileTarget> target = std::nullopt) {
         policy.spin = ctx->spin.value();
       }
 
-      if (!target)
-        target = cudaq::get_compile_target(policy);
       options = cudaq::get_compile_options(policy);
     });
   }
 
-  // TODO: remove this call by moving flags out of the target
-  cudaq::propagateTargetOptionsToCompileOptions(*target, options);
+  const bool isEmulated = cudaq::is_emulated_platform();
+  const bool isRemote = cudaq::is_remote_platform();
+  options.emulate = isEmulated;
+  options.emitJit |= !isRemote;
+  if (!cudaq::platform_supports_jit())
+    options.emitJit = false;
+  options.boolVecBitPacked = !isRemote && !isEmulated;
+
   return {*std::move(target), std::move(options)};
 }
 
@@ -777,7 +784,7 @@ pyLaunchModule(const std::string &name, ModuleOp mod,
   mlir::OwningOpRef<ModuleOp> resolvedModule;
   if (cacheable && hasCompileTimeDependencies) {
     if (auto digest = cudaq::detail::createProgramFingerprint(
-            name, mod, rawArgs, target, resolvedModule))
+            name, mod, rawArgs, resolvedModule))
       programDigest = *digest;
     else
       cacheable = false;
@@ -836,17 +843,6 @@ static bool isCurrentTargetFullQIR() {
   // Biased. Most likely expected pattern first.
   return transport.starts_with("qir:") || transport == "qir" ||
          transport == "qir-full" || transport.starts_with("qir-full:");
-}
-
-static void pyAltLaunchAnalogKernel(const std::string &name,
-                                    std::string &programArgs) {
-  if (name.find(cudaq::runtime::cudaqAHKPrefixName) != 0)
-    throw std::runtime_error("Unexpected type of kernel.");
-  auto dynamicResult = cudaq::altLaunchKernel(
-      name.c_str(), cudaq::KernelThunkType(nullptr),
-      (void *)(const_cast<char *>(programArgs.c_str())), programArgs.size(), 0);
-  if (dynamicResult.data_buffer || dynamicResult.size)
-    throw std::runtime_error("Not implemented: support dynamic results");
 }
 
 template <typename T>
@@ -1064,7 +1060,21 @@ cudaq::OpaqueArguments cudaq::marshal_arguments_for_module_launch(
                      unsigned pos) {
     return linkResolvedCallable(mod, kernelFunc, pos, pyArg);
   };
-  if (isLocalSimulator)
+  // Two encodings, one per execution mode (see PackingStyle):
+  //   - Direct launch (argsCreator): the kernel keeps live argument uses that
+  //     are supplied at runtime through the generated `.argsCreator`/thunk,
+  //     whose "C++ side magic" understands a host `std::vector<bool>` for an
+  //     `i1` vector. Used only for local simulators with un-synthesized args.
+  //   - Argument synthesis (the default): the arguments are folded into the
+  //     kernel as constants by `ArgumentConverter`, which reads every vector as
+  //     the universal `{begin, end, capacity}` triple and therefore must be
+  //     given the triple-compatible `std::vector<char>` for an `i1` vector
+  //     (never the bit-packed `std::vector<bool>` specialization).
+  // A kernel whose formal arguments are all unused is synthesized
+  // (`isFullySynthesized`); otherwise a local simulator direct-launches it.
+  const bool directLaunch =
+      isLocalSimulator && !cudaq::opt::factory::isFullySynthesized(kernelFunc);
+  if (directLaunch)
     cudaq::packArgs<cudaq::PackingStyle::argsCreator>(args, runtimeArgs,
                                                       kernelFunc, handler);
   else
@@ -1313,6 +1323,24 @@ static std::size_t get_launch_args_required(MlirModule module,
   return result;
 }
 
+/// Copy \p mod into a fresh, Python-owned MLIR context.
+static MlirModule clonePythonOwnedModule(mlir::ModuleOp mod) {
+  std::string ir;
+  llvm::raw_string_ostream os(ir);
+  mod.print(os);
+  auto *sourceContext = mod.getContext();
+  auto loadedDialects = sourceContext->getLoadedDialects();
+  auto context = cudaq_internal::compiler::getOwningMLIRContext(loadedDialects);
+  auto copy = mlir::parseSourceString<mlir::ModuleOp>(ir, context.get());
+  if (!copy)
+    throw std::runtime_error("failed to clone the compiled MLIR module");
+  MlirModule wrapped = wrap(copy.release());
+  // The MLIR Python bindings adopt the context of a module handed to them and
+  // destroy it with the last reference, so release our ownership here.
+  [[maybe_unused]] auto _ = context.release();
+  return wrapped;
+}
+
 void cudaq::bindAltLaunchKernel(nanobind::module_ &mod,
                                 std::function<std::string()> &&getTL) {
   getTransportLayer = std::move(getTL);
@@ -1334,7 +1362,30 @@ void cudaq::bindAltLaunchKernel(nanobind::module_ &mod,
                    "The kernel name this module was compiled for.")
       .def_prop_ro("is_fully_specialized",
                    &cudaq::CompiledModule::isFullySpecialized,
-                   "Whether all arguments have been specialized.");
+                   "Whether all arguments have been specialized.")
+      .def_prop_ro(
+          "mlir_module",
+          [](const cudaq::CompiledModule &cm) -> std::optional<MlirModule> {
+            auto mlirArt = cm.getMlir();
+            if (!mlirArt)
+              return std::nullopt;
+            return clonePythonOwnedModule(
+                cudaq_internal::compiler::CompiledModuleHelper::getMlirModuleOp(
+                    *mlirArt));
+          },
+          "The MLIR module for this compiled kernel, or None if this module "
+          "carries no MLIR artifact.")
+      .def_prop_ro("resource_counts",
+                   [](const cudaq::CompiledModule &cm)
+                       -> std::optional<cudaq::Resources> {
+                     auto counts = cm.getResources();
+                     if (!counts)
+                       return std::nullopt;
+                     return *counts;
+                   })
+      .def("__repr__", [](const cudaq::CompiledModule &cm) {
+        return "CompiledModule(name='" + cm.getName() + "')";
+      });
 
   mod.def("lower_to_codegen", lower_to_codegen,
           "Lower a kernel module to CC dialect. Never launches the kernel.");
@@ -1351,9 +1402,6 @@ void cudaq::bindAltLaunchKernel(nanobind::module_ &mod,
   mod.def("marshal_and_retain_module", marshal_and_retain_module,
           "Compile (specialize + JIT) a kernel module. Returns a "
           "CompiledModule object that owns the JIT engine.");
-  mod.def("pyAltLaunchAnalogKernel", pyAltLaunchAnalogKernel,
-          "Launch an analog Hamiltonian simulation kernel with given JSON "
-          "payload.");
 
   mod.def("synthesize", synthesizeKernel, "FIXME: document!");
 

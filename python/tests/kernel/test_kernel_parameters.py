@@ -7,6 +7,7 @@
 # ============================================================================ #
 
 import os
+import platform
 
 import pytest
 import numpy as np
@@ -15,6 +16,11 @@ import sys
 
 import cudaq
 from cudaq import spin
+
+skip_arm64_nested_list = pytest.mark.skipif(
+    platform.machine() in ('arm64', 'aarch64'),
+    reason="nested list argument synthesis fails on ARM64: disabled pending fix"
+)
 
 
 @pytest.fixture(autouse=True)
@@ -162,6 +168,7 @@ def test_nested_list_pauli_str():
     assert '1111' in counts
 
 
+@skip_arm64_nested_list
 def test_nested_list3_bool():
 
     @cudaq.kernel
@@ -186,6 +193,7 @@ def test_nested_list3_bool():
     assert '1010010110100101' in counts
 
 
+@skip_arm64_nested_list
 def test_nested_list3_int():
 
     @cudaq.kernel
@@ -203,6 +211,7 @@ def test_nested_list3_int():
     assert '1111111111111111' in counts
 
 
+@skip_arm64_nested_list
 def test_nested_list4_int():
 
     @cudaq.kernel

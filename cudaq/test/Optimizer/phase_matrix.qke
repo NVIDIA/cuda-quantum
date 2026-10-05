@@ -1,0 +1,49 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// LowerPhase replaces these constant controlled PhaseOps with ordinary gates.
+// Exact CircuitCheck comparison against the input exercises PhaseOp's constant
+// base matrix, control handling, adjoint sign, and negative-control polarity.
+// RUN: cudaq-opt --lower-phase %s | CircuitCheck %s
+
+func.func @positive(%control: !quake.ref, %anchor: !quake.ref) {
+  %phi = arith.constant 0.375 : f64
+  quake.phase (%phi) [%control] %anchor
+      : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+func.func @multiple(%c0: !quake.ref, %c1: !quake.ref,
+                    %anchor: !quake.ref) {
+  %phi = arith.constant -0.625 : f64
+  quake.phase (%phi) [%c0, %c1] %anchor
+      : (f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+func.func @negative(%control: !quake.ref, %anchor: !quake.ref) {
+  %phi = arith.constant 0.875 : f64
+  quake.phase (%phi) [%control neg [true]] %anchor
+      : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+func.func @adjoint(%control: !quake.ref, %anchor: !quake.ref) {
+  %phi = arith.constant 1.125 : f64
+  quake.phase<adj> (%phi) [%control] %anchor
+      : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// Exercise the anchored aggregate-control fallback as an exact unitary.
+func.func @aggregate(%controls: !quake.veq<1>, %anchor: !quake.ref) {
+  %phi = arith.constant -0.4375 : f64
+  quake.phase (%phi) [%controls] %anchor
+      : (f64, !quake.veq<1>, !quake.ref) -> ()
+  return
+}

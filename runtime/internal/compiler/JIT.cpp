@@ -12,6 +12,7 @@
 #include "common/Timing.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
+#include "cudaq/Optimizer/Builder/CompilerNames.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"

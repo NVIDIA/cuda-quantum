@@ -10,6 +10,8 @@
 
 import cudaq
 
+cudaq.parse_args()
+
 
 @cudaq.kernel
 def simple(numQubits: int) -> int:

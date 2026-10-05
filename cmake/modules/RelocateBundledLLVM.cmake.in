@@ -1,0 +1,26 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+# Generated from RelocateBundledLLVM.cmake.in -- do not edit.
+#
+# Rewrite absolute paths stored within the LLVM/MLIR tree to be relocatable. Run
+# at install time when CUDAQ_BUNDLE_MLIR_INSTALL is on (see BundleMLIRDevel.cmake).
+
+# LLVMConfig.cmake hardcodes the zlib it was built against as `set(ZLIB_ROOT <path>)`
+# and then calls find_package(ZLIB). That path is not part of the bundled tree, so
+# for a consumer of the wheel the find_package would fail. Drop the pin and let
+# zlib be found the normal way.
+set(_llvm_config "${CMAKE_INSTALL_PREFIX}/lib/cmake/llvm/LLVMConfig.cmake")
+if(EXISTS "${_llvm_config}")
+  file(READ "${_llvm_config}" _content)
+  string(REGEX REPLACE "set\\(ZLIB_ROOT[^)]*\\)" "" _scrubbed "${_content}")
+  if(NOT _scrubbed STREQUAL _content)
+    file(WRITE "${_llvm_config}" "${_scrubbed}")
+    message(STATUS "Dropped build-machine ZLIB_ROOT from bundled LLVMConfig.cmake")
+  endif()
+endif()

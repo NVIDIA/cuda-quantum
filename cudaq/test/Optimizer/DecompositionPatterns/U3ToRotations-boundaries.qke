@@ -1,0 +1,72 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// Unsupported forms must be retained when PR5 cannot emit an exact scalar
+// phase correction. This test is FileCheck-only because CircuitCheck does not
+// support aggregate quantum targets.
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=U3ToRotations})' %s | FileCheck %s
+
+func.func @u3_aggregate_target(%targets: !quake.veq<2>) {
+  %theta = arith.constant 2.500000e-01 : f64
+  %phi = arith.constant 5.000000e-01 : f64
+  %lambda = arith.constant 7.500000e-01 : f64
+  quake.u3 (%theta, %phi, %lambda) %targets
+      : (f64, f64, f64, !quake.veq<2>) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @u3_aggregate_target
+// CHECK: quake.u3 {{.*}} !quake.veq<2>
+// CHECK-NOT: quake.phase
+// CHECK: return
+
+func.func @u3_unsized_aggregate_target(%targets: !quake.veq<?>) {
+  %theta = arith.constant 2.500000e-01 : f64
+  %phi = arith.constant 5.000000e-01 : f64
+  %lambda = arith.constant 7.500000e-01 : f64
+  quake.u3 (%theta, %phi, %lambda) %targets
+      : (f64, f64, f64, !quake.veq<?>) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @u3_unsized_aggregate_target
+// CHECK: quake.u3 {{.*}} !quake.veq<?>
+// CHECK-NOT: quake.phase
+// CHECK: return
+
+// The phase expression adds phi and lambda, so do not impose an implicit cast
+// on legal source IR that gives them different floating-point types.
+func.func @u3_mixed_phi_lambda_types(%target: !quake.ref) {
+  %theta = arith.constant 2.500000e-01 : f32
+  %phi = arith.constant 5.000000e-01 : f32
+  %lambda = arith.constant 7.500000e-01 : f64
+  quake.u3 (%theta, %phi, %lambda) %target
+      : (f32, f32, f64, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @u3_mixed_phi_lambda_types
+// CHECK: quake.u3 {{.*}} : (f32, f32, f64, !quake.ref) -> ()
+// CHECK-NOT: quake.phase
+// CHECK: return
+
+// Dynamic phi and lambda retain their f64 SSA values through the correction.
+func.func @u3_dynamic(%theta: f32, %phi: f64, %lambda: f64,
+                      %control: !quake.ref, %target: !quake.ref) {
+  quake.u3 (%theta, %phi, %lambda) [%control] %target
+      : (f32, f64, f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @u3_dynamic
+// CHECK-SAME: %[[THETA:.*]]: f32, %[[PHI:.*]]: f64, %[[LAMBDA:.*]]: f64,
+// CHECK-SAME: %[[CONTROL:.*]]: !quake.ref, %[[TARGET:.*]]: !quake.ref
+// CHECK: %[[TWO:.*]] = arith.constant 2.000000e+00 : f64
+// CHECK: %[[SUM:.*]] = arith.addf %[[PHI]], %[[LAMBDA]] : f64
+// CHECK: %[[PHASE:.*]] = arith.divf %[[SUM]], %[[TWO]] : f64
+// CHECK: quake.phase (%[[PHASE]]) {{\[}}%[[CONTROL]]{{\]}} %[[TARGET]]

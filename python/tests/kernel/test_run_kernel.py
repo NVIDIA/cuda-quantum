@@ -993,24 +993,23 @@ def test_modify_struct():
         x: int
         y: bool
 
-    with pytest.raises(RuntimeError) as e:
+    # Mutating a dataclass function argument's field is now allowed - the
+    # argument is already an independent, by-value copy of whatever the
+    # caller passed, so mutating and returning it reflects only this
+    # function's own copy; it never propagates back to the caller's
+    # original object (there being no caller-visible object to compare
+    # against here in the first place, since `cudaq.run` marshals the
+    # argument in by value).
+    @cudaq.kernel
+    def simple_struc_noerr(t: MyClass) -> MyClass:
+        q = cudaq.qubit()
+        t.x = 42
+        return t
 
-        @cudaq.kernel
-        def simple_struc_err(t: MyClass) -> MyClass:
-            q = cudaq.qubit()
-            # If we allowed this, the expected behavior for Python
-            # would be that t is modified also in the caller without
-            # having to return it. We hence give an error to make it
-            # clear that changes to structs don't propagate past
-            # function boundaries.
-            t.x = 42
-            return t
-
-        cudaq.run(simple_struc_err, MyClass(-13, True), shots_count=2)
-
-    assert 'value cannot be modified - use `.copy(deep)` to create a new value that can be modified' in repr(
-        e)
-    assert '(offending source -> t.x)' in repr(e)
+    results = cudaq.run(simple_struc_noerr, MyClass(-13, True), shots_count=2)
+    assert len(results) == 2
+    assert results[0] == MyClass(42, True)
+    assert results[1] == MyClass(42, True)
 
     @cudaq.kernel
     def simple_structA(arg: MyClass) -> MyClass:
@@ -1109,6 +1108,7 @@ def test_unsupported_return_type():
     assert 'unsupported return type' in str(e.value)
 
 
+@pytest.mark.skip_arm64_jit
 def test_run_and_sample_and_direct_call():
 
     @cudaq.kernel

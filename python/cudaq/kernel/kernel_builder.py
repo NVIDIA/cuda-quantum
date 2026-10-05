@@ -719,7 +719,7 @@ class PyKernel(object):
 
                 mlirValues.append(value)
             if isAdjoint or len(controls) > 0:
-                quake.ApplyOp([], [],
+                quake.ApplyOp([],
                               controls,
                               mlirValues,
                               callee=FlatSymbolRefAttr.get(
@@ -980,15 +980,40 @@ class PyKernel(object):
 
     def givens_rotation(self, angle, qubitA, qubitB):
         """
-        Add Givens rotation kernel (theta angle as a QuakeValue) to the kernel
-        builder object.
+        Add a Givens rotation kernel to the kernel builder object.
+
+        The Givens rotation mixes the two-qubit basis states `|01>` and `|10>`
+        and leaves `|00>` and `|11>` unchanged. It is equivalent to
+        `exp(-i theta (YX - XY) / 2)`, and in the basis
+        `|00>, |01>, |10>, |11>` it is given by::
+
+            | 1  0  0  0 |
+            | 0  c -s  0 |         c = cos(theta)
+            | 0  s  c  0 |         s = sin(theta)
+            | 0  0  0  1 |
+
+        Because it preserves the number of excitations, it is a common
+        building block for particle-number conserving ansatz. The angle can be
+        provided as a concrete float or a `QuakeValue`.
         """
         givens_builder(self, angle, qubitA, qubitB)
 
     def fermionic_swap(self, angle, qubitA, qubitB):
         """
-        Add Fermionic SWAP rotation kernel (phi angle as a QuakeValue) to the
-        kernel builder object.
+        Add a fermionic SWAP rotation kernel to the kernel builder object.
+
+        This rotation acts on two adjacent fermionic modes under the
+        Jordan-Wigner mapping, swapping them while tracking the fermionic
+        exchange phase. In the basis `|00>, |01>, |10>, |11>` it is given by::
+
+            | 1    0       0      0  |
+            | 0   e*c    -i*e*s   0  |    c = cos(phi/2), s = sin(phi/2)
+            | 0  -i*e*s   e*c     0  |    e = exp(i phi/2)
+            | 0    0       0     e^2 |
+
+        For `phi = pi` this reduces to the fermionic SWAP gate, i.e. a SWAP
+        with an additional phase of -1 on `|11>`. The angle can be provided as
+        a concrete float or a `QuakeValue`.
         """
         fermionic_swap_builder(self, angle, qubitA, qubitB)
 
@@ -1730,6 +1755,18 @@ class PyKernel(object):
         self.module.operation.attributes.__setitem__(
             'quake.noOptimization', UnitAttr.get(context=self.ctx))
 
+    def atomic_quantum_region(self):
+        """
+        Mark each invocation of this kernel as an atomic quantum region.
+
+        Call this method before composing the kernel into another builder.
+        Quantum operations can be optimized within an invocation, but not
+        across its boundary.
+        """
+        self.clearCache()
+        self.funcOp.attributes.__setitem__('atomic_quantum_region',
+                                           UnitAttr.get(context=self.ctx))
+
     @trace.traced
     def compile(self):
         """
@@ -1744,9 +1781,9 @@ class PyKernel(object):
             try:
                 with trace.span("cudaq.pipeline.aot"):
                     cudaq_runtime.runPassManager(pm, self.qkeModule)
-            except:
+            except Exception as e:
                 raise RuntimeError("could not compile code for '" +
-                                   self.uniqName + "'.")
+                                   self.uniqName + "'.\n" + str(e)) from e
             self.qkeModule.operation.attributes.__setitem__(
                 cudaq__unique_attr_name,
                 StringAttr.get(self.uniqName, context=ctx))

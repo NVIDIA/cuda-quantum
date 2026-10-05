@@ -1,0 +1,232 @@
+# Build the cudaq.logical docs against the built cudaq-logical wheel.
+#
+# Today the `docs` job runs every cudaq.logical example
+# (preview/logical/examples/[0-9]*.py and
+# preview/logical/examples/standalone/[0-9]*.py) against the installed wheel
+# and uploads the example logs as the `cudaq_logical_docs_examples` artifact.
+# This workflow is where the future Sphinx docs build will slot in, publishing a
+# `cudaq_logical_docs` HTML artifact -- the examples step stays, since the docs
+# examples are tested artifacts.
+#
+# On PRs, `cudaq_logical_on_push.yml` passes the artifact names of its
+# dedicated linux/amd64 + Python 3.11 build leg, so no wheel is rebuilt here.
+# When dispatched manually, the `build` job below first retrieves CUDA-Q wheels
+# and builds the cudaq-logical wheel for the requested platform/python_version.
+
+name: Build cudaq.logical docs
+
+on:
+  workflow_dispatch:
+    inputs:
+      platform:
+        type: choice
+        description: Wheel platform
+        options: ["linux/amd64", "linux/arm64"]
+        default: linux/amd64
+      python_version:
+        type: choice
+        description: Python version
+        options: ["3.11", "3.13", "3.14"]
+        default: "3.11"
+  workflow_call:
+    inputs:
+      platform:
+        type: string
+        description: Wheel platform
+        default: linux/amd64
+      python_version:
+        type: string
+        description: Python version
+        default: "3.11"
+      # Artifact inputs: set all five together to reuse a pre-built wheel
+      # (matching platform/python_version); leave empty to build it first.
+      wheel_name:
+        type: string
+        description: Artifact name of a pre-built cudaq-logical wheel to reuse.
+        default: ""
+      runtime_artifact_name:
+        type: string
+        description: Artifact name of the matching CUDA-Q runtime wheel.
+        default: ""
+      metapackage_artifact_name:
+        type: string
+        description: Artifact name of the matching cudaq metapackage.
+        default: ""
+      cudaq_version:
+        type: string
+        description: Version of the pre-built wheels.
+        default: ""
+      cudaq_logical_version:
+        type: string
+        description: Version of the pre-built cudaq-logical wheel.
+        default: ""
+    secrets:
+      DOCKERHUB_USERNAME:
+        required: true
+      DOCKERHUB_READONLY_TOKEN:
+        required: true
+
+jobs:
+  # Skipped when the caller passes pre-built artifact names.
+  build:
+    name: Build and test cudaq.logical
+    if: ${{ !inputs.wheel_name }}
+    uses: ./.github/workflows/cudaq_logical_build_or_retrieve.yml
+    with:
+      platform: ${{ inputs.platform }}
+      python_version: ${{ inputs.python_version }}
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+
+  docs:
+    name: Build and test cudaq.logical docs
+    needs: build
+    # Run both after a successful fallback build and when it was skipped
+    # because pre-built artifact names were passed in.
+    if:
+      ${{ always() && (needs.build.result == 'success' || needs.build.result ==
+      'skipped') }}
+    runs-on:
+      ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') ||
+      'linux-amd64-cpu8' }}
+    permissions:
+      contents: read
+      actions: read
+    env:
+      CUDAQ_VERSION:
+        ${{ inputs.cudaq_version || needs.build.outputs.cudaq_version }}
+      CUDAQ_LOGICAL_VERSION:
+        ${{ inputs.cudaq_logical_version || needs.build.outputs.logical_version
+        }}
+      WHEEL_NAME: ${{ inputs.wheel_name || needs.build.outputs.wheel_name }}
+      RUNTIME_ARTIFACT_NAME:
+        ${{ inputs.runtime_artifact_name ||
+        needs.build.outputs.runtime_artifact_name }}
+      METAPACKAGE_ARTIFACT_NAME:
+        ${{ inputs.metapackage_artifact_name ||
+        needs.build.outputs.metapackage_artifact_name }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Check artifact inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          for v in CUDAQ_VERSION CUDAQ_LOGICAL_VERSION WHEEL_NAME RUNTIME_ARTIFACT_NAME METAPACKAGE_ARTIFACT_NAME; do
+            if [ -z "${!v}" ]; then
+              echo "::error::$v is empty: pass all five artifact inputs together or none."
+              exit 1
+            fi
+          done
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: ${{ inputs.python_version }}
+          activate-environment: true
+
+      - name: Build docs
+        shell: bash
+        id: build-docs
+        background: true
+        run: |
+          set -euo pipefail
+          uv run --directory preview/logical/docs/ --extra build-deps --active build-docs
+
+      - name: Download cudaq-logical wheel
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ env.WHEEL_NAME }}
+          path: dist
+
+      - name: Download runtime wheel
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ env.RUNTIME_ARTIFACT_NAME }}
+          path: dist
+
+      - name: Download CUDA-Q metapackage
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ env.METAPACKAGE_ARTIFACT_NAME }}
+          path: dist
+
+      - name: Install cudaq.logical
+        shell: bash
+        run: |
+          set -euo pipefail
+          uv pip install -f dist \
+            "cudaq==$CUDAQ_VERSION" \
+            "cudaq-logical==$CUDAQ_LOGICAL_VERSION"
+
+      - name: Test inline docs snippets
+        shell: bash
+        background: true
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          uv run --directory preview/logical/docs/ --extra test-deps --active test-docs
+
+      - name: Validate installed cudaq.logical tools
+        shell: bash
+        background: true
+        run: |
+          set -euo pipefail
+
+          printf 'module {}\n' | qlx-opt
+          qlx-translate \
+            preview/logical/examples/mlir/stim_memory.mlir --fabric-to-stim \
+            | grep -q '^M '
+
+      - name: Run cudaq.logical docs examples
+        shell: bash
+        background: true
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+
+          # Run from the workspace root and verify the examples exercise the
+          # installed wheel: preview/logical/python holds a source-only copy of
+          # the package that would shadow the installed wheel (with its
+          # compiled extensions) if it were importable.
+          logical_path="$(python -c 'import cudaq.logical; print(cudaq.logical.__file__)')"
+          echo "Testing installed cudaq.logical: $logical_path"
+          case "$logical_path" in
+            *"$GITHUB_WORKSPACE/preview/logical"*)
+              echo "::error::cudaq.logical resolved to the source tree, not the installed wheel."
+              exit 1
+              ;;
+          esac
+
+          mkdir -p example-logs
+          for example in preview/logical/examples/[0-9]*.py \
+            preview/logical/examples/standalone/[0-9]*.py; do
+            name="$(basename "$example" .py)"
+            echo "=== Running $example ==="
+            if ! python "$example" >"example-logs/$name.log" 2>&1; then
+              echo "::error file=$example::Example failed; log tail:"
+              tail -n 50 "example-logs/$name.log"
+              exit 1
+            fi
+            tail -n 3 "example-logs/$name.log"
+          done
+
+      - wait-all:
+
+      - name: Upload example logs
+        uses: actions/upload-artifact@v7
+        with:
+          name: cudaq_logical_docs_examples
+          path: example-logs/
+          if-no-files-found: error
+
+      - name: Upload docs build
+        uses: actions/upload-artifact@v7
+        with:
+          name: cudaq_logical_docs
+          path: preview/logical/docs/_build/html

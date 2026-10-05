@@ -8,6 +8,9 @@
 
 #include <gtest/gtest.h>
 
+#include <set>
+#include <utility>
+
 #include "Math/Geometry/Interval.h"
 #include "Math/Grid/Odgp.h"
 #include "Support/Stepper.h"
@@ -78,6 +81,49 @@ TEST(OdgpGeneratorTest, SolutionsAreValidZSqrt2Elements) {
   for (const auto &z : results) {
     EXPECT_TRUE(in_intervals(z, I, J))
         << "z=" << z.to_string() << " not in intervals";
+  }
+}
+
+// ============================================================
+// Completeness against brute force
+// ============================================================
+
+// The tests above check that what the stepper yields lies in the intervals;
+// this checks the converse, which is what the bound refinement can break. A
+// b-range narrowed one step too far drops a solution, and next()'s exact
+// re-check cannot notice.
+//
+// Non-integer endpoints on purpose: an element landing exactly on one can fall
+// either way (see cache_interval_bounds), a pre-existing question of its own.
+TEST(OdgpGeneratorTest, YieldsEverySolutionBruteForceFinds) {
+  struct Case {
+    double i_lo, i_hi, j_lo, j_hi;
+  };
+  // Varied widths and offsets so both slope signs in the refinement are hit.
+  const Case cases[] = {
+      {-2.3, 2.3, -2.3, 2.3},    {-5.1, 5.4, -5.2, 5.3},
+      {0.1, 3.2, -3.3, 0.4},     {-1.55, 0.45, 0.27, 4.1},
+      {-4.2, -0.55, -0.45, 4.3}, {1.1, 1.72, -6.1, -2.3},
+      {-0.27, 0.23, -8.1, 8.2},  {-8.3, 8.1, -0.21, 0.29},
+  };
+
+  for (const Case &c : cases) {
+    Interval I(Real(c.i_lo), Real(c.i_hi));
+    Interval J(Real(c.j_lo), Real(c.j_hi));
+
+    std::set<std::pair<int, int>> expected;
+    for (int a = -40; a <= 40; ++a)
+      for (int b = -40; b <= 40; ++b)
+        if (in_intervals(ZSqrt2(a, b), I, J))
+          expected.insert({a, b});
+
+    std::set<std::pair<int, int>> actual;
+    for (const ZSqrt2 &z : to_vector(OdgpStepper(I, J)))
+      actual.insert({static_cast<int>(z.a()), static_cast<int>(z.b())});
+
+    EXPECT_EQ(actual, expected)
+        << "stepper and brute force disagree on I=[" << c.i_lo << ", " << c.i_hi
+        << "] J=[" << c.j_lo << ", " << c.j_hi << "]";
   }
 }
 

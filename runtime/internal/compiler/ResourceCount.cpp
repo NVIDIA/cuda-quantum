@@ -9,6 +9,7 @@
 #include "cudaq_internal/compiler/ResourceCount.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "llvm/ADT/DenseSet.h"
 #include "mlir/Transforms/Passes.h"
 
 using namespace mlir;
@@ -32,6 +33,20 @@ cudaq::opt::countResourcesFromIR(ModuleOp module) {
   if (unresolvedVeq)
     return failure();
 
+  // In value (linear) form there are no allocations: qubits are introduced
+  // either as virtual wires or by borrowing from a wire set.
+  module.walk([&](cudaq::quake::NullWireOp) { allocated++; });
+
+  // A wire set declares the capacity of the target, not the qubits this
+  // kernel uses, so count the wires actually borrowed. (The topology-agnostic
+  // set added by `add-wireset` has a cardinality of INT_MAX.) An identity may
+  // be borrowed again after a `return_wire`; that is still one qubit.
+  llvm::DenseSet<std::pair<StringRef, std::uint32_t>> borrowed;
+  module.walk([&](cudaq::quake::BorrowWireOp borrow) {
+    borrowed.insert({borrow.getSetName(), borrow.getIdentity()});
+  });
+  allocated += borrowed.size();
+
   // All qubit sizes are statically known — proceed to count gates and erase
   // them from the IR so the subsequent JIT compiles a near-empty module.
   cudaq::Resources counts;
@@ -50,6 +65,13 @@ cudaq::opt::countResourcesFromIR(ModuleOp module) {
   bool wasThreadingEnabled = ctx->isMultithreadingEnabled();
   ctx->disableMultithreading();
   PassManager pm(ctx);
+  // Resource counting is a terminal consumer of Quake IR. Complete the phase
+  // lifecycle before counting so global phase corrections are either erased
+  // (when uncontrolled) or lowered to physical gates (when controlled).
+  cudaq::opt::addPhaseLifecycle(pm);
+  // LowerPhase may preserve negative controls on the physical gates it emits.
+  // Expand them before collecting the final gate counts.
+  pm.addNestedPass<func::FuncOp>(createExpandControlNegations());
   pm.addNestedPass<func::FuncOp>(createResourceCountPreprocess(opt));
   pm.addPass(createCanonicalizerPass());
   auto pmResult = pm.run(module);

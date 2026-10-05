@@ -235,6 +235,28 @@ def test_batching_bugs():
         assert len(evolution_result.intermediate_states()) == len(steps)
 
 
+def test_should_use_mixed_state_batch_no_right_apply():
+    """
+    `should_use_mixed_state` must only promote to a mixed (density-matrix)
+    state when a super-operator actually has a right-apply term (i.e. is a
+    genuine dissipator). A batch of super-operators that are all pure
+    left-multiplies (no dissipator) does not need a mixed state, same as a
+    single such super-operator.
+    """
+    from cudaq.dynamics.cudm_solver import should_use_mixed_state
+
+    hamiltonian = boson.create(0) * boson.annihilate(0)
+    pure_left_multiply = SuperOperator.left_multiply(-1j * hamiltonian)
+    dissipative = SuperOperator.left_right_multiply(boson.annihilate(0),
+                                                    boson.create(0))
+
+    assert should_use_mixed_state(pure_left_multiply, []) == False
+    assert should_use_mixed_state([pure_left_multiply, pure_left_multiply],
+                                  []) == False
+    assert should_use_mixed_state(dissipative, []) == True
+    assert should_use_mixed_state([dissipative, dissipative], []) == True
+
+
 def test_precision_info():
     """
     Test that the target info is correct: double precision for dynamics
@@ -476,6 +498,50 @@ def test_evolve_from_data_random_density_matrix_preserved_cudm():
         rho,
         atol=1e-6,
         err_msg="final state should match initial density matrix")
+
+
+def test_batched_density_matrix_layout_matches_single_cudm():
+    """A state split out of a batch must look like a non-batched state.
+
+    Batching should change execution and storage aggregation only, not the
+    shape or storage order reported for each returned state.
+    """
+    np.random.seed(7)
+    N = 4
+    A = np.random.rand(N, N) + 1j * np.random.rand(N, N)
+    rho = A @ A.conj().T
+    rho /= np.trace(rho)
+
+    hamiltonian = 2 * np.pi * 0.1 * boson.number(0)
+    dimensions = {0: N}
+    schedule = Schedule(np.linspace(0.0, 1.0, 11), ["t"])
+    collapse_operators = [0.05 * boson.annihilate(0)]
+
+    def evolve(hamiltonians, initial_states, collapse):
+        return cudaq.evolve(
+            hamiltonians,
+            dimensions,
+            schedule,
+            initial_states,
+            observables=[],
+            collapse_operators=collapse,
+            store_intermediate_results=cudaq.IntermediateResultSave.NONE,
+        )
+
+    single = evolve(hamiltonian, cudaq.State.from_data(rho), collapse_operators)
+    batched = evolve([hamiltonian, hamiltonian],
+                     [cudaq.State.from_data(rho),
+                      cudaq.State.from_data(rho)],
+                     [collapse_operators, collapse_operators])
+
+    single_state = single.final_state()
+    single_arr = np.array(single_state)
+    assert single_arr.shape == (N, N)
+
+    for result in batched:
+        batched_arr = np.array(result.final_state())
+        assert batched_arr.shape == single_arr.shape
+        np.testing.assert_allclose(batched_arr, single_arr, atol=1e-6)
 
 
 def test_user_provided_stepper_scipy():

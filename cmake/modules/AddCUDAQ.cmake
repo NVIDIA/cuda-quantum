@@ -59,9 +59,32 @@ function(add_cudaq_dialect_doc dialect dialect_namespace)
     -gen-dialect-doc -dialect ${dialect_namespace})
 endfunction()
 
+# Replicate all build configs on `${name}` to `obj.${name}`
+function(_cudaq_forward_object_usage_requirements name)
+  if(NOT TARGET obj.${name})
+    return()
+  endif()
+  target_include_directories(obj.${name} SYSTEM PRIVATE
+    $<TARGET_PROPERTY:${name},INTERFACE_INCLUDE_DIRECTORIES>)
+  target_compile_definitions(obj.${name} PRIVATE
+    $<TARGET_PROPERTY:${name},INTERFACE_COMPILE_DEFINITIONS>)
+  target_compile_options(obj.${name} PRIVATE
+    $<TARGET_PROPERTY:${name},INTERFACE_COMPILE_OPTIONS>)
+endfunction()
+
+# target_link_libraries() for a library created by add_cudaq_library().  This ensures
+# the dependency is also set on obj.<target>, (used to build the `cudaqMLIR` shared library.
+function(cudaq_target_link_libraries target visibility)
+  target_link_libraries(${target} ${visibility} ${ARGN})
+  if(TARGET obj.${target})
+    target_link_libraries(obj.${target} PRIVATE ${ARGN})
+  endif()
+endfunction()
+
 function(add_cudaq_library name)
   add_mlir_library(${ARGV} DISABLE_INSTALL ENABLE_AGGREGATION)
   add_cudaq_library_install(${name})
+  _cudaq_forward_object_usage_requirements(${name})
 endfunction()
 
 # Define `CUDAQ_MLIR_BUNDLED_LIBS_PATH`: the file that lists all bundled MLIR libraries.
@@ -97,11 +120,14 @@ if(EXISTS "${CUDAQ_MLIR_BUNDLED_LIBS_PATH}")
 endif()
 
 # --------------------------------------------------------------------------- #
-# ``cudaq_check_mlir_symbol_closure(<target>)``
+# ``cudaq_check_mlir_symbol_closure(<target> [PROVIDERS <target>...])``
 #
-# Fail the build if ``<target>`` references MLIR/LLVM symbols that libcudaqMLIR
-# does not export. Everything in CUDA-Q must resolve MLIR/LLVM dynamically from the
-# single libcudaqMLIR instance. See scripts/check_mlir_symbols.sh.
+# Fail the build if
+#  - ``<target>`` references MLIR/LLVM symbols that neither `libcudaqMLIR` nor
+#    any of the additional `PROVIDERS` export, or
+#  - re-defines duplicate (strong) symbols already defined in `libcudaqMLIR`.
+#
+# This wraps `scripts/check_mlir_symbols.sh`. See the script for more details.
 # --------------------------------------------------------------------------- #
 
 option(CUDAQ_CHECK_MLIR_SYMBOL_CLOSURE
@@ -119,57 +145,230 @@ foreach(_candidate
   endif()
 endforeach()
 
+if(CMAKE_NM AND NOT CUDAQ_NM)
+  set(CUDAQ_NM "${CMAKE_NM}" CACHE FILEPATH
+    "nm used to verify the MLIR/LLVM symbol closure")
+endif()
+find_program(CUDAQ_NM
+  NAMES nm llvm-nm
+  HINTS "${LLVM_TOOLS_BINARY_DIR}" "$ENV{LLVM_INSTALL_PREFIX}/bin"
+  DOC "nm used to verify the MLIR/LLVM symbol closure")
+
+if(CUDAQ_CHECK_MLIR_SYMBOL_CLOSURE AND NOT CUDAQ_NM)
+  message(STATUS
+    "Neither nm nor llvm-nm found: skipping the MLIR/LLVM symbol closure check.")
+endif()
+
 function(cudaq_check_mlir_symbol_closure name)
-  if(NOT CUDAQ_CHECK_MLIR_SYMBOL_CLOSURE OR NOT CUDAQ_CHECK_SYMBOL_SCRIPT)
+  cmake_parse_arguments(ARG "" "" "PROVIDERS" ${ARGN})
+  if(NOT CUDAQ_CHECK_MLIR_SYMBOL_CLOSURE OR NOT CUDAQ_CHECK_SYMBOL_SCRIPT
+      OR NOT CUDAQ_NM)
     return()
   endif()
+  set(_providers)
+  foreach(_provider IN LISTS ARG_PROVIDERS)
+    if(TARGET ${_provider})
+      list(APPEND _providers "$<TARGET_FILE:${_provider}>")
+    endif()
+  endforeach()
   add_custom_command(TARGET ${name} POST_BUILD
-    COMMAND bash "${CUDAQ_CHECK_SYMBOL_SCRIPT}"
-    "$<TARGET_FILE:${name}>" "$<TARGET_FILE:cudaq::cudaqMLIR>"
+    COMMAND ${CMAKE_COMMAND} -E env "NM=${CUDAQ_NM}"
+    bash "${CUDAQ_CHECK_SYMBOL_SCRIPT}"
+    "$<TARGET_FILE:${name}>" "$<TARGET_FILE:cudaq::cudaqMLIR>" ${_providers}
     COMMENT "Checking MLIR/LLVM symbol closure of ${name}"
     VERBATIM)
 endfunction()
 
-# Build a thin shared C API library.
+# CUDAQ_PYTHON_BINDINGS_SHARED_LIBS controls whether the common CAPI
+# aggregate built by add_cudaq_python_common_capi_library() (below) is a
+# shared or static library. It defaults to ON: the aggregate is loaded
+# directly by a Python interpreter via the nanobind extension modules, so a
+# shared library is the correct default. A build engineer embedding these
+# bindings into a fully static, custom Python interpreter (or otherwise
+# assembling their own deployment) can flip this OFF.
+option(CUDAQ_PYTHON_BINDINGS_SHARED_LIBS
+  "Build the cudaq/ Python bindings' common CAPI library as a shared library."
+  ON)
+
+# --------------------------------------------------------------------------- #
+# add_cudaq_python_common_capi_library(<name> ...)``
 #
-# The listed C API libraries are embedded via their object targets without
-# inheriting their static MLIR link interfaces. Their C++ dependencies are
-# recorded in CUDAQ_MLIR_REQUIRED_LIBS for the single cudaqMLIR DSO to provide.
-function(add_cudaq_capi_shared_library name)
+# Drop-in replacement for MLIR's ``add_mlir_python_common_capi_library``
+# that builds a common CAPI shared library without duplicating upstream MLIR.
+#
+# Identical to upstream except that the static MLIR/LLVM archives already
+# contained in ``libcudaqMLIR`` are excluded from the aggregate and resolved
+# dynamically from it instead, so the C API library holds no second copy of
+# MLIR. Project-owned dependencies (e.g. a downstream project's dialect
+# libraries) are still linked in.
+#
+# Accepts the same keyword arguments as MLIR's version:
+#   ``INSTALL_COMPONENT``, ``INSTALL_DESTINATION``, ``OUTPUT_DIRECTORY``,
+#   ``RELATIVE_INSTALL_ROOT``, ``DECLARED_HEADERS``, ``DECLARED_SOURCES``,
+#   ``EMBED_LIBS``.
+# --------------------------------------------------------------------------- #
+function(add_cudaq_python_common_capi_library name)
   # 1. Parse arguments
-  if(NOT ARGN)
-    message(FATAL_ERROR "list of C API libraries cannot be empty")
-  endif()
+  cmake_parse_arguments(ARG
+    ""
+    "INSTALL_COMPONENT;INSTALL_DESTINATION;OUTPUT_DIRECTORY;RELATIVE_INSTALL_ROOT"
+    "DECLARED_HEADERS;DECLARED_SOURCES;EMBED_LIBS"
+    ${ARGN})
   if(TARGET ${name})
     message(FATAL_ERROR "target ${name} already exists")
   endif()
 
   # 2. Collect object files from the C API libraries
-  set(_objects)
-  foreach(_capi_lib IN LISTS ARGN)
+  set(_embed_libs ${ARG_EMBED_LIBS})
+  _flatten_mlir_python_targets(_all_source_targets ${ARG_DECLARED_SOURCES})
+  foreach(_t ${_all_source_targets})
+    get_target_property(_local_embed ${_t} mlir_python_EMBED_CAPI_LINK_LIBS)
+    if(_local_embed)
+      list(APPEND _embed_libs ${_local_embed})
+    endif()
+  endforeach()
+  list(REMOVE_DUPLICATES _embed_libs)
+  if(NOT _embed_libs)
+    message(FATAL_ERROR "list of C API libraries cannot be empty")
+  endif()
+
+  # C-APIs are required to be defined with ENABLE_AGGREGATION on (on by default).
+  foreach(_capi_lib IN LISTS _embed_libs)
     if(NOT TARGET obj.${_capi_lib})
       message(FATAL_ERROR "Ensure ${_capi_lib} was registered with ENABLE_AGGREGATION")
     endif()
-    list(APPEND _objects "$<TARGET_OBJECTS:obj.${_capi_lib}>")
   endforeach()
 
-  # 3. Create the shared library, with hidden visibility and linking to cudaqMLIR
-  add_library(${name} SHARED ${_objects})
-  target_link_libraries(${name} PRIVATE cudaqMLIR)
+  # 3. Create the library, with hidden visibility and linking to cudaqMLIR
+  #
+  # We use the MLIR-provided aggregation utility but modify it to exclude any
+  # libraries provided by `libcudaqMLIR.so` and instead link in `cudaq::cudaqMLIR`.
+  # We then hide all symbols by default (same as add_mlir_python_common_capi_library).
+  #
+  # SHARED by default (CUDAQ_PYTHON_BINDINGS_SHARED_LIBS): this is what a
+  # Python interpreter dlopen()s. See that option's docstring for the STATIC
+  # override use case.
+  if(CUDAQ_PYTHON_BINDINGS_SHARED_LIBS)
+    set(_cudaq_python_capi_libtype SHARED)
+  else()
+    set(_cudaq_python_capi_libtype STATIC)
+  endif()
+  add_mlir_aggregate(${name}
+    ${_cudaq_python_capi_libtype}
+    DISABLE_INSTALL
+    EMBED_LIBS ${_embed_libs}
+    PUBLIC_LIBS cudaq::cudaqMLIR)
+
+  set_property(TARGET ${name} APPEND PROPERTY
+    MLIR_AGGREGATE_EXCLUDE_LIBS ${CUDAQ_MLIR_BUNDLED_LIBS})
+
   set_target_properties(${name} PROPERTIES
     LINKER_LANGUAGE CXX
     CXX_VISIBILITY_PRESET hidden
-    VISIBILITY_INLINES_HIDDEN YES
-    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
+    VISIBILITY_INLINES_HIDDEN YES)
+  if(ARG_OUTPUT_DIRECTORY)
+    set_target_properties(${name} PROPERTIES
+      LIBRARY_OUTPUT_DIRECTORY "${ARG_OUTPUT_DIRECTORY}"
+      RUNTIME_OUTPUT_DIRECTORY "${ARG_OUTPUT_DIRECTORY}"
+      ARCHIVE_OUTPUT_DIRECTORY "${ARG_OUTPUT_DIRECTORY}"
+      BINARY_OUTPUT_DIRECTORY "${ARG_OUTPUT_DIRECTORY}")
+  else()
+    set_target_properties(${name} PROPERTIES
+      LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
+  endif()
 
   # Check for unexpected undefined symbols
   cudaq_check_mlir_symbol_closure(${name})
+
+  # 4. RPATH (Python bindings): mlir_python_setup_extension_rpath sets
+  # @loader_path / $ORIGIN; also append CUDAQ_LIBRARY_DIR for wheel layouts.
+  mlir_python_setup_extension_rpath(${name}
+    RELATIVE_INSTALL_ROOT "${ARG_RELATIVE_INSTALL_ROOT}")
+  if(CUDAQ_LIBRARY_DIR)
+    set_property(TARGET ${name} APPEND PROPERTY BUILD_RPATH "${CUDAQ_LIBRARY_DIR}")
+  endif()
+
+  # 5. Header sources target + install (copied from add_mlir_python_common_capi_library)
+  _flatten_mlir_python_targets(_flat_header_targets ${ARG_DECLARED_HEADERS})
+  if(_flat_header_targets)
+    set(_header_sources_target "${name}.sources")
+    add_mlir_python_sources_target(${_header_sources_target}
+      INSTALL_COMPONENT "${ARG_INSTALL_COMPONENT}"
+      INSTALL_DIR "${ARG_INSTALL_DESTINATION}/include"
+      OUTPUT_DIRECTORY "${ARG_OUTPUT_DIRECTORY}/include"
+      SOURCES_TARGETS ${_flat_header_targets})
+    add_dependencies(${name} ${_header_sources_target})
+  endif()
+  if(ARG_INSTALL_COMPONENT AND ARG_INSTALL_DESTINATION)
+    install(TARGETS ${name}
+      COMPONENT "${ARG_INSTALL_COMPONENT}"
+      LIBRARY DESTINATION "${ARG_INSTALL_DESTINATION}"
+      RUNTIME DESTINATION "${ARG_INSTALL_DESTINATION}")
+  endif()
+endfunction()
+
+# --------------------------------------------------------------------------- #
+# ``add_cudaq_python_modules(<name> ...)``
+#
+# Drop-in wrapper around MLIR's ``add_mlir_python_modules``.  After the
+# real assembly creates the ``<name>.extension.<module>.dso`` targets,
+# this function:
+#   - links ``cudaq::cudaqMLIR`` so MLIR/LLVM symbols resolve from the wheel
+#     dylib rather than from static component archives (link order comes from
+#     ``cudaq::cudaqMLIR``'s ``INTERFACE_LINK_OPTIONS``).
+#   - appends ``CUDAQ_LIBRARY_DIR`` to ``INSTALL_RPATH`` / ``BUILD_RPATH``
+#     so the wheel's ``libcudaqMLIR.dylib`` resolves at load time.
+# --------------------------------------------------------------------------- #
+function(add_cudaq_python_modules name)
+  # Delegate to MLIR's real implementation.
+  add_mlir_python_modules(${name} ${ARGN})
+
+  # Fix RPATH for wheel layout. Always use relative paths for wheel delocation.
+  if(APPLE)
+    set(_origin_prefix "@loader_path")
+  else()
+    set(_origin_prefix "$ORIGIN")
+  endif()
+  if(SKBUILD)
+    set(_cudaq_python_install_rpaths
+      "${_origin_prefix}/../../../lib"
+      "${_origin_prefix}/../../../cuda_quantum.libs")
+  else()
+    set(_cudaq_python_install_rpaths
+      "${_origin_prefix}/../../../lib"
+      "${_origin_prefix}/../../../lib/plugins")
+  endif()
+
+  # Collect every *.extension.*.dso target created for this module set.
+  get_property(_all_targets DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
+  list(FILTER _all_targets INCLUDE REGEX "^${name}\\.extension\\.")
+
+  cmake_parse_arguments(ARG "" "" "COMMON_CAPI_LINK_LIBS" ${ARGN})
+  foreach(_dso IN LISTS _all_targets)
+    # Put cudaqMLIR BEFORE all other deps on the link line so its MLIR/LLVM
+    # symbols shadow any static component archives in the common CAPI lib.
+    target_link_libraries(${_dso} PRIVATE cudaq::cudaqMLIR)
+    target_link_options(${_dso} BEFORE PRIVATE
+      "$<TARGET_FILE:cudaq::cudaqMLIR>")
+
+    set_property(TARGET ${_dso} APPEND PROPERTY
+      INSTALL_RPATH ${_cudaq_python_install_rpaths})
+    # BUILD_RPATH may use the absolute build lib dir so the bindings can run
+    # from the build tree (e.g. ctest-driven python tests).
+    if(CUDAQ_LIBRARY_DIR)
+      set_property(TARGET ${_dso} APPEND PROPERTY BUILD_RPATH "${CUDAQ_LIBRARY_DIR}")
+    endif()
+
+    cudaq_check_mlir_symbol_closure(${_dso} PROVIDERS ${ARG_COMMON_CAPI_LINK_LIBS})
+  endforeach()
 endfunction()
 
 # Adds a CUDA Quantum dialect library target for installation. This should normally
-# only be called from add_cudaq_dialect_library().
+# only be called from add_cudaq_library().
+#
+# <name> will be registered as part of the `cudaq-dev-targets` export set.
 function(add_cudaq_library_install name)
-  install(TARGETS ${name} COMPONENT ${name} EXPORT CUDAQTargets)
+  install(TARGETS ${name} COMPONENT Development EXPORT cudaq-dev-targets)
   set_property(GLOBAL APPEND PROPERTY CUDAQ_ALL_LIBS ${name})
   set_property(GLOBAL APPEND PROPERTY CUDAQ_EXPORTS ${name})
 endfunction()
@@ -184,9 +383,180 @@ function(add_cudaq_translation_library name)
   add_cudaq_library(${ARGV} DEPENDS cudaq-headers)
 endfunction()
 
-function(add_target_config name)
-  install(FILES ${name}.yml DESTINATION targets COMPONENT Runtime)
-  configure_file(${name}.yml ${CMAKE_BINARY_DIR}/targets/${name}.yml COPYONLY)
+# Flags for compiling a target plugin translation unit (the output of
+# `cudaq-target-db-gen --plugin`) with CMAKE_CXX_COMPILER directly, outside of
+# CMake's own compile rules. Used by the plugin tests, and mirrored in
+# docs/sphinx/using/extending/packaging.rst for plugin authors. On macOS the
+# SDK sysroot is not implicit for every compiler - notably not for the LLVM
+# toolchain CUDA-Q vendors - so it has to be passed explicitly.
+set(CUDAQ_TARGET_PLUGIN_CXX_FLAGS "-std=c++20 -shared -fPIC")
+if (APPLE)
+  # _CMAKE_OSX_SYSROOT_PATH is the SDK path CMake resolved for its own compile
+  # rules; CMAKE_OSX_SYSROOT is the (possibly empty, possibly an SDK name
+  # rather than a path) user setting it was resolved from.
+  set(_cudaq_plugin_sysroot "${_CMAKE_OSX_SYSROOT_PATH}")
+  if (NOT IS_DIRECTORY "${_cudaq_plugin_sysroot}")
+    set(_cudaq_plugin_sysroot "${CMAKE_OSX_SYSROOT}")
+  endif()
+  if (NOT IS_DIRECTORY "${_cudaq_plugin_sysroot}")
+    execute_process(COMMAND xcrun --show-sdk-path
+                    OUTPUT_VARIABLE _cudaq_plugin_sysroot
+                    OUTPUT_STRIP_TRAILING_WHITESPACE
+                    ERROR_QUIET)
+  endif()
+  if (IS_DIRECTORY "${_cudaq_plugin_sysroot}")
+    string(APPEND CUDAQ_TARGET_PLUGIN_CXX_FLAGS
+           " -isysroot ${_cudaq_plugin_sysroot}")
+  else()
+    message(WARNING "Could not determine the macOS SDK path. Tests that "
+      "compile a target plugin library out-of-band may fail to find the C++ "
+      "standard library headers.")
+  endif()
+endif()
+
+# Register a target configuration YAML file within the target database.
+#
+# Accepts either a bare target name, resolved as
+# `${CMAKE_CURRENT_SOURCE_DIR}/<name>.yml`, or a path to a `.yml`/`.yaml` file.
+# Only required to register YAML files not under `cudaq/lib/Targets/`.
+function(add_target_config name_or_path)
+  get_filename_component(_ext "${name_or_path}" LAST_EXT)
+  if (_ext STREQUAL ".yml" OR _ext STREQUAL ".yaml")
+    get_filename_component(_yml "${name_or_path}" ABSOLUTE
+                           BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+    get_filename_component(_name "${_yml}" NAME_WLE)
+  else()
+    set(_name "${name_or_path}")
+    set(_yml "${CMAKE_CURRENT_SOURCE_DIR}/${_name}.yml")
+  endif()
+  if (NOT EXISTS ${_yml})
+    message(FATAL_ERROR "Target configuration YAML file ${_yml} does not exist")
+  endif()
+  set_property(GLOBAL APPEND PROPERTY CUDAQ_TARGET_DB_NAMES ${_name})
+  set_property(GLOBAL APPEND PROPERTY CUDAQ_TARGET_DB_PATHS ${_yml})
+endfunction()
+
+# Determines whether the target directory `name` under cudaq/lib/Targets/
+# should be included in the precompiled target database, mirroring the same
+# CUDAQ_ENABLE_<X>_BACKEND (and other) conditions that gate whether the
+# target's actual backend code gets built -- see
+# runtime/cudaq/platform/CMakeLists.txt and
+# runtime/cudaq/platform/default/rest/helpers/CMakeLists.txt, which are the
+# source of truth this function must stay in sync with. A target excluded
+# here is never registered in the database at all, so `nvq++ --target
+# <name>` (via cudaq-target-resolve) cleanly reports it as an unknown target
+# up front, rather than only failing much later when its backend code turns
+# out to be missing (or, worse, silently succeeding because the target
+# happens to share a plugin library, e.g. libcudaq-rest-qpu, with other
+# targets that are still enabled).
+function(_cudaq_target_db_is_target_enabled name outvar)
+  set(_enabled TRUE)
+  if (name STREQUAL "anyon")
+    set(_enabled ${CUDAQ_ENABLE_ANYON_BACKEND})
+  elseif (name STREQUAL "braket")
+    set(_enabled FALSE)
+    if (AWSSDK_ROOT AND CUDAQ_ENABLE_BRAKET_BACKEND)
+      set(_enabled TRUE)
+    endif()
+  elseif (name STREQUAL "infleqtion")
+    set(_enabled ${CUDAQ_ENABLE_INFLEQTION_BACKEND})
+  elseif (name STREQUAL "ionq")
+    set(_enabled ${CUDAQ_ENABLE_IONQ_BACKEND})
+  elseif (name STREQUAL "iqm")
+    set(_enabled ${CUDAQ_ENABLE_IQM_BACKEND})
+  elseif (name STREQUAL "oqc")
+    set(_enabled ${CUDAQ_ENABLE_OQC_BACKEND})
+  elseif (name STREQUAL "orca")
+    set(_enabled ${CUDAQ_ENABLE_ORCA_BACKEND})
+  elseif (name STREQUAL "pasqal")
+    set(_enabled ${CUDAQ_ENABLE_PASQAL_BACKEND})
+  elseif (name STREQUAL "qbraid")
+    set(_enabled ${CUDAQ_ENABLE_QBRAID_BACKEND})
+  elseif (name STREQUAL "quantinuum")
+    set(_enabled ${CUDAQ_ENABLE_QUANTINUUM_BACKEND})
+  elseif (name STREQUAL "quantum_machines")
+    set(_enabled ${CUDAQ_ENABLE_QUANTUM_MACHINES_BACKEND})
+  elseif (name STREQUAL "quera")
+    # `quera` is built via Amazon Braket's infrastructure, so it is gated by
+    # the same condition as `braket` itself, not a standalone
+    # CUDAQ_ENABLE_QUERA_BACKEND flag (which does not exist).
+    set(_enabled FALSE)
+    if (AWSSDK_ROOT AND CUDAQ_ENABLE_BRAKET_BACKEND)
+      set(_enabled TRUE)
+    endif()
+  elseif (name STREQUAL "scaleway")
+    set(_enabled ${CUDAQ_ENABLE_SCALEWAY_BACKEND})
+  elseif (name STREQUAL "tii")
+    set(_enabled ${CUDAQ_ENABLE_TII_BACKEND})
+  endif()
+  set(${outvar} ${_enabled} PARENT_SCOPE)
+endfunction()
+
+# Generates the precompiled target database from every .yml under
+# cudaq/lib/Targets/ plus any out-of-tree add_target_config() registrations.
+function(cudaq_finalize_target_database)
+  file(GLOB _target_dirs LIST_DIRECTORIES true
+    ${CMAKE_SOURCE_DIR}/cudaq/lib/Targets/*)
+  set(_gen_args)
+  set(_deps)
+  set(_count 0)
+  set(_seen_names)
+  foreach(_dir ${_target_dirs})
+    if (NOT IS_DIRECTORY ${_dir})
+      continue()
+    endif()
+    get_filename_component(_name ${_dir} NAME)
+    set(_yml ${_dir}/${_name}.yml)
+    if (NOT EXISTS ${_yml})
+      continue()
+    endif()
+    _cudaq_target_db_is_target_enabled(${_name} _target_enabled)
+    if (NOT _target_enabled)
+      message(STATUS "Target '${_name}' is disabled by its CMake "
+        "configuration; excluding it from the target database.")
+      continue()
+    endif()
+    list(APPEND _gen_args "${_name}=${_yml}")
+    list(APPEND _deps ${_yml})
+    list(APPEND _seen_names ${_name})
+    math(EXPR _count "${_count} + 1")
+  endforeach()
+
+  get_property(_ext_names GLOBAL PROPERTY CUDAQ_TARGET_DB_NAMES)
+  get_property(_ext_paths GLOBAL PROPERTY CUDAQ_TARGET_DB_PATHS)
+  list(LENGTH _ext_names _ext_count)
+  if (_ext_count GREATER 0)
+    math(EXPR _ext_last_idx "${_ext_count} - 1")
+    foreach(_idx RANGE ${_ext_last_idx})
+      list(GET _ext_names ${_idx} _name)
+      list(GET _ext_paths ${_idx} _path)
+      if (_name IN_LIST _seen_names)
+        continue()
+      endif()
+      string(FIND "${_path}" "${CMAKE_SOURCE_DIR}/cudaq/lib/Targets/" _idx_pos)
+      if (_idx_pos EQUAL 0)
+        continue() # already covered by the static glob above
+      endif()
+      list(APPEND _gen_args "${_name}=${_path}")
+      list(APPEND _deps ${_path})
+      list(APPEND _seen_names ${_name})
+      math(EXPR _count "${_count} + 1")
+    endforeach()
+  endif()
+
+  set(_gen_cpp ${CMAKE_BINARY_DIR}/generated/TargetDatabase.gen.cpp)
+  file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/generated)
+  add_custom_command(
+    OUTPUT ${_gen_cpp}
+    COMMAND $<TARGET_FILE:cudaq-target-db-gen> -o ${_gen_cpp} ${_gen_args}
+    DEPENDS cudaq-target-db-gen ${_deps}
+    COMMENT "Generating precompiled cudaq/ target database (${_count} targets)"
+    VERBATIM)
+
+  # Mark dependency on the generated source file.
+  add_custom_target(CUDAQTargetDatabaseGen DEPENDS ${_gen_cpp})
+  add_dependencies(CUDAQTargetDatabase CUDAQTargetDatabaseGen)
+  target_sources(CUDAQTargetDatabase PRIVATE ${_gen_cpp})
 endfunction()
 
 function(add_target_mapping_arch providerName name)
@@ -201,3 +571,23 @@ endfunction()
 function(cudaq_use_static_mlir target)
   set_target_properties(${target} PROPERTIES CUDAQ_MLIR_STATIC ON)
 endfunction()
+
+# Define the CUDAQ dev targets for downstream projects when they exist.
+if(NOT TARGET QuakeDialect
+    AND EXISTS "${CMAKE_CURRENT_LIST_DIR}/CUDAQDevTargets.cmake")
+  include("${CMAKE_CURRENT_LIST_DIR}/CUDAQDevTargets.cmake")
+endif()
+
+# Define the public alias ``cudaq::MLIR`` for use in downstream projects.
+if(NOT TARGET cudaq::MLIR)
+  add_library(cudaq::MLIR INTERFACE IMPORTED GLOBAL)
+  set_target_properties(cudaq::MLIR PROPERTIES
+    INTERFACE_LINK_LIBRARIES cudaq::cudaqMLIR
+  )
+  # Also expose the header files through `cudaq::MLIR`
+  if(CUDAQ_INCLUDE_DIR AND IS_DIRECTORY "${CUDAQ_INCLUDE_DIR}")
+    set_target_properties(cudaq::MLIR PROPERTIES
+      INTERFACE_INCLUDE_DIRECTORIES "${CUDAQ_INCLUDE_DIR}"
+    )
+  endif()
+endif()

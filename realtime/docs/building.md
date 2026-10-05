@@ -34,6 +34,39 @@ for more information about these tests.
 the basic CUDA-Q Realtime library, e.g., the dispatch library
 and host API; no networking transport layer is included.
 
+## Using the build script
+
+`realtime/scripts/build_realtime.sh` wraps the steps above: it configures,
+builds and installs CUDA-Q Realtime, mirroring the options of the top-level
+`scripts/build_cudaq.sh`. Run it from anywhere in the CUDA-Q source tree:
+
+```bash
+# Release build, installed into $HOME/.cudaq_realtime
+bash realtime/scripts/build_realtime.sh
+
+# Debug build with Address and Undefined Behavior Sanitizers
+bash realtime/scripts/build_realtime.sh -c Debug -s
+```
+
+A Holoscan Sensor Bridge tree that exports `HololinkRoce` can be picked up
+via `HSB_ROOT`. Opt in with `CUDAQ_REALTIME_CPU_ROCE_USE_HOLOLINK=ON`.
+
+```bash
+CUDAQ_REALTIME_CPU_ROCE_USE_HOLOLINK=ON \
+  HSB_ROOT=/path/to/holoscan-sensor-bridge \
+  bash realtime/scripts/build_realtime.sh
+```
+
+Requires HololinkRoce 2.7. With no HSB tree, build the leaf and pass it in:
+
+```bash
+HOLOLINK_SRC=/path/to/hololink
+cmake -G Ninja -S "$HOLOLINK_SRC/src/hololink/transport/roce" -B roce-build
+cmake --build roce-build --target hololink_transport_roce
+CUDAQ_REALTIME_CPU_ROCE_USE_HOLOLINK=ON bash realtime/scripts/build_realtime.sh \
+  -- -DHololinkRoce_DIR="$PWD/roce-build/HololinkRoce"
+```
+
 ## Enable Holoscan Sensor Bridge Support
 
 [Holoscan Sensor Bridge](https://www.nvidia.com/en-us/technologies/holoscan-sensor-bridge/)

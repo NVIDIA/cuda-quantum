@@ -12,25 +12,45 @@
 #include "nvqir/Gates.h"
 #include "cudaq/algorithms/draw.h"
 #include "cudaq/operators/matrix.h"
-#include <iostream>
+#include "cudaq/platform.h"
+#include <algorithm>
+#include <cstdint>
+#include <stdexcept>
 
 namespace cudaq::contrib {
 
 /// @brief Build a controlled-gate unitary: identity in all control blocks
-/// except the “all controls = 1” block, which is replaced by the original gate.
+/// except the selected control block, which is replaced by the original gate.
 /// @param gate The base unitary matrix of the target gate.
 /// @param num_controls The number of control qubits.
+/// @param control_values Required states in control order: 0 selects |0>
+/// and 1 selects |1>. Empty means the gate acts only when every control
+/// qubit is |1>.
 /// @returns A complex_matrix representing the controlled version of the gate.
-inline complex_matrix make_controlled_unitary(const complex_matrix &gate,
-                                              std::size_t num_controls) {
+inline complex_matrix
+make_controlled_unitary(const complex_matrix &gate, std::size_t num_controls,
+                        const std::vector<std::int32_t> &control_values = {}) {
+  if (!control_values.empty() && control_values.size() != num_controls)
+    throw std::invalid_argument(
+        "required control value count does not match control count");
+  if (std::any_of(control_values.begin(), control_values.end(),
+                  [](auto value) { return value != 0 && value != 1; }))
+    throw std::invalid_argument("required control value must be 0 or 1");
   auto gdim = gate.rows();
   auto ctrl_dim = 1ULL << num_controls;
   auto new_dim = ctrl_dim * gdim;
   // Start with identity of full size
   complex_matrix M = complex_matrix::identity(new_dim);
-  // Offset of the “all controls = 1” block
-  auto offset = (ctrl_dim - 1) * gdim;
-  // Overwrite bottom-right block with gate
+  // Note: The local basis puts controls first, with the first control as the
+  // most significant bit. `unitary_from_trace` later maps this operand order
+  // to global qubit IDs through `apply_gate_in_place`.
+  std::size_t control_state = ctrl_dim - 1;
+  if (!control_values.empty()) {
+    control_state = 0;
+    for (auto value : control_values)
+      control_state = (control_state << 1) | value;
+  }
+  auto offset = control_state * gdim;
   for (std::size_t i = 0; i < gdim; ++i)
     for (std::size_t j = 0; j < gdim; ++j)
       M(offset + i, offset + j) = gate(i, j);
@@ -125,7 +145,8 @@ inline complex_matrix unitary_from_trace(const Trace &trace) {
 
     // If there are control qubits, build the controlled-unitary
     if (!inst.controls.empty())
-      gate = make_controlled_unitary(gate, inst.controls.size());
+      gate = make_controlled_unitary(gate, inst.controls.size(),
+                                     inst.controlValues);
 
     // Get vector of all qubit indices that this gate operates on.
     // The control qubits are expected to be at the start of the vector.
@@ -148,7 +169,8 @@ inline complex_matrix unitary_from_trace(const Trace &trace) {
 /// @returns The full system unitary as a complex_matrix.
 template <typename QuantumKernel, typename... Args>
 complex_matrix get_unitary_cmat(QuantumKernel &&kernel, Args &&...args) {
-  auto trace = traceFromKernel(kernel, std::forward<Args>(args)...);
+  auto trace =
+      traceFromKernel(kernel, get_platform(), std::forward<Args>(args)...);
   return unitary_from_trace(trace);
 }
 

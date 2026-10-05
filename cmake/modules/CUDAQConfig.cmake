@@ -11,6 +11,17 @@ get_filename_component(CUDAQ_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
 include(CMakeFindDependencyMacro)
 list(APPEND CMAKE_MODULE_PATH "${CUDAQ_CMAKE_DIR}")
 
+# If MLIR_DIR/LLVM_DIR are not set explicitly, make educated guesses about where to find them.
+foreach(_cudaq_cmake_root "${CUDAQ_CMAKE_DIR}/.." "${CUDAQ_CMAKE_DIR}/../../llvm/lib/cmake")
+  if(NOT MLIR_DIR AND EXISTS "${_cudaq_cmake_root}/mlir/MLIRConfig.cmake")
+    get_filename_component(MLIR_DIR "${_cudaq_cmake_root}/mlir" ABSOLUTE)
+  endif()
+  if(NOT LLVM_DIR AND EXISTS "${_cudaq_cmake_root}/llvm/LLVMConfig.cmake")
+    get_filename_component(LLVM_DIR "${_cudaq_cmake_root}/llvm" ABSOLUTE)
+  endif()
+endforeach()
+unset(_cudaq_cmake_root)
+
 set (CUDAQOperator_DIR "${CUDAQ_CMAKE_DIR}")
 find_dependency(CUDAQOperator REQUIRED)
 
@@ -35,6 +46,13 @@ find_dependency(CUDAQEnsmallen REQUIRED)
 set (CUDAQPythonInterop_DIR "${CUDAQ_CMAKE_DIR}")
 find_dependency(CUDAQPythonInterop)
 
+# Not REQUIRED: this sets CUDAQ_ENABLE_PYTHON_BINDINGS to reflect whether this
+# install was built with cudaq/'s own MLIR Python bindings, for a python/
+# build configured independently of cudaq/ to check. See
+# CUDAQPythonBindingsConfig.cmake.
+set (CUDAQPythonBindings_DIR "${CUDAQ_CMAKE_DIR}")
+find_dependency(CUDAQPythonBindings)
+
 if (CUDAQ_REALTIME_DIR)
   find_dependency(cudaq-realtime CONFIG REQUIRED
     PATHS "${CUDAQ_REALTIME_DIR}"
@@ -58,13 +76,20 @@ get_filename_component(CUDAQ_LIBRARY_DIR ${PARENT_DIRECTORY} DIRECTORY)
 get_filename_component(CUDAQ_INSTALL_DIR ${CUDAQ_LIBRARY_DIR} DIRECTORY)
 set(CUDAQ_INCLUDE_DIR ${CUDAQ_INSTALL_DIR}/include)
 
+find_dependency(GMP)
+find_dependency(MPFR)
+
 set (NVQIR_DIR "${PARENT_DIRECTORY}/nvqir")
 find_dependency(NVQIR REQUIRED)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED on)
 
-if (NOT CUDAQ_LIBRARY_MODE)
+# Consumers that only use CUDA-Q libraries (e.g. MLIR/compiler plugins) and never
+# compile CUDA-Q quantum kernels do not need the `nvq++` (CUDAQ language) toolchain.
+# They can set CUDAQ_ENABLE_LANGUAGE=OFF before find_package(CUDAQ) to skip it.
+option(CUDAQ_ENABLE_LANGUAGE "Enable the CUDAQ compiler language (requires nvq++)" ON)
+if(CUDAQ_ENABLE_LANGUAGE AND NOT CUDAQ_LIBRARY_MODE)
   enable_language(CUDAQ)
 endif() 
 

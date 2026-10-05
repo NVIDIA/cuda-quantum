@@ -22,9 +22,10 @@ RUN if [ "$include_documentation" = "true" ]; then \
     fi && \
     rm -rf "$CUDA_QUANTUM_PATH/publishing-documentation"
 
-# Install additional runtime dependencies.
+# Install additional runtime dependencies. cuda-cudart-dev adds the CUDA headers
+# (vector_types.h etc.) CuPy needs to JIT dynamics-target kernels at runtime.
 RUN cuda_version_suffix=$(echo ${CUDA_VERSION} | tr . -) && \
-    for cudart_dependency in libcusolver libcusparse libcublas libcurand cuda-cudart cuda-nvrtc; do \
+    for cudart_dependency in libcusolver libcusparse libcublas libcurand cuda-cudart cuda-cudart-dev cuda-nvrtc; do \
         if [ -z "$(apt list --installed | grep -o ${cudart_dependency}-${cuda_version_suffix})" ]; then \
             apt-get install -y --no-install-recommends \
                 ${cudart_dependency}-${cuda_version_suffix}; \

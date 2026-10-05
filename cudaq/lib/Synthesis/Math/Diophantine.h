@@ -10,7 +10,13 @@
 
 #include "cudaq/Synthesis/Math/Ring/Domega.h"
 #include "cudaq/Synthesis/Math/Ring/Dsqrt2.h"
+#include "cudaq/Synthesis/Synthesis/GridsynthStats.h"
 #include "llvm/Support/LogicalResult.h"
+
+#include <chrono>
+#include <cstdint>
+#include <memory>
+#include <optional>
 
 namespace cudaq::synth {
 
@@ -32,6 +38,27 @@ namespace cudaq::synth {
 //   U = [[ u, -conj(t) ], [ t, conj(u) ]]
 // approximating R_z(theta) within the chosen epsilon.
 
+/// What one `diophantine_dyadic` call is allowed to spend.
+///
+/// The caller-facing form of these lives in `GridsynthOptions`. This is the
+/// per-solve view, with the optional relative timeout already resolved into an
+/// absolute deadline so that every solve in a search shares one clock.
+struct DiophantineBudget {
+  /// Rho iterations one factoring attempt may spend.
+  uint64_t maxFactoringIterations;
+
+  /// Rho iterations this whole solve may spend across its attempts.
+  uint64_t maxCandidateIterations;
+
+  /// Consecutive failed attempts allowed on one composite before the solve
+  /// gives up on it.
+  uint32_t maxFactoringRestarts;
+
+  /// Wall-clock deadline for the enclosing search, or unset for none. Unset
+  /// is the reproducible configuration, see `GridsynthOptions::timeout`.
+  std::optional<std::chrono::steady_clock::time_point> deadline;
+};
+
 /// Solve conj(t) * t = xi for xi in D[`sqrt`(2)] (the dyadic case).
 ///
 /// Reduces from D[`sqrt`(2)] to a Z[`sqrt`(2)] norm equation -- multiplying by
@@ -39,17 +66,49 @@ namespace cudaq::synth {
 /// -- then lifts the Z[omega] solution back with the appropriate dyadic
 /// denominator.
 ///
-/// Both timeouts are advisory; on expiry the solver returns failure() and
-/// the caller is expected to move on to the next grid-problem candidate
+/// All limits are advisory. On exhaustion the solver returns failure() and
+/// the caller is expected to move on to the next grid-problem candidate.
 /// (the "near-optimal" case of Proposition 8.8).
 ///
-/// @param xi                  The element to decompose.
-/// @param diophantine_timeout Wall-clock budget for the whole solve, ms.
-/// @param factoring_timeout   Wall-clock budget per Pollard-rho attempt, ms.
+/// @param xi     The element to decompose.
+/// @param budget What this solve may spend.
+/// @param stats  Optional; when non-null its factoring counters accumulate.
 /// @return t in D[omega] with conj(t) * t = xi, or failure() if no solution
-///         is found within the budgets.
+///         is found within the budget.
 llvm::FailureOr<DOmega> diophantine_dyadic(const DSqrt2 &xi,
-                                           int32_t diophantine_timeout,
-                                           int32_t factoring_timeout);
+                                           const DiophantineBudget &budget,
+                                           GridsynthStats *stats = nullptr);
+
+/// Seeds the calling thread's Pollard-rho factoring RNG for the lifetime of
+/// this object, restoring the previous random state on destruction.
+///
+/// The state is otherwise seeded once per thread from `std::random_device`, so
+/// two runs of the same input explore different factoring attempts and can
+/// differ in runtime by orders of magnitude. Seeding explicitly makes a run
+/// `replayable`, which is a prerequisite for benchmark numbers being evidence
+/// rather than a single draw from a wide distribution.
+///
+/// Restoring on scope exit keeps a seeded run from leaking determinism into
+/// whatever runs next: without it, every later unseeded call on the same
+/// thread would continue the seeded stream rather than the entropy-derived
+/// one, so an unseeded result would silently depend on what ran before it.
+///
+/// Affects only the calling thread. Determinism additionally requires that the
+/// run not be cut short by `DiophantineBudget::deadline`, since a wall clock
+/// remains machine-dependent.
+class ScopedFactoringRngSeed {
+public:
+  explicit ScopedFactoringRngSeed(uint64_t seed);
+  ~ScopedFactoringRngSeed();
+
+  ScopedFactoringRngSeed(const ScopedFactoringRngSeed &) = delete;
+  ScopedFactoringRngSeed &operator=(const ScopedFactoringRngSeed &) = delete;
+
+private:
+  /// Copy of the random state as it was on construction. Opaque here so the
+  /// GMP headers stay out of this interface.
+  struct SavedState;
+  std::unique_ptr<SavedState> saved;
+};
 
 } // namespace cudaq::synth

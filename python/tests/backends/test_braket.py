@@ -12,10 +12,17 @@ import os
 from cudaq import spin
 import numpy as np
 
-## NOTE: Comment the following line which skips these tests in order to run in
-# local dev environment after setting AWS credentials.
+## NOTE: Comment out the first mark below to run these in a local dev
+# environment after setting AWS credentials.
 ## NOTE: Amazon Braket costs apply
-pytestmark = pytest.mark.skip("Amazon Braket credentials required")
+# The second mark is a separate condition: the `braket` target only exists
+# when CUDA-Q was configured with the Braket backend enabled. Credentials
+# cannot help if the target was never built.
+pytestmark = [
+    pytest.mark.skip("Amazon Braket credentials required"),
+    pytest.mark.skipif(not cudaq.has_target("braket"),
+                       reason="Could not find `braket` in installation"),
+]
 
 
 @pytest.fixture(scope="session", autouse=True)
