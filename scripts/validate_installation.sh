@@ -45,7 +45,7 @@ failed=0
 skipped=0
 samples=0
 
-if [ -x "$(command -v nvidia-smi)" ] && [ "$(nvidia-smi | egrep -o "CUDA Version: ([0-9]{1,}\.)+[0-9]{1,}")" != "" ]; 
+if [ -n "$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null)" ]; 
 then gpu_available=true
 else gpu_available=false
 fi

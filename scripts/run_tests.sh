@@ -90,12 +90,12 @@ else
 fi
 echo "Thread budget: $parallel_jobs parallel jobs x $omp_threads OMP threads (${num_jobs} cores)"
 
-# Detect GPU availability for ctest label filtering
+# Detect GPU availability for ctest label filtering. Query the device
+# list rather than the nvidia-smi header, whose format varies by driver.
 gpu_excludes=""
 if [ "$(uname)" = "Darwin" ]; then
   gpu_excludes="--label-exclude gpu_required"
-elif [ ! -x "$(command -v nvidia-smi)" ] || \
-     [ -z "$(nvidia-smi | egrep -o "CUDA Version: ([0-9]{1,}\.)+[0-9]{1,}")" ]; then
+elif [ -z "$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null)" ]; then
   gpu_excludes="--label-exclude gpu_required"
 fi
 
