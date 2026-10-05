@@ -801,6 +801,159 @@ buildCtrlClosureInstantiation(
   return {result, wrapperAttr};
 }
 
+// Convert a wire (or cable<N>) value, `linVal`, into the ref (or veq<N|?>)
+// value a formal parameter of type `formalTy` expects. Mirrors exactly the
+// coercion sequence ApplyOpPattern::matchAndRewrite builds at a plain apply
+// call site (wrap_new for wire -> ref; split_cable -> wrap_new(×N) -> concat ->
+// [relax_size] for cable<N> -> veq).
+static Value convertLinearToRefOrVeq(OpBuilder &builder, Location loc,
+                                     Value linVal, Type formalTy) {
+  auto *ctx = builder.getContext();
+  auto refTy = cudaq::quake::RefType::get(ctx);
+  if (isa<cudaq::quake::WireType>(linVal.getType()))
+    return cudaq::quake::WrapNewOp::create(builder, loc, refTy, linVal);
+  unsigned n = cudaq::quake::getWireCount(linVal.getType());
+  SmallVector<Type> wireTys(n, cudaq::quake::WireType::get(ctx));
+  auto split =
+      cudaq::quake::SplitCableOp::create(builder, loc, wireTys, linVal);
+  SmallVector<Value> wrappedRefs;
+  for (unsigned i = 0; i < n; ++i)
+    wrappedRefs.push_back(cudaq::quake::WrapNewOp::create(builder, loc, refTy,
+                                                          split.getResult(i)));
+  auto sizedVeqTy = cudaq::quake::VeqType::get(ctx, n);
+  Value veqVal =
+      cudaq::quake::ConcatOp::create(builder, loc, sizedVeqTy, wrappedRefs);
+  auto unsizedVeqTy = cudaq::quake::VeqType::getUnsized(ctx);
+  if (formalTy == unsizedVeqTy)
+    veqVal =
+        cudaq::quake::RelaxSizeOp::create(builder, loc, unsizedVeqTy, veqVal);
+  return veqVal;
+}
+
+// Inverse of convertLinearToRefOrVeq: convert a ref (or veq<N>) value back
+// into the wire (or cable<N>) it originated from, mirroring the recovery
+// sequence built after a plain apply call site.
+static Value convertRefOrVeqToLinear(OpBuilder &builder, Location loc,
+                                     Value refOrVeq, Type linTy) {
+  auto *ctx = builder.getContext();
+  auto wireTy = cudaq::quake::WireType::get(ctx);
+  if (isa<cudaq::quake::RefType>(refOrVeq.getType()))
+    return cudaq::quake::UnwrapOp::create(builder, loc, wireTy, refOrVeq);
+  Value veq = refOrVeq;
+  auto unsizedVeqTy = cudaq::quake::VeqType::getUnsized(ctx);
+  if (veq.getType() == unsizedVeqTy)
+    if (auto relax = veq.getDefiningOp<cudaq::quake::RelaxSizeOp>())
+      veq = relax.getInputVec();
+  unsigned n = cudaq::quake::getWireCount(linTy);
+  SmallVector<Value> extractedWires;
+  for (unsigned i = 0; i < n; ++i) {
+    Value ref = cudaq::quake::ExtractRefOp::create(builder, loc, veq, i);
+    extractedWires.push_back(
+        cudaq::quake::UnwrapOp::create(builder, loc, wireTy, ref));
+  }
+  auto cableTy = cudaq::quake::CableType::get(ctx, n);
+  return cudaq::quake::BundleCableOp::create(builder, loc, cableTy,
+                                             extractedWires);
+}
+
+// Get or create a "value semantics" clone of `calleeFn`, named
+// `calleeFn.<suffix>`, whose ref/veq argument positions flagged in
+// `isLinear` are instead wire/cable typed (per `newInTys`). The clone's body
+// starts by converting each such wire/cable argument back into the ref/veq
+// value the original body expects, and, at every `func.return` in the cloned
+// body, appends the wire/cable recovered from that same ref/veq value to the
+// return operand list. This mirrors exactly the coercion the apply call site
+// would otherwise perform around a plain call. The new function is memoized by
+// name, so multiple apply ops with the same callee and the same coercion
+// pattern share one clone.
+static func::FuncOp getOrCreateValueSemanticsVariant(ModuleOp module,
+                                                     func::FuncOp calleeFn,
+                                                     ArrayRef<bool> isLinear,
+                                                     ArrayRef<Type> newInTys,
+                                                     StringRef suffix) {
+  std::string newName = (calleeFn.getName() + "." + suffix).str();
+  if (auto existing = module.lookupSymbol<func::FuncOp>(newName))
+    return existing;
+
+  auto *ctx = module.getContext();
+  auto loc = calleeFn.getLoc();
+  auto funcTy = calleeFn.getFunctionType();
+  unsigned numOrig = funcTy.getNumInputs();
+
+  SmallVector<Type> newResTys(funcTy.getResults().begin(),
+                              funcTy.getResults().end());
+  for (unsigned i = 0; i < numOrig; ++i)
+    if (isLinear[i])
+      newResTys.push_back(newInTys[i]);
+
+  auto newFunc =
+      cudaq::opt::factory::createFunction(newName, newResTys, newInTys, module);
+  newFunc.setPrivate();
+  IRMapping mapping;
+  calleeFn.getBody().cloneInto(&newFunc.getBody(), mapping);
+  if (newFunc.getBody().empty())
+    return newFunc; // Callee was itself only a declaration.
+
+  Block &entry = newFunc.getBody().front();
+  SmallVector<Value> oldArgs(entry.getArguments().begin(),
+                             entry.getArguments().end());
+
+  // Insert the new wire/cable argument immediately before each converted
+  // position's original (ref/veq) argument.
+  unsigned offset = 0;
+  SmallVector<Value> newArgVals(numOrig);
+  for (unsigned i = 0; i < numOrig; ++i) {
+    if (!isLinear[i])
+      continue;
+    newArgVals[i] = entry.insertArgument(i + offset, newInTys[i], loc);
+    ++offset;
+  }
+
+  // Build the forward conversions at the top of the body and redirect the
+  // original argument's uses to the converted value.
+  OpBuilder builder(ctx);
+  builder.setInsertionPointToStart(&entry);
+  SmallVector<Value> convertedVals(numOrig);
+  for (unsigned i = 0; i < numOrig; ++i) {
+    if (!isLinear[i])
+      continue;
+    Value converted = convertLinearToRefOrVeq(builder, loc, newArgVals[i],
+                                              funcTy.getInput(i));
+    convertedVals[i] = converted;
+    oldArgs[i].replaceAllUsesWith(converted);
+  }
+
+  // Drop the now-unused original arguments. getArgNumber() is recomputed
+  // from the block's live argument list, so erasing highest-index-first
+  // keeps every not-yet-erased query valid.
+  for (int i = static_cast<int>(numOrig) - 1; i >= 0; --i)
+    if (isLinear[i])
+      entry.eraseArgument(cast<BlockArgument>(oldArgs[i]).getArgNumber());
+
+  // At every function exit, append the recovered wire/cable for each
+  // converted position, threaded from the same converted ref/veq value
+  // captured above (reference semantics: the callee mutates that handle in
+  // place, so its value at entry is its value at exit for recovery purposes).
+  for (Block &block : newFunc.getBody()) {
+    auto ret = dyn_cast_or_null<func::ReturnOp>(block.getTerminator());
+    if (!ret)
+      continue;
+    OpBuilder retBuilder(ret);
+    SmallVector<Value> newOperands(ret.getOperands().begin(),
+                                   ret.getOperands().end());
+    for (unsigned i = 0; i < numOrig; ++i) {
+      if (!isLinear[i])
+        continue;
+      newOperands.push_back(convertRefOrVeqToLinear(
+          retBuilder, ret.getLoc(), convertedVals[i], newInTys[i]));
+    }
+    retBuilder.setInsertionPoint(ret);
+    func::ReturnOp::create(retBuilder, ret.getLoc(), newOperands);
+    ret.erase();
+  }
+  return newFunc;
+}
+
 namespace {
 /// Replace a quake.apply op with a call to the correct variant function.
 struct ApplyOpPattern : public OpRewritePattern<cudaq::quake::ApplyOp> {
@@ -839,6 +992,67 @@ struct ApplyOpPattern : public OpRewritePattern<cudaq::quake::ApplyOp> {
         SymbolTable::lookupNearestSymbolFrom<func::FuncOp>(apply, calleeAttr);
     if (!calleeFn)
       return failure();
+
+    // Prefer autogenerating a value-semantics clone of the callee over
+    // folding wire/cable<->ref/veq conversions into this call site: when
+    // this apply has no controls, and at least one actual is a wire (into a
+    // ref formal) or a cable<N> (into a veq formal), redirect the call to
+    // (memoized, created on demand) `calleeName.<suffix>`, a clone whose
+    // corresponding formal positions are wire/cable typed and whose body
+    // performs the same coercions internally. This composes with the ctrl/adj
+    // variant machinery below (calleeFn/calleeName may already be a .ctrl or
+    // .adj variant) but not with controls on *this* apply nor with
+    // cable<N>->struq actuals, both of which continue to use the call-site
+    // folding path further down.
+    if (apply.getControls().empty()) {
+      unsigned numIn = calleeSignature.getNumInputs();
+      SmallVector<bool> isLinear(numIn, false);
+      SmallVector<Type> newInTys(calleeSignature.getInputs().begin(),
+                                 calleeSignature.getInputs().end());
+      std::string suffix;
+      bool eligible = true;
+      for (auto [idx, entry] : llvm::enumerate(
+               llvm::zip(apply.getActuals(), calleeSignature.getInputs()))) {
+        auto [v, formalTy] = entry;
+        if (isa<cudaq::quake::RefType>(formalTy)) {
+          if (isa<cudaq::quake::WireType>(v.getType())) {
+            isLinear[idx] = true;
+            newInTys[idx] = v.getType();
+            suffix += "w";
+          } else {
+            suffix += "r";
+          }
+        } else if (isa<cudaq::quake::VeqType>(formalTy)) {
+          if (auto cableTy = dyn_cast<cudaq::quake::CableType>(v.getType())) {
+            isLinear[idx] = true;
+            newInTys[idx] = v.getType();
+            suffix +=
+                "c" + std::to_string(cudaq::quake::getWireCount(v.getType()));
+          } else {
+            suffix += "v";
+          }
+        } else if (isa<cudaq::quake::StruqType>(formalTy) &&
+                   isa<cudaq::quake::CableType>(v.getType())) {
+          // Struq handling stays call-site folded; skip clone-generation for
+          // this whole apply rather than mixing both strategies.
+          eligible = false;
+          break;
+        }
+      }
+      if (eligible && llvm::any_of(isLinear, [](bool b) { return b; })) {
+        auto module = apply->getParentOfType<ModuleOp>();
+        auto newCallee = getOrCreateValueSemanticsVariant(
+            module, calleeFn, isLinear, newInTys, suffix);
+        auto newCalleeAttr = FlatSymbolRefAttr::get(ctx, newCallee.getName());
+        rewriter.setInsertionPoint(apply);
+        auto callOp = func::CallOp::create(
+            rewriter, apply.getLoc(), newCallee.getFunctionType().getResults(),
+            newCalleeAttr, apply.getActuals());
+        rewriter.replaceOp(apply, callOp.getResults());
+        return success();
+      }
+    }
+
     auto unsizedVeqTy = cudaq::quake::VeqType::getUnsized(ctx);
     const bool addControls = !apply.getControls().empty();
     // Name pieces for any ctrl-closure wrapper this apply may need (see

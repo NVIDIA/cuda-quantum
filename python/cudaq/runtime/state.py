@@ -88,7 +88,8 @@ def to_cupy(state, dtype=None):
     try:
         import cupy as cp
     except ImportError:
-        print('to_cupy not supported, CuPy not available. Please install CuPy.')
+        raise RuntimeError(
+            'to_cupy not supported, CuPy not available. Please install CuPy.')
 
     if dtype is None:
         # Determine the correct data type based on the cudaq target's precision

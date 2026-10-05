@@ -7,11 +7,16 @@
  ******************************************************************************/
 
 #include "cudaq/Optimizer/InitAllPasses.h"
+#include <mutex>
 
 void cudaq::registerAllPasses() {
-  // General MLIR passes
-  mlir::registerTransformsPasses();
+  // Compiler bindings and the execution runtime can initialize independently.
+  static std::once_flag registered;
+  std::call_once(registered, [] {
+    // General MLIR passes
+    mlir::registerTransformsPasses();
 
-  // All the CUDA-Q passes and pipelines.
-  registerCudaqPassesAndPipelines();
+    // All the CUDA-Q passes and pipelines.
+    registerCudaqPassesAndPipelines();
+  });
 }

@@ -13,7 +13,8 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from types import MappingProxyType
 
-from cudaq._experimental import CompileTarget, CustomTarget
+from cudaq.core.backends import CompileTarget, CustomTarget
+from cudaq.util import trace
 
 from ..lower import (
     LoweringSpec,
@@ -59,6 +60,9 @@ class UnavailableTargetError(RuntimeError):
 class Backend:
     """One stack layer that compiles a build before delegating downstream."""
 
+    # Names this layer's ``cudaq.logical.target.<tag>`` trace span.
+    _trace_tag = None
+
     def __init__(self, spec: LoweringSpec, *, next_backend=None):
         if not isinstance(spec, LoweringSpec):
             raise TypeError("Backend spec must be a LoweringSpec")
@@ -71,8 +75,14 @@ class Backend:
     def compile(self, build, **_options):
         return build
 
+    def _traced_compile(self, build, **options):
+        if self._trace_tag is None:
+            return self.compile(build, **options)
+        with trace.span(f"cudaq.logical.target.{self._trace_tag}"):
+            return self.compile(build, **options)
+
     def _launch(self, build, operation, **kwargs):
-        prepared = self.compile(build, **kwargs)
+        prepared = self._traced_compile(build, **kwargs)
         if self.next_backend is not None:
             return getattr(self.next_backend, operation)(prepared, **kwargs)
         module, context = lower(self.spec, prepared)
@@ -92,7 +102,7 @@ class Backend:
 
         if tier is None:
             own = _stage_estimate(build, **estimate_options)
-            prepared = self.compile(build, **compile_options)
+            prepared = self._traced_compile(build, **compile_options)
             if self.next_backend is None:
                 return own
             downstream = self.next_backend._estimate(prepared, args,
@@ -107,8 +117,8 @@ class Backend:
             raise ValueError(
                 f"Tier.{tier.name} is unavailable from a backend accepting "
                 f"{getattr(build, 'profile', type(build).__name__)}")
-        return self.next_backend._estimate(self.compile(build,
-                                                        **compile_options),
+        prepared = self._traced_compile(build, **compile_options)
+        return self.next_backend._estimate(prepared,
                                            args,
                                            tier=tier,
                                            **estimate_options)
@@ -189,6 +199,7 @@ class ProgramBackend(Backend):
     # CUDA-Q Logical lowers the MLIR artifact itself, so a local executable JIT
     # artifact would only be built to be thrown away.
     supports_jit = False
+    _trace_tag = "p0"
 
     def __init__(self, *, next_backend, estimate_options=None):
         self.estimate_options = MappingProxyType(dict(estimate_options or {}))
@@ -199,14 +210,14 @@ class ProgramBackend(Backend):
                          next_backend=next_backend)
 
     def estimate(self, build, args=(), *, tier=None, **estimate_options):
+        options = {**self.estimate_options, **estimate_options}
+        # An explicit tier overrides the target's.
+        target_tier = options.pop("tier", None)
         return super().estimate(
             build,
             args,
-            tier=tier,
-            **{
-                **self.estimate_options,
-                **estimate_options,
-            },
+            tier=tier if tier is not None else target_tier,
+            **options,
         )
 
     def compile(self, source, *, arguments=(), **_options):
@@ -227,6 +238,8 @@ class ProgramBackend(Backend):
 
 class CliffordTBackend(Backend):
     """Legalize portable P0 programs to the positive H/S/T/CX gate set."""
+
+    _trace_tag = "clifford_t"
 
     def __init__(self, *, precision=1.0e-4, next_backend):
         # Let the gate-set own precision validation so this backend and the
@@ -288,6 +301,13 @@ def _estimate_tier(tier):
     return tier
 
 
+def _traced_estimate(build, tier, **options):
+    from .. import estimate
+
+    with trace.span(f"cudaq.estimate.{tier.name}"):
+        return estimate(build, tier=tier, **options)
+
+
 def _stage_estimate(build, *, tier=None, **estimate_options):
     """Return the estimate tier naturally owned by one accepted build."""
 
@@ -302,7 +322,7 @@ def _stage_estimate(build, *, tier=None, **estimate_options):
             return {}
         return {
             estimate.Tier.LOGICAL.name:
-                estimate(build, tier=estimate.Tier.LOGICAL)
+                _traced_estimate(build, estimate.Tier.LOGICAL)
         }
     physical_requested = (tier in {
         estimate.Tier.ANALYTICAL,
@@ -322,12 +342,12 @@ def _stage_estimate(build, *, tier=None, **estimate_options):
             return {}
         estimates = {}
         if tier in {None, estimate.Tier.STATIC}:
-            estimates[estimate.Tier.STATIC.name] = estimate(
-                build, tier=estimate.Tier.STATIC)
+            estimates[estimate.Tier.STATIC.name] = _traced_estimate(
+                build, estimate.Tier.STATIC)
         if tier is estimate.Tier.ANALYTICAL or (tier is None and
                                                 physical_requested):
-            estimates[estimate.Tier.ANALYTICAL.name] = estimate(
-                build, tier=estimate.Tier.ANALYTICAL, **common_physical)
+            estimates[estimate.Tier.ANALYTICAL.name] = _traced_estimate(
+                build, estimate.Tier.ANALYTICAL, **common_physical)
         return estimates
     if build.profile == "p3":
         if tier is not None and tier is not estimate.Tier.SCHEDULE:
@@ -347,7 +367,8 @@ def _stage_estimate(build, *, tier=None, **estimate_options):
         }
         return {
             estimate.Tier.SCHEDULE.name:
-                estimate(build, tier=estimate.Tier.SCHEDULE, **schedule_options)
+                _traced_estimate(build, estimate.Tier.SCHEDULE,
+                                 **schedule_options)
         }
     return {}
 
@@ -359,7 +380,7 @@ def _merge_estimates(own, downstream):
 
 
 def _cudaq_estimate_result(estimates):
-    from cudaq import EstimateResult
+    from cudaq.core.backends import EstimateResult
 
     return EstimateResult(annotations={
         name: value.to_dict() for name, value in estimates.items()
@@ -367,6 +388,7 @@ def _cudaq_estimate_result(estimates):
 
 
 class LogicalMachineBackend(Backend):
+    _trace_tag = "p1"
 
     def __init__(self, architecture, *, next_backend):
         super().__init__(LoweringSpec((),
@@ -397,6 +419,7 @@ class LogicalMachineBackend(Backend):
 
 
 class QECMachineBackend(Backend):
+    _trace_tag = "p2"
 
     def __init__(self, machine, *, next_backend):
         super().__init__(LoweringSpec((),
@@ -439,6 +462,7 @@ class QECMachineBackend(Backend):
 
 
 class PhysicalMachineBackend(Backend):
+    _trace_tag = "p3"
 
     def __init__(self, machine, *, next_backend):
         super().__init__(LoweringSpec((),

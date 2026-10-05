@@ -12,6 +12,7 @@
 #include "cudaq/algorithms/draw.h"
 #include "common/FmtCore.h"
 #include <algorithm>
+#include <cstdint>
 #include <string>
 #include <utility>
 #include <vector>
@@ -34,7 +35,8 @@ enum CharSet : char {
   BOX_BOTTOM_LEFT_CORNER = 10,  // U'╰'
   BOX_BOTTOM_RIGHT_CORNER = 11, // U'╯':
 
-  SWAP_X = 12 // U'╳'
+  SWAP_X = 12,      // U'╳'
+  OPEN_CONTROL = 13 // U'○'
 };
 }
 
@@ -48,6 +50,8 @@ inline std::string_view render_char(char c) {
     return "┼";
   case CONTROL:
     return "●";
+  case OPEN_CONTROL:
+    return "○";
   case BOX_LEFT_WIRE:
     return "┤";
   case BOX_RIGHT_WIRE:
@@ -95,6 +99,7 @@ inline void merge_chars(char &c0, char c1) {
   if (c1 == CharSet::CONTROL_LINE) {
     switch (c0) {
     case CharSet::CONTROL:
+    case CharSet::OPEN_CONTROL:
     case CharSet::WIRE_CONTROL_CROSS:
       return;
 
@@ -150,9 +155,10 @@ public:
 
   class Operator {
   public:
-    Operator(std::vector<Wire> const &wires, int num_targets, int num_controls)
-        : wires_(wires), num_targets_(num_targets),
-          num_controls_(num_controls) {}
+    Operator(std::vector<Wire> const &wires, int num_targets, int num_controls,
+             const std::vector<std::int32_t> &controlValues)
+        : wires_(wires), num_targets_(num_targets), num_controls_(num_controls),
+          controlValues_(controlValues) {}
 
     virtual ~Operator() = default;
 
@@ -170,9 +176,18 @@ public:
     virtual void draw(Diagram &diagram) = 0;
 
   protected:
+    // Note: Only target wires are sorted for layout. The control suffix in
+    // `wires_` retains the trace order used by `controlValues_`.
+    char control_char(std::size_t index) const {
+      return !controlValues_.empty() && controlValues_[index] == 0
+                 ? CharSet::OPEN_CONTROL
+                 : CharSet::CONTROL;
+    }
+
     std::vector<Wire> wires_;
     int num_targets_;
     int num_controls_;
+    std::vector<std::int32_t> controlValues_;
     int left_col_;
     int right_col_;
   };
@@ -224,8 +239,9 @@ public:
   using Wire = Diagram::Wire;
 
   Box(std::string_view label, std::vector<Wire> const &dwires, int num_targets,
-      int num_controls)
-      : Operator(dwires, num_targets, num_controls), label(label) {}
+      int num_controls, const std::vector<std::int32_t> &controlValues)
+      : Operator(dwires, num_targets, num_controls, controlValues),
+        label(label) {}
 
   virtual int width() const override {
     return label.size() + 2u + (num_controls() > 0);
@@ -284,10 +300,11 @@ protected:
   virtual void draw_controls(Diagram &diagram) const {
     auto begin = wires_.begin() + num_targets();
     auto end = begin + num_controls();
+    std::size_t controlIndex = 0;
     std::for_each(begin, end, [&](Wire wire) {
       int const row = diagram.to_row(wire);
       diagram.at(row, left_col_) = CharSet::BOX_LEFT_WIRE;
-      diagram.at(row, left_col_ + 1) = CharSet::CONTROL;
+      diagram.at(row, left_col_ + 1) = control_char(controlIndex++);
       diagram.at(row, right_col_) = CharSet::BOX_RIGHT_WIRE;
     });
   }
@@ -307,8 +324,9 @@ protected:
 class ControlledBox : public Box {
 public:
   ControlledBox(std::string_view label, std::vector<Wire> const &dwires,
-                int num_targets, int num_controls)
-      : Box(label, dwires, num_targets, num_controls) {}
+                int num_targets, int num_controls,
+                const std::vector<std::int32_t> &controlValues)
+      : Box(label, dwires, num_targets, num_controls, controlValues) {}
 
   virtual int width() const override { return label.size() + 2; }
 
@@ -327,9 +345,10 @@ private:
     int mid_col = (left_col_ + right_col_) / 2;
     auto begin = wires_.begin() + num_targets();
     auto end = begin + num_controls();
+    std::size_t controlIndex = 0;
     std::for_each(begin, end, [&](Wire wire) {
       int row = diagram.to_row(wire);
-      diagram.at(row, mid_col) = CharSet::CONTROL;
+      diagram.at(row, mid_col) = control_char(controlIndex++);
       if (row < box_top) {
         for (int i = row + 1; i < box_top; ++i)
           merge_chars(diagram.at(i, mid_col), CharSet::CONTROL_LINE);
@@ -352,8 +371,9 @@ class DiagramSwap : public Diagram::Operator {
 public:
   using Wire = Diagram::Wire;
 
-  DiagramSwap(std::vector<Wire> const &dwires, int num_controls)
-      : Operator(dwires, 2u, num_controls) {}
+  DiagramSwap(std::vector<Wire> const &dwires, int num_controls,
+              const std::vector<std::int32_t> &controlValues)
+      : Operator(dwires, 2u, num_controls, controlValues) {}
 
   virtual int width() const override { return 3u; }
 
@@ -375,9 +395,10 @@ private:
     int target_row1 = diagram.to_row(wires_.at(1));
     auto begin = wires_.begin() + num_targets();
     auto end = begin + num_controls();
+    std::size_t controlIndex = 0;
     std::for_each(begin, end, [&](Wire wire) {
       int row = diagram.to_row(wire);
-      diagram.at(row, mid_col) = CharSet::CONTROL;
+      diagram.at(row, mid_col) = control_char(controlIndex++);
       if (row < target_row0) {
         for (int i = row + 1; i < target_row0; ++i)
           merge_chars(diagram.at(i, mid_col), CharSet::CONTROL_LINE);
@@ -480,12 +501,14 @@ boxes_from_trace(const Trace &trace) {
     std::unique_ptr<Diagram::Operator> shape = nullptr;
     if (overlap) {
       shape = std::make_unique<Box>(label, wires, inst.targets.size(),
-                                    inst.controls.size());
+                                    inst.controls.size(), inst.controlValues);
     } else if (name == "swap") {
-      shape = std::make_unique<DiagramSwap>(wires, inst.controls.size());
+      shape = std::make_unique<DiagramSwap>(wires, inst.controls.size(),
+                                            inst.controlValues);
     } else {
       shape = std::make_unique<ControlledBox>(label, wires, inst.targets.size(),
-                                              inst.controls.size());
+                                              inst.controls.size(),
+                                              inst.controlValues);
     }
     boxes.at(instruction_ref) = std::move(shape);
   }
@@ -623,15 +646,20 @@ std::string latex_diagram_from_trace(const Trace &trace,
         latex_lines[target_row1] += R"(\targX{})";
         std::vector<Diagram::Wire> controls =
             convertToIDs(instruction->controls);
-        for (int control : controls) {
+        for (std::size_t i = 0; i < controls.size(); ++i) {
+          const auto control = controls[i];
+          const auto op = !instruction->controlValues.empty() &&
+                                  instruction->controlValues[i] == 0
+                              ? R"(\octrl{)"
+                              : R"(\ctrl{)";
           // draw control line to the swap symbol further away
           if (std::abs(control - target_row0) >
               std::abs(control - target_row1)) {
             latex_lines[control] +=
-                R"(\ctrl{)" + std::to_string(target_row0 - control) + "}";
+                op + std::to_string(target_row0 - control) + "}";
           } else {
             latex_lines[control] +=
-                R"(\ctrl{)" + std::to_string(target_row1 - control) + "}";
+                op + std::to_string(target_row1 - control) + "}";
           }
         }
       } else {
@@ -643,9 +671,14 @@ std::string latex_diagram_from_trace(const Trace &trace,
         }
         std::vector<Diagram::Wire> controls =
             convertToIDs(instruction->controls);
-        for (int control : controls) {
+        for (std::size_t i = 0; i < controls.size(); ++i) {
+          const auto control = controls[i];
+          const auto op = !instruction->controlValues.empty() &&
+                                  instruction->controlValues[i] == 0
+                              ? R"(\octrl{)"
+                              : R"(\ctrl{)";
           latex_lines[control] +=
-              R"(\ctrl{)" + std::to_string(wires.front() - control) + "}";
+              op + std::to_string(wires.front() - control) + "}";
         }
       }
     }
