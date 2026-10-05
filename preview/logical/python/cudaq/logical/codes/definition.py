@@ -58,7 +58,6 @@ from .distance import (
     _support_rows,
     _symplectic_functional,
     _symplectic_product,
-    _symplectic_product_bits,
     _validate_symplectic_closure,
     _xor_rows,
 )
@@ -191,17 +190,18 @@ class Code(ImmutableValue):
         )
         if any(not any(row) for row in declared_stabilizers):
             raise ValueError("stabilizer generators must be nonidentity")
-        declared_stabilizer_bits = tuple(
-            _row_bits(row) for row in declared_stabilizers)
         symplectic_mask = (1 << self.n) - 1
-        for left in range(len(declared_stabilizers)):
+
+        def encode_masks(rows):
+            bits = tuple(map(_row_bits, rows))
+            return (tuple(value & symplectic_mask for value in bits),
+                    tuple(value >> self.n for value in bits))
+
+        declared_x, declared_z = encode_masks(declared_stabilizers)
+        for left, (left_x, left_z) in enumerate(zip(declared_x, declared_z)):
             for right in range(left + 1, len(declared_stabilizers)):
-                if _symplectic_product_bits(
-                        declared_stabilizer_bits[left],
-                        declared_stabilizer_bits[right],
-                        self.n,
-                        mask=symplectic_mask,
-                ):
+                if ((left_x & declared_z[right]).bit_count() ^
+                    (left_z & declared_x[right]).bit_count()) & 1:
                     raise ValueError(
                         "stabilizer generators must mutually commute")
         self.declared_stabilizers = GF2Matrix._from_normalized_rows(
@@ -303,22 +303,23 @@ class Code(ImmutableValue):
             for family, encoded in encoded_families:
                 if rows is family:
                     return encoded
-            encoded = tuple(_row_bits(row) for row in rows)
+            # Split once per row rather than once per pairwise comparison.
+            encoded = encode_masks(rows)
             encoded_families.append((rows, encoded))
             return encoded
 
         def require_commutation(left_rows, right_rows, label, *, paired=False):
-            left_encoded = encode_family(left_rows)
-            right_encoded = encode_family(right_rows)
-            for left_index, left in enumerate(left_encoded):
-                for right_index, right in enumerate(right_encoded):
-                    expected = int(paired and left_index == right_index)
-                    actual = _symplectic_product_bits(
-                        left,
-                        right,
-                        self.n,
-                        mask=symplectic_mask,
-                    )
+            left_xs, left_zs = encode_family(left_rows)
+            right_xs, right_zs = encode_family(right_rows)
+            same_family = left_rows is right_rows and not paired
+            for left_index, (left_x, left_z) in enumerate(zip(left_xs,
+                                                              left_zs)):
+                # Self-products vanish and the symplectic product is symmetric.
+                start = left_index + 1 if same_family else 0
+                for right_index in range(start, len(right_xs)):
+                    expected = paired and left_index == right_index
+                    actual = ((left_x & right_zs[right_index]).bit_count() ^
+                              (left_z & right_xs[right_index]).bit_count()) & 1
                     if actual != expected:
                         relation = "canonical pairs" if paired else "commuting families"
                         raise ValueError(f"{label} must form {relation}")
