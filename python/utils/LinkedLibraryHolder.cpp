@@ -161,7 +161,8 @@ LinkedLibraryHolder::LinkedLibraryHolder() : availablePlatforms{"default"} {
   // be a needed dep of libcudaq.so (circular dependency), but downstream
   // libraries like cuda-qx reference its symbols at dlopen time.
   std::vector<std::filesystem::path> libPaths{
-      cudaqLibPath / fmt::format("libnvqir.{}", libSuffix),
+      // NVQIR may already be loaded from a separate core installation.
+      fmt::format("libnvqir.{}", libSuffix),
       cudaqLibPath / fmt::format("libcudaq.{}", libSuffix),
       cudaqLibPath / fmt::format("libcudaq-em-default.{}", libSuffix)};
 

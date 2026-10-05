@@ -1,0 +1,38 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+# Install from the one native build; scikit-build writes wheel metadata/RECORD.
+# Private core paths do not overlap combined-wheel paths, so uninstalling a
+# combined wheel during an upgrade cannot remove core's files. A path-only .pth
+# exposes the cudaq namespace to Python.
+if("@CUDAQ_WHEEL_KIND@" STREQUAL "core")
+  set(components Core fmt_core CUDAQCorePythonModules)
+else()
+  set(components Runtime CUDAQuantumPythonModules)
+endif()
+foreach(component IN LISTS components)
+  set(prefix "${CMAKE_INSTALL_PREFIX}")
+  if("@CUDAQ_WHEEL_KIND@" STREQUAL "core")
+    string(APPEND prefix "/cudaq_core")
+    if(NOT component STREQUAL "CUDAQCorePythonModules")
+      string(APPEND prefix "/cudaq/core")
+    endif()
+  endif()
+  set(strip_argument)
+  if(CMAKE_INSTALL_DO_STRIP)
+    set(strip_argument --strip)
+  endif()
+  execute_process(
+    COMMAND "${CMAKE_COMMAND}" --install "@CUDAQ_WHEEL_BUILD_DIR@"
+      --config "${CMAKE_INSTALL_CONFIG_NAME}" --component "${component}"
+      --prefix "${prefix}" ${strip_argument}
+    COMMAND_ERROR_IS_FATAL ANY)
+endforeach()
+if("@CUDAQ_WHEEL_KIND@" STREQUAL "core")
+  file(WRITE "${CMAKE_INSTALL_PREFIX}/cudaq_core.pth" "cudaq_core\n")
+endif()

@@ -17,8 +17,19 @@ from typing import NoReturn
 
 def _exec_native(tool: str) -> NoReturn:
     executable = Path(__file__).resolve().parent / "_bin" / tool
-    os.execv(str(executable), [sys.argv[0], *sys.argv[1:]])
-    raise AssertionError("os.execv returned unexpectedly")
+    environment = os.environ.copy()
+    from cudaq import core
+    core_lib = Path(core.__file__).parent / "lib"
+    if core_lib.is_dir():
+        # exec starts a new loader: Python's already-loaded providers are lost.
+        # Core can be in a different user/virtual-environment installation prefix.
+        variable = "DYLD_LIBRARY_PATH" if sys.platform == "darwin" else "LD_LIBRARY_PATH"
+        paths = [str(core_lib)]
+        if environment.get(variable):
+            paths.append(environment[variable])
+        environment[variable] = os.pathsep.join(paths)
+    os.execve(str(executable), [sys.argv[0], *sys.argv[1:]], environment)
+    raise AssertionError("os.execve returned unexpectedly")
 
 
 def qlx_opt() -> NoReturn:

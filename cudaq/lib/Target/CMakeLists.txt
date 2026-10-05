@@ -24,7 +24,7 @@ target_link_libraries(CUDAQTargetConfig PRIVATE ${CMAKE_DL_LIBS})
 install(TARGETS CUDAQTargetConfig
         EXPORT cudaq-common-targets
         DESTINATION lib
-        COMPONENT Runtime)
+        COMPONENT ${CUDAQ_CORE_LIBRARY_COMPONENT})
 
 add_library(CUDAQTargetDatabase STATIC TargetDatabase.cpp)
 target_include_directories(CUDAQTargetDatabase
@@ -32,8 +32,13 @@ target_include_directories(CUDAQTargetDatabase
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/cudaq/include>
     $<INSTALL_INTERFACE:include>)
 target_link_libraries(CUDAQTargetDatabase PUBLIC CUDAQTargetConfig)
+set(_target_frontend_exports cudaq-common-targets)
+if(CUDAQ_BUILD_SPLIT_WHEELS)
+  # Built-in target definitions belong to the frontend, not the core SDK.
+  set(_target_frontend_exports cudaq-targets)
+endif()
 install(TARGETS CUDAQTargetDatabase
-        EXPORT cudaq-common-targets
+        EXPORT ${_target_frontend_exports}
         DESTINATION lib
         COMPONENT Runtime)
 
