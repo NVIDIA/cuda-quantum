@@ -70,9 +70,15 @@ template <bool FromQPU>
 Value genVectorSize(Location loc, OpBuilder &builder, Value vecArg) {
   if constexpr (FromQPU) {
     Type vecArgTy = vecArg.getType();
-    assert(isa<cudaq::cc::SequenceType>(vecArgTy));
-    return cudaq::cc::SequenceSizeOp::create(builder, loc, builder.getI64Type(),
-                                             vecArg);
+    auto seqTy = cast<cudaq::cc::SequenceType>(vecArgTy);
+    // cc.sequence_size returns the *element* count so we need to scale by
+    // sizeof(T) to get the byte size.
+    auto i64Ty = builder.getI64Type();
+    Value count =
+        cudaq::cc::SequenceSizeOp::create(builder, loc, i64Ty, vecArg);
+    Value eleSize = cudaq::cc::SizeOfOp::create(builder, loc, i64Ty,
+                                                seqTy.getElementType());
+    return arith::MulIOp::create(builder, loc, count, eleSize);
   } else /* constexpr */ {
     auto vecTy = cast<cudaq::cc::PointerType>(vecArg.getType());
     auto vecStructTy = cast<cudaq::cc::StructType>(vecTy.getElementType());
@@ -104,6 +110,135 @@ Value genVectorSize(Location loc, OpBuilder &builder, Value vecArg) {
     // Subtracting these will give us the size in bytes.
     return arith::SubIOp::create(builder, loc, endInt, beginInt);
   }
+}
+
+/// The per-element storage type of a vector argument (\p arg) whose
+/// element type is \p eleTy. This is the single place that knows about the
+/// host-side `std::vector<T>` triple-pointer layout. When `FromQPU=true`,
+/// elements of a `cc.sequence<T>` span are simply `T`-typed and stored
+/// contiguously in the span's own backing store. When `FromQPU=false`, \p arg
+/// is a pointer to the host-side `std::vector<T>` object, whose member 0 is a
+/// `T*`, the pointer to the contiguous block of `T`-typed host objects.
+template <bool FromQPU>
+static Type getSequenceElementStorageType(Value arg, Type eleTy) {
+  if constexpr (FromQPU) {
+    return eleTy;
+  } else /*constexpr*/ {
+    auto argStructTy = cast<cudaq::cc::StructType>(
+        cast<cudaq::cc::PointerType>(arg.getType()).getElementType());
+    return cast<cudaq::cc::PointerType>(argStructTy.getMember(0))
+        .getElementType();
+  }
+}
+
+/// Access the \p index'th element of a vector argument (\p arg) whose element
+/// type is \p eleTy. This is the single place that knows how to walk a
+/// device-side span rather than a host-side `std::vector`'s triple-pointer
+/// layout.
+///
+/// The result's representation matches whichever convention \p arg itself
+/// uses. When `FromQPU=true`, \p arg is a `cc.sequence<T>` value, so the result
+/// is the i'th `T`-typed value, loaded out of the span's backing store. When
+/// `FromQPU=false`, \p arg is a `cc.ptr<HostVectorStruct>`, so the result is a
+/// pointer to the i'th host element, matching what recursive callers expect
+/// for the host convention.
+template <bool FromQPU>
+static Value getSequenceElement(Location loc, OpBuilder &builder, Value arg,
+                                Type eleTy, Value index) {
+  if constexpr (FromQPU) {
+    auto elePtrTy = cudaq::cc::PointerType::get(eleTy);
+    auto arrPtrTy =
+        cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(eleTy));
+    auto data = cudaq::cc::SequenceDataOp::create(builder, loc, arrPtrTy, arg);
+    auto elePtr = cudaq::cc::ComputePtrOp::create(
+        builder, loc, elePtrTy, data,
+        ArrayRef<cudaq::cc::ComputePtrArg>{index});
+    return cudaq::cc::LoadOp::create(builder, loc, elePtr);
+  } else /*constexpr*/ {
+    Type hostEleTy = getSequenceElementStorageType<FromQPU>(arg, eleTy);
+    auto elePtrTy = cudaq::cc::PointerType::get(hostEleTy);
+    auto ptrToBegin = cudaq::cc::ComputePtrOp::create(
+        builder, loc, cudaq::cc::PointerType::get(elePtrTy), arg,
+        ArrayRef<cudaq::cc::ComputePtrArg>{0});
+    Value begin = cudaq::cc::LoadOp::create(builder, loc, ptrToBegin);
+    auto arrPtrTy =
+        cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(hostEleTy));
+    auto block = cudaq::cc::CastOp::create(builder, loc, arrPtrTy, begin);
+    return cudaq::cc::ComputePtrOp::create(
+        builder, loc, elePtrTy, block,
+        ArrayRef<cudaq::cc::ComputePtrArg>{index});
+  }
+}
+
+/// Build a real host `std::vector<eleTy>` triple `{begin, end, data-end}` value
+/// from a contiguous block of \p count `eleTy`-typed elements starting at \p
+/// data. This is the FromQPU=true counterpart to `getSequenceElement`. Given
+/// already-realized device-side data, produce the real host ABI representation
+/// a callback's actual host parameter/return type expects. It may be important,
+/// depending on the implementation to treat vector arguments as `const` to
+/// prevent them being mistakenly resized, etc.
+static Value buildHostVectorTriple(Location loc, OpBuilder &builder, Type eleTy,
+                                   Value data, Value count) {
+  auto ptrTy = cudaq::cc::PointerType::get(eleTy);
+  auto *ctx = builder.getContext();
+  auto vecTy =
+      cudaq::cc::StructType::get(ctx, ArrayRef<Type>{ptrTy, ptrTy, ptrTy});
+  Value vecVar = cudaq::cc::UndefOp::create(builder, loc, vecTy);
+  Value beginPtr = cudaq::cc::CastOp::create(builder, loc, ptrTy, data);
+  vecVar = cudaq::cc::InsertValueOp::create(builder, loc, vecTy, vecVar,
+                                            beginPtr, 0);
+  auto arrPtrTy = cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(eleTy));
+  auto arrData = cudaq::cc::CastOp::create(builder, loc, arrPtrTy, data);
+  // Use an element count and not a byte count here.
+  Value endPtr = cudaq::cc::ComputePtrOp::create(
+      builder, loc, ptrTy, arrData, ArrayRef<cudaq::cc::ComputePtrArg>{count});
+  vecVar =
+      cudaq::cc::InsertValueOp::create(builder, loc, vecTy, vecVar, endPtr, 1);
+  return cudaq::cc::InsertValueOp::create(builder, loc, vecTy, vecVar, endPtr,
+                                          2);
+}
+
+/// Access member \p index of a struct argument (\p arg). Mirrors
+/// `getSequenceElement`, but for struct member access instead of vector element
+/// access.  When `FromQPU=true`, \p arg is a `cc.struct<...>` *value*, so the
+/// result is the extracted member value.  When `FromQPU=false`, \p arg is a
+/// `cc.ptr<HostStructType>`, so the result is a pointer to the member,
+/// matching what recursive callers expect for the host convention.
+template <bool FromQPU>
+static Value getStructMember(Location loc, OpBuilder &builder, Value arg,
+                             Type memberTy, std::int32_t index) {
+  if constexpr (FromQPU) {
+    return cudaq::cc::ExtractValueOp::create(
+        builder, loc, memberTy, arg,
+        ArrayRef<cudaq::cc::ExtractValueArg>{index});
+  } else /*constexpr*/ {
+    auto hostStrTy = cast<cudaq::cc::StructType>(
+        cast<cudaq::cc::PointerType>(arg.getType()).getElementType());
+    auto ptrTy = cudaq::cc::PointerType::get(hostStrTy.getMember(index));
+    return cudaq::cc::ComputePtrOp::create(
+        builder, loc, ptrTy, arg, ArrayRef<cudaq::cc::ComputePtrArg>{index});
+  }
+}
+
+/// Thread an accumulator value through \p count loop iterations. \p accumulator
+/// must already have been allocated. Here it is merely initialized to \p
+/// initVal, updated after each iteration to whatever \p perIteration returns,
+/// and the final value is returned.
+static Value loopWithAccumulator(
+    OpBuilder &builder, Location loc, Value count, Value accumulator,
+    Value initVal,
+    llvm::function_ref<Value(OpBuilder &, Location, Value /*i*/, Value /*acc*/)>
+        perIteration) {
+  cudaq::cc::StoreOp::create(builder, loc, initVal, accumulator);
+  cudaq::opt::factory::createInvariantLoop(
+      builder, loc, count,
+      [&](OpBuilder &builder, Location loc, Region &, Block &block) {
+        Value i = block.getArgument(0);
+        Value acc = cudaq::cc::LoadOp::create(builder, loc, accumulator);
+        Value newAcc = perIteration(builder, loc, i, acc);
+        cudaq::cc::StoreOp::create(builder, loc, newAcc, accumulator);
+      });
+  return cudaq::cc::LoadOp::create(builder, loc, accumulator);
 }
 
 Value cudaq::opt::marshal::genComputeReturnOffset(
@@ -152,17 +287,16 @@ bool cudaq::opt::marshal::isDynamicSignature(FunctionType devFuncTy) {
   return false;
 }
 
+template <bool FromQPU>
 static std::pair<Value, Value>
 genByteSizeAndElementCount(Location loc, OpBuilder &builder, ModuleOp module,
                            Type eleTy, Value size, Value arg, Type t) {
   // If this is a vector<vector<...>>, convert the bytes of vector to bytes of
   // length (i64).
   if (auto sty = dyn_cast<cudaq::cc::SequenceType>(eleTy)) {
-    auto eTy = cast<cudaq::cc::PointerType>(arg.getType()).getElementType();
-    auto fTy = cast<cudaq::cc::StructType>(eTy).getMember(0);
-    auto tTy = cast<cudaq::cc::PointerType>(fTy).getElementType();
     auto i64Ty = builder.getI64Type();
-    auto eleSize = cudaq::cc::SizeOfOp::create(builder, loc, i64Ty, tTy);
+    Type hostEleTy = getSequenceElementStorageType<FromQPU>(arg, eleTy);
+    auto eleSize = cudaq::cc::SizeOfOp::create(builder, loc, i64Ty, hostEleTy);
     Value count = arith::DivSIOp::create(builder, loc, size, eleSize);
     auto ate = arith::ConstantIntOp::create(builder, loc, 8, 64);
     size = arith::MulIOp::create(builder, loc, count, ate);
@@ -184,9 +318,7 @@ genByteSizeAndElementCount(Location loc, OpBuilder &builder, ModuleOp module,
   // If this is a vector<struct<...>>, convert the bytes of struct to bytes of
   // struct with converted members.
   if (isa<cudaq::cc::StructType>(eleTy)) {
-    auto vecTy = cast<cudaq::cc::PointerType>(arg.getType()).getElementType();
-    auto vecEleRefTy = cast<cudaq::cc::StructType>(vecTy).getMember(0);
-    auto vecEleTy = cast<cudaq::cc::PointerType>(vecEleRefTy).getElementType();
+    Type vecEleTy = getSequenceElementStorageType<FromQPU>(arg, eleTy);
     auto i64Ty = builder.getI64Type();
     auto hostStrSize =
         cudaq::cc::SizeOfOp::create(builder, loc, i64Ty, vecEleTy);
@@ -293,8 +425,8 @@ convertAllSequenceBool(Location loc, OpBuilder &builder, ModuleOp module,
     Value sizeDelta = genVectorSize</*FromQPU=*/false>(loc, builder, arg);
     auto count = [&]() -> Value {
       if (cudaq::cc::isDynamicType(seleTy)) {
-        auto p = genByteSizeAndElementCount(loc, builder, module, seleTy,
-                                            sizeDelta, arg, sty);
+        auto p = genByteSizeAndElementCount</*FromQPU=*/false>(
+            loc, builder, module, seleTy, sizeDelta, arg, sty);
         return p.second;
       }
       auto sizeEle = cudaq::cc::SizeOfOp::create(builder, loc,
@@ -421,7 +553,7 @@ Value descendThroughDynamicType(Location loc, OpBuilder &builder,
               return size;
 
             // Otherwise, we have a recursively dynamic case.
-            auto [bytes, count] = genByteSizeAndElementCount(
+            auto [bytes, count] = genByteSizeAndElementCount<FromQPU>(
                 loc, builder, module, eleTy, size, arg, t);
             assert(count && "vector must have elements");
             size = bytes;
@@ -430,30 +562,15 @@ Value descendThroughDynamicType(Location loc, OpBuilder &builder,
             // type, so walk over the vector and recurse on each element.
             // `size` is already the proper size of the lengths of each of the
             // elements in turn.
-            cudaq::cc::StoreOp::create(builder, loc, size, tmp);
-            auto ptrTy = cast<cudaq::cc::PointerType>(arg.getType());
-            auto strTy = cast<cudaq::cc::StructType>(ptrTy.getElementType());
-            auto memTy = cast<cudaq::cc::PointerType>(strTy.getMember(0));
-            auto arrTy =
-                cudaq::cc::PointerType::get(cudaq::cc::PointerType::get(
-                    cudaq::cc::ArrayType::get(memTy.getElementType())));
-            auto castPtr = cudaq::cc::CastOp::create(builder, loc, arrTy, arg);
-            auto castArg = cudaq::cc::LoadOp::create(builder, loc, castPtr);
-            auto castPtrTy =
-                cudaq::cc::PointerType::get(memTy.getElementType());
-            cudaq::opt::factory::createInvariantLoop(
-                builder, loc, count,
-                [&](OpBuilder &builder, Location loc, Region &, Block &block) {
-                  Value i = block.getArgument(0);
-                  auto ai = cudaq::cc::ComputePtrOp::create(
-                      builder, loc, castPtrTy, castArg,
-                      ArrayRef<cudaq::cc::ComputePtrArg>{i});
-                  auto tmpVal = cudaq::cc::LoadOp::create(builder, loc, tmp);
-                  Value innerSize = descendThroughDynamicType<FromQPU>(
-                      loc, builder, module, eleTy, tmpVal, ai, tmp);
-                  cudaq::cc::StoreOp::create(builder, loc, innerSize, tmp);
+            return loopWithAccumulator(
+                builder, loc, count, tmp, size,
+                [&](OpBuilder &builder, Location loc, Value i,
+                    Value acc) -> Value {
+                  auto ai =
+                      getSequenceElement<FromQPU>(loc, builder, arg, eleTy, i);
+                  return descendThroughDynamicType<FromQPU>(
+                      loc, builder, module, eleTy, acc, ai, tmp);
                 });
-            return cudaq::cc::LoadOp::create(builder, loc, tmp);
           })
           // A struct can be dynamic if it contains dynamic members. Get the
           // static portion of the struct first, which will have length slots.
@@ -467,13 +584,7 @@ Value descendThroughDynamicType(Location loc, OpBuilder &builder,
                 std::int32_t i = iter.index();
                 auto m = iter.value();
                 if (cudaq::cc::isDynamicType(m)) {
-                  auto hostPtrTy = cast<cudaq::cc::PointerType>(arg.getType());
-                  auto hostStrTy =
-                      cast<cudaq::cc::StructType>(hostPtrTy.getElementType());
-                  auto pm = cudaq::cc::PointerType::get(hostStrTy.getMember(i));
-                  auto ai = cudaq::cc::ComputePtrOp::create(
-                      builder, loc, pm, arg,
-                      ArrayRef<cudaq::cc::ComputePtrArg>{i});
+                  auto ai = getStructMember<FromQPU>(loc, builder, arg, m, i);
                   strSize = descendThroughDynamicType<FromQPU>(
                       loc, builder, module, m, strSize, ai, tmp);
                 }
@@ -591,7 +702,7 @@ Value populateDynamicAddendum(Location loc, OpBuilder &builder, ModuleOp module,
     if (cudaq::cc::isDynamicType(eleTy)) {
       // Recursive case. Visit each dynamic element, copying it.
       Value size = genVectorSize<FromQPU>(loc, builder, host);
-      auto [bytes, count] = genByteSizeAndElementCount(
+      auto [bytes, count] = genByteSizeAndElementCount<FromQPU>(
           loc, builder, module, eleTy, size, host, devArgTy);
       size = bytes;
       cudaq::cc::StoreOp::create(builder, loc, size, sizeSlot);
@@ -603,7 +714,6 @@ Value populateDynamicAddendum(Location loc, OpBuilder &builder, ModuleOp module,
       Value newAddendum = cudaq::cc::ComputePtrOp::create(
           builder, loc, addendum.getType(), castEnd,
           ArrayRef<cudaq::cc::ComputePtrArg>{size});
-      cudaq::cc::StoreOp::create(builder, loc, newAddendum, addendumScratch);
       Type dataTy = cudaq::opt::factory::genArgumentBufferType(eleTy);
       auto arrDataTy = cudaq::cc::ArrayType::get(dataTy);
       auto sizeBlockTy = cudaq::cc::PointerType::get(arrDataTy);
@@ -615,44 +725,20 @@ Value populateDynamicAddendum(Location loc, OpBuilder &builder, ModuleOp module,
       // element (or its subfields) at that offset.
       auto sizeBlock =
           cudaq::cc::CastOp::create(builder, loc, sizeBlockTy, addendum);
-      auto hostEleTy =
-          cast<cudaq::cc::PointerType>(host.getType()).getElementType();
-      auto ptrPtrBlockTy = cudaq::cc::PointerType::get(
-          cast<cudaq::cc::StructType>(hostEleTy).getMember(0));
-
-      // The host argument is a std::vector, so we want to get the address of
-      // "front" out of the vector (the first pointer in the triple) and step
-      // over the contiguous range of vectors in the host block. The vector of
-      // vectors forms a ragged array structure in host memory.
-      auto hostBeginPtrRef = cudaq::cc::ComputePtrOp::create(
-          builder, loc, ptrPtrBlockTy, host,
-          ArrayRef<cudaq::cc::ComputePtrArg>{0});
-      auto hostBegin = cudaq::cc::LoadOp::create(builder, loc, hostBeginPtrRef);
-      auto hostBeginEleTy = cast<cudaq::cc::PointerType>(hostBegin.getType());
-      auto hostBlockTy = cudaq::cc::PointerType::get(
-          cudaq::cc::ArrayType::get(hostBeginEleTy.getElementType()));
-      auto hostBlock =
-          cudaq::cc::CastOp::create(builder, loc, hostBlockTy, hostBegin);
 
       // Loop over each vector element in the vector (recursively).
-      cudaq::opt::factory::createInvariantLoop(
-          builder, loc, count,
-          [&](OpBuilder &builder, Location loc, Region &, Block &block) {
-            Value i = block.getArgument(0);
-            Value addm =
-                cudaq::cc::LoadOp::create(builder, loc, addendumScratch);
+      return loopWithAccumulator(
+          builder, loc, count, addendumScratch, newAddendum,
+          [&](OpBuilder &builder, Location loc, Value i, Value acc) -> Value {
             auto subSlot = cudaq::cc::ComputePtrOp::create(
                 builder, loc, ptrDataTy, sizeBlock,
                 ArrayRef<cudaq::cc::ComputePtrArg>{i});
-            auto subHost = cudaq::cc::ComputePtrOp::create(
-                builder, loc, hostBeginEleTy, hostBlock,
-                ArrayRef<cudaq::cc::ComputePtrArg>{i});
-            Value newAddm = populateDynamicAddendum<FromQPU>(
-                loc, builder, module, eleTy, subHost, subSlot, addm,
-                addendumScratch);
-            cudaq::cc::StoreOp::create(builder, loc, newAddm, addendumScratch);
+            auto subHost =
+                getSequenceElement<FromQPU>(loc, builder, host, eleTy, i);
+            return populateDynamicAddendum<FromQPU>(loc, builder, module, eleTy,
+                                                    subHost, subSlot, acc,
+                                                    addendumScratch);
           });
-      return cudaq::cc::LoadOp::create(builder, loc, addendumScratch);
     }
     return populateVectorAddendum<FromQPU>(loc, builder, host, sizeSlot,
                                            addendum);
@@ -663,13 +749,8 @@ Value populateDynamicAddendum(Location loc, OpBuilder &builder, ModuleOp module,
   assert(devStrTy.getNumMembers() == hostStrTy.getNumMembers());
   for (auto iter : llvm::enumerate(devStrTy.getMembers())) {
     std::int32_t iterIdx = iter.index();
-    auto hostPtrTy = cast<cudaq::cc::PointerType>(host.getType());
-    auto hostMemTy = cast<cudaq::cc::StructType>(hostPtrTy.getElementType())
-                         .getMember(iterIdx);
-    auto val = cudaq::cc::ComputePtrOp::create(
-        builder, loc, cudaq::cc::PointerType::get(hostMemTy), host,
-        ArrayRef<cudaq::cc::ComputePtrArg>{iterIdx});
     Type iterTy = iter.value();
+    auto val = getStructMember<FromQPU>(loc, builder, host, iterTy, iterIdx);
     if (cudaq::cc::isDynamicType(iterTy)) {
       Value fieldInSlot = cudaq::cc::ComputePtrOp::create(
           builder, loc, cudaq::cc::PointerType::get(builder.getI64Type()),
@@ -681,7 +762,12 @@ Value populateDynamicAddendum(Location loc, OpBuilder &builder, ModuleOp module,
       Value fieldInSlot = cudaq::cc::ComputePtrOp::create(
           builder, loc, cudaq::cc::PointerType::get(iterTy), sizeSlot,
           ArrayRef<cudaq::cc::ComputePtrArg>{iterIdx});
-      auto v = cudaq::cc::LoadOp::create(builder, loc, val);
+      // For FromQPU=false, `val` is a pointer to the host member and must be
+      // loaded. For FromQPU=true, `getStructMember` already extracted the
+      // member value directly.
+      Value v = val;
+      if constexpr (!FromQPU)
+        v = cudaq::cc::LoadOp::create(builder, loc, val);
       cudaq::cc::StoreOp::create(builder, loc, v, fieldInSlot);
     }
   }
@@ -969,8 +1055,8 @@ static Value incrementTrailingDataPointer(Location loc, OpBuilder &builder,
 /// ```
 template <bool FromQPU>
 std::pair<Value, Value>
-constructDynamicInputValue(Location loc, OpBuilder &builder, Type devTy,
-                           Value ptr, Value trailingData) {
+constructDynamicInputValue(Location loc, OpBuilder &builder, ModuleOp module,
+                           Type devTy, Value ptr, Value trailingData) {
   assert(cudaq::cc::isDynamicType(devTy) && "must be dynamic type");
   if constexpr (FromQPU) {
     if (auto charSpanTy = dyn_cast<cudaq::cc::CharspanType>(devTy)) {
@@ -1009,7 +1095,6 @@ constructDynamicInputValue(Location loc, OpBuilder &builder, Type devTy,
       Type toTy = [&]() {
         // From QPU, so we want to unpack the data into vectors (of vectors).
         if constexpr (FromQPU) {
-          auto module = vecLength->getParentOfType<ModuleOp>();
           return cudaq::opt::factory::convertToHostSideType(eleTy, module);
         } else {
           // From host, so we want to unpack the data into spans (of spans).
@@ -1023,8 +1108,10 @@ constructDynamicInputValue(Location loc, OpBuilder &builder, Type devTy,
           incrementTrailingDataPointer(loc, builder, trailingData, bytes);
 
       // For each element in the vector, convert it to device-side format and
-      // save the result in newVecData.
-      auto elePtrTy = cudaq::cc::PointerType::get(eleTy);
+      // save the result in newVecData. Note that `newVecData`'s element type
+      // is `toTy`, not `eleTy`: for FromQPU=true they diverge (the elements
+      // are real host `std::vector<T>` triples, not device-side spans).
+      auto elePtrTy = cudaq::cc::PointerType::get(toTy);
       auto packTy = cudaq::opt::factory::genArgumentBufferType(eleTy);
       Type packedArrTy =
           cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(packTy));
@@ -1033,58 +1120,71 @@ constructDynamicInputValue(Location loc, OpBuilder &builder, Type devTy,
           cudaq::cc::CastOp::create(builder, loc, packedArrTy, trailingData);
       auto trailingDataVar =
           cudaq::cc::AllocaOp::create(builder, loc, nextTrailingData.getType());
-      cudaq::cc::StoreOp::create(builder, loc, nextTrailingData,
-                                 trailingDataVar);
-      cudaq::opt::factory::createInvariantLoop(
-          builder, loc, vecLength,
-          [&](OpBuilder &builder, Location loc, Region &, Block &block) {
-            Value i = block.getArgument(0);
-            auto nextTrailingData =
-                cudaq::cc::LoadOp::create(builder, loc, trailingDataVar);
+      Value finalTrailingData = loopWithAccumulator(
+          builder, loc, vecLength, trailingDataVar, nextTrailingData,
+          [&](OpBuilder &builder, Location loc, Value i, Value acc) -> Value {
             auto vecMemPtr = cudaq::cc::ComputePtrOp::create(
                 builder, loc, packedEleTy, arrPtr,
                 ArrayRef<cudaq::cc::ComputePtrArg>{i});
-            auto r = constructDynamicInputValue<FromQPU>(
-                loc, builder, eleTy, vecMemPtr, nextTrailingData);
+            auto r = constructDynamicInputValue<FromQPU>(loc, builder, module,
+                                                         eleTy, vecMemPtr, acc);
             auto newVecPtr = cudaq::cc::ComputePtrOp::create(
                 builder, loc, elePtrTy, newVecData,
                 ArrayRef<cudaq::cc::ComputePtrArg>{i});
             cudaq::cc::StoreOp::create(builder, loc, r.first, newVecPtr);
-            cudaq::cc::StoreOp::create(builder, loc, r.second, trailingDataVar);
+            return r.second;
           });
 
-      // Create the new outer sequence span as the result.
-      Value sequenceResult = cudaq::cc::SequenceInitOp::create(
-          builder, loc, spanTy, newVecData, vecLength);
-      nextTrailingData =
-          cudaq::cc::LoadOp::create(builder, loc, trailingDataVar);
-      return {sequenceResult, nextTrailingData};
+      // Create the outer result: a device-side span for FromQPU=false, or a
+      // real host `std::vector<toTy>` triple (over the just-constructed
+      // `newVecData` elements) for FromQPU=true, matching what the callee's
+      // actual host parameter/return type expects.
+      Value outerResult;
+      if constexpr (FromQPU)
+        outerResult =
+            buildHostVectorTriple(loc, builder, toTy, newVecData, vecLength);
+      else
+        outerResult = cudaq::cc::SequenceInitOp::create(builder, loc, spanTy,
+                                                        newVecData, vecLength);
+      return {outerResult, finalTrailingData};
     }
 
     // This vector has constant data, so just use the data in-place.
     Value result;
     if constexpr (FromQPU) {
-      // From QPU, so construct a std::vector from the span.
-      auto ptrTy = cudaq::cc::PointerType::get(eleTy);
-      auto *ctx = builder.getContext();
-      auto vecTy =
-          cudaq::cc::StructType::get(ctx, ArrayRef<Type>{ptrTy, ptrTy, ptrTy});
-      Value vecVar = cudaq::cc::UndefOp::create(builder, loc, vecTy);
-      Value castData =
-          cudaq::cc::CastOp::create(builder, loc, ptrTy, trailingData);
-      vecVar = cudaq::cc::InsertValueOp::create(builder, loc, vecTy, vecVar,
-                                                castData, 0);
-      auto ptrArrTy =
-          cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(eleTy));
-      auto castTrailingData =
-          cudaq::cc::CastOp::create(builder, loc, ptrArrTy, trailingData);
-      Value castEnd = cudaq::cc::ComputePtrOp::create(
-          builder, loc, ptrTy, castTrailingData,
-          ArrayRef<cudaq::cc::ComputePtrArg>{bytes});
-      vecVar = cudaq::cc::InsertValueOp::create(builder, loc, vecTy, vecVar,
-                                                castEnd, 1);
-      result = cudaq::cc::InsertValueOp::create(builder, loc, vecTy, vecVar,
-                                                castEnd, 2);
+      if (eleTy == builder.getI1Type()) {
+        // std::vector<bool> has a bit-packed host layout that is distinct
+        // from the unpacked byte-per-bool span held in the buffer (which
+        // uses the same layout as std::vector<char>). Construct a real
+        // std::vector<bool> object via the runtime helper so the value
+        // matches the callee's actual host-side parameter type.
+        //
+        // The runtime helper takes ownership of (and frees) the data buffer
+        // it is given, but `trailingData` here points into the caller's
+        // stack-allocated communication buffer. Copy it to the heap first
+        // (via the existing stack-to-heap helper) so the free is safe.
+        Type hostVecBoolTy =
+            cudaq::opt::factory::convertToHostSideType(spanTy, module);
+        Value sretVar =
+            cudaq::cc::AllocaOp::create(builder, loc, hostVecBoolTy);
+        auto ptrI8Ty = cudaq::cc::PointerType::get(builder.getI8Type());
+        auto castTrailingDataI8 =
+            cudaq::cc::CastOp::create(builder, loc, ptrI8Ty, trailingData);
+        Value one = arith::ConstantIntOp::create(builder, loc, 1, 64);
+        auto heapCopy = func::CallOp::create(
+            builder, loc, ptrI8Ty, "__nvqpp_vectorCopyCtor",
+            ValueRange{castTrailingDataI8, bytes, one});
+        auto castHeapData = cudaq::cc::CastOp::create(
+            builder, loc, cudaq::cc::PointerType::get(eleTy),
+            heapCopy.getResult(0));
+        cudaq::opt::marshal::genSequenceBoolFromInitList(
+            loc, builder, sretVar, castHeapData, vecLength);
+        result = cudaq::cc::LoadOp::create(builder, loc, sretVar);
+      } else {
+        // From QPU, so construct a std::vector from the span.
+        result =
+            buildHostVectorTriple(loc, builder, eleTy, trailingData, vecLength);
+      }
     } else /*constexpr*/ {
       // From host, so construct the sequence span with it.
       auto castTrailingData = cudaq::cc::CastOp::create(
@@ -1105,7 +1205,14 @@ constructDynamicInputValue(Location loc, OpBuilder &builder, Type devTy,
   auto strTy = cast<cudaq::cc::StructType>(devTy);
   auto ptrEleTy = cast<cudaq::cc::PointerType>(ptr.getType()).getElementType();
   auto packedTy = cast<cudaq::cc::StructType>(ptrEleTy);
-  Value result = cudaq::cc::UndefOp::create(builder, loc, strTy);
+  // When FromQPU=true, the result of this function is used directly as an
+  // argument to the real host callback, so it must be built with the real
+  // host struct layout, not `strTy` itself.
+  Type resultTy = strTy;
+  if constexpr (FromQPU) {
+    resultTy = cudaq::opt::factory::convertToHostSideType(strTy, module);
+  }
+  Value result = cudaq::cc::UndefOp::create(builder, loc, resultTy);
   assert(strTy.getNumMembers() == packedTy.getNumMembers());
   for (auto iter :
        llvm::enumerate(llvm::zip(strTy.getMembers(), packedTy.getMembers()))) {
@@ -1116,40 +1223,225 @@ constructDynamicInputValue(Location loc, OpBuilder &builder, Type devTy,
         builder, loc, cudaq::cc::PointerType::get(packedMemTy), ptr,
         ArrayRef<cudaq::cc::ComputePtrArg>{off});
     if (cudaq::cc::isDynamicType(devMemTy)) {
-      auto r = constructDynamicInputValue<FromQPU>(loc, builder, devMemTy,
-                                                   dataPtr, trailingData);
-      result = cudaq::cc::InsertValueOp::create(builder, loc, strTy, result,
+      auto r = constructDynamicInputValue<FromQPU>(
+          loc, builder, module, devMemTy, dataPtr, trailingData);
+      result = cudaq::cc::InsertValueOp::create(builder, loc, resultTy, result,
                                                 r.first, off);
       trailingData = r.second;
       continue;
     }
     auto val = fetchInputValue<FromQPU>(loc, builder, devMemTy, dataPtr);
-    result =
-        cudaq::cc::InsertValueOp::create(builder, loc, strTy, result, val, off);
+    result = cudaq::cc::InsertValueOp::create(builder, loc, resultTy, result,
+                                              val, off);
   }
   return {result, trailingData};
 }
 
+// The return-path counterpart to constructDynamicInputValue<FromQPU=false>:
+// given a pointer to a real host-ABI value of device type devTy, build the real
+// device-side SSA value it corresponds to. Always walks real host memory (with
+// the triple pointer convention), reusing
+// getSequenceElement<false>/getStructMember<false>.
+Value cudaq::opt::marshal::reduceHostToDeviceValue(Location loc,
+                                                   OpBuilder &builder,
+                                                   ModuleOp module, Type devTy,
+                                                   Value hostPtr,
+                                                   bool ownResult) {
+  auto i64Ty = builder.getI64Type();
+  if (auto spanTy = dyn_cast<cc::SpanLikeType>(devTy)) {
+    auto eleTy = spanTy.getElementType();
+    Value vecTriple = hostPtr;
+    Value boolHeapTracker;
+    if (eleTy == builder.getI1Type()) {
+      // std::vector<bool> has a bit-packed host layout. Unpack it into a
+      // transient std::vector<char>-like buffer (byte-per-bool), which uses
+      // the same {ptr, ptr, ptr} triple layout as any other std::vector<T>
+      // and can be handled uniformly below.
+      auto transientTy = factory::stlVectorType(eleTy);
+      Value transientVar = cc::AllocaOp::create(builder, loc, transientTy);
+      boolHeapTracker = createEmptyHeapTracker(loc, builder);
+      func::CallOp::create(builder, loc, TypeRange{},
+                           sequenceBoolUnpackToInitList,
+                           ValueRange{transientVar, hostPtr, boolHeapTracker});
+      vecTriple = transientVar;
+    }
+    Type hostEleTy = getSequenceElementStorageType<false>(vecTriple, eleTy);
+    auto tripleTy = cast<cc::StructType>(
+        cast<cc::PointerType>(vecTriple.getType()).getElementType());
+    auto memPtrTy = cc::PointerType::get(tripleTy.getMember(0));
+    auto beginPtrPtr = cc::ComputePtrOp::create(
+        builder, loc, memPtrTy, vecTriple, ArrayRef<cc::ComputePtrArg>{0});
+    Value beginRaw = cc::LoadOp::create(builder, loc, beginPtrPtr);
+    auto endPtrPtr = cc::ComputePtrOp::create(builder, loc, memPtrTy, vecTriple,
+                                              ArrayRef<cc::ComputePtrArg>{1});
+    Value endRaw = cc::LoadOp::create(builder, loc, endPtrPtr);
+    Value beginInt = cc::CastOp::create(builder, loc, i64Ty, beginRaw);
+    Value endInt = cc::CastOp::create(builder, loc, i64Ty, endRaw);
+    Value byteLen = arith::SubIOp::create(builder, loc, endInt, beginInt);
+    Value hostEleSize = cc::SizeOfOp::create(builder, loc, i64Ty, hostEleTy);
+    Value count = arith::DivSIOp::create(builder, loc, byteLen, hostEleSize);
+    auto elePtrTy = cc::PointerType::get(eleTy);
+    if (!cc::isDynamicType(eleTy)) {
+      // The host and device layouts for a non-dynamic element type are
+      // identical (contiguous T), so the host storage can be reinterpreted
+      // directly. If the result is to be owned, copy it to the heap instead,
+      // as the host value is to be destroyed.
+      if (ownResult) {
+        auto i8PtrTy = cc::PointerType::get(builder.getI8Type());
+        Type memTy =
+            (eleTy == builder.getI1Type()) ? builder.getI8Type() : eleTy;
+        Value memSize = cc::SizeOfOp::create(builder, loc, i64Ty, memTy);
+        Value src = cc::CastOp::create(builder, loc, i8PtrTy, beginRaw);
+        Value heapCopy = func::CallOp::create(builder, loc, i8PtrTy,
+                                              "__nvqpp_vectorCopyCtor",
+                                              ValueRange{src, count, memSize})
+                             .getResult(0);
+        if (boolHeapTracker)
+          maybeFreeHeapAllocations(loc, builder, boolHeapTracker);
+        Value ptr = cc::CastOp::create(builder, loc, elePtrTy, heapCopy);
+        return cc::SequenceInitOp::create(builder, loc, spanTy, ptr, count);
+      }
+      Value ptr = cc::CastOp::create(builder, loc, elePtrTy, beginRaw);
+      return cc::SequenceInitOp::create(builder, loc, spanTy, ptr, count);
+    }
+    // Recursively dynamic element: the host's per-element storage is shaped
+    // differently than the device's per-element storage, so a fresh array of
+    // properly-shaped device values must be built. The array backs the span
+    // that is returned, and the caller stores that span into a buffer that
+    // outlives the frame this code is emitted into. A stack allocation would
+    // dangle once that frame is gone, so the array must be allocated on the
+    // heap. (This requires the "malloc" intrinsic to be loaded in \p module.)
+    Value eleSize = cc::SizeOfOp::create(builder, loc, i64Ty, eleTy);
+    Value arrBytes = arith::MulIOp::create(builder, loc, count, eleSize);
+    auto i8PtrTy = cc::PointerType::get(builder.getI8Type());
+    Value rawArr = func::CallOp::create(builder, loc, i8PtrTy, "malloc",
+                                        ValueRange{arrBytes})
+                       .getResult(0);
+    auto arrPtrTy = cc::PointerType::get(cc::ArrayType::get(eleTy));
+    Value freshArr = cc::CastOp::create(builder, loc, arrPtrTy, rawArr);
+    factory::createInvariantLoop(
+        builder, loc, count,
+        [&](OpBuilder &builder, Location loc, Region &, Block &block) {
+          Value i = block.getArgument(0);
+          Value hostElePtr =
+              getSequenceElement<false>(loc, builder, vecTriple, eleTy, i);
+          Value reduced = reduceHostToDeviceValue(loc, builder, module, eleTy,
+                                                  hostElePtr, ownResult);
+          Value slot = cc::ComputePtrOp::create(
+              builder, loc, elePtrTy, freshArr, ArrayRef<cc::ComputePtrArg>{i});
+          cc::StoreOp::create(builder, loc, reduced, slot);
+        });
+    Value ptrBare = cc::CastOp::create(builder, loc, elePtrTy, freshArr);
+    return cc::SequenceInitOp::create(builder, loc, spanTy, ptrBare, count);
+  }
+
+  // Struct type: build the real device-side struct value member by member.
+  auto strTy = cast<cc::StructType>(devTy);
+  Value result = cc::UndefOp::create(builder, loc, strTy);
+  for (auto iter : llvm::enumerate(strTy.getMembers())) {
+    std::int32_t idx = iter.index();
+    Type memTy = iter.value();
+    Value memHostPtr =
+        getStructMember<false>(loc, builder, hostPtr, memTy, idx);
+    Value memVal =
+        cc::isDynamicType(memTy)
+            ? reduceHostToDeviceValue(loc, builder, module, memTy, memHostPtr,
+                                      ownResult)
+            : cc::LoadOp::create(builder, loc, memHostPtr).getResult();
+    result =
+        cc::InsertValueOp::create(builder, loc, strTy, result, memVal, idx);
+  }
+  return result;
+}
+
+// Release the heap storage held by a real host-ABI value of device type devTy
+// (a std::string, std::vector<T>, std::vector<bool>, or a struct of these and
+// trivial types, nested arbitrarily). This plays the role of the destructor of
+// such a value: each dynamic member is released first, then the storage of the
+// vector that holds it. The host value itself, \p hostPtr, is left in place
+// and must not be used afterwards.
+void cudaq::opt::marshal::destroyHostValue(Location loc, OpBuilder &builder,
+                                           ModuleOp module, Type devTy,
+                                           Value hostPtr) {
+  auto ptrI8Ty = cc::PointerType::get(builder.getI8Type());
+  if (isa<cc::CharspanType>(devTy)) {
+    Value str = cc::CastOp::create(builder, loc, ptrI8Ty, hostPtr);
+    func::CallOp::create(builder, loc, TypeRange{},
+                         runtime::bindingDeconstructString, ValueRange{str});
+    return;
+  }
+  if (auto spanTy = dyn_cast<cc::SpanLikeType>(devTy)) {
+    auto eleTy = spanTy.getElementType();
+    if (eleTy == builder.getI1Type()) {
+      // The layout of the host's std::vector<bool> is not known here, so leave
+      // its destruction to the library.
+      Value vec = cc::CastOp::create(builder, loc, ptrI8Ty, hostPtr);
+      func::CallOp::create(builder, loc, TypeRange{}, sequenceBoolDestroy,
+                           ValueRange{vec});
+      return;
+    }
+    // Member 0 of a host std::vector<T> is the pointer to the start of the
+    // vector's storage.
+    auto hostVecTy = cast<cc::StructType>(
+        cast<cc::PointerType>(hostPtr.getType()).getElementType());
+    auto beginPtrTy = cc::PointerType::get(hostVecTy.getMember(0));
+    auto beginPtrPtr = cc::ComputePtrOp::create(
+        builder, loc, beginPtrTy, hostPtr, ArrayRef<cc::ComputePtrArg>{0});
+    Value begin = cc::LoadOp::create(builder, loc, beginPtrPtr);
+    if (cc::isDynamicType(eleTy)) {
+      // Release every element before the storage that holds them.
+      auto i64Ty = builder.getI64Type();
+      Type hostEleTy = getSequenceElementStorageType<false>(hostPtr, eleTy);
+      auto endPtrPtr = cc::ComputePtrOp::create(
+          builder, loc, beginPtrTy, hostPtr, ArrayRef<cc::ComputePtrArg>{1});
+      Value end = cc::LoadOp::create(builder, loc, endPtrPtr);
+      Value beginInt = cc::CastOp::create(builder, loc, i64Ty, begin);
+      Value endInt = cc::CastOp::create(builder, loc, i64Ty, end);
+      Value byteLen = arith::SubIOp::create(builder, loc, endInt, beginInt);
+      Value hostEleSize = cc::SizeOfOp::create(builder, loc, i64Ty, hostEleTy);
+      Value count = arith::DivSIOp::create(builder, loc, byteLen, hostEleSize);
+      factory::createInvariantLoop(
+          builder, loc, count,
+          [&](OpBuilder &builder, Location loc, Region &, Block &block) {
+            Value i = block.getArgument(0);
+            Value hostElePtr =
+                getSequenceElement<false>(loc, builder, hostPtr, eleTy, i);
+            destroyHostValue(loc, builder, module, eleTy, hostElePtr);
+          });
+    }
+    // The storage was allocated with operator new. (Deleting a null pointer,
+    // as for an empty vector, is a no-op.)
+    Value storage = cc::CastOp::create(builder, loc, ptrI8Ty, begin);
+    func::CallOp::create(builder, loc, TypeRange{}, runtime::hostDeallocate,
+                         ValueRange{storage});
+    return;
+  }
+
+  // A struct. Only the dynamic members hold heap storage.
+  auto strTy = cast<cc::StructType>(devTy);
+  for (auto iter : llvm::enumerate(strTy.getMembers())) {
+    Type memTy = iter.value();
+    if (!cc::isDynamicType(memTy))
+      continue;
+    Value memHostPtr = getStructMember<false>(
+        loc, builder, hostPtr, memTy, static_cast<std::int32_t>(iter.index()));
+    destroyHostValue(loc, builder, module, memTy, memHostPtr);
+  }
+}
+
 template <bool FromQPU>
 std::pair<Value, Value>
-processInputValueImpl(Location loc, OpBuilder &builder, Value trailingData,
-                      Value ptrPackedStruct, Type inTy, std::int32_t off,
-                      cudaq::cc::StructType packedStructTy) {
+processInputValueImpl(Location loc, OpBuilder &builder, ModuleOp module,
+                      Value trailingData, Value ptrPackedStruct, Type inTy,
+                      std::int32_t off, cudaq::cc::StructType packedStructTy) {
   auto packedPtr = cudaq::cc::ComputePtrOp::create(
       builder, loc, cudaq::cc::PointerType::get(packedStructTy.getMember(off)),
       ptrPackedStruct, ArrayRef<cudaq::cc::ComputePtrArg>{off});
   if (cudaq::cc::isDynamicType(inTy)) {
     if constexpr (FromQPU) {
       auto dynamo = constructDynamicInputValue<FromQPU>(
-          loc, builder, inTy, packedPtr, trailingData);
-      if (isa<cudaq::cc::SequenceType>(inTy)) {
-        Value retVal = dynamo.first;
-        Value tmp = cudaq::cc::AllocaOp::create(builder, loc, retVal.getType());
-        cudaq::cc::StoreOp::create(builder, loc, retVal, tmp);
-        return {tmp, dynamo.second};
-      }
+          loc, builder, module, inTy, packedPtr, trailingData);
       if (isa<cudaq::cc::CharspanType>(inTy)) {
-        auto module = packedPtr->getParentOfType<ModuleOp>();
         auto arrTy = cudaq::opt::factory::genHostStringType(module);
         Value retVal = dynamo.first;
         Value tmp = cudaq::cc::AllocaOp::create(builder, loc, arrTy);
@@ -1164,10 +1456,17 @@ processInputValueImpl(Location loc, OpBuilder &builder, Value trailingData,
                              ArrayRef<Value>{castTmp, data, len});
         return {tmp, dynamo.second};
       }
-      return dynamo;
+      // Every other dynamic type is passed by reference in the real host ABI
+      // once converted as any dynamic type is over budget for the
+      // small-aggregate register-passing threshold. Store the constructed host
+      // value to a scratch alloca and pass its address.
+      Value retVal = dynamo.first;
+      Value tmp = cudaq::cc::AllocaOp::create(builder, loc, retVal.getType());
+      cudaq::cc::StoreOp::create(builder, loc, retVal, tmp);
+      return {tmp, dynamo.second};
     } else /*constexpr*/ {
-      return constructDynamicInputValue<FromQPU>(loc, builder, inTy, packedPtr,
-                                                 trailingData);
+      return constructDynamicInputValue<FromQPU>(loc, builder, module, inTy,
+                                                 packedPtr, trailingData);
     }
   }
   auto val = fetchInputValue<FromQPU>(loc, builder, inTy, packedPtr);
@@ -1175,15 +1474,376 @@ processInputValueImpl(Location loc, OpBuilder &builder, Value trailingData,
 }
 
 std::pair<Value, Value> cudaq::opt::marshal::processInputValue(
-    Location loc, OpBuilder &builder, Value trailingData, Value ptrPackedStruct,
-    Type inTy, std::int32_t off, cc::StructType packedStructTy) {
-  return processInputValueImpl</*FromQPU=*/false>(
-      loc, builder, trailingData, ptrPackedStruct, inTy, off, packedStructTy);
+    Location loc, OpBuilder &builder, ModuleOp module, Value trailingData,
+    Value ptrPackedStruct, Type inTy, std::int32_t off,
+    cc::StructType packedStructTy) {
+  return processInputValueImpl</*FromQPU=*/false>(loc, builder, module,
+                                                  trailingData, ptrPackedStruct,
+                                                  inTy, off, packedStructTy);
 }
 
 std::pair<Value, Value> cudaq::opt::marshal::processCallbackInputValue(
-    Location loc, OpBuilder &builder, Value trailingData, Value ptrPackedStruct,
-    Type inTy, std::int32_t off, cc::StructType packedStructTy) {
-  return processInputValueImpl</*FromQPU=*/true>(
-      loc, builder, trailingData, ptrPackedStruct, inTy, off, packedStructTy);
+    Location loc, OpBuilder &builder, ModuleOp module, Value trailingData,
+    Value ptrPackedStruct, Type inTy, std::int32_t off,
+    cc::StructType packedStructTy) {
+  return processInputValueImpl</*FromQPU=*/true>(loc, builder, module,
+                                                 trailingData, ptrPackedStruct,
+                                                 inTy, off, packedStructTy);
+}
+
+// Any dynamic return type is supported as a device_call return type. Given a
+// real device-side SSA value of type \p devTy, decompose it into the
+// buffer's dynamic-output-slot shape. A SpanLikeType decomposes to a `{ptr,
+// count}` pair whose pointer already refers to fully-realized device values; a
+// struct decomposes member by member, recursing only into dynamic members.
+Value cudaq::opt::marshal::valueToBufferSlot(Location loc, OpBuilder &rewriter,
+                                             Type devTy, Value realVal) {
+  auto *ctx = rewriter.getContext();
+  auto i64Ty = rewriter.getI64Type();
+  if (auto spanTy = dyn_cast<cc::SpanLikeType>(devTy)) {
+    auto eleTy = spanTy.getElementType();
+    auto elePtrTy = cc::PointerType::get(eleTy);
+    Value ptr = cc::SequenceDataOp::create(rewriter, loc, elePtrTy, realVal);
+    Value count = cc::SequenceSizeOp::create(rewriter, loc, i64Ty, realVal);
+    auto slotTy = cc::StructType::get(ctx, ArrayRef<Type>{elePtrTy, i64Ty});
+    Value slot = cc::UndefOp::create(rewriter, loc, slotTy);
+    slot = cc::InsertValueOp::create(rewriter, loc, slotTy, slot, ptr, 0);
+    slot = cc::InsertValueOp::create(rewriter, loc, slotTy, slot, count, 1);
+    return slot;
+  }
+  auto strTy = cast<cc::StructType>(devTy);
+  SmallVector<Type> slotMemberTys;
+  SmallVector<Value> memberVals;
+  for (auto iter : llvm::enumerate(strTy.getMembers())) {
+    std::int32_t idx = iter.index();
+    Type memTy = iter.value();
+    Value realMember =
+        cc::ExtractValueOp::create(rewriter, loc, memTy, realVal, idx);
+    Value memVal = cc::isDynamicType(memTy)
+                       ? valueToBufferSlot(loc, rewriter, memTy, realMember)
+                       : realMember;
+    slotMemberTys.push_back(memVal.getType());
+    memberVals.push_back(memVal);
+  }
+  auto slotTy = cc::StructType::get(ctx, slotMemberTys);
+  Value slot = cc::UndefOp::create(rewriter, loc, slotTy);
+  for (auto iter : llvm::enumerate(memberVals))
+    slot = cc::InsertValueOp::create(rewriter, loc, slotTy, slot, iter.value(),
+                                     iter.index());
+  return slot;
+}
+
+// The inverse of valueToBufferSlot. Given an already-loaded buffer output-slot
+// value, reconstruct the real device-side SSA value of type \p devTy. A
+// SpanLikeType reconstructs directly via cc.sequence_init; a struct
+// reconstructs member by member.
+Value cudaq::opt::marshal::bufferSlotToValue(Location loc, OpBuilder &rewriter,
+                                             Type devTy, Value slotVal) {
+  if (auto spanTy = dyn_cast<cc::SpanLikeType>(devTy)) {
+    auto eleTy = spanTy.getElementType();
+    auto elePtrTy = cc::PointerType::get(eleTy);
+    auto i64Ty = rewriter.getI64Type();
+    Value ptr = cc::ExtractValueOp::create(rewriter, loc, elePtrTy, slotVal, 0);
+    Value count = cc::ExtractValueOp::create(rewriter, loc, i64Ty, slotVal, 1);
+    return cc::SequenceInitOp::create(rewriter, loc, spanTy, ptr, count);
+  }
+  auto strTy = cast<cc::StructType>(devTy);
+  auto slotStrTy = cast<cc::StructType>(slotVal.getType());
+  Value result = cc::UndefOp::create(rewriter, loc, strTy);
+  for (auto iter : llvm::enumerate(strTy.getMembers())) {
+    std::int32_t idx = iter.index();
+    Type memTy = iter.value();
+    Type slotMemTy = slotStrTy.getMember(idx);
+    Value memSlot =
+        cc::ExtractValueOp::create(rewriter, loc, slotMemTy, slotVal, idx);
+    Value memVal = cc::isDynamicType(memTy)
+                       ? bufferSlotToValue(loc, rewriter, memTy, memSlot)
+                       : memSlot;
+    result =
+        cc::InsertValueOp::create(rewriter, loc, strTy, result, memVal, idx);
+  }
+  return result;
+}
+
+void cudaq::opt::marshal::buildHostValueFromDeviceValue(
+    Location loc, OpBuilder &builder, ModuleOp module, Type devTy, Value devVal,
+    Value hostDest) {
+  auto i8PtrTy = cc::PointerType::get(builder.getI8Type());
+  auto freeStorage = [&](Value ptr) {
+    Value raw = cc::CastOp::create(builder, loc, i8PtrTy, ptr);
+    func::CallOp::create(builder, loc, TypeRange{}, "free", ValueRange{raw});
+  };
+  if (isa<cc::CharspanType>(devTy)) {
+    emitError(loc, "a string cannot be returned from a kernel");
+    return;
+  }
+  if (auto spanTy = dyn_cast<cc::SpanLikeType>(devTy)) {
+    auto eleTy = spanTy.getElementType();
+    auto i64Ty = builder.getI64Type();
+    auto elePtrTy = cc::PointerType::get(eleTy);
+    Value data = cc::SequenceDataOp::create(builder, loc, elePtrTy, devVal);
+    Value count = cc::SequenceSizeOp::create(builder, loc, i64Ty, devVal);
+    if (eleTy == builder.getI1Type()) {
+      // The host's std::vector<bool> is bit-packed, so it is built by the
+      // library from the bytes. The library frees the bytes, so they must not
+      // be freed here.
+      genSequenceBoolFromInitList(loc, builder, hostDest, data, count);
+      return;
+    }
+    if (!cc::isDynamicType(eleTy)) {
+      // The host and device layouts of a static element are identical, so the
+      // vector adopts the storage the device allocated.
+      Value eleSize = cc::SizeOfOp::create(builder, loc, i64Ty, eleTy);
+      genSequenceTFromInitList(loc, builder, hostDest, data, eleSize, count);
+      return;
+    }
+    // Recursively dynamic element: the host's per-element storage is shaped
+    // differently than the device's. Build a new array of host elements, each
+    // of which adopts the storage of the device's element, and have the
+    // vector adopt the new array.
+    Type hostEleTy = factory::convertToHostSideType(eleTy, module);
+    Value hostEleSize = cc::SizeOfOp::create(builder, loc, i64Ty, hostEleTy);
+    Value arrBytes = arith::MulIOp::create(builder, loc, count, hostEleSize);
+    Value rawArr = func::CallOp::create(builder, loc, i8PtrTy, "malloc",
+                                        ValueRange{arrBytes})
+                       .getResult(0);
+    auto hostArrTy = cc::PointerType::get(cc::ArrayType::get(hostEleTy));
+    Value hostArr = cc::CastOp::create(builder, loc, hostArrTy, rawArr);
+    auto devArrTy = cc::PointerType::get(cc::ArrayType::get(eleTy));
+    Value devArr = cc::CastOp::create(builder, loc, devArrTy, data);
+    auto hostElePtrTy = cc::PointerType::get(hostEleTy);
+    factory::createInvariantLoop(
+        builder, loc, count,
+        [&](OpBuilder &builder, Location loc, Region &, Block &block) {
+          Value i = block.getArgument(0);
+          Value devElePtr = cc::ComputePtrOp::create(
+              builder, loc, elePtrTy, devArr, ArrayRef<cc::ComputePtrArg>{i});
+          Value devEle = cc::LoadOp::create(builder, loc, devElePtr);
+          Value hostElePtr =
+              cc::ComputePtrOp::create(builder, loc, hostElePtrTy, hostArr,
+                                       ArrayRef<cc::ComputePtrArg>{i});
+          buildHostValueFromDeviceValue(loc, builder, module, eleTy, devEle,
+                                        hostElePtr);
+        });
+    genSequenceTFromInitList(loc, builder, hostDest, rawArr, hostEleSize,
+                             count);
+    freeStorage(data);
+    return;
+  }
+
+  // A struct. Each member is built in place in the host struct.
+  auto strTy = cast<cc::StructType>(devTy);
+  for (auto iter : llvm::enumerate(strTy.getMembers())) {
+    std::int32_t idx = iter.index();
+    Type memTy = iter.value();
+    Value memHostPtr =
+        getStructMember<false>(loc, builder, hostDest, memTy, idx);
+    Value memVal = cc::ExtractValueOp::create(builder, loc, memTy, devVal, idx);
+    if (cc::isDynamicType(memTy)) {
+      buildHostValueFromDeviceValue(loc, builder, module, memTy, memVal,
+                                    memHostPtr);
+    } else {
+      auto memPtrTy = cc::PointerType::get(memTy);
+      Value dest = cc::CastOp::create(builder, loc, memPtrTy, memHostPtr);
+      cc::StoreOp::create(builder, loc, memVal, dest);
+    }
+  }
+}
+
+Value cudaq::opt::marshal::copyDynamicValueToHeap(Location loc,
+                                                  OpBuilder &builder,
+                                                  Value val) {
+  Type ty = val.getType();
+  if (!cc::isDynamicType(ty))
+    return val;
+  auto i64Ty = builder.getI64Type();
+  auto i8PtrTy = cc::PointerType::get(builder.getI8Type());
+  if (auto spanTy = dyn_cast<cc::SpanLikeType>(ty)) {
+    auto eleTy = spanTy.getElementType();
+    Value srcData = cc::SequenceDataOp::create(builder, loc, i8PtrTy, val);
+    Value count = cc::SequenceSizeOp::create(builder, loc, i64Ty, val);
+    if (!cc::isDynamicType(eleTy)) {
+      IRBuilder irb(builder);
+      Value eleSize = irb.getByteSizeOfType(loc, eleTy);
+      if (!eleSize)
+        eleSize = cc::SizeOfOp::create(builder, loc, i64Ty, eleTy);
+      Value heapCopy =
+          func::CallOp::create(builder, loc, i8PtrTy, "__nvqpp_vectorCopyCtor",
+                               ValueRange{srcData, count, eleSize})
+              .getResult(0);
+      return cc::SequenceInitOp::create(builder, loc, ty,
+                                        ValueRange{heapCopy, count});
+    }
+    // The elements are themselves dynamic, so the new array of elements is
+    // built one element at a time, each with heap storage of its own.
+    Value eleSize = cc::SizeOfOp::create(builder, loc, i64Ty, eleTy);
+    Value bytes = arith::MulIOp::create(builder, loc, count, eleSize);
+    Value rawArr =
+        func::CallOp::create(builder, loc, i8PtrTy, "malloc", ValueRange{bytes})
+            .getResult(0);
+    auto elePtrTy = cc::PointerType::get(eleTy);
+    auto arrPtrTy = cc::PointerType::get(cc::ArrayType::get(eleTy));
+    Value srcArr = cc::CastOp::create(builder, loc, arrPtrTy, srcData);
+    Value dstArr = cc::CastOp::create(builder, loc, arrPtrTy, rawArr);
+    factory::createInvariantLoop(
+        builder, loc, count,
+        [&](OpBuilder &builder, Location loc, Region &, Block &block) {
+          Value i = block.getArgument(0);
+          Value srcPtr = cc::ComputePtrOp::create(
+              builder, loc, elePtrTy, srcArr, ArrayRef<cc::ComputePtrArg>{i});
+          Value ele = cc::LoadOp::create(builder, loc, srcPtr);
+          Value copy = copyDynamicValueToHeap(loc, builder, ele);
+          Value dstPtr = cc::ComputePtrOp::create(
+              builder, loc, elePtrTy, dstArr, ArrayRef<cc::ComputePtrArg>{i});
+          cc::StoreOp::create(builder, loc, copy, dstPtr);
+        });
+    return cc::SequenceInitOp::create(builder, loc, ty,
+                                      ValueRange{rawArr, count});
+  }
+  // A struct. Only the dynamic members refer to storage.
+  auto strTy = cast<cc::StructType>(ty);
+  Value result = val;
+  for (auto iter : llvm::enumerate(strTy.getMembers())) {
+    Type memTy = iter.value();
+    if (!cc::isDynamicType(memTy))
+      continue;
+    std::int32_t idx = iter.index();
+    Value mem = cc::ExtractValueOp::create(builder, loc, memTy, val, idx);
+    Value copy = copyDynamicValueToHeap(loc, builder, mem);
+    result = cc::InsertValueOp::create(builder, loc, strTy, result, copy, idx);
+  }
+  return result;
+}
+
+Value cudaq::opt::marshal::copyDynamicValueToStack(Location loc,
+                                                   OpBuilder &builder,
+                                                   Value val) {
+  Type ty = val.getType();
+  if (!cc::isDynamicType(ty))
+    return val;
+  auto i64Ty = builder.getI64Type();
+  auto i8PtrTy = cc::PointerType::get(builder.getI8Type());
+  if (auto spanTy = dyn_cast<cc::SpanLikeType>(ty)) {
+    auto eleTy = spanTy.getElementType();
+    if (!cc::isDynamicType(eleTy)) {
+      // The bytes of a vector<bool> are held as i8.
+      Type memTy = (eleTy == builder.getI1Type()) ? builder.getI8Type() : eleTy;
+      Value data = cc::SequenceDataOp::create(builder, loc,
+                                              cc::PointerType::get(memTy), val);
+      Value count = cc::SequenceSizeOp::create(builder, loc, i64Ty, val);
+      Value eleSize = cc::SizeOfOp::create(builder, loc, i64Ty, memTy);
+      Value bytes = arith::MulIOp::create(builder, loc, count, eleSize);
+      Value buffer = cc::AllocaOp::create(builder, loc, memTy, count);
+      Value cbuffer = cc::CastOp::create(builder, loc, i8PtrTy, buffer);
+      Value cdata = cc::CastOp::create(builder, loc, i8PtrTy, data);
+      // Copies the bytes, and frees the heap storage.
+      func::CallOp::create(builder, loc, TypeRange{},
+                           "__nvqpp_vectorCopyToStack",
+                           ValueRange{cbuffer, cdata, bytes});
+      return cc::SequenceInitOp::create(builder, loc, ty, buffer, count);
+    }
+    // The elements are themselves dynamic. Each one is copied, in turn, and
+    // then the array of elements that held them is freed.
+    auto elePtrTy = cc::PointerType::get(eleTy);
+    auto arrPtrTy = cc::PointerType::get(cc::ArrayType::get(eleTy));
+    Value data = cc::SequenceDataOp::create(builder, loc, elePtrTy, val);
+    Value count = cc::SequenceSizeOp::create(builder, loc, i64Ty, val);
+    Value buffer = cc::AllocaOp::create(builder, loc, eleTy, count);
+    Value srcArr = cc::CastOp::create(builder, loc, arrPtrTy, data);
+    Value dstArr = cc::CastOp::create(builder, loc, arrPtrTy, buffer);
+    factory::createInvariantLoop(
+        builder, loc, count,
+        [&](OpBuilder &builder, Location loc, Region &, Block &block) {
+          Value i = block.getArgument(0);
+          Value srcPtr = cc::ComputePtrOp::create(
+              builder, loc, elePtrTy, srcArr, ArrayRef<cc::ComputePtrArg>{i});
+          Value ele = cc::LoadOp::create(builder, loc, srcPtr);
+          Value copy = copyDynamicValueToStack(loc, builder, ele);
+          Value dstPtr = cc::ComputePtrOp::create(
+              builder, loc, elePtrTy, dstArr, ArrayRef<cc::ComputePtrArg>{i});
+          cc::StoreOp::create(builder, loc, copy, dstPtr);
+        });
+    Value rawData = cc::CastOp::create(builder, loc, i8PtrTy, data);
+    func::CallOp::create(builder, loc, TypeRange{}, "free",
+                         ValueRange{rawData});
+    return cc::SequenceInitOp::create(builder, loc, ty, buffer, count);
+  }
+  // A struct. Only the dynamic members refer to storage.
+  auto strTy = cast<cc::StructType>(ty);
+  Value result = val;
+  for (auto iter : llvm::enumerate(strTy.getMembers())) {
+    Type memTy = iter.value();
+    if (!cc::isDynamicType(memTy))
+      continue;
+    std::int32_t idx = iter.index();
+    Value mem = cc::ExtractValueOp::create(builder, loc, memTy, val, idx);
+    Value copy = copyDynamicValueToStack(loc, builder, mem);
+    result = cc::InsertValueOp::create(builder, loc, strTy, result, copy, idx);
+  }
+  return result;
+}
+
+static bool containsBoolVector(Type ty) {
+  if (auto spanTy = dyn_cast<cudaq::cc::SpanLikeType>(ty))
+    return spanTy.getElementType() == IntegerType::get(ty.getContext(), 1) ||
+           containsBoolVector(spanTy.getElementType());
+  if (auto strTy = dyn_cast<cudaq::cc::StructType>(ty))
+    return llvm::any_of(strTy.getMembers(), containsBoolVector);
+  return false;
+}
+
+void cudaq::opt::marshal::destroyHostBoolVectors(Location loc,
+                                                 OpBuilder &builder,
+                                                 ModuleOp module, Type devTy,
+                                                 Value hostPtr) {
+  if (!containsBoolVector(devTy))
+    return;
+  auto ptrI8Ty = cc::PointerType::get(builder.getI8Type());
+  if (auto spanTy = dyn_cast<cc::SpanLikeType>(devTy)) {
+    auto eleTy = spanTy.getElementType();
+    if (eleTy == builder.getI1Type()) {
+      Value vec = cc::CastOp::create(builder, loc, ptrI8Ty, hostPtr);
+      func::CallOp::create(builder, loc, TypeRange{}, sequenceBoolDestroy,
+                           ValueRange{vec});
+      return;
+    }
+    // The elements are host vectors or structs that contain a vector<bool>.
+    // (The storage of the vector itself is not owned.)
+    auto i64Ty = builder.getI64Type();
+    auto hostVecTy = cast<cc::StructType>(
+        cast<cc::PointerType>(hostPtr.getType()).getElementType());
+    auto beginPtrTy = cc::PointerType::get(hostVecTy.getMember(0));
+    Type hostEleTy = getSequenceElementStorageType<false>(hostPtr, eleTy);
+    Value begin = cc::LoadOp::create(
+        builder, loc,
+        cc::ComputePtrOp::create(builder, loc, beginPtrTy, hostPtr,
+                                 ArrayRef<cc::ComputePtrArg>{0}));
+    Value end = cc::LoadOp::create(
+        builder, loc,
+        cc::ComputePtrOp::create(builder, loc, beginPtrTy, hostPtr,
+                                 ArrayRef<cc::ComputePtrArg>{1}));
+    Value beginInt = cc::CastOp::create(builder, loc, i64Ty, begin);
+    Value endInt = cc::CastOp::create(builder, loc, i64Ty, end);
+    Value byteLen = arith::SubIOp::create(builder, loc, endInt, beginInt);
+    Value hostEleSize = cc::SizeOfOp::create(builder, loc, i64Ty, hostEleTy);
+    Value count = arith::DivSIOp::create(builder, loc, byteLen, hostEleSize);
+    factory::createInvariantLoop(
+        builder, loc, count,
+        [&](OpBuilder &builder, Location loc, Region &, Block &block) {
+          Value i = block.getArgument(0);
+          Value hostElePtr =
+              getSequenceElement<false>(loc, builder, hostPtr, eleTy, i);
+          destroyHostBoolVectors(loc, builder, module, eleTy, hostElePtr);
+        });
+    return;
+  }
+  auto strTy = cast<cc::StructType>(devTy);
+  for (auto iter : llvm::enumerate(strTy.getMembers())) {
+    Type memTy = iter.value();
+    if (!containsBoolVector(memTy))
+      continue;
+    Value memHostPtr = getStructMember<false>(
+        loc, builder, hostPtr, memTy, static_cast<std::int32_t>(iter.index()));
+    destroyHostBoolVectors(loc, builder, module, memTy, memHostPtr);
+  }
 }

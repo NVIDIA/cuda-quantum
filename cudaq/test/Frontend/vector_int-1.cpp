@@ -42,7 +42,7 @@ __qpu__ void touringLondon() {
 // CHECK:           %[[VAL_2:.*]] = cc.sequence_data %[[VAL_1]] : (!cc.sequence<i32>) -> !cc.ptr<i32>
 // CHECK:           %[[VAL_3:.*]] = cc.sequence_size %[[VAL_1]] : (!cc.sequence<i32>) -> i64
 // CHECK:           %[[VAL_4:.*]] = arith.muli %[[VAL_3]], %[[VAL_0]] : i64
-// CHECK:           %[[VAL_5:.*]] = cc.alloca i32[%[[VAL_4]] : i64]
+// CHECK:           %[[VAL_5:.*]] = cc.alloca i32[%[[VAL_3]] : i64]
 // CHECK:           %[[VAL_6:.*]] = cc.cast %[[VAL_5]] : (!cc.ptr<!cc.array<i32 x ?>>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_7:.*]] = cc.cast %[[VAL_2]] : (!cc.ptr<i32>) -> !cc.ptr<i8>
 // CHECK:           call @__nvqpp_vectorCopyToStack(%[[VAL_6]], %[[VAL_7]], %[[VAL_4]]) : (!cc.ptr<i8>, !cc.ptr<i8>, i64) -> ()

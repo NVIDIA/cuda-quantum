@@ -232,7 +232,7 @@ struct Pistachio {
 // CHECK:           %[[VAL_4:.*]] = cc.sequence_data %[[VAL_3]] : (!cc.sequence<f64>) -> !cc.ptr<f64>
 // CHECK:           %[[VAL_5:.*]] = cc.sequence_size %[[VAL_3]] : (!cc.sequence<f64>) -> i64
 // CHECK:           %[[VAL_6:.*]] = arith.muli %[[VAL_5]], %[[VAL_0]] : i64
-// CHECK:           %[[VAL_7:.*]] = cc.alloca f64{{\[}}%[[VAL_6]] : i64]
+// CHECK:           %[[VAL_7:.*]] = cc.alloca f64{{\[}}%[[VAL_5]] : i64]
 // CHECK:           %[[VAL_8:.*]] = cc.cast %[[VAL_7]] : (!cc.ptr<!cc.array<f64 x ?>>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_9:.*]] = cc.cast %[[VAL_4]] : (!cc.ptr<f64>) -> !cc.ptr<i8>
 // CHECK:           call @__nvqpp_vectorCopyToStack(%[[VAL_8]], %[[VAL_9]], %[[VAL_6]]) : (!cc.ptr<i8>, !cc.ptr<i8>, i64) -> ()
@@ -264,7 +264,7 @@ struct ChocolateMint {
 // CHECK:           %[[VAL_4:.*]] = cc.sequence_data %[[VAL_3]] : (!cc.sequence<f64>) -> !cc.ptr<f64>
 // CHECK:           %[[VAL_5:.*]] = cc.sequence_size %[[VAL_3]] : (!cc.sequence<f64>) -> i64
 // CHECK:           %[[VAL_6:.*]] = arith.muli %[[VAL_5]], %[[VAL_0]] : i64
-// CHECK:           %[[VAL_7:.*]] = cc.alloca f64{{\[}}%[[VAL_6]] : i64]
+// CHECK:           %[[VAL_7:.*]] = cc.alloca f64{{\[}}%[[VAL_5]] : i64]
 // CHECK:           %[[VAL_8:.*]] = cc.cast %[[VAL_7]] : (!cc.ptr<!cc.array<f64 x ?>>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_9:.*]] = cc.cast %[[VAL_4]] : (!cc.ptr<f64>) -> !cc.ptr<i8>
 // CHECK:           call @__nvqpp_vectorCopyToStack(%[[VAL_8]], %[[VAL_9]], %[[VAL_6]]) : (!cc.ptr<i8>, !cc.ptr<i8>, i64) -> ()
@@ -298,7 +298,7 @@ struct Neapolitan {
 // CHECK:           %[[VAL_4:.*]] = cc.sequence_data %[[VAL_3]] : (!cc.sequence<complex<f64>>) -> !cc.ptr<complex<f64>>
 // CHECK:           %[[VAL_5:.*]] = cc.sequence_size %[[VAL_3]] : (!cc.sequence<complex<f64>>) -> i64
 // CHECK:           %[[VAL_6:.*]] = arith.muli %[[VAL_5]], %[[VAL_0]] : i64
-// CHECK:           %[[VAL_7:.*]] = cc.alloca complex<f64>{{\[}}%[[VAL_6]] : i64]
+// CHECK:           %[[VAL_7:.*]] = cc.alloca complex<f64>{{\[}}%[[VAL_5]] : i64]
 // CHECK:           %[[VAL_8:.*]] = cc.cast %[[VAL_7]] : (!cc.ptr<!cc.array<complex<f64> x ?>>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_9:.*]] = cc.cast %[[VAL_4]] : (!cc.ptr<complex<f64>>) -> !cc.ptr<i8>
 // CHECK:           call @__nvqpp_vectorCopyToStack(%[[VAL_8]], %[[VAL_9]], %[[VAL_6]]) : (!cc.ptr<i8>, !cc.ptr<i8>, i64) -> ()
@@ -330,7 +330,7 @@ struct ButterPecan {
 // CHECK:           %[[VAL_4:.*]] = cc.sequence_data %[[VAL_3]] : (!cc.sequence<complex<f64>>) -> !cc.ptr<complex<f64>>
 // CHECK:           %[[VAL_5:.*]] = cc.sequence_size %[[VAL_3]] : (!cc.sequence<complex<f64>>) -> i64
 // CHECK:           %[[VAL_6:.*]] = arith.muli %[[VAL_5]], %[[VAL_0]] : i64
-// CHECK:           %[[VAL_7:.*]] = cc.alloca complex<f64>{{\[}}%[[VAL_6]] : i64]
+// CHECK:           %[[VAL_7:.*]] = cc.alloca complex<f64>{{\[}}%[[VAL_5]] : i64]
 // CHECK:           %[[VAL_8:.*]] = cc.cast %[[VAL_7]] : (!cc.ptr<!cc.array<complex<f64> x ?>>) -> !cc.ptr<i8>
 // CHECK:           %[[VAL_9:.*]] = cc.cast %[[VAL_4]] : (!cc.ptr<complex<f64>>) -> !cc.ptr<i8>
 // CHECK:           call @__nvqpp_vectorCopyToStack(%[[VAL_8]], %[[VAL_9]], %[[VAL_6]]) : (!cc.ptr<i8>, !cc.ptr<i8>, i64) -> ()
@@ -582,7 +582,7 @@ __qpu__ bool Peppermint() {
 // QIR:         %[[VAL_1:.*]] = extractvalue { ptr, i64 } %[[VAL_0]], 0
 // QIR:         %[[VAL_2:.*]] = extractvalue { ptr, i64 } %[[VAL_0]], 1
 // QIR:         %[[VAL_3:.*]] = shl i64 %[[VAL_2]], 3
-// QIR:         %[[VAL_4:.*]] = alloca double, i64 %[[VAL_3]]
+// QIR:         %[[VAL_4:.*]] = alloca double, i64 %[[VAL_2]]
 // QIR:         call void @llvm.memcpy.p0.p0.i64(ptr nonnull {{.*}}%[[VAL_4]], ptr {{.*}}%[[VAL_1]], i64 %[[VAL_3]], i1 false)
 // QIR:         tail call void @free(ptr %[[VAL_1]])
 // QIR:         %[[VAL_7:.*]] = call ptr @__nvqpp_cudaq_state_createFromData_f64(ptr nonnull %[[VAL_4]], i64 %[[VAL_2]])
@@ -609,7 +609,7 @@ __qpu__ bool Peppermint() {
 // QIR:         %[[VAL_1:.*]] = extractvalue { ptr, i64 } %[[VAL_0]], 0
 // QIR:         %[[VAL_2:.*]] = extractvalue { ptr, i64 } %[[VAL_0]], 1
 // QIR:         %[[VAL_3:.*]] = shl i64 %[[VAL_2]], 3
-// QIR:         %[[VAL_4:.*]] = alloca double, i64 %[[VAL_3]]
+// QIR:         %[[VAL_4:.*]] = alloca double, i64 %[[VAL_2]]
 // QIR:         call void @llvm.memcpy.p0.p0.i64(ptr nonnull {{.*}}%[[VAL_4]], ptr {{.*}}%[[VAL_1]], i64 %[[VAL_3]], i1 false)
 // QIR:         tail call void @free(ptr %[[VAL_1]])
 // QIR:         %[[VAL_7:.*]] = call ptr @__nvqpp_cudaq_state_createFromData_f64(ptr nonnull %[[VAL_4]], i64 %[[VAL_2]])
@@ -636,7 +636,7 @@ __qpu__ bool Peppermint() {
 // QIR:         %[[VAL_1:.*]] = extractvalue { ptr, i64 } %[[VAL_0]], 0
 // QIR:         %[[VAL_2:.*]] = extractvalue { ptr, i64 } %[[VAL_0]], 1
 // QIR:         %[[VAL_3:.*]] = shl i64 %[[VAL_2]], 4
-// QIR:         %[[VAL_4:.*]] = alloca { double, double }, i64 %[[VAL_3]]
+// QIR:         %[[VAL_4:.*]] = alloca { double, double }, i64 %[[VAL_2]]
 // QIR:         call void @llvm.memcpy.p0.p0.i64(ptr nonnull {{.*}}%[[VAL_4]], ptr {{.*}}%[[VAL_1]], i64 %[[VAL_3]], i1 false)
 // QIR:         tail call void @free(ptr %[[VAL_1]])
 // QIR:         %[[VAL_7:.*]] = call ptr @__nvqpp_cudaq_state_createFromData_complex_f64(ptr nonnull %[[VAL_4]], i64 %[[VAL_2]])
@@ -667,7 +667,7 @@ __qpu__ bool Peppermint() {
 // QIR:         %[[VAL_1:.*]] = extractvalue { ptr, i64 } %[[VAL_0]], 0
 // QIR:         %[[VAL_2:.*]] = extractvalue { ptr, i64 } %[[VAL_0]], 1
 // QIR:         %[[VAL_3:.*]] = shl i64 %[[VAL_2]], 4
-// QIR:         %[[VAL_4:.*]] = alloca { double, double }, i64 %[[VAL_3]]
+// QIR:         %[[VAL_4:.*]] = alloca { double, double }, i64 %[[VAL_2]]
 // QIR:         call void @llvm.memcpy.p0.p0.i64(ptr nonnull {{.*}}%[[VAL_4]], ptr {{.*}}%[[VAL_1]], i64 %[[VAL_3]], i1 false)
 // QIR:         tail call void @free(ptr %[[VAL_1]])
 // QIR:         %[[VAL_7:.*]] = call ptr @__nvqpp_cudaq_state_createFromData_complex_f64(ptr nonnull %[[VAL_4]], i64 %[[VAL_2]])
