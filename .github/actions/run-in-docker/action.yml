@@ -32,7 +32,7 @@ runs:
       env:
         forward_env: ${{ inputs.env }}
       run: |
-        if [ -n "$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null)" ]; 
+        if gpus=$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null) && [ -n "$gpus" ]; 
         then additional_run_args="--gpus all"
         fi
 

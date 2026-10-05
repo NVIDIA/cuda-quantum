@@ -95,7 +95,7 @@ echo "Thread budget: $parallel_jobs parallel jobs x $omp_threads OMP threads (${
 gpu_excludes=""
 if [ "$(uname)" = "Darwin" ]; then
   gpu_excludes="--label-exclude gpu_required"
-elif [ -z "$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null)" ]; then
+elif ! gpus=$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null) || [ -z "$gpus" ]; then
   gpu_excludes="--label-exclude gpu_required"
 fi
 

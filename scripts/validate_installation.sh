@@ -45,7 +45,7 @@ failed=0
 skipped=0
 samples=0
 
-if [ -n "$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null)" ]; 
+if gpus=$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null) && [ -n "$gpus" ]; 
 then gpu_available=true
 else gpu_available=false
 fi
