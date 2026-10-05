@@ -45,6 +45,7 @@ RUN dnf install -y --nobest --setopt=install_weak_deps=False ${PYTHON} && \
 # [Build Dependencies]
 RUN dnf install -y --nobest --setopt=install_weak_deps=False wget git unzip epel-release && \
     dnf install -y --nobest --setopt=install_weak_deps=False ccache
+ENV CCACHE_DIR=/root/.ccache
 
 ## [CUDA]
 RUN source /cuda-quantum/scripts/configure_build.sh install-cuda
@@ -78,15 +79,23 @@ RUN cd /cuda-quantum && git init && \
 # Build clang/mlir/openmp/runtimes first, Flang in a separate layer
 # below. Flang needs the runtimes to configure, so it must come last.
 # BLAS needs a Fortran compiler, so it's deferred along with Flang too.
-RUN cd /cuda-quantum && source scripts/configure_build.sh && \
+# Neither cache mount is part of the final image; they just speed up
+# recompiles/re-checkouts (local iteration, or CI re-runs on the same builder).
+RUN --mount=type=cache,target=/root/.ccache,id=llvm-prereqs-ccache \
+    --mount=type=cache,target=/root/.llvm-project,id=llvm-prereqs-source \
+    cd /cuda-quantum && source scripts/configure_build.sh && \
     LLVM_PROJECTS='clang;lld;mlir;openmp;runtimes' BOOTSTRAP_LLVM=true \
     bash scripts/install_prerequisites.sh -t llvm -e "qrmi blas"
 
 # Add Flang and BLAS on top of the already-built toolchain above.
-RUN cd /cuda-quantum && source scripts/configure_build.sh && \
+# Exclude "toolchain": it's already built, and re-running it reuses a
+# stale cache pointing at temp packages uninstalled in the layer above.
+RUN --mount=type=cache,target=/root/.ccache,id=llvm-prereqs-ccache \
+    --mount=type=cache,target=/root/.llvm-project,id=llvm-prereqs-source \
+    cd /cuda-quantum && source scripts/configure_build.sh && \
     LLVM_PROJECTS='clang;flang;lld;mlir;openmp;runtimes' BOOTSTRAP_LLVM=true \
     LLVM_FORCE_REBUILD=true \
-    bash scripts/install_prerequisites.sh -t llvm -e qrmi
+    bash scripts/install_prerequisites.sh -t llvm -e "qrmi toolchain"
 
 # Validate that the built toolchain and libraries have no GCC dependencies.
 RUN source /cuda-quantum/scripts/configure_build.sh && \
