@@ -140,12 +140,8 @@ LinkedLibraryHolder::LinkedLibraryHolder() : availablePlatforms{"default"} {
   dl_iterate_phdr(cudaq::detail::getCUDAQLibraryPath, &data);
 #endif
 
-  std::filesystem::path nvqirLibPath{data.path};
-  cudaqLibPath = nvqirLibPath.parent_path();
-  if (cudaqLibPath.filename().string() == "common") {
-    // this is a build path
-    cudaqLibPath = cudaqLibPath.parent_path().parent_path() / "lib";
-  }
+  std::filesystem::path libcudaqPath{data.path};
+  cudaqLibPath = libcudaqPath.parent_path();
 
   // Populate the map of available targets.
   {
