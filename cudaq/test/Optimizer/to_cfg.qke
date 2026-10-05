@@ -386,3 +386,31 @@ func.func @test_wired_a_bit_loopy() {
 // CHECK:           quake.sink %[[VAL_18]] : !quake.wire
 // CHECK:           return
 // CHECK:         }
+
+// A cc.scope marked by stack-frame-prealloc as needing no stack fence lowers
+// without a stacksave/stackrestore pair; an unmarked one keeps its pair.
+func.func @fence_marked(%size: i64) {
+  cc.scope {
+    %a = cc.alloca i64[%size : i64]
+    cc.continue
+  } {cc.no_stack_fence}
+  return
+}
+
+func.func @fence_unmarked(%size: i64) {
+  cc.scope {
+    %a = cc.alloca i64[%size : i64]
+    cc.continue
+  }
+  return
+}
+
+// CHECK-LABEL:   func.func @fence_marked(
+// CHECK-NOT:       stacksave
+// CHECK-NOT:       stackrestore
+// CHECK:           return
+
+// CHECK-LABEL:   func.func @fence_unmarked(
+// CHECK:           call @llvm.stacksave.p0()
+// CHECK:           call @llvm.stackrestore.p0(
+// CHECK:           return

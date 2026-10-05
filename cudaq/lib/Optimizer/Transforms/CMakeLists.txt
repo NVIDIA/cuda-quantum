@@ -18,6 +18,7 @@ add_cudaq_library(OptTransforms
   ApplyOpSpecialization.cpp
   ArgumentSynthesis.cpp
   BasisConversion.cpp
+  BorrowChecking.cpp
   CableRoughIn.cpp
   ClassicalOptimization.cpp
   CliffordTSynthesis.cpp
@@ -73,6 +74,7 @@ add_cudaq_library(OptTransforms
   PruneNegligibleRotations.cpp
   PyFrontendCleanup.cpp
   PySynthCallableBlockArgs.cpp
+  QIRDeviceCall.cpp
   QuakePropagateMetadata.cpp
   QuakeSimplify.cpp
   QuakeSynthesizer.cpp
@@ -88,6 +90,7 @@ add_cudaq_library(OptTransforms
   ShrinkWrap.cpp
   StackFramePrealloc.cpp
   StatePreparation.cpp
+  StaticQubitTarget.cpp
   UnitarySynthesis.cpp
   UnwindByDataFlow.cpp
   UpdateRegisterNames.cpp

@@ -563,6 +563,7 @@ class _P1ToP2:
         }
         self.selected_sites: dict[str, _SelectedSite] = {}
         self.generated: dict[tuple[Any, ...], tuple[Any, DefinitionHandle]] = {}
+        self.manifest_dependencies: dict[str, tuple[list, set[str]]] = {}
         self.placement_generated: dict[tuple[Any, ...],
                                        tuple[Any, DefinitionHandle,
                                              DefinitionHandle]] = {}
@@ -3376,11 +3377,16 @@ class _P1ToP2:
         if manifest is not None:
             manifest_operation = self.transaction.find_symbol(
                 manifest.symbol, "qlx.qec_lowering")
-            dependencies = list(manifest_operation.attributes["dependencies"])
-            dependency_names = {
-                _symbol(dependency) for dependency in dependencies
-            }
+            cached = self.manifest_dependencies.get(manifest.symbol)
+            if cached is None:
+                dependencies = list(
+                    manifest_operation.attributes["dependencies"])
+                cached = (dependencies,
+                          {_symbol(dependency) for dependency in dependencies})
+                self.manifest_dependencies[manifest.symbol] = cached
+            dependencies, dependency_names = cached
             if handle.symbol not in dependency_names:
+                dependency_names.add(handle.symbol)
                 dependencies.append(
                     mlir_ir.FlatSymbolRefAttr.get(handle.symbol,
                                                   context=self.context))

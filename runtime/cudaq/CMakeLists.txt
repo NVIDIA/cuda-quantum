@@ -18,7 +18,6 @@ add_library(${LIBRARY_NAME}
     target_control.cpp
     algorithms/draw.cpp
     algorithms/encoding.cpp
-    algorithms/estimate/result.cpp
     algorithms/policy_compile_options.cpp
     algorithms/run.cpp
     algorithms/schedule.cpp
