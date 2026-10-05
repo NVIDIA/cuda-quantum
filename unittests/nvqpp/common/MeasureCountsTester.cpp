@@ -19,6 +19,33 @@ CUDAQ_TEST(sample_resultTester, checkConstruction) {
   EXPECT_EQ(2, mc.size());
 }
 
+CUDAQ_TEST(sample_resultTester, checkMoveConstructionPreservesNamedResult) {
+  ExecutionResult input("result");
+  input.appendResult("00", 2);
+  input.appendResult("01", 3);
+  input.appendResult("11", 5);
+  input.expectationValue = 0.4;
+  const ExecutionResult expected(input);
+
+  sample_result result(std::move(input));
+
+  EXPECT_EQ(result.get_total_shots(), 10);
+  EXPECT_EQ(result.register_names(), std::vector<std::string>{"result"});
+  EXPECT_EQ(result.to_map("result"), expected.counts);
+  EXPECT_EQ(result.sequential_data("result"), expected.sequentialData);
+  EXPECT_DOUBLE_EQ(result.probability("01", "result"), 0.3);
+  EXPECT_TRUE(result.has_expectation("result"));
+  EXPECT_DOUBLE_EQ(result.expectation("result"), 0.4);
+}
+
+CUDAQ_TEST(sample_resultTester, checkMoveConstructionPreservesEmptyResult) {
+  sample_result result(ExecutionResult{});
+
+  EXPECT_EQ(result.get_total_shots(), 0);
+  EXPECT_EQ(result.size(), 0);
+  EXPECT_TRUE(result.sequential_data().empty());
+}
+
 CUDAQ_TEST(MeasureCountsTester, checkMoveConstructionTransfersShotStorage) {
   static_assert(std::is_nothrow_move_constructible_v<ExecutionResult>);
   ExecutionResult original("measurements");
