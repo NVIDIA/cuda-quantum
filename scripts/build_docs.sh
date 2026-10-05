@@ -298,14 +298,13 @@ if [ "$docs_exit_code" -eq "0" ]; then
             echo "Warning: llms.txt not found in $repo_root, skipping copy."
         fi
 
-        # Generate llms-full.txt by concatenating the markdown files llms.txt
-        # links to (its links are relative to the site root, i.e. the latest/
-        # prefix that $DOCS_INSTALL_PREFIX corresponds to).
+        # Generate llms-full.txt from the markdown llms.txt links to. Paths are
+        # read with or without a version prefix, so either link style works.
         if [ -f "$DOCS_INSTALL_PREFIX/llms.txt" ]; then
             llms_full_file="$DOCS_INSTALL_PREFIX/llms-full.txt"
             rm -f "$llms_full_file"
-            grep -oE '\]\(latest/[^)]+\.md\)' "$DOCS_INSTALL_PREFIX/llms.txt" | \
-            sed -e 's|^](latest/||' -e 's|)$||' | while read -r md_path; do
+            grep -oE '\]\([^)]+\.md\)' "$DOCS_INSTALL_PREFIX/llms.txt" | \
+            sed -e 's|^](||' -e 's|)$||' -e 's|^latest/||' | while read -r md_path; do
                 if [ -f "$DOCS_INSTALL_PREFIX/$md_path" ]; then
                     printf '\n\n<!-- Source: %s -->\n\n' "$md_path" >> "$llms_full_file"
                     cat "$DOCS_INSTALL_PREFIX/$md_path" >> "$llms_full_file"
