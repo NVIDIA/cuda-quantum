@@ -43,6 +43,7 @@ jobs:
     environment:
       name: ghcr-deployment
       url: ${{ vars.deployment_url }}
+      deployment: false
 
     outputs:
       github_commit: ${{ steps.artifacts.outputs.github_commit }}
@@ -211,6 +212,7 @@ jobs:
     environment:
       name: ghcr-deployment
       url: ${{ vars.deployment_url }}
+      deployment: false
 
     strategy:
       fail-fast: false
@@ -242,6 +244,7 @@ jobs:
     environment:
       name: ghcr-deployment
       url: ${{ vars.deployment_url }}
+      deployment: false
 
     strategy:
       matrix:
@@ -397,6 +400,7 @@ jobs:
     environment:
       name: ghcr-deployment
       url: ${{ vars.deployment_url }}
+      deployment: false
 
     strategy:
       matrix:
@@ -490,6 +494,7 @@ jobs:
     environment:
       name: ghcr-deployment
       url: ${{ vars.deployment_url }}
+      deployment: false
 
     strategy:
       matrix:
@@ -1094,6 +1099,7 @@ jobs:
     environment:
       name: ghcr-deployment
       url: ${{ vars.deployment_url }}
+      deployment: false
 
     container:
       image: ubuntu:24.04
@@ -1264,6 +1270,7 @@ jobs:
     environment:
       name: ghcr-deployment
       url: ${{ vars.deployment_url }}
+      deployment: false
 
     steps:
       - name: Download CUDA-Q installer

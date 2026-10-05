@@ -69,7 +69,7 @@ jobs:
       - name: Initialize submodules (with retry)
         run: |
           retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
-          retry git submodule update --init --recursive
+          retry git submodule update --init --recursive --depth 1
 
       - name: Log in to DockerHub
         uses: docker/login-action@v4
