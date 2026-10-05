@@ -233,6 +233,23 @@ static Value genConstant(OpBuilder &, cudaq::cc::CallableType, void *, ModuleOp,
 
   // Process the function body
   process(initFunc.getRegion().front());
+
+  // The caller owns the qubits, so drop deallocations of the argument.
+  initFunc.walk([&](cudaq::quake::DeallocOp dealloc) {
+    Value v = dealloc.getReference();
+    while (Operation *def = v.getDefiningOp()) {
+      if (auto init = dyn_cast<cudaq::quake::InitializeStateOp>(def))
+        v = init.getTargets();
+      else if (auto sub = dyn_cast<cudaq::quake::SubVeqOp>(def))
+        v = sub.getVeq();
+      else if (auto relax = dyn_cast<cudaq::quake::RelaxSizeOp>(def))
+        v = relax.getInputVec();
+      else
+        break;
+    }
+    if (isa<BlockArgument>(v))
+      dealloc.erase();
+  });
 }
 
 /// Create callee.num_qubits_N that calculates the number of qubits to

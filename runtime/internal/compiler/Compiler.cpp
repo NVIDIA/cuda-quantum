@@ -418,6 +418,14 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
     }
   }
 
+  if (options.addSampleMeasurements &&
+      !target.supportSampleWithoutMeasurements) {
+    // No need to add measurements only to remove them eventually
+    if (target.pipelineConfig.postCodeGenPasses.find("remove-measurements") ==
+        std::string::npos)
+      applyPipeline("func.func(add-measurements)", moduleOp, kernelName);
+  }
+
   auto [combineMeasurements, passPipeline] =
       executeMainPipeline(moduleOp, kernelName);
 
@@ -462,14 +470,6 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
                   << "individual measurement results." << std::endl;
       }
     }
-  }
-
-  if (options.addSampleMeasurements &&
-      !target.supportSampleWithoutMeasurements) {
-    // No need to add measurements only to remove them eventually
-    if (target.pipelineConfig.postCodeGenPasses.find("remove-measurements") ==
-        std::string::npos)
-      applyPipeline("func.func(add-measurements)", moduleOp, kernelName);
   }
 
   // Apply observations if necessary
