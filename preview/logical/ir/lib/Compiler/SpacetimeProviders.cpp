@@ -256,7 +256,7 @@ spacetimeCallableClosure(SpacetimePlanOp plan, qlx::fabric::ProtocolOp source) {
   SmallVector<Operation *> closure;
   llvm::StringSet<> visited;
   llvm::StringSet<> active;
-  SymbolTable moduleSymbols(plan->getParentOfType<ModuleOp>());
+  auto module = plan->getParentOfType<ModuleOp>();
   std::function<LogicalResult(Operation *)> visit =
       [&](Operation *callable) -> LogicalResult {
     StringRef name = SymbolTable::getSymbolName(callable).getValue();
@@ -275,7 +275,7 @@ spacetimeCallableClosure(SpacetimePlanOp plan, qlx::fabric::ProtocolOp source) {
     SmallVector<qlx::fabric::CallOp> calls;
     body->walk([&](qlx::fabric::CallOp call) { calls.push_back(call); });
     for (qlx::fabric::CallOp call : calls) {
-      Operation *callee = moduleSymbols.lookup(call.getCallee());
+      Operation *callee = lookupModuleSymbol(module, call.getCallee());
       if (!callee || !spacetimeCallableBody(callee))
         return plan.emitOpError(
             "registered spacetime derivation has an unresolved callable "
@@ -357,9 +357,8 @@ expectedAutoCCZRoutingClass(SpacetimePlanOp plan,
         "AutoCCZ routing allocations must share one selected QEC region");
 
   auto module = plan->getParentOfType<ModuleOp>();
-  SymbolTable moduleSymbols(module);
-  auto architecture =
-      moduleSymbols.lookup<ArchitectureOp>(plan.getArchitecture());
+  auto architecture = dyn_cast_or_null<ArchitectureOp>(
+      lookupModuleSymbol(module, plan.getArchitecture()));
   if (!architecture)
     return failure();
   SmallVector<QECBindingOp, 2> bindings;
@@ -431,14 +430,14 @@ expectedAutoCCZRoutingClass(SpacetimePlanOp plan,
 static FailureOr<int64_t>
 expectedSpacetimeCodeDistance(SpacetimePlanOp plan,
                               ArrayRef<Operation *> closure) {
-  SymbolTable symbols(plan->getParentOfType<ModuleOp>());
+  auto module = plan->getParentOfType<ModuleOp>();
   std::optional<int64_t> selected;
   auto inspect = [&](Type type, Operation *owner) -> LogicalResult {
     auto patch = dyn_cast<qlx::fabric::PatchType>(type);
     if (!patch)
       return success();
     auto code = dyn_cast_or_null<qlx::fabric::CodeOp>(
-        symbols.lookup(patch.getCodeType().getValue()));
+        lookupModuleSymbol(module, patch.getCodeType().getValue()));
     if (!code || code.getDistance() <= 0)
       return owner->emitOpError(
           "surface spacelike callable uses a non-positive-distance code");
@@ -475,8 +474,8 @@ expectedSpacetimeCodeDistance(SpacetimePlanOp plan,
 }
 
 static std::optional<double> expectedSurfaceCycle(SpacetimePlanOp plan) {
-  auto point = SymbolTable(plan->getParentOfType<ModuleOp>())
-                   .lookup<OperatingPointOp>(plan.getOperatingPoint());
+  auto point = dyn_cast_or_null<OperatingPointOp>(lookupModuleSymbol(
+      plan->getParentOfType<ModuleOp>(), plan.getOperatingPoint()));
   auto timing = point ? point.getTimingAttr() : DictionaryAttr{};
   if (!timing)
     return std::nullopt;
@@ -497,9 +496,8 @@ static LogicalResult verifySurfaceAutoCCZApplicationPlan(SpacetimePlanOp plan) {
     return plan.emitOpError(
         "surface AutoCCZ application has noncanonical provider/evidence "
         "identity");
-  auto source = dyn_cast_or_null<qlx::fabric::ProtocolOp>(
-      SymbolTable(plan->getParentOfType<ModuleOp>())
-          .lookup(plan.getSourceProtocol()));
+  auto source = dyn_cast_or_null<qlx::fabric::ProtocolOp>(lookupModuleSymbol(
+      plan->getParentOfType<ModuleOp>(), plan.getSourceProtocol()));
   if (!source ||
       !resource_provider::hasExactSurfaceAutoCCZApplicationStructure(source)) {
     auto diagnostic = plan.emitOpError(
@@ -529,8 +527,8 @@ static LogicalResult verifySurfaceAutoCCZApplicationPlan(SpacetimePlanOp plan) {
   if (failed(factory) || failed(routing))
     return failure();
 
-  auto point = SymbolTable(plan->getParentOfType<ModuleOp>())
-                   .lookup<OperatingPointOp>(plan.getOperatingPoint());
+  auto point = dyn_cast_or_null<OperatingPointOp>(lookupModuleSymbol(
+      plan->getParentOfType<ModuleOp>(), plan.getOperatingPoint()));
   auto timing = point ? point.getTimingAttr() : DictionaryAttr{};
   auto reaction = timing ? spacetimeNumericValue(timing.get("reaction_time_ns"))
                          : std::optional<double>{};
@@ -590,9 +588,8 @@ static LogicalResult verifySurfaceSpacelikeCallablePlan(SpacetimePlanOp plan) {
     return plan.emitOpError(
         "surface spacelike callable has noncanonical provider/evidence "
         "identity");
-  auto source = dyn_cast_or_null<qlx::fabric::ProtocolOp>(
-      SymbolTable(plan->getParentOfType<ModuleOp>())
-          .lookup(plan.getSourceProtocol()));
+  auto source = dyn_cast_or_null<qlx::fabric::ProtocolOp>(lookupModuleSymbol(
+      plan->getParentOfType<ModuleOp>(), plan.getSourceProtocol()));
   auto shape =
       source ? qlx::spacetime::surfaceSpacelikeShape(source) : std::nullopt;
   if (!shape)
@@ -616,8 +613,8 @@ static LogicalResult verifySurfaceSpacelikeCallablePlan(SpacetimePlanOp plan) {
   if (failed(routing))
     return failure();
 
-  auto point = SymbolTable(plan->getParentOfType<ModuleOp>())
-                   .lookup<OperatingPointOp>(plan.getOperatingPoint());
+  auto point = dyn_cast_or_null<OperatingPointOp>(lookupModuleSymbol(
+      plan->getParentOfType<ModuleOp>(), plan.getOperatingPoint()));
   auto timing = point ? point.getTimingAttr() : DictionaryAttr{};
   auto reaction = timing ? spacetimeNumericValue(timing.get("reaction_time_ns"))
                          : std::optional<double>{};
@@ -830,10 +827,10 @@ verifySurfaceFactorySource(SpacetimePlanOp plan, qlx::fabric::ProtocolOp source,
         "surface factory recurrence source must produce one typed "
         "nine-patch AutoCCZ resource");
 
-  SymbolTable moduleSymbols(plan->getParentOfType<ModuleOp>());
+  auto module = plan->getParentOfType<ModuleOp>();
   size_t cczCalls = 0;
   for (auto call : source.getBody().front().getOps<qlx::fabric::CallOp>()) {
-    Operation *callee = moduleSymbols.lookup(call.getCallee());
+    Operation *callee = lookupModuleSymbol(module, call.getCallee());
     auto kind = spacetimeProducedResourceKind(callee);
     if (!kind || kind.getValue() != kCCZState)
       continue;
@@ -848,7 +845,7 @@ verifySurfaceFactorySource(SpacetimePlanOp plan, qlx::fabric::ProtocolOp source,
 
   size_t level1Calls = 0;
   for (auto call : level2.getBody().front().getOps<qlx::fabric::CallOp>()) {
-    Operation *callee = moduleSymbols.lookup(call.getCallee());
+    Operation *callee = lookupModuleSymbol(module, call.getCallee());
     auto kind = spacetimeProducedResourceKind(callee);
     if (!kind || kind.getValue() != kTState)
       continue;
@@ -953,9 +950,8 @@ static FailureOr<VerifiedSurfaceFactoryRecurrenceLayout>
 expectedSurfaceFactoryRecurrenceLayout(SpacetimePlanOp plan,
                                        ArrayRef<Operation *> closure) {
   auto module = plan->getParentOfType<ModuleOp>();
-  SymbolTable moduleSymbols(module);
-  auto architecture =
-      moduleSymbols.lookup<ArchitectureOp>(plan.getArchitecture());
+  auto architecture = dyn_cast_or_null<ArchitectureOp>(
+      lookupModuleSymbol(module, plan.getArchitecture()));
   if (!architecture)
     return failure();
   SymbolTable architectureSymbols(architecture);
@@ -966,7 +962,7 @@ expectedSurfaceFactoryRecurrenceLayout(SpacetimePlanOp plan,
     Region *body = spacetimeCallableBody(callable);
     body->walk([&](qlx::fabric::AllocOp allocation) {
       auto code = dyn_cast_or_null<qlx::fabric::CodeOp>(
-          moduleSymbols.lookup(allocation.getCodeAttr().getValue()));
+          lookupModuleSymbol(module, allocation.getCodeAttr().getValue()));
       SmallVector<QECBindingOp, 2> bindings;
       for (QECBindingOp binding :
            architecture.getBody().front().getOps<QECBindingOp>())
@@ -1017,8 +1013,9 @@ expectedSurfaceFactoryRecurrenceLayout(SpacetimePlanOp plan,
         return WalkResult::interrupt();
       }
       auto qecReference = bindings.front().getQecRegionAttr();
-      auto qecMachine = dyn_cast_or_null<qlx::fabric::DeviceOp>(
-          moduleSymbols.lookup(qecReference.getRootReference().getValue()));
+      auto qecMachine =
+          dyn_cast_or_null<qlx::fabric::DeviceOp>(lookupModuleSymbol(
+              module, qecReference.getRootReference().getValue()));
       auto region = qecMachine
                         ? SymbolTable(qecMachine)
                               .lookup<qlx::fabric::RegionOp>(
@@ -1123,9 +1120,8 @@ static LogicalResult verifySurfaceFactoryRecurrencePlan(SpacetimePlanOp plan) {
         "surface factory recurrence has a noncanonical provider/evidence "
         "tuple");
   auto module = plan->getParentOfType<ModuleOp>();
-  SymbolTable moduleSymbols(module);
   auto source = dyn_cast_or_null<qlx::fabric::ProtocolOp>(
-      moduleSymbols.lookup(plan.getSourceProtocol()));
+      lookupModuleSymbol(module, plan.getSourceProtocol()));
   qlx::fabric::ProtocolOp level1;
   qlx::fabric::ProtocolOp level2;
   if (!source ||
@@ -1183,7 +1179,8 @@ static LogicalResult verifySurfaceFactoryRecurrencePlan(SpacetimePlanOp plan) {
     return plan.emitOpError(
         "surface factory recurrence geometry does not equal the independently "
         "derived P2/device layout");
-  auto point = moduleSymbols.lookup<OperatingPointOp>(plan.getOperatingPoint());
+  auto point = dyn_cast_or_null<OperatingPointOp>(
+      lookupModuleSymbol(module, plan.getOperatingPoint()));
   auto timing = point ? point.getTimingAttr() : DictionaryAttr{};
   auto cycle = timing ? spacetimeNumericValue(timing.get("surface_cycle_ns"))
                       : std::nullopt;
@@ -1392,7 +1389,6 @@ selectedProtocolDigest(qlx::fabric::ProtocolOp source) {
   auto module = source->getParentOfType<ModuleOp>();
   if (!module)
     return failure();
-  SymbolTable symbols(module);
   SmallVector<Operation *, 8> pending{source.getOperation()};
   llvm::SmallPtrSet<Operation *, 8> seen;
   SmallVector<std::pair<StringRef, Operation *>, 8> closure;
@@ -1406,7 +1402,7 @@ selectedProtocolDigest(qlx::fabric::ProtocolOp source) {
       return failure();
     closure.emplace_back(symbol.getValue(), current);
     current->walk([&](qlx::fabric::CallOp call) {
-      Operation *callee = symbols.lookup(call.getCallee());
+      Operation *callee = lookupModuleSymbol(module, call.getCallee());
       if (!callee) {
         unresolved = true;
         return;
@@ -1476,9 +1472,8 @@ static LogicalResult verifyComponentPlan(SpacetimePlanOp plan) {
       plan.getRecurrenceOutputEventAttr() || plan.getGeometryAttr())
     return plan.emitOpError(
         "component plan has noncanonical provider/derivation identity");
-  auto source = dyn_cast_or_null<qlx::fabric::ProtocolOp>(
-      SymbolTable(plan->getParentOfType<ModuleOp>())
-          .lookup(plan.getSourceProtocol()));
+  auto source = dyn_cast_or_null<qlx::fabric::ProtocolOp>(lookupModuleSymbol(
+      plan->getParentOfType<ModuleOp>(), plan.getSourceProtocol()));
   if (!source)
     return plan.emitOpError(
         "component plan source must resolve to fabric.protocol");
@@ -1535,8 +1530,8 @@ static LogicalResult verifyComponentPlan(SpacetimePlanOp plan) {
       !plan.getSourceTimingProfileAttr() || !plan.getSourceCodeDistancesAttr())
     return plan.emitOpError(
         "component plan requires policy, interval, timing, and domain facts");
-  auto point = SymbolTable(plan->getParentOfType<ModuleOp>())
-                   .lookup<OperatingPointOp>(plan.getOperatingPoint());
+  auto point = dyn_cast_or_null<OperatingPointOp>(lookupModuleSymbol(
+      plan->getParentOfType<ModuleOp>(), plan.getOperatingPoint()));
   if (!point || point.getTimingSourceAttr() != plan.getSourceTimingSourceAttr())
     return plan.emitOpError(
         "component plan timing source differs from its operating point");
@@ -1616,8 +1611,8 @@ static LogicalResult verifyComponentPlan(SpacetimePlanOp plan) {
     if (raw.getAsInteger() != distance)
       return plan.emitOpError(
           "component code distances differ from model_commitment");
-  auto architecture = SymbolTable(plan->getParentOfType<ModuleOp>())
-                          .lookup<ArchitectureOp>(plan.getArchitecture());
+  auto architecture = dyn_cast_or_null<ArchitectureOp>(lookupModuleSymbol(
+      plan->getParentOfType<ModuleOp>(), plan.getArchitecture()));
   if (!architecture)
     return plan.emitOpError("component architecture does not resolve");
   for (auto [phase, committed] : llvm::zip(phases, *committedPhases)) {
@@ -1662,8 +1657,8 @@ static LogicalResult verifyComponentPlan(SpacetimePlanOp plan) {
     for (auto [rawFactory, committedFactory] :
          llvm::zip(phase.getFactoryModels(), *factories)) {
       auto reference = cast<FlatSymbolRefAttr>(rawFactory);
-      auto factory = SymbolTable(plan->getParentOfType<ModuleOp>())
-                         .lookup<FactoryModelOp>(reference.getValue());
+      auto factory = dyn_cast_or_null<FactoryModelOp>(lookupModuleSymbol(
+          plan->getParentOfType<ModuleOp>(), reference.getValue()));
       auto *factoryRecord = committedFactory.getAsObject();
       if (!factory || !factoryRecord || factoryRecord->size() != 4 ||
           factoryRecord->getNumber("startup_cycles") !=

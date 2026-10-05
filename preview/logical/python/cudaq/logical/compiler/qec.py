@@ -7,6 +7,7 @@
 # ============================================================================ #
 from __future__ import annotations
 
+from itertools import chain
 from typing import Any, Mapping
 
 import cudaq.mlir.ir as mlir_ir
@@ -23,7 +24,7 @@ from cudaq.logical.codes import (
 )
 from cudaq.logical.codes.structure import CSSBlock
 from cudaq.logical.programs.definition import DefinitionHandle
-from cudaq.logical.algebra.gf2 import GF2Matrix
+from cudaq.logical.algebra.gf2 import GF2Matrix, _row_bits
 from cudaq.logical.codes import _materialized_code_metadata
 
 
@@ -40,10 +41,14 @@ def _rows(context, rows):
 
 
 def _gf2_matrix(context, matrix):
-    literal = ("" if matrix.nrows == 0 or matrix.ncols == 0 else str(
-        [list(row) for row in matrix.rows]).replace(" ", ""))
-    return mlir_ir.Attribute.parse(
-        f"dense<{literal}> : tensor<{matrix.nrows}x{matrix.ncols}xi1>",
+    # Dense i1 buffers pack consecutive row-major bits, including across row
+    # boundaries. Keep the shape explicit for empty and non-byte-aligned rows.
+    value = _row_bits(chain.from_iterable(matrix.rows))
+    packed = value.to_bytes((matrix.nrows * matrix.ncols + 7) // 8, "little")
+    return mlir_ir.DenseElementsAttr.get(
+        packed,
+        type=mlir_ir.IntegerType.get_signless(1, context=context),
+        shape=[matrix.nrows, matrix.ncols],
         context=context,
     )
 

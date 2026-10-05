@@ -6,24 +6,21 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// REQUIRES: qlx-translate
-// RUN: not qlx-translate --fabric-to-stim %s 2>&1 | FileCheck %s
+// REQUIRES: qlx-opt
+// RUN: not qlx-opt %s --fabric-count='root=entry' 2>&1 | FileCheck %s
 
-fabric.code @tiny {
-  distance = 1 : i64,
-  partitions = {data = 1 : i64, sx = 0 : i64, sz = 0 : i64}
-}
-
-fabric.machine @dev {
-  fabric.region @C0 {
-    code = @tiny,
-    role = #fabric.role<compute>,
-    floorplan = #fabric.floorplan<direct, [1]>
-  }
-}
-
-// CHECK: error: fabric-to-stim: unresolved executable call @missing
-fabric.gadget @entry {entry} on @dev() {
-  fabric.call @missing() : () -> ()
+// Summary probes must retain the entire active call stack even before any
+// of the summaries in this indirect cycle have been inserted into the cache.
+fabric.gadget @first() {
+  fabric.call @second() : () -> ()
   fabric.return
 }
+fabric.gadget @second() {
+  fabric.call @first() : () -> ()
+  fabric.return
+}
+fabric.gadget @entry() {
+  fabric.call @first() : () -> ()
+  fabric.return
+}
+// CHECK: fabric-count rejects recursive executable call through @first
