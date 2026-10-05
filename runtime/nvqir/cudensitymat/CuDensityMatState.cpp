@@ -462,6 +462,8 @@ void gather_global_slice(void *devicePtr,
 
 } // namespace
 
+CuDensityMatState::CuDensityMatState() = default;
+
 CuDensityMatState::CuDensityMatState(std::size_t size, void *ptr, bool borrowed)
     : devicePtr(ptr), dimension(size), borrowedData(borrowed),
       cudmHandle(dynamics::Context::getCurrentContext()->getHandle()) {

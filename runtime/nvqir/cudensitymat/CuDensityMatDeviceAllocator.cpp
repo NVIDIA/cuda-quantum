@@ -15,8 +15,8 @@
 namespace {
 
 // The Driver API is required for the explicit fabric-qualified allocations
-// used for zero-copy via UCX over MNNVL. Driver entry points are resolved 
-// through the CUDA runtime so that this library does not need to link against 
+// used for zero-copy via UCX over MNNVL. Driver entry points are resolved
+// through the CUDA runtime so that this library does not need to link against
 // `libcuda` directly. Errors using the Driver API result in a warning message
 // and a fallback to `cudaMalloc`.
 struct DriverApi {

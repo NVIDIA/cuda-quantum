@@ -48,7 +48,7 @@ public:
   CuDensityMatState(std::size_t s, void *ptr, bool borrowed = false);
 
   // Default constructor
-  CuDensityMatState() {}
+  CuDensityMatState();
 
   // Create an initial state of a specific type, e.g., uniform distribution.
   static std::unique_ptr<CuDensityMatState> createInitialState(

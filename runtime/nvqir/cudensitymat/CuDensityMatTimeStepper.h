@@ -31,8 +31,8 @@ public:
       double t,
       const std::unordered_map<std::string, std::complex<double>> &parameters);
 
-  /// @brief Return reusable state number `index`, shaped like `like`, for an
-  /// integrator's intermediate results. Its contents are unspecified. The
+  /// @brief Return reusable state number `index`, shaped like `like`, for
+  /// intermediate integrator results. Its contents are unspecified. The
   /// state is kept across calls and replaced only if its shape differs.
   CuDensityMatState &workspaceState(std::size_t index,
                                     const CuDensityMatState &like);
