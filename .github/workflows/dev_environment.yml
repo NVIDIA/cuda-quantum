@@ -361,7 +361,6 @@ jobs:
       - name: Build ${{ needs.metadata.outputs.image_title }} image
         id: docker_build
         uses: docker/build-push-action@v7
-        continue-on-error: true
         env:
           DOCKER_BUILD_RECORD_UPLOAD: "false"
         with:
@@ -380,36 +379,6 @@ jobs:
           cache-to: ${{ steps.cache.outputs.cache_to }}
           push: ${{ steps.cache.outputs.push_to_registry == 'true' }}
           outputs: ${{ steps.cache.outputs.docker_output }}
-
-      # BuildKit caches the build, so retry only redoes the push.
-      - name: Build ${{ needs.metadata.outputs.image_title }} image (retry on transient failure)
-        id: docker_build_retry
-        if: steps.docker_build.outcome == 'failure'
-        uses: docker/build-push-action@v7
-        env:
-          DOCKER_BUILD_RECORD_UPLOAD: "false"
-        with:
-          context: .
-          file: ./docker/${{ needs.metadata.outputs.dockerfile }}
-          target: ${{ inputs.build_target }}
-          build-args: |
-            ${{ inputs.build_args }}
-          tags: ${{ needs.metadata.outputs.image_tags }}
-          labels: ${{ needs.metadata.outputs.image_labels }}
-          platforms: ${{ inputs.platforms }}
-          cache-from: |
-            ${{ inputs.additional_build_caches }}
-            ${{ steps.cache.outputs.cache_from_gh }}
-            ${{ steps.cache.outputs.cache_from_registry }}
-          cache-to: ${{ steps.cache.outputs.cache_to }}
-          push: ${{ steps.cache.outputs.push_to_registry == 'true' }}
-          outputs: ${{ steps.cache.outputs.docker_output }}
-
-      - name: Resolve build digest
-        id: docker_build_result
-        if: always()
-        run: |
-          echo "digest=${{ steps.docker_build.outputs.digest || steps.docker_build_retry.outputs.digest }}" >> $GITHUB_OUTPUT
 
       - name: Install Cosign
         if: steps.cache.outputs.push_to_registry == 'true'
@@ -420,7 +389,7 @@ jobs:
       - name: Sign image with GitHub OIDC Token
         if: steps.cache.outputs.push_to_registry == 'true'
         env:
-          DIGEST: ${{ steps.docker_build_result.outputs.digest }}
+          DIGEST: ${{ steps.docker_build.outputs.digest }}
           TAGS: ${{ needs.metadata.outputs.image_tags }}
         run: |
           retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
@@ -448,7 +417,7 @@ jobs:
         run: |
           retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           if ${{ inputs.environment != '' }}; then
-            image_hash=${{ needs.metadata.outputs.image_name }}@${{ steps.docker_build_result.outputs.digest }}
+            image_hash=${{ needs.metadata.outputs.image_name }}@${{ steps.docker_build.outputs.digest }}
             echo "image_hash=$image_hash" >> $GITHUB_OUTPUT
           else
             # Check if an image with the same layers exists on the registry.
