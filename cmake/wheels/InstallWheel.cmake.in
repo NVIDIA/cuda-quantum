@@ -35,4 +35,59 @@ foreach(component IN LISTS components)
 endforeach()
 if("@CUDAQ_WHEEL_KIND@" STREQUAL "core")
   file(WRITE "${CMAKE_INSTALL_PREFIX}/cudaq_core.pth" "cudaq_core\n")
+  if(NOT APPLE)
+    # Read ELF dependencies, not compiler link inputs that may be linker scripts.
+    # Only bundle OpenMP; pthread and other system libraries remain external.
+    file(GLOB _wheel_libraries
+      "${CMAKE_INSTALL_PREFIX}/cudaq_core/cudaq/core/lib/*.so*")
+    set(_omp_directories "@CUDAQ_WHEEL_OPENMP_DIRS@")
+    file(GET_RUNTIME_DEPENDENCIES
+      LIBRARIES ${_wheel_libraries}
+      DIRECTORIES ${_omp_directories}
+      PRE_INCLUDE_REGEXES "^lib(gomp|omp)\\.so(\\.[0-9]+)*$"
+      PRE_EXCLUDE_REGEXES ".*"
+      RESOLVED_DEPENDENCIES_VAR _omp_libraries)
+    # Missing runtimes fail resolution above. Preserve the SONAME symlinks so
+    # both wheels can exclude OpenMP from auditwheel's dependency-name rewriting.
+    file(INSTALL ${_omp_libraries}
+      DESTINATION "${CMAKE_INSTALL_PREFIX}/cudaq_core/cudaq/core/lib"
+      TYPE SHARED_LIBRARY FOLLOW_SYMLINK_CHAIN)
+  endif()
+elseif(APPLE)
+  # Frontend uses the OpenMP copy bundled by delocate in cudaq_core.dylibs.
+  # Replace build-machine install names before packaging; excluding OpenMP
+  # from frontend repair alone would leave absolute Homebrew paths intact.
+  find_program(_wheel_otool otool REQUIRED)
+  find_program(_wheel_install_name_tool install_name_tool REQUIRED)
+  find_program(_wheel_codesign codesign REQUIRED)
+  file(GLOB_RECURSE _wheel_libraries
+    "${CMAKE_INSTALL_PREFIX}/*.dylib" "${CMAKE_INSTALL_PREFIX}/*.so")
+  foreach(_library IN LISTS _wheel_libraries)
+    # List Mach-O dependency install names to find this binary's OpenMP reference.
+    execute_process(COMMAND "${_wheel_otool}" -L "${_library}"
+      OUTPUT_VARIABLE _dependencies COMMAND_ERROR_IS_FATAL ANY)
+    string(REPLACE "\n" ";" _dependencies "${_dependencies}")
+    set(_changed FALSE)
+    foreach(_dependency IN LISTS _dependencies)
+      if(_dependency MATCHES "^[ \t]+([^ \t]+/libomp\\.dylib) ")
+        # Use runtime lookup instead of a build-machine path such as Homebrew's.
+        execute_process(COMMAND "${_wheel_install_name_tool}"
+          -change "${CMAKE_MATCH_1}" "@rpath/libomp.dylib" "${_library}"
+          COMMAND_ERROR_IS_FATAL ANY)
+        set(_changed TRUE)
+      endif()
+    endforeach()
+    if(_changed)
+      get_filename_component(_directory "${_library}" DIRECTORY)
+      file(RELATIVE_PATH _core_dylibs "${_directory}"
+        "${CMAKE_INSTALL_PREFIX}/cudaq_core.dylibs")
+      # Resolve OpenMP relative to this binary in core's delocate bundle.
+      execute_process(COMMAND "${_wheel_install_name_tool}"
+        -add_rpath "@loader_path/${_core_dylibs}" "${_library}"
+        COMMAND_ERROR_IS_FATAL ANY)
+      # Restore a valid ad-hoc signature after modifying the Mach-O load commands.
+      execute_process(COMMAND "${_wheel_codesign}" --force --sign - "${_library}"
+        COMMAND_ERROR_IS_FATAL ANY)
+    endif()
+  endforeach()
 endif()

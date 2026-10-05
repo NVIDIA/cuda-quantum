@@ -21,6 +21,11 @@ import sys
 def check_ownership(logical, frontend):
     """Core owns its files and shared libraries, including after wheel repair."""
     core_files = {str(p) for p in distribution("cudaq-core").files}
+    core_python_files = {
+        p.removeprefix("cudaq_core/")
+        for p in core_files
+        if p.startswith("cudaq_core/cudaq/")
+    }
 
     def libraries(files):
         # Repair can add a hash to a library name; that is still a duplicate.
@@ -39,6 +44,9 @@ def check_ownership(logical, frontend):
     for name in dependents:
         files = {str(p) for p in distribution(name).files}
         assert not core_files & files, (name, core_files & files)
+        # Different install roots must not provide the same cudaq package file.
+        overlap = core_python_files & files
+        assert not overlap, (name, overlap)
         duplicates = libraries(core_files) & libraries(files)
         assert not duplicates, (name, duplicates)
 

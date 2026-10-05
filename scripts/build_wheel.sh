@@ -390,22 +390,24 @@ repair_wheels=("$wheel_file")
 if $build_split; then
     # Both wheel distributions share one native build. The frontend pass only
     # runs CMake install rules using the selected CUDA variant's metadata.
-    sed "/^dependencies = \[/a\\  'cudaq-core==$SETUPTOOLS_SCM_PRETEND_VERSION'," \
-        "$pyproject_src" | sed \
+    # BSD sed requires append text on a new line. Use one command so set -e
+    # catches metadata-generation failures.
+    sed -e "/^dependencies = \[/a\\
+  'cudaq-core==$SETUPTOOLS_SCM_PRETEND_VERSION'," \
         -e 's|^wheel.packages = .*|wheel.packages = []|' \
         -e 's|^install.components = .*|install.components = []|' \
         -e 's|^build-dir = .*|build-dir = "_skbuild_frontend"|' \
         -e '/^\[tool.scikit-build\]$/a\
 cmake.source-dir = "cmake/wheels/frontend"\
 wheel.exclude = ["cudaq/mlir/_mlir_libs/libnanobind-cudaq*"]' \
-        > pyproject.toml
+        "$pyproject_src" > pyproject.toml
     "$python" -m build --wheel
     frontend_wheels=(dist/cuda_quantum*.whl)
     repair_wheels+=("${frontend_wheels[0]}")
 fi
 
-# Frontend wheels resolve these libraries from core. OpenMP is also installed
-# by CMake with its normal SONAME, so repair must not vendor a renamed copy.
+# Frontend wheels resolve these libraries from core. Linux bundles OpenMP
+# through CMake; macOS lets delocate bundle and repair it in the core wheel.
 core_libraries=(cudaqMLIR cudaqMLIRCAPI cudaq-common cudaq-operator cudaq-logger
                 nvqir MLIRPythonSupport-cudaq nanobind-cudaq gomp omp)
 for wheel_file in "${repair_wheels[@]}"; do
@@ -434,9 +436,20 @@ if [ "$platform" = "Darwin" ]; then
         delocate_extra="--ignore-missing-dependencies"
     fi
     if $build_split; then
-        for library in "${core_libraries[@]}"; do
-            delocate_extra="$delocate_extra -e lib$library."
-        done
+        # Core repair must inspect its libraries to discover and bundle OpenMP.
+        # Frontend uses those providers instead of bundling additional copies.
+        if [[ "$wheel_file" != *"/cudaq_core-"* ]]; then
+            for library in "${core_libraries[@]}"; do
+                delocate_extra="$delocate_extra -e lib$library."
+            done
+            # The separate core wheel is not inside delocate's frontend staging tree.
+            export DYLD_LIBRARY_PATH="$(pwd)/_skbuild/lib:$(pwd)/_skbuild/python/cudaq/mlir/_mlir_libs${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}"
+        fi
+        # Resolve frontend's @rpath/libomp.dylib during repair. The exclusion
+        # preserves that reference; installed wheels find core's bundled copy.
+        if [ -n "$OpenMP_libomp_LIBRARY_PATH" ]; then
+            export DYLD_LIBRARY_PATH="${OpenMP_libomp_LIBRARY_PATH%/*}${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}"
+        fi
     fi
     mkdir -p wheelhouse
     if $verbose; then
@@ -449,6 +462,15 @@ if [ "$platform" = "Darwin" ]; then
     # Move repaired wheel to output
     wheel_distribution=$(basename "$wheel_file" | cut -d- -f1)
     repaired_wheel=$(find wheelhouse -maxdepth 1 -name "$wheel_distribution-*.whl" -print -quit)
+    # Frontend's OpenMP references require this exact location in the core wheel.
+    # Use CMake's compiler check so builds without usable OpenMP are unaffected.
+    if $build_split && [[ "$wheel_distribution" == "cudaq_core" ]] &&
+        grep -q '^CUDAQ_HAS_OPENMP_FLAG:INTERNAL=1$' _skbuild/CMakeCache.txt; then
+        if ! unzip -Z1 "$repaired_wheel" cudaq_core.dylibs/libomp.dylib >/dev/null 2>&1; then
+            echo "Error: Repaired core wheel is missing cudaq_core.dylibs/libomp.dylib" >&2
+            exit 1
+        fi
+    fi
     if [ -n "$repaired_wheel" ]; then
         mv "$repaired_wheel" "$output_dir/"
         echo "Repaired wheel: $output_dir/$(basename "$repaired_wheel")"

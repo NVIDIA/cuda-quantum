@@ -6,20 +6,25 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# Native libraries, headers, and exports for the core wheel.
-# Bundle the shared OpenMP runtime under its normal SONAME so other wheels can
-# exclude it from repair and use core's copy without dependency-name rewriting.
-foreach(_omp_name IN LISTS OpenMP_CXX_LIB_NAMES)
-  get_filename_component(_omp_library "${OpenMP_${_omp_name}_LIBRARY}" REALPATH)
-  if(_omp_library MATCHES "\\.so(\\.[0-9]+)*$|\\.dylib$")
-    get_filename_component(_omp_directory "${_omp_library}" DIRECTORY)
-    get_filename_component(_omp_basename "${_omp_library}" NAME_WE)
-    file(GLOB _omp_files "${_omp_directory}/${_omp_basename}.so*"
-      "${_omp_directory}/${_omp_basename}*.dylib")
-    install(FILES ${_omp_files} DESTINATION lib COMPONENT Core)
-  endif()
-endforeach()
+# Search hints for resolving OpenMP's runtime dependencies during wheel staging.
+# OpenMP's link inputs can include linker scripts and system libraries such as
+# pthread; only the actual omp/gomp runtime belongs in the wheel.
+set(CUDAQ_WHEEL_OPENMP_DIRS)
+if(NOT APPLE)
+  foreach(_omp_name IN LISTS OpenMP_CXX_LIB_NAMES)
+    if(_omp_name MATCHES "^(gomp|omp)$")
+      get_filename_component(_omp_directory "${OpenMP_${_omp_name}_LIBRARY}" DIRECTORY)
+      list(APPEND CUDAQ_WHEEL_OPENMP_DIRS "${_omp_directory}")
+      get_filename_component(_omp_library "${OpenMP_${_omp_name}_LIBRARY}" REALPATH)
+      get_filename_component(_omp_directory "${_omp_library}" DIRECTORY)
+      list(APPEND CUDAQ_WHEEL_OPENMP_DIRS "${_omp_directory}")
+    endif()
+  endforeach()
+  list(APPEND CUDAQ_WHEEL_OPENMP_DIRS ${CMAKE_CXX_IMPLICIT_LINK_DIRECTORIES})
+  list(REMOVE_DUPLICATES CUDAQ_WHEEL_OPENMP_DIRS)
+endif()
 
+# Native libraries, headers, and exports for the core wheel.
 install(EXPORT cudaq-core-targets FILE CUDAQCoreTargets.cmake
   NAMESPACE cudaq:: DESTINATION lib/cmake/cudaq COMPONENT Core)
 install(FILES
