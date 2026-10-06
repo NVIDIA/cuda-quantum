@@ -202,8 +202,6 @@ fi
 PREREQS_BUILD_DIR=$(mktemp -d)
 : "${PREREQS_BUILD_DIR:?ERROR mktemp failed}"
 echo "Building prerequisites in $PREREQS_BUILD_DIR"
-# Remove below if you wish to debug pre-req build failures
-trap "rm -rf $PREREQS_BUILD_DIR" EXIT
 
 # Retry a command, clearing package-manager metadata between attempts. The CUDA
 # yum repo CDN intermittently serves a stale repomd.xml that points at rotated
@@ -276,6 +274,12 @@ working_dir=`pwd`
 read __errexit__ < <(echo $SHELLOPTS | grep -Eo '(^|:)errexit(:|$)' || echo)
 function prepare_exit {
   cd "$working_dir" && remove_temp_installs
+  # Remove to debug pre-req build failures: this is where every from-source
+  # prereq (BLAS, OpenSSL, curl, AWS SDK, cuQuantum/cuTensor tarballs, ...)
+  # downloads and builds. Left behind, it silently bloats the Docker layer
+  # by several GB (a prior trap here was clobbered by the one below and
+  # never actually ran).
+  rm -rf "$PREREQS_BUILD_DIR"
   if [ -z "$__errexit__" ]; then set +e; fi
 }
 

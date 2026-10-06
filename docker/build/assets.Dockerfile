@@ -46,6 +46,14 @@ RUN dnf install -y --nobest --setopt=install_weak_deps=False ${PYTHON} && \
 RUN dnf install -y --nobest --setopt=install_weak_deps=False wget git unzip epel-release && \
     dnf install -y --nobest --setopt=install_weak_deps=False ccache
 ENV CCACHE_DIR=/root/.ccache
+# Default (5G) is too small for a full LLVM/Clang/MLIR object set and
+# evicts entries across rebuilds, defeating the cache mount below.
+ENV CCACHE_MAXSIZE=30G
+# The stage-1 bootstrap compiler lives at a fresh mktemp path every
+# build, so the default mtime-based compiler check misses on every
+# rebuild. Hash the compiler's content instead so cache entries built
+# with a byte-identical (but differently-pathed) compiler still hit.
+ENV CCACHE_COMPILERCHECK=content
 
 ## [CUDA]
 RUN source /cuda-quantum/scripts/configure_build.sh install-cuda
@@ -79,10 +87,14 @@ RUN cd /cuda-quantum && git init && \
 # Build clang/mlir/openmp/runtimes first, Flang in a separate layer
 # below. Flang needs the runtimes to configure, so it must come last.
 # BLAS needs a Fortran compiler, so it's deferred along with Flang too.
-# Neither cache mount is part of the final image; they just speed up
-# recompiles/re-checkouts (local iteration, or CI re-runs on the same builder).
+# The ccache mount isn't part of the final image; it just speeds up
+# recompiles (local iteration, or CI re-runs on the same builder). Do
+# NOT also cache /root/.llvm-project (the LLVM_SOURCE/build dir): cmake
+# only re-detects CC/CXX on a build dir's first configure, so a reused
+# CMakeCache.txt would point at the previous run's already-deleted
+# stage-1 compiler and fail with "CMAKE_C_COMPILER is not a full path
+# to an existing compiler tool".
 RUN --mount=type=cache,target=/root/.ccache,id=llvm-prereqs-ccache \
-    --mount=type=cache,target=/root/.llvm-project,id=llvm-prereqs-source \
     cd /cuda-quantum && source scripts/configure_build.sh && \
     LLVM_PROJECTS='clang;lld;mlir;openmp;runtimes' BOOTSTRAP_LLVM=true \
     bash scripts/install_prerequisites.sh -t llvm -e "qrmi blas"
@@ -91,7 +103,6 @@ RUN --mount=type=cache,target=/root/.ccache,id=llvm-prereqs-ccache \
 # Exclude "toolchain": it's already built, and re-running it reuses a
 # stale cache pointing at temp packages uninstalled in the layer above.
 RUN --mount=type=cache,target=/root/.ccache,id=llvm-prereqs-ccache \
-    --mount=type=cache,target=/root/.llvm-project,id=llvm-prereqs-source \
     cd /cuda-quantum && source scripts/configure_build.sh && \
     LLVM_PROJECTS='clang;flang;lld;mlir;openmp;runtimes' BOOTSTRAP_LLVM=true \
     LLVM_FORCE_REBUILD=true \

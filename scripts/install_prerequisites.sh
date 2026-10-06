@@ -264,7 +264,9 @@ if [ -n "$LLVM_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep llvm)" ]
   fi
 
   if [ "$toolchain" = "llvm" ] || [ "$(uname)" = "Darwin" ]; then
-    #rm -rf "$llvm_stage1_tmpdir"
+    # Stage-1 is only needed to build the real LLVM_INSTALL_PREFIX
+    # toolchain above; left behind it silently adds ~1GB+ to the image.
+    rm -rf "$llvm_stage1_tmpdir"
     export CC="$LLVM_INSTALL_PREFIX/bin/clang"
     export CXX="$LLVM_INSTALL_PREFIX/bin/clang++"
     echo "Configured C compiler: $CC"
