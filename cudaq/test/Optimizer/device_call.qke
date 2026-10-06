@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt -canonicalize -distributed-device-call -cse %s | FileCheck %s
+// RUN: cudaq-opt -canonicalize -qir-device-call -cse %s | FileCheck %s
 
 func.func @__nvqpp__mlirgen__function_callGpu.1(%arg0: !cc.struct<"device_ptr" {i64, i64, i64}>) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
   %c1_i64 = arith.constant 1 : i64

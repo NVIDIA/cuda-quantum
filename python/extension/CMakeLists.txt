@@ -71,7 +71,6 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../runtime/common/py_EvolveResult.cpp
     ../runtime/common/py_ObserveResult.cpp
     ../runtime/common/py_SampleResult.cpp
-    ../runtime/common/py_Resources.cpp
     ../runtime/common/py_CustomOpRegistry.cpp
     ../runtime/common/py_AnalogHamiltonian.cpp
     ../runtime/cudaq/algorithms/py_draw.cpp
@@ -105,11 +104,8 @@ declare_mlir_python_extension(CUDAQuantumPythonSources.Extension
     ../runtime/cudaq/operators/py_matrix_op.cpp
     ../runtime/cudaq/operators/py_super_op.cpp
     ../runtime/cudaq/operators/py_handlers.cpp
-    ../runtime/cudaq/target/py_compile_target.cpp
     ../runtime/cudaq/target/py_runtime_target.cpp
     ../runtime/cudaq/target/py_testing_utils.cpp
-    ../runtime/cudaq/trace/py_trace.cpp
-    ../runtime/mlir/py_register_dialects.cpp
     ../utils/LinkedLibraryHolder.cpp
     ../../runtime/cudaq/platform/default/python/QPU.cpp
     PythonMLIRHooks.cpp
