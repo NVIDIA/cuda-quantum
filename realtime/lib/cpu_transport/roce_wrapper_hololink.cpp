@@ -15,6 +15,7 @@
 
 #include <hololink/transport/roce/cpu_roce_transceiver.hpp>
 
+#include <atomic>
 #include <cstdio>
 #include <exception>
 #include <memory>
@@ -33,24 +34,27 @@ struct HololinkCpuRoceAdapter {
   std::uint32_t num_pages = 0;
   std::uint64_t peer_rx_base = 0;
   std::unique_ptr<Transceiver> transceiver;
+  // Misuse throws std::logic_error and can repeat on every call, so that
+  // message is logged once. A datapath failure is some other exception,
+  // thrown at most once because CallerDriven terminalizes, and is logged
+  // every time so an earlier misuse cannot hide it.
+  std::atomic<bool> hook_failure_logged{false};
 };
 
 HololinkCpuRoceAdapter *as_adapter(cpu_roce_transceiver_t handle) {
   return static_cast<HololinkCpuRoceAdapter *>(handle);
 }
 
-// unified=1 is CUDA-Q's thread-free mode (cpu_roce_rx_poll /
-// cpu_roce_tx_publish).  Hololink's Mode::Unified is a different thing -- its
-// own loop around a per-slot callback -- and Hololink exposes no thread-free
-// poll/post, so the mode is refused rather than approximated.
+// unified=1 is CUDA-Q's thread-free mode. Hololink's Mode::Unified is a
+// callback loop owned by blocking_monitor(); Mode::CallerDriven is the matching
+// shape, driven by the caller through rx_poll() and tx_publish().
 Transceiver::Mode select_mode(int forward, int rx_only, int tx_only,
                               int unified) {
   if ((forward != 0) + (rx_only != 0) + (tx_only != 0) + (unified != 0) > 1)
     throw std::invalid_argument(
         "forward / rx_only / tx_only / unified are mutually exclusive");
   if (unified)
-    throw std::invalid_argument("unified (thread-free) mode is not supported "
-                                "by the Hololink CPU RoCE backend");
+    return Transceiver::Mode::CallerDriven;
   if (forward)
     return Transceiver::Mode::Forward;
   if (rx_only)
@@ -60,14 +64,43 @@ Transceiver::Mode select_mode(int forward, int rx_only, int tx_only,
   return Transceiver::Mode::Duplex;
 }
 
+void report_failure(const char *operation, const char *detail) {
+  std::fprintf(stderr, "%s: %s\n", operation, detail);
+}
+
 void report_failure(const char *operation, const std::exception &error) {
-  std::fprintf(stderr, "%s: %s\n", operation, error.what());
+  report_failure(operation, error.what());
 }
 
 void report_monitor_stall(const char *detail) {
   std::fprintf(stderr,
                "cpu_roce_blocking_monitor: rings will no longer advance: %s\n",
                detail);
+}
+
+void report_hook_failure_once(HololinkCpuRoceAdapter *adapter,
+                              const char *operation, const char *detail) {
+  if (adapter->hook_failure_logged.exchange(true, std::memory_order_relaxed))
+    return;
+  report_failure(operation, detail);
+}
+
+// logic_error covers a wrong mode, a null out_slot, and a bad or busy slot.
+// Those can repeat. Anything else is a datapath failure and is logged in full.
+template <typename Fn>
+int call_hook(HololinkCpuRoceAdapter *adapter, const char *operation, Fn &&fn) {
+  try {
+    return fn() ? 1 : 0;
+  } catch (const std::logic_error &error) {
+    report_hook_failure_once(adapter, operation, error.what());
+    return 0;
+  } catch (const std::exception &error) {
+    report_failure(operation, error);
+    return 0;
+  } catch (...) {
+    report_failure(operation, "unknown failure");
+    return 0;
+  }
 }
 
 } // namespace
@@ -211,11 +244,21 @@ void cpu_roce_blocking_monitor(cpu_roce_transceiver_t handle) {
   }
 }
 
-// Unified mode is refused at create (see select_mode), so no handle ever
-// reaches these in that mode.
-int cpu_roce_rx_poll(cpu_roce_transceiver_t, std::uint32_t *) { return 0; }
+int cpu_roce_rx_poll(cpu_roce_transceiver_t handle, std::uint32_t *out_slot) {
+  if (!handle)
+    return 0;
+  auto *adapter = as_adapter(handle);
+  return call_hook(adapter, "cpu_roce_rx_poll",
+                   [&] { return adapter->transceiver->rx_poll(out_slot); });
+}
 
-int cpu_roce_tx_publish(cpu_roce_transceiver_t, std::uint32_t) { return 0; }
+int cpu_roce_tx_publish(cpu_roce_transceiver_t handle, std::uint32_t slot) {
+  if (!handle)
+    return 0;
+  auto *adapter = as_adapter(handle);
+  return call_hook(adapter, "cpu_roce_tx_publish",
+                   [&] { return adapter->transceiver->tx_publish(slot); });
+}
 
 void cpu_roce_set_local_ip(cpu_roce_transceiver_t handle,
                            const char *local_ip) {
