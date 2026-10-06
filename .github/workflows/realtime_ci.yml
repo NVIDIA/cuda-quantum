@@ -243,6 +243,53 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
+  # Same base image as build_realtime, without install_dev_prerequisites.sh, so
+  # that the realtime build cannot come to depend on DOCA, Holoscan, HSB or
+  # libibverbs without this job failing.
+  build_realtime_no_transport_deps:
+    name: Build (no transport dependencies)
+    needs: changes
+    if: needs.changes.outputs.realtime == 'true'
+    strategy:
+      matrix:
+        platform: [amd64, arm64]
+        cuda_version: ['12.6', '13.0']
+      fail-fast: false
+    runs-on: ${{ (contains(matrix.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Build CUDA Quantum Realtime
+        uses: ./.github/actions/run-in-docker
+        with:
+          image: nvidia/cuda:${{ matrix.cuda_version }}.0-devel-ubuntu24.04
+          volume: ${{ github.workspace }}:/workspace
+          shell: bash
+          run: |
+            set -eo pipefail
+            # TODO: use official apt repo once upgraded to Ubuntu 26.04.
+            apt update && apt install -y --no-install-recommends ca-certificates gpg wget
+            wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
+            echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ noble main' | tee /etc/apt/sources.list.d/kitware.list >/dev/null
+            apt update && apt install -y kitware-archive-keyring
+            apt update && apt install -y --no-install-recommends cmake git ninja-build
+            cd /workspace/realtime
+            # An empty HSB_ROOT keeps build_realtime.sh from looking for an HSB
+            # tree in its default location.
+            HSB_ROOT= CUDAQ_REALTIME_INSTALL_PREFIX=/workspace/installer bash scripts/build_realtime.sh
+            # Should the base image ever ship libibverbs, the RoCE targets would
+            # quietly build and this job would stop testing what it is for.
+            if compgen -G '/workspace/installer/lib/*roce*' >/dev/null; then
+              echo "ERROR: RoCE libraries were built without transport dependencies installed:" >&2
+              ls /workspace/installer/lib/*roce* >&2
+              exit 1
+            fi
+
   test_realtime:
     name: Test 
     needs: build_realtime
