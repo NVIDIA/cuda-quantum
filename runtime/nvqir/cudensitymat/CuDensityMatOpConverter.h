@@ -99,13 +99,13 @@ private:
 
   /// @brief The matrix of `prodOp` on its degrees, if it is known at
   /// conversion time, its factors act on distinct degrees, and it acts on a
-  /// fusable subspace.
+  /// fusible subspace.
   std::optional<FusedTerm> computeFusableProductTerm(
       const product_op<cudaq::matrix_handler> &prodOp,
       const std::unordered_map<std::string, std::complex<double>> &parameters,
       const std::vector<int64_t> &modeExtents, bool bothSides = false);
 
-  /// @brief Sum the fusable product terms of `op` (and `extraTerms`) acting on
+  /// @brief Sum the fusible product terms of `op` (and `extraTerms`) acting on
   /// the same degrees into dense matrices. Terms acting on a subset of another
   /// group's degrees are folded into that group. Product terms that cannot be
   /// fused, or that would not benefit from fusion, are returned in
@@ -118,7 +118,7 @@ private:
       std::vector<product_op<cudaq::matrix_handler>> &remaining);
 
   /// @brief The matrix of `collapseOp` on its degrees, if it is known at
-  /// conversion time and acts on a fusable subspace.
+  /// conversion time and acts on a fusible subspace.
   std::optional<FusedTerm> computeFusableCollapseOperator(
       const sum_op<cudaq::matrix_handler> &collapseOp,
       const std::unordered_map<std::string, std::complex<double>> &parameters,
@@ -127,7 +127,7 @@ private:
   /// @brief Group `terms` into windows of overlapping degrees and append each
   /// window as a single dense elementary operator acting on the ket and the
   /// bra modes of its degrees. Every term must act on a subspace that is
-  /// fusable from both sides.
+  /// fusible from both sides.
   void appendFusedSuperoperatorTerms(
       cudensitymatOperator_t cudmOperator,
       const std::vector<FusedSuperoperatorTerm> &terms,

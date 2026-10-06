@@ -100,7 +100,8 @@ cudaq::complex_matrix embedMatrix(const cudaq::complex_matrix &matrix,
 }
 
 // Groups of term indices keyed by the degrees the terms act on.
-using DegreeGroups = std::map<std::vector<std::size_t>, std::vector<std::size_t>>;
+using DegreeGroups =
+    std::map<std::vector<std::size_t>, std::vector<std::size_t>>;
 
 // Folds each group acting on a strict subset of another group's degrees into
 // the first group (in degree order) that is not itself such a subset. Returns
@@ -424,8 +425,9 @@ cudaq::dynamics::CuDensityMatOpConverter::fuseProductTerms(
     const auto dim = subspaceDimension(target, modeExtents);
     FusedTerm fused{target, cudaq::complex_matrix(dim, dim)};
     for (auto idx : indices)
-      fused.matrix += embedMatrix(pieces[idx].term.matrix,
-                                  pieces[idx].term.degrees, target, modeExtents);
+      fused.matrix +=
+          embedMatrix(pieces[idx].term.matrix, pieces[idx].term.degrees, target,
+                      modeExtents);
     numFusedPieces += indices.size();
     fusedTerms.push_back(std::move(fused));
   }
@@ -470,7 +472,7 @@ void cudaq::dynamics::CuDensityMatOpConverter::appendFusedSuperoperatorTerms(
   const auto targets = foldSubsetGroups(groups);
 
   // Merge each group into the previous window (in degree order) if they
-  // overlap and the merged window is still fusable. On a chain of
+  // overlap and the merged window is still fusible. On a chain of
   // nearest-neighbor terms this gives windows of consecutive degrees that
   // share their boundary degrees.
   struct Window {
@@ -874,8 +876,8 @@ void cudaq::dynamics::CuDensityMatOpConverter::appendToCudensitymatOperator(
         "Extra fused terms are not supported for batched operators.");
   if (!isBatched) {
     std::vector<product_op<cudaq::matrix_handler>> remainingTerms;
-    const auto fusedTerms = fuseProductTerms(
-        ops[0], parameters, modeExtents, extraFusableTerms, remainingTerms);
+    const auto fusedTerms = fuseProductTerms(ops[0], parameters, modeExtents,
+                                             extraFusableTerms, remainingTerms);
     for (const auto &fusedTerm : fusedTerms)
       appendFusedTerm(cudmOperator, fusedTerm, modeExtents, duality);
     if (remainingTerms.empty())

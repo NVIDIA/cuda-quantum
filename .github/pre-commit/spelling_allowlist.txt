@@ -550,6 +550,7 @@ ir
 iterable
 iteratively
 kOp
+ket
 kets
 krylov
 legalizations
@@ -795,6 +796,7 @@ subtyping
 summands
 summarize
 superoperator
+superoperators
 superpositions
 sx
 symlink
