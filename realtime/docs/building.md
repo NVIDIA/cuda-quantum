@@ -57,7 +57,8 @@ CUDAQ_REALTIME_CPU_ROCE_USE_HOLOLINK=ON \
   bash realtime/scripts/build_realtime.sh
 ```
 
-Requires HololinkRoce 2.7. With no HSB tree, build the leaf and pass it in:
+Requires HololinkRoce 2.7 with `CpuRoceTransceiver::Mode::CallerDriven`.
+With no HSB tree, build the leaf and pass it in:
 
 ```bash
 HOLOLINK_SRC=/path/to/hololink
