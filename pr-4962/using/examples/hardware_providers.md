@@ -2536,23 +2536,17 @@ Python
     # for every execution call on your kernel.
     # To use different targets in the same file, you must update
     # it via another call to `cudaq.set_target()`
-    cudaq.set_target("iqm", url="http://localhost/")
-
-    # Crystal_5 QPU architecture:
-    #       QB1
-    #        |
-    # QB2 - QB3 - QB4
-    #        |
-    #       QB5
+    cudaq.set_target("iqm")
 
 
-    # Create the kernel we'd like to execute on IQM.
+    # Create the kernel we'd like to execute.
     @cudaq.kernel
-    def kernel():
-        qvector = cudaq.qvector(5)
-        h(qvector[2])  # QB3
-        x.ctrl(qvector[2], qvector[0])
-        mz(qvector)
+    def ghz():
+        qubits = cudaq.qvector(5)
+        h(qubits[0])
+        for i in range(4):
+            x.ctrl(qubits[i], qubits[i + 1])
+        mz(qubits)
 
 
     # Execute on IQM Server and print out the results.
@@ -2562,7 +2556,7 @@ Python
     # classical code will be executed while the job is being handled
     # by IQM Server. This is ideal when submitting via a queue over
     # the cloud.
-    async_results = cudaq.sample_async(kernel)
+    async_results = cudaq.sample_async(ghz)
     # ... more classical code to run ...
 
     # We can either retrieve the results later in the program with
@@ -2587,7 +2581,7 @@ Python
     # By using the synchronous `cudaq.sample`, the execution of
     # any remaining classical code in the file will occur only
     # after the job has been returned from IQM Server.
-    counts = cudaq.sample(kernel)
+    counts = cudaq.sample(ghz)
     print(counts)
 :::
 :::
@@ -2608,26 +2602,23 @@ C++
     #include <fstream>
 
     // Define a simple quantum kernel to execute on IQM Server.
-    struct crystal_5_ghz {
-      // Maximally entangled state between 5 qubits on Crystal_5 QPU.
-      //       QB1
-      //        |
-      // QB2 - QB3 - QB4
-      //        |
-      //       QB5
+    struct ghz {
+      // Maximally entangled state between 5 qubits on a Crystal QPU.
 
       void operator()() __qpu__ {
         cudaq::qvector q(5);
         h(q[0]);
 
-        // Note that the CUDA-Q compiler will automatically generate the
-        // necessary instructions to swap qubits to satisfy the required
-        // connectivity constraints for the Crystal_5 QPU. In this program, that
-        // means that despite QB1 not being physically connected to QB2, the user
-        // can still perform joint operations q[0] and q[1] because the compiler
-        // will automatically (and transparently) inject the necessary swap
-        // instructions to execute the user's program without the user having to
-        // worry about the physical constraints.
+        // Note that as a user you do not have to worry about the physical
+        // constraints of qubit connectivity when writing a circuit. The CUDA-Q
+        // compiler will automatically (and transparently) generate the necessary
+        // instructions to swap qubits as needed to satisfy the connectivity of
+        // the QPU.
+        // When this program is executed the current dynamic quantum architecture
+        // of the addressed QPU is retrieved and the `transpiler` gets a map with
+        // the qubits and their connectivity. It places the algorithm on the qubits
+        // and add swaps when needed by the circuit. With this the same code can
+        // run on different QPU layouts without any changes.
         for (int i = 0; i < 4; i++) {
           x<cudaq::ctrl>(q[i], q[i + 1]);
         }
@@ -2638,7 +2629,7 @@ C++
     int main() {
       // Submit to IQM Server asynchronously. E.g, continue executing
       // code in the file until the job has been returned.
-      auto future = cudaq::sample_async(crystal_5_ghz{});
+      auto future = cudaq::sample_async(ghz{});
       // ... classical code to execute in the meantime ...
 
       // Can write the future to file:
@@ -2658,7 +2649,7 @@ C++
 
       // OR: Submit to IQM Server synchronously. E.g, wait for the job
       // result to be returned before proceeding.
-      auto counts = cudaq::sample(crystal_5_ghz{});
+      auto counts = cudaq::sample(ghz{});
       counts.dump();
     }
 :::

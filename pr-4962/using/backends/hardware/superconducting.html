@@ -1206,19 +1206,17 @@ specific compiler warnings and diagnostics, before running a noise free emulatio
 </section>
 <section id="iqm">
 <h2>IQM<a class="headerlink" href="#iqm" title="Permalink to this heading">¶</a></h2>
-<p id="iqm-backend"><a class="reference external" href="https://meetiqm.com/products/iqm-resonance/">IQM Resonance</a> offers access to various different IQM quantum computers.
-The machines available there will be constantly extended as development progresses.
+<p id="iqm-backend"><a class="reference external" href="https://iqm.tech/products/iqm-resonance/">IQM Resonance</a> offers access to various different IQM quantum computers.
+The quantum computers available there will be constantly extended as development progresses.
 Programmers of CUDA-Q may use IQM Resonance with either C++ or Python.</p>
-<p>With this version it is no longer necessary to define the target QPU architecture in the code or at compile time.
-The IQM backend integration now contacts at runtime the configured IQM server and fetches the active dynamic quantum architecture of the QPU.
-This is then used as input to transpile the quantum kernel code just-in-time for the target QPU topology.
-By setting the environment variable <code class="docutils literal notranslate"><span class="pre">IQM_SERVER_URL</span></code> the target server can be selected just before executing the program.
-As result the python script or the compiled C++ program can be executed on different QPUs without recompilation or code changes.</p>
-<p>Please find also more documentation after logging in to the IQM Resonance portal.</p>
+<p>To address an IQM quantum computer on Resonance set the environment variables <code class="docutils literal notranslate"><span class="pre">IQM_SERVER_URL</span></code> and <code class="docutils literal notranslate"><span class="pre">IQM_QUANTUM_COMPUTER</span></code>.
+You can find the address information in Resonance by clicking on the name of the quantum computer of your choice and opening the “Get started” section.
+The environment variables are evaluated at runtime of your program.
+As result the python script or the compiled C++ program can be executed on different QPUs without any code changes or recompilation.</p>
 <section id="id1">
 <h3>Setting Credentials<a class="headerlink" href="#id1" title="Permalink to this heading">¶</a></h3>
-<p>Create a free account on the <a class="reference external" href="https://meetiqm.com/products/iqm-resonance/">IQM Resonance portal</a> and log-in.
-Navigate to the account profile (top right). There generate an “API Token” and copy the generated token-string.
+<p>Create a free account on the <a class="reference external" href="https://iqm.tech/products/iqm-resonance/">IQM Resonance portal</a> and <a class="reference external" href="https://resonance.iqm.tech/">log-in</a>.
+Navigate to the account profile (top right). There create a new “API Token” and copy the generated token-string.
 Set the environment variable <code class="docutils literal notranslate"><span class="pre">IQM_TOKEN</span></code> to contain the value of the token-string.
 The IQM backend integration will use this as authorization token at the IQM server.</p>
 </section>
@@ -1226,25 +1224,46 @@ The IQM backend integration will use this as authorization token at the IQM serv
 <h3>Submitting<a class="headerlink" href="#id2" title="Permalink to this heading">¶</a></h3>
 <div class="tab-set docutils">
 <input checked="True" class="tab-input" id="tab-set--1-input--1" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--1">Python</label><div class="tab-content docutils">
-<p>The target to which quantum kernels are submitted can be controlled with the <code class="docutils literal notranslate"><span class="pre">cudaq.set_target()</span></code> function.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"iqm"</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="s2">"https://&lt;IQM Server&gt;/"</span><span class="p">)</span>
+<p>To target IQM quantum computers for your quantum kernel use  <code class="code docutils literal notranslate"><span class="pre">&quot;iqm&quot;</span></code> as first parameter of the <code class="docutils literal notranslate"><span class="pre">cudaq.set_target()</span></code> function.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"iqm"</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>Please note that setting the environment variable <code class="docutils literal notranslate"><span class="pre">IQM_SERVER_URL</span></code> takes precedence over the URL configured in the code.</p>
+<p>Then address the quantum computer by setting the environment variables <code class="docutils literal notranslate"><span class="pre">IQM_SERVER_URL</span></code>, <code class="docutils literal notranslate"><span class="pre">IQM_QUANTUM_COMPUTER</span></code> and <code class="docutils literal notranslate"><span class="pre">IQM_TOKEN</span></code> before running the program.</p>
 </div>
 <input class="tab-input" id="tab-set--1-input--2" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--2">C++</label><div class="tab-content docutils">
-<p>To target quantum kernel code for execution on an IQM Server, pass the <code class="docutils literal notranslate"><span class="pre">--target</span> <span class="pre">iqm</span></code> option to the <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> compiler.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>iqm<span class="w"> </span>src.cpp
-</pre></div>
-</div>
-<p>Once the binary for an IQM QPU is compiled, it can be executed against any IQM Server by setting the environment variable <code class="docutils literal notranslate"><span class="pre">IQM_SERVER_URL</span></code> as shown here:</p>
+<p>To target quantum kernel code for execution on an IQM quantum computer pass the <code class="docutils literal notranslate"><span class="pre">--target</span> <span class="pre">iqm</span></code> option to the <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> compiler.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>iqm<span class="w"> </span>src.cpp<span class="w"> </span>-o<span class="w"> </span>program
-<span class="nv">IQM_SERVER_URL</span><span class="o">=</span><span class="s2">"https://demo.qc.iqm.fi/"</span><span class="w"> </span>./program
+</pre></div>
+</div>
+<p>Once the binary for an IQM QPU is compiled, it can be executed against any IQM Server by setting the environment variables <code class="docutils literal notranslate"><span class="pre">IQM_SERVER_URL</span></code>, <code class="docutils literal notranslate"><span class="pre">IQM_QUANTUM_COMPUTER</span></code> and <code class="docutils literal notranslate"><span class="pre">IQM_TOKEN</span></code> and running the program.</p>
+</div>
+</div>
+</section>
+<section id="example">
+<h3>Example<a class="headerlink" href="#example" title="Permalink to this heading">¶</a></h3>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--2-input--1" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--1">Python</label><div class="tab-content docutils">
+<p>Save the <a class="reference internal" href="../../examples/hardware_providers.html#iqm-examples"><span class="std std-ref">Python code variant of this example</span></a> to a file named <code class="code docutils literal notranslate"><span class="pre">ghz.py</span></code>.</p>
+<p>Then set the address and your personal API token for an IQM quantum computer in environment variables and execute the code.</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">IQM_TOKEN</span><span class="o">=</span><span class="s2">"replace with your personal API token"</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">IQM_SERVER_URL</span><span class="o">=</span><span class="s2">"https://resonance.iqm.tech/"</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">IQM_QUANTUM_COMPUTER</span><span class="o">=</span><span class="s2">"garnet"</span>
+python3<span class="w"> </span>ghz.py
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--2-input--2" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--2">C++</label><div class="tab-content docutils">
+<p>Save the <a class="reference internal" href="../../examples/hardware_providers.html#iqm-examples"><span class="std std-ref">C++ code variant of this example</span></a> to a file named <code class="code docutils literal notranslate"><span class="pre">ghz.cpp</span></code>.</p>
+<p>Compile and execute the program like this:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>iqm<span class="w"> </span>ghz.cpp<span class="w"> </span>-o<span class="w"> </span>ghz
+<span class="nb">export</span><span class="w"> </span><span class="nv">IQM_TOKEN</span><span class="o">=</span><span class="s2">"replace with your personal API token"</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">IQM_SERVER_URL</span><span class="o">=</span><span class="s2">"https://resonance.iqm.tech/"</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">IQM_QUANTUM_COMPUTER</span><span class="o">=</span><span class="s2">"garnet"</span>
+./ghz
 </pre></div>
 </div>
 </div>
 </div>
-<p>To see a complete example for using IQM server backends, take a look at <a class="reference internal" href="../../examples/hardware_providers.html#iqm-examples"><span class="std std-ref">IQM examples</span></a>.</p>
 </section>
 <section id="advanced-use-cases">
 <h3>Advanced use cases<a class="headerlink" href="#advanced-use-cases" title="Permalink to this heading">¶</a></h3>
@@ -1252,6 +1271,7 @@ The IQM backend integration will use this as authorization token at the IQM serv
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="backend_iqm.html">     IQM backend advanced use cases</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="backend_iqm.html#configuring-the-backend">Configuring the backend</a></li>
 <li class="toctree-l2"><a class="reference internal" href="backend_iqm.html#emulation-mode">Emulation Mode</a></li>
 <li class="toctree-l2"><a class="reference internal" href="backend_iqm.html#setting-the-number-of-shots">Setting the Number of Shots</a></li>
 <li class="toctree-l2"><a class="reference internal" href="backend_iqm.html#using-credentials-saved-in-a-file">Using Credentials Saved in a File</a></li>
@@ -1259,6 +1279,7 @@ The IQM backend integration will use this as authorization token at the IQM serv
 </li>
 </ul>
 </div>
+<p>Please find more documentation after logging in to the <a class="reference external" href="https://resonance.iqm.tech/">IQM Resonance portal</a>.</p>
 </section>
 </section>
 <section id="oqc">
@@ -1280,7 +1301,7 @@ Registration is achieved by contacting <code class="code docutils literal notran
 <section id="id4">
 <h3>Submitting<a class="headerlink" href="#id4" title="Permalink to this heading">¶</a></h3>
 <div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--2-input--1" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--1">Python</label><div class="tab-content docutils">
+<input checked="True" class="tab-input" id="tab-set--3-input--1" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--1">Python</label><div class="tab-content docutils">
 <p>To set which OQC URL, set the <code class="code docutils literal notranslate"><span class="pre">url</span></code> parameter.
 To set which OQC email, set the <code class="code docutils literal notranslate"><span class="pre">email</span></code> parameter.
 To set which OQC machine, set the <code class="code docutils literal notranslate"><span class="pre">machine</span></code> parameter.</p>
@@ -1297,7 +1318,7 @@ This will emit any target specific compiler warnings and diagnostics, before run
 </pre></div>
 </div>
 </div>
-<input class="tab-input" id="tab-set--2-input--2" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--2">C++</label><div class="tab-content docutils">
+<input class="tab-input" id="tab-set--3-input--2" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--2">C++</label><div class="tab-content docutils">
 <p>To target quantum kernel code for execution on the OQC platform, provide the flag <code class="docutils literal notranslate"><span class="pre">--target</span> <span class="pre">oqc</span></code> to the <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> compiler.</p>
 <p>Users may provide their <code class="code docutils literal notranslate"><span class="pre">email</span></code> and <code class="code docutils literal notranslate"><span class="pre">url</span></code> as extra arguments</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>oqc<span class="w"> </span>--oqc-email<span class="w"> </span>&lt;email&gt;<span class="w"> </span>--oqc-url<span class="w"> </span>&lt;url&gt;<span class="w"> </span>src.cpp<span class="w"> </span>-o<span class="w"> </span>executable
@@ -1359,7 +1380,7 @@ jobs will be executed.</p>
 <section id="submitting-jobs">
 <h3>Submitting jobs<a class="headerlink" href="#submitting-jobs" title="Permalink to this heading">¶</a></h3>
 <div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--3-input--1" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--1">Python</label><div class="tab-content docutils">
+<input checked="True" class="tab-input" id="tab-set--4-input--1" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--1">Python</label><div class="tab-content docutils">
 <p>Before submitting a job, the TII backend must be selected using <code class="docutils literal notranslate"><span class="pre">cudaq.set_target()</span></code>.
 The following example runs a circuit simulation using the user’s <code class="docutils literal notranslate"><span class="pre">personal</span></code> project:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"tii"</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="s2">"tii-sim"</span><span class="p">,</span> <span class="n">project</span><span class="o">=</span><span class="s2">"personal"</span><span class="p">)</span>
@@ -1371,7 +1392,7 @@ passed directly:</p>
 </pre></div>
 </div>
 </div>
-<input class="tab-input" id="tab-set--3-input--2" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--2">C++</label><div class="tab-content docutils">
+<input class="tab-input" id="tab-set--4-input--2" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--2">C++</label><div class="tab-content docutils">
 <p>C++ programs must first be compiled using <code class="docutils literal notranslate"><span class="pre">nvq++</span></code>.</p>
 <p>When compiling, both the target device and the project must be specified:</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>tii<span class="w"> </span>--tii-device<span class="w"> </span>tii-sim<span class="w"> </span>--tii-project<span class="w"> </span>personal<span class="w"> </span>main.cpp<span class="w"> </span>-o<span class="w"> </span>main.x
