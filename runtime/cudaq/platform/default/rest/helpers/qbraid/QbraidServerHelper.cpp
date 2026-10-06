@@ -11,6 +11,7 @@
 #include "cudaq/Support/Version.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
+#include <algorithm>
 #include <nlohmann/json.hpp>
 #include <regex>
 #include <thread>
@@ -73,6 +74,12 @@ public:
     }
 
     parseConfigForCommonParams(config);
+
+    // qBraid brokers multiple paradigms under one target, so reject devices
+    // that can't run gate-based (QASM/QIR) programs. Skipped under emulation.
+    const bool emulate = getValueOrDefault(config, "emulate", "") == "true";
+    if (!emulate && !backendConfig["api_key"].empty())
+      validateDeviceParadigm(backendConfig["device_id"]);
 
     cudaq::info("qBraid configuration initialized:");
     for (const auto &[key, value] : backendConfig) {
@@ -229,11 +236,19 @@ public:
           auto &measurements =
               resultJson["data"]["resultData"]["measurementCounts"];
 
+          // qBraid reports each bitstring with classical bit 0 as the
+          // rightmost character (little-endian, as Qiskit does), while
+          // CUDA-Q indexes bitstrings with qubit 0 leftmost. The circuit
+          // measures the whole register in order (`measure q -> c`, see
+          // `combine-measurements` in qbraid.yml), so bit i is qubit i and
+          // reversing the key is the complete conversion. Mirrors the
+          // endian swap in the IonQ helper.
           for (const auto &[bitstring, count] : measurements.items()) {
-            counts[bitstring] =
-                count.is_number()
-                    ? static_cast<std::size_t>(count.get<double>())
-                    : static_cast<std::size_t>(count);
+            std::string key = bitstring;
+            std::reverse(key.begin(), key.end());
+            counts[key] = count.is_number()
+                              ? static_cast<std::size_t>(count.get<double>())
+                              : static_cast<std::size_t>(count);
           }
 
           // The returned bitstring spans every measured qubit, including
@@ -360,6 +375,44 @@ private:
     headers["Content-Type"] = "application/json";
     headers["User-Agent"] = backendConfig.at("user_agent");
     return headers;
+  }
+
+  /// @brief Throws if @p deviceId is not a gate-model device, per its qBraid
+  /// metadata (GET /devices/{qrn}). Lookup failures are non-fatal: we log and
+  /// defer to the backend, which rejects incompatible programs at submission.
+  void validateDeviceParadigm(const std::string &deviceId) {
+    nlohmann::json deviceJson;
+    try {
+      RestClient client;
+      auto headers = getHeaders();
+      const auto devicePath = backendConfig.at("url") + "/devices/" + deviceId;
+      cudaq::info("Verifying device paradigm via {}", devicePath);
+      deviceJson = client.get("", devicePath, headers, true);
+    } catch (const std::exception &e) {
+      cudaq::info("Could not verify paradigm for device '{}' ({}); deferring "
+                  "compatibility check to job submission.",
+                  deviceId, e.what());
+      return;
+    }
+
+    // qBraid v2 wraps the device document under a `data` envelope.
+    if (!deviceJson.contains("data") ||
+        !deviceJson["data"].contains("paradigm") ||
+        !deviceJson["data"]["paradigm"].is_string()) {
+      cudaq::info("Device metadata for '{}' contained no paradigm field; "
+                  "skipping paradigm validation.",
+                  deviceId);
+      return;
+    }
+
+    const auto paradigm = deviceJson["data"]["paradigm"].get<std::string>();
+    if (paradigm != "gate_model") {
+      throw std::runtime_error(
+          "qBraid device '" + deviceId + "' has paradigm '" + paradigm +
+          "', which cannot run gate-based CUDA-Q kernels. The 'qbraid' target "
+          "supports only gate-model devices.");
+    }
+    cudaq::info("Device '{}' paradigm is gate_model.", deviceId);
   }
 
   /// @brief Helper method to retrieve the value of an environment variable.

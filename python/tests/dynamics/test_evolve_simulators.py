@@ -588,6 +588,50 @@ def test_evolve_async_intermediate_results_without_observables():
 
 
 @pytest.mark.parametrize("target", ["qpp-cpu", "density-matrix-cpu"])
+def test_evolve_reuses_single_hamiltonian_for_batched_initial_states(target):
+    cudaq.reset_target()
+    cudaq.set_target(target)
+
+    dt = 0.1
+    dimensions = {0: 2}
+    zero_data = np.array([1.0, 0.0], dtype=np.complex128)
+    one_data = np.array([0.0, 1.0], dtype=np.complex128)
+    if target == "density-matrix-cpu":
+        zero_data = np.outer(zero_data, np.conj(zero_data))
+        one_data = np.outer(one_data, np.conj(one_data))
+    zero_state = cudaq.State.from_data(zero_data)
+    one_state = cudaq.State.from_data(one_data)
+
+    expected_zero = cudaq.evolve(
+        spin.x(0),
+        dimensions,
+        Schedule([0.0, dt], ["time"]),
+        zero_state,
+        store_intermediate_results=cudaq.IntermediateResultSave.NONE)
+    expected_one = cudaq.evolve(
+        spin.x(0),
+        dimensions,
+        Schedule([0.0, dt], ["time"]),
+        one_state,
+        store_intermediate_results=cudaq.IntermediateResultSave.NONE)
+
+    results = cudaq.evolve(
+        spin.x(0),
+        dimensions,
+        Schedule([0.0, dt], ["time"]), [zero_state, one_state],
+        store_intermediate_results=cudaq.IntermediateResultSave.NONE)
+
+    assert isinstance(results, list)
+    assert len(results) == 2
+    np.testing.assert_allclose(results[0].final_state().to_numpy(),
+                               expected_zero.final_state().to_numpy(),
+                               atol=1e-12)
+    np.testing.assert_allclose(results[1].final_state().to_numpy(),
+                               expected_one.final_state().to_numpy(),
+                               atol=1e-12)
+
+
+@pytest.mark.parametrize("target", ["qpp-cpu", "density-matrix-cpu"])
 def test_evolve_preserves_qubits_not_in_hamiltonian(target):
     """A local Hamiltonian should not shrink the full system state."""
 

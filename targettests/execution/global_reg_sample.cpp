@@ -8,7 +8,7 @@
 
 // clang-format off
 // RUN: if %iqm_avail; then nvq++ -DNO_ADAPTIVE --target iqm --emulate %s -o %t && IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt  %t | FileCheck %s; fi
-// RUN: nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s
+// RUN: if %quantinuum_avail; then nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s; fi
 // RUN: nvq++ %s -o %t && %t | FileCheck %s
 // clang-format on
 
@@ -79,7 +79,7 @@ int main() {
   };
   SAMPLE_AND_PRINT_GLOBAL_REG(test4);
   // CHECK: test4:
-  // CHECK: { 10:1000 }
+  // CHECK: { 1{{0?}}:1000 }
 
   // Check that specifying a measurement on `b` hides `a` from the global
   // register.

@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Dispatch stale-issue events
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
@@ -87,7 +87,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Remove stale-notified label on activity
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const LABEL = 'stale-notified';

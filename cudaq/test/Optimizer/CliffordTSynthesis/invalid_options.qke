@@ -1,0 +1,25 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --clifford-t-synthesis='epsilon=0' -verify-diagnostics %s
+// RUN: cudaq-opt --clifford-t-synthesis='epsilon=inf' -verify-diagnostics %s
+// RUN: cudaq-opt --clifford-t-synthesis='skip-below=inf' -verify-diagnostics %s
+
+// An infinite tolerance is rejected like a non-positive one. It would accept
+// every angle as an exact multiple of pi/4 (epsilon) or erase every rotation
+// (skip-below).
+
+// expected-error @+1 {{clifford-t-synthesis: invalid options. Require a finite epsilon > 0}}
+module {
+  func.func @rotation() {
+    %q = quake.alloca !quake.ref
+    %a = arith.constant 0.125 : f64
+    quake.rz (%a) %q : (f64, !quake.ref) -> ()
+    return
+  }
+}

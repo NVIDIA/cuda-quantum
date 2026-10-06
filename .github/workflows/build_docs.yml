@@ -1,0 +1,120 @@
+on:
+  workflow_call:
+    inputs:
+      platform:
+        type: string
+        required: false
+        default: linux/amd64
+      devdeps_image:
+        required: false
+        type: string
+      devdeps_cache:
+        required: true
+        type: string
+      devdeps_archive:
+        required: true
+        type: string
+
+name: Build documentation
+
+jobs:
+  build_docs:
+    # Runs the merge-queue `-n -W` doc build at PR time.
+    name: Build and check docs
+    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu16') || 'linux-amd64-cpu16' }}
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Restore environment
+        id: restore_devdeps
+        if: inputs.devdeps_image == ''
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ inputs.devdeps_archive }}
+          key: ${{ inputs.devdeps_cache }}
+          fail-on-cache-miss: true
+
+      - name: Log in to GitHub CR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Set up ccache and ORAS
+        uses: ./.github/actions/ccache-setup
+
+      - name: Compute platform ID
+        id: platform_meta
+        run: |
+          platform_id=$(echo "${{ inputs.platform }}" | sed 's/linux\///g' | tr -d ' ')
+          echo "platform_id=$platform_id" >> $GITHUB_OUTPUT
+
+      # Reuse the Python job's cache; PR builds never write ccache back.
+      - name: Restore ccache from GHCR
+        uses: ./.github/actions/ccache-restore
+        with:
+          cache-key: ${{ steps.platform_meta.outputs.platform_id }}-devenv-python
+          registry-token: ${{ github.token }}
+
+      - name: Set up context for buildx
+        run: |
+          docker context create builder_context
+
+      - name: Set up buildx runner
+        uses: docker/setup-buildx-action@v4
+        with:
+          endpoint: builder_context
+          version: v0.19.0
+          buildkitd-config: /etc/buildkit/buildkitd.toml # hard-coded to run on our runners
+          driver-opts: |
+            image=moby/buildkit:v0.19.0
+
+      - name: Setup proxy cache
+        uses: nv-gha-runners/setup-proxy-cache@main
+        with:
+          enable-apt: true
+
+      - name: Set up dev environment
+        id: dev_env
+        run: |
+          if ${{ steps.restore_devdeps.outcome != 'skipped' }}; then
+            load_output=`docker load --input "${{ inputs.devdeps_archive }}"`
+            base_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
+            docker push $base_image
+            rm -rf "${{ inputs.devdeps_archive }}"
+          elif ${{ inputs.devdeps_image != '' }}; then
+            base_image=${{ inputs.devdeps_image }}
+          else
+            echo "::error file=build_docs.yml::Missing configuration for development dependencies. Either specify the image (i.e. provide devdeps_image) or cache (i.e. provide devdeps_cache and devdeps_archive) that should be used for the build."
+            exit 1
+          fi
+
+          docker buildx build --platform ${{ inputs.platform }} \
+            --load -t dev_env:local -f docker/build/cudaq.dev.Dockerfile . \
+            --build-context ccache-data=/tmp/ccache-data \
+            --build-arg base_image=$base_image
+
+      - name: Setup proxy cache
+        uses: nv-gha-runners/setup-proxy-cache@main
+
+      - name: Build and check documentation
+        uses: ./.github/actions/run-in-docker
+        with:
+          image: dev_env:local
+          shell: bash
+          run: |
+            cd $CUDAQ_REPO_ROOT
+
+            # Sphinx exit code 12 == warnings treated as errors.
+            bash scripts/build_docs.sh
+            docs_status=$?
+            if [ ! $docs_status -eq 0 ]; then
+              echo "::error file=build_docs.yml::Documentation build failed with status $docs_status."
+              exit 1
+            fi

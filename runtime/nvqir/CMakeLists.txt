@@ -11,7 +11,6 @@ set(LIBRARY_NAME nvqir)
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ctad-maybe-unsupported")
 
 set(NVQIR_RUNTIME_SRC
-  AnalysisScope.cpp
   QIRTypes.cpp
   NVQIR.cpp
   dem/DemScope.cpp
@@ -35,9 +34,17 @@ target_link_libraries(${LIBRARY_NAME}
   PRIVATE cudaq-logger
 )
 
-install(TARGETS ${LIBRARY_NAME} 
-        EXPORT nvqir-targets 
+if(CUDAQ_BUILD_SPLIT_WHEELS)
+  # libnvqir in cudaq_core/cudaq/core/lib must find frontend simulator plugins
+  # in site-packages/lib when they are opened by name with dlopen.
+  set_property(TARGET ${LIBRARY_NAME} APPEND PROPERTY INSTALL_RPATH
+    "${_wheel_origin}/../../../../lib")
+endif()
+
+install(TARGETS ${LIBRARY_NAME}
+        EXPORT nvqir-targets
         LIBRARY DESTINATION lib
+        COMPONENT ${CUDAQ_CORE_LIBRARY_COMPONENT}
         INCLUDES DESTINATION include/nvqir)
 
 add_subdirectory(qpp)
@@ -56,4 +63,5 @@ endif()
 install(EXPORT nvqir-targets
         FILE NVQIRTargets.cmake
         NAMESPACE nvqir::
-        DESTINATION lib/cmake/nvqir)
+        DESTINATION lib/cmake/nvqir
+        COMPONENT ${CUDAQ_CORE_DEVELOPMENT_COMPONENT})

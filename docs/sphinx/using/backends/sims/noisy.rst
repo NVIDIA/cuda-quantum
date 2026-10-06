@@ -165,8 +165,8 @@ Any environment variables must be set prior to setting the target or running "`i
     - Value
     - Description
   * - ``CUDAQ_BATCH_SIZE``
-    - positive integer or `NONE`
-    - The number of state vectors in the batched mode. If `NONE`, the batch size will be calculated based on the available device memory. Default is `NONE`.
+    - positive power of two or `NONE`
+    - The number of state vectors in the batched mode. The value must be a power of two. If `NONE`, the batch size will be calculated based on the available device memory. Default is `NONE`.
   * - ``CUDAQ_BATCHED_SIM_MAX_BRANCHES``
     - positive integer
     - The number of trajectory branches to be tracked simultaneously in the gate fusion. Default is 16. 

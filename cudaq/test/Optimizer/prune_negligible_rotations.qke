@@ -1,0 +1,86 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --prune-negligible-rotations %s | FileCheck %s
+// RUN: cudaq-opt --prune-negligible-rotations='threshold=0.0' %s | \
+// RUN:   FileCheck %s --check-prefix=DISABLED
+
+// A negligible-angle rotation in memory semantics is erased. The body keeps
+// only the alloca and the return.
+func.func @tiny_memory() {
+  %q = quake.alloca !quake.ref
+  %a = arith.constant 1.0e-15 : f64
+  quake.rz (%a) %q : (f64, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @tiny_memory
+// CHECK-NEXT:    quake.alloca
+// CHECK-NEXT:    return
+// CHECK-NOT:     quake.rz
+
+// A negligible-angle rotation in value semantics threads the input wire
+// straight through to the sink and the rotation op disappears.
+func.func @tiny_wire() {
+  %0 = quake.null_wire
+  %a = arith.constant 1.0e-15 : f64
+  %1 = quake.rz (%a) %0 : (f64, !quake.wire) -> !quake.wire
+  quake.sink %1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL: func.func @tiny_wire
+// CHECK:         %[[W:.*]] = quake.null_wire
+// CHECK:         quake.sink %[[W]] : !quake.wire
+// CHECK-NOT:     quake.rz
+
+// rx / ry / r1 are pruned the same way as rz.
+func.func @tiny_others() {
+  %q = quake.alloca !quake.ref
+  %a = arith.constant 1.0e-15 : f64
+  quake.rx (%a) %q : (f64, !quake.ref) -> ()
+  quake.ry (%a) %q : (f64, !quake.ref) -> ()
+  quake.r1 (%a) %q : (f64, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @tiny_others
+// CHECK-NOT:     quake.r{{[xy1]}}
+
+// An above-threshold rotation is left untouched.
+func.func @big(%q: !quake.ref) {
+  %a = arith.constant 0.5 : f64
+  quake.rz (%a) %q : (f64, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @big
+// CHECK:         quake.rz
+
+// A non-constant angle is left untouched.
+func.func @dynamic(%q: !quake.ref, %a: f64) {
+  quake.rz (%a) %q : (f64, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @dynamic
+// CHECK:         quake.rz
+
+// A controlled negligible rotation is left in place.
+func.func @controlled(%c: !quake.ref, %q: !quake.ref) {
+  %a = arith.constant 1.0e-15 : f64
+  quake.rz (%a) [%c] %q : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @controlled
+// CHECK:         quake.rz
+
+// With threshold=0 the pass is disabled: even a tiny rotation survives.
+// DISABLED-LABEL: func.func @tiny_memory
+// DISABLED:         quake.rz

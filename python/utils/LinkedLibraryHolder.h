@@ -8,9 +8,11 @@
 
 #pragma once
 
+#include "common/CompileTarget.h"
 #include "common/RuntimeTarget.h"
-#include "cudaq/Target/TargetConfig.h"
+#include "cudaq/Target/TargetCatalog.h"
 #include "cudaq/host_config.h"
+#include "cudaq/platform/RuntimeEndpoint.h"
 #include <filesystem>
 #include <map>
 #include <string>
@@ -57,6 +59,9 @@ protected:
   /// @brief Map of simulation targets
   std::unordered_map<std::string, RuntimeTarget> simulationTargets;
 
+  /// @brief Sole owner of target discovery for this Python session.
+  config::TargetCatalog targetCatalog;
+
   /// @brief Store the name of the default target
   std::string defaultTarget;
 
@@ -96,18 +101,50 @@ public:
   /// @brief Return the current target.
   RuntimeTarget getTarget();
 
-  /// @brief Return all available runtime targets
-  std::vector<RuntimeTarget> getTargets() const;
+  /// @brief Return runtime targets. By default only targets available on
+  /// this host are returned.
+  std::vector<RuntimeTarget> getTargets(bool includeUnavailable = false);
 
   /// @brief Return true if a target exists with the given name.
-  bool hasTarget(const std::string &name);
+  bool hasTarget(const std::string &name, bool includeUnavailable = false);
 
   /// @brief Set the current target.
   void setTarget(const std::string &targetName,
                  std::map<std::string, std::string> extraConfig = {});
 
+  /// @brief Set the current target using a pair of compile target and runtime
+  /// endpoint.
+  void setTarget(const CompileTarget &compileTarget,
+                 const RuntimeEndpoint &runtimeEndpoint);
+
   /// @brief Reset the target back to the default.
   void resetTarget();
+
+  /// @brief Register an external plugin package root. The directory must
+  /// exist and contain a `targets/` subdirectory; every `.so` or `.yml`
+  /// found there is added to the holder's target list. Throws
+  /// `std::runtime_error` (with @p pkgRoot in the message) on validation
+  /// failure.
+  ///
+  /// Intended to be called from `cudaq.register_backend_path(...)` —
+  /// typically inside a `cudaq.backends` entry-point function shipped by
+  /// a plugin's Python wrapper.
+  void registerBackendPath(const std::filesystem::path &pkgRoot);
+
+  /// @brief Register the standalone target configuration YAML at
+  /// @p configPath, named after the file stem. Throws `std::runtime_error`
+  /// (with @p configPath in the message) if the file does not exist. Returns
+  /// false if a target of that name is already registered.
+  ///
+  /// This loads a standalone target configuration YAML file with no surrounding
+  /// plugin layout. It is recommended to use `registerBackendPath` instead.
+  bool registerTargetConfig(const std::filesystem::path &configPath);
+
+private:
+  config::HostEnvironment hostEnv() const;
+  void addPluginScope(const std::filesystem::path &scope);
+  void reloadTargets();
+  RuntimeTarget makeRuntimeTarget(const config::ResolvedTarget &resolved) const;
 };
 
 namespace python {

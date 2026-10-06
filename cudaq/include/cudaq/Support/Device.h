@@ -10,7 +10,9 @@
 
 #include "cudaq/ADT/GraphCSR.h"
 #include "cudaq/Support/Graph.h"
+#include "llvm/Support/Error.h"
 #include "llvm/Support/MemoryBuffer.h"
+#include <limits>
 
 namespace cudaq {
 
@@ -23,19 +25,67 @@ public:
   using Qubit = GraphCSR::Node;
   using Path = mlir::SmallVector<Qubit>;
 
+  /// Distance returned for qubits in different connected components.
+  static constexpr unsigned unreachableDistance =
+      std::numeric_limits<unsigned>::max();
+
   /// Read device connectivity info from a file. The input format is the same
   /// as the Graph dump() format.
   static Device file(llvm::StringRef filename) {
     Device device;
+    if (llvm::Error error = tryFile(filename, device)) {
+      llvm::errs() << llvm::toString(std::move(error)) << '\n';
+      device = {};
+    }
+    return device;
+  }
 
+  /// Populate `device` from a connectivity file, returning an error when the
+  /// file cannot be read, a qubit index exceeds the declared node count, or a
+  /// `Bidirectional` value is invalid. Connections are bidirectional unless
+  /// the file contains `Bidirectional: false`. `device` must be empty.
+  static llvm::Error tryFile(llvm::StringRef filename, Device &device) {
     llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> fileBuffer =
         llvm::MemoryBuffer::getFile(filename);
-    if (std::error_code EC = fileBuffer.getError()) {
-      llvm::errs() << "Error reading file: " << EC.message() << "\n";
-      return device;
-    }
+    if (std::error_code EC = fileBuffer.getError())
+      return llvm::createStringError(
+          EC, "error reading device topology file: %s", EC.message().c_str());
+
+    auto validateQubitIndex = [&device](unsigned index) -> llvm::Error {
+      const unsigned numQubits = device.getNumQubits();
+      if (index < numQubits)
+        return llvm::Error::success();
+      return llvm::createStringError(
+          llvm::inconvertibleErrorCode(),
+          "device topology qubit index %u is out of range for %u nodes", index,
+          numQubits);
+    };
 
     llvm::StringRef fileContent = fileBuffer->get()->getBuffer();
+    // Determine how to interpret every edge before constructing the graphs.
+    // `Bidirectional` may appear anywhere in the file, including after the
+    // edge list.
+    llvm::StringRef metadata = fileContent;
+    while (!metadata.empty()) {
+      auto [line, rest] = metadata.split('\n');
+      metadata = rest;
+      auto [key, value] = line.split(':');
+      if (!key.trim().equals_insensitive("Bidirectional"))
+        continue;
+      value = value.trim();
+      if (value.equals_insensitive("true")) {
+        device.bidirectional = true;
+      } else if (value.equals_insensitive("false")) {
+        device.bidirectional = false;
+      } else {
+        return llvm::createStringError(
+            llvm::inconvertibleErrorCode(),
+            "invalid Bidirectional value in device topology: %s",
+            value.str().c_str());
+      }
+      break;
+    }
+
     while (!fileContent.empty()) {
       auto [line, rest] = fileContent.split('\n');
       fileContent = rest;
@@ -45,8 +95,11 @@ public:
         unsigned numQubits = 0;
         if (!line.consumeInteger(/*Radix=*/10, numQubits)) {
           for (unsigned i = 0u; i < numQubits; ++i)
-            device.topology.createNode();
+            device.createQubit();
         }
+      } else if (line.trim().split(':').first.equals_insensitive(
+                     "Bidirectional")) {
+        continue;
       } else {
         // Parse edges
         unsigned v1 = 0;
@@ -54,19 +107,14 @@ public:
         if (!line.consumeInteger(/*Radix=*/10, v1)) {
           line = line.ltrim();
           if (line.consume_front("--> {")) {
+            if (llvm::Error error = validateQubitIndex(v1))
+              return error;
             line = line.ltrim();
             unsigned v2 = 0;
             while (!line.consumeInteger(10, v2)) {
-              // Create an edge, but make sure it doesn't already exist
-              bool edgeAlreadyExists = false;
-              for (auto edge : device.topology.getNeighbours(Qubit(v1))) {
-                if (edge == Qubit(v2)) {
-                  edgeAlreadyExists = true;
-                  break;
-                }
-              }
-              if (!edgeAlreadyExists)
-                device.topology.addEdge(Qubit(v1), Qubit(v2));
+              if (llvm::Error error = validateQubitIndex(v2))
+                return error;
+              device.addCoupling(Qubit(v1), Qubit(v2));
               // Prepare for next iteration (removing comma)
               line = line.ltrim(" \t\n\v\f\r,");
             }
@@ -76,7 +124,7 @@ public:
     }
 
     device.computeAllPairShortestPaths();
-    return device;
+    return llvm::Error::success();
   }
 
   /// Create a device with a path topology.
@@ -86,10 +134,10 @@ public:
   static Device path(unsigned numQubits) {
     assert(numQubits > 0);
     Device device;
-    device.topology.createNode();
+    device.createQubit();
     for (unsigned i = 1u; i < numQubits; ++i) {
-      device.topology.createNode();
-      device.topology.addEdge(Qubit(i - 1), Qubit(i));
+      device.createQubit();
+      device.addCoupling(Qubit(i - 1), Qubit(i));
     }
     device.computeAllPairShortestPaths();
     return device;
@@ -103,11 +151,11 @@ public:
   static Device ring(unsigned numQubits) {
     assert(numQubits > 0);
     Device device;
-    device.topology.createNode();
+    device.createQubit();
     for (unsigned i = 0u; i < numQubits; ++i) {
       if (i < numQubits - 1)
-        device.topology.createNode();
-      device.topology.addEdge(Qubit(i), Qubit((i + 1) % numQubits));
+        device.createQubit();
+      device.addCoupling(Qubit(i), Qubit((i + 1) % numQubits));
     }
     device.computeAllPairShortestPaths();
     return device;
@@ -128,12 +176,12 @@ public:
 
     // Create nodes
     for (unsigned i = 0u; i < numQubits; ++i)
-      device.topology.createNode();
+      device.createQubit();
 
     // Create edges
     for (unsigned i = 0u; i < numQubits; ++i)
       if (i != centerQubit)
-        device.topology.addEdge(Qubit(centerQubit), Qubit(i));
+        device.addCoupling(Qubit(centerQubit), Qubit(i));
 
     device.computeAllPairShortestPaths();
     return device;
@@ -150,15 +198,15 @@ public:
   static Device grid(unsigned width, unsigned height) {
     Device device;
     for (unsigned i = 0u, end = width * height; i < end; ++i)
-      device.topology.createNode();
+      device.createQubit();
     for (unsigned x = 0u; x < width; ++x) {
       for (unsigned y = 0u; y < height; ++y) {
         unsigned base = x + (y * width);
         Qubit q0(base);
         if (x < width - 1)
-          device.topology.addEdge(q0, Qubit(base + 1));
+          device.addCoupling(q0, Qubit(base + 1));
         if (y < height - 1)
-          device.topology.addEdge(q0, Qubit(base + width));
+          device.addCoupling(q0, Qubit(base + width));
       }
     }
     device.computeAllPairShortestPaths();
@@ -168,23 +216,61 @@ public:
   /// Returns the number of physical qubits in the device.
   unsigned getNumQubits() const { return topology.getNumNodes(); }
 
-  /// Returns the distance between two qubits.
+  /// Returns the distance between two qubits, or `unreachableDistance` when no
+  /// path exists.
   unsigned getDistance(Qubit src, Qubit dst) const {
+    if (src == dst)
+      return 0;
     unsigned pairID = getPairID(src.index, dst.index);
-    return src == dst ? 0 : shortestPaths[pairID].size() - 1;
+    PathRef path = shortestPaths[pairID];
+    return path.empty() ? unreachableDistance : path.size() - 1;
+  }
+
+  /// Returns true when two qubits belong to the same connected component.
+  bool hasPath(Qubit src, Qubit dst) const {
+    return getDistance(src, dst) != unreachableDistance;
   }
 
   mlir::ArrayRef<Qubit> getNeighbours(Qubit src) const {
     return topology.getNeighbours(src);
   }
 
+  /// Returns true when two qubits are directly coupled by the device.
   bool areConnected(Qubit q0, Qubit q1) const {
     return getDistance(q0, q1) == 1;
   }
 
-  /// Returns a shortest path between two qubits.
+  /// Returns true when the device natively supports a controlled operation
+  /// with `control` and `target` in that order.
+  bool supportsDirection(Qubit control, Qubit target) const {
+    return hasEdge(directedCouplings, control, target);
+  }
+
+  /// Returns true when at least one connected pair supports only one direction.
+  bool hasUnidirectionalCoupling() const {
+    // Bidirectional mode makes the reverse of every declared edge native.
+    if (isBidirectional())
+      return false;
+    for (unsigned source = 0; source < getNumQubits(); ++source) {
+      const Qubit src(source);
+      for (Qubit dst : topology.getNeighbours(src))
+        if (!supportsDirection(src, dst) || !supportsDirection(dst, src))
+          return true;
+    }
+    return false;
+  }
+
+  /// Returns whether topology entries are interpreted as bidirectional.
+  bool isBidirectional() const { return bidirectional; }
+
+  /// Returns a shortest path between two qubits, or an empty path when no path
+  /// exists.
   Path getShortestPath(Qubit src, Qubit dst) const {
+    if (src == dst)
+      return Path{src};
     unsigned pairID = getPairID(src.index, dst.index);
+    if (shortestPaths[pairID].empty())
+      return {};
     if (src.index > dst.index)
       return Path(llvm::reverse(shortestPaths[pairID]));
     return Path(shortestPaths[pairID]);
@@ -206,6 +292,32 @@ public:
 private:
   using PathRef = mlir::ArrayRef<Qubit>;
 
+  static bool hasEdge(const GraphCSR &graph, Qubit src, Qubit dst) {
+    for (Qubit neighbour : graph.getNeighbours(src))
+      if (neighbour == dst)
+        return true;
+    return false;
+  }
+
+  void createQubit() {
+    const Qubit topologyQubit = topology.createNode();
+    const Qubit directedQubit = directedCouplings.createNode();
+    assert(topologyQubit == directedQubit &&
+           "device coupling graphs must use identical qubit IDs");
+  }
+
+  void addCoupling(Qubit control, Qubit target) {
+    // Add an undirected edge for routing and shortest-path calculations.
+    if (!hasEdge(topology, control, target))
+      topology.addEdge(control, target);
+    // Preserve the declared native control-to-target direction.
+    if (!hasEdge(directedCouplings, control, target))
+      directedCouplings.addEdge(control, target, /*undirected=*/false);
+    // In bidirectional mode, also make the reverse direction native.
+    if (bidirectional && !hasEdge(directedCouplings, target, control))
+      directedCouplings.addEdge(target, control, /*undirected=*/false);
+  }
+
   /// Returns a unique id for a pair of values (`u` and `v`). `getPairID(u, v)`
   /// will be equal to `getPairID(v, u)`.
   unsigned getPairID(unsigned u, unsigned v) const {
@@ -214,14 +326,15 @@ private:
     return (u * getNumQubits()) - (((u - 1) * u) / 2) + v - u;
   }
 
-  /// Compute the shortest path between every qubit. This assumes that there
-  /// exists at least one path between every source and destination pair. I.e.
-  /// the graph cannot be bipartite.
+  /// Compute the shortest path between every qubit. Disconnected pairs are
+  /// represented by empty paths.
   void computeAllPairShortestPaths() {
     std::size_t numNodes = topology.getNumNodes();
     shortestPaths.resize(numNodes * (numNodes + 1) / 2);
     auto countPathNodes = [](llvm::ArrayRef<Qubit> parents, Qubit src,
                              Qubit dst) {
+      if (!parents[dst.index].isValid())
+        return std::size_t{0};
       std::size_t count = 2;
       auto p = parents[dst.index];
       while (p != src) {
@@ -246,6 +359,8 @@ private:
       auto &parents = allParents[n];
       // Reconstruct the paths
       for (auto m = n + 1; m < numNodes; ++m) {
+        if (!parents[m].isValid())
+          continue;
         path.clear();
         path.push_back(Qubit(m));
         auto p = parents[m];
@@ -261,8 +376,17 @@ private:
     }
   }
 
-  /// Device nodes (qubits) and edges (connections)
+  /// Device nodes (qubits) and edges (connections).
+  /// All connections in this graph are bidirectional for routing and shortest
+  /// paths, regardless of `bidirectional`; `directedCouplings` represents
+  /// native control-to-target directions.
   GraphCSR topology;
+
+  /// Native control-to-target directions for controlled operations.
+  GraphCSR directedCouplings;
+
+  /// Whether every topology entry is interpreted as bidirectional.
+  bool bidirectional = true;
 
   /// List of shortest path from/to every source/destination
   mlir::SmallVector<PathRef> shortestPaths;

@@ -8,6 +8,7 @@
 
 #include "QuEraServerHelper.h"
 #include "common/AnalogHamiltonian.h"
+#include "nlohmann/json.hpp"
 
 namespace cudaq {
 
@@ -74,6 +75,12 @@ sample_result QuEraServerHelper::processResults(ServerMessage &resultsJson,
         /// Convert the AHS results to sampling
         /// Ref:
         /// https://docs.aws.amazon.com/braket/latest/developerguide/braket-get-started-hello-ahs.html#braket-get-started-analyzing-simulator-results
+        if (post.size() != pre.size())
+          throw std::runtime_error(
+              "QuEra results malformed: preSequence and postSequence have "
+              "mismatched lengths (" +
+              std::to_string(pre.size()) + " vs " +
+              std::to_string(post.size()) + ")");
         std::vector<int> state_idx(pre.size());
         for (size_t i = 0; i < pre.size(); ++i)
           state_idx[i] = pre[i] * (1 + post[i]);

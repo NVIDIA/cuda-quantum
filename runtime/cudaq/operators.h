@@ -43,13 +43,6 @@ enum class pauli;
                                         !property>,                            \
             std::false_type = std::false_type{}>
 
-#define SPIN_OPS_BACKWARD_COMPATIBILITY(deprecation_message)                   \
-  template <typename T = HandlerTy,                                            \
-            typename = std::enable_if_t<                                       \
-                std::is_same<HandlerTy, spin_handler>::value &&                \
-                std::is_same<HandlerTy, T>::value>>                            \
-  [[deprecated(deprecation_message)]]
-
 /// @brief Represents a sum of operator products in a quantum operator algebra.
 ///
 /// The sum_op class is a templated container that encapsulates a linear
@@ -844,53 +837,6 @@ public:
 
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
   std::vector<double> get_data_representation() const;
-
-  // utility functions for backward compatibility
-  /// @cond
-
-  SPIN_OPS_BACKWARD_COMPATIBILITY(
-      "serialization format changed - use the constructor without a size_t "
-      "argument to create a spin_op from the new format")
-  sum_op(const std::vector<double> &input_vec, std::size_t nQubits);
-
-  SPIN_OPS_BACKWARD_COMPATIBILITY(
-      "construction from binary symplectic form will no longer be supported")
-  sum_op(const std::vector<std::vector<bool>> &bsf_terms,
-         const std::vector<std::complex<double>> &coeffs);
-
-  SPIN_OPS_BACKWARD_COMPATIBILITY(
-      "serialization format changed - use get_data_representation instead")
-  std::vector<double> getDataRepresentation() const;
-
-  SPIN_OPS_BACKWARD_COMPATIBILITY(
-      "data tuple is no longer used for serialization - use "
-      "get_data_representation instead")
-  std::tuple<std::vector<double>, std::size_t> getDataTuple() const;
-
-  SPIN_OPS_BACKWARD_COMPATIBILITY("raw data access will no longer be supported")
-  std::pair<std::vector<std::vector<bool>>, std::vector<std::complex<double>>>
-  get_raw_data() const;
-
-  SPIN_OPS_BACKWARD_COMPATIBILITY(
-      "use to_string(), get_term_id or get_pauli_word depending on your use "
-      "case - see release notes for more detail")
-  std::string to_string(bool printCoeffs) const;
-
-  SPIN_OPS_BACKWARD_COMPATIBILITY(
-      "iterate over the operator instead to access each term")
-  void for_each_term(std::function<void(sum_op<HandlerTy> &)> &&functor) const;
-
-  SPIN_OPS_BACKWARD_COMPATIBILITY(
-      "iterate over each term in the operator instead and use as_pauli to "
-      "access each pauli")
-  void for_each_pauli(std::function<void(pauli, std::size_t)> &&functor) const;
-
-  SPIN_OPS_BACKWARD_COMPATIBILITY(
-      "is_identity will no longer be supported on an entire sum_op, but will "
-      "continue to be supported on each term")
-  bool is_identity() const;
-
-  /// @endcond
 };
 
 /// @brief Represents an operator expression consisting of a product of
@@ -1698,16 +1644,6 @@ public:
       const std::unordered_map<std::string, std::complex<double>> &parameters =
           {},
       bool invert_order = false) const;
-
-  // utility functions for backward compatibility
-  /// @cond
-
-  SPIN_OPS_BACKWARD_COMPATIBILITY(
-      "use to_string(), get_term_id or get_pauli_word depending on your use "
-      "case - see release notes for more detail")
-  std::string to_string(bool printCoeffs) const;
-
-  /// @endcond
 };
 
 /// @brief Representation of a time-dependent Hamiltonian for Rydberg system

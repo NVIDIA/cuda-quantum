@@ -6,7 +6,6 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 target_sources(cudaq-rest-qpu PRIVATE IQMServerHelper.cpp)
-add_target_config(iqm)
 
 
 add_library(cudaq-serverhelper-iqm SHARED IQMServerHelper.cpp )
@@ -15,5 +14,6 @@ target_link_libraries(cudaq-serverhelper-iqm
     cudaq-common
     cudaq-logger
 )
-install(TARGETS cudaq-serverhelper-iqm DESTINATION lib)
+install(TARGETS cudaq-serverhelper-iqm DESTINATION lib
+        COMPONENT Runtime)
 

@@ -9,6 +9,7 @@
 #include "common/ExecutionContext.h"
 #include "common/RuntimeTarget.h"
 #include "cudaq/platform/qpu.h"
+#include "cudaq/platform/qpu_utils.h"
 #include "cudaq/platform/quantum_platform.h"
 #include <atomic>
 #include <gtest/gtest.h>
@@ -18,9 +19,35 @@
 
 using namespace cudaq;
 
+TEST(QPUUtilsTester, getsRawBackendConfigOption) {
+  const std::string backend =
+      "target;__target_config_path;/tmp/plugin/targets/target.so;emulate;false";
+  EXPECT_EQ(
+      cudaq::detail::getBackendConfigOption(backend, "__target_config_path"),
+      "/tmp/plugin/targets/target.so");
+}
+
+TEST(QPUUtilsTester, getsBase64BackendConfigOptionWithSpaces) {
+  // base64("/tmp/plugin path/targets/test.so")
+  const std::string backend = "target;__target_config_path;base64_"
+                              "L3RtcC9wbHVnaW4gcGF0aC90YXJnZXRzL3Rlc3Quc28=";
+  EXPECT_EQ(cudaq::detail::getTargetConfigPath(backend, "/fallback.yml"),
+            "/tmp/plugin path/targets/test.so");
+}
+
+TEST(QPUUtilsTester, usesFallbackTargetConfigPath) {
+  EXPECT_EQ(cudaq::detail::getTargetConfigPath("target;emulate;false",
+                                               "/fallback.yml"),
+            "/fallback.yml");
+}
+
 class DummyQPU : public cudaq::QPU {
 public:
   DummyQPU() = default;
+
+  cudaq::CompileTarget getCompileTarget(const cudaq::RuntimeTarget *) override {
+    return {};
+  }
 
   void enqueue(cudaq::QuantumTask &task) override {}
 
@@ -35,7 +62,7 @@ class DummyMQPUPlatform : public cudaq::quantum_platform {
 public:
   DummyMQPUPlatform(std::size_t numQPUs) {
     for (std::size_t i = 0; i < numQPUs; ++i) {
-      platformQPUs.emplace_back(std::make_unique<DummyQPU>());
+      addQPU(std::make_unique<DummyQPU>());
     }
   }
 };

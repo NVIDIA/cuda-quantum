@@ -29,9 +29,9 @@ target_link_libraries(${LIBRARY_NAME}
     nvqir
 )
 
-install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
+install(TARGETS ${LIBRARY_NAME} DESTINATION lib
+        COMPONENT Runtime)
 
-add_target_config(quera)
 
 add_library(cudaq-serverhelper-quera SHARED QuEraExecutor.cpp QuEraServerHelper.cpp)
 target_link_libraries(cudaq-serverhelper-quera
@@ -40,4 +40,5 @@ target_link_libraries(cudaq-serverhelper-quera
     cudaq-common 
     cudaq-logger 
 )
-install(TARGETS cudaq-serverhelper-quera DESTINATION lib)
+install(TARGETS cudaq-serverhelper-quera DESTINATION lib
+        COMPONENT Runtime)

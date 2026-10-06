@@ -1,0 +1,24 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-translate --convert-to=qir --emit-llvm=false %s | FileCheck %s
+
+// Test that the output is MLIR's LLVM-IR dialect and not LLVM IR itself. Also
+// that vacuous allocations are erased.
+
+func.func @test_func(%p : i32) {
+  %qv = quake.alloca !quake.veq<?>[%p : i32]
+  %t = arith.constant 2 : i32
+  %v = quake.alloca !quake.veq<?>[%t : i32]
+  return
+}
+
+// CHECK-LABEL:   llvm.func @test_func(
+// CHECK-SAME:      %[[ARG0:.*]]: i32) {
+// CHECK-NEXT:      llvm.return
+// CHECK:         }

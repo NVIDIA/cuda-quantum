@@ -97,7 +97,7 @@ static bool useIsReifySpans(cudaq::cc::ConstantArrayOp conarr) {
 
 static bool useDataToInitState(cudaq::cc::ReifySpanOp reify) {
   for (auto *user : reify->getUsers())
-    if (auto data = dyn_cast<cudaq::cc::StdvecDataOp>(user))
+    if (auto data = dyn_cast<cudaq::cc::SequenceDataOp>(user))
       if (std::distance(data->user_begin(), data->user_end()) == 1)
         return isa<cudaq::quake::InitializeStateOp,
                    cudaq::quake::CreateStateOp>(*data->user_begin());
@@ -227,12 +227,12 @@ struct ReifySpanPattern : public OpRewritePattern<cudaq::cc::ReifySpanOp> {
       if (useDataToInitState(reify)) {
         auto loc = reify.getLoc();
         auto eleTy =
-            cast<cudaq::cc::StdvecType>(reify.getType()).getElementType();
+            cast<cudaq::cc::SequenceType>(reify.getType()).getElementType();
         auto numEle = arith::ConstantIntOp::create(
             rewriter, loc, conArr.getConstantValues().size(), 64);
         Value buff = cudaq::cc::AllocaOp::create(rewriter, loc, eleTy, numEle);
         cudaq::cc::StoreOp::create(rewriter, loc, conArr, buff);
-        rewriter.replaceOpWithNewOp<cudaq::cc::StdvecInitOp>(
+        rewriter.replaceOpWithNewOp<cudaq::cc::SequenceInitOp>(
             reify, reify.getType(), buff, numEle);
         return success();
       }
@@ -263,7 +263,7 @@ struct ReifySpanPattern : public OpRewritePattern<cudaq::cc::ReifySpanOp> {
         auto strLit = cudaq::cc::CreateStringLiteralOp::create(
             rewriter, loc, litTy, stringAttr);
         auto size = arith::ConstantIntOp::create(rewriter, loc, len, 64);
-        members.push_back(cudaq::cc::StdvecInitOp::create(
+        members.push_back(cudaq::cc::SequenceInitOp::create(
             rewriter, loc, cudaq::cc::CharspanType::get(ctx), strLit, size));
       } else if (auto a = dyn_cast<IntegerAttr>(attr)) {
         if (auto floatTy = dyn_cast<FloatType>(eleTy)) {
@@ -310,7 +310,7 @@ struct ReifySpanPattern : public OpRewritePattern<cudaq::cc::ReifySpanOp> {
       cudaq::cc::StoreOp::create(rewriter, loc, m, ptr);
     }
     Value result =
-        cudaq::cc::StdvecInitOp::create(rewriter, loc, ty, buff, size);
+        cudaq::cc::SequenceInitOp::create(rewriter, loc, ty, buff, size);
     return result;
   }
 
@@ -329,20 +329,49 @@ public:
   void runOnOperation() override {
     auto *ctx = &getContext();
     ModuleOp module = getOperation();
+    if (!cudaq::opt::containsAnyOperationOfType<cudaq::cc::ConstantArrayOp,
+                                                cudaq::cc::ReifySpanOp>(
+            module.getOperation()))
+      return;
 
-    // Make the unchecked assumption that a ConstArrayOp was added by the
-    // LiftArrayAlloc pass. This assumption means that the backing store of the
-    // ConstArrayOp has been checked that it is never written to.
-    RewritePatternSet patterns(ctx);
+    // LiftArrayAlloc has already checked that these constant arrays are not
+    // modified, so this pass does not repeat the write analysis.
     unsigned counter = 0;
-    patterns.insert<ReifySpanPattern, ConstantArrayPattern>(ctx, module,
-                                                            counter);
     LLVM_DEBUG(llvm::dbgs() << "Before globalizing array values:\n"
                             << module << '\n');
-    if (failed(applyPatternsGreedily(module, std::move(patterns)))) {
+
+    // Rewrite spans first because a constant array used by cc.reify_span is not
+    // yet eligible for ConstantArrayPattern. Recollect the arrays afterward,
+    // since removing a span can make its source array eligible.
+    SmallVector<Operation *> reifyRoots;
+    module.walk<WalkOrder::PreOrder>([&](cudaq::cc::ReifySpanOp reify) {
+      reifyRoots.push_back(reify.getOperation());
+    });
+    GreedyRewriteConfig config;
+    // Keep operations created by these roots on the worklist without adding
+    // unrelated operations that were already in the module.
+    config.setScope(&module.getBodyRegion())
+        .setStrictness(GreedyRewriteStrictness::ExistingAndNewOps);
+    RewritePatternSet reifyPatterns(ctx);
+    reifyPatterns.insert<ReifySpanPattern>(ctx, module, counter);
+    if (failed(applyOpPatternsGreedily(reifyRoots, std::move(reifyPatterns),
+                                       config))) {
       signalPassFailure();
       return;
     }
+
+    SmallVector<Operation *> constantArrayRoots;
+    module.walk<WalkOrder::PreOrder>([&](cudaq::cc::ConstantArrayOp array) {
+      constantArrayRoots.push_back(array.getOperation());
+    });
+    RewritePatternSet constantArrayPatterns(ctx);
+    constantArrayPatterns.insert<ConstantArrayPattern>(ctx, module, counter);
+    if (failed(applyOpPatternsGreedily(
+            constantArrayRoots, std::move(constantArrayPatterns), config))) {
+      signalPassFailure();
+      return;
+    }
+
     LLVM_DEBUG(llvm::dbgs() << "After globalizing array values:\n"
                             << module << '\n');
   }

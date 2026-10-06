@@ -1,0 +1,46 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_packed_components.txt) placement=greedy search=sabre' %s | FileCheck --implicit-check-not=quake.swap %s
+// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_packed_components.txt) placement=greedy search=none'  %s | FileCheck --check-prefix=NONE %s
+// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_packed_components.txt) placement=greedy search=none' %s  | CircuitCheck --up-to-mapping %s
+
+quake.wire_set @wires[2147483647]
+
+func.func @two_bell_pairs() {
+  %q0 = quake.borrow_wire @wires[0] : !quake.wire
+  %q1 = quake.borrow_wire @wires[1] : !quake.wire
+  %q2 = quake.borrow_wire @wires[2] : !quake.wire
+  %q3 = quake.borrow_wire @wires[3] : !quake.wire
+  %a:2 = quake.x [%q0] %q1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %b:2 = quake.x [%q2] %q3 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.return_wire %a#0 : !quake.wire
+  quake.return_wire %a#1 : !quake.wire
+  quake.return_wire %b#0 : !quake.wire
+  quake.return_wire %b#1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @two_bell_pairs() attributes {mapping_reorder_idx = [0, 1, 2, 3], mapping_v2p = [0, 1, 2, 3]} {
+// CHECK:           %[[BORROW_WIRE_0:.*]] = quake.borrow_wire @mapped_wireset[0] : !quake.wire
+// CHECK:           %[[BORROW_WIRE_1:.*]] = quake.borrow_wire @mapped_wireset[1] : !quake.wire
+// CHECK:           %[[BORROW_WIRE_2:.*]] = quake.borrow_wire @mapped_wireset[2] : !quake.wire
+// CHECK:           %[[BORROW_WIRE_3:.*]] = quake.borrow_wire @mapped_wireset[3] : !quake.wire
+// CHECK:           %[[X_0:.*]]:2 = quake.x {{\[}}%[[BORROW_WIRE_0]]] %[[BORROW_WIRE_1]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[X_1:.*]]:2 = quake.x {{\[}}%[[BORROW_WIRE_2]]] %[[BORROW_WIRE_3]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+
+
+// NONE-LABEL:   func.func @two_bell_pairs() attributes {mapping_reorder_idx = [0, 1, 2, 3], mapping_v2p = [0, 1, 2, 3]} {
+// NONE:           %[[BORROW_WIRE_0:.*]] = quake.borrow_wire @mapped_wireset[1] : !quake.wire
+// NONE:           %[[BORROW_WIRE_1:.*]] = quake.borrow_wire @mapped_wireset[2] : !quake.wire
+// NONE:           %[[BORROW_WIRE_2:.*]] = quake.borrow_wire @mapped_wireset[0] : !quake.wire
+// NONE:           %[[BORROW_WIRE_3:.*]] = quake.borrow_wire @mapped_wireset[3] : !quake.wire
+// NONE:           %[[X_0:.*]]:2 = quake.x {{\[}}%[[BORROW_WIRE_0]]] %[[BORROW_WIRE_1]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// NONE:           %[[SWAP_0:.*]]:2 = quake.swap %[[BORROW_WIRE_2]], %[[X_0]]#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// NONE:           %[[SWAP_1:.*]]:2 = quake.swap %[[SWAP_0]]#1, %[[X_0]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// NONE:           %[[X_1:.*]]:2 = quake.x {{\[}}%[[SWAP_1]]#1] %[[BORROW_WIRE_3]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)

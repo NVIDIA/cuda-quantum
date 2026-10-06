@@ -215,13 +215,13 @@ Fermioniq
 
 .. _fermioniq-backend:
 
-`Fermioniq <https://fermioniq.com/>`__ offers a cloud-based tensor-network emulation platform, `Ava <https://www.fermioniq.com/ava/>`__, 
+`Fermioniq <https://fermioniq.com/>`__ offers a cloud-based tensor-network emulation platform, `Ava <https://docs.fermioniq.com/>`__,
 for the approximate simulation of large-scale quantum circuits beyond the memory limit of state vector and exact tensor network based methods. 
 
 The level of approximation can be controlled by setting the bond dimension: larger values yield more accurate simulations at the expense 
 of slower computation time. For a detailed description of Ava users are referred to the `online documentation <https://docs.fermioniq.com/>`__.
 
-Users of CUDA-Q can access a simplified version of the full Fermioniq emulator (`Ava <https://www.fermioniq.com/ava/>`__) from either
+Users of CUDA-Q can access a simplified version of the full Fermioniq emulator (`Ava <https://docs.fermioniq.com/>`__) from either
 C++ or Python. This version currently supports emulation of quantum circuits without noise, and can return measurement samples and/or 
 compute expectation values of observables.
 

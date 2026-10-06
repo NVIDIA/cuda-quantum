@@ -64,7 +64,11 @@ def count_qubits(qasm: str) -> int:
 
 
 def simulate_job(qasm: str, num_shots: int) -> dict[str, int]:
-    """Simulates a quantum job by generating random measurement outcomes based on the circuit."""
+    """Simulates a quantum job by generating random measurement outcomes based on the circuit.
+
+    Keys are reported the way qBraid reports them: classical bit 0 is the
+    rightmost character.
+    """
     num_qubits = count_qubits(qasm)
 
     measured_qubits = []
@@ -136,7 +140,10 @@ def simulate_job(qasm: str, num_shots: int) -> dict[str, int]:
 
         result = {k: v for k, v in new_result.items() if v > 0}
 
-    return result
+    # Up to here position i of every key is qubit i. qBraid reports keys with
+    # classical bit 0 rightmost, so reverse them; the helper reverses them back
+    # into CUDA-Q's qubit-0-leftmost order.
+    return {state[::-1]: n for state, n in result.items()}
 
 
 def poll_job_status(job_id: str) -> dict[str, Any]:
@@ -227,6 +234,49 @@ async def resetTestState():
     DELAY_RESULTS_COUNT["remaining"] = 0
     FORCE_NEXT_RESULT_STATUS["code"] = None
     return {"reset": True}
+
+
+def _paradigm_for_device(device_qrn: str) -> str:
+    """Infer a device paradigm from its QRN for testing.
+
+    Mirrors qBraid's `paradigm` enum (gate_model | analog | annealing | other).
+    Analog/AHS devices (e.g. QuEra Aquila, Pasqal Fresnel) report "analog";
+    everything else defaults to "gate_model".
+    """
+    qrn = device_qrn.lower()
+    if any(tok in qrn for tok in ("quera", "aquila", "pasqal", "fresnel")):
+        return "analog"
+    return "gate_model"
+
+
+# v2 API: GET /devices/{device_qrn}
+@app.get("/devices/{device_qrn}")
+async def getDevice(
+        device_qrn: str = Path(...),
+        x_api_key: Optional[str] = Header(None, alias="X-API-KEY"),
+):
+    """Retrieve device metadata (v2 API).
+
+    The helper queries this at target-initialization time to confirm the
+    selected device can run gate-based programs before submitting any job.
+    """
+    if x_api_key is None:
+        raise HTTPException(status_code=401, detail="API key is required")
+
+    paradigm = _paradigm_for_device(device_qrn)
+    return {
+        "success": True,
+        "data": {
+            "qrn": device_qrn,
+            "name": device_qrn,
+            "vendor": "qbraid",
+            "deviceType": "SIMULATOR" if "sim" in device_qrn.lower() else "QPU",
+            "paradigm": paradigm,
+            "status": "ONLINE",
+            "numberQubits": 30,
+            "runInputTypes": ["qasm2"],
+        },
+    }
 
 
 # v2 API: GET /jobs/{job_qrn}

@@ -9,16 +9,18 @@
 #pragma once
 
 #include "common/CodeGenConfig.h"
+#include "common/CompileTarget.h"
 #include "common/CompiledModule.h"
 #include "common/ExecutionContext.h"
 #include "common/KernelArgs.h"
 #include "common/NoiseModel.h"
 #include "common/ObserveResult.h"
+#include "common/RuntimeTarget.h"
+#include "common/SampleResult.h"
 #include "common/ThunkInterface.h"
 #include "nvqpp_interface.h"
-#include "cudaq/Target/CompileTarget.h"
+#include "cudaq/platform/RuntimeEndpoint.h"
 #include "cudaq/platform/qpu.h"
-#include "cudaq/remote_capabilities.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <cstring>
 #include <cxxabi.h>
@@ -27,6 +29,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 
 namespace cudaq {
 
@@ -38,12 +41,9 @@ class LinkedLibraryHolder;
 
 namespace detail {
 class TargetSetter;
+class PlatformTestAccess;
 class with_platform_in_library_mode;
 } // namespace detail
-
-/// Typedefs for defining the connectivity structure of a QPU
-using QubitEdge = std::pair<std::size_t, std::size_t>;
-using QubitConnectivity = std::vector<QubitEdge>;
 
 /// A sampling tasks takes no input arguments and returns
 /// a sample_result instance.
@@ -55,20 +55,14 @@ using ObserveTask = std::function<observe_result()>;
 
 /// The quantum_platform corresponds to a specific quantum architecture.
 /// The quantum_platform exposes a public API for programmers to
-/// query specific information about the targeted QPU(s) (e.g. number
-/// of qubits, qubit connectivity, etc.). This type is meant to
+/// query specific information about the targeted QPU(s). This type is meant to
 /// be subclassed for concrete realizations of quantum platforms, which
-/// are intended to populate this platformQPUs member of this base class.
+/// are intended to populate the QPUs of this base class via `addQPU` and
+/// `clearQPUs`.
 class quantum_platform {
 public:
   quantum_platform() = default;
   virtual ~quantum_platform() = default;
-
-  /// Fetch the connectivity info
-  std::optional<QubitConnectivity> connectivity();
-
-  /// Get the number of qubits for the QPU with ID qpu_id.
-  std::size_t get_num_qubits(std::size_t qpu_id = 0) const;
 
   /// @brief Return true if this platform exposes multiple QPUs and
   /// supports parallel distribution of quantum tasks.
@@ -130,12 +124,12 @@ public:
   }
 
   ///  Get the number of QPUs available with this platform.
-  std::size_t num_qpus() const { return platformQPUs.size(); }
+  std::size_t num_qpus() const { return compileTargets.size(); }
 
-  QPU &getQPU(std::size_t qpu_id = 0) const {
-    validateQpuId(qpu_id);
-    return *(platformQPUs[qpu_id].get());
-  }
+  /// \cond
+  /// Get the RuntimeEndpoint for the QPU with ID @p qpuId.
+  RuntimeEndpoint &getRuntimeEndpoint(std::size_t qpuId = 0);
+  /// \endcond
 
   /// Return whether this platform is a simulator.
   bool is_simulator(std::size_t qpu_id = 0) const;
@@ -153,14 +147,14 @@ public:
   /// @brief Return true if QPU is locally emulating a remote QPU
   bool is_emulated(std::size_t qpu_id = 0) const;
 
+  /// @brief Return true if the QPU consumes JIT-compiled artifacts.
+  bool supports_jit(std::size_t qpu_id = 0) const;
+
   /// @brief Set the noise model for @p qpu_id on this platform.
   void set_noise(const noise_model *model, std::size_t qpu_id = 0);
 
   /// @brief Return the noise model for @p qpu_id on this platform.
   const noise_model *get_noise(std::size_t qpu_id = 0);
-
-  /// @brief Get the remote capabilities (only applicable for remote platforms)
-  RemoteCapabilities get_remote_capabilities(std::size_t qpu_id = 0) const;
 
   /// Get code generation configuration values
   CodeGenConfig get_codegen_config();
@@ -197,32 +191,12 @@ public:
   /// @brief Enqueue a general task that runs on the specified QPU
   void enqueueAsyncTask(const std::size_t qpu_id, std::function<void()> &f);
 
-  /// @brief Launch a VQE operation on the platform.
-  void launchVQE(const std::string kernelName, const void *kernelArgs,
-                 cudaq::gradient *gradient, const cudaq::spin_op &H,
-                 cudaq::optimizer &optimizer, const int n_params,
-                 const std::size_t shots, std::size_t qpu_id = 0);
-
   [[nodiscard]] KernelThunkResultType
   unifiedLaunchModule(const AnyModule &module, KernelArgs args,
                       std::size_t qpu_id = 0);
 
-  template <typename Policy>
-  [[nodiscard]] std::unique_ptr<cudaq::CompileTarget>
-  getCompileTarget(const Policy &policy, std::size_t qpu_id = 0) {
-    validateQpuId(qpu_id);
-    auto &qpu = platformQPUs[qpu_id];
-    return qpu->getCompileTarget(policy);
-  }
-
-  [[nodiscard]] std::unique_ptr<cudaq::CompileTarget>
-  getCompileTarget(const cudaq::other_policies &policy,
-                   std::size_t qpu_id = 0) {
-    auto *ctx = getExecutionContext();
-    validateQpuId(qpu_id);
-    auto &qpu = platformQPUs[qpu_id];
-    return qpu->getCompileTarget(policy, ctx);
-  }
+  [[nodiscard]] cudaq::CompileTarget
+  getCompileTarget(std::size_t qpu_id = 0) const;
 
   /// List all available platforms
   static std::vector<std::string> list_platforms();
@@ -240,19 +214,29 @@ public:
 protected:
   friend class cudaq::LinkedLibraryHolder;
   friend class cudaq::detail::TargetSetter;
+  friend class cudaq::detail::PlatformTestAccess;
   /// @brief Set the target backend, by default do nothing, let subclasses
   /// override
   /// @param name
   virtual void setTargetBackend(const std::string &name) {}
+
+  /// Append @p qpu to the platform's QPUs.
+  ///
+  /// Note that any reference to `QPU`s, `CompileTarget`s or `RuntimeEndpoint`s
+  /// may get invalidated by this operation (`std::vector` reallocation).
+  QPU &addQPU(std::unique_ptr<QPU> qpu);
+
+  /// Append a new QPU to the platform, as defined by @p target and @p endpoint.
+  void addQPU(const CompileTarget &target, const RuntimeEndpoint &endpoint);
+
+  /// Destroy all of the platform's QPUs and runtime endpoints.
+  void clearQPUs();
 
   /// The runtime target settings
   std::unique_ptr<RuntimeTarget> runtimeTarget;
 
   /// Code generation configuration
   std::optional<CodeGenConfig> codeGenConfig;
-
-  /// The Platform QPUs, populated by concrete subtypes
-  std::vector<std::unique_ptr<QPU>> platformQPUs;
 
   /// Name of the platform.
   std::string platformName;
@@ -262,6 +246,11 @@ private:
 
   // Helper to validate QPU Id
   void validateQpuId(std::size_t qpuId) const;
+
+  /// The compilation targets for each QPU on the platform.
+  std::vector<CompileTarget> compileTargets;
+  /// The runtime endpoints to launch kernels for each QPU on the platform.
+  std::vector<RuntimeEndpoint> runtimeEndpoints;
 
   int libraryModeOverride = 0;
 };

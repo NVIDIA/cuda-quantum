@@ -8,12 +8,14 @@
 
 #pragma once
 
+#include "CompiledModuleCache.h"
 #include "common/CompiledModule.h"
 #include "utils/OpaqueArguments.h"
 #include "utils/PyTypes.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/algorithms/run.h"
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
+#include <memory>
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/complex.h>
 #include <nanobind/stl/function.h>
@@ -49,17 +51,16 @@ void bindAltLaunchKernel(nanobind::module_ &mod,
 /// resolved at this `callsite` \e prior to launching this module. In particular
 /// this means \p module is ready for beta reduction of callables. The return
 /// type is obtained from the kernel's FuncOp. \p module must be modifiable.
-nanobind::object marshal_and_launch_module(const std::string &kernelName,
-                                           MlirModule module,
-                                           nanobind::args runtimeArgs,
-                                           CompiledModule *compiled = nullptr);
+nanobind::object marshal_and_launch_module(
+    const std::string &kernelName, MlirModule module,
+    nanobind::args runtimeArgs,
+    std::shared_ptr<detail::CompiledModuleCache> cache = nullptr);
 
 /// Pure C++ code that launches a kernel. Argument marshaling and result
 /// unmarshalling is \e not performed.
-KernelThunkResultType clean_launch_module(const std::string &kernelName,
-                                          mlir::ModuleOp mod,
-                                          OpaqueArguments &args,
-                                          CompiledModule *compiled = nullptr);
+KernelThunkResultType clean_launch_module(
+    const std::string &kernelName, mlir::ModuleOp mod, OpaqueArguments &args,
+    std::shared_ptr<detail::CompiledModuleCache> cache = nullptr);
 
 /// Marshal python arguments into an OpaqueArguments for kernel launch.
 /// Encodes arguments in the runtime ABI layout for direct local simulation,

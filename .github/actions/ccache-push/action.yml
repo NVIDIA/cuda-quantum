@@ -157,7 +157,7 @@ runs:
 
     - name: Upload ccache log
       if: always() && inputs.upload-log == 'true'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: ${{ steps.artifact.outputs.name }}
         path: ${{ github.workspace }}/ccache.log

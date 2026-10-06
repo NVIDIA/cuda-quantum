@@ -19,6 +19,8 @@
 #   and run this script from the home directory.
 #   Check the logged output.
 
+this_file_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # Auto-setup if running from repo root (detected by presence of docs/sphinx/examples)
 # This allows running validation directly from the repo without manual setup.
 if [ -d "docs/sphinx/examples" ]; then
@@ -43,7 +45,7 @@ failed=0
 skipped=0
 samples=0
 
-if [ -x "$(command -v nvidia-smi)" ] && [ "$(nvidia-smi | egrep -o "CUDA Version: ([0-9]{1,}\.)+[0-9]{1,}")" != "" ]; 
+if gpus=$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null) && [ -n "$gpus" ]; 
 then gpu_available=true
 else gpu_available=false
 fi
@@ -110,59 +112,21 @@ requested_backends=`\
     do echo "$target"; \
     done`
 
+target_resolve="$CUDA_QUANTUM_PATH/bin/cudaq-target-resolve"
+target_resolve_args=(--install-dir="$CUDA_QUANTUM_PATH" --lib-dir="$CUDA_QUANTUM_PATH/lib")
+if $gpu_available; then
+    target_resolve_args+=(--gpu-count="$(nvidia-smi -L | wc -l | tr -d ' ')")
+fi
+
 installed_backends=`\
     echo "default"
-    for file in $(ls $CUDA_QUANTUM_PATH/targets/*.yml); \
-    do basename $file | cut -d "." -f 1; \
-    done`
+    "$target_resolve" --list-targets --include-unavailable "${target_resolve_args[@]}"`
 
-should_skip_install_validation_target() {
-  local target_config=$1
-  local skipped_target_configs=(
-    "opt-test.yml"
-    "compiler-bench-nisq.yml"
-    "compiler-bench-ftqc-logical.yml"
-  )
-
-  for skipped_target_config in "${skipped_target_configs[@]}"; do
-    if [[ "${target_config}" == "${skipped_target_config}" ]]; then
-      return 0
-    fi
-  done
-  return 1
-}
-
-# remote_rest targets are automatically filtered, 
-# so is execution on the photonics backend and the stim backend
-# This will test all NVIDIA-derivative targets in the legacy mode,
-# i.e., nvidia-fp64, nvidia-mgpu, nvidia-mqpu, etc., are treated as standalone targets.
+# Run the notebooks on all available simulators other than stim and benchmark targets
 available_backends=`\
     echo "default"
-    for file in $(ls $CUDA_QUANTUM_PATH/targets/*.yml); \
-    do
-        if grep -q "library-mode-execution-manager: photonics" $file ; then 
-          continue
-        fi 
-        # Skip optimization test targets
-        if should_skip_install_validation_target "$(basename $file)"; then
-          continue
-        fi
-        if grep -q "nvqir-simulation-backend: stim" $file ; then 
-          continue
-        fi 
-        platform=$(cat $file | grep "platform-qpu:")
-        qpu=${platform##* }
-        requirements=$(cat $file | grep "gpu-requirements:")
-        gpus=${requirements##* }
-        # Full pasqal requires QRMI shared libraries and supported cluster.
-        # Generic installation validation skips it unless a dedicated environment is provided.
-        if [ "${qpu}" != "remote_rest" ] \
-        && [ "${qpu}" != "fermioniq" ] && [ "${qpu}" != "orca" ] \
-        && [ "${qpu}" != "pasqal" ] && [ "${qpu}" != "quera" ] \
-        && ($gpu_available || [ -z "$gpus" ] || [ "${gpus,,}" == "false" ]); then \
-            basename $file | cut -d "." -f 1; \
-        fi; \
-    done`
+    "$target_resolve" --list-simulators "${target_resolve_args[@]}" \
+        | grep -vxE "stim|compiler-bench-ftqc-clifford-t"`
 
 missing_backend=false
 if [ $# -eq 0 ]
@@ -198,10 +162,29 @@ echo "Testing backends:"
 echo "$requested_backends"
 echo
 
-if $missing_backend || [ "$available_backends" == "" ]; 
+if $missing_backend || [ "$available_backends" == "" ];
 then
     echo "Abort due to missing backend configuration."
-    exit 1 
+    exit 1
+fi
+
+echo "============================="
+echo "==   License Compliance   =="
+echo "============================="
+
+# GMP and MPFR are redistributed with CUDA-Q under the LGPL v3; verify the
+# properties the redistribution relies on (license texts shipped, dynamic
+# linking only, libraries replaceable).
+let "samples+=1"
+if [ -f "$this_file_dir/validate_license_compliance.sh" ]; then
+    if bash "$this_file_dir/validate_license_compliance.sh"; then
+        let "passed+=1"
+    else
+        let "failed+=1"
+    fi
+else
+    echo -e "\e[01;31mError: validate_license_compliance.sh not found in $this_file_dir.\e[0m" >&2
+    let "failed+=1"
 fi
 
 # Long-running tests
@@ -217,9 +200,12 @@ echo "============================="
 echo "==        C++ Tests        =="
 echo "============================="
 
+# Plugin sources are libraries or test infrastructure rather than standalone
+# examples; each plugin validates them through its dedicated test target.
 # Note: piping the `find` results through `sort` guarantees repeatable ordering.
 tmpFile=$(mktemp)
-for ex in `find examples/ applications/ targets/ -name '*.cpp' -not -path '*/mpi/*' | sort`;
+for ex in `find examples/ applications/ targets/ -name '*.cpp' \
+    -not -path '*/mpi/*' -not -path '*/plugins/*' | sort`;
 do
     filename=$(basename -- "$ex")
     filename="${filename%.*}"
@@ -227,7 +213,7 @@ do
     echo "Source: $ex"
     let "samples+=1"
 
-    # Look for a --target flag to nvq++ in the 
+    # Look for a --target flag to nvq++ in the
     # comment block at the beginning of the file.
     # Note: using sed instead of grep -P for macOS compatibility
     intended_target=$(sed -e '/^$/,$d' "$ex" | sed -n 's|^//[[:space:]]*nvq++.*--target[[:space:]]\{1,\}\([^[:space:]]\{1,\}\).*|\1|p' | head -1)
@@ -277,7 +263,6 @@ do
         get_target_options() {
             case "$1" in
                 nvidia) echo "fp32 fp64 fp32,mqpu fp64,mqpu fp32,mgpu fp64,mgpu" ;;
-                nvidia-legacy) echo "fp32 fp64 fp32,mqpu fp64,mqpu" ;;
                 tensornet) echo "fp32 fp64" ;;
                 tensornet-mps) echo "fp32 fp64" ;;
                 *) echo "" ;;
@@ -433,8 +418,11 @@ dynamics_backend_skipped_examples=(\
 # purposes of the container validation. The divisive_clustering_src Python
 # files are used by the Divisive_clustering.ipynb notebook, so they are tested
 # elsewhere and should be excluded from this test.
+# Plugin Python files are packaging or test infrastructure and are validated by
+# each plugin's dedicated test target.
 # Note: piping the `find` results through `sort` guarantees repeatable ordering.
-for ex in `find examples/ targets/ -name '*.py' -not -path '*/mpi/*' | sort`;
+for ex in `find examples/ targets/ -name '*.py' \
+    -not -path '*/mpi/*' -not -path '*/plugins/*' | sort`;
 do 
     filename=$(basename -- "$ex")
     filename="${filename%.*}"
@@ -543,8 +531,20 @@ if [ -n "$(find examples/ applications/ -name '*.ipynb')" ]; then
     echo "Installing Jupyter kernel infrastructure..."
     # Only install what's needed to register the kernel
     pip install --upgrade pip -q
-    pip install jupyter ipykernel notebook -q
-    
+    notebook_requirements="$this_script_dir/../requirements.txt"
+    if [ -f "$notebook_requirements" ]; then
+        pip install jupyter ipykernel -r "$notebook_requirements" -q
+    else
+        pip install jupyter ipykernel notebook -q
+    fi
+
+    # skqd.ipynb imports mpi4py, which is not shipped in the image.
+    if [ -n "$MPI_ROOT" ] && ! python3 -c "import mpi4py" 2>/dev/null; then
+        echo "Installing mpi4py for notebooks that require it..."
+        pip install "mpi4py~=4.1" -q \
+            || echo "Warning: could not install mpi4py; notebooks importing it will fail."
+    fi
+
     # Register the venv as a Jupyter kernel
     # Notebooks will execute in this environment and can install their own packages
     JUPYTER_KERNEL_NAME="cudaq_nb_validation_container"

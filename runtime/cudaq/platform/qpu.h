@@ -9,13 +9,12 @@
 #pragma once
 
 #include "QuantumExecutionQueue.h"
+#include "common/CompileTarget.h"
 #include "common/CompiledModule.h"
 #include "common/KernelArgs.h"
 #include "common/Registry.h"
 #include "common/ThunkInterface.h"
-#include "cudaq/Target/CompileTarget.h"
 #include "cudaq/algorithms/policies.h"
-#include "cudaq/remote_capabilities.h"
 
 namespace mlir {
 class Type;
@@ -26,6 +25,7 @@ class gradient;
 class optimizer;
 class noise_model;
 class ExecutionContext;
+struct RuntimeTarget;
 
 // forward declare the spin_op type
 template <typename T>
@@ -35,8 +35,8 @@ typedef sum_op<spin_handler> spin_op;
 
 /// A CUDA-Q QPU is an abstraction on the quantum processing unit which executes
 /// quantum kernel expressions. The QPU exposes certain information about the
-/// QPU being targeting, such as the number of available qubits, the logical ID
-/// for this QPU in a set of available QPUs, and its qubit connectivity. The QPU
+/// QPU being targeted, such as the compile target of the QPU, the logical ID
+/// for this QPU in a set of available QPUs and the current noise model. The QPU
 /// keeps track of an execution queue for enqueuing asynchronous tasks that
 /// execute quantum kernel expressions. The QPU also tracks the client-provided
 /// execution context to enable quantum kernel related tasks such as sampling
@@ -47,38 +47,10 @@ class QPU : public registry::RegisteredType<QPU> {
 protected:
   /// The logical id of this QPU in the platform set of QPUs
   std::size_t qpu_id = 0;
-  std::size_t numQubits = 30;
-  std::optional<std::vector<std::pair<std::size_t, std::size_t>>> connectivity;
   std::unique_ptr<QuantumExecutionQueue> execution_queue;
 
   /// @brief Noise model specified for QPU execution.
   const noise_model *noiseModel = nullptr;
-
-  [[nodiscard]] static KernelThunkResultType
-  runJITCompiledModule(const CompiledModule &compiled, KernelArgs args);
-
-  /// @brief Re-throw an exception the kernel deferred during execution, if any.
-  /// Subclasses must call this immediately after invoking a kernel, from the
-  /// C++ frame above the JIT/AOT boundary. It exists because on some platforms
-  /// (macOS arm64) a C++ exception cannot unwind through a JIT-compiled kernel
-  /// frame; the simulator records the error on the execution context instead of
-  /// throwing across that boundary (see
-  /// ExecutionContext::deferredKernelException). No-op when nothing was
-  /// deferred.
-  static void rethrowDeferredKernelException();
-
-  /// @brief RAII marker for the window in which a JIT/AOT-compiled kernel frame
-  /// is executing. While alive it sets `ExecutionContext::inKernelLaunch` on
-  /// the active context, so the simulator defers (rather than throws)
-  /// exceptions that would otherwise have to unwind through the kernel frame.
-  /// Launchers wrap the raw kernel invocation in this scope and call
-  /// rethrowDeferredKernelException() immediately afterwards.
-  struct InKernelLaunchScope {
-    InKernelLaunchScope();
-    ~InKernelLaunchScope();
-    InKernelLaunchScope(const InKernelLaunchScope &) = delete;
-    InKernelLaunchScope &operator=(const InKernelLaunchScope &) = delete;
-  };
 
 public:
   /// The constructor, initializes the execution queue
@@ -106,20 +78,8 @@ public:
   virtual void setNoiseModel(const noise_model *model) { noiseModel = model; }
   virtual const noise_model *getNoiseModel() { return noiseModel; }
 
-  /// Return the number of qubits
-  std::size_t getNumQubits() { return numQubits; }
-  /// Return the qubit connectivity
-  auto getConnectivity() { return connectivity; }
   /// Is this QPU a simulator ?
   virtual bool isSimulator() { return true; }
-
-  /// @brief Return whether this QPU supports explicit measurements
-  virtual bool supportsExplicitMeasurements() { return true; }
-
-  /// @brief Return the remote capabilities for this platform.
-  virtual RemoteCapabilities getRemoteCapabilities() const {
-    return RemoteCapabilities(/*initValues=*/false);
-  }
 
   /// Base class handling of shots is do-nothing,
   /// subclasses can handle as they wish
@@ -156,11 +116,6 @@ public:
 
   virtual void setTargetBackend(const std::string &backend) {}
 
-  virtual void launchVQE(const std::string &name, const void *kernelArgs,
-                         cudaq::gradient *gradient, const cudaq::spin_op &H,
-                         cudaq::optimizer &optimizer, const int n_params,
-                         const std::size_t shots) {}
-
   virtual sample_result launchKernel(const sample_policy &policy,
                                      const CompiledModule &module,
                                      KernelArgs args);
@@ -169,27 +124,55 @@ public:
                                            const CompiledModule &module,
                                            KernelArgs args);
 
+  virtual orca::sample_policy::result_type
+  launchKernel(const orca::sample_policy &policy, const CompiledModule &module,
+               KernelArgs args);
+
+  virtual orca::async_sample_policy::result_type
+  launchKernel(const orca::async_sample_policy &policy,
+               const CompiledModule &module, KernelArgs args);
+
   virtual observe_result launchKernel(const observe_policy &policy,
                                       const CompiledModule &module,
                                       KernelArgs args);
+
+  virtual run_result launchKernel(const run_policy &policy,
+                                  const CompiledModule &module,
+                                  KernelArgs args);
+
+  virtual async_run_policy::result_type
+  launchKernel(const async_run_policy &policy, const CompiledModule &module,
+               KernelArgs args);
+
+  virtual msm_dimensions launchKernel(const msm_size_policy &policy,
+                                      const CompiledModule &module,
+                                      KernelArgs args);
+
+  virtual msm_result launchKernel(const msm_policy &policy,
+                                  const CompiledModule &module,
+                                  KernelArgs args);
 
   virtual async_observe_result launchKernel(const async_observe_policy &policy,
                                             const CompiledModule &module,
                                             KernelArgs args);
 
+  virtual dem_result launchKernel(const dem_policy &policy,
+                                  const CompiledModule &module,
+                                  KernelArgs args);
+
+  virtual estimate_result launchKernel(const estimate_policy &policy,
+                                       const CompiledModule &module,
+                                       KernelArgs args);
+
+  virtual ptsbe::sample_policy::result_type
+  launchKernel(const ptsbe::sample_policy &policy, const CompiledModule &module,
+               KernelArgs args);
+
   [[nodiscard]] virtual KernelThunkResultType
   unifiedLaunchModule(const AnyModule &module, KernelArgs args);
 
-  /// Get the compile target of the QPU for the given policy.
-  ///
-  /// By default, fall back to other_policies compile target.
-  [[nodiscard]] virtual std::unique_ptr<CompileTarget>
-  getCompileTarget(const sample_policy &policy);
-  [[nodiscard]] virtual std::unique_ptr<CompileTarget>
-  getCompileTarget(const observe_policy &policy);
-  // Overload for currently unsupported policies (to be removed).
-  [[nodiscard]] virtual std::unique_ptr<CompileTarget>
-  getCompileTarget(const other_policies &policy, ExecutionContext *context);
+  [[nodiscard]] virtual CompileTarget
+  getCompileTarget(const RuntimeTarget *rt = nullptr);
 
   /// @brief Notify the QPU that a new random seed value is set.
   /// By default do nothing, let subclasses override.

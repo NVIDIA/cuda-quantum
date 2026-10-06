@@ -72,9 +72,9 @@ def test_kernel_measure_qreg():
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__PythonKernelBuilderInstance
 # CHECK-SAME: () attributes {"cudaq-entrypoint"
 # CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<3>
-# CHECK:           %[[VAL_1:.*]] = quake.mx %[[VAL_0]] : (!quake.veq<3>) -> !cc.stdvec<!cc.measure_handle>
-# CHECK:           %[[VAL_2:.*]] = quake.my %[[VAL_0]] : (!quake.veq<3>) -> !cc.stdvec<!cc.measure_handle>
-# CHECK:           %[[VAL_3:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<3>) -> !cc.stdvec<!cc.measure_handle>
+# CHECK:           %[[VAL_1:.*]] = quake.mx %[[VAL_0]] : (!quake.veq<3>) -> !cc.sequence<!cc.measure_handle>
+# CHECK:           %[[VAL_2:.*]] = quake.my %[[VAL_0]] : (!quake.veq<3>) -> !cc.sequence<!cc.measure_handle>
+# CHECK:           %[[VAL_3:.*]] = quake.mz %[[VAL_0]] : (!quake.veq<3>) -> !cc.sequence<!cc.measure_handle>
 # CHECK:           return
 # CHECK:         }
 

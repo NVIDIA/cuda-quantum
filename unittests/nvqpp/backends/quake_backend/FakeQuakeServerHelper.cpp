@@ -15,7 +15,6 @@
 #include <map>
 #include <nlohmann/json.hpp>
 #include <stdexcept>
-#include <string_view>
 #include <thread>
 
 namespace cudaq {
@@ -30,26 +29,31 @@ public:
 
   void initialize(BackendConfig config) override { backendConfig = config; }
 
-  void updatePassPipeline(const std::filesystem::path &,
-                          std::string &passPipeline) override {
-    auto iter = backendConfig.find("emulate");
-    if (iter == backendConfig.end() || iter->second != "true")
-      return;
+  std::map<std::string, std::string>
+  getPipelineSubstitutions(const std::filesystem::path &) override {
+    const auto iter = backendConfig.find("emulate");
+    if (iter == backendConfig.end() || iter->second != "true") {
+      const auto mappingIter = backendConfig.find("mapping_file");
+      if (mappingIter != backendConfig.end()) {
+        // Enable mapping only for tests compiled with `--mapping-file`.
+        const std::string mappingPipeline =
+            "qubit-mapping{device=file(" + mappingIter->second +
+            ") placement=identity search=sabre}";
+        return {{"%QUAKE_EMULATE_SUFFIX%", ""},
+                {"qubit-mapping{device=bypass}", mappingPipeline}};
+      }
+      return {{"%QUAKE_EMULATE_SUFFIX%", ""}};
+    }
 
-    // `quake_fake` sends value-semantic wireset IR to the mock server when
-    // running remotely. For `--emulate`, keep the IR in the normal ref-semantic
-    // form so the shared local JIT lowers it through its regular QIR path.
-    constexpr std::string_view wiresetPipeline =
-        ",factor-quantum-alloc,dqe,cable-rough-in,canonicalize,memtoreg)"
-        ",canonicalize,cse,add-wireset,func.func(assign-wire-indices)"
-        ",qubit-mapping{device=bypass}"
-        ",decomposition{basis=h,s,t,r1,rx,ry,rz,x,y,z,z(1),x(1)}";
-    const auto pos = passPipeline.find(wiresetPipeline);
-    if (pos == std::string::npos)
-      throw std::runtime_error(
-          "quake_fake emulation pipeline does not contain wireset lowering");
-
-    passPipeline.replace(pos, wiresetPipeline.size(), ")");
+    // Remote execution preserves structured control flow in the wire-set
+    // payload, then fully unrolls it on the mock server before lowering the
+    // wire set directly to QIR. Mirror that execution-time lowering for local
+    // emulation without changing the selectively unrolled client payload.
+    return {{"%QUAKE_EMULATE_SUFFIX%",
+             ",return-to-output-log,func.func(cc-loop-unroll{maximum-"
+             "iterations=1024 "
+             "signal-failure-if-any-loop-cannot-be-completely-unrolled=true "
+             "allow-early-exit=true},canonicalize),lower-to-cfg"}};
   }
 
   ServerJobPayload

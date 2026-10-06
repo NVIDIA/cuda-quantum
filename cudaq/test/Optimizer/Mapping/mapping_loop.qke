@@ -1,0 +1,399 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                        //
+//                                                                             //
+// This source code and the accompanying materials are made available under    //
+// the terms of the Apache License 2.0 which accompanies this distribution.    //
+// ========================================================================== //
+
+// RUN: cudaq-opt --qubit-mapping=device=path\(3\) %s | FileCheck %s
+
+quake.wire_set @wires[2147483647]
+
+// Single wire through a while loop; the body applies a 1Q gate each iteration.
+//
+// CHECK-LABEL: func.func @test_loop_single_wire() attributes {"cudaq-kernel", mapping_reorder_idx = {{.*}}, mapping_v2p = {{.*}}}
+// CHECK:   %[[Q0:.*]] = quake.borrow_wire @mapped_wireset[{{[0-9]+}}] : !quake.wire
+// CHECK:   %[[LOOP:.*]] = cc.loop while ((%[[W:.*]] = %[[Q0]]) -> (!quake.wire)) {
+// CHECK:     cc.condition {{.*}}(%[[W]] : !quake.wire)
+// CHECK:   } do {
+// CHECK:   ^bb0(%[[BW:.*]]: !quake.wire):
+// CHECK:     %[[OUT:.*]] = quake.h %[[BW]] : (!quake.wire) -> !quake.wire
+// CHECK:     cc.continue %[[OUT]] : !quake.wire
+// CHECK:   }
+// CHECK:   quake.mz %[[LOOP]]
+func.func @test_loop_single_wire() attributes {"cudaq-kernel"} {
+  %cond = cc.undef i1
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
+  %loop = cc.loop while ((%w = %0) -> !quake.wire) {
+    cc.condition %cond (%w : !quake.wire)
+  } do {
+  ^bb0(%bw : !quake.wire):
+    %out = quake.h %bw : (!quake.wire) -> !quake.wire
+    cc.continue %out : !quake.wire
+  }
+  quake.return_wire %loop : !quake.wire
+  return
+}
+
+// A CNOT before a loop forces a SWAP. After the SWAP both wires flow into a
+// loop that applies 1Q gates each iteration. The post-loop wires are then used
+// in a second CNOT that must require no additional SWAP.
+//
+// CHECK-LABEL: func.func @test_cnot_loop_cnot() attributes {"cudaq-kernel", mapping_reorder_idx = {{.*}}, mapping_v2p = {{.*}}}
+// CHECK:   %[[Q0:.*]] = quake.borrow_wire @mapped_wireset[{{[0-9]+}}] : !quake.wire
+// CHECK:   %[[Q1:.*]] = quake.borrow_wire @mapped_wireset[{{[0-9]+}}] : !quake.wire
+// CHECK:   %[[Q2:.*]] = quake.borrow_wire @mapped_wireset[{{[0-9]+}}] : !quake.wire
+// CHECK:   %[[SW:.*]]:2 = quake.swap %[[Q0]], %[[Q1]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:   %[[CX1:.*]]:2 = quake.x [%[[SW]]#1] %[[Q2]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:   %[[LOOP:.*]] = cc.loop while ((%[[W:.*]] = %[[CX1]]#0) -> (!quake.wire)) {
+// CHECK:     cc.condition {{.*}}(%[[W]] : !quake.wire)
+// CHECK:   } do {
+// CHECK:   ^bb0(%[[BW:.*]]: !quake.wire):
+// CHECK:     %[[OUT:.*]] = quake.h %[[BW]] : (!quake.wire) -> !quake.wire
+// CHECK:     cc.continue %[[OUT]] : !quake.wire
+// CHECK:   }
+// CHECK:   %[[CX2:.*]]:2 = quake.x [%[[LOOP]]] %[[CX1]]#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK-NOT: quake.swap
+func.func @test_cnot_loop_cnot() attributes {"cudaq-kernel"} {
+  %cond = cc.undef i1
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
+  %1 = quake.borrow_wire @wires[1] : !quake.wire
+  %2 = quake.borrow_wire @wires[2] : !quake.wire
+  %3:2 = quake.x [%0] %2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %loop = cc.loop while ((%w = %3#0) -> !quake.wire) {
+    cc.condition %cond (%w : !quake.wire)
+  } do {
+  ^bb0(%bw : !quake.wire):
+    %out = quake.h %bw : (!quake.wire) -> !quake.wire
+    cc.continue %out : !quake.wire
+  }
+  %5:2 = quake.x [%loop] %3#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.return_wire %1 : !quake.wire
+  quake.return_wire %5#0 : !quake.wire
+  quake.return_wire %5#1 : !quake.wire
+  return
+}
+
+// Two sequential loops on the same wire with a 1Q gate between them.
+//
+// CHECK-LABEL: func.func @test_two_loops() attributes {"cudaq-kernel", mapping_reorder_idx = {{.*}}, mapping_v2p = {{.*}}}
+// CHECK:   %[[Q0:.*]] = quake.borrow_wire @mapped_wireset[{{[0-9]+}}] : !quake.wire
+// CHECK:   %[[LOOP1:.*]] = cc.loop while ((%[[W1:.*]] = %[[Q0]]) -> (!quake.wire)) {
+// CHECK:     cc.condition {{.*}}(%[[W1]] : !quake.wire)
+// CHECK:   } do {
+// CHECK:   ^bb0(%[[BW1:.*]]: !quake.wire):
+// CHECK:     %[[OUT1:.*]] = quake.h %[[BW1]] : (!quake.wire) -> !quake.wire
+// CHECK:     cc.continue %[[OUT1]] : !quake.wire
+// CHECK:   }
+// CHECK:   %[[ZR:.*]] = quake.z %[[LOOP1]] : (!quake.wire) -> !quake.wire
+// CHECK:   %[[LOOP2:.*]] = cc.loop while ((%[[W2:.*]] = %[[ZR]]) -> (!quake.wire)) {
+// CHECK:     cc.condition {{.*}}(%[[W2]] : !quake.wire)
+// CHECK:   } do {
+// CHECK:   ^bb0(%[[BW2:.*]]: !quake.wire):
+// CHECK:     %[[OUT2:.*]] = quake.t %[[BW2]] : (!quake.wire) -> !quake.wire
+// CHECK:     cc.continue %[[OUT2]] : !quake.wire
+// CHECK:   }
+// CHECK:   quake.mz %[[LOOP2]]
+func.func @test_two_loops() attributes {"cudaq-kernel"} {
+  %cond = cc.undef i1
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
+  %loop1 = cc.loop while ((%w = %0) -> !quake.wire) {
+    cc.condition %cond (%w : !quake.wire)
+  } do {
+  ^bb0(%bw : !quake.wire):
+    %out = quake.h %bw : (!quake.wire) -> !quake.wire
+    cc.continue %out : !quake.wire
+  }
+  %z = quake.z %loop1 : (!quake.wire) -> !quake.wire
+  %loop2 = cc.loop while ((%w = %z) -> !quake.wire) {
+    cc.condition %cond (%w : !quake.wire)
+  } do {
+  ^bb0(%bw : !quake.wire):
+    %out = quake.t %bw : (!quake.wire) -> !quake.wire
+    cc.continue %out : !quake.wire
+  }
+  quake.return_wire %loop2 : !quake.wire
+  return
+}
+
+// Two wires through a loop body, each with a different 1Q gate per iteration.
+//
+// CHECK-LABEL: func.func @test_loop_two_wires() attributes {"cudaq-kernel", mapping_reorder_idx = {{.*}}, mapping_v2p = {{.*}}}
+// CHECK:   %[[Q0:.*]] = quake.borrow_wire @mapped_wireset[{{[0-9]+}}] : !quake.wire
+// CHECK:   %[[Q1:.*]] = quake.borrow_wire @mapped_wireset[{{[0-9]+}}] : !quake.wire
+// CHECK:   %[[LOOP:.*]]:2 = cc.loop while ((%[[W0:.*]] = %[[Q0]], %[[W1:.*]] = %[[Q1]]) -> (!quake.wire, !quake.wire)) {
+// CHECK:     cc.condition {{.*}}(%[[W0]], %[[W1]] : !quake.wire, !quake.wire)
+// CHECK:   } do {
+// CHECK:   ^bb0(%[[BW0:.*]]: !quake.wire, %[[BW1:.*]]: !quake.wire):
+// CHECK:     %[[HR:.*]] = quake.h %[[BW0]] : (!quake.wire) -> !quake.wire
+// CHECK:     %[[TR:.*]] = quake.t %[[BW1]] : (!quake.wire) -> !quake.wire
+// CHECK:     cc.continue %[[HR]], %[[TR]] : !quake.wire, !quake.wire
+// CHECK:   }
+// CHECK:   quake.mz %[[LOOP]]#0
+// CHECK:   quake.mz %[[LOOP]]#1
+func.func @test_loop_two_wires() attributes {"cudaq-kernel"} {
+  %cond = cc.undef i1
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
+  %1 = quake.borrow_wire @wires[1] : !quake.wire
+  %loop:2 = cc.loop while ((%w0 = %0, %w1 = %1) -> (!quake.wire, !quake.wire)) {
+    cc.condition %cond (%w0, %w1 : !quake.wire, !quake.wire)
+  } do {
+  ^bb0(%bw0 : !quake.wire, %bw1 : !quake.wire):
+    %r0 = quake.h %bw0 : (!quake.wire) -> !quake.wire
+    %r1 = quake.t %bw1 : (!quake.wire) -> !quake.wire
+    cc.continue %r0, %r1 : !quake.wire, !quake.wire
+  }
+  quake.return_wire %loop#0 : !quake.wire
+  quake.return_wire %loop#1 : !quake.wire
+  return
+}
+
+// Loop body with a triangle of CNOTs: on path(3) no placement makes all
+// three pairs adjacent, so SABRE must insert a routing SWAP inside the body.
+// The emitter then appends the inverse SWAP before cc.continue to restore
+// the entry layout without needing any device path computation.
+//
+// CHECK-LABEL: func.func @test_cnot_triangle_loop() attributes {"cudaq-kernel", mapping_reorder_idx = {{.*}}, mapping_v2p = {{.*}}}
+// CHECK:       %[[Q0:.*]] = quake.borrow_wire @mapped_wireset[{{.*}}] : !quake.wire
+// CHECK:       %[[Q1:.*]] = quake.borrow_wire @mapped_wireset[{{.*}}] : !quake.wire
+// CHECK:       %[[Q2:.*]] = quake.borrow_wire @mapped_wireset[{{.*}}] : !quake.wire
+// CHECK:       %[[LOOP:.*]]:3 = cc.loop while ((%[[W0:.*]] = %[[Q0]], %[[W1:.*]] = %[[Q1]], %[[W2:.*]] = %[[Q2]]) -> (!quake.wire, !quake.wire, !quake.wire)) {
+// CHECK:         cc.condition {{.*}}(%[[W0]], %[[W1]], %[[W2]] : !quake.wire, !quake.wire, !quake.wire)
+// CHECK:       } do {
+// CHECK:       ^bb0(%[[BW0:.*]]: !quake.wire, %[[BW1:.*]]: !quake.wire, %[[BW2:.*]]: !quake.wire):
+// CHECK:         quake.x
+// CHECK:         quake.x
+// CHECK:         quake.swap
+// CHECK:         quake.x
+// CHECK:         quake.swap
+// CHECK:         cc.continue {{.*}} : !quake.wire, !quake.wire, !quake.wire
+// CHECK:       }
+func.func @test_cnot_triangle_loop() attributes {"cudaq-kernel"} {
+  %cond = cc.undef i1
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
+  %1 = quake.borrow_wire @wires[1] : !quake.wire
+  %2 = quake.borrow_wire @wires[2] : !quake.wire
+  %loop:3 = cc.loop while ((%w0 = %0, %w1 = %1, %w2 = %2) -> (!quake.wire, !quake.wire, !quake.wire)) {
+    cc.condition %cond (%w0, %w1, %w2 : !quake.wire, !quake.wire, !quake.wire)
+  } do {
+  ^bb0(%bw0 : !quake.wire, %bw1 : !quake.wire, %bw2 : !quake.wire):
+    %a:2 = quake.x [%bw0] %bw1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    %b:2 = quake.x [%a#1] %bw2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    %c:2 = quake.x [%a#0] %b#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    cc.continue %c#0, %b#0, %c#1 : !quake.wire, !quake.wire, !quake.wire
+  }
+  quake.return_wire %loop#0 : !quake.wire
+  quake.return_wire %loop#1 : !quake.wire
+  quake.return_wire %loop#2 : !quake.wire
+  return
+}
+
+// Nested loop: inner loop inside the outer loop's body. The outer body applies
+// an H gate, then hands the wire to an inner loop that applies X each iteration.
+//
+// CHECK-LABEL: func.func @test_nested_loop() attributes {"cudaq-kernel", mapping_reorder_idx = {{.*}}, mapping_v2p = {{.*}}}
+// CHECK:   %[[Q0:.*]] = quake.borrow_wire @mapped_wireset[{{[0-9]+}}] : !quake.wire
+// CHECK:   %[[OUTER:.*]] = cc.loop while ((%[[WO:.*]] = %[[Q0]]) -> (!quake.wire)) {
+// CHECK:     cc.condition {{.*}}(%[[WO]] : !quake.wire)
+// CHECK:   } do {
+// CHECK:   ^bb0(%[[BWO:.*]]: !quake.wire):
+// CHECK:     %[[HR:.*]] = quake.h %[[BWO]] : (!quake.wire) -> !quake.wire
+// CHECK:     %[[INNER:.*]] = cc.loop while ((%[[WI:.*]] = %[[HR]]) -> (!quake.wire)) {
+// CHECK:       cc.condition {{.*}}(%[[WI]] : !quake.wire)
+// CHECK:     } do {
+// CHECK:     ^bb0(%[[BWI:.*]]: !quake.wire):
+// CHECK:       %[[XR:.*]] = quake.x %[[BWI]] : (!quake.wire) -> !quake.wire
+// CHECK:       cc.continue %[[XR]] : !quake.wire
+// CHECK:     }
+// CHECK:     cc.continue %[[INNER]] : !quake.wire
+// CHECK:   }
+// CHECK:   quake.mz %[[OUTER]]
+func.func @test_nested_loop() attributes {"cudaq-kernel"} {
+  %cond = cc.undef i1
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
+  %outer = cc.loop while ((%w = %0) -> !quake.wire) {
+    cc.condition %cond (%w : !quake.wire)
+  } do {
+  ^bb0(%bw : !quake.wire):
+    %h = quake.h %bw : (!quake.wire) -> !quake.wire
+    %inner = cc.loop while ((%iw = %h) -> !quake.wire) {
+      cc.condition %cond (%iw : !quake.wire)
+    } do {
+    ^bb0(%ibw : !quake.wire):
+      %x = quake.x %ibw : (!quake.wire) -> !quake.wire
+      cc.continue %x : !quake.wire
+    }
+    cc.continue %inner : !quake.wire
+  }
+  quake.return_wire %outer : !quake.wire
+  return
+}
+
+// Three-wire outer loop whose body contains: an H gate, a CNOT between the
+// first and third wires (may need a routing SWAP), a cc.if (1Q only), a nested
+// inner loop on the second wire, a trailing Z gate, and a cleanUpTrace
+// restoration SWAP before cc.continue.  SABRE may hoist the inner loop before
+// the routing SWAP since the two operations are DAG-independent; sortTopologically
+// preserves the correct use-def order.
+//
+// CHECK-LABEL: func.func @test_complex_loop() attributes {"cudaq-kernel", mapping_reorder_idx = {{.*}}, mapping_v2p = {{.*}}}
+// CHECK:   %[[Q0:.*]] = quake.borrow_wire @mapped_wireset[{{.*}}] : !quake.wire
+// CHECK:   %[[Q1:.*]] = quake.borrow_wire @mapped_wireset[{{.*}}] : !quake.wire
+// CHECK:   %[[Q2:.*]] = quake.borrow_wire @mapped_wireset[{{.*}}] : !quake.wire
+// CHECK:   %[[LOOP:.*]]:3 = cc.loop while ((%[[W0:.*]] = %[[Q0]], %[[W1:.*]] = %[[Q1]], %[[W2:.*]] = %[[Q2]]) -> (!quake.wire, !quake.wire, !quake.wire)) {
+// CHECK:     cc.condition {{.*}}(%[[W0]], %[[W1]], %[[W2]] : !quake.wire, !quake.wire, !quake.wire)
+// CHECK:   } do {
+// CHECK:   ^bb0(%[[BW0:.*]]: !quake.wire, %[[BW1:.*]]: !quake.wire, %[[BW2:.*]]: !quake.wire):
+// CHECK:     %[[H:.*]] = quake.h %[[BW0]]
+// CHECK:     %[[INNER:.*]] = cc.loop while ((%[[IW:.*]] = %[[BW1]]) -> (!quake.wire)) {
+// CHECK:       cc.condition {{.*}}(%[[IW]] : !quake.wire)
+// CHECK:     } do {
+// CHECK:     ^bb0(%[[IBW:.*]]: !quake.wire):
+// CHECK:       %[[XR:.*]] = quake.x %[[IBW]]
+// CHECK:       cc.continue %[[XR]] : !quake.wire
+// CHECK:     }
+// CHECK:     %[[SW:.*]]:2 = quake.swap %[[H]], %[[INNER]]
+// CHECK:     %[[CX:.*]]:2 = quake.x [%[[SW]]#1] %[[BW2]]
+// CHECK:     %[[IF:.*]] = cc.if({{.*}}) ((%[[A:.*]] = %[[CX]]#0)) -> !quake.wire {
+// CHECK:       quake.t %[[A]]
+// CHECK:       cc.continue
+// CHECK:     } else {
+// CHECK:       quake.s %[[A]]
+// CHECK:       cc.continue
+// CHECK:     }
+// CHECK:     %[[Z:.*]] = quake.z %[[CX]]#1
+// CHECK:     %[[RSW:.*]]:2 = quake.swap %[[SW]]#0, %[[IF]]
+// CHECK:     cc.continue %[[RSW]]#0, %[[RSW]]#1, %[[Z]] : !quake.wire, !quake.wire, !quake.wire
+// CHECK:   }
+func.func @test_complex_loop() attributes {"cudaq-kernel"} {
+  %cond = cc.undef i1
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
+  %1 = quake.borrow_wire @wires[1] : !quake.wire
+  %2 = quake.borrow_wire @wires[2] : !quake.wire
+  %loop:3 = cc.loop while ((%w0 = %0, %w1 = %1, %w2 = %2) -> (!quake.wire, !quake.wire, !quake.wire)) {
+    cc.condition %cond (%w0, %w1, %w2 : !quake.wire, !quake.wire, !quake.wire)
+  } do {
+  ^bb0(%bw0 : !quake.wire, %bw1 : !quake.wire, %bw2 : !quake.wire):
+    %h0 = quake.h %bw0 : (!quake.wire) -> !quake.wire
+    %cx:2 = quake.x [%h0] %bw2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    %if_res:1 = cc.if (%cond) ((%a = %cx#0)) -> (!quake.wire) {
+      %t = quake.t %a : (!quake.wire) -> !quake.wire
+      cc.continue %t : !quake.wire
+    } else {
+      %s = quake.s %a : (!quake.wire) -> !quake.wire
+      cc.continue %s : !quake.wire
+    }
+    %inner = cc.loop while ((%iw = %bw1) -> (!quake.wire)) {
+      cc.condition %cond (%iw : !quake.wire)
+    } do {
+    ^bb0(%ibw : !quake.wire):
+      %x = quake.x %ibw : (!quake.wire) -> !quake.wire
+      cc.continue %x : !quake.wire
+    }
+    %z2 = quake.z %cx#1 : (!quake.wire) -> !quake.wire
+    cc.continue %if_res#0, %inner, %z2 : !quake.wire, !quake.wire, !quake.wire
+  }
+  quake.return_wire %loop#0 : !quake.wire
+  quake.return_wire %loop#1 : !quake.wire
+  quake.return_wire %loop#2 : !quake.wire
+  return
+}
+
+// A single wire through a post-conditional (do-while) loop: the body runs
+// before the condition is checked. Mapping threads the wire through the do
+// region and reconciles the back-edge exactly as for a while loop.
+//
+// CHECK-LABEL: func.func @test_postcond_single_wire() attributes {"cudaq-kernel", mapping_reorder_idx = {{.*}}, mapping_v2p = {{.*}}}
+// CHECK:   %[[Q0:.*]] = quake.borrow_wire @mapped_wireset[{{[0-9]+}}] : !quake.wire
+// CHECK:   %[[LOOP:.*]] = cc.loop do ((%[[BW:.*]] = %[[Q0]]) -> (!quake.wire)) {
+// CHECK:     %[[OUT:.*]] = quake.h %[[BW]] : (!quake.wire) -> !quake.wire
+// CHECK:     cc.continue %[[OUT]] : !quake.wire
+// CHECK:   } while {
+// CHECK:   ^bb0(%[[W:.*]]: !quake.wire):
+// CHECK:     cc.condition {{.*}}(%[[W]] : !quake.wire)
+// CHECK:   }
+// CHECK:   quake.mz %[[LOOP]]
+func.func @test_postcond_single_wire() attributes {"cudaq-kernel"} {
+  %cond = cc.undef i1
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
+  %loop = cc.loop do ((%bw = %0) -> !quake.wire) {
+    %out = quake.h %bw : (!quake.wire) -> !quake.wire
+    cc.continue %out : !quake.wire
+  } while {
+  ^bb0(%w : !quake.wire):
+    cc.condition %cond (%w : !quake.wire)
+  }
+  quake.return_wire %loop : !quake.wire
+  return
+}
+
+// Post-conditional loop whose body is a CNOT triangle: on path(3) no placement
+// makes all three pairs adjacent, so SABRE inserts a routing SWAP inside the
+// body and the emitter appends the inverse SWAP before cc.continue to restore
+// the entry layout on the back-edge.
+//
+// CHECK-LABEL: func.func @test_postcond_triangle() attributes {"cudaq-kernel", mapping_reorder_idx = {{.*}}, mapping_v2p = {{.*}}}
+// CHECK:       %[[LOOP:.*]]:3 = cc.loop do ((%[[BW0:.*]] = {{.*}}, %[[BW1:.*]] = {{.*}}, %[[BW2:.*]] = {{.*}}) -> (!quake.wire, !quake.wire, !quake.wire)) {
+// CHECK:         quake.x
+// CHECK:         quake.x
+// CHECK:         quake.swap
+// CHECK:         quake.x
+// CHECK:         quake.swap
+// CHECK:         cc.continue {{.*}} : !quake.wire, !quake.wire, !quake.wire
+// CHECK:       } while {
+// CHECK:         cc.condition
+// CHECK:       }
+func.func @test_postcond_triangle() attributes {"cudaq-kernel"} {
+  %cond = cc.undef i1
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
+  %1 = quake.borrow_wire @wires[1] : !quake.wire
+  %2 = quake.borrow_wire @wires[2] : !quake.wire
+  %loop:3 = cc.loop do ((%bw0 = %0, %bw1 = %1, %bw2 = %2) -> (!quake.wire, !quake.wire, !quake.wire)) {
+    %a:2 = quake.x [%bw0] %bw1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    %b:2 = quake.x [%a#1] %bw2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    %c:2 = quake.x [%a#0] %b#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    cc.continue %c#0, %b#0, %c#1 : !quake.wire, !quake.wire, !quake.wire
+  } while {
+  ^bb0(%w0 : !quake.wire, %w1 : !quake.wire, %w2 : !quake.wire):
+    cc.condition %cond (%w0, %w1, %w2 : !quake.wire, !quake.wire, !quake.wire)
+  }
+  quake.return_wire %loop#0 : !quake.wire
+  quake.return_wire %loop#1 : !quake.wire
+  quake.return_wire %loop#2 : !quake.wire
+  return
+}
+
+// A for-loop with a step region. Quantum work lives in the body (an H each
+// iteration); the step is loop machinery that just threads the wire through to
+// the back-edge. Mapping routes the body and passes the step through unchanged.
+//
+// CHECK-LABEL: func.func @test_step_passthrough() attributes {"cudaq-kernel", mapping_reorder_idx = {{.*}}, mapping_v2p = {{.*}}}
+// CHECK:   %[[Q0:.*]] = quake.borrow_wire @mapped_wireset[{{[0-9]+}}] : !quake.wire
+// CHECK:   %[[LOOP:.*]] = cc.loop while ((%[[W:.*]] = %[[Q0]]) -> (!quake.wire)) {
+// CHECK:     cc.condition {{.*}}(%[[W]] : !quake.wire)
+// CHECK:   } do {
+// CHECK:   ^bb0(%[[BW:.*]]: !quake.wire):
+// CHECK:     %[[HR:.*]] = quake.h %[[BW]] : (!quake.wire) -> !quake.wire
+// CHECK:     cc.continue %[[HR]] : !quake.wire
+// CHECK:   } step {
+// CHECK:   ^bb0(%[[SW:.*]]: !quake.wire):
+// CHECK:     cc.continue %[[SW]] : !quake.wire
+// CHECK:   }
+// CHECK:   quake.mz %[[LOOP]]
+func.func @test_step_passthrough() attributes {"cudaq-kernel"} {
+  %cond = cc.undef i1
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
+  %loop = cc.loop while ((%w = %0) -> !quake.wire) {
+    cc.condition %cond (%w : !quake.wire)
+  } do {
+  ^bb0(%bw : !quake.wire):
+    %out = quake.h %bw : (!quake.wire) -> !quake.wire
+    cc.continue %out : !quake.wire
+  } step {
+  ^bb0(%sw : !quake.wire):
+    cc.continue %sw : !quake.wire
+  }
+  quake.return_wire %loop : !quake.wire
+  return
+}

@@ -14,5 +14,8 @@ install(DIRECTORY ${CUDAQ_REALTIME_INCLUDE_DIR}/cudaq
   FILES_MATCHING PATTERN "*.h" PATTERN "*.hpp" PATTERN "*.cuh"
 )
 
-add_subdirectory(daemon)
+# cpu_transport first: the daemon's bridge providers (bridge/udp,
+# bridge/cpu_roce) link the transport targets defined there and probe them
+# with if(TARGET ...).
 add_subdirectory(cpu_transport)
+add_subdirectory(daemon)

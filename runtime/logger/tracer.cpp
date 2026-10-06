@@ -163,6 +163,7 @@ void configureTracerFromEnv() {
       std::exit(1);
     }
     Tracer::instance().setBackend(std::make_shared<ChromeTraceBackend>(path));
+    Tracer::instance().setCaptureEnabled(true);
     return;
   }
 

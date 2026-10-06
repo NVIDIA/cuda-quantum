@@ -169,8 +169,8 @@ def __singleTargetSingleParameterControlOperation(self,
 
 
 def supportCommonCast(mlirType, otherTy, arg, FromType, ToType, PyType):
-    argEleTy = cc.StdvecType.getElementType(mlirType)
-    eleTy = cc.StdvecType.getElementType(otherTy)
+    argEleTy = cc.SequenceType.getElementType(mlirType)
+    eleTy = cc.SequenceType.getElementType(otherTy)
     if ToType.isinstance(eleTy) and FromType.isinstance(argEleTy):
         return [PyType(i) for i in arg]
     return None
@@ -431,8 +431,8 @@ class PyKernel(object):
             return slot
         return value
 
-    def __createStdvecWithKnownValues(self, listElementValues):
-        # Turn this List into a StdVec<T>
+    def __createSequenceWithKnownValues(self, listElementValues):
+        # Turn this List into a Sequence<T>
         arrSize = self.getConstantInt(len(listElementValues))
         elemTy = listElementValues[0].type if len(
             listElementValues) > 0 else self.getFloatType()
@@ -452,8 +452,9 @@ class PyKernel(object):
         if cc.PointerType.isinstance(vecTy):
             vecTy = cc.PointerType.getElementType(vecTy)
 
-        return cc.StdvecInitOp(cc.StdvecType.get(vecTy), alloca,
-                               length=arrSize).result
+        return cc.SequenceInitOp(cc.SequenceType.get(vecTy),
+                                 alloca,
+                                 length=arrSize).result
 
     def promoteOperandType(self, ty, operand):
         if ComplexType.isinstance(ty):
@@ -514,9 +515,9 @@ class PyKernel(object):
                                            self.getConstantFloat(
                                                arg.imag)).result
 
-        if cc.StdvecType.isinstance(mlirType):
+        if cc.SequenceType.isinstance(mlirType):
             size = self.getConstantInt(len(arg))
-            eleTy = cc.StdvecType.getElementType(mlirType)
+            eleTy = cc.SequenceType.getElementType(mlirType)
             arrTy = cc.ArrayType.get(eleTy, context=self.ctx)
             alloca = cc.AllocaOp(cc.PointerType.get(arrTy, self.ctx),
                                  TypeAttr.get(eleTy),
@@ -533,7 +534,7 @@ class PyKernel(object):
                     elementVal = self.getConstantInt(element)
                 elif F64Type.isinstance(eleTy):
                     elementVal = self.getConstantFloat(element)
-                elif cc.StdvecType.isinstance(eleTy):
+                elif cc.SequenceType.isinstance(eleTy):
                     elementVal = self.__getMLIRValueFromPythonArg(
                         element, eleTy)
                 else:
@@ -547,9 +548,9 @@ class PyKernel(object):
 
             body.counter = 0
             self.createInvariantForLoop(size, body)
-            return cc.StdvecInitOp(cc.StdvecType.get(eleTy, self.ctx),
-                                   alloca,
-                                   length=size).result
+            return cc.SequenceInitOp(cc.SequenceType.get(eleTy, self.ctx),
+                                     alloca,
+                                     length=size).result
 
         emitFatalError(
             f"CUDA-Q kernel builder could not translate runtime argument of "
@@ -718,7 +719,7 @@ class PyKernel(object):
 
                 mlirValues.append(value)
             if isAdjoint or len(controls) > 0:
-                quake.ApplyOp([], [],
+                quake.ApplyOp([],
                               controls,
                               mlirValues,
                               callee=FlatSymbolRefAttr.get(
@@ -868,7 +869,7 @@ class PyKernel(object):
                 return self.__createQuakeValue(init)
 
             # If the initializer is a QuakeValue, see if it is
-            # an integer or a `stdvec` type
+            # an integer or a `sequence` type
             if isinstance(initializer, QuakeValue):
                 veqTy = quake.VeqType.get()
                 if IntegerType.isinstance(initializer.mlirValue.type):
@@ -877,13 +878,13 @@ class PyKernel(object):
                         quake.AllocaOp(veqTy,
                                        size=initializer.mlirValue).result)
 
-                if cc.StdvecType.isinstance(initializer.mlirValue.type):
+                if cc.SequenceType.isinstance(initializer.mlirValue.type):
                     value = initializer.mlirValue
-                    eleTy = cc.StdvecType.getElementType(value.type)
+                    eleTy = cc.SequenceType.getElementType(value.type)
                     ptrTy = cc.PointerType.get(eleTy)
-                    data = cc.StdvecDataOp(ptrTy, value).result
+                    data = cc.SequenceDataOp(ptrTy, value).result
                     intTy = self.getIntegerType()
-                    size = cc.StdvecSizeOp(intTy, value).result
+                    size = cc.SequenceSizeOp(intTy, value).result
                     stateTy = cc.PointerType.get(cc.StateType.get())
                     state = quake.CreateStateOp(stateTy, data, size).result
                     numQubits = quake.GetNumberOfQubitsOp(intTy, state).result
@@ -979,15 +980,40 @@ class PyKernel(object):
 
     def givens_rotation(self, angle, qubitA, qubitB):
         """
-        Add Givens rotation kernel (theta angle as a QuakeValue) to the kernel
-        builder object.
+        Add a Givens rotation kernel to the kernel builder object.
+
+        The Givens rotation mixes the two-qubit basis states `|01>` and `|10>`
+        and leaves `|00>` and `|11>` unchanged. It is equivalent to
+        `exp(-i theta (YX - XY) / 2)`, and in the basis
+        `|00>, |01>, |10>, |11>` it is given by::
+
+            | 1  0  0  0 |
+            | 0  c -s  0 |         c = cos(theta)
+            | 0  s  c  0 |         s = sin(theta)
+            | 0  0  0  1 |
+
+        Because it preserves the number of excitations, it is a common
+        building block for particle-number conserving ansatz. The angle can be
+        provided as a concrete float or a `QuakeValue`.
         """
         givens_builder(self, angle, qubitA, qubitB)
 
     def fermionic_swap(self, angle, qubitA, qubitB):
         """
-        Add Fermionic SWAP rotation kernel (phi angle as a QuakeValue) to the
-        kernel builder object.
+        Add a fermionic SWAP rotation kernel to the kernel builder object.
+
+        This rotation acts on two adjacent fermionic modes under the
+        Jordan-Wigner mapping, swapping them while tracking the fermionic
+        exchange phase. In the basis `|00>, |01>, |10>, |11>` it is given by::
+
+            | 1    0       0      0  |
+            | 0   e*c    -i*e*s   0  |    c = cos(phi/2), s = sin(phi/2)
+            | 0  -i*e*s   e*c     0  |    e = exp(i phi/2)
+            | 0    0       0     e^2 |
+
+        For `phi = pi` this reduces to the fermionic SWAP gate, i.e. a SWAP
+        with an additional phase of -1 on `|11>`. The angle can be provided as
+        a concrete float or a `QuakeValue`.
         """
         fermionic_swap_builder(self, angle, qubitA, qubitB)
 
@@ -1132,7 +1158,7 @@ class PyKernel(object):
         with self.ctx, self.insertPoint, self.loc:
             measTy = cc.MeasureHandleType.get()
             if quake.VeqType.isinstance(target.mlirValue.type):
-                measTy = cc.StdvecType.get(measTy)
+                measTy = cc.SequenceType.get(measTy)
             if regName is not None:
                 res = opClass(measTy, [], [target.mlirValue],
                               registerName=StringAttr.get(regName,
@@ -1242,7 +1268,7 @@ class PyKernel(object):
     def __qecOperandValue(self, qv, opName):
         """Normalize a builder-side QEC operand: must be a
         ``QuakeValue`` whose MLIR type is ``!cc.measure_handle`` or
-        ``!cc.stdvec<!cc.measure_handle>`` (the value forms produced by
+        ``!cc.sequence<!cc.measure_handle>`` (the value forms produced by
         ``mz`` / ``mx`` / ``my`` for scalar and ``qvector`` targets)."""
         if not isinstance(qv, QuakeValue):
             emitFatalError(
@@ -1250,8 +1276,9 @@ class PyKernel(object):
                 f"measurement handles (returned by kernel.mz / mx / my)")
         ty = qv.mlirValue.type
         ok = (cc.MeasureHandleType.isinstance(ty) or
-              (cc.StdvecType.isinstance(ty) and cc.MeasureHandleType.isinstance(
-                  cc.StdvecType.getElementType(ty))))
+              (cc.SequenceType.isinstance(ty) and
+               cc.MeasureHandleType.isinstance(
+                   cc.SequenceType.getElementType(ty))))
         if not ok:
             emitFatalError(
                 f"kernel.{opName} arguments must each be a "
@@ -1316,7 +1343,7 @@ class PyKernel(object):
             prevV = self.__qecOperandValue(prev, "detectors")
             currV = self.__qecOperandValue(curr, "detectors")
             for v in (prevV, currV):
-                if not cc.StdvecType.isinstance(v.type):
+                if not cc.SequenceType.isinstance(v.type):
                     emitFatalError("kernel.detectors arguments must each be a "
                                    "list[cudaq.measure_handle]")
             qec.DetectorsOp(prevV, currV)
@@ -1701,7 +1728,7 @@ class PyKernel(object):
                             emitFatalError("Invalid qubit operand type")
                         target_qubits.append(p.mlirValue)
 
-            params = self.__createStdvecWithKnownValues(noise_channel_params)
+            params = self.__createSequenceWithKnownValues(noise_channel_params)
             asVeq = quake.ConcatOp(quake.VeqType.get(), target_qubits).result
             channel_key = hash(noise_channel)
             quake.ApplyNoiseOp([params], [asVeq],
@@ -1710,15 +1737,35 @@ class PyKernel(object):
     def clearCache(self):
         if hasattr(self, 'qkeModule'):
             del self.qkeModule
-        if hasattr(self, '_compiled_module'):
-            del self._compiled_module
+        if hasattr(self, '_compiled_module_cache'):
+            del self._compiled_module_cache
 
-    def cachedCompiledModule(self):
-        """Return the kernel's CompiledModule cache slot, creating an empty
-        one on first access."""
-        if not hasattr(self, '_compiled_module'):
-            self._compiled_module = cudaq_runtime.CompiledModule()
-        return self._compiled_module
+    def compiledModuleCache(self):
+        """Return this builder kernel's shared compiled-module cache, creating
+        an empty one on first access."""
+        if not hasattr(self, '_compiled_module_cache'):
+            self._compiled_module_cache = cudaq_runtime.CompiledModuleCache()
+        return self._compiled_module_cache
+
+    def disable_quantum_optimization(self):
+        """
+        Mark this kernel so that quantum optimization passes (e.g. value
+        semantics lowering) are skipped during code generation.
+        """
+        self.module.operation.attributes.__setitem__(
+            'quake.noOptimization', UnitAttr.get(context=self.ctx))
+
+    def atomic_quantum_region(self):
+        """
+        Mark each invocation of this kernel as an atomic quantum region.
+
+        Call this method before composing the kernel into another builder.
+        Quantum operations can be optimized within an invocation, but not
+        across its boundary.
+        """
+        self.clearCache()
+        self.funcOp.attributes.__setitem__('atomic_quantum_region',
+                                           UnitAttr.get(context=self.ctx))
 
     @trace.traced
     def compile(self):
@@ -1734,9 +1781,9 @@ class PyKernel(object):
             try:
                 with trace.span("cudaq.pipeline.aot"):
                     cudaq_runtime.runPassManager(pm, self.qkeModule)
-            except:
+            except Exception as e:
                 raise RuntimeError("could not compile code for '" +
-                                   self.uniqName + "'.")
+                                   self.uniqName + "'.\n" + str(e)) from e
             self.qkeModule.operation.attributes.__setitem__(
                 cudaq__unique_attr_name,
                 StringAttr.get(self.uniqName, context=ctx))
@@ -1805,9 +1852,9 @@ class PyKernel(object):
                 listType = list[type(arg[0])]
             mlirType = mlirTypeFromPyType(argType, self.ctx)
 
-            if cc.StdvecType.isinstance(mlirType):
+            if cc.SequenceType.isinstance(mlirType):
                 # Support passing `list[int]` to a `list[float]` argument
-                if cc.StdvecType.isinstance(self.mlirArgTypes[i]):
+                if cc.SequenceType.isinstance(self.mlirArgTypes[i]):
                     maybeCasted = supportCommonCast(mlirType,
                                                     self.mlirArgTypes[i], arg,
                                                     IntegerType, F64Type, float)
@@ -1832,7 +1879,7 @@ class PyKernel(object):
                     f" {mlirTypeToPyType(self.mlirArgTypes[i])} required)")
 
             # Convert `numpy` arrays to lists
-            if cc.StdvecType.isinstance(mlirType):
+            if cc.SequenceType.isinstance(mlirType):
                 # Validate that the length of this argument is greater than or
                 # equal to the number of unique quake value extractions
                 if len(arg) < len(self.arguments[i].knownUniqueExtractions):
@@ -1854,7 +1901,7 @@ class PyKernel(object):
             self.name,
             specialized,
             *processedArgs,
-            compiled=self.cachedCompiledModule())
+            cache=self.compiledModuleCache())
 
     def __getattr__(self, attr_name):
         # Search attributes in instance, class, base classes

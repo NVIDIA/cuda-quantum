@@ -1,0 +1,119 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --canonicalize %s | FileCheck %s
+
+// Regression test for the reversal failure behind issue #5232/#5233 (see
+// apply-8.qke): a carried value (`j`) whose backing memory lived outside the
+// loop it is really scoped to gets promoted by `memtoreg` into a value
+// threaded around the loop, even though nothing ever uses it. `j` is
+// overwritten before any use on every iteration (not truly live-in), and its
+// "final" value is never used anywhere (dead-out). This looks live-in to the
+// inner loop only because `memtoreg`'s promotion conservatively assumes a
+// store to memory inside a loop may be live-out of it, before the
+// enclosing scope has been walked to know otherwise. `LoopOp`'s canonicalizer
+// is the necessary complement, pruning the slot once it is actually known
+// nothing uses it.
+
+func.func private @sink(i32)
+
+func.func @dead_carried_value(%n: i32) -> i32 {
+  %c0 = arith.constant 0 : i32
+  %c1 = arith.constant 1 : i32
+  %u = cc.undef i32
+  %0:2 = cc.loop while ((%i = %c0, %j = %u) -> (i32, i32)) {
+    %1 = arith.cmpi slt, %i, %n : i32
+    cc.condition %1(%i, %j : i32, i32)
+  } do {
+  ^bb0(%i: i32, %j: i32):
+    %1 = arith.addi %i, %c1 : i32
+    %2 = cc.loop while ((%k = %1) -> (i32)) {
+      %3 = arith.cmpi slt, %k, %n : i32
+      cc.condition %3(%k : i32)
+    } do {
+    ^bb0(%k: i32):
+      func.call @sink(%k) : (i32) -> ()
+      cc.continue %k : i32
+    } step {
+    ^bb0(%k: i32):
+      %3 = arith.addi %k, %c1 : i32
+      cc.continue %3 : i32
+    }
+    cc.continue %i, %2 : i32, i32
+  } step {
+  ^bb0(%i: i32, %j: i32):
+    %1 = arith.addi %i, %c1 : i32
+    cc.continue %1, %j : i32, i32
+  }
+  return %0#0 : i32
+}
+
+// CHECK-LABEL:   func.func @dead_carried_value(
+// CHECK-SAME:      %[[N:.*]]: i32) -> i32 {
+// CHECK:           %[[C0:.*]] = arith.constant 0 : i32
+// CHECK:           %[[C1:.*]] = arith.constant 1 : i32
+// CHECK:           %[[OUTER:.*]] = cc.loop while ((%[[I:.*]] = %[[C0]]) -> (i32)) {
+// CHECK:             %[[CMP0:.*]] = arith.cmpi slt, %[[I]], %[[N]] : i32
+// CHECK:             cc.condition %[[CMP0]](%[[I]] : i32)
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[I2:.*]]: i32):
+// CHECK:             %[[NEXT:.*]] = arith.addi %[[I2]], %[[C1]] : i32
+// CHECK:             cc.loop while ((%[[K:.*]] = %[[NEXT]]) -> (i32)) {
+// CHECK:               %[[CMP1:.*]] = arith.cmpi slt, %[[K]], %[[N]] : i32
+// CHECK:               cc.condition %[[CMP1]](%[[K]] : i32)
+// CHECK:             } do {
+// CHECK:             ^bb0(%[[K2:.*]]: i32):
+// CHECK:               func.call @sink(%[[K2]]) : (i32) -> ()
+// CHECK:               cc.continue %[[K2]] : i32
+// CHECK:             } step {
+// CHECK:             }
+// CHECK:             cc.continue %[[I2]] : i32
+// CHECK:           } step {
+// CHECK:           ^bb0(%[[I3:.*]]: i32):
+// CHECK:             %[[STEP:.*]] = arith.addi %[[I3]], %[[C1]] : i32
+// CHECK:             cc.continue %[[STEP]] : i32
+// CHECK:           }
+// CHECK:           return %[[OUTER]] : i32
+// CHECK:         }
+
+// Negative: the same shape, but the carried value's final value IS read after
+// the loop.
+
+func.func @not_dead_when_read_after(%n: i32) -> i32 {
+  %c0 = arith.constant 0 : i32
+  %c1 = arith.constant 1 : i32
+  %u = cc.undef i32
+  %0:2 = cc.loop while ((%i = %c0, %j = %u) -> (i32, i32)) {
+    %1 = arith.cmpi slt, %i, %n : i32
+    cc.condition %1(%i, %j : i32, i32)
+  } do {
+  ^bb0(%i: i32, %j: i32):
+    %1 = arith.addi %i, %c1 : i32
+    %2 = cc.loop while ((%k = %1) -> (i32)) {
+      %3 = arith.cmpi slt, %k, %n : i32
+      cc.condition %3(%k : i32)
+    } do {
+    ^bb0(%k: i32):
+      func.call @sink(%k) : (i32) -> ()
+      cc.continue %k : i32
+    } step {
+    ^bb0(%k: i32):
+      %3 = arith.addi %k, %c1 : i32
+      cc.continue %3 : i32
+    }
+    cc.continue %i, %2 : i32, i32
+  } step {
+  ^bb0(%i: i32, %j: i32):
+    %1 = arith.addi %i, %c1 : i32
+    cc.continue %1, %j : i32, i32
+  }
+  return %0#1 : i32
+}
+
+// CHECK-LABEL:   func.func @not_dead_when_read_after(
+// CHECK:           %{{.*}}:2 = cc.loop while ((%{{.*}} = %{{.*}}, %{{.*}} = %{{.*}}) -> (i32, i32)) {

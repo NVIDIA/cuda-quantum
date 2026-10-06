@@ -78,7 +78,7 @@ def phase_flip_kernel():
 @pytest.fixture
 def cnot_echo_kernel():
 
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def cnot_echo():
         q = cudaq.qvector(2)
         x.ctrl(q[0], q[1])

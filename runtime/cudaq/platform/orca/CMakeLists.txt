@@ -30,8 +30,8 @@ target_link_libraries(${LIBRARY_NAME}
     cudaq-mlir-runtime
     fmt::fmt-header-only
     cudaq
-    cudaq-platform-default)
+    cudaq-platform-default
+    cudaqMLIR)
 
-install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
-
-add_target_config(orca)
+install(TARGETS ${LIBRARY_NAME} DESTINATION lib
+        COMPONENT Runtime)

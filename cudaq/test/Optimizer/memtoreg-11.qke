@@ -1,0 +1,48 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --convert-to-linear-values %s | FileCheck %s
+
+func.func @dup_extract_sequential(%v: !quake.veq<2>) {
+  %1 = quake.extract_ref %v[0] : (!quake.veq<2>) -> !quake.ref
+  %2 = quake.extract_ref %v[0] : (!quake.veq<2>) -> !quake.ref
+  quake.h %1 : (!quake.ref) -> ()
+  quake.x %2 : (!quake.ref) -> ()
+  return
+}
+
+// One load, both gates chained on it, one store back to the same ref.
+// CHECK-LABEL:   func.func @dup_extract_sequential(
+// CHECK-SAME:      %[[VEQ:.*]]: !quake.veq<2>) {
+// CHECK:           %[[REF:.*]] = quake.extract_ref %[[VEQ]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           %[[LOAD:.*]] = quake.unwrap %[[REF]] : (!quake.ref) -> !quake.wire
+// CHECK:           %[[H:.*]] = quake.h %[[LOAD]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[X:.*]] = quake.x %[[H]] : (!quake.wire) -> !quake.wire
+// CHECK:           quake.wrap %[[X]] to %[[REF]] : !quake.wire, !quake.ref
+// CHECK:           return
+
+func.func @dup_extract_control(%v: !quake.veq<2>) {
+  %1 = quake.extract_ref %v[0] : (!quake.veq<2>) -> !quake.ref
+  %2 = quake.extract_ref %v[0] : (!quake.veq<2>) -> !quake.ref
+  %3 = quake.extract_ref %v[1] : (!quake.veq<2>) -> !quake.ref
+  quake.h %1 : (!quake.ref) -> ()
+  quake.x [%2] %3 : (!quake.ref, !quake.ref) -> ()
+  return
+}
+
+// Same qubit, reached the second time through a control position: the control
+// operand must be the `h` result, not a fresh read of qubit 0.
+// CHECK-LABEL:   func.func @dup_extract_control(
+// CHECK-SAME:      %[[VEQ2:.*]]: !quake.veq<2>) {
+// CHECK-DAG:       %[[CREF:.*]] = quake.extract_ref %[[VEQ2]][0] : (!quake.veq<2>) -> !quake.ref
+// CHECK-DAG:       %[[TREF:.*]] = quake.extract_ref %[[VEQ2]][1] : (!quake.veq<2>) -> !quake.ref
+// CHECK:           %[[H2:.*]] = quake.h %{{.*}} : (!quake.wire) -> !quake.wire
+// CHECK:           %[[X2:.*]]:2 = quake.x {{\[}}%[[H2]]] %{{.*}} : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK-DAG:       quake.wrap %[[X2]]#0 to %[[CREF]] : !quake.wire, !quake.ref
+// CHECK-DAG:       quake.wrap %[[X2]]#1 to %[[TREF]] : !quake.wire, !quake.ref
+// CHECK:           return

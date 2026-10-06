@@ -9,9 +9,12 @@
 #include "py_runtime_target.h"
 #include "LinkedLibraryHolder.h"
 #include "common/FmtCore.h"
+#include "runtime/cudaq/platform/PyRuntimeEndpoint.h"
 #include "cudaq/platform.h"
+#include "cudaq/platform/qpu_utils.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/target_control.h"
+#include <filesystem>
 #include <functional>
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/function.h>
@@ -103,6 +106,10 @@ void bindRuntimeTarget(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
               "`cudaq.Target` leverages.")
       .def_ro("description", &cudaq::RuntimeTarget::description,
               "A string describing the features for this `cudaq.Target`.")
+      .def_ro("availability_diagnostic",
+              &cudaq::RuntimeTarget::availabilityDiagnostic,
+              "If this target is known but not available on the current host, "
+              "a diagnostic explaining why; empty otherwise.")
       .def(
           "num_qpus",
           [](cudaq::RuntimeTarget &_) { return cudaq::platform_num_qpus(); },
@@ -138,8 +145,12 @@ void bindRuntimeTarget(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
 
   mod.def(
       "has_target",
-      [&](const std::string &name) { return holder.hasTarget(name); },
-      "Return true if the `cudaq.Target` with the given name exists.");
+      [&](const std::string &name, bool includeUnavailable) {
+        return holder.hasTarget(name, includeUnavailable);
+      },
+      nanobind::arg("name"), nanobind::arg("include_unavailable") = false,
+      "Return true if the `cudaq.Target` with the given name exists. By "
+      "default only targets available on this host are considered.");
   mod.def(
       "reset_target",
       [&]() {
@@ -157,8 +168,35 @@ void bindRuntimeTarget(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
       "Return the `cudaq.Target` with the given name. Will raise an exception "
       "if the name is not valid.");
   mod.def(
-      "get_targets", [&]() { return holder.getTargets(); },
-      "Return all available `cudaq.Target` instances on the current system.");
+      "get_targets",
+      [&](bool includeUnavailable) {
+        return holder.getTargets(includeUnavailable);
+      },
+      nanobind::arg("include_unavailable") = false,
+      "Return `cudaq.Target` instances. By default only targets available on "
+      "this host are returned; pass `include_unavailable=True` to include "
+      "known-but-unavailable targets (see `Target.availability_diagnostic`).");
+  mod.def(
+      "register_backend_path",
+      [&](const std::string &pkgRoot) {
+        holder.registerBackendPath(std::filesystem::path(pkgRoot));
+      },
+      "Register an external plugin package root with the CUDA-Q runtime. "
+      "The directory must exist and contain a `targets/` subdirectory; every "
+      "compiled target library (`.so`) or YAML file found there is made "
+      "available as a target. Raises `RuntimeError` (with the offending path "
+      "in the message) on validation failure.");
+  mod.def(
+      "_register_target_config",
+      [&](const std::string &configPath) {
+        return holder.registerTargetConfig(std::filesystem::path(configPath));
+      },
+      "Register the standalone target configuration YAML at @p configPath, "
+      "named after the file stem. Throws a `RuntimeError` if the file does not "
+      "exist. Returns false if a target of that name is already registered.\n\n"
+      "This loads a standalone target configuration YAML file with no "
+      "surrounding plugin layout. It is recommended to use "
+      "`registerBackendPath` instead.");
   mod.def(
       "set_target",
       [&](const cudaq::RuntimeTarget &target, nanobind::kwargs extraConfig) {
@@ -179,6 +217,16 @@ void bindRuntimeTarget(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
       "Set the `cudaq.Target` with given name to be used for CUDA-Q "
       "kernel execution. Can provide optional, target-specific configuration "
       "data via Python kwargs.");
+  mod.def(
+      "set_target",
+      [&](const cudaq::CompileTarget &compileTarget,
+          nanobind::object runtimeEndpoint) {
+        holder.setTarget(compileTarget,
+                         makeRuntimeEndpoint(std::move(runtimeEndpoint)));
+        onTargetChange(holder.getTarget());
+      },
+      "Set the `cudaq._experimental.CustomTarget` to be used for CUDA-Q kernel "
+      "execution. ");
   mod.def(
       "register_set_target_callback",
       [&](std::function<void(const cudaq::RuntimeTarget &)> callback,
@@ -210,6 +258,16 @@ void bindRuntimeTarget(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
         // Perform cleanup of registered callbacks, which might be Python
         // objects.
         g_callbacks.clear();
+      }));
+
+  // An async task holds a clone of its kernel's MLIR module and may call back
+  // into Python, but the queues are only joined at static destruction, after
+  // the interpreter and the global MLIR context are gone.
+  nanobind::module_::import_("atexit").attr("register")(
+      nanobind::cpp_function([]() {
+        // Drop the GIL: a task finishing up may need it.
+        nanobind::gil_scoped_release release;
+        detail::shutdownExecutionQueues();
       }));
 }
 

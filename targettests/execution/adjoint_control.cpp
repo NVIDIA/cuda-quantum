@@ -13,8 +13,12 @@
 // Verify that the controlled-adjoint of a kernel produces the correct inverse
 // action. See: https://github.com/NVIDIA/cuda-quantum/issues/854
 
+#include <cassert>
+#include <cstddef>
 #include <cstdio>
 #include <cudaq.h>
+#include <initializer_list>
+#include <string>
 
 struct s_gate {
   void operator()(cudaq::qubit &q) __qpu__ { s(q); }
@@ -67,6 +71,25 @@ struct adj_ctrl_s {
   }
 };
 
+struct cnot {
+  void operator()(cudaq::qubit &control, cudaq::qubit &target) __qpu__ {
+    x<cudaq::ctrl>(control, target);
+  }
+};
+
+struct runtime_controls {
+  void operator()(std::size_t n, bool registerOn, bool scalarOn) __qpu__ {
+    cudaq::qvector qreg(n);
+    cudaq::qubit ancilla, target;
+    if (registerOn)
+      x(qreg);
+    if (scalarOn)
+      x(ancilla);
+    // Specialization gives X both register and scalar controls.
+    cudaq::control(cnot{}, qreg, ancilla, target);
+  }
+};
+
 int main() {
   auto counts1 = cudaq::sample(ctrl_adj_s{});
   for (auto &[bits, count] : counts1)
@@ -74,6 +97,20 @@ int main() {
   auto counts2 = cudaq::sample(adj_ctrl_s{});
   for (auto &[bits, count] : counts2)
     printf("%s\n", bits.data());
+
+  // An empty register contributes no controls, but the scalar still applies.
+  constexpr std::size_t shots = 10;
+  for (std::size_t n : {0, 2})
+    for (bool registerOn : {false, true})
+      for (bool scalarOn : {false, true}) {
+        auto counts =
+            cudaq::sample(shots, runtime_controls{}, n, registerOn, scalarOn);
+        const bool targetOn = scalarOn && (n == 0 || registerOn);
+        const auto expected = std::string(n, registerOn ? '1' : '0') +
+                              (scalarOn ? '1' : '0') + (targetOn ? '1' : '0');
+        assert(counts.size() == 1);
+        assert(counts.count(expected) == shots);
+      }
   return 0;
 }
 

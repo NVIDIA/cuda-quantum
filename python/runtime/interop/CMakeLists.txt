@@ -16,11 +16,17 @@ target_include_directories(cudaq-python-interop PRIVATE
 )
 target_link_libraries(cudaq-python-interop
     PRIVATE nanobind-static Python3::Module cudaq)
-install (FILES PythonCppInterop.h PythonCppInteropDecls.h DESTINATION include/cudaq/python/)
+install (FILES PythonCppInterop.h PythonCppInteropDecls.h
+         DESTINATION include/cudaq/python/
+         COMPONENT Development)
 
-install(TARGETS cudaq-python-interop EXPORT cudaq-python-interop-targets DESTINATION lib)
+install(TARGETS cudaq-python-interop
+        EXPORT cudaq-python-interop-targets
+        DESTINATION lib
+        COMPONENT CUDAQuantumPythonModules)
 
 install(EXPORT cudaq-python-interop-targets
         FILE CUDAQPythonInteropTargets.cmake
         NAMESPACE cudaq::
-        DESTINATION lib/cmake/cudaq)
+        DESTINATION lib/cmake/cudaq
+        COMPONENT Development)

@@ -1,0 +1,35 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+name: 'Matrix outputs - prepare'
+description: 'Internal helper for matrix-outputs-write; do not use directly'
+
+inputs:
+  matrix-step-name:
+    required: false
+    description: 'Matrix step name'
+  matrix-key:
+    required: false
+    description: 'Matrix key'
+  outputs:
+    required: false
+    description: 'Flat YAML map of outputs'
+
+outputs:
+  result:
+    description: 'JSON encoding of the outputs map'
+  artifact-name:
+    description: 'Name of the artifact to upload'
+  artifact-path:
+    description: 'Path of the file to upload'
+  upload:
+    description: 'Whether an artifact upload is needed ("true"/"false")'
+
+runs:
+  using: 'node24'
+  main: 'index.js'

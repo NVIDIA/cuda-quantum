@@ -8,9 +8,11 @@
 
 #pragma once
 
+#include <filesystem>
 #include <map>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace cudaq::config {
@@ -96,6 +98,9 @@ struct BackendEndConfigEntry {
   std::optional<bool> GenTargetBackend;
   /// Enable/disable the library mode if provide.
   std::optional<bool> LibraryMode;
+  /// Whether the target supports pre-computing resource counts for faster
+  /// resource estimation.
+  std::optional<bool> SupportResourceCounts;
   /// IR lowering configuration (hardware REST QPU)
   std::string JITHighLevelPipeline;
   std::string JITMidLevelPipeline;
@@ -118,6 +123,11 @@ struct BackendEndConfigEntry {
   std::vector<std::string> CompilerFlags;
   /// Extra libraries to be linked in if any
   std::vector<std::string> LinkLibs;
+  /// List of plugin shared libraries to dlopen at runtime. Names may omit the
+  /// platform suffix (e.g. `"libcudaq-rest-qpu"i`); it is appended for the
+  /// current platform when the library is resolved. Relative names are looked
+  /// up in the CUDA-Q library directory and the target plugin's lib directory.
+  std::vector<std::string> PluginLibraries;
   /// Extra linker flags for this target if any
   std::vector<std::string> LinkerFlags;
   /// Name of the NVQIR simulator backend(s)
@@ -150,6 +160,13 @@ struct BackendFeatureMap {
 /// Schema of the target configuration file.
 class TargetConfig {
 public:
+  /// CUDA-Q version against which an external plugin target was built and
+  /// tested. This is optional for in-tree targets and required when selecting
+  /// an external plugin target.
+  std::string CudaqVersion;
+  /// All plugin libraries for this target (flattened from BackendConfig if
+  /// present)
+  std::vector<std::string> PluginLibraries;
   /// Target name
   std::string Name;
   /// Target description
@@ -172,9 +189,19 @@ public:
   getCodeGenSpec(const std::map<std::string, std::string> &targetArgs) const;
 };
 
-/// Process the target configuration into a `nvq++` compatible script according
-/// to the provided compile time (C++)/runtime (Python) target arguments.
-std::string processRuntimeArgs(const TargetConfig &config,
-                               const std::map<std::string, std::string> &args);
+/// Result of checking an external target's CUDA-Q compatibility metadata.
+enum class TargetVersionCompatibility { Compatible, Warning, Error };
+
+struct TargetVersionCompatibilityResult {
+  TargetVersionCompatibility Status = TargetVersionCompatibility::Compatible;
+  std::string Diagnostic;
+};
+
+/// Validate an external plugin target against the current CUDA-Q version.
+/// Exact matches are compatible; any version difference produces a warning.
+TargetVersionCompatibilityResult
+checkExternalTargetVersion(const TargetConfig &config,
+                           std::string_view currentVersion,
+                           const std::filesystem::path &configPath = {});
 
 } // namespace cudaq::config

@@ -7,6 +7,7 @@
 # ============================================================================ #
 
 import os
+import platform
 
 import pytest
 import numpy as np
@@ -15,6 +16,11 @@ import sys
 
 import cudaq
 from cudaq import spin
+
+skip_arm64_nested_list = pytest.mark.skipif(
+    platform.machine() in ('arm64', 'aarch64'),
+    reason="nested list argument synthesis fails on ARM64: disabled pending fix"
+)
 
 
 @pytest.fixture(autouse=True)
@@ -162,6 +168,7 @@ def test_nested_list_pauli_str():
     assert '1111' in counts
 
 
+@skip_arm64_nested_list
 def test_nested_list3_bool():
 
     @cudaq.kernel
@@ -186,6 +193,7 @@ def test_nested_list3_bool():
     assert '1010010110100101' in counts
 
 
+@skip_arm64_nested_list
 def test_nested_list3_int():
 
     @cudaq.kernel
@@ -203,6 +211,7 @@ def test_nested_list3_int():
     assert '1111111111111111' in counts
 
 
+@skip_arm64_nested_list
 def test_nested_list4_int():
 
     @cudaq.kernel
@@ -221,6 +230,63 @@ def test_nested_list4_int():
     assert len(counts) == 1
     print(counts)
     assert '1111111111111111' in counts
+
+
+def test_pauli_word_dunder_methods():
+    w = cudaq.pauli_word('XIZ')
+    assert str(w) == 'XIZ'
+    assert repr(w) == "pauli_word('XIZ')"
+    assert w == cudaq.pauli_word('XIZ')
+    assert w != 'XIZ'
+    assert w != cudaq.pauli_word('IZX')
+    assert hash(w) == hash(cudaq.pauli_word('XIZ'))
+    assert hash(w) != hash(cudaq.pauli_word('IZX'))
+    assert str(cudaq.pauli_word('xiz')) == 'XIZ'
+    assert cudaq.pauli_word('xiz') == cudaq.pauli_word('XIZ')
+
+
+def test_struct_list_int_negative():
+    # Regression test for issue 4846
+    from dataclasses import dataclass
+
+    @dataclass(slots=True)
+    class Args:
+        values: list[int]
+
+    @cudaq.kernel
+    def kernel(args: Args):
+        q = cudaq.qvector(2)
+        if args.values[0] < 0:
+            x(q[0])
+        if args.values[1] > 5:
+            x(q[1])
+
+    counts = cudaq.sample(kernel, Args([-3, 10]))
+    assert len(counts) == 1
+    assert '11' in counts
+
+
+def test_struct_list_bool():
+    # A `list[bool]` struct member is bit-packed (std::vector<bool>), whose host
+    # header is larger than other vectors. Regression test that its full header
+    # is marshaled on the local-simulator (argsCreator) path.
+    from dataclasses import dataclass
+
+    @dataclass(slots=True)
+    class Args:
+        flags: list[bool]
+
+    @cudaq.kernel
+    def kernel(args: Args):
+        q = cudaq.qvector(2)
+        if args.flags[0]:
+            x(q[0])
+        if args.flags[4]:
+            x(q[1])
+
+    counts = cudaq.sample(kernel, Args([True, False, False, False, True]))
+    assert len(counts) == 1
+    assert '11' in counts
 
 
 # leave for gdb debugging

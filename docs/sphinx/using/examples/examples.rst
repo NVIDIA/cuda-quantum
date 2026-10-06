@@ -21,6 +21,7 @@ Examples that illustrate how to use CUDA-Q for application development are avail
       Noisy Simulations <../../examples/python/noisy_simulations.ipynb>
       Pre-Trajectory Sampling with Batch Execution <ptsbe.rst>
       Detector Error Models <dem_from_kernel.rst>
+      Rotation Synthesis (Clifford+T) <rotation_synthesis.rst>
       Constructing Operators <operators.rst>
       Performance Optimizations <../../examples/python/performance_optimizations.ipynb>
       Using Quantum Hardware Providers <hardware_providers.rst>

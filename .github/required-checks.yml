@@ -7,6 +7,9 @@
 #
 # An empty list (or missing key) for an event type disables enforcement
 # for that event — useful for bootstrapping.
+#
+# `merge_group_fast` replaces `merge_group` when the fast merge queue is
+# active (repo variable `MERGE_QUEUE_FAST` unset or true).
 merge_group: &full_matrix
 - Build and test (amd64, llvm, openmpi) / Dev environment (Debug)
 - Build and test (amd64, llvm, openmpi) / Dev environment (Python)
@@ -33,8 +36,10 @@ merge_group: &full_matrix
 - Create Python metapackages / Build Python metapackages
 - Create Python metapackages / Test Python metapackages (3.11)
 - Create Python metapackages / Test Python metapackages (3.13)
+- Create Python metapackages / Test Python metapackages (3.14)
 - Create Python metapackages / Test Python metapackages (12.6, 3.11)
 - Create Python metapackages / Test Python metapackages (12.6, 3.13)
+- Create Python metapackages / Test Python metapackages (12.6, 3.14)
 - Create Python wheels (amd64, 3.11, 12.6) / Validate wheel (debian:12, --user)
 - Create Python wheels (amd64, 3.11, 12.6) / Validate wheel (debian:12)
 - Create Python wheels (amd64, 3.11, 12.6) / Validate wheel (fedora:42, --user)
@@ -47,6 +52,11 @@ merge_group: &full_matrix
 - Create Python wheels (arm64, 3.11, 12.6) / Validate wheel (fedora:42)
 - Create Python wheels (arm64, 3.11, 12.6) / Validate wheel (redhat/ubi8:8.10, --user)
 - Create Python wheels (arm64, 3.11, 12.6) / Validate wheel (redhat/ubi8:8.10)
+merge_group_fast:
+- Build and test (amd64, llvm, openmpi) / Dev environment (Debug)
+- Build and test (amd64, llvm, openmpi) / Dev environment (Python)
+- Build and test (arm64, llvm, openmpi) / Dev environment (Debug)
+- Build and test (arm64, llvm, openmpi) / Dev environment (Python)
 push:
 - Build and test (amd64, llvm, openmpi) / Dev environment (Debug)
 - Build and test (amd64, llvm, openmpi) / Dev environment (Python)
@@ -54,5 +64,7 @@ push:
 - Build and test (arm64, llvm, openmpi) / Dev environment (Python)
 - Build and test (amd64, gcc12, openmpi) / Dev environment (Debug)
 - Build and test (amd64, gcc12, openmpi) / Dev environment (Python)
+# Doc gate for PR builds; the Docker image doc job is skipped here.
+- Documentation / Build and check docs
 workflow_dispatch: *full_matrix
 schedule: *full_matrix

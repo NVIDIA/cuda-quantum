@@ -158,6 +158,7 @@ def test_measurement_order():
             mz(q[0])
             mz(q[2])
             reset(q)
+        ry(12 * np.pi, q)
 
     counts = cudaq.sample(kernel_with_loop)
     assert counts["000"] == 1000  # due to reset

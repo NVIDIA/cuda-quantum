@@ -11,16 +11,17 @@
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "cudaq/algorithms/unitary.h"
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
+#include <nanobind/stl/shared_ptr.h>
 
 using namespace cudaq;
 
 /// Compute the unitary of this kernel module.
-static nanobind::object get_unitary_impl(const std::string &shortName,
-                                         MlirModule module,
-                                         cudaq::CompiledModule *compiled,
-                                         nanobind::args args) {
+static nanobind::object
+get_unitary_impl(const std::string &shortName, MlirModule module,
+                 std::shared_ptr<detail::CompiledModuleCache> cache,
+                 nanobind::args args) {
   auto f = [=]() {
-    return cudaq::marshal_and_launch_module(shortName, module, args, compiled);
+    return cudaq::marshal_and_launch_module(shortName, module, args, cache);
   };
 
   // Return as numpy array (dim, dim), complex128

@@ -214,6 +214,16 @@ protected:
         "observe policy not supported for this photonics simulator.");
   }
 
+  msm_dimensions finalizeExecutionContext(const msm_size_policy &) override {
+    throw std::runtime_error(
+        "msm_size policy not supported for this photonics simulator.");
+  }
+
+  msm_result finalizeExecutionContext(const msm_policy &) override {
+    throw std::runtime_error(
+        "msm policy not supported for this photonics simulator.");
+  }
+
   void finalizeExecutionContext(const other_policies &policy,
                                 ExecutionContext &ctx) override {
     std::vector<std::size_t> ids;

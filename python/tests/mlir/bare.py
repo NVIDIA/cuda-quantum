@@ -11,6 +11,7 @@
 from cudaq.mlir.ir import *
 from cudaq.mlir.dialects import quake
 from cudaq.mlir.dialects import builtin, func, arith
+from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 
 with Context() as ctx:
     quake.register_dialect()
@@ -18,12 +19,16 @@ with Context() as ctx:
     with InsertionPoint(m.body), Location.unknown():
         f = func.FuncOp('main', ([], []))
         entry_block = f.add_entry_block()
+        print("EMPTY-BLOCK-TERMINATOR:",
+              cudaq_runtime.blockHasTerminator(entry_block))
         with InsertionPoint(entry_block):
             t = quake.RefType.get()
             v = quake.VeqType.get(10)
             iTy = IntegerType.get_signless(64)
             iAttr = IntegerAttr.get(iTy, 43)
             s = arith.ConstantOp(iTy, iAttr)
+            print("NON-TERMINATOR-LAST:",
+                  cudaq_runtime.blockHasTerminator(entry_block))
 
             qubit = quake.AllocaOp(t)
             target = quake.AllocaOp(t)
@@ -33,9 +38,14 @@ with Context() as ctx:
             quake.HOp([], [], [], [qubit])
             quake.XOp([], [], [qubit], [target])
             ret = func.ReturnOp([])
+            print("TERMINATOR-LAST:",
+                  cudaq_runtime.blockHasTerminator(entry_block))
 
     print(str(m))
 
+# CHECK:         EMPTY-BLOCK-TERMINATOR: False
+# CHECK-NEXT:    NON-TERMINATOR-LAST: False
+# CHECK-NEXT:    TERMINATOR-LAST: True
 # CHECK-LABEL:   func.func @main() {
 # CHECK:           %[[VAL_0:.*]] = arith.constant 43 : i64
 # CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref

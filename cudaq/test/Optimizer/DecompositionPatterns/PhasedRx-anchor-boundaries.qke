@@ -1,0 +1,101 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// A phase-corrected decomposition must retain an aggregate source target: a
+// PhaseOp cannot use a !quake.veq as its scalar anchor.
+// RUN: cudaq-opt -pass-pipeline='builtin.module(decomposition{enable-patterns=HToPhasedRx,SToPhasedRx,TToPhasedRx,XToPhasedRx,YToPhasedRx,ZToPhasedRx,R1ToPhasedRx})' %s | FileCheck %s
+
+func.func @h_without_scalar_anchor(%targets: !quake.veq<2>) {
+  quake.h %targets : (!quake.veq<2>) -> ()
+  return
+}
+
+func.func @s_without_scalar_anchor(%targets: !quake.veq<2>) {
+  quake.s %targets : (!quake.veq<2>) -> ()
+  return
+}
+
+func.func @t_without_scalar_anchor(%targets: !quake.veq<2>) {
+  quake.t %targets : (!quake.veq<2>) -> ()
+  return
+}
+
+func.func @x_without_scalar_anchor(%targets: !quake.veq<2>) {
+  quake.x %targets : (!quake.veq<2>) -> ()
+  return
+}
+
+func.func @y_without_scalar_anchor(%targets: !quake.veq<2>) {
+  quake.y %targets : (!quake.veq<2>) -> ()
+  return
+}
+
+func.func @z_without_scalar_anchor(%targets: !quake.veq<2>) {
+  quake.z %targets : (!quake.veq<2>) -> ()
+  return
+}
+
+func.func @r1_without_scalar_anchor(%targets: !quake.veq<2>) {
+  %theta = arith.constant 7.890000e-01 : f64
+  quake.r1 (%theta) %targets : (f64, !quake.veq<2>) -> ()
+  return
+}
+
+func.func @r1_without_unsized_scalar_anchor(%targets: !quake.veq<?>) {
+  %theta = arith.constant 4.560000e-01 : f64
+  quake.r1 (%theta) %targets : (f64, !quake.veq<?>) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @h_without_scalar_anchor
+// CHECK: quake.h
+// CHECK-NOT: quake.phased_rx
+// CHECK-NOT: quake.phase
+// CHECK: return
+
+// CHECK-LABEL: func.func @s_without_scalar_anchor
+// CHECK: quake.s
+// CHECK-NOT: quake.phased_rx
+// CHECK-NOT: quake.phase
+// CHECK: return
+
+// CHECK-LABEL: func.func @t_without_scalar_anchor
+// CHECK: quake.t
+// CHECK-NOT: quake.phased_rx
+// CHECK-NOT: quake.phase
+// CHECK: return
+
+// CHECK-LABEL: func.func @x_without_scalar_anchor
+// CHECK: quake.x
+// CHECK-NOT: quake.phased_rx
+// CHECK-NOT: quake.phase
+// CHECK: return
+
+// CHECK-LABEL: func.func @y_without_scalar_anchor
+// CHECK: quake.y
+// CHECK-NOT: quake.phased_rx
+// CHECK-NOT: quake.phase
+// CHECK: return
+
+// CHECK-LABEL: func.func @z_without_scalar_anchor
+// CHECK: quake.z
+// CHECK-NOT: quake.phased_rx
+// CHECK-NOT: quake.phase
+// CHECK: return
+
+// CHECK-LABEL: func.func @r1_without_scalar_anchor
+// CHECK: quake.r1
+// CHECK-NOT: quake.phased_rx
+// CHECK-NOT: quake.phase
+// CHECK: return
+
+// CHECK-LABEL: func.func @r1_without_unsized_scalar_anchor
+// CHECK: quake.r1
+// CHECK-NOT: quake.phased_rx
+// CHECK-NOT: quake.phase
+// CHECK: return

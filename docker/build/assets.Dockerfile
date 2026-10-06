@@ -37,7 +37,10 @@ ADD scripts/configure_build.sh /cuda-quantum/scripts/configure_build.sh
 
 # [Prerequisites]
 ARG PYTHON=python3.11
-RUN dnf install -y --nobest --setopt=install_weak_deps=False ${PYTHON}
+RUN dnf install -y --nobest --setopt=install_weak_deps=False ${PYTHON} && \
+    # python36, pulled in by nvidia-driver-libs, outranks ${PYTHON} in the
+    # python3 alternatives group. Pin ours so `python3` stays ${PYTHON}.
+    alternatives --set python3 /usr/bin/${PYTHON}
 
 # [Build Dependencies]
 RUN dnf install -y --nobest --setopt=install_weak_deps=False wget git unzip epel-release && \
@@ -50,6 +53,7 @@ RUN source /cuda-quantum/scripts/configure_build.sh install-gcc
 
 # [CUDA-Q Dependencies]
 ADD scripts/install_prerequisites.sh /cuda-quantum/scripts/install_prerequisites.sh
+ADD scripts/prereqs_common.sh /cuda-quantum/scripts/prereqs_common.sh
 ADD scripts/set_env_defaults.sh /cuda-quantum/scripts/set_env_defaults.sh
 ADD scripts/install_toolchain.sh /cuda-quantum/scripts/install_toolchain.sh
 ADD scripts/build_llvm.sh /cuda-quantum/scripts/build_llvm.sh
@@ -105,12 +109,14 @@ ADD "docs/sphinx/applications" /cuda-quantum/docs/sphinx/applications
 ADD "docs/sphinx/targets" /cuda-quantum/docs/sphinx/targets
 ADD "docs/sphinx/snippets" /cuda-quantum/docs/sphinx/snippets
 ADD "cudaq" /cuda-quantum/cudaq
+ADD "realtime" /cuda-quantum/realtime
 ADD "runtime" /cuda-quantum/runtime
 ADD "scripts/build_cudaq.sh" /cuda-quantum/scripts/build_cudaq.sh
 ADD "scripts/migrate_assets.sh" /cuda-quantum/scripts/migrate_assets.sh
 ADD "scripts/cudaq_set_env.sh" /cuda-quantum/scripts/cudaq_set_env.sh
 ADD "scripts/build_installer.sh" /cuda-quantum/scripts/build_installer.sh
 ADD "scripts/set_env_defaults.sh" /cuda-quantum/scripts/set_env_defaults.sh
+ADD "scripts/check_mlir_symbols.sh" /cuda-quantum/scripts/check_mlir_symbols.sh
 ADD "targettests" /cuda-quantum/targettests
 ADD "tpls/customizations" /cuda-quantum/tpls/customizations
 ADD "tpls/json" /cuda-quantum/tpls/json
@@ -118,6 +124,7 @@ ADD "unittests" /cuda-quantum/unittests
 ADD "utils" /cuda-quantum/utils
 ADD "CMakeLists.txt" /cuda-quantum/CMakeLists.txt
 ADD "LICENSE" /cuda-quantum/LICENSE
+ADD "LICENSES" /cuda-quantum/LICENSES
 ADD "NOTICE" /cuda-quantum/NOTICE
 
 ARG release_version=
@@ -155,17 +162,51 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     CUDAQ_WERROR=TRUE \
     CUDAQ_PYTHON_SUPPORT=OFF \
     LLVM_PROJECTS='clang;flang;lld;mlir;openmp;runtimes' \
-    bash scripts/build_cudaq.sh -t llvm -v -- -DCUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR=OFF && \
+    bash scripts/build_cudaq.sh -t llvm -v -- \
+        "-DCUDAQ_ENABLE_PROJECTS=cudaq;runtime;realtime" \
+        -DCUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR=OFF && \
     echo "=== ccache stats (cpp_build) ===" && (ccache -s 2>/dev/null || true) && \
     (ccache --print-stats 2>/dev/null || ccache -s 2>/dev/null) > /root/.ccache/_build_stats.txt
     ## [<CUDAQuantumCppBuild]
 
 # Validate that the nvidia backend was built.
 RUN source /cuda-quantum/scripts/configure_build.sh && \
-    if [ -z "$(ls $CUDAQ_INSTALL_PREFIX/targets/nvidia.yml)" ]; then \
-        echo -e "\e[01;31mError: Missing nvidia backend.\e[0m" >&2; \
-        exit 1; \
-    fi
+    for lib in libnvqir-custatevec-fp32.so libnvqir-custatevec-fp64.so; do \
+        if [ ! -f "$CUDAQ_INSTALL_PREFIX/lib/$lib" ]; then \
+            echo -e "\e[01;31mError: Missing nvidia backend ($lib).\e[0m" >&2; \
+            exit 1; \
+        fi; \
+    done
+
+# Validate that the realtime integration and its CUDA-Q device-call consumers
+# were built and installed. The GPU test is compile-only in this CPU-runner
+# pipeline; the no-GPU host-dispatch tests run in the cpp_tests stage below.
+RUN source /cuda-quantum/scripts/configure_build.sh && \
+    for artifact in \
+        include/cudaq/realtime.h \
+        lib/libcudaq-realtime.so \
+        lib/libcudaq-realtime-dispatch.a \
+        lib/libcudaq-realtime-host-dispatch.a \
+        lib/libcudaq-realtime-udp-transport.a \
+        lib/libcudaq-device-call-runtime.so \
+        lib/cmake/cudaq-realtime/cudaq-realtime-config.cmake \
+        realtime/LICENSE \
+        realtime/NOTICE; \
+    do \
+        if [ ! -e "$CUDAQ_INSTALL_PREFIX/$artifact" ]; then \
+            echo -e "\e[01;31mError: Missing realtime artifact: $artifact.\e[0m" >&2; \
+            exit 1; \
+        fi; \
+    done && \
+    for executable in \
+        /cuda-quantum/build/unittests/test_device_call_dispatch \
+        /cuda-quantum/build/unittests/test_host_dispatch_no_gpu; \
+    do \
+        if [ ! -x "$executable" ]; then \
+            echo -e "\e[01;31mError: Missing realtime test executable: $executable.\e[0m" >&2; \
+            exit 1; \
+        fi; \
+    done
 
 # Validate that the built toolchain and libraries have no GCC dependencies.
 RUN source /cuda-quantum/scripts/configure_build.sh && \
@@ -176,7 +217,7 @@ RUN source /cuda-quantum/scripts/configure_build.sh && \
         libname="$(basename "$binary")" && \
         # Linking cublas dynamically necessarily adds a libgcc_s dependency to the GPU-based simulators.
         # The same holds for a range of CUDA libraries, whereas libcudart.so does not have any GCC dependencies.
-        if [ "${libname#libnvqir-custatevec}" != "$libname" ] || [ "${libname#libnvqir-tensornet}" != "$libname" ] || [ "${libname#libnvqir-dynamics}" != "$libname" ]; then \
+        if [ "${libname#libnvqir-custatevec}" != "$libname" ] || [ "${libname#libnvqir-nvidia-mgpu}" != "$libname" ] || [ "${libname#libnvqir-tensornet}" != "$libname" ] || [ "${libname#libnvqir-dynamics}" != "$libname" ]; then \
             echo "Skipping validation of $libname."; \
         elif [ -n "$(ldd "${binary}" 2>/dev/null | grep gcc)" ]; then \
             has_gcc_dependencies=true && \
@@ -199,8 +240,10 @@ ADD "runtime" /cuda-quantum/runtime
 ADD "tpls/customizations" /cuda-quantum/tpls/customizations
 ADD "tpls/json" /cuda-quantum/tpls/json
 ADD "utils" /cuda-quantum/utils
+ADD "scripts/check_mlir_symbols.sh" /cuda-quantum/scripts/check_mlir_symbols.sh
 ADD "CMakeLists.txt" /cuda-quantum/CMakeLists.txt
 ADD "LICENSE" /cuda-quantum/LICENSE
+ADD "LICENSES" /cuda-quantum/LICENSES
 ADD "NOTICE" /cuda-quantum/NOTICE
 ADD "CITATION.cff" /cuda-quantum/CITATION.cff
 
@@ -279,10 +322,12 @@ RUN echo "Patching up wheel using auditwheel..." && \
     ## [<CUDAQuantumWheel]
 
 # Validate that the nvidia backend was built.
-RUN if [ -z "$(ls /cuda-quantum/_skbuild/targets/nvidia.yml)" ]; then \
-        echo -e "\e[01;31mError: Missing nvidia backend.\e[0m" >&2; \
-        exit 1; \
-    fi
+RUN for lib in libnvqir-custatevec-fp32.so libnvqir-custatevec-fp64.so; do \
+        if [ ! -f "/cuda-quantum/_skbuild/lib/$lib" ]; then \
+            echo -e "\e[01;31mError: Missing nvidia backend ($lib).\e[0m" >&2; \
+            exit 1; \
+        fi; \
+    done
 
 # Validate that the built toolchain and libraries have no GCC dependencies.
 RUN source /cuda-quantum/scripts/configure_build.sh && \
@@ -305,8 +350,9 @@ RUN gcc_packages=$(dnf list installed "gcc*" | sed '/Installed Packages/d' | cut
     dnf install -y --nobest --setopt=install_weak_deps=False glibc-devel
 
 ## [Python MLIR tests]
+# lit 23+ rejects the external shell our lit configs use. Pin to LLVM 22.x.
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
-    python3 -m pip install lit pytest scipy && \
+    python3 -m pip install 'lit<23' pytest scipy && \
     "${LLVM_INSTALL_PREFIX}/bin/llvm-lit" -v _skbuild/python/tests/mlir \
         --param cudaq_site_config=_skbuild/python/tests/mlir/lit.site.cfg.py
 # The other tests for the Python wheel are run post-installation.
@@ -317,20 +363,20 @@ RUN gcc_packages=$(dnf list installed "gcc*" | sed '/Installed Packages/d' | cut
     dnf remove -y $gcc_packages && dnf clean all && \
     dnf install -y --nobest --setopt=install_weak_deps=False glibc-devel
 
-RUN if [ ! -x "$(command -v nvidia-smi)" ] || [ -z "$(nvidia-smi | egrep -o "CUDA Version: ([0-9]{1,}\.)+[0-9]{1,}")" ]; then \
+RUN if ! gpus=$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null) || [ -z "$gpus" ]; then \
         excludes="--label-exclude gpu_required"; \
     else \
         # Removing gcc packages remove the CUDA toolkit since it depends on them
         source /cuda-quantum/scripts/configure_build.sh install-cudart; \
     fi && cd /cuda-quantum && \
     # Exclude lit test suites from ctest. They are run individually above/below.
-    # FIXME: Tensor unit tests for runtime errors throw a different exception.
+    # FIXME: exceptions lose their type across the library boundary here.
     # Issue: https://github.com/NVIDIA/cuda-quantum/issues/2321
-    excludes+=" --exclude-regex ctest-cudaq|ctest-targettests|pycudaq-mlir|Tensor.*Error" && \
+    excludes+=" --exclude-regex ctest-cudaq|ctest-targettests|ctest-runtime|pycudaq-mlir|Tensor.*Error|DrawTester\.ownsControlValues" && \
     ctest --output-on-failure --test-dir build $excludes
 
 ENV PATH="${PATH}:/usr/local/cuda/bin" 
-RUN if [ -x "$(command -v nvidia-smi)" ] && [ -n "$(nvidia-smi | egrep -o "CUDA Version: ([0-9]{1,}\.)+[0-9]{1,}")" ]; then \
+RUN if gpus=$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null) && [ -n "$gpus" ]; then \
         source /cuda-quantum/scripts/configure_build.sh install-cudart && \
         # Installing the CUDA compiler will install libstdc++ as well
         dnf install -y --nobest --setopt=install_weak_deps=False \
@@ -338,14 +384,15 @@ RUN if [ -x "$(command -v nvidia-smi)" ] && [ -n "$(nvidia-smi | egrep -o "CUDA 
             cuda-cudart-devel-$(echo ${CUDA_VERSION} | tr . -); \
     fi
 
-RUN python3 -m ensurepip --upgrade && python3 -m pip install lit && \
+# lit 23+ rejects the external shell our lit configs use. Pin to LLVM 22.x.
+RUN python3 -m ensurepip --upgrade && python3 -m pip install 'lit<23' && \
     dnf install -y --nobest --setopt=install_weak_deps=False file which
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     if [ ! -x "$(command -v nvcc)" ]; then \
         # The tests is marked correctly as requiring nvcc, but since nvcc
         # is available during the build we need to filter it manually.
         filtered=" --filter-out MixedLanguage/cuda-1"; \
-	filtered+="|AST-Quake/calling_convention|test_argument_conversion"; \
+	filtered+="|Frontend/calling_convention"; \
     fi && \
     "$LLVM_INSTALL_PREFIX/bin/llvm-lit" -v build/cudaq/test \
         --param cudaq_site_config=build/cudaq/test/lit.site.cfg.py ${filtered} && \
@@ -356,7 +403,15 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
         filtered+="|TargetConfig/check_compile"; \
     fi && \
     "$LLVM_INSTALL_PREFIX/bin/llvm-lit" -v build/targettests \
-        --param cudaq_site_config=build/targettests/lit.site.cfg.py ${filtered}
+        --param cudaq_site_config=build/targettests/lit.site.cfg.py ${filtered} && \
+    filtered="" && \
+    if [ ! -x "$(command -v nvcc)" ]; then \
+        # The test is marked correctly as requiring nvcc, but since nvcc
+        # is available during the build we need to filter it manually.
+        filtered=" --filter-out argument_conversion"; \
+    fi && \
+    "$LLVM_INSTALL_PREFIX/bin/llvm-lit" -v build/runtime/test \
+        --param cudaq_site_config=build/runtime/test/lit.site.cfg.py ${filtered}
 
 # Export ccache data so CI can extract it for persistence.
 # Tar inside the container to export a single file instead of thousands of
@@ -384,4 +439,3 @@ RUN . /cuda-quantum/scripts/configure_build.sh install-gcc && \
         dnf install -y --nobest --setopt=install_weak_deps=False \
             libnvjitlink-$(echo ${CUDA_VERSION} | tr . -); \
     fi
-

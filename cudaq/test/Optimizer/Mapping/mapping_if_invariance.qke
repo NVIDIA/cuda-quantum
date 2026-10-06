@@ -1,0 +1,141 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                        //
+//                                                                             //
+// This source code and the accompanying materials are made available under    //
+// the terms of the Apache License 2.0 which accompanies this distribution.    //
+// ========================================================================== //
+
+// Placement and routing depend only on the two-qubit interaction graph, so
+// wrapping single-qubit gates in cc::IfOp branches must not change the mapping.
+// Each straightline kernel below is paired with a variant that inserts trivial
+// ifs (1-qubit gates only) on some wires; both must produce the same
+// mapping_v2p and the same swap count.
+
+// RUN: cudaq-opt '--qubit-mapping=device=path(6) placement=identity search=none' %s | FileCheck %s
+
+quake.wire_set @wires[2147483647]
+
+// Baseline: three CNOTs whose non-adjacent operands force three swaps on
+// path(6).
+//
+// CHECK-LABEL: func.func @chain_straight() attributes {mapping_reorder_idx = {{.*}}, mapping_v2p = [1, 3, 0, 2, 4]}
+// CHECK-COUNT-3: quake.swap
+// CHECK-NOT: quake.swap
+func.func @chain_straight() {
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
+  %1 = quake.borrow_wire @wires[1] : !quake.wire
+  %2 = quake.borrow_wire @wires[2] : !quake.wire
+  %3 = quake.borrow_wire @wires[3] : !quake.wire
+  %4 = quake.borrow_wire @wires[4] : !quake.wire
+  %a:2 = quake.x [%0] %3 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %b:2 = quake.x [%1] %4 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %c:2 = quake.x [%a#0] %2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.return_wire %a#1 : !quake.wire
+  quake.return_wire %b#0 : !quake.wire
+  quake.return_wire %b#1 : !quake.wire
+  quake.return_wire %c#0 : !quake.wire
+  quake.return_wire %c#1 : !quake.wire
+  return
+}
+
+// Same 2-qubit structure with trivial ifs inserted on wires 0 and 2. The
+// mapping_v2p and swap count are identical to @chain_straight.
+//
+// CHECK-LABEL: func.func @chain_with_trivial_if() attributes {mapping_reorder_idx = {{.*}}, mapping_v2p = [1, 3, 0, 2, 4]}
+// CHECK-COUNT-3: quake.swap
+// CHECK-NOT: quake.swap
+func.func @chain_with_trivial_if() {
+  %cond = cc.undef i1
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
+  %1 = quake.borrow_wire @wires[1] : !quake.wire
+  %2 = quake.borrow_wire @wires[2] : !quake.wire
+  %3 = quake.borrow_wire @wires[3] : !quake.wire
+  %4 = quake.borrow_wire @wires[4] : !quake.wire
+  %g0 = cc.if (%cond) ((%x = %0)) -> (!quake.wire) {
+    %r = quake.h %x : (!quake.wire) -> !quake.wire
+    cc.continue %r : !quake.wire
+  } else {
+    cc.continue %x : !quake.wire
+  }
+  %a:2 = quake.x [%g0] %3 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %b:2 = quake.x [%1] %4 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g2 = cc.if (%cond) ((%x = %2)) -> (!quake.wire) {
+    %r = quake.t %x : (!quake.wire) -> !quake.wire
+    cc.continue %r : !quake.wire
+  } else {
+    %r = quake.s %x : (!quake.wire) -> !quake.wire
+    cc.continue %r : !quake.wire
+  }
+  %c:2 = quake.x [%a#0] %g2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.return_wire %a#1 : !quake.wire
+  quake.return_wire %b#0 : !quake.wire
+  quake.return_wire %b#1 : !quake.wire
+  quake.return_wire %c#0 : !quake.wire
+  quake.return_wire %c#1 : !quake.wire
+  return
+}
+
+// Baseline: a wider interaction pattern over six wires needing six swaps.
+//
+// CHECK-LABEL: func.func @wide_straight() attributes {mapping_reorder_idx = {{.*}}, mapping_v2p = [1, 3, 0, 5, 4, 2]}
+// CHECK-COUNT-6: quake.swap
+// CHECK-NOT: quake.swap
+func.func @wide_straight() {
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
+  %1 = quake.borrow_wire @wires[1] : !quake.wire
+  %2 = quake.borrow_wire @wires[2] : !quake.wire
+  %3 = quake.borrow_wire @wires[3] : !quake.wire
+  %4 = quake.borrow_wire @wires[4] : !quake.wire
+  %5 = quake.borrow_wire @wires[5] : !quake.wire
+  %a:2 = quake.x [%0] %5 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %b:2 = quake.x [%1] %4 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %c:2 = quake.x [%a#0] %2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %d:2 = quake.x [%b#0] %a#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.return_wire %b#1 : !quake.wire
+  quake.return_wire %c#0 : !quake.wire
+  quake.return_wire %c#1 : !quake.wire
+  quake.return_wire %d#0 : !quake.wire
+  quake.return_wire %d#1 : !quake.wire
+  quake.return_wire %3 : !quake.wire
+  return
+}
+
+// Same structure with a nested trivial if (if-inside-if, 1-qubit gates only)
+// on wire 2. The mapping_v2p and swap count match @wide_straight.
+//
+// CHECK-LABEL: func.func @wide_with_nested_if() attributes {mapping_reorder_idx = {{.*}}, mapping_v2p = [1, 3, 0, 5, 4, 2]}
+// CHECK-COUNT-6: quake.swap
+// CHECK-NOT: quake.swap
+func.func @wide_with_nested_if() {
+  %cond = cc.undef i1
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
+  %1 = quake.borrow_wire @wires[1] : !quake.wire
+  %2 = quake.borrow_wire @wires[2] : !quake.wire
+  %3 = quake.borrow_wire @wires[3] : !quake.wire
+  %4 = quake.borrow_wire @wires[4] : !quake.wire
+  %5 = quake.borrow_wire @wires[5] : !quake.wire
+  %a:2 = quake.x [%0] %5 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %b:2 = quake.x [%1] %4 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %g2 = cc.if (%cond) ((%x = %2)) -> (!quake.wire) {
+    %inner = cc.if (%cond) ((%y = %x)) -> (!quake.wire) {
+      %r = quake.h %y : (!quake.wire) -> !quake.wire
+      cc.continue %r : !quake.wire
+    } else {
+      %r = quake.x %y : (!quake.wire) -> !quake.wire
+      cc.continue %r : !quake.wire
+    }
+    cc.continue %inner : !quake.wire
+  } else {
+    cc.continue %x : !quake.wire
+  }
+  %c:2 = quake.x [%a#0] %g2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %d:2 = quake.x [%b#0] %a#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.return_wire %b#1 : !quake.wire
+  quake.return_wire %c#0 : !quake.wire
+  quake.return_wire %c#1 : !quake.wire
+  quake.return_wire %d#0 : !quake.wire
+  quake.return_wire %d#1 : !quake.wire
+  quake.return_wire %3 : !quake.wire
+  return
+}

@@ -29,7 +29,7 @@
 #   tpls_commits.lock                      - "<commit> <path>" per submodule (same as install_prerequisites.sh -l)
 #   .gitmodules                            - submodule paths and URLs
 #   scripts/clone_tpls_from_lock.sh        - clone script
-#   NOTICE, LICENSE                          - attribution
+#   NOTICE, LICENSE, LICENSES/               - attribution and third-party license texts
 #   NOTICE_PIP_cudaq_cu<N>, NOTICE_PIP_cudaqx_cu<N>, NOTICE_PIP_macos_cu<N> - pip attribution per variant (from generate_pip_attribution.py)
 #   NOTICE_APT_cudaq_cu<N>, NOTICE_APT_cudaqx_cu<N> - apt attribution per variant (from generate_apt_attribution.py)
 
@@ -94,6 +94,7 @@ COPY prereqs/ "${SOURCES_ROOT}/prereqs/"
 
 # Copy attribution into NOTICES folder (NOTICE_PIP_* and NOTICE_APT_* generated per variant with CUDA version, e.g. NOTICE_PIP_cudaq_cu12)
 COPY NOTICE LICENSE "${SOURCES_ROOT}/NOTICES/"
+COPY LICENSES "${SOURCES_ROOT}/NOTICES/LICENSES/"
 COPY NOTICE_PIP_cudaq_cu* NOTICE_PIP_cudaqx_cu* NOTICE_PIP_macos_cu* "${SOURCES_ROOT}/NOTICES/"
 COPY NOTICE_APT_cudaq_cu* NOTICE_APT_cudaqx_cu* "${SOURCES_ROOT}/NOTICES/"
 

@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "cudaq/Optimizer/Dialect/Common/InlinerInterface.h"
+#include "cudaq/Optimizer/Dialect/InlinerInterface.h"
 #include "mlir/IR/OpDefinition.h"
 
 using QuakeInlinerInterface = cudaq::EnableInlinerInterface;

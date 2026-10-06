@@ -102,7 +102,12 @@ some checks require system dependencies:
 
 ```bash
 # Ubuntu/Debian
-sudo apt-get install aspell aspell-en nodejs npm golang
+sudo apt-get install aspell aspell-en golang
+# Node from NodeSource, not apt: markdown-link-check needs Node 20 or newer,
+# and Ubuntu 24.04's nodejs package is 18. NodeSource's nodejs bundles npm,
+# so do not also install the apt npm package -- the two conflict.
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt-get install nodejs
 
 # macOS
 brew install aspell node go
@@ -223,6 +228,17 @@ ctest
 # To run a specific test
 ctest -R <test-name>
 ```
+
+On macOS, `ctest` registers one test per `gtest` executable rather than one
+per method, avoiding a multi-second per-process startup cost (issue #4857).
+To run a single method, invoke the executable directly:
+
+```bash
+./unittests/nvqpp/test_ptsbe --gtest_filter='TrajectoryDeduplicationTest.EmptyInput'
+```
+
+Configure with `-DCUDAQ_TEST_SPLIT_GTESTS=ON` to restore per-method
+registration.
 
 ### Python tests
 

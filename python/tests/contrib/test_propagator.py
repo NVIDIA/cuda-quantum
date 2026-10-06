@@ -32,7 +32,7 @@ _X = np.array([[0.0, 1.0], [1.0, 0.0]], dtype=np.complex128)
 _Z = np.array([[1.0, 0.0], [0.0, -1.0]], dtype=np.complex128)
 
 
-def _solve_propagator_reference(hamiltonian_matrix, t_final):
+def _solve_propagator_reference(hamiltonian_matrix, t_final, times=None):
     dimension = hamiltonian_matrix(0.0).shape[0]
 
     def rhs(t, flattened_u):
@@ -47,10 +47,30 @@ def _solve_propagator_reference(hamiltonian_matrix, t_final):
         initial,
         rtol=1e-10,
         atol=1e-12,
+        t_eval=times,
     )
 
     assert solution.success
-    return solution.y[:, -1].reshape((dimension, dimension))
+
+    if times is None:
+        return solution.y[:, -1].reshape((dimension, dimension))
+
+    return [
+        solution.y[:, index].reshape((dimension, dimension))
+        for index in range(solution.y.shape[1])
+    ]
+
+
+_ASYMMETRIC_PARAMETERS = [(0.2, 0.35), (0.45, 0.15)]
+
+
+def _asymmetric_hamiltonian(ax, bz):
+    return (ax * ScalarOperator(lambda t: t) * spin.x(0) +
+            bz * ScalarOperator(lambda t: 1.0 - t) * spin.z(0))
+
+
+def _asymmetric_hamiltonian_matrix(ax, bz):
+    return lambda t: ax * t * _X + bz * (1.0 - t) * _Z
 
 
 def test_propagator_constant_z_hamiltonian():
@@ -101,6 +121,60 @@ def test_propagator_batched_hamiltonians():
     for propagator, omega in zip(computed, omegas):
         expected = scipy_linalg.expm(-1j * 0.5 * omega * _Z * t_final)
         np.testing.assert_allclose(propagator, expected, atol=1e-4)
+
+
+def test_propagator_batched_asymmetric_hamiltonians():
+    t_final = 0.8
+
+    hamiltonians = [
+        _asymmetric_hamiltonian(ax, bz) for ax, bz in _ASYMMETRIC_PARAMETERS
+    ]
+    schedule = Schedule(np.linspace(0.0, t_final, 41), ["t"])
+
+    computed = cudaq.contrib.propagator(
+        hamiltonians,
+        {0: 2},
+        schedule,
+        max_batch_size=2,
+    )
+
+    assert len(computed) == len(_ASYMMETRIC_PARAMETERS)
+
+    for propagator, (ax, bz) in zip(computed, _ASYMMETRIC_PARAMETERS):
+        expected = _solve_propagator_reference(
+            _asymmetric_hamiltonian_matrix(ax, bz), t_final)
+        assert np.abs(expected - expected.T).max() > 1e-3
+        np.testing.assert_allclose(propagator, expected, atol=1e-4)
+
+
+def test_propagator_batched_asymmetric_intermediate_results():
+    t_final = 0.8
+    steps = np.linspace(0.0, t_final, 5)
+
+    hamiltonians = [
+        _asymmetric_hamiltonian(ax, bz) for ax, bz in _ASYMMETRIC_PARAMETERS
+    ]
+    schedule = Schedule(steps, ["t"])
+
+    computed = cudaq.contrib.propagator(
+        hamiltonians,
+        {0: 2},
+        schedule,
+        store_intermediate_results=True,
+        max_batch_size=2,
+    )
+
+    assert len(computed) == len(_ASYMMETRIC_PARAMETERS)
+
+    for propagators, (ax, bz) in zip(computed, _ASYMMETRIC_PARAMETERS):
+        expected = _solve_propagator_reference(_asymmetric_hamiltonian_matrix(
+            ax, bz),
+                                               t_final,
+                                               times=steps)
+        assert len(propagators) == len(steps)
+        assert np.abs(expected[-1] - expected[-1].T).max() > 1e-3
+        for actual, single_expected in zip(propagators, expected):
+            np.testing.assert_allclose(actual, single_expected, atol=1e-4)
 
 
 def test_propagator_intermediate_results():

@@ -33,6 +33,16 @@ using real = double;
 using complex = std::complex<real>;
 
 namespace detail {
+/// Reject unprocessed YAML target configurations at runtime.
+class YamlTargetConfigDisabler {
+public:
+  YamlTargetConfigDisabler();
+};
+
+#ifdef CUDAQ_DISABLE_YAML_TARGET_CONFIG
+inline YamlTargetConfigDisabler yamlTargetConfigDisabler;
+#endif
+
 /// @brief Static initializer that wires up the runtime target backend on
 /// program startup. `nvq++` defines `NVQPP_TARGET_BACKEND_CONFIG` for
 /// `gen-target-backend: true` targets so that including any public CUDA-Q

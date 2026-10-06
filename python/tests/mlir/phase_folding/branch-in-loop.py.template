@@ -19,7 +19,7 @@ def assert_states_match(state1, state2, tolerance=1e-7):
     assert abs(overlap.imag) < tolerance
 
 
-@cudaq.kernel
+@cudaq.kernel(disable_quantum_optimization=True)
 def kernel():
     GEN-QALLOC: nqubits=3-5
     for i in range(GEN:<nqubits>):

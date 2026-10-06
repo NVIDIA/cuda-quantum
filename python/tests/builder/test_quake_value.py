@@ -64,6 +64,53 @@ def test_quake_value_operators(type_):
     assert test != value_1
 
 
+def test_mixed_quake_value_arithmetic_promotes_int_to_float():
+    kernel, int_value, float_value = cudaq.make_kernel(int, float)
+    qubit = kernel.qalloc()
+
+    # Checking the binary operators with mixed `QuakeValue` types in both
+    # operand orders.
+    test = int_value + float_value
+    assert type(test) == cudaq.QuakeValue
+    assert test != int_value and test != float_value
+    kernel.rx(test, qubit)
+
+    test = float_value + int_value
+    assert type(test) == cudaq.QuakeValue
+    assert test != int_value and test != float_value
+    kernel.rx(test, qubit)
+
+    test = int_value - float_value
+    assert type(test) == cudaq.QuakeValue
+    assert test != int_value and test != float_value
+    kernel.ry(test, qubit)
+
+    test = float_value - int_value
+    assert type(test) == cudaq.QuakeValue
+    assert test != int_value and test != float_value
+    kernel.ry(test, qubit)
+
+    test = int_value * float_value
+    assert type(test) == cudaq.QuakeValue
+    assert test != int_value and test != float_value
+    kernel.rz(test, qubit)
+
+    test = float_value * int_value
+    assert type(test) == cudaq.QuakeValue
+    assert test != int_value and test != float_value
+    kernel.rz(test, qubit)
+
+    test = int_value / float_value
+    assert type(test) == cudaq.QuakeValue
+    assert test != int_value and test != float_value
+    kernel.r1(test, qubit)
+
+    test = float_value / int_value
+    assert type(test) == cudaq.QuakeValue
+    assert test != int_value and test != float_value
+    kernel.r1(test, qubit)
+
+
 def test_QuakeValueLifetimeAndPrint():
     """Tests Bug #64 for the lifetime of a QuakeValue"""
     circuit = cudaq.make_kernel()

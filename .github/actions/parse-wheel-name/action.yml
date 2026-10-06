@@ -1,0 +1,49 @@
+name: Parse wheel name
+description: |
+  Infer linux platform and Python version from a PEP 427 wheel filename
+  (or artifact name that is the wheel filename).
+
+inputs:
+  wheel_name:
+    description: Wheel filename, artifact name, or path.
+    required: true
+
+outputs:
+  platform:
+    description: "Linux platform (linux/amd64 or linux/arm64)."
+    value: ${{ steps.parse.outputs.platform }}
+  python_version:
+    description: "Python version (e.g. 3.11)."
+    value: ${{ steps.parse.outputs.python_version }}
+
+runs:
+  using: composite
+  steps:
+    - name: Infer platform and Python version from wheel name
+      id: parse
+      shell: bash
+      env:
+        WHEEL_NAME: ${{ inputs.wheel_name }}
+      run: |
+        set -euo pipefail
+        WHEEL_NAME="$(basename "$WHEEL_NAME")"
+
+        if [[ ! "$WHEEL_NAME" =~ -cp([0-9]{2,3})- ]]; then
+          echo "::error::Could not parse Python version from wheel name: $WHEEL_NAME"
+          exit 1
+        fi
+        py_tag="${BASH_REMATCH[1]}"
+        python_version="${py_tag:0:1}.${py_tag:1}"
+
+        if [[ "$WHEEL_NAME" =~ (aarch64|arm64) ]]; then
+          platform="linux/arm64"
+        elif [[ "$WHEEL_NAME" =~ (x86_64|amd64) ]]; then
+          platform="linux/amd64"
+        else
+          echo "::error::Could not parse platform from wheel name: $WHEEL_NAME"
+          exit 1
+        fi
+
+        echo "platform=$platform" >> "$GITHUB_OUTPUT"
+        echo "python_version=$python_version" >> "$GITHUB_OUTPUT"
+        echo "Parsed $WHEEL_NAME: platform=$platform python_version=$python_version"

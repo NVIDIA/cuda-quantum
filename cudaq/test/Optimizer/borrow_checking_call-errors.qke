@@ -1,0 +1,41 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// clang-format off
+// RUN: not cudaq-opt --borrow-checking --split-input-file %s 2>&1 | FileCheck %s
+// RUN: not cudaq-opt --borrow-checking=raise-failure=false --split-input-file %s 2>&1 | FileCheck %s
+// RUN: not cudaq-opt --borrow-checking=warn-on-possible=false --split-input-file %s 2>&1 | FileCheck %s
+// clang-format on
+
+// A borrowed wire that vanishes into a call, and a wire that a call produces
+// out of nowhere, are always errors. Neither `raise-failure=false`, which
+// downgrades a definite violation, nor `warn-on-possible=false`, which silences
+// a possible one, changes that. The IR is broken, and the pass fails.
+
+quake.wire_set @phys[4]
+func.func private @consume(!quake.wire)
+
+func.func @vanished() {
+  %0 = quake.borrow_wire @phys[0] : !quake.wire
+  func.call @consume(%0) : (!quake.wire) -> ()
+  return
+}
+
+// CHECK: error: borrowed wire @phys[0] is passed to an operation that consumes it and is never returned
+
+// -----
+
+func.func private @make() -> !quake.wire
+
+func.func @conjured() {
+  %0 = func.call @make() : () -> !quake.wire
+  quake.return_wire %0 : !quake.wire
+  return
+}
+
+// CHECK: error: operation returns a wire of unknown origin

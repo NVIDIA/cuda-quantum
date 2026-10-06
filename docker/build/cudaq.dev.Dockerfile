@@ -52,6 +52,7 @@ WORKDIR "$destination"
 # creates a dev image that can be used as argument to docker/release/cudaq.Dockerfile
 # to create the released cuda-quantum image.
 ARG install=
+ARG cudaq_enable_projects=
 ARG git_source_sha=xxxxxxxx
 ENV CCACHE_DIR=/root/.ccache
 ENV CCACHE_BASEDIR="$CUDAQ_REPO_ROOT"
@@ -73,7 +74,11 @@ RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
     then \
         expected_prefix=$CUDAQ_INSTALL_PREFIX; \
         install=`echo $install | xargs` && export $install; \
-        bash scripts/build_cudaq.sh -v -- -DCUDAQ_TEST_OMP_SLOTS=2; \
+        cudaq_cmake_args=(-DCUDAQ_TEST_OMP_SLOTS=2); \
+        if [ -n "$cudaq_enable_projects" ]; then \
+            cudaq_cmake_args+=("-DCUDAQ_ENABLE_PROJECTS=$cudaq_enable_projects"); \
+        fi; \
+        bash scripts/build_cudaq.sh -v -- "${cudaq_cmake_args[@]}"; \
         if [ ! "$?" -eq "0" ]; then \
             exit 1; \
         elif [ "$CUDAQ_INSTALL_PREFIX" != "$expected_prefix" ]; then \

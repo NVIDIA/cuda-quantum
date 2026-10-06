@@ -109,7 +109,7 @@ for the writer, the peer's rkey) before traffic flows. The channel performs a
 minimal bidirectional rendezvous between the transceiver's `setup()` and
 `connect()` phases. For a real FPGA service this exchange is driven by the HSB
 control plane instead; only the rendezvous step differs, not the data plane. The
-runtime pulls in no Hololink/HSB dependency.
+runtime pulls in no GpuRoceTransceiver/HSB dependency.
 
 ### Running it
 

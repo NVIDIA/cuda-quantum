@@ -7,9 +7,14 @@
 # ============================================================================ #
 
 add_cudaq_library(OptAnalysis
+  CommutationAnalysis.cpp
+  QubitIdentityAnalysis.cpp
   UnitaryOpGrouping.cpp
+  WireBorrowAnalysis.cpp
 
   DEPENDS
     CCDialect
     QuakeDialect
 )
+
+check_registered_mlir_lib(OptAnalysis)

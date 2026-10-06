@@ -142,9 +142,12 @@ auto runObservationAsync(KernelFunctor &&wrappedKernel, const spin_op &H,
 
   // If the platform is not remote, then we can handle asynchronous execution
   // via a new worker thread.
+  std::size_t seed = cudaq::get_random_seed();
   KernelExecutionTask task(
-      [&, H, qpu_id, shots, kernelName,
+      [&, H, qpu_id, shots, kernelName, seed,
        kernel = std::forward<KernelFunctor>(wrappedKernel)]() mutable {
+        if (seed > 0)
+          cudaq::set_random_seed(seed);
         return detail::runObservation(kernel, H, platform, shots, kernelName,
                                       qpu_id)
             .raw_data();

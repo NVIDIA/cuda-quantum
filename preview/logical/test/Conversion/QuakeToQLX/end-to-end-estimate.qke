@@ -1,0 +1,48 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                       //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+module attributes {qlx.profiles = ["p1"]} {
+  lvm.domain @qlx_device {
+    lvm.space @compute {
+      capabilities = [#lvm.capability<"qlx.machine/logical_compute">,
+                      #lvm.capability<"qlx.machine/logical_measurement">,
+                      #lvm.capability<"qlx.machine/logical_reset">],
+      capacity = 2 : i64
+    }
+  }
+
+  func.func @__nvqpp__mlirgen__bell()
+      attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+    %w0 = quake.null_wire
+    %w1 = quake.null_wire
+    %w0_1 = quake.h %w0 : (!quake.wire) -> !quake.wire
+    %cx:2 = quake.x [%w0_1] %w1
+        : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    %m0, %w0_out = quake.mz %cx#0 name "c0"
+        : (!quake.wire) -> (!quake.measure, !quake.wire)
+    %m1, %w1_out = quake.mz %cx#1 name "c1"
+        : (!quake.wire) -> (!quake.measure, !quake.wire)
+    quake.sink %w0_out : !quake.wire
+    quake.sink %w1_out : !quake.wire
+    return
+  }
+}
+
+// CHECK-NOT: quake.
+// CHECK: lvm.kernel @bell_placed on @qlx_device
+// CHECK-SAME: input_p0 = @bell
+// CHECK-SAME: qlx.placement_policy = "native-first-fit/v3"
+// CHECK: lvm.apply #qlx.action<cx>
+// CHECK: qlx.program @bell
+// CHECK: qlx.estimate_result @logical
+// CHECK-SAME: action_depth_upper_bound = 6 : i64
+// CHECK-SAME: actions = {qlx_standard_cx = 1 : i64, qlx_standard_h = 1 : i64}
+// CHECK-SAME: instruments = {qlx_standard_measure_z = 2 : i64, qlx_standard_prepare_zero = 2 : i64}
+// CHECK-SAME: logical_qubits_peak = 2 : i64
+// CHECK-SAME: schema = "qlx.logical-profile/v1"
+// CHECK-SAME: tier = "logical"

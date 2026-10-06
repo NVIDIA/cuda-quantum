@@ -10,25 +10,183 @@
 #include "common/Executor.h"
 #include "common/RuntimeTarget.h"
 #include "common/ServerHelper.h"
+#include "cudaq.h"
+#include "nvqpp_config.h"
 #include "cudaq/Optimizer/Builder/RuntimeNames.h"
+#include "cudaq/Support/Version.h"
+#include "cudaq/Target/TargetCatalog.h"
 #include "cudaq/Target/TargetConfig.h"
-#include "cudaq/Target/TargetConfigYaml.h"
+#include "cudaq/Target/TargetPluginLibrary.h"
+#include "cudaq/platform/QuantumExecutionQueue.h"
 #include "cudaq/runtime/logger/logger.h"
+#include "cudaq/utils/cudaq_utils.h"
 #include "llvm/Support/Base64.h"
+#include <algorithm>
+#include <dlfcn.h>
+#include <mutex>
+#include <stdexcept>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
 
 using namespace cudaq;
-
-void detail::parseTargetConfigYml(const std::string &yamlContent,
-                                  config::TargetConfig &targetConfig) {
-  llvm::yaml::Input Input(yamlContent.c_str());
-  Input >> targetConfig;
-}
 
 std::string detail::decodeBase64(const std::string &encoded) {
   std::vector<char> decoded_vec;
   if (auto err = llvm::decodeBase64(encoded, decoded_vec))
     throw std::runtime_error("DecodeBase64 error");
   return std::string(decoded_vec.data(), decoded_vec.size());
+}
+
+std::optional<std::string>
+detail::getBackendConfigOption(const std::string &backend,
+                               std::string_view key) {
+  auto split = cudaq::split(backend, ';');
+  for (std::size_t i = 1; i + 1 < split.size(); i += 2) {
+    if (split[i] != key)
+      continue;
+
+    auto value = split[i + 1];
+    if (value.starts_with("base64_")) {
+      value.erase(0, 7);
+      return decodeBase64(value);
+    }
+    return value;
+  }
+  return std::nullopt;
+}
+
+std::filesystem::path
+detail::getTargetConfigPath(const std::string &backend,
+                            const std::filesystem::path &fallback) {
+  if (auto path = getBackendConfigOption(backend, "__target_config_path"))
+    return *path;
+  return fallback;
+}
+
+cudaq::config::HostEnvironment detail::currentHostEnvironment() {
+  cudaq::config::HostEnvironment env;
+  const int gpus = cudaq::num_available_gpus();
+  env.gpuCount = gpus > 0 ? static_cast<unsigned>(gpus) : 0u;
+  env.cudaqVersion = cudaq::getVersion();
+  const std::filesystem::path cudaqLibraryPath{cudaq::getCUDAQLibraryPath()};
+  env.libraryPaths.emplace_back(cudaqLibraryPath.parent_path());
+  return env;
+}
+
+detail::ResolvedTargetConfig
+detail::resolveTargetConfig(const std::string &backend) {
+  auto split = cudaq::split(backend, ';');
+  const std::string targetName = split.empty() ? backend : split.front();
+
+  cudaq::config::TargetCatalog registry;
+  std::filesystem::path explicitPath;
+  if (auto path = getBackendConfigOption(backend, "__target_config_path")) {
+    explicitPath = *path;
+    const auto configDir = explicitPath.parent_path();
+    const auto pluginRoot =
+        configDir.filename() == "targets" ? configDir.parent_path() : configDir;
+    registry.addPluginRoot(pluginRoot);
+  }
+
+  auto resolved = registry.resolve(targetName, currentHostEnvironment());
+  if (!resolved)
+    throw std::runtime_error("Invalid Target: (" + targetName + ")");
+  if (!resolved->status.isAvailable())
+    throw std::runtime_error(resolved->status.diagnostic);
+
+  ResolvedTargetConfig result;
+  result.name = targetName;
+  result.config = *resolved->entry->config;
+  result.configPath = resolved->entry->configPath.empty()
+                          ? explicitPath
+                          : resolved->entry->configPath;
+  result.pluginLibDir = resolved->entry->pluginLibDir;
+  result.simulatorName = resolved->resolved.simulatorName;
+  result.platformName = resolved->resolved.platformName;
+  result.fp64Simulation = resolved->resolved.fp64Simulation;
+
+  loadTargetPluginLibraries(result.name, result.configPath, result.config);
+  return result;
+}
+
+namespace {
+void loadTargetPluginLibrary(const std::filesystem::path &path,
+                             const std::string &targetName) {
+  static std::mutex mutex;
+  static std::unordered_map<std::string, void *> handles;
+  const auto pathString = path.string();
+  {
+    std::lock_guard lock(mutex);
+    if (handles.contains(pathString))
+      return;
+  }
+
+  CUDAQ_INFO("Loading plugin library '{}' for target '{}'.", pathString,
+             targetName);
+  void *handle = dlopen(pathString.c_str(), RTLD_GLOBAL | RTLD_NOW);
+  if (!handle) {
+    const char *error = dlerror();
+    throw std::runtime_error("Unable to load plugin library '" + pathString +
+                             "' for target '" + targetName +
+                             "': " + (error ? error : "unknown error"));
+  }
+
+  std::lock_guard lock(mutex);
+  handles.emplace(pathString, handle);
+}
+} // namespace
+
+void detail::loadTargetPluginLibraries(
+    const std::string &targetName, const std::filesystem::path &configPath,
+    const config::TargetConfig &targetConfig) {
+  const std::filesystem::path cudaqLibraryPath{cudaq::getCUDAQLibraryPath()};
+  const auto cudaqLibDir = cudaqLibraryPath.parent_path();
+  const auto configDir = configPath.parent_path();
+  const auto pluginRoot =
+      configDir.filename() == "targets" ? configDir.parent_path() : configDir;
+  const auto pluginLibDir = pluginRoot / "lib";
+
+  for (const auto &pluginLibrary : targetConfig.PluginLibraries) {
+    std::vector<std::filesystem::path> candidates;
+    for (const auto &name :
+         config::sharedLibraryNameCandidates(pluginLibrary)) {
+      const std::filesystem::path requestedPath(name);
+      if (requestedPath.is_absolute()) {
+        candidates.push_back(requestedPath);
+      } else {
+        candidates.push_back(cudaqLibDir / requestedPath);
+        candidates.push_back(pluginLibDir / requestedPath);
+      }
+    }
+
+    const auto found = std::find_if(candidates.begin(), candidates.end(),
+                                    [](const auto &candidate) {
+                                      return std::filesystem::exists(candidate);
+                                    });
+    if (found == candidates.end()) {
+      std::string searchedPaths;
+      for (const auto &candidate : candidates) {
+        if (!searchedPaths.empty())
+          searchedPaths += ", ";
+        searchedPaths += candidate.string();
+      }
+      throw std::runtime_error("Unable to find plugin library '" +
+                               pluginLibrary + "' for target '" + targetName +
+                               "'. Searched: " + searchedPaths);
+    }
+    loadTargetPluginLibrary(*found, targetName);
+  }
+
+  const auto serverHelperName =
+      "libcudaq-serverhelper-" + targetName + PLATFORM_SHARED_LIBRARY_SUFFIX;
+  for (const auto &candidate :
+       {cudaqLibDir / serverHelperName, pluginLibDir / serverHelperName}) {
+    if (!std::filesystem::exists(candidate))
+      continue;
+    loadTargetPluginLibrary(candidate, targetName);
+    break;
+  }
 }
 
 bool detail::isAnalogHamiltonianKernel(const std::string &kernelName) {
@@ -71,3 +229,47 @@ void detail::initServerHelperAndExecutor(
   runtimeTarget.runtimeConfig = backendConfig;
   serverHelper->setRuntimeTarget(runtimeTarget);
 }
+
+namespace {
+class ExecutionQueueRegistry {
+public:
+  void add(QuantumExecutionQueue &queue) {
+    std::lock_guard lock(mutex);
+    queues.insert(&queue);
+  }
+
+  void remove(QuantumExecutionQueue &queue) {
+    std::lock_guard lock(mutex);
+    queues.erase(&queue);
+  }
+
+  void shutdown() {
+    // Keep the lock across shutdown so registered queues cannot be destroyed
+    // while their raw pointers are in use.
+    std::lock_guard lock(mutex);
+    for (auto *queue : queues)
+      queue->shutdown();
+  }
+
+private:
+  std::mutex mutex;
+  std::unordered_set<QuantumExecutionQueue *> queues;
+};
+
+ExecutionQueueRegistry &executionQueueRegistry() {
+  // Process-lifetime registry: execution queues belong to platforms owned by
+  // thread-local storage and may unregister during static destruction.
+  static auto *const registry = new ExecutionQueueRegistry();
+  return *registry;
+}
+} // namespace
+
+void detail::registerExecutionQueue(QuantumExecutionQueue &queue) {
+  executionQueueRegistry().add(queue);
+}
+
+void detail::unregisterExecutionQueue(QuantumExecutionQueue &queue) {
+  executionQueueRegistry().remove(queue);
+}
+
+void detail::shutdownExecutionQueues() { executionQueueRegistry().shutdown(); }

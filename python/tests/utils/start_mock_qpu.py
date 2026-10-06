@@ -26,6 +26,8 @@ def start_server(backend: str):
             from mock_qpu.anyon import app
         case "braket":
             from mock_qpu.braket import app
+        case "echo":
+            from mock_qpu.echo import app
         case "infleqtion":
             from mock_qpu.infleqtion import app
         case "ionq":
@@ -34,8 +36,6 @@ def start_server(backend: str):
             from mock_qpu.iqm import app
         case "oqc":
             from mock_qpu.oqc import app
-        case "qci":
-            from mock_qpu.qci import app
         case "quantinuum":
             from mock_qpu.quantinuum import app
         case "quantum_machines":

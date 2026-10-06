@@ -47,7 +47,8 @@ ADD docker/test/installer/runtime_dependencies.sh /runtime_dependencies.sh
 RUN export LIBCDEV_PACKAGE=${libcdev_package} && \
     export CUDART_VERSION=${cudart_version} && \
     export CUDA_DISTRIBUTION=${cuda_distribution} && \
-    export VALIDATION_PACKAGES="cmake make git" && \
+    export VALIDATION_PACKAGES="make git" && \
+    export INSTALL_CMAKE_VERSION="4.0.7" && \
     . /runtime_dependencies.sh ${base_image} && \
     # working around the fact that the installation of the dependencies includes
     # setting some environment variables that are expected to be persistent on
@@ -79,6 +80,7 @@ RUN . /etc/profile && nvq++ --help
 
 ## [ADD tools for validation]
 ADD scripts/validate_installation.sh /home/cudaq/validate.sh
+ADD scripts/validate_license_compliance.sh /home/cudaq/validate_license_compliance.sh
 ADD scripts/test_cmake_find_package.sh /home/cudaq/test_cmake_find_package.sh
 ADD scripts/configure_build.sh /home/cudaq/configure_build.sh
 ADD docker/test/installer/mpi_cuda_check.cpp /home/cudaq/mpi_cuda_check.cpp

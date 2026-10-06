@@ -17,6 +17,13 @@
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
 
+#ifdef __clang__
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+#endif
+#ifdef __GNUC__
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+
 namespace cudaq {
 
 /// @brief Extract the array data from a 2-d ndarray into our
@@ -46,8 +53,11 @@ void extractKrausData(nanobind::ndarray<std::complex<double>, nanobind::ndim<2>,
 /// @brief Bind the cudaq::noise_model, kraus_op, and kraus_channel.
 void bindNoiseModel(nanobind::module_ &mod) {
 
-  mod.def("set_noise", &set_noise, "Set the underlying noise model.");
+  mod.def("set_noise", &set_noise,
+          "Deprecated - please use launch arguments or launch options. "
+          "Set the underlying noise model.");
   mod.def("unset_noise", &unset_noise,
+          "Deprecated - please use launch arguments or launch options. "
           "Clear backend simulation from any existing noise models.");
   mod.def(
       "get_noise", []() { return cudaq::get_platform().get_noise(); },

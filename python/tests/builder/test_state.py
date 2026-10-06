@@ -171,6 +171,28 @@ def test_state_density_matrix_simple():
     cudaq.reset_target()
 
 
+def test_state_from_complex_density_matrix_observable():
+    cudaq.set_target('density-matrix-cpu')
+    try:
+        rho = np.array([[0.5, 0.25j], [-0.25j, 0.5]], dtype=np.complex128)
+        initial_state = cudaq.State.from_data(rho)
+
+        assert np.isclose(initial_state[0, 1], rho[0, 1])
+        assert np.isclose(initial_state[1, 0], rho[1, 0])
+        np.testing.assert_allclose(np.array(initial_state), rho, atol=1e-12)
+
+        @cudaq.kernel
+        def prepare_from_state(state: cudaq.State):
+            qubits = cudaq.qvector(state)
+
+        result = cudaq.observe(prepare_from_state, cudaq.spin.y(0),
+                               initial_state)
+
+        assert np.isclose(result.expectation(), -0.5)
+    finally:
+        cudaq.reset_target()
+
+
 def test_state_density_matrix_self_overlap():
     cudaq.set_target('density-matrix-cpu')
 

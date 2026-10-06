@@ -10,18 +10,21 @@
 
 #include "cudaq/Optimizer/Dialect/CC/CCInterfaces.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
-#include "cudaq/Optimizer/Dialect/Common/Traits.h"
+#include "cudaq/Optimizer/Dialect/Traits.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/IR/OpImplementation.h"
+#include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/RegionKindInterface.h"
 #include "mlir/Interfaces/ControlFlowInterfaces.h"
 #include "mlir/Interfaces/LoopLikeInterface.h"
 
 namespace cudaq::cc {
+inline constexpr char atomicQuantumRegionAttrName[] = "atomic_quantum_region";
+
 constexpr int kInterleavedArgumentConstantBitWidth = 29;
 using InterleavedArgumentConstantIndex =
     llvm::PointerEmbeddedInt<std::int32_t,
@@ -49,6 +52,11 @@ using ExtractValueArg = InterleavedArgument;
 
 mlir::Value getByteSizeOfType(mlir::OpBuilder &builder, mlir::Location loc,
                               mlir::Type ty, bool useSizeOf);
+
+/// Splice the blocks from \p region into the CFG before \p continueBlock,
+/// replacing all `cc.continue`s with branches to \p continueBlock.
+void spliceRegionAsCFG(mlir::PatternRewriter &rewriter, mlir::Region &region,
+                       mlir::Block *continueBlock);
 
 } // namespace cudaq::cc
 

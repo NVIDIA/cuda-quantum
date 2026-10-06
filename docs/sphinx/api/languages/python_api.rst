@@ -42,6 +42,8 @@ Program Construction
     .. automethod:: swap
     .. automethod:: cswap
     .. automethod:: exp_pauli
+    .. automethod:: givens_rotation
+    .. automethod:: fermionic_swap
     .. automethod:: mx
     .. automethod:: my
     .. automethod:: mz
@@ -71,6 +73,7 @@ Kernel Execution
 .. autofunction:: cudaq::vqe
 .. autofunction:: cudaq::draw
 .. autofunction:: cudaq::translate
+.. autofunction:: cudaq::estimate
 .. autofunction:: cudaq::estimate_resources
 .. autofunction:: cudaq::dem_from_kernel
 
@@ -297,6 +300,9 @@ Data Types
 .. autoclass:: cudaq::AsyncSampleResult
     :members:
 
+.. autoclass:: cudaq.DEMResult
+    :members:
+
 .. autoclass:: cudaq::ObserveResult
     :members:
 
@@ -316,6 +322,9 @@ Data Types
     :members:
 
 .. autoclass:: cudaq::Resources
+    :members:
+
+.. autoclass:: cudaq::EstimateResult
     :members:
 
 Optimizers
@@ -523,4 +532,22 @@ Trajectory and Selection Types
     :members:
 
 .. autoclass:: cudaq.ptsbe.KrausSelection
+    :members:
+
+Synth Submodule
+=============================
+
+.. _synth_api:
+
+The ``cudaq.synth`` submodule approximates rotations as Clifford+T gate
+sequences, providing an implementation of the Gridsynth algorithm of Ross and
+Selinger (`arXiv:1403.2975 <https://arxiv.org/abs/1403.2975>`__). It is not
+imported with ``cudaq``, so import it explicitly with ``from cudaq import
+synth``. For a usage guide see :doc:`../../using/examples/rotation_synthesis`.
+
+.. autofunction:: cudaq.synth.gridsynth
+
+.. autofunction:: cudaq.synth.rz_error
+
+.. autoclass:: cudaq.synth.CliffordTSequence
     :members:

@@ -894,7 +894,8 @@ public:
     v = instOp.getIsAdj() ? arith::NegFOp::create(rewriter, loc, v) : v;
     funcArgs.push_back(castToDouble(v));
     v = adaptor.getOperands()[1];
-    v = instOp.getIsAdj() ? arith::NegFOp::create(rewriter, loc, v) : v;
+    if constexpr (!std::is_same_v<OP, cudaq::quake::PhasedRxOp>)
+      v = instOp.getIsAdj() ? arith::NegFOp::create(rewriter, loc, v) : v;
     funcArgs.push_back(castToDouble(v));
 
     // TODO: What about the control qubits?

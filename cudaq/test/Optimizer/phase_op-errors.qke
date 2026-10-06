@@ -1,0 +1,26 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt %s -split-input-file -verify-diagnostics
+
+func.func @vector_anchor_is_rejected(%theta: f64, %q: !quake.veq<2>) {
+  // expected-error @+1 {{requires a scalar !quake.ref or !quake.wire anchor}}
+  quake.phase (%theta) %q : (f64, !quake.veq<2>) -> ()
+  return
+}
+
+// -----
+
+func.func @control_polarity_count_must_match(
+    %theta: f64, %c0: !quake.ref, %c1: !quake.ref,
+    %anchor: !quake.ref) {
+  // expected-error @+1 {{requires one negated-control flag per control operand}}
+  quake.phase (%theta) [%c0, %c1 neg [true]] %anchor
+      : (f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}

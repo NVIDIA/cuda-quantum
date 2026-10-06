@@ -38,7 +38,10 @@ typedef enum {
   CUDAQ_OK = 0,
   CUDAQ_ERR_INVALID_ARG = 1,
   CUDAQ_ERR_INTERNAL = 2,
-  CUDAQ_ERR_CUDA = 3
+  CUDAQ_ERR_CUDA = 3,
+  // The component does not implement the requested optional capability
+  // (e.g. a version-1 bridge provider asked for a version-2 interface field).
+  CUDAQ_ERR_UNSUPPORTED = 4
 } cudaq_status_t;
 
 // Dispatch control path: GPU-resident persistent kernel vs CPU host loop.
@@ -122,11 +125,23 @@ typedef struct {
 
 // Dispatcher configuration
 typedef struct {
-  int device_id;                       // GPU device ID (>=0)
-  uint32_t num_blocks;                 // grid size
-  uint32_t threads_per_block;          // block size
-  uint32_t num_slots;                  // ring buffer slots
-  uint32_t slot_size;                  // bytes per slot
+  int device_id;              // GPU device ID (>=0)
+  uint32_t num_blocks;        // grid size
+  uint32_t threads_per_block; // block size
+  uint32_t num_slots;         // ring buffer slots
+  // Bytes per slot: the stride, matching cudaq_ringbuffer_t's rx/tx_stride_sz.
+  // Every dispatch shape reads it the same way, CUDAQ_KERNEL_UNIFIED included.
+  //
+  // KNOWN ISSUE: the dispatch kernels also derive a handler's max_result_len
+  // from the stride, as `stride - sizeof(RPCResponse)`.  That bounds the slot
+  // buffer correctly, but a transport whose send descriptor is prepared for a
+  // shorter fixed frame transmits only that prefix, so a handler can be told
+  // it has more room than actually reaches the wire.  Both RoCE transports
+  // are in that position (gpu_roce: frame_size vs page_size; cpu_roce:
+  // frame_size vs slot_size).  Fixing it means plumbing the on-wire size to
+  // both kernels, which reaches the public cudaq_dispatch_launch_fn_t; until
+  // then the ring and unified paths at least behave identically.
+  uint32_t slot_size;
   uint32_t vp_id;                      // virtual port ID
   cudaq_kernel_type_t kernel_type;     // regular/cooperative kernel
   cudaq_dispatch_mode_t dispatch_mode; // device call/graph launch
@@ -134,8 +149,8 @@ typedef struct {
   int skip_tx_markers; // when non-zero, the host dispatcher will NOT write
                        // sentinel markers (CUDAQ_TX_FLAG_IN_FLIGHT) to
                        // tx_flags before graph launch.  Set this when an
-                       // external GPU kernel (e.g. Hololink TX) polls the
-                       // same tx_flags array; the sentinel would be
+                       // external GPU kernel (e.g. GpuRoceTransceiver TX) polls
+                       // the same tx_flags array; the sentinel would be
                        // misinterpreted as a valid address.
   uint32_t shared_ring_mode; // when non-zero, the dispatcher cooperates with
                              // OTHER dispatchers on the SAME ring buffer.
@@ -245,9 +260,36 @@ void cudaq_launch_dispatch_kernel_cooperative(
 // details are passed via an opaque context pointer so the dispatcher API
 // remains transport-agnostic.
 typedef void (*cudaq_unified_launch_fn_t)(
-    void *transport_ctx, cudaq_function_entry_t *function_table,
-    size_t func_count, volatile int *shutdown_flag, uint64_t *stats,
-    cudaStream_t stream);
+    void *transport_ctx, size_t tx_stride_sz,
+    cudaq_function_entry_t *function_table, size_t func_count,
+    volatile int *shutdown_flag, uint64_t *stats, cudaStream_t stream);
+
+// Transport-agnostic unified dispatch kernel launcher (from
+// libcudaq-realtime itself).  The kernel it launches reaches
+// its transport through the three __device__ hooks in
+// unified_device_transport.cuh, so a transport wires itself up by
+// implementing those rather than by writing a kernel.
+//
+// `tx_stride_sz` means what it does in the launch functions above: the slot
+// stride, from which the kernel derives the handler's max_result_len.  See
+// the KNOWN ISSUE on cudaq_dispatcher_config_t::slot_size for the caveat that
+// bound carries, which this path shares with the ring path.
+//
+// `transport_ctx` must be device-accessible: unlike the launch functions
+// above, which pass ring pointers as kernel arguments, the hooks dereference
+// it on the GPU.
+//
+// Because CUDA resolves __device__ calls at device-link time and never across
+// modules, the transport's hook implementations must be device-linked into the
+// same shared library as this archive.
+//
+// Linked into libcudaq-realtime.so, so cudaq_dispatcher_start calls it
+// directly whenever no unified_launch_fn override was set.  Unlike the
+// 3-kernel launchers above, a consumer never has to supply it.
+CUDAQ_REALTIME_DISPATCH_API void cudaq_launch_unified_dispatch_device(
+    void *transport_ctx, size_t tx_stride_sz,
+    cudaq_function_entry_t *function_table, size_t func_count,
+    volatile int *shutdown_flag, uint64_t *stats, cudaStream_t stream);
 
 // Graph-enabled dispatch kernels (requires compute capability 9.0+, sm_90+)
 // These functions are only available when compiled for sm_90 or higher.
@@ -326,6 +368,18 @@ CUDAQ_REALTIME_DISPATCH_API cudaError_t cudaq_launch_dispatch_graph(
 CUDAQ_REALTIME_DISPATCH_API cudaError_t
 cudaq_destroy_dispatch_graph(cudaq_dispatch_graph_context *context);
 
+// Read the trigger-path debug state: the device-side cudaGraphLaunch result
+// of the most recent fire-and-forget of the triggered graph (-1000 = never
+// fired), the count of fires, and the count of tail self-relaunches.  A
+// healthy scheduler shows rc==0 with fires == tail_relaunches; {rc=0,
+// fires=N, tails=N-1} means the triggered graph launched but never
+// completed.  Uses asynchronous copies on a private non-blocking stream, so
+// it is safe to call while the dispatch graph is resident (live or wedged).
+// Any output pointer may be NULL to skip that value.
+CUDAQ_REALTIME_DISPATCH_API cudaError_t cudaq_dispatch_get_trigger_debug(
+    int *trigger_rc, unsigned long long *trigger_fires,
+    unsigned long long *tail_relaunches);
+
 #endif
 
 // Manager lifecycle
@@ -373,10 +427,23 @@ typedef struct {
 // an opaque context holding transport handles (e.g. DOCA QP, rkey).
 // When set, cudaq_dispatcher_start() will invoke unified_launch_fn instead of
 // the 3-kernel launch_fn.  Ringbuffer setup is not required for unified mode.
+//
+// `unified_launch_fn` may be NULL, and normally is: start() then runs the
+// library's own unified kernel.  Pass a function only to override the whole
+// dispatch loop.  `transport_ctx` is required either way, and
+// config.slot_size must give the slot stride, which reaches the kernel as
+// its tx_stride_sz.
 cudaq_status_t
 cudaq_dispatcher_set_unified_launch(cudaq_dispatcher_t *dispatcher,
                                     cudaq_unified_launch_fn_t unified_launch_fn,
                                     void *transport_ctx);
+
+// CPU data-plane wiring for the host unified path. `cpu_dataplane` is a
+// `cudaq_cpu_dataplane_t*` obtained from the bridge. When set, the dispatcher
+// runs the single-thread unified loop over it.
+cudaq_status_t
+cudaq_dispatcher_set_cpu_dataplane(cudaq_dispatcher_t *dispatcher,
+                                   void *cpu_dataplane);
 
 // Start/stop
 cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher);
@@ -385,32 +452,6 @@ cudaq_status_t cudaq_dispatcher_stop(cudaq_dispatcher_t *dispatcher);
 // Stats
 cudaq_status_t cudaq_dispatcher_get_processed(cudaq_dispatcher_t *dispatcher,
                                               uint64_t *out_packets);
-
-//==============================================================================
-// Host dispatcher path (CUDAQ_DISPATCH_PATH_HOST)
-//==============================================================================
-// When config.dispatch_path == CUDAQ_DISPATCH_PATH_HOST, start() uses these
-// instead of launch_fn. The realtime lib calls them; implementation is in
-// libcudaq-realtime-host-dispatch.
-
-typedef struct cudaq_host_dispatcher_handle cudaq_host_dispatcher_handle_t;
-
-// Start the host dispatcher loop in a new thread. Call from
-// cudaq_dispatcher_start when dispatch_path is CUDAQ_DISPATCH_PATH_HOST.
-// Returns a handle for stop, or NULL on error. If external_mailbox is non-NULL,
-// uses it instead of allocating internally.
-cudaq_host_dispatcher_handle_t *cudaq_host_dispatcher_start_thread(
-    const cudaq_ringbuffer_t *ringbuffer, const cudaq_function_table_t *table,
-    const cudaq_dispatcher_config_t *config, volatile int *shutdown_flag,
-    uint64_t *stats, void **external_mailbox);
-
-// Stop the host dispatcher thread and free resources.
-void cudaq_host_dispatcher_stop(cudaq_host_dispatcher_handle_t *handle);
-
-// Release a worker back to the idle pool (handle-level, called by API layer).
-cudaq_status_t
-cudaq_host_dispatcher_release_worker(cudaq_host_dispatcher_handle_t *handle,
-                                     int worker_id);
 
 //==============================================================================
 // Ring buffer slot helpers (producer / consumer side)

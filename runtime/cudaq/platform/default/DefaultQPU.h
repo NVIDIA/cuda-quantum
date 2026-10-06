@@ -20,10 +20,15 @@ public:
   ~DefaultQPU() override;
 
   void enqueue(QuantumTask &task) override;
+  void onRandomSeedSet(std::size_t seed) override;
 
+  // This is the legacy fallback for launch policies that do not support
+  // policy-based overloads yet. To be removed once all policies have been
+  // migrated.
   KernelThunkResultType unifiedLaunchModule(const cudaq::AnyModule &module,
                                             cudaq::KernelArgs args) override;
 
+  using QPU::launchKernel;
   sample_result launchKernel(const sample_policy &policy,
                              const CompiledModule &module,
                              KernelArgs args) override;
@@ -36,19 +41,39 @@ public:
                               const CompiledModule &module,
                               KernelArgs args) override;
 
+  run_result launchKernel(const run_policy &policy,
+                          const CompiledModule &module,
+                          KernelArgs args) override;
+
+  async_run_policy::result_type launchKernel(const async_run_policy &policy,
+                                             const CompiledModule &module,
+                                             KernelArgs args) override;
+
+  msm_dimensions launchKernel(const msm_size_policy &policy,
+                              const CompiledModule &module,
+                              KernelArgs args) override;
+
+  msm_result launchKernel(const msm_policy &policy,
+                          const CompiledModule &module,
+                          KernelArgs args) override;
+
   async_observe_result launchKernel(const async_observe_policy &policy,
                                     const CompiledModule &module,
                                     KernelArgs args) override;
 
-  std::unique_ptr<CompileTarget>
-  getCompileTarget(const sample_policy &policy) override;
+  dem_result launchKernel(const dem_policy &policy,
+                          const CompiledModule &module,
+                          KernelArgs args) override;
 
-  std::unique_ptr<CompileTarget>
-  getCompileTarget(const observe_policy &policy) override;
+  estimate_result launchKernel(const estimate_policy &policy,
+                               const CompiledModule &module,
+                               KernelArgs args) override;
 
-  std::unique_ptr<CompileTarget>
-  getCompileTarget(const other_policies &policy,
-                   ExecutionContext *context) override;
+  ptsbe::sample_policy::result_type
+  launchKernel(const ptsbe::sample_policy &policy, const CompiledModule &module,
+               KernelArgs args) override;
+
+  CompileTarget getCompileTarget(const RuntimeTarget *rt = nullptr) override;
 
   void configureExecutionContext(ExecutionContext &context) const override;
   void beginExecution() override;

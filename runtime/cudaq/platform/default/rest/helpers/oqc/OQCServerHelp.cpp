@@ -90,9 +90,9 @@ public:
   cudaq::sample_result processResults(ServerMessage &postJobResponse,
                                       std::string &jobID) override;
 
-  /// @brief Update `passPipeline` with architecture-specific pass options
-  void updatePassPipeline(const std::filesystem::path &platformPath,
-                          std::string &passPipeline) override;
+  /// @brief Return architecture-specific pipeline placeholder substitutions.
+  std::map<std::string, std::string>
+  getPipelineSubstitutions(const std::filesystem::path &platformPath) override;
 };
 
 namespace {
@@ -457,15 +457,14 @@ RestHeaders OQCServerHelper::getHeaders() {
   return headers;
 }
 
-void OQCServerHelper::updatePassPipeline(
-    const std::filesystem::path &platformPath, std::string &passPipeline) {
+std::map<std::string, std::string> OQCServerHelper::getPipelineSubstitutions(
+    const std::filesystem::path &platformPath) {
   auto machine =
       get_from_config(backendConfig, "machine", []() { return Lucy; });
   check_machine_allowed(machine);
   std::string pathToFile = platformPath / std::string("mapping/oqc") /
                            (machine + std::string(".txt"));
-  passPipeline =
-      std::regex_replace(passPipeline, std::regex("%QPU_ARCH%"), pathToFile);
+  return {{"%QPU_ARCH%", pathToFile}};
 }
 
 } // namespace cudaq

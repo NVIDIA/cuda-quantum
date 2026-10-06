@@ -16,6 +16,12 @@ namespace registry {
 extern "C" {
 void __cudaq_deviceCodeHolderAdd(const char *, const char *);
 void cudaqRegisterKernelName(const char *);
+/// Register a `device_call` callback by name, along with its unmarshal function
+/// and the underlying device function it wraps. Reserved for future distributed
+/// targets that need to look callbacks up by name; the same-process reference
+/// implementation does not use this registry.
+void cudaqRegisterCallbackName(const char *name, void *unmarshalFunc,
+                               void *devFunc);
 void cudaqRegisterArgsCreator(const char *, char *);
 void cudaqRegisterLambdaName(const char *, const char *);
 

@@ -72,6 +72,7 @@ struct twoqbit_adjoint_test {
   }
 };
 
+#ifndef CUDAQ_BACKEND_STIM
 struct test_adjoint {
   void operator()(cudaq::qview<> q) __qpu__ {
     h(q[0]);
@@ -90,6 +91,7 @@ struct test_cudaq_adjoint {
     mz(q);
   }
 };
+#endif
 CUDAQ_TEST(AdjointTester, checkSimple) {
   auto counts = cudaq::sample(1000, single_adjoint_test{});
   counts.dump();
@@ -250,7 +252,10 @@ static bool essentially_equal(std::complex<double> a, std::complex<double> b,
 
 #undef EPSILON
 
-static __qpu__ void foo(cudaq::qubit &q) { rz<cudaq::adj>(M_PI_2, q); }
+#ifndef CUDAQ_BACKEND_STIM
+static __attribute__((noinline)) __qpu__ void foo(cudaq::qubit &q) {
+  rz<cudaq::adj>(M_PI_2, q);
+}
 
 static __qpu__ void bar() {
   cudaq::qubit q;
@@ -258,7 +263,6 @@ static __qpu__ void bar() {
   cudaq::adjoint(foo, q);
 }
 
-#ifndef CUDAQ_BACKEND_STIM
 CUDAQ_TEST(AdjointTester, checkEvenAdjointNesting) {
   auto result = cudaq::get_state(bar);
   std::array<std::complex<double>, 2> expected = {1., 0};
@@ -267,9 +271,12 @@ CUDAQ_TEST(AdjointTester, checkEvenAdjointNesting) {
 }
 #endif
 
+#ifndef CUDAQ_BACKEND_STIM
 static __qpu__ void zaz(cudaq::qubit &q) { rz<cudaq::adj>(M_PI_2, q); }
 
-static __qpu__ void foo_2(cudaq::qubit &q) { cudaq::adjoint(zaz, q); }
+static __attribute__((noinline)) __qpu__ void foo_2(cudaq::qubit &q) {
+  cudaq::adjoint(zaz, q);
+}
 
 static __qpu__ void bar_2() {
   cudaq::qubit q;
@@ -277,7 +284,6 @@ static __qpu__ void bar_2() {
   cudaq::adjoint(foo_2, q);
 }
 
-#ifndef CUDAQ_BACKEND_STIM
 CUDAQ_TEST(AdjointTester, checkOddAdjointNesting) {
   auto result = cudaq::get_state(bar_2);
   std::array<std::complex<double>, 2> expected = {1., 0};

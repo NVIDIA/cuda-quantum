@@ -31,7 +31,6 @@
 #include "mlir/Dialect/Arith/Transforms/Passes.h"
 #include "mlir/Target/LLVMIR/ModuleTranslation.h"
 #include "mlir/Transforms/DialectConversion.h"
-#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_CONVERTTOQIR
@@ -52,13 +51,16 @@ using namespace mlir;
 
 #include "PeepholePatterns.inc"
 
-/// Greedy pass to match subgraphs in the IR and replace them with codegen ops.
-/// This step makes converting a DAG of nodes in the conversion step simpler.
+/// Conversion pass to match subgraphs in the IR and replace them with codegen
+/// ops. This step makes converting a DAG of nodes in the conversion step
+/// simpler.
 static LogicalResult fuseSubgraphPatterns(MLIRContext *ctx, ModuleOp module) {
   RewritePatternSet patterns(ctx);
+  ConversionTarget target(*ctx);
+  cudaq::codegen::setQuakeToCodegenLegality(target);
   cudaq::codegen::populateQuakeToCodegenPatterns(patterns);
   LLVM_DEBUG(llvm::dbgs() << "Before codegen dialect:\n"; module.dump());
-  if (failed(applyPatternsGreedily(module, std::move(patterns))))
+  if (failed(applyPartialConversion(module, target, std::move(patterns))))
     return failure();
   LLVM_DEBUG(llvm::dbgs() << "After codegen dialect:\n"; module.dump());
   return success();
@@ -80,7 +82,7 @@ public:
     SmallVector<Operation *> cleanUps;
     getOperation().walk([&](cudaq::cc::ConstantArrayOp carr) {
       // If there is a constant array, then we expect that it is involved in
-      // a stdvec initializer expression. So look for the pattern and expand
+      // a sequence initializer expression. So look for the pattern and expand
       // the store into a series of scalar stores.
       //
       //   %100 = cc.const_array [c1, c2, ... cN] : ...
@@ -143,9 +145,9 @@ public:
     return ok ? success() : failure();
   }
 
-  /// Greedy pass to match subgraphs in the IR and replace them with codegen
-  /// ops. This step makes converting a DAG of nodes in the conversion step
-  /// simpler.
+  /// Partial conversion pass to match subgraphs in the IR and replace them with
+  /// codegen ops. This step makes converting a DAG of nodes in the conversion
+  /// step simpler.
   void runOnOperation() override final {
     auto *context = &getContext();
     if (failed(fuseSubgraphPatterns(context, getOperation()))) {

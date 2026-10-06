@@ -9,6 +9,7 @@
 #include "CUDAQTestUtils.h"
 #include "common/FmtCore.h"
 #include "common/RestClient.h"
+#include "common/ServerHelper.h"
 #include "cudaq/algorithm.h"
 #include <fstream>
 #include <gtest/gtest.h>
@@ -71,6 +72,22 @@ CUDAQ_TEST(QbraidTester, checkSampleAsyncLoadFromFile) {
   EXPECT_EQ(counts.size(), 2);
 
   std::remove("saveMe.json");
+}
+
+// The mock reports keys as qBraid does (classical bit 0 rightmost); the
+// helper must hand them back in CUDA-Q order (qubit 0 leftmost), so H on
+// qubit 2 of three shows up as "001", never "100".
+CUDAQ_TEST(QbraidTester, checkBitOrder) {
+  auto kernel = cudaq::make_kernel();
+  auto qubit = kernel.qalloc(3);
+  kernel.h(qubit[2]);
+  kernel.mz(qubit);
+
+  auto counts = cudaq::sample(kernel);
+  counts.dump();
+  EXPECT_EQ(counts.size(), 2);
+  EXPECT_GT(counts.count("001"), 0);
+  EXPECT_EQ(counts.count("100"), 0);
 }
 
 CUDAQ_TEST(QbraidTester, checkObserveSync) {
@@ -300,6 +317,23 @@ CUDAQ_TEST(QbraidTester, checkResultServerErrorRetries) {
   kernel.mz(qubit[0]);
   auto counts = cudaq::sample(kernel);
   EXPECT_GE(counts.size(), 1u);
+}
+
+// An analog/AHS device must be rejected at initialize() time, mirroring the
+// Python test_qbraid_rejects_analog_device. Driven through the registry so the
+// non-default machine can be supplied directly (the shared target config used
+// by the other tests pins the default gate-model device).
+CUDAQ_TEST(QbraidTester, checkAnalogDeviceRejected) {
+  auto helper = cudaq::registry::get<cudaq::ServerHelper>("qbraid");
+  ASSERT_TRUE(helper);
+  cudaq::BackendConfig config;
+  config["emulate"] = "false";
+  config["url"] = "http://localhost:" + mockPort;
+  config["machine"] = "aws:quera:qpu:aquila";
+  config["api_key"] = "00000000000000000000000000000000";
+  EXPECT_TRUE(
+      throwsWithMessage([&]() { helper->initialize(config); },
+                        "device 'aws:quera:qpu:aquila' has paradigm 'analog'"));
 }
 
 int main(int argc, char **argv) {

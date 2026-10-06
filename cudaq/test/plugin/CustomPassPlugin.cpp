@@ -6,11 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+#include "cudaq/Optimizer/Transforms/CommutationAwareRewrite.h"
 #include "cudaq/Support/Plugin.h"
-#include "mlir/Rewrite/FrozenRewritePatternSet.h"
-#include "mlir/Transforms/DialectConversion.h"
 
 // Here is an example MLIR Pass that one can write externally and
 // use via the cudaq-opt tool, with the --load-cudaq-plugin flag.
@@ -42,12 +40,9 @@ public:
     auto circuit = getOperation();
     auto ctx = circuit.getContext();
 
-    RewritePatternSet patterns(ctx);
-    patterns.insert<ReplaceH>(ctx);
-    ConversionTarget target(*ctx);
-    target.addLegalDialect<cudaq::quake::QuakeDialect>();
-    target.addIllegalOp<cudaq::quake::HOp>();
-    if (failed(applyPartialConversion(circuit, target, std::move(patterns)))) {
+    cudaq::opt::CommutationAwareRewriteDriver driver(*ctx);
+    driver.get_patterns().add<ReplaceH>(ctx);
+    if (failed(driver.run(circuit.getBody()))) {
       circuit.emitOpError("simple pass failed");
       signalPassFailure();
     }

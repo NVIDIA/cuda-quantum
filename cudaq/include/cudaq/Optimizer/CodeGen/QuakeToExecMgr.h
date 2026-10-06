@@ -11,6 +11,7 @@
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 
 namespace mlir {
+class ConversionTarget;
 class RewritePatternSet;
 class TypeConverter;
 } // namespace mlir
@@ -21,5 +22,8 @@ cc::StructType getCudaqQubitSpanType(mlir::MLIRContext *context);
 
 void populateQuakeToCCPatterns(mlir::TypeConverter &typeConverter,
                                mlir::RewritePatternSet &patterns);
+void setQuakeToCCLegality(mlir::ConversionTarget &target);
+
 void populateQuakeToCCPrepPatterns(mlir::RewritePatternSet &patterns);
+void setQuakeToCCPrepLegality(mlir::ConversionTarget &target);
 } // namespace cudaq::opt

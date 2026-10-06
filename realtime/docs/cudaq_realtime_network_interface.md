@@ -2,11 +2,11 @@
 
 Using the [CUDA-Q Realtime host API](cudaq_realtime_host_api.md), one can
 build an end-to-end RPC dispatch solution, as demonstrated in the
-Hololink RDMA example  with a simple increment RPC handler
+GpuRoceTransceiver RDMA example  with a simple increment RPC handler
 (`realtime/unittests/utils`).  
 
 In addition to building an end-to-end application based on specific networking software,
-e.g., Hololink in the above example, we also provide a networking provider
+e.g., GpuRoceTransceiver in the above example, we also provide a networking provider
 wrapper interface, allowing one to build a networking-agnostic application.
 
 ## Quick Start
@@ -22,7 +22,7 @@ The basic APIs for the networking interface are:
 
 ```cpp
 /// @brief Create and initialize a transport bridge for the specified provider.
-/// For the built-in Hololink provider, this loads the Hololink shared library
+/// For the built-in GpuRoceTransceiver provider, this loads the GpuRoceTransceiver shared library
 /// and initializes the transceiver with the provided `args`.  For the EXTERNAL
 /// provider, this loads the shared library specified by the
 /// CUDAQ_REALTIME_BRIDGE_LIB environment variable and calls its create callback
@@ -34,10 +34,10 @@ cudaq_bridge_create(cudaq_realtime_bridge_handle_t *out_bridge_handle,
 ```
 
 This will initialize the networking layer context. The `cudaq_realtime_transport_provider_t`
-enum specifies whether it is a builtin provider (e.g., Hololink) or an external one.
-For the latter, it will perform dynamic loading to retrieve the
-networking implementation. Arguments, e.g., networking information, can also be provided
-to initialize the networking context.
+enum specifies whether it is a builtin provider (e.g., GpuRoceTransceiver) or
+an external one. For the latter, it will perform dynamic loading to retrieve
+the networking implementation. Arguments, e.g., networking information, can
+also be provided to initialize the networking context.
 
 ### Initialize a connection to the remote peer, e.g., a FPGA
 
@@ -63,7 +63,7 @@ cudaq_status_t cudaq_bridge_get_transport_context(
 
 ```cpp
 /// @brief Launch the transport bridge's main processing loop (e.g. start
-/// Hololink kernels).
+/// GpuRoceTransceiver kernels).
 cudaq_status_t cudaq_bridge_launch(cudaq_realtime_bridge_handle_t bridge);
 ```
 
@@ -74,7 +74,7 @@ header and payload accordingly as specified in the [message protocol](cudaq_real
 ### Terminate the connection to the remote peer
 
 ```cpp
-/// @brief Disconnect the transport bridge (e.g. stop Hololink kernels and
+/// @brief Disconnect the transport bridge (e.g. stop GpuRoceTransceiver kernels and
 /// disconnect).
 cudaq_status_t cudaq_bridge_disconnect(cudaq_realtime_bridge_handle_t bridge);
 ```
@@ -86,7 +86,7 @@ cudaq_status_t cudaq_bridge_disconnect(cudaq_realtime_bridge_handle_t bridge);
 cudaq_status_t cudaq_bridge_destroy(cudaq_realtime_bridge_handle_t bridge);
 ```
 
-An example of using this wrapper interface can be found at `realtime/unittests/bridge_interface/hololink/hololink_bridge.cpp`.
+An example of using this wrapper interface can be found at `realtime/unittests/bridge_interface/gpu_roce/gpu_roce_bridge.cpp`.
 
 ## Extending CUDA-Q realtime with a custom networking interface
 
@@ -113,8 +113,42 @@ typedef struct {
   cudaq_status_t (*launch)(cudaq_realtime_bridge_handle_t);
   cudaq_status_t (*disconnect)(cudaq_realtime_bridge_handle_t);
 
+  // Version 2 fields.
+  cudaq_status_t (*get_cpu_dataplane)(cudaq_realtime_bridge_handle_t,
+                                      cudaq_cpu_dataplane_t *out);
+  cudaq_status_t (*get_endpoint_info)(cudaq_realtime_bridge_handle_t, char *buf,
+                                      size_t buf_len);
+  cudaq_status_t (*get_ring_geometry)(cudaq_realtime_bridge_handle_t,
+                                      uint32_t *out_num_slots,
+                                      uint32_t *out_slot_size);
+
+  // Version 3 field.
+  cudaq_status_t (*set_function_table)(cudaq_realtime_bridge_handle_t,
+                                       const cudaq_function_table_t *table);
+
 } cudaq_realtime_bridge_interface_t;
 ```
+
+### Interface versioning
+
+Set `version` to `CUDAQ_REALTIME_BRIDGE_INTERFACE_VERSION`. A provider must be
+built against the headers it runs against: the loader reads the whole struct
+and does not adapt to older layouts. A provider reporting a different value is
+rejected by `cudaq_bridge_create*`, which returns `CUDAQ_ERR_INTERNAL` after
+printing a message naming both versions, so a stale plug-in is identified
+rather than failing in obscure ways. Rebuild the provider whenever this value
+changes.
+
+A provider that does not implement an optional capability sets that entry to
+`NULL`, and the corresponding `cudaq_bridge_get_*` call then returns
+`CUDAQ_ERR_UNSUPPORTED` instead of dispatching into the provider.
+
+`set_function_table` (version 3) hands the provider the same
+`cudaq_function_table_t` the dispatcher receives from
+`cudaq_dispatcher_set_function_table`. Some providers may need the table
+for pre-staging. A transport that does not need the table simply leaves
+the entry `NULL`, and the call then returns `CUDAQ_OK` instead of
+dispatching into the provider.  
 
 At runtime, when a `CUDAQ_PROVIDER_EXTERNAL` is requested in `cudaq_bridge_create`,
 CUDA-Q will retrieve the environment variable `CUDAQ_REALTIME_BRIDGE_LIB`
@@ -224,6 +258,13 @@ cudaq_realtime_bridge_interface_t *cudaq_realtime_get_bridge_interface() {
       provider_name_bridge_connect,
       provider_name_bridge_launch,
       provider_name_bridge_disconnect,
+      // Optional capabilities: implement the ones this transport supports and
+      // leave the rest NULL (the matching cudaq_bridge_* call then returns
+      // CUDAQ_ERR_UNSUPPORTED).
+      /*get_cpu_dataplane=*/nullptr,
+      /*get_endpoint_info=*/nullptr,
+      /*get_ring_geometry=*/nullptr,
+      /*set_function_table=*/nullptr,
   };
   return &cudaq_provider_name_bridge_interface;
 }

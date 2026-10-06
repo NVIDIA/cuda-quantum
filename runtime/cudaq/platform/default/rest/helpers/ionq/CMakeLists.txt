@@ -6,7 +6,6 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 target_sources(cudaq-rest-qpu PRIVATE IonQServerHelper.cpp)
-add_target_config(ionq)
 
 add_library(cudaq-serverhelper-ionq SHARED IonQServerHelper.cpp )
 target_link_libraries(cudaq-serverhelper-ionq
@@ -14,5 +13,6 @@ target_link_libraries(cudaq-serverhelper-ionq
     cudaq-common 
     cudaq-logger 
 )
-install(TARGETS cudaq-serverhelper-ionq DESTINATION lib)
+install(TARGETS cudaq-serverhelper-ionq DESTINATION lib
+        COMPONENT Runtime)
 

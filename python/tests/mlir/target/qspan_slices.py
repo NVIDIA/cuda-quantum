@@ -11,6 +11,8 @@
 
 import cudaq
 
+cudaq.parse_args()
+
 
 @cudaq.kernel
 def bar(qubits: cudaq.qview):

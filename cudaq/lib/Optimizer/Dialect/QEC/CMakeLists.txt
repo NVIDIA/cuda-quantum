@@ -20,3 +20,5 @@ add_cudaq_dialect_library(QECDialect
   QuakeDialect
   MLIRIR
 )
+
+check_registered_mlir_lib(QECDialect)

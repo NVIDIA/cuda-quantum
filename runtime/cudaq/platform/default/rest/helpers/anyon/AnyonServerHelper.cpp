@@ -106,9 +106,9 @@ public:
   cudaq::sample_result processResults(ServerMessage &postJobResponse,
                                       std::string &jobID) override;
 
-  /// @brief Update `passPipeline` with architecture-specific pass options
-  void updatePassPipeline(const std::filesystem::path &platformPath,
-                          std::string &passPipeline) override;
+  /// @brief Return architecture-specific pipeline placeholder substitutions.
+  std::map<std::string, std::string>
+  getPipelineSubstitutions(const std::filesystem::path &platformPath) override;
 };
 
 ServerJobPayload
@@ -443,8 +443,8 @@ std::string searchAPIKey(std::string &key, std::string &refreshKey,
   return hwConfig;
 }
 
-void AnyonServerHelper::updatePassPipeline(
-    const std::filesystem::path &platformPath, std::string &passPipeline) {
+std::map<std::string, std::string> AnyonServerHelper::getPipelineSubstitutions(
+    const std::filesystem::path &platformPath) {
   std::string qgate_type = "cgate";
   if (machine.starts_with("berkeley")) {
     qgate_type = "pgate";
@@ -453,13 +453,10 @@ void AnyonServerHelper::updatePassPipeline(
   } else {
     printf("Unidentified machine type %s\n", machine.c_str());
   }
-  passPipeline =
-      std::regex_replace(passPipeline, std::regex("%Q_GATE%"), qgate_type);
 
   std::string pathToFile = platformPath / std::string("mapping/anyon") /
                            (machine + std::string(".txt"));
-  passPipeline =
-      std::regex_replace(passPipeline, std::regex("%QPU_ARCH%"), pathToFile);
+  return {{"%Q_GATE%", qgate_type}, {"%QPU_ARCH%", pathToFile}};
 }
 
 } // namespace cudaq

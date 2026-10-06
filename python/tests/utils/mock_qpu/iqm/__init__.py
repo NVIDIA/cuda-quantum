@@ -1,7 +1,6 @@
 # ============================================================================ #
 # Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
 # All rights reserved.                                                         #
-# Copyright 2025 IQM Quantum Computers                                         #
 #                                                                              #
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
@@ -217,6 +216,7 @@ def _gather_circuit_information(
     instructions: list[iqm_client.Instruction],) -> tuple[set[int], int]:
     """Gather qubits from the circuit"""
     measurement_qubits: set[int] = set()
+    measurement_keys: dict[int, str] = dict()
     all_qubits: set[int] = set()
     for instruction in instructions:
         all_qubits.update(
@@ -226,14 +226,16 @@ def _gather_circuit_information(
             measurement_qubits.update(
                 _extract_qubit_position_from_qubit_name(qb)
                 for qb in list(instruction.qubits))
-    return measurement_qubits, len(all_qubits)
+            measurement_keys[_extract_qubit_position_from_qubit_name(
+                instruction.qubits[0])] = instruction.args["key"]
+    return measurement_qubits, measurement_keys, len(all_qubits)
 
 
 def _simulate_circuit(instructions: list[iqm_client.Instruction],
-                      shots: int) -> dict[str, int]:
+                      shots: int) -> tuple[dict[str, int], dict[int, str]]:
     """Simulate the circuit"""
     # extract qubits information from measurements
-    measurement_qubits_positions, number_of_qubits = \
+    measurement_qubits_positions, measurement_keys, number_of_qubits = \
         _gather_circuit_information(instructions)
 
     # calculate circuit operator and measure qubits
@@ -291,7 +293,7 @@ def _simulate_circuit(instructions: list[iqm_client.Instruction],
             _generate_measurement_strings(len(measurement_qubits_positions)),
             probabilities,
         )
-    }
+    }, measurement_keys
 
 
 async def compile_and_submit_job(job: Job):
@@ -308,10 +310,12 @@ async def compile_and_submit_job(job: Job):
             return
 
         # Simulate the circuit
-        counts = _simulate_circuit(circuit.instructions, request.shots)
+        counts, mkeys = _simulate_circuit(circuit.instructions, request.shots)
 
+        # {"counts":{"0":504,"1":496},"measurement_keys":["m_QB1"]}
         job.counts_batch.append(
-            Counts(counts=counts, measurement_keys=[circuit.name]))
+            Counts(counts=counts,
+                   measurement_keys=[mkeys[key] for key in sorted(mkeys)]))
 
     job.status = iqm_client.Status.READY
     job.result = iqm_client.RunResult(status=job.status, metadata=job.metadata)
@@ -467,7 +471,27 @@ async def get_jobs(job_id: str, request: Request):
             job.result.message if job.result and job.result.message else None,
         "counts_batch":
             job.counts_batch,
+        "metadata":
+            job.metadata,
     }
+
+    return results
+
+
+@app.get("/api/v1/jobs/{job_id}/artifacts/measurement_counts")
+async def get_job_counts(job_id: str, request: Request):
+    """Get the result of a job"""
+    access_token = request.headers.get("Authorization")
+    if access_token != good_access_token:
+        raise HTTPException(401)
+
+    if job_id not in createdJobs:
+        raise HTTPException(404)
+
+    job = createdJobs[job_id]
+
+    # TODO: return the actual counts, check the requested measurements
+    results = job.counts_batch
 
     return results
 

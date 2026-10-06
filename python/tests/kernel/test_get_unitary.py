@@ -40,7 +40,7 @@ def general_cnot(n, ctrl, tgt):
 
 def test_single_hadamard():
 
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def k():
         q = cudaq.qubit()
         h(q)
@@ -53,7 +53,8 @@ def test_single_hadamard():
 
 def test_two_x_gates_one_qubit():
 
-    @cudaq.kernel
+    # This qernel is a NOP. Disable the optimizer to generate some fluff.
+    @cudaq.kernel(disable_quantum_optimization=True)
     def k():
         q = cudaq.qubit()
         x(q)
@@ -66,7 +67,7 @@ def test_two_x_gates_one_qubit():
 
 def test_two_hadamards_two_qubits():
 
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def k():
         q = cudaq.qvector(2)
         h(q[0])
@@ -81,7 +82,7 @@ def test_two_hadamards_two_qubits():
 def test_rotation_h_hadamard_rotation():
     theta1, theta2 = np.pi / 5, np.pi / 7
 
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def k(a: float, b: float):
         q = cudaq.qubit()
         rx(a, q)
@@ -96,7 +97,7 @@ def test_rotation_h_hadamard_rotation():
 
 def test_single_qubit_large():
 
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def k():
         q = cudaq.qvector(3)
         x(q[2])
@@ -109,7 +110,7 @@ def test_single_qubit_large():
 
 def test_two_sparse_qubits():
 
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def k():
         q = cudaq.qvector(3)
         h(q[0])
@@ -129,7 +130,7 @@ def test_custom_single_qubit_gate():
     with pytest.raises(RuntimeError,
                        match='Invalid gate name provided: custom_gate'):
 
-        @cudaq.kernel
+        @cudaq.kernel(disable_quantum_optimization=True)
         def k():
             q = cudaq.qubit()
             custom_gate(q)
@@ -142,7 +143,7 @@ def test_custom_single_qubit_gate():
 
 def test_swap_two_qubits():
 
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def k():
         q = cudaq.qvector(2)
         swap(q[0], q[1])
@@ -157,7 +158,7 @@ def test_swap_nonadjacent_qubits():
     qubit_cnt = 5
     ind1, ind2 = 1, 4
 
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def k():
         q = cudaq.qvector(qubit_cnt)
         swap(q[1], q[4])
@@ -176,7 +177,7 @@ def test_swap_nonadjacent_qubits():
 
 def test_cnot_two_qubits_opposite():
 
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def k():
         q = cudaq.qvector(2)
         x.ctrl(q[1], q[0])
@@ -189,7 +190,7 @@ def test_cnot_two_qubits_opposite():
 
 def test_cnot_nonadjacent_qubits():
 
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def k():
         q = cudaq.qvector(3)
         x.ctrl(q[2], q[0])
@@ -202,7 +203,7 @@ def test_cnot_nonadjacent_qubits():
 @pytest.mark.parametrize("num_qubits", [2, 3, 4, 5])
 def test_parametrized_h_cnot_circuit(num_qubits):
     # H on odd qubits, then CNOT(i → (3*i)%num_qubits)
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def circuit(n: int):
         q = cudaq.qvector(n)
         for i in range(n):
@@ -228,7 +229,7 @@ def test_parametrized_h_cnot_circuit(num_qubits):
 
 def test_toffoli_three_qubits():
 
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def k():
         q = cudaq.qvector(3)
         # two controls (q[0], q[1]) and target q[2]
@@ -243,7 +244,7 @@ def test_toffoli_three_qubits():
 def test_controlled_rotation():
     theta = np.pi / 6
 
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def k(a: float):
         q = cudaq.qvector(3)
         rx.ctrl(a, [q[0], q[1]], q[2])
@@ -260,7 +261,7 @@ def test_cy_to_cx():
         [[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 0, -1j], [0, 0, 1j, 0]],
         dtype=np.complex128)
 
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def kernel_with_cy():
         q = cudaq.qvector(2)
         y.ctrl(q[0], q[1])
@@ -268,7 +269,7 @@ def test_cy_to_cx():
     U = cudaq.get_unitary(kernel_with_cy)
     np.testing.assert_allclose(U, expected_cy, atol=1e-12)
 
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def kernel_with_decomposed_cy():
         q = cudaq.qvector(2)
         s.adj(q[1])

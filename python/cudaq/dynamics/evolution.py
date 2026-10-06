@@ -190,12 +190,12 @@ def _launch_analog_hamiltonian_kernel(target_name: str,
             random.choice(string.ascii_uppercase + string.digits)
             for _ in range(10)))
 
-    ctx = cudaq_runtime.ExecutionContext("sample", shots_count)
-    ctx.asyncExec = is_async
-    with ctx:
-        cudaq_runtime.pyAltLaunchAnalogKernel(funcName, program.to_json())
-
-    return ctx.asyncResult if is_async else ctx.result
+    if is_async:
+        return cudaq_runtime.launch_analog_kernel_async(funcName,
+                                                        program.to_json(),
+                                                        shots_count)
+    return cudaq_runtime.launch_analog_kernel(funcName, program.to_json(),
+                                              shots_count)
 
 
 # FIXME: move to C++
@@ -527,12 +527,23 @@ def evolve(
                                max_batch_size)
     else:
         if isinstance(initial_state, Sequence):
+
+            def evolve_one(ham, state, collapse_ops):
+                schedule.reset()
+                return evolve_single(ham, dimensions, schedule, state,
+                                     collapse_ops, observables,
+                                     store_intermediate_results, integrator,
+                                     shots_count)
+
+            if isinstance(hamiltonian, Sequence):
+                return [
+                    evolve_one(ham, state, collapse_ops)
+                    for ham, state, collapse_ops in zip(
+                        hamiltonian, initial_state, collapse_operators)
+                ]
             return [
-                evolve_single(ham, dimensions, schedule, state, collapse_ops,
-                              observables, store_intermediate_results,
-                              integrator, shots_count)
-                for ham, state, collapse_ops in zip(hamiltonian, initial_state,
-                                                    collapse_operators)
+                evolve_one(hamiltonian, state, collapse_operators)
+                for state in initial_state
             ]
         else:
             return evolve_single(hamiltonian, dimensions, schedule,

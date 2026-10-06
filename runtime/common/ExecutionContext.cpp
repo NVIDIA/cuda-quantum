@@ -9,6 +9,7 @@
 #include "ExecutionContext.h"
 #include <cstdlib>
 #include <cstring>
+#include <exception>
 #include <string>
 
 namespace {
@@ -45,4 +46,12 @@ void detail::setExecutionContext(ExecutionContext *ctx) {
 }
 
 void detail::resetExecutionContext() { currentExecutionContext = nullptr; }
+
+void rethrowDeferredKernelException() {
+  if (auto *ctx = getExecutionContext(); ctx && ctx->deferredKernelException) {
+    auto deferred = ctx->deferredKernelException;
+    ctx->deferredKernelException = nullptr;
+    std::rethrow_exception(deferred);
+  }
+}
 } // namespace cudaq

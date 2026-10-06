@@ -1,10 +1,14 @@
 # [Begin Spin]
 import cudaq
 from cudaq import spin
+
+operator = 2 * spin.x(0) * spin.y(1) * spin.x(2) - 3 * spin.z(0) * spin.z(
+    1) * spin.y(2)
+print(operator)
 # [End Spin]
 
 # [Begin Pauli]
-words = ['XYZ', 'IXX']
+words = ['ZYX', 'ZXX']
 coefficients = [0.432, 0.324]
 
 

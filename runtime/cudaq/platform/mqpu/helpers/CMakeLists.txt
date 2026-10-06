@@ -7,13 +7,6 @@
 # ============================================================================ #
 
 add_library(mqpu_util OBJECT MQPUUtils.cpp)
-target_link_libraries(mqpu_util
-    PRIVATE
-        LLVMSupport
-        cudaq-common  
-        cudaq-logger
-        fmt::fmt-header-only
-)
 
 if (cuStateVec_FOUND)
   target_compile_definitions(mqpu_util PRIVATE CUDAQ_ENABLE_CUDA)

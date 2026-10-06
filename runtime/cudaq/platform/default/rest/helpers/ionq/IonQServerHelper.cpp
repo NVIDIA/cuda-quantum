@@ -390,6 +390,9 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse,
         "ServerMessage doesn't tell us how many qubits there were");
 
   auto nQubits = jobs[0].at("qubits").get<int>();
+  if (nQubits <= 0 || nQubits > 64)
+    throw std::runtime_error("Invalid number of qubits in ServerMessage: " +
+                             std::to_string(nQubits));
   CUDAQ_DBG("nQubits is : {}", nQubits);
   CUDAQ_DBG("Results message: {}", results.dump());
 
@@ -405,7 +408,6 @@ IonQServerHelper::processResults(ServerMessage &postJobResponse,
   cudaq::CountsDictionary counts;
 
   // Process the results
-  assert(nQubits <= 64);
   for (const auto &element : results.items()) {
     // Convert base-10 ASCII key to bitstring and perform endian swap
     uint64_t s = std::stoull(element.key());

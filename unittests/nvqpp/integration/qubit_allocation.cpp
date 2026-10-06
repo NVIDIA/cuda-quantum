@@ -210,7 +210,7 @@ CUDAQ_TEST(AllocationTester, checkDensityOrderingBug) {
 #endif
 
 struct test_allocation_from_state {
-  void operator()(cudaq::state state) __qpu__ {
+  void operator()(cudaq::state *state) __qpu__ {
     cudaq::qvector q(state);
     mz(q);
   }
@@ -222,7 +222,7 @@ CUDAQ_TEST(AllocationTester, checkAllocationFromRetrievedState) {
     h(q[0]);
     cx(q[0], q[1]);
   });
-  auto counts = cudaq::sample(test_allocation_from_state{}, bellState);
+  auto counts = cudaq::sample(test_allocation_from_state{}, &bellState);
   counts.dump();
   EXPECT_EQ(2, counts.size());
   int c = 0;
@@ -251,11 +251,11 @@ CUDAQ_TEST(AllocationTester, checkChainingGetState) {
 
   // Second half of the circuit
   auto state2 = cudaq::get_state(
-      [](cudaq::state state) __qpu__ {
+      [](cudaq::state *state) __qpu__ {
         cudaq::qvector q(state);
         cx(q[0], q[1]);
       },
-      state1);
+      &state1);
 #ifdef CUDAQ_BACKEND_DM
   EXPECT_NEAR(std::abs(state2.amplitude({0, 0})), 0.5, 1e-6);
   EXPECT_NEAR(std::abs(state2.amplitude({1, 1})), 0.5, 1e-6);
@@ -312,12 +312,12 @@ CUDAQ_TEST(AllocationTester, checkStateFromMpsData) {
     auto state = cudaq::state::from_data(initData);
     state.dump();
     auto state2 = cudaq::get_state(
-        [](cudaq::state state) __qpu__ {
+        [](cudaq::state *state) __qpu__ {
           cudaq::qvector q(state);
           h(q[0]);
           cx(q[0], q[1]);
         },
-        state);
+        &state);
     state2.dump();
     EXPECT_NEAR(std::abs(state2.amplitude({0, 0})), M_SQRT1_2, 1e-6);
     EXPECT_NEAR(std::abs(state2.amplitude({1, 1})), M_SQRT1_2, 1e-6);
@@ -349,12 +349,12 @@ CUDAQ_TEST(AllocationTester, checkStateFromMpsData) {
     auto reconstructedState = cudaq::state::from_data(tensors);
     // Second half of the bell circuit
     auto state2 = cudaq::get_state(
-        [](cudaq::state state) __qpu__ {
+        [](cudaq::state *state) __qpu__ {
           cudaq::qvector q(state);
           for (std::size_t i = 0; i < q.size() - 1; ++i)
             cx(q[i], q[i + 1]);
         },
-        reconstructedState);
+        &reconstructedState);
     const std::vector<int> allZero(numQubits, 0);
     const std::vector<int> allOne(numQubits, 1);
     EXPECT_NEAR(std::abs(state2.amplitude(allZero)), M_SQRT1_2, 1e-6);

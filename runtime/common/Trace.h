@@ -43,6 +43,9 @@ public:
     std::vector<double> params;
     std::vector<QuditInfo> controls;
     std::vector<QuditInfo> targets;
+    /// Required states in control order: 0 selects |0> and 1 selects |1>.
+    /// Empty means the gate acts only when every control qubit is |1>.
+    std::vector<std::int32_t> controlValues;
     std::optional<std::intptr_t> noise_channel_key;
     std::optional<std::string> register_name;
 
@@ -50,15 +53,18 @@ public:
                 std::vector<QuditInfo> controls, std::vector<QuditInfo> targets,
                 std::optional<std::intptr_t> noise_key = std::nullopt,
                 TraceInstructionType type = TraceInstructionType::Gate,
-                std::optional<std::string> register_name = std::nullopt)
+                std::optional<std::string> register_name = std::nullopt,
+                const std::vector<std::int32_t> &control_values = {})
         : type(type), name(name), params(params), controls(controls),
-          targets(targets), noise_channel_key(noise_key),
+          targets(targets), controlValues(control_values),
+          noise_channel_key(noise_key),
           register_name(std::move(register_name)) {}
   };
 
   void appendInstruction(std::string_view name, std::vector<double> params,
                          std::vector<QuditInfo> controls,
-                         std::vector<QuditInfo> targets);
+                         std::vector<QuditInfo> targets,
+                         const std::vector<std::int32_t> &controlValues = {});
 
   /// @brief Append a noise instruction (for PTSBE trace capture).
   /// @param channel_name The noise channel type name (e.g.

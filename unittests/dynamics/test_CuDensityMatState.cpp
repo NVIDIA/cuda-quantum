@@ -322,6 +322,61 @@ TEST_F(CuDensityMatStateTest, DensityMatrixOverlapPartial) {
   EXPECT_NEAR(result.imag(), 0.0, 1e-12);
 }
 
+// The Hilbert-Schmidt inner product conjugates the left operand, so a
+// complex-valued density matrix pins down the conjugation. Dropping it would
+// make the self-overlap below 0 instead of 1.
+TEST_F(CuDensityMatStateTest, DensityMatrixOverlapComplex) {
+  std::vector<int64_t> dims1q = {2};
+
+  std::vector<std::complex<double>> dmPlusI = {
+      {0.5, 0.0}, {0.0, 0.5}, {0.0, -0.5}, {0.5, 0.0}};
+  CuDensityMatState statePlusI(dmPlusI.size(),
+                               cudaq::dynamics::createArrayGpu(dmPlusI));
+  statePlusI.initialize_cudm(handle, dims1q, /*batchSize=*/1);
+
+  auto self = statePlusI.overlap(statePlusI);
+  EXPECT_NEAR(self.real(), 1.0, 1e-12);
+  EXPECT_NEAR(self.imag(), 0.0, 1e-12);
+
+  std::vector<std::complex<double>> dmPlus = {
+      {0.5, 0.0}, {0.5, 0.0}, {0.5, 0.0}, {0.5, 0.0}};
+  CuDensityMatState statePlus(dmPlus.size(),
+                              cudaq::dynamics::createArrayGpu(dmPlus));
+  statePlus.initialize_cudm(handle, dims1q, /*batchSize=*/1);
+
+  auto cross = statePlusI.overlap(statePlus);
+  EXPECT_NEAR(cross.real(), 0.5, 1e-12);
+  EXPECT_NEAR(cross.imag(), 0.0, 1e-12);
+}
+
+// State vectors report the magnitude of <psi|phi>.
+TEST_F(CuDensityMatStateTest, StateVectorOverlap) {
+  CuDensityMatState state00(stateVectorData.size(),
+                            cudaq::dynamics::createArrayGpu(stateVectorData));
+  state00.initialize_cudm(handle, hilbertSpaceDims, /*batchSize=*/1);
+  EXPECT_FALSE(state00.is_density_matrix());
+
+  auto self = state00.overlap(state00);
+  EXPECT_NEAR(self.real(), 1.0, 1e-12);
+
+  const double invSqrt2 = 1.0 / std::sqrt(2.0);
+  std::vector<std::complex<double>> phiData = {
+      {invSqrt2, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {0.0, invSqrt2}};
+  CuDensityMatState phi(phiData.size(),
+                        cudaq::dynamics::createArrayGpu(phiData));
+  phi.initialize_cudm(handle, hilbertSpaceDims, /*batchSize=*/1);
+
+  auto cross = state00.overlap(phi);
+  EXPECT_NEAR(cross.real(), invSqrt2, 1e-12);
+
+  std::vector<std::complex<double>> ketData = {
+      {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {1.0, 0.0}};
+  CuDensityMatState ket11(ketData.size(),
+                          cudaq::dynamics::createArrayGpu(ketData));
+  ket11.initialize_cudm(handle, hilbertSpaceDims, /*batchSize=*/1);
+  EXPECT_NEAR(state00.overlap(ket11).real(), 0.0, 1e-12);
+}
+
 // Test indexing for single-qubit density matrix
 TEST_F(CuDensityMatStateTest, SingleQubitDensityMatrixIndexing) {
   // 1-qubit system: 2x2 density matrix (4 elements)
@@ -350,8 +405,8 @@ TEST_F(CuDensityMatStateTest, CreateFromDataDensityMatrixLayout) {
   cudaq::complex_matrix rhoRow(rhoRowMajor, {2, 2},
                                cudaq::complex_matrix::order::row_major);
 
-  using RowMajorMatrix = Eigen::Matrix<std::complex<double>, Eigen::Dynamic,
-                                       Eigen::Dynamic, Eigen::RowMajor>;
+  using ColumnMajorMatrix =
+      Eigen::Matrix<std::complex<double>, Eigen::Dynamic, Eigen::Dynamic>;
 
   CuDensityMatState prototype;
   auto stateRow = prototype.createFromData(cudaq::state_data(rhoRow));
@@ -360,7 +415,7 @@ TEST_F(CuDensityMatStateTest, CreateFromDataDensityMatrixLayout) {
   cudmRow->initialize_cudm(handle, {2}, /*batchSize=*/1);
   EXPECT_TRUE(cudmRow->is_density_matrix());
 
-  RowMajorMatrix hostRow(2, 2);
+  ColumnMajorMatrix hostRow(2, 2);
   cudmRow->toHost(hostRow.data(), 4);
   EXPECT_NEAR(hostRow(0, 0).real(), 1.0, 1e-12);
   EXPECT_NEAR(hostRow(0, 0).imag(), 0.0, 1e-12);
@@ -379,7 +434,7 @@ TEST_F(CuDensityMatStateTest, CreateFromDataDensityMatrixLayout) {
   cudmCol->initialize_cudm(handle, {2}, /*batchSize=*/1);
   EXPECT_TRUE(cudmCol->is_density_matrix());
 
-  RowMajorMatrix hostCol(2, 2);
+  ColumnMajorMatrix hostCol(2, 2);
   cudmCol->toHost(hostCol.data(), 4);
   EXPECT_NEAR(hostCol(0, 0).real(), 1.0, 1e-12);
   EXPECT_NEAR(hostCol(1, 0).real(), 0.0, 1e-12);
@@ -394,7 +449,7 @@ TEST_F(CuDensityMatStateTest, CreateFromDataDensityMatrixLayout) {
   auto *cudmOffRow = dynamic_cast<CuDensityMatState *>(stateOffRow.get());
   ASSERT_NE(cudmOffRow, nullptr);
   cudmOffRow->initialize_cudm(handle, {2}, /*batchSize=*/1);
-  RowMajorMatrix hostOffRow(2, 2);
+  ColumnMajorMatrix hostOffRow(2, 2);
   cudmOffRow->toHost(hostOffRow.data(), 4);
   EXPECT_NEAR(hostOffRow(0, 0).real(), 1.0, 1e-12);
   EXPECT_NEAR(hostOffRow(0, 1).real(), 2.0, 1e-12);
@@ -409,10 +464,141 @@ TEST_F(CuDensityMatStateTest, CreateFromDataDensityMatrixLayout) {
   auto *cudmOffCol = dynamic_cast<CuDensityMatState *>(stateOffCol.get());
   ASSERT_NE(cudmOffCol, nullptr);
   cudmOffCol->initialize_cudm(handle, {2}, /*batchSize=*/1);
-  RowMajorMatrix hostOffCol(2, 2);
+  ColumnMajorMatrix hostOffCol(2, 2);
   cudmOffCol->toHost(hostOffCol.data(), 4);
   EXPECT_NEAR(hostOffCol(0, 0).real(), 1.0, 1e-12);
   EXPECT_NEAR(hostOffCol(0, 1).real(), 2.0, 1e-12);
   EXPECT_NEAR(hostOffCol(1, 0).real(), 3.0, 1e-12);
   EXPECT_NEAR(hostOffCol(1, 1).real(), 4.0, 1e-12);
+}
+
+TEST_F(CuDensityMatStateTest, SplitBatchedStatePreservesLayoutMetadata) {
+  const std::vector<int64_t> dims{2};
+  const std::vector<std::complex<double>> dm = {
+      {1.0, 0.0}, {2.0, 0.0}, {3.0, 0.0}, {4.0, 0.0}};
+
+  CuDensityMatState state1(dm.size(), cudaq::dynamics::createArrayGpu(dm));
+  state1.initialize_cudm(handle, dims, /*batchSize=*/1);
+  CuDensityMatState state2(dm.size(), cudaq::dynamics::createArrayGpu(dm));
+  state2.initialize_cudm(handle, dims, /*batchSize=*/1);
+  ASSERT_TRUE(state1.is_density_matrix());
+
+  auto batchedState = CuDensityMatState::createBatchedState(
+      handle, {&state1, &state2}, dims, /*createDensityState=*/true);
+  auto splitStates = CuDensityMatState::splitBatchedState(*batchedState);
+  ASSERT_EQ(splitStates.size(), 2);
+
+  const auto referenceTensor = state1.getTensor();
+  for (auto *splitState : splitStates) {
+    EXPECT_TRUE(splitState->is_density_matrix());
+    const auto tensor = splitState->getTensor();
+    EXPECT_EQ(tensor.extents, referenceTensor.extents);
+    EXPECT_EQ(tensor.order, referenceTensor.order);
+    delete splitState;
+  }
+}
+
+namespace {
+std::vector<std::complex<double>> toHostVector(const CuDensityMatState &state) {
+  std::vector<std::complex<double>> data(state.get_element_count());
+  state.toHost(data.data(), data.size());
+  return data;
+}
+} // namespace
+
+TEST_F(CuDensityMatStateTest, MpiBufferLikeMatchesShapeWithSeparateStorage) {
+  for (const auto *data : {&stateVectorData, &densityMatrixData}) {
+    CuDensityMatState state(data->size(),
+                            cudaq::dynamics::createArrayGpu(*data));
+    state.initialize_cudm(handle, hilbertSpaceDims, /*batchSize=*/1);
+
+    auto buffer = CuDensityMatState::mpi_buffer_like(state);
+    ASSERT_NE(buffer, nullptr);
+    EXPECT_TRUE(buffer->is_initialized());
+    EXPECT_TRUE(buffer->has_same_shape(state));
+    EXPECT_EQ(buffer->is_density_matrix(), state.is_density_matrix());
+    EXPECT_EQ(buffer->get_element_count(), state.get_element_count());
+    EXPECT_NE(buffer->get_device_pointer(), state.get_device_pointer());
+
+    buffer->copy_from(state);
+    EXPECT_EQ(toHostVector(*buffer), *data);
+  }
+}
+
+TEST_F(CuDensityMatStateTest, CopyFromRejectsShapeMismatch) {
+  CuDensityMatState state(stateVectorData.size(),
+                          cudaq::dynamics::createArrayGpu(stateVectorData));
+  state.initialize_cudm(handle, hilbertSpaceDims, /*batchSize=*/1);
+  const std::vector<std::complex<double>> smallData = {{1.0, 0.0}, {0.0, 0.0}};
+  CuDensityMatState small(smallData.size(),
+                          cudaq::dynamics::createArrayGpu(smallData));
+  small.initialize_cudm(handle, {2}, /*batchSize=*/1);
+
+  EXPECT_FALSE(small.has_same_shape(state));
+  EXPECT_THROW(small.copy_from(state), std::invalid_argument);
+  EXPECT_THROW(state.copy_from(small), std::invalid_argument);
+}
+
+TEST_F(CuDensityMatStateTest, SetZeroAndZeroLike) {
+  CuDensityMatState state(densityMatrixData.size(),
+                          cudaq::dynamics::createArrayGpu(densityMatrixData));
+  state.initialize_cudm(handle, hilbertSpaceDims, /*batchSize=*/1);
+  const std::vector<std::complex<double>> zeros(densityMatrixData.size());
+
+  auto zero = CuDensityMatState::zero_like(state);
+  EXPECT_TRUE(zero.has_same_shape(state));
+  EXPECT_EQ(toHostVector(zero), zeros);
+  EXPECT_EQ(toHostVector(state), densityMatrixData);
+
+  state.set_zero();
+  EXPECT_EQ(toHostVector(state), zeros);
+}
+
+// Swapping moves ownership with the storage, so each buffer is freed exactly
+// once by whichever state holds it, whether it is an MPI buffer or not.
+TEST_F(CuDensityMatStateTest, SwapExchangesContentsAndStorage) {
+  const std::vector<std::complex<double>> otherData = {
+      {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {1.0, 0.0}};
+  auto plain = std::make_unique<CuDensityMatState>(
+      stateVectorData.size(), cudaq::dynamics::createArrayGpu(stateVectorData));
+  plain->initialize_cudm(handle, hilbertSpaceDims, /*batchSize=*/1);
+  auto buffered = CuDensityMatState::mpi_buffer_like(*plain);
+  CuDensityMatState other(otherData.size(),
+                          cudaq::dynamics::createArrayGpu(otherData));
+  other.initialize_cudm(handle, hilbertSpaceDims, /*batchSize=*/1);
+  buffered->copy_from(other);
+
+  void *plainPtr = plain->get_device_pointer();
+  void *bufferedPtr = buffered->get_device_pointer();
+  plain->swap(*buffered);
+  EXPECT_EQ(plain->get_device_pointer(), bufferedPtr);
+  EXPECT_EQ(buffered->get_device_pointer(), plainPtr);
+  EXPECT_EQ(toHostVector(*plain), otherData);
+  EXPECT_EQ(toHostVector(*buffered), stateVectorData);
+
+  // The state now holding the MPI buffer can be used after the other is gone.
+  buffered.reset();
+  EXPECT_EQ(toHostVector(*plain), otherData);
+  plain->set_zero();
+  EXPECT_EQ(toHostVector(*plain),
+            std::vector<std::complex<double>>(otherData.size()));
+}
+
+TEST_F(CuDensityMatStateTest, MoveKeepsMpiBufferStorage) {
+  CuDensityMatState state(stateVectorData.size(),
+                          cudaq::dynamics::createArrayGpu(stateVectorData));
+  state.initialize_cudm(handle, hilbertSpaceDims, /*batchSize=*/1);
+  auto buffer = CuDensityMatState::mpi_buffer_like(state);
+  buffer->copy_from(state);
+  void *devicePtr = buffer->get_device_pointer();
+
+  CuDensityMatState moved(std::move(*buffer));
+  buffer.reset();
+  EXPECT_EQ(moved.get_device_pointer(), devicePtr);
+  EXPECT_EQ(toHostVector(moved), stateVectorData);
+
+  CuDensityMatState assigned = CuDensityMatState::zero_like(state);
+  assigned = std::move(moved);
+  EXPECT_EQ(assigned.get_device_pointer(), devicePtr);
+  EXPECT_EQ(toHostVector(assigned), stateVectorData);
 }

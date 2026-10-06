@@ -36,14 +36,14 @@ bool usesIndividualQubit(A x) {
 //
 // Handles both result-type families that the vector form of `quake.mz`/`mx`/
 // `my` can carry:
-//   - `!cc.stdvec<!quake.measure>` -- the legacy form. The only legitimate
+//   - `!cc.sequence<!quake.measure>` -- the legacy form. The only legitimate
 //     consumer is `quake.discriminate`, so the rewrite folds the per-element
-//     measurements straight into a `cc.stdvec_init -> !cc.stdvec<i1>`.
-//   - `!cc.stdvec<!cc.measure_handle>` -- the handle-vector value can have
+//     measurements straight into a `cc.sequence_init -> !cc.sequence<i1>`.
+//   - `!cc.sequence<!cc.measure_handle>` -- the handle-vector value can have
 //     non-discriminate consumers. Those consumers expect a value of the
-//     original handle-stdvec type, so the rewrite additionally builds a
-//     per-element handle buffer and folds it into a `cc.stdvec_init ->
-//     !cc.stdvec<!cc.measure_handle>` that replaces all remaining uses.
+//     original handle-sequence type, so the rewrite additionally builds a
+//     per-element handle buffer and folds it into a `cc.sequence_init ->
+//     !cc.sequence<!cc.measure_handle>` that replaces all remaining uses.
 template <typename A>
 class ExpandRewritePattern : public OpRewritePattern<A> {
 public:
@@ -55,14 +55,14 @@ public:
     auto *ctx = rewriter.getContext();
 
     // The dynamic-legality predicate filters out the scalar forms, so by
-    // construction the result type here is `!cc.stdvec<X>` for some X.
-    auto stdvecResTy =
-        dyn_cast<cudaq::cc::StdvecType>(measureOp.getMeasOut().getType());
+    // construction the result type here is `!cc.sequence<X>` for some X.
+    auto sequenceResTy =
+        dyn_cast<cudaq::cc::SequenceType>(measureOp.getMeasOut().getType());
     auto handleTy = cudaq::cc::MeasureHandleType::get(ctx);
     bool isHandleResult =
-        isa<cudaq::cc::MeasureHandleType>(stdvecResTy.getElementType());
+        isa<cudaq::cc::MeasureHandleType>(sequenceResTy.getElementType());
 
-    // Per-element scalar result type tracks the original stdvec element
+    // Per-element scalar result type tracks the original sequence element
     // type. For handle inputs we measure into `!cc.measure_handle` per
     // qubit.
     Type perElemTy =
@@ -82,8 +82,8 @@ public:
         hasNonDiscUser = true;
     }
     // Allocation policy:
-    //   - Legacy `!cc.stdvec<!quake.measure>` always allocates the i1 buffer.
-    //   - `!cc.stdvec<!cc.measure_handle>` allocates each buffer only when a
+    //   - Legacy `!cc.sequence<!quake.measure>` always allocates the i1 buffer.
+    //   - `!cc.sequence<!cc.measure_handle>` allocates each buffer only when a
     //   consumer in that element-type class is present.
     bool needI1Buf = !isHandleResult || !discUsers.empty();
     bool needHandleBuf = isHandleResult && hasNonDiscUser;
@@ -167,29 +167,29 @@ public:
     }
 
     // 4. Replace each `quake.discriminate` consumer with a
-    // `cc.stdvec_init -> !cc.stdvec<i1>` over the i1 buffer.
+    // `cc.sequence_init -> !cc.sequence<i1>` over the i1 buffer.
     if (needI1Buf) {
-      auto stdvecI1Ty = cudaq::cc::StdvecType::get(ctx, i1Ty);
+      auto sequenceI1Ty = cudaq::cc::SequenceType::get(ctx, i1Ty);
       auto ptrArrI1Ty =
           cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(i1Ty));
       for (auto disc : discUsers) {
         auto buffCast =
             cudaq::cc::CastOp::create(rewriter, loc, ptrArrI1Ty, i1Buff);
-        rewriter.template replaceOpWithNewOp<cudaq::cc::StdvecInitOp>(
-            disc, stdvecI1Ty, buffCast, totalToRead);
+        rewriter.template replaceOpWithNewOp<cudaq::cc::SequenceInitOp>(
+            disc, sequenceI1Ty, buffCast, totalToRead);
       }
     }
 
     // 5. For the handle path with non-discriminate consumers, build a
-    // `cc.stdvec_init -> !cc.stdvec<!cc.measure_handle>` over the handle
+    // `cc.sequence_init -> !cc.sequence<!cc.measure_handle>` over the handle
     // buffer and route the original result's remaining users to it via
     // `replaceOp` (one atomic substitution)
     Value replacementVal;
     if (needHandleBuf) {
-      auto stdvecHandleTy = cudaq::cc::StdvecType::get(ctx, handleTy);
-      auto handleStdvec = cudaq::cc::StdvecInitOp::create(
-          rewriter, loc, stdvecHandleTy, handleBuff, totalToRead);
-      replacementVal = handleStdvec.getResult();
+      auto sequenceHandleTy = cudaq::cc::SequenceType::get(ctx, handleTy);
+      auto handleSequence = cudaq::cc::SequenceInitOp::create(
+          rewriter, loc, sequenceHandleTy, handleBuff, totalToRead);
+      replacementVal = handleSequence.getResult();
     }
 
     // The pass is scheduled before wire lowering, so the variadic `$wires`
@@ -215,17 +215,17 @@ using MxRewrite = ExpandRewritePattern<cudaq::quake::MxOp>;
 using MyRewrite = ExpandRewritePattern<cudaq::quake::MyOp>;
 using MzRewrite = ExpandRewritePattern<cudaq::quake::MzOp>;
 
-// Expand `quake.discriminate : !cc.stdvec<!cc.measure_handle> ->
-// !cc.stdvec<i1>` when the input handle vector is *not* the direct result
+// Expand `quake.discriminate : !cc.sequence<!cc.measure_handle> ->
+// !cc.sequence<i1>` when the input handle vector is *not* the direct result
 // of a measurement op. The bridge emits this shape for `cudaq::to_bools`
 // applied to a handle vector that has crossed an SSA boundary
 // (e.g. function argument, kernel return), where the measurement-op
 // pattern above cannot reach the underlying `quake.mz/mx/my`. It loops
 // over the handle vector, discriminates each element, and rewraps the
-// resulting bytes as a `!cc.stdvec<i1>`. The direct-from-measurement
+// resulting bytes as a `!cc.sequence<i1>`. The direct-from-measurement
 // case stays handled by `ExpandRewritePattern` to avoid an extra
 // per-element load.
-class ExpandStdvecHandleDiscriminate
+class ExpandSequenceHandleDiscriminate
     : public OpRewritePattern<cudaq::quake::DiscriminateOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
@@ -233,9 +233,9 @@ public:
   LogicalResult matchAndRewrite(cudaq::quake::DiscriminateOp disc,
                                 PatternRewriter &rewriter) const override {
     Value handleVec = disc.getMeasurement();
-    auto stdvecTy = dyn_cast<cudaq::cc::StdvecType>(handleVec.getType());
-    if (!stdvecTy ||
-        !isa<cudaq::cc::MeasureHandleType>(stdvecTy.getElementType()))
+    auto sequenceTy = dyn_cast<cudaq::cc::SequenceType>(handleVec.getType());
+    if (!sequenceTy ||
+        !isa<cudaq::cc::MeasureHandleType>(sequenceTy.getElementType()))
       return failure();
     if (handleVec.getDefiningOp<cudaq::quake::MeasurementInterface>())
       return failure();
@@ -248,10 +248,10 @@ public:
     auto handleTy = cudaq::cc::MeasureHandleType::get(ctx);
 
     Value vecSize =
-        cudaq::cc::StdvecSizeOp::create(rewriter, loc, i64Ty, handleVec);
+        cudaq::cc::SequenceSizeOp::create(rewriter, loc, i64Ty, handleVec);
     auto handleArrPtrTy =
         cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(handleTy));
-    Value handleData = cudaq::cc::StdvecDataOp::create(
+    Value handleData = cudaq::cc::SequenceDataOp::create(
         rewriter, loc, handleArrPtrTy, handleVec);
     // Output is held in an i8 buffer, then bitcast to `!cc.ptr<!cc.array
     // <i1 x ?>>` for the wrap. This matches the convention used by the
@@ -276,13 +276,13 @@ public:
           cudaq::cc::StoreOp::create(builder, loc, bitByte, byteAddr);
         });
 
-    auto stdvecI1Ty = cudaq::cc::StdvecType::get(ctx, i1Ty);
+    auto sequenceI1Ty = cudaq::cc::SequenceType::get(ctx, i1Ty);
     auto ptrArrI1Ty =
         cudaq::cc::PointerType::get(cudaq::cc::ArrayType::get(i1Ty));
     Value buffCast =
         cudaq::cc::CastOp::create(rewriter, loc, ptrArrI1Ty, i1Buff);
-    rewriter.replaceOpWithNewOp<cudaq::cc::StdvecInitOp>(disc, stdvecI1Ty,
-                                                         buffCast, vecSize);
+    rewriter.replaceOpWithNewOp<cudaq::cc::SequenceInitOp>(disc, sequenceI1Ty,
+                                                           buffCast, vecSize);
     return success();
   }
 };
@@ -321,7 +321,7 @@ public:
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
     patterns.insert<MxRewrite, MyRewrite, MzRewrite, ResetRewrite,
-                    ExpandStdvecHandleDiscriminate>(ctx);
+                    ExpandSequenceHandleDiscriminate>(ctx);
     ConversionTarget target(*ctx);
     target.addLegalDialect<cudaq::quake::QuakeDialect, cudaq::cc::CCDialect,
                            arith::ArithDialect, LLVM::LLVMDialect>();
@@ -341,19 +341,19 @@ public:
     target.addDynamicallyLegalOp<cudaq::quake::DiscriminateOp>(
         [](cudaq::quake::DiscriminateOp d) {
           // Scalar discriminate is always legal.
-          auto stdvecTy =
-              dyn_cast<cudaq::cc::StdvecType>(d.getMeasurement().getType());
-          if (!stdvecTy)
+          auto sequenceTy =
+              dyn_cast<cudaq::cc::SequenceType>(d.getMeasurement().getType());
+          if (!sequenceTy)
             return true;
           // Vector discriminate of legacy `!quake.measure` is folded as
           // a side-effect of the measurement-op rewrite (step 4); leave
           // it legal here so the driver does not look for a standalone
           // pattern.
-          if (!isa<cudaq::cc::MeasureHandleType>(stdvecTy.getElementType()))
+          if (!isa<cudaq::cc::MeasureHandleType>(sequenceTy.getElementType()))
             return true;
           // Vector discriminate of `!cc.measure_handle` whose source is
           // a measurement op is similarly folded (step 4 again). Only
-          // the indirect case needs `ExpandStdvecHandleDiscriminate`.
+          // the indirect case needs `ExpandSequenceHandleDiscriminate`.
           return d.getMeasurement()
                      .getDefiningOp<cudaq::quake::MeasurementInterface>() !=
                  nullptr;

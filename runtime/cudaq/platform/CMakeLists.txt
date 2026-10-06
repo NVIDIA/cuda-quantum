@@ -8,7 +8,7 @@
 
 include(HandleLLVMOptions)
 add_subdirectory(default)
-if (OPENSSL_FOUND)
+if (CUDAQ_ENABLE_ORCA_BACKEND)
   add_subdirectory(orca)
 endif()
 if (CUDAQ_ENABLE_REST)

@@ -8,7 +8,8 @@
 
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
-#include "mlir/Transforms/GreedyPatternRewriteDriver.h"
+#include "llvm/ADT/MapVector.h"
+#include "mlir/IR/PatternMatch.h"
 #include "mlir/Transforms/Passes.h"
 
 namespace cudaq::opt {
@@ -21,69 +22,75 @@ namespace cudaq::opt {
 using namespace mlir;
 
 namespace {
-
-class CustomUnitaryPattern
-    : public OpRewritePattern<cudaq::quake::CustomUnitaryCallOp> {
-
-public:
-  using OpRewritePattern::OpRewritePattern;
-
-  LogicalResult matchAndRewrite(cudaq::quake::CustomUnitaryCallOp customOp,
-                                PatternRewriter &rewriter) const override {
-
-    // Check if the generator associated with custom operation is a function. If
-    // not, it may already have been replaced.
-    auto generator = customOp.getGenerator();
-
-    auto parentModule = customOp->getParentOfType<ModuleOp>();
-    auto funcOp = parentModule.lookupSymbol<func::FuncOp>(generator);
-    if (!funcOp)
-      return failure();
-
-    funcOp.setPrivate();
-
-    // The generator function returns a concrete matrix. If prior passes have
-    // run to constant fold and lift array values, the generator function will
-    // have address of the global variable which holds the concrete matrix.
-    StringRef concreteMatrix;
-
-    funcOp.walk([&](cudaq::cc::AddressOfOp addrOp) {
-      concreteMatrix = addrOp.getGlobalName();
-    });
-
-    if (concreteMatrix.empty()) {
-      return customOp.emitError(
-          "Constant matrix corresponding to custom operation's generator "
-          "function not found in the module.");
-    }
-    // Modify the custom operation to use the global variable instead of the
-    // generator function.
-    auto ccGlobalOp =
-        parentModule.lookupSymbol<cudaq::cc::GlobalOp>(concreteMatrix);
-
-    if (ccGlobalOp) {
-      rewriter.replaceOpWithNewOp<cudaq::quake::CustomUnitaryConstantOp>(
-          customOp,
-          FlatSymbolRefAttr::get(parentModule.getContext(), concreteMatrix),
-          customOp.getIsAdj(), customOp.getParameters(), customOp.getControls(),
-          customOp.getTargets(), customOp.getNegatedQubitControlsAttr());
-      return success();
-    }
-    return failure();
-  }
-};
-
 class GetConcreteMatrixPass
     : public cudaq::opt::impl::GetConcreteMatrixBase<GetConcreteMatrixPass> {
 public:
   using GetConcreteMatrixBase::GetConcreteMatrixBase;
 
   void runOnOperation() override {
-    auto *ctx = &getContext();
-    RewritePatternSet patterns(ctx);
-    patterns.insert<CustomUnitaryPattern>(ctx);
-    if (failed(applyPatternsGreedily(getOperation(), std::move(patterns))))
-      signalPassFailure();
+    auto module = getOperation();
+    // Collect all calls before walking any generator body. Replacing a call
+    // cannot create another candidate, so this snapshot is complete.
+    llvm::SmallMapVector<func::FuncOp,
+                         SmallVector<cudaq::quake::CustomUnitaryCallOp>, 4>
+        generatorWorklist;
+    module.walk<WalkOrder::PreOrder>(
+        [&](cudaq::quake::CustomUnitaryCallOp customOp) {
+          // Resolve the generator from the call's nearest module. This matters
+          // when the pass root contains nested modules with their own symbol
+          // tables.
+          auto parentModule = customOp->getParentOfType<ModuleOp>();
+          auto generator =
+              parentModule.lookupSymbol<func::FuncOp>(customOp.getGenerator());
+          if (!generator)
+            return;
+
+          generatorWorklist[generator].push_back(customOp);
+        });
+    if (generatorWorklist.empty())
+      return;
+
+    IRRewriter rewriter(&getContext());
+    for (auto &[generator, calls] : generatorWorklist) {
+      rewriter.modifyOpInPlace(generator, [&] { generator.setPrivate(); });
+      StringRef concreteMatrix;
+      SmallVector<cudaq::cc::AddressOfOp> addresses;
+      generator.walk([&](cudaq::cc::AddressOfOp address) {
+        concreteMatrix = address.getGlobalName();
+        addresses.push_back(address);
+      });
+
+      bool hasConvertedCall = false;
+      for (cudaq::quake::CustomUnitaryCallOp customOp : calls) {
+        if (concreteMatrix.empty()) {
+          customOp.emitError(
+              "Constant matrix corresponding to custom operation's generator "
+              "function not found in the module.");
+          continue;
+        }
+
+        auto parentModule = customOp->getParentOfType<ModuleOp>();
+        if (!parentModule.lookupSymbol<cudaq::cc::GlobalOp>(concreteMatrix))
+          continue;
+
+        rewriter.setInsertionPoint(customOp);
+        rewriter.replaceOpWithNewOp<cudaq::quake::CustomUnitaryConstantOp>(
+            customOp,
+            FlatSymbolRefAttr::get(parentModule.getContext(), concreteMatrix),
+            customOp.getIsAdj(), customOp.getParameters(),
+            customOp.getControls(), customOp.getTargets(),
+            customOp.getNegatedQubitControlsAttr());
+        hasConvertedCall = true;
+      }
+
+      // A generator may be shared by several calls. Wait until every call has
+      // been handled before removing matrix addresses that no longer have
+      // users.
+      if (hasConvertedCall)
+        for (cudaq::cc::AddressOfOp address : addresses)
+          if (address->use_empty())
+            rewriter.eraseOp(address);
+    }
   }
 };
 

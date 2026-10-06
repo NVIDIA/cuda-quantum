@@ -33,6 +33,7 @@
 #include "llvm/Support/ToolOutputFile.h"
 #include "llvm/Support/raw_ostream.h"
 #include "mlir/IR/BuiltinOps.h"
+#include "mlir/IR/Diagnostics.h"
 #include "mlir/Pass/Pass.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Transforms/Passes.h"
@@ -52,6 +53,11 @@ extern "C" const char *__lsan_default_suppressions() {
 using namespace llvm;
 
 static constexpr const char toolName[] = "cudaq-quake";
+static constexpr const char apiChangeNotice[] =
+    "The CUDA-Q `sample` and `observe` algorithmic primitives will change in "
+    "a future release. Existing code may require updates. See "
+    "https://nvidia.github.io/cuda-quantum/latest/using/migration/"
+    "upcoming_changes.html for details.";
 
 //===----------------------------------------------------------------------===//
 // Command line options.
@@ -68,16 +74,12 @@ static cl::opt<std::string> outputFilename("o",
 static cl::list<std::string>
     kernelNames("filter", cl::desc("Names of quantum kernels to convert."));
 
-static cl::opt<bool>
-    emitLLVM("emit-llvm-file",
-             cl::desc("Emit the LLVM IR for the C++ input to <input>.ll file."),
-             cl::init(false));
-
-static cl::opt<bool> llvmOnly(
-    "llvm-only",
-    cl::desc("Emit the LLVM IR for the C++ input to <input>.ll file and do not "
-             "emit the MLIR code. --emit-llvm-file has higher precedence."),
-    cl::init(false));
+static cl::opt<std::string> emitLLVMFile(
+    "emit-llvm-file",
+    cl::desc("Emit the LLVM IR for the C++ input. An optional filename may be "
+             "specified with --emit-llvm-file=<path>; otherwise writes to "
+             "<input-basename>.ll."),
+    cl::value_desc("filename"), cl::init(""), cl::ValueOptional);
 
 static cl::opt<bool>
     verifyMode("verify", cl::desc("Run in diagnostic verification mode."),
@@ -98,10 +100,6 @@ static cl::opt<bool> verboseClang("v",
 static cl::opt<bool> debugMode("g", cl::desc("Add -g to clang tool arguments."),
                                cl::init(false));
 
-static cl::opt<bool> dumpToStderr("llvm-to-stderr",
-                                  cl::desc("Echo the LLVM IR to stderr"),
-                                  cl::init(false));
-
 static cl::opt<std::string>
     resourceDir("resource-dir",
                 cl::desc("Specify the clang resource directory"), cl::init(""));
@@ -121,6 +119,31 @@ static cl::opt<std::string> stdCpp(
     "std",
     cl::desc("Specify the C++ standard (c++20, c++23). The default is c++20."),
     cl::init("c++20"));
+
+// Dependency-file generation. nvq++ compiles __qpu__ kernels through this tool
+// (cudaq-quake -> llc -> object merge) instead of a plain clang -c, so the
+// GNU-style -MD/-MT/-MF flags CMake/Ninja rely on for header tracking never
+// reach a clang driver. Rather than forward them (clang::tooling strips
+// dependency-file flags via getClangStripDependencyFileAdjuster()), the driver
+// translates them into these options, which are passed to ASTBridgeAction (via
+// its constructor) to drive clang's DependencyFileGenerator off the same
+// preprocessor pass this tool already runs. No extra object is produced.
+static cl::opt<std::string> dependencyFile(
+    "dependency-file",
+    cl::desc("Write Makefile-syntax header dependencies to this file (the -MF "
+             "target of the GNU-style dependency flags)."),
+    cl::value_desc("filename"), cl::init(""));
+
+static cl::list<std::string> dependencyTargets(
+    "dependency-target",
+    cl::desc("Target name(s) for the emitted dependency rule (the -MT value). "
+             "May be given multiple times; defaults to the -o output."));
+
+static cl::opt<bool> dependencySystemHeaders(
+    "dependency-system-headers",
+    cl::desc("Include system headers in the dependency file (-MD semantics). "
+             "When false, system headers are omitted (-MMD semantics)."),
+    cl::init(false));
 
 inline bool isStdinInput(StringRef str) { return str == "-"; }
 
@@ -206,12 +229,20 @@ public:
   using MangledKernelNamesMap = cudaq::ASTBridgeAction::MangledKernelNamesMap;
 
   CudaQAction(mlir::OwningOpRef<mlir::ModuleOp> &module,
-              MangledKernelNamesMap &kernelNames)
-      : mlirAction(module, kernelNames) {}
+              MangledKernelNamesMap &kernelNames,
+              const cudaq::ASTBridgeAction::DependencyFileOptions &depOpts)
+      : mlirAction(module, kernelNames, depOpts) {}
   virtual ~CudaQAction() = default;
 
   std::unique_ptr<clang::ASTConsumer>
   CreateASTConsumer(clang::CompilerInstance &ci, StringRef inFile) override {
+    // Force the classical LLVM IR to be written to the requested path. The
+    // clang tooling invocation strips/ignores a "-o" passed through its args,
+    // so set the frontend output file directly here before the base
+    // EmitLLVMAction computes its output stream. When empty, the base derives
+    // the name from the input file (<input-basename>.ll).
+    if (!emitLLVMFile.empty())
+      ci.getFrontendOpts().OutputFile = emitLLVMFile.getValue();
     auto llvmConsumer = this->Base::CreateASTConsumer(ci, inFile);
     auto mlirConsumer = mlirAction.CreateASTConsumer(ci, inFile);
     return std::make_unique<CudaQASTConsumer>(llvmConsumer, mlirConsumer);
@@ -221,35 +252,19 @@ private:
   cudaq::ASTBridgeAction mlirAction;
 };
 
-/// This is the front-end action to convert the C++ code to LLVM IR to a file.
-class InterceptCudaQAction : public clang::EmitLLVMAction {
-public:
-  using MangledKernelNamesMap = cudaq::ASTBridgeAction::MangledKernelNamesMap;
-
-  InterceptCudaQAction(mlir::OwningOpRef<mlir::ModuleOp> &,
-                       MangledKernelNamesMap &)
-      : clang::EmitLLVMAction{} {}
-  virtual ~InterceptCudaQAction() = default;
-
-  void EndSourceFileAction() override {
-    clang::EmitLLVMAction::EndSourceFileAction();
-    // Dump the IR to stderr if the command-line option was given.
-    if (dumpToStderr)
-      takeModule().get()->print(errs(), nullptr, false, true);
-  }
-};
 } // namespace
 
 template <typename ACTION>
 bool runTool(mlir::OwningOpRef<mlir::ModuleOp> &module,
              CudaQAction::MangledKernelNamesMap &mangledKernelNameMap,
              StringRef cplusplusCode, std::vector<std::string> &clArgs,
-             const std::string &inputFileName) {
+             const std::string &inputFileName,
+             const cudaq::ASTBridgeAction::DependencyFileOptions &depFileOpts) {
   assert(cplusplusCode.size() > 0);
   assert(clArgs.size() > 0);
   if (!clang::tooling::runToolOnCodeWithArgs(
-          std::make_unique<ACTION>(module, mangledKernelNameMap), cplusplusCode,
-          clArgs, inputFileName, toolName)) {
+          std::make_unique<ACTION>(module, mangledKernelNameMap, depFileOpts),
+          cplusplusCode, clArgs, inputFileName, toolName)) {
     errs() << "error: could not translate ";
     if (inputFilename == "-")
       errs() << "input";
@@ -314,6 +329,28 @@ int main(int argc, char **argv) {
   // Process the command-line options, including reading in a file.
   [[maybe_unused]] llvm::InitLLVM unused(argc, argv);
   cl::ParseCommandLineOptions(argc, argv, toolName);
+
+  cudaq::ASTBridgeAction::DependencyFileOptions depFileOpts;
+  if (!dependencyFile.empty()) {
+    depFileOpts.outputFile = dependencyFile;
+    depFileOpts.includeSystemHeaders = dependencySystemHeaders;
+    if (dependencyTargets.empty())
+      depFileOpts.targets.push_back(outputFilename);
+    else
+      depFileOpts.targets.assign(dependencyTargets.begin(),
+                                 dependencyTargets.end());
+    // The frontend runs through clang::tooling on an in-memory copy of the
+    // source mapped to a virtual (bare) name, so the dependency generator would
+    // record the main file under a non-existent relative path. Capture the real
+    // path here so that entry can be rewritten (see ASTBridge.cpp).
+    if (!isStdinInput(inputFilename)) {
+      SmallString<256> mainReal;
+      if (sys::fs::real_path(inputFilename, mainReal))
+        mainReal.assign(inputFilename);
+      depFileOpts.mainFileRealPath = std::string(mainReal);
+    }
+  }
+
   ErrorOr<std::unique_ptr<MemoryBuffer>> fileOrError =
       MemoryBuffer::getFileOrSTDIN(inputFilename);
   if (auto ec = fileOrError.getError()) {
@@ -333,7 +370,7 @@ int main(int argc, char **argv) {
   mlir::OwningOpRef<mlir::ModuleOp> module(moduleOp);
   // Register trivial diagnostic handler so that notes, warnings, and
   // remark messages are not elided by default.
-  context.getDiagEngine().registerHandler([](mlir::Diagnostic &diag) {
+  context.getDiagEngine().registerHandler([&context](mlir::Diagnostic &diag) {
     const char *severity = "";
     switch (diag.getSeverity()) {
     case mlir::DiagnosticSeverity::Note:
@@ -349,9 +386,11 @@ int main(int argc, char **argv) {
       severity = "error";
       break;
     }
-    llvm::errs() << diag.getLocation() << ':' << severity << ": " << diag.str()
-                 << '\n';
+    if (diag.getLocation() != mlir::Location(mlir::UnknownLoc::get(&context)))
+      llvm::errs() << diag.getLocation() << ':';
+    llvm::errs() << severity << ": " << diag.str() << '\n';
   });
+  mlir::emitWarning(mlir::UnknownLoc::get(&context), apiChangeNotice);
 
   // Process arguments.
   std::vector<std::string> clArgs = {"-std=" + stdCpp, "-resource-dir",
@@ -467,18 +506,17 @@ int main(int argc, char **argv) {
   // Set the mangled kernel names map.
   CudaQAction::MangledKernelNamesMap mangledKernelNameMap;
 
+  const bool emitLLVM = emitLLVMFile.getNumOccurrences() > 0;
+
   std::string inputFile = isStdinInput(inputFilename)
                               ? std::string("input.cc")
                               : sys::path::filename(inputFilename).str();
-  if (auto rc = emitLLVM
-                    ? runTool<CudaQAction>(module, mangledKernelNameMap,
-                                           cplusplusCode, clArgs, inputFile)
-                    : (llvmOnly ? runTool<InterceptCudaQAction>(
-                                      module, mangledKernelNameMap,
-                                      cplusplusCode, clArgs, inputFile)
-                                : runTool<cudaq::ASTBridgeAction>(
-                                      module, mangledKernelNameMap,
-                                      cplusplusCode, clArgs, inputFile)))
+  if (auto rc = emitLLVM ? runTool<CudaQAction>(module, mangledKernelNameMap,
+                                                cplusplusCode, clArgs,
+                                                inputFile, depFileOpts)
+                         : runTool<cudaq::ASTBridgeAction>(
+                               module, mangledKernelNameMap, cplusplusCode,
+                               clArgs, inputFile, depFileOpts))
     return rc;
 
   // Success! Dump the IR and exit.

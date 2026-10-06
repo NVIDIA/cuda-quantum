@@ -1,0 +1,79 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --canonicalize %s | FileCheck %s
+
+// Flatten a concat whose single operand is itself a concat: the outer concat
+// should dissolve and its inner concat's args are promoted up.
+
+func.func @flatten_simple(%a : !quake.ref, %b : !quake.ref,
+                          %c : !quake.ref) -> !quake.veq<3> {
+  %inner = quake.concat %a, %b : (!quake.ref, !quake.ref) -> !quake.veq<2>
+  %outer = quake.concat %inner, %c : (!quake.veq<2>, !quake.ref) -> !quake.veq<3>
+  return %outer : !quake.veq<3>
+}
+
+// CHECK-LABEL: func.func @flatten_simple(
+// CHECK-SAME:      %[[A:.*]]: !quake.ref, %[[B:.*]]: !quake.ref, %[[C:.*]]: !quake.ref)
+// CHECK:         %[[R:.*]] = quake.concat %[[A]], %[[B]], %[[C]]
+// CHECK-SAME:        (!quake.ref, !quake.ref, !quake.ref) -> !quake.veq<3>
+// CHECK-NOT:     quake.concat
+// CHECK:         return %[[R]]
+
+// ---------------------------------------------------------------------------
+// Flatten where the inner concat is in the middle.
+
+func.func @flatten_middle(%x : !quake.ref, %a : !quake.ref, %b : !quake.ref,
+                          %y : !quake.ref) -> !quake.veq<4> {
+  %inner = quake.concat %a, %b : (!quake.ref, !quake.ref) -> !quake.veq<2>
+  %outer = quake.concat %x, %inner, %y : (!quake.ref, !quake.veq<2>, !quake.ref) -> !quake.veq<4>
+  return %outer : !quake.veq<4>
+}
+
+// CHECK-LABEL: func.func @flatten_middle(
+// CHECK-SAME:    %[[X:.*]]: !quake.ref, %[[A:.*]]: !quake.ref, %[[B:.*]]: !quake.ref, %[[Y:.*]]: !quake.ref)
+// CHECK:         %[[R:.*]] = quake.concat %[[X]], %[[A]], %[[B]], %[[Y]]
+// CHECK-SAME:      (!quake.ref, !quake.ref, !quake.ref, !quake.ref) -> !quake.veq<4>
+// CHECK-NOT:     quake.concat
+// CHECK:         return %[[R]]
+
+// ---------------------------------------------------------------------------
+// Multi-level tree: two inner concats both get flattened.
+
+func.func @flatten_multi(%a : !quake.ref, %b : !quake.ref,
+                         %c : !quake.ref, %d : !quake.ref) -> !quake.veq<4> {
+  %left  = quake.concat %a, %b : (!quake.ref, !quake.ref) -> !quake.veq<2>
+  %right = quake.concat %c, %d : (!quake.ref, !quake.ref) -> !quake.veq<2>
+  %outer = quake.concat %left, %right : (!quake.veq<2>, !quake.veq<2>) -> !quake.veq<4>
+  return %outer : !quake.veq<4>
+}
+
+// CHECK-LABEL: func.func @flatten_multi(
+// CHECK-SAME:      %[[A:.*]]: !quake.ref, %[[B:.*]]: !quake.ref, %[[C:.*]]: !quake.ref, %[[D:.*]]: !quake.ref)
+// CHECK:         %[[R:.*]] = quake.concat %[[A]], %[[B]], %[[C]], %[[D]]
+// CHECK-SAME:        (!quake.ref, !quake.ref, !quake.ref, !quake.ref) -> !quake.veq<4>
+// CHECK-NOT:     quake.concat
+// CHECK:         return %[[R]]
+
+// ---------------------------------------------------------------------------
+// Inner concat with unknown size: the outer concat still absorbs the inner
+// concat's args (ref and unknown-size veq), producing a single flat concat.
+
+func.func @flatten_unknown_inner(%a : !quake.ref, %v : !quake.veq<?>,
+                                  %b : !quake.ref) -> !quake.veq<?> {
+  %inner = quake.concat %a, %v : (!quake.ref, !quake.veq<?>) -> !quake.veq<?>
+  %outer = quake.concat %inner, %b : (!quake.veq<?>, !quake.ref) -> !quake.veq<?>
+  return %outer : !quake.veq<?>
+}
+
+// CHECK-LABEL: func.func @flatten_unknown_inner(
+// CHECK-SAME:    %[[A:.*]]: !quake.ref, %[[V:.*]]: !quake.veq<?>, %[[B:.*]]: !quake.ref)
+// CHECK:         %[[R:.*]] = quake.concat %[[A]], %[[V]], %[[B]]
+// CHECK-SAME:        (!quake.ref, !quake.veq<?>, !quake.ref) -> !quake.veq<?>
+// CHECK-NOT:     quake.concat
+// CHECK:         return %[[R]]

@@ -9,19 +9,76 @@
 # ==============================================================================
 # CPU RoCE transport test binaries + helpers (Phase 1)
 #
-# Test artifacts that consume cudaq-realtime-cpu-transport:
-#   - hsb_bridge_cpu              GPU-less bridge binary; mirrors hololink_bridge
+# Test artifacts that consume cudaq-realtime-cpu-roce-transport:
+#   - hsb_bridge_cpu              GPU-less bridge binary; mirrors gpu_roce_bridge
 #                                 but uses CpuRoceTransceiver +
 #                                 CUDAQ_DISPATCH_HOST_CALL.
 #   - hsb_test_cpu.sh             Orchestration script (built artifact; copy at
 #                                 install time).
 #
-# All gated on TARGET cudaq-realtime-cpu-transport so this dir is silently
-# skipped on hosts without libibverbs.
+# The RoCE artifacts above are gated on TARGET cudaq-realtime-cpu-roce-transport
+# (skipped when neither selected backend is available). The UDP tests below run
+# BEFORE that gate -- they depend only on the always-built UDP target, so
+# RoCE-only setup must stay below the return() guard.
 # ==============================================================================
 
-if (NOT TARGET cudaq-realtime-cpu-transport)
+# ----------------------------------------------------------------------------
+# test_udp_transceiver: loopback tests for the UDP ring transceiver. Pure CPU
+# (no CUDA, no ibverbs), so it builds and runs everywhere. Gated only on the
+# always-built UDP target.
+# ----------------------------------------------------------------------------
+if (TARGET cudaq-realtime-udp-transport)
+  add_executable(test_udp_transceiver test_udp_transceiver.cpp)
+
+  target_include_directories(test_udp_transceiver PRIVATE
+    ${CUDAQ_REALTIME_INCLUDE_DIR}
+  )
+
+  target_link_libraries(test_udp_transceiver PRIVATE
+    GTest::gtest_main
+    cudaq-realtime-udp-transport
+    Threads::Threads
+  )
+
+  gtest_discover_tests(test_udp_transceiver
+    TEST_PREFIX "test_udp_transceiver."
+  )
+  message(STATUS "  - test_udp_transceiver (UDP loopback ring transceiver)")
+endif()
+
+if (NOT TARGET cudaq-realtime-cpu-roce-transport)
   return()
+endif()
+
+if(CUDAQ_REALTIME_CPU_ROCE_USE_HOLOLINK)
+  add_executable(test_cpu_roce_hololink_wrapper
+    test_cpu_roce_hololink_wrapper.cpp)
+  target_include_directories(test_cpu_roce_hololink_wrapper PRIVATE
+    ${CUDAQ_REALTIME_INCLUDE_DIR})
+  target_link_libraries(test_cpu_roce_hololink_wrapper PRIVATE
+    GTest::gtest_main
+    cudaq-realtime-cpu-roce-transport)
+  cudaq_gtest_discover_tests(test_cpu_roce_hololink_wrapper
+    TEST_PREFIX "test_cpu_roce_hololink_wrapper.")
+  message(STATUS
+    "  - test_cpu_roce_hololink_wrapper (Hololink adapter contract)")
+else()
+  # Unified (thread-free) mode is legacy-backend only.  The contract cases run
+  # anywhere; the service cases probe the RoCE transport and skip (or fail,
+  # under CUDAQ_REALTIME_REQUIRE_ROCE_TESTS) when it is unavailable.
+  add_executable(test_cpu_roce_transceiver test_cpu_roce_transceiver.cpp)
+  target_include_directories(test_cpu_roce_transceiver PRIVATE
+    ${CUDAQ_REALTIME_INCLUDE_DIR})
+  target_compile_definitions(test_cpu_roce_transceiver PRIVATE
+    CUDAQ_REALTIME_REQUIRE_ROCE_TESTS=$<BOOL:${CUDAQ_REALTIME_REQUIRE_ROCE_TESTS}>)
+  target_link_libraries(test_cpu_roce_transceiver PRIVATE
+    GTest::gtest_main
+    cudaq-realtime-cpu-roce-transport
+    Threads::Threads)
+  cudaq_gtest_discover_tests(test_cpu_roce_transceiver
+    TEST_PREFIX "test_cpu_roce_transceiver.")
+  message(STATUS
+    "  - test_cpu_roce_transceiver (unified-mode hooks; service cases need RDMA)")
 endif()
 
 # CUDA include path is needed because cudaq_realtime.h transitively includes
@@ -43,8 +100,8 @@ target_include_directories(hsb_bridge_cpu PRIVATE
 )
 
 target_link_libraries(hsb_bridge_cpu PRIVATE
-  cudaq-realtime-cpu-transport     # CpuRoceTransceiver + C wrapper
-  cudaq-realtime-host-dispatch     # cudaq_host_dispatcher_loop (HOST_CALL path)
+  cudaq-realtime-cpu-roce-transport     # CpuRoceTransceiver + C wrapper
+  cudaq-realtime-host-dispatch     # cudaq_host_ring_dispatch_loop (HOST_CALL path)
   Threads::Threads
 )
 

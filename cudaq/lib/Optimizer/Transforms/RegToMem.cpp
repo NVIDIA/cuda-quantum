@@ -194,6 +194,13 @@ private:
             collectLinearValues(ArrayRef<Value>{reset.getTargets()});
         for (auto [t, r] : llvm::zip(wireTargs, reset.getResults()))
           insertToEqClass(t, r);
+      } else if (auto logOut = dyn_cast<cudaq::quake::EvinceOp>(op)) {
+        // Wire inputs and outputs are the same qubit; union them so that ops
+        // downstream of the pass-through can still resolve their alloca id.
+        unsigned resultIdx = 0;
+        for (Value arg : logOut.getArgs())
+          if (cudaq::quake::isLinearType(arg.getType()))
+            insertToEqClass(arg, logOut.getOuts()[resultIdx++]);
       } else if (auto sink = dyn_cast<cudaq::quake::SinkOp>(op)) {
         insertToEqClass(sink.getTarget());
       } else if (auto ret = dyn_cast<cudaq::quake::ReturnWireOp>(op)) {
@@ -289,10 +296,12 @@ public:
                                 PatternRewriter &rewriter) const override {
     auto loc = op.getLoc();
     auto findLookupValue = [&](Value v) -> Value {
-      if (auto id = analysis.idFromValue(v))
-        return allocas[*id];
+      // Check whether `v` is a quake.unwrap first, to avoid address clashes in
+      // `analysis`
       if (auto u = v.template getDefiningOp<cudaq::quake::UnwrapOp>())
         return u.getRefValue();
+      if (auto id = analysis.idFromValue(v))
+        return allocas[*id];
       return v;
     };
     auto collect = [&](auto values) {
@@ -336,13 +345,21 @@ public:
       eraseWrapUsers(op);
       OP::create(rewriter, loc, op.getIsAdj(), op.getParameters(), ctrls, targs,
                  op.getNegatedQubitControlsAttr());
+      // Recreate results only for operands that were wires. Non-wire controls
+      // and targets are already in memory form and have no result to replace.
       SmallVector<Value> unwraps;
-      for (auto t : ctrls)
+      for (auto [original, t] : llvm::zip(op.getControls(), ctrls)) {
+        if (!isa<cudaq::quake::WireType>(original.getType()))
+          continue;
         unwraps.push_back(
             cudaq::quake::UnwrapOp::create(rewriter, loc, wireTy, t));
-      for (auto t : targs)
+      }
+      for (auto [original, t] : llvm::zip(op.getTargets(), targs)) {
+        if (!isa<cudaq::quake::WireType>(original.getType()))
+          continue;
         unwraps.push_back(
             cudaq::quake::UnwrapOp::create(rewriter, loc, wireTy, t));
+      }
       rewriter.replaceOp(op, unwraps);
     }
     return success();
@@ -490,6 +507,41 @@ struct EraseWiresIf : public OpRewritePattern<cudaq::cc::IfOp> {
   ArrayRef<Value> allocas;
 };
 
+/// Convert a wire-form quake.evince back to ref form. Each wire result is
+/// replaced by its wire input (pass-through), and the op is rebuilt with the
+/// corresponding alloca refs so it is legal after regtomem.
+class CollapseEvinceWires : public OpRewritePattern<cudaq::quake::EvinceOp> {
+public:
+  explicit CollapseEvinceWires(MLIRContext *ctx, RegToMemAnalysis &analysis,
+                               ArrayRef<Value> allocas)
+      : OpRewritePattern(ctx), analysis(analysis), allocas(allocas) {}
+
+  LogicalResult matchAndRewrite(cudaq::quake::EvinceOp op,
+                                PatternRewriter &rewriter) const override {
+    SmallVector<Value> newArgs;
+    unsigned resultIdx = 0;
+    for (Value arg : op.getArgs()) {
+      if (cudaq::quake::isLinearType(arg.getType())) {
+        // RAUW the wire result with its input (pass-through) so users of the
+        // result keep a valid value after we erase this op.
+        op.getOuts()[resultIdx++].replaceAllUsesWith(arg);
+        if (auto id = analysis.idFromValue(arg))
+          newArgs.push_back(allocas[*id]);
+      } else {
+        newArgs.push_back(arg);
+      }
+    }
+    auto newOp = cudaq::quake::EvinceOp::create(rewriter, op.getLoc(), newArgs);
+    for (auto namedAttr : op->getAttrs())
+      newOp->setAttr(namedAttr.getName(), namedAttr.getValue());
+    rewriter.eraseOp(op);
+    return success();
+  }
+
+  RegToMemAnalysis &analysis;
+  ArrayRef<Value> allocas;
+};
+
 #define NOWRAP(OP) CollapseWrappers<cudaq::quake::OP>
 #define NOWRAP_QUANTUM_OPS QUANTUM_OPS(NOWRAP)
 
@@ -559,14 +611,14 @@ public:
     RewritePatternSet patterns(ctx);
     patterns.insert<NOWRAP_QUANTUM_OPS, CollapseWrappers<cudaq::quake::ResetOp>,
                     CollapseWrappers<cudaq::quake::ReturnWireOp>,
-                    CollapseWrappers<cudaq::quake::SinkOp>, EraseWiresIf>(
-        ctx, analysis, allocas);
+                    CollapseWrappers<cudaq::quake::SinkOp>, EraseWiresIf,
+                    CollapseEvinceWires>(ctx, analysis, allocas);
     patterns.insert<EraseWiresBranch, EraseWiresCondBranch>(ctx, fixupBlocks);
     ConversionTarget target(*ctx);
-    target
-        .addDynamicallyLegalOp<RAW_QUANTUM_OPS, cudaq::quake::ResetOp,
-                               cf::BranchOp, cf::CondBranchOp, cudaq::cc::IfOp>(
-            [&](Operation *op) { return hasNoWires(op); });
+    target.addDynamicallyLegalOp<RAW_QUANTUM_OPS, cudaq::quake::ResetOp,
+                                 cf::BranchOp, cf::CondBranchOp,
+                                 cudaq::cc::IfOp, cudaq::quake::EvinceOp>(
+        [&](Operation *op) { return hasNoWires(op); });
     target.addIllegalOp<cudaq::quake::SinkOp, cudaq::quake::ReturnWireOp>();
     target.addLegalOp<cudaq::quake::UnwrapOp, cudaq::quake::DeallocOp>();
     target.addLegalDialect<cudaq::cc::CCDialect>();

@@ -40,21 +40,21 @@ class QuakeValue(object):
 
     def size(self):
         """
-        Return the size of `self` (:class:`QuakeValue`), if it is of the type `stdvec` or `veq`.
+        Return the size of `self` (:class:`QuakeValue`), if it is of the type `sequence` or `veq`.
 
         Raises:
-	        RuntimeError: if the underlying :class:`QuakeValue` type is not `stdvec` or `veq`.
+	        RuntimeError: if the underlying :class:`QuakeValue` type is not `sequence` or `veq`.
 
         """
         with self.ctx, Location.unknown(), self.pyKernel.insertPoint:
-            # assert this is a `stdvec` type or a `veq` type
+            # assert this is a `sequence` type or a `veq` type
             # See if we know the size of the `veq`
-            # return `stdvecsizeop` or `veqsizeop`
+            # return `sequence_size` op or `veqsizeop`
             type = self.mlirValue.type
             if not quake.VeqType.isinstance(
-                    type) and not cc.StdvecType.isinstance(type):
+                    type) and not cc.SequenceType.isinstance(type):
                 raise RuntimeError(
-                    "QuakeValue.size only valid for veq and stdvec types.")
+                    "QuakeValue.size only valid for veq and sequence types.")
 
             if quake.VeqType.isinstance(type):
                 size = quake.VeqType.getSize(type)
@@ -64,9 +64,9 @@ class QuakeValue(object):
                     quake.VeqSizeOp(self.intType, self.mlirValue).result,
                     self.pyKernel)
 
-            # Must be a `stdvec` type
+            # Must be a `sequence` type
             return QuakeValue(
-                cc.StdvecSizeOp(self.intType, self.mlirValue).result,
+                cc.SequenceSizeOp(self.intType, self.mlirValue).result,
                 self.pyKernel)
 
     def __intToFloat(self, intVal):
@@ -99,18 +99,23 @@ class QuakeValue(object):
             otherVal = self.__intToVal(other)
             mulOpStr = '{}IOp'.format(opStr)
             # Could be that this value is a float, in which
-            # case we should cast the other to an int
+            # case we should cast the other to a float.
             if F64Type.isinstance(thisVal.type):
                 otherVal = self.__intToFloat(otherVal)
                 mulOpStr = '{}FOp'.format(opStr)
         else:
             # Here we know that the other value is a QuakeValue
             otherVal = other.mlirValue
-            mulOpStr = '{}FOp'.format(opStr) if F64Type.isinstance(
-                thisVal.type) else '{}IOp'.format(opStr)
-            if mulOpStr == '{}FOp'.format(opStr) and IntegerType.isinstance(
-                    otherVal.type):
-                otherVal = arith.SIToFPOp(self.floatType, otherVal).result
+            thisIsFloat = F64Type.isinstance(thisVal.type)
+            otherIsFloat = F64Type.isinstance(otherVal.type)
+            if thisIsFloat or otherIsFloat:
+                mulOpStr = '{}FOp'.format(opStr)
+                if IntegerType.isinstance(thisVal.type):
+                    thisVal = self.__intToFloat(thisVal)
+                if IntegerType.isinstance(otherVal.type):
+                    otherVal = self.__intToFloat(otherVal)
+            else:
+                mulOpStr = '{}IOp'.format(opStr)
 
         return thisVal, otherVal, mulOpStr
 
@@ -323,11 +328,11 @@ class QuakeValue(object):
 	        RuntimeError: if `self` is a non-subscriptable :class:`QuakeValue`.
         """
         with self.ctx, Location.unknown(), self.pyKernel.insertPoint:
-            if cc.StdvecType.isinstance(self.mlirValue.type):
-                eleTy = cc.StdvecType.getElementType(self.mlirValue.type)
+            if cc.SequenceType.isinstance(self.mlirValue.type):
+                eleTy = cc.SequenceType.getElementType(self.mlirValue.type)
                 arrTy = cc.ArrayType.get(eleTy)
                 arrPtrTy = cc.PointerType.get(arrTy)
-                vecPtr = cc.StdvecDataOp(arrPtrTy, self.mlirValue).result
+                vecPtr = cc.SequenceDataOp(arrPtrTy, self.mlirValue).result
                 elePtrTy = cc.PointerType.get(eleTy)
                 eleAddr = None
                 i64Ty = IntegerType.get_signless(64)

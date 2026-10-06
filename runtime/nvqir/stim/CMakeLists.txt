@@ -74,6 +74,5 @@ add_custom_command(
 set_target_properties(${LIBRARY_NAME}
     PROPERTIES INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:${LLVM_BINARY_DIR}/lib")
 
-install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
-
-add_target_config(stim)
+install(TARGETS ${LIBRARY_NAME} DESTINATION lib
+        COMPONENT Runtime)

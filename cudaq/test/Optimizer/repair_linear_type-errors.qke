@@ -1,0 +1,23 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --repair-linear-type --split-input-file --verify-diagnostics %s
+
+// A wire that is a control operand and the target operand of the *same*
+// operation cannot be repaired to a single use: the wrap/unwrap indirection
+// only resolves uses split across distinct operations or control-flow edges,
+// and blindly attempting it here would just recreate the identical
+// double-use one level down through the new unwrap, looping forever instead
+// of converging. This must be diagnosed and rejected instead.
+func.func @self_control_is_target() -> !quake.wire {
+  // expected-error@+1 {{linear-typed result is used more than once by the same operation and cannot be repaired to a single use}}
+  %0 = quake.null_wire
+  %1:2 = quake.x [%0] %0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.sink %1#0 : !quake.wire
+  return %1#1 : !quake.wire
+}

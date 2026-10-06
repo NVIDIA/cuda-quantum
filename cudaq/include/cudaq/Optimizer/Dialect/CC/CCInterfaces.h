@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "cudaq/Optimizer/Dialect/Common/InlinerInterface.h"
+#include "cudaq/Optimizer/Dialect/InlinerInterface.h"
 
 using CCInlinerInterface = cudaq::EnableInlinerInterface;
 

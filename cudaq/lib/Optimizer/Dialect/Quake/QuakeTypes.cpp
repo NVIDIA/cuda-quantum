@@ -11,6 +11,7 @@
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/DialectImplementation.h"
+#include <limits>
 
 using namespace mlir;
 
@@ -20,6 +21,40 @@ using namespace mlir;
 
 #define GET_TYPEDEF_CLASSES
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.cpp.inc"
+
+static std::optional<cudaq::quake::Pauli> symbolizePauli(char value) {
+  switch (value) {
+  case 'I':
+    return cudaq::quake::Pauli::I;
+  case 'X':
+    return cudaq::quake::Pauli::X;
+  case 'Y':
+    return cudaq::quake::Pauli::Y;
+  case 'Z':
+    return cudaq::quake::Pauli::Z;
+  default:
+    return std::nullopt;
+  }
+}
+
+std::optional<cudaq::quake::PauliWord>
+cudaq::quake::symbolizePauliWord(llvm::StringRef value) {
+  cudaq::quake::PauliWord result;
+  result.reserve(value.size());
+  for (char character : value) {
+    auto pauli = symbolizePauli(character);
+    if (!pauli)
+      return std::nullopt;
+    result.push_back(*pauli);
+  }
+  return result;
+}
+
+static std::optional<std::size_t> checkedAdd(std::size_t lhs, std::size_t rhs) {
+  if (std::numeric_limits<std::size_t>::max() - lhs < rhs)
+    return std::nullopt;
+  return lhs + rhs;
+}
 
 //===----------------------------------------------------------------------===//
 // Veq's custom parser and pretty printing.
@@ -89,23 +124,7 @@ bool cudaq::quake::StruqType::hasSpecifiedSize() const {
 }
 
 std::optional<std::size_t> cudaq::quake::StruqType::getArity() const {
-  if (getMembers().empty())
-    return {0};
-  std::size_t res = 0;
-  for (auto ty : getMembers()) {
-    if (ty == RefType::get(getContext())) {
-      res++;
-    } else if (auto veqTy = llvm::dyn_cast<VeqType>(ty)) {
-      if (veqTy.hasSpecifiedSize())
-        res += veqTy.getSize();
-      else
-        return std::nullopt;
-    } else {
-      // NB: This is a bug. Should not have anything but Ref and Veq types.
-      return std::nullopt;
-    }
-  }
-  return {res};
+  return getQubitCount(*this);
 }
 
 void cudaq::quake::StruqType::print(AsmPrinter &printer) const {
@@ -118,42 +137,51 @@ void cudaq::quake::StruqType::print(AsmPrinter &printer) const {
 
 //===----------------------------------------------------------------------===//
 
-// This recursive function returns true if and only if \p ty is a quake
-// type in the set \e R, `{ ref, veq, struq }`, (loosely known as "reference"
-// types) and the number of qubits is a compile-time known constant. This
-// function returns false for any type not in the set \e R or if the composition
-// of types contains a `veq` of unspecified size.
-static bool isConstQuantumBits(Type ty) {
-  if (isa<cudaq::quake::RefType>(ty))
-    return true;
-  if (auto t = dyn_cast<cudaq::quake::StruqType>(ty)) {
-    for (auto m : t.getMembers())
-      if (!isConstQuantumBits(m))
-        return false;
-    return true;
-  }
-  if (auto t = dyn_cast<cudaq::quake::VeqType>(ty))
-    if (t.hasSpecifiedSize())
-      return true;
-  return false;
+bool cudaq::quake::isConstantQuantumRefType(Type ty) {
+  if (!isQuantumReferenceType(ty))
+    return false;
+  return getQubitCount(ty).has_value();
 }
 
-bool cudaq::quake::isConstantQuantumRefType(Type ty) {
-  return isConstQuantumBits(ty);
+std::optional<std::size_t> cudaq::quake::getQubitCount(Type ty) {
+  assert(isQuantumType(ty) && "expected a quantum type");
+  if (isa<RefType, WireType, ControlType>(ty))
+    return 1;
+  if (auto veqTy = dyn_cast<VeqType>(ty)) {
+    if (!veqTy.hasSpecifiedSize())
+      return std::nullopt;
+    return veqTy.getSize();
+  }
+  if (auto cableTy = dyn_cast<CableType>(ty))
+    return cableTy.getSize();
+  auto struqTy = cast<StruqType>(ty);
+  std::size_t count = 0;
+  for (auto member : struqTy.getMembers()) {
+    if (!isa<RefType, VeqType>(member))
+      return std::nullopt;
+    auto memberCount = getQubitCount(member);
+    if (!memberCount)
+      return std::nullopt;
+    auto updatedCount = checkedAdd(count, *memberCount);
+    if (!updatedCount)
+      return std::nullopt;
+    count = *updatedCount;
+  }
+  return count;
 }
 
 std::size_t cudaq::quake::getAllocationSize(Type ty) {
-  if (isa<cudaq::quake::RefType>(ty))
-    return 1;
-  if (auto stq = dyn_cast<cudaq::quake::StruqType>(ty)) {
-    std::size_t size = 0;
-    for (auto m : stq.getMembers())
-      size += getAllocationSize(m);
-    return size;
-  }
-  auto veq = cast<cudaq::quake::VeqType>(ty);
-  assert(veq.hasSpecifiedSize() && "veq type must have constant size");
-  return veq.getSize();
+  assert(isQuantumReferenceType(ty) && "expected a quantum reference type");
+  auto count = getQubitCount(ty);
+  assert(count && "quantum reference type must have constant size");
+  return *count;
+}
+
+std::size_t cudaq::quake::getWireCount(Type ty) {
+  assert(isQuantumValueType(ty) && "expected a quantum value type");
+  auto count = getQubitCount(ty);
+  assert(count && "quantum value type must have constant size");
+  return *count;
 }
 
 //===----------------------------------------------------------------------===//

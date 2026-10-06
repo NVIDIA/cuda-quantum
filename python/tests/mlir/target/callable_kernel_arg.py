@@ -12,6 +12,8 @@
 import cudaq, numpy
 from typing import Callable
 
+cudaq.parse_args()
+
 
 @cudaq.kernel
 def bar(q: cudaq.qubit):

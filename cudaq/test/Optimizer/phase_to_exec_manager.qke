@@ -1,0 +1,38 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt -lower-quake -canonicalize %s \
+// RUN:   | FileCheck --implicit-check-not=quake.phase %s
+
+func.func @phase_to_exec_manager() {
+  %theta = arith.constant 5.000000e-01 : f64
+  %positive = quake.alloca !quake.ref
+  %negative = quake.alloca !quake.ref
+  %anchor = quake.alloca !quake.ref
+  quake.phase (%theta) [%positive, %negative neg [false, true]] %anchor
+      : (f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+  quake.dealloc %anchor : !quake.ref
+  quake.dealloc %negative : !quake.ref
+  quake.dealloc %positive : !quake.ref
+  return
+}
+
+// CHECK-LABEL: func.func @phase_to_exec_manager()
+// CHECK: %[[ZERO:[a-zA-Z0-9_.$-]+]] = arith.constant 0 : i64
+// CHECK: %[[ONE:[a-zA-Z0-9_.$-]+]] = arith.constant 1 : i64
+// CHECK: %[[X0_ADDR:[a-zA-Z0-9_.$-]+]] = cc.address_of @[[X_GLOBAL:[a-zA-Z0-9_.$-]+]]
+// CHECK: %[[X0_NAME:[a-zA-Z0-9_.$-]+]] = cc.cast %[[X0_ADDR]]
+// CHECK: call @__nvqpp__cudaq_em_apply(%[[X0_NAME]], %[[ZERO]],
+// CHECK: %[[R1_ADDR:[a-zA-Z0-9_.$-]+]] = cc.address_of @[[R1_GLOBAL:[a-zA-Z0-9_.$-]+]]
+// CHECK: %[[R1_NAME:[a-zA-Z0-9_.$-]+]] = cc.cast %[[R1_ADDR]]
+// CHECK: call @__nvqpp__cudaq_em_apply(%[[R1_NAME]], %[[ONE]],
+// CHECK: %[[X1_ADDR:[a-zA-Z0-9_.$-]+]] = cc.address_of @[[X_GLOBAL]]
+// CHECK: %[[X1_NAME:[a-zA-Z0-9_.$-]+]] = cc.cast %[[X1_ADDR]]
+// CHECK: call @__nvqpp__cudaq_em_apply(%[[X1_NAME]], %[[ZERO]],
+// CHECK: llvm.mlir.global private constant @[[X_GLOBAL]]("x\00")
+// CHECK: llvm.mlir.global private constant @[[R1_GLOBAL]]("r1\00")

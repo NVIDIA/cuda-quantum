@@ -26,6 +26,8 @@ DEFAULT_DEDUPLICATION_ID = "cudaq-test-scaleway"
 
 from utils.mock_qpu.scaleway import startServer
 
+pytestmark = pytest.mark.xdist_group("scaleway_mock")
+
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_scaleway():

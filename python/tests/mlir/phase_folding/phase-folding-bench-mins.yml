@@ -12,5 +12,5 @@ description: "Phase folding optimization pass for compiler benchmarking/testing 
 config:
   nvqir-simulation-backend: qpp
   # Phase folding pass (zero minimum block length and Rz weight thresholds)
-  jit-mid-level-pipeline: "phase-folding-pipeline{min-length=0 min-rz-weight=0}"
+  jit-mid-level-pipeline: "func.func(factor-quantum-alloc,canonicalize,cse,dqe,memtoreg{quantum=1},phase-folding{min-length=0 min-rz-weight=0},canonicalize,cse,regtomem,combine-quantum-alloc)"
   library-mode: false

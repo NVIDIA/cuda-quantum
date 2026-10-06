@@ -1,0 +1,24 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// Normal graph selection uses the exact R1-to-PhasedRx rewrite. PhaseOp is an
+// intrinsically legal intermediate and is not named in the target basis.
+// RUN: cudaq-opt -pass-pipeline='builtin.module(basis-conversion{basis=phased_rx(1)})' %s | FileCheck %s
+// RUN: cudaq-opt -pass-pipeline='builtin.module(basis-conversion{basis=phased_rx(1)})' %s | CircuitCheck %s
+
+func.func @controlled(%control: !quake.ref, %target: !quake.ref) {
+  %theta = arith.constant 9.870000e-01 : f64
+  quake.r1 (%theta) [%control neg [true]] %target
+      : (f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @controlled
+// CHECK-COUNT-3: quake.phased_rx {{.*}} neg [true]
+// CHECK: quake.phase {{.*}} neg [true]
+// CHECK-NOT: quake.r1

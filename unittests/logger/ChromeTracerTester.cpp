@@ -57,6 +57,7 @@ TEST(ChromeTracer, WritesChromeEventFormat) {
   nlohmann::json doc = loadTrace(path);
   ASSERT_TRUE(doc.contains("traceEvents"));
   EXPECT_EQ(doc.value("displayTimeUnit", ""), "ms");
+  EXPECT_EQ(doc["otherData"].value("cudaq_trace_version", 0), 1);
 
   const auto &events = doc["traceEvents"];
   ASSERT_EQ(events.size(), 1u);

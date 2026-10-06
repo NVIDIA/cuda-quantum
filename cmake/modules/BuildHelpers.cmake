@@ -47,35 +47,6 @@ function(add_openmp_interface_definitions TARGET_NAME)
     endif()
 endfunction()
 
-# macOS Two-Level Namespace Workaround: Force-load LLVM CodeGen libraries.
-#
-# Problem: macOS uses two-level namespace linking where each shared library
-# has its own copy of static data. LLVM's TargetRegistry uses static initializers
-# to register targets (X86, AArch64, etc.) into a global registry. Without
-# force-loading, these registrations happen in the wrong library's copy of
-# the registry, causing "target not found" errors during JIT compilation.
-#
-# Solution: -force_load ensures all symbols from these archives are included,
-# triggering their static initializers in the correct library context.
-function(add_lib_loading_macos_workaround TARGET_NAME NATIVE_TARGET_LIBS)
-    if(APPLE)
-        target_link_libraries(${TARGET_NAME} PRIVATE LLVMCodeGen)
-        target_link_options(${TARGET_NAME} PRIVATE
-            "-Wl,-force_load,$<TARGET_FILE:LLVMCodeGen>")
-
-        if(NATIVE_TARGET_LIBS)
-            target_link_libraries(${TARGET_NAME} PRIVATE
-                LLVM${LLVM_NATIVE_ARCH}CodeGen
-                LLVM${LLVM_NATIVE_ARCH}Info
-                LLVM${LLVM_NATIVE_ARCH}Desc)
-            target_link_options(${TARGET_NAME} PRIVATE
-                "-Wl,-force_load,$<TARGET_FILE:LLVM${LLVM_NATIVE_ARCH}CodeGen>"
-                "-Wl,-force_load,$<TARGET_FILE:LLVM${LLVM_NATIVE_ARCH}Info>"
-                "-Wl,-force_load,$<TARGET_FILE:LLVM${LLVM_NATIVE_ARCH}Desc>")
-        endif()
-    endif()
-endfunction()
-
 # Making a NVQIR backend lib or config file available inside wheel
 function(add_target_libs_to_wheel nvqir_backend_lib_or_config)
     if (NOT EXISTS "${nvqir_backend_lib_or_config}")
@@ -91,4 +62,32 @@ function(add_target_libs_to_wheel nvqir_backend_lib_or_config)
     else()
         message(WARNING "Unknown file extension of ${nvqir_backend_lib_or_config} file. It will be ignored.")
     endif()
+endfunction()
+
+# Stage python sources into the build tree, one symlink rule per file.
+# Modeled on MLIR's add_mlir_python_sources_target minus its install and
+# export machinery; these sources are installed through other mechanisms.
+function(cudaq_stage_python_sources name)
+    cmake_parse_arguments(ARG "" "ROOT_DIR;OUTPUT_DIRECTORY" "SOURCES" ${ARGN})
+    if(ARG_UNPARSED_ARGUMENTS)
+        message(FATAL_ERROR "Unhandled arguments to cudaq_stage_python_sources(${name}): ${ARG_UNPARSED_ARGUMENTS}")
+    endif()
+
+    set(_dest_paths "")
+    foreach(_rel_path ${ARG_SOURCES})
+        set(_src_path "${ARG_ROOT_DIR}/${_rel_path}")
+        set(_dest_path "${ARG_OUTPUT_DIRECTORY}/${_rel_path}")
+        get_filename_component(_dest_dir "${_dest_path}" DIRECTORY)
+        file(MAKE_DIRECTORY "${_dest_dir}")
+        add_custom_command(
+            OUTPUT "${_dest_path}"
+            COMMENT "Staging python source ${_rel_path}"
+            DEPENDS "${_src_path}"
+            COMMAND "${CMAKE_COMMAND}" -E create_symlink
+                "${_src_path}" "${_dest_path}"
+        )
+        list(APPEND _dest_paths "${_dest_path}")
+    endforeach()
+
+    add_custom_target(${name} DEPENDS ${_dest_paths})
 endfunction()

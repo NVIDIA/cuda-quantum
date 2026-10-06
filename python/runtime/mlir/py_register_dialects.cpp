@@ -16,11 +16,7 @@
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
-#include "cudaq/Optimizer/InitAllPasses.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
-#ifdef __APPLE__
-#include "cudaq_internal/compiler/RuntimeMLIR.h"
-#endif
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include "mlir/InitAllDialects.h"
 #include <fmt/core.h>
@@ -29,8 +25,6 @@
 #include <nanobind/stl/vector.h>
 
 using namespace mlir;
-
-static bool registered = false;
 
 static void registerQuakeDialectAndTypes(nanobind::module_ &m) {
   using namespace mlir::python::nanobind_adaptors;
@@ -43,15 +37,6 @@ static void registerQuakeDialectAndTypes(nanobind::module_ &m) {
         mlirDialectHandleRegisterDialect(handle, context);
         if (load)
           mlirDialectHandleLoadDialect(handle, context);
-
-        if (!registered) {
-#ifdef __APPLE__
-          cudaq_internal::compiler::initializeMLIR();
-#else
-          cudaq::registerCudaqPassesAndPipelines();
-#endif
-          registered = true;
-        }
       },
       nanobind::arg("load") = true,
       nanobind::arg("context") = nanobind::none());
@@ -363,26 +348,26 @@ static void registerCCDialectAndTypes(nanobind::module_ &m) {
             return wrap(callTy.getSignature());
           });
 
-  mlir_type_subclass(ccMod, "StdvecType",
+  mlir_type_subclass(ccMod, "SequenceType",
                      [](MlirType type) {
-                       return mlir::isa<cudaq::cc::StdvecType>(unwrap(type));
+                       return mlir::isa<cudaq::cc::SequenceType>(unwrap(type));
                      })
       .def_classmethod(
           "getElementType",
           [](nanobind::object cls, MlirType type) {
             auto ty = unwrap(type);
-            auto casted = dyn_cast<cudaq::cc::StdvecType>(ty);
+            auto casted = dyn_cast<cudaq::cc::SequenceType>(ty);
             if (!casted)
               throw std::runtime_error(
-                  "invalid type passed to StdvecType.getElementType(), must "
+                  "invalid type passed to SequenceType.getElementType(), must "
                   "be cc.array type.");
             return wrap(casted.getElementType());
           })
       .def_classmethod(
           "get",
           [](nanobind::object cls, MlirType elementType, MlirContext context) {
-            return wrap(cudaq::cc::StdvecType::get(unwrap(context),
-                                                   unwrap(elementType)));
+            return wrap(cudaq::cc::SequenceType::get(unwrap(context),
+                                                     unwrap(elementType)));
           },
           nanobind::arg("cls"), nanobind::arg("elementType"),
           nanobind::arg("context") = nanobind::none());
@@ -400,7 +385,7 @@ void cudaq::bindRegisterDialects(nanobind::module_ &mod) {
   });
 
   mod.def("register_all_dialects", [](MlirContext context) {
-    ::cudaqRegisterAllDialects(context);
+    ::cudaqLoadAllDialects(context);
     auto *mlirContext = unwrap(context);
     mlirContext->getOrLoadDialect<cudaq::codegen::CodeGenDialect>();
   });

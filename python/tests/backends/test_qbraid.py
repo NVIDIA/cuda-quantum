@@ -17,6 +17,8 @@ from network_utils import check_server_connection
 
 from utils.mock_qpu.qbraid import startServer
 
+pytestmark = pytest.mark.xdist_group("qbraid_mock")
+
 port = 62454
 
 # Default machine for tests. Mirrors the real qBraid device string format.
@@ -27,6 +29,8 @@ TEST_API_KEY = "00000000000000000000000000000000"
 # quantum mechanics - it only inspects the QASM for `h` and `measure` ops and
 # generates random outcomes for qubits with H. It does NOT model entanglement
 # via CNOT. Assertions below reflect the mock's behavior, not physical truth.
+# The mock reports keys as qBraid does (classical bit 0 rightmost); the helper
+# reverses them, so every assertion below is in CUDA-Q order (qubit 0 leftmost).
 
 
 def _set_qbraid_target(**overrides):
@@ -49,8 +53,6 @@ def startUpMockServer():
     cudaq.set_random_seed(13)
     os.environ["QBRAID_API_KEY"] = TEST_API_KEY
 
-    _set_qbraid_target()
-
     p = Process(target=startServer, args=(port,))
     p.start()
 
@@ -58,6 +60,8 @@ def startUpMockServer():
         p.terminate()
         pytest.exit("Mock server did not start in time, skipping tests.",
                     returncode=1)
+
+    _set_qbraid_target()
 
     yield "Server started."
 
@@ -107,6 +111,24 @@ def test_qbraid_sample_async_persist_future():
     assert len(counts) == 2
     assert "00" in counts
     assert "10" in counts
+
+
+def test_qbraid_bit_order():
+    """H on q[2] of three qubits reads back as "001", not "100".
+
+    The mock reports the outcome as qBraid does ("100": classical bit 0
+    rightmost); the helper must reverse it into CUDA-Q order.
+    """
+    kernel = cudaq.make_kernel()
+    qubits = kernel.qalloc(3)
+    kernel.h(qubits[2])
+    kernel.mz(qubits)
+
+    counts = cudaq.sample(kernel)
+    assert len(counts) == 2
+    assert "000" in counts
+    assert "001" in counts
+    assert "100" not in counts
 
 
 def _make_vqe_ansatz():
@@ -170,6 +192,28 @@ def test_qbraid_machine_alternative_device():
     kernel.h(qubit)
     kernel.mz(qubit)
 
+    counts = cudaq.sample(kernel)
+    assert len(counts) >= 1
+
+
+def test_qbraid_rejects_analog_device():
+    """An analog/AHS device (paradigm != gate_model) is rejected up front.
+
+    The helper queries device metadata when the target is configured and
+    refuses a non-gate-model device, surfacing an actionable error at
+    set_target time instead of an opaque downstream job failure.
+    """
+    with pytest.raises(RuntimeError, match="gate-model"):
+        _set_qbraid_target(machine="aws:quera:qpu:aquila")
+
+
+def test_qbraid_accepts_gate_model_device():
+    """A gate-model device passes the paradigm check and executes normally."""
+    _set_qbraid_target(machine="aws:aws:sim:sv1")
+    kernel = cudaq.make_kernel()
+    qubit = kernel.qalloc()
+    kernel.h(qubit)
+    kernel.mz(qubit)
     counts = cudaq.sample(kernel)
     assert len(counts) >= 1
 

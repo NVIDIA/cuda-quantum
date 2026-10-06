@@ -1,0 +1,12 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+# Dependencies for the mock QPU servers under python/tests/utils/mock_qpu.
+fastapi==0.111.0
+uvicorn==0.29.0
+llvmlite==0.47.0

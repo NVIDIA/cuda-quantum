@@ -32,7 +32,7 @@ def test_draw():
     def zaz(qub: cudaq.qubit):
         sdg(qub)
 
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def kernel():
         q = cudaq.qvector(4)
         h(q)

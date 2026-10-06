@@ -1,0 +1,51 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --expand-control-negations --unitary-synthesis --canonicalize %s \
+// RUN:   | FileCheck %s --check-prefix=PHASE
+// RUN: cudaq-opt --expand-control-negations --unitary-synthesis --canonicalize \
+// RUN:   --apply-op-specialization --aggressive-inlining --expand-control-veqs --cse \
+// RUN:   --normalize-phase-placement --lower-phase --canonicalize %s | CircuitCheck %s
+// RUN: cudaq-opt --expand-control-negations --unitary-synthesis --canonicalize \
+// RUN:   --apply-op-specialization --aggressive-inlining --expand-control-veqs --cse \
+// RUN:   --normalize-phase-placement --lower-phase --canonicalize %s \
+// RUN:   | FileCheck %s --check-prefix=LOWER --implicit-check-not=quake.phase
+// RUN: cudaq-opt --hw-jit-prep-pipeline --verify-each %s | FileCheck %s --check-prefix=PREP
+// RUN: cudaq-opt --emul-jit-prep-pipeline --verify-each %s | FileCheck %s --check-prefix=PREP
+
+module {
+  func.func @controlled_synthesized_x() attributes {"cudaq-entrypoint"} {
+    %q = quake.alloca !quake.veq<2>
+    %control = quake.extract_ref %q[0] : (!quake.veq<2>) -> !quake.ref
+    %target = quake.extract_ref %q[1] : (!quake.veq<2>) -> !quake.ref
+    quake.h %control : (!quake.ref) -> ()
+    quake.custom_unitary_constant @x [%control neg [true]] %target : (!quake.ref, !quake.ref) -> ()
+    return
+  }
+  cc.global constant private @x (dense<[(0.000000e+00,0.000000e+00), (1.000000e+00,0.000000e+00), (1.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
+}
+
+// The generated helper must preserve the X matrix's phase as bookkeeping.
+// PHASE-LABEL: func.func private @x.kernel(
+// PHASE: quake.phase
+
+// Lowering after helper specialization and inlining must reproduce an exact
+// physical gate sequence and eliminate the bookkeeping operation.
+// LOWER-LABEL: func.func @controlled_synthesized_x
+// LOWER: quake.r1
+
+// X conjugation must cover the entire synthesized gate, including its phase.
+// PREP-LABEL:   func.func @controlled_synthesized_x() attributes {"cudaq-entrypoint"} {
+// PREP:           quake.h %[[CONTROL:.*]] : (!quake.ref) -> ()
+// PREP:           quake.x %[[CONTROL]] : (!quake.ref) -> ()
+// PREP:           %[[CONCAT_0:.*]] = quake.concat %[[CONTROL]] : (!quake.ref) -> !quake.veq<1>
+// PREP:           quake.rz (%[[CONSTANT_0:.*]]) {{\[}}%[[CONCAT_0]]] %[[TARGET:.*]] : (f64, !quake.veq<1>, !quake.ref) -> ()
+// PREP:           quake.ry (%[[CONSTANT_1:.*]]) {{\[}}%[[CONCAT_0]]] %[[TARGET]] : (f64, !quake.veq<1>, !quake.ref) -> ()
+// PREP:           quake.rz (%[[CONSTANT_2:.*]]) {{\[}}%[[CONCAT_0]]] %[[TARGET]] : (f64, !quake.veq<1>, !quake.ref) -> ()
+// PREP:           quake.phase (%[[CONSTANT_0]]) {{\[}}%[[CONCAT_0]]] %[[TARGET]] : (f64, !quake.veq<1>, !quake.ref) -> ()
+// PREP:           quake.x %[[CONTROL]] : (!quake.ref) -> ()

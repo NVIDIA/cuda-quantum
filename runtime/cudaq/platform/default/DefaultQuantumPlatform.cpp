@@ -10,13 +10,12 @@
 #include "common/ExecutionContext.h"
 #include "common/RuntimeTarget.h"
 #include "common/Timing.h"
-#include "cudaq/Target/TargetConfigYaml.h"
+#include "cudaq/platform/qpu_utils.h"
 #include "cudaq/platform/quantum_platform.h"
 #include "cudaq/qis/qubit_qis.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <filesystem>
-#include <fstream>
 
 /// This file defines the default, library mode, quantum platform. Its goal is
 /// to create a single QPU that is added to the quantum_platform which delegates
@@ -31,7 +30,7 @@ class DefaultQuantumPlatform : public cudaq::quantum_platform {
 public:
   DefaultQuantumPlatform() {
     // Populate the information and add the QPUs
-    platformQPUs.emplace_back(std::make_unique<cudaq::DefaultQPU>());
+    addQPU(std::make_unique<cudaq::DefaultQPU>());
   }
 
 private:
@@ -41,8 +40,6 @@ private:
   /// will change from the DefaultQPU to the QPU subtype specified by that
   /// variable.
   void setTargetBackend(const std::string &backend) override {
-    platformQPUs.clear();
-    platformQPUs.emplace_back(std::make_unique<cudaq::DefaultQPU>());
 
     CUDAQ_INFO("Backend string is {}", backend);
     std::map<std::string, std::string> configMap;
@@ -62,42 +59,41 @@ private:
       config = runtimeTarget->config;
       runtimeTarget->runtimeConfig = configMap;
     } else {
-      std::filesystem::path cudaqLibPath{cudaq::getCUDAQLibraryPath()};
-      auto platformPath = cudaqLibPath.parent_path().parent_path() / "targets";
-      std::string fileName = mutableBackend + std::string(".yml");
-      auto configFilePath = platformPath / fileName;
-      CUDAQ_INFO("Config file path = {}", configFilePath.string());
-
-      if (!std::filesystem::exists(configFilePath)) {
-        platformQPUs.front()->setTargetBackend(backend);
-        return;
-      }
-
-      std::ifstream configFile(configFilePath.string());
-      std::string configContents((std::istreambuf_iterator<char>(configFile)),
-                                 std::istreambuf_iterator<char>());
-      llvm::yaml::Input Input(configContents.c_str());
-      Input >> config;
+      auto resolved = cudaq::detail::resolveTargetConfig(backend);
+      config = resolved.config;
+      CUDAQ_INFO("Config file path = {}", resolved.configPath.string());
       runtimeTarget = std::make_unique<cudaq::RuntimeTarget>();
       runtimeTarget->config = config;
       runtimeTarget->name = mutableBackend;
       runtimeTarget->description = config.Description;
       runtimeTarget->runtimeConfig = configMap;
+      runtimeTarget->configPath = resolved.configPath;
+      runtimeTarget->pluginLibDir = resolved.pluginLibDir.string();
+      runtimeTarget->simulatorName = resolved.simulatorName;
+      runtimeTarget->platformName = resolved.platformName;
+      runtimeTarget->precision = resolved.fp64Simulation
+                                     ? simulation_precision::fp64
+                                     : simulation_precision::fp32;
     }
 
+    std::unique_ptr<cudaq::QPU> newQPU;
     if (config.BackendConfig.has_value() &&
         !config.BackendConfig->PlatformQpu.empty()) {
       auto qpuName = config.BackendConfig->PlatformQpu;
       CUDAQ_INFO("Default platform QPU subtype name: {}", qpuName);
-      platformQPUs.clear();
-      platformQPUs.emplace_back(cudaq::registry::get<cudaq::QPU>(qpuName));
-      if (platformQPUs.front() == nullptr)
+      newQPU = cudaq::registry::get<cudaq::QPU>(qpuName);
+      if (newQPU == nullptr)
         throw std::runtime_error(
             qpuName + " is not a valid QPU name for the default platform.");
+      clearQPUs();
+    } else {
+      newQPU = std::make_unique<cudaq::DefaultQPU>();
     }
 
     // Forward to the QPU.
-    platformQPUs.front()->setTargetBackend(backend);
+    newQPU->setTargetBackend(backend);
+    clearQPUs();
+    addQPU(std::move(newQPU));
   }
 };
 } // namespace

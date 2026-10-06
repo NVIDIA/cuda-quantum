@@ -325,8 +325,8 @@ void forLoop(mlir::ImplicitLocOpBuilder &builder, QuakeValue &start,
 std::string to_quake(mlir::ImplicitLocOpBuilder &builder);
 
 /// @brief Returns `true` if the argument to the `kernel_builder` is a
-/// `cc::StdvecType`. Returns `false` otherwise.
-bool isArgStdVec(std::vector<QuakeValue> &args, std::size_t idx);
+/// `cc::SequenceType`. Returns `false` otherwise.
+bool isArgSequence(std::vector<QuakeValue> &args, std::size_t idx);
 
 /// @brief The `ArgumentValidator` provides a way validate the input arguments
 /// when the kernel is invoked (via a fold expression).
@@ -347,7 +347,7 @@ struct ArgumentValidator<std::vector<T>> {
   static void validate(std::size_t &argCounter, std::vector<QuakeValue> &args,
                        std::vector<T> &input) {
     if (argCounter >= args.size())
-      throw std::runtime_error("Error validating stdvec input to "
+      throw std::runtime_error("Error validating sequence input to "
                                "kernel_builder. argCounter >= args.size()");
 
     // Get the argument, increment the counter
@@ -466,8 +466,8 @@ public:
 
   /// @brief Return `true` if the argument to the kernel is a `std::vector`,
   /// `false` otherwise.
-  bool isArgStdVec(std::size_t idx) {
-    return detail::isArgStdVec(arguments, idx);
+  bool isArgSequence(std::size_t idx) {
+    return detail::isArgSequence(arguments, idx);
   }
 
   /// @brief Return the name of this kernel
@@ -710,7 +710,7 @@ public:
 
   /// @brief `logical_observable` with an explicit `observable_index`.
   /// Takes a single `QuakeValue` handle (typically a
-  /// `!cc.stdvec<!cc.measure_handle>` from `mz` on a `qvector`, but a
+  /// `!cc.sequence<!cc.measure_handle>` from `mz` on a `qvector`, but a
   /// scalar handle is also accepted by the dialect).
   void logical_observable(QuakeValue measurements,
                           std::size_t observable_index) {

@@ -70,6 +70,9 @@ docs_build_output="$build_dir/docs"
 sphinx_output_dir="$docs_build_output/sphinx"
 doxygen_output_dir="$docs_build_output/doxygen"
 dialect_output_dir="$docs_build_output/Dialects"
+dialect_reference_names=(Quake CC QEC CodeGen)
+build_compiler_developer_docs="${CUDAQ_BUILD_COMPILER_DEVELOPER_DOCS:-0}"
+compiler_pass_reference_names=(Transforms CodeGenPasses)
 rm -rf "$docs_build_output"
 
 # Check if the cudaq Python package is installed and if not, build and install it
@@ -101,6 +104,24 @@ if [ ! "$cmake_exit_code" -eq "0" ]; then
     echo "Failed to generate documentation from the cudaq-doc build target."
     echo "CMake exit code: $cmake_exit_code"
     docs_exit_code=10
+elif [ "$build_compiler_developer_docs" = "1" ]; then
+    for pass_reference_name in "${compiler_pass_reference_names[@]}"; do
+        pass_reference_file="$docs_build_output/$pass_reference_name.md"
+        if [ ! -f "$pass_reference_file" ]; then
+            echo "Failed to generate the $pass_reference_name pass reference at $pass_reference_file."
+            docs_exit_code=10
+        fi
+    done
+    for dialect_name in "${dialect_reference_names[@]}"; do
+        dialect_reference_file="$dialect_output_dir/$dialect_name.md"
+        if [ ! -f "$dialect_reference_file" ]; then
+            echo "Failed to generate the $dialect_name reference at $dialect_reference_file."
+            docs_exit_code=10
+        fi
+    done
+fi
+if [ ! "$docs_exit_code" -eq "0" ]; then
+    cd "$working_dir" && (return 0 2>/dev/null) && return $docs_exit_code || exit $docs_exit_code
 fi
 
 # Check if a new enough version of doxygen is installed, and otherwise build it from source
@@ -165,20 +186,70 @@ fi
 echo "Building CUDA-Q documentation using Sphinx..."
 cd "$repo_root/docs"
 
-# The docs build so far is fast such that we do not care about the cached outputs.
-# Revisit this when caching becomes necessary.
-rm -rf sphinx/_doxygen/
-rm -rf sphinx/_mdgen/
-cp -r "$doxygen_output_dir" sphinx/_doxygen/
-# cp -r "$dialect_output_dir" sphinx/_mdgen/ # uncomment once we use the content from those files
+# Run staging and Sphinx in a subshell so the EXIT trap also works when this
+# script is sourced.
+build_sphinx_docs() (
+    cleanup_staged_docs() {
+        rm -rf "$repo_root/docs/sphinx/_doxygen/"
+        rm -rf "$repo_root/docs/sphinx/_mdgen/"
+    }
+    trap cleanup_staged_docs EXIT
 
-rm -rf "$sphinx_output_dir"
-echo "Running sphinx in $PWD"
-set -x
-sphinx-build -v -n -W --keep-going -b html sphinx "$sphinx_output_dir" -j auto 2> "$logs_dir/sphinx_error.txt" 1> "$logs_dir/sphinx_output.txt"
-set +x
+    # The docs build so far is fast such that we do not care about the cached
+    # outputs. Revisit this when caching becomes necessary.
+    cleanup_staged_docs
+    if ! cp -r "$doxygen_output_dir" sphinx/_doxygen/; then
+        echo "Failed to stage the Doxygen reference."
+        return 10
+    fi
+    if [ "$build_compiler_developer_docs" = "1" ]; then
+        mkdir -p sphinx/_mdgen/Dialects
+        for pass_reference_name in "${compiler_pass_reference_names[@]}"; do
+            pass_reference_file="$docs_build_output/$pass_reference_name.md"
+            if ! cp "$pass_reference_file" "sphinx/_mdgen/$pass_reference_name.md"; then
+                echo "Failed to stage the $pass_reference_name pass reference."
+                return 10
+            fi
+        done
+        for dialect_name in "${dialect_reference_names[@]}"; do
+            dialect_reference_file="$dialect_output_dir/$dialect_name.md"
+            if ! cp "$dialect_reference_file" "sphinx/_mdgen/Dialects/$dialect_name.md"; then
+                echo "Failed to stage the $dialect_name reference."
+                return 10
+            fi
+        done
+    fi
+
+    # Fetch the intersphinx inventories up front so a transient failure at an
+    # upstream host does not fail the warnings-as-errors build. conf.py uses
+    # whatever lands here and falls back to the network for the rest.
+    inventory_dir="$docs_build_output/inventories"
+    mkdir -p "$inventory_dir"
+    retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+    fetch_inventory() {
+        if ! retry wget -q --timeout=30 -O "$inventory_dir/$1.inv" "$2"; then
+            rm -f "$inventory_dir/$1.inv"
+            echo "Could not fetch the $1 inventory; sphinx will try to retrieve it."
+        fi
+    }
+    fetch_inventory python https://docs.python.org/3/objects.inv
+    fetch_inventory numpy https://numpy.org/doc/stable/objects.inv
+    export CUDAQ_INTERSPHINX_INVENTORIES="$inventory_dir"
+
+    rm -rf "$sphinx_output_dir"
+    echo "Running sphinx in $PWD"
+    set -x
+    sphinx-build -v -n -W --keep-going -b html sphinx "$sphinx_output_dir" -j auto 2> "$logs_dir/sphinx_error.txt" 1> "$logs_dir/sphinx_output.txt"
+    sphinx_exit_code=$?
+    set +x
+    return "$sphinx_exit_code"
+)
+
+build_sphinx_docs
 sphinx_exit_code=$?
-if [ ! "$sphinx_exit_code" -eq "0" ]; then
+if [ "$sphinx_exit_code" -eq "10" ]; then
+    docs_exit_code=10
+elif [ ! "$sphinx_exit_code" -eq "0" ]; then
     echo "Failed to generate documentation using sphinx-build."
     echo "Sphinx exit code: $sphinx_exit_code"
     echo "======== logs ========"
@@ -186,9 +257,6 @@ if [ ! "$sphinx_exit_code" -eq "0" ]; then
     echo "======================"
     docs_exit_code=12
 fi
-
-rm -rf sphinx/_doxygen/
-rm -rf sphinx/_mdgen/
 
 mkdir -p "$DOCS_INSTALL_PREFIX"
 if [ "$docs_exit_code" -eq "0" ]; then
@@ -222,12 +290,36 @@ if [ "$docs_exit_code" -eq "0" ]; then
             -exec cp --parents '{}' "$DOCS_INSTALL_PREFIX" \;
         echo "Markdown files copied successfully to $DOCS_INSTALL_PREFIX."
 
-        # Copy llms.txt from the repository root to the docs install prefix
-        if [ -f "$CUDAQ_REPO_ROOT/llms.txt" ]; then
-            cp "$CUDAQ_REPO_ROOT/llms.txt" "$DOCS_INSTALL_PREFIX/"
+        # Copy llms.txt from the repository root to the docs install prefix.
+        # Links are relative to the directory the file is served from, so drop
+        # the version prefix here; the site root copy adds it back.
+        if [ -f "$repo_root/llms.txt" ]; then
+            sed -E 's|\]\((latest/)?([^):]+)\)|](\2)|g' \
+                "$repo_root/llms.txt" > "$DOCS_INSTALL_PREFIX/llms.txt"
             echo "Copied llms.txt to $DOCS_INSTALL_PREFIX."
         else
-            echo "Warning: llms.txt not found in $CUDAQ_REPO_ROOT, skipping copy."
+            echo "Warning: llms.txt not found in $repo_root, skipping copy."
+        fi
+
+        # Generate llms-full.txt from the markdown llms.txt links to. Paths are
+        # read with or without a version prefix, so either link style works.
+        if [ -f "$DOCS_INSTALL_PREFIX/llms.txt" ]; then
+            llms_full_file="$DOCS_INSTALL_PREFIX/llms-full.txt"
+            rm -f "$llms_full_file"
+            grep -oE '\]\([^)]+\.md\)' "$DOCS_INSTALL_PREFIX/llms.txt" | \
+            sed -e 's|^](||' -e 's|)$||' -e 's|^latest/||' | while read -r md_path; do
+                if [ -f "$DOCS_INSTALL_PREFIX/$md_path" ]; then
+                    printf '\n\n<!-- Source: %s -->\n\n' "$md_path" >> "$llms_full_file"
+                    cat "$DOCS_INSTALL_PREFIX/$md_path" >> "$llms_full_file"
+                else
+                    echo "Warning: $md_path is referenced in llms.txt but was not found, skipping it in llms-full.txt."
+                fi
+            done
+            if [ -f "$llms_full_file" ]; then
+                echo "Generated llms-full.txt in $DOCS_INSTALL_PREFIX."
+            else
+                echo "Warning: no markdown files were found to generate llms-full.txt."
+            fi
         fi
     else
         echo "Markdown documentation encountered issues."

@@ -8,6 +8,8 @@
 
 #include "DecompositionPatterns.h"
 #include "PassDetails.h"
+#include "cudaq/Optimizer/Builder/CompilerNames.h"
+#include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeInterfaces.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 
@@ -34,7 +36,7 @@ static Operation *createOperator(Location loc, StringRef name,
        static_cast<std::int32_t>(controls.size()),
        static_cast<std::int32_t>(targets.size())});
   auto op = builder.create(loc, nameAttr, operands);
-  op->setAttr("operand_segment_sizes", segmentSizes);
+  op->setAttr(cudaq::runtime::operandSegmentSizes, segmentSizes);
   return op;
 }
 

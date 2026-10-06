@@ -13,14 +13,21 @@
 #include <functional>
 #include <future>
 #include <map>
+#include <memory>
 
 namespace cudaq {
+
+/// @brief Raw output produced by a runnable kernel. Defined fully in
+/// cudaq/algorithms/run/policy.h; forward-declared here to break the include
+/// cycle between the run policy header and this header.
+struct run_result;
+
 namespace detail {
 
 /// @brief The execution context of a server job.
 // Depending on the type, we may process the return data from the server
 // differently when propagating it back to the runtime.
-enum class ExecutionContextType : int { sample = 1, observe, run };
+enum class ExecutionContextType : int { other = 0, sample = 1, observe, run };
 
 /// @brief The future type models the expected result of a
 /// CUDA-Q kernel execution under a specific execution context.
@@ -118,6 +125,9 @@ protected:
   /// @brief A spin operator, used for observe future tasks
   std::optional<spin_op> spinOp;
 
+  /// @brief Raw output storage used for asynchronous run tasks.
+  std::shared_ptr<std::vector<char>> rawOutput;
+
 public:
   async_result() = default;
   async_result(const spin_op *s) {
@@ -133,6 +143,9 @@ public:
       spinOp.value().canonicalize();
     }
   }
+  async_result(detail::future &&f,
+               std::shared_ptr<std::vector<char>> rawOutputIn)
+      : result(std::move(f)), rawOutput(std::move(rawOutputIn)) {}
 
   virtual ~async_result() = default;
   async_result(async_result &&) = default;
@@ -150,6 +163,11 @@ public:
       if (!spinOp)
         throw std::runtime_error(
             "Returning an observe_result requires a spin_op.");
+
+      // Server-side observe backends return a single expectation on the
+      // global register (e.g. Fermioniq / external custom QPU plugins).
+      if (data.has_expectation())
+        return observe_result(data.expectation(), *spinOp, data);
 
       auto checkRegName = spinOp->to_string();
       if (data.has_expectation(checkRegName))
@@ -178,6 +196,13 @@ public:
       return observe_result(sum, *spinOp, data);
     }
 
+    if constexpr (std::is_same_v<T, run_result>) {
+      if (!rawOutput)
+        throw std::runtime_error(
+            "Returning a run_result requires raw output storage.");
+      return {std::string(rawOutput->begin(), rawOutput->end())};
+    }
+
     return T();
   }
 
@@ -203,6 +228,9 @@ using async_observe_result = async_result<observe_result>;
 
 /// @brief Return type for asynchronous sampling.
 using async_sample_result = async_result<sample_result>;
+
+/// @brief Return type for asynchronous runnable kernel execution.
+using async_run_result = async_result<run_result>;
 
 /// @brief Wrapper for a policy to return an async_result.
 template <typename InnerPolicy>

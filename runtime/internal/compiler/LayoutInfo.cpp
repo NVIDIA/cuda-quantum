@@ -140,7 +140,7 @@ cudaq_internal::compiler::getResultBufferLayout(ModuleOp mod, Type resultTy) {
       .Case([&](ComplexType) { bufferSize = 2 * sizeof(double); })
       .Case([&](Float64Type) { bufferSize = sizeof(double); })
       .Case([&](Float32Type) { bufferSize = sizeof(float); })
-      .Case([&](cudaq::cc::StdvecType) {
+      .Case([&](cudaq::cc::SequenceType) {
         struct vec {
           void *data;
           std::size_t length;

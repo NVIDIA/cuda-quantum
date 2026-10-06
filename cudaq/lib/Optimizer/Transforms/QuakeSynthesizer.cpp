@@ -109,8 +109,8 @@ Value makeComplexElement(OpBuilder &builder, Location argLoc,
 /// operation.
 static bool hasInitStateUse(BlockArgument argument) {
   for (auto *argUser : argument.getUsers())
-    if (auto stdvecDataOp = dyn_cast<cudaq::cc::StdvecDataOp>(argUser))
-      for (auto *dataUser : stdvecDataOp->getUsers())
+    if (auto sequenceDataOp = dyn_cast<cudaq::cc::SequenceDataOp>(argUser))
+      for (auto *dataUser : sequenceDataOp->getUsers())
         if (isa<cudaq::quake::InitializeStateOp>(dataUser))
           return true;
   return false;
@@ -178,24 +178,25 @@ synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
     return success(allLoadUsers);
   };
 
-  // Iterate over the users of this stdvec argument.
+  // Iterate over the users of this sequence argument.
   for (auto *argUser : argument.getUsers()) {
-    // Handle the StdvecSize use case.
+    // Handle the SequenceSize use case.
     // Replace a `vec.size()` with the length, which is a synthesized constant.
-    if (auto stdvecSizeOp = dyn_cast<cudaq::cc::StdvecSizeOp>(argUser)) {
+    if (auto sequenceSizeOp = dyn_cast<cudaq::cc::SequenceSizeOp>(argUser)) {
       Value length = arith::ConstantIntOp::create(
-          builder, argLoc, stdvecSizeOp.getType(), vec.size());
-      stdvecSizeOp.replaceAllUsesWith(length);
+          builder, argLoc, sequenceSizeOp.getType(), vec.size());
+      sequenceSizeOp.replaceAllUsesWith(length);
       continue;
     }
 
-    // Handle the StdvecDataOp use cases.  We expect `vec.data()` to be indexed
-    // and the value loaded, `vec.data()[c]`. Handle the cases where the offset,
-    // `c`, is a constant as well as cases when it is not. Also handle the case
-    // when the `vec.data()` is used in an arbitrary pointer expression.
-    if (auto stdvecDataOp = dyn_cast<cudaq::cc::StdvecDataOp>(argUser)) {
+    // Handle the SequenceDataOp use cases.  We expect `vec.data()` to be
+    // indexed and the value loaded, `vec.data()[c]`. Handle the cases where the
+    // offset, `c`, is a constant as well as cases when it is not. Also handle
+    // the case when the `vec.data()` is used in an arbitrary pointer
+    // expression.
+    if (auto sequenceDataOp = dyn_cast<cudaq::cc::SequenceDataOp>(argUser)) {
       bool replaceOtherUses = false;
-      for (auto *dataUser : stdvecDataOp->getUsers()) {
+      for (auto *dataUser : sequenceDataOp->getUsers()) {
         // dataUser could be a load, a computeptr, or something else. If it's a
         // load, the index is 0: get the 0-th value from the array and forward
         // it. If it's a computeptr, then we get the element from the array at
@@ -247,12 +248,12 @@ synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
       // constant array as materialized in memory.
       if (replaceOtherUses) {
         auto memArr = getArrayInMemory();
-        stdvecDataOp.replaceAllUsesWith(memArr);
+        sequenceDataOp.replaceAllUsesWith(memArr);
       }
       continue;
     }
 
-    // In the event that the stdvec value is simply used as is, we want to
+    // In the event that the sequence value is simply used as is, we want to
     // construct a new, constant vector in place and replace users of the
     // argument with it.
     generateNewValue = true;
@@ -263,7 +264,7 @@ synthesizeVectorArgument(OpBuilder &builder, ModuleOp module, unsigned &counter,
     builder.setInsertionPointAfter(memArr.getDefiningOp());
     Value size = arith::ConstantIntOp::create(builder, argLoc, vec.size(), 64);
     Value newVec =
-        cudaq::cc::StdvecInitOp::create(builder, argLoc, strTy, memArr, size);
+        cudaq::cc::SequenceInitOp::create(builder, argLoc, strTy, memArr, size);
     argument.replaceAllUsesWith(newVec);
   }
   return success();
@@ -725,13 +726,14 @@ public:
           auto spanp = cudaq::cc::ComputePtrOp::create(
               builder, loc, ptrTy, aos,
               ArrayRef<cudaq::cc::ComputePtrArg>{static_cast<std::int32_t>(i)});
-          auto spanData = cudaq::cc::StdvecInitOp::create(
+          auto spanData = cudaq::cc::SequenceInitOp::create(
               builder, loc, charSpanTy, str, strLen);
           cudaq::cc::StoreOp::create(builder, loc, spanData, spanp);
           bufferAppendix += length;
         }
-        auto svTy = cudaq::cc::StdvecType::get(charSpanTy);
-        auto ics = cudaq::cc::StdvecInitOp::create(builder, loc, svTy, aos, ns);
+        auto svTy = cudaq::cc::SequenceType::get(charSpanTy);
+        auto ics =
+            cudaq::cc::SequenceInitOp::create(builder, loc, svTy, aos, ns);
         arguments[idx].replaceAllUsesWith(ics);
         continue;
       }

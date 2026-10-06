@@ -94,3 +94,32 @@ cudaq::py_ret_test2(cudaq::qkernel<std::vector<float>(std::size_t)> &&qern) {
   rz(rots[2], qs[2]);
   mz(qs);
 }
+
+__qpu__ bool cudaq::measure_handle_lifetime_test(
+    cudaq::qkernel<void(cudaq::qvector<> &)> &&qern) {
+  cudaq::qvector retained(1), callbackQubits(1);
+  x(retained);
+  auto retainedResult = mz(retained[0]);
+
+  qern(callbackQubits);
+
+  // A nested callable shares the surrounding execution's result maps.
+  // Reading a handle created before that call must still produce |1>.
+  return retainedResult;
+}
+
+__qpu__ void cudaq::measure_handle_callback_test(
+    const cudaq::qkernel<std::vector<cudaq::measure_handle>(cudaq::qvector<> &)>
+        &qern) {
+  cudaq::qvector stable(1), random(1);
+  auto stableResult = qern(stable);
+
+  h(random);
+  auto randomResult = mz(random);
+
+  // The two random measurements cancel, leaving a detector on the stable
+  // measurement returned by the nested Python kernel.
+  std::vector<cudaq::measure_handle> support{stableResult[0], randomResult[0],
+                                             randomResult[0]};
+  cudaq::detector(support);
+}

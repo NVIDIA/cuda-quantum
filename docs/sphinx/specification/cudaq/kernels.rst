@@ -50,6 +50,61 @@ can take quantum types as input.
     @cudaq.kernel()
     def my_first_pure_device_kernel(qubits : cudaq.qview):
        ... quantum code ... 
+
+Atomic quantum regions
+======================
+
+An atomic quantum region denotes a single unitary operator on the qubits
+passed to it. Mark a pure-device kernel as an atomic quantum region when each
+invocation must remain an optimization boundary. Quantum operations can be
+optimized within the invoked kernel and within its caller. An optimization
+must not combine, cancel, or move operations across the invocation boundary.
+
+An atomic quantum region cannot allocate or measure qubits, including through
+kernels that it calls. Allocate qubits in the caller and pass them as
+arguments. Measure after the region returns.
+
+.. tab:: C++
+
+  .. code-block:: cpp
+
+    void atomic_h(cudaq::qubit &qubit)
+        __qpu__ __atomic_quantum_region__ {
+      h(qubit);
+    }
+
+    void caller() __qpu__ {
+      cudaq::qubit qubit;
+      atomic_h(qubit);
+      cudaq::adjoint(atomic_h, qubit);
+    }
+
+.. tab:: Python
+
+  .. code-block:: python
+
+    @cudaq.kernel(atomic_quantum_region=True)
+    def atomic_h(qubit: cudaq.qubit):
+        h(qubit)
+
+    @cudaq.kernel
+    def caller():
+        qubit = cudaq.qubit()
+        atomic_h(qubit)
+        cudaq.adjoint(atomic_h, qubit)
+
+For the Python builder frontend, call ``atomic_quantum_region()`` before
+composing the helper into another builder.
+
+.. code-block:: python
+
+    atomic_h, qubit = cudaq.make_kernel(cudaq.qubit)
+    atomic_h.atomic_quantum_region()
+    atomic_h.h(qubit)
+
+    caller = cudaq.make_kernel()
+    qubit = caller.qalloc()
+    caller.apply_call(atomic_h, qubit)
     
 **[4]** Quantum kernel function bodies are programmed in a subset of the parent classical language. 
 Kernels can be composed of the following: 
@@ -163,7 +218,16 @@ default constructed and later filled with type :code:`T` data (i.e. no dynamic m
 
        pi = 3.1415926
 
-**[7]** All entry-point kernel arguments adhere to pass-by-value semantics. 
+**[7]** All entry-point kernel arguments adhere to pass-by-value semantics. This follows directly
+from the :doc:`machine model <machine_model>`: an entry-point kernel is invoked from host code
+running on a classical host processor, but executes on a QPU (or simulated QPU), a distinct
+processor with its own separate memory space (machine model items **[1]** and **[4]**). A
+reference into the host's memory has no meaning on the QPU side, so an entry-point kernel's
+classical arguments are copied and passed by value rather than by reference, regardless of whether
+the host language's own ordinary calling convention is pass-by-value (C++) or pass-by-reference
+(Python). The same reasoning applies symmetrically to a kernel's return value: it is produced in the
+QPU's own memory space and used to construct a new object back on the host side, never used to
+mutate an object the caller already holds.
 
 .. tab:: C++ 
 
@@ -204,13 +268,15 @@ default constructed and later filled with type :code:`T` data (i.e. no dynamic m
         v[0] = 3.0 
 
     k, d = 2, [1., 2.]
-    kernel(i, d)
+    kernel(k, d)
 
-    # k is still 2, pass by value 
-    # d is still {1.0, 2.0}, pass by value 
+    # k is still 2, pass by value
+    # d is still {1.0, 2.0}, pass by value
 
-
-.. FIXME Pass by value vs reference, should we mandate pass by reference for inter-kernel calls
+Calls from one kernel to another are governed by the same rule: a pure-device kernel's classical
+arguments are likewise passed by value, not by reference, so a called kernel can never mutate a caller's
+classical argument through the call. This keeps the calling convention uniform regardless of
+whether the call originates from host code or from another kernel.
 
 **[8]** CUDA-Q kernel lambdas in C++ can capture variables of allowed type 
 by value. CUDA-Q kernels defined as custom callable types can define non-reference type 

@@ -10,12 +10,12 @@ from typing import Union
 import base64
 import ctypes
 import uuid
+import cudaq
 from fastapi import FastAPI, HTTPException, Header
 from fastapi.responses import JSONResponse
 from llvmlite import binding as llvm
 from pydantic import BaseModel
 from typing import Any, Dict
-from .. import PreallocatedQubitsContext
 
 # Define the REST Server App
 app = FastAPI()
@@ -121,9 +121,7 @@ async def postJob(data: Dict[str, Any],
         kernel = ctypes.CFUNCTYPE(None)(funcPtr)
 
         # Invoke the Kernel
-        with PreallocatedQubitsContext(numQubitsRequired) as context:
-            kernel()
-        results = context.result
+        results = cudaq.testing.sampleKernel(numQubitsRequired, 1000, kernel)
         results.dump()
         createdJobs[newId] = (task.task_id, results)
 
@@ -193,5 +191,7 @@ async def qetQpu(authentication_token: str = Header(...)):
 
 
 def startServer(port):
+    import cudaq
+    cudaq.set_random_seed(13)
     import uvicorn
     uvicorn.run(app, port=port, host='0.0.0.0', log_level="info")

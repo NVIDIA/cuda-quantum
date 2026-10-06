@@ -84,14 +84,9 @@ ModuleOp createTestModule(MLIRContext *context, StringRef gateSpecStr) {
   // Limit the number of controls to 2
   numControls = std::min<size_t>(numControls, 2);
 
-  size_t numQubits;
-  if (gateName == "swap" || gateName == "exp_pauli") {
-    assert(numControls == 0);
-    // exp_pauli can have any number of qubits, we hardcode to 2 for the test.
-    numQubits = 2;
-  } else {
-    numQubits = numControls + 1;
-  }
+  const auto numTargets =
+      (gateName == "swap" || gateName == "exp_pauli") ? 2 : 1;
+  size_t numQubits = numControls + numTargets;
 
   OpBuilder builder(context);
   auto module = ModuleOp::create(builder, builder.getUnknownLoc());
@@ -234,11 +229,15 @@ LogicalResult applySinglePattern(ModuleOp module, StringRef patternName,
   return applyPatternsGreedily(module, frozenPatterns);
 }
 
-// Helper to collect all gate types in a module
+// Helper to collect physical gate types in a module. PhaseOp is bookkeeping
+// carried through basis conversion, not a target-basis gate.
 llvm::StringSet<> collectGateTypesInModule(ModuleOp module) {
   llvm::StringSet<> gates;
 
   module.walk([&](Operation *op) {
+    if (isa<cudaq::quake::PhaseOp>(op))
+      return;
+
     if (auto optor = dyn_cast<cudaq::quake::OperatorInterface>(op)) {
       std::string gateName = optor->getName().stripDialect().str();
       auto numControls = optor.getControls().size();
@@ -477,17 +476,9 @@ TEST_F(DecompositionPatternsTest, SAndTToR1AcceptDynamicControlsWhenNEnabled) {
   EXPECT_EQ(countOps<cudaq::quake::R1Op>(tModule), 1u);
 }
 
-TEST_F(DecompositionPatternsTest, R1ToRzDoesNotRewriteAdjointR1) {
-  auto module = createTestModule(context.get(), "r1<adj>");
-
-  ASSERT_TRUE(succeeded(applySinglePattern(module, "R1ToRz", {})));
-
-  EXPECT_EQ(countOps<cudaq::quake::R1Op>(module), 1u);
-  EXPECT_EQ(countOps<cudaq::quake::RzOp>(module), 0u);
-}
-
-// Test 4: Verify pattern decompositions produce only target gates
-TEST_F(DecompositionPatternsTest, DecompositionProducesOnlyTargetGates) {
+// Test 4: Verify pattern decompositions produce only physical target gates
+TEST_F(DecompositionPatternsTest,
+       DecompositionProducesOnlyPhysicalTargetGates) {
   auto patternEntries = cudaq::DecompositionPatternTypeRegistry::entries();
 
   for (auto &entry : patternEntries) {

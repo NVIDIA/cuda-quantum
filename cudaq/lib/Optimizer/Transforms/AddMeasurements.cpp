@@ -74,7 +74,7 @@ LogicalResult addDeallocMeasurements(func::FuncOp funcOp,
   OpBuilder builder(ctx);
 
   auto measTy = cudaq::quake::MeasureType::get(builder.getContext());
-  auto stdvecTy = cudaq::cc::StdvecType::get(measTy);
+  auto sequenceTy = cudaq::cc::SequenceType::get(measTy);
   for (auto *op : deallocations) {
     if (auto dealloc = dyn_cast<cudaq::quake::DeallocOp>(op)) {
       auto loc = dealloc.getLoc();
@@ -82,7 +82,7 @@ LogicalResult addDeallocMeasurements(func::FuncOp funcOp,
       auto resTy = [&]() -> Type {
         if (isa<cudaq::quake::RefType>(dealloc.getReference().getType()))
           return measTy;
-        return stdvecTy;
+        return sequenceTy;
       }();
       cudaq::quake::MzOp::create(builder, loc, resTy, dealloc.getReference());
     } else {
@@ -140,8 +140,8 @@ addReturnMeasurements(func::FuncOp funcOp,
     Type allocTy = alloca->getResult(0).getType();
     auto loc = alloca->getLoc();
     if (isa<cudaq::quake::VeqType>(allocTy)) {
-      auto stdvecTy = cudaq::cc::StdvecType::get(measTy);
-      cudaq::quake::MzOp::create(builder, loc, stdvecTy,
+      auto sequenceTy = cudaq::cc::SequenceType::get(measTy);
+      cudaq::quake::MzOp::create(builder, loc, sequenceTy,
                                  ValueRange{alloca->getResult(0)});
     } else if (isa<cudaq::quake::RefType>(allocTy)) {
       auto val = alloca->getResult(0);

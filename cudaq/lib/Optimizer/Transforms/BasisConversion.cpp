@@ -41,14 +41,8 @@ struct BasisConversion
       return;
     }
 
-    // First, we walk the whole module in search for controlled `quake.apply`
-    // operations: If present, we conservatively don't do any decompostions. We
-    // also collect quantum kernels.
-    //
-    // TODO: Evaluate if preventing decompostion when there is at least one
-    // controlled `quake.apply` in the whole module is too convervative.
     SmallVector<Operation *, 16> kernels;
-    auto walkResult = module.walk([&kernels](Operation *op) {
+    module.walk([&kernels](Operation *op) {
       // Check if it is a quantum kernel
       if (auto funcOp = dyn_cast<func::FuncOp>(op)) {
         if (funcOp->hasAttr(cudaq::entryPointAttrName)) {
@@ -64,19 +58,9 @@ struct BasisConversion
         // Skip functions which are not quantum kernels
         return WalkResult::skip();
       }
-      // Check if it is controlled quake.apply
-      if (auto applyOp = dyn_cast<cudaq::quake::ApplyOp>(op))
-        if (!applyOp.getControls().empty())
-          return WalkResult::interrupt();
 
       return WalkResult::advance();
     });
-
-    if (walkResult.wasInterrupted()) {
-      module.emitError("Basis conversion doesn't work with `quake.apply`");
-      signalPassFailure();
-      return;
-    }
 
     if (kernels.empty())
       return;

@@ -1,7 +1,6 @@
 /*******************************************************************************
  * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
- * Copyright 2025 IQM Quantum Computers                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
@@ -79,6 +78,10 @@ protected:
     return tokens["access_token"].get<std::string>();
   }
 
+  /// @brief The ID of the last job posted
+  /// Cache here as the framework does not pass it to jobIdDone().
+  std::string jobId;
+
   /// @brief Lookup table for translating the qubit names to index numbers
   std::map<std::string, uint, qubitOrder> qubitNameMap;
 
@@ -144,9 +147,9 @@ public:
   cudaq::sample_result processResults(ServerMessage &postJobResponse,
                                       std::string &jobId) override;
 
-  /// @brief Update `passPipeline` with architecture-specific pass options
-  void updatePassPipeline(const std::filesystem::path &platformPath,
-                          std::string &passPipeline) override;
+  /// @brief Return architecture-specific pipeline placeholder substitutions.
+  std::map<std::string, std::string>
+  getPipelineSubstitutions(const std::filesystem::path &platformPath) override;
 
   /// @brief Default destructor removes the dynamic quantum architecture file
   ~IQMServerHelper() {
@@ -256,6 +259,7 @@ std::string IQMServerHelper::constructGetJobPath(ServerMessage &postResponse) {
 }
 
 std::string IQMServerHelper::constructGetJobPath(std::string &jobId) {
+  this->jobId = jobId;
   return iqmServerUrl + "circuits/" + jobId + "/counts";
 }
 
@@ -270,7 +274,60 @@ bool IQMServerHelper::jobIsDone(ServerMessage &getJobResponse) {
   auto jobStatus = getJobResponse["status"].get<std::string>();
   std::unordered_set<std::string> terminalStatuses = {"ready", "failed",
                                                       "aborted"};
-  return terminalStatuses.find(jobStatus) != terminalStatuses.end();
+  bool done = terminalStatuses.find(jobStatus) != terminalStatuses.end();
+
+  if (done) {
+    // if the job failed exit with an exception
+    if (jobStatus != "ready") {
+      CUDAQ_INFO("getJobResponse: {}", getJobResponse.dump());
+      auto jobMessage = getJobResponse["message"].get<std::string>();
+      throw std::runtime_error("Job status: " + jobStatus +
+                               ", reason: " + jobMessage);
+    }
+
+    // The counts are already part of the status response, so there is no need
+    // to fetch them separately.
+    ServerMessage counts_batch;
+    try {
+      if (!getJobResponse.contains("counts_batch")) {
+        throw std::runtime_error("counts_batch field missing in results");
+      }
+      counts_batch = getJobResponse["counts_batch"];
+      if (counts_batch.is_null() || counts_batch.empty() ||
+          counts_batch.type() != nlohmann::json::value_t::array ||
+          counts_batch[0].type() != nlohmann::json::value_t::object) {
+        throw std::runtime_error("No counts in the response");
+      }
+    } catch (const std::exception &e) {
+      throw std::runtime_error("Unable to get counts for job " + jobId + ": " +
+                               std::string(e.what()));
+    }
+
+    // Walk over the measurements and build a map for looking up on which qubit
+    // the measurement with a given key is done. This is then appended to the
+    // artifacts.
+    try {
+      nlohmann::json mkey2qubit;
+      auto instructions =
+          getJobResponse["metadata"]["request"]["circuits"][0]["instructions"];
+      for (auto instruction : instructions) {
+        if (instruction["name"] == "measure") {
+          mkey2qubit[instruction["args"]["key"]] = instruction["qubits"][0];
+        }
+      }
+      counts_batch[0]["mkeys2qubit"] = mkey2qubit;
+    } catch (const std::exception &e) {
+      throw std::runtime_error("Unable to find circuit of job " + jobId + ": " +
+                               std::string(e.what()));
+    }
+
+    CUDAQ_INFO("Artifacts: {}", counts_batch.dump());
+
+    // replace the status request response with the counts artifacts
+    getJobResponse = counts_batch;
+  } // if (done)
+
+  return done;
 }
 
 cudaq::sample_result
@@ -278,26 +335,77 @@ IQMServerHelper::processResults(ServerMessage &postJobResponse,
                                 std::string &jobID) {
   CUDAQ_INFO("postJobResponse: {}", postJobResponse.dump());
 
-  // check if the job succeeded
-  auto jobStatus = postJobResponse["status"].get<std::string>();
-  if (jobStatus != "ready") {
-    auto jobMessage = postJobResponse["message"].get<std::string>();
-    throw std::runtime_error("Job status: " + jobStatus +
-                             ", reason: " + jobMessage);
-  }
-
-  auto counts_batch = postJobResponse["counts_batch"];
-  if (counts_batch.is_null()) {
-    throw std::runtime_error("No counts in the response");
-  }
-
   // assume there is only one measurement and everything goes into the
   // GlobalRegisterName of `sample_results`
   std::vector<ExecutionResult> srs;
 
-  for (auto &counts : counts_batch.get<std::vector<ServerMessage>>()) {
-    srs.push_back(ExecutionResult(
-        counts["counts"].get<std::unordered_map<std::string, std::size_t>>()));
+  for (auto &result : postJobResponse.get<std::vector<ServerMessage>>()) {
+    if (!result.contains("measurement_keys")) {
+      throw std::runtime_error("measurement_keys field missing in results");
+    }
+    if (!result.contains("mkeys2qubit")) {
+      throw std::runtime_error("mkeys2qubit field missing in results");
+    }
+    std::map<std::string, std::string> mkeyLoci =
+        result["mkeys2qubit"].get<std::map<std::string, std::string>>();
+    std::map<std::string, std::size_t, qubitOrder> mKeys;
+    std::vector<std::size_t> mOrder;
+    std::size_t i = 0; // bit positions
+    bool reorder = false;
+
+    // The measurement_keys tell which qubits were measured. An ordered map
+    // is used to sort the strings in numerical order and then the bitstrings
+    // are ordered accordingly. As result the bitstrings are ordered according
+    // to the physical qubit numbering.
+    for (std::string key : result["measurement_keys"]) {
+      // keys must not be empty and declared in the circuit
+      if (key.empty() || mkeyLoci.count(key) == 0) {
+        throw std::runtime_error("Undeclared measurement key received: " + key);
+      }
+      if (mKeys.count(mkeyLoci[key]) != 0) {
+        // Must never happen as the "measurement_keys" in the circuit must be
+        // unique. If the same name is used the transpiler adds a suffix.
+        throw std::runtime_error("Duplicate measurement key in results: " +
+                                 key);
+      }
+      mKeys[mkeyLoci[key]] = i++;
+    }
+    mOrder.reserve(mKeys.size());
+    i = 0;
+    for (auto [_, idx] : mKeys) {
+      mOrder.push_back(idx);
+      if (!reorder && idx != i++)
+        reorder = true;
+    }
+
+    if (reorder) {
+      std::unordered_map<std::string, std::size_t> cntDict;
+
+      // get the bits into the order given by the measurement keys
+      for (auto [bits, count] :
+           result["counts"]
+               .get<std::unordered_map<std::string, std::size_t>>()) {
+        if (bits.size() != mOrder.size()) {
+          throw std::runtime_error("Expected length " +
+                                   std::to_string(mOrder.size()) +
+                                   " for bitstring " + bits);
+        }
+
+        std::string oBits(bits);
+        i = 0;
+        for (auto idx : mOrder) {
+          oBits[i++] = bits[idx];
+        }
+
+        cntDict[oBits] = count;
+      }
+
+      srs.push_back(ExecutionResult(cntDict));
+    } else {
+      srs.push_back(ExecutionResult(
+          result["counts"]
+              .get<std::unordered_map<std::string, std::size_t>>()));
+    }
   }
 
   sample_result sampleResult(srs);
@@ -346,8 +454,8 @@ IQMServerHelper::generateRequestHeader() const {
  * parameter in the backend string, or even more flexible by setting the
  * environment variable 'IQM_QPU_QA' to the path+filename.
  */
-void IQMServerHelper::updatePassPipeline(
-    const std::filesystem::path &platformPath, std::string &passPipeline) {
+std::map<std::string, std::string> IQMServerHelper::getPipelineSubstitutions(
+    const std::filesystem::path &platformPath) {
   std::string pathToFile;
 
   // For normal operation the dynamic quantum architecture is retrieved from
@@ -367,9 +475,24 @@ void IQMServerHelper::updatePassPipeline(
       // Use provided string as path+filename
       pathToFile = iter->second;
     } else {
-      // Use the dynamic quantum architecture of the configured IQM server
-      fetchQuantumArchitecture();
-      pathToFile = writeQuantumArchitectureFile();
+      // Use the dynamic quantum architecture of the configured IQM server.
+      // Fallback to an empty substitution map and let the pipeline report the
+      // problem if it is ever actually used.
+      try {
+        fetchQuantumArchitecture();
+        pathToFile = writeQuantumArchitectureFile();
+      } catch (const std::exception &e) {
+        CUDAQ_WARN("Leaving %QPU_ARCH% unresolved: {}. Set IQM_QPU_QA or pass "
+                   "--mapping-file to supply it offline.",
+                   e.what());
+        return {};
+      } catch (...) {
+        CUDAQ_WARN("Leaving %QPU_ARCH% unresolved: Unable to get quantum "
+                   "architecture from \"{}\". Set IQM_QPU_QA or pass "
+                   "--mapping-file to supply it offline.",
+                   iqmServerUrl);
+        return {};
+      }
     }
   }
   CUDAQ_INFO("Using quantum architecture file: {}", pathToFile);
@@ -378,8 +501,7 @@ void IQMServerHelper::updatePassPipeline(
   // shell glob.
   pathToFile.insert(0, "'").append("'");
 
-  passPipeline =
-      std::regex_replace(passPipeline, std::regex("%QPU_ARCH%"), pathToFile);
+  return {{"%QPU_ARCH%", pathToFile}};
 }
 
 /**
@@ -480,6 +602,9 @@ void IQMServerHelper::fetchQuantumArchitecture() {
   } catch (const std::exception &e) {
     throw std::runtime_error("Unable to get quantum architecture from \"" +
                              iqmServerUrl + "\": " + std::string(e.what()));
+  } catch (...) {
+    throw std::runtime_error("Unable to get quantum architecture from \"" +
+                             iqmServerUrl + "\".");
   }
 } // IQMServerHelper::fetchQuantumArchitecture()
 

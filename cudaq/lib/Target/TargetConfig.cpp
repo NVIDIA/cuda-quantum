@@ -9,6 +9,12 @@
 #include "cudaq/Target/TargetConfig.h"
 #include <regex>
 
+namespace {
+std::string configLocation(const std::filesystem::path &configPath) {
+  return configPath.empty() ? std::string{} : " in " + configPath.string();
+}
+} // namespace
+
 std::string cudaq::config::TargetConfig::getCodeGenSpec(
     const std::map<std::string, std::string> &targetArgs) const {
   // Check whether we have a per-machine config
@@ -58,4 +64,21 @@ std::string cudaq::config::TargetConfig::getCodeGenSpec(
 bool cudaq::config::BackendEndConfigEntry::hasPassPipeline() const {
   return !TargetPassPipeline.empty() || !JITHighLevelPipeline.empty() ||
          !JITMidLevelPipeline.empty() || !JITLowLevelPipeline.empty();
+}
+
+cudaq::config::TargetVersionCompatibilityResult
+cudaq::config::checkExternalTargetVersion(
+    const TargetConfig &config, std::string_view currentVersion,
+    const std::filesystem::path &configPath) {
+  if (config.CudaqVersion == currentVersion)
+    return {};
+
+  const auto pluginStr = config.CudaqVersion.empty() ? std::string("(unknown)")
+                                                     : config.CudaqVersion;
+  const auto currentStr = currentVersion.empty() ? std::string("(unknown)")
+                                                 : std::string(currentVersion);
+  return {TargetVersionCompatibility::Warning,
+          "warning: target '" + config.Name + "' was built for CUDA-Q " +
+              pluginStr + ", but the current CUDA-Q version is " + currentStr +
+              "; compatibility is not guaranteed" + configLocation(configPath)};
 }

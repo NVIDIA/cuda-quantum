@@ -40,6 +40,7 @@ if (${cuDensityMat_VERSION} VERSION_GREATER_EQUAL "0.4")
     CuDensityMatCallbackConverter.cpp
     CuDensityMatSuperOpCtor.cpp
     CuDensityMatUtils.cpp
+    CuDensityMatDeviceAllocator.cpp
   )
 
   message("CUDAToolkit_INCLUDE_DIRS: ${CUDAToolkit_INCLUDE_DIRS}")
@@ -72,8 +73,7 @@ if (${cuDensityMat_VERSION} VERSION_GREATER_EQUAL "0.4")
                         cudaq-operator
                         cuDensityMat::cuDensityMat
                       )
-  install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
-  add_target_config(dynamics)
+  install(TARGETS ${LIBRARY_NAME} DESTINATION lib COMPONENT Runtime)
 else()
   message(FATAL_ERROR "cuDensityMat version ${cuDensityMat_VERSION} is not supported. Please use version 0.4.0 or higher.")
 endif()

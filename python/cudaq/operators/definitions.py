@@ -43,7 +43,7 @@ class RydbergHamiltonian:
         amplitude: ScalarOperator,
         phase: ScalarOperator,
         delta_global: ScalarOperator,
-        atom_filling: typing.Optional[typing.Iterable[int]] = [],
+        atom_filling: typing.Optional[typing.Iterable[int]] = None,
         delta_local: typing.Optional[tuple[ScalarOperator,
                                            typing.Iterable[float]]] = None):
         """
@@ -65,7 +65,7 @@ class RydbergHamiltonian:
                          detuning  magnitude, h_k, a dimensionless number 
                          between 0.0 and 1.0
         """
-        if len(atom_filling) == 0:
+        if atom_filling is None or len(atom_filling) == 0:
             atom_filling = [1] * len(atom_sites)
         elif len(atom_sites) != len(atom_filling):
             raise ValueError(

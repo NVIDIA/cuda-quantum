@@ -24,7 +24,7 @@
 
 using namespace cudaq::ptsbe;
 
-namespace {
+namespace ptsbe_sample_tester {
 
 auto bellKernel = []() __qpu__ {
   cudaq::qvector q(2);
@@ -73,7 +73,9 @@ auto inlineNoiseKernel = []() __qpu__ {
   mz(q);
 };
 
-} // namespace
+} // namespace ptsbe_sample_tester
+
+using namespace ptsbe_sample_tester;
 
 // ============================================================================
 // TRACE CAPTURE TESTS

@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ --target quantinuum %s -o %t && %t || echo "passed" 2>&1 | FileCheck %s
+// RUN: if %quantinuum_avail; then nvq++ --target quantinuum %s -o %t && %t || echo "passed" 2>&1 | FileCheck %s; fi
 // clang-format on
 
 #include <cstdio>

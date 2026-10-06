@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "common/CompileOptions.h"
 #include "common/Future.h"
 #include "common/SampleResult.h"
 #include "cudaq/algorithms/sample/options.h"
@@ -47,6 +48,8 @@ struct sample_policy {
   friend sample_result
   finalize_simulation_circuit_impl(nvqir::CircuitSimulator &sim,
                                    const sample_policy &policy);
+
+  friend CompileOptions get_compile_options_impl(const sample_policy &);
 };
 
 using async_sample_policy = async_policy_wrapper<sample_policy>;

@@ -9,5 +9,7 @@
 # Backend dependencies required for running tests against hardware provider
 # mock servers (e.g., IQM, Scaleway). Pinned here so that all CI workflows
 # and coverage scripts reference a single source of truth.
-iqm-client==28.0.0
+-r requirements-mock-qpu.txt
+# No python 3.13 support below iqm-client 34.
+iqm-client==28.0.0; python_version < "3.13"
 qio~=0.1.33

@@ -102,5 +102,31 @@ int main() {
   std::printf("Decomposed DEM:\n%s\n", dem_decomposed.c_str());
   // [End Options]
 
+  // [Begin Measurement Matrices]
+  // Overloads taking cudaq::M2DSparseMatrix and cudaq::M2OSparseMatrix output
+  // references also populate the measurements-to-detectors (m2d) and
+  // measurements-to-observables (m2o) matrices. Both are filled in the same
+  // circuit pass that produces the DEM text. Each row lists the chronological
+  // measurement indices contributing to that detector / observable.
+  cudaq::M2DSparseMatrix m2d;
+  cudaq::M2OSparseMatrix m2o;
+  std::string dem_mm =
+      cudaq::dem_from_kernel(memory_experiment, &noise, m2d, m2o, /*rounds=*/2);
+  std::printf("m2d: %zu detectors x %zu measurements\n", m2d.rows.size(),
+              m2d.num_measurements);
+  std::printf("m2o: %zu observables x %zu measurements\n", m2o.rows.size(),
+              m2o.num_measurements);
+
+  // The measurement matrices can be combined with any DEM options by passing a
+  // cudaq::dem_options struct (as above) before the m2d/m2o output references.
+  cudaq::dem_options mm_opts;
+  mm_opts.decompose_errors = true;
+  cudaq::M2DSparseMatrix m2d_dec;
+  cudaq::M2OSparseMatrix m2o_dec;
+  std::string dem_mm_decomposed = cudaq::dem_from_kernel(
+      memory_experiment, &noise, mm_opts, m2d_dec, m2o_dec,
+      /*rounds=*/2);
+  // [End Measurement Matrices]
+
   return 0;
 }

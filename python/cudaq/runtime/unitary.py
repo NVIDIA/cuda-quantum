@@ -32,7 +32,7 @@ def get_unitary(kernel, *args):
         h(q[0])
         `cx(q[0], q[1])`
       U = cudaq.get_unitary(bell)
-     print(U)
+      print(U)
     """
     if isa_kernel_decorator(kernel):
         decorator = kernel
@@ -40,5 +40,5 @@ def get_unitary(kernel, *args):
         decorator = mk_decorator(kernel)
     processedArgs, module = decorator.prepare_call(*args)
     return cudaq_runtime.get_unitary_impl(decorator.uniqName, module,
-                                          decorator.cachedCompiledModule(),
+                                          decorator.compiledModuleCache(),
                                           *processedArgs)

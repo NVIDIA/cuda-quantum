@@ -9,8 +9,15 @@
 # Tests for per-arity gate count and depth metrics returned by
 # estimate_resources().
 
+from pathlib import Path
+
 import cudaq
 import pytest
+
+cudaq._register_target_config(
+    str(
+        Path(__file__).resolve().parents[1] / "targets" /
+        "compiler-bench-nisq.yml"))
 
 
 @pytest.fixture(scope="function", autouse=True)
@@ -66,6 +73,22 @@ def test_parallel_cx_disjoint_qubits():
     assert resources.depth == 1
     assert resources.gate_count_for_arity(2) == 2
     assert resources.depth_for_arity(2) == 1
+
+
+def test_t_depth_tracks_dependencies_and_parallel_layers():
+    """T-depth propagates dependencies through non-T operations."""
+    kernel = cudaq.make_kernel()
+    q = kernel.qalloc(3)
+    kernel.t(q[0])
+    kernel.t(q[1])
+    kernel.cx(q[0], q[2])
+    kernel.cx(q[1], q[2])
+    kernel.tdg(q[2])
+
+    resources = cudaq.estimate_resources(kernel)
+    assert resources.t_depth == 2
+    resources.clear()
+    assert resources.t_depth == 0
 
 
 def test_ccx_arity():
@@ -147,7 +170,7 @@ def test_multi_qvector_depth():
 
 
 def test_num_qubits_and_used_qubits():
-    """num_qubits = allocated, num_used_qubits = gate-touched."""
+    """Unused qubits are removed before resource counting."""
     cudaq.set_target('compiler-bench-nisq', device='path(5)')
     kernel = cudaq.make_kernel()
     q = kernel.qalloc(5)
@@ -155,5 +178,4 @@ def test_num_qubits_and_used_qubits():
 
     resources = cudaq.estimate_resources(kernel)
     assert resources.num_qubits == 2
-    assert resources.num_used_qubits <= 5
-    assert resources.num_used_qubits > 0
+    assert resources.num_used_qubits == 2

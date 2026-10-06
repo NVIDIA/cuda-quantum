@@ -230,7 +230,7 @@ inline void validateAngularEncodeSizes(std::optional<std::size_t> qSize,
 template <typename Kernel>
 void angular_encode(Kernel &&kernel, QuakeValue &q, QuakeValue &angles,
                     RotationAxis rotation = RotationAxis::Y) {
-  if (!angles.isStdVec())
+  if (!angles.isSequence())
     throw std::runtime_error(
         "cudaq.contrib.angular_encode: angles must be std::vector<double>");
 

@@ -19,8 +19,11 @@ MLIR_DECLARE_CAPI_DIALECT_REGISTRATION(Quake, quake);
 MLIR_DECLARE_CAPI_DIALECT_REGISTRATION(QEC, qec);
 MLIR_DECLARE_CAPI_DIALECT_REGISTRATION(CC, cc);
 
-// Register Quake, CC, and all upstream MLIR dialects into `context`.
-MLIR_CAPI_EXPORTED void cudaqRegisterAllDialects(MlirContext context);
+// Register Quake, CC, and relevant upstream MLIR dialects into `registry`.
+MLIR_CAPI_EXPORTED void cudaqRegisterAllDialects(MlirDialectRegistry registry);
+
+// Load Quake, CC, and relevant upstream MLIR dialects into `context`.
+MLIR_CAPI_EXPORTED void cudaqLoadAllDialects(MlirContext context);
 
 #ifdef __cplusplus
 }

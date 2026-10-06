@@ -25,13 +25,5 @@ target_link_libraries(${LIBRARY_NAME}
   PRIVATE ${PHOTONICS_DEPENDENCIES}
 )
 
-install(TARGETS ${LIBRARY_NAME}
-  EXPORT cudaq-em-photonics-targets
-  DESTINATION lib)
-
-install(EXPORT cudaq-em-photonics-targets
-        FILE CUDAQEmPhotonicsTargets.cmake
-        NAMESPACE cudaq::
-        DESTINATION lib/cmake/cudaq)
-
-add_target_config(orca-photonics)
+install(TARGETS ${LIBRARY_NAME} DESTINATION lib
+        COMPONENT Runtime)

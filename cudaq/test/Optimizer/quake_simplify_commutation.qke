@@ -1,0 +1,420 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.    //
+// ========================================================================== //
+
+// RUN: cudaq-opt --symbol-dce %s > %t.baseline
+// RUN: cudaq-opt --quake-simplify %s > %t.first
+// RUN: FileCheck %s < %t.first
+// RUN: cudaq-opt --symbol-dce %t.first | CircuitCheck --no-canonicalizer %t.baseline
+// RUN: cudaq-opt --quake-simplify %s > %t.second
+// RUN: diff %t.first %t.second
+
+func.func @cancel_x_across_rx() {
+  %angle = arith.constant 2.500000e-01 : f64
+  %q = quake.null_wire
+  %x0 = quake.x %q : (!quake.wire) -> !quake.wire
+  %rx = quake.rx (%angle) %x0 : (f64, !quake.wire) -> !quake.wire
+  %x1 = quake.x %rx : (!quake.wire) -> !quake.wire
+  quake.sink %x1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL: func.func @cancel_x_across_rx() {
+// CHECK-NOT:     quake.x
+// CHECK:         quake.rx
+// CHECK-NOT:     quake.x
+// CHECK:         return
+
+func.func @combine_r1_across_z() {
+  %angle = arith.constant 2.500000e-01 : f64
+  %q = quake.null_wire
+  %r0 = quake.r1 (%angle) %q : (f64, !quake.wire) -> !quake.wire
+  %z = quake.z %r0 : (!quake.wire) -> !quake.wire
+  %r1 = quake.r1 (%angle) %z : (f64, !quake.wire) -> !quake.wire
+  quake.sink %r1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL: func.func @combine_r1_across_z() {
+// CHECK:         %[[SUM:.*]] = arith.constant 5.000000e-01 : f64
+// CHECK:         %[[Z:.*]] = quake.z
+// CHECK-NEXT:    quake.r1 (%[[SUM]]) %[[Z]]
+// CHECK-NEXT:    quake.sink
+
+// Cancelling the controlled-X pair exposes the Rz pair to the same greedy
+// fixed point.
+func.func @fold_after_cancellation() {
+  %quarter = arith.constant 2.500000e-01 : f64
+  %half = arith.constant 5.000000e-01 : f64
+  %control = quake.null_wire
+  %target = quake.null_wire
+  %other = quake.null_wire
+  %r0 = quake.rz (%quarter) %target : (f64, !quake.wire) -> !quake.wire
+  %x0:2 = quake.x [%control] %r0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %z:2 = quake.z [%x0#0] %other : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %x1:2 = quake.x [%z#0] %x0#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %r1 = quake.rz (%half) %x1#1 : (f64, !quake.wire) -> !quake.wire
+  quake.sink %x1#0 : !quake.wire
+  quake.sink %r1 : !quake.wire
+  quake.sink %z#1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL: func.func @fold_after_cancellation() {
+// CHECK:         %[[SUM:.*]] = arith.constant 7.500000e-01 : f64
+// CHECK-NOT:     quake.x
+// CHECK:         quake.z
+// CHECK:         quake.rz (%[[SUM]])
+// CHECK-NOT:     quake.x
+// CHECK:         return
+
+func.func @cancel_compatible_controlled_targets() {
+  %angle = arith.constant 5.000000e-01 : f64
+  %control = quake.null_wire
+  %target = quake.null_wire
+  %x0:2 = quake.x [%control] %target : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %rx:2 = quake.rx (%angle) [%x0#0] %x0#1 : (f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %x1:2 = quake.x [%rx#0] %rx#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.sink %x1#0 : !quake.wire
+  quake.sink %x1#1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL: func.func @cancel_compatible_controlled_targets() {
+// CHECK-NOT:     quake.x
+// CHECK:         quake.rx
+// CHECK-NOT:     quake.x
+// CHECK:         return
+
+func.func @cancel_controlled_inverse_rx() {
+  %angle = arith.constant 2.500000e-01 : f64
+  %control = quake.null_wire
+  %target = quake.null_wire
+  %r0:2 = quake.rx (%angle) [%control] %target : (f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %r1:2 = quake.rx<adj> (%angle) [%r0#0 neg [false]] %r0#1 : (f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.sink %r1#0 : !quake.wire
+  quake.sink %r1#1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL: func.func @cancel_controlled_inverse_rx() {
+// CHECK:         %[[CONTROL:.*]] = quake.null_wire
+// CHECK-NEXT:    %[[TARGET:.*]] = quake.null_wire
+// CHECK-NOT:     quake.rx
+// CHECK:         quake.sink %[[CONTROL]]
+// CHECK-NEXT:    quake.sink %[[TARGET]]
+// CHECK-NEXT:    return
+
+func.func @cancel_mutually_exclusive_controls() {
+  %control = quake.null_wire
+  %target = quake.null_wire
+  %other = quake.null_wire
+  %x0:2 = quake.x [%control] %target : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %y:2 = quake.y [%x0#0 neg [true]] %other : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %x1:2 = quake.x [%y#0] %x0#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.sink %x1#0 : !quake.wire
+  quake.sink %x1#1 : !quake.wire
+  quake.sink %y#1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL: func.func @cancel_mutually_exclusive_controls() {
+// CHECK-NOT:     quake.x
+// CHECK:         quake.y {{\[}}{{.*}} neg [true]
+// CHECK-NOT:     quake.x
+// CHECK:         return
+
+func.func @combine_controlled_ry() {
+  %quarter = arith.constant 2.500000e-01 : f64
+  %half = arith.constant 5.000000e-01 : f64
+  %control = quake.null_wire
+  %target = quake.null_wire
+  %r0:2 = quake.ry (%quarter) [%control neg [true]] %target : (f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %z = quake.z %r0#0 : (!quake.wire) -> !quake.wire
+  %r1:2 = quake.ry (%half) [%z neg [true]] %r0#1 : (f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.sink %r1#0 : !quake.wire
+  quake.sink %r1#1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL: func.func @combine_controlled_ry() {
+// CHECK:         %[[SUM:.*]] = arith.constant 7.500000e-01 : f64
+// CHECK:         %[[Z:.*]] = quake.z
+// CHECK-NEXT:    quake.ry (%[[SUM]]) {{\[}}%[[Z]] neg [true]
+// CHECK-NEXT:    quake.sink
+
+func.func @combine_phased_rx() {
+  %one = arith.constant 1.000000e+00 : f64
+  %quarter = arith.constant 2.500000e-01 : f64
+  %axis = arith.constant 5.000000e-01 : f64
+  %control = quake.null_wire
+  %target = quake.null_wire
+  %other = quake.null_wire
+  %r0:2 = quake.phased_rx (%one, %axis) [%control neg [true]] %target : (f64, f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %z:2 = quake.z [%r0#0] %other : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %r1:2 = quake.phased_rx<adj> (%quarter, %axis) [%z#0 neg [true]] %r0#1 : (f64, f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.sink %r1#0 : !quake.wire
+  quake.sink %r1#1 : !quake.wire
+  quake.sink %z#1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL: func.func @combine_phased_rx() {
+// CHECK:         %[[SUM:.*]] = arith.constant 7.500000e-01 : f64
+// CHECK:         %[[Z:.*]]:2 = quake.z
+// CHECK-NEXT:    quake.phased_rx (%[[SUM]], {{.*}}) {{\[}}%[[Z]]#0 neg [true]
+// CHECK-NEXT:    quake.sink
+
+func.func @fold_discrete_phases() {
+  %angle = arith.constant 2.500000e-01 : f64
+  %control = quake.null_wire
+  %s_target = quake.null_wire
+  %t_target = quake.null_wire
+  %s0:2 = quake.s [%control neg [true]] %s_target : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %z = quake.z %s0#0 : (!quake.wire) -> !quake.wire
+  %s1:2 = quake.s [%z neg [true]] %s0#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %t0 = quake.t<adj> %t_target : (!quake.wire) -> !quake.wire
+  %rz = quake.rz (%angle) %t0 : (f64, !quake.wire) -> !quake.wire
+  %t1 = quake.t<adj> %rz : (!quake.wire) -> !quake.wire
+  quake.sink %s1#0 : !quake.wire
+  quake.sink %s1#1 : !quake.wire
+  quake.sink %t1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL: func.func @fold_discrete_phases() {
+// CHECK:         %[[Z:.*]] = quake.z
+// CHECK-NEXT:    quake.z {{\[}}%[[Z]] neg [true]
+// CHECK:         %[[RZ:.*]] = quake.rz
+// CHECK-NEXT:    quake.s<adj> %[[RZ]]
+// CHECK-NEXT:    quake.sink
+
+func.func @cancel_transposed_swap() {
+  %left = quake.null_wire
+  %right = quake.null_wire
+  %s0:2 = quake.swap %left, %right : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %s1:2 = quake.swap %s0#1, %s0#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.sink %s1#0 : !quake.wire
+  quake.sink %s1#1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL: func.func @cancel_transposed_swap() {
+// CHECK-NOT:     quake.swap
+// CHECK:         quake.sink
+// CHECK-NOT:     quake.swap
+// CHECK:         return
+
+func.func @preserve_different_phased_rx_axes() {
+  %quarter = arith.constant 2.500000e-01 : f64
+  %half = arith.constant 5.000000e-01 : f64
+  %three_quarters = arith.constant 7.500000e-01 : f64
+  %q = quake.null_wire
+  %r0 = quake.phased_rx (%half, %half) %q : (f64, f64, !quake.wire) -> !quake.wire
+  %r1 = quake.phased_rx (%quarter, %three_quarters) %r0 : (f64, f64, !quake.wire) -> !quake.wire
+  quake.sink %r1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL: func.func @preserve_different_phased_rx_axes() {
+// CHECK-COUNT-2: quake.phased_rx
+
+func.func @preserve_mismatched_polarity() {
+  %control = quake.null_wire
+  %target = quake.null_wire
+  %x0:2 = quake.x [%control] %target : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %x1:2 = quake.x [%x0#0 neg [true]] %x0#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.sink %x1#0 : !quake.wire
+  quake.sink %x1#1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL: func.func @preserve_mismatched_polarity() {
+// CHECK-COUNT-2: quake.x
+// CHECK:         neg [true]
+
+func.func @preserve_role_mismatch() {
+  %control = quake.null_wire
+  %target = quake.null_wire
+  %x0:2 = quake.x [%control] %target : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %x1:2 = quake.x [%x0#1] %x0#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.sink %x1#0 : !quake.wire
+  quake.sink %x1#1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL: func.func @preserve_role_mismatch() {
+// CHECK:         %[[ROLE_X0:.*]]:2 = quake.x
+// CHECK-NEXT:    %{{.*}}:2 = quake.x {{\[}}%[[ROLE_X0]]#1] %[[ROLE_X0]]#0
+
+func.func @preserve_direct_reference_alias() {
+  %reference = quake.alloca !quake.ref
+  %wire = quake.unwrap %reference : (!quake.ref) -> !quake.wire
+  %h0 = quake.h %wire : (!quake.wire) -> !quake.wire
+  quake.x %reference : (!quake.ref) -> ()
+  %h1 = quake.h %h0 : (!quake.wire) -> !quake.wire
+  quake.wrap %h1 to %reference : !quake.wire, !quake.ref
+  return
+}
+
+// CHECK-LABEL: func.func @preserve_direct_reference_alias() {
+// CHECK:         quake.h
+// CHECK:         quake.x
+// CHECK:         quake.h
+
+func.func @preserve_duplicate_unwrap_alias() {
+  %reference = quake.alloca !quake.ref
+  %wire0 = quake.unwrap %reference : (!quake.ref) -> !quake.wire
+  %wire1 = quake.unwrap %reference : (!quake.ref) -> !quake.wire
+  %h0 = quake.h %wire0 : (!quake.wire) -> !quake.wire
+  %x = quake.x %wire1 : (!quake.wire) -> !quake.wire
+  %h1 = quake.h %h0 : (!quake.wire) -> !quake.wire
+  quake.wrap %h1 to %reference : !quake.wire, !quake.ref
+  quake.sink %x : !quake.wire
+  return
+}
+
+// CHECK-LABEL: func.func @preserve_duplicate_unwrap_alias() {
+// CHECK:         quake.h
+// CHECK:         quake.x
+// CHECK:         quake.h
+
+func.func @preserve_inner_scope_alias() {
+  %reference = quake.alloca !quake.ref
+  %wire = quake.unwrap %reference : (!quake.ref) -> !quake.wire
+  %h0 = quake.h %wire : (!quake.wire) -> !quake.wire
+  %scope = cc.scope -> (!quake.wire) {
+    quake.x %reference : (!quake.ref) -> ()
+    %h1 = quake.h %h0 : (!quake.wire) -> !quake.wire
+    cc.continue %h1 : !quake.wire
+  }
+  quake.wrap %scope to %reference : !quake.wire, !quake.ref
+  return
+}
+
+// CHECK-LABEL: func.func @preserve_inner_scope_alias() {
+// CHECK:         quake.h
+// CHECK:         cc.scope
+// CHECK:           quake.x
+// CHECK:           quake.h
+
+func.func @preserve_outer_scope_alias() {
+  %reference = quake.alloca !quake.ref
+  %wire = quake.unwrap %reference : (!quake.ref) -> !quake.wire
+  %h0 = quake.h %wire : (!quake.wire) -> !quake.wire
+  quake.x %reference : (!quake.ref) -> ()
+  %scope = cc.scope -> (!quake.wire) {
+    %h1 = quake.h %h0 : (!quake.wire) -> !quake.wire
+    cc.continue %h1 : !quake.wire
+  }
+  quake.wrap %scope to %reference : !quake.wire, !quake.ref
+  return
+}
+
+// CHECK-LABEL: func.func @preserve_outer_scope_alias() {
+// CHECK:         quake.h
+// CHECK:         quake.x
+// CHECK:         cc.scope
+// CHECK:           quake.h
+
+quake.wire_set @duplicate_roles[1]
+
+// These functions are verifier-valid but intentionally excluded from strict
+// circuit comparison because they use the same physical qubit in two roles.
+func.func private @preserve_repeated_ssa_roles() {
+  %q = quake.null_wire
+  %x0:2 = quake.x [%q] %q : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %x1:2 = quake.x [%x0#0] %x0#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.sink %x1#0 : !quake.wire
+  quake.sink %x1#1 : !quake.wire
+  return
+}
+
+func.func private @preserve_borrowed_roles() {
+  %control = quake.borrow_wire @duplicate_roles[0] : !quake.wire
+  %target = quake.borrow_wire @duplicate_roles[0] : !quake.wire
+  %x0:2 = quake.x [%control] %target : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %x1:2 = quake.x [%x0#0] %x0#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.sink %x1#0 : !quake.wire
+  quake.sink %x1#1 : !quake.wire
+  return
+}
+
+// The endpoints act on the same physical qubits in the same roles, but only
+// the control lane reaches the earlier operation.
+func.func private @preserve_incomplete_frontier() {
+  %control = quake.alloca !quake.ref
+  %target = quake.alloca !quake.ref
+  %controlWire = quake.unwrap %control : (!quake.ref) -> !quake.wire
+  %targetWire0 = quake.unwrap %target : (!quake.ref) -> !quake.wire
+  %targetWire1 = quake.unwrap %target : (!quake.ref) -> !quake.wire
+  %x0:2 = quake.x [%controlWire] %targetWire0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %x1:2 = quake.x [%x0#0] %targetWire1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.sink %x0#1 : !quake.wire
+  quake.sink %x1#0 : !quake.wire
+  quake.sink %x1#1 : !quake.wire
+  return
+}
+
+// The earlier result branches, so the pair does not form a linear wire path.
+func.func private @preserve_branched_producer_result(%condition: i1) {
+  %q = quake.null_wire
+  %h0 = quake.h %q : (!quake.wire) -> !quake.wire
+  %h1 = quake.h %h0 : (!quake.wire) -> !quake.wire
+  cf.cond_br %condition, ^left(%h1 : !quake.wire),
+      ^right(%h1 : !quake.wire)
+^left(%left: !quake.wire):
+  quake.sink %h0 : !quake.wire
+  quake.sink %left : !quake.wire
+  return
+^right(%right: !quake.wire):
+  quake.sink %right : !quake.wire
+  return
+}
+
+// CHECK-LABEL: func.func private @preserve_repeated_ssa_roles() {
+// CHECK-COUNT-2: quake.x
+// CHECK-LABEL: func.func private @preserve_borrowed_roles() {
+// CHECK-COUNT-2: quake.x
+// CHECK-LABEL: func.func private @preserve_incomplete_frontier() {
+// CHECK-COUNT-2: quake.x
+// CHECK-LABEL: func.func private @preserve_branched_producer_result
+// CHECK-COUNT-2: quake.h
+
+// `CircuitCheck` cannot materialize ExpPauli matrices, so these remain focused
+// FileCheck owners. Even parity removes both X endpoints; odd parity retains Z.
+func.func private @even_pauli_parity() {
+  %angle = arith.constant 2.500000e-01 : f64
+  %q0 = quake.null_wire
+  %q1 = quake.null_wire
+  %x0 = quake.x %q0 : (!quake.wire) -> !quake.wire
+  %xx:2 = quake.exp_pauli (%angle) %x0, %q1 to "XX" : (f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %x1 = quake.x %xx#0 : (!quake.wire) -> !quake.wire
+  quake.sink %x1 : !quake.wire
+  quake.sink %xx#1 : !quake.wire
+  return
+}
+
+func.func private @odd_pauli_parity() {
+  %angle = arith.constant 2.500000e-01 : f64
+  %q = quake.null_wire
+  %z0 = quake.z %q : (!quake.wire) -> !quake.wire
+  %x = quake.exp_pauli (%angle) %z0 to "X" : (f64, !quake.wire) -> !quake.wire
+  %z1 = quake.z %x : (!quake.wire) -> !quake.wire
+  quake.sink %z1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL: func.func private @even_pauli_parity() {
+// CHECK-NOT:     quake.x
+// CHECK:         quake.exp_pauli
+// CHECK-NOT:     quake.x
+// CHECK:         return
+// CHECK-LABEL: func.func private @odd_pauli_parity() {
+// CHECK:         quake.z
+// CHECK:         quake.exp_pauli
+// CHECK:         quake.z

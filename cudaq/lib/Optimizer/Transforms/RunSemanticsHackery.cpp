@@ -69,7 +69,7 @@ public:
           fn, callOp.getCalleeAttr());
       auto calledFnTy = called.getFunctionType();
       if (!(calledFnTy.getResults().size() == 1 &&
-            isa<cudaq::cc::StdvecType>(calledFnTy.getResult(0))))
+            isa<cudaq::cc::SequenceType>(calledFnTy.getResult(0))))
         return;
       worklist.emplace_back(callOp, called);
       LLVM_DEBUG(llvm::dbgs() << "adding kernel: " << name << '\n');

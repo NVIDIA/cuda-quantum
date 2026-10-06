@@ -19,6 +19,7 @@
 #include "cudaq/qis/qkernel.h"
 #include "cudaq/qis/state.h"
 #include <complex>
+#include <exception>
 #include <vector>
 
 namespace cudaq {
@@ -74,15 +75,19 @@ auto runGetStateAsync(KernelFunctor &&wrappedKernel,
   QuantumTask wrapped = detail::make_copyable_function(
       [p = std::move(promise), qpu_id, &platform,
        func = std::forward<KernelFunctor>(wrappedKernel)]() mutable {
-        ExecutionContext context("extract-state");
-        // Indicate that this is an async exec
-        context.asyncExec = true;
-        context.qpuId = qpu_id;
-        // Set the platform and the qpu id.
-        platform.with_execution_context(context,
-                                        std::forward<KernelFunctor>(func));
-        // Extract state data
-        p.set_value(state(context.simulationState.release()));
+        try {
+          ExecutionContext context("extract-state");
+          // Indicate that this is an async exec
+          context.asyncExec = true;
+          context.qpuId = qpu_id;
+          // Set the platform and the qpu id.
+          platform.with_execution_context(context,
+                                          std::forward<KernelFunctor>(func));
+          // Extract state data
+          p.set_value(state(context.simulationState.release()));
+        } catch (...) {
+          p.set_exception(std::current_exception());
+        }
       });
 
   platform.enqueueAsyncTask(qpu_id, wrapped);

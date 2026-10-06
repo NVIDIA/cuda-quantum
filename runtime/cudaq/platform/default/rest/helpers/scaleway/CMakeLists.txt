@@ -22,7 +22,6 @@ target_sources(cudaq-rest-qpu
               ${SCALEWAY_SOURCES}
 )
 
-add_target_config(scaleway)
 
 add_library(cudaq-serverhelper-scaleway
             SHARED
@@ -34,9 +33,9 @@ target_link_libraries(cudaq-serverhelper-scaleway
     cudaq-common
     cudaq-logger
   PRIVATE
-    LLVMSupport
+    cudaqMLIR
     ZLIB::ZLIB
 )
 
-install(TARGETS cudaq-serverhelper-scaleway DESTINATION lib)
-
+install(TARGETS cudaq-serverhelper-scaleway DESTINATION lib
+        COMPONENT Runtime)
