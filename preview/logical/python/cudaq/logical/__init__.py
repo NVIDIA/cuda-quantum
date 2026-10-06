@@ -29,8 +29,7 @@ def _require_cudaq_core() -> None:
         raise ImportError(
             "cudaq.logical requires the CUDA-Q core bindings, which are not "
             "installed. Install it with "
-            'pip install "cudaq-logical[cu13]" (CUDA 13) or '
-            'pip install "cudaq-logical[cu12]" (CUDA 12), or with '
+            "pip install cudaq-logical, or install the complete product with "
             "pip install cudaq.")
 
 

@@ -12,7 +12,12 @@ CUDA-Q is a comprehensive framework for quantum programming. It features:
   technologies, including state-of-the-art simulator backends with NVIDIA
   cuQuantum and a number of different physical quantum processors (QPUs)
 
-The CUDA-Q Python wheels contain the Python API and core components of CUDA-Q.
+Install `cudaq` for the complete Python API. The metapackage selects a matching
+`cudaq-core` and CUDA-specific frontend, plus `cudaq-logical` on Linux.
+Extension authors can install `cudaq-core` directly for the native foundation
+and `cudaq.mlir` bindings without frontend execution or simulator dependencies.
+Core and frontend versions must match exactly; logical has its own version and
+pins the compatible core release.
 This package installs CUDA-Q binaries that are compatible with a CUDA version
 ${{ cuda_version_requirement }}. More information about available packages as
 well as a link to the documentation and examples for each version can be found
@@ -36,11 +41,11 @@ ${{ package_name }}`. Please make sure your `pip` version is \>= 24.0.
 
 ${{ deprecation_notice }}
 
-> **Important:**
-> Please check if you have an existing installation of the `cuda-quantum`,
-`cudaq-quantum-cu11`, `cuda-quantum-cu12`, or `cuda-quantum-cu13` package, and uninstall it prior to
- installation. Different CUDA-Q binary distributions may conflict with each
- other causing issues.
+Upgrade an existing `cudaq` installation with `pip install --upgrade cudaq`;
+no manual removal is needed when moving from combined to split wheels.
+Do not install both CUDA-specific frontend variants in the same environment.
+Users of the deprecated `cuda-quantum` metapackage should uninstall that package
+before switching to `cudaq`.
 
 Platform-specific instructions: <a href="#linux-gpu">Linux</a> | <a href="#macos">macOS</a>
 

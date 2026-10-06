@@ -17,10 +17,9 @@ requires-python = ">=3.11"
 license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE"]
 dependencies = [
-  # The base package is runtime-agnostic: the CUDA-Q runtime arrives through
-  # the cu12/cu13 extras below, and the much larger CUDA-Q development SDK
-  # wheel is installed only in the isolated CI build environment. Neither may
-  # ever appear in this list.
+  # Core supplies the IR bindings without frontend execution or CUDA dependencies.
+  # Release builds pin it to the tested CUDA-Q version; devel is build-time only.
+  "cudaq-core",
 ]
 classifiers = [
   'Intended Audience :: Science/Research',

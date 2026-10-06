@@ -138,15 +138,24 @@ endif()
 
 message(STATUS "Using LLVM ${LLVM_PACKAGE_VERSION} from ${LLVM_DIR}")
 message(STATUS "Using MLIR from ${MLIR_DIR}")
-message(STATUS "Shared MLIR:     ${CUDAQ_LIBRARY_DIR}")
+if(NOT CUDAQ_CORE_LIBRARY_DIR)
+  set(CUDAQ_CORE_LIBRARY_DIR "${CUDAQ_LIBRARY_DIR}")
+endif()
+message(STATUS "Shared MLIR:     ${CUDAQ_CORE_LIBRARY_DIR}")
 
 # --------------------------------------------------------------------------- #
 # Locate all required CUDA-Q Python binding libraries
 # --------------------------------------------------------------------------- #
 set(_cudaq_logical_mlir_capi
-  "${CUDAQ_LIBRARY_DIR}/libcudaqMLIRCAPI${CMAKE_SHARED_LIBRARY_SUFFIX}")
+  "${CUDAQ_CORE_LIBRARY_DIR}/libcudaqMLIRCAPI${CMAKE_SHARED_LIBRARY_SUFFIX}")
 set(_cudaq_logical_mlir_libs
   "${CUDAQ_LOGICAL_CUDAQ_PREFIX}/cudaq/mlir/_mlir_libs")
+if(EXISTS "${CUDAQ_LOGICAL_CUDAQ_PREFIX}/cudaq_core")
+  set(_cudaq_logical_mlir_libs
+    "${CUDAQ_LOGICAL_CUDAQ_PREFIX}/cudaq_core/cudaq/mlir/_mlir_libs")
+  # AddCUDAQ supplies the relative wheel RPATHs for split binding providers.
+  set(CUDAQ_BUILD_SPLIT_WHEELS ON)
+endif()
 find_file(_cudaq_logical_python_support
   NAMES
     "libMLIRPythonSupport-cudaq${CMAKE_SHARED_LIBRARY_SUFFIX}"
@@ -162,18 +171,18 @@ find_file(_cudaq_logical_nanobind
 
 if(NOT EXISTS "${_cudaq_logical_mlir_capi}")
   message(FATAL_ERROR
-    "CUDA-Q runtime wheel is missing libcudaqMLIRCAPI "
+    "CUDA-Q installation is missing libcudaqMLIRCAPI "
     "(expected ${_cudaq_logical_mlir_capi}).\n"
-    "Install the matching cudaq / cuda-quantum runtime wheel into the same "
+    "Install the matching cudaq-core wheel into the same "
     "environment as cudaq-devel, or point "
     "-DCUDAQ_INSTALL_PREFIX at a CUDA-Q "
     "prefix that includes the Python bindings.")
 endif()
 if(NOT _cudaq_logical_python_support)
   message(FATAL_ERROR
-    "CUDA-Q runtime wheel is missing MLIRPythonSupport-cudaq "
+    "CUDA-Q installation is missing MLIRPythonSupport-cudaq "
     "(expected under ${_cudaq_logical_mlir_libs}).\n"
-    "Install the matching cudaq / cuda-quantum runtime wheel into the same "
+    "Install the matching cudaq-core wheel into the same "
     "environment as cudaq-devel.")
 endif()
 

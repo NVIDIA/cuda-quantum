@@ -13,6 +13,7 @@ import csv
 import hashlib
 from importlib.metadata import Distribution
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
@@ -50,10 +51,16 @@ def install(wheel_dir: Path, prefix: Path):
             if not (staging / relative).is_dir():
                 raise ValueError(f"`cudaq.logical` wheel is missing {relative}")
 
-        # Install declared dependencies (including Python Stim), without extras.
-        if distribution.requires:
+        # The native installation already supplies core's libraries and bindings.
+        # Installing cudaq-core here would introduce a second MLIR instance.
+        requirements_to_install = [
+            requirement for requirement in distribution.requires or []
+            if not re.match(r"cudaq[-_]core\s*==", requirement, re.IGNORECASE)
+        ]
+        # Install external dependencies without frontend extras.
+        if requirements_to_install:
             requirements = Path(temporary) / "requirements.txt"
-            requirements.write_text("\n".join(distribution.requires) + "\n",
+            requirements.write_text("\n".join(requirements_to_install) + "\n",
                                     encoding="utf-8")
             pip_install("--break-system-packages", "-r", str(requirements))
 

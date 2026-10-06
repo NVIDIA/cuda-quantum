@@ -16,8 +16,8 @@
 #
 # Options:
 #   -i <dir>: Directory containing cudaq_devel*.whl (required)
-#   -r <dir>: Directory containing cuda-quantum-cu*.whl for co-install (optional;
-#             provides libcudaqMLIR that the extension links and loads). If
+#   -r <dir>: Directory containing frontend and core wheels for co-install (optional;
+#             core provides libcudaqMLIR that the extension links and loads). If
 #             omitted, pip will attempt to resolve the cudaq dependency from the index.
 #   -q: Skip the out-of-tree Python-extension smoke build (contents check only)
 
@@ -103,7 +103,9 @@ if [ -n "$runtime_dir" ]; then
   runtime_wheel=$(ls "$runtime_dir"/cuda_quantum_cu*.whl 2>/dev/null | head -1)
   if [ -n "$runtime_wheel" ]; then
     echo "Installing runtime wheel: $runtime_wheel"
-    pip install -q "$runtime_wheel"
+    core_wheel=$(find "$runtime_dir" -name 'cudaq_core-*.whl' -print -quit)
+    test -n "$core_wheel"
+    pip install -q "$core_wheel" "$runtime_wheel"
   fi
 fi
 
@@ -112,7 +114,7 @@ if [ -n "$runtime_wheel" ]; then
   pip install -q --no-deps "$devel_wheel"
 else
   echo "Warning: no runtime wheel provided (-r); letting pip resolve the cudaq" >&2
-  echo "         runtime dependency (which provides libcudaqMLIR) from the index." >&2
+  echo "         dependencies (including core's libcudaqMLIR) from the index." >&2
   echo "Installing devel wheel (resolving dependencies)"
   pip install -q "$devel_wheel"
 fi

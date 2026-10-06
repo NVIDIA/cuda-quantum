@@ -68,9 +68,20 @@ if $wheel_mode; then
     # PEP 639 places the entries of license-files in dist-info/licenses/,
     # preserving their relative paths.
     dist_info_licenses=$(ls -d "$site_packages"/cuda_quantum*.dist-info/licenses 2>/dev/null | head -1)
+    wheel_python_dirs="$site_packages/cudaq"
+    core_site_packages="$site_packages"
+    core_dir=$(python3 -c 'from pathlib import Path; from cudaq import core; print(Path(core.__file__).resolve().parent)' 2>/dev/null)
+    if [ -d "$core_dir/lib" ]; then
+        # Split wheels keep GMP/MPFR with core. Resolve the imported provider:
+        # user-site core and a virtual-environment frontend can have different roots.
+        lib_dir="$core_dir/lib"
+        core_site_packages=$(python3 -c 'from importlib.metadata import distribution; print(distribution("cudaq-core").locate_file(""))')
+        dist_info_licenses=$(ls -d "$core_site_packages"/cudaq_core*.dist-info/licenses 2>/dev/null | head -1)
+        wheel_python_dirs="$wheel_python_dirs ${core_dir%/core}"
+    fi
     licenses_dir="$dist_info_licenses/LICENSES"
     notice_file="$dist_info_licenses/NOTICE"
-    scan_dirs="$lib_dir $site_packages/cudaq"
+    scan_dirs="$site_packages/lib $wheel_python_dirs"
 else
     install_root="${1:-$CUDA_QUANTUM_PATH}"
     if [ -z "$install_root" ] || [ ! -d "$install_root" ]; then
@@ -122,8 +133,9 @@ static_copies=$(find $scan_dirs -name 'libgmp*.a' -o -name 'libmpfr*.a' 2>/dev/n
 [ -z "$static_copies" ]
 report $? "no static GMP/MPFR archives are shipped${static_copies:+ (found: $static_copies)}"
 if $wheel_mode; then
-    grafted_copies=$(find "$site_packages"/cuda_quantum*.libs "$site_packages/cudaq" \
-        \( -name 'libgmp*' -o -name 'libmpfr*' \) 2>/dev/null)
+    grafted_copies=$(find "$site_packages"/cuda_quantum*.libs \
+        "$core_site_packages"/cudaq_core.libs "$core_site_packages"/cudaq_core.dylibs $scan_dirs \
+        -path "$lib_dir" -prune -o \( -name 'libgmp*' -o -name 'libmpfr*' \) -print 2>/dev/null)
     [ -z "$grafted_copies" ]
     report $? "GMP/MPFR are shipped only at the documented lib path${grafted_copies:+ (grafted copies: $grafted_copies)}"
 fi
@@ -168,8 +180,8 @@ sym_pattern='__gmp|_?mpfr_'
 # extension modules live deeper inside the cudaq package, so scan that
 # subtree fully.
 if $wheel_mode; then
-    scan_files=$(find "$lib_dir" -maxdepth 1 \( -name '*.so*' -o -name '*.dylib' \) 2>/dev/null; \
-                 find "$site_packages/cudaq" \( -name '*.so*' -o -name '*.dylib' \) 2>/dev/null)
+    scan_files=$(find "$site_packages/lib" -maxdepth 1 \( -name '*.so*' -o -name '*.dylib' \) 2>/dev/null; \
+                 find $wheel_python_dirs \( -name '*.so*' -o -name '*.dylib' \) 2>/dev/null)
 else
     scan_files=$(find "$lib_dir" -maxdepth 1 \( -name '*.so*' -o -name '*.dylib' \) 2>/dev/null; \
                  find "$install_root/bin" -maxdepth 1 -type f 2>/dev/null)

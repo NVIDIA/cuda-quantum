@@ -341,20 +341,28 @@ endif()
 # add_cudaq_python_modules' SKBUILD RPATH helper. They live at
 # cudaq/mlir/_mlir_libs and cudaq/logical/_quake -- three levels below
 # platlib, the same depth as upstream cudaq/mlir/_mlir_libs -- so they need
-# $ORIGIN/../../../lib to reach the cudaq wheel's libcudaqMLIR.
+# a relative path to core's libcudaqMLIR (or lib/ in a native installation).
 # Extension DSOs go through add_cudaq_python_modules, which already appends
 # that path; do not override their RPATH here (that would drop MLIR's $ORIGIN).
 if(SKBUILD)
   if(APPLE)
+    set(_qlx_origin "@loader_path")
     set(_qlx_cudaq_runtime_rpaths
       "@loader_path"
       "@loader_path/../../../lib"
       "@loader_path/../../../cuda_quantum.libs")
   else()
+    set(_qlx_origin "$ORIGIN")
     set(_qlx_cudaq_runtime_rpaths
       "$ORIGIN"
       "$ORIGIN/../../../lib"
       "$ORIGIN/../../../cuda_quantum.libs")
+  endif()
+
+  if(CUDAQ_BUILD_SPLIT_WHEELS)
+    list(APPEND _qlx_cudaq_runtime_rpaths
+      "${_qlx_origin}/../../../cudaq_core/cudaq/core/lib"
+      "${_qlx_origin}/../../../cudaq_core/cudaq/mlir/_mlir_libs")
   endif()
 
   set(_qlx_cudaq_runtime_targets QLXPythonCAPI)
