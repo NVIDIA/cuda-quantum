@@ -56,7 +56,9 @@ typedef enum {
 /// cpu_roce_start() next.
 ///
 /// `forward`, `rx_only`, `tx_only`, `unified` are bool-as-int (0 = false,
-/// non-zero = true).  At most one may be true.
+/// non-zero = true).  At most one may be true.  `unified` selects the
+/// thread-free mode driven by cpu_roce_rx_poll / cpu_roce_tx_publish (see
+/// "Unified mode" below).
 ///
 /// `peer_rx_base_addr` and `peer_rx_rkey` are ignored unless `tx_mode` is
 /// CPU_ROCE_TX_MODE_RDMA_WRITE_WITH_IMM.  `peer_rx_base_addr` may be 0 (the
@@ -97,24 +99,36 @@ void cpu_roce_close(cpu_roce_transceiver_t handle);
 
 /// Spawn the configured I/O thread(s) and block until cpu_roce_close().
 /// Idempotent.  Throws on start() not having succeeded (returned to the
-/// C ABI as a return-without-blocking).
+/// C ABI as a return-without-blocking).  Returns immediately in unified
+/// mode, which has no I/O threads.
 void cpu_roce_blocking_monitor(cpu_roce_transceiver_t handle);
 
-/// Per-slot dispatch callback for unified mode.  Returns number of bytes
-/// written to tx_slot (0 = drop without sending).  See
-/// CpuRoceTransceiver::UnifiedDispatchFn in roce_transceiver.hpp.
-typedef size_t (*cpu_roce_unified_dispatch_fn_t)(void *context,
-                                                 const void *rx_slot,
-                                                 void *tx_slot,
-                                                 size_t slot_size);
+//==============================================================================
+// Unified mode (unified=1 at create)
+//
+// No I/O threads: the consumer's single dispatch thread drives the wire
+// through the two calls below, which must not be called concurrently.  Two
+// parts of the ring contract change:
+//   - rx_flags is UNUSED.  cpu_roce_rx_poll reports the slot by return value
+//     and a consumer never clears an rx flag, so slot occupancy is tracked
+//     through tx_flags alone (which is also what back-pressures the poll).
+//   - Slot addresses are derived: the request is at rx_data + slot*page_size
+//     and the response is sent from tx_data + slot*page_size.
+// Both return 0 unless the transceiver is unified and connected.  Stop
+// calling them before cpu_roce_close().
+//==============================================================================
 
-/// Install the unified-mode dispatch callback + opaque context.  No-op
-/// when the transceiver was not constructed with unified=1.  Caller
-/// retains ownership of `context`; it must outlive
-/// cpu_roce_blocking_monitor.
-void cpu_roce_set_unified_dispatch(cpu_roce_transceiver_t handle,
-                                   cpu_roce_unified_dispatch_fn_t fn,
-                                   void *context);
+/// Non-blocking.  Returns 1 and sets *out_slot when a request is in that RX
+/// slot; 0 when nothing has arrived, or when the arrived request's slot still
+/// has a response in flight (tx_flags[slot] != 0) -- that request is held,
+/// not lost, and returned by a later call once the flag clears.  Re-arms the
+/// slot's recv WQE on claim.  Never touches rx_flags.
+int cpu_roce_rx_poll(cpu_roce_transceiver_t handle, uint32_t *out_slot);
+
+/// Post TX slot `slot` to the peer (frame_size bytes, as the threaded TX path
+/// sends) with the tx_mode wire verb.  Slot-addressed, so responses may be
+/// published in any order.  Does NOT touch tx_flags.  Returns 1 on success.
+int cpu_roce_tx_publish(cpu_roce_transceiver_t handle, uint32_t slot);
 
 /// Optionally pin the local source GID to a specific IPv4 address (must be
 /// called before cpu_roce_setup/cpu_roce_start).  Unset/null/empty => first

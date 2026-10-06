@@ -182,27 +182,36 @@ jobs:
       - uses: actions/github-script@v9
         with:
           script: |
-            for (const environment of ['default', 'ghcr-ci']) {
+            // Keep the branches we deploy from; other refs are CI noise.
+            const keep = /^(main$|releases\/|staging\/|experimental\/|features\/)/
+            // Capped per environment: a shared cap is spent on `default`.
+            const perEnvironment = 10
+
+            for (const environment of ['default', 'ghcr-ci', 'ghcr-deployment']) {
+              let budget = perEnvironment;
               const deployments = await github.rest.repos.listDeployments({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                environment: environment
+                environment: environment,
+                per_page: 100
               });
-              await Promise.all(
-                deployments.data.map(async (deployment) => {
-                  await github.rest.repos.createDeploymentStatus({
+              for (const deployment of deployments.data) {
+                if (budget < 1) break;
+                if (environment === 'ghcr-deployment' && keep.test(deployment.ref))
+                  continue;
+                await github.rest.repos.createDeploymentStatus({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   deployment_id: deployment.id,
                   state: 'inactive'
-                  });
-                  return github.rest.repos.deleteDeployment({
+                });
+                await github.rest.repos.deleteDeployment({
                   owner: context.repo.owner,
                   repo: context.repo.repo,
                   deployment_id: deployment.id
-                  });
-                })
-              );
+                });
+                budget--;
+              }
             }
 
   pr_cleanup:

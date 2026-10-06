@@ -8,11 +8,12 @@
 
 get_filename_component(CUDAQ_COMMON_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
 
-set (CUDAQLogger_DIR "${CUDAQ_CMAKE_DIR}")
+set (CUDAQLogger_DIR "${CUDAQ_COMMON_CMAKE_DIR}")
 find_dependency(CUDAQLogger REQUIRED)
 
-set (CUDAQMlirRuntime_DIR "${CUDAQ_COMMON_CMAKE_DIR}")
-find_dependency(CUDAQMlirRuntime REQUIRED)
+# Common's public value types link the operator library, not the JIT runtime.
+set (CUDAQOperator_DIR "${CUDAQ_COMMON_CMAKE_DIR}")
+find_dependency(CUDAQOperator REQUIRED)
 
 set (CUDAQTargetCatalog_DIR "${CUDAQ_COMMON_CMAKE_DIR}/../CUDAQTargetCatalog")
 find_dependency(CUDAQTargetCatalog REQUIRED)

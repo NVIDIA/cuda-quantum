@@ -363,7 +363,7 @@ RUN gcc_packages=$(dnf list installed "gcc*" | sed '/Installed Packages/d' | cut
     dnf remove -y $gcc_packages && dnf clean all && \
     dnf install -y --nobest --setopt=install_weak_deps=False glibc-devel
 
-RUN if [ ! -x "$(command -v nvidia-smi)" ] || [ -z "$(nvidia-smi | egrep -o "CUDA Version: ([0-9]{1,}\.)+[0-9]{1,}")" ]; then \
+RUN if ! gpus=$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null) || [ -z "$gpus" ]; then \
         excludes="--label-exclude gpu_required"; \
     else \
         # Removing gcc packages remove the CUDA toolkit since it depends on them
@@ -376,7 +376,7 @@ RUN if [ ! -x "$(command -v nvidia-smi)" ] || [ -z "$(nvidia-smi | egrep -o "CUD
     ctest --output-on-failure --test-dir build $excludes
 
 ENV PATH="${PATH}:/usr/local/cuda/bin" 
-RUN if [ -x "$(command -v nvidia-smi)" ] && [ -n "$(nvidia-smi | egrep -o "CUDA Version: ([0-9]{1,}\.)+[0-9]{1,}")" ]; then \
+RUN if gpus=$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null) && [ -n "$gpus" ]; then \
         source /cuda-quantum/scripts/configure_build.sh install-cudart && \
         # Installing the CUDA compiler will install libstdc++ as well
         dnf install -y --nobest --setopt=install_weak_deps=False \

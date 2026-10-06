@@ -497,3 +497,108 @@ TEST_F(CuDensityMatStateTest, SplitBatchedStatePreservesLayoutMetadata) {
     delete splitState;
   }
 }
+
+namespace {
+std::vector<std::complex<double>> toHostVector(const CuDensityMatState &state) {
+  std::vector<std::complex<double>> data(state.get_element_count());
+  state.toHost(data.data(), data.size());
+  return data;
+}
+} // namespace
+
+TEST_F(CuDensityMatStateTest, MpiBufferLikeMatchesShapeWithSeparateStorage) {
+  for (const auto *data : {&stateVectorData, &densityMatrixData}) {
+    CuDensityMatState state(data->size(),
+                            cudaq::dynamics::createArrayGpu(*data));
+    state.initialize_cudm(handle, hilbertSpaceDims, /*batchSize=*/1);
+
+    auto buffer = CuDensityMatState::mpi_buffer_like(state);
+    ASSERT_NE(buffer, nullptr);
+    EXPECT_TRUE(buffer->is_initialized());
+    EXPECT_TRUE(buffer->has_same_shape(state));
+    EXPECT_EQ(buffer->is_density_matrix(), state.is_density_matrix());
+    EXPECT_EQ(buffer->get_element_count(), state.get_element_count());
+    EXPECT_NE(buffer->get_device_pointer(), state.get_device_pointer());
+
+    buffer->copy_from(state);
+    EXPECT_EQ(toHostVector(*buffer), *data);
+  }
+}
+
+TEST_F(CuDensityMatStateTest, CopyFromRejectsShapeMismatch) {
+  CuDensityMatState state(stateVectorData.size(),
+                          cudaq::dynamics::createArrayGpu(stateVectorData));
+  state.initialize_cudm(handle, hilbertSpaceDims, /*batchSize=*/1);
+  const std::vector<std::complex<double>> smallData = {{1.0, 0.0}, {0.0, 0.0}};
+  CuDensityMatState small(smallData.size(),
+                          cudaq::dynamics::createArrayGpu(smallData));
+  small.initialize_cudm(handle, {2}, /*batchSize=*/1);
+
+  EXPECT_FALSE(small.has_same_shape(state));
+  EXPECT_THROW(small.copy_from(state), std::invalid_argument);
+  EXPECT_THROW(state.copy_from(small), std::invalid_argument);
+}
+
+TEST_F(CuDensityMatStateTest, SetZeroAndZeroLike) {
+  CuDensityMatState state(densityMatrixData.size(),
+                          cudaq::dynamics::createArrayGpu(densityMatrixData));
+  state.initialize_cudm(handle, hilbertSpaceDims, /*batchSize=*/1);
+  const std::vector<std::complex<double>> zeros(densityMatrixData.size());
+
+  auto zero = CuDensityMatState::zero_like(state);
+  EXPECT_TRUE(zero.has_same_shape(state));
+  EXPECT_EQ(toHostVector(zero), zeros);
+  EXPECT_EQ(toHostVector(state), densityMatrixData);
+
+  state.set_zero();
+  EXPECT_EQ(toHostVector(state), zeros);
+}
+
+// Swapping moves ownership with the storage, so each buffer is freed exactly
+// once by whichever state holds it, whether it is an MPI buffer or not.
+TEST_F(CuDensityMatStateTest, SwapExchangesContentsAndStorage) {
+  const std::vector<std::complex<double>> otherData = {
+      {0.0, 0.0}, {0.0, 0.0}, {0.0, 0.0}, {1.0, 0.0}};
+  auto plain = std::make_unique<CuDensityMatState>(
+      stateVectorData.size(), cudaq::dynamics::createArrayGpu(stateVectorData));
+  plain->initialize_cudm(handle, hilbertSpaceDims, /*batchSize=*/1);
+  auto buffered = CuDensityMatState::mpi_buffer_like(*plain);
+  CuDensityMatState other(otherData.size(),
+                          cudaq::dynamics::createArrayGpu(otherData));
+  other.initialize_cudm(handle, hilbertSpaceDims, /*batchSize=*/1);
+  buffered->copy_from(other);
+
+  void *plainPtr = plain->get_device_pointer();
+  void *bufferedPtr = buffered->get_device_pointer();
+  plain->swap(*buffered);
+  EXPECT_EQ(plain->get_device_pointer(), bufferedPtr);
+  EXPECT_EQ(buffered->get_device_pointer(), plainPtr);
+  EXPECT_EQ(toHostVector(*plain), otherData);
+  EXPECT_EQ(toHostVector(*buffered), stateVectorData);
+
+  // The state now holding the MPI buffer can be used after the other is gone.
+  buffered.reset();
+  EXPECT_EQ(toHostVector(*plain), otherData);
+  plain->set_zero();
+  EXPECT_EQ(toHostVector(*plain),
+            std::vector<std::complex<double>>(otherData.size()));
+}
+
+TEST_F(CuDensityMatStateTest, MoveKeepsMpiBufferStorage) {
+  CuDensityMatState state(stateVectorData.size(),
+                          cudaq::dynamics::createArrayGpu(stateVectorData));
+  state.initialize_cudm(handle, hilbertSpaceDims, /*batchSize=*/1);
+  auto buffer = CuDensityMatState::mpi_buffer_like(state);
+  buffer->copy_from(state);
+  void *devicePtr = buffer->get_device_pointer();
+
+  CuDensityMatState moved(std::move(*buffer));
+  buffer.reset();
+  EXPECT_EQ(moved.get_device_pointer(), devicePtr);
+  EXPECT_EQ(toHostVector(moved), stateVectorData);
+
+  CuDensityMatState assigned = CuDensityMatState::zero_like(state);
+  assigned = std::move(moved);
+  EXPECT_EQ(assigned.get_device_pointer(), devicePtr);
+  EXPECT_EQ(toHostVector(assigned), stateVectorData);
+}
