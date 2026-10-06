@@ -280,6 +280,6 @@ jobs:
             | tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
           echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ noble main' \
             | tee /etc/apt/sources.list.d/kitware.list >/dev/null
-          apt update && apt install -y --no-install-recommends kitware-archive-keyring cmake
+          apt update && apt install -y --no-install-recommends kitware-archive-keyring cmake libibverbs1
           cd /workspace/realtime/build
           ctest -V
