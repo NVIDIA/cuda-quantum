@@ -19,6 +19,7 @@
 # Options:
 #   -c <cuda_version>: CUDA variant, 12 or 13 (Linux only)
 #   -d: Build cudaq-devel dev SDK instead of runtime wheel
+#   -s: Build separate core/frontend wheels (default: combined runtime wheel)
 #   -o <output_dir>: Output directory for wheels (default: dist)
 #   -a <assets_dir>: Directory containing external simulator assets (default: assets)
 #   -t: Run validation tests after build
@@ -56,17 +57,21 @@ install_toolchain=""
 incremental=false
 verbose=false
 build_devel=false
+build_split=false
 
 # Parse command line arguments
 __optind__=$OPTIND
 OPTIND=1
-while getopts ":c:o:a:tqpT:ivd" opt; do
+while getopts ":c:o:a:tqpT:ivds" opt; do
     case $opt in
     c)
         cuda_variant="$OPTARG"
         ;;
     d)
         build_devel=true
+        ;;
+    s)
+        build_split=true
         ;;
     o)
         output_dir="$OPTARG"
@@ -101,6 +106,11 @@ while getopts ":c:o:a:tqpT:ivd" opt; do
     esac
 done
 OPTIND=$__optind__
+
+if $build_split && $build_devel; then
+    echo "Split candidates and the devel SDK are separate builds." >&2
+    exit 1
+fi
 
 if $verbose; then
     echo "Verbose mode enabled"
@@ -170,6 +180,13 @@ fi
 echo "Using Python: $($python --version)"
 
 # Copy appropriate pyproject.toml
+if $build_split; then
+    # Restore source-development metadata (including its symlink, if any) on
+    # exit so subsequent `pip install .` builds a self-contained package.
+    pyproject_backup=$(mktemp -d)
+    cp -P pyproject.toml "$pyproject_backup/"
+    trap 'rm -f pyproject.toml; mv "$pyproject_backup/pyproject.toml" pyproject.toml; rmdir "$pyproject_backup"' EXIT
+fi
 rm -f pyproject.toml
 if $build_devel; then
     pyproject_src="pyproject.toml.devel"
@@ -187,7 +204,11 @@ else
         exit 1
     fi
     echo "Using pyproject: $pyproject_src"
-    cp -f "$pyproject_src" pyproject.toml 2>/dev/null || true
+    if $build_split; then
+        cp pyproject.toml.core pyproject.toml
+    else
+        cp -f "$pyproject_src" pyproject.toml 2>/dev/null || true
+    fi
 fi
 
 # Generate README.md from template (runtime wheels only)
@@ -353,6 +374,8 @@ fi
 # Find the built wheel
 if $build_devel; then
     wheel_glob="dist/cudaq_devel*.whl"
+elif $build_split; then
+    wheel_glob="dist/cudaq_core*.whl"
 else
     wheel_glob="dist/cuda_quantum*.whl"
 fi
@@ -362,6 +385,32 @@ if [ -z "$wheel_file" ]; then
     exit 1
 fi
 echo "Built wheel: $wheel_file"
+
+repair_wheels=("$wheel_file")
+if $build_split; then
+    # Both wheel distributions share one native build. The frontend pass only
+    # runs CMake install rules using the selected CUDA variant's metadata.
+    # BSD sed requires append text on a new line. Use one command so set -e
+    # catches metadata-generation failures.
+    sed -e "/^dependencies = \[/a\\
+  'cudaq-core==$SETUPTOOLS_SCM_PRETEND_VERSION'," \
+        -e 's|^wheel.packages = .*|wheel.packages = []|' \
+        -e 's|^install.components = .*|install.components = []|' \
+        -e 's|^build-dir = .*|build-dir = "_skbuild_frontend"|' \
+        -e '/^\[tool.scikit-build\]$/a\
+cmake.source-dir = "cmake/wheels/frontend"\
+wheel.exclude = ["cudaq/mlir/_mlir_libs/libnanobind-cudaq*"]' \
+        "$pyproject_src" > pyproject.toml
+    "$python" -m build --wheel
+    frontend_wheels=(dist/cuda_quantum*.whl)
+    repair_wheels+=("${frontend_wheels[0]}")
+fi
+
+# Frontend wheels resolve these libraries from core. Linux bundles OpenMP
+# through CMake; macOS lets delocate bundle and repair it in the core wheel.
+core_libraries=(cudaqMLIR cudaqMLIRCAPI cudaq-common cudaq-operator cudaq-logger
+                nvqir MLIRPythonSupport-cudaq nanobind-cudaq gomp omp)
+for wheel_file in "${repair_wheels[@]}"; do
 
 # Repair the wheel (bundle dependencies)
 echo "Repairing wheel..."
@@ -386,6 +435,22 @@ if [ "$platform" = "Darwin" ]; then
     if $build_devel; then
         delocate_extra="--ignore-missing-dependencies"
     fi
+    if $build_split; then
+        # Core repair must inspect its libraries to discover and bundle OpenMP.
+        # Frontend uses those providers instead of bundling additional copies.
+        if [[ "$wheel_file" != *"/cudaq_core-"* ]]; then
+            for library in "${core_libraries[@]}"; do
+                delocate_extra="$delocate_extra -e lib$library."
+            done
+            # The separate core wheel is not inside delocate's frontend staging tree.
+            export DYLD_LIBRARY_PATH="$(pwd)/_skbuild/lib:$(pwd)/_skbuild/python/cudaq/mlir/_mlir_libs${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}"
+        fi
+        # Resolve frontend's @rpath/libomp.dylib during repair. The exclusion
+        # preserves that reference; installed wheels find core's bundled copy.
+        if [ -n "$OpenMP_libomp_LIBRARY_PATH" ]; then
+            export DYLD_LIBRARY_PATH="${OpenMP_libomp_LIBRARY_PATH%/*}${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}"
+        fi
+    fi
     mkdir -p wheelhouse
     if $verbose; then
         echo "  Command: delocate-wheel -v -e libgmp -e libmpfr $delocate_extra -w wheelhouse $wheel_file"
@@ -395,7 +460,17 @@ if [ "$platform" = "Darwin" ]; then
     fi
 
     # Move repaired wheel to output
-    repaired_wheel=$(ls wheelhouse/cudaq_devel*.whl wheelhouse/cuda_quantum*.whl 2>/dev/null | head -1)
+    wheel_distribution=$(basename "$wheel_file" | cut -d- -f1)
+    repaired_wheel=$(find wheelhouse -maxdepth 1 -name "$wheel_distribution-*.whl" -print -quit)
+    # Frontend's OpenMP references require this exact location in the core wheel.
+    # Use CMake's compiler check so builds without usable OpenMP are unaffected.
+    if $build_split && [[ "$wheel_distribution" == "cudaq_core" ]] &&
+        grep -q '^CUDAQ_HAS_OPENMP_FLAG:INTERNAL=1$' _skbuild/CMakeCache.txt; then
+        if ! unzip -Z1 "$repaired_wheel" cudaq_core.dylibs/libomp.dylib >/dev/null 2>&1; then
+            echo "Error: Repaired core wheel is missing cudaq_core.dylibs/libomp.dylib" >&2
+            exit 1
+        fi
+    fi
     if [ -n "$repaired_wheel" ]; then
         mv "$repaired_wheel" "$output_dir/"
         echo "Repaired wheel: $output_dir/$(basename "$repaired_wheel")"
@@ -445,12 +520,18 @@ else
     if $build_devel; then
         auditwheel_args="$auditwheel_args --exclude libcudaqMLIR.so"
     fi
+    core_excludes=()
+    if $build_split; then
+        for library in "${core_libraries[@]}"; do
+            core_excludes+=(--exclude "lib$library.so*")
+        done
+    fi
 
     if $verbose; then
-        echo "  Command: auditwheel $auditwheel_args"
-        auditwheel -v $auditwheel_args
+        echo "  Command: auditwheel $auditwheel_args ${core_excludes[*]}"
+        auditwheel -v $auditwheel_args "${core_excludes[@]}"
     else
-        auditwheel $auditwheel_args
+        auditwheel $auditwheel_args "${core_excludes[@]}"
     fi
 
     # Move repaired wheel to output
@@ -471,6 +552,8 @@ else
     fi
     rm -rf "${auditwheel_tmp:?}"
 fi
+
+done
 
 echo "Done! Wheel available in $output_dir/"
 

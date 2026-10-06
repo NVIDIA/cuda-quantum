@@ -20,28 +20,28 @@ add_subdirectory(test)
 
 install(DIRECTORY cudaq
         DESTINATION include
-        COMPONENT Development
+        COMPONENT ${CUDAQ_CORE_DEVELOPMENT_COMPONENT}
         FILES_MATCHING PATTERN "*.h"
         PATTERN "device_call_service.h" EXCLUDE
         PATTERN "nlopt-src" EXCLUDE)
 install(DIRECTORY include/cudaq
         DESTINATION include
-        COMPONENT Development
+        COMPONENT ${CUDAQ_CORE_DEVELOPMENT_COMPONENT}
         FILES_MATCHING PATTERN "*.h")
 install(DIRECTORY common
         DESTINATION include
-        COMPONENT Development
+        COMPONENT ${CUDAQ_CORE_DEVELOPMENT_COMPONENT}
         FILES_MATCHING PATTERN "*.h")
 install(FILES nvqir/CircuitSimulator.h
                nvqir/Gates.h
                nvqir/QIRTypes.h
         DESTINATION include/nvqir
-        COMPONENT Development)
+        COMPONENT ${CUDAQ_CORE_DEVELOPMENT_COMPONENT})
 install(FILES nvqir/resourcecounter/ResourceCounterScope.h
         DESTINATION include/nvqir/resourcecounter
-        COMPONENT Development)
+        COMPONENT ${CUDAQ_CORE_DEVELOPMENT_COMPONENT})
 install(FILES nvqir/dem/DemScope.h
         DESTINATION include/nvqir/dem
-        COMPONENT Development)
+        COMPONENT ${CUDAQ_CORE_DEVELOPMENT_COMPONENT})
 install(FILES cudaq.h DESTINATION include
-        COMPONENT Development)
+        COMPONENT ${CUDAQ_CORE_DEVELOPMENT_COMPONENT})

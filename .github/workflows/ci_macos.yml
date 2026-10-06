@@ -149,7 +149,7 @@ jobs:
       - name: Initialize submodules (with retry)
         run: |
           retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
-          retry git submodule update --init --recursive
+          retry git submodule update --init --recursive --depth 1
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -246,7 +246,7 @@ jobs:
       - name: Initialize submodules (with retry)
         run: |
           retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
-          retry git submodule update --init --recursive
+          retry git submodule update --init --recursive --depth 1
 
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -446,7 +446,7 @@ jobs:
       - name: Initialize submodules (with retry)
         run: |
           retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
-          retry git submodule update --init --recursive
+          retry git submodule update --init --recursive --depth 1
 
       - name: Set up Python
         uses: actions/setup-python@v6

@@ -95,7 +95,6 @@ python="${PYTHON:-python3}"
 venv_dir=$(mktemp -d)
 smoke_dir=$(mktemp -d)
 "$python" -m venv "$venv_dir"
-# shellcheck source=/dev/null
 source "$venv_dir/bin/activate"
 pip install -q pip wheel 'nanobind>=2.12.0,<3'
 

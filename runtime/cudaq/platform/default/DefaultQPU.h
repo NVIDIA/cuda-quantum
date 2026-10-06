@@ -73,7 +73,7 @@ public:
   launchKernel(const ptsbe::sample_policy &policy, const CompiledModule &module,
                KernelArgs args) override;
 
-  CompileTarget getCompileTarget() override;
+  CompileTarget getCompileTarget(const RuntimeTarget *rt = nullptr) override;
 
   void configureExecutionContext(ExecutionContext &context) const override;
   void beginExecution() override;

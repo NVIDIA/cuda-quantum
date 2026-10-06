@@ -27,7 +27,7 @@ public:
   using BaseRemoteRESTQPU::getCompileTarget;
   using BaseRemoteRESTQPU::launchKernel;
 
-  CompileTarget getCompileTarget() override {
+  CompileTarget getCompileTarget(const RuntimeTarget * = nullptr) override {
     return {.overrideAOTCompilation = false};
   }
 

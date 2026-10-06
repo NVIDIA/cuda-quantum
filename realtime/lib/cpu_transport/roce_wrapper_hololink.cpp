@@ -29,16 +29,9 @@ using Transceiver = roce::CpuRoceTransceiver;
 // Hololink's ring accessors report 0 until setup(), so the adapter keeps the
 // create() geometry that the C accessors must return immediately.
 struct HololinkCpuRoceAdapter {
-  Transceiver::Mode mode = Transceiver::Mode::Duplex;
   std::size_t page_size = 0;
   std::uint32_t num_pages = 0;
   std::uint64_t peer_rx_base = 0;
-  // Set before blocking_monitor(); concurrent update and callback execution
-  // are unsupported.
-  cpu_roce_unified_dispatch_fn_t unified_dispatch = nullptr;
-  void *unified_context = nullptr;
-  // Declared last so ~CpuRoceTransceiver() waits for the monitor while the
-  // fields above are still alive.
   std::unique_ptr<Transceiver> transceiver;
 };
 
@@ -46,33 +39,24 @@ HololinkCpuRoceAdapter *as_adapter(cpu_roce_transceiver_t handle) {
   return static_cast<HololinkCpuRoceAdapter *>(handle);
 }
 
-// CUDA-Q receives Hololink's tx_capacity as slot_size; zero means Drop.
-Transceiver::UnifiedDispatchResult
-unified_dispatch_thunk(void *opaque, const void *rx_slot, std::size_t,
-                       void *tx_slot, std::size_t tx_capacity) {
-  auto *adapter = static_cast<HololinkCpuRoceAdapter *>(opaque);
-  if (!adapter->unified_dispatch)
-    return {Transceiver::UnifiedDispatchDisposition::Drop, 0};
-  const std::size_t bytes = adapter->unified_dispatch(
-      adapter->unified_context, rx_slot, tx_slot, tx_capacity);
-  return {bytes == 0 ? Transceiver::UnifiedDispatchDisposition::Drop
-                     : Transceiver::UnifiedDispatchDisposition::Send,
-          bytes};
-}
-
+// unified=1 is CUDA-Q's thread-free mode (cpu_roce_rx_poll /
+// cpu_roce_tx_publish).  Hololink's Mode::Unified is a different thing -- its
+// own loop around a per-slot callback -- and Hololink exposes no thread-free
+// poll/post, so the mode is refused rather than approximated.
 Transceiver::Mode select_mode(int forward, int rx_only, int tx_only,
                               int unified) {
   if ((forward != 0) + (rx_only != 0) + (tx_only != 0) + (unified != 0) > 1)
     throw std::invalid_argument(
         "forward / rx_only / tx_only / unified are mutually exclusive");
+  if (unified)
+    throw std::invalid_argument("unified (thread-free) mode is not supported "
+                                "by the Hololink CPU RoCE backend");
   if (forward)
     return Transceiver::Mode::Forward;
   if (rx_only)
     return Transceiver::Mode::Rx;
   if (tx_only)
     return Transceiver::Mode::Tx;
-  if (unified)
-    return Transceiver::Mode::Unified;
   return Transceiver::Mode::Duplex;
 }
 
@@ -122,12 +106,8 @@ cpu_roce_transceiver_t cpu_roce_create_transceiver(
     config.rx.slot_count = num_pages;
     config.tx.stride = page_size;
     config.tx.slot_count = num_pages;
-    // A Unified callback owns the whole slot and may return that many bytes;
-    // the other modes keep the legacy cu_frame_size SGE length.
-    const std::size_t payload_size =
-        config.mode == Transceiver::Mode::Unified ? page_size : frame_size;
-    config.rx.frame_layout.payload_size = payload_size;
-    config.tx.frame_layout.payload_size = payload_size;
+    config.rx.frame_layout.payload_size = frame_size;
+    config.tx.frame_layout.payload_size = frame_size;
 
     // CUDA-Q already requires matching peer geometry, so the peer's slot
     // pitch and depth are the local ones until connect() learns otherwise.
@@ -139,16 +119,10 @@ cpu_roce_transceiver_t cpu_roce_create_transceiver(
     config.peer.rx_slot_count = num_pages;
 
     auto adapter = std::make_unique<HololinkCpuRoceAdapter>();
-    adapter->mode = config.mode;
     adapter->page_size = page_size;
     adapter->num_pages = num_pages;
     adapter->peer_rx_base = peer_rx_base_addr;
     adapter->transceiver = std::make_unique<Transceiver>(std::move(config));
-    // Unified requires a callback before setup(), but the C caller may
-    // install the real one later; the thunk reads it at dispatch time.
-    if (adapter->mode == Transceiver::Mode::Unified)
-      adapter->transceiver->set_unified_dispatch(&unified_dispatch_thunk,
-                                                 adapter.get());
     return adapter.release();
   } catch (const std::exception &error) {
     report_failure("cpu_roce_create_transceiver", error);
@@ -157,9 +131,6 @@ cpu_roce_transceiver_t cpu_roce_create_transceiver(
 }
 
 void cpu_roce_destroy_transceiver(cpu_roce_transceiver_t handle) {
-  // The transceiver is the last adapter member, so it is destroyed first and
-  // ~CpuRoceTransceiver() waits for the monitor to leave blocking_monitor()
-  // before the Unified thunk's fields go away.
   delete as_adapter(handle);
 }
 
@@ -234,24 +205,17 @@ void cpu_roce_blocking_monitor(cpu_roce_transceiver_t handle) {
   } catch (const std::exception &error) {
     report_monitor_stall(error.what());
   } catch (...) {
-    // A Unified callback throwing a non-std exception would otherwise unwind
-    // through this extern "C" frame into CUDA-Q's monitor thread.
+    // A non-std exception would otherwise unwind through this extern "C"
+    // frame into CUDA-Q's monitor thread.
     report_monitor_stall("unknown monitor failure");
   }
 }
 
-void cpu_roce_set_unified_dispatch(cpu_roce_transceiver_t handle,
-                                   cpu_roce_unified_dispatch_fn_t fn,
-                                   void *context) {
-  if (!handle)
-    return;
-  auto *adapter = as_adapter(handle);
-  // The thunk is registered with Hololink only in Unified mode.
-  if (adapter->mode != Transceiver::Mode::Unified)
-    return;
-  adapter->unified_dispatch = fn;
-  adapter->unified_context = context;
-}
+// Unified mode is refused at create (see select_mode), so no handle ever
+// reaches these in that mode.
+int cpu_roce_rx_poll(cpu_roce_transceiver_t, std::uint32_t *) { return 0; }
+
+int cpu_roce_tx_publish(cpu_roce_transceiver_t, std::uint32_t) { return 0; }
 
 void cpu_roce_set_local_ip(cpu_roce_transceiver_t handle,
                            const char *local_ip) {

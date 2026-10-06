@@ -64,7 +64,11 @@ def count_qubits(qasm: str) -> int:
 
 
 def simulate_job(qasm: str, num_shots: int) -> dict[str, int]:
-    """Simulates a quantum job by generating random measurement outcomes based on the circuit."""
+    """Simulates a quantum job by generating random measurement outcomes based on the circuit.
+
+    Keys are reported the way qBraid reports them: classical bit 0 is the
+    rightmost character.
+    """
     num_qubits = count_qubits(qasm)
 
     measured_qubits = []
@@ -136,7 +140,10 @@ def simulate_job(qasm: str, num_shots: int) -> dict[str, int]:
 
         result = {k: v for k, v in new_result.items() if v > 0}
 
-    return result
+    # Up to here position i of every key is qubit i. qBraid reports keys with
+    # classical bit 0 rightmost, so reverse them; the helper reverses them back
+    # into CUDA-Q's qubit-0-leftmost order.
+    return {state[::-1]: n for state, n in result.items()}
 
 
 def poll_job_status(job_id: str) -> dict[str, Any]:

@@ -13,7 +13,7 @@
 // RUN: not nvq++ -DATOMIC_FREE_MEASUREMENT -c %s -o %t.o 2>&1 | FileCheck %s --check-prefix=MEASUREMENT
 // RUN: if %braket_avail; then not nvq++ --target braket --emulate -DATOMIC_FREE_MEASUREMENT %s -o %t.braket 2>&1 | FileCheck %s --check-prefix=MEASUREMENT; fi
 // RUN: if %oqc_avail; then not nvq++ --target oqc --emulate -DATOMIC_FREE_MEASUREMENT %s -o %t.oqc 2>&1 | FileCheck %s --check-prefix=MEASUREMENT; fi
-// RUN: not nvq++ --target quantinuum --emulate -DATOMIC_FREE_MEASUREMENT %s -o %t.quantinuum 2>&1 | FileCheck %s --check-prefix=MEASUREMENT
+// RUN: if %quantinuum_avail; then not nvq++ --target quantinuum --emulate -DATOMIC_FREE_MEASUREMENT %s -o %t.quantinuum 2>&1 | FileCheck %s --check-prefix=MEASUREMENT; fi
 //
 // The check runs before any lowering, so the diagnostic names this source file
 // and the offending line rather than a temporary Quake file.

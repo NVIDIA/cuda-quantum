@@ -36,8 +36,8 @@ public:
     }
   }
 
-  CompileTarget getCompileTarget() override {
-    auto target = BaseRemoteRESTQPU::getCompileTarget();
+  CompileTarget getCompileTarget(const RuntimeTarget *rt = nullptr) override {
+    auto target = BaseRemoteRESTQPU::getCompileTarget(rt);
     target.supportObservableMeasurements = true;
     return target;
   }

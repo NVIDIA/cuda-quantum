@@ -13,6 +13,9 @@
 
 namespace cudaq {
 
+/// Wrap a Python object as a RuntimeEndpoint.
+RuntimeEndpoint makeRuntimeEndpoint(nanobind::object obj);
+
 /// Create python bindings for C++ code in this compilation unit.
 void bindRuntimeEndpoint(nanobind::module_ &mod);
 

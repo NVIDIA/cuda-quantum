@@ -1286,6 +1286,10 @@ static LogicalResult getParameterAsDouble(Value parameter, double &result) {
   return failure();
 }
 
+void cudaq::quake::ExpPauliOp::getOperatorMatrix(Matrix &matrix) {
+  matrix.clear();
+}
+
 void cudaq::quake::HOp::getOperatorMatrix(Matrix &matrix) {
   using namespace llvm::numbers;
   matrix.assign({inv_sqrt2, inv_sqrt2, inv_sqrt2, -inv_sqrt2});
@@ -1734,21 +1738,6 @@ void cudaq::quake::EvinceOp::getCanonicalizationPatterns(
 
 bool cudaq::quake::isScalarQubitTarget(Value target) {
   return isa<cudaq::quake::RefType, cudaq::quake::WireType>(target.getType());
-}
-
-std::optional<cudaq::quake::StaticQubitTarget>
-cudaq::quake::findLastStaticQubitTarget(ValueRange targets) {
-  return findLastStaticQubitTarget(
-      targets, [](const StaticQubitTarget &) { return true; });
-}
-
-Value cudaq::quake::materializeStaticQubitTarget(
-    OpBuilder &builder, Location location, const StaticQubitTarget &target) {
-  if (!target.elementIndex)
-    return target.source;
-  return cudaq::quake::ExtractRefOp::create(builder, location, target.source,
-                                            *target.elementIndex)
-      .getResult();
 }
 
 bool cudaq::quake::hasUnresolvedControlVeq(ValueRange controls) {

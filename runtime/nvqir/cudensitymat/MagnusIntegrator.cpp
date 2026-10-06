@@ -25,6 +25,8 @@ magnus_expansion::magnus_expansion(int num_taylor_terms,
   if (m_num_taylor_terms < 1)
     throw std::invalid_argument(
         "magnus_expansion integrator requires at least 1 Taylor term.");
+  if (m_dt.has_value() && !(*m_dt > 0.0))
+    throw std::invalid_argument("max_step_size must be positive.");
 }
 
 std::shared_ptr<base_integrator> magnus_expansion::clone() {
@@ -32,7 +34,9 @@ std::shared_ptr<base_integrator> magnus_expansion::clone() {
   clone->m_num_taylor_terms = this->m_num_taylor_terms;
   clone->m_dt = this->m_dt;
   clone->m_t = this->m_t;
-  clone->m_state = this->m_state;
+  // Integration updates the state in place, so the clone needs its own copy.
+  if (m_state)
+    cudmIntHelp::setState(clone->m_state, clone->m_t, *m_state, m_t);
   clone->m_system = this->m_system;
   clone->m_schedule = this->m_schedule;
   return clone;
@@ -50,30 +54,37 @@ void magnus_expansion::integrate(double targetTime) {
   cudaq::dynamics::PerfMetricScopeTimer metricTimer(
       "magnus_expansion::integrate");
   cudmIntHelp::ensureStepper(m_stepper, m_state, m_system, m_schedule);
+  auto &stepper = cudmIntHelp::asCudmStepper(m_stepper);
 
-  while (m_t < targetTime) {
-    const double step_size =
-        cudmIntHelp::computeStepSize(m_t, targetTime, m_dt);
+  const double startTime = m_t;
+  const auto numSubSteps =
+      cudmIntHelp::subStepCount(startTime, targetTime, m_dt);
+  for (std::int64_t subStep = 1; subStep <= numSubSteps; ++subStep) {
+    const double nextTime =
+        cudmIntHelp::subStepTime(startTime, targetTime, subStep, numSubSteps);
+    const double step_size = nextTime - m_t;
     auto &castSimState = *cudmIntHelp::asCudmState(*m_state);
 
     const double t_mid = m_t + step_size / 2.0;
     auto params_mid = cudmIntHelp::scheduleParamsAt(m_schedule, t_mid);
 
-    auto result = CuDensityMatState::clone(castSimState);
-    cudaq::state v(CuDensityMatState::clone(castSimState).release());
+    auto &result = stepper.workspaceState(0, castSimState);
+    auto *v = &stepper.workspaceState(1, castSimState);
+    auto *Lv = &stepper.workspaceState(2, castSimState);
+    result.copy_from(castSimState);
+    v->copy_from(castSimState);
 
     for (int k = 1; k <= m_num_taylor_terms; ++k) {
-      auto Lv = m_stepper->compute(v, t_mid, params_mid);
-      auto &Lv_cudm = *cudmIntHelp::asCudmState(Lv);
+      stepper.computeInto(*v, *Lv, t_mid, params_mid);
 
-      Lv_cudm *= (step_size / static_cast<double>(k));
-      result->accumulate_inplace(Lv_cudm, 1.0);
+      *Lv *= (step_size / static_cast<double>(k));
+      result.accumulate_inplace(*Lv, 1.0);
 
-      v = std::move(Lv);
+      std::swap(v, Lv);
     }
 
-    m_state = std::make_shared<cudaq::state>(result.release());
-    m_t += step_size;
+    castSimState.swap(result);
+    m_t = nextTime;
   }
 }
 

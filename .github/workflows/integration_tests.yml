@@ -91,6 +91,7 @@ jobs:
     environment:
       name: ghcr-deployment
       url: ${{ vars.deployment_url }}
+      deployment: false
 
     outputs:
       cudaq_test_image: ${{ steps.vars.outputs.cudaq_nightly_image }}@${{ steps.test_image.outputs.digest }}

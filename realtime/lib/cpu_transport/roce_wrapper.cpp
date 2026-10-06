@@ -105,16 +105,12 @@ void cpu_roce_blocking_monitor(cpu_roce_transceiver_t handle) {
   }
 }
 
-void cpu_roce_set_unified_dispatch(cpu_roce_transceiver_t handle,
-                                   cpu_roce_unified_dispatch_fn_t fn,
-                                   void *context) {
-  if (!handle)
-    return;
-  // The C and C++ function pointer types have identical signatures
-  // (size_t/std::size_t are the same; void* are the same) so a direct
-  // reinterpret is safe.
-  as_cpp(handle)->set_unified_dispatch(
-      reinterpret_cast<CpuRoceTransceiver::UnifiedDispatchFn>(fn), context);
+int cpu_roce_rx_poll(cpu_roce_transceiver_t handle, uint32_t *out_slot) {
+  return handle && as_cpp(handle)->rx_poll(out_slot) ? 1 : 0;
+}
+
+int cpu_roce_tx_publish(cpu_roce_transceiver_t handle, uint32_t slot) {
+  return handle && as_cpp(handle)->tx_publish(slot) ? 1 : 0;
 }
 
 void cpu_roce_set_local_ip(cpu_roce_transceiver_t handle,

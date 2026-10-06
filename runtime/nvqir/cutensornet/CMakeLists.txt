@@ -28,22 +28,19 @@ if (${cuTensorNet_VERSION} VERSION_GREATER_EQUAL "2.12.1")
   set (BASE_TENSOR_BACKEND_SRS tensornet_utils.cpp)
 
   # Helper macro to add cutensornet-based backends
-  macro (nvqir_create_cutn_plugin LIBRARY_NAME CREATE_TARGET_CONFIG)
+  macro (nvqir_create_cutn_plugin LIBRARY_NAME)
     # This will create a target named ${LIBRARY_NAME}
     add_library(nvqir-${LIBRARY_NAME} SHARED ${ARGN})
     target_include_directories(nvqir-${LIBRARY_NAME} PRIVATE ${CMAKE_SOURCE_DIR}/runtime/common ${CMAKE_SOURCE_DIR}/runtime/nvqir ${CUDAToolkit_INCLUDE_DIRS})
     target_link_libraries(nvqir-${LIBRARY_NAME} PRIVATE fmt::fmt-header-only cudaq-logger cudaq cudaq-common cuTensorNet::cuTensorNet cuTensor::cuTensor CUDA::cudart_static)
     install(TARGETS nvqir-${LIBRARY_NAME} DESTINATION lib
         COMPONENT Runtime)
-    if (${CREATE_TARGET_CONFIG})
-      add_target_config(${LIBRARY_NAME})
-    endif()
   endmacro()
 
-  nvqir_create_cutn_plugin(tensornet TRUE ${BASE_TENSOR_BACKEND_SRS} simulator_tensornet_fp64_register.cpp)
-  nvqir_create_cutn_plugin(tensornet-mps TRUE ${BASE_TENSOR_BACKEND_SRS} simulator_mps_fp64_register.cpp)
-  nvqir_create_cutn_plugin(tensornet-fp32 FALSE ${BASE_TENSOR_BACKEND_SRS} simulator_tensornet_fp32_register.cpp)
-  nvqir_create_cutn_plugin(tensornet-mps-fp32 FALSE ${BASE_TENSOR_BACKEND_SRS} simulator_mps_fp32_register.cpp)
+  nvqir_create_cutn_plugin(tensornet ${BASE_TENSOR_BACKEND_SRS} simulator_tensornet_fp64_register.cpp)
+  nvqir_create_cutn_plugin(tensornet-mps ${BASE_TENSOR_BACKEND_SRS} simulator_mps_fp64_register.cpp)
+  nvqir_create_cutn_plugin(tensornet-fp32 ${BASE_TENSOR_BACKEND_SRS} simulator_tensornet_fp32_register.cpp)
+  nvqir_create_cutn_plugin(tensornet-mps-fp32 ${BASE_TENSOR_BACKEND_SRS} simulator_mps_fp32_register.cpp)
   add_library(tensornet-mpi-util OBJECT mpi_support.cpp)
   target_include_directories(tensornet-mpi-util PRIVATE ${CUDAToolkit_INCLUDE_DIRS} ${CMAKE_SOURCE_DIR}/runtime)
   target_link_libraries(tensornet-mpi-util PRIVATE cudaq-common cudaq-logger cuTensorNet::cuTensorNet)

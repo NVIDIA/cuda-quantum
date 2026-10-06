@@ -43,12 +43,32 @@ if(POLICY CMP0116)
   cmake_policy(SET CMP0116 NEW)
 endif()
 
+# CMP0177: install() DESTINATION paths are normalized.
+# New in CMake 3.31. https://cmake.org/cmake/help/latest/policy/CMP0177.html
+if(POLICY CMP0177)
+  cmake_policy(SET CMP0177 NEW)
+endif()
+
 # Project setup
 # ==============================================================================
 project(cudaq LANGUAGES CXX C)
 
 # By default, install everything to the "Runtime" component.
 set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME Runtime)
+
+# By default, the core library and development components are set for a combined wheel 
+# (e.g., build from source).
+option(CUDAQ_BUILD_SPLIT_WHEELS "Build separate core and frontend wheels" OFF)
+set(CUDAQ_CORE_LIBRARY_COMPONENT Runtime)
+set(CUDAQ_CORE_DEVELOPMENT_COMPONENT Development)
+set(CUDAQ_CORE_EXPORT_SET cudaq-targets)
+set(CUDAQ_CORE_CAPI_COMPONENT CUDAQuantumPythonModules)
+if(CUDAQ_BUILD_SPLIT_WHEELS)
+  set(CUDAQ_CORE_LIBRARY_COMPONENT Core)
+  set(CUDAQ_CORE_DEVELOPMENT_COMPONENT Core)
+  set(CUDAQ_CORE_EXPORT_SET cudaq-core-targets)
+  set(CUDAQ_CORE_CAPI_COMPONENT Core)
+endif()
 
 # Always install to `lib`. This avoids the `lib` vs `lib64` mismatch depending
 # on distribution.
@@ -190,6 +210,16 @@ endif()
 # Enable qBraid target by default.
 if (NOT DEFINED CUDAQ_ENABLE_QBRAID_BACKEND)
   set(CUDAQ_ENABLE_QBRAID_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the qBraid target.")
+endif()
+
+# Enable Quantinuum target by default.
+if (NOT DEFINED CUDAQ_ENABLE_QUANTINUUM_BACKEND)
+  set(CUDAQ_ENABLE_QUANTINUUM_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the Quantinuum target.")
+endif()
+
+# Enable Infleqtion target by default.
+if (NOT DEFINED CUDAQ_ENABLE_INFLEQTION_BACKEND)
+  set(CUDAQ_ENABLE_INFLEQTION_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the Infleqtion target.")
 endif()
 
 # =============================================================================
@@ -487,6 +517,21 @@ else()
   SET(CMAKE_INSTALL_RPATH "$ORIGIN:$ORIGIN/lib:$ORIGIN/lib/plugins:$ORIGIN/../lib:$ORIGIN/../lib/plugins:$ORIGIN/../cudaq/mlir/_mlir_libs:$ORIGIN/../python/cudaq/mlir/_mlir_libs")
 endif()
 
+if(CUDAQ_BUILD_SPLIT_WHEELS)
+  # Use build-tree paths during development, and do not automatically append
+  # linker search directories to the installed wheel's relative loader paths.
+  set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
+  set(CMAKE_INSTALL_RPATH_USE_LINK_PATH FALSE)
+  if(APPLE)
+    set(_wheel_origin "@loader_path")
+  else()
+    set(_wheel_origin "$ORIGIN")
+  endif()
+  list(APPEND CMAKE_INSTALL_RPATH
+    "${_wheel_origin}/../cudaq_core/cudaq/core/lib"
+    "${_wheel_origin}/../cudaq_core/cudaq/mlir/_mlir_libs")
+endif()
+
 if(NOT SKBUILD)
   install(DIRECTORY LICENSES DESTINATION .)
 endif()
@@ -554,12 +599,6 @@ if (CUDAQ_STATIC_DEPS)
   set(CURL_USE_STATIC_LIBS TRUE)
   message(STATUS "Static external dependencies enabled.")
 endif()
-
-# ZLIB is required when we build LLVM with zlib support. ZLIB support in LLVM is
-# good to have e.g. for the linker, since some binaries will use zlib
-# compression to store symbols.
-find_package(ZLIB REQUIRED)
-include(ExternalProject)
 
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE "Release" CACHE STRING "Choose Release or Debug" FORCE)
@@ -632,7 +671,10 @@ if(NOT LLVM_DIR)
   if(LLVM_CONFIG_RESULT)
     message(FATAL_ERROR
       "Could not find suitable llvm-config(-${LLVM_VERSION_MAJOR}).\
-      \nTry providing valid -DLLVM_DIR=/path/to/llvm/lib/cmake/llvm.")
+      \nTry providing valid -DLLVM_DIR=/path/to/llvm/lib/cmake/llvm, \
+      \nor build LLVM/MLIR/Clang from the tpls/llvm submodule by running \
+      \nbash scripts/build_llvm.sh (see that script for options, e.g. \
+      \nLLVM_INSTALL_PREFIX) and then set -DLLVM_DIR=$LLVM_INSTALL_PREFIX/lib/cmake/llvm.")
   else()
     find_package(LLVM ${LLVM_VERSION_MAJOR}.${LLVM_VERSION_MINOR} REQUIRED CONFIG
       HINTS ${LLVM_CONFIG_CMAKE_DIR} NO_DEFAULT_PATH)
@@ -658,6 +700,12 @@ endif()
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 message(STATUS "Using ClangConfig.cmake in: ${Clang_DIR}")
 message(STATUS "Using MLIRConfig.cmake in: ${MLIR_DIR}")
+
+# ZLIB is required when we build LLVM with zlib support. ZLIB support in LLVM is
+# good to have e.g. for the linker, since some binaries will use zlib
+# compression to store symbols.
+find_package(ZLIB REQUIRED)
+include(ExternalProject)
 
 # Detect C++ standard library headers for cudaq-quake
 # cudaq-quake needs to find C++ stdlib headers for parsing user code.
@@ -815,20 +863,17 @@ endif()
 # Third-party libraries (tpls)
 # ==============================================================================
 set(FMT_INSTALL ON)
-cmake_policy(PUSH)
-# CMP0146: The FindCUDA module is removed.
-# CMake 3.27 and above no longer provide the modules.
-# https://cmake.org/cmake/help/latest/policy/CMP0146.html
-if(POLICY CMP0146)
-  cmake_policy(SET CMP0146 OLD)
-endif()
 add_subdirectory(tpls/fmt)
-cmake_policy(POP)
 include_directories(SYSTEM tpls/json/single_include)
 include_directories(SYSTEM tpls/json/single_include_fwd)
 install(FILES tpls/json/single_include_fwd/nlohmann/json_fwd.hpp
   DESTINATION include/nlohmann
-  COMPONENT Development)
+  COMPONENT ${CUDAQ_CORE_DEVELOPMENT_COMPONENT})
+if(CUDAQ_BUILD_SPLIT_WHEELS)
+  # Public backend headers include json.hpp as well as the forward declarations.
+  install(FILES tpls/json/single_include/nlohmann/json.hpp
+    DESTINATION include/nlohmann COMPONENT Core)
+endif()
 
 # Add spdlog
 #
@@ -866,7 +911,8 @@ set(BUILD_SHARED_LIBS ${CUDAQ_SAVED_BUILD_SHARED_LIBS})
 unset(CUDAQ_SAVED_BUILD_SHARED_LIBS)
 target_compile_options(spdlog PRIVATE -Wno-covered-switch-default)
 if (CUDAQ_SPDLOG_BUILD_SHARED AND CUDAQ_INSTALL_SPDLOG)
-  install(TARGETS spdlog DESTINATION lib)
+  install(TARGETS spdlog DESTINATION lib
+    COMPONENT ${CUDAQ_CORE_LIBRARY_COMPONENT})
 endif()
 
 if (OPENSSL_FOUND AND CUDAQ_ENABLE_REST)
@@ -875,12 +921,12 @@ if (OPENSSL_FOUND AND CUDAQ_ENABLE_REST)
 
   if (CURL_FOUND)
     message(STATUS "Using system curl for CPR.")
-    set(CPR_FORCE_USE_SYSTEM_CURL TRUE)
+    set(CPR_USE_SYSTEM_CURL TRUE)
   elseif (CMAKE_USE_SYSTEM_CURL)
     message(FATAL_ERROR "CMAKE_USE_SYSTEM_CURL defined but a suitable package was not found. Make sure that `curl-config --protocols` lists HTTP and HTTPS.")
   else()
     message(STATUS "Curl not found. Building curl for CPR.")
-    set(CPR_FORCE_USE_SYSTEM_CURL FALSE)
+    set(CPR_USE_SYSTEM_CURL FALSE)
   endif()
 
   # Now, build CPR as needed
@@ -1063,6 +1109,10 @@ foreach(_cudaq_ext_proj IN LISTS CUDAQ_EXTERNAL_PROJECTS)
                    "${CMAKE_BINARY_DIR}/external/${_cudaq_ext_proj}")
 endforeach()
 
+if("cudaq" IN_LIST CUDAQ_ENABLE_PROJECTS)
+  cudaq_finalize_target_database()
+endif()
+
 if(CUDAQ_BUILD_TESTS AND NOT CUDAQ_DISABLE_CPP_FRONTEND)
   include(CheckCXXCompilerFlag)
   umbrella_lit_testsuite_begin(check-all)
@@ -1103,6 +1153,10 @@ if(CUDAQ_BUILD_TESTS AND NOT CUDAQ_DISABLE_CPP_FRONTEND)
     add_subdirectory(docs)
   endif()
   umbrella_lit_testsuite_end(check-all)
+endif()
+
+if(CUDAQ_BUILD_SPLIT_WHEELS)
+  add_subdirectory(cmake/wheels)
 endif()
 
 if (CUDAQ_EXTERNAL_NVQIR_SIMS)

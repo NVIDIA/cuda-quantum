@@ -19,6 +19,7 @@ set(COMMON_RUNTIME_SRC
   CustomOp.cpp
   DeviceCodeRegistry.cpp
   Environment.cpp
+  EstimateResult.cpp
   ExecutionContext.cpp
   Executor.cpp
   ExtraPayloadProvider.cpp
@@ -73,8 +74,8 @@ if (CMAKE_COMPILER_IS_GNUCXX
   target_compile_options(${LIBRARY_NAME} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:--param=evrp-mode=legacy>)
 endif()
 
-# We can only build the RestClient support if we have OpenSSL
-if(OPENSSL_FOUND)
+# We can only build the RestClient support if we have OpenSSL and REST is on.
+if(OPENSSL_FOUND AND CUDAQ_ENABLE_REST)
   message(STATUS "OpenSSL Found, building REST Client.")
 
   target_sources(${LIBRARY_NAME} PRIVATE RestClient.cpp)
@@ -98,12 +99,12 @@ endif()
 install(TARGETS ${LIBRARY_NAME}
         EXPORT cudaq-common-targets
         DESTINATION lib
-        COMPONENT Runtime)
+        COMPONENT ${CUDAQ_CORE_LIBRARY_COMPONENT})
 install(EXPORT cudaq-common-targets
         FILE CUDAQCommonTargets.cmake
         NAMESPACE cudaq::
         DESTINATION lib/cmake/cudaq
-        COMPONENT Development)
+        COMPONENT ${CUDAQ_CORE_DEVELOPMENT_COMPONENT})
 if(EXISTS "$ENV{CURL_INSTALL_PREFIX}/cacert.pem")
   # Copy to build directory so that developers can run from the build directory
   file(COPY "$ENV{CURL_INSTALL_PREFIX}/cacert.pem" DESTINATION "${CMAKE_BINARY_DIR}")
