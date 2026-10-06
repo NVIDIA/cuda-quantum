@@ -26,6 +26,12 @@ set_target_properties(_cudaq_synth PROPERTIES
   INSTALL_RPATH "${_origin_prefix}/../../lib"
   BUILD_RPATH   "${CMAKE_BINARY_DIR}/lib")
 
+if(CUDAQ_BUILD_SPLIT_WHEELS)
+  # GMP and MPFR are provided by core, alongside the compiler libraries.
+  set_property(TARGET _cudaq_synth APPEND PROPERTY INSTALL_RPATH
+    "${_origin_prefix}/../../cudaq_core/cudaq/core/lib")
+endif()
+
 set_target_properties(_cudaq_synth PROPERTIES
   LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/python/cudaq/synth)
 
