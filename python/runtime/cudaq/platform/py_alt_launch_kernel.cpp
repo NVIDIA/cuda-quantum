@@ -706,9 +706,9 @@ static std::pair<cudaq::CompileTarget, cudaq::CompileOptions>
 getCompileConfig(std::optional<cudaq::CompileTarget> target = std::nullopt) {
   auto *ctx = cudaq::getExecutionContext();
   cudaq::CompileOptions options;
+  if (!target)
+    target = cudaq::get_compile_target();
   if (!ctx) {
-    if (!target)
-      target = cudaq::get_compile_target(cudaq::other_policies{});
     options = cudaq::get_compile_options(cudaq::other_policies{});
   } else {
     cudaq::policies::withPolicy(ctx->name, [&](auto policy) {
@@ -717,8 +717,6 @@ getCompileConfig(std::optional<cudaq::CompileTarget> target = std::nullopt) {
         policy.spin = ctx->spin.value();
       }
 
-      if (!target)
-        target = cudaq::get_compile_target(policy);
       options = cudaq::get_compile_options(policy);
     });
   }
@@ -1062,7 +1060,21 @@ cudaq::OpaqueArguments cudaq::marshal_arguments_for_module_launch(
                      unsigned pos) {
     return linkResolvedCallable(mod, kernelFunc, pos, pyArg);
   };
-  if (isLocalSimulator)
+  // Two encodings, one per execution mode (see PackingStyle):
+  //   - Direct launch (argsCreator): the kernel keeps live argument uses that
+  //     are supplied at runtime through the generated `.argsCreator`/thunk,
+  //     whose "C++ side magic" understands a host `std::vector<bool>` for an
+  //     `i1` vector. Used only for local simulators with un-synthesized args.
+  //   - Argument synthesis (the default): the arguments are folded into the
+  //     kernel as constants by `ArgumentConverter`, which reads every vector as
+  //     the universal `{begin, end, capacity}` triple and therefore must be
+  //     given the triple-compatible `std::vector<char>` for an `i1` vector
+  //     (never the bit-packed `std::vector<bool>` specialization).
+  // A kernel whose formal arguments are all unused is synthesized
+  // (`isFullySynthesized`); otherwise a local simulator direct-launches it.
+  const bool directLaunch =
+      isLocalSimulator && !cudaq::opt::factory::isFullySynthesized(kernelFunc);
+  if (directLaunch)
     cudaq::packArgs<cudaq::PackingStyle::argsCreator>(args, runtimeArgs,
                                                       kernelFunc, handler);
   else

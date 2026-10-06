@@ -12,7 +12,6 @@ find_package(AWSSDK REQUIRED COMPONENTS ${SERVICE_COMPONENTS})
 # compiling them into `cudaq-rest-qpu` as well would put a second copy of the
 # CRT allocator state into the process, and selecting `braket` then `quera`
 # would abort in aws-c-common on `allocator != NULL`.
-add_target_config(braket)
 add_library(cudaq-serverhelper-braket SHARED BraketExecutor.cpp BraketServerHelper.cpp)
 
 target_link_libraries(cudaq-serverhelper-braket

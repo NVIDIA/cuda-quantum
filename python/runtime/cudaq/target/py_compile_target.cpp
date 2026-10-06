@@ -7,8 +7,7 @@
  ******************************************************************************/
 
 #include "py_compile_target.h"
-#include "cudaq/Target/CompileTarget.h"
-#include "cudaq/platform.h"
+#include "common/CompileTarget.h"
 #include <nanobind/nanobind.h>
 #include <nanobind/operators.h>
 #include <nanobind/stl/string.h>
@@ -97,13 +96,4 @@ void cudaq::bindCompileTarget(nanobind::module_ &mod) {
       .def(nanobind::self == nanobind::self)
       .def("__hash__", std::hash<CompileTarget>())
       .def("__repr__", compileTargetRepr);
-
-  mod.def(
-      "set_compile_target",
-      [](CompileTarget target) {
-        get_platform().setCompileTarget(std::move(target));
-      },
-      nanobind::arg("target"),
-      "Compile kernels with the given `CompileTarget` instead of the one the "
-      "active target's QPU provides.");
 }

@@ -10,6 +10,8 @@
 #define LLVM_DISABLE_ABI_BREAKING_CHECKS_ENFORCING 1
 
 #include "common/FmtCore.h"
+#include "common/ThunkInterface.h"
+#include "cudaq/Target/TargetCatalog.h"
 #include "cudaq/runtime/logger/logger.h"
 #ifdef CUDAQ_HAS_CUDA
 #include "cuda_runtime_api.h"
@@ -234,6 +236,10 @@ std::string demangle_kernel(const char *name) {
 }
 bool globalFalse = false;
 
+YamlTargetConfigDisabler::YamlTargetConfigDisabler() {
+  cudaq::config::disableYAMLTargetConfigParsing();
+}
+
 TargetSetter::TargetSetter(const char *backend) {
   auto &platform = cudaq::get_platform();
   platform.setTargetBackend(std::string(backend));
@@ -343,6 +349,20 @@ void __nvqpp_vector_bool_to_initializer_list(
     newData[i] = static_cast<char>(inVec[i]);
 }
 
+/// Destroy the host `std::vector<bool>` that \p vec refers to, releasing its
+/// storage. The vector is left in an unspecified state and must not be used
+/// again. The compiler cannot know the layout of the host's specialization of
+/// `std::vector<bool>`, so the destruction is done here.
+/// This helper routine may only be called on the host side.
+void __nvqpp_vector_bool_destroy(std::vector<bool> &vec) { vec.~vector(); }
+
+/// Release storage that was obtained with `operator new`, such as the storage
+/// of a host `std::vector<T>`. The compiler calls this wrapper instead of the
+/// mangled name of `operator delete`, which varies by platform and standard
+/// library.
+/// This helper routine may only be called on the host side.
+void __nvqpp_hostDeallocate(void *ptr) { ::operator delete(ptr); }
+
 /// This helper routine deletes the vector that tracks all the temporaries that
 /// were created as well as the temporaries themselves.
 /// This routine may only be called on the host side.
@@ -368,6 +388,24 @@ void __nvqpp_customop_size_error(std::int64_t expected, std::int64_t actual) {
       fmt::format("custom operation requires {} qubit target(s), but {} were "
                   "provided",
                   expected, actual));
+}
+
+/// Dispatch hook for the generalized, distributed-memory reference
+/// `device_call` lowering. This reference implementation assumes the `device`
+/// and host share the same process and address space: the compiler-generated
+/// marshal code already passes the unmarshal function pointer directly (no
+/// registry lookup by name is needed here), so dispatch is just an indirect
+/// call through it with the shared communication buffer. \p deviceId, \p name,
+/// \p numBlocks, and \p numThreads are unused by this same-process
+/// reference implementation; a distributed target's runtime would replace this
+/// hook to route the call to the appropriate remote device instead.
+cudaq::KernelThunkResultType
+__nvqpp__device_callback_run(std::int64_t deviceId, const char *name,
+                             void *unmarshalFunc, void *buffer,
+                             std::int64_t bufferSize, std::int64_t returnOffset,
+                             std::int64_t numBlocks, std::int64_t numThreads) {
+  auto thunk = reinterpret_cast<cudaq::KernelThunkType>(unmarshalFunc);
+  return thunk(buffer, /*isRemote=*/false);
 }
 }
 } // namespace cudaq::support

@@ -664,6 +664,8 @@ protected:
 
   /// @brief Set the current state back to the |0> state.
   void setToZeroState() override {
+    // Without this the reset below would drop queued allocations.
+    flushPendingQubits();
     if (!tableau || !sampleSim) {
       deallocateState();
       return;
@@ -916,13 +918,6 @@ public:
 
   void configureExecutionContext(const cudaq::dem_policy &policy) override {
     StimSimulatorBase::configureExecutionContextImpl(policy);
-  }
-
-  // TODO - remove after CUDAQX use of the ExecutionContext is removed
-  void configureExecutionContext(cudaq::ExecutionContext &context) override {
-    is_msm_mode = context.name == "msm";
-    activeMsmDimensions = context.msm_dimensions;
-    StimSimulatorBase::configureExecutionContext(context);
   }
 
   NVQIR_SIMULATOR_CLONE_IMPL(StimCircuitSimulator)

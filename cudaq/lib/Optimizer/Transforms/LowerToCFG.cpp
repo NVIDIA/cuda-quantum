@@ -11,7 +11,6 @@
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Todo.h"
-#include "mlir/IR/PatternMatch.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/Passes.h"
 
@@ -62,7 +61,8 @@ public:
         fn->setAttr(cudaq::opt::disableQubitCombineAttrName,
                     UnitAttr::get(scopeOp.getContext()));
 
-    if (scopeOp.hasClassicalAllocation()) {
+    if (scopeOp.hasClassicalAllocation() &&
+        !scopeOp->hasAttr(cudaq::opt::noStackFenceAttrName)) {
       auto call = func::CallOp::create(rewriter, loc, ptrTy,
                                        cudaq::llvmStackSave, ArrayRef<Value>{});
       stackSave = call.getResult(0);

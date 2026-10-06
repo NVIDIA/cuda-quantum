@@ -312,7 +312,12 @@ def test_scalar_measure_handle_uncertain_provenance_compiles():
         mh_alias = mh
         if condition:
             mh_alias = mz(q)
-        return bool(mh)
+        # `mh_alias = mh` copies `mh`'s current (unbound) value into
+        # `mh_alias`'s own, independent storage - reassigning `mh_alias`
+        # afterward does not affect `mh`, which is genuinely never bound to
+        # a real measurement on any path, so `bool(mh_alias)` is the
+        # legitimately uncertain-provenance case this test exercises.
+        return bool(mh_alias)
 
     for kernel in (one_branch, both_branches, loop_carried, alias_branch):
         kernel.compile()
@@ -338,7 +343,7 @@ def test_scalar_measure_handle_function_values_compile():
     call_result.compile()
 
 
-def test_repeated_bound_handle_coercions_scan_once(monkeypatch):
+def test_repeated_bound_handle_coercions_scan_per_storage(monkeypatch):
     from cudaq.kernel.ast_bridge import PyASTBridge
 
     scan_name = "_PyASTBridge__scanMeasureHandleAllocaStores"
@@ -373,7 +378,12 @@ def test_repeated_bound_handle_coercions_scan_once(monkeypatch):
         value_7 = bool(mh_alias)
 
     k.compile()
-    assert calls == {"lookup": 8, "scan": 1}
+    # `mh_alias = mh` copies `mh`'s current value into `mh_alias`'s own,
+    # independent storage (a separate `cc.alloca`), so each of the two
+    # distinct storages is scanned once - not once total - while repeated
+    # coercions of the *same* variable (`mh` x4, `mh_alias` x4) still reuse
+    # each storage's single scan result.
+    assert calls == {"lookup": 8, "scan": 2}
 
 
 # ---------------------------------------------------------------------------

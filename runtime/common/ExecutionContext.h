@@ -52,12 +52,6 @@ public:
   /// @brief An optional spin operator
   std::optional<cudaq::spin_op> spin;
 
-  /// @brief Measurement counts for a CUDA-Q kernel invocation
-  sample_result result;
-
-  /// @brief A computed expectation value
-  std::optional<double> expectationValue = std::nullopt;
-
   /// @brief An optimization result
   std::optional<cudaq::optimization_result> optResult = std::nullopt;
 
@@ -119,21 +113,6 @@ public:
   /// @brief Whether or not to simply concatenate measurements in execution
   /// order.
   bool explicitMeasurements = false;
-
-  /// @brief Probability of occurrence of each error mechanism (column) in
-  /// Measurement Syndrome Matrix (0-1 range).
-  std::optional<std::vector<double>> msm_probabilities;
-
-  /// @brief Error mechanism ID. From a probability perspective, each error
-  /// mechanism ID is independent of all other error mechanism ID. For all
-  /// errors with the *same* ID, only one of them can happen. That is - the
-  /// errors containing the same ID are correlated with each other.
-  std::optional<std::vector<std::size_t>> msm_prob_err_id;
-
-  /// @brief The number of rows and columns of a Measurement Syndrome Matrix.
-  /// Note: Measurement Syndrome Matrix is defined in
-  /// https://arxiv.org/pdf/2407.13826.
-  std::optional<std::pair<std::size_t, std::size_t>> msm_dimensions;
 
   /// @cond HIDDEN_MEMBERS
   /// @brief Pointer to the execution manager for the current execution context,

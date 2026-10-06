@@ -31,6 +31,5 @@ target_link_libraries(${LIBRARY_NAME}
 install(TARGETS ${LIBRARY_NAME} DESTINATION lib
         COMPONENT Runtime)
 
-add_target_config(fermioniq)
 
 add_subdirectory(helpers)

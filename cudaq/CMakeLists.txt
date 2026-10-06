@@ -17,6 +17,12 @@ if(CUDAQ_ENABLE_CORE)
   if(CUDAQ_BUILD_TESTS AND NOT CUDAQ_DISABLE_CPP_FRONTEND)
     add_subdirectory(test)
   endif()
+  # cudaq/'s own MLIR Python bindings (Quake, CC, QEC dialects). See the
+  # top-level CMakeLists.txt for CUDAQ_ENABLE_PYTHON_BINDINGS's default
+  # derivation, and cudaq/python/CMakeLists.txt for what this builds.
+  if(CUDAQ_ENABLE_PYTHON_BINDINGS)
+    add_subdirectory(python)
+  endif()
 
   install(EXPORT cudaq-dev-targets
           FILE CUDAQDevTargets.cmake

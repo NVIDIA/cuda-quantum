@@ -31,6 +31,14 @@ find_dependency(CUDAQLogger REQUIRED)
 set (CUDAQCommon_DIR "${CUDAQ_CMAKE_DIR}")
 find_dependency(CUDAQCommon REQUIRED)
 
+# The frontend execution runtime depends on compiler/JIT support.
+set (CUDAQMlirRuntime_DIR "${CUDAQ_CMAKE_DIR}")
+find_dependency(CUDAQMlirRuntime REQUIRED)
+
+if(EXISTS "${CUDAQ_CMAKE_DIR}/CUDAQCoreTargets.cmake")
+  include("${CUDAQ_CMAKE_DIR}/CUDAQCoreTargets.cmake")
+endif()
+
 set (CUDAQEmDefault_DIR "${CUDAQ_CMAKE_DIR}")
 find_dependency(CUDAQEmDefault REQUIRED)
 
@@ -45,6 +53,13 @@ find_dependency(CUDAQEnsmallen REQUIRED)
 
 set (CUDAQPythonInterop_DIR "${CUDAQ_CMAKE_DIR}")
 find_dependency(CUDAQPythonInterop)
+
+# Not REQUIRED: this sets CUDAQ_ENABLE_PYTHON_BINDINGS to reflect whether this
+# install was built with cudaq/'s own MLIR Python bindings, for a python/
+# build configured independently of cudaq/ to check. See
+# CUDAQPythonBindingsConfig.cmake.
+set (CUDAQPythonBindings_DIR "${CUDAQ_CMAKE_DIR}")
+find_dependency(CUDAQPythonBindings)
 
 if (CUDAQ_REALTIME_DIR)
   find_dependency(cudaq-realtime CONFIG REQUIRED

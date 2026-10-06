@@ -69,13 +69,20 @@ function validate_plugin_root {
 		error_exit "plugin root must contain a targets directory: ${plugin_root}"
 	fi
 
-	for target_yaml in "${plugin_root}"/targets/*.yml; do
-		if [ -f "${target_yaml}" ]; then
-			return
+	# Target configs must be a compiled target plugin library (.so/.dylib)
+	# or a YAML file. A same-named .so is preferred at load time.
+	shopt -s nullglob
+	local has_config=false
+	for target_file in "${plugin_root}"/targets/*.{so,dylib,yml,yaml}; do
+		if [ -f "${target_file}" ]; then
+			has_config=true
+			break
 		fi
 	done
-
-	error_exit "plugin root must contain at least one target YAML: ${plugin_root}/targets"
+	shopt -u nullglob
+	if ! ${has_config}; then
+		error_exit "plugin root must contain at least one target config (.so, .dylib, or .yml) in ${plugin_root}/targets"
+	fi
 }
 
 function list_scope {

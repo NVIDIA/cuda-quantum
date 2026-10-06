@@ -83,8 +83,13 @@ void addDecomposition(mlir::OpPassManager &pm,
 /// idempotent on already-lowered IR, so the duplication is safe.
 ///
 /// Opt-in only. This helper is not added to default target pipelines.
+///
+/// `seed` seeds the randomized factoring in CliffordTSynthesis. 0 leaves it
+/// unseeded, so the synthesized circuit may differ from run to run. Targets
+/// set it through their config.
 void addCliffordTSynthesis(mlir::OpPassManager &pm, double epsilon = 1e-10,
-                           bool failOnControlledRotation = false);
+                           bool failOnControlledRotation = false,
+                           uint64_t seed = 0);
 /// Append the common pipeline that expands, normalizes, and lowers
 /// `quake.phase` operations before final code generation.
 void addPhaseLifecycle(mlir::OpPassManager &pm);
@@ -97,12 +102,15 @@ void registerJITPipelines();
 /// fully expanded to eliminate control flow.
 /// Default values are threshold = 1024, allow break = true, and allow closed
 /// interval = true. If loop unrolling is disabled (`disableLoopUnrolling` =
-/// true), the pipeline keeps cc.loop operations.
+/// true), the pipeline keeps cc.loop operations. The two selective unrolling
+/// options mirror the cc-loop-unroll options of the same name.
 void createClassicalOptimizationPipeline(
     mlir::OpPassManager &pm, std::optional<unsigned> threshold = std::nullopt,
     std::optional<bool> allowBreak = std::nullopt,
     std::optional<bool> allowClosedInterval = std::nullopt,
-    std::optional<bool> disableLoopUnrolling = std::nullopt);
+    std::optional<bool> disableLoopUnrolling = std::nullopt,
+    std::optional<bool> unrollOnlyAliasingQuantumAccessLoops = std::nullopt,
+    std::optional<bool> unrollOnlyIndexUseLoops = std::nullopt);
 
 std::unique_ptr<mlir::Pass> createExpandMeasurementsPass();
 void addLowerToCFG(mlir::OpPassManager &pm);
