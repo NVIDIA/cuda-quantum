@@ -95,7 +95,13 @@ TEST(AHSModelTest, StepTracksInteractionStrength) {
                                      ahs::fresnelCan);
   EXPECT_LT(model.maxStep, 1e-9);
   EXPECT_LE(model.maxStep * ahs::fresnelCan.rydbergC6 / std::pow(1e-6, 6),
-            0.1000000001);
+            1.000000001);
+  // Sparse, weakly driven registers use the 10 ns ceiling.
+  EXPECT_DOUBLE_EQ(
+      ahs::makeRydbergModel(makeProgram({{0., 0.}, {2e-5, 0.}}, 1e6, 0., 1e6),
+                            ahs::fresnelCan)
+          .maxStep,
+      1e-8);
 }
 
 TEST(AHSModelTest, RejectNumericallyInvalidModels) {

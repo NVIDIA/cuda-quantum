@@ -199,9 +199,11 @@ analog::Model ahs::makeRydbergModel(const Program &program,
   if (!std::isfinite(bound))
     throw std::invalid_argument("AHS Hamiltonian norm bound must be finite.");
 
-  // Limit the RK4 step by the Hamiltonian norm as well as the waveform scale.
-  // A fixed 1 ns step is unstable for tightly spaced atoms.
-  const auto maxStep = bound > 0.0 ? std::min(1e-9, 0.1 / bound) : 1e-9;
+  // Use 10 ns steps unless the Hamiltonian norm requires shorter ones. RK4
+  // diverges for 4 us pulses once step * bound exceeds ~5 (e.g. 10 ns for eight
+  // atoms at 5 um), while step * bound = 1 keeps the state infidelity below
+  // ~1e-7.
+  const auto maxStep = bound > 0.0 ? std::min(1e-8, 1.0 / bound) : 1e-8;
   auto times = uniqueTimes(program);
   // Catch mis-scaled inputs (e.g. atom spacing or C6 units) before they turn
   // into an effectively endless integration.
