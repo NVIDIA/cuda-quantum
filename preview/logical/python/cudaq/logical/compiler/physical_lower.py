@@ -131,8 +131,9 @@ class PhysicalProjectionBuilder:
 
     QLX imports the exact P2 closure, retains its source/device identities, and
     commits the canonical request/plan before provider emission begins.  The
-    provider authors only physical events and provider-private sidecars through
-    :attr:`events`, seals the graph, and returns an unfinished emission.
+    provider either authors physical events and provider-private sidecars
+    through :attr:`events`, or reuses the native projector through
+    :meth:`project_source`, then returns an unfinished emission.
     """
 
     __slots__ = (
@@ -242,6 +243,33 @@ class PhysicalProjectionBuilder:
             context=self._events.context,
             module=self._events.module,
             root=self._root,
+            evidence=tuple(evidence),
+        )
+
+    def project_source(
+        self,
+        *,
+        experiment=None,
+        evidence=(),
+    ) -> PhysicalProjectionEmission:
+        """Project the retained P2 source with CUDA-Q Logical's native engine.
+
+        External providers use this when their P2 protocols already contain a
+        complete physical realization and no provider-specific P3 events need
+        to be authored through :attr:`events`.
+        """
+
+        if self._root is not None:
+            raise RuntimeError(
+                "physical projection graph is already sealed")
+        projected = _P2ToP3(self._projection.source, self._device).project(
+            pipeline=self._pipeline,
+            experiment=experiment,
+        )
+        return PhysicalProjectionEmission(
+            context=projected._context,
+            module=projected._module,
+            root=projected.root,
             evidence=tuple(evidence),
         )
 

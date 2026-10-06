@@ -209,6 +209,30 @@ class QECNetworkCompiler(QECCompiler):
 
         raise NotImplementedError
 
+    @property
+    def replay_validator(self):
+        """Importable provider validator required for network P2 compilation.
+
+        Device-backed projection uses the attached provider's
+        ``validate_plan_artifact`` hook. A serialized P2 also requires a
+        module-scope callable decorated with ``provider_replay_validator`` so
+        clean-process replay can authenticate the private artifact.
+        """
+
+        return None
+
+    def validate_plan_artifact(self, request, plan) -> None:
+        """Re-authenticate provider-private plan content from typed input.
+
+        Generic request/plan validation owns the public envelope. Providers
+        must implement this hook to rederive their opaque artifact's semantic
+        facts from the canonical request during construction and every
+        device-backed replay.
+        """
+
+        raise NotImplementedError(
+            f"network compiler {self.key!r} must validate its plan artifact")
+
 
 class _FunctionSiteCompiler(QECCompiler):
     """Compatibility adapter for the ordinary ``(site, context)`` surface."""
