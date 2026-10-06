@@ -24,9 +24,8 @@ int main() {
     // expected-error@+2 {{statement not supported in qpu kernel}}
     // expected-error@+1 {{symbol is not accessible in this kernel}}
     cudaq::qvector q(i);
-    // declaration of `q` failed, so it's not available either.
-    // expected-error@+2 {{symbol is not accessible in this kernel}}
-    // expected-error@+1 {{statement not supported in qpu kernel}}
+    // The declaration of `q` failed. `q` is still in scope (as a poison value),
+    // so the use of it is not an error too.
     mz(q);
   };
   Kernel{}(f);

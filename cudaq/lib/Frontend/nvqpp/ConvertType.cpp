@@ -7,10 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq/Frontend/nvqpp/ASTBridge.h"
-#include "cudaq/Optimizer/Builder/Factory.h"
-#include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
-#include "cudaq/Todo.h"
 #include "clang/Basic/TargetInfo.h"
 #include "llvm/TargetParser/Triple.h"
 
@@ -154,8 +151,7 @@ static bool isReferenceToCallableRecord(Type t, clang::ParmVarDecl *arg) {
 
 namespace cudaq::detail {
 
-clang::FunctionDecl *
-QuakeBridgeVisitor::findCallOperator(const clang::CXXRecordDecl *decl) {
+clang::FunctionDecl *findCallOperator(const clang::CXXRecordDecl *decl) {
   for (auto *m : decl->methods())
     if (m->isOverloadedOperator() &&
         cudaq::isCallOperator(m->getOverloadedOperator()))
@@ -163,73 +159,115 @@ QuakeBridgeVisitor::findCallOperator(const clang::CXXRecordDecl *decl) {
   return nullptr;
 }
 
-bool QuakeBridgeVisitor::TraverseRecordType(clang::RecordType *t,
-                                            bool &visitChildren) {
-  auto *recDecl = t->getDecl();
+//===----------------------------------------------------------------------===//
+// QuakeTypeVisitor
+//===----------------------------------------------------------------------===//
 
+Location QuakeTypeVisitor::toLocation(const clang::SourceRange &range) {
+  return toSourceLocation(builder.getContext(), astContext, range);
+}
+
+QuakeTypeVisitor::Result QuakeTypeVisitor::requireType(clang::SourceRange range,
+                                                       clang::QualType qt) {
+  auto result = traverse(qt);
+  if (!result && !hasFailed())
+    emitFatalError(toLocation(range), "expected a type");
+  return result;
+}
+
+static StringRef recordName(clang::RecordDecl *x) {
+  if (auto *ident = x->getIdentifier())
+    return ident->getName();
+  return {};
+}
+
+QuakeTypeVisitor::Result QuakeTypeVisitor::visit(clang::RecordType *t) {
+  auto *recDecl = t->getDecl();
   if (ignoredClass(recDecl))
-    return true;
-  auto reci = records.find(t);
-  if (reci != records.end()) {
-    pushType(reci->second);
-    return true;
+    return std::nullopt;
+  // A record has one type, however it is spelled (`S`, `struct S`).
+  const clang::RecordDecl *key =
+      recDecl->getDefinition() ? recDecl->getDefinition() : recDecl;
+  if (converting.contains(key)) {
+    // This record is part of its own definition. Kernels do not support
+    // recursive types, since they cannot be a finite type.
+    reportClangError(key, mangler,
+                     "recursive types are not allowed in kernels");
+    return fail();
   }
-  auto noneTy = builder.getNoneType();
-  records.insert({t, noneTy});
-  bool saveInRecType = inRecType;
-  inRecType = true;
-  auto typeStackDepth = typeStack.size();
-  bool result;
-  if (recDecl->isLambda()) {
-    result = TraverseCXXRecordDecl(cast<clang::CXXRecordDecl>(recDecl));
-  } else {
-    result = TraverseDecl(recDecl);
-  }
-  inRecType = saveInRecType;
-  if (!result)
-    return false;
-  if (typeStack.size() != typeStackDepth + 1) {
-    if (allowUnknownRecordType) {
-      // This is a kernel's type signature, so add a NoneType. When finally
-      // returning out of determining the kernel's type signature, a clang error
-      // diagnsotic will be reported.
-      pushType(noneTy);
-    } else if (typeStack.size() != typeStackDepth) {
-      emitWarning(toLocation(recDecl),
-                  "compiler encountered type traversal issue");
-      return false;
-    } else {
+  if (auto iter = records.find(key); iter != records.end())
+    return iter->second;
+  converting.insert(key);
+  Result result = convertRecord(recDecl);
+  converting.erase(key);
+  if (hasFailed())
+    return std::nullopt;
+  if (!result) {
+    if (!allowUnknownRecordType) {
       recDecl->dump();
-      emitFatalError(toLocation(recDecl), "expected a type");
+      emitFatalError(toLocation(recDecl->getSourceRange()), "expected a type");
     }
+    // This is a kernel's type signature, so use a NoneType. When finally
+    // returning out of determining the kernel's type signature, a clang error
+    // diagnostic will be reported.
+    result = builder.getNoneType();
   }
-  records[t] = peekType();
-  return true;
+  records[key] = *result;
+  return result;
+}
+
+QuakeTypeVisitor::Result QuakeTypeVisitor::convertRecord(clang::RecordDecl *x) {
+  bool intercepted = false;
+  Result replacement = interceptRecordDecl(x, intercepted);
+  if (intercepted || hasFailed())
+    return replacement;
+
+  if (x->isLambda()) {
+    // A lambda is a callable with the signature of its call operator.
+    auto *funcDecl = findCallOperator(cast<clang::CXXRecordDecl>(x));
+    auto funcTy = requireType(funcDecl->getSourceRange(), funcDecl->getType());
+    if (!funcTy)
+      return std::nullopt;
+    return cc::CallableType::get(cast<FunctionType>(*funcTy));
+  }
+
+  if (isa<clang::CXXRecordDecl>(x) && x->isUnion()) {
+    reportClangError(x, mangler, "union types are not allowed in kernels");
+    return fail();
+  }
+
+  auto *ctx = builder.getContext();
+  if (!x->getDefinition())
+    return cc::StructType::get(ctx, recordName(x), /*isOpaque=*/true);
+
+  // The member types of the StructType are the types of the fields.
+  SmallVector<Type> fieldTys;
+  for (auto *field : x->fields()) {
+    auto fieldTy = traverse(field->getType());
+    if (hasFailed())
+      return std::nullopt;
+    if (fieldTy)
+      fieldTys.push_back(*fieldTy);
+  }
+  return convertProductType(x, fieldTys);
 }
 
 std::pair<std::uint64_t, unsigned>
-QuakeBridgeVisitor::getWidthAndAlignment(clang::RecordDecl *x) {
+QuakeTypeVisitor::getWidthAndAlignment(clang::RecordDecl *x) {
   auto *defn = x->getDefinition();
   assert(defn && "struct must be defined here");
-  auto qualTy = getContext()->getCanonicalTagType(defn);
+  auto qualTy = astContext->getCanonicalTagType(defn);
   if (qualTy->isDependentType())
     return {0, 0};
-  auto ti = getContext()->getTypeInfo(qualTy);
+  auto ti = astContext->getTypeInfo(qualTy);
   return {ti.Width, llvm::PowerOf2Ceil(ti.Align) / 8};
 }
 
-bool QuakeBridgeVisitor::VisitRecordDecl(clang::RecordDecl *x) {
-  assert(!x->isLambda() && "expected lambda to be handled in traverse");
-  // Note that we're generating a Type on the type stack.
-  StringRef name;
-  if (auto ident = x->getIdentifier())
-    name = ident->getName();
+QuakeTypeVisitor::Result
+QuakeTypeVisitor::convertProductType(clang::RecordDecl *x,
+                                     ArrayRef<Type> fieldTys) {
+  StringRef name = recordName(x);
   auto *ctx = builder.getContext();
-  if (!x->getDefinition())
-    return pushType(cc::StructType::get(ctx, name, /*isOpaque=*/true));
-
-  SmallVector<Type> fieldTys =
-      lastTypes(std::distance(x->field_begin(), x->field_end()));
   auto [width, alignInBytes] = getWidthAndAlignment(x);
 
   // This is a struq if it is not empty and all members are quantum references.
@@ -244,7 +282,7 @@ bool QuakeBridgeVisitor::VisitRecordDecl(clang::RecordDecl *x) {
   if (quantumMembers && !isStruq) {
     reportClangError(x, mangler,
                      "hybrid quantum-classical struct types are not allowed");
-    return false;
+    return fail();
   }
 
   auto ty = [&]() -> Type {
@@ -320,28 +358,31 @@ bool QuakeBridgeVisitor::VisitRecordDecl(clang::RecordDecl *x) {
           "struct with user-defined methods is not allowed in quantum kernel.");
   }
 
-  return pushType(ty);
+  return ty;
 }
 
-bool QuakeBridgeVisitor::VisitFunctionProtoType(clang::FunctionProtoType *t) {
+QuakeTypeVisitor::Result QuakeTypeVisitor::visit(clang::FunctionProtoType *t) {
   assert(t->exceptions().empty() && "exceptions are not supported in CUDA-Q");
-  if (t->getNoexceptExpr()) {
-    // Throw away the boolean value from this clause.
-    // TODO: Could enforce that it must be `true`.
-    popValue();
+  // The noexcept expression, if any, has no semantics other than for
+  // inferring a type, so it is not visited.
+  auto funcRetTy = traverse(t->getReturnType());
+  SmallVector<Type> argTys;
+  for (auto paramTy : t->param_types()) {
+    if (auto argTy = traverse(paramTy))
+      argTys.push_back(*argTy);
+    if (hasFailed())
+      return std::nullopt;
   }
-  SmallVector<Type> argTys = lastTypes(t->param_types().size());
   SmallVector<Type> resTys;
-  auto funcRetTy = popType();
-  if (!isa<NoneType>(funcRetTy))
-    resTys.push_back(funcRetTy);
-  return pushType(builder.getFunctionType(argTys, resTys));
+  if (funcRetTy && !isa<NoneType>(*funcRetTy))
+    resTys.push_back(*funcRetTy);
+  return builder.getFunctionType(argTys, resTys);
 }
 
 /// Parallels the clang conversion from `clang::Type` to `llvm::Type`. In this
 /// case, we translate `clang::Type` to `mlir::Type`. See
 /// `clang::CodeGenTypes.ConvertType`.
-Type QuakeBridgeVisitor::builtinTypeToType(const clang::BuiltinType *t) {
+Type QuakeTypeVisitor::builtinTypeToType(const clang::BuiltinType *t) {
   using namespace clang;
   switch (t->getKind()) {
   case BuiltinType::Void:
@@ -422,82 +463,273 @@ Type QuakeBridgeVisitor::builtinTypeToType(const clang::BuiltinType *t) {
   }
 }
 
-bool QuakeBridgeVisitor::VisitBuiltinType(clang::BuiltinType *t) {
-  return pushType(builtinTypeToType(t));
+void QuakeTypeVisitor::unsupported(clang::Type *t) {
+  auto &de = astContext->getDiagnostics();
+  const auto id =
+      de.getCustomDiagID(clang::DiagnosticsEngine::Error,
+                         "type '%0' is not yet supported in a kernel");
+  de.Report(id) << t->getTypeClassName();
+  fail();
 }
 
-bool QuakeBridgeVisitor::VisitPointerType(clang::PointerType *t) {
-  if (t->getPointeeType()->isUndeducedAutoType())
-    return pushType(cc::PointerType::get(builder.getContext()));
-  return pushType(cc::PointerType::get(popType()));
+QuakeTypeVisitor::Result QuakeTypeVisitor::visit(clang::BuiltinType *t) {
+  return builtinTypeToType(t);
 }
 
-bool QuakeBridgeVisitor::VisitLValueReferenceType(
-    clang::LValueReferenceType *t) {
+QuakeTypeVisitor::Result QuakeTypeVisitor::visit(clang::PointerType *t) {
   if (t->getPointeeType()->isUndeducedAutoType())
-    return pushType(cc::PointerType::get(builder.getContext()));
-  auto eleTy = popType();
+    return cc::PointerType::get(builder.getContext());
+  auto eleTy = traverse(t->getPointeeType());
+  if (!eleTy)
+    return std::nullopt;
+  return cc::PointerType::get(*eleTy);
+}
+
+QuakeTypeVisitor::Result
+QuakeTypeVisitor::visit(clang::LValueReferenceType *t) {
+  if (t->getPointeeType()->isUndeducedAutoType())
+    return cc::PointerType::get(builder.getContext());
+  auto eleTy = traverse(t->getPointeeType());
+  if (!eleTy)
+    return std::nullopt;
   if (isa<cc::CallableType, cc::IndirectCallableType, cc::SpanLikeType,
           cudaq::quake::VeqType, cudaq::quake::RefType,
-          cudaq::quake::StruqType>(eleTy))
-    return pushType(eleTy);
-  return pushType(cc::PointerType::get(eleTy));
+          cudaq::quake::StruqType>(*eleTy))
+    return eleTy;
+  return cc::PointerType::get(*eleTy);
 }
 
-bool QuakeBridgeVisitor::VisitRValueReferenceType(
-    clang::RValueReferenceType *t) {
+QuakeTypeVisitor::Result
+QuakeTypeVisitor::visit(clang::RValueReferenceType *t) {
   if (t->getPointeeType()->isUndeducedAutoType())
-    return pushType(cc::PointerType::get(builder.getContext()));
-  auto eleTy = popType();
+    return cc::PointerType::get(builder.getContext());
+  auto eleTy = traverse(t->getPointeeType());
+  if (!eleTy)
+    return std::nullopt;
   // FIXME: LLVMStructType is promoted as a temporary workaround.
   if (isa<cc::ArrayType, cc::CallableType, cc::IndirectCallableType,
           cc::SpanLikeType, cc::StructType, cudaq::quake::VeqType,
           cudaq::quake::RefType, cudaq::quake::StruqType, LLVM::LLVMStructType>(
-          eleTy))
-    return pushType(eleTy);
-  return pushType(cc::PointerType::get(eleTy));
+          *eleTy))
+    return eleTy;
+  return cc::PointerType::get(*eleTy);
 }
 
-bool QuakeBridgeVisitor::VisitConstantArrayType(clang::ConstantArrayType *t) {
+QuakeTypeVisitor::Result QuakeTypeVisitor::visit(clang::ConstantArrayType *t) {
   auto size = t->getSize().getZExtValue();
-  auto ty = popType();
-  if (cudaq::quake::isQuantumType(ty)) {
+  auto ty = traverse(t->getElementType());
+  if (!ty)
+    return std::nullopt;
+  if (cudaq::quake::isQuantumType(*ty)) {
     auto *ctx = builder.getContext();
-    if (ty == cudaq::quake::RefType::get(ctx))
-      return pushType(cudaq::quake::VeqType::getUnsized(ctx));
+    if (*ty == cudaq::quake::RefType::get(ctx))
+      return cudaq::quake::VeqType::getUnsized(ctx);
     emitFatalError(builder.getUnknownLoc(),
                    "array element type is not supported");
-    return false;
   }
-  return pushType(cc::ArrayType::get(builder.getContext(), ty, size));
+  return cc::ArrayType::get(builder.getContext(), *ty, size);
 }
 
-bool QuakeBridgeVisitor::pushType(Type t) {
-  LLVM_DEBUG(llvm::dbgs() << std::string(typeStack.size(), ' ') << "push " << t
-                          << '\n');
-  typeStack.push_back(t);
-  return true;
-}
+QuakeTypeVisitor::Result
+QuakeTypeVisitor::interceptRecordDecl(clang::RecordDecl *x, bool &intercepted) {
+  // Some decls will be intercepted and replaced with high-level types in quake.
+  // Do this here to avoid traversing their fields, etc. Any path that returns
+  // without setting `intercepted` to false was intercepted. An intercepted
+  // record may not have a type (which is not the same as an error).
+  intercepted = true;
+  auto notIntercepted = [&]() -> Result {
+    intercepted = false;
+    return std::nullopt;
+  };
+  auto *ident = x->getIdentifier();
+  if (!ident || x->isLambda())
+    return notIntercepted();
+  auto name = ident->getName();
+  auto *ctx = builder.getContext();
+  auto *cts = dyn_cast<clang::ClassTemplateSpecializationDecl>(x);
+  // Convert the type of template argument \p i.
+  auto argType = [&](unsigned i) -> Result {
+    return requireType(x->getSourceRange(),
+                       cts->getTemplateArgs()[i].getAsType());
+  };
+  if (isInNamespace(x, "cudaq")) {
+    // Types from the `cudaq` namespace.
+    // A qubit is a qudit<LEVEL=2>.
+    if (name == "qudit" || name == "qubit")
+      return cudaq::quake::RefType::get(ctx);
+    // qreg<SIZE,LEVEL>, qarray<SIZE,LEVEL>, qspan<SIZE,LEVEL>
+    if (name == "qspan" || name == "qreg" || name == "qarray") {
+      // If the first template argument is not `std::dynamic_extent` then we
+      // have a constant sized VeqType.
+      if (cts) {
+        auto templArg = cts->getTemplateArgs()[0];
+        assert(templArg.getKind() ==
+               clang::TemplateArgument::ArgKind::Integral);
+        auto getExtValueHelper = [](auto v) -> std::int64_t {
+          if (v.isUnsigned())
+            return static_cast<std::int64_t>(v.getZExtValue());
+          return v.getSExtValue();
+        };
+        std::int64_t size = getExtValueHelper(templArg.getAsIntegral());
+        if (size != static_cast<std::int64_t>(std::dynamic_extent))
+          return cudaq::quake::VeqType::get(ctx, size);
+      }
+      return cudaq::quake::VeqType::getUnsized(ctx);
+    }
+    // qvector<LEVEL>, qview<LEVEL>
+    if (name == "qvector" || name == "qview")
+      return cudaq::quake::VeqType::getUnsized(ctx);
+    if (name == "state")
+      return cudaq::quake::StateType::get(ctx);
+    if (name == "pauli_word")
+      return cc::CharspanType::get(ctx);
+    if (name == "measure_handle")
+      return cc::MeasureHandleType::get(ctx);
+    if (name == "qkernel") {
+      // Template argument 0 is the function's signature.
+      auto fnTy = argType(0);
+      if (!fnTy)
+        return std::nullopt;
+      return cc::IndirectCallableType::get(cast<FunctionType>(*fnTy));
+    }
+    if (!isInNamespace(x, "solvers") && !isInNamespace(x, "qec")) {
+      auto loc = toLocation(x->getSourceRange());
+      TODO_loc(loc, "unhandled type, " + name + ", in cudaq namespace");
+    }
+  }
+  if (isInNamespace(x, "std")) {
+    if (name == "vector") {
+      // Template argument 0 is the vector's element type.
+      if (!cts)
+        return std::nullopt;
+      auto ty = argType(0);
+      if (!ty)
+        return std::nullopt;
+      if (cudaq::quake::isQuantumType(*ty)) {
+        if (*ty == cudaq::quake::RefType::get(ctx))
+          return cudaq::quake::VeqType::getUnsized(ctx);
+        cudaq::emitFatalError(toLocation(x->getSourceRange()),
+                              "std::vector element type is not supported");
+      }
+      return cc::SequenceType::get(ctx, *ty);
+    }
+    // std::vector<bool>   =>   cc.sequence<i1>
+    if (name == "_Bit_reference" || name == "__bit_reference" ||
+        name == "__bit_const_reference") {
+      // Reference to a bit in a std::vector<bool>. Promote to a value.
+      return builder.getI1Type();
+    }
+    if (name == "_Bit_type")
+      return builder.getI64Type();
+    if (name == "complex") {
+      // Template argument 0 is the complex's element type.
+      if (!cts)
+        return std::nullopt;
+      auto memTy = argType(0);
+      if (!memTy)
+        return std::nullopt;
+      return ComplexType::get(*memTy);
+    }
+    if (name == "initializer_list") {
+      // Template argument 0 is the initializer list's element type.
+      if (!cts)
+        return std::nullopt;
+      auto memTy = argType(0);
+      if (!memTy)
+        return std::nullopt;
+      return cc::ArrayType::get(*memTy);
+    }
+    if (name == "function") {
+      // Template argument 0 is the function's signature.
+      auto fnTy = argType(0);
+      if (!fnTy)
+        return std::nullopt;
+      return cc::CallableType::get(ctx, cast<FunctionType>(*fnTy));
+    }
+    if (name == "reference_wrapper") {
+      auto refTy = argType(0);
+      if (!refTy)
+        return std::nullopt;
+      if (isa<cudaq::quake::RefType, cudaq::quake::VeqType>(*refTy))
+        return refTy;
+      return cc::PointerType::get(ctx, *refTy);
+    }
+    if (name == "basic_string") {
+      if (allowUnknownRecordType) {
+        // Kernel argument list contains a `std::string` type. Intercept it and
+        // generate a clang diagnostic when returning out of determining the
+        // kernel's type signature.
+        return std::nullopt;
+      }
+      TODO_x(toLocation(x->getSourceRange()), x, mangler, "std::string type");
+      return fail();
+    }
+    if (name == "__wrap_iter") {
+      // An iterator is represented by its element type.
+      return argType(0);
+    }
+    if (name == "pair") {
+      SmallVector<Type> members;
+      for (unsigned i = 0; i < 2; ++i) {
+        auto memTy = argType(i);
+        if (!memTy)
+          return std::nullopt;
+        members.push_back(*memTy);
+      }
+      auto [width, align] = getWidthAndAlignment(x);
+      return cc::StructType::get(ctx, members, width, align);
+    }
+    if (name == "tuple") {
+      auto &templateArg = cts->getTemplateArgs()[0];
+      if (templateArg.getKind() != clang::TemplateArgument::Pack)
+        return notIntercepted();
+      SmallVector<Type> members;
+      for (auto &ta : templateArg.pack_elements()) {
+        auto memTy = requireType(x->getSourceRange(), ta.getAsType());
+        if (!memTy)
+          return std::nullopt;
+        members.push_back(*memTy);
+      }
+      auto [width, align] = getWidthAndAlignment(x);
+      if (tuplesAreReversed) {
+        std::reverse(members.begin(), members.end());
+        // Resets are for libstdc++ calling convention compatibility.
+        width = 0;
+        align = 0;
+      }
+      return cc::StructType::get(ctx, members, width, align);
+    }
+    if (ignoredClass(x))
+      return std::nullopt;
+    if (allowUnknownRecordType) {
+      // This is a catch all for other container types (deque, map, set, etc.)
+      // that the user may try to pass as arguments to a kernel. Having no type
+      // here will cause the kernel's signature to emit a diagnostic.
+      return std::nullopt;
+    }
+    // Any other standard library class is not supported. The failure is
+    // silent; the caller diagnoses the construct that required the type.
+    LLVM_DEBUG(llvm::dbgs()
+               << "in std namespace, " << name << " is not matched\n");
+    return fail();
+  }
 
-Type QuakeBridgeVisitor::popType() {
-  assert(!typeStack.empty());
-  Type result = peekType();
-  LLVM_DEBUG(llvm::dbgs() << std::string(typeStack.size() - 1, ' ') << "(pop "
-                          << result << ")\n");
-  typeStack.pop_back();
-  return result;
-}
-
-/// Return the last `n` types from the stack in left-to-right (natural)
-/// order. For a signature, `f(T, U, V)` this can be used to return a list
-/// `[type_T type_U type_V]`.
-SmallVector<Type> QuakeBridgeVisitor::lastTypes(unsigned n) {
-  assert(n <= typeStack.size() && "stack has fewer types than requested");
-  SmallVector<Type> result(typeStack.end() - n, typeStack.end());
-  LLVM_DEBUG(llvm::dbgs() << std::string(typeStack.size() - n, ' ') << "(pop <"
-                          << n << ">)\n");
-  typeStack.pop_back_n(n);
-  return result;
+  if (isInNamespace(x, "__gnu_cxx")) {
+    if (name == "__promote" || name == "__promote_2") {
+      // Recover the typedef in this class. Then find the canonical type
+      // resolved for that typedef and use that as the type.
+      for (auto *d : x->decls())
+        if (auto *tdDecl = dyn_cast<clang::TypedefDecl>(d))
+          return requireType(x->getSourceRange(),
+                             tdDecl->getUnderlyingType().getCanonicalType());
+      return std::nullopt;
+    }
+    if (name == "__normal_iterator") {
+      // An iterator is represented by its element type.
+      return argType(0);
+    }
+  }
+  return notIntercepted();
 }
 
 static bool isReferenceToCudaqStateType(Type t) {
@@ -506,18 +738,16 @@ static bool isReferenceToCudaqStateType(Type t) {
   return false;
 }
 
-// Do syntax checking on the signature of kernel \p x.
-// Precondition: the top of the type stack is the kernel's `mlir::FunctionType`.
+// Do syntax checking on the signature of kernel \p x, whose type is \p funcTy.
 // Return true if and only if the kernel \p x has a legal signature.
-bool QuakeBridgeVisitor::doSyntaxChecks(const clang::FunctionDecl *x) {
-  auto funcTy = cast<FunctionType>(peekType());
+bool QuakeBridgeVisitor::doSyntaxChecks(const clang::FunctionDecl *x,
+                                        FunctionType funcTy) {
   auto astTy = x->getType();
   // Verify the argument and return types are valid for a kernel.
   auto *protoTy = dyn_cast<clang::FunctionProtoType>(astTy.getTypePtr());
   auto syntaxError = [&]<unsigned N>(const char (&msg)[N]) -> bool {
     reportClangError(x, mangler, msg);
-    [[maybe_unused]] auto ty = popType();
-    LLVM_DEBUG(llvm::dbgs() << "invalid type: " << ty << '\n');
+    LLVM_DEBUG(llvm::dbgs() << "invalid type: " << funcTy << '\n');
     return false;
   };
   if (!protoTy)
