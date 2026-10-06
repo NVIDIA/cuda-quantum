@@ -40,7 +40,7 @@ public:
     if (!size)
       return failure();
 
-    // extract_ref requires the sized source of a relaxed vector.
+    // Look through `relax_size` if present
     if (auto relax = target.getDefiningOp<cudaq::quake::RelaxSizeOp>())
       target = relax.getInputVec();
 
@@ -87,8 +87,8 @@ public:
         continue;
       }
 
-      // extract_ref requires the sized source of a relaxed vector.
       Value vector = arg;
+      // Look through `relax_size` if present
       if (auto relax = arg.getDefiningOp<cudaq::quake::RelaxSizeOp>())
         vector = relax.getInputVec();
       for (std::size_t i = 0; i < *size; ++i)
