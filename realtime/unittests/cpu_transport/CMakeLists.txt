@@ -62,24 +62,24 @@ if(CUDAQ_REALTIME_CPU_ROCE_USE_HOLOLINK)
     TEST_PREFIX "test_cpu_roce_hololink_wrapper.")
   message(STATUS
     "  - test_cpu_roce_hololink_wrapper (Hololink adapter contract)")
-else()
-  # Unified (thread-free) mode is legacy-backend only.  The contract cases run
-  # anywhere; the service cases probe the RoCE transport and skip (or fail,
-  # under CUDAQ_REALTIME_REQUIRE_ROCE_TESTS) when it is unavailable.
-  add_executable(test_cpu_roce_transceiver test_cpu_roce_transceiver.cpp)
-  target_include_directories(test_cpu_roce_transceiver PRIVATE
-    ${CUDAQ_REALTIME_INCLUDE_DIR})
-  target_compile_definitions(test_cpu_roce_transceiver PRIVATE
-    CUDAQ_REALTIME_REQUIRE_ROCE_TESTS=$<BOOL:${CUDAQ_REALTIME_REQUIRE_ROCE_TESTS}>)
-  target_link_libraries(test_cpu_roce_transceiver PRIVATE
-    GTest::gtest_main
-    cudaq-realtime-cpu-roce-transport
-    Threads::Threads)
-  cudaq_gtest_discover_tests(test_cpu_roce_transceiver
-    TEST_PREFIX "test_cpu_roce_transceiver.")
-  message(STATUS
-    "  - test_cpu_roce_transceiver (unified-mode hooks; service cases need RDMA)")
 endif()
+
+# The contract cases run anywhere. The service cases probe the RoCE transport
+# and skip (or fail, under CUDAQ_REALTIME_REQUIRE_ROCE_TESTS) when it is
+# unavailable.
+add_executable(test_cpu_roce_transceiver test_cpu_roce_transceiver.cpp)
+target_include_directories(test_cpu_roce_transceiver PRIVATE
+  ${CUDAQ_REALTIME_INCLUDE_DIR})
+target_compile_definitions(test_cpu_roce_transceiver PRIVATE
+  CUDAQ_REALTIME_REQUIRE_ROCE_TESTS=$<BOOL:${CUDAQ_REALTIME_REQUIRE_ROCE_TESTS}>)
+target_link_libraries(test_cpu_roce_transceiver PRIVATE
+  GTest::gtest_main
+  cudaq-realtime-cpu-roce-transport
+  Threads::Threads)
+cudaq_gtest_discover_tests(test_cpu_roce_transceiver
+  TEST_PREFIX "test_cpu_roce_transceiver.")
+message(STATUS
+  "  - test_cpu_roce_transceiver (unified-mode hooks; service cases need RDMA)")
 
 # CUDA include path is needed because cudaq_realtime.h transitively includes
 # <cuda_runtime.h> (for cudaGraphExec_t typedef in the function-entry union).
