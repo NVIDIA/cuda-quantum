@@ -197,6 +197,11 @@ void cudaq::opt::addCliffordTSynthesis(OpPassManager &pm, double epsilon,
   cudaq::opt::addDecomposition(pm, {"ExpPauliDecomposition", "U3ToRotations"});
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createAddDeallocs());
   cudaq::opt::addConvertToLinearValues(pm);
+  cudaq::opt::Optimize1QRotationsForCliffordTOptions chainOpts;
+  chainOpts.epsilon = epsilon;
+  pm.addNestedPass<func::FuncOp>(
+      cudaq::opt::createOptimize1QRotationsForCliffordT(chainOpts));
+  pm.addNestedPass<func::FuncOp>(mlir::createCanonicalizerPass());
   cudaq::opt::QuakeSimplifyOptions simplifyOpts;
   simplifyOpts.rotationsToCliffordT = true;
   simplifyOpts.cliffordTEpsilon = epsilon;
