@@ -122,15 +122,20 @@ cudaq::dynamics::CuDensityMatOpConverter::computeLindbladTerms(
                         cudensitymatOperatorTerm_t>>
       lindbladTerms;
 
-  for (const auto &collapseOp : batchedCollapsedProdTerms) {
-    const auto allSameDegrees =
-        std::all_of(collapseOp.begin(), collapseOp.end(),
-                    [&](const product_op<matrix_handler> &prodOp) {
-                      return prodOp.degrees() == collapseOp[0].degrees();
-                    });
-    if (!allSameDegrees) {
-      throw std::invalid_argument("All product terms in a collapse operator "
-                                  "must have the same degrees.");
+  // Batched collapse operators must have all their product terms on the same
+  // degrees. Without batching, each pair of product terms gives its own
+  // Lindblad terms, so the product terms may act on any degrees.
+  if (batchedCollapsedProdTerms.size() > 1) {
+    for (const auto &collapseOp : batchedCollapsedProdTerms) {
+      const auto allSameDegrees =
+          std::all_of(collapseOp.begin(), collapseOp.end(),
+                      [&](const product_op<matrix_handler> &prodOp) {
+                        return prodOp.degrees() == collapseOp[0].degrees();
+                      });
+      if (!allSameDegrees) {
+        throw std::invalid_argument("All product terms in a collapse operator "
+                                    "must have the same degrees.");
+      }
     }
   }
 
@@ -239,15 +244,14 @@ cudaq::dynamics::CuDensityMatOpConverter::computeLindbladTerms(
           cudensitymatElementaryOperator_t cudmElemOp = nullptr;
           if (batchedSize == 1) {
             const auto &prodOp = L_daggerTimesL[0];
-            while (end < numOps &&
-                   prodOp[end].degrees() == prodOp[i].degrees())
+            while (end < numOps && prodOp[end].degrees() == prodOp[i].degrees())
               ++end;
             if (end - i > 1) {
               std::vector<cudaq::matrix_handler> factors;
               for (std::size_t k = i; k < end; ++k)
                 factors.emplace_back(prodOp[k]);
-              cudmElemOp = createFusedMultidiagonalOperator(
-                  factors, parameters, modeExtents);
+              cudmElemOp = createFusedMultidiagonalOperator(factors, parameters,
+                                                            modeExtents);
             }
             if (!cudmElemOp)
               end = i + 1;
@@ -257,8 +261,7 @@ cudaq::dynamics::CuDensityMatOpConverter::computeLindbladTerms(
             for (const auto &prodOp : L_daggerTimesL) {
               const auto &component = prodOp[i];
               if (const auto *elemOp =
-                      dynamic_cast<const cudaq::matrix_handler *>(
-                          &component)) {
+                      dynamic_cast<const cudaq::matrix_handler *>(&component)) {
                 components.emplace_back(*elemOp);
               } else {
                 // Catch anything that we don't know
@@ -382,9 +385,9 @@ cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
                                       bool isLeft) {
         auto remaining = sum_op<cudaq::matrix_handler>::empty();
         for (const auto &prodOp : ham) {
-          auto fused = computeFusableProductTerm(prodOp, parameters,
-                                                 modeExtents,
-                                                 /*bothSides=*/true);
+          auto fused =
+              computeFusableProductTerm(prodOp, parameters, modeExtents,
+                                        /*bothSides=*/true);
           if (!fused) {
             remaining += prodOp;
             continue;
