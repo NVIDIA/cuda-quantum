@@ -400,3 +400,52 @@ TEST_F(CuDensityMatTimeStepperTest, BatchedOperatorSimple) {
                        outputStateVec2[1]),
               0.0, 1e-6);
 }
+
+TEST_F(CuDensityMatTimeStepperTest, WorkspaceStateIsReusedForSameShape) {
+  auto &input = *dynamic_cast<CuDensityMatState *>(
+      cudaq::state_helper::getSimulationState(&state_));
+  auto &first = time_stepper_->workspaceState(0, input);
+  void *firstPtr = first.get_device_pointer();
+  EXPECT_TRUE(first.has_same_shape(input));
+  EXPECT_NE(firstPtr, input.get_device_pointer());
+
+  auto &again = time_stepper_->workspaceState(0, input);
+  EXPECT_EQ(&again, &first);
+  EXPECT_EQ(again.get_device_pointer(), firstPtr);
+
+  auto &second = time_stepper_->workspaceState(1, input);
+  EXPECT_NE(&second, &first);
+  EXPECT_NE(second.get_device_pointer(), firstPtr);
+  EXPECT_TRUE(second.has_same_shape(input));
+}
+
+TEST_F(CuDensityMatTimeStepperTest, WorkspaceStateIsReplacedWhenShapeChanges) {
+  auto &input = *dynamic_cast<CuDensityMatState *>(
+      cudaq::state_helper::getSimulationState(&state_));
+  EXPECT_FALSE(time_stepper_->workspaceState(0, input).is_density_matrix());
+
+  auto densityMatrix = input.to_density_matrix();
+  auto &replaced = time_stepper_->workspaceState(0, densityMatrix);
+  EXPECT_TRUE(replaced.has_same_shape(densityMatrix));
+  EXPECT_TRUE(replaced.is_density_matrix());
+}
+
+TEST_F(CuDensityMatTimeStepperTest, ComputeIntoMatchesCompute) {
+  auto &input = *dynamic_cast<CuDensityMatState *>(
+      cudaq::state_helper::getSimulationState(&state_));
+  const std::size_t numElements = input.get_element_count();
+  std::vector<std::complex<double>> expected(numElements), actual(numElements);
+  auto computed = time_stepper_->compute(state_, 0.0, {});
+  computed.to_host(expected.data(), expected.size());
+
+  // Start from nonzero contents to check that the output is overwritten.
+  auto &output = time_stepper_->workspaceState(0, input);
+  output.copy_from(input);
+  time_stepper_->computeInto(input, output, 0.0, {});
+  output.toHost(actual.data(), actual.size());
+
+  for (std::size_t i = 0; i < numElements; ++i) {
+    EXPECT_NEAR(actual[i].real(), expected[i].real(), 1e-12) << i;
+    EXPECT_NEAR(actual[i].imag(), expected[i].imag(), 1e-12) << i;
+  }
+}
