@@ -102,6 +102,9 @@ public:
 
   std::size_t sizeBytes() const { return m_sizeBytes; }
 
+  // True if the buffer holds fabric-exportable memory.
+  bool isFabricMemory() const { return m_isFabricMemory; }
+
 private:
   void *m_data{nullptr};
   std::size_t m_sizeBytes{0};

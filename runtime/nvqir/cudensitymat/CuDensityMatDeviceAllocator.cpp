@@ -183,10 +183,15 @@ CUresult createFabricMemory(const DriverApi &api, const FabricDevice &device,
   return CUDA_SUCCESS;
 }
 
+// Runs from destructors, including during process exit, so it must not throw.
 void destroyFabricMemory(const DriverApi &api, void *ptr,
-                         std::size_t alignedSize) {
+                         std::size_t alignedSize) noexcept {
   // Unmapping is not stream ordered.
-  HANDLE_CUDA_ERROR(cudaDeviceSynchronize());
+  const cudaError_t syncResult = cudaDeviceSynchronize();
+  if (syncResult != cudaSuccess && syncResult != cudaErrorCudartUnloading)
+    CUDAQ_WARN("cudaDeviceSynchronize failed before unmapping fabric memory "
+               "for a dynamics MPI buffer: {}",
+               cudaGetErrorString(syncResult));
   const auto devicePtr = reinterpret_cast<CUdeviceptr>(ptr);
   api.unmap(devicePtr, alignedSize);
   api.addressFree(devicePtr, alignedSize);

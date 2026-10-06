@@ -9,11 +9,30 @@
 #pragma once
 #include "CuDensityMatOpConverter.h"
 #include "CuDensityMatUtils.h"
+#include <cstdint>
 #include <cublas_v2.h>
 #include <cuda_runtime.h>
 #include <cudensitymat.h>
+#include <string>
 
 namespace cudaq::dynamics {
+namespace detail {
+/// @brief Resolve a `CUDAQ_GPU_FABRIC` value (case-insensitive) to an NVLink
+/// domain size, matching the cuStateVec MPI simulator: `MNNVL` spans the
+/// communicator, `NVL` spans the ranks on one node, `NONE` gives 1, and a
+/// positive integer is used as given. Throws `std::invalid_argument` for any
+/// other value.
+int32_t gpuFabricDomainSize(std::string fabric, int32_t numRanks,
+                            int32_t ranksPerNode);
+
+/// @brief Return true if the `CUDAQ_GPU_FABRIC` value `fabric` (null when
+/// unset) requests fabric-exportable memory for MPI buffers. That requires
+/// more than one node and an NVLink domain that spans every rank. Invalid
+/// values throw regardless of the topology.
+bool requestsFabricMemory(const char *fabric, int32_t numRanks,
+                          int32_t ranksPerNode);
+} // namespace detail
+
 /// @brief Class representing the CUDAQ context for density matrix operations.
 class Context {
 public:

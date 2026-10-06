@@ -34,7 +34,9 @@ std::shared_ptr<base_integrator> magnus_expansion::clone() {
   clone->m_num_taylor_terms = this->m_num_taylor_terms;
   clone->m_dt = this->m_dt;
   clone->m_t = this->m_t;
-  clone->m_state = this->m_state;
+  // Integration updates the state in place, so the clone needs its own copy.
+  if (m_state)
+    cudmIntHelp::setState(clone->m_state, clone->m_t, *m_state, m_t);
   clone->m_system = this->m_system;
   clone->m_schedule = this->m_schedule;
   return clone;

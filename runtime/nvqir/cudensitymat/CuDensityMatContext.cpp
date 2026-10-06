@@ -98,12 +98,8 @@ static cudaqDistributedCommunicator_t *getMpiCommWrapper() {
   return comm;
 }
 
-/// @brief Resolve a `CUDAQ_GPU_FABRIC` value (case-insensitive) to an NVLink
-/// domain size, matching the cuStateVec MPI simulator: `MNNVL` spans the
-/// communicator, `NVL` spans the ranks on one node, `NONE` gives 1, and a
-/// positive integer is used as given.
-static int32_t gpuFabricDomainSize(std::string fabric, int32_t numRanks,
-                                   int32_t ranksPerNode) {
+int32_t detail::gpuFabricDomainSize(std::string fabric, int32_t numRanks,
+                                    int32_t ranksPerNode) {
   std::transform(fabric.begin(), fabric.end(), fabric.begin(),
                  [](unsigned char c) { return std::toupper(c); });
   if (fabric == "MNNVL")
@@ -123,8 +119,17 @@ static int32_t gpuFabricDomainSize(std::string fabric, int32_t numRanks,
   return domainSize;
 }
 
+bool detail::requestsFabricMemory(const char *fabric, int32_t numRanks,
+                                  int32_t ranksPerNode) {
+  if (!fabric)
+    return false;
+  const int32_t domainSize =
+      gpuFabricDomainSize(fabric, numRanks, ranksPerNode);
+  return ranksPerNode < numRanks && domainSize >= numRanks;
+}
+
 /// @brief Decide whether MPI buffers use fabric-exportable memory, which allows
-/// zero-copy via UCX. This requires more than one node and a CUDAQ_GPU_FABRIC`
+/// zero-copy via UCX. This requires more than one node and a `CUDAQ_GPU_FABRIC`
 /// NVLink domain that spans every rank. If a test allocation fails on any rank,
 /// all ranks fall back to `cudaMalloc` and the lowest failing rank prints a
 /// warning.
@@ -140,9 +145,7 @@ static bool useFabricMemory(cudaqDistributedInterface_t *mpiInterface,
       mpiInterface->getProcRank(comm, &rank) != 0 ||
       mpiInterface->getCommSizeShared(comm, &ranksPerNode) != 0)
     throw std::runtime_error("Failed to query the MPI communicator topology");
-  if (ranksPerNode >= numRanks)
-    return false;
-  if (gpuFabricDomainSize(fabric, numRanks, ranksPerNode) < numRanks)
+  if (!detail::requestsFabricMemory(fabric, numRanks, ranksPerNode))
     return false;
 
   const auto failure = DeviceAllocator::testFabricAllocation();
