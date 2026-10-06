@@ -9008,6 +9008,14 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
+    []{#structcudaq_1_1ExecutionResult_1a34758de0b66b186aad585c64c3ac0439 .target}[[[ExecutionResult]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[ExecutionResult]{.pre}]{.n}](#_CPPv4N5cudaq15ExecutionResult15ExecutionResultERR15ExecutionResult "cudaq::ExecutionResult::ExecutionResult"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[)]{.sig-paren}[ ]{.w}[[noexcept]{.pre}]{.k}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[default]{.pre}]{.k}[¶](#_CPPv4N5cudaq15ExecutionResult15ExecutionResultERR15ExecutionResult "Permalink to this definition"){.headerlink}\
+
+    :   Transfer ownership of the counts and sequential shot data.
+
+    ```{=html}
+    <!-- -->
+    ```
+
     []{#structcudaq_1_1ExecutionResult_1a46de0f6522e69f94787afb745768b0b8 .target}[[[ExecutionResult]{.pre}]{.n}](#_CPPv4N5cudaq15ExecutionResultE "cudaq::ExecutionResult"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[[operator]{.pre}]{.k}[[=]{.pre}]{.o}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[[ExecutionResult]{.pre}]{.n}](#_CPPv4N5cudaq15ExecutionResultE "cudaq::ExecutionResult"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[other]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq15ExecutionResultaSERK15ExecutionResult "Permalink to this definition"){.headerlink}\
 
     :   Set this [[ExecutionResult]{.std
@@ -9021,6 +9029,14 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
         Returns[:]{.colon}
 
         :   
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#structcudaq_1_1ExecutionResult_1af555929b013a6953bf9e980330c950d3 .target}[[[ExecutionResult]{.pre}]{.n}](#_CPPv4N5cudaq15ExecutionResultE "cudaq::ExecutionResult"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[[operator]{.pre}]{.k}[[=]{.pre}]{.o}]{.sig-name .descname}[(]{.sig-paren}[[[ExecutionResult]{.pre}]{.n}](#_CPPv4N5cudaq15ExecutionResultE "cudaq::ExecutionResult"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[)]{.sig-paren}[ ]{.w}[[noexcept]{.pre}]{.k}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[default]{.pre}]{.k}[¶](#_CPPv4N5cudaq15ExecutionResultaSERR15ExecutionResult "Permalink to this definition"){.headerlink}\
+
+    :   Replace this result by transferring ownership from another.
 
     ```{=html}
     <!-- -->
