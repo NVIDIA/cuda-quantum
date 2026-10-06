@@ -140,12 +140,8 @@ LinkedLibraryHolder::LinkedLibraryHolder() : availablePlatforms{"default"} {
   dl_iterate_phdr(cudaq::detail::getCUDAQLibraryPath, &data);
 #endif
 
-  std::filesystem::path nvqirLibPath{data.path};
-  cudaqLibPath = nvqirLibPath.parent_path();
-  if (cudaqLibPath.filename().string() == "common") {
-    // this is a build path
-    cudaqLibPath = cudaqLibPath.parent_path().parent_path() / "lib";
-  }
+  std::filesystem::path libcudaqPath{data.path};
+  cudaqLibPath = libcudaqPath.parent_path();
 
   // Populate the map of available targets.
   {
@@ -161,7 +157,8 @@ LinkedLibraryHolder::LinkedLibraryHolder() : availablePlatforms{"default"} {
   // be a needed dep of libcudaq.so (circular dependency), but downstream
   // libraries like cuda-qx reference its symbols at dlopen time.
   std::vector<std::filesystem::path> libPaths{
-      cudaqLibPath / fmt::format("libnvqir.{}", libSuffix),
+      // NVQIR may already be loaded from a separate core installation.
+      fmt::format("libnvqir.{}", libSuffix),
       cudaqLibPath / fmt::format("libcudaq.{}", libSuffix),
       cudaqLibPath / fmt::format("libcudaq-em-default.{}", libSuffix)};
 

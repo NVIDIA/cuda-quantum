@@ -61,7 +61,28 @@ def main() -> None:
         "CUDA-Q runtime extras: " + ", ".join(RUNTIME_DISTRIBUTIONS),
     )
     parser.add_argument("--version", required=True)
+    parser.add_argument(
+        "--core",
+        action="store_true",
+        help=
+        "Build a split-wheel candidate with an exact base cudaq-core dependency"
+    )
     args = parser.parse_args()
+
+    if args.core:
+        # Combined wheels supply core through the runtime extras. Split wheels
+        # need a base core dependency so logical can run without the frontend.
+        text = args.pyproject.read_text()
+        text, count = re.subn(r"(?m)^dependencies = \[",
+                              'dependencies = [\n  "cudaq-core",',
+                              text,
+                              count=1)
+        if count != 1:
+            raise RuntimeError("Expected a project dependencies array")
+        args.pyproject.write_text(text)
+        stamp_runtime_dependency(args.pyproject,
+                                 distribution="cudaq-core",
+                                 version=args.version)
 
     for distribution in args.distributions or RUNTIME_DISTRIBUTIONS:
         dependency = stamp_runtime_dependency(
