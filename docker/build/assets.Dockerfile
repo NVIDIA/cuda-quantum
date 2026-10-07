@@ -93,8 +93,13 @@ RUN --mount=type=cache,target=/root/.ccache,id=llvm-prereqs-ccache \
 # Add Flang and BLAS on top of the already-built toolchain above.
 # Exclude "toolchain": it's already built, and re-running it reuses a
 # stale cache pointing at temp packages uninstalled in the layer above.
+# Excluding it also skips exporting CC/CXX to the stage-1 compiler, so
+# set them explicitly here too (otherwise build_llvm.sh's GCC-flag
+# detection sees the system compiler and adds a flag clang rejects).
 RUN --mount=type=cache,target=/root/.ccache,id=llvm-prereqs-ccache \
     cd /cuda-quantum && source scripts/configure_build.sh && \
+    stage1="$(find "$(dirname "$(mktemp -d -u)")" -maxdepth 2 -name llvm)" && \
+    CC="$stage1/bin/clang" CXX="$stage1/bin/clang++" \
     LLVM_PROJECTS='clang;flang;lld;mlir;openmp;runtimes' BOOTSTRAP_LLVM=true \
     LLVM_FORCE_REBUILD=true \
     bash scripts/install_prerequisites.sh -t llvm -e "qrmi toolchain"
