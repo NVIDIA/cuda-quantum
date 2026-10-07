@@ -1148,11 +1148,13 @@ please follow the instructions for <a class="reference external" href="https://p
 If you have an NVIDIA GPU, make sure to also follow the instructions for enabling GPU-acceleration.</p>
 <p>CUDA-Q does not require a GPU to use, but some components are GPU-accelerated.
 Getting started with CUDA-Q requires <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">cudaq</span></code>. Please make sure your <code class="docutils literal notranslate"><span class="pre">pip</span></code> version is &gt;= 24.0.</p>
-<p>Upgrade an existing <code class="docutils literal notranslate"><span class="pre">cudaq</span></code> installation with <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">--upgrade</span> <span class="pre">cudaq</span></code>;
-no manual removal is needed when moving from combined to split wheels.
-Do not install both CUDA-specific frontend variants in the same environment.
-Users of the deprecated <code class="docutils literal notranslate"><span class="pre">cuda-quantum</span></code> metapackage should uninstall that package
-before switching to <code class="docutils literal notranslate"><span class="pre">cudaq</span></code>.</p>
+<blockquote>
+<div><p><strong>Important:</strong>
+Please check if you have an existing installation of the <code class="docutils literal notranslate"><span class="pre">cuda-quantum</span></code>,
+<code class="docutils literal notranslate"><span class="pre">cudaq-quantum-cu11</span></code>, <code class="docutils literal notranslate"><span class="pre">cuda-quantum-cu12</span></code>, or <code class="docutils literal notranslate"><span class="pre">cuda-quantum-cu13</span></code> package, and uninstall it prior to
+installation. Different CUDA-Q binary distributions may conflict with each
+other causing issues.</p>
+</div></blockquote>
 <p>Platform-specific instructions: <a href="#linux-gpu">Linux</a> | <a href="#macos">macOS</a></p>
 <p><a id="linux-gpu"></a>
 <strong>Linux: GPU-Acceleration and Multi-GPU</strong></p>

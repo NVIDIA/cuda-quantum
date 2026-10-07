@@ -2003,19 +2003,17 @@ GPU-accelerated. Getting started with CUDA-Q requires [`pip`{.docutils
 make sure your [`pip`{.docutils .literal .notranslate}]{.pre} version is
 \>= 24.0.
 
-Upgrade an existing [`cudaq`{.docutils .literal .notranslate}]{.pre}
-installation with [`pip`{.docutils .literal
-.notranslate}]{.pre}` `{.docutils .literal
-.notranslate}[`install`{.docutils .literal
-.notranslate}]{.pre}` `{.docutils .literal
-.notranslate}[`--upgrade`{.docutils .literal
-.notranslate}]{.pre}` `{.docutils .literal
-.notranslate}[`cudaq`{.docutils .literal .notranslate}]{.pre}; no manual
-removal is needed when moving from combined to split wheels. Do not
-install both CUDA-specific frontend variants in the same environment.
-Users of the deprecated [`cuda-quantum`{.docutils .literal
-.notranslate}]{.pre} metapackage should uninstall that package before
-switching to [`cudaq`{.docutils .literal .notranslate}]{.pre}.
+> <div>
+>
+> **Important:** Please check if you have an existing installation of
+> the [`cuda-quantum`{.docutils .literal .notranslate}]{.pre},
+> [`cudaq-quantum-cu11`{.docutils .literal .notranslate}]{.pre},
+> [`cuda-quantum-cu12`{.docutils .literal .notranslate}]{.pre}, or
+> [`cuda-quantum-cu13`{.docutils .literal .notranslate}]{.pre} package,
+> and uninstall it prior to installation. Different CUDA-Q binary
+> distributions may conflict with each other causing issues.
+>
+> </div>
 
 Platform-specific instructions: [Linux](#linux-gpu) \| [macOS](#macos)
 
