@@ -277,7 +277,7 @@ TEST_F(OperatorFusionTest, NonNormalCollapseOperatorsOnMixedModeSizes) {
 // Hamiltonian terms and collapse operators with a parameterized coefficient
 // are not fused and are combined with the fused terms. The parameterized decay
 // of the 6-level mode keeps its L^dagger L factors, which fuse into one
-// multi-diagonal operator.
+// multi-diagonal operator unless fusion is disabled.
 TEST_F(OperatorFusionTest, ParameterizedCoefficientsStayUnfused) {
   const std::vector<int64_t> dims = {2, 6};
   const auto omega = [](const Parameters &parameters) {

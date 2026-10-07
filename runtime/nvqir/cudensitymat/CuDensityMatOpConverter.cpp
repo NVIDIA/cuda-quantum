@@ -580,7 +580,7 @@ cudaq::dynamics::CuDensityMatOpConverter::createFusedMultidiagonalOperator(
     const std::vector<cudaq::matrix_handler> &factors,
     const std::unordered_map<std::string, std::complex<double>> &parameters,
     const std::vector<int64_t> &modeExtents) {
-  if (factors.size() < 2)
+  if (m_maxFusedDimension <= 0 || factors.size() < 2)
     return nullptr;
   const auto degrees = factors[0].degrees();
   const auto dim =
