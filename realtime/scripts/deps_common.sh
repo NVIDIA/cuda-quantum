@@ -174,11 +174,15 @@ cudaq_realtime_install_holoscan() {
   _cudaq_realtime_holoscan_tmp=$(mktemp -d)
   # Downloaded whole before it is unpacked, so a truncated transfer costs a
   # retry rather than leaving a half-populated prefix behind.
+  # The archive stores most entries as 0700/0600 under its packager's uid, and
+  # tar run as root reproduces both, leaving the SDK readable by root alone: an
+  # unprivileged build then fails to find even fmt/format.h. Hence the chmod.
   retry cudaq_realtime_download "$_cudaq_realtime_holoscan_url" \
     "$_cudaq_realtime_holoscan_tmp/holoscan.tar.xz" &&
     mkdir -p "$HOLOSCAN_SDK_INSTALL_PREFIX" &&
     tar xf "$_cudaq_realtime_holoscan_tmp/holoscan.tar.xz" \
-      --strip-components 1 -C "$HOLOSCAN_SDK_INSTALL_PREFIX"
+      --strip-components 1 --no-same-owner -C "$HOLOSCAN_SDK_INSTALL_PREFIX" &&
+    chmod -R a+rX "$HOLOSCAN_SDK_INSTALL_PREFIX"
   _cudaq_realtime_holoscan_status=$?
   rm -rf "$_cudaq_realtime_holoscan_tmp"
   return $_cudaq_realtime_holoscan_status
