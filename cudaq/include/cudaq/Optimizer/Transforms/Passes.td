@@ -1591,28 +1591,15 @@ def NormalizePhasePlacement :
                            "cudaq::quake::QuakeDialect"];
 }
 
-def ObserveAnsatz : Pass<"observe-ansatz", "mlir::func::FuncOp"> {
- let summary = "Given spin_op input, append measures to the FuncOp";
-  let description = [{
-    Given an unmeasured Quake representation (i.e. a state prep ansatz), append
-    measures based on the given spin_op specified in binary symplectic form.
-  }];
-  let options = [
-    ListOption<"termBSF", "term-bsf", "unsigned",
-      "The measurement bases as a Pauli tensor product represented in binary "
-      "symplectic form.">
-  ];
-}
-
-def OptimizeSingleQubitCliffordT
-    : Pass<"optimize-1q-clifford-t", "mlir::ModuleOp"> {
+def NormalizeSingleQubitCliffordT
+    : Pass<"normalize-1q-clifford-t", "mlir::func::FuncOp"> {
   let summary =
     "Rewrite exact one-qubit Clifford+T chains to Matsumoto-Amano normal form.";
   let description = [{
-    Consumes and produces the scalar linear SSA `!quake.wire` form created by
+    Consumes and produces the linear SSA `!quake.wire` form created by
     `convert-to-linear-values`.
 
-    Rewrites exact one-qubit Clifford+T chains on scalar `!quake.wire` values
+    Rewrites exact one-qubit Clifford+T chains on `!quake.wire` values
     into Matsumoto-Amano normal form while preserving the exact unitary.
     Controlled chains are supported when their controls and polarities remain
     unchanged, including through single-block `cc.scope` operations. The pass
@@ -1626,6 +1613,19 @@ def OptimizeSingleQubitCliffordT
   }];
   let dependentDialects = ["mlir::arith::ArithDialect",
                            "quake::QuakeDialect"];
+}
+
+def ObserveAnsatz : Pass<"observe-ansatz", "mlir::func::FuncOp"> {
+ let summary = "Given spin_op input, append measures to the FuncOp";
+  let description = [{
+    Given an unmeasured Quake representation (i.e. a state prep ansatz), append
+    measures based on the given spin_op specified in binary symplectic form.
+  }];
+  let options = [
+    ListOption<"termBSF", "term-bsf", "unsigned",
+      "The measurement bases as a Pauli tensor product represented in binary "
+      "symplectic form.">
+  ];
 }
 
 def PhaseFolding: Pass<"phase-folding", "mlir::func::FuncOp"> {
