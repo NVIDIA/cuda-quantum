@@ -46,6 +46,7 @@
 #include "mlir/Tools/Plugins/DialectPlugin.h"
 #include "mlir/Tools/Plugins/PassPlugin.h"
 
+#include "qlx/Dialect/Cflow/IR/CflowDialect.h"
 #include "qlx/Dialect/QLX/IR/QLXAttrs.h"
 #include "qlx/Dialect/QLX/IR/QLXDialect.h"
 #include "qlx/Dialect/QLX/IR/QLXTypes.h"
@@ -397,6 +398,7 @@ NB_MODULE(_qlxRuntime, m) {
       [](const std::string &mlirText, double precision) -> std::string {
         mlir::MLIRContext context;
         context.getOrLoadDialect<qlx::QLXDialect>();
+        context.getOrLoadDialect<qlx::cflow::CflowDialect>();
         context.getOrLoadDialect<mlir::arith::ArithDialect>();
 
         auto module =
@@ -421,6 +423,7 @@ NB_MODULE(_qlxRuntime, m) {
       [](const std::string &mlirText) -> bool {
         mlir::MLIRContext context;
         context.getOrLoadDialect<qlx::QLXDialect>();
+        context.getOrLoadDialect<qlx::cflow::CflowDialect>();
         context.getOrLoadDialect<mlir::arith::ArithDialect>();
 
         auto module =
@@ -438,6 +441,7 @@ NB_MODULE(_qlxRuntime, m) {
       [](const std::string &mlirText) -> std::string {
         mlir::MLIRContext context;
         context.getOrLoadDialect<qlx::QLXDialect>();
+        context.getOrLoadDialect<qlx::cflow::CflowDialect>();
         context.getOrLoadDialect<mlir::arith::ArithDialect>();
 
         auto module =
@@ -455,14 +459,15 @@ NB_MODULE(_qlxRuntime, m) {
       },
       nb::arg("mlir_text"),
       "Lower a synthesized Clifford+T program to Pauli-based-computation form: "
-      "pi/4 Pauli-product rotations + Pauli-product measurements (device-free "
-      "P0). Returns the transformed MLIR text.");
+      "pi/4 Pauli-product rotations, folded static repeats, and Pauli-product "
+      "measurements (device-free P0). Returns the transformed MLIR text.");
 
   m.def(
       "verify_pbc",
       [](const std::string &mlirText) -> bool {
         mlir::MLIRContext context;
         context.getOrLoadDialect<qlx::QLXDialect>();
+        context.getOrLoadDialect<qlx::cflow::CflowDialect>();
         context.getOrLoadDialect<mlir::arith::ArithDialect>();
 
         auto module =
@@ -477,8 +482,9 @@ NB_MODULE(_qlxRuntime, m) {
       },
       nb::arg("mlir_text"),
       "Certify a module is in Pauli-based-computation normal form (only "
-      "prepare/pi-4 pauli_rotation/mpp/discard/return; rotations before "
-      "measurements; measured Paulis pairwise commute). Returns true, or "
+      "prepare/pi-4 pauli_rotation/folded repeat/mpp/discard/return; rotations "
+      "before measurements; measured Paulis pairwise commute). Returns true, "
+      "or "
       "raises "
       "with the first violation.");
 
