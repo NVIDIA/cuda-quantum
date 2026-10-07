@@ -209,8 +209,7 @@ inline constexpr bool isTransparentNode =
     std::is_same_v<X, clang::CXXStdInitializerListExpr> ||
     std::is_same_v<X, clang::SubstNonTypeTemplateParmExpr> ||
     std::is_same_v<X, clang::ConstantExpr> ||
-    std::is_same_v<X, clang::NullStmt> || std::is_same_v<X, clang::LabelStmt> ||
-    std::is_same_v<X, clang::AttributedStmt>;
+    std::is_same_v<X, clang::NullStmt> || std::is_same_v<X, clang::LabelStmt>;
 
 /// What a node of the AST produces when it is visited. At present, only
 /// expressions produce a result: the value that is computed.
@@ -414,6 +413,8 @@ public:
   Result visit(clang::ContinueStmt *x);
   Result visit(clang::DeclStmt *x);
   Result visit(clang::CompoundStmt *x);
+  Result lowerCompound(clang::CompoundStmt *x, bool atomicRegion);
+  Result visit(clang::AttributedStmt *x);
   Result visit(clang::CompoundAssignOperator *x);
   Result visit(clang::ReturnStmt *x);
 

@@ -436,6 +436,12 @@ QuakeBridgeVisitor::Result QuakeBridgeVisitor::visit(clang::ReturnStmt *x) {
 
 QuakeBridgeVisitor::Result
 QuakeBridgeVisitor::visit(clang::CompoundStmt *stmt) {
+  return lowerCompound(stmt, /*atomicRegion=*/false);
+}
+
+QuakeBridgeVisitor::Result
+QuakeBridgeVisitor::lowerCompound(clang::CompoundStmt *stmt,
+                                  bool atomicRegion) {
   auto loc = toLocation(stmt->getSourceRange());
   SymbolTableScope var_scope(symbolTable);
   auto traverseAndCheck = [&](clang::Stmt *cs) {
@@ -453,12 +459,38 @@ QuakeBridgeVisitor::visit(clang::CompoundStmt *stmt) {
       traverseAndCheck(static_cast<clang::Stmt *>(cs));
     return std::nullopt;
   }
-  cc::ScopeOp::create(builder, loc, [&](OpBuilder &builder, Location loc) {
-    for (auto *cs : stmt->body())
-      traverseAndCheck(static_cast<clang::Stmt *>(cs));
-    cc::ContinueOp::create(builder, loc);
-  });
+  auto scope =
+      cc::ScopeOp::create(builder, loc, [&](OpBuilder &builder, Location loc) {
+        for (auto *cs : stmt->body())
+          traverseAndCheck(static_cast<clang::Stmt *>(cs));
+        cc::ContinueOp::create(builder, loc);
+      });
+  if (atomicRegion)
+    scope.setAtomicQuantumRegionAttr(builder.getUnitAttr());
   return std::nullopt;
+}
+
+/// A statement with attributes is lowered as the statement it wraps. The one
+/// attribute that is meaningful to the compiler is the annotation that marks a
+/// compound statement as an atomic quantum region. Other attributes (`likely`,
+/// `maybe_unused`, annotations of other tools, ...) have no effect on the code.
+QuakeBridgeVisitor::Result QuakeBridgeVisitor::visit(clang::AttributedStmt *x) {
+  bool atomicRegion = llvm::any_of(x->getAttrs(), [](const clang::Attr *attr) {
+    auto *annotation = dyn_cast<clang::AnnotateAttr>(attr);
+    return annotation &&
+           annotation->getAnnotation() == cudaq::atomicQuantumRegionAnnotation;
+  });
+  if (!atomicRegion)
+    return traverse(x->getSubStmt());
+  auto *compound = dyn_cast<clang::CompoundStmt>(x->getSubStmt());
+  if (!compound) {
+    // Marking one statement as an atomic region is not supported, as it is not
+    // clear what a region of one statement is. Do not silently ignore it.
+    reportClangError(x, mangler,
+                     "an atomic quantum region must be a compound statement");
+    return fail();
+  }
+  return lowerCompound(compound, /*atomicRegion=*/true);
 }
 
 // Shared implementation for lowering of `do while` and `while` loops.

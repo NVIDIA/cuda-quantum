@@ -478,6 +478,16 @@ QuakeTypeVisitor::Result QuakeTypeVisitor::visit(clang::BuiltinType *t) {
   return builtinTypeToType(t);
 }
 
+/// An enumeration is represented by its underlying integer type.
+QuakeTypeVisitor::Result QuakeTypeVisitor::visit(clang::EnumType *t) {
+  auto underlying = t->getDecl()->getIntegerType();
+  if (underlying.isNull()) {
+    // An enumeration without a definition has no known representation.
+    return std::nullopt;
+  }
+  return traverse(underlying);
+}
+
 QuakeTypeVisitor::Result QuakeTypeVisitor::visit(clang::PointerType *t) {
   if (t->getPointeeType()->isUndeducedAutoType())
     return cc::PointerType::get(builder.getContext());
