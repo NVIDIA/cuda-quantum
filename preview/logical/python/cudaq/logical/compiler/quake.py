@@ -45,11 +45,16 @@ CUDAQ_LINEAR_VALUES_PIPELINE = (
 # at the typed Quake-to-P0 boundary.
 # Passes bracketing `prepare-for-wireset` are QLX-specific and deliberately live
 # here rather than in the shared CUDA-Q pipeline. The decomposition basis is the
-# gate set Quake-to-P0 accepts.
+# gate set Quake-to-P0 accepts. Its patterns cover at most one control, so
+# `multicontrol-decomposition` first reduces every other multi-controlled gate
+# to Toffolis plus a singly-controlled gate; it needs reference semantics and
+# therefore runs before `prepare-for-wireset` converts to wires.
 CUDAQ_TARGET_PREPARATION_PIPELINE = ",".join((
     "expand-measurements",
     "canonicalize",
     "globalize-array-values",
+    "canonicalize",
+    "func.func(multicontrol-decomposition)",
     "canonicalize",
     "prepare-for-wireset{unroll-only-index-use-loops=true maximum-iterations=2048000}",
     "decomposition{basis=h,s,t,x,y,z,x(1),z(1),x(2),z(2),swap,rx,ry,rz,r1}",

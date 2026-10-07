@@ -185,6 +185,7 @@ if (CUDA_FOUND AND TARGET nvqir-dynamics)
     dynamics/test_CuDensityMatState.cpp
     dynamics/test_CuDensityMatTimeStepper.cpp
     dynamics/test_CuDensityMatFabricMemory.cpp
+    dynamics/test_CuDensityMatOperatorFusion.cpp
     dynamics/test_CuDensityMatExpectation.cpp
     dynamics/test_EvolveSingle.cpp
     dynamics/test_EvolveApi.cpp
