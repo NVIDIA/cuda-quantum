@@ -14,6 +14,11 @@
 #include "llvm/Support/Debug.h"
 #include "mlir/Dialect/Complex/IR/Complex.h"
 #include "mlir/Dialect/Math/IR/Math.h"
+#include <cstdint>
+#include <functional>
+#include <optional>
+#include <string>
+#include <vector>
 
 #define DEBUG_TYPE "lower-ast-expr"
 

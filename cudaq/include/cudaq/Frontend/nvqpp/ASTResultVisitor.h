@@ -34,124 +34,125 @@
 #include "llvm/ADT/SmallPtrSet.h"
 #include "llvm/ADT/SmallVector.h"
 #include <concepts>
+#include <cstddef>
 #include <optional>
 #include <type_traits>
 #include <variant>
 
 /// \file
 /// An AST visitor that threads a result value through the traversal.
-///
-/// clang's `RecursiveASTVisitor` only threads a `bool` (continue / stop)
-/// through a traversal, so a visitor that builds something (IR, a type, a
-/// string, ...) has to smuggle its results around on side stacks. This
-/// visitor instead has every node visit return a `std::optional<R>`.
-///
-///  - `std::nullopt` means the node produced no value. This is *not* an error.
-///    Statements, for example, typically produce no value.
-///  - Errors are state in the visitor: call `fail()` and test `hasFailed()`.
-///    Once the visitor has failed, traversal of sibling nodes stops.
-///
-/// Handlers are overloads of `visit` on the clang node class. There is no
-/// `VisitIfStmt`; there is `visit(clang::IfStmt *)`. A handler written for a
-/// base class (`visit(clang::CastExpr *)`) is used for all of its subclasses
-/// that have no handler of their own. There is no need to "walk up".
-///
-///   Result visit(X *x);
-///      The handler is in full control and decides which children to traverse
-///      and in what order, by calling `traverse` (or `traverseAll`) itself.
-///
-///   Result visit(X *x, ChildResults<R> &kids);
-///      The children have already been traversed (in order) and their results
-///      are in `kids`. (A null child, like the absent `init` of a `for` loop,
-///      is a `nullopt` entry so that positions stay stable.)
-///
-/// If both shapes are applicable to a node, the first (full control) is used.
-/// A node with neither is traversed by default: the children are traversed and
-/// the result is `std::nullopt`; sugared types are replaced by the type they
-/// desugar to. Handlers must be public members of `Derived`.
-///
-/// If `Derived` defines `Result unhandled(X *)`, that is called for each node
-/// that has no handler of either shape, instead of the default. This lets a
-/// visitor be introduced a node class at a time, where the rest of the nodes
-/// are visited some other way.
-///
-/// The kinds of node that can be traversed are `clang::Stmt` (including all
-/// expressions), `clang::Decl`, `clang::QualType`, `clang::CXXCtorInitializer`
-/// and `clang::TemplateArgument`.
-///
-/// Children
-/// --------
-///
-/// The children of a node are the sub-nodes that `RecursiveASTVisitor` would
-/// visit, in the same order, with these differences. Types are \e semantic
-/// `QualType`s, so that `auto fn(auto p)` has a type to look at. The type of a
-/// declarator or a function return type is a child; the type of an arbitrary
-/// expression is not, but a type that is written as a part of an expression
-/// (the target of an explicit cast, `sizeof(T)`, `new T`, ...) is. A function's
-/// parameters are `ParmVarDecl` children, and their types and default arguments
-/// are the children of those.
-///
-/// Whether implicit code, template instantiations, and lambda bodies are
-/// visited is controlled by the same optional hooks that `RecursiveASTVisitor`
-/// uses. Define any of these in `Derived`:
-///
-///   bool shouldVisitImplicitCode();            // default: false
-///   bool shouldVisitTemplateInstantiations();  // default: false
-///   bool shouldVisitLambdaBody();              // default: true
-///
-/// Implicit code includes implicit declarations (such as an implicitly
-/// defined copy constructor, its member initializers and its body), implicit
-/// constructor initializers, default arguments, and the semantic form of an
-/// `InitListExpr` (the syntactic form is the child otherwise).
-///
-/// A type that the base has no knowledge about (it is not sugar, has no
-/// handler and has no known children) is reported by calling the optional
-/// hook `void unsupported(clang::Type *)`, if `Derived` has one.
-///
-/// To use, derive via CRTP, pick `R` (a `std::variant` if a node kind produces
-/// different things), and call `traverse(node)` to start.
-///
-///   struct V : cudaq::detail::ASTResultVisitor<V, mlir::Type> {
-///     std::optional<mlir::Type> visit(clang::PointerType *t) {
-///       auto pointee = traverse(t->getPointeeType());
-///       if (!pointee) { fail(); return std::nullopt; }
-///       return cc::PointerType::get(*pointee);
-///     }
-///   };
-///
-/// Differences from `RecursiveASTVisitor`
-/// --------------------------------------
-///
-/// These are deliberate, and are checked by the unit tests that compare the
-/// two visitors over a corpus.
-///  - The semantic form of an `InitListExpr` (with its array filler) is
-///    visited once, if implicit code is visited. `RecursiveASTVisitor` visits
-///    both forms, and visits their common children twice.
-///  - The parameters of a function are its `ParmVarDecl`s, even when the
-///    function was declared with a type that is not written as a function
-///    (`__typeof(f)`, or a typedef of a function type).
-///  - Syntax-only parts are not visited: expressions inside types (array
-///    bounds, `decltype`, `noexcept`), attributes, names and qualifiers, and
-///    the parameter declarations of a function type that is written inside
-///    another type.
-///
-/// Termination
-/// -----------
-///
-/// The children of a node are the nodes it contains. A reference (the callee of
-/// a call, the type of a record) is never followed by the base, so traversing a
-/// node terminates. A handler that follows a reference can revisit a node that
-/// it is already inside of (a recursive function, a record that has a pointer
-/// to itself) and must break that cycle itself, as `QuakeTypeVisitor` does with
-/// its cache of records. The base only stops a runaway traversal: nesting
-/// deeper than `setMaxDepth` fails the visitor (and if assertions are enabled,
-/// so does a node that is its own ancestor).
-///
-/// Clang's data recursion queue is not used. A very deeply nested expression
-/// (such as `a + b + c + ...` with thousands of terms) recurses, and uses about
-/// 2 KB of native stack for each level. Like clang's own recursive code, the
-/// traversal checks how much stack is left at each node and continues on a new
-/// stack when it is nearly exhausted (`clang::runWithSufficientStackSpace`).
+
+// clang's `RecursiveASTVisitor` only threads a `bool` (continue / stop)
+// through a traversal, so a visitor that builds something (IR, a type, a
+// string, ...) has to smuggle its results around on side stacks. This
+// visitor instead has every node visit return a `std::optional<R>`.
+//
+//  - `std::nullopt` means the node produced no value. This is *not* an error.
+//    Statements, for example, typically produce no value.
+//  - Errors are state in the visitor: call `fail()` and test `hasFailed()`.
+//    Once the visitor has failed, traversal of sibling nodes stops.
+//
+// Handlers are overloads of `visit` on the clang node class. There is no
+// `VisitIfStmt`; there is `visit(clang::IfStmt *)`. A handler written for a
+// base class (`visit(clang::CastExpr *)`) is used for all of its subclasses
+// that have no handler of their own. There is no need to "walk up".
+//
+//   Result visit(X *x);
+//      The handler is in full control and decides which children to traverse
+//      and in what order, by calling `traverse` (or `traverseAll`) itself.
+//
+//   Result visit(X *x, ChildResults<R> &kids);
+//      The children have already been traversed (in order) and their results
+//      are in `kids`. (A null child, like the absent `init` of a `for` loop,
+//      is a `nullopt` entry so that positions stay stable.)
+//
+// If both shapes are applicable to a node, the first (full control) is used.
+// A node with neither is traversed by default: the children are traversed and
+// the result is `std::nullopt`; sugared types are replaced by the type they
+// desugar to. Handlers must be public members of `Derived`.
+//
+// If `Derived` defines `Result unhandled(X *)`, that is called for each node
+// that has no handler of either shape, instead of the default. This lets a
+// visitor be introduced a node class at a time, where the rest of the nodes
+// are visited some other way.
+//
+// The kinds of node that can be traversed are `clang::Stmt` (including all
+// expressions), `clang::Decl`, `clang::QualType`, `clang::CXXCtorInitializer`
+// and `clang::TemplateArgument`.
+//
+// Children
+// --------
+//
+// The children of a node are the sub-nodes that `RecursiveASTVisitor` would
+// visit, in the same order, with these differences. Types are \e semantic
+// `QualType`s, so that `auto fn(auto p)` has a type to look at. The type of a
+// declarator or a function return type is a child; the type of an arbitrary
+// expression is not, but a type that is written as a part of an expression
+// (the target of an explicit cast, `sizeof(T)`, `new T`, ...) is. A function's
+// parameters are `ParmVarDecl` children, and their types and default arguments
+// are the children of those.
+//
+// Whether implicit code, template instantiations, and lambda bodies are
+// visited is controlled by the same optional hooks that `RecursiveASTVisitor`
+// uses. Define any of these in `Derived`:
+//
+//   bool shouldVisitImplicitCode();            // default: false
+//   bool shouldVisitTemplateInstantiations();  // default: false
+//   bool shouldVisitLambdaBody();              // default: true
+//
+// Implicit code includes implicit declarations (such as an implicitly
+// defined copy constructor, its member initializers and its body), implicit
+// constructor initializers, default arguments, and the semantic form of an
+// `InitListExpr` (the syntactic form is the child otherwise).
+//
+// A type that the base has no knowledge about (it is not sugar, has no
+// handler and has no known children) is reported by calling the optional
+// hook `void unsupported(clang::Type *)`, if `Derived` has one.
+//
+// To use, derive via CRTP, pick `R` (a `std::variant` if a node kind produces
+// different things), and call `traverse(node)` to start.
+//
+//   struct V : cudaq::detail::ASTResultVisitor<V, mlir::Type> {
+//     std::optional<mlir::Type> visit(clang::PointerType *t) {
+//       auto pointee = traverse(t->getPointeeType());
+//       if (!pointee) { fail(); return std::nullopt; }
+//       return cc::PointerType::get(*pointee);
+//     }
+//   };
+//
+// Differences from `RecursiveASTVisitor`
+// --------------------------------------
+//
+// These are deliberate, and are checked by the unit tests that compare the
+// two visitors over a corpus.
+//  - The semantic form of an `InitListExpr` (with its array filler) is
+//    visited once, if implicit code is visited. `RecursiveASTVisitor` visits
+//    both forms, and visits their common children twice.
+//  - The parameters of a function are its `ParmVarDecl`s, even when the
+//    function was declared with a type that is not written as a function
+//    (`__typeof(f)`, or a typedef of a function type).
+//  - Syntax-only parts are not visited: expressions inside types (array
+//    bounds, `decltype`, `noexcept`), attributes, names and qualifiers, and
+//    the parameter declarations of a function type that is written inside
+//    another type.
+//
+// Termination
+// -----------
+//
+// The children of a node are the nodes it contains. A reference (the callee of
+// a call, the type of a record) is never followed by the base, so traversing a
+// node terminates. A handler that follows a reference can revisit a node that
+// it is already inside of (a recursive function, a record that has a pointer
+// to itself) and must break that cycle itself, as `QuakeTypeVisitor` does with
+// its cache of records. The base only stops a runaway traversal: nesting
+// deeper than `setMaxDepth` fails the visitor (and if assertions are enabled,
+// so does a node that is its own ancestor).
+//
+// Clang's data recursion queue is not used. A very deeply nested expression
+// (such as `a + b + c + ...` with thousands of terms) recurses, and uses about
+// 2 KB of native stack for each level. Like clang's own recursive code, the
+// traversal checks how much stack is left at each node and continues on a new
+// stack when it is nearly exhausted (`clang::runWithSufficientStackSpace`).
 
 namespace cudaq::detail {
 
@@ -173,8 +174,8 @@ public:
   auto end() const { return entries.end(); }
   void push_back(Entry e) { entries.push_back(std::move(e)); }
 
-  /// Get the i-th child's result as a `T`. Returns `nullopt` if that child
-  /// produced no value, or (if `R` is a variant) produced something else.
+  // Get the i-th child's result as a `T`. Returns `nullopt` if that child
+  // produced no value, or (if `R` is a variant) produced something else.
   template <typename T>
   std::optional<T> get(std::size_t i) const {
     if (i >= entries.size() || !entries[i])
@@ -219,16 +220,16 @@ struct ChildPolicy {
   bool lambdaBody = true;
 };
 
-/// How to enumerate the children of a node.
-///
-/// `enumerate(node, policy, fn)` calls `fn` with each child, in order, until
-/// `fn` returns false. A child is a `clang::Stmt *`, `clang::Decl *`,
-/// `clang::QualType`, `clang::CXXCtorInitializer *` or a `const
-/// clang::TemplateArgument &`; any of these may be null. The return value is
-/// false only if the kind of node is not known (see
-/// `ASTResultVisitor::unsupported`). Overload resolution selects the most
-/// derived overload, so a node class without its own overload inherits the
-/// children of its base class.
+// How to enumerate the children of a node.
+//
+// `enumerate(node, policy, fn)` calls `fn` with each child, in order, until
+// `fn` returns false. A child is a `clang::Stmt *`, `clang::Decl *`,
+// `clang::QualType`, `clang::CXXCtorInitializer *` or a `const
+// clang::TemplateArgument &`; any of these may be null. The return value is
+// false only if the kind of node is not known (see
+// `ASTResultVisitor::unsupported`). Overload resolution selects the most
+// derived overload, so a node class without its own overload inherits the
+// children of its base class.
 namespace ast_children {
 
 //===----------------------------------------------------------------------===//
@@ -255,9 +256,9 @@ bool templateParameters(clang::TemplateParameterList *tpl, F &fn) {
   return fn(static_cast<clang::Stmt *>(tpl->getRequiresClause()));
 }
 
-/// Children of a `DeclContext`. Lambda classes (visited through their
-/// `LambdaExpr`), blocks and captured decls (visited through their statements)
-/// are not visited here.
+// Children of a `DeclContext`. Lambda classes (visited through their
+// `LambdaExpr`), blocks and captured decls (visited through their statements)
+// are not visited here.
 template <typename F>
 bool declContext(clang::DeclContext *dc, F &fn) {
   if (!dc)
@@ -301,7 +302,7 @@ bool typeConstraint(const clang::TypeConstraint *tc, const ChildPolicy &p,
   return true;
 }
 
-/// The template parameter lists from outer templates of a declarator or tag.
+// The template parameter lists from outer templates of a declarator or tag.
 template <typename T, typename F>
 bool outerTemplateParameters(T *x, F &fn) {
   for (unsigned i = 0; i < x->getNumTemplateParameterLists(); ++i)
@@ -739,8 +740,8 @@ bool enumerate(clang::RequiresExpr *x, const ChildPolicy &p, F &&fn) {
 // Decl
 //===----------------------------------------------------------------------===//
 
-/// Declarations that are `DeclContext`s but have no more specific overload have
-/// the decls they contain as children.
+// Declarations that are `DeclContext`s but have no more specific overload have
+// the decls they contain as children.
 template <typename F>
 bool enumerate(clang::Decl *x, const ChildPolicy &, F &&fn) {
   declContext(llvm::dyn_cast<clang::DeclContext>(x), fn);
@@ -894,8 +895,8 @@ bool enumerate(clang::NonTypeTemplateParmDecl *x, const ChildPolicy &, F &&fn) {
   return true;
 }
 
-/// A type parameter: the type constraint (`template <Concept T>`), then the
-/// default argument.
+// A type parameter: the type constraint (`template <Concept T>`), then the
+// default argument.
 template <typename F>
 bool enumerate(clang::TemplateTypeParmDecl *x, const ChildPolicy &p, F &&fn) {
   if (!typeConstraint(x->getTypeConstraint(), p, fn))
@@ -905,10 +906,10 @@ bool enumerate(clang::TemplateTypeParmDecl *x, const ChildPolicy &p, F &&fn) {
   return true;
 }
 
-/// A function: the template parameter lists of outer templates, explicit
-/// template arguments, the return type, the parameters, the trailing requires
-/// clause, constructor initializers, and the body. The decls contained by the
-/// function (its parameters) are not visited again.
+// A function: the template parameter lists of outer templates, explicit
+// template arguments, the return type, the parameters, the trailing requires
+// clause, constructor initializers, and the body. The decls contained by the
+// function (its parameters) are not visited again.
 template <typename F>
 bool enumerate(clang::FunctionDecl *x, const ChildPolicy &p, F &&fn) {
   if (!outerTemplateParameters(x, fn))

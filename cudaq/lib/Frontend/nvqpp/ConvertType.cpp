@@ -10,6 +10,8 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "clang/Basic/TargetInfo.h"
 #include "llvm/TargetParser/Triple.h"
+#include <cstdint>
+#include <span>
 
 #define DEBUG_TYPE "lower-ast-type"
 

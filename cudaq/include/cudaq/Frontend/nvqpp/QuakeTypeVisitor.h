@@ -13,6 +13,8 @@
 #include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/DenseSet.h"
 #include "mlir/IR/Builders.h"
+#include <cstdint>
+#include <utility>
 
 namespace cudaq::detail {
 

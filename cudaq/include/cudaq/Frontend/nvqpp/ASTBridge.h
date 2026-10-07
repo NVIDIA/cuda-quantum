@@ -29,6 +29,13 @@
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/InitAllDialects.h"
+#include <cstdint>
+#include <map>
+#include <optional>
+#include <string>
+#include <unordered_map>
+#include <variant>
+#include <vector>
 
 namespace cudaq::detail {
 /// Report a clang error diagnostic. Note that the message must be a string

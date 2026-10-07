@@ -11,6 +11,9 @@
 #include "cudaq/Optimizer/Builder/Marshal.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/IR/Builders.h"
+#include <optional>
+#include <tuple>
+#include <vector>
 
 #define DEBUG_TYPE "lower-ast-stmt"
 
