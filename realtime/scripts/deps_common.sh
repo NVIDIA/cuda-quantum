@@ -44,7 +44,7 @@ CUDAQ_REALTIME_HSB_REF=${CUDAQ_REALTIME_HSB_REF:-2.6.0-EA2}
 # HSB changes CUDA-Q Realtime needs before HSB releases them, applied to every
 # clone. Resolved from this file's location, since it is sourced. Set to an
 # empty string to build HSB unpatched.
-CUDAQ_REALTIME_HSB_PATCH_DIR=${CUDAQ_REALTIME_HSB_PATCH_DIR-$(cd "$(dirname "${BASH_SOURCE[0]}")/../patches/hsb" 2>/dev/null && pwd)}
+CUDAQ_REALTIME_HSB_PATCH_DIR=${CUDAQ_REALTIME_HSB_PATCH_DIR-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../patches/hsb}
 
 # Major CUDA version reported by nvcc, e.g., 13.
 cudaq_realtime_cuda_major() {
@@ -213,6 +213,10 @@ cudaq_realtime_patch_hsb() {
   if [ -z "$CUDAQ_REALTIME_HSB_PATCH_DIR" ]; then
     echo "CUDAQ_REALTIME_HSB_PATCH_DIR is empty, building HSB unpatched."
     return 0
+  fi
+  if [ ! -d "$CUDAQ_REALTIME_HSB_PATCH_DIR" ]; then
+    echo "ERROR: HSB patch directory $CUDAQ_REALTIME_HSB_PATCH_DIR not found; copy realtime/patches alongside realtime/scripts, or set CUDAQ_REALTIME_HSB_PATCH_DIR to an empty string to build HSB unpatched" >&2
+    return 1
   fi
   local patch
   for patch in "$CUDAQ_REALTIME_HSB_PATCH_DIR"/*.patch; do
