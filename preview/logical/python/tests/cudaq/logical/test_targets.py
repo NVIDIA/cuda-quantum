@@ -571,3 +571,52 @@ def test_target_emission_preserves_frozen_snapshot_and_cached_inspection():
     assert "qlx.program @bell_pair" in emitted
     assert build.to_mlir() == before
     assert build.module is build.module
+
+
+def test_stage_free_target_lowering_reuses_build_verification_authority():
+    from unittest.mock import patch
+
+    from cudaq.logical.lower.driver import lower
+
+    build = cudaq.logical.compile(bell_pair)
+    with patch.object(
+            type(build._module.operation),
+            "verify",
+            side_effect=AssertionError("stage-free clone was re-verified"),
+    ):
+        work, ctx = lower(
+            cudaq.logical.targets.LoweringSpec(
+                (), cudaq.logical.targets.emit_mlir()),
+            build,
+        )
+
+    assert work is not build._module
+    assert ctx._verification_receipt.module is work
+
+
+def test_transforming_target_lowering_still_verifies_its_output():
+    from unittest.mock import patch
+
+    from cudaq.logical.lower.driver import lower
+    from cudaq.logical.lower.stage import Stage
+
+    class NoopStage(Stage):
+
+        def apply(self, _module, _ctx):
+            pass
+
+    build = cudaq.logical.compile(bell_pair)
+    with patch.object(
+            type(build._module.operation),
+            "verify",
+            return_value=False,
+    ) as verify:
+        with pytest.raises(ValueError,
+                           match="target lowering produced invalid"):
+            lower(
+                cudaq.logical.targets.LoweringSpec(
+                    (NoopStage(),), cudaq.logical.targets.emit_mlir()),
+                build,
+            )
+
+    verify.assert_called_once_with()

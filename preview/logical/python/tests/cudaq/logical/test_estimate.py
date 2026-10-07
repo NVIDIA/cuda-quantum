@@ -167,6 +167,32 @@ def test_static_profile_counts_analysis_and_realization_separately():
     assert counts.operation_counts["read_syndrome_ancillas"] == 2
 
 
+def test_selected_wsc_output_syndromes_do_not_block_static_costing():
+    builder = cql.devices.DeviceBuilder("PinnacleStaticEstimateTest")
+    compute = builder.logical.add_compute(capacity=2)
+    builder.qec.bind(compute, architecture=pinnacle.gb30)
+    device = builder.build()
+
+    @cql.program
+    def wsc_product() -> bool:
+        data = cql.ops.allocate(2, state=cql.types.zero, name="data")
+        data[0], data[1], result = cql.ops.mpp(
+            cql.types.X(data[0]) @ cql.types.Z(data[1]))
+        cql.ops.discard(data)
+        return result
+
+    build = cql.compile(
+        wsc_product,
+        pipeline=cql.compiler.pipelines.qec(),
+        device=device,
+        policy={"rounds": 2},
+    )
+
+    assert "fabric.output_syndrome" in build.to_mlir()
+    estimate = cql.analysis.estimate(build, tier=Tier.STATIC)
+    assert estimate.operation_counts["output_syndrome"] == 30
+
+
 def test_estimation_tiers_fail_closed_when_fidelity_inputs_are_missing():
     build = cql.compile(four_h)
     estimate = cql.estimate(

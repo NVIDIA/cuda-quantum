@@ -4533,9 +4533,11 @@ static LogicalResult verifySelectedPredicateSemantics(
       if (!authoritativeSuccessRows.empty() &&
           !outcomeRowHasRole(*outcome, row, "success"))
         continue;
-      if (authoritativeSuccessRows.empty() &&
-          outcomeRowHasRole(*outcome, row, "result"))
-        continue;
+      // An inferred returned Boolean is a result row.  A selected profile may
+      // still give that same row success semantics for a bounded retry.  When
+      // no OutcomeMap row is explicitly authoritative for success, allow the
+      // exact profile row below to bind to a result row; the ordered record,
+      // syndrome, and constant checks continue to make the match fail closed.
       SmallVector<StringRef> rowRecords;
       for (int64_t column = 0; column < shape[1]; ++column)
         if (!values[row * shape[1] + column].isZero())
