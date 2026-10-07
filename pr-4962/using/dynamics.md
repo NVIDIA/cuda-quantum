@@ -2445,6 +2445,49 @@ running "[`import`{.code .docutils .literal
 | ate}]{.pre} |                    | will use the multi-diagonal       |
 |             |                    | sparse storage.                   |
 +-------------+--------------------+-----------------------------------+
+| [`C         | Non-negative       | The maximum dimension of a fused  |
+| UDAQ_DYNAMI | number             | dense operator. Product terms     |
+| CS_MAX_FUSE |                    | with constant coefficients that   |
+| D_DIMENSION |                    | act on sub-systems of at most     |
+| `{.docutils |                    | this dimension are summed into a  |
+| .literal    |                    | single dense operator per group   |
+| .notransl   |                    | of degrees of freedom, with terms |
+| ate}]{.pre} |                    | acting on a subset of a group's   |
+|             |                    | degrees folded into that group.   |
+|             |                    | For master equations, an operator |
+|             |                    | acting on both sides of the       |
+|             |                    | density matrix has the square of  |
+|             |                    | its sub-system's dimension:       |
+|             |                    | constant Hamiltonian terms and    |
+|             |                    | collapse operators                |
+|             |                    | [\\(L\\)]{.math .notranslate      |
+|             |                    | .nohighlight} on sub-systems      |
+|             |                    | whose squared dimension is at     |
+|             |                    | most this value are combined into |
+|             |                    | dense superoperators acting on    |
+|             |                    | both sides at once, one per group |
+|             |                    | of overlapping degrees of         |
+|             |                    | freedom. For other constant       |
+|             |                    | collapse operators within this    |
+|             |                    | dimension, the                    |
+|             |                    | [\\(-\\frac{1}{2}\\{L\^\\dagger   |
+|             |                    | L, \\rho\\}\\)]{.math             |
+|             |                    | .notranslate .nohighlight} part   |
+|             |                    | is folded into the Hamiltonian    |
+|             |                    | terms. Factors of [\\(L\^\\dagger |
+|             |                    | L\\)]{.math .notranslate          |
+|             |                    | .nohighlight} that act on the     |
+|             |                    | same degrees of freedom are       |
+|             |                    | multiplied into a single          |
+|             |                    | multi-diagonal operator when the  |
+|             |                    | product qualifies for             |
+|             |                    | multi-diagonal storage. Fusion    |
+|             |                    | reduces the number of passes over |
+|             |                    | the state. Increasing the maximum |
+|             |                    | dimension may decrease            |
+|             |                    | performance. Default is 64; 0     |
+|             |                    | disables all fusion.              |
++-------------+--------------------+-----------------------------------+
 
 : [**Additional environment variable options for the \`dynamics\`
 target**]{.caption-text}[¶](#id2 "Permalink to this table"){.headerlink}
