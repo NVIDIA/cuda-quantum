@@ -6,7 +6,6 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-
 """Check that staged Jupyter notebooks have sequential code-cell execution counts."""
 
 import json
@@ -29,19 +28,14 @@ def check_notebook(path: Path) -> list[str]:
         if actual != expected:
             errors.append(
                 f"{path}: code cell {index} has execution_count={actual!r}; "
-                f"expected {expected}"
-            )
+                f"expected {expected}")
         expected += 1
     return errors
 
 
 def main() -> int:
-    notebooks = [
-        Path(name) for name in sys.argv[1:] if name.endswith(".ipynb")
-    ]
-    errors = [
-        error for path in notebooks for error in check_notebook(path)
-    ]
+    notebooks = [Path(name) for name in sys.argv[1:] if name.endswith(".ipynb")]
+    errors = [error for path in notebooks for error in check_notebook(path)]
     if errors:
         print("\n".join(errors), file=sys.stderr)
         print(
