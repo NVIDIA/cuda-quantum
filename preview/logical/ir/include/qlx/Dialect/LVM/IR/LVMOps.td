@@ -13,6 +13,7 @@ include "qlx/Dialect/LVM/IR/LVMDialect.td"
 include "qlx/Dialect/LVM/IR/LVMTypes.td"
 include "qlx/Dialect/LVM/IR/LVMAttrs.td"
 include "qlx/Dialect/Event/IR/EventTypes.td"
+include "CUDAQLogical/Interfaces/SemanticInterfaces.td"
 include "qlx/Dialect/QLX/IR/QLXAttrs.td"
 
 include "mlir/IR/OpBase.td"
@@ -113,7 +114,8 @@ def LVM_ReturnOp : LVM_Op<"return", [Terminator]> {
 }
 
 def LVM_KernelOp : LVM_Op<"kernel", [
-    Symbol, IsolatedFromAbove, SingleBlockImplicitTerminator<"ReturnOp">
+    Symbol, IsolatedFromAbove, SingleBlockImplicitTerminator<"ReturnOp">,
+    DeclareOpInterfaceMethods<CUDAQLogical_SemanticRootOpInterface>
   ]> {
   let summary = "P1 logical kernel statically bound to one domain";
   let description = [{

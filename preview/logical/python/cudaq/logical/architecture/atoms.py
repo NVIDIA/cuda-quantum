@@ -5,7 +5,7 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-"""Neutral-atom conveniences over the generic QLX physical model.
+"""Neutral-atom conveniences over the CUDA-Q Logical physical model.
 
 Zones and shuttle routes are ordinary ``Topology`` values, pulses are ordinary
 ``PhysicalAction`` values, and the resulting program is still canonical

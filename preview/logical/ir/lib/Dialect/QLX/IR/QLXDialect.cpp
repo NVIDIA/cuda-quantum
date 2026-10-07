@@ -35,6 +35,14 @@
 using namespace mlir;
 using namespace qlx;
 
+cudaq::logical::Stage ProgramOp::getSemanticStage() {
+  return cudaq::logical::Stage::P0;
+}
+
+cudaq::logical::RootKind ProgramOp::getSemanticRootKind() {
+  return cudaq::logical::RootKind::LogicalProgram;
+}
+
 MLIR_DEFINE_EXPLICIT_TYPE_ID(qlx::DeviceBindingDialectInterface)
 
 namespace {

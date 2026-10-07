@@ -26,6 +26,14 @@
 using namespace mlir;
 using namespace qlx::lvm;
 
+cudaq::logical::Stage KernelOp::getSemanticStage() {
+  return cudaq::logical::Stage::P1;
+}
+
+cudaq::logical::RootKind KernelOp::getSemanticRootKind() {
+  return cudaq::logical::RootKind::PlacedKernel;
+}
+
 #include "qlx/Dialect/LVM/IR/LVMDialect.cpp.inc"
 
 #define GET_TYPEDEF_CLASSES

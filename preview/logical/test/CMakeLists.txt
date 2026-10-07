@@ -6,6 +6,14 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+# Resolve the separately configured conformance plugin path before generating
+# lit.site.cfg.py so the test suite can advertise it after the build fixture
+# has materialized the shared library.
+set(CUDAQ_LOGICAL_TEST_FTQC_BUILD_DIR
+  "${CMAKE_CURRENT_BINARY_DIR}/ExternalFTQC-build")
+set(CUDAQ_LOGICAL_TEST_FTQC_PLUGIN
+  "${CUDAQ_LOGICAL_TEST_FTQC_BUILD_DIR}/lib/${CMAKE_SHARED_LIBRARY_PREFIX}test_ftqc_plugin${CMAKE_SHARED_LIBRARY_SUFFIX}")
+
 # Generate lit.site.cfg.py from the template.
 configure_lit_site_cfg(
   ${CMAKE_CURRENT_SOURCE_DIR}/lit.site.cfg.py.in
@@ -18,6 +26,43 @@ configure_lit_site_cfg(
 # its execution-root directory so lit can find the parent site configuration
 # and map `test/Model` into `build/test/Model` like the CMake-owned subtrees.
 file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/Model")
+file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/Interfaces")
+
+# Configure the extension fixture as a genuinely separate CMake project. It
+# consumes only the build-tree CUDA-Q Logical package and is never added to
+# production binaries, install components, or wheels.
+add_custom_target(cudaq-logical-test-ftqc-plugin
+  COMMAND ${CMAKE_COMMAND}
+    -S "${CMAKE_CURRENT_SOURCE_DIR}/ExternalFTQC"
+    -B "${CUDAQ_LOGICAL_TEST_FTQC_BUILD_DIR}"
+    -G "${CMAKE_GENERATOR}"
+    -DCUDAQLogical_DIR="${CMAKE_BINARY_DIR}/lib/cmake/CUDAQLogical"
+    -DLLVM_DIR="${LLVM_DIR}"
+    -DMLIR_DIR="${MLIR_DIR}"
+    -DCMAKE_BUILD_TYPE="${CMAKE_BUILD_TYPE}"
+  COMMAND ${CMAKE_COMMAND}
+    --build "${CUDAQ_LOGICAL_TEST_FTQC_BUILD_DIR}"
+    --target test_ftqc_plugin
+  DEPENDS MLIRCUDAQLogicalInterfaces
+  USES_TERMINAL
+  COMMENT "Building the out-of-tree CUDA-Q Logical interface conformance dialect"
+)
+
+qlx_select_mlir_link_libraries(_cudaq_logical_interface_test_mlir_libraries
+  MLIRIR
+  MLIRSupport
+)
+add_executable(cudaq-logical-interface-contract-test EXCLUDE_FROM_ALL
+  Interfaces/RootContracts.cpp)
+target_link_libraries(cudaq-logical-interface-contract-test PRIVATE
+  MLIRCUDAQLogicalInterfaces
+  MLIRQLXDialect
+  MLIRLVMDialect
+  MLIRFabricDialect
+  MLIRPhysDialect
+  ${_cudaq_logical_interface_test_mlir_libraries}
+)
+llvm_update_compile_flags(cudaq-logical-interface-contract-test)
 
 if(LIT_PATH AND FILECHECK_PATH)
   # lit.py needs to be invoked through the Python interpreter; a
@@ -31,6 +76,8 @@ if(LIT_PATH AND FILECHECK_PATH)
   set(QLX_LIT_DEPENDS
     qlx-opt
     qlx-translate
+    cudaq-logical-test-ftqc-plugin
+    cudaq-logical-interface-contract-test
   )
   foreach(_t IN LISTS QLX_FILECHECK_TARGET QLX_NOT_TARGET QLX_COUNT_TARGET)
     if(_t)
@@ -74,12 +121,12 @@ if(LIT_PATH AND FILECHECK_PATH)
     # FileCheck/pytest tests.
     RESOURCE_LOCK qlx-build-dir
   )
-
   add_test(NAME qlx-filecheck-tests
     COMMAND ${_qlx_lit_command} -v
       --config-prefix lit.site
       ${CMAKE_CURRENT_BINARY_DIR}/Conversion
       ${CMAKE_CURRENT_BINARY_DIR}/Dialect
+      ${CMAKE_CURRENT_BINARY_DIR}/Interfaces
       ${CMAKE_CURRENT_BINARY_DIR}/Model
       ${CMAKE_CURRENT_BINARY_DIR}/Target
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
@@ -90,8 +137,8 @@ if(LIT_PATH AND FILECHECK_PATH)
   )
 
   # ctest's FIXTURES_REQUIRED automatically runs qlx-lit-build-tools
-  # (the fixture setup) before the FileCheck tests when either test is
-  # selected, so the regex only needs to name the main tests here.
+  # (the fixture setup) before the lit suite, so the regex only needs to name
+  # this one test here.
   add_custom_target(check-qlx
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
       # Avoid a trailing `$` here: Ninja treats it as a line-continuation
@@ -100,7 +147,7 @@ if(LIT_PATH AND FILECHECK_PATH)
       -R "^qlx-filecheck-tests"
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     USES_TERMINAL
-    COMMENT "Running QLX FileCheck tests")
+    COMMENT "Running QLX lit tests")
 else()
   if(NOT LIT_PATH)
     message(WARNING

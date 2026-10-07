@@ -56,6 +56,44 @@
 using namespace mlir;
 using namespace qlx::phys;
 
+cudaq::logical::Stage GraphOp::getSemanticStage() {
+  return cudaq::logical::Stage::P3;
+}
+
+cudaq::logical::RootKind GraphOp::getSemanticRootKind() {
+  return cudaq::logical::RootKind::PhysicalGraph;
+}
+
+SmallVector<Value> MeasureOp::getPhysicalMeasurementInputs() {
+  return {getInput()};
+}
+
+SmallVector<Value> MeasureOp::getPhysicalMeasurementOutputs() {
+  if (Value output = getOutput())
+    return {output};
+  return {};
+}
+
+Value MeasureOp::getPhysicalMeasurementRecord() { return getRecord(); }
+
+StringAttr MeasureOp::getPhysicalMeasurementRecordId() {
+  return getRecordIdAttr();
+}
+
+SmallVector<Value> MeasureProductOp::getPhysicalMeasurementInputs() {
+  return {getInputs().begin(), getInputs().end()};
+}
+
+SmallVector<Value> MeasureProductOp::getPhysicalMeasurementOutputs() {
+  return {getOutputs().begin(), getOutputs().end()};
+}
+
+Value MeasureProductOp::getPhysicalMeasurementRecord() { return getRecord(); }
+
+StringAttr MeasureProductOp::getPhysicalMeasurementRecordId() {
+  return getRecordIdAttr();
+}
+
 namespace {
 
 struct SpacetimeVerifierRegistration {
@@ -306,6 +344,8 @@ LogicalResult InstrumentOp::verify() {
 LogicalResult MeasureOp::verify() {
   if (getRecordId().empty())
     return emitOpError("record_id must be nonempty");
+  if (failed(cudaq::logical::verifyPhysicalMeasurementContract(getOperation())))
+    return failure();
   bool hasOutput = static_cast<bool>(getOutput());
   bool destructive = static_cast<bool>(getDestructive());
   if (hasOutput == destructive)
@@ -2917,6 +2957,17 @@ static bool isLinearPhysicalType(Type type) {
   return event && event.getOwnership() == "linear";
 }
 
+static bool carriesLinearPhysicalType(Operation *operation) {
+  if (llvm::any_of(operation->getOperandTypes(), isLinearPhysicalType) ||
+      llvm::any_of(operation->getResultTypes(), isLinearPhysicalType))
+    return true;
+  for (Region &region : operation->getRegions())
+    for (Block &block : region)
+      if (llvm::any_of(block.getArgumentTypes(), isLinearPhysicalType))
+        return true;
+  return false;
+}
+
 static bool isNonconsumingEventUse(Value value, OpOperand &use) {
   if (!isa<qlx::event::HandleType>(value.getType()))
     return false;
@@ -2992,6 +3043,107 @@ static LogicalResult verifyLinearPhysicalValue(GraphOp graph, Value value,
   return success();
 }
 
+static bool sameValueMultiset(ArrayRef<Value> reported,
+                              ArrayRef<Value> expected) {
+  if (reported.size() != expected.size())
+    return false;
+  llvm::DenseMap<Value, unsigned> remaining;
+  for (Value value : expected)
+    ++remaining[value];
+  for (Value value : reported) {
+    auto iterator = remaining.find(value);
+    if (iterator == remaining.end())
+      return false;
+    if (--iterator->second == 0)
+      remaining.erase(iterator);
+  }
+  return remaining.empty();
+}
+
+static bool typesFormSubmultiset(ArrayRef<Value> subset,
+                                 ArrayRef<Value> superset) {
+  llvm::DenseMap<Type, unsigned> remaining;
+  for (Value value : superset)
+    ++remaining[value.getType()];
+  for (Value value : subset) {
+    auto iterator = remaining.find(value.getType());
+    if (iterator == remaining.end())
+      return false;
+    if (--iterator->second == 0)
+      remaining.erase(iterator);
+  }
+  return true;
+}
+
+static LogicalResult verifyPhysicalMeasurementRoles(
+    Operation *operation,
+    cudaq::logical::PhysicalMeasurementOpInterface measurement) {
+  SmallVector<Value> reportedInputs =
+      measurement.getPhysicalMeasurementInputs();
+  SmallVector<Value> reportedOutputs =
+      measurement.getPhysicalMeasurementOutputs();
+  Value record = measurement.getPhysicalMeasurementRecord();
+
+  if (llvm::any_of(reportedInputs, [](Value value) {
+        return !isa<StateType>(value.getType());
+      }))
+    return operation->emitOpError(
+        "physical measurement interface state inputs must have "
+        "!phys.state type");
+  if (llvm::any_of(reportedOutputs, [](Value value) {
+        return !isa<StateType>(value.getType());
+      }))
+    return operation->emitOpError(
+        "physical measurement interface successor states must have "
+        "!phys.state type");
+  if (!isa<RecordType>(record.getType()))
+    return operation->emitOpError(
+        "physical measurement interface record must have !phys.record type");
+  if (llvm::any_of(operation->getOperandTypes(),
+                   [](Type type) {
+                     return isLinearPhysicalType(type) && !isa<StateType>(type);
+                   }) ||
+      llvm::any_of(operation->getResultTypes(), [](Type type) {
+        return isLinearPhysicalType(type) && !isa<StateType>(type);
+      }))
+    return operation->emitOpError(
+        "physical measurement interface cannot carry unmodelled physical "
+        "linear values");
+
+  SmallVector<Value> expectedInputs;
+  for (Value operand : operation->getOperands())
+    if (isa<StateType>(operand.getType()))
+      expectedInputs.push_back(operand);
+  if (!sameValueMultiset(reportedInputs, expectedInputs))
+    return operation->emitOpError(
+        "physical measurement interface must report every !phys.state "
+        "operand exactly once");
+
+  SmallVector<Value> expectedOutputs;
+  for (Value result : operation->getResults())
+    if (isa<StateType>(result.getType()))
+      expectedOutputs.push_back(result);
+  if (!sameValueMultiset(reportedOutputs, expectedOutputs))
+    return operation->emitOpError(
+        "physical measurement interface must report every !phys.state result "
+        "exactly once");
+
+  if (!typesFormSubmultiset(reportedOutputs, reportedInputs))
+    return operation->emitOpError(
+        "physical measurement successor states must preserve input physical "
+        "resources");
+
+  SmallVector<Value> expectedRecords;
+  for (Value result : operation->getResults())
+    if (isa<RecordType>(result.getType()))
+      expectedRecords.push_back(result);
+  if (expectedRecords.size() != 1 || expectedRecords.front() != record)
+    return operation->emitOpError(
+        "physical measurement interface must report its only !phys.record "
+        "result");
+  return success();
+}
+
 static LogicalResult verifyPhysicalStateLinearity(GraphOp graph,
                                                   int64_t &linearValueCount) {
   struct StateCheck {
@@ -3000,6 +3152,7 @@ static LogicalResult verifyPhysicalStateLinearity(GraphOp graph,
     bool verifyOwnership;
   };
   Operation *foreignLinearCarrier = nullptr;
+  Operation *invalidPhysicalExtension = nullptr;
   Operation *unsupportedInterface = nullptr;
   Operation *unsupportedEndpoint = nullptr;
   Operation *unsupportedControl = nullptr;
@@ -3024,6 +3177,16 @@ static LogicalResult verifyPhysicalStateLinearity(GraphOp graph,
     }
   };
   graph.walk([&](Operation *operation) {
+    auto physicalMeasurement =
+        dyn_cast<cudaq::logical::PhysicalMeasurementOpInterface>(operation);
+    if (!invalidPhysicalExtension && physicalMeasurement) {
+      if (failed(
+              cudaq::logical::verifyPhysicalMeasurementContract(operation)) ||
+          failed(
+              verifyPhysicalMeasurementRoles(operation, physicalMeasurement)))
+        invalidPhysicalExtension = operation;
+    }
+
     if (!foreignLinearCarrier && operation != graph.getOperation() &&
         operation->getNumRegions() == 0 &&
         operation->getName().getDialectNamespace() != "phys" &&
@@ -3034,34 +3197,15 @@ static LogicalResult verifyPhysicalStateLinearity(GraphOp graph,
         // cancel/await/fence/selection/yield) are embedded directly in
         // `phys.graph` bodies now, exactly like `phys`'s own ops -- not a
         // foreign dialect carrying physical linear state incidentally.
-        operation->getName().getDialectNamespace() != "event") {
-      bool carriesLinear =
-          llvm::any_of(operation->getOperandTypes(), isLinearPhysicalType) ||
-          llvm::any_of(operation->getResultTypes(), isLinearPhysicalType);
-      if (carriesLinear)
-        foreignLinearCarrier = operation;
-    }
+        operation->getName().getDialectNamespace() != "event" &&
+        !physicalMeasurement && carriesLinearPhysicalType(operation))
+      foreignLinearCarrier = operation;
 
     if (!unsupportedInterface && operation != graph.getOperation() &&
         operation->getNumRegions() != 0 &&
-        !isSupportedPhysicalStateRegion(operation)) {
-      bool carriesState =
-          llvm::any_of(
-              operation->getOperands(),
-              [](Value value) { return isa<StateType>(value.getType()); }) ||
-          llvm::any_of(operation->getResults(), [](Value value) {
-            return isa<StateType>(value.getType());
-          });
-      if (!carriesState)
-        for (Region &region : operation->getRegions())
-          for (Block &block : region)
-            carriesState |=
-                llvm::any_of(block.getArguments(), [](BlockArgument argument) {
-                  return isa<StateType>(argument.getType());
-                });
-      if (carriesState)
-        unsupportedInterface = operation;
-    }
+        !isSupportedPhysicalStateRegion(operation) &&
+        carriesLinearPhysicalType(operation))
+      unsupportedInterface = operation;
 
     for (Region &region : operation->getRegions())
       for (Block &block : region)
@@ -3076,6 +3220,8 @@ static LogicalResult verifyPhysicalStateLinearity(GraphOp graph,
         unsupportedControl = control;
       }
   });
+  if (invalidPhysicalExtension)
+    return failure();
   if (foreignLinearCarrier)
     return graph.emitOpError(
                "physical linear type crosses unsupported regionless operation ")
@@ -3083,7 +3229,7 @@ static LogicalResult verifyPhysicalStateLinearity(GraphOp graph,
 
   if (unsupportedInterface)
     return graph.emitOpError(
-               "physical state crosses unsupported region control ")
+               "physical linear type crosses unsupported region control ")
            << unsupportedInterface->getName();
 
   auto resourceIndex = buildGraphResourceIndex(graph);
@@ -5794,6 +5940,8 @@ LogicalResult MeasureProductOp::verify() {
   }
   if (getRecordId().empty())
     return emitOpError("record_id must be nonempty");
+  if (failed(cudaq::logical::verifyPhysicalMeasurementContract(getOperation())))
+    return failure();
   Operation *target =
       SymbolTable::lookupNearestSymbolFrom(*this, getInstrumentAttr());
   if (!target)

@@ -21,9 +21,11 @@ add_mlir_dialect_library(MLIRFabricDialect
 
   DEPENDS
   MLIRFabricIncGen
+  MLIRCUDAQLogicalInterfacesIncGen
   MLIREventIncGen
 
   LINK_LIBS PUBLIC
+  MLIRCUDAQLogicalInterfaces
   MLIRQLXDialect
   MLIRCflowDialect
   MLIREventDialect

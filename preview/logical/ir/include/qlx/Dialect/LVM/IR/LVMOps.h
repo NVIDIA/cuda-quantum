@@ -8,6 +8,7 @@
 
 #ifndef QLX_DIALECT_LVM_LVMOPS_H
 #define QLX_DIALECT_LVM_LVMOPS_H
+#include "CUDAQLogical/Interfaces/SemanticInterfaces.h"
 #include "qlx/Dialect/Event/IR/EventTypes.h"
 #include "qlx/Dialect/LVM/IR/LVMAttrs.h"
 #include "qlx/Dialect/LVM/IR/LVMDialect.h"
