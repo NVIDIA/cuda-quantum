@@ -1970,8 +1970,103 @@ aria-hidden="true"}](neutralatom.html "Neutral Atom"){.btn .btn-neutral
 ::: {#iqm-backend-advanced-use-cases .section}
 # IQM Backend Advanced Use Cases[¶](#iqm-backend-advanced-use-cases "Permalink to this heading"){.headerlink}
 
-On this page advanced uses cases which are supported by the IQM backend
-integration are described.
+This page describes advanced uses cases supported by the IQM backend
+integration.
+
+::: {#configuring-the-backend .section}
+## Configuring the backend[¶](#configuring-the-backend "Permalink to this heading"){.headerlink}
+
+The IQM backend can be configured either in the code (Python), at
+compile time (C++), or through the environment in which the process
+runs.
+
+The following settings can be configured:
+
+-   To which IQM quantum computer a job is sent by setting [`IQM`{.code
+    .docutils .literal .notranslate}]{.pre}` `{.code .docutils .literal
+    .notranslate}[`Server`{.code .docutils .literal
+    .notranslate}]{.pre}` `{.code .docutils .literal
+    .notranslate}[`URL`{.code .docutils .literal .notranslate}]{.pre}
+    plus [`IQM`{.code .docutils .literal .notranslate}]{.pre}` `{.code
+    .docutils .literal .notranslate}[`Quantum`{.code .docutils .literal
+    .notranslate}]{.pre}` `{.code .docutils .literal
+    .notranslate}[`Computer`{.code .docutils .literal
+    .notranslate}]{.pre}.
+
+-   The API token for authorization at the IQM server.
+
+-   Different QPU architectures for testing.
+
+-   The use of emulation mode.
+
+  Setting                   Environment (variable name)   Python (parameter to cudaq.set_target())                  C++ (option to nvq++)
+  ------------------------- ----------------------------- --------------------------------------------------------- -------------------------------------------------------------------
+  IQM Server URL            IQM_SERVER_URL                [`url`{.docutils .literal .notranslate}]{.pre}            [`--iqm-server-url`{.docutils .literal .notranslate}]{.pre}
+  IQM Quantum Computer      IQM_QUANTUM_COMPUTER          [`qc`{.docutils .literal .notranslate}]{.pre}             [`--iqm-quantum-computer`{.docutils .literal .notranslate}]{.pre}
+  API token                 IQM_TOKEN                                                                               
+  Token file (deprecated)   IQM_TOKENS_FILE                                                                         
+  load QPU architecture     IQM_QPU_QA                    [`mapping_file`{.docutils .literal .notranslate}]{.pre}   
+  save QPU architecture     IQM_SAVE_QPU_QA                                                                         
+  Emulation mode                                          [`emulate`{.docutils .literal .notranslate}]{.pre}        [`--emulate`{.docutils .literal .notranslate}]{.pre}
+
+Please note that any value in an environment variable takes precedence
+over any value for the same setting in the code or at compile time.
+
+::: {#examples .section}
+### Examples:[¶](#examples "Permalink to this heading"){.headerlink}
+
+> <div>
+>
+> ::: {.tab-set .docutils}
+> Environment
+>
+> ::: {.tab-content .docutils}
+> ::: {.highlight-bash .notranslate}
+> ::: highlight
+>     IQM_TOKEN="your personal API token" IQM_SERVER_URL="https://resonance.iqm.tech/" IQM_QUANTUM_COMPUTER="garnet" python3 program.py
+> :::
+> :::
+>
+> ::: {.highlight-bash .notranslate}
+> ::: highlight
+>     export IQM_TOKEN="your personal API token"
+>     export IQM_SERVER_URL="https://resonance.iqm.tech/"
+>     export IQM_QUANTUM_COMPUTER="garnet"
+>     python3 program.py
+> :::
+> :::
+> :::
+>
+> Python
+>
+> ::: {.tab-content .docutils}
+> ::: {.highlight-python .notranslate}
+> ::: highlight
+>     cudaq.set_target('iqm', url="https://resonance.iqm.tech/", qc="garnet")
+> :::
+> :::
+>
+> ::: {.highlight-python .notranslate}
+> ::: highlight
+>     cudaq.set_target('iqm', mapping_file="<path+filename>")
+> :::
+> :::
+> :::
+>
+> C++
+>
+> ::: {.tab-content .docutils}
+> ::: {.highlight-bash .notranslate}
+> ::: highlight
+>     nvq++ --target iqm --iqm-server-url="https://resonance.iqm.tech" --iqm-quantum-computer="garnet" src.cpp -o program
+> :::
+> :::
+> :::
+> :::
+>
+> </div>
+:::
+:::
 
 ::: {#emulation-mode .section}
 ## Emulation Mode[¶](#emulation-mode "Permalink to this heading"){.headerlink}
@@ -1988,7 +2083,7 @@ emulation.
 
 ::: {.highlight-python .notranslate}
 ::: highlight
-    cudaq.set_target('iqm', emulate=True, url="https://<IQM Server>/")
+    cudaq.set_target('iqm', emulate=True, url="https://<IQM Server>/", qc="<quantum computer>")
 :::
 :::
 
@@ -2015,12 +2110,12 @@ given to retrieve the current dynamic quantum architecture from.
 
 ::: {.highlight-bash .notranslate}
 ::: highlight
-    IQM_SERVER_URL="https://demo.qc.iqm.fi/" IQM_SAVE_QPU_QA="<path+filename for QPU architecture file>" python3 program.py
+    IQM_SERVER_URL="https://resonance.iqm.tech/" IQM_QUANTUM_COMPUTER="<quantum computer>" IQM_SAVE_QPU_QA="<path+filename for QPU architecture file>" python3 program.py
 :::
 :::
 
 The file will be created with the given name. If the file already exists
-the test is aborted with an error.
+the execution is aborted with an error.
 :::
 
 C++
@@ -2035,7 +2130,7 @@ diagnostics, before running a noise free emulation.
 ::: {.highlight-bash .notranslate}
 ::: highlight
     nvq++ --target iqm --emulate src.cpp -o program
-    IQM_SERVER_URL="https://demo.qc.iqm.fi/" ./program
+    IQM_SERVER_URL="https://resonance.iqm.tech/" IQM_QUANTUM_COMPUTER="<quantum computer>" ./program
 :::
 :::
 
@@ -2048,7 +2143,7 @@ is specified no server URL is needed anymore.
 
 ::: {.highlight-bash .notranslate}
 ::: highlight
-    // With this binary multiple QPU architectures can be tested without recompilation.
+    # With this binary multiple QPU architectures can be tested without recompilation.
     nvq++ --target iqm --emulate src.cpp -o program
     IQM_QPU_QA="<path+filename of QPU architecture file>" ./program
 :::
@@ -2056,7 +2151,7 @@ is specified no server URL is needed anymore.
 
 ::: {.highlight-bash .notranslate}
 ::: highlight
-    // This binary will use the given QPU architecture file until overwritten by environment variable "IQM_QPU_QA".
+    # This binary will use the given QPU architecture file until overwritten by environment variable "IQM_QPU_QA".
     nvq++ --target iqm --emulate --mapping-file <path+filename of QPU architecture file> src.cpp -o program
     ./program
 :::
@@ -2065,14 +2160,14 @@ is specified no server URL is needed anymore.
 The QPU architecture of a test with an IQM server can be saved for later
 use in emulation runs. To do so the environment variable
 [`IQM_SAVE_QPU_QA`{.docutils .literal .notranslate}]{.pre} must be set
-to point to a filename in addition to setting the URL of a Resonance
+to point to a filename in addition to setting the URL of the Resonance
 server. The test can even run as emulation as long as a server URL is
 given to retrieve the current dynamic quantum architecture from.
 
 ::: {.highlight-bash .notranslate}
 ::: highlight
     nvq++ --target iqm --emulate src.cpp -o program
-    IQM_SERVER_URL="https://demo.qc.iqm.fi/" IQM_SAVE_QPU_QA="<path+filename for QPU architecture file>" ./program
+    IQM_SERVER_URL="https://resonance.iqm.tech/" IQM_QUANTUM_COMPUTER="<quantum computer>" IQM_SAVE_QPU_QA="<path+filename for QPU architecture file>" ./program
 :::
 :::
 :::
@@ -2124,10 +2219,11 @@ the [`shots_count`{.docutils .literal .notranslate}]{.pre} is set to
 ::: {#using-credentials-saved-in-a-file .section}
 ## Using Credentials Saved in a File[¶](#using-credentials-saved-in-a-file "Permalink to this heading"){.headerlink}
 
-The preferred way to pass the "API Token" to the IQM backend is through
-the environment variable [`IQM_TOKEN`{.docutils .literal
-.notranslate}]{.pre}. For compatibility the earlier used storage of the
-"API Token" in a file can still be used as follows:
+This way of providing the "API Token" is deprecated. The preferred way
+to pass the "API Token" to the IQM backend is through the environment
+variable [`IQM_TOKEN`{.docutils .literal .notranslate}]{.pre}. For
+backward compatibility the earlier used storage of the "API Token" in a
+file can still be used as follows:
 
 The previously used [`IQM_TOKENS_FILE`{.docutils .literal
 .notranslate}]{.pre} environment variable can still be used to point to

@@ -1642,23 +1642,17 @@ backends, please take a look at <a class="reference internal" href="../backends/
 <span class="c1"># for every execution call on your kernel.</span>
 <span class="c1"># To use different targets in the same file, you must update</span>
 <span class="c1"># it via another call to `cudaq.set_target()`</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"iqm"</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="s2">"http://localhost/"</span><span class="p">)</span>
-
-<span class="c1"># Crystal_5 QPU architecture:</span>
-<span class="c1">#       QB1</span>
-<span class="c1">#        |</span>
-<span class="c1"># QB2 - QB3 - QB4</span>
-<span class="c1">#        |</span>
-<span class="c1">#       QB5</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"iqm"</span><span class="p">)</span>
 
 
-<span class="c1"># Create the kernel we'd like to execute on IQM.</span>
+<span class="c1"># Create the kernel we'd like to execute.</span>
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">kernel</span><span class="p">():</span>
-    <span class="n">qvector</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
-    <span class="n">h</span><span class="p">(</span><span class="n">qvector</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>  <span class="c1"># QB3</span>
-    <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">qvector</span><span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">qvector</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-    <span class="n">mz</span><span class="p">(</span><span class="n">qvector</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">ghz</span><span class="p">():</span>
+    <span class="n">qubits</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+    <span class="n">h</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">):</span>
+        <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
+    <span class="n">mz</span><span class="p">(</span><span class="n">qubits</span><span class="p">)</span>
 
 
 <span class="c1"># Execute on IQM Server and print out the results.</span>
@@ -1668,7 +1662,7 @@ backends, please take a look at <a class="reference internal" href="../backends/
 <span class="c1"># classical code will be executed while the job is being handled</span>
 <span class="c1"># by IQM Server. This is ideal when submitting via a queue over</span>
 <span class="c1"># the cloud.</span>
-<span class="n">async_results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample_async</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
+<span class="n">async_results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample_async</span><span class="p">(</span><span class="n">ghz</span><span class="p">)</span>
 <span class="c1"># ... more classical code to run ...</span>
 
 <span class="c1"># We can either retrieve the results later in the program with</span>
@@ -1693,7 +1687,7 @@ backends, please take a look at <a class="reference internal" href="../backends/
 <span class="c1"># By using the synchronous `cudaq.sample`, the execution of</span>
 <span class="c1"># any remaining classical code in the file will occur only</span>
 <span class="c1"># after the job has been returned from IQM Server.</span>
-<span class="n">counts</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">kernel</span><span class="p">)</span>
+<span class="n">counts</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">ghz</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">counts</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -1709,26 +1703,23 @@ backends, please take a look at <a class="reference internal" href="../backends/
 <span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;fstream&gt;</span>
 
 <span class="c1">// Define a simple quantum kernel to execute on IQM Server.</span>
-<span class="k">struct</span><span class="w"> </span><span class="nc">crystal_5_ghz</span><span class="w"> </span><span class="p">{</span>
-<span class="w">  </span><span class="c1">// Maximally entangled state between 5 qubits on Crystal_5 QPU.</span>
-<span class="w">  </span><span class="c1">//       QB1</span>
-<span class="w">  </span><span class="c1">//        |</span>
-<span class="w">  </span><span class="c1">// QB2 - QB3 - QB4</span>
-<span class="w">  </span><span class="c1">//        |</span>
-<span class="w">  </span><span class="c1">//       QB5</span>
+<span class="k">struct</span><span class="w"> </span><span class="nc">ghz</span><span class="w"> </span><span class="p">{</span>
+<span class="w">  </span><span class="c1">// Maximally entangled state between 5 qubits on a Crystal QPU.</span>
 
 <span class="w">  </span><span class="kt">void</span><span class="w"> </span><span class="nf">operator</span><span class="p">()()</span><span class="w"> </span><span class="n">__qpu__</span><span class="w"> </span><span class="p">{</span>
 <span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">qvector</span><span class="w"> </span><span class="n">q</span><span class="p">(</span><span class="mi">5</span><span class="p">);</span>
 <span class="w">    </span><span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]);</span>
 
-<span class="w">    </span><span class="c1">// Note that the CUDA-Q compiler will automatically generate the</span>
-<span class="w">    </span><span class="c1">// necessary instructions to swap qubits to satisfy the required</span>
-<span class="w">    </span><span class="c1">// connectivity constraints for the Crystal_5 QPU. In this program, that</span>
-<span class="w">    </span><span class="c1">// means that despite QB1 not being physically connected to QB2, the user</span>
-<span class="w">    </span><span class="c1">// can still perform joint operations q[0] and q[1] because the compiler</span>
-<span class="w">    </span><span class="c1">// will automatically (and transparently) inject the necessary swap</span>
-<span class="w">    </span><span class="c1">// instructions to execute the user's program without the user having to</span>
-<span class="w">    </span><span class="c1">// worry about the physical constraints.</span>
+<span class="w">    </span><span class="c1">// Note that as a user you do not have to worry about the physical</span>
+<span class="w">    </span><span class="c1">// constraints of qubit connectivity when writing a circuit. The CUDA-Q</span>
+<span class="w">    </span><span class="c1">// compiler will automatically (and transparently) generate the necessary</span>
+<span class="w">    </span><span class="c1">// instructions to swap qubits as needed to satisfy the connectivity of</span>
+<span class="w">    </span><span class="c1">// the QPU.</span>
+<span class="w">    </span><span class="c1">// When this program is executed the current dynamic quantum architecture</span>
+<span class="w">    </span><span class="c1">// of the addressed QPU is retrieved and the `transpiler` gets a map with</span>
+<span class="w">    </span><span class="c1">// the qubits and their connectivity. It places the algorithm on the qubits</span>
+<span class="w">    </span><span class="c1">// and add swaps when needed by the circuit. With this the same code can</span>
+<span class="w">    </span><span class="c1">// run on different QPU layouts without any changes.</span>
 <span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="mi">4</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">      </span><span class="n">x</span><span class="o">&lt;</span><span class="n">cudaq</span><span class="o">::</span><span class="n">ctrl</span><span class="o">&gt;</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="n">i</span><span class="p">],</span><span class="w"> </span><span class="n">q</span><span class="p">[</span><span class="n">i</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">]);</span>
 <span class="w">    </span><span class="p">}</span>
@@ -1739,7 +1730,7 @@ backends, please take a look at <a class="reference internal" href="../backends/
 <span class="kt">int</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="c1">// Submit to IQM Server asynchronously. E.g, continue executing</span>
 <span class="w">  </span><span class="c1">// code in the file until the job has been returned.</span>
-<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">future</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample_async</span><span class="p">(</span><span class="n">crystal_5_ghz</span><span class="p">{});</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">future</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample_async</span><span class="p">(</span><span class="n">ghz</span><span class="p">{});</span>
 <span class="w">  </span><span class="c1">// ... classical code to execute in the meantime ...</span>
 
 <span class="w">  </span><span class="c1">// Can write the future to file:</span>
@@ -1759,7 +1750,7 @@ backends, please take a look at <a class="reference internal" href="../backends/
 
 <span class="w">  </span><span class="c1">// OR: Submit to IQM Server synchronously. E.g, wait for the job</span>
 <span class="w">  </span><span class="c1">// result to be returned before proceeding.</span>
-<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">counts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">crystal_5_ghz</span><span class="p">{});</span>
+<span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">counts</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">cudaq</span><span class="o">::</span><span class="n">sample</span><span class="p">(</span><span class="n">ghz</span><span class="p">{});</span>
 <span class="w">  </span><span class="n">counts</span><span class="p">.</span><span class="n">dump</span><span class="p">();</span>
 <span class="p">}</span>
 </pre></div>
