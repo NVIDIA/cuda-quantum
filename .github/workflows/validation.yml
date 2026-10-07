@@ -230,7 +230,9 @@ jobs:
     steps:
       - name: Import cudaq.logical
         shell: bash
-        run: python3 -c 'import cudaq.logical'
+        run: |
+          python3 -c 'import cudaq.logical'
+          python3 -m pip check
 
   release_image_validation:
     name: Release image validation
@@ -1383,8 +1385,6 @@ jobs:
               # from the CUDA 13 pipeline for both frontends. CUDA 12's copy
               # under candidate-core is only for build-local validation.
               mv -v "wheelhouse/$dir"/*.whl wheelhouse-${p}/
-              rm -rf "wheelhouse/$dir/candidate-core"
-              rmdir "wheelhouse/$dir"
             done
             if [[ ${p} != "darwin" ]]; then
               if ! compgen -G "logical-wheels/cudaq_logical-*_${p}.whl" > /dev/null; then

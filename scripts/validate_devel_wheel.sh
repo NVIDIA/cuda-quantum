@@ -103,9 +103,19 @@ if [ -n "$runtime_dir" ]; then
   runtime_wheel=$(ls "$runtime_dir"/cuda_quantum_cu*.whl 2>/dev/null | head -1)
   if [ -n "$runtime_wheel" ]; then
     echo "Installing runtime wheel: $runtime_wheel"
-    core_wheel=$(find "$runtime_dir" -name 'cudaq_core-*.whl' -print -quit)
-    test -n "$core_wheel"
-    pip install -q "$core_wheel" "$runtime_wheel"
+    # Prefer a top-level core when supplied. CUDA 12 builds keep their local
+    # core in candidate-core/; that core is sufficient for this SDK smoke test.
+    # Release wheel validation selects the CUDA 13-built core separately.
+    # Pip checks that its Python and platform tags match the validation environment.
+    core_wheels=("$runtime_dir"/cudaq_core-*.whl)
+    if [ "${#core_wheels[@]}" -le 1 ] && [ ! -f "${core_wheels[0]:-}" ]; then
+      core_wheels=("$runtime_dir"/candidate-core/cudaq_core-*.whl)
+    fi
+    if [ "${#core_wheels[@]}" -ne 1 ] || [ ! -f "${core_wheels[0]}" ]; then
+      echo "Error: expected exactly one cudaq_core-*.whl in $runtime_dir or its candidate-core directory" >&2
+      exit 1
+    fi
+    pip install -q "${core_wheels[0]}" "$runtime_wheel"
   fi
 fi
 

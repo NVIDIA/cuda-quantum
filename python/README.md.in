@@ -41,11 +41,11 @@ ${{ package_name }}`. Please make sure your `pip` version is \>= 24.0.
 
 ${{ deprecation_notice }}
 
-Upgrade an existing `cudaq` installation with `pip install --upgrade cudaq`;
-no manual removal is needed when moving from combined to split wheels.
-Do not install both CUDA-specific frontend variants in the same environment.
-Users of the deprecated `cuda-quantum` metapackage should uninstall that package
-before switching to `cudaq`.
+> **Important:**
+> Please check if you have an existing installation of the `cuda-quantum`,
+`cudaq-quantum-cu11`, `cuda-quantum-cu12`, or `cuda-quantum-cu13` package, and uninstall it prior to
+ installation. Different CUDA-Q binary distributions may conflict with each
+ other causing issues.
 
 Platform-specific instructions: <a href="#linux-gpu">Linux</a> | <a href="#macos">macOS</a>
 

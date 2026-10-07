@@ -10,6 +10,7 @@
 import argparse
 import base64
 import csv
+from email.parser import Parser
 import hashlib
 from importlib.metadata import Distribution
 from pathlib import Path
@@ -51,12 +52,27 @@ def install(wheel_dir: Path, prefix: Path):
             if not (staging / relative).is_dir():
                 raise ValueError(f"`cudaq.logical` wheel is missing {relative}")
 
-        # The native installation already supplies core's libraries and bindings.
-        # Installing cudaq-core here would introduce a second MLIR instance.
+        # Do not ask pip to install core: the native CUDA-Q installation already
+        # supplies its libraries and bindings.
         requirements_to_install = [
             requirement for requirement in distribution.requires or []
-            if not re.match(r"cudaq[-_]core\s*==", requirement, re.IGNORECASE)
+            # Match bare or versioned cudaq-core, including equivalent name
+            # spellings, but keep different packages such as cudaq-core-tools.
+            if not re.match(r"\s*cudaq[-_.]+core(?![-_.a-z0-9])", requirement,
+                            re.IGNORECASE)
         ]
+        metadata_file = metadata_dir / "METADATA"
+        # METADATA uses headers, with one Requires-Dist entry per dependency.
+        metadata = Parser().parsestr(metadata_file.read_text(encoding="utf-8"))
+        # Remove all dependency entries, then add back only those kept above.
+        # Otherwise pip check would still report cudaq-core as missing, even
+        # though the native installation supplies it without a core wheel.
+        del metadata["Requires-Dist"]
+        for requirement in requirements_to_install:
+            metadata["Requires-Dist"] = requirement
+        # Change only the extracted copy; the original wheel stays untouched.
+        metadata_file.write_text(str(metadata), encoding="utf-8")
+
         # Install external dependencies without frontend extras.
         if requirements_to_install:
             requirements = Path(temporary) / "requirements.txt"

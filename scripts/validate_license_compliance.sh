@@ -58,8 +58,7 @@ echo "Validating LGPL compliance for the redistributed GMP/MPFR libraries."
 # Locate the license texts, the bundled libraries, and the CUDA-Q binaries
 # that need to be scanned for references to them.
 if $wheel_mode; then
-    site_packages=$(python3 -c "import cudaq, os; print(os.path.dirname(os.path.dirname(os.path.abspath(cudaq.__file__))))" 2>/dev/null)
-    if [ -z "$site_packages" ]; then
+    if ! site_packages=$(python3 -c "import cudaq, os; print(os.path.dirname(os.path.dirname(os.path.abspath(cudaq.__file__))))" 2>/dev/null) || [ -z "$site_packages" ]; then
         echo -e "\033[01;31mError: failed to locate the installed cudaq Python package.\033[0m" >&2
         exit 10
     fi
@@ -70,12 +69,17 @@ if $wheel_mode; then
     dist_info_licenses=$(ls -d "$site_packages"/cuda_quantum*.dist-info/licenses 2>/dev/null | head -1)
     wheel_python_dirs="$site_packages/cudaq"
     core_site_packages="$site_packages"
-    core_dir=$(python3 -c 'from pathlib import Path; from cudaq import core; print(Path(core.__file__).resolve().parent)' 2>/dev/null)
-    if [ -d "$core_dir/lib" ]; then
+    # Combined wheels can lack cudaq.core. Never let a failed or empty lookup
+    # turn the library path into /lib: replacement checks modify these files.
+    core_dir=$(python3 -c 'from pathlib import Path; from cudaq import core; print(Path(core.__file__).resolve().parent)' 2>/dev/null) || core_dir=
+    if [ -n "$core_dir" ] && [ -d "$core_dir/lib" ]; then
         # Split wheels keep GMP/MPFR with core. Resolve the imported provider:
         # user-site core and a virtual-environment frontend can have different roots.
         lib_dir="$core_dir/lib"
-        core_site_packages=$(python3 -c 'from importlib.metadata import distribution; print(distribution("cudaq-core").locate_file(""))')
+        if ! core_site_packages=$(python3 -c 'from importlib.metadata import distribution; print(distribution("cudaq-core").locate_file(""))') || [ -z "$core_site_packages" ]; then
+            echo "Error: failed to locate the cudaq-core distribution." >&2
+            exit 10
+        fi
         dist_info_licenses=$(ls -d "$core_site_packages"/cudaq_core*.dist-info/licenses 2>/dev/null | head -1)
         wheel_python_dirs="$wheel_python_dirs ${core_dir%/core}"
     fi
@@ -93,6 +97,13 @@ else
     licenses_dir="$install_root/LICENSES"
     notice_file="$install_root/NOTICE"
     scan_dirs="$lib_dir $install_root/bin"
+fi
+
+# Resolve the library directory before attempting privilege elevation or any
+# replacement. Missing wheel contents must not fall back to system libraries.
+if [ ! -d "$lib_dir" ]; then
+    echo "Error: CUDA-Q library directory not found: $lib_dir" >&2
+    exit 10
 fi
 
 # The library replacement checks (4. above) overwrite the shipped libgmp/libmpfr

@@ -377,7 +377,7 @@ jobs:
       devdeps_archive: ${{ fromJson(needs.config_devdeps.outputs.json).tar_archive[format('{0}-gcc12', matrix.platform)] }}
       environment: ghcr-ci
 
-  # Build the devel wheel first so that all jobs in the `python_wheels` matrix can reuse it
+  # Build the devel wheel first so that the Python wheel builds can reuse it.
   python_devel_wheel:
     name: Create shared Python development wheel
     needs: [metadata, config_wheeldeps]
@@ -408,7 +408,9 @@ jobs:
       build_devel_wheel: true
       run_validation: false
 
-  python_wheels:
+  # Core is CUDA-independent; both frontends ship with the CUDA 13-built core.
+  # Finish those builds before validating CUDA 12 against the published pair.
+  python_wheels_cu13:
     name: Create Python wheels
     needs: [metadata, config_wheeldeps, python_devel_wheel]
     if:
@@ -418,7 +420,7 @@ jobs:
       matrix:
         platform: [amd64, arm64]
         python_version: ['3.11', '3.13', '3.14']
-        cuda_version: ["12.6", "13.0"]
+        cuda_version: ["13.0"]
       fail-fast: ${{ github.event_name == 'merge_group' }}
     uses: ./.github/workflows/python_wheels.yml
     secrets:
@@ -449,9 +451,46 @@ jobs:
       build_logical_wheel:
         ${{ matrix.platform == 'amd64' && matrix.cuda_version == '13.0' }}
 
+  python_wheels:
+    name: Create Python wheels
+    needs: [metadata, config_wheeldeps, python_devel_wheel, python_wheels_cu13]
+    # CUDA 12 validation uses the CUDA-independent core wheel built by CUDA 13.
+    # Wait for that workflow to finish, but still build and test CUDA 12 if
+    # CUDA 13 tests fail. A missing core wheel fails CUDA 12 validation, and
+    # CI Summary reports failures from either workflow.
+    if: >-
+      ${{ !cancelled() && github.event_name != 'push'
+          && needs.metadata.outputs.merge_queue_fast != 'true'
+          && needs.metadata.result == 'success'
+          && needs.config_wheeldeps.result == 'success'
+          && needs.python_devel_wheel.result == 'success' }}
+    strategy:
+      matrix:
+        platform: [amd64, arm64]
+        python_version: ['3.11', '3.13', '3.14']
+        cuda_version: ["12.6"]
+      fail-fast: ${{ github.event_name == 'merge_group' }}
+    uses: ./.github/workflows/python_wheels.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+    with:
+      platform: linux/${{ matrix.platform }}
+      python_version: ${{ matrix.python_version }}
+      cuda_version: ${{ matrix.cuda_version }}
+      devdeps_image:
+        ${{ fromJson(needs.config_wheeldeps.outputs.json).image_hash[format('{0}-cu{1}-python',
+        matrix.platform, matrix.cuda_version)] }}
+      devdeps_cache:
+        ${{ fromJson(needs.config_wheeldeps.outputs.json).cache_key[format('{0}-cu{1}-python',
+        matrix.platform, matrix.cuda_version)] }}
+      devdeps_archive:
+        ${{ fromJson(needs.config_wheeldeps.outputs.json).tar_archive[format('{0}-cu{1}-python',
+        matrix.platform, matrix.cuda_version)] }}
+
   python_metapackages:
     name: Create Python metapackages
-    needs: [metadata, python_wheels]
+    needs: [metadata, python_wheels, python_wheels_cu13]
     if: github.event_name != 'push' && needs.metadata.outputs.merge_queue_fast != 'true'
     uses: ./.github/workflows/python_metapackages.yml
     with:
@@ -460,7 +499,7 @@ jobs:
       cuda_versions: "['', '12.6', '13.0']"
       wheel_artifacts: "pycudaq-*"
       logical_wheel_artifacts: "cudaq_logical-*"
-      cudaq_logical_version: ${{ needs.python_wheels.outputs.logical_version }}
+      cudaq_logical_version: ${{ needs.python_wheels_cu13.outputs.logical_version }}
 
   # Installer builds are packaging, not correctness — only built on merge_group/dispatch.
   binaries:
@@ -510,6 +549,7 @@ jobs:
       - documentation
       - docker_image
       - python_wheels
+      - python_wheels_cu13
       - python_devel_wheel
       - python_metapackages
       - binaries
@@ -827,6 +867,7 @@ jobs:
       - docker_image
       - wheeldeps
       - python_wheels
+      - python_wheels_cu13
     # We need to clean up even if the workflow is cancelled or fails.
     if: always() && needs.changes.outputs.stable == 'true'
 

@@ -220,6 +220,12 @@ jobs:
           uv pip install -f dist "$runtime_wheel"
           uv pip install --no-deps -f dist "cudaq-devel==$CUDAQ_VERSION"
 
+      # The release workflow also reaches this path. Exercise the SDK's external
+      # consumer once per architecture, not only the Logical build itself.
+      - name: Validate devel wheel
+        if: needs.resolve.outputs.python_version == '3.11'
+        run: PYTHON=python bash scripts/validate_devel_wheel.sh -i dist -r dist
+
       - name: Build cudaq.logical
         id: build
         working-directory: preview/logical

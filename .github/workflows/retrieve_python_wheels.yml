@@ -315,12 +315,13 @@ jobs:
 
   build:
     name: Build missing wheels
-    needs: [resolve, wheeldeps, restore_runtime]
+    needs: [resolve, wheeldeps, restore_runtime, restore_core, build_core]
     if: >-
       ${{ !cancelled()
           && needs.resolve.outputs.need_build == 'true'
           && needs.wheeldeps.result == 'success'
-          && needs.restore_runtime.result != 'failure' }}
+          && needs.restore_runtime.result != 'failure'
+          && (!startsWith(inputs.cuda_version, '12') || needs.restore_core.result == 'success' || needs.build_core.result == 'success') }}
     uses: ./.github/workflows/python_wheels.yml
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -335,6 +336,7 @@ jobs:
       build_runtime_wheel: ${{ needs.resolve.outputs.need_runtime_build == 'true' }}
       build_devel_wheel: ${{ needs.resolve.outputs.need_devel_build == 'true' }}
       runtime_artifact_name: ${{ needs.resolve.outputs.runtime_artifact_name }}
+      core_artifact_name: ${{ needs.build_core.outputs.runtime_artifact_name || needs.resolve.outputs.core_artifact_name }}
       run_validation: ${{ inputs.run_validation }}
       build_logical_wheel: false
 
@@ -395,7 +397,9 @@ jobs:
       devdeps_archive: ${{ needs.core_wheeldeps.outputs.tar_archive }}
       build_runtime_wheel: true
       build_devel_wheel: false
-      run_validation: ${{ inputs.run_validation }}
+      # This job only supplies core for a CUDA 12 request. Do not gate that
+      # request on CUDA 13 frontend tests.
+      run_validation: false
       build_logical_wheel: false
 
   metapackage:
