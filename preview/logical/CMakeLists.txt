@@ -44,6 +44,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
+# CUDA-Q Logical does not use C++20 modules. Keep CMake from generating
+# compiler-specific dependency-scanning rules (for example, clang-scan-deps).
+set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
+
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
