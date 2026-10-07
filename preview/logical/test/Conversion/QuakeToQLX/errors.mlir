@@ -76,8 +76,8 @@ module {
   // expected-error@+1 {{failed to legalize operation 'func.func'}}
   func.func @__nvqpp__mlirgen__reference()
       attributes {"cudaq-entrypoint", "cudaq-kernel"} {
-    // expected-error@+1 {{Quake-to-P0 supports only value-semantics !quake.wire values plus statically sized helper cable boundaries}}
     %0 = quake.alloca !quake.ref
+    // expected-error@+1 {{Quake-to-P0 supports only value-semantics !quake.wire values plus statically sized helper cable boundaries}}
     quake.h %0 : (!quake.ref) -> ()
     return
   }

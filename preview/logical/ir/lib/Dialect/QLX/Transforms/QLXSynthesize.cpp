@@ -18,6 +18,7 @@
 #include "llvm/ADT/SmallVector.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/IR/Builders.h"
+#include "mlir/IR/Verifier.h"
 
 #include <cmath>
 #include <cstdint>
@@ -510,9 +511,34 @@ static LogicalResult synthesizePauliRotations(ModuleOp module,
   return success();
 }
 
+static LogicalResult verifyPositiveBasisSignature(ApplyOp operation,
+                                                  unsigned arity) {
+  if (operation.getParameters() && !operation.getParameters()->empty())
+    return operation.emitOpError(
+        "positive Clifford+T basis actions do not accept parameter bindings");
+  if (operation.getInputs().size() != arity ||
+      operation.getResults().size() != arity)
+    return operation.emitOpError()
+           << "positive Clifford+T basis actions require exactly " << arity
+           << " logical-qubit inputs and results and no classical payloads";
+  for (Value input : operation.getInputs())
+    if (!isa<LogicalQubitType>(input.getType()))
+      return operation.emitOpError()
+             << "positive Clifford+T basis actions require exactly " << arity
+             << " logical-qubit inputs and results and no classical payloads";
+  for (Value result : operation.getResults())
+    if (!isa<LogicalQubitType>(result.getType()))
+      return operation.emitOpError()
+             << "positive Clifford+T basis actions require exactly " << arity
+             << " logical-qubit inputs and results and no classical payloads";
+  return success();
+}
+
 } // namespace
 
 LogicalResult qlx::verifyCliffordT(ModuleOp module) {
+  if (failed(mlir::verify(module)))
+    return failure();
   bool failedVerification = false;
   module.walk([&](ApplyOp operation) {
     auto builtin = dyn_cast<BuiltinActionAttr>(operation.getActionAttr());
@@ -522,19 +548,25 @@ LogicalResult qlx::verifyCliffordT(ModuleOp module) {
       failedVerification = true;
       return;
     }
+    unsigned arity = 0;
     switch (builtin.getValue()) {
     case BuiltinAction::h:
     case BuiltinAction::s:
     case BuiltinAction::t:
-    case BuiltinAction::cx:
     case BuiltinAction::idle:
-      return;
+      arity = 1;
+      break;
+    case BuiltinAction::cx:
+      arity = 2;
+      break;
     default:
       operation.emitOpError(
           "remains outside the Clifford+T gate set after legalization");
       failedVerification = true;
       return;
     }
+    if (failed(verifyPositiveBasisSignature(operation, arity)))
+      failedVerification = true;
   });
   return failure(failedVerification);
 }

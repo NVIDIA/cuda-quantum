@@ -1166,6 +1166,10 @@ LogicalResult ApplyOp::verify() {
   if (!builtin)
     return emitOpError(
         "action must be #qlx.action<...> or a qlx.action symbol reference");
+  if (builtin.getValue() != BuiltinAction::pauli_rotation && getParameters() &&
+      !getParameters()->empty())
+    return emitOpError(
+        "fixed built-in actions do not accept parameter bindings");
   unsigned expectedArity = 1;
   switch (builtin.getValue()) {
   case BuiltinAction::cx:
