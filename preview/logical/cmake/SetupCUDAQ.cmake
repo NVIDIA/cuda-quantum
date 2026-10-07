@@ -202,6 +202,9 @@ endif()
 message(STATUS "cudaqMLIRCAPI:   ${_cudaq_logical_mlir_capi}")
 message(STATUS "MLIRPythonSupport: ${_cudaq_logical_python_support}")
 
+# A separately installed LLVM SDK may also contain older CUDA-Q headers.
+# Prefer the CUDA-Q prefix selected above so headers match cudaq::MLIR.
+include_directories(BEFORE "${CUDAQ_INCLUDE_DIR}")
 include_directories(${LLVM_INCLUDE_DIRS})
 include_directories(${MLIR_INCLUDE_DIRS})
 

@@ -170,6 +170,27 @@ def test_native_logical_objective_exports_a_kernel_through_its_gadget():
     assert "qlx.apply @paired_x" in imported.to_mlir()
 
 
+def test_cudaq_qvector_entry_allocation_bridge_imports_as_zero_preparation():
+    import cudaq
+    import cudaq.logical as cql
+
+    @cudaq.kernel
+    def qvector_entry():
+        register = cudaq.qvector(3)
+        scalar = cudaq.qubit()
+        h(register)
+        mz(register)
+        mz(scalar)
+
+    imported = cql.compiler.import_cudaq(qvector_entry)
+    text = imported.to_mlir()
+
+    assert text.count('qlx.prepare "zero"') == 4
+    assert text.count("#qlx.action<h>") == 3
+    assert text.count("qlx.measure <Z>") == 4
+    assert imported.module.operation.verify()
+
+
 def test_logical_estimate_is_invariant_under_cached_view_mutation():
     import cudaq.logical as cql
     import cudaq.mlir.ir as mlir_ir

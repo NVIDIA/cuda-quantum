@@ -59,6 +59,14 @@ struct ImportState {
   // current P0 owner at each operation so the emitted QLX remains linear.
   DenseMap<Value, unsigned> wireReferenceSlots;
   DenseMap<Value, SmallVector<int64_t>> cableReferenceSlots;
+  // Current CUDA-Q may retain an entry-point allocation bridge after linear
+  // value preparation: one scalar !quake.ref allocation, a single unwrap to
+  // !quake.wire, and optional compiler-generated concat/evince lifetime
+  // bookkeeping.  Track only that closed bridge; arbitrary reference
+  // semantics at the P0 entry boundary remain unsupported.
+  DenseMap<Value, Value> entryReferenceOwners;
+  DenseSet<Value> entryReferences;
+  DenseSet<Value> entryLifetimeAggregates;
   // CUDA-Q's reference helper ABI unwraps each scalar !quake.ref argument to
   // one wire and wraps the successor wire back to the same reference before
   // returning.  These maps make that implicit mutation an explicit linear P0
@@ -615,13 +623,21 @@ private:
             isa<cudaq::quake::CableType>(type) &&
             isa<cudaq::quake::BundleCableOp, cudaq::quake::SplitCableOp,
                 cudaq::quake::ApplyOp>(op);
+        bool supportedEntryReferenceBridge =
+            isa<cudaq::quake::RefType>(type) &&
+            isa<cudaq::quake::AllocaOp, cudaq::quake::UnwrapOp,
+                cudaq::quake::ConcatOp>(op);
+        bool supportedEntryLifetimeAggregate =
+            isa<cudaq::quake::VeqType>(type) &&
+            isa<cudaq::quake::ConcatOp, cudaq::quake::EvinceOp>(op);
         // CUDA-Q inserts quake.log_output solely to keep Python-owned quantum
         // values live until the end of an entry point.  It is transparent to
         // the logical program and may mention an aggregate that has otherwise
         // already been scalarized.
         supportedCableBoundary |=
             op->getName().getStringRef() == "quake.log_output";
-        if (!supportedCableBoundary) {
+        if (!supportedCableBoundary && !supportedEntryReferenceBridge &&
+            !supportedEntryLifetimeAggregate) {
           op->emitOpError("Quake-to-P0 supports only value-semantics "
                           "!quake.wire values plus statically sized helper "
                           "cable boundaries");
@@ -1146,6 +1162,65 @@ private:
                                       "conditional body";
     };
     return llvm::TypeSwitch<Operation *, LogicalResult>(&source)
+        .Case<cudaq::quake::AllocaOp>([&](auto allocation) -> LogicalResult {
+          if (policy != RegionPolicy::Entry || state.referenceABI)
+            return allocation.emitOpError(
+                "reference allocation is legal only in a prepared entry "
+                "allocation bridge");
+          Value reference = allocation.getResult();
+          if (!isa<cudaq::quake::RefType>(reference.getType()))
+            return allocation.emitOpError(
+                "entry allocation bridge requires one scalar !quake.ref");
+          unsigned unwraps = 0;
+          for (Operation *user : reference.getUsers()) {
+            if (isa<cudaq::quake::UnwrapOp>(user)) {
+              ++unwraps;
+              continue;
+            }
+            if (!isa<cudaq::quake::ConcatOp>(user))
+              return allocation.emitOpError(
+                  "entry reference has a non-lifetime use before its unwrap");
+          }
+          if (unwraps != 1)
+            return allocation.emitOpError(
+                "entry reference must have exactly one linear unwrap");
+          auto i64 = builder.getI64Type();
+          auto prepared = qlx::PrepareOp::create(
+              builder, allocation.getLoc(),
+              qlx::LogicalQubitType::get(builder.getContext()), "zero",
+              IntegerAttr::get(i64, state.nextAllocation),
+              IntegerAttr::get(i64, 0));
+          state.entryReferenceOwners[reference] = prepared.getResult();
+          state.entryReferences.insert(reference);
+          ++state.nextAllocation;
+          return success();
+        })
+        .Case<cudaq::quake::ConcatOp>([&](auto concat) -> LogicalResult {
+          if (policy != RegionPolicy::Entry || state.referenceABI)
+            return concat.emitOpError(
+                "reference aggregation is legal only for prepared entry "
+                "lifetime bookkeeping");
+          if (!llvm::all_of(concat->getOperands(), [&](Value value) {
+                return state.entryReferences.contains(value);
+              }))
+            return concat.emitOpError(
+                "entry lifetime aggregation must contain only local scalar "
+                "allocations");
+          if (concat->getNumResults() != 1 ||
+              !isa<cudaq::quake::VeqType>(concat->getResult(0).getType()))
+            return concat.emitOpError(
+                "entry lifetime aggregation must produce one static vector");
+          Value aggregate = concat->getResult(0);
+          if (!llvm::all_of(aggregate.getUsers(), [](Operation *user) {
+                return isa<cudaq::quake::EvinceOp>(user) &&
+                       user->hasAttr("compilerGenerated") &&
+                       user->getNumResults() == 0;
+              }))
+            return concat.emitOpError(
+                "entry allocation aggregate has a non-lifetime use");
+          state.entryLifetimeAggregates.insert(aggregate);
+          return success();
+        })
         .Case<cudaq::quake::NullWireOp>([&](auto nullWire) -> LogicalResult {
           if (structured && !repeatBody)
             return rejectStructured(nullWire, "allocation");
@@ -1236,10 +1311,20 @@ private:
           return success();
         })
         .Case<cudaq::quake::UnwrapOp>([&](auto unwrap) -> LogicalResult {
-          if (!state.referenceABI)
-            return unwrap.emitOpError(
-                "quake.unwrap is legal only in a scalar reference helper");
           Value reference = unwrap.getRefValue();
+          if (!state.referenceABI) {
+            if (policy != RegionPolicy::Entry)
+              return unwrap.emitOpError(
+                  "entry reference unwrap is not allowed in a structured "
+                  "body");
+            auto owner = state.entryReferenceOwners.find(reference);
+            if (owner == state.entryReferenceOwners.end())
+              return unwrap.emitOpError(
+                  "reference is not an unwrapped local entry allocation");
+            state.wireOwners[unwrap.getResult()] = owner->second;
+            state.entryReferenceOwners.erase(owner);
+            return success();
+          }
           auto index = state.referenceIndices.find(reference);
           if (index == state.referenceIndices.end())
             return unwrap.emitOpError(
@@ -1402,30 +1487,44 @@ private:
           qlx::ReturnOp::create(builder, sourceReturn.getLoc(), results);
           return success();
         })
-        .Default([&](Operation *unsupported) -> LogicalResult {
-          if (unsupported->getName().getStringRef() == "quake.evince") {
-            // Python frontend lifetime logging has no logical effect.  The
-            // scalar form forwards its wire, so retain the current owner for
-            // the result; aggregate logging has no results and can disappear.
-            if (unsupported->getNumResults() == 0)
-              return success();
-            if (unsupported->getNumOperands() != 1 ||
-                unsupported->getNumResults() != 1 ||
-                !isa<cudaq::quake::WireType>(
-                    unsupported->getOperand(0).getType()) ||
-                !isa<cudaq::quake::WireType>(
-                    unsupported->getResult(0).getType()))
-              return unsupported->emitOpError(
-                  "unsupported quantum lifetime logging shape");
-            auto owner = state.wireOwners.find(unsupported->getOperand(0));
-            if (owner == state.wireOwners.end())
-              return unsupported->emitOpError(
-                  "logs a wire with no live P0 owner");
-            Value logicalOwner = owner->second;
-            state.wireOwners.erase(owner);
-            state.wireOwners[unsupported->getResult(0)] = logicalOwner;
+        .Case<cudaq::quake::EvinceOp>([&](auto evince) -> LogicalResult {
+          // Python frontend lifetime logging has no logical effect.  The
+          // scalar form forwards its wire, so retain the current owner for
+          // the result; aggregate logging has no results and can disappear.
+          if (evince->getNumResults() == 0) {
+            if (policy != RegionPolicy::Entry ||
+                !evince->hasAttr("compilerGenerated") ||
+                evince->getNumOperands() != 1 ||
+                !state.entryLifetimeAggregates.contains(evince->getOperand(0)))
+              return evince.emitOpError(
+                  "unsupported aggregate quantum lifetime logging shape");
             return success();
           }
+          if (evince->getNumOperands() != 1 || evince->getNumResults() != 1 ||
+              !evince->hasAttr("compilerGenerated") ||
+              !isa<cudaq::quake::WireType>(evince->getOperand(0).getType()) ||
+              !isa<cudaq::quake::WireType>(evince->getResult(0).getType()))
+            return evince.emitOpError(
+                "unsupported quantum lifetime logging shape");
+          Value input = evince->getOperand(0);
+          Value result = evince->getResult(0);
+          auto owner = state.wireOwners.find(input);
+          if (owner == state.wireOwners.end()) {
+            if (!state.measuredWires.erase(input))
+              return evince.emitOpError(
+                  "logs a wire with no live or measured P0 owner");
+            state.measuredWires.insert(result);
+            return success();
+          }
+          if (state.measuredWires.contains(input))
+            return evince.emitOpError(
+                "wire lifetime state is both live and measured");
+          Value logicalOwner = owner->second;
+          state.wireOwners.erase(owner);
+          state.wireOwners[result] = logicalOwner;
+          return success();
+        })
+        .Default([&](Operation *unsupported) -> LogicalResult {
           return unsupported->emitOpError(
               "is outside the typed Quake-to-P0 conversion contract");
         });
@@ -1727,6 +1826,10 @@ private:
       return function.emitOpError()
              << "leaves " << state.wireOwners.size()
              << " live quantum owner(s); measure, sink, or return every wire";
+    if (!state.entryReferenceOwners.empty())
+      return function.emitOpError()
+             << "leaves " << state.entryReferenceOwners.size()
+             << " entry allocation reference(s) without a linear unwrap";
 
     if (body->empty() || !isa<qlx::ReturnOp>(body->back()))
       qlx::ReturnOp::create(builder, function.getLoc());

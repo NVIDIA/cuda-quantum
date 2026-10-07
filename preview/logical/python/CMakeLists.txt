@@ -447,6 +447,21 @@ add_test(NAME qlx-python-tests
     -v
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
 )
+
+# The install target creates the installed wheel layout but does not guarantee
+# that MLIR's generated Python sources and extension modules have been
+# assembled in the build-tree package used by this test. Make that staging an
+# explicit CTest fixture so fresh artifact-only test jobs cannot race pytest
+# against QLXPythonModules.
+add_test(NAME qlx-python-build-modules
+  COMMAND ${CMAKE_COMMAND}
+    --build ${CMAKE_BINARY_DIR}
+    --target QLXPythonModules
+)
+set_tests_properties(qlx-python-build-modules PROPERTIES
+  FIXTURES_SETUP qlx-python-modules
+  RESOURCE_LOCK qlx-build-dir
+)
 set_tests_properties(qlx-python-tests PROPERTIES
   # The QLX build tree contains only the additions to the cudaq package. Keep
   # the configured CUDA-Q installation on the module search path so the core
@@ -455,6 +470,7 @@ set_tests_properties(qlx-python-tests PROPERTIES
   # the invoking environment.
   ENVIRONMENT_MODIFICATION
     "${_qlx_runtime_pytest_env_modifications}"
+  FIXTURES_REQUIRED qlx-python-modules
   LABELS "qlx;conformance"
   TIMEOUT 1200
 )

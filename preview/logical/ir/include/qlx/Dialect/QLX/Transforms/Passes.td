@@ -75,7 +75,10 @@ def QLXVerifyCliffordT
       "Verify every logical apply is legal in the positive H/S/T/CX basis";
   let description = [{
     Walks every `qlx.apply` and reports a diagnostic for any op whose
-    built-in action is outside {h, s, t, cx, idle}.
+    built-in action is outside {h, s, t, cx, idle}, or whose built-in action
+    does not have its exact logical-qubit-only input/result signature and empty
+    parameter schema. The certificate first requires base-valid MLIR, including
+    the declared attribute types of fixed built-ins and structured control.
   }];
 }
 
@@ -88,17 +91,31 @@ def QLXToPBC : Pass<"qlx-to-pbc", "::mlir::ModuleOp"> {
       "Lower a synthesized Clifford+T program to Pauli-based-computation form";
   let description = [{
     Rewrites a Clifford+T program into Pauli-based-computation (PBC) form.
-    Every Clifford (h/s/sdg/x/y/z/sx/cx/cz) is commuted to the end via one
+    Every Clifford (h/s/sdg/x/y/z/cx/cz) is commuted to the end via one
     symplectic stabilizer frame, so the program becomes a sequence of pi/4
     Pauli-product rotations (one per T/T-dagger) followed by the terminal
     measurements conjugated into Pauli products.
 
-    Scope: single-block programs with terminal measurements. State
-    preparation is limited to |0>, |1>, |+>, |->; measurements to the Z and
-    X bases. Non-Clifford gates other than T/T-dagger, mid-circuit
-    measurement with feedforward, and control flow are reported as errors.
+    Static cflow.repeat regions remain folded when they carry distinct logical
+    qubits positionally with exact current SSA ownership, contain only
+    synthesized unitary actions, and have rotation support closed over the
+    explicit carry set. Counts zero and one are exact. Identity-residual bodies
+    retain their source count; bounded nonidentity residuals are normalized
+    innermost-first into an exact signed-frame period with a folded quotient and
+    optional count-one remainder. Period search is limited to 64 phases, and
+    one normalization may clone at most 4096 body operations. Unsupported
+    periods or larger expansions fail closed. Workload-bearing idle actions,
+    logical-qubit program returns, noncanonical built-in signatures, classical
+    payloads or parameter bindings, other control flow, non-Clifford gates
+    other than T/T-dagger, iteration-local ownership, and mid-circuit
+    measurement/feedforward are reported as errors. Base IR verification and
+    source preflight happen before the transactional rewrite; every source
+    logical owner must be measured or explicitly discarded before return.
+    Existing source discard groups and reasons remain separate from
+    compiler-introduced cleanup of nondestructive-MPP survivors.
   }];
-  let dependentDialects = ["::mlir::arith::ArithDialect"];
+  let dependentDialects = ["::mlir::arith::ArithDialect",
+                           "::qlx::cflow::CflowDialect"];
 }
 
 //===----------------------------------------------------------------------===//
@@ -109,15 +126,20 @@ def QLXVerifyPBC : Pass<"qlx-verify-pbc", "::mlir::ModuleOp"> {
   let summary =
       "Certify a module is in Pauli-based-computation (PBC) normal form";
   let description = [{
-    Certifies the contract `qlx-to-pbc` produces for downstream PBC
-    lowering:
-      1. the body contains only prepare / pi/4 pauli_rotation / mpp /
-         discard / return / constant ops -- every Clifford has been
-         absorbed;
-      2. every pauli_rotation is exactly +/- pi/4;
+    Certifies the contract `qlx-to-pbc` produces for downstream PBC lowering.
+    It first requires base-valid MLIR, then checks:
+      1. the body contains only prepare / pi/4 pauli_rotation / repeat / mpp /
+         discard / return / constant ops -- every Clifford has been absorbed;
+         repeats contain only canonical rotations, nested repeats, constants,
+         and position-preserving logical-qubit yields;
+      2. every Pauli product has a support-minimal, owner-disjoint signature
+         with its exact parameter set, and every pauli_rotation is exactly
+         +/- pi/4;
       3. no pauli_rotation follows a measurement;
       4. the measured Pauli products pairwise commute (simultaneously
-         measurable).
+         measurable);
+      5. no logical preparation follows the first MPP, and every current
+         logical owner is terminally discarded before program return.
     On failure, emits one diagnostic naming the violated condition.
   }];
 }
