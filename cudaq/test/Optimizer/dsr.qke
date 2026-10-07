@@ -20,6 +20,91 @@ func.func @test_it() {
 // CHECK:           return
 // CHECK:         }
 
+// Remove every store through the allocation and its derived pointers.
+func.func @dead_mixed_stores(%array: !cc.array<i32 x 2>, %value: i32) {
+  %p = cc.alloca !cc.array<i32 x 2>
+  cc.store %array, %p : !cc.ptr<!cc.array<i32 x 2>>
+  %cast = cc.cast %p : (!cc.ptr<!cc.array<i32 x 2>>) -> !cc.ptr<i32>
+  cc.store %value, %cast : !cc.ptr<i32>
+  cc.store %value, %cast : !cc.ptr<i32>
+  %element = cc.compute_ptr %p[1] : (!cc.ptr<!cc.array<i32 x 2>>) -> !cc.ptr<i32>
+  cc.store %value, %element : !cc.ptr<i32>
+  cc.store %value, %element : !cc.ptr<i32>
+  return
+}
+
+// CHECK-LABEL: func.func @dead_mixed_stores
+// CHECK-NOT: cc.store
+// CHECK: return
+
+// Stores can be removed together even when they are in separate blocks.
+func.func @dead_branch_stores(%condition: i1, %value: i32) {
+  %p = cc.alloca i32
+  cc.store %value, %p : !cc.ptr<i32>
+  cf.cond_br %condition, ^yes, ^no
+^yes:
+  cc.store %value, %p : !cc.ptr<i32>
+  cf.br ^exit
+^no:
+  cc.store %value, %p : !cc.ptr<i32>
+  cf.br ^exit
+^exit:
+  return
+}
+
+// CHECK-LABEL: func.func @dead_branch_stores
+// CHECK-NOT: cc.store
+// CHECK: return
+
+// Finding a read must leave all stores intact, including already visited ones.
+func.func @live_derived_load(%array: !cc.array<i32 x 2>, %value: i32) -> i32 {
+  %p = cc.alloca !cc.array<i32 x 2>
+  cc.store %array, %p : !cc.ptr<!cc.array<i32 x 2>>
+  %cast = cc.cast %p : (!cc.ptr<!cc.array<i32 x 2>>) -> !cc.ptr<i32>
+  cc.store %value, %cast : !cc.ptr<i32>
+  %element = cc.compute_ptr %p[1] : (!cc.ptr<!cc.array<i32 x 2>>) -> !cc.ptr<i32>
+  cc.store %value, %element : !cc.ptr<i32>
+  %result = cc.load %element : !cc.ptr<i32>
+  return %result : i32
+}
+
+// CHECK-LABEL: func.func @live_derived_load
+// CHECK: cc.store
+// CHECK: cc.store
+// CHECK: cc.store
+// CHECK: cc.load
+// CHECK: return
+
+// Storing the address is an escape, not a dead write to the allocation.
+func.func @live_address_escape(%out: !cc.ptr<!cc.ptr<i32>>, %value: i32) {
+  %p = cc.alloca i32
+  cc.store %value, %p : !cc.ptr<i32>
+  cc.store %p, %out : !cc.ptr<!cc.ptr<i32>>
+  cc.store %value, %p : !cc.ptr<i32>
+  return
+}
+
+// CHECK-LABEL: func.func @live_address_escape
+// CHECK: cc.store
+// CHECK: cc.store
+// CHECK: cc.store
+// CHECK: return
+
+func.func @live_cast_escape(%out: !cc.ptr<!cc.ptr<i32>>, %value: i32) {
+  %p = cc.alloca !cc.array<i32 x 2>
+  %cast = cc.cast %p : (!cc.ptr<!cc.array<i32 x 2>>) -> !cc.ptr<i32>
+  cc.store %value, %cast : !cc.ptr<i32>
+  cc.store %cast, %out : !cc.ptr<!cc.ptr<i32>>
+  cc.store %value, %cast : !cc.ptr<i32>
+  return
+}
+
+// CHECK-LABEL: func.func @live_cast_escape
+// CHECK: cc.store
+// CHECK: cc.store
+// CHECK: cc.store
+// CHECK: return
+
 func.func @test_slam() {
   %0 = cc.alloca i32
   %1 = arith.constant 1 : i32
@@ -53,3 +138,30 @@ func.func @test_not_so_fast_bucko() -> i32 {
 // CHECK:           cc.load %[[VAL_0]]
 // CHECK:           return
 // CHECK:         }
+
+// Stores through dynamically indexed pointers alone do not trigger removal.
+func.func @dynamic_index_only(%i: i64, %value: i32) {
+  %p = cc.alloca !cc.array<i32 x 4>
+  %e = cc.compute_ptr %p[%i] : (!cc.ptr<!cc.array<i32 x 4>>, i64) -> !cc.ptr<i32>
+  cc.store %value, %e : !cc.ptr<i32>
+  return
+}
+
+// CHECK-LABEL: func.func @dynamic_index_only
+// CHECK: cc.store
+// CHECK: return
+
+// An unused load is erased as dead, after which the stores are removed too.
+func.func @dead_load(%array: !cc.array<i32 x 2>, %value: i32) {
+  %p = cc.alloca !cc.array<i32 x 2>
+  %e = cc.compute_ptr %p[1] : (!cc.ptr<!cc.array<i32 x 2>>) -> !cc.ptr<i32>
+  cc.store %value, %e : !cc.ptr<i32>
+  %unused = cc.load %e : !cc.ptr<i32>
+  cc.store %array, %p : !cc.ptr<!cc.array<i32 x 2>>
+  return
+}
+
+// CHECK-LABEL: func.func @dead_load
+// CHECK-NOT: cc.store
+// CHECK-NOT: cc.load
+// CHECK: return
