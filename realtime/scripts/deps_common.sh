@@ -41,6 +41,10 @@ HOLOSCAN_SDK_VERSION=${HOLOSCAN_SDK_VERSION:-4.6.0.0}
 HOLOSCAN_SDK_INSTALL_PREFIX=${HOLOSCAN_SDK_INSTALL_PREFIX:-/opt/nvidia/holoscan}
 CUDAQ_REALTIME_HSB_REPO=${CUDAQ_REALTIME_HSB_REPO:-https://github.com/nvidia-holoscan/holoscan-sensor-bridge.git}
 CUDAQ_REALTIME_HSB_REF=${CUDAQ_REALTIME_HSB_REF:-2.6.0-EA2}
+# HSB changes CUDA-Q Realtime needs before HSB releases them, applied to every
+# clone. Resolved from this file's location, since it is sourced. Set to an
+# empty string to build HSB unpatched.
+CUDAQ_REALTIME_HSB_PATCH_DIR=${CUDAQ_REALTIME_HSB_PATCH_DIR-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../patches/hsb}
 
 # Major CUDA version reported by nvcc, e.g., 13.
 cudaq_realtime_cuda_major() {
@@ -200,6 +204,36 @@ cudaq_realtime_verify_sdks() {
   fi
 }
 
+# Apply the patches in CUDAQ_REALTIME_HSB_PATCH_DIR to the HSB tree at
+# $HSB_ROOT, in name order. Any patch that does not apply fails the build rather
+# than leaving HSB silently unpatched -- including one the tree already
+# contains, which is reported as such: it means the pinned ref has caught up
+# and the patch must be deleted, not carried forward.
+cudaq_realtime_patch_hsb() {
+  if [ -z "$CUDAQ_REALTIME_HSB_PATCH_DIR" ]; then
+    echo "CUDAQ_REALTIME_HSB_PATCH_DIR is empty, building HSB unpatched."
+    return 0
+  fi
+  if [ ! -d "$CUDAQ_REALTIME_HSB_PATCH_DIR" ]; then
+    echo "ERROR: HSB patch directory $CUDAQ_REALTIME_HSB_PATCH_DIR not found; copy realtime/patches alongside realtime/scripts, or set CUDAQ_REALTIME_HSB_PATCH_DIR to an empty string to build HSB unpatched" >&2
+    return 1
+  fi
+  local patch
+  for patch in "$CUDAQ_REALTIME_HSB_PATCH_DIR"/*.patch; do
+    [ -e "$patch" ] || continue
+    if git -C "$HSB_ROOT" apply --check "$patch" 2>/dev/null; then
+      git -C "$HSB_ROOT" apply "$patch" || return 1
+      echo "Applied HSB patch $(basename "$patch")"
+    elif git -C "$HSB_ROOT" apply --reverse --check "$patch" 2>/dev/null; then
+      echo "ERROR: HSB $CUDAQ_REALTIME_HSB_REF already contains $(basename "$patch"); delete it from $CUDAQ_REALTIME_HSB_PATCH_DIR" >&2
+      return 1
+    else
+      echo "ERROR: HSB patch $(basename "$patch") does not apply to $CUDAQ_REALTIME_HSB_REF" >&2
+      return 1
+    fi
+  done
+}
+
 # Clone and build the Holoscan Sensor Bridge libraries CUDA-Q Realtime links
 # against. HSB_ROOT selects the source tree (default /tmp/holoscan-sensor-bridge)
 # and the build lands in $HSB_ROOT/build; callers pass both to CMake through
@@ -217,6 +251,7 @@ cudaq_realtime_build_hsb() {
   rm -rf "$HSB_ROOT"
   git clone --depth 1 --branch "$CUDAQ_REALTIME_HSB_REF" \
     "$CUDAQ_REALTIME_HSB_REPO" "$HSB_ROOT"
+  cudaq_realtime_patch_hsb || return 1
 
   # The CUDA-free HololinkRoce leaf exports its package during configure, but
   # no target below depends on it, so name it explicitly when the ref has it.
