@@ -112,6 +112,10 @@ def test_target_eagerly_exposes_the_cudaq_target_configuration():
     assert compile_target.fully_specialize
     pipeline = compile_target.pipeline_config.override_pass_pipeline
     assert "prepare-for-wireset" in pipeline
+    # Multi-control reduction needs reference semantics, so it must precede
+    # the wire conversion inside `prepare-for-wireset`.
+    assert pipeline.index("multicontrol-decomposition") < pipeline.index(
+        "prepare-for-wireset")
     assert "prepare-quake-for-qlx" not in pipeline
     assert "convert-quake-to-qlx" not in pipeline
 
@@ -131,6 +135,95 @@ def logical_zero_state():
 def logical_zero_memory(logical_qubits: int):
     qubits = cudaq.qvector(logical_qubits)
     mz(qubits)
+
+
+@cudaq.kernel
+def ccry_front_slice():
+    qubits = cudaq.qvector(3)
+    x(qubits[0])
+    x(qubits[1])
+    ry.ctrl(0.7, qubits.front(2), qubits[2])
+    mz(qubits)
+
+
+@cudaq.kernel
+def cccry():
+    qubits = cudaq.qvector(4)
+    ry.ctrl(0.7, qubits[0], qubits[1], qubits[2], qubits[3])
+    mz(qubits)
+
+
+@cudaq.kernel
+def ccrx():
+    qubits = cudaq.qvector(3)
+    rx.ctrl(0.7, qubits[0], qubits[1], qubits[2])
+    mz(qubits)
+
+
+@cudaq.kernel
+def ccrz():
+    qubits = cudaq.qvector(3)
+    rz.ctrl(0.7, qubits[0], qubits[1], qubits[2])
+    mz(qubits)
+
+
+@cudaq.kernel
+def ccr1():
+    qubits = cudaq.qvector(3)
+    r1.ctrl(0.7, qubits[0], qubits[1], qubits[2])
+    mz(qubits)
+
+
+@cudaq.kernel
+def cch():
+    qubits = cudaq.qvector(3)
+    h.ctrl(qubits[0], qubits[1], qubits[2])
+    mz(qubits)
+
+
+@cudaq.kernel
+def cccx():
+    qubits = cudaq.qvector(4)
+    x.ctrl(qubits[0], qubits[1], qubits[2], qubits[3])
+    mz(qubits)
+
+
+@cudaq.kernel
+def ccry_body(qubits: cudaq.qview):
+    ry.ctrl(0.7, qubits[0], qubits[1], qubits[2])
+
+
+@cudaq.kernel
+def ccry_adjoint():
+    qubits = cudaq.qvector(3)
+    cudaq.adjoint(ccry_body, qubits)
+    mz(qubits)
+
+
+@pytest.mark.parametrize(
+    "kernel",
+    [ccry_front_slice, cccry, ccrx, ccrz, ccr1, cch, cccx, ccry_adjoint],
+    ids=lambda kernel: kernel.name)
+def test_clifford_t_target_estimates_multi_controlled_gates(kernel):
+    target = cudaq.logical.targets.clifford_t_target(precision=1.0e-4)
+
+    try:
+        cudaq.set_target(target)
+        result = cudaq.estimate(kernel)
+    finally:
+        cudaq.reset_target()
+
+    assert result.annotations
+
+
+def test_estimator_target_estimates_a_doubly_controlled_ry():
+    try:
+        cudaq.set_target(cudaq.logical.targets.estimator)
+        result = cudaq.estimate(ccry_front_slice)
+    finally:
+        cudaq.reset_target()
+
+    assert result.annotations
 
 
 def test_cudaq_selects_a_qlx_custom_target_for_estimation():
