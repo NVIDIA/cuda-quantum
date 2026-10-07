@@ -50,7 +50,7 @@ on:
       checkout_submodules:
         required: false
         type: boolean
-        description: Whether to checkout submodules when checking out the repository.
+        description: Whether the image build needs the recorded submodule commits.
         default: false
       matrix_key:
         required: false
@@ -222,11 +222,16 @@ jobs:
         with:
           ref: "${{ (inputs.pull_request_number != '' && (inputs.pull_request_commit || format('refs/pull/{0}/merge', inputs.pull_request_number))) || '' }}"
 
-      - name: Initialize submodules (with retry)
+      - name: Record submodule commits
         if: ${{ inputs.checkout_submodules }}
         run: |
-          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
-          retry git submodule update --init --recursive --depth 1
+          # These images clone the submodules themselves and only read the
+          # commit out of .git/modules/<path>/HEAD, so skip the checkout.
+          paths=$(git config -f .gitmodules --get-regexp '^submodule\..*\.path$' | awk '{print $2}')
+          for path in $paths; do
+            mkdir -p ".git/modules/$path"
+            git rev-parse "HEAD:$path" > ".git/modules/$path/HEAD"
+          done
 
       - name: Set up context for buildx
         run: |
