@@ -338,6 +338,12 @@ function(add_cudaq_python_modules name)
       "${_origin_prefix}/../../../lib"
       "${_origin_prefix}/../../../lib/plugins")
   endif()
+  if(CUDAQ_BUILD_SPLIT_WHEELS)
+    list(APPEND _cudaq_python_install_rpaths
+      "${_origin_prefix}/../../core/lib"
+      "${_origin_prefix}/../../../cudaq_core/cudaq/core/lib"
+      "${_origin_prefix}/../../../cudaq_core/cudaq/mlir/_mlir_libs")
+  endif()
 
   # Collect every *.extension.*.dso target created for this module set.
   get_property(_all_targets DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)

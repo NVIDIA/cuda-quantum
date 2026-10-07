@@ -56,6 +56,20 @@ project(cudaq LANGUAGES CXX C)
 # By default, install everything to the "Runtime" component.
 set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME Runtime)
 
+# By default, the core library and development components are set for a combined wheel 
+# (e.g., build from source).
+option(CUDAQ_BUILD_SPLIT_WHEELS "Build separate core and frontend wheels" OFF)
+set(CUDAQ_CORE_LIBRARY_COMPONENT Runtime)
+set(CUDAQ_CORE_DEVELOPMENT_COMPONENT Development)
+set(CUDAQ_CORE_EXPORT_SET cudaq-targets)
+set(CUDAQ_CORE_CAPI_COMPONENT CUDAQuantumPythonModules)
+if(CUDAQ_BUILD_SPLIT_WHEELS)
+  set(CUDAQ_CORE_LIBRARY_COMPONENT Core)
+  set(CUDAQ_CORE_DEVELOPMENT_COMPONENT Core)
+  set(CUDAQ_CORE_EXPORT_SET cudaq-core-targets)
+  set(CUDAQ_CORE_CAPI_COMPONENT Core)
+endif()
+
 # Always install to `lib`. This avoids the `lib` vs `lib64` mismatch depending
 # on distribution.
 set(CMAKE_INSTALL_LIBDIR lib CACHE PATH "Object code libraries (lib)" FORCE)
@@ -503,6 +517,21 @@ else()
   SET(CMAKE_INSTALL_RPATH "$ORIGIN:$ORIGIN/lib:$ORIGIN/lib/plugins:$ORIGIN/../lib:$ORIGIN/../lib/plugins:$ORIGIN/../cudaq/mlir/_mlir_libs:$ORIGIN/../python/cudaq/mlir/_mlir_libs")
 endif()
 
+if(CUDAQ_BUILD_SPLIT_WHEELS)
+  # Use build-tree paths during development, and do not automatically append
+  # linker search directories to the installed wheel's relative loader paths.
+  set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
+  set(CMAKE_INSTALL_RPATH_USE_LINK_PATH FALSE)
+  if(APPLE)
+    set(_wheel_origin "@loader_path")
+  else()
+    set(_wheel_origin "$ORIGIN")
+  endif()
+  list(APPEND CMAKE_INSTALL_RPATH
+    "${_wheel_origin}/../cudaq_core/cudaq/core/lib"
+    "${_wheel_origin}/../cudaq_core/cudaq/mlir/_mlir_libs")
+endif()
+
 if(NOT SKBUILD)
   install(DIRECTORY LICENSES DESTINATION .)
 endif()
@@ -839,7 +868,12 @@ include_directories(SYSTEM tpls/json/single_include)
 include_directories(SYSTEM tpls/json/single_include_fwd)
 install(FILES tpls/json/single_include_fwd/nlohmann/json_fwd.hpp
   DESTINATION include/nlohmann
-  COMPONENT Development)
+  COMPONENT ${CUDAQ_CORE_DEVELOPMENT_COMPONENT})
+if(CUDAQ_BUILD_SPLIT_WHEELS)
+  # Public backend headers include json.hpp as well as the forward declarations.
+  install(FILES tpls/json/single_include/nlohmann/json.hpp
+    DESTINATION include/nlohmann COMPONENT Core)
+endif()
 
 # Add spdlog
 #
@@ -877,7 +911,8 @@ set(BUILD_SHARED_LIBS ${CUDAQ_SAVED_BUILD_SHARED_LIBS})
 unset(CUDAQ_SAVED_BUILD_SHARED_LIBS)
 target_compile_options(spdlog PRIVATE -Wno-covered-switch-default)
 if (CUDAQ_SPDLOG_BUILD_SHARED AND CUDAQ_INSTALL_SPDLOG)
-  install(TARGETS spdlog DESTINATION lib)
+  install(TARGETS spdlog DESTINATION lib
+    COMPONENT ${CUDAQ_CORE_LIBRARY_COMPONENT})
 endif()
 
 if (OPENSSL_FOUND AND CUDAQ_ENABLE_REST)
@@ -1118,6 +1153,10 @@ if(CUDAQ_BUILD_TESTS AND NOT CUDAQ_DISABLE_CPP_FRONTEND)
     add_subdirectory(docs)
   endif()
   umbrella_lit_testsuite_end(check-all)
+endif()
+
+if(CUDAQ_BUILD_SPLIT_WHEELS)
+  add_subdirectory(cmake/wheels)
 endif()
 
 if (CUDAQ_EXTERNAL_NVQIR_SIMS)

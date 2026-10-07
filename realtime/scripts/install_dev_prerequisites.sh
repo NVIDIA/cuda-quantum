@@ -25,6 +25,8 @@
 #                                github, see deps_common.sh.
 #   CUDAQ_REALTIME_HSB_REF       Branch or tag to clone.
 #                                Default: the tag pinned in deps_common.sh.
+#   CUDAQ_REALTIME_HSB_PATCH_DIR Patches applied to the HSB clone.
+#                                Default: realtime/patches/hsb. Empty: none.
 #   CUDAQ_REALTIME_SKIP_HSB=1    Install the SDKs but skip the HSB build.
 #
 # Containers that already ship Mellanox OFED cannot use this script, because

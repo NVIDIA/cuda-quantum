@@ -25,6 +25,6 @@ target_link_libraries(CUDAQTargetConfigYaml PUBLIC CUDAQTargetConfig
 target_compile_options(CUDAQTargetConfigYaml PRIVATE "-fexceptions" "-frtti")
 
 install(TARGETS CUDAQTargetConfigYaml
-        EXPORT cudaq-common-targets
+        EXPORT ${_target_frontend_exports}
         DESTINATION lib
         COMPONENT Runtime)
