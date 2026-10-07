@@ -234,9 +234,9 @@ static Value genConstant(OpBuilder &, cudaq::cc::CallableType, void *, ModuleOp,
   // Process the function body
   process(initFunc.getRegion().front());
 
-  // The caller owns the qubits, so drop deallocations of the argument.
-  initFunc.walk([&](cudaq::quake::DeallocOp dealloc) {
-    Value v = dealloc.getReference();
+  // Trace \p v back through the state and veq view operations to the value it
+  // is a view of.
+  auto traceToAllocation = [](Value v) {
     while (Operation *def = v.getDefiningOp()) {
       if (auto init = dyn_cast<cudaq::quake::InitializeStateOp>(def))
         v = init.getTargets();
@@ -247,8 +247,24 @@ static Value genConstant(OpBuilder &, cudaq::cc::CallableType, void *, ModuleOp,
       else
         break;
     }
-    if (isa<BlockArgument>(v))
+    return v;
+  };
+
+  // The caller owns the qubits, so drop deallocations of the argument.
+  initFunc.walk([&](cudaq::quake::DeallocOp dealloc) {
+    if (isa<BlockArgument>(traceToAllocation(dealloc.getReference())))
       dealloc.erase();
+  });
+
+  // The caller is also responsible for making its own qubits observable. Drop
+  // the compiler-generated evince ops on the argument, which would otherwise
+  // be observation points in the middle of the caller's circuit.
+  initFunc.walk([&](cudaq::quake::EvinceOp evince) {
+    if (evince.getCompilerGenerated() &&
+        llvm::all_of(evince.getArgs(), [&](Value v) {
+          return isa<BlockArgument>(traceToAllocation(v));
+        }))
+      evince.erase();
   });
 }
 
