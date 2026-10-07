@@ -30,10 +30,10 @@ typedef struct {
   uint32_t rx_ring_stride_num; ///< Number of slots in the RX ring
   uint8_t *tx_ring_data;       ///< Device pointer to TX ring data buffer
   size_t tx_ring_stride_sz;    ///< Stride (slot size) in the TX ring
-  uint32_t tx_ring_mkey;       ///< TX ring lkey, network byte order (`htobe32`)
-  size_t frame_size;           ///< Actual frame/payload size within a slot
-  int use_bf;                  ///< Non-zero: use BlueFlame TX (dGPU).
-                               ///< Zero: use NIC_HANDLER_AUTO (iGPU/CPU proxy).
+  uint32_t tx_ring_mkey; ///< TX ring `lkey`, network byte order (`htobe32`)
+  size_t frame_size;     ///< Actual frame/payload size within a slot
+  int use_bf;            ///< Non-zero: use BlueFlame TX (dGPU).
+                         ///< Zero: use NIC_HANDLER_AUTO (iGPU/CPU proxy).
 } gpu_roce_doca_transport_ctx;
 
 #ifdef __cplusplus
