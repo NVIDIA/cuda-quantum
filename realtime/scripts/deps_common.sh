@@ -205,10 +205,10 @@ cudaq_realtime_verify_sdks() {
 }
 
 # Apply the patches in CUDAQ_REALTIME_HSB_PATCH_DIR to the HSB tree at
-# $HSB_ROOT, in name order. A patch the tree already contains is skipped, so an
-# override of CUDAQ_REALTIME_HSB_REF to a release that ships the change still
-# builds; one that neither applies nor is present fails the build rather than
-# leaving HSB silently unpatched.
+# $HSB_ROOT, in name order. Any patch that does not apply fails the build rather
+# than leaving HSB silently unpatched -- including one the tree already
+# contains, which is reported as such: it means the pinned ref has caught up
+# and the patch must be deleted, not carried forward.
 cudaq_realtime_patch_hsb() {
   if [ -z "$CUDAQ_REALTIME_HSB_PATCH_DIR" ]; then
     echo "CUDAQ_REALTIME_HSB_PATCH_DIR is empty, building HSB unpatched."
@@ -221,7 +221,8 @@ cudaq_realtime_patch_hsb() {
       git -C "$HSB_ROOT" apply "$patch" || return 1
       echo "Applied HSB patch $(basename "$patch")"
     elif git -C "$HSB_ROOT" apply --reverse --check "$patch" 2>/dev/null; then
-      echo "HSB already contains $(basename "$patch"), skipping it"
+      echo "ERROR: HSB $CUDAQ_REALTIME_HSB_REF already contains $(basename "$patch"); delete it from $CUDAQ_REALTIME_HSB_PATCH_DIR" >&2
+      return 1
     else
       echo "ERROR: HSB patch $(basename "$patch") does not apply to $CUDAQ_REALTIME_HSB_REF" >&2
       return 1
