@@ -47,7 +47,14 @@ fi
 
 # [Toolchain] CMake, ninja and C/C++ compiler
 if $install_all && [ -z "$(echo $exclude_prereq | grep toolchain)" ]; then
-  if [ -n "$toolchain" ] || [ ! -x "$(command -v "$CC")" ] || [ ! -x "$(command -v "$CXX")" ]; then
+  # Skip bootstrapping stage-1 if the real toolchain is already built
+  # (e.g. a later stage reusing the prereqs image); no need for a
+  # compiler to build LLVM when LLVM is already there.
+  if [ "$toolchain" = "llvm" ] && [ -x "$LLVM_INSTALL_PREFIX/bin/clang++" ]; then
+    export CC="$LLVM_INSTALL_PREFIX/bin/clang"
+    export CXX="$LLVM_INSTALL_PREFIX/bin/clang++"
+    echo "LLVM already installed in $LLVM_INSTALL_PREFIX; skipping stage-1 bootstrap."
+  elif [ -n "$toolchain" ] || [ ! -x "$(command -v "$CC")" ] || [ ! -x "$(command -v "$CXX")" ]; then
     echo "Installing toolchain ${toolchain}..."
     if [ "$toolchain" = "llvm" ] && [ ! -d "$LLVM_STAGE1_BUILD" ]; then
       llvm_stage1_tmpdir="$(mktemp -d)"
@@ -262,7 +269,9 @@ if [ -n "$LLVM_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep llvm)" ]
   fi
 
   if [ "$toolchain" = "llvm" ] || [ "$(uname)" = "Darwin" ]; then
-    # No longer needed once the real toolchain above is built.
+    # Safe: later stages skip stage-1 entirely once LLVM is built (see
+    # the [Toolchain] check above), so they no longer need to find
+    # this leftover to avoid re-bootstrapping it.
     rm -rf "$llvm_stage1_tmpdir"
     export CC="$LLVM_INSTALL_PREFIX/bin/clang"
     export CXX="$LLVM_INSTALL_PREFIX/bin/clang++"

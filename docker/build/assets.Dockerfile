@@ -160,7 +160,6 @@ RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
 # Core build first, tests in a separate layer below (static test
 # binaries are much larger and would otherwise bloat one layer).
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
-    LLVM_STAGE1_BUILD="$(find "$(dirname "$(mktemp -d -u)")" -maxdepth 2 -name llvm)" \
     # IMPORTANT:
     # Make sure that the variables and arguments configured here match
     # the ones in the install_prerequisites.sh invocation in the prereqs stage!
@@ -178,7 +177,6 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
 # Add tests incrementally (-i) on top of the already-built core.
 # This is also the full build command shown in the C++ install docs.
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
-    LLVM_STAGE1_BUILD="$(find "$(dirname "$(mktemp -d -u)")" -maxdepth 2 -name llvm)" \
     ## [>CUDAQuantumCppBuild]
     CUDAQ_STATIC_CXX_RUNTIME=TRUE \
     CUDAQ_STATIC_DEPS=TRUE \
@@ -305,7 +303,6 @@ RUN cd /cuda-quantum && \
     # Needed to retrigger the LLVM build, since the MLIR Python bindings
     # are not built in the prereqs stage.
     rm -rf "${LLVM_INSTALL_PREFIX}" && \
-    LLVM_STAGE1_BUILD="$(find "$(dirname "$(mktemp -d -u)")" -maxdepth 2 -name llvm)" \
     # IMPORTANT:
     # Make sure that the invocation of the install_prerequisites.sh script here matches
     # the ones in the install_prerequisites.sh invocation in the prereqs stage!
