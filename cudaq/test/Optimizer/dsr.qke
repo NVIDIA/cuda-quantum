@@ -165,3 +165,134 @@ func.func @dead_load(%array: !cc.array<i32 x 2>, %value: i32) {
 // CHECK-NOT: cc.store
 // CHECK-NOT: cc.load
 // CHECK: return
+
+// Stores nested in cc.if regions are removed.
+func.func @dead_if_stores(%condition: i1, %value: i32) {
+  %p = cc.alloca !cc.array<i32 x 2>
+  %cast = cc.cast %p : (!cc.ptr<!cc.array<i32 x 2>>) -> !cc.ptr<i32>
+  cc.if(%condition) {
+    cc.store %value, %cast : !cc.ptr<i32>
+  } else {
+    %e = cc.compute_ptr %p[1] : (!cc.ptr<!cc.array<i32 x 2>>) -> !cc.ptr<i32>
+    cc.store %value, %e : !cc.ptr<i32>
+  }
+  return
+}
+
+// CHECK-LABEL: func.func @dead_if_stores
+// CHECK-NOT: cc.store
+// CHECK: return
+
+// A load in either branch of a cc.if keeps all stores.
+func.func @live_if_load(%condition: i1, %value: i32) -> i32 {
+  %p = cc.alloca i32
+  cc.store %value, %p : !cc.ptr<i32>
+  %r = cc.if(%condition) -> i32 {
+    cc.store %value, %p : !cc.ptr<i32>
+    cc.continue %value : i32
+  } else {
+    %l = cc.load %p : !cc.ptr<i32>
+    cc.continue %l : i32
+  }
+  return %r : i32
+}
+
+// CHECK-LABEL: func.func @live_if_load
+// CHECK: cc.store
+// CHECK: cc.if
+// CHECK: cc.store
+// CHECK: cc.load
+// CHECK: return
+
+// Stores nested in a cc.loop body are removed. Once the allocation is known to
+// be dead, this includes the dynamically indexed store in the loop.
+func.func @dead_loop_stores(%value: i64) {
+  %c0 = arith.constant 0 : i64
+  %c1 = arith.constant 1 : i64
+  %c4 = arith.constant 4 : i64
+  %p = cc.alloca !cc.array<i64 x 4>
+  %first = cc.compute_ptr %p[0] : (!cc.ptr<!cc.array<i64 x 4>>) -> !cc.ptr<i64>
+  cc.store %value, %first : !cc.ptr<i64>
+  %0 = cc.loop while ((%i = %c0) -> (i64)) {
+    %1 = arith.cmpi slt, %i, %c4 : i64
+    cc.condition %1(%i : i64)
+  } do {
+  ^bb0(%i: i64):
+    %e = cc.compute_ptr %p[%i] : (!cc.ptr<!cc.array<i64 x 4>>, i64) -> !cc.ptr<i64>
+    cc.store %i, %e : !cc.ptr<i64>
+    cc.continue %i : i64
+  } step {
+  ^bb0(%i: i64):
+    %1 = arith.addi %i, %c1 : i64
+    cc.continue %1 : i64
+  }
+  return
+}
+
+// CHECK-LABEL: func.func @dead_loop_stores
+// CHECK-NOT: cc.store
+// CHECK: return
+
+// A load after the loop keeps the stores made in the loop body.
+func.func @live_loop_load(%value: i64) -> i64 {
+  %c0 = arith.constant 0 : i64
+  %c1 = arith.constant 1 : i64
+  %c4 = arith.constant 4 : i64
+  %p = cc.alloca i64
+  %0 = cc.loop while ((%i = %c0) -> (i64)) {
+    %1 = arith.cmpi slt, %i, %c4 : i64
+    cc.condition %1(%i : i64)
+  } do {
+  ^bb0(%i: i64):
+    cc.store %i, %p : !cc.ptr<i64>
+    cc.continue %i : i64
+  } step {
+  ^bb0(%i: i64):
+    %1 = arith.addi %i, %c1 : i64
+    cc.continue %1 : i64
+  }
+  %r = cc.load %p : !cc.ptr<i64>
+  return %r : i64
+}
+
+// CHECK-LABEL: func.func @live_loop_load
+// CHECK: cc.loop
+// CHECK: cc.store
+// CHECK: cc.load
+// CHECK: return
+
+// Stores to an allocation inside a cc.scope are removed.
+func.func @dead_scope_stores(%value: i32) {
+  cc.scope {
+    %p = cc.alloca !cc.array<i32 x 2>
+    %e = cc.compute_ptr %p[0] : (!cc.ptr<!cc.array<i32 x 2>>) -> !cc.ptr<i32>
+    cc.store %value, %e : !cc.ptr<i32>
+    cc.scope {
+      cc.store %value, %e : !cc.ptr<i32>
+    }
+  }
+  return
+}
+
+// CHECK-LABEL: func.func @dead_scope_stores
+// CHECK-NOT: cc.store
+// CHECK: return
+
+// A load in a nested cc.scope keeps all stores.
+func.func @live_scope_load(%value: i32) -> i32 {
+  %r = cc.scope -> i32 {
+    %p = cc.alloca i32
+    cc.store %value, %p : !cc.ptr<i32>
+    %l = cc.scope -> i32 {
+      %v = cc.load %p : !cc.ptr<i32>
+      cc.continue %v : i32
+    }
+    cc.continue %l : i32
+  }
+  return %r : i32
+}
+
+// CHECK-LABEL: func.func @live_scope_load
+// CHECK: cc.store
+// CHECK: cc.load
+// CHECK: return
