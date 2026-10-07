@@ -39,7 +39,9 @@ def main() -> int:
     notebooks = [
         Path(name) for name in sys.argv[1:] if name.endswith(".ipynb")
     ]
-    errors = [error for path in notebooks for error in check_notebook(path)]
+    errors = [
+        error for path in notebooks for error in check_notebook(path)
+    ]
     if errors:
         print("\n".join(errors), file=sys.stderr)
         print(
