@@ -264,8 +264,10 @@ if [ -n "$LLVM_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep llvm)" ]
   fi
 
   if [ "$toolchain" = "llvm" ] || [ "$(uname)" = "Darwin" ]; then
-    # No longer needed once the real toolchain above is built.
-    rm -rf "$llvm_stage1_tmpdir"
+    # Keep: a later LLVM_FORCE_REBUILD invocation (e.g. the Flang/BLAS
+    # layer) reconfigures the same build dir, and cmake silently keeps
+    # CMAKE_C_COMPILER pointing here instead of re-detecting it.
+    #rm -rf "$llvm_stage1_tmpdir"
     export CC="$LLVM_INSTALL_PREFIX/bin/clang"
     export CXX="$LLVM_INSTALL_PREFIX/bin/clang++"
     echo "Configured C compiler: $CC"
