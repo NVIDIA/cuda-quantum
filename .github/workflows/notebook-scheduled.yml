@@ -139,22 +139,28 @@ jobs:
             git checkout -b "$branch_name"
             git add $(cat changed_files.txt)
             git commit -m "docs: update notebook execution outputs
+            git commit -m "docs: update notebook execution outputs
 
-Automated update of notebook execution outputs via scheduled workflow.
-Fixes non-sequential execution counts and updates outputs.
-"
+      - name: Create PR if changes
+        if: ${{ success() && steps.notebooks.outputs.found > 0 }}
+        run: |
+          if [ -s changed_files.txt ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+
+            branch_name="notebook-update-$(date +%Y%m%d)"
+
+            git checkout -b "$branch_name"
+
+            git add $(cat changed_files.txt)
+
+            git commit -m "docs: update notebook execution outputs"
+
             git push origin "$branch_name"
-            
+
             gh pr create \
               --title "docs: automated notebook output update $(date +%Y-%m-%d)" \
-              --body "This PR updates notebook execution outputs from the scheduled workflow run.
-              
-Changes:
-- Updated execution counts to be sequential (1, 2, 3...)
-- Updated cell outputs where code behavior has changed
-
-This is an automated PR from the notebook-scheduled workflow.
-" \
+              --body "Automated update of notebook execution outputs from the scheduled workflow." \
               --label "documentation" \
               --label "automated"
           else
