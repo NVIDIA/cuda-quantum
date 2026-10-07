@@ -50,13 +50,11 @@ def _module(support: int, *, rotation: bool) -> str:
                      ": (!qlx.logical_qubit) -> !qlx.logical_qubit")
         current[target] = "%t"
 
-    lines.extend((
-        f"    %m = qlx.measure <Z> {current[target]} "
-        ": !qlx.logical_qubit -> i1",
-        "    qlx.return %m : i1",
-        "  }",
-        "}",
-    ))
+    lines.append(f"    %m = qlx.measure <Z> {current[target]} "
+                 ": !qlx.logical_qubit -> i1")
+    for owner in current[:target]:
+        lines.append(f"    qlx.discard {owner} : !qlx.logical_qubit")
+    lines.extend(("    qlx.return %m : i1", "  }", "}"))
     return "\n".join(lines) + "\n"
 
 
