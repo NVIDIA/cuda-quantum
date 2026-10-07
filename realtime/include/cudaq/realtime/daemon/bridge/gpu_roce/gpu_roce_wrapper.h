@@ -89,6 +89,11 @@ uint32_t gpu_roce_get_qp_number(gpu_roce_transceiver_t handle);
 uint32_t gpu_roce_get_rkey(gpu_roce_transceiver_t handle);
 uint64_t gpu_roce_get_buffer_addr(gpu_roce_transceiver_t handle);
 
+/** Local key of the TX ring's memory region, in host byte order like
+ *  gpu_roce_get_rkey().  Send WQEs that read from the TX ring need it; the
+ *  rkey above belongs to the RX ring and is what the FPGA writes with. */
+uint32_t gpu_roce_get_tx_ring_lkey(gpu_roce_transceiver_t handle);
+
 /** Get the DOCA GPU device QP handle (doca_gpu_dev_verbs_qp*).
  *  Needed by the unified dispatch kernel for direct DOCA verbs calls. */
 void *gpu_roce_get_gpu_dev_qp(gpu_roce_transceiver_t handle);
@@ -124,7 +129,7 @@ unsigned gpu_roce_get_num_pages(gpu_roce_transceiver_t handle);
  * Pre-post receive WQEs and initialize the send WQE template.
  *
  * Calls GpuRoceTransceiverPrepareKernel with the transceiver's GPU QP,
- * frame_size, and RX ring `rkey`.  Use this when start() didn't call the
+ * frame_size, and TX ring `lkey`.  Use this when start() didn't call the
  * prepare kernel (e.g. unified mode on iGPU with forward=false).
  *
  * @param frame_size  Actual frame/payload size for send WQE setup

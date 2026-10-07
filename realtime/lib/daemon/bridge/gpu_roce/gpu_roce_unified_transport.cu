@@ -47,9 +47,11 @@ struct gpu_roce_session {
   std::uint8_t *cqe;
   std::uint32_t cqe_mask;
 
-  std::uint8_t *ring_buf;
-  std::size_t stride_sz;
-  std::uint32_t stride_num;
+  std::uint8_t *rx_buf;
+  std::size_t rx_stride_sz;
+  std::uint32_t rx_stride_num;
+  std::uint8_t *tx_buf;
+  std::size_t tx_stride_sz;
   std::size_t frame_size;
 
   int use_bf;      ///< Non-zero: BlueFlame TX (dGPU)
@@ -126,9 +128,11 @@ cudaq_dev_transport_attach(void *ctx, volatile int *shutdown_flag) {
       __ldg(reinterpret_cast<uintptr_t *>(&s.cq_rq->cqe_daddr)));
   s.cqe_mask = __ldg(&s.cq_rq->cqe_num) - 1;
 
-  s.ring_buf = tctx->rx_ring_data;
-  s.stride_sz = tctx->rx_ring_stride_sz;
-  s.stride_num = tctx->rx_ring_stride_num;
+  s.rx_buf = tctx->rx_ring_data;
+  s.rx_stride_sz = tctx->rx_ring_stride_sz;
+  s.rx_stride_num = tctx->rx_ring_stride_num;
+  s.tx_buf = tctx->tx_ring_data;
+  s.tx_stride_sz = tctx->tx_ring_stride_sz;
   s.frame_size = tctx->frame_size;
 
   s.use_bf = tctx->use_bf;
@@ -140,17 +144,18 @@ cudaq_dev_transport_attach(void *ctx, volatile int *shutdown_flag) {
 
   // Receive WQEs are pre-posted by the host (GpuRoceTransceiverPrepareKernel
   // in start() on dGPU, or gpu_roce_prepare_receive_send() on iGPU); only the
-  // send side is prepared here.
+  // send side is prepared here.  Sends read from the TX ring, so its key is
+  // the one the WQE needs.
   if (s.use_bf)
-    prepare_send_shared(qp, &s.wqe_sh, s.frame_size, tctx->rx_ring_mkey);
+    prepare_send_shared(qp, &s.wqe_sh, s.frame_size, tctx->tx_ring_mkey);
   else
-    prepare_receive_send(qp, s.frame_size, tctx->rx_ring_mkey);
+    prepare_receive_send(qp, s.frame_size, tctx->tx_ring_mkey);
 
   return &s;
 }
 
 extern "C" __device__ cudaq_rx_dev_status_t
-cudaq_dev_rx_poll(void *session, void **out_frame) {
+cudaq_dev_rx_poll(void *session, void **out_request, void **out_response) {
   auto &s = *static_cast<gpu_roce_session *>(session);
 
   while (true) {
@@ -163,24 +168,28 @@ cudaq_dev_rx_poll(void *session, void **out_frame) {
     // An out-of-range stride addresses no slot, so there is nothing to
     // dispatch: recycle the receive WQE and keep waiting rather than surface
     // a frame the caller could not read.
-    if (stride >= s.stride_num) {
+    if (stride >= s.rx_stride_num) {
       recycle_receive(s);
       continue;
     }
 
-    *out_frame = s.ring_buf + static_cast<std::uint64_t>(stride) * s.stride_sz;
+    *out_request =
+        s.rx_buf + static_cast<std::uint64_t>(stride) * s.rx_stride_sz;
+    *out_response =
+        s.tx_buf + static_cast<std::uint64_t>(stride) * s.tx_stride_sz;
     return CUDAQ_RX_DEV_READY;
   }
 }
 
-extern "C" __device__ void cudaq_dev_tx_publish(void *session, void *frame) {
+extern "C" __device__ void cudaq_dev_tx_publish(void *session, void *response) {
   auto &s = *static_cast<gpu_roce_session *>(session);
 
-  // The send descriptor wants the frame's offset into the registered buffer,
-  // which rx_poll already turned into an address; recover it by difference
-  // rather than keeping a parallel slot index.
+  // The send descriptor wants the response's offset into the TX ring's
+  // registered region (registered at IOVA 0), which rx_poll already turned
+  // into an address; recover it by difference rather than keeping a parallel
+  // slot index.
   auto buffer_addr = static_cast<std::uint64_t>(
-      static_cast<std::uint8_t *>(frame) - s.ring_buf);
+      static_cast<std::uint8_t *>(response) - s.tx_buf);
 
   if (s.use_bf) {
     // dGPU: send first, then repost.  Reposting before send adds ~400ns by
@@ -191,7 +200,7 @@ extern "C" __device__ void cudaq_dev_tx_publish(void *session, void *frame) {
     } else {
       send_bf<GPU_ROCE_MAX_FRAME_SIZE_44B>(
           s.qp, &s.wqe_sh, s.sq_wqe_idx,
-          reinterpret_cast<std::uint64_t>(frame));
+          reinterpret_cast<std::uint64_t>(response));
     }
     recycle_receive(s);
   } else {
@@ -201,8 +210,8 @@ extern "C" __device__ void cudaq_dev_tx_publish(void *session, void *frame) {
     if (!s.use_inline) {
       send<GPU_ROCE_MAX_FRAME_SIZE_0B>(s.qp, s.sq_wqe_idx - 1, buffer_addr);
     } else {
-      send<GPU_ROCE_MAX_FRAME_SIZE_44B>(s.qp, s.sq_wqe_idx - 1,
-                                        reinterpret_cast<std::uint64_t>(frame));
+      send<GPU_ROCE_MAX_FRAME_SIZE_44B>(
+          s.qp, s.sq_wqe_idx - 1, reinterpret_cast<std::uint64_t>(response));
     }
   }
 }

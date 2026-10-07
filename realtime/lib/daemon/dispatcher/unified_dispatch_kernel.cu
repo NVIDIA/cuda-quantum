@@ -47,10 +47,10 @@ unified_lookup_entry(std::uint32_t function_id, cudaq_function_entry_t *entries,
 //==============================================================================
 // Unified dispatch kernel -- single thread, single block.
 //
-// Each turn claims one slot from the transport, runs its handler in place, and
-// hands the slot back.  The wait, the wire transfer and all receive
-// bookkeeping live behind the hooks, so what remains here is framing and
-// dispatch.
+// Each turn claims a request and its response frame from the transport, runs
+// the handler from one into the other, and hands the response back.  The
+// wait, the wire transfer and all receive bookkeeping live behind the hooks,
+// so what remains here is framing and dispatch.
 //==============================================================================
 
 __global__ void
@@ -65,50 +65,49 @@ cudaq_unified_dispatch_kernel(void *transport_ctx, std::size_t tx_stride_sz,
   std::uint64_t packet_count = 0;
 
   while (true) {
-    void *frame = nullptr;
-    if (cudaq_dev_rx_poll(session, &frame) != CUDAQ_RX_DEV_READY)
+    void *request = nullptr;
+    void *response_frame = nullptr;
+    if (cudaq_dev_rx_poll(session, &request, &response_frame) !=
+        CUDAQ_RX_DEV_READY)
       break;
 
-    auto *slot = static_cast<std::uint8_t *>(frame);
-    auto *header = reinterpret_cast<RPCHeader *>(slot);
+    auto *header = static_cast<RPCHeader *>(request);
+    auto *response = static_cast<RPCResponse *>(response_frame);
+
+    int status = -1;
+    std::uint32_t result_len = 0;
 
     if (header->magic == RPC_MAGIC_REQUEST) {
-      std::uint32_t function_id = header->function_id;
-      std::uint32_t arg_len = header->arg_len;
-      std::uint32_t request_id = header->request_id;
-      std::uint64_t ptp_timestamp = header->ptp_timestamp;
-
       const cudaq_function_entry_t *entry =
-          unified_lookup_entry(function_id, function_table, func_count);
-
-      int status = -1;
-      std::uint32_t result_len = 0;
+          unified_lookup_entry(header->function_id, function_table, func_count);
 
       if (entry != nullptr &&
           entry->dispatch_mode == CUDAQ_DISPATCH_DEVICE_CALL) {
         auto func =
             reinterpret_cast<DeviceRPCFunction>(entry->handler.device_fn_ptr);
-        void *arg_buffer = static_cast<void *>(header + 1);
-        auto *output_buffer = slot + sizeof(RPCResponse);
+        void *arg_buffer = header + 1;
+        void *output_buffer = response + 1;
         auto max_result_len =
             static_cast<std::uint32_t>(tx_stride_sz - sizeof(RPCResponse));
 
-        status = func(arg_buffer, output_buffer, arg_len, max_result_len,
-                      &result_len);
+        status = func(arg_buffer, output_buffer, header->arg_len,
+                      max_result_len, &result_len);
       }
-
-      auto *response = reinterpret_cast<RPCResponse *>(slot);
-      response->magic = RPC_MAGIC_RESPONSE;
-      response->status = status;
-      response->result_len = result_len;
-      response->request_id = request_id;
-      response->ptp_timestamp = ptp_timestamp;
     }
+
+    // Written for every frame, bad magic included: the publish below is
+    // mandatory, and an unwritten response frame would put whatever the slot
+    // last held on the wire.
+    response->magic = RPC_MAGIC_RESPONSE;
+    response->status = status;
+    response->result_len = result_len;
+    response->request_id = header->request_id;
+    response->ptp_timestamp = header->ptp_timestamp;
 
     // Published unconditionally, including for a frame whose magic did not
     // match: tx_publish is also what returns the slot's receive credit, so
     // dropping one here would starve the transport a slot at a time.
-    cudaq_dev_tx_publish(session, frame);
+    cudaq_dev_tx_publish(session, response_frame);
 
     packet_count++;
   }

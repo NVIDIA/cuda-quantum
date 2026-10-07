@@ -29,10 +29,10 @@ cudaq_dev_transport_attach(void * /*ctx*/, volatile int * /*shutdown_flag*/) {
   return nullptr;
 }
 
-extern "C" __device__ cudaq_rx_dev_status_t
-cudaq_dev_rx_poll(void * /*session*/, void ** /*out_frame*/) {
+extern "C" __device__ cudaq_rx_dev_status_t cudaq_dev_rx_poll(
+    void * /*session*/, void ** /*out_request*/, void ** /*out_response*/) {
   return CUDAQ_RX_DEV_SHUTDOWN;
 }
 
 extern "C" __device__ void cudaq_dev_tx_publish(void * /*session*/,
-                                                void * /*frame*/) {}
+                                                void * /*response*/) {}
