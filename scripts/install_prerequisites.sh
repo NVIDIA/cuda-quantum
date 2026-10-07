@@ -262,7 +262,8 @@ if [ -n "$LLVM_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep llvm)" ]
   fi
 
   if [ "$toolchain" = "llvm" ] || [ "$(uname)" = "Darwin" ]; then
-    #rm -rf "$llvm_stage1_tmpdir"
+    # No longer needed once the real toolchain above is built.
+    rm -rf "$llvm_stage1_tmpdir"
     export CC="$LLVM_INSTALL_PREFIX/bin/clang"
     export CXX="$LLVM_INSTALL_PREFIX/bin/clang++"
     echo "Configured C compiler: $CC"
