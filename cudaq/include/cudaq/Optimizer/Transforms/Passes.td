@@ -1586,8 +1586,8 @@ def ObserveAnsatz : Pass<"observe-ansatz", "mlir::func::FuncOp"> {
   ];
 }
 
-def OptimizeSingleQubitCliffordT
-    : Pass<"optimize-1q-clifford-t", "mlir::ModuleOp"> {
+def NormalizeSingleQubitCliffordT
+    : Pass<"normalize-1q-clifford-t", "mlir::ModuleOp"> {
   let summary =
     "Rewrite exact one-qubit Clifford+T chains to Matsumoto-Amano normal form.";
   let description = [{
