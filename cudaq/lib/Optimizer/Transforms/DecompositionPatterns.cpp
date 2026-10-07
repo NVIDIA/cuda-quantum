@@ -485,13 +485,16 @@ struct ExpPauliDecomposition
     }
 
     // The existing basis/parity/Rz construction is exact for reference-form,
-    // uncontrolled targets. Until it can thread a full controlled or wire
-    // lowering, decline those forms before creating any replacement IR.
+    // uncontrolled targets. Retain controlled and multi-target wire forms
+    // before creating any replacement IR.
     if (!expPauliOp.getControls().empty())
       return rewriter.notifyMatchFailure(
           expPauliOp,
           "does not yet support controlled non-identity ExpPauli lowering");
-    if (llvm::any_of(expPauliOp.getTargets(), [](Value target) {
+    const bool singleWire =
+        targets.size() == 1 &&
+        isa<cudaq::quake::WireType>(targets.front().getType());
+    if (!singleWire && llvm::any_of(targets, [](Value target) {
           return isa<cudaq::quake::WireType>(target.getType());
         }))
       return rewriter.notifyMatchFailure(
@@ -509,6 +512,38 @@ struct ExpPauliDecomposition
     Value signedTheta = theta;
     if (expPauliOp.isAdj())
       signedTheta = arith::NegFOp::create(rewriter, loc, signedTheta);
+
+    if (singleWire) {
+      Value target = targets.front();
+      SmallVector<Value> controls;
+      QuakeOperatorCreator qRewriter(rewriter);
+      const auto pauli = paulis.front();
+      if (pauli == cudaq::quake::Pauli::X) {
+        qRewriter.create<cudaq::quake::HOp>(loc, target);
+      } else if (pauli == cudaq::quake::Pauli::Y) {
+        Value angle =
+            createConstant(loc, M_PI_2, rewriter.getF64Type(), rewriter);
+        qRewriter.create<cudaq::quake::RxOp>(loc, ValueRange{angle}, controls,
+                                             target);
+      }
+      Value angle = arith::MulFOp::create(
+          rewriter, loc,
+          createConstant(loc, -2.0, signedTheta.getType(), rewriter),
+          signedTheta);
+      qRewriter.create<cudaq::quake::RzOp>(loc, ValueRange{angle}, controls,
+                                           target);
+      if (pauli == cudaq::quake::Pauli::X) {
+        qRewriter.create<cudaq::quake::HOp>(loc, target);
+      } else if (pauli == cudaq::quake::Pauli::Y) {
+        Value inverse =
+            createConstant(loc, -M_PI_2, rewriter.getF64Type(), rewriter);
+        qRewriter.create<cudaq::quake::RxOp>(loc, ValueRange{inverse}, controls,
+                                             target);
+      }
+      qRewriter.selectWiresAndReplaceUses(expPauliOp, target);
+      rewriter.eraseOp(expPauliOp);
+      return success();
+    }
 
     SmallVector<Value> qubits;
     for (auto [target, targetSize] : llvm::zip(targets, targetSizes)) {
