@@ -3238,25 +3238,22 @@ bool QuakeBridgeVisitor::lowerInitList(clang::InitListExpr *x,
   if (allRef && !isa<cc::StructType>(initListTy)) {
     // Initializer list contains all quantum reference types. In this case we
     // want to create quake code to concatenate the references into a veq.
-    if (size > 1) {
-      auto veqTy = [&]() -> cudaq::quake::VeqType {
-        unsigned size = 0;
-        for (auto v : last) {
-          if (auto veqTy = dyn_cast<cudaq::quake::VeqType>(v.getType())) {
-            if (!veqTy.hasSpecifiedSize())
-              return cudaq::quake::VeqType::getUnsized(builder.getContext());
-            size += veqTy.getSize();
-          } else {
-            ++size;
-          }
+    // This is always a veq, even when the list has a single member.
+    auto veqTy = [&]() -> cudaq::quake::VeqType {
+      unsigned size = 0;
+      for (auto v : last) {
+        if (auto veqTy = dyn_cast<cudaq::quake::VeqType>(v.getType())) {
+          if (!veqTy.hasSpecifiedSize())
+            return cudaq::quake::VeqType::getUnsized(builder.getContext());
+          size += veqTy.getSize();
+        } else {
+          ++size;
         }
-        return cudaq::quake::VeqType::get(builder.getContext(), size);
-      }();
-      return stack.push(
-          cudaq::quake::ConcatOp::create(builder, loc, veqTy, last));
-    }
-    // Pass initialization list with one member as a Ref.
-    return stack.push(last[0]);
+      }
+      return cudaq::quake::VeqType::get(builder.getContext(), size);
+    }();
+    return stack.push(
+        cudaq::quake::ConcatOp::create(builder, loc, veqTy, last));
   }
 
   // These initializer expressions are not quantum references. In this case, we
@@ -3315,7 +3312,10 @@ bool QuakeBridgeVisitor::lowerInitList(clang::InitListExpr *x,
     return stack.push(
         cudaq::quake::MakeStruqOp::create(builder, loc, eleTy, last));
 
-  Value alloca = (numEles > 1)
+  // A list that initializes an array is always an array allocation, even when
+  // it has a single element. Otherwise, `arr[0]` would index a scalar.
+  bool allocateArray = numEles > 1 || isa<cc::ArrayType>(initListTy);
+  Value alloca = allocateArray
                      ? cc::AllocaOp::create(builder, loc, eleTy, arrSize)
                      : cc::AllocaOp::create(builder, loc, eleTy);
 
@@ -3325,7 +3325,7 @@ bool QuakeBridgeVisitor::lowerInitList(clang::InitListExpr *x,
     auto v = iter.value();
     Value ptr;
     if (structMems) {
-      if (numEles > 1) {
+      if (allocateArray) {
         auto ptrTy =
             cc::PointerType::get(structTy.getMembers()[i % structMems]);
         ptr = cc::ComputePtrOp::create(
@@ -3337,7 +3337,7 @@ bool QuakeBridgeVisitor::lowerInitList(clang::InitListExpr *x,
                                        ArrayRef<cc::ComputePtrArg>{i});
       }
     } else {
-      if (numEles > 1) {
+      if (allocateArray) {
         auto ptrTy = cc::PointerType::get(eleTy);
         ptr = cc::ComputePtrOp::create(builder, loc, ptrTy, alloca,
                                        ArrayRef<cc::ComputePtrArg>{i});
