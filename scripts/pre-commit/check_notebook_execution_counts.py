@@ -19,17 +19,22 @@ def check_notebook(path: Path) -> list[str]:
     except (OSError, json.JSONDecodeError) as exc:
         return [f"{path}: cannot read notebook JSON: {exc}"]
 
+    code_cells = [
+        cell for cell in notebook.get("cells", [])
+        if cell.get("cell_type") == "code"
+    ]
+
+    # A completely unexecuted notebook has no execution ordering to enforce.
+    if all(cell.get("execution_count") is None for cell in code_cells):
+        return []
+
     errors = []
-    expected = 1
-    for index, cell in enumerate(notebook.get("cells", []), start=1):
-        if cell.get("cell_type") != "code":
-            continue
+    for expected, cell in enumerate(code_cells, start=1):
         actual = cell.get("execution_count")
         if actual != expected:
             errors.append(
-                f"{path}: code cell {index} has execution_count={actual!r}; "
+                f"{path}: code cell {expected} has execution_count={actual!r}; "
                 f"expected {expected}")
-        expected += 1
     return errors
 
 
