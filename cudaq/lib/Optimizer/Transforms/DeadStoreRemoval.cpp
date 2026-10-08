@@ -24,37 +24,28 @@ using namespace mlir;
 
 namespace {
 
-class DSRPattern : public OpRewritePattern<cudaq::cc::StoreOp> {
+class DSRPattern : public OpRewritePattern<cudaq::cc::AllocaOp> {
 public:
   using OpRewritePattern::OpRewritePattern;
 
-  // If we have a cc.alloca and all of its uses are cc.store ops, then this is a
-  // dead store.
-  LogicalResult matchAndRewrite(cudaq::cc::StoreOp store,
+  // If we have a cc.alloca and all of its uses are cc.store ops, then these are
+  // dead stores. Anchoring on the alloca rather than on each store means the
+  // alloca's users are scanned once, instead of once per store.
+  LogicalResult matchAndRewrite(cudaq::cc::AllocaOp alloca,
                                 PatternRewriter &rewriter) const override {
-    cudaq::cc::AllocaOp alloca;
-    if (auto getPtr =
-            store.getPtrvalue().getDefiningOp<cudaq::cc::ComputePtrOp>()) {
-      if (getPtr.getNumOperands() != 1)
-        return failure();
-      alloca = getPtr.getBase().getDefiningOp<cudaq::cc::AllocaOp>();
-    } else if (auto getPtr =
-                   store.getPtrvalue().getDefiningOp<cudaq::cc::CastOp>()) {
-      alloca = getPtr.getValue().getDefiningOp<cudaq::cc::AllocaOp>();
-    } else {
-      alloca = store.getPtrvalue().getDefiningOp<cudaq::cc::AllocaOp>();
-    }
-    if (!alloca) {
-      LLVM_DEBUG(llvm::dbgs() << "store not to alloca.\n");
-      return failure();
-    }
-
-    auto testAllStoreUsers = [&](Operation *c) {
+    SmallVector<cudaq::cc::StoreOp> stores;
+    // At least one store must be directly to the alloca, through a cast, or
+    // through a compute_ptr with constant offsets.
+    bool hasCandidate = false;
+    auto testAllStoreUsers = [&](Operation *c, bool isCandidate) {
       for (auto v : c->getUsers()) {
         if (auto s = dyn_cast<cudaq::cc::StoreOp>(v)) {
           // Make sure this stores *to* the address rather stores the address.
-          if (s.getPtrvalue() == c->getResult(0))
+          if (s.getPtrvalue() == c->getResult(0)) {
+            stores.push_back(s);
+            hasCandidate |= isCandidate;
             continue;
+          }
         }
         return false;
       }
@@ -63,14 +54,14 @@ public:
 
     for (auto u : alloca->getUsers()) {
       if (auto c = dyn_cast<cudaq::cc::CastOp>(u)) {
-        if (!testAllStoreUsers(c)) {
+        if (!testAllStoreUsers(c, /*isCandidate=*/true)) {
           LLVM_DEBUG(llvm::dbgs() << "store not from cast of alloca.\n");
           return failure();
         }
         continue;
       }
       if (auto c = dyn_cast<cudaq::cc::ComputePtrOp>(u)) {
-        if (!testAllStoreUsers(c)) {
+        if (!testAllStoreUsers(c, c.getNumOperands() == 1)) {
           LLVM_DEBUG(llvm::dbgs() << "store not from compute_ptr of alloca.\n");
           return failure();
         }
@@ -78,12 +69,18 @@ public:
       }
 
       if (auto s = dyn_cast<cudaq::cc::StoreOp>(u))
-        if (s.getPtrvalue() == alloca.getResult())
+        if (s.getPtrvalue() == alloca.getResult()) {
+          stores.push_back(s);
+          hasCandidate = true;
           continue;
+        }
       LLVM_DEBUG(llvm::dbgs() << "alloca use is not store/cast/compute_ptr.\n");
       return failure();
     }
-    rewriter.eraseOp(store);
+    if (!hasCandidate)
+      return failure();
+    for (auto s : stores)
+      rewriter.eraseOp(s);
     return success();
   }
 };
