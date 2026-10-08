@@ -10,7 +10,7 @@
 # Same format as: git config --file .gitmodules --get-regexp '^submodule\..*\.path$' \
 #   | awk '{print $2}' | while read p; do printf "%s %s\n" "$(git rev-parse HEAD:$p)" "$p"; done
 # Used so the package_sources image (or install_prerequisites.sh -l) can clone each tpl at a pinned commit.
-# Must be run from repo root with submodules initialized.
+# Must be run from the repo root. Submodules need not be initialized.
 #
 # Usage: ./scripts/generate_tpls_lock.sh [output_file]
 # Default output: tpls_commits.lock (repo root)
