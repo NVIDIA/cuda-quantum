@@ -273,6 +273,13 @@ if [ -n "$LLVM_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep llvm)" ]
     # the [Toolchain] check above), so they no longer need to find
     # this leftover to avoid re-bootstrapping it.
     rm -rf "$llvm_stage1_tmpdir"
+    # llvm_stage1_tmpdir is only the install prefix; the stage-1 *build*
+    # dir isn't randomized (LLVM_BUILD_FOLDER="stage1_build" under
+    # LLVM_SOURCE, fixed every invocation). Clean it up too, or a later
+    # stage-1 rebuild (e.g. python_build, which deletes LLVM_INSTALL_PREFIX
+    # to add Python bindings) silently reuses its stale CMakeCache.txt --
+    # pointing at the temp ninja-build/cmake this same script just removed.
+    rm -rf "${LLVM_SOURCE:-$HOME/.llvm-project}/stage1_build"
     export CC="$LLVM_INSTALL_PREFIX/bin/clang"
     export CXX="$LLVM_INSTALL_PREFIX/bin/clang++"
     echo "Configured C compiler: $CC"
