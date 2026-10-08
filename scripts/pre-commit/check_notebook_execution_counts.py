@@ -29,12 +29,12 @@ def check_notebook(path: Path) -> list[str]:
         return []
 
     errors = []
-    for expected, cell in enumerate(code_cells, start=1):
+    for index, cell in enumerate(code_cells, start=1):
         actual = cell.get("execution_count")
-        if actual != expected:
+        if actual != index:
             errors.append(
-                f"{path}: code cell {expected} has execution_count={actual!r}; "
-                f"expected {expected}")
+                f"{path}: code cell {index} has execution_count={actual!r}; "
+                f"expected {index}")
     return errors
 
 
