@@ -286,11 +286,10 @@ typedef void (*cudaq_unified_launch_fn_t)(
 // this archive next to the kernel; a unified consumer links the archive and
 // device-links it together with its handlers, as the 3-kernel path does.
 //
-// Every dispatcher starts out with this launcher, so a consumer never passes
-// it: libcudaq-realtime reaches it through a weak reference that binds at
-// load time to the copy linked into the consumer binary, and
-// cudaq_dispatcher_set_unified_launch replaces it only with an override.
-// start() fails with CUDAQ_ERR_INVALID_ARG if neither is available.
+// cudaq_dispatcher_start calls it directly whenever no unified_launch_fn
+// override was set, through a weak reference that binds at load time to the
+// copy linked into the consumer binary; start() fails with
+// CUDAQ_ERR_INVALID_ARG if the archive was not linked.
 CUDAQ_REALTIME_DISPATCH_API void cudaq_launch_unified_dispatch_device(
     void *transport_ctx, size_t tx_stride_sz,
     cudaq_function_entry_t *function_table, size_t func_count,
@@ -433,13 +432,12 @@ typedef struct {
 // When set, cudaq_dispatcher_start() will invoke unified_launch_fn instead of
 // the 3-kernel launch_fn.  Ringbuffer setup is not required for unified mode.
 //
-// `unified_launch_fn` may be NULL, and normally is: the dispatcher keeps the
-// launcher it already has, by default the unified kernel from
-// libcudaq-realtime-dispatch.a, which the consumer must link.  Pass a
-// function only to override the whole dispatch loop; NULL never undoes an
-// override, so the order of calls does not matter.  Whichever kernel runs
-// must be device-linked into the same module as the DEVICE_CALL handlers in
-// the function table.  `transport_ctx` is required either way, and
+// `unified_launch_fn` may be NULL, and normally is: start() then runs the
+// unified kernel from libcudaq-realtime-dispatch.a, which the consumer must
+// link.  Pass a function only to override the whole dispatch loop.
+// Whichever kernel runs must be device-linked into the same module as the
+// DEVICE_CALL handlers in the function table.  `transport_ctx` is required
+// either way, and
 // config.slot_size must give the slot stride, which reaches the kernel as
 // its tx_stride_sz.
 cudaq_status_t
