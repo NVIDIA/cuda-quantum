@@ -1,3 +1,6 @@
+# This name is matched by .github/nv-slack-bot.yaml to trigger a Slack
+# alert on failure (workflow_run.name) -- update the matcher there too
+# if you rename this workflow.
 name: Check links
 
 # Run on request and every day at 3 AM UTC
