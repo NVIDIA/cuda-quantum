@@ -409,8 +409,8 @@ jobs:
       build_devel_wheel: true
       run_validation: false
 
-  # Core is CUDA-independent; both frontends ship with the CUDA 13-built core.
-  # Finish those builds before validating CUDA 12 against the published pair.
+  # The core wheel is CUDA-independent, so the core wheels built here are
+  # released with both the CUDA 12 and the CUDA 13 frontend wheels.
   python_wheels_cu13:
     name: Create Python wheels
     needs: [metadata, config_wheeldeps, python_devel_wheel]
@@ -452,19 +452,15 @@ jobs:
       build_logical_wheel:
         ${{ matrix.platform == 'amd64' && matrix.cuda_version == '13.0' }}
 
+  # CUDA 12 wheels build in parallel with CUDA 13. Their validation needs the
+  # core wheels from python_wheels_cu13, so it runs separately in
+  # python_wheels_cu12_validation.
   python_wheels:
     name: Create Python wheels
-    needs: [metadata, config_wheeldeps, python_devel_wheel, python_wheels_cu13]
-    # CUDA 12 validation uses the CUDA-independent core wheel built by CUDA 13.
-    # Wait for that workflow to finish, but still build and test CUDA 12 if
-    # CUDA 13 tests fail. A missing core wheel fails CUDA 12 validation, and
-    # CI Summary reports failures from either workflow.
-    if: >-
-      ${{ !cancelled() && github.event_name != 'push'
-          && needs.metadata.outputs.merge_queue_fast != 'true'
-          && needs.metadata.result == 'success'
-          && needs.config_wheeldeps.result == 'success'
-          && needs.python_devel_wheel.result == 'success' }}
+    needs: [metadata, config_wheeldeps, python_devel_wheel]
+    if:
+      github.event_name != 'push' && needs.metadata.outputs.merge_queue_fast !=
+      'true'
     strategy:
       matrix:
         platform: [amd64, arm64]
@@ -488,10 +484,36 @@ jobs:
       devdeps_archive:
         ${{ fromJson(needs.config_wheeldeps.outputs.json).tar_archive[format('{0}-cu{1}-python',
         matrix.platform, matrix.cuda_version)] }}
+      run_validation: false
+
+  python_wheels_cu12_validation:
+    name: Validate Python wheels
+    needs: [python_wheels, python_wheels_cu13]
+    # Validate each CUDA 12 frontend wheel with the core wheel from
+    # python_wheels_cu13, i.e. the pair that is released. Run even if CUDA 13
+    # tests fail: a missing core wheel fails this validation, and CI Summary
+    # reports failures from both jobs.
+    if: ${{ !cancelled() && needs.python_wheels.result == 'success' }}
+    strategy:
+      matrix:
+        platform: [amd64, arm64]
+        python_version: ['3.11', '3.13', '3.14']
+        cuda_version: ["12.6"]
+      fail-fast: ${{ github.event_name == 'merge_group' }}
+    uses: ./.github/workflows/python_wheels.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+    with:
+      platform: linux/${{ matrix.platform }}
+      python_version: ${{ matrix.python_version }}
+      cuda_version: ${{ matrix.cuda_version }}
+      build_runtime_wheel: false
+      validate_prebuilt_wheel: true
 
   python_metapackages:
     name: Create Python metapackages
-    needs: [metadata, python_wheels, python_wheels_cu13]
+    needs: [metadata, python_wheels, python_wheels_cu13, python_wheels_cu12_validation]
     if: github.event_name != 'push' && needs.metadata.outputs.merge_queue_fast != 'true'
     uses: ./.github/workflows/python_metapackages.yml
     with:
@@ -551,6 +573,7 @@ jobs:
       - docker_image
       - python_wheels
       - python_wheels_cu13
+      - python_wheels_cu12_validation
       - python_devel_wheel
       - python_metapackages
       - binaries

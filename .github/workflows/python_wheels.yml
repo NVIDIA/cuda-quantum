@@ -40,6 +40,14 @@ on:
         type: string
         default: ''
         description: Artifact name of the cuda_quantum wheel, if build_runtime_wheel is false.
+      validate_prebuilt_wheel:
+        required: false
+        type: boolean
+        default: false
+        description: >-
+          Validate the runtime wheel that another job in this workflow run
+          built for the same platform, Python and CUDA version, instead of
+          building one. Set build_runtime_wheel to false.
       core_artifact_name:
         required: false
         type: string
@@ -263,6 +271,7 @@ jobs:
     outputs:
       json: "${{ steps.config.outputs.json }}"
       core_artifact_pattern: ${{ steps.config.outputs.core_artifact_pattern }}
+      runtime_artifact_pattern: ${{ steps.config.outputs.runtime_artifact_pattern }}
 
     steps:
       - name: Checkout repository
@@ -279,11 +288,19 @@ jobs:
           python_version=${{ inputs.python_version }}
           platform=${{ inputs.platform }}
           echo "core_artifact_pattern=pycudaq-${python_version//./-}-*-${platform#linux/}-cu13-0-*" >> "$GITHUB_OUTPUT"
+          # For validate_prebuilt_wheel: the runtime wheel another job in this
+          # run built for the same platform, Python and CUDA version.
+          cuda_version=${{ inputs.cuda_version }}
+          echo "runtime_artifact_pattern=pycudaq-${python_version//./-}-*-${platform#linux/}-cu${cuda_version//./-}-*" >> "$GITHUB_OUTPUT"
 
   validation:
     name: Validate wheel
     needs: [build_wheel, create_test_config]
-    if: inputs.run_validation
+    if: >-
+      ${{ !cancelled() && inputs.run_validation
+          && needs.create_test_config.result == 'success'
+          && (needs.build_wheel.result == 'success'
+              || (inputs.validate_prebuilt_wheel && needs.build_wheel.result == 'skipped')) }}
     runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     permissions:
       contents: read
@@ -314,6 +331,10 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: ${{ needs.build_wheel.outputs.artifact_name }}
+          # Ignored when name is set. With validate_prebuilt_wheel, build_wheel
+          # is skipped, so this finds the wheel built earlier in the run.
+          pattern: ${{ needs.create_test_config.outputs.runtime_artifact_pattern }}
+          merge-multiple: true
 
       # Core is CUDA-independent. Both frontends are released with the core
       # built by the CUDA 13 pipeline, so CUDA 12 validation must use it too.
@@ -609,7 +630,12 @@ jobs:
     # config (amd64 / Python 3.11 / CUDA 12.6) to limit A100 runner cost.
     name: Validate wheel on GPU (nvidia simulator)
     needs: [build_wheel, create_test_config]
-    if: inputs.run_validation && inputs.platform == 'linux/amd64' && inputs.python_version == '3.11' && inputs.cuda_version == '12.6'
+    if: >-
+      ${{ !cancelled() && inputs.run_validation
+          && needs.create_test_config.result == 'success'
+          && (needs.build_wheel.result == 'success'
+              || (inputs.validate_prebuilt_wheel && needs.build_wheel.result == 'skipped'))
+          && inputs.platform == 'linux/amd64' && inputs.python_version == '3.11' && inputs.cuda_version == '12.6' }}
     runs-on: linux-amd64-gpu-a100-latest-1
     timeout-minutes: 30
     permissions:
@@ -631,6 +657,10 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: ${{ needs.build_wheel.outputs.artifact_name }}
+          # Ignored when name is set. With validate_prebuilt_wheel, build_wheel
+          # is skipped, so this finds the wheel built earlier in the run.
+          pattern: ${{ needs.create_test_config.outputs.runtime_artifact_pattern }}
+          merge-multiple: true
 
       # Core is CUDA-independent. Both frontends are released with the core
       # built by the CUDA 13 pipeline, so GPU validation must use it too.
