@@ -24,8 +24,8 @@ struct MPSSettings {
   double absCutoff = 1e-5;
   // Default relative cutoff
   double relCutoff = 1e-5;
-  // Default SVD algorithm (Jacobi)
-  cutensornetTensorSVDAlgo_t svdAlgo = CUTENSORNET_TENSOR_SVD_ALGO_GESVDJ;
+  // Default SVD algorithm (QR), matching cuTensorNet.
+  cutensornetTensorSVDAlgo_t svdAlgo = CUTENSORNET_TENSOR_SVD_ALGO_GESVD;
   // Optional gauge option
   std::optional<cutensornetStateMPSGaugeOption_t> gaugeOption;
   MPSSettings();

@@ -141,6 +141,5 @@ if (CUDAQ_REALTIME_REQUIRE_ROCE_TESTS AND
     NOT (TARGET test_cpu_roce_transceiver AND TARGET test_cpu_roce_two_process))
   message(FATAL_ERROR
     "CUDAQ_REALTIME_REQUIRE_ROCE_TESTS=ON but the cpu_roce RDMA tests are not "
-    "built (they need libibverbs, the legacy backend "
-    "-- CUDAQ_REALTIME_CPU_ROCE_USE_HOLOLINK=OFF -- and the test server)")
+    "built (they need the CPU RoCE transport and the test server)")
 endif()

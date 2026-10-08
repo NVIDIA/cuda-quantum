@@ -8,8 +8,8 @@ CPU
 .. _openmp cpu-only:
 .. _qpp-cpu-backend:
 
-The `qpp-cpu` backend backend provides a state vector simulator based on the CPU-only, OpenMP threaded `Q++ <https://github.com/softwareqinc/qpp>`_ library.
-This backend is good for basic testing and experimentation with just a few qubits, but performs poorly for all but the smallest simulation and is the default target when running on CPU-only systems. 
+The `qpp-cpu` backend provides a state vector simulator based on the CPU-only, OpenMP threaded `Q++ <https://github.com/softwareqinc/qpp>`_ library.
+This backend is good for basic testing and experimentation with just a few qubits, but performs poorly for all but the smallest simulations and is the default target when running on CPU-only systems. 
 
 To execute a program on the :code:`qpp-cpu` target even if a GPU-accelerated backend is available, 
 
@@ -134,7 +134,7 @@ It is worth drawing attention to gate fusion, a powerful tool for improving simu
 
 
 .. deprecated:: 0.8
-    The :code:`nvidia-fp64` targets, which is equivalent setting the `fp64` option on the :code:`nvidia` target, 
+    The :code:`nvidia-fp64` target, which is equivalent to setting the `fp64` option on the :code:`nvidia` target, 
     is deprecated and will be removed in a future release.
 
 .. note:: 
@@ -212,7 +212,7 @@ To execute a program on the multi-node multi-GPU NVIDIA target, use the followin
 
     .. note::
         
-        * The order of the option settings are interchangeable.
+        * The order of the option settings is interchangeable.
           For example, `cudaq.set_target('nvidia', option='mgpu,fp64')` is equivalent to `cudaq.set_target('nvidia', option='fp64,mgpu')`.
 
         * The `nvidia` target has single-precision as the default setting. Thus, using `option='mgpu'` implies that `option='mgpu,fp32'`.  
@@ -287,7 +287,7 @@ the multi-node multi-GPU configuration. Any environment variables must be set pr
     - Specify the temporary buffer size (:code:`1 << CUDAQ_DATA_TRANSFER_BUFFER_BITS` bytes) for inter-node data transfer. The default is set to 26 (64 MB). The minimum allowed value is 24 (16 MB). Depending on systems, setting a larger value to `CUDAQ_DATA_TRANSFER_BUFFER_BITS` can accelerate inter-node data transfers.
 
 .. deprecated:: 0.8
-    The :code:`nvidia-mgpu` backend, which is equivalent to the multi-node multi-GPU double-precision option (`mgpu,fp64`) of the :code:`nvidia`
+    The :code:`nvidia-mgpu` backend, which is equivalent to the multi-node multi-GPU double-precision option (`mgpu,fp64`) of the :code:`nvidia` target,
     is deprecated and will be removed in a future release.
 
 The above configuration options of the :code:`nvidia` backend 

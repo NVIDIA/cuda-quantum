@@ -12,6 +12,7 @@
 #include "cudaq/operators/matrix.h"
 #include <cudensitymat.h>
 #include <deque>
+#include <optional>
 #include <unordered_set>
 
 namespace cudaq::dynamics {
@@ -69,6 +70,89 @@ public:
   ~CuDensityMatOpConverter();
 
 private:
+  /// @brief A dense matrix acting on a set of degrees, stored in the CUDA-Q
+  /// canonical order (ascending degrees, first degree varying fastest).
+  struct FusedTerm {
+    std::vector<std::size_t> degrees;
+    cudaq::complex_matrix matrix;
+  };
+
+  /// @brief A term `left * rho * right` acting on a set of degrees, where a
+  /// missing matrix is the identity. Matrices use the `FusedTerm` order.
+  struct FusedSuperoperatorTerm {
+    std::vector<std::size_t> degrees;
+    std::optional<cudaq::complex_matrix> left;
+    std::optional<cudaq::complex_matrix> right;
+  };
+
+  /// @brief Whether an elementary operator needs a tensor callback, i.e., its
+  /// matrix cannot be computed once at conversion time.
+  bool requiresTensorCallback(const cudaq::matrix_handler &elemOp,
+                              cudaq::dimension_map &dimensions) const;
+
+  /// @brief Whether the operators acting on `degrees` can be summed into a
+  /// single dense matrix. With `bothSides`, the matrix acts on the ket and the
+  /// bra modes of `degrees`, so its dimension is squared.
+  bool isFusableSubspace(const std::vector<std::size_t> &degrees,
+                         const std::vector<int64_t> &modeExtents,
+                         bool bothSides = false) const;
+
+  /// @brief The matrix of `prodOp` on its degrees, if it is known at
+  /// conversion time, its factors act on distinct degrees, and it acts on a
+  /// fusible subspace.
+  std::optional<FusedTerm> computeFusableProductTerm(
+      const product_op<cudaq::matrix_handler> &prodOp,
+      const std::unordered_map<std::string, std::complex<double>> &parameters,
+      const std::vector<int64_t> &modeExtents, bool bothSides = false);
+
+  /// @brief Sum the fusible product terms of `op` (and `extraTerms`) acting on
+  /// the same degrees into dense matrices. Terms acting on a subset of another
+  /// group's degrees are folded into that group. Product terms that cannot be
+  /// fused, or that would not benefit from fusion, are returned in
+  /// `remaining`.
+  std::vector<FusedTerm> fuseProductTerms(
+      const sum_op<cudaq::matrix_handler> &op,
+      const std::unordered_map<std::string, std::complex<double>> &parameters,
+      const std::vector<int64_t> &modeExtents,
+      const std::vector<FusedTerm> &extraTerms,
+      std::vector<product_op<cudaq::matrix_handler>> &remaining);
+
+  /// @brief The matrix of `collapseOp` on its degrees, if it is known at
+  /// conversion time and acts on a fusible subspace.
+  std::optional<FusedTerm> computeFusableCollapseOperator(
+      const sum_op<cudaq::matrix_handler> &collapseOp,
+      const std::unordered_map<std::string, std::complex<double>> &parameters,
+      const std::vector<int64_t> &modeExtents, bool bothSides = false);
+
+  /// @brief Group `terms` into windows of overlapping degrees and append each
+  /// window as a single dense elementary operator acting on the ket and the
+  /// bra modes of its degrees. Every term must act on a subspace that is
+  /// fusible from both sides.
+  void appendFusedSuperoperatorTerms(
+      cudensitymatOperator_t cudmOperator,
+      const std::vector<FusedSuperoperatorTerm> &terms,
+      const std::vector<int64_t> &modeExtents);
+
+  cudensitymatElementaryOperator_t
+  createDenseElementaryOperator(const cudaq::complex_matrix &matrix,
+                                const std::vector<int64_t> &subspaceExtents);
+
+  /// @brief The product of `factors`, in order, as a single multi-diagonal
+  /// elementary operator. cuDensityMat expands the intermediate between
+  /// consecutive factors on the same mode to the full mode extent, which is
+  /// costly on modes distributed across ranks. Returns null unless every
+  /// factor acts on the same degrees, is known at conversion time, and the
+  /// product qualifies for multi-diagonal storage.
+  cudensitymatElementaryOperator_t createFusedMultidiagonalOperator(
+      const std::vector<cudaq::matrix_handler> &factors,
+      const std::unordered_map<std::string, std::complex<double>> &parameters,
+      const std::vector<int64_t> &modeExtents);
+
+  void appendFusedTerm(cudensitymatOperator_t cudmOperator,
+                       const FusedTerm &fusedTerm,
+                       const std::vector<int64_t> &modeExtents,
+                       int32_t duality);
+
   cudensitymatOperatorTerm_t createBatchedProductTerm(
       const std::vector<product_op<cudaq::matrix_handler>> &prodTerms,
       const std::unordered_map<std::string, std::complex<double>> &parameters,
@@ -94,7 +178,8 @@ private:
   computeLindbladTerms(
       const std::vector<sum_op<cudaq::matrix_handler>> &batchedCollapseOps,
       const std::vector<int64_t> &modeExtents,
-      const std::unordered_map<std::string, std::complex<double>> &parameters);
+      const std::unordered_map<std::string, std::complex<double>> &parameters,
+      bool includeAntiCommutator = true);
 
   struct ScalarCallBackContext {
     std::vector<scalar_operator> scalarOps;
@@ -126,7 +211,8 @@ private:
       cudensitymatOperator_t &cudmOperator,
       const std::unordered_map<std::string, std::complex<double>> &parameters,
       const std::vector<sum_op<cudaq::matrix_handler>> &ops,
-      const std::vector<int64_t> &modeExtents, int32_t duality);
+      const std::vector<int64_t> &modeExtents, int32_t duality,
+      const std::vector<FusedTerm> &extraFusableTerms = {});
 
   static std::vector<std::complex<double>>
   flattenMatrixColumnMajor(const cudaq::complex_matrix &matrix);
@@ -150,5 +236,9 @@ private:
   std::deque<TensorCallBackContext> m_tensorCallbacks;
   int m_minDimensionDiag = 4;
   int m_maxDiagonalsDiag = 1;
+  // Largest dimension of a fused dense operator. An operator acting on both
+  // sides of a density matrix has the squared dimension of its subspace.
+  // Zero disables fusion.
+  int64_t m_maxFusedDimension = 64;
 };
 } // namespace cudaq::dynamics
