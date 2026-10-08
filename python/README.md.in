@@ -38,14 +38,35 @@ ${{ deprecation_notice }}
 
 > **Important:**
 > Please check if you have an existing installation of the `cuda-quantum`,
-`cudaq-quantum-cu11`, `cuda-quantum-cu12`, or `cuda-quantum-cu13` package, and uninstall it prior to
+`cuda-quantum-cpu`, `cudaq-quantum-cu11`, `cuda-quantum-cu12`, or `cuda-quantum-cu13` package, and uninstall it prior to
  installation. Different CUDA-Q binary distributions may conflict with each
  other causing issues.
 
-Platform-specific instructions: <a href="#linux-gpu">Linux</a> | <a href="#macos">macOS</a>
+Platform-specific instructions: <a href="#linux-cpu">Linux (CPU-only / Cloud / QPU)</a> | <a href="#linux-gpu">Linux (GPU-Accelerated)</a> | <a href="#macos">macOS</a>
+
+<a id="linux-cpu"></a>
+**Linux: CPU Simulation and Cloud/QPU Targets (No CUDA Required)**
+
+If you do not have an NVIDIA GPU or do not require GPU simulation (e.g., using CPU simulation,
+NVQC, or remote QPUs), running:
+
+```console
+pip install cudaq
+```
+
+will automatically detect the lack of CUDA and install the lightweight CPU frontend (`cuda-quantum-cpu`)
+without requiring CUDA or cuQuantum dependencies. Alternatively, you can explicitly install:
+
+```console
+pip install cuda-quantum-cpu
+```
 
 <a id="linux-gpu"></a>
 **Linux: GPU-Acceleration and Multi-GPU**
+
+If you have an NVIDIA GPU on your host system with CUDA 12 or CUDA 13 installed, running `pip install cudaq`
+will automatically select and install `cuda-quantum-cu12` or `cuda-quantum-cu13` along with full cuQuantum acceleration.
+You can also explicitly install `pip install cuda-quantum-cu12` or `pip install cuda-quantum-cu13`.
 
 If you have an NVIDIA GPU on your host system, you will be
 able to use it without any further installation steps.
