@@ -1,0 +1,80 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+# RUN: %target-catalog-driver parse %s | FileCheck %s --check-prefix=PARSE
+# RUN: %target-catalog-driver emit %s | FileCheck %s --check-prefix=DEFAULT
+# RUN: %target-catalog-driver emit %s option=fp64 | FileCheck %s --check-prefix=EXACT --implicit-check-not=matrix-raw-text
+# RUN: %target-catalog-driver emit %s --lit-flags-option=fp64 | FileCheck %s --check-prefix=EXACT
+# RUN: %target-catalog-driver emit %s --target-option=fp64 | FileCheck %s --check-prefix=EXACT
+# RUN: %target-catalog-driver emit %s option=mgpu | FileCheck %s --check-prefix=MGPU
+# RUN: %target-catalog-driver emit %s option=qpp | FileCheck %s --check-prefix=AUGMENT
+# RUN: %target-catalog-driver emit %s option=fp32,mgpu | FileCheck %s --check-prefix=COMBINED
+# RUN: %target-catalog-driver emit %s option=fp32 --lit-flags-option=mgpu | FileCheck %s --check-prefix=COMBINED
+# Repeated bits combine by OR: option=fp32,fp32 must select the default's entry.
+# RUN: %target-catalog-driver emit %s option=fp32,fp32 | FileCheck %s --check-prefix=DEFAULT
+
+# Test feature-flag parsing and option-based config resolution
+
+version: 1
+name: lit-flags
+description: "Feature-flag and matrix-selection coverage"
+target-arguments:
+  - key: option
+    type: option-flags
+configuration-matrix:
+  - name: fp64-config
+    option-flags: [fp64]
+    config:
+      target-pass-pipeline: "matrix-raw-text"
+      nvqir-simulation-backend: sim-fp64
+  - name: mgpu-config
+    option-flags: [mgpu]
+    config:
+      nvqir-simulation-backend: sim-mgpu
+  - name: fp32-mgpu-config
+    option-flags: [fp32, mgpu]
+    config:
+      nvqir-simulation-backend: sim-fp32-mgpu
+  - name: fp32-config
+    option-flags: [fp32]
+    default: true
+    config:
+      nvqir-simulation-backend: sim-fp32
+  - name: mqpu-config
+    option-flags: [mqpu]
+    config:
+      nvqir-simulation-backend: sim-mqpu
+  - name: dep-analysis-config
+    option-flags: [dep-analysis]
+    config:
+      nvqir-simulation-backend: sim-dep
+  - name: fp32-qpp-config
+    option-flags: [fp32, qpp]
+    config:
+      nvqir-simulation-backend: sim-fp32-qpp
+  - name: qpp-config
+    option-flags: [qpp]
+    config:
+      nvqir-simulation-backend: sim-qpp
+
+# PARSE: argument: option type=option-flags required=false platform-arg=-
+# PARSE: matrix-entry: fp64-config flags=2 default=false
+# PARSE: matrix-entry: mgpu-config flags=4 default=false
+# PARSE: matrix-entry: fp32-mgpu-config flags=5 default=false
+# PARSE: matrix-entry: fp32-config flags=1 default=true
+# PARSE: matrix-entry: mqpu-config flags=8 default=false
+# PARSE: matrix-entry: dep-analysis-config flags=16 default=false
+# PARSE: matrix-entry: fp32-qpp-config flags=33 default=false
+# PARSE: matrix-entry: qpp-config flags=32 default=false
+
+# DEFAULT: NVQIR_SIMULATION_BACKEND="sim-fp32"
+# MGPU: NVQIR_SIMULATION_BACKEND="sim-mgpu"
+# AUGMENT: NVQIR_SIMULATION_BACKEND="sim-fp32-qpp"
+# COMBINED: NVQIR_SIMULATION_BACKEND="sim-fp32-mgpu"
+# EXACT: TARGET_PASS_PIPELINE_NAME=target-pass-pipeline-lit-flags.fp64-config
+# EXACT: NVQIR_SIMULATION_BACKEND="sim-fp64"

@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "TargetConfigHelper.h"
+#include "Yaml/TargetConfigSchema.h"
 #ifdef CUDAQ_ENABLE_PYTHON
 #include "LinkedLibraryHolder.h"
 #include "common/RuntimeTarget.h"
@@ -132,7 +133,8 @@ description: Version parsing test
 cudaq-version: "0.9.0-rc2+build.1"
 config:
   library-mode: true
-)");
+)",
+                                                       {});
   EXPECT_EQ(config.CudaqVersion, "0.9.0-rc2+build.1");
 }
 
@@ -266,7 +268,7 @@ target-arguments:
           codegen-emission: qir-adaptive:1.0:int_computations,float_computations
 )";
 
-  auto config = cudaq::config::parseTargetConfig(configYmlContents);
+  auto config = cudaq::config::parseTargetConfig(configYmlContents, {});
   // No machine, use default
   EXPECT_EQ(config.getCodeGenSpec({}), "qir-base");
   // Unspecified machine, use default
@@ -347,7 +349,7 @@ target-arguments:
           codegen-emission: qir-adaptive:1.0:int_computations,float_computations
 )";
 
-  auto config = cudaq::config::parseTargetConfig(configYmlContents);
+  auto config = cudaq::config::parseTargetConfig(configYmlContents, {});
   // No machine, use default
   EXPECT_EQ(config.getCodeGenSpec({}), "qir-base");
   // Unmatched machine, use default

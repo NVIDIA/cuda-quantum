@@ -15,6 +15,9 @@ find_dependency(CUDAQLogger REQUIRED)
 set (CUDAQOperator_DIR "${CUDAQ_COMMON_CMAKE_DIR}")
 find_dependency(CUDAQOperator REQUIRED)
 
+set (CUDAQTargetCatalog_DIR "${CUDAQ_COMMON_CMAKE_DIR}/../CUDAQTargetCatalog")
+find_dependency(CUDAQTargetCatalog REQUIRED)
+
 if(NOT TARGET cudaq::cudaq-common)
   include("${CUDAQ_COMMON_CMAKE_DIR}/CUDAQCommonTargets.cmake")
 endif()
