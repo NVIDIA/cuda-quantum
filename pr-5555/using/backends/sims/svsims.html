@@ -1125,8 +1125,8 @@
 <h1>State Vector Simulators<a class="headerlink" href="#state-vector-simulators" title="Permalink to this heading">¶</a></h1>
 <section id="cpu">
 <h2>CPU<a class="headerlink" href="#cpu" title="Permalink to this heading">¶</a></h2>
-<p id="qpp-cpu-backend"><span id="openmp-cpu-only"></span>The <code class="code docutils literal notranslate"><span class="pre">qpp-cpu</span></code> backend backend provides a state vector simulator based on the CPU-only, OpenMP threaded <a class="reference external" href="https://github.com/softwareqinc/qpp">Q++</a> library.
-This backend is good for basic testing and experimentation with just a few qubits, but performs poorly for all but the smallest simulation and is the default target when running on CPU-only systems.</p>
+<p id="qpp-cpu-backend"><span id="openmp-cpu-only"></span>The <code class="code docutils literal notranslate"><span class="pre">qpp-cpu</span></code> backend provides a state vector simulator based on the CPU-only, OpenMP threaded <a class="reference external" href="https://github.com/softwareqinc/qpp">Q++</a> library.
+This backend is good for basic testing and experimentation with just a few qubits, but performs poorly for all but the smallest simulations and is the default target when running on CPU-only systems.</p>
 <p>To execute a program on the <code class="code docutils literal notranslate"><span class="pre">qpp-cpu</span></code> target even if a GPU-accelerated backend is available,</p>
 <p>use the following commands:</p>
 <div class="tab-set docutils">
@@ -1239,7 +1239,7 @@ It is worth drawing attention to gate fusion, a powerful tool for improving simu
 </tbody>
 </table>
 <div class="deprecated">
-<p><span class="versionmodified deprecated">Deprecated since version 0.8: </span>The <code class="code docutils literal notranslate"><span class="pre">nvidia-fp64</span></code> targets, which is equivalent setting the <code class="code docutils literal notranslate"><span class="pre">fp64</span></code> option on the <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> target,
+<p><span class="versionmodified deprecated">Deprecated since version 0.8: </span>The <code class="code docutils literal notranslate"><span class="pre">nvidia-fp64</span></code> target, which is equivalent to setting the <code class="code docutils literal notranslate"><span class="pre">fp64</span></code> option on the <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> target,
 is deprecated and will be removed in a future release.</p>
 </div>
 <div class="admonition note">
@@ -1298,7 +1298,7 @@ invoking the program with the command</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <ul class="simple">
-<li><p>The order of the option settings are interchangeable.
+<li><p>The order of the option settings is interchangeable.
 For example, <code class="code docutils literal notranslate"><span class="pre">cudaq.set_target('nvidia',</span> <span class="pre">option='mgpu,fp64')</span></code> is equivalent to <code class="code docutils literal notranslate"><span class="pre">cudaq.set_target('nvidia',</span> <span class="pre">option='fp64,mgpu')</span></code>.</p></li>
 <li><p>The <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> target has single-precision as the default setting. Thus, using <code class="code docutils literal notranslate"><span class="pre">option='mgpu'</span></code> implies that <code class="code docutils literal notranslate"><span class="pre">option='mgpu,fp32'</span></code>.</p></li>
 </ul>
@@ -1382,7 +1382,7 @@ the multi-node multi-GPU configuration. Any environment variables must be set pr
 </tbody>
 </table>
 <div class="deprecated">
-<p><span class="versionmodified deprecated">Deprecated since version 0.8: </span>The <code class="code docutils literal notranslate"><span class="pre">nvidia-mgpu</span></code> backend, which is equivalent to the multi-node multi-GPU double-precision option (<code class="code docutils literal notranslate"><span class="pre">mgpu,fp64</span></code>) of the <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code>
+<p><span class="versionmodified deprecated">Deprecated since version 0.8: </span>The <code class="code docutils literal notranslate"><span class="pre">nvidia-mgpu</span></code> backend, which is equivalent to the multi-node multi-GPU double-precision option (<code class="code docutils literal notranslate"><span class="pre">mgpu,fp64</span></code>) of the <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> target,
 is deprecated and will be removed in a future release.</p>
 </div>
 <p>The above configuration options of the <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> backend

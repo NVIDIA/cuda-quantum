@@ -1976,12 +1976,12 @@ aria-hidden="true"}](tnsims.html "Tensor Network Simulators"){.btn
 ## CPU[¶](#cpu "Permalink to this heading"){.headerlink}
 
 []{#openmp-cpu-only}The [`qpp-cpu`{.code .docutils .literal
-.notranslate}]{.pre} backend backend provides a state vector simulator
-based on the CPU-only, OpenMP threaded
+.notranslate}]{.pre} backend provides a state vector simulator based on
+the CPU-only, OpenMP threaded
 [Q++](https://github.com/softwareqinc/qpp){.reference .external}
 library. This backend is good for basic testing and experimentation with
 just a few qubits, but performs poorly for all but the smallest
-simulation and is the default target when running on CPU-only systems.
+simulations and is the default target when running on CPU-only systems.
 
 To execute a program on the [`qpp-cpu`{.code .docutils .literal
 .notranslate}]{.pre} target even if a GPU-accelerated backend is
@@ -2246,8 +2246,8 @@ mode**]{.caption-text}[¶](#id1 "Permalink to this table"){.headerlink}
 
 ::: deprecated
 [Deprecated since version 0.8: ]{.versionmodified .deprecated}The
-[`nvidia-fp64`{.code .docutils .literal .notranslate}]{.pre} targets,
-which is equivalent setting the [`fp64`{.code .docutils .literal
+[`nvidia-fp64`{.code .docutils .literal .notranslate}]{.pre} target,
+which is equivalent to setting the [`fp64`{.code .docutils .literal
 .notranslate}]{.pre} option on the [`nvidia`{.code .docutils .literal
 .notranslate}]{.pre} target, is deprecated and will be removed in a
 future release.
@@ -2354,7 +2354,7 @@ line flag given during program invocation.
 ::: {.admonition .note}
 Note
 
--   The order of the option settings are interchangeable. For example,
+-   The order of the option settings is interchangeable. For example,
     [`cudaq.set_target('nvidia',`{.code .docutils .literal
     .notranslate}]{.pre}` `{.code .docutils .literal
     .notranslate}[`option='mgpu,fp64')`{.code .docutils .literal
@@ -2626,8 +2626,8 @@ mode**]{.caption-text}[¶](#id2 "Permalink to this table"){.headerlink}
 [`nvidia-mgpu`{.code .docutils .literal .notranslate}]{.pre} backend,
 which is equivalent to the multi-node multi-GPU double-precision option
 ([`mgpu,fp64`{.code .docutils .literal .notranslate}]{.pre}) of the
-[`nvidia`{.code .docutils .literal .notranslate}]{.pre} is deprecated
-and will be removed in a future release.
+[`nvidia`{.code .docutils .literal .notranslate}]{.pre} target, is
+deprecated and will be removed in a future release.
 :::
 
 The above configuration options of the [`nvidia`{.code .docutils
