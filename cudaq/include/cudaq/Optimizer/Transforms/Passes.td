@@ -599,8 +599,26 @@ def DeadStoreRemoval : Pass<"dead-store-removal"> {
   let summary = "Dead store removal (DSR).";
   let description = [{
     This pass performs classic dead store removal to clean up code that may
-    contain residual dead stores.
+    contain residual dead stores. It also forwards stored values to loads and
+    removes loads that are redundant and stores that are overwritten. The
+    options bound the work done per operation so that the pass remains linear
+    in the size of the function.
   }];
+  let options = [
+    Option<"maxTrackedLocations", "max-tracked-locations", "unsigned",
+      /*default=*/"32",
+      "Maximum number of memory locations whose contents are tracked at once. "
+      "The oldest is forgotten when the limit is reached.">,
+    Option<"maxAddressDepth", "max-address-depth", "unsigned",
+      /*default=*/"8",
+      "Maximum depth to which two address computations are compared for "
+      "equality.">,
+    Option<"maxEscapingUses", "max-escaping-uses", "unsigned",
+      /*default=*/"8",
+      "Maximum number of operations that are tracked as making the address of "
+      "a stack slot available to other code. A slot with more than this many "
+      "is treated as escaping from the start of the function.">
+  ];
 }
 
 def Decomposition : Pass<"decomposition", "mlir::ModuleOp"> {

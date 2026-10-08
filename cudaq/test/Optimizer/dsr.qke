@@ -57,14 +57,16 @@ func.func @dead_branch_stores(%condition: i1, %value: i32) {
 // CHECK: return
 
 // Finding a read must leave all stores intact, including already visited ones.
-func.func @live_derived_load(%array: !cc.array<i32 x 2>, %value: i32) -> i32 {
+func.func @live_derived_load(%array: !cc.array<i32 x 2>, %value: i32,
+                             %index: i64) -> i32 {
   %p = cc.alloca !cc.array<i32 x 2>
   cc.store %array, %p : !cc.ptr<!cc.array<i32 x 2>>
   %cast = cc.cast %p : (!cc.ptr<!cc.array<i32 x 2>>) -> !cc.ptr<i32>
   cc.store %value, %cast : !cc.ptr<i32>
   %element = cc.compute_ptr %p[1] : (!cc.ptr<!cc.array<i32 x 2>>) -> !cc.ptr<i32>
   cc.store %value, %element : !cc.ptr<i32>
-  %result = cc.load %element : !cc.ptr<i32>
+  %unknown = cc.compute_ptr %p[%index] : (!cc.ptr<!cc.array<i32 x 2>>, i64) -> !cc.ptr<i32>
+  %result = cc.load %unknown : !cc.ptr<i32>
   return %result : i32
 }
 
@@ -125,7 +127,28 @@ func.func @test_slam() {
 // CHECK:           return
 // CHECK:         }
 
-func.func @test_not_so_fast_bucko() -> i32 {
+func.func @test_not_so_fast_bucko(%arg0: !cc.ptr<i32>) -> i32 {
+  %0 = cc.alloca i32
+  %1 = arith.constant 1 : i32
+  cc.store %1, %0 : !cc.ptr<i32>
+  call @clobber(%0) : (!cc.ptr<i32>) -> ()
+  %2 = cc.load %0 : !cc.ptr<i32>
+  return %2 : i32
+}
+
+func.func private @clobber(!cc.ptr<i32>)
+
+// The slot's address escaped to the call, so the load must stay and so must
+// the store.
+// CHECK-LABEL:   func.func @test_not_so_fast_bucko(
+// CHECK:           cc.store %{{.*}}, %[[VAL_0:.*]]
+// CHECK:           call @clobber
+// CHECK:           cc.load %[[VAL_0]]
+// CHECK:           return
+// CHECK:         }
+
+// The load is forwarded from the store, which then has no readers.
+func.func @test_forwarded() -> i32 {
   %0 = cc.alloca i32
   %1 = arith.constant 1 : i32
   cc.store %1, %0 : !cc.ptr<i32>
@@ -133,10 +156,10 @@ func.func @test_not_so_fast_bucko() -> i32 {
   return %2 : i32
 }
 
-// CHECK-LABEL:   func.func @test_not_so_fast_bucko() -> i32 {
-// CHECK:           cc.store %{{.*}}, %[[VAL_0:.*]]
-// CHECK:           cc.load %[[VAL_0]]
-// CHECK:           return
+// CHECK-LABEL:   func.func @test_forwarded() -> i32 {
+// CHECK-NOT:       cc.store
+// CHECK-NOT:       cc.load
+// CHECK:           return %{{.*}} : i32
 // CHECK:         }
 
 // Stores through dynamically indexed pointers alone do not trigger removal.
@@ -184,14 +207,16 @@ func.func @dead_if_stores(%condition: i1, %value: i32) {
 // CHECK: return
 
 // A load in either branch of a cc.if keeps all stores.
-func.func @live_if_load(%condition: i1, %value: i32) -> i32 {
-  %p = cc.alloca i32
-  cc.store %value, %p : !cc.ptr<i32>
+func.func @live_if_load(%condition: i1, %value: i32, %index: i64) -> i32 {
+  %p = cc.alloca !cc.array<i32 x 2>
+  %e = cc.compute_ptr %p[0] : (!cc.ptr<!cc.array<i32 x 2>>) -> !cc.ptr<i32>
+  cc.store %value, %e : !cc.ptr<i32>
   %r = cc.if(%condition) -> i32 {
-    cc.store %value, %p : !cc.ptr<i32>
+    cc.store %value, %e : !cc.ptr<i32>
     cc.continue %value : i32
   } else {
-    %l = cc.load %p : !cc.ptr<i32>
+    %d = cc.compute_ptr %p[%index] : (!cc.ptr<!cc.array<i32 x 2>>, i64) -> !cc.ptr<i32>
+    %l = cc.load %d : !cc.ptr<i32>
     cc.continue %l : i32
   }
   return %r : i32
@@ -279,12 +304,14 @@ func.func @dead_scope_stores(%value: i32) {
 // CHECK: return
 
 // A load in a nested cc.scope keeps all stores.
-func.func @live_scope_load(%value: i32) -> i32 {
+func.func @live_scope_load(%value: i32, %index: i64) -> i32 {
   %r = cc.scope -> i32 {
-    %p = cc.alloca i32
-    cc.store %value, %p : !cc.ptr<i32>
+    %p = cc.alloca !cc.array<i32 x 2>
+    %e = cc.compute_ptr %p[0] : (!cc.ptr<!cc.array<i32 x 2>>) -> !cc.ptr<i32>
+    cc.store %value, %e : !cc.ptr<i32>
     %l = cc.scope -> i32 {
-      %v = cc.load %p : !cc.ptr<i32>
+      %d = cc.compute_ptr %p[%index] : (!cc.ptr<!cc.array<i32 x 2>>, i64) -> !cc.ptr<i32>
+      %v = cc.load %d : !cc.ptr<i32>
       cc.continue %v : i32
     }
     cc.continue %l : i32
