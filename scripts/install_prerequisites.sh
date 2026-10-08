@@ -280,6 +280,14 @@ if [ -n "$LLVM_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep llvm)" ]
     # to add Python bindings) silently reuses its stale CMakeCache.txt --
     # pointing at the temp ninja-build/cmake this same script just removed.
     rm -rf "${LLVM_SOURCE:-$HOME/.llvm-project}/stage1_build"
+    # Same problem, same fix, for the *real* toolchain build dir: with no
+    # LLVM_BUILD_FOLDER override it's $LLVM_SOURCE/build -- also fixed,
+    # also reused verbatim by a later invocation (e.g. python_build
+    # rebuilding with python-bindings added). Its CMakeCache.txt pins
+    # CMAKE_C_COMPILER to *this* invocation's stage-1 clang, which is
+    # gone by the time anything reconfigures it. Only the install output
+    # at LLVM_INSTALL_PREFIX needs to survive, not this build dir.
+    rm -rf "${LLVM_SOURCE:-$HOME/.llvm-project}/build"
     export CC="$LLVM_INSTALL_PREFIX/bin/clang"
     export CXX="$LLVM_INSTALL_PREFIX/bin/clang++"
     echo "Configured C compiler: $CC"
