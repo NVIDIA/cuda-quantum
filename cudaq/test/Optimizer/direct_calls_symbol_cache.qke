@@ -1,0 +1,73 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --split-input-file --verify-each --indirect-to-direct-calls %s | FileCheck %s
+
+// Repeated calls must reuse a newly created declaration. A second missing
+// callee must also be inserted without invalidating the cached first one.
+module attributes {quake.mangled_name_map = {direct = "host", other = "other_host"}} {
+  func.func private @host(i64) -> i64
+  func.func private @other_host(i64) -> i64
+  func.func @caller(%arg: i64) -> i64 {
+    %a = func.call @host(%arg) : (i64) -> i64
+    %b = func.call @other_host(%a) : (i64) -> i64
+    %c = func.call @host(%b) : (i64) -> i64
+    return %c : i64
+  }
+}
+
+// CHECK-LABEL: func.func @caller(
+// CHECK-SAME: %[[ARG:.*]]: i64
+// CHECK: %[[A:.*]] = cc.scope -> (i64) {
+// CHECK-NEXT: %[[X:.*]] = func.call @direct(%[[ARG]]) : (i64) -> i64
+// CHECK-NEXT: cc.continue %[[X]] : i64
+// CHECK: %[[B:.*]] = cc.scope -> (i64) {
+// CHECK-NEXT: %[[Y:.*]] = func.call @other(%[[A]]) : (i64) -> i64
+// CHECK-NEXT: cc.continue %[[Y]] : i64
+// CHECK: %[[C:.*]] = cc.scope -> (i64) {
+// CHECK-NEXT: %[[Z:.*]] = func.call @direct(%[[B]]) : (i64) -> i64
+// CHECK-NEXT: cc.continue %[[Z]] : i64
+// CHECK: return %[[C]] : i64
+// CHECK: func.func private @direct(i64) -> i64
+// CHECK-NEXT: func.func private @other(i64) -> i64
+// CHECK-NEXT: }
+
+// -----
+
+// Calls in a nested module resolve against that module, even when symbols with
+// the same names and different atomic-region attributes exist in the parent.
+module {
+  func.func private @ordinary() attributes {atomic_quantum_region} {
+    return
+  }
+  func.func private @marked() {
+    return
+  }
+  module @nested {
+    func.func private @ordinary() {
+      return
+    }
+    func.func private @marked() attributes {atomic_quantum_region} {
+      return
+    }
+    func.func @nested_caller() {
+      func.call @ordinary() : () -> ()
+      func.call @marked() : () -> ()
+      return
+    }
+  }
+}
+
+// CHECK-LABEL: func.func @nested_caller()
+// CHECK-NEXT: cc.scope {
+// CHECK-NEXT: func.call @ordinary() : () -> ()
+// CHECK-NEXT: }
+// CHECK-NEXT: cc.scope atomic {
+// CHECK-NEXT: func.call @marked() : () -> ()
+// CHECK-NEXT: }
+// CHECK-NEXT: return
