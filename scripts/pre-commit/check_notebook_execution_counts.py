@@ -24,7 +24,7 @@ def check_notebook(path: Path) -> list[str]:
         if cell.get("cell_type") == "code"
     ]
 
-    # A completely 'unexecuted' notebook has no execution ordering to enforce.
+    # A completely `unexecuted` notebook has no execution ordering to enforce.
     if all(cell.get("execution_count") is None for cell in code_cells):
         return []
 
