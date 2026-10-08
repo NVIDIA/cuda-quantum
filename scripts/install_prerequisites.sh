@@ -47,9 +47,7 @@ fi
 
 # [Toolchain] CMake, ninja and C/C++ compiler
 if $install_all && [ -z "$(echo $exclude_prereq | grep toolchain)" ]; then
-  # Skip bootstrapping stage-1 if the real toolchain is already built
-  # (e.g. a later stage reusing the prereqs image); no need for a
-  # compiler to build LLVM when LLVM is already there.
+  # No need to bootstrap a compiler if LLVM is already built.
   if [ "$toolchain" = "llvm" ] && [ -x "$LLVM_INSTALL_PREFIX/bin/clang++" ]; then
     export CC="$LLVM_INSTALL_PREFIX/bin/clang"
     export CXX="$LLVM_INSTALL_PREFIX/bin/clang++"
@@ -269,24 +267,12 @@ if [ -n "$LLVM_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep llvm)" ]
   fi
 
   if [ "$toolchain" = "llvm" ] || [ "$(uname)" = "Darwin" ]; then
-    # Safe: later stages skip stage-1 entirely once LLVM is built (see
-    # the [Toolchain] check above), so they no longer need to find
-    # this leftover to avoid re-bootstrapping it.
+    # Safe to remove: later stages skip stage-1 once LLVM is built.
     rm -rf "$llvm_stage1_tmpdir"
-    # llvm_stage1_tmpdir is only the install prefix; the stage-1 *build*
-    # dir isn't randomized (LLVM_BUILD_FOLDER="stage1_build" under
-    # LLVM_SOURCE, fixed every invocation). Clean it up too, or a later
-    # stage-1 rebuild (e.g. python_build, which deletes LLVM_INSTALL_PREFIX
-    # to add Python bindings) silently reuses its stale CMakeCache.txt --
-    # pointing at the temp ninja-build/cmake this same script just removed.
+    # Fixed path, not randomized -- clean it up or a later rebuild
+    # (e.g. python_build) reuses its stale, now-invalid CMakeCache.txt.
     rm -rf "${LLVM_SOURCE:-$HOME/.llvm-project}/stage1_build"
-    # Same problem, same fix, for the *real* toolchain build dir: with no
-    # LLVM_BUILD_FOLDER override it's $LLVM_SOURCE/build -- also fixed,
-    # also reused verbatim by a later invocation (e.g. python_build
-    # rebuilding with python-bindings added). Its CMakeCache.txt pins
-    # CMAKE_C_COMPILER to *this* invocation's stage-1 clang, which is
-    # gone by the time anything reconfigures it. Only the install output
-    # at LLVM_INSTALL_PREFIX needs to survive, not this build dir.
+    # Same issue, same fix, for the real (non-stage-1) build dir.
     rm -rf "${LLVM_SOURCE:-$HOME/.llvm-project}/build"
     export CC="$LLVM_INSTALL_PREFIX/bin/clang"
     export CXX="$LLVM_INSTALL_PREFIX/bin/clang++"
