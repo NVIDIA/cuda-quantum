@@ -140,9 +140,11 @@ def __createArgumentSet(*args):
 
             if isinstance(arg, list) or isinstance(arg, List):
                 currentArgs[i] = arg[j]
-
-            if arrayRanks[i] is not None:
+            elif arrayRanks[i] is not None:
                 currentArgs[i] = materializedArgs[i][j]
+            else:
+                raise RuntimeError(
+                    f"argument {i} ({type(arg).__name__}) must be a list.")
 
         argSet.append(tuple(currentArgs))
     return argSet
