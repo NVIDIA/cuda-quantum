@@ -55,6 +55,9 @@ ARG install=
 ARG cudaq_enable_projects=
 ARG git_source_sha=xxxxxxxx
 ENV CCACHE_DIR=/root/.ccache
+# Capped here, not by ccache-setup: that configures the runner host, which the
+# build never sees. One build's working set is ~535 MiB.
+ENV CCACHE_MAXSIZE=2G
 ENV CCACHE_BASEDIR="$CUDAQ_REPO_ROOT"
 ENV CCACHE_SLOPPINESS=include_file_mtime,include_file_ctime,time_macros,pch_defines
 ENV CCACHE_COMPILERCHECK=content

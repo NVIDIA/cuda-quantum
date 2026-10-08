@@ -29,5 +29,13 @@ mlir::LogicalResult verifyClosedSidecarLinks(mlir::ModuleOp module,
 mlir::LogicalResult
 verifySidecarBatch(llvm::ArrayRef<mlir::Operation *> sidecars);
 
+/// Verify spacetime plans of one module with a shared symbol table.
+mlir::LogicalResult
+verifySpacetimePlanBatch(llvm::ArrayRef<mlir::Operation *> plans);
+
+/// Look up `name` in `module`, using the batch's table if active.
+mlir::Operation *lookupModuleSymbol(mlir::ModuleOp module,
+                                    llvm::StringRef name);
+
 } // namespace qlx::phys
 #endif

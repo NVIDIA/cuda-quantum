@@ -31,6 +31,14 @@ find_dependency(CUDAQLogger REQUIRED)
 set (CUDAQCommon_DIR "${CUDAQ_CMAKE_DIR}")
 find_dependency(CUDAQCommon REQUIRED)
 
+# The frontend execution runtime depends on compiler/JIT support.
+set (CUDAQMlirRuntime_DIR "${CUDAQ_CMAKE_DIR}")
+find_dependency(CUDAQMlirRuntime REQUIRED)
+
+if(EXISTS "${CUDAQ_CMAKE_DIR}/CUDAQCoreTargets.cmake")
+  include("${CUDAQ_CMAKE_DIR}/CUDAQCoreTargets.cmake")
+endif()
+
 set (CUDAQEmDefault_DIR "${CUDAQ_CMAKE_DIR}")
 find_dependency(CUDAQEmDefault REQUIRED)
 

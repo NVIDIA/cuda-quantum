@@ -4,23 +4,17 @@ import cudaq
 # for every execution call on your kernel.
 # To use different targets in the same file, you must update
 # it via another call to `cudaq.set_target()`
-cudaq.set_target("iqm", url="http://localhost/")
-
-# Crystal_5 QPU architecture:
-#       QB1
-#        |
-# QB2 - QB3 - QB4
-#        |
-#       QB5
+cudaq.set_target("iqm")
 
 
-# Create the kernel we'd like to execute on IQM.
+# Create the kernel we'd like to execute.
 @cudaq.kernel
-def kernel():
-    qvector = cudaq.qvector(5)
-    h(qvector[2])  # QB3
-    x.ctrl(qvector[2], qvector[0])
-    mz(qvector)
+def ghz():
+    qubits = cudaq.qvector(5)
+    h(qubits[0])
+    for i in range(4):
+        x.ctrl(qubits[i], qubits[i + 1])
+    mz(qubits)
 
 
 # Execute on IQM Server and print out the results.
@@ -30,7 +24,7 @@ def kernel():
 # classical code will be executed while the job is being handled
 # by IQM Server. This is ideal when submitting via a queue over
 # the cloud.
-async_results = cudaq.sample_async(kernel)
+async_results = cudaq.sample_async(ghz)
 # ... more classical code to run ...
 
 # We can either retrieve the results later in the program with
@@ -55,5 +49,5 @@ print(counts)
 # By using the synchronous `cudaq.sample`, the execution of
 # any remaining classical code in the file will occur only
 # after the job has been returned from IQM Server.
-counts = cudaq.sample(kernel)
+counts = cudaq.sample(ghz)
 print(counts)
