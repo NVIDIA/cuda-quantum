@@ -16,6 +16,11 @@
 #include <new>
 #include <thread>
 
+// Defined in libcudaq-realtime-dispatch.a, which the consumer device-links
+// together with its handlers; it is not part of this library.  Weak, so a
+// binary that never links the archive still loads, and the address is null.
+#pragma weak cudaq_launch_unified_dispatch_device
+
 struct cudaq_dispatch_manager_t {
   int reserved = 0;
 };
@@ -25,7 +30,11 @@ struct cudaq_dispatcher_t {
   cudaq_ringbuffer_t ringbuffer{};
   cudaq_function_table_t table{};
   cudaq_dispatch_launch_fn_t launch_fn = nullptr;
-  cudaq_unified_launch_fn_t unified_launch_fn = nullptr;
+  // Starts as the unified kernel from the dispatch archive (null if the
+  // consumer did not link it); cudaq_dispatcher_set_unified_launch replaces it
+  // with an override.  Installed at creation, so an override always wins.
+  cudaq_unified_launch_fn_t unified_launch_fn =
+      &cudaq_launch_unified_dispatch_device;
   void *transport_ctx = nullptr;
   volatile int *shutdown_flag = nullptr;
   uint64_t *stats = nullptr;
@@ -113,6 +122,10 @@ static cudaq_status_t validate_dispatcher(cudaq_dispatcher_t *dispatcher) {
 
   if (dispatcher->config.kernel_type == CUDAQ_KERNEL_UNIFIED) {
     if (!dispatcher->transport_ctx)
+      return CUDAQ_ERR_INVALID_ARG;
+    // Neither an override nor the unified kernel from
+    // libcudaq-realtime-dispatch.a is available.
+    if (!dispatcher->unified_launch_fn)
       return CUDAQ_ERR_INVALID_ARG;
     if (dispatcher->config.slot_size == 0)
       return CUDAQ_ERR_INVALID_ARG;
@@ -238,11 +251,13 @@ cudaq_status_t
 cudaq_dispatcher_set_unified_launch(cudaq_dispatcher_t *dispatcher,
                                     cudaq_unified_launch_fn_t unified_launch_fn,
                                     void *transport_ctx) {
-  // A NULL fn selects the library's own unified kernel, which is linked in
-  // and therefore always callable; the context is required either way.
+  // A NULL fn keeps the current launcher -- the unified kernel from
+  // libcudaq-realtime-dispatch.a unless an override was already set -- so it
+  // never undoes an override; the context is required either way.
   if (!dispatcher || !transport_ctx)
     return CUDAQ_ERR_INVALID_ARG;
-  dispatcher->unified_launch_fn = unified_launch_fn;
+  if (unified_launch_fn)
+    dispatcher->unified_launch_fn = unified_launch_fn;
   dispatcher->transport_ctx = transport_ctx;
   return CUDAQ_OK;
 }
@@ -356,20 +371,13 @@ cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher) {
   // __constant__ indirection) -- nothing needed here.
 
   if (dispatcher->config.kernel_type == CUDAQ_KERNEL_UNIFIED) {
-    // The unified kernel is linked into this library, so the direct call
-    // below always resolves.  unified_launch_fn is an override, used only by
-    // a transport that replaces the dispatch loop outright.
-    if (dispatcher->unified_launch_fn) {
-      dispatcher->unified_launch_fn(
-          dispatcher->transport_ctx, dispatcher->config.slot_size,
-          dispatcher->table.entries, dispatcher->table.count,
-          dispatcher->shutdown_flag, dispatcher->stats, dispatcher->stream);
-    } else {
-      cudaq_launch_unified_dispatch_device(
-          dispatcher->transport_ctx, dispatcher->config.slot_size,
-          dispatcher->table.entries, dispatcher->table.count,
-          dispatcher->shutdown_flag, dispatcher->stats, dispatcher->stream);
-    }
+    // Either an override or the default kernel, which lives in the consumer
+    // binary (linked from libcudaq-realtime-dispatch.a); validate_dispatcher
+    // has checked that one of them is there.
+    dispatcher->unified_launch_fn(
+        dispatcher->transport_ctx, dispatcher->config.slot_size,
+        dispatcher->table.entries, dispatcher->table.count,
+        dispatcher->shutdown_flag, dispatcher->stats, dispatcher->stream);
   } else {
     dispatcher->launch_fn(
         dispatcher->ringbuffer.rx_flags, dispatcher->ringbuffer.tx_flags,

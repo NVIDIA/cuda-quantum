@@ -56,6 +56,20 @@
 // (defined in libcudaq-realtime-bridge-gpu-roce.so).  Weak so that bridge
 // tools that only use the 3-kernel architecture don't need to link the
 // bridge-gpu_roce library.
+//
+// There is no launch function among them: this transport implements the
+// device data plane in dispatcher/unified_device_transport.cuh, and the
+// dispatcher runs the unified kernel from libcudaq-realtime-dispatch.a over it.
+
+// Copy a host-filled context into device memory.  The unified kernel's
+// transport hooks dereference the context on the GPU -- it is no longer
+// unpacked into kernel arguments -- so the pointer handed to
+// cudaq_dispatcher_set_unified_launch must be device-resident.
+//
+// Returns cudaSuccess (0) on success, otherwise the failing cudaError_t as an
+// int, leaving *out_device_ctx untouched.  On success the caller owns
+// *out_device_ctx and releases it with gpu_roce_unified_ctx_free once the
+// dispatcher has stopped.
 extern "C" __attribute__((weak)) int
 gpu_roce_unified_ctx_to_device(const gpu_roce_doca_transport_ctx *host_ctx,
                                void **out_device_ctx);
