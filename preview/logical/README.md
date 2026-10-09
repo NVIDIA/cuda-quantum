@@ -3,8 +3,7 @@
 `cudaq.logical` is the CUDA-Q toolkit for estimating the resources required by
 fault-tolerant quantum computations. It connects ordinary CUDA-Q kernels and
 portable logical programs to logical placement, codes, gadgets, distillation
-protocols, and inspectable resource estimates. As a secondary interchange path,
-a selected P2 program can be emitted as standards-compatible Stim circuit text.
+protocols, and inspectable resource estimates.
 
 `cudaq.logical` organizes compilation into explicit semantic stages:
 
@@ -17,6 +16,9 @@ a selected P2 program can be emitted as standards-compatible Stim circuit text.
 Python is the main authoring interface. The same compiler and estimation
 workflows are also available from `qlx-opt` through ordinary MLIR pass-pipeline
 strings, and Stim circuits can be emitted from `qlx-translate`.
+
+As a secondary interchange path, a selected P2 program can be emitted as
+standards-compatible Stim circuit text.
 
 ## Start with the examples
 

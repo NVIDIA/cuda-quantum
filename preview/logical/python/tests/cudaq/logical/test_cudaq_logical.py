@@ -170,6 +170,29 @@ def test_native_logical_objective_exports_a_kernel_through_its_gadget():
     assert "qlx.apply @paired_x" in imported.to_mlir()
 
 
+def test_import_cudaq_accepts_measuring_kernels():
+    import cudaq
+    import cudaq.logical as cql
+
+    @cudaq.kernel
+    def bell_pair():
+        qubits = cudaq.qvector(2)
+        h(qubits[0])
+        x.ctrl(qubits[0], qubits[1])
+        mz(qubits)
+
+    @cudaq.kernel
+    def single_qubit():
+        q = cudaq.qubit()
+        h(q)
+        mz(q)
+
+    bell = cql.compiler.import_cudaq(bell_pair).to_mlir()
+    assert bell.count("qlx.measure") == 2
+    single = cql.compiler.import_cudaq(single_qubit).to_mlir()
+    assert single.count("qlx.measure") == 1
+
+
 def test_logical_estimate_is_invariant_under_cached_view_mutation():
     import cudaq.logical as cql
     import cudaq.mlir.ir as mlir_ir
