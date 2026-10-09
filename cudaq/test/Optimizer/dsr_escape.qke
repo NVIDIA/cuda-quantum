@@ -1,0 +1,237 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// A stack slot is private (safe from calls and from stores through other
+// pointers) until the point where its address may first be handed out.
+
+// RUN: cudaq-opt --dead-store-removal %s | FileCheck %s
+
+func.func private @opaque()
+func.func private @take(!cc.ptr<i32>)
+func.func private @use(i32)
+
+// The call comes before the address is leaked, so it cannot touch the slot.
+func.func @call_before_escape(%v: i32) {
+  %s = cc.alloca i32
+  cc.store %v, %s : !cc.ptr<i32>
+  func.call @opaque() : () -> ()
+  %r = cc.load %s : !cc.ptr<i32>
+  func.call @use(%r) : (i32) -> ()
+  func.call @take(%s) : (!cc.ptr<i32>) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @call_before_escape(
+// CHECK-SAME:      %[[V:.*]]: i32) {
+// CHECK-NOT:     cc.load
+// CHECK:         call @opaque
+// CHECK:         call @use(%[[V]])
+// CHECK:         call @take
+
+// After the address is leaked a call may write the slot.
+func.func @call_after_escape(%v: i32) {
+  %s = cc.alloca i32
+  func.call @take(%s) : (!cc.ptr<i32>) -> ()
+  cc.store %v, %s : !cc.ptr<i32>
+  func.call @opaque() : () -> ()
+  %r = cc.load %s : !cc.ptr<i32>
+  func.call @use(%r) : (i32) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @call_after_escape(
+// CHECK:         call @take
+// CHECK:         cc.store
+// CHECK:         call @opaque
+// CHECK:         %[[R:.*]] = cc.load
+// CHECK:         call @use(%[[R]])
+
+// A store through some other pointer cannot hit the slot before the leak ...
+func.func @store_through_pointer_before_escape(%p: !cc.ptr<i32>, %v: i32,
+                                               %w: i32) {
+  %s = cc.alloca i32
+  cc.store %v, %s : !cc.ptr<i32>
+  cc.store %w, %p : !cc.ptr<i32>
+  %r = cc.load %s : !cc.ptr<i32>
+  func.call @use(%r) : (i32) -> ()
+  func.call @take(%s) : (!cc.ptr<i32>) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @store_through_pointer_before_escape(
+// CHECK-SAME:      %{{.*}}: !cc.ptr<i32>, %[[V:.*]]: i32, %{{.*}}: i32) {
+// CHECK-NOT:     cc.load
+// CHECK:         call @use(%[[V]])
+
+// ... but may after it.
+func.func @store_through_pointer_after_escape(%p: !cc.ptr<i32>, %v: i32,
+                                              %w: i32) {
+  %s = cc.alloca i32
+  func.call @take(%s) : (!cc.ptr<i32>) -> ()
+  cc.store %v, %s : !cc.ptr<i32>
+  cc.store %w, %p : !cc.ptr<i32>
+  %r = cc.load %s : !cc.ptr<i32>
+  func.call @use(%r) : (i32) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @store_through_pointer_after_escape(
+// CHECK:         call @take
+// CHECK:         cc.store
+// CHECK:         cc.store
+// CHECK:         %[[R:.*]] = cc.load
+// CHECK:         call @use(%[[R]])
+
+// The leak is in a loop: on the next iteration the call is after the leak.
+func.func @escape_later_in_loop(%n: i64, %v: i32) {
+  %c0 = arith.constant 0 : i64
+  %c1 = arith.constant 1 : i64
+  %s = cc.alloca i32
+  %res = cc.loop while ((%i = %c0) -> (i64)) {
+    %cond = arith.cmpi ult, %i, %n : i64
+    cc.condition %cond (%i : i64)
+  } do {
+    ^bb1(%i: i64):
+      cc.store %v, %s : !cc.ptr<i32>
+      func.call @opaque() : () -> ()
+      %r = cc.load %s : !cc.ptr<i32>
+      func.call @use(%r) : (i32) -> ()
+      func.call @take(%s) : (!cc.ptr<i32>) -> ()
+      cc.continue %i : i64
+  } step {
+    ^bb2(%i: i64):
+      %next = arith.addi %i, %c1 : i64
+      cc.continue %next : i64
+  }
+  return
+}
+
+// CHECK-LABEL: func.func @escape_later_in_loop(
+// CHECK:         cc.loop
+// CHECK:           cc.store
+// CHECK:           call @opaque
+// CHECK:           %[[R:.*]] = cc.load
+// CHECK:           call @use(%[[R]])
+
+// The leak is after the loop, so a call inside the loop cannot touch the slot.
+func.func @escape_after_loop(%n: i64, %v: i32) {
+  %c0 = arith.constant 0 : i64
+  %c1 = arith.constant 1 : i64
+  %s = cc.alloca i32
+  cc.store %v, %s : !cc.ptr<i32>
+  %res = cc.loop while ((%i = %c0) -> (i64)) {
+    %cond = arith.cmpi ult, %i, %n : i64
+    cc.condition %cond (%i : i64)
+  } do {
+    ^bb1(%i: i64):
+      func.call @opaque() : () -> ()
+      %r = cc.load %s : !cc.ptr<i32>
+      func.call @use(%r) : (i32) -> ()
+      cc.continue %i : i64
+  } step {
+    ^bb2(%i: i64):
+      %next = arith.addi %i, %c1 : i64
+      cc.continue %next : i64
+  }
+  func.call @take(%s) : (!cc.ptr<i32>) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @escape_after_loop(
+// CHECK-SAME:      %{{.*}}: i64, %[[V:.*]]: i32) {
+// CHECK:         cc.loop
+// CHECK:           call @opaque
+// CHECK-NOT:       cc.load
+// CHECK:           call @use(%[[V]])
+// CHECK:         call @take
+
+// A leak in a branch may have executed by the time the code after the branch
+// runs.
+func.func @escape_in_branch_before_call(%c: i1, %v: i32) {
+  %s = cc.alloca i32
+  cc.if(%c) {
+    func.call @take(%s) : (!cc.ptr<i32>) -> ()
+  }
+  cc.store %v, %s : !cc.ptr<i32>
+  func.call @opaque() : () -> ()
+  %r = cc.load %s : !cc.ptr<i32>
+  func.call @use(%r) : (i32) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @escape_in_branch_before_call(
+// CHECK:         cc.if
+// CHECK:         cc.store
+// CHECK:         call @opaque
+// CHECK:         %[[R:.*]] = cc.load
+// CHECK:         call @use(%[[R]])
+
+// A region that contains the leak is itself treated as leaking.
+func.func @escape_inside_region_op(%c: i1, %v: i32) {
+  %s = cc.alloca i32
+  cc.store %v, %s : !cc.ptr<i32>
+  cc.if(%c) {
+    func.call @take(%s) : (!cc.ptr<i32>) -> ()
+  }
+  %r = cc.load %s : !cc.ptr<i32>
+  func.call @use(%r) : (i32) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @escape_inside_region_op(
+// CHECK:         cc.store
+// CHECK:         cc.if
+// CHECK:         %[[R:.*]] = cc.load
+// CHECK:         call @use(%[[R]])
+
+// The address is passed as the operand of a branch, which is a leak, in a
+// function with several blocks.
+func.func @escape_through_branch_operand(%v: i32) {
+  %s = cc.alloca i32
+  cf.br ^next(%s : !cc.ptr<i32>)
+^next(%p: !cc.ptr<i32>):
+  cc.store %v, %s : !cc.ptr<i32>
+  func.call @take(%p) : (!cc.ptr<i32>) -> ()
+  %r = cc.load %s : !cc.ptr<i32>
+  func.call @use(%r) : (i32) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @escape_through_branch_operand(
+// CHECK:         cc.store
+// CHECK:         call @take
+// CHECK:         %[[R:.*]] = cc.load
+// CHECK:         call @use(%[[R]])
+
+// A lambda that captures the slot by reference. The body runs at the call, not
+// where the lambda is created, so the store in the body must be kept, the store
+// of 1 does not reach the load, and the slot is clobbered by the call.
+func.func @lambda_captures_slot() -> i32 {
+  %c0 = arith.constant 0 : i32
+  %c1 = arith.constant 1 : i32
+  %c2 = arith.constant 2 : i32
+  %s = cc.alloca i32
+  cc.store %c0, %s : !cc.ptr<i32>
+  %l = cc.create_lambda {
+    cc.store %c2, %s : !cc.ptr<i32>
+    cc.return
+  } : !cc.callable<() -> ()>
+  cc.store %c1, %s : !cc.ptr<i32>
+  cc.call_callable %l : (!cc.callable<() -> ()>) -> ()
+  %r = cc.load %s : !cc.ptr<i32>
+  return %r : i32
+}
+
+// CHECK-LABEL: func.func @lambda_captures_slot(
+// CHECK:         cc.create_lambda {
+// CHECK:           cc.store %{{.*}}, %[[S:.*]] :
+// CHECK:         }
+// CHECK:         cc.store %{{.*}}, %[[S]] :
+// CHECK:         cc.call_callable
+// CHECK:         %[[R:.*]] = cc.load %[[S]]
+// CHECK:         return %[[R]]
