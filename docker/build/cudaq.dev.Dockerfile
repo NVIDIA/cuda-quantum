@@ -86,9 +86,10 @@ RUN if [ -n "$install" ]; then \
     fi
 
 # Add tests incrementally (-i) on top of the already-built core.
+# Skipped for any CMake false constant (FALSE, OFF, NO, N, 0), any case.
 RUN if [ -n "$install" ]; then \
         install=`echo $install | xargs` && export $install; \
-        if [ "${CUDAQ_BUILD_TESTS:-TRUE}" != "FALSE" ]; then \
+        if ! echo "${CUDAQ_BUILD_TESTS:-TRUE}" | grep -qiE '^(false|off|no|n|0)$'; then \
             cudaq_cmake_args=(-DCUDAQ_TEST_OMP_SLOTS=2); \
             if [ -n "$cudaq_enable_projects" ]; then \
                 cudaq_cmake_args+=("-DCUDAQ_ENABLE_PROJECTS=$cudaq_enable_projects"); \
