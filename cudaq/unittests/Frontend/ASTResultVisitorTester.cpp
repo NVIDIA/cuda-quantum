@@ -73,27 +73,49 @@ static const clang::Stmt *canonical(const clang::Stmt *s) {
   return s;
 }
 
+// Each traversed node is described by one line of the form
+//
+//   <kind> [<detail>] @<file:line:col>
+//
+// where <kind> is "Stmt:<StmtClass>", "Decl:<DeclKind> <name>" or "CtorInit",
+// and the location is where the node starts. Expressions also give their
+// source range and type, and declarations their qualified type when they have
+// one. Distinct nodes can still produce identical lines (compare() points that
+// out), but the lines are enough to find the construct in the test source.
 static std::string describe(const clang::SourceManager &sm,
-                            clang::SourceLocation loc, llvm::StringRef kind) {
+                            clang::SourceLocation loc, llvm::StringRef kind,
+                            llvm::StringRef detail = {}) {
   std::string result;
   llvm::raw_string_ostream os(result);
-  os << kind << " @";
+  os << kind;
+  if (!detail.empty())
+    os << " [" << detail << ']';
+  os << " @";
   loc.print(os, sm);
   return result;
 }
 
 static std::string describe(const clang::ASTContext &ctx,
                             const clang::Stmt *s) {
+  std::string detail;
+  llvm::raw_string_ostream os(detail);
+  if (auto *e = llvm::dyn_cast<clang::Expr>(s))
+    os << "type=" << e->getType().getAsString() << ' ';
+  os << "range=";
+  s->getSourceRange().print(os, ctx.getSourceManager());
   return describe(ctx.getSourceManager(), s->getBeginLoc(),
-                  std::string("Stmt:") + s->getStmtClassName());
+                  std::string("Stmt:") + s->getStmtClassName(), detail);
 }
 
 static std::string describe(const clang::ASTContext &ctx,
                             const clang::Decl *d) {
   std::string kind = std::string("Decl:") + d->getDeclKindName();
+  std::string detail;
   if (auto *nd = llvm::dyn_cast<clang::NamedDecl>(d))
     kind += " " + nd->getNameAsString();
-  return describe(ctx.getSourceManager(), d->getLocation(), kind);
+  if (auto *vd = llvm::dyn_cast<clang::ValueDecl>(d))
+    detail = "type=" + vd->getType().getAsString();
+  return describe(ctx.getSourceManager(), d->getLocation(), kind, detail);
 }
 
 static std::string describe(const clang::ASTContext &ctx,
@@ -314,6 +336,8 @@ static std::string compare(const clang::ASTContext &ctx,
   os << "traversals differ at node " << pos << " (RecursiveASTVisitor visited "
      << expected.size() << " nodes, ASTResultVisitor visited " << actual.size()
      << ")\n";
+  // Show a window of the traversal around the first difference, marking the
+  // node at which they diverge with ">>". The lines are described above.
   auto context = [&](const char *label, const std::vector<std::string> &nodes) {
     os << "  " << label << ":\n";
     std::size_t lo = pos > 3 ? pos - 3 : 0;
@@ -322,17 +346,26 @@ static std::string compare(const clang::ASTContext &ctx,
   };
   context("RecursiveASTVisitor", expected);
   context("ASTResultVisitor", actual);
-  // A summary of nodes visited by only one of them.
-  std::multiset<std::string> eset(expected.begin(), expected.end());
-  std::multiset<std::string> aset(actual.begin(), actual.end());
-  int shown = 0;
-  for (auto &n : eset)
-    if (!aset.count(n) && shown++ < 15)
-      os << "  only RecursiveASTVisitor: " << n << '\n';
-  shown = 0;
-  for (auto &n : aset)
-    if (!eset.count(n) && shown++ < 15)
-      os << "  only ASTResultVisitor: " << n << '\n';
+  // A summary of the node descriptions that only one of the traversals
+  // produced, which shows missed or extra nodes even where the order differs.
+  // A description is "only" in one if the other has no node with the same
+  // description at all, so a node visited a different number of times is not
+  // listed. Each list is capped to keep the failure message readable.
+  constexpr std::size_t maxShown = 15;
+  auto onlyIn = [&](const char *label, const std::vector<std::string> &mine,
+                    const std::vector<std::string> &theirs) {
+    std::set<std::string> other(theirs.begin(), theirs.end());
+    std::size_t total = 0;
+    for (auto &n : mine)
+      if (!other.count(n)) {
+        if (total++ < maxShown)
+          os << "  only " << label << ": " << n << '\n';
+      }
+    if (total > maxShown)
+      os << "  only " << label << ": ... and " << total - maxShown << " more\n";
+  };
+  onlyIn("RecursiveASTVisitor", expected, actual);
+  onlyIn("ASTResultVisitor", actual, expected);
   return os.str();
 }
 
@@ -636,8 +669,8 @@ int f(S a, S b, int *p, int i) {
 )");
 }
 
+// Check coroutines as part of the AST. They are not part of a CUDA-Q kernel.
 TEST(ASTResultVisitorTraversal, Coroutines) {
-  // No <coroutine> header; just make sure that ordinary code parses.
   checkSource(R"(
 struct S { int a; };
 int f(S s) { return s.a; }
