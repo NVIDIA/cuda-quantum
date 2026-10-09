@@ -186,10 +186,18 @@ cudaq_dev_rx_poll(void *session, void **out_request, void **out_response) {
       continue;
     }
 
-    *out_request =
+    auto *request =
         s.rx_buf + static_cast<std::uint64_t>(stride) * s.rx_stride_sz;
-    *out_response =
+    auto *response =
         s.tx_buf + static_cast<std::uint64_t>(stride) * s.tx_stride_sz;
+    // Both rings are device global memory.  The pointers reach the kernel
+    // through the context, so without this they stay generic, and send_bf's
+    // inline copy must order each frame load after the previous shared-memory
+    // WQE store instead of issuing them together.
+    __builtin_assume(__isGlobal(request));
+    __builtin_assume(__isGlobal(response));
+    *out_request = request;
+    *out_response = response;
     return CUDAQ_RX_DEV_READY;
   }
 }

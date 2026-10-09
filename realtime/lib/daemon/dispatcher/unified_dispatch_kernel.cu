@@ -79,6 +79,11 @@ cudaq_unified_dispatch_kernel(void *transport_ctx, std::size_t tx_stride_sz,
     auto *header = static_cast<RPCHeader *>(request);
     auto *response = static_cast<RPCResponse *>(response_frame);
 
+    // Read before the handler runs: after its call the compiler has to assume
+    // the request may have changed and reload it behind the response stores.
+    const std::uint32_t request_id = header->request_id;
+    const std::uint64_t ptp_timestamp = header->ptp_timestamp;
+
     int status = -1;
     std::uint32_t result_len = 0;
 
@@ -106,8 +111,8 @@ cudaq_unified_dispatch_kernel(void *transport_ctx, std::size_t tx_stride_sz,
     response->magic = RPC_MAGIC_RESPONSE;
     response->status = status;
     response->result_len = result_len;
-    response->request_id = header->request_id;
-    response->ptp_timestamp = header->ptp_timestamp;
+    response->request_id = request_id;
+    response->ptp_timestamp = ptp_timestamp;
 
     // Published unconditionally, including for a frame whose magic did not
     // match: tx_publish is also what returns the slot's receive credit, so
