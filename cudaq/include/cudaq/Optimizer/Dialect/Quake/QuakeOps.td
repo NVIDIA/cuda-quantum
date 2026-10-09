@@ -1967,9 +1967,14 @@ def quake_CreateStateOp : QuakeOp<"create_state"> {
 
   // Not Pure: the state is created from the contents of memory at this point,
   // so it must not be reordered with stores to that memory, and each execution
-  // creates a distinct state. The only effects are a read of the data and an
-  // allocation of the result, so an unused create_state is still trivially
-  // dead (a write effect here would keep it alive and defeat DCE).
+  // creates a distinct state.
+  //
+  // Model this as a read of the data plus a (re)allocation of the result. The
+  // op is not literally an allocator, but the state it produces supersedes the
+  // data buffer, and consumers must not use that buffer for anything else; the
+  // create_state/delete_state pair acts like a new allocation. A write effect
+  // on the data would be closer to "in place", but it would keep an unused
+  // create_state alive, and we want dead ones erased by the canonicalizer.
   let arguments = (ins
     Arg<cc_PointerType, "state data", [MemRead]>:$data,
     AnySignlessInteger:$length
