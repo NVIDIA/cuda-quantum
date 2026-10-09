@@ -190,7 +190,33 @@ RSA_2048 = OperatingPoint(
     factory_output_interval_cycles=135.0,
     factory_lane_physical_qubits=142_808,
 )
-OPERATING_POINTS = {point.modulus_bits: point for point in (RSA_2048,)}
+RSA_3072 = OperatingPoint(
+    modulus_bits=3_072,
+    level_1_code_distance=17,
+    level_2_code_distance=29,
+    padding_offset=6,
+    exponent_window=5,
+    multiplication_window=4,
+    factory_schedule_events=688,
+    factory_startup_cycles=417.0,
+    factory_output_interval_cycles=145.0,
+    factory_lane_physical_qubits=201_720,
+)
+RSA_4096 = OperatingPoint(
+    modulus_bits=4_096,
+    level_1_code_distance=17,
+    level_2_code_distance=31,
+    padding_offset=9,
+    exponent_window=5,
+    multiplication_window=4,
+    factory_schedule_events=688,
+    factory_startup_cycles=429.0,
+    factory_output_interval_cycles=155.0,
+    factory_lane_physical_qubits=186_488,
+)
+OPERATING_POINTS = {
+    point.modulus_bits: point for point in (RSA_2048, RSA_3072, RSA_4096)
+}
 
 
 # %%
