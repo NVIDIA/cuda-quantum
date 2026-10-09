@@ -1950,7 +1950,7 @@ def CustomUnitaryConstantOp : QuakeOperator<"custom_unitary_constant",
 // Quantum states
 //===----------------------------------------------------------------------===//
 
-def quake_CreateStateOp : QuakeOp<"create_state", [Pure]> {
+def quake_CreateStateOp : QuakeOp<"create_state"> {
   let summary = "Create state from data";
   let description = [{
     This operation takes a pointer to state data and creates a quantum state,
@@ -1965,11 +1965,21 @@ def quake_CreateStateOp : QuakeOp<"create_state", [Pure]> {
     ```
   }];
 
+  // Not Pure: the state is created from the contents of memory at this point,
+  // so it must not be reordered with stores to that memory, and each execution
+  // creates a distinct state.
+  //
+  // Model this as a read of the data plus a (re)allocation of the result. The
+  // op is not literally an allocator, but the state it produces supersedes the
+  // data buffer, and consumers must not use that buffer for anything else; the
+  // create_state/delete_state pair acts like a new allocation. A write effect
+  // on the data would be closer to "in place", but it would keep an unused
+  // create_state alive, and we want dead ones erased by the canonicalizer.
   let arguments = (ins
-    cc_PointerType:$data,
+    Arg<cc_PointerType, "state data", [MemRead]>:$data,
     AnySignlessInteger:$length
   );
-  let results = (outs PointerOf<[quake_StateType]>:$result);
+  let results = (outs Arg<PointerOf<[quake_StateType]>, "", [MemAlloc]>:$result);
   let assemblyFormat = [{
       $data `,` $length `:` functional-type(operands, results) attr-dict
   }];

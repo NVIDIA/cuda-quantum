@@ -91,6 +91,12 @@ struct ScalarWireFlow {
 /// Unsupported forms and mismatched input and result shapes return no value.
 std::optional<ScalarWireFlow> getScalarWireFlow(mlir::Operation *operation);
 
+/// True if the operation may modify memory or has effects that cannot be
+/// determined. Read-only operations (e.g. `quake.exp_pauli` reading a dynamic
+/// Pauli word) return false: they cannot change which qubit a wire or
+/// reference denotes.
+bool mayModifyMemory(mlir::Operation *operation);
+
 /// Return the scalar-wire flow of an operator, measurement, or reset, ignoring
 /// the operands that thread no wire. A `ref`, `veq`, or `control` operand has
 /// no corresponding result, so only the wire operands are paired with the wire
