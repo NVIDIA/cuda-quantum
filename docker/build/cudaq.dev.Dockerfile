@@ -72,19 +72,35 @@ RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
     else \
         echo "No ccache data injected using empty scratch stage." && \
         mkdir -p /root/.ccache; \
-    fi && \
-    if [ -n "$install" ]; \
-    then \
-        expected_prefix=$CUDAQ_INSTALL_PREFIX; \
+    fi
+
+# Build core CUDA-Q first, tests in a separate layer below (test
+# binaries are much larger and would otherwise bloat one layer).
+RUN if [ -n "$install" ]; then \
         install=`echo $install | xargs` && export $install; \
         cudaq_cmake_args=(-DCUDAQ_TEST_OMP_SLOTS=2); \
         if [ -n "$cudaq_enable_projects" ]; then \
             cudaq_cmake_args+=("-DCUDAQ_ENABLE_PROJECTS=$cudaq_enable_projects"); \
         fi; \
-        bash scripts/build_cudaq.sh -v -- "${cudaq_cmake_args[@]}"; \
-        if [ ! "$?" -eq "0" ]; then \
-            exit 1; \
-        elif [ "$CUDAQ_INSTALL_PREFIX" != "$expected_prefix" ]; then \
+        CUDAQ_BUILD_TESTS=FALSE bash scripts/build_cudaq.sh -v -- "${cudaq_cmake_args[@]}" || exit 1; \
+    fi
+
+# Add tests incrementally (-i) on top of the already-built core.
+RUN if [ -n "$install" ]; then \
+        install=`echo $install | xargs` && export $install; \
+        if [ "${CUDAQ_BUILD_TESTS:-TRUE}" != "FALSE" ]; then \
+            cudaq_cmake_args=(-DCUDAQ_TEST_OMP_SLOTS=2); \
+            if [ -n "$cudaq_enable_projects" ]; then \
+                cudaq_cmake_args+=("-DCUDAQ_ENABLE_PROJECTS=$cudaq_enable_projects"); \
+            fi; \
+            CUDAQ_BUILD_TESTS=TRUE bash scripts/build_cudaq.sh -v -i -- "${cudaq_cmake_args[@]}" || exit 1; \
+        fi; \
+    fi
+
+RUN if [ -n "$install" ]; then \
+        expected_prefix=$CUDAQ_INSTALL_PREFIX; \
+        install=`echo $install | xargs` && export $install; \
+        if [ "$CUDAQ_INSTALL_PREFIX" != "$expected_prefix" ]; then \
             mkdir -p "$expected_prefix"; \
             mv "$CUDAQ_INSTALL_PREFIX"/* "$expected_prefix"; \
             rmdir "$CUDAQ_INSTALL_PREFIX"; \
