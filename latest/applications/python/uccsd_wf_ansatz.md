@@ -2001,7 +2001,7 @@ CUDA-Q to calclate the ground state energy for chemical systems.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [1]:
 :::
 :::
 
@@ -2016,7 +2016,7 @@ CUDA-Q to calclate the ground state energy for chemical systems.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [5]:
+    [2]:
 :::
 :::
 
@@ -2041,7 +2041,7 @@ qubit hamiltonian. To learn more, see this
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [6]:
+    [3]:
 :::
 :::
 
@@ -2167,7 +2167,7 @@ perfomance.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [7]:
+    [4]:
 :::
 :::
 
@@ -2289,7 +2289,7 @@ To learn about VQE in CUDA-Q, check this
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [5]:
 :::
 :::
 

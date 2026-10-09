@@ -1138,7 +1138,7 @@
 <section id="Set-up-the-environment">
 <h2>Set up the environment<a class="headerlink" href="#Set-up-the-environment" title="Permalink to this heading">¶</a></h2>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
@@ -1153,7 +1153,7 @@
 <h2>Define the circuit and noise model<a class="headerlink" href="#Define-the-circuit-and-noise-model" title="Permalink to this heading">¶</a></h2>
 <p>Define a kernel and attach a noise model. Each gate you add to the noise model becomes a noise site when that gate appears in the circuit. In this example, for single-qubit gates (e.g. <span class="math notranslate nohighlight">\(H\)</span>) we use a <code class="docutils literal notranslate"><span class="pre">DepolarizationChannel</span></code> with one qubit and for <span class="math notranslate nohighlight">\(CNOT\)</span> we add the <strong>qubit pair</strong> <code class="docutils literal notranslate"><span class="pre">[control,</span> <span class="pre">target]</span></code> with <code class="docutils literal notranslate"><span class="pre">Depolarization2</span></code> (two-qubit depolarization channel). Here we use a small Bell-style circuit to demonstrate the</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">depol_1q</span> <span class="o">=</span> <span class="mf">0.05</span>
@@ -1176,7 +1176,7 @@
 <h3>Inline noise with <code class="docutils literal notranslate"><span class="pre">apply_noise</span></code><a class="headerlink" href="#Inline-noise-with-apply_noise" title="Permalink to this heading">¶</a></h3>
 <p>Instead of (or in addition to) attaching noise via a <code class="docutils literal notranslate"><span class="pre">NoiseModel</span></code>, you can place noise at specific points in the kernel with <code class="docutils literal notranslate"><span class="pre">cudaq.apply_noise</span></code>. PTSBE traces these calls and includes them as noise sites alongside any model-attached noise.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
@@ -1233,7 +1233,7 @@ Inline apply_noise result:
 <li><p><code class="docutils literal notranslate"><span class="pre">return_execution_data</span></code>: If <code class="docutils literal notranslate"><span class="pre">True</span></code>, the result includes trace instructions and per-trajectory data (<code class="docutils literal notranslate"><span class="pre">result.ptsbe_execution_data</span></code>). This is currently an experimental API and subject to change in future releases. See section 5 below.</p></li>
 </ul>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">shots</span> <span class="o">=</span> <span class="mi">10000</span>
@@ -1301,7 +1301,7 @@ Standard noisy sample                shots= 10000  counts={ 00:5029 01:93 10:74 
 <h3>Larger circuit for execution data<a class="headerlink" href="#Larger-circuit-for-execution-data" title="Permalink to this heading">¶</a></h3>
 <p>To demonstrate PTSBE’s execution data on a larger circuit, we define a 12-qubit GHZ state with depolarization on every gate. This creates 12 noise sites with a large trajectory space.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">n_qubits</span> <span class="o">=</span> <span class="mi">12</span>
@@ -1330,7 +1330,7 @@ Standard noisy sample                shots= 10000  counts={ 00:5029 01:93 10:74 
 <p>Pass <code class="docutils literal notranslate"><span class="pre">return_execution_data=True</span></code> to get the PTSBE execution data via <code class="docutils literal notranslate"><span class="pre">result.ptsbe_execution_data</span></code>. This reveals <em>why</em> PTSBE is efficient: most probability mass concentrates on a few low-error trajectories, so a small number of circuit simulations captures the bulk of the physics. The highest-probability trajectory (no errors at any noise site) typically receives the vast majority of shots, while multi-error trajectories are exponentially suppressed.</p>
 <p>Note: this is an experimental API and may change in future releases.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">collections</span><span class="w"> </span><span class="kn">import</span> <span class="n">Counter</span>
@@ -1472,7 +1472,7 @@ Trajectories grouped by error count:
 <h2>Performance of PTSBE vs standard noisy sampling<a class="headerlink" href="#Performance-of-PTSBE-vs-standard-noisy-sampling" title="Permalink to this heading">¶</a></h2>
 <p>The table below times compares the performance of standard trajectory sampling with PTSBE on the 12-qubit GHZ circuit at increasing shot counts.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">time</span>
@@ -1518,7 +1518,7 @@ Trajectories grouped by error count:
 </pre></div></div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>

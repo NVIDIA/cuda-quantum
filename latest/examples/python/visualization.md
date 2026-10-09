@@ -2064,7 +2064,7 @@ if QuTiP is not installed.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [13]:
+    [1]:
 :::
 :::
 
@@ -2095,7 +2095,7 @@ if QuTiP is not installed.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [14]:
+    [2]:
 :::
 :::
 
@@ -2126,7 +2126,7 @@ on the output state obtained from the random kernel.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [15]:
+    [3]:
 :::
 :::
 
@@ -2148,7 +2148,7 @@ We can display the spheres with [`cudaq.show()`{.docutils .literal
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [16]:
+    [4]:
 :::
 :::
 
@@ -2178,7 +2178,7 @@ spheres in a row:
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [17]:
+    [5]:
 :::
 :::
 
@@ -2209,7 +2209,7 @@ We can show them in a column too, if we want! Simply set the
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [18]:
+    [6]:
 :::
 :::
 
@@ -2234,7 +2234,7 @@ Can we show the entire list of 4 Bloch spheres we created? Absolutely!
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [19]:
+    [7]:
 :::
 :::
 
@@ -2263,7 +2263,7 @@ Bloch sphere by passing the sphere object as an argument to
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [20]:
+    [8]:
 :::
 :::
 
@@ -2286,7 +2286,7 @@ how it looks.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [21]:
+    [9]:
 :::
 :::
 
@@ -2323,7 +2323,7 @@ the drawing of the execution path, in the specified format. ASCII
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [22]:
+    [10]:
 :::
 :::
 
@@ -2351,7 +2351,7 @@ the drawing of the execution path, in the specified format. ASCII
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [23]:
+    [11]:
 :::
 :::
 
@@ -2384,7 +2384,7 @@ the drawing of the execution path, in the specified format. ASCII
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [24]:
+    [12]:
 :::
 :::
 

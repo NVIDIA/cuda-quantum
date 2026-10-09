@@ -2029,7 +2029,7 @@ call: [`cudaq.ptsbe.sample()`{.docutils .literal .notranslate}]{.pre}.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [2]:
+    [1]:
 :::
 :::
 
@@ -2062,7 +2062,7 @@ circuit to demonstrate the
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [3]:
+    [2]:
 :::
 :::
 
@@ -2098,7 +2098,7 @@ model-attached noise.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [4]:
+    [3]:
 :::
 :::
 
@@ -2199,7 +2199,7 @@ Optional arguments are:
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [5]:
+    [4]:
 :::
 :::
 
@@ -2279,7 +2279,7 @@ noise sites with a large trajectory space.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [6]:
+    [5]:
 :::
 :::
 
@@ -2325,7 +2325,7 @@ Note: this is an experimental API and may change in future releases.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [7]:
+    [6]:
 :::
 :::
 
@@ -2480,7 +2480,7 @@ counts.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [9]:
+    [7]:
 :::
 :::
 
@@ -2535,7 +2535,7 @@ counts.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [8]:
 :::
 :::
 

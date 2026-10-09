@@ -2245,7 +2245,7 @@ for a non-trivial factor of [\\(N\\)]{.math .notranslate .nohighlight}.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [157]:
+    [4]:
 :::
 :::
 
@@ -2289,7 +2289,7 @@ classical algorithm can solve this problem, it is notably inefficient:
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [158]:
+    [5]:
 :::
 :::
 
@@ -2327,7 +2327,7 @@ produces factors of [\\(N\\)]{.math .notranslate .nohighlight}.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [159]:
+    [6]:
 :::
 :::
 
@@ -2359,7 +2359,7 @@ produces factors of [\\(N\\)]{.math .notranslate .nohighlight}.
 ::: {.nboutput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [159]:
+    [6]:
 :::
 :::
 
@@ -2419,7 +2419,7 @@ transform used in the quantum order-finding algorithm.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [160]:
+    [7]:
 :::
 :::
 
@@ -2481,7 +2481,7 @@ report](https://physlab.org/wp-content/uploads/2023/05/Shor_s_Algorithm_23100113
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [161]:
+    [8]:
 :::
 :::
 
@@ -2525,7 +2525,7 @@ carry out multiplication and exponentiation with [\\(a=5\\)]{.math
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [198]:
+    [9]:
 :::
 :::
 
@@ -2605,7 +2605,7 @@ previous case.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [199]:
+    [10]:
 :::
 :::
 
@@ -2646,7 +2646,7 @@ diagram drawn at the beginning of this section.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [200]:
+    [11]:
 :::
 :::
 
@@ -2682,7 +2682,7 @@ diagram drawn at the beginning of this section.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [201]:
+    [12]:
 :::
 :::
 
@@ -2800,7 +2800,7 @@ values.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [202]:
+    [13]:
 :::
 :::
 
@@ -2840,7 +2840,7 @@ these top result is likely to be an estimate for the phase of
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [203]:
+    [14]:
 :::
 :::
 
@@ -2855,7 +2855,7 @@ these top result is likely to be an estimate for the phase of
 ::: {.nboutput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [203]:
+    [14]:
 :::
 :::
 
@@ -2888,7 +2888,7 @@ Aaronson: lecture
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [204]:
+    [15]:
 :::
 :::
 
@@ -2949,7 +2949,7 @@ algoithm.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [205]:
+    [16]:
 :::
 :::
 
@@ -3022,7 +3022,7 @@ algoithm.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [206]:
+    [17]:
 :::
 :::
 
@@ -3081,7 +3081,7 @@ algoithm.
 ::: {.nboutput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [206]:
+    [17]:
 :::
 :::
 

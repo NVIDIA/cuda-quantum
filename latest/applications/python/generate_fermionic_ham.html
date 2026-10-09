@@ -1171,7 +1171,7 @@ Requirement already satisfied: numpy!=1.16,!=1.17,&gt;=1.13 in /usr/local/lib/py
 </div>
 <p>To calculate the electronic integrals, and generate the spin molecular Hamiltonian, import the following</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">qchem.classical_pyscf</span><span class="w"> </span><span class="kn">import</span> <span class="n">get_mol_hamiltonian</span>
@@ -1180,7 +1180,7 @@ Requirement already satisfied: numpy!=1.16,!=1.17,&gt;=1.13 in /usr/local/lib/py
 </div>
 <p>To convert from fermionic Hamiltonian to qubit hamiltonian, import the following</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">qchem.hamiltonian</span><span class="w"> </span><span class="kn">import</span> <span class="n">jordan_wigner_fermion</span>
@@ -1188,7 +1188,7 @@ Requirement already satisfied: numpy!=1.16,!=1.17,&gt;=1.13 in /usr/local/lib/py
 </div>
 </div>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Import the cudaq module</span>
@@ -1210,7 +1210,7 @@ Requirement already satisfied: numpy!=1.16,!=1.17,&gt;=1.13 in /usr/local/lib/py
 <section id="(a)-Generate-the-molecular-Hamiltonian-using-Restricted-Hartree-Fock-molecular-orbitals">
 <h3>(a) Generate the molecular Hamiltonian using Restricted Hartree Fock molecular orbitals<a class="headerlink" href="#(a)-Generate-the-molecular-Hamiltonian-using-Restricted-Hartree-Fock-molecular-orbitals" title="Permalink to this heading">¶</a></h3>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">H2_mol</span> <span class="o">=</span> <span class="s2">"qchem/H2.xyz"</span>
@@ -1277,7 +1277,7 @@ Jordan-Wigner transformation
 <section id="(b)-Generate-the-molecular-Hamiltonian-using-Unrestricted-Hartree-Fock-molecular-orbitals">
 <h3>(b) Generate the molecular Hamiltonian using Unrestricted Hartree Fock molecular orbitals<a class="headerlink" href="#(b)-Generate-the-molecular-Hamiltonian-using-Unrestricted-Hartree-Fock-molecular-orbitals" title="Permalink to this heading">¶</a></h3>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">H2_mol</span> <span class="o">=</span> <span class="s2">"qchem/H2.xyz"</span>
@@ -1358,7 +1358,7 @@ Jordan-Wigner transformation
 <section id="(a)-Generate-the-active-space-hamiltonian-using-RHF-molecular-orbitals.">
 <h3>(a) Generate the active space hamiltonian using RHF molecular orbitals.<a class="headerlink" href="#(a)-Generate-the-active-space-hamiltonian-using-RHF-molecular-orbitals." title="Permalink to this heading">¶</a></h3>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">H2O_mol</span> <span class="o">=</span> <span class="s2">"qchem/H2O.xyz"</span>
@@ -1426,7 +1426,7 @@ Jordan-Wigner transformation
 <section id="(b)-Generate-the-active-space-Hamiltonian-using-the-natural-orbitals-computed-from-MP2-simulation">
 <h3>(b) Generate the active space Hamiltonian using the natural orbitals computed from MP2 simulation<a class="headerlink" href="#(b)-Generate-the-active-space-Hamiltonian-using-the-natural-orbitals-computed-from-MP2-simulation" title="Permalink to this heading">¶</a></h3>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">H2O_mol</span> <span class="o">=</span> <span class="s2">"qchem/H2O.xyz"</span>
@@ -1500,7 +1500,7 @@ Jordan-Wigner transformation
 <section id="(c)-Generate-the-active-space-Hamiltonian-computed-from-the-CASSCF-molecular-orbitals">
 <h3>(c) Generate the active space Hamiltonian computed from the CASSCF molecular orbitals<a class="headerlink" href="#(c)-Generate-the-active-space-Hamiltonian-computed-from-the-CASSCF-molecular-orbitals" title="Permalink to this heading">¶</a></h3>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">H2O_mol</span> <span class="o">=</span> <span class="s2">"qchem/H2O.xyz"</span>
@@ -1578,7 +1578,7 @@ Jordan-Wigner transformation
 <section id="(d)-Generate-the-electronic-Hamiltonian-using-ROHF">
 <h3>(d) Generate the electronic Hamiltonian using ROHF<a class="headerlink" href="#(d)-Generate-the-electronic-Hamiltonian-using-ROHF" title="Permalink to this heading">¶</a></h3>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">geomerty</span> <span class="o">=</span> <span class="s1">'N 0.0 0.0 0.56; N 0.0 0.0 -0.56'</span>
@@ -1649,7 +1649,7 @@ Core energy:  -97.73731859734099
 <h3>(e) Generate electronic Hamiltonian using UHF<a class="headerlink" href="#(e)-Generate-electronic-Hamiltonian-using-UHF" title="Permalink to this heading">¶</a></h3>
 <p>Note: in case of UHF only electronic Hamiltonian from HF molecular orbital are supported. Calculating the electron integrals from natural orbitals or CASSCF orbitals is not supported yet.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">geomerty</span> <span class="o">=</span> <span class="s1">'N 0.0 0.0 0.56; N 0.0 0.0 -0.56'</span>

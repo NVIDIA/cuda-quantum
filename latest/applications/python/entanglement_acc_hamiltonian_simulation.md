@@ -2424,7 +2424,7 @@ study.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [10]:
 :::
 :::
 
@@ -2490,7 +2490,7 @@ entanglement entropy for contiguous subsystems of size 1 through 4.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [11]:
 :::
 :::
 

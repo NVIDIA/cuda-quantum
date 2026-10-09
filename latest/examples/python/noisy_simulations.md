@@ -2198,7 +2198,7 @@ Let's implement the bit-flip channel using CUDA-Q:
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [5]:
 :::
 :::
 
@@ -2219,7 +2219,10 @@ Let's implement the bit-flip channel using CUDA-Q:
 :::
 
 ::: {.nboutput .nblast .docutils .container}
-::: {.prompt .empty .docutils .container}
+::: {.prompt .highlight-none .notranslate}
+::: highlight
+    [5]:
+:::
 :::
 
 ::: {.output_area .docutils .container}

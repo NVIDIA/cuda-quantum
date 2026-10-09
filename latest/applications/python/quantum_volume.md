@@ -2171,7 +2171,7 @@ bitstring sample probabilities.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [4]:
 :::
 :::
 

@@ -2106,7 +2106,7 @@ Hamiltonian, import the following
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [1]:
+    [2]:
 :::
 :::
 
@@ -2123,7 +2123,7 @@ following
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [2]:
+    [3]:
 :::
 :::
 
@@ -2137,7 +2137,7 @@ following
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [3]:
+    [4]:
 :::
 :::
 
@@ -2167,7 +2167,7 @@ following
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [4]:
+    [5]:
 :::
 :::
 
@@ -2244,7 +2244,7 @@ following
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [5]:
+    [6]:
 :::
 :::
 
@@ -2358,7 +2358,7 @@ frozen core contributions
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [6]:
+    [7]:
 :::
 :::
 
@@ -2436,7 +2436,7 @@ frozen core contributions
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [7]:
+    [8]:
 :::
 :::
 
@@ -2520,7 +2520,7 @@ frozen core contributions
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [8]:
+    [9]:
 :::
 :::
 
@@ -2608,7 +2608,7 @@ frozen core contributions
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [9]:
+    [10]:
 :::
 :::
 
@@ -2698,7 +2698,7 @@ orbitals or CASSCF orbitals is not supported yet.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [10]:
+    [11]:
 :::
 :::
 

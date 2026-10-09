@@ -2138,7 +2138,7 @@ initial state of the system - Execute the simulation with
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [1]:
 :::
 :::
 

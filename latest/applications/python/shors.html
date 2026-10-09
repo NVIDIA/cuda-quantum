@@ -1262,7 +1262,7 @@
 <p>is satisfied, then at least one of the terms <span class="math notranslate nohighlight">\(a^{\frac{r}{2}} - 1\)</span> or <span class="math notranslate nohighlight">\(a^{\frac{r}{2}} + 1\)</span> must share a common factor with <span class="math notranslate nohighlight">\(N\)</span>. <a class="reference external" href="https://arxiv.org/abs/quant-ph/9508027">Peter Shor</a> demonstrated that there is greater than a <span class="math notranslate nohighlight">\(50\%\)</span> chance of randomly selecting a value for <span class="math notranslate nohighlight">\(a\)</span> satisfying these properties.</p>
 <p>The code block below defines a function that tests whether <span class="math notranslate nohighlight">\(r\)</span> is even and whether equation <span class="math notranslate nohighlight">\((3)\)</span> is satisfied and searches for a non-trivial factor of <span class="math notranslate nohighlight">\(N\)</span>.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[157]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">test_order</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">N</span><span class="p">):</span>
@@ -1295,7 +1295,7 @@
 <h3>Solving the order-finding problem classically<a class="headerlink" href="#Solving-the-order-finding-problem-classically" title="Permalink to this heading">¶</a></h3>
 <p>The key component of Shor’s algorithm is an efficient quantum algorithm to find the order <span class="math notranslate nohighlight">\(r\)</span> of <span class="math notranslate nohighlight">\(a \mod N\)</span>. While a straightforward classical algorithm can solve this problem, it is notably inefficient:</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[158]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">find_order_classical</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">N</span><span class="p">):</span>
@@ -1323,7 +1323,7 @@
 </div>
 <p>Let’s see how Shor’s algorithm works on a few examples using the classical order-finding problem. Notice how often our choice of value for the initial guess for <span class="math notranslate nohighlight">\(a\)</span> produces factors of <span class="math notranslate nohighlight">\(N\)</span>.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[159]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">my_integer</span> <span class="o">=</span> <span class="mi">123</span>  <span class="c1">#edit this value to try out a few examples</span>
@@ -1346,7 +1346,7 @@ Found factors of N=123 by chance: 3 and 41
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[159]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
@@ -1366,7 +1366,7 @@ Found factors of N=123 by chance: 3 and 41
 <h4>Inverse quantum Fourier transform<a class="headerlink" href="#Inverse-quantum-Fourier-transform" title="Permalink to this heading">¶</a></h4>
 <p>In the code block below we define a kernel for the quantum Fourier transform and then use <code class="docutils literal notranslate"><span class="pre">cudaq.adjoint</span></code> to create a kernel for the inverse quantum Fourier transform used in the quantum order-finding algorithm.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[160]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define kernels for the quantum Fourier transform and the inverse quantum Fourier transform</span>
@@ -1396,7 +1396,7 @@ Found factors of N=123 by chance: 3 and 41
 <section id="The-case-N-=-21-and-a-=-5:">
 <h5>The case N = 21 and a = 5:<a class="headerlink" href="#The-case-N-=-21-and-a-=-5:" title="Permalink to this heading">¶</a></h5>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[161]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
@@ -1429,7 +1429,7 @@ Found factors of N=123 by chance: 3 and 41
 </div>
 <p>Verify in the code block below that the kernels defined above do in fact carry out multiplication and exponentiation with <span class="math notranslate nohighlight">\(a=5\)</span> and <span class="math notranslate nohighlight">\(N=21\)</span> by changing the <code class="docutils literal notranslate"><span class="pre">iterations</span></code> variable below.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[198]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Demonstrate iterated application of 5y mod 21 where y = 1</span>
@@ -1495,7 +1495,7 @@ For x = 1, the computed result of the circuit is 5
 <h5>The case N = 21 and a = 4:<a class="headerlink" href="#The-case-N-=-21-and-a-=-4:" title="Permalink to this heading">¶</a></h5>
 <p>The example below is one where the work register has been optimized to use fewer gates and qubits than would have been necessary through a straightforward implementation of modular multiplication as seen in the previous case.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[199]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
@@ -1527,7 +1527,7 @@ For x = 1, the computed result of the circuit is 5
 </div>
 <p>Now we are ready to define the <code class="docutils literal notranslate"><span class="pre">phase_kernel</span></code> to carry out the instructions in the circuit diagram drawn at the beginning of this section.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[200]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
@@ -1557,7 +1557,7 @@ For x = 1, the computed result of the circuit is 5
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[201]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">control_register_size</span> <span class="o">=</span> <span class="mi">3</span>
@@ -1659,7 +1659,7 @@ Measurement results for a=5 and N=21 with 3 qubits in the control register
 <h3>Determining the order from the measurement results of the phase kernel<a class="headerlink" href="#Determining-the-order-from-the-measurement-results-of-the-phase-kernel" title="Permalink to this heading">¶</a></h3>
 <p>The measurement results from sampling the <code class="docutils literal notranslate"><span class="pre">phase_kernel</span></code> can be used to estimate the phase of the operator <span class="math notranslate nohighlight">\(U|x\rangle = ax\mod N\)</span>. We will only be interested in the most probable non-zero outcomes of the sampling. Therefore, we’ll create a function <code class="docutils literal notranslate"><span class="pre">top_results</span></code> to extract those values.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[202]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">top_results</span><span class="p">(</span><span class="n">sample_results</span><span class="p">,</span> <span class="n">zeros</span><span class="p">,</span> <span class="n">threshold</span><span class="p">):</span>
@@ -1688,7 +1688,7 @@ Measurement results for a=5 and N=21 with 3 qubits in the control register
 </div>
 <p>Let’s see how the <code class="docutils literal notranslate"><span class="pre">top_results</span></code> extracts the top results from the measurement results for a=4 and N=21 with 3 qubits in the control register that we computed above. One of these top result is likely to be an estimate for the phase of <span class="math notranslate nohighlight">\(U\)</span>.</p>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[203]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="c1"># Example</span>
@@ -1697,7 +1697,7 @@ Measurement results for a=5 and N=21 with 3 qubits in the control register
 </div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[203]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
 </pre></div>
 </div>
 <div class="output_area docutils container">
@@ -1714,7 +1714,7 @@ Measurement results for a=5 and N=21 with 3 qubits in the control register
 <p>The algorithm for translating the phase estimate of the operator <span class="math notranslate nohighlight">\(U|x\rangle = ax\mod N\)</span> into the order of <span class="math notranslate nohighlight">\(a \mod N\)</span> involves continued fractions. The function <code class="docutils literal notranslate"><span class="pre">find_order_quantum</span></code> below carries out this computation. To learn more about how the phase of <span class="math notranslate nohighlight">\(U\)</span> relates to the period of <span class="math notranslate nohighlight">\(a \mod N\)</span>, check out these three lectures by Scott Aaronson: lecture <a class="reference external" href="https://www.scottaaronson.com/qclec/19.pdf">19</a>, <a class="reference external" href="https://www.scottaaronson.com/qclec/20.pdf">20</a>,
 <a class="reference external" href="https://www.scottaaronson.com/qclec/21.pdf">21</a>.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[204]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">get_order_from_phase</span><span class="p">(</span><span class="n">phase</span><span class="p">,</span> <span class="n">phase_nbits</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">N</span><span class="p">):</span>
@@ -1765,7 +1765,7 @@ Measurement results for a=5 and N=21 with 3 qubits in the control register
 </div>
 <p>We are now ready to combine all the elements above into a function to find the order of <span class="math notranslate nohighlight">\(a\)</span> <span class="math notranslate nohighlight">\(\mod N\)</span> and test it in the factoring algoithm.</p>
 <div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[205]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">find_order_quantum</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">N</span><span class="p">):</span>
@@ -1832,7 +1832,7 @@ Measurement results for a=5 and N=21 with 3 qubits in the control register
 </div>
 </div>
 <div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[206]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
 </pre></div>
 </div>
 <div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">my_integer</span> <span class="o">=</span> <span class="mi">21</span>
@@ -1882,7 +1882,7 @@ Found factors of N = 21: 7 and 3
 </pre></div></div>
 </div>
 <div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[206]:
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
 </pre></div>
 </div>
 <div class="output_area docutils container">

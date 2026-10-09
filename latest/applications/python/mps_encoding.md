@@ -2097,7 +2097,7 @@ index error.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [1]:
 :::
 :::
 
@@ -2111,7 +2111,7 @@ index error.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [1]:
+    [2]:
 :::
 :::
 
@@ -2145,7 +2145,7 @@ index error.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [2]:
+    [3]:
 :::
 :::
 
@@ -2208,7 +2208,7 @@ index error.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [8]:
+    [4]:
 :::
 :::
 
@@ -2435,7 +2435,7 @@ index error.
 ::: {.nbinput .nblast .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [10]:
+    [5]:
 :::
 :::
 
@@ -2465,7 +2465,7 @@ index error.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [6]:
 :::
 :::
 
@@ -2499,7 +2499,7 @@ index error.
 ::: {.nbinput .docutils .container}
 ::: {.prompt .highlight-none .notranslate}
 ::: highlight
-    [ ]:
+    [7]:
 :::
 :::
 

@@ -2279,8 +2279,11 @@ When [`kernel_type`{.docutils .literal .notranslate}]{.pre}` `{.docutils
     ctx.gpu_dev_qp     = gpu_roce_get_gpu_dev_qp(transceiver);
     ctx.rx_ring_data   = gpu_roce_get_rx_ring_data_addr(transceiver);
     ctx.rx_ring_stride_sz  = gpu_roce_get_page_size(transceiver);
-    ctx.rx_ring_mkey   = htonl(gpu_roce_get_rkey(transceiver));
     ctx.rx_ring_stride_num = gpu_roce_get_num_pages(transceiver);
+    // Responses go out of the TX ring, slot for slot with the RX ring
+    ctx.tx_ring_data   = gpu_roce_get_tx_ring_data_addr(transceiver);
+    ctx.tx_ring_stride_sz  = gpu_roce_get_page_size(transceiver);
+    ctx.tx_ring_mkey   = htonl(gpu_roce_get_tx_ring_lkey(transceiver));
     ctx.frame_size     = frame_size;
 
     // Configure dispatcher for unified mode
