@@ -9,6 +9,42 @@
 // REQUIRES: qlx-opt
 // RUN: qlx-opt -split-input-file %s --qlx-to-pbc | FileCheck %s
 
+/// Rebuilding regions preserves classical arguments, metadata, and independent
+/// analysis for each program in a module.
+module {
+  qlx.program @preserve_region_metadata : (i1) -> (i1, i1)
+      attributes {qlx.stage = "p0", test.tag = "program"} {
+  ^bb0(%flag: i1):
+    %q = qlx.prepare "zero" {allocation = 0 : i64, value_index = 0 : i64} : !qlx.logical_qubit
+    %r = cflow.repeat 4 iter(%arg : !qlx.logical_qubit = %q) {
+      %t = qlx.apply #qlx.action<t>(%arg) : (!qlx.logical_qubit) -> !qlx.logical_qubit
+      cflow.yield %t : !qlx.logical_qubit
+    } {test.tag = "repeat"}
+    %m = qlx.measure #qlx.pauli<Z> %r : !qlx.logical_qubit -> i1
+    qlx.return %flag, %m : i1, i1
+  }
+  qlx.program @independent_frame : () -> i1 attributes {qlx.stage = "p0"} {
+    %q = qlx.prepare "zero" {allocation = 0 : i64, value_index = 0 : i64} : !qlx.logical_qubit
+    %h = qlx.apply #qlx.action<h>(%q) : (!qlx.logical_qubit) -> !qlx.logical_qubit
+    %m = qlx.measure #qlx.pauli<Z> %h : !qlx.logical_qubit -> i1
+    qlx.return %m : i1
+  }
+}
+
+// CHECK-LABEL: qlx.program @preserve_region_metadata
+//  CHECK-SAME: test.tag = "program"
+//       CHECK: ^bb0(%[[METAFLAG:.*]]: i1):
+//       CHECK: cflow.repeat 4
+//       CHECK: qlx.apply #qlx.action<pauli_rotation>
+//       CHECK: } {test.tag = "repeat"}
+//       CHECK: %[[METAMPP:.*]]:2 = qlx.instrument #qlx.instrument<mpp>
+//       CHECK: qlx.return %[[METAFLAG]], %[[METAMPP]]#1 : i1, i1
+// CHECK-LABEL: qlx.program @independent_frame
+//       CHECK: qlx.instrument #qlx.instrument<mpp>
+//  CHECK-SAME: x_mask = 1 : i64, z_mask = 0 : i64
+
+// -----
+
 /// No Clifford to absorb: the T becomes a Z-axis rotation and the Z
 /// measurement keeps its basis (x_mask = 0, z_mask = 1 for both).
 qlx.program @t_without_clifford : () -> i1 attributes {qlx.stage = "p0"} {

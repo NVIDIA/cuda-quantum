@@ -21,6 +21,7 @@
 #include "mlir/IR/IRMapping.h"
 #include "mlir/IR/OwningOpRef.h"
 #include "mlir/IR/Verifier.h"
+#include "mlir/Transforms/DialectConversion.h"
 #include <cmath>
 #include <limits>
 
@@ -220,17 +221,26 @@ struct Disposition {
   StringAttr reason;
 };
 
-/// Analyze and rewrite one qlx.program. Qubit identities are global to the
-/// program, while SSA values remain local to their containing repeat region.
-/// This lets a lowered rotation keep its folded region structure without
-/// losing the global Pauli axis computed by the stabilizer frame.
-class ProgramLowering {
-public:
-  explicit ProgramLowering(ProgramOp program)
-      : program(program), ctx(program.getContext()),
-        lqbit(LogicalQubitType::get(ctx)), i1(IntegerType::get(ctx, 1)) {}
+/// Facts about the normalized source IR, shared read-only by conversion
+/// patterns. Pattern retries must never advance a frame or an ownership cursor.
+struct PBCProgramAnalysis {
+  llvm::DenseMap<Value, unsigned> qubitIndices;
+  llvm::SmallVector<Value> initialOwners;
+  llvm::SmallVector<Measurement> measurements;
+  llvm::SmallVector<Disposition> dispositions;
+  llvm::DenseMap<Operation *, unsigned> rotationGenerators;
+  llvm::DenseSet<Operation *> sourceRegions;
+  Frame frame{0};
+};
 
-  LogicalResult run() {
+/// Validate and normalize one program before computing its final Pauli frame.
+/// Normalization changes operation identities, so only the final analysis is
+/// exposed to the conversion patterns.
+class ProgramAnalysisBuilder {
+public:
+  explicit ProgramAnalysisBuilder(ProgramOp program) : program(program) {}
+
+  LogicalResult run(PBCProgramAnalysis &analysis) {
     Block &body = program.getBody().front();
     resetAnalysis();
     llvm::DenseMap<unsigned, Value> currentOwner;
@@ -268,18 +278,20 @@ public:
         return failure();
     }
 
-    activeFrame = &frame;
-    llvm::SmallVector<Value> current(initValues.begin(), initValues.end());
-    if (failed(rewriteBlock(body, current)))
-      return failure();
-    return emitTerminalMeasurements(body, current, frame);
+    analysis.qubitIndices = std::move(qidx);
+    analysis.initialOwners = std::move(initValues);
+    analysis.measurements = std::move(measurements);
+    analysis.dispositions = std::move(dispositions);
+    analysis.rotationGenerators = std::move(rotationGenerator);
+    analysis.frame = std::move(frame);
+    analysis.sourceRegions.insert(program);
+    program.walk(
+        [&](cflow::RepeatOp repeat) { analysis.sourceRegions.insert(repeat); });
+    return success();
   }
 
 private:
   ProgramOp program;
-  MLIRContext *ctx;
-  Type lqbit;
-  Type i1;
   llvm::DenseMap<Value, unsigned> qidx;
   llvm::SmallVector<Value> initValues;
   llvm::SmallVector<Measurement> measurements;
@@ -296,7 +308,6 @@ private:
     rotationGenerator.clear();
     repeatScope.clear();
     repeatIdentity.clear();
-    activeFrame = nullptr;
   }
 
   LogicalResult requireLogicalGateSignature(ApplyOp apply, unsigned arity) {
@@ -771,7 +782,8 @@ private:
              << maxPeriodicClonedOperations << "-operation budget";
     }
 
-    OpBuilder builder(repeat);
+    IRRewriter builder(repeat.getContext());
+    builder.setInsertionPoint(repeat);
     llvm::SmallVector<Value> current(repeat.getInits().begin(),
                                      repeat.getInits().end());
     FailureOr<cflow::RepeatOp> chunk =
@@ -791,13 +803,11 @@ private:
       current.assign(remainder->getResults().begin(),
                      remainder->getResults().end());
     }
-    for (auto [result, replacement] : llvm::zip(repeat.getResults(), current))
-      result.replaceAllUsesWith(replacement);
     repeat.getBody().walk([&](cflow::RepeatOp nested) {
       repeatIdentity.erase(nested.getOperation());
     });
     repeatIdentity.erase(repeat.getOperation());
-    repeat.erase();
+    builder.replaceOp(repeat, current);
     return success();
   }
 
@@ -884,172 +894,240 @@ private:
     }
     return success();
   }
+};
 
-  LogicalResult rewriteApply(ApplyOp apply,
-                             llvm::SmallVectorImpl<Value> &current) {
-    for (Value result : apply.getResults())
-      if (!isa<LogicalQubitType>(result.getType()))
-        return apply.emitOpError(
-            "qlx-to-pbc internal error: a nonlogical action result escaped "
-            "signature preflight");
-
-    auto action = cast<BuiltinActionAttr>(apply.getActionAttr()).getValue();
-    if (action == BuiltinAction::t || action == BuiltinAction::tdg) {
-      auto found = rotationGenerator.find(apply.getOperation());
-      if (found == rotationGenerator.end())
-        return apply.emitOpError(
-            "qlx-to-pbc internal error: missing repeat rotation summary");
-      const Generator &column = activeFrame->gens[found->second];
+/// Emit a body in source order. Ownership is local to this one pattern
+/// invocation: a rotation can advance qubits beyond its source T operand.
+/// Nested repeats are moved intact so the conversion driver can lower them and
+/// remap their results in the already rebuilt surrounding body.
+static LogicalResult emitBody(Block &source, Block &destination,
+                              const PBCProgramAnalysis &analysis,
+                              llvm::SmallVectorImpl<Value> &current,
+                              ConversionPatternRewriter &rewriter) {
+  rewriter.setInsertionPointToEnd(&destination);
+  for (Operation &operation :
+       llvm::make_early_inc_range(source.without_terminator())) {
+    if (isa<PrepareOp, arith::ConstantOp>(operation)) {
+      rewriter.moveOpBefore(&operation, &destination, destination.end());
+      continue;
+    }
+    if (auto apply = dyn_cast<ApplyOp>(operation)) {
+      auto found = analysis.rotationGenerators.find(apply);
+      if (found == analysis.rotationGenerators.end()) {
+        auto action = cast<BuiltinActionAttr>(apply.getActionAttr()).getValue();
+        if (action == BuiltinAction::t || action == BuiltinAction::tdg)
+          return apply.emitOpError(
+              "qlx-to-pbc internal error: missing rotation summary");
+        continue; // Its Clifford action is already included in the frame.
+      }
+      const Generator &column = analysis.frame.gens[found->second];
       llvm::SmallVector<unsigned> support = supportOf(column);
-      if (failed(requireRepresentableMask(apply, support.size(),
-                                          "Pauli-product rotation")))
-        return failure();
       llvm::SmallVector<Value> operands;
       llvm::SmallVector<Type> results;
       for (unsigned qubit : support) {
         if (!current[qubit])
-          return apply.emitOpError()
-                 << "qlx-to-pbc rotation support escapes the repeat carry "
-                    "set at logical-qubit identity "
-                 << qubit;
+          return apply.emitOpError(
+              "qlx-to-pbc lost a rotation support owner during conversion");
         operands.push_back(current[qubit]);
-        results.push_back(lqbit);
+        results.push_back(current[qubit].getType());
       }
-      OpBuilder builder(apply);
       auto angle = arith::ConstantOp::create(
-          builder, apply.getLoc(), builder.getF64FloatAttr(M_PI / 4.0));
+          rewriter, apply.getLoc(), rewriter.getF64FloatAttr(M_PI / 4.0));
       operands.push_back(angle);
       auto rotation = ApplyOp::create(
-          builder, apply.getLoc(), TypeRange(results),
-          BuiltinActionAttr::get(ctx, BuiltinAction::pauli_rotation), operands,
-          pauliParams(builder, support, column, /*withAngle=*/true));
-      for (auto [index, qubit] : llvm::enumerate(support)) {
+          rewriter, apply.getLoc(), TypeRange(results),
+          BuiltinActionAttr::get(rewriter.getContext(),
+                                 BuiltinAction::pauli_rotation),
+          operands, pauliParams(rewriter, support, column, /*withAngle=*/true));
+      for (auto [index, qubit] : llvm::enumerate(support))
         current[qubit] = rotation.getResult(index);
-        qidx[rotation.getResult(index)] = qubit;
-      }
+      continue;
     }
-
-    for (Value result : apply.getResults()) {
-      if (!isa<LogicalQubitType>(result.getType()))
-        continue;
-      unsigned qubit = qidx.lookup(result);
-      if (!current[qubit])
-        return apply.emitOpError(
-            "qlx-to-pbc lost the current SSA value for a logical qubit");
-      result.replaceAllUsesWith(current[qubit]);
-    }
-    for (Value result : apply.getResults())
-      if (!result.use_empty())
-        return apply.emitOpError(
-            "qlx-to-pbc internal error: an action result remains live before "
-            "source erasure");
-    apply.erase();
-    return success();
-  }
-
-  LogicalResult rewriteBlock(Block &block,
-                             llvm::SmallVectorImpl<Value> &current) {
-    llvm::SmallVector<Operation *> original;
-    for (Operation &operation : block)
-      original.push_back(&operation);
-
-    for (Operation *operation : original) {
-      if (auto apply = dyn_cast<ApplyOp>(operation)) {
-        if (failed(rewriteApply(apply, current)))
-          return failure();
-        continue;
-      }
-      auto repeat = dyn_cast<cflow::RepeatOp>(operation);
-      if (!repeat)
-        continue;
-
-      llvm::SmallVector<Value> nested(initValues.size());
-      Block &repeatBody = repeat.getBody().front();
-      for (auto [index, argument] :
-           llvm::enumerate(repeatBody.getArguments())) {
-        unsigned qubit = qidx.lookup(argument);
+    if (auto repeat = dyn_cast<cflow::RepeatOp>(operation)) {
+      llvm::SmallVector<Value> inits;
+      for (Value result : repeat.getResults()) {
+        unsigned qubit = analysis.qubitIndices.lookup(result);
         if (!current[qubit])
           return repeat.emitOpError(
-              "qlx-to-pbc lost the current SSA value for a repeat init");
-        repeat->setOperand(index, current[qubit]);
-        nested[qubit] = argument;
+              "qlx-to-pbc lost a repeat input owner during conversion");
+        inits.push_back(current[qubit]);
       }
-      if (failed(rewriteBlock(repeatBody, nested)))
-        return failure();
-
-      auto yield = cast<cflow::YieldOp>(repeatBody.getTerminator());
-      for (auto [index, argument] :
-           llvm::enumerate(repeatBody.getArguments())) {
-        unsigned qubit = qidx.lookup(argument);
-        if (!nested[qubit])
-          return repeat.emitOpError("qlx-to-pbc lost a yielded repeat carry");
-        yield->setOperand(index, nested[qubit]);
-        current[qubit] = repeat.getResult(index);
-      }
+      rewriter.modifyOpInPlace(repeat, [&] { repeat->setOperands(inits); });
+      rewriter.moveOpBefore(repeat, &destination, destination.end());
+      for (Value result : repeat.getResults())
+        current[analysis.qubitIndices.lookup(result)] = result;
+      continue;
     }
+    // Source measurements and discards are emitted together at the program
+    // exit. They and the absorbed applies disappear with the source region.
+    if (!isa<MeasureOp, DiscardOp>(operation))
+      return operation.emitOpError(
+          "qlx-to-pbc has no conversion for this body operation");
+  }
+  return success();
+}
+
+static LogicalResult
+emitTerminalMeasurements(Location location, const PBCProgramAnalysis &analysis,
+                         llvm::SmallVectorImpl<Value> &current,
+                         IRMapping &mapping,
+                         ConversionPatternRewriter &rewriter) {
+  for (const Measurement &measurement : analysis.measurements) {
+    const Generator &column = analysis.frame.gens[measurement.generator];
+    llvm::SmallVector<unsigned> support = supportOf(column);
+    llvm::SmallVector<Value> operands;
+    llvm::SmallVector<Type> results;
+    for (unsigned qubit : support) {
+      operands.push_back(current[qubit]);
+      results.push_back(current[qubit].getType());
+    }
+    results.push_back(rewriter.getI1Type());
+    auto mpp = InstrumentOp::create(
+        rewriter, location, TypeRange(results),
+        BuiltinInstrumentAttr::get(rewriter.getContext(),
+                                   BuiltinInstrument::mpp),
+        operands, pauliParams(rewriter, support, column, /*withAngle=*/false));
+    for (auto [index, qubit] : llvm::enumerate(support))
+      current[qubit] = mpp.getResult(index);
+    mapping.map(measurement.op->getResult(0), mpp.getResults().back());
+  }
+
+  for (const Disposition &disposition : analysis.dispositions) {
+    llvm::SmallVector<Value> operands;
+    for (unsigned qubit : disposition.qubits) {
+      if (!current[qubit])
+        return disposition.op->emitOpError(
+            "qlx-to-pbc lost a source discard owner during conversion");
+      operands.push_back(current[qubit]);
+      current[qubit] = Value();
+    }
+    DiscardOp::create(rewriter, disposition.op->getLoc(), operands,
+                      disposition.reason);
+  }
+
+  llvm::SmallVector<Value> terminalOwners;
+  for (Value owner : current)
+    if (owner)
+      terminalOwners.push_back(owner);
+  if (!terminalOwners.empty())
+    DiscardOp::create(rewriter, location, terminalOwners,
+                      /*reason=*/StringAttr{});
+  return success();
+}
+
+/// Rebuild the block signature without changing its types. The local mapping
+/// also preserves classical program arguments used by the return operation.
+static Block *createBody(Block &source, Region &destination, IRMapping &mapping,
+                         ConversionPatternRewriter &rewriter) {
+  llvm::SmallVector<Location> locations;
+  for (BlockArgument argument : source.getArguments())
+    locations.push_back(argument.getLoc());
+  Block *body = rewriter.createBlock(&destination, destination.end(),
+                                     source.getArgumentTypes(), locations);
+  for (auto [sourceArg, targetArg] :
+       llvm::zip(source.getArguments(), body->getArguments()))
+    mapping.map(sourceArg, targetArg);
+  return body;
+}
+
+class ProgramToPBCPattern : public OpConversionPattern<ProgramOp> {
+public:
+  ProgramToPBCPattern(MLIRContext *context, const PBCProgramAnalysis &analysis)
+      : OpConversionPattern(context), analysis(analysis) {}
+
+  LogicalResult
+  matchAndRewrite(ProgramOp program, OpAdaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    if (!analysis.sourceRegions.contains(program))
+      return failure();
+    auto replacement =
+        cast<ProgramOp>(rewriter.cloneWithoutRegions(*program.getOperation()));
+    Block &source = program.getBody().front();
+    IRMapping mapping;
+    Block *body = createBody(source, replacement.getBody(), mapping, rewriter);
+    llvm::SmallVector<Value> current(analysis.initialOwners.begin(),
+                                     analysis.initialOwners.end());
+    if (failed(emitBody(source, *body, analysis, current, rewriter)) ||
+        failed(emitTerminalMeasurements(program.getLoc(), analysis, current,
+                                        mapping, rewriter)))
+      return failure();
+    rewriter.clone(*source.getTerminator(), mapping);
+    rewriter.replaceOp(program, replacement->getResults());
     return success();
   }
 
-  LogicalResult emitTerminalMeasurements(Block &block,
-                                         llvm::SmallVectorImpl<Value> &current,
-                                         Frame &frame) {
-    Operation *terminator = block.getTerminator();
-    OpBuilder builder(terminator);
-    Location location = program.getLoc();
-
-    for (Measurement &measurement : measurements) {
-      const Generator &column = frame.gens[measurement.generator];
-      llvm::SmallVector<unsigned> support = supportOf(column);
-      if (failed(requireRepresentableMask(measurement.op, support.size(),
-                                          "Pauli-product measurement")))
-        return failure();
-      llvm::SmallVector<Value> operands;
-      llvm::SmallVector<Type> results;
-      for (unsigned qubit : support) {
-        operands.push_back(current[qubit]);
-        results.push_back(lqbit);
-      }
-      results.push_back(i1);
-      auto mpp = InstrumentOp::create(
-          builder, location, TypeRange(results),
-          BuiltinInstrumentAttr::get(ctx, BuiltinInstrument::mpp), operands,
-          pauliParams(builder, support, column, /*withAngle=*/false));
-      for (auto [index, qubit] : llvm::enumerate(support))
-        current[qubit] = mpp.getResult(index);
-      measurement.op.getResult().replaceAllUsesWith(mpp.getResults().back());
-    }
-
-    for (Disposition &disposition : dispositions) {
-      llvm::SmallVector<Value> operands;
-      operands.reserve(disposition.qubits.size());
-      for (unsigned qubit : disposition.qubits) {
-        if (!current[qubit])
-          return disposition.op.emitOpError(
-              "qlx-to-pbc lost a source discard owner during rewriting");
-        operands.push_back(current[qubit]);
-        current[qubit] = Value();
-      }
-      DiscardOp::create(builder, disposition.op.getLoc(), operands,
-                        disposition.reason);
-    }
-
-    llvm::SmallVector<Value> terminalOwners;
-    for (Value owner : current)
-      if (owner)
-        terminalOwners.push_back(owner);
-    if (!terminalOwners.empty())
-      DiscardOp::create(builder, location, terminalOwners,
-                        /*reason=*/StringAttr{});
-
-    for (Measurement &measurement : measurements)
-      measurement.op.erase();
-    for (Disposition &disposition : dispositions)
-      disposition.op.erase();
-    return success();
-  }
-
-  Frame *activeFrame = nullptr;
+private:
+  const PBCProgramAnalysis &analysis;
 };
+
+class RepeatToPBCPattern : public OpConversionPattern<cflow::RepeatOp> {
+public:
+  RepeatToPBCPattern(MLIRContext *context, const PBCProgramAnalysis &analysis)
+      : OpConversionPattern(context), analysis(analysis) {
+    // Rebuilding an outer repeat exposes its nested source repeats to this
+    // pattern. Each source region is replaced once; generated regions are
+    // legal.
+    setHasBoundedRewriteRecursion();
+  }
+
+  LogicalResult
+  matchAndRewrite(cflow::RepeatOp repeat, OpAdaptor adaptor,
+                  ConversionPatternRewriter &rewriter) const override {
+    if (!analysis.sourceRegions.contains(repeat))
+      return failure();
+    IRMapping mapping;
+    for (auto [input, remapped] :
+         llvm::zip(repeat.getInits(), adaptor.getInits()))
+      mapping.map(input, remapped);
+    auto replacement = cast<cflow::RepeatOp>(
+        rewriter.cloneWithoutRegions(*repeat.getOperation(), mapping));
+    Block &source = repeat.getBody().front();
+    Block *body = createBody(source, replacement.getBody(), mapping, rewriter);
+    llvm::SmallVector<Value> current(analysis.initialOwners.size());
+    for (auto [sourceArg, targetArg] :
+         llvm::zip(source.getArguments(), body->getArguments()))
+      current[analysis.qubitIndices.lookup(sourceArg)] = targetArg;
+    if (failed(emitBody(source, *body, analysis, current, rewriter)))
+      return failure();
+    auto yield = cast<cflow::YieldOp>(source.getTerminator());
+    for (Value operand : yield.getOperands())
+      mapping.map(operand, current[analysis.qubitIndices.lookup(operand)]);
+    rewriter.clone(*yield.getOperation(), mapping);
+    rewriter.replaceOp(repeat, replacement.getResults());
+    return success();
+  }
+
+private:
+  const PBCProgramAnalysis &analysis;
+};
+
+static LogicalResult convertProgramToPBC(ProgramOp program) {
+  PBCProgramAnalysis analysis;
+  if (failed(ProgramAnalysisBuilder(program).run(analysis)))
+    return failure();
+
+  ConversionTarget target(*program.getContext());
+  target.addDynamicallyLegalOp<ProgramOp, cflow::RepeatOp>(
+      [&](Operation *op) { return !analysis.sourceRegions.contains(op); });
+  // Do not mark the containers recursively legal: moved source repeats still
+  // need conversion, and every generated operation must meet this target.
+  target.addLegalOp<PrepareOp, arith::ConstantOp, cflow::YieldOp, ReturnOp,
+                    DiscardOp>();
+  target.addDynamicallyLegalOp<ApplyOp>([](ApplyOp apply) {
+    auto action = dyn_cast<BuiltinActionAttr>(apply.getActionAttr());
+    return action && action.getValue() == BuiltinAction::pauli_rotation;
+  });
+  target.addDynamicallyLegalOp<InstrumentOp>([](InstrumentOp instrument) {
+    auto action =
+        dyn_cast<BuiltinInstrumentAttr>(instrument.getInstrumentAttr());
+    return action && action.getValue() == BuiltinInstrument::mpp;
+  });
+  target.addIllegalOp<MeasureOp>();
+  RewritePatternSet patterns(program.getContext());
+  patterns.add<ProgramToPBCPattern, RepeatToPBCPattern>(program.getContext(),
+                                                        analysis);
+  return applyFullConversion(program, target, std::move(patterns));
+}
 
 } // namespace
 
@@ -1061,8 +1139,7 @@ static LogicalResult lowerToPBCInPlace(ModuleOp module) {
   module.walk([&](ProgramOp program) {
     if (failed(result))
       return;
-    ProgramLowering lowering(program);
-    result = lowering.run();
+    result = convertProgramToPBC(program);
   });
   return result;
 }
