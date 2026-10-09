@@ -12,12 +12,13 @@
 #
 # Usage:
 #   bash scripts/build_wheel.sh              # macOS only (CPU only)
+#   bash scripts/build_wheel.sh -c cpu       # Linux: build cpu wheel
 #   bash scripts/build_wheel.sh -c 12        # Linux: build cu12 wheel
 #   bash scripts/build_wheel.sh -c 13        # Linux: build cu13 wheel
 #   bash scripts/build_wheel.sh -d           # Build cudaq-devel wheel (dev SDK)
 #
 # Options:
-#   -c <cuda_version>: CUDA variant, 12 or 13 (Linux only)
+#   -c <cuda_version>: CUDA variant: cpu, 12, or 13 (Linux only)
 #   -d: Build cudaq-devel dev SDK instead of runtime wheel
 #   -s: Build separate core/frontend wheels (default: combined runtime wheel)
 #   -o <output_dir>: Output directory for wheels (default: dist)
@@ -160,15 +161,28 @@ elif [ "$platform" = "Darwin" ]; then
     echo "macOS: building cu$cuda_variant wheel (CPU-only)"
 else
     # Linux: require explicit -c option
-    if [ -z "$cuda_variant" ]; then
-        echo "Error: CUDA variant required. Use -c 12 or -c 13" >&2
-        exit 1
-    fi
-    if [ "$cuda_variant" != "12" ] && [ "$cuda_variant" != "13" ]; then
-        echo "Error: CUDA variant must be 12 or 13, got: $cuda_variant" >&2
-        exit 1
-    fi
-    echo "Linux: building cu$cuda_variant wheel"
+    case "$cuda_variant" in
+        12|cu12)
+            cuda_variant="12"
+            echo "Linux: building cu12 wheel"
+            ;;
+        13|cu13)
+            cuda_variant="13"
+            echo "Linux: building cu13 wheel"
+            ;;
+        cpu)
+            cuda_variant="cpu"
+            echo "Linux: building cpu wheel"
+            ;;
+        "")
+            echo "Error: CUDA variant required. Use -c cpu, -c 12, or -c 13" >&2
+            exit 1
+            ;;
+        *)
+            echo "Error: CUDA variant must be cpu, 12, or 13, got: $cuda_variant" >&2
+            exit 1
+            ;;
+    esac
 fi
 
 # Set up Python
@@ -198,7 +212,11 @@ if $build_devel; then
     sed "s/__CUDAQ_VERSION__/${version}/g" "$pyproject_src" > pyproject.toml
     echo "Using pyproject: $pyproject_src (cudaq==${version})"
 else
-    pyproject_src="pyproject.toml.cu${cuda_variant}"
+    if [ "$cuda_variant" = "cpu" ]; then
+        pyproject_src="pyproject.toml.cpu"
+    else
+        pyproject_src="pyproject.toml.cu${cuda_variant}"
+    fi
     if [ ! -f "$pyproject_src" ]; then
         echo "Error: $pyproject_src not found" >&2
         exit 1
@@ -217,13 +235,20 @@ if ! $build_devel && [ -f "python/README.md.in" ]; then
   cp python/README.md.in python/README.md
   
   # Set template variables (matching original Dockerfile logic)
-  # CUDA_VERSION is the full version (e.g., "12.6"), cuda_variant is major only (e.g., "12")
-  package_name="cuda-quantum-cu${cuda_variant}"
-  cuda_version_full="${CUDA_VERSION:-${cuda_variant}.0}"
-  cuda_version_requirement=">= ${cuda_version_full}"
-  cuda_version_conda="${cuda_version_full}.0"
-  # Map conda version 13.0.0 -> 13.0.2 (conda channel doesn't have 13.0.0)
-  cuda_version_conda="${cuda_version_conda/13.0.0/13.0.2}"
+  if [ "$cuda_variant" = "cpu" ]; then
+    package_name="cuda-quantum-cpu"
+    cuda_version_full="cpu"
+    cuda_version_requirement="none (CPU-only)"
+    cuda_version_conda="none"
+  else
+    # CUDA_VERSION is the full version (e.g., "12.6"), cuda_variant is major only (e.g., "12")
+    package_name="cuda-quantum-cu${cuda_variant}"
+    cuda_version_full="${CUDA_VERSION:-${cuda_variant}.0}"
+    cuda_version_requirement=">= ${cuda_version_full}"
+    cuda_version_conda="${cuda_version_full}.0"
+    # Map conda version 13.0.0 -> 13.0.2 (conda channel doesn't have 13.0.0)
+    cuda_version_conda="${cuda_version_conda/13.0.0/13.0.2}"
+  fi
   deprecation_notice=""  # No deprecation notice by default
   
   # Perform substitutions
@@ -499,19 +524,21 @@ else
     rm -rf "${auditwheel_tmp:?}"
     mkdir -p "$auditwheel_tmp"
     auditwheel_args="repair $wheel_file -w $auditwheel_tmp"
-    auditwheel_args="$auditwheel_args --exclude libcustatevec.so.1"
-    auditwheel_args="$auditwheel_args --exclude libcutensornet.so.2"
-    auditwheel_args="$auditwheel_args --exclude libcudensitymat.so.0"
-    auditwheel_args="$auditwheel_args --exclude libcublas.so.$cuda_major"
-    auditwheel_args="$auditwheel_args --exclude libcublasLt.so.$cuda_major"
-    auditwheel_args="$auditwheel_args --exclude libcurand.so.10"
-    auditwheel_args="$auditwheel_args --exclude libcusolver.so.11"
-    auditwheel_args="$auditwheel_args --exclude libcusparse.so.$cuda_major"
-    auditwheel_args="$auditwheel_args --exclude libcutensor.so.2"
-    auditwheel_args="$auditwheel_args --exclude libnvToolsExt.so.1"
-    auditwheel_args="$auditwheel_args --exclude libcudart.so.$cudart_libsuffix"
-    auditwheel_args="$auditwheel_args --exclude libnvidia-ml.so.1"
-    auditwheel_args="$auditwheel_args --exclude libcuda.so.1"
+    if [ "$cuda_variant" != "cpu" ]; then
+        auditwheel_args="$auditwheel_args --exclude libcustatevec.so.1"
+        auditwheel_args="$auditwheel_args --exclude libcutensornet.so.2"
+        auditwheel_args="$auditwheel_args --exclude libcudensitymat.so.0"
+        auditwheel_args="$auditwheel_args --exclude libcublas.so.$cuda_major"
+        auditwheel_args="$auditwheel_args --exclude libcublasLt.so.$cuda_major"
+        auditwheel_args="$auditwheel_args --exclude libcurand.so.10"
+        auditwheel_args="$auditwheel_args --exclude libcusolver.so.11"
+        auditwheel_args="$auditwheel_args --exclude libcusparse.so.$cuda_major"
+        auditwheel_args="$auditwheel_args --exclude libcutensor.so.2"
+        auditwheel_args="$auditwheel_args --exclude libnvToolsExt.so.1"
+        auditwheel_args="$auditwheel_args --exclude libcudart.so.$cudart_libsuffix"
+        auditwheel_args="$auditwheel_args --exclude libnvidia-ml.so.1"
+        auditwheel_args="$auditwheel_args --exclude libcuda.so.1"
+    fi
     auditwheel_args="$auditwheel_args --exclude libgmp.so.10"
     auditwheel_args="$auditwheel_args --exclude libmpfr.so.6"
 
@@ -571,13 +598,15 @@ if $run_tests; then
 
     # Add CUDA version for Linux
     if [ "$platform" != "Darwin" ]; then
-        # Determine full CUDA version for conda (e.g., 12.6.0)
-        if [ "$cuda_variant" = "12" ]; then
-            cuda_version_conda="${CUDA_VERSION_CONDA:-12.6.0}"
-        else
-            cuda_version_conda="${CUDA_VERSION_CONDA:-13.0.0}"
+        if [ "$cuda_variant" != "cpu" ]; then
+            # Determine full CUDA version for conda (e.g., 12.6.0)
+            if [ "$cuda_variant" = "12" ]; then
+                cuda_version_conda="${CUDA_VERSION_CONDA:-12.6.0}"
+            else
+                cuda_version_conda="${CUDA_VERSION_CONDA:-13.0.0}"
+            fi
+            validate_args="$validate_args -c $cuda_version_conda"
         fi
-        validate_args="$validate_args -c $cuda_version_conda"
     fi
 
     # Run validation (will auto-detect test files from repo)

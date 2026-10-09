@@ -184,11 +184,16 @@ def _infer_best_package() -> str:
     """
     Checks what packages should be installed, and handles potential conflicts.
     """
+    env_override = os.environ.get('CUDAQ_BDIST')
+    if env_override:
+        _log(f"Using environment override CUDAQ_BDIST: {env_override}")
+        return env_override
+
     # Find the existing wheel installation
     installed = []
     for pkg in [
-            'cuda-quantum', 'cuda-quantum-cu11', 'cuda-quantum-cu12',
-            'cuda-quantum-cu13'
+            'cuda-quantum', 'cuda-quantum-cpu', 'cuda-quantum-cu11',
+            'cuda-quantum-cu12', 'cuda-quantum-cu13'
     ]:
         _log(f"Looking for existing installation of {pkg}.")
         if _check_package_installed(pkg):
@@ -196,7 +201,20 @@ def _infer_best_package() -> str:
 
     cuda_version = _get_cuda_version()
     if cuda_version is None:
-        cudaq_bdist = 'cuda-quantum-cu13'
+        if sys.platform == 'darwin':
+            # macOS: preserve cu13 fallback (CPU-only on macOS) unless cuda-quantum-cpu is installed
+            if 'cuda-quantum-cpu' in installed:
+                cudaq_bdist = 'cuda-quantum-cpu'
+            else:
+                cudaq_bdist = 'cuda-quantum-cu13'
+        else:
+            # Linux: if a CUDA variant is already installed, keep it; otherwise select CPU frontend
+            if 'cuda-quantum-cu12' in installed:
+                cudaq_bdist = 'cuda-quantum-cu12'
+            elif 'cuda-quantum-cu13' in installed:
+                cudaq_bdist = 'cuda-quantum-cu13'
+            else:
+                cudaq_bdist = 'cuda-quantum-cpu'
     elif cuda_version < 12000:
         raise Exception(f'Your CUDA version ({cuda_version}) is too old.')
     elif cuda_version < 13000:
@@ -258,11 +276,15 @@ class CudaqMetadataHook(MetadataHookInterface):
         with (curr_dir / "_logical_version.txt").open("r") as f:
             logical_version = f.read().strip()
         bdist = _infer_best_package()
-        logical_extra = {
-            'cuda-quantum-cu12': 'cu12',
-            'cuda-quantum-cu13': 'cu13',
-        }[bdist]
+        if bdist == 'cuda-quantum-cpu':
+            logical_dep = f"cudaq-logical=={logical_version}; sys_platform == 'linux'"
+        else:
+            logical_extra = {
+                'cuda-quantum-cu12': 'cu12',
+                'cuda-quantum-cu13': 'cu13',
+            }.get(bdist, 'cu13')
+            logical_dep = f"cudaq-logical[{logical_extra}]=={logical_version}; sys_platform == 'linux'"
         metadata["dependencies"] = [
             f"{bdist}=={version}",
-            f"cudaq-logical[{logical_extra}]=={logical_version}; sys_platform == 'linux'",
+            logical_dep,
         ]

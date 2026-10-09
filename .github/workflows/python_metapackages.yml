@@ -215,15 +215,32 @@ jobs:
           # autoremove is in an odd location that isn't found unless we search for it...
           autoremove="$python $($python -m pip show pip3-autoremove |  grep -e 'Location: .*$' | cut -d ' ' -f2)/pip_autoremove.py"
 
-          package_dep=`echo cuda-quantum${cuda_version_suffix:+-cu$cuda_version_suffix} | cut -d '-' -f1-2`
-          if [ -n "$($python -m pip list | grep $package_dep)" ]; then
+          case "${{ matrix.cuda_version }}" in
+            "")
+              if [ -z "$(ls /tmp/packages/cuda_quantum_cpu*.whl 2>/dev/null)" ]; then
+                echo "::warning::No cuda-quantum-cpu wheel in /tmp/packages; skipping CPU metapackage test."
+                exit 0
+              fi
+              package_dep=cuda-quantum-cpu
+            ;;
+            12.*)
+              package_dep=cuda-quantum-cu12
+            ;;
+            13.*)
+              package_dep=cuda-quantum-cu13
+            ;;
+            *)
+              package_dep=cuda-quantum-cu`echo ${{ matrix.cuda_version }} | cut -d '.' -f1`
+            ;;
+          esac
+          if [ -n "$($python -m pip list | grep -E "^${package_dep} ")" ]; then
             echo "::error file=python_metapackages.yml::Unexpected installation of $package_dep package."
             exit 1
           fi
 
           retry $python -m pip install "cudaq==${{ inputs.cudaq_version }}" --find-links "file:///tmp/packages"
 
-          if [ -z "$($python -m pip list | grep $package_dep)" ]; then 
+          if [ -z "$($python -m pip list | grep -E "^${package_dep} ")" ]; then
             echo "::error file=python_metapackages.yml::Missing installation of $package_dep package."
             exit 1
           elif [ "$($python -c 'import cudaq; print(cudaq.get_target().name)')" != "qpp-cpu" ]; then 
@@ -231,8 +248,18 @@ jobs:
             exit 1
           fi
 
+          # On CPU path, verify that no CUDA/cuQuantum GPU dependencies are installed
+          if [ -z "${{ matrix.cuda_version }}" ]; then
+            for gpu_pkg in custatevec-cu cutensornet-cu cudensitymat-cu nvidia-cublas nvidia-cuda-runtime cupy; do
+              if [ -n "$($python -m pip list | grep $gpu_pkg)" ]; then
+                echo "::error file=python_metapackages.yml::GPU package $gpu_pkg should not be installed in CPU mode."
+                exit 1
+              fi
+            done
+          fi
+
           $autoremove -y cudaq
-          if [ -n "$($python -m pip list | grep $package_dep)" ]; then 
+          if [ -n "$($python -m pip list | grep -E "^${package_dep} ")" ]; then
             echo "::error file=python_metapackages.yml::Unexpected installation of $package_dep package."
             exit 1
           fi
@@ -242,7 +269,7 @@ jobs:
             retry $python -m pip install cudaq==${{ inputs.cudaq_version }} --find-links "file:///tmp/packages"
             $python -c 'import cudaq; print(cudaq.get_target().name)'
             $autoremove -y cudaq
-            if [ -z "$($python -m pip list | grep $package_dep)" ]; then 
+            if [ -z "$($python -m pip list | grep -E "^${package_dep} ")" ]; then
               echo "::error file=python_metapackages.yml::Missing installation of $package_dep package."
               exit 1
             fi
@@ -254,7 +281,11 @@ jobs:
           python=python${{ matrix.python_version }}
 
           case "${{ matrix.cuda_version }}" in
-            "") 
+            "")
+              if [ -z "$(ls /tmp/packages/cuda_quantum_cpu*.whl 2>/dev/null)" ]; then
+                echo "::warning::No cuda-quantum-cpu wheel in /tmp/packages; skipping CPU conflict test."
+                exit 0
+              fi
               set +e # continue on error
               $python -m pip install cuda-quantum==${{ inputs.cudaq_version }} --find-links "file:///tmp/packages"
               set -e && check_package=cuda-quantum
