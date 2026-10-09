@@ -18,7 +18,7 @@ namespace cudaq {
 enum class OpenQASMProfile {
   /// Include qelib1.inc and use cx/ccx gate names.
   Standard,
-  /// Omit the include and use Braket's cnot/ccnot gate names.
+  /// Omit the include and use Braket's cnot/ccnot and si/ti gate names.
   Braket
 };
 

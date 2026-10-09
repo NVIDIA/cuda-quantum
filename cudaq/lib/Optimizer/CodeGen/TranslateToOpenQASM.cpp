@@ -324,7 +324,9 @@ static LogicalResult emitOperation(OpenQASMEmitter &emitter,
     if (std::find(validAdjointOps.begin(), validAdjointOps.end(), name.str()) ==
         validAdjointOps.end())
       return optor.emitError("cannot create adjoint for this operation.");
-    emitter.os << name << "dg";
+    emitter.os << name
+               << (emitter.profile == cudaq::OpenQASMProfile::Braket ? "i"
+                                                                     : "dg");
   } else
     emitter.os << name;
 
