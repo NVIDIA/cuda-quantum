@@ -7,9 +7,11 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
-#include "cudaq/Optimizer/Builder/Intrinsics.h"
+#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "llvm/ADT/PostOrderIterator.h"
+#include "llvm/ADT/Statistic.h"
+#include "llvm/Support/Debug.h"
 #include "mlir/Analysis/CFGLoopInfo.h"
 #include "mlir/IR/Dominance.h"
 #include "mlir/IR/OperationSupport.h"
@@ -18,7 +20,6 @@
 #include "mlir/Interfaces/FunctionInterfaces.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
-#include "mlir/Transforms/Passes.h"
 
 namespace cudaq::opt {
 #define GEN_PASS_DEF_DEADSTOREREMOVAL
@@ -28,6 +29,9 @@ namespace cudaq::opt {
 #define DEBUG_TYPE "dead-store-removal"
 
 using namespace mlir;
+
+STATISTIC(numLoadsRemoved, "Number of loads replaced by a known value");
+STATISTIC(numStoresRemoved, "Number of overwritten stores removed");
 
 namespace {
 
@@ -53,32 +57,46 @@ namespace {
 //   - A fact never flows back out of a region or a loop body. After a region
 //     operation the facts that survive are those that nothing in the region
 //     may have written.
+//   - The header of a natural loop in CFG form (found with CFGLoopInfo) is
+//     treated like a cc.loop: what holds on entry to the loop is pruned of
+//     everything that any block of the loop may write. Back-edges of anything
+//     that is not a natural loop leave nothing known.
 //   - A stack slot is private, and so safe from calls and from stores through
 //     other pointers, until the program point where its address may first be
 //     handed out. An operation that leaks the address only affects the code
-//     that may execute after it.
+//     that may execute after it. This is only worked out for code that is
+//     executed at most once, in order: in a region of several blocks, or in a
+//     loop, any operation that leaks the address counts as having done so from
+//     the start.
+//   - Operations that are not loads or stores are assumed to read and write
+//     only the memory that they declare, through MemoryEffectOpInterface, to
+//     touch. Anything that reads or writes memory therefore must declare it.
 //   - A store that was seen before a branch, a region or any other join point
 //     is never removed as being overwritten, since the overwriting store is
 //     not executed on every path (control may also leave the function).
 //===----------------------------------------------------------------------===//
 
+/// The bounds that keep the work done per operation constant. These are the
+/// options of the pass.
 struct Limits {
   /// Maximum number of memory locations whose contents are tracked at once.
   unsigned trackedLocations;
-  /// Maximum depth when comparing address computations for equality.
+  /// Maximum number of levels of operations that are compared when deciding
+  /// that two addresses are equal. Zero means only identical values are.
   unsigned addressDepth;
-  /// Maximum number of escaping uses of a stack slot that are tracked.
+  /// Maximum number of operations that leak the address of a stack slot that
+  /// are tracked. A slot that is leaked more often is treated as leaked from
+  /// the start of the function.
   unsigned escapingUses;
 };
 
 /// Is \p a certainly the same address as \p b? Both must live in the same
 /// block or in blocks that dominate the use, so that SSA identity is
 /// meaningful.
-static bool sameAddress(Value a, Value b, unsigned maxDepth,
-                        unsigned depth = 0) {
+bool sameAddress(Value a, Value b, unsigned maxDepth, unsigned depth = 0) {
   if (a == b)
     return true;
-  if (depth > maxDepth)
+  if (depth >= maxDepth)
     return false;
   auto *da = a.getDefiningOp();
   auto *db = b.getDefiningOp();
@@ -97,7 +115,7 @@ static bool sameAddress(Value a, Value b, unsigned maxDepth,
 }
 
 /// Strip the pointer arithmetic from \p ptr to find the object it points into.
-static Value getRoot(Value ptr) {
+Value getRoot(Value ptr) {
   while (true) {
     if (auto cast = ptr.getDefiningOp<cudaq::cc::CastOp>()) {
       if (!isa<cudaq::cc::PointerType>(cast.getValue().getType()))
@@ -122,6 +140,13 @@ public:
 private:
   /// A memory location whose contents are known: the value that is in memory
   /// and, if it came from a store that may still be removed, that store.
+  ///
+  /// The state is copied freely (into the exit state of a block, into the state
+  /// inside a region, along each edge). A store is erased when it is found to
+  /// be overwritten, so a copy of the state must not hold on to a store unless
+  /// that copy is the only one that is ever going to see it overwritten.
+  /// Whenever the state is copied to more than one place, or control may leave
+  /// without reaching the next operation, the stores are cleared.
   struct MemoryFact {
     Value address;
     Value value;
@@ -137,7 +162,9 @@ private:
     /// Something that is not a plain load or store may read or write any memory
     /// that is not a private stack slot.
     bool clobbersAll = false;
-    /// The addresses of all the stores.
+    /// Too many different stores to list. Any memory may have been written.
+    bool writesAny = false;
+    /// The addresses of the stores.
     SmallVector<Value> writes;
   };
 
@@ -168,7 +195,9 @@ private:
       if (!exits.count(&block)) {
         State state;
         processBlock(block, state);
-      }
+      } // The loops are about to go away, and others may be put at their
+        // addresses.
+    loopSummaries.clear();
   }
 
   /// What is known on entry to \p block, which is not the entry block of its
@@ -215,11 +244,7 @@ private:
     if (loop) {
       // What holds on entry to the loop holds on every iteration only if
       // nothing in the loop may change it.
-      Summary summary;
-      for (Block *member : loop->getBlocks())
-        for (Operation &op : *member)
-          summarize(&op, summary);
-      apply(summary, state, &block.front());
+      apply(summarizeLoop(loop, loops), state, &block.front());
     }
     return state;
   }
@@ -238,8 +263,7 @@ private:
             compare(x.address, y.address, start) == Relation::Same &&
             dom.properlyDominates(x.address, start) &&
             dom.properlyDominates(x.value, start)) {
-          result.push_back({x.address, x.value, cudaq::cc::StoreOp{},
-                            x.observed || y.observed});
+          result.push_back({x.address, x.value, cudaq::cc::StoreOp{}, false});
           break;
         }
     return result;
@@ -257,7 +281,7 @@ private:
         continue; // Declaring a function does not execute it.
       else if (op.getNumRegions() != 0)
         visitRegionOp(state, &op);
-      else if (touchesMemory(&op))
+      else if (mayAccessMemory(&op))
         clobberAll(state, &op);
     }
   }
@@ -273,8 +297,11 @@ private:
       if (rel == Relation::Same && fact.value.getType() == load.getType()) {
         // Store-load forwarding or redundant load. This load does not read
         // memory any more, so it does not observe the store.
+        LLVM_DEBUG(llvm::dbgs()
+                   << "forwarding " << fact.value << " to " << load << '\n');
         load.getResult().replaceAllUsesWith(fact.value);
         load.erase();
+        ++numLoadsRemoved;
         return;
       }
     }
@@ -294,8 +321,12 @@ private:
       // is completely overwritten (the types must agree so that all of the
       // bytes are overwritten).
       if (rel == Relation::Same && fact.store && !fact.observed &&
-          fact.value.getType() == val.getType())
+          fact.value.getType() == val.getType()) {
+        LLVM_DEBUG(llvm::dbgs()
+                   << "removing overwritten " << fact.store << '\n');
         fact.store.erase();
+        ++numStoresRemoved;
+      }
       return rel != Relation::Disjoint;
     });
     remember(state, {addr, val, store, false});
@@ -304,8 +335,7 @@ private:
   /// An operation with regions. What is known inside of it, and after it, is
   /// derived from what is known in front of it.
   void visitRegionOp(State &state, Operation *op) {
-    Summary summary;
-    summarize(op, summary);
+    const Summary &summary = summarize(op);
     State inner;
     if (isa<cudaq::cc::IfOp, cudaq::cc::ScopeOp>(op)) {
       inner = state;
@@ -328,20 +358,89 @@ private:
       fact.store = cudaq::cc::StoreOp{};
   }
 
-  /// Add what \p op, and anything nested in it, might do to memory.
-  void summarize(Operation *op, Summary &summary) {
-    op->walk([&](Operation *o) {
-      if (isa<FunctionOpInterface>(o))
-        return;
-      if (auto store = dyn_cast<cudaq::cc::StoreOp>(o))
-        summary.writes.push_back(store.getPtrvalue());
-      else if (!isa<cudaq::cc::LoadOp>(o) && touchesMemory(o, /*walk=*/false))
-        summary.clobbersAll = true;
-    });
+  /// Add \p write to the stores that \p summary lists.
+  void addWrite(Summary &summary, Value write) {
+    if (summary.writesAny || llvm::is_contained(summary.writes, write))
+      return;
+    if (summary.writes.size() >= maxSummaryWrites()) {
+      summary.writesAny = true;
+      summary.writes.clear();
+      return;
+    }
+    summary.writes.push_back(write);
   }
+
+  void merge(Summary &into, const Summary &from) {
+    into.clobbersAll |= from.clobbersAll;
+    if (from.writesAny) {
+      into.writesAny = true;
+      into.writes.clear();
+      return;
+    }
+    for (Value w : from.writes)
+      addWrite(into, w);
+  }
+
+  /// Add what \p op, and anything nested in it, might do to memory.
+  void summarizeInto(Operation *op, Summary &summary) {
+    if (isa<FunctionOpInterface>(op))
+      return; // Declaring a function does not execute it.
+    if (auto store = dyn_cast<cudaq::cc::StoreOp>(op)) {
+      addWrite(summary, store.getPtrvalue());
+      return;
+    }
+    if (isa<cudaq::cc::LoadOp>(op))
+      return;
+    if (op->getNumRegions() != 0)
+      merge(summary, summarize(op));
+    else if (mayAccessMemory(op))
+      summary.clobbersAll = true;
+  }
+
+  /// What \p op, and anything nested in it, might do to memory. Every
+  /// operation is summarized once, from the summaries of the operations nested
+  /// in it, which are kept.
+  const Summary &summarize(Operation *op) {
+    auto it = summaries.find(op);
+    if (it != summaries.end())
+      return it->second;
+    Summary summary;
+    if (mayAccessMemory(op))
+      summary.clobbersAll = true;
+    for (Region &region : op->getRegions())
+      for (Block &block : region)
+        for (Operation &nested : block)
+          summarizeInto(&nested, summary);
+    // Summarizing the nested operations may have rehashed the map.
+    return summaries[op] = std::move(summary);
+  }
+
+  /// What the blocks of \p loop, including those of the loops nested in it,
+  /// might do to memory.
+  const Summary &summarizeLoop(CFGLoop *loop, CFGLoopInfo &loops) {
+    auto it = loopSummaries.find(loop);
+    if (it != loopSummaries.end())
+      return it->second;
+    Summary summary;
+    for (CFGLoop *sub : loop->getSubLoops())
+      merge(summary, summarizeLoop(sub, loops));
+    for (Block *member : loop->getBlocks())
+      if (loops.getLoopFor(member) == loop)
+        for (Operation &op : *member)
+          summarizeInto(&op, summary);
+    return loopSummaries[loop] = std::move(summary);
+  }
+
+  /// A summary that lists more stores than this says that anything may have
+  /// been written, which keeps what is done with a summary constant.
+  unsigned maxSummaryWrites() const { return 2 * limits.trackedLocations; }
 
   /// Forget everything that \p summary says might have changed.
   void apply(const Summary &summary, State &state, Operation *at) {
+    if (summary.writesAny) {
+      state.clear();
+      return;
+    }
     llvm::erase_if(state, [&](MemoryFact &fact) {
       if (summary.clobbersAll && !isPrivateSlot(fact.address, at))
         return true;
@@ -371,29 +470,20 @@ private:
   // Memory.
   //===--------------------------------------------------------------------===//
 
-  /// Might \p op read or write memory that is visible to loads and stores?
-  static bool touchesMemory(Operation *op, bool walk = true) {
-    auto shallow = [](Operation *o) {
-      if (auto iface = dyn_cast<MemoryEffectOpInterface>(o)) {
-        SmallVector<MemoryEffects::EffectInstance> effects;
-        iface.getEffects(effects);
-        for (auto &e : effects)
-          if (isa<MemoryEffects::Read, MemoryEffects::Write>(e.getEffect()))
-            return true;
-        return false;
-      }
-      // Operations that only have effects through their regions are examined
-      // through those regions.
-      return !o->hasTrait<OpTrait::HasRecursiveMemoryEffects>();
-    };
-    if (!walk)
-      return shallow(op);
-    bool touches = false;
-    op->walk([&](Operation *o) {
-      touches = shallow(o);
-      return touches ? WalkResult::interrupt() : WalkResult::advance();
-    });
-    return touches;
+  /// Might \p op, ignoring the operations nested in it, read or write memory
+  /// that is visible to loads and stores?
+  static bool mayAccessMemory(Operation *op) {
+    if (auto iface = dyn_cast<MemoryEffectOpInterface>(op)) {
+      SmallVector<MemoryEffects::EffectInstance> effects;
+      iface.getEffects(effects);
+      for (auto &e : effects)
+        if (isa<MemoryEffects::Read, MemoryEffects::Write>(e.getEffect()))
+          return true;
+      return false;
+    }
+    // Operations that only have effects through their regions are examined
+    // through those regions.
+    return !op->hasTrait<OpTrait::HasRecursiveMemoryEffects>();
   }
 
   /// Is \p address in a stack slot whose address is not available, when \p at
@@ -500,23 +590,26 @@ private:
     if (ca && cb && ca.getBase() == cb.getBase() &&
         ca.getDynamicIndices().empty() && cb.getDynamicIndices().empty()) {
       // Constant subobject indices off the very same base. This is by far the
-      // most common case, so don't do any more work.
+      // most common case, so don't do any more work. Indices that are out of
+      // range are not valid, so different indices are different locations.
       auto ia = ca.getRawConstantIndices();
       auto ib = cb.getRawConstantIndices();
       if (ia == ib)
         return Relation::Same;
       return ia.size() == ib.size() ? Relation::Disjoint : Relation::MayAlias;
     }
-    if (sameAddress(a, b, limits.addressDepth))
-      return Relation::Same;
     Value ra = getRoot(a);
     Value rb = getRoot(b);
-    if (ra == rb)
-      return Relation::MayAlias;
     auto aa = ra.getDefiningOp<cudaq::cc::AllocaOp>();
     auto ab = rb.getDefiningOp<cudaq::cc::AllocaOp>();
-    if (aa && ab)
-      return Relation::Disjoint; // distinct stack objects
+    // Distinct stack objects. This is the most common question, so answer it
+    // before doing any more work.
+    if (aa && ab && aa != ab)
+      return Relation::Disjoint;
+    if (sameAddress(a, b, limits.addressDepth))
+      return Relation::Same;
+    if (ra == rb)
+      return Relation::MayAlias;
     if ((aa && !escapedAt(aa, at)) || (ab && !escapedAt(ab, at)))
       return Relation::Disjoint;
     return Relation::MayAlias;
@@ -524,7 +617,12 @@ private:
 
   DominanceInfo &dom;
   Limits limits;
+  /// Operations that leak a stack slot are never erased by this analysis, so
+  /// these may be kept.
   DenseMap<Operation *, Escapes> escapes;
+  DenseMap<Operation *, Summary> summaries;
+  /// The summaries of the loops of the region being processed.
+  DenseMap<CFGLoop *, Summary> loopSummaries;
 };
 
 class DSRPattern : public OpRewritePattern<cudaq::cc::AllocaOp> {
@@ -597,8 +695,9 @@ public:
     LLVM_DEBUG(llvm::dbgs() << "Before erasure:\n" << *op << "\n\n");
     // Forward stores to loads and remove overwritten stores.
     DominanceInfo domInfo(op);
-    Forwarder forwarder(
-        domInfo, {maxTrackedLocations, maxAddressDepth, maxEscapingUses});
+    Forwarder forwarder(domInfo, {.trackedLocations = maxTrackedLocations,
+                                  .addressDepth = maxAddressDepth,
+                                  .escapingUses = maxEscapingUses});
     op->walk([&](FunctionOpInterface func) {
       if (!func.isExternal())
         forwarder.processFunction(func.getFunctionBody());

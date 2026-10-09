@@ -1674,7 +1674,7 @@ void cudaq::quake::getOperatorEffectsImpl(EffectsVectorImpl &effects,
 #define GATE_OPS(MACRO) BUILTIN_GATE_OPS(MACRO) CUSTOM_GATE_OPS(MACRO)
 #define MEASURE_OPS(MACRO) MACRO(MxOp) MACRO(MyOp) MACRO(MzOp)
 #define QUANTUM_OPS(MACRO)                                                     \
-  MACRO(ResetOp) MACRO(ExpPauliOp) MACRO(PhaseOp) GATE_OPS(MACRO)              \
+  MACRO(ResetOp) MACRO(PhaseOp) GATE_OPS(MACRO)                                \
   MEASURE_OPS(MACRO)
 #define WIRE_OPS(MACRO) MACRO(FromControlOp) MACRO(ResetOp) MACRO(NullCableOp) \
   MACRO(NullWireOp) MACRO(UnwrapOp)
@@ -1688,6 +1688,18 @@ void cudaq::quake::getOperatorEffectsImpl(EffectsVectorImpl &effects,
   }
 
 QUANTUM_OPS(INSTANTIATE_CALLBACKS)
+
+/// An exp_pauli reads the Pauli word, if it is given as an argument, in
+/// addition to the effects it has on its qubits. This is the case whether the
+/// qubits are in reference or in value form.
+void cudaq::quake::ExpPauliOp::getEffects(
+    SmallVectorImpl<SideEffects::EffectInstance<MemoryEffects::Effect>>
+        &effects) {
+  getEffectsImpl(effects);
+  if (getPauli())
+    effects.emplace_back(MemoryEffects::Read::get(), &getPauliMutable()[0],
+                         SideEffects::DefaultResource::get());
+}
 
 #define INSTANTIATE_LINEAR_TYPE_VERIFY(Op)                                     \
   LogicalResult cudaq::quake::Op::verify() {                                   \

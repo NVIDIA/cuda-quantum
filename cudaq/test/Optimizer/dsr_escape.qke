@@ -188,3 +188,22 @@ func.func @escape_inside_region_op(%c: i1, %v: i32) {
 // CHECK:         cc.if
 // CHECK:         %[[R:.*]] = cc.load
 // CHECK:         call @use(%[[R]])
+
+// The address is passed as the operand of a branch, which is a leak, in a
+// function with several blocks.
+func.func @escape_through_branch_operand(%v: i32) {
+  %s = cc.alloca i32
+  cf.br ^next(%s : !cc.ptr<i32>)
+^next(%p: !cc.ptr<i32>):
+  cc.store %v, %s : !cc.ptr<i32>
+  func.call @take(%p) : (!cc.ptr<i32>) -> ()
+  %r = cc.load %s : !cc.ptr<i32>
+  func.call @use(%r) : (i32) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @escape_through_branch_operand(
+// CHECK:         cc.store
+// CHECK:         call @take
+// CHECK:         %[[R:.*]] = cc.load
+// CHECK:         call @use(%[[R]])

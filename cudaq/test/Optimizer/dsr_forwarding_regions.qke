@@ -467,3 +467,170 @@ func.func @cfg_loop_header_call_kills_fact(%c: i1, %p: !cc.ptr<i32>, %v: i32) {
 // CHECK-LABEL: func.func @cfg_loop_header_call_kills_fact(
 // CHECK:         %[[R:.*]] = cc.load
 // CHECK:         call @use(%[[R]])
+
+// A loop with more stores than are listed in a summary. It must still be
+// assumed to write what the last of them writes.
+func.func @loop_many_stores(%a: !cc.ptr<!cc.array<i32 x 128>>, %p: !cc.ptr<i32>,
+                            %n: i64, %v: i32) -> i32 {
+  %c0 = arith.constant 0 : i64
+  %c1 = arith.constant 1 : i64
+  cc.store %v, %p : !cc.ptr<i32>
+  %res = cc.loop while ((%i = %c0) -> (i64)) {
+    %cond = arith.cmpi ult, %i, %n : i64
+    cc.condition %cond (%i : i64)
+  } do {
+    ^bb1(%i: i64):
+      %e0 = cc.compute_ptr %a[0] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e0 : !cc.ptr<i32>
+      %e1 = cc.compute_ptr %a[1] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e1 : !cc.ptr<i32>
+      %e2 = cc.compute_ptr %a[2] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e2 : !cc.ptr<i32>
+      %e3 = cc.compute_ptr %a[3] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e3 : !cc.ptr<i32>
+      %e4 = cc.compute_ptr %a[4] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e4 : !cc.ptr<i32>
+      %e5 = cc.compute_ptr %a[5] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e5 : !cc.ptr<i32>
+      %e6 = cc.compute_ptr %a[6] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e6 : !cc.ptr<i32>
+      %e7 = cc.compute_ptr %a[7] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e7 : !cc.ptr<i32>
+      %e8 = cc.compute_ptr %a[8] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e8 : !cc.ptr<i32>
+      %e9 = cc.compute_ptr %a[9] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e9 : !cc.ptr<i32>
+      %e10 = cc.compute_ptr %a[10] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e10 : !cc.ptr<i32>
+      %e11 = cc.compute_ptr %a[11] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e11 : !cc.ptr<i32>
+      %e12 = cc.compute_ptr %a[12] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e12 : !cc.ptr<i32>
+      %e13 = cc.compute_ptr %a[13] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e13 : !cc.ptr<i32>
+      %e14 = cc.compute_ptr %a[14] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e14 : !cc.ptr<i32>
+      %e15 = cc.compute_ptr %a[15] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e15 : !cc.ptr<i32>
+      %e16 = cc.compute_ptr %a[16] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e16 : !cc.ptr<i32>
+      %e17 = cc.compute_ptr %a[17] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e17 : !cc.ptr<i32>
+      %e18 = cc.compute_ptr %a[18] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e18 : !cc.ptr<i32>
+      %e19 = cc.compute_ptr %a[19] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e19 : !cc.ptr<i32>
+      %e20 = cc.compute_ptr %a[20] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e20 : !cc.ptr<i32>
+      %e21 = cc.compute_ptr %a[21] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e21 : !cc.ptr<i32>
+      %e22 = cc.compute_ptr %a[22] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e22 : !cc.ptr<i32>
+      %e23 = cc.compute_ptr %a[23] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e23 : !cc.ptr<i32>
+      %e24 = cc.compute_ptr %a[24] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e24 : !cc.ptr<i32>
+      %e25 = cc.compute_ptr %a[25] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e25 : !cc.ptr<i32>
+      %e26 = cc.compute_ptr %a[26] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e26 : !cc.ptr<i32>
+      %e27 = cc.compute_ptr %a[27] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e27 : !cc.ptr<i32>
+      %e28 = cc.compute_ptr %a[28] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e28 : !cc.ptr<i32>
+      %e29 = cc.compute_ptr %a[29] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e29 : !cc.ptr<i32>
+      %e30 = cc.compute_ptr %a[30] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e30 : !cc.ptr<i32>
+      %e31 = cc.compute_ptr %a[31] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e31 : !cc.ptr<i32>
+      %e32 = cc.compute_ptr %a[32] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e32 : !cc.ptr<i32>
+      %e33 = cc.compute_ptr %a[33] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e33 : !cc.ptr<i32>
+      %e34 = cc.compute_ptr %a[34] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e34 : !cc.ptr<i32>
+      %e35 = cc.compute_ptr %a[35] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e35 : !cc.ptr<i32>
+      %e36 = cc.compute_ptr %a[36] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e36 : !cc.ptr<i32>
+      %e37 = cc.compute_ptr %a[37] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e37 : !cc.ptr<i32>
+      %e38 = cc.compute_ptr %a[38] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e38 : !cc.ptr<i32>
+      %e39 = cc.compute_ptr %a[39] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e39 : !cc.ptr<i32>
+      %e40 = cc.compute_ptr %a[40] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e40 : !cc.ptr<i32>
+      %e41 = cc.compute_ptr %a[41] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e41 : !cc.ptr<i32>
+      %e42 = cc.compute_ptr %a[42] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e42 : !cc.ptr<i32>
+      %e43 = cc.compute_ptr %a[43] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e43 : !cc.ptr<i32>
+      %e44 = cc.compute_ptr %a[44] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e44 : !cc.ptr<i32>
+      %e45 = cc.compute_ptr %a[45] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e45 : !cc.ptr<i32>
+      %e46 = cc.compute_ptr %a[46] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e46 : !cc.ptr<i32>
+      %e47 = cc.compute_ptr %a[47] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e47 : !cc.ptr<i32>
+      %e48 = cc.compute_ptr %a[48] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e48 : !cc.ptr<i32>
+      %e49 = cc.compute_ptr %a[49] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e49 : !cc.ptr<i32>
+      %e50 = cc.compute_ptr %a[50] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e50 : !cc.ptr<i32>
+      %e51 = cc.compute_ptr %a[51] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e51 : !cc.ptr<i32>
+      %e52 = cc.compute_ptr %a[52] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e52 : !cc.ptr<i32>
+      %e53 = cc.compute_ptr %a[53] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e53 : !cc.ptr<i32>
+      %e54 = cc.compute_ptr %a[54] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e54 : !cc.ptr<i32>
+      %e55 = cc.compute_ptr %a[55] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e55 : !cc.ptr<i32>
+      %e56 = cc.compute_ptr %a[56] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e56 : !cc.ptr<i32>
+      %e57 = cc.compute_ptr %a[57] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e57 : !cc.ptr<i32>
+      %e58 = cc.compute_ptr %a[58] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e58 : !cc.ptr<i32>
+      %e59 = cc.compute_ptr %a[59] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e59 : !cc.ptr<i32>
+      %e60 = cc.compute_ptr %a[60] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e60 : !cc.ptr<i32>
+      %e61 = cc.compute_ptr %a[61] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e61 : !cc.ptr<i32>
+      %e62 = cc.compute_ptr %a[62] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e62 : !cc.ptr<i32>
+      %e63 = cc.compute_ptr %a[63] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e63 : !cc.ptr<i32>
+      %e64 = cc.compute_ptr %a[64] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e64 : !cc.ptr<i32>
+      %e65 = cc.compute_ptr %a[65] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e65 : !cc.ptr<i32>
+      %e66 = cc.compute_ptr %a[66] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e66 : !cc.ptr<i32>
+      %e67 = cc.compute_ptr %a[67] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e67 : !cc.ptr<i32>
+      %e68 = cc.compute_ptr %a[68] : (!cc.ptr<!cc.array<i32 x 128>>) -> !cc.ptr<i32>
+      cc.store %v, %e68 : !cc.ptr<i32>
+      %w = arith.addi %v, %v : i32
+      cc.store %w, %p : !cc.ptr<i32>
+      cc.continue %i : i64
+  } step {
+    ^bb2(%i: i64):
+      %next = arith.addi %i, %c1 : i64
+      cc.continue %next : i64
+  }
+  %r = cc.load %p : !cc.ptr<i32>
+  return %r : i32
+}
+
+// CHECK-LABEL: func.func @loop_many_stores(
+// CHECK:         cc.loop
+// CHECK:         %[[R:.*]] = cc.load
+// CHECK:         return %[[R]]

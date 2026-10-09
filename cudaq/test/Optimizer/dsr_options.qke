@@ -23,13 +23,18 @@ func.func @forward(%p: !cc.ptr<i32>, %v: i32) -> i32 {
 }
 
 // DEFAULT-LABEL: func.func @forward(
-// DEFAULT-SAME:      %{{.*}}: !cc.ptr<i32>, %[[V:.*]]: i32) -> i32 {
-// DEFAULT-NOT:   cc.load
-// DEFAULT:       return %[[V]]
-// NOTRACK-LABEL: func.func @forward(
-// NOTRACK:       cc.load
+// DEFAULT-SAME:      %[[P:.*]]: !cc.ptr<i32>, %[[V:.*]]: i32) -> i32 {
+// DEFAULT-NEXT:    cc.store %[[V]], %[[P]]
+// DEFAULT-NEXT:    return %[[V]]
 // ONE-LABEL:     func.func @forward(
-// ONE-NOT:       cc.load
+// ONE-SAME:          %[[P:.*]]: !cc.ptr<i32>, %[[V:.*]]: i32) -> i32 {
+// ONE-NEXT:        cc.store %[[V]], %[[P]]
+// ONE-NEXT:        return %[[V]]
+// NOTRACK-LABEL: func.func @forward(
+// NOTRACK-SAME:      %[[P:.*]]: !cc.ptr<i32>, %[[V:.*]]: i32) -> i32 {
+// NOTRACK-NEXT:    cc.store %[[V]], %[[P]]
+// NOTRACK-NEXT:    %[[R:.*]] = cc.load %[[P]]
+// NOTRACK-NEXT:    return %[[R]]
 
 // With room for one location, the second store pushes out the first.
 func.func @two(%p: !cc.ptr<i32>, %v: i32) -> i32 {
@@ -41,9 +46,14 @@ func.func @two(%p: !cc.ptr<i32>, %v: i32) -> i32 {
 }
 
 // DEFAULT-LABEL: func.func @two(
-// DEFAULT-NOT:   cc.load
+// DEFAULT-SAME:      %[[P:.*]]: !cc.ptr<i32>, %[[V:.*]]: i32) -> i32 {
+// DEFAULT:         cc.store %[[V]], %[[P]]
+// DEFAULT-NEXT:    return %[[V]]
 // ONE-LABEL:     func.func @two(
-// ONE:           cc.load
+// ONE-SAME:          %[[P:.*]]: !cc.ptr<i32>, %[[V:.*]]: i32) -> i32 {
+// ONE:             cc.store %[[V]], %[[P]]
+// ONE-NEXT:        %[[R:.*]] = cc.load %[[P]]
+// ONE-NEXT:        return %[[R]]
 
 // Comparing structurally equal (but not identical) operands needs some depth.
 func.func @depth(%a: !cc.ptr<!cc.array<i32 x 4>>, %v: i32) -> i32 {
@@ -57,11 +67,16 @@ func.func @depth(%a: !cc.ptr<!cc.array<i32 x 4>>, %v: i32) -> i32 {
 }
 
 // DEFAULT-LABEL: func.func @depth(
-// DEFAULT-NOT:   cc.load
+// DEFAULT-SAME:      %{{.*}}: !cc.ptr<!cc.array<i32 x 4>>, %[[V:.*]]: i32) -> i32 {
+// DEFAULT:         cc.store %[[V]], %{{.*}}
+// DEFAULT-NEXT:    return %[[V]]
 // DEPTH-LABEL:   func.func @depth(
-// DEPTH:         cc.load
+// DEPTH:           cc.store
+// DEPTH-NEXT:      cc.compute_ptr
+// DEPTH-NEXT:      %[[R:.*]] = cc.load
+// DEPTH-NEXT:      return %[[R]]
 
-// A slot with more escaping uses than tracked is escaped everywhere.
+// A slot with more escaping uses than are tracked is escaped everywhere.
 func.func @escape(%v: i32) -> i32 {
   %s = cc.alloca i32
   cc.store %v, %s : !cc.ptr<i32>
@@ -72,6 +87,12 @@ func.func @escape(%v: i32) -> i32 {
 }
 
 // DEFAULT-LABEL: func.func @escape(
-// DEFAULT-NOT:   cc.load
+// DEFAULT-SAME:      %[[V:.*]]: i32) -> i32 {
+// DEFAULT:         call @opaque
+// DEFAULT-NEXT:    call @take
+// DEFAULT-NEXT:    return %[[V]]
 // ESC-LABEL:     func.func @escape(
-// ESC:           cc.load
+// ESC:             call @opaque
+// ESC-NEXT:        %[[R:.*]] = cc.load
+// ESC-NEXT:        call @take
+// ESC-NEXT:        return %[[R]]

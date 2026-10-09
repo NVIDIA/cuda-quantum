@@ -6,9 +6,10 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// Block-local store-to-load forwarding, redundant load removal and removal of
-// overwritten stores. No fact is ever carried across a block boundary (loop
-// back-edge, cc.if exit, etc.), where a block argument is a merge of values.
+// Store-to-load forwarding, redundant load removal and removal of overwritten
+// stores within a block, including facts that are carried through a series of
+// operations that cannot change them. Facts that cross a region or a branch are
+// in dsr_forwarding_regions.qke and dsr_cfg_loops.qke.
 
 // RUN: cudaq-opt --dead-store-removal %s | FileCheck %s
 
@@ -141,6 +142,24 @@ func.func @different_type(%p: !cc.ptr<i32>, %v: i32) -> i64 {
 // CHECK:         cc.store
 // CHECK:         %[[R:.*]] = cc.load
 // CHECK:         return %[[R]]
+
+// An operation that reads memory observes the store, whatever else it is. It
+// must not be considered overwritten by the later store.
+func.func @reader_observes_store(%v: i32, %w: i32, %n: i64)
+    -> !cc.ptr<!quake.state> {
+  %s = cc.alloca !cc.array<complex<f64> x 2>
+  %p = cc.cast %s : (!cc.ptr<!cc.array<complex<f64> x 2>>) -> !cc.ptr<i32>
+  cc.store %v, %p : !cc.ptr<i32>
+  %st = quake.create_state %s, %n : (!cc.ptr<!cc.array<complex<f64> x 2>>, i64) -> !cc.ptr<!quake.state>
+  cc.store %w, %p : !cc.ptr<i32>
+  return %st : !cc.ptr<!quake.state>
+}
+
+// CHECK-LABEL: func.func @reader_observes_store(
+// CHECK-SAME:      %[[V:.*]]: i32, %[[W:.*]]: i32, %{{.*}}: i64)
+// CHECK:         cc.store %[[V]], %
+// CHECK:         quake.create_state
+// CHECK:         cc.store %[[W]], %
 
 // A call may read or write memory that is not a private stack slot.
 func.func private @opaque()
@@ -468,3 +487,43 @@ func.func @cfg_loop_carried_address(%c: i1, %a: !cc.ptr<!cc.array<i32 x ?>>,
 // CHECK:       ^bb1(%[[I:.*]]: i64):
 // CHECK:         cc.compute_ptr
 // CHECK:         cc.store
+
+// An exp_pauli reads the Pauli word when it is given as an argument, so a store
+// of the word is not overwritten before the exp_pauli. This is so whether the
+// qubits are in reference or in value form.
+func.func @exp_pauli_reads_word(%w0: i8, %w1: i8, %theta: f64) {
+  %q = quake.alloca !quake.ref
+  %word = cc.alloca !cc.array<i8 x 1>
+  %p = cc.cast %word : (!cc.ptr<!cc.array<i8 x 1>>) -> !cc.ptr<i8>
+  cc.store %w0, %p : !cc.ptr<i8>
+  quake.exp_pauli (%theta) %q to %word : (f64, !quake.ref, !cc.ptr<!cc.array<i8 x 1>>) -> ()
+  cc.store %w1, %p : !cc.ptr<i8>
+  quake.exp_pauli (%theta) %q to %word : (f64, !quake.ref, !cc.ptr<!cc.array<i8 x 1>>) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @exp_pauli_reads_word(
+// CHECK-SAME:      %[[W0:.*]]: i8, %[[W1:.*]]: i8, %{{.*}}: f64) {
+// CHECK:         cc.store %[[W0]], %
+// CHECK:         quake.exp_pauli
+// CHECK:         cc.store %[[W1]], %
+// CHECK:         quake.exp_pauli
+
+func.func @exp_pauli_wire_reads_word(%w0: i8, %w1: i8, %theta: f64) {
+  %q = quake.null_wire
+  %word = cc.alloca !cc.array<i8 x 1>
+  %p = cc.cast %word : (!cc.ptr<!cc.array<i8 x 1>>) -> !cc.ptr<i8>
+  cc.store %w0, %p : !cc.ptr<i8>
+  %q1 = quake.exp_pauli (%theta) %q to %word : (f64, !quake.wire, !cc.ptr<!cc.array<i8 x 1>>) -> !quake.wire
+  cc.store %w1, %p : !cc.ptr<i8>
+  %q2 = quake.exp_pauli (%theta) %q1 to %word : (f64, !quake.wire, !cc.ptr<!cc.array<i8 x 1>>) -> !quake.wire
+  quake.sink %q2 : !quake.wire
+  return
+}
+
+// CHECK-LABEL: func.func @exp_pauli_wire_reads_word(
+// CHECK-SAME:      %[[W0:.*]]: i8, %[[W1:.*]]: i8, %{{.*}}: f64) {
+// CHECK:         cc.store %[[W0]], %
+// CHECK:         quake.exp_pauli
+// CHECK:         cc.store %[[W1]], %
+// CHECK:         quake.exp_pauli
