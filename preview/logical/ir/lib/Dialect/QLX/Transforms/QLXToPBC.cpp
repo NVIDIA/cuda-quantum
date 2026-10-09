@@ -19,7 +19,6 @@
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/IRMapping.h"
-#include "mlir/IR/OwningOpRef.h"
 #include "mlir/IR/Verifier.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include <cmath>
@@ -1131,7 +1130,9 @@ static LogicalResult convertProgramToPBC(ProgramOp program) {
 
 } // namespace
 
-static LogicalResult lowerToPBCInPlace(ModuleOp module) {
+LogicalResult qlx::lowerToPBC(ModuleOp module) {
+  if (failed(mlir::verify(module)))
+    return failure();
   MLIRContext *ctx = module.getContext();
   ctx->getOrLoadDialect<arith::ArithDialect>();
   ctx->getOrLoadDialect<cflow::CflowDialect>();
@@ -1141,23 +1142,15 @@ static LogicalResult lowerToPBCInPlace(ModuleOp module) {
       return;
     result = convertProgramToPBC(program);
   });
-  return result;
-}
-
-LogicalResult qlx::lowerToPBC(ModuleOp module) {
+  if (failed(result))
+    return failure();
   if (failed(mlir::verify(module)))
     return failure();
-  OwningOpRef<ModuleOp> candidate(module.clone());
-  if (failed(lowerToPBCInPlace(*candidate)))
-    return failure();
-  if (failed(mlir::verify(*candidate)))
-    return failure();
   std::string error;
-  if (failed(qlx::verifyPBCForm(*candidate, error))) {
-    candidate->emitError(error);
+  if (failed(qlx::verifyPBCForm(module, error))) {
+    module.emitError(error);
     return failure();
   }
-  module.getBodyRegion().takeBody(candidate->getBodyRegion());
   return success();
 }
 
