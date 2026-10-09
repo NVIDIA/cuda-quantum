@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import importlib
+import runpy
 import sys
 from pathlib import Path
 
@@ -25,6 +26,20 @@ def factory():
         yield importlib.import_module("gidney_ekera_factory")
     finally:
         sys.path.remove(str(EXAMPLE_ROOT))
+
+
+@pytest.fixture(scope="module")
+def example(factory):
+    return runpy.run_path(str(EXAMPLE_ROOT / "05_gidney_ekera.py"),
+                          run_name="gidney_ekera_example")
+
+
+@pytest.fixture(autouse=True)
+def reset_cudaq_target_after_test():
+    yield
+    import cudaq
+
+    cudaq.reset_target()
 
 
 def test_rsa2048_operating_point_reproduces_paper_layout(factory):
@@ -70,3 +85,27 @@ def test_rsa2048_factory_characterization_matches_reference(factory):
         point.factory_output_interval_cycles)
     assert (model.characterization.physical_units ==
             point.factory_lane_physical_qubits)
+
+
+@pytest.mark.parametrize("modulus_bits", (2048,))
+def test_resource_kernel_matches_operating_point(factory, example,
+                                                 modulus_bits):
+    import cudaq
+    import cudaq.logical as cql
+
+    point = factory.OPERATING_POINTS[modulus_bits]
+    cudaq.set_target(cql.targets.estimator)
+    estimate = cudaq.estimate(example["build_resource_kernel"](point))
+    logical = cql.estimate.LogicalEstimate.from_annotations(
+        estimate.annotations)
+
+    # Accumulator, bus, address, runways, two ancillas, unlookup qubit.
+    assert logical.logical_qubits_peak == (2 * point.accumulator_width +
+                                           point.address_width +
+                                           point.carry_pieces + 3)
+    assert logical.synthesis_demand == {
+        "qlx_standard_ccx": point.lookup_count * point.toffolis_per_lookup
+    }
+
+    result = example["calculate_analytical_metrics"](logical, point)
+    assert result.folded_lookups == point.lookup_count
