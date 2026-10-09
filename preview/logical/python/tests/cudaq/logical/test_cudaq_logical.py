@@ -170,6 +170,73 @@ def test_native_logical_objective_exports_a_kernel_through_its_gadget():
     assert "qlx.apply @paired_x" in imported.to_mlir()
 
 
+def test_import_cudaq_accepts_a_qvector_kernel():
+    import cudaq
+    import cudaq.logical as cql
+
+    @cudaq.kernel
+    def bell_qvector():
+        q = cudaq.qvector(2)
+        h(q[0])
+        x.ctrl(q[0], q[1])
+        mz(q)
+
+    p0 = cql.compiler.import_cudaq(bell_qvector).to_mlir()
+    assert p0.count("#qlx.action<h>") == 1
+    assert p0.count("#qlx.action<cx>") == 1
+    assert p0.count("qlx.measure <Z>") == 2
+
+
+def test_import_cudaq_accepts_a_scalar_qubit_kernel():
+    import cudaq
+    import cudaq.logical as cql
+
+    @cudaq.kernel
+    def bell_qubits():
+        left = cudaq.qubit()
+        right = cudaq.qubit()
+        h(left)
+        x.ctrl(left, right)
+        mz(left)
+        mz(right)
+
+    p0 = cql.compiler.import_cudaq(bell_qubits).to_mlir()
+    assert p0.count("#qlx.action<h>") == 1
+    assert p0.count("#qlx.action<cx>") == 1
+    assert p0.count("qlx.measure <Z>") == 2
+
+
+def test_import_cudaq_accepts_an_unmeasured_qvector_kernel():
+    import cudaq
+    import cudaq.logical as cql
+
+    @cudaq.kernel
+    def unmeasured():
+        q = cudaq.qvector(2)
+        h(q[0])
+        x.ctrl(q[0], q[1])
+
+    p0 = cql.compiler.import_cudaq(unmeasured).to_mlir()
+    assert p0.count("#qlx.action<h>") == 1
+    assert p0.count("#qlx.action<cx>") == 1
+    assert "qlx.measure" not in p0
+
+
+def test_import_cudaq_accepts_a_multicontrolled_gate():
+    import cudaq
+    import cudaq.logical as cql
+
+    @cudaq.kernel
+    def toffoli():
+        q = cudaq.qvector(3)
+        x.ctrl(q[0], q[1], q[2])
+        mz(q)
+
+    p0 = cql.compiler.import_cudaq(toffoli).to_mlir()
+    assert p0.count("#qlx.action<ccx>") == 1
+    assert p0.count("qlx.measure <Z>") == 3
+
+
 def test_logical_estimate_is_invariant_under_cached_view_mutation():
     import cudaq.logical as cql
     import cudaq.mlir.ir as mlir_ir
