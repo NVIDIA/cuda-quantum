@@ -467,9 +467,7 @@ async def get_calibration_metrics(request: Request):
     return {"observations": []}
 
 
-@app.get(
-    "/api/v1/calibration-sets/{qc}/{calibration_set}/dynamic-quantum-architecture"
-)
+@app.get("/api/v1/calibration-sets/{qc}/default/dynamic-quantum-architecture")
 async def get_dynamic_quantum_architecture(
         request: Request) -> iqm_client.DynamicQuantumArchitecture:
     """Get the dynamic quantum architecture"""
