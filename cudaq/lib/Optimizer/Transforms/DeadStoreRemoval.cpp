@@ -277,7 +277,7 @@ private:
         visitLoad(state, load);
       else if (auto store = dyn_cast<cudaq::cc::StoreOp>(&op))
         visitStore(state, store);
-      else if (isa<FunctionOpInterface>(&op))
+      else if (isDeclaration(&op))
         continue; // Declaring a function does not execute it.
       else if (op.getNumRegions() != 0)
         visitRegionOp(state, &op);
@@ -383,7 +383,7 @@ private:
 
   /// Add what \p op, and anything nested in it, might do to memory.
   void summarizeInto(Operation *op, Summary &summary) {
-    if (isa<FunctionOpInterface>(op))
+    if (isDeclaration(op))
       return; // Declaring a function does not execute it.
     if (auto store = dyn_cast<cudaq::cc::StoreOp>(op)) {
       addWrite(summary, store.getPtrvalue());
@@ -470,6 +470,13 @@ private:
   // Memory.
   //===--------------------------------------------------------------------===//
 
+  /// Does \p op only define code that runs later, when it is called? The body
+  /// of a cc.create_lambda runs at each cc.call_callable, not where the lambda
+  /// is created.
+  static bool isDeclaration(Operation *op) {
+    return isa<FunctionOpInterface, cudaq::cc::CreateLambdaOp>(op);
+  }
+
   /// Might \p op, ignoring the operations nested in it, read or write memory
   /// that is visible to loads and stores?
   static bool mayAccessMemory(Operation *op) {
@@ -513,6 +520,15 @@ private:
       Value v = work.pop_back_val();
       for (OpOperand &use : v.getUses()) {
         Operation *user = use.getOwner();
+        // Code in the body of a lambda that uses the slot runs whenever the
+        // lambda is called, so the slot is available to it from the point the
+        // lambda is created.
+        if (Operation *lambda = enclosingLambda(user, alloca)) {
+          info.uses.push_back(lambda);
+          if (info.uses.size() > limits.escapingUses)
+            info.always = true;
+          continue;
+        }
         if (isa<cudaq::cc::LoadOp>(user))
           continue;
         if (auto store = dyn_cast<cudaq::cc::StoreOp>(user)) {
@@ -533,6 +549,17 @@ private:
       }
     }
     return info;
+  }
+
+  /// The outermost cc.create_lambda that contains \p user but not \p alloca.
+  static Operation *enclosingLambda(Operation *user,
+                                    cudaq::cc::AllocaOp alloca) {
+    Operation *lambda = nullptr;
+    for (Operation *p = user->getParentOp(); p && !p->isAncestor(alloca);
+         p = p->getParentOp())
+      if (isa<cudaq::cc::CreateLambdaOp>(p))
+        lambda = p;
+    return lambda;
   }
 
   /// Might the address of \p alloca be available to something other than the

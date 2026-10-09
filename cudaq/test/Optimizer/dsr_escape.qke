@@ -207,3 +207,31 @@ func.func @escape_through_branch_operand(%v: i32) {
 // CHECK:         call @take
 // CHECK:         %[[R:.*]] = cc.load
 // CHECK:         call @use(%[[R]])
+
+// A lambda that captures the slot by reference. The body runs at the call, not
+// where the lambda is created, so the store in the body must be kept, the store
+// of 1 does not reach the load, and the slot is clobbered by the call.
+func.func @lambda_captures_slot() -> i32 {
+  %c0 = arith.constant 0 : i32
+  %c1 = arith.constant 1 : i32
+  %c2 = arith.constant 2 : i32
+  %s = cc.alloca i32
+  cc.store %c0, %s : !cc.ptr<i32>
+  %l = cc.create_lambda {
+    cc.store %c2, %s : !cc.ptr<i32>
+    cc.return
+  } : !cc.callable<() -> ()>
+  cc.store %c1, %s : !cc.ptr<i32>
+  cc.call_callable %l : (!cc.callable<() -> ()>) -> ()
+  %r = cc.load %s : !cc.ptr<i32>
+  return %r : i32
+}
+
+// CHECK-LABEL: func.func @lambda_captures_slot(
+// CHECK:         cc.create_lambda {
+// CHECK:           cc.store %{{.*}}, %[[S:.*]] :
+// CHECK:         }
+// CHECK:         cc.store %{{.*}}, %[[S]] :
+// CHECK:         cc.call_callable
+// CHECK:         %[[R:.*]] = cc.load %[[S]]
+// CHECK:         return %[[R]]
