@@ -34,7 +34,7 @@ def _to_pbc(source, *, pipeline: Pipeline) -> Build:
 
     from cudaq.mlir._mlir_libs import _qlxRuntime as runtime
 
-    module = runtime.clone_module(source.module)
+    module = source._fresh_module()
     if not runtime.verify_clifford_t_module(module):
         raise ValueError(
             "cudaq.logical.compiler.to_pbc requires positive Clifford+T input; "
@@ -81,10 +81,12 @@ def _to_pbc(source, *, pipeline: Pipeline) -> Build:
 def to_pbc(source: Build) -> Build:
     """Normalize a synthesized Clifford+T P0 build into PBC form.
 
-    The returned immutable P0 build contains one signed pi/4 Pauli-product
-    rotation per synthesized T gate followed by pairwise-commuting terminal
-    Pauli-product measurements. Clifford operations are absorbed into the
-    tracked Pauli frame. This transform remains code- and device-independent.
+    The returned immutable P0 build contains an exact weighted sequence of
+    signed pi/4 Pauli-product rotations followed by pairwise-commuting terminal
+    Pauli-product measurements. Static repeats may be split into bounded
+    signed-Clifford periods plus a count-one remainder. Clifford operations are
+    absorbed into the tracked Pauli frame. This transform remains code- and
+    device-independent.
     """
 
     return _to_pbc(source, pipeline=pipelines.pbc())

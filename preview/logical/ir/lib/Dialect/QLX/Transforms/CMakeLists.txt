@@ -12,6 +12,7 @@ qlx_select_mlir_link_libraries(_qlx_mlir_link_libraries
   MLIRParser
   MLIRFuncDialect
   MLIRArithDialect
+  MLIRTransformUtils
 )
 
 add_mlir_library(MLIRQLXTransforms

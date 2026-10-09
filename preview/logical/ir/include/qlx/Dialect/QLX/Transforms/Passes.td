@@ -75,7 +75,10 @@ def QLXVerifyCliffordT
       "Verify every logical apply is legal in the positive H/S/T/CX basis";
   let description = [{
     Walks every `qlx.apply` and reports a diagnostic for any op whose
-    built-in action is outside {h, s, t, cx, idle}.
+    built-in action is outside {h, s, t, cx, idle}, or whose built-in action
+    does not have its exact logical-qubit-only input/result signature and empty
+    parameter schema. The certificate first requires base-valid MLIR, including
+    the declared attribute types of fixed built-ins and structured control.
   }];
 }
 
@@ -87,18 +90,47 @@ def QLXToPBC : Pass<"qlx-to-pbc", "::mlir::ModuleOp"> {
   let summary =
       "Lower a synthesized Clifford+T program to Pauli-based-computation form";
   let description = [{
-    Rewrites a Clifford+T program into Pauli-based-computation (PBC) form.
-    Every Clifford (h/s/sdg/x/y/z/sx/cx/cz) is commuted to the end via one
-    symplectic stabilizer frame, so the program becomes a sequence of pi/4
-    Pauli-product rotations (one per T/T-dagger) followed by the terminal
-    measurements conjugated into Pauli products.
+    Rewrites a synthesized Clifford+T P0 program into Pauli-based-computation
+    (PBC) form. Supported built-in Clifford actions are absorbed into a signed
+    symplectic frame. Each T/T-dagger becomes a signed pi/4 Pauli-product
+    rotation, followed by terminal measurements conjugated into pairwise-
+    commuting Pauli products.
 
-    Scope: single-block programs with terminal measurements. State
-    preparation is limited to |0>, |1>, |+>, |->; measurements to the Z and
-    X bases. Non-Clifford gates other than T/T-dagger, mid-circuit
-    measurement with feedforward, and control flow are reported as errors.
+    Static `cflow.repeat` loops can remain folded. Every qubit used by a loop
+    body or a generated rotation must be carried explicitly. Carries must be
+    distinct and yielded in their original positions; each action must consume
+    the current SSA owner. A loop body may contain supported built-in unitary
+    actions, nested repeats, constants, and `cflow.yield`.
+
+    Nested loops are normalized from the inside out. Counts zero and one retain
+    their count. If one body execution restores the signed Clifford frame, the
+    original count is retained. Otherwise, counts from two through 64 become
+    one count-one loop containing that many body executions. For larger counts,
+    the pass searches for a frame period, repeats that period in a folded loop,
+    and puts any remaining executions in a separate count-one loop. For example,
+    1024 repetitions of H; T become 512 repetitions of a body containing X-
+    and Z-axis pi/4 rotations. Period search is limited to 64 body executions;
+    one normalization may clone at most 4096 body operations. Exceeding either
+    limit is an error.
+
+    The pass rejects preparation, measurement, feed-forward, and discard inside
+    loops; unsupported actions, including non-Clifford gates other than
+    T/T-dagger; workload-bearing idle; physical `event_id` metadata; other
+    control flow; and logical-qubit program returns. Fixed built-in actions
+    require exact qubit-only signatures and empty parameter bindings. Every
+    source logical qubit must be measured or explicitly discarded before
+    return. Authored discard groups and reasons are preserved; separate cleanup
+    discards release qubits left live by nondestructive Pauli-product
+    measurements.
+
+    The pass verifies the input and rewrites it in place. Repeat normalization and
+    Pauli-frame analysis precede full MLIR dialect conversion. Program and
+    repeat conversion patterns share the completed analysis and rebuild SSA
+    ownership within each body. The result must pass IR and PBC verification.
+    Failure stops compilation and may leave the module partially transformed.
   }];
-  let dependentDialects = ["::mlir::arith::ArithDialect"];
+  let dependentDialects = ["::mlir::arith::ArithDialect",
+                           "::qlx::cflow::CflowDialect"];
 }
 
 //===----------------------------------------------------------------------===//
@@ -109,15 +141,20 @@ def QLXVerifyPBC : Pass<"qlx-verify-pbc", "::mlir::ModuleOp"> {
   let summary =
       "Certify a module is in Pauli-based-computation (PBC) normal form";
   let description = [{
-    Certifies the contract `qlx-to-pbc` produces for downstream PBC
-    lowering:
-      1. the body contains only prepare / pi/4 pauli_rotation / mpp /
-         discard / return / constant ops -- every Clifford has been
-         absorbed;
-      2. every pauli_rotation is exactly +/- pi/4;
+    Certifies the contract `qlx-to-pbc` produces for downstream PBC lowering.
+    It first requires base-valid MLIR, then checks:
+      1. the body contains only prepare / pi/4 pauli_rotation / repeat / mpp /
+         discard / return / constant ops -- every Clifford has been absorbed;
+         repeats contain only canonical rotations, nested repeats, constants,
+         and position-preserving logical-qubit yields;
+      2. every Pauli product has a support-minimal, owner-disjoint signature
+         with its exact parameter set, and every pauli_rotation is exactly
+         +/- pi/4;
       3. no pauli_rotation follows a measurement;
       4. the measured Pauli products pairwise commute (simultaneously
-         measurable).
+         measurable);
+      5. no logical preparation follows the first MPP, and every current
+         logical owner is terminally discarded before program return.
     On failure, emits one diagnostic naming the violated condition.
   }];
 }
