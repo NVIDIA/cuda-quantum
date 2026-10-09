@@ -32,7 +32,7 @@ namespace cudaq {
 void extractKrausData(nanobind::ndarray<std::complex<double>, nanobind::ndim<2>,
                                         nanobind::c_contig>
                           arr,
-                      complex *data) {
+                      kraus_op::value_type *data) {
   auto rows = arr.shape(0);
   auto cols = arr.shape(1);
   auto *srcData = static_cast<const std::complex<double> *>(arr.data());
@@ -47,7 +47,7 @@ void extractKrausData(nanobind::ndarray<std::complex<double>, nanobind::ndim<2>,
                         Eigen::Stride<Eigen::Dynamic, Eigen::Dynamic>>(
       srcData, rows, cols, strides);
   RowMajorMat eigenMat(map);
-  memcpy(data, eigenMat.data(), sizeof(complex) * (rows * cols));
+  memcpy(data, eigenMat.data(), sizeof(kraus_op::value_type) * (rows * cols));
 }
 
 /// @brief Bind the cudaq::noise_model, kraus_op, and kraus_channel.
@@ -238,9 +238,9 @@ void bindKrausOp(nanobind::module_ &mod) {
              nanobind::ndarray<std::complex<double>, nanobind::ndim<2>,
                                nanobind::c_contig>
                  arr) {
-            std::vector<complex> v(arr.shape(0) * arr.shape(1));
+            std::vector<kraus_op::value_type> v(arr.shape(0) * arr.shape(1));
             extractKrausData(arr, v.data());
-            new (self) kraus_op(v);
+            new (self) kraus_op(std::move(v));
           },
           "Create a :class:`KrausOperator` from a buffer of data, like a "
           "numpy array.")
@@ -296,9 +296,9 @@ void bindNoiseChannels(nanobind::module_ &mod) {
                   ops[i]);
               auto rows = arr.shape(0);
               auto cols = arr.shape(1);
-              std::vector<complex> v(rows * cols);
+              std::vector<kraus_op::value_type> v(rows * cols);
               extractKrausData(arr, v.data());
-              kops.emplace_back(v);
+              kops.emplace_back(std::move(v));
             }
             new (self) kraus_channel(kops);
           },

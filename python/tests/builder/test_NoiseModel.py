@@ -1221,6 +1221,54 @@ def test_noise_validation_probability_check(target: str):
     cudaq.reset_target()
 
 
+skipIfNvidiaNotInstalled = pytest.mark.skipif(
+    not cudaq.has_target('nvidia'),
+    reason='Could not find nvidia in installation')
+
+
+@skipIfNvidiaNotInstalled
+def test_fp32_general_kraus_channel_regression():
+    """Regression test for the cross-translation-unit precision bug in
+    `kraus_op::data`: a general (non-unitary-mixture) Kraus channel on the
+    fp32 nvidia backend used to fail with "Invalid dense matrix task size"
+    because the fp32 consumer misread the double-precision matrix data.
+    `kraus_op::data` is now always stored in double precision."""
+    cudaq.set_target('nvidia', option='fp32')
+    cudaq.set_random_seed(13)
+
+    circuit = cudaq.make_kernel()
+    q = circuit.qalloc(2)
+    circuit.x(q[0])
+
+    # Case 1: user-defined KrausChannel. Amplitude damping with gamma = 1 is
+    # a general channel whose two Kraus ops are symmetric (this also
+    # exercised the device-matrix cache key collision in the tensor-network
+    # backends).
+    gamma = 1.0
+    k0 = np.array([[1, 0], [0, np.sqrt(1 - gamma)]], dtype=np.complex128)
+    k1 = np.array([[0, np.sqrt(gamma)], [0, 0]], dtype=np.complex128)
+    channel = cudaq.KrausChannel([k0, k1])
+
+    noise = cudaq.NoiseModel()
+    noise.add_channel("x", [0], channel)
+
+    counts = cudaq.sample(circuit, noise_model=noise, shots_count=1000)
+    # gamma = 1 damps every excitation to |0>.
+    assert (len(counts) == 1)
+    assert (counts.count('00') == 1000)
+
+    # Case 2: the documented built-in AmplitudeDampingChannel, whose Kraus
+    # matrices are generated in the translation unit's precision and
+    # converted to double for storage.
+    noise = cudaq.NoiseModel()
+    noise.add_channel("x", [0], cudaq.AmplitudeDampingChannel(1.0))
+
+    counts = cudaq.sample(circuit, noise_model=noise, shots_count=1000)
+    assert (len(counts) == 1)
+    assert (counts.count('00') == 1000)
+    cudaq.reset_target()
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
