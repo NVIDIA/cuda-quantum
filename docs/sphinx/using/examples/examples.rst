@@ -27,3 +27,4 @@ Examples that illustrate how to use CUDA-Q for application development are avail
       Using Quantum Hardware Providers <hardware_providers.rst>
       When to Use sample vs. run <sample_vs_run.rst>
       Dynamics Examples <dynamics_examples.rst>
+      Quantum Chemistry <chemistry.rst>
