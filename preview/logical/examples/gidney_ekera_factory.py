@@ -64,8 +64,8 @@ class OperatingPoint:
     factory_output_interval_cycles: float
     factory_lane_physical_qubits: int
 
-    # Arithmetic: Ekera--Hastad exponent length, coset padding/runways, and the
-    # folded lookup-addition recurrence.
+    # Arithmetic: `Ekera--Hastad` exponent length, coset padding/runways, and
+    # the folded lookup-addition recurrence.
     @property
     def exponent_qubits(self) -> int:
         m = math.ceil(self.modulus_bits / 2) - 1

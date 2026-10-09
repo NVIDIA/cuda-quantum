@@ -127,7 +127,7 @@ def test_factory_characterization_matches_reference(factory, modulus_bits):
             point.factory_lane_physical_qubits)
 
 
-# Table 3 reports megaqubits and hours rounded up to two significant digits.
+# Table 3 reports `megaqubits` and hours rounded up to two significant digits.
 @pytest.mark.parametrize("modulus_bits, megaqubits, hours", (
     (2048, 20, 5.1),
     (3072, 38, 12),
