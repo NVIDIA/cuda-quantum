@@ -9,6 +9,11 @@
 
 import sys
 
+try:
+    import _cudaq_logical_devpath  # noqa: F401
+except ImportError:
+    pass
+
 from cudaq.mlir._mlir_libs import _qlxRuntime as runtime
 
 

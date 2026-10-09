@@ -20,6 +20,8 @@ namespace qlx {
 /// exact weighted sequence of pi/4 Pauli-product rotations (emitted as
 /// `qlx.apply #qlx.action<pauli_rotation>`) followed by terminal measurements
 /// conjugated into Pauli products.
+/// Repeat normalization and frame analysis precede full dialect conversion;
+/// program and repeat patterns share the completed analysis by reference.
 ///
 /// Static `cflow.repeat` regions remain folded when they carry distinct logical
 /// qubits positionally with exact current SSA ownership, contain only
