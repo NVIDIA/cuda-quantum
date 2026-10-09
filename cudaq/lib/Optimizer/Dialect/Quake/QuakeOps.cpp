@@ -194,11 +194,20 @@ getWireFlowOperands(Operation *operation) {
   return flow;
 }
 
+bool cudaq::quake::detail::mayModifyMemory(Operation *operation) {
+  auto effects = dyn_cast<MemoryEffectOpInterface>(operation);
+  if (!effects)
+    return !isMemoryEffectFree(operation);
+  return effects.hasEffect<MemoryEffects::Write>() ||
+         effects.hasEffect<MemoryEffects::Free>() ||
+         effects.hasEffect<MemoryEffects::Allocate>();
+}
+
 std::optional<cudaq::quake::detail::ScalarWireFlow>
 cudaq::quake::detail::getScalarWireFlow(Operation *operation) {
   if (operation->getNumRegions() != 0 || operation->getNumSuccessors() != 0)
     return std::nullopt;
-  if (!isMemoryEffectFree(operation))
+  if (mayModifyMemory(operation))
     return std::nullopt;
 
   auto flow = getWireFlowOperands(operation);

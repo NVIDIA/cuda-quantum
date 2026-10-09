@@ -118,7 +118,7 @@ static void buildQubitIdMap(Block &block, QubitIdMap &qubitIds) {
       continue;
     }
     if (isa<CallOpInterface>(operation) || operation.getNumRegions() != 0 ||
-        !isMemoryEffectFree(&operation)) {
+        cudaq::quake::detail::mayModifyMemory(&operation)) {
       referenceQubitIds.clear();
       continue;
     }
@@ -154,7 +154,7 @@ bool QubitIdentityAnalysis::haveSameOrderedQubitIdentities(
 
 bool QubitIdentityAnalysis::registerOperation(Operation &operation) {
   if (isa<CallOpInterface>(operation) || operation.getNumRegions() != 0 ||
-      !isMemoryEffectFree(&operation))
+      cudaq::quake::detail::mayModifyMemory(&operation))
     return false;
 
   if (auto flow = cudaq::quake::detail::getScalarWireFlow(&operation))
