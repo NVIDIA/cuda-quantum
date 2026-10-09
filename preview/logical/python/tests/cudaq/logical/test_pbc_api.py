@@ -130,6 +130,39 @@ def test_public_pbc_transform_is_device_free_immutable_and_replayable():
     assert replayed.content_sha256 == result.content_sha256
 
 
+def test_failed_pbc_transform_preserves_the_source_build(capfd):
+
+    @qlx.program
+    def unsupported_rotation_support() -> bool:
+        q0, q1 = qlx.allocate(2)
+        q0, q1 = qlx.cx(q0, q1)
+
+        def body(_iteration, value):
+            value = qlx.h(value)
+            value = qlx.t(value)
+            return (value,)
+
+        (q0,) = qlx.ops.repeat(2, carries=(q0,), body=body)
+        qlx.discard(q1)
+        return qlx.measure_z(q0)
+
+    source = qlx.compiler.synthesize(
+        unsupported_rotation_support,
+        gate_set=qlx.compiler.gate_sets.clifford_t,
+    )
+    original = source.to_mlir()
+    original_module = str(source._fresh_module())
+
+    # Normalization expands the repeat before support validation rejects it.
+    with pytest.raises(RuntimeError, match="QLX PBC lowering failed"):
+        qlx.compiler.to_pbc(source)
+
+    assert "rotation support escapes the repeat carry set" in (
+        capfd.readouterr().err)
+    assert source.to_mlir() == original
+    assert str(source._fresh_module()) == original_module
+
+
 def test_pbc_transform_uses_the_authenticated_snapshot_not_cached_inspection():
     source = _synthesized()
     expected = qlx.compiler.to_pbc(source)
@@ -225,7 +258,7 @@ def test_pbc_materializes_a_bounded_nonidentity_repeat_phase():
     assert result.module.operation.verify()
 
 
-def test_native_pbc_lowering_is_transactional_across_programs():
+def test_native_pbc_lowering_reports_failure_in_a_later_program(capfd):
     from cudaq.mlir._mlir_libs import _qlxRuntime as runtime
 
     module = mlir_ir.Module.parse(
@@ -257,15 +290,13 @@ module {
 """,
         mlir_ir.Context(),
     )
-    before = str(module)
-
     with pytest.raises(RuntimeError, match="QLX PBC lowering failed"):
         runtime.lower_to_pbc_module(module)
 
-    assert str(module) == before
+    assert "cannot erase workload-bearing idle" in capfd.readouterr().err
 
 
-def test_native_pbc_lowering_rejects_live_classical_gate_payload_unchanged():
+def test_native_pbc_lowering_rejects_live_classical_gate_payload(capfd):
     from cudaq.mlir._mlir_libs import _qlxRuntime as runtime
 
     module = mlir_ir.Module.parse(
@@ -292,16 +323,13 @@ module {
 """,
         mlir_ir.Context(),
     )
-    before = str(module)
-
     with pytest.raises(RuntimeError, match="QLX PBC lowering failed"):
         runtime.lower_to_pbc_module(module)
 
-    assert str(module) == before
+    assert "no classical payloads" in capfd.readouterr().err
 
 
-def test_fixed_builtin_parameters_fail_all_certificates_and_leave_ir_unchanged(
-):
+def test_fixed_builtin_parameters_fail_all_certificates(capfd):
     from cudaq.mlir._mlir_libs import _qlxRuntime as runtime
 
     module = mlir_ir.Module.parse(
@@ -324,18 +352,16 @@ module {
     with module.context:
         t_apply.attributes["parameters"] = mlir_ir.Attribute.parse(
             "{unexpected = 7 : i64}", context=module.context)
-    before = str(module)
-
     with pytest.raises(mlir_ir.MLIRError, match="parameter bindings"):
         module.operation.verify()
     assert runtime.verify_clifford_t_module(module) is False
     with pytest.raises(RuntimeError, match="QLX PBC lowering failed"):
         runtime.lower_to_pbc_module(module)
 
-    assert str(module) == before
+    assert "parameter bindings" in capfd.readouterr().err
 
 
-def test_native_pbc_lowering_rejects_open_source_owner_unchanged():
+def test_native_pbc_lowering_rejects_open_source_owner(capfd):
     from cudaq.mlir._mlir_libs import _qlxRuntime as runtime
 
     module = mlir_ir.Module.parse(
@@ -355,17 +381,15 @@ module {
 """,
         mlir_ir.Context(),
     )
-    before = str(module)
-
     assert module.operation.verify()
     assert runtime.verify_clifford_t_module(module) is True
     with pytest.raises(RuntimeError, match="QLX PBC lowering failed"):
         runtime.lower_to_pbc_module(module)
 
-    assert str(module) == before
+    assert "requires every source logical-qubit owner" in capfd.readouterr().err
 
 
-def test_standalone_source_entrypoints_reject_negative_repeat_count_unchanged():
+def test_standalone_source_entrypoints_reject_negative_repeat_count(capfd):
     from cudaq.mlir._mlir_libs import _qlxRuntime as runtime
 
     module = mlir_ir.Module.parse(
@@ -390,15 +414,13 @@ module {
     with module.context:
         repeat.attributes["count"] = mlir_ir.Attribute.parse(
             "-1 : i64", context=module.context)
-    before = str(module)
-
     with pytest.raises(mlir_ir.MLIRError, match="non-negative"):
         module.operation.verify()
     assert runtime.verify_clifford_t_module(module) is False
     with pytest.raises(RuntimeError, match="QLX PBC lowering failed"):
         runtime.lower_to_pbc_module(module)
 
-    assert str(module) == before
+    assert "non-negative" in capfd.readouterr().err
 
 
 def test_standalone_pbc_certificate_rejects_negative_repeat_count():

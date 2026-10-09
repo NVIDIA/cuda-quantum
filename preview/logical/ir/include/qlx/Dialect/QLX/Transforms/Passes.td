@@ -123,11 +123,11 @@ def QLXToPBC : Pass<"qlx-to-pbc", "::mlir::ModuleOp"> {
     discards release qubits left live by nondestructive Pauli-product
     measurements.
 
-    The pass verifies the input and rewrites a clone. Repeat normalization and
+    The pass verifies the input and rewrites it in place. Repeat normalization and
     Pauli-frame analysis precede full MLIR dialect conversion. Program and
     repeat conversion patterns share the completed analysis and rebuild SSA
-    ownership within each body. The pass replaces the original only after the
-    result passes IR and PBC verification. Failure leaves the input unchanged.
+    ownership within each body. The result must pass IR and PBC verification.
+    Failure stops compilation and may leave the module partially transformed.
   }];
   let dependentDialects = ["::mlir::arith::ArithDialect",
                            "::qlx::cflow::CflowDialect"];
