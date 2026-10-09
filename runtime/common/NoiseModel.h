@@ -153,9 +153,6 @@ struct kraus_op {
   /// NOTE we currently assume nRows == nCols
   std::size_t nCols = 0;
 
-  /// @brief Copy constructor
-  kraus_op(const kraus_op &) = default;
-
   /// @brief Constructor, initialize from vector data
   kraus_op(std::vector<value_type> d) : data(std::move(d)) {
     setDimensionsFromSize(data.size());
@@ -169,7 +166,8 @@ struct kraus_op {
   // `kraus_op({{1.,0.},{0.,0.},{0.,0.},{1.,0.}})`). It is constrained to
   // float so that other element types are rejected rather than silently
   // narrowed.
-  template <typename T, typename = std::enable_if_t<std::is_same_v<T, float>>>
+  template <typename T>
+    requires std::is_same_v<T, float>
   kraus_op(const std::vector<std::complex<T>> &d)
       : kraus_op(std::vector<value_type>(d.begin(), d.end())) {}
 
@@ -179,9 +177,6 @@ struct kraus_op {
       : data(initList.begin(), initList.end()) {
     setDimensionsFromSize(data.size());
   }
-
-  /// @brief Set this kraus_op equal to the other
-  kraus_op &operator=(const kraus_op &other) = default;
 
   /// @brief Return the adjoint of this kraus_op
   kraus_op adjoint() const {
@@ -227,7 +222,6 @@ protected:
   std::vector<kraus_op> ops;
 
   /// @brief Validate that Sum K_i^† K_i = I
-
   void validateCompleteness() { validateCompletenessRelation(ops); }
 
 public:
