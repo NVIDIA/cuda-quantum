@@ -33,6 +33,8 @@ namespace qlx {
 /// actions, logical-qubit program returns, unsupported periods or expansion,
 /// other control flow, non-Clifford gates other than T/T-dagger (e.g. ccz),
 /// local loop ownership, and mid-circuit measurement/feedforward are errors.
+/// Rewrites the supplied module in place. On failure, the module may be
+/// partially transformed and must not be used for further compilation.
 mlir::LogicalResult lowerToPBC(mlir::ModuleOp module);
 
 } // namespace qlx
