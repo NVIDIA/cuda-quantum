@@ -107,11 +107,13 @@ if [ -n "$runtime_dir" ]; then
     # core in candidate-core/; that core is sufficient for this SDK smoke test.
     # Release wheel validation selects the CUDA 13-built core separately.
     # Pip checks that its Python and platform tags match the validation environment.
+    shopt -s nullglob
     core_wheels=("$runtime_dir"/cudaq_core-*.whl)
-    if [ "${#core_wheels[@]}" -le 1 ] && [ ! -f "${core_wheels[0]:-}" ]; then
+    if (( ${#core_wheels[@]} == 0 )); then
       core_wheels=("$runtime_dir"/candidate-core/cudaq_core-*.whl)
     fi
-    if [ "${#core_wheels[@]}" -ne 1 ] || [ ! -f "${core_wheels[0]}" ]; then
+    shopt -u nullglob
+    if (( ${#core_wheels[@]} != 1 )); then
       echo "Error: expected exactly one cudaq_core-*.whl in $runtime_dir or its candidate-core directory" >&2
       exit 1
     fi

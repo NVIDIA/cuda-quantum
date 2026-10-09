@@ -259,6 +259,7 @@ jobs:
           CUDAQ_VERSION: ${{ inputs.cudaq_version }}
           PYTHON_VERSION: ${{ matrix.python_version }}
         run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           cp docker/test/wheels/integration/test_installation.py /tmp/test_installation.py
           # Test in fresh virtual environments by installing the cudaq metapackage
           # and letting pip resolve its dependencies.
@@ -274,9 +275,9 @@ jobs:
               # Branch candidates (0.0.0+<sha>) sort below the 0.16.0 baseline.
               # The exact candidate pin below tests replacement of that install,
               # not a version-increasing upgrade in branch CI.
-              "$venv/bin/python" -m pip install cudaq==0.16.0
+              retry "$venv/bin/python" -m pip install cudaq==0.16.0
             fi
-            "$venv/bin/python" -m pip install --upgrade "cudaq==$CUDAQ_VERSION" --find-links /tmp/packages
+            retry "$venv/bin/python" -m pip install --upgrade "cudaq==$CUDAQ_VERSION" --find-links /tmp/packages
             "$venv/bin/python" -m pip check
             "$venv/bin/python" /tmp/test_installation.py --logical --frontend
 
@@ -292,6 +293,7 @@ jobs:
               cmake --build "$venv/native"
               ctest --test-dir "$venv/native" --output-on-failure
             fi
+            rm -rf "$venv"
           done
 
       - name: Test installation error

@@ -412,7 +412,7 @@ jobs:
   # The core wheel is CUDA-independent, so the core wheels built here are
   # released with both the CUDA 12 and the CUDA 13 frontend wheels.
   python_wheels_cu13:
-    name: Create Python wheels
+    name: Create CUDA 13 Python wheels
     needs: [metadata, config_wheeldeps, python_devel_wheel]
     if:
       github.event_name != 'push' && needs.metadata.outputs.merge_queue_fast !=
@@ -456,7 +456,7 @@ jobs:
   # core wheels from python_wheels_cu13, so it runs separately in
   # python_wheels_cu12_validation.
   python_wheels:
-    name: Create Python wheels
+    name: Create CUDA 12 Python wheels
     needs: [metadata, config_wheeldeps, python_devel_wheel]
     if:
       github.event_name != 'push' && needs.metadata.outputs.merge_queue_fast !=
@@ -487,7 +487,7 @@ jobs:
       run_validation: false
 
   python_wheels_cu12_validation:
-    name: Validate Python wheels
+    name: Validate CUDA 12 Python wheels
     needs: [python_wheels, python_wheels_cu13]
     # Validate each CUDA 12 frontend wheel with the core wheel from
     # python_wheels_cu13, i.e. the pair that is released. Run even if CUDA 13

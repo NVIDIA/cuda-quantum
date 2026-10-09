@@ -191,9 +191,12 @@ jobs:
         with:
           key: ${{ steps.runtime_hash.outputs.cache_key }}
 
-      # Core is CUDA-independent; the CUDA 13 pipeline supplies the published
-      # core for both frontends, including CUDA 12 requests. Reuse the existing
-      # source-hash cache and wheel builder, not CUDA 12's nested validation copy.
+      # Core is CUDA-independent, and the core built by the CUDA 13 pipeline
+      # is the one published for both frontends. CUDA 12's own core copy
+      # (under `candidate-core/`) is only for build-local validation.
+      # CUDA 12 requests only: compute the CUDA 13 runtime build's source hash
+      # so the next step can look that build up. CUDA 13 requests already get
+      # core with their own runtime wheel.
       - name: Hash CUDA 13 core build
         if: startsWith(inputs.cuda_version, '12')
         id: core_hash
@@ -203,6 +206,9 @@ jobs:
           python_version: ${{ inputs.python_version }}
           cuda_version: '13.0'
 
+      # CUDA 12 requests only: find the CUDA 13 runtime build whose core is
+      # published with the CUDA 12 frontend. CUDA 13 requests already get
+      # core with their own runtime wheel.
       - name: Look up CUDA 13 core build
         if: startsWith(inputs.cuda_version, '12')
         id: core_lookup
@@ -340,6 +346,9 @@ jobs:
       run_validation: ${{ inputs.run_validation }}
       build_logical_wheel: false
 
+  # CUDA 12 requests only: restore the CUDA 13 runtime build that `resolve`
+  # found, since its core is the one published with the CUDA 12 frontend.
+  # CUDA 13 requests already get core with their own runtime wheel.
   restore_core:
     name: Restore CUDA 13 core build
     needs: resolve
@@ -358,6 +367,8 @@ jobs:
           artifact_name: ${{ needs.resolve.outputs.core_artifact_name }}
           version: ${{ needs.resolve.outputs.cudaq_version }}
 
+  # CUDA 12 requests only, when `resolve` found no CUDA 13 runtime build to
+  # restore core from: load the CUDA 13 build environment for `build_core`.
   core_wheeldeps:
     name: Load CUDA 13 core build dependencies
     needs: [metadata, resolve]
@@ -380,6 +391,11 @@ jobs:
       registry_cache_from: ${{ inputs.cache_base }}
       environment: ghcr-ci
 
+  # Runs only after `core_wheeldeps`, so only for CUDA 12 requests on a cache
+  # miss: build the CUDA 13 runtime wheels to get the core published with
+  # the CUDA 12 frontend. This happens, e.g., when this workflow is run
+  # manually for CUDA 12.6 on a branch whose current sources CI has not yet
+  # built for CUDA 13, or whose CUDA 13 wheel artifact has expired.
   build_core:
     name: Build missing CUDA 13 core artifact
     needs: [resolve, core_wheeldeps]
@@ -468,6 +484,9 @@ jobs:
           name: ${{ needs.build.outputs.devel_artifact_name || needs.resolve.outputs.devel_artifact_name }}
           path: all-wheels
 
+      # A CUDA 13 request staged core from its own runtime wheel above. A CUDA
+      # 12 request takes core from the CUDA 13 build that `restore_core` or
+      # `build_core` provided, since that is the core published with CUDA 12.
       - name: Download core from CUDA 13 build
         if: startsWith(inputs.cuda_version, '12')
         uses: actions/download-artifact@v8
