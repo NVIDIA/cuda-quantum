@@ -439,15 +439,11 @@ async def get_quantum_computers(request: Request):
     if access_token != good_access_token:
         raise HTTPException(401)
 
-    return {
-        "quantum_computers": [{
-            "id": "mock-qpu",
-            "alias": "mock-qpu"
-        }]
-    }
+    return {"quantum_computers": [{"id": "mock-qpu", "alias": "mock-qpu"}]}
 
 
-@app.get("/api/v1/quantum-computers/{qc}/artifacts/static-quantum-architectures")
+@app.get(
+    "/api/v1/quantum-computers/{qc}/artifacts/static-quantum-architectures")
 async def get_static_quantum_architectures(request: Request):
     """Expose the existing architecture through the QDMI device's API."""
     access_token = request.headers.get("Authorization")

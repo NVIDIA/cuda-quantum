@@ -103,6 +103,10 @@ constexpr std::array programFormats{
                   .name = "qasm2",
                   .codegen = "qasm2",
                   .encoding = ProgramEncoding::text},
+    ProgramFormat{.qdmi = QDMI_PROGRAM_FORMAT_QASM2,
+                  .name = "qasm2-braket",
+                  .codegen = "qasm2-braket",
+                  .encoding = ProgramEncoding::text},
     ProgramFormat{.qdmi = QDMI_PROGRAM_FORMAT_IQMJSON,
                   .name = "iqm-json",
                   .codegen = "iqm",
@@ -191,7 +195,8 @@ selectProgramFormat(const std::vector<QDMI_Program_Format> &supported,
       throw std::runtime_error(
           "Unknown QDMI program format '" + *requested +
           "'. Expected auto, qir-adaptive-module, qir-adaptive-string, "
-          "qir-base-module, qir-base-string, qasm3, qasm2, or iqm-json.");
+          "qir-base-module, qir-base-string, qasm3, qasm2, qasm2-braket, or "
+          "iqm-json.");
     if (!isSupported(*candidate))
       throw std::runtime_error("QDMI device does not support requested "
                                "program format '" +

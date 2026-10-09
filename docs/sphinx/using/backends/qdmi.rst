@@ -263,7 +263,12 @@ You can select a format explicitly. Use ``program_format`` in Python. Use
 * ``qir-base-string``
 * ``qasm3``
 * ``qasm2``
+* ``qasm2-braket``
 * ``iqm-json``
+
+For Amazon Braket devices, select ``program_format="qasm2-braket"`` in Python
+or ``--qdmi-program-format qasm2-braket`` with ``nvq++``. This uses QDMI's
+OpenQASM 2 transport with Braket's include and gate-naming conventions.
 
 The target transports each format as follows:
 

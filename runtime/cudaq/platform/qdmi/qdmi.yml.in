@@ -27,7 +27,7 @@ target-arguments:
     required: false
     type: string
     platform-arg: program_format
-    help-string: "Program transport: auto, qir-adaptive-module, qir-adaptive-string, qir-base-module, qir-base-string, qasm3, qasm2, or iqm-json."
+    help-string: "Program transport: auto, qir-adaptive-module, qir-adaptive-string, qir-base-module, qir-base-string, qasm3, qasm2, qasm2-braket, or iqm-json."
   - key: result-order
     required: false
     type: string

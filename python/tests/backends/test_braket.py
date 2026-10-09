@@ -34,7 +34,9 @@ def set_up_target(request, monkeypatch):
         braket_qdmi = pytest.importorskip("amazon.braket.qdmi")
         monkeypatch.setenv("MQT_CORE_QDMI_CONFIG_FILE",
                            str(braket_qdmi.AMAZON_BRAKET_QDMI_CATALOG_PATH))
-        cudaq.set_target("qdmi", device="amazon.braket.sv1")
+        cudaq.set_target("qdmi",
+                         device="amazon.braket.sv1",
+                         program_format="qasm2-braket")
     else:
         cudaq.set_target("braket")
     yield request.param
@@ -444,7 +446,8 @@ def test_other_simulators(device_arn, set_up_target):
     if set_up_target == "qdmi":
         cudaq.set_target("qdmi",
                          device="amazon.braket." +
-                         device_arn.rsplit("/", 1)[-1])
+                         device_arn.rsplit("/", 1)[-1],
+                         program_format="qasm2-braket")
     else:
         cudaq.set_target("braket", machine=device_arn)
     test_qvector_kernel()
