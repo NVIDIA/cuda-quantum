@@ -1,0 +1,31 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+func.func @wire_x_f32_forward_positive() attributes {"cudaq-entrypoint"} {
+  %qubit = quake.alloca !quake.ref
+  %theta = arith.constant 0.125 : f32
+  quake.exp_pauli (%theta) %qubit to "X" : (f32, !quake.ref) -> ()
+  quake.dealloc %qubit : !quake.ref
+  return
+}
+
+func.func @wire_y_f64_adjoint_negative() attributes {"cudaq-entrypoint"} {
+  %qubit = quake.alloca !quake.ref
+  %theta = arith.constant -0.25 : f64
+  quake.exp_pauli<adj> (%theta) %qubit to "Y" : (f64, !quake.ref) -> ()
+  quake.dealloc %qubit : !quake.ref
+  return
+}
+
+func.func @wire_z_f64_forward_negative() attributes {"cudaq-entrypoint"} {
+  %qubit = quake.alloca !quake.ref
+  %theta = arith.constant -0.25 : f64
+  quake.exp_pauli (%theta) %qubit to "Z" : (f64, !quake.ref) -> ()
+  quake.dealloc %qubit : !quake.ref
+  return
+}

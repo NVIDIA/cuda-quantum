@@ -485,13 +485,16 @@ struct ExpPauliDecomposition
     }
 
     // The existing basis/parity/Rz construction is exact for reference-form,
-    // uncontrolled targets. Until it can thread a full controlled or wire
-    // lowering, decline those forms before creating any replacement IR.
+    // uncontrolled targets. Retain controlled and multi-target wire forms
+    // before creating any replacement IR.
     if (!expPauliOp.getControls().empty())
       return rewriter.notifyMatchFailure(
           expPauliOp,
           "does not yet support controlled non-identity ExpPauli lowering");
-    if (llvm::any_of(expPauliOp.getTargets(), [](Value target) {
+    const bool singleWireTarget =
+        targets.size() == 1 &&
+        isa<cudaq::quake::WireType>(targets.front().getType());
+    if (!singleWireTarget && llvm::any_of(targets, [](Value target) {
           return isa<cudaq::quake::WireType>(target.getType());
         }))
       return rewriter.notifyMatchFailure(
@@ -523,60 +526,64 @@ struct ExpPauliDecomposition
       }
     }
 
-    SmallVector<Value> qubitSupport;
+    decomposeNonIdentity(loc, signedTheta, paulis, qubits, rewriter);
+    QuakeOperatorCreator(rewriter).selectWiresAndReplaceUses(expPauliOp,
+                                                             qubits);
+    rewriter.eraseOp(expPauliOp);
+    return success();
+  }
+
+private:
+  static void decomposeNonIdentity(Location loc, Value signedTheta,
+                                   ArrayRef<cudaq::quake::Pauli> paulis,
+                                   SmallVectorImpl<Value> &qubits,
+                                   PatternRewriter &rewriter) {
+    QuakeOperatorCreator qRewriter(rewriter);
+    SmallVector<Value> noControls;
+    // Keep indices so each gate uses the latest scalar wire value.
+    SmallVector<std::size_t> qubitSupport;
     for (auto [i, pauli] : llvm::enumerate(paulis)) {
-      Value qubitI = qubits[i];
       if (pauli != cudaq::quake::Pauli::I)
-        qubitSupport.push_back(qubitI);
+        qubitSupport.push_back(i);
 
       if (pauli == cudaq::quake::Pauli::Y) {
-        APFloat d(M_PI_2);
-        Value param = arith::ConstantFloatOp::create(rewriter, loc,
-                                                     rewriter.getF64Type(), d);
-        cudaq::quake::RxOp::create(rewriter, loc, ValueRange{param},
-                                   ValueRange{}, ValueRange{qubitI});
+        Value param =
+            createConstant(loc, M_PI_2, rewriter.getF64Type(), rewriter);
+        qRewriter.create<cudaq::quake::RxOp>(loc, ValueRange{param}, noControls,
+                                             qubits[i]);
       } else if (pauli == cudaq::quake::Pauli::X) {
-        cudaq::quake::HOp::create(rewriter, loc, ValueRange{qubitI});
+        qRewriter.create<cudaq::quake::HOp>(loc, qubits[i]);
       }
     }
 
-    std::vector<std::pair<Value, Value>> toReverse;
-    for (std::size_t i = 0; i < qubitSupport.size() - 1; ++i) {
-      cudaq::quake::XOp::create(rewriter, loc, ValueRange{qubitSupport[i]},
-                                ValueRange{qubitSupport[i + 1]});
-      toReverse.emplace_back(qubitSupport[i], qubitSupport[i + 1]);
-    }
+    assert(!qubitSupport.empty() && "expected a non-identity Pauli word");
+    for (std::size_t i = 1; i < qubitSupport.size(); ++i)
+      qRewriter.create<cudaq::quake::XOp>(loc, qubits[qubitSupport[i - 1]],
+                                          qubits[qubitSupport[i]]);
 
     // Rz(-2 theta) implements exp(i theta Z) under Quake's Rz convention.
     Value negTwoTheta = arith::MulFOp::create(
         rewriter, loc,
         createConstant(loc, -2.0, signedTheta.getType(), rewriter),
         signedTheta);
-    cudaq::quake::RzOp::create(rewriter, loc, ValueRange{negTwoTheta},
-                               ValueRange{}, ValueRange{qubitSupport.back()});
+    qRewriter.create<cudaq::quake::RzOp>(
+        loc, ValueRange{negTwoTheta}, noControls, qubits[qubitSupport.back()]);
 
-    std::reverse(toReverse.begin(), toReverse.end());
-    for (auto &[i, j] : toReverse)
-      cudaq::quake::XOp::create(rewriter, loc, ValueRange{i}, ValueRange{j});
+    for (std::size_t i = qubitSupport.size() - 1; i > 0; --i)
+      qRewriter.create<cudaq::quake::XOp>(loc, qubits[qubitSupport[i - 1]],
+                                          qubits[qubitSupport[i]]);
 
     for (std::size_t i = 0; i < paulis.size(); i++) {
       std::size_t k = paulis.size() - 1 - i;
-      Value qubitK = qubits[k];
-
       if (paulis[k] == cudaq::quake::Pauli::Y) {
-        APFloat d(-M_PI_2);
-        Value param = arith::ConstantFloatOp::create(rewriter, loc,
-                                                     rewriter.getF64Type(), d);
-        cudaq::quake::RxOp::create(rewriter, loc, ValueRange{param},
-                                   ValueRange{}, ValueRange{qubitK});
+        Value param =
+            createConstant(loc, -M_PI_2, rewriter.getF64Type(), rewriter);
+        qRewriter.create<cudaq::quake::RxOp>(loc, ValueRange{param}, noControls,
+                                             qubits[k]);
       } else if (paulis[k] == cudaq::quake::Pauli::X) {
-        cudaq::quake::HOp::create(rewriter, loc, ValueRange{qubitK});
+        qRewriter.create<cudaq::quake::HOp>(loc, qubits[k]);
       }
     }
-
-    rewriter.eraseOp(expPauliOp);
-
-    return success();
   }
 };
 REGISTER_DECOMPOSITION_PATTERN(ExpPauliDecomposition,
