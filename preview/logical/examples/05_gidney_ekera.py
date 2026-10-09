@@ -243,30 +243,35 @@ def rsa2048_resource_kernel():
 # Project compiler-counted logical resources through the paper's closed-form
 # timing and layout equations; this path does not construct or schedule P3.
 def calculate_analytical_metrics(logical) -> AnalyticalResult:
+    point = factory.RSA_2048
     toffolis = logical.synthesis_demand["qlx_standard_ccx"]
-    lookups, remainder = divmod(toffolis, 5_333)
+    lookups, remainder = divmod(toffolis, point.toffolis_per_lookup)
     assert remainder == 0, "logical Toffoli demand is not a whole lookup count"
 
-    timing = factory.surface_timing()
+    timing = factory.surface_timing(point)
     cycle_ns = timing["surface_cycle_ns"]
-    bank_interval_ns = 135.0 * cycle_ns / factory.FACTORY_LANES
+    bank_interval_ns = (point.factory_output_interval_cycles * cycle_ns /
+                        point.factory_lanes)
     qrom_step_ns = max(
-        factory.CODE.d.conservative_value * cycle_ns / 2.0,
+        point.level_2_code_distance * cycle_ns / 2.0,
         bank_interval_ns,
     )
     addition_step_ns = max(
         timing["reaction_time_ns"],
-        factory.CARRY_PIECES * bank_interval_ns,
+        point.carry_pieces * bank_interval_ns,
     )
     lookup_period_ns = (
-        (factory.TABLE_ROWS + factory.FIXUP_COUNT) * qrom_step_ns +
-        (factory.PIECE_LENGTH + factory.PIECE_LENGTH - 1) * addition_step_ns)
+        (point.table_rows + point.fixup_count) * qrom_step_ns +
+        (point.piece_length + point.piece_length - 1) * addition_step_ns)
     final_measure_ns = timing.by_code_distance[
-        factory.LEVEL_2_CODE_DISTANCE]["measure_x_instrument_ns"]
-    makespan_ns = 379.0 * cycle_ns + lookups * lookup_period_ns + final_measure_ns
-    physical_qubits = ((factory.BOARD_PATCHES - factory.FACTORY_PATCHES) *
-                       factory.PATCH_FOOTPRINT +
-                       factory.FACTORY_LANES * 142_808)
+        point.level_2_code_distance]["measure_x_instrument_ns"]
+    makespan_ns = (point.factory_startup_cycles * cycle_ns +
+                   lookups * lookup_period_ns + final_measure_ns)
+    patch_footprint = factory.factory_for(
+        point).surface.square_patch_footprint.units
+    physical_qubits = (
+        (point.board_patches - point.factory_patches) * patch_footprint +
+        point.factory_lanes * point.factory_lane_physical_qubits)
     return AnalyticalResult(
         logical_qubits=logical.logical_qubits_peak,
         logical_toffolis=toffolis,
@@ -306,7 +311,7 @@ def estimate_using_kernel_profile() -> AnalyticalResult:
 # and timing; the failure budget and the SCHEDULE tier are estimate policy.
 def build_physical_target():
     device = factory.build_paper_device(
-        factory_lanes=factory.FACTORY_LANES,
+        factory.RSA_2048,
         p_phys=factory.PHYSICAL_ERROR_RATE,
         scaling=factory.DEFAULT_SCALING,
     )
