@@ -243,8 +243,11 @@ static cudaq_status_t gpu_roce_bridge_get_transport_context(
       doca_ctx.rx_ring_data = reinterpret_cast<uint8_t *>(
           gpu_roce_get_rx_ring_data_addr(transceiver));
       doca_ctx.rx_ring_stride_sz = gpu_roce_get_page_size(transceiver);
-      doca_ctx.rx_ring_mkey = htonl(gpu_roce_get_rkey(transceiver));
       doca_ctx.rx_ring_stride_num = gpu_roce_get_num_pages(transceiver);
+      doca_ctx.tx_ring_data = reinterpret_cast<uint8_t *>(
+          gpu_roce_get_tx_ring_data_addr(transceiver));
+      doca_ctx.tx_ring_stride_sz = gpu_roce_get_page_size(transceiver);
+      doca_ctx.tx_ring_mkey = htonl(gpu_roce_get_tx_ring_lkey(transceiver));
       doca_ctx.frame_size = ctx->config.frame_size;
       doca_ctx.use_bf = ctx->is_igpu ? 0 : 1;
 
