@@ -246,7 +246,7 @@ CUDAQ_TEST(NoiseTest, checkSimple) {
 }
 
 #endif
-#if defined(CUDAQ_BACKEND_DM)
+#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_CUSTATEVEC_FP32)
 // Stim does not support arbitrary cudaq::kraus_channel specification.
 
 CUDAQ_TEST(NoiseTest, checkAmplitudeDamping) {
@@ -267,7 +267,8 @@ CUDAQ_TEST(NoiseTest, checkAmplitudeDamping) {
 
 #endif
 
-#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_TENSORNET_MPS)
+#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_TENSORNET_MPS) ||       \
+    defined(CUDAQ_BACKEND_CUSTATEVEC_FP32)
 CUDAQ_TEST(NoiseTest, checkAmplitudeDamping2) {
   cudaq::set_random_seed(13);
   cudaq::kraus_channel amplitudeDamping{{1., 0., 0., .8660254037844386},
@@ -528,7 +529,7 @@ CUDAQ_TEST(NoiseTest, checkDepolTypeSimple) {
 }
 
 #endif
-#if defined(CUDAQ_BACKEND_DM)
+#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_CUSTATEVEC_FP32)
 // Stim does not support cudaq::amplitude_damping_channel.
 
 CUDAQ_TEST(NoiseTest, checkAmpDampType) {
@@ -582,7 +583,7 @@ CUDAQ_TEST(NoiseTest, checkPhaseDampType) {
 }
 
 #endif
-#if defined(CUDAQ_BACKEND_DM)
+#if defined(CUDAQ_BACKEND_DM) || defined(CUDAQ_BACKEND_CUSTATEVEC_FP32)
 // Stim does not support cudaq::amplitude_damping_channel.
 
 CUDAQ_TEST(NoiseTest, checkAmpDampTypeSimple) {
