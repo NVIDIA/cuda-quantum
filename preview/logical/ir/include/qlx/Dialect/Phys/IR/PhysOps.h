@@ -8,6 +8,8 @@
 
 #ifndef QLX_DIALECT_PHYS_PHYSOPS_H
 #define QLX_DIALECT_PHYS_PHYSOPS_H
+#include "CUDAQLogical/Interfaces/PhysicalInterfaces.h"
+#include "CUDAQLogical/Interfaces/SemanticInterfaces.h"
 #include "qlx/Dialect/Event/IR/EventTypes.h"
 #include "qlx/Dialect/Phys/IR/PhysDialect.h"
 #include "qlx/Dialect/Phys/IR/PhysTypes.h"

@@ -133,23 +133,24 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR}/ir/include)
 add_subdirectory(ir)
 
 # --------------------------------------------------------------------------- #
-# Build-tree package config — lets external backend worktrees find CUDA-Q Logical via
-# cmake -DQLX_DIR=<build>/lib/cmake/QLX ...
+# Build-tree package config for external CUDA-Q Logical dialect extensions.
+# QLX remains the name of the P0 dialect, not the package that owns the stack.
 # --------------------------------------------------------------------------- #
 export(TARGETS
+  MLIRCUDAQLogicalInterfaces
   MLIRQLXDialect
   MLIRFabricDialect
   MLIRLVMDialect
   MLIRPhysDialect
   MLIRCflowDialect
   MLIREventDialect
-  NAMESPACE QLX::
-  FILE "${CMAKE_BINARY_DIR}/lib/cmake/QLX/QLXTargets.cmake"
+  NAMESPACE CUDAQLogical::
+  FILE "${CMAKE_BINARY_DIR}/lib/cmake/CUDAQLogical/CUDAQLogicalTargets.cmake"
 )
 
 configure_file(
-  "${CMAKE_SOURCE_DIR}/cmake/QLXConfig.cmake.in"
-  "${CMAKE_BINARY_DIR}/lib/cmake/QLX/QLXConfig.cmake"
+  "${CMAKE_SOURCE_DIR}/cmake/CUDAQLogicalConfig.cmake.in"
+  "${CMAKE_BINARY_DIR}/lib/cmake/CUDAQLogical/CUDAQLogicalConfig.cmake"
   @ONLY
 )
 

@@ -14,6 +14,42 @@ Otherwise the dialect registry, the pass registry, and MLIR `TypeID`s are
 duplicated between CUDA-Q Logical and CUDA-Q, and in-process `quake` import
 breaks in confusing ways.
 
+## Building a CUDA-Q Logical dialect extension
+
+The CUDA-Q Logical build tree exports a CMake package for extension and backend
+development. Point `CUDAQLogical_DIR` at the configured build and consume the
+neutral interface target explicitly:
+
+```cmake
+find_package(CUDAQLogical REQUIRED CONFIG)
+
+add_library(my_physical_dialect ...)
+target_include_directories(my_physical_dialect PRIVATE
+  ${CUDAQ_LOGICAL_INCLUDE_DIRS})
+target_link_libraries(my_physical_dialect PRIVATE
+  CUDAQLogical::MLIRCUDAQLogicalInterfaces
+)
+```
+
+`CUDAQLogical::MLIRCUDAQLogicalInterfaces` is the dependency-light extension
+boundary. It does not link QLX, LVM, Fabric, Phys, a hardware dialect, the
+reference compiler, or the Python stack. QLX is one dialect in CUDA-Q Logical;
+it does not own this interface library or the other dialects. An extension may
+link a dialect library when it intentionally uses that dialect's concrete types
+or operations, but generic interface implementations should not acquire those
+dependencies accidentally.
+
+The test project in `test/ExternalFTQC` is the executable example. CMake
+configures it separately with `find_package(CUDAQLogical)`, builds a dialect
+plugin, and loads the plugin into a new `qlx-opt` process. The positive test
+demonstrates interface-only participation. The negative test confirms that
+operations carrying physical linear state without the interface are rejected.
+
+This is a build-tree development contract, not an installed ABI promise. The
+Python wheel does not advertise a stable C++ plugin interface, and extensions
+must use the same CUDA-Q and LLVM/MLIR installation as the CUDA-Q Logical build
+that loads them.
+
 You can build CUDA-Q Logical against CUDA-Q in two supported ways:
 
 ## Option 1 (default): the `cudaq-devel` wheel

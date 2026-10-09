@@ -6,6 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+add_subdirectory(include/CUDAQLogical/Interfaces)
 add_subdirectory(include/qlx/Conversion)
 add_subdirectory(include/qlx/Dialect/Cflow)
 add_subdirectory(include/qlx/Dialect/Event)
@@ -15,6 +16,7 @@ add_subdirectory(include/qlx/Dialect/LVM)
 add_subdirectory(include/qlx/Dialect/Phys)
 
 # Per-dialect implementation (IR + Transforms).
+add_subdirectory(lib/Interfaces)
 add_subdirectory(lib/Dialect/Cflow)
 add_subdirectory(lib/Dialect/Event)
 add_subdirectory(lib/Dialect/Fabric)

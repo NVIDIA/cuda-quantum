@@ -6,16 +6,18 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 #
-# QLXConfig.cmake — build-tree package config for downstream P0-P3 consumers.
+# CUDAQLogicalConfig.cmake — build-tree package config for CUDA-Q Logical
+# dialect extensions.
 #
 # Usage:
-#   cmake -DQLX_DIR=<qlx-build>/lib/cmake/QLX -S . -B build
+#   cmake -DCUDAQLogical_DIR=<build>/lib/cmake/CUDAQLogical -S . -B build
 #
-# After find_package(QLX REQUIRED), downstream CMakeLists files have:
-#   - QLX::MLIRQLXDialect, QLX::MLIRLVMDialect, QLX::MLIRFabricDialect,
-#     QLX::MLIRPhysDialect, QLX::MLIRCflowDialect, QLX::MLIREventDialect
-#   - qlx_propagate_llvm_rtti_eh(<target>) helper function
-#   - QLX_INCLUDE_DIRS  — qlx dialect headers (source + generated)
+# After find_package(CUDAQLogical REQUIRED), downstream CMakeLists files have:
+#   - CUDAQLogical::MLIRCUDAQLogicalInterfaces,
+#     CUDAQLogical::MLIRQLXDialect, CUDAQLogical::MLIRLVMDialect,
+#     CUDAQLogical::MLIRFabricDialect, CUDAQLogical::MLIRPhysDialect,
+#     CUDAQLogical::MLIRCflowDialect, CUDAQLogical::MLIREventDialect
+#   - CUDAQ_LOGICAL_INCLUDE_DIRS — public headers (source + generated)
 #   - cudaq::MLIR plus the MLIR and CUDA-Q cmake helpers
 # ============================================================================ #
 
@@ -37,22 +39,20 @@ include(AddMLIR)
 include(HandleLLVMOptions)
 include(AddCUDAQ)
 
-# Exported QLX dialect targets (MLIRFabricDialect etc., namespaced as QLX::).
-include("@CMAKE_BINARY_DIR@/lib/cmake/QLX/QLXTargets.cmake")
-
-# Helper functions: qlx_propagate_llvm_rtti_eh.
-include("@CMAKE_SOURCE_DIR@/cmake/QLXTargetSetup.cmake")
+# Exported CUDA-Q Logical targets. QLX is one dialect target in this package;
+# it is not the namespace or owner of the other dialects and interfaces.
+include("@CMAKE_BINARY_DIR@/lib/cmake/CUDAQLogical/CUDAQLogicalTargets.cmake")
 
 # CUDA-Q Logical public header directories: source tree + build tree (tablegen outputs).
-set(QLX_INCLUDE_DIRS
+set(CUDAQ_LOGICAL_INCLUDE_DIRS
   "@CMAKE_SOURCE_DIR@/ir/include"
   "@CMAKE_BINARY_DIR@/ir/include"
 )
 
 # Path to the CUDA-Q Logical Python C API library. Downstream plugins using the
 # Python bindings should share this runtime entry point.
-set(QLX_PYTHON_CAPI_LIB
+set(CUDAQ_LOGICAL_PYTHON_CAPI_LIB
   "@CMAKE_BINARY_DIR@/python/cudaq/mlir/_mlir_libs/libQLXPythonCAPI.so"
 )
 
-set(QLX_FOUND TRUE)
+set(CUDAQLogical_FOUND TRUE)

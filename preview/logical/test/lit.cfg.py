@@ -10,8 +10,14 @@ import os
 import lit.formats
 import lit.util
 
-config.name = "QLX"
-config.test_format = lit.formats.ShTest(True)
+config.name = "CUDA-Q Logical"
+try:
+    config.test_format = lit.formats.ShTest(True)
+except ValueError:
+    # LLVM 23 requires callers that intentionally use the external shell to
+    # opt in explicitly. Older lit releases reject the keyword but accept the
+    # positional form above.
+    config.test_format = lit.formats.ShTest(True, force_execute_external=True)
 
 config.suffixes = [".mlir", ".test"]
 
@@ -21,6 +27,11 @@ config.test_source_root = os.path.dirname(__file__)
 
 # Retained CLI workflow tests consume the checked-in top-level examples.
 config.substitutions.append(("%qlx_src_dir", config.qlx_src_dir))
+config.substitutions.append(("%root_contract_test", config.root_contract_test))
+if (hasattr(config, "test_ftqc_plugin") and config.test_ftqc_plugin):
+    config.substitutions.append(("%test_ftqc_plugin", config.test_ftqc_plugin))
+    if os.path.isfile(config.test_ftqc_plugin):
+        config.available_features.add("test-ftqc-plugin")
 
 # Features for REQUIRES lines. Each entry advertises a feature when the
 # corresponding tool exists in ${QLX_TOOLS_DIR}.

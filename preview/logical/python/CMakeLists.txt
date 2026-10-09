@@ -448,7 +448,7 @@ add_test(NAME qlx-python-tests
   WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}
 )
 set_tests_properties(qlx-python-tests PROPERTIES
-  # The QLX build tree contains only the additions to the cudaq package. Keep
+  # The CUDA-Q Logical build tree contains only additions to the cudaq package. Keep
   # the configured CUDA-Q installation on the module search path so the core
   # package and its MLIR bindings remain importable. ENVIRONMENT_MODIFICATION
   # uses the platform's native path-list separator and preserves any paths from

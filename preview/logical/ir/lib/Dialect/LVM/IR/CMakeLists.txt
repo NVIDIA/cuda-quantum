@@ -14,5 +14,5 @@ qlx_select_mlir_link_libraries(_qlx_mlir_link_libraries
 add_mlir_dialect_library(MLIRLVMDialect
   LVMDialect.cpp
   ADDITIONAL_HEADER_DIRS ${PROJECT_SOURCE_DIR}/ir/include/qlx/Dialect/LVM/IR
-  DEPENDS MLIRLVMIncGen MLIREventIncGen
-  LINK_LIBS PUBLIC MLIRQLXDialect MLIREventDialect ${_qlx_mlir_link_libraries})
+  DEPENDS MLIRLVMIncGen MLIRCUDAQLogicalInterfacesIncGen MLIREventIncGen
+  LINK_LIBS PUBLIC MLIRCUDAQLogicalInterfaces MLIRQLXDialect MLIREventDialect ${_qlx_mlir_link_libraries})

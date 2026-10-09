@@ -13,6 +13,8 @@ include "qlx/Dialect/Phys/IR/PhysDialect.td"
 include "qlx/Dialect/Phys/IR/PhysTypes.td"
 include "qlx/Dialect/QLX/IR/QLXAttrs.td"
 include "qlx/Dialect/Event/IR/EventTypes.td"
+include "CUDAQLogical/Interfaces/PhysicalInterfaces.td"
+include "CUDAQLogical/Interfaces/SemanticInterfaces.td"
 include "mlir/IR/OpBase.td"
 include "mlir/IR/SymbolInterfaces.td"
 
@@ -181,7 +183,8 @@ def Phys_ReturnOp : Phys_Op<"return", [Terminator]> {
 }
 
 def Phys_GraphOp : Phys_Op<"graph", [
-    Symbol, IsolatedFromAbove, SingleBlockImplicitTerminator<"ReturnOp">
+    Symbol, IsolatedFromAbove, SingleBlockImplicitTerminator<"ReturnOp">,
+    DeclareOpInterfaceMethods<CUDAQLogical_SemanticRootOpInterface>
   ]> {
   let arguments = (ins
     SymbolNameAttr:$sym_name,
@@ -447,7 +450,9 @@ def Phys_RoutingOp : Phys_Op<"routing", [Symbol]> {
   let hasVerifier = 1;
 }
 
-def Phys_MeasureOp : Phys_Op<"measure", []> {
+def Phys_MeasureOp : Phys_Op<"measure", [
+    DeclareOpInterfaceMethods<CUDAQLogical_PhysicalMeasurementOpInterface>
+  ]> {
   let arguments = (ins
     FlatSymbolRefAttr:$measurement,
     Phys_StateType:$input,
@@ -463,7 +468,9 @@ def Phys_MeasureOp : Phys_Op<"measure", []> {
   let hasVerifier = 1;
 }
 
-def Phys_MeasureProductOp : Phys_Op<"measure_product", []> {
+def Phys_MeasureProductOp : Phys_Op<"measure_product", [
+    DeclareOpInterfaceMethods<CUDAQLogical_PhysicalMeasurementOpInterface>
+  ]> {
   let summary = "native physical Pauli-product measurement event";
   let description = [{
     Measures one multi-qubit Pauli product natively (one label per state

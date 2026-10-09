@@ -9,24 +9,18 @@
 qlx_select_mlir_link_libraries(_qlx_mlir_link_libraries
   MLIRIR
   MLIRSupport
-  MLIRBytecodeOpInterface
 )
 
-add_mlir_dialect_library(MLIRQLXDialect
-  QLXDialect.cpp
+add_mlir_library(MLIRCUDAQLogicalInterfaces
+  SemanticInterfaces.cpp
+  PhysicalInterfaces.cpp
 
   ADDITIONAL_HEADER_DIRS
-  ${PROJECT_SOURCE_DIR}/ir/include/qlx/Dialect/QLX/IR
+  ${PROJECT_SOURCE_DIR}/ir/include/CUDAQLogical/Interfaces
 
   DEPENDS
-  MLIRQLXIncGen
   MLIRCUDAQLogicalInterfacesIncGen
-  MLIREventIncGen
 
   LINK_LIBS PUBLIC
-  MLIRCUDAQLogicalInterfaces
-  MLIREventDialect
   ${_qlx_mlir_link_libraries}
 )
-
-# Enable PIC so the dialect library can be linked into Python shared modules.
