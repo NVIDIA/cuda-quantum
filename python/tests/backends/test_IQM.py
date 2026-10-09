@@ -6,6 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+import json
 import os
 import tempfile
 from typing import List
@@ -53,9 +54,7 @@ def startUpMockServer():
                     returncode=1)
 
     cudaq.set_random_seed(13)
-    # Set the targeted QPU
     os.environ["IQM_TOKENS_FILE"] = tmp_tokens_file.name
-    cudaq.set_target("iqm", url="http://localhost:{}".format(port))
 
     yield "Running the tests."
 
@@ -63,6 +62,38 @@ def startUpMockServer():
     p.terminate()
     os.remove(tmp_tokens_file.name)
 
+    cudaq.reset_target()
+
+
+@pytest.fixture(autouse=True, params=["iqm", "qdmi"])
+def configureTarget(request, monkeypatch, startUpMockServer):
+    port = get_backend_port("iqm")
+    if request.param == "qdmi":
+        if not cudaq.has_target("qdmi"):
+            pytest.skip("QDMI is not enabled")
+        iqm_qdmi = pytest.importorskip("iqm.qdmi")
+        monkeypatch.setenv(
+            "MQT_CORE_QDMI_CONFIG_JSON",
+            json.dumps({
+                "schema-version": 1,
+                "qdmi": {
+                    "devices": [{
+                        "id": "iqm.mock",
+                        "library": str(iqm_qdmi.IQM_QDMI_LIBRARY_PATH),
+                        "prefix": "IQM"
+                    }]
+                }
+            }))
+        monkeypatch.setenv("IQM_BASE_URL", "http://localhost:{}".format(port))
+        monkeypatch.setenv("IQM_TOKEN", "good_access_token")
+        monkeypatch.delenv("IQM_TOKENS_FILE", raising=False)
+        monkeypatch.delenv("IQM_QC_ID", raising=False)
+        monkeypatch.delenv("IQM_QC_ALIAS", raising=False)
+        cudaq.set_target("qdmi", device="iqm.mock", program_format="iqm-json")
+    else:
+        cudaq.set_target("iqm", url="http://localhost:{}".format(port))
+
+    yield request.param
     cudaq.reset_target()
 
 
@@ -360,7 +391,7 @@ def test_IQM_state_synthesis_builder():
     assert assert_close(counts["11"], 0., 2)
 
 
-def test_IQM_qubit_order_named_measurements():
+def test_IQM_qubit_order_named_measurements(configureTarget):
     shots = 1000
     # When changing the qubit count the measurements below need to be adapted.
     QUBIT_COUNT = 8
@@ -398,6 +429,20 @@ def test_IQM_qubit_order_named_measurements():
         #      f" {"PASS" if most_dominant == expected else "FAIL"}")
 
         assert (most_dominant == expected)
+
+    future = cudaq.sample_async(circuit, 0, shots_count=shots)
+    saved = str(future)
+    assert future.get().count("10000000") == shots
+    if configureTarget == "qdmi":
+        legacy = json.loads(saved)
+        del legacy["config"]["result_order"]
+        assert cudaq.AsyncSampleResult(
+            json.dumps(legacy)).get().count("10000000") == shots
+        cudaq.set_target("qdmi",
+                         device="iqm.mock",
+                         program_format="iqm-json",
+                         result_order="bit0-right")
+    assert cudaq.AsyncSampleResult(saved).get().count("10000000") == shots
 
 
 # leave for gdb debugging

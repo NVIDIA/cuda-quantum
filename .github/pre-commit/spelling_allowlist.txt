@@ -49,6 +49,7 @@ ConnectX
 CuDensityMat
 CuPy
 DCO
+DDSIM
 DGX
 DLP
 DOCA
@@ -138,6 +139,7 @@ MPI
 MPICH
 MPPs
 MPS
+MQT
 MSB
 MacOS
 MachineModel
@@ -190,6 +192,7 @@ QASM
 QBRAID
 QCI
 QCaaS
+QDMI
 QEC
 QIR
 QIS

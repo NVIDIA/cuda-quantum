@@ -20,15 +20,26 @@ import numpy as np
 # cannot help if the target was never built.
 pytestmark = [
     pytest.mark.skip("Amazon Braket credentials required"),
-    pytest.mark.skipif(not cudaq.has_target("braket"),
-                       reason="Could not find `braket` in installation"),
+    pytest.mark.skipif(
+        not cudaq.has_target("braket") and not cudaq.has_target("qdmi"),
+        reason="Could not find `braket` or `qdmi` in installation"),
 ]
 
 
-@pytest.fixture(scope="session", autouse=True)
-def set_up_target():
-    cudaq.set_target("braket")
-    yield "Running the tests."
+@pytest.fixture(autouse=True, params=["braket", "qdmi"])
+def set_up_target(request, monkeypatch):
+    if not cudaq.has_target(request.param):
+        pytest.skip("Could not find `{}` in installation".format(request.param))
+    if request.param == "qdmi":
+        braket_qdmi = pytest.importorskip("amazon.braket.qdmi")
+        monkeypatch.setenv("MQT_CORE_QDMI_CONFIG_FILE",
+                           str(braket_qdmi.AMAZON_BRAKET_QDMI_CATALOG_PATH))
+        cudaq.set_target("qdmi",
+                         device="amazon.braket.sv1",
+                         program_format="qasm2-braket")
+    else:
+        cudaq.set_target("braket")
+    yield request.param
     cudaq.__clearKernelRegistries()
     cudaq.reset_target()
 
@@ -99,7 +110,7 @@ def test_all_gates():
 
     @cudaq.kernel
     def single_qubit_gates():
-        q = cudaq.qubit()
+        q = cudaq.qvector(2)
         h(q)
         x(q)
         y(q)
@@ -110,9 +121,9 @@ def test_all_gates():
         rz(np.pi, q)
         s(q)
         t(q)
-        mx(q)
+        mx(q[0])
         ## my(q) # not supported since the default rewriter uses `sdg`
-        mz(q)
+        mz(q[1])
 
     # Test here is that this runs
     cudaq.sample(single_qubit_gates, shots_count=100).dump()
@@ -431,15 +442,23 @@ def test_state_synthesis():
 
 @pytest.mark.parametrize(
     "device_arn", ["arn:aws:braket:::device/quantum-simulator/amazon/dm1"])
-def test_other_simulators(device_arn):
-    cudaq.set_target("braket", machine=device_arn)
+def test_other_simulators(device_arn, set_up_target):
+    if set_up_target == "qdmi":
+        cudaq.set_target("qdmi",
+                         device="amazon.braket." +
+                         device_arn.rsplit("/", 1)[-1],
+                         program_format="qasm2-braket")
+    else:
+        cudaq.set_target("braket", machine=device_arn)
     test_qvector_kernel()
     test_builder_sample()
     cudaq.reset_target()
 
 
 @pytest.mark.parametrize("polling_interval_ms", [10, 100])
-def test_polling_interval(polling_interval_ms):
+def test_polling_interval(polling_interval_ms, set_up_target):
+    if set_up_target == "qdmi":
+        pytest.skip("polling_interval_ms is a native Braket target argument")
     cudaq.set_target("braket", polling_interval_ms=polling_interval_ms)
     test_qvector_kernel()
     cudaq.reset_target()

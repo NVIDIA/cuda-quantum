@@ -646,12 +646,13 @@ static void registerToQIRTranslation() {
   CREATE_QIR_REGISTRATION(regAdaptive, "qir-adaptive");
 }
 
-static void registerToOpenQASMTranslation() {
+static void registerToOpenQASMTranslation(StringRef name,
+                                          cudaq::OpenQASMProfile profile) {
   cudaq_internal::compiler::TranslateFromMLIRRegistration reg(
-      "qasm2", "translate from quake to openQASM 2.0",
-      [](Operation *op, llvm::raw_string_ostream &output,
-         const std::string &additionalPasses, bool printIR,
-         bool printIntermediateMLIR, bool printStats) {
+      name, "translate from quake to openQASM 2.0",
+      [profile](Operation *op, llvm::raw_string_ostream &output,
+                const std::string &additionalPasses, bool printIR,
+                bool printIntermediateMLIR, bool printStats) {
         ScopedTraceWithContext(cudaq::TIMING_JIT, "qasm2 translation");
         PassManager pm(op->getContext());
         if (printIntermediateMLIR)
@@ -666,7 +667,7 @@ static void registerToOpenQASMTranslation() {
         if (failed(cudaq_internal::compiler::runPassManager(pm, op)))
           throw std::runtime_error("code generation failed.");
         timingScope.stop();
-        auto passed = cudaq::translateToOpenQASM(op, output);
+        auto passed = cudaq::translateToOpenQASM(op, output, profile);
         if (printIR) {
           if (succeeded(passed))
             llvm::errs() << output.str();
@@ -729,7 +730,9 @@ void cudaq_internal::compiler::initializeMLIR() {
   std::call_once(mlir_init_flag, []() {
     initializeLangMLIR();
     registerToQIRTranslation();
-    registerToOpenQASMTranslation();
+    registerToOpenQASMTranslation("qasm2", cudaq::OpenQASMProfile::Standard);
+    registerToOpenQASMTranslation("qasm2-braket",
+                                  cudaq::OpenQASMProfile::Braket);
     registerToIQMJsonTranslation();
     registerToQuakeTranslation();
 

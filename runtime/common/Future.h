@@ -8,12 +8,17 @@
 
 #pragma once
 #include "ObserveResult.h"
+#include "Registry.h"
 #include "SampleResult.h"
 
 #include <functional>
 #include <future>
 #include <map>
 #include <memory>
+#include <optional>
+#include <string>
+#include <utility>
+#include <vector>
 
 namespace cudaq {
 
@@ -29,6 +34,19 @@ namespace detail {
 // differently when propagating it back to the runtime.
 enum class ExecutionContextType : int { other = 0, sample = 1, observe, run };
 
+/// Provider-neutral extension point for reopening serialized asynchronous
+/// jobs that are not served through the CUDA-Q REST helper interface.
+class JobResultRetriever : public registry::RegisteredType<JobResultRetriever> {
+public:
+  using Job = std::pair<std::string, std::string>;
+
+  virtual ~JobResultRetriever() = default;
+  virtual sample_result
+  retrieve(const std::vector<Job> &jobs,
+           const std::map<std::string, std::string> &config,
+           ExecutionContextType resultType) = 0;
+};
+
 /// @brief The future type models the expected result of a
 /// CUDA-Q kernel execution under a specific execution context.
 /// This type is returned from asynchronous execution calls. It
@@ -37,9 +55,9 @@ enum class ExecutionContextType : int { other = 0, sample = 1, observe, run };
 /// information needed to retrieve the results later from the server.
 /// This type can be persisted to file and read in later to retrieve
 /// execution results.
-/// It also optionally wraps a std::future<T> type, and in this case,
-/// persistence to file is not allowed, .get() must be invoked at some
-/// later point within the same runtime context.
+/// It can also wrap a std::future<T> as a same-process fast path. Such a future
+/// can be persisted only when provider job metadata is present for reopening
+/// it in another process.
 class future {
 public:
   using Job = std::pair<std::string, std::string>;
@@ -82,6 +100,15 @@ public:
   future(std::future<sample_result> &&f) : inFuture(std::move(f)) {
     wrapsFutureSampling = true;
   }
+
+  /// Same-process fast path plus all data required to persist and reopen the
+  /// provider job in a later process.
+  future(std::future<sample_result> &&f, std::vector<Job> jobs,
+         std::string qpuName, std::map<std::string, std::string> config,
+         ExecutionContextType type)
+      : jobs(std::move(jobs)), qpuName(std::move(qpuName)),
+        serverConfig(std::move(config)), inFuture(std::move(f)),
+        wrapsFutureSampling(true), resultType(type) {}
 
   /// @brief The constructor, takes all info required to
   /// be able to retrieve results at a later date, even after file persistence.

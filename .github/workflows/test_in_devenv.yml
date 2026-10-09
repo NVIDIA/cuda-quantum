@@ -25,6 +25,10 @@ on:
       export_environment:
         required: false
         type: boolean
+      enable_qdmi:
+        required: false
+        type: boolean
+        default: false
 
 name: Run CI within the dev environment container
 
@@ -117,6 +121,7 @@ jobs:
             --build-arg base_image=$base_image \
             --build-arg install="CMAKE_BUILD_TYPE=Debug" \
             --build-arg mpi="${{ inputs.mpi }}" \
+            --build-arg enable_qdmi="${{ inputs.enable_qdmi }}" \
             --build-arg run_tests=true \
             --target devbuild
 
@@ -128,6 +133,7 @@ jobs:
             --build-arg base_image=${{ steps.build.outputs.base_image }} \
             --build-arg install="CMAKE_BUILD_TYPE=Debug" \
             --build-arg mpi="${{ inputs.mpi }}" \
+            --build-arg enable_qdmi="${{ inputs.enable_qdmi }}" \
             --build-arg run_tests=true \
             --target test
 
@@ -139,6 +145,7 @@ jobs:
             --build-arg base_image=${{ steps.build.outputs.base_image }} \
             --build-arg install="CMAKE_BUILD_TYPE=Debug" \
             --build-arg mpi="${{ inputs.mpi }}" \
+            --build-arg enable_qdmi="${{ inputs.enable_qdmi }}" \
             --build-arg run_tests=true \
             --target test-mpi
 
