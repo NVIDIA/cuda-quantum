@@ -82,7 +82,7 @@ def get_state_async(kernel, *args, qpu_id=0):
 
 def to_cupy(state, dtype=None):
     """
-    A CUDA Quantum state is composed of a list of tensors (e.g. state-vector 
+    A CUDA-Q state is composed of a list of tensors (e.g. state-vector 
     state is composed of a single rank-1 tensor). Map all tensors 
     """
     try:
