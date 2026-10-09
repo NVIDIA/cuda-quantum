@@ -36,6 +36,7 @@ LLVM_INSTALL_PREFIX=${LLVM_INSTALL_PREFIX:-$HOME/.llvm}
 LLVM_PROJECTS=${LLVM_PROJECTS:-'clang;lld;mlir;python-bindings'}
 NANOBIND_INSTALL_PREFIX=${NANOBIND_INSTALL_PREFIX:-/usr/local/nanobind}
 Python3_EXECUTABLE=${Python3_EXECUTABLE:-python3}
+LLVM_SOURCE=${LLVM_SOURCE:-$HOME/.llvm-project}
 
 # Process command line arguments.
 build_configuration=Release
@@ -85,21 +86,29 @@ if [ -z "${llvm_projects##*python-bindings;*}" ]; then
   fi
 fi
 
-# Prepare the source and build directory.
+# Prepare the source and build directory. llvm_repo/llvm_commit are needed
+# below regardless of whether a fresh clone happens here (e.g. when
+# LLVM_SOURCE is restored from a cache mount from a prior build).
+cd "$this_file_dir" && cd $(git rev-parse --show-toplevel)
+llvm_repo="$(git config --file=.gitmodules submodule.tpls/llvm.url)"
+llvm_commit="$(git submodule | grep tpls/llvm | cut -c2- | cut -d ' ' -f1)"
 if [ ! -d "$LLVM_SOURCE" ] || [ -z "$(ls -A "$LLVM_SOURCE"/* 2> /dev/null)" ]; then
   echo "Cloning LLVM submodule..."
-  cd "$this_file_dir" && cd $(git rev-parse --show-toplevel)
-  LLVM_SOURCE="${LLVM_SOURCE:-$HOME/.llvm-project}"
-  llvm_repo="$(git config --file=.gitmodules submodule.tpls/llvm.url)"
-  llvm_commit="$(git submodule | grep tpls/llvm | cut -c2- | cut -d ' ' -f1)"
   git clone --filter=tree:0 "$llvm_repo" "$LLVM_SOURCE"
 fi
 
 # Always apply LLVM patches if patch directory exists; patches will be skipped
 # if they were already applied previously.
 LLVM_CMAKE_PATCHES=${LLVM_CMAKE_PATCHES:-"$this_file_dir/../tpls/customizations/llvm"}
-if [ -d "$LLVM_CMAKE_PATCHES" ]; then 
-  cd "$LLVM_SOURCE" && git checkout $llvm_commit
+if [ -d "$LLVM_CMAKE_PATCHES" ]; then
+  cd "$LLVM_SOURCE"
+  # Falls back to a targeted fetch if $llvm_commit isn't present locally,
+  # e.g. a stale checkout restored from a cache mount predating a submodule bump.
+  if ! git checkout $llvm_commit 2>/dev/null; then
+    echo "Commit $llvm_commit not found locally; fetching..."
+    git fetch --filter=tree:0 origin $llvm_commit
+    git checkout $llvm_commit
+  fi
   echo "Applying LLVM patches in $LLVM_CMAKE_PATCHES..."
   for patch in `find "$LLVM_CMAKE_PATCHES"/* -maxdepth 0 -type f -name '*.diff'`; do
     # Check if patch is already applied.
@@ -204,7 +213,14 @@ if "${CXX:-c++}" --version 2>&1 | grep -q "Free Software Foundation"; then
   LLVM_EXTRA_CXX_FLAGS="$LLVM_EXTRA_CXX_FLAGS -fno-gnu-unique"
 fi
 
-# Some flags that may be useful to build a GPU-offload-capable compiler: 
+# Speeds up repeated/incremental builds (e.g. local iteration) for
+# free when ccache is available; no effect on build output.
+CCACHE_FLAGS=""
+if [ -x "$(command -v ccache)" ]; then
+  CCACHE_FLAGS="-DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache"
+fi
+
+# Some flags that may be useful to build a GPU-offload-capable compiler:
 # targets_to_build="host;NVPTX"
 #  -DLLVM_TARGETS_TO_BUILD='"$targets_to_build"' \
 #  -DLIBOMPTARGET_DEVICE_ARCHITECTURES=sm_70,sm_75,sm_80
@@ -224,6 +240,7 @@ cmake_args=" \
   -DMLIR_ENABLE_BINDINGS_PYTHON=$mlir_python_bindings \
   -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
   -DCMAKE_CXX_FLAGS='"$LLVM_EXTRA_CXX_FLAGS"' \
+  ${CCACHE_FLAGS} \
   -Dnanobind_DIR=$NANOBIND_INSTALL_PREFIX/nanobind/cmake"
 
 if [ "$(uname)" = "Darwin" ]; then
