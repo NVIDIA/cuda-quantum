@@ -1,0 +1,274 @@
+// Check native control-value lowering for scalar and register gate controls.
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.    //
+// ========================================================================== //
+
+// RUN: cudaq-opt %s --convert-to-qir-api --lower-to-cfg --cc-to-llvm \
+// RUN:   --canonicalize | FileCheck %s
+// RUN: cudaq-opt %s "--convert-to-qir-api=opaque-pointer=true" \
+// RUN:   --lower-to-cfg --cc-to-llvm --canonicalize | FileCheck %s
+
+func.func @ordered_controls(%theta: f64, %closed: !quake.ref,
+                            %open_register: !quake.veq<?>, %open: !quake.ref,
+                            %target: !quake.ref) {
+  quake.rx<adj> (%theta) [%closed, %open_register, %open neg [false, true, true]] %target
+      : (f64, !quake.ref, !quake.veq<?>, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL:   llvm.func @ordered_controls(
+// CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: f64,
+// CHECK-SAME:      %[[ARG1:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !llvm.ptr,
+// CHECK-SAME:      %[[ARG2:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !llvm.ptr,
+// CHECK-SAME:      %[[ARG3:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !llvm.ptr,
+// CHECK-SAME:      %[[ARG4:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !llvm.ptr) attributes {"qir-api"} {
+// CHECK:           %[[MLIR_0:.*]] = llvm.mlir.constant(1 : i32) : i32
+// CHECK:           %[[MLIR_1:.*]] = llvm.mlir.constant(0 : i32) : i32
+// CHECK:           %[[MLIR_2:.*]] = llvm.mlir.constant(3 : i64) : i64
+// CHECK:           %[[MLIR_3:.*]] = llvm.mlir.constant(1 : i64) : i64
+// CHECK:           %[[MLIR_4:.*]] = llvm.mlir.addressof @__nvqir__qis__rx__ctl_values : !llvm.ptr
+// CHECK:           %[[FNEG_0:.*]] = llvm.fneg %[[ARG0]] : f64
+// CHECK:           llvm.call @generalizedInvokeWithControlValues(%[[MLIR_3]], %[[MLIR_2]], %[[MLIR_3]], %[[MLIR_4]], %[[FNEG_0]], %[[MLIR_1]], %[[MLIR_0]], %[[ARG1]], %[[MLIR_0]], %[[MLIR_1]], %[[ARG2]], %[[MLIR_1]], %[[MLIR_1]], %[[ARG3]], %[[ARG4]])
+// CHECK:           llvm.return
+// CHECK:         }
+
+// U2 and controlled PhasedRx use the control-value ABI even with closed controls.
+func.func @two_parameter_gates(%theta: f64, %phi: f64,
+                               %control: !quake.ref, %target: !quake.ref) {
+  quake.u2 (%theta, %phi) %target : (f64, f64, !quake.ref) -> ()
+  quake.u2<adj> (%theta, %phi) [%control neg [true]] %target
+      : (f64, f64, !quake.ref, !quake.ref) -> ()
+  quake.phased_rx (%theta, %phi) [%control neg [false]] %target
+      : (f64, f64, !quake.ref, !quake.ref) -> ()
+  quake.phased_rx<adj> (%theta, %phi) [%control neg [true]] %target
+      : (f64, f64, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL:   llvm.func @two_parameter_gates(
+// CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: f64,
+// CHECK-SAME:      %[[ARG1:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: f64,
+// CHECK-SAME:      %[[ARG2:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !llvm.ptr,
+// CHECK-SAME:      %[[ARG3:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !llvm.ptr) attributes {"qir-api"} {
+// CHECK:           %[[MLIR_0:.*]] = llvm.mlir.constant(1 : i32) : i32
+// CHECK:           %[[MLIR_1:.*]] = llvm.mlir.addressof @__nvqir__qis__phased_rx__ctl_values : !llvm.ptr
+// CHECK:           %[[MLIR_2:.*]] = llvm.mlir.constant(0 : i32) : i32
+// CHECK:           %[[MLIR_3:.*]] = llvm.mlir.constant(3.1415926535897931 : f64) : f64
+// CHECK:           %[[MLIR_4:.*]] = llvm.mlir.addressof @__nvqir__qis__u2__ctl_values : !llvm.ptr
+// CHECK:           %[[MLIR_5:.*]] = llvm.mlir.constant(2 : i64) : i64
+// CHECK:           %[[MLIR_6:.*]] = llvm.mlir.constant(0 : i64) : i64
+// CHECK:           %[[MLIR_7:.*]] = llvm.mlir.constant(1 : i64) : i64
+// CHECK:           llvm.call @generalizedInvokeWithControlValues(%[[MLIR_5]], %[[MLIR_6]], %[[MLIR_7]], %[[MLIR_4]], %[[ARG0]], %[[ARG1]], %[[ARG3]]) vararg(!llvm.func<void (i64, i64, i64, ptr, ...)>) : (i64, i64, i64, !llvm.ptr, f64, f64, !llvm.ptr) -> ()
+// CHECK:           %[[FNEG_0:.*]] = llvm.fneg %[[ARG0]] : f64
+// CHECK:           %[[FNEG_1:.*]] = llvm.fneg %[[ARG1]] : f64
+// CHECK:           %[[FSUB_0:.*]] = llvm.fsub %[[FNEG_1]], %[[MLIR_3]] : f64
+// CHECK:           %[[FADD_0:.*]] = llvm.fadd %[[FNEG_0]], %[[MLIR_3]] : f64
+// CHECK:           llvm.call @generalizedInvokeWithControlValues(%[[MLIR_5]], %[[MLIR_7]], %[[MLIR_7]], %[[MLIR_4]], %[[FSUB_0]], %[[FADD_0]], %[[MLIR_2]], %[[MLIR_2]], %[[ARG2]], %[[ARG3]]) vararg(!llvm.func<void (i64, i64, i64, ptr, ...)>) : (i64, i64, i64, !llvm.ptr, f64, f64, i32, i32, !llvm.ptr, !llvm.ptr) -> ()
+// CHECK:           llvm.call @generalizedInvokeWithControlValues(%[[MLIR_5]], %[[MLIR_7]], %[[MLIR_7]], %[[MLIR_1]], %[[ARG0]], %[[ARG1]], %[[MLIR_2]], %[[MLIR_0]], %[[ARG2]], %[[ARG3]]) vararg(!llvm.func<void (i64, i64, i64, ptr, ...)>) : (i64, i64, i64, !llvm.ptr, f64, f64, i32, i32, !llvm.ptr, !llvm.ptr) -> ()
+// CHECK:           %[[FNEG_2:.*]] = llvm.fneg %[[ARG0]] : f64
+// CHECK:           llvm.call @generalizedInvokeWithControlValues(%[[MLIR_5]], %[[MLIR_7]], %[[MLIR_7]], %[[MLIR_1]], %[[FNEG_2]], %[[ARG1]], %[[MLIR_2]], %[[MLIR_2]], %[[ARG2]], %[[ARG3]]) vararg(!llvm.func<void (i64, i64, i64, ptr, ...)>) : (i64, i64, i64, !llvm.ptr, f64, f64, i32, i32, !llvm.ptr, !llvm.ptr) -> ()
+// CHECK:           llvm.return
+// CHECK:         }
+
+cc.global constant private @phase_matrix
+    (dense<[(1.0, 0.0), (0.0, 0.0), (0.0, 0.0), (0.0, 1.0)]> : tensor<4xcomplex<f64>>)
+    : !cc.array<complex<f64> x 4>
+
+func.func @custom_register(%closed: !quake.ref, %open: !quake.veq<?>,
+                           %target: !quake.veq<1>) {
+  quake.custom_unitary_constant @phase_matrix [%closed, %open neg [false, true]] %target
+      : (!quake.ref, !quake.veq<?>, !quake.veq<1>) -> ()
+  return
+}
+
+// CHECK-LABEL:   llvm.func @custom_register(
+// CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !llvm.ptr,
+// CHECK-SAME:      %[[ARG1:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !llvm.ptr,
+// CHECK-SAME:      %[[ARG2:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !llvm.ptr) attributes {"qir-api"} {
+// CHECK:           %[[MLIR_0:.*]] = llvm.mlir.addressof @phase_matrix : !llvm.ptr
+// CHECK:           %[[MLIR_1:.*]] = llvm.mlir.addressof @cstr.00 : !llvm.ptr
+// CHECK:           %[[MLIR_2:.*]] = llvm.mlir.constant(0 : i32) : i32
+// CHECK:           %[[MLIR_3:.*]] = llvm.mlir.constant(1 : i32) : i32
+// CHECK:           %[[MLIR_4:.*]] = llvm.mlir.constant(0 : i64) : i64
+// CHECK:           %[[MLIR_5:.*]] = llvm.mlir.constant(1 : i64) : i64
+// CHECK:           %[[MLIR_6:.*]] = llvm.mlir.constant(8 : i32) : i32
+// CHECK:           %[[CALL_0:.*]] = llvm.call @__quantum__rt__array_create_1d(%[[MLIR_6]], %[[MLIR_5]]) : (i32, i64) -> !llvm.ptr
+// CHECK:           %[[CALL_1:.*]] = llvm.call @__quantum__rt__array_get_element_ptr_1d(%[[CALL_0]], %[[MLIR_4]]) : (!llvm.ptr, i64) -> !llvm.ptr
+// CHECK:           llvm.store %[[ARG0]], %[[CALL_1]] : !llvm.ptr, !llvm.ptr
+// CHECK:           %[[CALL_2:.*]] = llvm.call @__quantum__rt__array_concatenate(%[[CALL_0]], %[[ARG1]]) : (!llvm.ptr, !llvm.ptr) -> !llvm.ptr
+// CHECK:           %[[CALL_3:.*]] = llvm.call @llvm.stacksave.p0() : () -> !llvm.ptr
+// CHECK:           llvm.br ^bb1
+// CHECK:         ^bb1:
+// CHECK:           %[[CALL_4:.*]] = llvm.call @__quantum__rt__array_get_size_1d(%[[CALL_2]]) : (!llvm.ptr) -> i64
+// CHECK:           %[[ALLOCA_0:.*]] = llvm.alloca %[[CALL_4]] x i32 : (i64) -> !llvm.ptr
+// CHECK:           llvm.store %[[MLIR_3]], %[[ALLOCA_0]] : i32, !llvm.ptr
+// CHECK:           %[[CALL_5:.*]] = llvm.call @__quantum__rt__array_get_size_1d(%[[ARG1]]) : (!llvm.ptr) -> i64
+// CHECK:           llvm.br ^bb2(%[[MLIR_4]] : i64)
+// CHECK:         ^bb2(%[[VAL_0:.*]]: i64):
+// CHECK:           %[[ICMP_0:.*]] = llvm.icmp "slt" %[[VAL_0]], %[[CALL_5]] : i64
+// CHECK:           llvm.cond_br %[[ICMP_0]], ^bb3(%[[VAL_0]] : i64), ^bb5
+// CHECK:         ^bb3(%[[VAL_1:.*]]: i64):
+// CHECK:           %[[ADD_0:.*]] = llvm.add %[[VAL_1]], %[[MLIR_5]] : i64
+// CHECK:           %[[GETELEMENTPTR_0:.*]] = llvm.getelementptr %[[ALLOCA_0]]{{\[}}%[[ADD_0]]] : (!llvm.ptr, i64) -> !llvm.ptr, i32
+// CHECK:           llvm.store %[[MLIR_2]], %[[GETELEMENTPTR_0]] : i32, !llvm.ptr
+// CHECK:           llvm.br ^bb4(%[[VAL_1]] : i64)
+// CHECK:         ^bb4(%[[VAL_2:.*]]: i64):
+// CHECK:           %[[ADD_1:.*]] = llvm.add %[[VAL_2]], %[[MLIR_5]] : i64
+// CHECK:           llvm.br ^bb2(%[[ADD_1]] : i64)
+// CHECK:         ^bb5:
+// CHECK:           llvm.br ^bb6
+// CHECK:         ^bb6:
+// CHECK:           llvm.call @__nvqir__qis__custom_unitary__ctl_values(%[[MLIR_0]], %[[CALL_2]], %[[ALLOCA_0]], %[[CALL_4]], %[[ARG2]], %[[MLIR_1]]) : (!llvm.ptr, !llvm.ptr, !llvm.ptr, i64, !llvm.ptr, !llvm.ptr) -> ()
+// CHECK:           llvm.br ^bb7
+// CHECK:         ^bb7:
+// CHECK:           llvm.call @llvm.stackrestore.p0(%[[CALL_3]]) : (!llvm.ptr) -> ()
+// CHECK:           llvm.return
+// CHECK:         }
+
+func.func @pauli_register(%theta: f64, %open: !quake.veq<?>,
+                          %closed: !quake.ref, %target: !quake.veq<1>) {
+  quake.exp_pauli<adj> (%theta) [%open, %closed neg [true, false]] %target to "Y"
+      : (f64, !quake.veq<?>, !quake.ref, !quake.veq<1>) -> ()
+  return
+}
+
+// CHECK-LABEL:   llvm.func @pauli_register(
+// CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: f64,
+// CHECK-SAME:      %[[ARG1:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !llvm.ptr,
+// CHECK-SAME:      %[[ARG2:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !llvm.ptr,
+// CHECK-SAME:      %[[ARG3:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !llvm.ptr) attributes {"qir-api"} {
+// CHECK:           %[[MLIR_0:.*]] = llvm.mlir.addressof @cstr.5900 : !llvm.ptr
+// CHECK:           %[[MLIR_1:.*]] = llvm.mlir.constant(8 : i32) : i32
+// CHECK:           %[[MLIR_2:.*]] = llvm.mlir.constant(1 : i32) : i32
+// CHECK:           %[[MLIR_3:.*]] = llvm.mlir.constant(0 : i32) : i32
+// CHECK:           %[[MLIR_4:.*]] = llvm.mlir.constant(0 : i64) : i64
+// CHECK:           %[[MLIR_5:.*]] = llvm.mlir.constant(1 : i64) : i64
+// CHECK:           %[[ALLOCA_0:.*]] = llvm.alloca %[[MLIR_2]] x !llvm.array<1 x struct<(ptr, i64)>> : (i32) -> !llvm.ptr
+// CHECK:           %[[FNEG_0:.*]] = llvm.fneg %[[ARG0]] : f64
+// CHECK:           %[[CALL_0:.*]] = llvm.call @__quantum__rt__array_create_1d(%[[MLIR_1]], %[[MLIR_5]]) : (i32, i64) -> !llvm.ptr
+// CHECK:           %[[CALL_1:.*]] = llvm.call @__quantum__rt__array_get_element_ptr_1d(%[[CALL_0]], %[[MLIR_4]]) : (!llvm.ptr, i64) -> !llvm.ptr
+// CHECK:           llvm.store %[[ARG2]], %[[CALL_1]] : !llvm.ptr, !llvm.ptr
+// CHECK:           %[[CALL_2:.*]] = llvm.call @__quantum__rt__array_concatenate(%[[ARG1]], %[[CALL_0]]) : (!llvm.ptr, !llvm.ptr) -> !llvm.ptr
+// CHECK:           llvm.store %[[MLIR_0]], %[[ALLOCA_0]] : !llvm.ptr, !llvm.ptr
+// CHECK:           %[[GETELEMENTPTR_0:.*]] = llvm.getelementptr %[[ALLOCA_0]][0, 0, 1] : (!llvm.ptr) -> !llvm.ptr, !llvm.array<1 x struct<(ptr, i64)>>
+// CHECK:           llvm.store %[[MLIR_5]], %[[GETELEMENTPTR_0]] : i64, !llvm.ptr
+// CHECK:           %[[CALL_3:.*]] = llvm.call @llvm.stacksave.p0() : () -> !llvm.ptr
+// CHECK:           llvm.br ^bb1
+// CHECK:         ^bb1:
+// CHECK:           %[[CALL_4:.*]] = llvm.call @__quantum__rt__array_get_size_1d(%[[CALL_2]]) : (!llvm.ptr) -> i64
+// CHECK:           %[[ALLOCA_1:.*]] = llvm.alloca %[[CALL_4]] x i32 : (i64) -> !llvm.ptr
+// CHECK:           %[[CALL_5:.*]] = llvm.call @__quantum__rt__array_get_size_1d(%[[ARG1]]) : (!llvm.ptr) -> i64
+// CHECK:           llvm.br ^bb2(%[[MLIR_4]] : i64)
+// CHECK:         ^bb2(%[[VAL_0:.*]]: i64):
+// CHECK:           %[[ICMP_0:.*]] = llvm.icmp "slt" %[[VAL_0]], %[[CALL_5]] : i64
+// CHECK:           llvm.cond_br %[[ICMP_0]], ^bb3(%[[VAL_0]] : i64), ^bb5
+// CHECK:         ^bb3(%[[VAL_1:.*]]: i64):
+// CHECK:           %[[GETELEMENTPTR_1:.*]] = llvm.getelementptr %[[ALLOCA_1]]{{\[}}%[[VAL_1]]] : (!llvm.ptr, i64) -> !llvm.ptr, i32
+// CHECK:           llvm.store %[[MLIR_3]], %[[GETELEMENTPTR_1]] : i32, !llvm.ptr
+// CHECK:           llvm.br ^bb4(%[[VAL_1]] : i64)
+// CHECK:         ^bb4(%[[VAL_2:.*]]: i64):
+// CHECK:           %[[ADD_0:.*]] = llvm.add %[[VAL_2]], %[[MLIR_5]] : i64
+// CHECK:           llvm.br ^bb2(%[[ADD_0]] : i64)
+// CHECK:         ^bb5:
+// CHECK:           llvm.br ^bb6
+// CHECK:         ^bb6:
+// CHECK:           %[[GETELEMENTPTR_2:.*]] = llvm.getelementptr %[[ALLOCA_1]]{{\[}}%[[CALL_5]]] : (!llvm.ptr, i64) -> !llvm.ptr, i32
+// CHECK:           llvm.store %[[MLIR_2]], %[[GETELEMENTPTR_2]] : i32, !llvm.ptr
+// CHECK:           llvm.call @__nvqir__qis__exp_pauli__ctl_values(%[[FNEG_0]], %[[CALL_2]], %[[ALLOCA_1]], %[[CALL_4]], %[[ARG3]], %[[ALLOCA_0]]) : (f64, !llvm.ptr, !llvm.ptr, i64, !llvm.ptr, !llvm.ptr) -> ()
+// CHECK:           llvm.br ^bb7
+// CHECK:         ^bb7:
+// CHECK:           llvm.call @llvm.stackrestore.p0(%[[CALL_3]]) : (!llvm.ptr) -> ()
+// CHECK:           llvm.return
+// CHECK:         }
+
+func.func @wire_results(%theta: f64, %control: !quake.wire,
+                        %target: !quake.wire) -> (!quake.wire, !quake.wire) {
+  %custom_control, %custom_target = quake.custom_unitary_constant @phase_matrix<adj>
+      [%control neg [true]] %target
+      : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %pauli_control, %pauli_target = quake.exp_pauli (%theta)
+      [%custom_control neg [true]] %custom_target to "X"
+      : (f64, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  return %pauli_control, %pauli_target : !quake.wire, !quake.wire
+}
+
+// CHECK-LABEL:   llvm.func @wire_results(
+// CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: f64,
+// CHECK-SAME:      %[[ARG1:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !llvm.ptr,
+// CHECK-SAME:      %[[ARG2:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !llvm.ptr) -> !llvm.struct<(ptr, ptr)> attributes {"qir-api"} {
+// CHECK:           %[[MLIR_0:.*]] = llvm.mlir.poison : !llvm.struct<(ptr, ptr)>
+// CHECK:           %[[MLIR_1:.*]] = llvm.mlir.addressof @cstr.5800 : !llvm.ptr
+// CHECK:           %[[MLIR_2:.*]] = llvm.mlir.addressof @phase_matrix : !llvm.ptr
+// CHECK:           %[[MLIR_3:.*]] = llvm.mlir.addressof @cstr.00 : !llvm.ptr
+// CHECK:           %[[MLIR_4:.*]] = llvm.mlir.constant(8 : i32) : i32
+// CHECK:           %[[MLIR_5:.*]] = llvm.mlir.constant(0 : i32) : i32
+// CHECK:           %[[MLIR_6:.*]] = llvm.mlir.constant(0 : i64) : i64
+// CHECK:           %[[MLIR_7:.*]] = llvm.mlir.constant(1 : i64) : i64
+// CHECK:           %[[MLIR_8:.*]] = llvm.mlir.constant(1 : i32) : i32
+// CHECK:           %[[ALLOCA_0:.*]] = llvm.alloca %[[MLIR_8]] x !llvm.array<1 x struct<(ptr, i64)>> : (i32) -> !llvm.ptr
+// CHECK:           %[[CALL_0:.*]] = llvm.call @__quantum__rt__array_create_1d(%[[MLIR_4]], %[[MLIR_7]]) : (i32, i64) -> !llvm.ptr
+// CHECK:           %[[CALL_1:.*]] = llvm.call @__quantum__rt__array_get_element_ptr_1d(%[[CALL_0]], %[[MLIR_6]]) : (!llvm.ptr, i64) -> !llvm.ptr
+// CHECK:           llvm.store %[[ARG2]], %[[CALL_1]] : !llvm.ptr, !llvm.ptr
+// CHECK:           %[[CALL_2:.*]] = llvm.call @__quantum__rt__array_create_1d(%[[MLIR_4]], %[[MLIR_7]]) : (i32, i64) -> !llvm.ptr
+// CHECK:           %[[CALL_3:.*]] = llvm.call @__quantum__rt__array_get_element_ptr_1d(%[[CALL_2]], %[[MLIR_6]]) : (!llvm.ptr, i64) -> !llvm.ptr
+// CHECK:           llvm.store %[[ARG1]], %[[CALL_3]] : !llvm.ptr, !llvm.ptr
+// CHECK:           %[[CALL_4:.*]] = llvm.call @llvm.stacksave.p0() : () -> !llvm.ptr
+// CHECK:           llvm.br ^bb1
+// CHECK:         ^bb1:
+// CHECK:           %[[CALL_5:.*]] = llvm.call @__quantum__rt__array_get_size_1d(%[[CALL_2]]) : (!llvm.ptr) -> i64
+// CHECK:           %[[ALLOCA_1:.*]] = llvm.alloca %[[CALL_5]] x i32 : (i64) -> !llvm.ptr
+// CHECK:           llvm.store %[[MLIR_5]], %[[ALLOCA_1]] : i32, !llvm.ptr
+// CHECK:           llvm.call @__nvqir__qis__custom_unitary__adj__ctl_values(%[[MLIR_2]], %[[CALL_2]], %[[ALLOCA_1]], %[[CALL_5]], %[[CALL_0]], %[[MLIR_3]]) : (!llvm.ptr, !llvm.ptr, !llvm.ptr, i64, !llvm.ptr, !llvm.ptr) -> ()
+// CHECK:           llvm.br ^bb2
+// CHECK:         ^bb2:
+// CHECK:           llvm.call @llvm.stackrestore.p0(%[[CALL_4]]) : (!llvm.ptr) -> ()
+// CHECK:           %[[CALL_6:.*]] = llvm.call @__quantum__rt__array_create_1d(%[[MLIR_4]], %[[MLIR_7]]) : (i32, i64) -> !llvm.ptr
+// CHECK:           %[[CALL_7:.*]] = llvm.call @__quantum__rt__array_get_element_ptr_1d(%[[CALL_6]], %[[MLIR_6]]) : (!llvm.ptr, i64) -> !llvm.ptr
+// CHECK:           llvm.store %[[ARG1]], %[[CALL_7]] : !llvm.ptr, !llvm.ptr
+// CHECK:           %[[CALL_8:.*]] = llvm.call @__quantum__rt__array_create_1d(%[[MLIR_4]], %[[MLIR_7]]) : (i32, i64) -> !llvm.ptr
+// CHECK:           %[[CALL_9:.*]] = llvm.call @__quantum__rt__array_get_element_ptr_1d(%[[CALL_8]], %[[MLIR_6]]) : (!llvm.ptr, i64) -> !llvm.ptr
+// CHECK:           llvm.store %[[ARG2]], %[[CALL_9]] : !llvm.ptr, !llvm.ptr
+// CHECK:           llvm.store %[[MLIR_1]], %[[ALLOCA_0]] : !llvm.ptr, !llvm.ptr
+// CHECK:           %[[GETELEMENTPTR_0:.*]] = llvm.getelementptr %[[ALLOCA_0]][0, 0, 1] : (!llvm.ptr) -> !llvm.ptr, !llvm.array<1 x struct<(ptr, i64)>>
+// CHECK:           llvm.store %[[MLIR_7]], %[[GETELEMENTPTR_0]] : i64, !llvm.ptr
+// CHECK:           %[[CALL_10:.*]] = llvm.call @llvm.stacksave.p0() : () -> !llvm.ptr
+// CHECK:           llvm.br ^bb3
+// CHECK:         ^bb3:
+// CHECK:           %[[CALL_11:.*]] = llvm.call @__quantum__rt__array_get_size_1d(%[[CALL_6]]) : (!llvm.ptr) -> i64
+// CHECK:           %[[ALLOCA_2:.*]] = llvm.alloca %[[CALL_11]] x i32 : (i64) -> !llvm.ptr
+// CHECK:           llvm.store %[[MLIR_5]], %[[ALLOCA_2]] : i32, !llvm.ptr
+// CHECK:           llvm.call @__nvqir__qis__exp_pauli__ctl_values(%[[ARG0]], %[[CALL_6]], %[[ALLOCA_2]], %[[CALL_11]], %[[CALL_8]], %[[ALLOCA_0]]) : (f64, !llvm.ptr, !llvm.ptr, i64, !llvm.ptr, !llvm.ptr) -> ()
+// CHECK:           llvm.br ^bb4
+// CHECK:         ^bb4:
+// CHECK:           llvm.call @llvm.stackrestore.p0(%[[CALL_10]]) : (!llvm.ptr) -> ()
+// CHECK:           %[[INSERTVALUE_0:.*]] = llvm.insertvalue %[[ARG1]], %[[MLIR_0]][0] : !llvm.struct<(ptr, ptr)>
+// CHECK:           %[[INSERTVALUE_1:.*]] = llvm.insertvalue %[[ARG2]], %[[INSERTVALUE_0]][1] : !llvm.struct<(ptr, ptr)>
+// CHECK:           llvm.return %[[INSERTVALUE_1]] : !llvm.struct<(ptr, ptr)>
+// CHECK:         }
+
+// Reusable controls do not produce results, with either ref or wire targets.
+func.func @reusable_control(%control: !quake.control, %reference: !quake.ref,
+                           %wire: !quake.wire) -> !quake.wire {
+  quake.x [%control neg [true]] %reference
+      : (!quake.control, !quake.ref) -> ()
+  %next = quake.x [%control neg [true]] %wire
+      : (!quake.control, !quake.wire) -> !quake.wire
+  return %next : !quake.wire
+}
+
+// CHECK-LABEL:   llvm.func @reusable_control(
+// CHECK-SAME:      %[[ARG0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !llvm.ptr,
+// CHECK-SAME:      %[[ARG1:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !llvm.ptr,
+// CHECK-SAME:      %[[ARG2:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !llvm.ptr) -> !llvm.ptr attributes {"qir-api"} {
+// CHECK:           %[[MLIR_0:.*]] = llvm.mlir.constant(0 : i32) : i32
+// CHECK:           %[[MLIR_1:.*]] = llvm.mlir.addressof @__nvqir__qis__x__ctl_values : !llvm.ptr
+// CHECK:           %[[MLIR_2:.*]] = llvm.mlir.constant(0 : i64) : i64
+// CHECK:           %[[MLIR_3:.*]] = llvm.mlir.constant(1 : i64) : i64
+// CHECK:           llvm.call @generalizedInvokeWithControlValues(%[[MLIR_2]], %[[MLIR_3]], %[[MLIR_3]], %[[MLIR_1]], %[[MLIR_0]], %[[MLIR_0]], %[[ARG0]], %[[ARG1]]) vararg(!llvm.func<void (i64, i64, i64, ptr, ...)>) : (i64, i64, i64, !llvm.ptr, i32, i32, !llvm.ptr, !llvm.ptr) -> ()
+// CHECK:           llvm.call @generalizedInvokeWithControlValues(%[[MLIR_2]], %[[MLIR_3]], %[[MLIR_3]], %[[MLIR_1]], %[[MLIR_0]], %[[MLIR_0]], %[[ARG0]], %[[ARG2]]) vararg(!llvm.func<void (i64, i64, i64, ptr, ...)>) : (i64, i64, i64, !llvm.ptr, i32, i32, !llvm.ptr, !llvm.ptr) -> ()
+// CHECK:           llvm.return %[[ARG2]] : !llvm.ptr
+// CHECK:         }

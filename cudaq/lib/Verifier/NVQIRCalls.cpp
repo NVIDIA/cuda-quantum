@@ -19,11 +19,18 @@ constexpr const char *qirSpecPrefixes[] = {"__quantum_"};
 constexpr const char *llvmIntrinsicPrefixes[] = {
     "llvm.memcpy.", "llvm.memmove.", "llvm.memset."};
 
+constexpr const char *llvmIntrinsicNames[] = {cudaq::llvmStackSave,
+                                              cudaq::llvmStackRestore};
+
 constexpr const char *nvqirFuncs[] = {
     cudaq::opt::NVQIRInvokeWithControlBits,           // obsolete
     cudaq::opt::NVQIRInvokeRotationWithControlBits,   // obsolete
     cudaq::opt::NVQIRInvokeWithControlRegisterOrBits, // obsolete
     cudaq::opt::NVQIRGeneralizedInvokeAny,
+    cudaq::opt::NVQIRInvokeControlValues,
+    cudaq::opt::NVQIRCustomControlValues,
+    cudaq::opt::NVQIRCustomAdjControlValues,
+    cudaq::opt::NVQIRExpPauliControlValues,
     cudaq::opt::QIRArrayQubitAllocateArrayWithStateComplex32,
     cudaq::opt::QIRArrayQubitAllocateArrayWithStateComplex64,
     cudaq::getNumQubitsFromCudaqState,
@@ -40,8 +47,7 @@ constexpr const char *deviceCallFuncs[] = {
 
 constexpr const char *libcFuncs[] = {"malloc", "free", "memcpy", "memset"};
 
-// Helper function to verify that \p name is a valid NVQIR function and can be
-// called/referenced.
+// Check whether \p name is permitted in generated NVQIR.
 static bool isVerifiedFunction(StringRef name,
                                const SmallVector<StringRef> &goldenFuncs) {
   auto prefixCheck = [&](const char *prefix) {
@@ -58,7 +64,9 @@ static bool isVerifiedFunction(StringRef name,
 
   // Check against the sets of full names. If the name is not in any of these
   // collections, consider it invalid.
-  return std::find(std::begin(nvqirFuncs), std::end(nvqirFuncs), name) !=
+  return std::find(std::begin(llvmIntrinsicNames), std::end(llvmIntrinsicNames),
+                   name) != std::end(llvmIntrinsicNames) ||
+         std::find(std::begin(nvqirFuncs), std::end(nvqirFuncs), name) !=
              std::end(nvqirFuncs) ||
          std::find(std::begin(deviceCallFuncs), std::end(deviceCallFuncs),
                    name) != std::end(deviceCallFuncs) ||

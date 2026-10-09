@@ -105,6 +105,29 @@ q3 : ┤ h ├──────────────────────
     assert expected_str == produced_string
 
 
+def test_draw_mixed_control_polarities():
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(4)
+        for i in range(4):
+            ry(0.3 * (i + 1), q[i])
+        x.ctrl(q[1], ~q[0], q[2])
+        swap.ctrl(~q[0], q[1], q[2], q[3])
+
+    drawing = cudaq.draw(kernel)
+    rows = [line for line in drawing.splitlines() if line.startswith("q")]
+    assert rows[0].count("○") == 2
+    assert rows[0].count("●") == 0
+    assert rows[1].count("●") == 2
+    assert rows[1].count("○") == 0
+    latex = cudaq.draw("latex", kernel)
+    rows = [line for line in latex.splitlines() if r"\lstick" in line]
+    assert rows[0].count(r"\octrl{") == 2
+    assert rows[1].count(r"\ctrl{") == 2
+    assert r"\gate{X}" not in rows[0]
+
+
 # This test will run on the default simulator. For machines with GPUs, that
 # will be a GPU-accelerated simulator, but for machines without GPUs, it
 # will run on a CPU simulator.
