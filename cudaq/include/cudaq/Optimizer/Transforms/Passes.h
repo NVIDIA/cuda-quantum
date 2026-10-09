@@ -66,6 +66,7 @@ void addDecomposition(mlir::OpPassManager &pm,
 /// constant propagation
 /// `exp-pauli` and U3 decomposition
 /// quantum deallocation insertion and linear-value conversion
+/// one-qubit rotation optimization for Clifford+T
 /// `thresholded` exact-angle simplification
 /// register-to-memory conversion
 /// rotation-to-`Rz` decomposition

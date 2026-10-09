@@ -21,6 +21,7 @@ add_cudaq_library(OptTransforms
   BorrowChecking.cpp
   CableRoughIn.cpp
   ClassicalOptimization.cpp
+  CliffordTAngle.cpp
   CliffordTSynthesis.cpp
   CombineMeasurements.cpp
   CombineQuantumAlloc.cpp
@@ -66,8 +67,9 @@ add_cudaq_library(OptTransforms
   MultiControlDecomposition.cpp
   NormalizeAtomicQuantumRegions.cpp
   NormalizePhasePlacement.cpp
+  NormalizeSingleQubitCliffordT.cpp
   ObserveAnsatz.cpp
-  OptimizeSingleQubitCliffordT.cpp
+  Optimize1QRotationsForCliffordT.cpp
   PhaseFolding.cpp
   Pipelines.cpp
   PruneCtrlRelations.cpp
@@ -87,6 +89,7 @@ add_cudaq_library(OptTransforms
   ResourceCountPreprocess.cpp
   RunSemanticsHackery.cpp
   SROA.cpp
+  ScalarWireChain.cpp
   ShrinkWrap.cpp
   StackFramePrealloc.cpp
   StatePreparation.cpp

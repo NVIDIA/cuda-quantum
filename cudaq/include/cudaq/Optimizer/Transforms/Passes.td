@@ -1604,8 +1604,8 @@ def ObserveAnsatz : Pass<"observe-ansatz", "mlir::func::FuncOp"> {
   ];
 }
 
-def OptimizeSingleQubitCliffordT
-    : Pass<"optimize-1q-clifford-t", "mlir::ModuleOp"> {
+def NormalizeSingleQubitCliffordT
+    : Pass<"normalize-1q-clifford-t", "mlir::ModuleOp"> {
   let summary =
     "Rewrite exact one-qubit Clifford+T chains to Matsumoto-Amano normal form.";
   let description = [{
@@ -1626,6 +1626,39 @@ def OptimizeSingleQubitCliffordT
   }];
   let dependentDialects = ["mlir::arith::ArithDialect",
                            "quake::QuakeDialect"];
+}
+
+def Optimize1QRotationsForCliffordT
+    : Pass<"optimize-1q-rotations-for-clifford-t", "mlir::func::FuncOp"> {
+  let summary = "Re-express constant one-qubit chains with fewer approximate "
+                "rotations.";
+  let description = [{
+    Consumes and produces the scalar linear SSA `!quake.wire` form created by
+    `convert-to-linear-values`.
+
+    Composes each maximal chain of uncontrolled `h`, `s`, `t`, `x`, `y`, `z`,
+    `phase`, `r1`, `rx`, `ry`, and `rz` operations with constant parameters
+    into one unitary, and rewrites it as at most three rotations with an exact
+    scalar phase correction. The rotations use whichever of the `ZXZ`, `XZX`,
+    and `ZYZ` Euler bases is cheapest. The cost is the number of angles that
+    are not within `epsilon` of a Clifford+T quarter turn, since each needs
+    approximate synthesis, and then the number of rotations. A chain is
+    rewritten only when the best basis is strictly cheaper than the chain
+    itself, so chains that need no approximate rotation are left unchanged. An
+    angle that is zero apart from rounding error is dropped, even when `epsilon`
+    is zero.
+
+    The cost model is specific to Clifford+T synthesis and does not model
+    native gate sets.
+  }];
+  let options = [
+    Option<"epsilon", "epsilon", "double", /*default=*/"0.0",
+      "Operator-norm distance within which a rotation counts as a quarter "
+      "turn. Use the epsilon of the downstream Clifford+T legalization. Zero "
+      "counts only exact quarter turns.">,
+  ];
+  let dependentDialects = ["mlir::arith::ArithDialect",
+                           "cudaq::quake::QuakeDialect"];
 }
 
 def PhaseFolding: Pass<"phase-folding", "mlir::func::FuncOp"> {

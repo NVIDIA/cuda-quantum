@@ -6,9 +6,9 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --optimize-1q-clifford-t %s | FileCheck %s
+// RUN: cudaq-opt --normalize-1q-clifford-t %s | FileCheck %s
 // RUN: sed -n '/SEMANTIC-BEGIN$/,/SEMANTIC-END$/p' %s > %t.semantic.qke
-// RUN: cudaq-opt --optimize-1q-clifford-t %t.semantic.qke | CircuitCheck %t.semantic.qke
+// RUN: cudaq-opt --normalize-1q-clifford-t %t.semantic.qke | CircuitCheck %t.semantic.qke
 
 func.func @independent_wires(%arg0: !quake.wire, %arg1: !quake.wire)
     -> (!quake.wire, !quake.wire) {
