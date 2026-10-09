@@ -31,19 +31,24 @@ namespace {
 
 /// @brief Simple RPC handler that increments each byte of the payload by 1.
 ///
-/// Matches the DeviceRPCFunction signature.  Reads from input, writes to
-/// output (no in-place overlap).
-__device__ int rpc_increment_handler(const void *input, void *output,
-                                     std::uint32_t arg_len,
-                                     std::uint32_t max_result_len,
-                                     std::uint32_t *result_len) {
-
-  const std::uint8_t *in_data = static_cast<const std::uint8_t *>(input);
-  std::uint8_t *out_data = static_cast<std::uint8_t *>(output);
+/// Matches the DeviceRPCFunction signature (same two-pointer form as the
+/// host-call handler): reads the RPCHeader + payload from rx_slot, writes the
+/// incremented payload after the RPCResponse in tx_slot (no overlap) and sets
+/// result_len.  The dispatch kernel fills the other response header fields.
+__device__ int rpc_increment_handler(const void *rx_slot, void *tx_slot,
+                                     std::size_t slot_size) {
+  const auto *header = static_cast<const cudaq::realtime::RPCHeader *>(rx_slot);
+  const std::uint8_t *in_data =
+      reinterpret_cast<const std::uint8_t *>(header + 1);
+  auto *response = static_cast<cudaq::realtime::RPCResponse *>(tx_slot);
+  std::uint8_t *out_data = reinterpret_cast<std::uint8_t *>(response + 1);
+  const std::uint32_t arg_len = header->arg_len;
+  const std::uint32_t max_result_len =
+      slot_size - sizeof(cudaq::realtime::RPCResponse);
   std::uint32_t len = (arg_len < max_result_len) ? arg_len : max_result_len;
   for (std::uint32_t i = 0; i < len; ++i)
     out_data[i] = static_cast<std::uint8_t>(in_data[i] + 1);
-  *result_len = len;
+  response->result_len = len;
   return 0;
 }
 

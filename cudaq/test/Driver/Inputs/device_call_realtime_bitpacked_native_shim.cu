@@ -26,18 +26,26 @@ extern "C" __device__ void nativeIsEven(bool *, std::uint64_t, const int *,
 
 namespace {
 
-__device__ std::int32_t nativeCountPackedBitsHandler(const void *input,
-                                                     void *output,
-                                                     std::uint32_t argLen,
-                                                     std::uint32_t maxResultLen,
-                                                     std::uint32_t *resultLen) {
-  if (!input || !output || !resultLen || maxResultLen < sizeof(std::int32_t) ||
-      argLen < sizeof(std::uint64_t))
+// Raw handlers use the two-pointer realtime ABI (RPCHeader + packed args in
+// rxSlot; RPCResponse + result bytes in txSlot) and set result_len themselves.
+__device__ std::int32_t nativeCountPackedBitsHandler(const void *rxSlot,
+                                                     void *txSlot,
+                                                     std::size_t slotSize) {
+  if (!rxSlot || !txSlot || slotSize < sizeof(cudaq::realtime::RPCResponse))
+    return -1;
+  const auto *const request =
+      static_cast<const cudaq::realtime::RPCHeader *>(rxSlot);
+  auto *const response = static_cast<cudaq::realtime::RPCResponse *>(txSlot);
+  const std::uint32_t argLen = request->arg_len;
+  const auto maxResultLen = static_cast<std::uint32_t>(
+      slotSize - sizeof(cudaq::realtime::RPCResponse));
+  void *const output = response + 1;
+  if (maxResultLen < sizeof(std::int32_t) || argLen < sizeof(std::uint64_t))
     return -1;
 
   // The `(vector<bool>, uint64_t) -> int` signature marshals a bit count and
   // packed bytes, followed by alignment padding and the scalar bias.
-  const auto *const bytes = static_cast<const std::uint8_t *>(input);
+  const auto *const bytes = reinterpret_cast<const std::uint8_t *>(request + 1);
   const auto bitCount = *reinterpret_cast<const std::uint64_t *>(bytes);
   std::uint64_t offset = sizeof(std::uint64_t);
   const std::uint64_t packedBytes = bitCount / 8 + (bitCount % 8 != 0);
@@ -61,21 +69,28 @@ __device__ std::int32_t nativeCountPackedBitsHandler(const void *input,
     return -1;
 
   std::memcpy(output, &total, sizeof(total));
-  *resultLen = sizeof(total);
+  response->result_len = sizeof(total);
   return 0;
 }
 
-__device__ std::int32_t nativeIsEvenHandler(const void *input, void *output,
-                                            std::uint32_t argLen,
-                                            std::uint32_t maxResultLen,
-                                            std::uint32_t *resultLen) {
-  if (!input || !resultLen || argLen < 2 * sizeof(std::uint64_t))
+__device__ std::int32_t nativeIsEvenHandler(const void *rxSlot, void *txSlot,
+                                            std::size_t slotSize) {
+  if (!rxSlot || !txSlot || slotSize < sizeof(cudaq::realtime::RPCResponse))
+    return -1;
+  const auto *const request =
+      static_cast<const cudaq::realtime::RPCHeader *>(rxSlot);
+  auto *const response = static_cast<cudaq::realtime::RPCResponse *>(txSlot);
+  const std::uint32_t argLen = request->arg_len;
+  const auto maxResultLen = static_cast<std::uint32_t>(
+      slotSize - sizeof(cudaq::realtime::RPCResponse));
+  void *const output = response + 1;
+  if (argLen < 2 * sizeof(std::uint64_t))
     return -1;
 
   // The `(vector<bool>&, const vector<int>&) -> void` signature marshals the
   // output and input counts followed by the integer values. The response
   // contains the output Boolean vector as packed bytes.
-  const auto *const bytes = static_cast<const std::uint8_t *>(input);
+  const auto *const bytes = reinterpret_cast<const std::uint8_t *>(request + 1);
   const auto resultCount = *reinterpret_cast<const std::uint64_t *>(bytes);
   const auto valueCount =
       *reinterpret_cast<const std::uint64_t *>(bytes + sizeof(std::uint64_t));
@@ -87,7 +102,7 @@ __device__ std::int32_t nativeIsEvenHandler(const void *input, void *output,
     return -1;
 
   const std::uint64_t packedBytes = resultCount / 8 + (resultCount % 8 != 0);
-  if (packedBytes > maxResultLen || (packedBytes && !output))
+  if (packedBytes > maxResultLen)
     return -1;
 
   auto *const packed = static_cast<std::uint8_t *>(output);
@@ -101,7 +116,7 @@ __device__ std::int32_t nativeIsEvenHandler(const void *input, void *output,
     if (values[i] % 2 == 0)
       packed[i / 8] |= std::uint8_t{1} << (i % 8);
 
-  *resultLen = static_cast<std::uint32_t>(packedBytes);
+  response->result_len = static_cast<std::uint32_t>(packedBytes);
   return 0;
 }
 
