@@ -127,6 +127,14 @@ uint32_t gpu_roce_get_rkey(gpu_roce_transceiver_t handle) {
   return 0;
 }
 
+uint32_t gpu_roce_get_tx_ring_lkey(gpu_roce_transceiver_t handle) {
+  if (handle) {
+    auto *impl = reinterpret_cast<GpuRoceTransceiverImpl *>(handle);
+    return impl->transceiver->get_tx_ring_lkey();
+  }
+  return 0;
+}
+
 uint64_t gpu_roce_get_buffer_addr(gpu_roce_transceiver_t handle) {
   if (handle) {
     auto *impl = reinterpret_cast<GpuRoceTransceiverImpl *>(handle);
@@ -218,7 +226,7 @@ int gpu_roce_prepare_receive_send(gpu_roce_transceiver_t handle,
       impl->transceiver->get_doca_gpu_dev_qp(0));
   if (!qp)
     return 0;
-  uint32_t mkey = htobe32(impl->transceiver->get_rkey());
+  uint32_t mkey = htobe32(impl->transceiver->get_tx_ring_lkey());
   doca_error_t err =
       GpuRoceTransceiverPrepareKernel(0, qp, frame_size, mkey, 1, 64);
   if (err != DOCA_SUCCESS) {

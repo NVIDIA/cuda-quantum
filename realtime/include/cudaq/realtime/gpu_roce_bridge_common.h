@@ -56,20 +56,6 @@
 // (defined in libcudaq-realtime-bridge-gpu-roce.so).  Weak so that bridge
 // tools that only use the 3-kernel architecture don't need to link the
 // bridge-gpu_roce library.
-//
-// There is no launch function among them: this transport implements the
-// device data plane in dispatcher/unified_device_transport.cuh, and the
-// dispatcher runs the built-in unified kernel over it.
-
-// Copy a host-filled context into device memory.  The unified kernel's
-// transport hooks dereference the context on the GPU -- it is no longer
-// unpacked into kernel arguments -- so the pointer handed to
-// cudaq_dispatcher_set_unified_launch must be device-resident.
-//
-// Returns cudaSuccess (0) on success, otherwise the failing cudaError_t as an
-// int, leaving *out_device_ctx untouched.  On success the caller owns
-// *out_device_ctx and releases it with gpu_roce_unified_ctx_free once the
-// dispatcher has stopped.
 extern "C" __attribute__((weak)) int
 gpu_roce_unified_ctx_to_device(const gpu_roce_doca_transport_ctx *host_ctx,
                                void **out_device_ctx);
@@ -523,8 +509,10 @@ inline int bridge_run(BridgeConfig &config) {
       unified_ctx.gpu_dev_qp = gpu_roce_get_gpu_dev_qp(transceiver);
       unified_ctx.rx_ring_data = rx_ring_data;
       unified_ctx.rx_ring_stride_sz = gpu_roce_get_page_size(transceiver);
-      unified_ctx.rx_ring_mkey = htonl(gpu_roce_get_rkey(transceiver));
       unified_ctx.rx_ring_stride_num = gpu_roce_get_num_pages(transceiver);
+      unified_ctx.tx_ring_data = tx_ring_data;
+      unified_ctx.tx_ring_stride_sz = gpu_roce_get_page_size(transceiver);
+      unified_ctx.tx_ring_mkey = htonl(gpu_roce_get_tx_ring_lkey(transceiver));
       unified_ctx.frame_size = config.frame_size;
       unified_ctx.use_bf = is_igpu ? 0 : 1;
 

@@ -240,11 +240,6 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Initialize submodules (with retry)
-        run: |
-          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
-          retry git submodule update --init --recursive --depth 1
-
       - name: Set base image
         id: base-image
         run: echo "base_image=nvcr.io/nvidia/cuda:${{ matrix.cuda }}.0-runtime-ubuntu24.04" >> $GITHUB_OUTPUT

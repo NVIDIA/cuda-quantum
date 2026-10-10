@@ -23,7 +23,8 @@
 # base_image must contain the necessary CUDA-Q runtime dependencies.
 
 ARG base_image=ubuntu:24.04
-ARG cudaqdev_image=ghcr.io/nvidia/cuda-quantum-dev:latest
+ARG arch=amd64
+ARG cudaqdev_image=ghcr.io/nvidia/cuda-quantum-dev:${arch}-cu13-latest
 FROM $cudaqdev_image AS cudaqbuild
 
 # Unfortunately, there is no way to use the environment variables defined in the dev image

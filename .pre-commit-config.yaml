@@ -117,3 +117,11 @@ repos:
         types: [markdown]
         pass_filenames: true
         stages: [pre-push]
+
+      - id: notebook-execution-counts
+        name: Check notebook execution counts
+        entry: python3 scripts/pre-commit/check_notebook_execution_counts.py
+        language: system
+        files: '\.ipynb$'
+        pass_filenames: true
+        stages: [pre-commit, pre-push]

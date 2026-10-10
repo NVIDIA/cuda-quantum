@@ -106,6 +106,7 @@ add_cudaq_library(OptTransforms
     
   LINK_LIBS PUBLIC
     CCDialect
+    MLIRAnalysis
     MLIRIR
     MLIRTransforms
     OptAnalysis

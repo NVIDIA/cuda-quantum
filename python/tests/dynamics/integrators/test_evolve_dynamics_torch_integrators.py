@@ -46,8 +46,15 @@ all_models = [
     TestBatchedCavityModelTimeDependentCollapseOp,
     TestBatchedCavityModelSuperOperator, TestBatchedCavityModelWithBatchSize,
     TestBatchedCavityModelSuperOperatorBroadcastInputState,
-    TestBatchedCavityModelSuperOperatorWithBatchSize, TestBug3326,
-    TestMultiDegreeElemOp
+    TestBatchedCavityModelSuperOperatorWithBatchSize,
+    pytest.param(
+        TestBug3326,
+        marks=pytest.mark.xfail(
+            reason=
+            "torchdiffeq _select_initial_step calls torch.max on a complex "
+            "tensor when d1 and d2 are both near zero; see "
+            "https://github.com/rtqichen/torchdiffeq/issues/294",
+            strict=True)), TestMultiDegreeElemOp
 ]
 
 # Default model to test with all solvers
