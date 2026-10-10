@@ -149,3 +149,50 @@ TEST(MeasureResetTester, checkMixedBasisOrderingAndPreservation) {
   }
   EXPECT_EQ(totalCounts, shots);
 }
+
+TEST(MeasureResetTester, checkRangeBasisMeasurements) {
+  constexpr int shots = 20;
+
+  auto xBasisKernel = [](int numQubits) __qpu__ {
+    cudaq::qvector q(numQubits);
+
+    h(q[0]);
+    x(q[1]);
+    h(q[1]);
+    h(q[2]);
+
+    auto bits = mx(q);
+    int result = 0;
+    for (int i = 0; i < numQubits; ++i) {
+      if (bits[i])
+        result += 1 << i;
+    }
+    return result;
+  };
+
+  auto xResults = cudaq::run(shots, xBasisKernel, 3);
+  for (auto result : xResults)
+    EXPECT_EQ(result, 2);
+
+  auto yBasisKernel = [](int numQubits) __qpu__ {
+    cudaq::qvector q(numQubits);
+
+    h(q[0]);
+    r1(M_PI_2, q[0]);
+    x(q[1]);
+    h(q[1]);
+    r1(M_PI_2, q[1]);
+
+    auto bits = my(q);
+    int result = 0;
+    for (int i = 0; i < numQubits; ++i) {
+      if (bits[i])
+        result += 1 << i;
+    }
+    return result;
+  };
+
+  auto yResults = cudaq::run(shots, yBasisKernel, 2);
+  for (auto result : yResults)
+    EXPECT_EQ(result, 2);
+}
