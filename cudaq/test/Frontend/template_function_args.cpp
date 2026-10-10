@@ -55,6 +55,7 @@ __qpu__ void use() {
   pack(1, 'c', 2.0, 3u, 4L, 5.0f);
 }
 
+// clang-format off
 // CHECK-DAG: func.func @__nvqpp__mlirgen__instance_function_byTypei.{{.*}}
 // CHECK-DAG: func.func @__nvqpp__mlirgen__instance_function_byTypec.{{.*}}
 // CHECK-DAG: func.func @__nvqpp__mlirgen__instance_function_byBool.{{.*}}Lb1E{{.*}}
@@ -65,6 +66,7 @@ __qpu__ void use() {
 // CHECK-DAG: func.func @__nvqpp__mlirgen__instance_function_pack{{.*}}
 // The length of the pack is a constant in the specialization (six types).
 // CHECK-DAG: arith.constant 6 : i32
+// clang-format on
 
 // Each element of a pack is a distinct parameter.
 template <typename... Ts>
@@ -73,6 +75,7 @@ __qpu__ int foldSum(Ts... ts) {
 }
 __qpu__ int useFold() { return foldSum(1, 2, 3); }
 
+// clang-format off
 // CHECK-LABEL: func.func @__nvqpp__mlirgen__instance_function_foldSumiii.
 // CHECK-SAME:    (%[[A0:.*]]: i32{{.*}}, %[[A1:.*]]: i32{{.*}}, %[[A2:.*]]: i32{{.*}})
 // CHECK:         %[[S0:.*]] = cc.alloca i32
@@ -84,3 +87,4 @@ __qpu__ int useFold() { return foldSum(1, 2, 3); }
 // CHECK:         cc.load %[[S0]]
 // CHECK:         cc.load %[[S1]]
 // CHECK:         cc.load %[[S2]]
+// clang-format on
