@@ -19,9 +19,9 @@ try:
 except ModuleNotFoundError:
     from pip._vendor.packaging.version import Version
 
-# The CUDA-Q runtime arrives through these two extras; the base package is
-# runtime-agnostic. Release CI stamps both bare entries with ==CUDAQ_VERSION.
-RUNTIME_DISTRIBUTIONS = ("cuda-quantum-cu12", "cuda-quantum-cu13")
+# Core is a base dependency; frontend execution is selected through extras.
+# All three share the same native ABI and must use the tested CUDA-Q version.
+RUNTIME_DISTRIBUTIONS = ("cudaq-core", "cuda-quantum-cu12", "cuda-quantum-cu13")
 
 
 def stamp_runtime_dependency(
@@ -57,32 +57,11 @@ def main() -> None:
         dest="distributions",
         action="append",
         default=None,
-        help="Bare dependency entry to pin; repeatable. Defaults to both "
-        "CUDA-Q runtime extras: " + ", ".join(RUNTIME_DISTRIBUTIONS),
+        help="Bare dependency entry to pin; repeatable. Defaults to core and "
+        "both CUDA-Q runtime extras: " + ", ".join(RUNTIME_DISTRIBUTIONS),
     )
     parser.add_argument("--version", required=True)
-    parser.add_argument(
-        "--core",
-        action="store_true",
-        help=
-        "Build a split-wheel candidate with an exact base cudaq-core dependency"
-    )
     args = parser.parse_args()
-
-    if args.core:
-        # Combined wheels supply core through the runtime extras. Split wheels
-        # need a base core dependency so logical can run without the frontend.
-        text = args.pyproject.read_text()
-        text, count = re.subn(r"(?m)^dependencies = \[",
-                              'dependencies = [\n  "cudaq-core",',
-                              text,
-                              count=1)
-        if count != 1:
-            raise RuntimeError("Expected a project dependencies array")
-        args.pyproject.write_text(text)
-        stamp_runtime_dependency(args.pyproject,
-                                 distribution="cudaq-core",
-                                 version=args.version)
 
     for distribution in args.distributions or RUNTIME_DISTRIBUTIONS:
         dependency = stamp_runtime_dependency(

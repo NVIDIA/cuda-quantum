@@ -163,20 +163,26 @@ jobs:
           path: wheel/
           github-token: ${{ github.token }}
 
-      - name: Install wheel
+      - name: Install wheels
         run: |
           retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
-          whl=$(find wheel -name '*.whl' 2>/dev/null | head -1)
-          if [ -z "$whl" ]; then
+          # An unmatched glob must produce an empty array, not a literal pattern,
+          # so the check below detects an artifact with no wheels.
+          shopt -s nullglob
+          wheels=(wheel/*.whl)
+          if [ ${#wheels[@]} -eq 0 ]; then
             echo "No .whl file found under wheel/"
             find wheel -type f
             exit 1
           fi
-          echo "Installing $whl"
-          retry pip install "$whl"
-          # Capture package name (PEP 427: name-version-...); normalize to pip form (dashes)
-          installed_pkg=$(basename "$whl" .whl | sed -E 's/-[0-9]+\.[0-9]+(\.[0-9]+)?.*//' | tr '_' '-')
-          echo "$installed_pkg" > installed_wheel_package.txt
+          # Install core and frontend together so their exact-version dependency
+          # is resolved from this artifact, without requiring a PyPI release.
+          retry pip install "${wheels[@]}"
+          # Exclude our wheels from the third-party dependency diff. Wheel names
+          # follow PEP 427: distribution-version-...; pip uses dashes in names.
+          for whl in "${wheels[@]}"; do
+            basename "$whl" | cut -d- -f1 | tr '_' '-'
+          done > installed_wheel_packages.txt
 
       - name: Capture pip packages (after)
         run: |
@@ -186,12 +192,10 @@ jobs:
       - name: Diff added pip packages
         id: diff
         run: |
-          exclude_pkg=''
-          [ -f installed_wheel_package.txt ] && exclude_pkg=$(cat installed_wheel_package.txt)
           awk -F'==' '{print $1}' pip_before.txt | sort -u > pip_before_names.txt
           while IFS= read -r line; do
             pkg="${line%%==*}"
-            if [ -n "$exclude_pkg" ] && [ "$pkg" = "$exclude_pkg" ]; then
+            if grep -qxF "$pkg" installed_wheel_packages.txt; then
               continue
             fi
             if ! grep -qxF "$pkg" pip_before_names.txt 2>/dev/null; then

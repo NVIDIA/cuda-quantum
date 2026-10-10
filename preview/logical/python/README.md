@@ -10,6 +10,9 @@ architectures, and understand the resources they need to run.
 > without notice.
 
 CUDA-Q Logical is supported on Linux (`x86_64` and `aarch64`/`arm64`).
+`pip install cudaq-logical` installs the matching `cudaq-core` foundation for
+logical compilation and estimation without the CUDA-Q frontend. Install `cudaq`
+for the complete product, including frontend kernel interoperability.
 More details and documentation can be found on the [CUDA-Q docs][cudaq_docs] pages.
 
 [cudaq_docs]:

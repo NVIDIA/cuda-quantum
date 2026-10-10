@@ -40,6 +40,22 @@ on:
         type: string
         default: ''
         description: Artifact name of the cuda_quantum wheel, if build_runtime_wheel is false.
+      validate_prebuilt_wheel:
+        required: false
+        type: boolean
+        default: false
+        description: >-
+          Validate the runtime wheel that another job in this workflow run
+          built for the same platform, Python and CUDA version, instead of
+          building one. Set build_runtime_wheel to false.
+      core_artifact_name:
+        required: false
+        type: string
+        default: ''
+        description: >-
+          Artifact containing the CUDA 13-built core for CUDA 12 validation.
+          If omitted, match the Python version and architecture in this run.
+          The caller must finish building or restoring it before validation.
       devel_artifact_name:
         required: false
         type: string
@@ -254,6 +270,8 @@ jobs:
 
     outputs:
       json: "${{ steps.config.outputs.json }}"
+      core_artifact_pattern: ${{ steps.config.outputs.core_artifact_pattern }}
+      runtime_artifact_pattern: ${{ steps.config.outputs.runtime_artifact_pattern }}
 
     steps:
       - name: Checkout repository
@@ -264,11 +282,25 @@ jobs:
           python_config=`cat .github/workflows/config/validation_config.json | jq ".python"`
           operating_systems=`echo "$python_config" | jq '.[] | select(.version=="${{ inputs.python_version }}").operating_systems'`
           echo "json={\"os_images\":$(echo $operating_systems)}" >> $GITHUB_OUTPUT
+          # Match the published core's Python ABI and architecture for builds
+          # in this run. Cache retrieval supplies the exact core_artifact_name
+          # recorded in the wheel index instead of using this build pattern.
+          python_version=${{ inputs.python_version }}
+          platform=${{ inputs.platform }}
+          echo "core_artifact_pattern=pycudaq-${python_version//./-}-*-${platform#linux/}-cu13-0-*" >> "$GITHUB_OUTPUT"
+          # For validate_prebuilt_wheel: the runtime wheel another job in this
+          # run built for the same platform, Python and CUDA version.
+          cuda_version=${{ inputs.cuda_version }}
+          echo "runtime_artifact_pattern=pycudaq-${python_version//./-}-*-${platform#linux/}-cu${cuda_version//./-}-*" >> "$GITHUB_OUTPUT"
 
   validation:
     name: Validate wheel
     needs: [build_wheel, create_test_config]
-    if: inputs.run_validation
+    if: >-
+      ${{ !cancelled() && inputs.run_validation
+          && needs.create_test_config.result == 'success'
+          && (needs.build_wheel.result == 'success'
+              || (inputs.validate_prebuilt_wheel && needs.build_wheel.result == 'skipped')) }}
     runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     permissions:
       contents: read
@@ -299,6 +331,21 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: ${{ needs.build_wheel.outputs.artifact_name }}
+          # Ignored when name is set. With validate_prebuilt_wheel, build_wheel
+          # is skipped, so this finds the wheel built earlier in the run.
+          pattern: ${{ needs.create_test_config.outputs.runtime_artifact_pattern }}
+          merge-multiple: true
+
+      # Core is CUDA-independent. Both frontends are released with the core
+      # built by the CUDA 13 pipeline, so CUDA 12 validation must use it too.
+      - name: Load published core wheel
+        if: startsWith(inputs.cuda_version, '12')
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ inputs.core_artifact_name }}
+          pattern: ${{ needs.create_test_config.outputs.core_artifact_pattern }}
+          path: published-core
+          merge-multiple: true
 
       - name: Install wheel in clean environment
         run: |
@@ -316,10 +363,19 @@ jobs:
           fi
 
           wheelname=`echo cuda_quantum*-manylinux_*_$(uname -m).whl`
+          # Reject missing or ambiguous published wheels; candidate-core is
+          # build-local output and is not the core released with CUDA 12.
+          shopt -s nullglob
+          core_wheels=(cudaq_core-*.whl)
+          if [[ "${{ inputs.cuda_version }}" == 12* ]]; then
+            core_wheels=(published-core/cudaq_core-*.whl)
+          fi
+          [ ${#core_wheels[@]} -eq 1 ] || { echo "::error::Expected exactly one published core wheel."; exit 1; }
           docker build --network host -t wheel_validation:local -f "docker/test/wheels/$distr.Dockerfile" . \
             --build-arg base_image=$base_image \
             --build-arg python_version=${{ inputs.python_version }} \
             --build-arg cuda_quantum_wheel=$wheelname \
+            --build-arg cudaq_core_wheel="${core_wheels[0]}" \
             --build-arg preinstalled_modules="pytest psutil" \
             --build-arg pip_install_flags=${{ matrix.pip_install_flags }}
 
@@ -455,7 +511,8 @@ jobs:
               # Replace Python version
               line=$(echo $line | sed -E "s/python(=)?3.[0-9]{1,}/python\1${{ inputs.python_version }}/g")
               # Install the wheel file
-              line=${line//pip install cuda-quantum-cu${cuda_major}/pip install ${cudaq_wheel}}
+              # Leave user-site core visible: Conda must reuse it when compatible.
+              line=${line//pip install cuda-quantum-cu${cuda_major}/pip install --find-links /tmp/core ${cudaq_wheel}}
               echo "+ $line"
               # Fail loudly on the failing command. Without this a failed
               # `conda install` is swallowed and only surfaces ~60 lines later
@@ -572,8 +629,13 @@ jobs:
     # reuses the wheel built by build_wheel and runs a single representative
     # config (amd64 / Python 3.11 / CUDA 12.6) to limit A100 runner cost.
     name: Validate wheel on GPU (nvidia simulator)
-    needs: build_wheel
-    if: inputs.run_validation && inputs.platform == 'linux/amd64' && inputs.python_version == '3.11' && inputs.cuda_version == '12.6'
+    needs: [build_wheel, create_test_config]
+    if: >-
+      ${{ !cancelled() && inputs.run_validation
+          && needs.create_test_config.result == 'success'
+          && (needs.build_wheel.result == 'success'
+              || (inputs.validate_prebuilt_wheel && needs.build_wheel.result == 'skipped'))
+          && inputs.platform == 'linux/amd64' && inputs.python_version == '3.11' && inputs.cuda_version == '12.6' }}
     runs-on: linux-amd64-gpu-a100-latest-1
     timeout-minutes: 30
     permissions:
@@ -595,6 +657,20 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: ${{ needs.build_wheel.outputs.artifact_name }}
+          # Ignored when name is set. With validate_prebuilt_wheel, build_wheel
+          # is skipped, so this finds the wheel built earlier in the run.
+          pattern: ${{ needs.create_test_config.outputs.runtime_artifact_pattern }}
+          merge-multiple: true
+
+      # Core is CUDA-independent. Both frontends are released with the core
+      # built by the CUDA 13 pipeline, so GPU validation must use it too.
+      - name: Load published core wheel
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ inputs.core_artifact_name }}
+          pattern: ${{ needs.create_test_config.outputs.core_artifact_pattern }}
+          path: published-core
+          merge-multiple: true
 
       - name: Build wheel test image
         run: |
@@ -604,10 +680,15 @@ jobs:
           repo_owner=${{ github.repository_owner }}
           base_image=ghcr.io/${repo_owner,,}/ubuntu:22.04
           wheelname=`echo cuda_quantum*-manylinux_*_$(uname -m).whl`
+          # Test the released CUDA 12 frontend / CUDA 13 core pairing.
+          shopt -s nullglob
+          core_wheels=(published-core/cudaq_core-*.whl)
+          [ ${#core_wheels[@]} -eq 1 ] || { echo "::error::Expected exactly one published core wheel."; exit 1; }
           docker build --network host -t wheel_validation:local -f docker/test/wheels/ubuntu.Dockerfile . \
             --build-arg base_image=$base_image \
             --build-arg python_version=${{ inputs.python_version }} \
             --build-arg cuda_quantum_wheel=$wheelname \
+            --build-arg cudaq_core_wheel="${core_wheels[0]}" \
             --build-arg preinstalled_modules="numpy pytest psutil" \
             --build-arg pip_install_flags=
 
@@ -645,7 +726,12 @@ jobs:
   validation_devel:
     name: Validate devel wheel
     needs: [build_wheel, build_devel_wheel]
-    if: ${{ !cancelled() && inputs.run_validation && inputs.build_devel_wheel && needs.build_devel_wheel.result == 'success' }}
+    # Validate newly built SDKs, or the shared SDK once per architecture.
+    if: >-
+      ${{ !cancelled() && inputs.run_validation
+          && (inputs.build_devel_wheel || (inputs.devel_artifact_name != '' && inputs.python_version == '3.11' && inputs.cuda_version == '13.0'))
+          && (needs.build_wheel.result == 'success' || inputs.runtime_artifact_name != '')
+          && (needs.build_devel_wheel.result == 'success' || inputs.devel_artifact_name != '') }}
     runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     permissions:
       contents: read
@@ -664,7 +750,7 @@ jobs:
       - name: Download devel wheel
         uses: actions/download-artifact@v8
         with:
-          name: ${{ needs.build_devel_wheel.outputs.artifact_name }}
+          name: ${{ needs.build_devel_wheel.outputs.artifact_name || inputs.devel_artifact_name }}
           path: dist
 
       - name: Install uv

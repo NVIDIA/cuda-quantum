@@ -52,7 +52,7 @@ block()
   set(CMAKE_FIND_LIBRARY_SUFFIXES "${CMAKE_SHARED_LIBRARY_SUFFIX}")
   find_library(GMP_LIBRARY
     NAMES gmp
-    HINTS "${CUDAQ_LIBRARY_DIR}"
+    HINTS "${CUDAQ_CORE_LIBRARY_DIR}" "${CUDAQ_LIBRARY_DIR}"
     DOC "GMP shared library")
 endblock()
 

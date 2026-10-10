@@ -338,7 +338,11 @@ function(add_cudaq_python_modules name)
       "${_origin_prefix}/../../../lib"
       "${_origin_prefix}/../../../lib/plugins")
   endif()
-  if(CUDAQ_BUILD_SPLIT_WHEELS)
+  # An installed split SDK supplies MLIR through core even when the consuming
+  # extension is built directly with CMake, rather than as a wheel.
+  if(CUDAQ_BUILD_SPLIT_WHEELS OR
+     (CUDAQ_CORE_LIBRARY_DIR AND
+      NOT "${CUDAQ_CORE_LIBRARY_DIR}" STREQUAL "${CUDAQ_LIBRARY_DIR}"))
     list(APPEND _cudaq_python_install_rpaths
       "${_origin_prefix}/../../core/lib"
       "${_origin_prefix}/../../../cudaq_core/cudaq/core/lib"

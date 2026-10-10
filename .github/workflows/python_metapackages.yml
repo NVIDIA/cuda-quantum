@@ -157,6 +157,11 @@ jobs:
       fail-fast: false
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          ref: "${{ inputs.github_commit || '' }}"
+
       - name: Load metapackages
         uses: actions/download-artifact@v8
         with:
@@ -249,6 +254,48 @@ jobs:
             $autoremove -y $package_dep
           fi
 
+      - name: Test split installation and published-version replacement
+        env:
+          CUDAQ_VERSION: ${{ inputs.cudaq_version }}
+          PYTHON_VERSION: ${{ matrix.python_version }}
+        run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          cp docker/test/wheels/integration/test_installation.py /tmp/test_installation.py
+          # Test in fresh virtual environments by installing the cudaq metapackage
+          # and letting pip resolve its dependencies.
+          # 0.16.0 is the last published release with monolithic CUDA-Q wheels.
+          # TODO: Remove the monolithic upgrade scenario once the split
+          # distribution baseline is established; retain fresh-install checks.
+          modes=fresh
+          if [ "$PYTHON_VERSION" = 3.11 ]; then modes="$modes replacement"; fi
+          for mode in $modes; do
+            venv=$(mktemp -d)
+            python$PYTHON_VERSION -m venv "$venv"
+            if [ "$mode" = replacement ]; then
+              # Branch candidates (0.0.0+<sha>) sort below the 0.16.0 baseline.
+              # The exact candidate pin below tests replacement of that install,
+              # not a version-increasing upgrade in branch CI.
+              retry "$venv/bin/python" -m pip install cudaq==0.16.0
+            fi
+            retry "$venv/bin/python" -m pip install --upgrade "cudaq==$CUDAQ_VERSION" --find-links /tmp/packages
+            "$venv/bin/python" -m pip check
+            "$venv/bin/python" /tmp/test_installation.py --logical --frontend
+
+            # Removing execution must not remove shared bindings or logical IR.
+            "$venv/bin/python" -m pip uninstall -y cudaq cuda-quantum-cu12 cuda-quantum-cu13
+            "$venv/bin/python" -m pip check
+            "$venv/bin/python" /tmp/test_installation.py --logical
+            "$venv/bin/python" -m pip uninstall -y cudaq-logical
+            "$venv/bin/python" /tmp/test_installation.py
+            if [ "$mode" = fresh ]; then
+              core_prefix=$("$venv/bin/python" -c 'from importlib.metadata import distribution; print(distribution("cudaq-core").locate_file("cudaq_core/cudaq/core"))')
+              cmake -S docker/test/wheels/integration/native -B "$venv/native" -DCUDAQ_DIR="$core_prefix/lib/cmake/cudaq"
+              cmake --build "$venv/native"
+              ctest --test-dir "$venv/native" --output-on-failure
+            fi
+            rm -rf "$venv"
+          done
+
       - name: Test installation error
         run: |
           python=python${{ matrix.python_version }}
@@ -305,4 +352,3 @@ jobs:
             echo "::error file=python_metapackages.yml::Unexpected installation of ${check_package} package."
             exit 1
           fi
-

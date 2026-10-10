@@ -263,6 +263,7 @@ class CudaqMetadataHook(MetadataHookInterface):
             'cuda-quantum-cu13': 'cu13',
         }[bdist]
         metadata["dependencies"] = [
+            f"cudaq-core=={version}",
             f"{bdist}=={version}",
             f"cudaq-logical[{logical_extra}]=={logical_version}; sys_platform == 'linux'",
         ]

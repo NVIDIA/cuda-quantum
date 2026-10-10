@@ -11,6 +11,15 @@ get_filename_component(CUDAQ_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
 include(CMakeFindDependencyMacro)
 list(APPEND CMAKE_MODULE_PATH "${CUDAQ_CMAKE_DIR}")
 
+# The devel wheel keeps compiler tools here, while core owns shared providers
+# under its private wheel prefix. Native installations use one common prefix.
+set(_cudaq_core_cmake_dir "${CUDAQ_CMAKE_DIR}")
+if(EXISTS "${CUDAQ_CMAKE_DIR}/../../../cudaq_core/cudaq/core/lib/cmake/cudaq")
+  get_filename_component(_cudaq_core_cmake_dir
+    "${CUDAQ_CMAKE_DIR}/../../../cudaq_core/cudaq/core/lib/cmake/cudaq" ABSOLUTE)
+endif()
+get_filename_component(CUDAQ_CORE_LIBRARY_DIR "${_cudaq_core_cmake_dir}/../.." ABSOLUTE)
+
 # If MLIR_DIR/LLVM_DIR are not set explicitly, make educated guesses about where to find them.
 foreach(_cudaq_cmake_root "${CUDAQ_CMAKE_DIR}/.." "${CUDAQ_CMAKE_DIR}/../../llvm/lib/cmake")
   if(NOT MLIR_DIR AND EXISTS "${_cudaq_cmake_root}/mlir/MLIRConfig.cmake")
@@ -22,21 +31,25 @@ foreach(_cudaq_cmake_root "${CUDAQ_CMAKE_DIR}/.." "${CUDAQ_CMAKE_DIR}/../../llvm
 endforeach()
 unset(_cudaq_cmake_root)
 
-set (CUDAQOperator_DIR "${CUDAQ_CMAKE_DIR}")
+set (CUDAQOperator_DIR "${_cudaq_core_cmake_dir}")
 find_dependency(CUDAQOperator REQUIRED)
 
-set (CUDAQLogger_DIR "${CUDAQ_CMAKE_DIR}")
+set (CUDAQLogger_DIR "${_cudaq_core_cmake_dir}")
 find_dependency(CUDAQLogger REQUIRED)
 
-set (CUDAQCommon_DIR "${CUDAQ_CMAKE_DIR}")
+set (CUDAQCommon_DIR "${_cudaq_core_cmake_dir}")
 find_dependency(CUDAQCommon REQUIRED)
+
+# Shared provider configs set CUDAQ_CMAKE_DIR to core's directory. The remaining
+# frontend and compiler exports belong to this SDK's directory.
+get_filename_component(CUDAQ_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
 
 # The frontend execution runtime depends on compiler/JIT support.
 set (CUDAQMlirRuntime_DIR "${CUDAQ_CMAKE_DIR}")
 find_dependency(CUDAQMlirRuntime REQUIRED)
 
-if(EXISTS "${CUDAQ_CMAKE_DIR}/CUDAQCoreTargets.cmake")
-  include("${CUDAQ_CMAKE_DIR}/CUDAQCoreTargets.cmake")
+if(EXISTS "${_cudaq_core_cmake_dir}/CUDAQCoreTargets.cmake")
+  include("${_cudaq_core_cmake_dir}/CUDAQCoreTargets.cmake")
 endif()
 
 set (CUDAQEmDefault_DIR "${CUDAQ_CMAKE_DIR}")
@@ -58,7 +71,7 @@ find_dependency(CUDAQPythonInterop)
 # install was built with cudaq/'s own MLIR Python bindings, for a python/
 # build configured independently of cudaq/ to check. See
 # CUDAQPythonBindingsConfig.cmake.
-set (CUDAQPythonBindings_DIR "${CUDAQ_CMAKE_DIR}")
+set (CUDAQPythonBindings_DIR "${_cudaq_core_cmake_dir}")
 find_dependency(CUDAQPythonBindings)
 
 if (CUDAQ_REALTIME_DIR)
@@ -87,7 +100,7 @@ set(CUDAQ_INCLUDE_DIR ${CUDAQ_INSTALL_DIR}/include)
 find_dependency(GMP)
 find_dependency(MPFR)
 
-set (NVQIR_DIR "${PARENT_DIRECTORY}/nvqir")
+set (NVQIR_DIR "${_cudaq_core_cmake_dir}/../nvqir")
 find_dependency(NVQIR REQUIRED)
 
 set(CMAKE_CXX_STANDARD 20)

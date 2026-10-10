@@ -217,8 +217,14 @@ jobs:
 
           # Skip the metapackage sdist: install the local runtime wheel and
           # cudaq-devel without resolving the `cudaq` PyPI dependency.
-          uv pip install "$runtime_wheel"
+          uv pip install -f dist "$runtime_wheel"
           uv pip install --no-deps -f dist "cudaq-devel==$CUDAQ_VERSION"
+
+      # The release workflow also reaches this path. Exercise the SDK's external
+      # consumer once per architecture, not only the Logical build itself.
+      - name: Validate devel wheel
+        if: needs.resolve.outputs.python_version == '3.11'
+        run: PYTHON=python bash scripts/validate_devel_wheel.sh -i dist -r dist
 
       - name: Build cudaq.logical
         id: build
@@ -233,6 +239,7 @@ jobs:
           logical_version=$(echo ${logical_scmversion} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}")
 
           python scripts/stamp_cudaq_runtime_dependency.py python/pyproject.toml \
+            --distribution cudaq-core \
             --distribution cuda-quantum-cu12 \
             --distribution cuda-quantum-cu13 \
             --version "$CUDAQ_VERSION"
@@ -255,7 +262,7 @@ jobs:
           echo "=== Pre-repair auditwheel analysis ==="
           python -m auditwheel show "$RAW_WHEEL"
 
-          # CUDA-Q MLIR and gmp/mpfr ship in the runtime wheel; do not
+          # CUDA-Q MLIR and gmp/mpfr ship in core; do not
           # vendor them into cudaq-logical.
           python -m auditwheel repair \
             --plat "$PLAT" \
@@ -350,6 +357,18 @@ jobs:
           python-version: ${{ needs.resolve.outputs.python_version }}
           activate-environment: true
 
+      - name: Validate core and logical without the frontend
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp docker/test/wheels/integration/test_installation.py /tmp/test_installation.py
+          uv pip install -f dist "cudaq-core==$CUDAQ_VERSION"
+          python /tmp/test_installation.py
+          uv pip install -f dist "cudaq-logical==$CUDAQ_LOGICAL_VERSION"
+          python /tmp/test_installation.py --logical
+          printf 'module {}\n' | qlx-opt
+          uv pip check
+
       - name: Install test dependencies
         shell: bash
         run: |
@@ -364,7 +383,7 @@ jobs:
               echo "::error::Missing runtime wheel under dist/."
               exit 1
             fi
-            uv pip install "$RUNTIME_WHEEL"
+            uv pip install -f dist "$RUNTIME_WHEEL"
             uv pip install -f dist --no-deps \
               "cudaq-logical==$CUDAQ_LOGICAL_VERSION"
             uv pip install "stim>=1.16,<2"
@@ -394,6 +413,7 @@ jobs:
           python -c "import cudaq; print(cudaq.logical.__version__)"
           python -c "from cudaq import logical; print(logical.std.idle)"
           python -c "from cudaq.logical import program; print(program)"
+          python /tmp/test_installation.py --logical --frontend
       - name: Run cudaq.logical Python tests
         shell: bash
         timeout-minutes: 30

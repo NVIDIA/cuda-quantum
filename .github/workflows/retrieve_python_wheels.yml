@@ -95,6 +95,9 @@ on:
       runtime_artifact_name:
         description: "Artifact name of the runtime wheel (built or restored)."
         value: ${{ jobs.build.outputs.runtime_artifact_name || jobs.resolve.outputs.runtime_artifact_name }}
+      core_artifact_name:
+        description: "Artifact containing CUDA-independent core from the CUDA 13 pipeline."
+        value: ${{ jobs.build_core.outputs.runtime_artifact_name || jobs.resolve.outputs.core_artifact_name || jobs.build.outputs.runtime_artifact_name || jobs.resolve.outputs.runtime_artifact_name }}
       devel_artifact_name:
         description: "Artifact name of the devel wheel (built or restored), if requested."
         value: ${{ jobs.build.outputs.devel_artifact_name || jobs.resolve.outputs.devel_artifact_name }}
@@ -143,6 +146,11 @@ jobs:
       runtime_run_id: ${{ steps.runtime_lookup.outputs.run_id }}
       runtime_artifact_id: ${{ steps.runtime_lookup.outputs.artifact_id }}
       runtime_artifact_name: ${{ steps.runtime_lookup.outputs.artifact_name }}
+      core_cache_key: ${{ steps.core_hash.outputs.cache_key }}
+      core_hit: ${{ steps.core_lookup.outputs.hit || 'false' }}
+      core_run_id: ${{ steps.core_lookup.outputs.run_id }}
+      core_artifact_id: ${{ steps.core_lookup.outputs.artifact_id }}
+      core_artifact_name: ${{ steps.core_lookup.outputs.artifact_name }}
       devel_cache_key: ${{ steps.devel_hash.outputs.cache_key }}
       devel_hit: ${{ steps.devel_lookup.outputs.hit || 'false' }}
       devel_run_id: ${{ steps.devel_lookup.outputs.run_id }}
@@ -182,6 +190,31 @@ jobs:
         uses: ./.github/actions/wheel-cache-lookup
         with:
           key: ${{ steps.runtime_hash.outputs.cache_key }}
+
+      # Core is CUDA-independent, and the core built by the CUDA 13 pipeline
+      # is the one published for both frontends. CUDA 12's own core copy
+      # (under `candidate-core/`) is only for build-local validation.
+      # CUDA 12 requests only: compute the CUDA 13 runtime build's source hash
+      # so the next step can look that build up. CUDA 13 requests already get
+      # core with their own runtime wheel.
+      - name: Hash CUDA 13 core build
+        if: startsWith(inputs.cuda_version, '12')
+        id: core_hash
+        uses: ./.github/actions/wheel-source-hash
+        with:
+          platform: ${{ inputs.platform }}
+          python_version: ${{ inputs.python_version }}
+          cuda_version: '13.0'
+
+      # CUDA 12 requests only: find the CUDA 13 runtime build whose core is
+      # published with the CUDA 12 frontend. CUDA 13 requests already get
+      # core with their own runtime wheel.
+      - name: Look up CUDA 13 core build
+        if: startsWith(inputs.cuda_version, '12')
+        id: core_lookup
+        uses: ./.github/actions/wheel-cache-lookup
+        with:
+          key: ${{ steps.core_hash.outputs.cache_key }}
 
       - name: Hash devel sources
         if: inputs.devel_wheel
@@ -288,12 +321,13 @@ jobs:
 
   build:
     name: Build missing wheels
-    needs: [resolve, wheeldeps, restore_runtime]
+    needs: [resolve, wheeldeps, restore_runtime, restore_core, build_core]
     if: >-
       ${{ !cancelled()
           && needs.resolve.outputs.need_build == 'true'
           && needs.wheeldeps.result == 'success'
-          && needs.restore_runtime.result != 'failure' }}
+          && needs.restore_runtime.result != 'failure'
+          && (!startsWith(inputs.cuda_version, '12') || needs.restore_core.result == 'success' || needs.build_core.result == 'success') }}
     uses: ./.github/workflows/python_wheels.yml
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -308,16 +342,90 @@ jobs:
       build_runtime_wheel: ${{ needs.resolve.outputs.need_runtime_build == 'true' }}
       build_devel_wheel: ${{ needs.resolve.outputs.need_devel_build == 'true' }}
       runtime_artifact_name: ${{ needs.resolve.outputs.runtime_artifact_name }}
+      core_artifact_name: ${{ needs.build_core.outputs.runtime_artifact_name || needs.resolve.outputs.core_artifact_name }}
       run_validation: ${{ inputs.run_validation }}
+      build_logical_wheel: false
+
+  # CUDA 12 requests only: restore the CUDA 13 runtime build that `resolve`
+  # found, since its core is the one published with the CUDA 12 frontend.
+  # CUDA 13 requests already get core with their own runtime wheel.
+  restore_core:
+    name: Restore CUDA 13 core build
+    needs: resolve
+    if: ${{ startsWith(inputs.cuda_version, '12') && needs.resolve.outputs.core_hit == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/wheel-restore
+        with:
+          key: ${{ needs.resolve.outputs.core_cache_key }}
+          run_id: ${{ needs.resolve.outputs.core_run_id }}
+          artifact_id: ${{ needs.resolve.outputs.core_artifact_id }}
+          artifact_name: ${{ needs.resolve.outputs.core_artifact_name }}
+          version: ${{ needs.resolve.outputs.cudaq_version }}
+
+  # CUDA 12 requests only, when `resolve` found no CUDA 13 runtime build to
+  # restore core from: load the CUDA 13 build environment for `build_core`.
+  core_wheeldeps:
+    name: Load CUDA 13 core build dependencies
+    needs: [metadata, resolve]
+    if: ${{ startsWith(inputs.cuda_version, '12') && needs.resolve.outputs.core_hit != 'true' }}
+    uses: ./.github/workflows/dev_environment.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+    with:
+      platforms: ${{ inputs.platform }}
+      dockerfile: build/devdeps.manylinux.Dockerfile
+      build_config_id: cu13.0-gcc12
+      build_args: |
+        base_image=ghcr.io/nvidia/pypa/manylinux_2_28${{ contains(inputs.platform, 'arm') && '_aarch64' || '_x86_64' }}:latest
+        cuda_version=13.0
+        toolchain=gcc12
+        distro=rhel8
+        llvm_commit=${{ needs.metadata.outputs.llvm_commit }}
+        nanobind_commit=${{ needs.metadata.outputs.nanobind_commit }}
+      registry_cache_from: ${{ inputs.cache_base }}
+      environment: ghcr-ci
+
+  # Runs only after `core_wheeldeps`, so only for CUDA 12 requests on a cache
+  # miss: build the CUDA 13 runtime wheels to get the core published with
+  # the CUDA 12 frontend. This happens, e.g., when this workflow is run
+  # manually for CUDA 12.6 on a branch whose current sources CI has not yet
+  # built for CUDA 13, or whose CUDA 13 wheel artifact has expired.
+  build_core:
+    name: Build missing CUDA 13 core artifact
+    needs: [resolve, core_wheeldeps]
+    if: ${{ !cancelled() && needs.core_wheeldeps.result == 'success' }}
+    uses: ./.github/workflows/python_wheels.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+    with:
+      platform: ${{ inputs.platform }}
+      python_version: ${{ inputs.python_version }}
+      cuda_version: '13.0'
+      devdeps_image: ${{ needs.core_wheeldeps.outputs.image_hash }}
+      devdeps_cache: ${{ needs.core_wheeldeps.outputs.cache_key }}
+      devdeps_archive: ${{ needs.core_wheeldeps.outputs.tar_archive }}
+      build_runtime_wheel: true
+      build_devel_wheel: false
+      # This job only supplies core for a CUDA 12 request. Do not gate that
+      # request on CUDA 13 frontend tests.
+      run_validation: false
       build_logical_wheel: false
 
   metapackage:
     name: Build cudaq metapackage
-    needs: [resolve, restore_runtime, build]
+    needs: [resolve, restore_runtime, build, restore_core, build_core]
     if: >-
       ${{ !cancelled()
           && inputs.metapackage_sdist
           && (needs.build.result == 'success' || needs.build.result == 'skipped')
+          && (!startsWith(inputs.cuda_version, '12') || needs.restore_core.result == 'success' || needs.build_core.result == 'success')
           && needs.restore_runtime.result != 'failure' }}
     uses: ./.github/workflows/python_metapackages.yml
     with:
@@ -338,10 +446,13 @@ jobs:
       - restore_devel
       - build
       - metapackage
+      - restore_core
+      - build_core
     if: >-
       ${{ !cancelled()
           && inputs.bundle_wheels
           && (needs.build.result == 'success' || needs.build.result == 'skipped')
+          && (!startsWith(inputs.cuda_version, '12') || needs.restore_core.result == 'success' || needs.build_core.result == 'success')
           && needs.restore_runtime.result != 'failure' }}
     runs-on: ubuntu-latest
     permissions:
@@ -353,7 +464,18 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: ${{ needs.build.outputs.runtime_artifact_name || needs.resolve.outputs.runtime_artifact_name }}
-          path: all-wheels
+          path: runtime-wheels
+
+      - name: Stage the runtime wheel pair
+        run: |
+          mkdir -p all-wheels
+          cp runtime-wheels/cuda_quantum*.whl all-wheels/
+          # Both frontends share CUDA-independent core from the CUDA 13
+          # pipeline. Its release copy is at the artifact root; CUDA 12's
+          # nested copy is only for build-local validation.
+          if [[ '${{ inputs.cuda_version }}' == 13* ]]; then
+            cp runtime-wheels/cudaq_core-*.whl all-wheels/
+          fi
 
       - name: Download devel wheel
         if: ${{ inputs.devel_wheel }}
@@ -361,6 +483,20 @@ jobs:
         with:
           name: ${{ needs.build.outputs.devel_artifact_name || needs.resolve.outputs.devel_artifact_name }}
           path: all-wheels
+
+      # A CUDA 13 request staged core from its own runtime wheel above. A CUDA
+      # 12 request takes core from the CUDA 13 build that `restore_core` or
+      # `build_core` provided, since that is the core published with CUDA 12.
+      - name: Download core from CUDA 13 build
+        if: startsWith(inputs.cuda_version, '12')
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ needs.build_core.outputs.runtime_artifact_name || needs.resolve.outputs.core_artifact_name }}
+          path: canonical-core
+
+      - name: Include CUDA-independent core wheel
+        if: startsWith(inputs.cuda_version, '12')
+        run: cp canonical-core/cudaq_core-*.whl all-wheels/
 
       - name: Download metapackage
         if: ${{ inputs.metapackage_sdist && needs.metapackage.result == 'success' }}
