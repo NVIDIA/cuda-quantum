@@ -894,7 +894,13 @@ class GadgetBuilder:
                 self.block = gadget_block
         self.insertion_point = mlir_ir.InsertionPoint(self.block)
 
-    def _emit(self, name, *, operands=(), results=(), attributes=None):
+    def _emit(self,
+              name,
+              *,
+              operands=(),
+              results=(),
+              attributes=None,
+              regions=0):
         self._before_operation(name)
         with self.location:
             operation = mlir_ir.Operation.create(
@@ -902,6 +908,7 @@ class GadgetBuilder:
                 operands=list(operands),
                 results=list(results),
                 attributes=dict(attributes or {}),
+                regions=regions,
                 loc=self.location,
             )
             self.insertion_point.insert(operation)
@@ -953,6 +960,107 @@ class GadgetBuilder:
                 "a nonterminal BB depth-8 cycle must be continued immediately "
                 "with prime=False; no other authored operation may intervene, "
                 f"not {operation}")
+
+    @staticmethod
+    def _flatten_structured_values(value):
+        if isinstance(value, (tuple, list)):
+            result = []
+            for item in value:
+                result.extend(GadgetBuilder._flatten_structured_values(item))
+            return tuple(result)
+        return (value,)
+
+    def _cond_branch_clone(self, value):
+        if isinstance(value, PatchValue):
+            return self._new_patch(
+                value.mlir_value,
+                value.encoding,
+                epoch=value.epoch,
+                encoded_state_live=value._encoded_state_live,
+                terminal_only_reason=value._terminal_only_reason,
+                bb_syndrome_continuation=value._bb_syndrome_continuation,
+                carrier_frame=value.carrier_frame,
+            )
+        if isinstance(value, LogicalBool):
+            return LogicalBool(value.mlir_value,
+                               owner=self,
+                               location=self.location)
+        raise TypeError(
+            "cudaq.logical.cond gadget carries must be patch or bool values")
+
+    @staticmethod
+    def _consume_cond_branch_value(value, operation):
+        if isinstance(value, PatchValue):
+            value._consume(operation)
+
+    def cond(self, condition, then, else_, carries):
+        """Author one runtime ``cflow.if`` with linear gadget carries."""
+
+        if not isinstance(condition,
+                          LogicalBool) or condition.owner is not self:
+            raise TypeError(
+                "cudaq.logical.cond condition must be a bool from this gadget")
+        carries = tuple(carries)
+        result_types = tuple(value.mlir_value.type for value in carries)
+        for value in carries:
+            if getattr(value, "owner", None) is not self:
+                raise TypeError(
+                    "cudaq.logical.cond carries must belong to this gadget")
+            if not isinstance(value, (PatchValue, LogicalBool)):
+                raise TypeError(
+                    "cudaq.logical.cond gadget carries must be patch or bool values"
+                )
+            self._consume_cond_branch_value(value, "cflow.if")
+        operation = self._emit(
+            "cflow.if",
+            operands=[condition.mlir_value],
+            results=result_types,
+            regions=2,
+        )
+        parent_ip = self.insertion_point
+        try:
+            for region, callback in zip(operation.regions, (then, else_)):
+                block = region.blocks.append()
+                self.insertion_point = mlir_ir.InsertionPoint(block)
+                branch_values = tuple(
+                    self._cond_branch_clone(value) for value in carries)
+                returned = self._flatten_structured_values(
+                    callback(*branch_values))
+                if len(returned) != len(result_types):
+                    raise TypeError(
+                        "cudaq.logical.cond branches must return one value per carry"
+                    )
+                operands = []
+                for value, expected in zip(returned, result_types):
+                    if (getattr(value, "owner", None) is not self or
+                            value.mlir_value.type != expected):
+                        raise TypeError(
+                            "cudaq.logical.cond branch results must match carries"
+                        )
+                    self._consume_cond_branch_value(value, "cflow.yield")
+                    operands.append(value.mlir_value)
+                self._emit("cflow.yield", operands=operands)
+        finally:
+            self.insertion_point = parent_ip
+
+        results = []
+        for result, prototype in zip(operation.results, carries):
+            if isinstance(prototype, PatchValue):
+                results.append(
+                    self._new_patch(
+                        result,
+                        prototype.encoding,
+                        epoch=prototype.epoch,
+                        encoded_state_live=prototype._encoded_state_live,
+                        terminal_only_reason=prototype._terminal_only_reason,
+                        bb_syndrome_continuation=(
+                            prototype._bb_syndrome_continuation),
+                        carrier_frame=prototype.carrier_frame,
+                    ))
+            else:
+                results.append(
+                    LogicalBool(result, owner=self, location=self.location))
+        return tuple(results)
 
     def arguments(self):
         if self._arguments is None:

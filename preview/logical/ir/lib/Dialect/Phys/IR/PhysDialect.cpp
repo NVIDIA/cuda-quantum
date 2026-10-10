@@ -6253,8 +6253,10 @@ static LogicalResult verifyCallTemplateAgainstCanonical(
         !llvm::all_of(canonical.getInputs().getTypes(),
                       [](Type type) { return isa<StateType>(type); }))
       return invocation.emitOpError(
-          "state_boundary_elided requires an all-state, type-identical "
-          "canonical call boundary");
+                 "state_boundary_elided requires an all-state, type-identical "
+                 "canonical call boundary; resolved canonical @")
+             << canonical.getCallee() << " has " << canonical.getNumOperands()
+             << " inputs and " << canonical.getNumResults() << " outputs";
     llvm::DenseSet<Attribute> canonicalResources;
     for (Type type : canonical.getInputs().getTypes())
       canonicalResources.insert(cast<StateType>(type).getResource());

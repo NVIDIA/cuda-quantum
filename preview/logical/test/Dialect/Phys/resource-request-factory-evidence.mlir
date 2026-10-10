@@ -141,5 +141,6 @@ module attributes {qlx.profiles = ["p3"]} {
 // ESTIMATE-SAME: active_physical_qubit_time_ns = 4.000000e+04 : f64
 // ESTIMATE-SAME: active_resource_time_ns = 1.000000e+05 : f64
 // ESTIMATE-SAME: peak_active_physical_qubits = 2 : i64
+// ESTIMATE-SAME: peak_concurrency = 5 : i64
 // ESTIMATE-SAME: physical_qubits = 2 : i64
 // ESTIMATE-SAME: physical_resources = 5 : i64

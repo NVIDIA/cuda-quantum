@@ -86,6 +86,7 @@ struct Entry {
 
 using Constraint = std::pair<size_t, StringRef>;
 using QubitSetId = unsigned;
+using PhysicalResourceSetId = unsigned;
 using ResourceId = unsigned;
 using ResourceSetId = unsigned;
 using SummaryPathId = unsigned;
@@ -148,6 +149,7 @@ struct SummaryOccurrence {
 
 struct OccurrenceResourceMapping {
   ResourceSetId mapped = 0;
+  PhysicalResourceSetId physicals = 0;
   QubitSetId qubits = 0;
 };
 
@@ -155,6 +157,7 @@ struct PeakAtom {
   double start = 0.0;
   double duration = 0.0;
   int64_t leaves = 0;
+  PhysicalResourceSetId physicalSet = 0;
   QubitSetId qubitSet = 0;
   SmallVector<Constraint, 4> constraints;
 };
@@ -1588,8 +1591,12 @@ private:
     entryResourceSets.resize(entries.size());
     internSummaryPath({});
     internResourceSet({});
+    internPhysicalResourceSet({});
     resourceSetQubits.assign(internedResourceSets.size(),
                              std::numeric_limits<QubitSetId>::max());
+    resourceSetPhysicals.assign(
+        internedResourceSets.size(),
+        std::numeric_limits<PhysicalResourceSetId>::max());
     SmallVector<ResourceId, 0> nativeResourceMap;
     if (nativeSchedule)
       nativeResourceMap.assign(nativeSchedule->resourceLabels.size(),
@@ -1813,6 +1820,22 @@ private:
     return result;
   }
 
+  PhysicalResourceSetId
+  internPhysicalResourceSet(ArrayRef<unsigned> physicals) {
+    size_t hash = static_cast<size_t>(
+        llvm::hash_combine_range(physicals.begin(), physicals.end()));
+    auto &candidates = physicalResourceSetBuckets[hash];
+    for (PhysicalResourceSetId candidate : candidates)
+      if (ArrayRef<unsigned>(internedPhysicalResourceSets[candidate]) ==
+          physicals)
+        return candidate;
+    PhysicalResourceSetId result = internedPhysicalResourceSets.size();
+    internedPhysicalResourceSets.emplace_back(physicals.begin(),
+                                              physicals.end());
+    candidates.push_back(result);
+    return result;
+  }
+
   ResourceSetId internResourceSet(ArrayRef<ResourceId> resources) {
     size_t hash = static_cast<size_t>(
         llvm::hash_combine_range(resources.begin(), resources.end()));
@@ -1846,6 +1869,30 @@ private:
     }
     llvm::sort(qubits);
     cached = internQubitSet(qubits);
+    return cached;
+  }
+
+  FailureOr<PhysicalResourceSetId>
+  physicalSetForResourceSet(ResourceSetId resourceSet) {
+    if (resourceSet >= internedResourceSets.size())
+      return failure();
+    if (resourceSetPhysicals.size() <= resourceSet)
+      resourceSetPhysicals.resize(
+          resourceSet + 1, std::numeric_limits<PhysicalResourceSetId>::max());
+    PhysicalResourceSetId &cached = resourceSetPhysicals[resourceSet];
+    if (cached != std::numeric_limits<PhysicalResourceSetId>::max())
+      return cached;
+    SmallVector<unsigned, 8> physicals;
+    llvm::SmallDenseSet<unsigned, 8> seen;
+    for (ResourceId resource : internedResourceSets[resourceSet]) {
+      if (resource >= resourcePhysicalsById.size())
+        return failure();
+      for (unsigned physical : resourcePhysicalsById[resource])
+        if (seen.insert(physical).second)
+          physicals.push_back(physical);
+    }
+    llvm::sort(physicals);
+    cached = internPhysicalResourceSet(physicals);
     return cached;
   }
 
@@ -1927,15 +1974,19 @@ private:
     if (failed(failableParallelForEachN(context, 0, shards, resolveShard)))
       return failure();
 
+    // Shards populate disjoint slots; interning the mapped sets updates shared
+    // tables, so merge their results after the parallel phase.
     occurrenceResourceEvidence.resize(summaryOccurrences.size());
-    for (size_t index = 0; index < pending.size(); ++index)
-      for (PendingMapping &mapping : pending[index]) {
+    for (auto [index, mappings] : llvm::enumerate(pending))
+      for (PendingMapping &mapping : mappings) {
         ResourceSetId mapped = internResourceSet(mapping.resources);
+        auto physicals = physicalSetForResourceSet(mapped);
         auto qubits = qubitSetForResourceSet(mapped);
-        if (failed(qubits))
+        if (failed(physicals) || failed(qubits))
           return failure();
         occurrenceResourceEvidence[index].try_emplace(
-            mapping.source, OccurrenceResourceMapping{mapped, *qubits});
+            mapping.source,
+            OccurrenceResourceMapping{mapped, *physicals, *qubits});
       }
     return success();
   }
@@ -2346,8 +2397,12 @@ private:
                        entry.duration *
                            static_cast<double>(multiplicities[index]),
                        counts->first, counts->second, *path);
-      peakCandidates.push_back(
-          {entry.start, entry.duration, 1, entryQubitSets[index], *path});
+      auto physicals = physicalSetForResourceSet(entryResourceSets[index]);
+      if (failed(physicals))
+        return schedule.emitOpError(
+            "schedule resource lacks physical identity evidence");
+      peakCandidates.push_back({entry.start, entry.duration, 1, *physicals,
+                                entryQubitSets[index], *path});
     }
     checkpoint("direct");
 
@@ -2476,7 +2531,8 @@ private:
     auto equalSignature = [&](size_t left, size_t right) {
       const PeakAtom &a = peakCandidates[left];
       const PeakAtom &b = peakCandidates[right];
-      return a.qubitSet == b.qubitSet && a.constraints == b.constraints;
+      return a.physicalSet == b.physicalSet && a.qubitSet == b.qubitSet &&
+             a.constraints == b.constraints;
     };
     for (size_t index = 0; index < peakCandidates.size(); ++index) {
       const PeakAtom &candidate = peakCandidates[index];
@@ -2487,7 +2543,8 @@ private:
         peakAtoms.push_back(candidate);
         continue;
       }
-      llvm::hash_code hash = llvm::hash_value(candidate.qubitSet);
+      llvm::hash_code hash =
+          llvm::hash_combine(candidate.physicalSet, candidate.qubitSet);
       for (const auto &[condition, branch] : candidate.constraints)
         hash = llvm::hash_combine(hash, condition, StringRef(branch));
       auto &candidates = buckets[static_cast<size_t>(hash)];
@@ -2529,7 +2586,8 @@ private:
           if (active > 0 && time > segmentStart) {
             const PeakAtom &exemplar = peakCandidates[group.exemplar];
             peakAtoms.push_back({segmentStart, time - segmentStart, active,
-                                 exemplar.qubitSet, exemplar.constraints});
+                                 exemplar.physicalSet, exemplar.qubitSet,
+                                 exemplar.constraints});
           }
           if (next > 0)
             segmentStart = time;
@@ -2897,6 +2955,7 @@ private:
     }
     boundaries.push_back(maximumTime);
     std::vector<SweepResult> results(shardCount);
+    std::vector<int64_t> physicalResourceWeights(physicalResourceIds.size(), 1);
     auto sweepShard = [&](size_t shard) -> LogicalResult {
       const auto shardStarted = std::chrono::steady_clock::now();
       const double begin = boundaries[shard];
@@ -2907,7 +2966,8 @@ private:
       };
       std::priority_queue<SweepEvent, std::vector<SweepEvent>, decltype(later)>
           events(later);
-      ActiveOccupancy active(qubitWeights);
+      ActiveOccupancy activeResources(physicalResourceWeights);
+      ActiveOccupancy activeQubits(qubitWeights);
       std::map<std::pair<size_t, SummaryPathId>, SmallVector<Constraint, 8>>
           occurrencePaths;
       auto applySummaryAtom = [&](size_t owner, size_t atomIndex,
@@ -2931,17 +2991,25 @@ private:
                     .first;
           constraints = path->second;
         }
-        return success(active.update(atom.leaves, constraints,
-                                     internedQubitSets[qubits->qubits],
-                                     direction));
+        if (!activeResources.update(
+                atom.leaves, constraints,
+                internedPhysicalResourceSets[qubits->physicals], direction))
+          return failure();
+        return success(activeQubits.update(atom.leaves, constraints,
+                                           internedQubitSets[qubits->qubits],
+                                           direction));
       };
       auto apply = [&](const SweepEvent &event,
                        int direction) -> LogicalResult {
         ++results[shard].appliedEvents;
         if (event.direct) {
           const PeakAtom &atom = peakAtoms[event.owner];
-          return success(
-              active.update(atom, internedQubitSets[atom.qubitSet], direction));
+          if (!activeResources.update(
+                  atom.leaves, atom.constraints,
+                  internedPhysicalResourceSets[atom.physicalSet], direction))
+            return failure();
+          return success(activeQubits.update(
+              atom, internedQubitSets[atom.qubitSet], direction));
         }
         const CallSummary &summary = *summaryOccurrences[event.owner].summary;
         size_t atomIndex = event.finish
@@ -2970,9 +3038,13 @@ private:
       for (size_t index = 0; index < peakAtoms.size(); ++index) {
         const PeakAtom &atom = peakAtoms[index];
         const double finish = atom.start + atom.duration;
-        if (atom.start < begin && finish >= begin &&
-            !active.update(atom, internedQubitSets[atom.qubitSet], 1))
-          return failure();
+        if (atom.start < begin && finish >= begin) {
+          if (!activeResources.update(
+                  atom.leaves, atom.constraints,
+                  internedPhysicalResourceSets[atom.physicalSet], 1) ||
+              !activeQubits.update(atom, internedQubitSets[atom.qubitSet], 1))
+            return failure();
+        }
         if (inRange(atom.start))
           events.push({atom.start, 1, index, 0, true, false});
         if (inRange(finish))
@@ -3059,17 +3131,19 @@ private:
             pushSummaryEvent(event.owner, event.position + 1, false);
         }
         SweepResult &result = results[shard];
-        result.peak = std::max(result.peak, active.leaves());
-        auto activeQubits = active.qubits();
-        result.conditionalWork += active.lastMaximumWork();
-        if (failed(activeQubits)) {
+        auto activePhysicalResources = activeResources.qubits();
+        result.conditionalWork += activeResources.lastMaximumWork();
+        auto activePhysicalQubits = activeQubits.qubits();
+        result.conditionalWork += activeQubits.lastMaximumWork();
+        if (failed(activePhysicalResources) || failed(activePhysicalQubits)) {
           result.conditionalWorkExceeded = true;
           return failure();
         }
-        if (*activeQubits > result.qubitPeak) {
-          result.qubitPeak = *activeQubits;
+        result.peak = std::max(result.peak, *activePhysicalResources);
+        if (*activePhysicalQubits > result.qubitPeak) {
+          result.qubitPeak = *activePhysicalQubits;
           result.qubitPeakTime = time;
-          auto peakQubits = active.largestQubitSet();
+          auto peakQubits = activeQubits.largestQubitSet();
           if (failed(peakQubits)) {
             result.conditionalWorkExceeded = true;
             return failure();
@@ -3086,8 +3160,8 @@ private:
             pushSummaryEvent(event.owner, event.position + 1, true);
         }
         if (time == result.qubitPeakTime) {
-          auto afterCollapsed = active.qubits();
-          result.conditionalWork += active.lastMaximumWork();
+          auto afterCollapsed = activeQubits.qubits();
+          result.conditionalWork += activeQubits.lastMaximumWork();
           if (failed(afterCollapsed)) {
             result.conditionalWorkExceeded = true;
             return failure();
@@ -5569,8 +5643,12 @@ private:
   llvm::StringMap<unsigned> physicalResourceIds;
   llvm::StringMap<unsigned> qubitIds;
   std::vector<int64_t> qubitWeights;
+  llvm::DenseMap<size_t, SmallVector<PhysicalResourceSetId, 1>>
+      physicalResourceSetBuckets;
+  std::vector<SmallVector<unsigned, 4>> internedPhysicalResourceSets;
   llvm::DenseMap<size_t, SmallVector<QubitSetId, 1>> qubitSetBuckets;
   std::vector<SmallVector<unsigned, 4>> internedQubitSets;
+  std::vector<PhysicalResourceSetId> resourceSetPhysicals;
   std::vector<QubitSetId> resourceSetQubits;
   llvm::DenseMap<size_t, SmallVector<ResourceSetId, 1>> resourceSetBuckets;
   std::vector<SmallVector<ResourceId, 4>> internedResourceSets;
