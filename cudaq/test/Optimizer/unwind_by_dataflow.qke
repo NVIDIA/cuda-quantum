@@ -28,6 +28,7 @@ func.func @__nvqpp__mlirgen__function_1(%arg0: i1) {
 // CHECK-DAG:       %[[CONSTANT_1:.*]] = arith.constant 4 : i8
 // CHECK-DAG:       %[[CONSTANT_0:.*]] = arith.constant 0 : i8
 // CHECK-DAG:       %[[ALLOCA_0:.*]] = cc.alloca i8
+// CHECK:           cc.store %[[CONSTANT_0]], %[[ALLOCA_0]] : !cc.ptr<i8>
 // CHECK:           cc.if(%{{.*}}) {
 // CHECK:             cc.store %[[CONSTANT_1]], %[[ALLOCA_0]] : !cc.ptr<i8>
 // CHECK:           }
@@ -90,6 +91,7 @@ func.func @__nvqpp__mlirgen__function_2(%arg0: i1, %arg1: i32, %arg2: i32) {
 // CHECK-DAG:       %[[CONSTANT_3:.*]] = arith.constant 1 : i8
 // CHECK-DAG:       %[[FALSE:.*]] = arith.constant false
 // CHECK-DAG:       %[[ALLOCA_0:.*]] = cc.alloca i8
+// CHECK:           cc.store %[[CONSTANT_2]], %[[ALLOCA_0]] : !cc.ptr<i8>
 // CHECK:           cc.scope {
 // CHECK:             cc.loop while {
 // CHECK:               %[[LOAD_1:.*]] = cc.load %[[ALLOCA_0]] : !cc.ptr<i8>
@@ -190,6 +192,7 @@ func.func @__nvqpp__mlirgen__function_3(%arg0: i1, %arg1: i32, %arg2: i32) {
 // CHECK-DAG:       %[[CONSTANT_2:.*]] = arith.constant 0 : i8
 // CHECK-DAG:       %[[CONSTANT_3:.*]] = arith.constant 1 : i8
 // CHECK-DAG:       %[[ALLOCA_0:.*]] = cc.alloca i8
+// CHECK:           cc.store %[[CONSTANT_2]], %[[ALLOCA_0]] : !cc.ptr<i8>
 // CHECK:           cc.scope {
 // CHECK:             cc.loop while {
 // CHECK:               %[[LOAD_1:.*]] = cc.load %[[ALLOCA_0]] : !cc.ptr<i8>
@@ -280,6 +283,7 @@ func.func @__nvqpp__mlirgen__function_4(%arg0: i1, %arg1: i32, %arg2: i32) {
 // CHECK-DAG:       %[[CONSTANT_2:.*]] = arith.constant 0 : i8
 // CHECK-DAG:       %[[CONSTANT_3:.*]] = arith.constant 1 : i8
 // CHECK-DAG:       %[[ALLOCA_0:.*]] = cc.alloca i8
+// CHECK:           cc.store %[[CONSTANT_2]], %[[ALLOCA_0]] : !cc.ptr<i8>
 // CHECK:           cc.scope {
 // CHECK:             cc.loop while {
 // CHECK:               %[[LOAD_1:.*]] = cc.load %[[ALLOCA_0]] : !cc.ptr<i8>
@@ -382,6 +386,7 @@ func.func @__nvqpp__mlirgen__function_5(%arg0: i1, %arg1: i32, %arg2: i32) {
 // CHECK-DAG:       %[[CONSTANT_3:.*]] = arith.constant 0 : i8
 // CHECK-DAG:       %[[CONSTANT_4:.*]] = arith.constant 1 : i8
 // CHECK-DAG:       %[[ALLOCA_0:.*]] = cc.alloca i8
+// CHECK:           cc.store %[[CONSTANT_3]], %[[ALLOCA_0]] : !cc.ptr<i8>
 // CHECK:           cc.scope {
 // CHECK:             cc.loop while {
 // CHECK:               %[[LOAD_1:.*]] = cc.load %[[ALLOCA_0]] : !cc.ptr<i8>
@@ -530,6 +535,7 @@ func.func @__nvqpp__mlirgen__function_6(%arg0: i1, %arg1: i32, %arg2: i32, %arg3
 // CHECK-DAG:       %[[CONSTANT_3:.*]] = arith.constant 0 : i8
 // CHECK-DAG:       %[[CONSTANT_4:.*]] = arith.constant 1 : i8
 // CHECK-DAG:       %[[ALLOCA_0:.*]] = cc.alloca i8
+// CHECK:           cc.store %[[CONSTANT_3]], %[[ALLOCA_0]] : !cc.ptr<i8>
 // CHECK:           cc.scope {
 // CHECK:             cc.loop while {
 // CHECK:               %[[LOAD_1:.*]] = cc.load %[[ALLOCA_0]] : !cc.ptr<i8>
@@ -649,13 +655,16 @@ func.func @__nvqpp__mlirgen__function_7(%arg0: i1) -> i32 {
 }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_7(
-// CHECK:           %[[CONSTANT_2:.*]] = arith.constant 92 : i32
-// CHECK:           %[[CONSTANT_3:.*]] = arith.constant 42 : i32
+// CHECK-DAG:       %[[CONSTANT_0:.*]] = arith.constant 0 : i8
+// CHECK-DAG:       %[[CONSTANT_1:.*]] = arith.constant 4 : i8
+// CHECK-DAG:       %[[CONSTANT_2:.*]] = arith.constant 92 : i32
+// CHECK-DAG:       %[[CONSTANT_3:.*]] = arith.constant 42 : i32
 // CHECK:           %[[ALLOCA_0:.*]] = cc.alloca i32
 // CHECK:           %[[ALLOCA_1:.*]] = cc.alloca i8
+// CHECK:           cc.store %[[CONSTANT_0]], %[[ALLOCA_1]] : !cc.ptr<i8>
 // CHECK:           cc.store %[[CONSTANT_2]], %[[ALLOCA_0]] : !cc.ptr<i32>
 // CHECK:           cc.if(%{{.*}}) {
-// CHECK:             cc.store %{{.*}}, %[[ALLOCA_1]] : !cc.ptr<i8>
+// CHECK:             cc.store %[[CONSTANT_1]], %[[ALLOCA_1]] : !cc.ptr<i8>
 // CHECK:             cc.store %[[CONSTANT_3]], %[[ALLOCA_0]] : !cc.ptr<i32>
 // CHECK:           }
 // CHECK:           %[[LOAD_2:.*]] = cc.load %[[ALLOCA_0]] : !cc.ptr<i32>
@@ -705,9 +714,13 @@ func.func @__nvqpp__mlirgen__function_8(%arg0: i1, %arg1: i32, %arg2: i32) -> i1
 }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__function_8(
-// CHECK:           %[[CONSTANT_6:.*]] = arith.constant 92 : i16
-// CHECK:           %[[CONSTANT_7:.*]] = arith.constant 42 : i16
-// CHECK:           %[[ALLOCA_0:.*]] = cc.alloca i16
+// CHECK-DAG:       %[[CONSTANT_0:.*]] = arith.constant 4 : i8
+// CHECK-DAG:       %[[CONSTANT_1:.*]] = arith.constant 0 : i8
+// CHECK-DAG:       %[[CONSTANT_6:.*]] = arith.constant 92 : i16
+// CHECK-DAG:       %[[CONSTANT_7:.*]] = arith.constant 42 : i16
+// CHECK-DAG:       %[[ALLOCA_0:.*]] = cc.alloca i16
+// CHECK-DAG:       %[[ALLOCA_1:.*]] = cc.alloca i8
+// CHECK:           cc.store %[[CONSTANT_1]], %[[ALLOCA_1]] : !cc.ptr<i8>
 // CHECK:           cc.store %[[CONSTANT_6]], %[[ALLOCA_0]] : !cc.ptr<i16>
 // CHECK:           cc.scope {
 // CHECK:             cc.loop while {
