@@ -178,6 +178,24 @@ trimmedMangledTypeName(clang::QualType ty,
   return s;
 }
 
+/// Append the mangled names of the type arguments of a template specialization,
+/// in order, looking into packs. This matches the names the host side builds
+/// from the type arguments alone (`cudaq::get_kernel_template_function_name`).
+/// Arguments that are not types (`template <bool B>`, `template <int N>`,
+/// template template arguments, ...) are skipped; the mangled name of the
+/// specialization that the callers append after this identifies them.
+static void
+appendTypeArgumentNames(std::string &name,
+                        llvm::ArrayRef<clang::TemplateArgument> args,
+                        clang::ItaniumMangleContext *mangler) {
+  for (const auto &arg : args) {
+    if (arg.getKind() == clang::TemplateArgument::Type)
+      name += trimmedMangledTypeName(arg.getAsType(), mangler);
+    else if (arg.getKind() == clang::TemplateArgument::Pack)
+      appendTypeArgumentNames(name, arg.pack_elements(), mangler);
+  }
+}
+
 std::string
 cudaq::detail::getTagNameOfFunctionDecl(const clang::FunctionDecl *func,
                                         clang::ItaniumMangleContext *mangler) {
@@ -194,9 +212,8 @@ cudaq::detail::getTagNameOfFunctionDecl(const clang::FunctionDecl *func,
           trimmedMangledTypeName(
               mangler->getASTContext().getCanonicalTagType(cxxCls), mangler);
       assert(cxxMethod->getTemplateSpecializationArgs());
-      for (auto &templArg :
-           cxxMethod->getTemplateSpecializationArgs()->asArray())
-        name += trimmedMangledTypeName(templArg.getAsType(), mangler);
+      appendTypeArgumentNames(
+          name, cxxMethod->getTemplateSpecializationArgs()->asArray(), mangler);
       name += '.' + cudaq::detail::getCxxMangledDeclName(func, mangler);
       LLVM_DEBUG(llvm::dbgs() << "template member name is: " << name << '\n');
       return name;
@@ -213,8 +230,10 @@ cudaq::detail::getTagNameOfFunctionDecl(const clang::FunctionDecl *func,
     // template<typename A> __qpu__ T func(args ...);
     // cudaq::get_function_kernel_name<As...>("func");
     auto name = "instance_function_" + func->getName().str();
-    for (auto templArg : func->getTemplateSpecializationArgs()->asArray())
-      name += trimmedMangledTypeName(templArg.getAsType(), mangler);
+    // A member of a class template that is not itself a template has no
+    // specialization arguments of its own.
+    if (auto *args = func->getTemplateSpecializationArgs())
+      appendTypeArgumentNames(name, args->asArray(), mangler);
     name += '.' + cudaq::detail::getCxxMangledDeclName(func, mangler);
     LLVM_DEBUG(llvm::dbgs() << "template function name is: " << name << '\n');
     return name;

@@ -512,6 +512,7 @@ public:
   Result visit(clang::StringLiteral *x);
   Result visit(clang::CXXScalarValueInitExpr *x);
   Result visit(clang::UnaryExprOrTypeTraitExpr *x);
+  Result visit(clang::SizeOfPackExpr *x);
 
   Result visit(clang::CXXDefaultArgExpr *x);
 
@@ -611,6 +612,13 @@ public:
   bool isItaniumCXXABI();
 
 private:
+  /// The name that \p x has in the symbol table. This is the name of the
+  /// declaration, except for the parameters that come from expanding a
+  /// parameter pack. These all have the name of the pack, so they are
+  /// distinguished by their position. The name is kept alive by the AST
+  /// context, as the symbol table does not own its keys.
+  llvm::StringRef getSymbolName(const clang::NamedDecl *x);
+
   /// Map the block arguments to the names of the function parameters.
   void addArgumentSymbols(mlir::Block *entryBlock,
                           mlir::ArrayRef<clang::ParmVarDecl *> parameters);
