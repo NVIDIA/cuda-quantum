@@ -132,9 +132,10 @@ typedef struct {
   // Bytes per slot: the stride, matching cudaq_ringbuffer_t's rx/tx_stride_sz.
   // Every dispatch shape reads it the same way, CUDAQ_KERNEL_UNIFIED included.
   //
-  // KNOWN ISSUE: the dispatch kernels also derive a handler's max_result_len
-  // from the stride, as `stride - sizeof(RPCResponse)`.  That bounds the slot
-  // buffer correctly, but a transport whose send descriptor is prepared for a
+  // KNOWN ISSUE: the dispatch kernels also hand the stride to DEVICE_CALL
+  // handlers as `slot_size`, from which a handler derives its result capacity
+  // as `slot_size - sizeof(RPCResponse)`.  That bounds the slot buffer
+  // correctly, but a transport whose send descriptor is prepared for a
   // shorter fixed frame transmits only that prefix, so a handler can be told
   // it has more room than actually reaches the wire.  Both RoCE transports
   // are in that position (gpu_roce: frame_size vs page_size; cpu_roce:
@@ -271,7 +272,7 @@ typedef void (*cudaq_unified_launch_fn_t)(
 // implementing those rather than by writing a kernel.
 //
 // `tx_stride_sz` means what it does in the launch functions above: the slot
-// stride, from which the kernel derives the handler's max_result_len.  See
+// stride, which the kernel hands to DEVICE_CALL handlers as `slot_size`.  See
 // the KNOWN ISSUE on cudaq_dispatcher_config_t::slot_size for the caveat that
 // bound carries, which this path shares with the ring path.
 //

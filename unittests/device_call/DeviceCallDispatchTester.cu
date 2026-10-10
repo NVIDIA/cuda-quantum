@@ -11,6 +11,7 @@
 
 #include <cuda_runtime.h>
 
+#include <cstddef>
 #include <cstdint>
 
 namespace cudaq_internal::device_call::test {
@@ -20,32 +21,39 @@ constexpr std::uint32_t AddThemFunctionId =
 constexpr std::uint32_t GraphAddThemFunctionId =
     cudaq::realtime::fnv1a_hash("graphAddThem");
 
-__device__ int addThemHandler(const void *input, void *output,
-                              std::uint32_t argLen, std::uint32_t maxResultLen,
-                              std::uint32_t *resultLen) {
-  if (argLen != 2 * sizeof(std::int32_t))
+// DEVICE_CALL handlers use the same two-pointer form as the host-call
+// handler (see hostAddThemHandler in DeviceCallDispatchTester.cpp), plus a
+// returned status: the request sits in rxSlot, the result goes after the
+// RPCResponse in txSlot, and the handler sets result_len.
+__device__ int addThemHandler(const void *rxSlot, void *txSlot,
+                              std::size_t slotSize) {
+  const auto *const request =
+      static_cast<const cudaq::realtime::RPCHeader *>(rxSlot);
+  auto *const response = static_cast<cudaq::realtime::RPCResponse *>(txSlot);
+  if (request->arg_len != 2 * sizeof(std::int32_t))
     return 101;
-  if (maxResultLen < sizeof(std::int32_t))
+  if (slotSize < sizeof(cudaq::realtime::RPCResponse) + sizeof(std::int32_t))
     return 102;
 
-  const auto *const args = static_cast<const std::int32_t *>(input);
-  *static_cast<std::int32_t *>(output) = args[0] + args[1];
-  *resultLen = sizeof(std::int32_t);
+  const auto *const args = reinterpret_cast<const std::int32_t *>(request + 1);
+  *reinterpret_cast<std::int32_t *>(response + 1) = args[0] + args[1];
+  response->result_len = sizeof(std::int32_t);
   return 0;
 }
 
-__device__ int addThemOffsetHandler(const void *input, void *output,
-                                    std::uint32_t argLen,
-                                    std::uint32_t maxResultLen,
-                                    std::uint32_t *resultLen) {
-  if (argLen != 2 * sizeof(std::int32_t))
+__device__ int addThemOffsetHandler(const void *rxSlot, void *txSlot,
+                                    std::size_t slotSize) {
+  const auto *const request =
+      static_cast<const cudaq::realtime::RPCHeader *>(rxSlot);
+  auto *const response = static_cast<cudaq::realtime::RPCResponse *>(txSlot);
+  if (request->arg_len != 2 * sizeof(std::int32_t))
     return 101;
-  if (maxResultLen < sizeof(std::int32_t))
+  if (slotSize < sizeof(cudaq::realtime::RPCResponse) + sizeof(std::int32_t))
     return 102;
 
-  const auto *const args = static_cast<const std::int32_t *>(input);
-  *static_cast<std::int32_t *>(output) = args[0] + args[1] + 100;
-  *resultLen = sizeof(std::int32_t);
+  const auto *const args = reinterpret_cast<const std::int32_t *>(request + 1);
+  *reinterpret_cast<std::int32_t *>(response + 1) = args[0] + args[1] + 100;
+  response->result_len = sizeof(std::int32_t);
   return 0;
 }
 

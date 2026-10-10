@@ -75,7 +75,6 @@ cudaq_unified_dispatch_kernel(void *transport_ctx, std::size_t tx_stride_sz,
     auto *response = static_cast<RPCResponse *>(response_frame);
 
     int status = -1;
-    std::uint32_t result_len = 0;
 
     if (header->magic == RPC_MAGIC_REQUEST) {
       const cudaq_function_entry_t *entry =
@@ -85,13 +84,10 @@ cudaq_unified_dispatch_kernel(void *transport_ctx, std::size_t tx_stride_sz,
           entry->dispatch_mode == CUDAQ_DISPATCH_DEVICE_CALL) {
         auto func =
             reinterpret_cast<DeviceRPCFunction>(entry->handler.device_fn_ptr);
-        void *arg_buffer = header + 1;
-        void *output_buffer = response + 1;
-        auto max_result_len =
-            static_cast<std::uint32_t>(tx_stride_sz - sizeof(RPCResponse));
-
-        status = func(arg_buffer, output_buffer, header->arg_len,
-                      max_result_len, &result_len);
+        // Same two-pointer call as the host path (host_dispatcher.cu): the
+        // handler reads the request from `request`, writes its result after
+        // the RPCResponse in `response_frame` and sets response->result_len.
+        status = func(request, response_frame, tx_stride_sz);
       }
     }
 
@@ -100,7 +96,10 @@ cudaq_unified_dispatch_kernel(void *transport_ctx, std::size_t tx_stride_sz,
     // last held on the wire.
     response->magic = RPC_MAGIC_RESPONSE;
     response->status = status;
-    response->result_len = result_len;
+    // The handler owns result_len; force it to 0 for unhandled frames and
+    // failed handlers.
+    if (status != 0)
+      response->result_len = 0;
     response->request_id = header->request_id;
     response->ptp_timestamp = header->ptp_timestamp;
 
