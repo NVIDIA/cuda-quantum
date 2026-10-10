@@ -1,0 +1,2 @@
+# This file is for testing PR for use of Exalate to sync GitHub to Jira
+Test by EL for Exalate 2 - Create PR
