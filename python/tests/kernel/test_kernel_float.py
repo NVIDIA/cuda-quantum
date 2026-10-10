@@ -623,3 +623,89 @@ def test_float32_list_parameter_promotion():
     check([np.float32(np.pi / 2), 0])
     check([1, 0])
     check([np.pi / 2, 0, True])
+
+
+def test_negative_integer_exponent_is_float():
+    """An integer raised to a negative integer power is a float, as in Python,
+    and not an integer power that truncates to zero."""
+
+    @cudaq.kernel
+    def int_base_neg_one() -> float:
+        return 2**-1
+
+    @cudaq.kernel
+    def int_base_neg_three() -> float:
+        return 2**-3
+
+    @cudaq.kernel
+    def other_int_base_neg_one() -> float:
+        return 3**-1
+
+    @cudaq.kernel
+    def negative_int_base() -> float:
+        return (-2)**-1
+
+    @cudaq.kernel
+    def variable_base(base: int) -> float:
+        return base**-2
+
+    assert is_close(2**-1, int_base_neg_one())
+    assert is_close(2**-3, int_base_neg_three())
+    assert is_close(3**-1, other_int_base_neg_one())
+    assert is_close((-2)**-1, negative_int_base())
+    assert is_close(3**-2, variable_base(3))
+    assert is_close((-2)**-2, variable_base(-2))
+
+
+def test_non_negative_integer_exponent_is_integer():
+    """A non-negative exponent keeps the integer power and the integer type."""
+
+    @cudaq.kernel
+    def cube() -> int:
+        return 2**3
+
+    @cudaq.kernel
+    def zeroth_power() -> int:
+        return 2**0
+
+    @cudaq.kernel
+    def large_power() -> int:
+        return 2**30
+
+    @cudaq.kernel
+    def variable_exponent(base: int, exponent: int) -> int:
+        return base**exponent
+
+    @cudaq.kernel
+    def loop_bound() -> int:
+        total = 0
+        for i in range(2**3):
+            total += i
+        return total
+
+    assert cube() == 2**3
+    assert zeroth_power() == 2**0
+    assert large_power() == 2**30
+    assert variable_exponent(2, 5) == 2**5
+    assert variable_exponent(-2, 3) == (-2)**3
+    assert loop_bound() == sum(range(2**3))
+
+
+def test_float_base_with_integer_exponent():
+    """A floating-point base keeps working for either sign of the exponent."""
+
+    @cudaq.kernel
+    def float_base_neg_one() -> float:
+        return 2.0**-1
+
+    @cudaq.kernel
+    def float_base_neg_three() -> float:
+        return 2.0**-3
+
+    @cudaq.kernel
+    def float_base_cube() -> float:
+        return 2.0**3
+
+    assert is_close(2.0**-1, float_base_neg_one())
+    assert is_close(2.0**-3, float_base_neg_three())
+    assert is_close(2.0**3, float_base_cube())
