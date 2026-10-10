@@ -1,0 +1,102 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// Regression test for https://github.com/NVIDIA/cuda-quantum/issues/5490.
+//
+// Two quake.apply ops share one cc.instantiate_callable and pass constant
+// arguments. With constant propagation, each apply gets its own specialized
+// clone of the callee. Specializing the first apply must not redirect the
+// shared closure used by the second apply to the first apply's clone.
+// Otherwise the second apply's callee and closure name different clones, and
+// the control variant is built with the wrong arguments (this used to crash
+// when the adjoint apply came first).
+
+// RUN: cudaq-opt --apply-op-specialization=constant-prop=1 %s | FileCheck %s
+
+func.func private @thunk_a(%self: !cc.callable<(!quake.ref, f64) -> ()>,
+                           %q: !quake.ref, %t: f64) {
+  quake.ry (%t) %q : (f64, !quake.ref) -> ()
+  quake.rz (%t) %q : (f64, !quake.ref) -> ()
+  return
+}
+
+func.func private @thunk_b(%self: !cc.callable<(!quake.ref, f64) -> ()>,
+                           %q: !quake.ref, %t: f64) {
+  quake.ry (%t) %q : (f64, !quake.ref) -> ()
+  quake.rz (%t) %q : (f64, !quake.ref) -> ()
+  return
+}
+
+// Adjoint first, then control.
+func.func @adj_then_ctrl() {
+  %c1 = arith.constant 1.500000e+00 : f64
+  %c2 = arith.constant 7.000000e-01 : f64
+  %0 = cc.instantiate_callable @thunk_a() : () -> !cc.callable<(!quake.ref, f64) -> ()>
+  %1 = quake.alloca !quake.ref
+  %2 = quake.alloca !quake.ref
+  quake.apply<adj> %0 (%2, %c1) : (!quake.ref, f64) -> ()
+  quake.apply %0 [%1] (%2, %c2) : (!quake.ref, !quake.ref, f64) -> ()
+  return
+}
+
+// Control first, then adjoint.
+func.func @ctrl_then_adj() {
+  %c1 = arith.constant 1.500000e+00 : f64
+  %c2 = arith.constant 7.000000e-01 : f64
+  %0 = cc.instantiate_callable @thunk_b() : () -> !cc.callable<(!quake.ref, f64) -> ()>
+  %1 = quake.alloca !quake.ref
+  %2 = quake.alloca !quake.ref
+  quake.apply %0 [%1] (%2, %c2) : (!quake.ref, !quake.ref, f64) -> ()
+  quake.apply<adj> %0 (%2, %c1) : (!quake.ref, f64) -> ()
+  return
+}
+
+// Each variant is built from its own clone and keeps its own constant.
+
+// CHECK-LABEL:   func.func private @thunk_b.3.adj(
+// CHECK:           %[[VAL_0:.*]] = arith.constant -1.500000e+00 : f64
+// CHECK:           quake.rz (%[[VAL_0]]) %{{.*}} : (f64, !quake.ref) -> ()
+// CHECK:           quake.ry (%[[VAL_0]]) %{{.*}} : (f64, !quake.ref) -> ()
+
+// CHECK-LABEL:   func.func private @thunk_b.2.ctrl(
+// CHECK:           %[[VAL_0:.*]] = arith.constant 0.69999999999999996 : f64
+// CHECK:           quake.ry (%[[VAL_0]]) [%{{.*}}] %{{.*}} :
+// CHECK:           quake.rz (%[[VAL_0]]) [%{{.*}}] %{{.*}} :
+
+// CHECK-LABEL:   func.func private @thunk_a.1.ctrl(
+// CHECK:           %[[VAL_0:.*]] = arith.constant 0.69999999999999996 : f64
+// CHECK:           quake.ry (%[[VAL_0]]) [%{{.*}}] %{{.*}} :
+// CHECK:           quake.rz (%[[VAL_0]]) [%{{.*}}] %{{.*}} :
+
+// CHECK-LABEL:   func.func private @thunk_a.0.adj(
+// CHECK:           %[[VAL_0:.*]] = arith.constant -1.500000e+00 : f64
+// CHECK:           quake.rz (%[[VAL_0]]) %{{.*}} : (f64, !quake.ref) -> ()
+// CHECK:           quake.ry (%[[VAL_0]]) %{{.*}} : (f64, !quake.ref) -> ()
+
+// CHECK-LABEL:   func.func @adj_then_ctrl() {
+// CHECK:           %[[VAL_0:.*]] = cc.instantiate_callable @thunk_a.0.adj() :
+// CHECK:           call @thunk_a.0.adj(%[[VAL_0]], %{{.*}}, %{{.*}}) :
+// CHECK:           %[[VAL_1:.*]] = cc.instantiate_callable @thunk_a.1.ctrl_closurer(%{{.*}}) :
+// CHECK:           call @thunk_a.1.ctrl_closurer(%[[VAL_1]], %{{.*}}, %{{.*}}) :
+// CHECK:           return
+
+// CHECK-LABEL:   func.func @ctrl_then_adj() {
+// CHECK:           %[[VAL_0:.*]] = cc.instantiate_callable @thunk_b.2.ctrl_closurer(%{{.*}}) :
+// CHECK:           call @thunk_b.2.ctrl_closurer(%[[VAL_0]], %{{.*}}, %{{.*}}) :
+// CHECK:           %[[VAL_1:.*]] = cc.instantiate_callable @thunk_b.3.adj() :
+// CHECK:           call @thunk_b.3.adj(%[[VAL_1]], %{{.*}}, %{{.*}}) :
+// CHECK:           return
+
+// The control wrappers call a control variant of the matching clone, passing
+// the control veq, the self callable, and the formal arguments.
+
+// CHECK-LABEL:   func.func private @thunk_b.2.ctrl_closurer(
+// CHECK:           call @thunk_b.2.ctrl.0(%{{.*}}, %{{.*}}, %{{.*}}, %{{.*}}) :
+
+// CHECK-LABEL:   func.func private @thunk_a.1.ctrl_closurer(
+// CHECK:           call @thunk_a.1.ctrl.1(%{{.*}}, %{{.*}}, %{{.*}}, %{{.*}}) :

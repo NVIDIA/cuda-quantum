@@ -2747,6 +2747,37 @@ def test_control_then_adjoint():
     cudaq.sample(kernel, theta).dump()
 
 
+def test_adjoint_then_control_with_constant_args():
+    # https://github.com/NVIDIA/cuda-quantum/issues/5490
+
+    @cudaq.kernel
+    def my_func(q: cudaq.qubit, theta: float):
+        ry(theta, q)
+        rz(theta, q)
+
+    @cudaq.kernel
+    def kernel():
+        ancilla = cudaq.qubit()
+        q = cudaq.qubit()
+        h(ancilla)
+        cudaq.adjoint(my_func, q, 1.5)
+        cudaq.control(my_func, ancilla, q, 0.7)
+
+    @cudaq.kernel
+    def reference():
+        ancilla = cudaq.qubit()
+        q = cudaq.qubit()
+        h(ancilla)
+        rz(-1.5, q)
+        ry(-1.5, q)
+        ry.ctrl(0.7, ancilla, q)
+        rz.ctrl(0.7, ancilla, q)
+
+    got = np.array(cudaq.get_state(kernel))
+    want = np.array(cudaq.get_state(reference))
+    assert np.allclose(got, want)
+
+
 def test_numpy_functions():
 
     @cudaq.kernel
