@@ -27,6 +27,14 @@ static constexpr const char deviceCallAttrName[] = "cudaq-devicecall";
 static constexpr const char generatorAnnotation[] =
     "user_custom_quantum_operation";
 
+/// Name of the annotation attribute attached to the declaration of a function
+/// that works with quantum types without being a kernel: a function that is
+/// implemented outside of CUDA-Q (the backend, another language), or a
+/// primitive operation of an execution manager. Attach via `__qpu_intrinsic__`.
+/// A function that is not a kernel and is not marked this way cannot take a
+/// quantum type.
+static constexpr const char intrinsicAnnotation[] = "quantum_intrinsic";
+
 /// Name of the annotation attribute that disables quantum optimizations on a
 /// kernel. Attach via `__disable_quantum_optimization__`.
 static constexpr const char disableQuantumOptAnnotation[] =

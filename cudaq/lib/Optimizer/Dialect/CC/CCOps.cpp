@@ -2474,10 +2474,17 @@ void cudaq::cc::IfOp::print(OpAsmPrinter &p) {
   p.printOptionalAttrDict((*this)->getAttrs());
 }
 
+// The printer elides the trivial `cc.continue`, so a region whose body is empty
+// prints as `{ }`, which parses as a region without any block. An empty else
+// region is the same as having no else region. The then region must have a
+// block (`mustHaveBlock`), as it is always executed when the condition is true.
 static void ensureIfRegionTerminator(OpBuilder &builder, OperationState &result,
-                                     Region *ifRegion) {
-  if (ifRegion->empty())
-    return;
+                                     Region *ifRegion, bool mustHaveBlock) {
+  if (ifRegion->empty()) {
+    if (!mustHaveBlock)
+      return;
+    ifRegion->push_back(new Block());
+  }
   auto *block = &ifRegion->back();
   if (!block)
     return;
@@ -2537,13 +2544,15 @@ ParseResult cudaq::cc::IfOp::parse(OpAsmParser &parser,
   if (parser.parseRegion(*thenRegion, regionArgs))
     return failure();
   OpBuilder opBuilder(parser.getContext());
-  ensureIfRegionTerminator(opBuilder, result, thenRegion);
+  ensureIfRegionTerminator(opBuilder, result, thenRegion,
+                           /*mustHaveBlock=*/true);
 
   // If we find an 'else' keyword then parse the 'else' region.
   if (!parser.parseOptionalKeyword("else")) {
     if (parser.parseRegion(*elseRegion, regionArgs))
       return failure();
-    ensureIfRegionTerminator(opBuilder, result, elseRegion);
+    ensureIfRegionTerminator(opBuilder, result, elseRegion,
+                             /*mustHaveBlock=*/false);
   }
 
   // Parse the optional attribute list.

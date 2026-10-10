@@ -8,9 +8,7 @@
 
 #include "cudaq/Frontend/nvqpp/ASTBridge.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
-#include "cudaq/Todo.h"
 #include <span>
 
 #define DEBUG_TYPE "lower-ast-decl"
@@ -21,7 +19,7 @@ namespace cudaq::detail {
 
 // FIXME: ignoring these allocator classes rather than traversing them. It would
 // be better add them to the list of intercepted classes, but that code is
-// expected to push a type on the stack.
+// expected to have a type as the result.
 bool ignoredClass(clang::RecordDecl *x) {
   if (auto *ident = x->getIdentifier()) {
     auto name = ident->getName();
@@ -78,12 +76,28 @@ bool QuakeBridgeVisitor::needToLowerFunction(const clang::FunctionDecl *decl) {
   return false;
 }
 
+llvm::StringRef QuakeBridgeVisitor::getSymbolName(const clang::NamedDecl *x) {
+  if (auto *parm = dyn_cast<clang::ParmVarDecl>(x))
+    if (auto *func = dyn_cast<clang::FunctionDecl>(parm->getDeclContext()))
+      if (auto *pattern = func->getTemplateInstantiationPattern())
+        for (auto *patternParm : pattern->parameters())
+          if (patternParm->isParameterPack() &&
+              patternParm->getName() == parm->getName()) {
+            // Every element of the pack is named for the pack.
+            std::string name = (parm->getName() + "." +
+                                llvm::Twine(parm->getFunctionScopeIndex()))
+                                   .str();
+            return astContext->Idents.get(name).getName();
+          }
+  return x->getName();
+}
+
 void QuakeBridgeVisitor::addArgumentSymbols(
     Block *entryBlock, ArrayRef<clang::ParmVarDecl *> parameters) {
   for (auto arg : llvm::enumerate(parameters)) {
     auto index = arg.index();
     auto *argVal = arg.value();
-    auto name = argVal->getName();
+    auto name = getSymbolName(argVal);
     if (isa<OpaqueType>(entryBlock->getArgument(index).getType())) {
       // This is a reference type, we want to forward the value.
       symbolTable.insert(name, entryBlock->getArgument(index));
@@ -122,306 +136,53 @@ QuakeBridgeVisitor::getOrAddFunc(Location loc, StringRef funcName,
   return cudaq::opt::factory::getOrAddFunc(loc, funcName, funcTy, module);
 }
 
-bool QuakeBridgeVisitor::interceptRecordDecl(clang::RecordDecl *x) {
-  // Some decls will be intercepted and replaced with high-level types in quake.
-  // Do this here to avoid traversing their fields, etc.
-  auto *ident = x->getIdentifier();
-  if (!ident || x->isLambda())
-    return false;
-  auto name = ident->getName();
-  auto *ctx = builder.getContext();
-  if (isInNamespace(x, "cudaq")) {
-    // Types from the `cudaq` namespace.
-    // A qubit is a qudit<LEVEL=2>.
-    if (name == "qudit" || name == "qubit")
-      return pushType(cudaq::quake::RefType::get(ctx));
-    // qreg<SIZE,LEVEL>, qarray<SIZE,LEVEL>, qspan<SIZE,LEVEL>
-    if (name == "qspan" || name == "qreg" || name == "qarray") {
-      // If the first template argument is not `std::dynamic_extent` then we
-      // have a constant sized VeqType.
-      if (auto *tempSpec =
-              dyn_cast<clang::ClassTemplateSpecializationDecl>(x)) {
-        auto templArg = tempSpec->getTemplateArgs()[0];
-        assert(templArg.getKind() ==
-               clang::TemplateArgument::ArgKind::Integral);
-        auto getExtValueHelper = [](auto v) -> std::int64_t {
-          if (v.isUnsigned())
-            return static_cast<std::int64_t>(v.getZExtValue());
-          return v.getSExtValue();
-        };
-        std::int64_t size = getExtValueHelper(templArg.getAsIntegral());
-        if (size != static_cast<std::int64_t>(std::dynamic_extent))
-          return pushType(cudaq::quake::VeqType::get(ctx, size));
-      }
-      return pushType(cudaq::quake::VeqType::getUnsized(ctx));
-    }
-    // qvector<LEVEL>, qview<LEVEL>
-    if (name == "qvector" || name == "qview")
-      return pushType(cudaq::quake::VeqType::getUnsized(ctx));
-    if (name == "state")
-      return pushType(cudaq::quake::StateType::get(ctx));
-    if (name == "pauli_word")
-      return pushType(cc::CharspanType::get(ctx));
-    if (name == "measure_handle")
-      return pushType(cc::MeasureHandleType::get(ctx));
-    if (name == "qkernel") {
-      auto *cts = cast<clang::ClassTemplateSpecializationDecl>(x);
-      // Traverse template argument 0 to get the function's signature.
-      if (!TraverseType(cts->getTemplateArgs()[0].getAsType()))
-        return false;
-      auto fnTy = cast<FunctionType>(popType());
-      return pushType(cc::IndirectCallableType::get(fnTy));
-    }
-    if (!isInNamespace(x, "solvers") && !isInNamespace(x, "qec")) {
-      auto loc = toLocation(x);
-      TODO_loc(loc, "unhandled type, " + name + ", in cudaq namespace");
-    }
-  }
-  if (isInNamespace(x, "std")) {
-    if (name == "vector") {
-      auto *cts = dyn_cast<clang::ClassTemplateSpecializationDecl>(x);
-      // Traverse template argument 0 to get the vector's element type.
-      if (!cts || !TraverseType(cts->getTemplateArgs()[0].getAsType()))
-        return false;
-      auto ty = popType();
-      if (cudaq::quake::isQuantumType(ty)) {
-        if (ty == cudaq::quake::RefType::get(ctx))
-          return pushType(cudaq::quake::VeqType::getUnsized(ctx));
-        cudaq::emitFatalError(toLocation(x->getSourceRange()),
-                              "std::vector element type is not supported");
-        return false;
-      }
-      return pushType(cc::SequenceType::get(ctx, ty));
-    }
-    // std::vector<bool>   =>   cc.sequence<i1>
-    if (name == "_Bit_reference" || name == "__bit_reference" ||
-        name == "__bit_const_reference") {
-      // Reference to a bit in a std::vector<bool>. Promote to a value.
-      return pushType(builder.getI1Type());
-    }
-    if (name == "_Bit_type")
-      return pushType(builder.getI64Type());
-    if (name == "complex") {
-      auto *cts = dyn_cast<clang::ClassTemplateSpecializationDecl>(x);
-      // Traverse template argument 0 to get the complex's element type.
-      if (!cts || !TraverseType(cts->getTemplateArgs()[0].getAsType()))
-        return false;
-      auto memTy = popType();
-      return pushType(ComplexType::get(memTy));
-    }
-    if (name == "initializer_list") {
-      auto *cts = dyn_cast<clang::ClassTemplateSpecializationDecl>(x);
-      // Traverse template argument 0, the initializer list's element type.
-      if (!cts || !TraverseType(cts->getTemplateArgs()[0].getAsType()))
-        return false;
-      auto memTy = popType();
-      return pushType(cc::ArrayType::get(memTy));
-    }
-    if (name == "function") {
-      auto *cts = cast<clang::ClassTemplateSpecializationDecl>(x);
-      // Traverse template argument 0 to get the function's signature.
-      if (!TraverseType(cts->getTemplateArgs()[0].getAsType()))
-        return false;
-      auto fnTy = cast<FunctionType>(popType());
-      return pushType(cc::CallableType::get(ctx, fnTy));
-    }
-    if (name == "reference_wrapper") {
-      auto *cts = cast<clang::ClassTemplateSpecializationDecl>(x);
-      // Traverse template argument 0 to get the function's signature.
-      if (!TraverseType(cts->getTemplateArgs()[0].getAsType()))
-        return false;
-      auto refTy = popType();
-      if (isa<cudaq::quake::RefType, cudaq::quake::VeqType>(refTy))
-        return pushType(refTy);
-      return pushType(cc::PointerType::get(ctx, refTy));
-    }
-    if (name == "basic_string") {
-      if (allowUnknownRecordType) {
-        // Kernel argument list contains a `std::string` type. Intercept it and
-        // generate a clang diagnostic when returning out of determining the
-        // kernel's type signature.
-        return true;
-      }
-      TODO_x(toLocation(x), x, mangler, "std::string type");
-      return false;
-    }
-    if (name == "__wrap_iter") {
-      auto *cts = cast<clang::ClassTemplateSpecializationDecl>(x);
-      if (!TraverseType(cts->getTemplateArgs()[0].getAsType()))
-        return false;
-      return true;
-    }
-    if (name == "pair") {
-      auto *cts = cast<clang::ClassTemplateSpecializationDecl>(x);
-      SmallVector<Type> members;
-      for (unsigned i = 0; i < 2; ++i) {
-        if (!TraverseType(cts->getTemplateArgs()[i].getAsType()))
-          return false;
-        members.push_back(popType());
-      }
-      auto [width, align] = getWidthAndAlignment(x);
-      return pushType(cc::StructType::get(ctx, members, width, align));
-    }
-    if (name == "tuple") {
-      auto *cts = cast<clang::ClassTemplateSpecializationDecl>(x);
-      auto &templateArg = cts->getTemplateArgs()[0];
-      if (templateArg.getKind() != clang::TemplateArgument::Pack)
-        return false;
-      SmallVector<Type> members;
-      for (auto &ta : templateArg.pack_elements()) {
-        if (!TraverseType(ta.getAsType()))
-          return false;
-        members.push_back(popType());
-      }
-      auto [width, align] = getWidthAndAlignment(x);
-      if (tuplesAreReversed) {
-        std::reverse(members.begin(), members.end());
-        // Resets are for libstdc++ calling convention compatibility.
-        width = 0;
-        align = 0;
-      }
-      return pushType(cc::StructType::get(ctx, members, width, align));
-    }
-    if (ignoredClass(x))
-      return true;
-    if (allowUnknownRecordType) {
-      // This is a catch all for other container types (deque, map, set, etc.)
-      // that the user may try to pass as arguments to a kernel. Returning true
-      // here will cause the kernel's signature to emit a diagnostic.
-      return true;
-    }
-    LLVM_DEBUG(llvm::dbgs()
-               << "in std namespace, " << name << " is not matched\n");
-  }
+// The handlers of these classes are used for the classes that derive from them.
+static_assert(derivedDeclsAreKnown<
+              clang::FunctionDecl, clang::CXXMethodDecl,
+              clang::CXXConstructorDecl, clang::CXXDestructorDecl,
+              clang::CXXConversionDecl, clang::CXXDeductionGuideDecl>());
+static_assert(derivedDeclsAreKnown<
+              clang::VarDecl, clang::ParmVarDecl, clang::ImplicitParamDecl,
+              clang::DecompositionDecl, clang::OMPCapturedExprDecl,
+              clang::VarTemplateSpecializationDecl,
+              clang::VarTemplatePartialSpecializationDecl>());
 
-  if (isInNamespace(x, "__gnu_cxx")) {
-    if (name == "__promote" || name == "__promote_2") {
-      // Recover the typedef in this class. Then find the canonical type
-      // resolved for that typedef and push that as the type.
-      [[maybe_unused]] unsigned depth = typeStack.size();
-      for (auto *d : x->decls())
-        if (auto *tdDecl = dyn_cast<clang::TypedefDecl>(d)) {
-          auto qt = tdDecl->getUnderlyingType().getCanonicalType();
-          if (!TraverseType(qt))
-            return false;
-          break;
-        }
-      assert(typeStack.size() == depth + 1);
-      return true;
-    }
-    if (name == "__normal_iterator") {
-      auto *cts = cast<clang::ClassTemplateSpecializationDecl>(x);
-      if (!TraverseType(cts->getTemplateArgs()[0].getAsType()))
-        return false;
-      return true;
-    }
-  }
-  return false; /* not intercepted */
-}
-
-template <typename D>
-bool QuakeBridgeVisitor::traverseAnyRecordDecl(D *x) {
-  if (interceptRecordDecl(x))
-    return true;
-  if (x->isLambda()) {
-    // If this is a lambda, then push the function type on the type stack.
-    auto *funcDecl = findCallOperator(cast<clang::CXXRecordDecl>(x));
-    if (!TraverseType(funcDecl->getType())) {
-      auto loc = toLocation(funcDecl);
-      emitFatalError(loc, "expected type for call operator");
-    }
-    return pushType(cc::CallableType::get(cast<FunctionType>(popType())));
-  }
-  return false;
-}
-
-bool QuakeBridgeVisitor::TraverseRecordDecl(clang::RecordDecl *x) {
-  if (traverseAnyRecordDecl(x))
-    return true;
-  return Base::TraverseRecordDecl(x);
-}
-
-bool QuakeBridgeVisitor::TraverseCXXRecordDecl(clang::CXXRecordDecl *x) {
-  if (traverseAnyRecordDecl(x))
-    return true;
-  if (x->isUnion()) {
-    reportClangError(x, mangler, "union types are not allowed in kernels");
-    return false;
-  }
-  return Base::TraverseCXXRecordDecl(x);
-}
-
-bool QuakeBridgeVisitor::TraverseClassTemplateSpecializationDecl(
-    clang::ClassTemplateSpecializationDecl *x) {
-  if (traverseAnyRecordDecl(x))
-    return true;
-  return Base::TraverseClassTemplateSpecializationDecl(x);
-}
-
-bool QuakeBridgeVisitor::TraverseFunctionDecl(clang::FunctionDecl *x) {
-  // If we're already generating code (this FunctionDecl is nested), we only
-  // traverse the type, adding the function type to the type stack.
-  if (builder.getBlock()) {
-    if (!TraverseType(x->getType()))
-      return false;
-    return WalkUpFromFunctionDecl(x);
-  }
+QuakeBridgeVisitor::Result QuakeBridgeVisitor::visit(clang::FunctionDecl *x) {
+  // If we're already generating code (this FunctionDecl is nested), this is a
+  // reference to the function.
+  if (builder.getBlock())
+    return referenceFunction(x);
 
   // If function is not on the list to be lowered, skip it.
   if (!needToLowerFunction(x))
-    return true;
+    return std::nullopt;
   // If this function is a function template and not the specialization of the
   // function template, we skip it. We only want to lower template functions
   // that have their types resolved.
   if (x->getDescribedFunctionTemplate() &&
       !x->isFunctionTemplateSpecialization())
-    return true;
+    return std::nullopt;
 
   LLVM_DEBUG(llvm::dbgs() << "found function to lower: "
                           << x->getQualifiedNameAsString() << '\n');
 
-  // The following is copied/expanded from RecursiveASTVisitor, especially
-  // TraverseFunctionHelper(), since we can't call, override, or customize
-  // private methods.
   for (unsigned i = 0; i < x->getNumTemplateParameterLists(); ++i) {
     if (auto *TPL = x->getTemplateParameterList(i)) {
       for (auto *D : *TPL)
-        if (!TraverseDecl(D))
-          return false;
+        if (!traverseDecl(D))
+          return fail();
       if (auto *requiresClause = TPL->getRequiresClause())
-        if (!TraverseStmt(requiresClause))
-          return false;
-    }
-  }
-  if (!TraverseNestedNameSpecifierLoc(x->getQualifierLoc()))
-    return false;
-  if (!TraverseDeclarationNameInfo(x->getNameInfo()))
-    return false;
-
-  // If we're an explicit template specialization, iterate over the template
-  // args that were explicitly specified.  If we were doing this in typing
-  // order, we'd do it between the return type and the function args, but both
-  // are handled by the FunctionTypeLoc above, so we have to choose one side.
-  // I've decided to do before.
-  if (const auto *FTSI = x->getTemplateSpecializationInfo()) {
-    if (FTSI->getTemplateSpecializationKind() != clang::TSK_Undeclared &&
-        FTSI->getTemplateSpecializationKind() !=
-            clang::TSK_ImplicitInstantiation) {
-      // A specialization might not have explicit template arguments if it has a
-      // templated return type and concrete arguments.
-      if (const auto *tali = FTSI->TemplateArgumentsAsWritten) {
-        auto *tal = tali->getTemplateArgs();
-        for (unsigned i = 0; i != tali->NumTemplateArgs; ++i)
-          if (!TraverseTemplateArgumentLoc(tal[i]))
-            return false;
-      }
+        if (!traverseStmt(requiresClause))
+          return fail();
     }
   }
 
-  // Traversing the typeloc data structure gives us the unresolved surface
-  // syntax, so a decl like `auto fn(auto p)` won't have reified types.
-  if (!TraverseType(x->getType()))
-    return false;
+  // Convert the (reified) type of the function. The syntax that was written is
+  // not visited, so a decl like `auto fn(auto p)` has a type. Converting the
+  // type diagnoses any type that a kernel cannot have.
+  auto funcType = convertType(x->getType());
+  if (!funcType)
+    return fail();
 
   // Customization here.
   // After we have the function's type and arguments, create the function and
@@ -433,14 +194,14 @@ bool QuakeBridgeVisitor::TraverseFunctionDecl(clang::FunctionDecl *x) {
   auto funcName = getCurrentFunctionName();
   auto loc = toLocation(x);
   if (funcName.empty())
-    return true;
+    return std::nullopt;
 
   resetCurrentFunctionName();
   // At present, the bridge only lowers kernels.
-  auto funcTy = cast<FunctionType>(popType());
+  auto funcTy = cast<FunctionType>(*funcType);
   auto [func, alreadyDefined] = getOrAddFunc(loc, funcName, funcTy);
   if (alreadyDefined)
-    return true;
+    return std::nullopt;
 
   LLVM_DEBUG(llvm::dbgs() << "created function: " << funcName << " : "
                           << func.getFunctionType() << '\n');
@@ -452,41 +213,33 @@ bool QuakeBridgeVisitor::TraverseFunctionDecl(clang::FunctionDecl *x) {
   // Visit the trailing requires clause, if any.
   if (const auto &trailingRequiresClause = x->getTrailingRequiresClause();
       trailingRequiresClause.ConstraintExpr)
-    if (!TraverseStmt(
+    if (!traverseStmt(
             const_cast<clang::Expr *>(trailingRequiresClause.ConstraintExpr)))
-      return false;
+      return fail();
 
   if (auto *ctor = dyn_cast<clang::CXXConstructorDecl>(x)) {
-    // Constructor initializers.
-    for (auto *I : ctor->inits())
-      if (I->isWritten() || shouldVisitImplicitCode())
-        if (!TraverseConstructorInitializer(I))
-          return false;
+    // Constructor initializers. (The ones that were not written are visited
+    // only if implicit code is.)
+    for (auto *I : ctor->inits()) {
+      traverse(I);
+      if (hasFailed())
+        return std::nullopt;
+    }
   }
 
   bool VisitBody = x->isThisDeclarationADefinition() &&
                    (!x->isDefaulted() || shouldVisitImplicitCode());
 
-  if (const auto *MD = dyn_cast<clang::CXXMethodDecl>(x))
-    if (const auto *RD = MD->getParent())
-      if (RD->isLambda() && declaresSameEntity(RD->getLambdaCallOperator(), MD))
-        VisitBody = VisitBody && getDerived().shouldVisitLambdaBody();
-
   if (VisitBody) {
-    if (!TraverseStmt(x->getBody()))
-      return false;
+    if (!traverseStmt(x->getBody()))
+      return fail();
     // Body may contain using declarations whose shadows are parented to the
     // FunctionDecl itself.
     for (auto *Child : x->decls())
       if (isa<clang::UsingShadowDecl>(Child))
-        if (!TraverseDecl(Child))
-          return false;
+        if (!traverseDecl(Child))
+          return fail();
   }
-  // Visit any attributes attached to this declaration.
-  for (auto *attr : x->attrs())
-    if (!TraverseAttr(attr))
-      return false;
-  // Do NOT WalkUpFromFunctionDecl(x);
   if (auto *method = dyn_cast<clang::CXXMethodDecl>(x))
     if (raisedError && method->getParent()->isLambda()) {
       auto &de = astContext->getDiagnostics();
@@ -508,25 +261,24 @@ bool QuakeBridgeVisitor::TraverseFunctionDecl(clang::FunctionDecl *x) {
     func::ReturnOp::create(builder, loc, dummyResults);
   }
   builder.clearInsertionPoint();
-  return true;
+  return std::nullopt;
 }
 
-bool QuakeBridgeVisitor::VisitCXXScalarValueInitExpr(
-    clang::CXXScalarValueInitExpr *x) {
-  // This is the basis for a template function.
-  Type ty = peekType();
-  Value val = peekValue();
-  if (val.getType() != ty)
-    if (auto ptrTy = dyn_cast<cc::PointerType>(val.getType()))
-      if (ptrTy.getElementType() == ty) {
-        auto v = popValue();
-        auto loc = toLocation(x);
-        return pushValue(cc::LoadOp::create(builder, loc, v));
-      }
-  return true;
+QuakeBridgeVisitor::Result
+QuakeBridgeVisitor::visit(clang::CXXScalarValueInitExpr *x) {
+  // Value initialization of a scalar, `T()`, is zero.
+  auto ty = convertType(x->getType());
+  if (!ty)
+    return fail();
+  auto loc = toLocation(x);
+  if (isa<IntegerType, FloatType>(*ty))
+    return value(arith::getZeroConstant(builder, loc, *ty));
+  TODO_x(loc, x, mangler, "value initialization of this type");
+  return fail();
 }
 
-bool QuakeBridgeVisitor::VisitFunctionDecl(clang::FunctionDecl *x) {
+QuakeBridgeVisitor::Result
+QuakeBridgeVisitor::referenceFunction(clang::FunctionDecl *x) {
   assert(builder.getBlock() && "must be generating code");
   auto loc = toLocation(x);
   auto kernName = [&]() {
@@ -538,11 +290,14 @@ bool QuakeBridgeVisitor::VisitFunctionDecl(clang::FunctionDecl *x) {
     return cxxMangledDeclName(x);
   }();
   auto kernSym = SymbolRefAttr::get(builder.getContext(), kernName);
-  auto typeFromStack = peelPointerFromFunction(popType());
+  auto referencedTy = convertType(x->getType());
+  if (!referencedTy)
+    return fail();
+  auto referencedFunctionTy = peelPointerFromFunction(*referencedTy);
   if (auto f = module.lookupSymbol<func::FuncOp>(kernSym)) {
     auto fTy = f.getFunctionType();
     auto fSym = f.getSymNameAttr();
-    if (typeFromStack != fTy) {
+    if (referencedFunctionTy != fTy) {
       // This may be a call to an entry-point kernel. Determine if that is the
       // case, and convert this to a direct call. Otherwise, this an calling
       // convention violation.
@@ -560,27 +315,27 @@ bool QuakeBridgeVisitor::VisitFunctionDecl(clang::FunctionDecl *x) {
         reportClangError(
             x, mangler,
             "invalid call from kernel: calling convention violation");
-        return false;
+        return fail();
       }
     }
-    return pushValue(func::ConstantOp::create(builder, loc, fTy, fSym));
+    return BridgeResult{func::ConstantOp::create(builder, loc, fTy, fSym)};
   }
-  auto [funcOp, alreadyAdded] = getOrAddFunc(loc, kernName, typeFromStack);
+  auto [funcOp, alreadyAdded] =
+      getOrAddFunc(loc, kernName, referencedFunctionTy);
   if (!alreadyAdded)
     funcOp.setPrivate();
-  return pushValue(func::ConstantOp::create(
-      builder, loc, funcOp.getFunctionType(), funcOp.getSymNameAttr()));
+  return BridgeResult{func::ConstantOp::create(
+      builder, loc, funcOp.getFunctionType(), funcOp.getSymNameAttr())};
 }
 
-bool QuakeBridgeVisitor::VisitNamedDecl(clang::NamedDecl *x) {
-  if (!builder.getBlock() || inRecType) {
-    // This decl was reached walking a record type. We don't need to look up
-    // the symbol, it's just a member name in the type.
-    return true;
-  }
+QuakeBridgeVisitor::Result
+QuakeBridgeVisitor::referenceSymbol(clang::NamedDecl *x) {
+  if (!builder.getBlock())
+    return std::nullopt;
   if (x->getIdentifier()) {
     // 1. Look for symbol in the local scope.
-    if (!symbolTable.count(x->getName())) {
+    auto name = getSymbolName(x);
+    if (!symbolTable.count(name)) {
       // 2. TODO: If the symbol isn't in the local scope, it is a global.
       // Don't look for a global in the module here since we do not allow
       // kernels to access globals at present.
@@ -588,26 +343,27 @@ bool QuakeBridgeVisitor::VisitNamedDecl(clang::NamedDecl *x) {
                             "Cannot find " + x->getNameAsString() +
                                 " in the symbol table.");
     }
-    return pushValue(symbolTable.lookup(x->getName()));
+    return value(symbolTable.lookup(name));
   }
-  return true;
+  return std::nullopt;
 }
 
-bool QuakeBridgeVisitor::VisitParmVarDecl(clang::ParmVarDecl *x) {
+QuakeBridgeVisitor::Result QuakeBridgeVisitor::visit(clang::ParmVarDecl *x) {
+  defaultVisit(x);
+  if (hasFailed())
+    return std::nullopt;
   // If the builder has no insertion point, then this is a prototype.
   if (!builder.getBlock())
-    return true;
+    return std::nullopt;
 
   if (!x->getIdentifier()) {
     // Parameter has no name, so cannot be referenced. Skip it.
-    return true;
+    return std::nullopt;
   }
 
-  auto name = x->getName();
-  if (symbolTable.count(name)) {
-    pushValue(symbolTable.lookup(name));
-    return true;
-  }
+  auto name = getSymbolName(x);
+  if (symbolTable.count(name))
+    return value(symbolTable.lookup(name));
 
   // Something has gone very wrong.
   LLVM_DEBUG(llvm::dbgs() << "parameter was not found\n"; x->dump());
@@ -628,73 +384,112 @@ static bool isImplicitlyGlobalStorageClass(clang::StorageClass sc) {
 }
 
 // A variable declaration may or may not have an initializer. This custom
-// traversal makes sure that the type of the variable is visited and pushed so
-// that VisitVarDecl has the variable's type, whether an initialization
-// expression is present or not.
-bool QuakeBridgeVisitor::TraverseVarDecl(clang::VarDecl *x) {
-  auto storageClass = x->getStorageClass();
-  if (isImplicitlyGlobalStorageClass(storageClass)) {
-    reportClangError(x, mangler, "variable has invalid storage class");
-    return false;
-  }
-  [[maybe_unused]] auto typeStackDepth = typeStack.size();
-  for (unsigned i = 0; i < x->getNumTemplateParameterLists(); i++) {
-    if (auto *tpl = x->getTemplateParameterList(i)) {
-      for (auto *decl : *tpl)
-        if (!TraverseDecl(decl))
-          return false;
-      if (auto *requiresClause = tpl->getRequiresClause())
-        if (!TraverseStmt(requiresClause))
-          return false;
-    }
-  }
-  if (!TraverseNestedNameSpecifierLoc(x->getQualifierLoc()))
-    return false;
-  if (!TraverseType(x->getType()))
-    return false;
-  assert(typeStack.size() == typeStackDepth + 1 &&
-         "expected variable to have a type");
-  if (!isa<clang::ParmVarDecl>(x) && !x->isCXXForRangeDecl())
-    if (auto *init = x->getInit())
-      if (!TraverseStmt(init))
-        return false;
-  if (auto *dc = dyn_cast<clang::DeclContext>(x))
-    for (auto *child : dc->decls())
-      if (!canIgnoreChildDeclWhileTraversingDeclContext(child))
-        if (!TraverseDecl(child))
-          return false;
-  for (auto *attr : x->attrs())
-    if (!TraverseAttr(attr))
-      return false;
-  auto result = WalkUpFromVarDecl(x);
-  assert(typeStack.size() == typeStackDepth &&
-         "expected variable's type to be consumed");
+// traversal makes sure that the type of the variable is converted, whether an
+// initialization expression is present or not, and that the initializer is
+// visited first. The value of the initializer is used to declare the variable.
+QuakeBridgeVisitor::Result QuakeBridgeVisitor::visit(clang::VarDecl *x) {
+  std::optional<Type> declaredType;
+  auto result = lowerVariable(x, declaredType);
+  if (hasFailed())
+    poisonVariable(x, declaredType);
   return result;
 }
 
-bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
-  if (allowUnknownRecordType) {
-    // Processing a kernel's signature. Ignore variable decls.
-    return true;
+QuakeBridgeVisitor::Result
+QuakeBridgeVisitor::lowerVariable(clang::VarDecl *x,
+                                  std::optional<Type> &declaredType) {
+  auto storageClass = x->getStorageClass();
+  if (isImplicitlyGlobalStorageClass(storageClass)) {
+    reportClangError(x, mangler, "variable has invalid storage class");
+    return fail();
   }
-  Type type = popType();
-  if (x->hasInit() && !x->isCXXForRangeDecl()) {
+  for (unsigned i = 0; i < x->getNumTemplateParameterLists(); i++) {
+    if (auto *tpl = x->getTemplateParameterList(i)) {
+      for (auto *decl : *tpl)
+        if (!traverseDecl(decl))
+          return fail();
+      if (auto *requiresClause = tpl->getRequiresClause())
+        if (!traverseStmt(requiresClause))
+          return fail();
+    }
+  }
+  auto type = typeVisitor.traverse(x->getType());
+  if (typeVisitor.hasFailed()) {
+    typeVisitor.clearFailure();
+    return fail();
+  }
+  if (!type) {
+    // A type that has no representation in a kernel.
+    TODO_x(toLocation(x->getSourceRange()), x, mangler,
+           "variable of a type that has no representation in a kernel");
+    return fail();
+  }
+  declaredType = type;
+  std::optional<Value> initValue;
+  if (!x->isCXXForRangeDecl())
+    if (auto *init = x->getInit()) {
+      Result initResult = traverse(init);
+      if (hasFailed())
+        return std::nullopt;
+      // An initializer may or may not have a value.
+      if (initResult)
+        if (auto *v = std::get_if<Value>(&*initResult))
+          initValue = *v;
+    }
+  if (typeVisitor.allowUnknownRecordType) {
+    // Processing a kernel's signature. Ignore variable decls.
+    return std::nullopt;
+  }
+  return declareVariable(x, *type, initValue);
+}
+
+void QuakeBridgeVisitor::poisonVariable(clang::VarDecl *x,
+                                        std::optional<Type> declaredType) {
+  // Only code that is being generated has variables, and a kernel's signature
+  // has none.
+  if (!builder.getBlock() || typeVisitor.allowUnknownRecordType ||
+      !x->getIdentifier())
+    return;
+  // The value of a variable is its address. Without a type there is no type to
+  // point to.
+  Type pointee = declaredType ? *declaredType : builder.getNoneType();
+  auto poison = cc::PoisonOp::create(builder, toLocation(x->getSourceRange()),
+                                     cc::PointerType::get(pointee));
+  symbolTable.insert(x->getName(), poison);
+}
+
+QuakeBridgeVisitor::Result
+QuakeBridgeVisitor::declareVariable(clang::VarDecl *x, Type type,
+                                    std::optional<Value> init) {
+  if (x->hasInit() && !x->isCXXForRangeDecl() && init) {
     LLVM_DEBUG(llvm::dbgs() << "variable " << x->getName()
-                            << " has initializer of " << peekValue() << '\n');
-    type = peekValue().getType();
+                            << " has initializer of " << *init << '\n');
+    type = init->getType();
   }
   LLVM_DEBUG(llvm::dbgs() << "type for variable " << x->getName() << " is "
                           << type << '\n');
   assert(type && "variable must have a valid type");
   auto loc = toLocation(x->getSourceRange());
   auto name = x->getName();
+  // Variables of quantum reference types can be declared without a value for
+  // the initializer. Every other variable that is initialized needs one.
+  if (x->getInit() && !x->isCXXForRangeDecl() && !init &&
+      !isa<cudaq::quake::VeqType, cudaq::quake::RefType>(type)) {
+    TODO_x(loc, x, mangler,
+           "variable that is initialized by an expression with no value");
+    return fail();
+  }
   if (auto qType = dyn_cast<cudaq::quake::VeqType>(type)) {
     // Variable is of !quake.veq type.
     mlir::Value qreg;
     std::size_t qregSize = qType.getSize();
-    if (qregSize == 0 || (x->hasInit() && !valueStack.empty())) {
+    if (qregSize == 0 || (x->hasInit() && init)) {
       // This is a `qreg q(N);` or `qreg &name = exp;`
-      qreg = popValue();
+      if (!init) {
+        TODO_x(loc, x, mangler, "unsized veq variable without an initializer");
+        return fail();
+      }
+      qreg = *init;
     } else {
       // this is a qreg<N> q;
       auto qregSizeVal = mlir::arith::ConstantIntOp::create(
@@ -706,14 +501,14 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
     }
     symbolTable.insert(name, qreg);
     // allocated_qreg_names.push_back(name);
-    return pushValue(qreg);
+    return BridgeResult{qreg};
   }
 
   if (auto qType = dyn_cast<cudaq::quake::RefType>(type)) {
     // Variable is of !quake.ref type.
-    if (x->hasInit() && !valueStack.empty()) {
-      symbolTable.insert(name, peekValue());
-      return true;
+    if (x->hasInit() && init) {
+      symbolTable.insert(name, *init);
+      return std::nullopt;
     }
     auto zero = mlir::arith::ConstantIntOp::create(
         builder, loc, builder.getIntegerType(64), 0);
@@ -722,19 +517,19 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
     Value addressTheQubit =
         cudaq::quake::ExtractRefOp::create(builder, loc, qregSizeOne, zero);
     symbolTable.insert(name, addressTheQubit);
-    return pushValue(addressTheQubit);
+    return BridgeResult{addressTheQubit};
   }
 
   if (isa<cudaq::quake::StruqType>(type)) {
     // A pure quantum struct is just passed along by value. It cannot be stored
     // to a variable.
-    symbolTable.insert(name, peekValue());
-    return true;
+    symbolTable.insert(name, *init);
+    return std::nullopt;
   }
 
   if (cudaq::cc::isDevicePtr(type)) {
-    symbolTable.insert(name, peekValue());
-    return true;
+    symbolTable.insert(name, *init);
+    return std::nullopt;
   }
 
   // Here we maybe have something like auto var = mz(qreg)
@@ -742,7 +537,7 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
     // Variable is of !cc.sequence type.
     if (x->getInit()) {
       // At the very least, its a vector var = vec_init;
-      auto initVec = popValue();
+      auto initVec = *init;
       auto elementType = vecType.getElementType();
 
       // For `std::vector<measure_handle>` locals, allocate a descriptor stack
@@ -784,7 +579,7 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
       bool isI1Bits = elementType.isIntOrFloat() &&
                       elementType.getIntOrFloatBitWidth() == 1;
       if (!isI1Bits && !isHandleVec)
-        return true;
+        return std::nullopt;
 
       // Assign `registerName`
       auto attachName = [&](cudaq::quake::MeasurementInterface meas) {
@@ -804,13 +599,13 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
       // Did this come from a sequence init op? If not drop out
       auto stdVecInit = initVec.getDefiningOp<cc::SequenceInitOp>();
       if (!stdVecInit)
-        return true;
+        return std::nullopt;
 
       // Did the first operand come from an LLVM AllocaOp, if not drop out
       auto bitVecAllocation =
           stdVecInit.getOperand(0).getDefiningOp<cc::AllocaOp>();
       if (!bitVecAllocation)
-        return true;
+        return std::nullopt;
 
       // Search the AllocaOp users, find a potential GEPOp
       for (auto user : bitVecAllocation->getUsers()) {
@@ -837,16 +632,16 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
         }
       }
 
-      return true;
+      return std::nullopt;
     }
   }
 
   if (auto callableTy = dyn_cast<cc::CallableType>(type)) {
     // Variable is of !cc.callable type. Callables are always in the value
     // domain.
-    auto callable = popValue();
+    auto callable = *init;
     symbolTable.insert(name, callable);
-    return pushValue(callable);
+    return BridgeResult{callable};
   }
 
   // Variable is of some basic type not already handled. Create a local stack
@@ -855,11 +650,11 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
   if (!x->getInit() || x->isCXXForRangeDecl()) {
     Value alloca = cc::AllocaOp::create(builder, loc, type);
     symbolTable.insert(x->getName(), alloca);
-    return pushValue(alloca);
+    return BridgeResult{alloca};
   }
 
   // Initialization expression is present.
-  auto initValue = popValue();
+  auto initValue = *init;
 
   // If this was an `auto var = mz(q)` (or `mx`/`my`), then we want to know the
   // `var` name, as it will serve as the classical bit register name. Two
@@ -896,13 +691,17 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
                                           cudaq::cc::CastOpMode::Signed);
   }
 
-  if (auto initObject = initValue.getDefiningOp<cc::AllocaOp>()) {
+  // The variable is the object that the initialization expression left in
+  // memory, unless the variable is a pointer. A pointer variable is not the
+  // object that it points to, it has storage of its own for the address.
+  if (auto initObject = initValue.getDefiningOp<cc::AllocaOp>();
+      initObject && !x->getType()->isPointerType()) {
     // Initialization expression already left an object in memory. This could be
     // because an object was constructed. TODO: this needs to also handle the
     // case that an object must be cloned instead of casted.
     assert(type == initObject.getType());
     symbolTable.insert(x->getName(), initValue);
-    return pushValue(initValue);
+    return BridgeResult{initValue};
   }
   auto qualTy = x->getType().getCanonicalType();
   auto isSequenceBoolReference = [&](clang::QualType &qualTy) {
@@ -922,13 +721,13 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
     assert(isa<cc::PointerType>(type));
     Value cast = cc::CastOp::create(builder, loc, type, initValue);
     symbolTable.insert(x->getName(), cast);
-    return pushValue(cast);
+    return BridgeResult{cast};
   }
 
   // Don't allocate memory for a quantum or value-semantic struct.
   if (auto insertValOp = initValue.getDefiningOp<cc::InsertValueOp>()) {
     symbolTable.insert(x->getName(), initValue);
-    return pushValue(initValue);
+    return BridgeResult{initValue};
   }
 
   // Initialization expression resulted in a value. Create a variable and save
@@ -936,7 +735,7 @@ bool QuakeBridgeVisitor::VisitVarDecl(clang::VarDecl *x) {
   Value alloca = cc::AllocaOp::create(builder, loc, type);
   cc::StoreOp::create(builder, loc, initValue, alloca);
   symbolTable.insert(x->getName(), alloca);
-  return pushValue(alloca);
+  return BridgeResult{alloca};
 }
 
 } // namespace cudaq::detail
