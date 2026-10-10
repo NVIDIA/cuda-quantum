@@ -5797,10 +5797,18 @@ class PyASTBridge(ast.NodeVisitor):
                     "qubit", node)
 
         if isinstance(node.op, ast.USub):
-            # Make our lives easier for -1 used in variable subscript extraction
-            if isinstance(node.operand,
-                          ast.Constant) and node.operand.value == 1:
-                self.pushValue(self.getConstantInt(-1))
+            # Fold a negated integer literal straight into a constant. This is
+            # what keeps negative constant subscripts (`q[-k]`, `v[-k]`)
+            # recognizable to `fix_negative_idx` in `visit_Subscript`, which
+            # only normalizes `arith.ConstantOp` indices into `size + idx`.
+            # Folding only the literal `1` left every other negative literal as
+            # an `arith.MulIOp`, so `q[-2]` indexed the raw offset `-2` instead
+            # of `size - 2`. Requiring an actual `int` also keeps `-1.0` typed
+            # as a float (it falls through to the `NegFOp` path below); `bool`
+            # stays accepted since `isinstance(True, int)` is `True`.
+            if isinstance(node.operand, ast.Constant) and isinstance(
+                    node.operand.value, int):
+                self.pushValue(self.getConstantInt(-node.operand.value))
                 return
 
             if F64Type.isinstance(operand.type):
