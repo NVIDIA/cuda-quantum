@@ -31,13 +31,13 @@ namespace contrib {
 ///    \f$i < d\f$ and \f$x'_i = \texttt{pad}\f$ for \f$d \le i < N\f$.
 ///
 /// 2. **Normalize** with the Euclidean (L2) norm (must be non-zero).
-///    Coefficients are \f$α_i = x'_i / \|\mathbf{x}'\|_2\f$.
+///    Coefficients are \f$\alpha_i = x'_i / \|\mathbf{x}'\|_2\f$.
 ///
 /// 3. **Form the state** in the \f$n\f$-qubit computational basis:
-///    \f$|\psi\rangle = \sum_{i=0}^{N-1} α_i |i\rangle\f$, where
+///    \f$|\psi\rangle = \sum_{i=0}^{N-1} \alpha_i |i\rangle\f$, where
 ///    \f$|i\rangle\f$ is the basis ``ket`` with index \f$i\f$ in binary.
 ///
-/// The returned ``cudaq::state`` stores \f$α_i\f$ in little-endian index
+/// The returned ``cudaq::state`` stores \f$\alpha_i\f$ in little-endian index
 /// order (consistent with ``qvector(state)``). Real inputs are promoted to
 /// complex amplitudes with zero imaginary part before padding.
 ///
