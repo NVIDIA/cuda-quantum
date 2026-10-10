@@ -264,7 +264,7 @@ static cudaq_status_t gpu_roce_bridge_get_transport_context(
     }
 
     // No launch override: this transport implements the device data plane, so
-    // the dispatcher runs the built-in unified kernel over it.
+    // the dispatcher runs the unified kernel from the dispatch archive over it.
     dispatch_ctx->launch_fn = nullptr;
     dispatch_ctx->transport_ctx = ctx->device_transport_ctx;
   } else {

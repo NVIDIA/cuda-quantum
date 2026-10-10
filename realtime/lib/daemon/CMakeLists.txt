@@ -9,8 +9,9 @@
 # ==============================================================================
 # Shared library for external consumers (libcudaq-realtime.so)
 # ==============================================================================
-# This shared library exports a C-compatible host API for wiring dispatchers
-# and includes the GPU dispatch kernel device code.
+# This shared library exports a C-compatible host API for wiring dispatchers.
+# The GPU dispatch kernels live in libcudaq-realtime-dispatch.a, which
+# consumers link themselves.
 
 if(CUDA_FOUND)
   set(CUDAQ_REALTIME_SOURCES
@@ -18,14 +19,7 @@ if(CUDA_FOUND)
     bridge/bridge_interface_api.cpp
   )
 
-  add_library(cudaq-realtime SHARED ${CUDAQ_REALTIME_SOURCES}
-    # The unified dispatch kernel belongs to the runtime: the dispatcher calls
-    # cudaq_launch_unified_dispatch_device directly, so it must resolve in
-    # every configuration.  Its transport hooks are __device__ functions, which
-    # CUDA resolves only within one module, so whichever TU defines them is
-    # compiled into this library too -- bridge/gpu_roce appends its own below,
-    # and dispatcher/unified_transport_none.cu stands in when no transport does.
-    dispatcher/unified_dispatch_kernel.cu)
+  add_library(cudaq-realtime SHARED ${CUDAQ_REALTIME_SOURCES})
   # Source-tree CUDA-Q integration uses the same cudaq:: target names
   # that installed exports provide.
   add_library(cudaq::cudaq-realtime ALIAS cudaq-realtime)
@@ -80,6 +74,7 @@ if(CUDA_FOUND)
 
   add_library(cudaq-realtime-dispatch STATIC
     dispatcher/dispatch_kernel.cu
+    dispatcher/unified_dispatch_kernel.cu
   )
   # Source-tree CUDA-Q integration uses the same cudaq:: target names
   # that installed exports provide.
@@ -163,7 +158,27 @@ if(CUDA_FOUND)
   get_property(_cudaq_unified_transport GLOBAL
     PROPERTY CUDAQ_REALTIME_UNIFIED_TRANSPORT_TU)
   if (NOT _cudaq_unified_transport)
-    target_sources(cudaq-realtime PRIVATE dispatcher/unified_transport_none.cu)
+    set(_cudaq_unified_transport dispatcher/unified_transport_none.cu)
+    target_sources(cudaq-realtime-dispatch PRIVATE ${_cudaq_unified_transport})
+  endif()
+
+  # Device LTO for the unified kernel and its transport hooks.  The hooks are
+  # extern __device__ functions in another TU, so without LTO they stay
+  # out-of-line calls on the per-message path.  Both TUs carry LTO IR next to
+  # their SASS -- nvcc rejects a bare -dlto beside the global -gencode flags
+  # -- and consumers device-link with -dlto, which inlines the hooks into the
+  # kernel.  A consumer linking without -dlto still gets the plain SASS.
+  # nvlink sizes the kernel's registers for every handler reachable through
+  # the function table, LTO or not, since they share the consumer's module.
+  foreach(_arch IN LISTS CUDA_TARGET_ARCHS)
+    set_property(SOURCE dispatcher/unified_dispatch_kernel.cu
+      ${_cudaq_unified_transport} APPEND PROPERTY COMPILE_OPTIONS
+      "--generate-code=arch=compute_${_arch},code=lto_${_arch}")
+  endforeach()
+  unset(_arch)
+  if (CUDA_TARGET_ARCHS)
+    target_link_options(cudaq-realtime-dispatch INTERFACE
+      "$<DEVICE_LINK:-dlto>")
   endif()
   unset(_cudaq_unified_transport)
   # CPU transport bridge providers (thin provider .so's over the

@@ -258,7 +258,8 @@ int main(int argc, char *argv[]) {
         HANDLE_CUDAQ_REALTIME_ERROR(cudaq_bridge_get_transport_context(
             bridge_handle, UNIFIED, &unified_dispatch));
         // launch_fn is NULL unless the provider overrides the dispatch loop;
-        // the dispatcher then runs its own unified kernel.
+        // the dispatcher then runs the unified kernel this binary linked from
+        // libcudaq-realtime-dispatch.a.
         if (cudaq_dispatcher_set_unified_launch(
                 dispatcher, unified_dispatch.launch_fn,
                 unified_dispatch.transport_ctx) != CUDAQ_OK) {

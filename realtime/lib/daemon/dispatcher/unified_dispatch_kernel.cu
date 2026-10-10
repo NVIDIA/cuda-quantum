@@ -11,15 +11,17 @@
 /// inter-kernel flag handoff.
 ///
 /// This file carries no transport dependency of any kind -- it is compiled
-/// without DOCA, verbs or HSB include paths, and that exclusion is enforced by
-/// its CMake target rather than by convention.  Everything transport-specific
-/// arrives through the three `__device__` hooks declared in
-/// unified_device_transport.cuh, which a transport implements in its own TU
-/// and device-links into the same shared library (see the LINKAGE note there).
+/// without DOCA, verbs or HSB include paths, which the CMake build scopes to
+/// the transport's own TU.  Everything transport-specific arrives through the
+/// three `__device__` hooks declared in unified_device_transport.cuh, which a
+/// transport implements in its own TU (see the LINKAGE note there).
 ///
-/// Compiled into libcudaq-realtime, together with whichever TU defines the
-/// hooks: bridge/gpu_roce/gpu_roce_unified_transport.cu when that transport
-/// is configured, otherwise dispatcher/unified_transport_none.cu.
+/// Compiled into libcudaq-realtime-dispatch.a, together with whichever TU
+/// defines the hooks: bridge/gpu_roce/gpu_roce_unified_transport.cu when that
+/// transport is configured, otherwise dispatcher/unified_transport_none.cu.
+/// The consumer device-links the archive with its DEVICE_CALL handlers, so the
+/// kernel, the hooks and the handlers the function table points at share one
+/// CUDA module.
 
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
@@ -58,7 +60,10 @@ cudaq_unified_dispatch_kernel(void *transport_ctx, std::size_t tx_stride_sz,
                               volatile int *shutdown_flag,
                               cudaq_function_entry_t *function_table,
                               std::size_t func_count, std::uint64_t *stats) {
-  void *session = cudaq_dev_transport_attach(transport_ctx, shutdown_flag);
+  alignas(CUDAQ_DEV_TRANSPORT_SESSION_ALIGN) unsigned char
+      session_storage[CUDAQ_DEV_TRANSPORT_SESSION_BYTES];
+  void *session = cudaq_dev_transport_attach(session_storage, transport_ctx,
+                                             shutdown_flag);
   if (session == nullptr)
     return;
 
@@ -73,6 +78,11 @@ cudaq_unified_dispatch_kernel(void *transport_ctx, std::size_t tx_stride_sz,
 
     auto *header = static_cast<RPCHeader *>(request);
     auto *response = static_cast<RPCResponse *>(response_frame);
+
+    // Read before the handler runs: after its call the compiler has to assume
+    // the request may have changed and reload it behind the response stores.
+    const std::uint32_t request_id = header->request_id;
+    const std::uint64_t ptp_timestamp = header->ptp_timestamp;
 
     int status = -1;
     std::uint32_t result_len = 0;
@@ -101,8 +111,8 @@ cudaq_unified_dispatch_kernel(void *transport_ctx, std::size_t tx_stride_sz,
     response->magic = RPC_MAGIC_RESPONSE;
     response->status = status;
     response->result_len = result_len;
-    response->request_id = header->request_id;
-    response->ptp_timestamp = header->ptp_timestamp;
+    response->request_id = request_id;
+    response->ptp_timestamp = ptp_timestamp;
 
     // Published unconditionally, including for a frame whose magic did not
     // match: tx_publish is also what returns the slot's receive credit, so

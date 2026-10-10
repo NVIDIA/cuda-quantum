@@ -265,7 +265,7 @@ typedef void (*cudaq_unified_launch_fn_t)(
     volatile int *shutdown_flag, uint64_t *stats, cudaStream_t stream);
 
 // Transport-agnostic unified dispatch kernel launcher (from
-// libcudaq-realtime itself).  The kernel it launches reaches
+// libcudaq-realtime-dispatch.a).  The kernel it launches reaches
 // its transport through the three __device__ hooks in
 // unified_device_transport.cuh, so a transport wires itself up by
 // implementing those rather than by writing a kernel.
@@ -280,12 +280,16 @@ typedef void (*cudaq_unified_launch_fn_t)(
 // it on the GPU.
 //
 // Because CUDA resolves __device__ calls at device-link time and never across
-// modules, the transport's hook implementations must be device-linked into the
-// same shared library as this archive.
+// modules, and a device-function pointer is only valid inside the module that
+// defines it, the kernel must share one module with both the transport's hook
+// implementations and the consumer's DEVICE_CALL handlers.  The hooks ship in
+// this archive next to the kernel; a unified consumer links the archive and
+// device-links it together with its handlers, as the 3-kernel path does.
 //
-// Linked into libcudaq-realtime.so, so cudaq_dispatcher_start calls it
-// directly whenever no unified_launch_fn override was set.  Unlike the
-// 3-kernel launchers above, a consumer never has to supply it.
+// cudaq_dispatcher_start calls it directly whenever no unified_launch_fn
+// override was set, through a weak reference that binds at load time to the
+// copy linked into the consumer binary; start() fails with
+// CUDAQ_ERR_INVALID_ARG if the archive was not linked.
 CUDAQ_REALTIME_DISPATCH_API void cudaq_launch_unified_dispatch_device(
     void *transport_ctx, size_t tx_stride_sz,
     cudaq_function_entry_t *function_table, size_t func_count,
@@ -429,8 +433,11 @@ typedef struct {
 // the 3-kernel launch_fn.  Ringbuffer setup is not required for unified mode.
 //
 // `unified_launch_fn` may be NULL, and normally is: start() then runs the
-// library's own unified kernel.  Pass a function only to override the whole
-// dispatch loop.  `transport_ctx` is required either way, and
+// unified kernel from libcudaq-realtime-dispatch.a, which the consumer must
+// link.  Pass a function only to override the whole dispatch loop.
+// Whichever kernel runs must be device-linked into the same module as the
+// DEVICE_CALL handlers in the function table.  `transport_ctx` is required
+// either way, and
 // config.slot_size must give the slot stride, which reaches the kernel as
 // its tx_stride_sz.
 cudaq_status_t

@@ -148,21 +148,19 @@ if (GPU_ROCE_TRANSCEIVER_LIB AND
     REQUIRED
   )
 
-  # The DOCA device data plane joins the unified dispatch archive rather than
-  # this shared library.  The kernel there calls these hooks as __device__
-  # functions, which CUDA resolves only within a single module, so the two
-  # must be device-linked together -- and the launcher belongs to the runtime,
-  # not to a transport library.  Making them one archive satisfies both.
-  target_sources(cudaq-realtime PRIVATE gpu_roce_unified_transport.cu)
+  # The DOCA device data plane joins the dispatch archive, next to the unified
+  # kernel, rather than this shared library.  The kernel calls these hooks as
+  # __device__ functions, which CUDA resolves only within a single module, so
+  # both are device-linked into the consumer together with its handlers.
+  target_sources(cudaq-realtime-dispatch PRIVATE gpu_roce_unified_transport.cu)
   set_property(GLOBAL PROPERTY CUDAQ_REALTIME_UNIFIED_TRANSPORT_TU
     "bridge/gpu_roce/gpu_roce_unified_transport.cu")
-  target_include_directories(cudaq-realtime
-    PRIVATE
-      ${CMAKE_CURRENT_SOURCE_DIR}
-      "${HOLOSCAN_SENSOR_BRIDGE_SOURCE_DIR}/src"
-      "${HOLOSCAN_SENSOR_BRIDGE_SOURCE_DIR}/src/hololink/operators/gpu_roce_transceiver"
-      ${DOCA_INCLUDE_DIR}
-      ${DOCA_GPU_INCLUDE_DIR})
+  # HSB/DOCA headers for this TU only: the archive's other sources, the
+  # unified kernel included, stay free of any transport include path.
+  set_source_files_properties(gpu_roce_unified_transport.cu
+    TARGET_DIRECTORY cudaq-realtime-dispatch
+    PROPERTIES INCLUDE_DIRECTORIES
+      "${CMAKE_CURRENT_SOURCE_DIR};${HOLOSCAN_SENSOR_BRIDGE_SOURCE_DIR}/src;${HOLOSCAN_SENSOR_BRIDGE_SOURCE_DIR}/src/hololink/operators/gpu_roce_transceiver;${DOCA_INCLUDE_DIR};${DOCA_GPU_INCLUDE_DIR}")
 
   # Library implementing the gpu_roce bridge interface
   add_library(cudaq-realtime-bridge-gpu-roce SHARED
