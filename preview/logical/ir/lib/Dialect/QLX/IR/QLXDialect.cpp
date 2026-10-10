@@ -1182,6 +1182,21 @@ LogicalResult ApplyOp::verify() {
   default:
     break;
   }
+  if (builtin.getValue() != BuiltinAction::pauli_rotation) {
+    if (getParameters() && !getParameters()->empty())
+      return emitOpError(
+          "fixed built-in actions do not accept parameter bindings");
+    if (getInputs().size() != expectedArity ||
+        getNumResults() != expectedArity ||
+        !llvm::all_of(getInputs().getTypes(),
+                      [](Type type) { return isa<LogicalQubitType>(type); }) ||
+        !llvm::all_of(getResultTypes(),
+                      [](Type type) { return isa<LogicalQubitType>(type); }))
+      return emitOpError()
+             << "fixed built-in action requires exactly " << expectedArity
+             << " logical-qubit inputs and results and no classical payloads";
+    return success();
+  }
   unsigned quantumInputs =
       llvm::count_if(getInputs().getTypes(),
                      [](Type type) { return isa<LogicalQubitType>(type); });
@@ -1190,11 +1205,8 @@ LogicalResult ApplyOp::verify() {
   if (quantumInputs == 0 || quantumInputs != quantumResults)
     return emitOpError(
         "built-in actions must preserve at least one logical-qubit owner");
-  if (expectedArity && quantumInputs != expectedArity)
-    return emitOpError("built-in action has the wrong logical arity");
-  if (builtin.getValue() == BuiltinAction::pauli_rotation &&
-      (getInputs().size() != quantumInputs + 1 ||
-       !getInputs().back().getType().isF64()))
+  if (getInputs().size() != quantumInputs + 1 ||
+      !getInputs().back().getType().isF64())
     return emitOpError(
         "Pauli rotation requires one trailing f64 angle operand");
   return success();

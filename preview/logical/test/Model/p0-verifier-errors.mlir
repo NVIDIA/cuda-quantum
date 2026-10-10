@@ -57,6 +57,49 @@ module {
 // -----
 
 module {
+  qlx.program @fixed_action_parameters : () -> i1 attributes {qlx.stage = "p0"} {
+    %q = qlx.prepare "zero" {allocation = 0 : i64, value_index = 0 : i64} : !qlx.logical_qubit
+    %h = qlx.apply #qlx.action<h>(%q) {parameters = {unexpected = 1 : i64}}
+        : (!qlx.logical_qubit) -> !qlx.logical_qubit
+    %m = qlx.measure #qlx.pauli<Z> %h : !qlx.logical_qubit -> i1
+    qlx.return %m : i1
+  }
+}
+
+// CHECK: error: 'qlx.apply' op fixed built-in actions do not accept parameter bindings
+
+// -----
+
+module {
+  qlx.program @fixed_action_classical_input : () -> i1 attributes {qlx.stage = "p0"} {
+    %q = qlx.prepare "zero" {allocation = 0 : i64, value_index = 0 : i64} : !qlx.logical_qubit
+    %flag = arith.constant true
+    %h = qlx.apply #qlx.action<h>(%q, %flag)
+        : (!qlx.logical_qubit, i1) -> !qlx.logical_qubit
+    %m = qlx.measure #qlx.pauli<Z> %h : !qlx.logical_qubit -> i1
+    qlx.return %m : i1
+  }
+}
+
+// CHECK: error: 'qlx.apply' op fixed built-in action requires exactly 1 logical-qubit inputs and results and no classical payloads
+
+// -----
+
+module {
+  qlx.program @fixed_action_classical_result : () -> i1 attributes {qlx.stage = "p0"} {
+    %q = qlx.prepare "zero" {allocation = 0 : i64, value_index = 0 : i64} : !qlx.logical_qubit
+    %t:2 = qlx.apply #qlx.action<t>(%q)
+        : (!qlx.logical_qubit) -> (!qlx.logical_qubit, i1)
+    qlx.discard %t#0 : !qlx.logical_qubit
+    qlx.return %t#1 : i1
+  }
+}
+
+// CHECK: error: 'qlx.apply' op fixed built-in action requires exactly 1 logical-qubit inputs and results and no classical payloads
+
+// -----
+
+module {
   qlx.objective_body @embedded_event_objective :
       (!event.handle<!qlx.logical_resource<"t_state">, "linear">) -> ()
       attributes {objective_kind = "action", qlx.stage = "p0"} {
