@@ -6,16 +6,18 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: cudaq-quake %s | FileCheck %s
-// RUN: cudaq-quake %s | cudaq-opt --cable-rough-in --memtoreg | \
+// clang-format off
+// RUN: cudaq-quake -I %cudaq_src_dir/unittests/nvqpp/backends/quake_backend %s | FileCheck %s
+// RUN: cudaq-quake -I %cudaq_src_dir/unittests/nvqpp/backends/quake_backend %s | cudaq-opt --cable-rough-in --memtoreg | \
 // RUN:   FileCheck --check-prefix=WIRE %s
+// clang-format on
 
 #include <cudaq.h>
 
-// A quantum operation the backend implements. `extern "C"` keeps the symbol
-// in the payload. The classical argument comes first, the order the callee
-// results are indexed against.
-extern "C" void __qm__wait_function(double duration, cudaq::qubit &q);
+// A quantum operation the backend implements. The declaration is the one that
+// the backend ships, which the unit tests of the backend use too. The classical
+// argument comes first, the order the callee results are indexed against.
+#include "qm_wait.h"
 
 __qpu__ void ramsey(double d) {
   cudaq::qubit q;
