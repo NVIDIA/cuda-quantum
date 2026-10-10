@@ -26,6 +26,11 @@
 #include <stdexcept>
 
 #define __qpu__ __attribute__((annotate("quantum")))
+// Mark the declaration of a function that takes a quantum type, but is not a
+// kernel: it is implemented outside of CUDA-Q (such as by a backend), or is a
+// primitive operation of an execution manager. Only a kernel (`__qpu__`) and
+// an intrinsic can take a quantum type.
+#define __qpu_intrinsic__ __attribute__((annotate("quantum_intrinsic")))
 #define __disable_quantum_optimization__                                       \
   __attribute__((annotate("disable_quantum_optimization")))
 #define __atomic_quantum_region__                                              \
