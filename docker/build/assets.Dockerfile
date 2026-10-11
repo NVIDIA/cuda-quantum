@@ -45,6 +45,11 @@ RUN dnf install -y --nobest --setopt=install_weak_deps=False ${PYTHON} && \
 # [Build Dependencies]
 RUN dnf install -y --nobest --setopt=install_weak_deps=False wget git unzip epel-release && \
     dnf install -y --nobest --setopt=install_weak_deps=False ccache
+ENV CCACHE_DIR=/root/.ccache
+# Default 5G is too small for LLVM/Clang/MLIR, evicts across rebuilds.
+ENV CCACHE_MAXSIZE=30G
+# Stage-1 compiler path changes every build; hash content, not mtime.
+ENV CCACHE_COMPILERCHECK=content
 
 ## [CUDA]
 RUN source /cuda-quantum/scripts/configure_build.sh install-cuda
@@ -75,7 +80,8 @@ RUN cd /cuda-quantum && git init && \
             $(cat /.git_modules/$local_path/HEAD) $local_path; \
         fi; \
     done && git submodule init && git submodule
-RUN cd /cuda-quantum && source scripts/configure_build.sh && \
+RUN --mount=type=cache,target=/root/.ccache,id=llvm-prereqs-ccache \
+    cd /cuda-quantum && source scripts/configure_build.sh && \
     LLVM_PROJECTS='clang;flang;lld;mlir;openmp;runtimes' BOOTSTRAP_LLVM=true \
     bash scripts/install_prerequisites.sh -t llvm -e qrmi
 
@@ -150,19 +156,36 @@ RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
 # Note: We statically link libc++ here to make it easy to build shared CUDA-Q libraries with nvq++
 # that can then be linked to and called from other C++ code compiled with a different toolchain
 # and linked against a different standard library.
+#
+# Core build first, tests in a separate layer below (static test
+# binaries are much larger and would otherwise bloat one layer).
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
-    LLVM_STAGE1_BUILD="$(find "$(dirname "$(mktemp -d -u)")" -maxdepth 2 -name llvm)" \
     # IMPORTANT:
     # Make sure that the variables and arguments configured here match
     # the ones in the install_prerequisites.sh invocation in the prereqs stage!
+    CUDAQ_STATIC_CXX_RUNTIME=TRUE \
+    CUDAQ_STATIC_DEPS=TRUE \
+    CUDAQ_REQUIRE_OPENMP=TRUE \
+    CUDAQ_WERROR=TRUE \
+    CUDAQ_PYTHON_SUPPORT=OFF \
+    CUDAQ_BUILD_TESTS=FALSE \
+    LLVM_PROJECTS='clang;flang;lld;mlir;openmp;runtimes' \
+    bash scripts/build_cudaq.sh -t llvm -v -- \
+        "-DCUDAQ_ENABLE_PROJECTS=cudaq;runtime;realtime" \
+        -DCUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR=OFF
+
+# Add tests incrementally (-i) on top of the already-built core.
+# This is also the full build command shown in the C++ install docs.
+RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     ## [>CUDAQuantumCppBuild]
     CUDAQ_STATIC_CXX_RUNTIME=TRUE \
     CUDAQ_STATIC_DEPS=TRUE \
     CUDAQ_REQUIRE_OPENMP=TRUE \
     CUDAQ_WERROR=TRUE \
     CUDAQ_PYTHON_SUPPORT=OFF \
+    CUDAQ_BUILD_TESTS=TRUE \
     LLVM_PROJECTS='clang;flang;lld;mlir;openmp;runtimes' \
-    bash scripts/build_cudaq.sh -t llvm -v -- \
+    bash scripts/build_cudaq.sh -t llvm -v -i -- \
         "-DCUDAQ_ENABLE_PROJECTS=cudaq;runtime;realtime" \
         -DCUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR=OFF && \
     echo "=== ccache stats (cpp_build) ===" && (ccache -s 2>/dev/null || true) && \
@@ -280,7 +303,6 @@ RUN cd /cuda-quantum && \
     # Needed to retrigger the LLVM build, since the MLIR Python bindings
     # are not built in the prereqs stage.
     rm -rf "${LLVM_INSTALL_PREFIX}" && \
-    LLVM_STAGE1_BUILD="$(find "$(dirname "$(mktemp -d -u)")" -maxdepth 2 -name llvm)" \
     # IMPORTANT:
     # Make sure that the invocation of the install_prerequisites.sh script here matches
     # the ones in the install_prerequisites.sh invocation in the prereqs stage!

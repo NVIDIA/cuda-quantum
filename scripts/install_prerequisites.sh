@@ -47,7 +47,12 @@ fi
 
 # [Toolchain] CMake, ninja and C/C++ compiler
 if $install_all && [ -z "$(echo $exclude_prereq | grep toolchain)" ]; then
-  if [ -n "$toolchain" ] || [ ! -x "$(command -v "$CC")" ] || [ ! -x "$(command -v "$CXX")" ]; then
+  # No need to bootstrap a compiler if LLVM is already built.
+  if [ "$toolchain" = "llvm" ] && [ -x "$LLVM_INSTALL_PREFIX/bin/clang++" ]; then
+    export CC="$LLVM_INSTALL_PREFIX/bin/clang"
+    export CXX="$LLVM_INSTALL_PREFIX/bin/clang++"
+    echo "LLVM already installed in $LLVM_INSTALL_PREFIX; skipping stage-1 bootstrap."
+  elif [ -n "$toolchain" ] || [ ! -x "$(command -v "$CC")" ] || [ ! -x "$(command -v "$CXX")" ]; then
     echo "Installing toolchain ${toolchain}..."
     if [ "$toolchain" = "llvm" ] && [ ! -d "$LLVM_STAGE1_BUILD" ]; then
       llvm_stage1_tmpdir="$(mktemp -d)"
@@ -262,7 +267,13 @@ if [ -n "$LLVM_INSTALL_PREFIX" ] && [ -z "$(echo $exclude_prereq | grep llvm)" ]
   fi
 
   if [ "$toolchain" = "llvm" ] || [ "$(uname)" = "Darwin" ]; then
-    #rm -rf "$llvm_stage1_tmpdir"
+    # Safe to remove: later stages skip stage-1 once LLVM is built.
+    rm -rf "$llvm_stage1_tmpdir"
+    # Fixed path, not randomized -- clean it up or a later rebuild
+    # (e.g. python_build) reuses its stale, now-invalid CMakeCache.txt.
+    rm -rf "${LLVM_SOURCE:-$HOME/.llvm-project}/stage1_build"
+    # Same issue, same fix, for the real (non-stage-1) build dir.
+    rm -rf "${LLVM_SOURCE:-$HOME/.llvm-project}/build"
     export CC="$LLVM_INSTALL_PREFIX/bin/clang"
     export CXX="$LLVM_INSTALL_PREFIX/bin/clang++"
     echo "Configured C compiler: $CC"
