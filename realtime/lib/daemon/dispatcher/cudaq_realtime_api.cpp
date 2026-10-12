@@ -16,6 +16,11 @@
 #include <new>
 #include <thread>
 
+// Defined in libcudaq-realtime-dispatch.a, which the consumer device-links
+// together with its handlers; it is not part of this library.  Weak, so a
+// binary that never links the archive still loads, and the address is null.
+#pragma weak cudaq_launch_unified_dispatch_device
+
 struct cudaq_dispatch_manager_t {
   int reserved = 0;
 };
@@ -113,6 +118,11 @@ static cudaq_status_t validate_dispatcher(cudaq_dispatcher_t *dispatcher) {
 
   if (dispatcher->config.kernel_type == CUDAQ_KERNEL_UNIFIED) {
     if (!dispatcher->transport_ctx)
+      return CUDAQ_ERR_INVALID_ARG;
+    // Without an override, the unified kernel must have been linked into the
+    // consumer from libcudaq-realtime-dispatch.a.
+    if (!dispatcher->unified_launch_fn &&
+        !&cudaq_launch_unified_dispatch_device)
       return CUDAQ_ERR_INVALID_ARG;
     if (dispatcher->config.slot_size == 0)
       return CUDAQ_ERR_INVALID_ARG;
@@ -238,8 +248,9 @@ cudaq_status_t
 cudaq_dispatcher_set_unified_launch(cudaq_dispatcher_t *dispatcher,
                                     cudaq_unified_launch_fn_t unified_launch_fn,
                                     void *transport_ctx) {
-  // A NULL fn selects the library's own unified kernel, which is linked in
-  // and therefore always callable; the context is required either way.
+  // A NULL fn selects the unified kernel from libcudaq-realtime-dispatch.a
+  // (start() fails if the consumer did not link it); the context is required
+  // either way.
   if (!dispatcher || !transport_ctx)
     return CUDAQ_ERR_INVALID_ARG;
   dispatcher->unified_launch_fn = unified_launch_fn;
@@ -356,9 +367,11 @@ cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher) {
   // __constant__ indirection) -- nothing needed here.
 
   if (dispatcher->config.kernel_type == CUDAQ_KERNEL_UNIFIED) {
-    // The unified kernel is linked into this library, so the direct call
-    // below always resolves.  unified_launch_fn is an override, used only by
-    // a transport that replaces the dispatch loop outright.
+    // The unified kernel lives in the consumer binary, linked from
+    // libcudaq-realtime-dispatch.a; the direct call below binds to it at load
+    // time (validate_dispatcher has checked it is there).  unified_launch_fn
+    // is an override, used only by a transport that replaces the dispatch
+    // loop outright.
     if (dispatcher->unified_launch_fn) {
       dispatcher->unified_launch_fn(
           dispatcher->transport_ctx, dispatcher->config.slot_size,
