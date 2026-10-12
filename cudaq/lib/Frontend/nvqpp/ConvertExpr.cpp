@@ -1023,6 +1023,24 @@ QuakeBridgeVisitor::Result QuakeBridgeVisitor::visit(clang::BinaryOperator *x) {
   // differently than other expressions since both sides of the expression are
   // not always evaluated.
   switch (x->getOpcode()) {
+  case clang::BinaryOperatorKind::BO_Comma: {
+    // The lhs is evaluated for its effects. Either side may be void, as in
+    // `(x(a), x(b))`, which is what a fold over the comma operator expands to.
+    if (!traverseStmt(x->getLHS()))
+      return std::nullopt;
+    if (x->getType()->isVoidType()) {
+      traverseStmt(x->getRHS());
+      return std::nullopt;
+    }
+    auto rhsValue = traverseValue(x->getRHS());
+    if (!rhsValue)
+      return std::nullopt;
+    Value rhs = *rhsValue;
+    // A comma expression is an lvalue exactly when its rhs is one.
+    if (!x->isGLValue() && isa<cc::PointerType>(rhs.getType()))
+      rhs = cc::LoadOp::create(builder, toLocation(x->getSourceRange()), rhs);
+    return value(rhs);
+  }
   case clang::BinaryOperatorKind::BO_LAnd:
   case clang::BinaryOperatorKind::BO_LOr: {
     auto lhsValue = traverseValue(x->getLHS());
@@ -1178,9 +1196,6 @@ QuakeBridgeVisitor::Result QuakeBridgeVisitor::visit(clang::BinaryOperator *x) {
   case clang::BinaryOperatorKind::BO_XorAssign:
   case clang::BinaryOperatorKind::BO_AndAssign:
     return std::nullopt; // see CompoundAssignOperator
-  case clang::BinaryOperatorKind::BO_Comma:
-    // A comma expression is an lvalue exactly when its rhs is one.
-    return value(x->isGLValue() ? rhs : maybeLoadValue(rhs));
   default:
     break;
   }
@@ -1440,6 +1455,20 @@ QuakeBridgeVisitor::visit(clang::UnaryExprOrTypeTraitExpr *x) {
     break;
   }
   return unhandled(static_cast<clang::Stmt *>(x));
+}
+
+/// `sizeof...(Pack)`. Kernels are only translated for specializations of
+/// templates, where the length of the pack is known.
+QuakeBridgeVisitor::Result QuakeBridgeVisitor::visit(clang::SizeOfPackExpr *x) {
+  auto loc = toLocation(x->getSourceRange());
+  if (x->isValueDependent()) {
+    reportClangError(x, mangler, "sizeof... of an unexpanded pack");
+    return fail();
+  }
+  // The type is `size_t`, a typedef, so look through it to the builtin type.
+  auto intTy = builtinTypeToType(
+      cast<clang::BuiltinType>(x->getType().getCanonicalType().getTypePtr()));
+  return value(getConstantInt(builder, loc, x->getPackLength(), intTy));
 }
 
 bool QuakeBridgeVisitor::visitMathLibFunc(clang::CallExpr *x,
@@ -3872,7 +3901,8 @@ QuakeBridgeVisitor::Result QuakeBridgeVisitor::visit(clang::DeclRefExpr *x) {
   auto *decl = x->getDecl();
   if (auto *funcDecl = dyn_cast<clang::FunctionDecl>(decl))
     return visit(funcDecl);
-  if (!symbolTable.count(decl->getName())) {
+  auto symbolName = getSymbolName(decl);
+  if (!symbolTable.count(symbolName)) {
     // This is a catastrophic error. This symbol is unknown and probably came
     // from a context that is inaccessible from this kernel.
     auto &de = astContext->getDiagnostics();
@@ -3886,7 +3916,7 @@ QuakeBridgeVisitor::Result QuakeBridgeVisitor::visit(clang::DeclRefExpr *x) {
     return fail();
   }
   LLVM_DEBUG(llvm::dbgs() << "decl ref: " << decl << '\n');
-  return value(symbolTable.lookup(decl->getName()));
+  return value(symbolTable.lookup(symbolName));
 }
 
 QuakeBridgeVisitor::Result QuakeBridgeVisitor::visit(clang::StringLiteral *x) {
