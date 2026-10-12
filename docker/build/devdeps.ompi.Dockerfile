@@ -15,8 +15,10 @@
 # Must be built from the repo root with:
 #   docker build -t ghcr.io/nvidia/cuda-quantum-devdeps:ompi -f docker/build/devdeps.ompi.Dockerfile .
 
-ARG cuda_version=12.6
-FROM nvidia/cuda:${cuda_version}.0-devel-ubuntu24.04
+# nvidia/cuda images for Ubuntu 26.04 exist only for CUDA 13.3 and newer.
+ARG cuda_version=13.3
+ARG ubuntu_version=26.04
+FROM nvidia/cuda:${cuda_version}.0-devel-ubuntu${ubuntu_version}
 SHELL ["/bin/bash", "-c"]
 ARG DEBIAN_FRONTEND=noninteractive
 ARG cuda_version
@@ -58,8 +60,11 @@ RUN mkdir -p /var/tmp && wget -q -nc --no-check-certificate -P /var/tmp https://
 
 # 3 - Install Mellanox OFED version 5.3-1.0.0.1
 
-RUN wget -qO - https://www.mellanox.com/downloads/ofed/RPM-GPG-KEY-Mellanox | apt-key add - \
+# apt-key is gone in newer apt releases, so the key goes into a signed-by keyring.
+RUN apt-get update -y && apt-get install -y --no-install-recommends gnupg \
+    && wget -qO - https://www.mellanox.com/downloads/ofed/RPM-GPG-KEY-Mellanox | gpg --dearmor -o /usr/share/keyrings/mellanox.gpg \
     && mkdir -p /etc/apt/sources.list.d && wget -q -nc --no-check-certificate -P /etc/apt/sources.list.d https://linux.mellanox.com/public/repo/mlnx_ofed/5.3-1.0.0.1/ubuntu20.04/mellanox_mlnx_ofed.list \
+    && sed -i 's|^deb |deb [signed-by=/usr/share/keyrings/mellanox.gpg] |' /etc/apt/sources.list.d/mellanox_mlnx_ofed.list \
     && apt-get update -y && apt-get install -y --no-install-recommends \
         ibverbs-providers ibverbs-utils \
         libibmad-dev libibmad5 libibumad-dev libibumad3 \

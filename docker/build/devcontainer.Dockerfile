@@ -53,12 +53,13 @@ RUN rm -f /etc/apt/sources.list.d/cuda.list
 # Install Mellanox OFED runtime and development dependencies.
 
 RUN apt-get update && apt-get install -y --no-install-recommends gnupg \
-    && wget -qO - "https://www.mellanox.com/downloads/ofed/RPM-GPG-KEY-Mellanox" | apt-key add - \
+    && wget -qO - "https://www.mellanox.com/downloads/ofed/RPM-GPG-KEY-Mellanox" | gpg --dearmor -o /usr/share/keyrings/mellanox.gpg \
     && mkdir -p /etc/apt/sources.list.d && wget -q -nc --no-check-certificate -P /etc/apt/sources.list.d "https://linux.mellanox.com/public/repo/mlnx_ofed/5.3-1.0.0.1/ubuntu20.04/mellanox_mlnx_ofed.list" \
+    && sed -i 's|^deb |deb [signed-by=/usr/share/keyrings/mellanox.gpg] |' /etc/apt/sources.list.d/mellanox_mlnx_ofed.list \
     && apt-get update -y && apt-get install -y --no-install-recommends \
         ibverbs-providers ibverbs-utils \
         libibmad5 libibumad3 libibverbs-dev libibverbs1 librdmacm1 \
-    && rm /etc/apt/trusted.gpg && rm /etc/apt/sources.list.d/mellanox_mlnx_ofed.list \
+    && rm -f /usr/share/keyrings/mellanox.gpg /etc/apt/sources.list.d/mellanox_mlnx_ofed.list \
     && apt-get remove -y gnupg \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
@@ -145,7 +146,8 @@ RUN if [ -n "$cuda_packages" ]; then \
         fi \
         && arch_folder=$([ "$(uname -m)" == "aarch64" ] && echo sbsa || echo x86_64) \
         && cuda_packages=$(echo "$cuda_packages" | tr ' ' '\n' | xargs -I {} echo {}-$(echo ${CUDA_VERSION} | cut -d. -f1-2 | tr . -)) \
-        && wget -q "https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2404/$arch_folder/cuda-keyring_1.1-1_all.deb" \
+        && distro=ubuntu$(. /etc/os-release && echo "${VERSION_ID//./}") \
+        && wget -q "https://developer.download.nvidia.com/compute/cuda/repos/$distro/$arch_folder/cuda-keyring_1.1-1_all.deb" \
         && dpkg -i cuda-keyring_1.1-1_all.deb \
         && apt-get update && apt-get install -y --no-install-recommends --allow-change-held-packages $cuda_packages \
         && rm cuda-keyring_1.1-1_all.deb \
@@ -179,27 +181,32 @@ ENV PIP_BREAK_SYSTEM_PACKAGES=1
 # Note: for docker images, we fixed the cuquantum version (with `==`) to avoid unintentional upgrades.
 # e.g., API marked as deprecated in a minor version upgrade may break build.
 # For Python pip installations, we allow minor version upgrades with `~=`, assuming the API is stable.
+ARG python_version=3.14
 RUN apt-get update && apt-get install -y --no-install-recommends \
         python3 python3-pip && \
     apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/* && \
-    if [ "$(echo $CUDA_VERSION | cut -d . -f1)" = "13" ]; then \
-        cupy_version=13.6.0; \
-    else \
-        cupy_version=13.4.1; \
+    if [ "$(python3 --version | grep -o [0-9\.]* | cut -d . -f -2)" != "${python_version}" ]; then \
+        echo "expecting Python version ${python_version}" >&2 && exit 1; \
     fi && \
-    python3 -m pip install --break-system-packages cupy-cuda$(echo $CUDA_VERSION | cut -d . -f1)x==${cupy_version} cuquantum-cu$(echo $CUDA_VERSION | cut -d . -f1)==26.9.0 && \
-    if [ "$(python3 --version | grep -o [0-9\.]* | cut -d . -f -2)" != "3.12" ]; then \
-        echo "expecting Python version 3.12"; \
-    fi
+    cuda_major=$(echo $CUDA_VERSION | cut -d . -f1) && \
+    # cupy 13.x has no Python 3.14 wheels.
+    if [ "${python_version}" = "3.14" ]; then \
+        cupy_version=">=14.0.0"; \
+    elif [ "$cuda_major" = "13" ]; then \
+        cupy_version="==13.6.0"; \
+    else \
+        cupy_version="==13.4.1"; \
+    fi && \
+    python3 -m pip install --break-system-packages "cupy-cuda${cuda_major}x${cupy_version}" cuquantum-cu${cuda_major}==26.9.0
 
-ARG CUQUANTUM_INSTALL_PREFIX=/usr/local/lib/python3.12/dist-packages/cuquantum
+ARG CUQUANTUM_INSTALL_PREFIX=/usr/local/lib/python${python_version}/dist-packages/cuquantum
 ENV CUQUANTUM_INSTALL_PREFIX="$CUQUANTUM_INSTALL_PREFIX"
 ENV CUQUANTUM_ROOT="$CUQUANTUM_INSTALL_PREFIX"
 ENV CUQUANTUM_PATH="$CUQUANTUM_INSTALL_PREFIX"
 ENV LD_LIBRARY_PATH="$CUQUANTUM_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH"
 ENV CPATH="$CUQUANTUM_INSTALL_PREFIX/include:$CPATH"
 
-ARG CUTENSOR_INSTALL_PREFIX=/usr/local/lib/python3.12/dist-packages/cutensor
+ARG CUTENSOR_INSTALL_PREFIX=/usr/local/lib/python${python_version}/dist-packages/cutensor
 ENV CUTENSOR_INSTALL_PREFIX="$CUTENSOR_INSTALL_PREFIX"
 ENV CUTENSOR_ROOT="$CUTENSOR_INSTALL_PREFIX"
 ENV LD_LIBRARY_PATH="$CUTENSOR_INSTALL_PREFIX/lib:$LD_LIBRARY_PATH"

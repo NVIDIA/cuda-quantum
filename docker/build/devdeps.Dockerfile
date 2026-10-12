@@ -19,7 +19,7 @@
 # Supported values: llvm, gcc12. The LLVM toolchain is a fully bootstrapped version.
 
 # [Operating System]
-ARG base_image=ubuntu:24.04
+ARG base_image=ubuntu:26.04
 
 # [CUDA-Q Dependencies]
 FROM ${base_image} AS prereqs
@@ -58,8 +58,10 @@ ENV NANOBIND_INSTALL_PREFIX=/usr/local/nanobind
 ENV PIP_BREAK_SYSTEM_PACKAGES=1
 
 ## [Build Dependencies]
+# Matches the default GCC of the base image (15 on Ubuntu 26.04, 13 on 24.04).
+ARG libstdcxx_version=15
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    wget git unzip ccache libstdc++-13-dev \
+    wget git unzip ccache libstdc++-${libstdcxx_version}-dev \
     python3-dev python3-pip && \
     python3 -m pip install --no-cache-dir numpy --break-system-packages && \
     apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
@@ -185,9 +187,10 @@ ENV PATH="${PATH}:/usr/local/cmake-4.0/bin"
 COPY requirements.txt /cuda-quantum/requirements.txt
 COPY requirements-dev.txt /cuda-quantum/requirements-dev.txt
 COPY requirements-mock-qpu.txt /cuda-quantum/requirements-mock-qpu.txt
+ARG libstdcxx_version=15
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git gdb ninja-build file lldb ccache libatomic1 \
-    libstdc++-13-dev \
+    libstdc++-${libstdcxx_version}-dev \
     python3 python3-pip libpython3-dev \
     && python3 -m pip install --no-cache-dir --break-system-packages \
     -r /cuda-quantum/requirements-dev.txt \
