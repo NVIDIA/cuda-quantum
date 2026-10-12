@@ -60,16 +60,21 @@ RUN mkdir -p /var/tmp && wget -q -nc --no-check-certificate -P /var/tmp https://
 
 # 3 - Install Mellanox OFED version 5.3-1.0.0.1
 
-# apt-key is gone in newer apt releases, so the key goes into a signed-by keyring.
+# apt-key is gone in newer apt, so the key goes into a signed-by keyring.
+# Ubuntu 26.04 ships rdma-core 61, which is newer than OFED 5.3 and conflicts with it.
 RUN apt-get update -y && apt-get install -y --no-install-recommends gnupg \
-    && wget -qO - https://www.mellanox.com/downloads/ofed/RPM-GPG-KEY-Mellanox | gpg --dearmor -o /usr/share/keyrings/mellanox.gpg \
-    && mkdir -p /etc/apt/sources.list.d && wget -q -nc --no-check-certificate -P /etc/apt/sources.list.d https://linux.mellanox.com/public/repo/mlnx_ofed/5.3-1.0.0.1/ubuntu20.04/mellanox_mlnx_ofed.list \
-    && sed -i 's|^deb |deb [signed-by=/usr/share/keyrings/mellanox.gpg] |' /etc/apt/sources.list.d/mellanox_mlnx_ofed.list \
+    && . /etc/os-release \
+    && if [ "$VERSION_ID" != "26.04" ]; then \
+        wget -qO - https://www.mellanox.com/downloads/ofed/RPM-GPG-KEY-Mellanox | gpg --dearmor -o /usr/share/keyrings/mellanox.gpg \
+        && mkdir -p /etc/apt/sources.list.d && wget -q -nc --no-check-certificate -P /etc/apt/sources.list.d https://linux.mellanox.com/public/repo/mlnx_ofed/5.3-1.0.0.1/ubuntu20.04/mellanox_mlnx_ofed.list \
+        && sed -i 's|^deb |deb [signed-by=/usr/share/keyrings/mellanox.gpg] |' /etc/apt/sources.list.d/mellanox_mlnx_ofed.list \
+        && rdma_runtime="libibmad5 libibumad3 libibverbs1 librdmacm1"; \
+    else \
+        rdma_runtime="libibmad5 libibumad3 libibverbs1 librdmacm1t64"; \
+    fi \
     && apt-get update -y && apt-get install -y --no-install-recommends \
         ibverbs-providers ibverbs-utils \
-        libibmad-dev libibmad5 libibumad-dev libibumad3 \
-        libibverbs-dev libibverbs1 \
-        librdmacm-dev librdmacm1 \
+        libibmad-dev libibumad-dev libibverbs-dev librdmacm-dev $rdma_runtime \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
 # 4 - Install GDRCOPY version 2.3.1
@@ -98,7 +103,8 @@ RUN mkdir -p /var/tmp && cd /var/tmp \
     && git checkout v1.19.0 \
     && ./autogen.sh \
     && export common_flags=$([ "$TARGETARCH" == "arm64" ] && echo "$COMMON_COMPILER_FLAGS_ARM" || echo "$COMMON_COMPILER_FLAGS") \
-    &&  CC=gcc CFLAGS="$common_flags" \
+    # UCX builds with -Werror, which newer glibc/GCC warnings (e.g. const-correct strchr) trip.
+    &&  CC=gcc CFLAGS="$common_flags -Wno-error" \
         CXX=g++ CXXFLAGS="$common_flags" \
         F77=gfortran F90=gfortran FFLAGS="$common_flags" \
         FC=gfortran FCFLAGS="$common_flags" \
