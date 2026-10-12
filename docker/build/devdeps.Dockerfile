@@ -58,7 +58,7 @@ ENV NANOBIND_INSTALL_PREFIX=/usr/local/nanobind
 ENV PIP_BREAK_SYSTEM_PACKAGES=1
 
 ## [Build Dependencies]
-# Matches the default GCC of the base image (15 on Ubuntu 26.04, 13 on 24.04).
+# Matches the base image's GCC (15 on 26.04, 13 on 24.04).
 ARG libstdcxx_version=15
 RUN apt-get update && apt-get install -y --no-install-recommends \
     wget git unzip ccache libstdc++-${libstdcxx_version}-dev \

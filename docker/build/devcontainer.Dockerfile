@@ -52,7 +52,7 @@ RUN rm -f /etc/apt/sources.list.d/cuda.list
 
 # Install Mellanox OFED runtime and development dependencies.
 
-# Ubuntu 26.04 ships rdma-core 61, which is newer than OFED 5.3 and conflicts with it.
+# 26.04's rdma-core 61 conflicts with OFED 5.3.
 RUN apt-get update && apt-get install -y --no-install-recommends gnupg \
     && . /etc/os-release \
     && if [ "$VERSION_ID" != "26.04" ]; then \
@@ -195,7 +195,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         echo "expecting Python version ${python_version}" >&2 && exit 1; \
     fi && \
     cuda_major=$(echo $CUDA_VERSION | cut -d . -f1) && \
-    # cupy 13.x has no Python 3.14 wheels.
+    # cupy 13.x has no cp314 wheels.
     if [ "${python_version}" = "3.14" ]; then \
         cupy_version=">=14.0.0"; \
     elif [ "$cuda_major" = "13" ]; then \

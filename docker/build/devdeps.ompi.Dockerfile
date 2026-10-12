@@ -15,7 +15,7 @@
 # Must be built from the repo root with:
 #   docker build -t ghcr.io/nvidia/cuda-quantum-devdeps:ompi -f docker/build/devdeps.ompi.Dockerfile .
 
-# nvidia/cuda images for Ubuntu 26.04 exist only for CUDA 13.3 and newer.
+# 26.04 images exist only for CUDA 13.3+.
 ARG cuda_version=13.3
 ARG ubuntu_version=26.04
 FROM nvidia/cuda:${cuda_version}.0-devel-ubuntu${ubuntu_version}
@@ -60,8 +60,8 @@ RUN mkdir -p /var/tmp && wget -q -nc --no-check-certificate -P /var/tmp https://
 
 # 3 - Install Mellanox OFED version 5.3-1.0.0.1
 
-# apt-key is gone in newer apt, so the key goes into a signed-by keyring.
-# Ubuntu 26.04 ships rdma-core 61, which is newer than OFED 5.3 and conflicts with it.
+# apt-key is gone; use a signed-by keyring.
+# 26.04's rdma-core 61 conflicts with OFED 5.3.
 RUN apt-get update -y && apt-get install -y --no-install-recommends gnupg \
     && . /etc/os-release \
     && if [ "$VERSION_ID" != "26.04" ]; then \
@@ -103,7 +103,7 @@ RUN mkdir -p /var/tmp && cd /var/tmp \
     && git checkout v1.19.0 \
     && ./autogen.sh \
     && export common_flags=$([ "$TARGETARCH" == "arm64" ] && echo "$COMMON_COMPILER_FLAGS_ARM" || echo "$COMMON_COMPILER_FLAGS") \
-    # UCX builds with -Werror, which newer glibc/GCC warnings (e.g. const-correct strchr) trip.
+    # UCX's -Werror trips on newer glibc/GCC warnings.
     &&  CC=gcc CFLAGS="$common_flags -Wno-error" \
         CXX=g++ CXXFLAGS="$common_flags" \
         F77=gfortran F90=gfortran FFLAGS="$common_flags" \

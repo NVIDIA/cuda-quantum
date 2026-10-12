@@ -62,7 +62,7 @@ jobs:
         run: |
           cuda_major=$(echo "${{ matrix.cuda }}" | cut -d. -f1)
           if [ "${{ matrix.release }}" = "cudaq" ]; then
-            # CUDA 13 images are on Ubuntu 26.04, which needs CUDA 13.3+.
+            # CUDA 13 images use Ubuntu 26.04 (CUDA 13.3+).
             if [ "$cuda_major" = "12" ]; then base_tag="${{ matrix.cuda }}.0-runtime-ubuntu24.04"; else base_tag="13.3.0-runtime-ubuntu26.04"; fi
             echo "base_image=nvcr.io/nvidia/cuda:$base_tag" | tee -a $GITHUB_OUTPUT
             echo "target_image=nvcr.io/nvidia/nightly/cuda-quantum:cu${cuda_major}-latest" | tee -a $GITHUB_OUTPUT
@@ -249,7 +249,7 @@ jobs:
       - name: Set base image
         id: base-image
         run: |
-          # CUDA 13 images are on Ubuntu 26.04, which needs CUDA 13.3+.
+          # CUDA 13 images use Ubuntu 26.04 (CUDA 13.3+).
           if [ "${{ matrix.cuda }}" = "12.6" ]; then base_tag="12.6.0-runtime-ubuntu24.04"; else base_tag="13.3.0-runtime-ubuntu26.04"; fi
           echo "base_image=nvcr.io/nvidia/cuda:$base_tag" >> $GITHUB_OUTPUT
 

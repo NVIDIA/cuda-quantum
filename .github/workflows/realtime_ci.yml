@@ -109,7 +109,7 @@ jobs:
 
     container:
       # Note: in this test, we need to build a CUDA kernel (to use with CUDAQ Realtime), hence we need the CUDA toolkit, not just the runtime.
-      # CUDA 13 on Ubuntu needs Ubuntu 26.04 images, which exist only for CUDA 13.3+.
+      # Ubuntu 26.04 images exist only for CUDA 13.3+.
       image: nvidia/cuda:${{ (matrix.distro != 'ubi9' && matrix.cuda_version == '13.0') && '13.3' || matrix.cuda_version }}.0-devel-${{ (matrix.distro == 'ubuntu24.04' && matrix.cuda_version != '12.6') && 'ubuntu26.04' || matrix.distro }}
 
     steps:
@@ -147,7 +147,7 @@ jobs:
             bash cmake-install.sh --skip-license --exclude-subdir --prefix=/usr/local
             rm cmake-install.sh
           else
-            # Kitware repo is still needed on Ubuntu 24.04 (CUDA 12).
+            # Kitware repo is needed on 24.04.
             retry apt update
             retry apt install -y --no-install-recommends ca-certificates gpg wget
             wget -qO - https://apt.kitware.com/keys/kitware-archive-latest.asc | gpg --dearmor - \
@@ -208,7 +208,7 @@ jobs:
             # this a failing dependency install would be ignored and the job
             # would go green having silently built without DOCA/Holoscan/HSB.
             set -eo pipefail
-            # Kitware repo is still needed on Ubuntu 24.04 (CUDA 12).
+            # Kitware repo is needed on 24.04.
             apt update && apt install -y --no-install-recommends ca-certificates gpg wget
             wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
             echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ '"$(. /etc/os-release && echo $VERSION_CODENAME)"' main' | tee /etc/apt/sources.list.d/kitware.list >/dev/null
@@ -275,7 +275,7 @@ jobs:
       - name: Test CUDA Quantum Realtime
         shell: bash
         run: |
-          # Kitware repo is still needed on Ubuntu 24.04 (CUDA 12).
+          # Kitware repo is needed on 24.04.
           apt update && apt install -y --no-install-recommends ca-certificates gpg wget
           wget -qO - https://apt.kitware.com/keys/kitware-archive-latest.asc | gpg --dearmor - \
             | tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
@@ -314,7 +314,7 @@ jobs:
           shell: bash
           run: |
             set -eo pipefail
-            # Kitware repo is still needed on Ubuntu 24.04 (CUDA 12).
+            # Kitware repo is needed on 24.04.
             apt update && apt install -y --no-install-recommends ca-certificates gpg wget
             wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
             echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ '"$(. /etc/os-release && echo $VERSION_CODENAME)"' main' | tee /etc/apt/sources.list.d/kitware.list >/dev/null
@@ -374,7 +374,7 @@ jobs:
       - name: Test CUDA Quantum Realtime
         shell: bash
         run: |
-          # Kitware repo is still needed on Ubuntu 24.04 (CUDA 12).
+          # Kitware repo is needed on 24.04.
           apt update && apt install -y --no-install-recommends ca-certificates gpg wget
           wget -qO - https://apt.kitware.com/keys/kitware-archive-latest.asc | gpg --dearmor - \
             | tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null

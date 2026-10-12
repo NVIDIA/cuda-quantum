@@ -215,7 +215,7 @@ jobs:
       # needed only for the matrix-outputs action
       matrix_key: ${{ matrix.platform }}-${{ matrix.toolchain }}
 
-  # CUDA 12 has no Ubuntu 26.04 images, so its dev environment stays on 24.04.
+  # CUDA 12 has no 26.04 images, so it stays on 24.04.
   devdeps_ubuntu2404:
     name: Build dev dependencies (Ubuntu 24.04)
     needs: metadata
@@ -327,7 +327,7 @@ jobs:
       platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       dockerfile: build/devdeps.ompi.Dockerfile
       build_config_id: cu${{ matrix.cuda_version }}
-      # CUDA 13 on Ubuntu 26.04 needs CUDA 13.3+; the 13.0 label is kept for tags and keys.
+      # 26.04 needs CUDA 13.3+; the 13.0 label is kept for tags and keys.
       build_args: |
         cuda_version=${{ matrix.cuda_version == '13.0' && '13.3' || matrix.cuda_version }}
         ubuntu_version=${{ startsWith(matrix.cuda_version, '12.') && '24.04' || '26.04' }}

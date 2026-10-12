@@ -58,7 +58,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install CUDA-Q runtime dependencies.
 
-# Matches the default GCC of the base image (15 on Ubuntu 26.04, 13 on 24.04).
+# Matches the base image's GCC (15 on 26.04, 13 on 24.04).
 ARG libstdcxx_version=15
 RUN apt-get update && apt-get install -y --no-install-recommends \
         libstdc++-${libstdcxx_version}-dev python3 python3-pip adduser \
@@ -96,7 +96,7 @@ ENV CPLUS_INCLUDE_PATH="$CPLUS_INCLUDE_PATH:$CUDA_QUANTUM_PATH/include"
 # Better alternative to setting the PYTHONPATH, since the PYTHONPATH is generally not preserved when running as sudo.
 RUN echo "$CUDA_QUANTUM_PATH" > /usr/local/lib/python$(python --version | egrep -o "([0-9]{1,}\.)+[0-9]{1,}" | cut -d '.' -f -2)/dist-packages/cudaq.pth
 
-# Deployments supplies one Logical wheel matching the image Python for this architecture in
+# Deployments supplies one Logical wheel for this architecture in
 # docker/release/logical-wheels/. Bind it so the archive is not retained in a layer.
 ARG include_logical=false
 RUN --mount=type=bind,source=docker/release,target=/tmp/cudaq-release \

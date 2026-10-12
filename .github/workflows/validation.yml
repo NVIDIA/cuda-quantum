@@ -825,7 +825,7 @@ jobs:
         os_image: ['redhat/ubi8:8.10', 'ubuntu:24.04']
         cuda_version: ['12.6', '13.0']
         include:
-          # The Ubuntu 26.04 CUDA repository has CUDA 13.3 and newer only.
+          # 26.04 has CUDA 13.3+ only.
           - os_image: 'ubuntu:26.04'
             cuda_version: '13.3'
       fail-fast: false

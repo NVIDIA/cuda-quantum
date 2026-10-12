@@ -36,7 +36,7 @@ function retry {
 #   . "$(dirname "$0")/deps_common.sh"
 
 # Central repository of DOCA and Holoscan SDK versions for development and CI.
-# DOCA 3.3.0 has no Ubuntu 26.04 repository, so default to 3.4.0 there.
+# DOCA 3.3.0 has no 26.04 repository; use 3.4.0 there.
 if [ -z "${DOCA_VERSION:-}" ]; then
   if [ "$(. /etc/os-release 2>/dev/null && printf '%s%s' "$ID" "$VERSION_ID")" = "ubuntu26.04" ]; then
     DOCA_VERSION=3.4.0

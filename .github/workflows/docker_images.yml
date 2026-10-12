@@ -738,7 +738,7 @@ jobs:
         run: |
           docker run --privileged multiarch/qemu-user-static:latest --reset -p yes --credential yes
 
-      # CUDA 12 images use Ubuntu 24.04 (Python 3.12), others 26.04 (3.14). `cudaq.logical` is CUDA version-independent.
+      # CUDA 12 images: Ubuntu 24.04, Python 3.12; others: 26.04, 3.14. `cudaq.logical` is CUDA-independent.
       - name: Select CUDA-Q Logical wheel
         if: inputs.include_logical
         id: logical_wheel
