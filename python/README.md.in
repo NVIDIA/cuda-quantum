@@ -12,7 +12,12 @@ CUDA-Q is a comprehensive framework for quantum programming. It features:
   technologies, including state-of-the-art simulator backends with NVIDIA
   cuQuantum and a number of different physical quantum processors (QPUs)
 
-The CUDA-Q Python wheels contain the Python API and core components of CUDA-Q.
+Install `cudaq` for the complete Python API. The metapackage selects a matching
+`cudaq-core` and CUDA-specific frontend, plus `cudaq-logical` on Linux.
+Extension authors can install `cudaq-core` directly for the native foundation
+and `cudaq.mlir` bindings without frontend execution or simulator dependencies.
+Core and frontend versions must match exactly; logical has its own version and
+pins the compatible core release.
 This package installs CUDA-Q binaries that are compatible with a CUDA version
 ${{ cuda_version_requirement }}. More information about available packages as
 well as a link to the documentation and examples for each version can be found
