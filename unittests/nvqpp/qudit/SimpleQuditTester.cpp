@@ -29,17 +29,17 @@ protected:
 /// for qubit_qis.h
 
 // Plus Gate : U|0> -> |1>, U|1> -> |2>, and U|2> -> |0>
-void plusGate(cudaq::qudit<3> &q) {
+__qpu_intrinsic__ void plusGate(cudaq::qudit<3> &q) {
   auto em = cudaq::getExecutionManager();
   em->apply("plusGate", {}, {}, {{q.n_levels(), q.id()}});
 }
 
-int mz(cudaq::qudit<3> &q) {
+__qpu_intrinsic__ int mz(cudaq::qudit<3> &q) {
   auto em = cudaq::getExecutionManager();
   return em->measure({q.n_levels(), q.id()});
 }
 
-std::vector<int> mz(cudaq::qvector<3> &q) {
+__qpu_intrinsic__ std::vector<int> mz(cudaq::qvector<3> &q) {
   std::vector<int> ret;
   for (auto &qq : q)
     ret.emplace_back(mz(qq));

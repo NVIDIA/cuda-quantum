@@ -27,9 +27,11 @@ from .pipeline import pipelines
 # CUDA-Q owns frontend normalization and aggregate-to-linear conversion. QLX's
 # one pre-linear transform expands only statically bounded register traversals
 # that block that conversion; clean paper-scale workload loops remain folded.
+# `erase-implicit-output` drops CUDA-Q's compiler-generated `quake.evince`,
+# which otherwise blocks wire conversion.
 CUDAQ_PREPARATION_PREFIX = (
     "builtin.module(canonicalize,cc-loop-normalize,symbol-dce,"
-    "expand-measurements)")
+    "func.func(erase-implicit-output),expand-measurements)")
 QLX_REGISTER_TRAVERSAL_PIPELINE = (
     "expand-quake-register-traversals{maximum-iterations=4096 "
     "maximum-generated-operations=1000000}")
