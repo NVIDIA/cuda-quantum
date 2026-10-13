@@ -3901,6 +3901,14 @@ QuakeBridgeVisitor::Result QuakeBridgeVisitor::visit(clang::DeclRefExpr *x) {
   auto *decl = x->getDecl();
   if (auto *funcDecl = dyn_cast<clang::FunctionDecl>(decl))
     return visit(funcDecl);
+  if (auto *enumerator = dyn_cast<clang::EnumConstantDecl>(decl)) {
+    // An enumerator is a constant of the underlying type of its enumeration.
+    auto ty = convertType(x->getType());
+    if (!ty)
+      return std::nullopt;
+    auto attr = builder.getIntegerAttr(*ty, enumerator->getInitVal());
+    return value(arith::ConstantOp::create(builder, toLocation(x), *ty, attr));
+  }
   auto symbolName = getSymbolName(decl);
   if (!symbolTable.count(symbolName)) {
     // This is a catastrophic error. This symbol is unknown and probably came

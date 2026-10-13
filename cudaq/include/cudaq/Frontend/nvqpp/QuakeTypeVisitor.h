@@ -47,6 +47,7 @@ public:
   Result visit(clang::ConstantArrayType *t);
   Result visit(clang::FunctionProtoType *t);
   Result visit(clang::RecordType *t);
+  Result visit(clang::EnumType *t);
   /// A kind of type that is not sugar, has no handler, and has no children that
   /// the base knows is not supported (yet), whether it never was or is new to
   /// clang. It is an error. It is not ignored.
