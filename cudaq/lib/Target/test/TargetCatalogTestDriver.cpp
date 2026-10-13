@@ -12,6 +12,7 @@
 #include "TargetConfigHelper.h"
 #include "cudaq/Target/TargetCatalog.h"
 #include "cudaq/Target/TargetConfig.h"
+#include "cudaq/Target/TargetConfigYaml.h"
 #include <filesystem>
 #include <iostream>
 #include <map>

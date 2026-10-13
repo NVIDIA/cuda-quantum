@@ -26,30 +26,44 @@ endif()
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/FetchDependencies.cmake)
 include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/TargetDatabase.cmake)
 
-# Acyclic bootstrap: the config/parser objects feed cudaq-target-db-gen, whose
-# generated table compiles into the static database.
-#   CUDAQTargetConfigObjects -> cudaq-target-db-gen -> CUDAQTargetDatabase
-#                         \                                 |
-#                         \                                 v
-#                          ------------------------>   CUDAQTargetCatalog
+# Acyclic bootstrap: the lightweight config library feeds the YAML parser
+# objects, which feed cudaq-target-db-gen, whose generated table compiles into
+# the static database. The catalog publicly re-exports the config library and
+# privately links the database.
+#   CUDAQTargetConfig -> CUDAQTargetYamlObjects -> cudaq-target-db-gen
+#         |                                          |
+#         |                                          v
+#         +--------------------------> CUDAQTargetDatabase
+#         |                                          |
+#         v                                          v
+#      CUDAQTargetCatalog <--------------------------
 
-# Internal implementation objects: config model, plugin loader, runtime args,
-# and the YAML parser. Not installed; never a link interface on its own.
-add_library(CUDAQTargetConfigObjects OBJECT
-  TargetConfig.cpp
-  TargetPluginLibrary.cpp
-  TargetRuntimeArgs.cpp
+# Lightweight, installed library: the in-memory target configuration model.
+# Dependency-free public dependency for components (e.g. cudaq-common) that
+# read and modify target configurations but never load targets themselves.
+add_library(CUDAQTargetConfig STATIC TargetConfig.cpp)
+target_include_directories(CUDAQTargetConfig PUBLIC
+  $<BUILD_INTERFACE:${CUDAQ_TARGET_REPO_ROOT}/cudaq/include>
+  $<INSTALL_INTERFACE:include>)
+target_compile_features(CUDAQTargetConfig PUBLIC cxx_std_20)
+target_compile_options(CUDAQTargetConfig PRIVATE "-fexceptions" "-frtti")
+set_target_properties(CUDAQTargetConfig PROPERTIES
+  POSITION_INDEPENDENT_CODE ON)
+
+# Internal YAML parser objects (schema v1). Used by cudaq-target-db-gen and
+# embedded into the catalog; not installed, never a link interface on its own.
+add_library(CUDAQTargetYamlObjects OBJECT
   Yaml/TargetConfigSchema.cpp
   Yaml/v1/TargetConfigV1.cpp
 )
-target_include_directories(CUDAQTargetConfigObjects PUBLIC
+target_include_directories(CUDAQTargetYamlObjects PUBLIC
   $<BUILD_INTERFACE:${CUDAQ_TARGET_REPO_ROOT}/cudaq/include>
   PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
-target_link_libraries(CUDAQTargetConfigObjects PRIVATE reflectcpp ${CMAKE_DL_LIBS})
-target_compile_options(CUDAQTargetConfigObjects PRIVATE "-fexceptions" "-frtti")
-set_target_properties(CUDAQTargetConfigObjects PROPERTIES
+target_link_libraries(CUDAQTargetYamlObjects PRIVATE CUDAQTargetConfig reflectcpp)
+target_compile_options(CUDAQTargetYamlObjects PRIVATE "-fexceptions" "-frtti")
+set_target_properties(CUDAQTargetYamlObjects PROPERTIES
   POSITION_INDEPENDENT_CODE ON)
 
 # The generator to build the targets database.
@@ -66,6 +80,7 @@ target_include_directories(CUDAQTargetDatabase
 target_compile_features(CUDAQTargetDatabase PUBLIC cxx_std_20)
 set_target_properties(CUDAQTargetDatabase PROPERTIES
   POSITION_INDEPENDENT_CODE ON)
+target_link_libraries(CUDAQTargetDatabase PUBLIC CUDAQTargetConfig)
 
 # Finalize the database here if standalone, otherwise wait until after
 # external projects have registered their targets.
@@ -73,10 +88,12 @@ if(CUDAQ_TARGET_STANDALONE_BUILD)
   cudaq_finalize_target_database()
 endif()
 
-# Final static library: the catalog, embedding the database and dependencies.
+# Final full library: the catalog, embedding the database and dependencies.
 add_library(CUDAQTargetCatalog
   TargetCatalog.cpp
-  $<TARGET_OBJECTS:CUDAQTargetConfigObjects>
+  TargetRuntimeArgs.cpp
+  TargetPluginLibrary.cpp
+  $<TARGET_OBJECTS:CUDAQTargetYamlObjects>
   $<TARGET_OBJECTS:reflectcpp>
   $<TARGET_OBJECTS:yaml-cpp>)
 # Ensure library lands in the top-level lib directory.
@@ -93,9 +110,30 @@ target_include_directories(CUDAQTargetCatalog
 target_compile_features(CUDAQTargetCatalog PUBLIC cxx_std_20)
 target_compile_options(CUDAQTargetCatalog PRIVATE "-fexceptions" "-frtti")
 target_link_libraries(CUDAQTargetCatalog
+  PUBLIC
+    CUDAQTargetConfig
   PRIVATE
     CUDAQTargetDatabase
     ${CMAKE_DL_LIBS})
+
+install(TARGETS CUDAQTargetConfig
+        EXPORT CUDAQTargetConfigTargets
+        DESTINATION lib
+        COMPONENT Runtime)
+install(EXPORT CUDAQTargetConfigTargets
+        FILE CUDAQTargetConfigTargets.cmake
+        NAMESPACE cudaq::
+        DESTINATION lib/cmake/CUDAQTargetConfig
+        COMPONENT Development)
+
+include(CMakePackageConfigHelpers)
+configure_package_config_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CUDAQTargetConfigConfig.cmake.in
+  ${CMAKE_CURRENT_BINARY_DIR}/CUDAQTargetConfigConfig.cmake
+  INSTALL_DESTINATION lib/cmake/CUDAQTargetConfig)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/CUDAQTargetConfigConfig.cmake
+        DESTINATION lib/cmake/CUDAQTargetConfig
+        COMPONENT Development)
 
 install(TARGETS CUDAQTargetCatalog CUDAQTargetDatabase
         EXPORT CUDAQTargetCatalogTargets
@@ -107,7 +145,6 @@ install(EXPORT CUDAQTargetCatalogTargets
         DESTINATION lib/cmake/CUDAQTargetCatalog
         COMPONENT Development)
 
-include(CMakePackageConfigHelpers)
 configure_package_config_file(
   ${CMAKE_CURRENT_SOURCE_DIR}/cmake/CUDAQTargetCatalogConfig.cmake.in
   ${CMAKE_CURRENT_BINARY_DIR}/CUDAQTargetCatalogConfig.cmake
@@ -119,8 +156,10 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/CUDAQTargetCatalogConfig.cmake
 if(CUDAQ_TARGET_STANDALONE_BUILD)
   # The full build installs these headers from the tree-wide include dir.
   install(FILES
+    ${CUDAQ_TARGET_REPO_ROOT}/cudaq/include/cudaq/Target/TargetAbiVersion.h
     ${CUDAQ_TARGET_REPO_ROOT}/cudaq/include/cudaq/Target/TargetCatalog.h
     ${CUDAQ_TARGET_REPO_ROOT}/cudaq/include/cudaq/Target/TargetConfig.h
+    ${CUDAQ_TARGET_REPO_ROOT}/cudaq/include/cudaq/Target/TargetConfigYaml.h
     ${CUDAQ_TARGET_REPO_ROOT}/cudaq/include/cudaq/Target/TargetDatabase.h
     ${CUDAQ_TARGET_REPO_ROOT}/cudaq/include/cudaq/Target/TargetPluginLibrary.h
     DESTINATION include/cudaq/Target

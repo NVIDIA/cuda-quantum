@@ -264,7 +264,7 @@ reflect-cpp - MIT License
 
 Copyright (c) 2023-2025 Code17 GmbH.
 reflect-cpp is fetched from an immutable pinned commit and built from source
-at configure time (see cudaq/lib/Target/cmake/Dependencies.cmake); it is
+at configure time (see cudaq/lib/Target/cmake/FetchDependencies.cmake); it is
 statically linked into the CUDAQ target catalog library.
 License at <https://github.com/getml/reflect-cpp/blob/main/LICENSE>
 The full license text is distributed with CUDA-Q in the file
@@ -277,7 +277,7 @@ yaml-cpp - MIT License
 
 Copyright (c) 2008-2015 Jesse Beder.
 yaml-cpp is fetched from an immutable pinned commit and built from source at
-configure time (see cudaq/lib/Target/cmake/Dependencies.cmake); it is
+configure time (see cudaq/lib/Target/cmake/FetchDependencies.cmake); it is
 statically linked into the CUDAQ target catalog library.
 License at <https://github.com/jbeder/yaml-cpp/blob/master/LICENSE>
 The full license text is distributed with CUDA-Q in the file

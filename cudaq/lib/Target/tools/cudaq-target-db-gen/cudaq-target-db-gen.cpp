@@ -16,9 +16,8 @@
 // Usage:
 //   cudaq-target-db-gen -o <output.cpp> <name>=<path/to/name.yml> ...
 
-#include "cudaq/Target/TargetCatalog.h"
 #include "cudaq/Target/TargetConfig.h"
-#include "cudaq/Target/TargetDatabase.h"
+#include "cudaq/Target/TargetConfigYaml.h"
 #include "cudaq/Target/TargetPluginLibrary.h"
 #include <cctype>
 #include <cerrno>

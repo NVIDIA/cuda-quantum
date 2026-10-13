@@ -14,6 +14,7 @@
 #include "cudaq/platform/qpu_utils.h"
 #endif
 #include "cudaq/Target/TargetCatalog.h"
+#include "cudaq/Target/TargetConfigYaml.h"
 #include "cudaq/Target/TargetPluginLibrary.h"
 #include <cstdlib>
 #include <filesystem>

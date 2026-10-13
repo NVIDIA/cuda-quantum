@@ -8,7 +8,7 @@
 
 #include "Yaml/TargetConfigSchema.h"
 #include "TargetConfigHelper.h"
-#include "cudaq/Target/TargetCatalog.h"
+#include "cudaq/Target/TargetConfigYaml.h"
 #include <atomic>
 #include <fstream>
 #include <rfl/yaml.hpp>

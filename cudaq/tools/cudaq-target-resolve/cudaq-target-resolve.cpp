@@ -41,6 +41,7 @@
 //     cudaq-target-resolve --list-simulators --include-unavailable
 
 #include "cudaq/Target/TargetCatalog.h"
+#include "cudaq/Target/TargetConfigYaml.h"
 #include "llvm/Support/Base64.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/FileSystem.h"

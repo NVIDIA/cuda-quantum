@@ -68,6 +68,12 @@ set(REFLECTCPP_CHECK_HEADERS OFF)
 # Ordering matters: yaml-cpp is a dependency of reflect-cpp.
 FetchContent_MakeAvailable(yaml_cpp reflectcpp)
 
+# Suppress an upstream yaml-cpp warning while compiling the dependency itself.
+if (TARGET yaml-cpp)
+  target_compile_options(yaml-cpp PRIVATE
+    "$<$<COMPILE_LANG_AND_ID:CXX,Clang,AppleClang>:-Wno-covered-switch-default>")
+endif()
+
 # Private static libraries, with their symbols hidden from the shared library
 # that links them. SYSTEM keeps the upstream headers out of reach of the
 # warnings-as-errors settings the root build applies to our own sources.
