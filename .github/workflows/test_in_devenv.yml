@@ -9,6 +9,10 @@ on:
         type: string
         required: false
         default: openmpi
+      toolchain:
+        type: string
+        required: false
+        default: ''
       devdeps_image:
         required: false
         type: string
@@ -57,14 +61,19 @@ jobs:
 
       - name: Compute platform ID
         id: platform_meta
+        env:
+          toolchain: ${{ inputs.toolchain }}
         run: |
           platform_id=$(echo "${{ inputs.platform }}" | sed 's/linux\///g' | tr -d ' ')
           echo "platform_id=$platform_id" >> $GITHUB_OUTPUT
+          # Separate partition per toolchain: ccache hashes the compiler, so
+          # gcc12 and llvm never share entries.
+          echo "ccache_key=${platform_id}-devenv${toolchain:+-$toolchain}" >> $GITHUB_OUTPUT
 
       - name: Restore ccache from GHCR
         uses: ./.github/actions/ccache-restore
         with:
-          cache-key: ${{ steps.platform_meta.outputs.platform_id }}-devenv
+          cache-key: ${{ steps.platform_meta.outputs.ccache_key }}
           registry-token: ${{ github.token }}
 
       - name: Set up context for buildx
@@ -160,7 +169,7 @@ jobs:
         if: github.event_name != 'push'
         uses: ./.github/actions/ccache-push
         with:
-          cache-key: ${{ steps.platform_meta.outputs.platform_id }}-devenv
+          cache-key: ${{ steps.platform_meta.outputs.ccache_key }}
           cache-path: /tmp/ccache-export/ccache
           registry-token: ${{ github.token }}
 
@@ -228,14 +237,19 @@ jobs:
 
       - name: Compute platform ID
         id: platform_meta
+        env:
+          toolchain: ${{ inputs.toolchain }}
         run: |
           platform_id=$(echo "${{ inputs.platform }}" | sed 's/linux\///g' | tr -d ' ')
           echo "platform_id=$platform_id" >> $GITHUB_OUTPUT
+          # Separate partition per toolchain: ccache hashes the compiler, so
+          # gcc12 and llvm never share entries.
+          echo "ccache_key=${platform_id}-devenv-python${toolchain:+-$toolchain}" >> $GITHUB_OUTPUT
 
       - name: Restore ccache from GHCR
         uses: ./.github/actions/ccache-restore
         with:
-          cache-key: ${{ steps.platform_meta.outputs.platform_id }}-devenv-python
+          cache-key: ${{ steps.platform_meta.outputs.ccache_key }}
           registry-token: ${{ github.token }}
 
       - name: Set up context for buildx
@@ -354,7 +368,7 @@ jobs:
         if: github.event_name != 'push'
         uses: ./.github/actions/ccache-push
         with:
-          cache-key: ${{ steps.platform_meta.outputs.platform_id }}-devenv-python
+          cache-key: ${{ steps.platform_meta.outputs.ccache_key }}
           cache-path: /tmp/ccache-export/ccache
           registry-token: ${{ github.token }}
 

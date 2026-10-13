@@ -202,8 +202,6 @@ fi
 PREREQS_BUILD_DIR=$(mktemp -d)
 : "${PREREQS_BUILD_DIR:?ERROR mktemp failed}"
 echo "Building prerequisites in $PREREQS_BUILD_DIR"
-# Remove below if you wish to debug pre-req build failures
-trap "rm -rf $PREREQS_BUILD_DIR" EXIT
 
 # Retry a command, clearing package-manager metadata between attempts. The CUDA
 # yum repo CDN intermittently serves a stale repomd.xml that points at rotated
@@ -276,6 +274,8 @@ working_dir=`pwd`
 read __errexit__ < <(echo $SHELLOPTS | grep -Eo '(^|:)errexit(:|$)' || echo)
 function prepare_exit {
   cd "$working_dir" && remove_temp_installs
+  # Comment out to debug pre-req build failures.
+  rm -rf "$PREREQS_BUILD_DIR"
   if [ -z "$__errexit__" ]; then set +e; fi
 }
 

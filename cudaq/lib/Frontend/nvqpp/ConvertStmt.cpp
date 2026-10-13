@@ -7,13 +7,13 @@
  ******************************************************************************/
 
 #include "cudaq/Frontend/nvqpp/ASTBridge.h"
-#include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/Marshal.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/Support/Debug.h"
 #include "mlir/IR/Builders.h"
+#include <optional>
+#include <tuple>
+#include <vector>
 
 #define DEBUG_TYPE "lower-ast-stmt"
 
@@ -25,39 +25,64 @@ bool QuakeBridgeVisitor::hasTerminator(Block &block) {
   return !block.empty() && block.back().hasTrait<OpTrait::IsTerminator>();
 }
 
-bool QuakeBridgeVisitor::VisitBreakStmt(clang::BreakStmt *x) {
+QuakeBridgeVisitor::Result QuakeBridgeVisitor::visit(clang::BreakStmt *x) {
   // It is a C++ syntax error if a break statement is not in a loop or switch
   // statement. The bridge does not currently support switch statements.
   LLVM_DEBUG(llvm::dbgs() << "%% "; x->dump());
   if (builder.getBlock())
     cc::UnwindBreakOp::create(builder, toLocation(x), currentLoopArgs());
-  return true;
+  return std::nullopt;
 }
 
-bool QuakeBridgeVisitor::VisitContinueStmt(clang::ContinueStmt *x) {
+QuakeBridgeVisitor::Result QuakeBridgeVisitor::visit(clang::ContinueStmt *x) {
   // It is a C++ syntax error if a continue statement is not in a loop.
   LLVM_DEBUG(llvm::dbgs() << "%% "; x->dump());
   if (builder.getBlock())
     cc::UnwindContinueOp::create(builder, toLocation(x), currentLoopArgs());
-  return true;
+  return std::nullopt;
 }
 
-bool QuakeBridgeVisitor::TraverseDeclStmt(clang::DeclStmt *x,
-                                          DataRecursionQueue *q) {
-  const auto depthBefore = valueStack.size();
-  auto result = Base::TraverseDeclStmt(x, q);
-  const auto depthAfter = valueStack.size();
-  if (result && depthAfter > depthBefore) {
-    [[maybe_unused]] auto unused = lastValues(depthAfter - depthBefore);
+static_assert(derivedStmtsAreKnown<clang::AsmStmt, clang::GCCAsmStmt,
+                                   clang::MSAsmStmt>());
+
+void QuakeBridgeVisitor::reportUnsupportedNode(clang::Stmt *x) {
+  auto &de = astContext->getDiagnostics();
+  const auto id = de.getCustomDiagID(clang::DiagnosticsEngine::Error,
+                                     "'%0' is not yet supported in a kernel");
+  de.Report(x->getBeginLoc(), id) << x->getStmtClassName();
+  fail();
+}
+
+QuakeBridgeVisitor::Result QuakeBridgeVisitor::visit(clang::DeclStmt *x) {
+  // The declarations contain their initializers.
+  bool ok = true;
+  for (auto *decl : x->decls()) {
+    // A variable has code to generate, and a declaration of a function is a
+    // reference to the function. The other declarations in a kernel declare
+    // types: classes, enumerations, aliases, and so on. They generate no code.
+    // A type is converted where a variable (or an expression) uses it, whether
+    // it is declared here or not.
+    if (!isa<clang::VarDecl, clang::FunctionDecl>(decl))
+      continue;
+    if (!traverseDecl(decl)) {
+      ok = false;
+      break;
+    }
   }
-  return result;
+  return finish(ok);
 }
 
-bool QuakeBridgeVisitor::VisitCompoundAssignOperator(
-    clang::CompoundAssignOperator *x) {
+QuakeBridgeVisitor::Result
+QuakeBridgeVisitor::visit(clang::CompoundAssignOperator *x) {
+  auto lhsPtrValue = traverseValue(x->getLHS());
+  if (!lhsPtrValue)
+    return std::nullopt;
+  auto rhsValue = traverseValue(x->getRHS());
+  if (!rhsValue)
+    return std::nullopt;
   auto loc = toLocation(x->getSourceRange());
-  auto rhs = popValue();
-  auto lhsPtr = popValue();
+  auto rhs = *rhsValue;
+  auto lhsPtr = *lhsPtrValue;
   auto lhs = loadLValue(lhsPtr);
 
   // Coerce the rhs to be the same sized type as the lhs.
@@ -118,32 +143,33 @@ bool QuakeBridgeVisitor::VisitCompoundAssignOperator(
   }();
 
   cudaq::cc::StoreOp::create(builder, loc, result, lhsPtr);
-  return pushValue(lhsPtr);
+  return BridgeResult{lhsPtr};
 }
 
-bool QuakeBridgeVisitor::TraverseAsmStmt(clang::AsmStmt *x,
-                                         DataRecursionQueue *q) {
-  TODO_x(toLocation(x), x, mangler, "asm statement");
-  return false;
+QuakeBridgeVisitor::Result QuakeBridgeVisitor::visit(clang::AsmStmt *x) {
+  // AsmStmt does not know where it is. The statement that it is does.
+  auto *stmt = static_cast<clang::Stmt *>(x);
+  TODO_x(toLocation(stmt), stmt, mangler, "asm statement");
+  return fail();
 }
 
-bool QuakeBridgeVisitor::TraverseCXXCatchStmt(clang::CXXCatchStmt *x,
-                                              DataRecursionQueue *q) {
+QuakeBridgeVisitor::Result QuakeBridgeVisitor::visit(clang::CXXCatchStmt *x) {
   TODO_x(toLocation(x), x, mangler, "catch statement");
-  return false;
+  return fail();
 }
 
-bool QuakeBridgeVisitor::TraverseCXXForRangeStmt(clang::CXXForRangeStmt *x,
-                                                 DataRecursionQueue *) {
+QuakeBridgeVisitor::Result
+QuakeBridgeVisitor::visit(clang::CXXForRangeStmt *x) {
   auto loc = toLocation(x);
-  if (!TraverseStmt(x->getRangeInit()))
-    return false;
+  auto rangeValue = traverseValue(x->getRangeInit());
+  if (!rangeValue)
+    return std::nullopt;
   // `std::vector<measure_handle>` locals are stack-allocated by
   // `ConvertDecl.cpp` and arrive here as `!cc.ptr<!cc.sequence<...>>`; the
   // `SpanLikeType` dispatch below needs the descriptor value, not the slot
   // pointer. Other handle-vec consumers in `ConvertExpr.cpp` call the same
   // helper. The `quake::VeqType` arm is unaffected.
-  Value buffer = loadHandleVectorIfPointer(builder, loc, popValue());
+  Value buffer = loadHandleVectorIfPointer(builder, loc, *rangeValue);
   bool result = true;
   auto *body = x->getBody();
   auto *loopVar = x->getLoopVariable();
@@ -223,11 +249,12 @@ bool QuakeBridgeVisitor::TraverseCXXForRangeStmt(clang::CXXForRangeStmt *x,
             symbolTable.insert(loopVar->getName(), addr);
           } else {
             // Create a local copy of the value from the container.
-            if (!TraverseVarDecl(loopVar)) {
+            auto iterVarValue = traverseValue(loopVar);
+            if (!iterVarValue) {
               result = false;
               return;
             }
-            auto iterVar = popValue();
+            auto iterVar = *iterVarValue;
             Value atOffset = cc::LoadOp::create(builder, loc, addr);
             if (isBool) {
               atOffset = cc::CastOp::create(builder, loc, builder.getI1Type(),
@@ -260,7 +287,7 @@ bool QuakeBridgeVisitor::TraverseCXXForRangeStmt(clang::CXXForRangeStmt *x,
             cc::StoreOp::create(builder, loc, atOffset, iterVar);
           }
         }
-        if (!TraverseStmt(static_cast<clang::Stmt *>(body))) {
+        if (!traverseStmt(static_cast<clang::Stmt *>(body))) {
           result = false;
           return;
         }
@@ -292,7 +319,7 @@ bool QuakeBridgeVisitor::TraverseCXXForRangeStmt(clang::CXXForRangeStmt *x,
       Value ref =
           cudaq::quake::ExtractRefOp::create(builder, loc, buffer, index);
       symbolTable.insert(loopVar->getName(), ref);
-      if (!TraverseStmt(static_cast<clang::Stmt *>(body)))
+      if (!traverseStmt(static_cast<clang::Stmt *>(body)))
         result = false;
     };
     auto idxIters = cudaq::cc::CastOp::create(builder, loc, i64Ty, iters,
@@ -301,52 +328,53 @@ bool QuakeBridgeVisitor::TraverseCXXForRangeStmt(clang::CXXForRangeStmt *x,
   } else {
     TODO_x(toLocation(x), x, mangler, "ranged for statement");
   }
-  return result;
+  return finish(result);
 }
 
-bool QuakeBridgeVisitor::TraverseCXXTryStmt(clang::CXXTryStmt *x,
-                                            DataRecursionQueue *q) {
+QuakeBridgeVisitor::Result QuakeBridgeVisitor::visit(clang::CXXTryStmt *x) {
   TODO_x(toLocation(x), x, mangler, "try statement");
-  return false;
+  return fail();
 }
 
-bool QuakeBridgeVisitor::TraverseCapturedStmt(clang::CapturedStmt *x,
-                                              DataRecursionQueue *q) {
+QuakeBridgeVisitor::Result QuakeBridgeVisitor::visit(clang::CapturedStmt *x) {
   TODO_x(toLocation(x), x, mangler, "captured statement");
-  return false;
+  return fail();
 }
 
-bool QuakeBridgeVisitor::TraverseCoreturnStmt(clang::CoreturnStmt *x,
-                                              DataRecursionQueue *q) {
+QuakeBridgeVisitor::Result QuakeBridgeVisitor::visit(clang::CoreturnStmt *x) {
   TODO_x(toLocation(x), x, mangler, "coreturn statement");
-  return false;
+  return fail();
 }
 
-bool QuakeBridgeVisitor::TraverseCoroutineBodyStmt(clang::CoroutineBodyStmt *x,
-                                                   DataRecursionQueue *q) {
+QuakeBridgeVisitor::Result
+QuakeBridgeVisitor::visit(clang::CoroutineBodyStmt *x) {
   TODO_x(toLocation(x), x, mangler, "coroutine body statement");
-  return false;
+  return fail();
 }
 
-bool QuakeBridgeVisitor::TraverseGotoStmt(clang::GotoStmt *x,
-                                          DataRecursionQueue *q) {
+QuakeBridgeVisitor::Result QuakeBridgeVisitor::visit(clang::GotoStmt *x) {
   TODO_x(toLocation(x), x, mangler, "goto statement");
-  return false;
+  return fail();
 }
 
-bool QuakeBridgeVisitor::TraverseIndirectGotoStmt(clang::IndirectGotoStmt *x,
-                                                  DataRecursionQueue *q) {
+QuakeBridgeVisitor::Result
+QuakeBridgeVisitor::visit(clang::IndirectGotoStmt *x) {
   TODO_x(toLocation(x), x, mangler, "indirect goto statement");
-  return false;
+  return fail();
 }
 
-bool QuakeBridgeVisitor::TraverseSwitchStmt(clang::SwitchStmt *x,
-                                            DataRecursionQueue *q) {
+QuakeBridgeVisitor::Result QuakeBridgeVisitor::visit(clang::SwitchStmt *x) {
   TODO_x(toLocation(x), x, mangler, "switch statement");
-  return false;
+  return fail();
 }
 
-bool QuakeBridgeVisitor::VisitReturnStmt(clang::ReturnStmt *x) {
+QuakeBridgeVisitor::Result QuakeBridgeVisitor::visit(clang::ReturnStmt *x) {
+  std::optional<Value> returned;
+  if (x->getRetValue()) {
+    returned = traverseValue(x->getRetValue());
+    if (!returned)
+      return std::nullopt;
+  }
   auto loc = toLocation(x->getSourceRange());
   bool isFuncScope = [&]() {
     if (auto *block = builder.getBlock())
@@ -357,7 +385,7 @@ bool QuakeBridgeVisitor::VisitReturnStmt(clang::ReturnStmt *x) {
   }();
   LLVM_DEBUG(llvm::dbgs() << "%% "; x->dump());
   if (x->getRetValue()) {
-    auto result = popValue();
+    auto result = *returned;
     auto resTy = result.getType();
     if (isa<cc::PointerType>(resTy)) {
       // Promote reference (T&) to value (T) on a return. (There is not
@@ -397,45 +425,40 @@ bool QuakeBridgeVisitor::VisitReturnStmt(clang::ReturnStmt *x) {
       cc::ReturnOp::create(builder, loc, result);
     else
       cc::UnwindReturnOp::create(builder, loc, result);
-    return true;
+    return std::nullopt;
   }
   if (isFuncScope)
     cc::ReturnOp::create(builder, loc);
   else
     cc::UnwindReturnOp::create(builder, loc);
-  return true;
+  return std::nullopt;
 }
 
-bool QuakeBridgeVisitor::TraverseCompoundStmt(clang::CompoundStmt *stmt,
-                                              DataRecursionQueue *q) {
+QuakeBridgeVisitor::Result
+QuakeBridgeVisitor::visit(clang::CompoundStmt *stmt) {
   auto loc = toLocation(stmt->getSourceRange());
   SymbolTableScope var_scope(symbolTable);
   auto traverseAndCheck = [&](clang::Stmt *cs) {
     LLVM_DEBUG(llvm::dbgs() << "[[[\n"; cs->dump());
-    if (!TraverseStmt(cs))
+    if (!traverseStmt(cs)) {
       reportClangError(cs, mangler, "statement not supported in qpu kernel");
-    LLVM_DEBUG({
-      if (!typeStack.empty()) {
-        llvm::dbgs() << "\n\nERROR: type stack has garbage after stmt:\n";
-        for (auto t : llvm::reverse(typeStack))
-          t.dump();
-        typeStack.clear();
-      }
-      llvm::dbgs() << "]]]\n";
-    });
+      // Carry on with the next statement.
+      clearFailure();
+    }
+    LLVM_DEBUG(llvm::dbgs() << "]]]\n");
   };
   if (skipCompoundScope) {
     skipCompoundScope = false;
     for (auto *cs : stmt->body())
       traverseAndCheck(static_cast<clang::Stmt *>(cs));
-    return true;
+    return std::nullopt;
   }
   cc::ScopeOp::create(builder, loc, [&](OpBuilder &builder, Location loc) {
     for (auto *cs : stmt->body())
       traverseAndCheck(static_cast<clang::Stmt *>(cs));
     cc::ContinueOp::create(builder, loc);
   });
-  return true;
+  return std::nullopt;
 }
 
 // Shared implementation for lowering of `do while` and `while` loops.
@@ -451,12 +474,12 @@ bool QuakeBridgeVisitor::traverseDoOrWhileStmt(S *x) {
     auto &bodyBlock = region.front();
     OpBuilder::InsertionGuard guard(builder);
     builder.setInsertionPointToStart(&bodyBlock);
-    if (!TraverseStmt(static_cast<clang::Stmt *>(cond))) {
+    auto val = traverseValue(static_cast<clang::Stmt *>(cond));
+    if (!val) {
       result = false;
       return;
     }
-    auto val = popValue();
-    cc::ConditionOp::create(builder, loc, val, ValueRange{});
+    cc::ConditionOp::create(builder, loc, *val, ValueRange{});
   };
   auto *body = x->getBody();
   auto bodyBuilder = [&](OpBuilder &builder, Location loc, Region &region) {
@@ -467,7 +490,7 @@ bool QuakeBridgeVisitor::traverseDoOrWhileStmt(S *x) {
     OpBuilder::InsertionGuard guard(builder);
     builder.setInsertionPointToStart(&bodyBlock);
     LoopArgsScope loopArgsScope(*this, ValueRange{});
-    if (!TraverseStmt(static_cast<clang::Stmt *>(body))) {
+    if (!traverseStmt(static_cast<clang::Stmt *>(body))) {
       result = false;
       return;
     }
@@ -480,18 +503,15 @@ bool QuakeBridgeVisitor::traverseDoOrWhileStmt(S *x) {
   return result;
 }
 
-bool QuakeBridgeVisitor::TraverseDoStmt(clang::DoStmt *x,
-                                        DataRecursionQueue *) {
-  return traverseDoOrWhileStmt</*postCondition=*/true>(x);
+QuakeBridgeVisitor::Result QuakeBridgeVisitor::visit(clang::DoStmt *x) {
+  return finish(traverseDoOrWhileStmt</*postCondition=*/true>(x));
 }
 
-bool QuakeBridgeVisitor::TraverseWhileStmt(clang::WhileStmt *x,
-                                           DataRecursionQueue *) {
-  return traverseDoOrWhileStmt</*postCondition=*/false>(x);
+QuakeBridgeVisitor::Result QuakeBridgeVisitor::visit(clang::WhileStmt *x) {
+  return finish(traverseDoOrWhileStmt</*postCondition=*/false>(x));
 }
 
-bool QuakeBridgeVisitor::TraverseIfStmt(clang::IfStmt *x,
-                                        DataRecursionQueue *q) {
+QuakeBridgeVisitor::Result QuakeBridgeVisitor::visit(clang::IfStmt *x) {
   bool result = true;
   auto loc = toLocation(x);
   auto stmtBuilder = [&](clang::Stmt *stmt) {
@@ -502,7 +522,7 @@ bool QuakeBridgeVisitor::TraverseIfStmt(clang::IfStmt *x,
       auto &bodyBlock = region.front();
       OpBuilder::InsertionGuard guard(builder);
       builder.setInsertionPointToStart(&bodyBlock);
-      if (!TraverseStmt(stmt)) {
+      if (!traverseStmt(stmt)) {
         result = false;
         return;
       }
@@ -516,51 +536,55 @@ bool QuakeBridgeVisitor::TraverseIfStmt(clang::IfStmt *x,
   if (auto *init = x->getInit()) {
     cc::ScopeOp::create(builder, loc, [&](OpBuilder &builder, Location loc) {
       SymbolTableScope varScope(symbolTable);
-      if (!TraverseStmt(init) || !TraverseStmt(cond)) {
+      if (!traverseStmt(init)) {
+        result = false;
+        return;
+      }
+      auto condValue = traverseValue(cond);
+      if (!condValue) {
         result = false;
         return;
       }
       if (x->getElse())
-        cc::IfOp::create(builder, loc, TypeRange{}, popValue(),
+        cc::IfOp::create(builder, loc, TypeRange{}, *condValue,
                          stmtBuilder(x->getThen()), stmtBuilder(x->getElse()));
       else
-        cc::IfOp::create(builder, loc, TypeRange{}, popValue(),
+        cc::IfOp::create(builder, loc, TypeRange{}, *condValue,
                          stmtBuilder(x->getThen()));
       cc::ContinueOp::create(builder, loc);
     });
   } else {
     // If there is no initialization expression, skip creating an `if` scope.
-    if (!TraverseStmt(cond))
-      return false;
+    auto condValue = traverseValue(cond);
+    if (!condValue)
+      return std::nullopt;
+    Value condition = *condValue;
 
-    // For something like an `operator[]` the TOS value (likely) is a
-    // pointer to the indexed element in a vector. Since there may not be a cast
-    // node in the AST to make that a RHS value, we must explicitly check here
-    // and add the required a load and cast.
-    if (auto ptrTy = dyn_cast<cc::PointerType>(peekValue().getType())) {
-      Value v = popValue();
-      pushValue(cc::LoadOp::create(builder, loc, v));
+    // For something like an `operator[]` the value of the condition (likely)
+    // is a pointer to the indexed element in a vector. Since there may not be a
+    // cast node in the AST to make that a RHS value, we must explicitly check
+    // here and add the required a load and cast.
+    if (auto ptrTy = dyn_cast<cc::PointerType>(condition.getType())) {
+      condition = cc::LoadOp::create(builder, loc, condition);
       if (ptrTy != builder.getI1Type()) {
         reportClangError(x, mangler,
                          "expression in condition not yet supported");
       }
     }
     if (x->getElse())
-      cc::IfOp::create(builder, loc, TypeRange{}, popValue(),
+      cc::IfOp::create(builder, loc, TypeRange{}, condition,
                        stmtBuilder(x->getThen()), stmtBuilder(x->getElse()));
     else
-      cc::IfOp::create(builder, loc, TypeRange{}, popValue(),
+      cc::IfOp::create(builder, loc, TypeRange{}, condition,
                        stmtBuilder(x->getThen()));
   }
-  return result;
+  return finish(result);
 }
 
-bool QuakeBridgeVisitor::TraverseForStmt(clang::ForStmt *x,
-                                         DataRecursionQueue *q) {
+QuakeBridgeVisitor::Result QuakeBridgeVisitor::visit(clang::ForStmt *x) {
   bool result = true;
   auto loc = toLocation(x);
   auto *cond = x->getCond();
-  const auto initialValueDepth = valueStack.size();
   auto whileBuilder = [&](OpBuilder &builder, Location loc, Region &region) {
     if (!result)
       return;
@@ -568,12 +592,12 @@ bool QuakeBridgeVisitor::TraverseForStmt(clang::ForStmt *x,
     auto &bodyBlock = region.front();
     OpBuilder::InsertionGuard guard(builder);
     builder.setInsertionPointToStart(&bodyBlock);
-    if (!TraverseStmt(static_cast<clang::Stmt *>(cond))) {
+    auto val = traverseValue(static_cast<clang::Stmt *>(cond));
+    if (!val) {
       result = false;
       return;
     }
-    auto val = popValue();
-    cc::ConditionOp::create(builder, loc, val, ValueRange{});
+    cc::ConditionOp::create(builder, loc, *val, ValueRange{});
   };
   auto *body = x->getBody();
   auto bodyBuilder = [&](OpBuilder &builder, Location loc, Region &region) {
@@ -584,7 +608,7 @@ bool QuakeBridgeVisitor::TraverseForStmt(clang::ForStmt *x,
     OpBuilder::InsertionGuard guard(builder);
     builder.setInsertionPointToStart(&bodyBlock);
     LoopArgsScope loopArgsScope(*this, ValueRange{});
-    if (!TraverseStmt(static_cast<clang::Stmt *>(body))) {
+    if (!traverseStmt(static_cast<clang::Stmt *>(body))) {
       result = false;
       return;
     }
@@ -599,7 +623,7 @@ bool QuakeBridgeVisitor::TraverseForStmt(clang::ForStmt *x,
     auto &bodyBlock = region.front();
     OpBuilder::InsertionGuard guard(builder);
     builder.setInsertionPointToStart(&bodyBlock);
-    if (!TraverseStmt(static_cast<clang::Stmt *>(incr)))
+    if (!traverseStmt(static_cast<clang::Stmt *>(incr)))
       result = false;
   };
 
@@ -608,7 +632,7 @@ bool QuakeBridgeVisitor::TraverseForStmt(clang::ForStmt *x,
   if (auto *init = x->getInit()) {
     SymbolTableScope var_scope(symbolTable);
     cc::ScopeOp::create(builder, loc, [&](OpBuilder &builder, Location loc) {
-      if (!TraverseStmt(static_cast<clang::Stmt *>(init))) {
+      if (!traverseStmt(static_cast<clang::Stmt *>(init))) {
         result = false;
         return;
       }
@@ -624,19 +648,7 @@ bool QuakeBridgeVisitor::TraverseForStmt(clang::ForStmt *x,
     cc::LoopOp::create(builder, loc, ValueRange{}, postCondition, whileBuilder,
                        bodyBuilder, stepBuilder);
   }
-  const auto finalValueDepth = valueStack.size();
-  if (finalValueDepth > initialValueDepth) {
-    [[maybe_unused]] auto vals =
-        lastValues(finalValueDepth - initialValueDepth);
-    LLVM_DEBUG({
-      llvm::dbgs() << "Garbage left after loop:\n";
-      for (auto v : vals)
-        v.dump();
-      llvm::dbgs() << "\n";
-    });
-  }
-
-  return result;
+  return finish(result);
 }
 
 } // namespace cudaq::detail

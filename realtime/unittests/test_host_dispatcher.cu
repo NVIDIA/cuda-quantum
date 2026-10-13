@@ -1262,18 +1262,22 @@ bool create_shared_ring_host_graph(void** d_mailbox_bank,
   return true;
 }
 
-__device__ int device_double_handler(const void* input, void* output,
-                                     std::uint32_t arg_len,
-                                     std::uint32_t max_result_len,
-                                     std::uint32_t* result_len) {
-  const std::uint8_t* in = static_cast<const std::uint8_t*>(input);
-  std::uint8_t* out = static_cast<std::uint8_t*>(output);
-  std::uint32_t n = arg_len;
+// DEVICE_CALL handler (same two-pointer form as host_increment above, plus a
+// returned status): doubles the rx payload into tx and sets result_len.
+__device__ int device_double_handler(const void* rx_slot, void* tx_slot,
+                                     std::size_t slot_size) {
+  const auto* h = static_cast<const RPCHeader*>(rx_slot);
+  const auto* in =
+      static_cast<const std::uint8_t*>(rx_slot) + sizeof(RPCHeader);
+  auto* resp = static_cast<RPCResponse*>(tx_slot);
+  auto* out = static_cast<std::uint8_t*>(tx_slot) + sizeof(RPCResponse);
+  const std::uint32_t max_result_len = slot_size - sizeof(RPCResponse);
+  std::uint32_t n = h->arg_len;
   if (n > max_result_len)
     n = max_result_len;
   for (std::uint32_t i = 0; i < n; ++i)
     out[i] = static_cast<std::uint8_t>(in[i] * 2);
-  *result_len = n;
+  resp->result_len = n;
   return 0;
 }
 
@@ -1638,9 +1642,12 @@ public:
   }
 
   // Producer side (test): enqueue an already-written RX slot for delivery.
+  // Single producer.  The slot must be stored before tail_ advances: rx_poll
+  // reads pending_[head] as soon as it sees head != tail.
   void enqueue(std::uint32_t slot) {
-    std::atomic_thread_fence(std::memory_order_release);
-    pending_[tail_.fetch_add(1, std::memory_order_acq_rel) % kCap] = slot;
+    const std::uint32_t t = tail_.load(std::memory_order_relaxed);
+    pending_[t % kCap] = slot;
+    tail_.store(t + 1, std::memory_order_release);
   }
   bool published(std::uint32_t slot) {
     return published_[slot].load(std::memory_order_acquire) != 0;

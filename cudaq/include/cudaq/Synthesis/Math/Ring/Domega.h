@@ -136,6 +136,12 @@ public:
   std::string to_string() const {
     return _u.to_string() + "/sqrt2^" + _k.to_string();
   }
+
+private:
+  ZOmega &u_mut() { return _u; }
+  Integer &k_mut() { return _k; }
+
+  friend class DOmegaUnitary;
 };
 
 //===----------------------------------------------------------------------===//

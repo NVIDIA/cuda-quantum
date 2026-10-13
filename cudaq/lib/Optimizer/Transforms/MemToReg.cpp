@@ -157,9 +157,13 @@ private:
         // which operand is being examined, so a classical alloca captured
         // alongside an unrelated quantum capture would otherwise look like a
         // harmless load and get promoted out from under the closure.
+        //
+        // quake.create_state reads the buffer through its address, which it
+        // needs as a pointer, so it is not a load-like use either.
         if (isa<cudaq::quake::CustomUnitaryCallOp,
                 cudaq::quake::CustomUnitaryConstantOp,
-                cudaq::cc::InstantiateCallableOp>(u) ||
+                cudaq::quake::CreateStateOp, cudaq::cc::InstantiateCallableOp>(
+                u) ||
             (!isMemoryUse(u) && !nonEscapingDef(u, v))) {
           add = nullptr;
           break;

@@ -132,9 +132,10 @@ typedef struct {
   // Bytes per slot: the stride, matching cudaq_ringbuffer_t's rx/tx_stride_sz.
   // Every dispatch shape reads it the same way, CUDAQ_KERNEL_UNIFIED included.
   //
-  // KNOWN ISSUE: the dispatch kernels also derive a handler's max_result_len
-  // from the stride, as `stride - sizeof(RPCResponse)`.  That bounds the slot
-  // buffer correctly, but a transport whose send descriptor is prepared for a
+  // KNOWN ISSUE: the dispatch kernels also hand the stride to DEVICE_CALL
+  // handlers as `slot_size`, from which a handler derives its result capacity
+  // as `slot_size - sizeof(RPCResponse)`.  That bounds the slot buffer
+  // correctly, but a transport whose send descriptor is prepared for a
   // shorter fixed frame transmits only that prefix, so a handler can be told
   // it has more room than actually reaches the wire.  Both RoCE transports
   // are in that position (gpu_roce: frame_size vs page_size; cpu_roce:
@@ -265,13 +266,13 @@ typedef void (*cudaq_unified_launch_fn_t)(
     volatile int *shutdown_flag, uint64_t *stats, cudaStream_t stream);
 
 // Transport-agnostic unified dispatch kernel launcher (from
-// libcudaq-realtime itself).  The kernel it launches reaches
+// libcudaq-realtime-dispatch.a).  The kernel it launches reaches
 // its transport through the three __device__ hooks in
 // unified_device_transport.cuh, so a transport wires itself up by
 // implementing those rather than by writing a kernel.
 //
 // `tx_stride_sz` means what it does in the launch functions above: the slot
-// stride, from which the kernel derives the handler's max_result_len.  See
+// stride, which the kernel hands to DEVICE_CALL handlers as `slot_size`.  See
 // the KNOWN ISSUE on cudaq_dispatcher_config_t::slot_size for the caveat that
 // bound carries, which this path shares with the ring path.
 //
@@ -280,12 +281,16 @@ typedef void (*cudaq_unified_launch_fn_t)(
 // it on the GPU.
 //
 // Because CUDA resolves __device__ calls at device-link time and never across
-// modules, the transport's hook implementations must be device-linked into the
-// same shared library as this archive.
+// modules, and a device-function pointer is only valid inside the module that
+// defines it, the kernel must share one module with both the transport's hook
+// implementations and the consumer's DEVICE_CALL handlers.  The hooks ship in
+// this archive next to the kernel; a unified consumer links the archive and
+// device-links it together with its handlers, as the 3-kernel path does.
 //
-// Linked into libcudaq-realtime.so, so cudaq_dispatcher_start calls it
-// directly whenever no unified_launch_fn override was set.  Unlike the
-// 3-kernel launchers above, a consumer never has to supply it.
+// cudaq_dispatcher_start calls it directly whenever no unified_launch_fn
+// override was set, through a weak reference that binds at load time to the
+// copy linked into the consumer binary; start() fails with
+// CUDAQ_ERR_INVALID_ARG if the archive was not linked.
 CUDAQ_REALTIME_DISPATCH_API void cudaq_launch_unified_dispatch_device(
     void *transport_ctx, size_t tx_stride_sz,
     cudaq_function_entry_t *function_table, size_t func_count,
@@ -429,8 +434,11 @@ typedef struct {
 // the 3-kernel launch_fn.  Ringbuffer setup is not required for unified mode.
 //
 // `unified_launch_fn` may be NULL, and normally is: start() then runs the
-// library's own unified kernel.  Pass a function only to override the whole
-// dispatch loop.  `transport_ctx` is required either way, and
+// unified kernel from libcudaq-realtime-dispatch.a, which the consumer must
+// link.  Pass a function only to override the whole dispatch loop.
+// Whichever kernel runs must be device-linked into the same module as the
+// DEVICE_CALL handlers in the function table.  `transport_ctx` is required
+// either way, and
 // config.slot_size must give the slot stride, which reaches the kernel as
 // its tx_stride_sz.
 cudaq_status_t
