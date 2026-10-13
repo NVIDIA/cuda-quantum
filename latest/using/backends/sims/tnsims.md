@@ -2343,10 +2343,8 @@ following environment variables:
     .external}), [`GESVDR`{.code .docutils .literal .notranslate}]{.pre}
     ([randomized
     methods](https://epubs.siam.org/doi/10.1137/090771806){.reference
-    .external}). Default: [`GESVD`{.code .docutils .literal
-    .notranslate}]{.pre}, matching the [cuTensorNet
-    default](https://docs.nvidia.com/cuda/cuquantum/latest/cutensornet/overview.html#svd-options){.reference
-    .external}.
+    .external}). Default: [`GESVDJ`{.code .docutils .literal
+    .notranslate}]{.pre}.
 
 -   **\`CUDAQ_MPS_GAUGE=X\`**: The optional gauge option to improve
     accuracy of the MPS simulation. Valid values are: [`FREE`{.code
@@ -2372,6 +2370,35 @@ stating [`Invalid`{.code .docutils .literal
 See the section [[Dependencies and Compatibility]{.std
 .std-ref}](../../install/local_installation.html#dependencies-and-compatibility){.reference
 .internal} for more information about how to install dependencies.
+:::
+
+::: {.admonition .note}
+Note
+
+The parallelism of Jacobi method (the default
+[`CUDAQ_MPS_SVD_ALGO`{.code .docutils .literal .notranslate}]{.pre}
+setting) gives GPU better performance on small and medium size matrices.
+If you expect a large number of singular values (e.g., increasing the
+[`CUDAQ_MPS_MAX_BOND`{.code .docutils .literal .notranslate}]{.pre}
+setting), please adjust the [`CUDAQ_MPS_SVD_ALGO`{.code .docutils
+.literal .notranslate}]{.pre} setting accordingly.
+:::
+
+::: {.admonition .note}
+Note
+
+With CUDA 13 and cuSOLVER 12.3.4.7, [`CUDAQ_MPS_SVD_ALGO=GESVD`{.code
+.docutils .literal .notranslate}]{.pre} may fail with an
+[`Insufficient`{.docutils .literal .notranslate}]{.pre}` `{.docutils
+.literal .notranslate}[`host`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`workspace`{.docutils .literal .notranslate}]{.pre} error
+from [`tensorSVD`{.docutils .literal .notranslate}]{.pre}. cuSOLVER's
+[updated SVD
+algorithm](https://docs.nvidia.com/cuda/cuda-toolkit-release-notes/index.html#cusolver-release-13-4-update-1){.reference
+.external} requires host memory. Use another [`CUDAQ_MPS_SVD_ALGO`{.code
+.docutils .literal .notranslate}]{.pre} option or roll back to a
+cuSOLVER version earlier than 12.3.4.7.
 :::
 
 ::: {.admonition .note}

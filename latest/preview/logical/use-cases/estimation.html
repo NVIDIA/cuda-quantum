@@ -87,7 +87,7 @@
 <li class="toctree-l3"><a class="reference internal" href="examples/cudaq-resource-estimate.html">CUDA-Q Logical Resource Estimate</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/fermi-hubbard.html">Fermi–Hubbard Estimation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/carbon-code.html">Carbon Code Target</a></li>
-<li class="toctree-l3"><a class="reference internal" href="examples/gidney-ekera.html">Gidney–Ekerå RSA-2048</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/gidney-ekera.html">Gidney–Ekerå RSA</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="examples/index.html#standalone-compiler-examples">Standalone compiler examples</a><ul>
@@ -448,13 +448,13 @@ estimate quoted in a paper from the bundle alone.</p>
 <section id="paper-specific-projections-live-in-the-open">
 <h2>Paper-specific projections live in the open<a class="headerlink" href="#paper-specific-projections-live-in-the-open" title="Link to this heading"></a></h2>
 <p>The built-in analytical tier is not a substitute for a paper-specific system
-model. <code class="docutils literal notranslate"><span class="pre">examples/05_gidney_ekera.py</span></code> compiles a windowed-arithmetic RSA-2048
-resource kernel to a folded logical profile, then applies the paper’s explicit
-timing and layout equations. That default fast path deliberately does not call
-<code class="docutils literal notranslate"><span class="pre">Tier.ANALYTICAL</span></code>; its assumptions remain visible and editable in the example.
-The same example offers <code class="docutils literal notranslate"><span class="pre">--physical</span></code> as an opt-in P3 compilation and scheduling
-path. The related library calculation is available through
-<code class="docutils literal notranslate"><span class="pre">cudaq.logical.algorithms.estimate_gidney_ekera</span></code>.</p>
+model. <code class="docutils literal notranslate"><span class="pre">examples/05_gidney_ekera.py</span></code> compiles a windowed-arithmetic RSA-2048,
+RSA-3072, or RSA-4096 resource kernel to a folded logical profile, then
+applies the paper’s explicit timing and layout equations. That default fast
+path deliberately does not call <code class="docutils literal notranslate"><span class="pre">Tier.ANALYTICAL</span></code>; its assumptions remain
+visible and editable in the example. The same example offers <code class="docutils literal notranslate"><span class="pre">--physical</span></code> as
+an opt-in P3 compilation and scheduling path. The related library calculation
+is available through <code class="docutils literal notranslate"><span class="pre">cudaq.logical.algorithms.estimate_gidney_ekera</span></code>.</p>
 </section>
 <section id="estimating-ordinary-cuda-q-kernels">
 <h2>Estimating ordinary CUDA-Q kernels<a class="headerlink" href="#estimating-ordinary-cuda-q-kernels" title="Link to this heading"></a></h2>

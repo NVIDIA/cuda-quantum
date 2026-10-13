@@ -6,7 +6,7 @@
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Gidney–Ekerå RSA-2048 &mdash; CUDA-Q Logical  documentation</title>
+  <title>Gidney–Ekerå RSA &mdash; CUDA-Q Logical  documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
@@ -87,7 +87,7 @@
 <li class="toctree-l3"><a class="reference internal" href="cudaq-resource-estimate.html">CUDA-Q Logical Resource Estimate</a></li>
 <li class="toctree-l3"><a class="reference internal" href="fermi-hubbard.html">Fermi–Hubbard Estimation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="carbon-code.html">Carbon Code Target</a></li>
-<li class="toctree-l3 current"><a class="current reference internal" href="#">Gidney–Ekerå RSA-2048</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Gidney–Ekerå RSA</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="index.html#standalone-compiler-examples">Standalone compiler examples</a><ul>
@@ -235,7 +235,7 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
           <li class="breadcrumb-item"><a href="index.html">CUDA-Q Logical by Example</a></li>
-      <li class="breadcrumb-item active">Gidney–Ekerå RSA-2048</li>
+      <li class="breadcrumb-item active">Gidney–Ekerå RSA</li>
       <li class="wy-breadcrumbs-aside">
             <a href="../../_sources/use-cases/examples/gidney-ekera.md.txt" rel="nofollow"> View page source</a>
       </li>
@@ -248,10 +248,13 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section class="tex2jax_ignore mathjax_ignore" id="gidneyekera-rsa-2048">
-<h1>Gidney–Ekerå RSA-2048<a class="headerlink" href="#gidneyekera-rsa-2048" title="Link to this heading"></a></h1>
+  <section class="tex2jax_ignore mathjax_ignore" id="gidneyekera-rsa">
+<h1>Gidney–Ekerå RSA<a class="headerlink" href="#gidneyekera-rsa" title="Link to this heading"></a></h1>
 <p><a class="reference download internal" download="" href="../../_downloads/e35fb191dd9da7320ade55b357c199f9/05_gidney_ekera.py"><span class="xref download myst"><code class="docutils literal notranslate"><span class="pre">05_gidney_ekera.py</span></code></span></a> estimates the
-folded lookup-addition workload used in an RSA-2048 resource envelope.</p>
+folded lookup-addition workload for RSA-2048, RSA-3072, and RSA-4096. Pass
+<code class="docutils literal notranslate"><span class="pre">--bits</span></code> to select the size. The companion
+<a class="reference download internal" download="" href="../../_downloads/23bb663488ae743e9a494e0128bc51c2/gidney_ekera_factory.py"><span class="xref download myst"><code class="docutils literal notranslate"><span class="pre">gidney_ekera_factory.py</span></code></span></a>
+defines each size’s operating point and the factory.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ============================================================================ #</span>
 <span class="c1"># Copyright (c) 2026 NVIDIA Corporation &amp; Affiliates.                          #</span>
 <span class="c1"># All rights reserved.                                                         #</span>
@@ -259,7 +262,10 @@ folded lookup-addition workload used in an RSA-2048 resource envelope.</p>
 <span class="c1"># This source code and the accompanying materials are made available under     #</span>
 <span class="c1"># the terms of the Apache License 2.0 which accompanies this distribution.     #</span>
 <span class="c1"># ============================================================================ #</span>
-<span class="sd">"""Estimate Gidney--Ekerå RSA-2048 resources from one CUDA-Q kernel.</span>
+<span class="sd">"""Estimate Gidney--Ekerå RSA resources from one CUDA-Q kernel.</span>
+
+<span class="sd">The kernel is sized by one row of arXiv:1905.09749 Table 3 (RSA-2048 by</span>
+<span class="sd">default).</span>
 
 <span class="sd">``estimate_using_kernel_profile()`` compiles only to portable logical</span>
 <span class="sd">resources, then uses the paper's closed-form architecture equations. It is the</span>
@@ -273,6 +279,7 @@ folded lookup-addition workload used in an RSA-2048 resource envelope.</p>
 
 <span class="sd">Run this file with ``--physical`` to select the paper-scale physical path from</span>
 <span class="sd">the command line. Without that flag, it uses the fast kernel-profile path.</span>
+<span class="sd">``--bits`` selects the modulus size.</span>
 <span class="sd">"""</span>
 
 <span class="c1"># %%</span>
@@ -340,38 +347,8 @@ folded lookup-addition workload used in an RSA-2048 resource envelope.</p>
     <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">carry</span><span class="p">,</span> <span class="n">addend</span><span class="p">)</span>
 
 
-<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">maj_pair</span><span class="p">(</span>
-    <span class="n">lower_carry</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">,</span>
-    <span class="n">lower_addend</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">,</span>
-    <span class="n">lower_accumulator</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">,</span>
-    <span class="n">upper_carry</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">,</span>
-    <span class="n">upper_addend</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">,</span>
-    <span class="n">upper_accumulator</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">,</span>
-<span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Two independent carry-piece reactions exposed in one helper graph."""</span>
-
-    <span class="n">maj</span><span class="p">(</span><span class="n">lower_carry</span><span class="p">,</span> <span class="n">lower_addend</span><span class="p">,</span> <span class="n">lower_accumulator</span><span class="p">)</span>
-    <span class="n">maj</span><span class="p">(</span><span class="n">upper_carry</span><span class="p">,</span> <span class="n">upper_addend</span><span class="p">,</span> <span class="n">upper_accumulator</span><span class="p">)</span>
-
-
-<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">uma_pair</span><span class="p">(</span>
-    <span class="n">lower_carry</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">,</span>
-    <span class="n">lower_addend</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">,</span>
-    <span class="n">lower_accumulator</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">,</span>
-    <span class="n">upper_carry</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">,</span>
-    <span class="n">upper_addend</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">,</span>
-    <span class="n">upper_accumulator</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">,</span>
-<span class="p">):</span>
-<span class="w">    </span><span class="sd">"""Two independent unmajority reactions exposed in one helper graph."""</span>
-
-    <span class="n">uma</span><span class="p">(</span><span class="n">lower_carry</span><span class="p">,</span> <span class="n">lower_addend</span><span class="p">,</span> <span class="n">lower_accumulator</span><span class="p">)</span>
-    <span class="n">uma</span><span class="p">(</span><span class="n">upper_carry</span><span class="p">,</span> <span class="n">upper_addend</span><span class="p">,</span> <span class="n">upper_accumulator</span><span class="p">)</span>
-
-
 <span class="c1"># %%</span>
-<span class="c1"># Define one table-access step and one complete lookup addition.</span>
+<span class="c1"># Define one table-access step of the lookup.</span>
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
 <span class="k">def</span><span class="w"> </span><span class="nf">qrom_access_step</span><span class="p">(</span>
     <span class="n">address</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">,</span>
@@ -391,136 +368,126 @@ folded lookup-addition workload used in an RSA-2048 resource envelope.</p>
     <span class="n">x</span><span class="o">.</span><span class="n">ctrl</span><span class="p">(</span><span class="n">workspace_b</span><span class="p">,</span> <span class="n">target</span><span class="p">)</span>
 
 
-<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">lookup_addition</span><span class="p">(</span>
-    <span class="n">accumulator</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">,</span>
-    <span class="n">address</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">,</span>
-    <span class="n">bus</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">,</span>
-    <span class="n">runways</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">,</span>
-    <span class="n">ancillas</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">,</span>
-    <span class="n">unlookup_access</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">,</span>
-<span class="p">):</span>
-    <span class="k">for</span> <span class="n">table_index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1023</span><span class="p">):</span>
-        <span class="n">qrom_access_step</span><span class="p">(</span>
-            <span class="n">address</span><span class="p">[</span><span class="n">table_index</span> <span class="o">%</span> <span class="mi">10</span><span class="p">],</span>
-            <span class="n">ancillas</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-            <span class="n">ancillas</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
-            <span class="n">bus</span><span class="p">[</span><span class="n">table_index</span> <span class="o">%</span> <span class="mi">2124</span><span class="p">],</span>
-        <span class="p">)</span>
-
-    <span class="c1"># The two carry-runway pieces are independent spatial sweeps.  Express</span>
-    <span class="c1"># them in lockstep so a stable list/ASAP scheduler can expose the intended</span>
-    <span class="c1"># two-piece concurrency without assigning a semantic "MAJ phase" or</span>
-    <span class="c1"># "UMA phase" to either the device or the dialect.</span>
-    <span class="n">maj_pair</span><span class="p">(</span>
-        <span class="n">runways</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-        <span class="n">bus</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-        <span class="n">accumulator</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-        <span class="n">runways</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
-        <span class="n">bus</span><span class="p">[</span><span class="mi">1062</span><span class="p">],</span>
-        <span class="n">accumulator</span><span class="p">[</span><span class="mi">1062</span><span class="p">],</span>
-    <span class="p">)</span>
-    <span class="k">for</span> <span class="n">offset</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1061</span><span class="p">):</span>
-        <span class="n">lower</span> <span class="o">=</span> <span class="n">offset</span> <span class="o">+</span> <span class="mi">1</span>
-        <span class="n">upper</span> <span class="o">=</span> <span class="n">offset</span> <span class="o">+</span> <span class="mi">1063</span>
-        <span class="n">maj_pair</span><span class="p">(</span>
-            <span class="n">accumulator</span><span class="p">[</span><span class="n">lower</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span>
-            <span class="n">bus</span><span class="p">[</span><span class="n">lower</span><span class="p">],</span>
-            <span class="n">accumulator</span><span class="p">[</span><span class="n">lower</span><span class="p">],</span>
-            <span class="n">accumulator</span><span class="p">[</span><span class="n">upper</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span>
-            <span class="n">bus</span><span class="p">[</span><span class="n">upper</span><span class="p">],</span>
-            <span class="n">accumulator</span><span class="p">[</span><span class="n">upper</span><span class="p">],</span>
-        <span class="p">)</span>
-    <span class="k">for</span> <span class="n">offset</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1061</span><span class="p">):</span>
-        <span class="n">lower</span> <span class="o">=</span> <span class="mi">1061</span> <span class="o">-</span> <span class="n">offset</span>
-        <span class="n">upper</span> <span class="o">=</span> <span class="mi">2123</span> <span class="o">-</span> <span class="n">offset</span>
-        <span class="n">uma_pair</span><span class="p">(</span>
-            <span class="n">accumulator</span><span class="p">[</span><span class="n">lower</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span>
-            <span class="n">bus</span><span class="p">[</span><span class="n">lower</span><span class="p">],</span>
-            <span class="n">accumulator</span><span class="p">[</span><span class="n">lower</span><span class="p">],</span>
-            <span class="n">accumulator</span><span class="p">[</span><span class="n">upper</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span>
-            <span class="n">bus</span><span class="p">[</span><span class="n">upper</span><span class="p">],</span>
-            <span class="n">accumulator</span><span class="p">[</span><span class="n">upper</span><span class="p">],</span>
-        <span class="p">)</span>
-
-    <span class="c1"># The 64 alternating accesses are the retained physical recurrence for</span>
-    <span class="c1"># measurement-based QROM uncomputation.  The persistent bus is not torn</span>
-    <span class="c1"># down here: its final measurement belongs to the board lifetime, not to</span>
-    <span class="c1"># every arithmetic iteration.</span>
-    <span class="k">for</span> <span class="n">fixup</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">64</span><span class="p">):</span>
-        <span class="n">qrom_access_step</span><span class="p">(</span>
-            <span class="n">address</span><span class="p">[</span><span class="n">fixup</span> <span class="o">%</span> <span class="mi">10</span><span class="p">],</span>
-            <span class="n">ancillas</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-            <span class="n">ancillas</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
-            <span class="n">unlookup_access</span><span class="p">,</span>
-        <span class="p">)</span>
-
-
 <span class="c1"># %%</span>
-<span class="c1"># Assemble the paper-scale folded arithmetic into one CUDA-Q kernel.</span>
-<span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">rsa2048_resource_kernel</span><span class="p">():</span>
-    <span class="n">accumulator</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">2124</span><span class="p">)</span>
-    <span class="c1"># The paper's arithmetic board is persistent.  These workspaces are</span>
-    <span class="c1"># prepared once, retained through every folded lookup addition, and</span>
-    <span class="c1"># released only after the complete arithmetic recurrence.  Allocating them</span>
-    <span class="c1"># inside lookup_addition would incorrectly charge board startup/cleanup to</span>
-    <span class="c1"># all 505,965 iterations.</span>
-    <span class="n">address</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
-    <span class="n">bus</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">2124</span><span class="p">)</span>
-    <span class="n">runways</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
-    <span class="n">ancillas</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
-    <span class="n">unlookup_access</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
-    <span class="n">h</span><span class="p">(</span><span class="n">address</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">505965</span><span class="p">):</span>
-        <span class="n">lookup_addition</span><span class="p">(</span>
-            <span class="n">accumulator</span><span class="p">,</span>
-            <span class="n">address</span><span class="p">,</span>
-            <span class="n">bus</span><span class="p">,</span>
-            <span class="n">runways</span><span class="p">,</span>
-            <span class="n">ancillas</span><span class="p">,</span>
-            <span class="n">unlookup_access</span><span class="p">,</span>
-        <span class="p">)</span>
-    <span class="k">for</span> <span class="n">bit</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2124</span><span class="p">):</span>
-        <span class="n">mx</span><span class="p">(</span><span class="n">bus</span><span class="p">[</span><span class="n">bit</span><span class="p">])</span>
-    <span class="k">for</span> <span class="n">bit</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
-        <span class="n">mx</span><span class="p">(</span><span class="n">address</span><span class="p">[</span><span class="n">bit</span><span class="p">])</span>
-    <span class="k">for</span> <span class="n">bit</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
-        <span class="n">mz</span><span class="p">(</span><span class="n">runways</span><span class="p">[</span><span class="n">bit</span><span class="p">])</span>
-    <span class="k">for</span> <span class="n">bit</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
-        <span class="n">mz</span><span class="p">(</span><span class="n">ancillas</span><span class="p">[</span><span class="n">bit</span><span class="p">])</span>
-    <span class="n">mz</span><span class="p">(</span><span class="n">unlookup_access</span><span class="p">)</span>
-    <span class="n">mx</span><span class="p">(</span><span class="n">accumulator</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="c1"># Build the folded RSA kernel for one operating point.</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">build_resource_kernel</span><span class="p">(</span><span class="n">point</span><span class="p">:</span> <span class="n">factory</span><span class="o">.</span><span class="n">OperatingPoint</span><span class="p">):</span>
+    <span class="n">pieces</span> <span class="o">=</span> <span class="n">point</span><span class="o">.</span><span class="n">carry_pieces</span>
+    <span class="n">piece_length</span> <span class="o">=</span> <span class="n">point</span><span class="o">.</span><span class="n">piece_length</span>
+    <span class="n">width</span> <span class="o">=</span> <span class="n">point</span><span class="o">.</span><span class="n">accumulator_width</span>
+    <span class="n">address_width</span> <span class="o">=</span> <span class="n">point</span><span class="o">.</span><span class="n">address_width</span>
+    <span class="n">table_rows</span> <span class="o">=</span> <span class="n">point</span><span class="o">.</span><span class="n">table_rows</span>
+    <span class="n">fixup_count</span> <span class="o">=</span> <span class="n">point</span><span class="o">.</span><span class="n">fixup_count</span>
+    <span class="n">lookup_count</span> <span class="o">=</span> <span class="n">point</span><span class="o">.</span><span class="n">lookup_count</span>
+
+    <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">lookup_addition</span><span class="p">(</span>
+        <span class="n">accumulator</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">,</span>
+        <span class="n">address</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">,</span>
+        <span class="n">bus</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">,</span>
+        <span class="n">runways</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">,</span>
+        <span class="n">ancillas</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qview</span><span class="p">,</span>
+        <span class="n">unlookup_access</span><span class="p">:</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">,</span>
+    <span class="p">):</span>
+        <span class="k">for</span> <span class="n">table_index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">table_rows</span><span class="p">):</span>
+            <span class="n">qrom_access_step</span><span class="p">(</span>
+                <span class="n">address</span><span class="p">[</span><span class="n">table_index</span> <span class="o">%</span> <span class="n">address_width</span><span class="p">],</span>
+                <span class="n">ancillas</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="n">ancillas</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">bus</span><span class="p">[</span><span class="n">table_index</span> <span class="o">%</span> <span class="n">width</span><span class="p">],</span>
+            <span class="p">)</span>
+
+        <span class="c1"># The carry pieces are independent, so sweep them in lockstep.</span>
+        <span class="k">for</span> <span class="n">piece</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">pieces</span><span class="p">):</span>
+            <span class="n">maj</span><span class="p">(</span>
+                <span class="n">runways</span><span class="p">[</span><span class="n">piece</span><span class="p">],</span>
+                <span class="n">bus</span><span class="p">[</span><span class="n">piece</span> <span class="o">*</span> <span class="n">piece_length</span><span class="p">],</span>
+                <span class="n">accumulator</span><span class="p">[</span><span class="n">piece</span> <span class="o">*</span> <span class="n">piece_length</span><span class="p">],</span>
+            <span class="p">)</span>
+        <span class="k">for</span> <span class="n">offset</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">piece_length</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">piece</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">pieces</span><span class="p">):</span>
+                <span class="n">bit</span> <span class="o">=</span> <span class="n">piece</span> <span class="o">*</span> <span class="n">piece_length</span> <span class="o">+</span> <span class="n">offset</span> <span class="o">+</span> <span class="mi">1</span>
+                <span class="n">maj</span><span class="p">(</span><span class="n">accumulator</span><span class="p">[</span><span class="n">bit</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span> <span class="n">bus</span><span class="p">[</span><span class="n">bit</span><span class="p">],</span> <span class="n">accumulator</span><span class="p">[</span><span class="n">bit</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">offset</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">piece_length</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">piece</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">pieces</span><span class="p">):</span>
+                <span class="n">bit</span> <span class="o">=</span> <span class="n">piece</span> <span class="o">*</span> <span class="n">piece_length</span> <span class="o">+</span> <span class="n">piece_length</span> <span class="o">-</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">offset</span>
+                <span class="n">uma</span><span class="p">(</span><span class="n">accumulator</span><span class="p">[</span><span class="n">bit</span> <span class="o">-</span> <span class="mi">1</span><span class="p">],</span> <span class="n">bus</span><span class="p">[</span><span class="n">bit</span><span class="p">],</span> <span class="n">accumulator</span><span class="p">[</span><span class="n">bit</span><span class="p">])</span>
+
+        <span class="c1"># Measurement-based unlookup. The bus persists across iterations.</span>
+        <span class="k">for</span> <span class="n">fixup</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">fixup_count</span><span class="p">):</span>
+            <span class="n">qrom_access_step</span><span class="p">(</span>
+                <span class="n">address</span><span class="p">[</span><span class="n">fixup</span> <span class="o">%</span> <span class="n">address_width</span><span class="p">],</span>
+                <span class="n">ancillas</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+                <span class="n">ancillas</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span>
+                <span class="n">unlookup_access</span><span class="p">,</span>
+            <span class="p">)</span>
+
+    <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">rsa_resource_kernel</span><span class="p">():</span>
+        <span class="n">accumulator</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">width</span><span class="p">)</span>
+        <span class="c1"># Allocate the workspaces once so setup is not charged per lookup.</span>
+        <span class="n">address</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">address_width</span><span class="p">)</span>
+        <span class="n">bus</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">width</span><span class="p">)</span>
+        <span class="n">runways</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="n">pieces</span><span class="p">)</span>
+        <span class="n">ancillas</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qvector</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="n">unlookup_access</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">qubit</span><span class="p">()</span>
+        <span class="n">h</span><span class="p">(</span><span class="n">address</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">lookup_count</span><span class="p">):</span>
+            <span class="n">lookup_addition</span><span class="p">(</span>
+                <span class="n">accumulator</span><span class="p">,</span>
+                <span class="n">address</span><span class="p">,</span>
+                <span class="n">bus</span><span class="p">,</span>
+                <span class="n">runways</span><span class="p">,</span>
+                <span class="n">ancillas</span><span class="p">,</span>
+                <span class="n">unlookup_access</span><span class="p">,</span>
+            <span class="p">)</span>
+        <span class="k">for</span> <span class="n">bit</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">width</span><span class="p">):</span>
+            <span class="n">mx</span><span class="p">(</span><span class="n">bus</span><span class="p">[</span><span class="n">bit</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">bit</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">address_width</span><span class="p">):</span>
+            <span class="n">mx</span><span class="p">(</span><span class="n">address</span><span class="p">[</span><span class="n">bit</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">bit</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">pieces</span><span class="p">):</span>
+            <span class="n">mz</span><span class="p">(</span><span class="n">runways</span><span class="p">[</span><span class="n">bit</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">bit</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">):</span>
+            <span class="n">mz</span><span class="p">(</span><span class="n">ancillas</span><span class="p">[</span><span class="n">bit</span><span class="p">])</span>
+        <span class="n">mz</span><span class="p">(</span><span class="n">unlookup_access</span><span class="p">)</span>
+        <span class="n">mx</span><span class="p">(</span><span class="n">accumulator</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">rsa_resource_kernel</span>
 
 
 <span class="c1"># %%</span>
 <span class="c1"># Project compiler-counted logical resources through the paper's closed-form</span>
 <span class="c1"># timing and layout equations; this path does not construct or schedule P3.</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">calculate_analytical_metrics</span><span class="p">(</span><span class="n">logical</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AnalyticalResult</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">calculate_analytical_metrics</span><span class="p">(</span>
+        <span class="n">logical</span><span class="p">,</span>
+        <span class="n">point</span><span class="p">:</span> <span class="n">factory</span><span class="o">.</span><span class="n">OperatingPoint</span> <span class="o">=</span> <span class="n">factory</span><span class="o">.</span><span class="n">RSA_2048</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AnalyticalResult</span><span class="p">:</span>
     <span class="n">toffolis</span> <span class="o">=</span> <span class="n">logical</span><span class="o">.</span><span class="n">synthesis_demand</span><span class="p">[</span><span class="s2">"qlx_standard_ccx"</span><span class="p">]</span>
-    <span class="n">lookups</span><span class="p">,</span> <span class="n">remainder</span> <span class="o">=</span> <span class="nb">divmod</span><span class="p">(</span><span class="n">toffolis</span><span class="p">,</span> <span class="mi">5_333</span><span class="p">)</span>
+    <span class="n">lookups</span><span class="p">,</span> <span class="n">remainder</span> <span class="o">=</span> <span class="nb">divmod</span><span class="p">(</span><span class="n">toffolis</span><span class="p">,</span> <span class="n">point</span><span class="o">.</span><span class="n">toffolis_per_lookup</span><span class="p">)</span>
     <span class="k">assert</span> <span class="n">remainder</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">"logical Toffoli demand is not a whole lookup count"</span>
 
-    <span class="n">timing</span> <span class="o">=</span> <span class="n">factory</span><span class="o">.</span><span class="n">surface_timing</span><span class="p">()</span>
+    <span class="n">timing</span> <span class="o">=</span> <span class="n">factory</span><span class="o">.</span><span class="n">surface_timing</span><span class="p">(</span><span class="n">point</span><span class="p">)</span>
     <span class="n">cycle_ns</span> <span class="o">=</span> <span class="n">timing</span><span class="p">[</span><span class="s2">"surface_cycle_ns"</span><span class="p">]</span>
-    <span class="n">bank_interval_ns</span> <span class="o">=</span> <span class="mf">135.0</span> <span class="o">*</span> <span class="n">cycle_ns</span> <span class="o">/</span> <span class="n">factory</span><span class="o">.</span><span class="n">FACTORY_LANES</span>
+    <span class="n">bank_interval_ns</span> <span class="o">=</span> <span class="p">(</span><span class="n">point</span><span class="o">.</span><span class="n">factory_output_interval_cycles</span> <span class="o">*</span> <span class="n">cycle_ns</span> <span class="o">/</span>
+                        <span class="n">point</span><span class="o">.</span><span class="n">factory_lanes</span><span class="p">)</span>
     <span class="n">qrom_step_ns</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
-        <span class="n">factory</span><span class="o">.</span><span class="n">CODE</span><span class="o">.</span><span class="n">d</span><span class="o">.</span><span class="n">conservative_value</span> <span class="o">*</span> <span class="n">cycle_ns</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">,</span>
+        <span class="n">point</span><span class="o">.</span><span class="n">level_2_code_distance</span> <span class="o">*</span> <span class="n">cycle_ns</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">,</span>
         <span class="n">bank_interval_ns</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">addition_step_ns</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span>
         <span class="n">timing</span><span class="p">[</span><span class="s2">"reaction_time_ns"</span><span class="p">],</span>
-        <span class="n">factory</span><span class="o">.</span><span class="n">CARRY_PIECES</span> <span class="o">*</span> <span class="n">bank_interval_ns</span><span class="p">,</span>
+        <span class="n">point</span><span class="o">.</span><span class="n">carry_pieces</span> <span class="o">*</span> <span class="n">bank_interval_ns</span><span class="p">,</span>
     <span class="p">)</span>
     <span class="n">lookup_period_ns</span> <span class="o">=</span> <span class="p">(</span>
-        <span class="p">(</span><span class="n">factory</span><span class="o">.</span><span class="n">TABLE_ROWS</span> <span class="o">+</span> <span class="n">factory</span><span class="o">.</span><span class="n">FIXUP_COUNT</span><span class="p">)</span> <span class="o">*</span> <span class="n">qrom_step_ns</span> <span class="o">+</span>
-        <span class="p">(</span><span class="n">factory</span><span class="o">.</span><span class="n">PIECE_LENGTH</span> <span class="o">+</span> <span class="n">factory</span><span class="o">.</span><span class="n">PIECE_LENGTH</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">addition_step_ns</span><span class="p">)</span>
+        <span class="p">(</span><span class="n">point</span><span class="o">.</span><span class="n">table_rows</span> <span class="o">+</span> <span class="n">point</span><span class="o">.</span><span class="n">fixup_count</span><span class="p">)</span> <span class="o">*</span> <span class="n">qrom_step_ns</span> <span class="o">+</span>
+        <span class="p">(</span><span class="n">point</span><span class="o">.</span><span class="n">piece_length</span> <span class="o">+</span> <span class="n">point</span><span class="o">.</span><span class="n">piece_length</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">addition_step_ns</span><span class="p">)</span>
     <span class="n">final_measure_ns</span> <span class="o">=</span> <span class="n">timing</span><span class="o">.</span><span class="n">by_code_distance</span><span class="p">[</span>
-        <span class="n">factory</span><span class="o">.</span><span class="n">LEVEL_2_CODE_DISTANCE</span><span class="p">][</span><span class="s2">"measure_x_instrument_ns"</span><span class="p">]</span>
-    <span class="n">makespan_ns</span> <span class="o">=</span> <span class="mf">379.0</span> <span class="o">*</span> <span class="n">cycle_ns</span> <span class="o">+</span> <span class="n">lookups</span> <span class="o">*</span> <span class="n">lookup_period_ns</span> <span class="o">+</span> <span class="n">final_measure_ns</span>
-    <span class="n">physical_qubits</span> <span class="o">=</span> <span class="p">((</span><span class="n">factory</span><span class="o">.</span><span class="n">BOARD_PATCHES</span> <span class="o">-</span> <span class="n">factory</span><span class="o">.</span><span class="n">FACTORY_PATCHES</span><span class="p">)</span> <span class="o">*</span>
-                       <span class="n">factory</span><span class="o">.</span><span class="n">PATCH_FOOTPRINT</span> <span class="o">+</span>
-                       <span class="n">factory</span><span class="o">.</span><span class="n">FACTORY_LANES</span> <span class="o">*</span> <span class="mi">142_808</span><span class="p">)</span>
+        <span class="n">point</span><span class="o">.</span><span class="n">level_2_code_distance</span><span class="p">][</span><span class="s2">"measure_x_instrument_ns"</span><span class="p">]</span>
+    <span class="n">makespan_ns</span> <span class="o">=</span> <span class="p">(</span><span class="n">point</span><span class="o">.</span><span class="n">factory_startup_cycles</span> <span class="o">*</span> <span class="n">cycle_ns</span> <span class="o">+</span>
+                   <span class="n">lookups</span> <span class="o">*</span> <span class="n">lookup_period_ns</span> <span class="o">+</span> <span class="n">final_measure_ns</span><span class="p">)</span>
+    <span class="n">patch_footprint</span> <span class="o">=</span> <span class="n">factory</span><span class="o">.</span><span class="n">factory_for</span><span class="p">(</span>
+        <span class="n">point</span><span class="p">)</span><span class="o">.</span><span class="n">surface</span><span class="o">.</span><span class="n">square_patch_footprint</span><span class="o">.</span><span class="n">units</span>
+    <span class="n">physical_qubits</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="p">(</span><span class="n">point</span><span class="o">.</span><span class="n">board_patches</span> <span class="o">-</span> <span class="n">point</span><span class="o">.</span><span class="n">factory_patches</span><span class="p">)</span> <span class="o">*</span> <span class="n">patch_footprint</span> <span class="o">+</span>
+        <span class="n">point</span><span class="o">.</span><span class="n">factory_lanes</span> <span class="o">*</span> <span class="n">point</span><span class="o">.</span><span class="n">factory_lane_physical_qubits</span><span class="p">)</span>
     <span class="k">return</span> <span class="n">AnalyticalResult</span><span class="p">(</span>
         <span class="n">logical_qubits</span><span class="o">=</span><span class="n">logical</span><span class="o">.</span><span class="n">logical_qubits_peak</span><span class="p">,</span>
         <span class="n">logical_toffolis</span><span class="o">=</span><span class="n">toffolis</span><span class="p">,</span>
@@ -532,7 +499,7 @@ folded lookup-addition workload used in an RSA-2048 resource envelope.</p>
 
 <span class="c1"># %%</span>
 <span class="c1"># Profile the kernel's portable logical resources, then apply the paper model.</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">estimate_using_kernel_profile</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">AnalyticalResult</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">estimate_using_kernel_profile</span><span class="p">(</span><span class="n">modulus_bits</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2048</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">AnalyticalResult</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Estimate from logical counts plus explicit paper architecture formulas.</span>
 
 <span class="sd">    This is not CUDA-Q Logical's Tier.ANALYTICAL estimator: the selected target</span>
@@ -540,13 +507,14 @@ folded lookup-addition workload used in an RSA-2048 resource envelope.</p>
 <span class="sd">    the Gidney--Ekerå-specific physical projection.</span>
 <span class="sd">    """</span>
 
+    <span class="n">point</span> <span class="o">=</span> <span class="n">factory</span><span class="o">.</span><span class="n">OPERATING_POINTS</span><span class="p">[</span><span class="n">modulus_bits</span><span class="p">]</span>
     <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="n">cql</span><span class="o">.</span><span class="n">targets</span><span class="o">.</span><span class="n">estimator</span><span class="p">)</span>
-    <span class="n">estimate</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">estimate</span><span class="p">(</span><span class="n">rsa2048_resource_kernel</span><span class="p">)</span>
+    <span class="n">estimate</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">estimate</span><span class="p">(</span><span class="n">build_resource_kernel</span><span class="p">(</span><span class="n">point</span><span class="p">))</span>
     <span class="n">logical</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">estimate</span><span class="o">.</span><span class="n">LogicalEstimate</span><span class="o">.</span><span class="n">from_annotations</span><span class="p">(</span>
         <span class="n">estimate</span><span class="o">.</span><span class="n">annotations</span><span class="p">)</span>
-    <span class="n">result</span> <span class="o">=</span> <span class="n">calculate_analytical_metrics</span><span class="p">(</span><span class="n">logical</span><span class="p">)</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">calculate_analytical_metrics</span><span class="p">(</span><span class="n">logical</span><span class="p">,</span> <span class="n">point</span><span class="p">)</span>
 
-    <span class="nb">print</span><span class="p">(</span><span class="s2">"Gidney--Ekerå analytical estimate:"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Gidney--Ekerå RSA-</span><span class="si">{</span><span class="n">modulus_bits</span><span class="si">}</span><span class="s2"> analytical estimate:"</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  folded lookup additions: </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">folded_lookups</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  logical Toffolis: </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">logical_toffolis</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  peak logical qubits: </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">logical_qubits</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
@@ -558,9 +526,9 @@ folded lookup-addition workload used in an RSA-2048 resource envelope.</p>
 <span class="c1"># %%</span>
 <span class="c1"># Build the physical target. Its operating point owns physical error, scaling,</span>
 <span class="c1"># and timing; the failure budget and the SCHEDULE tier are estimate policy.</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">build_physical_target</span><span class="p">():</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">build_physical_target</span><span class="p">(</span><span class="n">point</span><span class="p">:</span> <span class="n">factory</span><span class="o">.</span><span class="n">OperatingPoint</span> <span class="o">=</span> <span class="n">factory</span><span class="o">.</span><span class="n">RSA_2048</span><span class="p">):</span>
     <span class="n">device</span> <span class="o">=</span> <span class="n">factory</span><span class="o">.</span><span class="n">build_paper_device</span><span class="p">(</span>
-        <span class="n">factory_lanes</span><span class="o">=</span><span class="n">factory</span><span class="o">.</span><span class="n">FACTORY_LANES</span><span class="p">,</span>
+        <span class="n">point</span><span class="p">,</span>
         <span class="n">p_phys</span><span class="o">=</span><span class="n">factory</span><span class="o">.</span><span class="n">PHYSICAL_ERROR_RATE</span><span class="p">,</span>
         <span class="n">scaling</span><span class="o">=</span><span class="n">factory</span><span class="o">.</span><span class="n">DEFAULT_SCALING</span><span class="p">,</span>
     <span class="p">)</span>
@@ -580,11 +548,12 @@ folded lookup-addition workload used in an RSA-2048 resource envelope.</p>
 <span class="c1"># %%</span>
 <span class="c1"># Compile through the full device stack and read all physical metrics from the</span>
 <span class="c1"># authenticated P3 schedule returned in the estimate annotations.</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">estimate_physically</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">PhysicalResult</span><span class="p">:</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">estimate_physically</span><span class="p">(</span><span class="n">modulus_bits</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2048</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PhysicalResult</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">"""Estimate by physically compiling and scheduling the RSA application."""</span>
 
-    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="n">build_physical_target</span><span class="p">())</span>
-    <span class="n">estimate</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">estimate</span><span class="p">(</span><span class="n">rsa2048_resource_kernel</span><span class="p">)</span>
+    <span class="n">point</span> <span class="o">=</span> <span class="n">factory</span><span class="o">.</span><span class="n">OPERATING_POINTS</span><span class="p">[</span><span class="n">modulus_bits</span><span class="p">]</span>
+    <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="n">build_physical_target</span><span class="p">(</span><span class="n">point</span><span class="p">))</span>
+    <span class="n">estimate</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">estimate</span><span class="p">(</span><span class="n">build_resource_kernel</span><span class="p">(</span><span class="n">point</span><span class="p">))</span>
     <span class="n">schedule</span> <span class="o">=</span> <span class="n">estimate</span><span class="o">.</span><span class="n">annotations</span><span class="p">[</span><span class="s2">"SCHEDULE"</span><span class="p">]</span>
     <span class="n">result</span> <span class="o">=</span> <span class="n">PhysicalResult</span><span class="p">(</span>
         <span class="n">physical_qubits</span><span class="o">=</span><span class="n">schedule</span><span class="p">[</span><span class="s2">"physical_qubits"</span><span class="p">],</span>
@@ -592,7 +561,7 @@ folded lookup-addition workload used in an RSA-2048 resource envelope.</p>
         <span class="n">makespan_ns</span><span class="o">=</span><span class="n">schedule</span><span class="p">[</span><span class="s2">"makespan_ns"</span><span class="p">],</span>
     <span class="p">)</span>
 
-    <span class="nb">print</span><span class="p">(</span><span class="s2">"Gidney--Ekerå physical schedule estimate:"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Gidney--Ekerå RSA-</span><span class="si">{</span><span class="n">modulus_bits</span><span class="si">}</span><span class="s2"> physical schedule estimate:"</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  application events: </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">scheduled_events</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  physical qubits: </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">physical_qubits</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  single-shot makespan: </span><span class="si">{</span><span class="n">result</span><span class="o">.</span><span class="n">runtime_hours</span><span class="si">:</span><span class="s2">.6f</span><span class="si">}</span><span class="s2"> h"</span><span class="p">)</span>
@@ -603,7 +572,14 @@ folded lookup-addition workload used in an RSA-2048 resource envelope.</p>
 <span class="c1"># Run one of the two estimation methods when invoked from the command line.</span>
 <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">"__main__"</span><span class="p">:</span>
     <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span>
-        <span class="n">description</span><span class="o">=</span><span class="s2">"Estimate resources for the folded RSA-2048 kernel."</span><span class="p">)</span>
+        <span class="n">description</span><span class="o">=</span><span class="s2">"Estimate resources for the folded RSA kernel."</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
+        <span class="s2">"--bits"</span><span class="p">,</span>
+        <span class="nb">type</span><span class="o">=</span><span class="nb">int</span><span class="p">,</span>
+        <span class="n">default</span><span class="o">=</span><span class="mi">2048</span><span class="p">,</span>
+        <span class="n">choices</span><span class="o">=</span><span class="nb">sorted</span><span class="p">(</span><span class="n">factory</span><span class="o">.</span><span class="n">OPERATING_POINTS</span><span class="p">),</span>
+        <span class="n">help</span><span class="o">=</span><span class="s2">"RSA modulus size; selects the paper's Table 3 operating point"</span><span class="p">,</span>
+    <span class="p">)</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span>
         <span class="s2">"--physical"</span><span class="p">,</span>
         <span class="n">action</span><span class="o">=</span><span class="s2">"store_true"</span><span class="p">,</span>
@@ -611,9 +587,9 @@ folded lookup-addition workload used in an RSA-2048 resource envelope.</p>
     <span class="p">)</span>
     <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
     <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">physical</span><span class="p">:</span>
-        <span class="n">result</span> <span class="o">=</span> <span class="n">estimate_physically</span><span class="p">()</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">estimate_physically</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">bits</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
-        <span class="n">result</span> <span class="o">=</span> <span class="n">estimate_using_kernel_profile</span><span class="p">()</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">estimate_using_kernel_profile</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">bits</span><span class="p">)</span>
 </pre></div>
 </div>
 <p><a class="reference internal" href="index.html"><span class="std std-doc">Back to examples</span></a></p>
