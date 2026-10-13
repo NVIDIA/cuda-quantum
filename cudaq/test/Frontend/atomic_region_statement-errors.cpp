@@ -9,21 +9,18 @@
 // RUN: cudaq-quake -verify %s
 // clang-format off
 
-#include "cudaq.h"
+#include <cudaq.h>
 
-enum Color { Red, Green, Blue };
-
-// An enumeration has no representation in a kernel (yet). That is an error that
-// says so, not an assertion.
-struct UsesEnum {
-  int operator()() __qpu__ {
+struct not_a_block {
+  void operator()() __qpu__ {
+    cudaq::qubit q;
     // expected-error@+2{{statement not supported in qpu kernel}}
-    // expected-error@+1{{variable of a type that has no representation in a kernel is not yet supported}}
-    Color c = Green;
-    // The variable is in scope, but a use of a value that has no representation
-    // cannot be lowered either.
-    // expected-error@+1{{statement not supported in qpu kernel}}
-    return static_cast<int>(c);
+    // expected-error@+1{{an atomic quantum region must be a compound statement}}
+    [[cudaq::atomic_region]] x(q);
   }
 };
+
+// The attribute applies to functions, not to other declarations.
+// expected-warning@+1{{attribute only applies to functions}}
+[[cudaq::atomic_region]] int not_a_function = 0;
 // clang-format on
