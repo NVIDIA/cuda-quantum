@@ -97,9 +97,10 @@ RUN if [ "$(uname -m)" == "x86_64" ]; then \
     else \
     apt-get update && apt-get install -y --no-install-recommends make cmake flex bison g++ && \
     # Fixed commit corresponding to release 1.9.7
+    # CMake 4 rejects doxygen's old minimum version.
     wget https://github.com/doxygen/doxygen/archive/6a2ce4d18b5af1ca501bcf585e4c8e2b2b353b0f.zip -q -O repo.zip && \
     unzip repo.zip && mv doxygen* repo && rm repo.zip && \
-    cmake -G "Unix Makefiles" repo && cmake --build . --target install --config Release && \
+    cmake -G "Unix Makefiles" -DCMAKE_POLICY_VERSION_MINIMUM=3.5 repo && cmake --build . --target install --config Release && \
     rm -rf repo && apt-get remove -y make cmake flex bison g++ && \
     apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*; \
     fi
