@@ -76,12 +76,28 @@ bool QuakeBridgeVisitor::needToLowerFunction(const clang::FunctionDecl *decl) {
   return false;
 }
 
+llvm::StringRef QuakeBridgeVisitor::getSymbolName(const clang::NamedDecl *x) {
+  if (auto *parm = dyn_cast<clang::ParmVarDecl>(x))
+    if (auto *func = dyn_cast<clang::FunctionDecl>(parm->getDeclContext()))
+      if (auto *pattern = func->getTemplateInstantiationPattern())
+        for (auto *patternParm : pattern->parameters())
+          if (patternParm->isParameterPack() &&
+              patternParm->getName() == parm->getName()) {
+            // Every element of the pack is named for the pack.
+            std::string name = (parm->getName() + "." +
+                                llvm::Twine(parm->getFunctionScopeIndex()))
+                                   .str();
+            return astContext->Idents.get(name).getName();
+          }
+  return x->getName();
+}
+
 void QuakeBridgeVisitor::addArgumentSymbols(
     Block *entryBlock, ArrayRef<clang::ParmVarDecl *> parameters) {
   for (auto arg : llvm::enumerate(parameters)) {
     auto index = arg.index();
     auto *argVal = arg.value();
-    auto name = argVal->getName();
+    auto name = getSymbolName(argVal);
     if (isa<OpaqueType>(entryBlock->getArgument(index).getType())) {
       // This is a reference type, we want to forward the value.
       symbolTable.insert(name, entryBlock->getArgument(index));
@@ -318,7 +334,8 @@ QuakeBridgeVisitor::referenceSymbol(clang::NamedDecl *x) {
     return std::nullopt;
   if (x->getIdentifier()) {
     // 1. Look for symbol in the local scope.
-    if (!symbolTable.count(x->getName())) {
+    auto name = getSymbolName(x);
+    if (!symbolTable.count(name)) {
       // 2. TODO: If the symbol isn't in the local scope, it is a global.
       // Don't look for a global in the module here since we do not allow
       // kernels to access globals at present.
@@ -326,7 +343,7 @@ QuakeBridgeVisitor::referenceSymbol(clang::NamedDecl *x) {
                             "Cannot find " + x->getNameAsString() +
                                 " in the symbol table.");
     }
-    return value(symbolTable.lookup(x->getName()));
+    return value(symbolTable.lookup(name));
   }
   return std::nullopt;
 }
@@ -344,7 +361,7 @@ QuakeBridgeVisitor::Result QuakeBridgeVisitor::visit(clang::ParmVarDecl *x) {
     return std::nullopt;
   }
 
-  auto name = x->getName();
+  auto name = getSymbolName(x);
   if (symbolTable.count(name))
     return value(symbolTable.lookup(name));
 
