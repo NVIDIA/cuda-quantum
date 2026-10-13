@@ -137,12 +137,22 @@ def __createArgumentSet(*args):
     for j in range(nArgSets):
         currentArgs = [0 for i in range(len(args))]
         for i, arg in enumerate(args):
+            handled = False
 
             if isinstance(arg, list) or isinstance(arg, List):
                 currentArgs[i] = arg[j]
+                handled = True
 
             if arrayRanks[i] is not None:
                 currentArgs[i] = materializedArgs[i][j]
+                handled = True
+
+            if not handled:
+                # A plain scalar argument (e.g. a fixed `int`/`float` kernel
+                # parameter passed alongside a broadcast list/array) is not a
+                # per-call value to index into; hold it constant across every
+                # generated argument set instead of leaving the `0` placeholder.
+                currentArgs[i] = arg
 
         argSet.append(tuple(currentArgs))
     return argSet
