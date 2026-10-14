@@ -17,7 +17,8 @@ if(CUDAQ_TARGET_STANDALONE_BUILD)
   set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
   set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
   set(CUDAQ_TARGET_REPO_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../..")
-  # The full build enables testing at the root; standalone must do it here.
+  set(CUDAQ_CORE_LIBRARY_COMPONENT Runtime)
+  set(CUDAQ_CORE_DEVELOPMENT_COMPONENT Development)
   enable_testing()
 else()
   set(CUDAQ_TARGET_REPO_ROOT "${CMAKE_SOURCE_DIR}")
@@ -119,12 +120,12 @@ target_link_libraries(CUDAQTargetCatalog
 install(TARGETS CUDAQTargetConfig
         EXPORT CUDAQTargetConfigTargets
         DESTINATION lib
-        COMPONENT Runtime)
+        COMPONENT ${CUDAQ_CORE_LIBRARY_COMPONENT})
 install(EXPORT CUDAQTargetConfigTargets
         FILE CUDAQTargetConfigTargets.cmake
         NAMESPACE cudaq::
         DESTINATION lib/cmake/CUDAQTargetConfig
-        COMPONENT Development)
+        COMPONENT ${CUDAQ_CORE_DEVELOPMENT_COMPONENT})
 
 include(CMakePackageConfigHelpers)
 configure_package_config_file(
@@ -133,7 +134,7 @@ configure_package_config_file(
   INSTALL_DESTINATION lib/cmake/CUDAQTargetConfig)
 install(FILES ${CMAKE_CURRENT_BINARY_DIR}/CUDAQTargetConfigConfig.cmake
         DESTINATION lib/cmake/CUDAQTargetConfig
-        COMPONENT Development)
+        COMPONENT ${CUDAQ_CORE_DEVELOPMENT_COMPONENT})
 
 install(TARGETS CUDAQTargetCatalog CUDAQTargetDatabase
         EXPORT CUDAQTargetCatalogTargets
