@@ -660,8 +660,12 @@ inline async_evolve_result
 evolve_async(const cudaq::rydberg_hamiltonian &hamiltonian,
              const cudaq::schedule &schedule,
              std::optional<int> shots_count = std::nullopt, int qpu_id = 0) {
+  // The random seed is thread-local, so carry it to the execution queue.
+  std::size_t seed = cudaq::get_random_seed();
   return cudaq::detail::evolve_async(
       [=]() {
+        if (seed > 0)
+          cudaq::set_random_seed(seed);
         ExecutionContext context("evolve");
         context.qpuId = qpu_id;
         return cudaq::get_platform().with_execution_context(context, [&]() {
