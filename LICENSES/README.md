@@ -20,12 +20,13 @@ Clifford+T rotation synthesis library (`cudaq-synth`). They can be replaced with
 compatible versions by substituting the shared library files; see the "Dynamic
 linking to GMP and MPFR" section of the installation documentation for details.
 
-reflect-cpp and yaml-cpp are fetched from immutable pinned commits and built
+`reflect-cpp` and `yaml-cpp` are fetched from immutable pinned commits and built
 from source at configure time (`FetchContent`, see
-`cudaq/lib/Target/cmake/FetchDependencies.cmake`), and are statically linked into the
-CUDAQ target catalog library as private dependencies. reflect-cpp bundles the
-header-only `CTRE` and `enchantum` libraries under `include/rfl/thirdparty`;
-`LICENSE.ctre` reproduces the Apache License 2.0 text with LLVM Exceptions
-embedded in the bundled `ctre.hpp` header. reflect-cpp also bundles the `yyjson`
-header, but that code is not compiled into CUDA-Q binaries because reflect-cpp's
-JSON support is disabled; it is therefore not listed above.
+`cudaq/lib/Target/cmake/FetchDependencies.cmake`), and are statically linked
+into the CUDAQ target catalog library as private dependencies. `reflect-cpp`
+bundles the header-only `CTRE` and `enchantum` libraries under
+`include/rfl/thirdparty`; `LICENSE.ctre` reproduces the Apache License 2.0 text
+with LLVM Exceptions embedded in the bundled `ctre.hpp` header. reflect-cpp also
+bundles the `yyjson` header, but that code is not compiled into CUDA-Q binaries
+because reflect-cpp's JSON support is disabled; it is therefore not listed
+above.

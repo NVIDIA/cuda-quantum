@@ -12,8 +12,8 @@ code that relates to the CUDA-Q target system is roughly comprised of:
   schema. The parsed YAML is then converted to the public C++ API types.
 - A list of 'built-in' target definitions in `../Targets` that get bundled and
   shipped as part of any CUDA-Q installation, using `tools/cudaq-target-db-gen`.
-- The other files are `.cpp` implementation files, private headers, cmake files,
-  tests etc.
+- The other files are `.cpp` implementation files, private headers, `cmake`
+  files, tests etc.
 
 Target definitions are YAML files. yaml-cpp parses the YAML, reflect-cpp maps
 the selected versioned schema in `Yaml/` to C++ types, and that schema is
@@ -28,7 +28,7 @@ the rest of CUDA-Q. Any breaking change must bump `CUDAQ_TARGET_DB_ABI_VERSION`
 in `TargetDatabase.h`.
 
 YAML schemas are independently versioned by their top-level `version` field;
-unversioned files are permanently treated as v1. Changes to a published schema
+un-versioned files are permanently treated as v1. Changes to a published schema
 must remain backward compatible. Otherwise, add a new schema version under
 `Yaml/`, add it to `TargetConfigSchema`, and add the required logic to convert
 it to `TargetConfig`.
@@ -36,10 +36,9 @@ it to `TargetConfig`.
 ## Dependencies
 
 This component requires CMake 3.30 and C++20. Its private dependencies are
-yaml-cpp 0.9.0 and reflect-cpp 0.25.0 (including its bundled CTRE and
-enchantum). CMake `FetchContent` downloads the exact supported revisions during
-configuration, so no separate installation is needed. Tests additionally need
-`llvm-lit` and `FileCheck`.
+yaml-cpp 0.9.0 and reflect-cpp 0.25.0. CMake `FetchContent` downloads the exact
+supported revisions during configuration, so no separate installation is needed.
+Tests additionally need `llvm-lit` and `FileCheck`.
 
 ## Build
 
