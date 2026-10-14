@@ -63,8 +63,7 @@ if (hasattr(config, "python_executable") and config.python_executable and
     _probe_env = dict(os.environ)
     _probe_env["PYTHONPATH"] = config.qlx_python_dir
     _probe = subprocess.run([
-        config.python_executable, "-c",
-        """
+        config.python_executable, "-c", """
 try:
     import _cudaq_logical_devpath  # standalone build trees only
 except ImportError:
