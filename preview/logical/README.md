@@ -61,7 +61,7 @@ CUDA-Q tools.
 
 Build against an *installation* of CUDA-Q, i.e. the prefix given to
 `cmake --install` on a CUDA-Q build of the same sources (configure CUDA-Q with
-`-DCUDAQ_BUNDLE_MLIR_INSTALL=ON` to colocate LLVM/MLIR there, or point
+`-DCUDAQ_BUNDLE_MLIR_INSTALL=ON` to co-locate LLVM/MLIR there, or point
 `LLVM_DIR`/`MLIR_DIR` at the LLVM it was built with):
 
 ```bash
