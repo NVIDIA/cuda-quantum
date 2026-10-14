@@ -7,8 +7,9 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: cudaq-quake %s | cudaq-opt | FileCheck %s
-// RUN: cudaq-quake %s | cudaq-opt | cudaq-translate --convert-to=qir | FileCheck --check-prefix=QIR %s
+// RUN: cudaq-quake %s -o %t.qke
+// RUN: cudaq-opt %t.qke | FileCheck %s
+// RUN: cudaq-opt %t.qke | cudaq-translate --convert-to=qir | FileCheck --check-prefix=QIR %s
 // clang-format on
 
 // An initializer list of quantum references always lowers to a !quake.veq,
