@@ -175,3 +175,36 @@ func.func @f2() {
 // CHECK:           call @test({{.*}}) : (!cc.ptr<i32>, !cc.ptr<f64>) -> ()
 // CHECK-NOT:       cc.alloca
 // CHECK:           return
+
+// Allocations in one scope must remain distinct, even after sibling scopes
+// have been coalesced. A shared parent also remains live across both children.
+func.func private @use_pair(!cc.ptr<i32>, !cc.ptr<i32>)
+
+func.func @shared_parent_and_same_scope() {
+  cc.scope {
+    %parent = cc.alloca i32
+    cc.scope {
+      %a = cc.alloca i32
+      %b = cc.alloca i32
+      func.call @use_pair(%a, %b) : (!cc.ptr<i32>, !cc.ptr<i32>) -> ()
+      func.call @use_pair(%parent, %a) : (!cc.ptr<i32>, !cc.ptr<i32>) -> ()
+    }
+    cc.scope {
+      %a = cc.alloca i32
+      %b = cc.alloca i32
+      func.call @use_pair(%a, %b) : (!cc.ptr<i32>, !cc.ptr<i32>) -> ()
+      func.call @use_pair(%parent, %a) : (!cc.ptr<i32>, !cc.ptr<i32>) -> ()
+    }
+  }
+  return
+}
+
+// CHECK-LABEL: func.func @shared_parent_and_same_scope()
+// CHECK-COUNT-4: cc.alloca i32
+// CHECK-NOT: cc.alloca
+// CHECK: func.call @use_pair(%[[SHARED:.*]], %[[FIRST:.*]])
+// CHECK: func.call @use_pair(%[[PARENT:.*]], %[[SHARED]])
+// CHECK: func.call @use_pair(%[[SHARED]], %[[SECOND:.*]])
+// CHECK: func.call @use_pair(%[[PARENT]], %[[SHARED]])
+// CHECK-NOT: cc.alloca
+// CHECK: return

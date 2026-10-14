@@ -33,6 +33,10 @@ extern "C" {
 typedef struct cudaq_dispatch_manager_t cudaq_dispatch_manager_t;
 typedef struct cudaq_dispatcher_t cudaq_dispatcher_t;
 
+///@brief Opaque data structure storing the details of the transport layer
+/// connection (see bridge_interface.h).
+typedef void *cudaq_realtime_bridge_handle_t;
+
 // Error codes
 typedef enum {
   CUDAQ_OK = 0,
@@ -402,6 +406,8 @@ cudaq_status_t cudaq_dispatcher_destroy(cudaq_dispatcher_t *dispatcher);
 cudaq_status_t
 cudaq_dispatcher_set_ringbuffer(cudaq_dispatcher_t *dispatcher,
                                 const cudaq_ringbuffer_t *ringbuffer);
+// When a bridge is attached (cudaq_dispatcher_set_bridge), start() also hands
+// the table to it through cudaq_bridge_set_function_table.
 cudaq_status_t
 cudaq_dispatcher_set_function_table(cudaq_dispatcher_t *dispatcher,
                                     const cudaq_function_table_t *table);
@@ -419,6 +425,36 @@ cudaq_dispatcher_set_launch_fn(cudaq_dispatcher_t *dispatcher,
 // The caller retains ownership and must free it after cudaq_dispatcher_destroy.
 cudaq_status_t cudaq_dispatcher_set_mailbox(cudaq_dispatcher_t *dispatcher,
                                             void **h_mailbox_bank);
+
+// Wire a transport bridge (bridge_interface.h) to this dispatcher.  This is
+// the entry point for every bridge-backed dispatcher: the configured
+// `dispatch_path` + `kernel_type` name the shape, and the dispatcher asks the
+// bridge for the matching data plane:
+//   - HOST + REGULAR/COOPERATIVE:   the RING_BUFFER context; skip_tx_markers is
+//                                   forced to 1 (the provider's TX pump owns
+//                                   the wire).
+//   - HOST + UNIFIED:               the provider's CPU data plane.
+//   - DEVICE + REGULAR/COOPERATIVE: the RING_BUFFER context.  The 3-kernel
+//                                   launchers live in
+//                                   libcudaq-realtime-dispatch.a, so the
+//                                   caller still names one with
+//                                   cudaq_dispatcher_set_launch_fn.
+//   - DEVICE + UNIFIED:             the provider's unified transport context.
+// A `num_slots` / `slot_size` left at 0 in the config is filled from the
+// bridge's ring geometry; a non-zero value that disagrees with it is an error.
+//
+// Everything the dispatcher needs is copied, so nothing the caller passes has
+// to outlive this call; the bridge itself must outlive the dispatcher.  Call
+// before cudaq_dispatcher_start.  A bridge drives exactly one dispatcher;
+// wiring it to a second one is refused until the first is destroyed.
+//
+// Returns CUDAQ_ERR_UNSUPPORTED when the provider does not serve the requested
+// shape (typically a provider started in the other mode), and
+// CUDAQ_ERR_INVALID_ARG for an incomplete answer or a geometry mismatch.
+cudaq_status_t
+cudaq_dispatcher_set_bridge(cudaq_dispatcher_t *dispatcher,
+                            cudaq_realtime_bridge_handle_t bridge);
+
 // Bundle struct returned by bridge implementations for unified dispatch.
 // Contains the bridge-provided launch function and its opaque transport state,
 // keeping the dispatcher API transport-agnostic.
@@ -428,6 +464,9 @@ typedef struct {
   void *transport_ctx; ///< Bridge-owned opaque transport state
 } cudaq_unified_dispatch_ctx_t;
 
+// DEPRECATED for bridge-backed dispatchers: use cudaq_dispatcher_set_bridge,
+// which makes this call itself.
+//
 // Unified dispatch wiring -- pass a transport-specific launch function and
 // an opaque context holding transport handles (e.g. DOCA QP, rkey).
 // When set, cudaq_dispatcher_start() will invoke unified_launch_fn instead of
@@ -446,9 +485,14 @@ cudaq_dispatcher_set_unified_launch(cudaq_dispatcher_t *dispatcher,
                                     cudaq_unified_launch_fn_t unified_launch_fn,
                                     void *transport_ctx);
 
+// DEPRECATED for bridge-backed dispatchers: use cudaq_dispatcher_set_bridge,
+// which makes this call itself.
+//
 // CPU data-plane wiring for the host unified path. `cpu_dataplane` is a
 // `cudaq_cpu_dataplane_t*` obtained from the bridge. When set, the dispatcher
-// runs the single-thread unified loop over it.
+// runs the single-thread unified loop over it.  The struct is copied, as
+// cudaq_dispatcher_set_ringbuffer copies its ring; the provider state its
+// `ctx` points to must outlive the dispatcher.
 cudaq_status_t
 cudaq_dispatcher_set_cpu_dataplane(cudaq_dispatcher_t *dispatcher,
                                    void *cpu_dataplane);
