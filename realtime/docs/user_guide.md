@@ -100,6 +100,10 @@ Please refer to this [section](#using-docker) for instructions.
     The other option is `--forward`, which skips the RPC callback.
     Without either of these flags, we will run the test in
     the three-kernel mode with the RPC handler.
+    `--cooperative` launches the dispatch kernel cooperatively -- the
+    three-kernel cooperative kernel, or the cooperative unified kernel when
+    combined with `--unified` -- with the grid given by `--blocks N` and
+    `--threads N`.
 
     Upon successful completion, the above validation script should
     print out the following:

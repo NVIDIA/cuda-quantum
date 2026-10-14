@@ -17,9 +17,10 @@
 #include <thread>
 
 // Defined in libcudaq-realtime-dispatch.a, which the consumer device-links
-// together with its handlers; it is not part of this library.  Weak, so a
-// binary that never links the archive still loads, and the address is null.
+// together with its handlers; they are not part of this library.  Weak, so a
+// binary that never links the archive still loads, and the addresses are null.
 #pragma weak cudaq_launch_unified_dispatch_device
+#pragma weak cudaq_launch_unified_dispatch_device_cooperative
 
 struct cudaq_dispatch_manager_t {
   int reserved = 0;
@@ -75,6 +76,7 @@ static bool is_valid_kernel_type(cudaq_kernel_type_t kernel_type) {
   case CUDAQ_KERNEL_REGULAR:
   case CUDAQ_KERNEL_COOPERATIVE:
   case CUDAQ_KERNEL_UNIFIED:
+  case CUDAQ_KERNEL_UNIFIED_COOPERATIVE:
     return true;
   default:
     return false;
@@ -103,6 +105,10 @@ static cudaq_status_t validate_dispatcher(cudaq_dispatcher_t *dispatcher) {
     return CUDAQ_ERR_INVALID_ARG;
 
   if (dispatcher->config.dispatch_path == CUDAQ_DISPATCH_PATH_HOST) {
+    // The cooperative unified kernel is a GPU launch; the host unified loop
+    // is CUDAQ_KERNEL_UNIFIED only.
+    if (dispatcher->config.kernel_type == CUDAQ_KERNEL_UNIFIED_COOPERATIVE)
+      return CUDAQ_ERR_INVALID_ARG;
     if (dispatcher->config.kernel_type == CUDAQ_KERNEL_UNIFIED) {
       if (!dispatcher->cpu_dataplane)
         return CUDAQ_ERR_INVALID_ARG;
@@ -116,16 +122,31 @@ static cudaq_status_t validate_dispatcher(cudaq_dispatcher_t *dispatcher) {
     return CUDAQ_OK;
   }
 
-  if (dispatcher->config.kernel_type == CUDAQ_KERNEL_UNIFIED) {
+  const bool unified_cooperative =
+      dispatcher->config.kernel_type == CUDAQ_KERNEL_UNIFIED_COOPERATIVE;
+  if (dispatcher->config.kernel_type == CUDAQ_KERNEL_UNIFIED ||
+      unified_cooperative) {
     if (!dispatcher->transport_ctx)
-      return CUDAQ_ERR_INVALID_ARG;
-    // Without an override, the unified kernel must have been linked into the
-    // consumer from libcudaq-realtime-dispatch.a.
-    if (!dispatcher->unified_launch_fn &&
-        !&cudaq_launch_unified_dispatch_device)
       return CUDAQ_ERR_INVALID_ARG;
     if (dispatcher->config.slot_size == 0)
       return CUDAQ_ERR_INVALID_ARG;
+    if (unified_cooperative) {
+      // The override type carries no grid shape, so the cooperative variant
+      // runs only the archive's kernel: that must be linked into the consumer
+      // and the grid must be non-empty.
+      if (dispatcher->unified_launch_fn)
+        return CUDAQ_ERR_INVALID_ARG;
+      if (!&cudaq_launch_unified_dispatch_device_cooperative)
+        return CUDAQ_ERR_INVALID_ARG;
+      if (dispatcher->config.num_blocks == 0 ||
+          dispatcher->config.threads_per_block == 0)
+        return CUDAQ_ERR_INVALID_ARG;
+    } else if (!dispatcher->unified_launch_fn &&
+               !&cudaq_launch_unified_dispatch_device) {
+      // Without an override, the unified kernel must have been linked into
+      // the consumer from libcudaq-realtime-dispatch.a.
+      return CUDAQ_ERR_INVALID_ARG;
+    }
   } else {
     if (!dispatcher->launch_fn)
       return CUDAQ_ERR_INVALID_ARG;
@@ -366,7 +387,23 @@ cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher) {
   // config.shared_ring_mode directly from this struct (it has no
   // __constant__ indirection) -- nothing needed here.
 
-  if (dispatcher->config.kernel_type == CUDAQ_KERNEL_UNIFIED) {
+  // The cooperative unified launcher reports its result by return value: it
+  // runs in the consumer's CUDA runtime, whose last-error state this library's
+  // own runtime cannot see.  The other launchers are void and leave the
+  // result to cudaGetLastError() below.
+  cudaError_t err = cudaSuccess;
+  bool err_from_launcher = false;
+  if (dispatcher->config.kernel_type == CUDAQ_KERNEL_UNIFIED_COOPERATIVE) {
+    // Archive kernel only (validate_dispatcher refused an override); the grid
+    // comes from the config.
+    err = cudaq_launch_unified_dispatch_device_cooperative(
+        dispatcher->transport_ctx, dispatcher->config.slot_size,
+        dispatcher->table.entries, dispatcher->table.count,
+        dispatcher->shutdown_flag, dispatcher->stats,
+        dispatcher->config.num_blocks, dispatcher->config.threads_per_block,
+        dispatcher->stream);
+    err_from_launcher = true;
+  } else if (dispatcher->config.kernel_type == CUDAQ_KERNEL_UNIFIED) {
     // The unified kernel lives in the consumer binary, linked from
     // libcudaq-realtime-dispatch.a; the direct call below binds to it at load
     // time (validate_dispatcher has checked it is there).  unified_launch_fn
@@ -394,7 +431,11 @@ cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher) {
         dispatcher->config.threads_per_block, dispatcher->stream);
   }
 
-  cudaError_t err = cudaGetLastError();
+  // Void launchers only.  When the launcher reported itself, a stale error in
+  // this runtime must not be mistaken for a launch failure: that would tear
+  // down the stream under a grid that is already running.
+  if (!err_from_launcher)
+    err = cudaGetLastError();
   if (err != cudaSuccess) {
     fprintf(stderr, "CUDA error in dispatcher launch: %s (%d)\n",
             cudaGetErrorString(err), err);
