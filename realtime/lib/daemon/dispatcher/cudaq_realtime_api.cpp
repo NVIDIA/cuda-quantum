@@ -348,6 +348,14 @@ cudaq_dispatcher_set_bridge(cudaq_dispatcher_t *dispatcher,
   if (status != CUDAQ_OK)
     return status;
 
+  if (config.num_slots == 0) {
+    fprintf(stderr,
+            "ERROR: cudaq_dispatcher_set_bridge (%s): the config's geometry "
+            "(num_slots=%u) is 0; the bridge must report its geometry\n",
+            shape, config.num_slots);
+    return CUDAQ_ERR_INVALID_ARG;
+  }
+
   cudaq_ringbuffer_t ring{};
   cudaq_cpu_dataplane_t cpu_dataplane{};
   cudaq_unified_dispatch_ctx_t unified_ctx{};
