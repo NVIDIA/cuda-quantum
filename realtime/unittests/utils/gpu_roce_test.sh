@@ -67,6 +67,9 @@ NUM_PAGES=128
 CONTROL_PORT=8193
 FORWARD=false
 UNIFIED=false
+COOPERATIVE=false
+BLOCKS=""             # bridge default unless --blocks given
+THREADS=""            # bridge default unless --threads given
 HOST_DISPATCH=false
 # Build parallelism
 JOBS=$(nproc 2>/dev/null || echo 8)
@@ -112,6 +115,10 @@ Run options:
   --num-pages N          Number of ring buffer slots (default: 128)
   --control-port N       UDP control port for emulator (default: 8193)
   --bin-dir DIR          Binary directory containing executables (default: None)
+  --cooperative          Cooperative dispatch kernel (3-kernel cooperative, or
+                         with --unified the cooperative unified kernel)
+  --blocks N             Dispatch grid blocks (default: bridge default)
+  --threads N            Threads per block (default: bridge default)
   --help, -h             Show this help
 EOF
 }
@@ -135,6 +142,9 @@ while [[ $# -gt 0 ]]; do
         --gpu)              GPU_ID="$2"; shift ;;
         --forward)          FORWARD=true ;;
         --unified)          UNIFIED=true ;;
+        --cooperative)      COOPERATIVE=true ;;
+        --blocks)           BLOCKS="$2"; shift ;;
+        --threads)          THREADS="$2"; shift ;;
         --cpu)              HOST_DISPATCH=true ;;
         --timeout)          TIMEOUT="$2"; shift ;;
         --num-messages)     NUM_MESSAGES="$2"; shift ;;
@@ -457,6 +467,15 @@ do_run() {
     fi
     if $UNIFIED; then
         bridge_args+=(--unified)
+    fi
+    if $COOPERATIVE; then
+        bridge_args+=(--cooperative)
+    fi
+    if [[ -n "$BLOCKS" ]]; then
+        bridge_args+=(--blocks="$BLOCKS")
+    fi
+    if [[ -n "$THREADS" ]]; then
+        bridge_args+=(--threads="$THREADS")
     fi
     if $HOST_DISPATCH; then
         bridge_args+=(--cpu)

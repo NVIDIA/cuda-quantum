@@ -195,24 +195,32 @@ without any transport-specific knowledge.
 
 - Transport-agnostic -- works with any transport that implements the ring-buffer
     flag protocol
-- Required for cooperative handlers that use `grid.sync()`
+- Supports cooperative handlers that use `grid.sync()`
 - Supports `CUDAQ_DISPATCH_GRAPH_LAUNCH` mode
 
-**Unified mode** (`CUDAQ_KERNEL_UNIFIED`):
+**Unified mode** (`CUDAQ_KERNEL_UNIFIED` or `CUDAQ_KERNEL_UNIFIED_COOPERATIVE`):
 
 - Lowest latency for regular (non-cooperative) handlers
-- Transport-agnostic API -- the transport provides a pluggable launch function
-    and opaque context (e.g., `GpuRoceTransceiver`/`DOCA` supplies `gpu_roce_launch_unified_dispatch`)
-- Single-thread, single-block kernel -- no inter-kernel synchronization overhead
-- Not compatible with cooperative handlers or `CUDAQ_DISPATCH_GRAPH_LAUNCH`
+- Transport-agnostic API -- the transport provides an opaque context and, for
+    `CUDAQ_KERNEL_UNIFIED` only, an optional launch function override (the
+    `GpuRoceTransceiver`/`DOCA` transport passes none and relies on the
+    built-in kernel over its device hooks)
+- `CUDAQ_KERNEL_UNIFIED` is a single-thread, single-block kernel -- no
+    inter-kernel synchronization overhead
+- `CUDAQ_KERNEL_UNIFIED_COOPERATIVE` launches `num_blocks x threads_per_block`
+    with `cudaLaunchCooperativeKernel`; thread 0 of block 0 drives the
+    transport and all threads call each `CUDAQ_DISPATCH_DEVICE_CALL` handler
+    between grid barriers
+- Not compatible with `CUDAQ_DISPATCH_GRAPH_LAUNCH`
 
 ### Host API Extensions
 
 ```cpp
 typedef enum {
-  CUDAQ_KERNEL_REGULAR     = 0,
-  CUDAQ_KERNEL_COOPERATIVE = 1,
-  CUDAQ_KERNEL_UNIFIED     = 2
+  CUDAQ_KERNEL_REGULAR             = 0,
+  CUDAQ_KERNEL_COOPERATIVE         = 1,
+  CUDAQ_KERNEL_UNIFIED             = 2,
+  CUDAQ_KERNEL_UNIFIED_COOPERATIVE = 3
 } cudaq_kernel_type_t;
 
 typedef void (*cudaq_unified_launch_fn_t)(
@@ -227,13 +235,28 @@ cudaq_status_t cudaq_dispatcher_set_unified_launch(
     void *transport_ctx);
 ```
 
-When `kernel_type == CUDAQ_KERNEL_UNIFIED`:
+When `kernel_type == CUDAQ_KERNEL_UNIFIED` or
+`kernel_type == CUDAQ_KERNEL_UNIFIED_COOPERATIVE`:
 
 - `cudaq_dispatcher_set_ringbuffer()` and `cudaq_dispatcher_set_launch_fn()`
     are **not required** (the unified kernel handles transport internally)
 - `cudaq_dispatcher_set_unified_launch()` **must** be called instead
-- `num_slots` and `slot_size` in the `config` may be zero
+- `num_slots` in the `config` may be zero; `slot_size` must be the slot stride
+    (it reaches handlers as `slot_size`)
 - All other wiring (`set_function_table`, `set_control`) remains the same
+
+When `kernel_type == CUDAQ_KERNEL_UNIFIED_COOPERATIVE`, additionally:
+
+- `dispatch_path` must be `CUDAQ_DISPATCH_PATH_DEVICE` (the host unified loop
+    is `CUDAQ_KERNEL_UNIFIED` only)
+- The grid is `num_blocks x threads_per_block` from the `config` (both
+    non-zero), launched with `cudaLaunchCooperativeKernel`
+- Thread 0 of block 0 drives the transport; all threads call each
+    `CUDAQ_DISPATCH_DEVICE_CALL` handler between grid barriers
+- `unified_launch_fn` **must** be `NULL` -- the override signature carries no
+    grid shape, so the built-in
+    `cudaq_launch_unified_dispatch_device_cooperative` is always used
+- `CUDAQ_DISPATCH_GRAPH_LAUNCH` is not supported
 
 ### Wiring Example (Unified Mode with GpuRoceTransceiver)
 
@@ -454,6 +477,9 @@ Parameters:
     - `CUDAQ_KERNEL_COOPERATIVE`: cooperative launch (`grid.sync()` capable)
     - `CUDAQ_KERNEL_UNIFIED`: single-kernel dispatch with integrated transport
     (see [Unified Dispatch Mode](#unified-dispatch-mode))
+    - `CUDAQ_KERNEL_UNIFIED_COOPERATIVE`: cooperative launch of the unified
+    kernel over `num_blocks x threads_per_block` (device path only; see
+    [Unified Dispatch Mode](#unified-dispatch-mode))
   - `dispatch_mode` (default `CUDAQ_DISPATCH_DEVICE_CALL`)
     - `CUDAQ_DISPATCH_DEVICE_CALL`: direct `__device__` handler call (lowest latency)
     - `CUDAQ_DISPATCH_GRAPH_LAUNCH`: CUDA graph launch from device code
@@ -612,6 +638,12 @@ Call this once during setup. Typically you pass one of the provided launch funct
 - `cudaq_launch_dispatch_kernel_regular` - for `CUDAQ_KERNEL_REGULAR` mode
 - `cudaq_launch_dispatch_kernel_cooperative` - for `CUDAQ_KERNEL_COOPERATIVE` mode
 
+The unified modes do not use `set_launch_fn`. `CUDAQ_KERNEL_UNIFIED` launches
+`cudaq_launch_unified_dispatch_device` (or the `unified_launch_fn` override) and
+`CUDAQ_KERNEL_UNIFIED_COOPERATIVE` launches
+`cudaq_launch_unified_dispatch_device_cooperative` with the configured grid; see
+[Unified Dispatch Mode](#unified-dispatch-mode).
+
 **`cudaq_dispatcher_start`** launches the persistent dispatch kernel and begins
 processing slots.
 
@@ -671,6 +703,19 @@ Parameters:
 Returns `cudaSuccess` on success. Call this when `kernel_type` is
 `CUDAQ_KERNEL_COOPERATIVE`. Use the same `threads_per_block` value that will
 be passed to the dispatcher configuration and launch function.
+
+**`cudaq_unified_dispatch_cooperative_query_occupancy`**
+returns the maximum number of active blocks per multiprocessor for the
+**cooperative unified** dispatch kernel.
+
+Parameters:
+
+- `out_blocks`: receives the max blocks per SM (or 0 on error).
+- `threads_per_block`: block size used for the occupancy calculation.
+
+Returns `cudaSuccess` on success. Call this when `kernel_type` is
+`CUDAQ_KERNEL_UNIFIED_COOPERATIVE`. Use the same `threads_per_block` value
+that will be passed to the dispatcher configuration.
 
 Call the occupancy function that matches the dispatcher's `kernel_type` once
 before `cudaq_dispatcher_start`; the result can be used to size the dispatch

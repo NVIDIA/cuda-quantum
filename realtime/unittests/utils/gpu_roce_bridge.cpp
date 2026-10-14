@@ -86,6 +86,10 @@ int main(int argc, char *argv[]) {
              "instead of dispatch\n"
           << "  --unified             Use unified dispatch kernel (RX + "
              "dispatch + TX in one kernel)\n"
+          << "  --cooperative         Cooperative dispatch kernel (3-kernel, "
+             "or unified with --unified)\n"
+          << "  --blocks=N            Dispatch grid blocks (default: 1)\n"
+          << "  --threads=N           Threads per block (default: 32)\n"
           << "  --cpu                 Use host dispatch with CUDA graph "
              "launch.\n";
       return 0;
@@ -126,7 +130,11 @@ int main(int argc, char *argv[]) {
 
       config.d_function_entries = d_function_entries;
       config.func_count = 1;
-      config.launch_fn = &cudaq::realtime::bridge_launch_dispatch_kernel;
+      // 3-kernel path only (unified ignores launch_fn): the cooperative
+      // launcher when --cooperative was given, else the regular wrapper.
+      config.launch_fn = config.kernel_type == CUDAQ_KERNEL_COOPERATIVE
+                             ? &cudaq_launch_dispatch_kernel_cooperative
+                             : &cudaq::realtime::bridge_launch_dispatch_kernel;
       config.cleanup_fn = [d_function_entries]() {
         cudaFree(d_function_entries);
       };

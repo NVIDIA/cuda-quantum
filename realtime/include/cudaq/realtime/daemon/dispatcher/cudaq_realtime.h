@@ -58,11 +58,29 @@ typedef enum {
   CUDAQ_TX_READY = 3
 } cudaq_tx_status_t;
 
-// Kernel synchronization type
+// Kernel synchronization type.
+//
+// REGULAR and COOPERATIVE select the ring (3-kernel) dispatch kernel; UNIFIED
+// and UNIFIED_COOPERATIVE select the unified kernel, which drives the
+// transport itself through the device hooks in unified_device_transport.cuh.
+//
+// CUDAQ_KERNEL_UNIFIED_COOPERATIVE is the cooperative-launch variant of the
+// unified kernel (CUDAQ_DISPATCH_PATH_DEVICE only).  The grid is
+// config.num_blocks x config.threads_per_block, launched with
+// cudaLaunchCooperativeKernel.  Thread 0 of block 0 alone drives the
+// transport; every thread calls each DEVICE_CALL handler between two grid
+// barriers, as the ring kernel's COOPERATIVE path does.  DEVICE_CALL handlers
+// only (no GRAPH_LAUNCH), and the unified_launch_fn override is not accepted,
+// since its signature carries no grid shape.  The grid shares one
+// module-wide work descriptor, so at most one cooperative unified dispatcher
+// may be running per CUDA module, i.e. per binary or .so that links the
+// dispatch archive (the ring kernel's COOPERATIVE path has the same limit);
+// this is not enforced.
 typedef enum {
   CUDAQ_KERNEL_REGULAR = 0,
   CUDAQ_KERNEL_COOPERATIVE = 1,
-  CUDAQ_KERNEL_UNIFIED = 2
+  CUDAQ_KERNEL_UNIFIED = 2,
+  CUDAQ_KERNEL_UNIFIED_COOPERATIVE = 3
 } cudaq_kernel_type_t;
 
 // Dispatch invocation mode.
@@ -125,7 +143,10 @@ typedef struct {
 
 // Dispatcher configuration
 typedef struct {
-  int device_id;              // GPU device ID (>=0)
+  int device_id; // GPU device ID (>=0)
+  // Grid shape.  Read by the ring kernels and by
+  // CUDAQ_KERNEL_UNIFIED_COOPERATIVE; CUDAQ_KERNEL_UNIFIED runs <<<1,1>>> and
+  // ignores both.
   uint32_t num_blocks;        // grid size
   uint32_t threads_per_block; // block size
   uint32_t num_slots;         // ring buffer slots
@@ -144,7 +165,7 @@ typedef struct {
   // then the ring and unified paths at least behave identically.
   uint32_t slot_size;
   uint32_t vp_id;                      // virtual port ID
-  cudaq_kernel_type_t kernel_type;     // regular/cooperative kernel
+  cudaq_kernel_type_t kernel_type;     // see cudaq_kernel_type_t
   cudaq_dispatch_mode_t dispatch_mode; // device call/graph launch
   cudaq_dispatch_path_t dispatch_path; // GPU kernel or CPU host loop
   int skip_tx_markers; // when non-zero, the host dispatcher will NOT write
@@ -295,6 +316,26 @@ CUDAQ_REALTIME_DISPATCH_API void cudaq_launch_unified_dispatch_device(
     void *transport_ctx, size_t tx_stride_sz,
     cudaq_function_entry_t *function_table, size_t func_count,
     volatile int *shutdown_flag, uint64_t *stats, cudaStream_t stream);
+
+// Cooperative-launch variant of the launcher above, for
+// CUDAQ_KERNEL_UNIFIED_COOPERATIVE.  Launches num_blocks x threads_per_block
+// with cudaLaunchCooperativeKernel on `stream`; thread 0 of block 0 drives the
+// transport and every thread calls each DEVICE_CALL handler between grid
+// barriers.  Returns the launch result (e.g. cudaErrorCooperativeLaunchTooLarge
+// when the grid cannot be co-resident), which cudaq_dispatcher_start turns
+// into CUDAQ_ERR_CUDA.  Returned rather than left to cudaGetLastError()
+// because libcudaq-realtime.so carries its own CUDA runtime: an error
+// recorded by the consumer's runtime, where this launcher runs, is invisible
+// to the library's.  On failure the pending last-error is consumed before
+// returning, so the failure is reported exactly once.  Same linkage rules as
+// above; start() calls it through a weak reference and fails with
+// CUDAQ_ERR_INVALID_ARG if the archive was not linked.
+CUDAQ_REALTIME_DISPATCH_API cudaError_t
+cudaq_launch_unified_dispatch_device_cooperative(
+    void *transport_ctx, size_t tx_stride_sz,
+    cudaq_function_entry_t *function_table, size_t func_count,
+    volatile int *shutdown_flag, uint64_t *stats, uint32_t num_blocks,
+    uint32_t threads_per_block, cudaStream_t stream);
 
 // Graph-enabled dispatch kernels (requires compute capability 9.0+, sm_90+)
 // These functions are only available when compiled for sm_90 or higher.
@@ -508,6 +549,14 @@ cudaError_t cudaq_dispatch_kernel_query_occupancy(int *out_blocks,
 cudaError_t
 cudaq_dispatch_kernel_cooperative_query_occupancy(int *out_blocks,
                                                   uint32_t threads_per_block);
+// Same query for the cooperative unified kernel
+// (CUDAQ_KERNEL_UNIFIED_COOPERATIVE).  Lives in libcudaq-realtime-dispatch.a
+// next to its launcher, and carries the launcher's default visibility so a
+// shared-library consumer can reach it too; a statically linked tool needs no
+// export.
+CUDAQ_REALTIME_DISPATCH_API cudaError_t
+cudaq_unified_dispatch_cooperative_query_occupancy(int *out_blocks,
+                                                   uint32_t threads_per_block);
 
 // Push the shared_ring_mode flag into the DEVICE_LOOP kernel's __constant__
 // memory.  Must be called BEFORE cudaq_dispatcher_start() launches the

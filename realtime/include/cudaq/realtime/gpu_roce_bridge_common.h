@@ -141,7 +141,9 @@ struct BridgeConfig {
 
   // Unified dispatch mode: single kernel combines RDMA RX, RPC dispatch, and
   // RDMA TX via direct DOCA verbs calls.  Eliminates the inter-kernel flag
-  // handoff overhead of the 3-kernel path.  Regular handlers only.
+  // handoff overhead of the 3-kernel path.  Single-thread by default; with
+  // `--cooperative` the cooperative unified variant runs num_blocks x
+  // threads_per_block.
   bool unified = false;
 
   // Dispatch kernel config
@@ -149,7 +151,10 @@ struct BridgeConfig {
   size_t func_count = 0;                                ///< Number of entries
 
   /// @brief Dispatch kernel grid configuration.
-  /// Defaults match the regular (non-cooperative) kernel.
+  /// Defaults match the regular (non-cooperative) kernel.  `--cooperative`
+  /// sets kernel_type to CUDAQ_KERNEL_COOPERATIVE; with `--unified`,
+  /// bridge_run maps that to CUDAQ_KERNEL_UNIFIED_COOPERATIVE in the
+  /// dispatcher config.  `--blocks=` and `--threads=` set the grid.
   cudaq_kernel_type_t kernel_type = CUDAQ_KERNEL_REGULAR;
   uint32_t num_blocks = 1;
   uint32_t threads_per_block = 32;
@@ -188,8 +193,9 @@ struct BridgeConfig {
 ///
 /// Recognized flags: `--device=`, `--peer-ip=`, `--remote-qp=`, `--gpu=`,
 /// `--timeout=`, `--page-size=`, `--num-pages=`, `--exchange-qp`,
-/// `--exchange-port=`. Unknown flags are silently ignored (so tool-specific
-/// flags can co-exist).
+/// `--exchange-port=`, `--payload-size=`, `--forward`, `--unified`,
+/// `--cooperative`, `--blocks=`, `--threads=`, `--cpu`. Unknown flags are
+/// silently ignored (so tool-specific flags can co-exist).
 ///
 /// @param argc Argument count
 /// @param argv Argument vector
@@ -221,6 +227,13 @@ inline void parse_bridge_args(int argc, char *argv[], BridgeConfig &config) {
       config.forward = true;
     else if (arg == "--unified")
       config.unified = true;
+    else if (arg == "--cooperative")
+      config.kernel_type = CUDAQ_KERNEL_COOPERATIVE;
+    else if (arg.find("--blocks=") == 0)
+      config.num_blocks = static_cast<uint32_t>(std::stoul(arg.substr(9)));
+    else if (arg.find("--threads=") == 0)
+      config.threads_per_block =
+          static_cast<uint32_t>(std::stoul(arg.substr(10)));
     else if (arg == "--cpu")
       config.dispatch_path = CUDAQ_DISPATCH_PATH_HOST;
   }
@@ -388,10 +401,14 @@ inline int bridge_run(BridgeConfig &config) {
   void *d_unified_ctx = nullptr;
 
   if (!config.forward) {
-    if (!config.unified && !is_host_loop) {
+    const bool cooperative = config.kernel_type == CUDAQ_KERNEL_COOPERATIVE;
+    if (!is_host_loop && (!config.unified || cooperative)) {
       int dispatch_blocks = 0;
       cudaError_t occ_err;
-      if (config.kernel_type == CUDAQ_KERNEL_COOPERATIVE) {
+      if (config.unified) {
+        occ_err = cudaq_unified_dispatch_cooperative_query_occupancy(
+            &dispatch_blocks, config.threads_per_block);
+      } else if (cooperative) {
         occ_err = cudaq_dispatch_kernel_cooperative_query_occupancy(
             &dispatch_blocks, config.threads_per_block);
       } else {
@@ -413,7 +430,8 @@ inline int bridge_run(BridgeConfig &config) {
               << (is_host_loop     ? "host-loop"
                   : config.unified ? "unified"
                                    : "3-kernel")
-              << ")..." << std::endl;
+              << (cooperative && !is_host_loop ? ", cooperative" : "") << ")..."
+              << std::endl;
 
     void *tmp_shutdown = nullptr;
     BRIDGE_CUDA_CHECK(
@@ -460,9 +478,12 @@ inline int bridge_run(BridgeConfig &config) {
       dconfig.dispatch_mode = CUDAQ_DISPATCH_DEVICE_CALL;
 
       if (config.unified) {
-        dconfig.kernel_type = CUDAQ_KERNEL_UNIFIED;
-        dconfig.num_blocks = 1;
-        dconfig.threads_per_block = 1;
+        // The regular unified kernel is <<<1,1>>>; the cooperative variant
+        // takes the configured grid.
+        dconfig.kernel_type = cooperative ? CUDAQ_KERNEL_UNIFIED_COOPERATIVE
+                                          : CUDAQ_KERNEL_UNIFIED;
+        dconfig.num_blocks = cooperative ? config.num_blocks : 1;
+        dconfig.threads_per_block = cooperative ? config.threads_per_block : 1;
         dconfig.num_slots = static_cast<uint32_t>(config.num_pages);
         dconfig.slot_size = static_cast<uint32_t>(config.page_size);
       } else {
@@ -565,7 +586,8 @@ inline int bridge_run(BridgeConfig &config) {
 
       cudaq_dispatch_launch_fn_t launch_fn = config.launch_fn;
       if (!launch_fn) {
-        launch_fn = &cudaq_launch_dispatch_kernel_regular;
+        launch_fn = cooperative ? &cudaq_launch_dispatch_kernel_cooperative
+                                : &cudaq_launch_dispatch_kernel_regular;
       }
       if (cudaq_dispatcher_set_launch_fn(dispatcher, launch_fn) != CUDAQ_OK) {
         std::cerr << "ERROR: Failed to set launch function" << std::endl;

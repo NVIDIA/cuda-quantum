@@ -13,10 +13,21 @@
 /// dispatch kernel.
 ///
 /// The unified kernel (`unified_dispatch_kernel.cu`) does RDMA RX, RPC dispatch
-/// and RDMA TX in one persistent single-thread kernel.  Everything
-/// transport-specific reaches it through the three `__device__` hooks below
-/// plus an opaque `void *ctx`, so the loop itself compiles with no transport
-/// headers -- no DOCA, no verbs, no mlx5.
+/// and RDMA TX in one persistent kernel.  Everything transport-specific
+/// reaches it through the three `__device__` hooks below plus an opaque
+/// `void *ctx`, so the loop itself compiles with no transport headers -- no
+/// DOCA, no verbs, no mlx5.
+///
+/// THREADING.  Exactly one thread per launch calls the hooks: thread 0 of
+/// block 0, in both kernel variants.  The regular variant is <<<1,1>>>.  The
+/// cooperative variant (CUDAQ_KERNEL_UNIFIED_COOPERATIVE) runs a whole grid,
+/// but the other threads only ever run the handler, and while thread 0 is
+/// inside a hook they are parked inside grid.sync()'s own barrier.  A hook
+/// must therefore not use block- or warp-wide barriers (`__syncthreads`,
+/// `__syncwarp`, the DOCA `*_warp` helpers): a warp barrier would never
+/// complete, and a block barrier would collide with the one the grid is
+/// waiting in.  `__shared__` state a transport declares inside a hook exists
+/// in every block, but only block 0's instance is ever touched.
 ///
 /// `rx_poll` and `tx_publish` deliberately mirror `cudaq_cpu_rx_poll_fn_t` and
 /// `cudaq_cpu_tx_publish_fn_t` in `bridge/bridge_interface.h`, which serve the
@@ -57,12 +68,13 @@ typedef enum {
 #define CUDAQ_DEV_TRANSPORT_SESSION_BYTES 256
 #define CUDAQ_DEV_TRANSPORT_SESSION_ALIGN 16
 
-/// Open the transport's device-side session.  Called once per block at kernel
-/// entry, before any other hook.
+/// Open the transport's device-side session.  Called once per launch, by the
+/// transport thread (see THREADING above), at kernel entry before any other
+/// hook.
 ///
-/// The implementation materialises whatever per-block state it needs (derived
-/// handles, cursors) from `ctx` into `storage` and returns the handle passed
-/// back to the other two hooks.
+/// The implementation materialises whatever state it needs (derived handles,
+/// cursors) from `ctx` into `storage` and returns the handle passed back to
+/// the other two hooks.
 ///
 ///   - `storage`       : CUDAQ_DEV_TRANSPORT_SESSION_BYTES of kernel-local
 ///                       memory, aligned to CUDAQ_DEV_TRANSPORT_SESSION_ALIGN,

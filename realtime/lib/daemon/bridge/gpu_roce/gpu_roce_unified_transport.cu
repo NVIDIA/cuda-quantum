@@ -21,6 +21,11 @@
 ///   iGPU: send (NIC_HANDLER_AUTO -> CPU proxy) -- required because the
 ///         GPU cannot ring the NIC doorbell directly on integrated GPUs.
 ///
+/// One thread drives these hooks (THREADING in unified_device_transport.cuh),
+/// so every DOCA call below is a single-thread variant (`submit_bf`, `submit`,
+/// the CTA-scoped lock).  The `*_warp` helpers contain `__syncwarp` and would
+/// deadlock the cooperative kernel, whose other lanes wait at a grid barrier.
+///
 
 #include "cudaq/realtime/daemon/bridge/gpu_roce/gpu_roce_doca_transport_ctx.h"
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
@@ -66,8 +71,8 @@ struct gpu_roce_session {
   std::uint64_t sq_wqe_idx;
 
   /// Pre-built send WQE for the BlueFlame path, in shared memory.  `send_bf`
-  /// indexes it by threadIdx.x, which is always 0 here (the kernel is
-  /// <<<1,1>>>).
+  /// indexes it by threadIdx.x, which is always 0 here: only thread 0 of
+  /// block 0 drives the transport, in both kernel variants.
   struct doca_gpu_dev_verbs_wqe *wqe_sh;
 };
 
@@ -120,8 +125,9 @@ __device__ inline void recycle_receive(gpu_roce_session &s) {
 extern "C" __device__ void *
 cudaq_dev_transport_attach(void *storage, void *ctx,
                            volatile int *shutdown_flag) {
-  // Statically allocated per block.  Declaring it here rather than in the
-  // kernel is what keeps doca_gpu_dev_verbs_wqe out of the core TU.
+  // Statically allocated per block; only block 0's instance is ever used.
+  // Declaring it here rather than in the kernel is what keeps
+  // doca_gpu_dev_verbs_wqe out of the core TU.
   __shared__ alignas(16) struct doca_gpu_dev_verbs_wqe wqe_sh;
 
   auto &s = *static_cast<gpu_roce_session *>(storage);
