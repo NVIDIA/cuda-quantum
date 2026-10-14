@@ -13,6 +13,7 @@
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/SmallPtrSet.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
@@ -424,6 +425,9 @@ static bool isSubCircuitTerminationPoint(Operation *op) {
   auto opi = dyn_cast<cudaq::quake::OperatorInterface>(op);
   if (!opi)
     return true;
+  if (auto negations = opi.getNegatedControls())
+    if (llvm::is_contained(*negations, true) && !isControlledOp(op))
+      return true;
   // Only allow single control (for CNOT/NOT); Z-rotations must be uncontrolled
   if (opi.getControls().size() > 0 && !isa<cudaq::quake::XOp>(op))
     return true;
@@ -447,7 +451,8 @@ protected:
   // subcircuit; would be nice to turn them into local arguments instead
   SetVector<Value> termination_points;
   SetVector<Value> anchor_points;
-  SetVector<Value> seen;
+  // Only membership matters here. DenseSet avoids SetVector's linear erase.
+  DenseSet<Value> seen;
   DenseMap<Value, Value> scope_result_to_continue_operand;
 
   bool isTerminationPoint(Operation *op) {
@@ -574,8 +579,8 @@ protected:
       if (seen.contains(next))
         continue;
       calculateSubcircuitForQubitForward(next);
-      // Remove next from seen for working backwards
-      seen.remove(next);
+      // Revisit the anchor when walking backward.
+      seen.erase(next);
       calculateSubcircuitForQubitBackward(next);
     }
   }
@@ -726,6 +731,9 @@ class PhaseFoldingPass
         Phase ctrlPhase = getWirePhase(opi.getControls().front());
         Phase tgtPhase = getWirePhase(opi.getTarget(0));
         wirePhase[op->getResult(0)] = ctrlPhase;
+        if (auto negations = opi.getNegatedControls())
+          if (negations->front())
+            ctrlPhase = Phase::invert(ctrlPhase);
         wirePhase[op->getResult(1)] = Phase::sum(ctrlPhase, tgtPhase);
       } else if (isa<cudaq::quake::XOp>(op)) {
         // AXIS-SPECIFIC: Would want to handle y and z gates here too
@@ -738,7 +746,7 @@ class PhaseFoldingPass
         store.addRotation(opi, p);
         wirePhase[op->getResult(0)] = p;
       } else if (auto phase = dyn_cast<cudaq::quake::PhaseOp>(op)) {
-        wirePhase[phase->getResult(0)] = getWirePhase(phase.getTarget(0));
+        wirePhase[phase->getResult(0)] = getWirePhase(phase.getTarget());
       } else if (auto swap = dyn_cast<cudaq::quake::SwapOp>(op)) {
         Phase p0 = getWirePhase(swap.getTarget(0));
         Phase p1 = getWirePhase(swap.getTarget(1));

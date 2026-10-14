@@ -8,7 +8,7 @@
 
 // clang-format off
 // RUN: nvq++ %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s
+// RUN: if %quantinuum_avail; then nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s; fi
 // clang-format on
 
 #include <cudaq.h>

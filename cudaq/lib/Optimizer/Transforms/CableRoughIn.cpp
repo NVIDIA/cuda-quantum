@@ -24,7 +24,7 @@ namespace cudaq::opt {
 using namespace mlir;
 
 // Convert the quake.concat and func.call pattern into a quake.bundle_cable and
-// quake.call_by_ref pattern.
+// quake.apply pattern.
 //
 //   %2 = quake.concat %0, %1 : (!quake.ref, !quake.ref) -> !quake.veq<2>
 //   %3 = quake.relax_size %2 : (!quake.veq<2>) -> !quake.veq<?>
@@ -36,12 +36,18 @@ using namespace mlir;
 //   %b = quake.unwrap %1 : (!quake.ref) -> !quake.wire
 //   %c = quake.bundle_cable %a, %b : (!quake.wire, !quake.wire) ->
 //                                     !quake.cable<2>
-//   %d = quake.call_by_ref @callee(%c, %cst) : (!quake.cable<2>, f32) ->
-//                                               !quake.cable<2>
+//   %d = quake.apply @callee(%c, %cst) : (!quake.cable<2>, f32) ->
+//                                        !quake.cable<2>
 //   %e, %f = quake.split_cable %d : (!quake.cable<2>) ->
 //                                    (!quake.wire, !quake.wire)
 //   quake.wrap %e to %0 : !quake.wire, !quake.ref  // [%0/%4]
 //   quake.wrap %f to %1 : !quake.wire, !quake.ref  // [%1/%5]
+//
+// The `quake.apply` op emitted here is a plain, unpredicated call (no adj, no
+// controls), so `apply-op-specialization` resolves it straight to a direct
+// call of the original callee -- a subsequent run of that pass (scheduled
+// right after this one) is required to eliminate it before it reaches
+// codegen.
 //
 
 namespace {
@@ -156,14 +162,14 @@ public:
       newArgs.push_back(arg);
     }
 
-    // Create a quake.call_by_ref operation.
-    auto callByRef = cudaq::quake::CallByRefOp::create(
-        rewriter, loc, call.getCalleeAttr(), resultTys, newArgs);
+    // Create a quake.apply operation.
+    auto apply = cudaq::quake::ApplyOp::create(rewriter, loc, resultTys,
+                                               call.getCallee(), newArgs);
 
     // Wrap the wires and cables.
     std::size_t i = origCoarity;
-    SmallVector<Value> results{callByRef.getResults().begin(),
-                               callByRef.getResults().end()};
+    SmallVector<Value> results{apply.getResults().begin(),
+                               apply.getResults().end()};
     for (auto arg : call.getOperands()) {
       Type argTy = arg.getType();
       if (argTy == refTy) {
@@ -221,7 +227,7 @@ public:
     }
 
     rewriter.replaceOp(
-        call, callByRef.getResults().drop_back(resultTys.size() - origCoarity));
+        call, apply.getResults().drop_back(resultTys.size() - origCoarity));
     return success();
   }
 };

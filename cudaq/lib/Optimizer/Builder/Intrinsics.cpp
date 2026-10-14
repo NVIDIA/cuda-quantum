@@ -171,7 +171,7 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     %1 = arith.constant 1 : i64
     %n1 = arith.constant -1 : i64
     %c1 = arith.cmpi eq, %step, %0 : i64
-    cf.cond_br %c1, ^b1, ^exit(%0 : i64)
+    cf.cond_br %c1, ^exit(%0 : i64), ^b1
    ^b1:
     %c2 = arith.cmpi sgt, %step, %0 : i64
     %adjust = arith.select %c2, %1, %n1 : i64
@@ -431,6 +431,13 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   }
 )#"},
 
+    // This is a dummy dispatch hook for the generalized `device_call` reference
+    // lowering. The arguments are: device id, callback name, unmarshal func
+    // ptr, argument buffer, buffer size, return offset, num blocks, num threads
+    // per block. This returns the (possibly dynamic) result span.
+    {cudaq::runtime::callDeviceCallback, {}, R"#(
+  func.func private @__nvqpp__device_callback_run(i64, !cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, i64, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
+)#"},
     {cudaq::runtime::extractDevPtr, {}, R"#(
   func.func private @__nvqpp__device_extract_device_ptr(!cc.ptr<!cc.struct<"device_ptr" {i64, i64, i64}>>) -> !cc.ptr<i8>
 )#"},
@@ -565,6 +572,11 @@ static constexpr IntrinsicCode intrinsicTable[] = {
      {},
      "func.func private @__nvqpp_getStringSize(%p: !cc.ptr<i8>) -> i64"},
 
+    // __nvqpp_hostDeallocate(void *): operator delete
+    {cudaq::runtime::hostDeallocate,
+     {},
+     "func.func private @__nvqpp_hostDeallocate(!cc.ptr<i8>) -> ()"},
+
     {cudaq::runtime::bindingInitializeString, {}, R"#(
   func.func private @__nvqpp_initializeStringFromSpan(!cc.ptr<i8>, !cc.ptr<i8>, i64)
 )#"},
@@ -596,6 +608,11 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     call @free(%from) : (!cc.ptr<i8>) -> ()
     return
   })#"},
+
+    // __nvqpp_vector_bool_destroy
+    {cudaq::sequenceBoolDestroy, {}, R"#(
+  func.func private @__nvqpp_vector_bool_destroy(!cc.ptr<i8>) -> ()
+)#"},
 
     // __nvqpp_vector_bool_free_temporary_lists
     {cudaq::sequenceBoolFreeTemporaryLists, {}, R"#(
@@ -687,6 +704,10 @@ static constexpr IntrinsicCode intrinsicTable[] = {
 
     {"free", {}, "func.func private @free(!cc.ptr<i8>) -> ()"},
 
+    {cudaq::opt::NVQIRGeneralizedInvokeAny, {}, R"#(
+  llvm.func @generalizedInvokeWithRotationsControlsTargets(i64, i64, i64, i64, !qir_llvmptr, ...) attributes {sym_visibility = "private"}
+)#"},
+
     // hybridLaunchKernel(kernelName, thunk, commBuffer, buffSize,
     //                    resultOffset, vectorArgPtrs)
     {cudaq::runtime::launchKernelHybridFuncName, {}, R"#(
@@ -717,7 +738,9 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     // subtargets (full, base profle, or adaptive profile).
     // These include qubit allocation and management, control variants of the
     // gates, some one offs, and control form invocation helper routines.
-    {"qir_common", {cudaq::opt::QISTrap}, R"#(
+    {"qir_common",
+     {cudaq::opt::QISTrap, cudaq::opt::NVQIRGeneralizedInvokeAny},
+     R"#(
   func.func private @__quantum__rt__qubit_allocate() -> !qir_qubit
   func.func private @__quantum__rt__qubit_allocate_array(i64) -> !qir_array
   func.func private @__quantum__rt__qubit_allocate_array_with_state_fp64(i64, !cc.ptr<f64>) -> !qir_array
@@ -762,7 +785,6 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   func.func private @__quantum__qis__logical_observable(!cc.ptr<!qir_result>, i64, i64)
   func.func private @__quantum__qis__pair_detectors(!cc.ptr<!qir_result>, i64, !cc.ptr<!qir_result>, i64)
 
-  llvm.func @generalizedInvokeWithRotationsControlsTargets(i64, i64, i64, i64, !qir_llvmptr, ...) attributes {sym_visibility = "private"}
   llvm.func @__quantum__qis__apply_kraus_channel_generalized(i64, i64, i64, i64, i64, ...) attributes {sym_visibility = "private"}
 )#"},
 

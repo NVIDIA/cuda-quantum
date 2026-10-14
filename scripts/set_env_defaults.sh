@@ -63,7 +63,7 @@ else
   export ZLIB_INSTALL_PREFIX=${ZLIB_INSTALL_PREFIX:-/usr/local/zlib}
   export GMP_INSTALL_PREFIX=${GMP_INSTALL_PREFIX:-/usr/local/gmp}
   export MPFR_INSTALL_PREFIX=${MPFR_INSTALL_PREFIX:-/usr/local/mpfr}
-  export OPENSSL_INSTALL_PREFIX=${OPENSSL_INSTALL_PREFIX:-/usr/lib/ssl}
+  export OPENSSL_INSTALL_PREFIX=${OPENSSL_INSTALL_PREFIX:-/usr/local/openssl}
   export CURL_INSTALL_PREFIX=${CURL_INSTALL_PREFIX:-/usr/local/curl}
   export AWS_INSTALL_PREFIX=${AWS_INSTALL_PREFIX:-/usr/local/aws}
   export QRMI_INSTALL_PREFIX=${QRMI_INSTALL_PREFIX:-/usr/local/qrmi}

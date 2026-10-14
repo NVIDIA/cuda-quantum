@@ -35,9 +35,16 @@ function retry {
 # This file is meant to be sourced, not executed:
 #   . "$(dirname "$0")/deps_common.sh"
 
-CUDAQ_REALTIME_DOCA_VERSION=3.3.0
-CUDAQ_REALTIME_HSB_REPO=https://github.com/nvidia-holoscan/holoscan-sensor-bridge.git
-CUDAQ_REALTIME_HSB_REF=2.6.0-EA2
+# Central repository of DOCA and Holoscan SDK versions for development and CI.
+DOCA_VERSION=${DOCA_VERSION:-3.3.0}
+HOLOSCAN_SDK_VERSION=${HOLOSCAN_SDK_VERSION:-4.6.0.0}
+HOLOSCAN_SDK_INSTALL_PREFIX=${HOLOSCAN_SDK_INSTALL_PREFIX:-/opt/nvidia/holoscan}
+CUDAQ_REALTIME_HSB_REPO=${CUDAQ_REALTIME_HSB_REPO:-https://github.com/nvidia-holoscan/holoscan-sensor-bridge.git}
+CUDAQ_REALTIME_HSB_REF=${CUDAQ_REALTIME_HSB_REF:-2.6.0-EA2}
+# HSB changes CUDA-Q Realtime needs before HSB releases them, applied to every
+# clone. Resolved from this file's location, since it is sourced. Set to an
+# empty string to build HSB unpatched.
+CUDAQ_REALTIME_HSB_PATCH_DIR=${CUDAQ_REALTIME_HSB_PATCH_DIR-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../patches/hsb}
 
 # Major CUDA version reported by nvcc, e.g., 13.
 cudaq_realtime_cuda_major() {
@@ -78,44 +85,108 @@ cudaq_realtime_cuda_native_arch() {
   fi
 }
 
-# Register the DOCA host apt repository for this architecture and distro.
-cudaq_realtime_add_doca_repo() {
-  if [ ! -x "$(command -v curl)" ] || [ ! -x "$(command -v gpg)" ]; then
-    retry apt-get update
-    retry apt-get install -y --no-install-recommends curl gnupg
+# Fetch a URL to a file with whichever downloader the image ships: the CI
+# containers have curl, the RHEL assets image has wget.
+cudaq_realtime_download() {
+  if [ -x "$(command -v curl)" ]; then
+    curl -fsSL "$1" -o "$2"
+  elif [ -x "$(command -v wget)" ]; then
+    wget -q "$1" -O "$2"
+  else
+    echo "Neither curl nor wget is available to download $1" >&2
+    return 1
   fi
+}
 
-  echo "Installing DOCA version $CUDAQ_REALTIME_DOCA_VERSION..."
+# Directory naming the DOCA repository uses for this distro. Ubuntu is named by
+# id and version, while the RHEL family is served by major version alone under
+# the id of the distro it is built for rather than the one running.
+cudaq_realtime_doca_distro() {
+  _cudaq_realtime_doca_id=$(. /etc/os-release && printf '%s' "$ID")
+  _cudaq_realtime_doca_version_id=$(. /etc/os-release && printf '%s' "$VERSION_ID")
+  case "$_cudaq_realtime_doca_id" in
+    ubuntu) printf 'ubuntu%s' "$_cudaq_realtime_doca_version_id" ;; # e.g., ubuntu24.04
+    rhel | almalinux | rocky | centos)
+      printf 'rhel%s' "${_cudaq_realtime_doca_version_id%%.*}" ;;   # e.g., rhel8
+    *)
+      echo "No DOCA repository is published for $_cudaq_realtime_doca_id$_cudaq_realtime_doca_version_id" >&2
+      return 1
+      ;;
+  esac
+}
+
+# Register the DOCA host package repository for this architecture and distro.
+# The same repository serves apt and dnf, so both entry points and the RHEL
+# assets image share one source: on RHEL this replaces fetching the ~640M
+# doca-host package, which is itself only an offline copy of this repository.
+cudaq_realtime_add_doca_repo() {
+  echo "Installing DOCA version $DOCA_VERSION..."
   _cudaq_realtime_doca_arch=$(uname -m)
   case "$_cudaq_realtime_doca_arch" in
     aarch64 | arm64) _cudaq_realtime_doca_arch="arm64-sbsa" ;;
   esac
-  _cudaq_realtime_distro=$(. /etc/os-release && echo ${ID}${VERSION_ID}) # e.g., ubuntu24.04
-  export DOCA_URL="https://linux.mellanox.com/public/repo/doca/$CUDAQ_REALTIME_DOCA_VERSION/$_cudaq_realtime_distro/$_cudaq_realtime_doca_arch/"
+  _cudaq_realtime_distro=$(cudaq_realtime_doca_distro) || return 1
+  export DOCA_URL="https://linux.mellanox.com/public/repo/doca/$DOCA_VERSION/$_cudaq_realtime_distro/$_cudaq_realtime_doca_arch/"
   echo "Using DOCA_REPO_LINK=${DOCA_URL}"
-  curl https://linux.mellanox.com/public/repo/doca/GPG-KEY-Mellanox.pub | gpg --dearmor > /etc/apt/trusted.gpg.d/GPG-KEY-Mellanox.pub
-  echo "deb [signed-by=/etc/apt/trusted.gpg.d/GPG-KEY-Mellanox.pub] $DOCA_URL ./" > /etc/apt/sources.list.d/doca.list
-  retry apt-get update
-}
 
-# Install the Holoscan SDK matching the CUDA toolkit in use. Set
-# CUDAQ_REALTIME_HOLOSCAN_FORCE_DEPS=1 to fall back to a dependency-forced dpkg
-# install; needed in containers whose pre-installed packages keep apt from
-# resolving the Holoscan dependency chain.
-cudaq_realtime_install_holoscan() {
-  _cudaq_realtime_holoscan_cuda_major=$(cudaq_realtime_cuda_major) || return 1
-  retry apt-get update
-  if retry apt-get install -y --no-install-recommends \
-    holoscan-cuda-$_cudaq_realtime_holoscan_cuda_major; then
-    return 0
-  fi
-  if [ "${CUDAQ_REALTIME_HOLOSCAN_FORCE_DEPS:-0}" != 1 ]; then
+  if [ -x "$(command -v apt-get)" ]; then
+    if [ ! -x "$(command -v curl)" ] || [ ! -x "$(command -v gpg)" ]; then
+      retry apt-get update
+      retry apt-get install -y --no-install-recommends curl gnupg
+    fi
+    curl https://linux.mellanox.com/public/repo/doca/GPG-KEY-Mellanox.pub | gpg --dearmor > /etc/apt/trusted.gpg.d/GPG-KEY-Mellanox.pub
+    echo "deb [signed-by=/etc/apt/trusted.gpg.d/GPG-KEY-Mellanox.pub] $DOCA_URL ./" > /etc/apt/sources.list.d/doca.list
+    retry apt-get update
+  elif [ -x "$(command -v dnf)" ]; then
+    # dnf fetches the keys itself, so nothing has to be installed to set this
+    # up. The RPMs were re-signed in January 2026 with the NVIDIA DOCA Host
+    # key, but the repository directories still serve the superseded Mellanox
+    # key.
+    cat > /etc/yum.repos.d/doca.repo <<EOF
+[doca]
+name=NVIDIA DOCA $DOCA_VERSION
+baseurl=$DOCA_URL
+enabled=1
+gpgcheck=1
+gpgkey=https://linux.mellanox.com/public/repo/doca/public_keys/nvidia-doca-rpm-gpg-public-key.asc ${DOCA_URL}GPG-KEY-Mellanox.pub
+EOF
+    retry dnf -y makecache
+  else
+    echo "No supported package manager to register the DOCA repository with." >&2
     return 1
   fi
+}
+
+# Install the Holoscan SDK matching the CUDA toolkit in use, from the redist
+# archive rather than from apt, the way realtime/docker/assets.Dockerfile
+# already installs it on RHEL. The archive carries its own dependencies, so it
+# neither pulls in the Ubuntu packages that conflict with a container's
+# Mellanox OFED -- which is what the apt path needed a dependency-forced dpkg
+# install to work around -- nor ties the version to what a distro repository
+# happens to be serving.
+cudaq_realtime_install_holoscan() {
+  _cudaq_realtime_holoscan_cuda_major=$(cudaq_realtime_cuda_major) || return 1
+  _cudaq_realtime_holoscan_arch=$(uname -m)
+  case "$_cudaq_realtime_holoscan_arch" in
+    aarch64 | arm64) _cudaq_realtime_holoscan_arch=sbsa ;;
+    *) _cudaq_realtime_holoscan_arch=x86_64 ;;
+  esac
+  _cudaq_realtime_holoscan_archive="holoscan-linux-$_cudaq_realtime_holoscan_arch-${HOLOSCAN_SDK_VERSION}_cuda$_cudaq_realtime_holoscan_cuda_major-archive.tar.xz"
+  _cudaq_realtime_holoscan_url="https://developer.download.nvidia.com/compute/holoscan/redist/holoscan/linux-$_cudaq_realtime_holoscan_arch/$_cudaq_realtime_holoscan_archive"
+
+  echo "Installing Holoscan SDK $HOLOSCAN_SDK_VERSION from $_cudaq_realtime_holoscan_url"
   _cudaq_realtime_holoscan_tmp=$(mktemp -d)
-  (cd "$_cudaq_realtime_holoscan_tmp" &&
-    retry apt-get download holoscan holoscan-cuda-$_cudaq_realtime_holoscan_cuda_major &&
-    dpkg --force-depends -i holoscan*.deb)
+  # Downloaded whole before it is unpacked, so a truncated transfer costs a
+  # retry rather than leaving a half-populated prefix behind.
+  # The archive stores most entries as 0700/0600 under its packager's uid, and
+  # tar run as root reproduces both, leaving the SDK readable by root alone: an
+  # unprivileged build then fails to find even fmt/format.h. Hence the chmod.
+  retry cudaq_realtime_download "$_cudaq_realtime_holoscan_url" \
+    "$_cudaq_realtime_holoscan_tmp/holoscan.tar.xz" &&
+    mkdir -p "$HOLOSCAN_SDK_INSTALL_PREFIX" &&
+    tar xf "$_cudaq_realtime_holoscan_tmp/holoscan.tar.xz" \
+      --strip-components 1 --no-same-owner -C "$HOLOSCAN_SDK_INSTALL_PREFIX" &&
+    chmod -R a+rX "$HOLOSCAN_SDK_INSTALL_PREFIX"
   _cudaq_realtime_holoscan_status=$?
   rm -rf "$_cudaq_realtime_holoscan_tmp"
   return $_cudaq_realtime_holoscan_status
@@ -127,10 +198,40 @@ cudaq_realtime_verify_sdks() {
     echo "ERROR: DOCA SDK installation failed" >&2
     return 1
   fi
-  if [ ! -d /opt/nvidia/holoscan ]; then
+  if [ ! -d "$HOLOSCAN_SDK_INSTALL_PREFIX/include" ]; then
     echo "ERROR: Holoscan SDK installation failed" >&2
     return 1
   fi
+}
+
+# Apply the patches in CUDAQ_REALTIME_HSB_PATCH_DIR to the HSB tree at
+# $HSB_ROOT, in name order. Any patch that does not apply fails the build rather
+# than leaving HSB silently unpatched -- including one the tree already
+# contains, which is reported as such: it means the pinned ref has caught up
+# and the patch must be deleted, not carried forward.
+cudaq_realtime_patch_hsb() {
+  if [ -z "$CUDAQ_REALTIME_HSB_PATCH_DIR" ]; then
+    echo "CUDAQ_REALTIME_HSB_PATCH_DIR is empty, building HSB unpatched."
+    return 0
+  fi
+  if [ ! -d "$CUDAQ_REALTIME_HSB_PATCH_DIR" ]; then
+    echo "ERROR: HSB patch directory $CUDAQ_REALTIME_HSB_PATCH_DIR not found; copy realtime/patches alongside realtime/scripts, or set CUDAQ_REALTIME_HSB_PATCH_DIR to an empty string to build HSB unpatched" >&2
+    return 1
+  fi
+  local patch
+  for patch in "$CUDAQ_REALTIME_HSB_PATCH_DIR"/*.patch; do
+    [ -e "$patch" ] || continue
+    if git -C "$HSB_ROOT" apply --check "$patch" 2>/dev/null; then
+      git -C "$HSB_ROOT" apply "$patch" || return 1
+      echo "Applied HSB patch $(basename "$patch")"
+    elif git -C "$HSB_ROOT" apply --reverse --check "$patch" 2>/dev/null; then
+      echo "ERROR: HSB $CUDAQ_REALTIME_HSB_REF already contains $(basename "$patch"); delete it from $CUDAQ_REALTIME_HSB_PATCH_DIR" >&2
+      return 1
+    else
+      echo "ERROR: HSB patch $(basename "$patch") does not apply to $CUDAQ_REALTIME_HSB_REF" >&2
+      return 1
+    fi
+  done
 }
 
 # Clone and build the Holoscan Sensor Bridge libraries CUDA-Q Realtime links
@@ -150,6 +251,14 @@ cudaq_realtime_build_hsb() {
   rm -rf "$HSB_ROOT"
   git clone --depth 1 --branch "$CUDAQ_REALTIME_HSB_REF" \
     "$CUDAQ_REALTIME_HSB_REPO" "$HSB_ROOT"
+  cudaq_realtime_patch_hsb || return 1
+
+  # The CUDA-free HololinkRoce leaf exports its package during configure, but
+  # no target below depends on it, so name it explicitly when the ref has it.
+  local hololink_roce_targets=()
+  if [ -d "$HSB_ROOT/src/hololink/transport/roce" ]; then
+    hololink_roce_targets=(hololink_transport_roce)
+  fi
 
   if [ "${CUDAQ_REALTIME_HSB_STRIP_OPERATORS:-0}" = 1 ]; then
     # Strip operators we don't need to avoid configure failures from missing deps
@@ -172,6 +281,7 @@ cudaq_realtime_build_hsb() {
     -DHOLOLINK_BUILD_EXAMPLES=OFF \
     -DHOLOLINK_BUILD_EMULATOR=OFF
   cmake --build "$HSB_BUILD" \
-    --target roce_receiver gpu_roce_transceiver hololink_core
+    --target roce_receiver gpu_roce_transceiver hololink_core \
+    "${hololink_roce_targets[@]}"
   echo "holoscan-sensor-bridge built at $HSB_BUILD"
 }

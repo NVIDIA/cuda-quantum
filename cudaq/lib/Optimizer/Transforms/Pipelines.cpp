@@ -81,6 +81,10 @@ struct FaultTolerantTargetPipelineOptions
       *this, "fail-on-controlled-rotation",
       llvm::cl::desc("Reject controlled rotations left at synthesis."),
       llvm::cl::init(false)};
+  PassOptions::Option<uint64_t> seed{
+      *this, "seed",
+      llvm::cl::desc("Seed for Clifford+T synthesis. 0 leaves it unseeded."),
+      llvm::cl::init(0)};
 };
 } // namespace
 
@@ -89,9 +93,9 @@ void cudaq::opt::addConvertToLinearValues(OpPassManager &pm) {
   pm.addNestedPass<func::FuncOp>(createExpandControlVeqs());
   pm.addNestedPass<func::FuncOp>(createCableRoughIn());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createCSEPass());
   pm.addNestedPass<func::FuncOp>(createMemToReg());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
-  pm.addNestedPass<func::FuncOp>(createRepairLinearType());
   pm.addNestedPass<func::FuncOp>(createLinearCtrlRelations());
 }
 
@@ -116,6 +120,9 @@ static void createTargetPrepPipeline(OpPassManager &pm,
       {options.disableLoopUnrolling});
   pm.addPass(cudaq::opt::createGlobalizeArrayValues());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  // Synthesis creates ApplyOps, which activate only when every control is |1>.
+  // Expand negated controls into X conjugation before creating those calls.
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
   pm.addPass(cudaq::opt::createUnitarySynthesis());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopInductionFusion());
@@ -177,7 +184,11 @@ void cudaq::opt::addDecomposition(OpPassManager &pm,
 }
 
 void cudaq::opt::addCliffordTSynthesis(OpPassManager &pm, double epsilon,
-                                       bool failOnControlledRotation) {
+                                       bool failOnControlledRotation,
+                                       uint64_t seed) {
+  // Synthesis creates ApplyOps, which activate only when every control is |1>.
+  // Expand negated controls into X conjugation before creating those calls.
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
   pm.addPass(cudaq::opt::createUnitarySynthesis());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopNormalize());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopInductionFusion());
@@ -203,6 +214,7 @@ void cudaq::opt::addCliffordTSynthesis(OpPassManager &pm, double epsilon,
   cudaq::opt::CliffordTSynthesisOptions ctsOpts;
   ctsOpts.epsilon = epsilon;
   ctsOpts.failOnControlledRotation = failOnControlledRotation;
+  ctsOpts.seed = seed;
   pm.addPass(cudaq::opt::createCliffordTSynthesis(ctsOpts));
   // Synthesis emits the omega global phase of each Clifford+T word. It is
   // uncontrolled here, so lowering erases it. This is the one point where the
@@ -221,7 +233,8 @@ void cudaq::opt::registerFaultTolerantTargetPipeline() {
       "synthesis.",
       [](OpPassManager &pm, const FaultTolerantTargetPipelineOptions &options) {
         cudaq::opt::addCliffordTSynthesis(pm, options.epsilon,
-                                          options.failOnControlledRotation);
+                                          options.failOnControlledRotation,
+                                          options.seed);
       });
 }
 
@@ -243,7 +256,6 @@ createTargetDeployPipeline(OpPassManager &pm,
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createMultiControlDecomposition());
   cudaq::opt::addPhaseLifecycle(pm);
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
-  pm.addPass(cudaq::opt::createVerifyNoPhase());
 }
 
 /// Register the standard deployment pipeline run for ALL target machines. This
@@ -266,7 +278,7 @@ void cudaq::opt::createTargetFinalizePipeline(OpPassManager &pm) {
 static void createJITTargetFinalizePipeline(
     OpPassManager &pm, const TargetFinalizationJitPipelineOptions &options) {
   if (options.lowerDeviceCalls)
-    pm.addPass(cudaq::opt::createDistributedDeviceCall());
+    pm.addPass(cudaq::opt::createQIRDeviceCall());
   cudaq::opt::addAggressiveInlining(pm);
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
   cudaq::opt::createTargetFinalizePipeline(pm);
@@ -297,7 +309,9 @@ void cudaq::opt::registerJITPipelines() {
 static void createPythonAOTPipeline(OpPassManager &pm,
                                     const PythonAOTOptions &options) {
   // NB: This pipeline should be kept in synch with the pipeline in nvq++.
+  pm.addPass(cudaq::opt::createVerifyAtomicQuantumRegions());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createVariableCoalesce());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createShrinkWrap());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLowering());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createInjectImplicitOutput());

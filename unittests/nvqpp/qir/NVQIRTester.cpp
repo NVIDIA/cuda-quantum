@@ -9,8 +9,12 @@
 #include "CUDAQTestUtils.h"
 #include "common/ExecutionContext.h"
 #include "nvqir/Gates.h"
+#include "cudaq/algorithms/sample/policy.h"
 #include "cudaq/platform.h"
+#include "cudaq/qis/execution_manager.h"
 #include <cmath>
+#include <cstdint>
+#include <vector>
 
 extern "C" {
 extern bool verbose;
@@ -41,6 +45,7 @@ void __quantum__qis__s(Qubit *q);
 void __quantum__qis__s__ctl(Array *ctls, Qubit *q);
 
 void __quantum__qis__sdg(Qubit *q);
+void __quantum__qis__sdg__ctl(Array *ctls, Qubit *q);
 void __quantum__qis__t(Qubit *q);
 void __quantum__qis__t__ctl(Array *ctls, Qubit *q);
 void __quantum__qis__tdg(Qubit *q);
@@ -65,6 +70,39 @@ void __quantum__qis__exp__body(Array *paulis, double angle, Array *qubits);
 // Utility function used by MLIRGen to map Qubit*... controls to Array*
 void invokeWithControlQubits(const std::size_t nControls,
                              void (*QISFunction)(Array *, Qubit *), ...);
+void generalizedInvokeWithControlValues(std::size_t numRotations,
+                                        std::size_t numControls,
+                                        std::size_t numTargets,
+                                        void (*QISFunction)(...), ...);
+void __nvqir__qis__x__ctl_values(Array *controls, const std::int32_t *values,
+                                 std::int64_t count, Qubit *target);
+void __nvqir__qis__ry__ctl_values(double theta, Array *controls,
+                                  const std::int32_t *values,
+                                  std::int64_t count, Qubit *target);
+void __nvqir__qis__phased_rx__ctl_values(double theta, double phi,
+                                         Array *controls,
+                                         const std::int32_t *values,
+                                         std::int64_t count, Qubit *target);
+void __nvqir__qis__u3__ctl_values(double theta, double phi, double lambda,
+                                  Array *controls, const std::int32_t *values,
+                                  std::int64_t count, Qubit *target);
+void __nvqir__qis__swap__ctl_values(Array *controls, const std::int32_t *values,
+                                    std::int64_t count, Qubit *first,
+                                    Qubit *second);
+void __quantum__qis__custom_unitary(std::complex<double> *unitary,
+                                    Array *controls, Array *targets,
+                                    const char *name);
+void __quantum__qis__custom_unitary__adj(std::complex<double> *unitary,
+                                         Array *controls, Array *targets,
+                                         const char *name);
+void __nvqir__qis__custom_unitary__ctl_values(std::complex<double> *unitary,
+                                              Array *controls,
+                                              const std::int32_t *values,
+                                              std::int64_t count,
+                                              Array *targets, const char *name);
+void __nvqir__qis__custom_unitary__adj__ctl_values(
+    std::complex<double> *unitary, Array *controls, const std::int32_t *values,
+    std::int64_t count, Array *targets, const char *name);
 
 void __quantum__qis__apply__general_qubit_array(Array *data, Array *qubits);
 void __quantum__qis__apply__general(Array *data, int64_t n_qubits, ...);
@@ -307,6 +345,218 @@ Qubit *extract_qubit(Array *a, int idx) {
   return *reinterpret_cast<Qubit **>(q_raw_ptr);
 }
 
+CUDAQ_TEST(NVQIRTester, checkValueControlInvoke) {
+  __quantum__rt__initialize(0, nullptr);
+  auto *qubits = __quantum__rt__qubit_allocate_array(4);
+  auto *array = __quantum__rt__array_slice_1d(qubits, 0, 1, 1);
+  auto *empty = __quantum__rt__array_create_1d(sizeof(Qubit *), 0);
+  static std::vector<Qubit *> expected;
+  // The callback only inspects arguments, so control/target overlap is
+  // intentional. Array elements must retain their position among scalars.
+  expected = {extract_qubit(qubits, 3), extract_qubit(qubits, 0),
+              extract_qubit(qubits, 1), extract_qubit(qubits, 2)};
+  using Callback =
+      void (*)(double, double, double, Array *, const std::int32_t *,
+               std::int64_t, Qubit *, Qubit *);
+  Callback callback = [](double theta, double phi, double lambda,
+                         Array *controls, const std::int32_t *values,
+                         std::int64_t count, Qubit *first, Qubit *second) {
+    EXPECT_EQ(theta, 0.25);
+    EXPECT_EQ(phi, -0.5);
+    EXPECT_EQ(lambda, 0.75);
+    // Empty and null arrays contribute zero: 0 + 1 + 2 + 0 + 1 + 0 = 4.
+    ASSERT_EQ(count, 4);
+    EXPECT_EQ(__quantum__rt__array_get_size_1d(controls), count);
+    const std::vector<std::int32_t> expectedValues{0, 1, 1, 0};
+    for (std::int64_t i = 0; i < count; ++i) {
+      EXPECT_EQ(extract_qubit(controls, i), expected[i]);
+      EXPECT_EQ(values[i], expectedValues[i]);
+    }
+    EXPECT_EQ(first, expected[1]);
+    EXPECT_EQ(second, expected[2]);
+  };
+  generalizedInvokeWithControlValues(
+      /*numRotationOperands=*/3, /*numControlOperands=*/6,
+      /*numTargetOperands=*/2, reinterpret_cast<void (*)(...)>(callback),
+      // Rotation parameters.
+      0.25, -0.5, 0.75,
+      // Each control operand is (isArray, requiredValue, operand). An array's
+      // required value applies to every element, without changing their order.
+      1, 0, reinterpret_cast<Qubit *>(empty), // No controls.
+      0, 0, expected[0],                      // q3 == 0.
+      1, 1, reinterpret_cast<Qubit *>(array), // q0 == 1 and q1 == 1.
+      1, 1, static_cast<Qubit *>(nullptr),    // No controls.
+      0, 0, expected[3],                      // q2 == 0.
+      1, 0, reinterpret_cast<Qubit *>(empty), // No controls.
+      expected[1], expected[2]);              // Targets q0 and q1.
+  using EmptyCallback =
+      void (*)(Array *, const std::int32_t *, std::int64_t, Qubit *);
+  EmptyCallback emptyCallback = [](Array *controls, const std::int32_t *,
+                                   std::int64_t count, Qubit *target) {
+    EXPECT_EQ(__quantum__rt__array_get_size_1d(controls), 0);
+    EXPECT_EQ(count, 0);
+    EXPECT_EQ(target, expected[0]);
+  };
+  generalizedInvokeWithControlValues(
+      0, 1, 1, reinterpret_cast<void (*)(...)>(emptyCallback), 1, 0,
+      reinterpret_cast<Qubit *>(empty), expected[0]);
+  generalizedInvokeWithControlValues(
+      0, 0, 1, reinterpret_cast<void (*)(...)>(emptyCallback), expected[0]);
+  __quantum__rt__array_release(empty);
+  __quantum__rt__array_release(array);
+  __quantum__rt__qubit_release_array(qubits);
+  __quantum__rt__finalize();
+}
+
+CUDAQ_TEST(NVQIRTester, checkValueControlInvokeExecution) {
+  for (unsigned inputs = 0; inputs < 4; ++inputs) {
+    SCOPED_TRACE(inputs);
+    __quantum__rt__initialize(0, nullptr);
+    auto *qubits = __quantum__rt__qubit_allocate_array(7);
+    auto *scalar = extract_qubit(qubits, 0);
+    auto *array = __quantum__rt__array_slice_1d(qubits, 1, 1, 1);
+    auto *empty = __quantum__rt__array_create_1d(sizeof(Qubit *), 0);
+    if (inputs & 1)
+      __quantum__qis__x(scalar);
+    if (inputs & 2)
+      __quantum__qis__x(extract_qubit(qubits, 1));
+    __quantum__qis__x(extract_qubit(qubits, 6));
+
+    // All callbacks require q0 == 0 and q1 == 1 (input 2). Their different
+    // signatures exercise zero through three parameters and both target counts.
+    generalizedInvokeWithControlValues(
+        1, 3, 1, reinterpret_cast<void (*)(...)>(__nvqir__qis__ry__ctl_values),
+        M_PI, 0, 0, scalar, 1, 1, reinterpret_cast<Qubit *>(array), 1, 0,
+        reinterpret_cast<Qubit *>(empty), extract_qubit(qubits, 2));
+    generalizedInvokeWithControlValues(
+        2, 3, 1,
+        reinterpret_cast<void (*)(...)>(__nvqir__qis__phased_rx__ctl_values),
+        M_PI, 0.37, 0, 0, scalar, 1, 1, reinterpret_cast<Qubit *>(array), 1, 0,
+        reinterpret_cast<Qubit *>(empty), extract_qubit(qubits, 3));
+    generalizedInvokeWithControlValues(
+        3, 3, 1, reinterpret_cast<void (*)(...)>(__nvqir__qis__u3__ctl_values),
+        M_PI, 0.31, -0.53, 0, 0, scalar, 1, 1, reinterpret_cast<Qubit *>(array),
+        1, 0, reinterpret_cast<Qubit *>(empty), extract_qubit(qubits, 4));
+    generalizedInvokeWithControlValues(
+        0, 3, 2,
+        reinterpret_cast<void (*)(...)>(__nvqir__qis__swap__ctl_values), 0, 0,
+        scalar, 1, 1, reinterpret_cast<Qubit *>(array), 1, 0,
+        reinterpret_cast<Qubit *>(empty), extract_qubit(qubits, 5),
+        extract_qubit(qubits, 6));
+
+    EXPECT_EQ(*__quantum__qis__mz(scalar), static_cast<bool>(inputs & 1));
+    EXPECT_EQ(*__quantum__qis__mz(extract_qubit(qubits, 1)),
+              static_cast<bool>(inputs & 2));
+    const bool active = inputs == 2;
+    for (int target = 2; target < 6; ++target)
+      EXPECT_EQ(*__quantum__qis__mz(extract_qubit(qubits, target)), active);
+    EXPECT_EQ(*__quantum__qis__mz(extract_qubit(qubits, 6)), !active);
+    __quantum__rt__array_release(empty);
+    __quantum__rt__array_release(array);
+    __quantum__rt__qubit_release_array(qubits);
+    __quantum__rt__finalize();
+  }
+}
+
+CUDAQ_TEST(NVQIRTester, checkValueControlInvokeErrors) {
+  // Each invalid prefix must throw before reading omitted trailing arguments
+  // or reaching the null callback.
+  void (*callback)(...) = nullptr;
+  EXPECT_ANY_THROW(generalizedInvokeWithControlValues(4, 0, 1, callback));
+  EXPECT_ANY_THROW(generalizedInvokeWithControlValues(0, 0, 0, callback));
+  EXPECT_ANY_THROW(generalizedInvokeWithControlValues(0, 0, 3, callback));
+  EXPECT_ANY_THROW(generalizedInvokeWithControlValues(
+      0, 1, 1, callback, 2, 0, static_cast<Qubit *>(nullptr)));
+  EXPECT_ANY_THROW(generalizedInvokeWithControlValues(
+      0, 1, 1, callback, 0, 2, static_cast<Qubit *>(nullptr)));
+}
+
+CUDAQ_TEST(NVQIRTester, checkValueControlOwnership) {
+  __quantum__rt__initialize(0, nullptr);
+  auto *qubits = __quantum__rt__qubit_allocate_array(3);
+  auto *controls = __quantum__rt__array_slice_1d(qubits, 0, 1, 1);
+  auto *target = extract_qubit(qubits, 2);
+  std::int32_t values[]{0, 1};
+  EXPECT_ANY_THROW(__nvqir__qis__x__ctl_values(controls, values, -1, target));
+  EXPECT_ANY_THROW(__nvqir__qis__x__ctl_values(controls, values, 1, target));
+  EXPECT_ANY_THROW(__nvqir__qis__x__ctl_values(controls, nullptr, 2, target));
+  values[0] = 2;
+  EXPECT_ANY_THROW(__nvqir__qis__x__ctl_values(controls, values, 2, target));
+  values[0] = 0;
+  __quantum__qis__x(extract_qubit(qubits, 1));
+  __nvqir__qis__x__ctl_values(controls, values, 2, target);
+  // Change both caller buffers before measurement flushes the queued gate.
+  // Releasing the temporary array leaves the underlying qubits allocated.
+  values[0] = 1;
+  *reinterpret_cast<Qubit **>(
+      __quantum__rt__array_get_element_ptr_1d(controls, 0)) = target;
+  __quantum__rt__array_release(controls);
+  EXPECT_FALSE(*__quantum__qis__mz(extract_qubit(qubits, 0)));
+  EXPECT_TRUE(*__quantum__qis__mz(extract_qubit(qubits, 1)));
+  EXPECT_TRUE(*__quantum__qis__mz(target));
+  __nvqir__qis__x__ctl_values(nullptr, nullptr, 0, target);
+  EXPECT_FALSE(*__quantum__qis__mz(target));
+  __quantum__rt__qubit_release_array(qubits);
+  __quantum__rt__finalize();
+}
+
+CUDAQ_TEST(NVQIRTester, checkValueControlCustomAdjoint) {
+  for (bool adjoint : {false, true}) {
+    for (bool explicitValues : {false, true}) {
+      SCOPED_TRACE(::testing::Message()
+                   << "adjoint=" << adjoint << ", values=" << explicitValues);
+      constexpr int shots = 100;
+      cudaq::ExecutionContext ctx("sample", shots);
+      cudaq::sample_policy policy;
+      policy.options.shots = shots;
+      auto counts = cudaq::detail::with_policy_and_ctx(policy, ctx, [&]() {
+        return cudaq::ExecutionManager::with_default_em(policy, [&]() {
+          __quantum__rt__initialize(0, nullptr);
+          auto *qubits = __quantum__rt__qubit_allocate_array(2);
+          auto *control = extract_qubit(qubits, 0);
+          auto *target = extract_qubit(qubits, 1);
+          auto *controls = __quantum__rt__array_slice_1d(qubits, 0, 1, 0);
+          auto *targets = __quantum__rt__array_slice_1d(qubits, 1, 1, 1);
+          // U = X S is asymmetric and complex. The coherent control makes
+          // the phase from its adjoint observable after uncomputation.
+          std::complex<double> matrix[]{0., {0., 1.}, 1., 0.};
+          const std::int32_t value = 0;
+          __quantum__qis__h(control);
+          if (explicitValues) {
+            auto apply = adjoint ? __nvqir__qis__custom_unitary__adj__ctl_values
+                                 : __nvqir__qis__custom_unitary__ctl_values;
+            apply(matrix, controls, &value, 1, targets, "test_custom");
+          } else {
+            __quantum__qis__x(control);
+            auto apply = adjoint ? __quantum__qis__custom_unitary__adj
+                                 : __quantum__qis__custom_unitary;
+            apply(matrix, controls, targets, "test_custom");
+            __quantum__qis__x(control);
+          }
+          // Undo with standard gates, independently of custom adjoint handling:
+          // X then S-dagger inverts U, while S then X inverts U-dagger.
+          __quantum__qis__x(control);
+          if (adjoint)
+            __quantum__qis__s__ctl(controls, target);
+          __quantum__qis__x__ctl(controls, target);
+          if (!adjoint)
+            __quantum__qis__sdg__ctl(controls, target);
+          __quantum__qis__x(control);
+          __quantum__qis__h(control);
+          __quantum__qis__mz(control);
+          __quantum__qis__mz(target);
+          __quantum__rt__array_release(controls);
+          __quantum__rt__array_release(targets);
+          __quantum__rt__qubit_release_array(qubits);
+        });
+      });
+      EXPECT_EQ(counts.count("00"), shots);
+      EXPECT_EQ(counts.get_total_shots(), shots);
+      __quantum__rt__finalize();
+    }
+  }
+}
+
 void iqft(Array *q) {
   auto nbQubits = __quantum__rt__array_get_size_1d(q);
 
@@ -385,21 +635,25 @@ CUDAQ_TEST(NVQIRTester, checkNisqMechanics) {
 
   const int shots = 100;
   cudaq::ExecutionContext ctx("sample", shots);
+  cudaq::sample_policy policy;
+  policy.options.shots = shots;
 
   // Quantum Kernel Code at the QIR level
-  cudaq::get_platform().with_execution_context(ctx, []() {
-    auto qubits = __quantum__rt__qubit_allocate_array(2);
-    Qubit *q1 = extract_qubit(qubits, 0);
-    Qubit *q2 = extract_qubit(qubits, 1);
-    __quantum__qis__h(q1);
-    __quantum__qis__cnot(q1, q2);
-    __quantum__qis__mz(q1);
-    __quantum__qis__mz(q2);
-    __quantum__rt__qubit_release_array(qubits);
-  });
+  cudaq::sample_result counts =
+      cudaq::detail::with_policy_and_ctx(policy, ctx, [&]() {
+        return cudaq::ExecutionManager::with_default_em(policy, []() {
+          auto qubits = __quantum__rt__qubit_allocate_array(2);
+          Qubit *q1 = extract_qubit(qubits, 0);
+          Qubit *q2 = extract_qubit(qubits, 1);
+          __quantum__qis__h(q1);
+          __quantum__qis__cnot(q1, q2);
+          __quantum__qis__mz(q1);
+          __quantum__qis__mz(q2);
+          __quantum__rt__qubit_release_array(qubits);
+        });
+      });
   // Back to library code
 
-  cudaq::sample_result counts = ctx.result;
   int counter = 0;
   for (auto &[bits, count] :
        counts) { // std::size_t i = 0; i < counts_data.size(); i += 3) {
@@ -441,27 +695,31 @@ CUDAQ_TEST(NVQIRTester, checkQubitAllocationFromStateVec) {
 
   const int shots = 1000;
   cudaq::ExecutionContext ctx("sample", shots);
+  cudaq::sample_policy policy;
+  policy.options.shots = shots;
 
   // Quantum Kernel Code at the QIR level
-  cudaq::get_platform().with_execution_context(ctx, []() {
-    std::vector<cudaq::complex> bellState{M_SQRT1_2, 0.0, 0.0, M_SQRT1_2};
-    Array *qubits = [](auto &state) {
-      if constexpr (std::is_same_v<cudaq::complex, std::complex<double>>)
-        return __quantum__rt__qubit_allocate_array_with_state_complex64(
-            2, state.data());
-      else
-        return __quantum__rt__qubit_allocate_array_with_state_complex32(
-            2, state.data());
-    }(bellState);
-    Qubit *q1 = extract_qubit(qubits, 0);
-    Qubit *q2 = extract_qubit(qubits, 1);
-    __quantum__qis__mz(q1);
-    __quantum__qis__mz(q2);
-    __quantum__rt__qubit_release_array(qubits);
-  });
+  cudaq::sample_result counts =
+      cudaq::detail::with_policy_and_ctx(policy, ctx, [&]() {
+        return cudaq::ExecutionManager::with_default_em(policy, []() {
+          std::vector<cudaq::complex> bellState{M_SQRT1_2, 0.0, 0.0, M_SQRT1_2};
+          Array *qubits = [](auto &state) {
+            if constexpr (std::is_same_v<cudaq::complex, std::complex<double>>)
+              return __quantum__rt__qubit_allocate_array_with_state_complex64(
+                  2, state.data());
+            else
+              return __quantum__rt__qubit_allocate_array_with_state_complex32(
+                  2, state.data());
+          }(bellState);
+          Qubit *q1 = extract_qubit(qubits, 0);
+          Qubit *q2 = extract_qubit(qubits, 1);
+          __quantum__qis__mz(q1);
+          __quantum__qis__mz(q2);
+          __quantum__rt__qubit_release_array(qubits);
+        });
+      });
   // Back to library code
 
-  cudaq::sample_result counts = ctx.result;
   counts.dump();
   int counter = 0;
   for (auto &[bits, count] : counts) {
@@ -501,18 +759,22 @@ CUDAQ_TEST(NVQIRTester, checkQubitAllocationFromRetrievedStateSimple) {
   // Let's do some sampling
   const int shots = 1000;
   cudaq::ExecutionContext sampleCtx("sample", shots);
+  cudaq::sample_policy policy;
+  policy.options.shots = shots;
 
-  cudaq::get_platform().with_execution_context(sampleCtx, [&]() {
-    auto *qubits =
-        __quantum__rt__qubit_allocate_array_with_state_ptr(state.get());
-    Qubit *q1 = extract_qubit(qubits, 0);
-    Qubit *q2 = extract_qubit(qubits, 1);
-    __quantum__qis__mz(q1);
-    __quantum__qis__mz(q2);
-    __quantum__rt__qubit_release_array(qubits);
-  });
+  cudaq::sample_result counts =
+      cudaq::detail::with_policy_and_ctx(policy, sampleCtx, [&]() {
+        return cudaq::ExecutionManager::with_default_em(policy, [&]() {
+          auto *qubits =
+              __quantum__rt__qubit_allocate_array_with_state_ptr(state.get());
+          Qubit *q1 = extract_qubit(qubits, 0);
+          Qubit *q2 = extract_qubit(qubits, 1);
+          __quantum__qis__mz(q1);
+          __quantum__qis__mz(q2);
+          __quantum__rt__qubit_release_array(qubits);
+        });
+      });
 
-  cudaq::sample_result counts = sampleCtx.result;
   counts.dump();
   int counter = 0;
   for (auto &[bits, count] : counts) {
@@ -552,29 +814,33 @@ CUDAQ_TEST(NVQIRTester, checkQubitAllocationFromRetrievedStateExpand) {
   // Let's do some sampling
   const int shots = 1000;
   cudaq::ExecutionContext sampleCtx("sample", shots);
+  cudaq::sample_policy policy;
+  policy.options.shots = shots;
 
-  cudaq::get_platform().with_execution_context(sampleCtx, [&]() {
-    // Allocate some qubits in 0 state
-    auto *someQubits = __quantum__rt__qubit_allocate_array(2);
-    // Allocate some more in a specific state
-    auto *qubits =
-        __quantum__rt__qubit_allocate_array_with_state_ptr(state.get());
-    Qubit *q1 = extract_qubit(someQubits, 0);
-    Qubit *q2 = extract_qubit(someQubits, 1);
-    Qubit *q3 = extract_qubit(qubits, 0);
-    Qubit *q4 = extract_qubit(qubits, 1);
-    // Spread the entanglement...
-    __quantum__qis__cnot(q3, q1);
-    __quantum__qis__cnot(q4, q2);
-    __quantum__qis__mz(q1);
-    __quantum__qis__mz(q2);
-    __quantum__qis__mz(q3);
-    __quantum__qis__mz(q4);
-    __quantum__rt__qubit_release_array(qubits);
-    __quantum__rt__qubit_release_array(someQubits);
-  });
+  cudaq::sample_result counts =
+      cudaq::detail::with_policy_and_ctx(policy, sampleCtx, [&]() {
+        return cudaq::ExecutionManager::with_default_em(policy, [&]() {
+          // Allocate some qubits in 0 state
+          auto *someQubits = __quantum__rt__qubit_allocate_array(2);
+          // Allocate some more in a specific state
+          auto *qubits =
+              __quantum__rt__qubit_allocate_array_with_state_ptr(state.get());
+          Qubit *q1 = extract_qubit(someQubits, 0);
+          Qubit *q2 = extract_qubit(someQubits, 1);
+          Qubit *q3 = extract_qubit(qubits, 0);
+          Qubit *q4 = extract_qubit(qubits, 1);
+          // Spread the entanglement...
+          __quantum__qis__cnot(q3, q1);
+          __quantum__qis__cnot(q4, q2);
+          __quantum__qis__mz(q1);
+          __quantum__qis__mz(q2);
+          __quantum__qis__mz(q3);
+          __quantum__qis__mz(q4);
+          __quantum__rt__qubit_release_array(qubits);
+          __quantum__rt__qubit_release_array(someQubits);
+        });
+      });
 
-  cudaq::sample_result counts = sampleCtx.result;
   counts.dump();
   int counter = 0;
   // We should have a bigger GHZ state: |0000> + |1111>
@@ -591,6 +857,51 @@ CUDAQ_TEST(NVQIRTester, checkQubitAllocationFromRetrievedStateExpand) {
 #endif
 
 #ifdef CUDAQ_BACKEND_DM
+
+CUDAQ_TEST(NVQIRTester, checkValueControlNoiseRestoration) {
+  for (bool initialControl : {false, true}) {
+    constexpr int shots = 100;
+    cudaq::ExecutionContext ctx("sample", shots);
+    cudaq::noise_model noise;
+    // This channel exposes accidental noise on the fallback's synthetic Xs.
+    noise.add_channel<cudaq::types::x>({0},
+                                       cudaq::amplitude_damping_channel(1.0));
+    // This joint channel resets the control after the controlled operation.
+    std::vector<cudaq::kraus_op> controlDamping{
+        cudaq::kraus_op(std::vector<cudaq::complex>{
+            1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0., 0., 0.}),
+        cudaq::kraus_op(std::vector<cudaq::complex>{
+            0., 0., 1., 0., 0., 0., 0., 1., 0., 0., 0., 0., 0., 0., 0., 0.})};
+    noise.add_channel<cudaq::types::x>(
+        {0, 1}, cudaq::kraus_channel(std::move(controlDamping)));
+    cudaq::sample_policy policy;
+    policy.options.shots = shots;
+    policy.noiseModel = &noise;
+    auto counts = cudaq::detail::with_policy_and_ctx(policy, ctx, [&]() {
+      return cudaq::ExecutionManager::with_default_em(policy, [&]() {
+        __quantum__rt__initialize(0, nullptr);
+        auto *qubits = __quantum__rt__qubit_allocate_array(2);
+        auto *controls = __quantum__rt__array_slice_1d(qubits, 0, 1, 0);
+        auto *control = extract_qubit(qubits, 0);
+        auto *target = extract_qubit(qubits, 1);
+        // Y prepares control one without triggering the configured X noise.
+        if (initialControl)
+          __quantum__qis__y(control);
+        const std::int32_t openValue = 0;
+        __nvqir__qis__x__ctl_values(controls, &openValue, 1, target);
+        __quantum__qis__mz(control);
+        __quantum__qis__mz(target);
+        __quantum__rt__array_release(controls);
+        __quantum__rt__qubit_release_array(qubits);
+      });
+    });
+    EXPECT_EQ(counts.get_total_shots(), shots);
+    // The target flips only for control zero. Gate noise then resets the
+    // restored control, including when the ideal controlled X was inactive.
+    EXPECT_EQ(counts.count(initialControl ? "00" : "01"), shots);
+    __quantum__rt__finalize();
+  }
+}
 
 namespace test::hello {
 struct hello_world : public ::cudaq::kraus_channel {
@@ -655,25 +966,29 @@ CUDAQ_TEST(NVQIRTester, checkKrausApply) {
   cudaq::ExecutionContext ctx("sample", shots);
   cudaq::noise_model noise;
   noise.register_channel<test::hello::hello_world>();
-  ctx.noiseModel = &noise;
+  cudaq::sample_policy policy;
+  policy.options.shots = shots;
+  policy.noiseModel = &noise;
 
   std::vector<double> params{0.2};
 
-  cudaq::get_platform().with_execution_context(ctx, [&]() {
-    __quantum__rt__initialize(0, nullptr);
-    auto qubits = __quantum__rt__qubit_allocate_array(1);
-    Qubit *q = *reinterpret_cast<Qubit **>(
-        __quantum__rt__array_get_element_ptr_1d(qubits, 0));
+  cudaq::sample_result counts =
+      cudaq::detail::with_policy_and_ctx(policy, ctx, [&]() {
+        return cudaq::ExecutionManager::with_default_em(policy, [&]() {
+          __quantum__rt__initialize(0, nullptr);
+          auto qubits = __quantum__rt__qubit_allocate_array(1);
+          Qubit *q = *reinterpret_cast<Qubit **>(
+              __quantum__rt__array_get_element_ptr_1d(qubits, 0));
 
-    __quantum__qis__x(q);
-    __quantum__qis__apply_kraus_channel_double(
-        test::hello::hello_world::get_key(), params.data(), params.size(),
-        qubits);
+          __quantum__qis__x(q);
+          __quantum__qis__apply_kraus_channel_double(
+              test::hello::hello_world::get_key(), params.data(), params.size(),
+              qubits);
 
-    __quantum__rt__qubit_release_array(qubits);
-  });
+          __quantum__rt__qubit_release_array(qubits);
+        });
+      });
 
-  cudaq::sample_result counts = ctx.result;
   counts.dump();
   __quantum__rt__finalize();
 }
@@ -684,25 +999,29 @@ CUDAQ_TEST(NVQIRTester, checkKrausApplyGeneralUno) {
   cudaq::ExecutionContext ctx("sample", shots);
   cudaq::noise_model noise;
   noise.register_channel<test::hello::hello_world>();
-  ctx.noiseModel = &noise;
+  cudaq::sample_policy policy;
+  policy.options.shots = shots;
+  policy.noiseModel = &noise;
 
   std::vector<double> params{0.2};
 
-  cudaq::get_platform().with_execution_context(ctx, [&]() {
-    __quantum__rt__initialize(0, nullptr);
-    auto qubits = __quantum__rt__qubit_allocate_array(1);
-    Qubit *q = *reinterpret_cast<Qubit **>(
-        __quantum__rt__array_get_element_ptr_1d(qubits, 0));
+  cudaq::sample_result counts =
+      cudaq::detail::with_policy_and_ctx(policy, ctx, [&]() {
+        return cudaq::ExecutionManager::with_default_em(policy, [&]() {
+          __quantum__rt__initialize(0, nullptr);
+          auto qubits = __quantum__rt__qubit_allocate_array(1);
+          Qubit *q = *reinterpret_cast<Qubit **>(
+              __quantum__rt__array_get_element_ptr_1d(qubits, 0));
 
-    __quantum__qis__x(q);
-    __quantum__qis__apply_kraus_channel_generalized(
-        1, test::hello::hello_world::get_key(), 1, 0, 1, params.data(),
-        params.size(), qubits);
+          __quantum__qis__x(q);
+          __quantum__qis__apply_kraus_channel_generalized(
+              1, test::hello::hello_world::get_key(), 1, 0, 1, params.data(),
+              params.size(), qubits);
 
-    __quantum__rt__qubit_release_array(qubits);
-  });
+          __quantum__rt__qubit_release_array(qubits);
+        });
+      });
 
-  cudaq::sample_result counts = ctx.result;
   counts.dump();
   __quantum__rt__finalize();
 }
@@ -713,24 +1032,29 @@ CUDAQ_TEST(NVQIRTester, checkKrausApplyGeneralDue) {
   cudaq::ExecutionContext ctx("sample", shots);
   cudaq::noise_model noise;
   noise.register_channel<test::hello::hello_world>();
-  ctx.noiseModel = &noise;
+  cudaq::sample_policy policy;
+  policy.options.shots = shots;
+  policy.noiseModel = &noise;
 
   std::vector<double> params{0.2};
 
-  cudaq::get_platform().with_execution_context(ctx, [&]() {
-    __quantum__rt__initialize(0, nullptr);
-    auto qubits = __quantum__rt__qubit_allocate_array(1);
-    Qubit *q = *reinterpret_cast<Qubit **>(
-        __quantum__rt__array_get_element_ptr_1d(qubits, 0));
+  cudaq::sample_result counts =
+      cudaq::detail::with_policy_and_ctx(policy, ctx, [&]() {
+        return cudaq::ExecutionManager::with_default_em(policy, [&]() {
+          __quantum__rt__initialize(0, nullptr);
+          auto qubits = __quantum__rt__qubit_allocate_array(1);
+          Qubit *q = *reinterpret_cast<Qubit **>(
+              __quantum__rt__array_get_element_ptr_1d(qubits, 0));
 
-    __quantum__qis__x(q);
-    __quantum__qis__apply_kraus_channel_generalized(
-        1, test::hello::hello_world::get_key(), 0, 1, 1, params.data(), qubits);
+          __quantum__qis__x(q);
+          __quantum__qis__apply_kraus_channel_generalized(
+              1, test::hello::hello_world::get_key(), 0, 1, 1, params.data(),
+              qubits);
 
-    __quantum__rt__qubit_release_array(qubits);
-  });
+          __quantum__rt__qubit_release_array(qubits);
+        });
+      });
 
-  cudaq::sample_result counts = ctx.result;
   counts.dump();
   __quantum__rt__finalize();
 }
@@ -741,28 +1065,32 @@ CUDAQ_TEST(NVQIRTester, checkKrausApplyGeneralTre) {
   cudaq::ExecutionContext ctx("sample", shots);
   cudaq::noise_model noise;
   noise.register_channel<test::hello::adios>();
-  ctx.noiseModel = &noise;
+  cudaq::sample_policy policy;
+  policy.options.shots = shots;
+  policy.noiseModel = &noise;
 
   std::vector<double> params{0.2, 0.4};
 
-  cudaq::get_platform().with_execution_context(ctx, [&]() {
-    __quantum__rt__initialize(0, nullptr);
-    auto qubits = __quantum__rt__qubit_allocate_array(2);
-    Qubit *q = *reinterpret_cast<Qubit **>(
-        __quantum__rt__array_get_element_ptr_1d(qubits, 0));
-    Qubit *r = *reinterpret_cast<Qubit **>(
-        __quantum__rt__array_get_element_ptr_1d(qubits, 0));
+  cudaq::sample_result counts =
+      cudaq::detail::with_policy_and_ctx(policy, ctx, [&]() {
+        return cudaq::ExecutionManager::with_default_em(policy, [&]() {
+          __quantum__rt__initialize(0, nullptr);
+          auto qubits = __quantum__rt__qubit_allocate_array(2);
+          Qubit *q = *reinterpret_cast<Qubit **>(
+              __quantum__rt__array_get_element_ptr_1d(qubits, 0));
+          Qubit *r = *reinterpret_cast<Qubit **>(
+              __quantum__rt__array_get_element_ptr_1d(qubits, 0));
 
-    __quantum__qis__x(q);
-    __quantum__qis__x(r);
-    __quantum__qis__apply_kraus_channel_generalized(
-        1, test::hello::adios::get_key(), 1, 0, 2, params.data(), params.size(),
-        qubits);
+          __quantum__qis__x(q);
+          __quantum__qis__x(r);
+          __quantum__qis__apply_kraus_channel_generalized(
+              1, test::hello::adios::get_key(), 1, 0, 2, params.data(),
+              params.size(), qubits);
 
-    __quantum__rt__qubit_release_array(qubits);
-  });
+          __quantum__rt__qubit_release_array(qubits);
+        });
+      });
 
-  cudaq::sample_result counts = ctx.result;
   counts.dump();
   __quantum__rt__finalize();
 }

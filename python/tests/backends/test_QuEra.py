@@ -13,6 +13,13 @@ import numpy as np
 import os
 import pytest
 
+# The `quera` target only exists when CUDA-Q was configured with the Braket
+# backend enabled (AWSSDK_ROOT and CUDAQ_ENABLE_BRAKET_BACKEND). That is a
+# separate condition from having credentials, which the per-test skips below
+# cover: credentials cannot help if the target was never built.
+pytestmark = pytest.mark.skipif(not cudaq.has_target("quera"),
+                                reason="Could not find `quera` in installation")
+
 
 @pytest.fixture(scope="session", autouse=True)
 def set_up_target():

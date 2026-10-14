@@ -1,0 +1,13 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+# REQUIRES: qlx-opt, cudaq-quake
+# RUN: qlx-opt %S/end-to-end-estimate.qke --pass-pipeline='builtin.module(convert-quake-to-qlx,qlx-estimate-logical{root=bell result=logical},qlx-to-lvm{root=bell domain=qlx_device result=bell_placed})' | FileCheck %S/end-to-end-estimate.qke --implicit-check-not=quake.
+
+# Keep the Quake module in its native .qke fixture while making the end-to-end
+# pipeline discoverable by Lit's .test suffix.

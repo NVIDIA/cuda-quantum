@@ -66,20 +66,6 @@ env:
   python_version: '3.12'
 
 jobs:
-  # Run a daily check of all links in the docs to find any newly broken links
-  links:
-    runs-on: ubuntu-latest
-    name: "Check links"
-    permissions:
-      contents: read
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-
-      - name: Check links in Markdown files
-        uses: ./.github/actions/check-markdown-links
-
   # We need this job purely to choose the container image values because the
   # `env` context is unavailable outside of "steps" contexts.
   setup:
@@ -91,6 +77,7 @@ jobs:
     environment:
       name: ghcr-deployment
       url: ${{ vars.deployment_url }}
+      deployment: false
 
     outputs:
       cudaq_test_image: ${{ steps.vars.outputs.cudaq_nightly_image }}@${{ steps.test_image.outputs.digest }}
@@ -442,6 +429,24 @@ jobs:
         run: |
           echo "### Testing ${{ matrix.provider }}" >> $GITHUB_STEP_SUMMARY
           export CUDAQ_LOG_LEVEL="info"
+
+          tii_retry() {
+            local attempt output status
+            for attempt in 1 2 3 4 5; do
+              output=$("$@" 2>&1)
+              status=$?
+              printf '%s\n' "$output"
+              if [ $status -eq 0 ] || ! echo "$output" | grep -q "parallel jobs exceeded"; then
+                return $status
+              fi
+              if [ $attempt -lt 5 ]; then
+                echo "::warning::TII parallel job limit reached; retrying $1 in $((60*attempt))s (attempt $attempt of 5)"
+                sleep $((60*attempt))
+              fi
+            done
+            echo "::error::TII parallel job limit still reached after 5 attempts"
+            return $status
+          }
           set +e # Allow script to keep going through errors
           test_err_sum=0
           test_skip_sum=0
@@ -788,7 +793,7 @@ jobs:
                   nvq++ -v $filename --target tii --tii-device tii-sim --tii-project ${{ secrets.TII_PROJECT }}
                   test_status=$?
                   if [ $test_status -eq 0 ]; then
-                    ./a.out
+                    tii_retry ./a.out
                     test_status=$?
                     if [ $test_status -eq 0 ]; then
                       echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
@@ -801,7 +806,7 @@ jobs:
                     test_err_sum=$((test_err_sum+1))
                   fi
                 elif [[ "$filename" == *.py ]]; then
-                  python3 $filename 1> /dev/null
+                  tii_retry python3 $filename
                   test_status=$?
                   if [ $test_status -eq 0 ]; then
                     echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY

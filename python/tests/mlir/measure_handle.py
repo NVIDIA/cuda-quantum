@@ -464,13 +464,18 @@ def test_handle_vector_cross_round_reassignment():
     print(kernel_handle_vec_cross_round)
 
 
+# `use` is assigned but never read, so `mvec`'s final value is transitively
+# dead too: neither `mvec` nor `m_new` is threaded as a loop-carried value at
+# all - the loop only carries its own induction variable.
+
 # CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_handle_vec_cross_round
 # CHECK-SAME:      attributes {"cudaq-entrypoint"
 # CHECK:           %[[VEQ:.*]] = quake.alloca !quake.veq<3>
 # CHECK:           %[[MVEC:.*]] = quake.mz %[[VEQ]] name "mvec" : (!quake.veq<3>) -> !cc.sequence<!cc.measure_handle>
-# CHECK:           cc.loop while
+# CHECK:           cc.loop while ((%{{.*}} = %{{.*}}) -> (i64)) {
+# CHECK:           } do {
 # CHECK:             %[[MNEW:.*]] = quake.mz %[[VEQ]] name "m_new" : (!quake.veq<3>) -> !cc.sequence<!cc.measure_handle>
-# CHECK:             cc.continue {{.*}}%[[MNEW]], %[[MNEW]]
+# CHECK:             cc.continue %{{.*}} : i64
 # CHECK-NOT:       quake.discriminate
 # CHECK:           return
 

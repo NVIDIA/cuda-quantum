@@ -51,11 +51,11 @@ def DelayMeasurements : Pass<"delay-measurements", "mlir::func::FuncOp"> {
   }];
 }
 
-def EraseCompilerGeneratedLogOutput :
+def EraseCompilerGeneratedEvince :
     Pass<"erase-implicit-output", "mlir::func::FuncOp"> {
-  let summary = "Erase compiler-generated quake.log_output operations.";
+  let summary = "Erase compiler-generated quake.evince operations.";
   let description = [{
-    Erases all `quake.log_output` operations that carry the `cc.cg_output`
+    Erases all `quake.evince` operations that carry the `cc.cg_output`
     attribute, indicating they were injected by the compiler (e.g. by the
     `inject-implicit-output` pass) rather than written explicitly by the user.
   }];

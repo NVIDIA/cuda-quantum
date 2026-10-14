@@ -249,8 +249,7 @@ static cudaq::quake::PhaseOp sinkPhase(IRRewriter &rewriter,
   else
     rewriter.setInsertionPointToEnd(phase->getBlock());
 
-  auto resultTypes =
-      cudaq::quake::getWireResultTypes(rewriter, controls, {anchor});
+  auto resultTypes = cudaq::quake::getWireResultTypes(controls, {anchor});
   auto moved = cudaq::quake::PhaseOp::create(
       rewriter, phase.getLoc(), resultTypes, phase.getIsAdjAttr(),
       phase.getParameters(), controls, ValueRange{anchor},
@@ -320,8 +319,7 @@ mergeUncontrolledGroup(IRRewriter &rewriter,
   // read this _after_ bypassing earlier phase ops; it might have been rewired
   auto survivingAnchor = survivingPhase.getTarget();
 
-  auto resultTypes =
-      cudaq::quake::getWireResultTypes(rewriter, {}, {survivingAnchor});
+  auto resultTypes = cudaq::quake::getWireResultTypes({}, {survivingAnchor});
 
   auto mergedPhaseOp = cudaq::quake::PhaseOp::create(
       rewriter, survivingPhase.getLoc(), resultTypes,
@@ -567,8 +565,7 @@ mergeKnownCompatiblePair(IRRewriter &rewriter, cudaq::quake::PhaseOp first,
   SmallVector<Value> controls(second.getControls().begin(),
                               second.getControls().end());
   Value anchor = second.getTarget();
-  auto resultTypes =
-      cudaq::quake::getWireResultTypes(rewriter, controls, {anchor});
+  auto resultTypes = cudaq::quake::getWireResultTypes(controls, {anchor});
   auto merged = cudaq::quake::PhaseOp::create(
       rewriter, second.getLoc(), resultTypes, /*is_adj=*/false,
       ValueRange{angle}, controls, ValueRange{anchor},

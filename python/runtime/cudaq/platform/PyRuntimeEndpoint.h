@@ -8,10 +8,13 @@
 
 #pragma once
 
-#include "cudaq/Target/RuntimeEndpoint.h"
+#include "cudaq/platform/RuntimeEndpoint.h"
 #include <nanobind/nanobind.h>
 
 namespace cudaq {
+
+/// Wrap a Python object as a RuntimeEndpoint.
+RuntimeEndpoint makeRuntimeEndpoint(nanobind::object obj);
 
 /// Create python bindings for C++ code in this compilation unit.
 void bindRuntimeEndpoint(nanobind::module_ &mod);

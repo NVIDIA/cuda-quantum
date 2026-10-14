@@ -30,7 +30,7 @@ namespace cudaq::policies {
 ///     [&]{ return finalizeExecutionContext(policy, context); },
 ///     [&](sample_result&&  r) { context.sample_data  = std::move(r.data); },
 ///     [&](run_result&&     r) { context.exit_code    = r.exit_code; },
-///     [&](void_result)        { context.result       = {}; }
+///     [&](void_result)        { /* nothing to store */ }
 ///   );
 /// });
 /// @endcode
@@ -193,7 +193,7 @@ void invokeVisitor(Visitor &&visitor, Func &&func) {
 ///     [&](run_result&&     r) { context.exit_code    = r.exit_code; },
 ///     [&](observe_result&& r) { context.observations =
 ///     std::move(r.observations); },
-///     [&](void_result)        { context.result       = {}; }
+///     [&](void_result)        { /* nothing to store */ }
 ///   );
 /// });
 /// @endcode

@@ -17,7 +17,7 @@
 #                 app (cpu_roce_device_call_app.cpp) whose cudaq::device_call is
 #                 lowered to the realtime ABI, spawn the daemon, run the app with
 #                 --cudaq-device-call=cpu_roce, and check it prints 42.  This is
-#                 the cpu_roce analogue of the NVQPP device_call lit tests that
+#                 the cpu_roce analogue of the Driver device_call lit tests that
 #                 prove the shared-memory / host-dispatch channels.
 #
 # In both modes this script optionally (1) configures the two NIC ports and

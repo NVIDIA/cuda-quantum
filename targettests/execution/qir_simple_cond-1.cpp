@@ -8,7 +8,7 @@
 
 // clang-format off
 // RUN: if %stim_avail; then nvq++ --target stim %s -o %t && %t | FileCheck %s ; fi
-// RUN: nvq++ --target quantinuum --quantinuum-machine Helios-1SC --emulate %s -o %t && %t | FileCheck %s
+// RUN: if %quantinuum_avail; then nvq++ --target quantinuum --quantinuum-machine Helios-1SC --emulate %s -o %t && %t | FileCheck %s; fi
 // clang-format on
 
 #include <cudaq.h>

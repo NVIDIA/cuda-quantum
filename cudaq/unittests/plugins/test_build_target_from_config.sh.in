@@ -1,0 +1,59 @@
+#!/bin/bash
+# ============================================================================ #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   *
+# All rights reserved.                                                         *
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     *
+# ============================================================================ #
+
+# Test that nvq++ --build-target-from-config compiles a standalone YAML into
+# the user binary (cudaq-target-db-gen --plugin) so the runtime can resolve
+# the target after the YAML is deleted.
+
+set -euo pipefail
+
+NVQ="@CMAKE_BINARY_DIR@/bin/nvq++"
+
+TMPDIR=$(mktemp -d)
+trap 'rm -rf "$TMPDIR"' EXIT
+
+TRIVIAL_SRC="${TMPDIR}/trivial.cpp"
+cat > "$TRIVIAL_SRC" <<'EOF'
+#include <cudaq.h>
+int main() { return 0; }
+EOF
+
+YAML="${TMPDIR}/nvqpp-inline-cfg.yml"
+cat > "$YAML" <<'EOF'
+version: 1
+name: nvqpp-inline-cfg
+description: "Standalone YAML compiled into the user binary."
+cudaq-version: "@CUDA_QUANTUM_VERSION@"
+config:
+  library-mode: true
+  gen-target-backend: true
+  preprocessor-defines: ["-DNVQPP_INLINE_CFG"]
+EOF
+
+# Combining with --target is an error.
+if "$NVQ" --build-target-from-config "$YAML" --target qpp-cpu \
+     "$TRIVIAL_SRC" -o "${TMPDIR}/should-fail.exe" 2>"${TMPDIR}/err.txt"; then
+  echo "FAIL: --build-target-from-config should not combine with --target" >&2
+  exit 1
+fi
+grep -q 'cannot be combined with --target' "${TMPDIR}/err.txt"
+
+output=$("$NVQ" -v --build-target-from-config "$YAML" \
+         "$TRIVIAL_SRC" -o "${TMPDIR}/inline.exe" 2>&1) || {
+  echo "$output"
+  exit 1
+}
+echo "$output" | grep -q -- '-DNVQPP_INLINE_CFG'
+echo "$output" | grep -q 'cudaq-target-db-gen --plugin'
+echo "$output" | grep -q 'nvqpp-inline-cfg.target.gen.o'
+
+rm -f "$YAML"
+"${TMPDIR}/inline.exe"
+
+echo "PASS: build_target_from_config"

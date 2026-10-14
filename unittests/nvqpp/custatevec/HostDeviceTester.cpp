@@ -6,6 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "StateVectorMemory.h"
+
 #include <cudaq.h>
 #include <gtest/gtest.h>
 
@@ -35,8 +37,9 @@ struct ghz {
 };
 
 TEST(HostDeviceTester, checkBell) {
-  cudaq::set_random_seed(13);
   constexpr int numQubits = 29;
+  SKIP_IF_INSUFFICIENT_MEMORY(numQubits);
+  cudaq::set_random_seed(13);
   auto counts = cudaq::sample(ghz{}, numQubits);
   counts.dump();
   int counter = 0;
@@ -104,6 +107,8 @@ std::string asString(const std::vector<bool> &bitvector) {
 TEST(HostDeviceTester, checkBernsteinVazirani) {
   // The number of qubits should be large to test distribution
   const int nr_qubits = 28;
+  // Plus the auxiliary qubit the kernel allocates.
+  SKIP_IF_INSUFFICIENT_MEMORY(nr_qubits + 1);
   const int nr_shots = 100;
   const int seed = 123;
   auto bitvector = random_bits<nr_qubits>(seed);
@@ -123,6 +128,7 @@ TEST(HostDeviceTester, checkBernsteinVazirani) {
 
 TEST(HostDeviceTester, checkOverlap) {
   const int nQubits = 29;
+  SKIP_IF_INSUFFICIENT_MEMORY(nQubits);
   auto kernel1 = [&]() __qpu__ {
     cudaq::qvector q(nQubits);
     for (int i = 0; i < nQubits; ++i)
@@ -145,6 +151,7 @@ TEST(HostDeviceTester, checkOverlap) {
 
 TEST(HostDeviceTester, checkStateIndexing) {
   const int nQubits = 29;
+  SKIP_IF_INSUFFICIENT_MEMORY(nQubits);
   auto kernel = [&]() __qpu__ {
     cudaq::qvector q(nQubits);
     h(q[0]);
@@ -163,6 +170,7 @@ TEST(HostDeviceTester, checkStateIndexing) {
 // Make sure that we are finding the right amplitude.
 TEST(HostDeviceTester, checkStateIndexingRandom) {
   const int nQubits = 29;
+  SKIP_IF_INSUFFICIENT_MEMORY(nQubits);
   const auto randomBitString = [nQubits]() {
     std::vector<int> bitStr;
     for (int i = 0; i < nQubits; ++i)
@@ -190,8 +198,9 @@ TEST(HostDeviceTester, checkStateIndexingRandom) {
 }
 
 TEST(HostDeviceTester, checkNoise) {
-  cudaq::set_random_seed(13);
   constexpr int numQubits = 27;
+  SKIP_IF_INSUFFICIENT_MEMORY(numQubits);
+  cudaq::set_random_seed(13);
   // 2-qubit noise
   cudaq::kraus_op op0{cudaq::complex{0.99498743710662, 0.0},
                       {0.0, 0.0},
@@ -296,8 +305,10 @@ struct initStateKernel {
 };
 
 TEST(HostDeviceTester, checkNoiseWithInitialState) {
-  cudaq::set_random_seed(13);
   constexpr int numQubits = 26;
+  // Plus the qubit the kernel allocates for the initial state.
+  SKIP_IF_INSUFFICIENT_MEMORY(numQubits + 1);
+  cudaq::set_random_seed(13);
   // 2-qubit noise
   cudaq::kraus_op op0{cudaq::complex{0.99498743710662, 0.0},
                       {0.0, 0.0},
@@ -400,6 +411,7 @@ struct ExpPauliKernel {
 
 TEST(HostDeviceTester, checkExpPauli) {
   constexpr int nQubits = 29;
+  SKIP_IF_INSUFFICIENT_MEMORY(nQubits);
   auto ham = cudaq::spin_op::random(nQubits, 1, /*seed=*/123);
   auto result = cudaq::observe(ExpPauliKernel{}, ham);
   result.dump();
@@ -419,8 +431,9 @@ TEST(HostDeviceLargeMemTester, BasicCheck) {
 }
 
 TEST(HostDeviceLargeMemTester, checkBell) {
-  cudaq::set_random_seed(13);
   constexpr int numQubits = 32;
+  SKIP_IF_INSUFFICIENT_MEMORY(numQubits);
+  cudaq::set_random_seed(13);
   auto counts = cudaq::sample(ghz{}, numQubits);
   counts.dump();
   int counter = 0;
@@ -442,6 +455,7 @@ TEST(HostDeviceMatrixExpValTester, BasicCheck) {
 
 TEST(HostDeviceMatrixExpValTester, checkSimple) {
   constexpr int numQubits = 33; // Large number of qubits
+  SKIP_IF_INSUFFICIENT_MEMORY(numQubits);
   auto ansatz = [&]() __qpu__ {
     cudaq::qvector q(numQubits);
     x(q);
@@ -455,6 +469,7 @@ TEST(HostDeviceMatrixExpValTester, checkSimple) {
 
 TEST(HostDeviceMatrixExpValTester, checkResult) {
   constexpr int numQubits = 33; // Large number of qubits
+  SKIP_IF_INSUFFICIENT_MEMORY(numQubits);
   // Create a special hamiltonian with the first and last qubits
   cudaq::spin_op h =
       5.907 - 2.1433 * cudaq::spin_op::x(0) * cudaq::spin_op::x(numQubits - 1) -
@@ -473,6 +488,8 @@ TEST(HostDeviceMatrixExpValTester, checkResult) {
 }
 
 TEST(HostDeviceMatrixExpValTester, checkWidePauliTerm) {
+  constexpr int numQubits = 33;
+  SKIP_IF_INSUFFICIENT_MEMORY(numQubits);
   constexpr int numOps = 20;
   auto ham = cudaq::spin_op::z(0);
   for (int i = 1; i < numOps; ++i)
@@ -484,7 +501,6 @@ TEST(HostDeviceMatrixExpValTester, checkWidePauliTerm) {
   };
   const double reference = cudaq::observe(referenceAnsatz, ham);
 
-  constexpr int numQubits = 33;
   auto migratedAnsatz = [&]() __qpu__ {
     cudaq::qvector q(numQubits);
     x(q);

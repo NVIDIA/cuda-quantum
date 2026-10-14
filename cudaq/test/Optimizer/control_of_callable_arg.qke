@@ -1,0 +1,85 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --apply-op-specialization %s | FileCheck %s
+
+// Specializing a kernel that uses a callable argument. The variant must keep
+// targeting that argument, and keep its type: it is a kernel to use, not a
+// handle to the function itself.
+
+func.func private @apply_adjoint(%arg0: !cc.callable<(!quake.ref) -> ()>, %arg1: !quake.ref) attributes {"cudaq-kernel"} {
+  quake.apply<adj> %arg0 (%arg1) : (!quake.ref) -> ()
+  return
+}
+
+func.func @entry(%arg0: !cc.callable<(!quake.ref) -> ()>, %arg1: !quake.ref, %arg2: !quake.ref) attributes {"cudaq-kernel"} {
+  quake.apply @apply_adjoint [%arg2] (%arg0, %arg1) : (!quake.ref, !cc.callable<(!quake.ref) -> ()>, !quake.ref) -> ()
+  return
+}
+
+// Same, for the adjoint variant.
+
+func.func private @apply_plain(%arg0: !cc.callable<(!quake.ref) -> ()>, %arg1: !quake.ref) attributes {"cudaq-kernel"} {
+  quake.apply %arg0 (%arg1) : (!quake.ref) -> ()
+  return
+}
+
+func.func @adj_entry(%arg0: !cc.callable<(!quake.ref) -> ()>, %arg1: !quake.ref) attributes {"cudaq-kernel"} {
+  quake.apply<adj> @apply_plain (%arg0, %arg1) : (!cc.callable<(!quake.ref) -> ()>, !quake.ref) -> ()
+  return
+}
+
+// Same, when the argument is forwarded rather than applied.
+
+func.func private @middle(%arg0: !cc.callable<(!quake.ref) -> ()>, %arg1: !quake.ref) attributes {"cudaq-kernel"} {
+  quake.apply @apply_adjoint (%arg0, %arg1) : (!cc.callable<(!quake.ref) -> ()>, !quake.ref) -> ()
+  return
+}
+
+func.func @fwd_entry(%arg0: !cc.callable<(!quake.ref) -> ()>, %arg1: !quake.ref, %arg2: !quake.ref) attributes {"cudaq-kernel"} {
+  quake.apply @middle [%arg2] (%arg0, %arg1) : (!quake.ref, !cc.callable<(!quake.ref) -> ()>, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func private @middle.ctrl(
+// CHECK-SAME:      %[[VAL_0:.*]]: !quake.veq<?>,
+// CHECK-SAME:      %[[VAL_1:.*]]: !cc.callable<(!quake.ref) -> ()>,
+// CHECK-SAME:      %[[VAL_2:.*]]: !quake.ref) {
+// CHECK:           call @apply_adjoint.ctrl_closurev(%{{.*}}, %[[VAL_1]], %[[VAL_2]])
+
+// CHECK-LABEL:   func.func private @apply_plain.adj(
+// CHECK-SAME:      %[[VAL_0:.*]]: !cc.callable<(!quake.ref) -> ()>,
+// CHECK-SAME:      %[[VAL_1:.*]]: !quake.ref) {
+// CHECK:           quake.apply<adj> %[[VAL_0]] (%[[VAL_1]]) : (!quake.ref) -> ()
+
+// CHECK-LABEL:   func.func private @apply_adjoint.ctrl(
+// CHECK-SAME:      %[[VAL_0:.*]]: !quake.veq<?>,
+// CHECK-SAME:      %[[VAL_1:.*]]: !cc.callable<(!quake.ref) -> ()>,
+// CHECK-SAME:      %[[VAL_2:.*]]: !quake.ref) {
+// CHECK:           quake.apply<adj> %[[VAL_1]] {{\[}}%[[VAL_0]]] (%[[VAL_2]]) : (!quake.veq<?>, !quake.ref) -> ()
+
+// CHECK-LABEL:   func.func @adj_entry(
+// CHECK-SAME:      %[[VAL_0:.*]]: !cc.callable<(!quake.ref) -> ()>,
+// CHECK-SAME:      %[[VAL_1:.*]]: !quake.ref)
+// CHECK:           call @apply_plain.adj(%[[VAL_0]], %[[VAL_1]])
+
+// CHECK-LABEL:   func.func private @middle.ctrl_closurer(
+// CHECK-SAME:      %[[VAL_0:.*]]: !cc.callable<(!cc.callable<(!quake.ref) -> ()>, !quake.ref) -> ()>,
+// CHECK-SAME:      %[[VAL_1:.*]]: !cc.callable<(!quake.ref) -> ()>,
+// CHECK-SAME:      %[[VAL_2:.*]]: !quake.ref) {
+// CHECK:           %[[VAL_3:.*]] = cc.callable_closure %[[VAL_0]]
+// CHECK:           %[[VAL_4:.*]] = quake.concat %[[VAL_3]] : (!quake.ref) -> !quake.veq<?>
+// CHECK:           call @middle.ctrl(%[[VAL_4]], %[[VAL_1]], %[[VAL_2]])
+
+// CHECK-LABEL:   func.func private @apply_adjoint.ctrl_closurer(
+// CHECK-SAME:      %[[VAL_0:.*]]: !cc.callable<(!cc.callable<(!quake.ref) -> ()>, !quake.ref) -> ()>,
+// CHECK-SAME:      %[[VAL_1:.*]]: !cc.callable<(!quake.ref) -> ()>,
+// CHECK-SAME:      %[[VAL_2:.*]]: !quake.ref) {
+// CHECK:           %[[VAL_3:.*]] = cc.callable_closure %[[VAL_0]]
+// CHECK:           %[[VAL_4:.*]] = quake.concat %[[VAL_3]] : (!quake.ref) -> !quake.veq<?>
+// CHECK:           call @apply_adjoint.ctrl(%[[VAL_4]], %[[VAL_1]], %[[VAL_2]])

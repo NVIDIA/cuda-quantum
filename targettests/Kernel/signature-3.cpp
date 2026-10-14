@@ -27,7 +27,9 @@ RaggedCube modifyCube(RaggedCube &res) {
   return res;
 }
 
-// FIXME: bugs in the bridge
+// The kernels that are not enabled either call a plain host function with a
+// vector argument, or use std::move on a vector, neither of which is supported
+// in a kernel.
 #define NYI /*__qpu__*/
 
 struct OutOfPocketCubeBlender {
@@ -35,7 +37,7 @@ struct OutOfPocketCubeBlender {
 };
 
 struct BasicCubeBlender {
-  RaggedCube operator()(RaggedCube res) NYI {
+  RaggedCube operator()(RaggedCube res) __qpu__ {
     for (std::size_t i = 0, I = res.size(); i != I; ++i)
       for (std::size_t j = 0, J = res[i].size(); j != J; ++j)
         for (std::size_t k = 0, K = res[i][j].size(); k != K; ++k)
@@ -81,7 +83,7 @@ struct ShortList {
 };
 
 struct GroceryList {
-  std::vector<double> operator()(std::vector<double> dub) NYI {
+  std::vector<double> operator()(std::vector<double> dub) __qpu__ {
     for (std::size_t i = 0, I = dub.size(); i != I; ++i)
       dub[i] += 22.0;
     return dub;

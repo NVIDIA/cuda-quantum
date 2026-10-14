@@ -32,11 +32,6 @@ public:
   LogicalResult matchAndRewrite(OP op,
                                 PatternRewriter &rewriter) const override {
     auto negatedControls = op.getNegatedQubitControls();
-    // Unlike phase lowering, this rewrite cannot preserve an unresolved
-    // vector control. Check before materializing any scalar extracts.
-    if (cudaq::quake::hasUnresolvedControlVeq(op.getControls()))
-      return failure();
-
     auto expandedControls = cudaq::quake::expandKnownSizedControlVeqs(
         rewriter, op.getLoc(), op.getControls(),
         cudaq::quake::getControlPolarities(op.getControls(), negatedControls));

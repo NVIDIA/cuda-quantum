@@ -10,25 +10,25 @@
 A compile target is the *compilation* half of a backend: it fixes the MLIR pass
 pipelines, the code generation and the capabilities that kernels are compiled
 against. It says nothing about where the compiled kernel runs -- that is the
-active target's QPU, or a :func:`set_runtime_endpoint` endpoint.
+runtime endpoint half of a :class:`CustomTarget`.
 
-Build one and register it with :func:`set_compile_target`:
+Build one and install it together with a runtime endpoint via
+``cudaq.set_target``:
 
 ```python
 import cudaq
-from cudaq._experimental import CompileTarget, set_compile_target
+from cudaq._experimental import CompileTarget, CustomTarget, RuntimeEndpoint
 
-target = CompileTarget()
-target.pipeline_config.override_pass_pipeline = (
-    "canonicalize,decomposition{enable-patterns=SwapToCX},canonicalize")
+class MyEndpoint(RuntimeEndpoint):
+    def sample(self, module, args, **kwargs):
+        return cudaq.SampleResult({"00": kwargs["shots_count"]})
 
-set_compile_target(target)
-cudaq.sample(my_kernel)      # compiled with that pipeline
+cudaq.set_target(CustomTarget(
+    compile_target=CompileTarget(),
+    runtime_endpoint=MyEndpoint(),
+))
+cudaq.sample(my_kernel)      # compiled with that pipeline, launched to endpoint
 ```
-
-Setting a compile target manually overrides the QPU-provided compile target that
-would have been used otherwise. To revert to a QPU-provided compile target, call
-``cudaq.set_target('target-name')`` or ``cudaq.reset_target()``.
 
 .. warning::
 
@@ -42,28 +42,9 @@ from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime import (
     CompiledModule,
     PipelineConfig,
 )
-import cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime as _cudaq_runtime
 
 __all__ = [
     "CompileTarget",
     "CompiledModule",
     "PipelineConfig",
-    "set_compile_target",
 ]
-
-
-def set_compile_target(target: CompileTarget) -> None:
-    """Compile kernels with `target` instead of the active target's own.
-
-    Args:
-      target: The :class:`CompileTarget` to compile subsequent kernel launches
-        with.
-
-    Raises:
-      TypeError: If `target` is not a :class:`CompileTarget`.
-    """
-    if not isinstance(target, CompileTarget):
-        raise TypeError(
-            f"{type(target).__name__} is not a compile target: expected a "
-            f"cudaq._experimental.CompileTarget.")
-    _cudaq_runtime.set_compile_target(target)

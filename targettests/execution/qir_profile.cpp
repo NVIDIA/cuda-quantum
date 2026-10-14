@@ -7,9 +7,9 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ %s -o %t --target quantinuum --emulate && CUDAQ_DUMP_JIT_IR=1 %t 2>&1 | FileCheck %s 
-// RUN: nvq++ %s -o %t --target quantinuum --quantinuum-machine H2-1SC --emulate && CUDAQ_DUMP_JIT_IR=1 %t 2>&1 | FileCheck %s 
-// RUN: nvq++ %s -o %t --target quantinuum --quantinuum-machine Helios-1SC --emulate && CUDAQ_DUMP_JIT_IR=1 %t 2>&1 | FileCheck %s --check-prefix=CHECK-NG
+// RUN: if %quantinuum_avail; then nvq++ %s -o %t --target quantinuum --emulate && CUDAQ_DUMP_JIT_IR=1 %t 2>&1 | FileCheck %s ; fi
+// RUN: if %quantinuum_avail; then nvq++ %s -o %t --target quantinuum --quantinuum-machine H2-1SC --emulate && CUDAQ_DUMP_JIT_IR=1 %t 2>&1 | FileCheck %s ; fi
+// RUN: if %quantinuum_avail; then nvq++ %s -o %t --target quantinuum --quantinuum-machine Helios-1SC --emulate && CUDAQ_DUMP_JIT_IR=1 %t 2>&1 | FileCheck %s --check-prefix=CHECK-NG; fi
 // clang-format on
 
 #include <cudaq.h>

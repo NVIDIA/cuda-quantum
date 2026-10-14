@@ -21,7 +21,7 @@ add_cudaq_library(OptCodeGen
   ConvertToQIR.cpp
   ConvertToQIRAPI.cpp
   DelayMeasurements.cpp
-  EraseCGLogOutput.cpp
+  EraseCGEvince.cpp
   OptUtils.cpp
   Passes.cpp
   Pipelines.cpp
@@ -29,6 +29,7 @@ add_cudaq_library(OptCodeGen
   QuakeToCodegen.cpp
   QuakeToExecMgr.cpp
   QuakeToLLVM.cpp
+  Registration.cpp
   RemoveMeasurements.cpp
   ReturnToOutputLog.cpp
   TranslateToIQMJson.cpp

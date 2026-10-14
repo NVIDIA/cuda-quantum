@@ -44,14 +44,20 @@ add_custom_command(
   DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/metadata.cmake
 )
 
-# cudaq/mlir is excluded: the MLIR machinery in extension/ stages it, and
-# a second producer for the same outputs races it. No CONFIGURE_DEPENDS:
-# a mid-ctest reconfigure relinks libraries under running tests. Adding a
+# cudaq/mlir is excluded: the dialect bindings under it are staged by
+# cudaq/python/CMakeLists.txt (CUDAQCorePythonModules) and the extension/
+# module here (CUDAQuantumPythonModules); a second producer for the same
+# outputs would race them. In practice this directory no longer exists under
+# python/cudaq/ (the bindings moved to cudaq/python/mlir/), but the filter is
+# kept as a guard against reintroducing the race. No CONFIGURE_DEPENDS: a
+# mid-ctest reconfigure relinks libraries under running tests. Adding a
 # python file requires a reconfigure.
 file(GLOB_RECURSE _cudaq_package_sources
   RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/cudaq"
   "${CMAKE_CURRENT_SOURCE_DIR}/cudaq/*.py")
 list(FILTER _cudaq_package_sources EXCLUDE REGEX "^mlir/")
+# Core owns the tracing wrapper; do not create a second staging producer.
+list(FILTER _cudaq_package_sources EXCLUDE REGEX "^util/trace\\.py$")
 cudaq_stage_python_sources(CUDAQPythonPackageStaging
   ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/cudaq"
   OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/python/cudaq"
@@ -70,6 +76,10 @@ cudaq_stage_python_sources(CUDAQPythonTestStaging
   OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/python/tests"
   SOURCES ${_cudaq_test_sources})
 
+# Test-time target configuration needs to be installed as it's user facing in
+# `docs/sphinx/using/examples/rotation_synthesis.rst)`
+add_target_config(tests/targets/compiler-bench-ftqc-clifford-t.yml)
+
 add_custom_target(CUDAQPythonStaging ALL DEPENDS "${METADATA_FILE}")
 add_dependencies(CUDAQPythonStaging
   CUDAQPythonPackageStaging CUDAQPythonTestStaging)
@@ -77,8 +87,9 @@ add_dependencies(CUDAQuantumPythonModules CUDAQPythonStaging)
 
 add_subdirectory(runtime/cudaq/domains/plugins)
 
-if (NOT SKBUILD)
-  install(DIRECTORY cudaq DESTINATION . COMPONENT CUDAQuantumPythonModules)
+if (NOT SKBUILD OR CUDAQ_BUILD_SPLIT_WHEELS)
+  install(DIRECTORY cudaq DESTINATION . COMPONENT CUDAQuantumPythonModules
+    PATTERN "util/trace.py" EXCLUDE)
 endif()
 install(FILES "${METADATA_FILE}" DESTINATION cudaq COMPONENT CUDAQuantumPythonModules)
 

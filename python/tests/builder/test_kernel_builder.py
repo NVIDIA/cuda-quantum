@@ -879,7 +879,7 @@ def test_recursive_calls():
 
 
 skipIfNvidiaFP64NotInstalled = pytest.mark.skipif(
-    not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia-fp64')),
+    not cudaq.has_target('nvidia-fp64'),
     reason='Could not find nvidia-fp64 in installation')
 
 
@@ -972,7 +972,7 @@ def test_from_state0():
 
 
 skipIfNvidiaNotInstalled = pytest.mark.skipif(
-    not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia')),
+    not cudaq.has_target('nvidia'),
     reason='Could not find nvidia in installation')
 
 
@@ -1555,7 +1555,7 @@ def test_repeated_builder_launch_no_segfault():
 
     The crash only surfaces when the bit-packed ``std::vector<bool>`` padding is
     nonzero, so run under ``MALLOC_PERTURB_`` (set before the process starts) in
-    a subprocess. See ``runtime/test/test_argument_conversion.cpp`` for the
+    a subprocess. See ``runtime/test/Regress/argument_conversion.cpp`` for the
     unit-level regression.
     """
     script = (

@@ -16,12 +16,8 @@ target_include_directories(cudaq-rest-qpu PRIVATE .
        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
        $<INSTALL_INTERFACE:include>)
 
-if (AWSSDK_ROOT AND CUDAQ_ENABLE_BRAKET_BACKEND)
-  set(SERVICE_COMPONENTS braket s3-crt sts)
-  find_package(AWSSDK REQUIRED COMPONENTS ${SERVICE_COMPONENTS})
-else()
-  set(AWSSDK_LINK_LIBRARIES "")
-endif()
+# The AWS SDK belongs to `cudaq-serverhelper-braket` alone. See the note in
+# helpers/braket/CMakeLists.txt on why it must not be linked twice.
 
 target_link_libraries(cudaq-rest-qpu
   PUBLIC
@@ -34,7 +30,6 @@ target_link_libraries(cudaq-rest-qpu
     cudaq-platform-default
     nvqir
     ZLIB::ZLIB
-    cudaqMLIR
-    ${AWSSDK_LINK_LIBRARIES})
+    cudaqMLIR)
 
 install(TARGETS cudaq-rest-qpu DESTINATION lib COMPONENT Runtime)

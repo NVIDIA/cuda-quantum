@@ -28,7 +28,7 @@ Every backend plugin follows this layout:
     ├── targets/
     │   └── my-backend.yml       # Target configuration
     ├── lib/
-    │   └── libcudaq-serverhelper-my-backend.so
+    │   └── libcudaq-serverhelper-my-backend.so   # .dylib on macOS
     └── data/                    # Optional auxiliary files
         └── topology.txt
 
@@ -36,6 +36,11 @@ The ``targets/`` directory contains one or more YAML target configurations.
 The ``lib/`` directory contains the shared libraries that implement the backend.
 The optional ``data/`` directory holds auxiliary files (device topologies, noise
 models, calibration data, etc.).
+
+Shared library filenames are written with the Linux ``.so`` extension
+throughout this guide; on macOS the extension is ``.dylib``. Name libraries
+in ``plugin-libraries:`` without any extension - CUDA-Q appends the one this
+platform uses - so that a single target configuration works everywhere.
 
 
 REST-Style Backends (Server Helper)

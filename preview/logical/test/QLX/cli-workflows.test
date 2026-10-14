@@ -1,0 +1,34 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+# REQUIRES: qlx-opt, qlx-translate
+
+# RUN: qlx-opt %qlx_src_dir/examples/mlir/logical_estimate_and_placement.mlir --pass-pipeline='builtin.module(qlx-estimate-logical{root=bell result=logical},qlx-to-lvm{root=bell domain=machine result=bell_placed})' | FileCheck %s --check-prefix=LOGICAL
+# RUN: qlx-opt %qlx_src_dir/examples/mlir/static_resource_estimate.mlir --pass-pipeline='builtin.module(fabric-count{root=memory device=device result=static})' | FileCheck %s --check-prefix=RESOURCE
+# RUN: qlx-opt %qlx_src_dir/examples/mlir/physical_schedule_estimate.mlir --phys-schedule='graph=events result=events_schedule' --phys-estimate-schedule='schedule=events_schedule lower-tier=analytical result=estimate' | FileCheck %s --check-prefix=PHYSICAL
+# RUN: qlx-translate %qlx_src_dir/examples/mlir/stim_memory.mlir --fabric-to-stim | FileCheck %s --check-prefix=STIM
+# RUN: qlx-opt --help | FileCheck %s --check-prefix=PASSES
+# RUN: qlx-translate --help | FileCheck %s --check-prefix=TRANSLATIONS
+
+# LOGICAL: lvm.kernel @bell_placed
+# LOGICAL: lvm.apply #qlx.action<cx>
+# LOGICAL: lvm.return {{.*}}, {{.*}} : i1, i1
+# LOGICAL: qlx.estimate_result @logical
+# LOGICAL-SAME: actions = {qlx_standard_cx = 1 : i64, qlx_standard_h = 1 : i64}
+# LOGICAL-SAME: instruments = {qlx_standard_measure_z = 2 : i64, qlx_standard_prepare_zero = 2 : i64}
+# LOGICAL-SAME: logical_qubits_peak = 2 : i64
+# RESOURCE: qlx.estimate_result @static
+# PHYSICAL: qlx.estimate_result @estimate
+# PHYSICAL-SAME: physical_qubits = 2 : i64
+# PHYSICAL-SAME: schema = "qlx.schedule-estimate/v2"
+# STIM: R 0
+# STIM-NEXT: M 0
+# PASSES: --fabric-count
+# PASSES: --qlx-estimate-logical
+# PASSES: --qlx-to-lvm
+# TRANSLATIONS: --fabric-to-stim

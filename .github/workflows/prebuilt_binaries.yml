@@ -69,7 +69,7 @@ jobs:
       - name: Initialize submodules (with retry)
         run: |
           retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
-          retry git submodule update --init --recursive
+          retry git submodule update --init --recursive --depth 1
 
       - name: Log in to DockerHub
         uses: docker/login-action@v4
@@ -637,18 +637,32 @@ jobs:
       - name: Delete artifacts
         uses: actions/github-script@v9
         with:
+          # A 500 from the artifacts API used to fail the whole job.
+          retries: 3
           script: |
-            const res = await github.rest.actions.listArtifactsForRepo({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-            })
+            // Filter server-side: an unfiltered listing returns only the 30
+            // most recent artifacts repo-wide. Re-checked below before deleting.
+            const target = '${{ needs.build_installer.outputs.artifact_name }}'
+            // This job runs on always(), so the name is empty when the build
+            // did not get far enough to produce an artifact.
+            if (!target)
+              return
 
-            res.data.artifacts
-              .filter(({ name }) => name === '${{ needs.build_installer.outputs.artifact_name }}')
-              .forEach(({ id }) => {
-                github.rest.actions.deleteArtifact({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  artifact_id: id,
-                })
+            const artifacts = await github.paginate(
+              github.rest.actions.listArtifactsForRepo, {
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: target,
+                per_page: 100,
               })
+
+            for (const { id, name } of artifacts) {
+              if (name !== target)
+                continue
+              // Await each delete; the previous code dropped these promises.
+              await github.rest.actions.deleteArtifact({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                artifact_id: id,
+              })
+            }

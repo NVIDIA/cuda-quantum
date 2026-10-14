@@ -46,6 +46,41 @@ def test_ctrl_x():
     assert counts["0011111"] == 1000
 
 
+def test_empty_control_register():
+
+    @cudaq.kernel
+    def cnot(control: cudaq.qubit, target: cudaq.qubit):
+        x.ctrl(control, target)
+
+    @cudaq.kernel
+    def kernel(n: int, register_on: bool, scalar_on: bool):
+        qreg = cudaq.qvector(n)
+        ancilla = cudaq.qubit()
+        target = cudaq.qubit()
+        if register_on:
+            x(qreg)
+        if scalar_on:
+            x(ancilla)
+        # Specialization gives X both register and scalar controls.
+        cudaq.control(cnot, qreg, ancilla, target)
+
+    shots = 10
+    for n in (0, 2):
+        for register_on in (False, True):
+            for scalar_on in (False, True):
+                counts = cudaq.sample(kernel,
+                                      n,
+                                      register_on,
+                                      scalar_on,
+                                      shots_count=shots)
+                target_on = scalar_on and (n == 0 or register_on)
+                expected = ("1" if register_on else "0") * n
+                expected += "1" if scalar_on else "0"
+                expected += "1" if target_on else "0"
+                assert len(counts) == 1
+                assert counts[expected] == shots
+
+
 def test_ctrl_x_list_comprehension():
     """Tests x.ctrl with list comprehension."""
 

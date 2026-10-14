@@ -31,7 +31,6 @@ void bindExecutionContext(nanobind::module_ &mod) {
            nanobind::arg("name"), nanobind::arg("shots"),
            nanobind::arg("qpu_id") = 0)
       .def_rw("kernelName", &cudaq::ExecutionContext::kernelName)
-      .def_ro("result", &cudaq::ExecutionContext::result)
       .def_rw("asyncExec", &cudaq::ExecutionContext::asyncExec)
       .def_ro("asyncResult", &cudaq::ExecutionContext::asyncResult)
       .def_rw("hasConditionalsOnMeasureResults",
@@ -47,8 +46,6 @@ void bindExecutionContext(nanobind::module_ &mod) {
              ctx.spin = spin;
              assert(cudaq::spin_op::canonicalize(spin) == spin);
            })
-      .def("getExpectationValue",
-           [](cudaq::ExecutionContext &ctx) { return ctx.expectationValue; })
       // ----- Context management using with blocks -----
       // Unlike in C++, we do not support nested execution contexts in Python.
       .def(
@@ -120,7 +117,18 @@ void bindExecutionContext(nanobind::module_ &mod) {
     // Get the buffer and length of buffer (in bytes) from the parser.
     auto *origBuffer = parser.getBufferPtr();
     const std::size_t bufferSize = parser.getBufferSize();
-    std::memcpy(view.buf, origBuffer, bufferSize);
+    const Py_ssize_t destinationSize = view.len;
+    if (destinationSize < 0 ||
+        bufferSize > static_cast<std::size_t>(destinationSize)) {
+      PyBuffer_Release(&view);
+      throw nanobind::value_error(
+          fmt::format("Decoded result requires {} bytes, but the destination "
+                      "buffer provides {} bytes.",
+                      bufferSize, destinationSize)
+              .c_str());
+    }
+    if (bufferSize > 0)
+      std::memcpy(view.buf, origBuffer, bufferSize);
     PyBuffer_Release(&view);
   });
 }

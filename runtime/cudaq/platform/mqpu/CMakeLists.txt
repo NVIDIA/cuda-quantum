@@ -29,16 +29,10 @@ target_link_libraries(${LIBRARY_NAME}
     nvqir
     mqpu_util
     CUDAQTargetConfigYaml
+    CUDAQTargetDatabase
     cudaq-qpu-default
     pthread
 )
-
-add_target_config(nvidia-mqpu)
-
-if (cuStateVec_FOUND)
-  add_target_config(nvidia-mqpu-mps)
-  add_target_config(nvidia-mqpu-fp64)
-endif()
 
 install(TARGETS ${LIBRARY_NAME} DESTINATION lib
         COMPONENT Runtime)

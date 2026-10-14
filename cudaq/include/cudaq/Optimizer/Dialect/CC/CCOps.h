@@ -17,6 +17,7 @@
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/OpDefinition.h"
 #include "mlir/IR/OpImplementation.h"
+#include "mlir/IR/PatternMatch.h"
 #include "mlir/IR/RegionKindInterface.h"
 #include "mlir/Interfaces/ControlFlowInterfaces.h"
 #include "mlir/Interfaces/LoopLikeInterface.h"
@@ -51,6 +52,11 @@ using ExtractValueArg = InterleavedArgument;
 
 mlir::Value getByteSizeOfType(mlir::OpBuilder &builder, mlir::Location loc,
                               mlir::Type ty, bool useSizeOf);
+
+/// Splice the blocks from \p region into the CFG before \p continueBlock,
+/// replacing all `cc.continue`s with branches to \p continueBlock.
+void spliceRegionAsCFG(mlir::PatternRewriter &rewriter, mlir::Region &region,
+                       mlir::Block *continueBlock);
 
 } // namespace cudaq::cc
 

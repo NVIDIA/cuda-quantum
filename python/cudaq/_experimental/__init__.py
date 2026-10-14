@@ -11,14 +11,13 @@ Everything in here is subject to change without the usual deprecation cycle and
 may involve undocumented foot guns.
 """
 
-from .runtime_endpoint import set_runtime_endpoint
-from .compile_target import CompileTarget, PipelineConfig, set_compile_target
+from .runtime_endpoint import RuntimeEndpoint
+from .compile_target import CompileTarget, PipelineConfig
 from .custom_target import CustomTarget
 
 __all__ = [
     "CompileTarget",
     "CustomTarget",
     "PipelineConfig",
-    "set_compile_target",
-    "set_runtime_endpoint",
+    "RuntimeEndpoint",
 ]

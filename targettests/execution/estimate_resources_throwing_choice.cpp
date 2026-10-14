@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ --target quantinuum --emulate %s -o %t && %t
+// RUN: if %quantinuum_avail; then nvq++ --target quantinuum --emulate %s -o %t && %t; fi
 // clang-format on
 
 #include <cassert>

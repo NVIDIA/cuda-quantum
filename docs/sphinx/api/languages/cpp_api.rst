@@ -414,14 +414,7 @@ Platform
 .. doxygenclass:: cudaq::quantum_platform
     :members:
 
-.. doxygenstruct:: cudaq::RemoteCapabilities
-    :members:
-
 .. doxygentypedef:: cudaq::QuantumTask
-
-.. doxygentypedef:: cudaq::QubitConnectivity
-
-.. doxygentypedef:: cudaq::QubitEdge
 
 .. doxygentypedef:: cudaq::KernelExecutionTask
 

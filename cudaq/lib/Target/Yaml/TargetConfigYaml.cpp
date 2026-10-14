@@ -6,7 +6,11 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/Target/TargetConfigYaml.h"
+#include "TargetConfigYaml.h"
+#include "TargetConfigHelper.h"
+#include "cudaq/Target/TargetCatalog.h"
+#include "cudaq/Target/TargetDatabase.h"
+#include "cudaq/Target/TargetPluginLibrary.h"
 #include "llvm/Support/Allocator.h"
 #include "llvm/Support/Base64.h"
 #include "llvm/Support/CommandLine.h"
@@ -21,6 +25,8 @@
 #include "llvm/Support/ToolOutputFile.h"
 #include "llvm/Support/VirtualFileSystem.h"
 #include "llvm/Support/raw_ostream.h"
+#include <algorithm>
+#include <atomic>
 #include <fstream>
 #include <sstream>
 #include <stdexcept>
@@ -39,9 +45,13 @@ static std::unordered_map<std::string, cudaq::config::TargetFeatureFlag>
                         {"qpp", cudaq::config::flagsQPP}};
 }
 
-/// @brief Convert the backend config entry into nvq++ compatible script.
+/// Convert the backend config entry into nvq++ compatible script.
+/// `pipelineName` is the name `TargetPassPipeline` (if any) was registered
+/// under by `cudaq-opt`. The script emits that *name*, never the pipeline's own
+/// raw text. This eliminates nvq++ carrying raw pass-pipeline text through its
+/// environment.
 static std::string processSimBackendConfig(
-    const std::string &targetName,
+    const std::string &targetName, const std::string &pipelineName,
     const cudaq::config::BackendEndConfigEntry &configValue) {
   std::stringstream output;
   if (configValue.GenTargetBackend.has_value())
@@ -65,8 +75,7 @@ static std::string processSimBackendConfig(
            << "\"\n";
 
   if (!configValue.TargetPassPipeline.empty())
-    output << "TARGET_PASS_PIPELINE=\"" << configValue.TargetPassPipeline
-           << "\"\n";
+    output << "TARGET_PASS_PIPELINE_NAME=" << pipelineName << "\n";
 
   if (!configValue.CodegenEmission.empty())
     output << "CODEGEN_EMISSION=" << configValue.CodegenEmission << "\n";
@@ -122,11 +131,7 @@ static std::string processSimBackendConfig(
 
   if (!configValue.SimulationBackend.values.empty()) {
     // Use platform-appropriate shared library extension
-#ifdef __APPLE__
-    constexpr const char *libExt = ".dylib";
-#else
-    constexpr const char *libExt = ".so";
-#endif
+    const std::string libExt{cudaq::config::kSharedLibraryExtension};
     output << "if [ -f \"${install_dir}/lib/libnvqir-"
            << configValue.SimulationBackend.values.front() << libExt
            << "\" ]; then\n";
@@ -163,16 +168,19 @@ static std::string processSimBackendConfig(
   return output.str();
 }
 
-std::string cudaq::config::processRuntimeArgs(
-    const cudaq::config::TargetConfig &config,
-    const std::map<std::string, std::string> &args) {
-  std::stringstream output;
-  if (config.BackendConfig.has_value())
-    output << processSimBackendConfig(config.Name,
-                                      config.BackendConfig.value());
+namespace {
+struct ParsedTargetArgs {
+  std::string platformExtraArgs;
+  const cudaq::config::BackendFeatureMap *featureConfig = nullptr;
+  const cudaq::config::BackendEndConfigEntry *backend = nullptr;
+};
+} // namespace
 
+static ParsedTargetArgs
+parseTargetArgs(const cudaq::config::TargetConfig &config,
+                const std::map<std::string, std::string> &args) {
   unsigned featureFlag = 0;
-  std::stringstream platformExtraArgs;
+  ParsedTargetArgs parsed;
   for (const auto &[argKey, argVal] : args) {
     const auto iter = std::find_if(
         config.TargetArguments.begin(), config.TargetArguments.end(),
@@ -191,7 +199,7 @@ std::string cudaq::config::processRuntimeArgs(
         // If this is a platform option (platform argument key is provide),
         // forward the value to the platform extra arguments.
         if (!iter->PlatformArgKey.empty())
-          platformExtraArgs << ";" << iter->PlatformArgKey << ";" << argVal;
+          parsed.platformExtraArgs += ";" + iter->PlatformArgKey + ";" + argVal;
       } else {
         // This is an option flag, construct the value for mapping selection.
         llvm::SmallVector<llvm::StringRef> flagStrs;
@@ -199,7 +207,7 @@ std::string cudaq::config::processRuntimeArgs(
         for (const auto &flag : flagStrs) {
           const auto iter = stringToFeatureFlag.find(flag.str());
           if (iter == stringToFeatureFlag.end()) {
-            llvm::errs() << "Unknown  feature flag '" << flag << "'\n";
+            llvm::errs() << "Unknown feature flag '" << flag << "'\n";
             abort();
           }
           featureFlag += iter->second;
@@ -243,19 +251,46 @@ std::string cudaq::config::processRuntimeArgs(
                                 entry.Default.value();
                        });
     }();
-    if (iter == config.ConfigMap.end()) {
-      llvm::errs() << "Unable to find a config entry for feature flag value "
-                   << featureFlag << ".\n";
-      llvm::errs() << "This indicates the requested combination of features "
-                      "is not supported.\n";
-      abort();
+    if (iter != config.ConfigMap.end()) {
+      parsed.featureConfig = &*iter;
+      parsed.backend = &iter->Config;
     }
-    output << processSimBackendConfig(config.Name, iter->Config);
+  } else if (config.BackendConfig.has_value()) {
+    parsed.backend = &*config.BackendConfig;
   }
-  const auto platformExtraArgsStr = platformExtraArgs.str();
-  if (!platformExtraArgsStr.empty())
+
+  return parsed;
+}
+
+const cudaq::config::BackendEndConfigEntry *
+cudaq::config::selectBackend(const cudaq::config::TargetConfig &config,
+                             const std::map<std::string, std::string> &args) {
+  return parseTargetArgs(config, args).backend;
+}
+
+std::string cudaq::config::processRuntimeArgs(
+    const cudaq::config::TargetConfig &config,
+    const std::map<std::string, std::string> &args) {
+  std::stringstream output;
+  const auto parsed = parseTargetArgs(config, args);
+
+  if (parsed.backend) {
+    std::string pipelineName = "target-pass-pipeline-" + config.Name;
+    if (parsed.featureConfig)
+      pipelineName += "." + parsed.featureConfig->Name;
+    output << processSimBackendConfig(config.Name, pipelineName,
+                                      *parsed.backend);
+  } else if (!config.ConfigMap.empty()) {
+    llvm::errs() << "Unable to find a config entry for the requested feature "
+                    "flags.\n";
+    llvm::errs() << "This indicates the requested combination of features "
+                    "is not supported.\n";
+    abort();
+  }
+
+  if (!parsed.platformExtraArgs.empty())
     output << "PLATFORM_EXTRA_ARGS=\"${PLATFORM_EXTRA_ARGS}"
-           << platformExtraArgsStr << "\"\n";
+           << parsed.platformExtraArgs << "\"\n";
 
   return output.str();
 }
@@ -278,20 +313,39 @@ cudaq::config::substitutePluginRoot(std::string yamlContent,
   return yamlContent;
 }
 
+namespace {
+std::atomic<bool> yamlParsingDisabled{false};
+}
+
+void cudaq::config::disableYAMLTargetConfigParsing() {
+  yamlParsingDisabled.store(true, std::memory_order_relaxed);
+}
+
+bool cudaq::config::isDisabledYAMLParsing() {
+  return yamlParsingDisabled.load(std::memory_order_relaxed);
+}
+
 cudaq::config::TargetConfig
 cudaq::config::parseTargetConfig(std::string yamlContent,
                                  const std::filesystem::path &pluginRoot) {
   auto substitutedYamlContent =
       cudaq::config::substitutePluginRoot(std::move(yamlContent), pluginRoot);
   cudaq::config::TargetConfig config;
-  llvm::yaml::Input Input(substitutedYamlContent.c_str());
-  Input >> config;
+  llvm::yaml::Input input(substitutedYamlContent.c_str());
+  input >> config;
+  if (input.error())
+    throw std::runtime_error("Failed to parse target configuration YAML: " +
+                             std::string(input.error().message()));
   return config;
 }
 
 cudaq::config::TargetConfig
 cudaq::config::loadTargetConfig(const std::filesystem::path &configPath,
                                 const std::filesystem::path &pluginRoot) {
+  if (isDisabledYAMLParsing())
+    throw std::runtime_error(
+        "Loading target configurations from YAML is disabled; only "
+        "pre-compiled target plugin libraries are accepted");
   std::ifstream configFile(configPath.string());
   if (!configFile.is_open())
     throw std::runtime_error("Unable to open target configuration file: " +
@@ -407,6 +461,13 @@ void MappingTraits<cudaq::config::BackendFeatureMap>::mapping(
 
 void MappingTraits<cudaq::config::TargetConfig>::mapping(
     IO &io, cudaq::config::TargetConfig &info) {
+  unsigned version = CUDAQ_TARGET_DB_ABI_VERSION;
+  io.mapOptional("version", version);
+  if (!io.outputting() && version != CUDAQ_TARGET_DB_ABI_VERSION) {
+    io.setError(
+        "unsupported target config schema version " + std::to_string(version) +
+        " (supported: " + std::to_string(CUDAQ_TARGET_DB_ABI_VERSION) + ")");
+  }
   io.mapRequired("name", info.Name);
   io.mapRequired("description", info.Description);
   io.mapOptional("cudaq-version", info.CudaqVersion);

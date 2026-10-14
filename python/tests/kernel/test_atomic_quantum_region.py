@@ -10,6 +10,13 @@ import cudaq
 import numpy as np
 import pytest
 
+ALLOCATION_ERROR = (
+    "qubit allocations are not supported inside an atomic quantum region; "
+    "allocate in the caller and pass the qubits as arguments")
+MEASUREMENT_ERROR = (
+    "measurement operations are not supported inside an atomic quantum region; "
+    "measure outside the region")
+
 
 @cudaq.kernel(atomic_quantum_region=True)
 def atomic_h(q: cudaq.qubit):
@@ -54,9 +61,14 @@ def atomic_round_trip():
 
 
 @cudaq.kernel(atomic_quantum_region=True)
-def single_atomic_h():
-    q = cudaq.qubit()
+def single_atomic_h(q: cudaq.qubit):
     h(q)
+
+
+@cudaq.kernel
+def single_atomic_h_entry():
+    q = cudaq.qubit()
+    single_atomic_h(q)
 
 
 @cudaq.kernel
@@ -132,12 +144,12 @@ def test_atomic_quantum_region_state_apis():
     drawing = cudaq.draw(atomic_round_trip)
     assert drawing.count("┤ h ├") == 2
 
-    state = np.asarray(cudaq.get_state(single_atomic_h))
+    state = np.asarray(cudaq.get_state(single_atomic_h_entry))
     np.testing.assert_allclose(state,
                                np.array([1.0, 1.0]) / np.sqrt(2),
                                atol=1e-12)
 
-    unitary = cudaq.get_unitary(single_atomic_h)
+    unitary = cudaq.get_unitary(single_atomic_h_entry)
     np.testing.assert_allclose(unitary,
                                np.array([[1.0, 1.0], [1.0, -1.0]]) / np.sqrt(2),
                                atol=1e-12)
@@ -224,6 +236,134 @@ def test_atomic_quantum_region_builder_preserves_entangling_workload():
     assert ordinary_counts.count("000") == shots
     assert atomic_counts.count("011") == shots
     cudaq.reset_target()
+
+
+def test_atomic_quantum_region_decorator_rejects_local_operations():
+
+    @cudaq.kernel(atomic_quantum_region=True)
+    def measured(q: cudaq.qubit):
+        mz(q)
+
+    with pytest.raises(RuntimeError) as e:
+        measured.compile()
+    assert MEASUREMENT_ERROR in str(e.value)
+
+    @cudaq.kernel(atomic_quantum_region=True)
+    def allocated():
+        q = cudaq.qubit()
+        x(q)
+
+    with pytest.raises(RuntimeError) as e:
+        allocated.compile()
+    assert ALLOCATION_ERROR in str(e.value)
+
+
+def test_atomic_quantum_region_decorator_rejects_entry_point():
+
+    @cudaq.kernel(atomic_quantum_region=True)
+    def invalid_entry_point():
+        q = cudaq.qubit()
+        mz(q)
+
+    with pytest.raises(RuntimeError) as e:
+        cudaq.sample(invalid_entry_point)
+    diagnostics = str(e.value)
+    assert MEASUREMENT_ERROR in diagnostics
+    assert ALLOCATION_ERROR in diagnostics
+
+
+def test_atomic_quantum_region_decorator_rejects_transitive_measurement(capfd):
+
+    @cudaq.kernel
+    def measure_helper(q: cudaq.qubit):
+        mz(q)
+
+    @cudaq.kernel(atomic_quantum_region=True)
+    def marked(q: cudaq.qubit):
+        measure_helper(q)
+
+    @cudaq.kernel
+    def caller():
+        q = cudaq.qubit()
+        marked(q)
+
+    with pytest.raises(RuntimeError,
+                       match="Could not successfully apply kernel "
+                       "specialization"):
+        cudaq.sample(caller)
+    assert MEASUREMENT_ERROR in capfd.readouterr().err
+
+
+def test_atomic_quantum_region_positive_controls():
+
+    # Empty atomic regions are legal.
+    @cudaq.kernel(atomic_quantum_region=True)
+    def empty():
+        pass
+
+    @cudaq.kernel(atomic_quantum_region=True)
+    def unitary(q: cudaq.qubit):
+        x(q)
+
+    @cudaq.kernel
+    def caller():
+        q = cudaq.qubit()
+        unitary(q)
+        mz(q)
+
+    empty.compile()
+    counts = cudaq.sample(caller, shots_count=1)
+    assert counts.count("1") == 1
+
+
+@pytest.mark.parametrize("mark_first", [False, True])
+@pytest.mark.parametrize("operation", ["allocation", "measurement"])
+def test_atomic_quantum_region_builder_rejects_operations(
+        mark_first, operation):
+    if operation == "measurement":
+        kernel, q = cudaq.make_kernel(cudaq.qubit)
+    else:
+        kernel = cudaq.make_kernel()
+
+    if mark_first:
+        kernel.atomic_quantum_region()
+
+    if operation == "measurement":
+        kernel.mz(q)
+        expected_error = MEASUREMENT_ERROR
+    else:
+        kernel.qalloc()
+        expected_error = ALLOCATION_ERROR
+
+    if not mark_first:
+        kernel.atomic_quantum_region()
+
+    with pytest.raises(RuntimeError) as e:
+        kernel.compile()
+    assert expected_error in str(e.value)
+
+
+def test_atomic_quantum_region_builder_reports_each_violation():
+    # Builder operations carry no source location, so the verifier cannot
+    # collapse them by line the way it collapses the inlined copies of one
+    # decorated kernel. Each recorded operation is reported on its own.
+    allocating = cudaq.make_kernel()
+    allocating.qalloc()
+    allocating.qalloc()
+    allocating.atomic_quantum_region()
+
+    with pytest.raises(RuntimeError) as e:
+        allocating.compile()
+    assert str(e.value).count(ALLOCATION_ERROR) == 2
+
+    measuring, q0, q1 = cudaq.make_kernel(cudaq.qubit, cudaq.qubit)
+    measuring.mz(q0)
+    measuring.mz(q1)
+    measuring.atomic_quantum_region()
+
+    with pytest.raises(RuntimeError) as e:
+        measuring.compile()
+    assert str(e.value).count(MEASUREMENT_ERROR) == 2
 
 
 def test_atomic_quantum_region_sync_execution_apis():

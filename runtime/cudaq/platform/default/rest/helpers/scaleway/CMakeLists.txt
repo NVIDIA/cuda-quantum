@@ -22,7 +22,6 @@ target_sources(cudaq-rest-qpu
               ${SCALEWAY_SOURCES}
 )
 
-add_target_config(scaleway)
 
 add_library(cudaq-serverhelper-scaleway
             SHARED

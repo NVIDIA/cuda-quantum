@@ -10,15 +10,15 @@
 # Tests for defining a CUDA-Q runtime endpoint in Python.
 #
 # An endpoint is a plain object implementing one or more of the protocols in
-# `cudaq._experimental`. Registering it with `set_runtime_endpoint` redirects
+# `cudaq._experimental`. Installing it as part of a `CustomTarget` redirects
 # the *launch* step of `cudaq.sample` / `observe` / `run` into that object,
-# while compilation stays with the active target.
+# while compilation uses the paired compile target.
 
 import cudaq
 import cudaq.mlir.ir as mlir
 import pytest
 
-from cudaq._experimental import set_runtime_endpoint, set_compile_target
+from cudaq._experimental import CompileTarget, CustomTarget
 from cudaq._experimental.runtime_endpoint import (
     RuntimeEndpoint,
     SupportsSample,
@@ -26,7 +26,6 @@ from cudaq._experimental.runtime_endpoint import (
     SupportsDem,
     SupportsEstimate,
 )
-from cudaq._experimental.compile_target import CompileTarget
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 
 
@@ -47,6 +46,13 @@ def kernel(n_qubits: int, array: list[int]):
 def returning_kernel() -> int:
     q = cudaq.qubit()
     return 1
+
+
+def set_custom_target(endpoint, compile_target=None):
+    if compile_target is None:
+        compile_target = CompileTarget()
+    cudaq.set_target(
+        CustomTarget(runtime_endpoint=endpoint, compile_target=compile_target))
 
 
 class DemoEndpoint(RuntimeEndpoint):
@@ -98,7 +104,7 @@ def test_rejects_non_endpoint():
         pass
 
     with pytest.raises(TypeError, match="not a valid runtime endpoint"):
-        set_runtime_endpoint(NotAnEndpoint())
+        set_custom_target(NotAnEndpoint())
 
 
 def test_remove_function():
@@ -109,7 +115,7 @@ def test_remove_function():
             pass
 
     endpoint = DummyEndpoint()
-    set_runtime_endpoint(endpoint)
+    set_custom_target(endpoint)
     del DummyEndpoint.sample
     with pytest.raises(
             RuntimeError,
@@ -121,7 +127,7 @@ def test_remove_function():
 
 def test_sample_launch():
     endpoint = DemoEndpoint()
-    set_runtime_endpoint(endpoint)
+    set_custom_target(endpoint)
 
     assert endpoint.calls == []
     result = cudaq.sample(kernel, 1, [1, 2, 3], shots_count=12)
@@ -141,7 +147,7 @@ def test_sample_launch():
 
 def test_observe_launch():
     endpoint = DemoEndpoint()
-    set_runtime_endpoint(endpoint)
+    set_custom_target(endpoint)
 
     result = cudaq.observe(kernel, cudaq.spin.x(0), 2, [])
 
@@ -157,7 +163,7 @@ def test_observe_launch():
 
 def test_dem_launch():
     endpoint = DemoEndpoint()
-    set_runtime_endpoint(endpoint)
+    set_custom_target(endpoint)
 
     noise = cudaq.NoiseModel()
     result = cudaq.dem_from_kernel(kernel,
@@ -185,7 +191,7 @@ def test_dem_launch():
 
 def test_dem_launch_without_noise_model():
     endpoint = DemoEndpoint()
-    set_runtime_endpoint(endpoint)
+    set_custom_target(endpoint)
 
     cudaq.dem_from_kernel(kernel, 1, [1, 2, 3])
 
@@ -202,7 +208,7 @@ def test_estimate_launch():
         h(q)
 
     endpoint = DemoEndpoint()
-    set_runtime_endpoint(endpoint)
+    set_custom_target(endpoint)
 
     result = cudaq.estimate(kernel_no_vec, 1, [1, 2, 3])
 
@@ -222,14 +228,14 @@ def test_estimate_launch():
     # Don't produce resource counts if target does not support it.
     ct = CompileTarget()
     ct.support_resource_counts = False
-    set_compile_target(ct)
+    set_custom_target(endpoint, compile_target=ct)
     result = cudaq.estimate(kernel_no_vec, 1, [1, 2, 3])
     assert endpoint.resource_counts is None
 
 
 def test_estimate_forwards_the_choice_function():
     endpoint = DemoEndpoint()
-    set_runtime_endpoint(endpoint)
+    set_custom_target(endpoint)
 
     cudaq.estimate(kernel, 1, [1, 2, 3], choice=lambda: True)
 
@@ -239,7 +245,7 @@ def test_estimate_forwards_the_choice_function():
 
 def test_estimate_resources_launch():
     endpoint = DemoEndpoint()
-    set_runtime_endpoint(endpoint)
+    set_custom_target(endpoint)
 
     result = cudaq.estimate_resources(kernel, 1, [1, 2, 3])
 
@@ -259,7 +265,7 @@ def test_estimate_resources_launch():
 
 def test_estimate_resources_forwards_the_choice_function():
     endpoint = DemoEndpoint()
-    set_runtime_endpoint(endpoint)
+    set_custom_target(endpoint)
 
     cudaq.estimate_resources(kernel, 1, [1, 2, 3], choice=lambda: True)
 
@@ -269,7 +275,7 @@ def test_estimate_resources_forwards_the_choice_function():
 
 def test_sample_twice_reuses_the_endpoint():
     endpoint = DemoEndpoint()
-    set_runtime_endpoint(endpoint)
+    set_custom_target(endpoint)
 
     cudaq.sample(kernel, 1, [1, 2, 3], shots_count=10)
     cudaq.sample(kernel, 2, [1, 2, 3], shots_count=10)
@@ -287,7 +293,7 @@ def test_unimplemented_policy_raises():
         def sample(self, module, args, **kwargs):
             return cudaq.SampleResult()
 
-    set_runtime_endpoint(SampleOnly())
+    set_custom_target(SampleOnly())
     with pytest.raises(RuntimeError, match="Unsupported policy: 'observe'"):
         cudaq.observe(kernel, cudaq.spin.x(0), 2, [])
 
@@ -299,7 +305,7 @@ def test_endpoint_errors_propagate():
         def sample(self, module, args, **kwargs):
             raise ValueError("backend is down")
 
-    set_runtime_endpoint(Failing())
+    set_custom_target(Failing())
     # The kernel invocation crosses several language boundaries on its way back
     # out, so only the message is guaranteed to survive verbatim.
     with pytest.raises((ValueError, RuntimeError), match="backend is down"):
@@ -313,7 +319,7 @@ def test_endpoint_wrong_sample_return_type():
         def sample(self, module, args, **kwargs):
             return 42
 
-    set_runtime_endpoint(BadSampleEndpoint())
+    set_custom_target(BadSampleEndpoint())
     with pytest.raises(
             TypeError,
             match=
@@ -329,7 +335,7 @@ def test_endpoint_wrong_observe_return_type():
         def observe(self, module, args, **kwargs):
             return cudaq.SampleResult()
 
-    set_runtime_endpoint(BadObserveEndpoint())
+    set_custom_target(BadObserveEndpoint())
     with pytest.raises(
             TypeError,
             match=
@@ -352,7 +358,7 @@ def test_endpoint_capability_defaults():
         def sample(self, module, args, **kwargs):
             ...
 
-    set_runtime_endpoint(SampleEndpointNoDefaults())
+    set_custom_target(SampleEndpointNoDefaults())
 
     target = cudaq.get_target()
     # default values were still set despite not existing on the endpoint
@@ -371,7 +377,7 @@ def test_endpoint_capability_overrides():
         def sample(self, module, args, **kwargs):
             ...
 
-    set_runtime_endpoint(RemoteEndpoint())
+    set_custom_target(RemoteEndpoint())
 
     target = cudaq.get_target()
     assert target.is_remote() is True
@@ -391,7 +397,7 @@ def test_endpoint_inherits_runtime_endpoint_defaults():
     assert endpoint.is_remote is False
     assert endpoint.is_emulated is False
 
-    set_runtime_endpoint(endpoint)
+    set_custom_target(endpoint)
     target = cudaq.get_target()
     assert target.is_remote() is False
     assert target.is_emulated() is False
@@ -405,14 +411,14 @@ def test_endpoint_is_simulator_flag():
         def sample(self, module, args, **kwargs):
             ...
 
-    set_runtime_endpoint(PhysicalEndpoint())
+    set_custom_target(PhysicalEndpoint())
     with pytest.raises(RuntimeError, match="physical QPU"):
         cudaq.get_state(_state_kernel)
 
 
 def test_reset_target_restores_the_simulator():
     endpoint = DemoEndpoint()
-    set_runtime_endpoint(endpoint)
+    set_custom_target(endpoint)
     cudaq.sample(kernel, 1, [1, 2, 3], shots_count=10)
     assert len(endpoint.calls) == 1
 

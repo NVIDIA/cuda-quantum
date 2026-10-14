@@ -48,6 +48,15 @@
 ///   --remote-qp=N     FPGA/emulator data-plane QP, decimal or 0x-hex
 ///                     (hsb_fpga only)                    [default 0x2]
 ///   --frame-size=N    TX SGE bytes (hsb_fpga only; 0 => slot-size)
+///   --unified         serve the single-thread unified shape instead of the
+///                     3-thread ring shape: the transceiver starts no I/O
+///                     threads and the consumer's dispatch thread drives the
+///                     wire through the rx_poll/tx_publish hooks returned by
+///                     get_cpu_dataplane.  get_transport_context(UNIFIED)
+///                     then answers OK with a NULL launch_fn -- "unified, but
+///                     the loop is yours".  The two shapes are exclusive, so
+///                     RING_BUFFER is refused in this mode, and UNIFIED plus
+///                     get_cpu_dataplane are refused without it.
 ///
 /// Lifecycle mapping (both qp_configs):
 ///   create      transceiver bring-up to the point where this end's endpoint
@@ -59,8 +68,11 @@
 ///   connect     rendezvous: accept() + QP/rkey swap + connect() -- BLOCKS
 ///               until the caller channel dials in; hsb_fpga: no-op (the
 ///               FPGA is programmed out-of-band from the create() banner).
-///   launch      start the blocking-monitor I/O thread
-///   disconnect  close the transceiver and join the monitor thread
+///   launch      start the blocking-monitor I/O thread; nothing under
+///               --unified, which has no I/O threads
+///   disconnect  close the transceiver and join the monitor thread.  Under
+///               --unified the consumer MUST stop its dispatcher first: the
+///               hooks use the QP and CQs this releases.
 ///   destroy     free the transceiver
 
 #include "cudaq/realtime/cpu_transport/roce_wrapper.h"
@@ -99,6 +111,7 @@ struct CpuRoceBridgeContext {
   uint32_t num_slots = 8;
   uint32_t slot_size = 256;
   size_t frame_size = 0; // hsb_fpga TX SGE bytes; 0 => slot_size
+  bool unified = false;
 
   // Live state.
   cpu_roce_transceiver_t transceiver = nullptr;
@@ -157,6 +170,36 @@ void teardown(CpuRoceBridgeContext *ctx) {
   }
 }
 
+// Describe the transceiver's four rings.  Shared by both shapes: the ring
+// shape hands this out as the transport context, the unified shape embeds it
+// in the data-plane alongside the hooks.
+cudaq_status_t fill_ring(CpuRoceBridgeContext *ctx, cudaq_ringbuffer_t *ring) {
+  auto *rx_flags = reinterpret_cast<volatile uint64_t *>(
+      cpu_roce_get_rx_ring_flag_addr(ctx->transceiver));
+  auto *tx_flags = reinterpret_cast<volatile uint64_t *>(
+      cpu_roce_get_tx_ring_flag_addr(ctx->transceiver));
+  auto *rx_data = reinterpret_cast<uint8_t *>(
+      cpu_roce_get_rx_ring_data_addr(ctx->transceiver));
+  auto *tx_data = reinterpret_cast<uint8_t *>(
+      cpu_roce_get_tx_ring_data_addr(ctx->transceiver));
+  if (!rx_flags || !tx_flags || !rx_data || !tx_data)
+    return CUDAQ_ERR_INTERNAL;
+
+  // Host memory (the CPU RoCE rings are host allocations the NIC DMAs into);
+  // device-pointer and host-view fields are the same addresses.
+  ring->rx_flags = rx_flags;
+  ring->tx_flags = tx_flags;
+  ring->rx_data = rx_data;
+  ring->tx_data = tx_data;
+  ring->rx_stride_sz = ctx->slot_size;
+  ring->tx_stride_sz = ctx->slot_size;
+  ring->rx_flags_host = rx_flags;
+  ring->tx_flags_host = tx_flags;
+  ring->rx_data_host = rx_data;
+  ring->tx_data_host = tx_data;
+  return CUDAQ_OK;
+}
+
 // Rendezvous-mode create: transceiver setup() (QP/rkey known, peer not yet)
 // plus the TCP listen socket, so the rendezvous endpoint is publishable
 // before connect() blocks in accept().
@@ -165,7 +208,7 @@ cudaq_status_t create_rendezvous(CpuRoceBridgeContext *ctx) {
       ctx->device.c_str(), /*ib_port=*/1, /*tx_ibv_qp=*/0u,
       /*frame_size=*/ctx->slot_size, /*page_size=*/ctx->slot_size,
       ctx->num_slots, /*peer_ip=*/"0.0.0.0", /*forward=*/0, /*rx_only=*/0,
-      /*tx_only=*/0, /*unified=*/0, CPU_ROCE_TX_MODE_RDMA_SEND,
+      /*tx_only=*/0, ctx->unified ? 1 : 0, CPU_ROCE_TX_MODE_RDMA_SEND,
       /*peer_rx_base_addr=*/0, /*peer_rx_rkey=*/0);
   if (!ctx->transceiver) {
     std::cerr << "ERROR: cpu_roce bridge: transceiver create failed"
@@ -234,8 +277,8 @@ cudaq_status_t create_hsb_fpga(CpuRoceBridgeContext *ctx) {
       ctx->device.c_str(), /*ib_port=*/1, /*tx_ibv_qp=*/ctx->remote_qp,
       frame_size, /*page_size=*/ctx->slot_size, ctx->num_slots,
       ctx->peer_ip.c_str(), /*forward=*/0, /*rx_only=*/0, /*tx_only=*/0,
-      /*unified=*/0, CPU_ROCE_TX_MODE_RDMA_SEND, /*peer_rx_base_addr=*/0,
-      /*peer_rx_rkey=*/0);
+      ctx->unified ? 1 : 0, CPU_ROCE_TX_MODE_RDMA_SEND,
+      /*peer_rx_base_addr=*/0, /*peer_rx_rkey=*/0);
   if (!ctx->transceiver) {
     std::cerr << "ERROR: cpu_roce bridge: transceiver create failed"
               << std::endl;
@@ -300,6 +343,8 @@ cpu_roce_bridge_create(cudaq_realtime_bridge_handle_t *handle, int argc,
             static_cast<uint32_t>(std::stoul(a.substr(12), nullptr, 0));
       else if (starts_with(a, "--frame-size="))
         ctx->frame_size = std::stoull(a.substr(13));
+      else if (a == "--unified")
+        ctx->unified = true;
       // Unrecognized arguments are ignored (callers forward their full
       // transport argument list).
     } catch (const std::exception &) {
@@ -357,33 +402,62 @@ static cudaq_status_t cpu_roce_bridge_get_transport_context(
   auto *ctx = reinterpret_cast<CpuRoceBridgeContext *>(handle);
   if (!ctx->transceiver)
     return CUDAQ_ERR_INTERNAL;
+
+  // Under --unified the answer is "unified, but the loop is yours": no
+  // dispatcher override, and the hooks that drive it come from
+  // get_cpu_dataplane.  Both fields are written so a caller that did not
+  // zero-initialize reads "no override" rather than stack garbage.
+  if (context_type == UNIFIED) {
+    if (!ctx->unified)
+      return CUDAQ_ERR_UNSUPPORTED;
+    auto *unified_ctx =
+        reinterpret_cast<cudaq_unified_dispatch_ctx_t *>(out_context);
+    unified_ctx->launch_fn = nullptr;
+    unified_ctx->transport_ctx = nullptr;
+    return CUDAQ_OK;
+  }
   if (context_type != RING_BUFFER)
     return CUDAQ_ERR_UNSUPPORTED;
+  // Under --unified nothing sets rx_flags, so a ring consumer would look like
+  // a transport silently dropping every request; refuse instead.
+  if (ctx->unified)
+    return CUDAQ_ERR_UNSUPPORTED;
 
-  auto *ring = reinterpret_cast<cudaq_ringbuffer_t *>(out_context);
-  auto *rx_flags = reinterpret_cast<volatile uint64_t *>(
-      cpu_roce_get_rx_ring_flag_addr(ctx->transceiver));
-  auto *tx_flags = reinterpret_cast<volatile uint64_t *>(
-      cpu_roce_get_tx_ring_flag_addr(ctx->transceiver));
-  auto *rx_data = reinterpret_cast<uint8_t *>(
-      cpu_roce_get_rx_ring_data_addr(ctx->transceiver));
-  auto *tx_data = reinterpret_cast<uint8_t *>(
-      cpu_roce_get_tx_ring_data_addr(ctx->transceiver));
-  if (!rx_flags || !tx_flags || !rx_data || !tx_data)
+  return fill_ring(ctx, reinterpret_cast<cudaq_ringbuffer_t *>(out_context));
+}
+
+// The unified data plane's two hooks, translating the transceiver's 1/0
+// returns into the interface's status enums.  `ctx` is the transceiver handle
+// itself: the QP, CQs, rings and RX state all live one layer down.
+static cudaq_rx_status_t cpu_roce_dp_rx_poll(void *ctx, uint32_t *out_slot) {
+  return cpu_roce_rx_poll(ctx, out_slot) ? CUDAQ_RX_READY : CUDAQ_RX_EMPTY;
+}
+
+static cudaq_status_t cpu_roce_dp_tx_publish(void *ctx, uint32_t slot) {
+  return cpu_roce_tx_publish(ctx, slot) ? CUDAQ_OK : CUDAQ_ERR_INTERNAL;
+}
+
+// Serve the single-thread unified shape: the ring plus the two hooks that
+// drive it.  Refused unless --unified was passed, so a consumer that asks for
+// this shape against a ring-mode bridge gets a clean UNSUPPORTED rather than
+// hooks that race the I/O threads.
+static cudaq_status_t
+cpu_roce_bridge_get_cpu_dataplane(cudaq_realtime_bridge_handle_t handle,
+                                  cudaq_cpu_dataplane_t *out_dataplane) {
+  if (!handle || !out_dataplane)
+    return CUDAQ_ERR_INVALID_ARG;
+  auto *ctx = reinterpret_cast<CpuRoceBridgeContext *>(handle);
+  if (!ctx->transceiver)
     return CUDAQ_ERR_INTERNAL;
+  if (!ctx->unified)
+    return CUDAQ_ERR_UNSUPPORTED;
 
-  // Host memory (the CPU RoCE rings are host allocations the NIC DMAs into);
-  // device-pointer and host-view fields are the same addresses.
-  ring->rx_flags = rx_flags;
-  ring->tx_flags = tx_flags;
-  ring->rx_data = rx_data;
-  ring->tx_data = tx_data;
-  ring->rx_stride_sz = ctx->slot_size;
-  ring->tx_stride_sz = ctx->slot_size;
-  ring->rx_flags_host = rx_flags;
-  ring->tx_flags_host = tx_flags;
-  ring->rx_data_host = rx_data;
-  ring->tx_data_host = tx_data;
+  const cudaq_status_t status = fill_ring(ctx, &out_dataplane->ring);
+  if (status != CUDAQ_OK)
+    return status;
+  out_dataplane->ctx = ctx->transceiver;
+  out_dataplane->rx_poll = cpu_roce_dp_rx_poll;
+  out_dataplane->tx_publish = cpu_roce_dp_tx_publish;
   return CUDAQ_OK;
 }
 
@@ -460,6 +534,9 @@ cpu_roce_bridge_launch(cudaq_realtime_bridge_handle_t handle) {
   auto *ctx = reinterpret_cast<CpuRoceBridgeContext *>(handle);
   if (!ctx->transceiver || !ctx->connected)
     return CUDAQ_ERR_INTERNAL;
+  // No I/O threads to start: the consumer's dispatcher drives the hooks.
+  if (ctx->unified)
+    return CUDAQ_OK;
   if (ctx->monitor.joinable())
     return CUDAQ_OK;
   cpu_roce_transceiver_t xcvr = ctx->transceiver;
@@ -531,7 +608,7 @@ cudaq_realtime_bridge_interface_t *cudaq_realtime_get_bridge_interface() {
       cpu_roce_bridge_connect,
       cpu_roce_bridge_launch,
       cpu_roce_bridge_disconnect,
-      /*get_cpu_dataplane=*/nullptr, // ring path only
+      cpu_roce_bridge_get_cpu_dataplane,
       cpu_roce_bridge_get_endpoint_info,
       cpu_roce_bridge_get_ring_geometry,
       /*set_function_table=*/nullptr, // no function table needed

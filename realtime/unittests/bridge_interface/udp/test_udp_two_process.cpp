@@ -40,11 +40,19 @@
 /// verify is that a refused frame produces no response and is not counted as
 /// dispatched, measured against a round trip that is known to work.
 ///
-/// Parameterized on the dispatch shape, which crosses the process boundary as a
-/// command-line token.  Only "ring" is instantiated today; the client half of
-/// the wire is byte-identical under "unified" (that shape changes only how the
-/// server services its own rings), so adding it is one value in the
-/// instantiation list once the provider exposes a CPU data-plane.
+/// That gap is the ring shape's alone: the unified shape publishes by slot
+/// index rather than through a FIFO cursor, so a skipped slot costs it
+/// nothing.  The tests are written to the stricter of the two anyway, which is
+/// what lets one body serve both.
+///
+/// Parameterized on the dispatch shape, which crosses the process boundary as
+/// command-line tokens -- one for the server, one for the bridge.  Every case
+/// runs under both: the client half of the wire
+/// is byte-identical, since the shape changes only how the server services its
+/// own rings -- 3 threads moving bytes between the wire and the ring buffer, or
+/// one dispatcher thread driving the wire itself through the provider's
+/// rx_poll/tx_publish hooks.  That is the property worth testing here, and the
+/// only way to test it is to assert the two are indistinguishable from outside.
 
 #include "cudaq/realtime/cpu_transport/udp_wrapper.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
@@ -92,18 +100,27 @@ constexpr auto kNoResponseWindow = std::chrono::milliseconds(500);
 class UdpTwoProcess : public ::testing::TestWithParam<const char *> {
 protected:
   void SetUp() override {
-    const std::vector<std::string> argv = {
-        CUDAQ_REALTIME_TEST_SERVER_PATH, "--transport=udp",
-        std::string("--dispatch=") + GetParam(), "--port=0",
-        "--num-slots=" + std::to_string(kNumSlots),
-        "--slot-size=" + std::to_string(kSlotSize),
-        // Backstop in case a failing test leaves the child unreaped.
-        "--timeout=120"};
+    const bool unified = std::string(GetParam()) == "unified";
+    std::vector<std::string> argv = {
+        CUDAQ_REALTIME_TEST_SERVER_PATH,
+        // Server options: how this end is wired, plus a backstop in case a
+        // failing test leaves the child unreaped.
+        "--transport=udp", std::string("--dispatch=") + GetParam(),
+        "--timeout=120",
+        // Bridge options from here on, forwarded verbatim by the server.
+        "--", "--port=0", "--num-slots=" + std::to_string(kNumSlots),
+        "--slot-size=" + std::to_string(kSlotSize)};
+    // The shape's second token, this one for the bridge: --dispatch= wires the
+    // server, this puts the provider in the matching mode. Deliberately not
+    // synthesized by the server -- see the shape note in its header.
+    if (unified)
+      argv.push_back("--unified");
     ASSERT_TRUE(server.start(argv, kReadyPrefix))
         << "server did not become ready; output:\n"
         << server.output();
 
-    // The shape the server actually brought up, not the one we asked for.
+    // The shape the server actually brought up. Both tokens agreeing is what
+    // gets us here at all: a mismatch fails the server's wiring step.
     EXPECT_EQ(std::string(GetParam()), field("dispatch")) << server.output();
     ASSERT_EQ("udp", field("transport")) << server.output();
 
@@ -287,7 +304,7 @@ TEST_P(UdpTwoProcess, ReportsProcessedCount) {
 }
 
 INSTANTIATE_TEST_SUITE_P(
-    Shapes, UdpTwoProcess, ::testing::Values("ring"),
+    Shapes, UdpTwoProcess, ::testing::Values("ring", "unified"),
     [](const ::testing::TestParamInfo<const char *> &info) {
       return std::string(info.param);
     });

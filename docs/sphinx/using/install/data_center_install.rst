@@ -217,7 +217,7 @@ and merely downloading the source code as ZIP archive hence will not work.
 Please follow the instructions in the respective subsection(s) to build the necessary 
 components for using CUDA-Q from C++ and/or Python.
 After the build, check that the GPU-accelerated components have been built by confirming
-that the file `nvidia.yml` exists in the `$CUDAQ_INSTALL_PREFIX/targets` folder.
+that the file `libnvqir-custatevec-fp32.so` exists in the `$CUDAQ_INSTALL_PREFIX/lib` folder.
 We also recommend checking the build log printed to the console to confirm that all desired 
 components have been built. 
 

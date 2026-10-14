@@ -30,9 +30,6 @@ def startUpMockServer():
 
     os.environ["IONQ_API_KEY"] = "00000000000000000000000000000000"
 
-    # Set the targeted QPU
-    cudaq.set_target("ionq", url="http://localhost:{}".format(port))
-
     # Launch the Mock Server
     p = Process(target=startServer, args=(port,))
     p.start()
@@ -41,6 +38,9 @@ def startUpMockServer():
         p.terminate()
         pytest.exit("Mock server did not start in time, skipping tests.",
                     returncode=1)
+
+    # Set the targeted QPU
+    cudaq.set_target("ionq", url="http://localhost:{}".format(port))
 
     yield "Server started."
 

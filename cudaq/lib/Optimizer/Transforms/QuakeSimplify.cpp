@@ -883,11 +883,14 @@ public:
       RewritePatternSet legalizationPatterns(ctx);
       populateRotationsToCliffordTPatterns(
           legalizationPatterns, cliffordTEpsilon, numCliffordTRotations);
+      bool legalizationStageChanged = false;
       if (failed(applyPatternsGreedily(region, std::move(legalizationPatterns),
-                                       config))) {
+                                       config, &legalizationStageChanged))) {
         signalPassFailure();
         return;
       }
+      if (!legalizationStageChanged)
+        return;
     }
 
     // Clean up gates created by legalization with a fresh simplification run.

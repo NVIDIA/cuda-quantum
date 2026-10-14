@@ -43,6 +43,17 @@
 // Memory ordering: all rx_flag/tx_flag accesses use __ATOMIC_ACQUIRE on
 // loads and __ATOMIC_RELEASE on stores (the CPU equivalent of the GPU
 // transceiver's doca_gpu_dev_verbs_fence_* calls).
+//
+// Unified mode (unified=true at construction): no I/O threads.  The
+// consumer's single dispatch thread drives the wire through rx_poll() and
+// tx_publish(), and two parts of the ring contract above change:
+//
+//   - rx_flag is UNUSED.  rx_poll() reports the slot by return value and a
+//     consumer of this shape never clears an rx flag, so occupancy is tracked
+//     through tx_flag alone (which is also what back-pressures rx_poll()).
+//   - Slot addresses are derived, not carried: the request is at
+//     rx_data + slot*stride_sz, and the response is read from
+//     tx_data + slot*stride_sz.
 
 #include <cstddef>
 #include <cstdint>
@@ -77,8 +88,9 @@ enum class CpuRoceTxMode {
 ///   1. construct  : capture configuration; no kernel/network activity yet.
 ///   2. start()    : open ibv device, build PD/CQs/QP/MRs, pre-post recv WQEs,
 ///                   transition QP RST -> INIT -> RTR -> RTS.
-///   3. blocking_monitor() : spawn RX/TX threads (or one unified thread when
-///                   unified=true) and block until close().
+///   3. blocking_monitor() : spawn RX/TX threads and block until close().
+///                   Returns immediately when unified=true: the consumer
+///                   drives rx_poll()/tx_publish() instead.
 ///   4. close()    : signal exit_flag, join threads, release ibv resources.
 class CpuRoceTransceiver {
 public:
@@ -103,13 +115,11 @@ public:
   ///                              / tx_only / unified.
   /// \param rx_only               Skip the TX thread (RX-only mode).
   /// \param tx_only               Skip the RX thread and recv WQE pre-post.
-  /// \param unified               When true, replace separate RX + dispatcher +
-  ///                              TX threads with a single loop thread that
-  ///                              does poll-CQ -> function-table lookup ->
-  ///                              host_fn -> post-send -> re-arm recv WQE.
-  ///                              CPU analogue of GpuRoceTransceiver's
-  ///                              --unified GPU kernel.  Mutually exclusive
-  ///                              with forward / rx_only / tx_only.
+  /// \param unified               When true, start no I/O threads: the
+  ///                              consumer's single dispatch thread drives
+  ///                              the wire through rx_poll() / tx_publish()
+  ///                              (see "Unified mode" above).  Mutually
+  ///                              exclusive with forward / rx_only / tx_only.
   /// \param tx_mode               Which wire verb the TX path issues (see
   ///                              CpuRoceTxMode).  Default is kRdmaSend.
   /// \param peer_rx_base_addr     Used when tx_mode == kRdmaWriteWithImm.
@@ -171,34 +181,29 @@ public:
   bool connect(unsigned peer_qp, const char *peer_ip,
                std::uint32_t peer_rx_rkey);
 
-  /// Spawn the RX/TX (or single unified) thread(s).  Returns when close()
-  /// is called.  Idempotent: a second call returns immediately if the
-  /// monitor is already running, or if start() has not been called.
+  /// Spawn the RX/TX thread(s).  Returns when close() is called.
+  /// Idempotent: a second call returns immediately if the monitor is already
+  /// running.  Returns immediately, spawning nothing, in unified mode.
   void blocking_monitor();
 
   /// Signal exit, join threads, release ibv resources.  Safe to call from
-  /// any thread.  Idempotent.
+  /// any thread.  Idempotent.  In unified mode the consumer must stop calling
+  /// rx_poll()/tx_publish() first: both use the QP and CQs this releases.
   void close();
 
-  /// Per-slot dispatch callback for unified mode.  The transport library
-  /// invokes this on every RX CQE — the callback reads the request from
-  /// `rx_slot`, writes the response into `tx_slot`, and returns the number
-  /// of bytes written (or 0 if the slot should be dropped without sending
-  /// a response).  The callback runs on the transceiver's unified thread,
-  /// so it must be quick (otherwise consider the three-thread layout).
-  ///
-  /// Kept transport-agnostic so the cpu_transport library has no
-  /// dependency on cudaq_realtime.h / CUDA.  The bridge tool wraps the
-  /// function-table lookup into a closure and supplies it here.
-  using UnifiedDispatchFn = std::size_t (*)(void *context, const void *rx_slot,
-                                            void *tx_slot,
-                                            std::size_t slot_size);
+  /// Unified mode only.  Non-blocking.  Returns true and sets `*out_slot`
+  /// when a request is in that RX slot.  Returns false when nothing has
+  /// arrived, or when the arrived request's slot still has a response in
+  /// flight (tx_flag != 0) -- that request is held, not lost, and delivered
+  /// by a later call once the flag clears.  Re-arms the slot's recv WQE on
+  /// claim.  Never touches rx_flag.  Must be called from a single thread.
+  bool rx_poll(std::uint32_t *out_slot);
 
-  /// Provide the unified-mode dispatch callback + opaque context.  Must be
-  /// called between start() and blocking_monitor() when constructed with
-  /// unified=true.  The caller retains ownership of `context`; it must
-  /// outlive blocking_monitor().  No-op when not in unified mode.
-  void set_unified_dispatch(UnifiedDispatchFn fn, void *context);
+  /// Unified mode only.  Post TX slot `slot` to the peer (cu_frame_size
+  /// bytes, as the three-thread TX path sends), using the wire verb selected
+  /// by tx_mode.  Slot-addressed, so responses may be published in any order.
+  /// Does NOT touch tx_flag.  Must be called from the rx_poll() thread.
+  bool tx_publish(std::uint32_t slot);
 
   /// Optionally pin the local source GID to a specific IPv4 address.  Must be
   /// called before setup()/start().  When unset, the transceiver selects the

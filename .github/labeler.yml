@@ -73,6 +73,11 @@ realtime:
       - runtime/cudaq/realtime.cpp
       - runtime/cudaq/realtime/**
 
+cuda-q logical:
+  - changed-files:
+    - any-glob-to-any-file:
+      - preview/logical/**
+
 documentation:
   - changed-files:
     - any-glob-to-any-file:

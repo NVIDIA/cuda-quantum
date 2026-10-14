@@ -162,6 +162,8 @@ def quake_DeallocOp : QuakeOp<"dealloc"> {
   let assemblyFormat = [{
     $reference `:` qualified(type($reference)) attr-dict
   }];
+
+  let hasCanonicalizer = 1;
 }
 
 //===----------------------------------------------------------------------===//
@@ -406,6 +408,7 @@ def quake_ApplyOp : QuakeOp<"apply",
 
   let hasCustomAssemblyFormat = 1;
   let hasVerifier = 1;
+  let hasCanonicalizer = 1;
 
   let builders = [
     OpBuilder<(ins "mlir::TypeRange":$retTy,
@@ -594,6 +597,7 @@ def quake_ApplyNoiseOp : QuakeOp<"apply_noise",
 
   let hasVerifier = 1;
   let hasCustomAssemblyFormat = 1;
+  let hasCanonicalizer = 1;
 
   let builders = [
     OpBuilder<(ins "mlir::StringRef":$noise_func,
@@ -709,8 +713,15 @@ def quake_WrapNewOp : QuakeOp<"wrap_new"> {
 
 def quake_CallByRefOp : QuakeOp<"call_by_ref",
     [CallOpInterface, SymbolUserOpInterface, QuantumSideEffects]> {
-  let summary = "Call a kernel casting wires to refs.";
+  let summary = "[Deprecated] Call a kernel casting wires to refs.";
   let description = [{
+    DEPRECATED: `quake.apply` (a plain, unpredicated, uncontrolled apply) now
+    subsumes this op's capability -- coercing wire/cable actuals to a callee's
+    reference-typed formals and threading the results back. Nothing in the
+    compiler still produces `call_by_ref`; it is retained only so that
+    hand-written or previously-serialized IR using it continues to parse and
+    lower. Do not emit new `call_by_ref` ops; use `quake.apply` instead.
+
     This operation performs a wrap operation on the wire arguments, calls the
     kernel argument, and unwraps the reference arguments back to wires in a
     macro step.
@@ -948,7 +959,8 @@ def quake_AttachWireOp : QuakeOp<"attach_wire", [Pure]> {
       %21:2 = quake.detach_wire %20[1] : (!cable<3>) -> (!wire, !cable<2>)
       // %21#0 contains wire 1 previous at position 1 in %20
       // %21#1 contains wire 0 at position 0, and wire 2 at position 1
-      %22 = quake.attach_wire %21#0, %21#1[2] : (!wire, !cable<2>) -> (!cable<3>)
+      %22 = quake.attach_wire %21#0, %21#1[2] : (!wire, !cable<2>) ->
+            (!cable<3>)
       // %22 contains wire 0 at position 0, wire 2 at position 1,
       // and wire 1 at position 2 as they were originally created in %20
     ```
@@ -1313,19 +1325,23 @@ def quake_DiscriminateOp : QuakeOp<"discriminate",
 // Quantum gates
 //===----------------------------------------------------------------------===//
 
-class QuakeOperator<string mnemonic, list<Trait> traits = [],
+class QuakeOperator<string mnemonic, int numParameters = -1,
+                    int numTargets = -1, list<Trait> traits = [],
                     dag extraArgs = (ins)>
     : QuakeOp<mnemonic,
         !listconcat([QuantumGate, AttrSizedOperandSegments, OperatorInterface,
-          DeclareOpInterfaceMethods<MemoryEffectsOpInterface>], traits)> {
+          DeclareOpInterfaceMethods<MemoryEffectsOpInterface>,
+          NumParameters<numParameters>, NumTargets<numTargets>],
+          traits)> {
 
-  let arguments = !con(extraArgs, (ins
+  dag commonArguments = !con(extraArgs, (ins
     UnitAttr:$is_adj,
     Variadic<AnyFloat>:$parameters,
     Variadic<AnyQType>:$controls,
     Variadic<AnyQTargetType>:$targets,
     OptionalAttr<DenseBoolArrayAttr>:$negated_qubit_controls
   ));
+  let arguments = commonArguments;
   let results = (outs
     Variadic<AnyQLinearType>:$wires
   );
@@ -1379,13 +1395,27 @@ class QuakeOperator<string mnemonic, list<Trait> traits = [],
     }]>
   ];
 
-  let assemblyFormat = [{
+  string commonAssemblyFormat = [{
     ( `<` `adj` $is_adj^ `>` )? ( `(` $parameters^ `)` )?
     (`[` $controls^ (`neg` $negated_qubit_controls^ )? `]`)?
-    $targets `:` functional-type(operands, results) attr-dict
+    $targets
   }];
+  string commonAssemblyTail = [{
+    `:` functional-type(operands, results) attr-dict
+  }];
+  let assemblyFormat = commonAssemblyFormat # commonAssemblyTail;
 
   let hasVerifier = 1;
+  let hasCanonicalizer = 1;
+
+  code elementAccessors = !if(!eq(numParameters, 0), "",
+      !if(!eq(numParameters, 1),
+        "    mlir::Value getParameter() { return getParameters()[0]; }\n",
+        "    mlir::Value getParameter(unsigned i) { return getParameters()[i]; }\n"))
+  # !if(!eq(numTargets, 0), "",
+      !if(!eq(numTargets, 1),
+        "    mlir::Value getTarget() { return getTargets()[0]; }\n",
+        "    mlir::Value getTarget(unsigned i) { return getTargets()[i]; }\n"));
 
   code extraClassDeclaration = [{
     //===------------------------------------------------------------------===//
@@ -1408,10 +1438,14 @@ class QuakeOperator<string mnemonic, list<Trait> traits = [],
     // Element Access
     //===------------------------------------------------------------------===//
 
-    mlir::Value getParameter(unsigned i = 0u) { return getParameters()[i]; }
+    unsigned getNumParameters() { return getParameters().size(); }
 
-    mlir::Value getTarget(unsigned i = 0u) { return getTargets()[i]; }
+    unsigned getNumTargets() { return getTargets().size(); }
 
+    unsigned getNumControls() { return getControls().size(); }
+  }]
+  # elementAccessors
+  # [{
     //===------------------------------------------------------------------===//
     // Operator interface
     //===------------------------------------------------------------------===//
@@ -1423,24 +1457,19 @@ class QuakeOperator<string mnemonic, list<Trait> traits = [],
 }
 
 class OneTargetOp<string mnemonic, list<Trait> traits = []> :
-    QuakeOperator<mnemonic, !listconcat([NumParameters<0>, NumTargets<1>],
-                traits)>;
+    QuakeOperator<mnemonic, /*numParameters=*/0, /*numTargets=*/1, traits>;
 
 class OneTargetParamOp<string mnemonic, list<Trait> traits = []> :
-    QuakeOperator<mnemonic, !listconcat([NumParameters<1>, NumTargets<1>],
-                traits)>;
+    QuakeOperator<mnemonic, /*numParameters=*/1, /*numTargets=*/1, traits>;
 
 class TwoTargetOp<string mnemonic, list<Trait> traits = []> :
-    QuakeOperator<mnemonic, !listconcat([NumParameters<0>, NumTargets<2>],
-                traits)>;
+    QuakeOperator<mnemonic, /*numParameters=*/0, /*numTargets=*/2, traits>;
 
 //===----------------------------------------------------------------------===//
 // Unitary quantum transformations
 //===----------------------------------------------------------------------===//
 
-def quake_ExpPauliOp : QuakeOp<"exp_pauli",
-    [QuantumGate, AttrSizedOperandSegments, OperatorInterface,
-     DeclareOpInterfaceMethods<MemoryEffectsOpInterface>]> {
+def quake_ExpPauliOp : QuakeOperator<"exp_pauli"> {
   let summary = "General Pauli tensor product rotation";
   let description = [{
     This operation affects a general Pauli tensor product rotation on 
@@ -1449,28 +1478,14 @@ def quake_ExpPauliOp : QuakeOp<"exp_pauli",
     operation applies exp(i theta P) where P is a general Pauli tensor product. 
   }];
   
-  let arguments = (ins
-    UnitAttr:$is_adj,
-    Variadic<AnyFloat>:$parameters,
-    Variadic<AnyQType>:$controls,
-    Variadic<AnyQTargetType>:$targets,
-    OptionalAttr<DenseBoolArrayAttr>:$negated_qubit_controls,
+  let arguments = !con(commonArguments, (ins
     Optional<AnyTypeOf<[cc_PointerType, cc_CharSpanType]>>:$pauli,
     OptionalAttr<StrAttr>:$pauliLiteral
-  );
-  let results = (outs
-    Variadic<AnyQLinearType>:$wires
-  );
+  ));
 
-  let assemblyFormat = [{
-    ( `<` `adj` $is_adj^ `>` )? ( `(` $parameters^ `)` )?
-      ( `[` $controls^ ( `neg` $negated_qubit_controls^ )? `]` )? $targets
-      `to` custom<RawString>($pauli, $pauliLiteral) `:`
-      functional-type(operands, results) attr-dict
-  }];
-
-  let hasCanonicalizer = 1;
-  let hasVerifier = 1;
+  let assemblyFormat = commonAssemblyFormat # [{
+    `to` custom<RawString>($pauli, $pauliLiteral)
+  }] # commonAssemblyTail;
 
   let builders = [
     OpBuilder<(ins "mlir::UnitAttr":$is_adj,
@@ -1551,38 +1566,13 @@ def quake_ExpPauliOp : QuakeOp<"exp_pauli",
     }]>
   ];
 
-  code extraClassDeclaration = [{
-    //===------------------------------------------------------------------===//
-    // MemoryEffects interface
-    //===------------------------------------------------------------------===//
-
-    void getEffectsImpl(mlir::SmallVectorImpl<mlir::SideEffects::EffectInstance<
-      mlir::MemoryEffects::Effect>> &effects) {
-      cudaq::quake::getOperatorEffectsImpl(effects, getControlsMutable(),
-                                           getTargetsMutable());
-    }
-
-    //===------------------------------------------------------------------===//
-    // Properties
-    //===------------------------------------------------------------------===//
-
-    bool isAdj() { return getIsAdj(); }
-
-    //===------------------------------------------------------------------===//
-    // Element Access
-    //===------------------------------------------------------------------===//
-
+  // The angle is optional and the targets are variadic, so neither count is
+  // fixed. Both accessors keep a default index because callers that have
+  // already checked the counts read the first element positionally.
+  let elementAccessors = [{
     mlir::Value getParameter(unsigned i = 0u) { return getParameters()[i]; }
 
     mlir::Value getTarget(unsigned i = 0u) { return getTargets()[i]; }
-
-    //===------------------------------------------------------------------===//
-    // Operator interface
-    //===------------------------------------------------------------------===//
-
-    using Matrix = mlir::SmallVectorImpl<std::complex<double>>;
-
-    void getOperatorMatrix(Matrix &matrix) { matrix.clear(); }
   }];
 }
 
@@ -1618,13 +1608,26 @@ def PhaseOp : OneTargetParamOp<"phase", [Rotation]> {
     represented unitary. Producers must choose an anchor outside the control
     predicate so that an exact anchored lowering remains available for
     non-scalar controls.
+
+    Matrix representation:
+    ```
+    Phase(phi) = | exp(i phi)      0     |
+                 |     0      exp(i phi) |
+    ```
+
+    Circuit symbol (the displayed wire is the ordering and wire-flow anchor):
+    ```
+     ┌──────────┐
+    ─┤ Phase(φ) ├─
+     └──────────┘
+    ```
   }];
 
   let hasCanonicalizer = 1;
 }
 
-def PhasedRxOp : QuakeOperator<"phased_rx",
-                   [NumParameters<2>, NumTargets<1>, Rotation]> {
+def PhasedRxOp : QuakeOperator<"phased_rx", /*numParameters=*/2,
+                   /*numTargets=*/1, [Rotation]> {
   let summary = "an arbitrary rotation θ around the cos(φ)x + sin(φ)y axis";
   let description = [{
     Matrix representation:
@@ -1776,7 +1779,8 @@ def TOp : OneTargetOp<"t"> {
   }];
 }
 
-def U2Op : QuakeOperator<"u2", [NumParameters<2>, NumTargets<1>, Rotation]> {
+def U2Op : QuakeOperator<"u2", /*numParameters=*/2, /*numTargets=*/1,
+             [Rotation]> {
   let summary = "generic rotation about the X+Z axis";
   let description = [{
     The two parameters are Euler angles: φ and λ.
@@ -1796,7 +1800,8 @@ def U2Op : QuakeOperator<"u2", [NumParameters<2>, NumTargets<1>, Rotation]> {
   }];
 }
 
-def U3Op : QuakeOperator<"u3", [NumParameters<3>, NumTargets<1>, Rotation]> {
+def U3Op : QuakeOperator<"u3", /*numParameters=*/3, /*numTargets=*/1,
+             [Rotation]> {
   let summary = "the universal three-parameters operator";
   let description = [{
     The three parameters are Euler angles: θ, φ, and λ.
@@ -1872,7 +1877,8 @@ def ZOp : OneTargetOp<"z", [Hermitian]> {
   }];
 }
 
-def CustomUnitaryCallOp : QuakeOperator<"custom_unitary_call", [],
+def CustomUnitaryCallOp : QuakeOperator<"custom_unitary_call",
+    /*numParameters=*/-1, /*numTargets=*/-1, [],
     (ins SymbolRefAttr:$generator)> {
   let summary = "Custom unitary call operation.";
   let description = [{
@@ -1907,15 +1913,14 @@ def CustomUnitaryCallOp : QuakeOperator<"custom_unitary_call", [],
   ];
 
   let assemblyFormat = [{
-    $generator (`<` `adj` $is_adj^ `>` )? ( `(` $parameters^ `)`)?
-       (`[` $controls^ (`neg` $negated_qubit_controls^ )? `]`)?
-       $targets `:` functional-type(operands, results) attr-dict
-  }];
+    $generator
+  }] # commonAssemblyFormat # commonAssemblyTail;
 
   let hasVerifier = 1;
 }
 
-def CustomUnitaryConstantOp : QuakeOperator<"custom_unitary_constant", [],
+def CustomUnitaryConstantOp : QuakeOperator<"custom_unitary_constant",
+    /*numParameters=*/-1, /*numTargets=*/-1, [],
     (ins SymbolRefAttr:$matrix)> {
   let summary = "Custom unitary constant operation.";
   let description = [{
@@ -1935,10 +1940,8 @@ def CustomUnitaryConstantOp : QuakeOperator<"custom_unitary_constant", [],
   ];
 
   let assemblyFormat = [{
-    $matrix (`<` `adj` $is_adj^ `>` )? ( `(` $parameters^ `)`)?
-       (`[` $controls^ (`neg` $negated_qubit_controls^ )? `]`)?
-       $targets `:` functional-type(operands, results) attr-dict
-  }];
+    $matrix
+  }] # commonAssemblyFormat # commonAssemblyTail;
 
   let hasVerifier = 1;
 }
@@ -1947,7 +1950,7 @@ def CustomUnitaryConstantOp : QuakeOperator<"custom_unitary_constant", [],
 // Quantum states
 //===----------------------------------------------------------------------===//
 
-def quake_CreateStateOp : QuakeOp<"create_state", [Pure]> {
+def quake_CreateStateOp : QuakeOp<"create_state"> {
   let summary = "Create state from data";
   let description = [{
     This operation takes a pointer to state data and creates a quantum state,
@@ -1957,15 +1960,26 @@ def quake_CreateStateOp : QuakeOp<"create_state", [Pure]> {
     by an intrinsic runtime call on simulators.
 
     ```mlir
-      %0 = quake.create_state %data %len : (!cc.ptr<!cc.array<complex<f64> x 8>>, i64) -> !cc.ptr<!quake.state>
+      %0 = quake.create_state %data %len :
+           (!cc.ptr<!cc.array<complex<f64> x 8>>, i64) -> !cc.ptr<!quake.state>
     ```
   }];
 
+  // Not Pure: the state is created from the contents of memory at this point,
+  // so it must not be reordered with stores to that memory, and each execution
+  // creates a distinct state.
+  //
+  // Model this as a read of the data plus a (re)allocation of the result. The
+  // op is not literally an allocator, but the state it produces supersedes the
+  // data buffer, and consumers must not use that buffer for anything else; the
+  // create_state/delete_state pair acts like a new allocation. A write effect
+  // on the data would be closer to "in place", but it would keep an unused
+  // create_state alive, and we want dead ones erased by the canonicalizer.
   let arguments = (ins
-    cc_PointerType:$data,
+    Arg<cc_PointerType, "state data", [MemRead]>:$data,
     AnySignlessInteger:$length
   );
-  let results = (outs PointerOf<[quake_StateType]>:$result);
+  let results = (outs Arg<PointerOf<[quake_StateType]>, "", [MemAlloc]>:$result);
   let assemblyFormat = [{
       $data `,` $length `:` functional-type(operands, results) attr-dict
   }];
@@ -2043,23 +2057,30 @@ def QuakeOp_MaterializeStateOp : QuakeOp<"materialize_state", [Pure] > {
 }
 
 //===----------------------------------------------------------------------===//
-// LogOutputOp
+// EvinceOp
 //===----------------------------------------------------------------------===//
 
-def quake_LogOutputOp : QuakeOp<"log_output"> {
-  let summary = "Marks a value in the IR as observable.";
+def quake_EvinceOp : QuakeOp<"evince"> {
+  let summary = "Marks a value in the IR as evincive (observable).";
   let description = [{
     This operation is a high-level \e abstraction for the necessary and
-    sufficient functionality to log output results to a \e virtual output device
-    produced by a well-defined CUDA-Q kernel. \e How this to be accomplished and
-    the details thereof are not the concern of Quake. The presence of this
-    operation explicitly denotes that a \e value in Quake is \e observable in
-    the computational sense. This restricts the types of optimizations that may
+    sufficient functionality to make values evincive, observable to the outside.
+    This may lower further to actual recording of the value to a \e virtual
+    output device produced by a well-defined CUDA-Q kernel.
+
+    \e How this is accomplished and the details thereof are not the concern
+    of Quake or the `evince` operation. The presence of this operation
+    explicitly denotes that a \e value in Quake is \e observable in the
+    computational sense. This restricts the types of optimizations that may
     be applied; such as, the value cannot be trivially erased.
+
+    This operation may be purely annotative to record that certain values in the
+    IR may not be fully optimized away.
 
     The semantics of this operation are very clear. Arguments are considered
     observable and live, and this operation \e explicitly denotes I/O
-    side-effects.
+    side-effects, whether those side-effects are reified in the final code
+    generation or not.
 
     The lowering of this operation is heavily context dependent. The target and
     launch policies of an entry-point kernel will interplay with an abstract
@@ -2072,7 +2093,7 @@ def quake_LogOutputOp : QuakeOp<"log_output"> {
 
     Do not read this overly literally. Using this operation on a value of
     quantum type simply does \e not mean that a qubit is anything more than
-    "of interest". A physical qubit isn't something one can email.
+    evincive and interesting.
   }];
 
   let arguments = (ins
@@ -2081,6 +2102,7 @@ def quake_LogOutputOp : QuakeOp<"log_output"> {
   );
   let results = (outs Variadic<AnyQLinearType>:$outs);
   let hasVerifier = 1;
+  let hasCanonicalizer = 1;
   let builders = [
     OpBuilder<(ins "mlir::ValueRange":$args,
                    CArg<"bool", "false">:$compilerGenerated), [{

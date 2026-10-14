@@ -15,6 +15,7 @@
 // Test kernels can take arguments of tuple or pair as well as return values of
 // same.
 
+// The bridge cannot construct a std::tuple or std::pair in a kernel.
 #define NYI /*__qpu__*/
 
 void ok() { std::cout << "ok\n"; }

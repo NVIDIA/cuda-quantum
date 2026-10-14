@@ -10,10 +10,13 @@
 #include "common/Executor.h"
 #include "common/RuntimeTarget.h"
 #include "common/ServerHelper.h"
+#include "cudaq.h"
 #include "nvqpp_config.h"
 #include "cudaq/Optimizer/Builder/RuntimeNames.h"
+#include "cudaq/Support/Version.h"
+#include "cudaq/Target/TargetCatalog.h"
 #include "cudaq/Target/TargetConfig.h"
-#include "cudaq/Target/TargetConfigYaml.h"
+#include "cudaq/Target/TargetPluginLibrary.h"
 #include "cudaq/platform/QuantumExecutionQueue.h"
 #include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
@@ -27,11 +30,6 @@
 #include <vector>
 
 using namespace cudaq;
-
-void detail::parseTargetConfigYml(const std::string &yamlContent,
-                                  config::TargetConfig &targetConfig) {
-  targetConfig = config::parseTargetConfig(yamlContent);
-}
 
 std::string detail::decodeBase64(const std::string &encoded) {
   std::vector<char> decoded_vec;
@@ -61,9 +59,55 @@ detail::getBackendConfigOption(const std::string &backend,
 std::filesystem::path
 detail::getTargetConfigPath(const std::string &backend,
                             const std::filesystem::path &fallback) {
-  if (auto path = getBackendConfigOption(backend, "__yml_path"))
+  if (auto path = getBackendConfigOption(backend, "__target_config_path"))
     return *path;
   return fallback;
+}
+
+cudaq::config::HostEnvironment detail::currentHostEnvironment() {
+  cudaq::config::HostEnvironment env;
+  const int gpus = cudaq::num_available_gpus();
+  env.gpuCount = gpus > 0 ? static_cast<unsigned>(gpus) : 0u;
+  env.cudaqVersion = cudaq::getVersion();
+  const std::filesystem::path cudaqLibraryPath{cudaq::getCUDAQLibraryPath()};
+  env.libraryPaths.emplace_back(cudaqLibraryPath.parent_path());
+  return env;
+}
+
+detail::ResolvedTargetConfig
+detail::resolveTargetConfig(const std::string &backend) {
+  auto split = cudaq::split(backend, ';');
+  const std::string targetName = split.empty() ? backend : split.front();
+
+  cudaq::config::TargetCatalog registry;
+  std::filesystem::path explicitPath;
+  if (auto path = getBackendConfigOption(backend, "__target_config_path")) {
+    explicitPath = *path;
+    const auto configDir = explicitPath.parent_path();
+    const auto pluginRoot =
+        configDir.filename() == "targets" ? configDir.parent_path() : configDir;
+    registry.addPluginRoot(pluginRoot);
+  }
+
+  auto resolved = registry.resolve(targetName, currentHostEnvironment());
+  if (!resolved)
+    throw std::runtime_error("Invalid Target: (" + targetName + ")");
+  if (!resolved->status.isAvailable())
+    throw std::runtime_error(resolved->status.diagnostic);
+
+  ResolvedTargetConfig result;
+  result.name = targetName;
+  result.config = *resolved->entry->config;
+  result.configPath = resolved->entry->configPath.empty()
+                          ? explicitPath
+                          : resolved->entry->configPath;
+  result.pluginLibDir = resolved->entry->pluginLibDir;
+  result.simulatorName = resolved->resolved.simulatorName;
+  result.platformName = resolved->resolved.platformName;
+  result.fp64Simulation = resolved->resolved.fp64Simulation;
+
+  loadTargetPluginLibraries(result.name, result.configPath, result.config);
+  return result;
 }
 
 namespace {
@@ -104,13 +148,16 @@ void detail::loadTargetPluginLibraries(
   const auto pluginLibDir = pluginRoot / "lib";
 
   for (const auto &pluginLibrary : targetConfig.PluginLibraries) {
-    const std::filesystem::path requestedPath(pluginLibrary);
     std::vector<std::filesystem::path> candidates;
-    if (requestedPath.is_absolute()) {
-      candidates.push_back(requestedPath);
-    } else {
-      candidates.push_back(cudaqLibDir / requestedPath);
-      candidates.push_back(pluginLibDir / requestedPath);
+    for (const auto &name :
+         config::sharedLibraryNameCandidates(pluginLibrary)) {
+      const std::filesystem::path requestedPath(name);
+      if (requestedPath.is_absolute()) {
+        candidates.push_back(requestedPath);
+      } else {
+        candidates.push_back(cudaqLibDir / requestedPath);
+        candidates.push_back(pluginLibDir / requestedPath);
+      }
     }
 
     const auto found = std::find_if(candidates.begin(), candidates.end(),

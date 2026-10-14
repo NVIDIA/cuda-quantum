@@ -322,8 +322,7 @@ static void emitGate(OpBuilder &builder, Location location,
                      llvm::SmallVectorImpl<Value> &controls, Value &target,
                      DenseBoolArrayAttr negatedControls) {
   llvm::SmallVector<Value> targets{target};
-  auto resultTypes =
-      cudaq::quake::getWireResultTypes(builder, controls, targets);
+  auto resultTypes = cudaq::quake::getWireResultTypes(controls, targets);
   auto operation = OpTy::create(
       builder, location, resultTypes, /*is_adj=*/false,
       /*parameters=*/ValueRange{}, controls, targets, negatedControls);
@@ -362,8 +361,7 @@ emitCircuit(OpBuilder &builder, Location location, ValueRange inputs,
       Value angle =
           cudaq::opt::factory::createF64Constant(location, builder, M_PI_4);
       llvm::SmallVector<Value> targets{target};
-      auto resultTypes =
-          cudaq::quake::getWireResultTypes(builder, controls, targets);
+      auto resultTypes = cudaq::quake::getWireResultTypes(controls, targets);
       auto phase = cudaq::quake::PhaseOp::create(
           builder, location, resultTypes, /*is_adj=*/false, ValueRange{angle},
           controls, targets, negatedControls);

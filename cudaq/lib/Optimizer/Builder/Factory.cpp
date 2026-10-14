@@ -405,13 +405,18 @@ cc::PointerType factory::getIndexedObjectType(mlir::Type eleTy) {
   return cc::PointerType::get(cc::ArrayType::get(eleTy));
 }
 
-Type factory::getSRetElementType(FunctionType funcTy) {
+Type factory::getSRetElementType(FunctionType funcTy, ModuleOp module) {
   assert(funcTy.getNumResults() && "function type must have results");
   auto *ctx = funcTy.getContext();
   if (funcTy.getNumResults() > 1)
     return cc::StructType::get(ctx, funcTy.getResults());
   if (auto spanTy = dyn_cast<cc::SpanLikeType>(funcTy.getResult(0)))
-    return stlHostVectorType(spanTy.getElementType());
+    // The element type must itself be converted to its real host-side
+    // representation before building the host triple: for a recursively
+    // dynamic element, the raw device element type (a span) is not the real
+    // host storage type.
+    return stlHostVectorType(
+        convertToHostSideType(spanTy.getElementType(), module));
   return funcTy.getResult(0);
 }
 
@@ -638,8 +643,23 @@ FunctionType factory::toHostSideFuncType(FunctionType funcTy, bool addThisPtr,
           if (shouldExpand(packedTys, strTy, largest) || !packedTys.empty()) {
             if (packedTys.size() == 1)
               resultTy = packedTys[0];
-            else
+            else if (packedTys[0] == packedTys[1])
+              // Homogeneous pair (both i64, both f32, both f64, ...): packed
+              // as documented in the ABI table above, [2 x T].
               resultTy = cc::ArrayType::get(ctx, packedTys[0], 2);
+            else
+              // Mixed pair (e.g. {i32, f64}): not eligible for AAPCS64's
+              // homogeneous-aggregate (HFA) treatment, so the whole 16-byte
+              // composite is returned as two raw general-purpose-register
+              // words - i.e. [2 x i64], the same "general composite" form
+              // used for e.g. a {i64, i64} pair - not a per-field-typed
+              // struct. (Empirically confirmed: a {i32, f64}-shaped struct
+              // return type here silently drops the f64 field on real
+              // AArch64 hardware, even though it type-checks fine against a
+              // plain, unconverted buffer slot of the same shape; callers
+              // must reinterpret this raw [2 x i64] value via a memory
+              // round-trip rather than assume the shapes coincide.)
+              resultTy = cc::ArrayType::get(ctx, i64Ty, 2);
           }
         }
       }
@@ -649,7 +669,8 @@ FunctionType factory::toHostSideFuncType(FunctionType funcTy, bool addThisPtr,
       // returned via a sret argument in the first position. When this argument
       // is added, the this pointer becomes the second argument. Both are opaque
       // pointers at this point.
-      auto eleTy = convertToHostSideType(getSRetElementType(funcTy), module);
+      auto eleTy =
+          convertToHostSideType(getSRetElementType(funcTy, module), module);
       inputTys.push_back(cc::PointerType::get(eleTy));
       hasSRet = true;
     } else {

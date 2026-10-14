@@ -246,7 +246,7 @@ if $is_macos; then
         else
             wheel_file=$(ls "${extra_packages}"/cuda_quantum*.whl 2>/dev/null | head -1)
             if [ -n "$wheel_file" ]; then
-                pip_install_replacement="pip install --force-reinstall $wheel_file"
+                pip_install_replacement="pip install --force-reinstall $wheel_file --find-links ${extra_packages}"
             else
                 echo -e "\e[01;31mNo wheel or metapackage found in ${extra_packages}.\e[0m" >&2
                 (return 0 2>/dev/null) && return 100 || exit 100

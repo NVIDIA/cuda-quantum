@@ -34,7 +34,7 @@ target_link_libraries(${LIBRARY_NAME}
   PUBLIC
     pthread cudaq-operator cudaq-common cudaq-logger
   PRIVATE
-    cudaq nvqir CUDAQTargetConfigYaml cudaq-qpu-default
+    cudaq nvqir CUDAQTargetConfigYaml CUDAQTargetDatabase cudaq-qpu-default
     # On Linux, we link in the default execution manager and rely on nvq++
     # to shadow it with the active target's execution manager.
     $<$<PLATFORM_ID:Linux>:cudaq-em-default>
@@ -63,16 +63,4 @@ install(EXPORT cudaq-platform-default-targets
 
 if (OPENSSL_FOUND AND CUDAQ_ENABLE_REST)
   add_subdirectory(rest)
-endif()
-  
-add_target_config(opt-test)
-add_target_config(value-semantics-test)
-add_target_config(compiler-bench-nisq)
-add_target_config(compiler-bench-ftqc-logical)
-add_target_config(compiler-bench-ftqc-clifford-t)
-
-if (cuStateVec_FOUND)
-  add_target_config(nvidia)
-  add_target_config(nvidia-fp64)
-  add_target_config(nvidia-mgpu)
 endif()

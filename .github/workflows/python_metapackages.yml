@@ -17,6 +17,19 @@ on:
         required: true
         type: string
         description: A pattern that matches all artifacts that contain wheels that the metapackages depend on.
+      logical_wheel_artifacts:
+        required: false
+        type: string
+        default: 'cudaq_logical-*'
+        description: A pattern that matches cudaq-logical wheel artifacts.
+      cudaq_logical_version:
+        required: false
+        type: string
+        default: ''
+        description:
+          Version of the already-built cudaq-logical wheel. When set, this
+          authoritative value is used instead of recomputing the version
+          independently via setuptools-scm.
       github_commit:
         required: false
         type: string
@@ -53,9 +66,17 @@ jobs:
         uses: actions/checkout@v6
         with:
           ref: "${{ inputs.github_commit || '' }}"
+          fetch-depth: 0
+
+      - name: Compute package versions
+        id: version
+        uses: ./.github/actions/compute-cudaq-version
 
       - name: Build metapackages
         id: metapackage_build
+        env:
+          CUDAQ_LOGICAL_VERSION:
+            ${{ inputs.cudaq_logical_version || steps.version.outputs.cudaq_logical_version }}
         run: |
             retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
             sed -i "s/README.md.in/README.md/g" python/metapackages/pyproject.toml
@@ -84,7 +105,9 @@ jobs:
             fi
 
             echo "Building cudaq metapackage ..."
-            cd python/metapackages && echo ${{ inputs.cudaq_version }} > _version.txt
+            cd python/metapackages
+            echo "${{ inputs.cudaq_version }}" > _version.txt
+            echo "$CUDAQ_LOGICAL_VERSION" > _logical_version.txt
             CUDAQ_META_SDIST_BUILD=1 python3 -m build . --sdist
             mkdir /tmp/packages && mv dist/cudaq-* /tmp/packages/
             rm -rf dist
@@ -134,6 +157,11 @@ jobs:
       fail-fast: false
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          ref: "${{ inputs.github_commit || '' }}"
+
       - name: Load metapackages
         uses: actions/download-artifact@v8
         with:
@@ -148,13 +176,31 @@ jobs:
           path: /tmp/wheels/
           merge-multiple: true
 
+      - name: Load cudaq-logical wheels
+        uses: actions/download-artifact@v8
+        with:
+          pattern: ${{ inputs.logical_wheel_artifacts }}
+          path: /tmp/logical-wheels/
+          merge-multiple: true
+
       - name: Test installation
         run: |
           retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           retry_dnf() { local pre=""; [ "$(id -u)" -ne 0 ] && pre=sudo; for n in 1 2 3; do $pre dnf "$@" && return 0; [ $n -lt 3 ] && { $pre dnf clean metadata >/dev/null 2>&1 || true; sleep $((15*n*n)); }; done; return 1; }
+
+          python_tag="${{ matrix.python_version }}"
+          python_tag="${python_tag/./}"
+          logical_wheel="$(find /tmp/logical-wheels -name "cudaq_logical-*-cp${python_tag}-*.whl" -print -quit)"
+          if [ -z "$logical_wheel" ]; then
+            echo "::error file=python_metapackages.yml::Missing cudaq-logical wheel for Python ${{ matrix.python_version }}."
+            exit 1
+          fi
+
           mkdir -p /tmp/packages
-          mv /tmp/wheels/* /tmp/packages && mv /tmp/metapackages/* /tmp/packages
-          rmdir /tmp/wheels /tmp/metapackages
+          mv /tmp/wheels/* /tmp/packages
+          mv /tmp/logical-wheels/* /tmp/packages
+          mv /tmp/metapackages/* /tmp/packages
+          rmdir /tmp/wheels /tmp/logical-wheels /tmp/metapackages
 
           if [ -n "${{ matrix.cuda_version }}" ]; then
             CUDA_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuda/repos
@@ -207,6 +253,48 @@ jobs:
             fi
             $autoremove -y $package_dep
           fi
+
+      - name: Test split installation and published-version replacement
+        env:
+          CUDAQ_VERSION: ${{ inputs.cudaq_version }}
+          PYTHON_VERSION: ${{ matrix.python_version }}
+        run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          cp docker/test/wheels/integration/test_installation.py /tmp/test_installation.py
+          # Test in fresh virtual environments by installing the cudaq metapackage
+          # and letting pip resolve its dependencies.
+          # 0.16.0 is the last published release with monolithic CUDA-Q wheels.
+          # TODO: Remove the monolithic upgrade scenario once the split
+          # distribution baseline is established; retain fresh-install checks.
+          modes=fresh
+          if [ "$PYTHON_VERSION" = 3.11 ]; then modes="$modes replacement"; fi
+          for mode in $modes; do
+            venv=$(mktemp -d)
+            python$PYTHON_VERSION -m venv "$venv"
+            if [ "$mode" = replacement ]; then
+              # Branch candidates (0.0.0+<sha>) sort below the 0.16.0 baseline.
+              # The exact candidate pin below tests replacement of that install,
+              # not a version-increasing upgrade in branch CI.
+              retry "$venv/bin/python" -m pip install cudaq==0.16.0
+            fi
+            retry "$venv/bin/python" -m pip install --upgrade "cudaq==$CUDAQ_VERSION" --find-links /tmp/packages
+            "$venv/bin/python" -m pip check
+            "$venv/bin/python" /tmp/test_installation.py --logical --frontend
+
+            # Removing execution must not remove shared bindings or logical IR.
+            "$venv/bin/python" -m pip uninstall -y cudaq cuda-quantum-cu12 cuda-quantum-cu13
+            "$venv/bin/python" -m pip check
+            "$venv/bin/python" /tmp/test_installation.py --logical
+            "$venv/bin/python" -m pip uninstall -y cudaq-logical
+            "$venv/bin/python" /tmp/test_installation.py
+            if [ "$mode" = fresh ]; then
+              core_prefix=$("$venv/bin/python" -c 'from importlib.metadata import distribution; print(distribution("cudaq-core").locate_file("cudaq_core/cudaq/core"))')
+              cmake -S docker/test/wheels/integration/native -B "$venv/native" -DCUDAQ_DIR="$core_prefix/lib/cmake/cudaq"
+              cmake --build "$venv/native"
+              ctest --test-dir "$venv/native" --output-on-failure
+            fi
+            rm -rf "$venv"
+          done
 
       - name: Test installation error
         run: |
@@ -264,4 +352,3 @@ jobs:
             echo "::error file=python_metapackages.yml::Unexpected installation of ${check_package} package."
             exit 1
           fi
-

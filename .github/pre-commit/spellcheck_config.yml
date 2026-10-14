@@ -64,6 +64,7 @@ matrix:
     wordlists:
     - .github/pre-commit/spelling_allowlist.txt
   pipeline:
+  - pyspelling.filters.url:
   - pyspelling.filters.context:
       context_visible_first: true
       delimiters:

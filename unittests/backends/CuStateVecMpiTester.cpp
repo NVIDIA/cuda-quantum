@@ -234,7 +234,10 @@ TEST(MGpuTesterMultiProcesses, ValidatesMigrationLevelWithoutMigrationWires) {
     GTEST_SKIP() << "This regression requires an invalid migration level.";
   const auto threshold = static_cast<std::size_t>(
       std::atoi(std::getenv("CUDAQ_MGPU_NQUBITS_THRESH")));
-  EXPECT_ANY_THROW(sim.allocateQubits(threshold));
+  EXPECT_ANY_THROW({
+    sim.allocateQubits(threshold);
+    sim.synchronize();
+  });
 }
 
 TEST(MGpuTesterMultiProcesses, GetSimulationStateRejectsRepeatedCall) {

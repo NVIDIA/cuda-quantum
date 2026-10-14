@@ -98,21 +98,22 @@ void ExecutionManager::configureExecutionContext(const orca::sample_policy &) {
 }
 
 void ExecutionManager::finalizeExecutionContext(ExecutionContext &ctx) {
+  // The execution context is no longer a result channel: every result-bearing
+  // policy returns its result by value from the typed launch path. This
+  // adapter therefore only serves the policies that have no result to deliver
+  // (tracer, extract-state, resource counting, ...). A named result-bearing
+  // policy arriving here means the caller went through the deprecated
+  // set_exec_ctx / with_execution_context route and would silently get no
+  // result, so fail loudly instead.
   policies::withPolicy(ctx.name, [&](auto policy) {
-    policies::visitResult(
-        [&]() { return cudaq::finalize_execution_manager(*this, policy, ctx); },
-        [&](sample_result &&r) { ctx.result = std::move(r); },
-        [&](observe_result &&r) {
-          ctx.result = r.raw_data();
-          ctx.expectationValue = r.expectation();
-        },
-        [&](run_result &&r) {},
-        [&](msm_dimensions &&r) { ctx.msm_dimensions = std::move(r); },
-        [&](msm_result &&r) {
-          ctx.result = std::move(r.samples);
-          ctx.msm_probabilities = std::move(r.probabilities);
-          ctx.msm_prob_err_id = std::move(r.probability_error_ids);
-        },
-        [&](policies::void_result &&r) {});
+    if constexpr (std::is_same_v<decltype(policy), other_policies>) {
+      cudaq::finalize_execution_manager(*this, policy, ctx);
+    } else {
+      throw std::runtime_error(
+          "Execution context '" + ctx.name +
+          "' names a result-bearing policy, which can no longer be finalized "
+          "through the execution context. Launch it with cudaq::launch or "
+          "cudaq::detail::launch and use the returned result instead.");
+    }
   });
 }

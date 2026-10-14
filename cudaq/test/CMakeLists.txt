@@ -20,11 +20,11 @@ llvm_canonicalize_cmake_booleans(
 # a new device-call realtime shim library; lit picks up the full file path and
 # the test's `REQUIRES: device-call-realtime-lib` feature gate automatically.
 set(CUDAQ_DEVICE_CALL_REALTIME_SHIMS
-  "cudaq-test-device-call-realtime-scalar-gpu-dispatch|NVQPP/Inputs/device_call_realtime_scalar_shim.cu"
-  "cudaq-test-device-call-realtime-scalar-host-dispatch|NVQPP/Inputs/device_call_realtime_scalar_host_dispatch_shim.cu"
-  "cudaq-test-device-call-realtime-array-gpu-dispatch|NVQPP/Inputs/device_call_realtime_array_shim.cu"
-  "cudaq-test-device-call-realtime-array-host-dispatch|NVQPP/Inputs/device_call_realtime_array_host_dispatch_shim.cu"
-  "cudaq-test-device-call-realtime-bitpacked-native-gpu-dispatch|NVQPP/Inputs/device_call_realtime_bitpacked_native_shim.cu")
+  "cudaq-test-device-call-realtime-scalar-gpu-dispatch|Driver/Inputs/device_call_realtime_scalar_shim.cu"
+  "cudaq-test-device-call-realtime-scalar-host-dispatch|Driver/Inputs/device_call_realtime_scalar_host_dispatch_shim.cu"
+  "cudaq-test-device-call-realtime-array-gpu-dispatch|Driver/Inputs/device_call_realtime_array_shim.cu"
+  "cudaq-test-device-call-realtime-array-host-dispatch|Driver/Inputs/device_call_realtime_array_host_dispatch_shim.cu"
+  "cudaq-test-device-call-realtime-bitpacked-native-gpu-dispatch|Driver/Inputs/device_call_realtime_bitpacked_native_shim.cu")
 
 set(CUDAQ_DEVICE_CALL_REALTIME_LIBS "")
 foreach(_shim IN LISTS CUDAQ_DEVICE_CALL_REALTIME_SHIMS)
@@ -35,7 +35,7 @@ foreach(_shim IN LISTS CUDAQ_DEVICE_CALL_REALTIME_SHIMS)
 endforeach()
 
 if (CUDAQ_DISABLE_RUNTIME)
-  set(CUDAQ_EXTRA_CONFIG_EXCLUDES "NVQPP")
+  set(CUDAQ_EXTRA_CONFIG_EXCLUDES "Driver")
 endif()
 
 add_subdirectory(plugin)
@@ -57,18 +57,16 @@ get_property(test_cudaq_libraries GLOBAL PROPERTY CUDAQ_RUNTIME_LIBS)
 set(CUDAQ_TEST_DEPENDS
     CircuitCheck
     cudaq-opt
-    cudaq-rest-qpu
-    cudaq-target-conf
+    cudaq-target-resolve
     cudaq-translate
     CustomPassPlugin
     FileCheck
     nvq++
-    test_argument_conversion
-    test_compile_target
-    test_compile_target_conditional_feedback_crash
-    test_resource_count_phase
-    test_resource_count_wireset
 )
+
+if (CUDAQ_ENABLE_REST)
+  list(APPEND CUDAQ_TEST_DEPENDS cudaq-rest-qpu)
+endif()
 
 if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME AND NOT CUDAQ_DISABLE_CPP_FRONTEND AND
     NOT CUDAQ_DISABLE_RUNTIME)
@@ -78,7 +76,7 @@ if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME AND NOT CUDAQ_DISABLE_CPP_FRONTEND AND
     add_library(${target} SHARED ${source})
     target_include_directories(${target}
       PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/NVQPP/Inputs
+        ${CMAKE_CURRENT_SOURCE_DIR}/Driver/Inputs
         ${CMAKE_SOURCE_DIR}/runtime/include
         ${CMAKE_SOURCE_DIR}/runtime
         ${CUDAToolkit_INCLUDE_DIRS})
@@ -131,13 +129,13 @@ set_target_properties(check-cudaq PROPERTIES FOLDER "Tools")
 
 # In case of standalone builds.
 if (CUDAQ_STANDALONE_BUILD)
-  add_lit_testsuites(NVQPP ${CMAKE_CURRENT_BINARY_DIR}
+  add_lit_testsuites(core ${CMAKE_CURRENT_BINARY_DIR}
     PARAMS ${CUDAQ_TEST_PARAMS}
     DEPENDS ${CUDAQ_TEST_DEPENDS}
     FOLDER "Tests/Subdirectories"
   )
 else()
-  add_lit_testsuites(NVQPP ${CMAKE_CURRENT_SOURCE_DIR}
+  add_lit_testsuites(core ${CMAKE_CURRENT_SOURCE_DIR}
     PARAMS ${CUDAQ_TEST_PARAMS}
     DEPENDS ${CUDAQ_TEST_DEPENDS}
     FOLDER "Tests/Subdirectories"

@@ -1,0 +1,291 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt -canonicalize %s | FileCheck %s
+
+func.func private @callee() -> i32
+
+// A cc.if with results and a constant true condition: the then region is
+// inlined and the results are forwarded from the cc.continue.
+
+func.func @results_then() -> i32 {
+  %0 = arith.constant true
+  %1 = cc.if (%0) -> i32 {
+    %2 = func.call @callee() : () -> i32
+    cc.continue %2 : i32
+  } else {
+    %3 = arith.constant 7 : i32
+    cc.continue %3 : i32
+  }
+  return %1 : i32
+}
+
+// CHECK-LABEL:   func.func @results_then() -> i32 {
+// CHECK-NOT:       cc.if
+// CHECK:           %[[VAL_0:.*]] = call @callee() : () -> i32
+// CHECK:           return %[[VAL_0]] : i32
+// CHECK:         }
+
+func.func @results_else() -> i32 {
+  %0 = arith.constant false
+  %1 = cc.if (%0) -> i32 {
+    %2 = func.call @callee() : () -> i32
+    cc.continue %2 : i32
+  } else {
+    %3 = arith.constant 7 : i32
+    cc.continue %3 : i32
+  }
+  return %1 : i32
+}
+
+// CHECK-LABEL:   func.func @results_else() -> i32 {
+// CHECK-NOT:       cc.if
+// CHECK:           %[[VAL_0:.*]] = arith.constant 7 : i32
+// CHECK:           return %[[VAL_0]] : i32
+// CHECK:         }
+
+// The linear arguments of the cc.if are substituted for the entry block
+// arguments of the surviving region.
+
+func.func @linear_args() -> !quake.wire {
+  %0 = arith.constant true
+  %1 = quake.null_wire
+  %2 = cc.if (%0) ((%arg0 = %1)) -> !quake.wire {
+    %3 = quake.h %arg0 : (!quake.wire) -> !quake.wire
+    cc.continue %3 : !quake.wire
+  } else {
+    cc.continue %arg0 : !quake.wire
+  }
+  return %2 : !quake.wire
+}
+
+// CHECK-LABEL:   func.func @linear_args() -> !quake.wire {
+// CHECK-NOT:       cc.if
+// CHECK:           %[[VAL_0:.*]] = quake.null_wire
+// CHECK:           %[[VAL_1:.*]] = quake.h %[[VAL_0]] : (!quake.wire) -> !quake.wire
+// CHECK:           return %[[VAL_1]] : !quake.wire
+// CHECK:         }
+
+// A region with multiple exits is stitched into the parent with branches.
+
+func.func @multi_exit(%pred : i1) {
+  %0 = arith.constant true
+  cc.if (%0) {
+    cf.cond_br %pred, ^bb1, ^bb2
+  ^bb1:
+    func.call @callee() : () -> i32
+    cc.continue
+  ^bb2:
+    cc.continue
+  }
+  func.call @callee() : () -> i32
+  return
+}
+
+// CHECK-LABEL:   func.func @multi_exit(
+// CHECK-SAME:      %[[VAL_0:.*]]: i1) {
+// CHECK-NOT:       cc.if
+// CHECK:           cf.cond_br %[[VAL_0]], ^bb1, ^bb2
+// CHECK:         ^bb1:
+// CHECK:           %[[VAL_1:.*]] = call @callee() : () -> i32
+// CHECK:           cf.br ^bb2
+// CHECK:         ^bb2:
+// CHECK:           %[[VAL_2:.*]] = call @callee() : () -> i32
+// CHECK:           return
+// CHECK:         }
+
+func.func @multi_exit_results(%pred : i1) -> i32 {
+  %0 = arith.constant true
+  %1 = cc.if (%0) -> i32 {
+    cf.cond_br %pred, ^bb1, ^bb2
+  ^bb1:
+    %2 = func.call @callee() : () -> i32
+    cc.continue %2 : i32
+  ^bb2:
+    %3 = arith.constant 7 : i32
+    cc.continue %3 : i32
+  } else {
+    %4 = arith.constant 9 : i32
+    cc.continue %4 : i32
+  }
+  return %1 : i32
+}
+
+// CHECK-LABEL:   func.func @multi_exit_results(
+// CHECK-SAME:      %[[VAL_0:.*]]: i1) -> i32 {
+// CHECK-NOT:       cc.if
+// CHECK:           %[[VAL_1:.*]] = arith.constant 7 : i32
+// CHECK:           cf.cond_br %[[VAL_0]], ^bb1, ^bb2(%[[VAL_1]] : i32)
+// CHECK:         ^bb1:
+// CHECK:           %[[VAL_2:.*]] = call @callee() : () -> i32
+// CHECK:           cf.br ^bb2(%[[VAL_2]] : i32)
+// CHECK:         ^bb2(%[[VAL_3:.*]]: i32):
+// CHECK:           return %[[VAL_3]] : i32
+// CHECK:         }
+
+// An unwind op must keep its structured parent, so the cc.if is left alone.
+
+func.func @keep_unwind() -> i32 {
+  %0 = arith.constant true
+  %1 = arith.constant 1 : i32
+  %2 = arith.constant 0 : i32
+  cc.if (%0) {
+    cc.unwind_return %1 : i32
+  }
+  return %2 : i32
+}
+
+// CHECK-LABEL:   func.func @keep_unwind() -> i32 {
+// CHECK:           %[[VAL_0:.*]] = arith.constant true
+// CHECK:           %[[VAL_1:.*]] = arith.constant 1 : i32
+// CHECK:           %[[VAL_2:.*]] = arith.constant 0 : i32
+// CHECK:           cc.if(%[[VAL_0]]) {
+// CHECK:             cc.unwind_return %[[VAL_1]] : i32
+// CHECK:           }
+// CHECK:           return %[[VAL_2]] : i32
+// CHECK:         }
+
+// Both arms forward the same values, so the condition is irrelevant.
+
+func.func private @cond() -> i1
+
+func.func @identical_arms() -> i32 {
+  %0 = func.call @cond() : () -> i1
+  %1 = arith.constant 7 : i32
+  %2 = cc.if (%0) -> i32 {
+    cc.continue %1 : i32
+  } else {
+    cc.continue %1 : i32
+  }
+  return %2 : i32
+}
+
+// CHECK-LABEL:   func.func @identical_arms() -> i32 {
+// CHECK-NOT:       cc.if
+// CHECK:           %[[VAL_0:.*]] = arith.constant 7 : i32
+// CHECK:           %[[VAL_1:.*]] = call @cond() : () -> i1
+// CHECK:           return %[[VAL_0]] : i32
+// CHECK:         }
+
+// A forwarded entry block argument resolves to the cc.if's linear argument.
+
+func.func @identical_arms_linear() -> !quake.wire {
+  %0 = func.call @cond() : () -> i1
+  %1 = quake.null_wire
+  %2 = cc.if (%0) ((%arg0 = %1)) -> !quake.wire {
+    cc.continue %arg0 : !quake.wire
+  } else {
+    cc.continue %arg0 : !quake.wire
+  }
+  return %2 : !quake.wire
+}
+
+// CHECK-LABEL:   func.func @identical_arms_linear() -> !quake.wire {
+// CHECK-NOT:       cc.if
+// CHECK:           %[[VAL_0:.*]] = call @cond() : () -> i1
+// CHECK:           %[[VAL_1:.*]] = quake.null_wire
+// CHECK:           return %[[VAL_1]] : !quake.wire
+// CHECK:         }
+
+// The arms differ, so the cc.if stays put.
+
+func.func @differing_arms() -> i32 {
+  %0 = func.call @cond() : () -> i1
+  %1 = arith.constant 7 : i32
+  %2 = arith.constant 9 : i32
+  %3 = cc.if (%0) -> i32 {
+    cc.continue %1 : i32
+  } else {
+    cc.continue %2 : i32
+  }
+  return %3 : i32
+}
+
+// CHECK-LABEL:   func.func @differing_arms() -> i32 {
+// CHECK:           %[[VAL_0:.*]] = arith.constant 9 : i32
+// CHECK:           %[[VAL_1:.*]] = arith.constant 7 : i32
+// CHECK:           %[[VAL_2:.*]] = call @cond() : () -> i1
+// CHECK:           %[[VAL_3:.*]] = cc.if(%[[VAL_2]]) -> i32 {
+// CHECK:             cc.continue %[[VAL_1]] : i32
+// CHECK:           } else {
+// CHECK:             cc.continue %[[VAL_0]] : i32
+// CHECK:           }
+// CHECK:           return %[[VAL_3]] : i32
+// CHECK:         }
+
+// An arm with an operation in it is not a no-op, so the cc.if stays put.
+
+func.func @arm_with_op() -> !quake.wire {
+  %0 = func.call @cond() : () -> i1
+  %1 = quake.null_wire
+  %2 = cc.if (%0) ((%arg0 = %1)) -> !quake.wire {
+    %3 = quake.h %arg0 : (!quake.wire) -> !quake.wire
+    cc.continue %3 : !quake.wire
+  } else {
+    cc.continue %arg0 : !quake.wire
+  }
+  return %2 : !quake.wire
+}
+
+// CHECK-LABEL:   func.func @arm_with_op() -> !quake.wire {
+// CHECK:           %[[VAL_0:.*]] = call @cond() : () -> i1
+// CHECK:           %[[VAL_1:.*]] = quake.null_wire
+// CHECK:           %[[VAL_2:.*]] = cc.if(%[[VAL_0]]) ((%[[VAL_3:.*]] = %[[VAL_1]])) -> !quake.wire {
+// CHECK:             %[[VAL_4:.*]] = quake.h %[[VAL_3]] : (!quake.wire) -> !quake.wire
+// CHECK:             cc.continue %[[VAL_4]] : !quake.wire
+// CHECK:           } else {
+// CHECK:             cc.continue %[[VAL_3]] : !quake.wire
+// CHECK:           }
+// CHECK:           return %[[VAL_2]] : !quake.wire
+// CHECK:         }
+
+// The while region of a cc.loop holds a single block, so a multi-exit region
+// cannot be stitched into it and the cc.if is left alone.
+
+func.func private @side() -> i1
+
+func.func @in_while(%arg : i1) {
+  %0 = arith.constant true
+  cc.loop while {
+    cc.if (%0) {
+      cf.cond_br %arg, ^bb1, ^bb2
+    ^bb1:
+      %1 = func.call @side() : () -> i1
+      cc.continue
+    ^bb2:
+      cc.continue
+    }
+    %2 = func.call @side() : () -> i1
+    cc.condition %2
+  } do {
+    %3 = func.call @side() : () -> i1
+    cc.continue
+  }
+  return
+}
+
+// CHECK-LABEL:   func.func @in_while(
+// CHECK-SAME:      %[[VAL_0:.*]]: i1) {
+// CHECK:           %[[VAL_1:.*]] = arith.constant true
+// CHECK:           cc.loop while {
+// CHECK:             cc.if(%[[VAL_1]]) {
+// CHECK:               cf.cond_br %[[VAL_0]], ^bb1, ^bb2
+// CHECK:             ^bb1:
+// CHECK:               %[[VAL_2:.*]] = func.call @side() : () -> i1
+// CHECK:               cc.continue
+// CHECK:             ^bb2:
+// CHECK:               cc.continue
+// CHECK:             }
+// CHECK:             %[[VAL_3:.*]] = func.call @side() : () -> i1
+// CHECK:             cc.condition %[[VAL_3]]
+// CHECK:           } do {
+// CHECK:             %[[VAL_4:.*]] = func.call @side() : () -> i1
+// CHECK:             cc.continue
+// CHECK:           }
+// CHECK:           return
+// CHECK:         }

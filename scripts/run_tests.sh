@@ -75,6 +75,7 @@ if [ "$num_jobs" -lt 1 ]; then num_jobs=1; fi
 # OpenMP-parallel tests (qpp, dm simulators) each use OMP_NUM_THREADS cores.
 # For ctest, the PROCESSORS property handles scheduling for a given -j $num_jobs.
 if [ -z "${OMP_NUM_THREADS:-}" ]; then
+  omp_from_caller=false
   if [ "$num_jobs" -le 4 ]; then
     omp_threads=1
     parallel_jobs=$num_jobs
@@ -84,18 +85,30 @@ if [ -z "${OMP_NUM_THREADS:-}" ]; then
   fi
   export OMP_NUM_THREADS=$omp_threads
 else
+  omp_from_caller=true
   omp_threads=$OMP_NUM_THREADS
   parallel_jobs=$((num_jobs / omp_threads))
   if [ "$parallel_jobs" -lt 1 ]; then parallel_jobs=1; fi
 fi
 echo "Thread budget: $parallel_jobs parallel jobs x $omp_threads OMP threads (${num_jobs} cores)"
 
-# Detect GPU availability for ctest label filtering
+# These lit suites are dominated by single-threaded nvq++ compilation, so one
+# thread across every core beats $omp_threads threads across half of them.
+if [ "$omp_from_caller" = true ]; then
+  lit_jobs=$parallel_jobs
+  lit_omp=$omp_threads
+else
+  lit_jobs=$num_jobs
+  lit_omp=1
+fi
+echo "lit budget: $lit_jobs parallel jobs x $lit_omp OMP threads"
+
+# Detect GPU availability for ctest label filtering. Query the device
+# list rather than the nvidia-smi header, whose format varies by driver.
 gpu_excludes=""
 if [ "$(uname)" = "Darwin" ]; then
   gpu_excludes="--label-exclude gpu_required"
-elif [ ! -x "$(command -v nvidia-smi)" ] || \
-     [ -z "$(nvidia-smi | egrep -o "CUDA Version: ([0-9]{1,}\.)+[0-9]{1,}")" ]; then
+elif ! gpus=$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null) || [ -z "$gpus" ]; then
   gpu_excludes="--label-exclude gpu_required"
 fi
 
@@ -106,7 +119,7 @@ fi
 # On machines without a GPU, $gpu_excludes skips gpu_required tests.
 echo "=== Running ctest ==="
 ctest --output-on-failure --test-dir "$build_dir" -j "$num_jobs" \
-  -E "^(ctest-cudaq|ctest-targettests|pycudaq-mlir)$" $gpu_excludes
+  -E "^(ctest-cudaq|ctest-targettests|ctest-runtime|pycudaq-mlir)$" $gpu_excludes
 ctest_status=$?
 if [ $ctest_status -ne 0 ]; then
   echo "::error::ctest failed with status $ctest_status"
@@ -124,9 +137,20 @@ if [ $lit_status -ne 0 ]; then
   status_sum=$((status_sum + 1))
 fi
 
-# 3. Target tests
+# 3. Runtime tests
+echo "=== Running llvm-lit (build/runtime/test) ==="
+OMP_NUM_THREADS=$lit_omp "$LLVM_INSTALL_PREFIX/bin/llvm-lit" $verbose --time-tests -j "$lit_jobs" \
+  --param cudaq_site_config="$build_dir/runtime/test/lit.site.cfg.py" \
+  "$build_dir/runtime/test"
+runtime_status=$?
+if [ $runtime_status -ne 0 ]; then
+  echo "::error::llvm-lit (build/runtime/test) failed with status $runtime_status"
+  status_sum=$((status_sum + 1))
+fi
+
+# 4. Target tests
 echo "=== Running llvm-lit (build/targettests) ==="
-"$LLVM_INSTALL_PREFIX/bin/llvm-lit" $verbose --time-tests -j "$parallel_jobs" \
+OMP_NUM_THREADS=$lit_omp "$LLVM_INSTALL_PREFIX/bin/llvm-lit" $verbose --time-tests -j "$lit_jobs" \
   --param cudaq_site_config="$build_dir/targettests/lit.site.cfg.py" \
   "$build_dir/targettests"
 targ_status=$?
@@ -135,9 +159,9 @@ if [ $targ_status -ne 0 ]; then
   status_sum=$((status_sum + 1))
 fi
 
-# 4. Python MLIR tests
+# 5. Python MLIR tests
 echo "=== Running llvm-lit (python/tests/mlir) ==="
-"$LLVM_INSTALL_PREFIX/bin/llvm-lit" $verbose --time-tests -j "$parallel_jobs" \
+OMP_NUM_THREADS=$lit_omp "$LLVM_INSTALL_PREFIX/bin/llvm-lit" $verbose --time-tests -j "$lit_jobs" \
   --param cudaq_site_config="$build_dir/python/tests/mlir/lit.site.cfg.py" \
   "$build_dir/python/tests/mlir"
 pymlir_status=$?
@@ -146,7 +170,7 @@ if [ $pymlir_status -ne 0 ]; then
   status_sum=$((status_sum + 1))
 fi
 
-# 5. Python interop tests
+# 6. Python interop tests
 echo "=== Running pytest (interop tests) ==="
 python3 -m pytest $verbose --durations=0 "$build_dir/python/tests/interop/"
 pytest_status=$?

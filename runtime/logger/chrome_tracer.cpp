@@ -11,6 +11,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include <cstdio>
 #include <fstream>
 #include <unistd.h>
 #include <utility>
@@ -65,6 +66,7 @@ std::string ChromeTraceBackend::toJson() {
 
   nlohmann::json doc = {
       {"displayTimeUnit", "ms"},
+      {"otherData", {{"cudaq_trace_version", 1}}},
       {"traceEvents", std::move(traceEvents)},
   };
   return doc.dump();
@@ -78,6 +80,12 @@ void ChromeTraceBackend::writeFile(std::optional<std::string> path) {
   }
 
   const std::string json = toJson();
+  if (target == "-") {
+    std::fprintf(stderr, "%s\n", json.c_str());
+    std::fflush(stderr);
+    return;
+  }
+
   std::ofstream os(target, std::ios::trunc);
   if (!os.is_open()) {
     CUDAQ_WARN("Chrome trace backend failed to open {} for writing.", target);

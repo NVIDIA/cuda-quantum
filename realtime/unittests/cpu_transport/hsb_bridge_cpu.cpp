@@ -44,12 +44,6 @@
 extern "C" void
 setup_rpc_increment_function_table_host(cudaq_function_entry_t *h_entries);
 
-// Provided by init_rpc_increment_function_table_host.cpp via internal
-// linkage; we need the same handler for unified mode's dispatch callback,
-// so re-declare its C ABI here.
-extern "C" void rpc_increment_handler_host(const void *rx_slot, void *tx_slot,
-                                           std::size_t slot_size);
-
 namespace {
 
 // ============================================================================
@@ -93,7 +87,8 @@ bool parse_args(int argc, char **argv, CpuBridgeConfig &cfg) {
           << "  --page-size=N       Per-slot stride in bytes (default: 384)\n"
           << "  --payload-size=N    RPC payload bytes (default: 24)\n"
           << "  --timeout=N         Run timeout in seconds (default: 60)\n"
-          << "  --unified           Use single-thread unified RX+dispatch+TX\n"
+          << "  --unified           Use single-thread unified RX+dispatch+TX "
+             "(cudaq_host_unified_loop over the transceiver hooks)\n"
           << "  --forward           Echo every incoming slot back to peer "
              "(wire-RTT baseline, no dispatch)\n";
       return false;
@@ -131,23 +126,15 @@ std::atomic<int> g_shutdown{0};
 void on_signal(int) { g_shutdown.store(1, std::memory_order_release); }
 
 // ============================================================================
-// Unified-mode dispatch callback.  Forwards directly to the host increment
-// handler.  The two-pointer handler reads the request from rx_slot and writes
-// the response into tx_slot, so no copy is needed here (the unified loop hands
-// us both sides, matching the handler's RX/TX-pointer ABI).
+// Unified-mode data-plane hooks: translate the transceiver's 1/0 returns into
+// the cudaq_cpu_dataplane_t status enums.  `ctx` is the transceiver handle.
 // ============================================================================
-std::size_t unified_dispatch_cb(void * /*context*/, const void *rx_slot,
-                                void *tx_slot, std::size_t slot_size) {
-  using cudaq::realtime::RPC_MAGIC_REQUEST;
-  using cudaq::realtime::RPCHeader;
-  const auto *header = static_cast<const RPCHeader *>(rx_slot);
-  if (header->magic != RPC_MAGIC_REQUEST)
-    return 0; // drop without sending — silent for non-RPC noise
-  rpc_increment_handler_host(rx_slot, tx_slot, slot_size);
-  // Response length: response header + payload bytes (use full slot to
-  // match the three-thread / FPGA TX framing, since the FPGA expects a
-  // fixed-size payload per slot).
-  return slot_size;
+cudaq_rx_status_t dp_rx_poll(void *ctx, uint32_t *out_slot) {
+  return cpu_roce_rx_poll(ctx, out_slot) ? CUDAQ_RX_READY : CUDAQ_RX_EMPTY;
+}
+
+cudaq_status_t dp_tx_publish(void *ctx, uint32_t slot) {
+  return cpu_roce_tx_publish(ctx, slot) ? CUDAQ_OK : CUDAQ_ERR_INTERNAL;
 }
 
 } // namespace
@@ -193,7 +180,9 @@ int main(int argc, char **argv) {
   // [1] Create CpuRoceTransceiver.
   //     3-thread: cudaq_host_ring_dispatch_loop consumes RX flags / produces TX
   //               flags; transceiver's RX+TX threads do the wire I/O.
-  //     unified:  transceiver's unified_loop does RX + dispatch + TX inline.
+  //     unified:  cudaq_host_unified_loop does RX + dispatch + TX on one
+  //               thread through the transceiver's rx_poll/tx_publish hooks;
+  //               the transceiver runs no I/O threads.
   //     forward:  transceiver's forward_loop echoes every RX slot back to
   //               the peer; no host dispatcher needed.
   // ------------------------------------------------------------------------
@@ -236,25 +225,13 @@ int main(int argc, char **argv) {
   std::thread dispatcher_thread;
   volatile int dispatcher_shutdown = 0;
   cudaq_ringbuffer_t ring{};
+  // Read by pointer for the whole run of cudaq_host_unified_loop, so it lives
+  // at main scope rather than in the branch that fills it.
+  cudaq_cpu_dataplane_t dataplane{};
   cudaq_function_table_t table{};
   cudaq_dispatcher_config_t dcfg{};
   uint64_t packets_dispatched = 0;
-  if (cfg.forward) {
-    // Forward: the transceiver's forward_loop echoes every RX slot back
-    // to the peer.  No dispatcher, no callback to install.  cu_frame_size
-    // determines the bytes-on-wire.
-  } else if (cfg.unified) {
-    // Unified: install the dispatch closure; the transceiver's unified
-    // thread will invoke it.  No library dispatch loop needed.
-    cpu_roce_set_unified_dispatch(xcvr, &unified_dispatch_cb,
-                                  /*context=*/nullptr);
-  } else {
-    // 3-thread layout: spawn cudaq_host_ring_dispatch_loop on a dedicated
-    // thread.  It busy-polls rx_flags_host (the transceiver's RX thread
-    // publishes them), invokes our HOST_CALL handler synchronously, and
-    // publishes tx_flags_host (the transceiver's TX thread consumes them).
-    // A HOST_CALL-only table needs no GRAPH_LAUNCH engine, so engine == NULL
-    // (the loop touches no graph workers).
+  if (!cfg.forward) {
     ring.rx_flags_host = reinterpret_cast<volatile uint64_t *>(
         cpu_roce_get_rx_ring_flag_addr(xcvr));
     ring.tx_flags_host = reinterpret_cast<volatile uint64_t *>(
@@ -265,6 +242,33 @@ int main(int argc, char **argv) {
         reinterpret_cast<uint8_t *>(cpu_roce_get_tx_ring_data_addr(xcvr));
     ring.rx_stride_sz = cfg.page_size;
     ring.tx_stride_sz = cfg.page_size;
+    table.entries = h_entries;
+    table.count = 1;
+  }
+  if (cfg.forward) {
+    // Forward: the transceiver's forward_loop echoes every RX slot back
+    // to the peer.  No dispatcher.  cu_frame_size determines the
+    // bytes-on-wire.
+  } else if (cfg.unified) {
+    // Unified: cudaq_host_unified_loop drives the transceiver through its
+    // hooks on this one thread.  A HOST_CALL-only table needs no GRAPH_LAUNCH
+    // engine, so engine == NULL.
+    dataplane.ctx = xcvr;
+    dataplane.ring = ring;
+    dataplane.rx_poll = dp_rx_poll;
+    dataplane.tx_publish = dp_tx_publish;
+
+    dispatcher_thread = std::thread([&]() {
+      cudaq_host_unified_loop(&dataplane, &table, /*engine=*/nullptr,
+                              &dispatcher_shutdown, &packets_dispatched);
+    });
+  } else {
+    // 3-thread layout: spawn cudaq_host_ring_dispatch_loop on a dedicated
+    // thread.  It busy-polls rx_flags_host (the transceiver's RX thread
+    // publishes them), invokes our HOST_CALL handler synchronously, and
+    // publishes tx_flags_host (the transceiver's TX thread consumes them).
+    // A HOST_CALL-only table needs no GRAPH_LAUNCH engine, so engine == NULL
+    // (the loop touches no graph workers).
     dcfg.num_slots = cfg.num_pages;
     dcfg.slot_size = static_cast<uint32_t>(cfg.page_size);
     dcfg.dispatch_path = CUDAQ_DISPATCH_PATH_HOST;
@@ -272,8 +276,6 @@ int main(int argc, char **argv) {
     dcfg.skip_tx_markers = 1; // we own the TX path; sentinel pattern
                               // (used to avoid GpuRoceTransceiver TX kernel
                               // confusion) is irrelevant here.
-    table.entries = h_entries;
-    table.count = 1;
 
     dispatcher_thread = std::thread([&]() {
       cudaq_host_ring_dispatch_loop(&ring, &table, &dcfg, /*engine=*/nullptr,
@@ -298,9 +300,12 @@ int main(int argc, char **argv) {
   std::cout.flush();
 
   // ------------------------------------------------------------------------
-  // [5] Run the transceiver I/O threads on the main thread until shutdown.
+  // [5] Run the transceiver I/O threads until shutdown (none in unified
+  //     mode: the dispatcher thread drives the wire itself).
   // ------------------------------------------------------------------------
-  std::thread xcvr_monitor([xcvr]() { cpu_roce_blocking_monitor(xcvr); });
+  std::thread xcvr_monitor;
+  if (!cfg.unified)
+    xcvr_monitor = std::thread([xcvr]() { cpu_roce_blocking_monitor(xcvr); });
 
   // Timeout / signal wait loop.
   auto t0 = std::chrono::steady_clock::now();
@@ -321,8 +326,9 @@ int main(int argc, char **argv) {
   //     then join both.
   // ------------------------------------------------------------------------
   std::cout << "\n=== Shutting down ===" << std::endl;
-  // Only the 3-thread mode runs a separate host-dispatcher thread.
-  const bool runs_dispatcher = !cfg.unified && !cfg.forward;
+  // Every mode but forward runs a host-dispatcher thread, which must stop
+  // before cpu_roce_close() releases the QP/CQs the unified hooks use.
+  const bool runs_dispatcher = !cfg.forward;
   if (runs_dispatcher) {
     dispatcher_shutdown = 1;
     __sync_synchronize();

@@ -6,7 +6,7 @@ re-check version-sensitive behavior against the installed `cudaq.__version__`.
 If the installed version differs from the latest documentation, review the
 relevant documentation or source changes while debugging.
 
-For porting Qiskit code to CUDA-Q, use the `qiskit-to-cudaq` skill. That skill
+For porting Qiskit code to CUDA-Q, use the `cudaq-importing` skill. That skill
 contains Qiskit gate mappings, Qiskit-vs-CUDA-Q bit ordering, precision
 comparison guidance, framework-decoupling patterns, and port validation.
 

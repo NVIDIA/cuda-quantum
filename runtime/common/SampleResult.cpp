@@ -198,10 +198,9 @@ sample_result::sample_result(CountsDictionary counts, cudaq_json annots)
 }
 
 sample_result::sample_result(ExecutionResult &&result) {
-  auto counts = result.counts;
-  sampleResults.insert({result.registerName, std::move(result)});
-  for (auto &[bits, count] : counts)
+  for (const auto &[bits, count] : result.counts)
     totalShots += count;
+  sampleResults.insert({result.registerName, std::move(result)});
 }
 
 sample_result::sample_result(const ExecutionResult &result)

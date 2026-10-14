@@ -23,22 +23,6 @@ namespace cudaq::opt {
 using namespace mlir;
 
 namespace {
-/// A variable allocated inside a loop gets fresh storage on each iteration.
-/// Raising it to the entry block replaces that with a single slot that
-/// persists across iterations, which forces `memtoreg` to thread the variable
-/// around the loop as a loop-carried value whether or not anything reads it.
-/// Dead values like those defeat `cc.loop` reversal in the
-/// apply-op-specialization pass, so such a variable is left where it is.
-static bool isNestedInLoop(Operation *op) {
-  for (auto *p = op->getParentOp(); p; p = p->getParentOp()) {
-    if (isa<func::FuncOp, cudaq::cc::CreateLambdaOp, ModuleOp>(p))
-      break;
-    if (isa<cudaq::cc::LoopOp>(p))
-      return true;
-  }
-  return false;
-}
-
 struct AllocationAnalysis {
   explicit AllocationAnalysis(Operation *op, bool hoistOnly)
       : hoistOnly(hoistOnly) {
@@ -89,8 +73,6 @@ private:
       auto *parent = alloc->getParentOp();
       if (isa<func::FuncOp, cudaq::cc::CreateLambdaOp>(parent))
         return WalkResult::advance();
-      if (isNestedInLoop(alloc))
-        return WalkResult::advance();
       if (auto scope = dyn_cast<cudaq::cc::ScopeOp>(parent)) {
         varsToMove.insert(alloc);
         scopeMap[alloc] = scope;
@@ -131,7 +113,7 @@ private:
     // are disjoint.
     for (auto &iter : buckets) {
       auto *v = iter.second.front();
-      SmallVector<Operation * /*ScopeOp*/> liveScopes;
+      DenseSet<Operation * /*ScopeOp*/> liveScopes;
       updateScopes(v, liveScopes);
       ArrayRef<Operation * /*AllocaOp*/> others{iter.second.begin() + 1,
                                                 iter.second.end()};
@@ -145,9 +127,9 @@ private:
   }
 
   void updateScopes(Operation * /*AllocaOp*/ alloc,
-                    SmallVectorImpl<Operation * /*ScopeOp*/> &liveScopes) {
+                    DenseSet<Operation * /*ScopeOp*/> &liveScopes) {
     auto *s = scopeMap[alloc];
-    liveScopes.append(parentScopes[s].begin(), parentScopes[s].end());
+    liveScopes.insert(parentScopes[s].begin(), parentScopes[s].end());
   }
 
   // The scope of alloca, `a`, is disjoint from the current set if it cannot be
@@ -155,10 +137,10 @@ private:
   // prioritized such that a variable in a parent scope is always processed
   // *after* any child scopes. That processing order guarantees that the parent
   // scope is already in `scopes`.
-  bool disjointScopes(const SmallVectorImpl<Operation * /*ScopeOp*/> &scopes,
+  bool disjointScopes(const DenseSet<Operation * /*ScopeOp*/> &scopes,
                       Operation * /*AllocaOp*/ a) {
     auto *s = scopeMap[a];
-    return std::find(scopes.begin(), scopes.end(), s) == scopes.end();
+    return !scopes.contains(s);
   }
 
   void coalesceWith(Operation * /*AllocaOp*/ merged,

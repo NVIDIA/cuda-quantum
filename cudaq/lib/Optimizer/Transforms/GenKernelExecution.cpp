@@ -280,6 +280,7 @@ public:
                                 FunctionType funcTy, func::FuncOp funcOp) {
     Type structPtrTy = cudaq::cc::PointerType::get(structTy);
     auto *ctx = builder.getContext();
+    auto module = funcOp->getParentOfType<ModuleOp>();
     auto thunkTy = cudaq::opt::marshal::getThunkType(ctx);
     auto thunk =
         func::FuncOp::create(builder, loc, classNameStr + ".thunk", thunkTy);
@@ -314,8 +315,8 @@ public:
     } else {
       for (auto inp : llvm::enumerate(funcTy.getInputs())) {
         auto [a, t] = cudaq::opt::marshal::processInputValue(
-            loc, builder, trailingData, castOp, inp.value(), inp.index(),
-            structTy);
+            loc, builder, module, trailingData, castOp, inp.value(),
+            inp.index(), structTy);
         trailingData = t;
         args.push_back(a);
       }
@@ -359,9 +360,8 @@ public:
       // createDynamicResult allocates a new buffer and packs the input values
       // and the dynamic results into this single new buffer to pass back as a
       // message.
-      // NB: This code only handles one dimensional vectors of static types. It
-      // will have to be changed if there is a need to return recursively
-      // dynamic structures, i.e., vectors of vectors.
+      // NB: This code only handles one dimensional vectors of static types.
+      // A result that is recursively dynamic is not packed into a message.
       auto res = func::CallOp::create(
           builder, loc, thunkTy.getResults()[0], "__nvqpp_createDynamicResult",
           ValueRange{thunkEntry->getArgument(0), structSize, resAsArg,
@@ -370,10 +370,14 @@ public:
       builder.setInsertionPointToEnd(elseBlock);
       // For the else case, the span was already copied to the block.
     } else {
-      // FIXME: Should check for recursive vector case.
       // If the kernel returns non-dynamic results (no spans), then take those
       // values and store them in the results section of the struct. They will
       // eventually be returned to the original caller.
+      // A result that is dynamic but not a flat vector, such as a vector of
+      // vectors or a struct with a vector member, is also stored here as is.
+      // Its heap storage is in memory that is shared with the caller, and the
+      // caller builds the host's value from it (see
+      // buildHostValueFromDeviceValue).
       if (funcTy.getNumResults()) {
         for (std::int32_t o = 0;
              o < static_cast<std::int32_t>(funcTy.getNumResults()); ++o) {
@@ -676,8 +680,11 @@ public:
         // is, then we will need to convert it to a std::vector here. The vector
         // is constructed in-place on the sret memory block.
         Value arg0 = hostFuncEntryBlock->getArguments().front();
-        if (auto spanTy =
-                dyn_cast<cudaq::cc::SpanLikeType>(devFuncTy.getResult(0))) {
+        Type devResTy = devFuncTy.getResult(0);
+        auto flatSpanTy = dyn_cast<cudaq::cc::SpanLikeType>(devResTy);
+        if (flatSpanTy && cudaq::cc::isDynamicType(flatSpanTy.getElementType()))
+          flatSpanTy = {};
+        if (auto spanTy = flatSpanTy) {
           auto eleTy = spanTy.getElementType();
           auto ptrTy = cudaq::cc::PointerType::get(eleTy);
           auto gep0 = cudaq::cc::ComputePtrOp::create(
@@ -698,6 +705,26 @@ public:
             cudaq::opt::marshal::genSequenceTFromInitList(
                 loc, builder, arg0, dataPtr, tSize, vecLen);
           }
+          // free(nullptr) is defined to be a nop in the standard.
+          func::CallOp::create(builder, loc, TypeRange{}, "free",
+                               ArrayRef<Value>{launchResultToFree});
+        } else if (cudaq::cc::isDynamicType(devResTy)) {
+          // The result has dynamic parts that are not a flat vector, such as a
+          // vector of vectors or a struct with a vector member. The host's
+          // layout of such a value differs from the device's, so it cannot
+          // simply be copied. Build the host value in place on the sret block
+          // from the device's value, which adopts the heap storage of the
+          // device's value.
+          auto hostResTy =
+              cudaq::opt::factory::convertToHostSideType(devResTy, module);
+          auto hostResPtrTy = cudaq::cc::PointerType::get(hostResTy);
+          Value hostDest =
+              cudaq::cc::CastOp::create(builder, loc, hostResPtrTy, arg0);
+          Value slotVal = cudaq::cc::LoadOp::create(builder, loc, launchResult);
+          Value devVal = cudaq::opt::marshal::bufferSlotToValue(
+              loc, builder, devResTy, slotVal);
+          cudaq::opt::marshal::buildHostValueFromDeviceValue(
+              loc, builder, module, devResTy, devVal, hostDest);
           // free(nullptr) is defined to be a nop in the standard.
           func::CallOp::create(builder, loc, TypeRange{}, "free",
                                ArrayRef<Value>{launchResultToFree});
@@ -964,7 +991,7 @@ public:
           auto kern = func::CallOp::create(
               builder, loc, epKern.getFunctionType().getResults(),
               epKern.getName(), entry->getArguments());
-          cudaq::quake::LogOutputOp::create(builder, loc, kern.getResults());
+          cudaq::quake::EvinceOp::create(builder, loc, kern.getResults());
           func::ReturnOp::create(builder, loc);
           runKernels.push_back(runKern);
         }

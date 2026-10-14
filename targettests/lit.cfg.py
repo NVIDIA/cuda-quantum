@@ -35,9 +35,13 @@ config.substitutions.append(('%pluginext', config.llvm_plugin_ext))
 config.substitutions.append(('%llvmInclude', config.llvm_install + "/include"))
 config.substitutions.append(('%cudaq_lib_dir', config.cudaq_lib_dir))
 config.substitutions.append(('%cudaq_plugin_ext', config.cudaq_plugin_ext))
+config.substitutions.append(
+    ('%cudaq_plugin_cxx_flags', config.cudaq_plugin_cxx_flags))
+config.substitutions.append(('%cudaq_plugin_cxx', config.cudaq_plugin_cxx))
 config.substitutions.append(('%cudaq_target_dir', config.cudaq_target_dir))
 config.substitutions.append(('%cudaq_src_dir', config.cudaq_src_dir))
-config.substitutions.append(('%iqm_tests_dir', config.cudaq_src_dir + "/targettests/Target/IQM"))
+config.substitutions.append(
+    ('%iqm_tests_dir', config.cudaq_src_dir + "/targettests/Target/IQM"))
 
 llvm_config.use_default_substitutions()
 
