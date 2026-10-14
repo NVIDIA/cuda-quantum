@@ -72,8 +72,9 @@ if(QLX_IN_TREE)
     if(NOT TARGET ${_qlx_required_target})
       message(FATAL_ERROR
         "CUDA-Q Logical needs ${_qlx_required_target} from the enclosing "
-        "CUDA-Q build. Enable CUDA-Q's Python bindings "
-        "(-DCUDAQ_ENABLE_PYTHON=ON) and the 'cudaq' project.")
+        "CUDA-Q build. Enable CUDA-Q's Python bindings by adding 'python' to "
+        "CUDAQ_ENABLE_PROJECTS (e.g. -DCUDAQ_ENABLE_PROJECTS=\"cudaq;runtime;python\"; "
+        "the older -DCUDAQ_ENABLE_PYTHON=ON is deprecated but still works).")
     endif()
   endforeach()
 
@@ -208,22 +209,29 @@ else()
   message(STATUS "Using MLIR from ${MLIR_DIR}")
 
   # Opt-in audit of the toolchain: libcudaqMLIR embeds the "LLVM version X.Y.Z"
-  # string of the LLVM it was built with.
+  # string of the LLVM it was built with. The binary also holds truncated
+  # fragments (e.g. "LLVM version 22."), so collect every match and trust only
+  # complete X.Y.Z versions; anything less skips the check with a warning.
   if(QLX_VERIFY_TOOLCHAIN)
     set(_cudaq_logical_llvm_built "")
     find_program(_cudaq_logical_grep grep)
     if(_cudaq_logical_grep AND EXISTS "${CUDAQ_LIBRARY_DIR}/libcudaqMLIR${CMAKE_SHARED_LIBRARY_SUFFIX}")
       execute_process(
-        COMMAND "${_cudaq_logical_grep}" -a -o -m1 "LLVM version [0-9][0-9.]*"
+        COMMAND "${_cudaq_logical_grep}" -a -o "LLVM version [0-9][0-9.]*"
           "${CUDAQ_LIBRARY_DIR}/libcudaqMLIR${CMAKE_SHARED_LIBRARY_SUFFIX}"
-        OUTPUT_VARIABLE _cudaq_logical_llvm_built
+        OUTPUT_VARIABLE _cudaq_logical_llvm_probe
         OUTPUT_STRIP_TRAILING_WHITESPACE
         ERROR_QUIET)
-      string(REGEX REPLACE "^LLVM version " "" _cudaq_logical_llvm_built
-        "${_cudaq_logical_llvm_built}")
+      string(REPLACE "\n" ";" _cudaq_logical_llvm_probe "${_cudaq_logical_llvm_probe}")
+      foreach(_cudaq_logical_hit IN LISTS _cudaq_logical_llvm_probe)
+        if(_cudaq_logical_hit MATCHES "^LLVM version ([0-9]+\\.[0-9]+\\.[0-9]+)$")
+          list(APPEND _cudaq_logical_llvm_built "${CMAKE_MATCH_1}")
+        endif()
+      endforeach()
+      list(REMOVE_DUPLICATES _cudaq_logical_llvm_built)
     endif()
     if(_cudaq_logical_llvm_built)
-      if(NOT LLVM_PACKAGE_VERSION VERSION_EQUAL _cudaq_logical_llvm_built)
+      if(NOT LLVM_PACKAGE_VERSION IN_LIST _cudaq_logical_llvm_built)
         message(FATAL_ERROR
           "QLX_VERIFY_TOOLCHAIN: found LLVM ${LLVM_PACKAGE_VERSION} (${LLVM_DIR}) "
           "but CUDA-Q at ${CUDAQ_LOGICAL_CUDAQ_PREFIX} was built with LLVM "
@@ -233,8 +241,8 @@ else()
         "QLX_VERIFY_TOOLCHAIN: LLVM ${LLVM_PACKAGE_VERSION} matches the LLVM CUDA-Q was built with")
     else()
       message(WARNING
-        "QLX_VERIFY_TOOLCHAIN: could not determine the LLVM version "
-        "libcudaqMLIR was built with; skipping the version check.")
+        "QLX_VERIFY_TOOLCHAIN: could not find a complete LLVM X.Y.Z version string "
+        "in libcudaqMLIR; skipping the LLVM version check.")
     endif()
     # The C++ compiler must match the one CUDA-Q was built with. MLIR derives some
     # TypeIDs (e.g. op traits like SymbolTable) from compiler-specific type-name

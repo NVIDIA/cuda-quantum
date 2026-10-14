@@ -25,8 +25,8 @@ endif()
 if(NOT QLX_IN_TREE AND CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
   message(FATAL_ERROR
     "In-source builds are not allowed.\n"
-    "  Source dir: ${PROJECT_SOURCE_DIR}\n"
-    "  Build  dir: ${PROJECT_BINARY_DIR}\n"
+    "  Source dir: ${CMAKE_SOURCE_DIR}\n"
+    "  Build  dir: ${CMAKE_BINARY_DIR}\n"
     "Run 'cmake -S . -B build [options]' from the repo root instead.\n"
     "If you have already run cmake here, remove the stray files first:\n"
     "  rm -rf CMakeCache.txt CMakeFiles/ _deps/ Makefile cmake_install.cmake\n"

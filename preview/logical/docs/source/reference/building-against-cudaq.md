@@ -35,16 +35,18 @@ on almost every Python test.
 
 ## Option 1 (recommended): in-tree
 
-Enable it in the CUDA-Q build:
+Enable it in the CUDA-Q build, together with the Python bindings:
 
 ```bash
-cmake -S . -B build -DCUDAQ_ENABLE_LOGICAL=ON  # plus your usual CUDA-Q options
+cmake -S . -B build -DCUDAQ_ENABLE_LOGICAL=ON -DCUDAQ_ENABLE_PROJECTS="cudaq;runtime;python"  # plus your usual CUDA-Q options
 cmake --build build
 ctest --test-dir build/external/logical
 ```
 
-`CUDAQ_ENABLE_LOGICAL` requires CUDA-Q's Python bindings
-(`CUDAQ_ENABLE_PYTHON`). It is shorthand for
+`CUDAQ_ENABLE_LOGICAL` requires CUDA-Q's Python bindings: include `python` in
+`CUDAQ_ENABLE_PROJECTS` (for example `-DCUDAQ_ENABLE_PROJECTS="cudaq;runtime;python"`;
+the deprecated `-DCUDAQ_ENABLE_PYTHON=ON` is equivalent). `scripts/build_cudaq.sh`
+enables Python by default. `CUDAQ_ENABLE_LOGICAL` is shorthand for
 `-DCUDAQ_EXTERNAL_PROJECTS=logical -DCUDAQ_EXTERNAL_LOGICAL_SOURCE_DIR=<repo>/preview/logical`.
 Logical's Python package, extensions, and tools land in CUDA-Q's own build
 tree (`python/cudaq/...`, `bin/`) and install into CUDA-Q's install prefix.

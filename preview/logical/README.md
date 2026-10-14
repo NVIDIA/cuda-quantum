@@ -43,16 +43,18 @@ the same sources as this directory.
 
 ### In-tree (recommended for development)
 
-Enable it in the CUDA-Q build; nothing else is needed:
+Enable it in the CUDA-Q build, together with the Python bindings:
 
 ```bash
-cmake -S . -B build -DCUDAQ_ENABLE_LOGICAL=ON  # plus your usual CUDA-Q options
+cmake -S . -B build -DCUDAQ_ENABLE_LOGICAL=ON -DCUDAQ_ENABLE_PROJECTS="cudaq;runtime;python"  # plus your usual CUDA-Q options
 cmake --build build
 ctest --test-dir build/external/logical
 ```
 
-`CUDAQ_ENABLE_LOGICAL` requires CUDA-Q's Python bindings
-(`CUDAQ_ENABLE_PYTHON`). It is shorthand for
+`CUDAQ_ENABLE_LOGICAL` requires CUDA-Q's Python bindings: include `python` in
+`CUDAQ_ENABLE_PROJECTS` (for example `-DCUDAQ_ENABLE_PROJECTS="cudaq;runtime;python"`;
+the deprecated `-DCUDAQ_ENABLE_PYTHON=ON` is equivalent). `scripts/build_cudaq.sh`
+enables Python by default. `CUDAQ_ENABLE_LOGICAL` is shorthand for
 `-DCUDAQ_EXTERNAL_PROJECTS=logical -DCUDAQ_EXTERNAL_LOGICAL_SOURCE_DIR=$PWD/preview/logical`.
 The tools (`qlx-opt`, `qlx-translate`) land in the build's `bin/` next to the
 CUDA-Q tools.
@@ -86,7 +88,15 @@ If no prefix is given, CMake falls back to the `cudaq-devel` wheel in the active
 Python environment. That is how the `cudaq-logical` wheel is built in CI, and
 it is not the way to build from a source checkout.
 
-Run an example against the build tree with:
+Run an example against the build tree. In-tree, Logical's package lives in
+CUDA-Q's own build-tree Python package, so no shim is needed:
+
+```bash
+PYTHONPATH=build/python python3 preview/logical/examples/00_logical_resource_estimate.py
+```
+
+Out-of-tree, the build writes a `_cudaq_logical_devpath` shim that puts the
+build tree and the CUDA-Q installation on the import path:
 
 ```bash
 PYTHONPATH=build/preview/logical/python \
