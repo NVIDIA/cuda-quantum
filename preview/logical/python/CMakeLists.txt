@@ -66,6 +66,19 @@ endfunction()
 # (the dev-package setup above has already run).
 if(NOT QLX_IN_TREE AND TARGET nanobind-cudaq)
   set(MLIR_DISABLE_CONFIGURE_PYTHON_DEV_PACKAGES ON)
+
+  # nanobind (2.15) also applies nanobind_disable_stack_protector() to the
+  # shared library target inside nanobind_add_module(), which CMake rejects for
+  # an IMPORTED target. Skip imported targets; the library was already built.
+  if(COMMAND nanobind_disable_stack_protector
+     AND NOT COMMAND _nanobind_disable_stack_protector)
+    function(nanobind_disable_stack_protector name)
+      get_target_property(_qlx_imported ${name} IMPORTED)
+      if(NOT _qlx_imported)
+        _nanobind_disable_stack_protector(${name} ${ARGN})
+      endif()
+    endfunction()
+  endif()
 endif()
 
 # Silence two classes of warnings that flood the MLIR Python-binding builds:
