@@ -33,6 +33,12 @@ if(NOT QLX_IN_TREE AND CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
     "  git clean -fdX  # (optional) after updating .gitignore")
 endif()
 
+# Nothing here uses C++ modules. With C++20 and CMake >= 3.30, CMake otherwise
+# scans every source for module dependencies and requires clang-scan-deps, which
+# toolchains without it (e.g. the CI dev image) fail on. CUDA-Q's top-level
+# CMakeLists.txt does the same, so in-tree builds already inherit it.
+set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
+
 project(cudaq-logical LANGUAGES CXX C)
 
 set(QLX_USE_CUDAQ_SDK ON CACHE BOOL
