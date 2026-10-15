@@ -45,7 +45,7 @@ set_target_properties(cudaq-example-target-mock_rest
     PREFIX ""
     SUFFIX ${CMAKE_SHARED_LIBRARY_SUFFIX}
     LIBRARY_OUTPUT_DIRECTORY ${plugin_target_dir})
-target_link_libraries(cudaq-example-target-mock_rest PRIVATE CUDAQTargetConfig)
+target_link_libraries(cudaq-example-target-mock_rest PRIVATE CUDAQTargetCatalog)
 
 configure_file(pyproject.toml.in
                ${plugin_root}/pyproject.toml

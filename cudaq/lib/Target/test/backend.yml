@@ -1,0 +1,57 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+# RUN: %target-catalog-driver parse %s | FileCheck %s --check-prefix=PARSE
+# RUN: %target-catalog-driver emit %s | FileCheck %s --check-prefix=EMIT
+# RUN: %target-catalog-driver codegen %s | FileCheck %s --check-prefix=CODEGEN
+
+# Ordinary backend configuration with an explicit schema version.
+
+version: 1
+name: lit-backend
+description: "Backend configuration coverage"
+config:
+  gen-target-backend: true
+  library-mode: true
+  jit-mid-level-pipeline: "mid-pipe"
+  codegen-emission: qir-base
+  post-codegen-passes: "post-passes"
+  platform-qpu: remote_rest
+  preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
+  link-libs: ["-lcudaq-rest-qpu"]
+  plugin-libraries: ["libcudaq-rest-qpu"]
+  nvqir-simulation-backend: qpp
+  rules:
+    - if: "$ENABLE_EXTRA"
+      compiler-flag: "-O2"
+
+# PARSE: name: lit-backend
+# PARSE:   gen-target-backend: true
+# PARSE:   library-mode: true
+# PARSE:   jit-mid-level-pipeline: mid-pipe
+# PARSE:   codegen-emission: qir-base
+# PARSE:   post-codegen-passes: post-passes
+# PARSE:   platform-qpu: remote_rest
+# PARSE:   preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
+# PARSE:   link-libs: ["-lcudaq-rest-qpu"]
+# PARSE:   plugin-libraries: ["libcudaq-rest-qpu"]
+# PARSE:   nvqir-simulation-backend: ["qpp"]
+# PARSE:   rule: if=$ENABLE_EXTRA compiler-flag=-O2 link-flag=
+
+# EMIT: GEN_TARGET_BACKEND=true
+# EMIT: LIBRARY_MODE=true
+# EMIT: JIT_MID_LEVEL_PIPELINE="mid-pipe"
+# EMIT: CODEGEN_EMISSION=qir-base
+# EMIT: POST_CODEGEN_PASSES="post-passes"
+# EMIT: PLATFORM_QPU=remote_rest
+# EMIT: PREPROCESSOR_DEFINES="${PREPROCESSOR_DEFINES} -D CUDAQ_QUANTUM_DEVICE"
+# EMIT: LINKLIBS="${LINKLIBS} -lcudaq-rest-qpu"
+# EMIT: NVQIR_SIMULATION_BACKEND="qpp"
+# EMIT: {{if \[\[ \$ENABLE_EXTRA \]\]; then}}
+
+# CODEGEN: codegen-emission: qir-base
