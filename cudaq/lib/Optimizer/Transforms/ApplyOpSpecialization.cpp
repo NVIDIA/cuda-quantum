@@ -1479,7 +1479,8 @@ public:
       if (variant.needsControlVariant) {
         if (failed(sanityCheck(func)))
           return failure();
-        createControlVariantOf(func, newApplyOps);
+        if (failed(createControlVariantOf(func, newApplyOps)))
+          return failure();
       }
       if (variant.needsAdjointVariant) {
         auto fnName = func.getName().str();
@@ -1538,7 +1539,13 @@ public:
     return controlNotNeeded;
   }
 
-  func::FuncOp
+  /// Create the controlled variant of \p func. Fails (with a diagnostic
+  /// unless `legacy-classical`) when \p func contains a measurement: the
+  /// gate-by-gate construction below would condition the basis change
+  /// feeding the measurement and the outcome-conditioned reset on the
+  /// control, producing a controlled kernel whose measurement outcome
+  /// distribution depends on the control.
+  FailureOr<func::FuncOp>
   createControlVariantOf(func::FuncOp func,
                          SmallVectorImpl<cudaq::quake::ApplyOp> &newApplyOps) {
     ModuleOp module = getOperation();
@@ -1552,6 +1559,19 @@ public:
       if (!lookup.getBody().empty())
         return lookup;
     LLVM_DEBUG(llvm::dbgs() << "creating control variant " << funcName << '\n');
+    if (cudaq::opt::hasMeasureOp(func)) {
+      LLVM_DEBUG(llvm::dbgs() << "cannot make control variant of " + funcName +
+                                     " with a measurement\n");
+      if (legacyClassical)
+        return failure();
+      return func.emitOpError(
+          "auto-generation of controlled " + funcName + " failed. " +
+          func.getName().str() +
+          " contains measurements: a gate-by-gate control variant would "
+          "condition the measurement basis change and the outcome-conditioned "
+          "feedforward on the control, so the controlled kernel would be "
+          "incorrect. Construct the controlled kernel by hand.");
+    }
     auto funcTy = func.getFunctionType();
     auto veqTy = cudaq::quake::VeqType::getUnsized(ctx);
     auto loc = func.getLoc();
@@ -2107,8 +2127,12 @@ public:
     auto funcName = func.getName().str();
     auto ctrlFuncName = getCtrlVariantFunctionName(funcName);
     auto ctrlFunc = module.lookupSymbol<func::FuncOp>(ctrlFuncName);
-    if (!ctrlFunc)
-      ctrlFunc = createControlVariantOf(func, newApplyOps);
+    if (!ctrlFunc) {
+      auto created = createControlVariantOf(func, newApplyOps);
+      if (failed(created))
+        return failure();
+      ctrlFunc = *created;
+    }
 
     auto newFuncName = getAdjCtrlVariantFunctionName(funcName);
     return createAdjointVariantOf(ctrlFunc, std::move(newFuncName),
