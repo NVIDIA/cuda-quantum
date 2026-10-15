@@ -1585,6 +1585,21 @@ def test_repeated_builder_launch_no_segfault():
     assert "OK" in proc.stdout
 
 
+def test_list_arg_length_validated_against_max_index_not_index_count():
+    """A `list`-typed kernel argument must be long enough to cover the
+    highest constant index used to extract from it. Indexing a single high
+    offset must not be accepted just because only one distinct index is used
+    in the kernel body."""
+
+    kernel, angles = cudaq.make_kernel(list[float])
+    q = kernel.qalloc(1)
+    kernel.rx(angles[5], q[0])
+
+    with pytest.raises(RuntimeError) as error:
+        kernel([1.0])
+    assert "Invalid runtime list argument" in str(error.value)
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
