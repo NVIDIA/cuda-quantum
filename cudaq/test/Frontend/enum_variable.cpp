@@ -9,7 +9,7 @@
 // RUN: cudaq-quake %s | FileCheck %s
 // clang-format off
 
-#include "cudaq.h"
+#include "cudaq/qis/qubit_qis.h"
 
 // An enumeration is represented by its underlying integer type, and an
 // enumerator is a constant of that type.

@@ -18,7 +18,8 @@
 // RUN: rm -rf %t && mkdir %t
 // RUN: cd %t && nvq++ -save-temps %s -o app
 // RUN: FileCheck %s --input-file=%t/run_vector_return.dcl.qke
-// RUN: cd %t && nvq++ -c %s -o first.o
+// Keep the saved object; the next compile reuses its basename.
+// RUN: cd %t && cp run_vector_return.o first.o
 // RUN: cd %t && nvq++ -Drun_vector_return=run_vector_return_second \
 // RUN:   -Dmain=run_vector_return_second_main -c %s -o second.o
 // RUN: cd %t && nvq++ first.o second.o -o linked-app
