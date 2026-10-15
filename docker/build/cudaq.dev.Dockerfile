@@ -142,9 +142,9 @@ RUN if [ "$run_tests" = "true" ] && [ -n "$mpi" ]; then \
 # builds Logical one way into its own layer, so one never sees the other's
 # files in the CUDA-Q installation prefix.
 #
-# qlx-python-tests runs one serial pytest process with a 20-minute CTest
-# timeout, which a Debug build on a loaded runner exceeds; PYTEST_ADDOPTS makes
-# pytest use xdist (workers capped as in test_in_devenv.yml to bound memory).
+# qlx-python-tests is one long pytest process, slow on Debug builds on loaded
+# runners; PYTEST_ADDOPTS makes pytest use xdist (workers capped as in
+# test_in_devenv.yml to bound memory).
 #
 # Out-of-tree: configure Logical against the CUDA-Q *installation*, with the
 # toolchain audit on, then run its ctest suite.

@@ -508,5 +508,7 @@ set_tests_properties(qlx-python-tests PROPERTIES
   ENVIRONMENT_MODIFICATION
     "${_qlx_runtime_pytest_env_modifications}"
   LABELS "qlx;conformance"
-  TIMEOUT 1200
+  # The suite runs ~15 minutes serially on a fast Release build; Debug builds
+  # on loaded (e.g. arm64 CI) runners need headroom.
+  TIMEOUT 3600
 )
