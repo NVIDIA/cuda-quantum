@@ -107,10 +107,8 @@ __global__ void dispatch_kernel_device_call_only(
     // read the device-memory copies after the grid barrier.
     //==========================================================================
     __shared__ DeviceRPCFunction s_func;
-    __shared__ void*             s_arg_buffer;
-    __shared__ std::uint8_t*     s_output_buffer;
-    __shared__ std::uint32_t     s_arg_len;
-    __shared__ std::uint32_t     s_max_result_len;
+    __shared__ const void*       s_rx_slot;
+    __shared__ std::uint8_t*     s_tx_slot;
     __shared__ std::uint32_t     s_request_id;
     __shared__ std::uint64_t     s_ptp_timestamp;
     __shared__ bool              s_have_work;
@@ -119,10 +117,8 @@ __global__ void dispatch_kernel_device_call_only(
     // We use a single set since the cooperative kernel processes one RPC at
     // a time (all threads participate, so no pipelining).
     __device__ static DeviceRPCFunction d_func;
-    __device__ static void*             d_arg_buffer;
-    __device__ static std::uint8_t*     d_output_buffer;
-    __device__ static std::uint32_t     d_arg_len;
-    __device__ static std::uint32_t     d_max_result_len;
+    __device__ static const void*       d_rx_slot;
+    __device__ static std::uint8_t*     d_tx_slot;
     __device__ static std::uint32_t     d_request_id;
     __device__ static std::uint64_t     d_ptp_timestamp;
     __device__ static bool              d_have_work;
@@ -174,20 +170,16 @@ __global__ void dispatch_kernel_device_call_only(
 
               s_func          = reinterpret_cast<DeviceRPCFunction>(
                   entry->handler.device_fn_ptr);
-              s_arg_buffer    = static_cast<void*>(header + 1);
-              s_output_buffer = tx_slot + sizeof(RPCResponse);
-              s_arg_len       = header->arg_len;
-              s_max_result_len = tx_stride_sz - sizeof(RPCResponse);
+              s_rx_slot       = rx_slot;
+              s_tx_slot       = tx_slot;
               s_request_id    = header->request_id;
               s_ptp_timestamp = header->ptp_timestamp;
               s_have_work     = true;
 
               // Publish to device memory for other blocks
               d_func           = s_func;
-              d_arg_buffer     = s_arg_buffer;
-              d_output_buffer  = s_output_buffer;
-              d_arg_len        = s_arg_len;
-              d_max_result_len = s_max_result_len;
+              d_rx_slot        = s_rx_slot;
+              d_tx_slot        = s_tx_slot;
               d_request_id     = s_request_id;
               d_ptp_timestamp  = s_ptp_timestamp;
               d_have_work      = true;
@@ -216,38 +208,33 @@ __global__ void dispatch_kernel_device_call_only(
       // Non-block-0 threads read from device memory
       bool have_work;
       DeviceRPCFunction func;
-      void* arg_buffer;
-      std::uint8_t* output_buffer;
-      std::uint32_t arg_len;
-      std::uint32_t max_result_len;
+      const void* rx_slot;
+      std::uint8_t* tx_slot;
       std::uint32_t request_id;
       std::uint64_t ptp_timestamp;
       if (blockIdx.x == 0) {
         have_work      = s_have_work;
         func           = s_func;
-        arg_buffer     = s_arg_buffer;
-        output_buffer  = s_output_buffer;
-        arg_len        = s_arg_len;
-        max_result_len = s_max_result_len;
+        rx_slot        = s_rx_slot;
+        tx_slot        = s_tx_slot;
         request_id     = s_request_id;
         ptp_timestamp  = s_ptp_timestamp;
       } else {
         have_work      = d_have_work;
         func           = d_func;
-        arg_buffer     = d_arg_buffer;
-        output_buffer  = d_output_buffer;
-        arg_len        = d_arg_len;
-        max_result_len = d_max_result_len;
+        rx_slot        = d_rx_slot;
+        tx_slot        = d_tx_slot;
         request_id     = d_request_id;
         ptp_timestamp  = d_ptp_timestamp;
       }
 
       // --- Phase 3: ALL threads call the handler ---
-      std::uint32_t result_len = 0;
+      // Same two-pointer call as the host path (host_dispatcher.cu): the
+      // handler reads the request from rx_slot, writes its result after the
+      // RPCResponse in tx_slot and sets response->result_len.
       int status = 0;
       if (have_work) {
-        status = func(arg_buffer, output_buffer, arg_len,
-                       max_result_len, &result_len);
+        status = func(rx_slot, tx_slot, tx_stride_sz);
       }
 
       // --- Phase 4: Sync, then thread 0 writes response ---
@@ -255,11 +242,12 @@ __global__ void dispatch_kernel_device_call_only(
 
       if (tid == 0) {
         if (have_work) {
-          std::uint8_t* tx_slot = tx_data + current_slot * tx_stride_sz;
           RPCResponse* response = reinterpret_cast<RPCResponse*>(tx_slot);
           response->magic = RPC_MAGIC_RESPONSE;
           response->status = status;
-          response->result_len = result_len;
+          // result_len was set by the handler; force it to 0 on failure.
+          if (status != 0)
+            response->result_len = 0;
           response->request_id = request_id;
           response->ptp_timestamp = ptp_timestamp;
 
@@ -344,8 +332,6 @@ __global__ void dispatch_kernel_device_call_only(
             current_slot = (current_slot + 1) % num_slots;
           } else {
             std::uint32_t function_id = header->function_id;
-            std::uint32_t arg_len = header->arg_len;
-            void* arg_buffer = static_cast<void*>(header + 1);
 
             const cudaq_function_entry_t* entry = dispatch_lookup_entry(
                 function_id, function_table, func_count);
@@ -356,16 +342,19 @@ __global__ void dispatch_kernel_device_call_only(
                   reinterpret_cast<DeviceRPCFunction>(entry->handler.device_fn_ptr);
 
               std::uint8_t* tx_slot = tx_data + current_slot * tx_stride_sz;
-              std::uint8_t* output_buffer = tx_slot + sizeof(RPCResponse);
-              std::uint32_t result_len = 0;
-              std::uint32_t max_result_len = tx_stride_sz - sizeof(RPCResponse);
-              int status = func(arg_buffer, output_buffer, arg_len,
-                                max_result_len, &result_len);
+              // Same two-pointer call as the host path (host_dispatcher.cu):
+              // the handler reads the request from rx_slot, writes its result
+              // after the RPCResponse in tx_slot and sets response->result_len.
+              // Nothing is written to tx_slot before the call: on an in-place
+              // ring it aliases rx_slot.
+              int status = func(rx_slot, tx_slot, tx_stride_sz);
 
               RPCResponse* response = reinterpret_cast<RPCResponse*>(tx_slot);
               response->magic = RPC_MAGIC_RESPONSE;
               response->status = status;
-              response->result_len = result_len;
+              // result_len was set by the handler; force it to 0 on failure.
+              if (status != 0)
+                response->result_len = 0;
               response->request_id = header->request_id;
               response->ptp_timestamp = header->ptp_timestamp;
 
@@ -467,8 +456,6 @@ __global__ void dispatch_kernel_with_graph(
           current_slot = (current_slot + 1) % num_slots;
         } else {
           std::uint32_t function_id = header->function_id;
-          std::uint32_t arg_len = header->arg_len;
-          void* arg_buffer = static_cast<void*>(header + 1);
 
           const cudaq_function_entry_t* entry = dispatch_lookup_entry(
               function_id, function_table, func_count);
@@ -482,11 +469,13 @@ __global__ void dispatch_kernel_with_graph(
               DeviceRPCFunction func =
                   reinterpret_cast<DeviceRPCFunction>(entry->handler.device_fn_ptr);
 
-              std::uint8_t* output_buffer = tx_slot + sizeof(RPCResponse);
-              std::uint32_t result_len = 0;
-              std::uint32_t max_result_len = tx_stride_sz - sizeof(RPCResponse);
-              int status = func(arg_buffer, output_buffer, arg_len,
-                                max_result_len, &result_len);
+              // Same two-pointer call as the host path (host_dispatcher.cu):
+              // the handler reads the request from rx_slot, writes its result
+              // after the RPCResponse in tx_slot and sets response->result_len.
+              // Nothing is written to tx_slot before the call: on an in-place
+              // ring it aliases rx_slot.
+              int status = func(rx_slot, tx_slot, tx_stride_sz);
+              RPCResponse* response = reinterpret_cast<RPCResponse*>(tx_slot);
 
 #if __CUDA_ARCH__ >= 900
               // A handler may request that the configured follow-up graph be
@@ -512,14 +501,15 @@ __global__ void dispatch_kernel_with_graph(
                   s_relaunch = true;
                 }
                 status = 0;
-                result_len = 0;
+                response->result_len = 0;
               }
 #endif
 
-              RPCResponse* response = reinterpret_cast<RPCResponse*>(tx_slot);
               response->magic = RPC_MAGIC_RESPONSE;
               response->status = status;
-              response->result_len = result_len;
+              // result_len was set by the handler; force it to 0 on failure.
+              if (status != 0)
+                response->result_len = 0;
               response->request_id = header->request_id;
               response->ptp_timestamp = header->ptp_timestamp;
 

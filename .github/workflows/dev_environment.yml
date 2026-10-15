@@ -400,6 +400,54 @@ jobs:
           retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           retry cosign sign --yes --recursive "${TAGS}@${DIGEST}"
 
+      # GHCR has a practical per-layer size limit; a layer over that can fail
+      # to push/pull reliably. Report every layer's pushed (compressed) size
+      # and fail if any single layer is over the limit.
+      - name: Check Docker layer sizes
+        if: steps.cache.outputs.push_to_registry == 'true'
+        env:
+          IMAGE_REF: ${{ needs.metadata.outputs.image_name }}@${{ steps.docker_build.outputs.digest }}
+        run: |
+          max_bytes=$((5 * 1000 * 1000 * 1000))
+          report_layers() {
+            local manifest_file=$1 label=$2
+            echo "--- $label ---"
+            jq -r '.layers[] | "\(.size)\t\(.mediaType)"' "$manifest_file" \
+              | sort -rn \
+              | while IFS=$'\t' read -r size media; do
+                  gb=$(awk -v s="$size" 'BEGIN { printf "%.3f", s/1000000000 }')
+                  marker=""
+                  if [ "$size" -gt "$max_bytes" ]; then
+                    marker="  <<<< OVER ${max_bytes}-byte (5GB) LIMIT"
+                    echo over >> /tmp/layer_size_over_limit
+                  fi
+                  printf "  %8s GB  %s%s\n" "$gb" "$media" "$marker"
+                done
+          }
+
+          rm -f /tmp/layer_size_over_limit
+          echo "=== Docker layer sizes for $IMAGE_REF ==="
+          docker buildx imagetools inspect "$IMAGE_REF" --raw > /tmp/index.json
+          media_type=$(jq -r '.mediaType' /tmp/index.json)
+          repo="${IMAGE_REF%@*}"
+
+          if [ "$media_type" = "application/vnd.oci.image.index.v1+json" ] || \
+             [ "$media_type" = "application/vnd.docker.distribution.manifest.list.v2+json" ]; then
+            digests=$(jq -r '.manifests[] | select(.platform.architecture != null and .platform.architecture != "unknown") | .digest' /tmp/index.json)
+            for digest in $digests; do
+              platform=$(jq -r --arg d "$digest" '.manifests[] | select(.digest == $d) | "\(.platform.os)/\(.platform.architecture)"' /tmp/index.json)
+              docker buildx imagetools inspect "$repo@$digest" --raw > /tmp/platform_manifest.json
+              report_layers /tmp/platform_manifest.json "$platform"
+            done
+          else
+            report_layers /tmp/index.json "$(uname -m)"
+          fi
+
+          if [ -f /tmp/layer_size_over_limit ]; then
+            echo "::error::One or more Docker layers for $IMAGE_REF exceed the 5GB GHCR practical limit."
+            exit 1
+          fi
+
       # See also https://github.com/moby/buildkit/issues/1896
       - name: Clean up build cache
         run: |

@@ -11,15 +11,17 @@
 /// inter-kernel flag handoff.
 ///
 /// This file carries no transport dependency of any kind -- it is compiled
-/// without DOCA, verbs or HSB include paths, and that exclusion is enforced by
-/// its CMake target rather than by convention.  Everything transport-specific
-/// arrives through the three `__device__` hooks declared in
-/// unified_device_transport.cuh, which a transport implements in its own TU
-/// and device-links into the same shared library (see the LINKAGE note there).
+/// without DOCA, verbs or HSB include paths, which the CMake build scopes to
+/// the transport's own TU.  Everything transport-specific arrives through the
+/// three `__device__` hooks declared in unified_device_transport.cuh, which a
+/// transport implements in its own TU (see the LINKAGE note there).
 ///
-/// Compiled into libcudaq-realtime, together with whichever TU defines the
-/// hooks: bridge/gpu_roce/gpu_roce_unified_transport.cu when that transport
-/// is configured, otherwise dispatcher/unified_transport_none.cu.
+/// Compiled into libcudaq-realtime-dispatch.a, together with whichever TU
+/// defines the hooks: bridge/gpu_roce/gpu_roce_unified_transport.cu when that
+/// transport is configured, otherwise dispatcher/unified_transport_none.cu.
+/// The consumer device-links the archive with its DEVICE_CALL handlers, so the
+/// kernel, the hooks and the handlers the function table points at share one
+/// CUDA module.
 
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
@@ -47,10 +49,10 @@ unified_lookup_entry(std::uint32_t function_id, cudaq_function_entry_t *entries,
 //==============================================================================
 // Unified dispatch kernel -- single thread, single block.
 //
-// Each turn claims one slot from the transport, runs its handler in place, and
-// hands the slot back.  The wait, the wire transfer and all receive
-// bookkeeping live behind the hooks, so what remains here is framing and
-// dispatch.
+// Each turn claims a request and its response frame from the transport, runs
+// the handler from one into the other, and hands the response back.  The
+// wait, the wire transfer and all receive bookkeeping live behind the hooks,
+// so what remains here is framing and dispatch.
 //==============================================================================
 
 __global__ void
@@ -58,57 +60,63 @@ cudaq_unified_dispatch_kernel(void *transport_ctx, std::size_t tx_stride_sz,
                               volatile int *shutdown_flag,
                               cudaq_function_entry_t *function_table,
                               std::size_t func_count, std::uint64_t *stats) {
-  void *session = cudaq_dev_transport_attach(transport_ctx, shutdown_flag);
+  alignas(CUDAQ_DEV_TRANSPORT_SESSION_ALIGN) unsigned char
+      session_storage[CUDAQ_DEV_TRANSPORT_SESSION_BYTES];
+  void *session = cudaq_dev_transport_attach(session_storage, transport_ctx,
+                                             shutdown_flag);
   if (session == nullptr)
     return;
 
   std::uint64_t packet_count = 0;
 
   while (true) {
-    void *frame = nullptr;
-    if (cudaq_dev_rx_poll(session, &frame) != CUDAQ_RX_DEV_READY)
+    void *request = nullptr;
+    void *response_frame = nullptr;
+    if (cudaq_dev_rx_poll(session, &request, &response_frame) !=
+        CUDAQ_RX_DEV_READY)
       break;
 
-    auto *slot = static_cast<std::uint8_t *>(frame);
-    auto *header = reinterpret_cast<RPCHeader *>(slot);
+    auto *header = static_cast<RPCHeader *>(request);
+    auto *response = static_cast<RPCResponse *>(response_frame);
+
+    // Read before the handler runs: after its call the compiler has to assume
+    // the request may have changed and reload it behind the response stores.
+    const std::uint32_t request_id = header->request_id;
+    const std::uint64_t ptp_timestamp = header->ptp_timestamp;
+
+    int status = -1;
 
     if (header->magic == RPC_MAGIC_REQUEST) {
-      std::uint32_t function_id = header->function_id;
-      std::uint32_t arg_len = header->arg_len;
-      std::uint32_t request_id = header->request_id;
-      std::uint64_t ptp_timestamp = header->ptp_timestamp;
-
       const cudaq_function_entry_t *entry =
-          unified_lookup_entry(function_id, function_table, func_count);
-
-      int status = -1;
-      std::uint32_t result_len = 0;
+          unified_lookup_entry(header->function_id, function_table, func_count);
 
       if (entry != nullptr &&
           entry->dispatch_mode == CUDAQ_DISPATCH_DEVICE_CALL) {
         auto func =
             reinterpret_cast<DeviceRPCFunction>(entry->handler.device_fn_ptr);
-        void *arg_buffer = static_cast<void *>(header + 1);
-        auto *output_buffer = slot + sizeof(RPCResponse);
-        auto max_result_len =
-            static_cast<std::uint32_t>(tx_stride_sz - sizeof(RPCResponse));
-
-        status = func(arg_buffer, output_buffer, arg_len, max_result_len,
-                      &result_len);
+        // Same two-pointer call as the host path (host_dispatcher.cu): the
+        // handler reads the request from `request`, writes its result after
+        // the RPCResponse in `response_frame` and sets response->result_len.
+        status = func(request, response_frame, tx_stride_sz);
       }
-
-      auto *response = reinterpret_cast<RPCResponse *>(slot);
-      response->magic = RPC_MAGIC_RESPONSE;
-      response->status = status;
-      response->result_len = result_len;
-      response->request_id = request_id;
-      response->ptp_timestamp = ptp_timestamp;
     }
+
+    // Written for every frame, bad magic included: the publish below is
+    // mandatory, and an unwritten response frame would put whatever the slot
+    // last held on the wire.
+    response->magic = RPC_MAGIC_RESPONSE;
+    response->status = status;
+    // The handler owns result_len; force it to 0 for unhandled frames and
+    // failed handlers.
+    if (status != 0)
+      response->result_len = 0;
+    response->request_id = request_id;
+    response->ptp_timestamp = ptp_timestamp;
 
     // Published unconditionally, including for a frame whose magic did not
     // match: tx_publish is also what returns the slot's receive credit, so
     // dropping one here would starve the transport a slot at a time.
-    cudaq_dev_tx_publish(session, frame);
+    cudaq_dev_tx_publish(session, response_frame);
 
     packet_count++;
   }

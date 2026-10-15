@@ -51,9 +51,10 @@ def test_base_dependencies_exclude_the_cudaq_runtime():
     project = _load_pyproject()["project"]
     dependencies = project["dependencies"]
     offenders = [
-        d for d in dependencies if d.startswith(("cudaq", "cuda-quantum"))
+        d for d in dependencies if d.startswith(("cudaq-devel", "cuda-quantum"))
     ]
     assert offenders == []
+    assert "cudaq-core" in dependencies
 
 
 def test_runtime_extras_map_to_the_cudaq_runtime_wheels():
@@ -107,8 +108,7 @@ importlib.util.find_spec = _without_cudaq
     assert result.returncode != 0
     assert "ImportError" in result.stderr
     assert "requires the CUDA-Q core bindings" in result.stderr
-    for hint in ("cudaq-logical[cu13]", "cudaq-logical[cu12]",
-                 "pip install cudaq"):
+    for hint in ("pip install cudaq-logical", "pip install cudaq"):
         assert hint in result.stderr
 
 
@@ -170,12 +170,13 @@ assert "cudaq.kernel.kernel_decorator" not in sys.modules
     assert result.returncode == 0, result.stderr
 
 
-def test_stamp_script_pins_both_runtime_extras(tmp_path):
+def test_stamp_script_pins_core_and_both_runtime_extras(tmp_path):
     from scripts.stamp_cudaq_runtime_dependency import stamp_runtime_dependency
 
     stamped = tmp_path / "pyproject.toml"
     stamped.write_text(PYPROJECT.read_text())
-    for distribution in ("cuda-quantum-cu12", "cuda-quantum-cu13"):
+    for distribution in ("cudaq-core", "cuda-quantum-cu12",
+                         "cuda-quantum-cu13"):
         dependency = stamp_runtime_dependency(stamped,
                                               distribution=distribution,
                                               version="0.16.0")
@@ -185,9 +186,10 @@ def test_stamp_script_pins_both_runtime_extras(tmp_path):
     extras = project["optional-dependencies"]
     assert extras["cu12"] == ["cuda-quantum-cu12==0.16.0"]
     assert extras["cu13"] == ["cuda-quantum-cu13==0.16.0"]
-    # The base dependency list stays runtime-free after stamping.
+    assert "cudaq-core==0.16.0" in project["dependencies"]
+    # The base dependency list stays frontend- and SDK-free after stamping.
     assert not any(
-        d.startswith(("cudaq", "cuda-quantum"))
+        d.startswith(("cudaq-devel", "cuda-quantum"))
         for d in project["dependencies"])
 
 
