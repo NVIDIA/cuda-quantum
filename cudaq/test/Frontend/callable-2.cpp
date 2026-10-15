@@ -7,8 +7,9 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: cudaq-quake %s | FileCheck %s
-// RUN: cudaq-quake %s | cudaq-opt --lambda-lifting --canonicalize | FileCheck --check-prefixes=LIFT %s
+// RUN: cudaq-quake %s -o %t.qke
+// RUN: FileCheck %s --input-file=%t.qke
+// RUN: cudaq-opt %t.qke --lambda-lifting --canonicalize | FileCheck --check-prefixes=LIFT %s
 // clang-format on
 
 #include <cudaq.h>
