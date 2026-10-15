@@ -6,8 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "common/CompileTarget.h"
+#include "cudaq/Target/CompileTarget.h"
 #include "cudaq/Support/Hash.h"
+#include "cudaq/Target/TargetConfig.h"
 #include "cudaq/runtime/logger/logger.h"
 #include <cctype>
 
@@ -62,11 +63,11 @@ cudaq::CompileTarget cudaq::CompileTarget::createFromConfig(
     config::TargetConfig targetConfig,
     std::map<std::string, std::string> runtimeConfig,
     std::map<std::string, std::string> pipelineSubstitutions) {
-  cudaq::CompileTarget target;
   const config::BackendEndConfigEntry defaultConfig;
 
   const auto &backendConfig =
       targetConfig.BackendConfig.value_or(defaultConfig);
+  cudaq::CompileTarget target = backendConfig.CompileTarget;
   auto prepPipeline = [&](const std::string &stage,
                           const std::string &stageName) {
     std::string pipeline = stage;
@@ -77,37 +78,43 @@ cudaq::CompileTarget cudaq::CompileTarget::createFromConfig(
     }
     return pipeline;
   };
-
-  if (!backendConfig.TargetPassPipeline.empty()) {
-    target.pipelineConfig.overridePassPipeline = prepPipeline(
-        backendConfig.TargetPassPipeline, "Pass pipeline (overridden)");
-  } else {
-    target.pipelineConfig.highLevelPipeline =
-        prepPipeline(backendConfig.JITHighLevelPipeline, "JIT high level");
-    target.pipelineConfig.midLevelPipeline =
-        prepPipeline(backendConfig.JITMidLevelPipeline, "JIT mid level");
-    target.pipelineConfig.lowLevelPipeline =
-        prepPipeline(backendConfig.JITLowLevelPipeline, "JIT low level");
-  }
-  auto codegenTranslation = targetConfig.getCodeGenSpec(runtimeConfig);
-  if (!codegenTranslation.empty()) {
-    target.pipelineConfig.codegenTranslation = codegenTranslation;
-    CUDAQ_INFO("{:<27} {}\n", "Codegen:", codegenTranslation);
-  }
-  if (!backendConfig.PostCodeGenPasses.empty()) {
-    target.pipelineConfig.postCodeGenPasses = backendConfig.PostCodeGenPasses;
-    CUDAQ_INFO("{:<27} {}\n",
-               "Post-codegen:", target.pipelineConfig.postCodeGenPasses);
-  }
-
-  target.supportResourceCounts = backendConfig.SupportResourceCounts;
+  auto resolvePipeline = [&](config::ExplicitPipelineProfile &profile) {
+    if (!profile.overridePassPipeline.empty()) {
+      profile.overridePassPipeline = prepPipeline(profile.overridePassPipeline,
+                                                  "Pass pipeline (overridden)");
+    } else {
+      profile.highLevelPipeline =
+          prepPipeline(profile.highLevelPipeline, "JIT high level");
+      profile.midLevelPipeline =
+          prepPipeline(profile.midLevelPipeline, "JIT mid level");
+      profile.lowLevelPipeline =
+          prepPipeline(profile.lowLevelPipeline, "JIT low level");
+    }
+  };
 
   // Handle disable_qubit_mapping runtime option.
   auto disableQM = runtimeConfig.find("disable_qubit_mapping");
+  auto disableQubitMapping = false;
   if (disableQM != runtimeConfig.end() && disableQM->second == "true") {
-    target.pipelineConfig.disableQubitMapping = true;
+    disableQubitMapping = true;
     CUDAQ_INFO("{:<27} {}\n", "disable_qubit_mapping:", "true");
   }
+  for (auto &stage : target.profiles) {
+    auto *profile = std::get_if<config::ExplicitPipelineProfile>(&stage);
+    if (!profile)
+      continue;
+    resolvePipeline(*profile);
+    profile->disableQubitMapping |= disableQubitMapping;
+
+    if (!profile->postCodeGenPasses.empty())
+      CUDAQ_INFO("{:<27} {}\n", "Post-codegen:", profile->postCodeGenPasses);
+  }
+
+  target.codegenTranslation = targetConfig.getCodeGenSpec(runtimeConfig);
+  if (!target.codegenTranslation.empty())
+    CUDAQ_INFO("{:<27} {}\n", "Codegen:", target.codegenTranslation);
+
+  target.supportResourceCounts = backendConfig.SupportResourceCounts;
 
   return target;
 }
@@ -115,17 +122,26 @@ cudaq::CompileTarget cudaq::CompileTarget::createFromConfig(
 std::size_t std::hash<cudaq::CompileTarget>::operator()(
     const cudaq::CompileTarget &t) const noexcept {
   return cudaq::detail::hashVal(
-      t.pipelineConfig, t.overrideAOTCompilation,
+      t.overrideAOTCompilation, t.profiles, t.codegenTranslation,
       t.supportConditionalsOnMeasureResults, t.supportDeviceCalls,
       t.supportResourceCounts, t.supportExplicitMeasurements,
       t.supportObservableMeasurements, t.supportSampleWithoutMeasurements,
       t.fullySpecialize, t.argumentSynthChangeSemantics);
 }
 
-std::size_t std::hash<cudaq::CompileTarget::PipelineConfig>::operator()(
-    const cudaq::CompileTarget::PipelineConfig &pc) const noexcept {
+std::size_t std::hash<cudaq::config::ExplicitPipelineProfile>::operator()(
+    const cudaq::config::ExplicitPipelineProfile &profile) const noexcept {
   return cudaq::detail::hashVal(
-      pc.overridePassPipeline, pc.highLevelPipeline, pc.midLevelPipeline,
-      pc.lowLevelPipeline, pc.codegenTranslation, pc.postCodeGenPasses,
-      pc.disableQubitMapping, pc.replaceStateWithKernel);
+      profile.overridePassPipeline, profile.highLevelPipeline,
+      profile.midLevelPipeline, profile.lowLevelPipeline,
+      profile.postCodeGenPasses, profile.disableQubitMapping,
+      profile.replaceStateWithKernel);
+}
+
+std::size_t std::hash<std::vector<cudaq::config::Profile>>::operator()(
+    const std::vector<cudaq::config::Profile> &profiles) const noexcept {
+  std::size_t seed = 0;
+  for (const auto &profile : profiles)
+    cudaq::detail::hashCombine(seed, profile);
+  return seed;
 }

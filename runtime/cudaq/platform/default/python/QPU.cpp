@@ -9,7 +9,6 @@
 #include "QPU.h"
 #include "common/ArgumentWrapper.h"
 #include "common/CompileOptions.h"
-#include "common/CompileTarget.h"
 #include "common/CompiledModule.h"
 #include "common/Environment.h"
 #include "common/ExecutionContext.h"
@@ -25,6 +24,7 @@
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
+#include "cudaq/Target/CompileTarget.h"
 #include "cudaq/Verifier/QIRLLVMIRDialect.h"
 #include "cudaq/platform.h"
 #include "cudaq/runtime/logger/logger.h"
@@ -66,7 +66,9 @@ std::string cudaq::detail::lower_to_qir_llvm(const std::string &name,
   // TODO: can the following be merged with qirProfileTranslationFunction in
   // RuntimeMLIR.cpp?
   PassManager pm(compiled_module.getContext());
-  if (compiler.getTarget().pipelineConfig.empty()) {
+  const auto &explicitProfile =
+      compiler.getTarget().getExplicitPipelineProfile();
+  if (explicitProfile.empty()) {
     cudaq::opt::addAggressiveInlining(pm);
     cudaq::opt::createTargetFinalizePipeline(pm);
   }
@@ -117,7 +119,9 @@ std::string cudaq::detail::lower_to_openqasm(const std::string &name,
           *compiled.getMlir());
   auto *ctx = compiled_module.getContext();
   PassManager pm(ctx);
-  if (compiler.getTarget().pipelineConfig.empty()) {
+  const auto &explicitProfile =
+      compiler.getTarget().getExplicitPipelineProfile();
+  if (explicitProfile.empty()) {
     cudaq::opt::addAggressiveInlining(pm);
     cudaq::opt::createTargetFinalizePipeline(pm);
   }

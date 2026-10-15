@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "ProgramFingerprint.h"
-#include "common/CompileTarget.h"
+#include "cudaq/Target/CompileTarget.h"
 #include "common/DeviceCodeRegistry.h"
 #include "cudaq_internal/compiler/ArgumentConversion.h"
 #include "utils/OpaqueArguments.h"

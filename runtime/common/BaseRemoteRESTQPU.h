@@ -222,7 +222,8 @@ public:
         serverHelper->getPipelineSubstitutions(platformPath);
     auto target = CompileTarget::createFromConfig(targetConfig, backendConfig,
                                                   pipelineSubstitutions);
-    target.pipelineConfig.replaceStateWithKernel = true;
+    auto &profile = target.getExplicitPipelineProfile();
+    profile.replaceStateWithKernel = true;
     target.overrideAOTCompilation = true;
     target.supportExplicitMeasurements = false;
     target.supportObservableMeasurements = false;

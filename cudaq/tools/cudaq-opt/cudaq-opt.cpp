@@ -87,7 +87,7 @@ static void registerTargetPassPipeline(const std::string &pipelineName,
 /// Registers a named pipeline for every
 ///  - in-tree target (and, within it, every configuration-matrix entry)
 ///  - extra YAML or compiled plugin-library files passed in @p configPaths
-/// that configures a `TargetPassPipeline`.
+/// that configures an override pass pipeline in its compilation profile.
 ///
 /// A target's name and a configuration-matrix entry's name are joined with
 /// '.' (not '-') to form the registered pipeline name: target and entry
@@ -116,17 +116,22 @@ registerAllTargetPassPipelines(llvm::ArrayRef<std::string> configPaths = {}) {
     }
     registerTargetPassPipeline(pipelineName, targetName, pipelineText);
   };
+  const auto overridePipeline =
+      [](const cudaq::config::BackendEndConfigEntry &backend) -> std::string {
+    const auto &profile = backend.CompileTarget.getExplicitPipelineProfile();
+    return profile.overridePassPipeline;
+  };
   for (const auto *entry : registry.list()) {
     const auto &config = *entry->config;
     const std::string targetName = entry->name;
     if (config.BackendConfig.has_value() &&
-        !config.BackendConfig->TargetPassPipeline.empty())
+        !overridePipeline(*config.BackendConfig).empty())
       registerUnique("target-pass-pipeline-" + targetName, targetName,
-                     config.BackendConfig->TargetPassPipeline);
+                     overridePipeline(*config.BackendConfig));
     for (const auto &entry : config.ConfigMap)
-      if (!entry.Config.TargetPassPipeline.empty())
+      if (!overridePipeline(entry.Config).empty())
         registerUnique("target-pass-pipeline-" + targetName + "." + entry.Name,
-                       targetName, entry.Config.TargetPassPipeline);
+                       targetName, overridePipeline(entry.Config));
   }
 }
 

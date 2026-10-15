@@ -1,0 +1,24 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+# RUN: not %target-catalog-driver parse %s 2>&1 | FileCheck %s
+
+# A `compile-target` must declare at least one stage.
+
+version: 2
+name: lit-v2-empty-stages
+description: "Empty compile-target stages rejected"
+config:
+  library-mode: false
+
+compile-target:
+  stages: []
+  codegen: nop
+
+# CHECK: error: Failed to parse target configuration YAML
+# CHECK: 'compile-target.stages' must contain at least one stage.

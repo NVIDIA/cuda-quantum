@@ -78,12 +78,14 @@ void printBackend(const BackendEndConfigEntry &backend, const char *indent) {
             << "\n"
             << indent << "support-resource-counts: "
             << boolStr(backend.SupportResourceCounts) << "\n";
-  printField(indent, "jit-high-level-pipeline", backend.JITHighLevelPipeline);
-  printField(indent, "jit-mid-level-pipeline", backend.JITMidLevelPipeline);
-  printField(indent, "jit-low-level-pipeline", backend.JITLowLevelPipeline);
-  printField(indent, "target-pass-pipeline", backend.TargetPassPipeline);
-  printField(indent, "codegen-emission", backend.CodegenEmission);
-  printField(indent, "post-codegen-passes", backend.PostCodeGenPasses);
+  const auto &pipelines = backend.CompileTarget.getExplicitPipelineProfile();
+  printField(indent, "jit-high-level-pipeline", pipelines.highLevelPipeline);
+  printField(indent, "jit-mid-level-pipeline", pipelines.midLevelPipeline);
+  printField(indent, "jit-low-level-pipeline", pipelines.lowLevelPipeline);
+  printField(indent, "target-pass-pipeline", pipelines.overridePassPipeline);
+  printField(indent, "codegen-emission",
+             backend.CompileTarget.codegenTranslation);
+  printField(indent, "post-codegen-passes", pipelines.postCodeGenPasses);
   printField(indent, "platform-library", backend.PlatformLibrary);
   printField(indent, "library-mode-execution-manager",
              backend.LibraryModeExecutionManager);

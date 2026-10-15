@@ -11,6 +11,7 @@
 // YAML schema for target configuration and entry points for parsing.
 
 #include "v1/TargetConfigV1.h"
+#include "v2/TargetConfigV2.h"
 
 namespace cudaq::config {
 
@@ -18,7 +19,8 @@ namespace cudaq::config {
 ///
 /// Add new schema versions here and update the `createTargetConfigFromSchema`.
 /// Unversioned YAML files are treated as v1.
-using TargetConfigSchema = rfl::TaggedUnion<"version", v1::TargetConfigV1>;
+using TargetConfigSchema =
+    rfl::TaggedUnion<"version", v1::TargetConfigV1, v2::TargetConfigV2>;
 
 /// Convert a parsed schema configuration to the in-memory type.
 TargetConfig createTargetConfigFromSchema(const TargetConfigSchema &schema);

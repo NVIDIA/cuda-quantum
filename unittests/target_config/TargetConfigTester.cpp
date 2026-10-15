@@ -139,6 +139,106 @@ config:
   EXPECT_EQ(config.CudaqVersion, "0.9.0-rc2+build.1");
 }
 
+TEST(TargetConfigTester, parsesV2ExplicitPipelineProfile) {
+  const auto config = cudaq::config::parseTargetConfig(R"(
+version: 2
+name: v2-target
+description: V2 schema coverage
+config:
+  platform-qpu: remote_rest
+  library-mode: false
+compile-target:
+  stages:
+    - ir-profile: explicit-pipeline
+      pipelines:
+        high-level-pipeline: "high-pipe"
+        mid-level-pipeline: "mid-pipe"
+        low-level-pipeline: "low-pipe"
+  codegen: qir-base
+)",
+                                                       {});
+  ASSERT_TRUE(config.BackendConfig.has_value());
+  const auto &compileTarget = config.BackendConfig->CompileTarget;
+  ASSERT_EQ(compileTarget.profiles.size(), 1);
+  const auto *profile =
+      compileTarget.profile<cudaq::config::ExplicitPipelineProfile>();
+  ASSERT_NE(profile, nullptr);
+  EXPECT_EQ(profile->highLevelPipeline, "high-pipe");
+  EXPECT_EQ(profile->midLevelPipeline, "mid-pipe");
+  EXPECT_EQ(profile->lowLevelPipeline, "low-pipe");
+  EXPECT_TRUE(profile->overridePassPipeline.empty());
+  EXPECT_EQ(compileTarget.codegenTranslation, "qir-base");
+  EXPECT_EQ(config.getCodeGenSpec({}), "qir-base");
+  EXPECT_TRUE(config.BackendConfig->hasPassPipeline());
+}
+
+TEST(TargetConfigTester, parsesV2OverridePipeline) {
+  const auto config = cudaq::config::parseTargetConfig(R"(
+version: 2
+name: v2-override
+description: V2 override pipeline
+config:
+  library-mode: false
+compile-target:
+  stages:
+    - ir-profile: explicit-pipeline
+      pipelines:
+        override-pass-pipeline: "canonicalize,cse"
+  codegen: nop
+)",
+                                                       {});
+  ASSERT_TRUE(config.BackendConfig.has_value());
+  const auto &profile =
+      config.BackendConfig->CompileTarget.getExplicitPipelineProfile();
+  EXPECT_EQ(profile.overridePassPipeline, "canonicalize,cse");
+  EXPECT_TRUE(profile.highLevelPipeline.empty());
+  EXPECT_TRUE(profile.midLevelPipeline.empty());
+  EXPECT_TRUE(profile.lowLevelPipeline.empty());
+  EXPECT_TRUE(config.BackendConfig->hasPassPipeline());
+}
+
+TEST(TargetConfigTester, v2RejectsV1CompilationKeys) {
+  const std::string yaml = R"(
+version: 2
+name: v2-invalid
+description: V1 compilation keys rejected under v2
+config:
+  library-mode: false
+  jit-mid-level-pipeline: "mid-pipe"
+)";
+  try {
+    (void)cudaq::config::parseTargetConfig(yaml, {});
+    FAIL() << "Expected parseTargetConfig to throw";
+  } catch (const std::runtime_error &error) {
+    EXPECT_NE(std::string(error.what()).find("Failed to parse"),
+              std::string::npos);
+  }
+}
+
+TEST(TargetConfigTester, v2RejectsMixedPipelineOptions) {
+  const std::string yaml = R"(
+version: 2
+name: v2-mixed
+description: Mixed pipeline options rejected
+config:
+  library-mode: false
+compile-target:
+  stages:
+    - ir-profile: explicit-pipeline
+      pipelines:
+        override-pass-pipeline: "canonicalize"
+        mid-level-pipeline: "mid-pipe"
+  codegen: nop
+)";
+  try {
+    (void)cudaq::config::parseTargetConfig(yaml, {});
+    FAIL() << "Expected parseTargetConfig to throw";
+  } catch (const std::runtime_error &error) {
+    EXPECT_NE(std::string(error.what()).find("Failed to parse"),
+              std::string::npos);
+  }
+}
+
 TEST(TargetConfigTester, missingTargetConfigThrows) {
   const auto missingPath = std::filesystem::temp_directory_path() /
                            "cudaq-missing-target-config.yml";
@@ -590,7 +690,9 @@ config:
   ASSERT_EQ(targets.count("my-backend"), 1);
   const auto &config = targets.at("my-backend").config;
   ASSERT_TRUE(config.BackendConfig.has_value());
-  EXPECT_EQ(config.BackendConfig->JITMidLevelPipeline,
+  const auto &profile =
+      config.BackendConfig->CompileTarget.getExplicitPipelineProfile();
+  EXPECT_EQ(profile.midLevelPipeline,
             "map{device=file(" + expectedTopology + ")}");
   ASSERT_EQ(config.BackendConfig->PreprocessorDefines.size(), 1);
   EXPECT_EQ(config.BackendConfig->PreprocessorDefines.front(),

@@ -26,7 +26,9 @@ std::string cudaq::config::TargetConfig::getCodeGenSpec(
       });
   if (machineConfigIter == TargetArguments.end()) {
     // No machine specific config
-    return BackendConfig.has_value() ? BackendConfig->CodegenEmission : "";
+    return BackendConfig.has_value()
+               ? BackendConfig->CompileTarget.codegenTranslation
+               : "";
   }
 
   // Get the machine name from the CLI argument
@@ -59,12 +61,13 @@ std::string cudaq::config::TargetConfig::getCodeGenSpec(
 
   // No machine specific config rule matches, fallback to the default backend
   // config
-  return BackendConfig.has_value() ? BackendConfig->CodegenEmission : "";
+  return BackendConfig.has_value()
+             ? BackendConfig->CompileTarget.codegenTranslation
+             : "";
 }
 
 bool cudaq::config::BackendEndConfigEntry::hasPassPipeline() const {
-  return !TargetPassPipeline.empty() || !JITHighLevelPipeline.empty() ||
-         !JITMidLevelPipeline.empty() || !JITLowLevelPipeline.empty();
+  return !CompileTarget.getExplicitPipelineProfile().empty();
 }
 
 cudaq::config::TargetVersionCompatibilityResult

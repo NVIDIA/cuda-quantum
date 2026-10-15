@@ -9,7 +9,7 @@
 #pragma once
 
 #include "common/CodeGenConfig.h"
-#include "common/CompileTarget.h"
+#include "cudaq/Target/CompileTarget.h"
 #include "common/CompiledModule.h"
 #include "common/ExecutionContext.h"
 #include "common/KernelArgs.h"

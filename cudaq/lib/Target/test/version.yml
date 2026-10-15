@@ -8,11 +8,11 @@
 
 # RUN: not %target-catalog-driver parse %s 2>&1 | FileCheck %s
 
-# Unsupported schema versions are rejected (only version 1 exists).
+# Unsupported schema versions are rejected (versions 1 and 2 exist).
 
-version: 2
+version: 3
 name: lit-version
 description: "Unsupported-version rejection coverage"
 
 # CHECK: error: Failed to parse target configuration YAML
-# CHECK: could not match version '2'
+# CHECK: could not match version '3'

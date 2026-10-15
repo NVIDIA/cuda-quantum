@@ -9,7 +9,7 @@
 #pragma once
 
 #include "OrcaExecutor.h"
-#include "common/CompileTarget.h"
+#include "cudaq/Target/CompileTarget.h"
 #include "common/CompiledModule.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/utils/cudaq_utils.h"

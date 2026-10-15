@@ -5,12 +5,19 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
+
 #pragma once
 
-#include "cudaq/Target/TargetConfig.h"
-#include "cudaq/operators.h"
+#include "cudaq/Target/Profile/AllProfiles.h"
+#include "cudaq/Target/Profile/ExplicitPipelineProfile.h"
 #include <map>
 #include <string>
+#include <variant>
+#include <vector>
+
+namespace cudaq::config {
+class TargetConfig;
+} // namespace cudaq::config
 
 namespace cudaq {
 
@@ -27,42 +34,12 @@ struct CompileTarget {
   /// options in this class.
   bool overrideAOTCompilation = false;
 
-  /// Resolved MLIR pass-pipeline and `codegen` settings.
-  struct PipelineConfig {
-    /// If set, override compilation pipeline with this string.
-    std::string overridePassPipeline;
+  /// Ordered target IR profiles, defining the successive lowering stages during
+  /// compilation.
+  std::vector<config::Profile> profiles{};
 
-    /// Compilation pipeline to insert at the appropriate stages.
-    std::string highLevelPipeline;
-    std::string midLevelPipeline;
-    std::string lowLevelPipeline;
-
-    /// Code generation emission selected by the target.
-    std::string codegenTranslation;
-
-    /// Optional pass pipeline to run after code generation.
-    std::string postCodeGenPasses;
-
-    /// Whether to disable qubit mapping.
-    bool disableQubitMapping = false;
-
-    /// Whether to run the replace-state-with-kernel pass.
-    ///
-    /// Allows targets that do not support get_state (e.g. remote QPUs)
-    /// to emulate its behavior by inserting the corresponding kernel calls.
-    bool replaceStateWithKernel = false;
-
-    /// Whether the pipeline is empty.
-    bool empty() const {
-      return overridePassPipeline.empty() && highLevelPipeline.empty() &&
-             midLevelPipeline.empty() && lowLevelPipeline.empty();
-    }
-
-    bool operator==(const PipelineConfig &other) const = default;
-  };
-
-  /// Pipeline configuration, populated by the constructor.
-  PipelineConfig pipelineConfig{};
+  /// Code generation emission selected by the target.
+  std::string codegenTranslation{};
 
   /// Whether branching on measurement results is supported.
   bool supportConditionalsOnMeasureResults = true;
@@ -100,6 +77,57 @@ struct CompileTarget {
   /// Set the `changeSemantics` flag for the argument synthesis pass.
   bool argumentSynthChangeSemantics = true;
 
+  /// Access the i-th profile of type `T`, or `nullptr` if not present.
+  template <typename T>
+  const T *profile(std::size_t i = 0) const {
+    if (i >= profiles.size())
+      return nullptr;
+    if (const auto *match = std::get_if<T>(&profiles[i]))
+      return match;
+    return nullptr;
+  }
+
+  /// Access the i-th profile of type `T`, or `nullptr` if not present.
+  template <typename T>
+  T *profile(std::size_t i = 0) {
+    if (i >= profiles.size())
+      return nullptr;
+    if (auto *match = std::get_if<T>(&profiles[i]))
+      return match;
+    return nullptr;
+  }
+
+  /// Access the explicit pipeline profile.
+  ///
+  /// @throws std::runtime_error if there isn't exactly one profile or the first
+  /// profile is not an explicit pipeline profile
+  // TODO: Temporary utility function used while there is only one explicit
+  // profile, to be replaced with more general profile handling
+  const config::ExplicitPipelineProfile &getExplicitPipelineProfile() const {
+    if (profiles.size() != 1)
+      throw std::runtime_error(
+          "Unsupported IR profile: only ExplicitPipelineProfile is "
+          "currently supported");
+    const auto *explicitProfile = profile<config::ExplicitPipelineProfile>();
+    if (!explicitProfile)
+      throw std::runtime_error(
+          "Unsupported IR profile: only ExplicitPipelineProfile is "
+          "currently supported");
+    return *explicitProfile;
+  }
+  config::ExplicitPipelineProfile &getExplicitPipelineProfile() {
+    if (profiles.size() != 1)
+      throw std::runtime_error(
+          "Unsupported IR profile: only ExplicitPipelineProfile is "
+          "currently supported");
+    auto *explicitProfile = profile<config::ExplicitPipelineProfile>();
+    if (!explicitProfile)
+      throw std::runtime_error(
+          "Unsupported IR profile: only ExplicitPipelineProfile is "
+          "currently supported");
+    return *explicitProfile;
+  }
+
   /// Construct a CompileTarget from static and runtime backend configurations.
   static CompileTarget createFromConfig(
       config::TargetConfig targetConfig,
@@ -112,11 +140,16 @@ struct CompileTarget {
 } // namespace cudaq
 
 template <>
-struct std::hash<cudaq::CompileTarget> {
-  std::size_t operator()(const cudaq::CompileTarget &t) const noexcept;
+struct std::hash<cudaq::config::ExplicitPipelineProfile> {
+  std::size_t operator()(
+      const cudaq::config::ExplicitPipelineProfile &profile) const noexcept;
 };
 template <>
-struct std::hash<cudaq::CompileTarget::PipelineConfig> {
-  std::size_t
-  operator()(const cudaq::CompileTarget::PipelineConfig &pc) const noexcept;
+struct std::hash<std::vector<cudaq::config::Profile>> {
+  std::size_t operator()(
+      const std::vector<cudaq::config::Profile> &profiles) const noexcept;
+};
+template <>
+struct std::hash<cudaq::CompileTarget> {
+  std::size_t operator()(const cudaq::CompileTarget &t) const noexcept;
 };

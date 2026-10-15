@@ -9,7 +9,7 @@
 #pragma once
 
 #include "QuantumExecutionQueue.h"
-#include "common/CompileTarget.h"
+#include "cudaq/Target/CompileTarget.h"
 #include "common/CompiledModule.h"
 #include "common/KernelArgs.h"
 #include "common/Registry.h"

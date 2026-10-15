@@ -8,7 +8,7 @@
 
 #pragma once
 
-#include "common/CompileTarget.h"
+#include "cudaq/Target/CompileTarget.h"
 #include "common/RuntimeTarget.h"
 #include "cudaq/Target/TargetCatalog.h"
 #include "cudaq/host_config.h"

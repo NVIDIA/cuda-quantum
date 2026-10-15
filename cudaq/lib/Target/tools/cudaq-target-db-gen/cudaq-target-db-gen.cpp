@@ -27,6 +27,7 @@
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <variant>
 #include <vector>
 
 // Freezes this tool's own CUDAQ_TARGET_DB_ABI_SYMBOL_NAME (from whichever
@@ -212,22 +213,77 @@ cxxSimulationBackend(const cudaq::config::SimulationBackendSetting &s) {
 }
 
 std::string
+cxxExplicitPipelineProfile(
+    const cudaq::config::ExplicitPipelineProfile &profile) {
+  std::ostringstream os;
+  os << "cudaq::config::ExplicitPipelineProfile{"
+     << ".overridePassPipeline = "
+     << cxxStringLiteral(profile.overridePassPipeline) << ", "
+     << ".highLevelPipeline = " << cxxStringLiteral(profile.highLevelPipeline)
+     << ", "
+     << ".midLevelPipeline = " << cxxStringLiteral(profile.midLevelPipeline)
+     << ", "
+     << ".lowLevelPipeline = " << cxxStringLiteral(profile.lowLevelPipeline)
+     << ", "
+     << ".postCodeGenPasses = " << cxxStringLiteral(profile.postCodeGenPasses)
+     << ", "
+     << ".disableQubitMapping = " << cxxBool(profile.disableQubitMapping)
+     << ", "
+     << ".replaceStateWithKernel = " << cxxBool(profile.replaceStateWithKernel)
+     << "}";
+  return os.str();
+}
+
+std::string cxxProfiles(const std::vector<cudaq::config::Profile> &profiles) {
+  std::ostringstream os;
+  os << "{";
+  for (const auto &profile : profiles) {
+    os << "cudaq::config::Profile{std::in_place_type<"
+          "cudaq::config::ExplicitPipelineProfile>, "
+       << std::visit(
+              [](const auto &p) { return cxxExplicitPipelineProfile(p); },
+              profile)
+       << "}, ";
+  }
+  os << "}";
+  return os.str();
+}
+
+std::string
+cxxCompileTarget(const cudaq::CompileTarget &compileTarget) {
+  std::ostringstream os;
+  os << "cudaq::CompileTarget{"
+     << ".overrideAOTCompilation = "
+     << cxxBool(compileTarget.overrideAOTCompilation) << ", "
+     << ".profiles = " << cxxProfiles(compileTarget.profiles) << ", "
+     << ".codegenTranslation = "
+     << cxxStringLiteral(compileTarget.codegenTranslation) << ", "
+     << ".supportConditionalsOnMeasureResults = "
+     << cxxBool(compileTarget.supportConditionalsOnMeasureResults) << ", "
+     << ".supportDeviceCalls = " << cxxBool(compileTarget.supportDeviceCalls)
+     << ", "
+     << ".supportResourceCounts = "
+     << cxxBool(compileTarget.supportResourceCounts) << ", "
+     << ".supportExplicitMeasurements = "
+     << cxxBool(compileTarget.supportExplicitMeasurements) << ", "
+     << ".supportObservableMeasurements = "
+     << cxxBool(compileTarget.supportObservableMeasurements) << ", "
+     << ".supportSampleWithoutMeasurements = "
+     << cxxBool(compileTarget.supportSampleWithoutMeasurements) << ", "
+     << ".fullySpecialize = " << cxxBool(compileTarget.fullySpecialize) << ", "
+     << ".argumentSynthChangeSemantics = "
+     << cxxBool(compileTarget.argumentSynthChangeSemantics) << "}";
+  return os.str();
+}
+
+std::string
 cxxBackendConfigEntry(const cudaq::config::BackendEndConfigEntry &c) {
   std::ostringstream os;
   os << "cudaq::config::BackendEndConfigEntry{"
      << ".GenTargetBackend = " << cxxBool(c.GenTargetBackend) << ", "
      << ".LibraryMode = " << cxxBool(c.LibraryMode) << ", "
      << ".SupportResourceCounts = " << cxxBool(c.SupportResourceCounts) << ", "
-     << ".JITHighLevelPipeline = " << cxxStringLiteral(c.JITHighLevelPipeline)
-     << ", "
-     << ".JITMidLevelPipeline = " << cxxStringLiteral(c.JITMidLevelPipeline)
-     << ", "
-     << ".JITLowLevelPipeline = " << cxxStringLiteral(c.JITLowLevelPipeline)
-     << ", "
-     << ".TargetPassPipeline = " << cxxStringLiteral(c.TargetPassPipeline)
-     << ", "
-     << ".CodegenEmission = " << cxxStringLiteral(c.CodegenEmission) << ", "
-     << ".PostCodeGenPasses = " << cxxStringLiteral(c.PostCodeGenPasses) << ", "
+     << ".CompileTarget = " << cxxCompileTarget(c.CompileTarget) << ", "
      << ".PlatformLibrary = " << cxxStringLiteral(c.PlatformLibrary) << ", "
      << ".LibraryModeExecutionManager = "
      << cxxStringLiteral(c.LibraryModeExecutionManager) << ", "

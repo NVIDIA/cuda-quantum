@@ -47,10 +47,10 @@ static std::vector<std::string> splitFeatureFlags(const std::string &value) {
 }
 
 /// Convert the backend config entry into nvq++ compatible script.
-/// `pipelineName` is the name `TargetPassPipeline` (if any) was registered
-/// under by `cudaq-opt`. The script emits that *name*, never the pipeline's own
-/// raw text. This eliminates nvq++ carrying raw pass-pipeline text through its
-/// environment.
+/// `pipelineName` is the name the profile's override pass pipeline (if any)
+/// was registered under by `cudaq-opt`. The script emits that *name*, never
+/// the pipeline's own raw text. This eliminates nvq++ carrying raw
+/// pass-pipeline text through its environment.
 static std::string processSimBackendConfig(
     const std::string &targetName, const std::string &pipelineName,
     const cudaq::config::BackendEndConfigEntry &configValue) {
@@ -62,27 +62,27 @@ static std::string processSimBackendConfig(
   if (configValue.LibraryMode)
     output << "LIBRARY_MODE=true\n";
 
-  if (!configValue.JITHighLevelPipeline.empty())
-    output << "JIT_HIGH_LEVEL_PIPELINE=\"" << configValue.JITHighLevelPipeline
+  const auto &profile = configValue.CompileTarget.getExplicitPipelineProfile();
+
+  if (!profile.highLevelPipeline.empty())
+    output << "JIT_HIGH_LEVEL_PIPELINE=\"" << profile.highLevelPipeline
            << "\"\n";
 
-  if (!configValue.JITMidLevelPipeline.empty())
-    output << "JIT_MID_LEVEL_PIPELINE=\"" << configValue.JITMidLevelPipeline
-           << "\"\n";
+  if (!profile.midLevelPipeline.empty())
+    output << "JIT_MID_LEVEL_PIPELINE=\"" << profile.midLevelPipeline << "\"\n";
 
-  if (!configValue.JITLowLevelPipeline.empty())
-    output << "JIT_LOW_LEVEL_PIPELINE=\"" << configValue.JITLowLevelPipeline
-           << "\"\n";
+  if (!profile.lowLevelPipeline.empty())
+    output << "JIT_LOW_LEVEL_PIPELINE=\"" << profile.lowLevelPipeline << "\"\n";
 
-  if (!configValue.TargetPassPipeline.empty())
+  if (!profile.overridePassPipeline.empty())
     output << "TARGET_PASS_PIPELINE_NAME=" << pipelineName << "\n";
 
-  if (!configValue.CodegenEmission.empty())
-    output << "CODEGEN_EMISSION=" << configValue.CodegenEmission << "\n";
+  if (!configValue.CompileTarget.codegenTranslation.empty())
+    output << "CODEGEN_EMISSION="
+           << configValue.CompileTarget.codegenTranslation << "\n";
 
-  if (!configValue.PostCodeGenPasses.empty())
-    output << "POST_CODEGEN_PASSES=\"" << configValue.PostCodeGenPasses
-           << "\"\n";
+  if (!profile.postCodeGenPasses.empty())
+    output << "POST_CODEGEN_PASSES=\"" << profile.postCodeGenPasses << "\"\n";
 
   if (!configValue.PlatformLibrary.empty())
     output << "PLATFORM_LIBRARY=" << configValue.PlatformLibrary << "\n";
