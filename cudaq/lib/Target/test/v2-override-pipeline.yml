@@ -9,21 +9,22 @@
 # RUN: %target-catalog-driver parse %s | FileCheck %s --check-prefix=PARSE
 # RUN: %target-catalog-driver emit %s | FileCheck %s --check-prefix=EMIT
 
-# `override-pass-pipeline` prescribes the whole compilation pipeline. It is
-# registered under the target's pass-pipeline name, like v1's
+# A plain-string `custom-pipeline` prescribes the whole compilation pipeline.
+# It is registered under the target's pass-pipeline name, like v1's
 # `target-pass-pipeline`.
 
 version: 2
 name: lit-v2-override
-description: "V2 override-pass-pipeline coverage"
+description: "V2 override pipeline coverage"
 config:
   library-mode: false
 
 compile-target:
   stages:
-    - ir-profile: explicit-pipeline
-      pipelines:
-        override-pass-pipeline: "canonicalize,cse"
+    - ir-output-profile:
+        name: unchecked
+      lowering:
+        custom-pipeline: "canonicalize,cse"
   codegen: qir-full
 
 # PARSE:   target-pass-pipeline: canonicalize,cse

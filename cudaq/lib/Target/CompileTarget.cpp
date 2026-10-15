@@ -13,33 +13,33 @@
 #include <cstdlib>
 #include <iostream>
 
-/// Report an unsupported IR profile and terminate. This code is used in
-/// contexts built without exception support, so errors abort instead of
-/// throwing.
-[[noreturn]] static void reportUnsupportedProfile() {
-  std::cerr << "Unsupported IR profile: only ExplicitPipelineProfile is "
-               "currently supported\n";
+/// Report an unsupported compilation stage and terminate.
+[[noreturn]] static void reportUnsupportedStage() {
+  std::cerr << "Unsupported compilation stage: only a single stage with a "
+               "custom-pipeline lowering is currently supported\n";
   std::abort();
 }
 
-const cudaq::config::ExplicitPipelineProfile &
-cudaq::CompileTarget::getExplicitPipelineProfile() const {
-  if (profiles.size() != 1)
-    reportUnsupportedProfile();
-  const auto *explicitProfile = profile<config::ExplicitPipelineProfile>();
-  if (!explicitProfile)
-    reportUnsupportedProfile();
-  return *explicitProfile;
+const cudaq::config::CustomPipelineLowering &
+cudaq::CompileTarget::getCustomPipelineLowering() const {
+  if (stages.size() != 1)
+    reportUnsupportedStage();
+  const auto *lowering =
+      std::get_if<config::CustomPipelineLowering>(&stages[0].lowering);
+  if (!lowering)
+    reportUnsupportedStage();
+  return *lowering;
 }
 
-cudaq::config::ExplicitPipelineProfile &
-cudaq::CompileTarget::getExplicitPipelineProfile() {
-  if (profiles.size() != 1)
-    reportUnsupportedProfile();
-  auto *explicitProfile = profile<config::ExplicitPipelineProfile>();
-  if (!explicitProfile)
-    reportUnsupportedProfile();
-  return *explicitProfile;
+cudaq::config::CustomPipelineLowering &
+cudaq::CompileTarget::getCustomPipelineLowering() {
+  if (stages.size() != 1)
+    reportUnsupportedStage();
+  auto *lowering =
+      std::get_if<config::CustomPipelineLowering>(&stages[0].lowering);
+  if (!lowering)
+    reportUnsupportedStage();
+  return *lowering;
 }
 
 /// Replace `%KEY%` and `%KEY:default%` placeholders from runtime options.
@@ -106,26 +106,27 @@ cudaq::CompileTarget cudaq::CompileTarget::createFromConfig(
     }
     return pipeline;
   };
-  auto resolvePipeline = [&](config::ExplicitPipelineProfile &profile) {
-    if (!profile.overridePassPipeline.empty()) {
-      profile.overridePassPipeline = prepPipeline(profile.overridePassPipeline);
+  auto resolvePipeline = [&](config::CustomPipelineLowering &lowering) {
+    if (!lowering.overridePassPipeline.empty()) {
+      lowering.overridePassPipeline =
+          prepPipeline(lowering.overridePassPipeline);
     } else {
-      profile.highLevelPipeline = prepPipeline(profile.highLevelPipeline);
-      profile.midLevelPipeline = prepPipeline(profile.midLevelPipeline);
-      profile.lowLevelPipeline = prepPipeline(profile.lowLevelPipeline);
+      lowering.highLevelPipeline = prepPipeline(lowering.highLevelPipeline);
+      lowering.midLevelPipeline = prepPipeline(lowering.midLevelPipeline);
+      lowering.lowLevelPipeline = prepPipeline(lowering.lowLevelPipeline);
     }
   };
 
   // Handle disable_qubit_mapping runtime option.
   auto disableQM = runtimeConfig.find("disable_qubit_mapping");
-  auto disableQubitMapping =
+  target.disableQubitMapping =
       disableQM != runtimeConfig.end() && disableQM->second == "true";
-  for (auto &stage : target.profiles) {
-    auto *profile = std::get_if<config::ExplicitPipelineProfile>(&stage);
-    if (!profile)
+  for (auto &stage : target.stages) {
+    auto *lowering =
+        std::get_if<config::CustomPipelineLowering>(&stage.lowering);
+    if (!lowering)
       continue;
-    resolvePipeline(*profile);
-    profile->disableQubitMapping |= disableQubitMapping;
+    resolvePipeline(*lowering);
   }
 
   target.codegenTranslation = targetConfig.getCodeGenSpec(runtimeConfig);
@@ -138,26 +139,41 @@ cudaq::CompileTarget cudaq::CompileTarget::createFromConfig(
 std::size_t std::hash<cudaq::CompileTarget>::operator()(
     const cudaq::CompileTarget &t) const noexcept {
   return cudaq::detail::hashVal(
-      t.overrideAOTCompilation, t.profiles, t.codegenTranslation,
-      t.supportConditionalsOnMeasureResults, t.supportDeviceCalls,
-      t.supportResourceCounts, t.supportExplicitMeasurements,
-      t.supportObservableMeasurements, t.supportSampleWithoutMeasurements,
-      t.fullySpecialize, t.argumentSynthChangeSemantics);
+      t.overrideAOTCompilation, t.stages, t.codegenTranslation,
+      t.postCodeGenPasses, t.supportConditionalsOnMeasureResults,
+      t.supportDeviceCalls, t.supportResourceCounts,
+      t.supportExplicitMeasurements, t.supportObservableMeasurements,
+      t.supportSampleWithoutMeasurements, t.fullySpecialize,
+      t.argumentSynthChangeSemantics, t.disableQubitMapping,
+      t.replaceStateWithKernel);
 }
 
-std::size_t std::hash<cudaq::config::ExplicitPipelineProfile>::operator()(
-    const cudaq::config::ExplicitPipelineProfile &profile) const noexcept {
+std::size_t std::hash<cudaq::config::UncheckedProfile>::operator()(
+    const cudaq::config::UncheckedProfile &) const noexcept {
+  return 0;
+}
+
+std::size_t std::hash<cudaq::config::CustomPipelineLowering>::operator()(
+    const cudaq::config::CustomPipelineLowering &lowering) const noexcept {
   return cudaq::detail::hashVal(
-      profile.overridePassPipeline, profile.highLevelPipeline,
-      profile.midLevelPipeline, profile.lowLevelPipeline,
-      profile.postCodeGenPasses, profile.disableQubitMapping,
-      profile.replaceStateWithKernel);
+      lowering.overridePassPipeline, lowering.highLevelPipeline,
+      lowering.midLevelPipeline, lowering.lowLevelPipeline);
 }
 
-std::size_t std::hash<std::vector<cudaq::config::Profile>>::operator()(
-    const std::vector<cudaq::config::Profile> &profiles) const noexcept {
+std::size_t std::hash<cudaq::config::CompilationStage>::operator()(
+    const cudaq::config::CompilationStage &stage) const noexcept {
   std::size_t seed = 0;
-  for (const auto &profile : profiles)
-    cudaq::detail::hashCombine(seed, profile);
+  std::visit([&](const auto &p) { cudaq::detail::hashCombine(seed, p); },
+             stage.irOutputProfile);
+  std::visit([&](const auto &l) { cudaq::detail::hashCombine(seed, l); },
+             stage.lowering);
+  return seed;
+}
+
+std::size_t std::hash<std::vector<cudaq::config::CompilationStage>>::operator()(
+    const std::vector<cudaq::config::CompilationStage> &stages) const noexcept {
+  std::size_t seed = 0;
+  for (const auto &stage : stages)
+    cudaq::detail::hashCombine(seed, stage);
   return seed;
 }

@@ -19,14 +19,14 @@ from typing import Protocol, runtime_checkable
 # registered there once, rather than separately for each programming model.
 from cudaq.mlir._mlir_libs._backends import (
     CompileTarget,
+    CustomPipelineLowering,
     EstimateResult,
-    ExplicitPipelineProfile,
     Resources,
 )
 
 __all__ = [
-    "CompileTarget", "CustomTarget", "EstimateResult",
-    "ExplicitPipelineProfile", "Resources", "RuntimeEndpoint"
+    "CompileTarget", "CustomPipelineLowering", "CustomTarget", "EstimateResult",
+    "Resources", "RuntimeEndpoint"
 ]
 
 

@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 #pragma once
-
 /// All IR profile definitions, used to define compile targets in terms of the
 /// successive compilation stages that a source program must be lowered through.
 ///
@@ -19,12 +18,12 @@
 ///  - it should always be possible to construct an IR profile from a given IR
 ///  that passes validation.
 
-#include "ExplicitPipelineProfile.h"
+#include "UncheckedProfile.h"
 #include <variant>
 
 namespace cudaq::config {
 
 /// All supported IR profiles (currently just one).
-using Profile = std::variant<ExplicitPipelineProfile>;
+using Profile = std::variant<UncheckedProfile>;
 
 } // namespace cudaq::config

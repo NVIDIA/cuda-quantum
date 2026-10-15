@@ -8,11 +8,9 @@
 
 #pragma once
 
-#include "cudaq/Target/Profile/AllProfiles.h"
-#include "cudaq/Target/Profile/ExplicitPipelineProfile.h"
+#include "cudaq/Target/CompilationStage.h"
 #include <map>
 #include <string>
-#include <variant>
 #include <vector>
 
 namespace cudaq::config {
@@ -34,12 +32,15 @@ struct CompileTarget {
   /// options in this class.
   bool overrideAOTCompilation = false;
 
-  /// Ordered target IR profiles, defining the successive lowering stages during
-  /// compilation.
-  std::vector<config::Profile> profiles{};
+  /// Ordered compilation stages that the source program must be lowered
+  /// through.
+  std::vector<config::CompilationStage> stages{};
 
   /// Code generation emission selected by the target.
   std::string codegenTranslation{};
+
+  /// Optional pass pipeline to run after code generation.
+  std::string postCodeGenPasses{};
 
   /// Whether branching on measurement results is supported.
   bool supportConditionalsOnMeasureResults = true;
@@ -77,34 +78,23 @@ struct CompileTarget {
   /// Set the `changeSemantics` flag for the argument synthesis pass.
   bool argumentSynthChangeSemantics = true;
 
-  /// Access the `i-th` profile of type `T`, or `nullptr` if not present.
-  template <typename T>
-  const T *profile(std::size_t i = 0) const {
-    if (i >= profiles.size())
-      return nullptr;
-    if (const auto *match = std::get_if<T>(&profiles[i]))
-      return match;
-    return nullptr;
-  }
+  /// Whether to disable qubit mapping.
+  bool disableQubitMapping = false;
 
-  /// Access the `i-th` profile of type `T`, or `nullptr` if not present.
-  template <typename T>
-  T *profile(std::size_t i = 0) {
-    if (i >= profiles.size())
-      return nullptr;
-    if (auto *match = std::get_if<T>(&profiles[i]))
-      return match;
-    return nullptr;
-  }
+  /// Whether to run the replace-state-with-kernel pass.
+  ///
+  /// Allows targets that do not support get_state (e.g. remote QPUs)
+  /// to emulate its behavior by inserting the corresponding kernel calls.
+  bool replaceStateWithKernel = false;
 
-  /// Access the explicit pipeline profile.
+  /// Access the custom pipeline lowering of the single compilation stage.
   ///
   /// Prints an error and aborts the process if there isn't exactly one
-  /// profile or the first profile is not an explicit pipeline profile.
-  // TODO: Temporary utility function used while there is only one explicit
-  // profile, to be replaced with more general profile handling
-  const config::ExplicitPipelineProfile &getExplicitPipelineProfile() const;
-  config::ExplicitPipelineProfile &getExplicitPipelineProfile();
+  /// stage or its lowering is not a custom pipeline.
+  // TODO: Temporary utility function used while there is only one
+  // custom-pipeline stage, to be replaced with more general stage handling
+  const config::CustomPipelineLowering &getCustomPipelineLowering() const;
+  config::CustomPipelineLowering &getCustomPipelineLowering();
 
   /// Construct a CompileTarget from static and runtime backend configurations.
   static CompileTarget createFromConfig(
@@ -118,14 +108,24 @@ struct CompileTarget {
 } // namespace cudaq
 
 template <>
-struct std::hash<cudaq::config::ExplicitPipelineProfile> {
-  std::size_t operator()(
-      const cudaq::config::ExplicitPipelineProfile &profile) const noexcept;
+struct std::hash<cudaq::config::UncheckedProfile> {
+  std::size_t
+  operator()(const cudaq::config::UncheckedProfile &profile) const noexcept;
 };
 template <>
-struct std::hash<std::vector<cudaq::config::Profile>> {
+struct std::hash<cudaq::config::CustomPipelineLowering> {
   std::size_t operator()(
-      const std::vector<cudaq::config::Profile> &profiles) const noexcept;
+      const cudaq::config::CustomPipelineLowering &lowering) const noexcept;
+};
+template <>
+struct std::hash<cudaq::config::CompilationStage> {
+  std::size_t
+  operator()(const cudaq::config::CompilationStage &stage) const noexcept;
+};
+template <>
+struct std::hash<std::vector<cudaq::config::CompilationStage>> {
+  std::size_t operator()(const std::vector<cudaq::config::CompilationStage>
+                             &stages) const noexcept;
 };
 template <>
 struct std::hash<cudaq::CompileTarget> {

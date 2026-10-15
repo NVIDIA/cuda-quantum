@@ -17,8 +17,8 @@ import os
 import pytest
 
 import cudaq
-from cudaq._experimental import (CompileTarget, CustomTarget,
-                                 ExplicitPipelineProfile)
+from cudaq._experimental import (CompileTarget, CustomPipelineLowering,
+                                 CustomTarget)
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.mlir.ir import WalkResult
 
@@ -56,7 +56,7 @@ def test_frontend_reexports_shared_bindings():
     from cudaq.mlir._mlir_libs import _backends, _quakeDialects, _quakeDialectsCore
 
     assert CompileTarget is backends.CompileTarget
-    assert ExplicitPipelineProfile is backends.ExplicitPipelineProfile
+    assert CustomPipelineLowering is backends.CustomPipelineLowering
     assert CustomTarget is backends.CustomTarget
     assert cudaq.Resources is backends.Resources
     assert cudaq.EstimateResult is backends.EstimateResult
@@ -200,12 +200,12 @@ def test_support_explicit_measurements():
 
 
 def test_pipeline_config_equality_and_hash():
-    a = ExplicitPipelineProfile()
-    b = ExplicitPipelineProfile()
+    a = CustomPipelineLowering()
+    b = CustomPipelineLowering()
     assert a == b
     assert hash(a) == hash(b)
 
-    b.disable_qubit_mapping = True
+    b.high_level_pipeline = SWAP_TO_CX_PIPELINE
     assert a != b
 
 
@@ -221,7 +221,7 @@ def test_compile_target_equality_and_hash():
 
 
 def test_repr_is_informative():
-    assert "ExplicitPipelineProfile(" in repr(ExplicitPipelineProfile())
+    assert "CustomPipelineLowering(" in repr(CustomPipelineLowering())
     assert "CompileTarget(" in repr(CompileTarget())
     assert SWAP_TO_CX_PIPELINE in repr(swap_pipeline_target())
 

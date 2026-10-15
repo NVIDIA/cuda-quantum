@@ -8,8 +8,9 @@
 
 # RUN: not %target-catalog-driver parse %s 2>&1 | FileCheck %s
 
-# `override-pass-pipeline` excludes the staged pipelines: neither variant
-# alternative accepts the other alternative's keys.
+# The full-pipeline string form of `custom-pipeline` excludes the staged
+# mapping form: neither variant alternative accepts the other alternative's
+# keys.
 
 version: 2
 name: lit-v2-mixed
@@ -19,10 +20,12 @@ config:
 
 compile-target:
   stages:
-    - ir-profile: explicit-pipeline
-      pipelines:
-        override-pass-pipeline: "canonicalize"
-        high-level-pipeline: "high-pipe"
+    - ir-output-profile:
+        name: unchecked
+      lowering:
+        custom-pipeline:
+          override-pipeline: "canonicalize"
+          high-level: "high-pipe"
   codegen: nop
 
 # CHECK: error: Failed to parse target configuration YAML

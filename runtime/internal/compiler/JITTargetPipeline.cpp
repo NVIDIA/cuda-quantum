@@ -28,10 +28,9 @@ static void setQubitMappingBypass(std::string &pipeline) {
 
 std::string cudaq_internal::compiler::getPassPipeline(
     const cudaq::CompileTarget &target, const cudaq::CompileOptions &options) {
-  static const cudaq::config::ExplicitPipelineProfile noProfile{};
-  std::optional<cudaq::config::ExplicitPipelineProfile> pipelineConfig;
-  if (!target.profiles.empty())
-    pipelineConfig = target.getExplicitPipelineProfile();
+  std::optional<cudaq::config::CustomPipelineLowering> pipelineConfig;
+  if (!target.stages.empty())
+    pipelineConfig = target.getCustomPipelineLowering();
   const std::string allowEarlyExit =
       target.codegenTranslation.starts_with("qir-adaptive") ? "true" : "false";
   const std::string noLoopUnroll =
@@ -72,7 +71,7 @@ std::string cudaq_internal::compiler::getPassPipeline(
     appendPipelineStage(passPipeline, pipelineConfig->lowLevelPipeline);
 
   // Handle disable_qubit_mapping runtime option.
-  if (pipelineConfig && pipelineConfig->disableQubitMapping) {
+  if (target.disableQubitMapping) {
     setQubitMappingBypass(passPipeline);
     CUDAQ_INFO("disable_qubit_mapping option found, so updated lowering "
                "pipeline to {}",

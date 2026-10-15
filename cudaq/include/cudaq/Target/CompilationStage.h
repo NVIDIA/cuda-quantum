@@ -8,16 +8,15 @@
 
 #pragma once
 
+#include "cudaq/Target/Profile/AllProfiles.h"
 #include <string>
+#include <variant>
 
 namespace cudaq::config {
 
-/// @brief IR profile prescribing an explicit MLIR pass pipeline.
-///
-/// This is a transitional profile type. Unlike declarative IR profiles, it
-/// does not describe which IR is legal for the target; it directly prescribes
-/// the compilation pipeline to execute.
-struct ExplicitPipelineProfile {
+/// A lowering that prescribes an explicit MLIR pass pipeline for the
+/// compilation stage.
+struct CustomPipelineLowering {
   /// If set, override the whole compilation pipeline with this string.
   std::string overridePassPipeline;
 
@@ -26,25 +25,28 @@ struct ExplicitPipelineProfile {
   std::string midLevelPipeline;
   std::string lowLevelPipeline;
 
-  /// Optional pass pipeline to run after code generation.
-  std::string postCodeGenPasses;
-
-  /// Whether to disable qubit mapping.
-  bool disableQubitMapping = false;
-
-  /// Whether to run the replace-state-with-kernel pass.
-  ///
-  /// Allows targets that do not support get_state (e.g. remote QPUs)
-  /// to emulate its behavior by inserting the corresponding kernel calls.
-  bool replaceStateWithKernel = false;
-
   /// Whether the pipeline is empty.
   bool empty() const {
     return overridePassPipeline.empty() && highLevelPipeline.empty() &&
            midLevelPipeline.empty() && lowLevelPipeline.empty();
   }
 
-  bool operator==(const ExplicitPipelineProfile &other) const = default;
+  bool operator==(const CustomPipelineLowering &other) const = default;
+};
+
+/// All supported lowering kinds. Add handler-based lowerings here.
+using Lowering = std::variant<CustomPipelineLowering>;
+
+/// One stage of the compilation pipeline: the IR profile the stage lowers to
+/// and how to get there.
+struct CompilationStage {
+  /// The IR profile the source program must satisfy after this stage.
+  Profile irOutputProfile;
+
+  /// How to lower the input IR to `irOutputProfile`.
+  Lowering lowering;
+
+  bool operator==(const CompilationStage &other) const = default;
 };
 
 } // namespace cudaq::config

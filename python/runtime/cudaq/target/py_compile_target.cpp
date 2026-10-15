@@ -18,53 +18,45 @@ using namespace nanobind::literals;
 
 static std::string reprStr(const std::string &s) { return "'" + s + "'"; }
 
-static std::string explicitPipelineProfileRepr(
-    const cudaq::config::ExplicitPipelineProfile &profile) {
+static std::string customPipelineLoweringRepr(
+    const cudaq::config::CustomPipelineLowering &lowering) {
   std::ostringstream os;
-  os << "ExplicitPipelineProfile(";
-  if (!profile.overridePassPipeline.empty())
-    os << "override_pass_pipeline=" << reprStr(profile.overridePassPipeline);
+  os << "CustomPipelineLowering(";
+  if (!lowering.overridePassPipeline.empty())
+    os << "override_pass_pipeline=" << reprStr(lowering.overridePassPipeline);
   else {
-    os << "high_level_pipeline=" << reprStr(profile.highLevelPipeline)
-       << ", mid_level_pipeline=" << reprStr(profile.midLevelPipeline)
-       << ", low_level_pipeline=" << reprStr(profile.lowLevelPipeline)
-       << ", post_code_gen_passes=" << reprStr(profile.postCodeGenPasses);
+    os << "high_level_pipeline=" << reprStr(lowering.highLevelPipeline)
+       << ", mid_level_pipeline=" << reprStr(lowering.midLevelPipeline)
+       << ", low_level_pipeline=" << reprStr(lowering.lowLevelPipeline);
   }
   os << ")";
   return os.str();
 }
 
 static std::string compileTargetRepr(const cudaq::CompileTarget &ct) {
-  std::string profileRepr = "[]";
-  if (!ct.profiles.empty())
-    profileRepr = "[" +
-                  explicitPipelineProfileRepr(ct.getExplicitPipelineProfile()) +
-                  "]";
-  return "CompileTarget(stages=" + profileRepr +
+  std::string loweringRepr = "[]";
+  if (!ct.stages.empty())
+    loweringRepr =
+        "[" + customPipelineLoweringRepr(ct.getCustomPipelineLowering()) + "]";
+  return "CompileTarget(stages=" + loweringRepr +
          ", codegen_translation=" + reprStr(ct.codegenTranslation) + ")";
 }
 
 void cudaq::bindCompileTarget(nanobind::module_ &mod) {
-  using ExplicitPipelineProfile = cudaq::config::ExplicitPipelineProfile;
+  using CustomPipelineLowering = cudaq::config::CustomPipelineLowering;
 
-  nanobind::class_<ExplicitPipelineProfile>(
-      mod, "ExplicitPipelineProfile",
-      "The MLIR pass pipelines and code generation settings that a "
-      "`CompileTarget` compiles kernels with.")
+  nanobind::class_<CustomPipelineLowering>(
+      mod, "CustomPipelineLowering",
+      "The MLIR pass pipelines that a `CompileTarget` compiles kernels with.")
       .def(nanobind::init<>())
       .def_rw("override_pass_pipeline",
-              &ExplicitPipelineProfile::overridePassPipeline)
-      .def_rw("high_level_pipeline",
-              &ExplicitPipelineProfile::highLevelPipeline)
-      .def_rw("mid_level_pipeline", &ExplicitPipelineProfile::midLevelPipeline)
-      .def_rw("low_level_pipeline", &ExplicitPipelineProfile::lowLevelPipeline)
-      .def_rw("post_code_gen_passes",
-              &ExplicitPipelineProfile::postCodeGenPasses)
-      .def_rw("disable_qubit_mapping",
-              &ExplicitPipelineProfile::disableQubitMapping)
+              &CustomPipelineLowering::overridePassPipeline)
+      .def_rw("high_level_pipeline", &CustomPipelineLowering::highLevelPipeline)
+      .def_rw("mid_level_pipeline", &CustomPipelineLowering::midLevelPipeline)
+      .def_rw("low_level_pipeline", &CustomPipelineLowering::lowLevelPipeline)
       .def(nanobind::self == nanobind::self)
-      .def("__hash__", std::hash<ExplicitPipelineProfile>())
-      .def("__repr__", explicitPipelineProfileRepr);
+      .def("__hash__", std::hash<CustomPipelineLowering>())
+      .def("__repr__", customPipelineLoweringRepr);
 
   nanobind::class_<CompileTarget>(
       mod, "CompileTarget",
@@ -73,11 +65,13 @@ void cudaq::bindCompileTarget(nanobind::module_ &mod) {
       "specify MLIR pass pipelines explicitly.")
       .def(
           "__init__",
-          [](CompileTarget *target, ExplicitPipelineProfile *pipelineConfig) {
+          [](CompileTarget *target, CustomPipelineLowering *pipelineConfig) {
             new (target) CompileTarget();
 
             if (pipelineConfig)
-              target->profiles.push_back(*pipelineConfig);
+              target->stages.push_back(cudaq::config::CompilationStage{
+                  .irOutputProfile = cudaq::config::UncheckedProfile{},
+                  .lowering = *pipelineConfig});
 
             // Some good defaults for Python simulators.
             // TODO: refine this and unify with `createDefaultCompileTarget`.
@@ -89,21 +83,26 @@ void cudaq::bindCompileTarget(nanobind::module_ &mod) {
           "pipeline_config"_a = nanobind::none())
       .def_prop_rw(
           "pipeline_config",
-          [](CompileTarget &target) -> ExplicitPipelineProfile & {
-            if (target.profiles.empty())
-              target.profiles.push_back(ExplicitPipelineProfile{});
-            return target.getExplicitPipelineProfile();
+          [](CompileTarget &target) -> CustomPipelineLowering & {
+            if (target.stages.empty())
+              target.stages.push_back(cudaq::config::CompilationStage{
+                  .irOutputProfile = cudaq::config::UncheckedProfile{},
+                  .lowering = CustomPipelineLowering{}});
+            return target.getCustomPipelineLowering();
           },
-          [](CompileTarget &target, const ExplicitPipelineProfile &profile) {
-            if (target.profiles.empty()) {
-              target.profiles.push_back(profile);
+          [](CompileTarget &target, const CustomPipelineLowering &lowering) {
+            if (target.stages.empty()) {
+              target.stages.push_back(cudaq::config::CompilationStage{
+                  .irOutputProfile = cudaq::config::UncheckedProfile{},
+                  .lowering = lowering});
               return;
             }
-            auto &existing = target.getExplicitPipelineProfile();
-            existing = profile;
+            auto &existing = target.getCustomPipelineLowering();
+            existing = lowering;
           },
           nanobind::rv_policy::reference_internal)
       .def_rw("codegen_translation", &CompileTarget::codegenTranslation)
+      .def_rw("post_code_gen_passes", &CompileTarget::postCodeGenPasses)
       .def_rw("support_conditionals_on_measure_results",
               &CompileTarget::supportConditionalsOnMeasureResults)
       .def_rw("support_device_calls", &CompileTarget::supportDeviceCalls)
@@ -115,6 +114,7 @@ void cudaq::bindCompileTarget(nanobind::module_ &mod) {
       .def_rw("support_sample_without_measurements",
               &CompileTarget::supportSampleWithoutMeasurements)
       .def_rw("fully_specialize", &CompileTarget::fullySpecialize)
+      .def_rw("disable_qubit_mapping", &CompileTarget::disableQubitMapping)
       .def(nanobind::self == nanobind::self)
       .def("__hash__", std::hash<CompileTarget>())
       .def("__repr__", compileTargetRepr);

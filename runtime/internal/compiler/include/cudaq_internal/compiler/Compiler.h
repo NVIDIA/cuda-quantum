@@ -131,8 +131,8 @@ public:
 
 /// Get the pass pipeline string for the given compile target.
 ///
-/// Currently only supports the ExplicitPipelineProfile.
-/// If `ExplicitPipelineProfile.overridePassPipeline` is set, returns it
+/// Currently only supports the CustomPipelineLowering.
+/// If `CustomPipelineLowering.overridePassPipeline` is set, returns it
 /// directly (full override, interleave stages are ignored). Otherwise builds:
 /// [high] [,deployStage] [,mid] [,finalizeStage] [,low] where deployStage and
 /// finalizeStage are fixed stages interleaved between the config-provided

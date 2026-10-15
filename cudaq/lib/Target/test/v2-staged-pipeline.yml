@@ -11,8 +11,9 @@
 # RUN: %target-catalog-driver codegen %s | FileCheck %s --check-prefix=CODEGEN
 
 # Schema v2: compilation options live in a dedicated `compile-target` block.
-# Each stage selects an IR profile via `ir-profile`; `explicit-pipeline`
-# prescribes the pass pipelines directly.
+# Each stage declares its IR output profile and the lowering to get there;
+# the `custom-pipeline` mapping inserts staged pipelines around the built-in
+# passes.
 
 version: 2
 name: lit-v2
@@ -27,11 +28,13 @@ config:
 
 compile-target:
   stages:
-    - ir-profile: explicit-pipeline
-      pipelines:
-        high-level-pipeline: "high-pipe"
-        mid-level-pipeline: "mid-pipe"
-        low-level-pipeline: "low-pipe"
+    - ir-output-profile:
+        name: unchecked
+      lowering:
+        custom-pipeline:
+          high-level: "high-pipe"
+          mid-level: "mid-pipe"
+          low-level: "low-pipe"
   codegen: qir-base
 
 # PARSE: name: lit-v2

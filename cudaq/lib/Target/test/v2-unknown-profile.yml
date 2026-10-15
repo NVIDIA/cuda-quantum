@@ -8,8 +8,8 @@
 
 # RUN: not %target-catalog-driver parse %s 2>&1 | FileCheck %s
 
-# Only the `explicit-pipeline` IR profile exists so far; unknown profiles are
-# rejected with the list of allowed tags.
+# Only the `unchecked` IR profile exists so far; unknown profiles are rejected
+# with the list of allowed tags.
 
 version: 2
 name: lit-v2-unknown-profile
@@ -19,10 +19,12 @@ config:
 
 compile-target:
   stages:
-    - ir-profile: quake-value-semantics
-      loop-support: only-for-loops
+    - ir-output-profile:
+        name: quake-value-semantics
+      lowering:
+        custom-pipeline: "canonicalize"
   codegen: nop
 
 # CHECK: error: Failed to parse target configuration YAML
-# CHECK: could not match ir-profile 'quake-value-semantics'
-# CHECK: The following tags are allowed: explicit-pipeline
+# CHECK: could not match name 'quake-value-semantics'
+# CHECK: The following tags are allowed: unchecked

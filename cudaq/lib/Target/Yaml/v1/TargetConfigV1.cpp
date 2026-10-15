@@ -14,14 +14,17 @@ static cudaq::config::BackendEndConfigEntry
 toCanonicalEntry(const cudaq::config::v1::BackendEndConfigEntryV1 &cfg) {
   cudaq::config::BackendEndConfigEntry out;
   cudaq::config::detail::toCanonicalEntryBase(cfg, out);
-  // v1 compilation fields map onto a single explicit-pipeline profile.
-  cudaq::config::ExplicitPipelineProfile profile;
-  profile.overridePassPipeline = cfg.targetPassPipeline.value();
-  profile.highLevelPipeline = cfg.jitHighLevelPipeline.value();
-  profile.midLevelPipeline = cfg.jitMidLevelPipeline.value();
-  profile.lowLevelPipeline = cfg.jitLowLevelPipeline.value();
-  profile.postCodeGenPasses = cfg.postCodegenPasses.value();
-  out.CompileTarget.profiles.push_back(std::move(profile));
+  // v1 compilation fields map onto a single stage with a custom-pipeline
+  // lowering.
+  cudaq::config::CustomPipelineLowering lowering;
+  lowering.overridePassPipeline = cfg.targetPassPipeline.value();
+  lowering.highLevelPipeline = cfg.jitHighLevelPipeline.value();
+  lowering.midLevelPipeline = cfg.jitMidLevelPipeline.value();
+  lowering.lowLevelPipeline = cfg.jitLowLevelPipeline.value();
+  out.CompileTarget.stages.push_back(cudaq::config::CompilationStage{
+      .irOutputProfile = cudaq::config::UncheckedProfile{},
+      .lowering = std::move(lowering)});
+  out.CompileTarget.postCodeGenPasses = cfg.postCodegenPasses.value();
   out.CompileTarget.codegenTranslation = cfg.codegenEmission.value();
   return out;
 }

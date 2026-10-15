@@ -40,11 +40,11 @@ cudaq.sample(my_kernel)      # compiled with that pipeline, launched to endpoint
 from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime import (
     CompileTarget,
     CompiledModule,
-    ExplicitPipelineProfile,
+    CustomPipelineLowering,
 )
 
 __all__ = [
     "CompileTarget",
     "CompiledModule",
-    "ExplicitPipelineProfile",
+    "CustomPipelineLowering",
 ]

@@ -139,7 +139,7 @@ config:
   EXPECT_EQ(config.CudaqVersion, "0.9.0-rc2+build.1");
 }
 
-TEST(TargetConfigTester, parsesV2ExplicitPipelineProfile) {
+TEST(TargetConfigTester, parsesV2StagedPipeline) {
   const auto config = cudaq::config::parseTargetConfig(R"(
 version: 2
 name: v2-target
@@ -149,24 +149,28 @@ config:
   library-mode: false
 compile-target:
   stages:
-    - ir-profile: explicit-pipeline
-      pipelines:
-        high-level-pipeline: "high-pipe"
-        mid-level-pipeline: "mid-pipe"
-        low-level-pipeline: "low-pipe"
+    - ir-output-profile:
+        name: unchecked
+      lowering:
+        custom-pipeline:
+          high-level: "high-pipe"
+          mid-level: "mid-pipe"
+          low-level: "low-pipe"
   codegen: qir-base
 )",
                                                        {});
   ASSERT_TRUE(config.BackendConfig.has_value());
   const auto &compileTarget = config.BackendConfig->CompileTarget;
-  ASSERT_EQ(compileTarget.profiles.size(), 1);
-  const auto *profile =
-      compileTarget.profile<cudaq::config::ExplicitPipelineProfile>();
-  ASSERT_NE(profile, nullptr);
-  EXPECT_EQ(profile->highLevelPipeline, "high-pipe");
-  EXPECT_EQ(profile->midLevelPipeline, "mid-pipe");
-  EXPECT_EQ(profile->lowLevelPipeline, "low-pipe");
-  EXPECT_TRUE(profile->overridePassPipeline.empty());
+  ASSERT_EQ(compileTarget.stages.size(), 1);
+  EXPECT_TRUE(std::holds_alternative<cudaq::config::UncheckedProfile>(
+      compileTarget.stages[0].irOutputProfile));
+  const auto *lowering = std::get_if<cudaq::config::CustomPipelineLowering>(
+      &compileTarget.stages[0].lowering);
+  ASSERT_NE(lowering, nullptr);
+  EXPECT_EQ(lowering->highLevelPipeline, "high-pipe");
+  EXPECT_EQ(lowering->midLevelPipeline, "mid-pipe");
+  EXPECT_EQ(lowering->lowLevelPipeline, "low-pipe");
+  EXPECT_TRUE(lowering->overridePassPipeline.empty());
   EXPECT_EQ(compileTarget.codegenTranslation, "qir-base");
   EXPECT_EQ(config.getCodeGenSpec({}), "qir-base");
   EXPECT_TRUE(config.BackendConfig->hasPassPipeline());
@@ -181,19 +185,20 @@ config:
   library-mode: false
 compile-target:
   stages:
-    - ir-profile: explicit-pipeline
-      pipelines:
-        override-pass-pipeline: "canonicalize,cse"
+    - ir-output-profile:
+        name: unchecked
+      lowering:
+        custom-pipeline: "canonicalize,cse"
   codegen: nop
 )",
                                                        {});
   ASSERT_TRUE(config.BackendConfig.has_value());
-  const auto &profile =
-      config.BackendConfig->CompileTarget.getExplicitPipelineProfile();
-  EXPECT_EQ(profile.overridePassPipeline, "canonicalize,cse");
-  EXPECT_TRUE(profile.highLevelPipeline.empty());
-  EXPECT_TRUE(profile.midLevelPipeline.empty());
-  EXPECT_TRUE(profile.lowLevelPipeline.empty());
+  const auto &lowering =
+      config.BackendConfig->CompileTarget.getCustomPipelineLowering();
+  EXPECT_EQ(lowering.overridePassPipeline, "canonicalize,cse");
+  EXPECT_TRUE(lowering.highLevelPipeline.empty());
+  EXPECT_TRUE(lowering.midLevelPipeline.empty());
+  EXPECT_TRUE(lowering.lowLevelPipeline.empty());
   EXPECT_TRUE(config.BackendConfig->hasPassPipeline());
 }
 
@@ -224,10 +229,12 @@ config:
   library-mode: false
 compile-target:
   stages:
-    - ir-profile: explicit-pipeline
-      pipelines:
-        override-pass-pipeline: "canonicalize"
-        mid-level-pipeline: "mid-pipe"
+    - ir-output-profile:
+        name: unchecked
+      lowering:
+        custom-pipeline:
+          override-pipeline: "canonicalize"
+          mid-level: "mid-pipe"
   codegen: nop
 )";
   try {
@@ -690,9 +697,9 @@ config:
   ASSERT_EQ(targets.count("my-backend"), 1);
   const auto &config = targets.at("my-backend").config;
   ASSERT_TRUE(config.BackendConfig.has_value());
-  const auto &profile =
-      config.BackendConfig->CompileTarget.getExplicitPipelineProfile();
-  EXPECT_EQ(profile.midLevelPipeline,
+  const auto &lowering =
+      config.BackendConfig->CompileTarget.getCustomPipelineLowering();
+  EXPECT_EQ(lowering.midLevelPipeline,
             "map{device=file(" + expectedTopology + ")}");
   ASSERT_EQ(config.BackendConfig->PreprocessorDefines.size(), 1);
   EXPECT_EQ(config.BackendConfig->PreprocessorDefines.front(),

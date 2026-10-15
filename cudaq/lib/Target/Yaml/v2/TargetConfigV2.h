@@ -56,35 +56,36 @@ struct BackendFeatureMapV2 {
   BackendEndConfigEntryV2 config;
 };
 
-/// `override-pass-pipeline` prescribes the whole compilation pipeline; it
-/// cannot be combined with the staged pipelines.
-struct ExplicitPipelineOverrideV2 {
-  std::string overridePassPipeline;
+/// (Dummy) IR profile that accepts any IR.
+struct UncheckedProfileV2 {
+  using Tag = rfl::Literal<"unchecked">;
 };
+
+/// Union of all supported IR profiles, selected by its `name`.
+using IrOutputProfileV2 = rfl::TaggedUnion<"name", UncheckedProfileV2>;
 
 /// Staged pipelines inserted at the appropriate compilation stages.
-struct ExplicitPipelineStagesV2 {
-  rfl::DefaultVal<std::string> highLevelPipeline;
-  rfl::DefaultVal<std::string> midLevelPipeline;
-  rfl::DefaultVal<std::string> lowLevelPipeline;
+struct StagedPipelinesV2 {
+  rfl::DefaultVal<std::string> highLevel;
+  rfl::DefaultVal<std::string> midLevel;
+  rfl::DefaultVal<std::string> lowLevel;
 };
 
-/// Transitional profile prescribing an explicit MLIR pass pipeline instead
-/// of describing the target IR in a declarative way. The `pipelines` variant
-/// makes `override-pass-pipeline` mutually exclusive with the staged pipelines:
-/// the override struct requires its key, the staged struct accepts only the
-/// three staged keys, so a mapping mixing both matches neither.
-struct ExplicitPipelineProfileV2 {
-  using Tag = rfl::Literal<"explicit-pipeline">;
-  rfl::Variant<ExplicitPipelineOverrideV2, ExplicitPipelineStagesV2> pipelines;
+/// Lowering described as a custom MLIR pass pipeline. Either a string or a
+/// combination of high, mid, and low level pipelines.
+struct CustomPipelineLoweringV2 {
+  rfl::Variant<std::string, StagedPipelinesV2> customPipeline;
 };
 
-/// One compilation stage, defined by its target IR profile. Add new IR profiles
-/// to this union.
-using ProfileV2 = rfl::TaggedUnion<"ir-profile", ExplicitPipelineProfileV2>;
+/// One compilation stage: the IR output profile to lower to and the lowering
+/// to get there.
+struct CompilationStageV2 {
+  IrOutputProfileV2 irOutputProfile;
+  CustomPipelineLoweringV2 lowering;
+};
 
 struct CompileTargetV2 {
-  std::vector<ProfileV2> stages;
+  std::vector<CompilationStageV2> stages;
   rfl::DefaultVal<std::string> codegen;
 };
 

@@ -111,9 +111,11 @@ static cudaq::CompileTarget
 nonEmptyPipelineTarget(const std::string &pipeline) {
   cudaq::config::TargetConfig cfg;
   cudaq::config::BackendEndConfigEntry backend;
-  cudaq::config::ExplicitPipelineProfile profile;
-  profile.overridePassPipeline = pipeline;
-  backend.CompileTarget.profiles.push_back(std::move(profile));
+  cudaq::config::CustomPipelineLowering lowering;
+  lowering.overridePassPipeline = pipeline;
+  backend.CompileTarget.stages.push_back(cudaq::config::CompilationStage{
+      .irOutputProfile = cudaq::config::UncheckedProfile{},
+      .lowering = std::move(lowering)});
   cfg.BackendConfig = backend;
   return cudaq::CompileTarget::createFromConfig(cfg, {});
 }

@@ -48,7 +48,7 @@ static std::vector<std::string> splitFeatureFlags(const std::string &value) {
 }
 
 /// Convert the backend config entry into nvq++ compatible script.
-/// `pipelineName` is the name the profile's override pass pipeline (if any)
+/// `pipelineName` is the name the lowering's override pass pipeline (if any)
 /// was registered under by `cudaq-opt`. The script emits that *name*, never
 /// the pipeline's own raw text. This eliminates nvq++ carrying raw
 /// pass-pipeline text through its environment.
@@ -63,9 +63,9 @@ static std::string processSimBackendConfig(
   if (configValue.LibraryMode)
     output << "LIBRARY_MODE=true\n";
 
-  std::optional<cudaq::config::ExplicitPipelineProfile> pipelines;
-  if (!configValue.CompileTarget.profiles.empty())
-    pipelines = configValue.CompileTarget.getExplicitPipelineProfile();
+  std::optional<cudaq::config::CustomPipelineLowering> pipelines;
+  if (!configValue.CompileTarget.stages.empty())
+    pipelines = configValue.CompileTarget.getCustomPipelineLowering();
 
   if (pipelines && !pipelines->highLevelPipeline.empty())
     output << "JIT_HIGH_LEVEL_PIPELINE=\"" << pipelines->highLevelPipeline
@@ -86,9 +86,9 @@ static std::string processSimBackendConfig(
     output << "CODEGEN_EMISSION="
            << configValue.CompileTarget.codegenTranslation << "\n";
 
-  if (pipelines && !pipelines->postCodeGenPasses.empty())
-    output << "POST_CODEGEN_PASSES=\"" << pipelines->postCodeGenPasses
-           << "\"\n";
+  if (!configValue.CompileTarget.postCodeGenPasses.empty())
+    output << "POST_CODEGEN_PASSES=\""
+           << configValue.CompileTarget.postCodeGenPasses << "\"\n";
 
   if (!configValue.PlatformLibrary.empty())
     output << "PLATFORM_LIBRARY=" << configValue.PlatformLibrary << "\n";

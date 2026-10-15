@@ -67,8 +67,8 @@ std::string cudaq::config::TargetConfig::getCodeGenSpec(
 }
 
 bool cudaq::config::BackendEndConfigEntry::hasPassPipeline() const {
-  return !CompileTarget.profiles.empty() &&
-         !CompileTarget.getExplicitPipelineProfile().empty();
+  return !CompileTarget.stages.empty() &&
+         !CompileTarget.getCustomPipelineLowering().empty();
 }
 
 cudaq::config::TargetVersionCompatibilityResult

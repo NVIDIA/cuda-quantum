@@ -11,27 +11,27 @@
 #include "Yaml/v2/TargetConfigV2.h"
 #include "Yaml/CanonicalConversion.h"
 
-static cudaq::config::Profile
-toCanonicalProfile(const cudaq::config::v2::ProfileV2 &profile) {
-  return profile.visit([](const auto &p) -> cudaq::config::Profile {
+static cudaq::config::CompilationStage
+toCanonicalStage(const cudaq::config::v2::CompilationStageV2 &stage) {
+  cudaq::config::Profile profile;
+  stage.irOutputProfile.visit([&](const auto &p) {
     using T = std::decay_t<decltype(p)>;
-    if constexpr (std::is_same_v<
-                      T, cudaq::config::v2::ExplicitPipelineProfileV2>) {
-      cudaq::config::ExplicitPipelineProfile out;
-      p.pipelines.visit([&](const auto &pipelines) {
-        using C = std::decay_t<decltype(pipelines)>;
-        if constexpr (std::is_same_v<
-                          C, cudaq::config::v2::ExplicitPipelineOverrideV2>) {
-          out.overridePassPipeline = pipelines.overridePassPipeline;
-        } else {
-          out.highLevelPipeline = pipelines.highLevelPipeline.value();
-          out.midLevelPipeline = pipelines.midLevelPipeline.value();
-          out.lowLevelPipeline = pipelines.lowLevelPipeline.value();
-        }
-      });
-      return out;
+    if constexpr (std::is_same_v<T, cudaq::config::v2::UncheckedProfileV2>)
+      profile = cudaq::config::UncheckedProfile{};
+  });
+  cudaq::config::CustomPipelineLowering lowering;
+  stage.lowering.customPipeline.visit([&](const auto &pipelines) {
+    using T = std::decay_t<decltype(pipelines)>;
+    if constexpr (std::is_same_v<T, std::string>) {
+      lowering.overridePassPipeline = pipelines;
+    } else {
+      lowering.highLevelPipeline = pipelines.highLevel.value();
+      lowering.midLevelPipeline = pipelines.midLevel.value();
+      lowering.lowLevelPipeline = pipelines.lowLevel.value();
     }
   });
+  return cudaq::config::CompilationStage{.irOutputProfile = profile,
+                                         .lowering = std::move(lowering)};
 }
 
 static cudaq::config::BackendEndConfigEntry
@@ -41,7 +41,7 @@ toCanonicalEntry(const cudaq::config::v2::BackendEndConfigEntryV2 &cfg,
   cudaq::config::detail::toCanonicalEntryBase(cfg, out);
   if (compileTarget) {
     for (const auto &stage : compileTarget->stages)
-      out.CompileTarget.profiles.push_back(toCanonicalProfile(stage));
+      out.CompileTarget.stages.push_back(toCanonicalStage(stage));
     out.CompileTarget.codegenTranslation = compileTarget->codegen.value();
   }
   return out;

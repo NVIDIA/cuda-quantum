@@ -12,12 +12,12 @@ may involve undocumented foot guns.
 """
 
 from .runtime_endpoint import RuntimeEndpoint
-from .compile_target import CompileTarget, ExplicitPipelineProfile
+from .compile_target import CompileTarget, CustomPipelineLowering
 from .custom_target import CustomTarget
 
 __all__ = [
     "CompileTarget",
+    "CustomPipelineLowering",
     "CustomTarget",
-    "ExplicitPipelineProfile",
     "RuntimeEndpoint",
 ]

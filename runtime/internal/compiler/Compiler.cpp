@@ -257,8 +257,7 @@ cudaq_internal::compiler::Compiler::prepareModule(const std::string &kernelName,
         pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
       }
 
-      if (!target.profiles.empty() &&
-          target.getExplicitPipelineProfile().replaceStateWithKernel) {
+      if (target.replaceStateWithKernel) {
         pm.addNestedPass<mlir::func::FuncOp>(
             cudaq::opt::createReplaceStateWithKernel());
         cudaq::opt::addAggressiveInlining(pm);
@@ -298,8 +297,8 @@ cudaq_internal::compiler::Compiler::prepareModule(const std::string &kernelName,
 std::pair<bool, std::string>
 cudaq_internal::compiler::Compiler::executeMainPipeline(
     mlir::ModuleOp moduleOp, const std::string &kernelName) {
-  if (options.skipTargetLoweringPipeline || target.profiles.empty() ||
-      target.getExplicitPipelineProfile().empty()) {
+  if (options.skipTargetLoweringPipeline || target.stages.empty() ||
+      target.getCustomPipelineLowering().empty()) {
     return {false, ""};
   }
   auto passPipelineConfig = getPassPipeline(target, options);
@@ -466,9 +465,8 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
   if (options.addSampleMeasurements &&
       !target.supportSampleWithoutMeasurements) {
     // No need to add measurements only to remove them eventually
-    if (target.profiles.empty() ||
-        target.getExplicitPipelineProfile().postCodeGenPasses.find(
-            "remove-measurements") == std::string::npos)
+    if (target.postCodeGenPasses.find("remove-measurements") ==
+        std::string::npos)
       applyPipeline("func.func(add-measurements)", moduleOp, kernelName);
   }
 
@@ -528,10 +526,7 @@ std::vector<cudaq::KernelExecution>
 cudaq_internal::compiler::Compiler::emitKernelExecutions(
     const cudaq::CompiledModule &compiled) {
   const auto &codegenTranslation = target.codegenTranslation;
-  const std::string postCodeGenPasses =
-      target.profiles.empty()
-          ? std::string{}
-          : target.getExplicitPipelineProfile().postCodeGenPasses;
+  const std::string postCodeGenPasses = target.postCodeGenPasses;
 
   // Apply user-specified codegen
   std::vector<cudaq::KernelExecution> codes;

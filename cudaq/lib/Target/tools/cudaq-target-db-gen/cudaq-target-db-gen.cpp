@@ -212,38 +212,45 @@ cxxSimulationBackend(const cudaq::config::SimulationBackendSetting &s) {
          cxxStringVector(s.values) + "}";
 }
 
-std::string cxxExplicitPipelineProfile(
-    const cudaq::config::ExplicitPipelineProfile &profile) {
+std::string cxxCustomPipelineLowering(
+    const cudaq::config::CustomPipelineLowering &lowering) {
   std::ostringstream os;
-  os << "cudaq::config::ExplicitPipelineProfile{"
+  os << "cudaq::config::CustomPipelineLowering{"
      << ".overridePassPipeline = "
-     << cxxStringLiteral(profile.overridePassPipeline) << ", "
-     << ".highLevelPipeline = " << cxxStringLiteral(profile.highLevelPipeline)
+     << cxxStringLiteral(lowering.overridePassPipeline) << ", "
+     << ".highLevelPipeline = " << cxxStringLiteral(lowering.highLevelPipeline)
      << ", "
-     << ".midLevelPipeline = " << cxxStringLiteral(profile.midLevelPipeline)
+     << ".midLevelPipeline = " << cxxStringLiteral(lowering.midLevelPipeline)
      << ", "
-     << ".lowLevelPipeline = " << cxxStringLiteral(profile.lowLevelPipeline)
-     << ", "
-     << ".postCodeGenPasses = " << cxxStringLiteral(profile.postCodeGenPasses)
-     << ", "
-     << ".disableQubitMapping = " << cxxBool(profile.disableQubitMapping)
-     << ", "
-     << ".replaceStateWithKernel = " << cxxBool(profile.replaceStateWithKernel)
+     << ".lowLevelPipeline = " << cxxStringLiteral(lowering.lowLevelPipeline)
      << "}";
   return os.str();
 }
 
-std::string cxxProfiles(const std::vector<cudaq::config::Profile> &profiles) {
+std::string cxxStage(const cudaq::config::CompilationStage &stage) {
+  std::ostringstream os;
+  os << "cudaq::config::CompilationStage{"
+     << ".irOutputProfile = cudaq::config::Profile{std::in_place_type<";
+  std::visit(
+      [&](const auto &p) {
+        using T = std::decay_t<decltype(p)>;
+        if constexpr (std::is_same_v<T, cudaq::config::UncheckedProfile>)
+          os << "cudaq::config::UncheckedProfile>}";
+      },
+      stage.irOutputProfile);
+  os << ", .lowering = "
+     << std::visit([](const auto &l) { return cxxCustomPipelineLowering(l); },
+                   stage.lowering)
+     << "}";
+  return os.str();
+}
+
+std::string
+cxxStages(const std::vector<cudaq::config::CompilationStage> &stages) {
   std::ostringstream os;
   os << "{";
-  for (const auto &profile : profiles) {
-    os << "cudaq::config::Profile{std::in_place_type<"
-          "cudaq::config::ExplicitPipelineProfile>, "
-       << std::visit(
-              [](const auto &p) { return cxxExplicitPipelineProfile(p); },
-              profile)
-       << "}, ";
-  }
+  for (const auto &stage : stages)
+    os << cxxStage(stage) << ", ";
   os << "}";
   return os.str();
 }
@@ -253,9 +260,11 @@ std::string cxxCompileTarget(const cudaq::CompileTarget &compileTarget) {
   os << "cudaq::CompileTarget{"
      << ".overrideAOTCompilation = "
      << cxxBool(compileTarget.overrideAOTCompilation) << ", "
-     << ".profiles = " << cxxProfiles(compileTarget.profiles) << ", "
+     << ".stages = " << cxxStages(compileTarget.stages) << ", "
      << ".codegenTranslation = "
      << cxxStringLiteral(compileTarget.codegenTranslation) << ", "
+     << ".postCodeGenPasses = "
+     << cxxStringLiteral(compileTarget.postCodeGenPasses) << ", "
      << ".supportConditionalsOnMeasureResults = "
      << cxxBool(compileTarget.supportConditionalsOnMeasureResults) << ", "
      << ".supportDeviceCalls = " << cxxBool(compileTarget.supportDeviceCalls)
@@ -270,7 +279,11 @@ std::string cxxCompileTarget(const cudaq::CompileTarget &compileTarget) {
      << cxxBool(compileTarget.supportSampleWithoutMeasurements) << ", "
      << ".fullySpecialize = " << cxxBool(compileTarget.fullySpecialize) << ", "
      << ".argumentSynthChangeSemantics = "
-     << cxxBool(compileTarget.argumentSynthChangeSemantics) << "}";
+     << cxxBool(compileTarget.argumentSynthChangeSemantics) << ", "
+     << ".disableQubitMapping = " << cxxBool(compileTarget.disableQubitMapping)
+     << ", "
+     << ".replaceStateWithKernel = "
+     << cxxBool(compileTarget.replaceStateWithKernel) << "}";
   return os.str();
 }
 
