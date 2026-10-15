@@ -6,19 +6,36 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-find_program(_target_catalog_lit NAMES llvm-lit lit
-  HINTS ${LLVM_TOOLS_BINARY_DIR}
-  PATHS /usr/local/llvm/bin
-  NO_CACHE)
+# An explicitly requested lit (LLVM_EXTERNAL_LIT, as used elsewhere in the
+# build) takes precedence over searching for one.
+if (LLVM_EXTERNAL_LIT)
+  set(_target_catalog_lit "${LLVM_EXTERNAL_LIT}")
+  if (NOT EXISTS "${_target_catalog_lit}")
+    message(FATAL_ERROR
+      "LLVM_EXTERNAL_LIT is set to '${LLVM_EXTERNAL_LIT}', which does not "
+      "exist; the target-catalog test suite needs it. Fix the path or "
+      "reconfigure with CUDAQ_BUILD_TESTS=OFF.")
+  endif()
+else()
+  find_program(_target_catalog_lit NAMES llvm-lit lit
+    HINTS ${LLVM_TOOLS_BINARY_DIR}
+    PATHS /usr/local/llvm/bin
+    NO_CACHE)
+  if (NOT _target_catalog_lit)
+    message(FATAL_ERROR
+      "The target-catalog test suite requires llvm-lit, but it was not "
+      "found; set LLVM_EXTERNAL_LIT, make it findable, or reconfigure with "
+      "CUDAQ_BUILD_TESTS=OFF.")
+  endif()
+endif()
 find_program(_target_catalog_filecheck NAMES FileCheck
   HINTS ${LLVM_TOOLS_BINARY_DIR}
   PATHS /usr/local/llvm/bin
   NO_CACHE)
-if (NOT _target_catalog_lit OR NOT _target_catalog_filecheck)
+if (NOT _target_catalog_filecheck)
   message(FATAL_ERROR
-    "The target-catalog test suite requires llvm-lit and FileCheck, but they "
-    "were not found; make them findable or reconfigure with "
-    "CUDAQ_BUILD_TESTS=OFF.")
+    "The target-catalog test suite requires FileCheck, but it was not "
+    "found; make it findable or reconfigure with CUDAQ_BUILD_TESTS=OFF.")
 endif()
 
 # LLVM-free driver linking the final catalog for testing.
