@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <iostream>
+#include <optional>
 #include <sstream>
 #include <unordered_map>
 #include <vector>
@@ -62,27 +63,32 @@ static std::string processSimBackendConfig(
   if (configValue.LibraryMode)
     output << "LIBRARY_MODE=true\n";
 
-  const auto &profile = configValue.CompileTarget.getExplicitPipelineProfile();
+  std::optional<cudaq::config::ExplicitPipelineProfile> pipelines;
+  if (!configValue.CompileTarget.profiles.empty())
+    pipelines = configValue.CompileTarget.getExplicitPipelineProfile();
 
-  if (!profile.highLevelPipeline.empty())
-    output << "JIT_HIGH_LEVEL_PIPELINE=\"" << profile.highLevelPipeline
+  if (pipelines && !pipelines->highLevelPipeline.empty())
+    output << "JIT_HIGH_LEVEL_PIPELINE=\"" << pipelines->highLevelPipeline
            << "\"\n";
 
-  if (!profile.midLevelPipeline.empty())
-    output << "JIT_MID_LEVEL_PIPELINE=\"" << profile.midLevelPipeline << "\"\n";
+  if (pipelines && !pipelines->midLevelPipeline.empty())
+    output << "JIT_MID_LEVEL_PIPELINE=\"" << pipelines->midLevelPipeline
+           << "\"\n";
 
-  if (!profile.lowLevelPipeline.empty())
-    output << "JIT_LOW_LEVEL_PIPELINE=\"" << profile.lowLevelPipeline << "\"\n";
+  if (pipelines && !pipelines->lowLevelPipeline.empty())
+    output << "JIT_LOW_LEVEL_PIPELINE=\"" << pipelines->lowLevelPipeline
+           << "\"\n";
 
-  if (!profile.overridePassPipeline.empty())
+  if (pipelines && !pipelines->overridePassPipeline.empty())
     output << "TARGET_PASS_PIPELINE_NAME=" << pipelineName << "\n";
 
   if (!configValue.CompileTarget.codegenTranslation.empty())
     output << "CODEGEN_EMISSION="
            << configValue.CompileTarget.codegenTranslation << "\n";
 
-  if (!profile.postCodeGenPasses.empty())
-    output << "POST_CODEGEN_PASSES=\"" << profile.postCodeGenPasses << "\"\n";
+  if (pipelines && !pipelines->postCodeGenPasses.empty())
+    output << "POST_CODEGEN_PASSES=\"" << pipelines->postCodeGenPasses
+           << "\"\n";
 
   if (!configValue.PlatformLibrary.empty())
     output << "PLATFORM_LIBRARY=" << configValue.PlatformLibrary << "\n";

@@ -212,8 +212,7 @@ cxxSimulationBackend(const cudaq::config::SimulationBackendSetting &s) {
          cxxStringVector(s.values) + "}";
 }
 
-std::string
-cxxExplicitPipelineProfile(
+std::string cxxExplicitPipelineProfile(
     const cudaq::config::ExplicitPipelineProfile &profile) {
   std::ostringstream os;
   os << "cudaq::config::ExplicitPipelineProfile{"
@@ -249,8 +248,7 @@ std::string cxxProfiles(const std::vector<cudaq::config::Profile> &profiles) {
   return os.str();
 }
 
-std::string
-cxxCompileTarget(const cudaq::CompileTarget &compileTarget) {
+std::string cxxCompileTarget(const cudaq::CompileTarget &compileTarget) {
   std::ostringstream os;
   os << "cudaq::CompileTarget{"
      << ".overrideAOTCompilation = "

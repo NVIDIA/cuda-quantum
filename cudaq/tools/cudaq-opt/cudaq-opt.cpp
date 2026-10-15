@@ -118,6 +118,8 @@ registerAllTargetPassPipelines(llvm::ArrayRef<std::string> configPaths = {}) {
   };
   const auto overridePipeline =
       [](const cudaq::config::BackendEndConfigEntry &backend) -> std::string {
+    if (backend.CompileTarget.profiles.empty())
+      return std::string{};
     const auto &profile = backend.CompileTarget.getExplicitPipelineProfile();
     return profile.overridePassPipeline;
   };

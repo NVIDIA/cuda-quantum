@@ -78,14 +78,20 @@ void printBackend(const BackendEndConfigEntry &backend, const char *indent) {
             << "\n"
             << indent << "support-resource-counts: "
             << boolStr(backend.SupportResourceCounts) << "\n";
-  const auto &pipelines = backend.CompileTarget.getExplicitPipelineProfile();
-  printField(indent, "jit-high-level-pipeline", pipelines.highLevelPipeline);
-  printField(indent, "jit-mid-level-pipeline", pipelines.midLevelPipeline);
-  printField(indent, "jit-low-level-pipeline", pipelines.lowLevelPipeline);
-  printField(indent, "target-pass-pipeline", pipelines.overridePassPipeline);
+  std::optional<cudaq::config::ExplicitPipelineProfile> pipelines;
+  if (!backend.CompileTarget.profiles.empty())
+    pipelines = backend.CompileTarget.getExplicitPipelineProfile();
+  // A backend without IR profiles has no pipeline fields to print.
+  if (pipelines) {
+    printField(indent, "jit-high-level-pipeline", pipelines->highLevelPipeline);
+    printField(indent, "jit-mid-level-pipeline", pipelines->midLevelPipeline);
+    printField(indent, "jit-low-level-pipeline", pipelines->lowLevelPipeline);
+    printField(indent, "target-pass-pipeline", pipelines->overridePassPipeline);
+  }
   printField(indent, "codegen-emission",
              backend.CompileTarget.codegenTranslation);
-  printField(indent, "post-codegen-passes", pipelines.postCodeGenPasses);
+  if (pipelines)
+    printField(indent, "post-codegen-passes", pipelines->postCodeGenPasses);
   printField(indent, "platform-library", backend.PlatformLibrary);
   printField(indent, "library-mode-execution-manager",
              backend.LibraryModeExecutionManager);

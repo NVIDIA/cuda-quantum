@@ -48,8 +48,8 @@ toCanonicalArch(const MachineArchitectureConfigV &cfg) {
   return out;
 }
 
-/// Fills everything except the compilation state (profiles/codegen), which
-/// each schema version expresses differently.
+/// Fills everything except the compilation state, which each schema version
+/// expresses differently.
 template <typename BackendEndConfigEntryV>
 void toCanonicalEntryBase(const BackendEndConfigEntryV &cfg,
                           BackendEndConfigEntry &out) {

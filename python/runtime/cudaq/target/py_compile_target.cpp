@@ -35,10 +35,13 @@ static std::string explicitPipelineProfileRepr(
 }
 
 static std::string compileTargetRepr(const cudaq::CompileTarget &ct) {
-  std::string profileRepr =
-      explicitPipelineProfileRepr(ct.getExplicitPipelineProfile());
-  return "CompileTarget(stages=[" + profileRepr +
-         "], codegen_translation=" + reprStr(ct.codegenTranslation) + ")";
+  std::string profileRepr = "[]";
+  if (!ct.profiles.empty())
+    profileRepr = "[" +
+                  explicitPipelineProfileRepr(ct.getExplicitPipelineProfile()) +
+                  "]";
+  return "CompileTarget(stages=" + profileRepr +
+         ", codegen_translation=" + reprStr(ct.codegenTranslation) + ")";
 }
 
 void cudaq::bindCompileTarget(nanobind::module_ &mod) {

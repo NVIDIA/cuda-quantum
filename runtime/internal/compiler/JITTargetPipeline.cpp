@@ -28,7 +28,10 @@ static void setQubitMappingBypass(std::string &pipeline) {
 
 std::string cudaq_internal::compiler::getPassPipeline(
     const cudaq::CompileTarget &target, const cudaq::CompileOptions &options) {
-  const auto &pipelineConfig = target.getExplicitPipelineProfile();
+  static const cudaq::config::ExplicitPipelineProfile noProfile{};
+  std::optional<cudaq::config::ExplicitPipelineProfile> pipelineConfig;
+  if (!target.profiles.empty())
+    pipelineConfig = target.getExplicitPipelineProfile();
   const std::string allowEarlyExit =
       target.codegenTranslation.starts_with("qir-adaptive") ? "true" : "false";
   const std::string noLoopUnroll =
@@ -36,8 +39,8 @@ std::string cudaq_internal::compiler::getPassPipeline(
 
   std::string passPipeline = "canonicalize";
 
-  if (!pipelineConfig.overridePassPipeline.empty()) {
-    passPipeline = pipelineConfig.overridePassPipeline;
+  if (pipelineConfig && !pipelineConfig->overridePassPipeline.empty()) {
+    passPipeline = pipelineConfig->overridePassPipeline;
     return passPipeline;
   }
 
@@ -59,14 +62,17 @@ std::string cudaq_internal::compiler::getPassPipeline(
   const std::string finalizeStage =
       "jit-finalize-pipeline{lower-device-calls=" + lowerDeviceCalls + "}";
 
-  appendPipelineStage(passPipeline, pipelineConfig.highLevelPipeline);
+  if (pipelineConfig)
+    appendPipelineStage(passPipeline, pipelineConfig->highLevelPipeline);
   appendPipelineStage(passPipeline, deployStage);
-  appendPipelineStage(passPipeline, pipelineConfig.midLevelPipeline);
+  if (pipelineConfig)
+    appendPipelineStage(passPipeline, pipelineConfig->midLevelPipeline);
   appendPipelineStage(passPipeline, finalizeStage);
-  appendPipelineStage(passPipeline, pipelineConfig.lowLevelPipeline);
+  if (pipelineConfig)
+    appendPipelineStage(passPipeline, pipelineConfig->lowLevelPipeline);
 
   // Handle disable_qubit_mapping runtime option.
-  if (pipelineConfig.disableQubitMapping) {
+  if (pipelineConfig && pipelineConfig->disableQubitMapping) {
     setQubitMappingBypass(passPipeline);
     CUDAQ_INFO("disable_qubit_mapping option found, so updated lowering "
                "pipeline to {}",

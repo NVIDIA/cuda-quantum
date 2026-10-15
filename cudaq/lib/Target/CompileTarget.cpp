@@ -9,8 +9,38 @@
 #include "cudaq/Target/CompileTarget.h"
 #include "cudaq/Support/Hash.h"
 #include "cudaq/Target/TargetConfig.h"
-#include "cudaq/runtime/logger/logger.h"
 #include <cctype>
+#include <cstdlib>
+#include <iostream>
+
+/// Report an unsupported IR profile and terminate. This code is used in
+/// contexts built without exception support, so errors abort instead of
+/// throwing.
+[[noreturn]] static void reportUnsupportedProfile() {
+  std::cerr << "Unsupported IR profile: only ExplicitPipelineProfile is "
+               "currently supported\n";
+  std::abort();
+}
+
+const cudaq::config::ExplicitPipelineProfile &
+cudaq::CompileTarget::getExplicitPipelineProfile() const {
+  if (profiles.size() != 1)
+    reportUnsupportedProfile();
+  const auto *explicitProfile = profile<config::ExplicitPipelineProfile>();
+  if (!explicitProfile)
+    reportUnsupportedProfile();
+  return *explicitProfile;
+}
+
+cudaq::config::ExplicitPipelineProfile &
+cudaq::CompileTarget::getExplicitPipelineProfile() {
+  if (profiles.size() != 1)
+    reportUnsupportedProfile();
+  auto *explicitProfile = profile<config::ExplicitPipelineProfile>();
+  if (!explicitProfile)
+    reportUnsupportedProfile();
+  return *explicitProfile;
+}
 
 /// Replace `%KEY%` and `%KEY:default%` placeholders from runtime options.
 static void substitutePipelinePlaceholders(
@@ -68,51 +98,37 @@ cudaq::CompileTarget cudaq::CompileTarget::createFromConfig(
   const auto &backendConfig =
       targetConfig.BackendConfig.value_or(defaultConfig);
   cudaq::CompileTarget target = backendConfig.CompileTarget;
-  auto prepPipeline = [&](const std::string &stage,
-                          const std::string &stageName) {
+  auto prepPipeline = [&](const std::string &stage) {
     std::string pipeline = stage;
     if (!pipeline.empty()) {
       substitutePipelinePlaceholders(pipeline, runtimeConfig);
       applyPipelineSubstitutions(pipeline, pipelineSubstitutions);
-      CUDAQ_INFO("{:<27} {}", stageName + ":", pipeline);
     }
     return pipeline;
   };
   auto resolvePipeline = [&](config::ExplicitPipelineProfile &profile) {
     if (!profile.overridePassPipeline.empty()) {
-      profile.overridePassPipeline = prepPipeline(profile.overridePassPipeline,
-                                                  "Pass pipeline (overridden)");
+      profile.overridePassPipeline = prepPipeline(profile.overridePassPipeline);
     } else {
-      profile.highLevelPipeline =
-          prepPipeline(profile.highLevelPipeline, "JIT high level");
-      profile.midLevelPipeline =
-          prepPipeline(profile.midLevelPipeline, "JIT mid level");
-      profile.lowLevelPipeline =
-          prepPipeline(profile.lowLevelPipeline, "JIT low level");
+      profile.highLevelPipeline = prepPipeline(profile.highLevelPipeline);
+      profile.midLevelPipeline = prepPipeline(profile.midLevelPipeline);
+      profile.lowLevelPipeline = prepPipeline(profile.lowLevelPipeline);
     }
   };
 
   // Handle disable_qubit_mapping runtime option.
   auto disableQM = runtimeConfig.find("disable_qubit_mapping");
-  auto disableQubitMapping = false;
-  if (disableQM != runtimeConfig.end() && disableQM->second == "true") {
-    disableQubitMapping = true;
-    CUDAQ_INFO("{:<27} {}\n", "disable_qubit_mapping:", "true");
-  }
+  auto disableQubitMapping =
+      disableQM != runtimeConfig.end() && disableQM->second == "true";
   for (auto &stage : target.profiles) {
     auto *profile = std::get_if<config::ExplicitPipelineProfile>(&stage);
     if (!profile)
       continue;
     resolvePipeline(*profile);
     profile->disableQubitMapping |= disableQubitMapping;
-
-    if (!profile->postCodeGenPasses.empty())
-      CUDAQ_INFO("{:<27} {}\n", "Post-codegen:", profile->postCodeGenPasses);
   }
 
   target.codegenTranslation = targetConfig.getCodeGenSpec(runtimeConfig);
-  if (!target.codegenTranslation.empty())
-    CUDAQ_INFO("{:<27} {}\n", "Codegen:", target.codegenTranslation);
 
   target.supportResourceCounts = backendConfig.SupportResourceCounts;
 

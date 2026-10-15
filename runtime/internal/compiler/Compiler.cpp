@@ -257,7 +257,8 @@ cudaq_internal::compiler::Compiler::prepareModule(const std::string &kernelName,
         pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
       }
 
-      if (target.getExplicitPipelineProfile().replaceStateWithKernel) {
+      if (!target.profiles.empty() &&
+          target.getExplicitPipelineProfile().replaceStateWithKernel) {
         pm.addNestedPass<mlir::func::FuncOp>(
             cudaq::opt::createReplaceStateWithKernel());
         cudaq::opt::addAggressiveInlining(pm);
@@ -297,7 +298,7 @@ cudaq_internal::compiler::Compiler::prepareModule(const std::string &kernelName,
 std::pair<bool, std::string>
 cudaq_internal::compiler::Compiler::executeMainPipeline(
     mlir::ModuleOp moduleOp, const std::string &kernelName) {
-  if (options.skipTargetLoweringPipeline ||
+  if (options.skipTargetLoweringPipeline || target.profiles.empty() ||
       target.getExplicitPipelineProfile().empty()) {
     return {false, ""};
   }
@@ -465,7 +466,8 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
   if (options.addSampleMeasurements &&
       !target.supportSampleWithoutMeasurements) {
     // No need to add measurements only to remove them eventually
-    if (target.getExplicitPipelineProfile().postCodeGenPasses.find(
+    if (target.profiles.empty() ||
+        target.getExplicitPipelineProfile().postCodeGenPasses.find(
             "remove-measurements") == std::string::npos)
       applyPipeline("func.func(add-measurements)", moduleOp, kernelName);
   }
@@ -527,7 +529,9 @@ cudaq_internal::compiler::Compiler::emitKernelExecutions(
     const cudaq::CompiledModule &compiled) {
   const auto &codegenTranslation = target.codegenTranslation;
   const std::string postCodeGenPasses =
-      target.getExplicitPipelineProfile().postCodeGenPasses;
+      target.profiles.empty()
+          ? std::string{}
+          : target.getExplicitPipelineProfile().postCodeGenPasses;
 
   // Apply user-specified codegen
   std::vector<cudaq::KernelExecution> codes;

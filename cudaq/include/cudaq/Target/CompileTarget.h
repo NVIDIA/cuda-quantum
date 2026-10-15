@@ -77,7 +77,7 @@ struct CompileTarget {
   /// Set the `changeSemantics` flag for the argument synthesis pass.
   bool argumentSynthChangeSemantics = true;
 
-  /// Access the i-th profile of type `T`, or `nullptr` if not present.
+  /// Access the `i-th` profile of type `T`, or `nullptr` if not present.
   template <typename T>
   const T *profile(std::size_t i = 0) const {
     if (i >= profiles.size())
@@ -87,7 +87,7 @@ struct CompileTarget {
     return nullptr;
   }
 
-  /// Access the i-th profile of type `T`, or `nullptr` if not present.
+  /// Access the `i-th` profile of type `T`, or `nullptr` if not present.
   template <typename T>
   T *profile(std::size_t i = 0) {
     if (i >= profiles.size())
@@ -99,34 +99,12 @@ struct CompileTarget {
 
   /// Access the explicit pipeline profile.
   ///
-  /// @throws std::runtime_error if there isn't exactly one profile or the first
-  /// profile is not an explicit pipeline profile
+  /// Prints an error and aborts the process if there isn't exactly one
+  /// profile or the first profile is not an explicit pipeline profile.
   // TODO: Temporary utility function used while there is only one explicit
   // profile, to be replaced with more general profile handling
-  const config::ExplicitPipelineProfile &getExplicitPipelineProfile() const {
-    if (profiles.size() != 1)
-      throw std::runtime_error(
-          "Unsupported IR profile: only ExplicitPipelineProfile is "
-          "currently supported");
-    const auto *explicitProfile = profile<config::ExplicitPipelineProfile>();
-    if (!explicitProfile)
-      throw std::runtime_error(
-          "Unsupported IR profile: only ExplicitPipelineProfile is "
-          "currently supported");
-    return *explicitProfile;
-  }
-  config::ExplicitPipelineProfile &getExplicitPipelineProfile() {
-    if (profiles.size() != 1)
-      throw std::runtime_error(
-          "Unsupported IR profile: only ExplicitPipelineProfile is "
-          "currently supported");
-    auto *explicitProfile = profile<config::ExplicitPipelineProfile>();
-    if (!explicitProfile)
-      throw std::runtime_error(
-          "Unsupported IR profile: only ExplicitPipelineProfile is "
-          "currently supported");
-    return *explicitProfile;
-  }
+  const config::ExplicitPipelineProfile &getExplicitPipelineProfile() const;
+  config::ExplicitPipelineProfile &getExplicitPipelineProfile();
 
   /// Construct a CompileTarget from static and runtime backend configurations.
   static CompileTarget createFromConfig(

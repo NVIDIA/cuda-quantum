@@ -29,8 +29,8 @@ using TargetArgumentV2 = v1::TargetArgumentV1;
 using SimulationBackendInputV2 = v1::SimulationBackendInput;
 
 /// Backend (non-compilation) target configuration. Omits v1's compilation
-/// fields (jit-*-pipeline, target-pass-pipeline, codegen-emission,
-/// post-codegen-passes).
+/// fields (`jit-*-pipeline`, `target-pass-pipeline`, `codegen`-emission,
+/// `post-codegen`-passes).
 struct BackendEndConfigEntryV2 {
   rfl::DefaultVal<bool> genTargetBackend;
   rfl::DefaultVal<bool> libraryMode;
@@ -70,8 +70,8 @@ struct ExplicitPipelineStagesV2 {
 };
 
 /// Transitional profile prescribing an explicit MLIR pass pipeline instead
-/// of declaratively describing the target IR. The `pipelines` variant makes
-/// `override-pass-pipeline` mutually exclusive with the staged pipelines:
+/// of describing the target IR in a declarative way. The `pipelines` variant
+/// makes `override-pass-pipeline` mutually exclusive with the staged pipelines:
 /// the override struct requires its key, the staged struct accepts only the
 /// three staged keys, so a mapping mixing both matches neither.
 struct ExplicitPipelineProfileV2 {

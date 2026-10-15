@@ -42,7 +42,10 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/TargetDatabase.cmake)
 # Lightweight, installed library: the in-memory target configuration model.
 # Dependency-free public dependency for components (e.g. cudaq-common) that
 # read and modify target configurations but never load targets themselves.
-add_library(CUDAQTargetConfig STATIC TargetConfig.cpp)
+add_library(CUDAQTargetConfig STATIC
+  TargetConfig.cpp
+  CompileTarget.cpp
+)
 target_include_directories(CUDAQTargetConfig PUBLIC
   $<BUILD_INTERFACE:${CUDAQ_TARGET_REPO_ROOT}/cudaq/include>
   $<INSTALL_INTERFACE:include>)
