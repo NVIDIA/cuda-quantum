@@ -9,9 +9,9 @@
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Todo.h"
-#include "mlir/IR/Dominance.h"
 #include "llvm/ADT/MapVector.h"
 #include "llvm/ADT/SetVector.h"
+#include "mlir/IR/Dominance.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/Passes.h"
 
