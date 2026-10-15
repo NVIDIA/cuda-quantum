@@ -5,17 +5,20 @@ dialects, passes, or intermediate representations. For the Python interface,
 start with [Getting started](../getting-started/quickstart.md) and the
 [use cases](../use-cases/define-a-code.md).
 
-CUDA-Q Logical has one user surface over four semantic stages, orthogonal
-analysis facets, and one primary MLIR dialect family per stage. This page walks
-you through the whole machine: the dialect stack, the artifact model, the
-ownership contract, the compile pipeline, and the verification layers that hold
-it together.
+CUDA-Q Logical has one user surface over four implemented semantic stages and
+a set of reusable MLIR dialects. A stage describes how much the compiler has
+committed; it is not another name for a dialect. This page walks through the
+dialect stack, artifact model, ownership contract, compile pipeline, and the
+verification layers that hold them together.
 
 ## The dialect stack
 
-Each semantic stage owns one primary representation family, and the passes that
-convert between families are the canonical compiler lowerings. Analysis facets
-are ops and results inside the owning representation, not extra semantic stages.
+Each dialect owns a coherent vocabulary. The current compiler uses `qlx`,
+`lvm`, `fabric`, and `phys` as its principal P0, P1, P2, and P3 vocabularies,
+and the passes between their canonical roots are the standard lowerings. This
+alignment is useful, but dialect membership is not a stage test: a canonical
+root reports its stage through `SemanticRootOpInterface`, and genuinely shared
+operations can appear at more than one stage.
 
 ```{figure} ../_static/figures/dialect-map.svg
 :alt: The four stage dialects with their responsibilities, lowerings, estimators, and emission boundaries.
@@ -26,12 +29,59 @@ are the canonical lowerings; the green strip summarizes estimation and
 emission products.
 ```
 
-The division of labor is strict. `qlx` (P0) may not mention a machine or a code.
+The division of labor is strict. `qlx` P0 programs may not mention a machine or
+a code.
 `lvm` (P1) binds values to machine spaces and slots but does not choose codes.
 `fabric` (P2) is the QEC semantic hub: codes, encodings, verified gadgets,
 protocols, and the static resource evidence derived from them. `phys` (P3)
 binds those realizations to physical resources, native events, routes, and
 schedules.
+
+## Framework and extension boundaries
+
+CUDA-Q Logical separates three layers whose dependencies point in one
+direction:
+
+| Layer | Public responsibility | Representative targets or packages |
+| --- | --- | --- |
+| Framework | Types, dialects, neutral interfaces, intrinsic verification, and reusable transformations | `MLIRCUDAQLogicalInterfaces`, `MLIRQLXDialect`, `MLIRLVMDialect`, `MLIRFabricDialect`, `MLIRPhysDialect`, `MLIRCflowDialect`, `MLIREventDialect` |
+| Reference compiler | Named partial and end-to-end pipelines, pass composition, and command-line tools | transform libraries, compiler providers, `qlx-opt`, `qlx-translate` |
+| Broader stack | Python authoring, devices and providers, runtime integration, examples, and evaluations | `cudaq.logical`, target modules, runtime bindings |
+
+The broader stack may use the reference compiler, and the reference compiler
+may use the framework. Framework libraries do not depend on either higher
+layer. In particular, `MLIRCUDAQLogicalInterfaces` depends only on LLVM/MLIR support;
+it does not include or link the QLX, LVM, Fabric, Phys, or hardware dialects.
+
+Two interfaces establish the first common contracts. A canonical executable
+root implements `SemanticRootOpInterface`, which returns a typed stage and
+root kind derived from the operation class. These values are not additional
+IR attributes and cannot disagree with the root. P3 measurement events
+implement `PhysicalMeasurementOpInterface`, which exposes their input states,
+successor states, classical record, and existing stable record identity.
+`phys.measure` and `phys.measure_product` implement this contract directly.
+
+An external physical dialect can implement the same interface without linking
+the reference compiler or depending on Phys operation classes. When such an
+operation carries physical linear values inside `phys.graph`, the graph
+verifier accepts it through the interface only after checking that every
+physical state operand and result is reported exactly once and that the record
+is the operation's only physical-record result. Each successor must preserve
+the physical resource of one input state; relocation requires a separate P3
+event. Missing, incomplete, or contradictory interface answers are rejected.
+Interface conformance says what an operation means to generic analysis. It
+does not make the operation legal for a target, supply a lowering, or attach
+scheduling, noise, detector, or resource-estimate data.
+The exemption is limited to the reported measurement state: a foreign
+operation still cannot carry a physical resource payload or linear event
+handle, whether the operation is regionless or owns regions.
+
+The C++ extension surface is currently a build-tree contract. The conformance
+fixture is configured as a separate `find_package(CUDAQLogical)` project and
+loaded into a fresh `qlx-opt` process. The command retains its dialect-derived
+name, but the extension contract belongs to CUDA-Q Logical as a product. The
+fixture is deliberately absent from production targets, installs, and wheels.
+CUDA-Q Logical does not yet promise a stable installed C++ plugin ABI.
 
 ## The semantic spine and its facets
 

@@ -34,6 +34,7 @@
 #define QLX_OPS_TD
 
 include "qlx/Dialect/Event/IR/EventTypes.td"
+include "CUDAQLogical/Interfaces/SemanticInterfaces.td"
 include "qlx/Dialect/QLX/IR/QLXDialect.td"
 include "qlx/Dialect/QLX/IR/QLXTypes.td"
 include "qlx/Dialect/QLX/IR/QLXAttrs.td"
@@ -220,7 +221,8 @@ def QLX_ProgramOp : QLX_Op<"program", [
     IsolatedFromAbove,
     Symbol,
     SymbolTable,
-    SingleBlockImplicitTerminator<"ReturnOp">
+    SingleBlockImplicitTerminator<"ReturnOp">,
+    DeclareOpInterfaceMethods<CUDAQLogical_SemanticRootOpInterface>
   ]> {
   let summary = "QLX P0 unplaced logical program";
   let description = [{

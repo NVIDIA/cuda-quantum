@@ -34,6 +34,7 @@ include "qlx/Dialect/QLX/IR/QLXAttrs.td"
 
 // Cross-dialect: fabric.resource_request returns the shared event handle type.
 include "qlx/Dialect/Event/IR/EventTypes.td"
+include "CUDAQLogical/Interfaces/SemanticInterfaces.td"
 
 include "mlir/IR/OpBase.td"
 include "mlir/IR/SymbolInterfaces.td"
@@ -524,7 +525,8 @@ def Fabric_ReturnOp : Fabric_Op<"return", [
 
 def Fabric_CircuitOp : Fabric_Op<"circuit", [
     IsolatedFromAbove, Symbol,
-    SingleBlockImplicitTerminator<"ReturnOp">
+    SingleBlockImplicitTerminator<"ReturnOp">,
+    DeclareOpInterfaceMethods<CUDAQLogical_SemanticRootOpInterface>
   ]> {
   let summary = "reusable physical/QEC realization body";
   let description = [{
@@ -551,7 +553,8 @@ def Fabric_CircuitOp : Fabric_Op<"circuit", [
 
 def Fabric_GadgetOp : Fabric_Op<"gadget", [
     IsolatedFromAbove, Symbol,
-    SingleBlockImplicitTerminator<"ReturnOp">
+    SingleBlockImplicitTerminator<"ReturnOp">,
+    DeclareOpInterfaceMethods<CUDAQLogical_SemanticRootOpInterface>
   ]> {
   let summary = "Define a gadget";
   let description = [{
@@ -761,7 +764,8 @@ def Fabric_ProtocolReturnOp : Fabric_Op<"protocol_return", [
 
 def Fabric_ProtocolOp : Fabric_Op<"protocol", [
     Symbol, IsolatedFromAbove,
-    SingleBlockImplicitTerminator<"ProtocolReturnOp">
+    SingleBlockImplicitTerminator<"ProtocolReturnOp">,
+    DeclareOpInterfaceMethods<CUDAQLogical_SemanticRootOpInterface>
   ]> {
   let summary = "folded typed network of gadget and protocol calls";
   let description = [{

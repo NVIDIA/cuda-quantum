@@ -17,6 +17,7 @@
 #include "mlir/IR/SymbolTable.h"
 #include "mlir/Interfaces/SideEffectInterfaces.h"
 
+#include "CUDAQLogical/Interfaces/SemanticInterfaces.h"
 #include "qlx/Dialect/Event/IR/EventTypes.h"
 #include "qlx/Dialect/Fabric/IR/FabricAttrs.h"
 #include "qlx/Dialect/Fabric/IR/FabricDialect.h"

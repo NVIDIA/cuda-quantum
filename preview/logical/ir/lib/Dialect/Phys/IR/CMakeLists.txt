@@ -14,5 +14,5 @@ qlx_select_mlir_link_libraries(_qlx_mlir_link_libraries
 add_mlir_dialect_library(MLIRPhysDialect
   PhysDialect.cpp
   ADDITIONAL_HEADER_DIRS ${PROJECT_SOURCE_DIR}/ir/include/qlx/Dialect/Phys/IR
-  DEPENDS MLIRPhysIncGen MLIREventIncGen
-  LINK_LIBS PUBLIC MLIRFabricDialect MLIRQLXDialect MLIRCflowDialect MLIREventDialect ${_qlx_mlir_link_libraries})
+  DEPENDS MLIRPhysIncGen MLIRCUDAQLogicalInterfacesIncGen MLIREventIncGen
+  LINK_LIBS PUBLIC MLIRCUDAQLogicalInterfaces MLIRFabricDialect MLIRQLXDialect MLIRCflowDialect MLIREventDialect ${_qlx_mlir_link_libraries})

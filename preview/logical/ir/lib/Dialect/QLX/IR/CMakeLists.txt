@@ -20,9 +20,11 @@ add_mlir_dialect_library(MLIRQLXDialect
 
   DEPENDS
   MLIRQLXIncGen
+  MLIRCUDAQLogicalInterfacesIncGen
   MLIREventIncGen
 
   LINK_LIBS PUBLIC
+  MLIRCUDAQLogicalInterfaces
   MLIREventDialect
   ${_qlx_mlir_link_libraries}
 )

@@ -51,6 +51,30 @@
 using namespace mlir;
 using namespace qlx::fabric;
 
+cudaq::logical::Stage CircuitOp::getSemanticStage() {
+  return cudaq::logical::Stage::P2;
+}
+
+cudaq::logical::RootKind CircuitOp::getSemanticRootKind() {
+  return cudaq::logical::RootKind::QECCircuit;
+}
+
+cudaq::logical::Stage GadgetOp::getSemanticStage() {
+  return cudaq::logical::Stage::P2;
+}
+
+cudaq::logical::RootKind GadgetOp::getSemanticRootKind() {
+  return cudaq::logical::RootKind::QECGadget;
+}
+
+cudaq::logical::Stage ProtocolOp::getSemanticStage() {
+  return cudaq::logical::Stage::P2;
+}
+
+cudaq::logical::RootKind ProtocolOp::getSemanticRootKind() {
+  return cudaq::logical::RootKind::QECProtocol;
+}
+
 namespace {
 
 struct ResourceContractRegistration {
