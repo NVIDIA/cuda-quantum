@@ -57,6 +57,7 @@ dynamics:
       - python/cudaq/dynamics/**
       - python/runtime/cudaq/dynamics/**
       - python/tests/dynamics/**
+      - unittests/dynamics/**
       - runtime/cudaq/dynamics_integrators.h
       - runtime/nvqir/cudensitymat/**
 
@@ -64,6 +65,7 @@ ptsbe:
   - changed-files:
     - any-glob-to-any-file:
       - runtime/cudaq/ptsbe/**
+      - unittests/ptsbe/**
 
 realtime:
   - changed-files:
@@ -78,11 +80,27 @@ cuda-q logical:
     - any-glob-to-any-file:
       - preview/logical/**
 
+testing:
+  - changed-files:
+    - any-glob-to-any-file:
+      - unittests/**
+      - targettests/**
+      - cudaq/test/**
+      - runtime/test/**
+      - python/tests/**
+
+dependencies:
+  - changed-files:
+    - any-glob-to-any-file:
+      - pyproject.toml*
+      - requirements*.txt
+
 documentation:
   - changed-files:
     - any-glob-to-any-file:
       - docs/**
       - '*.md'
+      - llms.txt
 
 applications:
   - changed-files:
