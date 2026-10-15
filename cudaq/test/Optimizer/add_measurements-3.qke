@@ -6,53 +6,63 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt -inject-implicit-output -add-measurements=use-evince=1 %s | FileCheck %s
-// RUN: cudaq-opt -inject-implicit-output -memtoreg -add-measurements=use-evince=1 %s | FileCheck --check-prefix=VALUE %s
-// RUN: cudaq-opt -add-dealloc -add-measurements %s | FileCheck --check-prefix=DEALLOC %s
+// RUN: cudaq-opt -add-dealloc -add-measurements %s | FileCheck %s
+// RUN: cudaq-opt -add-dealloc -memtoreg -add-measurements %s | FileCheck --check-prefix=VALUE %s
 
 module {
   func.func @reference() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
     %0 = quake.alloca !quake.veq<2>
     %1 = quake.alloca !quake.ref
-    %2 = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
-    quake.h %2 : (!quake.ref) -> ()
+    %2 = quake.alloca !quake.ref
+    %3 = quake.alloca !quake.veq<3>
+    %4 = quake.alloca !quake.ref
+    %5 = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
+    quake.h %5 : (!quake.ref) -> ()
     quake.x %1 : (!quake.ref) -> ()
+    quake.x %2 : (!quake.ref) -> ()
+    quake.x %4 : (!quake.ref) -> ()
     return
   }
 }
 
-// inject-implicit-output emits the evince ops in allocation order, so the
-// measurements follow that order as well.
+// add-dealloc emits the deallocations in allocation order, so the measurements
+// in front of them follow that order too. The CHECK lines below are
+// deliberately ordered: an unordered container here would interleave them
+// differently on every run.
 
 // CHECK-LABEL:   func.func @reference()
-// CHECK:           %[[VEQ:.*]] = quake.alloca !quake.veq<2>
-// CHECK:           %[[REF:.*]] = quake.alloca !quake.ref
-// CHECK:           quake.x %[[REF]] : (!quake.ref) -> ()
-// CHECK:           quake.mz %[[VEQ]] : (!quake.veq<2>) -> !cc.sequence<!quake.measure>
-// CHECK:           quake.evince %[[VEQ]] : (!quake.veq<2>) -> ()
-// CHECK:           quake.mz %[[REF]] : (!quake.ref) -> !quake.measure
-// CHECK:           quake.evince %[[REF]] : (!quake.ref) -> ()
+// CHECK:           %[[VEQ2:.*]] = quake.alloca !quake.veq<2>
+// CHECK:           %[[REF1:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[REF2:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VEQ3:.*]] = quake.alloca !quake.veq<3>
+// CHECK:           %[[REF3:.*]] = quake.alloca !quake.ref
+// CHECK:           quake.mz %[[VEQ2]] : (!quake.veq<2>) -> !cc.sequence<!quake.measure>
+// CHECK:           quake.dealloc %[[VEQ2]] : !quake.veq<2>
+// CHECK:           quake.mz %[[REF1]] : (!quake.ref) -> !quake.measure
+// CHECK:           quake.dealloc %[[REF1]] : !quake.ref
+// CHECK:           quake.mz %[[REF2]] : (!quake.ref) -> !quake.measure
+// CHECK:           quake.dealloc %[[REF2]] : !quake.ref
+// CHECK:           quake.mz %[[VEQ3]] : (!quake.veq<3>) -> !cc.sequence<!quake.measure>
+// CHECK:           quake.dealloc %[[VEQ3]] : !quake.veq<3>
+// CHECK:           quake.mz %[[REF3]] : (!quake.ref) -> !quake.measure
+// CHECK:           quake.dealloc %[[REF3]] : !quake.ref
 // CHECK:           return
 
-// The same in value semantics: the measured wire is threaded into the evince.
+// The same order in value semantics, where the measured wire is threaded into
+// the sink that replaced the deallocation.
 
 // VALUE-LABEL:   func.func @reference()
-// VALUE:           %[[V_VEQ:.*]] = quake.alloca !quake.veq<2>
-// VALUE:           %[[V_NULL:.*]] = quake.null_wire
-// VALUE:           quake.mz %[[V_VEQ]] : (!quake.veq<2>) -> !cc.sequence<!quake.measure>
-// VALUE:           quake.evince %[[V_VEQ]] : (!quake.veq<2>) -> ()
-// VALUE:           %[[V_MEAS:.*]], %[[V_WIRE:.*]] = quake.mz %{{.*}} : (!quake.wire) -> (!quake.measure, !quake.wire)
-// VALUE:           quake.evince %[[V_WIRE]] : (!quake.wire) -> !quake.wire
+// VALUE:           %[[V_VEQ2:.*]] = quake.alloca !quake.veq<2>
+// VALUE:           %[[V_VEQ3:.*]] = quake.alloca !quake.veq<3>
+// VALUE:         ^bb1(%[[W1:.*]]: !quake.wire, %[[W2:.*]]: !quake.wire, %[[W3:.*]]: !quake.wire):
+// VALUE:           quake.mz %[[V_VEQ2]] : (!quake.veq<2>) -> !cc.sequence<!quake.measure>
+// VALUE:           quake.dealloc %[[V_VEQ2]] : !quake.veq<2>
+// VALUE:           %{{.*}}, %[[S1:.*]] = quake.mz %[[W1]] : (!quake.wire) -> (!quake.measure, !quake.wire)
+// VALUE:           quake.sink %[[S1]] : !quake.wire
+// VALUE:           %{{.*}}, %[[S2:.*]] = quake.mz %[[W2]] : (!quake.wire) -> (!quake.measure, !quake.wire)
+// VALUE:           quake.sink %[[S2]] : !quake.wire
+// VALUE:           quake.mz %[[V_VEQ3]] : (!quake.veq<3>) -> !cc.sequence<!quake.measure>
+// VALUE:           quake.dealloc %[[V_VEQ3]] : !quake.veq<3>
+// VALUE:           %{{.*}}, %[[S3:.*]] = quake.mz %[[W3]] : (!quake.wire) -> (!quake.measure, !quake.wire)
+// VALUE:           quake.sink %[[S3]] : !quake.wire
 // VALUE:           return
-
-// add-dealloc generates the deallocations from a DenseSet, so their order is
-// not stable. Match them in any order.
-
-// DEALLOC-LABEL:   func.func @reference()
-// DEALLOC:           %[[D_VEQ:.*]] = quake.alloca !quake.veq<2>
-// DEALLOC:           %[[D_REF:.*]] = quake.alloca !quake.ref
-// DEALLOC-DAG:       quake.mz %[[D_VEQ]] : (!quake.veq<2>) -> !cc.sequence<!quake.measure>
-// DEALLOC-DAG:       quake.mz %[[D_REF]] : (!quake.ref) -> !quake.measure
-// DEALLOC-DAG:       quake.dealloc %[[D_VEQ]] : !quake.veq<2>
-// DEALLOC-DAG:       quake.dealloc %[[D_REF]] : !quake.ref
-// DEALLOC:           return
