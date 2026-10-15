@@ -304,7 +304,7 @@ jobs:
           source scripts/set_env_defaults.sh
 
           export CUDA_QUANTUM_VERSION=${{ needs.metadata.outputs.cudaq_version }}
-          bash scripts/build_wheel.sh -v
+          bash scripts/build_wheel.sh -s -v
 
           # Find and report the built wheel
           wheel_file=$(ls dist/cuda_quantum*.whl 2>/dev/null | head -1)
@@ -323,7 +323,9 @@ jobs:
         with:
           # Consistent with Linux: pycudaq-<python_version_dashed>-<platform_info>
           name: pycudaq-${{ matrix.python_version }}-darwin-arm64
-          path: dist/cuda_quantum*.whl
+          path: |
+            dist/cuda_quantum*.whl
+            dist/cudaq_core-*.whl
           retention-days: 3
           if-no-files-found: error
 
@@ -365,6 +367,13 @@ jobs:
         with:
           name: pycudaq-${{ matrix.python_version }}-darwin-arm64
           path: dist/
+
+      - name: Validate core without the frontend
+        run: |
+          python3 -m venv core-venv
+          core-venv/bin/python -m pip install dist/cudaq_core-*.whl
+          cp docker/test/wheels/integration/test_installation.py "$RUNNER_TEMP/test_installation.py"
+          core-venv/bin/python "$RUNNER_TEMP/test_installation.py"
 
       - name: Validate wheel
         run: |
@@ -421,6 +430,8 @@ jobs:
           pip install "cudaq==${{ needs.wheel.outputs.cudaq_version }}" \
             --find-links "$GITHUB_WORKSPACE/dist" --find-links "$GITHUB_WORKSPACE/metapackage"
           python -c 'import cudaq; print(cudaq.get_target().name)'
+          python -m pip check
+          python "$RUNNER_TEMP/test_installation.py" --frontend
 
   # ============================================================================
   # Build self-extracting installer for C++ SDK

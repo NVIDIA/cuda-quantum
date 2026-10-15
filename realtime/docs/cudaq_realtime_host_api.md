@@ -231,35 +231,41 @@ When `kernel_type == CUDAQ_KERNEL_UNIFIED`:
 
 - `cudaq_dispatcher_set_ringbuffer()` and `cudaq_dispatcher_set_launch_fn()`
     are **not required** (the unified kernel handles transport internally)
-- `cudaq_dispatcher_set_unified_launch()` **must** be called instead
-- `num_slots` and `slot_size` in the `config` may be zero
+- The transport context is wired by `cudaq_dispatcher_set_bridge()` for a
+    bridge-backed dispatcher, or by `cudaq_dispatcher_set_unified_launch()`
+    otherwise
+- `slot_size` must give the slot stride; `cudaq_dispatcher_set_bridge()`
+    fills it from the bridge when the `config` leaves it 0
 - All other wiring (`set_function_table`, `set_control`) remains the same
 
 ### Wiring Example (Unified Mode with GpuRoceTransceiver)
 
-```cpp
-// Pack DOCA transport handles
-doca_transport_ctx ctx;
-ctx.gpu_dev_qp     = gpu_roce_get_gpu_dev_qp(transceiver);
-ctx.rx_ring_data   = gpu_roce_get_rx_ring_data_addr(transceiver);
-ctx.rx_ring_stride_sz  = gpu_roce_get_page_size(transceiver);
-ctx.rx_ring_mkey   = htonl(gpu_roce_get_rkey(transceiver));
-ctx.rx_ring_stride_num = gpu_roce_get_num_pages(transceiver);
-ctx.frame_size     = frame_size;
+The bridge packs its transport handles itself (for `GpuRoceTransceiver`, the
+`DOCA` `QP`, ring addresses and memory keys); the dispatcher asks for them
+through `cudaq_dispatcher_set_bridge`:
 
-// Configure dispatcher for unified mode
+```cpp
+// The provider parses its own options, including --unified
+cudaq_bridge_create(&bridge, CUDAQ_PROVIDER_GPU_ROCE, argc, argv);
+cudaq_bridge_connect(bridge);
+
+// Configure dispatcher for unified mode; ring geometry comes from the bridge
 cudaq_dispatcher_config_t config{};
 config.device_id       = gpu_id;
+config.dispatch_path   = CUDAQ_DISPATCH_PATH_DEVICE;
 config.kernel_type     = CUDAQ_KERNEL_UNIFIED;
 config.dispatch_mode   = CUDAQ_DISPATCH_DEVICE_CALL;
 
 cudaq_dispatcher_create(manager, &config, &dispatcher);
-cudaq_dispatcher_set_unified_launch(
-    dispatcher, &gpu_roce_launch_unified_dispatch, &ctx);
+cudaq_dispatcher_set_bridge(dispatcher, bridge);
 cudaq_dispatcher_set_function_table(dispatcher, &table);
 cudaq_dispatcher_set_control(dispatcher, d_shutdown_flag, d_stats);
 cudaq_dispatcher_start(dispatcher);
+cudaq_bridge_launch(bridge);
 ```
+
+`cudaq_dispatcher_set_unified_launch` remains for dispatchers that are not
+backed by a bridge; a bridge-backed one should not call it directly.
 
 ## What This API Does (In One Paragraph)
 
@@ -503,6 +509,36 @@ Parameters:
 - `dispatcher`: dispatcher handle to destroy.
 
 Call this when the dispatcher is no longer needed.
+
+**`cudaq_dispatcher_set_bridge`** wires a transport bridge (see
+`bridge_interface.h`) to the dispatcher.  The configured `dispatch_path` and
+`kernel_type` name the shape, and the dispatcher asks the bridge for the data
+plane that shape needs:
+
+| Shape | What the dispatcher takes from the bridge |
+|-------|-------------------------------------------|
+| HOST + REGULAR/COOPERATIVE | The `RING_BUFFER` context; `skip_tx_markers` is forced to 1 |
+| HOST + UNIFIED | The provider's CPU data plane (`rx_poll` / `tx_publish`) |
+| DEVICE + REGULAR/COOPERATIVE | The `RING_BUFFER` context; the caller still names a launcher with `cudaq_dispatcher_set_launch_fn` |
+| DEVICE + UNIFIED | The provider's unified transport context |
+
+Parameters:
+
+- `dispatcher`: dispatcher handle, not yet started.
+- `bridge`: a bridge from `cudaq_bridge_create_from_library` or
+  `cudaq_bridge_create`.
+
+A `num_slots` or `slot_size` left at 0 in the config is taken from the bridge's
+ring geometry; a non-zero value that disagrees with it is refused.  Everything
+is copied, so only the bridge itself must outlive the dispatcher.  A provider
+started in the other mode makes this return `CUDAQ_ERR_UNSUPPORTED`.  A bridge
+drives exactly one dispatcher.  When a bridge is attached,
+`cudaq_dispatcher_start` also hands it the function table through
+`cudaq_bridge_set_function_table`.
+
+A bridge-backed dispatcher needs none of `cudaq_dispatcher_set_ringbuffer`,
+`cudaq_dispatcher_set_unified_launch` or `cudaq_dispatcher_set_cpu_dataplane`;
+those remain for dispatchers over in-process rings.
 
 **`cudaq_dispatcher_set_ringbuffer`** provides the RX/TX flag and data
 pointers the dispatch kernel will poll and use for request/response slots.

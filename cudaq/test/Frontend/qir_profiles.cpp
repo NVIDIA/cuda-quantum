@@ -7,8 +7,9 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: cudaq-quake %s | cudaq-opt --add-dealloc --expand-measurements --factor-quantum-alloc --expand-control-veqs --cc-loop-unroll --canonicalize --multicontrol-decomposition --lower-to-cfg --cse --decomposition=enable-patterns="CCXToCCZ,CCZToCX" --combine-quantum-alloc --canonicalize | cudaq-translate --convert-to=qir-base | FileCheck --check-prefix=BASE %s
-// RUN: cudaq-quake %s | cudaq-opt --add-dealloc --expand-measurements --factor-quantum-alloc --expand-control-veqs --cc-loop-unroll --canonicalize --multicontrol-decomposition --lower-to-cfg --cse --decomposition=enable-patterns="CCXToCCZ,CCZToCX" --combine-quantum-alloc --canonicalize | cudaq-translate --convert-to=qir-adaptive | FileCheck --check-prefix=ADAPT %s
+// RUN: cudaq-quake %s -o %t.qke
+// RUN: cudaq-opt %t.qke --add-dealloc --expand-measurements --factor-quantum-alloc --expand-control-veqs --cc-loop-unroll --canonicalize --multicontrol-decomposition --lower-to-cfg --cse --decomposition=enable-patterns="CCXToCCZ,CCZToCX" --combine-quantum-alloc --canonicalize | cudaq-translate --convert-to=qir-base | FileCheck --check-prefix=BASE %s
+// RUN: cudaq-opt %t.qke --add-dealloc --expand-measurements --factor-quantum-alloc --expand-control-veqs --cc-loop-unroll --canonicalize --multicontrol-decomposition --lower-to-cfg --cse --decomposition=enable-patterns="CCXToCCZ,CCZToCX" --combine-quantum-alloc --canonicalize | cudaq-translate --convert-to=qir-adaptive | FileCheck --check-prefix=ADAPT %s
 // RUN: cudaq-quake -D FULL %s | cudaq-opt --add-dealloc --expand-measurements --factor-quantum-alloc --expand-control-veqs --cc-loop-unroll --canonicalize --multicontrol-decomposition --lower-to-cfg --cse --combine-quantum-alloc --canonicalize | cudaq-translate --convert-to=qir | FileCheck --check-prefix=FULL %s
 // clang-format on
 

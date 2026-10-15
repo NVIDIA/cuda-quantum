@@ -1,0 +1,41 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+# cudaq-target-db-gen smoke: database mode, single-target plugin mode, the
+# stdout output form, and ordinary CLI error cases.
+
+# RUN: %cudaq-target-db-gen -o %t.db.cpp lit-defaults=%S/defaults.yml lit-backend=%S/backend.yml
+# RUN: FileCheck %s --input-file=%t.db.cpp --check-prefix=DB
+# RUN: %cudaq-target-db-gen --plugin -o %t.plugin.cpp lit-backend=%S/backend.yml
+# RUN: FileCheck %s --input-file=%t.plugin.cpp --check-prefix=PLUGIN
+# RUN: %cudaq-target-db-gen -o - lit-defaults=%S/defaults.yml | FileCheck %s --check-prefix=STDOUT
+# RUN: not %cudaq-target-db-gen %S/defaults.yml 2>&1 | FileCheck %s --check-prefix=ERR
+# RUN: not %cudaq-target-db-gen --plugin -o %t.multi.cpp lit-a=%S/defaults.yml lit-b=%S/backend.yml 2>&1 | FileCheck %s --check-prefix=PLUGINARGS
+# RUN: not %cudaq-target-db-gen --plugin -o %t.zero.cpp 2>&1 | FileCheck %s --check-prefix=PLUGINZERO
+# RUN: not %cudaq-target-db-gen -o %S/no-such-dir/db.cpp lit-defaults=%S/defaults.yml 2>&1 | FileCheck %s --check-prefix=OUTERR
+# RUN: %cudaq-target-db-gen --help > %t.help.txt
+# RUN: FileCheck %s --input-file=%t.help.txt --check-prefix=HELP
+
+# DB: extern "C" void cudaq_target_db_abi_v1() {}
+# DB: const TargetConfig kBuiltinTarget_lit_defaults
+# DB: .Name = "lit-defaults"
+# DB: const TargetConfig kBuiltinTarget_lit_backend
+# DB: {"lit-defaults", &kBuiltinTarget_lit_defaults},
+
+# PLUGIN: extern "C" const cudaq::config::TargetConfig *cudaq_target_config_v1()
+# PLUGIN: kPluginTarget_lit_backend
+
+# STDOUT: extern "C" void cudaq_target_db_abi_v1() {}
+
+# ERR: Malformed input
+# PLUGINARGS: --plugin requires exactly one <name>=<path> input, got 2
+# PLUGINZERO: --plugin requires exactly one <name>=<path> input, got 0
+# OUTERR: Failed to open output file
+# Help succeeds (exit 0, enforced by the standalone RUN) and prints non-empty
+# output on stdout; wording is deliberately not pinned (LLVM-cl owned).
+# HELP: {{.}}

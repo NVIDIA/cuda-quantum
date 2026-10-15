@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq/Target/TargetConfig.h"
+#include <algorithm>
 #include <regex>
 
 namespace {
@@ -21,7 +22,7 @@ std::string cudaq::config::TargetConfig::getCodeGenSpec(
   const auto machineConfigIter = std::find_if(
       TargetArguments.begin(), TargetArguments.end(),
       [&](const cudaq::config::TargetArgument &argConfig) {
-        return argConfig.Type == cudaq::config::ArgumentType::MachineConfig;
+        return argConfig.Type == cudaq::config::ArgumentType::machine_config;
       });
   if (machineConfigIter == TargetArguments.end()) {
     // No machine specific config
