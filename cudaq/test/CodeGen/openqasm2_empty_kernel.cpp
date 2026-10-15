@@ -11,8 +11,7 @@
 
 // RUN: cudaq-quake %s | cudaq-translate --convert-to=openqasm2 | FileCheck %s
 
-#include "cudaq/algorithms/sample.h"
-#include "cudaq/qis/qubit_qis.h"
+#include <cudaq.h>
 
 struct noop {
   void operator()(cudaq::qubit &q) __qpu__ {}

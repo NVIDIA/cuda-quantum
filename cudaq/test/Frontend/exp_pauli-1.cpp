@@ -8,7 +8,7 @@
 
 // RUN: cudaq-quake %s | cudaq-opt | FileCheck %s
 
-#include "cudaq/qis/qubit_qis.h"
+#include <cudaq.h>
 
 int main() {
   auto kernel = [](double theta) __qpu__ {

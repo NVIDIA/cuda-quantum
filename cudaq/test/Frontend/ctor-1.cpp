@@ -8,8 +8,7 @@
 
 // RUN: cudaq-quake --emit-llvm-file %s | FileCheck %s
 
-#include "cudaq/algorithms/sample.h"
-#include "cudaq/qis/qubit_qis.h"
+#include <cudaq.h>
 #include <utility>
 
 using namespace cudaq;

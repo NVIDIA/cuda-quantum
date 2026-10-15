@@ -13,7 +13,7 @@
 // RUN: cudaq-quake %s | cudaq-opt | FileCheck %s
 // clang-format on
 
-#include "cudaq/qis/qubit_qis.h"
+#include "cudaq.h"
 
 __qpu__ void testSingletonArray() {
   cudaq::qarray<3> q;

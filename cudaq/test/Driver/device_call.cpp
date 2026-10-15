@@ -29,8 +29,7 @@
 
 // RUN: nvq++ --target quantinuum %s -o %t
 
-#include "cudaq/driver/device.h"
-#include "cudaq/qis/qubit_qis.h"
+#include "cudaq.h"
 
 extern "C" {
 // Device call declaration

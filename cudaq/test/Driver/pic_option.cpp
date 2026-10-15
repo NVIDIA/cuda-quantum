@@ -8,7 +8,7 @@
 
 // RUN: nvq++ -c %s -v -fPIC -o %t
 
-#include "cudaq/qis/qubit_qis.h"
+#include "cudaq.h"
 
 __qpu__ void bell() {
   cudaq::qubit q, r;

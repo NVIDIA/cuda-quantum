@@ -9,7 +9,7 @@
 // RUN: cudaq-quake -verify %s
 // clang-format off
 
-#include "cudaq/qis/qubit_qis.h"
+#include "cudaq.h"
 
 // An asm statement cannot be lowered, and it must not be silently dropped.
 struct UsesAsm {

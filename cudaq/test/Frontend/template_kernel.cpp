@@ -29,8 +29,8 @@
 // CHECK: quake.mz
 // clang-format on
 
-#include "cudaq/algorithms/sample.h"
-#include "cudaq/qis/qubit_qis.h"
+#include <cudaq.h>
+#include <cudaq/algorithm.h>
 
 // Define a quantum kernel
 template <std::size_t N>

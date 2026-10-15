@@ -9,6 +9,8 @@
 // RUN: nvq++ -c %s -o %t 2>&1 | FileCheck %s
 // RUN: [ -e %t ]
 
+#include <cudaq.h>
+
 int plain_old_function() { return 0; }
 
 // clang-format off

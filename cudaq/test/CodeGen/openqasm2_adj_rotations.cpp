@@ -10,8 +10,7 @@
 // RUN: cudaq-quake  %s | cudaq-opt --decomposition=enable-patterns="RxAdjToRx,RyAdjToRy,RzAdjToRz" | cudaq-translate --convert-to=openqasm2 | FileCheck %s
 // clang-format on
 
-#include "cudaq/algorithms/sample.h"
-#include "cudaq/qis/qubit_qis.h"
+#include <cudaq.h>
 #include <iostream>
 #include <unordered_set>
 
