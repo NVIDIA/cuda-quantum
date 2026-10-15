@@ -105,6 +105,26 @@ q3 : ┤ h ├──────────────────────
     assert expected_str == produced_string
 
 
+def test_draw_format_with_arguments():
+    """The `cudaq.draw("<format>", kernel, ...)` overload must forward the
+    kernel arguments, just like the `cudaq.draw(kernel, ...)` overload."""
+
+    @cudaq.kernel
+    def kernel(theta: float):
+        q = cudaq.qvector(2)
+        ry(theta, q[0])
+        x.ctrl(q[0], q[1])
+
+    produced_string = cudaq.draw("ascii", kernel, 0.59)
+    assert produced_string == cudaq.draw(kernel, 0.59)
+    assert "ry(0.59)" in produced_string
+    assert "R_y(0.59)" in cudaq.draw("latex", kernel, 0.59)
+
+    # A format string must still be followed by a kernel.
+    with pytest.raises(AssertionError, match="must have a kernel"):
+        cudaq.draw("ascii")
+
+
 # This test will run on the default simulator. For machines with GPUs, that
 # will be a GPU-accelerated simulator, but for machines without GPUs, it
 # will run on a CPU simulator.
