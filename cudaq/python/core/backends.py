@@ -20,13 +20,13 @@ from typing import Protocol, runtime_checkable
 from cudaq.mlir._mlir_libs._backends import (
     CompileTarget,
     EstimateResult,
-    PipelineConfig,
+    ExplicitPipelineProfile,
     Resources,
 )
 
 __all__ = [
-    "CompileTarget", "CustomTarget", "EstimateResult", "PipelineConfig",
-    "Resources", "RuntimeEndpoint"
+    "CompileTarget", "CustomTarget", "EstimateResult",
+    "ExplicitPipelineProfile", "Resources", "RuntimeEndpoint"
 ]
 
 
