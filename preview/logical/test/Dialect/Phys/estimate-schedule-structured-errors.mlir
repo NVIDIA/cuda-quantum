@@ -105,7 +105,8 @@ module attributes {qlx.profiles = ["p3"]} {
 // CHECK-DAG: maximum_makespan_ns = 1.000000e+00 : f64
 // CHECK-DAG: maximum_utilization = 0.000000e+00 : f64
 // CHECK-DAG: peak_active_physical_qubits = 0 : i64
-// CHECK-DAG: peak_concurrency = 1 : i64
+// Synthetic control resources do not contribute physical occupancy.
+// CHECK-DAG: peak_concurrency = 0 : i64
 // CHECK-DAG: physical_qubits = 0 : i64
 // CHECK-DAG: physical_resources = 0 : i64
 // CHECK-DAG: utilization = 0.000000e+00 : f64

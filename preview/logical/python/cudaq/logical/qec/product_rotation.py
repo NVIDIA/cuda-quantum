@@ -201,6 +201,7 @@ def compiler(
         if "angle" not in site.parameters:
             raise ValueError("RPP action site is missing its canonical angle")
         effective_angle = signed_angle(site.parameters)
+        exact_angle = signed_pi_fraction(site.parameters)
         precision = site.parameters.get("precision",
                                         context.policy.get("rpp_precision"))
         if precision is not None:
@@ -224,11 +225,10 @@ def compiler(
                     "policy['rpp_precision']")
             selected_name = requested
         else:
-            exact = signed_pi_fraction(site.parameters)
-            if exact is not None:
+            if exact_angle is not None:
                 # Symbol-authored angle: the quarter-turn is exact (distance 0),
                 # so the precision-distance override never applies.
-                quarter = _exact_quarter_turn(*exact)
+                quarter = _exact_quarter_turn(*exact_angle)
             else:
                 quarter = _quarter_turn(effective_angle,
                                         tolerance=float(angle_tolerance))
@@ -266,6 +266,13 @@ def compiler(
             "angle_convention": "exp(-i*theta*P/2)",
             "effective_angle": effective_angle,
         }
+        if exact_angle is not None:
+            # The P1 action site stores a nonnegative magnitude plus an
+            # independent Pauli-product sign. Generated P2 specializations are
+            # self-contained and therefore carry the already-signed exact
+            # numerator, matching the Fabric verifier contract.
+            evidence["angle_pi_numer"] = exact_angle[0]
+            evidence["angle_pi_denom"] = exact_angle[1]
         if precision is not None:
             evidence["precision"] = precision
         return GeneratedQECArtifact(definition, evidence)
