@@ -117,3 +117,11 @@ else()
       "-DLLVM_INSTALL_UTILS=ON or pass -DFILECHECK_PATH=...")
   endif()
 endif()
+
+# Unit test of the Pauli-product decompositions (needs CUDA-Q's Quake dialect).
+if(TARGET qlx-pauli-product-test)
+  add_test(NAME qlx-pauli-product-decompositions
+    COMMAND qlx-pauli-product-test)
+  set_tests_properties(qlx-pauli-product-decompositions PROPERTIES
+    LABELS "qlx;unit")
+endif()
