@@ -10,7 +10,7 @@
 // RUN: cudaq-quake %s | cudaq-opt | FileCheck %s
 // clang-format on
 
-#include "cudaq.h"
+#include "cudaq/qis/qubit_qis.h"
 
 __qpu__ void apply_pauli(cudaq::qview<> qubits, const std::vector<char> &word) {
   for (std::size_t i = 0; i < word.size(); i++) {

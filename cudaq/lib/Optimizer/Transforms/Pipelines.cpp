@@ -89,6 +89,7 @@ struct FaultTolerantTargetPipelineOptions
 } // namespace
 
 void cudaq::opt::addConvertToLinearValues(OpPassManager &pm) {
+  pm.addNestedPass<func::FuncOp>(createExpandVeqUses());
   pm.addNestedPass<func::FuncOp>(createFactorQuantumAllocations());
   pm.addNestedPass<func::FuncOp>(createExpandControlVeqs());
   pm.addNestedPass<func::FuncOp>(createCableRoughIn());

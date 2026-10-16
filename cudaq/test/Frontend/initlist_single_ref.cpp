@@ -7,15 +7,16 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: cudaq-quake %s | cudaq-opt | FileCheck %s
-// RUN: cudaq-quake %s | cudaq-opt | cudaq-translate --convert-to=qir | FileCheck --check-prefix=QIR %s
+// RUN: cudaq-quake %s -o %t.qke
+// RUN: cudaq-opt %t.qke | FileCheck %s
+// RUN: cudaq-opt %t.qke | cudaq-translate --convert-to=qir | FileCheck --check-prefix=QIR %s
 // clang-format on
 
 // An initializer list of quantum references always lowers to a !quake.veq,
 // even when the list has exactly one element. It must not be collapsed to the
 // bare !quake.ref of that element.
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 struct flip {
   void operator()(cudaq::qubit &t) __qpu__ { x(t); }

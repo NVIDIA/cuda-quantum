@@ -120,7 +120,7 @@ cudaq::CompileTarget createDefaultCompileTarget(const RuntimeTarget *rt) {
 
   ct.supportDeviceCalls = true;
   ct.argumentSynthChangeSemantics = false;
-  ct.pipelineConfig.codegenTranslation = "qir:";
+  ct.codegen.emissionFormat = "qir:";
   ct.overrideAOTCompilation = false;
   return ct;
 }

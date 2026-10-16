@@ -7,12 +7,13 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: cudaq-quake -I %cudaq_src_dir/unittests/nvqpp/backends/quake_backend %s | FileCheck %s
-// RUN: cudaq-quake -I %cudaq_src_dir/unittests/nvqpp/backends/quake_backend %s | cudaq-opt --cable-rough-in --memtoreg | \
+// RUN: cudaq-quake -I %cudaq_src_dir/unittests/nvqpp/backends/quake_backend %s -o %t.qke
+// RUN: FileCheck %s --input-file=%t.qke
+// RUN: cudaq-opt %t.qke --cable-rough-in --memtoreg | \
 // RUN:   FileCheck --check-prefix=WIRE %s
 // clang-format on
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 // A quantum operation the backend implements. The declaration is the one that
 // the backend ships, which the unit tests of the backend use too. The classical

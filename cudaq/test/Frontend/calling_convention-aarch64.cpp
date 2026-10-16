@@ -10,7 +10,7 @@
 // REQUIRES: host-aarch64
 // RUN: cudaq-quake %s | cudaq-opt | FileCheck %s
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 #include <tuple>
 #include <vector>
 

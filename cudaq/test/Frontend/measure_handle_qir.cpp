@@ -10,7 +10,7 @@
 // RUN: cudaq-quake %s | cudaq-opt --expand-measurements --canonicalize --convert-to-qir-api --symbol-dce | FileCheck %s
 // clang-format on
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 struct ScalarReturn {
   bool operator()() __qpu__ {

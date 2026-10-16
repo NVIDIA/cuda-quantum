@@ -11,7 +11,7 @@
 
 #include "common/FmtCore.h"
 #include "common/ThunkInterface.h"
-#include "cudaq/Target/TargetCatalog.h"
+#include "cudaq/Target/TargetConfigYaml.h"
 #include "cudaq/runtime/logger/logger.h"
 #ifdef CUDAQ_HAS_CUDA
 #include "cuda_runtime_api.h"

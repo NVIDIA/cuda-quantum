@@ -42,9 +42,11 @@ install(FILES
   ../modules/NVQIRTargetConfigGen.cmake
   DESTINATION lib/cmake/nvqir COMPONENT Core)
 # CompileTarget and runtime backend headers use these LLVM-free declarations.
-install(FILES
-  "${CMAKE_SOURCE_DIR}/cudaq/include/cudaq/Target/TargetConfig.h"
-  DESTINATION include/cudaq/Target COMPONENT Core)
+install(DIRECTORY
+  "${CMAKE_SOURCE_DIR}/cudaq/include/cudaq/Target/"
+  DESTINATION include/cudaq/Target
+  COMPONENT Core
+  FILES_MATCHING PATTERN "*.h")
 install(FILES
   "${CMAKE_SOURCE_DIR}/cudaq/include/cudaq/Support/Hash.h"
   "${CMAKE_SOURCE_DIR}/cudaq/include/cudaq/Support/Tuple.h"
