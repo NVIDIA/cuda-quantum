@@ -9,45 +9,153 @@
 // RUN: cudaq-opt --apply-op-specialization --split-input-file \
 // RUN:   --verify-diagnostics %s
 
-// A control variant of a kernel that measures cannot be built gate by gate:
-// the basis change feeding the measurement and the outcome-conditioned reset
-// would acquire the control, making the measurement outcome distribution
-// depend on the control.
+// Measuring kernels whose shape is not the supported measured-uncomputation
+// idiom are rejected rather than controlled gate by gate.
 
-// expected-error@+1 {{contains measurements}}
-func.func @erase(%arg0: !quake.veq<?>) {
-  %0 = quake.extract_ref %arg0[2] : (!quake.veq<?>) -> !quake.ref
-  quake.h %0 : (!quake.ref) -> ()
-  %1 = quake.extract_ref %arg0[2] : (!quake.veq<?>) -> !quake.ref
-  %measOut = quake.mz %1 name "fired" : (!quake.ref) -> !quake.measure
+// A Z-basis measurement (here spelled as the basis change `h` followed by
+// `mz`): with the control off the scratch qubit is |0> and `mz` reads 0 every
+// time, while with the control on the outcome is a coin -- the outcome
+// distribution reveals the control.
+
+// expected-error@+1 {{Z-basis measurement}}
+func.func @zbasis(%arg0: !quake.veq<?>) {
+  %anc = quake.alloca !quake.ref
+  %0 = quake.extract_ref %arg0[0] : (!quake.veq<?>) -> !quake.ref
+  %1 = quake.extract_ref %arg0[1] : (!quake.veq<?>) -> !quake.ref
+  quake.x [%0, %1] %anc : (!quake.ref, !quake.ref, !quake.ref) -> ()
+  quake.h %anc : (!quake.ref) -> ()
+  %measOut = quake.mz %anc : (!quake.ref) -> !quake.measure
   %2 = quake.discriminate %measOut : (!quake.measure) -> i1
   cc.if(%2) {
-    %3 = quake.extract_ref %arg0[0] : (!quake.veq<?>) -> !quake.ref
-    %4 = quake.extract_ref %arg0[1] : (!quake.veq<?>) -> !quake.ref
-    quake.z [%3] %4 : (!quake.ref, !quake.ref) -> ()
-    %5 = quake.extract_ref %arg0[2] : (!quake.veq<?>) -> !quake.ref
-    quake.x %5 : (!quake.ref) -> ()
+    quake.x %anc : (!quake.ref) -> ()
   }
+  quake.dealloc %anc : !quake.ref
   return
 }
 
-func.func @caller() {
+func.func @caller_z() {
   %c = quake.alloca !quake.ref
-  %q = quake.alloca !quake.veq<3>
-  %qv = quake.relax_size %q : (!quake.veq<3>) -> !quake.veq<?>
-  quake.apply @erase [%c] (%qv) : (!quake.ref, !quake.veq<?>) -> ()
+  %q = quake.alloca !quake.veq<2>
+  %qv = quake.relax_size %q : (!quake.veq<2>) -> !quake.veq<?>
+  quake.apply @zbasis [%c] (%qv) : (!quake.ref, !quake.veq<?>) -> ()
   return
 }
 
 // -----
 
-// The adjoint-controlled variant is refused for the same reason.
+// The measured qubit is a kernel argument: its state when the control is off
+// is whatever the caller passed, and the (uncontrolled) measurement would
+// disturb it. The "bare erase" whose compute sits outside the controlled block
+// is this shape.
+
+// expected-error@+1 {{does not allocate}}
+func.func @argument_qubit(%arg0: !quake.veq<?>) {
+  %0 = quake.extract_ref %arg0[2] : (!quake.veq<?>) -> !quake.ref
+  %measOut = quake.mx %0 : (!quake.ref) -> !quake.measure
+  %1 = quake.discriminate %measOut : (!quake.measure) -> i1
+  cc.if(%1) {
+    %2 = quake.extract_ref %arg0[0] : (!quake.veq<?>) -> !quake.ref
+    %3 = quake.extract_ref %arg0[1] : (!quake.veq<?>) -> !quake.ref
+    quake.z [%2] %3 : (!quake.ref, !quake.ref) -> ()
+    quake.x %0 : (!quake.ref) -> ()
+  }
+  return
+}
+
+func.func @caller_arg() {
+  %c = quake.alloca !quake.ref
+  %q = quake.alloca !quake.veq<3>
+  %qv = quake.relax_size %q : (!quake.veq<3>) -> !quake.veq<?>
+  quake.apply @argument_qubit [%c] (%qv) : (!quake.ref, !quake.veq<?>) -> ()
+  return
+}
+
+// -----
+
+// A register measurement is not the idiom.
+
+// expected-error@+1 {{more than one qubit}}
+func.func @measure_veq(%arg0: !quake.veq<?>) {
+  %s = quake.alloca !quake.veq<2>
+  quake.x %s : (!quake.veq<2>) -> ()
+  %measOut = quake.mx %s : (!quake.veq<2>) -> !cc.sequence<!quake.measure>
+  quake.dealloc %s : !quake.veq<2>
+  return
+}
+
+func.func @caller_veq() {
+  %c = quake.alloca !quake.ref
+  %q = quake.alloca !quake.veq<2>
+  %qv = quake.relax_size %q : (!quake.veq<2>) -> !quake.veq<?>
+  quake.apply @measure_veq [%c] (%qv) : (!quake.ref, !quake.veq<?>) -> ()
+  return
+}
+
+// -----
+
+// A measurement outcome that escapes (here returned) is not the idiom.
+
+// expected-error@+1 {{used other than as the condition}}
+func.func @escaping_bit(%arg0: !quake.veq<?>) -> i1 {
+  %anc = quake.alloca !quake.ref
+  %0 = quake.extract_ref %arg0[0] : (!quake.veq<?>) -> !quake.ref
+  quake.x [%0] %anc : (!quake.ref, !quake.ref) -> ()
+  %measOut = quake.mx %anc : (!quake.ref) -> !quake.measure
+  %1 = quake.discriminate %measOut : (!quake.measure) -> i1
+  quake.dealloc %anc : !quake.ref
+  return %1 : i1
+}
+
+func.func @caller_escape() {
+  %c = quake.alloca !quake.ref
+  %q = quake.alloca !quake.veq<2>
+  %qv = quake.relax_size %q : (!quake.veq<2>) -> !quake.veq<?>
+  %r = quake.apply @escaping_bit [%c] (%qv) : (!quake.ref, !quake.veq<?>) -> i1
+  return
+}
+
+// -----
+
+// A dynamically indexed scratch qubit cannot be identified across the kernel.
+
+// expected-error@+1 {{non-constant index}}
+func.func @dyn(%arg0: !quake.veq<?>, %i: i64) {
+  %s = quake.alloca !quake.veq<3>
+  %0 = quake.extract_ref %s[%i] : (!quake.veq<3>, i64) -> !quake.ref
+  quake.x %0 : (!quake.ref) -> ()
+  %measOut = quake.mx %0 : (!quake.ref) -> !quake.measure
+  %1 = quake.discriminate %measOut : (!quake.measure) -> i1
+  cc.if(%1) {
+    quake.x %0 : (!quake.ref) -> ()
+  }
+  quake.dealloc %s : !quake.veq<3>
+  return
+}
+
+func.func @caller_dyn(%i: i64) {
+  %c = quake.alloca !quake.ref
+  %q = quake.alloca !quake.veq<2>
+  %qv = quake.relax_size %q : (!quake.veq<2>) -> !quake.veq<?>
+  quake.apply @dyn [%c] (%qv, %i) : (!quake.ref, !quake.veq<?>, i64) -> ()
+  return
+}
+
+// -----
+
+// The adjoint-controlled variant of a measuring kernel is still refused: the
+// adjoint of a measurement is undefined.
 
 // expected-error@+1 {{contains measurements}}
-func.func @measure_only(%arg0: !quake.veq<?>) {
+func.func @mbu(%arg0: !quake.veq<?>) {
+  %anc = quake.alloca !quake.ref
   %0 = quake.extract_ref %arg0[0] : (!quake.veq<?>) -> !quake.ref
-  quake.x %0 : (!quake.ref) -> ()
-  %measOut = quake.mz %0 : (!quake.ref) -> !quake.measure
+  quake.x [%0] %anc : (!quake.ref, !quake.ref) -> ()
+  %measOut = quake.mx %anc : (!quake.ref) -> !quake.measure
+  %1 = quake.discriminate %measOut : (!quake.measure) -> i1
+  cc.if(%1) {
+    quake.x %anc : (!quake.ref) -> ()
+  }
+  quake.dealloc %anc : !quake.ref
   return
 }
 
@@ -55,6 +163,6 @@ func.func @caller_adj() {
   %c = quake.alloca !quake.ref
   %q = quake.alloca !quake.veq<2>
   %qv = quake.relax_size %q : (!quake.veq<2>) -> !quake.veq<?>
-  quake.apply<adj> @measure_only [%c] (%qv) : (!quake.ref, !quake.veq<?>) -> ()
+  quake.apply<adj> @mbu [%c] (%qv) : (!quake.ref, !quake.veq<?>) -> ()
   return
 }
