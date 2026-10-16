@@ -8,7 +8,7 @@
 
 // RUN: cudaq-quake -verify %s -o /dev/null
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 #include <set>
 
 struct InvalidKernel1 {

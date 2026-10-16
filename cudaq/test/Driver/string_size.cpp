@@ -8,7 +8,7 @@
 
 // RUN: cudaq-quake %s | FileCheck %s
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 __qpu__ void qernel() {
   cudaq::qvector qv(2);

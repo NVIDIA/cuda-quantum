@@ -21,7 +21,7 @@
 // The opposite direction, a callback invoked from a kernel, is covered by
 // targettests/execution/device_call_abi.cpp.
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 #include <iostream>
 
 void hookInt(const char *who, long v) { std::cout << who << " " << v << '\n'; }
