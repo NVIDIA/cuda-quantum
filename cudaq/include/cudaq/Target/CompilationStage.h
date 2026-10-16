@@ -49,4 +49,12 @@ struct CompilationStage {
   bool operator==(const CompilationStage &other) const = default;
 };
 
+/// Code generation specification.
+struct Codegen {
+  std::string emissionFormat;
+  std::string postCodegenPasses;
+
+  bool operator==(const Codegen &other) const = default;
+};
+
 } // namespace cudaq::config

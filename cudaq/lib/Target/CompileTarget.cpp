@@ -129,7 +129,7 @@ cudaq::CompileTarget cudaq::CompileTarget::createFromConfig(
     resolvePipeline(*lowering);
   }
 
-  target.codegenTranslation = targetConfig.getCodeGenSpec(runtimeConfig);
+  target.codegen.emissionFormat = targetConfig.getCodeGenSpec(runtimeConfig);
 
   target.supportResourceCounts = backendConfig.SupportResourceCounts;
 
@@ -139,12 +139,11 @@ cudaq::CompileTarget cudaq::CompileTarget::createFromConfig(
 std::size_t std::hash<cudaq::CompileTarget>::operator()(
     const cudaq::CompileTarget &t) const noexcept {
   return cudaq::detail::hashVal(
-      t.overrideAOTCompilation, t.stages, t.codegenTranslation,
-      t.postCodeGenPasses, t.supportConditionalsOnMeasureResults,
-      t.supportDeviceCalls, t.supportResourceCounts,
-      t.supportExplicitMeasurements, t.supportObservableMeasurements,
-      t.supportSampleWithoutMeasurements, t.fullySpecialize,
-      t.argumentSynthChangeSemantics, t.disableQubitMapping,
+      t.overrideAOTCompilation, t.stages, t.codegen,
+      t.supportConditionalsOnMeasureResults, t.supportDeviceCalls,
+      t.supportResourceCounts, t.supportExplicitMeasurements,
+      t.supportObservableMeasurements, t.supportSampleWithoutMeasurements,
+      t.fullySpecialize, t.argumentSynthChangeSemantics, t.disableQubitMapping,
       t.replaceStateWithKernel);
 }
 
@@ -158,6 +157,12 @@ std::size_t std::hash<cudaq::config::CustomPipelineLowering>::operator()(
   return cudaq::detail::hashVal(
       lowering.overridePassPipeline, lowering.highLevelPipeline,
       lowering.midLevelPipeline, lowering.lowLevelPipeline);
+}
+
+std::size_t std::hash<cudaq::config::Codegen>::operator()(
+    const cudaq::config::Codegen &codegen) const noexcept {
+  return cudaq::detail::hashVal(codegen.emissionFormat,
+                                codegen.postCodegenPasses);
 }
 
 std::size_t std::hash<cudaq::config::CompilationStage>::operator()(

@@ -110,7 +110,7 @@ def test_target_eagerly_exposes_the_cudaq_target_configuration():
     assert isinstance(target, CustomTarget)
     assert target.compile_target is compile_target
     assert compile_target.fully_specialize
-    pipeline = compile_target.pipeline_config.override_pass_pipeline
+    pipeline = compile_target.lowering.override_pass_pipeline
     assert "prepare-for-wireset" in pipeline
     # Multi-control reduction needs reference semantics, so it must precede
     # the wire conversion inside `prepare-for-wireset`.

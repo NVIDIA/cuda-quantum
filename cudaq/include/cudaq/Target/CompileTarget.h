@@ -36,11 +36,8 @@ struct CompileTarget {
   /// through.
   std::vector<config::CompilationStage> stages{};
 
-  /// Code generation emission selected by the target.
-  std::string codegenTranslation{};
-
-  /// Optional pass pipeline to run after code generation.
-  std::string postCodeGenPasses{};
+  /// Code generation configuration, running after all compilation stages.
+  config::Codegen codegen{};
 
   /// Whether branching on measurement results is supported.
   bool supportConditionalsOnMeasureResults = true;
@@ -116,6 +113,10 @@ template <>
 struct std::hash<cudaq::config::CustomPipelineLowering> {
   std::size_t operator()(
       const cudaq::config::CustomPipelineLowering &lowering) const noexcept;
+};
+template <>
+struct std::hash<cudaq::config::Codegen> {
+  std::size_t operator()(const cudaq::config::Codegen &codegen) const noexcept;
 };
 template <>
 struct std::hash<cudaq::config::CompilationStage> {

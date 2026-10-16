@@ -84,9 +84,16 @@ struct CompilationStageV2 {
   CustomPipelineLoweringV2 lowering;
 };
 
+/// Code generation: emission format and optional post-codegen pass pipeline.
+struct CodegenV2 {
+  rfl::DefaultVal<std::string> emissionFormat;
+  rfl::DefaultVal<std::string> postCodegenPasses;
+};
+
 struct CompileTargetV2 {
   std::vector<CompilationStageV2> stages;
-  rfl::DefaultVal<std::string> codegen;
+  /// Either a plain emission-format string or the full `codegen` mapping.
+  rfl::DefaultVal<rfl::Variant<std::string, CodegenV2>> codegen;
 };
 
 struct TargetConfigV2 {

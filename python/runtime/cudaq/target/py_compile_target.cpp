@@ -10,8 +10,10 @@
 #include "cudaq/Target/CompileTarget.h"
 #include <nanobind/nanobind.h>
 #include <nanobind/operators.h>
+#include <nanobind/stl/optional.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
+#include <optional>
 #include <sstream>
 
 using namespace nanobind::literals;
@@ -23,40 +25,101 @@ static std::string customPipelineLoweringRepr(
   std::ostringstream os;
   os << "CustomPipelineLowering(";
   if (!lowering.overridePassPipeline.empty())
-    os << "override_pass_pipeline=" << reprStr(lowering.overridePassPipeline);
+    os << "pipeline=" << reprStr(lowering.overridePassPipeline);
   else {
-    os << "high_level_pipeline=" << reprStr(lowering.highLevelPipeline)
-       << ", mid_level_pipeline=" << reprStr(lowering.midLevelPipeline)
-       << ", low_level_pipeline=" << reprStr(lowering.lowLevelPipeline);
+    os << "high_level=" << reprStr(lowering.highLevelPipeline)
+       << ", mid_level=" << reprStr(lowering.midLevelPipeline)
+       << ", low_level=" << reprStr(lowering.lowLevelPipeline);
   }
   os << ")";
   return os.str();
 }
 
+static std::string codegenRepr(const cudaq::config::Codegen &codegen) {
+  std::ostringstream os;
+  os << "Codegen(" << reprStr(codegen.emissionFormat);
+  if (!codegen.postCodegenPasses.empty())
+    os << ", post_codegen_passes=" << reprStr(codegen.postCodegenPasses);
+  os << ")";
+  return os.str();
+}
+
 static std::string compileTargetRepr(const cudaq::CompileTarget &ct) {
-  std::string loweringRepr = "[]";
-  if (!ct.stages.empty())
-    loweringRepr =
-        "[" + customPipelineLoweringRepr(ct.getCustomPipelineLowering()) + "]";
-  return "CompileTarget(stages=" + loweringRepr +
-         ", codegen_translation=" + reprStr(ct.codegenTranslation) + ")";
+  std::ostringstream os;
+  os << "CompileTarget(lowering=";
+  if (ct.stages.empty())
+    os << "None";
+  else
+    os << customPipelineLoweringRepr(ct.getCustomPipelineLowering());
+  os << ", codegen=" << codegenRepr(ct.codegen) << ")";
+  return os.str();
 }
 
 void cudaq::bindCompileTarget(nanobind::module_ &mod) {
+  using Codegen = cudaq::config::Codegen;
   using CustomPipelineLowering = cudaq::config::CustomPipelineLowering;
+
+  nanobind::class_<Codegen>(
+      mod, "Codegen",
+      "Code generation selected by a `CompileTarget`: the emission format "
+      "(e.g. 'qir:', 'qir-base', 'qasm2') and an optional MLIR pass pipeline "
+      "to run after code generation.")
+      .def(nanobind::init<>())
+      .def(
+          "__init__",
+          [](Codegen *self, const std::string &emissionFormat,
+             const std::string &postCodegenPasses) {
+            new (self) Codegen{.emissionFormat = emissionFormat,
+                               .postCodegenPasses = postCodegenPasses};
+          },
+          "emission_format"_a = "", "post_codegen_passes"_a = "")
+      .def_rw("emission_format", &Codegen::emissionFormat)
+      .def_rw("post_codegen_passes", &Codegen::postCodegenPasses)
+      .def(nanobind::self == nanobind::self)
+      .def("__hash__", std::hash<Codegen>())
+      .def("__repr__", codegenRepr);
+
+  // A plain emission-format string implicitly converts to a `Codegen`, like
+  // `codegen: qir-base` in the target configuration schema.
+  nanobind::implicitly_convertible<std::string, Codegen>();
 
   nanobind::class_<CustomPipelineLowering>(
       mod, "CustomPipelineLowering",
-      "The MLIR pass pipelines that a `CompileTarget` compiles kernels with.")
-      .def(nanobind::init<>())
+      "A custom MLIR pass pipeline for a compilation stage. Either a single "
+      "pipeline string overriding the whole compilation pipeline, or "
+      "`high_level`/`mid_level`/`low_level` pipelines inserted around the "
+      "built-in compilation stages.")
+      .def(
+          "__init__",
+          [](CustomPipelineLowering *self, const std::string &pipeline,
+             const std::string &highLevel, const std::string &midLevel,
+             const std::string &lowLevel) {
+            bool hasStaged =
+                !highLevel.empty() || !midLevel.empty() || !lowLevel.empty();
+            if (!pipeline.empty() && hasStaged)
+              throw std::invalid_argument(
+                  "provide either an override pipeline or staged pipelines, "
+                  "not both");
+            new (self) CustomPipelineLowering{.overridePassPipeline = pipeline,
+                                              .highLevelPipeline = highLevel,
+                                              .midLevelPipeline = midLevel,
+                                              .lowLevelPipeline = lowLevel};
+          },
+          "pipeline"_a = "", "high_level"_a = "", "mid_level"_a = "",
+          "low_level"_a = "")
       .def_rw("override_pass_pipeline",
               &CustomPipelineLowering::overridePassPipeline)
-      .def_rw("high_level_pipeline", &CustomPipelineLowering::highLevelPipeline)
-      .def_rw("mid_level_pipeline", &CustomPipelineLowering::midLevelPipeline)
-      .def_rw("low_level_pipeline", &CustomPipelineLowering::lowLevelPipeline)
+      .def_rw("high_level", &CustomPipelineLowering::highLevelPipeline)
+      .def_rw("mid_level", &CustomPipelineLowering::midLevelPipeline)
+      .def_rw("low_level", &CustomPipelineLowering::lowLevelPipeline)
       .def(nanobind::self == nanobind::self)
       .def("__hash__", std::hash<CustomPipelineLowering>())
       .def("__repr__", customPipelineLoweringRepr);
+
+  // A plain pipeline string implicitly converts to an override
+  // `CustomPipelineLowering`, like a plain string `custom-pipeline` in the
+  // target configuration schema.
+  nanobind::implicitly_convertible<std::string, CustomPipelineLowering>();
 
   nanobind::class_<CompileTarget>(
       mod, "CompileTarget",
@@ -65,44 +128,46 @@ void cudaq::bindCompileTarget(nanobind::module_ &mod) {
       "specify MLIR pass pipelines explicitly.")
       .def(
           "__init__",
-          [](CompileTarget *target, CustomPipelineLowering *pipelineConfig) {
+          [](CompileTarget *target,
+             std::optional<CustomPipelineLowering> lowering,
+             const Codegen &codegen) {
             new (target) CompileTarget();
-
-            if (pipelineConfig)
+            if (lowering)
               target->stages.push_back(cudaq::config::CompilationStage{
                   .irOutputProfile = cudaq::config::UncheckedProfile{},
-                  .lowering = *pipelineConfig});
+                  .lowering = std::move(*lowering)});
+            target->codegen = codegen;
 
             // Some good defaults for Python simulators.
             // TODO: refine this and unify with `createDefaultCompileTarget`.
             target->fullySpecialize = false;
             target->argumentSynthChangeSemantics = false;
-            if (target->codegenTranslation.empty())
-              target->codegenTranslation = "qir:";
           },
-          "pipeline_config"_a = nanobind::none())
+          "lowering"_a = nanobind::none(), "codegen"_a = Codegen{"qir:"})
       .def_prop_rw(
-          "pipeline_config",
-          [](CompileTarget &target) -> CustomPipelineLowering & {
+          "lowering",
+          [](CompileTarget &target) -> CustomPipelineLowering * {
             if (target.stages.empty())
-              target.stages.push_back(cudaq::config::CompilationStage{
-                  .irOutputProfile = cudaq::config::UncheckedProfile{},
-                  .lowering = CustomPipelineLowering{}});
-            return target.getCustomPipelineLowering();
+              return nullptr;
+            return &target.getCustomPipelineLowering();
           },
-          [](CompileTarget &target, const CustomPipelineLowering &lowering) {
+          [](CompileTarget &target,
+             std::optional<CustomPipelineLowering> lowering) {
+            if (!lowering) {
+              target.stages.clear();
+              return;
+            }
             if (target.stages.empty()) {
               target.stages.push_back(cudaq::config::CompilationStage{
                   .irOutputProfile = cudaq::config::UncheckedProfile{},
-                  .lowering = lowering});
+                  .lowering = std::move(*lowering)});
               return;
             }
-            auto &existing = target.getCustomPipelineLowering();
-            existing = lowering;
+            target.getCustomPipelineLowering() = std::move(*lowering);
           },
           nanobind::rv_policy::reference_internal)
-      .def_rw("codegen_translation", &CompileTarget::codegenTranslation)
-      .def_rw("post_code_gen_passes", &CompileTarget::postCodeGenPasses)
+      .def_rw("codegen", &CompileTarget::codegen,
+              nanobind::rv_policy::reference_internal)
       .def_rw("support_conditionals_on_measure_results",
               &CompileTarget::supportConditionalsOnMeasureResults)
       .def_rw("support_device_calls", &CompileTarget::supportDeviceCalls)

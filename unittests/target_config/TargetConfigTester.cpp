@@ -156,7 +156,9 @@ compile-target:
           high-level: "high-pipe"
           mid-level: "mid-pipe"
           low-level: "low-pipe"
-  codegen: qir-base
+  codegen:
+    emission-format: qir-base
+    post-codegen-passes: "canonicalize"
 )",
                                                        {});
   ASSERT_TRUE(config.BackendConfig.has_value());
@@ -171,7 +173,8 @@ compile-target:
   EXPECT_EQ(lowering->midLevelPipeline, "mid-pipe");
   EXPECT_EQ(lowering->lowLevelPipeline, "low-pipe");
   EXPECT_TRUE(lowering->overridePassPipeline.empty());
-  EXPECT_EQ(compileTarget.codegenTranslation, "qir-base");
+  EXPECT_EQ(compileTarget.codegen.emissionFormat, "qir-base");
+  EXPECT_EQ(compileTarget.codegen.postCodegenPasses, "canonicalize");
   EXPECT_EQ(config.getCodeGenSpec({}), "qir-base");
   EXPECT_TRUE(config.BackendConfig->hasPassPipeline());
 }

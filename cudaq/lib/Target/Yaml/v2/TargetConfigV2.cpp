@@ -42,16 +42,24 @@ toCanonicalEntry(const cudaq::config::v2::BackendEndConfigEntryV2 &cfg,
   if (compileTarget) {
     for (const auto &stage : compileTarget->stages)
       out.CompileTarget.stages.push_back(toCanonicalStage(stage));
-    out.CompileTarget.codegenTranslation = compileTarget->codegen.value();
+    compileTarget->codegen.value().visit([&](const auto &codegen) {
+      using T = std::decay_t<decltype(codegen)>;
+      if constexpr (std::is_same_v<T, std::string>)
+        out.CompileTarget.codegen.emissionFormat = codegen;
+      else
+        out.CompileTarget.codegen = {
+            .emissionFormat = codegen.emissionFormat.value(),
+            .postCodegenPasses = codegen.postCodegenPasses.value()};
+    });
   }
   return out;
 }
 
 cudaq::config::TargetConfig
 cudaq::config::v2::toCanonical(const TargetConfigV2 &cfg) {
-  if (cfg.compileTarget && cfg.compileTarget->stages.empty())
+  if (cfg.compileTarget && cfg.compileTarget->stages.size() != 1)
     throw std::runtime_error(
-        "'compile-target.stages' must contain at least one stage.");
+        "'compile-target.stages' must currently contain exactly one stage.");
   if (cfg.compileTarget && !cfg.configurationMatrix.value().empty())
     throw std::runtime_error(
         "'compile-target' cannot be combined with 'configuration-matrix'.");

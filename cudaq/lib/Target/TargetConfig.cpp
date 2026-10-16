@@ -27,7 +27,7 @@ std::string cudaq::config::TargetConfig::getCodeGenSpec(
   if (machineConfigIter == TargetArguments.end()) {
     // No machine specific config
     return BackendConfig.has_value()
-               ? BackendConfig->CompileTarget.codegenTranslation
+               ? BackendConfig->CompileTarget.codegen.emissionFormat
                : "";
   }
 
@@ -62,7 +62,7 @@ std::string cudaq::config::TargetConfig::getCodeGenSpec(
   // No machine specific config rule matches, fallback to the default backend
   // config
   return BackendConfig.has_value()
-             ? BackendConfig->CompileTarget.codegenTranslation
+             ? BackendConfig->CompileTarget.codegen.emissionFormat
              : "";
 }
 

@@ -13,7 +13,8 @@
 # Schema v2: compilation options live in a dedicated `compile-target` block.
 # Each stage declares its IR output profile and the lowering to get there;
 # the `custom-pipeline` mapping inserts staged pipelines around the built-in
-# passes.
+# passes. The `codegen` mapping form selects the emission format and a
+# post-codegen pass pipeline.
 
 version: 2
 name: lit-v2
@@ -35,7 +36,9 @@ compile-target:
           high-level: "high-pipe"
           mid-level: "mid-pipe"
           low-level: "low-pipe"
-  codegen: qir-base
+  codegen:
+    emission-format: qir-base
+    post-codegen-passes: "canonicalize"
 
 # PARSE: name: lit-v2
 # PARSE:   gen-target-backend: true
@@ -44,6 +47,7 @@ compile-target:
 # PARSE:   jit-mid-level-pipeline: mid-pipe
 # PARSE:   jit-low-level-pipeline: low-pipe
 # PARSE:   codegen-emission: qir-base
+# PARSE:   post-codegen-passes: canonicalize
 # PARSE:   platform-qpu: remote_rest
 # PARSE:   preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
 # PARSE:   link-libs: ["-lcudaq-rest-qpu"]
@@ -54,6 +58,7 @@ compile-target:
 # EMIT: JIT_MID_LEVEL_PIPELINE="mid-pipe"
 # EMIT: JIT_LOW_LEVEL_PIPELINE="low-pipe"
 # EMIT: CODEGEN_EMISSION=qir-base
+# EMIT: POST_CODEGEN_PASSES="canonicalize"
 # EMIT: PLATFORM_QPU=remote_rest
 
 # CODEGEN: codegen-emission: qir-base

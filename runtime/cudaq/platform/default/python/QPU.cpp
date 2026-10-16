@@ -66,7 +66,8 @@ std::string cudaq::detail::lower_to_qir_llvm(const std::string &name,
   // TODO: can the following be merged with qirProfileTranslationFunction in
   // RuntimeMLIR.cpp?
   PassManager pm(compiled_module.getContext());
-  if (target.stages.empty() || target.getCustomPipelineLowering().empty()) {
+  const auto &t = compiler.getTarget();
+  if (t.stages.empty() || t.getCustomPipelineLowering().empty()) {
     cudaq::opt::addAggressiveInlining(pm);
     cudaq::opt::createTargetFinalizePipeline(pm);
   }
@@ -117,7 +118,8 @@ std::string cudaq::detail::lower_to_openqasm(const std::string &name,
           *compiled.getMlir());
   auto *ctx = compiled_module.getContext();
   PassManager pm(ctx);
-  if (target.stages.empty() || target.getCustomPipelineLowering().empty()) {
+  const auto &t = compiler.getTarget();
+  if (t.stages.empty() || t.getCustomPipelineLowering().empty()) {
     cudaq::opt::addAggressiveInlining(pm);
     cudaq::opt::createTargetFinalizePipeline(pm);
   }

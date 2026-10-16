@@ -89,10 +89,9 @@ void printBackend(const BackendEndConfigEntry &backend, const char *indent) {
     printField(indent, "target-pass-pipeline", pipelines->overridePassPipeline);
   }
   printField(indent, "codegen-emission",
-             backend.CompileTarget.codegenTranslation);
-  if (pipelines)
-    printField(indent, "post-codegen-passes",
-               backend.CompileTarget.postCodeGenPasses);
+             backend.CompileTarget.codegen.emissionFormat);
+  printField(indent, "post-codegen-passes",
+             backend.CompileTarget.codegen.postCodegenPasses);
   printField(indent, "platform-library", backend.PlatformLibrary);
   printField(indent, "library-mode-execution-manager",
              backend.LibraryModeExecutionManager);

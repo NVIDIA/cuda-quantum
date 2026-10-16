@@ -255,16 +255,22 @@ cxxStages(const std::vector<cudaq::config::CompilationStage> &stages) {
   return os.str();
 }
 
+std::string cxxCodegen(const cudaq::config::Codegen &codegen) {
+  std::ostringstream os;
+  os << "cudaq::config::Codegen{"
+     << ".emissionFormat = " << cxxStringLiteral(codegen.emissionFormat) << ", "
+     << ".postCodegenPasses = " << cxxStringLiteral(codegen.postCodegenPasses)
+     << "}";
+  return os.str();
+}
+
 std::string cxxCompileTarget(const cudaq::CompileTarget &compileTarget) {
   std::ostringstream os;
   os << "cudaq::CompileTarget{"
      << ".overrideAOTCompilation = "
      << cxxBool(compileTarget.overrideAOTCompilation) << ", "
      << ".stages = " << cxxStages(compileTarget.stages) << ", "
-     << ".codegenTranslation = "
-     << cxxStringLiteral(compileTarget.codegenTranslation) << ", "
-     << ".postCodeGenPasses = "
-     << cxxStringLiteral(compileTarget.postCodeGenPasses) << ", "
+     << ".codegen = " << cxxCodegen(compileTarget.codegen) << ", "
      << ".supportConditionalsOnMeasureResults = "
      << cxxBool(compileTarget.supportConditionalsOnMeasureResults) << ", "
      << ".supportDeviceCalls = " << cxxBool(compileTarget.supportDeviceCalls)

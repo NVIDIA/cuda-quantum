@@ -82,13 +82,13 @@ static std::string processSimBackendConfig(
   if (pipelines && !pipelines->overridePassPipeline.empty())
     output << "TARGET_PASS_PIPELINE_NAME=" << pipelineName << "\n";
 
-  if (!configValue.CompileTarget.codegenTranslation.empty())
+  if (!configValue.CompileTarget.codegen.emissionFormat.empty())
     output << "CODEGEN_EMISSION="
-           << configValue.CompileTarget.codegenTranslation << "\n";
+           << configValue.CompileTarget.codegen.emissionFormat << "\n";
 
-  if (!configValue.CompileTarget.postCodeGenPasses.empty())
+  if (!configValue.CompileTarget.codegen.postCodegenPasses.empty())
     output << "POST_CODEGEN_PASSES=\""
-           << configValue.CompileTarget.postCodeGenPasses << "\"\n";
+           << configValue.CompileTarget.codegen.postCodegenPasses << "\"\n";
 
   if (!configValue.PlatformLibrary.empty())
     output << "PLATFORM_LIBRARY=" << configValue.PlatformLibrary << "\n";

@@ -24,8 +24,9 @@ toCanonicalEntry(const cudaq::config::v1::BackendEndConfigEntryV1 &cfg) {
   out.CompileTarget.stages.push_back(cudaq::config::CompilationStage{
       .irOutputProfile = cudaq::config::UncheckedProfile{},
       .lowering = std::move(lowering)});
-  out.CompileTarget.postCodeGenPasses = cfg.postCodegenPasses.value();
-  out.CompileTarget.codegenTranslation = cfg.codegenEmission.value();
+  out.CompileTarget.codegen = {.emissionFormat = cfg.codegenEmission.value(),
+                               .postCodegenPasses =
+                                   cfg.postCodegenPasses.value()};
   return out;
 }
 

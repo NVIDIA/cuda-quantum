@@ -32,9 +32,10 @@ std::string cudaq_internal::compiler::getPassPipeline(
   if (!target.stages.empty())
     pipelineConfig = target.getCustomPipelineLowering();
   const std::string allowEarlyExit =
-      target.codegenTranslation.starts_with("qir-adaptive") ? "true" : "false";
+      target.codegen.emissionFormat.starts_with("qir-adaptive") ? "true"
+                                                                : "false";
   const std::string noLoopUnroll =
-      target.codegenTranslation == "nop" ? " no-loop-unroll=true" : "";
+      target.codegen.emissionFormat == "nop" ? " no-loop-unroll=true" : "";
 
   std::string passPipeline = "canonicalize";
 
@@ -52,10 +53,10 @@ std::string cudaq_internal::compiler::getPassPipeline(
                                           allowEarlyExit + noLoopUnroll + "}");
 
   const std::string lowerDeviceCalls =
-      (target.codegenTranslation == "nop" && !options.emulate) ? "false"
-                                                               : "true";
+      (target.codegen.emissionFormat == "nop" && !options.emulate) ? "false"
+                                                                   : "true";
   const std::string deployStage =
-      target.codegenTranslation == "nop"
+      target.codegen.emissionFormat == "nop"
           ? "jit-deploy-pipeline{no-loop-unroll=true}"
           : "jit-deploy-pipeline";
   const std::string finalizeStage =
