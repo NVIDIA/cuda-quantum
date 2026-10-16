@@ -78,6 +78,12 @@ public:
         }))
       return failure();
 
+    // Bail on an evince that mixes references and linear values
+    if (llvm::any_of(evin.getArgs(), [](Value v) {
+          return cudaq::quake::isLinearType(v.getType());
+        }))
+      return failure();
+
     auto loc = evin.getLoc();
     SmallVector<Value> newArgs;
     for (Value arg : evin.getArgs()) {
