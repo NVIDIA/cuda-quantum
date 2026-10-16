@@ -38,6 +38,11 @@ def AddMeasurements : Pass<"add-measurements", "mlir::func::FuncOp"> {
 
   }];
 
+  let options = [
+    Option<"useEvince", "use-evince", "bool", /*default=*/"false",
+           "Add the measurements in front of the quake.evince ops.">
+  ];
+
   let dependentDialects = ["cudaq::cc::CCDialect", "cudaq::quake::QuakeDialect",
     "mlir::cf::ControlFlowDialect"];
 }

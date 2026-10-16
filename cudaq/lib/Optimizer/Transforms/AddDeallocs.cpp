@@ -9,8 +9,6 @@
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Todo.h"
-#include "llvm/ADT/MapVector.h"
-#include "llvm/ADT/SetVector.h"
 #include "mlir/IR/Dominance.h"
 #include "mlir/Transforms/DialectConversion.h"
 #include "mlir/Transforms/Passes.h"
@@ -26,9 +24,8 @@ using namespace mlir;
 
 // Map from quake.alloca -> bool. `true` means there is a deallocation of the
 // alloca already present in the function.
-using DeallocationMap = llvm::MapVector<Operation *, bool>;
+using DeallocationMap = llvm::DenseMap<Operation *, bool>;
 using RegionOpSet = llvm::DenseSet<Operation *>;
-using AllocaSet = llvm::SetVector<Operation *>;
 
 // Added to harden this pass when the IR is in a squirrelly mix of alloca and
 // sink operations. Normally, the IR isn't in that state coming out of a bridge.
@@ -170,7 +167,7 @@ private:
 } // namespace
 
 static void generateDeallocsForSet(PatternRewriter &rewriter,
-                                   const AllocaSet &allocSet) {
+                                   llvm::DenseSet<Operation *> &allocSet) {
   for (Operation *a : allocSet) {
     auto alloc = cast<cudaq::quake::AllocaOp>(a);
     Value v = alloc;
@@ -188,7 +185,7 @@ template <typename RET, typename OP>
 LogicalResult addDeallocations(OP wrapper, PatternRewriter &rewriter,
                                const DeallocationAnalysisInfo &infoMap,
                                const DominanceInfo &domInfo) {
-  AllocaSet allocs;
+  llvm::DenseSet<Operation *> allocs;
   for (auto &[op, done] : infoMap.allocMap)
     if ((op->getParentOp() == wrapper.getOperation()) && !done)
       allocs.insert(op);
@@ -230,7 +227,7 @@ LogicalResult addDeallocations(OP wrapper, PatternRewriter &rewriter,
           } else {
             // Collect only the subset that dominates this RET op. Insert the
             // deallocations directly in front of the RET op.
-            AllocaSet subset;
+            llvm::DenseSet<Operation *> subset;
             for (auto *alloc : allocs)
               if (domInfo.dominates(alloc, ret))
                 subset.insert(alloc);

@@ -48,6 +48,10 @@ struct Analysis {
       } else if (isa<cudaq::quake::SinkOp, cudaq::quake::DeallocOp>(op)) {
         // Record deallocations. These supercede return ops in precedence.
         deallocations.emplace_back(op);
+      } else if (isa<cudaq::quake::EvinceOp>(op)) {
+        // Record the evince ops. These are used instead of the deallocations
+        // when the use-evince option is set.
+        evinces.emplace_back(op);
       } else if (isa<func::ReturnOp>(op)) {
         // Use returns if the deallocations are not present.
         returns.emplace_back(op);
@@ -59,14 +63,16 @@ struct Analysis {
   bool hasMeasurement = false;
   SmallVector<Operation *> allocations;
   SmallVector<Operation *> deallocations;
+  SmallVector<Operation *> evinces;
   SmallVector<func::ReturnOp> returns;
 
+  bool hasEvinces() const { return !evinces.empty(); }
   bool hasQubitDeallocs() const { return !deallocations.empty(); }
   bool hasQubitAlloca() const { return !allocations.empty(); }
 };
 
 /// Add measurement operations in front of the terminal operations, which may
-/// be deallocations or sinks. Each quantum operand is measured in
+/// be deallocations, sinks, or evince ops. Each quantum operand is measured in
 /// operand order. This transformation is written to work in either reference or
 /// value semantics. There is no control-flow rewrite. We expect that an
 /// analysis will be provided to determine terminal measurement operations.
@@ -185,7 +191,10 @@ struct AddMeasurementsPass
       return;
 
     LLVM_DEBUG(llvm::dbgs() << "Before adding measurements:\n" << *func);
-    if (analysis.hasQubitDeallocs()) {
+    if (useEvince && analysis.hasEvinces()) {
+      if (failed(addMeasurementsBefore(func, analysis.evinces)))
+        signalPassFailure();
+    } else if (analysis.hasQubitDeallocs()) {
       if (failed(addMeasurementsBefore(func, analysis.deallocations)))
         signalPassFailure();
     } else {
