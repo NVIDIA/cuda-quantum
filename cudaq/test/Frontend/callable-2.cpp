@@ -12,7 +12,7 @@
 // RUN: cudaq-opt %t.qke --lambda-lifting --canonicalize | FileCheck --check-prefixes=LIFT %s
 // clang-format on
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 struct test5_callee {
   void operator()(std::function<void(cudaq::qubit &)> &&callback,

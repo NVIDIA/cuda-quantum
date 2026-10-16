@@ -19,7 +19,7 @@
 // Both bugs silently produced wrong results (or 0) for any count-up,
 // count-down, break, or continue over a stepped range.
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 __qpu__ std::int64_t count_up() {
   std::int64_t total = 0;

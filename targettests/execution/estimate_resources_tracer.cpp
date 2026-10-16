@@ -53,8 +53,8 @@
 // EMULATE-ATOMIC: Applying h with 0 controls
 // EMULATE-ATOMIC: Applying x with 1 controls
 
+#include "cudaq/qis/qubit_qis.h"
 #include <cassert>
-#include <cudaq.h>
 #include <cudaq/algorithms/resource_estimation.h>
 #include <numeric>
 

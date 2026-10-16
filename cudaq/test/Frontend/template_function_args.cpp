@@ -12,7 +12,7 @@
 // (`bool`, `int`), mixtures, and parameter packs. Each specialization must get
 // its own kernel.
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 template <typename T>
 __qpu__ int byType(T t) {

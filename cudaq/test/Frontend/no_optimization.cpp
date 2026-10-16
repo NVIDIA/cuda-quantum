@@ -9,7 +9,7 @@
 // RUN: cudaq-quake %s | cudaq-opt --add-dealloc | \
 // RUN:   cudaq-translate --convert-to=qir-base | FileCheck %s
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 struct Defeatism {
   void operator()() __disable_quantum_optimization__ __qpu__ {
