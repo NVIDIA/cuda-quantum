@@ -10,7 +10,7 @@
 // RUN: cudaq-quake %s | cudaq-opt --add-dealloc --lower-to-cfg | cudaq-translate --convert-to=qir-base -o - | FileCheck %s
 // clang-format on
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 struct kernel {
   void operator()() __qpu__ {

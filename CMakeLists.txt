@@ -262,6 +262,17 @@ endif()
 # =============================================================================
 set(CUDAQ_EXTERNAL_PROJECTS "" CACHE STRING
     "Semicolon-separated list of external projects to add to the CUDA-Q build.")
+
+# cudaq.logical (preview/logical) is an in-tree external project. It needs the
+# CUDA-Q Python bindings, so CUDAQ_ENABLE_PROJECTS must include 'python'
+# (the deprecated CUDAQ_ENABLE_PYTHON=ON does the same).
+option(CUDAQ_ENABLE_LOGICAL
+  "Build the cudaq.logical fault-tolerance resource-estimation toolkit." OFF)
+if(CUDAQ_ENABLE_LOGICAL AND NOT "logical" IN_LIST CUDAQ_EXTERNAL_PROJECTS)
+  list(APPEND CUDAQ_EXTERNAL_PROJECTS logical)
+  set(CUDAQ_EXTERNAL_LOGICAL_SOURCE_DIR
+      "${CMAKE_CURRENT_SOURCE_DIR}/preview/logical" CACHE PATH "" FORCE)
+endif()
 foreach(_cudaq_ext_proj IN LISTS CUDAQ_EXTERNAL_PROJECTS)
   string(TOUPPER "${_cudaq_ext_proj}" _cudaq_ext_upper)
   string(REGEX REPLACE "-" "_" _cudaq_ext_upper "${_cudaq_ext_upper}")

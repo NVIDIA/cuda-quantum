@@ -8683,7 +8683,7 @@ LogicalResult ScheduleClaimVerifier::verify(ArrayRef<ScheduleClaim> entries,
         return 0.0;
       }
     }
-    if (auto transport = dyn_cast<TransportResourceOp>(operation))
+    if (auto transport = dyn_cast<TransportResourceOp>(operation)) {
       if (auto reference = transport.getModelAttr()) {
         auto model = dyn_cast_or_null<TransportModelOp>(
             SymbolTable::lookupNearestSymbolFrom(transport, reference));
@@ -8727,6 +8727,7 @@ LogicalResult ScheduleClaimVerifier::verify(ArrayRef<ScheduleClaim> entries,
           }
         }
       }
+    }
     if (Attribute raw = operation->getAttr("duration_ns")) {
       if (auto value = physicalTimingValue(raw))
         return *value;

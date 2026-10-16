@@ -9,7 +9,7 @@
 // RUN: cudaq-quake -verify %s
 // clang-format off
 
-#include "cudaq.h"
+#include "cudaq/qis/qubit_qis.h"
 
 // A type that is declared in a kernel is subject to the rules of every type in
 // a kernel. This struct has a member function.

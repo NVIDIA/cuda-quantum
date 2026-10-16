@@ -8,7 +8,7 @@
 
 // RUN: cudaq-quake %s | FileCheck %s
 
-#include "cudaq.h"
+#include "cudaq/qis/qubit_qis.h"
 
 // A type can be declared in a kernel, as it can be anywhere else. A declaration
 // of a type generates no code. The type is converted where a variable uses it.
