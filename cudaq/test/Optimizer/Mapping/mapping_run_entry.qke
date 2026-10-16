@@ -13,7 +13,14 @@
 // RUN: cudaq-opt '--qubit-mapping=device=path(2) placement=identity search=none' %s | FileCheck %s
 
 module {
-  quake.wire_set @wires[2147483647]
+  // This kernel measures explicitly, which `sample` and `observe` no longer
+// support: they add their own measurements after mapping, keyed off the
+// `quake.evince` ops. It is kept in this form to cover mapping a measurement
+// for `cudaq::run`, which does support them. No `mapping_reorder_idx` is
+// expected below: that attribute comes from `add-measurements`, which bails
+// out when the kernel already has measurements of its own.
+
+quake.wire_set @wires[2147483647]
 
   func.func @bool_return.run() attributes {quake.cudaq_run = [i1]} {
     %true = arith.constant true
@@ -25,7 +32,7 @@ module {
     return
   }
 
-  // CHECK-LABEL: func.func @bool_return.run() attributes {mapping_reorder_idx = [0], mapping_v2p = [0], quake.cudaq_run = [i1]}
+  // CHECK-LABEL: func.func @bool_return.run() attributes {mapping_v2p = [0], quake.cudaq_run = [i1]}
   // CHECK:         quake.borrow_wire @mapped_wireset[0] : !quake.wire
   // CHECK:         quake.evince {{.*}} : (i1) -> ()
 
@@ -39,7 +46,7 @@ module {
     return
   }
 
-  // CHECK-LABEL: func.func @int_return.run() attributes {mapping_reorder_idx = [0], mapping_v2p = [0], quake.cudaq_run = [i32]}
+  // CHECK-LABEL: func.func @int_return.run() attributes {mapping_v2p = [0], quake.cudaq_run = [i32]}
   // CHECK:         quake.borrow_wire @mapped_wireset[0] : !quake.wire
   // CHECK:         quake.evince {{.*}} : (i32) -> ()
 
@@ -53,7 +60,7 @@ module {
     return
   }
 
-  // CHECK-LABEL: func.func @float_return.run() attributes {mapping_reorder_idx = [0], mapping_v2p = [0], quake.cudaq_run = [f32]}
+  // CHECK-LABEL: func.func @float_return.run() attributes {mapping_v2p = [0], quake.cudaq_run = [f32]}
   // CHECK:         quake.borrow_wire @mapped_wireset[0] : !quake.wire
   // CHECK:         quake.evince {{.*}} : (f32) -> ()
 
@@ -70,7 +77,7 @@ module {
     return
   }
 
-  // CHECK-LABEL: func.func @scoped_return.run() attributes {mapping_reorder_idx = [0], mapping_v2p = [0], quake.cudaq_run = [i1]}
+  // CHECK-LABEL: func.func @scoped_return.run() attributes {mapping_v2p = [0], quake.cudaq_run = [i1]}
   // CHECK:         cc.scope
   // CHECK:           quake.borrow_wire @mapped_wireset[0] : !quake.wire
   // CHECK:         quake.evince {{.*}} : (i1) -> ()
@@ -95,7 +102,7 @@ module {
     return
   }
 
-  // CHECK-LABEL: func.func @measurement_feedforward.run() attributes {mapping_reorder_idx = [0], mapping_v2p = [0, 1], quake.cudaq_run = [i1]}
+  // CHECK-LABEL: func.func @measurement_feedforward.run() attributes {mapping_v2p = [0, 1], quake.cudaq_run = [i1]}
   // CHECK:         %[[Q0:.*]] = quake.borrow_wire @mapped_wireset[0] : !quake.wire
   // CHECK:         %[[Q1:.*]] = quake.borrow_wire @mapped_wireset[1] : !quake.wire
   // CHECK:         %[[MEAS:.*]], %[[WIRE:.*]] = quake.mz %[[Q0]] : (!quake.wire) -> (!quake.measure, !quake.wire)

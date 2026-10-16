@@ -462,15 +462,6 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
     }
   }
 
-  if (options.addSampleMeasurements &&
-      !target.supportSampleWithoutMeasurements) {
-    // No need to add measurements only to remove them eventually
-    if (target.codegen.postCodegenPasses.find("remove-measurements") ==
-        std::string::npos)
-      applyPipeline("func.func(add-measurements{use-evince=1})", moduleOp,
-                    kernelName);
-  }
-
   auto [combineMeasurements, passPipeline] =
       executeMainPipeline(moduleOp, kernelName, resolvedOptions);
 
@@ -489,6 +480,22 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
         "Skipping counting resources from IR as target does not support it.");
   }
 
+  // Add the measurements for `sample` in front of the `quake.evince` ops that
+  // mark the qubits the user declared, then erase those ops. This runs after
+  // the main pipeline so that the measurements land on the mapped qubits and
+  // so that ancillas introduced along the way -- which carry no evince -- stay
+  // out of the global register.
+  if (options.addSampleMeasurements &&
+      !target.supportSampleWithoutMeasurements) {
+    // No need to add measurements only to remove them eventually
+    if (target.codegen.postCodegenPasses.find("remove-measurements") ==
+        std::string::npos)
+      applyPipeline(
+          "func.func(add-measurements{use-evince=1},erase-implicit-output)",
+          moduleOp, kernelName);
+  }
+
+  // NB: this must follow the pass above, which is what emits the attribute.
   std::vector<std::size_t> mapping_reorder_idx;
   if (options.storeReorderIdx)
     mapping_reorder_idx = extractMappingReorderIdx(moduleOp, epFunc);
@@ -543,6 +550,10 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
       if (failed(cudaq_internal::compiler::runPassManager(
               pm, tmpModuleOp.getOperation())))
         throw std::runtime_error("Could not apply measurements to ansatz.");
+      // The ansatz carries its own measurements now, so the evince ops marking
+      // the declared qubits have served their purpose.
+      applyPipeline("func.func(erase-implicit-output)", tmpModuleOp,
+                    kernelName);
       // The full pass pipeline was run above, but the ansatz pass can
       // introduce gates that aren't supported by the backend, so we need to
       // re-run the gate set mapping if that existed in the original pass

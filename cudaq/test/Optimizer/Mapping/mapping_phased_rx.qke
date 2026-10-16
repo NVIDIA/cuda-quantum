@@ -9,7 +9,14 @@
 // RUN: cudaq-opt '--qubit-mapping=device=star(5,2) placement=identity search=none' %s | FileCheck %s
 
 module {
-  quake.wire_set @wires[2147483647]
+  // This kernel measures explicitly, which `sample` and `observe` no longer
+// support: they add their own measurements after mapping, keyed off the
+// `quake.evince` ops. It is kept in this form to cover mapping a measurement
+// for `cudaq::run`, which does support them. No `mapping_reorder_idx` is
+// expected below: that attribute comes from `add-measurements`, which bails
+// out when the kernel already has measurements of its own.
+
+quake.wire_set @wires[2147483647]
   func.func @__nvqpp__mlirgen__ghzILm2EE() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
     %cst = arith.constant 1.5707963267948966 : f64
     %cst_0 = arith.constant 3.1415926535897931 : f64
@@ -30,7 +37,7 @@ module {
   }
 }
 
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__ghzILm2EE() attributes {"cudaq-entrypoint", "cudaq-kernel", mapping_reorder_idx = [0], mapping_v2p = [2, 1]} {
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__ghzILm2EE() attributes {"cudaq-entrypoint", "cudaq-kernel", mapping_v2p = [2, 1]} {
 // CHECK:           %[[VAL_0:.*]] = arith.constant 1.5707963267948966 : f64
 // CHECK:           %[[VAL_1:.*]] = arith.constant 3.1415926535897931 : f64
 // CHECK:           %[[VAL_2:.*]] = arith.constant 0.000000e+00 : f64

@@ -6,26 +6,24 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_directional_three.txt) placement=identity search=none' %s | \
+// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_directional_three.txt) placement=identity search=none' --add-measurements=use-evince=1 %s | \
 // RUN:   FileCheck --implicit-check-not=quake.swap \
 // RUN:     --implicit-check-not=quake.h --implicit-check-not=quake.x %s
-// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_directional_three.txt) placement=greedy search=sabre' %s | \
+// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_directional_three.txt) placement=greedy search=sabre' --add-measurements=use-evince=1 %s | \
 // RUN:   FileCheck --check-prefix=SABRE --implicit-check-not=quake.h \
 // RUN:     --implicit-check-not=quake.x %s
 
 quake.wire_set @wires[2147483647]
 
-func.func @route_across_one_way_edge() {
+func.func @route_across_one_way_edge() attributes {"cudaq-entrypoint"} {
   %q0 = quake.borrow_wire @wires[0] : !quake.wire
   %q1 = quake.borrow_wire @wires[1] : !quake.wire
   %q2 = quake.borrow_wire @wires[2] : !quake.wire
   %x:2 = quake.x [%q0] %q2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-  %m0, %w0 = quake.mz %x#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
-  %m1, %w1 = quake.mz %q1 : (!quake.wire) -> (!quake.measure, !quake.wire)
-  %m2, %w2 = quake.mz %x#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
-  quake.return_wire %w0 : !quake.wire
-  quake.return_wire %w1 : !quake.wire
-  quake.return_wire %w2 : !quake.wire
+  %ev:3 = quake.evince %x#0, %q1, %x#1 : (!quake.wire, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire, !quake.wire) {compilerGenerated}
+  quake.return_wire %ev#0 : !quake.wire
+  quake.return_wire %ev#1 : !quake.wire
+  quake.return_wire %ev#2 : !quake.wire
   return
 }
 
@@ -51,7 +49,7 @@ func.func @route_across_one_way_edge() {
 // routing expansion is needed. The selected physical CX direction is
 // reverse-only, producing exactly four Hadamards around one CX.
 
-// SABRE-LABEL:   func.func @route_across_one_way_edge() attributes {mapping_reorder_idx = [1, 2, 0], mapping_v2p = [1, 2, 0]} {
+// SABRE-LABEL:   func.func @route_across_one_way_edge() attributes {"cudaq-entrypoint", mapping_reorder_idx = [1, 2, 0], mapping_v2p = [1, 2, 0]} {
 // SABRE:           %[[BORROW_WIRE_0:.*]] = quake.borrow_wire @mapped_wireset[1] : !quake.wire
 // SABRE:           %[[BORROW_WIRE_1:.*]] = quake.borrow_wire @mapped_wireset[2] : !quake.wire
 // SABRE:           %[[BORROW_WIRE_2:.*]] = quake.borrow_wire @mapped_wireset[0] : !quake.wire

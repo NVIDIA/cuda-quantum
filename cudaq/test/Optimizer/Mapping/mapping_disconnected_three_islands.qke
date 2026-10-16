@@ -6,15 +6,15 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_three_islands.txt) placement=auto     search=none'  %s | FileCheck --implicit-check-not=quake.swap %s
-// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_three_islands.txt) placement=auto     search=sabre' %s | FileCheck --implicit-check-not=quake.swap %s
-// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_three_islands.txt) placement=greedy   search=none'  %s | FileCheck --implicit-check-not=quake.swap %s
-// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_three_islands.txt) placement=greedy   search=sabre' %s | FileCheck --implicit-check-not=quake.swap %s
+// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_three_islands.txt) placement=auto     search=none' --add-measurements=use-evince=1  %s | FileCheck --implicit-check-not=quake.swap %s
+// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_three_islands.txt) placement=auto     search=sabre' --add-measurements=use-evince=1 %s | FileCheck --implicit-check-not=quake.swap %s
+// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_three_islands.txt) placement=greedy   search=none' --add-measurements=use-evince=1  %s | FileCheck --implicit-check-not=quake.swap %s
+// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_three_islands.txt) placement=greedy   search=sabre' --add-measurements=use-evince=1 %s | FileCheck --implicit-check-not=quake.swap %s
 // RUN: not cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_three_islands.txt) placement=identity'  %s 2>&1 | FileCheck --check-prefix=IDENTITY %s
 
 quake.wire_set @wires[2147483647]
 
-func.func @three_islands() {
+func.func @three_islands() attributes {"cudaq-entrypoint"} {
   %q0 = quake.borrow_wire @wires[0] : !quake.wire
   %q1 = quake.borrow_wire @wires[1] : !quake.wire
   %q2 = quake.borrow_wire @wires[2] : !quake.wire
@@ -24,22 +24,17 @@ func.func @three_islands() {
   %a:2 = quake.x [%q0] %q5 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %b:2 = quake.x [%q1] %q2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %c:2 = quake.x [%q3] %q4 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-  %m0, %w0 = quake.mz %a#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
-  %m1, %w1 = quake.mz %b#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
-  %m2, %w2 = quake.mz %b#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
-  %m3, %w3 = quake.mz %c#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
-  %m4, %w4 = quake.mz %c#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
-  %m5, %w5 = quake.mz %a#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
-  quake.return_wire %w0 : !quake.wire
-  quake.return_wire %w1 : !quake.wire
-  quake.return_wire %w2 : !quake.wire
-  quake.return_wire %w3 : !quake.wire
-  quake.return_wire %w4 : !quake.wire
-  quake.return_wire %w5 : !quake.wire
+  %ev:6 = quake.evince %a#0, %b#0, %b#1, %c#0, %c#1, %a#1 : (!quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire, !quake.wire) {compilerGenerated}
+  quake.return_wire %ev#0 : !quake.wire
+  quake.return_wire %ev#1 : !quake.wire
+  quake.return_wire %ev#2 : !quake.wire
+  quake.return_wire %ev#3 : !quake.wire
+  quake.return_wire %ev#4 : !quake.wire
+  quake.return_wire %ev#5 : !quake.wire
   return
 }
 
-// CHECK-LABEL:   func.func @three_islands() attributes {mapping_reorder_idx = [0, 2, 3, 4, 5, 1], mapping_v2p = [0, 2, 3, 4, 5, 1]} {
+// CHECK-LABEL:   func.func @three_islands() attributes {"cudaq-entrypoint", mapping_reorder_idx = [0, 2, 3, 4, 5, 1], mapping_v2p = [0, 2, 3, 4, 5, 1]} {
 // CHECK:           %[[BORROW_WIRE_0:.*]] = quake.borrow_wire @mapped_wireset[0] : !quake.wire
 // CHECK:           %[[BORROW_WIRE_1:.*]] = quake.borrow_wire @mapped_wireset[2] : !quake.wire
 // CHECK:           %[[BORROW_WIRE_2:.*]] = quake.borrow_wire @mapped_wireset[3] : !quake.wire
