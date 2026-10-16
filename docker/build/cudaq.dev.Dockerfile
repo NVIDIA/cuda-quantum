@@ -137,6 +137,48 @@ RUN if [ "$run_tests" = "true" ] && [ -n "$mpi" ]; then \
         ctest --test-dir build -R MPIApiTest -V; \
     fi
 
+# CI stages for cudaq.logical (preview/logical). Both start from the freshly
+# built devbuild and only run when run_tests=true. They are independent: each
+# builds Logical one way into its own layer, so one never sees the other's
+# files in the CUDA-Q installation prefix.
+#
+# qlx-python-tests is one long pytest process, slow on Debug builds on loaded
+# runners; PYTEST_ADDOPTS makes pytest use xdist (workers capped as in
+# test_in_devenv.yml to bound memory).
+#
+# Out-of-tree: configure Logical against the CUDA-Q *installation*, with the
+# toolchain audit on, then run its ctest suite.
+FROM devbuild AS test-logical
+ARG run_tests=false
+ARG install=
+RUN if [ "$run_tests" = "true" ] && [ -n "$install" ]; then \
+        install=`echo $install | xargs` && export $install; \
+        cd $CUDAQ_REPO_ROOT && \
+        python3 -m pip install "lit<23" pytest-xdist --break-system-packages && \
+        QLX_VERIFY_TOOLCHAIN=ON bash scripts/build_cudaq.sh -v -I -L || exit 1; \
+        ctest_listing="$(ctest --test-dir build/preview/logical -N)" && \
+        echo "$ctest_listing" && \
+        grep -q 'qlx-filecheck-tests' <<< "$ctest_listing" || \
+            { echo "qlx-filecheck-tests is not registered; lit/FileCheck missing at configure time." >&2; exit 1; }; \
+        PYTEST_ADDOPTS="-n $(( ($(nproc) + 1) / 2 ))" OMP_NUM_THREADS=1 \
+            ctest --test-dir build/preview/logical --output-on-failure -j "$(nproc)" || exit 1; \
+    fi
+
+# In-tree: reconfigure the CUDA-Q build with -DCUDAQ_ENABLE_LOGICAL=ON on top of
+# the existing build tree, then run Logical's ctest suite from it.
+FROM devbuild AS test-logical-intree
+ARG run_tests=false
+ARG install=
+RUN if [ "$run_tests" = "true" ] && [ -n "$install" ]; then \
+        install=`echo $install | xargs` && export $install; \
+        cd $CUDAQ_REPO_ROOT && \
+        python3 -m pip install "lit<23" pytest-xdist --break-system-packages && \
+        CUDAQ_BUILD_TESTS=FALSE bash scripts/build_cudaq.sh -v -i -- \
+            -DCUDAQ_TEST_OMP_SLOTS=2 -DCUDAQ_ENABLE_LOGICAL=ON || exit 1; \
+        PYTEST_ADDOPTS="-n $(( ($(nproc) + 1) / 2 ))" OMP_NUM_THREADS=1 \
+            ctest --test-dir build -R '^qlx-' --output-on-failure -j "$(nproc)" || exit 1; \
+    fi
+
 # CI coverage stage. Build with --target coverage to generate code
 # coverage inside BuildKit. The run_coverage arg defaults to false
 # so non-CI builds skip this stage entirely.
