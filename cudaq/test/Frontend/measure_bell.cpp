@@ -8,7 +8,7 @@
 
 // RUN: cudaq-quake %s | cudaq-opt --cse | FileCheck %s
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 // These "bell" tests are very similar. Each tests a slightly different syntax
 // for the equality test of the bits being measured.

@@ -10,7 +10,7 @@
 // RUN: cudaq-quake %s | cudaq-opt --expand-measurements --classical-optimization-pipeline | FileCheck %s
 // clang-format on
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 __qpu__ void foo() {
   cudaq::qvector qubits(3);

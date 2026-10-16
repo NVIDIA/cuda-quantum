@@ -9,7 +9,7 @@
 // RUN: cudaq-quake -verify %s
 // clang-format off
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 struct not_a_block {
   void operator()() __qpu__ {
