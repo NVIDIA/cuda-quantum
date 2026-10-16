@@ -37,8 +37,8 @@ struct kernel {
 // CHECK:         %[[VAL_1:.*]] = tail call ptr @__quantum__rt__qubit_allocate()
 // CHECK:         %[[VAL_2:.*]] = tail call ptr @__quantum__rt__qubit_allocate()
 // CHECK:         tail call void @__quantum__qis__h(ptr %[[VAL_1]])
-// CHECK:         tail call void (i64, i64, i64, i64, ptr, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, ptr nonnull @__quantum__qis__x__ctl, ptr %[[VAL_1]], ptr %[[VAL_2]])
-// CHECK:         tail call void (i64, i64, i64, i64, ptr, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, ptr nonnull @__quantum__qis__x__ctl, ptr %[[VAL_0]], ptr %[[VAL_1]])
+// CHECK:         tail call void (i64, i64, i64, i1, ptr, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 1, i64 1, i1 false, ptr nonnull @__quantum__qis__x__ctl, i32 0, i32 1, ptr %[[VAL_1]], ptr %[[VAL_2]])
+// CHECK:         tail call void (i64, i64, i64, i1, ptr, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 1, i64 1, i1 false, ptr nonnull @__quantum__qis__x__ctl, i32 0, i32 1, ptr %[[VAL_0]], ptr %[[VAL_1]])
 // CHECK:         tail call void @__quantum__qis__h(ptr %[[VAL_0]])
 // CHECK:         %[[VAL_3:.*]] = tail call i64 @__quantum__qis__mz_handle__to__register(ptr %[[VAL_0]], ptr nonnull @cstr.623000)
 // CHECK:         %[[VAL_4:.*]] = tail call i64 @__quantum__qis__mz_handle__to__register(ptr %[[VAL_1]], ptr nonnull @cstr.

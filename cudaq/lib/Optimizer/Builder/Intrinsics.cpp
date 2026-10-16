@@ -705,13 +705,21 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     {"free", {}, "func.func private @free(!cc.ptr<i8>) -> ()"},
 
     {cudaq::opt::NVQIRGeneralizedInvokeAny, {}, R"#(
-  llvm.func @generalizedInvokeWithRotationsControlsTargets(i64, i64, i64, i64, !qir_llvmptr, ...) attributes {sym_visibility = "private"}
+  llvm.func @generalizedInvokeWithRotationsControlsTargets(i64, i64, i64, i1, !qir_llvmptr, ...) attributes {sym_visibility = "private"}
 )#"},
 
     // hybridLaunchKernel(kernelName, thunk, commBuffer, buffSize,
     //                    resultOffset, vectorArgPtrs)
     {cudaq::runtime::launchKernelHybridFuncName, {}, R"#(
   func.func private @hybridLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
+)#"},
+
+    {cudaq::opt::NVQIRInvokeCustomControlValues, {}, R"#(
+  llvm.func @invokeCustomUnitaryWithControlValues(i64, !qir_llvmptr, !qir_llvmptr, !qir_llvmptr, !qir_llvmptr, ...) attributes {sym_visibility = "private"}
+)#"},
+
+    {cudaq::opt::NVQIRInvokeExpPauliControlValues, {}, R"#(
+  llvm.func @invokeExpPauliWithControlValues(i64, f64, !qir_llvmptr, !qir_llvmptr, ...) attributes {sym_visibility = "private"}
 )#"},
 
     // llvm.memcpy.p0.p0.i64
@@ -820,7 +828,28 @@ static constexpr IntrinsicCode intrinsicTable[] = {
 
     // Declarations of all full QIR functions used by codegen.
     // These include gates (sans the "__body" suffix) and measurements.
-    {"qir_full", {"qir_common"}, R"#(
+    {"qir_full",
+     {"qir_common", cudaq::opt::NVQIRInvokeCustomControlValues,
+      cudaq::opt::NVQIRInvokeExpPauliControlValues},
+     R"#(
+  func.func private @__nvqir__qis__h__ctl_values(!qir_array, !cc.ptr<i32>, i64, !qir_qubit)
+  func.func private @__nvqir__qis__x__ctl_values(!qir_array, !cc.ptr<i32>, i64, !qir_qubit)
+  func.func private @__nvqir__qis__y__ctl_values(!qir_array, !cc.ptr<i32>, i64, !qir_qubit)
+  func.func private @__nvqir__qis__z__ctl_values(!qir_array, !cc.ptr<i32>, i64, !qir_qubit)
+  func.func private @__nvqir__qis__s__ctl_values(!qir_array, !cc.ptr<i32>, i64, !qir_qubit)
+  func.func private @__nvqir__qis__sdg__ctl_values(!qir_array, !cc.ptr<i32>, i64, !qir_qubit)
+  func.func private @__nvqir__qis__t__ctl_values(!qir_array, !cc.ptr<i32>, i64, !qir_qubit)
+  func.func private @__nvqir__qis__tdg__ctl_values(!qir_array, !cc.ptr<i32>, i64, !qir_qubit)
+  func.func private @__nvqir__qis__rx__ctl_values(f64, !qir_array, !cc.ptr<i32>, i64, !qir_qubit)
+  func.func private @__nvqir__qis__ry__ctl_values(f64, !qir_array, !cc.ptr<i32>, i64, !qir_qubit)
+  func.func private @__nvqir__qis__rz__ctl_values(f64, !qir_array, !cc.ptr<i32>, i64, !qir_qubit)
+  func.func private @__nvqir__qis__r1__ctl_values(f64, !qir_array, !cc.ptr<i32>, i64, !qir_qubit)
+  func.func private @__nvqir__qis__u2__ctl_values(f64, f64, !qir_array, !cc.ptr<i32>, i64, !qir_qubit)
+  func.func private @__nvqir__qis__phased_rx__ctl_values(f64, f64, !qir_array, !cc.ptr<i32>, i64, !qir_qubit)
+  func.func private @__nvqir__qis__u3__ctl_values(f64, f64, f64, !qir_array, !cc.ptr<i32>, i64, !qir_qubit)
+  func.func private @__nvqir__qis__swap__ctl_values(!qir_array, !cc.ptr<i32>, i64, !qir_qubit, !qir_qubit)
+  func.func private @__nvqir__qis__custom_unitary__ctl_values(!cc.ptr<complex<f64>>, !qir_array, !cc.ptr<i32>, i64, !qir_array, !qir_charptr)
+  func.func private @__nvqir__qis__custom_unitary__adj__ctl_values(!cc.ptr<complex<f64>>, !qir_array, !cc.ptr<i32>, i64, !qir_array, !qir_charptr)
   func.func private @__quantum__qis__h(!qir_qubit)
   func.func private @__quantum__qis__x(!qir_qubit)
   func.func private @__quantum__qis__y(!qir_qubit)

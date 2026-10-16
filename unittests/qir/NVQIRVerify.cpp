@@ -14,7 +14,7 @@
 
 using namespace mlir;
 
-static void doCommonSetup(StringRef theQuake) {
+static void doCommonSetup(StringRef theQuake, bool expectSuccess = false) {
   DialectRegistry registry;
   registry.insert<LLVM::LLVMDialect>();
   MLIRContext ctx(registry);
@@ -26,7 +26,9 @@ static void doCommonSetup(StringRef theQuake) {
   SourceMgrDiagnosticVerifierHandler verifierHandler(sourceMgr, &ctx);
   ParserConfig config(&ctx);
   auto module = parseSourceFile<ModuleOp>(sourceMgr, config);
-  EXPECT_TRUE(failed(cudaq::verifier::checkNvqirCalls(module.get())));
+  ASSERT_TRUE(module);
+  EXPECT_EQ(succeeded(cudaq::verifier::checkNvqirCalls(module.get())),
+            expectSuccess);
   EXPECT_TRUE(succeeded(verifierHandler.verify()));
 }
 
@@ -67,4 +69,30 @@ TEST(NVQIRVerify, check3) {
     }
     )#";
   doCommonSetup(theQuake);
+}
+
+TEST(NVQIRVerify, controlValueCalls) {
+  StringRef theQuake = R"#(
+    llvm.func @generalizedInvokeWithRotationsControlsTargets(i64, i64, i64, i1, !llvm.ptr, ...)
+    llvm.func @invokeCustomUnitaryWithControlValues(i64, !llvm.ptr, !llvm.ptr, !llvm.ptr, !llvm.ptr, ...)
+    llvm.func @invokeExpPauliWithControlValues(i64, f64, !llvm.ptr, !llvm.ptr, ...)
+    llvm.func @entryPoint(%callback: !llvm.ptr, %matrix: !llvm.ptr,
+                         %targets: !llvm.ptr, %name: !llvm.ptr, %theta: f64,
+                         %word: !llvm.ptr) {
+      %zero = llvm.mlir.constant(0 : i64) : i64
+      %one = llvm.mlir.constant(1 : i64) : i64
+      %with_values = llvm.mlir.constant(true) : i1
+      llvm.call @generalizedInvokeWithRotationsControlsTargets(%zero, %zero, %one, %with_values, %callback, %targets)
+          vararg(!llvm.func<void (i64, i64, i64, i1, ptr, ...)>)
+          : (i64, i64, i64, i1, !llvm.ptr, !llvm.ptr) -> ()
+      llvm.call @invokeCustomUnitaryWithControlValues(%zero, %matrix, %targets, %name, %callback)
+          vararg(!llvm.func<void (i64, ptr, ptr, ptr, ptr, ...)>)
+          : (i64, !llvm.ptr, !llvm.ptr, !llvm.ptr, !llvm.ptr) -> ()
+      llvm.call @invokeExpPauliWithControlValues(%zero, %theta, %targets, %word)
+          vararg(!llvm.func<void (i64, f64, ptr, ptr, ...)>)
+          : (i64, f64, !llvm.ptr, !llvm.ptr) -> ()
+      llvm.return
+    }
+    )#";
+  doCommonSetup(theQuake, /*expectSuccess=*/true);
 }
