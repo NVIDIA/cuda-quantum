@@ -30,7 +30,7 @@ using SimulationBackendInputV2 = v1::SimulationBackendInput;
 
 /// Backend (non-compilation) target configuration. Omits v1's compilation
 /// fields (`jit-*-pipeline`, `target-pass-pipeline`, `codegen`-emission,
-/// `post-codegen`-passes).
+/// `post-codegen-passes`).
 struct BackendEndConfigEntryV2 {
   rfl::DefaultVal<bool> genTargetBackend;
   rfl::DefaultVal<bool> libraryMode;
@@ -84,7 +84,8 @@ struct CompilationStageV2 {
   CustomPipelineLoweringV2 lowering;
 };
 
-/// Code generation: emission format and optional post-codegen pass pipeline.
+/// Code generation: emission format and optional `post-codegen-passes`
+/// pipeline.
 struct CodegenV2 {
   rfl::DefaultVal<std::string> emissionFormat;
   rfl::DefaultVal<std::string> postCodegenPasses;
