@@ -38,10 +38,10 @@ add_cudaq_library(OptTransforms
   EraseNopCalls.cpp
   EraseQEC.cpp
   EraseVectorCopyCtor.cpp
-  ExpandVeqUses.cpp
   ExpandControlNegations.cpp
   ExpandControlVeqs.cpp
   ExpandMeasurements.cpp
+  ExpandVeqUses.cpp
   FactorQuantumAlloc.cpp
   GenKernelExecution.cpp
   GenDeviceCodeLoader.cpp
