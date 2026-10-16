@@ -6,67 +6,16 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-constexpr double quarterTurn = llvm::numbers::pi / 4.0;
-
-/// Reconstruct the correctly rounded value of mathematical k*pi/4 in the
-/// source floating-point semantics. IEEE quad provides guard bits for this
-/// multiplication, avoiding classification based on an already-rounded value
-/// of pi/4.
-static llvm::APFloat
-canonicalQuarterTurns(int64_t quarterTurns,
-                      const llvm::fltSemantics &semantics) {
-  llvm::APFloat value(
-      llvm::APFloat::IEEEquad(),
-      "0.785398163397448309615660845819875721049292349843776455243736");
-  llvm::APFloat factor = llvm::APFloat::getZero(llvm::APFloat::IEEEquad());
-  factor.convertFromAPInt(
-      llvm::APInt(64, static_cast<uint64_t>(quarterTurns), true), true,
-      llvm::APFloat::rmNearestTiesToEven);
-  value.multiply(factor, llvm::APFloat::rmNearestTiesToEven);
-  bool losesInfo = false;
-  value.convert(semantics, llvm::APFloat::rmNearestTiesToEven, &losesInfo);
-  return value;
-}
-
-/// Classify an angle against the nearest k*pi/4 value. Exact mode compares the
-/// folded constant with the canonical value rounded to the same floating-point
-/// semantics. Threshold mode uses the operator-norm distance appropriate to the
-/// operation.
+/// Classify an angle against the nearest k*pi/4 value using the operator-norm
+/// distance appropriate to the operation.
 template <typename QOP>
 static std::optional<int64_t>
 classifyCliffordTAngle(const llvm::APFloat &angle, double epsilon) {
-  const double angleAsDouble = angle.convertToDouble();
-  if (!std::isfinite(angleAsDouble))
-    return std::nullopt;
-
-  const double scaled = angleAsDouble / quarterTurn;
-  constexpr double signedInt64Limit = 0x1p63;
-  if (!std::isfinite(scaled) || scaled < -signedInt64Limit ||
-      scaled >= signedInt64Limit)
-    return std::nullopt;
-
-  const double nearest = std::nearbyint(scaled);
-  const auto quarterTurns = static_cast<int64_t>(nearest);
-  const llvm::APFloat canonical =
-      canonicalQuarterTurns(quarterTurns, angle.getSemantics());
-  if (epsilon == 0.0) {
-    if (!angle.bitwiseIsEqual(canonical))
-      return std::nullopt;
-  } else {
-    const double delta =
-        std::abs(angleAsDouble - canonical.convertToDouble());
-    // For `delta = abs(theta - canonical)`, the spectral-norm distance
-    // `||U(theta) - U(canonical)||_2` is `2*sin(delta/2)` for
-    // `R1(theta) = diag(1, exp(i*theta))` and `2*sin(delta/4)` for axis
-    // rotations `U(theta) = exp(-i*theta*sigma/2)`.
-    constexpr double angleDivisor =
-        std::is_same_v<QOP, cudaq::quake::R1Op> ? 2.0 : 4.0;
-    const double distance = 2.0 * std::sin(delta / angleDivisor);
-    if (!std::isfinite(distance) || distance > epsilon)
-      return std::nullopt;
-  }
-
-  return quarterTurns;
+  constexpr auto kind =
+      std::is_same_v<QOP, cudaq::quake::R1Op>
+          ? cudaq::opt::detail::clifford_t_rotation_kind::r1
+          : cudaq::opt::detail::clifford_t_rotation_kind::axis;
+  return cudaq::opt::detail::classifyCliffordTAngle(angle, epsilon, kind);
 }
 
 /// Emit the simplified representative of a `quarterTurns*pi/4` rotation.
@@ -95,7 +44,7 @@ static Value emitSimplifiedRotation(PatternRewriter &rewriter, QOP rotation,
         cast<FloatType>(rotation.getParameter().getType());
     const llvm::APFloat phaseAngle = [&] {
       // Compute the canonical angle in the source semantics.
-      llvm::APFloat value = canonicalQuarterTurns(
+      llvm::APFloat value = cudaq::opt::detail::canonicalQuarterTurns(
           quarterTurns, phaseType.getFloatSemantics());
       // Divide the angle by two.
       value =
