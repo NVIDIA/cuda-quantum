@@ -894,7 +894,7 @@ The following table summarizes the required components.
     * - Operating systems
       - Linux, macOS (ARM64/Apple silicon only), Windows via Windows Subsystem for Linux 2 (WSL2)
     * - Tested Distributions
-      - CentOS 8; Debian 11, 12; Fedora 41; OpenSUSE/SLED/SLES 15.5, 15.6; RHEL 8, 9; Rocky 8, 9; Ubuntu 22.04, 24.04
+      - CentOS 8; Debian 11, 12; Fedora 41; OpenSUSE/SLED/SLES 15.5, 15.6; RHEL 8, 9; Rocky 8, 9; Ubuntu 22.04, 24.04, 26.04 (CUDA 13.3 or newer)
     * - Python versions
       - 3.11+
 

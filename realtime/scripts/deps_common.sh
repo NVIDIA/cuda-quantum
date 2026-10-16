@@ -36,7 +36,14 @@ function retry {
 #   . "$(dirname "$0")/deps_common.sh"
 
 # Central repository of DOCA and Holoscan SDK versions for development and CI.
-DOCA_VERSION=${DOCA_VERSION:-3.3.0}
+# DOCA 3.3.0 has no 26.04 repository; use 3.4.0 there.
+if [ -z "${DOCA_VERSION:-}" ]; then
+  if [ "$(. /etc/os-release 2>/dev/null && printf '%s%s' "$ID" "$VERSION_ID")" = "ubuntu26.04" ]; then
+    DOCA_VERSION=3.4.0
+  else
+    DOCA_VERSION=3.3.0
+  fi
+fi
 HOLOSCAN_SDK_VERSION=${HOLOSCAN_SDK_VERSION:-4.6.0.0}
 HOLOSCAN_SDK_INSTALL_PREFIX=${HOLOSCAN_SDK_INSTALL_PREFIX:-/opt/nvidia/holoscan}
 CUDAQ_REALTIME_HSB_REPO=${CUDAQ_REALTIME_HSB_REPO:-https://github.com/nvidia-holoscan/holoscan-sensor-bridge.git}
