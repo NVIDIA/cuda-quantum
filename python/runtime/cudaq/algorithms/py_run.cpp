@@ -125,28 +125,29 @@ run_impl(const std::string &shortName, MlirModule module,
 
   auto mod = unwrap(module);
   auto &platform = get_platform();
-  if (noise_model.has_value()) {
-    if (platform.is_remote())
-      throw std::runtime_error(
-          "Noise model is not supported on remote platforms.");
-    // Launch the kernel in the appropriate context.
-    platform.set_noise(&noise_model.value());
-  }
+  if (noise_model.has_value() && platform.is_remote())
+    throw std::runtime_error(
+        "Noise model is not supported on remote platforms.");
   auto fnOp = getFuncOpAndCheckResult(mod, shortName);
   auto opaques = marshal_arguments_for_module_launch(mod, runtimeArgs, fnOp);
 
   detail::RunResultSpan span;
   {
     nanobind::gil_scoped_release release;
-    span = pyRunTheKernel(shortName, platform, mod, std::move(cache),
-                          shots_count, qpu_id, opaques);
+    if (noise_model.has_value())
+      // Launch the kernel in the appropriate context.
+      platform.set_noise(&noise_model.value());
+    span = detail::try_finally(
+        [&] {
+          return pyRunTheKernel(shortName, platform, mod, std::move(cache),
+                                shots_count, qpu_id, opaques);
+        },
+        [&] {
+          if (noise_model.has_value())
+            platform.reset_noise();
+        });
   }
-  auto results = pyReadResults(span, mod, shortName);
-
-  if (noise_model.has_value())
-    platform.reset_noise();
-
-  return results;
+  return pyReadResults(span, mod, shortName);
 }
 
 namespace {
