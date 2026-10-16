@@ -6,24 +6,22 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// FIXME: This is several distinct tests. Split it into multiple files as it is
-// slow and serializing it like this makes it a long pole test.
+// Compile once per target; run each case in its own process.
 
-// RUN: nvq++ -DCASE1 %s -o %t && CUDAQ_LOG_LEVEL=info %t | \
+// RUN: nvq++ %s -o %t
+// RUN: CUDAQ_LOG_LEVEL=info %t 1 | \
 // RUN:   FileCheck %s --check-prefixes=CHECK,AOT
-// RUN: nvq++ -DCASE2 %s -o %t && CUDAQ_LOG_LEVEL=info %t | \
+// RUN: CUDAQ_LOG_LEVEL=info %t 2 | \
 // RUN:   FileCheck %s --check-prefixes=CHECK,AOT
-// RUN: nvq++ -DCASE3 %s -o %t && CUDAQ_LOG_LEVEL=info %t | \
+// RUN: CUDAQ_LOG_LEVEL=info %t 3 | \
 // RUN:   FileCheck %s --check-prefixes=CHECK,AOT
-// RUN: nvq++ -DCASE4 %s -o %t && CUDAQ_LOG_LEVEL=info %t | \
+// RUN: CUDAQ_LOG_LEVEL=info %t 4 | \
 // RUN:   FileCheck %s --check-prefixes=CHECK,AOT
 // clang-format off
-// RUN: if %quantinuum_avail; then nvq++ --target quantinuum --emulate -DCASE1 %s -o %t && \
-// RUN:   CUDAQ_LOG_LEVEL=info %t | FileCheck %s --check-prefixes=CHECK,EMULATE; fi
-// RUN: if %quantinuum_avail; then nvq++ --target quantinuum --emulate -DCASE2 %s -o %t && \
-// RUN:   CUDAQ_LOG_LEVEL=info %t | FileCheck %s --check-prefixes=CHECK,EMULATE; fi
-// RUN: if %quantinuum_avail; then nvq++ --target quantinuum --emulate -DCASE4 %s -o %t && \
-// RUN:   CUDAQ_LOG_LEVEL=info %t | \
+// RUN: if %quantinuum_avail; then nvq++ --target quantinuum --emulate -DEMULATE %s -o %t.emulate; fi
+// RUN: if %quantinuum_avail; then CUDAQ_LOG_LEVEL=info %t.emulate 1 | FileCheck %s --check-prefixes=CHECK,EMULATE; fi
+// RUN: if %quantinuum_avail; then CUDAQ_LOG_LEVEL=info %t.emulate 2 | FileCheck %s --check-prefixes=CHECK,EMULATE; fi
+// RUN: if %quantinuum_avail; then CUDAQ_LOG_LEVEL=info %t.emulate 4 | \
 // RUN:   FileCheck %s --check-prefixes=CHECK,EMULATE-ATOMIC; fi
 // clang-format on
 
@@ -55,12 +53,11 @@
 
 #include "cudaq/qis/qubit_qis.h"
 #include <cassert>
+#include <cstdlib>
 #include <cudaq/algorithms/resource_estimation.h>
 #include <numeric>
 
-#ifdef CASE1
-
-int main() {
+int case1() {
   auto bellKernel = []() __qpu__ {
     cudaq::qvector q(2);
     h(q[0]);
@@ -74,9 +71,7 @@ int main() {
   return 0;
 }
 
-#elif CASE2
-
-int main() {
+int case2() {
   auto ghzKernel = [](int i) __qpu__ {
     cudaq::qvector q(i);
     h(q[0]);
@@ -91,12 +86,12 @@ int main() {
   return 0;
 }
 
-#elif CASE3
+#ifndef EMULATE
 
 #include <random>
 #include <vector>
 
-int main() {
+int case3() {
   auto largeTraceKernel = [](int numQubits, int numLayers,
                              std::vector<int> &cnotPairs) __qpu__ {
     cudaq::qvector q(numQubits);
@@ -138,7 +133,7 @@ int main() {
   return 0;
 }
 
-#elif CASE4
+#endif
 
 struct atomic_workload {
   void operator()(cudaq::qview<> q) __qpu__ __atomic_quantum_region__ {
@@ -157,7 +152,7 @@ struct atomic_round_trip {
   }
 };
 
-int main() {
+int case4() {
   auto resources = cudaq::estimate_resources(atomic_round_trip{});
   assert(resources.count("h") == 2);
   assert(resources.count_controls("x", /*controls*/ 1) == 4);
@@ -168,4 +163,20 @@ int main() {
   return 0;
 }
 
+int main(int argc, char **argv) {
+  assert(argc == 2);
+  switch (std::atoi(argv[1])) {
+  case 1:
+    return case1();
+  case 2:
+    return case2();
+#ifndef EMULATE
+  case 3:
+    return case3();
 #endif
+  case 4:
+    return case4();
+  default:
+    return 1;
+  }
+}

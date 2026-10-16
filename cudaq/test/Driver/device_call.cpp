@@ -29,7 +29,6 @@
 
 // RUN: nvq++ --target quantinuum %s -o %t
 
-#include "cudaq/algorithms/run.h"
 #include "cudaq/driver/device.h"
 #include "cudaq/qis/qubit_qis.h"
 
@@ -43,16 +42,8 @@ __qpu__ int kernel(int a, int b) {
   return result;
 }
 
-int main() {
-  int a = 2;
-  int b = 3;
-  auto results = cudaq::run(100, kernel, a, b);
-  for (int res : results) {
-    printf("Result: %d\n", res);
-    assert(res == 5 && "Result should be 5.");
-  }
-  return 0;
-}
+// Compile-and-link only. Skip cudaq::run, which never executes here.
+int main() { return kernel(2, 3); }
 
 // Either "undefined reference to `add_op'" or "undefined symbol: add_op" is
 // fine, as the exact error message may differ based on the platform and

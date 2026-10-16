@@ -8,8 +8,8 @@
 
 // clang-format off
 // RUN: nvq++ --target iqm --emulate %s -o %t && IQM_QPU_QA=%iqm_tests_dir/Crystal_20.txt %t | FileCheck %s
-// RUN: nvq++ --target iqm --emulate --mapping-file %iqm_tests_dir/Crystal_20.txt %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --target iqm --emulate %s -o %t && IQM_SERVER_URL=fake-fake-fake CUDAQ_LOG_LEVEL=warn %t | FileCheck %s --check-prefixes=CHECK,INVALIDURL
+// RUN: nvq++ --target iqm --emulate --mapping-file %iqm_tests_dir/Crystal_20.txt %s -o %t.mapped && %t.mapped | FileCheck %s
+// RUN: IQM_SERVER_URL=fake-fake-fake CUDAQ_LOG_LEVEL=warn %t | FileCheck %s --check-prefixes=CHECK,INVALIDURL
 
 #include "dem_from_kernel_emulate.cpp"
 
