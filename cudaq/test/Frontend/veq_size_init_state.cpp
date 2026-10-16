@@ -10,7 +10,7 @@
 // RUN: cudaq-quake %s | cudaq-opt --canonicalize --cc-loop-normalize --cc-loop-unroll | FileCheck %s
 // clang-format on
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 struct kernel {
   void operator()() __qpu__ {

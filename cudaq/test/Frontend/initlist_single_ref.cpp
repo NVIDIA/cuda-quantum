@@ -16,7 +16,7 @@
 // even when the list has exactly one element. It must not be collapsed to the
 // bare !quake.ref of that element.
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 struct flip {
   void operator()(cudaq::qubit &t) __qpu__ { x(t); }

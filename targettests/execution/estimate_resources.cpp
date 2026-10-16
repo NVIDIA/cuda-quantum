@@ -10,7 +10,7 @@
 // RUN: if %quantinuum_avail; then nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s; fi
 // clang-format on
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 #include <cudaq/algorithms/resource_estimation.h>
 
 struct mykernel {

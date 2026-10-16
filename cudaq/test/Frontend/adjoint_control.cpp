@@ -13,7 +13,7 @@
 //   2. adj(control(k)): wrap control(k) in a `__qpu__` struct, then adjoint it.
 // (https://github.com/NVIDIA/cuda-quantum/issues/854)
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 struct k {
   void operator()(cudaq::qview<> q) __qpu__ {
