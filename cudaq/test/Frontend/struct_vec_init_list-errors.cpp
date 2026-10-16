@@ -13,7 +13,7 @@
 // continue lowering with a value that the initializer list does not expect,
 // which used to fail an assertion.
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 struct Foo {
   int bar;

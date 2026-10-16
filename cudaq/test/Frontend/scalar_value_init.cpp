@@ -8,7 +8,7 @@
 
 // RUN: cudaq-quake %s | FileCheck %s
 
-#include "cudaq.h"
+#include "cudaq/qis/qubit_qis.h"
 
 // Value initialization of a scalar, `T()`, is zero.
 struct ValueInit {

@@ -9,7 +9,7 @@
 // RUN: cudaq-quake -verify %s
 // clang-format off
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 // A construct that the bridge does not know about is an error. It must not be
 // ignored, which would give a kernel that is not the one that was written.

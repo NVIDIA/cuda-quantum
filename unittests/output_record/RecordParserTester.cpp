@@ -8,9 +8,9 @@
 
 #include "CUDAQTestUtils.h"
 #include "common/RecordLogParser.h"
+#include "cudaq/qis/qubit_qis.h"
 #include <array>
 #include <cmath>
-#include <cudaq.h>
 #include <limits>
 
 //===----------------------------------------------------------------------===//

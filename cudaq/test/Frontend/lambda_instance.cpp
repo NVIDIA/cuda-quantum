@@ -11,7 +11,7 @@
 // Test lambdas that are created within kernels and passed to both predefined
 // kernels and user-defined kernels.
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 struct test0 {
   void operator()() __qpu__ {

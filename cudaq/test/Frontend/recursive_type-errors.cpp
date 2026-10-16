@@ -9,7 +9,7 @@
 // RUN: cudaq-quake %s -verify
 // clang-format off
 
-#include "cudaq.h"
+#include "cudaq/qis/qubit_qis.h"
 
 // A type that refers to itself cannot be a type in a kernel.
 // expected-error@+1{{recursive types are not allowed in kernels}}

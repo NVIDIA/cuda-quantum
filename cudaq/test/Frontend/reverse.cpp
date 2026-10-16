@@ -8,7 +8,7 @@
 
 // RUN: cudaq-quake %s | cudaq-opt -cse | FileCheck %s
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 __qpu__ int std_reverse_std_vector_int() {
   std::vector<int> qr(10);

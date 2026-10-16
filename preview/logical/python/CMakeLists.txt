@@ -31,6 +31,56 @@ include(MLIRDetectPythonEnv)
 
 mlir_configure_python_dev_packages()
 
+# Logical shares CUDA-Q's nanobind domain, so there must be exactly one
+# libnanobind-<domain>: CUDA-Q's. nanobind_build_library() and MLIR's
+# build_nanobind_lib() both return early / are avoidable when a target of that
+# name already exists. In-tree it does (CUDA-Q's own). Out-of-tree, describe the
+# installation's library as an imported target of the same name, with the
+# interface nanobind_build_library() would have given it, so nothing is rebuilt
+# or reinstalled (which could shadow or overwrite CUDA-Q's copy).
+if(NOT QLX_IN_TREE AND TARGET cudaq::nanobind AND NOT TARGET nanobind-cudaq)
+  get_target_property(_qlx_nb_loc cudaq::nanobind IMPORTED_LOCATION)
+  add_library(nanobind-cudaq SHARED IMPORTED GLOBAL)
+  set_target_properties(nanobind-cudaq PROPERTIES
+    IMPORTED_LOCATION "${_qlx_nb_loc}"
+    INTERFACE_COMPILE_DEFINITIONS "NB_SHARED"
+    INTERFACE_COMPILE_FEATURES "cxx_std_17"
+    INTERFACE_INCLUDE_DIRECTORIES "${Python_INCLUDE_DIRS};${NB_DIR}/include")
+endif()
+
+# add_mlir_python_modules() would build, and install, its own copy as well; hand
+# it the shared target instead. Without one to reuse, fall back to MLIR's own
+# behavior (the original function stays callable as _build_nanobind_lib after
+# this redefinition).
+function(build_nanobind_lib)
+  if(TARGET nanobind-cudaq)
+    set(NB_LIBRARY_TARGET_NAME nanobind-cudaq PARENT_SCOPE)
+  else()
+    _build_nanobind_lib(${ARGN})
+    set(NB_LIBRARY_TARGET_NAME "${NB_LIBRARY_TARGET_NAME}" PARENT_SCOPE)
+  endif()
+endfunction()
+
+# An imported nanobind cannot take the compile options add_mlir_python_extension
+# would otherwise try to set on it. We don't compile nanobind here, so skip them
+# (the dev-package setup above has already run).
+if(NOT QLX_IN_TREE AND TARGET nanobind-cudaq)
+  set(MLIR_DISABLE_CONFIGURE_PYTHON_DEV_PACKAGES ON)
+
+  # nanobind (2.15) also applies nanobind_disable_stack_protector() to the
+  # shared library target inside nanobind_add_module(), which CMake rejects for
+  # an IMPORTED target. Skip imported targets; the library was already built.
+  if(COMMAND nanobind_disable_stack_protector
+     AND NOT COMMAND _nanobind_disable_stack_protector)
+    function(nanobind_disable_stack_protector name)
+      get_target_property(_qlx_imported ${name} IMPORTED)
+      if(NOT _qlx_imported)
+        _nanobind_disable_stack_protector(${name} ${ARGN})
+      endif()
+    endfunction()
+  endif()
+endif()
+
 # Silence two classes of warnings that flood the MLIR Python-binding builds:
 #   - [-Wattributes]: MLIR's NanobindUtils / NanobindAdaptors headers declare
 #     several structs / lambdas with visibility greater than the type of one of
@@ -63,24 +113,8 @@ set(MLIR_BINDINGS_PYTHON_NB_DOMAIN "cudaq" CACHE STRING "" FORCE)
 # generated capsule names agree with CUDA-Q's _mlir.so.
 add_compile_definitions("MLIR_PYTHON_PACKAGE_PREFIX=${MLIR_PYTHON_PACKAGE_PREFIX}.")
 
-set(_MLIR_PYTHON_BUILD_PREFIX   "${PROJECT_BINARY_DIR}/python/cudaq/mlir")
+set(_MLIR_PYTHON_BUILD_PREFIX   "${QLX_PYTHON_DIR}/cudaq/mlir")
 set(QLX_PYTHON_BINDINGS_DIR     "${PROJECT_SOURCE_DIR}/ir/lib/Bindings/Python")
-
-# Wipe only the MLIR staging root. cudaq/logical/_quake lives outside it, so
-# the plugin copy does not need to be backed up across configure.
-file(REMOVE_RECURSE "${_MLIR_PYTHON_BUILD_PREFIX}")
-# Stale private-MLIR copies from before this layout would otherwise stay on
-# PYTHONPATH and load a second copy of the same nanobind domain.
-file(REMOVE_RECURSE "${PROJECT_BINARY_DIR}/python/cudaq_logical")
-file(REMOVE_RECURSE "${PROJECT_BINARY_DIR}/python/cudaq/logical/_mlir_libs")
-file(REMOVE
-  "${PROJECT_BINARY_DIR}/python/cudaq/logical/ir.py"
-  "${PROJECT_BINARY_DIR}/python/cudaq/logical/passmanager.py"
-  "${PROJECT_BINARY_DIR}/python/cudaq/logical/execution_engine.py"
-  "${PROJECT_BINARY_DIR}/python/cudaq/logical/rewrite.py")
-file(REMOVE_RECURSE
-  "${PROJECT_BINARY_DIR}/python/cudaq/logical/extras"
-  "${PROJECT_BINARY_DIR}/python/cudaq/logical/dialects")
 
 # mlir-tblgen needs to find our CUDA-Q Logical TD includes when expanding the
 # python-binding dialect shims.
@@ -391,7 +425,7 @@ file(GLOB_RECURSE _py_sources
 list(FILTER _py_sources EXCLUDE REGEX "/dialects/")
 foreach(_src ${_py_sources})
   file(RELATIVE_PATH _rel ${CMAKE_CURRENT_SOURCE_DIR} ${_src})
-  configure_file(${_src} ${CMAKE_CURRENT_BINARY_DIR}/${_rel} COPYONLY)
+  configure_file(${_src} ${QLX_PYTHON_DIR}/${_rel} COPYONLY)
 endforeach()
 
 # Hand-written cudaq.logical modules (compiler/, architecture/, ...) are staged
@@ -408,15 +442,19 @@ if(NOT SKBUILD)
     PATTERN "*.pyc" EXCLUDE)
 endif()
 
-# Build-tree only: extend cudaq.__path__, cudaq.mlir.__path__ and
-# cudaq.mlir._mlir_libs.__path__ so `import cudaq.logical` and our MLIR
-# extensions resolve from this prefix. Never installed.
-# cudaq/__init__.py imports _quakeDialects, which runs _site_initialize()
-# before this shim can patch cudaq.mlir, so `_site_initialize_1` is missed
-# on that first pass. After appending our `_mlir_libs` path, load it and
-# call `register_dialects` on the existing global registry — do not re-run
-# `_site_initialize()`, which would replace `ir.Context`.
-file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/_cudaq_logical_devpath.py"
+# Standalone build trees keep the logical pieces apart from the CUDA-Q install
+# they build against, so a shim joins them. In-tree there is one package tree and
+# nothing to join.
+if(NOT QLX_IN_TREE)
+  # Build-tree only: extend cudaq.__path__, cudaq.mlir.__path__ and
+  # cudaq.mlir._mlir_libs.__path__ so `import cudaq.logical` and our MLIR
+  # extensions resolve from this prefix. Never installed.
+  # cudaq/__init__.py imports _quakeDialects, which runs _site_initialize()
+  # before this shim can patch cudaq.mlir, so `_site_initialize_1` is missed
+  # on that first pass. After appending our `_mlir_libs` path, load it and
+  # call `register_dialects` on the existing global registry — do not re-run
+  # `_site_initialize()`, which would replace `ir.Context`.
+  file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/_cudaq_logical_devpath.py"
 "import importlib, pathlib
 import cudaq
 _build_cudaq = pathlib.Path(__file__).resolve().parent / \"cudaq\"
@@ -438,14 +476,20 @@ if _libs_p not in list(_libs.__path__):
         \"cudaq.mlir._mlir_libs._site_initialize_1\")
     _init1.register_dialects(_libs.get_dialect_registry())
 ")
+endif()
 
 # --------------------------------------------------------------------------- #
 # Tests (CTest registrations)
 # --------------------------------------------------------------------------- #
 
-set(_qlx_runtime_pytest_env_modifications
-  "PYTHONPATH=path_list_prepend:${CUDAQ_LOGICAL_CUDAQ_PREFIX}"
-  "PYTHONPATH=path_list_prepend:${CMAKE_CURRENT_BINARY_DIR}")
+if(QLX_IN_TREE)
+  set(_qlx_runtime_pytest_env_modifications
+    "PYTHONPATH=path_list_prepend:${QLX_PYTHON_DIR}")
+else()
+  set(_qlx_runtime_pytest_env_modifications
+    "PYTHONPATH=path_list_prepend:${CUDAQ_LOGICAL_CUDAQ_PREFIX}"
+    "PYTHONPATH=path_list_prepend:${CMAKE_CURRENT_BINARY_DIR}")
+endif()
 # The Python suite is a first-class CTest conformance test rather than an
 # unrecorded direct pytest invocation; pytest reports the live collected count,
 # so documentation never needs to pin a number that immediately goes stale.
@@ -464,5 +508,7 @@ set_tests_properties(qlx-python-tests PROPERTIES
   ENVIRONMENT_MODIFICATION
     "${_qlx_runtime_pytest_env_modifications}"
   LABELS "qlx;conformance"
-  TIMEOUT 1200
+  # The suite runs ~15 minutes serially on a fast Release build; Debug builds
+  # on loaded (e.g. arm64 CI) runners need headroom.
+  TIMEOUT 3600
 )

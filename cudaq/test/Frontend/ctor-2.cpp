@@ -8,7 +8,7 @@
 
 // RUN: cudaq-quake %s -o - | cudaq-opt | FileCheck %s
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 struct S1 {
   void operator()(bool b) __qpu__;
