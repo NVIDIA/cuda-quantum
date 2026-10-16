@@ -318,8 +318,7 @@ def test_override_and_staged_pipelines_are_mutually_exclusive():
 
 
 def test_repr_is_informative():
-    assert repr(CustomPipelineLowering()
-               ) == "CustomPipelineLowering(high_level='', mid_level='', low_level='')"
+    assert repr(CustomPipelineLowering()) == "CustomPipelineLowering()"
     assert repr(CustomPipelineLowering(SWAP_TO_CX_PIPELINE)
                ) == f"CustomPipelineLowering(pipeline='{SWAP_TO_CX_PIPELINE}')"
     assert repr(Codegen("qir:")) == "Codegen('qir:')"

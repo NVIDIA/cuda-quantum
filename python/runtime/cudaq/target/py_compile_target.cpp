@@ -27,9 +27,16 @@ static std::string customPipelineLoweringRepr(
   if (!lowering.overridePassPipeline.empty())
     os << "pipeline=" << reprStr(lowering.overridePassPipeline);
   else {
-    os << "high_level=" << reprStr(lowering.highLevelPipeline)
-       << ", mid_level=" << reprStr(lowering.midLevelPipeline)
-       << ", low_level=" << reprStr(lowering.lowLevelPipeline);
+    bool first = true;
+    auto keyword = [&](const char *name, const std::string &value) {
+      if (value.empty())
+        return;
+      os << (first ? "" : ", ") << name << "=" << reprStr(value);
+      first = false;
+    };
+    keyword("high_level", lowering.highLevelPipeline);
+    keyword("mid_level", lowering.midLevelPipeline);
+    keyword("low_level", lowering.lowLevelPipeline);
   }
   os << ")";
   return os.str();
