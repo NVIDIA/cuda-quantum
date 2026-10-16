@@ -701,6 +701,7 @@ queryable
 qumode
 qumodes
 qvec
+qvector
 rabi
 reStructuredText
 realtime
