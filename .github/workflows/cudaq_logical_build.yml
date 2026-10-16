@@ -245,7 +245,11 @@ jobs:
             --version "$CUDAQ_VERSION"
 
           mkdir -p .wheel-raw
-          SETUPTOOLS_SCM_PRETEND_VERSION="$logical_version" \
+          # Audit the toolchain against the one CUDA-Q was built with (see
+          # preview/logical/cmake/SetupCUDAQ.cmake); the gcc-12 step above
+          # exists to satisfy exactly this.
+          CMAKE_ARGS="${CMAKE_ARGS-} -DQLX_VERIFY_TOOLCHAIN=ON" \
+            SETUPTOOLS_SCM_PRETEND_VERSION="$logical_version" \
             SOURCE_DATE_EPOCH="$(git log -1 --format=%ct)" \
             uv build --wheel --no-build-isolation \
               --out-dir .wheel-raw python

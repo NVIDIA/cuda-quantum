@@ -8,6 +8,7 @@
 
 #include "cudaq/Target/TargetCatalog.h"
 #include "TargetConfigHelper.h"
+#include "cudaq/Target/TargetConfigYaml.h"
 #include "cudaq/Target/TargetDatabase.h"
 #include "cudaq/Target/TargetPluginLibrary.h"
 #include <algorithm>

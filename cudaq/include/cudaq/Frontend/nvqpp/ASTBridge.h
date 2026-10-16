@@ -209,8 +209,7 @@ inline constexpr bool isTransparentNode =
     std::is_same_v<X, clang::CXXStdInitializerListExpr> ||
     std::is_same_v<X, clang::SubstNonTypeTemplateParmExpr> ||
     std::is_same_v<X, clang::ConstantExpr> ||
-    std::is_same_v<X, clang::NullStmt> || std::is_same_v<X, clang::LabelStmt> ||
-    std::is_same_v<X, clang::AttributedStmt>;
+    std::is_same_v<X, clang::NullStmt> || std::is_same_v<X, clang::LabelStmt>;
 
 /// What a node of the AST produces when it is visited. At present, only
 /// expressions produce a result: the value that is computed.
@@ -414,6 +413,8 @@ public:
   Result visit(clang::ContinueStmt *x);
   Result visit(clang::DeclStmt *x);
   Result visit(clang::CompoundStmt *x);
+  Result lowerCompound(clang::CompoundStmt *x, bool atomicRegion);
+  Result visit(clang::AttributedStmt *x);
   Result visit(clang::CompoundAssignOperator *x);
   Result visit(clang::ReturnStmt *x);
 
@@ -512,6 +513,7 @@ public:
   Result visit(clang::StringLiteral *x);
   Result visit(clang::CXXScalarValueInitExpr *x);
   Result visit(clang::UnaryExprOrTypeTraitExpr *x);
+  Result visit(clang::SizeOfPackExpr *x);
 
   Result visit(clang::CXXDefaultArgExpr *x);
 
@@ -611,6 +613,13 @@ public:
   bool isItaniumCXXABI();
 
 private:
+  /// The name that \p x has in the symbol table. This is the name of the
+  /// declaration, except for the parameters that come from expanding a
+  /// parameter pack. These all have the name of the pack, so they are
+  /// distinguished by their position. The name is kept alive by the AST
+  /// context, as the symbol table does not own its keys.
+  llvm::StringRef getSymbolName(const clang::NamedDecl *x);
+
   /// Map the block arguments to the names of the function parameters.
   void addArgumentSymbols(mlir::Block *entryBlock,
                           mlir::ArrayRef<clang::ParmVarDecl *> parameters);

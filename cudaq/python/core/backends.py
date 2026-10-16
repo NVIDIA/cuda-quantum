@@ -18,15 +18,16 @@ from typing import Protocol, runtime_checkable
 # Re-export the existing C++ bindings from their shared extension; the types are
 # registered there once, rather than separately for each programming model.
 from cudaq.mlir._mlir_libs._backends import (
+    Codegen,
     CompileTarget,
+    CustomPipelineLowering,
     EstimateResult,
-    PipelineConfig,
     Resources,
 )
 
 __all__ = [
-    "CompileTarget", "CustomTarget", "EstimateResult", "PipelineConfig",
-    "Resources", "RuntimeEndpoint"
+    "Codegen", "CompileTarget", "CustomPipelineLowering", "CustomTarget",
+    "EstimateResult", "Resources", "RuntimeEndpoint"
 ]
 
 

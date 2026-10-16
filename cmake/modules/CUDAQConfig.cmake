@@ -114,6 +114,9 @@ if(CUDAQ_ENABLE_LANGUAGE AND NOT CUDAQ_LIBRARY_MODE)
   enable_language(CUDAQ)
 endif() 
 
+set (CUDAQTargetCatalog_DIR "${CUDAQ_CMAKE_DIR}/../CUDAQTargetCatalog")
+find_dependency(CUDAQTargetCatalog REQUIRED)
+
 # ---- TARGET EXPORTS ----
 # Default Target
 add_library(cudaq::cudaq-default-target SHARED IMPORTED)

@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 // clang-format off
 // RUN: nvq++ --build-target-from-config %cudaq_src_dir/targettests/targets/opt-test.yml --target-option dep-analysis,qpp %s -o %t && %t

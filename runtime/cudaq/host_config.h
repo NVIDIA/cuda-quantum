@@ -9,6 +9,7 @@
 #pragma once
 
 #include <complex>
+#include <tuple>
 
 #define CUDAQ_APPLE_CLANG (defined(__apple_build_version__))
 
@@ -33,6 +34,15 @@ using real = double;
 using complex = std::complex<real>;
 
 namespace detail {
+// Test std::tuple layout. The bridge reads `TupleIsReverse` to lay out tuple
+// kernel arguments, so it lives here where every kernel translation unit sees
+// it.
+constexpr bool isTupleRecursivelyDefined() {
+  std::tuple<double, int, char> t;
+  return static_cast<void *>(&std::get<double>(t)) != static_cast<void *>(&t);
+}
+[[maybe_unused]] static bool TupleIsReverse = isTupleRecursivelyDefined();
+
 /// Reject unprocessed YAML target configurations at runtime.
 class YamlTargetConfigDisabler {
 public:

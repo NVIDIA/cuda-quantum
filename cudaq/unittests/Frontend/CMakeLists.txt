@@ -20,6 +20,11 @@ add_cudaq_unittest("ASTResultVisitorUnitTests" "ast-result-visitor"
         clangSerialization
     COMPILE_OPTS
       -fno-rtti
+      # GCC cannot prove the `Source`-dereferencing branch of clang's
+      # LazyOffsetPtr::get() is dead once CXXRecordDecl::bases() inlines it with
+      # NDEBUG, so it reports a null `this`. Upstream LLVM suppresses the same
+      # false positive for all GCC builds.
+      $<$<CXX_COMPILER_ID:GNU>:-Wno-nonnull>
 )
 
 create_cudaq_unittest_check_target("ASTResultVisitorUnitTests" "ast-result-visitor")

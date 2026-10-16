@@ -14,7 +14,7 @@
 // done for each of the inner vectors as well as for the outer one. Otherwise,
 // the storage of the inner vectors would be leaked.
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 std::vector<int> flat(int n) __qpu__ {
   std::vector<int> v(n);
