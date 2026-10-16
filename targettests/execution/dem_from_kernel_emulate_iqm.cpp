@@ -17,7 +17,7 @@
 // CHECK: THREE_MZ detectors=1 observables=1
 // CHECK: CORRELATED_XX_RAW hyperedge=1 caret=0
 // CHECK: CORRELATED_XX_DECOMPOSED hyperedge=0 caret=1
-// INVALIDURL: Leaving %QPU_ARCH% unresolved: Unable to get quantum architecture from
+// INVALIDURL: Leaving %QPU_ARCH% unresolved: Unable to get quantum architecture for
 // INVALIDURL-SAME: fake-fake-fake
 // CHECK: SAMPLE_QEC_KERNEL most_probable=0
 

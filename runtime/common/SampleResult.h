@@ -81,10 +81,16 @@ struct ExecutionResult {
   /// @param other
   ExecutionResult(const ExecutionResult &other);
 
+  /// @brief Transfer ownership of the counts and sequential shot data.
+  ExecutionResult(ExecutionResult &&) noexcept = default;
+
   /// @brief Set this ExecutionResult equal to the provided one
   /// @param other
   /// @return
   ExecutionResult &operator=(const ExecutionResult &other);
+
+  /// @brief Replace this result by transferring ownership from another.
+  ExecutionResult &operator=(ExecutionResult &&) noexcept = default;
 
   /// @brief Return true if the given `ExecutionResult` is the same as this one.
   /// @param result

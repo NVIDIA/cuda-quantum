@@ -59,7 +59,7 @@
 //
 // There is no launch function among them: this transport implements the
 // device data plane in dispatcher/unified_device_transport.cuh, and the
-// dispatcher runs the built-in unified kernel over it.
+// dispatcher runs the unified kernel from libcudaq-realtime-dispatch.a over it.
 
 // Copy a host-filled context into device memory.  The unified kernel's
 // transport hooks dereference the context on the GPU -- it is no longer
@@ -523,8 +523,10 @@ inline int bridge_run(BridgeConfig &config) {
       unified_ctx.gpu_dev_qp = gpu_roce_get_gpu_dev_qp(transceiver);
       unified_ctx.rx_ring_data = rx_ring_data;
       unified_ctx.rx_ring_stride_sz = gpu_roce_get_page_size(transceiver);
-      unified_ctx.rx_ring_mkey = htonl(gpu_roce_get_rkey(transceiver));
       unified_ctx.rx_ring_stride_num = gpu_roce_get_num_pages(transceiver);
+      unified_ctx.tx_ring_data = tx_ring_data;
+      unified_ctx.tx_ring_stride_sz = gpu_roce_get_page_size(transceiver);
+      unified_ctx.tx_ring_mkey = htonl(gpu_roce_get_tx_ring_lkey(transceiver));
       unified_ctx.frame_size = config.frame_size;
       unified_ctx.use_bf = is_igpu ? 0 : 1;
 

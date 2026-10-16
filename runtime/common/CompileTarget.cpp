@@ -100,8 +100,7 @@ cudaq::CompileTarget cudaq::CompileTarget::createFromConfig(
                "Post-codegen:", target.pipelineConfig.postCodeGenPasses);
   }
 
-  target.supportResourceCounts =
-      backendConfig.SupportResourceCounts.value_or(true);
+  target.supportResourceCounts = backendConfig.SupportResourceCounts;
 
   // Handle disable_qubit_mapping runtime option.
   auto disableQM = runtimeConfig.find("disable_qubit_mapping");

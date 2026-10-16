@@ -290,12 +290,36 @@ if [ "$docs_exit_code" -eq "0" ]; then
             -exec cp --parents '{}' "$DOCS_INSTALL_PREFIX" \;
         echo "Markdown files copied successfully to $DOCS_INSTALL_PREFIX."
 
-        # Copy llms.txt from the repository root to the docs install prefix
-        if [ -f "$CUDAQ_REPO_ROOT/llms.txt" ]; then
-            cp "$CUDAQ_REPO_ROOT/llms.txt" "$DOCS_INSTALL_PREFIX/"
+        # Copy llms.txt from the repository root to the docs install prefix.
+        # Links are relative to the directory the file is served from, so drop
+        # the version prefix here; the site root copy adds it back.
+        if [ -f "$repo_root/llms.txt" ]; then
+            sed -E 's|\]\((latest/)?([^):]+)\)|](\2)|g' \
+                "$repo_root/llms.txt" > "$DOCS_INSTALL_PREFIX/llms.txt"
             echo "Copied llms.txt to $DOCS_INSTALL_PREFIX."
         else
-            echo "Warning: llms.txt not found in $CUDAQ_REPO_ROOT, skipping copy."
+            echo "Warning: llms.txt not found in $repo_root, skipping copy."
+        fi
+
+        # Generate llms-full.txt from the markdown llms.txt links to. Paths are
+        # read with or without a version prefix, so either link style works.
+        if [ -f "$DOCS_INSTALL_PREFIX/llms.txt" ]; then
+            llms_full_file="$DOCS_INSTALL_PREFIX/llms-full.txt"
+            rm -f "$llms_full_file"
+            grep -oE '\]\([^)]+\.md\)' "$DOCS_INSTALL_PREFIX/llms.txt" | \
+            sed -e 's|^](||' -e 's|)$||' -e 's|^latest/||' | while read -r md_path; do
+                if [ -f "$DOCS_INSTALL_PREFIX/$md_path" ]; then
+                    printf '\n\n<!-- Source: %s -->\n\n' "$md_path" >> "$llms_full_file"
+                    cat "$DOCS_INSTALL_PREFIX/$md_path" >> "$llms_full_file"
+                else
+                    echo "Warning: $md_path is referenced in llms.txt but was not found, skipping it in llms-full.txt."
+                fi
+            done
+            if [ -f "$llms_full_file" ]; then
+                echo "Generated llms-full.txt in $DOCS_INSTALL_PREFIX."
+            else
+                echo "Warning: no markdown files were found to generate llms-full.txt."
+            fi
         fi
     else
         echo "Markdown documentation encountered issues."

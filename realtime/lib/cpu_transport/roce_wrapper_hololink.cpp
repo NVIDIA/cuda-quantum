@@ -15,6 +15,7 @@
 
 #include <hololink/transport/roce/cpu_roce_transceiver.hpp>
 
+#include <atomic>
 #include <cstdio>
 #include <exception>
 #include <memory>
@@ -29,61 +30,77 @@ using Transceiver = roce::CpuRoceTransceiver;
 // Hololink's ring accessors report 0 until setup(), so the adapter keeps the
 // create() geometry that the C accessors must return immediately.
 struct HololinkCpuRoceAdapter {
-  Transceiver::Mode mode = Transceiver::Mode::Duplex;
   std::size_t page_size = 0;
   std::uint32_t num_pages = 0;
   std::uint64_t peer_rx_base = 0;
-  // Set before blocking_monitor(); concurrent update and callback execution
-  // are unsupported.
-  cpu_roce_unified_dispatch_fn_t unified_dispatch = nullptr;
-  void *unified_context = nullptr;
-  // Declared last so ~CpuRoceTransceiver() waits for the monitor while the
-  // fields above are still alive.
   std::unique_ptr<Transceiver> transceiver;
+  // Misuse throws std::logic_error and can repeat on every call, so that
+  // message is logged once. A datapath failure is some other exception,
+  // thrown at most once because CallerDriven terminalizes, and is logged
+  // every time so an earlier misuse cannot hide it.
+  std::atomic<bool> hook_failure_logged{false};
 };
 
 HololinkCpuRoceAdapter *as_adapter(cpu_roce_transceiver_t handle) {
   return static_cast<HololinkCpuRoceAdapter *>(handle);
 }
 
-// CUDA-Q receives Hololink's tx_capacity as slot_size; zero means Drop.
-Transceiver::UnifiedDispatchResult
-unified_dispatch_thunk(void *opaque, const void *rx_slot, std::size_t,
-                       void *tx_slot, std::size_t tx_capacity) {
-  auto *adapter = static_cast<HololinkCpuRoceAdapter *>(opaque);
-  if (!adapter->unified_dispatch)
-    return {Transceiver::UnifiedDispatchDisposition::Drop, 0};
-  const std::size_t bytes = adapter->unified_dispatch(
-      adapter->unified_context, rx_slot, tx_slot, tx_capacity);
-  return {bytes == 0 ? Transceiver::UnifiedDispatchDisposition::Drop
-                     : Transceiver::UnifiedDispatchDisposition::Send,
-          bytes};
-}
-
+// unified=1 is CUDA-Q's thread-free mode. Hololink's Mode::Unified is a
+// callback loop owned by blocking_monitor(); Mode::CallerDriven is the matching
+// shape, driven by the caller through rx_poll() and tx_publish().
 Transceiver::Mode select_mode(int forward, int rx_only, int tx_only,
                               int unified) {
   if ((forward != 0) + (rx_only != 0) + (tx_only != 0) + (unified != 0) > 1)
     throw std::invalid_argument(
         "forward / rx_only / tx_only / unified are mutually exclusive");
+  if (unified)
+    return Transceiver::Mode::CallerDriven;
   if (forward)
     return Transceiver::Mode::Forward;
   if (rx_only)
     return Transceiver::Mode::Rx;
   if (tx_only)
     return Transceiver::Mode::Tx;
-  if (unified)
-    return Transceiver::Mode::Unified;
   return Transceiver::Mode::Duplex;
 }
 
+void report_failure(const char *operation, const char *detail) {
+  std::fprintf(stderr, "%s: %s\n", operation, detail);
+}
+
 void report_failure(const char *operation, const std::exception &error) {
-  std::fprintf(stderr, "%s: %s\n", operation, error.what());
+  report_failure(operation, error.what());
 }
 
 void report_monitor_stall(const char *detail) {
   std::fprintf(stderr,
                "cpu_roce_blocking_monitor: rings will no longer advance: %s\n",
                detail);
+}
+
+void report_hook_failure_once(HololinkCpuRoceAdapter *adapter,
+                              const char *operation, const char *detail) {
+  if (adapter->hook_failure_logged.exchange(true, std::memory_order_relaxed))
+    return;
+  report_failure(operation, detail);
+}
+
+// logic_error covers a wrong mode, a null out_slot, and a bad or busy slot.
+// Those can repeat. Anything else is a datapath failure and is logged in full.
+template <typename Fn>
+int call_hook(HololinkCpuRoceAdapter *adapter, const char *operation, Fn &&fn) {
+  try {
+    return fn() ? 1 : 0;
+  } catch (const std::logic_error &error) {
+    report_hook_failure_once(adapter, operation, error.what());
+    return 0;
+  } catch (const std::exception &error) {
+    report_failure(operation, error);
+    return 0;
+  } catch (...) {
+    report_failure(operation, "unknown failure");
+    return 0;
+  }
 }
 
 } // namespace
@@ -122,12 +139,8 @@ cpu_roce_transceiver_t cpu_roce_create_transceiver(
     config.rx.slot_count = num_pages;
     config.tx.stride = page_size;
     config.tx.slot_count = num_pages;
-    // A Unified callback owns the whole slot and may return that many bytes;
-    // the other modes keep the legacy cu_frame_size SGE length.
-    const std::size_t payload_size =
-        config.mode == Transceiver::Mode::Unified ? page_size : frame_size;
-    config.rx.frame_layout.payload_size = payload_size;
-    config.tx.frame_layout.payload_size = payload_size;
+    config.rx.frame_layout.payload_size = frame_size;
+    config.tx.frame_layout.payload_size = frame_size;
 
     // CUDA-Q already requires matching peer geometry, so the peer's slot
     // pitch and depth are the local ones until connect() learns otherwise.
@@ -139,16 +152,10 @@ cpu_roce_transceiver_t cpu_roce_create_transceiver(
     config.peer.rx_slot_count = num_pages;
 
     auto adapter = std::make_unique<HololinkCpuRoceAdapter>();
-    adapter->mode = config.mode;
     adapter->page_size = page_size;
     adapter->num_pages = num_pages;
     adapter->peer_rx_base = peer_rx_base_addr;
     adapter->transceiver = std::make_unique<Transceiver>(std::move(config));
-    // Unified requires a callback before setup(), but the C caller may
-    // install the real one later; the thunk reads it at dispatch time.
-    if (adapter->mode == Transceiver::Mode::Unified)
-      adapter->transceiver->set_unified_dispatch(&unified_dispatch_thunk,
-                                                 adapter.get());
     return adapter.release();
   } catch (const std::exception &error) {
     report_failure("cpu_roce_create_transceiver", error);
@@ -157,9 +164,6 @@ cpu_roce_transceiver_t cpu_roce_create_transceiver(
 }
 
 void cpu_roce_destroy_transceiver(cpu_roce_transceiver_t handle) {
-  // The transceiver is the last adapter member, so it is destroyed first and
-  // ~CpuRoceTransceiver() waits for the monitor to leave blocking_monitor()
-  // before the Unified thunk's fields go away.
   delete as_adapter(handle);
 }
 
@@ -234,23 +238,26 @@ void cpu_roce_blocking_monitor(cpu_roce_transceiver_t handle) {
   } catch (const std::exception &error) {
     report_monitor_stall(error.what());
   } catch (...) {
-    // A Unified callback throwing a non-std exception would otherwise unwind
-    // through this extern "C" frame into CUDA-Q's monitor thread.
+    // A non-std exception would otherwise unwind through this extern "C"
+    // frame into CUDA-Q's monitor thread.
     report_monitor_stall("unknown monitor failure");
   }
 }
 
-void cpu_roce_set_unified_dispatch(cpu_roce_transceiver_t handle,
-                                   cpu_roce_unified_dispatch_fn_t fn,
-                                   void *context) {
+int cpu_roce_rx_poll(cpu_roce_transceiver_t handle, std::uint32_t *out_slot) {
   if (!handle)
-    return;
+    return 0;
   auto *adapter = as_adapter(handle);
-  // The thunk is registered with Hololink only in Unified mode.
-  if (adapter->mode != Transceiver::Mode::Unified)
-    return;
-  adapter->unified_dispatch = fn;
-  adapter->unified_context = context;
+  return call_hook(adapter, "cpu_roce_rx_poll",
+                   [&] { return adapter->transceiver->rx_poll(out_slot); });
+}
+
+int cpu_roce_tx_publish(cpu_roce_transceiver_t handle, std::uint32_t slot) {
+  if (!handle)
+    return 0;
+  auto *adapter = as_adapter(handle);
+  return call_hook(adapter, "cpu_roce_tx_publish",
+                   [&] { return adapter->transceiver->tx_publish(slot); });
 }
 
 void cpu_roce_set_local_ip(cpu_roce_transceiver_t handle,

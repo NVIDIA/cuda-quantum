@@ -82,6 +82,10 @@ option(CUDAQ_REALTIME_CPU_ROCE_USE_HOLOLINK
        "Link CPU RoCE against Hololink's CpuRoceTransceiver (default: CUDA-Q's legacy ibverbs backend)."
        OFF)
 
+option(CUDAQ_REALTIME_REQUIRE_ROCE_TESTS
+       "Treat an unavailable RoCE transport as a failure of the cpu_roce RDMA tests instead of a skip (for hosts that must have one). When OFF, CUDAQ_REALTIME_REQUIRE_ROCE=1 raises it for one run; when ON, CUDAQ_REALTIME_REQUIRE_ROCE=0 is an error."
+       OFF)
+
 # Enable sanitizers if requested (must be done early to affect all targets).
 # Integrated CUDA-Q builds inherit whatever the top-level CUDAQ_ENABLE_SANITIZERS
 # applied, so this only covers the standalone realtime build. The realtime tree

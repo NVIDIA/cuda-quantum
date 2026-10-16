@@ -140,20 +140,37 @@ add_cudaq_python_common_capi_library(cudaqMLIRCAPI
 # same pattern as cudaq::cudaqMLIR in cudaq/lib/Optimizer/cudaqMLIR-shlib.cmake.
 add_library(cudaq::cudaqMLIRCAPI ALIAS cudaqMLIRCAPI)
 
-# Exported into the same `cudaq-targets` set as cudaq::cudaqMLIR (finalized
-# in runtime/cudaq/CMakeLists.txt, processed after this directory in the
-# top-level configure order) rather than a separate export set: cudaqMLIRCAPI
-# publicly links cudaq::cudaqMLIR, and a target whose link interface
-# references a target from a different export set makes CMake emit a guard
-# in the generated Targets.cmake that bails out (<pkg>_FOUND FALSE) unless
-# the other export set's Targets.cmake was already include()'d first --
-# which find_dependency() ordering in CUDAQConfig.cmake does not guarantee.
-# Keeping both targets in one export set means they're defined together,
-# atomically, from a single CUDAQTargets.cmake.
+# Keep cudaqMLIRCAPI and its public cudaqMLIR dependency in the same export set.
+# Split wheels export these together without the frontend's libcudaq target;
+# combined builds include both in CUDAQTargets.cmake.
 install(TARGETS cudaqMLIRCAPI
-  EXPORT cudaq-targets
-  COMPONENT CUDAQuantumPythonModules
+  EXPORT ${CUDAQ_CORE_EXPORT_SET}
+  COMPONENT ${CUDAQ_CORE_CAPI_COMPONENT}
   DESTINATION lib)
+
+if(CUDAQ_BUILD_SPLIT_WHEELS)
+  # Core and extension providers can live in different installation prefixes.
+  # Prepend namespace discovery to our staged copy, not to LLVM's sources.
+  get_target_property(_mlir_sources MLIRPythonSources.Core.Python INTERFACE_SOURCES)
+  set(_split_mlir_sources ${_mlir_sources})
+  list(FILTER _split_mlir_sources EXCLUDE REGEX "/_mlir_libs/__init__\\.py$")
+  foreach(_source IN LISTS _mlir_sources)
+    if(_source MATCHES "/_mlir_libs/__init__\\.py$")
+      file(READ "${_source}" CUDAQ_MLIR_INITIALIZER)
+    endif()
+  endforeach()
+  if(NOT DEFINED CUDAQ_MLIR_INITIALIZER)
+    message(FATAL_ERROR "MLIR Python sources have no _mlir_libs initializer")
+  endif()
+  configure_file(mlir/_mlir_libs/__init__.py.in
+    "${CMAKE_CURRENT_BINARY_DIR}/mlir/_mlir_libs/__init__.py" @ONLY)
+  declare_mlir_python_sources(CUDAQCorePythonSources.Initializer
+    ADD_TO_PARENT CUDAQCorePythonSources
+    ROOT_DIR "${CMAKE_CURRENT_BINARY_DIR}/mlir"
+    SOURCES _mlir_libs/__init__.py)
+  set_property(TARGET MLIRPythonSources.Core.Python PROPERTY
+    INTERFACE_SOURCES "${_split_mlir_sources}")
+endif()
 
 add_cudaq_python_modules(CUDAQCorePythonModules
   ROOT_PREFIX "${MLIR_BINARY_DIR}/python/cudaq/mlir"
@@ -162,6 +179,10 @@ add_cudaq_python_modules(CUDAQCorePythonModules
   COMMON_CAPI_LINK_LIBS
     cudaqMLIRCAPI
 )
+if(CUDAQ_BUILD_SPLIT_WHEELS)
+  set_property(TARGET MLIRPythonSources.Core.Python PROPERTY
+    INTERFACE_SOURCES "${_mlir_sources}")
+endif()
 
 # Shared backend values are available without the frontend package.
 cudaq_stage_python_sources(CUDAQCorePythonPackageStaging
@@ -213,4 +234,4 @@ file(WRITE "${_cudaq_python_bindings_marker}"
   "set(CUDAQ_ENABLE_PYTHON_BINDINGS TRUE)\n")
 install(FILES "${_cudaq_python_bindings_marker}"
   DESTINATION lib/cmake/cudaq
-  COMPONENT Development)
+  COMPONENT ${CUDAQ_CORE_DEVELOPMENT_COMPONENT})

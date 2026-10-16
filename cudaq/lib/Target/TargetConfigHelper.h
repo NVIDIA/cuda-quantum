@@ -24,12 +24,6 @@ const BackendEndConfigEntry *
 selectBackend(const TargetConfig &config,
               const std::map<std::string, std::string> &args);
 
-std::string substitutePluginRoot(std::string yamlContent,
-                                 const std::filesystem::path &pluginRoot);
-
-TargetConfig parseTargetConfig(std::string yamlContent,
-                               const std::filesystem::path &pluginRoot = {});
-
 /// True after `disableYAMLTargetConfigParsing()` has been called in this
 /// process.
 bool isDisabledYAMLParsing();

@@ -13,6 +13,7 @@
 #include "llvm/Support/Debug.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/IR/Operation.h"
+#include "mlir/IR/SymbolTable.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
@@ -29,7 +30,7 @@ namespace cudaq::opt {
 using namespace mlir;
 
 static bool isIndirectFunc(StringRef funcName,
-                           llvm::StringMap<StringRef> indirectMap) {
+                           const llvm::StringMap<StringRef> &indirectMap) {
   return indirectMap.find(funcName) != indirectMap.end();
 }
 
@@ -65,6 +66,8 @@ public:
         return *indirectMapOpt;
       return {};
     }();
+    // Build each symbol table once and reuse it for every call.
+    SymbolTableCollection symbolTables;
     LLVM_DEBUG(llvm::dbgs() << "Processing: " << mod << '\n');
     mod.walk([&](Operation *op) {
       auto call = dyn_cast<CallOpInterface>(op);
@@ -90,10 +93,16 @@ public:
         StringRef directName = indirectMap[callee];
         auto *ctx = rewriter.getContext();
         auto loc = call.getLoc();
-        auto indirectFn = SymbolTable::lookupNearestSymbolFrom<func::FuncOp>(
+        auto indirectFn = symbolTables.lookupNearestSymbolFrom<func::FuncOp>(
             call, calleeAttr);
         auto funcTy = indirectFn.getFunctionType();
-        cudaq::opt::factory::getOrAddFunc(loc, directName, funcTy, mod);
+        auto &moduleSymbols = symbolTables.getSymbolTable(mod);
+        if (!moduleSymbols.lookup<func::FuncOp>(directName)) {
+          auto func = func::FuncOp::create(loc, directName, funcTy);
+          func.setPrivate();
+          // Register the new declaration so later lookups find it.
+          moduleSymbols.insert(func, mod.getBody()->end());
+        }
         auto directAttr = FlatSymbolRefAttr::get(ctx, directName);
         call.setCalleeFromCallable(directAttr);
         calleeAttr = directAttr;
@@ -101,7 +110,7 @@ public:
       }
 
       if (!isa<cudaq::cc::DeviceCallOp, cudaq::cc::NoInlineCallOp>(op)) {
-        auto calleeFunc = SymbolTable::lookupNearestSymbolFrom<func::FuncOp>(
+        auto calleeFunc = symbolTables.lookupNearestSymbolFrom<func::FuncOp>(
             call, calleeAttr);
         const bool isAtomicQuantumRegion =
             calleeFunc &&

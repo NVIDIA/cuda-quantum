@@ -6742,14 +6742,33 @@ private:
         sidecars.clear();
         return success();
       };
+      SmallVector<Operation *, 16> plans;
+      auto verifyPlans = [&]() -> LogicalResult {
+        if (plans.empty())
+          return success();
+        auto verifyStarted = std::chrono::steady_clock::now();
+        if (failed(qlx::phys::verifySpacetimePlanBatch(plans)))
+          return failure();
+        if (profile)
+          llvm::errs() << "fabric-to-phys: verify-top phys.plan-batch "
+                       << std::chrono::duration<double>(
+                              std::chrono::steady_clock::now() - verifyStarted)
+                              .count()
+                       << "s count=" << plans.size() << "\n";
+        plans.clear();
+        return success();
+      };
       for (Operation *created = graph; created;
            created = created->getNextNode()) {
-        StringRef name = created->getName().getStringRef();
-        if (name == "phys.selection_sidecar") {
+        if (isa<qlx::phys::SelectionSidecarOp>(created)) {
           sidecars.push_back(created);
           continue;
         }
-        if (failed(verifySidecars()))
+        if (isa<qlx::phys::SpacetimePlanOp>(created)) {
+          plans.push_back(created);
+          continue;
+        }
+        if (failed(verifySidecars()) || failed(verifyPlans()))
           return failure();
         auto verifyStarted = std::chrono::steady_clock::now();
         LogicalResult verified = created == graph
@@ -6769,7 +6788,7 @@ private:
                               .count()
                        << "s\n";
       }
-      if (failed(verifySidecars()))
+      if (failed(verifySidecars()) || failed(verifyPlans()))
         return failure();
     } else if (failed(module.verify())) {
       graph->emitOpError("native physical projection failed verification");

@@ -40,17 +40,28 @@ runs:
         OUTPUT_DIR: /tmp/restamped-wheel
       run: |
         set -euo pipefail
-        wheel=$(find /tmp/cached-wheel -name '*.whl' -print -quit)
-        if [ -z "$wheel" ]; then
+        # Collect all frontend and core wheels, including wheels in nested directories.
+        mapfile -t wheels < <(find /tmp/cached-wheel -name '*.whl' -print)
+        if [ ${#wheels[@]} -eq 0 ]; then
           echo "::error::No wheel found in the downloaded artifact."
           find /tmp/cached-wheel -type f || true
           exit 1
         fi
         python3 -m venv "$VENV_DIR"
         "$VENV_DIR/bin/pip" install --quiet wheel
-        PYTHON="$VENV_DIR/bin/python" \
-          bash "$GITHUB_WORKSPACE/scripts/restamp_wheel.sh" \
-          "$wheel" "$VERSION" "$OUTPUT_DIR"
+        # Restamp both distributions and their exact dependency pins together.
+        # Core is CUDA-independent; both released frontends use the CUDA 13
+        # pipeline's core. Keep CUDA 12's build-local validation copy nested
+        # so it is not included in release packages.
+        for wheel in "${wheels[@]}"; do
+          destination="$OUTPUT_DIR"
+          if [[ "$wheel" == */candidate-core/* ]]; then
+            destination="$OUTPUT_DIR/candidate-core"
+          fi
+          PYTHON="$VENV_DIR/bin/python" \
+            bash "$GITHUB_WORKSPACE/scripts/restamp_wheel.sh" \
+            "$wheel" "$VERSION" "$destination"
+        done
 
     - name: Upload re-stamped wheel
       id: upload

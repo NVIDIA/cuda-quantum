@@ -40,6 +40,7 @@ if (${cuDensityMat_VERSION} VERSION_GREATER_EQUAL "0.4")
     CuDensityMatCallbackConverter.cpp
     CuDensityMatSuperOpCtor.cpp
     CuDensityMatUtils.cpp
+    CuDensityMatDeviceAllocator.cpp
   )
 
   message("CUDAToolkit_INCLUDE_DIRS: ${CUDAToolkit_INCLUDE_DIRS}")

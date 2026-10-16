@@ -230,7 +230,9 @@ jobs:
     steps:
       - name: Import cudaq.logical
         shell: bash
-        run: python3 -c 'import cudaq.logical'
+        run: |
+          python3 -c 'import cudaq.logical'
+          python3 -m pip check
 
   release_image_validation:
     name: Release image validation
@@ -1379,6 +1381,11 @@ jobs:
             mkdir wheelhouse-${p}
             for fulldir in wheelhouse/${p}-*; do
               dir=$(basename $fulldir)
+              # CUDA-independent core is published from the CUDA 13 pipeline
+              # for both frontends. CUDA 12 builds also keep a copy under
+              # candidate-core/ for build-local validation only; delete it so
+              # it is not published and does not hold on to disk space.
+              rm -rf "wheelhouse/$dir/candidate-core"
               mv -v "wheelhouse/$dir"/* wheelhouse-${p}/ && rmdir "wheelhouse/$dir"
             done
             if [[ ${p} != "darwin" ]]; then

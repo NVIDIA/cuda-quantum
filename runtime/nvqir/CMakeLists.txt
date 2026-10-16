@@ -34,10 +34,17 @@ target_link_libraries(${LIBRARY_NAME}
   PRIVATE cudaq-logger
 )
 
+if(CUDAQ_BUILD_SPLIT_WHEELS)
+  # libnvqir in cudaq_core/cudaq/core/lib must find frontend simulator plugins
+  # in site-packages/lib when they are opened by name with dlopen.
+  set_property(TARGET ${LIBRARY_NAME} APPEND PROPERTY INSTALL_RPATH
+    "${_wheel_origin}/../../../../lib")
+endif()
+
 install(TARGETS ${LIBRARY_NAME}
         EXPORT nvqir-targets
         LIBRARY DESTINATION lib
-        COMPONENT Runtime
+        COMPONENT ${CUDAQ_CORE_LIBRARY_COMPONENT}
         INCLUDES DESTINATION include/nvqir)
 
 add_subdirectory(qpp)
@@ -57,4 +64,4 @@ install(EXPORT nvqir-targets
         FILE NVQIRTargets.cmake
         NAMESPACE nvqir::
         DESTINATION lib/cmake/nvqir
-        COMPONENT Development)
+        COMPONENT ${CUDAQ_CORE_DEVELOPMENT_COMPONENT})

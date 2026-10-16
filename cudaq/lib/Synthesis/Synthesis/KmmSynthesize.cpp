@@ -10,6 +10,10 @@
 #include "Support/StreamOps.h"
 #include "llvm/Support/Debug.h"
 
+#include <algorithm>
+#include <array>
+#include <cassert>
+
 #define DEBUG_TYPE "cudaq-synth"
 
 namespace cudaq::synth {
@@ -30,13 +34,42 @@ inline constexpr std::array<int32_t, 16> BIT_SHIFT = {0, 0, 1, 0, 2, 0, 1, 3,
 inline constexpr std::array<int32_t, 16> BIT_COUNT = {0, 1, 1, 2, 1, 2, 2, 3,
                                                       1, 2, 2, 3, 2, 3, 3, 4};
 
+// CONJ_SQUARED_RESIDUE[r] is the residue of conj(z) * z when z has residue r.
+//
+// Mod-2 reduction is a ring homomorphism on Z[omega], so a product's residue
+// depends only on its factors' residues and sixteen entries cover every
+// input.
+inline constexpr std::array<int32_t, 16> CONJ_SQUARED_RESIDUE = [] {
+  std::array<int32_t, 16> table{};
+  for (int32_t r = 0; r < 16; ++r) {
+    // residue() packs (a, b, c, d) as a<<3 | b<<2 | c<<1 | d, and
+    // conj((a, b, c, d)) = (-c, -b, -a, d) swaps the outer pair mod 2.
+    const int32_t a0 = (r >> 3) & 1, b0 = (r >> 2) & 1, c0 = (r >> 1) & 1,
+                  d0 = r & 1;
+    const int32_t a1 = c0, b1 = b0, c1 = a0, d1 = d0;
+
+    // The convolution ZOmega::operator* performs, over GF(2).
+    const int32_t r0 = d0 & d1;
+    const int32_t r1 = (d0 & c1) ^ (c0 & d1);
+    const int32_t r2 = (d0 & b1) ^ (c0 & c1) ^ (b0 & d1);
+    const int32_t r3 = (d0 & a1) ^ (c0 & b1) ^ (b0 & c1) ^ (a0 & d1);
+    const int32_t r4 = (c0 & a1) ^ (b0 & b1) ^ (a0 & c1);
+    const int32_t r5 = (b0 & a1) ^ (a0 & b1);
+    const int32_t r6 = a0 & a1;
+
+    table[static_cast<size_t>(r)] =
+        (r3 << 3) | ((r2 ^ r6) << 2) | ((r1 ^ r5) << 1) | (r0 ^ r4);
+  }
+  return table;
+}();
+
 //===----------------------------------------------------------------------===//
 // reduce_denomexp
 //===----------------------------------------------------------------------===//
 
-/// Peel off a single gate (or short gate sequence) g from the left of a
-/// DOmegaUnitary so that inv(g) * U has denominator exponent k - 1 (or
-/// occasionally k - 2 as a bonus).
+/// Peel a single gate (or short gate sequence) g off the left of a
+/// DOmegaUnitary in place, so that inv(g) * U has denominator exponent k - 1
+/// (or occasionally k - 2 as a bonus). Returns g's index in T_POWER_and_H.
 ///
 /// References: Kliuchnikov, Maslov, Mosca [10] (exact synthesis); Ross &
 /// Selinger arXiv:1403.2975, sec. 7.3 step 3.
@@ -54,27 +87,26 @@ inline constexpr std::array<int32_t, 16> BIT_COUNT = {0, 1, 1, 2, 1, 2, 2, 3,
 ///   0b0001: split by popcount(z) vs popcount(w). Equal popcounts drop the
 ///           exponent by 1; unequal popcounts drop by 2 (one bonus rung) so
 ///           the caller's loop discovers the extra reduction next iteration.
-///   other:  default to H (always safe, may not reduce on its own).
 ///
-/// T_POWER_and_H[m] encodes the gate string for T^m * H: m = 0 -> "H",
-/// m = 1 -> "TH", m = 2 -> "SH" (since S = T^2), m = 3 -> "TSH".
-std::pair<Circuit, DOmegaUnitary>
-reduce_denomexp(const DOmegaUnitary &unitary) {
-  // Built once at first call so we do not allocate a vector of gate strings
-  // per reduce_denomexp invocation.
-  static const Circuit T_POWER_and_H[] = {
-      Circuit({Gate::H}),
-      Circuit({Gate::T, Gate::H}),
-      Circuit({Gate::S, Gate::H}), // S = T^2
-      Circuit({Gate::T, Gate::S, Gate::H}),
-  };
+/// CONJ_SQUARED_RESIDUE takes no other value, so those three cases are
+/// exhaustive.
+///
+/// T_POWER_and_H[m] is the gate string for T^m * H: m = 0 -> "H", m = 1 ->
+/// "TH", m = 2 -> "SH" (since S = T^2), m = 3 -> "TSH".
+const Circuit T_POWER_and_H[] = {
+    Circuit({Gate::H}),
+    Circuit({Gate::T, Gate::H}),
+    Circuit({Gate::S, Gate::H}), // S = T^2
+    Circuit({Gate::T, Gate::S, Gate::H}),
+};
 
+int32_t reduce_denomexp(DOmegaUnitary &unitary, ZOmega &scratch) {
   // residue() encodes (a%2, b%2, c%2, d%2) of the ZOmega numerator into a
   // 4-bit integer. residue_squared_z carries the case label below.
   int32_t residue_z = unitary.z().residue();
   int32_t residue_w = unitary.w().residue();
   int32_t residue_squared_z =
-      (unitary.z().u() * unitary.z().conj().u()).residue();
+      CONJ_SQUARED_RESIDUE[static_cast<size_t>(residue_z)];
 
   // T-power offset that aligns the lowest set bit of w to that of z. The
   // negative branch wraps mod 4 since T has order 8 modulo a sign.
@@ -83,38 +115,29 @@ reduce_denomexp(const DOmegaUnitary &unitary) {
   if (m < 0)
     m += 4;
 
-  DOmegaUnitary new_unitary = unitary;
-  Circuit gate_seq;
-
   if (residue_squared_z == 0b0000) {
-    new_unitary = with_denom_exp(unitary.mul_by_H_and_T_power_from_left(0),
-                                 unitary.k() - 1);
-    gate_seq = T_POWER_and_H[0];
-  } else if (residue_squared_z == 0b1010) {
-    new_unitary = with_denom_exp(unitary.mul_by_H_and_T_power_from_left(-m),
-                                 unitary.k() - 1);
-    gate_seq = T_POWER_and_H[m];
-  } else if (residue_squared_z == 0b0001) {
-    if (BIT_COUNT[static_cast<size_t>(residue_z)] ==
-        BIT_COUNT[static_cast<size_t>(residue_w)]) {
-      new_unitary = with_denom_exp(unitary.mul_by_H_and_T_power_from_left(-m),
-                                   unitary.k() - 1);
-      gate_seq = T_POWER_and_H[m];
-    } else {
-      // Bonus reduction: the exponent drops by 2 on this step, so we do not
-      // apply with_denom_exp here and instead let the caller's loop pick up
-      // the extra rung on its next iteration.
-      new_unitary = unitary.mul_by_H_and_T_power_from_left(-m);
-      gate_seq = T_POWER_and_H[m];
-    }
-  } else {
-    // Catch-all: H always reduces the exponent by 1 even if the case
-    // analysis above did not match.
-    new_unitary = with_denom_exp(unitary.mul_by_H_from_left(), unitary.k() - 1);
-    gate_seq = T_POWER_and_H[0];
+    unitary.reduce_by_H_and_T_power_from_left(0, scratch);
+    return 0;
   }
 
-  return {gate_seq, new_unitary};
+  if (residue_squared_z == 0b1010) {
+    unitary.reduce_by_H_and_T_power_from_left(-m, scratch);
+    return m;
+  }
+
+  assert(residue_squared_z == 0b0001 &&
+         "conj(z) * z has a residue outside {0b0000, 0b0001, 0b1010}");
+
+  if (BIT_COUNT[static_cast<size_t>(residue_z)] ==
+      BIT_COUNT[static_cast<size_t>(residue_w)]) {
+    unitary.reduce_by_H_and_T_power_from_left(-m, scratch);
+    return m;
+  }
+
+  // The exponent drops by 2 here, so leave the rung alone and let the caller's
+  // loop pick up the extra drop next iteration.
+  unitary.mul_by_H_and_T_power_from_left_in_place(-m, scratch);
+  return m;
 }
 
 } // namespace
@@ -151,14 +174,15 @@ Circuit kmm_synthesize(DOmegaUnitary unitary) {
              << unitary.k() << ")\n");
 
   Circuit gates;
+  // Each rung emits at most three gates and drops k by at least one.
+  gates.reserve(3 * static_cast<size_t>(std::max(unitary.k(), 0)) + 16);
 
   // Phase 1: peel syllables off the left until the denominator is gone. The
   // number of iterations is exactly the T-count of the synthesized circuit.
-  while (unitary.k() > 0) {
-    auto [gate_seq, reduced_unitary] = reduce_denomexp(unitary);
-    gates += gate_seq;
-    unitary = reduced_unitary;
-  }
+  // One scratch value serves every rung, so the loop does not allocate.
+  ZOmega scratch;
+  while (unitary.k() > 0)
+    gates += T_POWER_and_H[reduce_denomexp(unitary, scratch)];
 
   // Phase 2: undo the remaining Clifford. Each step here corresponds to a
   // generator (T, X, W^m, S^m) whose inverse we left-multiply onto U; the

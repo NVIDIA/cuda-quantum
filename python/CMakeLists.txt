@@ -87,7 +87,7 @@ add_dependencies(CUDAQuantumPythonModules CUDAQPythonStaging)
 
 add_subdirectory(runtime/cudaq/domains/plugins)
 
-if (NOT SKBUILD)
+if (NOT SKBUILD OR CUDAQ_BUILD_SPLIT_WHEELS)
   install(DIRECTORY cudaq DESTINATION . COMPONENT CUDAQuantumPythonModules
     PATTERN "util/trace.py" EXCLUDE)
 endif()
