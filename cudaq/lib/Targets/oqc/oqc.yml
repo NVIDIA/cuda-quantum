@@ -24,7 +24,7 @@ config:
   plugin-libraries: ["libcudaq-rest-qpu"]
   # Define the JIT lowering pipeline
   jit-high-level-pipeline: "expand-measurements"
-  jit-mid-level-pipeline: "oqc-gate-set-mapping,func.func(add-dealloc,combine-quantum-alloc,canonicalize,expand-veq-uses,factor-quantum-alloc,dqe,cse,memtoreg),add-wireset,func.func(assign-wire-indices),qubit-mapping{device=file(%QPU_ARCH%)},func.func(regtomem)"
+  jit-mid-level-pipeline: "oqc-gate-set-mapping,func.func(add-dealloc,combine-quantum-alloc,canonicalize,factor-quantum-alloc,dqe,cse,memtoreg),add-wireset,func.func(assign-wire-indices),qubit-mapping{device=file(%QPU_ARCH%)},func.func(regtomem)"
   # Tell the rest-qpu that we are generating QIR.
   codegen-emission: qir-base
 
