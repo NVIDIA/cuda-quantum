@@ -545,6 +545,10 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
       // followed by the canonicalizer
       auto *contextPtr = moduleOp.getContext();
       mlir::PassManager pm(contextPtr);
+      // The ansatz pass needs one evince operand per qubit. A target whose
+      // pipeline never enters value semantics still carries a whole `veq` on
+      // the evince, so split it first.
+      pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createExpandVeqUses());
       pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createObserveAnsatzPass(
           term.get_binary_symplectic_form()));
       if (failed(cudaq_internal::compiler::runPassManager(
