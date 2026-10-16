@@ -11,11 +11,11 @@
 
 // RUN: compile_target | FileCheck %s
 
-#include "common/CompileTarget.h"
 #include "common/KernelArgs.h"
 #include "cudaq_internal/compiler/CompiledModuleHelper.h"
 #include "cudaq_internal/compiler/Compiler.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
+#include "cudaq/Target/CompileTarget.h"
 #include "cudaq/Target/TargetConfig.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/MLIRContext.h"
@@ -111,7 +111,11 @@ static cudaq::CompileTarget
 nonEmptyPipelineTarget(const std::string &pipeline) {
   cudaq::config::TargetConfig cfg;
   cudaq::config::BackendEndConfigEntry backend;
-  backend.TargetPassPipeline = pipeline;
+  cudaq::config::CustomPipelineLowering lowering;
+  lowering.overridePassPipeline = pipeline;
+  backend.CompileTarget.stages.push_back(cudaq::config::CompilationStage{
+      .irOutputProfile = cudaq::config::UncheckedProfile{},
+      .lowering = std::move(lowering)});
   cfg.BackendConfig = backend;
   return cudaq::CompileTarget::createFromConfig(cfg, {});
 }
