@@ -7,12 +7,15 @@
  ******************************************************************************/
 
 #include "cudaq/Target/TargetCatalog.h"
+#include "cudaq/Target/TargetConfig.h"
 #include "cudaq/Target/TargetPluginLibrary.h"
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
 #include <gtest/gtest.h>
 #include <string>
+#include <variant>
+#include <vector>
 
 namespace {
 
@@ -88,6 +91,143 @@ config:
   ASSERT_FALSE(entry->config->BackendConfig->PreprocessorDefines.empty());
   EXPECT_EQ(entry->config->BackendConfig->PreprocessorDefines.front(),
             "-DFROM_SO");
+  std::filesystem::remove_all(root);
+  std::filesystem::remove(genCpp);
+}
+
+TEST(TargetCatalogTester, v2MultiStagePluginLibraryRoundTrip) {
+  auto root = makeTempRoot();
+  const auto ymlPath = root / "targets" / "multistage.yml";
+  writeFile(ymlPath, R"(
+version: 2
+name: multistage
+description: multi-stage v2 plugin
+config:
+  library-mode: true
+
+compile-target:
+  stages:
+    - ir-output-profile:
+        name: unchecked
+      lowering:
+        custom-pipeline: "canonicalize"
+    - ir-output-profile:
+        name: quake-reference-semantics
+        options:
+          basis-gates: ["h", "rz"]
+          measurement-type: single-qubit
+  codegen: qir-base
+)");
+
+  const auto genCpp = root / "multistage.gen.cpp";
+  const auto libPath =
+      root / "targets" /
+      ("multistage" + std::string(cudaq::config::kSharedLibraryExtension));
+  std::string genCmd = std::string(CUDAQ_TARGET_DB_GEN_PATH) + " --plugin -o " +
+                       genCpp.string() + " multistage=" + ymlPath.string();
+  ASSERT_EQ(std::system(genCmd.c_str()), 0) << genCmd;
+  std::string compileCmd = std::string(CUDAQ_TEST_CXX_COMPILER) + " " +
+                           CUDAQ_TEST_CXX_FLAGS + " -I " +
+                           CUDAQ_TEST_INCLUDE_DIR + " " + genCpp.string() +
+                           " -o " + libPath.string();
+  ASSERT_EQ(std::system(compileCmd.c_str()), 0) << compileCmd;
+
+  cudaq::config::TargetCatalog registry;
+  auto added = registry.addPluginRoot(root);
+  ASSERT_EQ(added.size(), 1u);
+  const auto *entry = registry.lookup("multistage");
+  ASSERT_NE(entry, nullptr);
+  EXPECT_EQ(entry->origin, cudaq::config::detail::TargetOrigin::PluginLibrary);
+  ASSERT_TRUE(entry->config->BackendConfig.has_value());
+  const auto &stages = entry->config->BackendConfig->CompileTarget.stages;
+  ASSERT_EQ(stages.size(), 2u);
+  // Stage 1: custom pipeline lowering to the unchecked profile.
+  const auto *custom =
+      std::get_if<cudaq::config::CustomPipelineLowering>(&stages[0].lowering);
+  ASSERT_NE(custom, nullptr);
+  EXPECT_EQ(custom->overridePassPipeline, "canonicalize");
+  EXPECT_TRUE(std::holds_alternative<cudaq::config::UncheckedProfile>(
+      stages[0].irOutputProfile));
+  // Stage 2: inferred lowering to the physical profile, options preserved.
+  const auto *physical = std::get_if<cudaq::config::QuakeReferenceSemanticsProfile>(
+      &stages[1].irOutputProfile);
+  ASSERT_NE(physical, nullptr);
+  EXPECT_EQ(physical->basisGates, (std::vector<std::string>{"h", "rz"}));
+  EXPECT_EQ(physical->measurementType,
+            cudaq::config::MeasurementForm::single_qubit);
+  EXPECT_FALSE(physical->resetAfterMeasure);
+  EXPECT_TRUE(std::holds_alternative<cudaq::config::DefaultLowering>(
+      stages[1].lowering));
+  EXPECT_EQ(entry->config->BackendConfig->CompileTarget.codegen.emissionFormat,
+            "qir-base");
+  std::filesystem::remove_all(root);
+  std::filesystem::remove(genCpp);
+}
+
+TEST(TargetCatalogTester, v2EmptyStagesPluginLibraryRoundTrip) {
+  auto root = makeTempRoot();
+  const std::string emptyStagesYaml = R"(
+version: 2
+name: emptystages
+description: empty-stages v2 plugin
+config:
+  library-mode: true
+
+compile-target:
+  stages: []
+  codegen: qir-base
+)";
+  const auto yamlRoot = root / "yaml";
+  const auto ymlPath = yamlRoot / "targets" / "emptystages.yml";
+  writeFile(ymlPath, emptyStagesYaml);
+
+  // YAML catalog loading accepts the explicit empty list.
+  cudaq::config::TargetCatalog yamlRegistry;
+  ASSERT_EQ(yamlRegistry.addPluginRoot(yamlRoot).size(), 1u);
+  const auto *yamlEntry = yamlRegistry.lookup("emptystages");
+  ASSERT_NE(yamlEntry, nullptr);
+  ASSERT_TRUE(yamlEntry->config->BackendConfig.has_value());
+  const auto &yamlTarget = yamlEntry->config->BackendConfig->CompileTarget;
+  EXPECT_TRUE(yamlTarget.stages.empty());
+  EXPECT_EQ(yamlTarget.codegen.emissionFormat, "qir-base");
+  EXPECT_EQ(yamlTarget.getOverridePassPipeline(), nullptr);
+  EXPECT_FALSE(yamlTarget.hasPassPipeline());
+
+  const auto genCpp = root / "emptystages.gen.cpp";
+  const auto libPath =
+      root / "plugin" / "targets" /
+      ("emptystages" + std::string(cudaq::config::kSharedLibraryExtension));
+  std::filesystem::create_directories(libPath.parent_path());
+  std::string genCmd = std::string(CUDAQ_TARGET_DB_GEN_PATH) + " --plugin -o " +
+                       genCpp.string() + " emptystages=" + ymlPath.string();
+  ASSERT_EQ(std::system(genCmd.c_str()), 0) << genCmd;
+  std::string compileCmd = std::string(CUDAQ_TEST_CXX_COMPILER) + " " +
+                           CUDAQ_TEST_CXX_FLAGS + " -I " +
+                           CUDAQ_TEST_INCLUDE_DIR + " " + genCpp.string() +
+                           " -o " + libPath.string();
+  ASSERT_EQ(std::system(compileCmd.c_str()), 0) << compileCmd;
+
+  cudaq::config::TargetCatalog registry;
+  ASSERT_EQ(registry.addPluginRoot(root / "plugin").size(), 1u);
+  const auto *entry = registry.lookup("emptystages");
+  ASSERT_NE(entry, nullptr);
+  EXPECT_EQ(entry->origin, cudaq::config::detail::TargetOrigin::PluginLibrary);
+  ASSERT_TRUE(entry->config->BackendConfig.has_value());
+  const auto &pluginTarget = entry->config->BackendConfig->CompileTarget;
+  // The generated plugin round trips the same empty-stages target.
+  EXPECT_EQ(pluginTarget, yamlTarget);
+  EXPECT_TRUE(pluginTarget.stages.empty());
+  EXPECT_EQ(pluginTarget.codegen.emissionFormat, "qir-base");
+  EXPECT_EQ(pluginTarget.getOverridePassPipeline(), nullptr);
+  EXPECT_FALSE(pluginTarget.hasPassPipeline());
+
+  // Native construction preserves zero stages and the codegen selection.
+  const auto native =
+      cudaq::CompileTarget::createFromConfig(*entry->config, {});
+  EXPECT_TRUE(native.stages.empty());
+  EXPECT_EQ(native.codegen.emissionFormat, "qir-base");
+  EXPECT_EQ(native.getOverridePassPipeline(), nullptr);
+  EXPECT_FALSE(native.hasPassPipeline());
   std::filesystem::remove_all(root);
   std::filesystem::remove(genCpp);
 }

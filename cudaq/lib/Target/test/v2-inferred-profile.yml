@@ -1,0 +1,36 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         #
+# All rights reserved.                                                        #
+#                                                                              #
+# This source code and the accompanying materials are made available under    #
+# the terms of the Apache License 2.0 which accompanies this distribution.    #
+# ============================================================================ #
+
+# RUN: %target-catalog-driver parse %s | FileCheck %s --check-prefix=PARSE
+
+# An omitted `lowering` infers the stage pipeline from the stage's profiles;
+# the driver prints the stage and its profile options without assuming a
+# custom pipeline.
+
+version: 2
+name: lit-v2-inferred
+description: "Inferred lowering through the catalog driver"
+config:
+  library-mode: false
+
+compile-target:
+  stages:
+    - ir-output-profile:
+        name: quake-reference-semantics
+        options:
+          basis-gates: ["h", "rz", "x(1)"]
+          measurement-type: single-qubit
+          reset-after-measure: true
+  codegen: qir-adaptive
+
+# PARSE: name: lit-v2-inferred
+# PARSE:   stage: ir-output-profile=quake-reference-semantics lowering=inferred
+# PARSE:     basis-gates: ["h", "rz", "x(1)"]
+# PARSE:     measurement-type: single-qubit
+# PARSE:     reset-after-measure: true
+# PARSE:   codegen-emission: qir-adaptive

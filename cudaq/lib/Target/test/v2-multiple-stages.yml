@@ -1,0 +1,54 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         #
+# All rights reserved.                                                        #
+#                                                                              #
+# This source code and the accompanying materials are made available under    #
+# the terms of the Apache License 2.0 which accompanies this distribution.    #
+# ============================================================================ #
+
+# RUN: %target-catalog-driver parse %s | FileCheck %s --check-prefix=PARSE
+# RUN: %target-catalog-driver emit %s | FileCheck %s --check-prefix=EMIT
+# RUN: %cudaq-target-db-gen -o %t.db.cpp v2-multi=%S/v2-multiple-stages.yml
+# RUN: FileCheck %s --input-file=%t.db.cpp --check-prefix=GEN
+
+# Multiple stages: a custom unchecked stage followed by an inferred physical
+# lowering. Stage order is preserved through the canonical model and the
+# generated database entry, and a multistage target emits no single AOT
+# override pipeline name.
+
+version: 2
+name: v2-multi
+description: "Multiple compile-target stages round trip"
+config:
+  gen-target-backend: true
+  library-mode: false
+
+compile-target:
+  stages:
+    - ir-output-profile:
+        name: unchecked
+      lowering:
+        custom-pipeline: "func.func(canonicalize)"
+    - ir-output-profile:
+        name: quake-reference-semantics
+        options:
+          basis-gates: ["h", "s", "rz"]
+          measurement-type: any
+  codegen: qir-base
+
+# PARSE:   stage: ir-output-profile=unchecked lowering=custom-pipeline
+# PARSE:     target-pass-pipeline: func.func(canonicalize)
+# PARSE:   stage: ir-output-profile=quake-reference-semantics lowering=inferred
+# PARSE:     basis-gates: ["h", "s", "rz"]
+# PARSE:     measurement-type: any
+# PARSE:     reset-after-measure: false
+# PARSE:   codegen-emission: qir-base
+
+# EMIT: GEN_TARGET_BACKEND=true
+# EMIT-NOT: TARGET_PASS_PIPELINE_NAME
+
+# GEN: kBuiltinTarget_v2_multi
+# GEN: .stages = {cudaq::config::CompilationStage{.irOutputProfile = cudaq::config::Profile{std::in_place_type<cudaq::config::UncheckedProfile>}, .lowering = cudaq::config::CustomPipelineLowering{.overridePassPipeline = "func.func(canonicalize)"
+# GEN: cudaq::config::CompilationStage{.irOutputProfile = cudaq::config::Profile{std::in_place_type<cudaq::config::QuakeReferenceSemanticsProfile>, cudaq::config::QuakeReferenceSemanticsProfile{.basisGates = {"h", "s", "rz", }, .measurementType = cudaq::config::MeasurementForm::any, .resetAfterMeasure = false}
+# GEN: .lowering = cudaq::config::DefaultLowering{}}, }
+# GEN: .codegen = cudaq::config::Codegen{.emissionFormat = "qir-base"
