@@ -696,6 +696,37 @@ operations, each operating on 2 qubits.
       :end-before: [End Docs]
 
 
+Whether a whole :code:`qvector` can supply the targets of a custom operation
+differs between Python and C++.
+
+.. tab:: Python
+
+    The target qubits of a custom operation can be passed individually, as a
+    whole :code:`qvector`, or as a combination of both. The total number of
+    qubits passed must equal the number of targets of the operation.
+
+    .. code-block:: python
+
+        qubits = cudaq.qvector(2)
+        my_cnot(qubits[0], qubits[1])
+        my_cnot(qubits)   # equivalent to the line above
+        my_cnot(*qubits)  # equivalent to the line above
+
+.. tab:: C++
+
+    The target qubits of a multi-qubit custom operation must be passed
+    individually. A :code:`cudaq::qvector` is accepted in two positions only:
+    as the single argument of a single-qubit custom operation, which applies
+    the operation to each qubit in the vector, and as the controls of a
+    controlled custom operation.
+
+    .. code-block:: cpp
+
+        cudaq::qvector q(2);
+        MyCNOT(q[0], q[1]);  // supported
+        // MyCNOT(q);        // not supported
+
+
 .. note::
 
   When a custom operation is used on hardware backends, it is synthesized to a

@@ -809,31 +809,6 @@ def EraseVectorCopyCtor : Pass<"erase-vector-copy-ctor"> {
   }];
 }
 
-def ExpandBroadcasts : Pass<"expand-broadcasts", "mlir::func::FuncOp"> {
-  let summary = "Expands veqs used as targets into individual qubits.";
-  let description = [{
-    A one-target operator applied to a `veq` broadcasts that operator over
-    every element of the vector. Given a vector of constant size `n`, this
-    pass rewrites
-    ```mlir
-    quake.* %veq : (!quake.veq<n>) -> ()
-    ```
-    into the `n` operations it stands for:
-    ```mlir
-    %arg0 = quake.extract_ref %veq[0] : (!quake.veq<n>) -> !quake.ref
-    quake.* %arg0 : (!quake.ref) -> ()
-    ...
-    %argn = quake.extract_ref %veq[n-1] : (!quake.veq<n>) -> !quake.ref
-    quake.* %argn : (!quake.ref) -> ()
-    ```
-    Parameters and attributes are replicated on each operation. Multi-qubit
-    operators (`swap`, `exp_pauli`, custom unitaries) are left alone: for those
-    a `veq` target is the operand list of a single N-qubit gate rather than a
-    broadcast. Controlled operators are left alone as well: only an
-    uncontrolled operator broadcasts.
-  }];
-}
-
 def ExpandControlNegations :
     Pass<"expand-control-negations", "mlir::func::FuncOp"> {
   let summary =
@@ -880,6 +855,31 @@ def ExpandMeasurements : Pass<"expand-measurements"> {
   let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect"];
 
   let constructor = "cudaq::opt::createExpandMeasurementsPass()";
+}
+
+def ExpandVeqUses : Pass<"expand-veq-uses", "mlir::func::FuncOp"> {
+  let summary = "Expands veqs used as targets into individual qubits.";
+  let description = [{
+    A one-target operator applied to a `veq` broadcasts that operator over
+    every element of the vector. Given a vector of constant size `n`, this
+    pass rewrites
+    ```mlir
+    quake.* %veq : (!quake.veq<n>) -> ()
+    ```
+    into the `n` operations it stands for:
+    ```mlir
+    %arg0 = quake.extract_ref %veq[0] : (!quake.veq<n>) -> !quake.ref
+    quake.* %arg0 : (!quake.ref) -> ()
+    ...
+    %argn = quake.extract_ref %veq[n-1] : (!quake.veq<n>) -> !quake.ref
+    quake.* %argn : (!quake.ref) -> ()
+    ```
+    Parameters and attributes are replicated on each operation. Multi-qubit
+    operators (`swap`, `exp_pauli`, custom unitaries) are left alone: for those
+    a `veq` target is the operand list of a single N-qubit gate rather than a
+    broadcast. Controlled operators are left alone as well: only an
+    uncontrolled operator broadcasts.
+  }];
 }
 
 def FactorQuantumAllocations :

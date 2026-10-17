@@ -257,7 +257,7 @@ cudaq_internal::compiler::Compiler::prepareModule(const std::string &kernelName,
         pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
       }
 
-      if (target.pipelineConfig.replaceStateWithKernel) {
+      if (target.replaceStateWithKernel) {
         pm.addNestedPass<mlir::func::FuncOp>(
             cudaq::opt::createReplaceStateWithKernel());
         cudaq::opt::addAggressiveInlining(pm);
@@ -297,7 +297,8 @@ cudaq_internal::compiler::Compiler::prepareModule(const std::string &kernelName,
 std::pair<bool, std::string>
 cudaq_internal::compiler::Compiler::executeMainPipeline(
     mlir::ModuleOp moduleOp, const std::string &kernelName) {
-  if (options.skipTargetLoweringPipeline || target.pipelineConfig.empty()) {
+  if (options.skipTargetLoweringPipeline || target.stages.empty() ||
+      target.getCustomPipelineLowering().empty()) {
     return {false, ""};
   }
   auto passPipelineConfig = getPassPipeline(target, options);
@@ -341,8 +342,8 @@ cudaq_internal::compiler::Compiler::assembleCompiledModule(
           cudaq_internal::compiler::CompiledModuleHelper::createJitArtifacts(
               kernelName,
               cudaq_internal::compiler::createJITEngine(
-                  clonedModule, target.pipelineConfig.codegenTranslation,
-                  isEntryPoint, options.disableQuantumOpts),
+                  clonedModule, target.codegen.emissionFormat, isEntryPoint,
+                  options.disableQuantumOpts),
               resultInfo, isFullySpecialized);
       // The first artifact is the kernel entry point; rename it to the
       // per-module name (relevant for the multi-module observe path where the
@@ -418,7 +419,7 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
   if (options.addSampleMeasurements &&
       !target.supportSampleWithoutMeasurements) {
     // No need to add measurements only to remove them eventually
-    if (target.pipelineConfig.postCodeGenPasses.find("remove-measurements") ==
+    if (target.codegen.postCodegenPasses.find("remove-measurements") ==
         std::string::npos)
       applyPipeline("func.func(add-measurements{use-evince=1})", moduleOp,
                     kernelName);
@@ -525,8 +526,8 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
 std::vector<cudaq::KernelExecution>
 cudaq_internal::compiler::Compiler::emitKernelExecutions(
     const cudaq::CompiledModule &compiled) {
-  const auto &codegenTranslation = target.pipelineConfig.codegenTranslation;
-  const auto &postCodeGenPasses = target.pipelineConfig.postCodeGenPasses;
+  const auto &codegenTranslation = target.codegen.emissionFormat;
+  const std::string postCodegenPasses = target.codegen.postCodegenPasses;
 
   // Apply user-specified codegen
   std::vector<cudaq::KernelExecution> codes;
@@ -547,13 +548,13 @@ cudaq_internal::compiler::Compiler::emitKernelExecutions(
         compiled_module->getContext()->disableMultithreading();
       if (codegenTranslation.starts_with("qir")) {
         if (failed(translation(
-                *compiled_module, codegenTranslation, outStr, postCodeGenPasses,
+                *compiled_module, codegenTranslation, outStr, postCodegenPasses,
                 printIR, printEachPass == cudaq::PrintEachPassMode::All,
                 enablePassStatistics, options.disableQuantumOpts)))
           throw std::runtime_error("Could not successfully translate to " +
                                    codegenTranslation + ".");
       } else {
-        if (failed(translation(*compiled_module, outStr, postCodeGenPasses,
+        if (failed(translation(*compiled_module, outStr, postCodegenPasses,
                                printIR,
                                printEachPass == cudaq::PrintEachPassMode::All,
                                enablePassStatistics)))
