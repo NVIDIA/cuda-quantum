@@ -72,7 +72,7 @@ static llvm::cl::opt<std::string> convertTo(
     llvm::cl::value_desc(
         "Target transport layer format, <name[:version[:suboptions]]>. Valid "
         "names: \"qir\", \"qir-full\", \"qir-adaptive\", \"qir-base\", "
-        "\"openqasm2\", \"iqm\"."),
+        "\"openqasm2\", \"openqasm2-braket\", \"iqm\"."),
     llvm::cl::init("qir:0.1"));
 
 static llvm::cl::opt<bool> emitLLVM(
@@ -164,6 +164,8 @@ int main(int argc, char **argv) {
   bool targetUsesLlvm = emitLLVM;
   auto *modOp = module->getOperation();
   auto modLoc = module->getLoc();
+  StringRef convertValue = convertTo.getValue();
+  auto convertPair = convertValue.split(':');
   // Declare actions here to avoid outer closure going out of scope below.
   auto iqmAction = [&]() {
     if (failed(cudaq::translateToIQMJson(modOp, out.os()))) {
@@ -172,14 +174,15 @@ int main(int argc, char **argv) {
     }
   };
   auto qasmAction = [&]() {
-    if (failed(cudaq::translateToOpenQASM(modOp, out.os()))) {
+    const auto profile = convertPair.first == "openqasm2-braket"
+                             ? cudaq::OpenQASMProfile::Braket
+                             : cudaq::OpenQASMProfile::Standard;
+    if (failed(cudaq::translateToOpenQASM(modOp, out.os(), profile))) {
       cudaq::emitFatalError(modLoc, "translation failed");
       std::exit(1);
     }
   };
 
-  StringRef convertValue = convertTo.getValue();
-  auto convertPair = convertValue.split(':');
   llvm::StringSwitch<std::function<void()>>(convertPair.first)
       .Cases({"qir", "qir-full", "qir-adaptive", "qir-base"},
              [&]() {
@@ -191,13 +194,13 @@ int main(int argc, char **argv) {
                cudaq::opt::addAOTPipelineConvertToQIR(pm, convertValue,
                                                       useValueSemantics);
              })
-      .Case("openqasm2",
-            [&]() {
-              targetUsesLlvm = false;
-              cudaq::opt::createTargetFinalizePipeline(pm);
-              cudaq::opt::addPipelineTranslateToOpenQASM(pm);
-              targetAction = qasmAction;
-            })
+      .Cases({"openqasm2", "openqasm2-braket"},
+             [&]() {
+               targetUsesLlvm = false;
+               cudaq::opt::createTargetFinalizePipeline(pm);
+               cudaq::opt::addPipelineTranslateToOpenQASM(pm);
+               targetAction = qasmAction;
+             })
       .Case("iqm",
             [&]() {
               targetUsesLlvm = false;
