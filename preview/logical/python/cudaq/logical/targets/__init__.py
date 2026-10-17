@@ -641,9 +641,16 @@ class Target(CustomTarget):
         return target
 
     @classmethod
-    def from_device(cls, name, device, *, clifford_t_precision=None, **kwargs):
+    def from_device(cls,
+                    name,
+                    device,
+                    *,
+                    runtime_backend=None,
+                    clifford_t_precision=None,
+                    **kwargs):
         """Create a target that lowers through the device's configured layers.
 
+        ``runtime_backend`` defaults to ``estimator`` when omitted or ``None``.
         A non-``None`` ``clifford_t_precision`` inserts Clifford+T synthesis
         before device lowering. ``None`` leaves the synthesis layer out.
         """
@@ -653,9 +660,12 @@ class Target(CustomTarget):
         if not isinstance(device, Device):
             raise TypeError(
                 "Target device must be a cudaq.logical.devices.Device")
+        if runtime_backend is None:
+            runtime_backend = estimator
         return cls._from_stack(name,
                                architecture=device.logical,
                                device=device,
+                               runtime_backend=runtime_backend,
                                clifford_t_precision=clifford_t_precision,
                                **kwargs)
 
