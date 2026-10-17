@@ -28,7 +28,7 @@ struct MPSSettings {
   cutensornetTensorSVDAlgo_t svdAlgo = CUTENSORNET_TENSOR_SVD_ALGO_GESVDJ;
   // Optional gauge option
   std::optional<cutensornetStateMPSGaugeOption_t> gaugeOption;
-  MPSSettings();
+  explicit MPSSettings(bool singlePrecision);
 };
 
 template <typename ScalarType = double>
