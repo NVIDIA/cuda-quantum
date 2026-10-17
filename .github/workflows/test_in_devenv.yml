@@ -131,6 +131,28 @@ jobs:
             --build-arg run_tests=true \
             --target test
 
+      - name: Test cudaq.logical (out-of-tree, toolchain audit)
+        run: |
+          docker buildx build --progress=plain --platform ${{ inputs.platform }} \
+            -f docker/build/cudaq.dev.Dockerfile . \
+            --build-context ccache-data=/tmp/ccache-data \
+            --build-arg base_image=${{ steps.build.outputs.base_image }} \
+            --build-arg install="CMAKE_BUILD_TYPE=Debug" \
+            --build-arg mpi="${{ inputs.mpi }}" \
+            --build-arg run_tests=true \
+            --target test-logical
+
+      - name: Test cudaq.logical (in-tree, CUDAQ_ENABLE_LOGICAL=ON)
+        run: |
+          docker buildx build --progress=plain --platform ${{ inputs.platform }} \
+            -f docker/build/cudaq.dev.Dockerfile . \
+            --build-context ccache-data=/tmp/ccache-data \
+            --build-arg base_image=${{ steps.build.outputs.base_image }} \
+            --build-arg install="CMAKE_BUILD_TYPE=Debug" \
+            --build-arg mpi="${{ inputs.mpi }}" \
+            --build-arg run_tests=true \
+            --target test-logical-intree
+
       - name: Test CUDA Quantum MPI Plugin Activation
         run: |
           docker buildx build --progress=plain --platform ${{ inputs.platform }} \

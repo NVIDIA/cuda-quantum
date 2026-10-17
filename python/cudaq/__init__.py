@@ -276,11 +276,19 @@ else:
     from .visualization.bloch_visualize import add_to_bloch_sphere
     from .visualization.bloch_visualize import show_bloch_sphere as show
 
-# If cudaq-logical is installed, check that it can be imported. Catches cases where cudaq
-# and cudaq-logical are installed in different directories, which is currently not supported.
+# cudaq.logical is optional and may be absent. If cudaq-logical is installed, check that it
+# can be imported. Catches cases where cudaq and cudaq-logical are installed in different
+# directories, which is currently not supported.
 try:
     from . import logical  # noqa: F401
 except ImportError:
+    # A failed import can leave half-initialized `cudaq.logical*` modules behind,
+    # which would break any later attempt to import them.
+    for _m in [
+            m for m in sys.modules if m == f"{__name__}.logical" or
+            m.startswith(f"{__name__}.logical.")
+    ]:
+        del sys.modules[_m]
     from importlib.metadata import PackageNotFoundError as _PkgNotFound, distribution as _dist
     try:
         _dist("cudaq-logical")

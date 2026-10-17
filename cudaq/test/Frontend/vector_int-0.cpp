@@ -8,7 +8,7 @@
 
 // RUN: cudaq-quake %s | cudaq-opt | FileCheck %s
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 struct VectorIntReturn {
   std::vector<int> operator()() __qpu__ { return {142, 243}; }

@@ -8,7 +8,7 @@
 
 // RUN: cudaq-quake %s | cudaq-opt --canonicalize | FileCheck %s
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel_c
 // CHECK-SAME: () -> i32 attributes {"cudaq-entrypoint", "cudaq-kernel"} {

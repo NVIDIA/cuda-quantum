@@ -8,7 +8,7 @@
 
 // RUN: cudaq-quake %s | FileCheck %s
 
-#include "cudaq.h"
+#include "cudaq/qis/qubit_qis.h"
 
 // `*p` is an lvalue: the object that `p` points to. A pointer variable has
 // storage of its own for the address (it is not the object that it points to),

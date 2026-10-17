@@ -15,7 +15,7 @@
 // RUN:   --canonicalize --apply-op-specialization | \
 // RUN:   FileCheck --check-prefix=LAMBDA2 %s
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 __qpu__ void magic_func(cudaq::qvector<> &q) {
   auto nQubits = q.size();

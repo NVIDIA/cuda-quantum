@@ -13,7 +13,7 @@
 // RUN:   FileCheck --check-prefix=WIRE %s
 // clang-format on
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 // A quantum operation the backend implements. The declaration is the one that
 // the backend ships, which the unit tests of the backend use too. The classical

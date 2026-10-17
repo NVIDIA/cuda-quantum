@@ -44,7 +44,6 @@ target_link_libraries(cudaq-mlir-runtime
   PRIVATE
     cudaq-common
     cudaq-qir-verifier
-    CUDAQTargetConfig
     cudaq-logger
     fmt::fmt-header-only
     cudaqMLIR

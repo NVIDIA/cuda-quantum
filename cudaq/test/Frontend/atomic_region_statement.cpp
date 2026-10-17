@@ -9,7 +9,7 @@
 // RUN: cudaq-quake %s | FileCheck %s
 // clang-format off
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 // A compound statement with the atomic quantum region attribute is a `cc.scope`
 // that has the `atomic_quantum_region` attribute. The attribute is spelled

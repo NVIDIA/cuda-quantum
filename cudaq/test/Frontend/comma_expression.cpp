@@ -8,7 +8,7 @@
 
 // RUN: cudaq-quake %s | cudaq-opt | FileCheck %s
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 // A comma expression evaluates its lhs for side-effects only and takes its
 // value from the rhs.

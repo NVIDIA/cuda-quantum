@@ -12,7 +12,7 @@
 // RUN: cudaq-translate %t.qke --convert-to=qir | FileCheck --check-prefix=QIR %s
 // clang-format on
 
-#include "cudaq.h"
+#include "cudaq/qis/qubit_qis.h"
 
 struct test {
   cudaq::qview<> q;

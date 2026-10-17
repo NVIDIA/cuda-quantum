@@ -28,17 +28,19 @@ static void setQubitMappingBypass(std::string &pipeline) {
 
 std::string cudaq_internal::compiler::getPassPipeline(
     const cudaq::CompileTarget &target, const cudaq::CompileOptions &options) {
-  const auto &pipelineConfig = target.pipelineConfig;
+  std::optional<cudaq::config::CustomPipelineLowering> pipelineConfig;
+  if (!target.stages.empty())
+    pipelineConfig = target.getCustomPipelineLowering();
   const std::string allowEarlyExit =
-      pipelineConfig.codegenTranslation.starts_with("qir-adaptive") ? "true"
-                                                                    : "false";
+      target.codegen.emissionFormat.starts_with("qir-adaptive") ? "true"
+                                                                : "false";
   const std::string noLoopUnroll =
-      pipelineConfig.codegenTranslation == "nop" ? " no-loop-unroll=true" : "";
+      target.codegen.emissionFormat == "nop" ? " no-loop-unroll=true" : "";
 
   std::string passPipeline = "canonicalize";
 
-  if (!pipelineConfig.overridePassPipeline.empty()) {
-    passPipeline = pipelineConfig.overridePassPipeline;
+  if (pipelineConfig && !pipelineConfig->overridePassPipeline.empty()) {
+    passPipeline = pipelineConfig->overridePassPipeline;
     return passPipeline;
   }
 
@@ -51,23 +53,26 @@ std::string cudaq_internal::compiler::getPassPipeline(
                                           allowEarlyExit + noLoopUnroll + "}");
 
   const std::string lowerDeviceCalls =
-      (pipelineConfig.codegenTranslation == "nop" && !options.emulate) ? "false"
-                                                                       : "true";
+      (target.codegen.emissionFormat == "nop" && !options.emulate) ? "false"
+                                                                   : "true";
   const std::string deployStage =
-      pipelineConfig.codegenTranslation == "nop"
+      target.codegen.emissionFormat == "nop"
           ? "jit-deploy-pipeline{no-loop-unroll=true}"
           : "jit-deploy-pipeline";
   const std::string finalizeStage =
       "jit-finalize-pipeline{lower-device-calls=" + lowerDeviceCalls + "}";
 
-  appendPipelineStage(passPipeline, pipelineConfig.highLevelPipeline);
+  if (pipelineConfig)
+    appendPipelineStage(passPipeline, pipelineConfig->highLevelPipeline);
   appendPipelineStage(passPipeline, deployStage);
-  appendPipelineStage(passPipeline, pipelineConfig.midLevelPipeline);
+  if (pipelineConfig)
+    appendPipelineStage(passPipeline, pipelineConfig->midLevelPipeline);
   appendPipelineStage(passPipeline, finalizeStage);
-  appendPipelineStage(passPipeline, pipelineConfig.lowLevelPipeline);
+  if (pipelineConfig)
+    appendPipelineStage(passPipeline, pipelineConfig->lowLevelPipeline);
 
   // Handle disable_qubit_mapping runtime option.
-  if (pipelineConfig.disableQubitMapping) {
+  if (target.disableQubitMapping) {
     setQubitMappingBypass(passPipeline);
     CUDAQ_INFO("disable_qubit_mapping option found, so updated lowering "
                "pipeline to {}",

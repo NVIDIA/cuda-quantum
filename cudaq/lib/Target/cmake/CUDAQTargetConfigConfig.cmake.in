@@ -1,0 +1,17 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+# Package config for the CUDAQ target-config component: the lightweight,
+# in-memory target configuration model. Self-contained: no YAML, reflect-cpp,
+# LLVM/MLIR, or other CUDA-Q component packages are required.
+
+@PACKAGE_INIT@
+
+if(NOT TARGET cudaq::CUDAQTargetConfig)
+  include("${CMAKE_CURRENT_LIST_DIR}/CUDAQTargetConfigTargets.cmake")
+endif()
