@@ -45,6 +45,30 @@ add_cudaq_hybrid_test(resource_count_phase)
 add_cudaq_hybrid_test(resource_count_qubit_indices)
 add_cudaq_hybrid_test(resource_count_wireset)
 
+# profile_handlers exercises pure C++ selection logic; no MLIR/runtime closure.
+add_executable(profile_handlers Regress/profile_handlers.cpp
+               ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/LoweringHandler.cpp)
+target_include_directories(profile_handlers PRIVATE
+                           ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/include
+                           ${CMAKE_SOURCE_DIR}/cudaq/include)
+set_target_properties(profile_handlers PROPERTIES
+                      RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
+# profile_stages exercises pure C++ inferred-stage planning; no MLIR/runtime
+# closure.
+add_executable(profile_stages Regress/profile_stages.cpp
+               ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/JITTargetPipeline.cpp
+               ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/LoweringHandler.cpp)
+target_include_directories(profile_stages PRIVATE
+                           ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/include
+                           ${CMAKE_SOURCE_DIR}/runtime
+                           ${CMAKE_SOURCE_DIR}/runtime/include
+                           ${CMAKE_SOURCE_DIR}/runtime/cudaq
+                           ${CMAKE_SOURCE_DIR}/cudaq/include)
+target_link_libraries(profile_stages PRIVATE CUDAQTargetConfig cudaq-logger)
+set_target_properties(profile_stages PROPERTIES
+                      RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
 # lit-based regression testing over the hybrid tests above. Each is a
 # self-contained executable invoked directly by its own embedded RUN line
 # (see add_cudaq_hybrid_test). This gives the runtime subsystem its own
@@ -71,6 +95,8 @@ if (CUDAQ_BUILD_TESTS AND NOT CUDAQ_DISABLE_CPP_FRONTEND)
     argument_conversion
     compile_target
     compile_target_conditional_feedback_crash
+    profile_handlers
+    profile_stages
     resource_count_phase
     resource_count_qubit_indices
     resource_count_wireset

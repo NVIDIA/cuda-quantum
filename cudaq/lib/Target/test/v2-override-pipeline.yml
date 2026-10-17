@@ -27,8 +27,8 @@ compile-target:
         custom-pipeline: "canonicalize,cse"
   codegen: qir-full
 
-# PARSE:   target-pass-pipeline: canonicalize,cse
-# PARSE:   ir-output-profile=unchecked
+# PARSE:   stage: ir-output-profile=unchecked lowering=custom-pipeline
+# PARSE:     target-pass-pipeline: canonicalize,cse
 # PARSE:   codegen-emission: qir-full
 
 # EMIT: TARGET_PASS_PIPELINE_NAME=target-pass-pipeline-lit-v2-override
