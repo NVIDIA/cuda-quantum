@@ -25,8 +25,9 @@ estimate an existing CUDA-Q application.
 The [kernel example][kernel-example] below defines a kernel that allocates two
 qubits, applies a Hadamard and a controlled-X to prepare a Bell pair, and
 measures both qubits in the Z basis. It selects `cql.targets.estimator`, which
-stops at logical compilation, then calls `cudaq.estimate(bell_pair)` to report
-the peak logical-qubit count and the Hadamard and controlled-X action counts:
+stops at a portable logical representation of the program, then calls
+`cudaq.estimate(bell_pair)` to report the peak logical-qubit count and the
+Hadamard and controlled-X action counts:
 
 ```{literalinclude} ../../../examples/00_logical_resource_estimate.py
 :language: python

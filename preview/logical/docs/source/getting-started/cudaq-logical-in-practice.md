@@ -226,20 +226,21 @@ compilation stages. For application developers, a
 an ordinary CUDA-Q kernel can use the same code,
 gadgets, physical bindings, and estimate options.
 
-Write the same Bell-pair workload as a kernel:
-
-```{literalinclude} ../../../examples/steane_bell_e2e_workflow.py
-:language: python
-:start-after: START_CUDA_Q_KERNEL
-:end-before: END_CUDA_Q_KERNEL
-```
-
 Expose `device` through `Target.from_device` and select the resulting target:
 
 ```{literalinclude} ../../../examples/steane_bell_e2e_workflow.py
 :language: python
 :start-after: START_CUDA_Q_TARGET
 :end-before: END_CUDA_Q_TARGET
+```
+
+This target can now be used with CUDA-Q kernels. For example, the same logical
+program can be written as a Bell-pair kernel:
+
+```{literalinclude} ../../../examples/steane_bell_e2e_workflow.py
+:language: python
+:start-after: START_CUDA_Q_KERNEL
+:end-before: END_CUDA_Q_KERNEL
 ```
 
 The target now handles logical compilation, placement, QEC realization, and

@@ -24,7 +24,7 @@ def bell_pair():
 
 
 # %%
-# Select the target that stops after portable logical compilation.
+# Select the target that stops at a portable logical representation.
 cudaq.set_target(cql.targets.estimator)
 
 # %%
