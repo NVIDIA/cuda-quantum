@@ -407,6 +407,70 @@ def test_nested_kernel_qview():
     assert counts["11"] == 100
 
 
+# Regression tests for #5646: a single-target (`numTargets == 1`) custom
+# operation must broadcast across a `qvector` argument and across several
+# individual qubit arguments, the same as a built-in single-target gate
+# (`x(q)`, `x(a, b)`). Before this fix, only `len(q) == 1` worked; anything
+# else hit the target-count check meant for the exact-match (`numTargets >
+# 1`) case.
+
+
+def test_single_target_broadcast_over_static_qvector():
+    """custom_x(q), q a qvector with a compile-time-known size"""
+    cudaq.register_operation("custom_x_broadcast_static", np.array([0, 1, 1,
+                                                                    0]))
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(3)
+        custom_x_broadcast_static(q)
+
+    counts = cudaq.sample(kernel, shots_count=1000)
+    assert counts["111"] == 1000
+
+
+def test_single_target_broadcast_over_dynamic_qvector():
+    """custom_x(q), q a qvector whose size is a runtime kernel argument"""
+    cudaq.register_operation("custom_x_broadcast_dynamic",
+                             np.array([0, 1, 1, 0]))
+
+    @cudaq.kernel
+    def kernel(n: int):
+        q = cudaq.qvector(n)
+        custom_x_broadcast_dynamic(q)
+
+    counts = cudaq.sample(kernel, 3, shots_count=1000)
+    assert counts["111"] == 1000
+
+
+def test_single_target_adjoint_broadcast_over_qvector():
+    """custom_x.adj(q), q a qvector -- was a compile error before this fix"""
+    cudaq.register_operation("custom_x_adj_broadcast", np.array([0, 1, 1, 0]))
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(3)
+        custom_x_adj_broadcast.adj(q)
+
+    counts = cudaq.sample(kernel, shots_count=1000)
+    # X is self-adjoint, so this still flips every qubit.
+    assert counts["111"] == 1000
+
+
+def test_single_target_broadcast_over_individual_refs():
+    """custom_x(a, b), each argument an individual qubit reference"""
+    cudaq.register_operation("custom_x_broadcast_refs", np.array([0, 1, 1, 0]))
+
+    @cudaq.kernel
+    def kernel():
+        a = cudaq.qubit()
+        b = cudaq.qubit()
+        custom_x_broadcast_refs(a, b)
+
+    counts = cudaq.sample(kernel, shots_count=1000)
+    assert counts["11"] == 1000
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
