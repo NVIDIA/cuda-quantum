@@ -15,6 +15,7 @@ import traceback
 import importlib
 import numpy as np
 from typing import get_origin, get_args, Callable, List
+import collections.abc
 import types
 from contextlib import contextmanager
 from cudaq.mlir.execution_engine import ExecutionEngine
@@ -494,35 +495,51 @@ def mlirTypeFromAnnotation(annotation,
                 if annotation.attr == 'int8':
                     return IntegerType.get_signless(8)
 
-        if isinstance(annotation,
-                      ast.Subscript) and annotation.value.id == 'Callable':
-            if not hasattr(annotation, 'slice'):
+        is_callable = False
+        callable_node = None
+        if isinstance(annotation, ast.Subscript):
+            if isinstance(annotation.value, ast.Name) and annotation.value.id == 'Callable':
+                is_callable = True
+                callable_node = annotation
+            elif isinstance(annotation.value, ast.Attribute) and annotation.value.attr == 'Callable':
+                is_callable = True
+                callable_node = annotation
+        elif isinstance(annotation, ast.Name) and annotation.id == 'Callable':
+            return cc.CallableType.get(ctx, [], [])
+        elif isinstance(annotation, ast.Attribute) and annotation.attr == 'Callable':
+            return cc.CallableType.get(ctx, [], [])
+
+        if is_callable and callable_node is not None:
+            if not hasattr(callable_node, 'slice'):
                 localEmitFatalError(
                     f"Callable type must have signature specified ("
-                    f"{ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
+                    f"{ast.unparse(callable_node) if hasattr(ast, 'unparse') else callable_node})."
                 )
 
-            if hasattr(annotation.slice, 'elts') and len(
-                    annotation.slice.elts) == 2:
-                args = annotation.slice.elts[0]
-                ret = annotation.slice.elts[1]
-            elif hasattr(annotation.slice, 'value') and hasattr(
-                    annotation.slice.value, 'elts') and len(
-                        annotation.slice.value.elts) == 2:
-                args = annotation.slice.value.elts[0]
-                ret = annotation.slice.value.elts[1]
+            if hasattr(callable_node.slice, 'elts') and len(
+                    callable_node.slice.elts) == 2:
+                args = callable_node.slice.elts[0]
+                ret = callable_node.slice.elts[1]
+            elif hasattr(callable_node.slice, 'value') and hasattr(
+                    callable_node.slice.value, 'elts') and len(
+                        callable_node.slice.value.elts) == 2:
+                args = callable_node.slice.value.elts[0]
+                ret = callable_node.slice.value.elts[1]
             else:
                 localEmitFatalError(
                     f"Unable to get list elements when inferring type from annotation ("
-                    f"{ast.unparse(annotation) if hasattr(ast, 'unparse') else annotation})."
+                    f"{ast.unparse(callable_node) if hasattr(ast, 'unparse') else callable_node})."
                 )
-            argTypes = [
-                mlirTypeFromAnnotation(a,
-                                       ctx,
-                                       raiseError=raiseError,
-                                       cudaqAliases=cudaqAliases)
-                for a in args.elts
-            ]
+            if hasattr(args, 'elts'):
+                argTypes = [
+                    mlirTypeFromAnnotation(a,
+                                           ctx,
+                                           raiseError=raiseError,
+                                           cudaqAliases=cudaqAliases)
+                    for a in args.elts
+                ]
+            else:
+                argTypes = []
             if not isinstance(ret, ast.Constant) or ret.value:
                 localEmitFatalError("passing kernels as arguments that return"
                                     " a value is not currently supported")
@@ -764,8 +781,19 @@ def mlirTypeFromPyType(argType, ctx, **kwargs):
 
     if 'argInstance' in kwargs:
         argInstance = kwargs['argInstance']
-        if isinstance(argInstance, Callable):
-            return cc.CallableType.get(ctx, argInstance.argTypes, [])
+        if isinstance(argInstance, (Callable, collections.abc.Callable)):
+            if hasattr(argInstance, "argTypes"):
+                return cc.CallableType.get(ctx, argInstance.argTypes, [])
+            if hasattr(argInstance, "signature") and hasattr(
+                    argInstance.signature, "get_callable_type"):
+                return argInstance.signature.get_callable_type()
+            if hasattr(argInstance, "arg_types"):
+                return cc.CallableType.get(ctx, argInstance.arg_types(), [])
+            if 'argTypeToCompareTo' in kwargs and kwargs[
+                    'argTypeToCompareTo'] is not None and cc.CallableType.isinstance(
+                        kwargs['argTypeToCompareTo']):
+                return kwargs['argTypeToCompareTo']
+            return cc.CallableType.get(ctx, [], [])
 
     for name in globalRegisteredTypes.classes:
         customTy, memberTys = globalRegisteredTypes.getClassAttributes(name)

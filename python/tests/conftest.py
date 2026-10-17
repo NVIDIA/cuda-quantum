@@ -42,7 +42,11 @@ def _openfermion_data_directory(tmp_path_factory):
     process working directory. Without this, running the suite from the repo
     root leaves untracked files (e.g. `H2_sto-3g_singlet.hdf5`) behind.
     """
-    from cudaq.domains import chemistry
+    try:
+        from cudaq.domains import chemistry
+    except ImportError:
+        yield
+        return
 
     original = chemistry.DATA_DIRECTORY
     chemistry.DATA_DIRECTORY = str(tmp_path_factory.mktemp("openfermion"))
