@@ -2810,6 +2810,53 @@ class PyASTBridge(ast.NodeVisitor):
                 processQuantumOperation(opName, controls, targets, [], params,
                                         **kwargs)
 
+        def emitCustomOpBroadcast(pyArgs, globalName, isAdj):
+            """Emit one `CustomUnitaryConstantOp` per qubit for a
+            single-target (`numTargets == 1`) custom operation, broadcasting
+            across each `qvector` argument and each individual qubit
+            argument -- the same broadcast rule built-in single-target gates
+            follow (see `processQuantumOperation`'s default
+            `broadcast=lambda q: [q]`). Controls are never present here:
+            the plain call never takes them, and `.adj` takes none either.
+            """
+            with trace.span("ast_bridge.call.emit_custom_operation_broadcast"):
+                for arg in pyArgs:
+                    if isinstance(arg, ast.Starred):
+                        self.visit(arg.value)
+                    else:
+                        self.visit(arg)
+                    val = self.popValue()
+                    if quake.RefType.isinstance(val.type):
+                        quake.CustomUnitaryConstantOp(
+                            [],
+                            matrix=FlatSymbolRefAttr.get(globalName),
+                            parameters=[],
+                            controls=[],
+                            targets=[val],
+                            is_adj=isAdj)
+                    elif quake.VeqType.isinstance(val.type):
+
+                        def bodyBuilder(iterVal):
+                            q = quake.ExtractRefOp(self.getRefType(),
+                                                   val,
+                                                   -1,
+                                                   index=iterVal).result
+                            quake.CustomUnitaryConstantOp(
+                                [],
+                                matrix=FlatSymbolRefAttr.get(globalName),
+                                parameters=[],
+                                controls=[],
+                                targets=[q],
+                                is_adj=isAdj)
+
+                        veqSize = quake.VeqSizeOp(self.getIntegerType(),
+                                                  val).result
+                        self.createInvariantForLoop(bodyBuilder, veqSize)
+                    else:
+                        self.emitFatalError(
+                            'invalid target operand for custom operation: '
+                            'expected a qubit or qvector', node)
+
         processDecorator = self.__processDecorator
 
         def lookupExternKernel(name, path=None):
@@ -3365,9 +3412,6 @@ class PyASTBridge(ast.NodeVisitor):
                 with trace.span("ast_bridge.call.emit_custom_operation"):
                     unitary = globalRegisteredOperations[node.func.id]
                     numTargets = int(np.log2(np.sqrt(unitary.size)))
-                    targets = self.__expandCustomOpTargets(
-                        node.args, numTargets, node)
-
                     globalName = f'{nvqppPrefix}{node.func.id}_generator_{numTargets}.rodata'
 
                     currentST = SymbolTable(self.module.operation)
@@ -3376,13 +3420,25 @@ class PyASTBridge(ast.NodeVisitor):
                             gen_vector_of_complex_constant(
                                 self.loc, self.module, globalName,
                                 unitary.tolist())
-                    quake.CustomUnitaryConstantOp(
-                        [],
-                        matrix=FlatSymbolRefAttr.get(globalName),
-                        parameters=[],
-                        controls=[],
-                        targets=targets,
-                        is_adj=False)
+
+                    if numTargets == 1:
+                        # A single-target custom operation broadcasts across
+                        # each `qvector` argument and each individual qubit
+                        # argument, the same as a built-in single-target
+                        # gate (#5646).
+                        emitCustomOpBroadcast(node.args,
+                                              globalName,
+                                              isAdj=False)
+                    else:
+                        targets = self.__expandCustomOpTargets(
+                            node.args, numTargets, node)
+                        quake.CustomUnitaryConstantOp(
+                            [],
+                            matrix=FlatSymbolRefAttr.get(globalName),
+                            parameters=[],
+                            controls=[],
+                            targets=targets,
+                            is_adj=False)
                 return
 
             elif node.func.id == 'int':
@@ -4284,6 +4340,16 @@ class PyASTBridge(ast.NodeVisitor):
                                 gen_vector_of_complex_constant(
                                     self.loc, self.module, globalName,
                                     unitary.tolist())
+
+                        if node.func.attr == 'adj' and numTargets == 1:
+                            # Single-target adjoint broadcasts across each
+                            # `qvector` argument and each individual qubit
+                            # argument, the same as the plain call (#5646).
+                            # `.adj` never takes controls.
+                            emitCustomOpBroadcast(node.args,
+                                                  globalName,
+                                                  isAdj=True)
+                            return
 
                         if node.func.attr == 'ctrl':
                             controls, targets = groupValues(
