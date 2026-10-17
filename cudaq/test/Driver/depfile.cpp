@@ -49,7 +49,7 @@
 
 // clang-format on
 #include "dep_header.h"
-#include <cudaq.h>
+#include <cstddef>
 
 int plain_old_function() { return cudaq_test_dep_value(); }
 

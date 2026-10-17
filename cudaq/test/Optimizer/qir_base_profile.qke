@@ -6,7 +6,9 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --convert-to-qir-api=api=base-profile %s | FileCheck --implicit-check-not='llvm.func @generalizedInvokeWithRotationsControlsTargets' %s
+// RUN: cudaq-opt --convert-to-qir-api=api=base-profile %s | FileCheck --implicit-check-not='llvm.func @generalizedInvokeWithRotationsControlsTargets' %s --check-prefixes=CHECK,PARAMS
+// RUN: cudaq-opt --convert-to-qir-api=api=full %s | FileCheck %s --check-prefix=PARAMS
+// RUN: cudaq-opt --convert-to-qir-api=api=adaptive-profile %s | FileCheck %s --check-prefix=PARAMS
 
 module attributes {cc.sizeof_string = 32 : i64, llvm.data_layout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-f80:128-n8:16:32:64-S128", llvm.triple = "x86_64-unknown-linux-gnu", quake.mangled_name_map = {__nvqpp__mlirgen__function_grover._Z6groverv = "_Z6groverv", __nvqpp__mlirgen__function_oracle._Z6oracleRN5cudaq7qvectorILm2EEERNS_5quditILm2EEE = "_Z6oracleRN5cudaq7qvectorILm2EEERNS_5quditILm2EEE", __nvqpp__mlirgen__function_reflect_uniform._Z15reflect_uniformRN5cudaq7qvectorILm2EEE = "_Z15reflect_uniformRN5cudaq7qvectorILm2EEE"}} {
   func.func @__nvqpp__mlirgen__function_grover._Z6groverv() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
@@ -66,6 +68,14 @@ module attributes {cc.sizeof_string = 32 : i64, llvm.data_layout = "e-m:e-p270:3
     %19 = cc.compute_ptr %8[3] : (!cc.ptr<!cc.array<i8 x 4>>) -> !cc.ptr<i8>
     %20 = cc.cast unsigned %18 : (i1) -> i8
     cc.store %20, %19 : !cc.ptr<i8>
+    return
+  }
+
+  // Hand-written gate sequence covers forward and adjoint parameter lowering.
+  func.func @rotation_parameters(%theta: f64, %phi: f64, %lambda: f64, %q: !quake.ref) {
+    quake.phased_rx (%theta, %phi) %q : (f64, f64, !quake.ref) -> ()
+    quake.u3<adj> (%theta, %phi, %lambda) %q : (f64, f64, f64, !quake.ref) -> ()
+    quake.phased_rx<adj> (%theta, %phi) %q : (f64, f64, !quake.ref) -> ()
     return
   }
 }
@@ -154,6 +164,20 @@ module attributes {cc.sizeof_string = 32 : i64, llvm.data_layout = "e-m:e-p270:3
 // CHECK:           call @__quantum__rt__result_record_output(%[[VAL_35]], %[[VAL_37]]) {ResultIndex = 3 : i64, registerName = "r00003"} : (!cc.ptr<!llvm.struct<"Result", opaque>>, !cc.ptr<i8>) -> ()
 // CHECK:           return
 // CHECK:         }
+
+// PARAMS-LABEL:   func.func @rotation_parameters(
+// PARAMS-SAME:      %[[THETA:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: f64,
+// PARAMS-SAME:      %[[PHI:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: f64,
+// PARAMS-SAME:      %[[LAMBDA:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: f64,
+// PARAMS-SAME:      %[[Q:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: !cc.ptr<!llvm.struct<"Qubit", opaque>>) attributes {"qir-api"} {
+// PARAMS:           call @__quantum__qis__phased_rx{{(__body)?}}(%[[THETA]], %[[PHI]], %[[Q]]) : (f64, f64, !cc.ptr<!llvm.struct<"Qubit", opaque>>) -> ()
+// PARAMS:           %[[NEGF_0:.*]] = arith.negf %[[THETA]] : f64
+// PARAMS:           %[[NEGF_1:.*]] = arith.negf %[[PHI]] : f64
+// PARAMS:           %[[NEGF_2:.*]] = arith.negf %[[LAMBDA]] : f64
+// PARAMS:           call @__quantum__qis__u3{{(__body)?}}(%[[NEGF_0]], %[[NEGF_2]], %[[NEGF_1]], %[[Q]]) : (f64, f64, f64, !cc.ptr<!llvm.struct<"Qubit", opaque>>) -> ()
+// PARAMS:           %[[NEGF_3:.*]] = arith.negf %[[THETA]] : f64
+// PARAMS:           call @__quantum__qis__phased_rx{{(__body)?}}(%[[NEGF_3]], %[[PHI]], %[[Q]]) : (f64, f64, !cc.ptr<!llvm.struct<"Qubit", opaque>>) -> ()
+
 // CHECK-COUNT-1: llvm.func @generalizedInvokeWithRotationsControlsTargets(i64, i64, i64, i64, !llvm.ptr, ...) attributes {sym_visibility = "private"}
 // CHECK:         func.func private @__quantum__rt__qubit_allocate() -> !cc.ptr<!llvm.struct<"Qubit", opaque>>
 // CHECK:         func.func private @__quantum__rt__qubit_allocate_array(i64) -> !cc.ptr<!llvm.struct<"Array", opaque>>

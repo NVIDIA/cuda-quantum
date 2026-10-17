@@ -35,6 +35,7 @@ public:
   std::string toJson();
 
   // Write the current JSON to `path`, or to the ctor path if `path` is empty.
+  // A path of "-" writes one line to stderr instead of a file.
   // No-op if neither is provided. Non-destructive; the buffer stays intact.
   void writeFile(std::optional<std::string> path = {});
 

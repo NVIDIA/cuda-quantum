@@ -79,9 +79,12 @@ class GadgetDefinition(ImmutableValue):
         metadata: Mapping[str, Any] | None = None,
         type_hints: Mapping[str, Any] | None = None,
     ) -> None:
-        from cudaq.kernel.kernel_decorator import isa_kernel_decorator
+        import sys
 
-        if isa_kernel_decorator(implements):
+        # A frontend kernel can only exist if its defining module is loaded.
+        # Logical-only gadgets must not initialize the execution frontend.
+        frontend = sys.modules.get("cudaq.kernel.kernel_decorator")
+        if frontend is not None and frontend.isa_kernel_decorator(implements):
             from cudaq.logical.programs.kernel_objective import (
                 program_definition_from_kernel,)
 

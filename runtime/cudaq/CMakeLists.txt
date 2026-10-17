@@ -18,7 +18,6 @@ add_library(${LIBRARY_NAME}
     target_control.cpp
     algorithms/draw.cpp
     algorithms/encoding.cpp
-    algorithms/estimate/result.cpp
     algorithms/policy_compile_options.cpp
     algorithms/run.cpp
     algorithms/schedule.cpp
@@ -71,14 +70,12 @@ if (CUDA_FOUND)
       $<$<BOOL:${CUDAQ_ENABLE_NLOPT}>:cudaq::cudaq-nlopt>
       $<$<BOOL:${CUDAQ_ENABLE_ENSMALLEN}>:cudaq::cudaq-ensmallen>
       cudaq-logger
-      CUDAQTargetConfig
+      CUDAQTargetCatalog
     PRIVATE
       cudaqMLIR
       nvqir
       fmt::fmt-header-only
       CUDA::cudart_static
-      CUDAQTargetConfigYaml
-      CUDAQTargetDatabase
   )
 
   target_compile_definitions(${LIBRARY_NAME} PRIVATE CUDAQ_HAS_CUDA)
@@ -99,13 +96,11 @@ else()
       $<$<BOOL:${CUDAQ_ENABLE_NLOPT}>:cudaq::cudaq-nlopt>
       $<$<BOOL:${CUDAQ_ENABLE_ENSMALLEN}>:cudaq::cudaq-ensmallen>
       cudaq-logger
-      CUDAQTargetConfig
+      CUDAQTargetCatalog
     PRIVATE
       cudaqMLIR
       nvqir
       fmt::fmt-header-only
-      CUDAQTargetConfigYaml
-      CUDAQTargetDatabase
   )
 endif()
 

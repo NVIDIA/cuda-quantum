@@ -32,13 +32,14 @@ struct CUDAQLibraryData {
   std::string path;
 };
 
+// Execution resources belong to the frontend library, not cudaq-common in core.
 #if defined(__APPLE__) && defined(__MACH__)
 inline static void getCUDAQLibraryPath(CUDAQLibraryData *data) {
   auto nLibs = _dyld_image_count();
   for (uint32_t i = 0; i < nLibs; i++) {
     auto ptr = _dyld_get_image_name(i);
     std::string libName(ptr);
-    if (libName.find("cudaq-common") != std::string::npos) {
+    if (libName.find("libcudaq.") != std::string::npos) {
       auto casted = static_cast<CUDAQLibraryData *>(data);
       casted->path = std::string(ptr);
     }
@@ -48,7 +49,7 @@ inline static void getCUDAQLibraryPath(CUDAQLibraryData *data) {
 inline static int getCUDAQLibraryPath(struct dl_phdr_info *info, size_t size,
                                       void *data) {
   std::string libraryName(info->dlpi_name);
-  if (libraryName.find("cudaq-common") != std::string::npos) {
+  if (libraryName.find("libcudaq.") != std::string::npos) {
     auto casted = static_cast<CUDAQLibraryData *>(data);
     casted->path = std::string(info->dlpi_name);
   }

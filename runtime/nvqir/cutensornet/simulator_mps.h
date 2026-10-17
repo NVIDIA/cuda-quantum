@@ -143,12 +143,15 @@ public:
             exp_itheta2,       0., 0., 0., 0., exp_minus_itheta2};
   };
 
-  virtual void applyExpPauli(double theta,
-                             const std::vector<std::size_t> &controls,
-                             const std::vector<std::size_t> &qubitIds,
-                             const cudaq::spin_op_term &op) override {
+  virtual void
+  applyExpPauli(double theta, const std::vector<std::size_t> &controls,
+                const std::vector<std::size_t> &qubitIds,
+                const cudaq::spin_op_term &op,
+                const std::vector<std::int32_t> &controlValues = {}) override {
+    this->validateControlValues(controls.size(), controlValues);
     if (cudaq::isInTracerMode()) {
-      nvqir::CircuitSimulator::applyExpPauli(theta, controls, qubitIds, op);
+      nvqir::CircuitSimulator::applyExpPauli(theta, controls, qubitIds, op,
+                                             controlValues);
       return;
     }
     // Special handling for equivalence of Rxx(theta), Ryy(theta), Rzz(theta)
@@ -197,7 +200,7 @@ public:
     }
     // Let the base class to handle this Pauli rotation
     SimulatorTensorNetBase<ScalarType>::applyExpPauli(theta, controls, qubitIds,
-                                                      op);
+                                                      op, controlValues);
   }
 
   // Helper to compute expectation value from a bit string distribution

@@ -1,0 +1,64 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+# RUN: %target-catalog-driver parse %s | FileCheck %s --check-prefix=PARSE
+# RUN: %target-catalog-driver emit %s | FileCheck %s --check-prefix=EMIT
+# RUN: %target-catalog-driver codegen %s | FileCheck %s --check-prefix=CODEGEN
+
+# Schema v2: compilation options live in a dedicated `compile-target` block.
+# Each stage declares its IR output profile and the lowering to get there;
+# the `custom-pipeline` mapping inserts staged pipelines around the built-in
+# passes. The `codegen` mapping form selects the emission format and a
+# post-codegen pass pipeline.
+
+version: 2
+name: lit-v2
+description: "V2 compile-target coverage"
+config:
+  gen-target-backend: true
+  library-mode: false
+  platform-qpu: remote_rest
+  preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
+  link-libs: ["-lcudaq-rest-qpu"]
+  plugin-libraries: ["libcudaq-rest-qpu"]
+
+compile-target:
+  stages:
+    - ir-output-profile:
+        name: unchecked
+      lowering:
+        custom-pipeline:
+          high-level: "high-pipe"
+          mid-level: "mid-pipe"
+          low-level: "low-pipe"
+  codegen:
+    emission-format: qir-base
+    post-codegen-passes: "canonicalize"
+
+# PARSE: name: lit-v2
+# PARSE:   gen-target-backend: true
+# PARSE:   library-mode: false
+# PARSE:   jit-high-level-pipeline: high-pipe
+# PARSE:   jit-mid-level-pipeline: mid-pipe
+# PARSE:   jit-low-level-pipeline: low-pipe
+# PARSE:   codegen-emission: qir-base
+# PARSE:   post-codegen-passes: canonicalize
+# PARSE:   platform-qpu: remote_rest
+# PARSE:   preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
+# PARSE:   link-libs: ["-lcudaq-rest-qpu"]
+# PARSE:   plugin-libraries: ["libcudaq-rest-qpu"]
+
+# EMIT: GEN_TARGET_BACKEND=true
+# EMIT: JIT_HIGH_LEVEL_PIPELINE="high-pipe"
+# EMIT: JIT_MID_LEVEL_PIPELINE="mid-pipe"
+# EMIT: JIT_LOW_LEVEL_PIPELINE="low-pipe"
+# EMIT: CODEGEN_EMISSION=qir-base
+# EMIT: POST_CODEGEN_PASSES="canonicalize"
+# EMIT: PLATFORM_QPU=remote_rest
+
+# CODEGEN: codegen-emission: qir-base

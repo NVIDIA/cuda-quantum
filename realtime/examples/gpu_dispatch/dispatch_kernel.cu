@@ -51,16 +51,25 @@
 //==============================================================================
 
 /// @brief Test handler that adds 1 to each byte.
-__device__ int increment_handler(const void *input, void *output,
-                                 std::uint32_t arg_len,
-                                 std::uint32_t max_result_len,
-                                 std::uint32_t *result_len) {
-  const std::uint8_t *in_data = static_cast<const std::uint8_t *>(input);
-  std::uint8_t *out_data = static_cast<std::uint8_t *>(output);
+///
+/// Same two-pointer form as a host-call handler: the request (RPCHeader +
+/// payload) is in rx_slot, the result goes after the RPCResponse in tx_slot,
+/// and the handler sets result_len.  The dispatch kernel fills the other
+/// response header fields.
+__device__ int increment_handler(const void *rx_slot, void *tx_slot,
+                                 std::size_t slot_size) {
+  const auto *header = static_cast<const cudaq::realtime::RPCHeader *>(rx_slot);
+  const std::uint8_t *in_data =
+      reinterpret_cast<const std::uint8_t *>(header + 1);
+  auto *response = static_cast<cudaq::realtime::RPCResponse *>(tx_slot);
+  std::uint8_t *out_data = reinterpret_cast<std::uint8_t *>(response + 1);
+  const std::uint32_t arg_len = header->arg_len;
+  const std::uint32_t max_result_len =
+      slot_size - sizeof(cudaq::realtime::RPCResponse);
   for (std::uint32_t i = 0; i < arg_len && i < max_result_len; ++i) {
     out_data[i] = in_data[i] + 1;
   }
-  *result_len = arg_len;
+  response->result_len = arg_len;
   return 0;
 }
 
@@ -71,16 +80,20 @@ __device__ int increment_handler(const void *input, void *output,
 constexpr std::uint32_t RPC_INCREMENT_FUNCTION_ID =
     cudaq::realtime::fnv1a_hash("rpc_increment");
 
-__device__ int rpc_increment_handler(const void *input, void *output,
-                                     std::uint32_t arg_len,
-                                     std::uint32_t max_result_len,
-                                     std::uint32_t *result_len) {
-  const std::uint8_t *in_data = static_cast<const std::uint8_t *>(input);
-  std::uint8_t *out_data = static_cast<std::uint8_t *>(output);
+__device__ int rpc_increment_handler(const void *rx_slot, void *tx_slot,
+                                     std::size_t slot_size) {
+  const auto *header = static_cast<const cudaq::realtime::RPCHeader *>(rx_slot);
+  const std::uint8_t *in_data =
+      reinterpret_cast<const std::uint8_t *>(header + 1);
+  auto *response = static_cast<cudaq::realtime::RPCResponse *>(tx_slot);
+  std::uint8_t *out_data = reinterpret_cast<std::uint8_t *>(response + 1);
+  const std::uint32_t arg_len = header->arg_len;
+  const std::uint32_t max_result_len =
+      slot_size - sizeof(cudaq::realtime::RPCResponse);
   for (std::uint32_t i = 0; i < arg_len && i < max_result_len; ++i) {
     out_data[i] = static_cast<std::uint8_t>(in_data[i] + 1);
   }
-  *result_len = arg_len;
+  response->result_len = arg_len;
   return 0;
 }
 
@@ -180,8 +193,7 @@ extern "C" void launch_dispatch_kernel_wrapper(
 // Test Kernel for DeviceCallMode
 //==============================================================================
 
-using HandlerFunc = int (*)(const void *, void *, std::uint32_t, std::uint32_t,
-                            std::uint32_t *);
+using HandlerFunc = int (*)(const void *, void *, std::size_t);
 
 __device__ HandlerFunc d_increment_handler = increment_handler;
 

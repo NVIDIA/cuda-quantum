@@ -10,6 +10,7 @@
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "llvm/ADT/MapVector.h"
 #include "mlir/IR/PatternMatch.h"
+#include "mlir/IR/SymbolTable.h"
 #include "mlir/Transforms/Passes.h"
 
 namespace cudaq::opt {
@@ -29,6 +30,9 @@ public:
 
   void runOnOperation() override {
     auto module = getOperation();
+    // Symbols are neither added nor removed by this pass. Reuse their tables
+    // instead of scanning the enclosing module for every custom-gate call.
+    SymbolTableCollection symbolTables;
     // Collect all calls before walking any generator body. Replacing a call
     // cannot create another candidate, so this snapshot is complete.
     llvm::SmallMapVector<func::FuncOp,
@@ -40,8 +44,8 @@ public:
           // when the pass root contains nested modules with their own symbol
           // tables.
           auto parentModule = customOp->getParentOfType<ModuleOp>();
-          auto generator =
-              parentModule.lookupSymbol<func::FuncOp>(customOp.getGenerator());
+          auto generator = symbolTables.lookupSymbolIn<func::FuncOp>(
+              parentModule, customOp.getGenerator());
           if (!generator)
             return;
 
@@ -70,7 +74,8 @@ public:
         }
 
         auto parentModule = customOp->getParentOfType<ModuleOp>();
-        if (!parentModule.lookupSymbol<cudaq::cc::GlobalOp>(concreteMatrix))
+        if (!symbolTables.getSymbolTable(parentModule)
+                 .lookup<cudaq::cc::GlobalOp>(concreteMatrix))
           continue;
 
         rewriter.setInsertionPoint(customOp);

@@ -425,6 +425,9 @@ static bool isSubCircuitTerminationPoint(Operation *op) {
   auto opi = dyn_cast<cudaq::quake::OperatorInterface>(op);
   if (!opi)
     return true;
+  if (auto negations = opi.getNegatedControls())
+    if (llvm::is_contained(*negations, true) && !isControlledOp(op))
+      return true;
   // Only allow single control (for CNOT/NOT); Z-rotations must be uncontrolled
   if (opi.getControls().size() > 0 && !isa<cudaq::quake::XOp>(op))
     return true;
@@ -728,6 +731,9 @@ class PhaseFoldingPass
         Phase ctrlPhase = getWirePhase(opi.getControls().front());
         Phase tgtPhase = getWirePhase(opi.getTarget(0));
         wirePhase[op->getResult(0)] = ctrlPhase;
+        if (auto negations = opi.getNegatedControls())
+          if (negations->front())
+            ctrlPhase = Phase::invert(ctrlPhase);
         wirePhase[op->getResult(1)] = Phase::sum(ctrlPhase, tgtPhase);
       } else if (isa<cudaq::quake::XOp>(op)) {
         // AXIS-SPECIFIC: Would want to handle y and z gates here too

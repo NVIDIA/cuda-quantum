@@ -188,8 +188,14 @@ Specific aspects of the simulation can be configured by defining the following e
 
 .. note::
     The parallelism of Jacobi method (the default `CUDAQ_MPS_SVD_ALGO` setting) gives GPU better performance on small and medium size matrices.
-    If you expect a large number of singular values (e.g., increasing the `CUDAQ_MPS_MAX_BOND` setting), please adjust the `CUDAQ_MPS_SVD_ALGO` setting accordingly.  
+    If you expect a large number of singular values (e.g., increasing the `CUDAQ_MPS_MAX_BOND` setting), please adjust the `CUDAQ_MPS_SVD_ALGO` setting accordingly.
 
+.. note::
+
+    With CUDA 13 and cuSOLVER 12.3.4.7, `CUDAQ_MPS_SVD_ALGO=GESVD` may fail with
+    an ``Insufficient host workspace`` error from ``tensorSVD``.
+    cuSOLVER's `updated SVD algorithm <https://docs.nvidia.com/cuda/cuda-toolkit-release-notes/index.html#cusolver-release-13-4-update-1>`__ requires host memory.
+    Use another `CUDAQ_MPS_SVD_ALGO` option or roll back to a cuSOLVER version earlier than 12.3.4.7.
 
 .. note::
 

@@ -7,4 +7,4 @@
 # ============================================================================ #
 
 from ._quake_ops_gen import *
-from .._mlir_libs._quakeDialects.quake import *
+from .._mlir_libs._quakeDialectsCore.quake import *

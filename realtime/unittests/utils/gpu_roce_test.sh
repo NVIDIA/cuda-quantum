@@ -284,7 +284,7 @@ setup_port() {
     sudo ip addr add "${ip}/24" dev "$iface"
 
     # Configure RoCEv2 mode
-    local ib_dev
+    local ib_dev=""
     if command -v ibdev2netdev &>/dev/null; then
         ib_dev=$(ibdev2netdev | awk -v iface="$iface" '$5 == iface { print $1 }')
     fi

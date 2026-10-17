@@ -5,7 +5,7 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-"""Packaging contract tests: runtime extras, dynamic version, import guards."""
+"""Packaging contracts: runtime extras, versioning, and core-only imports."""
 
 from __future__ import annotations
 
@@ -51,9 +51,10 @@ def test_base_dependencies_exclude_the_cudaq_runtime():
     project = _load_pyproject()["project"]
     dependencies = project["dependencies"]
     offenders = [
-        d for d in dependencies if d.startswith(("cudaq", "cuda-quantum"))
+        d for d in dependencies if d.startswith(("cudaq-devel", "cuda-quantum"))
     ]
     assert offenders == []
+    assert "cudaq-core" in dependencies
 
 
 def test_runtime_extras_map_to_the_cudaq_runtime_wheels():
@@ -91,7 +92,7 @@ import cudaq.logical  # cached in sys.modules: must not re-warn
     assert result.stderr.count("cudaq-logical is in preview") == 1
 
 
-def test_missing_cudaq_runtime_raises_helpful_import_error(tmp_path):
+def test_missing_cudaq_core_raises_helpful_import_error(tmp_path):
     code = """
 import importlib.util
 _real_find_spec = importlib.util.find_spec
@@ -106,17 +107,76 @@ importlib.util.find_spec = _without_cudaq
     result = _run_python(tmp_path, code)
     assert result.returncode != 0
     assert "ImportError" in result.stderr
-    for hint in ("cudaq-logical[cu13]", "cudaq-logical[cu12]",
-                 "pip install cudaq"):
+    assert "requires the CUDA-Q core bindings" in result.stderr
+    for hint in ("pip install cudaq-logical", "pip install cudaq"):
         assert hint in result.stderr
 
 
-def test_stamp_script_pins_both_runtime_extras(tmp_path):
+def test_logical_compilation_without_frontend_initialization(tmp_path):
+    import cudaq
+
+    # Logical compilation and estimation require only the core bindings, not the
+    # full CUDA-Q package with its frontend/execution components. Simulate that
+    # core-only installation with a namespace root and block frontend imports.
+    # All sub-packages and native extensions used below are real, not mocks.
+    code = f"""
+import sys
+from importlib.abc import MetaPathFinder
+from importlib.machinery import ModuleSpec
+
+class CoreOnly(MetaPathFinder):
+    def find_spec(self, fullname, path=None, target=None):
+        if fullname == "cudaq":
+            spec = ModuleSpec(fullname, loader=None, is_package=True)
+            spec.submodule_search_locations = {list(cudaq.__path__)!r}
+            return spec
+        frontend_modules = ("cudaq.kernel", "cudaq._experimental",
+                            "cudaq.mlir._mlir_libs._quakeDialects")
+        if any(fullname == name or fullname.startswith(name + ".")
+               for name in frontend_modules):
+            raise ImportError("Execution frontend is unavailable: " + fullname)
+
+sys.meta_path.insert(0, CoreOnly())
+""" + _IMPORT_PREAMBLE + """
+import cudaq.logical as logical
+from dataclasses import fields
+from typing import get_type_hints
+from cudaq.core.backends import CompileTarget, CustomTarget, EstimateResult, RuntimeEndpoint
+from cudaq.util import trace
+
+expected = {"runtime_endpoint": RuntimeEndpoint, "compile_target": CompileTarget}
+assert get_type_hints(CustomTarget) == expected
+assert {field.name: field.type for field in fields(CustomTarget)} == expected
+
+@logical.program
+def readout() -> bool:
+    return logical.measure_z(logical.prepare_zero())
+
+backend = trace.ChromeBackend()
+trace.set_backend(backend)
+try:
+    result = logical.targets.TerminalBackend().estimate(
+        logical.compile(readout), tier=logical.estimate.Tier.LOGICAL)
+finally:
+    trace.reset_backend()
+assert isinstance(result, EstimateResult)
+assert "cudaq.estimate.LOGICAL" in {
+    event["name"] for event in backend.to_dict()["traceEvents"]}
+profile = logical.estimate.LogicalProfile.from_annotations(result.annotations)
+assert profile.total_operations == 2
+assert "cudaq.kernel.kernel_decorator" not in sys.modules
+"""
+    result = _run_python(tmp_path, code)
+    assert result.returncode == 0, result.stderr
+
+
+def test_stamp_script_pins_core_and_both_runtime_extras(tmp_path):
     from scripts.stamp_cudaq_runtime_dependency import stamp_runtime_dependency
 
     stamped = tmp_path / "pyproject.toml"
     stamped.write_text(PYPROJECT.read_text())
-    for distribution in ("cuda-quantum-cu12", "cuda-quantum-cu13"):
+    for distribution in ("cudaq-core", "cuda-quantum-cu12",
+                         "cuda-quantum-cu13"):
         dependency = stamp_runtime_dependency(stamped,
                                               distribution=distribution,
                                               version="0.16.0")
@@ -126,9 +186,10 @@ def test_stamp_script_pins_both_runtime_extras(tmp_path):
     extras = project["optional-dependencies"]
     assert extras["cu12"] == ["cuda-quantum-cu12==0.16.0"]
     assert extras["cu13"] == ["cuda-quantum-cu13==0.16.0"]
-    # The base dependency list stays runtime-free after stamping.
+    assert "cudaq-core==0.16.0" in project["dependencies"]
+    # The base dependency list stays frontend- and SDK-free after stamping.
     assert not any(
-        d.startswith(("cudaq", "cuda-quantum"))
+        d.startswith(("cudaq-devel", "cuda-quantum"))
         for d in project["dependencies"])
 
 

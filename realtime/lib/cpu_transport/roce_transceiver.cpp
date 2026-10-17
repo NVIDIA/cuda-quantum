@@ -16,6 +16,7 @@
 #include <sys/mman.h>
 #include <unistd.h>
 
+#include <algorithm>
 #include <atomic>
 #include <cerrno>
 #include <cstdio>
@@ -62,6 +63,10 @@ constexpr std::uint32_t decode_slot(std::uint64_t wr_id) {
 decode_generation(std::uint64_t wr_id) {
   return static_cast<std::uint32_t>(wr_id >> 32);
 }
+
+// Cap on the unified-mode signal-every-N interval (and the SQ reap batch),
+// matching the kSignalCap the I/O thread loops use.
+constexpr int kUnifiedSignalCap = 16;
 
 // Allocate pinned host memory aligned to the host page size and mlock it
 // so the NIC's DMA target doesn't get paged out from under us.  Throws on
@@ -138,7 +143,6 @@ struct CpuRoceTransceiver::Impl {
   std::thread rx_thread;
   std::thread tx_thread;
   std::thread forward_thread;
-  std::thread unified_thread;
 
   // Serializes shutdown.  blocking_monitor() and close() can run on
   // different threads (the bridge blocks in blocking_monitor() on one
@@ -149,9 +153,21 @@ struct CpuRoceTransceiver::Impl {
   std::mutex lifecycle_mutex;
   bool resources_released = false;
 
-  // -- unified-mode dispatch hook (set by set_unified_dispatch) --
-  CpuRoceTransceiver::UnifiedDispatchFn unified_fn = nullptr;
-  void *unified_ctx = nullptr;
+  // -- unified-mode state, initialized by setup() and touched only from the
+  //    consumer's single rx_poll()/tx_publish() thread (hence no locking) --
+  std::vector<std::uint32_t> generation; // per-slot recv WQE generation
+  // Slot of a claimed request held back because its tx_flag was still set;
+  // -1 when none.
+  std::int64_t pending_slot = -1;
+  std::uint32_t signal_every = 1;
+  std::uint32_t since_signal = 0;
+  std::uint32_t unreaped = 0;
+  bool rx_poll_failed = false; // latched so a dead CQ logs once, not per spin
+  // Set (release) once connect() has the QP at RTS.  Atomic because a consumer
+  // may already be spinning on rx_poll() from its dispatch thread while
+  // connect() runs on another -- e.g. a dispatcher started before a
+  // rendezvous bridge's blocking connect.
+  std::atomic<bool> hooks_ready{false};
 
   // -- start() helpers --
   bool open_ib_device();
@@ -184,13 +200,15 @@ struct CpuRoceTransceiver::Impl {
   // Mirrors the GPU tx_only / tx_only_bf kernel.
   void tx_loop();
 
-  // Unified-mode loop: collapses RX + dispatch + TX into a single thread.
-  // The lowest-latency Phase 1 configuration when the dispatch callback
-  // is cheap enough to run on the polling thread (e.g. the increment
-  // handler).  Skips both flag arrays entirely (the consumer/producer
-  // handshake collapses because the thread IS the consumer/producer).
-  // Mirrors the GPU unified_dispatch_kernel concept but on the CPU.
-  void unified_loop();
+  // -- unified-mode operations (see rx_poll()/tx_publish() in the header) --
+  bool rx_poll(std::uint32_t *out_slot);
+  bool tx_publish(std::uint32_t slot);
+  // Re-post slot's recv WQE with a bumped generation.  IOVA-based addr (see
+  // post_initial_recv_wqes).
+  void rearm_recv(std::uint32_t slot);
+  // Non-blocking SQ CQ reap; frees ~signal_every WQEs per signaled
+  // completion.  Returns the number of completions reaped.
+  int reap_sends();
 
   void release_resources() noexcept;
 
@@ -884,134 +902,143 @@ void CpuRoceTransceiver::Impl::tx_loop() {
   }
 }
 
-void CpuRoceTransceiver::Impl::unified_loop() {
-  // Single thread: RX CQE → dispatch → TX in one body, no flag handshake.
-  std::vector<std::uint32_t> generation(stride_num, 1);
-  // SQ-CQ drain on a signal-every-N schedule (same as tx_loop), scaled to the
-  // ring depth and paired with a pre-post backpressure drain so a small ring or
-  // delayed completions can't overflow max_send_wr.
-  constexpr int kSignalCap = 16;
-  std::uint32_t signal_every = stride_num / 2;
-  if (signal_every < 1)
-    signal_every = 1;
-  if (signal_every > static_cast<std::uint32_t>(kSignalCap))
-    signal_every = static_cast<std::uint32_t>(kSignalCap);
-  std::uint32_t since_signal = 0;
-  std::uint32_t unreaped = 0;
-  ibv_wc swc[kSignalCap]{};
+void CpuRoceTransceiver::Impl::rearm_recv(std::uint32_t slot) {
+  generation[slot]++;
+  ibv_sge sge{};
+  sge.addr = static_cast<std::uint64_t>(slot) * stride_sz;
+  sge.length = static_cast<std::uint32_t>(stride_sz);
+  sge.lkey = rx_data_mr->lkey;
 
-  ibv_wc wc{};
-  while (exit_flag.load(std::memory_order_acquire) == 0) {
-    int n = ibv_poll_cq(rq_cq, 1, &wc);
+  ibv_recv_wr wr{};
+  wr.wr_id = encode_wr_id(slot, generation[slot]);
+  wr.sg_list = &sge;
+  wr.num_sge = 1;
+  wr.next = nullptr;
+  ibv_recv_wr *bad = nullptr;
+  if (ibv_post_recv(qp, &wr, &bad) != 0)
+    std::fprintf(stderr,
+                 "CpuRoceTransceiver(unified): ibv_post_recv re-arm slot=%u "
+                 "failed errno=%d\n",
+                 slot, errno);
+}
+
+int CpuRoceTransceiver::Impl::reap_sends() {
+  ibv_wc swc[kUnifiedSignalCap]{};
+  const int n = ibv_poll_cq(sq_cq, kUnifiedSignalCap, swc);
+  if (n <= 0)
+    return 0;
+  const std::uint32_t freed = static_cast<std::uint32_t>(n) * signal_every;
+  unreaped = unreaped > freed ? unreaped - freed : 0;
+  for (int k = 0; k < n; ++k)
+    if (swc[k].status != IBV_WC_SUCCESS)
+      std::fprintf(stderr,
+                   "CpuRoceTransceiver(unified): SQ CQE wr_id=%lu status=%d "
+                   "(%s)\n",
+                   static_cast<unsigned long>(swc[k].wr_id), swc[k].status,
+                   ibv_wc_status_str(swc[k].status));
+  return n;
+}
+
+bool CpuRoceTransceiver::Impl::rx_poll(std::uint32_t *out_slot) {
+  if (!out_slot || !hooks_ready.load(std::memory_order_acquire))
+    return false;
+
+  if (pending_slot < 0) {
+    ibv_wc wc{};
+    const int n = ibv_poll_cq(rq_cq, 1, &wc);
     if (n < 0) {
-      std::fprintf(
-          stderr,
-          "CpuRoceTransceiver(unified): ibv_poll_cq(rq) failed errno=%d\n",
-          errno);
-      break;
+      if (!rx_poll_failed)
+        std::fprintf(
+            stderr,
+            "CpuRoceTransceiver(unified): ibv_poll_cq(rq) failed errno=%d\n",
+            errno);
+      rx_poll_failed = true;
+      return false;
     }
-    if (n == 0) {
-      cpu_relax();
-      continue;
-    }
+    if (n == 0)
+      return false;
     if (wc.status != IBV_WC_SUCCESS) {
       std::fprintf(stderr,
                    "CpuRoceTransceiver(unified): RX CQE status=%d (%s)\n",
                    wc.status, ibv_wc_status_str(wc.status));
-      continue;
+      return false;
     }
     const std::uint32_t slot = decode_slot(wc.wr_id);
-    if (slot >= stride_num)
-      continue;
-
-    // Dispatch: hand the slot to the user-supplied callback.  The callback
-    // produces the response in tx_data[slot] and returns the response byte
-    // count.  When no callback is set, treat as drop-and-rearm (lets the
-    // tx_only / forward-style baseline benchmarks reuse this loop with a
-    // null callback).
-    const std::uint8_t *rx_slot = rx_data + slot * stride_sz;
-    std::uint8_t *tx_slot = tx_data + slot * stride_sz;
-    std::size_t resp_bytes = 0;
-    if (unified_fn)
-      resp_bytes = unified_fn(unified_ctx, rx_slot, tx_slot, stride_sz);
-
-    // Send the response on the wire if the callback produced one.
-    if (resp_bytes > 0) {
-      // Backpressure: drain the SQ before posting if it's at capacity.
-      while (unreaped >= stride_num) {
-        const int d = ibv_poll_cq(sq_cq, kSignalCap, swc);
-        if (d > 0) {
-          const std::uint32_t freed =
-              static_cast<std::uint32_t>(d) * signal_every;
-          unreaped = unreaped > freed ? unreaped - freed : 0;
-        } else {
-          if (exit_flag.load(std::memory_order_acquire) != 0)
-            return;
-          cpu_relax();
-        }
-      }
-      ibv_sge sge{};
-      sge.addr = reinterpret_cast<std::uintptr_t>(tx_slot);
-      sge.length = static_cast<std::uint32_t>(resp_bytes);
-      sge.lkey = local_tx_lkey;
-
-      ibv_send_wr swr{};
-      swr.wr_id = slot;
-      swr.sg_list = &sge;
-      swr.num_sge = 1;
-      swr.next = nullptr;
-      const bool signal_this = (++since_signal % signal_every) == 0;
-      swr.send_flags = signal_this ? IBV_SEND_SIGNALED : 0;
-      if (tx_mode == CpuRoceTxMode::kRdmaWriteWithImm) {
-        swr.opcode = IBV_WR_RDMA_WRITE_WITH_IMM;
-        swr.wr.rdma.remote_addr = peer_rx_base_addr + slot * stride_sz;
-        swr.wr.rdma.rkey = peer_rx_rkey;
-        swr.imm_data = htonl(slot);
-      } else {
-        swr.opcode = IBV_WR_SEND;
-      }
-      ibv_send_wr *bad = nullptr;
-      if (ibv_post_send(qp, &swr, &bad) != 0) {
-        std::fprintf(stderr,
-                     "CpuRoceTransceiver(unified): ibv_post_send slot=%u "
-                     "failed errno=%d\n",
-                     slot, errno);
-      } else {
-        ++unreaped;
-      }
-      if (signal_this) {
-        int drained = ibv_poll_cq(sq_cq, kSignalCap, swc);
-        if (drained > 0) {
-          const std::uint32_t freed =
-              static_cast<std::uint32_t>(drained) * signal_every;
-          unreaped = unreaped > freed ? unreaped - freed : 0;
-        }
-      }
+    if (slot >= stride_num) {
+      std::fprintf(stderr, "CpuRoceTransceiver(unified): RX bad slot=%u\n",
+                   slot);
+      return false;
     }
-
-    // Re-arm the recv WQE for this slot.
-    generation[slot]++;
-    ibv_sge rsge{};
-    rsge.addr = static_cast<std::uint64_t>(slot) * stride_sz;
-    rsge.length = static_cast<std::uint32_t>(stride_sz);
-    rsge.lkey = rx_data_mr->lkey;
-
-    ibv_recv_wr rwr{};
-    rwr.wr_id = encode_wr_id(slot, generation[slot]);
-    rwr.sg_list = &rsge;
-    rwr.num_sge = 1;
-    rwr.next = nullptr;
-    ibv_recv_wr *rbad = nullptr;
-    if (ibv_post_recv(qp, &rwr, &rbad) != 0) {
-      std::fprintf(stderr,
-                   "CpuRoceTransceiver(unified): ibv_post_recv re-arm slot=%u "
-                   "failed errno=%d\n",
-                   slot, errno);
-    }
+    // Re-arm at claim rather than after the response: a request the consumer
+    // drops never reaches tx_publish, and there is no other point at which
+    // its WQE could be returned.  Same lifecycle as rx_loop.
+    rearm_recv(slot);
+    pending_slot = slot;
   }
+
+  // A response for this slot may still be in flight (a running graph holds
+  // tx_flag); dispatching over it would clobber that slot's tx_data.
+  const auto slot = static_cast<std::uint32_t>(pending_slot);
+  if (__atomic_load_n(&tx_flags[slot], __ATOMIC_ACQUIRE) != 0)
+    return false;
+  pending_slot = -1;
+  *out_slot = slot;
+  return true;
+}
+
+bool CpuRoceTransceiver::Impl::tx_publish(std::uint32_t slot) {
+  if (slot >= stride_num || !hooks_ready.load(std::memory_order_acquire))
+    return false;
+
+  // Backpressure: never exceed max_send_wr (= stride_num).  Signaled
+  // completions always arrive, so this terminates unless close() races us.
+  while (unreaped >= stride_num) {
+    if (reap_sends() > 0)
+      continue;
+    if (exit_flag.load(std::memory_order_acquire) != 0)
+      return false;
+    cpu_relax();
+  }
+
+  ibv_sge sge{};
+  sge.addr = reinterpret_cast<std::uintptr_t>(tx_data + slot * stride_sz);
+  sge.length = static_cast<std::uint32_t>(cu_frame_size);
+  sge.lkey = local_tx_lkey;
+
+  ibv_send_wr swr{};
+  swr.wr_id = slot;
+  swr.sg_list = &sge;
+  swr.num_sge = 1;
+  swr.next = nullptr;
+  // Counted only once posted, so a failed post cannot skew the
+  // signaled-completion accounting that bounds unreaped.
+  const bool signal_this = ((since_signal + 1) % signal_every) == 0;
+  swr.send_flags = signal_this ? IBV_SEND_SIGNALED : 0;
+  if (tx_mode == CpuRoceTxMode::kRdmaWriteWithImm) {
+    swr.opcode = IBV_WR_RDMA_WRITE_WITH_IMM;
+    swr.wr.rdma.remote_addr = peer_rx_base_addr + slot * stride_sz;
+    swr.wr.rdma.rkey = peer_rx_rkey;
+    swr.imm_data = htonl(slot);
+  } else {
+    swr.opcode = IBV_WR_SEND;
+  }
+  ibv_send_wr *bad = nullptr;
+  if (ibv_post_send(qp, &swr, &bad) != 0) {
+    std::fprintf(stderr,
+                 "CpuRoceTransceiver(unified): ibv_post_send slot=%u failed "
+                 "errno=%d\n",
+                 slot, errno);
+    return false;
+  }
+  ++since_signal;
+  ++unreaped;
+  if (signal_this)
+    reap_sends();
+  return true;
 }
 
 void CpuRoceTransceiver::Impl::release_resources() noexcept {
+  hooks_ready.store(false, std::memory_order_release);
   if (qp) {
     ibv_destroy_qp(qp);
     qp = nullptr;
@@ -1074,8 +1101,6 @@ void CpuRoceTransceiver::Impl::join_all_workers() noexcept {
   // respect to the other caller, so a given thread is joined exactly once.
   if (forward_thread.joinable())
     forward_thread.join();
-  if (unified_thread.joinable())
-    unified_thread.join();
   if (rx_thread.joinable())
     rx_thread.join();
   if (tx_thread.joinable())
@@ -1176,6 +1201,17 @@ bool CpuRoceTransceiver::setup() {
       return false;
     }
   }
+  if (impl_->unified) {
+    // Signal every N, with N scaled to the SQ depth (max_send_wr =
+    // stride_num) so a small ring cannot ENOMEM.
+    impl_->generation.assign(impl_->stride_num, 0);
+    impl_->pending_slot = -1;
+    impl_->signal_every = std::max<std::uint32_t>(
+        1, std::min<std::uint32_t>(impl_->stride_num / 2, kUnifiedSignalCap));
+    impl_->since_signal = 0;
+    impl_->unreaped = 0;
+    impl_->rx_poll_failed = false;
+  }
   impl_->setup_done = true;
   return true;
 }
@@ -1205,6 +1241,8 @@ bool CpuRoceTransceiver::connect(unsigned peer_qp, const char *peer_ip,
     return false;
   }
   impl_->started = true;
+  if (impl_->unified)
+    impl_->hooks_ready.store(true, std::memory_order_release);
   return true;
 }
 
@@ -1227,26 +1265,40 @@ void CpuRoceTransceiver::blocking_monitor() {
   if (!impl_->started)
     throw std::logic_error(
         "CpuRoceTransceiver::blocking_monitor: start() must succeed first");
+  // Unified mode has no I/O threads: the consumer drives rx_poll/tx_publish,
+  // and a pump started here would race it for the same CQs and slots.
+  if (impl_->unified)
+    return;
   if (impl_->monitor_running)
     return; // idempotent: already running on another caller
   impl_->monitor_running = true;
-  impl_->exit_flag.store(0, std::memory_order_release);
 
-  // Mode selection (mutual exclusion was already enforced at construction).
-  if (impl_->forward) {
-    impl_->forward_thread =
-        std::thread([impl = impl_.get()] { impl->forward_loop(); });
-  } else if (impl_->unified) {
-    impl_->unified_thread =
-        std::thread([impl = impl_.get()] { impl->unified_loop(); });
-  } else {
-    // Normal three-thread layout (the §4.2 default).  tx_only / rx_only
-    // skip one or the other thread; the consumer / dispatcher is on a
-    // separate thread that this class doesn't own.
-    if (!impl_->tx_only)
-      impl_->rx_thread = std::thread([impl = impl_.get()] { impl->rx_loop(); });
-    if (!impl_->rx_only)
-      impl_->tx_thread = std::thread([impl = impl_.get()] { impl->tx_loop(); });
+  {
+    // Spawn under lifecycle_mutex, and not at all once close() has begun:
+    // close() joins whatever workers exist and then releases the QP/CQs, so a
+    // worker spawned after its join would run on freed resources.  exit_flag
+    // is deliberately not reset here -- a close() that got in first must win.
+    std::lock_guard<std::mutex> lk(impl_->lifecycle_mutex);
+    if (impl_->resources_released ||
+        impl_->exit_flag.load(std::memory_order_acquire) != 0) {
+      impl_->monitor_running = false;
+      return;
+    }
+    // Mode selection (mutual exclusion was already enforced at construction).
+    if (impl_->forward) {
+      impl_->forward_thread =
+          std::thread([impl = impl_.get()] { impl->forward_loop(); });
+    } else {
+      // Normal three-thread layout (the §4.2 default).  tx_only / rx_only
+      // skip one or the other thread; the consumer / dispatcher is on a
+      // separate thread that this class doesn't own.
+      if (!impl_->tx_only)
+        impl_->rx_thread =
+            std::thread([impl = impl_.get()] { impl->rx_loop(); });
+      if (!impl_->rx_only)
+        impl_->tx_thread =
+            std::thread([impl = impl_.get()] { impl->tx_loop(); });
+    }
   }
 
   // Block until close() is called (or workers exit on their own due to a
@@ -1256,12 +1308,12 @@ void CpuRoceTransceiver::blocking_monitor() {
   impl_->monitor_running = false;
 }
 
-void CpuRoceTransceiver::set_unified_dispatch(UnifiedDispatchFn fn,
-                                              void *context) {
-  if (!impl_)
-    return;
-  impl_->unified_fn = fn;
-  impl_->unified_ctx = context;
+bool CpuRoceTransceiver::rx_poll(std::uint32_t *out_slot) {
+  return impl_->rx_poll(out_slot);
+}
+
+bool CpuRoceTransceiver::tx_publish(std::uint32_t slot) {
+  return impl_->tx_publish(slot);
 }
 
 void CpuRoceTransceiver::set_local_ip(const char *local_ip) {

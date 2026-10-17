@@ -262,24 +262,27 @@ protected:
     flushPendingQubits();
     ensureState();
     rejectOperationAfterMeasurement();
-    if (isNoisySimulation()) {
-      // Defer gates together with their following noise channels so the entire
-      // circuit can be replayed independently for every trajectory.
-      MatrixTask<Scalar> operation;
-      operation.matrix = task.matrix;
-      operation.targets = detail::toInt32(task.targets);
-      operation.controls = detail::toInt32(task.controls);
-      compactMatrixTask(operation);
-      m_deferredTasks.emplace_back(std::move(operation));
-      return;
-    }
-
+    // Both engine submission and deferred replay need the control predicate.
     MatrixTask<Scalar> operation;
     operation.matrix = task.matrix;
     operation.targets = detail::toInt32(task.targets);
     operation.controls = detail::toInt32(task.controls);
+    operation.controlValues = task.controlValues;
     compactMatrixTask(operation);
+    if (isNoisySimulation()) {
+      // Defer gates together with their following noise channels so the entire
+      // circuit can be replayed independently for every trajectory.
+      m_deferredTasks.emplace_back(std::move(operation));
+      return;
+    }
+
     m_engine->apply(*m_state, operation);
+  }
+
+  void applyGateWithControlValues(const GateApplicationTask &task) override {
+    // The gate engine consumes control values directly, including during
+    // noisy replay, so bypass the base X-conjugation fallback.
+    applyGate(task);
   }
 
   void setToZeroState() override {
@@ -387,18 +390,22 @@ protected:
         /*reserved=*/nullptr));
   }
 
-  void applyExpPauli(double theta, const std::vector<std::size_t> &controls,
-                     const std::vector<std::size_t> &qubits,
-                     const cudaq::spin_op_term &term) override {
+  void
+  applyExpPauli(double theta, const std::vector<std::size_t> &controls,
+                const std::vector<std::size_t> &qubits,
+                const cudaq::spin_op_term &term,
+                const std::vector<std::int32_t> &controlValues = {}) override {
+    this->validateControlValues(controls.size(), controlValues);
     if (cudaq::isInTracerMode()) {
-      nvqir::CircuitSimulator::applyExpPauli(theta, controls, qubits, term);
+      nvqir::CircuitSimulator::applyExpPauli(theta, controls, qubits, term,
+                                             controlValues);
       return;
     }
     flushPendingQubits();
     if (isNoisySimulation() || m_config.forceExpPauliDecomposition) {
       // Noise models are specified on individual gates, so noisy exp-Pauli
       // operations must use the decomposed circuit form.
-      Base::applyExpPauli(theta, controls, qubits, term);
+      Base::applyExpPauli(theta, controls, qubits, term, controlValues);
       return;
     }
     flushGateQueue();
@@ -411,6 +418,7 @@ protected:
     operation.angle = theta;
     operation.targets = detail::toInt32(qubits);
     operation.controls = detail::toInt32(controls);
+    operation.controlValues = controlValues;
     for (const auto &termOp : term)
       operation.paulis.push_back(detail::toCuStateVecPauli(termOp.as_pauli()));
     m_engine->apply(state(), operation);

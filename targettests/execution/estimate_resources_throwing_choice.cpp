@@ -10,8 +10,8 @@
 // RUN: if %quantinuum_avail; then nvq++ --target quantinuum --emulate %s -o %t && %t; fi
 // clang-format on
 
+#include "cudaq/qis/qubit_qis.h"
 #include <cassert>
-#include <cudaq.h>
 #include <cudaq/algorithms/resource_estimation.h>
 #include <stdexcept>
 #include <string>

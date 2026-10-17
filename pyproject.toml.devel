@@ -45,6 +45,7 @@ cmake.version = ">=4.0"
 cmake.build-type = "Release"
 cmake.verbose = false
 cmake.args = [
+    "-DCUDAQ_BUILD_SPLIT_WHEELS=ON",
     "-DCUDAQ_ENABLE_PYTHON=TRUE",
     "-DCUDAQ_DISABLE_CPP_FRONTEND=TRUE",
     "-DCUDAQ_DISABLE_TOOLS=FALSE",

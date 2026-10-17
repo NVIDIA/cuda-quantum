@@ -37,7 +37,7 @@ shift
 done
 
 # Determine the CUDA version from the host system's NVIDIA driver, to select the appropriate container image.
-DRIVER_CUDA_VERSION_MAJOR=$(nvidia-smi | grep -oE "CUDA Version: [0-9]+" | awk '{print $3}' )
+DRIVER_CUDA_VERSION_MAJOR=$(nvidia-smi | sed -nE 's/.*CUDA( [A-Z]+)? Version: *([0-9]+).*/\2/p' | head -1)
 
 # DOCA version
 DOCA_VERSION=3.3.0

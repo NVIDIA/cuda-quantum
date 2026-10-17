@@ -51,6 +51,7 @@ __optind__=$OPTIND
 OPTIND=1
 python_version=3.11
 quick_test=false
+status_sum=0
 fresh_venv=false
 while getopts ":c:f:Fi:p:qv:" opt; do
     case $opt in
@@ -246,7 +247,7 @@ if $is_macos; then
         else
             wheel_file=$(ls "${extra_packages}"/cuda_quantum*.whl 2>/dev/null | head -1)
             if [ -n "$wheel_file" ]; then
-                pip_install_replacement="pip install --force-reinstall $wheel_file"
+                pip_install_replacement="pip install --force-reinstall $wheel_file --find-links ${extra_packages}"
             else
                 echo -e "\e[01;31mNo wheel or metapackage found in ${extra_packages}.\e[0m" >&2
                 (return 0 2>/dev/null) && return 100 || exit 100
@@ -317,7 +318,6 @@ if ! $is_macos; then
         fi
     done <<<"$ompi_script"
 fi
-status_sum=0
 
 # Run all tests from a temp directory so the repo tree (cwd, _skbuild/,
 # etc.) cannot accidentally be found via sys.path or dyld search paths
@@ -550,3 +550,8 @@ if [ -d "$root_folder/targets" ]; then
     fi
     [ -f "$target_list" ] && rm -f "$target_list"
 fi
+
+if [ ! $status_sum -eq 0 ]; then
+    echo -e "\e[01;31mValidation produced errors.\e[0m" >&2
+fi
+(return 0 2>/dev/null) && return $status_sum || exit $status_sum

@@ -1,0 +1,46 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --split-input-file --verify-diagnostics %s
+
+// A cc.if must not silently fail to parse or verify when its linear-typed
+// values do not line up.
+
+quake.wire_set @phys[4]
+
+// Currently, the number of entry block arguments of every region must match the
+// number of linear-typed operands of the most linear-yielding cc.continue. Here
+// the wires are created inside the regions, so the regions have no entry
+// arguments. (This restriction may be relaxed later; the point of the test is
+// that the failure is diagnosed rather than silent.)
+func.func @wire_created_in_region(%c: i1) {
+  // expected-error@+1 {{'cc.if' op region #0 has 0 entry block argument(s), but every region must have as many entry block arguments as the most linear-typed operands (here 1) of any cc.continue in the regions}}
+  %r = cc.if(%c) -> (!quake.wire) {
+    %0 = quake.borrow_wire @phys[0] : !quake.wire
+    cc.continue %0 : !quake.wire
+  } else {
+    %1 = quake.borrow_wire @phys[1] : !quake.wire
+    cc.continue %1 : !quake.wire
+  }
+  quake.return_wire %r : !quake.wire
+  return
+}
+
+// -----
+
+quake.wire_set @phys[4]
+
+// A linear argument must be matched by a linear result type.
+func.func @linear_argument_without_result(%c: i1) {
+  %0 = quake.borrow_wire @phys[0] : !quake.wire
+  // expected-error@+1 {{the result types must include at least one linear type for each linear region argument}}
+  cc.if(%c) ((%a = %0)) {
+    cc.continue
+  }
+  return
+}

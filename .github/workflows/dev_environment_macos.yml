@@ -96,6 +96,7 @@ jobs:
           # the selection strategy must force a clean rebuild.
           scripts_hash=$(cat \
             scripts/install_prerequisites.sh \
+            scripts/prereqs_common.sh \
             scripts/build_llvm.sh \
             scripts/set_env_defaults.sh \
             cmake/caches/LLVM.cmake \
@@ -154,6 +155,12 @@ jobs:
       - name: Select latest stable Xcode
         uses: ./.github/actions/setup-xcode-stable
 
+      # Pin Python to the newest supported version.
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.14'
+
       - name: Log macOS toolchain
         run: |
           sw_vers
@@ -161,6 +168,7 @@ jobs:
           xcrun --show-sdk-path
           xcrun --show-sdk-version
           clang --version
+          python3 --version
 
       - name: Compute cache key
         id: cache_key
@@ -208,7 +216,7 @@ jobs:
           # wheel jobs only change Python3_EXECUTABLE, which keeps ninja's
           # incremental rebuild scoped to the binding targets.
           # Initialize nanobind submodule which are needed for MLIR Python bindings
-          retry git submodule update --init --recursive tpls/nanobind
+          retry git submodule update --init --recursive --depth 1 tpls/nanobind
 
           source scripts/set_env_defaults.sh
           

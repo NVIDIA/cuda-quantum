@@ -574,10 +574,11 @@ void SimulatorTensorNetBase<ScalarType>::setToZeroState() {
 template <typename ScalarType>
 void SimulatorTensorNetBase<ScalarType>::swap(
     const std::vector<std::size_t> &ctrlBits, const std::size_t srcIdx,
-    const std::size_t tgtIdx) {
+    const std::size_t tgtIdx, const std::vector<std::int32_t> &controlValues) {
+  this->validateControlValues(ctrlBits.size(), controlValues);
   if (ctrlBits.empty())
     return nvqir::CircuitSimulatorBase<ScalarType>::swap(ctrlBits, srcIdx,
-                                                         tgtIdx);
+                                                         tgtIdx, controlValues);
   // Controlled swap gate: using cnot decomposition of swap gate to perform
   // decomposition.
   // Note: cutensornetStateApplyControlledTensorOperator can only handle
@@ -585,17 +586,23 @@ void SimulatorTensorNetBase<ScalarType>::swap(
   const auto size = ctrlBits.size();
   std::vector<std::size_t> ctls(size + 1);
   std::copy(ctrlBits.begin(), ctrlBits.end(), ctls.begin());
+  // Each decomposition X adds the other SWAP target as a control on |1>.
+  // Keep empty values empty: the gate acts only when every control qubit is |1>.
+  auto values = controlValues;
+  if (!values.empty()) {
+    values.push_back(1);
+  }
   {
     ctls[size] = tgtIdx;
-    nvqir::CircuitSimulatorBase<ScalarType>::x(ctls, srcIdx);
+    nvqir::CircuitSimulatorBase<ScalarType>::x(ctls, srcIdx, values);
   }
   {
     ctls[size] = srcIdx;
-    nvqir::CircuitSimulatorBase<ScalarType>::x(ctls, tgtIdx);
+    nvqir::CircuitSimulatorBase<ScalarType>::x(ctls, tgtIdx, values);
   }
   {
     ctls[size] = tgtIdx;
-    nvqir::CircuitSimulatorBase<ScalarType>::x(ctls, srcIdx);
+    nvqir::CircuitSimulatorBase<ScalarType>::x(ctls, srcIdx, values);
   }
 }
 

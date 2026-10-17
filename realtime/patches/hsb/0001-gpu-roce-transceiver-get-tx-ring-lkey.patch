@@ -1,0 +1,46 @@
+Add GpuRoceTransceiver::get_tx_ring_lkey().
+
+The unified GPU dispatch path posts its own sends from the TX ring, which needs
+the TX ring memory region's local key in the send WQE. GpuRoceTransceiver
+registers that region but only exposes get_rkey(), the RX ring's key.
+
+Upstream: https://gitlab-master.nvidia.com/holoscan/hololink/-/merge_requests/1170
+Generated against holoscan-sensor-bridge 2.6.0-EA2. Delete this patch once the
+CUDAQ_REALTIME_HSB_REF pinned in realtime/scripts/deps_common.sh contains it.
+
+diff --git a/src/hololink/operators/gpu_roce_transceiver/gpu_roce_transceiver.cpp b/src/hololink/operators/gpu_roce_transceiver/gpu_roce_transceiver.cpp
+index daf4117..00a312f 100644
+--- a/src/hololink/operators/gpu_roce_transceiver/gpu_roce_transceiver.cpp
++++ b/src/hololink/operators/gpu_roce_transceiver/gpu_roce_transceiver.cpp
+@@ -713,6 +713,11 @@ uint64_t* GpuRoceTransceiver::get_tx_ring_flag_addr()
+     return doca_qp->gpu_tx_ring.flag;
+ }
+ 
++uint32_t GpuRoceTransceiver::get_tx_ring_lkey()
++{
++    return doca_qp->gpu_tx_ring.addr_mr->lkey;
++}
++
+ std::mutex& GpuRoceTransceiver::get_lock()
+ {
+     static std::mutex instance;
+diff --git a/src/hololink/operators/gpu_roce_transceiver/gpu_roce_transceiver.hpp b/src/hololink/operators/gpu_roce_transceiver/gpu_roce_transceiver.hpp
+index eaebad4..4798ef9 100644
+--- a/src/hololink/operators/gpu_roce_transceiver/gpu_roce_transceiver.hpp
++++ b/src/hololink/operators/gpu_roce_transceiver/gpu_roce_transceiver.hpp
+@@ -216,6 +216,15 @@ public:
+     size_t get_tx_ring_stride_sz();
+     uint32_t get_tx_ring_stride_num();
+     uint64_t* get_tx_ring_flag_addr();
++    /**
++     * @brief Local key of the TX ring's memory region.
++     *
++     * For callers that post their own sends from the TX ring.  Valid after
++     * start().
++     *
++     * @return the TX ring lkey, in host byte order like get_rkey().
++     */
++    uint32_t get_tx_ring_lkey();
+ 
+     /// Force CPU+GPU accessible allocation for ring flags and data only
+     /// (DOCA_GPU_MEM_TYPE_CPU_GPU) even on dGPU systems.  Must be called

@@ -1,4 +1,4 @@
-# NOTE: automatically generated for IQM server at URL: https://cocos.resonance.meetiqm.com/garnet/
+# Automatically generated from calibration-set "d6913f15-b900-42c6-9105-744256b2ba35" for quantum computer "garnet" at IQM server URL: https://resonance.iqm.tech/
 
 Number of nodes: 20
 Number of edges: ?

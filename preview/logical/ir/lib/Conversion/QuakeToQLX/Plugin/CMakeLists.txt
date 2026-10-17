@@ -47,9 +47,9 @@ set_target_properties(qlx-quake-plugin PROPERTIES
 )
 
 # Copy the plugin into the build-tree Python package (the one actually imported:
-# ${PROJECT_BINARY_DIR}/python/cudaq/logical) so import_quake finds
+# ${QLX_PYTHON_DIR}/cudaq/logical) so import_quake finds
 # it without a `cmake --install` step.
-set(_quake_py_pkg "${PROJECT_BINARY_DIR}/python/cudaq/logical/_quake")
+set(_quake_py_pkg "${QLX_PYTHON_DIR}/cudaq/logical/_quake")
 add_custom_command(TARGET qlx-quake-plugin POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E make_directory "${_quake_py_pkg}"
   COMMAND ${CMAKE_COMMAND} -E copy_if_different

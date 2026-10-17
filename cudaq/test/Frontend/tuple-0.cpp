@@ -8,7 +8,7 @@
 
 // RUN: cudaq-quake %s | cudaq-opt | FileCheck %s
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 struct ArithmeticTupleQernel {
   void operator()(std::tuple<int, double, short, long> t) __qpu__ {
