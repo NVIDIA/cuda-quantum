@@ -1,0 +1,275 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --verify-profile-physical-quake --split-input-file --verify-diagnostics %s -o /dev/null
+// RUN: cudaq-opt --verify-profile-physical-quake --split-input-file %s 2>/dev/null | FileCheck %s
+// RUN: not cudaq-opt --verify-profile-physical-quake='basis=h,s,t,rx,ry,rz,x,y,z,x(1)' --split-input-file %s 2>/dev/null | FileCheck --check-prefix=FULLIR %s
+// RUN: not cudaq-opt --verify-profile-physical-quake='basis=h,s,t,rx,ry,rz,x,y,z,x(1)' --split-input-file %s 2>&1 1>/dev/null | FileCheck --check-prefix=FULLERR %s
+// RUN: not cudaq-opt --verify-profile-physical-quake='basis=h' --split-input-file %s 2>&1 | FileCheck --check-prefix=BASIS %s
+// RUN: not cudaq-opt --verify-profile-physical-quake='basis=x' --split-input-file %s 2>&1 | FileCheck --check-prefix=ARITY %s
+// RUN: not cudaq-opt --verify-profile-physical-quake='basis=x(n)' --split-input-file %s 2>&1 | FileCheck --check-prefix=XN %s
+// RUN: cudaq-opt --verify-profile-physical-quake='reset-before-reuse=true' --split-input-file %s 2>/dev/null | FileCheck --check-prefix=RESET %s
+// RUN: cudaq-opt --verify-profile-physical-quake='measurements=expanded' --split-input-file %s 2>/dev/null | FileCheck --check-prefix=EXPOK %s
+// RUN: not cudaq-opt --verify-profile-physical-quake='measurements=expanded' --split-input-file %s 2>&1 1>/dev/null | FileCheck --check-prefix=EXPERR %s
+// RUN: not cudaq-opt --verify-profile-physical-quake='measurements=bogus' --split-input-file %s 2>&1 | FileCheck --check-prefix=BADOPT %s
+
+// Gates pass with the default (unrestricted) basis; the IR is unchanged.
+
+// FULLERR: error: 'quake.x' op cannot verify: number of controls is not statically known
+// FULLERR: error: 'quake.apply' op cannot verify: controlled kernel application is not provable
+// FULLERR: error: 'func.call' op cannot verify: called function body is not available
+// FULLERR: error: 'func.call' op cannot verify: called function body is not available
+// FULLERR: error: 'quake.compute_action' op cannot verify: compute_action bodies are not available
+// FULLERR: error: 'cc.call_indirect_callable' op cannot verify: called function body is not available
+// FULLERR: error: 'cc.call_callable' op cannot verify: called function body is not available
+// FULLERR: error: 'func.call_indirect' op cannot verify: called function body is not available
+// RESET-LABEL: func.func @in_basis()
+// CHECK-LABEL: func.func @in_basis()
+// FULLIR: func.func @in_basis()
+func.func @in_basis() attributes {"cudaq-entrypoint"} {
+  %c = arith.constant 0.5 : f64
+  %q0 = quake.alloca !quake.ref
+  %q1 = quake.alloca !quake.ref
+  // CHECK: quake.h %{{.*}} : (!quake.ref) -> ()
+  quake.h %q0 : (!quake.ref) -> ()
+  // CHECK: quake.rx (%{{.*}}) %{{.*}} : (f64, !quake.ref) -> ()
+  quake.rx (%c) %q0 : (f64, !quake.ref) -> ()
+  // CHECK: quake.rz (%{{.*}}) %{{.*}} : (f64, !quake.ref) -> ()
+  quake.rz (%c) %q1 : (f64, !quake.ref) -> ()
+  // CHECK: quake.t %{{.*}} : (!quake.ref) -> ()
+  quake.t %q1 : (!quake.ref) -> ()
+  %m = quake.mz %q1 : (!quake.ref) -> !quake.measure
+  return
+}
+
+// BASIS: error: 'quake.rx' op profile violation: operation is not in the target basis
+// BASIS: error: 'quake.rz' op profile violation: operation is not in the target basis
+// BASIS: error: 'quake.t' op profile violation: operation is not in the target basis
+
+// -----
+
+// A controlled x is `x(1)`: accepted by the full basis and `x(n)`.
+
+// CHECK-LABEL: func.func @controlled_x()
+// FULLIR: func.func @controlled_x()
+// FULLIR: quake.x [%{{.*}}] %{{.*}} : (!quake.ref, !quake.ref) -> ()
+func.func @controlled_x() attributes {"cudaq-entrypoint"} {
+  %q0 = quake.alloca !quake.ref
+  %q1 = quake.alloca !quake.ref
+  // CHECK: quake.x [%{{.*}}] %{{.*}} : (!quake.ref, !quake.ref) -> ()
+  quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  return
+}
+
+// BASIS: error: 'quake.x' op profile violation: operation is not in the target basis
+// ARITY: error: 'quake.x' op profile violation: operation is not in the target basis
+// XN: error: 'quake.h' op profile violation: operation is not in the target basis
+// XN: func.func @controlled_x()
+
+// -----
+
+// A dynamically-sized control vector cannot be proven against a finite basis.
+
+// CHECK-LABEL: func.func @dynamic_controls(
+func.func @dynamic_controls(%v: !quake.veq<?>, %q: !quake.ref) {
+  quake.x [%v] %q : (!quake.veq<?>, !quake.ref) -> ()
+  return
+}
+
+// -----
+
+// A controlled application composes arities through the callee: unprovable.
+
+// CHECK-LABEL: func.func @apply_controlled(
+// EXPOK-LABEL: func.func @apply_controlled(
+func.func @apply_helper(%q: !quake.ref) {
+  quake.x %q : (!quake.ref) -> ()
+  return
+}
+func.func @apply_controlled(%c: !quake.ref, %q: !quake.ref) {
+  quake.apply @apply_helper [%c] (%q) : (!quake.ref, !quake.ref) -> ()
+  return
+}
+
+// -----
+
+// An unresolved quantum call has no checkable body.
+
+// EXPERR: error: 'func.call' op cannot verify: called function body is not available
+func.func private @ext_kernel(!quake.ref)
+// CHECK-LABEL: func.func @calls_external(
+func.func @calls_external(%q: !quake.ref) {
+  func.call @ext_kernel(%q) : (!quake.ref) -> ()
+  return
+}
+
+// -----
+
+// An unmarked, ref-free, callable-free external declaration is trusted
+// classical by convention: accepted.
+
+// EXPOK-LABEL: func.func @calls_classical_external()
+func.func private @log_classical(i64)
+// FULLIR: func.func @calls_classical_external()
+func.func @calls_classical_external() {
+  %c1 = arith.constant 1 : i64
+  func.call @log_classical(%c1) : (i64) -> ()
+  return
+}
+
+// -----
+
+// A declaration-only callee declared a quantum kernel is not provably
+// classical even with a ref-free signature: rejected conservatively.
+
+// EXPERR: error: 'func.call' op cannot verify: called function body is not available
+func.func private @external_marked_kernel() attributes {"cudaq-kernel"}
+
+func.func @calls_marked_kernel() {
+  func.call @external_marked_kernel() : () -> ()
+  return
+}
+
+// -----
+
+// Callee resolution uses the nearest symbol table: a valid local call in a
+// nested module is accepted (and must not crash).
+
+module @nested {
+  module @inner {
+    func.func @local_kernel(%q: !quake.ref) {
+      quake.x %q : (!quake.ref) -> ()
+      return
+    }
+// EXPOK-LABEL: func.func @local_caller(
+    func.func @local_caller(%q: !quake.ref) {
+      func.call @local_kernel(%q) : (!quake.ref) -> ()
+      return
+    }
+  }
+}
+
+// -----
+
+// compute_action bodies are opaque callables: unprovable.
+
+// EXPERR: error: 'quake.compute_action' op cannot verify: compute_action bodies are not available
+func.func @compute_action_user(%c1: !cc.callable<() -> ()>, %c2: !cc.callable<() -> ()>) {
+  quake.compute_action %c1, %c2 : !cc.callable<() -> ()>, !cc.callable<() -> ()>
+  return
+}
+
+// -----
+
+// Opaque quantum callables (qkernel references, capturing closures) have no
+// statically available body: rejected conservatively.
+
+func.func @opaque_callables(%k: !cc.indirect_callable<() -> ()>, %c: !cc.callable<() -> ()>) {
+  cc.call_indirect_callable %k : (!cc.indirect_callable<() -> ()>) -> ()
+  cc.call_callable %c : (!cc.callable<() -> ()>) -> ()
+  return
+}
+
+// An indirect builtin call's body is statically unavailable regardless of
+// signature (function pointers may target quantum kernels).
+
+func.func @indirect_builtin(%fn: () -> ()) {
+  func.call_indirect %fn() : () -> ()
+  return
+}
+
+// -----
+
+// Value-form (SSA) types are always rejected; each type's rejection is
+// isolated so a predicate revert is observable.
+
+// expected-error@+1 {{profile violation: physical-quake requires reference-form Quake}}
+func.func @value_form(%w: !quake.wire) {
+  // expected-error@+1 {{profile violation: physical-quake requires reference-form Quake}}
+  %1 = quake.h %w : (!quake.wire) -> !quake.wire
+  return
+}
+
+// expected-error@+1 {{profile violation: physical-quake requires reference-form Quake}}
+func.func @control_form(%c: !quake.control) {
+  return
+}
+
+// expected-error@+1 {{profile violation: physical-quake requires reference-form Quake}}
+func.func @cable_form(%cb: !quake.cable<2>) {
+  return
+}
+
+// BADOPT: error: invalid value 'bogus' for option 'measurements' (expected 'any' or 'expanded')
+
+// -----
+
+// With `measurements=any` (the default), every measurement shape is
+// accepted: a single ref, multiple refs, and a qvector.
+
+// CHECK-LABEL: func.func @measure_any_shape(
+func.func @measure_any_shape(%q0: !quake.ref, %q1: !quake.ref,
+                            %v: !quake.veq<2>) {
+  // CHECK: quake.mz %{{.*}} : (!quake.ref) -> !quake.measure
+  %m0 = quake.mz %q0 : (!quake.ref) -> !quake.measure
+  // CHECK: quake.mz %{{.*}}, %{{.*}} : (!quake.ref, !quake.ref) -> !cc.sequence<!quake.measure>
+  %m1 = quake.mz %q0, %q1 : (!quake.ref, !quake.ref) -> !cc.sequence<!quake.measure>
+  // CHECK: quake.mz %{{.*}} : (!quake.veq<2>) -> !cc.sequence<!quake.measure>
+  %m2 = quake.mz %v : (!quake.veq<2>) -> !cc.sequence<!quake.measure>
+  return
+}
+
+// -----
+
+// The expanded form: every measurement operates on exactly one !quake.ref.
+
+// EXPOK-LABEL: func.func @measure_expanded(
+func.func @measure_expanded(%q0: !quake.ref, %q1: !quake.ref) {
+  // EXPOK: quake.mz %{{.*}} : (!quake.ref) -> !quake.measure
+  %mz = quake.mz %q0 : (!quake.ref) -> !quake.measure
+  // EXPOK: quake.mx %{{.*}} : (!quake.ref) -> !quake.measure
+  %mx = quake.mx %q1 : (!quake.ref) -> !quake.measure
+  // EXPOK: quake.my %{{.*}} : (!quake.ref) -> !quake.measure
+  %my = quake.my %q0 : (!quake.ref) -> !quake.measure
+  return
+}
+
+// -----
+
+// A measurement of several refs at once is not the expanded form. The two
+// ops are pinned by name so an implementation that skips any of mz/mx/my
+// fails to produce its expected rejection.
+
+// EXPERR: error: 'quake.mz' op profile violation: expanded measurement form requires exactly one !quake.ref target (got 2 targets)
+func.func @measure_two_refs(%q0: !quake.ref, %q1: !quake.ref) {
+  %mz = quake.mz %q0, %q1 : (!quake.ref, !quake.ref) -> !cc.sequence<!quake.measure>
+  // EXPERR: error: 'quake.my' op profile violation: expanded measurement form requires exactly one !quake.ref target (got 2 targets)
+  %my = quake.my %q0, %q1 : (!quake.ref, !quake.ref) -> !cc.sequence<!quake.measure>
+  return
+}
+
+// -----
+
+// Measuring a qvector is a vector measurement, not the expanded form.
+
+// EXPERR: error: 'quake.mx' op profile violation: expanded measurement form requires a !quake.ref target (got '!quake.veq<?>'
+func.func @measure_veq(%v: !quake.veq<?>) {
+  %m = quake.mx %v : (!quake.veq<?>) -> !cc.sequence<!quake.measure>
+  return
+}
+
+// -----
+
+// An applied kernel with an unavailable body: rejected even with no basis.
+
+// EXPERR: error: 'quake.apply' op cannot verify: applied kernel body is not available
+func.func private @apply_ext_helper(%q: !quake.ref)
+func.func @apply_body_unavailable(%q: !quake.ref) {
+  quake.apply @apply_ext_helper (%q) : (!quake.ref) -> ()
+  return
+}

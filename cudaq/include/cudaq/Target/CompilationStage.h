@@ -17,6 +17,9 @@ namespace cudaq::config {
 /// A lowering that prescribes an explicit MLIR pass pipeline for the
 /// compilation stage.
 struct CustomPipelineLowering {
+  /// Name identifying this lowering in target configurations.
+  static constexpr char name[] = "custom-pipeline";
+
   /// If set, override the whole compilation pipeline with this string.
   std::string overridePassPipeline;
 

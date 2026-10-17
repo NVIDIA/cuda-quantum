@@ -205,6 +205,55 @@ compile-target:
   EXPECT_TRUE(config.BackendConfig->hasPassPipeline());
 }
 
+TEST(TargetConfigTester, physicalQuakeProfileDefaults) {
+  const cudaq::config::PhysicalQuakeProfile profile;
+  EXPECT_TRUE(profile.basisGates.empty());
+  EXPECT_EQ(profile.measurements, cudaq::config::MeasurementForm::any);
+  EXPECT_FALSE(profile.resetBeforeReuse);
+}
+TEST(TargetConfigTester, physicalQuakeProfileIdentity) {
+  const cudaq::config::PhysicalQuakeProfile baseline{
+      .basisGates = {"h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)"},
+      .measurements = cudaq::config::MeasurementForm::expanded,
+      .resetBeforeReuse = true};
+  const std::hash<cudaq::config::PhysicalQuakeProfile> hash;
+
+  // Distinct profile kinds are never equal.
+  EXPECT_NE(cudaq::config::Profile{cudaq::config::UncheckedProfile{}},
+            cudaq::config::Profile{baseline});
+
+  // Changing any single constraint changes equality and identity.
+  auto basisChanged = baseline;
+  basisChanged.basisGates = {"h", "rz"};
+  EXPECT_NE(basisChanged, baseline);
+  EXPECT_NE(hash(basisChanged), hash(baseline));
+
+  auto measurementsChanged = baseline;
+  measurementsChanged.measurements = cudaq::config::MeasurementForm::any;
+  EXPECT_NE(measurementsChanged, baseline);
+  EXPECT_NE(hash(measurementsChanged), hash(baseline));
+
+  auto resetChanged = baseline;
+  resetChanged.resetBeforeReuse = false;
+  EXPECT_NE(resetChanged, baseline);
+  EXPECT_NE(hash(resetChanged), hash(baseline));
+}
+TEST(TargetConfigTester, physicalQuakeProfileTargetIdentity) {
+  cudaq::CompileTarget target;
+  target.stages = {cudaq::config::CompilationStage{
+      .irOutputProfile = cudaq::config::PhysicalQuakeProfile{},
+      .lowering = cudaq::config::CustomPipelineLowering{}}};
+
+  // Profile options contribute to stage and compile-target identity.
+  cudaq::CompileTarget changed = target;
+  std::get<cudaq::config::PhysicalQuakeProfile>(
+      changed.stages[0].irOutputProfile)
+      .resetBeforeReuse = true;
+  EXPECT_NE(target, changed);
+  EXPECT_NE(std::hash<cudaq::CompileTarget>{}(target),
+            std::hash<cudaq::CompileTarget>{}(changed));
+}
+
 TEST(TargetConfigTester, v2RejectsV1CompilationKeys) {
   const std::string yaml = R"(
 version: 2

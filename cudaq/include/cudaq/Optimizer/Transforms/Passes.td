@@ -2374,6 +2374,38 @@ def VerifyAtomicQuantumRegions :
   }];
 }
 
+def VerifyProfilePhysicalQuake : Pass<"verify-profile-physical-quake", "mlir::ModuleOp"> {
+  let summary = "Verify physical-quake profile conformance (read-only)";
+  let description = [{
+    This pass verifies that the IR conforms to the physical-quake IR profile:
+     - uses reference semantics (no `!quake.wire`/`!quake.control`/`!quake.cable`
+       values)
+     - every quake operation is a member of the requested target basis
+     - with `measurements=expanded`, every measurement operates on exactly
+       one `!quake.ref`
+     - with `reset-before-reuse=true`, any non-measurement operation on a qubit
+       that comes after a measurement must be preceded by a reset
+
+    The pass never modifies the IR; any violation fails the pass. The `basis`
+    option uses the same grammar and legality machinery as
+    `basis-conversion`; an empty basis (the default) imposes no gate-basis
+    restriction.
+
+    This verification pass is conservative: if a required property could not be
+    verified (e.g. due to aliasing, unhandled control flow, or opaque calls),
+    verification will fail with a diagnostic.
+  }];
+  let options = [
+    ListOption<"basis", "basis", "std::string",
+               "Set of allowed basis operations (empty = unrestricted)">,
+    Option<"measurements", "measurements", "std::string", /*default=*/"\"any\"",
+           "Measurement form: 'any' or 'expanded'">,
+    Option<"resetBeforeReuse", "reset-before-reuse", "bool",
+           /*default=*/"false",
+           "Require reset after measurement before quantum reuse">,
+  ];
+}
+
 def WriteAfterWriteElimination : Pass<"write-after-write-elimination"> {
   let summary = "Remove stores that are overridden by subsequent store";
   let description = [{

@@ -212,6 +212,27 @@ cxxSimulationBackend(const cudaq::config::SimulationBackendSetting &s) {
          cxxStringVector(s.values) + "}";
 }
 
+std::string cxxMeasurementForm(cudaq::config::MeasurementForm form) {
+  using cudaq::config::MeasurementForm;
+  switch (form) {
+  case MeasurementForm::any:
+    return "cudaq::config::MeasurementForm::any";
+  case MeasurementForm::expanded:
+    return "cudaq::config::MeasurementForm::expanded";
+  }
+  return "cudaq::config::MeasurementForm::any";
+}
+
+std::string
+cxxPhysicalQuakeProfile(const cudaq::config::PhysicalQuakeProfile &profile) {
+  std::ostringstream os;
+  os << "cudaq::config::PhysicalQuakeProfile{"
+     << ".basisGates = " << cxxStringVector(profile.basisGates) << ", "
+     << ".measurements = " << cxxMeasurementForm(profile.measurements) << ", "
+     << ".resetBeforeReuse = " << cxxBool(profile.resetBeforeReuse) << "}";
+  return os.str();
+}
+
 std::string cxxCustomPipelineLowering(
     const cudaq::config::CustomPipelineLowering &lowering) {
   std::ostringstream os;
@@ -236,6 +257,10 @@ std::string cxxStage(const cudaq::config::CompilationStage &stage) {
         using T = std::decay_t<decltype(p)>;
         if constexpr (std::is_same_v<T, cudaq::config::UncheckedProfile>)
           os << "cudaq::config::UncheckedProfile>}";
+        else if constexpr (std::is_same_v<T,
+                                          cudaq::config::PhysicalQuakeProfile>)
+          os << "cudaq::config::PhysicalQuakeProfile>, "
+             << cxxPhysicalQuakeProfile(p) << "}";
       },
       stage.irOutputProfile);
   os << ", .lowering = "

@@ -162,6 +162,16 @@ std::size_t std::hash<cudaq::config::UncheckedProfile>::operator()(
   return 0;
 }
 
+std::size_t std::hash<cudaq::config::PhysicalQuakeProfile>::operator()(
+    const cudaq::config::PhysicalQuakeProfile &profile) const noexcept {
+  std::size_t seed = 0;
+  for (const auto &gate : profile.basisGates)
+    cudaq::detail::hashCombine(seed, gate);
+  cudaq::detail::hashCombine(seed, profile.measurements);
+  cudaq::detail::hashCombine(seed, profile.resetBeforeReuse);
+  return seed;
+}
+
 std::size_t std::hash<cudaq::config::CustomPipelineLowering>::operator()(
     const cudaq::config::CustomPipelineLowering &lowering) const noexcept {
   return cudaq::detail::hashVal(
