@@ -696,21 +696,21 @@ operations, each operating on 2 qubits.
       :end-before: [End Docs]
 
 
-Whether a whole :code:`qvector` can supply the targets of a custom operation
-differs between Python and C++.
+The target qubits of a custom operation with more than one target are passed
+individually, as positional arguments, in both Python and C++.
 
 .. tab:: Python
 
-    The target qubits of a custom operation can be passed individually, as a
-    whole :code:`qvector`, or as a combination of both. The total number of
-    qubits passed must equal the number of targets of the operation.
+    Each target qubit of a multi-qubit custom operation must be passed as its
+    own argument. A :code:`qvector` cannot supply the targets, whether passed
+    whole or unpacked with :code:`*`; either form is a compile-time error.
 
     .. code-block:: python
 
         qubits = cudaq.qvector(2)
-        my_cnot(qubits[0], qubits[1])
-        my_cnot(qubits)   # equivalent to the line above
-        my_cnot(*qubits)  # equivalent to the line above
+        my_cnot(qubits[0], qubits[1])  # supported
+        # my_cnot(qubits)              # error
+        # my_cnot(*qubits)             # error
 
 .. tab:: C++
 

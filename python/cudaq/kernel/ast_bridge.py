@@ -2586,9 +2586,37 @@ class PyASTBridge(ast.NodeVisitor):
         return None
 
     def __expandCustomOpTargets(self, pyArgs, numTargets, node):
-        """Collect qubit references for a custom operation call, expanding `qvector`
-        arguments into individual references.
+        """Collect qubit references for a custom operation call. An operation
+        with more than one target takes each target as its own positional
+        argument; only a single-target operation accepts a `qvector`.
         """
+        if numTargets > 1:
+            opName = node.func.id
+            targets = []
+            for arg in pyArgs:
+                if isinstance(arg, ast.Starred):
+                    self.emitFatalError(
+                        f'custom operation {opName} has {numTargets} targets; '
+                        'pass each target qubit individually instead of '
+                        'unpacking a qvector', node)
+                self.visit(arg)
+                val = self.popValue()
+                if quake.VeqType.isinstance(val.type):
+                    self.emitFatalError(
+                        f'custom operation {opName} has {numTargets} targets; '
+                        'pass each target qubit individually, a qvector '
+                        'cannot supply them', node)
+                if not quake.RefType.isinstance(val.type):
+                    self.emitFatalError(
+                        'invalid target operand for custom operation: '
+                        'expected a qubit', node)
+                targets.append(val)
+            if len(targets) != numTargets:
+                self.emitFatalError(
+                    f'custom operation requires {numTargets} qubit target(s), '
+                    f'but {len(targets)} were provided', node)
+            return targets
+
         # Pass 1: Compute the static qubit count
         values = []
         staticCount = 0
