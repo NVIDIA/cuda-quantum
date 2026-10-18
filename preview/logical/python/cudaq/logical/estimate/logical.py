@@ -13,6 +13,25 @@ from typing import ClassVar, Mapping
 
 from .types import Tier, _EstimateResult
 
+# Built-in actions whose applications are synthesis demand (T-like or
+# multi-controlled). Mirrors the qlx-estimate-logical pass.
+_SYNTHESIS_ACTIONS = frozenset({
+    "qlx_standard_t",
+    "qlx_standard_tdg",
+    "qlx_standard_ccz",
+    "qlx_standard_ccx",
+})
+
+_STANDARD_PREFIX = "qlx_standard_"
+
+# Built-in action -> (CUDA-Q gate name, number of controls).
+_ACTION_GATES = {
+    "cx": ("x", 1),
+    "cz": ("z", 1),
+    "ccx": ("x", 2),
+    "ccz": ("z", 2),
+}
+
 
 @dataclass(frozen=True, slots=True)
 class LogicalProfile(_EstimateResult):
@@ -36,6 +55,48 @@ class LogicalProfile(_EstimateResult):
                 self.idle_sites + sum(
                     (self.resource_requests or {}).values()) + sum(
                         (self.resource_consumptions or {}).values()))
+
+
+def _action_gate(action: str) -> tuple[str, int]:
+    name = action.removeprefix(_STANDARD_PREFIX)
+    if action.startswith(_STANDARD_PREFIX) and name in _ACTION_GATES:
+        return _ACTION_GATES[name]
+    return name, 0
+
+
+def _instrument_gate(instrument: str) -> tuple[str, int]:
+    name = instrument.removeprefix(_STANDARD_PREFIX)
+    if instrument.startswith(_STANDARD_PREFIX + "measure_"):
+        return "m" + name.removeprefix("measure_"), 0
+    if instrument == _STANDARD_PREFIX + "prepare_zero":
+        return "reset", 0
+    return name, 0
+
+
+def logical_instruction_counts(
+        profile: LogicalProfile) -> dict[tuple[str, int], int]:
+    """Project a profile to ``{(gate name, num controls): count}``.
+
+    This is the logical program as CUDA-Q ``Resources``: actions (including the
+    action applied by each consumed resource), instruments (``mz``, ``reset``,
+    ...) and idle steps. Discards, resource requests and synthesis demand are
+    not instructions and stay in the profile.
+    """
+
+    counts: Counter[tuple[str, int]] = Counter()
+    for action, count in profile.actions.items():
+        counts[_action_gate(action)] += count
+    # ``synthesis_demand`` holds built-in T-like applications plus every consumed
+    # resource action; subtracting the applications leaves the consumptions.
+    for action, count in (profile.synthesis_demand or {}).items():
+        consumed = count
+        if action in _SYNTHESIS_ACTIONS:
+            consumed -= profile.actions.get(action, 0)
+        counts[_action_gate(action)] += consumed
+    for instrument, count in profile.instruments.items():
+        counts[_instrument_gate(instrument)] += count
+    counts[("idle", 0)] += profile.idle_sites
+    return {key: count for key, count in counts.items() if count > 0}
 
 
 def _walk(operation):
@@ -118,7 +179,7 @@ def logical_counts(build) -> LogicalProfile:
                       _symbol_attribute(operation, "action"))
             actions[action] += multiplier
             depth += multiplier
-            if any(token in action for token in ("_t", "ccz", "ccx")):
+            if action in _SYNTHESIS_ACTIONS:
                 synthesis[action] += multiplier
         elif name == "qlx.instrument":
             instrument_attr = str(operation.attributes["instrument"])

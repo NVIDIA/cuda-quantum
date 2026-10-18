@@ -156,14 +156,14 @@ def logical_bell_pairs():
 # %%
 # Estimate through the complete Carbon target and inspect each resource layer.
 estimate = cudaq.estimate(logical_bell_pairs)
-logical = cql.estimate.LogicalEstimate.from_annotations(estimate.annotations)
+logical = estimate.resources
 static = cql.estimate.FabricCounts.from_annotations(estimate.annotations)
 schedule = estimate.annotations["SCHEDULE"]
 
 assert (Carbon.n, Carbon.k, Carbon.d.value) == (12, 2, 4)
-assert logical.logical_qubits_peak == 4
-assert logical.actions["paired_h"] == 1
-assert logical.actions["paired_cx"] == 1
+assert logical.num_qubits == 4
+assert logical.count("paired_h") == 1
+assert logical.count("paired_cx") == 1
 assert static.patches_peak == 2
 assert static.gadget_calls["paired_h_gadget"] == 1
 assert static.gadget_calls["paired_cx_gadget"] == 1

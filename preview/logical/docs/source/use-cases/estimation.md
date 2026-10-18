@@ -206,8 +206,20 @@ is available through `cudaq.logical.algorithms.estimate_gidney_ekera`.
 When you select a `cudaq.logical` target, ordinary CUDA-Q kernels compile
 through the stages that target owns. The logical, Clifford+T, Fermi–Hubbard,
 surface-code, and Carbon examples exercise progressively deeper target stacks.
-`cudaq.estimate(kernel)` returns the available per-tier results as CUDA-Q
-annotations, and typed views rehydrate directly from them:
+`cudaq.estimate(kernel)` returns an `EstimateResult` with two views of the
+estimate:
+
+- `result.resources` is a CUDA-Q `Resources` object that reports the **logical**
+  program only: gate counts, `num_qubits`, `depth`, and `t_depth`. It is
+  populated whenever a LOGICAL estimate is available, which is the case for
+  every full target stack, and is empty otherwise (for example when a target
+  pins a physical tier). Measurements appear as `mz`, preparations as `reset`,
+  and idle steps as `idle`; a consumed magic state counts as the gate it
+  applies. `depth` is a serial upper bound, so it is not a critical-path depth.
+- `result.annotations` holds the full per-tier results, including the LOGICAL
+  tier and every physical tier. Typed views rehydrate directly from them, which
+  is the way to reach details `Resources` cannot express, such as idle sites,
+  synthesis demand, resource requests, and the physical tiers:
 
 <!--
 % invisible-code-block: python
@@ -227,4 +239,5 @@ static = FabricCounts.from_annotations(estimates.annotations)
 logical = LogicalEstimate.from_annotations(estimates.annotations)
 assert static.patches_peak == 1
 assert logical.logical_qubits_peak == 1
+assert estimates.resources.num_qubits == logical.logical_qubits_peak
 ```
