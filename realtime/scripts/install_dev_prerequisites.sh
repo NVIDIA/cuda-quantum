@@ -28,6 +28,14 @@
 #   CUDAQ_REALTIME_HSB_PATCH_DIR Patches applied to the HSB clone.
 #                                Default: realtime/patches/hsb. Empty: none.
 #   CUDAQ_REALTIME_SKIP_HSB=1    Install the SDKs but skip the HSB build.
+#   CUDAQ_REALTIME_CPU_ROCE_USE_HOLOLINK=ON
+#                                Also build HololinkRoce, Hololink's CPU RoCE
+#                                transport library.
+#   CUDAQ_REALTIME_HOLOLINK_ROCE_REF
+#                                Hololink branch or tag to build it from.
+#                                Default: the ref set in deps_common.sh.
+#   HOLOLINK_ROCE_ROOT           Where to clone and build it.
+#                                Default: /tmp/hololink-roce
 #
 # Containers that already ship Mellanox OFED cannot use this script, because
 # doca-all conflicts with the OFED packages; use install_devdeps.sh instead.
@@ -63,6 +71,11 @@ if [ -x "$(command -v apt-get)" ]; then
     echo "CUDAQ_REALTIME_SKIP_HSB is set, skipping the HSB build."
   else
     cudaq_realtime_build_hsb
+  fi
+
+  # [Hololink CPU RoCE transport]
+  if [ "${CUDAQ_REALTIME_CPU_ROCE_USE_HOLOLINK:-OFF}" = ON ]; then
+    cudaq_realtime_build_hololink_roce
   fi
 
 elif [ -x "$(command -v dnf)" ]; then

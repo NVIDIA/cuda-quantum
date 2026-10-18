@@ -26,11 +26,11 @@ on:
         type: string
         default: ''
         description: 'Holoscan Sensor Bridge branch or tag. Blank uses the deps_common.sh default.'
-      cpu_roce_use_hololink:
+      hololink_roce_ref:
         required: false
-        type: boolean
-        default: false
-        description: 'Link CPU RoCE against Hololink. Needs an HSB ref that exports HololinkRoce 2.7.'
+        type: string
+        default: ''
+        description: 'Hololink branch or tag, in hsb_repo, for the HololinkRoce CPU RoCE transport. Blank uses the deps_common.sh default.'
   # No `paths:` filter: copy-pr-bot rebases make push diffs unreliable, and
   # merge_group does not support them. The `changes` job gates instead.
   push:
@@ -170,6 +170,9 @@ jobs:
       matrix:
         platform: [amd64, arm64]
         cuda_version: ['12.6', '13.0']
+        # Which CpuRoceTransceiver backs the CPU RoCE transport: CUDA-Q's legacy
+        # one or Hololink's. A build links exactly one of them, hence the axis.
+        cpu_roce_backend: [cpu-roce-legacy, cpu-roce-hololink]
       fail-fast: false
     runs-on: ${{ (contains(matrix.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     permissions:
@@ -190,7 +193,8 @@ jobs:
           HOLOSCAN_SDK_VERSION: ${{ inputs.holoscan_version || '' }}
           CUDAQ_REALTIME_HSB_REPO: ${{ inputs.hsb_repo || '' }}
           CUDAQ_REALTIME_HSB_REF: ${{ inputs.hsb_ref || '' }}
-          CUDAQ_REALTIME_CPU_ROCE_USE_HOLOLINK: ${{ (inputs.cpu_roce_use_hololink && 'ON') || 'OFF' }}
+          CUDAQ_REALTIME_HOLOLINK_ROCE_REF: ${{ inputs.hololink_roce_ref || '' }}
+          CUDAQ_REALTIME_CPU_ROCE_USE_HOLOLINK: ${{ matrix.cpu_roce_backend == 'cpu-roce-hololink' && 'ON' || 'OFF' }}
         with:
           # Use a base CUDA development image for compilation, i.e., no CUDA-Q dependencies pre-installed.
           image: nvidia/cuda:${{ matrix.cuda_version }}.0-devel-ubuntu24.04
@@ -201,6 +205,7 @@ jobs:
             HOLOSCAN_SDK_VERSION
             CUDAQ_REALTIME_HSB_REPO
             CUDAQ_REALTIME_HSB_REF
+            CUDAQ_REALTIME_HOLOLINK_ROCE_REF
             CUDAQ_REALTIME_CPU_ROCE_USE_HOLOLINK
           run: |
             # run-in-docker executes this block with a bare `bash`, so without
@@ -215,8 +220,10 @@ jobs:
             # Build 
             apt update && apt install -y --no-install-recommends cmake git ninja-build nvcomp pkg-config
             cd /workspace/realtime
-            # Installs DOCA/Holoscan and builds HSB into $HSB_ROOT/build.
+            # Installs DOCA/Holoscan and builds HSB into $HSB_ROOT/build; for the
+            # cpu-roce-hololink backend it also builds HololinkRoce into $HOLOLINK_ROCE_ROOT/build.
             export HSB_ROOT=/workspace/holoscan-sensor-bridge
+            export HOLOLINK_ROCE_ROOT=/workspace/hololink-roce
             # deps_common.sh logs the ref it builds but not the repository.
             echo "HSB source: ${CUDAQ_REALTIME_HSB_REPO:-(deps_common.sh default)} @ ${CUDAQ_REALTIME_HSB_REF:-(deps_common.sh default)}, hololink CPU RoCE ${CUDAQ_REALTIME_CPU_ROCE_USE_HOLOLINK:-OFF}"
             bash scripts/install_dev_prerequisites.sh
@@ -230,7 +237,7 @@ jobs:
       - name: Upload binary artifact
         uses: actions/upload-artifact@v7
         with:
-          name: cuda-quantum-realtime-binaries-${{ matrix.platform }}-cu${{ matrix.cuda_version }}
+          name: cuda-quantum-realtime-binaries-${{ matrix.platform }}-cu${{ matrix.cuda_version }}-${{ matrix.cpu_roce_backend }}
           path: build_artifacts.tgz
           retention-days: 1
           if-no-files-found: error
@@ -238,7 +245,7 @@ jobs:
       - name: Upload installer artifact
         uses: actions/upload-artifact@v7
         with:
-          name: cuda-quantum-realtime-installer-${{ matrix.platform }}-cu${{ matrix.cuda_version }}
+          name: cuda-quantum-realtime-installer-${{ matrix.platform }}-cu${{ matrix.cuda_version }}-${{ matrix.cpu_roce_backend }}
           path: ${{ github.workspace }}/installer
           retention-days: 1
           if-no-files-found: error
@@ -246,10 +253,15 @@ jobs:
   test_realtime:
     name: Test 
     needs: build_realtime
+    # Run the test matrix whenever the build job ran, instead of skipping it all
+    # when any one build leg fails; a leg without an artifact fails at download.
+    # Still skipped when the build job itself was skipped (no realtime changes).
+    if: ${{ !cancelled() && needs.build_realtime.result != 'skipped' }}
     strategy:
       matrix:
         platform: [amd64, arm64]
         cuda_version: ['12.6', '13.0']
+        cpu_roce_backend: [cpu-roce-legacy, cpu-roce-hololink]
       fail-fast: false
     runs-on: ${{ (contains(matrix.platform, 'arm') && 'linux-arm64-gpu-a100-latest-1') || 'linux-amd64-gpu-a100-latest-1' }}
     permissions:
@@ -265,7 +277,7 @@ jobs:
       - name: Download binary artifact
         uses: actions/download-artifact@v8
         with:
-          name: cuda-quantum-realtime-binaries-${{ matrix.platform }}-cu${{ matrix.cuda_version }}
+          name: cuda-quantum-realtime-binaries-${{ matrix.platform }}-cu${{ matrix.cuda_version }}-${{ matrix.cpu_roce_backend }}
           path: ./realtime_build_artifacts
       
       - name: Extract files

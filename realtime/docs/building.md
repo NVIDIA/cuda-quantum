@@ -48,17 +48,23 @@ bash realtime/scripts/build_realtime.sh
 bash realtime/scripts/build_realtime.sh -c Debug -s
 ```
 
-A Holoscan Sensor Bridge tree that exports `HololinkRoce` can be picked up
-via `HSB_ROOT`. Opt in with `CUDAQ_REALTIME_CPU_ROCE_USE_HOLOLINK=ON`.
+Opt in to Hololink's CPU RoCE transport, `CpuRoceTransceiver`, with
+`CUDAQ_REALTIME_CPU_ROCE_USE_HOLOLINK=ON`. It links the `HololinkRoce` 2.7
+package, which must provide `CpuRoceTransceiver::Mode::CallerDriven`. With
+that variable set, `install_dev_prerequisites.sh` also builds the package
+from the CUDA-free leaf of the Hololink ref set in `deps_common.sh`
+(`CUDAQ_REALTIME_HOLOLINK_ROCE_REF`) into `$HOLOLINK_ROCE_ROOT/build`,
+`/tmp/hololink-roce` by default, where the build script picks it up:
 
 ```bash
-CUDAQ_REALTIME_CPU_ROCE_USE_HOLOLINK=ON \
-  HSB_ROOT=/path/to/holoscan-sensor-bridge \
-  bash realtime/scripts/build_realtime.sh
+export CUDAQ_REALTIME_CPU_ROCE_USE_HOLOLINK=ON
+bash realtime/scripts/install_dev_prerequisites.sh
+bash realtime/scripts/build_realtime.sh
 ```
 
-Requires HololinkRoce 2.7 with `CpuRoceTransceiver::Mode::CallerDriven`.
-With no HSB tree, build the leaf and pass it in:
+A Holoscan Sensor Bridge tree that exports `HololinkRoce` is also picked up
+via `HSB_ROOT`. To use any other Hololink tree, build the leaf yourself and
+pass it in:
 
 ```bash
 HOLOLINK_SRC=/path/to/hololink

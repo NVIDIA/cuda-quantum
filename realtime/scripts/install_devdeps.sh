@@ -25,6 +25,10 @@
 #   CUDAQ_REALTIME_HSB_PATCH_DIR
 #                      Patches applied to the HSB clone.
 #                      Default: realtime/patches/hsb. Empty: none.
+#   CUDAQ_REALTIME_CPU_ROCE_USE_HOLOLINK=ON
+#                      Also build HololinkRoce, Hololink's CPU RoCE transport,
+#                      from CUDAQ_REALTIME_HOLOLINK_ROCE_REF into
+#                      HOLOLINK_ROCE_ROOT (default /tmp/hololink-roce).
 
 set -e
 
@@ -59,3 +63,8 @@ cudaq_realtime_verify_sdks
 # [Holoscan Sensor Bridge]
 export CUDAQ_REALTIME_HSB_STRIP_OPERATORS=1
 cudaq_realtime_build_hsb
+
+# [Hololink CPU RoCE transport]
+if [ "${CUDAQ_REALTIME_CPU_ROCE_USE_HOLOLINK:-OFF}" = ON ]; then
+  cudaq_realtime_build_hololink_roce
+fi

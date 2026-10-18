@@ -45,8 +45,13 @@
 #   CUDAQ_REALTIME_BUILD_EXAMPLES   Build the examples. Defaults to OFF.
 #   CUDAQ_REALTIME_CPU_ROCE_USE_HOLOLINK
 #                                   Opt in to Hololink CPU RoCE (default OFF).
-#                                   Links HololinkRoce from the HSB build, or
-#                                   pass -- -DHololinkRoce_DIR=<leaf-build>/HololinkRoce.
+#                                   Links HololinkRoce from HOLOLINK_ROCE_ROOT,
+#                                   else from the HSB build, or pass
+#                                   -- -DHololinkRoce_DIR=<leaf-build>/HololinkRoce.
+#   HOLOLINK_ROCE_ROOT              HololinkRoce leaf checkout with its build in
+#                                   build/, as install_dev_prerequisites.sh
+#                                   leaves it. Defaults to /tmp/hololink-roce;
+#                                   set it to the empty string to never look there.
 #   HSB_ROOT                        Holoscan Sensor Bridge source checkout.
 #                                   HSB tools are enabled when it exists.
 #                                   Defaults to $HOME/cudaq/holoscan-sensor-bridge;
@@ -141,6 +146,18 @@ if [ -n "$hsb_src_dir" ] && [ -d "$hsb_src_dir" ]; then
     "-DHOLOSCAN_SENSOR_BRIDGE_SOURCE_DIR=$hsb_src_dir"
     "-DHOLOSCAN_SENSOR_BRIDGE_BUILD_DIR=$hsb_src_dir/build"
   )
+fi
+
+# Hololink CPU RoCE: install_dev_prerequisites.sh builds the HololinkRoce leaf
+# into $HOLOLINK_ROCE_ROOT/build. When the backend is selected, add that package
+# to the search path, behind any HololinkRoce_DIR, HololinkRoce_ROOT or
+# CMAKE_PREFIX_PATH the caller sets and ahead of the HSB build-tree fallback.
+# An explicitly empty HOLOLINK_ROCE_ROOT opts out of the search.
+hololink_roce_root=${HOLOLINK_ROCE_ROOT-/tmp/hololink-roce}
+if [ "$cpu_roce_use_hololink" = ON ] && [ -n "$hololink_roce_root" ] &&
+   [ -f "$hololink_roce_root/build/HololinkRoce/HololinkRoceConfig.cmake" ]; then
+  echo "HololinkRoce detected in $hololink_roce_root/build. Adding it to CMAKE_PREFIX_PATH."
+  export CMAKE_PREFIX_PATH="${CMAKE_PREFIX_PATH:+$CMAKE_PREFIX_PATH:}$hololink_roce_root/build/HololinkRoce"
 fi
 
 ccache_args=()

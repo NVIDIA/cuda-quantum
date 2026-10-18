@@ -46,6 +46,11 @@ CUDAQ_REALTIME_HSB_REF=${CUDAQ_REALTIME_HSB_REF:-2.6.0-EA2}
 # empty string to build HSB unpatched.
 CUDAQ_REALTIME_HSB_PATCH_DIR=${CUDAQ_REALTIME_HSB_PATCH_DIR-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../patches/hsb}
 
+# Ref of the same repository to build HololinkRoce, Hololink's CPU RoCE
+# transport, from. Set separately from the HSB ref above, which serves the
+# GPU-side tools.
+CUDAQ_REALTIME_HOLOLINK_ROCE_REF=${CUDAQ_REALTIME_HOLOLINK_ROCE_REF:-EA_CUDAQ_10_26}
+
 # Major CUDA version reported by nvcc, e.g., 13.
 cudaq_realtime_cuda_major() {
   _cudaq_realtime_cuda_major=$(nvcc --version 2>/dev/null |
@@ -284,4 +289,25 @@ cudaq_realtime_build_hsb() {
     --target roce_receiver gpu_roce_transceiver hololink_core \
     "${hololink_roce_targets[@]}"
   echo "holoscan-sensor-bridge built at $HSB_BUILD"
+}
+
+# Clone and build HololinkRoce, Hololink's CPU RoCE transport, standalone from
+# its CUDA-free leaf; needs libibverbs-dev but no CUDA, DOCA or Holoscan.
+# HOLOLINK_ROCE_ROOT selects the source tree (default /tmp/hololink-roce) and
+# the package lands in $HOLOLINK_ROCE_ROOT/build/HololinkRoce, where
+# build_realtime.sh looks for it when CUDAQ_REALTIME_CPU_ROCE_USE_HOLOLINK=ON.
+cudaq_realtime_build_hololink_roce() {
+  export HOLOLINK_ROCE_ROOT="${HOLOLINK_ROCE_ROOT:-/tmp/hololink-roce}"
+  export HOLOLINK_ROCE_BUILD="${HOLOLINK_ROCE_ROOT}/build"
+
+  echo "Building HololinkRoce from $CUDAQ_REALTIME_HSB_REPO @ $CUDAQ_REALTIME_HOLOLINK_ROCE_REF"
+  rm -rf "$HOLOLINK_ROCE_ROOT"
+  git clone --depth 1 --branch "$CUDAQ_REALTIME_HOLOLINK_ROCE_REF" \
+    "$CUDAQ_REALTIME_HSB_REPO" "$HOLOLINK_ROCE_ROOT"
+  echo "HololinkRoce $CUDAQ_REALTIME_HOLOLINK_ROCE_REF is commit $(git -C "$HOLOLINK_ROCE_ROOT" rev-parse HEAD)"
+
+  cmake -G Ninja -S "$HOLOLINK_ROCE_ROOT/src/hololink/transport/roce" \
+    -B "$HOLOLINK_ROCE_BUILD" -DCMAKE_BUILD_TYPE=Release
+  cmake --build "$HOLOLINK_ROCE_BUILD" --target hololink_transport_roce
+  echo "HololinkRoce built at $HOLOLINK_ROCE_BUILD/HololinkRoce"
 }
