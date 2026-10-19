@@ -1086,7 +1086,8 @@ endif(CUDAQ_ENABLE_CC)
 
 add_subdirectory(cmake)
 
-if(CUDAQ_BUILD_TESTS)
+if(CUDAQ_BUILD_TESTS OR
+    ("edem" IN_LIST CUDAQ_ENABLE_PROJECTS AND CUDAQ_EDEM_BUILD_TESTS))
   enable_testing()
 endif()
 

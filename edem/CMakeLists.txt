@@ -17,7 +17,9 @@ if(CUDAQ_EDEM_STANDALONE_BUILD)
   project(cudaq-edem VERSION ${CUDAQ_EDEM_VERSION} LANGUAGES C)
   option(BUILD_SHARED_LIBS "Build shared libraries" ON)
   # Match CUDA-Q's default library directory while honoring explicit overrides.
-  set(CMAKE_INSTALL_LIBDIR lib CACHE PATH "Object code libraries")
+  if(NOT DEFINED CMAKE_INSTALL_LIBDIR)
+    set(CMAKE_INSTALL_LIBDIR lib CACHE PATH "Object code libraries")
+  endif()
 elseif(NOT DEFINED BUILD_SHARED_LIBS)
   # This default is local to this directory and its children.
   set(BUILD_SHARED_LIBS ON)
