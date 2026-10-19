@@ -42,6 +42,16 @@ cudaq::CompileTarget::getCustomPipelineLowering() {
   return *lowering;
 }
 
+const std::string *cudaq::CompileTarget::getOverridePassPipeline() const {
+  if (stages.size() != 1)
+    return nullptr;
+  const auto *lowering =
+      std::get_if<config::CustomPipelineLowering>(&stages[0].lowering);
+  if (!lowering || lowering->overridePassPipeline.empty())
+    return nullptr;
+  return &lowering->overridePassPipeline;
+}
+
 /// Replace `%KEY%` and `%KEY:default%` placeholders from runtime options.
 static void substitutePipelinePlaceholders(
     std::string &pipeline,
