@@ -311,7 +311,7 @@ def test_import_cudaq_rejects_a_noisy_kernel(capfd):
     assert "the target does not support noise" in capfd.readouterr().err
 
 
-def test_cudaq_qvector_entry_allocation_bridge_imports_as_zero_preparation():
+def test_cudaq_qvector_and_scalar_import_as_zero_preparation():
     import cudaq
     import cudaq.logical as cql
 
