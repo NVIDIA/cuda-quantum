@@ -39,6 +39,9 @@ jobs:
             CMakeLists.txt
             edem/
             math/gf2/
+            pyproject.toml.edem
+            LICENSES/LICENSE.nanobind
+            LICENSES/LICENSE.robin-map
             .github/workflows/edem_ci.yml
             .github/actions/check-changed-paths/
 
@@ -66,3 +69,35 @@ jobs:
         run: cmake --build build-edem --parallel 2
       - name: Check build-tree and installed packages
         run: ctest --test-dir build-edem --output-on-failure
+
+  wheel:
+    name: EDEM wheel (${{ matrix.os }}, Python ${{ matrix.python }})
+    needs: changes
+    if: needs.changes.outputs.edem == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python: ["3.11", "3.14"]
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    env:
+      CMAKE_BUILD_PARALLEL_LEVEL: "2"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install build frontend
+        run: python -m pip install "build[virtualenv]"
+      - name: Build source distribution and wheel
+        run: python edem/scripts/build_wheel.py --outdir dist/edem
+      - name: Check installed wheel
+        shell: bash
+        run: python edem/test/check_wheel.py dist/edem/*.whl
+      - uses: actions/upload-artifact@v7
+        with:
+          name: cudaq-edem-${{ matrix.os }}-py${{ matrix.python }}
+          path: dist/edem/*
+          if-no-files-found: error

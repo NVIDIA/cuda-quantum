@@ -11,6 +11,7 @@
 
 #include "cudaq/gf2/core.h"
 
-/* EDEM interfaces will be introduced in subsequent changes. */
+/* EDEM interfaces are being developed toward a stable C ABI.
+ * The API and ABI are work in progress and subject to change. */
 
 #endif

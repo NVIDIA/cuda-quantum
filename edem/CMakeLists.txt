@@ -30,6 +30,7 @@ include(CMakePackageConfigHelpers)
 
 option(CUDAQ_EDEM_BUILD_TESTS "Build EDEM packaging tests"
   ${CUDAQ_EDEM_STANDALONE_BUILD})
+option(CUDAQ_EDEM_BUILD_PYTHON "Build EDEM Python bindings" OFF)
 
 if(NOT TARGET cudaq-gf2)
   add_subdirectory(../math/gf2 "${CMAKE_CURRENT_BINARY_DIR}/gf2")
@@ -111,6 +112,11 @@ install(FILES
 install(FILES ../LICENSE ../NOTICE
   DESTINATION "${CMAKE_INSTALL_DATADIR}/cudaq-edem"
   COMPONENT "${CUDAQ_EDEM_DEVELOPMENT_COMPONENT}")
+
+if(CUDAQ_EDEM_BUILD_PYTHON)
+  enable_language(CXX)
+  add_subdirectory(python)
+endif()
 
 if(CUDAQ_EDEM_BUILD_TESTS)
   enable_language(CXX)
