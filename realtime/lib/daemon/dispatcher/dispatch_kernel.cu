@@ -651,7 +651,7 @@ extern "C" CUDAQ_REALTIME_DISPATCH_API void cudaq_launch_dispatch_kernel_regular
           shutdown_flag, stats, num_slots);
 }
 
-extern "C" void cudaq_launch_dispatch_kernel_cooperative(
+extern "C" CUDAQ_REALTIME_DISPATCH_API void cudaq_launch_dispatch_kernel_cooperative(
     volatile std::uint64_t* rx_flags,
     volatile std::uint64_t* tx_flags,
     std::uint8_t* rx_data,
