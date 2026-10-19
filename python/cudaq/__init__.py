@@ -257,6 +257,7 @@ from .runtime.translate import translate
 from .runtime.state import (get_state, get_state_async, to_cupy)
 from .runtime.draw import draw
 from .runtime.unitary import get_unitary
+from .runtime.compile import compile
 from .runtime.resource_count import estimate
 from .runtime.resource_count import estimate_resources
 from .runtime.dem import dem_from_kernel

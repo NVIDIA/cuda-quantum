@@ -181,7 +181,9 @@ You inspect builds through typed APIs, not text scraping: `build.stage`,
 `build.placement`, `build.definitions`, `build.calls(symbol)`,
 `build.protocol_for(objective)`, `build.status`, `build.synthesis`,
 `build.patch_graph`, `build.to_mlir()`, `build.content_sha256`, and
-`build.serialize()` / `Build.replay(...)`. Estimate results are typed the same
+`build.serialize()` / `Build.replay(...)`. `cudaq.estimate(kernel,
+save_temps=directory)` saves the builds of a target's stages, and
+`cudaq.logical.load_build` replays them. Estimate results are typed the same
 way: `LogicalEstimate`, `FabricCounts`, `FabricEstimate`, and
 `ScheduleEstimate` expose structured results from the four estimation tiers.
 

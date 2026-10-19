@@ -217,3 +217,31 @@ assert kernel_schedule["physical_qubits"] == schedule_resources.physical_qubits
 assert kernel_schedule["event_count"] == schedule_resources.event_count
 assert kernel_schedule["makespan_ns"] == schedule_resources.makespan_ns
 # [END_KERNEL_ESTIMATE]
+
+# %%
+# Compile the kernel for the target without estimating it, and import it as
+# the P0 build that the direct workflow started from.
+# [START_KERNEL_IMPORT]
+module = cudaq.compile(bell_pair, target=target)
+kernel_p0 = cql.compiler.import_quake(str(module.mlir_module))
+
+assert kernel_p0.stage == cql.stages.P0
+kernel_p0_resources = cql.estimate(kernel_p0, tier=cql.estimate.Tier.LOGICAL)
+assert kernel_p0_resources.actions == logical_resources.actions
+# [END_KERNEL_IMPORT]
+
+# %%
+# Save the builds behind the estimate, and load the physical one back.
+# [START_SAVE_TEMPS]
+import tempfile
+
+with tempfile.TemporaryDirectory() as directory:
+    saved = cudaq.estimate(bell_pair, save_temps=directory)
+    print("Saved builds:", ", ".join(sorted(saved.annotations["BUILDS"])))
+    kernel_physical = cql.load_build(saved, stage="p3")
+
+# The physical build declares one resource for every physical qubit.
+physical_mlir = kernel_physical.to_mlir()
+physical_resources = physical_mlir.count("phys.resource @")
+assert physical_resources == schedule_resources.physical_qubits
+# [END_SAVE_TEMPS]

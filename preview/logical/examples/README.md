@@ -15,10 +15,12 @@ target.
    physical compilation. It varies layout parameters, then holds the layout
    fixed to expose operating-point effects.
 4. `03_fermi_hubbard.py` moves beyond teaching-scale kernels and estimates a
-   Trotterized Fermi--Hubbard workload.
+   Trotterized Fermi--Hubbard workload. It saves the builds of the Clifford+T
+   target to compare the program before and after synthesis.
 5. `04_carbon_code.py` removes the built-in-target convenience and constructs
    the complete stack from scratch: the Carbon `[[12,2,4]]` code, paired
    CUDA-Q kernels used as gadgets, and the logical, QEC, and physical layers.
+   It saves the builds of the estimate and reads the physical program.
 6. `05_gidney_ekera.py` brings the pieces together on the exact folded
    RSA-2048, RSA-3072, or RSA-4096 resource kernel and a detailed
    factory/application stack. It calls
@@ -29,8 +31,10 @@ target.
 `steane_bell_e2e_workflow.py` follows a Bell pair through logical compilation,
 placement, QEC realization, and physical scheduling using Steane. It then
 exposes the same device as a CUDA-Q target and verifies that both entry
-points report the same resources. Its excerpts supply the
-[logical programming stack walkthrough](../docs/source/getting-started/cudaq-logical-in-practice.md).
+points report the same resources. It finishes by compiling the kernel for the
+target with `cudaq.compile` and by saving and loading the target's builds. Its
+excerpts supply the [logical programming stack
+walkthrough](../docs/source/getting-started/cudaq-logical-in-practice.md).
 
 The `standalone/` examples use `cudaq.logical` directly and expose each
 compiler step. They do not define CUDA-Q kernels or call `cudaq.estimate`.

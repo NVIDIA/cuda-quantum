@@ -9,6 +9,8 @@
 
 # %%
 # Import CUDA-Q and the CUDA-Q Logical target and result APIs.
+import tempfile
+
 import cudaq
 import cudaq.logical as cql
 
@@ -94,10 +96,16 @@ logical_resources = cql.estimate.LogicalEstimate.from_annotations(
     logical_estimate.annotations)
 
 # %%
-# Estimate the same workload after synthesis with the Clifford+T target.
+# Estimate the same workload after synthesis with the Clifford+T target. Saving
+# the builds keeps the program before and after synthesis to compare.
 clifford_t_target = cql.targets.clifford_t_target(precision=1.0e-6)
 cudaq.set_target(clifford_t_target)
-clifford_t_estimate = cudaq.estimate(fermi_hubbard_trotter, *kernel_arguments)
+with tempfile.TemporaryDirectory() as directory:
+    clifford_t_estimate = cudaq.estimate(fermi_hubbard_trotter,
+                                         *kernel_arguments,
+                                         save_temps=directory)
+    portable_build = cql.load_build(clifford_t_estimate, stage="p0")
+    clifford_t_build = cql.load_build(clifford_t_estimate, stage="clifford_t")
 clifford_t_resources = cql.estimate.LogicalEstimate.from_annotations(
     clifford_t_estimate.annotations)
 
@@ -108,3 +116,18 @@ print(f"  logical: depth={logical_resources.action_depth_upper_bound}, "
       f"actions={dict(logical_resources.actions)}")
 print(f"  clifford_t: depth={clifford_t_resources.action_depth_upper_bound}, "
       f"actions={dict(clifford_t_resources.actions)}")
+
+# %%
+# Read the saved MLIR to see what synthesis did to the program.
+portable_mlir = portable_build.to_mlir()
+clifford_t_mlir = clifford_t_build.to_mlir()
+assert "#qlx.action<pauli_rotation>" in portable_mlir
+assert "#qlx.action<pauli_rotation>" not in clifford_t_mlir
+assert "#qlx.action<t>" in clifford_t_mlir
+
+print("Fermi--Hubbard MLIR before and after Clifford+T synthesis:")
+print(f"  portable: {len(portable_mlir.splitlines())} lines, "
+      f"{portable_mlir.count('#qlx.action<pauli_rotation>')} Pauli rotations")
+print(f"  clifford_t: {len(clifford_t_mlir.splitlines())} lines, "
+      f"{clifford_t_mlir.count('#qlx.action<t>')} T gates")
+print("\n".join(line[:100] for line in clifford_t_mlir.splitlines()[:4]))

@@ -28,6 +28,12 @@ struct estimate_policy {
   /// follow when the kernel branches on a measurement result.
   std::function<bool()> choice;
 
+  /// Directory in which the runtime endpoint saves the compilation artifacts it
+  /// produces for this estimation, like `nvq++ -save-temps`. Empty if the
+  /// artifacts are not to be saved. Only endpoints that produce compilation
+  /// artifacts of their own honor it.
+  std::string saveTemps;
+
   friend CompileOptions get_compile_options_impl(const estimate_policy &);
 };
 
