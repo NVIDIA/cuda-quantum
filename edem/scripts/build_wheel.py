@@ -38,7 +38,8 @@ def main():
         configuration = root / "pyproject.toml.edem"
         shutil.copy2(configuration, source / "pyproject.toml.edem")
         shutil.copy2(configuration, source / "pyproject.toml")
-        # The default build makes an sdist, then builds its wheel from that sdist.
+        # The default build creates a source distribution, then builds its wheel
+        # from that archive.
         subprocess.run([
             sys.executable, "-m", "build", "--outdir",
             str(outdir),
