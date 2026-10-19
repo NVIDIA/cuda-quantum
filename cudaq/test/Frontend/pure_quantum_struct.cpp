@@ -7,11 +7,12 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: cudaq-quake %s | cudaq-opt | FileCheck %s
-// RUN: cudaq-quake %s | cudaq-translate --convert-to=qir | FileCheck --check-prefix=QIR %s
+// RUN: cudaq-quake %s -o %t.qke
+// RUN: cudaq-opt %t.qke | FileCheck %s
+// RUN: cudaq-translate %t.qke --convert-to=qir | FileCheck --check-prefix=QIR %s
 // clang-format on
 
-#include "cudaq.h"
+#include "cudaq/qis/qubit_qis.h"
 
 struct test {
   cudaq::qview<> q;

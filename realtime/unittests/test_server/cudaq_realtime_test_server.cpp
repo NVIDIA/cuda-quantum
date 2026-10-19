@@ -227,13 +227,6 @@ int main(int argc, char **argv) {
   std::signal(SIGINT, on_signal);
   std::signal(SIGTERM, on_signal);
 
-  // Declared up here, and not down at [4] where it is filled, because
-  // cudaq_dispatcher_set_cpu_dataplane RETAINS THIS POINTER -- the loop
-  // dereferences it on every iteration.  Before `res` for the same reason: its
-  // destructor stops the dispatcher, which has to happen while the struct the
-  // dispatcher is reading is still alive.  The ring buffer needs none of this
-  // and stays local to its branch: set_ringbuffer copies.
-  cudaq_cpu_dataplane_t dataplane{};
   ServerResources res;
 
   // [1] Load the provider and hand it its own command line -- the tokens after
@@ -268,8 +261,8 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  // [3] Dispatcher: HOST path, HOST_CALL mode, geometry from the transport.
-  //     One of the two places the shape appears.
+  // [3] Dispatcher: HOST path, HOST_CALL mode, and the shape -- the one place
+  //     it appears.  Geometry is left at 0 for the bridge to supply.
   if (cudaq_dispatch_manager_create(&res.manager) != CUDAQ_OK) {
     std::cerr << "ERROR: cudaq_dispatch_manager_create failed" << std::endl;
     return 1;
@@ -277,73 +270,21 @@ int main(int argc, char **argv) {
   cudaq_dispatcher_config_t dcfg{};
   dcfg.dispatch_path = CUDAQ_DISPATCH_PATH_HOST;
   dcfg.dispatch_mode = CUDAQ_DISPATCH_HOST_CALL;
-  dcfg.num_slots = num_slots;
-  dcfg.slot_size = slot_size;
   dcfg.kernel_type = cfg.unified ? CUDAQ_KERNEL_UNIFIED : CUDAQ_KERNEL_REGULAR;
-  // Ring shape only: the provider's TX pump owns the wire and treats any
-  // non-zero flag as a slot address, so the in-flight sentinel must not be
-  // written.  The unified loop needs that sentinel (its publish hook reads it
-  // to tell a running graph from a finished one) and forces this to 0 anyway.
-  dcfg.skip_tx_markers = cfg.unified ? 0 : 1;
   if (cudaq_dispatcher_create(res.manager, &dcfg, &res.dispatcher) !=
       CUDAQ_OK) {
     std::cerr << "ERROR: cudaq_dispatcher_create failed" << std::endl;
     return 1;
   }
 
-  // [4] Wire the transport to the dispatcher: a ring the dispatcher polls, or
-  //     the two hooks it drives itself.  The other place the shape appears, and
-  //     the one that catches a shape the provider is not serving.
-  if (cfg.unified) {
-    cudaq_unified_dispatch_ctx_t unified_dispatch{};
-    if (cudaq_bridge_get_transport_context(res.bridge, UNIFIED,
-                                           &unified_dispatch) != CUDAQ_OK) {
-      std::cerr << "ERROR: Failed to get unified dispatch context" << std::endl;
-      return 1;
-    }
-    if (unified_dispatch.launch_fn != nullptr &&
-        unified_dispatch.transport_ctx != nullptr &&
-        dcfg.dispatch_path == CUDAQ_DISPATCH_PATH_DEVICE) {
-      // Legacy path: the bridge provides the dispatch call.
-      if (cudaq_dispatcher_set_unified_launch(
-              res.dispatcher, unified_dispatch.launch_fn,
-              unified_dispatch.transport_ctx) != CUDAQ_OK) {
-        std::cerr << "ERROR: Failed to set unified launch function"
-                  << std::endl;
-        return 1;
-      }
-    } else {
-      if (cudaq_bridge_get_cpu_dataplane(res.bridge, &dataplane) != CUDAQ_OK) {
-        std::cerr << "ERROR: Failed to get CPU dataplane" << std::endl;
-        return 1;
-      }
-      if (cudaq_dispatcher_set_cpu_dataplane(res.dispatcher, &dataplane) !=
-          CUDAQ_OK) {
-        std::cerr << "ERROR: Failed to set CPU dataplane" << std::endl;
-        return 1;
-      }
-    }
-  } else {
-    cudaq_ringbuffer_t ring{};
-    if (cudaq_bridge_get_transport_context(res.bridge, RING_BUFFER, &ring) !=
-        CUDAQ_OK) {
-      std::cerr << "ERROR: Failed to get ring buffer context" << std::endl;
-      return 1;
-    }
-    if (cudaq_dispatcher_set_ringbuffer(res.dispatcher, &ring) != CUDAQ_OK) {
-      std::cerr << "ERROR: Failed to set ring buffer" << std::endl;
-      return 1;
-    }
-
-    // Legacy path: the dispatching call is provided externally.
-    if (dcfg.dispatch_path == CUDAQ_DISPATCH_PATH_DEVICE) {
-      if (cudaq_dispatcher_set_launch_fn(
-              res.dispatcher, &cudaq_launch_dispatch_kernel_regular) !=
-          CUDAQ_OK) {
-        std::cerr << "ERROR: Failed to set launch function" << std::endl;
-        return 1;
-      }
-    }
+  // [4] Wire the transport to the dispatcher.  The dispatcher asks the bridge
+  //     for the data plane the shape needs -- a ring it polls, or the two hooks
+  //     it drives itself -- and fails here if the provider serves the other.
+  if (cudaq_dispatcher_set_bridge(res.dispatcher, res.bridge) != CUDAQ_OK) {
+    std::cerr << "ERROR: provider '" << library << "' cannot serve the "
+              << shape << " shape (start it with matching options)"
+              << std::endl;
+    return 1;
   }
 
   // [5] Function table: the single host-side increment handler.

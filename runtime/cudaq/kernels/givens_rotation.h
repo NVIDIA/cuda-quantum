@@ -7,7 +7,8 @@
  ******************************************************************************/
 
 #pragma once
-#include <cudaq.h>
+#include "cudaq/builder/QuakeValue.h"
+#include "cudaq/qis/qubit_qis.h"
 
 namespace cudaq_internal {
 /// @brief Implement Givens rotation at a specific angle

@@ -18,7 +18,7 @@
 
 //--- baselib.h
 
-#include "cudaq.h"
+#include "cudaq/qis/qubit_qis.h"
 
 __qpu__ void dunkadee(cudaq::qvector<> &q);
 

@@ -8,7 +8,7 @@
 
 // RUN: cudaq-quake %s | cudaq-opt -canonicalize | FileCheck %s
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 __qpu__ void pauli_word_vec(std::vector<cudaq::pauli_word> words,
                             double theta) {

@@ -6,8 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "cudaq/qis/qubit_qis.h"
 #include <cstdio>
-#include <cudaq.h>
 
 __qpu__ void entangle_all(cudaq::qview<> qubits) {
   h(qubits[0]);
