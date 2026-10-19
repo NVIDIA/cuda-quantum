@@ -8,7 +8,7 @@
 
 # RUN: not %target-catalog-driver parse %s 2>&1 | FileCheck %s
 
-# Only the `unchecked` IR profile exists so far; unknown profiles are rejected
+# The IR profile tags are fixed by the schema; unknown profiles are rejected
 # with the list of allowed tags.
 
 version: 2
@@ -27,4 +27,4 @@ compile-target:
 
 # CHECK: error: Failed to parse target configuration YAML
 # CHECK: could not match name 'quake-value-semantics'
-# CHECK: The following tags are allowed: unchecked
+# CHECK: The following tags are allowed: unchecked, physical-quake

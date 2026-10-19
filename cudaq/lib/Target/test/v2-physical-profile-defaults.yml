@@ -1,0 +1,30 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under    #
+# the terms of the Apache License 2.0 which accompanies this distribution.    #
+# ============================================================================ #
+
+# RUN: %cudaq-target-db-gen -o %t.db.cpp v2-phys-defaults=%S/v2-physical-profile-defaults.yml
+# RUN: FileCheck %s --input-file=%t.db.cpp
+
+# Omitted profile options take their declared defaults. The lowering is still
+# required to be an explicit custom pipeline at this point.
+
+version: 2
+name: v2-phys-defaults
+description: "Physical profile defaults"
+config:
+  library-mode: false
+
+compile-target:
+  stages:
+    - ir-output-profile:
+        name: physical-quake
+      lowering:
+        custom-pipeline: "canonicalize"
+  codegen: nop
+
+# CHECK: .irOutputProfile = cudaq::config::Profile{std::in_place_type<cudaq::config::PhysicalQuakeProfile>, cudaq::config::PhysicalQuakeProfile{.basisGates = {}, .measurements = cudaq::config::MeasurementForm::any, .resetBeforeReuse = false}
+# CHECK: .lowering = cudaq::config::CustomPipelineLowering{.overridePassPipeline = "canonicalize"

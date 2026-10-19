@@ -21,12 +21,12 @@ struct CustomPipelineLowering {
   static constexpr char name[] = "custom-pipeline";
 
   /// If set, override the whole compilation pipeline with this string.
-  std::string overridePassPipeline;
+  std::string overridePassPipeline{};
 
   /// Compilation pipeline to insert at the appropriate stages.
-  std::string highLevelPipeline;
-  std::string midLevelPipeline;
-  std::string lowLevelPipeline;
+  std::string highLevelPipeline{};
+  std::string midLevelPipeline{};
+  std::string lowLevelPipeline{};
 
   /// Whether the pipeline is empty.
   bool empty() const {

@@ -15,6 +15,7 @@
 // IR profiles.
 
 #include "Yaml/v1/TargetConfigV1.h"
+#include "cudaq/Target/Profile/PhysicalQuakeProfile.h"
 #include <optional>
 #include <string>
 #include <vector>
@@ -58,11 +59,27 @@ struct BackendFeatureMapV2 {
 
 /// (Dummy) IR profile that accepts any IR.
 struct UncheckedProfileV2 {
-  using Tag = rfl::Literal<"unchecked">;
+  using Tag = rfl::Literal<UncheckedProfile::name>;
+};
+
+/// IR profile for low-level reference-semantics Quake IR, as used by most NISQ
+/// targets.
+struct PhysicalQuakeProfileV2 {
+  using Tag = rfl::Literal<"physical-quake">;
+
+  /// Valid options.
+  struct PhysicalQuakeProfileOptionsV2 {
+    rfl::DefaultVal<std::vector<std::string>> basisGates;
+    rfl::DefaultVal<MeasurementForm> measurements = MeasurementForm::any;
+    rfl::DefaultVal<bool> resetBeforeReuse = false;
+  };
+
+  rfl::DefaultVal<PhysicalQuakeProfileOptionsV2> options;
 };
 
 /// Union of all supported IR profiles, selected by its `name`.
-using IrOutputProfileV2 = rfl::TaggedUnion<"name", UncheckedProfileV2>;
+using IrOutputProfileV2 =
+    rfl::TaggedUnion<"name", UncheckedProfileV2, PhysicalQuakeProfileV2>;
 
 /// Staged pipelines inserted at the appropriate compilation stages.
 struct StagedPipelinesV2 {
