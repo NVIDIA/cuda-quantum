@@ -32,7 +32,7 @@ Quake
 * Deprecated ``quake.call_by_ref`` in favor of ``quake.apply``.
   ``convert-to-linear-values`` now emits ``quake.apply`` instead.
   ``quake.apply`` also accepts ``!quake.cable<N>`` arguments for ``!quake.struq``
-  parameters when the struq's constant member sizes sum to ``N``. (`#5374
+  parameters when their constant member sizes sum to ``N``. (`#5374
   <https://github.com/NVIDIA/cuda-quantum/pull/5374>`_)
 
 CC
