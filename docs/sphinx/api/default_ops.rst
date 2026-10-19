@@ -701,9 +701,10 @@ differs between Python and C++.
 
 .. tab:: Python
 
-    The target qubits of a custom operation can be passed individually, as a
-    whole :code:`qvector`, or as a combination of both. The total number of
-    qubits passed must equal the number of targets of the operation.
+    For an operation with more than one target, the target qubits can be
+    passed individually, as a whole :code:`qvector`, or as a combination of
+    both. The total number of qubits passed must equal the number of targets
+    of the operation.
 
     .. code-block:: python
 
@@ -711,6 +712,21 @@ differs between Python and C++.
         my_cnot(qubits[0], qubits[1])
         my_cnot(qubits)   # equivalent to the line above
         my_cnot(*qubits)  # equivalent to the line above
+
+    A single-target custom operation is the exception: a whole
+    :code:`qvector` (of any size, including a runtime-determined size)
+    broadcasts the operation across every qubit in it, the same as a
+    built-in single-qubit gate such as :code:`x`. Its :code:`.adj` form
+    broadcasts the same way. Several individual qubits are likewise applied
+    to one at a time, rather than being collected into the operation's
+    (single) target list.
+
+    .. code-block:: python
+
+        qubits = cudaq.qvector(3)
+        custom_x(qubits)       # applies custom_x to each of the 3 qubits
+        custom_x.adj(qubits)   # same, as the adjoint
+        custom_x(a, b)         # applies custom_x to a, then to b
 
 .. tab:: C++
 
