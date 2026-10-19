@@ -87,7 +87,7 @@ def logical_instruction_counts(
     for action, count in profile.actions.items():
         counts[_action_gate(action)] += count
     # ``synthesis_demand`` holds built-in T-like applications plus every consumed
-    # resource action; subtracting the applications leaves the consumptions.
+    # resource action; subtracting the applications leaves the resource uses.
     for action, count in (profile.synthesis_demand or {}).items():
         consumed = count
         if action in _SYNTHESIS_ACTIONS:

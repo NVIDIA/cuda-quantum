@@ -904,7 +904,7 @@ def test_logical_instruction_counts_normalize_controlled_actions():
         idle_sites=9,
         discards=0,
         synthesis_demand={
-            # Applications (subtracted) plus 10 consumptions of the same gate.
+            # Applications (subtracted) plus 10 resource uses of the same gate.
             "qlx_standard_ccz": 14,
             "qlx_standard_t": 10,
         },
