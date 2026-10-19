@@ -37,7 +37,8 @@ int main() {
   // Stim's noise sampling asserts on a channel probability of 1.
   cudaq::noise_model noise;
   noise.add_channel("x", {0}, cudaq::bit_flip_channel(0.5));
-  // A typed handler misses this in static C++ runtime builds.
+  // A typed handler misses this in static C++ runtime builds, so check the
+  // message that `CUDAQ_ERROR` logs before throwing instead.
   try {
     cudaq::run(1, noise, non_clifford{});
   } catch (...) {
@@ -50,5 +51,6 @@ int main() {
   return 0;
 }
 
+// CHECK: [error] {{.*}}Gate not supported by Stim simulator: t
 // CHECK: caught
 // CHECK: noiseless run: 100 of 100 true
