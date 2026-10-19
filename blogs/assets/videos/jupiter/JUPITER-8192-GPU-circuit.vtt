@@ -1,0 +1,33 @@
+WEBVTT
+
+00:00.000 --> 00:02.500
+Magic-state cultivation: a 104-qubit protocol
+simulated on JUPITER.
+
+00:02.500 --> 00:07.500
+Prepare a magic state in a small color code,
+providing a resource for universal quantum computing.
+
+00:07.500 --> 00:11.000
+Flag measurements help identify harmful faults
+as the encoded state is cultivated.
+
+00:11.000 --> 00:13.000
+Grow from a distance-3 color code
+toward a distance-7 hybrid color/surface code.
+
+00:13.000 --> 00:17.000
+Two rounds of checks grow
+and protect the encoded state.
+
+00:17.000 --> 00:21.000
+The model includes coherent phase errors
+and leakage beyond two levels at selected sites.
+
+00:21.000 --> 00:25.000
+8,192 GPUs distribute 35 trillion complex amplitudes,
+with 512 TiB of state-vector memory.
+
+00:25.000 --> 00:28.000
+NVIDIA cuQuantum on JUPITER, with development
+and validation supported by NVAQC.

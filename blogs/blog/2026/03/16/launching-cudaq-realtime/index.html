@@ -419,7 +419,7 @@
   <span class="md-ellipsis">
     
   
-    August 2026
+    October 2026
   
 
     
@@ -657,6 +657,14 @@
       
         
       
+        
+      
+        
+      
+        
+      
+        
+      
     
     
     
@@ -696,6 +704,126 @@
 
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../author/adam-holmes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Adam Holmes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../author/benedikt-kloss/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Benedikt Kloss
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../author/nicola-pancotti/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Nicola Pancotti
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../author/krysta-svore/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Krysta Svore
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -2157,7 +2285,7 @@ Our new library, <code>cudaq-realtime</code>, now available in the <a href="http
 <li><a href="https://sdt.inc/en">SDT</a> has <a href="https://sdt.inc/en/qureka/kreo-series?utm_source=GTC0316&amp;utm_medium=blog&amp;utm_campaign=GTC0316&amp;utm_id=GTC">deployed the first tightly-coupled hybrid quantum-classical data center in Korea</a>, using SDT's controller and NVQLink to <a href="https://www.anyoncomputing.com/post/nvqlink-data-center-and-quantum-enhanced-ai">connect an Anyon Computing QPU to NVIDIA GPUs</a>.</li>
 <li><a href="https://atom-computing.com/">Atom Computing</a> announced the successful <a href="https://atom-computing.com/atom-computing-integrates-nvidia-nvqlink-to-accelerate-scaling-of-its-quantum-computers/">integration of NVQLink into their proprietary control-systems stack</a>.</li>
 <li><a href="https://meetiqm.com/">IQM</a> and <a href="https://www.zhinst.com/">Zurich Instruments</a> are <a href="https://www.zhinst.com/news/iqm-and-zurich-instruments-launch-real-time-quantum-error-correction-demonstrator-nvidia">building a real-time QEC demonstrator</a> combining an IQM 20-qubit QPU, the Zurich Instruments ZQCS Quantum Control System, and NVQLink.</li>
-<li><a href="https://www.quantinuum.com/">Quantinuum</a> has <a href="https://www.quantinuum.com/blog/real-time-error-correction-at-increased-scale">demonstrated demanding real-time QEC</a>, performing correlated decoding of the Bring code on their Helios system with NVIDIA's GPU-accelerated BP+OSD decoder from the <a href="https://nvidia.github.io/cudaqx/components/qec/introduction.html">CUDA-Q QEC library</a>.</li>
+<li><a href="https://www.quantinuum.com/">Quantinuum</a> has <a href="https://www.quantinuum.com/blog/real-time-error-correction-at-increased-scale">demonstrated demanding real-time QEC</a>, performing correlated decoding of the Bring code on their Helios system with NVIDIA's GPU-accelerated BP+OSD decoder from the <a href="https://nvidia.github.io/cudaq-qec/components/qec/index.html">CUDA-Q QEC library</a>.</li>
 <li><a href="https://q-ctrl.com/">Q-CTRL</a>'s software has <a href="https://q-ctrl.com/blog/building-hpc-native-quantum-integrations-with-q-ctrl-and-nvidia-nvqlink">obtained a 50x reduction in classical overhead</a> and 5x speedup in overall wall-clock time by integrating NVQLink.</li>
 <li><a href="https://www.lbl.gov/">Lawrence Berkeley National Laboratory</a> used the architecture for the <a href="https://aqt.lbl.gov/2026/03/16/hybrid-quantum-nvidia/">first integration of the open-source QubiC control system with NVIDIA DGX Spark</a> and plans to perform AI-enhanced quantum control experiments, including readout classification and gate tuning.</li>
 <li><a href="https://www.pnnl.gov/">Pacific Northwest National Laboratory</a> is developing an <a href="https://www.pnnl.gov/news-media/pnnl-brings-open-source-gpu-acceleration-quantum-nvidia-nvqlink">open-source integration of the QICK FPGA control board with GH200 Grace Hopper via NVQLink</a>, targeting GPU-accelerated QEC.</li>
@@ -2322,7 +2450,7 @@ Since that measurement we have improved the underlying transport by roughly 0.9 
 <p>Our GB200 NVL4 measurements were performed using a BlueField 3 SmartNIC on an experimental basis and are subject to further optimization.</p>
 <h2 id="real-time-qec-decoding-with-cudaq-realtime-and-cuda-q-qec">Real-time QEC decoding with <code>cudaq-realtime</code> and CUDA-Q QEC</h2>
 <p><code>cudaq-realtime</code> is designed to be a building block.
-<a href="https://nvidia.github.io/cudaqx/components/qec/introduction.html">CUDA-Q QEC</a> uses it by registering decoders as RPC handlers in the dispatch kernel,
+<a href="https://nvidia.github.io/cudaq-qec/components/qec/index.html">CUDA-Q QEC</a> uses it by registering decoders as RPC handlers in the dispatch kernel,
 so that syndrome data arriving from the FPGA is routed directly to the right GPU-accelerated decoder.</p>
 <p>The real-time QEC workflow starts with a detector error model (DEM) that captures the error characteristics of the device.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
@@ -2388,10 +2516,10 @@ This pipelining keeps the QPU productive during the decode window.</p>
 GPU-accelerated Relay-BP for qLDPC codes,
 TensorRT-based AI decoders,
 and sliding window decoders for tight latency budgets.
-The <a href="https://nvidia.github.io/cudaqx/components/qec/introduction.html">CUDA-Q QEC documentation</a> and <a href="https://nvidia.github.io/cudaqx/examples_rst/qec/realtime_decoding.html">real-time decoding examples</a> have the full details.</p>
+The <a href="https://nvidia.github.io/cudaq-qec/components/qec/index.html">CUDA-Q QEC documentation</a> and <a href="https://nvidia.github.io/cudaq-qec/examples_rst/qec/realtime_decoding.html">real-time decoding examples</a> have the full details.</p>
 <h2 id="get-started">Get started</h2>
 <p>The <code>cudaq-realtime</code> library is available today in the <code>realtime</code> directory of the CUDA-Q repository.
-Full documentation, including API reference and tutorials, is at the <a href="https://nvidia.github.io/cuda-quantum/0.14.0/using/realtime.html"><code>cudaq-realtime</code> docs</a>.
+Full documentation, including API reference and tutorials, is at the <a href="https://nvidia.github.io/cuda-quantum/latest/using/realtime.html"><code>cudaq-realtime</code> docs</a>.
 The build produces <code>libcudaq-realtime.so</code> and a self-extracting installer.
 You can install it on any CUDA-capable system with a compatible network interface to FPGA.
 Connect an FPGA via RoCE,
@@ -2420,10 +2548,10 @@ which registers a handler and processes requests through the dispatch kernel.</p
 <p>Whether you are building QPUs, developing decoders, or bringing GPU acceleration into your quantum lab,
 <code>cudaq-realtime</code> is the starting point for real-time programming on NVQLink.</p>
 <ul>
-<li><a href="https://github.com/NVIDIA/cuda-quantum">CUDA-Q on GitHub</a></li>
-<li><a href="https://nvidia.github.io/cuda-quantum/0.14.0/using/realtime.html"><code>cudaq-realtime</code> documentation</a></li>
+<li><a href="https://github.com/NVIDIA/cuda-quantum/tree/main/realtime">CUDA-Q on GitHub</a></li>
+<li><a href="https://nvidia.github.io/cuda-quantum/latest/using/realtime.html"><code>cudaq-realtime</code> documentation</a></li>
 <li><a href="https://arxiv.org/abs/2510.25213">Platform Architecture for Tight Coupling of HPC with Quantum Processors</a></li>
-<li><a href="https://nvidia.github.io/cudaqx/components/qec/introduction.html">CUDA-Q QEC documentation</a> and <a href="https://nvidia.github.io/cudaqx/examples_rst/qec/realtime_decoding.html">real-time decoding examples</a></li>
+<li><a href="https://nvidia.github.io/cudaq-qec/components/qec/index.html">CUDA-Q QEC documentation</a> and <a href="https://nvidia.github.io/cudaq-qec/examples_rst/qec/realtime_decoding.html">real-time decoding examples</a></li>
 </ul>
 <p><a class="md-button" href="https://twitter.com/intent/tweet?text=Introducing%20cudaq-realtime%20for%20programming%20the%20Logical%20QPU%0A&amp;url=http://www.example.com/blog/2026/03/16/launching-cudaq-realtime/">Share on <span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M14.234 10.162 22.977 0h-2.072l-7.591 8.824L7.251 0H.258l9.168 13.343L.258 24H2.33l8.016-9.318L16.749 24h6.993zm-2.837 3.299-.929-1.329L3.076 1.56h3.182l5.965 8.532.929 1.329 7.754 11.09h-3.182z"/></svg></span></a>
 <a class="md-button" href="https://www.facebook.com/sharer/sharer.php?u=http://www.example.com/blog/2026/03/16/launching-cudaq-realtime/">Share on <span class="twemoji"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.101 23.691v-7.98H6.627v-3.667h2.474v-1.58c0-4.085 1.848-5.978 5.858-5.978.401 0 .955.042 1.468.103a9 9 0 0 1 1.141.195v3.325a9 9 0 0 0-.653-.036 27 27 0 0 0-.733-.009c-.707 0-1.259.096-1.675.309a1.7 1.7 0 0 0-.679.622c-.258.42-.374.995-.374 1.752v1.297h3.919l-.386 2.103-.287 1.564h-3.246v8.245C19.396 23.238 24 18.179 24 12.044c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.628 3.874 10.35 9.101 11.647"/></svg></span></a>
