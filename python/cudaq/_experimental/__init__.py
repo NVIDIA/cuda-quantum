@@ -12,13 +12,18 @@ may involve undocumented foot guns.
 """
 
 from .runtime_endpoint import RuntimeEndpoint
-from .compile_target import Codegen, CompileTarget, CustomPipelineLowering
+from .compile_target import (Codegen, CompilationStage, CompileTarget,
+                             CustomPipelineLowering,
+                             QuakeReferenceSemanticsProfile, UncheckedProfile)
 from .custom_target import CustomTarget
 
 __all__ = [
     "Codegen",
+    "CompilationStage",
     "CompileTarget",
     "CustomPipelineLowering",
     "CustomTarget",
     "RuntimeEndpoint",
+    "QuakeReferenceSemanticsProfile",
+    "UncheckedProfile",
 ]
