@@ -93,6 +93,10 @@ struct CompileTarget {
   const config::CustomPipelineLowering &getCustomPipelineLowering() const;
   config::CustomPipelineLowering &getCustomPipelineLowering();
 
+  /// If the entire compilation is given by a single custom pipeline, return a
+  /// pointer to it. Otherwise return `nullptr`.
+  const std::string *getOverridePassPipeline() const;
+
   /// Construct a CompileTarget from static and runtime backend configurations.
   static CompileTarget createFromConfig(
       config::TargetConfig targetConfig,
