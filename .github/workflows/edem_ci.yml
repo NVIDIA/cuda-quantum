@@ -30,7 +30,7 @@ jobs:
     outputs:
       edem: ${{ steps.filter.outputs.matched }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Check changed paths
         id: filter
         uses: ./.github/actions/check-changed-paths
@@ -58,7 +58,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Configure
         run: >-
           cmake -S edem -B build-edem
@@ -85,7 +85,7 @@ jobs:
     env:
       CMAKE_BUILD_PARALLEL_LEVEL: "2"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python }}
