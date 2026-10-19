@@ -20,3 +20,10 @@ add_test(NAME edem_custom_install_dirs
   COMMAND "${CMAKE_COMMAND}" "-DEDEM_TEST_CONFIG=$<CONFIG>"
     -DEDEM_TEST_CUSTOM_INSTALL_DIRS=ON
     -P "${CMAKE_CURRENT_BINARY_DIR}/check_package.cmake")
+
+if(CUDAQ_EDEM_BUILD_PYTHON)
+  add_test(NAME edem_python_import
+    COMMAND "${CMAKE_COMMAND}" -E env
+      "PYTHONPATH=$<TARGET_FILE_DIR:cudaq-edem-python>/.."
+      "${CUDAQ_EDEM_PYTHON_EXECUTABLE}" -c "import cudaq_edem")
+endif()
