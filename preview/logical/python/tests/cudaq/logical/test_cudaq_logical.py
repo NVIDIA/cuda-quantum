@@ -237,7 +237,7 @@ def test_import_cudaq_accepts_a_multicontrolled_gate():
     assert p0.count("qlx.measure <Z>") == 3
 
 
-def test_cudaq_qvector_entry_allocation_bridge_imports_as_zero_preparation():
+def test_cudaq_qvector_and_scalar_import_as_zero_preparation():
     import cudaq
     import cudaq.logical as cql
 
