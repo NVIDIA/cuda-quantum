@@ -132,15 +132,73 @@ public:
         // The python bridge can generate quake.alloca with size 0, which has no
         // semantics. Check here rather than propagating the bad IR.
         return failure();
-      } else {
-        // Uses are more complex so just concat the refs together.
-        SmallVector<Value> theRefs;
-        std::for_each(newAllocs.begin(), newAllocs.end(),
-                      [&](cudaq::quake::AllocaOp a) {
-                        theRefs.push_back(a.getResult());
-                      });
-        rewriter.replaceOpWithNewOp<cudaq::quake::ConcatOp>(allocOp, veqTy,
-                                                            theRefs);
+      }
+      // Uses are more complex so just concat the refs together.
+      SmallVector<Value> theRefs;
+      std::for_each(
+          newAllocs.begin(), newAllocs.end(),
+          [&](cudaq::quake::AllocaOp a) { theRefs.push_back(a.getResult()); });
+      auto concatOp = rewriter.replaceOpWithNewOp<cudaq::quake::ConcatOp>(
+          allocOp, veqTy, theRefs);
+
+      // Even in the fallback path, fold any `quake.subveq` with constant
+      // bounds by replacing it with a narrow `quake.concat` composed of the
+      // per-element alloca refs in that range. Without this, downstream
+      // passes (cable-rough-in in particular) see a `subveq` whose defining
+      // op is opaque to them, so calls like `wait(q[1:3], d)` -- which lower
+      // to `subveq` feeding a `call` -- are not converted to wire form.
+      // Fixed bounds: bounds must be statically known (`hasConstantLowerBound`
+      // / `hasConstantUpperBound` or a constant SSA integer) and lie within
+      // the parent veq. Any other subveq shape is left for canonicalization.
+      SmallVector<Operation *> subveqUsers{concatOp->getUsers().begin(),
+                                           concatOp->getUsers().end()};
+      for (auto *user : subveqUsers) {
+        auto subveq = dyn_cast<cudaq::quake::SubVeqOp>(user);
+        if (!subveq)
+          continue;
+
+        // Resolve `lower`/`upper` from either the op's constant attribute or
+        // a constant SSA value carried by `getIntIfConstant`. Validate before
+        // materializing the narrow concat.
+        auto resolveBound = [](cudaq::quake::SubVeqOp op,
+                               bool isLower) -> std::optional<std::int32_t> {
+          if (isLower) {
+            if (op.hasConstantLowerBound())
+              return static_cast<std::int32_t>(op.getConstantLowerBound());
+            if (auto v = cudaq::opt::factory::getIntIfConstant(op.getLower()))
+              return static_cast<std::int32_t>(*v);
+            return std::nullopt;
+          }
+          if (op.hasConstantUpperBound())
+            return static_cast<std::int32_t>(op.getConstantUpperBound());
+          if (auto v = cudaq::opt::factory::getIntIfConstant(op.getUpper()))
+            return static_cast<std::int32_t>(*v);
+          return std::nullopt;
+        };
+        auto lowOpt = resolveBound(subveq, /*isLower=*/true);
+        auto upOpt = resolveBound(subveq, /*isLower=*/false);
+        if (!lowOpt || !upOpt)
+          continue;
+        std::int32_t low = *lowOpt;
+        std::int32_t up = *upOpt;
+        // `quake.subveq` bounds are inclusive on both ends, per the op's
+        // definition (see `FixUnspecifiedSubveqPattern` and
+        // `CombineMeasurements` for the shared convention).
+        if (low < 0 || up < 0 || low > up ||
+            static_cast<std::size_t>(up) >= size)
+          continue;
+        std::size_t sliceSize = static_cast<std::size_t>(up) - low + 1u;
+
+        SmallVector<Value> slicedRefs;
+        slicedRefs.reserve(sliceSize);
+        for (std::int32_t i = low; i <= up; ++i)
+          slicedRefs.push_back(
+              newAllocs[static_cast<std::size_t>(i)].getResult());
+        auto narrowTy = cudaq::quake::VeqType::get(ctx, sliceSize);
+        rewriter.setInsertionPoint(subveq);
+        auto narrowConcat = cudaq::quake::ConcatOp::create(
+            rewriter, subveq->getLoc(), narrowTy, slicedRefs);
+        rewriter.replaceOp(subveq, narrowConcat.getResult());
       }
     }
     return success();

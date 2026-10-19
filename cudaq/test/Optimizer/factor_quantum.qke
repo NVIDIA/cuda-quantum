@@ -65,3 +65,86 @@ func.func @test3(%arg: i64) {
 // CHECK:           quake.dealloc %[[VAL_1]] : !quake.veq<?>
 // CHECK:           return
 // CHECK:         }
+
+// A `subveq` with constant bounds that feeds a non-convertible use (here, a
+// `call`) must still be lowered to a narrow `concat` even when the parent
+// `veq` allocation cannot be fully factored. Without it, downstream passes
+// like `cable-rough-in` see a `subveq` at the call site and refuse to
+// convert the call. See issue #5400.
+func.func private @take_veq2(!quake.veq<2>)
+
+func.func @test4_subveq_at_call_site() {
+  %v = quake.alloca !quake.veq<4>
+  %s = quake.subveq %v, 1, 2 : (!quake.veq<4>) -> !quake.veq<2>
+  call @take_veq2(%s) : (!quake.veq<2>) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @test4_subveq_at_call_site() {
+// CHECK:           %[[R0:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[R1:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[R2:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[R3:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[C:.*]] = quake.concat %[[R0]], %[[R1]], %[[R2]], %[[R3]] : (!quake.ref, !quake.ref, !quake.ref, !quake.ref) -> !quake.veq<4>
+// CHECK:           %[[S:.*]] = quake.concat %[[R1]], %[[R2]] : (!quake.ref, !quake.ref) -> !quake.veq<2>
+// CHECK:           call @take_veq2(%[[S]]) : (!quake.veq<2>) -> ()
+// CHECK:           quake.dealloc %[[R0]] : !quake.ref
+// CHECK:           quake.dealloc %[[R1]] : !quake.ref
+// CHECK:           quake.dealloc %[[R2]] : !quake.ref
+// CHECK:           quake.dealloc %[[R3]] : !quake.ref
+// CHECK:           return
+// CHECK:         }
+
+// Same shape, but the bounds are carried as constant SSA integers rather than
+// raw attributes. `factor-quantum-alloc` should still produce the same
+// narrow `concat`.
+func.func @test5_subveq_at_call_site_const_args() {
+  %c1_i64 = arith.constant 1 : i64
+  %c2_i64 = arith.constant 2 : i64
+  %v = quake.alloca !quake.veq<4>
+  %s = quake.subveq %v, %c1_i64, %c2_i64 : (!quake.veq<4>, i64, i64) -> !quake.veq<2>
+  call @take_veq2(%s) : (!quake.veq<2>) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @test5_subveq_at_call_site_const_args() {
+// CHECK:           %[[R0:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[R1:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[R2:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[R3:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[C:.*]] = quake.concat %[[R0]], %[[R1]], %[[R2]], %[[R3]] : (!quake.ref, !quake.ref, !quake.ref, !quake.ref) -> !quake.veq<4>
+// CHECK:           %[[S:.*]] = quake.concat %[[R1]], %[[R2]] : (!quake.ref, !quake.ref) -> !quake.veq<2>
+// CHECK:           call @take_veq2(%[[S]]) : (!quake.veq<2>) -> ()
+// CHECK:           quake.dealloc %[[R0]] : !quake.ref
+// CHECK:           quake.dealloc %[[R1]] : !quake.ref
+// CHECK:           quake.dealloc %[[R2]] : !quake.ref
+// CHECK:           quake.dealloc %[[R3]] : !quake.ref
+// CHECK:           return
+// CHECK:         }
+
+// A `subveq` whose bounds are runtime values (not statically known) must be
+// left alone. The parent `veq` is still emitted as a `concat` of refs, and
+// the `subveq` is preserved so a later canonicalization or conversion may
+// resolve it.
+func.func private @take_veq_dyn(!quake.veq<?>)
+
+func.func @test6_subveq_runtime_bounds_at_call_site(%lo : i64, %hi : i64) {
+  %v = quake.alloca !quake.veq<4>
+  %s = quake.subveq %v, %lo, %hi : (!quake.veq<4>, i64, i64) -> !quake.veq<?>
+  %r = quake.relax_size %s : (!quake.veq<?>) -> !quake.veq<?>
+  call @take_veq_dyn(%r) : (!quake.veq<?>) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @test6_subveq_runtime_bounds_at_call_site(
+// CHECK-SAME:        %[[LO:.*]]: i64, %[[HI:.*]]: i64) {
+// CHECK:           %[[R0:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[R1:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[R2:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[R3:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[C:.*]] = quake.concat %[[R0]], %[[R1]], %[[R2]], %[[R3]] : (!quake.ref, !quake.ref, !quake.ref, !quake.ref) -> !quake.veq<4>
+// CHECK:           %[[S:.*]] = quake.subveq %[[C]], %[[LO]], %[[HI]] : (!quake.veq<4>, i64, i64) -> !quake.veq<?>
+// CHECK:           %[[R:.*]] = quake.relax_size %[[S]] : (!quake.veq<?>) -> !quake.veq<?>
+// CHECK:           call @take_veq_dyn(%[[R]]) : (!quake.veq<?>) -> ()
+// CHECK:           return
+// CHECK:         }
