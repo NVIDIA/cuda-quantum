@@ -333,7 +333,7 @@ option(CUDAQ_ENABLE_SANITIZERS "Enable Address Sanitizer (ASan) and Undefined Be
 
 # Sub-projects that can be enabled independently, in the style of
 # LLVM_ENABLE_PROJECTS. Accepts a semicolon-separated list.
-set(CUDAQ_ALL_PROJECTS "cudaq;runtime;python;realtime")
+set(CUDAQ_ALL_PROJECTS "cudaq;runtime;python;realtime;edem")
 set(CUDAQ_ENABLE_PROJECTS "" CACHE STRING
     "Semicolon-separated list of CUDA-Q sub-projects to build. Valid values: ${CUDAQ_ALL_PROJECTS}. Defaults to 'cudaq;runtime' (plus 'python' if CUDAQ_ENABLE_PYTHON is set). Include 'realtime' to build source-tree realtime; set CUDAQ_REALTIME_DIR to use an installed realtime package.")
 
@@ -1088,6 +1088,10 @@ add_subdirectory(cmake)
 
 if(CUDAQ_BUILD_TESTS)
   enable_testing()
+endif()
+
+if("edem" IN_LIST CUDAQ_ENABLE_PROJECTS)
+  add_subdirectory(edem)
 endif()
 
 if("cudaq" IN_LIST CUDAQ_ENABLE_PROJECTS)

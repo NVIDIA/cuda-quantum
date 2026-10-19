@@ -1,0 +1,68 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+name: EDEM CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "pull-request/[0-9]+"
+  merge_group:
+    types: [checks_requested]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    name: Check for EDEM changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      edem: ${{ steps.filter.outputs.matched }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check changed paths
+        id: filter
+        uses: ./.github/actions/check-changed-paths
+        with:
+          paths: |
+            CMakeLists.txt
+            edem/
+            math/gf2/
+            .github/workflows/edem_ci.yml
+            .github/actions/check-changed-paths/
+
+  build:
+    name: EDEM (${{ matrix.os }}, shared=${{ matrix.shared }})
+    needs: changes
+    if: needs.changes.outputs.edem == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        shared: ["ON", "OFF"]
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: >-
+          cmake -S edem -B build-edem
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
+          -DBUILD_SHARED_LIBS=${{ matrix.shared }}
+      - name: Build
+        run: cmake --build build-edem --parallel 2
+      - name: Check build-tree and installed packages
+        run: ctest --test-dir build-edem --output-on-failure
