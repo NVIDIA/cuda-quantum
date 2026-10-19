@@ -1,0 +1,93 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+function(run)
+  execute_process(COMMAND ${ARGV}
+    RESULT_VARIABLE status OUTPUT_VARIABLE output ERROR_VARIABLE errors)
+  if(NOT "${status}" STREQUAL "0")
+    message(FATAL_ERROR "Command failed: ${ARGV}\n${output}\n${errors}")
+  endif()
+endfunction()
+
+set(config "${EDEM_TEST_CONFIG}")
+if(NOT config)
+  set(config Release)
+endif()
+set(configure_args
+  -G "@CMAKE_GENERATOR@"
+  "-DCMAKE_C_COMPILER:FILEPATH=@CMAKE_C_COMPILER@"
+  "-DCMAKE_CXX_COMPILER:FILEPATH=@CMAKE_CXX_COMPILER@"
+  "-DCMAKE_BUILD_TYPE:STRING=${config}"
+  -DCMAKE_COMPILE_WARNING_AS_ERROR=ON)
+if(NOT "@CMAKE_MAKE_PROGRAM@" STREQUAL "")
+  list(APPEND configure_args "-DCMAKE_MAKE_PROGRAM:FILEPATH=@CMAKE_MAKE_PROGRAM@")
+endif()
+if(NOT "@CMAKE_GENERATOR_PLATFORM@" STREQUAL "")
+  list(APPEND configure_args -A "@CMAKE_GENERATOR_PLATFORM@")
+endif()
+if(NOT "@CMAKE_GENERATOR_TOOLSET@" STREQUAL "")
+  list(APPEND configure_args -T "@CMAKE_GENERATOR_TOOLSET@")
+endif()
+if(NOT "@CMAKE_TOOLCHAIN_FILE@" STREQUAL "")
+  list(APPEND configure_args "-DCMAKE_TOOLCHAIN_FILE:FILEPATH=@CMAKE_TOOLCHAIN_FILE@")
+endif()
+
+set(mode standalone)
+if(EDEM_TEST_PARENT)
+  set(mode parent)
+endif()
+set(work "@CMAKE_CURRENT_BINARY_DIR@/${mode}-package-check")
+file(REMOVE_RECURSE "${work}")
+file(MAKE_DIRECTORY "${work}")
+
+set(install_build "@CMAKE_CURRENT_BINARY_DIR@/..")
+set(components "@CUDAQ_EDEM_LIBRARY_COMPONENT@;@CUDAQ_EDEM_DEVELOPMENT_COMPONENT@")
+if(EDEM_TEST_PARENT)
+  run("@CMAKE_COMMAND@" -S "@CMAKE_CURRENT_SOURCE_DIR@/parent"
+    -B "${work}/build" ${configure_args}
+    "-DCUDAQ_EDEM_TEST_SOURCE:PATH=@CUDAQ_EDEM_SOURCE_DIR@"
+    "-DBUILD_SHARED_LIBS:BOOL=@BUILD_SHARED_LIBS@")
+  run("@CMAKE_COMMAND@" --build "${work}/build" --config "${config}")
+  run("@CMAKE_CTEST_COMMAND@" --test-dir "${work}/build"
+    -C "${config}" --output-on-failure)
+  set(install_build "${work}/build/edem")
+  set(components Core)
+endif()
+
+set(prefix "${work}/prefix")
+list(REMOVE_DUPLICATES components)
+foreach(component IN LISTS components)
+  run("@CMAKE_COMMAND@" --install "${install_build}" --config "${config}"
+    --prefix "${prefix}" --component "${component}")
+endforeach()
+set(relocated "${work}/relocated")
+file(RENAME "${prefix}" "${relocated}")
+
+# A relocatable package must not retain checkout, build, or old-prefix paths.
+get_filename_component(checkout "@CUDAQ_EDEM_SOURCE_DIR@/.." ABSOLUTE)
+file(GLOB_RECURSE package_files "${relocated}/*.cmake")
+foreach(path IN LISTS package_files)
+  file(READ "${path}" contents)
+  foreach(forbidden IN ITEMS "${checkout}" "@CMAKE_BINARY_DIR@" "${prefix}")
+    string(FIND "${contents}" "${forbidden}" position)
+    if(NOT position EQUAL -1)
+      message(FATAL_ERROR "Package metadata retains ${forbidden}: ${path}")
+    endif()
+  endforeach()
+endforeach()
+if(NOT package_files)
+  message(FATAL_ERROR "The installation did not include the CMake package")
+endif()
+
+run("@CMAKE_COMMAND@" -S "@CMAKE_CURRENT_SOURCE_DIR@/consumer"
+  -B "${work}/consumer" ${configure_args}
+  "-DCUDAQ_EDEM_TEST_PREFIX:PATH=${relocated}"
+  "-DCUDAQ_EDEM_TEST_VERSION:STRING=@CUDAQ_EDEM_VERSION@")
+run("@CMAKE_COMMAND@" --build "${work}/consumer" --config "${config}")
+run("@CMAKE_CTEST_COMMAND@" --test-dir "${work}/consumer"
+  -C "${config}" --output-on-failure)
