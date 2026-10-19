@@ -40,6 +40,8 @@ endif()
 set(mode standalone)
 if(EDEM_TEST_PARENT)
   set(mode parent)
+elseif(EDEM_TEST_CUSTOM_INSTALL_DIRS)
+  set(mode custom-install-dirs)
 endif()
 set(work "@CMAKE_CURRENT_BINARY_DIR@/${mode}-package-check")
 file(REMOVE_RECURSE "${work}")
@@ -47,6 +49,7 @@ file(MAKE_DIRECTORY "${work}")
 
 set(install_build "@CMAKE_CURRENT_BINARY_DIR@/..")
 set(components "@CUDAQ_EDEM_LIBRARY_COMPONENT@;@CUDAQ_EDEM_DEVELOPMENT_COMPONENT@")
+set(package_install_dir "@CUDAQ_EDEM_CMAKE_INSTALL_DIR@")
 if(EDEM_TEST_PARENT)
   run("@CMAKE_COMMAND@" -S "@CMAKE_CURRENT_SOURCE_DIR@/parent"
     -B "${work}/build" ${configure_args}
@@ -57,6 +60,17 @@ if(EDEM_TEST_PARENT)
     -C "${config}" --output-on-failure)
   set(install_build "${work}/build/edem")
   set(components Core)
+  set(package_install_dir lib/cmake/cudaq-edem)
+elseif(EDEM_TEST_CUSTOM_INSTALL_DIRS)
+  run("@CMAKE_COMMAND@" -S "@CUDAQ_EDEM_SOURCE_DIR@"
+    -B "${work}/build" ${configure_args}
+    "-DBUILD_SHARED_LIBS:BOOL=@BUILD_SHARED_LIBS@"
+    -DCUDAQ_EDEM_BUILD_TESTS=OFF
+    -DCMAKE_INSTALL_LIBDIR=lib64
+    -DCMAKE_INSTALL_INCLUDEDIR=include/cudaq-edem)
+  run("@CMAKE_COMMAND@" --build "${work}/build" --config "${config}")
+  set(install_build "${work}/build")
+  set(package_install_dir lib64/cmake/cudaq-edem)
 endif()
 
 set(prefix "${work}/prefix")
@@ -87,6 +101,7 @@ endif()
 run("@CMAKE_COMMAND@" -S "@CMAKE_CURRENT_SOURCE_DIR@/consumer"
   -B "${work}/consumer" ${configure_args}
   "-DCUDAQ_EDEM_TEST_PREFIX:PATH=${relocated}"
+  "-Dcudaq-edem_DIR:PATH=${relocated}/${package_install_dir}"
   "-DCUDAQ_EDEM_TEST_VERSION:STRING=@CUDAQ_EDEM_VERSION@")
 run("@CMAKE_COMMAND@" --build "${work}/consumer" --config "${config}")
 run("@CMAKE_CTEST_COMMAND@" --test-dir "${work}/consumer"

@@ -61,7 +61,8 @@ Parent CUDA-Q builds supply their component names. Standalone builds use
 The tests compile and link C and C++ consumers using the build-tree targets,
 then install, relocate, and consume the package from a separate build. They
 also exercise a parent that defines GF2 before adding EDEM and installs both
-libraries through one `Core` component.
+libraries through one `Core` component, and a standalone build with custom
+library and header installation directories.
 
 These checks verify build and packaging contracts. The stubs provide no
 mathematical operations or functional ABI to test.

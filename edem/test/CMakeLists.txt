@@ -16,3 +16,7 @@ add_test(NAME edem_parent_build
   COMMAND "${CMAKE_COMMAND}" "-DEDEM_TEST_CONFIG=$<CONFIG>"
     -DEDEM_TEST_PARENT=ON
     -P "${CMAKE_CURRENT_BINARY_DIR}/check_package.cmake")
+add_test(NAME edem_custom_install_dirs
+  COMMAND "${CMAKE_COMMAND}" "-DEDEM_TEST_CONFIG=$<CONFIG>"
+    -DEDEM_TEST_CUSTOM_INSTALL_DIRS=ON
+    -P "${CMAKE_CURRENT_BINARY_DIR}/check_package.cmake")
