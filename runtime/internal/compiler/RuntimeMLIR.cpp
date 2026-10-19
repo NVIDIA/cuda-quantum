@@ -30,7 +30,9 @@
 #include "llvm/Bitcode/BitcodeWriter.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Instructions.h"
+#include "llvm/IR/PassManager.h"
 #include "llvm/MC/TargetRegistry.h"
+#include "llvm/Passes/PassBuilder.h"
 #include "llvm/Support/Base64.h"
 #include "llvm/Support/CommandLine.h"
 #include "llvm/Support/ErrorOr.h"
@@ -39,6 +41,7 @@
 #include "llvm/Target/TargetMachine.h"
 #include "llvm/TargetParser/Host.h"
 #include "llvm/TargetParser/SubtargetFeature.h"
+#include "llvm/Transforms/Utils/LowerSwitch.h"
 #include "mlir/Dialect/Func/Extensions/InlinerExtension.h"
 #include "mlir/Dialect/LLVMIR/Transforms/InlinerInterfaceImpl.h"
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
@@ -156,6 +159,27 @@ static void optimizeLLVM(llvm::Module *module) {
   for (llvm::Function &func : *module)
     if (func.hasFnAttribute("entry_point"))
       func.removeFnAttr(llvm::Attribute::Memory);
+}
+
+// O3 folds chains of integer compares into a `switch`, which the adaptive
+// profile does not allow. Lower each one back to compares and branches.
+static void lowerSwitchInstructions(llvm::Module *module) {
+  llvm::LoopAnalysisManager lam;
+  llvm::FunctionAnalysisManager fam;
+  llvm::CGSCCAnalysisManager cgam;
+  llvm::ModuleAnalysisManager mam;
+  llvm::PassBuilder pb;
+  pb.registerModuleAnalyses(mam);
+  pb.registerCGSCCAnalyses(cgam);
+  pb.registerFunctionAnalyses(fam);
+  pb.registerLoopAnalyses(lam);
+  pb.crossRegisterProxies(lam, fam, cgam, mam);
+
+  llvm::FunctionPassManager fpm;
+  fpm.addPass(llvm::LowerSwitchPass());
+  llvm::ModulePassManager mpm;
+  mpm.addPass(llvm::createModuleToFunctionPassAdaptor(std::move(fpm)));
+  mpm.run(*module, mam);
 }
 
 static void applyWriteOnlyAttributes(llvm::Module *llvmModule) {
@@ -563,6 +587,8 @@ qirProfileTranslationFunction(const std::string &qirProfile, Operation *op,
   // explicitly add them after optimization.
   optimizeLLVM(llvmModule.get());
   applyNonNullAttributes(llvmModule.get());
+  if (config.isAdaptiveProfile && !config.allowAllInstructions)
+    lowerSwitchInstructions(llvmModule.get());
   if (!setupTargetTriple(llvmModule.get()))
     throw std::runtime_error("Failed to setup the llvm module target triple.");
 
