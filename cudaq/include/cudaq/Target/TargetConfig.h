@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "cudaq/Target/CompileTarget.h"
 #include <filesystem>
 #include <map>
 #include <optional>
@@ -109,16 +110,9 @@ struct BackendEndConfigEntry {
   /// Whether the target supports pre-computing resource counts for faster
   /// resource estimation.
   bool SupportResourceCounts = true;
-  /// IR lowering configuration (hardware REST QPU)
-  std::string JITHighLevelPipeline;
-  std::string JITMidLevelPipeline;
-  std::string JITLowLevelPipeline;
-  /// Exact cudaq-opt passes for pseudo-targets
-  std::string TargetPassPipeline;
-  /// Codegen emission configuration (hardware REST QPU)
-  std::string CodegenEmission;
-  /// Post code generation IR passes configuration (hardware REST QPU)
-  std::string PostCodeGenPasses;
+  /// Compilation target, including the ordered target IR profiles and the
+  /// selected final code generation format.
+  cudaq::CompileTarget CompileTarget;
   /// Name of the platform library to use
   std::string PlatformLibrary;
   /// Name of the execution manager to use in library mode

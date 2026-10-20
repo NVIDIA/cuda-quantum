@@ -1170,6 +1170,7 @@ jobs:
             -v ${{ needs.metadata.outputs.cudaq_version }} \
             -i /tmp/packages -f /tmp \
             -c ${{ matrix.cuda_version_conda }} -p 3.12
+          script_rc=$?
           set -e # Re-enable exit code error checking
 
           expected_dependency=cuda-quantum-cu$(echo ${{ matrix.cuda_version_conda }} | cut -d . -f1)
@@ -1177,9 +1178,10 @@ jobs:
             echo "::error::Missing installation of ${expected_dependency} package."
             exit 1
           fi
-          if [ "$status_sum" -ne "0" ]; then
+          # The script returns early on setup errors, so check its return code.
+          if [ "$script_rc" -ne "0" ]; then
             echo "::error::Error running validation script"
-            exit $status_sum
+            exit $script_rc
           fi
 
   metapackage_validation_macos:
@@ -1244,6 +1246,7 @@ jobs:
             -v ${{ needs.metadata.outputs.cudaq_version }} \
             -i /tmp/packages \
             -p 3.12 -F
+          script_rc=$?
           set -e
 
           expected_dependency=cuda-quantum-cu13
@@ -1251,9 +1254,10 @@ jobs:
             echo "::error::Missing installation of ${expected_dependency} package."
             exit 1
           fi
-          if [ "$status_sum" -ne "0" ]; then
+          # The script returns early on setup errors, so check its return code.
+          if [ "$script_rc" -ne "0" ]; then
             echo "::error::Error running validation script"
-            exit $status_sum
+            exit $script_rc
           fi
 
   create_release:

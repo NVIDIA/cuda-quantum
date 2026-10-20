@@ -5,12 +5,17 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
+
 #pragma once
 
-#include "cudaq/Target/TargetConfig.h"
-#include "cudaq/operators.h"
+#include "cudaq/Target/CompilationStage.h"
 #include <map>
 #include <string>
+#include <vector>
+
+namespace cudaq::config {
+class TargetConfig;
+} // namespace cudaq::config
 
 namespace cudaq {
 
@@ -27,42 +32,12 @@ struct CompileTarget {
   /// options in this class.
   bool overrideAOTCompilation = false;
 
-  /// Resolved MLIR pass-pipeline and `codegen` settings.
-  struct PipelineConfig {
-    /// If set, override compilation pipeline with this string.
-    std::string overridePassPipeline;
+  /// Ordered compilation stages that the source program must be lowered
+  /// through.
+  std::vector<config::CompilationStage> stages{};
 
-    /// Compilation pipeline to insert at the appropriate stages.
-    std::string highLevelPipeline;
-    std::string midLevelPipeline;
-    std::string lowLevelPipeline;
-
-    /// Code generation emission selected by the target.
-    std::string codegenTranslation;
-
-    /// Optional pass pipeline to run after code generation.
-    std::string postCodeGenPasses;
-
-    /// Whether to disable qubit mapping.
-    bool disableQubitMapping = false;
-
-    /// Whether to run the replace-state-with-kernel pass.
-    ///
-    /// Allows targets that do not support get_state (e.g. remote QPUs)
-    /// to emulate its behavior by inserting the corresponding kernel calls.
-    bool replaceStateWithKernel = false;
-
-    /// Whether the pipeline is empty.
-    bool empty() const {
-      return overridePassPipeline.empty() && highLevelPipeline.empty() &&
-             midLevelPipeline.empty() && lowLevelPipeline.empty();
-    }
-
-    bool operator==(const PipelineConfig &other) const = default;
-  };
-
-  /// Pipeline configuration, populated by the constructor.
-  PipelineConfig pipelineConfig{};
+  /// Code generation configuration, running after all compilation stages.
+  config::Codegen codegen{};
 
   /// Whether branching on measurement results is supported.
   bool supportConditionalsOnMeasureResults = true;
@@ -100,6 +75,28 @@ struct CompileTarget {
   /// Set the `changeSemantics` flag for the argument synthesis pass.
   bool argumentSynthChangeSemantics = true;
 
+  /// Whether to disable qubit mapping.
+  bool disableQubitMapping = false;
+
+  /// Whether to run the replace-state-with-kernel pass.
+  ///
+  /// Allows targets that do not support get_state (e.g. remote QPUs)
+  /// to emulate its behavior by inserting the corresponding kernel calls.
+  bool replaceStateWithKernel = false;
+
+  /// Access the custom pipeline lowering of the single compilation stage.
+  ///
+  /// Prints an error and aborts the process if there isn't exactly one
+  /// stage or its lowering is not a custom pipeline.
+  // TODO: Temporary utility function used while there is only one
+  // custom-pipeline stage, to be replaced with more general stage handling
+  const config::CustomPipelineLowering &getCustomPipelineLowering() const;
+  config::CustomPipelineLowering &getCustomPipelineLowering();
+
+  /// If the entire compilation is given by a single custom pipeline, return a
+  /// pointer to it. Otherwise return `nullptr`.
+  const std::string *getOverridePassPipeline() const;
+
   /// Construct a CompileTarget from static and runtime backend configurations.
   static CompileTarget createFromConfig(
       config::TargetConfig targetConfig,
@@ -112,11 +109,30 @@ struct CompileTarget {
 } // namespace cudaq
 
 template <>
-struct std::hash<cudaq::CompileTarget> {
-  std::size_t operator()(const cudaq::CompileTarget &t) const noexcept;
+struct std::hash<cudaq::config::UncheckedProfile> {
+  std::size_t
+  operator()(const cudaq::config::UncheckedProfile &profile) const noexcept;
 };
 template <>
-struct std::hash<cudaq::CompileTarget::PipelineConfig> {
+struct std::hash<cudaq::config::CustomPipelineLowering> {
+  std::size_t operator()(
+      const cudaq::config::CustomPipelineLowering &lowering) const noexcept;
+};
+template <>
+struct std::hash<cudaq::config::Codegen> {
+  std::size_t operator()(const cudaq::config::Codegen &codegen) const noexcept;
+};
+template <>
+struct std::hash<cudaq::config::CompilationStage> {
   std::size_t
-  operator()(const cudaq::CompileTarget::PipelineConfig &pc) const noexcept;
+  operator()(const cudaq::config::CompilationStage &stage) const noexcept;
+};
+template <>
+struct std::hash<std::vector<cudaq::config::CompilationStage>> {
+  std::size_t operator()(const std::vector<cudaq::config::CompilationStage>
+                             &stages) const noexcept;
+};
+template <>
+struct std::hash<cudaq::CompileTarget> {
+  std::size_t operator()(const cudaq::CompileTarget &t) const noexcept;
 };

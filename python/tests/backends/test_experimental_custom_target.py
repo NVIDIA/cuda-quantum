@@ -56,9 +56,7 @@ class DemoCustomTarget(CustomTarget):
 
 
 def swap_pipeline_target():
-    ct = CompileTarget()
-    ct.pipeline_config.override_pass_pipeline = SWAP_TO_CX_PIPELINE
-    return ct
+    return CompileTarget(lowering=SWAP_TO_CX_PIPELINE)
 
 
 def compiled_quake_ops(kernel, target):
