@@ -64,6 +64,25 @@ struct __attribute__((packed)) RPCResponse {
 /// @param slot_size Byte size of each slot (the TX stride on the device path).
 /// @return Status code (0 = success).  CUDAQ_DISPATCH_STATUS_TRIGGER_GRAPH
 ///         keeps its meaning (see cudaq_realtime.h).
+///
+/// Threading.  The device dispatch kernels (ring and unified) run one block
+/// of `threads_per_block` threads and call the handler on EVERY thread of
+/// that block, with identical arguments, between two __syncthreads(): all
+/// threads have left the call before the dispatcher writes the response
+/// header and publishes.  threadIdx.x (0 .. blockDim.x-1) tells the threads
+/// apart; blockIdx.x is always 0.  Only thread 0's return value is recorded;
+/// the other threads' values are ignored, and they may return early.
+///   - A handler that does not partition its work must guard its writes
+///     with `if (threadIdx.x != 0) return 0;` (or make them identical on
+///     every thread).  Read-modify-write of slot memory is NOT safe
+///     unguarded: on an in-place ring `out[i] = in[i] * 2` runs once per
+///     thread on aliased bytes.  result_len should be written by thread 0.
+///   - A handler may use block barriers (__syncthreads, cg::thread_block)
+///     only if every thread of the block reaches each of them -- no early
+///     return by a subset before a barrier the others execute.  There is
+///     no grid-wide sync: the kernel is not a cooperative launch.
+///   - Thread 0's writes after the call are ordered behind every thread's
+///     handler writes (barrier, then the dispatcher's fence + publish).
 using DeviceRPCFunction = int (*)(const void *rx_slot, void *tx_slot,
                                   std::size_t slot_size);
 

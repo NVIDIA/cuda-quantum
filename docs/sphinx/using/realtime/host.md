@@ -153,8 +153,11 @@ latency for simple RPC handlers.
 
 ### Architecture
 
-In unified mode, a single GPU thread runs a transport-provided kernel that
-combines receive, dispatch, and transmit into one tight loop:
+In unified mode, one block of `threads_per_block` threads runs a
+transport-provided kernel that combines receive, dispatch, and transmit into
+one tight loop.  Thread 0 drives the transport (steps 1, 2 and 4-6 below);
+every thread of the block calls the `CUDAQ_DISPATCH_DEVICE_CALL` handler in
+step 3, between two block barriers:
 
 1. Polls for an incoming message (transport-specific mechanism)
 2. Parses the `RPCHeader` from the receive buffer
@@ -208,7 +211,10 @@ without any transport-specific knowledge.
 - Lowest latency for simple RPC handlers
 - Transport-agnostic API -- the transport provides a pluggable launch function
   and opaque context (e.g., `GpuRoceTransceiver`/`DOCA` supplies `gpu_roce_launch_unified_dispatch`)
-- Single-thread, single-block kernel -- no inter-kernel synchronization overhead
+- Single-block kernel (one block of `threads_per_block` threads; thread 0
+  drives the transport, every thread calls each `CUDAQ_DISPATCH_DEVICE_CALL`
+  handler between two block barriers) -- no inter-kernel synchronization
+  overhead
 - Not compatible with `CUDAQ_DISPATCH_GRAPH_LAUNCH`
 
 ### Host API Extensions
@@ -220,10 +226,10 @@ typedef enum {
 } cudaq_kernel_type_t;
 
 typedef void (*cudaq_unified_launch_fn_t)(
-    void *transport_ctx,
+    void *transport_ctx, size_t tx_stride_sz,
     cudaq_function_entry_t *function_table, size_t func_count,
     volatile int *shutdown_flag, uint64_t *stats,
-    cudaStream_t stream);
+    uint32_t threads_per_block, cudaStream_t stream);
 
 cudaq_status_t cudaq_dispatcher_set_unified_launch(
     cudaq_dispatcher_t *dispatcher,
@@ -236,7 +242,10 @@ When `kernel_type == CUDAQ_KERNEL_UNIFIED`:
 - `cudaq_dispatcher_set_ringbuffer()` and `cudaq_dispatcher_set_launch_fn()`
     are **not required** (the unified kernel handles transport internally)
 - `cudaq_dispatcher_set_unified_launch()` **must** be called instead
-- `num_slots` and `slot_size` in the configuration may be zero
+- `slot_size` must give the slot stride; `cudaq_dispatcher_set_bridge()`
+    fills it from the bridge when the `config` leaves it 0
+- `num_blocks` must be 1 and `threads_per_block >= 1` (the block every
+    `CUDAQ_DISPATCH_DEVICE_CALL` handler runs on)
 - All other wiring (`set_function_table`, `set_control`) remains the same
 
 ### Wiring Example (Unified Mode with GpuRoceTransceiver)
@@ -257,6 +266,8 @@ ctx.frame_size     = frame_size;
 // Configure dispatcher for unified mode
 cudaq_dispatcher_config_t config{};
 config.device_id       = gpu_id;
+config.num_blocks      = 1;
+config.threads_per_block = 32;
 config.kernel_type     = CUDAQ_KERNEL_UNIFIED;
 config.dispatch_mode   = CUDAQ_DISPATCH_DEVICE_CALL;
 
@@ -454,8 +465,9 @@ Parameters:
 - `mgr`: owning manager.
 - `config`: filled `cudaq_dispatcher_config_t` with:
   - `device_id` (default 0): selects the CUDA device for the dispatcher
-  - `num_blocks` (default 1)
-  - `threads_per_block` (default 32)
+  - `num_blocks` (default 1; must be 1 on the device path)
+  - `threads_per_block` (default 32; the block every
+    `CUDAQ_DISPATCH_DEVICE_CALL` handler runs on)
   - `num_slots` (required)
   - `slot_size` (required)
   - `vp_id` (default 0): tags a dispatcher to a transport channel.
@@ -659,7 +671,7 @@ Parameters:
 - `shutdown_flag`: device-visible shutdown flag
 - `stats`: device-visible stats buffer
 - `num_slots`: number of ring buffer slots
-- `num_blocks`: grid size for dispatch kernel
+- `num_blocks`: grid size for dispatch kernel (1)
 - `threads_per_block`: block size for dispatch kernel
 - `stream`: CUDA stream for graph operations
 - `out_context`: receives the created graph context handle
@@ -716,7 +728,7 @@ Parameters:
 - `shutdown_flag`: device-visible shutdown flag
 - `stats`: device-visible stats buffer
 - `num_slots`: number of ring buffer slots
-- `num_blocks`: grid size for dispatch kernel
+- `num_blocks`: grid size for dispatch kernel (1)
 - `threads_per_block`: block size for dispatch kernel
 - `stream`: CUDA stream for kernel launch
 
@@ -799,6 +811,18 @@ ASSERT_EQ(cudaq_dispatcher_start(dispatcher_), CUDAQ_OK);
 ```
 
 ## Device Handler and Function ID
+
+A `CUDAQ_DISPATCH_DEVICE_CALL` handler runs on every thread of the dispatch
+block: both the ring (3-kernel) and the unified kernel launch one block of
+`threads_per_block` threads and call the handler on each of them, with
+identical arguments, between two `__syncthreads()`.  `blockIdx.x` is always 0
+and there is no grid-wide sync (not a cooperative launch).  Only thread 0's
+return value is recorded; other threads may return early.  A handler that does
+not partition its work must guard side-effecting writes with
+`if (threadIdx.x != 0) return 0;` (a read-modify-write of slot memory is not
+safe unguarded), and may use block barriers only if every thread reaches them.
+The full contract is in the `DeviceRPCFunction` doc comment in
+`dispatch_kernel_launch.h`.
 
 ```cpp
 // The dispatcher uses function_id to find the handler

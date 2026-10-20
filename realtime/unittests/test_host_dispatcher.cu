@@ -1266,6 +1266,11 @@ bool create_shared_ring_host_graph(void** d_mailbox_bank,
 // returned status): doubles the rx payload into tx and sets result_len.
 __device__ int device_double_handler(const void* rx_slot, void* tx_slot,
                                      std::size_t slot_size) {
+  // The dispatcher calls this on every thread of its block.  The ring in
+  // SharedRingDispatcherTest is in-place (tx_slot aliases rx_slot), so the
+  // doubling below is a read-modify-write that must run exactly once.
+  if (threadIdx.x != 0)
+    return 0;
   const auto* h = static_cast<const RPCHeader*>(rx_slot);
   const auto* in =
       static_cast<const std::uint8_t*>(rx_slot) + sizeof(RPCHeader);

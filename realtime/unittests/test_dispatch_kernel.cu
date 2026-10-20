@@ -12,11 +12,13 @@
 #include <vector>
 #include <cstring>
 #include <unistd.h>
+#include <chrono>
 #include <iostream>
 
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel.cuh"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_modes.h"
+#include "cudaq/realtime/daemon/dispatcher/unified_device_transport.cuh"
 
 // Helper macro for CUDA error checking
 #define CUDA_CHECK(call)                                                       \
@@ -78,6 +80,26 @@ __device__ int rpc_increment_handler(const void* rx_slot, void* tx_slot,
   return 0;
 }
 
+constexpr std::uint32_t ALL_THREADS_COUNT_FUNCTION_ID =
+    cudaq::realtime::fnv1a_hash("all_threads_count");
+
+/// Counts handler invocations: the dispatch kernels call the handler on every
+/// thread of their block, so one request adds threads_per_block.
+__device__ unsigned long long g_all_threads_count = 0;
+
+__device__ int all_threads_count_handler(const void* /*rx_slot*/,
+                                         void* tx_slot,
+                                         std::size_t /*slot_size*/) {
+  atomicAdd(&g_all_threads_count, 1ull);
+  if (threadIdx.x == 0)
+    static_cast<cudaq::realtime::RPCResponse*>(tx_slot)->result_len = 0;
+  return 0;
+}
+
+/// Entries in the table init_rpc_function_table fills: rpc_increment and
+/// all_threads_count.
+constexpr std::size_t kRpcFuncCount = 2;
+
 __global__ void init_rpc_function_table(cudaq_function_entry_t* entries) {
   if (threadIdx.x == 0 && blockIdx.x == 0) {
     entries[0].handler.device_fn_ptr = reinterpret_cast<void*>(&rpc_increment_handler);
@@ -103,6 +125,12 @@ __global__ void init_rpc_function_table(cudaq_function_entry_t* entries) {
     entries[0].schema.results[0].reserved[2] = 0;
     entries[0].schema.results[0].size_bytes = 0;  // Variable size
     entries[0].schema.results[0].num_elements = 0; // Variable size
+
+    entries[1] = cudaq_function_entry_t{};
+    entries[1].handler.device_fn_ptr =
+        reinterpret_cast<void*>(&all_threads_count_handler);
+    entries[1].function_id = ALL_THREADS_COUNT_FUNCTION_ID;
+    entries[1].dispatch_mode = CUDAQ_DISPATCH_DEVICE_CALL;
   }
 }
 
@@ -368,16 +396,21 @@ protected:
     CUDA_CHECK(cudaMalloc(&d_stats_, sizeof(uint64_t)));
     CUDA_CHECK(cudaMemset(d_stats_, 0, sizeof(uint64_t)));
 
-    CUDA_CHECK(cudaMalloc(&d_function_entries_, sizeof(cudaq_function_entry_t)));
+    CUDA_CHECK(cudaMalloc(&d_function_entries_,
+                          kRpcFuncCount * sizeof(cudaq_function_entry_t)));
     init_rpc_function_table<<<1, 1>>>(d_function_entries_);
     CUDA_CHECK(cudaDeviceSynchronize());
-    func_count_ = 1;
+    func_count_ = kRpcFuncCount;
+    // No kernel is running yet, so the symbol copy cannot race a handler.
+    const unsigned long long zero_count = 0;
+    CUDA_CHECK(cudaMemcpyToSymbol(g_all_threads_count, &zero_count,
+                                  sizeof(zero_count)));
 
     ASSERT_EQ(cudaq_dispatch_manager_create(&manager_), CUDAQ_OK);
     cudaq_dispatcher_config_t config{};
     config.device_id = 0;
     config.num_blocks = 1;
-    config.threads_per_block = 64;
+    config.threads_per_block = kThreadsPerBlock;
     config.num_slots = static_cast<uint32_t>(num_slots_);
     config.slot_size = static_cast<uint32_t>(slot_size_);
     config.vp_id = 0;
@@ -435,16 +468,18 @@ protected:
       cudaFree(d_function_entries_);
   }
 
-  void write_rpc_request(std::size_t slot,
-                         const std::vector<std::uint8_t>& payload) {
+  void write_rpc_request(
+      std::size_t slot, const std::vector<std::uint8_t>& payload,
+      std::uint32_t function_id = RPC_INCREMENT_FUNCTION_ID) {
     std::uint8_t* slot_data =
         const_cast<std::uint8_t*>(rx_data_host_) + slot * slot_size_;
     auto* header = reinterpret_cast<cudaq::realtime::RPCHeader*>(slot_data);
     header->magic = cudaq::realtime::RPC_MAGIC_REQUEST;
-    header->function_id = RPC_INCREMENT_FUNCTION_ID;
+    header->function_id = function_id;
     header->arg_len = static_cast<std::uint32_t>(payload.size());
-    memcpy(slot_data + sizeof(cudaq::realtime::RPCHeader), payload.data(),
-           payload.size());
+    if (!payload.empty())
+      memcpy(slot_data + sizeof(cudaq::realtime::RPCHeader), payload.data(),
+             payload.size());
   }
 
   bool read_rpc_response(std::size_t slot,
@@ -501,6 +536,7 @@ protected:
   }
 
   static constexpr std::size_t num_slots_ = 2;
+  static constexpr std::uint32_t kThreadsPerBlock = 64;
   std::size_t slot_size_ = 256;
   volatile uint64_t* rx_flags_host_ = nullptr;
   volatile uint64_t* tx_flags_host_ = nullptr;
@@ -523,6 +559,39 @@ protected:
 };
 
 TEST_F(HostApiDispatchTest, RpcIncrementHandler) { expectIncrementRoundTrip(); }
+
+// Every thread of the dispatcher's block calls the handler once per request.
+TEST_F(HostApiDispatchTest, AllThreadsCallHandler) {
+  write_rpc_request(0, {}, ALL_THREADS_COUNT_FUNCTION_ID);
+  __sync_synchronize();
+  const_cast<volatile uint64_t*>(rx_flags_host_)[0] =
+      reinterpret_cast<std::uint64_t>(rx_data_);
+  int timeout = 50;
+  while (tx_flags_host_[0] == 0 && timeout-- > 0) {
+    usleep(1000);
+  }
+  ASSERT_GT(timeout, 0) << "Timeout waiting for dispatch kernel response";
+  std::vector<std::uint8_t> response;
+  std::int32_t status = -1;
+  std::uint32_t result_len = 1;
+  ASSERT_TRUE(read_rpc_response(0, response, &status, &result_len));
+  EXPECT_EQ(status, 0);
+  EXPECT_EQ(result_len, 0u);
+
+  // The dispatcher's stream is blocking: stop the kernel before reading a
+  // device symbol.  TearDown's second stop is a no-op.
+  *shutdown_flag_ = 1;
+  __sync_synchronize();
+  ASSERT_EQ(cudaq_dispatcher_stop(dispatcher_), CUDAQ_OK);
+  unsigned long long count = 0;
+  CUDA_CHECK(cudaMemcpyFromSymbol(&count, g_all_threads_count, sizeof(count)));
+  EXPECT_EQ(count, static_cast<unsigned long long>(kThreadsPerBlock))
+      << "every thread of the 1 x " << kThreadsPerBlock
+      << " block must call the handler exactly once";
+  std::uint64_t processed = 0;
+  ASSERT_EQ(cudaq_dispatcher_get_processed(dispatcher_, &processed), CUDAQ_OK);
+  EXPECT_EQ(processed, 1u);
+}
 
 // No cudaq_dispatcher_set_launch_fn: start() takes the archive's launcher for
 // the configured kernel type, linked into this binary.
@@ -792,12 +861,18 @@ TEST(GraphLaunchTest, DispatchKernelGraphLaunch) {
 constexpr std::uint32_t APPEND_TRIGGER_FUNCTION_ID =
     cudaq::realtime::fnv1a_hash("append_trigger");
 
+// Handler invocations: every thread of the scheduler block calls the handler,
+// while the triggered graph must fire exactly once per request.
+__device__ unsigned long long g_trigger_handler_calls = 0;
+
 // DEVICE_CALL handler that always requests the configured triggered graph fire.
 __device__ int append_trigger_handler(const void* rx_slot, void* tx_slot,
                                       std::size_t slot_size) {
   (void)rx_slot;
   (void)slot_size;
-  static_cast<cudaq::realtime::RPCResponse*>(tx_slot)->result_len = 0;
+  atomicAdd(&g_trigger_handler_calls, 1ull);
+  if (threadIdx.x == 0)
+    static_cast<cudaq::realtime::RPCResponse*>(tx_slot)->result_len = 0;
   return CUDAQ_DISPATCH_STATUS_TRIGGER_GRAPH;
 }
 
@@ -936,6 +1011,11 @@ TEST(DeviceGraphSelfRelaunchTest, Exceeds120) {
                  << cudaGetErrorString(err);
   }
 
+  // No kernel is running yet, so the symbol copy cannot race a handler.
+  const unsigned long long zero_calls = 0;
+  CUDA_CHECK(
+      cudaMemcpyToSymbol(g_trigger_handler_calls, &zero_calls, sizeof(zero_calls)));
+
   CUDA_CHECK(cudaq_launch_dispatch_graph(ctx, stream));
 
   // Poll the counter on a SEPARATE stream: the scheduler is a persistent
@@ -972,6 +1052,16 @@ TEST(DeviceGraphSelfRelaunchTest, Exceeds120) {
   EXPECT_EQ(counter, kNumMessages)
       << "Expected " << kNumMessages << " triggered launches, got " << counter;
 
+  // The scheduler has exited (stream synchronized above), so the symbol can be
+  // read: every thread of the 1 x 32 block called the handler for each of the
+  // kNumMessages requests, yet (above) each request fired the graph once.
+  unsigned long long handler_calls = 0;
+  CUDA_CHECK(cudaMemcpyFromSymbol(&handler_calls, g_trigger_handler_calls,
+                                  sizeof(handler_calls)));
+  EXPECT_EQ(handler_calls, static_cast<unsigned long long>(kNumMessages) * 32)
+      << "every thread of the scheduler block must call the handler once per "
+         "request";
+
   // Cleanup
   CUDA_CHECK(cudaq_dispatch_kernel_set_shared_ring_mode(0));
   CUDA_CHECK(cudaq_destroy_dispatch_graph(ctx));
@@ -1003,6 +1093,549 @@ TEST(DeviceGraphSelfRelaunchTest, RejectsMultiBlockTriggered) {
       &ctx);
   EXPECT_EQ(err, cudaErrorInvalidValue);
   EXPECT_EQ(ctx, nullptr);
+}
+
+} // namespace
+
+//==============================================================================
+// Unified dispatch kernel (CUDAQ_KERNEL_UNIFIED)
+//
+// Hardware-free tests of lib/daemon/dispatcher/unified_dispatch_kernel.cu,
+// which this executable compiles directly (see unittests/CMakeLists.txt).
+// The kernel reaches its transport through the three `__device__` hooks of
+// unified_device_transport.cuh; this file supplies them over a pinned, mapped
+// ring the host drives directly.  No NIC is involved: a request is signalled
+// by storing the DEVICE address of its RX frame into rx_flags[slot], the
+// response goes into the TX frame with the same index, and tx_publish hands
+// that frame's device address back through tx_flags[slot].
+//==============================================================================
+
+namespace {
+
+/// Device-side view of the ring.  Every pointer is the device alias of a
+/// cudaHostAllocMapped allocation the host reads and writes directly.
+struct FakeDevCtx {
+  volatile std::uint64_t *rx_flags; ///< [slot] = device addr of RX frame, or 0
+  volatile std::uint64_t *tx_flags; ///< [slot] = device addr of TX frame, or 0
+  std::uint8_t *tx_data;
+  std::size_t stride;
+  std::size_t num_slots;
+};
+
+/// Per-launch session the hooks keep in the kernel's session storage.
+struct FakeSession {
+  FakeDevCtx c;
+  std::size_t cursor;
+  volatile int *shutdown_flag;
+};
+static_assert(sizeof(FakeSession) <= CUDAQ_DEV_TRANSPORT_SESSION_BYTES,
+              "FakeSession must fit the kernel's session storage");
+static_assert(alignof(FakeSession) <= CUDAQ_DEV_TRANSPORT_SESSION_ALIGN,
+              "FakeSession alignment exceeds the session storage's");
+
+} // namespace
+
+extern "C" __device__ void *
+cudaq_dev_transport_attach(void *storage, void *ctx,
+                           volatile int *shutdown_flag) {
+  if (ctx == nullptr)
+    return nullptr;
+  auto *session = static_cast<FakeSession *>(storage);
+  session->c = *static_cast<const FakeDevCtx *>(ctx);
+  session->cursor = 0;
+  session->shutdown_flag = shutdown_flag;
+  return session;
+}
+
+extern "C" __device__ cudaq_rx_dev_status_t
+cudaq_dev_rx_poll(void *session, void **out_request, void **out_response) {
+  auto *s = static_cast<FakeSession *>(session);
+  while (true) {
+    __threadfence_system();
+    const std::uint64_t request_addr = s->c.rx_flags[s->cursor];
+    if (request_addr != 0) {
+      // Acquire: the request body was written before the flag.
+      __threadfence_system();
+      *out_request = reinterpret_cast<void *>(request_addr);
+      *out_response = s->c.tx_data + s->cursor * s->c.stride;
+      return CUDAQ_RX_DEV_READY;
+    }
+    if (*s->shutdown_flag != 0)
+      return CUDAQ_RX_DEV_SHUTDOWN;
+  }
+}
+
+extern "C" __device__ void cudaq_dev_tx_publish(void *session, void *response) {
+  auto *s = static_cast<FakeSession *>(session);
+  const std::size_t slot =
+      (static_cast<std::uint8_t *>(response) - s->c.tx_data) / s->c.stride;
+  // Return the receive credit first, then release: the response body and the
+  // cleared RX flag are both ordered before the TX flag the host polls, so a
+  // host that reuses the slot as soon as it sees the TX flag cannot race the
+  // clear.
+  s->c.rx_flags[slot] = 0;
+  __threadfence_system();
+  s->c.tx_flags[slot] = reinterpret_cast<std::uint64_t>(response);
+  s->cursor = (slot + 1) % s->c.num_slots;
+}
+
+namespace {
+
+using cudaq::realtime::RPC_MAGIC_REQUEST;
+using cudaq::realtime::RPC_MAGIC_RESPONSE;
+using cudaq::realtime::RPCHeader;
+using cudaq::realtime::RPCResponse;
+
+//==============================================================================
+// Function table: rpc_increment_handler and all_threads_count_handler, the
+// same two entries the ring tests use (init_rpc_function_table).
+//==============================================================================
+
+constexpr std::uint32_t kUnknownFunctionId =
+    cudaq::realtime::fnv1a_hash("no_such_function");
+
+//==============================================================================
+// Host helpers
+//==============================================================================
+
+/// Poll `stream` until it is idle.  False on timeout or if the stream
+/// reports a fault; never blocks unboundedly, so a wedged kernel fails the
+/// test instead of hanging the run.
+bool wait_stream_idle(cudaStream_t stream, int timeout_ms) {
+  const auto deadline =
+      std::chrono::steady_clock::now() + std::chrono::milliseconds(timeout_ms);
+  while (true) {
+    const cudaError_t q = cudaStreamQuery(stream);
+    if (q == cudaSuccess)
+      return true;
+    if (q != cudaErrorNotReady) {
+      ADD_FAILURE() << "stream reported " << cudaGetErrorString(q);
+      return false;
+    }
+    if (std::chrono::steady_clock::now() >= deadline)
+      return false;
+    usleep(100);
+  }
+}
+
+/// What the kernel reports for one request: the response header, the result
+/// bytes, and the tx_flags value the publish left behind.
+struct Response {
+  RPCResponse header{};
+  std::vector<std::uint8_t> payload;
+  std::uint64_t tx_flag = 0;
+};
+
+//==============================================================================
+// Fixture: mapped rings, control block, function table, fake context
+//==============================================================================
+
+class UnifiedDispatchKernelTest : public ::testing::Test {
+protected:
+  static constexpr std::size_t kNumSlots = 4;
+  static constexpr std::size_t kSlotSize = 256;
+  static constexpr int kTimeoutMs = 5000;
+  static constexpr unsigned long long kThreadsPerBlock = 64;
+
+  void SetUp() override {
+    ASSERT_TRUE(allocate_ring_buffer(kNumSlots, kSlotSize, &rx_flags_host_,
+                                     &rx_flags_, &rx_data_host_, &rx_data_));
+    ASSERT_TRUE(allocate_ring_buffer(kNumSlots, kSlotSize, &tx_flags_host_,
+                                     &tx_flags_, &tx_data_host_, &tx_data_));
+    std::memset(rx_data_host_, 0, kNumSlots * kSlotSize);
+    std::memset(tx_data_host_, 0, kNumSlots * kSlotSize);
+
+    void *tmp_shutdown = nullptr;
+    CUDA_CHECK(cudaHostAlloc(&tmp_shutdown, sizeof(int), cudaHostAllocMapped));
+    shutdown_flag_ = static_cast<volatile int *>(tmp_shutdown);
+    *shutdown_flag_ = 0;
+    void *tmp_d_shutdown = nullptr;
+    CUDA_CHECK(cudaHostGetDevicePointer(&tmp_d_shutdown, tmp_shutdown, 0));
+    d_shutdown_flag_ = static_cast<volatile int *>(tmp_d_shutdown);
+
+    CUDA_CHECK(cudaMalloc(&d_stats_, sizeof(std::uint64_t)));
+    CUDA_CHECK(cudaMemset(d_stats_, 0, sizeof(std::uint64_t)));
+
+    // Non-blocking: the legacy default stream must never wait on the
+    // persistent kernel, or any synchronous CUDA call below would deadlock.
+    // Created first so even the table init runs on it: a cudaDeviceSynchronize
+    // here would wait on a kernel that a failed earlier test had to leak.
+    CUDA_CHECK(cudaStreamCreateWithFlags(&stream_, cudaStreamNonBlocking));
+
+    CUDA_CHECK(cudaMalloc(&d_entries_,
+                          kRpcFuncCount * sizeof(cudaq_function_entry_t)));
+    init_rpc_function_table<<<1, 1, 0, stream_>>>(d_entries_);
+    CUDA_CHECK(cudaGetLastError());
+    ASSERT_TRUE(wait_stream_idle(stream_, kTimeoutMs))
+        << "function table init did not complete";
+
+    // No kernel is running yet, so the symbol copy cannot race a handler.
+    const unsigned long long zero = 0;
+    CUDA_CHECK(cudaMemcpyToSymbol(g_all_threads_count, &zero, sizeof(zero)));
+
+    FakeDevCtx ctx{};
+    ctx.rx_flags = rx_flags_;
+    ctx.tx_flags = tx_flags_;
+    ctx.tx_data = tx_data_;
+    ctx.stride = kSlotSize;
+    ctx.num_slots = kNumSlots;
+    CUDA_CHECK(cudaMalloc(&d_ctx_, sizeof(FakeDevCtx)));
+    CUDA_CHECK(cudaMemcpy(d_ctx_, &ctx, sizeof(ctx), cudaMemcpyHostToDevice));
+  }
+
+  void TearDown() override {
+    // Unconditional, so a failed test cannot leave a kernel spinning into
+    // the next one.  The dispatcher-owned kernel runs on a BLOCKING stream:
+    // set the flag through the mapped host pointer first, as the bridge tool
+    // does, so stop()'s own cudaMemcpy finds the kernel already leaving.
+    // stop() then synchronizes that stream with no timeout, so a kernel that
+    // ignored the flag would hang here; the direct-launch tests bound that
+    // same shutdown path with a timeout.
+    if (shutdown_flag_) {
+      *shutdown_flag_ = 1;
+      __sync_synchronize();
+    }
+    if (dispatcher_) {
+      cudaq_dispatcher_stop(dispatcher_);
+      cudaq_dispatcher_destroy(dispatcher_);
+      dispatcher_ = nullptr;
+    }
+    if (manager_) {
+      cudaq_dispatch_manager_destroy(manager_);
+      manager_ = nullptr;
+    }
+
+    if (kernel_live_) {
+      if (!wait_stream_idle(stream_, kTimeoutMs)) {
+        // Freeing memory a live kernel polls would turn a timeout into a
+        // crash; leak it and let the failure stand.
+        ADD_FAILURE() << "unified kernel still running after shutdown";
+        return;
+      }
+      kernel_live_ = false;
+    }
+
+    if (stream_)
+      cudaStreamDestroy(stream_);
+    if (d_ctx_)
+      cudaFree(d_ctx_);
+    if (d_entries_)
+      cudaFree(d_entries_);
+    if (d_stats_)
+      cudaFree(d_stats_);
+    if (shutdown_flag_)
+      cudaFreeHost(const_cast<int *>(shutdown_flag_));
+    free_ring_buffer(rx_flags_host_, rx_data_host_);
+    free_ring_buffer(tx_flags_host_, tx_data_host_);
+  }
+
+  //--- Direct launch ---------------------------------------------------------
+
+  /// Launch the unified kernel as one block of kThreadsPerBlock threads over
+  /// `transport_ctx` (nullptr makes attach refuse).
+  bool launch(void *transport_ctx) {
+    cudaq_launch_unified_dispatch_device(
+        transport_ctx, kSlotSize, d_entries_, kRpcFuncCount, d_shutdown_flag_,
+        d_stats_, kThreadsPerBlock, stream_);
+    const cudaError_t err = cudaGetLastError();
+    EXPECT_EQ(err, cudaSuccess) << cudaGetErrorString(err);
+    kernel_live_ = (err == cudaSuccess);
+    return kernel_live_;
+  }
+
+  /// Raise the shutdown flag and wait for the directly-launched kernel to
+  /// leave.  Bounded.
+  bool shutdown_and_join() {
+    *shutdown_flag_ = 1;
+    __sync_synchronize();
+    return join();
+  }
+
+  /// Wait for the directly-launched kernel to leave without raising the
+  /// flag (attach-refusal exits on its own).  Bounded.
+  bool join() {
+    if (!wait_stream_idle(stream_, kTimeoutMs))
+      return false;
+    kernel_live_ = false;
+    return true;
+  }
+
+  //--- Requests and responses (host memory only) -----------------------------
+
+  void post_request(std::size_t slot, std::uint32_t function_id,
+                    const std::vector<std::uint8_t> &payload,
+                    std::uint32_t request_id, std::uint64_t ptp_timestamp) {
+    std::uint8_t *frame = rx_data_host_ + slot * kSlotSize;
+    auto *header = reinterpret_cast<RPCHeader *>(frame);
+    header->magic = RPC_MAGIC_REQUEST;
+    header->function_id = function_id;
+    header->arg_len = static_cast<std::uint32_t>(payload.size());
+    header->request_id = request_id;
+    header->ptp_timestamp = ptp_timestamp;
+    if (!payload.empty())
+      std::memcpy(frame + sizeof(RPCHeader), payload.data(), payload.size());
+    __sync_synchronize();
+    // The flag carries the DEVICE address of the frame: the kernel
+    // dereferences it as the request header.
+    rx_flags_host_[slot] =
+        reinterpret_cast<std::uint64_t>(rx_data_ + slot * kSlotSize);
+  }
+
+  bool wait_response(std::size_t slot) {
+    const auto deadline = std::chrono::steady_clock::now() +
+                          std::chrono::milliseconds(kTimeoutMs);
+    while (true) {
+      __sync_synchronize();
+      if (tx_flags_host_[slot] != 0)
+        return true;
+      if (std::chrono::steady_clock::now() >= deadline)
+        return false;
+      usleep(50);
+    }
+  }
+
+  /// Read and consume the response in `slot` (clears its tx flag).
+  Response read_response(std::size_t slot) {
+    __sync_synchronize();
+    Response r;
+    r.tx_flag = tx_flags_host_[slot];
+    const std::uint8_t *frame = tx_data_host_ + slot * kSlotSize;
+    std::memcpy(&r.header, frame, sizeof(RPCResponse));
+    if (r.header.result_len <= kSlotSize - sizeof(RPCResponse))
+      r.payload.assign(frame + sizeof(RPCResponse),
+                       frame + sizeof(RPCResponse) + r.header.result_len);
+    tx_flags_host_[slot] = 0;
+    return r;
+  }
+
+  bool round_trip(std::size_t slot, std::uint32_t function_id,
+                  const std::vector<std::uint8_t> &payload,
+                  std::uint32_t request_id, std::uint64_t ptp_timestamp,
+                  Response *out) {
+    post_request(slot, function_id, payload, request_id, ptp_timestamp);
+    if (!wait_response(slot)) {
+      ADD_FAILURE() << "timeout waiting for the response in slot " << slot;
+      return false;
+    }
+    *out = read_response(slot);
+    return true;
+  }
+
+  /// tx_publish stores the device address of the response frame.
+  std::uint64_t expected_tx_flag(std::size_t slot) const {
+    return reinterpret_cast<std::uint64_t>(tx_data_ + slot * kSlotSize);
+  }
+
+  //--- Device-side readbacks: only while no kernel is running ---------------
+
+  std::uint64_t read_stats() {
+    std::uint64_t stats = ~0ull;
+    const cudaError_t err =
+        cudaMemcpy(&stats, d_stats_, sizeof(stats), cudaMemcpyDeviceToHost);
+    EXPECT_EQ(err, cudaSuccess) << cudaGetErrorString(err);
+    return stats;
+  }
+
+  unsigned long long read_all_threads_count() {
+    unsigned long long count = ~0ull;
+    const cudaError_t err =
+        cudaMemcpyFromSymbol(&count, g_all_threads_count, sizeof(count));
+    EXPECT_EQ(err, cudaSuccess) << cudaGetErrorString(err);
+    return count;
+  }
+
+  //--- State -----------------------------------------------------------------
+
+  volatile std::uint64_t *rx_flags_host_ = nullptr;
+  volatile std::uint64_t *tx_flags_host_ = nullptr;
+  volatile std::uint64_t *rx_flags_ = nullptr;
+  volatile std::uint64_t *tx_flags_ = nullptr;
+  std::uint8_t *rx_data_host_ = nullptr;
+  std::uint8_t *tx_data_host_ = nullptr;
+  std::uint8_t *rx_data_ = nullptr;
+  std::uint8_t *tx_data_ = nullptr;
+
+  volatile int *shutdown_flag_ = nullptr;
+  volatile int *d_shutdown_flag_ = nullptr;
+  std::uint64_t *d_stats_ = nullptr;
+  cudaq_function_entry_t *d_entries_ = nullptr;
+  FakeDevCtx *d_ctx_ = nullptr;
+
+  cudaStream_t stream_ = nullptr;
+  bool kernel_live_ = false;
+
+  cudaq_dispatch_manager_t *manager_ = nullptr;
+  cudaq_dispatcher_t *dispatcher_ = nullptr;
+};
+
+//==============================================================================
+// Tests
+//==============================================================================
+
+TEST_F(UnifiedDispatchKernelTest, RoundTrip) {
+  ASSERT_TRUE(launch(d_ctx_));
+
+  Response r;
+  ASSERT_TRUE(round_trip(0, RPC_INCREMENT_FUNCTION_ID, {1, 2, 3, 4}, 0x1234u,
+                         0xABCDEF0123ull, &r));
+  EXPECT_EQ(r.header.magic, RPC_MAGIC_RESPONSE);
+  EXPECT_EQ(r.header.status, 0);
+  EXPECT_EQ(r.header.result_len, 4u);
+  EXPECT_EQ(r.header.request_id, 0x1234u);
+  EXPECT_EQ(r.header.ptp_timestamp, 0xABCDEF0123ull);
+  EXPECT_EQ(r.payload, (std::vector<std::uint8_t>{2, 3, 4, 5}));
+  EXPECT_EQ(r.tx_flag, expected_tx_flag(0));
+
+  // Every thread of the 1 x kThreadsPerBlock block calls the handler.
+  ASSERT_TRUE(
+      round_trip(1, ALL_THREADS_COUNT_FUNCTION_ID, {}, 2u, 200ull, &r));
+  EXPECT_EQ(r.header.magic, RPC_MAGIC_RESPONSE);
+  EXPECT_EQ(r.header.status, 0);
+  EXPECT_EQ(r.header.result_len, 0u);
+  EXPECT_EQ(r.header.request_id, 2u);
+  EXPECT_EQ(r.header.ptp_timestamp, 200ull);
+  EXPECT_TRUE(r.payload.empty());
+  EXPECT_EQ(r.tx_flag, expected_tx_flag(1));
+
+  ASSERT_TRUE(
+      round_trip(2, RPC_INCREMENT_FUNCTION_ID, {250, 255, 7}, 3u, 300ull, &r));
+  EXPECT_EQ(r.header.magic, RPC_MAGIC_RESPONSE);
+  EXPECT_EQ(r.header.status, 0);
+  EXPECT_EQ(r.header.result_len, 3u);
+  EXPECT_EQ(r.header.request_id, 3u);
+  EXPECT_EQ(r.header.ptp_timestamp, 300ull);
+  EXPECT_EQ(r.payload, (std::vector<std::uint8_t>{251, 0, 8}));
+  EXPECT_EQ(r.tx_flag, expected_tx_flag(2));
+
+  ASSERT_TRUE(shutdown_and_join()) << "kernel did not exit on shutdown";
+  EXPECT_EQ(read_stats(), 3u);
+  EXPECT_EQ(read_all_threads_count(), kThreadsPerBlock)
+      << "every thread of the block must have called the handler once";
+}
+
+TEST_F(UnifiedDispatchKernelTest, UnknownFunction) {
+  ASSERT_TRUE(launch(d_ctx_));
+
+  // Publishing is mandatory even for a frame nobody can dispatch: the
+  // response goes out with status -1 and no result, and the tx flag is set.
+  Response r;
+  ASSERT_TRUE(
+      round_trip(0, kUnknownFunctionId, {9, 9, 9}, 0x77u, 0x5555ull, &r));
+  EXPECT_EQ(r.header.magic, RPC_MAGIC_RESPONSE);
+  EXPECT_EQ(r.header.status, -1);
+  EXPECT_EQ(r.header.result_len, 0u);
+  EXPECT_EQ(r.header.request_id, 0x77u);
+  EXPECT_EQ(r.header.ptp_timestamp, 0x5555ull);
+  EXPECT_EQ(r.tx_flag, expected_tx_flag(0));
+
+  ASSERT_TRUE(shutdown_and_join()) << "kernel did not exit on shutdown";
+  EXPECT_EQ(read_stats(), 1u);
+  EXPECT_EQ(read_all_threads_count(), 0ull);
+}
+
+TEST_F(UnifiedDispatchKernelTest, AttachRefused) {
+  // attach returns nullptr for a null context; thread 0 publishes "leave" and
+  // the whole block exits without the shutdown flag.
+  ASSERT_TRUE(launch(nullptr));
+  ASSERT_TRUE(join()) << "block did not exit by itself after attach refused";
+  EXPECT_EQ(read_stats(), 0u);
+  EXPECT_EQ(*shutdown_flag_, 0);
+}
+
+TEST_F(UnifiedDispatchKernelTest, DispatcherApi) {
+  ASSERT_EQ(cudaq_dispatch_manager_create(&manager_), CUDAQ_OK);
+
+  cudaq_dispatcher_config_t base{};
+  base.device_id = 0;
+  base.num_blocks = 1;
+  base.threads_per_block = kThreadsPerBlock;
+  base.num_slots = static_cast<std::uint32_t>(kNumSlots);
+  base.slot_size = static_cast<std::uint32_t>(kSlotSize);
+  base.vp_id = 0;
+  base.kernel_type = CUDAQ_KERNEL_UNIFIED;
+  base.dispatch_mode = CUDAQ_DISPATCH_DEVICE_CALL;
+  base.dispatch_path = CUDAQ_DISPATCH_PATH_DEVICE;
+
+  cudaq_function_table_t table{};
+  table.entries = d_entries_;
+  table.count = static_cast<std::uint32_t>(kRpcFuncCount);
+
+  // A fully wired dispatcher for `cfg`, running the archive's unified kernel
+  // (no launch override).
+  auto make_dispatcher =
+      [&](const cudaq_dispatcher_config_t &cfg) -> cudaq_dispatcher_t * {
+    cudaq_dispatcher_t *d = nullptr;
+    if (cudaq_dispatcher_create(manager_, &cfg, &d) != CUDAQ_OK)
+      return nullptr;
+    if (cudaq_dispatcher_set_function_table(d, &table) != CUDAQ_OK ||
+        cudaq_dispatcher_set_control(d, d_shutdown_flag_, d_stats_) !=
+            CUDAQ_OK ||
+        cudaq_dispatcher_set_unified_launch(d, nullptr, d_ctx_) != CUDAQ_OK) {
+      cudaq_dispatcher_destroy(d);
+      return nullptr;
+    }
+    return d;
+  };
+
+  //--- Negatives: nothing below may leave a kernel running -------------------
+
+  {
+    // The block is what every DEVICE_CALL handler runs on: exactly one.
+    cudaq_dispatcher_config_t cfg = base;
+    cfg.num_blocks = 2;
+    cudaq_dispatcher_t *d = make_dispatcher(cfg);
+    ASSERT_NE(d, nullptr);
+    EXPECT_EQ(cudaq_dispatcher_start(d), CUDAQ_ERR_INVALID_ARG);
+    cudaq_dispatcher_destroy(d);
+  }
+  {
+    cudaq_dispatcher_config_t cfg = base;
+    cfg.threads_per_block = 0;
+    cudaq_dispatcher_t *d = make_dispatcher(cfg);
+    ASSERT_NE(d, nullptr);
+    EXPECT_EQ(cudaq_dispatcher_start(d), CUDAQ_ERR_INVALID_ARG);
+    cudaq_dispatcher_destroy(d);
+  }
+
+  //--- Positive: full start / round trip / stop flow -------------------------
+
+  dispatcher_ = make_dispatcher(base);
+  ASSERT_NE(dispatcher_, nullptr);
+  ASSERT_EQ(cudaq_dispatcher_start(dispatcher_), CUDAQ_OK);
+
+  // The dispatcher's stream is BLOCKING: from here until stop() returns, only
+  // host memory may be touched (no cudaMemcpy, no get_processed).
+  Response r;
+  ASSERT_TRUE(round_trip(0, RPC_INCREMENT_FUNCTION_ID, {10, 20, 30, 40}, 42u,
+                         4242ull, &r));
+  EXPECT_EQ(r.header.magic, RPC_MAGIC_RESPONSE);
+  EXPECT_EQ(r.header.status, 0);
+  EXPECT_EQ(r.header.result_len, 4u);
+  EXPECT_EQ(r.header.request_id, 42u);
+  EXPECT_EQ(r.header.ptp_timestamp, 4242ull);
+  EXPECT_EQ(r.payload, (std::vector<std::uint8_t>{11, 21, 31, 41}));
+  EXPECT_EQ(r.tx_flag, expected_tx_flag(0));
+
+  ASSERT_TRUE(
+      round_trip(1, ALL_THREADS_COUNT_FUNCTION_ID, {}, 43u, 4343ull, &r));
+  EXPECT_EQ(r.header.status, 0);
+  EXPECT_EQ(r.header.result_len, 0u);
+  EXPECT_EQ(r.header.request_id, 43u);
+
+  // Flag first, through the mapped host pointer, then stop(): its cudaMemcpy
+  // to the flag would otherwise wait on the still-running kernel.
+  *shutdown_flag_ = 1;
+  __sync_synchronize();
+  ASSERT_EQ(cudaq_dispatcher_stop(dispatcher_), CUDAQ_OK);
+
+  std::uint64_t processed = 0;
+  ASSERT_EQ(cudaq_dispatcher_get_processed(dispatcher_, &processed), CUDAQ_OK);
+  EXPECT_EQ(processed, 2u);
+  EXPECT_EQ(read_all_threads_count(), kThreadsPerBlock)
+      << "every thread of the block must have called the handler once";
+
+  ASSERT_EQ(cudaq_dispatcher_destroy(dispatcher_), CUDAQ_OK);
+  dispatcher_ = nullptr;
 }
 
 } // namespace

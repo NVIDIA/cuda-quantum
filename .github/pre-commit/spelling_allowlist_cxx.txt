@@ -3,5 +3,6 @@ dlopen
 gcc
 nullary
 pre
+syncthreads
 typedef
 unwinder
