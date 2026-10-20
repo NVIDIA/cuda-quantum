@@ -164,17 +164,15 @@ static void optimizeLLVM(llvm::Module *module) {
 // O3 folds chains of integer compares into a `switch`, which the adaptive
 // profile does not allow. Lower each one back to compares and branches.
 static void lowerSwitchInstructions(llvm::Module *module) {
-  // Standard new pass manager setup, same as makeOptimizingTransformer in
-  // OptUtils.cpp. Recheck both when upgrading LLVM.
+  // PassBuilder is only used to register the analyses LowerSwitchPass needs;
+  // the pass is added by hand. Recheck when upgrading LLVM.
   llvm::LoopAnalysisManager lam;
   llvm::FunctionAnalysisManager fam;
   llvm::CGSCCAnalysisManager cgam;
   llvm::ModuleAnalysisManager mam;
   llvm::PassBuilder pb;
   pb.registerModuleAnalyses(mam);
-  pb.registerCGSCCAnalyses(cgam);
   pb.registerFunctionAnalyses(fam);
-  pb.registerLoopAnalyses(lam);
   pb.crossRegisterProxies(lam, fam, cgam, mam);
 
   llvm::FunctionPassManager fpm;
