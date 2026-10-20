@@ -239,12 +239,16 @@ typedef void (*cudaq_dispatch_launch_fn_t)(
     volatile int *shutdown_flag, uint64_t *stats, size_t num_slots,
     uint32_t num_blocks, uint32_t threads_per_block, cudaStream_t stream);
 
-// Default dispatch kernel launch helper (from libcudaq-realtime-dispatch.a).
+// Default dispatch kernel launch helper (from libcudaq-realtime-dispatch.a)
+// for CUDAQ_KERNEL_REGULAR.  On the DEVICE ring path, cudaq_dispatcher_start
+// calls it whenever no launch function was set, through a weak reference that
+// binds at load time to the copy linked into the consumer binary; see
+// cudaq_dispatcher_set_launch_fn for when to name one instead.
+//
 // Marked CUDAQ_REALTIME_DISPATCH_API so the symbol stays in the dynamic table
-// after the archive is absorbed into a binary; consumer .so's that dlsym() it
-// at runtime (e.g. cuda-qx's libcudaq-qec-realtime-decoding.so) can then
-// resolve it without any explicit setter/constructor-shim plumbing on the
-// consumer side.
+// after the archive is absorbed into a binary, which is what that weak
+// reference binds to.  Consumer .so's that dlsym() it at runtime (e.g.
+// cuda-qx's libcudaq-qec-realtime-decoding.so) rely on it too.
 CUDAQ_REALTIME_DISPATCH_API void cudaq_launch_dispatch_kernel_regular(
     volatile uint64_t *rx_flags, volatile uint64_t *tx_flags, uint8_t *rx_data,
     uint8_t *tx_data, size_t rx_stride_sz, size_t tx_stride_sz,
@@ -407,6 +411,14 @@ cudaq_dispatcher_set_function_table(cudaq_dispatcher_t *dispatcher,
 cudaq_status_t cudaq_dispatcher_set_control(cudaq_dispatcher_t *dispatcher,
                                             volatile int *shutdown_flag,
                                             uint64_t *stats);
+// Optional on the DEVICE ring path: without it, start() calls the archive's
+// cudaq_launch_dispatch_kernel_regular.  That default binds to the first copy
+// of the archive exported in the process, so name the launcher here when this
+// binary's copy may not be that one: when it hides the archive's symbols
+// (-Wl,--exclude-libs), or shares the process with another binary that links
+// the archive.  The kernel must share a CUDA module with the function table's
+// DEVICE_CALL handlers.  Refused on the HOST path, and NULL is refused on the
+// DEVICE path.
 cudaq_status_t
 cudaq_dispatcher_set_launch_fn(cudaq_dispatcher_t *dispatcher,
                                cudaq_dispatch_launch_fn_t launch_fn);
@@ -427,10 +439,9 @@ cudaq_status_t cudaq_dispatcher_set_mailbox(cudaq_dispatcher_t *dispatcher,
 //                                   forced to 1 (the provider's TX pump owns
 //                                   the wire).
 //   - HOST + UNIFIED:               the provider's CPU data plane.
-//   - DEVICE + REGULAR:             the RING_BUFFER context.  The 3-kernel
-//                                   launcher lives in
-//                                   libcudaq-realtime-dispatch.a, so the
-//                                   caller still names it with
+//   - DEVICE + REGULAR:             the RING_BUFFER context.  start() then
+//                                   launches the 3-kernel dispatch kernel
+//                                   from libcudaq-realtime-dispatch.a; see
 //                                   cudaq_dispatcher_set_launch_fn.
 //   - DEVICE + UNIFIED:             the provider's unified transport context.
 // A `num_slots` / `slot_size` left at 0 in the config is filled from the

@@ -244,11 +244,6 @@ int main(int argc, char *argv[]) {
           cudaq_dispatcher_create(manager, &dconfig, &dispatcher));
       HANDLE_CUDAQ_REALTIME_ERROR(
           cudaq_dispatcher_set_bridge(dispatcher, bridge_handle));
-      // The 3-kernel launcher comes from libcudaq-realtime-dispatch.a, which
-      // this binary links; the unified kernel ships with the library.
-      if (!config.unified)
-        HANDLE_CUDAQ_REALTIME_ERROR(cudaq_dispatcher_set_launch_fn(
-            dispatcher, &cudaq_launch_dispatch_kernel_regular));
 
       // Set up the function table with the increment handler entries
       // Populate the GPU function table with the increment handler entry

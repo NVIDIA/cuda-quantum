@@ -516,7 +516,7 @@ plane that shape needs:
 |-------|-------------------------------------------|
 | HOST + REGULAR | The `RING_BUFFER` context; `skip_tx_markers` is forced to 1 |
 | HOST + UNIFIED | The provider's CPU data plane (`rx_poll` / `tx_publish`) |
-| DEVICE + REGULAR | The `RING_BUFFER` context; the caller still names a launcher with `cudaq_dispatcher_set_launch_fn` |
+| DEVICE + REGULAR | The `RING_BUFFER` context; `start()` then launches the 3-kernel dispatch kernel from `libcudaq-realtime-dispatch.a` (see `cudaq_dispatcher_set_launch_fn`) |
 | DEVICE + UNIFIED | The provider's unified transport context |
 
 Parameters:
@@ -637,9 +637,10 @@ Parameters:
 - `dispatcher`: dispatcher handle.
 - `launch_fn`: host launch function pointer.
 
-Call this once during setup. Typically you pass the provided launch function:
+The call is optional. Without it, `cudaq_dispatcher_start` uses the launcher
+from `libcudaq-realtime-dispatch.a`:
 
-- `cudaq_launch_dispatch_kernel_regular` - for `CUDAQ_KERNEL_REGULAR` mode
+- `cudaq_launch_dispatch_kernel_regular` for `CUDAQ_KERNEL_REGULAR`
 
 **`cudaq_dispatcher_start`** launches the persistent dispatch kernel and begins
 processing slots.
@@ -766,7 +767,8 @@ clean up graph resources.
 
 ### Kernel Launch Helper Functions
 
-The following helper function is provided for use with `cudaq_dispatcher_set_launch_fn()`:
+The following helper function is the dispatcher's default for the DEVICE
+ring path, and can also be passed to `cudaq_dispatcher_set_launch_fn()`:
 
 **`cudaq_launch_dispatch_kernel_regular`** launches the dispatch kernel in
 regular mode.
