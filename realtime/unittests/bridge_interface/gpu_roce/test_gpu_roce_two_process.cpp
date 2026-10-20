@@ -56,6 +56,7 @@
 #include <cuda_runtime.h>
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <chrono>
 #include <cstdint>
 #include <cstdio>
@@ -102,22 +103,39 @@ constexpr auto kServerReadyTimeout = std::chrono::seconds(30);
 constexpr auto kResponseTimeout = std::chrono::milliseconds(5000);
 constexpr auto kNoResponseWindow = std::chrono::milliseconds(500);
 
+// Under the ring shape, gpu_roce's TX kernel runs WQE_NUM (64) threads, thread
+// j sending slots j, j + 64, ... masked by the slot count: with fewer than 64
+// slots, or a count that is not a power of two, several threads send the same
+// slot and the caller gets duplicate responses.
+constexpr std::size_t kMinSlots = 64;
+
+std::size_t host_page_size() {
+  const long page = ::sysconf(_SC_PAGESIZE);
+  return page > 0 ? static_cast<std::size_t>(page) : 4096;
+}
+
 // gpu_roce's --num-pages, which the caller's ring matches slot for slot (the
 // slot index travels in the immediate).  gpu_roce registers its rx ring as one
 // memory region, whose size must be a whole number of host pages, so the ring
-// is one host page of slots: 16 with 4 KiB pages, 256 with 64 KiB pages.
+// is the fewest whole pages holding kMinSlots: 64 slots (4 pages) with 4 KiB
+// pages, 256 slots (1 page) with 64 KiB pages.
 unsigned ring_slots() {
-  const long page = ::sysconf(_SC_PAGESIZE);
-  const unsigned slots =
-      page > 0
-          ? static_cast<unsigned>(static_cast<std::size_t>(page) / kSlotSize)
-          : 0;
-  return slots < 4 ? 4 : slots;
+  const std::size_t per_page =
+      std::max<std::size_t>(1, host_page_size() / kSlotSize);
+  const std::size_t pages = (kMinSlots + per_page - 1) / per_page;
+  return static_cast<unsigned>(per_page * pages);
 }
 
 class GpuRoceTwoProcess : public ::testing::TestWithParam<const char *> {
 protected:
   void SetUp() override {
+    ASSERT_GE(numSlots, kMinSlots);
+    ASSERT_EQ(0u, numSlots & (numSlots - 1))
+        << numSlots << " slots: gpu_roce masks slot indices, so the count "
+        << "must be a power of two";
+    ASSERT_EQ(0u, (numSlots * kSlotSize) % host_page_size())
+        << "the ring must be a whole number of host pages";
+
     topology = roce_test_topology();
     const RoceGate gate = roce_test_gate(topology);
     if (gate.action == RoceGate::Fail)
