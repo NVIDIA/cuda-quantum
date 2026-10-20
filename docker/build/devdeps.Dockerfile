@@ -198,11 +198,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install additional tools for CUDA-Q documentation generation.
+# Sphinx 5.3 does not support Python 3.14 (ast.Str was removed).
 COPY --from=prereqs /usr/local/bin/doxygen /usr/local/bin/doxygen
 ENV PATH="${PATH}:/usr/local/bin"
 RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-pip pandoc aspell aspell-en \
     && python3 -m pip install --no-cache-dir --break-system-packages \
-    ipython==8.15.0 pandoc==2.3 sphinx==5.3.0 sphinx_rtd_theme==1.2.0 sphinx-reredirects==0.1.2 \
-    sphinx-copybutton==0.5.2 sphinx_inline_tabs==2023.4.21 enum-tools[sphinx] breathe==4.34.0 \
-    nbsphinx==0.9.2 sphinx_gallery==0.13.0 myst-parser==1.0.0 ipykernel==6.29.4 notebook==7.3.2 \
+    ipython==8.15.0 pandoc==2.3 sphinx==8.2.3 sphinx_rtd_theme==3.1.0 sphinx-reredirects==1.1.0 \
+    sphinx-copybutton==0.5.2 sphinx_inline_tabs==2025.12.21.14 enum-tools[sphinx] breathe==5.1.0 \
+    nbsphinx==0.9.8 sphinx_gallery==0.22.1 myst-parser==5.1.0 ipykernel==6.29.4 notebook==7.3.2 \
     ipywidgets==8.1.5 sphinx-tags==0.4
