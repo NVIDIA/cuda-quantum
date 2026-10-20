@@ -18,9 +18,14 @@
 #include <thread>
 #include <unordered_set>
 
-// Defined in libcudaq-realtime-dispatch.a, which the consumer device-links
-// together with its handlers; it is not part of this library.  Weak, so a
-// binary that never links the archive still loads, and the address is null.
+// The DEVICE launchers, used when the caller sets none.  Defined in
+// libcudaq-realtime-dispatch.a, which the consumer device-links together with
+// its handlers; they are not part of this library.  Weak, so a binary that
+// never links the archive still loads, and the addresses are null.  Each
+// binds to the first copy exported in the process, so a consumer whose copy
+// is hidden (--exclude-libs) or not the first names its own launcher instead.
+#pragma weak cudaq_launch_dispatch_kernel_regular
+#pragma weak cudaq_launch_dispatch_kernel_cooperative
 #pragma weak cudaq_launch_unified_dispatch_device
 
 struct cudaq_dispatch_manager_t {
@@ -92,6 +97,22 @@ static bool is_valid_kernel_type(cudaq_kernel_type_t kernel_type) {
   }
 }
 
+// The DEVICE ring launcher start() calls: the caller's, else the archive's
+// for the kernel type.  Null when neither is available.
+static cudaq_dispatch_launch_fn_t
+ring_launch_fn(const cudaq_dispatcher_t *dispatcher) {
+  if (dispatcher->launch_fn)
+    return dispatcher->launch_fn;
+  switch (dispatcher->config.kernel_type) {
+  case CUDAQ_KERNEL_REGULAR:
+    return &cudaq_launch_dispatch_kernel_regular;
+  case CUDAQ_KERNEL_COOPERATIVE:
+    return &cudaq_launch_dispatch_kernel_cooperative;
+  default:
+    return nullptr;
+  }
+}
+
 static bool is_valid_dispatch_mode(cudaq_dispatch_mode_t dispatch_mode) {
   switch (dispatch_mode) {
   case CUDAQ_DISPATCH_DEVICE_CALL:
@@ -139,7 +160,7 @@ static cudaq_status_t validate_dispatcher(cudaq_dispatcher_t *dispatcher) {
     if (dispatcher->config.slot_size == 0)
       return CUDAQ_ERR_INVALID_ARG;
   } else {
-    if (!dispatcher->launch_fn)
+    if (!ring_launch_fn(dispatcher))
       return CUDAQ_ERR_INVALID_ARG;
     if (!dispatcher->ringbuffer.rx_flags || !dispatcher->ringbuffer.tx_flags)
       return CUDAQ_ERR_INVALID_ARG;
@@ -452,13 +473,14 @@ cudaq_dispatcher_set_bridge(cudaq_dispatcher_t *dispatcher,
 }
 
 cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher) {
-  if (dispatcher && dispatcher->bridge &&
+  if (dispatcher &&
       dispatcher->config.dispatch_path != CUDAQ_DISPATCH_PATH_HOST &&
       dispatcher->config.kernel_type != CUDAQ_KERNEL_UNIFIED &&
-      !dispatcher->launch_fn) {
-    fprintf(stderr, "ERROR: cudaq_dispatcher_start (DEVICE ring): no launch "
-                    "function; call cudaq_dispatcher_set_launch_fn, e.g. with "
-                    "cudaq_launch_dispatch_kernel_regular\n");
+      !ring_launch_fn(dispatcher)) {
+    fprintf(stderr,
+            "ERROR: cudaq_dispatcher_start (DEVICE ring): no launch function; "
+            "link libcudaq-realtime-dispatch.a into this binary, or name a "
+            "launcher with cudaq_dispatcher_set_launch_fn\n");
     return CUDAQ_ERR_INVALID_ARG;
   }
   cudaq_status_t status = validate_dispatcher(dispatcher);
@@ -588,7 +610,7 @@ cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher) {
           dispatcher->shutdown_flag, dispatcher->stats, dispatcher->stream);
     }
   } else {
-    dispatcher->launch_fn(
+    ring_launch_fn(dispatcher)(
         dispatcher->ringbuffer.rx_flags, dispatcher->ringbuffer.tx_flags,
         dispatcher->ringbuffer.rx_data, dispatcher->ringbuffer.tx_data,
         dispatcher->ringbuffer.rx_stride_sz,
