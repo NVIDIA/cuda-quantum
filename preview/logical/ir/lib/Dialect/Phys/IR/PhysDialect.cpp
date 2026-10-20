@@ -8352,10 +8352,10 @@ private:
 LogicalResult ScheduleClaimVerifier::verify(ArrayRef<ScheduleClaim> entries,
                                             ScheduleVerificationStats *stats) {
   // Schedule verification resolves the same module-level graph, plans, and
-  // physical resources for many thousands of rows.  The static symbol lookup
-  // helper constructs transient symbol tables on every call; retain one lazy
-  // collection for the whole proof so repeated state-resource lookups remain
-  // exact while becoming amortized constant-time.
+  // physical resources for many thousands of rows. The static symbol lookup
+  // helper scans the symbol-table region on every call; retain one lazy
+  // collection for the whole proof so repeated plan and state-resource lookups
+  // remain exact while becoming amortized constant-time.
   SymbolTableCollection symbolTables;
   const bool profileEnabled = std::getenv("QLX_PROFILE_P2_TO_P3") != nullptr;
   ScheduleVerifierProfileStats profileStorage;
@@ -8538,7 +8538,7 @@ LogicalResult ScheduleClaimVerifier::verify(ArrayRef<ScheduleClaim> entries,
       ambiguousExpectedEvent = true;
     auto invocation = dyn_cast<SpacetimeCallOp>(operation);
     auto plan = invocation ? dyn_cast_or_null<SpacetimePlanOp>(
-                                 SymbolTable::lookupNearestSymbolFrom(
+                                 symbolTables.lookupNearestSymbolFrom(
                                      invocation, invocation.getPlanAttr()))
                            : SpacetimePlanOp{};
     if (!plan)
@@ -8969,7 +8969,7 @@ LogicalResult ScheduleClaimVerifier::verify(ArrayRef<ScheduleClaim> entries,
     }
     if (auto invocation = dyn_cast<SpacetimeCallOp>(eventOperation)) {
       auto plan = dyn_cast_or_null<SpacetimePlanOp>(
-          SymbolTable::lookupNearestSymbolFrom(invocation,
+          symbolTables.lookupNearestSymbolFrom(invocation,
                                                invocation.getPlanAttr()));
       if (!plan || entry.callee != plan.getSourceProtocol() ||
           entry.instance != invocation.getInstance() ||
@@ -9092,7 +9092,7 @@ LogicalResult ScheduleClaimVerifier::verify(ArrayRef<ScheduleClaim> entries,
                 ? SpacetimeCallOp{}
                 : dyn_cast<SpacetimeCallOp>(parentEvent->second.first);
         auto plan = invocation ? dyn_cast_or_null<SpacetimePlanOp>(
-                                     SymbolTable::lookupNearestSymbolFrom(
+                                     symbolTables.lookupNearestSymbolFrom(
                                          invocation, invocation.getPlanAttr()))
                                : SpacetimePlanOp{};
         forwardingPipelinePhase = plan && plan.getForwardingLatencyNsAttr() &&
@@ -9608,7 +9608,7 @@ LogicalResult ScheduleClaimVerifier::verify(ArrayRef<ScheduleClaim> entries,
               ? SpacetimeCallOp{}
               : dyn_cast<SpacetimeCallOp>(operation->second.first);
       auto plan = invocation ? dyn_cast_or_null<SpacetimePlanOp>(
-                                   SymbolTable::lookupNearestSymbolFrom(
+                                   symbolTables.lookupNearestSymbolFrom(
                                        invocation, invocation.getPlanAttr()))
                              : SpacetimePlanOp{};
       if (plan && plan.getForwardingLatencyNsAttr() &&
@@ -9912,7 +9912,7 @@ LogicalResult ScheduleClaimVerifier::verify(ArrayRef<ScheduleClaim> entries,
                 ? SpacetimeCallOp{}
                 : dyn_cast<SpacetimeCallOp>(operation->second.first);
         auto plan = invocation ? dyn_cast_or_null<SpacetimePlanOp>(
-                                     SymbolTable::lookupNearestSymbolFrom(
+                                     symbolTables.lookupNearestSymbolFrom(
                                          invocation, invocation.getPlanAttr()))
                                : SpacetimePlanOp{};
         bool pipelined = plan && plan.getForwardingLatencyNsAttr() &&
@@ -10135,7 +10135,7 @@ LogicalResult ScheduleClaimVerifier::verify(ArrayRef<ScheduleClaim> entries,
               ? SpacetimeCallOp{}
               : dyn_cast<SpacetimeCallOp>(operation->second.first);
       auto plan = invocation ? dyn_cast_or_null<SpacetimePlanOp>(
-                                   SymbolTable::lookupNearestSymbolFrom(
+                                   symbolTables.lookupNearestSymbolFrom(
                                        invocation, invocation.getPlanAttr()))
                              : SpacetimePlanOp{};
       if (!plan)
