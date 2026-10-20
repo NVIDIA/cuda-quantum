@@ -597,10 +597,10 @@ protected:
     // independent single-qubit gates on each target qubit.
     if (isTwoQubitPauliProduct(gateName)) {
       if (!task.controls.empty() || task.targets.size() != 2)
-        throw std::runtime_error(fmt::format(
-            "Two-qubit Pauli product gate {} requires exactly 2 targets and "
-            "no controls, got {} targets and {} controls.",
-            task.operationName, task.targets.size(), task.controls.size()));
+        CUDAQ_ERROR("Two-qubit Pauli product gate {} requires exactly 2 "
+                    "targets and no controls, got {} targets and {} controls.",
+                    task.operationName, task.targets.size(),
+                    task.controls.size());
       for (int i = 0; i < 2; i++) {
         if (gateName[i] != 'I')
           applyOpToSims(std::string(1, gateName[i]),
@@ -614,16 +614,14 @@ protected:
     // gates. Throw exceptions if they are encountered here.
     // TODO - consider adding support for specific rotations (e.g. pi/2).
     if (gateName == "RX" || gateName == "RY" || gateName == "RZ")
-      throw std::runtime_error(
-          fmt::format("Gate not supported by Stim simulator: {}. Note that "
-                      "Stim can only simulate Clifford gates.",
-                      task.operationName));
+      CUDAQ_ERROR("Gate not supported by Stim simulator: {}. Note that Stim "
+                  "can only simulate Clifford gates.",
+                  task.operationName);
     else if (gateName == "R1") {
       if (task.parameters.size() != 1)
-        throw std::runtime_error(
-            fmt::format("Gate not supported by Stim simulator: {}. Note that "
-                        "Stim can only simulate Clifford gates.",
-                        task.operationName));
+        CUDAQ_ERROR("Gate not supported by Stim simulator: {}. Note that Stim "
+                    "can only simulate Clifford gates.",
+                    task.operationName);
 
       auto angle = task.parameters.front();
       if (isApproxAngle(angle, M_PI_2))
@@ -633,10 +631,9 @@ protected:
       else if (isApproxAngle(angle, M_PI) || isApproxAngle(angle, -M_PI))
         gateName = "Z";
       else
-        throw std::runtime_error(
-            fmt::format("Gate not supported by Stim simulator: {}({}). Note "
-                        "that Stim can only simulate Clifford gates.",
-                        task.operationName, angle));
+        CUDAQ_ERROR("Gate not supported by Stim simulator: {}({}). Note that "
+                    "Stim can only simulate Clifford gates.",
+                    task.operationName, angle);
     } else if (gateName == "SDG")
       gateName = "S_DAG";
     else if (gateName == "ID")
@@ -644,8 +641,7 @@ protected:
 
     std::vector<std::uint32_t> stimTargets;
     if (task.controls.size() > 1)
-      throw std::runtime_error(
-          "Gates with >1 controls not supported by Stim simulator");
+      CUDAQ_ERROR("Gates with >1 controls not supported by Stim simulator");
     if (task.controls.size() >= 1)
       gateName = "C" + gateName;
     for (auto c : task.controls)
@@ -655,10 +651,9 @@ protected:
     try {
       applyOpToSims(gateName, stimTargets);
     } catch (...) {
-      throw std::runtime_error(
-          fmt::format("Gate not supported by Stim simulator: {}. Note that "
-                      "Stim can only simulate Clifford gates.",
-                      task.operationName));
+      CUDAQ_ERROR("Gate not supported by Stim simulator: {}. Note that Stim "
+                  "can only simulate Clifford gates.",
+                  task.operationName);
     }
   }
 
