@@ -1189,6 +1189,11 @@ class _P1ToP2:
         self._prepare_selection()
         self._prepare_network_regions()
         self._emit_protocol()
+        # Set each manifest's dependencies once, after all artifacts exist.
+        for symbol, (dependencies, _) in self.manifest_dependencies.items():
+            manifest = self.transaction.find_symbol(symbol, "qlx.qec_lowering")
+            manifest.attributes["dependencies"] = mlir_ir.ArrayAttr.get(
+                dependencies, context=self.context)
         self.transaction.add_profile("p2n")
         self.qec_selection = self._finalize_qec_selection()
         if self.network_request is not None:
@@ -3390,11 +3395,6 @@ class _P1ToP2:
                 dependencies.append(
                     mlir_ir.FlatSymbolRefAttr.get(handle.symbol,
                                                   context=self.context))
-                manifest_operation.attributes["dependencies"] = (
-                    mlir_ir.ArrayAttr.get(
-                        dependencies,
-                        context=self.context,
-                    ))
         inputs, results, _ = self.transaction.signature_of(generated)
         blocks = {
             self._block_key(placement)
