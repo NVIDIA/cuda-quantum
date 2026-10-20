@@ -70,8 +70,8 @@ cudaq_realtime_cuda_version() {
   printf '%s' "$_cudaq_realtime_cuda_version"
 }
 
-# CUDA architectures HSB is compiled for. HSB reads CUDA_NATIVE_ARCH from the
-# environment, so a value set by the caller always wins.
+# CUDA architectures HSB is compiled for. A CUDA_NATIVE_ARCH set by the caller
+# always wins.
 cudaq_realtime_cuda_native_arch() {
   if [ -n "${CUDA_NATIVE_ARCH:-}" ]; then
     printf '%s' "$CUDA_NATIVE_ARCH"
@@ -273,8 +273,12 @@ cudaq_realtime_build_hsb() {
       "$HSB_ROOT/src/hololink/operators/CMakeLists.txt"
   fi
 
+  # HSB ignores CUDA_NATIVE_ARCH and otherwise falls back to "native", which
+  # without a visible GPU (docker build, CI) compiles for nvcc's default sm_75:
+  # its GPU RoCE send path then runs but never reaches the wire.
   cmake -G Ninja -S "$HSB_ROOT" -B "$HSB_BUILD" \
     -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_CUDA_ARCHITECTURES="$CUDA_NATIVE_ARCH" \
     -DHOLOLINK_BUILD_ONLY_NATIVE=OFF \
     -DHOLOLINK_BUILD_PYTHON=OFF \
     -DHOLOLINK_BUILD_TESTS=OFF \
