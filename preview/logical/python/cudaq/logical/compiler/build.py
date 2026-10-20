@@ -39,6 +39,7 @@ from .build_bundle import (
     _validate_v2_bundle,
     _validate_v2_nested_metadata,
 )
+from .context import _walk_operation
 
 _logger = logging.getLogger("cudaq.logical")
 
@@ -208,20 +209,6 @@ def _attr_text(attribute) -> str:
     value = getattr(attribute, "value", None)
     text = str(attribute if value is None else value)
     return text.strip('"').lstrip("@").split("::@")[-1]
-
-
-def _walk_operation(operation):
-    stack = [operation]
-    while stack:
-        current = stack.pop()
-        yield current
-        children = [
-            view.operation
-            for region in current.regions
-            for block in region.blocks
-            for view in block.operations
-        ]
-        stack.extend(reversed(children))
 
 
 def _string_array_attribute(operation, name: str) -> tuple[str, ...]:
