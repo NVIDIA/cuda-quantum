@@ -12,6 +12,7 @@
 #include "cudaq/qis/state.h"
 
 #include <complex>
+#include <cstdint>
 #include <functional>
 #include <string>
 #include <unordered_map>
