@@ -1245,6 +1245,17 @@ pr-5663
             -   [Source and
                 tests](compiler/cudaq_ir.html#source-and-tests){.reference
                 .internal}
+        -   [Value-semantics IR change
+            log](compiler/ir_changelog.html){.reference .internal}
+            -   [Producing this
+                IR](compiler/ir_changelog.html#producing-this-ir){.reference
+                .internal}
+            -   [Upcoming release ([`main`{.docutils .literal
+                .notranslate}]{.pre}
+                branch)](compiler/ir_changelog.html#upcoming-release-main-branch){.reference
+                .internal}
+            -   [0.16.0](compiler/ir_changelog.html#id5){.reference
+                .internal}
         -   [External compiler pass
             plugins](compiler/pass_plugins.html){.reference .internal}
             -   [Implement and register the

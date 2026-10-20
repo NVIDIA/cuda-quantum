@@ -1255,6 +1255,16 @@ pr-5663
             -   [Source and
                 tests](cudaq_ir.html#source-and-tests){.reference
                 .internal}
+        -   [Value-semantics IR change
+            log](ir_changelog.html){.reference .internal}
+            -   [Producing this
+                IR](ir_changelog.html#producing-this-ir){.reference
+                .internal}
+            -   [Upcoming release ([`main`{.docutils .literal
+                .notranslate}]{.pre}
+                branch)](ir_changelog.html#upcoming-release-main-branch){.reference
+                .internal}
+            -   [0.16.0](ir_changelog.html#id5){.reference .internal}
         -   [External compiler pass
             plugins](pass_plugins.html){.reference .internal}
             -   [Implement and register the
@@ -2028,6 +2038,10 @@ At a glance
 -   See [[External compiler pass
     plugins]{.doc}](pass_plugins.html){.reference .internal} for the
     existing external pass plugin interface.
+
+-   See [[Value-semantics IR change
+    log]{.doc}](ir_changelog.html){.reference .internal} for changes to
+    fully value-semantics IR between releases.
 
 Code organization
 

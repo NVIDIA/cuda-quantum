@@ -1255,6 +1255,16 @@ pr-5663
             -   [Source and
                 tests](cudaq_ir.html#source-and-tests){.reference
                 .internal}
+        -   [Value-semantics IR change
+            log](ir_changelog.html){.reference .internal}
+            -   [Producing this
+                IR](ir_changelog.html#producing-this-ir){.reference
+                .internal}
+            -   [Upcoming release ([`main`{.docutils .literal
+                .notranslate}]{.pre}
+                branch)](ir_changelog.html#upcoming-release-main-branch){.reference
+                .internal}
+            -   [0.16.0](ir_changelog.html#id5){.reference .internal}
         -   [External compiler pass plugins](#){.current .reference
             .internal}
             -   [Implement and register the
@@ -1970,8 +1980,9 @@ pr-5663
 
 ::: {.rst-breadcrumbs-buttons role="navigation" aria-label="Sequential page navigation"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
-Previous](cudaq_ir.html "CUDA-Q compiler IRs"){.btn .btn-neutral
-.float-left accesskey="p"} [Next []{.fa .fa-arrow-circle-right
+Previous](ir_changelog.html "Value-semantics IR change log"){.btn
+.btn-neutral .float-left accesskey="p"} [Next []{.fa
+.fa-arrow-circle-right
 aria-hidden="true"}](../backend.html "Extending CUDA-Q with a new Hardware Backend"){.btn
 .btn-neutral .float-right accesskey="n"}
 :::
@@ -2136,8 +2147,8 @@ not added to a CUDA-Q compilation pipeline.
 
 ::: {.rst-footer-buttons role="navigation" aria-label="Footer"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
-Previous](cudaq_ir.html "CUDA-Q compiler IRs"){.btn .btn-neutral
-.float-left accesskey="p" rel="prev"} [Next []{.fa
+Previous](ir_changelog.html "Value-semantics IR change log"){.btn
+.btn-neutral .float-left accesskey="p" rel="prev"} [Next []{.fa
 .fa-arrow-circle-right
 aria-hidden="true"}](../backend.html "Extending CUDA-Q with a new Hardware Backend"){.btn
 .btn-neutral .float-right accesskey="n" rel="next"}
