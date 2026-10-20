@@ -647,6 +647,7 @@ class _P2ToP3:
         self._provenance_sidecars = []
         self._resource_indices = {}
         self._communication_reachability = {}
+        self._transform_frames = {}
         self._call_instance = 0
         self._hierarchy_projection = 0
         self.graph = None
@@ -1630,21 +1631,19 @@ class _P2ToP3:
         current_path = tuple(self._exclusive_path)
         predecessors = []
         for index in indices:
-            previous = self._released_index_events[resource_class].get(index)
-            if previous is None:
-                continue
-            event, previous_path = previous
-            if current_path[:len(previous_path)] != previous_path:
-                return None
-            if event not in predecessors:
-                predecessors.append(event)
+            history = self._released_index_events[resource_class].get(index, ())
+            for event, previous_path in history:
+                if current_path[:len(previous_path)] != previous_path:
+                    return None
+                if event not in predecessors:
+                    predecessors.append(event)
         return tuple(predecessors)
 
     def _record_release(self, allocation, event):
         path = tuple(self._exclusive_path)
         released = self._released_index_events[allocation.resource_class]
         for index in allocation.indices:
-            released[index] = (event, path)
+            released.setdefault(index, []).append((event, path))
 
     def _resource_payload_type(self, kind):
         return mlir_ir.Type.parse(f"!phys.resource_payload<@{kind}>",
@@ -2606,6 +2605,221 @@ class _P2ToP3:
             result.partitions[name][index] = carrier
         return result
 
+    @staticmethod
+    def _partition_widths(attribute):
+        raw = {str(named.name): int(named.attr) for named in attribute}
+        order = [key for key in ("data", "sx", "sz") if key in raw]
+        order.extend(key for key in raw if key not in order)
+        return tuple((name, raw[name]) for name in order)
+
+    def _transform_begin(self, operation, patch):
+        """Project one structural patch-frame expansion onto owned carriers."""
+
+        transform_name = _text(operation.attributes["transform"])
+        transform = self.symbols.get(transform_name)
+        if transform is None or transform.name != "fabric.patch_transform":
+            raise ValueError(
+                f"fabric.transform_begin references missing transform "
+                f"@{transform_name}")
+        if patch.patch_id in self._transform_frames:
+            raise ValueError("nested physical patch transforms are unsupported")
+        source_encoding = _text(transform.attributes["source"])
+        if patch.encoding != source_encoding:
+            raise ValueError(
+                "physical patch transform source differs from the live encoding"
+            )
+
+        widths = self._partition_widths(
+            transform.attributes["frame_partitions"])
+        offsets = {}
+        offset = 0
+        for name, width in widths:
+            offsets[name] = offset
+            offset += width
+        carriers = [None] * offset
+        source_support = tuple(
+            int(value) for value in transform.attributes["source_support"])
+        source_data = tuple(patch.partitions.get("data", ()))
+        if len(source_data) != len(source_support):
+            raise ValueError(
+                "physical patch transform source support differs from its data "
+                "carrier count")
+        for carrier, frame_index in zip(source_data, source_support):
+            carriers[frame_index] = carrier
+
+        source_workspace_partitions = {
+            name: list(values)
+            for name, values in patch.partitions.items()
+            if name != "data"
+        }
+        reusable_workspace = []
+        for name, values in source_workspace_partitions.items():
+            if name == "data":
+                continue
+            if name not in offsets:
+                reusable_workspace.extend(values)
+                continue
+            frame_width = dict(widths)[name]
+            if len(values) > frame_width:
+                raise NotImplementedError(
+                    "physical patch transforms cannot contract a source "
+                    f"workspace partition {name!r}")
+            for relative, carrier in enumerate(values):
+                frame_index = offsets[name] + relative
+                if carriers[frame_index] is not None:
+                    raise ValueError(
+                        "patch-transform supports alias one physical carrier")
+                carriers[frame_index] = carrier
+
+        template = next(patch.all(), None)
+        if template is None:
+            raise ValueError("physical patch transforms require live carriers")
+        resource_class = next(
+            value for value in self.device.physical.resource_classes
+            if value.name == template.resource_class)
+        scratch_keys = {}
+        for frame_index, carrier in enumerate(carriers):
+            if carrier is not None:
+                continue
+            if reusable_workspace:
+                # A deformation frame may flatten a code's named syndrome
+                # workspaces into an anonymous scratch role.  Borrow those
+                # already-owned carriers before requesting new resources, and
+                # remember their original partitions so transform_end can
+                # restore the encoded-patch boundary without changing
+                # ownership.
+                carriers[frame_index] = reusable_workspace.pop(0)
+                continue
+            candidates = [
+                index for index in range(resource_class.count)
+                if index not in self._allocated_indices[resource_class.name] and
+                self._resource_predecessors(resource_class.name, (
+                    index,)) is not None
+            ]
+            ever_used = self._ever_allocated_indices[resource_class.name]
+            candidates.sort(key=lambda index: (index in ever_used, index))
+            available = candidates[0] if candidates else None
+            if available is None:
+                raise ValueError(
+                    f"patch transform @{transform_name} exceeds physical "
+                    f"resource capacity of @{resource_class.name}")
+            key = (resource_class.name, available, template.physical_binding)
+            carriers[frame_index] = self._scratch_carrier(
+                resource_class.name,
+                available,
+                template,
+            )
+            scratch_keys[frame_index] = key
+
+        partitions = {}
+        for name, width in widths:
+            start = offsets[name]
+            partitions[name] = list(carriers[start:start + width])
+        frame = _Patch(
+            transform_name,
+            None,
+            partitions,
+            patch.region,
+            patch.patch_id,
+            patch.slot,
+            patch.patch_topology,
+            patch.qec_region,
+            patch.physical_binding,
+        )
+        allocation = self._allocation_by_patch.get(patch.patch_id)
+        if allocation is None:
+            raise ValueError(
+                "physical patch transform has no source allocation binding")
+        self._transform_frames[patch.patch_id] = {
+            "transform": transform_name,
+            "scratch": scratch_keys,
+            "source_resources": frozenset(allocation.resources),
+            "source_workspace_partitions": source_workspace_partitions,
+        }
+        return frame
+
+    def _transform_end(self, operation, frame):
+        """Project a frame back to its committed destination boundary."""
+
+        transform_name = _text(operation.attributes["transform"])
+        state = self._transform_frames.get(frame.patch_id)
+        if state is None or state["transform"] != transform_name:
+            raise ValueError(
+                "physical patch frame was not opened by the named transform")
+        transform = self.symbols.get(transform_name)
+        destination_encoding = _text(transform.attributes["destination"])
+        encoding = self.symbols.get(destination_encoding)
+        if encoding is None or encoding.name != "fabric.encoding":
+            raise ValueError(
+                "physical patch transform references a missing destination "
+                f"encoding @{destination_encoding}")
+        destination_code = _text(encoding.attributes["code"])
+        flat = tuple(frame.all())
+        for frame_index, key in state["scratch"].items():
+            self._scratch[key] = flat[frame_index]
+
+        destination_support = tuple(
+            int(value) for value in transform.attributes["destination_support"])
+        partitions = {"data": [flat[index] for index in destination_support]}
+        current_by_resource = {carrier.resource: carrier for carrier in flat}
+        source_workspace = state["source_workspace_partitions"]
+        for name, width in self.codes[destination_code]:
+            if name == "data":
+                if width != len(partitions["data"]):
+                    raise ValueError(
+                        "patch-transform destination support has the wrong width"
+                    )
+                continue
+            values = frame.partitions.get(name)
+            if values is None:
+                retained = source_workspace.get(name)
+                if retained is not None and len(retained) == width:
+                    partitions[name] = [
+                        current_by_resource.get(carrier.resource, carrier)
+                        for carrier in retained
+                    ]
+                    continue
+            if values is None or len(values) < width:
+                raise NotImplementedError(
+                    "physical patch transform destination workspace is absent "
+                    f"or too small for partition {name!r}")
+            partitions[name] = list(values[:width])
+
+        output_resources = tuple(carrier.resource
+                                 for values in partitions.values()
+                                 for carrier in values)
+        if len(set(output_resources)) != len(output_resources):
+            raise ValueError(
+                "physical patch transform destination aliases carrier ownership"
+            )
+        if frozenset(output_resources) != state["source_resources"]:
+            raise NotImplementedError(
+                "standard physical projection currently supports transforms "
+                "whose destination retains the complete boundary allocation; "
+                "carrier-growing or carrier-contracting boundaries require an "
+                "explicit allocation-transfer contract")
+        released = {
+            key: self._scratch[key]
+            for key in state["scratch"].values()
+            if self._scratch[key].resource not in output_resources
+        }
+        if released:
+            self._release_route_scratch(released)
+            for key in released:
+                del self._scratch[key]
+        del self._transform_frames[frame.patch_id]
+        return _Patch(
+            destination_code,
+            destination_encoding,
+            partitions,
+            frame.region,
+            frame.patch_id,
+            frame.slot,
+            frame.patch_topology,
+            frame.qec_region,
+            frame.physical_binding,
+        )
+
     def _feeds_communication_call(self, operation):
         """Return whether a patch result reaches a remote-observable call."""
 
@@ -2659,10 +2873,11 @@ class _P2ToP3:
         if not carriers:
             return result
         code = self.symbols.get(result.code) if encode else None
-        encoded_plus = state == "plus" and encode
-        if encoded_plus:
+        encoded_preparation = state in {"zero", "plus"} and encode
+        self_dual_plus = False
+        if encoded_preparation and state == "plus":
 
-            def supports(name):
+            def code_supports(name):
                 if code is None or name not in code.attributes:
                     return ()
                 return tuple(
@@ -2670,18 +2885,20 @@ class _P2ToP3:
                               for index in row)
                     for row in code.attributes[name])
 
-            # Transversal H turns |0_L> into |+_L> only for a self-dual CSS
-            # presentation.  The accepted interconnect provider uses Steane,
-            # whose X/Z checks and logical representatives are identical.
-            # Fail closed for other codes until they provide an explicit
-            # encoded-state preparation gadget.
-            if (not supports("hx") or
-                    set(supports("hx")) != set(supports("hz")) or
-                    set(supports("lx")) != set(supports("lz"))):
+            self_dual_plus = (
+                bool(code_supports("hx")) and
+                set(code_supports("hx")) == set(code_supports("hz")) and
+                set(code_supports("lx")) == set(code_supports("lz")))
+        if encoded_preparation:
+            if code is None or "hx" not in code.attributes:
+                raise ValueError(
+                    f"encoded preparation for code @{result.code} requires "
+                    "an explicit CSS X-stabilizer presentation")
+            if (state == "plus" and not self_dual_plus and
+                    "lx" not in code.attributes):
                 raise ValueError(
                     f"encoded plus preparation for code @{result.code} "
-                    "requires a self-dual CSS presentation or an explicit "
-                    "physical preparation gadget")
+                    "requires explicit logical-X representatives")
         operation = self._emit(
             "phys.prepare",
             operands=[carrier.value for carrier in carriers],
@@ -2689,7 +2906,7 @@ class _P2ToP3:
             attributes={
                 "state":
                     mlir_ir.StringAttr.get(
-                        "zero" if encoded_plus else state,
+                        "zero" if encoded_preparation else state,
                         context=self.context,
                     ),
                 "event_id":
@@ -2699,19 +2916,24 @@ class _P2ToP3:
         )
         for (name, index, carrier), value in zip(entries, operation.results):
             result.partitions[name][index] = carrier.with_value(value)
-        if state in ("zero", "plus") and encode:
+        if encoded_preparation:
             data = result.partitions["data"]
-            supports = (() if code is None or "hx" not in code.attributes else
-                        tuple(
-                            tuple(int(index)
-                                  for index in row)
-                            for row in code.attributes["hx"]))
-            # Prepare the CSS code's |0_L> state, rather than interpreting an
-            # encoded preparation as independent carrier resets.  RREF gives
-            # one control/pivot per independent X stabilizer; H on those
-            # controls followed by the row CNOTs creates the uniform
-            # superposition over the X-stabilizer row space.  The untouched
-            # Z-orthogonal complement fixes every logical Z to +1.
+            supports = [
+                tuple(int(index)
+                      for index in row)
+                for row in code.attributes["hx"]
+            ]
+            if state == "plus" and not self_dual_plus:
+                supports.extend(
+                    tuple(int(index)
+                          for index in row)
+                    for row in code.attributes["lx"])
+            # Starting from |0>^n, synthesize the uniform superposition over
+            # the X-stabilizer row space for |0_L>, or over that space plus
+            # every logical-X representative for |+_L>. RREF supplies one
+            # control/pivot per independent generator and therefore works for
+            # arbitrary CSS presentations; no self-duality assumption is
+            # needed.
             rows = []
             for support in supports:
                 if any(index < 0 or index >= len(data) for index in support):
@@ -2758,7 +2980,7 @@ class _P2ToP3:
                         continue
                     data[pivot], data[target] = self._routed_pair(
                         data[pivot], data[target], "cx")
-            if encoded_plus:
+            if self_dual_plus:
                 for index, carrier in enumerate(data):
                     (data[index],) = self._apply_carriers((carrier,), "h")
         return result
@@ -2822,7 +3044,7 @@ class _P2ToP3:
             # models authored before native-instrument declarations became
             # mandatory. Basis-typed realizations disable this fallback.
             instrument = MZ
-        measurement = self.transaction.materialize(instrument).symbol
+        measurement = self._native_instrument_symbol(instrument)
         selected = self._ensure_zone(selected, "readout", trajectory="readout")
         for (name, index, _), carrier in zip(entries, selected):
             result.partitions[name][index] = carrier
@@ -2958,6 +3180,18 @@ class _P2ToP3:
             return None
         return selected[0]
 
+    def _native_instrument_symbol(self, instrument):
+        """Reuse the device-declared symbol for a selected native instrument."""
+
+        # Device import precedes projection, but the transaction does not bind
+        # its declarations back to immutable Python instrument objects.
+        # Materializing again would mint a duplicate no resource advertises.
+        existing = self.transaction.find_symbol(instrument.name,
+                                                "phys.instrument")
+        if existing is not None:
+            return _symbol(existing)
+        return self.transaction.materialize(instrument).symbol
+
     @staticmethod
     def _pauli_product(left, right):
         if left is None:
@@ -3080,8 +3314,7 @@ class _P2ToP3:
             carrier, = self._ensure_zone(carriers,
                                          "readout",
                                          trajectory="readout")
-            measurement = self.transaction.materialize(
-                scalar_z_instrument).symbol
+            measurement = self._native_instrument_symbol(scalar_z_instrument)
             record_type = mlir_ir.Type.parse("!phys.record<@bit>",
                                              context=self.context)
             event = self._emit(
@@ -3118,17 +3351,7 @@ class _P2ToP3:
                 "logical Pauli-product intent requires a selected MPP protocol "
                 "or physical resource classes advertising the typed MPP "
                 "instrument")
-        # The replayed module usually already carries the typed instrument
-        # the architecture's resource classes advertise (materialized with
-        # the device). Reuse that symbol: minting a fresh uniqued duplicate
-        # (e.g. @mpp_1) would fail the native-instrument membership check
-        # because no resource class advertises the duplicate.
-        existing = self.transaction.find_symbol(instrument.name,
-                                                "phys.instrument")
-        if existing is not None:
-            instrument_symbol = _symbol(existing)
-        else:
-            instrument_symbol = self.transaction.materialize(instrument).symbol
+        instrument_symbol = self._native_instrument_symbol(instrument)
         record_type = mlir_ir.Type.parse(
             f"!phys.record<@{instrument.record_schema}>",
             context=self.context,
@@ -4728,6 +4951,20 @@ class _P2ToP3:
                 patches = [
                     value for value in operands if isinstance(value, _Patch)
                 ]
+                if name == "fabric.transform_begin":
+                    self._assign(
+                        operation,
+                        local_values,
+                        (self._transform_begin(operation, patches[0]),),
+                    )
+                    continue
+                if name == "fabric.transform_end":
+                    self._assign(
+                        operation,
+                        local_values,
+                        (self._transform_end(operation, patches[0]),),
+                    )
+                    continue
                 if name == "fabric.produce_resource":
                     kind = _fabric_resource_kind(operation.result.type)
                     produced = self._emit(
@@ -5440,6 +5677,44 @@ class _P2ToP3:
                         self._measure_product(operation, patches, symbol,
                                               instance_symbol),
                     )
+                    continue
+                if name == "fabric.parity":
+                    inputs = self._flatten_projected(operands)
+                    if not inputs:
+                        raise ValueError(
+                            "fabric.parity has no projected measurement bits")
+                    conditioned = [self._condition(value) for value in inputs]
+                    result = conditioned[0]
+                    for value in conditioned[1:]:
+                        result = self._emit(
+                            "phys.xor",
+                            operands=(result, value),
+                            results=[
+                                mlir_ir.IntegerType.get_signless(
+                                    1, context=self.context)
+                            ],
+                            attributes={
+                                "event_id":
+                                    mlir_ir.StringAttr.get(
+                                        self._event_id("xor"),
+                                        context=self.context,
+                                    )
+                            },
+                        ).result
+                    records = []
+                    try:
+                        for value in inputs:
+                            projected_records = self._record_ids_by_value[value]
+                            if isinstance(projected_records, tuple):
+                                records.extend(projected_records)
+                            else:
+                                records.append(projected_records)
+                    except KeyError as exc:
+                        raise ValueError(
+                            "fabric.parity input has no physical record "
+                            "projection") from exc
+                    self._record_ids_by_value[result] = tuple(records)
+                    self._assign(operation, local_values, (result,))
                     continue
                 if name == "fabric.xor":
                     conditioned = [self._condition(value) for value in operands]

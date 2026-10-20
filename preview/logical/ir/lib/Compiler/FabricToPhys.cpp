@@ -277,6 +277,7 @@ struct AllocationPlanStep {
 
 struct CanonicalCallTemplate {
   Operation *sourceCall = nullptr;
+  Operation *physicalCall = nullptr;
   FlatSymbolRefAttr callee;
   FlatSymbolRefAttr profile;
   // A call whose result directly seeds fabric.retry must retain its complete
@@ -306,14 +307,25 @@ struct CanonicalCallTemplate {
 
 struct StateAliasCacheKey {
   size_t templateIndex = 0;
-  SmallVector<uintptr_t, 4> layouts;
+  size_t inputCount = 0;
+  // Keep the control block for every layout token alive without increasing
+  // its strong reference count. A raw pointee address is not a durable
+  // identity here: once a temporary PhysicalGroup releases its token, the
+  // allocator may reuse that address for an unrelated layout and turn a
+  // cache miss into a false hit. Weak ownership preserves identity across
+  // such reuse while leaving PhysicalGroup's copy-on-write use_count intact.
+  SmallVector<std::weak_ptr<const char>, 4> layouts;
 
   bool operator<(const StateAliasCacheKey &other) const {
     if (templateIndex != other.templateIndex)
       return templateIndex < other.templateIndex;
-    return std::lexicographical_compare(layouts.begin(), layouts.end(),
-                                        other.layouts.begin(),
-                                        other.layouts.end());
+    if (inputCount != other.inputCount)
+      return inputCount < other.inputCount;
+    std::owner_less<std::weak_ptr<const char>> less;
+    return std::lexicographical_compare(
+        layouts.begin(), layouts.end(), other.layouts.begin(),
+        other.layouts.end(),
+        [&](const auto &left, const auto &right) { return less(left, right); });
   }
 };
 
@@ -2703,6 +2715,122 @@ private:
     return values;
   }
 
+  FailureOr<PhysicalGroup> prepareEncoded(PhysicalGroup values,
+                                          qlx::fabric::PatchType patchType,
+                                          StringRef state, Location location,
+                                          OpBuilder &builder) {
+    auto positions = wholePartitionPositions(patchType, "data");
+    if (failed(positions) || positions->empty())
+      return failure();
+    auto granularity = patchResourceGranularity(patchType);
+    if (failed(granularity))
+      return failure();
+    if (*granularity == "patch")
+      return prepareSelected(std::move(values), *positions, state, location,
+                             builder);
+
+    auto code = dyn_cast_or_null<qlx::fabric::CodeOp>(
+        symbols.lookup(patchType.getCodeType().getValue()));
+    if (state != "zero" && state != "plus")
+      return failure();
+    // An omitted HX family is the empty stabilizer family. It is still a CSS
+    // presentation and may need a logical-X encoder for |+_L>. Do not turn an
+    // unsupported encoding into independent physical preparation: that state
+    // need not lie in the code space.
+    if (!code)
+      return failure();
+    // A one-carrier patch with no stabilizer or logical presentation is the
+    // existing identity encoding. Independent preparation is exact there.
+    const bool identityEncoding =
+        positions->size() == 1 && !code.getHx() && !code.getHz() &&
+        !code.getLx() && !code.getLz() && (!code.getR() || *code.getR() == 0);
+    if (identityEncoding)
+      return prepareSelected(std::move(values), *positions, state, location,
+                             builder);
+    if ((state == "plus" && !code.getLx()) ||
+        (code.getR() && *code.getR() != 0))
+      return failure();
+
+    // Starting from |0>^n, synthesize the uniform superposition over the
+    // X-stabilizer row space for |0_L>. Adding every canonical logical-X row
+    // fixes logical X to +1 and therefore prepares |+_L>. RREF chooses one
+    // control per independent generator and produces a direct H/CX encoder.
+    const int64_t width = positions->size();
+    SmallVector<llvm::BitVector> rows;
+    auto appendSupports = [&](ArrayAttr family) -> LogicalResult {
+      for (Attribute raw : family) {
+        auto support = dyn_cast<DenseI64ArrayAttr>(raw);
+        if (!support)
+          return failure();
+        llvm::BitVector row(width);
+        for (int64_t index : support.asArrayRef()) {
+          if (index < 0 || index >= width || row.test(index))
+            return failure();
+          row.set(index);
+        }
+        if (row.any())
+          rows.push_back(std::move(row));
+      }
+      return success();
+    };
+    if ((code.getHx() && failed(appendSupports(*code.getHx()))) ||
+        (state == "plus" && failed(appendSupports(*code.getLx()))))
+      return failure();
+
+    auto prepared = prepareSelected(std::move(values), *positions, "zero",
+                                    location, builder);
+    if (failed(prepared))
+      return failure();
+    SmallVector<int64_t> columns;
+    columns.reserve(width);
+    for (int64_t column = 0; column < width; ++column)
+      columns.push_back(column);
+    llvm::sort(columns, [&](int64_t left, int64_t right) {
+      auto weight = [&](int64_t column) {
+        return llvm::count_if(
+            rows, [&](const llvm::BitVector &row) { return row.test(column); });
+      };
+      return std::pair{weight(left), left} < std::pair{weight(right), right};
+    });
+
+    SmallVector<int64_t> pivots;
+    size_t rank = 0;
+    for (int64_t column : columns) {
+      size_t selected = rank;
+      while (selected < rows.size() && !rows[selected].test(column))
+        ++selected;
+      if (selected == rows.size())
+        continue;
+      std::swap(rows[rank], rows[selected]);
+      for (size_t row = 0; row < rows.size(); ++row)
+        if (row != rank && rows[row].test(column))
+          rows[row] ^= rows[rank];
+      pivots.push_back(column);
+      if (++rank == rows.size())
+        break;
+    }
+    for (int64_t pivot : pivots) {
+      prepared = applyAction(std::move(*prepared), {(*positions)[pivot]}, "h",
+                             location, builder);
+      if (failed(prepared))
+        return failure();
+    }
+    for (auto [pivot, row] :
+         llvm::zip(ArrayRef<int64_t>(pivots).take_front(rank),
+                   ArrayRef<llvm::BitVector>(rows).take_front(rank))) {
+      for (int64_t target = 0; target < width; ++target) {
+        if (target == pivot || !row.test(target))
+          continue;
+        prepared = applyAction(std::move(*prepared),
+                               {(*positions)[pivot], (*positions)[target]},
+                               "cx", location, builder);
+        if (failed(prepared))
+          return failure();
+      }
+    }
+    return prepared;
+  }
+
   FailureOr<PhysicalGroup> resetSelected(PhysicalGroup values,
                                          ArrayRef<int64_t> positions,
                                          Location location,
@@ -4048,6 +4176,48 @@ private:
     return generatedBy ? generatedBy.getValue() : calleeRef.getValue();
   }
 
+  static bool hasInvocationVariantRPPProvenance(Operation *callable) {
+    if (!callable || !callable->hasAttr("generated_by"))
+      return false;
+    auto specialization =
+        callable->getAttrOfType<DictionaryAttr>("specialization");
+    return specialization && specialization.getAs<StringAttr>("rpp_strategy");
+  }
+
+  void classifyCallTemplateEligibility() {
+    if (callTemplateEligibilityClassified)
+      return;
+    callTemplateEligibilityClassified = true;
+
+    // A physical template may omit only provenance that cannot affect its
+    // body or boundary. Generated RPP adapters carry a typed rpp_strategy
+    // implementation-selection witness, so the adapter itself always fails
+    // that test. With an action_site, the directly selected implementation is
+    // site-specific as well and must also remain explicit. Without an
+    // action_site (as in synthesized injection and RUS adapters), the selected
+    // implementation is a fixed-body callable that may still be shared; its
+    // adapter retains the invocation-specific specialization boundary. Generic
+    // generated callables without an RPP specialization (including AutoCCZ)
+    // remain eligible for intentional fixed-body sharing. A compiler-name
+    // metadata string is not semantic evidence.
+    for (Operation &candidate : module.getBody()->getOperations()) {
+      if (!hasInvocationVariantRPPProvenance(&candidate))
+        continue;
+      callTemplateIneligible.insert(&candidate);
+      if (!candidate.hasAttr("action_site"))
+        continue;
+      candidate.walk([&](qlx::fabric::CallOp call) {
+        if (Operation *implementation = symbols.lookup(call.getCallee()))
+          callTemplateIneligible.insert(implementation);
+      });
+    }
+  }
+
+  bool isCallTemplateEligible(Operation *callee) {
+    classifyCallTemplateEligibility();
+    return !callTemplateIneligible.contains(callee);
+  }
+
   uint64_t physicalTemplateFingerprint(Operation *callable) {
     auto found = physicalTemplateFingerprints.find(callable);
     if (found != physicalTemplateFingerprints.end())
@@ -4195,9 +4365,10 @@ private:
 
   static bool
   supportsElidedStateBoundary(const CanonicalCallTemplate &candidate) {
-    return !candidate.retainedInputTypes.empty() &&
-           candidate.retainedInputTypes == candidate.retainedOutputTypes &&
-           llvm::all_of(candidate.retainedInputTypes, [](Type type) {
+    auto call = dyn_cast_or_null<qlx::phys::CallOp>(candidate.physicalCall);
+    return call && !call.getInputs().empty() &&
+           call.getInputs().getTypes() == call.getOutputs().getTypes() &&
+           llvm::all_of(call.getInputs().getTypes(), [](Type type) {
              return isa<qlx::phys::StateType>(type);
            });
   }
@@ -4222,13 +4393,12 @@ private:
       ArrayRef<PhysicalGroup::LayoutIdentity> outputGroupLayouts) {
     StateAliasCacheKey key;
     key.templateIndex = templateIndex;
-    key.layouts.reserve(inputGroups.size() + outputGroupLayouts.size() + 1);
-    key.layouts.push_back(inputGroups.size());
+    key.inputCount = inputGroups.size();
+    key.layouts.reserve(inputGroups.size() + outputGroupLayouts.size());
     for (const PhysicalGroup &group : inputGroups)
-      key.layouts.push_back(
-          reinterpret_cast<uintptr_t>(group.getLayoutIdentity().get()));
+      key.layouts.push_back(group.getLayoutIdentity());
     for (const PhysicalGroup::LayoutIdentity &layout : outputGroupLayouts)
-      key.layouts.push_back(reinterpret_cast<uintptr_t>(layout.get()));
+      key.layouts.push_back(layout);
     return key;
   }
 
@@ -5249,28 +5419,28 @@ private:
         continue;
       }
       if (auto prep = dyn_cast<qlx::fabric::PrepZOp>(operation)) {
-        auto positions =
-            wholePartitionPositions(prep.getPatch().getType(), "data");
-        if (failed(positions))
-          return prep.emitOpError("has no data partition");
+        auto patchType =
+            dyn_cast<qlx::fabric::PatchType>(prep.getPatch().getType());
         auto prepared =
-            prepareSelected(takeProjected(projected, prep.getPatch(), prep),
-                            *positions, "zero", prep.getLoc(), builder);
+            patchType ? prepareEncoded(
+                            takeProjected(projected, prep.getPatch(), prep),
+                            patchType, "zero", prep.getLoc(), builder)
+                      : FailureOr<PhysicalGroup>(failure());
         if (failed(prepared))
-          return prep.emitOpError("failed physical data preparation");
+          return prep.emitOpError("failed physical encoded-zero preparation");
         projected[prep.getResult()] = *prepared;
         continue;
       }
       if (auto prep = dyn_cast<qlx::fabric::PrepXOp>(operation)) {
-        auto positions =
-            wholePartitionPositions(prep.getPatch().getType(), "data");
-        if (failed(positions))
-          return prep.emitOpError("has no data partition");
+        auto patchType =
+            dyn_cast<qlx::fabric::PatchType>(prep.getPatch().getType());
         auto prepared =
-            prepareSelected(takeProjected(projected, prep.getPatch(), prep),
-                            *positions, "plus", prep.getLoc(), builder);
+            patchType ? prepareEncoded(
+                            takeProjected(projected, prep.getPatch(), prep),
+                            patchType, "plus", prep.getLoc(), builder)
+                      : FailureOr<PhysicalGroup>(failure());
         if (failed(prepared))
-          return prep.emitOpError("failed physical data preparation");
+          return prep.emitOpError("failed physical encoded-plus preparation");
         projected[prep.getResult()] = *prepared;
         continue;
       }
@@ -5724,6 +5894,7 @@ private:
       FlatSymbolRefAttr callProfile = call.getProfileAttr();
       auto callProvider = spacetimeProviderFor(callee);
       auto componentPlan = componentSpacetimePlans.find(call.getCallee());
+      bool templateEligible = isCallTemplateEligible(callee);
       bool closesRetryBoundary =
           llvm::any_of(call.getResults(), [](Value result) {
             return llvm::any_of(result.getUsers(), [](Operation *user) {
@@ -5759,7 +5930,7 @@ private:
         CanonicalCallTemplate *compatible = nullptr;
         ArrayAttr stateAliases;
         auto indexedTemplates = callTemplateIndices.find(templateBucket);
-        if (indexedTemplates != callTemplateIndices.end()) {
+        if (templateEligible && indexedTemplates != callTemplateIndices.end()) {
           auto fingerprintedTemplates =
               indexedTemplates->second.find(templateFingerprint);
           if (fingerprintedTemplates != indexedTemplates->second.end())
@@ -6036,7 +6207,7 @@ private:
       CanonicalCallTemplate *compatible = nullptr;
       ArrayAttr stateAliases;
       auto indexedTemplates = callTemplateIndices.find(templateBucket);
-      if (indexedTemplates != callTemplateIndices.end()) {
+      if (templateEligible && indexedTemplates != callTemplateIndices.end()) {
         auto fingerprintedTemplates =
             indexedTemplates->second.find(templateFingerprint);
         if (fingerprintedTemplates != indexedTemplates->second.end())
@@ -6319,21 +6490,37 @@ private:
       SmallVector<AllocationPlanStep> canonicalAllocationPlan(
           allocationPlanTrace.begin() + allocationPlanStart,
           allocationPlanTrace.end());
-      callTemplates.push_back(CanonicalCallTemplate{
-          call.getOperation(), call.getCalleeAttr(), callProfile,
-          closesRetryBoundary, inputTypes.size(), resultTypes.size(),
-          std::move(retainedInputs), std::move(retainedOutputs),
-          std::move(retainedInputTypes), std::move(retainedOutputTypes),
-          std::move(inputGroupLayouts), resultGroupLayouts, callEvent,
-          instance.getValue().str(), std::move(canonicalRecords),
-          std::move(canonicalAllocationPlan)});
-      if (!callTemplates.back().allocationPlan.empty())
-        sourceDataDependencySources.try_emplace(
-            call.getOperation(), sourceDataDependencySources.size());
-      callTemplateIndices[templateBucket][templateFingerprint].push_back(
-          callTemplates.size() - 1);
-      if (std::getenv("QLX_PROFILE_P2_TO_P3") &&
-          callTemplates.size() % 50 == 0) {
+      // A fully erased physical boundary and an empty physical body have no
+      // state, record, or event identity that can authenticate an elided
+      // invocation. Keep that no-op explicit. Boundary-free fixed bodies that
+      // still contain physical work (for example a reusable scratch
+      // allocation) remain eligible, as do stateful inner RUS bodies.
+      bool hasPhysicalTemplateIdentity = physicalCall->getNumOperands() != 0 ||
+                                         physicalCall->getNumResults() != 0;
+      if (templateEligible && !hasPhysicalTemplateIdentity) {
+        Block &body = cast<qlx::phys::CallOp>(physicalCall).getBody().front();
+        hasPhysicalTemplateIdentity = llvm::any_of(body, [](Operation &nested) {
+          return !isa<qlx::phys::YieldOp>(nested);
+        });
+      }
+      if (templateEligible && hasPhysicalTemplateIdentity) {
+        callTemplates.push_back(CanonicalCallTemplate{
+            call.getOperation(), physicalCall, call.getCalleeAttr(),
+            callProfile, closesRetryBoundary, inputTypes.size(),
+            resultTypes.size(), std::move(retainedInputs),
+            std::move(retainedOutputs), std::move(retainedInputTypes),
+            std::move(retainedOutputTypes), std::move(inputGroupLayouts),
+            resultGroupLayouts, callEvent, instance.getValue().str(),
+            std::move(canonicalRecords), std::move(canonicalAllocationPlan)});
+        if (!callTemplates.back().allocationPlan.empty())
+          sourceDataDependencySources.try_emplace(
+              call.getOperation(), sourceDataDependencySources.size());
+        callTemplateIndices[templateBucket][templateFingerprint].push_back(
+            callTemplates.size() - 1);
+      }
+      if (templateEligible && hasPhysicalTemplateIdentity &&
+          callTemplates.size() % 50 == 0 &&
+          std::getenv("QLX_PROFILE_P2_TO_P3")) {
         llvm::StringMap<int64_t> specializations;
         int64_t maximumSpecializations = 0;
         for (const CanonicalCallTemplate &candidate : callTemplates)
@@ -6834,6 +7021,8 @@ private:
   DenseMap<Operation *, uint64_t> physicalTemplateFingerprints;
   DenseMap<std::pair<Operation *, Operation *>, bool>
       physicalTemplateEquivalenceCache;
+  bool callTemplateEligibilityClassified = false;
+  DenseSet<Operation *> callTemplateIneligible;
   std::map<StateAliasCacheKey, ArrayAttr> stateAliasCache;
   DenseMap<Operation *, unsigned> sourceDataDependencySources;
   DenseMap<Value, SmallVector<uint64_t, 1>> sourceDataDependencies;
