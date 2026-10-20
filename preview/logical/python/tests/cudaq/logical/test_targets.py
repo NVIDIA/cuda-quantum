@@ -608,3 +608,63 @@ def test_target_emission_preserves_frozen_snapshot_and_cached_inspection():
     assert "qlx.program @bell_pair" in emitted
     assert build.to_mlir() == before
     assert build.module is build.module
+
+
+@pytest.mark.parametrize("backend_options", [
+    {},
+    {
+        "runtime_backend": None
+    },
+    {
+        "runtime_backend": cudaq.logical.targets.estimator
+    },
+],
+                         ids=["omitted", "none", "explicit_estimator"])
+def test_target_from_architecture_defaults_to_kernel_resource_estimation(
+        backend_options):
+    device = cudaq.logical.targets.surface_physical_target(
+        logical_capacity=1)._device
+    target = cudaq.logical.targets.Target.from_architecture(
+        "architecture_estimator",
+        device.logical,
+        estimate_options={"failure_budget": 0.1},
+        **backend_options,
+    )
+
+    assert target.capabilities() == (
+        cudaq.logical.targets.estimator.capabilities())
+    try:
+        cudaq.set_target(target)
+        result = cudaq.estimate(logical_zero_readout)
+    finally:
+        cudaq.reset_target()
+
+    logical = cudaq.logical.estimate.LogicalEstimate.from_annotations(
+        result.annotations)
+    assert logical.logical_qubits_peak == 1
+
+
+def test_target_from_architecture_uses_the_given_runtime_backend():
+    device = cudaq.logical.targets.surface_physical_target(
+        logical_capacity=1)._device
+    runtime = cudaq.logical.targets.Target.define(
+        "arch_ir_only",
+        emit_circuit=cudaq.logical.targets.LoweringSpec(
+            (), cudaq.logical.targets.emit_mlir()),
+    )
+
+    target = cudaq.logical.targets.Target.from_architecture(
+        "architecture_custom_runtime", device.logical, runtime_backend=runtime)
+
+    assert target.capabilities() == runtime.capabilities()
+    assert "sample" not in target.capabilities()
+
+
+def test_target_from_architecture_rejects_non_target_runtime_backend():
+    device = cudaq.logical.targets.surface_physical_target(
+        logical_capacity=1)._device
+
+    with pytest.raises(TypeError, match="runtime_backend must be a Target"):
+        cudaq.logical.targets.Target.from_architecture("bad_runtime",
+                                                       device.logical,
+                                                       runtime_backend=object())

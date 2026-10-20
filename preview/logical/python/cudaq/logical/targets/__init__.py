@@ -674,17 +674,22 @@ class Target(CustomTarget):
                           name,
                           architecture,
                           *,
+                          runtime_backend=None,
                           clifford_t_precision=None,
                           **kwargs):
         """Create a target that lowers through a logical architecture.
 
+        ``runtime_backend`` defaults to ``estimator`` when omitted or ``None``.
         A non-``None`` ``clifford_t_precision`` inserts Clifford+T synthesis
         before architecture lowering. ``None`` leaves the synthesis layer out.
         """
 
+        if runtime_backend is None:
+            runtime_backend = estimator
         return cls._from_stack(name,
                                architecture=architecture,
                                device=None,
+                               runtime_backend=runtime_backend,
                                clifford_t_precision=clifford_t_precision,
                                **kwargs)
 
@@ -1062,7 +1067,6 @@ def surface_physical_target(*,
     return Target.from_device(
         "surface_physical",
         builder.build(),
-        runtime_backend=estimator,
         estimate_options={"failure_budget": failure_budget},
         clifford_t_precision=clifford_t_precision,
     )
