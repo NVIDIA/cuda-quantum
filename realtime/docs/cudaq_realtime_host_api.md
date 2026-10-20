@@ -144,7 +144,7 @@ The **unified dispatch mode** (`CUDAQ_KERNEL_UNIFIED`) is an alternative to the
 3-kernel architecture that combines receive, RPC dispatch, and transmit into a
 single GPU kernel.  By eliminating the inter-kernel ring-buffer flag handoff
 between RX, dispatch, and TX kernels, the unified kernel reduces round-trip
-latency for simple (non-cooperative) RPC handlers.
+latency for simple RPC handlers.
 
 ### Architecture
 
@@ -191,28 +191,26 @@ without any transport-specific knowledge.
 
 ### When to Use Which Mode
 
-**3-kernel mode** (`CUDAQ_KERNEL_REGULAR` or `CUDAQ_KERNEL_COOPERATIVE`):
+**3-kernel mode** (`CUDAQ_KERNEL_REGULAR`):
 
 - Transport-agnostic -- works with any transport that implements the ring-buffer
     flag protocol
-- Required for cooperative handlers that use `grid.sync()`
 - Supports `CUDAQ_DISPATCH_GRAPH_LAUNCH` mode
 
 **Unified mode** (`CUDAQ_KERNEL_UNIFIED`):
 
-- Lowest latency for regular (non-cooperative) handlers
+- Lowest latency for simple RPC handlers
 - Transport-agnostic API -- the transport provides a pluggable launch function
     and opaque context (e.g., `GpuRoceTransceiver`/`DOCA` supplies `gpu_roce_launch_unified_dispatch`)
 - Single-thread, single-block kernel -- no inter-kernel synchronization overhead
-- Not compatible with cooperative handlers or `CUDAQ_DISPATCH_GRAPH_LAUNCH`
+- Not compatible with `CUDAQ_DISPATCH_GRAPH_LAUNCH`
 
 ### Host API Extensions
 
 ```cpp
 typedef enum {
-  CUDAQ_KERNEL_REGULAR     = 0,
-  CUDAQ_KERNEL_COOPERATIVE = 1,
-  CUDAQ_KERNEL_UNIFIED     = 2
+  CUDAQ_KERNEL_REGULAR = 0,
+  CUDAQ_KERNEL_UNIFIED = 2
 } cudaq_kernel_type_t;
 
 typedef void (*cudaq_unified_launch_fn_t)(
@@ -454,7 +452,6 @@ Parameters:
   not in this API.
   - `kernel_type` (default `CUDAQ_KERNEL_REGULAR`)
     - `CUDAQ_KERNEL_REGULAR`: standard kernel launch
-    - `CUDAQ_KERNEL_COOPERATIVE`: cooperative launch (`grid.sync()` capable)
     - `CUDAQ_KERNEL_UNIFIED`: single-kernel dispatch with integrated transport
     (see [Unified Dispatch Mode](#unified-dispatch-mode))
   - `dispatch_mode` (default `CUDAQ_DISPATCH_DEVICE_CALL`)
@@ -517,9 +514,9 @@ plane that shape needs:
 
 | Shape | What the dispatcher takes from the bridge |
 |-------|-------------------------------------------|
-| HOST + REGULAR/COOPERATIVE | The `RING_BUFFER` context; `skip_tx_markers` is forced to 1 |
+| HOST + REGULAR | The `RING_BUFFER` context; `skip_tx_markers` is forced to 1 |
 | HOST + UNIFIED | The provider's CPU data plane (`rx_poll` / `tx_publish`) |
-| DEVICE + REGULAR/COOPERATIVE | The `RING_BUFFER` context; the caller still names a launcher with `cudaq_dispatcher_set_launch_fn` |
+| DEVICE + REGULAR | The `RING_BUFFER` context; the caller still names a launcher with `cudaq_dispatcher_set_launch_fn` |
 | DEVICE + UNIFIED | The provider's unified transport context |
 
 Parameters:
@@ -640,10 +637,9 @@ Parameters:
 - `dispatcher`: dispatcher handle.
 - `launch_fn`: host launch function pointer.
 
-Call this once during setup. Typically you pass one of the provided launch functions:
+Call this once during setup. Typically you pass the provided launch function:
 
 - `cudaq_launch_dispatch_kernel_regular` - for `CUDAQ_KERNEL_REGULAR` mode
-- `cudaq_launch_dispatch_kernel_cooperative` - for `CUDAQ_KERNEL_COOPERATIVE` mode
 
 **`cudaq_dispatcher_start`** launches the persistent dispatch kernel and begins
 processing slots.
@@ -674,7 +670,7 @@ Parameters:
 
 ### Occupancy Query and Eager Module Loading
 
-Before calling `cudaq_dispatcher_start`, call the appropriate occupancy query
+Before calling `cudaq_dispatcher_start`, call the occupancy query
 to force eager loading of the dispatch kernel module. This avoids lazy-load
 deadlocks when the dispatch kernel and transport kernels (e.g.,
 GpuRoceTransceiver RX/TX) run as persistent kernels.
@@ -691,23 +687,8 @@ Parameters:
 Returns `cudaSuccess` on success. Call this when `kernel_type` is
 `CUDAQ_KERNEL_REGULAR`.
 
-**`cudaq_dispatch_kernel_cooperative_query_occupancy`**
-returns the maximum number of active blocks per multiprocessor for the
-**cooperative** dispatch kernel.
-
-Parameters:
-
-- `out_blocks`: receives the max blocks per SM (or 0 on error).
-- `threads_per_block`: block size used for the occupancy calculation
-(e.g., 128 for cooperative decoders).
-
-Returns `cudaSuccess` on success. Call this when `kernel_type` is
-`CUDAQ_KERNEL_COOPERATIVE`. Use the same `threads_per_block` value that will
-be passed to the dispatcher configuration and launch function.
-
-Call the occupancy function that matches the dispatcher's `kernel_type` once
-before `cudaq_dispatcher_start`; the result can be used to size the dispatch
-grid (e.g., to reserve `SMs` for transport kernels).
+Call it once before `cudaq_dispatcher_start`; the result can be used to size
+the dispatch grid (e.g., to reserve `SMs` for transport kernels).
 
 Lifetime/ownership:
 
@@ -785,10 +766,10 @@ clean up graph resources.
 
 ### Kernel Launch Helper Functions
 
-The following helper functions are provided for use with `cudaq_dispatcher_set_launch_fn()`:
+The following helper function is provided for use with `cudaq_dispatcher_set_launch_fn()`:
 
 **`cudaq_launch_dispatch_kernel_regular`** launches the dispatch kernel in
-regular (non-cooperative) mode.
+regular mode.
 
 Parameters:
 
@@ -808,16 +789,6 @@ Parameters:
 - `stream`: CUDA stream for kernel launch
 
 Use this when `kernel_type` is set to `CUDAQ_KERNEL_REGULAR` in the dispatcher configuration.
-
-**`cudaq_launch_dispatch_kernel_cooperative`** launches the dispatch kernel in
-cooperative mode.
-
-Parameters: Same as `cudaq_launch_dispatch_kernel_regular`.
-
-Use this when `kernel_type` is set to `CUDAQ_KERNEL_COOPERATIVE`
-in the dispatcher configuration.
-This enables the dispatch kernel and handlers to use
-grid-wide synchronization via `cooperative_groups::this_grid().sync()`.
 
 ## Memory Layout and Ring Buffer Wiring
 
@@ -1095,7 +1066,7 @@ Use `CUDAQ_DISPATCH_PATH_DEVICE` when:
 
 - Sub-microsecond dispatch latency is required (GPU-resident kernel avoids
     CPU round-trip)
-- Handlers are simple `__device__` functions or cooperative kernels
+- Handlers are simple `__device__` functions
 - Transport uses GPU-polled RDMA (e.g., GpuRoceTransceiver 3-kernel or unified mode)
 - Graph-based handlers are not needed, or the workload is limited to at most
     120 messages per session

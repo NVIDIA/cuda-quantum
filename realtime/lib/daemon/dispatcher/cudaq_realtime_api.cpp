@@ -84,7 +84,6 @@ static bool table_has_graph_launch(const cudaq_function_table_t *table) {
 static bool is_valid_kernel_type(cudaq_kernel_type_t kernel_type) {
   switch (kernel_type) {
   case CUDAQ_KERNEL_REGULAR:
-  case CUDAQ_KERNEL_COOPERATIVE:
   case CUDAQ_KERNEL_UNIFIED:
     return true;
   default:

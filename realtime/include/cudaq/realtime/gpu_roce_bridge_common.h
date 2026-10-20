@@ -149,7 +149,7 @@ struct BridgeConfig {
   size_t func_count = 0;                                ///< Number of entries
 
   /// @brief Dispatch kernel grid configuration.
-  /// Defaults match the regular (non-cooperative) kernel.
+  /// Defaults match the regular kernel.
   cudaq_kernel_type_t kernel_type = CUDAQ_KERNEL_REGULAR;
   uint32_t num_blocks = 1;
   uint32_t threads_per_block = 32;
@@ -390,13 +390,8 @@ inline int bridge_run(BridgeConfig &config) {
   if (!config.forward) {
     if (!config.unified && !is_host_loop) {
       int dispatch_blocks = 0;
-      cudaError_t occ_err;
-      if (config.kernel_type == CUDAQ_KERNEL_COOPERATIVE) {
-        occ_err = cudaq_dispatch_kernel_cooperative_query_occupancy(
-            &dispatch_blocks, config.threads_per_block);
-      } else {
-        occ_err = cudaq_dispatch_kernel_query_occupancy(&dispatch_blocks, 1);
-      }
+      cudaError_t occ_err =
+          cudaq_dispatch_kernel_query_occupancy(&dispatch_blocks, 1);
       if (occ_err != cudaSuccess) {
         std::cerr << "ERROR: Dispatch kernel occupancy query failed: "
                   << cudaGetErrorString(occ_err) << std::endl;
