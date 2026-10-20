@@ -51,7 +51,7 @@ class AsyncRunResult:
 @trace.traced
 def run(decorator, *args, shots_count=100, noise_model=None, qpu_id=0):
     to_quake = getattr(decorator, "to_quake", None)
-    if to_quake is not None:
+    if to_quake is not None and not isa_kernel_decorator(decorator):
         decorator = _kernel_from_quake(to_quake())
 
     if isa_kernel_decorator(decorator):

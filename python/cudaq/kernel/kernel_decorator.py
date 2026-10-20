@@ -781,7 +781,11 @@ def _kernel_from_quake(module):
     bytecode = io.BytesIO()
     module.operation.write_bytecode(bytecode)
     ctx = getMLIRContext()
-    module = Module.parse(bytecode.getvalue(), context=ctx)
+    try:
+        module = Module.parse(bytecode.getvalue(), context=ctx)
+    except Exception as e:
+        raise RuntimeError(
+            f"`to_quake()` returned an invalid module.\n{e}") from e
     entry = _quake_entry_point(module)
 
     # `kernel-execution` generates the `.run` function only for a symbol in
