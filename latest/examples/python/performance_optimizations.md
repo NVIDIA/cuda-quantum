@@ -1265,6 +1265,18 @@ latest
             -   [Source and
                 tests](../../using/extending/compiler/cudaq_ir.html#source-and-tests){.reference
                 .internal}
+        -   [Value-semantics IR change
+            log](../../using/extending/compiler/ir_changelog.html){.reference
+            .internal}
+            -   [Producing this
+                IR](../../using/extending/compiler/ir_changelog.html#producing-this-ir){.reference
+                .internal}
+            -   [Upcoming release ([`main`{.docutils .literal
+                .notranslate}]{.pre}
+                branch)](../../using/extending/compiler/ir_changelog.html#upcoming-release-main-branch){.reference
+                .internal}
+            -   [0.16.0](../../using/extending/compiler/ir_changelog.html#id5){.reference
+                .internal}
         -   [External compiler pass
             plugins](../../using/extending/compiler/pass_plugins.html){.reference
             .internal}
@@ -2030,14 +2042,14 @@ command line example would look like [`CUDAQ_MGPU_FUSE=4`{.docutils
 .notranslate}]{.pre}` `{.docutils .literal
 .notranslate}[`fp64,mgpu`{.docutils .literal .notranslate}]{.pre}
 
-![9dd24f9bc2414d11b218c17bd1f4c2e3](../../_images/gate-fuse.png)
+![d88a567326b14e2fb68d3ab4f970cd52](../../_images/gate-fuse.png)
 
 The importance of gate fusion is system dependent, but can have a large
 influence on the performance of the simulation. See the example below
 for a 24 qubit VQE experiment where changing the fusion level resulted
 in significant performance boosts.
 
-![1b9b4ce39c82457d91351132d3ee662d](../../_images/gatefusion.png)
+![f27d0c50117a4b41ab78c9045e80a67d](../../_images/gatefusion.png)
 :::
 :::
 :::

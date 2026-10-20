@@ -1250,6 +1250,18 @@ latest
             -   [Source and
                 tests](../../using/extending/compiler/cudaq_ir.html#source-and-tests){.reference
                 .internal}
+        -   [Value-semantics IR change
+            log](../../using/extending/compiler/ir_changelog.html){.reference
+            .internal}
+            -   [Producing this
+                IR](../../using/extending/compiler/ir_changelog.html#producing-this-ir){.reference
+                .internal}
+            -   [Upcoming release ([`main`{.docutils .literal
+                .notranslate}]{.pre}
+                branch)](../../using/extending/compiler/ir_changelog.html#upcoming-release-main-branch){.reference
+                .internal}
+            -   [0.16.0](../../using/extending/compiler/ir_changelog.html#id5){.reference
+                .internal}
         -   [External compiler pass
             plugins](../../using/extending/compiler/pass_plugins.html){.reference
             .internal}
@@ -2543,7 +2555,7 @@ scales exponentially with k. For higher k values, GPU acceleration
 transforms previously intractable postprocessing into feasible
 computation times.
 
-![055bf0ddffb84431a6f821a5e6a986f4](../../_images/speedup.png){.no-scaled-link
+![16861346c8e9490c9f007f1d5bf475d2](../../_images/speedup.png){.no-scaled-link
 style="width: 500px;"}
 :::
 
@@ -2557,9 +2569,9 @@ behavior on a problem with a much larger computational subspace than the
 22-qubit demo above.
 
 ::: {style="display: flex; gap: 10px;"}
-![d1f3359cec8b4ff3b4186b94e110e447](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
+![1b67fdc3485340e88ecfd8d185960e5a](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
 style="width: 450px;"}
-![87782269806048bcb70d2154b74a3678](../../_images/efficiency.jpeg){.no-scaled-link
+![9d91eb62e9304ca3b2b477b0d408d8f4](../../_images/efficiency.jpeg){.no-scaled-link
 style="width: 450px;"}
 :::
 

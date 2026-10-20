@@ -1253,6 +1253,16 @@ latest
                 .internal}
             -   [Source and tests](#source-and-tests){.reference
                 .internal}
+        -   [Value-semantics IR change
+            log](ir_changelog.html){.reference .internal}
+            -   [Producing this
+                IR](ir_changelog.html#producing-this-ir){.reference
+                .internal}
+            -   [Upcoming release ([`main`{.docutils .literal
+                .notranslate}]{.pre}
+                branch)](ir_changelog.html#upcoming-release-main-branch){.reference
+                .internal}
+            -   [0.16.0](ir_changelog.html#id5){.reference .internal}
         -   [External compiler pass
             plugins](pass_plugins.html){.reference .internal}
             -   [Implement and register the
@@ -1972,7 +1982,7 @@ latest
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
 Previous](index.html "CUDA-Q compiler development"){.btn .btn-neutral
 .float-left accesskey="p"} [Next []{.fa .fa-arrow-circle-right
-aria-hidden="true"}](pass_plugins.html "External compiler pass plugins"){.btn
+aria-hidden="true"}](ir_changelog.html "Value-semantics IR change log"){.btn
 .btn-neutral .float-right accesskey="n"}
 :::
 
@@ -2204,7 +2214,7 @@ Textual IR coverage is under [`cudaq/test/Optimizer`{.docutils .literal
 Previous](index.html "CUDA-Q compiler development"){.btn .btn-neutral
 .float-left accesskey="p" rel="prev"} [Next []{.fa
 .fa-arrow-circle-right
-aria-hidden="true"}](pass_plugins.html "External compiler pass plugins"){.btn
+aria-hidden="true"}](ir_changelog.html "Value-semantics IR change log"){.btn
 .btn-neutral .float-right accesskey="n" rel="next"}
 :::
 
