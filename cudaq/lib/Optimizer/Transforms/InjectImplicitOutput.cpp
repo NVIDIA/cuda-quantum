@@ -42,18 +42,22 @@ public:
     // Also collect quake.alloca ops at the top level of this func.func only.
     // Insertion order is preserved.
     SmallVector<cudaq::quake::AllocaOp> orderedAllocs;
+    Operation *firstDealloc = nullptr;
     for (Block &block : funcOp.getBody())
       for (Operation &op : block) {
         if (auto alloc = dyn_cast<cudaq::quake::AllocaOp>(op)) {
           orderedAllocs.push_back(alloc);
-        } else if (isa<cudaq::quake::EvinceOp, cudaq::quake::DeallocOp>(op)) {
-          LLVM_DEBUG({
-            if (isa<cudaq::quake::EvinceOp>(op))
-              llvm::dbgs() << "kernel already has evince ops, skipping.\n";
-            else
-              llvm::dbgs() << "kernel already has deallocs, skipping.\n";
-          });
+        } else if (isa<cudaq::quake::EvinceOp>(op)) {
+          LLVM_DEBUG(llvm::dbgs()
+                     << "kernel already has evince ops, skipping.\n");
           return;
+        } else if (isa<cudaq::quake::DeallocOp>(op)) {
+          // The kernel deallocates for itself, as `kernel_builder` does. The
+          // qubits are still the kernel's output, so evince them, but in front
+          // of the deallocs: a measurement added after one would be reading a
+          // qubit that is already gone.
+          if (!firstDealloc)
+            firstDealloc = &op;
         }
       }
 
@@ -91,6 +95,15 @@ public:
     DominanceInfo dom(funcOp);
     auto loc = funcOp.getLoc();
     OpBuilder builder(funcOp.getContext());
+
+    // With deallocs present the kernel already has a single exit path, so
+    // evince in front of them and leave the control flow alone.
+    if (firstDealloc) {
+      builder.setInsertionPoint(firstDealloc);
+      for (auto alloc : orderedAllocs)
+        emitEvince(builder, alloc.getLoc(), evinceValue(alloc));
+      return;
+    }
 
     // 2. Create a new shared exit block. Its arguments match the function's
     // return type(s) and the original return(s) thread those values as block

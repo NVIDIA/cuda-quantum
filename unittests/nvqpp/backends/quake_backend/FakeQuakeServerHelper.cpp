@@ -25,6 +25,10 @@ class QuakeServerHelper : public ServerHelper, public QirServerHelper {
 public:
   const std::string name() const override { return "quake_fake"; }
 
+  /// This backend routes the kernel onto its coupling graph, so the register
+  /// comes back in physical qubit order.
+  bool needsReorderIdx() const override { return true; }
+
   RestHeaders getHeaders() override { return RestHeaders(); }
 
   void initialize(BackendConfig config) override { backendConfig = config; }

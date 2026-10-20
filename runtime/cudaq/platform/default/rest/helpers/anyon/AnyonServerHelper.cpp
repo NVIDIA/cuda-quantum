@@ -63,6 +63,10 @@ public:
   /// @brief Return the name of this server helper, must be the
   /// same as the qpu config file.
   const std::string name() const override { return "anyon"; }
+
+  /// This backend routes the kernel onto its coupling graph, so the register
+  /// comes back in physical qubit order.
+  bool needsReorderIdx() const override { return true; }
   RestHeaders getHeaders() override;
 
   void initialize(BackendConfig config) override {

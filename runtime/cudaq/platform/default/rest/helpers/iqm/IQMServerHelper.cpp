@@ -123,6 +123,10 @@ public:
   /// same as the qpu config file.
   const std::string name() const override { return "iqm"; }
 
+  /// This backend routes the kernel onto its coupling graph, so the register
+  /// comes back in physical qubit order.
+  bool needsReorderIdx() const override { return true; }
+
   RestHeaders getHeaders() override { return generateRequestHeader(); }
 
   void initialize(BackendConfig config) override;
