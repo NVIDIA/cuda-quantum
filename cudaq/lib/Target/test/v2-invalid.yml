@@ -1,0 +1,22 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+# RUN: not %target-catalog-driver parse %s 2>&1 | FileCheck %s
+
+# v1 compilation keys are rejected under a v2 `config`; they moved to
+# `compile-target`.
+
+version: 2
+name: lit-v2-invalid
+description: "V1 compilation keys rejected under v2"
+config:
+  library-mode: false
+  jit-mid-level-pipeline: "mid-pipe"
+  codegen-emission: nop
+
+# CHECK: error: Failed to parse target configuration YAML

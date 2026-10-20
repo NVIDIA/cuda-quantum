@@ -8,6 +8,7 @@
 
 #pragma once
 #include "QIRTypes.h"
+#include <unordered_set>
 
 namespace nvqir {
 // Singleton struct to track allocated arrays
@@ -31,8 +32,8 @@ private:
   ~ArrayTracker() = default;
   ArrayTracker(const ArrayTracker &) = delete;
   ArrayTracker &operator=(const ArrayTracker &) = delete;
-  // The tracked arrays
-  std::vector<Array *> allocated_arrays;
+  // The live tracked arrays
+  std::unordered_set<Array *> allocated_arrays;
 };
 
 } // namespace nvqir

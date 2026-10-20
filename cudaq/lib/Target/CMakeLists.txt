@@ -42,7 +42,10 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/TargetDatabase.cmake)
 # Lightweight, installed library: the in-memory target configuration model.
 # Dependency-free public dependency for components (e.g. cudaq-common) that
 # read and modify target configurations but never load targets themselves.
-add_library(CUDAQTargetConfig STATIC TargetConfig.cpp)
+add_library(CUDAQTargetConfig STATIC
+  TargetConfig.cpp
+  CompileTarget.cpp
+)
 target_include_directories(CUDAQTargetConfig PUBLIC
   $<BUILD_INTERFACE:${CUDAQ_TARGET_REPO_ROOT}/cudaq/include>
   $<INSTALL_INTERFACE:include>)
@@ -54,8 +57,10 @@ set_target_properties(CUDAQTargetConfig PROPERTIES
 # Internal YAML parser objects (schema v1). Used by cudaq-target-db-gen and
 # embedded into the catalog; not installed, never a link interface on its own.
 add_library(CUDAQTargetYamlObjects OBJECT
+  Yaml/CanonicalConversion.cpp
   Yaml/TargetConfigSchema.cpp
   Yaml/v1/TargetConfigV1.cpp
+  Yaml/v2/TargetConfigV2.cpp
 )
 target_include_directories(CUDAQTargetYamlObjects PUBLIC
   $<BUILD_INTERFACE:${CUDAQ_TARGET_REPO_ROOT}/cudaq/include>
@@ -156,15 +161,11 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/CUDAQTargetCatalogConfig.cmake
 
 if(CUDAQ_TARGET_STANDALONE_BUILD)
   # The full build installs these headers from the tree-wide include dir.
-  install(FILES
-    ${CUDAQ_TARGET_REPO_ROOT}/cudaq/include/cudaq/Target/TargetAbiVersion.h
-    ${CUDAQ_TARGET_REPO_ROOT}/cudaq/include/cudaq/Target/TargetCatalog.h
-    ${CUDAQ_TARGET_REPO_ROOT}/cudaq/include/cudaq/Target/TargetConfig.h
-    ${CUDAQ_TARGET_REPO_ROOT}/cudaq/include/cudaq/Target/TargetConfigYaml.h
-    ${CUDAQ_TARGET_REPO_ROOT}/cudaq/include/cudaq/Target/TargetDatabase.h
-    ${CUDAQ_TARGET_REPO_ROOT}/cudaq/include/cudaq/Target/TargetPluginLibrary.h
+  install(DIRECTORY
+    ${CUDAQ_TARGET_REPO_ROOT}/cudaq/include/cudaq/Target/
     DESTINATION include/cudaq/Target
-    COMPONENT Development)
+    COMPONENT Development
+    FILES_MATCHING PATTERN "*.h")
 endif()
 
 # Component-local LIT suite.
