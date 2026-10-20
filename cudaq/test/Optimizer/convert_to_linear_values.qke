@@ -55,6 +55,7 @@ func.func @subveq_at_call_site_to_linear() {
   %v = quake.alloca !quake.veq<4>
   %s = quake.subveq %v, 1, 2 : (!quake.veq<4>) -> !quake.veq<2>
   call @take_veq2(%s) : (!quake.veq<2>) -> ()
+  quake.dealloc %v : !quake.veq<4>
   return
 }
 
