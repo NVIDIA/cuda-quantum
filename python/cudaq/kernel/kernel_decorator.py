@@ -8,6 +8,7 @@
 
 import ast
 import inspect
+import io
 import types
 from functools import wraps
 from cudaq.kernel.utils import emitWarning
@@ -20,7 +21,8 @@ from cudaq.util import trace
 from cudaq.mlir.dialects import cc, func, quake
 from cudaq.mlir.ir import (ComplexType, F32Type, F64Type, FunctionType,
                            IntegerType, NoneType, TypeAttr, UnitAttr, Module,
-                           Type)
+                           Type, DictAttr, StringAttr, SymbolTable, WalkResult)
+from cudaq.mlir.passmanager import PassManager
 from .analysis import FunctionDefVisitor
 from .kernel_signature import (CapturedLinkedKernel, CapturedVariable,
                                KernelSignature)
@@ -29,7 +31,8 @@ from .utils import (cudaqModuleName, emitFatalError, emitErrorIfInvalidPauli,
                     get_function_source_or_raise, get_module_name,
                     globalRegisteredTypes, isQuantumReferenceType,
                     mlirTypeFromPyType, mlirTypeToPyType, nvqppPrefix,
-                    getMLIRContext, recover_func_op, recover_value_of)
+                    getMLIRContext, recover_func_op, recover_value_of,
+                    cudaq__unique_attr_name)
 
 # This file implements the decorator mechanism needed to JIT compile CUDA-Q
 # kernels. It exposes the cudaq.kernel() decorator which hooks us into the JIT
@@ -703,6 +706,106 @@ def mk_decorator(builder):
     # always-cold cache each time.
     decorator._compiled_module_cache = builder.compiledModuleCache()
     return decorator
+
+
+def _check_allowed_dialects(module):
+    # The dialects a module admitted by `_kernel_from_quake` may use: `builtin`
+    # and the dialects that `cudaq::registerAllDialects` registers
+    # (`cudaq/include/cudaq/Optimizer/InitAllDialects.h`).
+    _quakeModuleDialects = frozenset(("arith", "builtin", "cc", "cf", "complex",
+                                      "func", "llvm", "math", "qec", "quake"))
+    foreign = []
+
+    def visit(op):
+        if op.name.split(".", 1)[0] in _quakeModuleDialects:
+            return WalkResult.ADVANCE
+        foreign.append(f"'{op.name}' at {op.location}")
+        return WalkResult.INTERRUPT
+
+    module.operation.walk(visit)
+    if foreign:
+        raise RuntimeError(f"Quake module contains operation {foreign[0]}, "
+                           "which is not in a CUDA-Q dialect")
+
+
+def _quake_entry_point(module):
+    entries = [
+        op for op in module.body.operations
+        if isinstance(op, func.FuncOp) and 'cudaq-entrypoint' in op.attributes
+    ]
+    if len(entries) != 1:
+        names = "".join(f" @{op.name.value}" for op in entries)
+        raise RuntimeError("Quake module must have exactly one function with "
+                           f"the `cudaq-entrypoint` attribute, found "
+                           f"{len(entries)}{names}")
+    entry = entries[0]
+    # `run` checks the arguments and the result as it does for any kernel,
+    # except that decoding a struct result without a name crashes. The name
+    # comes from the printed type, because `StructType.getName` crashes too.
+    fnTy = FunctionType(TypeAttr(entry.attributes['function_type']).value)
+    for ty in fnTy.results:
+        if cc.StructType.isinstance(
+                ty) and not str(ty).startswith('!cc.struct<"'):
+            raise RuntimeError(f"entry point @{entry.name.value} returns {ty}, "
+                               "a struct without a name, which `cudaq.run` "
+                               "cannot process")
+    return entry
+
+
+def _kernel_from_quake(module):
+    """
+    Return an ordinary kernel for a Quake module that was produced outside the
+    Python frontend, such as the result of an object's `to_quake()` method.
+
+    The module may use only CUDA-Q dialects, and it must contain exactly one
+    function with the `cudaq-entrypoint` attribute. Its qubits may be
+    references or wires. `run` checks the function's arguments and result as
+    it does for any kernel.
+
+    A returned list must live in heap storage that the calling side frees. Both
+    CUDA-Q front-ends build such a value with
+    `cudaq::opt::marshal::copyDynamicValueToHeap` at each `return`, and the
+    module must do the same. This function does not repair storage.
+
+    The module is copied into CUDA-Q's MLIR context, so the caller's module is
+    left unchanged. The copy gets the naming conventions of `compile_to_mlir`
+    and runs through the same `aot-prep-pipeline`. The result therefore takes
+    no path of its own: every target, simulated or remote, compiles and runs it
+    as it does any other kernel, and `run`'s existing checks apply to it.
+    """
+    if not isinstance(module, Module):
+        raise TypeError("`to_quake()` must return a `cudaq.mlir.ir.Module`, "
+                        f"not {type(module).__name__}")
+    _check_allowed_dialects(module)
+    # Bytecode keeps the source locations that `str(module)` drops.
+    bytecode = io.BytesIO()
+    module.operation.write_bytecode(bytecode)
+    ctx = getMLIRContext()
+    module = Module.parse(bytecode.getvalue(), context=ctx)
+    entry = _quake_entry_point(module)
+
+    # `kernel-execution` generates the `.run` function only for a symbol in
+    # the mangled-name map, and the decorator parses the `..0x` suffix.
+    name = entry.name.value.removeprefix(nvqppPrefix).split("..0x")[0]
+    uniqName = f"{name}..{hex(id(module))}"
+    symbol = nvqppPrefix + uniqName
+    SymbolTable.replace_all_symbol_uses(entry.name.value, symbol,
+                                        module.operation)
+    SymbolTable.set_symbol_name(entry, symbol)
+    hostName = StringAttr.get(symbol + '_PyKernelEntryPointRewrite',
+                              context=ctx)
+    module.operation.attributes['quake.mangled_name_map'] = DictAttr.get(
+        {symbol: hostName}, context=ctx)
+    pm = PassManager.parse("builtin.module(aot-prep-pipeline)", context=ctx)
+    try:
+        with trace.span("cudaq.pipeline.aot"):
+            cudaq_runtime.runPassManager(pm, module)
+    except Exception as e:
+        raise RuntimeError(f"could not compile code for '{name}'.\n{e}") from e
+    module.operation.attributes[cudaq__unique_attr_name] = StringAttr.get(
+        uniqName, context=ctx)
+    cudaq_runtime.set_data_layout(module)
+    return PyKernelDecorator(None, module=module, kernelName=uniqName)
 
 
 def kernel(function=None, external=False, backend_symbol=None, **kwargs):

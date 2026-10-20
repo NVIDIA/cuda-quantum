@@ -8,7 +8,8 @@
 
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.mlir.ir import UnitAttr
-from cudaq.kernel.kernel_decorator import (mk_decorator, isa_kernel_decorator)
+from cudaq.kernel.kernel_decorator import (mk_decorator, isa_kernel_decorator,
+                                           _kernel_from_quake)
 from cudaq.util import trace
 import numpy as np
 
@@ -49,6 +50,10 @@ class AsyncRunResult:
 
 @trace.traced
 def run(decorator, *args, shots_count=100, noise_model=None, qpu_id=0):
+    to_quake = getattr(decorator, "to_quake", None)
+    if to_quake is not None:
+        decorator = _kernel_from_quake(to_quake())
+
     if isa_kernel_decorator(decorator):
         if not decorator.supports_compilation():
             raise RuntimeError(
