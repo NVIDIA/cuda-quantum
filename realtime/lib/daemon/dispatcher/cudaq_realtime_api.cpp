@@ -25,7 +25,6 @@
 // binds to the first copy exported in the process, so a consumer whose copy
 // is hidden (--exclude-libs) or not the first names its own launcher instead.
 #pragma weak cudaq_launch_dispatch_kernel_regular
-#pragma weak cudaq_launch_dispatch_kernel_cooperative
 #pragma weak cudaq_launch_unified_dispatch_device
 
 struct cudaq_dispatch_manager_t {
@@ -89,7 +88,6 @@ static bool table_has_graph_launch(const cudaq_function_table_t *table) {
 static bool is_valid_kernel_type(cudaq_kernel_type_t kernel_type) {
   switch (kernel_type) {
   case CUDAQ_KERNEL_REGULAR:
-  case CUDAQ_KERNEL_COOPERATIVE:
   case CUDAQ_KERNEL_UNIFIED:
     return true;
   default:
@@ -106,8 +104,6 @@ ring_launch_fn(const cudaq_dispatcher_t *dispatcher) {
   switch (dispatcher->config.kernel_type) {
   case CUDAQ_KERNEL_REGULAR:
     return &cudaq_launch_dispatch_kernel_regular;
-  case CUDAQ_KERNEL_COOPERATIVE:
-    return &cudaq_launch_dispatch_kernel_cooperative;
   default:
     return nullptr;
   }

@@ -62,10 +62,10 @@ typedef enum {
   CUDAQ_TX_READY = 3
 } cudaq_tx_status_t;
 
-// Kernel synchronization type
+// Kernel synchronization type.  Value 1 is retired and must not be reused;
+// CUDAQ_KERNEL_UNIFIED keeps its ABI value of 2.
 typedef enum {
   CUDAQ_KERNEL_REGULAR = 0,
-  CUDAQ_KERNEL_COOPERATIVE = 1,
   CUDAQ_KERNEL_UNIFIED = 2
 } cudaq_kernel_type_t;
 
@@ -148,7 +148,7 @@ typedef struct {
   // then the ring and unified paths at least behave identically.
   uint32_t slot_size;
   uint32_t vp_id;                      // virtual port ID
-  cudaq_kernel_type_t kernel_type;     // regular/cooperative kernel
+  cudaq_kernel_type_t kernel_type;     // regular or unified kernel
   cudaq_dispatch_mode_t dispatch_mode; // device call/graph launch
   cudaq_dispatch_path_t dispatch_path; // GPU kernel or CPU host loop
   int skip_tx_markers; // when non-zero, the host dispatcher will NOT write
@@ -239,25 +239,17 @@ typedef void (*cudaq_dispatch_launch_fn_t)(
     volatile int *shutdown_flag, uint64_t *stats, size_t num_slots,
     uint32_t num_blocks, uint32_t threads_per_block, cudaStream_t stream);
 
-// Default dispatch kernel launch helpers (from libcudaq-realtime-dispatch.a),
-// for CUDAQ_KERNEL_REGULAR and CUDAQ_KERNEL_COOPERATIVE.  On the DEVICE ring
-// path, cudaq_dispatcher_start calls the one for the configured kernel type
-// whenever no launch function was set, through a weak reference that binds at
-// load time to the copy linked into the consumer binary; see
+// Default dispatch kernel launch helper (from libcudaq-realtime-dispatch.a)
+// for CUDAQ_KERNEL_REGULAR.  On the DEVICE ring path, cudaq_dispatcher_start
+// calls it whenever no launch function was set, through a weak reference that
+// binds at load time to the copy linked into the consumer binary; see
 // cudaq_dispatcher_set_launch_fn for when to name one instead.
 //
-// Marked CUDAQ_REALTIME_DISPATCH_API so the symbols stay in the dynamic table
+// Marked CUDAQ_REALTIME_DISPATCH_API so the symbol stays in the dynamic table
 // after the archive is absorbed into a binary, which is what that weak
-// reference binds to.  Consumer .so's that dlsym() them at runtime (e.g.
+// reference binds to.  Consumer .so's that dlsym() it at runtime (e.g.
 // cuda-qx's libcudaq-qec-realtime-decoding.so) rely on it too.
 CUDAQ_REALTIME_DISPATCH_API void cudaq_launch_dispatch_kernel_regular(
-    volatile uint64_t *rx_flags, volatile uint64_t *tx_flags, uint8_t *rx_data,
-    uint8_t *tx_data, size_t rx_stride_sz, size_t tx_stride_sz,
-    cudaq_function_entry_t *function_table, size_t func_count,
-    volatile int *shutdown_flag, uint64_t *stats, size_t num_slots,
-    uint32_t num_blocks, uint32_t threads_per_block, cudaStream_t stream);
-
-CUDAQ_REALTIME_DISPATCH_API void cudaq_launch_dispatch_kernel_cooperative(
     volatile uint64_t *rx_flags, volatile uint64_t *tx_flags, uint8_t *rx_data,
     uint8_t *tx_data, size_t rx_stride_sz, size_t tx_stride_sz,
     cudaq_function_entry_t *function_table, size_t func_count,
@@ -420,13 +412,13 @@ cudaq_status_t cudaq_dispatcher_set_control(cudaq_dispatcher_t *dispatcher,
                                             volatile int *shutdown_flag,
                                             uint64_t *stats);
 // Optional on the DEVICE ring path: without it, start() calls the archive's
-// cudaq_launch_dispatch_kernel_regular or _cooperative, per the configured
-// kernel type.  That default binds to the first copy of the archive exported
-// in the process, so name the launcher here when this binary's copy may not
-// be that one: when it hides the archive's symbols (-Wl,--exclude-libs), or
-// shares the process with another binary that links the archive.  The kernel
-// must share a CUDA module with the function table's DEVICE_CALL handlers.
-// Refused on the HOST path, and NULL is refused on the DEVICE path.
+// cudaq_launch_dispatch_kernel_regular.  That default binds to the first copy
+// of the archive exported in the process, so name the launcher here when this
+// binary's copy may not be that one: when it hides the archive's symbols
+// (-Wl,--exclude-libs), or shares the process with another binary that links
+// the archive.  The kernel must share a CUDA module with the function table's
+// DEVICE_CALL handlers.  Refused on the HOST path, and NULL is refused on the
+// DEVICE path.
 cudaq_status_t
 cudaq_dispatcher_set_launch_fn(cudaq_dispatcher_t *dispatcher,
                                cudaq_dispatch_launch_fn_t launch_fn);
@@ -443,11 +435,11 @@ cudaq_status_t cudaq_dispatcher_set_mailbox(cudaq_dispatcher_t *dispatcher,
 // the entry point for every bridge-backed dispatcher: the configured
 // `dispatch_path` + `kernel_type` name the shape, and the dispatcher asks the
 // bridge for the matching data plane:
-//   - HOST + REGULAR/COOPERATIVE:   the RING_BUFFER context; skip_tx_markers is
+//   - HOST + REGULAR:               the RING_BUFFER context; skip_tx_markers is
 //                                   forced to 1 (the provider's TX pump owns
 //                                   the wire).
 //   - HOST + UNIFIED:               the provider's CPU data plane.
-//   - DEVICE + REGULAR/COOPERATIVE: the RING_BUFFER context.  start() then
+//   - DEVICE + REGULAR:             the RING_BUFFER context.  start() then
 //                                   launches the 3-kernel dispatch kernel
 //                                   from libcudaq-realtime-dispatch.a; see
 //                                   cudaq_dispatcher_set_launch_fn.
@@ -560,9 +552,6 @@ cudaq_status_t cudaq_host_release_worker(cudaq_dispatcher_t *dispatcher,
 // Force eager CUDA module loading for dispatch kernels (occupancy query).
 // Call before cudaq_dispatcher_start() to avoid lazy-loading deadlocks.
 cudaError_t cudaq_dispatch_kernel_query_occupancy(int *out_blocks,
-                                                  uint32_t threads_per_block);
-cudaError_t
-cudaq_dispatch_kernel_cooperative_query_occupancy(int *out_blocks,
                                                   uint32_t threads_per_block);
 
 // Push the shared_ring_mode flag into the DEVICE_LOOP kernel's __constant__

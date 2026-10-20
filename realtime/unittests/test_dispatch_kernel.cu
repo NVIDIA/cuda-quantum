@@ -15,9 +15,8 @@
 #include <iostream>
 
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
-#include "cudaq/realtime/daemon/dispatcher/kernel_types.h"
-#include "cudaq/realtime/daemon/dispatcher/dispatch_modes.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel.cuh"
+#include "cudaq/realtime/daemon/dispatcher/dispatch_modes.h"
 
 // Helper macro for CUDA error checking
 #define CUDA_CHECK(call)                                                       \
@@ -194,7 +193,6 @@ __device__ HandlerFunc d_increment_handler = increment_handler;
 /// Mirrors the dispatch kernel's two-pointer call: the handler gets the RX
 /// slot (RPCHeader + payload), the TX slot (RPCResponse + result) and the
 /// slot size, and returns a status.
-template <typename KernelType>
 __global__ void test_dispatch_kernel(
     HandlerFunc handler,
     const void* rx_slot,
@@ -205,8 +203,8 @@ __global__ void test_dispatch_kernel(
   if (threadIdx.x == 0 && blockIdx.x == 0) {
     *status = handler(rx_slot, tx_slot, slot_size);
   }
-  
-  KernelType::sync();
+
+  __syncthreads();
 }
 
 //==============================================================================
@@ -265,8 +263,8 @@ TEST_F(DispatchKernelTest, IncrementHandlerBasic) {
                                    sizeof(HandlerFunc)));
 
   // Launch kernel with separate RX/TX slots (the dispatcher's two-pointer call)
-  test_dispatch_kernel<cudaq::realtime::RegularKernel><<<1, 32>>>(
-      h_handler, d_input, d_buffer_, kSlotSize, d_status_);
+  test_dispatch_kernel<<<1, 32>>>(h_handler, d_input, d_buffer_, kSlotSize,
+                                  d_status_);
   CUDA_CHECK(cudaGetLastError());
   CUDA_CHECK(cudaDeviceSynchronize());
 
@@ -318,8 +316,8 @@ TEST_F(DispatchKernelTest, LargeBuffer) {
   CUDA_CHECK(cudaMemcpyFromSymbol(&h_handler, d_increment_handler,
                                    sizeof(HandlerFunc)));
 
-  test_dispatch_kernel<cudaq::realtime::RegularKernel><<<1, 256>>>(
-      h_handler, d_input, d_buffer_, kSlotSize, d_status_);
+  test_dispatch_kernel<<<1, 256>>>(h_handler, d_input, d_buffer_, kSlotSize,
+                                   d_status_);
   CUDA_CHECK(cudaGetLastError());
   CUDA_CHECK(cudaDeviceSynchronize());
 
@@ -534,18 +532,6 @@ protected:
 };
 
 TEST_F(DefaultLauncherDispatchTest, RegularRpcIncrementHandler) {
-  expectIncrementRoundTrip();
-}
-
-class DefaultCooperativeLauncherDispatchTest
-    : public DefaultLauncherDispatchTest {
-protected:
-  cudaq_kernel_type_t kernelType() const override {
-    return CUDAQ_KERNEL_COOPERATIVE;
-  }
-};
-
-TEST_F(DefaultCooperativeLauncherDispatchTest, CooperativeRpcIncrementHandler) {
   expectIncrementRoundTrip();
 }
 
