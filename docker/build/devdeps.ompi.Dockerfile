@@ -92,7 +92,8 @@ RUN apt-get update -y && apt-get install -y --no-install-recommends \
     && rm -rf /var/tmp/gdrcopy-${GDRCOPY_VERSION} /var/tmp/v${GDRCOPY_VERSION}.tar.gz \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
-ENV CPATH="$GDRCOPY_INSTALL_PREFIX/include:$CPATH"
+# The CUDA base image does not set CPATH.
+ENV CPATH="$GDRCOPY_INSTALL_PREFIX/include"
 ENV LIBRARY_PATH="$GDRCOPY_INSTALL_PREFIX/lib64:$LIBRARY_PATH"
 
 # 5 - Install UCX version v1.19.0
