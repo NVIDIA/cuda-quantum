@@ -94,33 +94,6 @@ cudaq::opt::outlinePartition(ArrayRef<Operation *> partition) {
     }
   }
 
-  // Contiguity check: following each wire that exits the partition, ensure no
-  // descendant wire re-enters it (i.e., no non-partition op lies on a wire
-  // path between two partition ops).
-  {
-    DenseSet<Value> seen;
-    SmallVector<Value> worklist;
-    for (Operation *op : orderedOps)
-      for (Value res : filterWireValues(op->getResults()))
-        for (Operation *user : res.getUsers())
-          if (!inPartition.contains(user))
-            for (Value r : filterWireValues(user->getResults()))
-              if (seen.insert(r).second)
-                worklist.push_back(r);
-    // Follow downstream wire dependencies with DFS, rejecting any path that
-    // re-enters the partition.
-    while (!worklist.empty()) {
-      Value wire = worklist.pop_back_val();
-      for (Operation *user : wire.getUsers()) {
-        if (inPartition.contains(user))
-          return failure();
-        for (Value res : filterWireValues(user->getResults()))
-          if (seen.insert(res).second)
-            worklist.push_back(res);
-      }
-    }
-  }
-
   // Require all external output consumers to live in the same block.
   for (Value out : llvm::concat<const Value>(nonWireOutputs, outputs))
     for (Operation *user : out.getUsers())
