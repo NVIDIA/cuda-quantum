@@ -385,7 +385,6 @@ complete physical target, and reports logical, static, and scheduled resources.<
 <span class="n">carbon_target</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">targets</span><span class="o">.</span><span class="n">Target</span><span class="o">.</span><span class="n">from_device</span><span class="p">(</span>
     <span class="s2">"carbon"</span><span class="p">,</span>
     <span class="n">carbon_device</span><span class="p">,</span>
-    <span class="n">runtime_backend</span><span class="o">=</span><span class="n">cql</span><span class="o">.</span><span class="n">targets</span><span class="o">.</span><span class="n">estimator</span><span class="p">,</span>
     <span class="n">estimate_options</span><span class="o">=</span><span class="p">{</span>
         <span class="s2">"p_phys"</span><span class="p">:</span> <span class="mf">1.0e-3</span><span class="p">,</span>
         <span class="s2">"failure_budget"</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">,</span>

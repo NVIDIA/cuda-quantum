@@ -2061,8 +2061,7 @@ Typical uses:
     regardless.
 
 The dispatcher echoes [`request_id`{.docutils .literal
-.notranslate}]{.pre} in all dispatch paths (cooperative, regular, and
-graph-launch).
+.notranslate}]{.pre} in all dispatch paths (regular and graph-launch).
 :::
 
 ::: {#ptp-timestamp-semantics .section}
@@ -2103,8 +2102,7 @@ without interpretation. By convention, the field carries a
 nanoseconds, but senders and receivers may agree on any encoding.
 
 The dispatcher echoes [`ptp_timestamp`{.docutils .literal
-.notranslate}]{.pre} in all dispatch paths (cooperative, regular, and
-graph-launch).
+.notranslate}]{.pre} in all dispatch paths (regular and graph-launch).
 :::
 
 ::: {#function-id-semantics .section}

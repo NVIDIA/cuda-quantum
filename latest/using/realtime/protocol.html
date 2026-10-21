@@ -1188,8 +1188,8 @@ out-of-order or pipelined verification of responses.</p></li>
 duplicated messages.</p></li>
 <li><p><strong>Unused</strong>: Set to 0 when not needed. The dispatcher echoes it regardless.</p></li>
 </ul>
-<p>The dispatcher echoes <code class="docutils literal notranslate"><span class="pre">request_id</span></code> in all dispatch paths (cooperative,
-regular, and graph-launch).</p>
+<p>The dispatcher echoes <code class="docutils literal notranslate"><span class="pre">request_id</span></code> in all dispatch paths (regular and
+graph-launch).</p>
 </section>
 <section id="ptp-timestamp-semantics">
 <h2><code class="docutils literal notranslate"><span class="pre">PTP</span></code> Timestamp Semantics<a class="headerlink" href="#ptp-timestamp-semantics" title="Permalink to this heading">¶</a></h2>
@@ -1214,8 +1214,8 @@ echoes it regardless.</p></li>
 <p>The encoding is opaque to the protocol; the 64-bit value is echoed without
 interpretation. By convention, the field carries a <code class="docutils literal notranslate"><span class="pre">PTP</span></code> time-of-day in
 nanoseconds, but senders and receivers may agree on any encoding.</p>
-<p>The dispatcher echoes <code class="docutils literal notranslate"><span class="pre">ptp_timestamp</span></code> in all dispatch paths (cooperative,
-regular, and graph-launch).</p>
+<p>The dispatcher echoes <code class="docutils literal notranslate"><span class="pre">ptp_timestamp</span></code> in all dispatch paths (regular and
+graph-launch).</p>
 </section>
 <section id="function-id-semantics">
 <h2>Function ID Semantics<a class="headerlink" href="#function-id-semantics" title="Permalink to this heading">¶</a></h2>
