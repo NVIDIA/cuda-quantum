@@ -15,9 +15,9 @@
 #include <algorithm>
 #include <cstdlib>
 #include <iostream>
+#include <optional>
 #include <sstream>
 #include <unordered_map>
-#include <variant>
 #include <vector>
 
 // CLI spellings of the `option-flags` feature bits. Keep in sync with the

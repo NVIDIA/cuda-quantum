@@ -33,9 +33,7 @@
 #include "mlir/ExecutionEngine/ExecutionEngine.h"
 #include "mlir/Pass/PassManager.h"
 #include "mlir/Target/LLVMIR/Export.h"
-#include <algorithm>
 #include <cudaq/Optimizer/CodeGen/QIROpaqueStructTypes.h>
-#include <variant>
 
 using namespace mlir;
 

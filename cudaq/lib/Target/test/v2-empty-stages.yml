@@ -12,7 +12,7 @@
 # omitting it is a schema error.
 
 version: 2
-name: lit-v2-missing-stages
+name: lit-v2-empty-stages
 description: "Missing compile-target stages key rejected"
 config:
   library-mode: false

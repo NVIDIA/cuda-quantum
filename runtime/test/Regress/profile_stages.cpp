@@ -87,7 +87,8 @@ void test_custom_then_inferred() {
   auto custom = customStage("high-one", "mid-one", "low-one");
   custom.irOutputProfile = cudaq::config::QuakeReferenceSemanticsProfile{};
   target.stages.push_back(std::move(custom));
-  target.stages.push_back(inferredStage(cudaq::config::QuakeReferenceSemanticsProfile{}));
+  target.stages.push_back(
+      inferredStage(cudaq::config::QuakeReferenceSemanticsProfile{}));
   HandlerVector handlers;
   handlers.push_back(std::make_unique<TestHandler>());
   std::cout << planPipeline(target, handlers) << "\n";
@@ -97,19 +98,38 @@ void test_custom_then_inferred() {
 // A single inferred stage contributes the supporting handler's pipeline.
 void test_single_inferred() {
   cudaq::CompileTarget target;
-  target.stages.push_back(inferredStage(cudaq::config::QuakeReferenceSemanticsProfile{}));
+  target.stages.push_back(
+      inferredStage(cudaq::config::QuakeReferenceSemanticsProfile{}));
   HandlerVector handlers;
   handlers.push_back(std::make_unique<TestHandler>());
   std::cout << planPipeline(target, handlers) << "\n";
 }
 // CHECK: handler(unchecked->quake-reference-semantics)
 
+// Unsupporting handlers are skipped and the first supporting handler wins;
+// later handlers are never consulted.
+void test_first_supporting_handler_wins() {
+  cudaq::CompileTarget target;
+  target.stages.push_back(
+      inferredStage(cudaq::config::QuakeReferenceSemanticsProfile{}));
+  HandlerVector handlers;
+  handlers.push_back(std::make_unique<TestHandler>(/*supported=*/false));
+  handlers.push_back(std::make_unique<TestHandler>());
+  auto *last = static_cast<TestHandler *>(
+      handlers.emplace_back(std::make_unique<TestHandler>()).get());
+  std::cout << planPipeline(target, handlers) << "\n";
+  std::cout << "last handler calls: " << last->calls << "\n";
+}
+// CHECK: handler(unchecked->quake-reference-semantics)
+// CHECK: last handler calls: 0
+
 // No supporting handler for an inferred stage fails the composition with a
 // diagnostic identifying the stage and profiles.
 void test_no_match_diagnostic() {
   cudaq::CompileTarget target;
   target.stages.push_back(customStage("high-one", "mid-one", "low-one"));
-  target.stages.push_back(inferredStage(cudaq::config::QuakeReferenceSemanticsProfile{}));
+  target.stages.push_back(
+      inferredStage(cudaq::config::QuakeReferenceSemanticsProfile{}));
   std::cout << planPipeline(target, {}) << "\n";
 }
 // CHECK: FAILED: compile target stage 2: no lowering handler supports
@@ -119,7 +139,8 @@ void test_no_match_diagnostic() {
 // fallback to the next handler.
 void test_selected_failure_diagnostic() {
   cudaq::CompileTarget target;
-  target.stages.push_back(inferredStage(cudaq::config::QuakeReferenceSemanticsProfile{}));
+  target.stages.push_back(
+      inferredStage(cudaq::config::QuakeReferenceSemanticsProfile{}));
   HandlerVector handlers;
   handlers.push_back(
       std::make_unique<TestHandler>(false, /*forceSupports=*/true));
@@ -150,6 +171,7 @@ void test_zero_stages() {
 int main() {
   test_custom_then_inferred();
   test_single_inferred();
+  test_first_supporting_handler_wins();
   test_no_match_diagnostic();
   test_selected_failure_diagnostic();
   test_zero_stages();

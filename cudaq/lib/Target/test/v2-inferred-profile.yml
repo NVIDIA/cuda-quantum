@@ -8,9 +8,7 @@
 
 # RUN: %target-catalog-driver parse %s | FileCheck %s --check-prefix=PARSE
 
-# An omitted `lowering` infers the stage pipeline from the stage's profiles;
-# the driver prints the stage and its profile options without assuming a
-# custom pipeline.
+# Test YAML parsing for a compilation stage with an IR profile and implicit inferred lowering.
 
 version: 2
 name: lit-v2-inferred

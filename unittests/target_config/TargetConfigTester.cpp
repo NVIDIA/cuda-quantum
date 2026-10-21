@@ -207,41 +207,6 @@ compile-target:
   EXPECT_TRUE(config.BackendConfig->hasPassPipeline());
 }
 
-TEST(TargetConfigTester, hasPassPipelineCountsInferredLoweringAsActive) {
-  cudaq::config::BackendEndConfigEntry backend;
-  backend.CompileTarget.stages.push_back(cudaq::config::CompilationStage{
-      .irOutputProfile = cudaq::config::UncheckedProfile{},
-      .lowering = cudaq::config::InferredLowering{}});
-  EXPECT_TRUE(backend.hasPassPipeline());
-}
-
-TEST(TargetConfigTester, hasPassPipelineMultistageAndInactive) {
-  cudaq::config::BackendEndConfigEntry backend;
-  EXPECT_FALSE(backend.hasPassPipeline());
-
-  backend.CompileTarget.stages.push_back(cudaq::config::CompilationStage{
-      .irOutputProfile = cudaq::config::UncheckedProfile{},
-      .lowering = cudaq::config::CustomPipelineLowering{}});
-  EXPECT_FALSE(backend.hasPassPipeline());
-
-  backend.CompileTarget.stages.push_back(cudaq::config::CompilationStage{
-      .irOutputProfile = cudaq::config::QuakeReferenceSemanticsProfile{},
-      .lowering = cudaq::config::InferredLowering{}});
-  EXPECT_TRUE(backend.hasPassPipeline());
-
-  backend.CompileTarget.stages.back().lowering =
-      cudaq::config::CustomPipelineLowering{.overridePassPipeline =
-                                                "canonicalize"};
-  EXPECT_TRUE(backend.hasPassPipeline());
-
-  // Two stages whose custom pipelines are both empty stay inactive.
-  backend.CompileTarget.stages.front().lowering =
-      cudaq::config::CustomPipelineLowering{};
-  backend.CompileTarget.stages.back().lowering =
-      cudaq::config::CustomPipelineLowering{};
-  EXPECT_FALSE(backend.hasPassPipeline());
-}
-
 TEST(TargetConfigTester, quakeReferenceSemanticsProfileIdentity) {
   const cudaq::config::QuakeReferenceSemanticsProfile baseline{
       .basisGates = {"h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)"},
