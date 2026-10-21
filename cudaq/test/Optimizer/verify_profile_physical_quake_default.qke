@@ -1,0 +1,45 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// With default options, reference-form quake of any shape passes; only
+// value-form (SSA) quantum types are rejected.
+
+// RUN: cudaq-opt --verify-profile-physical-quake --split-input-file --verify-diagnostics %s
+
+func.func @any_reference_form(%q0: !quake.ref, %q1: !quake.ref,
+                              %v: !quake.veq<2>) {
+  quake.h %q0 : (!quake.ref) -> ()
+  quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  %m0 = quake.mz %q0, %q1 : (!quake.ref, !quake.ref) -> !cc.sequence<!quake.measure>
+  %m1 = quake.mz %v : (!quake.veq<2>) -> !cc.sequence<!quake.measure>
+  return
+}
+
+// An unavailable call is accepted under the defaults: the invocation check
+// runs only when a basis or measurement restriction is requested.
+func.func private @ext_kernel(!quake.ref)
+func.func @calls_external(%q: !quake.ref) {
+  func.call @ext_kernel(%q) : (!quake.ref) -> ()
+  return
+}
+
+// -----
+
+// expected-error@+1 {{profile violation: physical-quake requires reference-form Quake}}
+func.func @value_form(%w: !quake.wire) {
+  // expected-error@+1 {{profile violation: physical-quake requires reference-form Quake}}
+  %1 = quake.h %w : (!quake.wire) -> !quake.wire
+  return
+}
+
+// -----
+
+// A value-form type in a declaration's signature is rejected even though the
+// type never appears in an operation.
+// expected-error@+1 {{profile violation: physical-quake requires reference-form Quake}}
+func.func private @takes_wire(!quake.wire)

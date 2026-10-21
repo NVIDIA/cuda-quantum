@@ -2383,17 +2383,18 @@ def VerifyProfilePhysicalQuake : Pass<"verify-profile-physical-quake", "mlir::Mo
      - every quake operation is a member of the requested target basis
      - with `measurement-type=single-qubit`, every measurement operates on
        exactly one `!quake.ref`
-     - with `reset-after-measure=true`, any non-measurement operation on a qubit
-       that comes after a measurement must be preceded by a reset
 
     The pass never modifies the IR; any violation fails the pass. The `basis`
     option uses the same grammar and legality machinery as
     `basis-conversion`; an empty basis (the default) imposes no gate-basis
     restriction.
 
-    This verification pass is conservative: if a required property could not be
-    verified (e.g. due to aliasing, unhandled control flow, or opaque calls),
-    verification will fail with a diagnostic.
+    The `reset-after-measure` option is accepted but not yet validated: the
+    pass emits a warning when it is set.
+
+    This verification pass is conservative: if a required property could not
+    be verified (e.g. due to opaque calls), verification will fail with a
+    diagnostic.
   }];
   let options = [
     ListOption<"basis", "basis", "std::string",
