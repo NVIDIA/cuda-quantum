@@ -3716,6 +3716,7 @@ LogicalResult GraphOp::verifyRegions() {
 
     llvm::DenseMap<Operation *, llvm::SmallVector<Operation *, 16>>
         callableOperations;
+    SymbolTableCollection sourceSymbols;
     llvm::DenseMap<Operation *, Operation *> resolvedInvocationTargets;
     auto resolveInvocationTarget = [&](Operation *invocation,
                                        FlatSymbolRefAttr callee) {
@@ -3723,7 +3724,7 @@ LogicalResult GraphOp::verifyRegions() {
           resolvedInvocationTargets.try_emplace(invocation, nullptr);
       if (inserted)
         cached->second =
-            SymbolTable::lookupNearestSymbolFrom(invocation, callee);
+            sourceSymbols.lookupNearestSymbolFrom(invocation, callee);
       return cached->second;
     };
     auto collectCallableOperations =
@@ -3735,7 +3736,7 @@ LogicalResult GraphOp::verifyRegions() {
       if (auto gadget = dyn_cast<qlx::fabric::GadgetOp>(callable)) {
         if (auto realization = gadget.getRealizationAttr()) {
           bodyOwner =
-              SymbolTable::lookupNearestSymbolFrom(callable, realization);
+              sourceSymbols.lookupNearestSymbolFrom(callable, realization);
           if (!isa_and_nonnull<qlx::fabric::CircuitOp>(bodyOwner)) {
             emitOpError("projected Fabric gadget @")
                 << gadget.getSymName()
