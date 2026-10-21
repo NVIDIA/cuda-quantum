@@ -107,7 +107,7 @@ static bool appendResolvedStagePipeline(
 /// Infer the pipeline using the provided lowering handlers and append it to
 /// `passPipeline`. On failure, sets `diagnostic` and returns false.
 static bool appendResolvedStagePipeline(std::string &passPipeline,
-                                        const cudaq::config::DefaultLowering &,
+                                        const cudaq::config::InferredLowering &,
                                         const StageResolutionContext &ctx,
                                         std::string &diagnostic) {
   const auto *handler = cudaq_internal::compiler::selectLoweringHandler(

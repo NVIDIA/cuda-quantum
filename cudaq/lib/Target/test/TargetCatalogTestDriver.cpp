@@ -74,7 +74,7 @@ void printList(const char *indent, const char *key,
     std::cout << indent << key << ": " << listStr(values) << "\n";
 }
 
-void printLowering(const char *, const DefaultLowering &) {}
+void printLowering(const char *, const InferredLowering &) {}
 void printLowering(const char *indent, const CustomPipelineLowering &lowering) {
   printField(indent, "jit-high-level-pipeline", lowering.highLevelPipeline);
   printField(indent, "jit-mid-level-pipeline", lowering.midLevelPipeline);

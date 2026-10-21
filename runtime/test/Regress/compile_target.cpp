@@ -290,7 +290,7 @@ static cudaq::CompileTarget stagedCustomThenInferredTarget() {
                            .lowering = std::move(custom)});
   target.stages.push_back(
       {.irOutputProfile = cudaq::config::QuakeReferenceSemanticsProfile{},
-       .lowering = cudaq::config::DefaultLowering{}});
+       .lowering = cudaq::config::InferredLowering{}});
   return target;
 }
 

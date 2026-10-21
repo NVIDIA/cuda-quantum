@@ -70,7 +70,7 @@ static cudaq::config::CompilationStage customStage(const std::string &high,
 static cudaq::config::CompilationStage
 inferredStage(cudaq::config::Profile output) {
   return {.irOutputProfile = std::move(output),
-          .lowering = cudaq::config::DefaultLowering{}};
+          .lowering = cudaq::config::InferredLowering{}};
 }
 
 static std::string planPipeline(const cudaq::CompileTarget &target,

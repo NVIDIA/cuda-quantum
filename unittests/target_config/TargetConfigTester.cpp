@@ -211,7 +211,7 @@ TEST(TargetConfigTester, hasPassPipelineCountsInferredLoweringAsActive) {
   cudaq::config::BackendEndConfigEntry backend;
   backend.CompileTarget.stages.push_back(cudaq::config::CompilationStage{
       .irOutputProfile = cudaq::config::UncheckedProfile{},
-      .lowering = cudaq::config::DefaultLowering{}});
+      .lowering = cudaq::config::InferredLowering{}});
   EXPECT_TRUE(backend.hasPassPipeline());
 }
 
@@ -226,7 +226,7 @@ TEST(TargetConfigTester, hasPassPipelineMultistageAndInactive) {
 
   backend.CompileTarget.stages.push_back(cudaq::config::CompilationStage{
       .irOutputProfile = cudaq::config::QuakeReferenceSemanticsProfile{},
-      .lowering = cudaq::config::DefaultLowering{}});
+      .lowering = cudaq::config::InferredLowering{}});
   EXPECT_TRUE(backend.hasPassPipeline());
 
   backend.CompileTarget.stages.back().lowering =
@@ -288,7 +288,7 @@ TEST(TargetConfigTester, quakeReferenceSemanticsProfileTargetIdentity) {
 
 TEST(TargetConfigTester, inferredLoweringIdentityAndHash) {
   using cudaq::config::CustomPipelineLowering;
-  using cudaq::config::DefaultLowering;
+  using cudaq::config::InferredLowering;
   using cudaq::config::UncheckedProfile;
 
   const auto singleStageTarget = [](cudaq::config::Lowering lowering) {
@@ -296,8 +296,8 @@ TEST(TargetConfigTester, inferredLoweringIdentityAndHash) {
     target.stages.push_back({UncheckedProfile{}, std::move(lowering)});
     return target;
   };
-  const auto inferred = singleStageTarget(DefaultLowering{});
-  const auto alsoInferred = singleStageTarget(DefaultLowering{});
+  const auto inferred = singleStageTarget(InferredLowering{});
+  const auto alsoInferred = singleStageTarget(InferredLowering{});
   const auto emptyCustom = singleStageTarget(CustomPipelineLowering{});
   const auto custom =
       singleStageTarget(CustomPipelineLowering{.highLevelPipeline = "canon"});

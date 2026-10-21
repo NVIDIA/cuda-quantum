@@ -147,7 +147,7 @@ public:
 ///  - `CustomPipelineLowering`: appends the override pipeline, or its
 ///  high/mid/low pipelines interleaved with the standard prep/deploy/finalize
 ///  stages.
-//   - `DefaultLowering`: infers the pipeline using the registered lowering
+//   - `InferredLowering`: infers the pipeline using the registered lowering
 //   handlers, based on the stage's input and output profiles. Fills \p
 //   diagnostic when an inferred stage cannot be lowered.
 std::optional<std::string>
