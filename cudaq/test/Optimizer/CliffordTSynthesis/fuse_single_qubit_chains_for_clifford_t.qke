@@ -1,0 +1,136 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --pass-pipeline='builtin.module( \
+// RUN:   decomposition{enable-patterns=U3ToRotations},convert-to-linear-values, \
+// RUN:   func.func(fuse-1q-chains-for-clifford-t,canonicalize))' %s -o %t.chains
+// RUN: FileCheck %s --input-file=%t.chains
+// RUN: CircuitCheck --input=%t.chains %s
+// RUN: cudaq-opt --pass-pipeline='builtin.module(convert-to-linear-values, \
+// RUN:   func.func(fuse-1q-chains-for-clifford-t{epsilon=0.001},canonicalize))' \
+// RUN:   %s | FileCheck %s --check-prefix=EPSILON
+// RUN: cudaq-opt --cudaq-fault-tolerant-target='epsilon=1e-3' %s | \
+// RUN:   FileCheck %s --check-prefix=FT
+// RUN: not cudaq-opt --pass-pipeline='builtin.module( \
+// RUN:   func.func(fuse-1q-chains-for-clifford-t{epsilon=-1}))' %s 2>&1 | \
+// RUN:   FileCheck %s --check-prefix=INVALID
+
+// INVALID: error: fuse-1q-chains-for-clifford-t epsilon must be finite and non-negative
+
+// This U3 needs three approximate rotations in ZXZ, but its XZX middle angle
+// is pi/2. The computed middle angle is a few ulps off pi/2 and is snapped to
+// it, so the rewrite happens with epsilon zero. The rewrite keeps the exact
+// phase.
+func.func @xzx(%target: !quake.ref) {
+  %theta = arith.constant 2.124031875205279 : f64
+  %phi = arith.constant -3.040881076066917 : f64
+  %lambda = arith.constant 1.7607970180361683 : f64
+  quake.u3 (%theta, %phi, %lambda) %target : (f64, f64, f64, !quake.ref) -> ()
+  return
+}
+// CHECK-LABEL: func.func @xzx(
+// CHECK: quake.rx
+// CHECK-NEXT: quake.rz
+// CHECK-NEXT: quake.rx
+// CHECK-NEXT: quake.phase
+// CHECK-NEXT: quake.wrap
+// FT-LABEL: func.func @xzx(
+// FT-COUNT-2: call @__cliffordt_rz_
+// FT-NOT: call @__cliffordt_rz_
+// FT: return
+
+// T, adjoint, and rotation gates compose into one chain. Adjoint gates
+// contribute their inverse matrix and phase. The chain is diagonal, so the
+// middle angle is zero, and only the sum of the outer angles is meaningful. A
+// single Rz remains where the input has three approximate rotations.
+func.func @mixed_chain(%target: !quake.ref) {
+  %a = arith.constant 0.3 : f64
+  %b = arith.constant 0.5 : f64
+  quake.rz (%a) %target : (f64, !quake.ref) -> ()
+  quake.t<adj> %target : (!quake.ref) -> ()
+  quake.rz (%b) %target : (f64, !quake.ref) -> ()
+  quake.s<adj> %target : (!quake.ref) -> ()
+  quake.r1<adj> (%a) %target : (f64, !quake.ref) -> ()
+  return
+}
+// CHECK-LABEL: func.func @mixed_chain(
+// CHECK: quake.unwrap
+// CHECK-NEXT: quake.rz
+// CHECK-NEXT: quake.phase
+// CHECK-NEXT: quake.wrap
+
+// A half-turn middle angle leaves only the difference of the outer angles
+// meaningful, so one rotation remains next to the half turn.
+func.func @half_turn(%target: !quake.ref) {
+  %a = arith.constant 0.3 : f64
+  %pi = arith.constant 3.141592653589793 : f64
+  %b = arith.constant 0.5 : f64
+  quake.rz (%a) %target : (f64, !quake.ref) -> ()
+  quake.rx (%pi) %target : (f64, !quake.ref) -> ()
+  quake.rz (%b) %target : (f64, !quake.ref) -> ()
+  return
+}
+// CHECK-LABEL: func.func @half_turn(
+// CHECK: quake.rz
+// CHECK-NEXT: quake.rx
+// CHECK-NEXT: quake.wrap
+
+// A chain whose every Euler form needs the same number of approximate
+// rotations is left alone. Neither basis emits Ry, so any rewrite would show.
+func.func @tie(%target: !quake.ref) {
+  %a = arith.constant 0.3 : f64
+  %b = arith.constant 0.4 : f64
+  %c = arith.constant 0.5 : f64
+  quake.rz (%a) %target : (f64, !quake.ref) -> ()
+  quake.ry (%b) %target : (f64, !quake.ref) -> ()
+  quake.rz (%c) %target : (f64, !quake.ref) -> ()
+  return
+}
+// CHECK-LABEL: func.func @tie(
+// CHECK: quake.rz
+// CHECK-NEXT: quake.ry
+// CHECK-NEXT: quake.rz
+// CHECK-NEXT: quake.wrap
+
+// Rotations within epsilon of a quarter turn count as exact, so the chain
+// below needs no rewrite at epsilon 1e-3 but is rewritten at epsilon zero.
+func.func @epsilon(%target: !quake.ref) {
+  %a = arith.constant 2.3578258471327347 : f64
+  %b = arith.constant 0.7839435485182094 : f64
+  %c = arith.constant -0.78384842106734 : f64
+  %d = arith.constant 0.7836041518235872 : f64
+  quake.rx (%a) %target : (f64, !quake.ref) -> ()
+  quake.ry (%b) %target : (f64, !quake.ref) -> ()
+  quake.rx (%c) %target : (f64, !quake.ref) -> ()
+  quake.ry (%d) %target : (f64, !quake.ref) -> ()
+  return
+}
+// CHECK-LABEL: func.func @epsilon(
+// CHECK: quake.rz
+// CHECK-NEXT: quake.rx
+// CHECK-NEXT: quake.rz
+// CHECK-NEXT: quake.wrap
+// EPSILON-LABEL: func.func @epsilon(
+// EPSILON: quake.rx
+// EPSILON-NEXT: quake.ry
+// EPSILON-NEXT: quake.rx
+// EPSILON-NEXT: quake.ry
+// EPSILON-NEXT: quake.wrap
+
+// The function-level opt-out keeps the chain intact.
+func.func @no_optimization(%target: !quake.ref)
+    attributes {"quake.noOptimization"} {
+  %a = arith.constant 0.3 : f64
+  %b = arith.constant 0.5 : f64
+  quake.rz (%a) %target : (f64, !quake.ref) -> ()
+  quake.rz (%b) %target : (f64, !quake.ref) -> ()
+  return
+}
+// CHECK-LABEL: func.func @no_optimization(
+// CHECK: quake.rz
+// CHECK-NEXT: quake.rz

@@ -899,6 +899,57 @@ def FactorQuantumAllocations :
   ];
 }
 
+def FuseSingleQubitChainsForCliffordT
+    : Pass<"fuse-1q-chains-for-clifford-t", "mlir::func::FuncOp"> {
+  let summary = "Fuse constant one-qubit gate sequences into a form that "
+                "heuristically minimizes the rotations needing approximate "
+                "Clifford+T synthesis.";
+  let description = [{
+    Consumes and produces the linear SSA `!quake.wire` form created by
+    `convert-to-linear-values`.
+
+    Clifford+T synthesis approximates each rotation separately unless its
+    angle is within `epsilon` of a multiple of pi/4, and every approximation
+    adds T gates. Any one-qubit unitary can be written with three rotations,
+    but a sequence of one-qubit gates often has more than three rotations that
+    need approximation. Two decomposed `U3` gates in a row can have six, for
+    example. This pass replaces such a sequence with at most three rotations,
+    so the unitary is approximated fewer times.
+
+    The pass looks at each longest sequence of uncontrolled `h`, `s`, `t`, `x`,
+    `y`, `z`, `phase`, `r1`, `rx`, `ry`, and `rz` gates on one wire whose
+    angles are constants. Any other operation, including a controlled or
+    multi-qubit gate or a gate whose angle is not a constant, ends the
+    sequence. The pass multiplies the sequence into one unitary and writes
+    it in two ways, as `rz`-`rx`-`rz` and as `rx`-`rz`-`rx`. It keeps
+    whichever form needs the fewest approximations, using the total number
+    of rotations to break ties, but only if that form is strictly better
+    than the original sequence. A `quake.phase` gate keeps the global phase
+    exact. Sequences that need no approximation, or that have only one
+    rotation, are left alone. Angles that come out within rounding error of
+    a multiple of pi/4 are snapped to that value, so they need no
+    approximation even when `epsilon` is zero.
+
+    The pass does not try forms with `ry` on the outside, such as
+    `ry`-`rx`-`ry`. They sometimes save one rotation in the sequence, but
+    `ry` commutes with neither the control nor the target of a controlled
+    `quake.x`, so `quake-simplify` can no longer merge those rotations with
+    their neighbors.
+
+    The pass creates a new constant for each angle it emits, so run
+    `canonicalize` after it. Functions marked `quake.noOptimization` are
+    skipped.
+  }];
+  let options = [
+    Option<"epsilon", "epsilon", "double", /*default=*/"0.0",
+      "Operator-norm distance within which a rotation counts as a quarter "
+      "turn. Use the epsilon of the downstream Clifford+T legalization. Zero "
+      "counts only exact quarter turns.">,
+  ];
+  let dependentDialects = ["mlir::arith::ArithDialect",
+                           "cudaq::quake::QuakeDialect"];
+}
+
 def GenerateDeviceCodeLoader : Pass<"device-code-loader", "mlir::ModuleOp"> {
   let summary = "Generate device code loader stubs.";
   let description = [{

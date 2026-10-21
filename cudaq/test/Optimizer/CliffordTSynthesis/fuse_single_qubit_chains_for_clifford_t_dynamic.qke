@@ -1,0 +1,81 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --pass-pipeline='builtin.module( \
+// RUN:   decomposition{enable-patterns=U3ToRotations},convert-to-linear-values, \
+// RUN:   func.func(fuse-1q-chains-for-clifford-t,canonicalize))' %s | FileCheck %s
+// RUN: cudaq-opt --pass-pipeline='builtin.module( \
+// RUN:   func.func(fuse-1q-chains-for-clifford-t))' %s | \
+// RUN:   FileCheck %s --check-prefix=NESTED
+
+// A controlled gate or a non-constant parameter ends a chain. The constant U3
+// after the boundaries is optimized on its own, and the boundaries are
+// untouched.
+func.func @boundaries(%control: !quake.ref, %target: !quake.ref,
+                      %dynamic: f64) {
+  %theta = arith.constant 2.124031875205279 : f64
+  %phi = arith.constant -3.040881076066917 : f64
+  %lambda = arith.constant 1.7607970180361683 : f64
+  quake.u3 (%theta, %phi, %lambda) [%control] %target
+      : (f64, f64, f64, !quake.ref, !quake.ref) -> ()
+  quake.rz (%dynamic) %target : (f64, !quake.ref) -> ()
+  quake.u3 (%theta, %phi, %lambda) %target : (f64, f64, f64, !quake.ref) -> ()
+  return
+}
+// CHECK-LABEL: func.func @boundaries(
+// CHECK: quake.phase (%{{.*}}) [%
+// CHECK: quake.rz (%arg2)
+// CHECK-NEXT: quake.rx
+// CHECK-NEXT: quake.rz
+// CHECK-NEXT: quake.rx
+// CHECK-NEXT: quake.phase
+
+// Only `arith.constant` parameters that convert to double exactly join a
+// chain, so these gates are left alone.
+func.func @unsupported_constants(%target: !quake.ref) {
+  %a = llvm.mlir.constant(0.3 : f64) : f64
+  %b = arith.constant 0.4 : f64
+  %c = arith.constant 0.3 : f128
+  %d = arith.constant 0.4 : f128
+  quake.rz (%a) %target : (f64, !quake.ref) -> ()
+  quake.rz (%b) %target : (f64, !quake.ref) -> ()
+  quake.rz (%c) %target : (f128, !quake.ref) -> ()
+  quake.rz (%d) %target : (f128, !quake.ref) -> ()
+  return
+}
+// CHECK-LABEL: func.func @unsupported_constants(
+// CHECK-COUNT-4: quake.rz
+// CHECK-NEXT: quake.wrap
+
+// Chains are rewritten inside nested regions, and a chain may continue through
+// a `cc.scope`, whose `cc.continue` then receives the replacement wire.
+func.func @nested_regions(%arg0: !quake.wire, %c: i1) -> !quake.wire {
+  %a = arith.constant 0.3 : f64
+  %b = arith.constant 0.5 : f64
+  %0 = quake.rz (%a) %arg0 : (f64, !quake.wire) -> !quake.wire
+  %1 = cc.scope -> (!quake.wire) {
+    %2 = quake.rz (%b) %0 : (f64, !quake.wire) -> !quake.wire
+    cc.continue %2 : !quake.wire
+  }
+  %3 = cc.if(%c) ((%w = %1)) -> !quake.wire {
+    %4 = quake.rz (%a) %w : (f64, !quake.wire) -> !quake.wire
+    %5 = quake.rz (%b) %4 : (f64, !quake.wire) -> !quake.wire
+    cc.continue %5 : !quake.wire
+  } else {
+    cc.continue %w : !quake.wire
+  }
+  return %3 : !quake.wire
+}
+// NESTED-LABEL: func.func @nested_regions(
+// NESTED: %[[FUSED:.*]] = quake.rz (%{{.*}}) %arg0
+// NESTED: %[[SCOPE:.*]] = cc.scope -> (!quake.wire) {
+// NESTED-NEXT: cc.continue %[[FUSED]]
+// NESTED: cc.if(%arg1) ((%[[W:.*]] = %[[SCOPE]])) -> !quake.wire {
+// NESTED: %[[INNER:.*]] = quake.rz (%{{.*}}) %[[W]]
+// NESTED-NOT: quake.rz
+// NESTED: cc.continue %[[INNER]]
