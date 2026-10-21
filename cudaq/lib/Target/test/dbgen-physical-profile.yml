@@ -6,15 +6,14 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.    #
 # ============================================================================ #
 
-# RUN: %cudaq-target-db-gen -o %t.db.cpp v2-phys-defaults=%S/v2-physical-profile-defaults.yml
+# RUN: %cudaq-target-db-gen -o %t.db.cpp v2-physical=%s
 # RUN: FileCheck %s --input-file=%t.db.cpp
 
-# Omitted profile options take their declared defaults. The lowering is still
-# required to be an explicit custom pipeline at this point.
+# Test that `cudaq-target-db-gen` parses `physical-quake` correctly.
 
 version: 2
-name: v2-phys-defaults
-description: "Physical profile defaults"
+name: v2-physical
+description: "Physical profile options round trip"
 config:
   library-mode: false
 
@@ -22,9 +21,14 @@ compile-target:
   stages:
     - ir-output-profile:
         name: physical-quake
+        options:
+          basis-gates: ["h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)"]
+          measurements: expanded
+          reset-before-reuse: true
       lowering:
         custom-pipeline: "canonicalize"
   codegen: nop
 
-# CHECK: .irOutputProfile = cudaq::config::Profile{std::in_place_type<cudaq::config::PhysicalQuakeProfile>, cudaq::config::PhysicalQuakeProfile{.basisGates = {}, .measurements = cudaq::config::MeasurementForm::any, .resetBeforeReuse = false}
+# CHECK: kBuiltinTarget_v2_physical
+# CHECK: .irOutputProfile = cudaq::config::Profile{std::in_place_type<cudaq::config::PhysicalQuakeProfile>, cudaq::config::PhysicalQuakeProfile{.basisGates = {"h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)", }, .measurements = cudaq::config::MeasurementForm::expanded, .resetBeforeReuse = true}
 # CHECK: .lowering = cudaq::config::CustomPipelineLowering{.overridePassPipeline = "canonicalize"

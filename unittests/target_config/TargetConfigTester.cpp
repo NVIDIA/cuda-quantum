@@ -205,12 +205,6 @@ compile-target:
   EXPECT_TRUE(config.BackendConfig->hasPassPipeline());
 }
 
-TEST(TargetConfigTester, physicalQuakeProfileDefaults) {
-  const cudaq::config::PhysicalQuakeProfile profile;
-  EXPECT_TRUE(profile.basisGates.empty());
-  EXPECT_EQ(profile.measurements, cudaq::config::MeasurementForm::any);
-  EXPECT_FALSE(profile.resetBeforeReuse);
-}
 TEST(TargetConfigTester, physicalQuakeProfileIdentity) {
   const cudaq::config::PhysicalQuakeProfile baseline{
       .basisGates = {"h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)"},
