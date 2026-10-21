@@ -31,34 +31,31 @@ static bool isSupportedOutlineOp(Operation *op) {
          (isa<cudaq::quake::DiscriminateOp>(op) ||
           cudaq::quake::detail::getScalarWireFlow(op).has_value());
 }
-} // namespace
 
-FailureOr<cudaq::cc::CreateLambdaOp>
-cudaq::opt::outlinePartition(ArrayRef<Operation *> partition) {
+static FailureOr<cudaq::cc::CreateLambdaOp>
+outlinePartitionImpl(ArrayRef<Operation *> partition,
+                     const DominanceInfo &dominance) {
   if (partition.empty())
     return failure();
 
   DenseSet<Operation *> inPartition(partition.begin(), partition.end());
 
-  // All operations must live in one block; find the last one in block order to
-  // use as the anchor for the closure and its application.
+  // All operations must be supported and live in one block.
   Block *block = partition.front()->getBlock();
-  Operation *anchor = partition.front();
   for (Operation *op : partition) {
     if (op->getBlock() != block)
       return failure();
     if (!isSupportedOutlineOp(op))
       return failure();
-    if (anchor->isBeforeInBlock(op))
-      anchor = op;
   }
 
-  // Walk the partition in block (topological) order so cloned operands are
-  // always already mapped.
-  SmallVector<Operation *> orderedOps;
-  for (Operation &op : *block)
-    if (inPartition.contains(&op))
-      orderedOps.push_back(&op);
+  // Sort the unique selected operations in block (topological) order so cloned
+  // operands are always already mapped.
+  SmallVector<Operation *> orderedOps(inPartition.begin(), inPartition.end());
+  llvm::sort(orderedOps, [](Operation *lhs, Operation *rhs) {
+    return lhs->isBeforeInBlock(rhs);
+  });
+  Operation *anchor = orderedOps.back();
 
   // Collect the input/output boundary, keeping non-wire values separate so
   // they can precede wires in the callable signature.
@@ -126,7 +123,6 @@ cudaq::opt::outlinePartition(ArrayRef<Operation *> partition) {
       if (!inPartition.contains(user))
         if (!insertBefore || user->isBeforeInBlock(insertBefore))
           insertBefore = user;
-  DominanceInfo dominance;
   for (Value in : llvm::concat<Value>(nonWireInputList, inputList)) {
     bool available = insertBefore
                          ? dominance.properlyDominates(in, insertBefore)
@@ -178,12 +174,22 @@ cudaq::opt::outlinePartition(ArrayRef<Operation *> partition) {
 
   return lambda;
 }
+} // namespace
+
+FailureOr<cudaq::cc::CreateLambdaOp>
+cudaq::opt::outlinePartition(ArrayRef<Operation *> partition) {
+  DominanceInfo dominance;
+  return outlinePartitionImpl(partition, dominance);
+}
 
 LogicalResult
 cudaq::opt::outlinePartitions(ArrayRef<SmallVector<Operation *>> partitions) {
+  // The CFG of existing regions is unchanged, so cached dominance information
+  // remains valid across these rewrites.
+  DominanceInfo dominance;
   auto result = success();
   for (const auto &partition : partitions)
-    if (failed(outlinePartition(partition)))
+    if (failed(outlinePartitionImpl(partition, dominance)))
       result = failure();
   return result;
 }

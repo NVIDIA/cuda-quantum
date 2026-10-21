@@ -62,6 +62,10 @@ TEST(OutlinePartitions, ContiguousRun) {
   });
   ASSERT_EQ(partition.size(), 2u);
 
+  // Accept an unordered selection with a duplicate while cloning each gate
+  // once in block order.
+  partition = {partition[1], partition[0], partition[1]};
+
   auto lambda = cudaq::opt::outlinePartition(partition);
   ASSERT_TRUE(succeeded(lambda));
   EXPECT_TRUE(succeeded(verify(*mod)));
@@ -73,18 +77,21 @@ TEST(OutlinePartitions, ContiguousRun) {
 
   // Exactly one create_lambda and one call_callable; the gates moved into the
   // closure body, so none remain in the enclosing function's block.
-  unsigned lambdas = 0, calls = 0, strayGates = 0;
+  unsigned lambdas = 0, calls = 0, gates = 0, strayGates = 0;
   mod->walk([&](Operation *op) {
     if (isa<cudaq::cc::CreateLambdaOp>(op))
       ++lambdas;
     else if (isa<cudaq::cc::CallCallableOp>(op))
       ++calls;
+    else if (isa<cudaq::quake::HOp, cudaq::quake::XOp>(op))
+      ++gates;
   });
   for (Operation &op : lambda->getOperation()->getBlock()->getOperations())
     if (isa<cudaq::quake::HOp, cudaq::quake::XOp>(op))
       ++strayGates;
   EXPECT_EQ(lambdas, 1u);
   EXPECT_EQ(calls, 1u);
+  EXPECT_EQ(gates, 2u);
   EXPECT_EQ(strayGates, 0u);
 }
 
