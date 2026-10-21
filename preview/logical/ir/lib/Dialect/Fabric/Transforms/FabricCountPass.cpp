@@ -876,6 +876,9 @@ void Walker::walkOp(Operation *op, int64_t mult) {
     requiresExtendedAnalyticalModel = true;
 
   StringRef operationName = op->getName().getStringRef();
+  // Analysis declarations have no executable quantum-resource cost.
+  if (isa<DetectorOp, ObservableOp, OutputSyndromeOp>(op))
+    return;
   if (operationName.starts_with("fabric.") &&
       !isa<ReturnOp, ProtocolReturnOp, ProfileEndOp>(op)) {
     bump(operationCounts, operationName.drop_front(7), mult, op,

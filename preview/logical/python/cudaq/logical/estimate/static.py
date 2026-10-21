@@ -18,6 +18,9 @@ from ._fabric_walk import (
 from .types import FabricCounts
 
 _DECLARATIONS = {
+    "fabric.detector",
+    "fabric.observable",
+    "fabric.output_syndrome",
     "fabric.code",
     "fabric.code_profile",
     "fabric.encoding",

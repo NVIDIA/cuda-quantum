@@ -58,6 +58,44 @@ def _parity(value):
 
 
 @dataclass(frozen=True, slots=True)
+class Detector:
+    """Declared virtual-detector row of the affine detector map.
+
+    The parity may use measurement records and input virtual syndromes.
+    Declaring a row does not prove that it vanishes in the ideal realization.
+    Redundant rows are allowed; a detector family need not be a basis.
+    """
+
+    parity: RecordParity | RecordRef | InputSyndromeRef | ProfileParity | bool
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "parity",
+                           ProfileParity.from_value(self.parity))
+
+
+@dataclass(frozen=True, slots=True)
+class LogicalObservable:
+    """One indexed action-outcome row of the affine outcome map.
+
+    Outcomes depend on realization measurements, never on input virtual
+    syndromes. A random action outcome is also a valid observable.
+    """
+
+    parity: RecordParity | RecordRef | ProfileParity | bool
+    index: int
+
+    def __post_init__(self) -> None:
+        if not isinstance(self.index, int) or isinstance(
+                self.index, bool) or self.index < 0:
+            raise TypeError("logical observable index must be nonnegative")
+        parity = ProfileParity.from_value(self.parity)
+        if parity.input_syndromes:
+            raise ValueError(
+                "observable rows cannot use input virtual syndromes")
+        object.__setattr__(self, "parity", parity)
+
+
+@dataclass(frozen=True, slots=True)
 class SuccessPredicate:
     parity: RecordParity | RecordRef | ProfileParity
 
@@ -68,11 +106,12 @@ class SuccessPredicate:
 
 @dataclass(frozen=True, slots=True)
 class OutputSyndromeAssignment:
-    """Compiler-normalized scalar row for one output block endpoint.
+    """Scalar output virtual-syndrome row of the detector map.
 
     Authors bind whole ``endpoint.syndrome`` bundles.  This scalar form exists
     only after profile-graph normalization and is intentionally not exported
-    from the top-level user surface.
+    from the top-level user surface. These expected stabilizer signs are
+    distinct from the syndrome coordinates of a residual boundary error.
     """
 
     endpoint: BlockEndpoint

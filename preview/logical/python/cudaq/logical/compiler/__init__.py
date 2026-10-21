@@ -46,6 +46,7 @@ from .projection import (
     ProjectedMeasurement,
     ProjectedPort,
 )
+from .clifford import CliffordInstruction, CliffordProjection, project_clifford
 from .topology_view import (
     CarrierGraphView,
     DeviceStackGraphView,
@@ -120,6 +121,9 @@ __all__ = [
     "to_pbc",
     "absorb_clifford_frame",
     "materialize",
+    "CliffordInstruction",
+    "CliffordProjection",
+    "project_clifford",
     "lower",
     "passes",
     "pipelines",

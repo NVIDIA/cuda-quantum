@@ -32,6 +32,9 @@ _RECORD_NAMES = (
 _SEMANTIC_NAMES = (
     "CommitPoint",
     "CommitPointKind",
+    "Detector",
+    "LogicalObservable",
+    "ProfileSemanticError",
     "OutcomeRole",
     "OutcomeMap",
     "OutcomeSyndromeTerm",

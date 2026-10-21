@@ -58,6 +58,7 @@ Emission refuses rather than approximates:
   code (`n=1, k=1, r=0`); encoded preparation is rejected;
 - recursive Fabric call graphs are rejected.
 
-Stim cannot express noise models, detectors, sampling, or decoding. The
-trimmed product does not include them, so no DEM or shot-level target exists to
-emit toward.
+This export emits the ideal realization. CUDA-Q Logical does not yet attach a
+noise model, derive a DEM, or provide sampling and decoding through this path.
+For typed native instructions and exact boundary and measurement records, see
+[Clifford projection](../reference/detector-contracts.md#project-the-realization).

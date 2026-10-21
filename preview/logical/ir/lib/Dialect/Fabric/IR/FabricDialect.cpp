@@ -8427,6 +8427,22 @@ LogicalResult SuccessOp::verify() {
   return success();
 }
 
+LogicalResult DetectorOp::verify() {
+  if (!isa_and_nonnull<GadgetProfileOp>((*this)->getParentOp()))
+    return emitOpError("must be a direct child of a fabric.gadget_profile");
+  return success();
+}
+
+LogicalResult ObservableOp::verify() {
+  if (!isa_and_nonnull<GadgetProfileOp>((*this)->getParentOp()))
+    return emitOpError("must be a direct child of a fabric.gadget_profile");
+  if (getIdxAttr().getInt() < 0)
+    return emitOpError("observable index must be nonnegative");
+  if (getInputSyndromes() && !getInputSyndromes()->empty())
+    return emitOpError("observable rows cannot use input virtual syndromes");
+  return success();
+}
+
 LogicalResult OutputSyndromeOp::verify() {
   if (!(*this)->getParentOfType<GadgetProfileOp>())
     return emitOpError("must be nested in a fabric.gadget_profile");
@@ -8559,7 +8575,8 @@ LogicalResult GadgetProfileOp::verify() {
   StringRef gadgetName = gadget.getSymName();
   SmallVector<std::string> demandedPaths;
   getBody().walk([&](Operation *declaration) {
-    if (!isa<SuccessOp, OutputSyndromeOp>(declaration))
+    if (!isa<DetectorOp, ObservableOp, SuccessOp, OutputSyndromeOp>(
+            declaration))
       return;
     auto records = declaration->getAttrOfType<ArrayAttr>("records");
     if (!records)
@@ -8681,7 +8698,19 @@ LogicalResult GadgetProfileOp::verify() {
   };
 
   WalkResult result = getBody().walk([&](Operation *op) -> WalkResult {
-    if (isa<SuccessOp, OutputSyndromeOp>(op)) {
+    if (isa<ObservableOp>(op)) {
+      auto index = op->getAttrOfType<IntegerAttr>("idx");
+      if (!index || index.getInt() < 0) {
+        op->emitOpError("observable index must be nonnegative");
+        return WalkResult::interrupt();
+      }
+      auto inputs = op->getAttrOfType<ArrayAttr>("input_syndromes");
+      if (inputs && !inputs.empty()) {
+        op->emitOpError("observable rows cannot use input virtual syndromes");
+        return WalkResult::interrupt();
+      }
+    }
+    if (isa<DetectorOp, ObservableOp, SuccessOp, OutputSyndromeOp>(op)) {
       if (failed(checkRecords(op)) || failed(checkInputSyndromes(op)))
         return WalkResult::interrupt();
     }
@@ -8693,9 +8722,17 @@ LogicalResult GadgetProfileOp::verify() {
   if (result.wasInterrupted())
     return failure();
 
-  // A canonical role-tagged OutcomeMap is the affine authority for success
-  // rows. If a profile authors them, its complete ordered support, input
-  // terms, and constants must agree with the linked GadgetSpec.
+  int64_t expectedObservableIndex = 0;
+  for (Operation &declaration : getBody().front())
+    if (auto observable = dyn_cast<ObservableOp>(&declaration)) {
+      if (observable.getIdx() != expectedObservableIndex)
+        return observable.emitOpError(
+            "observable indices must be contiguous in profile order from zero");
+      ++expectedObservableIndex;
+    }
+
+  // The gadget's OutcomeMap owns both result and success rows. A profile
+  // cannot assign a different affine meaning to the same action outcomes.
   if (spec && spec.getOutcomeMap()) {
     DictionaryAttr outcome = *spec.getOutcomeMap();
     auto roleRows = outcome.getAs<ArrayAttr>("roles");
@@ -8771,6 +8808,12 @@ LogicalResult GadgetProfileOp::verify() {
       for (SuccessOp success : successes)
         successDeclarations.push_back(success.getOperation());
       if (failed(verifyRole(successDeclarations, "success")))
+        return failure();
+      SmallVector<Operation *> observableDeclarations;
+      for (Operation &declaration : getBody().front())
+        if (isa<ObservableOp>(declaration))
+          observableDeclarations.push_back(&declaration);
+      if (failed(verifyRole(observableDeclarations, "result")))
         return failure();
     }
   }

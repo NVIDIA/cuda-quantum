@@ -677,4 +677,33 @@ NB_MODULE(_qlxRuntime, m) {
       },
       nb::arg("module"), nb::arg("name"),
       "Run a named MLIR translation on a module (no re-parse).");
+
+  m.def(
+      "project_clifford_json",
+      [](MlirModule pyModule, const std::string &gadget) {
+        mlir::ModuleOp module = unwrap(pyModule);
+        auto diagnosticMutex = contextDiagnosticMutex(module.getContext());
+        std::unique_lock<std::mutex> diagnosticLock(*diagnosticMutex);
+        std::string diagnostics;
+        mlir::ScopedDiagnosticHandler handler(
+            module.getContext(), [&](mlir::Diagnostic &diag) {
+              if (diag.getSeverity() != mlir::DiagnosticSeverity::Error)
+                return mlir::failure();
+              llvm::raw_string_ostream stream(diagnostics);
+              stream << diag.getLocation() << ": ";
+              diag.print(stream);
+              stream << "\n";
+              return mlir::success();
+            });
+        std::string result;
+        if (mlirLogicalResultIsFailure(qlxProjectCliffordJson(
+                pyModule, toRef(gadget), appendToString, &result)))
+          throw std::runtime_error("Clifford projection failed:\n" +
+                                   diagnostics);
+        return result;
+      },
+      nb::arg("module"), nb::arg("gadget") = "",
+      nb::call_guard<nb::gil_scoped_release>(),
+      "Project a selected Fabric realization without parsing Stim or mutating "
+      "IR.");
 }
