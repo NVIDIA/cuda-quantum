@@ -34,7 +34,7 @@ def _symbol_path(attribute) -> tuple[str, ...]:
 
 
 def _walk_operation(operation):
-    """Snapshot operations in preorder using MLIR's native tree traversal."""
+    """Snapshot operations in pre-order using MLIR's native tree traversal."""
 
     operations = []
 
