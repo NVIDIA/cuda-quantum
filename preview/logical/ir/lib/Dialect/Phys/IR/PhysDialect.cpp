@@ -1708,32 +1708,54 @@ LogicalResult ReleaseOp::verify() {
   return success();
 }
 
-static bool hasSSAPath(Operation *producer, Operation *consumer) {
+// Caches the users of ops with many results, which lifetime queries revisit.
+using WideSSAUsers =
+    llvm::DenseMap<Operation *, llvm::SmallPtrSet<Operation *, 16>>;
+
+static bool hasSSAPath(Operation *producer, Operation *consumer,
+                       WideSSAUsers &wideUsers) {
   SmallVector<Operation *, 16> worklist;
   llvm::SmallPtrSet<Operation *, 32> visited;
-  for (Value result : producer->getResults())
-    llvm::append_range(worklist, result.getUsers());
+  auto appendUsers = [&](Operation *operation) {
+    if (operation->getNumResults() > 8) {
+      auto [entry, inserted] = wideUsers.try_emplace(operation);
+      if (inserted)
+        for (Value result : operation->getResults())
+          entry->second.insert(result.user_begin(), result.user_end());
+      for (Operation *ancestor = consumer; ancestor;
+           ancestor = ancestor->getParentOp())
+        if (entry->second.contains(ancestor))
+          return true;
+      llvm::append_range(worklist, entry->second);
+    } else {
+      for (Value result : operation->getResults())
+        llvm::append_range(worklist, result.getUsers());
+    }
+    return false;
+  };
+  if (appendUsers(producer))
+    return true;
   while (!worklist.empty()) {
     Operation *operation = worklist.pop_back_val();
     if (operation == consumer || operation->isProperAncestor(consumer))
       return true;
     if (!visited.insert(operation).second)
       continue;
-    for (Value result : operation->getResults())
-      llvm::append_range(worklist, result.getUsers());
+    if (appendUsers(operation))
+      return true;
   }
   return false;
 }
 
 static bool causallyPrecedes(Operation *producer, Operation *consumer,
-                             GraphOp graph) {
+                             GraphOp graph, WideSSAUsers &wideUsers) {
   Operation *producerAnchor = directGraphChild(producer, graph);
   Operation *consumerAnchor = directGraphChild(consumer, graph);
   if (!producerAnchor || !consumerAnchor)
     return false;
   if (producerAnchor == consumerAnchor)
-    return hasSSAPath(producer, consumer);
-  return hasSSAPath(producerAnchor, consumerAnchor);
+    return hasSSAPath(producer, consumer, wideUsers);
+  return hasSSAPath(producerAnchor, consumerAnchor, wideUsers);
 }
 
 static Operation *unsupportedLifetimeControl(Operation *operation,
@@ -1955,12 +1977,13 @@ LogicalResult AllocationMappingOp::verify() {
                  SmallVector<AllocationLifetime, 2>>
       physicalLifetimes;
   llvm::DenseMap<std::pair<Operation *, Operation *>, bool> causalOrder;
+  WideSSAUsers wideUsers;
   auto causallyOrdered = [&](Operation *producer, Operation *consumer) {
     auto key = std::make_pair(producer, consumer);
     auto found = causalOrder.find(key);
     if (found != causalOrder.end())
       return found->second;
-    bool result = causallyPrecedes(producer, consumer, graph);
+    bool result = causallyPrecedes(producer, consumer, graph, wideUsers);
     causalOrder.try_emplace(key, result);
     return result;
   };
