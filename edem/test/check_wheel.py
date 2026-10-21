@@ -31,6 +31,11 @@ from cudaq_edem import _core
 
 assert cudaq_edem.__version__ == version('cudaq-edem')
 assert callable(cudaq_edem.EDEM.adopt)
+assert {'DEM', 'compose_chain', 'project_DEM'} <= set(cudaq_edem.__all__)
+composed = cudaq_edem.compose_chain([cudaq_edem.EDEM()])
+projected = cudaq_edem.project_DEM(composed)
+assert isinstance(projected, cudaq_edem.DEM)
+assert cudaq_edem.DEM.from_bytes(projected.to_bytes()).is_dem
 assert _core.__file__.endswith(('.so', '.pyd'))
 assert not list(Path(cudaq_edem.__file__).parent.glob('_adoption_test*'))
 for name in ('LICENSE.nanobind', 'LICENSE.robin-map'):
@@ -44,6 +49,9 @@ assert (include / 'gf2' / 'bump_allocator.h').is_file()
 assert not (include / 'memory.h').exists()
 assert not (include / 'bump_allocator.h').exists()
 assert (include / 'edem' / 'python.h').is_file()
+assert (include / 'edem' / 'owned.hpp').is_file()
+assert (include / 'edem' / 'composition.h').is_file()
+assert (include / 'edem' / 'composition.hpp').is_file()
 library_dir = cmake.parent.parent
 libraries = []
 for name in ('cudaq-edem', 'cudaq-gf2'):

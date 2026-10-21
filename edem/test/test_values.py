@@ -21,6 +21,7 @@ import weakref
 from cudaq_edem import (
     Block,
     CodePresentation,
+    DEM,
     EDEM,
     Endpoint,
     FaultDistribution,
@@ -28,6 +29,8 @@ from cudaq_edem import (
     GroupKind,
     PortKind,
     SparseMatrix,
+    compose_chain,
+    project_DEM,
 )
 
 try:
@@ -68,6 +71,124 @@ def open_round():
             Block(Endpoint(out), Endpoint(inp), m) for out, inp, m in edges
         ],
     )
+
+
+class CompositionTest(unittest.TestCase):
+
+    def test_repeated_rounds_keep_occurrence_faults_and_exact_laws(self):
+        original = open_round()
+        source = EDEM(
+            codes=original.codes,
+            inputs=original.inputs,
+            outputs=original.outputs,
+            detectors=original.detectors,
+            faults=[
+                FaultDistribution(
+                    2, [FaultGroup(GroupKind.EXCLUSIVE, [0, 1], [0.1, 0.2])])
+            ],
+            blocks=original.blocks)
+        composed = compose_chain([source, source])
+        self.assertFalse(composed.is_dem)
+        self.assertEqual(composed.inputs, [0])
+        self.assertEqual(composed.outputs, [0])
+        self.assertEqual(composed.detectors, [2, 2])
+        self.assertEqual(len(composed.faults), 2)
+        for distribution in composed.faults:
+            self.assertEqual(distribution.size, 2)
+            self.assertEqual(len(distribution.groups), 1)
+            group = distribution.groups[0]
+            self.assertEqual(group.kind, GroupKind.EXCLUSIVE)
+            self.assertEqual(group.fault_ids, [0, 1])
+            self.assertEqual(group.probabilities, [0.1, 0.2])
+        for bits in itertools.product((0, 1), repeat=10):
+            first = source.apply([*bits[:2], *bits[4:]])
+            second = source.apply([*bits[2:4], *first[2:]])
+            self.assertEqual(composed.apply(bits), [*first[:2], *second])
+        packed = composed.to_bytes()
+        del source, original
+        gc.collect()
+        self.assertEqual(composed.to_bytes(), packed)
+        self.assertEqual(EDEM.from_bytes(packed).to_bytes(), packed)
+
+    def test_projection_owns_exact_closed_value_and_roundtrips(self):
+        source = EDEM(faults=[
+            FaultDistribution(3, [
+                FaultGroup(GroupKind.EXCLUSIVE, [0, 2], [0.2, 0.3]),
+                FaultGroup(GroupKind.INDEPENDENT, [1], [0.1]),
+            ])
+        ],
+                      detectors=[2],
+                      observables=[1],
+                      successes=[1],
+                      blocks=[
+                          Block(Endpoint(PortKind.DETECTOR),
+                                Endpoint(PortKind.FAULT),
+                                SparseMatrix(2, 3, [(0, 0), (1, 1), (0, 2)])),
+                          Block(Endpoint(PortKind.OBSERVABLE),
+                                Endpoint(PortKind.FAULT),
+                                SparseMatrix(1, 3, [(0, 2)])),
+                          Block(Endpoint(PortKind.SUCCESS),
+                                Endpoint(PortKind.FAULT),
+                                SparseMatrix(1, 3, [(0, 1)])),
+                      ])
+        packed = source.to_bytes()
+        result = project_DEM(source)
+        self.assertIsInstance(result, DEM)
+        self.assertNotIsInstance(result, EDEM)
+        self.assertTrue(source.is_dem)
+        self.assertTrue(result.is_dem)
+        self.assertNotEqual(result._data_address, source._data_address)
+        expected = [
+            source.apply(bits) for bits in itertools.product((0, 1), repeat=3)
+        ]
+        del source
+        gc.collect()
+        self.assertEqual(result.to_bytes(), packed)
+        self.assertEqual(result.detectors, [2])
+        self.assertEqual(result.observables, [1])
+        self.assertEqual(result.successes, [1])
+        self.assertEqual(result.inputs, [])
+        self.assertEqual(result.outputs, [])
+        self.assertEqual(len(result.blocks), 3)
+        self.assertEqual(result.faults[0].groups[1].probabilities, [0.2, 0.3])
+        self.assertEqual(result.port(Endpoint(PortKind.FAULT)), (3, 0))
+        for loaded in (result, DEM.from_bytes(packed)):
+            self.assertEqual(loaded.to_bytes(), packed)
+            self.assertEqual([
+                loaded.apply(bits)
+                for bits in itertools.product((0, 1), repeat=3)
+            ], expected)
+        with self.assertRaises(TypeError):
+            DEM()
+
+    def test_projection_rejects_all_structural_boundaries(self):
+        for generators, logical_qubits in ((0, 0), (1, 1)):
+            code = CodePresentation("boundary", generators, logical_qubits)
+            for side in ("inputs", "outputs"):
+                source = EDEM(codes=[code], **{side: [0]})
+                self.assertFalse(source.is_dem)
+                with self.assertRaises(ValueError):
+                    project_DEM(source)
+                with self.assertRaises(ValueError):
+                    DEM.from_bytes(source.to_bytes())
+        empty = project_DEM(EDEM())
+        self.assertEqual(empty.vector_sizes, (0, 0))
+        self.assertEqual(empty.apply([]), [])
+
+    def test_composition_rejects_invalid_chains(self):
+        with self.assertRaises(ValueError):
+            compose_chain([])
+        with self.assertRaises((TypeError, ValueError)):
+            compose_chain([None])
+        with self.assertRaises(TypeError):
+            compose_chain([object()])
+        with self.assertRaises(ValueError):
+            compose_chain([open_round(), EDEM()])
+        left = EDEM(codes=[CodePresentation("left", 0, 0)], outputs=[0])
+        right = EDEM(codes=[CodePresentation("right", 0, 0)], inputs=[0])
+        with self.assertRaises(ValueError):
+            compose_chain([left, right])
+        self.assertEqual(compose_chain([EDEM()]).to_bytes(), EDEM().to_bytes())
 
 
 class ValuesTest(unittest.TestCase):
@@ -251,6 +372,15 @@ class ValuesTest(unittest.TestCase):
                  blocks=[duplicate, duplicate])
 
     def test_exclusive_laws_and_group_order(self):
+        normalized = [1.0 / 9.0] * 9
+        rounded = EDEM(faults=[
+            FaultDistribution(
+                9,
+                [FaultGroup(GroupKind.EXCLUSIVE, list(range(9)), normalized)])
+        ])
+        self.assertEqual(rounded.faults[0].groups[0].probabilities, normalized)
+        self.assertEqual(
+            EDEM.from_bytes(rounded.to_bytes()).to_bytes(), rounded.to_bytes())
         independent = FaultGroup(GroupKind.INDEPENDENT, [2], [-0.0])
         exclusive = FaultGroup(GroupKind.EXCLUSIVE, [0, 1], [0.2, 0.3])
         a = EDEM(faults=[FaultDistribution(3, [exclusive, independent])])
@@ -309,6 +439,40 @@ class ValuesTest(unittest.TestCase):
 
 @unittest.skipIf(_adoption_test is None, "native producer is build-tree only")
 class AdoptionTest(unittest.TestCase):
+
+    def test_composition_keeps_temporary_sequence_values_alive(self):
+        tracker = _adoption_test.Tracker()
+
+        class Occurrences:
+
+            def __len__(self):
+                return 2
+
+            def __getitem__(self, index):
+                if index >= 2:
+                    raise IndexError(index)
+                return EDEM.adopt(_adoption_test.make_capsule(tracker))
+
+        result = compose_chain(Occurrences())
+        gc.collect()
+        self.assertEqual(tracker.result_deallocations, 2)
+        self.assertEqual(tracker.live_results, 0)
+        self.assertEqual(result.apply([0, 1] + [0] * 8),
+                         [0, 0, 1, 0, 1, 0, 1, 0, 0, 0])
+
+    def test_composition_does_not_retain_source_allocation(self):
+        tracker = _adoption_test.Tracker()
+        capsule = _adoption_test.make_capsule(tracker)
+        value = EDEM.adopt(capsule)
+        result = compose_chain([value, value])
+        del value, capsule
+        gc.collect()
+        self.assertEqual(tracker.live_results, 0)
+        self.assertEqual(tracker.result_deallocations, 1)
+        self.assertEqual(tracker.capsule_destructions, 1)
+        self.assertEqual(result.apply([0, 1] + [0] * 8),
+                         [0, 0, 1, 0, 1, 0, 1, 0, 0, 0])
+        self.assertEqual(len(result.faults), 2)
 
     def test_adopts_native_result_without_copy_and_consumes_once(self):
         tracker = _adoption_test.Tracker()

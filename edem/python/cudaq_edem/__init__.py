@@ -21,6 +21,7 @@ from ._core import (
     FORMAT_VERSION,
     Block,
     CodePresentation,
+    DEM,
     EDEM,
     Endpoint,
     FaultDistribution,
@@ -28,6 +29,8 @@ from ._core import (
     GroupKind,
     PortKind,
     SparseMatrix,
+    compose_chain,
+    project_DEM,
 )
 
 __version__ = "@CUDAQ_EDEM_VERSION@"
@@ -44,6 +47,7 @@ __all__ = [
     "FORMAT_VERSION",
     "Block",
     "CodePresentation",
+    "DEM",
     "EDEM",
     "Endpoint",
     "FaultDistribution",
@@ -51,5 +55,7 @@ __all__ = [
     "GroupKind",
     "PortKind",
     "SparseMatrix",
+    "compose_chain",
     "get_cmake_dir",
+    "project_DEM",
 ]

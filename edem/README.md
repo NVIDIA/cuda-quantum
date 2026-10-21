@@ -61,8 +61,9 @@ Python requires no NumPy or Stim dependency. Dependent packages can link to the
 standalone wheel's native libraries and use its ownership protocol to exchange
 packed EDEM values without bundling another copy of the libraries.
 
-Python exposes EDEM values and sparse matrices. Generic typed-map construction
-and section access are available through the C interface.
+Python exposes EDEM values, sparse matrices, serial composition, and checked
+DEM projection. Generic typed-map construction and section access are available
+through the C interface.
 
 From the repository root, build the source distribution and its wheel:
 
@@ -243,6 +244,53 @@ constructor also stages its lowered map description and canonical EDEM section
 payloads in temporary scratch; its storage is linear in the input size.
 Packed values remain independent of this setup storage.
 
+## C++ ownership helper
+
+The installed header `cudaq/edem/owned.hpp` provides
+`cudaq::edem::v0::PackedEDEM`, a move-only C++17 owner over the C ownership
+record and a checked EDEM view. Its operations return C status codes and work
+with exceptions and RTTI disabled. Construction takes the semantic C description.
+
+CUDA-Q Logical can keep this owner in compiler code and translate status codes
+into LLVM or MLIR diagnostics. A library such as CUDA-Q QEC can reuse it inside
+its model implementation and provide its own public C++ type for decoder-facing
+operations. An implementation behind a pointer keeps the helper out of that
+type's binary layout. This reuses ownership and validation without duplicating
+the library's domain API.
+
+Applications may use the installed header directly. It is a source convenience,
+compiled in each consumer with hidden visibility and a versioned inline
+namespace. Cross-package exchange uses the C ownership record and packed bytes;
+each receiving consumer obtains its own checked view.
+
+For a caller-supplied description and optional memory provider:
+
+```cpp
+cudaq::edem::PackedEDEM model;
+auto status = cudaq::edem::PackedEDEM::construct(description, model, memory);
+if (status != CUDAQ_EDEM_OK)
+  return status;
+
+const cudaq_edem_view &view = model.view();
+// Use the C EDEM getters and GF2 operations while model owns the bytes.
+```
+
+`construct` replaces its output on success and preserves it on failure.
+`adopt` validates an aligned, uniquely owned C record and consumes it only
+on success, without copying the payload. `clone` makes an independent copy
+and validates it through a fresh read. `release` returns the C record and
+clears the owner and cached view; `reset` frees the payload. A view requires
+a nonempty owner and cannot be obtained from a temporary. Copy a C view token
+before moving an owner if that token must survive the move; references into the
+helper object itself follow that object's lifetime and state.
+
+Setup methods accept the same per-call memory provider as the C API, including
+reusable scratch arenas. The helper retains only the result's C ownership record.
+Allocator callbacks and contexts must outlive the owner and any released record.
+Consumers that retain callback or module dependencies beside the helper must
+destroy the payload owner first. Python producers can release the C record into
+the capsule protocol in `cudaq/edem/python.h`.
+
 ## Component boundary
 
 EDEM supports the map
@@ -254,8 +302,8 @@ A type is a nonempty UTF-8 name, a role and a wire count. Names compare by exact
 UTF-8 bytes, without normalization. Types are nominal, with no subtyping.
 Free bundles do not participate in wiring. Interface bundle compatibility
 requires matching type names, roles, wire counts and widths. Local type IDs are
-indices, not cross-value identities. The API constructs, validates and applies
-individual maps; it does not provide composition operations.
+indices, not cross-value identities. GF2 constructs, validates and applies
+typed maps; EDEM also provides serial composition of its packed values.
 
 EDEM uses four reserved, single-wire free types: `edem.fault`,
 `edem.detector`, `edem.observable`, and `edem.success`. It retains all four in
@@ -281,12 +329,12 @@ the output.
 
 ## Fault distributions
 
-Each probability must be finite and within `[0, 1]`. An exclusive group's
-probabilities are accumulated in binary64 and the total must not exceed one.
-This strict check can reject a mathematically normalized group when rounding
-makes its computed total greater than one. Construction and packed-value
-validation use the same check. Independent probabilities have no group-total
-bound.
+Each probability must be finite and within `[0, 1]`, with no allowance on
+individual bounds. Exclusive-group totals use compensated binary64 summation
+and must not exceed `1 + CUDAQ_EDEM_EXCLUSIVE_TOTAL_TOLERANCE`. The named
+constant is `1e-6`, a compatibility allowance on the total. Construction and
+packed-value validation use the same check. Independent probabilities have no
+group-total bound.
 
 Packing preserves the supplied probability bits except for normalization of
 negative zero to positive zero. It performs no probability renormalization.
@@ -403,3 +451,52 @@ new trailing directory and update header layout fields. Unknown required
 sections are unsupported; unknown optional sections can be skipped after their
 bounds and padding are checked. Optional metadata does not change the map's
 meaning.
+
+## Serial composition and DEM projection
+
+`cudaq/edem/composition.h` provides `cudaq_edem_compose_chain`,
+`cudaq_edem_is_dem`, and `cudaq_edem_project_dem`. Serial composition connects
+every output code bundle to the same ordinal input bundle of the next
+occurrence. Counts and code presentations must match. The first input and last
+output boundaries remain exposed. Repeated definitions create distinct
+occurrence fault ports with their original indicators and exact
+independent/exclusive distributions.
+
+The C++17 conveniences in `cudaq/edem/composition.hpp` use `PackedEDEM` and
+return C status codes. For supplied native values:
+
+```cpp
+cudaq_edem_view occurrences[] = {
+    prep.view(), sec.view(), sec.view(), sec.view(), mz.view()};
+cudaq::edem::PackedEDEM composed, dem;
+auto status = cudaq::edem::compose_chain(occurrences, 5, composed);
+if (status != CUDAQ_EDEM_OK)
+  return status;
+return cudaq::edem::project_DEM(composed, dem);
+```
+
+Python calls the same native operations and returns owning values:
+
+```python
+from cudaq_edem import compose_chain, project_DEM
+
+composed = compose_chain([prep, sec, sec, sec, mz])
+dem = project_DEM(composed)
+```
+
+Closure is structural, including zero-width code bundles. Success outputs and
+exclusive groups do not prevent closure. Strict projection rejects either
+exposed boundary. The semantic format already uses original indicator
+coordinates, so projection copies the closed packed EDEM into an independently
+owned, checked DEM value without changing its basis or fault laws. Detector,
+observable and success matrices remain its fault-to-output blocks. Partitions
+retain occurrence/local-port order; consumers concatenate columns by fault
+port and then original indicator. Projection does not convert exclusive laws
+to independent errors or serialize a Stim detector error model.
+
+The serial composer evaluates basis columns through native GF2 typed-map apply
+and materializes the complete result. Its cost grows with the number of source
+columns and downstream maps. It is an offline reference operation for serial
+chains; it does not provide general diagrams or incremental window updates.
+Operations retain no state or caches. Scratch and results use the same per-call
+memory provider as construction.
