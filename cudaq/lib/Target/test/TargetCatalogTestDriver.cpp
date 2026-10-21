@@ -94,20 +94,17 @@ void printProfileOptions(const char *indent,
             << "\n";
 }
 
-void printStage(const CompilationStage &stage, const char *indent) {
+void printProfile(const CompilationStage &stage, const char *indent) {
   /// Get `::name` from a variant by delegating to inner variant `::name` field.
   const auto name = [](const auto &variant) {
     auto inner = [](const auto &v) -> const char * { return v.name; };
     return std::visit(inner, variant);
   };
-  std::cout << indent
-            << "stage: ir-output-profile=" << name(stage.irOutputProfile)
-            << " lowering=" << name(stage.lowering) << "\n";
+  std::cout << indent << "ir-output-profile=" << name(stage.irOutputProfile)
+            << "\n";
   const std::string nested = std::string(indent) + "  ";
   std::visit([&](const auto &p) { printProfileOptions(nested.c_str(), p); },
              stage.irOutputProfile);
-  std::visit([&](const auto &l) { printLowering(nested.c_str(), l); },
-             stage.lowering);
 }
 
 void printBackend(const BackendEndConfigEntry &backend, const char *indent) {
@@ -118,8 +115,14 @@ void printBackend(const BackendEndConfigEntry &backend, const char *indent) {
             << "\n"
             << indent << "support-resource-counts: "
             << boolStr(backend.SupportResourceCounts) << "\n";
-  for (const auto &stage : backend.CompileTarget.stages)
-    printStage(stage, indent);
+  std::optional<cudaq::config::CustomPipelineLowering> pipelines;
+  if (!backend.CompileTarget.stages.empty())
+    pipelines = backend.CompileTarget.getCustomPipelineLowering();
+  // A backend without compilation stages has no pipeline fields to print.
+  if (pipelines) {
+    printLowering(indent, *pipelines);
+    printProfile(backend.CompileTarget.stages[0], indent);
+  }
   printField(indent, "codegen-emission",
              backend.CompileTarget.codegen.emissionFormat);
   printField(indent, "post-codegen-passes",
