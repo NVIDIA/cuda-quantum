@@ -33,7 +33,7 @@ typedef void *cpu_roce_transceiver_t;
 
 /// Which RDMA wire verb this transceiver's TX path uses.  Names the verb the
 /// transmitter issues, not a peer role; whoever sets the mode is the source.
-/// Mirrors CpuRoceTxMode in roce_transceiver.hpp.
+/// Maps onto Hololink's Transceiver::TxOperation.
 typedef enum {
   /// TX issues IBV_WR_SEND.  Use when the peer consumes Sends via pre-posted
   /// recv WQEs (e.g. an FPGA's HSB IP, which can only receive Sends; or a

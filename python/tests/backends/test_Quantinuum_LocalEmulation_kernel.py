@@ -408,6 +408,34 @@ def test_run():
         assert res[1] is False
 
 
+def test_run_consecutive_conditions():
+    # O3 folds the two `if`s into a `switch`, which the adaptive profile
+    # rejects unless it is lowered back to compares and branches.
+    cudaq.set_target('quantinuum', machine='Helios-1SC', emulate='true')
+
+    @cudaq.kernel
+    def bits_to_int(bits: list[bool]) -> int:
+        val = 0
+        for i in range(len(bits)):
+            val |= bits[i] << i
+        return val
+
+    @cudaq.kernel
+    def lookup() -> bool:
+        q = cudaq.qvector(4)
+        x(q[0])
+        x(q[2])
+        code = bits_to_int(mz(q[0:3]))
+        if code == 5:
+            x(q[3])
+        if code == 3:
+            z(q[3])
+        return mz(q[3])
+
+    results = cudaq.run(lookup, shots_count=2)
+    assert results == [True, True]
+
+
 def test_quantinuum_state_preparation():
 
     @cudaq.kernel
