@@ -23,7 +23,6 @@
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel.cuh"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_modes.h"
-#include "cudaq/realtime/daemon/dispatcher/kernel_types.h"
 
 // Helper macro for CUDA error checking
 #define CUDA_CHECK(call)                                                       \

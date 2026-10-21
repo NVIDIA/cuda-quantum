@@ -185,6 +185,11 @@ fails closed. Exhaustion is explicit (`RetryExhaustion.REPORT_FAILURE` / `ABORT`
 
 ## Verification: claims are checked, not trusted
 
+Analysis profiles can declare virtual detectors, action-outcome observables,
+and output virtual-syndrome relations without changing a gadget's realization.
+See [Detector contracts and Clifford projection](../reference/detector-contracts.md)
+for the terminology, affine maps, declaration API, and verification limits.
+
 Construction and MLIR verification establish local shape, ownership, symbol, and
 algebra invariants; semantic checks establish that a realization does what it
 claims. Do not conflate the levels:

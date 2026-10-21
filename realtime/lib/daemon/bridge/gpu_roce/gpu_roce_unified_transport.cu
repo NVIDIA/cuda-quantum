@@ -104,10 +104,14 @@ __device__ inline std::uint32_t poll_receive(gpu_roce_session &s) {
   return doca_gpu_dev_verbs_bswap32(cqe64->imm_inval_pkey) & 0xFFF;
 }
 
-/// Hand the NIC a fresh receive WQE and step the completion cursor onto it.
+/// Hand the NIC back the receive WQE just consumed and step the completion
+/// cursor to the next one.  The doorbell goes WQE_NUM past the consumed count,
+/// so every WQE of the queue stays posted, as start() left them: one posted
+/// only a single WQE ahead leaves none between a request's arrival and its
+/// repost, and UC silently drops a request that lands then.
 __device__ inline void recycle_receive(gpu_roce_session &s) {
   s.sq_wqe_idx++;
-  repost_receive(s.qp, s.sq_wqe_idx);
+  repost_receive(s.qp, s.sq_wqe_idx + WQE_NUM - 1);
   s.cq_ticket = s.sq_wqe_idx;
 }
 

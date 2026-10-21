@@ -63,32 +63,8 @@ static std::string processSimBackendConfig(
   if (configValue.LibraryMode)
     output << "LIBRARY_MODE=true\n";
 
-  std::optional<cudaq::config::CustomPipelineLowering> pipelines;
-  if (!configValue.CompileTarget.stages.empty())
-    pipelines = configValue.CompileTarget.getCustomPipelineLowering();
-
-  if (pipelines && !pipelines->highLevelPipeline.empty())
-    output << "JIT_HIGH_LEVEL_PIPELINE=\"" << pipelines->highLevelPipeline
-           << "\"\n";
-
-  if (pipelines && !pipelines->midLevelPipeline.empty())
-    output << "JIT_MID_LEVEL_PIPELINE=\"" << pipelines->midLevelPipeline
-           << "\"\n";
-
-  if (pipelines && !pipelines->lowLevelPipeline.empty())
-    output << "JIT_LOW_LEVEL_PIPELINE=\"" << pipelines->lowLevelPipeline
-           << "\"\n";
-
-  if (pipelines && !pipelines->overridePassPipeline.empty())
+  if (configValue.CompileTarget.getOverridePassPipeline() != nullptr)
     output << "TARGET_PASS_PIPELINE_NAME=" << pipelineName << "\n";
-
-  if (!configValue.CompileTarget.codegen.emissionFormat.empty())
-    output << "CODEGEN_EMISSION="
-           << configValue.CompileTarget.codegen.emissionFormat << "\n";
-
-  if (!configValue.CompileTarget.codegen.postCodegenPasses.empty())
-    output << "POST_CODEGEN_PASSES=\""
-           << configValue.CompileTarget.codegen.postCodegenPasses << "\"\n";
 
   if (!configValue.PlatformLibrary.empty())
     output << "PLATFORM_LIBRARY=" << configValue.PlatformLibrary << "\n";

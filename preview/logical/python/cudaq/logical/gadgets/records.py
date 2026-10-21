@@ -89,7 +89,11 @@ class RecordParity:
 
 @dataclass(frozen=True, slots=True)
 class InputSyndromeRef:
-    """One effective syndrome bit entering a typed gadget block endpoint."""
+    """One input virtual-syndrome bit: an expected stabilizer sign.
+
+    This classical expectation is distinct from the syndrome coordinate of
+    a residual boundary Pauli error.
+    """
 
     endpoint: BlockEndpoint
     index: int
@@ -117,7 +121,7 @@ class InputSyndromeRef:
 
 @dataclass(frozen=True, slots=True)
 class ProfileParity:
-    """Affine GF(2) parity over incoming syndromes and realization records."""
+    """Affine GF(2) parity over input virtual syndromes and realization records."""
 
     records: tuple[RecordRef, ...] = ()
     input_syndromes: tuple[InputSyndromeRef, ...] = ()

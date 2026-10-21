@@ -29,6 +29,14 @@ extern "C" {
 MLIR_CAPI_EXPORTED MlirLogicalResult qlxTranslateFabricToStim(
     MlirModule module, MlirStringCallback callback, void *userData);
 
+/// Project a selected gadget without modifying the module. On success, emits
+/// a cudaq.logical.clifford-projection/v1 JSON value snapshot through callback.
+/// The shared CAPI library owns the Fabric traversal and dialect identities.
+/// An empty gadget name selects the unique entry gadget.
+MLIR_CAPI_EXPORTED MlirLogicalResult
+qlxProjectCliffordJson(MlirModule module, MlirStringRef gadget,
+                       MlirStringCallback callback, void *userData);
+
 #ifdef __cplusplus
 }
 #endif

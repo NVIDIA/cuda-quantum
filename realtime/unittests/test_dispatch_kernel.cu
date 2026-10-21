@@ -15,9 +15,8 @@
 #include <iostream>
 
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
-#include "cudaq/realtime/daemon/dispatcher/kernel_types.h"
-#include "cudaq/realtime/daemon/dispatcher/dispatch_modes.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel.cuh"
+#include "cudaq/realtime/daemon/dispatcher/dispatch_modes.h"
 
 // Helper macro for CUDA error checking
 #define CUDA_CHECK(call)                                                       \
@@ -194,7 +193,6 @@ __device__ HandlerFunc d_increment_handler = increment_handler;
 /// Mirrors the dispatch kernel's two-pointer call: the handler gets the RX
 /// slot (RPCHeader + payload), the TX slot (RPCResponse + result) and the
 /// slot size, and returns a status.
-template <typename KernelType>
 __global__ void test_dispatch_kernel(
     HandlerFunc handler,
     const void* rx_slot,
@@ -205,8 +203,8 @@ __global__ void test_dispatch_kernel(
   if (threadIdx.x == 0 && blockIdx.x == 0) {
     *status = handler(rx_slot, tx_slot, slot_size);
   }
-  
-  KernelType::sync();
+
+  __syncthreads();
 }
 
 //==============================================================================
@@ -265,8 +263,8 @@ TEST_F(DispatchKernelTest, IncrementHandlerBasic) {
                                    sizeof(HandlerFunc)));
 
   // Launch kernel with separate RX/TX slots (the dispatcher's two-pointer call)
-  test_dispatch_kernel<cudaq::realtime::RegularKernel><<<1, 32>>>(
-      h_handler, d_input, d_buffer_, kSlotSize, d_status_);
+  test_dispatch_kernel<<<1, 32>>>(h_handler, d_input, d_buffer_, kSlotSize,
+                                  d_status_);
   CUDA_CHECK(cudaGetLastError());
   CUDA_CHECK(cudaDeviceSynchronize());
 
@@ -318,8 +316,8 @@ TEST_F(DispatchKernelTest, LargeBuffer) {
   CUDA_CHECK(cudaMemcpyFromSymbol(&h_handler, d_increment_handler,
                                    sizeof(HandlerFunc)));
 
-  test_dispatch_kernel<cudaq::realtime::RegularKernel><<<1, 256>>>(
-      h_handler, d_input, d_buffer_, kSlotSize, d_status_);
+  test_dispatch_kernel<<<1, 256>>>(h_handler, d_input, d_buffer_, kSlotSize,
+                                   d_status_);
   CUDA_CHECK(cudaGetLastError());
   CUDA_CHECK(cudaDeviceSynchronize());
 
@@ -343,6 +341,13 @@ TEST_F(DispatchKernelTest, LargeBuffer) {
 
 class HostApiDispatchTest : public ::testing::Test {
 protected:
+  // The default-launcher fixtures below override these: they leave the
+  // launcher to the dispatcher, which picks the archive's for the kernel type.
+  virtual cudaq_kernel_type_t kernelType() const {
+    return CUDAQ_KERNEL_REGULAR;
+  }
+  virtual bool setLaunchFn() const { return true; }
+
   void SetUp() override {
     ASSERT_TRUE(allocate_ring_buffer(num_slots_, slot_size_, &rx_flags_host_,
                                      &rx_flags_, &rx_data_host_, &rx_data_));
@@ -376,7 +381,7 @@ protected:
     config.num_slots = static_cast<uint32_t>(num_slots_);
     config.slot_size = static_cast<uint32_t>(slot_size_);
     config.vp_id = 0;
-    config.kernel_type = CUDAQ_KERNEL_REGULAR;
+    config.kernel_type = kernelType();
     config.dispatch_mode = CUDAQ_DISPATCH_DEVICE_CALL;
     ASSERT_EQ(cudaq_dispatcher_create(manager_, &config, &dispatcher_), CUDAQ_OK);
 
@@ -397,9 +402,11 @@ protected:
     ASSERT_EQ(
         cudaq_dispatcher_set_control(dispatcher_, d_shutdown_flag_, d_stats_),
         CUDAQ_OK);
-    ASSERT_EQ(cudaq_dispatcher_set_launch_fn(dispatcher_,
-                                             &launch_dispatch_kernel_wrapper),
-              CUDAQ_OK);
+    if (setLaunchFn()) {
+      ASSERT_EQ(cudaq_dispatcher_set_launch_fn(
+                    dispatcher_, &launch_dispatch_kernel_wrapper),
+                CUDAQ_OK);
+    }
     ASSERT_EQ(cudaq_dispatcher_start(dispatcher_), CUDAQ_OK);
   }
 
@@ -467,6 +474,32 @@ protected:
     return true;
   }
 
+  // One increment request through slot 0, answered by the running kernel.
+  void expectIncrementRoundTrip() {
+    std::vector<std::uint8_t> payload = {0, 1, 2, 3};
+    write_rpc_request(0, payload);
+
+    __sync_synchronize();
+    const_cast<volatile uint64_t*>(rx_flags_host_)[0] =
+        reinterpret_cast<std::uint64_t>(rx_data_);
+
+    int timeout = 50;
+    while (tx_flags_host_[0] == 0 && timeout-- > 0) {
+      usleep(1000);
+    }
+    ASSERT_GT(timeout, 0) << "Timeout waiting for dispatch kernel response";
+
+    std::vector<std::uint8_t> response;
+    std::int32_t status = -1;
+    std::uint32_t result_len = 0;
+    ASSERT_TRUE(read_rpc_response(0, response, &status, &result_len));
+    EXPECT_EQ(status, 0);
+    ASSERT_EQ(result_len, payload.size());
+
+    std::vector<std::uint8_t> expected = {1, 2, 3, 4};
+    EXPECT_EQ(response, expected);
+  }
+
   static constexpr std::size_t num_slots_ = 2;
   std::size_t slot_size_ = 256;
   volatile uint64_t* rx_flags_host_ = nullptr;
@@ -489,29 +522,17 @@ protected:
   cudaq_dispatcher_t* dispatcher_ = nullptr;
 };
 
-TEST_F(HostApiDispatchTest, RpcIncrementHandler) {
-  std::vector<std::uint8_t> payload = {0, 1, 2, 3};
-  write_rpc_request(0, payload);
+TEST_F(HostApiDispatchTest, RpcIncrementHandler) { expectIncrementRoundTrip(); }
 
-  __sync_synchronize();
-  const_cast<volatile uint64_t*>(rx_flags_host_)[0] =
-      reinterpret_cast<std::uint64_t>(rx_data_);
+// No cudaq_dispatcher_set_launch_fn: start() takes the archive's launcher for
+// the configured kernel type, linked into this binary.
+class DefaultLauncherDispatchTest : public HostApiDispatchTest {
+protected:
+  bool setLaunchFn() const override { return false; }
+};
 
-  int timeout = 50;
-  while (tx_flags_host_[0] == 0 && timeout-- > 0) {
-    usleep(1000);
-  }
-  ASSERT_GT(timeout, 0) << "Timeout waiting for dispatch kernel response";
-
-  std::vector<std::uint8_t> response;
-  std::int32_t status = -1;
-  std::uint32_t result_len = 0;
-  ASSERT_TRUE(read_rpc_response(0, response, &status, &result_len));
-  EXPECT_EQ(status, 0);
-  ASSERT_EQ(result_len, payload.size());
-
-  std::vector<std::uint8_t> expected = {1, 2, 3, 4};
-  EXPECT_EQ(response, expected);
+TEST_F(DefaultLauncherDispatchTest, RegularRpcIncrementHandler) {
+  expectIncrementRoundTrip();
 }
 
 //==============================================================================

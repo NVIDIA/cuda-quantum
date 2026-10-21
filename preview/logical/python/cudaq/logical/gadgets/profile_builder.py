@@ -18,7 +18,7 @@ from cudaq.logical.gadgets.records import (
 
 
 class GadgetProfileBuilder:
-    """Lower immutable success and boundary analysis to declarative Fabric IR."""
+    """Lower immutable gadget analysis declarations to Fabric IR."""
 
     def __init__(self, transaction, profile: GadgetProfile) -> None:
         self.transaction = transaction
@@ -149,6 +149,15 @@ class GadgetProfileBuilder:
             self.insertion_point.insert(operation)
 
     def trace(self):
+        for detector in self.profile.detectors:
+            self._emit("fabric.detector", self._common(detector))
+        for observable in self.profile.observables:
+            attrs = self._common(observable)
+            attrs["idx"] = mlir_ir.IntegerAttr.get(
+                mlir_ir.IntegerType.get_signless(64, context=self.context),
+                observable.index,
+            )
+            self._emit("fabric.observable", attrs)
         for success in self.profile.success:
             attrs = self._common(success)
             self._emit("fabric.success", attrs)
