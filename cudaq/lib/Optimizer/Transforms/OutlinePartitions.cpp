@@ -23,9 +23,6 @@ using namespace mlir;
 
 namespace {
 static bool isWire(Value v) { return isa<cudaq::quake::WireType>(v.getType()); }
-static auto filterWireValues(ValueRange values) {
-  return llvm::make_filter_range(values, isWire);
-}
 
 // Accept scalar-wire operations and scalar discrimination with no memory
 // effects.
