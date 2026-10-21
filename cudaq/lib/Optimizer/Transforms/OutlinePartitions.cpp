@@ -17,6 +17,7 @@
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/Dominance.h"
 #include "mlir/IR/IRMapping.h"
+#include "mlir/Interfaces/SideEffectInterfaces.h"
 #include "mlir/Support/LLVM.h"
 
 namespace cudaq::opt {
@@ -36,6 +37,14 @@ static bool isWire(Value v) { return isa<cudaq::quake::WireType>(v.getType()); }
 static auto filterWireValues(ValueRange values) {
   return llvm::make_filter_range(values, isWire);
 }
+
+// Accept scalar-wire operations and scalar discrimination with no memory
+// effects.
+static bool isSupportedOutlineOp(Operation *op) {
+  return isMemoryEffectFree(op) &&
+         (isa<cudaq::quake::DiscriminateOp>(op) ||
+          cudaq::quake::detail::getScalarWireFlow(op).has_value());
+}
 } // namespace
 
 FailureOr<cudaq::cc::CreateLambdaOp>
@@ -47,13 +56,12 @@ cudaq::opt::outlinePartition(ArrayRef<Operation *> partition) {
 
   // All operations must live in one block; find the last one in block order to
   // use as the anchor for the closure and its application.
-  // Ops to be outlined must also not contain regions.
   Block *block = partition.front()->getBlock();
   Operation *anchor = partition.front();
   for (Operation *op : partition) {
     if (op->getBlock() != block)
       return failure();
-    if (op->getNumRegions() != 0)
+    if (!isSupportedOutlineOp(op))
       return failure();
     if (anchor->isBeforeInBlock(op))
       anchor = op;

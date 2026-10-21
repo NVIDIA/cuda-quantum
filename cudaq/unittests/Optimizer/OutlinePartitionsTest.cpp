@@ -607,3 +607,34 @@ TEST(OutlinePartitions, RejectRegionOwningOps) {
   EXPECT_EQ(printModule(*mod), before);
   EXPECT_TRUE(succeeded(verify(*mod)));
 }
+
+// Reject a selected load that would otherwise move past an outside store.
+TEST(OutlinePartitions, RejectPartitionContainingLoad) {
+  const char *ir = R"(
+    func.func @k(%p: !cc.ptr<i32>) -> i32 {
+      %five = arith.constant 5 : i32
+      %w0 = quake.null_wire
+      %old = cc.load %p : !cc.ptr<i32>
+      cc.store %five, %p : !cc.ptr<i32>
+      %w1 = quake.h %w0 : (!quake.wire) -> !quake.wire
+      return %old : i32
+    }
+  )";
+
+  MLIRContext ctx;
+  auto mod = parse(ctx, ir);
+  ASSERT_TRUE(mod);
+  ASSERT_TRUE(succeeded(verify(*mod)));
+
+  SmallVector<Operation *> partition;
+  mod->walk([&](Operation *op) {
+    if (isa<cudaq::cc::LoadOp, cudaq::quake::HOp>(op))
+      partition.push_back(op);
+  });
+  ASSERT_EQ(partition.size(), 2u);
+  const std::string before = printModule(*mod);
+
+  EXPECT_TRUE(failed(cudaq::opt::outlinePartition(partition)));
+  EXPECT_EQ(printModule(*mod), before);
+  EXPECT_TRUE(succeeded(verify(*mod)));
+}
