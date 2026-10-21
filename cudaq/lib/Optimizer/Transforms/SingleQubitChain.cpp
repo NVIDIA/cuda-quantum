@@ -10,6 +10,7 @@
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/ADT/DenseSet.h"
+#include "llvm/ADT/STLExtras.h"
 #include "mlir/Interfaces/CallInterfaces.h"
 #include <optional>
 #include <utility>
@@ -18,11 +19,6 @@ using namespace mlir;
 
 namespace {
 
-struct WireStep {
-  Operation *operation;
-  std::optional<cudaq::opt::SingleQubitChainScopeStep> scopeStep;
-};
-
 struct WirePathEnd {
   Operation *operation;
   Value wire;
@@ -30,15 +26,21 @@ struct WirePathEnd {
 
 } // namespace
 
-// Returns whether `nested` is inside `outer` through only single-block
+// A chain may cross a `cc.scope` only when the scope is an ordinary
+// single-block lexical scope, not an atomic quantum region.
+static bool isTransparentScope(cudaq::cc::ScopeOp scope) {
+  return !scope.getAtomicQuantumRegionAttr() &&
+         scope.getInitRegion().hasOneBlock();
+}
+
+// Returns whether `nested` is inside `outer` through only transparent
 // `cc.scope` operations. Any other enclosing region prevents traversal.
 static bool entersSingleBlockLexicalScopesOnly(Block *nested, Block *outer) {
   while (nested != outer) {
     if (!nested)
       return false;
     auto scope = dyn_cast_or_null<cudaq::cc::ScopeOp>(nested->getParentOp());
-    if (!scope || scope.getAtomicQuantumRegionAttr() ||
-        !scope.getInitRegion().hasOneBlock())
+    if (!scope || !isTransparentScope(scope))
       return false;
     nested = scope->getBlock();
   }
@@ -53,48 +55,42 @@ static bool isDirectWireStep(Operation *operation) {
          !operation->hasTrait<OpTrait::IsTerminator>();
 }
 
-// Follow the unique use of a wire forward. A direct use reaches its user;
-// a `cc.continue` use reaches the matching result of its enclosing scope.
-static std::optional<WireStep> followWire(Value wire) {
-  if (!isa<cudaq::quake::WireType>(wire.getType()) || !wire.hasOneUse())
-    return std::nullopt;
+// Follow the unique use of one lane forward to its next direct user. A
+// `cc.continue` use passes the wire to the matching result of its transparent
+// enclosing scope, and that result is followed in turn.
+static std::optional<WirePathEnd> traceWire(Value wire) {
+  while (true) {
+    if (!isa<cudaq::quake::WireType>(wire.getType()) || !wire.hasOneUse())
+      return std::nullopt;
 
-  OpOperand *use = &*wire.getUses().begin();
-  Operation *user = use->getOwner();
-  if (auto cont = dyn_cast<cudaq::cc::ContinueOp>(user)) {
+    OpOperand &use = *wire.getUses().begin();
+    Operation *user = use.getOwner();
+    auto cont = dyn_cast<cudaq::cc::ContinueOp>(user);
+    if (!cont) {
+      if (!isDirectWireStep(user) ||
+          !entersSingleBlockLexicalScopesOnly(user->getBlock(),
+                                              wire.getParentBlock()))
+        return std::nullopt;
+      return WirePathEnd{user, wire};
+    }
+
     auto scope = dyn_cast<cudaq::cc::ScopeOp>(cont->getParentOp());
-    if (!scope || scope.getAtomicQuantumRegionAttr() ||
-        !scope.getInitRegion().hasOneBlock() ||
+    if (!scope || !isTransparentScope(scope) ||
         scope.getInitRegion().front().getTerminator() != user ||
         cont.getNumOperands() != scope->getNumResults())
       return std::nullopt;
-    unsigned index = use->getOperandNumber();
+    unsigned index = use.getOperandNumber();
     if (index >= scope->getNumResults() ||
         !isa<cudaq::quake::WireType>(scope->getResult(index).getType()))
       return std::nullopt;
-    Value result = scope->getResult(index);
-    if (!result.hasOneUse())
-      return std::nullopt;
-    return WireStep{scope, cudaq::opt::SingleQubitChainScopeStep{result, use}};
+    wire = scope->getResult(index);
   }
-  if (!isDirectWireStep(user) || !entersSingleBlockLexicalScopesOnly(
-                                     user->getBlock(), wire.getParentBlock()))
-    return std::nullopt;
-  return WireStep{user, std::nullopt};
 }
 
-// Follow one tuple lane through transparent scopes to its next direct user.
-static std::optional<WirePathEnd> traceWire(
-    Value wire,
-    llvm::SmallVectorImpl<cudaq::opt::SingleQubitChainScopeStep> &scopeSteps) {
-  auto step = followWire(wire);
-  while (step && step->scopeStep) {
-    scopeSteps.push_back(*step->scopeStep);
-    wire = step->scopeStep->wire;
-    step = followWire(wire);
-  }
-  return step ? std::optional<WirePathEnd>{WirePathEnd{step->operation, wire}}
-              : std::nullopt;
+static llvm::SmallVector<bool> getPolarities(Operation *operation) {
+  if (auto gate = dyn_cast<cudaq::quake::OperatorInterface>(operation))
+    return cudaq::quake::getControlPolarities(gate);
+  return {};
 }
 
 // Return the wire flow of a gate the caller accepts as a chain member.
@@ -107,22 +103,16 @@ getChainFlow(Operation *operation,
 }
 
 // A controlled chain continues only when every output lane reaches the same
-// gate at its corresponding input position with the same ordered predicate.
-// `canContinue` decides whether the next gate's predicate matches the head's.
-// Returns the next gate and replaces `flow` with its wire flow, or returns null
-// and leaves `flow` unchanged.
+// gate at its corresponding input position and that gate has the same control
+// polarities as the chain's first gate. Returns the next gate and replaces
+// `flow` with its wire flow, or returns null and leaves `flow` unchanged.
 static Operation *
-matchNextOperation(cudaq::quake::detail::WireFlow &flow,
-                   Operation *firstOperation,
-                   llvm::MutableArrayRef<
-                       llvm::SmallVector<cudaq::opt::SingleQubitChainScopeStep>>
-                       scopeSteps,
-                   cudaq::opt::SingleQubitChainPredicate isSupported,
-                   cudaq::opt::SingleQubitChainContinuation canContinue) {
+matchNextOperation(cudaq::quake::detail::WireFlow &flow, Operation *head,
+                   cudaq::opt::SingleQubitChainPredicate isSupported) {
   llvm::SmallVector<std::optional<WirePathEnd>> pathEnds;
   pathEnds.reserve(flow.results.size());
-  for (auto [output, steps] : llvm::zip(flow.results, scopeSteps))
-    pathEnds.push_back(traceWire(output, steps));
+  for (Value output : flow.results)
+    pathEnds.push_back(traceWire(output));
 
   if (llvm::any_of(pathEnds, [](const auto &path) { return !path; }))
     return nullptr;
@@ -135,7 +125,7 @@ matchNextOperation(cudaq::quake::detail::WireFlow &flow,
 
   auto next = getChainFlow(nextOperation, isSupported);
   if (!next || next->inputs.size() != flow.results.size() ||
-      !canContinue(firstOperation, nextOperation))
+      getPolarities(head) != getPolarities(nextOperation))
     return nullptr;
 
   for (auto [index, path] : llvm::enumerate(pathEnds))
@@ -147,8 +137,7 @@ matchNextOperation(cudaq::quake::detail::WireFlow &flow,
 
 llvm::SmallVector<cudaq::opt::SingleQubitChain, 0>
 cudaq::opt::collectSingleQubitChains(Block &block,
-                                     SingleQubitChainPredicate isSupported,
-                                     SingleQubitChainContinuation canContinue) {
+                                     SingleQubitChainPredicate isSupported) {
   llvm::SmallVector<SingleQubitChain, 0> chains;
   llvm::SmallDenseSet<Operation *> collected;
 
@@ -163,13 +152,10 @@ cudaq::opt::collectSingleQubitChains(Block &block,
 
     SingleQubitChain chain;
     chain.inputs = flow->inputs;
-    chain.scopeSteps.resize(flow->inputs.size());
     for (Operation *current = &operation; current;
          current =
-             matchNextOperation(*flow, chain.operations.front(),
-                                chain.scopeSteps, isSupported, canContinue)) {
+             matchNextOperation(*flow, chain.operations.front(), isSupported)) {
       chain.operations.push_back(current);
-      chain.outputs = flow->results;
       collected.insert(current);
       if (llvm::any_of(flow->results,
                        [](Value output) { return !output.hasOneUse(); }))
@@ -182,16 +168,24 @@ cudaq::opt::collectSingleQubitChains(Block &block,
 
 void cudaq::opt::replaceSingleQubitChain(SingleQubitChain &&chain,
                                          ValueRange replacements) {
-  assert(replacements.size() == chain.outputs.size());
-  for (auto [replacementValue, original, steps] :
-       llvm::zip(replacements, chain.outputs, chain.scopeSteps)) {
-    Value replacement = replacementValue;
-    for (SingleQubitChainScopeStep &scopeStep : steps) {
-      scopeStep.continueOperand->set(replacement);
-      replacement = scopeStep.wire;
-    }
-    original.replaceAllUsesWith(replacement);
-  }
-  for (Operation *operation : llvm::reverse(chain.operations))
+  // Erase the later gates last to first, forwarding each one's wire results to
+  // its inputs. Every use of the chain's results, including a `cc.continue`
+  // operand that carries the chain out of a scope, then refers to the first
+  // gate's results.
+  for (Operation *operation :
+       llvm::reverse(llvm::drop_begin(chain.operations))) {
+    auto flow = cudaq::quake::detail::getWireFlow(operation);
+    assert(flow && "chain operations have a wire flow");
+    for (auto [result, input] : llvm::zip_equal(flow->results, flow->inputs))
+      result.replaceAllUsesWith(input);
     operation->erase();
+  }
+
+  Operation *head = chain.operations.front();
+  auto flow = cudaq::quake::detail::getWireFlow(head);
+  assert(flow && flow->results.size() == replacements.size());
+  for (auto [result, replacement] :
+       llvm::zip_equal(flow->results, replacements))
+    result.replaceAllUsesWith(replacement);
+  head->erase();
 }

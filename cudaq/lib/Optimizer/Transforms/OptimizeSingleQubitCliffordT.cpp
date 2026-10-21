@@ -195,10 +195,7 @@ emitCircuit(OpBuilder &builder, Location location, ValueRange inputs,
 
 static void optimizeBlock(Block &block) {
   llvm::SmallVector<Candidate, 0> candidates;
-  auto chains = cudaq::opt::collectSingleQubitChains(
-      block, isExactGate, [](Operation *head, Operation *next) {
-        return getPolarities(head) == getPolarities(next);
-      });
+  auto chains = cudaq::opt::collectSingleQubitChains(block, isExactGate);
 
   for (cudaq::opt::SingleQubitChain &chain : chains) {
     // A single exact gate cannot improve the T-count or emitted gate count
