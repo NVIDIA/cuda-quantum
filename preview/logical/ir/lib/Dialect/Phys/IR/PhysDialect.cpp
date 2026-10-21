@@ -196,21 +196,36 @@ struct SidecarGraphVerificationIndex {
 static thread_local SidecarGraphVerificationIndex
     *activeSidecarGraphVerificationIndex = nullptr;
 
-static thread_local SymbolTable *activePlanModuleSymbols = nullptr;
+struct PlanModuleIndex {
+  explicit PlanModuleIndex(ModuleOp module)
+      : symbols(module),
+        factories(llvm::to_vector<0>(module.getOps<FactoryModelOp>())) {}
+
+  SymbolTable symbols;
+  SmallVector<FactoryModelOp, 0> factories;
+};
+
+static thread_local PlanModuleIndex *activePlanModuleIndex = nullptr;
 
 Operation *qlx::phys::lookupModuleSymbol(ModuleOp module, StringRef name) {
-  if (activePlanModuleSymbols && activePlanModuleSymbols->getOp() == module)
-    return activePlanModuleSymbols->lookup(name);
+  if (activePlanModuleIndex && activePlanModuleIndex->symbols.getOp() == module)
+    return activePlanModuleIndex->symbols.lookup(name);
   return SymbolTable(module).lookup(name);
+}
+
+SmallVector<FactoryModelOp, 0> qlx::phys::moduleFactoryModels(ModuleOp module) {
+  if (activePlanModuleIndex && activePlanModuleIndex->symbols.getOp() == module)
+    return activePlanModuleIndex->factories;
+  return llvm::to_vector<0>(module.getOps<FactoryModelOp>());
 }
 
 LogicalResult qlx::phys::verifySpacetimePlanBatch(ArrayRef<Operation *> plans) {
   if (plans.empty())
     return success();
-  SymbolTable symbols(plans.front()->getParentOfType<ModuleOp>());
-  SymbolTable *previous = activePlanModuleSymbols;
-  activePlanModuleSymbols = &symbols;
-  llvm::scope_exit restore([&] { activePlanModuleSymbols = previous; });
+  PlanModuleIndex index(plans.front()->getParentOfType<ModuleOp>());
+  PlanModuleIndex *previous = activePlanModuleIndex;
+  activePlanModuleIndex = &index;
+  llvm::scope_exit restore([&] { activePlanModuleIndex = previous; });
   for (Operation *plan : plans)
     if (failed(mlir::verify(plan, /*verifyRecursively=*/true)))
       return failure();
