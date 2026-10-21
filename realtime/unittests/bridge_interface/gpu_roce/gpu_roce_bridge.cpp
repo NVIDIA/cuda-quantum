@@ -58,7 +58,7 @@ struct DispatchConfig {
       384; ///< Ring buffer slot size (>= frame_size, 128-aligned)
   unsigned num_pages = 64; ///< Number of ring buffer slots
   /// @brief Dispatch kernel grid configuration.
-  /// Defaults match the regular (non-cooperative) kernel.
+  /// Defaults match the regular kernel.
   cudaq_kernel_type_t kernel_type = CUDAQ_KERNEL_REGULAR;
   uint32_t num_blocks = 1;
   uint32_t threads_per_block = 32;
@@ -198,13 +198,8 @@ int main(int argc, char *argv[]) {
     if (!config.forward) {
       if (!config.unified) {
         int dispatch_blocks = 0;
-        cudaError_t occ_err;
-        if (config.kernel_type == CUDAQ_KERNEL_COOPERATIVE) {
-          occ_err = cudaq_dispatch_kernel_cooperative_query_occupancy(
-              &dispatch_blocks, config.threads_per_block);
-        } else {
-          occ_err = cudaq_dispatch_kernel_query_occupancy(&dispatch_blocks, 1);
-        }
+        cudaError_t occ_err =
+            cudaq_dispatch_kernel_query_occupancy(&dispatch_blocks, 1);
         if (occ_err != cudaSuccess) {
           std::cerr << "ERROR: Dispatch kernel occupancy query failed: "
                     << cudaGetErrorString(occ_err) << std::endl;
@@ -249,11 +244,6 @@ int main(int argc, char *argv[]) {
           cudaq_dispatcher_create(manager, &dconfig, &dispatcher));
       HANDLE_CUDAQ_REALTIME_ERROR(
           cudaq_dispatcher_set_bridge(dispatcher, bridge_handle));
-      // The 3-kernel launcher comes from libcudaq-realtime-dispatch.a, which
-      // this binary links; the unified kernel ships with the library.
-      if (!config.unified)
-        HANDLE_CUDAQ_REALTIME_ERROR(cudaq_dispatcher_set_launch_fn(
-            dispatcher, &cudaq_launch_dispatch_kernel_regular));
 
       // Set up the function table with the increment handler entries
       // Populate the GPU function table with the increment handler entry
