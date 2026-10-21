@@ -16,7 +16,7 @@ if(@CUDA_FOUND@)
   find_dependency(CUDAToolkit REQUIRED)
 endif()
 find_dependency(Threads REQUIRED)
-if(@CUDAQ_REALTIME_CPU_ROCE_USE_HOLOLINK@)
+if(@CUDAQ_REALTIME_HAS_CPU_ROCE@)
   find_dependency(HololinkRoce 2.7 CONFIG REQUIRED COMPONENTS transport)
 endif()
 

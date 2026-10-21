@@ -43,20 +43,19 @@
 #                                   given after -- overrides both.
 #   CUDAQ_REALTIME_BUILD_TESTS      Build the unit tests. Defaults to ON.
 #   CUDAQ_REALTIME_BUILD_EXAMPLES   Build the examples. Defaults to OFF.
-#   CUDAQ_REALTIME_CPU_ROCE_USE_HOLOLINK
-#                                   Opt in to Hololink CPU RoCE (default OFF).
-#                                   Links HololinkRoce from the HSB build, or
-#                                   pass -- -DHololinkRoce_DIR=<leaf-build>/HololinkRoce.
 #   HSB_ROOT                        Holoscan Sensor Bridge source checkout.
-#                                   HSB tools are enabled when it exists.
+#                                   HSB tools are enabled when it exists, and
+#                                   CPU RoCE links HololinkRoce from its build;
+#                                   without it, pass
+#                                   -- -DHololinkRoce_DIR=<leaf-build>/HololinkRoce.
 #                                   Defaults to $HOME/cudaq/holoscan-sensor-bridge;
 #                                   set it to the empty string to never enable them.
 #
 # Prerequisites:
 # - CMake 4.0+, ninja-build
 # - CUDA toolkit (12+). With CUDAQ_REALTIME_BUILD_TESTS=OFF, a CUDA-less
-#   configure still builds UDP, and can build either CPU RoCE backend when
-#   its package or libibverbs is present. Tests currently require CUDAToolkit
+#   configure still builds UDP, and builds CPU RoCE when HololinkRoce is
+#   found. Tests currently require CUDAToolkit
 #   headers (hsb_bridge_cpu).
 # - For HSB tools: DOCA with gpunetio and a built holoscan-sensor-bridge tree,
 #   see isntall_dev_prerequisites.sh
@@ -132,7 +131,6 @@ install_prefix=${CUDAQ_REALTIME_INSTALL_PREFIX:-${CUDAQ_INSTALL_PREFIX:-$HOME/.c
 # HSB tools need a built holoscan-sensor-bridge tree; enable them if we find one.
 # An explicitly empty HSB_ROOT opts out of the search.
 hsb_src_dir=${HSB_ROOT-/tmp/holoscan-sensor-bridge}
-cpu_roce_use_hololink=${CUDAQ_REALTIME_CPU_ROCE_USE_HOLOLINK:-OFF}
 hsb_cmake_args=(-DCUDAQ_REALTIME_ENABLE_HSB_TOOLS=OFF)
 if [ -n "$hsb_src_dir" ] && [ -d "$hsb_src_dir" ]; then
   echo "Holoscan Sensor Bridge detected in $hsb_src_dir. Enabling HSB tools."
@@ -181,7 +179,6 @@ cmake_args=(
   "-DCMAKE_INSTALL_PREFIX=$install_prefix"
   "-DCUDAQ_REALTIME_BUILD_TESTS=${CUDAQ_REALTIME_BUILD_TESTS:-ON}"
   "-DCUDAQ_REALTIME_BUILD_EXAMPLES=${CUDAQ_REALTIME_BUILD_EXAMPLES:-OFF}"
-  "-DCUDAQ_REALTIME_CPU_ROCE_USE_HOLOLINK=$cpu_roce_use_hololink"
   "${hsb_cmake_args[@]}"
   ${ccache_args[@]+"${ccache_args[@]}"}
   ${sanitizer_args[@]+"${sanitizer_args[@]}"}
