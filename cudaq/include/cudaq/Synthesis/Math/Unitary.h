@@ -78,8 +78,10 @@ public:
 
   // -- Accessors --
 
-  DOmega z() const { return _z; }
-  DOmega w() const { return _w; }
+  const DOmega &z() const & { return _z; }
+  const DOmega &w() const & { return _w; }
+  DOmega z() const && { return _z; }
+  DOmega w() const && { return _w; }
   int32_t n() const { return _n; }
   int32_t k() const { return static_cast<int32_t>(_w.k()); }
 
@@ -174,6 +176,35 @@ public:
 
   DOmegaUnitary mul_by_H_and_T_power_from_left(int m) const {
     return mul_by_T_power_from_left(m).mul_by_H_from_left();
+  }
+
+  /// In-place (H * T^m) * U at denominator exponent k - 1 (one rung of the
+  /// KMM peel loop). The two `sqrt`(2) divisions of each numerator (one inside
+  /// H, one to drop the rung) are a halving.
+  ///
+  /// Valid where the exponent drops, which makes both numerator combinations
+  /// even. `scratch` is caller-owned working space.
+  void reduce_by_H_and_T_power_from_left(int32_t m, ZOmega &scratch) {
+    mul_by_omega_power_in_place(_w.u_mut(), m);
+    halve_sum_and_difference(_z.u_mut(), _w.u_mut(), scratch);
+    _z.k_mut() -= 1;
+    _w.k_mut() -= 1;
+    _n = (_n + m + 4) & 0b111;
+  }
+
+  /// In-place (H * T^m) * U at the same denominator exponent (the rung of the
+  /// KMM peel loop, where the exponent drops by two and the caller collects
+  /// the second drop next iteration. H's one `sqrt`(2) division of each
+  /// numerator is a `sqrt`(2) multiply of each term then a halving.
+  ///
+  /// Valid where H divides, which makes both numerator combinations even.
+  /// `scratch` is caller-owned working space.
+  void mul_by_H_and_T_power_from_left_in_place(int32_t m, ZOmega &scratch) {
+    mul_by_omega_power_in_place(_w.u_mut(), m);
+    mul_by_sqrt2_in_place(_z.u_mut(), scratch);
+    mul_by_sqrt2_in_place(_w.u_mut(), scratch);
+    halve_sum_and_difference(_z.u_mut(), _w.u_mut(), scratch);
+    _n = (_n + m + 4) & 0b111;
   }
 
   DOmegaUnitary mul_by_X_from_left() const {

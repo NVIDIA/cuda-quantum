@@ -10,7 +10,7 @@
 // RUN: cudaq-quake %s | cudaq-opt -memtoreg=quantum=0 -canonicalize | FileCheck %s
 // clang-format on
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 std::vector<bool> func_achat(cudaq::qview<> &qv) __qpu__ {
   // measure the entire register

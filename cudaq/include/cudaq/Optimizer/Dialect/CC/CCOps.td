@@ -309,11 +309,7 @@ def cc_LoopOp : CCOp<"loop",
     static constexpr llvm::StringRef postCondAttrName() {
       return llvm::StringLiteral("post_condition");
     }
-    bool isPostConditional() {
-      return getOperation()
-          ->getAttrOfType<mlir::IntegerAttr>(postCondAttrName())
-          .getInt();
-    }
+    bool isPostConditional() { return getPostCondition(); }
 
     mlir::Block *getWhileBlock() { return &getWhileRegion().front(); }
     mlir::Block::BlockArgListType getWhileArguments() {

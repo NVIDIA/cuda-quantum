@@ -431,6 +431,13 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   }
 )#"},
 
+    // This is a dummy dispatch hook for the generalized `device_call` reference
+    // lowering. The arguments are: device id, callback name, unmarshal func
+    // ptr, argument buffer, buffer size, return offset, num blocks, num threads
+    // per block. This returns the (possibly dynamic) result span.
+    {cudaq::runtime::callDeviceCallback, {}, R"#(
+  func.func private @__nvqpp__device_callback_run(i64, !cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, i64, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
+)#"},
     {cudaq::runtime::extractDevPtr, {}, R"#(
   func.func private @__nvqpp__device_extract_device_ptr(!cc.ptr<!cc.struct<"device_ptr" {i64, i64, i64}>>) -> !cc.ptr<i8>
 )#"},
@@ -517,10 +524,6 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   func.func private @__nvqpp_cudaq_state_numberOfQubits(%p : !cc.ptr<!quake.state>) -> i64
 )#"},
 
-    {"__nvqpp_customop_size_error", {}, R"#(
-  func.func private @__nvqpp_customop_size_error(i64, i64)
-)#"},
-
     {cudaq::runtime::bindingDeconstructString,
      {},
      "func.func private @__nvqpp_deconstructString(!cc.ptr<i8>)"},
@@ -565,6 +568,11 @@ static constexpr IntrinsicCode intrinsicTable[] = {
      {},
      "func.func private @__nvqpp_getStringSize(%p: !cc.ptr<i8>) -> i64"},
 
+    // __nvqpp_hostDeallocate(void *): operator delete
+    {cudaq::runtime::hostDeallocate,
+     {},
+     "func.func private @__nvqpp_hostDeallocate(!cc.ptr<i8>) -> ()"},
+
     {cudaq::runtime::bindingInitializeString, {}, R"#(
   func.func private @__nvqpp_initializeStringFromSpan(!cc.ptr<i8>, !cc.ptr<i8>, i64)
 )#"},
@@ -596,6 +604,11 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     call @free(%from) : (!cc.ptr<i8>) -> ()
     return
   })#"},
+
+    // __nvqpp_vector_bool_destroy
+    {cudaq::sequenceBoolDestroy, {}, R"#(
+  func.func private @__nvqpp_vector_bool_destroy(!cc.ptr<i8>) -> ()
+)#"},
 
     // __nvqpp_vector_bool_free_temporary_lists
     {cudaq::sequenceBoolFreeTemporaryLists, {}, R"#(

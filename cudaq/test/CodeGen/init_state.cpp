@@ -10,7 +10,7 @@
 // RUN: cudaq-quake %s | cudaq-opt -canonicalize -cse -lift-array-alloc -globalize-array-values -canonicalize | cudaq-translate | FileCheck %s
 // clang-format on
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 struct kernel {
 

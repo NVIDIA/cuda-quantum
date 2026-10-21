@@ -966,8 +966,10 @@ private:
       if (mapped == state.wireOwners.end())
         return owner->emitOpError(
             "reference-helper result has no live P0 owner");
-      state.wireReferenceSlots[result] = slot->second;
-      refreshReferenceAliases(slot->second, mapped->second, state);
+      // Copy before inserting: the insert may invalidate `slot`.
+      unsigned slotIndex = slot->second;
+      state.wireReferenceSlots[result] = slotIndex;
+      refreshReferenceAliases(slotIndex, mapped->second, state);
     }
     return success();
   }
@@ -1355,7 +1357,9 @@ private:
               if (found == state.classicalBits.end())
                 return discriminate.emitOpError(
                     "uses a measurement not imported by this entry point");
-              state.classicalBits[discriminate.getResult()] = found->second;
+              // Copy before inserting: the insert may invalidate `found`.
+              Value bit = found->second;
+              state.classicalBits[discriminate.getResult()] = bit;
               return success();
             })
         .Case<cudaq::quake::SinkOp>([&](auto sink) -> LogicalResult {
@@ -1544,8 +1548,10 @@ private:
       auto found = state.wireOwners.find(linearArgs[i]);
       if (found == state.wireOwners.end())
         return ifop.emitOpError("conditional carry has no live P0 owner");
-      state.wireOwners[sb.getArgument(i)] = found->second;
+      // Copy before mutating: inserting may rehash and invalidate `found`.
+      Value owner = found->second;
       state.wireOwners.erase(found);
+      state.wireOwners[sb.getArgument(i)] = owner;
     }
     for (Operation &inner : sb.without_terminator())
       if (failed(importOperation(inner, builder, state, policy)))

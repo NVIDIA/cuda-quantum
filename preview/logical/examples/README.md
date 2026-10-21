@@ -20,7 +20,8 @@ target.
    the complete stack from scratch: the Carbon `[[12,2,4]]` code, paired
    CUDA-Q kernels used as gadgets, and the logical, QEC, and physical layers.
 6. `05_gidney_ekera.py` brings the pieces together on the exact folded
-   RSA-2048 resource kernel and a detailed factory/application stack. It calls
+   RSA-2048, RSA-3072, or RSA-4096 resource kernel and a detailed
+   factory/application stack. It calls
    `estimate_using_kernel_profile()` directly for the default fast path;
    `estimate_physically()` is the direct, opt-in paper-scale compilation and
    scheduling path.
@@ -47,16 +48,22 @@ lets the CUDA-Q Logical target own the lower tiers and uses only the metrics
 returned by `cudaq.estimate`.
 
 The kernel-profile call is enabled by default. Pass `--physical` when running
-the file from the command line to select the paper-scale compilation:
+the file from the command line to select the paper-scale compilation, and
+`--bits` to select the modulus size:
 
 ```bash
 python 05_gidney_ekera.py
 
 python 05_gidney_ekera.py --physical
+
+python 05_gidney_ekera.py --bits 4096 --physical
 ```
 
-In a notebook, call `estimate_using_kernel_profile()` or
-`estimate_physically()` directly. While building the device, the companion
+Each size is one row of Table 3 in arXiv:1905.09749. The factory module derives
+the kernel and board sizes from that row.
+
+In a notebook, call `estimate_using_kernel_profile(bits)` or
+`estimate_physically(bits)` directly. While building the device, the companion
 factory module schedules one workload-independent detailed AutoCCZ lane,
 estimates its resources, and derives the compact factory model from that same
 schedule. The factory and application are separate resource studies: factory

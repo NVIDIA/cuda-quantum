@@ -18,6 +18,7 @@ add_cudaq_library(OptTransforms
   ApplyOpSpecialization.cpp
   ArgumentSynthesis.cpp
   BasisConversion.cpp
+  BorrowChecking.cpp
   CableRoughIn.cpp
   ClassicalOptimization.cpp
   CliffordTSynthesis.cpp
@@ -37,10 +38,10 @@ add_cudaq_library(OptTransforms
   EraseNopCalls.cpp
   EraseQEC.cpp
   EraseVectorCopyCtor.cpp
-  ExpandBroadcasts.cpp
   ExpandControlNegations.cpp
   ExpandControlVeqs.cpp
   ExpandMeasurements.cpp
+  ExpandVeqUses.cpp
   FactorQuantumAlloc.cpp
   GenKernelExecution.cpp
   GenDeviceCodeLoader.cpp
@@ -73,6 +74,7 @@ add_cudaq_library(OptTransforms
   PruneNegligibleRotations.cpp
   PyFrontendCleanup.cpp
   PySynthCallableBlockArgs.cpp
+  QIRDeviceCall.cpp
   QuakePropagateMetadata.cpp
   QuakeSimplify.cpp
   QuakeSynthesizer.cpp
@@ -104,6 +106,7 @@ add_cudaq_library(OptTransforms
     
   LINK_LIBS PUBLIC
     CCDialect
+    MLIRAnalysis
     MLIRIR
     MLIRTransforms
     OptAnalysis

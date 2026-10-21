@@ -193,13 +193,13 @@ estimate quoted in a paper from the bundle alone.
 ## Paper-specific projections live in the open
 
 The built-in analytical tier is not a substitute for a paper-specific system
-model. `examples/05_gidney_ekera.py` compiles a windowed-arithmetic RSA-2048
-resource kernel to a folded logical profile, then applies the paper's explicit
-timing and layout equations. That default fast path deliberately does not call
-`Tier.ANALYTICAL`; its assumptions remain visible and editable in the example.
-The same example offers `--physical` as an opt-in P3 compilation and scheduling
-path. The related library calculation is available through
-`cudaq.logical.algorithms.estimate_gidney_ekera`.
+model. `examples/05_gidney_ekera.py` compiles a windowed-arithmetic RSA-2048,
+RSA-3072, or RSA-4096 resource kernel to a folded logical profile, then
+applies the paper's explicit timing and layout equations. That default fast
+path deliberately does not call `Tier.ANALYTICAL`; its assumptions remain
+visible and editable in the example. The same example offers `--physical` as
+an opt-in P3 compilation and scheduling path. The related library calculation
+is available through `cudaq.logical.algorithms.estimate_gidney_ekera`.
 
 ## Estimating ordinary CUDA-Q kernels
 

@@ -93,3 +93,34 @@ func.func @bug_291(%c: !quake.veq<3>, %t: !quake.ref) {
   quake.x [%c] %t : (!quake.veq<3>, !quake.ref) -> ()
   return
 }
+
+// The adjoint must survive on the singly-controlled output operator.
+// CHECK-LABEL: func.func @ccry_adj
+func.func @ccry_adj(%c0: !quake.ref, %c1: !quake.ref, %t: !quake.ref) {
+  %0 = arith.constant 0.69999999999999996 : f64
+  // CHECK: quake.ry<adj> (%{{.*}}) [%{{.*}}] %{{.*}} : (f64, !quake.ref, !quake.ref) -> ()
+  quake.ry <adj> (%0) [%c0, %c1] %t : (f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @ccrz_adj
+func.func @ccrz_adj(%c0: !quake.ref, %c1: !quake.ref, %t: !quake.ref) {
+  %0 = arith.constant 0.69999999999999996 : f64
+  // CHECK: quake.rz<adj> (%{{.*}}) [%{{.*}}] %{{.*}} : (f64, !quake.ref, !quake.ref) -> ()
+  quake.rz <adj> (%0) [%c0, %c1] %t : (f64, !quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @ccs_adj
+func.func @ccs_adj(%c0: !quake.ref, %c1: !quake.ref, %t: !quake.ref) {
+  // CHECK: quake.s<adj> [%{{.*}}] %{{.*}} : (!quake.ref, !quake.ref) -> ()
+  quake.s <adj> [%c0, %c1] %t : (!quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL: func.func @ccct_adj
+func.func @ccct_adj(%c0: !quake.ref, %c1: !quake.ref, %c2: !quake.ref, %t: !quake.ref) {
+  // CHECK: quake.t<adj> [%{{.*}}] %{{.*}} : (!quake.ref, !quake.ref) -> ()
+  quake.t <adj> [%c0, %c1, %c2] %t : (!quake.ref, !quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}

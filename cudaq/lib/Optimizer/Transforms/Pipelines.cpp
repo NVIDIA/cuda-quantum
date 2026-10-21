@@ -89,6 +89,7 @@ struct FaultTolerantTargetPipelineOptions
 } // namespace
 
 void cudaq::opt::addConvertToLinearValues(OpPassManager &pm) {
+  pm.addNestedPass<func::FuncOp>(createExpandVeqUses());
   pm.addNestedPass<func::FuncOp>(createFactorQuantumAllocations());
   pm.addNestedPass<func::FuncOp>(createExpandControlVeqs());
   pm.addNestedPass<func::FuncOp>(createCableRoughIn());
@@ -278,7 +279,7 @@ void cudaq::opt::createTargetFinalizePipeline(OpPassManager &pm) {
 static void createJITTargetFinalizePipeline(
     OpPassManager &pm, const TargetFinalizationJitPipelineOptions &options) {
   if (options.lowerDeviceCalls)
-    pm.addPass(cudaq::opt::createDistributedDeviceCall());
+    pm.addPass(cudaq::opt::createQIRDeviceCall());
   cudaq::opt::addAggressiveInlining(pm);
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
   cudaq::opt::createTargetFinalizePipeline(pm);

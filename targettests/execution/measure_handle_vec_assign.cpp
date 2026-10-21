@@ -15,7 +15,7 @@
 // Compile and execute; verifies the runtime produces the correct bitstrings.
 // RUN: nvq++ %s -o %t && %t | FileCheck %s
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 #include <iostream>
 #include <vector>
 

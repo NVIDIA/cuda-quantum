@@ -144,7 +144,7 @@ The **unified dispatch mode** (`CUDAQ_KERNEL_UNIFIED`) is an alternative to the
 3-kernel architecture that combines receive, RPC dispatch, and transmit into a
 single GPU kernel.  By eliminating the inter-kernel ring-buffer flag handoff
 between RX, dispatch, and TX kernels, the unified kernel reduces round-trip
-latency for simple (non-cooperative) RPC handlers.
+latency for simple RPC handlers.
 
 ### Architecture
 
@@ -191,28 +191,26 @@ without any transport-specific knowledge.
 
 ### When to Use Which Mode
 
-**3-kernel mode** (`CUDAQ_KERNEL_REGULAR` or `CUDAQ_KERNEL_COOPERATIVE`):
+**3-kernel mode** (`CUDAQ_KERNEL_REGULAR`):
 
 - Transport-agnostic -- works with any transport that implements the ring-buffer
     flag protocol
-- Required for cooperative handlers that use `grid.sync()`
 - Supports `CUDAQ_DISPATCH_GRAPH_LAUNCH` mode
 
 **Unified mode** (`CUDAQ_KERNEL_UNIFIED`):
 
-- Lowest latency for regular (non-cooperative) handlers
+- Lowest latency for simple RPC handlers
 - Transport-agnostic API -- the transport provides a pluggable launch function
     and opaque context (e.g., `GpuRoceTransceiver`/`DOCA` supplies `gpu_roce_launch_unified_dispatch`)
 - Single-thread, single-block kernel -- no inter-kernel synchronization overhead
-- Not compatible with cooperative handlers or `CUDAQ_DISPATCH_GRAPH_LAUNCH`
+- Not compatible with `CUDAQ_DISPATCH_GRAPH_LAUNCH`
 
 ### Host API Extensions
 
 ```cpp
 typedef enum {
-  CUDAQ_KERNEL_REGULAR     = 0,
-  CUDAQ_KERNEL_COOPERATIVE = 1,
-  CUDAQ_KERNEL_UNIFIED     = 2
+  CUDAQ_KERNEL_REGULAR = 0,
+  CUDAQ_KERNEL_UNIFIED = 2
 } cudaq_kernel_type_t;
 
 typedef void (*cudaq_unified_launch_fn_t)(
@@ -231,35 +229,41 @@ When `kernel_type == CUDAQ_KERNEL_UNIFIED`:
 
 - `cudaq_dispatcher_set_ringbuffer()` and `cudaq_dispatcher_set_launch_fn()`
     are **not required** (the unified kernel handles transport internally)
-- `cudaq_dispatcher_set_unified_launch()` **must** be called instead
-- `num_slots` and `slot_size` in the `config` may be zero
+- The transport context is wired by `cudaq_dispatcher_set_bridge()` for a
+    bridge-backed dispatcher, or by `cudaq_dispatcher_set_unified_launch()`
+    otherwise
+- `slot_size` must give the slot stride; `cudaq_dispatcher_set_bridge()`
+    fills it from the bridge when the `config` leaves it 0
 - All other wiring (`set_function_table`, `set_control`) remains the same
 
 ### Wiring Example (Unified Mode with GpuRoceTransceiver)
 
-```cpp
-// Pack DOCA transport handles
-doca_transport_ctx ctx;
-ctx.gpu_dev_qp     = gpu_roce_get_gpu_dev_qp(transceiver);
-ctx.rx_ring_data   = gpu_roce_get_rx_ring_data_addr(transceiver);
-ctx.rx_ring_stride_sz  = gpu_roce_get_page_size(transceiver);
-ctx.rx_ring_mkey   = htonl(gpu_roce_get_rkey(transceiver));
-ctx.rx_ring_stride_num = gpu_roce_get_num_pages(transceiver);
-ctx.frame_size     = frame_size;
+The bridge packs its transport handles itself (for `GpuRoceTransceiver`, the
+`DOCA` `QP`, ring addresses and memory keys); the dispatcher asks for them
+through `cudaq_dispatcher_set_bridge`:
 
-// Configure dispatcher for unified mode
+```cpp
+// The provider parses its own options, including --unified
+cudaq_bridge_create(&bridge, CUDAQ_PROVIDER_GPU_ROCE, argc, argv);
+cudaq_bridge_connect(bridge);
+
+// Configure dispatcher for unified mode; ring geometry comes from the bridge
 cudaq_dispatcher_config_t config{};
 config.device_id       = gpu_id;
+config.dispatch_path   = CUDAQ_DISPATCH_PATH_DEVICE;
 config.kernel_type     = CUDAQ_KERNEL_UNIFIED;
 config.dispatch_mode   = CUDAQ_DISPATCH_DEVICE_CALL;
 
 cudaq_dispatcher_create(manager, &config, &dispatcher);
-cudaq_dispatcher_set_unified_launch(
-    dispatcher, &gpu_roce_launch_unified_dispatch, &ctx);
+cudaq_dispatcher_set_bridge(dispatcher, bridge);
 cudaq_dispatcher_set_function_table(dispatcher, &table);
 cudaq_dispatcher_set_control(dispatcher, d_shutdown_flag, d_stats);
 cudaq_dispatcher_start(dispatcher);
+cudaq_bridge_launch(bridge);
 ```
+
+`cudaq_dispatcher_set_unified_launch` remains for dispatchers that are not
+backed by a bridge; a bridge-backed one should not call it directly.
 
 ## What This API Does (In One Paragraph)
 
@@ -448,7 +452,6 @@ Parameters:
   not in this API.
   - `kernel_type` (default `CUDAQ_KERNEL_REGULAR`)
     - `CUDAQ_KERNEL_REGULAR`: standard kernel launch
-    - `CUDAQ_KERNEL_COOPERATIVE`: cooperative launch (`grid.sync()` capable)
     - `CUDAQ_KERNEL_UNIFIED`: single-kernel dispatch with integrated transport
     (see [Unified Dispatch Mode](#unified-dispatch-mode))
   - `dispatch_mode` (default `CUDAQ_DISPATCH_DEVICE_CALL`)
@@ -503,6 +506,36 @@ Parameters:
 - `dispatcher`: dispatcher handle to destroy.
 
 Call this when the dispatcher is no longer needed.
+
+**`cudaq_dispatcher_set_bridge`** wires a transport bridge (see
+`bridge_interface.h`) to the dispatcher.  The configured `dispatch_path` and
+`kernel_type` name the shape, and the dispatcher asks the bridge for the data
+plane that shape needs:
+
+| Shape | What the dispatcher takes from the bridge |
+|-------|-------------------------------------------|
+| HOST + REGULAR | The `RING_BUFFER` context; `skip_tx_markers` is forced to 1 |
+| HOST + UNIFIED | The provider's CPU data plane (`rx_poll` / `tx_publish`) |
+| DEVICE + REGULAR | The `RING_BUFFER` context; `start()` then launches the 3-kernel dispatch kernel from `libcudaq-realtime-dispatch.a` (see `cudaq_dispatcher_set_launch_fn`) |
+| DEVICE + UNIFIED | The provider's unified transport context |
+
+Parameters:
+
+- `dispatcher`: dispatcher handle, not yet started.
+- `bridge`: a bridge from `cudaq_bridge_create_from_library` or
+  `cudaq_bridge_create`.
+
+A `num_slots` or `slot_size` left at 0 in the config is taken from the bridge's
+ring geometry; a non-zero value that disagrees with it is refused.  Everything
+is copied, so only the bridge itself must outlive the dispatcher.  A provider
+started in the other mode makes this return `CUDAQ_ERR_UNSUPPORTED`.  A bridge
+drives exactly one dispatcher.  When a bridge is attached,
+`cudaq_dispatcher_start` also hands it the function table through
+`cudaq_bridge_set_function_table`.
+
+A bridge-backed dispatcher needs none of `cudaq_dispatcher_set_ringbuffer`,
+`cudaq_dispatcher_set_unified_launch` or `cudaq_dispatcher_set_cpu_dataplane`;
+those remain for dispatchers over in-process rings.
 
 **`cudaq_dispatcher_set_ringbuffer`** provides the RX/TX flag and data
 pointers the dispatch kernel will poll and use for request/response slots.
@@ -604,10 +637,10 @@ Parameters:
 - `dispatcher`: dispatcher handle.
 - `launch_fn`: host launch function pointer.
 
-Call this once during setup. Typically you pass one of the provided launch functions:
+The call is optional. Without it, `cudaq_dispatcher_start` uses the launcher
+from `libcudaq-realtime-dispatch.a`:
 
-- `cudaq_launch_dispatch_kernel_regular` - for `CUDAQ_KERNEL_REGULAR` mode
-- `cudaq_launch_dispatch_kernel_cooperative` - for `CUDAQ_KERNEL_COOPERATIVE` mode
+- `cudaq_launch_dispatch_kernel_regular` for `CUDAQ_KERNEL_REGULAR`
 
 **`cudaq_dispatcher_start`** launches the persistent dispatch kernel and begins
 processing slots.
@@ -638,7 +671,7 @@ Parameters:
 
 ### Occupancy Query and Eager Module Loading
 
-Before calling `cudaq_dispatcher_start`, call the appropriate occupancy query
+Before calling `cudaq_dispatcher_start`, call the occupancy query
 to force eager loading of the dispatch kernel module. This avoids lazy-load
 deadlocks when the dispatch kernel and transport kernels (e.g.,
 GpuRoceTransceiver RX/TX) run as persistent kernels.
@@ -655,23 +688,8 @@ Parameters:
 Returns `cudaSuccess` on success. Call this when `kernel_type` is
 `CUDAQ_KERNEL_REGULAR`.
 
-**`cudaq_dispatch_kernel_cooperative_query_occupancy`**
-returns the maximum number of active blocks per multiprocessor for the
-**cooperative** dispatch kernel.
-
-Parameters:
-
-- `out_blocks`: receives the max blocks per SM (or 0 on error).
-- `threads_per_block`: block size used for the occupancy calculation
-(e.g., 128 for cooperative decoders).
-
-Returns `cudaSuccess` on success. Call this when `kernel_type` is
-`CUDAQ_KERNEL_COOPERATIVE`. Use the same `threads_per_block` value that will
-be passed to the dispatcher configuration and launch function.
-
-Call the occupancy function that matches the dispatcher's `kernel_type` once
-before `cudaq_dispatcher_start`; the result can be used to size the dispatch
-grid (e.g., to reserve `SMs` for transport kernels).
+Call it once before `cudaq_dispatcher_start`; the result can be used to size
+the dispatch grid (e.g., to reserve `SMs` for transport kernels).
 
 Lifetime/ownership:
 
@@ -749,10 +767,11 @@ clean up graph resources.
 
 ### Kernel Launch Helper Functions
 
-The following helper functions are provided for use with `cudaq_dispatcher_set_launch_fn()`:
+The following helper function is the dispatcher's default for the DEVICE
+ring path, and can also be passed to `cudaq_dispatcher_set_launch_fn()`:
 
 **`cudaq_launch_dispatch_kernel_regular`** launches the dispatch kernel in
-regular (non-cooperative) mode.
+regular mode.
 
 Parameters:
 
@@ -772,16 +791,6 @@ Parameters:
 - `stream`: CUDA stream for kernel launch
 
 Use this when `kernel_type` is set to `CUDAQ_KERNEL_REGULAR` in the dispatcher configuration.
-
-**`cudaq_launch_dispatch_kernel_cooperative`** launches the dispatch kernel in
-cooperative mode.
-
-Parameters: Same as `cudaq_launch_dispatch_kernel_regular`.
-
-Use this when `kernel_type` is set to `CUDAQ_KERNEL_COOPERATIVE`
-in the dispatcher configuration.
-This enables the dispatch kernel and handlers to use
-grid-wide synchronization via `cooperative_groups::this_grid().sync()`.
 
 ## Memory Layout and Ring Buffer Wiring
 
@@ -1059,7 +1068,7 @@ Use `CUDAQ_DISPATCH_PATH_DEVICE` when:
 
 - Sub-microsecond dispatch latency is required (GPU-resident kernel avoids
     CPU round-trip)
-- Handlers are simple `__device__` functions or cooperative kernels
+- Handlers are simple `__device__` functions
 - Transport uses GPU-polled RDMA (e.g., GpuRoceTransceiver 3-kernel or unified mode)
 - Graph-based handlers are not needed, or the workload is limited to at most
     120 messages per session

@@ -61,7 +61,8 @@ public:
         fn->setAttr(cudaq::opt::disableQubitCombineAttrName,
                     UnitAttr::get(scopeOp.getContext()));
 
-    if (scopeOp.hasClassicalAllocation()) {
+    if (scopeOp.hasClassicalAllocation() &&
+        !scopeOp->hasAttr(cudaq::opt::noStackFenceAttrName)) {
       auto call = func::CallOp::create(rewriter, loc, ptrTy,
                                        cudaq::llvmStackSave, ArrayRef<Value>{});
       stackSave = call.getResult(0);
