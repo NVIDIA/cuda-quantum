@@ -47,6 +47,7 @@ from .projection import (
     ProjectedPort,
 )
 from .clifford import CliffordInstruction, CliffordProjection, project_clifford
+from .stim import StandardDepolarizingNoise, emit_stim
 from .topology_view import (
     CarrierGraphView,
     DeviceStackGraphView,
@@ -124,6 +125,8 @@ __all__ = [
     "CliffordInstruction",
     "CliffordProjection",
     "project_clifford",
+    "StandardDepolarizingNoise",
+    "emit_stim",
     "lower",
     "passes",
     "pipelines",

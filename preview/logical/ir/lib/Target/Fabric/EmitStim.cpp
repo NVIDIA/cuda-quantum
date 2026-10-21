@@ -509,6 +509,9 @@ private:
         .Case<ReadSyndromeAncillasOp>(
             [&](auto o) { emitReadSyndromeAncillas(o); })
         .Case<AssembleSyndromeOp>([&](auto o) { emitAssembleSyndrome(o); })
+        // Affine classical result rows are recorded by GadgetSpec's outcome
+        // map; their source measurements already appear in the projection.
+        .Case<ParityOp>([](auto) {})
         // Resource preparation/injection has no faithful Stim text form.
         .Case<ProduceResourceOp, InjectOp, DiscardResourceOp>([&](auto op) {
           op.emitError("fabric-to-stim: unsupported operation '")

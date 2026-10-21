@@ -50,13 +50,13 @@ your own risk until exercised evidence lands.
 
 ## Documented boundaries (all fail closed)
 
-**There are no detector, observable, detector-error-model, decoder, or sampling
-semantics.** P3 retains typed physical error and timing *assumptions* so that
-`Tier.ANALYTICAL` and `Tier.SCHEDULE` can cost a realization — that is a
-parameter surface, not a noise model. CUDA-Q Logical does not annotate
-detectors or observables, generate or compose detector error models, sample
-circuits, or decode results. Those studies begin downstream of the emitted
-Stim text, in the Stim ecosystem.
+**Annotated Stim export covers closed single-block profile chains.** The
+Python exporter lowers detector and observable declarations and attaches an
+explicit physical noise policy. See the
+[surface-memory example](../use-cases/stim-emission.md#export-a-profiled-surface-code-memory).
+Sampling, DEM extraction, and decoding use downstream tools. P3 physical error
+and timing assumptions remain inputs to resource estimates; they do not select
+the circuit's noise policy.
 
 **Stages stop at P3.** P3 represents physical carriers, routing, native events,
 and schedules. It remains a compiler and estimation artifact: CUDA-Q Logical

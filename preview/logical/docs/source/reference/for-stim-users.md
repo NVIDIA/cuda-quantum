@@ -6,16 +6,16 @@ narrower in one direction and much wider in another.
 
 The one-sentence version: **Stim is the assembly language of QEC experiments;
 CUDA-Q Logical is the resource-estimation compiler stack above it** — and Stim
-text is its emission target. CUDA-Q Logical does not simulate, sample, or
-decode: no detector annotations, no detector error models, no samplers. Those
-studies start from the emitted circuit and belong to the Stim ecosystem.
+text is its emission target. Closed single-block profile chains can export
+detector and observable annotations with a physical noise policy. Simulation,
+sampling, DEM extraction, and decoding use the downstream Stim ecosystem.
 
 ## The translation table
 
 | You do this in Stim                                            | You do this in CUDA-Q Logical                                                                                                                   |
 | -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | Write a circuit qubit-by-qubit                                 | Write a _logical program_; the compiler selects code-specific realizations                                                                      |
-| `stim.Circuit.generated("surface_code:rotated_memory_z", ...)` | `cudaq.logical.codes.Surface[d]` + the gadget factories (`cudaq.logical.gadgets.prepare_zero`, `css_memory_round`, `logical_measure`) selected for a memory objective |
+| `stim.Circuit.generated("surface_code:rotated_memory_z", ...)` | The [profiled surface-memory example](../use-cases/stim-emission.md#export-a-profiled-surface-code-memory), using explicit preparation, SEC, and transversal readout gadgets |
 | `REPEAT 1000 { ... }`                                          | `cudaq.logical.idle(q, rounds=1000)` — stays **folded** through compilation and estimation, never unrolled                                                 |
 | Hand-maintain a circuit template per code                      | One portable program; swap `code=`/`Surface[d]` and recompile — the program is untouched                                                        |
 | Read the circuit to guess its cost                             | `cudaq.logical.estimate(build, tier=...)`: logical counts at P0, static and analytical counts at P2, schedule-backed counts at P3                          |
