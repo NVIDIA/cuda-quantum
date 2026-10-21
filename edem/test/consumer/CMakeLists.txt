@@ -7,7 +7,12 @@
 # ============================================================================ #
 
 cmake_minimum_required(VERSION 3.23)
-project(cudaq-edem-consumer LANGUAGES C CXX)
+option(CUDAQ_EDEM_TEST_C_ONLY "Consume EDEM without enabling C++" OFF)
+if(CUDAQ_EDEM_TEST_C_ONLY)
+  project(cudaq-edem-consumer LANGUAGES C)
+else()
+  project(cudaq-edem-consumer LANGUAGES C CXX)
+endif()
 
 if(NOT TARGET cudaq::edem)
   find_package(cudaq-edem ${CUDAQ_EDEM_TEST_VERSION} EXACT CONFIG REQUIRED
@@ -18,12 +23,14 @@ if(NOT TARGET cudaq::gf2)
 endif()
 
 add_executable(edem_c_consumer main.c)
-add_executable(edem_cpp_consumer main.cpp)
-target_compile_features(edem_cpp_consumer PRIVATE cxx_std_17)
 # Linking only EDEM must provide the GF2 dependency and its headers too.
 target_link_libraries(edem_c_consumer PRIVATE cudaq::edem)
-target_link_libraries(edem_cpp_consumer PRIVATE cudaq::edem)
 
 enable_testing()
 add_test(NAME edem_c_consumer COMMAND edem_c_consumer)
-add_test(NAME edem_cpp_consumer COMMAND edem_cpp_consumer)
+if(NOT CUDAQ_EDEM_TEST_C_ONLY)
+  add_executable(edem_cpp_consumer main.cpp)
+  target_compile_features(edem_cpp_consumer PRIVATE cxx_std_17)
+  target_link_libraries(edem_cpp_consumer PRIVATE cudaq::edem)
+  add_test(NAME edem_cpp_consumer COMMAND edem_cpp_consumer)
+endif()

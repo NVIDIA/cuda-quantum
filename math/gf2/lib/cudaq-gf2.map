@@ -1,0 +1,30 @@
+/*
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.
+ * All rights reserved.
+ *
+ * This source code and the accompanying materials are made available under
+ * the terms of the Apache License 2.0 which accompanies this distribution.
+ */
+
+CUDAQ_GF2_0.1 {
+  global:
+    cudaq_gf2_abi_version;
+    cudaq_gf2_csc_apply;
+    cudaq_gf2_csc_construct;
+    cudaq_gf2_csc_validate;
+    cudaq_gf2_default_allocator;
+    cudaq_gf2_map_apply;
+    cudaq_gf2_map_construct;
+    cudaq_gf2_map_get_block;
+    cudaq_gf2_map_get_bundle;
+    cudaq_gf2_map_get_section;
+    cudaq_gf2_map_get_shape;
+    cudaq_gf2_map_get_type;
+    cudaq_gf2_map_get_wire;
+    cudaq_gf2_map_read;
+    cudaq_gf2_map_validate;
+    cudaq_gf2_map_vector_sizes;
+    cudaq_gf2_owned_buffer_release;
+    cudaq_gf2_status_string;
+  local: *;
+};

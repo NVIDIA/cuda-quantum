@@ -56,6 +56,7 @@ quick example, build instructions, and the current scope and limitations.
    :maxdepth: 1
 
    CUDA-Q Logical </preview/logical/#http://>
+   CUDA-Q EDEM <using/edem.md>
 
 .. |---|   unicode:: U+2014 .. EM DASH
    :trim:

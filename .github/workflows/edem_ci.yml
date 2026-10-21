@@ -59,6 +59,16 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v6
+      - name: Configure GF2 independently
+        run: >-
+          cmake -S math/gf2 -B build-gf2
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
+          -DBUILD_SHARED_LIBS=${{ matrix.shared }}
+      - name: Build GF2 independently
+        run: cmake --build build-gf2 --parallel 2
+      - name: Check GF2 independently
+        run: ctest --test-dir build-gf2 --output-on-failure
       - name: Configure
         run: >-
           cmake -S edem -B build-edem

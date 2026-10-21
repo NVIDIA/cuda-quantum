@@ -22,6 +22,8 @@ set(configure_args
   -G "@CMAKE_GENERATOR@"
   "-DCMAKE_C_COMPILER:FILEPATH=@CMAKE_C_COMPILER@"
   "-DCMAKE_CXX_COMPILER:FILEPATH=@CMAKE_CXX_COMPILER@"
+  "-DCMAKE_C_FLAGS:STRING=@CMAKE_C_FLAGS@"
+  "-DCMAKE_CXX_FLAGS:STRING=@CMAKE_CXX_FLAGS@"
   "-DCMAKE_BUILD_TYPE:STRING=${config}"
   -DCMAKE_COMPILE_WARNING_AS_ERROR=ON)
 if(NOT "@CMAKE_MAKE_PROGRAM@" STREQUAL "")
@@ -50,6 +52,9 @@ file(MAKE_DIRECTORY "${work}")
 set(install_build "@CMAKE_CURRENT_BINARY_DIR@/..")
 set(components "@CUDAQ_EDEM_LIBRARY_COMPONENT@;@CUDAQ_EDEM_DEVELOPMENT_COMPONENT@")
 set(package_install_dir "@CUDAQ_EDEM_CMAKE_INSTALL_DIR@")
+if("@CUDAQ_EDEM_BUILD_PYTHON@" AND mode STREQUAL "standalone")
+  list(APPEND components EDEMPython)
+endif()
 if(EDEM_TEST_PARENT)
   run("@CMAKE_COMMAND@" -S "@CMAKE_CURRENT_SOURCE_DIR@/parent"
     -B "${work}/build" ${configure_args}
@@ -82,6 +87,13 @@ endforeach()
 set(relocated "${work}/relocated")
 file(RENAME "${prefix}" "${relocated}")
 
+if("@CUDAQ_EDEM_BUILD_PYTHON@" AND mode STREQUAL "standalone")
+  get_filename_component(python_prefix
+    "${relocated}/@CUDAQ_EDEM_PYTHON_INSTALL_DIR@" DIRECTORY)
+  run("@CMAKE_COMMAND@" -E env "PYTHONPATH=${python_prefix}"
+    "@CUDAQ_EDEM_PYTHON_EXECUTABLE@" "@CMAKE_CURRENT_SOURCE_DIR@/test_values.py")
+endif()
+
 # A relocatable package must not retain checkout, build, or old-prefix paths.
 get_filename_component(checkout "@CUDAQ_EDEM_SOURCE_DIR@/.." ABSOLUTE)
 file(GLOB_RECURSE package_files "${relocated}/*.cmake")
@@ -105,4 +117,17 @@ run("@CMAKE_COMMAND@" -S "@CMAKE_CURRENT_SOURCE_DIR@/consumer"
   "-DCUDAQ_EDEM_TEST_VERSION:STRING=@CUDAQ_EDEM_VERSION@")
 run("@CMAKE_COMMAND@" --build "${work}/consumer" --config "${config}")
 run("@CMAKE_CTEST_COMMAND@" --test-dir "${work}/consumer"
+  -C "${config}" --output-on-failure)
+
+# The implementation's C++ standard and runtime must not leak into a C build.
+set(c_configure_args ${configure_args})
+list(FILTER c_configure_args EXCLUDE REGEX "^-DCMAKE_CXX_")
+run("@CMAKE_COMMAND@" -S "@CMAKE_CURRENT_SOURCE_DIR@/consumer"
+  -B "${work}/c-only-consumer" ${c_configure_args}
+  -DCUDAQ_EDEM_TEST_C_ONLY=ON
+  "-DCUDAQ_EDEM_TEST_PREFIX:PATH=${relocated}"
+  "-Dcudaq-edem_DIR:PATH=${relocated}/${package_install_dir}"
+  "-DCUDAQ_EDEM_TEST_VERSION:STRING=@CUDAQ_EDEM_VERSION@")
+run("@CMAKE_COMMAND@" --build "${work}/c-only-consumer" --config "${config}")
+run("@CMAKE_CTEST_COMMAND@" --test-dir "${work}/c-only-consumer"
   -C "${config}" --output-on-failure)
