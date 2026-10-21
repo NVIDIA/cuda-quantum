@@ -51,7 +51,7 @@ static cudaq::config::Lowering toCanonicalLowering(
 static cudaq::config::CompilationStage
 toCanonicalStage(const cudaq::config::v2::CompilationStageV2 &stage) {
   cudaq::config::Profile profile = toCanonicalProfile(stage.irOutputProfile);
-  cudaq::config::Lowering lowering = cudaq::config::DefaultLowering{};
+  cudaq::config::Lowering lowering = cudaq::config::InferredLowering{};
   if (stage.lowering)
     lowering = toCanonicalLowering(*stage.lowering);
   return cudaq::config::CompilationStage{.irOutputProfile = profile,

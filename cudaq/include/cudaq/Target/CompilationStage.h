@@ -37,17 +37,17 @@ struct CustomPipelineLowering {
   bool operator==(const CustomPipelineLowering &other) const = default;
 };
 
-/// Default lowering. The compilation pipeline for the stage is inferred using
-/// the compiler's registered lowering handlers based on the stage's input and
-/// output IR profiles.
-struct DefaultLowering {
+/// Default lowering strategy. The compilation pipeline for the stage is
+/// inferred using the compiler's registered lowering handlers based on the
+/// stage's input and output IR profiles.
+struct InferredLowering {
   static constexpr char name[] = "inferred";
 
-  bool operator==(const DefaultLowering &other) const = default;
+  bool operator==(const InferredLowering &other) const = default;
 };
 
 /// All supported strategies for lowering input IR to output IR.
-using Lowering = std::variant<DefaultLowering, CustomPipelineLowering>;
+using Lowering = std::variant<InferredLowering, CustomPipelineLowering>;
 
 /// One stage of the compilation pipeline: the IR profile the stage lowers to
 /// and how to get there.

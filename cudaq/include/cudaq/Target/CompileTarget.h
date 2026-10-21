@@ -118,9 +118,9 @@ struct std::hash<cudaq::config::CustomPipelineLowering> {
       const cudaq::config::CustomPipelineLowering &lowering) const noexcept;
 };
 template <>
-struct std::hash<cudaq::config::DefaultLowering> {
+struct std::hash<cudaq::config::InferredLowering> {
   std::size_t
-  operator()(const cudaq::config::DefaultLowering &lowering) const noexcept;
+  operator()(const cudaq::config::InferredLowering &lowering) const noexcept;
 };
 template <>
 struct std::hash<cudaq::config::Codegen> {

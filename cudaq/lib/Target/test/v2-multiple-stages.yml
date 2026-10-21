@@ -50,5 +50,5 @@ compile-target:
 # GEN: kBuiltinTarget_v2_multi
 # GEN: .stages = {cudaq::config::CompilationStage{.irOutputProfile = cudaq::config::Profile{std::in_place_type<cudaq::config::UncheckedProfile>}, .lowering = cudaq::config::CustomPipelineLowering{.overridePassPipeline = "func.func(canonicalize)"
 # GEN: cudaq::config::CompilationStage{.irOutputProfile = cudaq::config::Profile{std::in_place_type<cudaq::config::QuakeReferenceSemanticsProfile>, cudaq::config::QuakeReferenceSemanticsProfile{.basisGates = {"h", "s", "rz", }, .measurementType = cudaq::config::MeasurementForm::any, .resetAfterMeasure = false}
-# GEN: .lowering = cudaq::config::DefaultLowering{}}, }
+# GEN: .lowering = cudaq::config::InferredLowering{}}, }
 # GEN: .codegen = cudaq::config::Codegen{.emissionFormat = "qir-base"

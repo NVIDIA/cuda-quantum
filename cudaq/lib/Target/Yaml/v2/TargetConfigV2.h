@@ -96,7 +96,7 @@ struct CustomPipelineLoweringV2 {
 /// One compilation stage: the IR output profile to lower to and the lowering
 /// to get there.
 ///
-/// An omitted `lowering` defaults to `DefaultLowering`.
+/// An omitted `lowering` defaults to `InferredLowering`.
 struct CompilationStageV2 {
   IrOutputProfileV2 irOutputProfile;
   std::optional<CustomPipelineLoweringV2> lowering;

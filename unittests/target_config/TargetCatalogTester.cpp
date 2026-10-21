@@ -156,7 +156,7 @@ compile-target:
   EXPECT_EQ(physical->measurementType,
             cudaq::config::MeasurementForm::single_qubit);
   EXPECT_FALSE(physical->resetAfterMeasure);
-  EXPECT_TRUE(std::holds_alternative<cudaq::config::DefaultLowering>(
+  EXPECT_TRUE(std::holds_alternative<cudaq::config::InferredLowering>(
       stages[1].lowering));
   EXPECT_EQ(entry->config->BackendConfig->CompileTarget.codegen.emissionFormat,
             "qir-base");

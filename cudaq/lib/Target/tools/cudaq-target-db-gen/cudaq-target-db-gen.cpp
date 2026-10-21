@@ -255,8 +255,8 @@ std::string cxxLowering(const cudaq::config::Lowering &lowering) {
         using T = std::decay_t<decltype(l)>;
         if constexpr (std::is_same_v<T, cudaq::config::CustomPipelineLowering>)
           return cxxCustomPipelineLowering(l);
-        else if constexpr (std::is_same_v<T, cudaq::config::DefaultLowering>)
-          return "cudaq::config::DefaultLowering{}";
+        else if constexpr (std::is_same_v<T, cudaq::config::InferredLowering>)
+          return "cudaq::config::InferredLowering{}";
       },
       lowering);
 }
