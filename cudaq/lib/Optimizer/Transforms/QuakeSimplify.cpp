@@ -127,7 +127,7 @@ template <typename QOP>
 static QOP
 getCrossScopePredecessor(QOP later,
                          cudaq::opt::CommutationAwareRewriteMatcher &matcher) {
-  auto laterFlow = cudaq::quake::detail::getScalarWireFlow(later);
+  auto laterFlow = cudaq::quake::detail::getWireFlow(later);
   if (!laterFlow || laterFlow->inputs.empty())
     return {};
 
@@ -148,14 +148,14 @@ getCrossScopePredecessor(QOP later,
 
 template <typename QOP>
 static bool hasOrderedResultThreading(QOP predecessor, QOP later) {
-  auto laterFlow = cudaq::quake::detail::getScalarWireFlow(later);
-  auto predecessorFlow = cudaq::quake::detail::getScalarWireFlow(predecessor);
+  auto laterFlow = cudaq::quake::detail::getWireFlow(later);
+  auto predecessorFlow = cudaq::quake::detail::getWireFlow(predecessor);
   return laterFlow && predecessorFlow &&
          llvm::equal(predecessorFlow->results, laterFlow->inputs);
 }
 
 // Reference-form operators have no results. Value-form operators forward each
-// scalar wire control and target to the result that carries the same qubit.
+// wire control and target to the result that carries the same qubit.
 // Reusable controls are not consumed and therefore have no forwarded result.
 static void eraseOrForward(cudaq::quake::OperatorInterface operation,
                            PatternRewriter &rewriter) {
@@ -172,7 +172,7 @@ static void eraseOrForward(cudaq::quake::OperatorInterface operation,
     if (isa<cudaq::quake::WireType>(target.getType()))
       wires.push_back(target);
   assert(wires.size() == operation->getNumResults() &&
-         "operator results must correspond to scalar wire operands");
+         "operator results must correspond to wire operands");
   rewriter.replaceOp(operation, wires);
 }
 
@@ -246,8 +246,8 @@ private:
 // transposed. Linear use means this is necessarily adjacent.
 static bool hasTransposedTargetsOnEarlierWires(cudaq::quake::SwapOp earlier,
                                                cudaq::quake::SwapOp later) {
-  auto earlierFlow = cudaq::quake::detail::getScalarWireFlow(earlier);
-  auto laterFlow = cudaq::quake::detail::getScalarWireFlow(later);
+  auto earlierFlow = cudaq::quake::detail::getWireFlow(earlier);
+  auto laterFlow = cudaq::quake::detail::getWireFlow(later);
   if (!earlierFlow || !laterFlow)
     return false;
   const auto &laterWires = laterFlow->inputs;
@@ -765,7 +765,7 @@ static bool hasExclusiveNullWireLineage(Value wire, Operation *downstream) {
     if (isa<cudaq::quake::NullWireOp>(producer))
       return true;
 
-    auto flow = cudaq::quake::detail::getScalarWireFlow(producer);
+    auto flow = cudaq::quake::detail::getWireFlow(producer);
     if (!flow || flow->inputs.size() != 1 || flow->results.size() != 1 ||
         flow->results.front() != wire)
       return false;

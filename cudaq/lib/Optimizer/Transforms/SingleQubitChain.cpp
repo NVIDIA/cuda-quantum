@@ -98,12 +98,12 @@ static std::optional<WirePathEnd> traceWire(
 }
 
 // Return the wire flow of a gate the caller accepts as a chain member.
-static std::optional<cudaq::quake::detail::ScalarWireFlow>
+static std::optional<cudaq::quake::detail::WireFlow>
 getChainFlow(Operation *operation,
              cudaq::opt::SingleQubitChainPredicate isSupported) {
   if (!isSupported(operation))
     return std::nullopt;
-  return cudaq::quake::detail::getScalarWireFlow(operation);
+  return cudaq::quake::detail::getWireFlow(operation);
 }
 
 // A controlled chain continues only when every output lane reaches the same
@@ -112,7 +112,7 @@ getChainFlow(Operation *operation,
 // Returns the next gate and replaces `flow` with its wire flow, or returns null
 // and leaves `flow` unchanged.
 static Operation *
-matchNextOperation(cudaq::quake::detail::ScalarWireFlow &flow,
+matchNextOperation(cudaq::quake::detail::WireFlow &flow,
                    Operation *firstOperation,
                    llvm::MutableArrayRef<
                        llvm::SmallVector<cudaq::opt::SingleQubitChainScopeStep>>
