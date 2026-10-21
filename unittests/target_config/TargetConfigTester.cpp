@@ -208,8 +208,8 @@ compile-target:
 TEST(TargetConfigTester, physicalQuakeProfileIdentity) {
   const cudaq::config::PhysicalQuakeProfile baseline{
       .basisGates = {"h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)"},
-      .measurements = cudaq::config::MeasurementForm::expanded,
-      .resetBeforeReuse = true};
+      .measurementType = cudaq::config::MeasurementForm::single_qubit,
+      .resetAfterMeasure = true};
   const std::hash<cudaq::config::PhysicalQuakeProfile> hash;
 
   // Distinct profile kinds are never equal.
@@ -222,13 +222,13 @@ TEST(TargetConfigTester, physicalQuakeProfileIdentity) {
   EXPECT_NE(basisChanged, baseline);
   EXPECT_NE(hash(basisChanged), hash(baseline));
 
-  auto measurementsChanged = baseline;
-  measurementsChanged.measurements = cudaq::config::MeasurementForm::any;
-  EXPECT_NE(measurementsChanged, baseline);
-  EXPECT_NE(hash(measurementsChanged), hash(baseline));
+  auto measurementTypeChanged = baseline;
+  measurementTypeChanged.measurementType = cudaq::config::MeasurementForm::any;
+  EXPECT_NE(measurementTypeChanged, baseline);
+  EXPECT_NE(hash(measurementTypeChanged), hash(baseline));
 
   auto resetChanged = baseline;
-  resetChanged.resetBeforeReuse = false;
+  resetChanged.resetAfterMeasure = false;
   EXPECT_NE(resetChanged, baseline);
   EXPECT_NE(hash(resetChanged), hash(baseline));
 }
@@ -242,7 +242,7 @@ TEST(TargetConfigTester, physicalQuakeProfileTargetIdentity) {
   cudaq::CompileTarget changed = target;
   std::get<cudaq::config::PhysicalQuakeProfile>(
       changed.stages[0].irOutputProfile)
-      .resetBeforeReuse = true;
+      .resetAfterMeasure = true;
   EXPECT_NE(target, changed);
   EXPECT_NE(std::hash<cudaq::CompileTarget>{}(target),
             std::hash<cudaq::CompileTarget>{}(changed));

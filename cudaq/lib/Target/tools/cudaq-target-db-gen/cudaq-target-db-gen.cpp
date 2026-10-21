@@ -217,8 +217,8 @@ std::string cxxMeasurementForm(cudaq::config::MeasurementForm form) {
   switch (form) {
   case MeasurementForm::any:
     return "cudaq::config::MeasurementForm::any";
-  case MeasurementForm::expanded:
-    return "cudaq::config::MeasurementForm::expanded";
+  case MeasurementForm::single_qubit:
+    return "cudaq::config::MeasurementForm::single_qubit";
   }
   return "cudaq::config::MeasurementForm::any";
 }
@@ -228,8 +228,9 @@ cxxPhysicalQuakeProfile(const cudaq::config::PhysicalQuakeProfile &profile) {
   std::ostringstream os;
   os << "cudaq::config::PhysicalQuakeProfile{"
      << ".basisGates = " << cxxStringVector(profile.basisGates) << ", "
-     << ".measurements = " << cxxMeasurementForm(profile.measurements) << ", "
-     << ".resetBeforeReuse = " << cxxBool(profile.resetBeforeReuse) << "}";
+     << ".measurementType = " << cxxMeasurementForm(profile.measurementType)
+     << ", "
+     << ".resetAfterMeasure = " << cxxBool(profile.resetAfterMeasure) << "}";
   return os.str();
 }
 

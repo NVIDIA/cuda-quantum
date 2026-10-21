@@ -13,21 +13,17 @@
 
 namespace cudaq::config {
 
-/// Measurement shape required by a physical IR profile.
-///
-/// This constrains measurement shape only; `any` is not permission to
-/// violate other profile constraints. The unimplemented `combined` form is
-/// rejected when parsing a profile description.
+/// Constraints on measurement operations enforced by the physical IR profile.
 enum class MeasurementForm {
-  /// No constraint on measurement shape.
+  /// Any measurement is allowed.
   any,
   /// Each measurement operates on exactly one `!quake.ref`.
-  expanded,
+  single_qubit,
 };
 
 /// IR profile for physical, reference-semantics Quake IR.
 ///
-/// Wire/value-form Quake is not part of this profile yet.
+/// Value semantics Quake is currently not supported.
 struct PhysicalQuakeProfile {
   /// Name identifying this profile in target configurations.
   static constexpr char name[] = "physical-quake";
@@ -37,11 +33,11 @@ struct PhysicalQuakeProfile {
   std::vector<std::string> basisGates = {};
 
   /// Required measurement form.
-  MeasurementForm measurements = MeasurementForm::any;
+  MeasurementForm measurementType = MeasurementForm::any;
 
   /// Whether a measured qubit must be reset before any subsequent
   /// non-measurement quantum use.
-  bool resetBeforeReuse = false;
+  bool resetAfterMeasure = false;
 
   bool operator==(const PhysicalQuakeProfile &other) const = default;
 };

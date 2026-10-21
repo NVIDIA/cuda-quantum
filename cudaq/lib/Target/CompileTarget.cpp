@@ -167,8 +167,8 @@ std::size_t std::hash<cudaq::config::PhysicalQuakeProfile>::operator()(
   std::size_t seed = 0;
   for (const auto &gate : profile.basisGates)
     cudaq::detail::hashCombine(seed, gate);
-  cudaq::detail::hashCombine(seed, profile.measurements);
-  cudaq::detail::hashCombine(seed, profile.resetBeforeReuse);
+  cudaq::detail::hashCombine(seed, profile.measurementType);
+  cudaq::detail::hashCombine(seed, profile.resetAfterMeasure);
   return seed;
 }
 

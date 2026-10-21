@@ -96,18 +96,18 @@ static bool trustedClassical(func::FuncOp callee) {
 }
 
 static bool mayAliasMeasured(Operation *op) {
-  op->emitOpError("cannot verify reset-before-reuse: reference may alias a "
+  op->emitOpError("cannot verify reset-after-measure: reference may alias a "
                   "measured qubit");
   return false;
 }
 
-/// Checks the reset-before-reuse constraint on one function. Obligations
+/// Checks the reset-after-measure constraint on one function. Obligations
 /// arise only from measurements; functions that never touch quantum
 /// references or opaque callables need no checking. The scan uses the
 /// entry block's operation order, which is program order only for a
 /// single-block body without nested regions; anything else is
 /// conservatively unverifiable.
-static bool checkResetBeforeReuse(func::FuncOp func) {
+static bool checkResetAfterMeasure(func::FuncOp func) {
   Operation *firstMeasure = nullptr;
   bool touchesQuantum = false;
   func.walk([&](Operation *op) {
@@ -132,7 +132,7 @@ static bool checkResetBeforeReuse(func::FuncOp func) {
   if (!straightLine) {
     Operation *at = firstMeasure ? firstMeasure : func.getOperation();
     at->emitOpError(
-        "cannot verify reset-before-reuse: unsupported control flow");
+        "cannot verify reset-after-measure: unsupported control flow");
     return false;
   }
 
@@ -209,7 +209,7 @@ static bool checkResetBeforeReuse(func::FuncOp func) {
             trustedClassical(callee))
           continue;
       }
-      op->emitOpError("cannot verify reset-before-reuse: operation cannot "
+      op->emitOpError("cannot verify reset-after-measure: operation cannot "
                       "be proven not to reuse a measured qubit");
       return false;
     }
@@ -219,7 +219,7 @@ static bool checkResetBeforeReuse(func::FuncOp func) {
     // measure or reuse a qubit.
     if (hasQuantumRefOperand(op) || hasCallableValue(op) ||
         producesQuantumRef(op)) {
-      op->emitOpError("cannot verify reset-before-reuse: operation cannot "
+      op->emitOpError("cannot verify reset-after-measure: operation cannot "
                       "be proven not to reuse a measured qubit");
       return false;
     }
@@ -227,16 +227,16 @@ static bool checkResetBeforeReuse(func::FuncOp func) {
   return true;
 }
 
-/// Verifies the reset-before-reuse constraint on every function: a qubit
+/// Verifies the reset-after-measure constraint on every function: a qubit
 /// measured in a function must be reset before any subsequent
 /// non-measurement quantum use, controls included. Reference bookkeeping,
 /// deallocation, and repeated measurement are exempt. A proven missing
 /// reset fails with `profile violation`; unprovable cases fail with
 /// `cannot verify`.
-static LogicalResult verifyResetBeforeReuse(ModuleOp module) {
+static LogicalResult verifyResetAfterMeasure(ModuleOp module) {
   bool ok = true;
   module->walk([&](func::FuncOp func) {
-    if (!checkResetBeforeReuse(func))
+    if (!checkResetAfterMeasure(func))
       ok = false;
   });
   return success(ok);
@@ -245,14 +245,14 @@ static LogicalResult verifyResetBeforeReuse(ModuleOp module) {
 void VerifyProfilePhysicalQuake::runOnOperation() {
   auto module = getOperation();
 
-  if (measurements != "any" && measurements != "expanded") {
+  if (measurementType != "any" && measurementType != "single-qubit") {
     module.emitError(
-        "invalid value '" + measurements +
-        "' for option 'measurements' (expected 'any' or 'expanded')");
+        "invalid value '" + measurementType +
+        "' for option 'measurement-type' (expected 'any' or 'single-qubit')");
     signalPassFailure();
     return;
   }
-  const bool expandedForm = measurements == "expanded";
+  const bool singleQubitForm = measurementType == "single-qubit";
 
   // An empty basis imposes no gate-basis restriction.
   std::unique_ptr<ConversionTarget> basisTarget;
@@ -275,16 +275,16 @@ void VerifyProfilePhysicalQuake::runOnOperation() {
                       "!quake.control, or !quake.cable values)");
       failed = true;
     }
-    if (expandedForm) {
+    if (singleQubitForm) {
       if (auto meas = dyn_cast<cudaq::quake::MeasurementInterface>(op)) {
         auto targets = meas.getTargets();
         if (targets.size() != 1) {
-          op->emitOpError("profile violation: expanded measurement form "
+          op->emitOpError("profile violation: single-qubit measurement form "
                           "requires exactly one !quake.ref target (got ")
               << targets.size() << " targets)";
           failed = true;
         } else if (!isa<cudaq::quake::RefType>(targets[0].getType())) {
-          op->emitOpError("profile violation: expanded measurement form "
+          op->emitOpError("profile violation: single-qubit measurement form "
                           "requires a !quake.ref target (got ")
               << targets[0].getType() << ")";
           failed = true;
@@ -292,7 +292,7 @@ void VerifyProfilePhysicalQuake::runOnOperation() {
       }
     }
 
-    if (!basisTarget && !expandedForm)
+    if (!basisTarget && !singleQubitForm)
       return;
 
     // Applications and calls whose gates cannot be accounted for cannot be
@@ -363,8 +363,8 @@ void VerifyProfilePhysicalQuake::runOnOperation() {
     failed = true;
   });
 
-  // Reset-before-reuse checking is independent of the walk above.
-  if (resetBeforeReuse && !succeeded(verifyResetBeforeReuse(module)))
+  // Reset-after-measure checking is independent of the walk above.
+  if (resetAfterMeasure && !succeeded(verifyResetAfterMeasure(module)))
     failed = true;
 
   if (failed)

@@ -70,8 +70,8 @@ struct PhysicalQuakeProfileV2 {
   /// Valid options.
   struct PhysicalQuakeProfileOptionsV2 {
     rfl::DefaultVal<std::vector<std::string>> basisGates;
-    rfl::DefaultVal<MeasurementForm> measurements = MeasurementForm::any;
-    rfl::DefaultVal<bool> resetBeforeReuse = false;
+    rfl::DefaultVal<MeasurementForm> measurementType = MeasurementForm::any;
+    rfl::DefaultVal<bool> resetAfterMeasure = false;
   };
 
   rfl::DefaultVal<PhysicalQuakeProfileOptionsV2> options;

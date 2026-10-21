@@ -26,5 +26,5 @@ compile-target:
 
 # CHECK: name: v2-phys-default-options
 # CHECK:   ir-output-profile=physical-quake
-# CHECK-NEXT:     measurements: any
-# CHECK-NEXT:     reset-before-reuse: false
+# CHECK-NEXT:     measurement-type: any
+# CHECK-NEXT:     reset-after-measure: false

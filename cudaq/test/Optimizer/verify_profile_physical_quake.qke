@@ -13,10 +13,10 @@
 // RUN: not cudaq-opt --verify-profile-physical-quake='basis=h' --split-input-file %s 2>&1 | FileCheck --check-prefix=BASIS %s
 // RUN: not cudaq-opt --verify-profile-physical-quake='basis=x' --split-input-file %s 2>&1 | FileCheck --check-prefix=ARITY %s
 // RUN: not cudaq-opt --verify-profile-physical-quake='basis=x(n)' --split-input-file %s 2>&1 | FileCheck --check-prefix=XN %s
-// RUN: cudaq-opt --verify-profile-physical-quake='reset-before-reuse=true' --split-input-file %s 2>/dev/null | FileCheck --check-prefix=RESET %s
-// RUN: cudaq-opt --verify-profile-physical-quake='measurements=expanded' --split-input-file %s 2>/dev/null | FileCheck --check-prefix=EXPOK %s
-// RUN: not cudaq-opt --verify-profile-physical-quake='measurements=expanded' --split-input-file %s 2>&1 1>/dev/null | FileCheck --check-prefix=EXPERR %s
-// RUN: not cudaq-opt --verify-profile-physical-quake='measurements=bogus' --split-input-file %s 2>&1 | FileCheck --check-prefix=BADOPT %s
+// RUN: cudaq-opt --verify-profile-physical-quake='reset-after-measure=true' --split-input-file %s 2>/dev/null | FileCheck --check-prefix=RESET %s
+// RUN: cudaq-opt --verify-profile-physical-quake='measurement-type=single-qubit' --split-input-file %s 2>/dev/null | FileCheck --check-prefix=EXPOK %s
+// RUN: not cudaq-opt --verify-profile-physical-quake='measurement-type=single-qubit' --split-input-file %s 2>&1 1>/dev/null | FileCheck --check-prefix=EXPERR %s
+// RUN: not cudaq-opt --verify-profile-physical-quake='measurement-type=bogus' --split-input-file %s 2>&1 | FileCheck --check-prefix=BADOPT %s
 
 // Gates pass with the default (unrestricted) basis; the IR is unchanged.
 
@@ -205,11 +205,11 @@ func.func @cable_form(%cb: !quake.cable<2>) {
   return
 }
 
-// BADOPT: error: invalid value 'bogus' for option 'measurements' (expected 'any' or 'expanded')
+// BADOPT: error: invalid value 'bogus' for option 'measurement-type' (expected 'any' or 'single-qubit')
 
 // -----
 
-// With `measurements=any` (the default), every measurement shape is
+// With `measurement-type=any` (the default), every measurement shape is
 // accepted: a single ref, multiple refs, and a qvector.
 
 // CHECK-LABEL: func.func @measure_any_shape(
@@ -226,10 +226,10 @@ func.func @measure_any_shape(%q0: !quake.ref, %q1: !quake.ref,
 
 // -----
 
-// The expanded form: every measurement operates on exactly one !quake.ref.
+// The single-qubit form: every measurement operates on exactly one !quake.ref.
 
-// EXPOK-LABEL: func.func @measure_expanded(
-func.func @measure_expanded(%q0: !quake.ref, %q1: !quake.ref) {
+// EXPOK-LABEL: func.func @measure_single_qubit(
+func.func @measure_single_qubit(%q0: !quake.ref, %q1: !quake.ref) {
   // EXPOK: quake.mz %{{.*}} : (!quake.ref) -> !quake.measure
   %mz = quake.mz %q0 : (!quake.ref) -> !quake.measure
   // EXPOK: quake.mx %{{.*}} : (!quake.ref) -> !quake.measure
@@ -241,23 +241,23 @@ func.func @measure_expanded(%q0: !quake.ref, %q1: !quake.ref) {
 
 // -----
 
-// A measurement of several refs at once is not the expanded form. The two
+// A measurement of several refs at once is not the single-qubit form. The two
 // ops are pinned by name so an implementation that skips any of mz/mx/my
 // fails to produce its expected rejection.
 
-// EXPERR: error: 'quake.mz' op profile violation: expanded measurement form requires exactly one !quake.ref target (got 2 targets)
+// EXPERR: error: 'quake.mz' op profile violation: single-qubit measurement form requires exactly one !quake.ref target (got 2 targets)
 func.func @measure_two_refs(%q0: !quake.ref, %q1: !quake.ref) {
   %mz = quake.mz %q0, %q1 : (!quake.ref, !quake.ref) -> !cc.sequence<!quake.measure>
-  // EXPERR: error: 'quake.my' op profile violation: expanded measurement form requires exactly one !quake.ref target (got 2 targets)
+  // EXPERR: error: 'quake.my' op profile violation: single-qubit measurement form requires exactly one !quake.ref target (got 2 targets)
   %my = quake.my %q0, %q1 : (!quake.ref, !quake.ref) -> !cc.sequence<!quake.measure>
   return
 }
 
 // -----
 
-// Measuring a qvector is a vector measurement, not the expanded form.
+// Measuring a qvector is a vector measurement, not the single-qubit form.
 
-// EXPERR: error: 'quake.mx' op profile violation: expanded measurement form requires a !quake.ref target (got '!quake.veq<?>'
+// EXPERR: error: 'quake.mx' op profile violation: single-qubit measurement form requires a !quake.ref target (got '!quake.veq<?>'
 func.func @measure_veq(%v: !quake.veq<?>) {
   %m = quake.mx %v : (!quake.veq<?>) -> !cc.sequence<!quake.measure>
   return

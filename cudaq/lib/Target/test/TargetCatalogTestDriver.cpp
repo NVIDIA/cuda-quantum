@@ -43,7 +43,7 @@ std::string escaped(const std::string &value) {
 std::string boolStr(bool value) { return value ? "true" : "false"; }
 
 std::string measurementFormName(MeasurementForm form) {
-  return form == MeasurementForm::expanded ? "expanded" : "any";
+  return form == MeasurementForm::single_qubit ? "single-qubit" : "any";
 }
 
 std::string argTypeName(ArgumentType type) {
@@ -86,11 +86,10 @@ void printProfileOptions(const char *, const UncheckedProfile &) {}
 void printProfileOptions(const char *indent,
                          const PhysicalQuakeProfile &profile) {
   printList(indent, "basis-gates", profile.basisGates);
-  std::cout << indent
-            << "measurements: " << measurementFormName(profile.measurements)
-            << "\n"
+  std::cout << indent << "measurement-type: "
+            << measurementFormName(profile.measurementType) << "\n"
             << indent
-            << "reset-before-reuse: " << boolStr(profile.resetBeforeReuse)
+            << "reset-after-measure: " << boolStr(profile.resetAfterMeasure)
             << "\n";
 }
 

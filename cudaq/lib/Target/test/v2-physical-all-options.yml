@@ -22,8 +22,8 @@ compile-target:
         name: physical-quake
         options:
           basis-gates: ["h", "rz", "x(1)"]
-          measurements: expanded
-          reset-before-reuse: true
+          measurement-type: single-qubit
+          reset-after-measure: true
       lowering:
         custom-pipeline: "canonicalize"
   codegen: nop
@@ -31,5 +31,5 @@ compile-target:
 # CHECK: name: v2-phys-all-options
 # CHECK:   ir-output-profile=physical-quake
 # CHECK-NEXT:     basis-gates: ["h", "rz", "x(1)"]
-# CHECK-NEXT:     measurements: expanded
-# CHECK-NEXT:     reset-before-reuse: true
+# CHECK-NEXT:     measurement-type: single-qubit
+# CHECK-NEXT:     reset-after-measure: true

@@ -2381,9 +2381,9 @@ def VerifyProfilePhysicalQuake : Pass<"verify-profile-physical-quake", "mlir::Mo
      - uses reference semantics (no `!quake.wire`/`!quake.control`/`!quake.cable`
        values)
      - every quake operation is a member of the requested target basis
-     - with `measurements=expanded`, every measurement operates on exactly
-       one `!quake.ref`
-     - with `reset-before-reuse=true`, any non-measurement operation on a qubit
+     - with `measurement-type=single-qubit`, every measurement operates on
+       exactly one `!quake.ref`
+     - with `reset-after-measure=true`, any non-measurement operation on a qubit
        that comes after a measurement must be preceded by a reset
 
     The pass never modifies the IR; any violation fails the pass. The `basis`
@@ -2398,9 +2398,10 @@ def VerifyProfilePhysicalQuake : Pass<"verify-profile-physical-quake", "mlir::Mo
   let options = [
     ListOption<"basis", "basis", "std::string",
                "Set of allowed basis operations (empty = unrestricted)">,
-    Option<"measurements", "measurements", "std::string", /*default=*/"\"any\"",
-           "Measurement form: 'any' or 'expanded'">,
-    Option<"resetBeforeReuse", "reset-before-reuse", "bool",
+    Option<"measurementType", "measurement-type", "std::string",
+           /*default=*/"\"any\"",
+           "Measurement form: 'any' or 'single-qubit'">,
+    Option<"resetAfterMeasure", "reset-after-measure", "bool",
            /*default=*/"false",
            "Require reset after measurement before quantum reuse">,
   ];

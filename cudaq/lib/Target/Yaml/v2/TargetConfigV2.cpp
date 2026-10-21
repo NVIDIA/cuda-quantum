@@ -19,8 +19,8 @@ static cudaq::config::Profile
 toCanonicalProfile(const cudaq::config::v2::PhysicalQuakeProfileV2 &profile) {
   return cudaq::config::PhysicalQuakeProfile{
       .basisGates = profile.options.value().basisGates.value(),
-      .measurements = profile.options.value().measurements.value(),
-      .resetBeforeReuse = profile.options.value().resetBeforeReuse.value()};
+      .measurementType = profile.options.value().measurementType.value(),
+      .resetAfterMeasure = profile.options.value().resetAfterMeasure.value()};
 }
 
 static cudaq::config::Profile

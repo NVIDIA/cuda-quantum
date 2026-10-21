@@ -23,12 +23,12 @@ compile-target:
         name: physical-quake
         options:
           basis-gates: ["h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)"]
-          measurements: expanded
-          reset-before-reuse: true
+          measurement-type: single-qubit
+          reset-after-measure: true
       lowering:
         custom-pipeline: "canonicalize"
   codegen: nop
 
 # CHECK: kBuiltinTarget_v2_physical
-# CHECK: .irOutputProfile = cudaq::config::Profile{std::in_place_type<cudaq::config::PhysicalQuakeProfile>, cudaq::config::PhysicalQuakeProfile{.basisGates = {"h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)", }, .measurements = cudaq::config::MeasurementForm::expanded, .resetBeforeReuse = true}
+# CHECK: .irOutputProfile = cudaq::config::Profile{std::in_place_type<cudaq::config::PhysicalQuakeProfile>, cudaq::config::PhysicalQuakeProfile{.basisGates = {"h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)", }, .measurementType = cudaq::config::MeasurementForm::single_qubit, .resetAfterMeasure = true}
 # CHECK: .lowering = cudaq::config::CustomPipelineLowering{.overridePassPipeline = "canonicalize"

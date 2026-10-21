@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// Read-only reset-before-reuse checking of the physical-quake profile. A
+// Read-only reset-after-measure checking of the physical-quake profile. A
 // proven missing reset is a `profile violation`; a case that cannot be
 // proven (unresolved aliasing, unsupported control flow, unclassified
 // operations) is `cannot verify`. Both fail the pass. Checking is
@@ -14,8 +14,8 @@
 // on a linear walk order across regions: any function touching quantum
 // references without a single-block straight-line body is unverifiable.
 
-// RUN: cudaq-opt --verify-profile-physical-quake='reset-before-reuse=true' --split-input-file %s 2>/dev/null | FileCheck --check-prefix=OK %s
-// RUN: not cudaq-opt --verify-profile-physical-quake='reset-before-reuse=true' --split-input-file %s 2>&1 1>/dev/null | FileCheck --check-prefix=ERR %s
+// RUN: cudaq-opt --verify-profile-physical-quake='reset-after-measure=true' --split-input-file %s 2>/dev/null | FileCheck --check-prefix=OK %s
+// RUN: not cudaq-opt --verify-profile-physical-quake='reset-after-measure=true' --split-input-file %s 2>&1 1>/dev/null | FileCheck --check-prefix=ERR %s
 // RUN: cudaq-opt --verify-profile-physical-quake --split-input-file %s 2>/dev/null | FileCheck --check-prefix=OFF %s
 
 // A measured reference may be measured again, must be reset before a gate
@@ -143,7 +143,7 @@ func.func @violation_veq_use(%v: !quake.veq<2>) {
 // it: conservatively unverifiable. (Resolution of allocation/extract aliases
 // is a follow-up.)
 
-// ERR: error: 'quake.reset' op cannot verify reset-before-reuse: reference may alias a measured qubit
+// ERR: error: 'quake.reset' op cannot verify reset-after-measure: reference may alias a measured qubit
 func.func @reset_may_alias(%q0: !quake.ref, %q1: !quake.ref) {
   %m0 = quake.mz %q0 : (!quake.ref) -> !quake.measure
   %m1 = quake.mz %q1 : (!quake.ref) -> !quake.measure
@@ -159,7 +159,7 @@ func.func @reset_may_alias(%q0: !quake.ref, %q1: !quake.ref) {
 // Distinct references are never assumed to be distinct qubits: a use of one
 // while another holds an obligation cannot be proven conformant.
 
-// ERR: error: 'quake.x' op cannot verify reset-before-reuse: reference may alias a measured qubit
+// ERR: error: 'quake.x' op cannot verify reset-after-measure: reference may alias a measured qubit
 func.func @distinct_refs_may_alias(%q0: !quake.ref, %q1: !quake.ref) {
   %m = quake.mz %q0 : (!quake.ref) -> !quake.measure
   quake.x %q1 : (!quake.ref) -> ()
@@ -171,7 +171,7 @@ func.func @distinct_refs_may_alias(%q0: !quake.ref, %q1: !quake.ref) {
 // A reference extracted from a measured register may alias a measured qubit:
 // the extract itself is bookkeeping, the use is unverifiable.
 
-// ERR: error: 'quake.x' op cannot verify reset-before-reuse: reference may alias a measured qubit
+// ERR: error: 'quake.x' op cannot verify reset-after-measure: reference may alias a measured qubit
 func.func @extract_may_alias(%v: !quake.veq<2>) {
   %m = quake.mz %v : (!quake.veq<2>) -> !cc.sequence<!quake.measure>
   %e = quake.extract_ref %v[0] : (!quake.veq<2>) -> !quake.ref
@@ -184,7 +184,7 @@ func.func @extract_may_alias(%v: !quake.veq<2>) {
 // Control flow has no linear order to check against: a function that touches
 // quantum references outside a single straight-line block is unverifiable.
 
-// ERR: error: 'quake.mz' op cannot verify reset-before-reuse: unsupported control flow
+// ERR: error: 'quake.mz' op cannot verify reset-after-measure: unsupported control flow
 // OFF-LABEL: func.func @control_flow_unsupported(
 func.func @control_flow_unsupported(%q: !quake.ref, %b: i1) {
   %m = quake.mz %q : (!quake.ref) -> !quake.measure
@@ -200,7 +200,7 @@ func.func @control_flow_unsupported(%q: !quake.ref, %b: i1) {
 // A call with quantum references cannot be classified from the caller alone:
 // conservatively unverifiable whether or not an obligation is outstanding.
 
-// ERR: error: 'func.call' op cannot verify reset-before-reuse: operation cannot be proven not to reuse a measured qubit
+// ERR: error: 'func.call' op cannot verify reset-after-measure: operation cannot be proven not to reuse a measured qubit
 func.func private @ext_kernel(!quake.ref)
 func.func @call_with_ref(%q: !quake.ref) {
   quake.x %q : (!quake.ref) -> ()
@@ -213,7 +213,7 @@ func.func @call_with_ref(%q: !quake.ref) {
 // An application is not traversed interprocedurally: same conservative
 // failure.
 
-// ERR: error: 'quake.apply' op cannot verify reset-before-reuse: operation cannot be proven not to reuse a measured qubit
+// ERR: error: 'quake.apply' op cannot verify reset-after-measure: operation cannot be proven not to reuse a measured qubit
 func.func @apply_helper(%q: !quake.ref) {
   quake.x %q : (!quake.ref) -> ()
   return
@@ -229,7 +229,7 @@ func.func @apply_with_ref(%q: !quake.ref) {
 // A callable's body is opaque: while any obligation is outstanding it may
 // touch the measured qubits invisibly.
 
-// ERR: error: 'quake.compute_action' op cannot verify reset-before-reuse: operation cannot be proven not to reuse a measured qubit
+// ERR: error: 'quake.compute_action' op cannot verify reset-after-measure: operation cannot be proven not to reuse a measured qubit
 func.func @compute_action_with_obligation(%q: !quake.ref,
                                           %c1: !cc.callable<() -> ()>,
                                           %c2: !cc.callable<() -> ()>) {
@@ -243,7 +243,7 @@ func.func @compute_action_with_obligation(%q: !quake.ref,
 // A callable invocation is opaque even with no obligation outstanding: the
 // callable body may measure and reuse invisibly.
 
-// ERR: error: 'cc.call_callable' op cannot verify reset-before-reuse: operation cannot be proven not to reuse a measured qubit
+// ERR: error: 'cc.call_callable' op cannot verify reset-after-measure: operation cannot be proven not to reuse a measured qubit
 func.func @callable_no_obligation(%c: !cc.callable<() -> ()>) {
   cc.call_callable %c : (!cc.callable<() -> ()>) -> ()
   return
@@ -254,7 +254,7 @@ func.func @callable_no_obligation(%c: !cc.callable<() -> ()>) {
 // A call producing a quantum reference has invisible provenance: the
 // returned qubit may already be measured.
 
-// ERR: error: 'func.call' op cannot verify reset-before-reuse: operation cannot be proven not to reuse a measured qubit
+// ERR: error: 'func.call' op cannot verify reset-after-measure: operation cannot be proven not to reuse a measured qubit
 func.func private @get_ref() -> !quake.ref
 func.func @call_produces_ref() {
   %q = func.call @get_ref() : () -> !quake.ref
@@ -267,7 +267,7 @@ func.func @call_produces_ref() {
 // An external declared a quantum kernel is not trusted classical, even with
 // no quantum references crossing the boundary.
 
-// ERR: error: 'func.call' op cannot verify reset-before-reuse: operation cannot be proven not to reuse a measured qubit
+// ERR: error: 'func.call' op cannot verify reset-after-measure: operation cannot be proven not to reuse a measured qubit
 func.func private @external_marked_kernel() attributes {"cudaq-kernel"}
 func.func @call_marked_kernel() {
   func.call @external_marked_kernel() : () -> ()
@@ -278,7 +278,7 @@ func.func @call_marked_kernel() {
 
 // A dynamic call target may be a quantum kernel: unresolvable, untrusted.
 
-// ERR: error: 'func.call_indirect' op cannot verify reset-before-reuse: operation cannot be proven not to reuse a measured qubit
+// ERR: error: 'func.call_indirect' op cannot verify reset-after-measure: operation cannot be proven not to reuse a measured qubit
 func.func @call_indirect_target(%fn: () -> ()) {
   func.call_indirect %fn() : () -> ()
   return
@@ -288,7 +288,7 @@ func.func @call_indirect_target(%fn: () -> ()) {
 
 // compute_action is opaque with or without outstanding obligations.
 
-// ERR: error: 'quake.compute_action' op cannot verify reset-before-reuse: operation cannot be proven not to reuse a measured qubit
+// ERR: error: 'quake.compute_action' op cannot verify reset-after-measure: operation cannot be proven not to reuse a measured qubit
 func.func @compute_action_no_obligation(%c1: !cc.callable<() -> ()>,
                                          %c2: !cc.callable<() -> ()>) {
   quake.compute_action %c1, %c2 : !cc.callable<() -> ()>, !cc.callable<() -> ()>
@@ -301,7 +301,7 @@ func.func @compute_action_no_obligation(%c1: !cc.callable<() -> ()>,
 // An application is a quantum invocation even with no operands: the
 // trusted-classical convention never extends to it.
 
-// ERR: error: 'quake.apply' op cannot verify reset-before-reuse: operation cannot be proven not to reuse a measured qubit
+// ERR: error: 'quake.apply' op cannot verify reset-after-measure: operation cannot be proven not to reuse a measured qubit
 func.func private @ext_unmarked_helper()
 func.func @apply_no_args() {
   quake.apply @ext_unmarked_helper () : () -> ()
@@ -342,7 +342,7 @@ func.func @calls_local_classical() {
 // A retained (deprecated) call_by_ref is likewise a quantum invocation:
 // no classical-call exemption for an unavailable body.
 
-// ERR: error: 'quake.call_by_ref' op cannot verify reset-before-reuse: operation cannot be proven not to reuse a measured qubit
+// ERR: error: 'quake.call_by_ref' op cannot verify reset-after-measure: operation cannot be proven not to reuse a measured qubit
 func.func private @cbr_ext_helper()
 func.func @call_by_ref_no_args() {
   quake.call_by_ref @cbr_ext_helper() : () -> ()
