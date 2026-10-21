@@ -7,8 +7,14 @@
 # ============================================================================ #
 
 add_subdirectory(consumer)
+add_executable(edem_composition_test composition.c)
+target_link_libraries(edem_composition_test PRIVATE cudaq::edem)
+add_test(NAME edem_composition COMMAND edem_composition_test)
 add_executable(edem_core_test core.c)
 target_link_libraries(edem_core_test PRIVATE cudaq::edem)
+if(UNIX AND NOT APPLE)
+  target_link_libraries(edem_core_test PRIVATE m)
+endif()
 add_test(NAME edem_core COMMAND edem_core_test)
 add_executable(edem_owned_memory_test owned_memory.c)
 target_link_libraries(edem_owned_memory_test PRIVATE cudaq::edem)

@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.
  */
 
+#include "cudaq/edem/composition.h"
 #include "cudaq/edem/core.h"
 #include "cudaq/edem/format.h"
 #include "cudaq/edem/python.h"
@@ -176,7 +177,10 @@ struct Block {
   }
 };
 
+class DEM;
+
 class EDEM {
+  friend class DEM;
   // Release owned bytes before dropping the capsule that keeps callback code
   // and its allocator context alive. Only successful construction/read
   // publishes checked; moving the owner preserves the payload address.
@@ -210,6 +214,33 @@ public:
     return *this;
   }
   ~EDEM() { cudaq_gf2_owned_buffer_release(&storage); }
+
+  const EDEM &model() const { return *this; }
+
+  static EDEM compose_chain(nb::sequence occurrences) {
+    // A sequence may construct fresh owners in __getitem__. Retain them until
+    // native composition finishes instead of converting to borrowed pointers.
+    nb::tuple owners(occurrences);
+    auto size = count(owners.size());
+    std::vector<cudaq_edem_view> views;
+    views.reserve(size);
+    for (nb::handle occurrence : owners) {
+      if (!nb::isinstance<EDEM>(occurrence))
+        throw nb::type_error("chain occurrences must be EDEM values");
+      views.push_back(nb::cast<const EDEM &>(occurrence).view());
+    }
+    EDEM result;
+    check(cudaq_edem_compose_chain(views.data(), size, nullptr, &result.storage,
+                                   &result.checked));
+    return result;
+  }
+
+  bool is_dem() const {
+    auto value = view();
+    uint32_t result;
+    check(cudaq_edem_is_dem(&value, &result));
+    return result != 0;
+  }
 
   EDEM(const std::vector<CodePresentation> &codes,
        const std::vector<uint32_t> &inputs,
@@ -460,6 +491,80 @@ public:
   }
 };
 
+// A separate Python type makes structural closure a checked precondition for
+// DEM consumers. Its packed representation remains an ordinary closed EDEM.
+class DEM {
+  EDEM value;
+
+public:
+  DEM() = default;
+  DEM(const DEM &) = delete;
+  DEM &operator=(const DEM &) = delete;
+  DEM(DEM &&) noexcept = default;
+  DEM &operator=(DEM &&) noexcept = default;
+
+  static DEM project(const EDEM &source) {
+    DEM result;
+    auto input = source.view();
+    cudaq_edem_dem_view checked;
+    check(cudaq_edem_project_dem(&input, nullptr, &result.value.storage,
+                                 &checked));
+    result.value.checked = checked.edem;
+    return result;
+  }
+
+  static DEM from_bytes(nb::bytes bytes) {
+    DEM result;
+    result.value = EDEM::from_bytes(bytes);
+    if (!result.value.is_dem())
+      throw nb::value_error("DEM must have no exposed code boundaries");
+    return result;
+  }
+
+  const EDEM &model() const { return value; }
+};
+
+template <class Value>
+static void bind_value(nb::class_<Value> &type) {
+  type.def_prop_ro("_data_address",
+                   [](const Value &v) { return v.model().data_address(); })
+      .def("to_bytes", [](const Value &v) { return v.model().to_bytes(); })
+      .def_prop_ro("is_dem", [](const Value &v) { return v.model().is_dem(); })
+      .def_prop_ro("codes", [](const Value &v) { return v.model().codes(); })
+      .def_prop_ro("inputs",
+                   [](const Value &v) { return v.model().boundaries(false); })
+      .def_prop_ro("outputs",
+                   [](const Value &v) { return v.model().boundaries(true); })
+      .def_prop_ro("faults", [](const Value &v) { return v.model().faults(); })
+      .def_prop_ro("detectors",
+                   [](const Value &v) {
+                     return v.model().partition_sizes(PortKind::DETECTOR);
+                   })
+      .def_prop_ro("observables",
+                   [](const Value &v) {
+                     return v.model().partition_sizes(PortKind::OBSERVABLE);
+                   })
+      .def_prop_ro("successes",
+                   [](const Value &v) {
+                     return v.model().partition_sizes(PortKind::SUCCESS);
+                   })
+      .def_prop_ro("blocks", [](const Value &v) { return v.model().blocks(); })
+      .def_prop_ro("vector_sizes",
+                   [](const Value &v) { return v.model().vector_sizes(); })
+      .def(
+          "port",
+          [](const Value &v, Endpoint endpoint, bool output) {
+            return v.model().port(endpoint, output);
+          },
+          "endpoint"_a, nb::kw_only(), "output"_a = false)
+      .def(
+          "apply",
+          [](const Value &v, const std::vector<uint8_t> &input) {
+            return v.model().apply(input);
+          },
+          "input"_a);
+}
+
 } // namespace v0
 } // namespace cudaq_edem_python
 
@@ -519,8 +624,8 @@ NB_MODULE(_core, m) {
       .def_ro("output", &Block::output)
       .def_ro("input", &Block::input)
       .def_ro("matrix", &Block::matrix);
-  nb::class_<EDEM>(m, "EDEM")
-      .def(
+  auto edem = nb::class_<EDEM>(m, "EDEM");
+  edem.def(
           nb::init<const std::vector<CodePresentation> &,
                    const std::vector<uint32_t> &, const std::vector<uint32_t> &,
                    const std::vector<FaultDistribution> &,
@@ -538,24 +643,17 @@ NB_MODULE(_core, m) {
       .def_static("adopt", &EDEM::adopt, "capsule"_a,
                   "Validate and adopt an owned-buffer capsule without copying "
                   "its payload. Successful adoption consumes it once; invalid "
-                  "content leaves the source usable.")
-      .def_prop_ro("_data_address", &EDEM::data_address)
-      .def("to_bytes", &EDEM::to_bytes)
-      .def_prop_ro("codes", &EDEM::codes)
-      .def_prop_ro("inputs", [](const EDEM &v) { return v.boundaries(false); })
-      .def_prop_ro("outputs", [](const EDEM &v) { return v.boundaries(true); })
-      .def_prop_ro("faults", &EDEM::faults)
-      .def_prop_ro(
-          "detectors",
-          [](const EDEM &v) { return v.partition_sizes(PortKind::DETECTOR); })
-      .def_prop_ro(
-          "observables",
-          [](const EDEM &v) { return v.partition_sizes(PortKind::OBSERVABLE); })
-      .def_prop_ro(
-          "successes",
-          [](const EDEM &v) { return v.partition_sizes(PortKind::SUCCESS); })
-      .def_prop_ro("blocks", &EDEM::blocks)
-      .def_prop_ro("vector_sizes", &EDEM::vector_sizes)
-      .def("port", &EDEM::port, "endpoint"_a, nb::kw_only(), "output"_a = false)
-      .def("apply", &EDEM::apply, "input"_a);
+                  "content leaves the source usable.");
+  bind_value(edem);
+  auto dem = nb::class_<DEM>(m, "DEM");
+  dem.def_static("from_bytes", &DEM::from_bytes, "data"_a,
+                 "Read a packed EDEM and require structural closure.");
+  bind_value(dem);
+  m.def("compose_chain", &EDEM::compose_chain, "occurrences"_a,
+        "Compose a nonempty serial chain, retaining each occurrence's fault "
+        "indicators and exact laws. The exposed endpoint boundaries remain.");
+  m.def("project_DEM", &DEM::project, "value"_a,
+        "Require closed code boundaries and return an independently owned "
+        "DEM with original fault columns and exact laws. Success outputs are "
+        "retained; no noise approximation or column merging is performed.");
 }

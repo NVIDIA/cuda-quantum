@@ -123,7 +123,7 @@ cudaq_edem_status check_distribution(uint32_t size, uint32_t count, Group group,
         (g.kind == CUDAQ_EDEM_INDEPENDENT && independent++))
       return CUDAQ_EDEM_INVALID_CONTENT;
     total += g.size;
-    double sum = 0;
+    double sum = 0, correction = 0;
     for (uint64_t j = 0; j < g.size; ++j) {
       uint32_t bit = g.fault_ids[j];
       double probability = g.probabilities[j];
@@ -135,9 +135,14 @@ cudaq_edem_status check_distribution(uint32_t size, uint32_t count, Group group,
       if (seen[bit / 8] & mask)
         return CUDAQ_EDEM_INVALID_CONTENT;
       seen[bit / 8] |= mask;
-      sum += probability;
+      // Kahan summation keeps rounding in normalized groups from accumulating.
+      double adjusted = probability - correction;
+      double next = sum + adjusted;
+      correction = (next - sum) - adjusted;
+      sum = next;
     }
-    if (g.kind == CUDAQ_EDEM_EXCLUSIVE && sum > 1)
+    if (g.kind == CUDAQ_EDEM_EXCLUSIVE &&
+        sum > 1 + CUDAQ_EDEM_EXCLUSIVE_TOTAL_TOLERANCE)
       return CUDAQ_EDEM_INVALID_CONTENT;
     if (packed && i) {
       auto previous = group(i - 1);

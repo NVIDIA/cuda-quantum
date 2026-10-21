@@ -338,9 +338,107 @@ static void test_safe_read(void) {
   cudaq_gf2_owned_buffer_release(&owner);
 }
 
+static void probability_case(const double *probabilities, uint32_t count,
+                             uint32_t kind, cudaq_edem_status expected) {
+  uint32_t ids[9];
+  double zeros[9] = {0};
+  CHECK(count <= 9);
+  for (uint32_t i = 0; i < count; ++i)
+    ids[i] = i;
+  cudaq_edem_fault_group group = {kind, count, ids, probabilities};
+  cudaq_edem_fault_distribution fault = {count, 1, &group};
+  cudaq_edem_description description = {{0, 0, 0, 1, 0, 0, 0, 0},
+                                        NULL,
+                                        NULL,
+                                        NULL,
+                                        &fault,
+                                        NULL,
+                                        NULL,
+                                        NULL,
+                                        NULL};
+  CHECK(cudaq_edem_validate(&description, NULL) == expected);
+  cudaq_gf2_owned_buffer constructed = {0};
+  cudaq_edem_view value = {{NULL, 0}};
+  CHECK(cudaq_edem_construct(&description, NULL, &constructed, &value) ==
+        expected);
+  if (expected != CUDAQ_EDEM_OK)
+    CHECK(!constructed.data && !value.map.data);
+
+  /* Change only probabilities in a canonical zero-valued packed distribution.
+   * This tests the reader independently of construction's validation. */
+  group.probabilities = zeros;
+  cudaq_gf2_owned_buffer packed = {0};
+  OK(cudaq_edem_construct(&description, NULL, &packed, &value));
+  cudaq_edem_fault_group stored;
+  OK(cudaq_edem_get_group(&value, 0, 0, &stored));
+  memcpy((void *)stored.probabilities, probabilities, count * sizeof(double));
+  value = (cudaq_edem_view){{NULL, 0}};
+  CHECK(cudaq_edem_read(packed.data, packed.size, NULL, &value) == expected);
+  if (expected == CUDAQ_EDEM_OK) {
+    OK(cudaq_edem_get_group(&value, 0, 0, &stored));
+    CHECK(memcmp(stored.probabilities, probabilities, count * sizeof(double)) ==
+          0);
+    CHECK(constructed.size == packed.size);
+    CHECK(memcmp(constructed.data, packed.data, packed.size) == 0);
+  } else
+    CHECK(!value.map.data);
+  cudaq_gf2_schema schema = cudaq_edem_schema();
+  cudaq_gf2_map_view map;
+  OK(cudaq_gf2_map_read(packed.data, packed.size, &schema, NULL, &map));
+  cudaq_edem_view checked = {{NULL, 0}};
+  CHECK(cudaq_edem_check(&map, NULL, &checked) == expected);
+  if (expected != CUDAQ_EDEM_OK)
+    CHECK(!checked.map.data);
+  cudaq_gf2_owned_buffer_release(&constructed);
+  cudaq_gf2_owned_buffer_release(&packed);
+}
+
+static void test_probability_validation(void) {
+  double probabilities[9];
+  for (uint32_t i = 0; i < 9; ++i)
+    probabilities[i] = 1.0 / 9.0;
+  probability_case(probabilities, 9, CUDAQ_EDEM_EXCLUSIVE, CUDAQ_EDEM_OK);
+
+  double limit = 1.0 + CUDAQ_EDEM_EXCLUSIVE_TOTAL_TOLERANCE;
+  const double totals[] = {nextafter(limit, 0), limit,
+                           nextafter(limit, INFINITY)};
+  for (uint32_t i = 0; i < 3; ++i) {
+    const double pair[] = {0.5, totals[i] - 0.5};
+    probability_case(pair, 2, CUDAQ_EDEM_EXCLUSIVE,
+                     i == 2 ? CUDAQ_EDEM_INVALID_CONTENT : CUDAQ_EDEM_OK);
+  }
+
+  /* Naive summation loses these terms and would accept a total over the limit.
+   */
+  probabilities[0] = 0.5;
+  probabilities[1] = limit - 0.5;
+  for (uint32_t i = 2; i < 9; ++i)
+    probabilities[i] = 3e-17;
+  probability_case(probabilities, 9, CUDAQ_EDEM_EXCLUSIVE,
+                   CUDAQ_EDEM_INVALID_CONTENT);
+  /* Repeated rounding up would instead reject this admissible total. */
+  double below = limit;
+  for (uint32_t i = 0; i < 4; ++i)
+    below = nextafter(below, 0);
+  probabilities[1] = below - 0.5;
+  for (uint32_t i = 2; i < 9; ++i)
+    probabilities[i] = 1.2e-16;
+  probability_case(probabilities, 9, CUDAQ_EDEM_EXCLUSIVE, CUDAQ_EDEM_OK);
+
+  const double invalid[] = {-1e-12, 1 + 1e-12, NAN, INFINITY, -INFINITY};
+  for (uint32_t i = 0; i < sizeof(invalid) / sizeof(*invalid); ++i) {
+    const double pair[] = {0.25, invalid[i]};
+    probability_case(pair, 2, CUDAQ_EDEM_EXCLUSIVE, CUDAQ_EDEM_INVALID_CONTENT);
+  }
+  for (uint32_t i = 0; i < 9; ++i)
+    probabilities[i] = 0.9;
+  probability_case(probabilities, 9, CUDAQ_EDEM_INDEPENDENT, CUDAQ_EDEM_OK);
+}
+
 int main(void) {
   test_open_round();
   test_distributions_and_names();
+  test_probability_validation();
   test_domain_checks();
   test_safe_read();
   return 0;

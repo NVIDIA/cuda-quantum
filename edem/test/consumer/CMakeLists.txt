@@ -33,4 +33,22 @@ if(NOT CUDAQ_EDEM_TEST_C_ONLY)
   target_compile_features(edem_cpp_consumer PRIVATE cxx_std_17)
   target_link_libraries(edem_cpp_consumer PRIVATE cudaq::edem)
   add_test(NAME edem_cpp_consumer COMMAND edem_cpp_consumer)
+  add_executable(edem_cpp_ownership_consumer ownership.cpp)
+  set_target_properties(edem_cpp_ownership_consumer PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON CXX_EXTENSIONS OFF)
+  if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(edem_cpp_ownership_consumer PRIVATE
+      -fno-exceptions -fno-rtti -Wall -Wextra -Wpedantic)
+  endif()
+  target_link_libraries(edem_cpp_ownership_consumer PRIVATE cudaq::edem)
+  add_test(NAME edem_cpp_ownership_consumer COMMAND edem_cpp_ownership_consumer)
+  add_executable(edem_composition_consumer composition.cpp)
+  set_target_properties(edem_composition_consumer PROPERTIES
+    CXX_STANDARD 17 CXX_STANDARD_REQUIRED ON CXX_EXTENSIONS OFF)
+  if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+    target_compile_options(edem_composition_consumer PRIVATE
+      -fno-exceptions -fno-rtti -Wall -Wextra -Wpedantic)
+  endif()
+  target_link_libraries(edem_composition_consumer PRIVATE cudaq::edem)
+  add_test(NAME edem_composition_consumer COMMAND edem_composition_consumer)
 endif()

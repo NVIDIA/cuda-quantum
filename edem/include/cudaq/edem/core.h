@@ -20,6 +20,10 @@ extern "C" {
 #define CUDAQ_EDEM_FORMAT_VERSION CUDAQ_GF2_FORMAT_VERSION
 #define CUDAQ_EDEM_PACKED_ALIGNMENT CUDAQ_GF2_PACKED_ALIGNMENT
 
+/* Compatibility allowance on exclusive-group totals only. Individual
+ * probabilities remain in [0, 1]; accepted values are never renormalized. */
+#define CUDAQ_EDEM_EXCLUSIVE_TOTAL_TOLERANCE 1e-6
+
 typedef enum cudaq_edem_status {
   CUDAQ_EDEM_OK = 0,
   CUDAQ_EDEM_INVALID_ARGUMENT = 1,
@@ -61,7 +65,9 @@ typedef enum cudaq_edem_group_kind {
 
 /* Sorted original indicator IDs and one probability per ID. All indicators
  * occur in exactly one group. There is at most one Independent group;
- * Exclusive groups have at least two members and total probability <= 1.
+ * Exclusive groups have at least two members. Their compensated sum must be
+ * <= 1 + CUDAQ_EDEM_EXCLUSIVE_TOTAL_TOLERANCE. Each probability must be finite
+ * and within [0, 1], without an individual tolerance.
  * Fault coordinates are original indicator IDs. */
 typedef struct cudaq_edem_fault_group {
   uint32_t kind;
@@ -153,6 +159,8 @@ cudaq_gf2_schema cudaq_edem_schema(void);
 cudaq_edem_status cudaq_edem_check(const cudaq_gf2_map_view *value,
                                    const cudaq_gf2_memory *memory,
                                    cudaq_edem_view *result);
+cudaq_edem_status cudaq_edem_get_shape(const cudaq_edem_view *value,
+                                       cudaq_edem_shape *shape);
 /* Presentation indices enumerate the retained, name-sorted presentation table.
  */
 cudaq_edem_status cudaq_edem_get_code(const cudaq_edem_view *value,

@@ -6,7 +6,7 @@
  */
 
 // Native producer used only by build-tree tests. It is never installed.
-#include "cudaq/edem/core.h"
+#include "cudaq/edem/owned.hpp"
 #include "cudaq/edem/python.h"
 #include <nanobind/nanobind.h>
 
@@ -85,37 +85,35 @@ void deallocate(void *context, void *data, uint64_t bytes, uint32_t alignment) {
 }
 
 class MovingOwner {
-  cudaq_gf2_owned_buffer buffer{};
+  cudaq::edem::PackedEDEM buffer;
   Tracker *tracker = nullptr;
 
 public:
   MovingOwner() = default;
-  MovingOwner(cudaq_gf2_owned_buffer &source, Tracker *counter)
-      : buffer(std::exchange(source, {})), tracker(counter) {}
+  MovingOwner(cudaq::edem::PackedEDEM &source, Tracker *counter)
+      : buffer(std::move(source)), tracker(counter) {}
   MovingOwner(const MovingOwner &) = delete;
   MovingOwner &operator=(const MovingOwner &) = delete;
   MovingOwner(MovingOwner &&other) noexcept
-      : buffer(std::exchange(other.buffer, {})), tracker(other.tracker) {
+      : buffer(std::move(other.buffer)), tracker(other.tracker) {
     if (tracker)
       ++tracker->native_moves;
   }
   MovingOwner &operator=(MovingOwner &&other) noexcept {
     if (this != &other) {
-      cudaq_gf2_owned_buffer_release(&buffer);
-      buffer = std::exchange(other.buffer, {});
+      buffer = std::move(other.buffer);
       tracker = other.tracker;
       if (tracker)
         ++tracker->native_moves;
     }
     return *this;
   }
-  ~MovingOwner() { cudaq_gf2_owned_buffer_release(&buffer); }
-  cudaq_gf2_owned_buffer detach() { return std::exchange(buffer, {}); }
+  cudaq_gf2_owned_buffer detach() { return buffer.release(); }
 };
 MovingOwner throughReturn(MovingOwner value) { return value; }
 
 cudaq_edem_status constructRound(const cudaq_gf2_memory *memory,
-                                 cudaq_gf2_owned_buffer *owner) {
+                                 cudaq::edem::PackedEDEM &owner) {
   const cudaq_edem_code_presentation codes[] = {{"repetition-3", 12, 2, 1}};
   const uint32_t boundary[] = {0}, sizes[] = {2}, ids[] = {0, 1};
   const double probabilities[] = {0.01, 0.02};
@@ -147,8 +145,7 @@ cudaq_edem_status constructRound(const cudaq_gf2_memory *memory,
                                               nullptr,
                                               nullptr,
                                               blocks};
-  cudaq_edem_view view;
-  return cudaq_edem_construct(&description, memory, owner, &view);
+  return cudaq::edem::PackedEDEM::construct(description, owner, memory);
 }
 
 struct CapsuleOwner {
@@ -187,11 +184,11 @@ nb::object makeCapsule(nb::object tracker_object, bool corrupt,
   owner->context_keepalive = std::move(tracker_object);
   owner->module_keepalive = nb::module_::import_("cudaq_edem._adoption_test");
   owner->tracker = tracker;
-  cudaq_gf2_owned_buffer raw{};
+  cudaq::edem::PackedEDEM raw;
   {
     cudaq_gf2_memory temporary{{&tracker->scratch, allocate, deallocate},
                                {&tracker->result, allocate, deallocate}};
-    auto status = constructRound(use_default ? nullptr : &temporary, &raw);
+    auto status = constructRound(use_default ? nullptr : &temporary, raw);
     std::memset(&temporary, 0x5a, sizeof(temporary));
     if (status == CUDAQ_EDEM_ALLOCATION_FAILED)
       throw std::bad_alloc();
