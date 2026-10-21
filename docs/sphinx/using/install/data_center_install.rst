@@ -150,11 +150,12 @@ CUDA
 
 Building CUDA-Q requires a full installation of the CUDA toolkit.
 **You can install the CUDA toolkit and use the CUDA compiler without having a GPU.**
-The instructions are tested using version 12.6 and 13.0, but other CUDA 12 or 13 versions
+The instructions are tested using version 12.6, 13.0 and 13.3, but other CUDA 12 or 13 versions
 should work, as long as the CUDA runtime version on the host system matches the 
 CUDA version used for the build, and the installed driver on the host 
 system supports that CUDA version. We recommend using the latest CUDA version
-that is supported by the driver on the host system.
+that is supported by the driver on the host system. Ubuntu 26.04 requires 
+CUDA 13.3 or newer, since there is no CUDA 12 or earlier CUDA 13 release for it.
 
 Download a suitable `CUDA version <https://developer.nvidia.com/cuda-toolkit-archive>`__
 following the installation guide for your platform in the online documentation

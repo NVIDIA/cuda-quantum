@@ -12,6 +12,12 @@ and is also available as a Docker image. More information about installing the n
 - `Documentation <https://nvidia.github.io/cuda-quantum/latest>`__
 - `Examples <https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples>`__
 
+CUDA 13 builds, including the Docker image and the C++ installer, now use CUDA 13.3. The CUDA 13
+Docker image is based on Ubuntu 26.04 and uses Python 3.14. This does not raise the minimum
+CUDA 13 requirement: the driver requirement (580.65.06+) is unchanged, and CUDA 13.0 or newer
+libraries work. CUDA 12 is not available on Ubuntu 26.04, so the CUDA 12 builds stay on
+Ubuntu 24.04 and Python 3.12.
+
 **0.16.0**
 
 This release integrates CUDA-Q Logical version 0.1.1. CUDA-Q Logical expands CUDA-Q with an open, extensible
