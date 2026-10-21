@@ -128,11 +128,15 @@ public:
                                backendName_ + "': " + lastError());
     }
 
+    acquisitionTokenEnvName_ = backendName_ + "_QRMI_JOB_ACQUISITION_TOKEN";
+    // Borrow an acquisition the scheduler already made; release only our own.
+    if (const char *token = std::getenv(acquisitionTokenEnvName_.c_str());
+        token && *token)
+      return;
     char *acquisitionTokenRaw = nullptr;
     ensureSuccess(qrmi_resource_acquire(resource_.get(), &acquisitionTokenRaw),
                   "qrmi_resource_acquire()");
     acquisitionToken_.reset(acquisitionTokenRaw);
-    acquisitionTokenEnvName_ = backendName_ + "_QRMI_JOB_ACQUISITION_TOKEN";
     setenv(acquisitionTokenEnvName_.c_str(), acquisitionToken_.get(), 1);
   }
 
