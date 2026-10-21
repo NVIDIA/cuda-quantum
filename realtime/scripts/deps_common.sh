@@ -36,11 +36,11 @@ function retry {
 #   . "$(dirname "$0")/deps_common.sh"
 
 # Central repository of DOCA and Holoscan SDK versions for development and CI.
-DOCA_VERSION=${DOCA_VERSION:-3.3.0}
+DOCA_VERSION=${DOCA_VERSION:-3.4.0}
 HOLOSCAN_SDK_VERSION=${HOLOSCAN_SDK_VERSION:-4.6.0.0}
 HOLOSCAN_SDK_INSTALL_PREFIX=${HOLOSCAN_SDK_INSTALL_PREFIX:-/opt/nvidia/holoscan}
 CUDAQ_REALTIME_HSB_REPO=${CUDAQ_REALTIME_HSB_REPO:-https://github.com/nvidia-holoscan/holoscan-sensor-bridge.git}
-CUDAQ_REALTIME_HSB_REF=${CUDAQ_REALTIME_HSB_REF:-2.6.0-EA2}
+CUDAQ_REALTIME_HSB_REF=${CUDAQ_REALTIME_HSB_REF:-EA_CUDAQ_10_26}
 # HSB changes CUDA-Q Realtime needs before HSB releases them, applied to every
 # clone. Resolved from this file's location, since it is sourced. Set to an
 # empty string to build HSB unpatched.
@@ -70,8 +70,8 @@ cudaq_realtime_cuda_version() {
   printf '%s' "$_cudaq_realtime_cuda_version"
 }
 
-# CUDA architectures HSB is compiled for. HSB reads CUDA_NATIVE_ARCH from the
-# environment, so a value set by the caller always wins.
+# CUDA architectures HSB is compiled for. A CUDA_NATIVE_ARCH set by the caller
+# always wins.
 cudaq_realtime_cuda_native_arch() {
   if [ -n "${CUDA_NATIVE_ARCH:-}" ]; then
     printf '%s' "$CUDA_NATIVE_ARCH"
@@ -134,21 +134,21 @@ cudaq_realtime_add_doca_repo() {
       retry apt-get update
       retry apt-get install -y --no-install-recommends curl gnupg
     fi
-    curl https://linux.mellanox.com/public/repo/doca/GPG-KEY-Mellanox.pub | gpg --dearmor > /etc/apt/trusted.gpg.d/GPG-KEY-Mellanox.pub
+    curl -fsSL https://linux.mellanox.com/public/repo/doca/public_keys/nvidia-doca-rpm-gpg-public-key.asc | gpg --dearmor > /etc/apt/trusted.gpg.d/GPG-KEY-Mellanox.pub
     echo "deb [signed-by=/etc/apt/trusted.gpg.d/GPG-KEY-Mellanox.pub] $DOCA_URL ./" > /etc/apt/sources.list.d/doca.list
     retry apt-get update
   elif [ -x "$(command -v dnf)" ]; then
     # dnf fetches the keys itself, so nothing has to be installed to set this
     # up. The RPMs were re-signed in January 2026 with the NVIDIA DOCA Host
-    # key, but the repository directories still serve the superseded Mellanox
-    # key.
+    # key, which is the only one dnf needs; from 3.4.0 on the repository
+    # directories no longer serve the superseded Mellanox key at all.
     cat > /etc/yum.repos.d/doca.repo <<EOF
 [doca]
 name=NVIDIA DOCA $DOCA_VERSION
 baseurl=$DOCA_URL
 enabled=1
 gpgcheck=1
-gpgkey=https://linux.mellanox.com/public/repo/doca/public_keys/nvidia-doca-rpm-gpg-public-key.asc ${DOCA_URL}GPG-KEY-Mellanox.pub
+gpgkey=https://linux.mellanox.com/public/repo/doca/public_keys/nvidia-doca-rpm-gpg-public-key.asc
 EOF
     retry dnf -y makecache
   else
@@ -208,15 +208,16 @@ cudaq_realtime_verify_sdks() {
 # $HSB_ROOT, in name order. Any patch that does not apply fails the build rather
 # than leaving HSB silently unpatched -- including one the tree already
 # contains, which is reported as such: it means the pinned ref has caught up
-# and the patch must be deleted, not carried forward.
+# and the patch must be deleted, not carried forward. A missing directory means
+# there are no patches: git does not keep an empty realtime/patches/hsb.
 cudaq_realtime_patch_hsb() {
   if [ -z "$CUDAQ_REALTIME_HSB_PATCH_DIR" ]; then
     echo "CUDAQ_REALTIME_HSB_PATCH_DIR is empty, building HSB unpatched."
     return 0
   fi
   if [ ! -d "$CUDAQ_REALTIME_HSB_PATCH_DIR" ]; then
-    echo "ERROR: HSB patch directory $CUDAQ_REALTIME_HSB_PATCH_DIR not found; copy realtime/patches alongside realtime/scripts, or set CUDAQ_REALTIME_HSB_PATCH_DIR to an empty string to build HSB unpatched" >&2
-    return 1
+    echo "No HSB patches to apply: $CUDAQ_REALTIME_HSB_PATCH_DIR does not exist."
+    return 0
   fi
   local patch
   for patch in "$CUDAQ_REALTIME_HSB_PATCH_DIR"/*.patch; do
@@ -272,8 +273,12 @@ cudaq_realtime_build_hsb() {
       "$HSB_ROOT/src/hololink/operators/CMakeLists.txt"
   fi
 
+  # HSB ignores CUDA_NATIVE_ARCH and otherwise falls back to "native", which
+  # without a visible GPU (docker build, CI) compiles for nvcc's default sm_75:
+  # its GPU RoCE send path then runs but never reaches the wire.
   cmake -G Ninja -S "$HSB_ROOT" -B "$HSB_BUILD" \
     -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_CUDA_ARCHITECTURES="$CUDA_NATIVE_ARCH" \
     -DHOLOLINK_BUILD_ONLY_NATIVE=OFF \
     -DHOLOLINK_BUILD_PYTHON=OFF \
     -DHOLOLINK_BUILD_TESTS=OFF \
