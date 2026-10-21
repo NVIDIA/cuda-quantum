@@ -30,12 +30,19 @@ import cudaq_edem
 from cudaq_edem import _core
 
 assert cudaq_edem.__version__ == version('cudaq-edem')
+assert callable(cudaq_edem.EDEM.adopt)
 assert _core.__file__.endswith(('.so', '.pyd'))
 for name in ('LICENSE.nanobind', 'LICENSE.robin-map'):
     assert (Path(cudaq_edem.__file__).parent / 'share' / 'cudaq-edem' /
             'licenses' / name).is_file()
 cmake = Path(cudaq_edem.get_cmake_dir())
 assert (cmake / 'cudaq-edem-config.cmake').is_file()
+include = cmake.parent.parent.parent / 'include' / 'cudaq'
+assert (include / 'gf2' / 'memory.h').is_file()
+assert (include / 'gf2' / 'bump_allocator.h').is_file()
+assert not (include / 'memory.h').exists()
+assert not (include / 'bump_allocator.h').exists()
+assert (include / 'edem' / 'python.h').is_file()
 library_dir = cmake.parent.parent
 libraries = []
 for name in ('cudaq-edem', 'cudaq-gf2'):
@@ -48,6 +55,25 @@ print(json.dumps({'package': str(Path(cudaq_edem.__file__).parent),
     if directory is not None:
         command.append(str(directory))
     return json.loads(subprocess.check_output(command, text=True))
+
+
+def check_values(python, directory=None):
+    code = """
+import runpy
+import sys
+if len(sys.argv) > 2:
+    sys.path.insert(0, sys.argv[2])
+script = sys.argv[1]
+sys.argv = [script]
+runpy.run_path(script, run_name='__main__')
+"""
+    command = [
+        str(python), "-I", "-c", code,
+        str(Path(__file__).with_name("test_values.py").resolve())
+    ]
+    if directory is not None:
+        command.append(str(directory))
+    subprocess.run(command, check=True)
 
 
 def main():
@@ -72,10 +98,12 @@ def main():
                        check=True,
                        cwd=work)
         installed = inspect_package(python)
+        check_values(python)
         relocated = work / "relocated"
         relocated.mkdir()
         shutil.move(installed["package"], relocated / "cudaq_edem")
         package = inspect_package(python, relocated)
+        check_values(python, relocated)
         assert Path(package["package"]) == relocated / "cudaq_edem"
 
         for path in Path(package["cmake"]).glob("*.cmake"):
