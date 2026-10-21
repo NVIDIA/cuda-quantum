@@ -6,31 +6,20 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "OutlinePartitions.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
-#include "llvm/ADT/SmallVector.h"
-#include "llvm/Support/raw_ostream.h"
-#include "mlir/Dialect/Func/IR/FuncOps.h"
-#include "mlir/Support/LogicalResult.h"
-
-namespace mlir {
-class Operation;
-}
-namespace cudaq::opt {
-mlir::FailureOr<cudaq::cc::CreateLambdaOp>
-    outlinePartition(llvm::ArrayRef<mlir::Operation *>);
-mlir::LogicalResult
-    outlinePartitions(llvm::ArrayRef<llvm::SmallVector<mlir::Operation *>>);
-} // namespace cudaq::opt
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
+#include "llvm/ADT/SmallVector.h"
+#include "llvm/Support/raw_ostream.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/IR/Verifier.h"
 #include "mlir/Parser/Parser.h"
+#include "mlir/Support/LogicalResult.h"
 #include <gtest/gtest.h>
 #include <string>
 
@@ -158,8 +147,7 @@ TEST(OutlinePartitions, NonContiguousRejected) {
   EXPECT_TRUE(failed(cudaq::opt::outlinePartition(partition)));
 }
 
-// Run the pass with a hardcoded analysis that puts H and X into one partition,
-// verifying the full analysis → pass → outline pipeline.
+// Supply a partition from a hardcoded analysis to the outlining utility.
 TEST(OutlinePartitions, HardcodedAnalysis) {
   const char *ir = R"(
     func.func @k() {

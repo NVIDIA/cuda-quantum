@@ -6,11 +6,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "PassDetails.h"
+#include "OutlinePartitions.h"
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
-#include "cudaq/Optimizer/Transforms/Passes.h"
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SetVector.h"
@@ -20,17 +19,7 @@
 #include "mlir/Interfaces/SideEffectInterfaces.h"
 #include "mlir/Support/LLVM.h"
 
-namespace cudaq::opt {
-#define GEN_PASS_DEF_OUTLINEPARTITIONS
-#include "cudaq/Optimizer/Transforms/Passes.h.inc"
-} // namespace cudaq::opt
-
 using namespace mlir;
-
-namespace cudaq::opt {
-FailureOr<cc::CreateLambdaOp> outlinePartition(ArrayRef<Operation *>);
-LogicalResult outlinePartitions(ArrayRef<SmallVector<Operation *>>);
-} // namespace cudaq::opt
 
 namespace {
 static bool isWire(Value v) { return isa<cudaq::quake::WireType>(v.getType()); }
@@ -228,40 +217,3 @@ cudaq::opt::outlinePartitions(ArrayRef<SmallVector<Operation *>> partitions) {
       result = failure();
   return result;
 }
-
-struct OutlinePartitionsAnalysis {
-  MLIR_DEFINE_EXPLICIT_INTERNAL_INLINE_TYPE_ID(OutlinePartitionsAnalysis)
-
-  explicit OutlinePartitionsAnalysis(Operation *op) {
-    // TODO: implement partitioning logic
-  }
-
-  ArrayRef<SmallVector<Operation *>> getPartitions() const {
-    return partitions;
-  }
-
-private:
-  SmallVector<SmallVector<Operation *>> partitions;
-};
-
-namespace {
-class OutlinePartitionsPass
-    : public cudaq::opt::impl::OutlinePartitionsBase<OutlinePartitionsPass> {
-  using Base = cudaq::opt::impl::OutlinePartitionsBase<OutlinePartitionsPass>;
-
-public:
-  using Base::Base;
-
-  void runOnOperation() override {
-    auto &analysis = getAnalysis<OutlinePartitionsAnalysis>();
-    if (failed(cudaq::opt::outlinePartitions(analysis.getPartitions())))
-      signalPassFailure();
-  }
-};
-} // namespace
-
-namespace cudaq::opt {
-std::unique_ptr<mlir::Pass> createOutlinePartitionsPass() {
-  return std::make_unique<OutlinePartitionsPass>();
-}
-} // namespace cudaq::opt

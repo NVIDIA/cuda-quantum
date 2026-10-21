@@ -56,6 +56,7 @@ add_cudaq_unittest("OutlinePartitionsTests" "outline-partitions"
     SOURCES
         OutlinePartitionsTest.cpp
     INCLUDES
+        ${CMAKE_SOURCE_DIR}/cudaq/lib/Optimizer/Transforms
     LINKED_LIBS
         MLIRArithDialect
         MLIRFuncDialect
