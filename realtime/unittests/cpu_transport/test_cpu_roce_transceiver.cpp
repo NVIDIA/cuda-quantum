@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 /// @file test_cpu_roce_transceiver.cpp
-/// @brief Unified (thread-free) mode of the legacy CPU RoCE transceiver.
+/// @brief Unified (thread-free) mode of the CPU RoCE transceiver C ABI.
 ///
 /// Two halves:
 ///   - CpuRoceUnifiedContract: the hooks' refusals.  Construction opens no

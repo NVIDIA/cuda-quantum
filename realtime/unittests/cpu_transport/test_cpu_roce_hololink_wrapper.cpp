@@ -68,22 +68,37 @@ TEST(CpuRoceHololinkWrapper, ReportsInvalidLocalIpWithoutBlockingSetup) {
   cpu_roce_destroy_transceiver(handle);
 }
 
-TEST(CpuRoceHololinkWrapper, RejectsUnifiedAtCreate) {
+TEST(CpuRoceHololinkWrapper, AcceptsUnifiedAtCreate) {
   testing::internal::CaptureStderr();
-  EXPECT_EQ(create_valid(/*forward=*/0, /*rx_only=*/0, /*tx_only=*/0,
-                         /*unified=*/1),
-            nullptr);
-  EXPECT_NE(testing::internal::GetCapturedStderr().find(
-                "not supported by the Hololink CPU RoCE backend"),
-            std::string::npos);
+  auto handle = create_valid(/*forward=*/0, /*rx_only=*/0, /*tx_only=*/0,
+                             /*unified=*/1);
+  EXPECT_TRUE(testing::internal::GetCapturedStderr().empty());
+  ASSERT_NE(handle, nullptr);
+  EXPECT_EQ(cpu_roce_get_page_size(handle), 256);
+  EXPECT_EQ(cpu_roce_get_num_pages(handle), 8);
+  // Before connect(), CallerDriven polls return false and do not throw.
+  uint32_t slot = 7;
+  testing::internal::CaptureStderr();
+  EXPECT_EQ(cpu_roce_rx_poll(handle, &slot), 0);
+  EXPECT_EQ(slot, 7u);
+  EXPECT_EQ(cpu_roce_tx_publish(handle, 0), 0);
+  EXPECT_TRUE(testing::internal::GetCapturedStderr().empty());
+  cpu_roce_destroy_transceiver(handle);
 }
 
-TEST(CpuRoceHololinkWrapper, UnifiedHooksRefuseEveryHandle) {
+TEST(CpuRoceHololinkWrapper, NonCallerDrivenHooksReturnZero) {
   auto handle = create_valid();
   ASSERT_NE(handle, nullptr);
   uint32_t slot = 0;
+  testing::internal::CaptureStderr();
   EXPECT_EQ(cpu_roce_rx_poll(handle, &slot), 0);
   EXPECT_EQ(cpu_roce_tx_publish(handle, 0), 0);
+  const auto first = testing::internal::GetCapturedStderr();
+  EXPECT_NE(first.find("cpu_roce_rx_poll"), std::string::npos);
+  testing::internal::CaptureStderr();
+  EXPECT_EQ(cpu_roce_rx_poll(handle, &slot), 0);
+  EXPECT_EQ(cpu_roce_tx_publish(handle, 0), 0);
+  EXPECT_TRUE(testing::internal::GetCapturedStderr().empty());
   cpu_roce_destroy_transceiver(handle);
 }
 

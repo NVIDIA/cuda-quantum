@@ -71,6 +71,13 @@ done
 
 # If everything looks good, upload the python wheels and Python metapackages to PyPI - 
 # note that we cannot update that version of the wheels once they have been uploaded!
+# Publish cudaq-core first, then cuda-quantum-cu12/cu13 and cudaq-logical,
+# and finally the cudaq metapackage. Check that every exact dependency pin has
+# a matching wheel for each supported interpreter/platform before uploading.
+# Linux core is CUDA-independent and shared by both frontends; publish only
+# the CUDA 13 pipeline's copy. CUDA 12's candidate-core copy is for build-local
+# validation only. Nightly artifacts are not published to PyPI and are not an
+# end-user installation path.
 
 # Look at the draft release created by the publishing workflow and update the release notes manually as needed:
 # - Update the link to the full change log to show the diff between the tag of the current release and the previous one;

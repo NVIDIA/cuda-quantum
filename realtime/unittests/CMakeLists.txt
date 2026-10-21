@@ -110,9 +110,10 @@ endif()
 # HSB bridge/emulator/playback tools (optional, not CI)
 # ==============================================================================
 
+# utils defines rpc_increment_ft, which the test server links for its device
+# path, so it is configured before test_server.
 if (CUDAQ_REALTIME_ENABLE_HSB_TOOLS)
   add_subdirectory(utils)
-  add_subdirectory(bridge_interface/gpu_roce)
 endif()
 
 # Transport-agnostic two-process test server.  Links cudaq-realtime, which
@@ -120,6 +121,10 @@ endif()
 # test directories that exec it.
 if (TARGET cudaq-realtime)
   add_subdirectory(test_server)
+endif()
+
+if (CUDAQ_REALTIME_ENABLE_HSB_TOOLS)
+  add_subdirectory(bridge_interface/gpu_roce)
 endif()
 
 # UDP bridge provider tests: self-gated on the always-built udp provider
@@ -141,6 +146,5 @@ if (CUDAQ_REALTIME_REQUIRE_ROCE_TESTS AND
     NOT (TARGET test_cpu_roce_transceiver AND TARGET test_cpu_roce_two_process))
   message(FATAL_ERROR
     "CUDAQ_REALTIME_REQUIRE_ROCE_TESTS=ON but the cpu_roce RDMA tests are not "
-    "built (they need libibverbs, the legacy backend "
-    "-- CUDAQ_REALTIME_CPU_ROCE_USE_HOLOLINK=OFF -- and the test server)")
+    "built (they need the CPU RoCE transport and the test server)")
 endif()

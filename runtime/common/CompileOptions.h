@@ -8,9 +8,10 @@
 
 #pragma once
 
-#include "common/CompileTarget.h"
 #include "cudaq/Support/Hash.h"
+#include "cudaq/operators.h"
 #include <cstddef>
+#include <optional>
 
 namespace cudaq {
 

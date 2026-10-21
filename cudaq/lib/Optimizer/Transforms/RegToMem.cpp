@@ -104,9 +104,9 @@ private:
 
   /// Is this a quake.unwrap that is in our definitions set?
   bool isUnwrapRef(Value v) {
+    // Every unwrap is inserted into eqClasses by the initial walk.
     if (auto unwrap = v.getDefiningOp<cudaq::quake::UnwrapOp>())
-      return std::find(unwrapRefs.begin(), unwrapRefs.end(), unwrap) !=
-             unwrapRefs.end();
+      return eqClasses.contains(toOpaque(unwrap));
     return false;
   }
 

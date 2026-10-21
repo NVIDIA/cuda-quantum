@@ -1,0 +1,77 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --cc-loop-normalize --split-input-file %s | FileCheck %s
+
+// The step operation `%next` is also used in the body (`a[i + 1]`). Only the
+// loop-carried counter may take the normalized step; `a[i + 1]` must keep the
+// original value. The loop runs once with i = 1, so the control is a[2].
+
+func.func @kernel() {
+  %c1 = arith.constant 1 : i64
+  %a = quake.alloca !quake.veq<3>
+  %b = quake.alloca !quake.veq<3>
+  %0 = cc.loop while ((%i = %c1) -> (i64)) {
+    %cond = arith.cmpi sle, %i, %c1 : i64
+    cc.condition %cond(%i : i64)
+  } do {
+  ^bb0(%i: i64):
+    %next = arith.addi %i, %c1 : i64
+    %ctl = quake.extract_ref %a[%next] : (!quake.veq<3>, i64) -> !quake.ref
+    %tgt = quake.extract_ref %b[%i] : (!quake.veq<3>, i64) -> !quake.ref
+    quake.x [%ctl] %tgt : (!quake.ref, !quake.ref) -> ()
+    cc.continue %next : i64
+  } step {
+  ^bb0(%i: i64):
+    cc.continue %i : i64
+  }
+  return
+}
+
+// CHECK-LABEL:   func.func @kernel
+// CHECK:             %[[ORIG:.*]] = arith.addi %[[I:.*]], %{{.*}} : i64
+// CHECK:             %[[NEW:.*]] = arith.addi %[[I]], %{{.*}} : i64
+// CHECK:             %[[NEXT:.*]] = arith.addi %[[ORIG]], %{{.*}} : i64
+// CHECK:             quake.extract_ref %{{.*}}[%[[NEXT]]]
+// CHECK:             quake.extract_ref %{{.*}}[%[[ORIG]]]
+// CHECK:             cc.continue %[[NEW]] : i64
+
+// -----
+
+// The step region reuses the incremented counter (`i++, j = j + i`). With
+// i = 1 + i', the use must see the original `i + 1`, not `i' + 1`.
+
+func.func private @use(i64)
+func.func @step_region_use() {
+  %c0 = arith.constant 0 : i64
+  %c1 = arith.constant 1 : i64
+  %c4 = arith.constant 4 : i64
+  %r:2 = cc.loop while ((%i = %c1, %j = %c0) -> (i64, i64)) {
+    %cond = arith.cmpi slt, %i, %c4 : i64
+    cc.condition %cond(%i, %j : i64, i64)
+  } do {
+  ^bb0(%i: i64, %j: i64):
+    func.call @use(%j) : (i64) -> ()
+    cc.continue %i, %j : i64, i64
+  } step {
+  ^bb0(%i: i64, %j: i64):
+    %n = arith.addi %i, %c1 : i64
+    %j2 = arith.addi %j, %n : i64
+    cc.continue %n, %j2 : i64, i64
+  }
+  return
+}
+
+// CHECK-LABEL:   func.func @step_region_use
+// CHECK:         } step {
+// CHECK:         ^bb0(%[[I:.*]]: i64, %[[J:.*]]: i64):
+// CHECK:           %[[NEW:.*]] = arith.addi %[[I]], %{{.*}} : i64
+// CHECK:           %[[ORIG:.*]] = arith.addi %[[I]], %{{.*}} : i64
+// CHECK:           %[[NEXT:.*]] = arith.addi %[[ORIG]], %{{.*}} : i64
+// CHECK:           %[[J2:.*]] = arith.addi %[[J]], %[[NEXT]] : i64
+// CHECK:           cc.continue %[[NEW]], %[[J2]] : i64, i64

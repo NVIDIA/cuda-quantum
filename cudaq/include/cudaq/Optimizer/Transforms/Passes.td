@@ -599,8 +599,26 @@ def DeadStoreRemoval : Pass<"dead-store-removal"> {
   let summary = "Dead store removal (DSR).";
   let description = [{
     This pass performs classic dead store removal to clean up code that may
-    contain residual dead stores.
+    contain residual dead stores. It also forwards stored values to loads and
+    removes loads that are redundant and stores that are overwritten. The
+    options bound the work done per operation so that the pass remains linear
+    in the size of the function.
   }];
+  let options = [
+    Option<"maxTrackedLocations", "max-tracked-locations", "unsigned",
+      /*default=*/"32",
+      "Maximum number of memory locations whose contents are tracked at once. "
+      "The oldest is forgotten when the limit is reached.">,
+    Option<"maxAddressDepth", "max-address-depth", "unsigned",
+      /*default=*/"8",
+      "Maximum depth to which two address computations are compared for "
+      "equality.">,
+    Option<"maxEscapingUses", "max-escaping-uses", "unsigned",
+      /*default=*/"8",
+      "Maximum number of operations that are tracked as making the address of "
+      "a stack slot available to other code. A slot with more than this many "
+      "is treated as escaping from the start of the function.">
+  ];
 }
 
 def Decomposition : Pass<"decomposition", "mlir::ModuleOp"> {
@@ -786,31 +804,6 @@ def EraseVectorCopyCtor : Pass<"erase-vector-copy-ctor"> {
   }];
 }
 
-def ExpandBroadcasts : Pass<"expand-broadcasts", "mlir::func::FuncOp"> {
-  let summary = "Expands veqs used as targets into individual qubits.";
-  let description = [{
-    A one-target operator applied to a `veq` broadcasts that operator over
-    every element of the vector. Given a vector of constant size `n`, this
-    pass rewrites
-    ```mlir
-    quake.* %veq : (!quake.veq<n>) -> ()
-    ```
-    into the `n` operations it stands for:
-    ```mlir
-    %arg0 = quake.extract_ref %veq[0] : (!quake.veq<n>) -> !quake.ref
-    quake.* %arg0 : (!quake.ref) -> ()
-    ...
-    %argn = quake.extract_ref %veq[n-1] : (!quake.veq<n>) -> !quake.ref
-    quake.* %argn : (!quake.ref) -> ()
-    ```
-    Parameters and attributes are replicated on each operation. Multi-qubit
-    operators (`swap`, `exp_pauli`, custom unitaries) are left alone: for those
-    a `veq` target is the operand list of a single N-qubit gate rather than a
-    broadcast. Controlled operators are left alone as well: only an
-    uncontrolled operator broadcasts.
-  }];
-}
-
 def ExpandControlNegations :
     Pass<"expand-control-negations", "mlir::func::FuncOp"> {
   let summary =
@@ -857,6 +850,31 @@ def ExpandMeasurements : Pass<"expand-measurements"> {
   let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect"];
 
   let constructor = "cudaq::opt::createExpandMeasurementsPass()";
+}
+
+def ExpandVeqUses : Pass<"expand-veq-uses", "mlir::func::FuncOp"> {
+  let summary = "Expands veqs used as targets into individual qubits.";
+  let description = [{
+    A one-target operator applied to a `veq` broadcasts that operator over
+    every element of the vector. Given a vector of constant size `n`, this
+    pass rewrites
+    ```mlir
+    quake.* %veq : (!quake.veq<n>) -> ()
+    ```
+    into the `n` operations it stands for:
+    ```mlir
+    %arg0 = quake.extract_ref %veq[0] : (!quake.veq<n>) -> !quake.ref
+    quake.* %arg0 : (!quake.ref) -> ()
+    ...
+    %argn = quake.extract_ref %veq[n-1] : (!quake.veq<n>) -> !quake.ref
+    quake.* %argn : (!quake.ref) -> ()
+    ```
+    Parameters and attributes are replicated on each operation. Multi-qubit
+    operators (`swap`, `exp_pauli`, custom unitaries) are left alone: for those
+    a `veq` target is the operand list of a single N-qubit gate rather than a
+    broadcast. Controlled operators are left alone as well: only an
+    uncontrolled operator broadcasts.
+  }];
 }
 
 def FactorQuantumAllocations :

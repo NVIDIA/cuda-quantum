@@ -11,7 +11,7 @@
 
 #include "common/FmtCore.h"
 #include "common/ThunkInterface.h"
-#include "cudaq/Target/TargetCatalog.h"
+#include "cudaq/Target/TargetConfigYaml.h"
 #include "cudaq/runtime/logger/logger.h"
 #ifdef CUDAQ_HAS_CUDA
 #include "cuda_runtime_api.h"
@@ -379,16 +379,6 @@ void __nvqpp_vector_bool_free_temporary_initlists(
 /// should not be a compatibility issue.
 const char *__nvqpp_getStringData(const std::string &s) { return s.data(); }
 std::uint64_t __nvqpp_getStringSize(const std::string &s) { return s.size(); }
-
-/// Runtime error helper. This is called from JIT-compiled kernels when a custom
-/// operation is invoked with a qvector and its runtime size does not match the
-/// number of qubits the operation requires.
-void __nvqpp_customop_size_error(std::int64_t expected, std::int64_t actual) {
-  throw std::runtime_error(
-      fmt::format("custom operation requires {} qubit target(s), but {} were "
-                  "provided",
-                  expected, actual));
-}
 
 /// Dispatch hook for the generalized, distributed-memory reference
 /// `device_call` lowering. This reference implementation assumes the `device`

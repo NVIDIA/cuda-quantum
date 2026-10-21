@@ -75,6 +75,7 @@ if [ "$num_jobs" -lt 1 ]; then num_jobs=1; fi
 # OpenMP-parallel tests (qpp, dm simulators) each use OMP_NUM_THREADS cores.
 # For ctest, the PROCESSORS property handles scheduling for a given -j $num_jobs.
 if [ -z "${OMP_NUM_THREADS:-}" ]; then
+  omp_from_caller=false
   if [ "$num_jobs" -le 4 ]; then
     omp_threads=1
     parallel_jobs=$num_jobs
@@ -84,11 +85,23 @@ if [ -z "${OMP_NUM_THREADS:-}" ]; then
   fi
   export OMP_NUM_THREADS=$omp_threads
 else
+  omp_from_caller=true
   omp_threads=$OMP_NUM_THREADS
   parallel_jobs=$((num_jobs / omp_threads))
   if [ "$parallel_jobs" -lt 1 ]; then parallel_jobs=1; fi
 fi
 echo "Thread budget: $parallel_jobs parallel jobs x $omp_threads OMP threads (${num_jobs} cores)"
+
+# These lit suites are dominated by single-threaded nvq++ compilation, so one
+# thread across every core beats $omp_threads threads across half of them.
+if [ "$omp_from_caller" = true ]; then
+  lit_jobs=$parallel_jobs
+  lit_omp=$omp_threads
+else
+  lit_jobs=$num_jobs
+  lit_omp=1
+fi
+echo "lit budget: $lit_jobs parallel jobs x $lit_omp OMP threads"
 
 # Detect GPU availability for ctest label filtering. Query the device
 # list rather than the nvidia-smi header, whose format varies by driver.
@@ -126,7 +139,7 @@ fi
 
 # 3. Runtime tests
 echo "=== Running llvm-lit (build/runtime/test) ==="
-"$LLVM_INSTALL_PREFIX/bin/llvm-lit" $verbose --time-tests -j "$parallel_jobs" \
+OMP_NUM_THREADS=$lit_omp "$LLVM_INSTALL_PREFIX/bin/llvm-lit" $verbose --time-tests -j "$lit_jobs" \
   --param cudaq_site_config="$build_dir/runtime/test/lit.site.cfg.py" \
   "$build_dir/runtime/test"
 runtime_status=$?
@@ -137,7 +150,7 @@ fi
 
 # 4. Target tests
 echo "=== Running llvm-lit (build/targettests) ==="
-"$LLVM_INSTALL_PREFIX/bin/llvm-lit" $verbose --time-tests -j "$parallel_jobs" \
+OMP_NUM_THREADS=$lit_omp "$LLVM_INSTALL_PREFIX/bin/llvm-lit" $verbose --time-tests -j "$lit_jobs" \
   --param cudaq_site_config="$build_dir/targettests/lit.site.cfg.py" \
   "$build_dir/targettests"
 targ_status=$?
@@ -148,7 +161,7 @@ fi
 
 # 5. Python MLIR tests
 echo "=== Running llvm-lit (python/tests/mlir) ==="
-"$LLVM_INSTALL_PREFIX/bin/llvm-lit" $verbose --time-tests -j "$parallel_jobs" \
+OMP_NUM_THREADS=$lit_omp "$LLVM_INSTALL_PREFIX/bin/llvm-lit" $verbose --time-tests -j "$lit_jobs" \
   --param cudaq_site_config="$build_dir/python/tests/mlir/lit.site.cfg.py" \
   "$build_dir/python/tests/mlir"
 pymlir_status=$?
