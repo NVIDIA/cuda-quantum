@@ -61,6 +61,9 @@ Python requires no NumPy or Stim dependency. Dependent packages can link to the
 standalone wheel's native libraries and use its ownership protocol to exchange
 packed EDEM values without bundling another copy of the libraries.
 
+Python exposes EDEM values and sparse matrices. Generic typed-map construction
+and section access are available through the C interface.
+
 From the repository root, build the source distribution and its wheel:
 
 ```sh
@@ -72,6 +75,11 @@ The script stages the EDEM and GF2 sources with `pyproject.toml.edem` as the
 standard `pyproject.toml`. It leaves the repository's main wheel configuration
 unchanged. Scikit-build-core builds the standalone EDEM project and packages
 its CMake installation. The wheel version comes from `CUDAQ_EDEM_VERSION`.
+
+Source staging copies only the exact paths in `edem/package-sources.txt`.
+Add new package files to that manifest; missing files and paths outside the
+source tree are errors. Build release artifacts from a clean checkout so listed
+files also have their committed contents.
 
 Install the resulting wheel with pip. A downstream CMake build can locate its
 package configuration through the same Python environment:
@@ -141,10 +149,18 @@ result publication. Relocated package checks also build a consumer
 that enables only C, for both shared and static libraries.
 
 When Python bindings are enabled, CTest also checks the build-tree import.
+Its value tests require the native producer helper and exercise ownership
+transfer, callback lifetimes, and allocation-failure cleanup. The helper is
+absent from installed packages.
 `edem/test/check_wheel.py` installs a wheel into a fresh virtual environment,
 imports its extension, loads both native libraries, relocates the installed
 package, and compiles C and C++ consumers against its CMake exports. Run it with
 the path to the wheel as its argument.
+
+`edem/test/check_sdist.py --outdir dist/edem` builds from a temporary source
+tree containing additional unlisted files. It checks the source archive against
+the manifest and source contents, then copies the source archive and its wheel
+to the requested output directory. This check requires no Git metadata.
 
 ## Native interface and memory
 

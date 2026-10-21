@@ -50,5 +50,6 @@ if(CUDAQ_EDEM_BUILD_PYTHON)
   add_test(NAME edem_python_values
     COMMAND "${CMAKE_COMMAND}" -E env
       "PYTHONPATH=$<TARGET_FILE_DIR:cudaq-edem-python>/.."
-      "${CUDAQ_EDEM_PYTHON_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/test_values.py")
+      "${CUDAQ_EDEM_PYTHON_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/test_values.py"
+      --require-adoption)
 endif()

@@ -32,6 +32,7 @@ from cudaq_edem import _core
 assert cudaq_edem.__version__ == version('cudaq-edem')
 assert callable(cudaq_edem.EDEM.adopt)
 assert _core.__file__.endswith(('.so', '.pyd'))
+assert not list(Path(cudaq_edem.__file__).parent.glob('_adoption_test*'))
 for name in ('LICENSE.nanobind', 'LICENSE.robin-map'):
     assert (Path(cudaq_edem.__file__).parent / 'share' / 'cudaq-edem' /
             'licenses' / name).is_file()
