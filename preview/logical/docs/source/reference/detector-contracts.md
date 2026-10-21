@@ -131,6 +131,11 @@ and patch identities.
 Preparation and destructive readout therefore retain their asymmetric
 boundaries.
 
+Currently, `fabric.permute` projects to ordinary `SWAP` instructions without
+retaining that they represent a noiseless relabeling. This limits downstream
+noise policies; see the
+[permutation limitation](../use-cases/stim-emission.md#export-a-profiled-surface-code-memory).
+
 Projection verifies the module and rejects unsupported operations, recursive
 calls, non-Clifford gates, and dynamic control. It preserves the source Build
 and shares the native traversal used for Stim emission. The result describes

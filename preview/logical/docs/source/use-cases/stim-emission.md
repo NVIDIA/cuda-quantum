@@ -89,14 +89,18 @@ vertical logical X string; Z hooks run vertically, across the horizontal
 logical Z string. This orientation preserves the circuit distance.
 Preparation and readout each contribute one extraction round.
 
-From the repository root:
+Using `surface_memory` from the example:
+
+<!--
+% invisible-code-block: python
+%
+% surface_memory = load_ql_example(
+% "preview/logical/examples/standalone/06_surface_memory.py", "surface_memory")
+-->
 
 ```python
-from runpy import run_path
-
 import cudaq.logical as cql
 
-surface_memory = run_path("preview/logical/examples/standalone/06_surface_memory.py")["surface_memory"]
 memory = surface_memory(distance=3, rounds=3)
 p = 0.001
 noise = cql.compiler.StandardDepolarizingNoise(
@@ -111,7 +115,7 @@ assert "OBSERVABLE_INCLUDE(0)" in text
 assert "DEPOLARIZE2(0.001)" in text
 ```
 
-To write the example's output to a file:
+To write the example's output to a file, run from the repository root:
 
 ```bash
 python preview/logical/examples/standalone/06_surface_memory.py > surface-memory.stim
@@ -160,6 +164,13 @@ separate channels. The four probabilities can be set independently.
 Depolarizing channels remain categorical: one-qubit noise has three Pauli
 alternatives, and two-qubit noise has fifteen. These settings do not change
 gadget definitions or profiles.
+
+**Known limitation for permutations:** `fabric.permute` specifies a noiseless
+relabeling, but projection currently represents it as ordinary `SWAP`
+instructions. With `after_clifford_depolarization` enabled, the exporter adds
+`DEPOLARIZE2` after those SWAPs too. The surface-memory example does not use
+`fabric.permute`. Preserving the distinction between relabeling and physical
+operations through projection and noise policies is future work.
 
 The example calls `cql.compiler.emit_stim(memory.profiles, noise=noise,
 round_starts=memory.round_starts)`. The exporter binds physical carriers across

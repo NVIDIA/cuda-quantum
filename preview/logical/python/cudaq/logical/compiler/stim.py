@@ -60,6 +60,11 @@ def emit_stim(profiles,
     measurement noise is attached to physical operations, not encoded calls.
     The source profiles and their compiled realizations remain unchanged.
 
+    Known limitation: ``fabric.permute`` projects as ordinary SWAPs, which
+    receive depolarization when after-Clifford noise is enabled despite
+    representing a noiseless relabeling. Preserving this distinction through
+    projection and noise policies is future work.
+
     Returns annotated circuit text directly, without a simulator dependency.
     """
     from cudaq.logical.gadgets import GadgetProfile
