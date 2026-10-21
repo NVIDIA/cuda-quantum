@@ -7,12 +7,14 @@
 # ============================================================================ #
 """Value conformance through the public Python producer interface."""
 
+import argparse
 import gc
 import hashlib
 import importlib
 import itertools
 import random
 import struct
+import sys
 import unittest
 import weakref
 
@@ -422,4 +424,9 @@ class AdoptionTest(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument("--require-adoption", action="store_true")
+    options, arguments = parser.parse_known_args()
+    if options.require_adoption and _adoption_test is None:
+        parser.error("native adoption producer is required")
+    unittest.main(argv=[sys.argv[0]] + arguments)
