@@ -44,6 +44,7 @@ add_cudaq_library(OptTransforms
   ExpandMeasurements.cpp
   ExpandVeqUses.cpp
   FactorQuantumAlloc.cpp
+  FuseSingleQubitChainsForCliffordT.cpp
   GenKernelExecution.cpp
   GenDeviceCodeLoader.cpp
   GetConcreteMatrix.cpp
