@@ -47,10 +47,13 @@ cudaq::opt::outlinePartition(ArrayRef<Operation *> partition) {
 
   // All operations must live in one block; find the last one in block order to
   // use as the anchor for the closure and its application.
+  // Ops to be outlined must also not contain regions.
   Block *block = partition.front()->getBlock();
   Operation *anchor = partition.front();
   for (Operation *op : partition) {
     if (op->getBlock() != block)
+      return failure();
+    if (op->getNumRegions() != 0)
       return failure();
     if (anchor->isBeforeInBlock(op))
       anchor = op;

@@ -576,3 +576,34 @@ TEST(OutlinePartitions, ConsumerDefinesInputRejected) {
   EXPECT_EQ(printModule(*mod), before);
   EXPECT_TRUE(succeeded(verify(*mod)));
 }
+
+// Reject any partition candidates that contain regions
+TEST(OutlinePartitions, RejectRegionOwningOps) {
+  const char *ir = R"(
+    func.func @k(%theta: f64, %q: !quake.ref) {
+      cc.scope {
+        quake.rx (%theta) %q : (f64, !quake.ref) -> ()
+        cc.continue
+      }
+      return
+    }
+  )";
+
+  MLIRContext ctx;
+  auto mod = parse(ctx, ir);
+  ASSERT_TRUE(mod);
+  ASSERT_TRUE(succeeded(verify(*mod)));
+
+  SmallVector<Operation *> partition;
+  mod->walk([&](Operation *op) {
+    if (isa<cudaq::cc::ScopeOp>(op))
+      partition.push_back(op);
+  });
+
+  ASSERT_EQ(partition.size(), 1u);
+  const std::string before = printModule(*mod);
+
+  EXPECT_TRUE(failed(cudaq::opt::outlinePartition(partition)));
+  EXPECT_EQ(printModule(*mod), before);
+  EXPECT_TRUE(succeeded(verify(*mod)));
+}
