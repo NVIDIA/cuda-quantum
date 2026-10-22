@@ -21,10 +21,7 @@
 
 using namespace mlir;
 
-namespace {
-static bool isWire(Value v) { return isa<cudaq::quake::WireType>(v.getType()); }
-
-// Accept scalar-wire operations and scalar discrimination with no memory
+// Accept wire operations and scalar discrimination with no memory
 // effects.
 static bool isSupportedOutlineOp(Operation *op) {
   return isMemoryEffectFree(op) &&
@@ -64,7 +61,7 @@ outlinePartitionImpl(ArrayRef<Operation *> partition,
     for (Value operand : op->getOperands()) {
       Operation *def = operand.getDefiningOp();
       if (!def || !inPartition.contains(def)) {
-        if (isWire(operand))
+        if (isa<cudaq::quake::WireType>(operand.getType()))
           inputs.insert(operand);
         else
           nonWireInputs.insert(operand);
@@ -72,7 +69,8 @@ outlinePartitionImpl(ArrayRef<Operation *> partition,
     }
     for (Value res : op->getResults()) {
       // Preserve unused wires as outputs.
-      bool externalUse = isWire(res) && res.use_empty();
+      bool externalUse =
+          isa<cudaq::quake::WireType>(res.getType()) && res.use_empty();
       // Export any result with a user outside the partition.
       for (Operation *user : res.getUsers())
         if (!inPartition.contains(user)) {
@@ -80,7 +78,7 @@ outlinePartitionImpl(ArrayRef<Operation *> partition,
           break;
         }
       if (externalUse) {
-        if (isWire(res))
+        if (isa<cudaq::quake::WireType>(res.getType()))
           outputs.insert(res);
         else
           nonWireOutputs.insert(res);
@@ -174,7 +172,6 @@ outlinePartitionImpl(ArrayRef<Operation *> partition,
 
   return lambda;
 }
-} // namespace
 
 FailureOr<cudaq::cc::CreateLambdaOp>
 cudaq::opt::outlinePartition(ArrayRef<Operation *> partition) {
