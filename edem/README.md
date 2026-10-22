@@ -500,3 +500,52 @@ columns and downstream maps. It is an offline reference operation for serial
 chains; it does not provide general diagrams or incremental window updates.
 Operations retain no state or caches. Scratch and results use the same per-call
 memory provider as construction.
+
+## Exact noise conversion and column coalescing
+
+Noise transformations are separate native operations in `cudaq/edem/noise.h`.
+They return independently owned DEMs and leave their inputs unchanged:
+
+```python
+from cudaq_edem import factorize_dem, coalesce_dem_columns
+
+independent = factorize_dem(dem)
+reduced, source_to_result = coalesce_dem_columns(independent)
+```
+
+`cudaq_edem_factorize_dem` preserves response columns and partitions. It keeps
+independent probabilities and exactly factors supported exclusive channels into
+independent mechanisms. A supported exclusive group has 3 or 15 equally
+probable alternatives whose complete response columns, including identity,
+form a uniform linear image of the one- or two-qubit Pauli group. The total
+probability must be at most `3/4` or `15/16`, respectively. Unsupported groups
+return `CUDAQ_EDEM_UNSUPPORTED_DISTRIBUTION`; conversion never approximates or
+renormalizes their laws. These conditions are checked from the response columns,
+including zero responses and collisions. The joint detector, observable, and
+success distribution is preserved. Converted coordinates label independent
+mechanisms with the same responses, rather than the original physical events.
+
+`cudaq_edem_coalesce_dem_columns` requires independent groups. It merges equal
+complete responses using the parity probability `p + q - 2*p*q`, evaluated
+stably for small probabilities and probabilities above one half. It discards
+zero responses and zero-probability combined mechanisms. The result has one
+fault partition and at most one partition for each output kind; global rows
+retain detector, observable, then success order, each in original partition/row
+order. Distinct columns sort lexicographically by their sorted global row IDs.
+Per-kind row totals and the result column count must fit `uint32_t`.
+
+The C operation also returns an owned `uint64_t` array mapping each input
+response column to its result column. `UINT64_MAX` denotes a discarded
+mechanism. Python returns the mapping as a list, using `None` for discarded
+mechanisms. Factorization preserves column coordinates, so this mapping can
+also refer back to the original DEM's response columns. It does not map sampled
+independent events back to categorical physical events; retain the original
+DEM for its exact source laws and occurrence bindings.
+
+The C++17 helpers `factorize_dem` and `coalesce_dem_columns` in
+`cudaq/edem/noise.hpp` use `PackedEDEM` and the move-only `ColumnMapping` owner,
+returning C status codes without exceptions. Both operations use the same
+per-call scratch/result resources as construction. Coalescing uses sparse
+response columns and sorting, with memory linear in columns and nonzeros.
+Formatting adapters consume the transformed DEM without changing probabilities,
+merging columns, or introducing a simulator dependency into the library.

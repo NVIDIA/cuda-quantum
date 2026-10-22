@@ -18,11 +18,14 @@ edem/include/cudaq/edem/composition.h
 edem/include/cudaq/edem/composition.hpp
 edem/include/cudaq/edem/core.h
 edem/include/cudaq/edem/format.h
+edem/include/cudaq/edem/noise.h
+edem/include/cudaq/edem/noise.hpp
 edem/include/cudaq/edem/owned.hpp
 edem/include/cudaq/edem/python.h
 edem/lib/cudaq-edem.map
 edem/lib/composition.cpp
 edem/lib/edem.cpp
+edem/lib/noise.cpp
 edem/package-sources.txt
 edem/python/CMakeLists.txt
 edem/python/adoption_test.cpp
@@ -41,9 +44,11 @@ edem/test/consumer/main.c
 edem/test/consumer/main.cpp
 edem/test/consumer/ownership.cpp
 edem/test/core.c
+edem/test/noise.c
 edem/test/owned_memory.c
 edem/test/parent/CMakeLists.txt
 edem/test/scaling.c
+edem/test/test_noise.py
 edem/test/test_values.py
 math/gf2/CMakeLists.txt
 math/gf2/include/cudaq/gf2/bump_allocator.h

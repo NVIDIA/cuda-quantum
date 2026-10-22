@@ -10,9 +10,11 @@ CUDAQ_EDEM_0.1 {
   global:
     cudaq_edem_abi_version;
     cudaq_edem_check;
+    cudaq_edem_coalesce_dem_columns;
     cudaq_edem_compose_chain;
     cudaq_edem_construct;
     cudaq_edem_describe_wire;
+    cudaq_edem_factorize_dem;
     cudaq_edem_get_code;
     cudaq_edem_get_fault;
     cudaq_edem_get_group;

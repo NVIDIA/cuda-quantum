@@ -37,7 +37,7 @@ if(NOT TARGET cudaq-gf2)
   add_subdirectory(../math/gf2 "${CMAKE_CURRENT_BINARY_DIR}/gf2")
 endif()
 
-add_library(cudaq-edem lib/edem.cpp lib/composition.cpp)
+add_library(cudaq-edem lib/edem.cpp lib/composition.cpp lib/noise.cpp)
 add_library(cudaq::edem ALIAS cudaq-edem)
 target_sources(cudaq-edem PUBLIC
   FILE_SET HEADERS
@@ -46,8 +46,12 @@ target_sources(cudaq-edem PUBLIC
     include/cudaq/edem/owned.hpp
     include/cudaq/edem/python.h include/cudaq/edem/composition.h
     include/cudaq/edem/composition.hpp
+    include/cudaq/edem/noise.h include/cudaq/edem/noise.hpp
 )
 target_link_libraries(cudaq-edem PUBLIC cudaq::gf2)
+if(UNIX AND NOT APPLE)
+  target_link_libraries(cudaq-edem PRIVATE m)
+endif()
 get_target_property(CUDAQ_EDEM_GF2_SOURCE_DIR cudaq-gf2 SOURCE_DIR)
 target_include_directories(cudaq-edem PRIVATE "${CUDAQ_EDEM_GF2_SOURCE_DIR}/lib")
 target_compile_features(cudaq-edem PUBLIC c_std_11)

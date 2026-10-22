@@ -30,6 +30,8 @@ from ._core import (
     PortKind,
     SparseMatrix,
     compose_chain,
+    coalesce_dem_columns,
+    factorize_dem,
     project_DEM,
 )
 
@@ -56,6 +58,8 @@ __all__ = [
     "PortKind",
     "SparseMatrix",
     "compose_chain",
+    "coalesce_dem_columns",
+    "factorize_dem",
     "get_cmake_dir",
     "project_DEM",
 ]

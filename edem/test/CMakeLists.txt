@@ -7,6 +7,13 @@
 # ============================================================================ #
 
 add_subdirectory(consumer)
+add_executable(edem_noise_test noise.c)
+target_link_libraries(edem_noise_test PRIVATE cudaq::edem)
+if(UNIX AND NOT APPLE)
+  target_link_libraries(edem_noise_test PRIVATE m)
+endif()
+add_test(NAME edem_noise COMMAND edem_noise_test)
+set_tests_properties(edem_noise PROPERTIES TIMEOUT 30)
 add_executable(edem_composition_test composition.c)
 target_link_libraries(edem_composition_test PRIVATE cudaq::edem)
 add_test(NAME edem_composition COMMAND edem_composition_test)
@@ -58,4 +65,8 @@ if(CUDAQ_EDEM_BUILD_PYTHON)
       "PYTHONPATH=$<TARGET_FILE_DIR:cudaq-edem-python>/.."
       "${CUDAQ_EDEM_PYTHON_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/test_values.py"
       --require-adoption)
+  add_test(NAME edem_python_noise
+    COMMAND "${CMAKE_COMMAND}" -E env
+      "PYTHONPATH=$<TARGET_FILE_DIR:cudaq-edem-python>/.."
+      "${CUDAQ_EDEM_PYTHON_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/test_noise.py")
 endif()

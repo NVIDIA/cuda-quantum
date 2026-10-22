@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.
  */
 #include "cudaq/edem/composition.hpp"
+#include "cudaq/edem/noise.hpp"
 #include <array>
 #include <cstdlib>
 #include <type_traits>
@@ -23,6 +24,8 @@ static_assert(!HasRvalueView<PackedEDEM>::value);
 static_assert(!HasRvalueView<const PackedEDEM>::value);
 static_assert(std::is_nothrow_move_constructible_v<PackedEDEM>);
 static_assert(std::is_nothrow_move_assignable_v<PackedEDEM>);
+static_assert(!std::is_copy_constructible_v<cudaq::edem::ColumnMapping>);
+static_assert(std::is_nothrow_move_constructible_v<cudaq::edem::ColumnMapping>);
 static_assert(noexcept(
     cudaq::edem::compose_chain(nullptr, 0, std::declval<PackedEDEM &>())));
 static_assert(noexcept(cudaq::edem::project_DEM(
@@ -108,6 +111,16 @@ int main() {
   });
   PackedEDEM projected;
   check(cudaq::edem::project_DEM(moved, projected) == CUDAQ_EDEM_OK);
+  failure_sites([&](const cudaq_gf2_memory *memory) {
+    PackedEDEM result;
+    return cudaq::edem::factorize_dem(projected, result, memory);
+  });
+  failure_sites([&](const cudaq_gf2_memory *memory) {
+    PackedEDEM result;
+    cudaq::edem::ColumnMapping mapping;
+    return cudaq::edem::coalesce_dem_columns(projected, result, mapping,
+                                             memory);
+  });
   check(projected.data() != moved.data());
   // Projection into the source owner is supported: replacement happens only
   // after the independent result has been validated and adopted.
@@ -119,5 +132,32 @@ int main() {
   check(PackedEDEM::adopt(record, adopted) == CUDAQ_EDEM_OK && !record.data);
   check(cudaq::edem::compose_chain(nullptr, 0, adopted) ==
         CUDAQ_EDEM_INVALID_ARGUMENT);
+  uint32_t ids[] = {0, 1}, rows[] = {0, 0}, width = 1;
+  uint64_t offsets[] = {0, 1, 2};
+  double probabilities[] = {.1, .2};
+  cudaq_edem_fault_group group{CUDAQ_EDEM_INDEPENDENT, 2, ids, probabilities};
+  cudaq_edem_fault_distribution fault{2, 1, &group};
+  cudaq_edem_block block{{CUDAQ_EDEM_DETECTOR, 0},
+                         {CUDAQ_EDEM_FAULT, 0},
+                         {1, 2, 2, offsets, rows}};
+  cudaq_edem_description description{};
+  description.shape.fault_ports = description.shape.detector_ports = 1;
+  description.shape.blocks = 1;
+  description.faults = &fault;
+  description.detector_sizes = &width;
+  description.blocks = &block;
+  check(PackedEDEM::construct(description, value) == CUDAQ_EDEM_OK);
+  cudaq::edem::ColumnMapping mapping;
+  check(cudaq::edem::factorize_dem(value, copy) == CUDAQ_EDEM_OK);
+  check(cudaq::edem::coalesce_dem_columns(copy, adopted, mapping) ==
+        CUDAQ_EDEM_OK);
+  check(mapping.size() == 2 && mapping.data()[0] == 0 &&
+        mapping.data()[1] == 0);
+  auto mapping_address = mapping.data();
+  auto moved_mapping = std::move(mapping);
+  check(!mapping.size() && moved_mapping.data() == mapping_address);
+  auto mapping_record = moved_mapping.release();
+  check(!moved_mapping.size() && mapping_record.size == 2 * sizeof(uint64_t));
+  cudaq_gf2_owned_buffer_release(&mapping_record);
   return 0;
 }

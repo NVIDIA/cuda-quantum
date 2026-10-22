@@ -9,6 +9,7 @@
 #include "cudaq/edem/composition.h"
 #include "cudaq/edem/core.h"
 #include "cudaq/edem/format.h"
+#include "cudaq/edem/noise.h"
 #include "cudaq/edem/python.h"
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/optional.h>
@@ -521,6 +522,33 @@ public:
     return result;
   }
 
+  static DEM factorize(const DEM &source) {
+    DEM result;
+    cudaq_edem_dem_view input{source.value.view()}, checked;
+    check(cudaq_edem_factorize_dem(&input, nullptr, &result.value.storage,
+                                   &checked));
+    result.value.checked = checked.edem;
+    return result;
+  }
+
+  static nb::tuple coalesce(const DEM &source) {
+    DEM result;
+    struct MappingOwner {
+      cudaq_gf2_owned_buffer storage{};
+      ~MappingOwner() { cudaq_gf2_owned_buffer_release(&storage); }
+    } mapping;
+    cudaq_edem_dem_view input{source.value.view()}, checked;
+    check(cudaq_edem_coalesce_dem_columns(
+        &input, nullptr, &result.value.storage, &checked, &mapping.storage));
+    result.value.checked = checked.edem;
+    nb::list columns;
+    auto *indices = static_cast<const uint64_t *>(mapping.storage.data);
+    for (uint64_t i = 0; i < mapping.storage.size / sizeof(uint64_t); ++i)
+      columns.append(indices[i] == UINT64_MAX ? nb::none()
+                                              : nb::cast(indices[i]));
+    return nb::make_tuple(std::move(result), std::move(columns));
+  }
+
   const EDEM &model() const { return value; }
 };
 
@@ -656,4 +684,15 @@ NB_MODULE(_core, m) {
         "Require closed code boundaries and return an independently owned "
         "DEM with original fault columns and exact laws. Success outputs are "
         "retained; no noise approximation or column merging is performed.");
+  m.def(
+      "factorize_dem", &DEM::factorize, "value"_a,
+      "Exactly factor supported uniform Pauli laws into independent "
+      "mechanisms. "
+      "Response columns and partitions stay unchanged; original event laws "
+      "remain in the source DEM. Unsupported distributions raise ValueError.");
+  m.def("coalesce_dem_columns", &DEM::coalesce, "value"_a,
+        "Return (DEM, source_to_result) for independent mechanisms with equal "
+        "complete responses. Global D/O/success rows retain their numbering; "
+        "partitions consolidate. Mapping entries are result column IDs or None "
+        "for discarded mechanisms. Factorize exclusive laws explicitly first.");
 }
