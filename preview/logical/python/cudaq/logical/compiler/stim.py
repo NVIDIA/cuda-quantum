@@ -9,36 +9,11 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from math import isfinite
 from typing import Mapping, Sequence
 
 from .clifford import project_clifford
 from .compile import compile
-
-
-@dataclass(frozen=True, slots=True)
-class StandardDepolarizingNoise:
-    """Standard circuit-level depolarization with reset and measurement flips.
-
-    Round-start data noise requires explicit instruction sites in
-    :func:`emit_stim`. Depolarizing channels retain their categorical Pauli
-    alternatives; no independent-Pauli approximation is made.
-    """
-
-    after_clifford_depolarization: float = 0.0
-    before_round_data_depolarization: float = 0.0
-    before_measure_flip_probability: float = 0.0
-    after_reset_flip_probability: float = 0.0
-
-    def __post_init__(self):
-        for name in self.__dataclass_fields__:
-            value = getattr(self, name)
-            if (isinstance(value, bool) or not isinstance(value,
-                                                          (int, float)) or
-                    not isfinite(value) or not 0 <= value <= 1):
-                raise ValueError(f"{name} must be finite in [0, 1]")
-            object.__setattr__(self, name, float(value))
+from .noise import StandardDepolarizingNoise, _standard_noise_placement
 
 
 def emit_stim(profiles,
@@ -131,53 +106,38 @@ def emit_stim(profiles,
                 carriers[local] = next_carrier
                 next_carrier += 1
 
-        selected = tuple(starts.get(occurrence, ()))
-        if (isinstance(starts.get(occurrence), str) or
-                any(not isinstance(site, str) for site in selected) or
-                len(set(selected)) != len(selected)):
-            raise ValueError(
-                "round starts must be distinct instruction site IDs")
-        available = {op.site_id for op in projection.instructions}
-        if not set(selected) <= available:
-            raise ValueError(
-                "round start does not name a projected instruction")
-        boundary, = inputs or outputs
-        data = [carriers[q] for q in boundary.data_carriers]
+        before, after = _standard_noise_placement(projection, noise,
+                                                  starts.get(occurrence, ()))
         measurement_offset = measurement_count
-        for op in projection.instructions:
-            if op.site_id in selected and noise.before_round_data_depolarization:
-                append("DEPOLARIZE1", data,
-                       noise.before_round_data_depolarization)
+
+        def append_noise(channel):
+            append(channel.kind, [carriers[q] for q in channel.carriers],
+                   channel.probability)
+
+        for index, op in enumerate(projection.instructions):
+            for channel in before[index]:
+                append_noise(channel)
             targets = [carriers[q] for q in op.carriers]
             if op.kind == "MPP":
-                if noise.before_measure_flip_probability:
-                    raise ValueError(
-                        "measurement-flip noise on MPP requires an explicit fault model"
-                    )
                 product = "*".join(
                     f"{pauli}{carriers[q]}" for q, pauli in op.paulis)
                 append("MPP", [("!" if op.inverted else "") + product])
                 measurement_count += 1
             elif op.kind in ("M", "MX"):
-                if noise.before_measure_flip_probability:
-                    append("X_ERROR" if op.kind == "M" else "Z_ERROR", targets,
-                           noise.before_measure_flip_probability)
                 append(op.kind, targets)
                 measurement_count += len(targets)
             elif op.kind in ("R", "RX"):
                 append(op.kind, targets)
-                if noise.after_reset_flip_probability:
-                    append("X_ERROR" if op.kind == "R" else "Z_ERROR", targets,
-                           noise.after_reset_flip_probability)
+                for channel in after[index]:
+                    append_noise(channel)
             else:
                 binary = op.kind in ("CX", "CZ", "SWAP")
                 width = 2 if binary else 1
                 for start in range(0, len(targets), width):
                     group = targets[start:start + width]
                     append(op.kind, group)
-                    if noise.after_clifford_depolarization:
-                        append("DEPOLARIZE2" if binary else "DEPOLARIZE1",
-                               group, noise.after_clifford_depolarization)
+                    if after[index]:
+                        append_noise(after[index][start // width])
 
         def lower(parity):
             support = set()

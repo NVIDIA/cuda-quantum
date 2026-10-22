@@ -206,6 +206,63 @@ def _check_probability(value: float) -> None:
         raise ValueError("fault probability must be finite in [0, 1]")
 
 
+def standard_depolarizing_faults(projection,
+                                 noise,
+                                 *,
+                                 round_starts=(),
+                                 data_carriers=None) -> FaultSet:
+    """Place the standard circuit noise policy on a Clifford projection.
+
+    Uses the same channel placement as ``compiler.emit_stim``. Round starts
+    name instructions before which to depolarize data; data carriers default
+    to the input boundaries, or the output boundaries for preparation. Explicit
+    carriers may be supplied for other realizations. Measurement noise inserts
+    a physical anticommuting Pauli before measurement, preserving its effect
+    even if the measured carrier is subsequently reused without reset.
+
+    The result keeps exclusive one-/two-qubit Pauli alternatives and independent
+    reset/measurement faults. No Stim dependency or probability approximation.
+    The current projection represents noiseless ``fabric.permute`` as SWAPs;
+    these receive the same gate noise as in ``compiler.emit_stim``.
+    """
+    from itertools import product
+    from cudaq.logical.compiler.noise import _standard_noise_placement
+
+    before, after = _standard_noise_placement(projection, noise, round_starts,
+                                              data_carriers)
+    faults, groups = [], []
+
+    def place(channel, site):
+        if channel.kind.startswith("DEPOLARIZE"):
+            start = len(faults)
+            words = tuple(
+                word for word in product("ixyz", repeat=len(channel.carriers))
+                if any(p != "i" for p in word))
+            for word in words:
+                factors = tuple(
+                    (q, p) for q, p in zip(channel.carriers, word) if p != "i")
+                faults.append(
+                    ElementaryFault(f"fault{len(faults)}",
+                                    channel.probability / len(words),
+                                    (PauliInsertion(site, factors),)))
+            groups.append(tuple(range(start, len(faults))))
+        else:
+            basis = "x" if channel.kind == "X_ERROR" else "z"
+            for q in channel.carriers:
+                faults.append(
+                    ElementaryFault(f"fault{len(faults)}", channel.probability,
+                                    (PauliInsertion(site, ((q, basis),)),)))
+
+    previous = ""
+    for index, op in enumerate(projection.instructions):
+        for channel in before[index]:
+            place(channel, previous)
+        for channel in after[index]:
+            place(channel, op.site_id)
+        previous = op.site_id
+    return FaultSet(tuple(faults), tuple(groups))
+
+
 def derive_edem(source: Build,
                 *,
                 faults: FaultSet = FaultSet(),
@@ -244,4 +301,7 @@ def derive_edem(source: Build,
     return EDEM.adopt(packed)
 
 
-__all__ = ["PauliInsertion", "ElementaryFault", "FaultSet", "derive_edem"]
+__all__ = [
+    "PauliInsertion", "ElementaryFault", "FaultSet", "derive_edem",
+    "standard_depolarizing_faults"
+]

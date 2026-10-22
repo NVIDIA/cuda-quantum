@@ -54,10 +54,12 @@ core exporter does not depend on Stim.
 
 `standalone/07_memory_edem.py` compares the circuit-derived DEM with a DEM
 obtained by deriving and composing per-gadget EDEMs from the same profiles and
-noise policy. It calls the native `cudaq_edem.compose_chain` and `project_DEM`
-operations, retaining each occurrence's exact fault laws and reusing repeated
-SEC definitions. An optional Stim adapter renders the projected DEM. Stim is
-required for this comparison:
+noise policy. Logical supplies shared standard-noise placement. Native
+`cudaq_edem.compose_chain` and `project_DEM` retain each occurrence's exact fault
+laws and reuse repeated SEC definitions. Explicit `factorize_dem` and
+`coalesce_dem_columns` calls produce independent error terms and a response-column
+mapping. The optional Stim adapter formats those terms without performing any
+probability transformations. Stim is required for this comparison:
 
 ```bash
 python preview/logical/examples/standalone/07_memory_edem.py --distance 3 --rounds 3 --output memory-comparison

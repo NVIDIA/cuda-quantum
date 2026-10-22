@@ -23,16 +23,23 @@ for two paths:
    `circuit.detector_error_model()`.
 2. Derive a packed EDEM for each distinct gadget definition, compose the
    serial chain with `cudaq_edem.compose_chain`, and project the closed result
-   with `cudaq_edem.project_DEM`. Render that DEM with the example's optional
-   `to_stim_dem` adapter.
+   with `cudaq_edem.project_DEM`. Call `cudaq_edem.factorize_dem`, then
+   `cudaq_edem.coalesce_dem_columns`, before rendering the independent-error
+   DEM with the example's optional `to_stim_dem` formatter.
+
+`analysis.standard_depolarizing_faults` constructs the finite `FaultSet` using
+the same standard-noise placement as circuit export. Measurement noise is a
+physical Pauli immediately before measurement; it also affects later uses of
+that carrier. Round-start sites remain explicit recipe inputs.
 
 The native EDEM library connects the `(ΔV, S, L)` boundary wires and checks
 adjacent code presentations. Each occurrence keeps its own fault indicators
 and unmodified probability groups, including repeated uses of the same SEC
 definition. `project_DEM` rejects exposed code boundaries and returns an owned
 `cudaq_edem.DEM`; it preserves the original columns and exact fault laws. The
-Stim adapter handles only rendering and the supported exact noise-law
-factorization. Stim remains an example dependency.
+Stim adapter only renders the transformed columns and probabilities. All
+factorization and column coalescing run in the native EDEM library. Stim remains
+an example dependency.
 
 <!--
 % invisible-code-block: python
@@ -49,11 +56,19 @@ assert occurrences[1] is occurrences[2]
 assert composed.inputs == composed.outputs == []
 assert sum(composed.detectors) == circuit.num_detectors == 40
 assert sum(composed.observables) == 1
+
+from cudaq_edem import factorize_dem, coalesce_dem_columns
+
+independent = factorize_dem(projected)
+reduced, source_to_result = coalesce_dem_columns(independent)
+assert len(source_to_result) == projected.vector_sizes[0]
+assert sum(reduced.detectors) == sum(projected.detectors)
 ```
 
 `compare` checks the DEM dimensions and the probability of every distinct
-detector/observable error support, after combining identical independent
-terms, with an absolute numerical tolerance of `1e-12`. Detector coordinates
+detector/observable error support after native column coalescing, with an
+absolute numerical tolerance of `1e-12`. Its comparison helper rejects duplicate
+terms instead of performing another probability transformation. Detector coordinates
 and timing metadata are excluded. Tests also compare against Stim's generated
 rotated-memory-Z circuit at distances 3 and 5.
 
@@ -64,15 +79,27 @@ preserves their order on each physical carrier. The final unused ancilla
 resets retain their fault indicators with zero response.
 
 The packed EDEMs and projected DEM preserve exclusive Pauli alternatives.
-The Stim adapter uses an
-exact independent-error factorization for uniform one- and two-qubit
-depolarization; it does not approximate exclusive alternatives as independent
-events with their original probabilities. As with Stim's DEM analysis, the
+The native `factorize_dem` operation performs exact independent-error
+factorization for uniform one- and two-qubit depolarization; it does not
+approximate exclusive alternatives as independent events with their original
+probabilities. As with Stim's DEM analysis, the
 supported total probabilities are at most `3/4` and `15/16`, respectively.
-Other exclusive laws are rejected by this example's Stim adapter. The native
+Other exclusive laws return an unsupported-distribution error from factorization.
 DEM projection retains them without approximation. Nonempty success outputs
 are likewise retained by `project_DEM` and rejected by the Stim adapter, which
 has no postselection semantics.
+
+`coalesce_dem_columns` then combines independent mechanisms with identical
+complete responses, including observable and success bits, using the exact
+parity probability. It removes zero responses and zero-probability combined
+mechanisms. Global rows retain their numbering; output partitions consolidate
+to one per kind. The returned mapping links each original response column to
+its reduced column, or `None` when discarded. Factorization keeps the original
+response column order, so the map can refer back to occurrence/local-fault
+coordinates in `projected`. It is not a mapping of sampled independent events
+back to the original categorical events; retain `projected` for the physical
+fault laws. The formatter neither changes probabilities nor removes or combines
+columns.
 
 To save the circuit, both Stim DEMs, the per-definition EDEMs, the composed
 EDEM, and the projected packed DEM:

@@ -60,7 +60,8 @@ def test_memory_edem_matches_circuit_and_generated_dem(example, distance,
     assert _laws([composed]) == _laws([projected]) == _laws(values)
     assert projected.to_bytes() == composed.to_bytes()
     loaded = edem.DEM.from_bytes(projected.to_bytes())
-    assert example["dem_errors"](example["to_stim_dem"](loaded)) == \
+    reduced, _ = edem.coalesce_dem_columns(edem.factorize_dem(loaded))
+    assert example["dem_errors"](example["to_stim_dem"](reduced)) == \
         pytest.approx(example["dem_errors"](circuit_dem), abs=1e-12, rel=0)
 
 
@@ -112,7 +113,9 @@ def _uniform_channel(responses, probability):
 def test_depolarizing_dem_preserves_the_full_joint_distribution(example, count):
     probability = .3
     model = _uniform_channel(list(range(1, count + 1)), probability)
-    dem = example["to_stim_dem"](edem.project_DEM(model))
+    reduced, _ = edem.coalesce_dem_columns(
+        edem.factorize_dem(edem.project_DEM(model)))
+    dem = example["to_stim_dem"](reduced)
     distribution = [1.] + [0.] * count
     for instruction in dem:
         if instruction.type != "error":
@@ -128,12 +131,33 @@ def test_depolarizing_dem_preserves_the_full_joint_distribution(example, count):
 
 
 def test_dem_export_rejects_unsupported_exclusive_laws(example):
-    with pytest.raises(ValueError, match="over-mixing"):
-        example["to_stim_dem"](edem.project_DEM(_uniform_channel([1, 2, 3],
-                                                                 .9)))
-    with pytest.raises(ValueError, match="full Pauli"):
-        example["to_stim_dem"](edem.project_DEM(_uniform_channel([1, 2, 4],
-                                                                 .1)))
+    for responses, probability in (([1, 2, 3], .9), ([1, 2, 4], .1)):
+        model = edem.project_DEM(_uniform_channel(responses, probability))
+        with pytest.raises(ValueError, match="unsupported fault distribution"):
+            edem.factorize_dem(model)
+        with pytest.raises(ValueError, match="factorize_dem"):
+            example["to_stim_dem"](model)
+
+
+def test_stim_formatter_preserves_duplicate_mechanisms_without_math(example):
+    model = edem.project_DEM(
+        edem.EDEM(faults=[edem.FaultDistribution.independent([.1, .2, .3])],
+                  detectors=[1],
+                  blocks=[
+                      edem.Block(edem.Endpoint(edem.PortKind.DETECTOR),
+                                 edem.Endpoint(edem.PortKind.FAULT),
+                                 edem.SparseMatrix(1, 3, [(0, 0), (0, 1)]))
+                  ]))
+    formatted = example["to_stim_dem"](model)
+    terms = [op for op in formatted if op.type == "error"]
+    assert [op.args_copy()[0] for op in terms] == [.1, .2, .3]
+    assert [len(op.targets_copy()) for op in terms] == [1, 1, 0]
+    reduced, mapping = edem.coalesce_dem_columns(model)
+    formatted = example["to_stim_dem"](reduced)
+    assert mapping == [0, 0, None]
+    terms = [op for op in formatted if op.type == "error"]
+    assert len(terms) == 1
+    assert terms[0].args_copy()[0] == pytest.approx(.26)
 
 
 def test_memory_edem_example_writes_exchange_artifacts(example, tmp_path,

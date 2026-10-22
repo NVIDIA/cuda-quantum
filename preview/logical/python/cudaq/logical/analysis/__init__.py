@@ -10,7 +10,8 @@
 from importlib import import_module
 
 from .evidence import Provenance, citation, computation, report, user_assertion
-from .edem import ElementaryFault, FaultSet, PauliInsertion, derive_edem
+from .edem import (ElementaryFault, FaultSet, PauliInsertion, derive_edem,
+                   standard_depolarizing_faults)
 from ..estimate import (
     EvidencePolicy,
     FabricCounts,
@@ -48,6 +49,7 @@ __all__ = [
     "FaultSet",
     "PauliInsertion",
     "derive_edem",
+    "standard_depolarizing_faults",
     "EvidencePolicy",
     "FabricCounts",
     "FabricEstimate",

@@ -7,19 +7,17 @@
 # ============================================================================ #
 """Compare circuit-derived and composed gadget-EDEM surface-memory DEMs.
 
-Composition and DEM projection use the native cudaq-edem library. This example
-adds noise placement and an exact, optional Stim DEM adapter.
+Fault placement uses Logical's shared noise policy. Composition, projection,
+exact factorization and column coalescing use native cudaq-edem operations.
+The optional Stim adapter only formats their result.
 """
 
 import argparse
-from collections import Counter
-from itertools import product
-from math import expm1, fsum, isclose, log1p
+from math import isclose
 from pathlib import Path
 from runpy import run_path
 
 import cudaq.logical as cql
-from cudaq.logical.analysis import ElementaryFault, FaultSet, PauliInsertion
 import cudaq_edem as edem
 
 
@@ -30,60 +28,13 @@ def memory_recipe(distance, rounds):
 
 
 def memory_faults(profile, noise, round_starts):
-    """Place the same standard noise channels as the memory circuit exporter.
-
-    Measurement flips use records: this recipe resets check ancillas before
-    their next interaction and destructively measures data at its end.
-    """
+    """Use Logical's shared standard-noise placement API."""
     build = cql.compile(profile)
     projection = cql.compiler.project_clifford(build,
                                                gadget=profile.gadget.name)
-    boundary, = projection.interface.inputs or projection.interface.outputs
-    faults, groups = [], []
-
-    def channel(after, carriers, probability, depolarizing=True, basis="x"):
-        if not probability:
-            return
-        words = tuple(
-            word for word in product("ixyz", repeat=len(carriers))
-            if any(p != "i" for p in word)) if depolarizing else ((basis,),)
-        start = len(faults)
-        for word in words:
-            factors = tuple((q, p) for q, p in zip(carriers, word) if p != "i")
-            faults.append(
-                ElementaryFault(f"fault{len(faults)}", probability / len(words),
-                                (PauliInsertion(after, factors),)))
-        if len(words) > 1:
-            groups.append(tuple(range(start, len(faults))))
-
-    previous = ""
-    for op in projection.instructions:
-        if op.site_id in round_starts:
-            for q in boundary.data_carriers:
-                channel(previous, (q,), noise.before_round_data_depolarization)
-        if op.kind in ("R", "RX"):
-            for q in op.carriers:
-                channel(op.site_id, (q,), noise.after_reset_flip_probability,
-                        False, "x" if op.kind == "R" else "z")
-        elif op.kind in ("M", "MX"):
-            if noise.before_measure_flip_probability:
-                for lane in range(len(op.carriers)):
-                    record = projection.interface.measurements[
-                        op.measurement_start + lane].record
-                    faults.append(
-                        ElementaryFault(f"fault{len(faults)}",
-                                        noise.before_measure_flip_probability,
-                                        record_flips=(record,)))
-        elif op.kind == "MPP":
-            raise ValueError(
-                "the memory recipe requires single-qubit measurements")
-        else:
-            width = 2 if op.kind in ("CX", "CZ", "SWAP") else 1
-            for start in range(0, len(op.carriers), width):
-                channel(op.site_id, op.carriers[start:start + width],
-                        noise.after_clifford_depolarization)
-        previous = op.site_id
-    return build, FaultSet(tuple(faults), tuple(groups))
+    faults = cql.analysis.standard_depolarizing_faults(
+        projection, noise, round_starts=round_starts)
+    return build, faults
 
 
 def derive_memory_edems(memory, noise):
@@ -100,12 +51,10 @@ def derive_memory_edems(memory, noise):
 
 
 def to_stim_dem(model):
-    """Render a projected DEM with exact independent/depolarizing fault laws.
+    """Format an independent-mechanism DEM without changing its columns or laws.
 
-    Native project_DEM retains the original columns and categorical laws.
-    Uniform one/two-qubit Pauli channels admit an exact independent-error
-    factorization. Arbitrary exclusive laws and over-mixing depolarization
-    are rejected instead of approximated. The EDEM keeps the original laws.
+    Run factorize_dem and coalesce_dem_columns explicitly before formatting.
+    This optional adapter only translates row IDs and writes instructions.
     """
     import stim
 
@@ -113,98 +62,55 @@ def to_stim_dem(model):
         raise TypeError("Stim export requires a DEM from edem.project_DEM")
     if any(model.successes):
         raise ValueError("Stim DEM export does not support postselection")
-    detector_count, observable_count = sum(model.detectors), sum(
-        model.observables)
-    offsets, columns, start = [], [], 0
-    for distribution in model.faults:
+    if any(group.kind != edem.GroupKind.INDEPENDENT
+           for fault in model.faults
+           for group in fault.groups):
+        raise ValueError("run edem.factorize_dem before Stim formatting")
+    offsets, targets, start = [], [], 0
+    for fault in model.faults:
         offsets.append(start)
-        columns.extend([0] * distribution.size)
-        start += distribution.size
+        targets.extend([] for _ in range(fault.size))
+        start += fault.size
     row_offsets = {}
-    for kind, sizes, start in ((edem.PortKind.DETECTOR, model.detectors, 0),
-                               (edem.PortKind.OBSERVABLE, model.observables,
-                                detector_count)):
+    for kind, sizes in ((edem.PortKind.DETECTOR, model.detectors),
+                        (edem.PortKind.OBSERVABLE, model.observables)):
+        start = 0
         for index, size in enumerate(sizes):
             row_offsets[kind, index] = start
             start += size
     for block in model.blocks:
         for row, column in block.matrix.entries:
-            columns[offsets[block.input.index] + column] ^= 1 << (
-                row_offsets[block.output.kind, block.output.index] + row)
-    errors = {}
-
-    def error(response, probability):
-        if response and probability:
-            previous = errors.get(response, 0)
-            errors[
-                response] = previous + probability - 2 * previous * probability
-
-    for offset, distribution in zip(offsets, model.faults):
-        for group in distribution.groups:
-            responses = [columns[offset + i] for i in group.fault_ids]
-            if group.kind == edem.GroupKind.INDEPENDENT:
-                for response, probability in zip(responses,
-                                                 group.probabilities):
-                    error(response, probability)
-                continue
-            count = len(responses)
-            if count not in (3, 15) or len(set(group.probabilities)) != 1:
-                raise ValueError(
-                    "exact DEM export requires uniform Pauli channels")
-            # A linear image of all Pauli alternatives plus identity is uniform
-            # on a GF(2) subspace, including multiplicities when columns collide.
-            multiplicities = Counter([0, *responses])
-            basis = {}
-            for value in multiplicities:
-                while value:
-                    pivot = value.bit_length()
-                    if pivot not in basis:
-                        basis[pivot] = value
-                        break
-                    value ^= basis[pivot]
-            if (len(multiplicities) != 1 << len(basis) or
-                    len(set(multiplicities.values())) != 1):
-                raise ValueError(
-                    "exclusive responses are not a full Pauli channel")
-            probability = fsum(group.probabilities)
-            limit = count / (count + 1)
-            if probability > limit:
-                raise ValueError(
-                    "over-mixing depolarization has no supported exact DEM")
-            # Every nontrivial Pauli character meets (count+1)/2 alternatives.
-            independent = .5 if probability == limit else -.5 * expm1(
-                log1p(-probability / limit) / ((count + 1) / 2))
-            for response in responses:
-                error(response, independent)
-
+            index = row_offsets[block.output.kind, block.output.index] + row
+            target = (stim.target_relative_detector_id(index)
+                      if block.output.kind == edem.PortKind.DETECTOR else
+                      stim.target_logical_observable_id(index))
+            targets[offsets[block.input.index] + column].append(target)
     result = stim.DetectorErrorModel()
-    for response, probability in sorted(errors.items()):
-        targets = []
-        for row in range(detector_count + observable_count):
-            if response >> row & 1:
-                targets.append(
-                    stim.target_relative_detector_id(row) if row <
-                    detector_count else stim.
-                    target_logical_observable_id(row - detector_count))
-        result.append("error", probability, targets)
-    for row in range(detector_count):
+    for offset, fault in zip(offsets, model.faults):
+        for group in fault.groups:
+            for column, probability in zip(group.fault_ids,
+                                           group.probabilities):
+                result.append(
+                    stim.DemInstruction("error", [probability],
+                                        targets[offset + column]))
+    for row in range(sum(model.detectors)):
         result.append("detector", [], [stim.target_relative_detector_id(row)])
-    for row in range(observable_count):
+    for row in range(sum(model.observables)):
         result.append("logical_observable", [],
                       [stim.target_logical_observable_id(row)])
     return result
 
 
 def dem_errors(model):
-    """Combine independent DEM errors with equal detector/observable support."""
+    """Read already-coalesced error terms, ignoring annotation instructions."""
     errors = {}
     for instruction in model.flattened():
         if instruction.type != "error":
             continue
         support = tuple(sorted(str(t) for t in instruction.targets_copy()))
-        p = instruction.args_copy()[0]
-        previous = errors.get(support, 0)
-        errors[support] = previous + p - 2 * previous * p
+        if support in errors:
+            raise ValueError("DEM comparison requires coalesced error terms")
+        errors[support] = instruction.args_copy()[0]
     return errors
 
 
@@ -220,7 +126,10 @@ def compare(distance=3, rounds=3, noise=None):
     occurrences = derive_memory_edems(memory, noise)
     composed = edem.compose_chain(occurrences)
     projected = edem.project_DEM(composed)
-    edem_dem = to_stim_dem(projected)
+    independent = edem.factorize_dem(projected)
+    reduced, source_columns = edem.coalesce_dem_columns(independent)
+    assert len(source_columns) == projected.vector_sizes[0]
+    edem_dem = to_stim_dem(reduced)
     if (circuit_dem.num_detectors,
             circuit_dem.num_observables) != (edem_dem.num_detectors,
                                              edem_dem.num_observables):

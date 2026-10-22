@@ -480,6 +480,40 @@ def test_output_virtual_syndrome_can_follow_realization_randomness():
     assert model.apply([1, 0, 0]) == [1, 0]
 
 
+def test_standard_measurement_noise_preserves_later_carrier_effects():
+    from cudaq.logical.analysis import standard_depolarizing_faults
+
+    @cql.gadget(implements=cql.logical.measure_z)
+    def repeated_noise(block: cql.patch[cql.codes.BareQubit]) -> bool:
+        block, _ = cql.mz(block.data[0], record="first")
+        block, bits = cql.mz(block.data[0], record="second")
+        cql.discard(block)
+        return cql.ops.parity(bits)
+
+    profile = cql.gadgets.GadgetProfile(
+        repeated_noise,
+        detectors=(cql.gadgets.Detector(
+            repeated_noise.record("first.data0") ^
+            repeated_noise.record("second.data0")),))
+    build = cql.compile(profile)
+    projection = cql.compiler.project_clifford(build, gadget="repeated_noise")
+    faults = standard_depolarizing_faults(
+        projection,
+        cql.compiler.StandardDepolarizingNoise(
+            before_measure_flip_probability=.1))
+    assert len(faults.faults) == 2
+    assert all(
+        fault.insertions and not fault.record_flips for fault in faults.faults)
+    model = derive_edem(build, faults=faults)
+    for first, second, x, z in product((0, 1), repeat=4):
+        assert model.apply([first, second, x,
+                            z]) == [second, first ^ second ^ x]
+    with pytest.raises(ValueError, match="projected instruction"):
+        standard_depolarizing_faults(projection,
+                                     cql.compiler.StandardDepolarizingNoise(),
+                                     round_starts=("missing",))
+
+
 def test_overlapping_detector_and_observable_rows_do_not_complete_missing_rank(
 ):
 

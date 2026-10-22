@@ -94,8 +94,8 @@ reset faults within the same gadget's analysis. The readout retains the final
 unused ancilla resets. This places gadget cuts without changing the operation
 order on any carrier. The
 [per-gadget EDEM comparison](gadget-edems.md#compare-circuit-and-per-gadget-dem-construction)
-uses the same recipe, with native EDEM composition and `project_DEM` followed
-by an optional Stim adapter.
+uses the same recipe, with native EDEM composition, `project_DEM`, exact
+`factorize_dem`, and `coalesce_dem_columns` followed by an optional formatter.
 
 Using `surface_memory` from the example:
 
