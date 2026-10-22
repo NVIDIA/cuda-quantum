@@ -124,7 +124,9 @@ cudaq_internal::compiler::Compiler::loadQuakeCodeByName(
 
 cudaq_internal::compiler::Compiler::Compiler(
     const cudaq::CompileTarget &target_, const cudaq::CompileOptions &options_)
-    : Compiler(target_, options_, makeBuiltinLoweringHandlers()) {}
+    : Compiler(target_, options_,
+               makeBuiltinLoweringHandlers(options_.emulate,
+                                           target_.codegen.emissionFormat)) {}
 
 cudaq_internal::compiler::Compiler::Compiler(
     const cudaq::CompileTarget &target_, const cudaq::CompileOptions &options_,
