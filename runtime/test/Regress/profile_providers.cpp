@@ -21,11 +21,7 @@
 #include <map>
 #include <string>
 
-/// The expected inferred pipelines. IonQ's measurements stay `any`
-/// (no expand-measurements); Fermioniq requires the expanded form;
-/// Quantinuum expands measurements, resets qubits before reuse, and keeps
-/// the early-exit path of its adaptive-QIR emission enabled. Each opens with
-/// the leading canonicalize, as the custom-pipeline lowering path does.
+/// The expected inferred pipelines.
 static const char *expectedIonqPipeline =
     "canonicalize,"
     "hw-jit-prep-pipeline{allow-early-exit=false},"
