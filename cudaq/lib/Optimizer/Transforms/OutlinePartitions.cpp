@@ -47,16 +47,16 @@ outlinePartitionImpl(ArrayRef<Operation *> partition,
       return failure();
   }
 
-  // Sort the unique selected operations in block (topological) order so cloned
-  // operands are always already mapped.
+  // Sort the unique selected operations in block (topological) order so
+  // selected definitions are cloned before their users.
   SmallVector<Operation *> orderedOps(inPartition.begin(), inPartition.end());
   llvm::sort(orderedOps, [](Operation *lhs, Operation *rhs) {
     return lhs->isBeforeInBlock(rhs);
   });
   Operation *anchor = orderedOps.back();
 
-  // Collect inputs and outputs. Non-wire inputs are captured, while non-wire
-  // outputs precede wires in the callable results.
+  // Collect captured inputs and outputs. Non-wire outputs precede wires in the
+  // callable results.
   SetVector<Value> inputs, outputs, nonWireInputs, nonWireOutputs;
   for (Operation *op : orderedOps) {
     for (Value operand : op->getOperands()) {
@@ -137,18 +137,16 @@ outlinePartitionImpl(ArrayRef<Operation *> partition,
     if (!out || !outputs.contains(out))
       return failure();
 
-  // Prepare a callable with wire inputs and non-wire results before wire
-  // results.
+  // Prepare a callable without explicit parameters. Non-wire results precede
+  // wire results.
   auto *ctx = block->getParentOp()->getContext();
-  SmallVector<Type> inTys, outTys;
-  for (Value v : inputList)
-    inTys.push_back(v.getType());
+  SmallVector<Type> outTys;
   for (Value v : nonWireOutputList)
     outTys.push_back(v.getType());
   for (Value v : orderedWireOutputs)
     outTys.push_back(v.getType());
   auto callableTy =
-      cudaq::cc::CallableType::get(ctx, FunctionType::get(ctx, inTys, outTys));
+      cudaq::cc::CallableType::get(ctx, FunctionType::get(ctx, {}, outTys));
 
   // Insert before the earliest external consumer, or after the last selected
   // operation if there are no consumers. Reject placements where an input is
@@ -174,14 +172,12 @@ outlinePartitionImpl(ArrayRef<Operation *> partition,
     builder.setInsertionPointAfter(anchor);
   Location loc = anchor->getLoc();
 
-  // Create the lambda.
+  // Create the lambda with all external inputs captured.
   auto lambda = cudaq::cc::CreateLambdaOp::create(
       builder, loc, callableTy, [&](OpBuilder &b, Location l) {
-        Block *body = b.getInsertionBlock();
         IRMapping map;
-        // Map wires to explicit arguments; non-wire inputs remain captures.
-        for (auto [i, in] : llvm::enumerate(inputList))
-          map.map(in, body->getArgument(i));
+        // External inputs remain captures; cloning maps internally defined
+        // values to their copies.
         for (Operation *op : orderedOps)
           b.clone(*op, map);
         SmallVector<Value> results;
@@ -192,12 +188,11 @@ outlinePartitionImpl(ArrayRef<Operation *> partition,
         cudaq::cc::ReturnOp::create(b, l, results);
       });
 
-  // Call the lambda with its explicit wire arguments.
+  // Call the lambda without explicit arguments.
   builder.setInsertionPointAfter(lambda);
   OperationState state(loc, cudaq::cc::CallCallableOp::getOperationName());
   state.addTypes(outTys);
   state.addOperands(lambda.getResult());
-  state.addOperands(inputList);
   auto call = cast<cudaq::cc::CallCallableOp>(builder.create(state));
 
   for (auto [i, out] : llvm::enumerate(nonWireOutputList))

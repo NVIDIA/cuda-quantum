@@ -39,8 +39,8 @@ static std::string printModule(ModuleOp mod) {
   return text;
 }
 
-// A contiguous run of two gates is outlined into a closure taking the two input
-// wires and returning the two output wires; the original gates are removed.
+// A contiguous run of two gates captures its input wires and returns the two
+// output wires; the original gates are removed.
 TEST(OutlinePartitions, ContiguousRun) {
   const char *ir = R"(
     func.func @k() {
@@ -61,6 +61,8 @@ TEST(OutlinePartitions, ContiguousRun) {
       partition.push_back(op);
   });
   ASSERT_EQ(partition.size(), 2u);
+  Value firstWire = partition[0]->getOperand(0);
+  Value secondWire = cast<cudaq::quake::XOp>(partition[1]).getTargets().front();
 
   // Accept an unordered selection with a duplicate while cloning each gate
   // once in block order.
@@ -70,10 +72,21 @@ TEST(OutlinePartitions, ContiguousRun) {
   ASSERT_TRUE(succeeded(lambda));
   EXPECT_TRUE(succeeded(verify(*mod)));
 
-  // The closure's signature: two wires in, two wires out.
+  // Inputs are captured, so the signature has no parameters.
   auto sig = lambda->getType().getSignature();
-  EXPECT_EQ(sig.getNumInputs(), 2u);
+  EXPECT_EQ(sig.getNumInputs(), 0u);
   EXPECT_EQ(sig.getNumResults(), 2u);
+  EXPECT_EQ(lambda->getBody().front().getNumArguments(), 0u);
+
+  cudaq::quake::HOp clonedH;
+  cudaq::quake::XOp clonedX;
+  lambda->walk([&](cudaq::quake::HOp op) { clonedH = op; });
+  lambda->walk([&](cudaq::quake::XOp op) { clonedX = op; });
+  ASSERT_TRUE(clonedH);
+  ASSERT_TRUE(clonedX);
+  EXPECT_EQ(clonedH.getTargets().front(), firstWire);
+  EXPECT_EQ(clonedX.getControls().front(), clonedH->getResult(0));
+  EXPECT_EQ(clonedX.getTargets().front(), secondWire);
 
   // Exactly one create_lambda and one call_callable; the gates moved into the
   // closure body, so none remain in the enclosing function's block.
@@ -81,9 +94,11 @@ TEST(OutlinePartitions, ContiguousRun) {
   mod->walk([&](Operation *op) {
     if (isa<cudaq::cc::CreateLambdaOp>(op))
       ++lambdas;
-    else if (isa<cudaq::cc::CallCallableOp>(op))
+    else if (auto call = dyn_cast<cudaq::cc::CallCallableOp>(op)) {
       ++calls;
-    else if (isa<cudaq::quake::HOp, cudaq::quake::XOp>(op))
+      EXPECT_TRUE(call.getArgOperands().empty());
+      EXPECT_EQ(call->getNumOperands(), 1u);
+    } else if (isa<cudaq::quake::HOp, cudaq::quake::XOp>(op))
       ++gates;
   });
   for (Operation &op : lambda->getOperation()->getBlock()->getOperations())
@@ -146,11 +161,12 @@ TEST(OutlinePartitions, WireOutputsFollowInputOrder) {
   ASSERT_TRUE(clonedZ);
 
   Block &body = lambda->getBody().front();
-  ASSERT_EQ(body.getNumArguments(), 2u);
+  ASSERT_EQ(body.getNumArguments(), 0u);
+  EXPECT_EQ(lambda->getType().getSignature().getNumInputs(), 0u);
 
-  // Input slot 0 follows a through H and Z; slot 1 follows b through X.
-  EXPECT_EQ(clonedH.getTargets().front(), body.getArgument(0));
-  EXPECT_EQ(clonedX.getTargets().front(), body.getArgument(1));
+  // Captured wire a flows through H and Z; captured wire b flows through X.
+  EXPECT_EQ(clonedH.getTargets().front(), funcOp.getArgument(0));
+  EXPECT_EQ(clonedX.getTargets().front(), funcOp.getArgument(1));
   EXPECT_EQ(clonedZ.getTargets().front(), clonedH->getResult(0));
 
   auto ret = cast<cudaq::cc::ReturnOp>(body.getTerminator());
@@ -163,9 +179,8 @@ TEST(OutlinePartitions, WireOutputsFollowInputOrder) {
   cudaq::cc::CallCallableOp call;
   funcOp.walk([&](cudaq::cc::CallCallableOp op) { call = op; });
   ASSERT_TRUE(call);
-  ASSERT_EQ(call.getArgOperands().size(), 2u);
-  EXPECT_EQ(call.getArgOperands()[0], funcOp.getArgument(0));
-  EXPECT_EQ(call.getArgOperands()[1], funcOp.getArgument(1));
+  EXPECT_TRUE(call.getArgOperands().empty());
+  EXPECT_EQ(call->getNumOperands(), 1u);
 
   // Outside consumers receive the result corresponding to their input wire.
   ASSERT_EQ(call->getNumResults(), 2u);
@@ -290,7 +305,7 @@ TEST(OutlinePartitions, HardcodedAnalysis) {
 //   P2 = {T}  on w1          → produces t_out
 //   P3 = {X}  [h_out] t_out  → consumes both h_out and t_out
 // The outlined IR should chain three lambdas, with the call results of
-// lambdas 1 and 2 flowing as inputs to lambda 3.
+// lambdas 1 and 2 captured by lambda 3.
 TEST(OutlinePartitions, ThreePartitionsWithCrossFlow) {
   const char *ir = R"(
     func.func @k() {
@@ -350,32 +365,41 @@ TEST(OutlinePartitions, ThreePartitionsWithCrossFlow) {
   ASSERT_EQ(lambdas.size(), 3u);
   ASSERT_EQ(calls.size(), 3u);
 
-  // P1: lambda body contains H, single-wire signature.
+  for (auto lambda : lambdas) {
+    EXPECT_EQ(lambda.getType().getSignature().getNumInputs(), 0u);
+    EXPECT_EQ(lambda.getBody().front().getNumArguments(), 0u);
+  }
+  for (auto call : calls) {
+    EXPECT_TRUE(call.getArgOperands().empty());
+    EXPECT_EQ(call->getNumOperands(), 1u);
+  }
+
+  // P1: lambda body contains H and returns one wire.
   unsigned hOps = 0;
   lambdas[0].walk([&](cudaq::quake::HOp) { ++hOps; });
   EXPECT_EQ(hOps, 1u);
-  EXPECT_EQ(lambdas[0].getType().getSignature().getNumInputs(), 1u);
   EXPECT_EQ(lambdas[0].getType().getSignature().getNumResults(), 1u);
 
-  // P2: lambda body contains T, single-wire signature.
+  // P2: lambda body contains T and returns one wire.
   unsigned tOps = 0;
   lambdas[1].walk([&](cudaq::quake::TOp) { ++tOps; });
   EXPECT_EQ(tOps, 1u);
-  EXPECT_EQ(lambdas[1].getType().getSignature().getNumInputs(), 1u);
   EXPECT_EQ(lambdas[1].getType().getSignature().getNumResults(), 1u);
 
-  // P3: lambda body contains X, two-wire signature.
+  // P3: lambda body contains X and returns two wires.
   unsigned xOps = 0;
-  lambdas[2].walk([&](cudaq::quake::XOp) { ++xOps; });
+  cudaq::quake::XOp clonedX;
+  lambdas[2].walk([&](cudaq::quake::XOp op) {
+    ++xOps;
+    clonedX = op;
+  });
   EXPECT_EQ(xOps, 1u);
-  EXPECT_EQ(lambdas[2].getType().getSignature().getNumInputs(), 2u);
+  ASSERT_TRUE(clonedX);
   EXPECT_EQ(lambdas[2].getType().getSignature().getNumResults(), 2u);
 
-  // Cross-flow: the two wire arguments to P3's call are the results of P1
-  // and P2's calls — not raw null_wire values.
-  // calls[2] operands: [callable, wire0, wire1]
-  EXPECT_EQ(calls[2].getOperand(1), calls[0].getResult(0));
-  EXPECT_EQ(calls[2].getOperand(2), calls[1].getResult(0));
+  // P3 captures the previous call results, rather than raw null_wire values.
+  EXPECT_EQ(clonedX.getControls().front(), calls[0].getResult(0));
+  EXPECT_EQ(clonedX.getTargets().front(), calls[1].getResult(0));
 }
 
 // Both rotations capture the same angle. The measurement handle stays inside
@@ -422,11 +446,10 @@ TEST(OutlinePartitions, ClassicalInputsAndOutputs) {
   ASSERT_TRUE(succeeded(lambda));
   ASSERT_TRUE(succeeded(verify(*mod)));
 
-  // Only the wire is an explicit input; the angle is captured.
+  // The angle and input wire are captured, without explicit parameters.
   // Results are the bit followed by the successor wire.
   auto sig = lambda->getType().getSignature();
-  ASSERT_EQ(sig.getNumInputs(), 1u);
-  EXPECT_TRUE(isa<cudaq::quake::WireType>(sig.getInput(0)));
+  ASSERT_EQ(sig.getNumInputs(), 0u);
   ASSERT_EQ(sig.getNumResults(), 2u);
   EXPECT_TRUE(sig.getResult(0).isInteger(1));
   EXPECT_TRUE(isa<cudaq::quake::WireType>(sig.getResult(1)));
@@ -436,8 +459,8 @@ TEST(OutlinePartitions, ClassicalInputsAndOutputs) {
   ASSERT_EQ(calls.size(), 1u);
   auto call = calls.front();
   EXPECT_EQ(call.getCallee(), lambda->getResult());
-  ASSERT_EQ(call.getArgOperands().size(), 1u);
-  EXPECT_EQ(call.getArgOperands()[0], wireIn);
+  EXPECT_TRUE(call.getArgOperands().empty());
+  EXPECT_EQ(call->getNumOperands(), 1u);
   ASSERT_EQ(call->getNumResults(), 2u);
   EXPECT_TRUE(call->isBeforeInBlock(select.getOperation()));
   EXPECT_EQ(select.getCondition(), call.getResult(0));
@@ -457,11 +480,11 @@ TEST(OutlinePartitions, ClassicalInputsAndOutputs) {
   ASSERT_TRUE(clonedMz);
   ASSERT_TRUE(clonedDiscriminate);
   Block &body = lambda->getBody().front();
-  ASSERT_EQ(body.getNumArguments(), 1u);
+  ASSERT_EQ(body.getNumArguments(), 0u);
   Value theta = funcOp.getArgument(0);
   EXPECT_EQ(clonedRx.getParameters().front(), theta);
   EXPECT_EQ(clonedRz.getParameters().front(), theta);
-  EXPECT_EQ(clonedRx.getTargets().front(), body.getArgument(0));
+  EXPECT_EQ(clonedRx.getTargets().front(), wireIn);
   EXPECT_EQ(clonedRz.getTargets().front(), clonedRx->getResult(0));
   EXPECT_EQ(clonedMz->getOperand(0), clonedRz->getResult(0));
   EXPECT_EQ(clonedDiscriminate->getOperand(0), clonedMz->getResult(0));
@@ -509,18 +532,22 @@ TEST(OutlinePartitions, MeasurementHandleReturned) {
   ASSERT_TRUE(succeeded(verify(*mod)));
 
   auto sig = lambda->getType().getSignature();
-  ASSERT_EQ(sig.getNumInputs(), 1u);
-  EXPECT_TRUE(isa<cudaq::quake::WireType>(sig.getInput(0)));
+  ASSERT_EQ(sig.getNumInputs(), 0u);
   ASSERT_EQ(sig.getNumResults(), 2u);
   EXPECT_TRUE(isa<cudaq::quake::MeasureType>(sig.getResult(0)));
   EXPECT_TRUE(isa<cudaq::quake::WireType>(sig.getResult(1)));
+  EXPECT_EQ(lambda->getBody().front().getNumArguments(), 0u);
+  cudaq::quake::MzOp clonedMz;
+  lambda->walk([&](cudaq::quake::MzOp op) { clonedMz = op; });
+  ASSERT_TRUE(clonedMz);
+  EXPECT_EQ(clonedMz.getTargets().front(), wireIn);
 
   SmallVector<cudaq::cc::CallCallableOp> calls;
   mod->walk([&](cudaq::cc::CallCallableOp call) { calls.push_back(call); });
   ASSERT_EQ(calls.size(), 1u);
   auto call = calls.front();
-  ASSERT_EQ(call.getArgOperands().size(), 1u);
-  EXPECT_EQ(call.getArgOperands()[0], wireIn);
+  EXPECT_TRUE(call.getArgOperands().empty());
+  EXPECT_EQ(call->getNumOperands(), 1u);
   ASSERT_EQ(call->getNumResults(), 2u);
   EXPECT_TRUE(call->isBeforeInBlock(outsideDiscriminate.getOperation()));
   EXPECT_EQ(outsideDiscriminate->getOperand(0), call.getResult(0));
@@ -554,20 +581,23 @@ TEST(OutlinePartitions, UnusedBitNotReturned) {
   });
   ASSERT_EQ(partition.size(), 2u);
   ASSERT_TRUE(outsideZ);
+  Value wireIn = partition.front()->getOperand(0);
 
   auto lambda = cudaq::opt::outlinePartition(partition);
   ASSERT_TRUE(succeeded(lambda));
   ASSERT_TRUE(succeeded(verify(*mod)));
 
   auto sig = lambda->getType().getSignature();
-  ASSERT_EQ(sig.getNumInputs(), 1u);
-  EXPECT_TRUE(isa<cudaq::quake::WireType>(sig.getInput(0)));
+  ASSERT_EQ(sig.getNumInputs(), 0u);
   ASSERT_EQ(sig.getNumResults(), 1u);
   EXPECT_TRUE(isa<cudaq::quake::WireType>(sig.getResult(0)));
+  EXPECT_EQ(lambda->getBody().front().getNumArguments(), 0u);
 
   SmallVector<cudaq::cc::CallCallableOp> calls;
   mod->walk([&](cudaq::cc::CallCallableOp call) { calls.push_back(call); });
   ASSERT_EQ(calls.size(), 1u);
+  EXPECT_TRUE(calls.front().getArgOperands().empty());
+  EXPECT_EQ(calls.front()->getNumOperands(), 1u);
   ASSERT_EQ(calls.front()->getNumResults(), 1u);
   EXPECT_EQ(outsideZ.getTargets().front(), calls.front().getResult(0));
 
@@ -578,6 +608,7 @@ TEST(OutlinePartitions, UnusedBitNotReturned) {
       [&](cudaq::quake::DiscriminateOp op) { clonedDiscriminate = op; });
   ASSERT_TRUE(clonedMz);
   ASSERT_TRUE(clonedDiscriminate);
+  EXPECT_EQ(clonedMz.getTargets().front(), wireIn);
   EXPECT_EQ(clonedDiscriminate->getOperand(0), clonedMz->getResult(0));
   EXPECT_TRUE(clonedDiscriminate->getResult(0).use_empty());
   auto ret =
@@ -619,7 +650,7 @@ TEST(OutlinePartitions, LateInputRejected) {
 }
 
 // The earliest outside consumer also defines an input. Its result is available
-// after that consumer, but cannot be passed to a call inserted before it.
+// after that consumer, but cannot be captured by a lambda inserted before it.
 TEST(OutlinePartitions, ConsumerDefinesInputRejected) {
   const char *ir = R"(
     func.func @k(%hi: f64, %lo: f64) {
