@@ -22,7 +22,7 @@ class SurfaceMemory:
     coordinates: tuple
 
     def depolarizations(self, probability):
-        """Return the recipe's extra data-noise placements for both paths."""
+        """Return the recipe's extra data-noise placements."""
         # Match the reference memory circuit's noise convention: independently
         # depolarize every data qubit after initialization resets, just before
         # each extraction. This includes prep0 and the SEC inside readout_Z;
