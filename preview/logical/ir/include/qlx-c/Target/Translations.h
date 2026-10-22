@@ -9,8 +9,9 @@
 // C interface for QLX-side MLIR translations:
 //   - fabric-to-stim  (fabric circuit -> Stim text)
 //
-// Each translation streams its result through an `MlirStringCallback` to
-// avoid allocating a single contiguous buffer in the C ABI.
+// Text translations and projections stream through an MlirStringCallback.
+// EDEM derivation returns an owned packed buffer through the C ownership
+// record.
 //
 //===----------------------------------------------------------------------===//
 
