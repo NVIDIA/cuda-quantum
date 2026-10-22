@@ -12,6 +12,7 @@
 #include <sstream>
 
 #include <Eigen/Dense>
+#include <unsupported/Eigen/MatrixFunctions>
 
 // GCC 12 emits spurious -Wstringop-overflow false positives inside std::copy
 // calls inlined throughout this file.
@@ -384,33 +385,15 @@ void cudaq::complex_matrix::set_zero() {
     data[i] = 0.;
 }
 
-// Calculate the Taylor approximation to the exponential of the given matrix.
+// Calculate the exponential of the given matrix using a Pade approximant with
+// scaling and squaring, which stays accurate for matrices of any norm.
 cudaq::complex_matrix cudaq::complex_matrix::exponential() {
-  auto factorial = [](std::size_t value) {
-    std::size_t res = 1;
-    for (std::size_t factor = 2; factor <= value; ++factor)
-      res *= factor;
-    return (double)res;
-  };
-
-  std::size_t rows = this->rows();
-  std::size_t columns = this->cols();
-  if (rows != columns)
+  if (rows() != cols())
     throw std::runtime_error("Matrix exponential expects a square matrix.");
-  auto result = cudaq::complex_matrix(rows, columns);
-  // Taylor Series Approximation, fixed at 20 steps.
-  std::size_t taylor_steps = 20;
-  auto term = cudaq::complex_matrix::identity(rows);
-  for (std::size_t step = 0; step < taylor_steps; step++) {
-    // Reuse A^(step - 1) instead of recomputing every power from identity.
-    if (step != 0)
-      term *= *this;
-    for (std::size_t i = 0; i < rows; i++) {
-      for (std::size_t j = 0; j < columns; j++) {
-        result[{i, j}] += term[{i, j}] / factorial(step);
-      }
-    }
-  }
+  cudaq::complex_matrix::EigenMatrix exp = this->as_eigen().exp();
+  cudaq::complex_matrix result(exp.rows(), exp.cols(), false);
+  std::memcpy(result.data, exp.data(),
+              sizeof(cudaq::complex_matrix::value_type) * exp.size());
   return result;
 }
 
