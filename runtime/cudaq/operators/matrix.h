@@ -165,7 +165,7 @@ public:
   /// zero.
   void set_zero();
 
-  /// Matrix exponential, computed with a Pade approximant and scaling and
+  /// Matrix exponential, computed with a Pade `approximant` and scaling and
   /// squaring.
   complex_matrix exponential();
 
