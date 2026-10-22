@@ -410,22 +410,9 @@ def test_extra_data_layers_match_extraction_entries(make_memory, stim):
                      if op.site_id == placements[index][0].before)
         assert all(op.kind == "R" for op in projection.instructions[:entry])
         assert projection.instructions[entry].kind == "H"
-        faults = cql.analysis.standard_depolarizing_faults(
-            projection,
-            cql.compiler.StandardDepolarizingNoise(),
-            depolarizations=placements[index])
-        assert len(faults.faults) == 9 * 3
-        assert len(faults.exclusive_groups) == 9
-        for q, group in zip(placements[index][0].carriers,
-                            faults.exclusive_groups):
-            alternatives = [faults.faults[i] for i in group]
-            assert [f.insertions[0].factors for f in alternatives
-                   ] == [((q, p),) for p in "xyz"]
-            assert all(f.probability == .02 / 3 for f in alternatives)
-            assert all(
-                f.insertions[0].after == projection.instructions[entry -
-                                                                 1].site_id
-                for f in alternatives)
+        port, = projection.interface.inputs or projection.interface.outputs
+        assert projection.instructions[entry].carriers == port.carriers("sx")
+        assert placements[index][0].carriers == port.data_carriers
 
 
 def test_stim_export_rejects_missing_virtual_bindings_and_incompatible_presentations(

@@ -83,6 +83,29 @@ def test_each_noise_component_agrees_after_composition(example, parameter):
         data_depolarization=.01 if parameter == "data_depolarization" else 0)
 
 
+def test_extra_data_faults_match_extraction_entries(example):
+    memory = example["memory_recipe"](3, 3)
+    placements = memory.depolarizations(.02)
+    for index, profile in enumerate(memory.profiles):
+        build, faults = example["memory_faults"](
+            profile, cql.compiler.StandardDepolarizingNoise(),
+            placements[index])
+        projection = cql.compiler.project_clifford(build,
+                                                   gadget=profile.gadget.name)
+        entry = next(i for i, op in enumerate(projection.instructions)
+                     if op.site_id == placements[index][0].before)
+        after = projection.instructions[entry - 1].site_id if entry else ""
+        assert len(faults.faults) == 9 * 3
+        assert len(faults.exclusive_groups) == 9
+        for q, group in zip(placements[index][0].carriers,
+                            faults.exclusive_groups):
+            alternatives = [faults.faults[i] for i in group]
+            assert [f.insertions[0].factors for f in alternatives
+                   ] == [((q, p),) for p in "xyz"]
+            assert all(f.probability == .02 / 3 for f in alternatives)
+            assert all(f.insertions[0].after == after for f in alternatives)
+
+
 def test_noiseless_memory_dem_and_open_boundary_rejection(example):
     memory, values, composed, projected, _, _, dem = example["compare"](
         3, 3, cql.compiler.StandardDepolarizingNoise(), data_depolarization=0)
