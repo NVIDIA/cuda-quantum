@@ -18,17 +18,33 @@ from cudaq.logical.architecture.geometry import rotated_surface_lattice
 @dataclass(frozen=True)
 class SurfaceMemory:
     profiles: tuple
-    round_starts: dict
+    extraction_entries: tuple
     coordinates: tuple
 
-    def to_stim(self, noise=None) -> str:
+    def depolarizations(self, probability):
+        """Return the recipe's extra data-noise placements."""
+        # Match the reference memory circuit's noise convention: independently
+        # depolarize every data qubit after initialization resets, just before
+        # each extraction. This includes prep0 and the SEC inside readout_Z;
+        # the final destructive measurements get only measurement-flip noise.
+        # The recipe chooses these sites. The compiler does not infer them from
+        # gadget names or recognize extraction boundaries automatically.
+        return {
+            index: (
+                cql.compiler.Depolarize1Placement(site, carriers, probability),
+            ) for index, (site, carriers) in enumerate(self.extraction_entries)
+        }
+
+    def to_stim(self, noise=None, *, data_depolarization=0.0) -> str:
         """Return circuit text, including coordinates, detectors and observable."""
         lines = []
         for q, coordinate in enumerate(self.coordinates):
             x, y = coordinate
             lines.append(f"QUBIT_COORDS({x}, {y}) {q}")
         return "\n".join(lines) + "\n" + cql.compiler.emit_stim(
-            self.profiles, noise=noise, round_starts=self.round_starts)
+            self.profiles,
+            noise=noise,
+            depolarizations=self.depolarizations(data_depolarization))
 
 
 def surface_memory(distance=3, rounds=3):
@@ -79,26 +95,36 @@ def surface_memory(distance=3, rounds=3):
                         block = cql.cx(block.data[(data[point],)],
                                        block.sz[(i,)])
         block = cql.h(block.sx)
-        # Measure-reset each ancilla. The same carriers continue into the next
-        # occurrence; this also retains the final round's reset fault sites.
+        # Leave reset to the next extraction so its faults belong to the gadget
+        # that uses the ancilla. Only data-code errors cross encoded boundaries.
         for _, partition, i in ancillas:
             block, _ = cql.ops.mz(getattr(block, partition)[(i,)],
                                   record=f"{partition}{i}")
-            block = cql.reset(getattr(block, partition)[(i,)])
         return block
 
-    sec = define(extract, "sec", cql.logical.idle, cql.patch[code])
+    extraction = define(extract, "extract", cql.logical.idle, cql.patch[code])
+
+    def syndrome_round(block):
+        block = cql.reset(block.sx)
+        block = cql.reset(block.sz)
+        return extraction(block)
+
+    sec = define(syndrome_round, "sec", cql.logical.idle, cql.patch[code])
 
     def prepare(block):
         block = cql.reset(block.data)
         block = cql.reset(block.sx)
         block = cql.reset(block.sz)
-        return sec(block)
+        return extraction(block)
 
     prep0 = define(prepare, "prep0", cql.logical.prepare_zero, cql.patch[code])
 
     def readout(block):
         block = sec(block)
+        # Retain the reference circuit's terminal reset fault sites. These
+        # ancillas have no subsequent interactions, so their responses are zero.
+        block = cql.reset(block.sx)
+        block = cql.reset(block.sz)
         logical = []
         for i in range(code.n):
             block, outcome = cql.ops.mz(block.data[(i,)], record=f"data{i}")
@@ -115,7 +141,7 @@ def surface_memory(distance=3, rounds=3):
         measured = {
             row.carriers[0]: gadget.record(row.record)
             for row in projection.interface.measurements
-            if row.symbol == sec.name
+            if row.symbol == extraction.name
         }
         records = {
             (partition, i): measured[q] for partition in ("sx", "sz")
@@ -147,17 +173,22 @@ def surface_memory(distance=3, rounds=3):
     profiles = (profile(prep0,
                         "prep"), *((profile(sec, "sec"),) * (rounds - 2)),
                 profile(readout_z, "readout"))
-    starts = {}
-    for i, selected in enumerate(profiles):
+    entries = []
+    for selected in profiles:
         projection = cql.compiler.project_clifford(cql.compile(selected),
                                                    gadget=selected.gadget.name)
-        # Each occurrence contains exactly one round. Its first H starts that
-        # round after any preparation resets, before the check interactions.
-        starts[i] = (next(
-            op.site_id for op in projection.instructions if op.kind == "H"),)
+        port, = projection.interface.inputs or projection.interface.outputs
+        # These authored bodies have an initialization-reset prefix followed
+        # immediately by extract's H(sx). Check that entry before recording its
+        # concrete instruction site, so a schedule edit cannot silently move it.
+        entry = next(op for op in projection.instructions if op.kind != "R")
+        if entry.kind != "H" or entry.carriers != port.carriers("sx"):
+            raise ValueError(
+                "expected extraction H(sx) after initialization resets")
+        entries.append((entry.site_id, port.data_carriers))
     coordinates = (lattice.coordinates + tuple(face.coordinate for face in xs) +
                    tuple(face.coordinate for face in zs))
-    return SurfaceMemory(profiles, starts, coordinates)
+    return SurfaceMemory(profiles, tuple(entries), coordinates)
 
 
 def main(argv=None):
@@ -188,10 +219,9 @@ def main(argv=None):
     memory = surface_memory(distance=3, rounds=3)
     noise = cql.compiler.StandardDepolarizingNoise(
         after_clifford_depolarization=p,
-        before_round_data_depolarization=p,
         before_measure_flip_probability=p,
         after_reset_flip_probability=p)
-    text = memory.to_stim(noise)
+    text = memory.to_stim(noise, data_depolarization=p)
     print(text, end="")
     if stim is not None:
         circuit = stim.Circuit(text)

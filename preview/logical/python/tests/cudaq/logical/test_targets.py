@@ -11,7 +11,7 @@ import pytest
 
 import cudaq
 import cudaq.logical
-from cudaq._experimental import CustomTarget
+from cudaq.core.backends import CustomTarget
 
 
 @cudaq.logical.program

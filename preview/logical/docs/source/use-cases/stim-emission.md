@@ -89,6 +89,11 @@ vertical logical X string; Z hooks run vertically, across the horizontal
 logical Z string. This orientation preserves the circuit distance.
 Preparation and readout each contribute one extraction round.
 
+Ancillas are reset at the start of the extraction that uses them, keeping
+reset faults within the same gadget's analysis. The readout retains the final
+unused ancilla resets. This places gadget cuts without changing the operation
+order on any carrier.
+
 Using `surface_memory` from the example:
 
 <!--
@@ -105,11 +110,10 @@ memory = surface_memory(distance=3, rounds=3)
 p = 0.001
 noise = cql.compiler.StandardDepolarizingNoise(
     after_clifford_depolarization=p,
-    before_round_data_depolarization=p,
     before_measure_flip_probability=p,
     after_reset_flip_probability=p,
 )
-text = memory.to_stim(noise)
+text = memory.to_stim(noise, data_depolarization=p)
 assert sum(line.startswith("DETECTOR") for line in text.splitlines()) == 24
 assert "OBSERVABLE_INCLUDE(0)" in text
 assert "DEPOLARIZE2(0.001)" in text
@@ -159,8 +163,11 @@ rather than identical text or timing metadata. Exact categorical fault-law
 comparisons provide a separate check at distances 3 and 5.
 
 `StandardDepolarizingNoise` applies depolarization after each physical Clifford
-gate and at explicit round-start data sites. Reset and measurement flips are
-separate channels. The four probabilities can be set independently.
+gate, plus separate reset and measurement flips. Its three probabilities can
+be set independently. Additional one-qubit noise layers use explicit
+`Depolarize1Placement(before, carriers, probability)` values: each carrier gets
+an independent categorical channel immediately before that native instruction
+site. The compiler does not infer extraction boundaries from gadget names.
 Depolarizing channels remain categorical: one-qubit noise has three Pauli
 alternatives, and two-qubit noise has fifteen. These settings do not change
 gadget definitions or profiles.
@@ -172,12 +179,18 @@ instructions. With `after_clifford_depolarization` enabled, the exporter adds
 `fabric.permute`. Preserving the distinction between relabeling and physical
 operations through projection and noise policies is future work.
 
+The example's separate `data_depolarization` parameter places one extra channel
+on every data qubit after initialization resets, immediately before each
+extraction. This includes preparation and the extraction inside final readout;
+the destructive data measurements receive only measurement-flip noise. These
+placements reproduce the reference memory circuit's noise convention.
+
 The example calls `cql.compiler.emit_stim(memory.profiles, noise=noise,
-round_starts=memory.round_starts)`. The exporter binds physical carriers across
-adjacent ports, substitutes output virtual-syndrome formulas into subsequent
+depolarizations=memory.depolarizations(p))`. The mapping associates occurrence
+indices with placements using local instruction sites and carrier indices.
+The exporter binds physical carriers across adjacent ports, substitutes output
+virtual-syndrome formulas into subsequent
 detector rows, and resolves stable records to Stim measurement references.
-Round-start sites are explicit native instruction IDs because an extraction
-round can begin inside a preparation or readout gadget.
 
 The exporter supports complete single-block chains with matching code
 presentations. Only the final profile may declare observables; postselection is
