@@ -27,6 +27,7 @@
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <variant>
 #include <vector>
 
 // Freezes this tool's own CUDAQ_TARGET_DB_ABI_SYMBOL_NAME (from whichever
@@ -211,6 +212,87 @@ cxxSimulationBackend(const cudaq::config::SimulationBackendSetting &s) {
          cxxStringVector(s.values) + "}";
 }
 
+std::string cxxCustomPipelineLowering(
+    const cudaq::config::CustomPipelineLowering &lowering) {
+  std::ostringstream os;
+  os << "cudaq::config::CustomPipelineLowering{"
+     << ".overridePassPipeline = "
+     << cxxStringLiteral(lowering.overridePassPipeline) << ", "
+     << ".highLevelPipeline = " << cxxStringLiteral(lowering.highLevelPipeline)
+     << ", "
+     << ".midLevelPipeline = " << cxxStringLiteral(lowering.midLevelPipeline)
+     << ", "
+     << ".lowLevelPipeline = " << cxxStringLiteral(lowering.lowLevelPipeline)
+     << "}";
+  return os.str();
+}
+
+std::string cxxStage(const cudaq::config::CompilationStage &stage) {
+  std::ostringstream os;
+  os << "cudaq::config::CompilationStage{"
+     << ".irOutputProfile = cudaq::config::Profile{std::in_place_type<";
+  std::visit(
+      [&](const auto &p) {
+        using T = std::decay_t<decltype(p)>;
+        if constexpr (std::is_same_v<T, cudaq::config::UncheckedProfile>)
+          os << "cudaq::config::UncheckedProfile>}";
+      },
+      stage.irOutputProfile);
+  os << ", .lowering = "
+     << std::visit([](const auto &l) { return cxxCustomPipelineLowering(l); },
+                   stage.lowering)
+     << "}";
+  return os.str();
+}
+
+std::string
+cxxStages(const std::vector<cudaq::config::CompilationStage> &stages) {
+  std::ostringstream os;
+  os << "{";
+  for (const auto &stage : stages)
+    os << cxxStage(stage) << ", ";
+  os << "}";
+  return os.str();
+}
+
+std::string cxxCodegen(const cudaq::config::Codegen &codegen) {
+  std::ostringstream os;
+  os << "cudaq::config::Codegen{"
+     << ".emissionFormat = " << cxxStringLiteral(codegen.emissionFormat) << ", "
+     << ".postCodegenPasses = " << cxxStringLiteral(codegen.postCodegenPasses)
+     << "}";
+  return os.str();
+}
+
+std::string cxxCompileTarget(const cudaq::CompileTarget &compileTarget) {
+  std::ostringstream os;
+  os << "cudaq::CompileTarget{"
+     << ".overrideAOTCompilation = "
+     << cxxBool(compileTarget.overrideAOTCompilation) << ", "
+     << ".stages = " << cxxStages(compileTarget.stages) << ", "
+     << ".codegen = " << cxxCodegen(compileTarget.codegen) << ", "
+     << ".supportConditionalsOnMeasureResults = "
+     << cxxBool(compileTarget.supportConditionalsOnMeasureResults) << ", "
+     << ".supportDeviceCalls = " << cxxBool(compileTarget.supportDeviceCalls)
+     << ", "
+     << ".supportResourceCounts = "
+     << cxxBool(compileTarget.supportResourceCounts) << ", "
+     << ".supportExplicitMeasurements = "
+     << cxxBool(compileTarget.supportExplicitMeasurements) << ", "
+     << ".supportObservableMeasurements = "
+     << cxxBool(compileTarget.supportObservableMeasurements) << ", "
+     << ".supportSampleWithoutMeasurements = "
+     << cxxBool(compileTarget.supportSampleWithoutMeasurements) << ", "
+     << ".fullySpecialize = " << cxxBool(compileTarget.fullySpecialize) << ", "
+     << ".argumentSynthChangeSemantics = "
+     << cxxBool(compileTarget.argumentSynthChangeSemantics) << ", "
+     << ".disableQubitMapping = " << cxxBool(compileTarget.disableQubitMapping)
+     << ", "
+     << ".replaceStateWithKernel = "
+     << cxxBool(compileTarget.replaceStateWithKernel) << "}";
+  return os.str();
+}
+
 std::string
 cxxBackendConfigEntry(const cudaq::config::BackendEndConfigEntry &c) {
   std::ostringstream os;
@@ -218,16 +300,7 @@ cxxBackendConfigEntry(const cudaq::config::BackendEndConfigEntry &c) {
      << ".GenTargetBackend = " << cxxBool(c.GenTargetBackend) << ", "
      << ".LibraryMode = " << cxxBool(c.LibraryMode) << ", "
      << ".SupportResourceCounts = " << cxxBool(c.SupportResourceCounts) << ", "
-     << ".JITHighLevelPipeline = " << cxxStringLiteral(c.JITHighLevelPipeline)
-     << ", "
-     << ".JITMidLevelPipeline = " << cxxStringLiteral(c.JITMidLevelPipeline)
-     << ", "
-     << ".JITLowLevelPipeline = " << cxxStringLiteral(c.JITLowLevelPipeline)
-     << ", "
-     << ".TargetPassPipeline = " << cxxStringLiteral(c.TargetPassPipeline)
-     << ", "
-     << ".CodegenEmission = " << cxxStringLiteral(c.CodegenEmission) << ", "
-     << ".PostCodeGenPasses = " << cxxStringLiteral(c.PostCodeGenPasses) << ", "
+     << ".CompileTarget = " << cxxCompileTarget(c.CompileTarget) << ", "
      << ".PlatformLibrary = " << cxxStringLiteral(c.PlatformLibrary) << ", "
      << ".LibraryModeExecutionManager = "
      << cxxStringLiteral(c.LibraryModeExecutionManager) << ", "

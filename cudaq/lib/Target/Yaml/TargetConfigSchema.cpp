@@ -17,8 +17,13 @@
 
 cudaq::config::TargetConfig
 cudaq::config::createTargetConfigFromSchema(const TargetConfigSchema &schema) {
-  return schema.visit(
-      [](const v1::TargetConfigV1 &cfg) { return v1::toCanonical(cfg); });
+  return schema.visit([](const auto &cfg) {
+    using T = std::decay_t<decltype(cfg)>;
+    if constexpr (std::is_same_v<T, v1::TargetConfigV1>)
+      return v1::toCanonical(cfg);
+    else
+      return v2::toCanonical(cfg);
+  });
 }
 
 cudaq::config::TargetConfig
