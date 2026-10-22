@@ -50,13 +50,12 @@ func.func @negative_phase_lifecycle(
 // CHECK-SAME: %[[NEG_THETA:[a-zA-Z0-9_.$-]+]]: f64
 // CHECK-SAME: %[[NEG_OUTER:[a-zA-Z0-9_.$-]+]]: !llvm.ptr
 // CHECK-SAME: %[[NEG_INNER:[a-zA-Z0-9_.$-]+]]: !llvm.ptr
-// CHECK:           %[[ZERO:.*]] = llvm.mlir.constant(0 : i32) : i32
-// CHECK:           %[[WITH_VALUES:.*]] = llvm.mlir.constant(true) : i1
 // CHECK:           %[[ONE:.*]] = llvm.mlir.constant(1 : i64) : i64
 // CHECK:           %[[R1_CTL:.*]] = llvm.mlir.addressof @__nvqir__qis__r1__ctl_values : !llvm.ptr
+// CHECK:           %[[ZERO:.*]] = llvm.mlir.constant(0 : i64) : i64
+// CHECK:           %[[INNER:.*]] = llvm.bitcast %[[NEG_INNER]] : !llvm.ptr to !llvm.ptr
 // CHECK:           %[[R1_CALLEE:.*]] = llvm.bitcast %[[R1_CTL]] : !llvm.ptr to !llvm.ptr
 // CHECK:           %[[OUTER:.*]] = llvm.bitcast %[[NEG_OUTER]] : !llvm.ptr to !llvm.ptr
-// CHECK:           %[[INNER:.*]] = llvm.bitcast %[[NEG_INNER]] : !llvm.ptr to !llvm.ptr
-// CHECK:           llvm.call @generalizedInvokeWithRotationsControlsTargets(%[[ONE]], %[[ONE]], %[[ONE]], %[[WITH_VALUES]], %[[R1_CALLEE]], %[[NEG_THETA]], %[[ZERO]], %[[ZERO]], %[[INNER]], %[[OUTER]]) vararg(!llvm.func<void (i64, i64, i64, i1, ptr, ...)>) : (i64, i64, i64, i1, !llvm.ptr, f64, i32, i32, !llvm.ptr, !llvm.ptr) -> ()
+// CHECK:           llvm.call @generalizedInvokeWithRotationsControlValuesTargets(%[[ONE]], %[[ZERO]], %[[ONE]], %[[ONE]], %[[R1_CALLEE]], %[[NEG_THETA]], %[[INNER]], %[[ZERO]], %[[OUTER]]) vararg(!llvm.func<void (i64, i64, i64, i64, ptr, ...)>) : (i64, i64, i64, i64, !llvm.ptr, f64, !llvm.ptr, i64, !llvm.ptr) -> ()
 // CHECK:           llvm.return
 // CHECK-NOT: quake.phase

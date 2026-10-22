@@ -53,7 +53,7 @@
 // CHECK:         %[[VAL_15]] = add nuw nsw i64 %[[VAL_14]], 1
 // CHECK:         %[[VAL_19:.*]] = tail call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_2]], i64 %[[VAL_15]])
 // CHECK:         %[[VAL_21:.*]] = load ptr, ptr %[[VAL_19]], align 8
-// CHECK:         tail call void (i64, i64, i64, i1, ptr, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 1, i64 1, i1 false, ptr nonnull @__quantum__qis__x__ctl, i32 0, i32 1, ptr %[[VAL_18]], ptr %[[VAL_21]])
+// CHECK:         tail call void (i64, i64, i64, i64, ptr, ...) @generalizedInvokeWithRotationsControlsTargets(i64 0, i64 0, i64 1, i64 1, ptr nonnull @__quantum__qis__x__ctl, ptr %[[VAL_18]], ptr %[[VAL_21]])
 // CHECK:         %[[VAL_22:.*]] = icmp eq i64 %[[VAL_15]], %[[VAL_12]]
 // CHECK:         br i1 %[[VAL_22]], label %[[VAL_9]], label %[[VAL_13]]
 // CHECK:       :                                      ; preds = %[[VAL_13]], %[[VAL_11]]

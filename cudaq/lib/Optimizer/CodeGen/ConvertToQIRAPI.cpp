@@ -1230,35 +1230,24 @@ struct UnwrapOpErase : public OpConversionPattern<cudaq::quake::UnwrapOp> {
 // Custom handing of irregular quantum gates.
 //===----------------------------------------------------------------------===//
 
-static bool isaVeqArgument(Type ty) {
-  // TODO: Need a way to identify arrays when using the opaque pointer
-  // variant. (In Python, the arguments may already be converted.)
-  auto alreadyConverted = [](Type ty) {
-    if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(ty))
-      if (auto strTy = dyn_cast<LLVM::LLVMStructType>(ptrTy.getElementType()))
-        return strTy.isIdentified() && strTy.getName() == "Array";
-    return false;
-  };
-  return isa<cudaq::quake::VeqType>(ty) || alreadyConverted(ty);
-}
-
-// NVQIR expands each register's required value beside its qubits at runtime.
+// Custom operations keep their controls in operand order, as the positive
+// path's concatenation does. NVQIR therefore takes each control as (kind,
+// operand, required state): kind 1 is an Array*, whose size NVQIR reads, and
+// kind 0 is a Qubit*.
 static void appendControlOperands(cudaq::quake::OperatorInterface gate,
-                                  ValueRange controls,
+                                  ValueRange controls, Type pointerType,
                                   SmallVectorImpl<Value> &arguments,
                                   ConversionPatternRewriter &rewriter) {
   const auto loc = gate.getLoc();
   const auto negations = gate.getNegatedControls();
-  auto pointerType = LLVM::LLVMPointerType::get(rewriter.getContext());
   for (auto [index, control] : llvm::enumerate(controls)) {
-    auto controlType =
-        getInitialType(gate, gate.getParameters().size() + index);
-    arguments.push_back(arith::ConstantIntOp::create(
-        rewriter, loc, isaVeqArgument(controlType), 32));
-    arguments.push_back(arith::ConstantIntOp::create(
-        rewriter, loc, !(negations && (*negations)[index]), 32));
-    arguments.push_back(
-        cudaq::cc::CastOp::create(rewriter, loc, pointerType, control));
+    Type origTy = getInitialType(gate, gate.getParameters().size() + index);
+    arguments.append(
+        {arith::ConstantIntOp::create(rewriter, loc,
+                                      isa<cudaq::quake::VeqType>(origTy), 64),
+         cudaq::cc::CastOp::create(rewriter, loc, pointerType, control),
+         arith::ConstantIntOp::create(
+             rewriter, loc, !(negations && (*negations)[index]), 64)});
   }
 }
 
@@ -1369,8 +1358,8 @@ struct CustomUnitaryOpPattern : public QubitHelperConversionPattern<
           cudaq::cc::CastOp::create(rewriter, loc, pointerType, nameOp),
           cudaq::cc::FuncToPtrOp::create(rewriter, loc, pointerType,
                                          callbackValue)};
-      appendControlOperands(unitary, adaptor.getControls(), arguments,
-                            rewriter);
+      appendControlOperands(unitary, adaptor.getControls(), pointerType,
+                            arguments, rewriter);
       cudaq::cc::VarargCallOp::create(
           rewriter, loc, TypeRange{},
           cudaq::opt::NVQIRInvokeCustomControlValues, arguments);
@@ -1513,8 +1502,8 @@ struct ExpPauliOpPattern
                                       targets.front()),
             cudaq::cc::CastOp::create(rewriter, loc, pointerType,
                                       operands.back())};
-        appendControlOperands(pauli, adaptor.getControls(), arguments,
-                              rewriter);
+        appendControlOperands(pauli, adaptor.getControls(), pointerType,
+                              arguments, rewriter);
         cudaq::cc::VarargCallOp::create(
             rewriter, loc, TypeRange{},
             cudaq::opt::NVQIRInvokeExpPauliControlValues, arguments);
@@ -2061,7 +2050,46 @@ struct QuantumGatePattern : public OpConversionPattern<OP> {
       return forwardOrEraseOp();
     }
 
+    // Otherwise, we'll use the generalized invoke helper function. This
+    // function takes 4 size_t values, which delimit the different argument
+    // types, a pointer to the function to be invoked, and varargs of all the
+    // arguments being used. This function's signature is tuned so as to
+    // reduce or eliminate the creation of auxiliary temporaries needs to make
+    // the call to the helper.
+    std::size_t numArrayCtrls = 0;
+    SmallVector<Value> opArrCtrls;
+    std::size_t numQubitCtrls = 0;
+    SmallVector<Value> opQubitCtrls;
+    Type i64Ty = rewriter.getI64Type();
     auto ptrNoneTy = M::getLLVMPointerType(rewriter.getContext());
+    const auto negations = op.getNegatedQubitControls();
+
+    // Process the controls, sorting them by type. Using the original
+    // type recorded before conversion, since opaque pointers
+    // make Array* and Qubit* indistinguishable on the live operand.
+    for (auto [i, val] : llvm::enumerate(adaptor.getControls())) {
+      Type origCtrlTy = getInitialType(op, opParams.size() + i);
+      auto &ctrls = isaVeqArgument(origCtrlTy) ? opArrCtrls : opQubitCtrls;
+      if (isaVeqArgument(origCtrlTy)) {
+        numArrayCtrls++;
+        auto sizeCall = func::CallOp::create(
+            rewriter, loc, i64Ty, cudaq::opt::QIRArrayGetSize, ValueRange{val});
+        // Arrays are encoded as pairs of arguments: length and Array*
+        opArrCtrls.push_back(sizeCall.getResult(0));
+        opArrCtrls.push_back(
+            cudaq::cc::CastOp::create(rewriter, loc, ptrNoneTy, val));
+      } else {
+        numQubitCtrls++;
+        // Qubits are simply the Qubit**
+        opQubitCtrls.emplace_back(
+            cudaq::cc::CastOp::create(rewriter, loc, ptrNoneTy, val));
+      }
+      // Each control is followed by the state it requires, which applies to
+      // every qubit of an array.
+      if (withControlValues)
+        ctrls.push_back(arith::ConstantIntOp::create(
+            rewriter, loc, !(negations && (*negations)[i]), 64));
+    }
 
     // Lookup and process the gate operation we're invoking.
     auto module = op->template getParentOfType<ModuleOp>();
@@ -2090,23 +2118,39 @@ struct QuantumGatePattern : public OpConversionPattern<OP> {
     args.emplace_back(
         arith::ConstantIntOp::create(rewriter, loc, opParams.size(), 64));
     args.emplace_back(
-        arith::ConstantIntOp::create(rewriter, loc, numControls, 64));
+        arith::ConstantIntOp::create(rewriter, loc, numArrayCtrls, 64));
+    args.emplace_back(
+        arith::ConstantIntOp::create(rewriter, loc, numQubitCtrls, 64));
     args.emplace_back(
         arith::ConstantIntOp::create(rewriter, loc, numTargets, 64));
-    args.emplace_back(
-        arith::ConstantIntOp::create(rewriter, loc, withControlValues, 1));
     args.emplace_back(funPtr);
 
     // Finally, append the varargs to the end of the argument list.
     args.append(opParams.begin(), opParams.end());
-    appendControlOperands(op, adaptor.getControls(), args, rewriter);
+    args.append(opArrCtrls.begin(), opArrCtrls.end());
+    args.append(opQubitCtrls.begin(), opQubitCtrls.end());
     args.append(opTargs.begin(), opTargs.end());
 
-    // Call the generalized version of the gate invocation.
-    cudaq::cc::VarargCallOp::create(rewriter, loc, TypeRange{},
-                                    cudaq::opt::NVQIRGeneralizedInvokeAny,
-                                    args);
+    // Call the generalized version of the gate invocation. The control-value
+    // version takes the same arguments plus each control's required state.
+    cudaq::cc::VarargCallOp::create(
+        rewriter, loc, TypeRange{},
+        withControlValues ? cudaq::opt::NVQIRGeneralizedInvokeControlValues
+                          : cudaq::opt::NVQIRGeneralizedInvokeAny,
+        args);
     return forwardOrEraseOp();
+  }
+
+  static bool isaVeqArgument(Type ty) {
+    // TODO: Need a way to identify arrays when using the opaque pointer
+    // variant. (In Python, the arguments may already be converted.)
+    auto alreadyConverted = [](Type ty) {
+      if (auto ptrTy = dyn_cast<cudaq::cc::PointerType>(ty))
+        if (auto strTy = dyn_cast<LLVM::LLVMStructType>(ptrTy.getElementType()))
+          return strTy.isIdentified() && strTy.getName() == "Array";
+      return false;
+    };
+    return isa<cudaq::quake::VeqType>(ty) || alreadyConverted(ty);
   }
 
   static bool conformsToIntendedCall(std::size_t numControls, Type ctrlTy,

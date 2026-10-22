@@ -73,7 +73,7 @@ TEST(NVQIRVerify, check3) {
 
 TEST(NVQIRVerify, controlValueCalls) {
   StringRef theQuake = R"#(
-    llvm.func @generalizedInvokeWithRotationsControlsTargets(i64, i64, i64, i1, !llvm.ptr, ...)
+    llvm.func @generalizedInvokeWithRotationsControlValuesTargets(i64, i64, i64, i64, !llvm.ptr, ...)
     llvm.func @invokeCustomUnitaryWithControlValues(i64, !llvm.ptr, !llvm.ptr, !llvm.ptr, !llvm.ptr, ...)
     llvm.func @invokeExpPauliWithControlValues(i64, f64, !llvm.ptr, !llvm.ptr, ...)
     llvm.func @entryPoint(%callback: !llvm.ptr, %matrix: !llvm.ptr,
@@ -81,10 +81,9 @@ TEST(NVQIRVerify, controlValueCalls) {
                          %word: !llvm.ptr) {
       %zero = llvm.mlir.constant(0 : i64) : i64
       %one = llvm.mlir.constant(1 : i64) : i64
-      %with_values = llvm.mlir.constant(true) : i1
-      llvm.call @generalizedInvokeWithRotationsControlsTargets(%zero, %zero, %one, %with_values, %callback, %targets)
-          vararg(!llvm.func<void (i64, i64, i64, i1, ptr, ...)>)
-          : (i64, i64, i64, i1, !llvm.ptr, !llvm.ptr) -> ()
+      llvm.call @generalizedInvokeWithRotationsControlValuesTargets(%zero, %zero, %zero, %one, %callback, %targets)
+          vararg(!llvm.func<void (i64, i64, i64, i64, ptr, ...)>)
+          : (i64, i64, i64, i64, !llvm.ptr, !llvm.ptr) -> ()
       llvm.call @invokeCustomUnitaryWithControlValues(%zero, %matrix, %targets, %name, %callback)
           vararg(!llvm.func<void (i64, ptr, ptr, ptr, ptr, ...)>)
           : (i64, !llvm.ptr, !llvm.ptr, !llvm.ptr, !llvm.ptr) -> ()

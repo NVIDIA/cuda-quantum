@@ -450,11 +450,9 @@ func.func @phased_rx_parameters(%theta: f64, %phi: f64) attributes {"cudaq-entry
 // PHASED:           %[[VAL_0:.*]] = constant @__quantum__qis__phased_rx__ctl : (f64, f64, !cc.ptr<none>, !cc.ptr<none>) -> ()
 // PHASED:           %[[FUNC_PTR_0:.*]] = cc.func_ptr %[[VAL_0]] : ((f64, f64, !cc.ptr<none>, !cc.ptr<none>) -> ()) -> !llvm.ptr
 // PHASED:           %[[CONSTANT_2:.*]] = arith.constant 2 : i64
+// PHASED:           %[[CONSTANT_3:.*]] = arith.constant 0 : i64
 // PHASED:           %[[CONSTANT_4:.*]] = arith.constant 1 : i64
 // PHASED:           %[[CONSTANT_5:.*]] = arith.constant 1 : i64
-// PHASED:           %[[WITH_VALUES:.*]] = arith.constant false
-// PHASED:           %[[IS_ARRAY:.*]] = arith.constant 0 : i32
-// PHASED:           %[[REQUIRED_VALUE:.*]] = arith.constant 1 : i32
 // PHASED:           %[[CAST_4:.*]] = cc.cast %[[CONTROL]] : (!cc.ptr<none>) -> !llvm.ptr
 // PHASED:           %[[CAST_5:.*]] = cc.cast %[[TARGET]] : (!cc.ptr<none>) -> !llvm.ptr
-// PHASED:           cc.call_vararg @generalizedInvokeWithRotationsControlsTargets(%[[CONSTANT_2]], %[[CONSTANT_4]], %[[CONSTANT_5]], %[[WITH_VALUES]], %[[FUNC_PTR_0]], %[[NEGF_1]], %[[PHI]], %[[IS_ARRAY]], %[[REQUIRED_VALUE]], %[[CAST_4]], %[[CAST_5]]) : (i64, i64, i64, i1, !llvm.ptr, f64, f64, i32, i32, !llvm.ptr, !llvm.ptr) -> ()
+// PHASED:           cc.call_vararg @generalizedInvokeWithRotationsControlsTargets(%[[CONSTANT_2]], %[[CONSTANT_3]], %[[CONSTANT_4]], %[[CONSTANT_5]], %[[FUNC_PTR_0]], %[[NEGF_1]], %[[PHI]], %[[CAST_4]], %[[CAST_5]]) : (i64, i64, i64, i64, !llvm.ptr, f64, f64, !llvm.ptr, !llvm.ptr) -> ()

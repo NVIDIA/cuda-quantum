@@ -1384,21 +1384,46 @@ struct PackedControls {
   std::unique_ptr<Array> controls;
   std::vector<std::int32_t> values;
 };
+
+struct InvokeOperands {
+  std::array<double, maxInvokeRotationOperands> parameters;
+  PackedControls controls;
+  std::array<Qubit *, maxInvokeTargetOperands> targets;
+};
 } // namespace
 
-static ControlOperand readControlOperand(va_list &args) {
-  const auto isArray = va_arg(args, int);
-  const auto value = va_arg(args, int);
-  auto *operand = va_arg(args, Qubit *);
-  if (isArray != 0 && isArray != 1) {
-    throw std::invalid_argument("control operand kind must be 0 or 1");
-  }
-  if (value != 0 && value != 1) {
+static std::int32_t readRequiredValue(va_list &args) {
+  const auto value = va_arg(args, std::int64_t);
+  if (value != 0 && value != 1)
     throw std::invalid_argument("required control value must be 0 or 1");
-  }
-  const auto numQubits =
-      isArray ? (operand ? reinterpret_cast<Array *>(operand)->size() : 0) : 1;
-  return {operand, numQubits, value, static_cast<bool>(isArray)};
+  return static_cast<std::int32_t>(value);
+}
+
+// The generalized invokers group their controls. A register operand is
+// (std::size_t length, Array *) and a qubit operand is a Qubit *. With control
+// values, each operand is followed by the std::int64_t state it requires,
+// which applies to every qubit of a register.
+static ControlOperand readGroupedControlOperand(va_list &args, bool isArray,
+                                                bool withControlValues) {
+  const std::size_t numQubits = isArray ? va_arg(args, std::size_t) : 1;
+  auto *operand = va_arg(args, Qubit *);
+  const std::int32_t requiredValue =
+      withControlValues ? readRequiredValue(args) : 1;
+  return {operand, numQubits, requiredValue, isArray};
+}
+
+// The custom-operation wrappers keep operand order, so each control is
+// (std::int64_t kind, operand, std::int64_t state). Kind 1 is an Array *,
+// whose size is read here, and kind 0 is a Qubit *.
+static ControlOperand readTaggedControlOperand(va_list &args) {
+  const auto kind = va_arg(args, std::int64_t);
+  auto *operand = va_arg(args, Qubit *);
+  const auto requiredValue = readRequiredValue(args);
+  if (kind != 0 && kind != 1)
+    throw std::invalid_argument("control operand kind must be 0 or 1");
+  const std::size_t numQubits =
+      kind ? (operand ? reinterpret_cast<Array *>(operand)->size() : 0) : 1;
+  return {operand, numQubits, requiredValue, kind == 1};
 }
 
 static void appendControlOperand(Array &controls, std::size_t &offset,
@@ -1419,24 +1444,24 @@ static void appendControlOperand(Array &controls, std::size_t &offset,
   }
 }
 
-static PackedControls packVariadicControls(std::size_t numControlOperands,
-                                           bool withControlValues,
-                                           va_list &args) {
-  // Count with a copied list so packing needs only the final output buffers.
+// A template cannot have C language linkage.
+} // extern "C"
+
+// Packs the controls that `readOperand` decodes, in argument order. A register
+// of length zero contributes no controls. A first pass over a copied list
+// validates every operand and counts the controls, so packing builds only the
+// final buffers.
+template <typename ReadOperand>
+static PackedControls
+packVariadicControls(std::size_t numOperands, bool withControlValues,
+                     va_list &args, ReadOperand readOperand) {
   va_list countArgs;
   va_copy(countArgs, args);
   const auto numControls = cudaq::detail::try_finally(
       [&] {
         std::size_t count = 0;
-        for (std::size_t i = 0; i < numControlOperands; ++i) {
-          const auto operand = readControlOperand(countArgs);
-          if (!withControlValues && operand.numQubits &&
-              operand.requiredValue == 0) {
-            throw std::invalid_argument(
-                "open controls require the control-value callback ABI");
-          }
-          count += operand.numQubits;
-        }
+        for (std::size_t i = 0; i < numOperands; ++i)
+          count += readOperand(countArgs, i).numQubits;
         return count;
       },
       [&] { va_end(countArgs); });
@@ -1446,12 +1471,33 @@ static PackedControls packVariadicControls(std::size_t numControlOperands,
     packed.values.reserve(numControls);
   }
   std::size_t offset = 0;
-  for (std::size_t i = 0; i < numControlOperands; ++i) {
-    const auto operand = readControlOperand(args);
-    appendControlOperand(*packed.controls, offset, operand,
+  for (std::size_t i = 0; i < numOperands; ++i)
+    appendControlOperand(*packed.controls, offset, readOperand(args, i),
                          withControlValues ? &packed.values : nullptr);
-  }
   return packed;
+}
+
+extern "C" {
+
+static InvokeOperands readInvokeOperands(std::size_t numRotationOperands,
+                                         std::size_t numControlArrays,
+                                         std::size_t numControlQubits,
+                                         std::size_t numTargetOperands,
+                                         bool withControlValues,
+                                         va_list &args) {
+  validateInvokeOperandCounts(numRotationOperands, numTargetOperands);
+  InvokeOperands operands;
+  for (std::size_t i = 0; i < numRotationOperands; ++i)
+    operands.parameters[i] = va_arg(args, double);
+  operands.controls = packVariadicControls(
+      numControlArrays + numControlQubits, withControlValues, args,
+      [&](va_list &list, std::size_t i) {
+        return readGroupedControlOperand(list, i < numControlArrays,
+                                         withControlValues);
+      });
+  for (std::size_t i = 0; i < numTargetOperands; ++i)
+    operands.targets[i] = va_arg(args, Qubit *);
+  return operands;
 }
 
 static std::unique_ptr<Array>
@@ -1536,45 +1582,63 @@ static void commonInvokeWithRotationsControlsTargets(
                            numTargetOperands, targets, QISFunction);
 }
 
-/// Varargs contain double rotations, ordered control triples, then Qubit*
-/// targets. Each triple is (int isArray, int requiredValue, Qubit* operand).
-/// Empty or null arrays contribute no controls.
-///
-/// The callback receives rotations, a flattened control Array*, and targets.
-/// withControlValues inserts a const std::int32_t* and std::int64_t count after
-/// controls, even with zero controls. A false flag requires state 1 for every
-/// actual control. Deferred callbacks must copy borrowed buffers before
-/// returning.
+/// Invokes \p QISFunction, a `__quantum__qis__<gate>__ctl` function, with its
+/// controls packed into one Array. The varargs are the double rotations, then
+/// \p numControlArrayOperands (std::size_t length, Array *) pairs, then
+/// \p numControlQubitOperands Qubit *, then the Qubit * targets. Generated
+/// code passes these QIR values directly, so it builds no temporaries.
+/// Previously compiled code depends on this layout.
 void generalizedInvokeWithRotationsControlsTargets(
-    std::size_t numRotationOperands, std::size_t numControlOperands,
-    std::size_t numTargetOperands, bool withControlValues,
+    std::size_t numRotationOperands, std::size_t numControlArrayOperands,
+    std::size_t numControlQubitOperands, std::size_t numTargetOperands,
     void (*QISFunction)(...), ...) {
-  validateInvokeOperandCounts(numRotationOperands, numTargetOperands);
-  std::array<double, maxInvokeRotationOperands> parameters;
-  std::array<Qubit *, maxInvokeTargetOperands> targets;
   va_list args;
   va_start(args, QISFunction);
-  auto packed = cudaq::detail::try_finally(
+  auto operands = cudaq::detail::try_finally(
       [&] {
-        for (std::size_t i = 0; i < numRotationOperands; ++i)
-          parameters[i] = va_arg(args, double);
-        auto packed =
-            packVariadicControls(numControlOperands, withControlValues, args);
-        for (std::size_t i = 0; i < numTargetOperands; ++i)
-          targets[i] = va_arg(args, Qubit *);
-        return packed;
+        return readInvokeOperands(numRotationOperands, numControlArrayOperands,
+                                  numControlQubitOperands, numTargetOperands,
+                                  /*withControlValues=*/false, args);
       },
       [&] { va_end(args); });
-  invokeWithPackedControls(numRotationOperands, parameters.data(),
-                           packed.controls.get(), numTargetOperands,
-                           targets.data(),
-                           reinterpret_cast<void (*)()>(QISFunction),
-                           withControlValues ? &packed.values : nullptr);
+  invokeWithPackedControls(numRotationOperands, operands.parameters.data(),
+                           operands.controls.controls.get(), numTargetOperands,
+                           operands.targets.data(),
+                           reinterpret_cast<void (*)()>(QISFunction));
 }
 
-/// Control operand triples match generalizedInvokeWithRotationsControlsTargets.
-/// The callback must copy the packed controls and values before returning if
-/// execution is deferred. QISFunction selects the forward or adjoint operation.
+/// The layout of generalizedInvokeWithRotationsControlsTargets, with each
+/// control operand followed by the std::int64_t state, 0 or 1, that it
+/// requires. \p QISFunction is a `__nvqir__qis__<gate>__ctl_values` function.
+/// It receives the packed controls, their std::int32_t required values, and
+/// their std::int64_t count between its rotations and targets, and it must
+/// copy these buffers if it defers execution.
+void generalizedInvokeWithRotationsControlValuesTargets(
+    std::size_t numRotationOperands, std::size_t numControlArrayOperands,
+    std::size_t numControlQubitOperands, std::size_t numTargetOperands,
+    void (*QISFunction)(...), ...) {
+  va_list args;
+  va_start(args, QISFunction);
+  auto operands = cudaq::detail::try_finally(
+      [&] {
+        return readInvokeOperands(numRotationOperands, numControlArrayOperands,
+                                  numControlQubitOperands, numTargetOperands,
+                                  /*withControlValues=*/true, args);
+      },
+      [&] { va_end(args); });
+  invokeWithPackedControls(numRotationOperands, operands.parameters.data(),
+                           operands.controls.controls.get(), numTargetOperands,
+                           operands.targets.data(),
+                           reinterpret_cast<void (*)()>(QISFunction),
+                           &operands.controls.values);
+}
+
+/// The varargs are \p numControlOperands controls in operand order, the order
+/// the positive-control path passes. Each is (std::int64_t kind, operand,
+/// std::int64_t required state): kind 1 is an Array *, whose qubits all take
+/// the state, and kind 0 is a Qubit *. \p QISFunction selects the forward or
+/// adjoint operation, and it must copy the packed controls and values if it
+/// defers execution.
 void invokeCustomUnitaryWithControlValues(
     std::size_t numControlOperands, std::complex<double> *unitary,
     Array *targets, const char *name,
@@ -1586,14 +1650,18 @@ void invokeCustomUnitaryWithControlValues(
   auto packed = cudaq::detail::try_finally(
       [&] {
         return packVariadicControls(numControlOperands,
-                                    /*withControlValues=*/true, args);
+                                    /*withControlValues=*/true, args,
+                                    [](va_list &list, std::size_t) {
+                                      return readTaggedControlOperand(list);
+                                    });
       },
       [&] { va_end(args); });
   QISFunction(unitary, packed.controls.get(), packed.values.data(),
               static_cast<std::int64_t>(packed.values.size()), targets, name);
 }
 
-/// Control operand triples match generalizedInvokeWithRotationsControlsTargets.
+/// The varargs are controls in the layout of
+/// invokeCustomUnitaryWithControlValues.
 /// __nvqir__qis__exp_pauli__ctl_values copies these temporary buffers before
 /// returning.
 void invokeExpPauliWithControlValues(std::size_t numControlOperands,
@@ -1604,7 +1672,10 @@ void invokeExpPauliWithControlValues(std::size_t numControlOperands,
   auto packed = cudaq::detail::try_finally(
       [&] {
         return packVariadicControls(numControlOperands,
-                                    /*withControlValues=*/true, args);
+                                    /*withControlValues=*/true, args,
+                                    [](va_list &list, std::size_t) {
+                                      return readTaggedControlOperand(list);
+                                    });
       },
       [&] { va_end(args); });
   __nvqir__qis__exp_pauli__ctl_values(

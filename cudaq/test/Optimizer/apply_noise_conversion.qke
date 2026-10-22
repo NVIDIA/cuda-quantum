@@ -24,10 +24,7 @@ func.func @__nvqpp__mlirgen__bell_error_vecI10SantaKrausE(%arg0: f64) attributes
 func.func private @_ZN5cudaq11apply_noiseI10SantaKrausJRdRNS_7qvectorILm2EEEEEEvDpOT0_(!cc.ptr<f64>, !quake.veq<?>)
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__bell_error_vecI10SantaKrausE(
-// CHECK-SAME:      %[[VAL_0:[0-9]+|[a-zA-Z$._-][a-zA-Z0-9$._-]*]]: f64) attributes {"cudaq-entrypoint", "cudaq-kernel", "qir-api"} {
-// CHECK:           %[[REQUIRED_VALUE:.*]] = arith.constant 1 : i32
-// CHECK:           %[[IS_ARRAY:.*]] = arith.constant 0 : i32
-// CHECK:           %[[WITH_VALUES:.*]] = arith.constant false
+// CHECK-SAME:      %[[VAL_0:.*]]: f64) attributes {"cudaq-entrypoint", "cudaq-kernel", "qir-api"} {
 // CHECK:           %[[VAL_1:.*]] = constant @__quantum__qis__x__ctl : (!cc.ptr<!llvm.struct<"Array", opaque>>, !cc.ptr<!llvm.struct<"Qubit", opaque>>) -> ()
 // CHECK:           %[[VAL_2:.*]] = arith.constant 1 : i64
 // CHECK:           %[[VAL_3:.*]] = arith.constant 0 : i64
@@ -42,10 +39,10 @@ func.func private @_ZN5cudaq11apply_noiseI10SantaKrausJRdRNS_7qvectorILm2EEEEEEv
 // CHECK:           %[[VAL_10:.*]] = cc.load %[[VAL_9]] : !cc.ptr<!cc.ptr<!llvm.struct<"Qubit", opaque>>>
 // CHECK:           %[[VAL_11:.*]] = call @__quantum__rt__array_get_element_ptr_1d(%[[VAL_6]], %[[VAL_2]]) : (!cc.ptr<!llvm.struct<"Array", opaque>>, i64) -> !cc.ptr<!cc.ptr<!llvm.struct<"Qubit", opaque>>>
 // CHECK:           %[[VAL_12:.*]] = cc.load %[[VAL_11]] : !cc.ptr<!cc.ptr<!llvm.struct<"Qubit", opaque>>>
+// CHECK:           %[[VAL_13:.*]] = cc.cast %[[VAL_10]] : (!cc.ptr<!llvm.struct<"Qubit", opaque>>) -> !llvm.ptr
 // CHECK:           %[[VAL_14:.*]] = cc.func_ptr %[[VAL_1]] : ((!cc.ptr<!llvm.struct<"Array", opaque>>, !cc.ptr<!llvm.struct<"Qubit", opaque>>) -> ()) -> !llvm.ptr
 // CHECK:           %[[VAL_15:.*]] = cc.cast %[[VAL_12]] : (!cc.ptr<!llvm.struct<"Qubit", opaque>>) -> !llvm.ptr
-// CHECK:           %[[VAL_13:.*]] = cc.cast %[[VAL_10]] : (!cc.ptr<!llvm.struct<"Qubit", opaque>>) -> !llvm.ptr
-// CHECK:           cc.call_vararg @generalizedInvokeWithRotationsControlsTargets(%[[VAL_3]], %[[VAL_2]], %[[VAL_2]], %[[WITH_VALUES]], %[[VAL_14]], %[[IS_ARRAY]], %[[REQUIRED_VALUE]], %[[VAL_13]], %[[VAL_15]]) : (i64, i64, i64, i1, !llvm.ptr, i32, i32, !llvm.ptr, !llvm.ptr) -> ()
+// CHECK:           cc.call_vararg @generalizedInvokeWithRotationsControlsTargets(%[[VAL_3]], %[[VAL_3]], %[[VAL_2]], %[[VAL_2]], %[[VAL_14]], %[[VAL_13]], %[[VAL_15]]) : (i64, i64, i64, i64, !llvm.ptr, !llvm.ptr, !llvm.ptr) -> ()
 // CHECK:           %[[VAL_16:.*]] = call @__quantum__qis__convert_array_to_stdvector(%[[VAL_6]]) : (!cc.ptr<!llvm.struct<"Array", opaque>>) -> !cc.ptr<!llvm.struct<"Array", opaque>>
 // CHECK:           call @_ZN5cudaq11apply_noiseI10SantaKrausJRdRNS_7qvectorILm2EEEEEEvDpOT0_(%[[VAL_5]], %[[VAL_16]]) : (!cc.ptr<f64>, !cc.ptr<!llvm.struct<"Array", opaque>>) -> ()
 // CHECK:           call @__quantum__qis__free_converted_stdvector(%[[VAL_16]]) : (!cc.ptr<!llvm.struct<"Array", opaque>>) -> ()

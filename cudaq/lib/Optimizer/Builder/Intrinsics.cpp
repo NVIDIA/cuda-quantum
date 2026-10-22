@@ -700,8 +700,12 @@ static constexpr IntrinsicCode intrinsicTable[] = {
 
     {"free", {}, "func.func private @free(!cc.ptr<i8>) -> ()"},
 
+    {cudaq::opt::NVQIRGeneralizedInvokeControlValues, {}, R"#(
+  llvm.func @generalizedInvokeWithRotationsControlValuesTargets(i64, i64, i64, i64, !qir_llvmptr, ...) attributes {sym_visibility = "private"}
+)#"},
+
     {cudaq::opt::NVQIRGeneralizedInvokeAny, {}, R"#(
-  llvm.func @generalizedInvokeWithRotationsControlsTargets(i64, i64, i64, i1, !qir_llvmptr, ...) attributes {sym_visibility = "private"}
+  llvm.func @generalizedInvokeWithRotationsControlsTargets(i64, i64, i64, i64, !qir_llvmptr, ...) attributes {sym_visibility = "private"}
 )#"},
 
     // hybridLaunchKernel(kernelName, thunk, commBuffer, buffSize,
@@ -825,7 +829,8 @@ static constexpr IntrinsicCode intrinsicTable[] = {
     // Declarations of all full QIR functions used by codegen.
     // These include gates (sans the "__body" suffix) and measurements.
     {"qir_full",
-     {"qir_common", cudaq::opt::NVQIRInvokeCustomControlValues,
+     {"qir_common", cudaq::opt::NVQIRGeneralizedInvokeControlValues,
+      cudaq::opt::NVQIRInvokeCustomControlValues,
       cudaq::opt::NVQIRInvokeExpPauliControlValues},
      R"#(
   func.func private @__nvqir__qis__h__ctl_values(!qir_array, !cc.ptr<i32>, i64, !qir_qubit)

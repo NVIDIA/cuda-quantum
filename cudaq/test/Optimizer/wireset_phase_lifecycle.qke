@@ -47,9 +47,6 @@ func.func @atomic_wire_regions() attributes {"cudaq-entrypoint", "cudaq-kernel"}
 }
 
 // CHECK-LABEL: llvm.func @negative_wire_phase()
-// CHECK: %[[REQUIRED_VALUE:[a-zA-Z0-9_.$-]+]] = llvm.mlir.constant(1 : i32) : i32
-// CHECK: %[[IS_ARRAY:[a-zA-Z0-9_.$-]+]] = llvm.mlir.constant(0 : i32) : i32
-// CHECK: %[[WITH_VALUES:[a-zA-Z0-9_.$-]+]] = llvm.mlir.constant(false) : i1
 // CHECK: %[[R1_CTL:[a-zA-Z0-9_.$-]+]] = llvm.mlir.addressof @__quantum__qis__r1__ctl : !llvm.ptr
 // CHECK: %[[ONE:[a-zA-Z0-9_.$-]+]] = llvm.mlir.constant(1 : i64) : i64
 // CHECK: %[[THETA:[a-zA-Z0-9_.$-]+]] = llvm.mlir.constant(5.000000e-01 : f64) : f64
@@ -57,7 +54,7 @@ func.func @atomic_wire_regions() attributes {"cudaq-entrypoint", "cudaq-kernel"}
 // CHECK: %[[CONTROL:[a-zA-Z0-9_.$-]+]] = llvm.inttoptr %[[ZERO]] : i64 to !llvm.ptr
 // CHECK: %[[TARGET:[a-zA-Z0-9_.$-]+]] = llvm.inttoptr %[[ONE]] : i64 to !llvm.ptr
 // CHECK: llvm.call @__quantum__qis__x__body(%[[CONTROL]])
-// CHECK-NEXT: llvm.call @generalizedInvokeWithRotationsControlsTargets(%[[ONE]], %[[ONE]], %[[ONE]], %[[WITH_VALUES]], %[[R1_CTL]], %[[THETA]], %[[IS_ARRAY]], %[[REQUIRED_VALUE]], %[[CONTROL]], %[[TARGET]])
+// CHECK-NEXT: llvm.call @generalizedInvokeWithRotationsControlsTargets(%[[ONE]], %[[ZERO]], %[[ONE]], %[[ONE]], %[[R1_CTL]], %[[THETA]], %[[CONTROL]], %[[TARGET]])
 // CHECK-NEXT: llvm.call @__quantum__qis__x__body(%[[CONTROL]])
 // CHECK: llvm.return
 
@@ -66,7 +63,7 @@ func.func @atomic_wire_regions() attributes {"cudaq-entrypoint", "cudaq-kernel"}
 // CHECK-NEXT: llvm.call @__quantum__qis__h__body
 // CHECK: llvm.return
 
-// CHECK-COUNT-1: llvm.func @generalizedInvokeWithRotationsControlsTargets(i64, i64, i64, i1, !llvm.ptr, ...) attributes {sym_visibility = "private"}
+// CHECK-COUNT-1: llvm.func @generalizedInvokeWithRotationsControlsTargets(i64, i64, i64, i64, !llvm.ptr, ...) attributes {sym_visibility = "private"}
 // PIPELINE-NOT: convert-to-cfg
 // PIPELINE-NOT: stack-frame-prealloc
 // PIPELINE: convert-to-cfg-prep,

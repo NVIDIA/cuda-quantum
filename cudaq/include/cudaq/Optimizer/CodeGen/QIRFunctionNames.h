@@ -62,6 +62,8 @@ static constexpr const char NVQIRInvokeWithControlRegisterOrBits[] =
     "invokeWithControlRegisterOrQubits";
 static constexpr const char NVQIRGeneralizedInvokeAny[] =
     "generalizedInvokeWithRotationsControlsTargets";
+static constexpr const char NVQIRGeneralizedInvokeControlValues[] =
+    "generalizedInvokeWithRotationsControlValuesTargets";
 static constexpr const char NVQIRInvokeCustomControlValues[] =
     "invokeCustomUnitaryWithControlValues";
 static constexpr const char NVQIRInvokeExpPauliControlValues[] =

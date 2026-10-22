@@ -184,6 +184,12 @@ static void
 createTargetCodegenPipeline(OpPassManager &pm,
                             const TargetCodegenPipelineOptions &options,
                             bool useValueSemantics) {
+  const auto tgt = StringRef(options.target).split(':').first;
+  const bool isFullQIR = tgt == "qir" || tgt == "qir-full";
+  // Full QIR passes negated controls to NVQIR. Other targets expand them
+  // before simplification, which can then cancel the X pairs.
+  if (!isFullQIR)
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
   createCommonTargetCodegenPipeline(pm, options);
   if (useValueSemantics) {
     cudaq::opt::addConvertToLinearValues(pm);
@@ -194,10 +200,9 @@ createTargetCodegenPipeline(OpPassManager &pm,
       cudaq::opt::createEraseCompilerGeneratedEvince());
 
   cudaq::opt::addPhaseLifecycle(pm);
-  const auto tgt = StringRef(options.target).split(':').first;
-  const bool isFullQIR = tgt == "qir" || tgt == "qir-full";
-  // Full QIR passes negated controls to NVQIR. Other targets expand them after
-  // `LowerPhase`, which can leave negated controls on the R1/Rz it creates.
+  // `LowerPhase` can leave negative controls on the R1/Rz it creates, so we
+  // need to run this pass again to expand those negations on non-full-QIR
+  // targets.
   if (!isFullQIR)
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
 
