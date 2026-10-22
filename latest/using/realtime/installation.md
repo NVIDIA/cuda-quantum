@@ -2014,7 +2014,7 @@ Using Holoscan Sensor Bridge
 ::: {.tab-content .docutils}
 -   CUDA Runtime with version 12.6+ or 13.x
 
--   [DOCA 3.3.0
+-   [DOCA 3.4.0
     installation](https://developer.nvidia.com/doca-downloads){.reference
     .external} with [`gpunetio`{.code .docutils .literal
     .notranslate}]{.pre} support.
