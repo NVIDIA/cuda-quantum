@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// clang-format off
 // RUN: cudaq-quake %s | FileCheck %s
 
 #include <cudaq.h>
@@ -40,3 +41,4 @@ struct Qernel {
 
 // The host function does not have the members as arguments.
 // CHECK-LABEL: func.func @_ZN6QernelclEi(%{{.*}}: !cc.ptr<i8>{{.*}}, %{{.*}}: i32{{.*}}) {
+// clang-format on

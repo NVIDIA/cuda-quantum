@@ -6,12 +6,14 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// clang-format off
 // RUN: nvq++ %s -o %t && %t | FileCheck %s
 // RUN: if %quantinuum_avail; then nvq++ -target quantinuum -emulate %s -o %t && %t | FileCheck %s; fi
 // Packed-only launch with `quake-synthesizer`.
 // RUN: if %quantinuum_avail; then nvq++ -target quantinuum -emulate -fkernel-exec-kind=1 %s -o %t && %t | FileCheck %s; fi
 // Streamlined launch with `argument-synthesis`.
 // RUN: if %quantinuum_avail; then nvq++ -target quantinuum -emulate -fkernel-exec-kind=2 %s -o %t && %t | FileCheck %s; fi
+// clang-format on
 
 #include <cudaq.h>
 #include <iostream>
