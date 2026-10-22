@@ -49,6 +49,16 @@ The bytes stay valid for the life of the process.
 includes the realtime headers and uses only their header-only code
 (`device_code_reader.h` included); it does not link `cudaq-realtime`.
 
+## nvJitLink
+
+Building `libcudaq-realtime` needs the nvJitLink header and library, from the
+nvJitLink dev package (`libnvjitlink-dev`, part of a full CUDA toolkit).  No
+public header includes `nvJitLink.h`, so applications and bridges build
+without it.  At run time `libcudaq-realtime.so` loads `libnvJitLink.so.<major>`,
+which every CUDA runtime install provides.  That nvJitLink must be at least as
+new as every toolkit that produced the linked code: the one that built
+`libcudaq-realtime`, the bridge's and the application's.
+
 ## Exporting handlers
 
 CUDA looks up kernels and globals by name, never device functions.  Export a

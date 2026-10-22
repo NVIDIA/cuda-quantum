@@ -15,3 +15,9 @@ set_target_properties(cudaq-realtime-c-api-check PROPERTIES
 target_include_directories(cudaq-realtime-c-api-check PRIVATE
   ${CUDAQ_REALTIME_INCLUDE_DIR}
   ${CUDAToolkit_INCLUDE_DIRS})
+
+# Applications and bridges build against these headers without the nvJitLink
+# dev package, so none of them may include nvJitLink.h.
+add_test(NAME cudaq_realtime_public_headers_without_nvjitlink
+  COMMAND ${CMAKE_COMMAND} -DINCLUDE_DIR=${CUDAQ_REALTIME_INCLUDE_DIR}
+    -P ${CMAKE_CURRENT_SOURCE_DIR}/check_no_nvjitlink.cmake)
