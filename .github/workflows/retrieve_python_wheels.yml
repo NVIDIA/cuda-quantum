@@ -50,6 +50,10 @@ on:
         type: string
         description: Pattern matching cudaq-logical wheel artifacts.
         default: 'cudaq_logical-*'
+      edem_wheel_artifacts:
+        type: string
+        description: Pattern matching the corresponding cudaq-edem wheel artifacts.
+        default: 'cudaq_edem-*'
 
   workflow_call:
     inputs:
@@ -88,6 +92,10 @@ on:
         type: string
         description: Pattern matching cudaq-logical wheel artifacts.
         default: 'cudaq_logical-*'
+      edem_wheel_artifacts:
+        type: string
+        description: Pattern matching the corresponding cudaq-edem wheel artifacts.
+        default: 'cudaq_edem-*'
     outputs:
       cudaq_version:
         description: "The version of the resolved wheels."
@@ -434,6 +442,7 @@ jobs:
       cuda_versions: "['${{ inputs.cuda_version }}']"
       wheel_artifacts: 'pycudaq-*'
       logical_wheel_artifacts: ${{ inputs.logical_wheel_artifacts }}
+      edem_wheel_artifacts: ${{ inputs.edem_wheel_artifacts }}
       build_deprecated_package: false
       # Only run the metapackage test job on x86_64
       run_tests: ${{ inputs.run_validation && inputs.platform == 'linux/amd64' }}
@@ -504,6 +513,47 @@ jobs:
         with:
           name: ${{ needs.metapackage.outputs.artifact_name }}
           path: all-wheels
+
+      - name: Include available Logical wheels
+        if: inputs.logical_wheel_artifacts != ''
+        uses: actions/download-artifact@v8
+        with:
+          pattern: ${{ inputs.logical_wheel_artifacts }}
+          path: logical-wheels
+          merge-multiple: true
+
+      - name: Include matching EDEM wheels
+        if: inputs.logical_wheel_artifacts != '' && inputs.edem_wheel_artifacts != ''
+        uses: actions/download-artifact@v8
+        with:
+          pattern: ${{ inputs.edem_wheel_artifacts }}
+          path: edem-wheels
+          merge-multiple: true
+
+      - name: Select matching Logical and EDEM wheels for the bundle
+        if: inputs.logical_wheel_artifacts != ''
+        env:
+          PLATFORM: ${{ inputs.platform }}
+          PYTHON_VERSION: ${{ inputs.python_version }}
+        run: |
+          case "$PLATFORM" in
+            linux/amd64) arch=x86_64 ;;
+            linux/arm64) arch=aarch64 ;;
+            *) echo "::error::Unsupported Logical wheel platform: $PLATFORM"; exit 1 ;;
+          esac
+          python_tag="${PYTHON_VERSION/./}"
+          shopt -s nullglob
+          logical=(logical-wheels/cudaq_logical-*-cp${python_tag}-*_${arch}.whl)
+          edem=(edem-wheels/cudaq_edem-*-cp${python_tag}-*_${arch}.whl)
+          # A core-only retrieval may run before Logical is built. Include a
+          # producer pair only when the requested Logical wheel is available.
+          if [ "${#logical[@]}" -gt 0 ]; then
+            if [ "${#logical[@]}" -ne 1 ] || [ "${#edem[@]}" -ne 1 ]; then
+              echo "::error::Expected one matching Logical/EDEM wheel pair."
+              exit 1
+            fi
+            cp "${logical[0]}" "${edem[0]}" all-wheels/
+          fi
 
       - name: Upload all-wheels bundle
         uses: actions/upload-artifact@v7

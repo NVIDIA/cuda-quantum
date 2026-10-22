@@ -140,7 +140,7 @@ jobs:
             --build-arg python_version=$PYTHON_VERSION \
             --build-arg cudaq_version=$CUDAQ_VERSION \
             --build-arg cudaq_logical_version=$CUDAQ_LOGICAL_VERSION \
-            --build-arg preinstalled_modules="pytest" \
+            --build-arg preinstalled_modules="pytest stim>=1.16,<2" \
             --build-arg pip_install_flags=$PIP_INSTALL_FLAGS \
 
       - name: Validate installed cudaq.logical tools

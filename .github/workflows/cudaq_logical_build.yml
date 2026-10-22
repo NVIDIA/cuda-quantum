@@ -401,7 +401,8 @@ jobs:
           cp docker/test/wheels/integration/test_installation.py /tmp/test_installation.py
           uv pip install -f dist "cudaq-core==$CUDAQ_VERSION"
           python /tmp/test_installation.py
-          uv pip install -f dist "cudaq-logical==$CUDAQ_LOGICAL_VERSION"
+          uv pip install -f dist "cudaq-logical==$CUDAQ_LOGICAL_VERSION" \
+            "dist/${{ needs.build.outputs.edem_wheel_name }}"
           python /tmp/test_installation.py --logical
           printf 'module {}\n' | qlx-opt
           uv pip check
@@ -411,7 +412,8 @@ jobs:
         run: |
           set -euo pipefail
           if [ -n "$METAPACKAGE_ARTIFACT_NAME" ]; then
-            uv pip install -f dist "cudaq==$CUDAQ_VERSION"
+            uv pip install -f dist "cudaq==$CUDAQ_VERSION" \
+              "dist/${{ needs.build.outputs.edem_wheel_name }}"
           else
             # No metapackage sdist: install the local runtime wheel and
             # cudaq-logical without resolving the `cudaq` PyPI dependency.
@@ -472,3 +474,4 @@ jobs:
           esac
 
           python -m pytest preview/logical/python/tests/cudaq/logical -v
+          python -m pytest docker/test/wheels/integration/test_logical_release_install.py -v

@@ -173,7 +173,8 @@ jobs:
           set -euo pipefail
           uv pip install -f dist \
             "cudaq==$CUDAQ_VERSION" \
-            "cudaq-logical==$CUDAQ_LOGICAL_VERSION"
+            "cudaq-logical==$CUDAQ_LOGICAL_VERSION" \
+            "dist/$EDEM_WHEEL_NAME"
 
       - name: Test inline docs snippets
         shell: bash

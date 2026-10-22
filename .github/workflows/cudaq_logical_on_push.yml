@@ -39,6 +39,8 @@ jobs:
             edem/
             math/gf2/
             pyproject.toml.edem
+            docker/release/install_logical_wheel.py
+            docker/test/wheels/integration/test_logical_release_install.py
             .github/workflows/cudaq_logical_on_push.yml
             .github/workflows/cudaq_logical_build_or_retrieve.yml
             .github/workflows/cudaq_logical_build.yml

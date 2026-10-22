@@ -94,8 +94,9 @@ ENV CPLUS_INCLUDE_PATH="$CPLUS_INCLUDE_PATH:$CUDA_QUANTUM_PATH/include"
 # Better alternative to setting the PYTHONPATH, since the PYTHONPATH is generally not preserved when running as sudo.
 RUN echo "$CUDA_QUANTUM_PATH" > /usr/local/lib/python$(python --version | egrep -o "([0-9]{1,}\.)+[0-9]{1,}" | cut -d '.' -f -2)/dist-packages/cudaq.pth
 
-# Deployments supplies one Python 3.12 Logical wheel for this architecture in
-# docker/release/logical-wheels/. Bind it so the archive is not retained in a layer.
+# Deployments supplies matching Python 3.12 Logical and EDEM wheels for this
+# architecture in docker/release/logical-wheels/. Bind the archives so they are
+# not retained in a layer. Both packages are installed beside native CUDA-Q.
 ARG include_logical=false
 RUN --mount=type=bind,source=docker/release,target=/tmp/cudaq-release \
     if [ "$include_logical" = true ]; then \
