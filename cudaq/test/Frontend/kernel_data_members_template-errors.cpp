@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// clang-format off
 // RUN: not cudaq-quake %s 2>&1 | FileCheck %s
 
 #include <cudaq.h>
@@ -35,3 +36,4 @@ int main() {
   cudaq::sample(OutOfLine{});
   return 0;
 }
+// clang-format on

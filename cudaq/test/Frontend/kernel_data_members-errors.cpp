@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// clang-format off
 // RUN: not cudaq-quake %s 2>&1 | FileCheck %s
 
 #include "cudaq/qis/qubit_qis.h"
@@ -56,3 +57,4 @@ struct M {
 struct D : public C {
   void operator()(cudaq::qubit &q) __qpu__ { h(q); }
 };
+// clang-format on
