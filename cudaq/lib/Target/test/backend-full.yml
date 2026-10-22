@@ -7,7 +7,7 @@
 # ============================================================================ #
 
 # RUN: %target-catalog-driver parse %s | FileCheck %s --check-prefix=PARSE
-# RUN: %target-catalog-driver emit %s | FileCheck %s --check-prefix=EMIT --implicit-check-not=raw-pass-text --implicit-check-not=RESOURCE_COUNT --implicit-check-not={{^GEN_TARGET_BACKEND=}} --implicit-check-not={{^LIBRARY_MODE=}}
+# RUN: %target-catalog-driver emit %s | FileCheck %s --check-prefix=EMIT --implicit-check-not=raw-pass-text --implicit-check-not=RESOURCE_COUNT --implicit-check-not={{^GEN_TARGET_BACKEND=}} --implicit-check-not={{^LIBRARY_MODE=}} --implicit-check-not=JIT_ --implicit-check-not=CODEGEN_EMISSION --implicit-check-not=POST_CODEGEN_PASSES
 #
 # Explicitly-false gen-target-backend/library-mode emit nothing at all (nvq++
 # already defaults both to false); only `true` is emitted.
@@ -67,12 +67,7 @@ config:
 # PARSE:   rule: if=$ENABLE_B compiler-flag= link-flag=-lb
 # PARSE: plugin-libraries: ["libacme-qpu"]
 
-# EMIT: JIT_HIGH_LEVEL_PIPELINE="high-pipe"
-# EMIT: JIT_MID_LEVEL_PIPELINE="mid-pipe"
-# EMIT: JIT_LOW_LEVEL_PIPELINE="low-pipe"
 # EMIT: TARGET_PASS_PIPELINE_NAME=target-pass-pipeline-lit-full
-# EMIT: CODEGEN_EMISSION=qir-full
-# EMIT: POST_CODEGEN_PASSES="post-passes"
 # EMIT: PLATFORM_LIBRARY=libacme-platform
 # EMIT: LIBRARY_MODE_EXECUTION_MANAGER=acme-manager
 # EMIT: PLATFORM_QPU=acme_qpu
