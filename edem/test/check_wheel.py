@@ -5,7 +5,7 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-"""Install an EDEM wheel, relocate its package, and build native consumers."""
+"""Install a cudaq-edem wheel, relocate it, and build native consumers."""
 
 import argparse
 import json
@@ -144,7 +144,7 @@ def main():
         for command in commands:
             subprocess.run(command, check=True, cwd=work)
     print(
-        "EDEM wheel import, native library loading, relocation, and consumers passed"
+        "cudaq-edem wheel import, native library loading, relocation, and consumers passed"
     )
 
 

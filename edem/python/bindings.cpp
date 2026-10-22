@@ -598,8 +598,9 @@ static void bind_value(nb::class_<Value> &type) {
 
 NB_MODULE(_core, m) {
   using namespace cudaq_edem_python;
-  m.doc() = "Owned native EDEM values (v0.x). ABI_VERSION and "
-            "FORMAT_VERSION identify concrete development revisions.";
+  m.doc() = "cudaq-edem native bindings. The API, ABI, and packed format are "
+            "unstable during v0.x development. ABI_VERSION and FORMAT_VERSION "
+            "identify concrete development revisions.";
   m.attr("ABI_VERSION") = CUDAQ_EDEM_ABI_VERSION;
   m.attr("FORMAT_VERSION") = CUDAQ_EDEM_FORMAT_VERSION;
   nb::enum_<PortKind>(m, "PortKind")

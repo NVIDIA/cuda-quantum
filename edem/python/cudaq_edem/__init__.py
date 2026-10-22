@@ -5,12 +5,13 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-"""EDEM v0.x bindings and packed values.
+"""Shared EDEM data structures and operations from cudaq-edem.
 
-**CUDA-Q EDEM is provided for early experimental scenarios. Its APIs are evolving
-quickly and may change incompatibly during v0.x development.**
+Early development: the API, ABI, and packed format are unstable and subject
+to rapid, potentially incompatible changes during v0.x development.
 
-The interfaces and binary compatibility are subject to change during development.
+The packed representation and C API allow compilers and runtime components
+to exchange and evaluate EDEMs.
 """
 
 from pathlib import Path
