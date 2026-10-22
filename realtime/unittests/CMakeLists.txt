@@ -127,6 +127,13 @@ if (CUDAQ_REALTIME_ENABLE_HSB_TOOLS)
   add_subdirectory(bridge_interface/gpu_roce)
 endif()
 
+# Run-time linked GPU data plane over a test-only loopback provider: self-gated
+# on CUDA; skips at run time without a GPU.
+add_subdirectory(bridge_interface/gpu_loopback)
+
+# The public headers must compile as C.
+add_subdirectory(c_api)
+
 # UDP bridge provider tests: self-gated on the always-built udp provider
 # target, so they run in CI without any HSB/RDMA setup.
 add_subdirectory(bridge_interface/udp)

@@ -52,33 +52,6 @@
 // library)
 #include "cudaq/realtime/daemon/bridge/gpu_roce/gpu_roce_wrapper.h"
 
-// Weak declarations of the GpuRoceTransceiver unified dispatch entry points
-// (defined in libcudaq-realtime-bridge-gpu-roce.so).  Weak so that bridge
-// tools that only use the 3-kernel architecture don't need to link the
-// bridge-gpu_roce library.
-//
-// There is no launch function among them: this transport implements the
-// device data plane in dispatcher/unified_device_transport.cuh, and the
-// dispatcher runs the unified kernel from libcudaq-realtime-dispatch.a over it.
-
-// Copy a host-filled context into device memory.  The unified kernel's
-// transport hooks dereference the context on the GPU -- it is no longer
-// unpacked into kernel arguments -- so the pointer handed to
-// cudaq_dispatcher_set_unified_launch must be device-resident.
-//
-// Returns cudaSuccess (0) on success, otherwise the failing cudaError_t as an
-// int, leaving *out_device_ctx untouched.  On success the caller owns
-// *out_device_ctx and releases it with gpu_roce_unified_ctx_free once the
-// dispatcher has stopped.
-extern "C" __attribute__((weak)) int
-gpu_roce_unified_ctx_to_device(const gpu_roce_doca_transport_ctx *host_ctx,
-                               void **out_device_ctx);
-
-// Release a context allocated by gpu_roce_unified_ctx_to_device.  Safe to
-// call with NULL.
-extern "C" __attribute__((weak)) void
-gpu_roce_unified_ctx_free(void *device_ctx);
-
 namespace cudaq::realtime {
 
 //==============================================================================
@@ -256,6 +229,15 @@ inline int bridge_run(BridgeConfig &config) {
 
   auto &g_shutdown = detail::bridge_shutdown_flag();
 
+  // The unified kernel is linked at run time from the bridge's device code,
+  // which only the bridge interface hands over.
+  if (config.unified) {
+    std::cerr << "ERROR: bridge_run does not drive the unified kernel; use "
+                 "gpu_roce_app --unified"
+              << std::endl;
+    return 1;
+  }
+
   //============================================================================
   // [1] Initialize CUDA
   //============================================================================
@@ -282,19 +264,9 @@ inline int bridge_run(BridgeConfig &config) {
   std::cout << "  Page size: " << config.page_size << " bytes" << std::endl;
   std::cout << "  Num pages: " << config.num_pages << std::endl;
 
-  // On iGPU (e.g. DGX Spark GB10), DOCA NIC doorbells require a CPU proxy
-  // thread.  GpuRoceTransceiver's blocking_monitor() starts this thread
-  // alongside its kernels.  For unified mode on iGPU we need the CPU proxy but
-  // NOT the gpu_roce kernels, so we pass (false, false, false) --
-  // blocking_monitor will start only the CPU proxy thread.  On dGPU, no CPU
-  // proxy is needed and we use forward=true to get 64-deep receive pre-posting
-  // from start().
-  bool is_igpu = (prop.integrated != 0);
-  bool unified_igpu = config.unified && is_igpu;
-
   bool is_host_loop = (config.dispatch_path == CUDAQ_DISPATCH_PATH_HOST);
-  bool use_forward = config.forward || (config.unified && !is_igpu);
-  bool use_3kernel = is_host_loop || (!config.forward && !config.unified);
+  bool use_forward = config.forward;
+  bool use_3kernel = is_host_loop || !config.forward;
 
   gpu_roce_transceiver_t transceiver = gpu_roce_create_transceiver(
       config.device.c_str(), 1, // ib_port
@@ -328,19 +300,6 @@ inline int bridge_run(BridgeConfig &config) {
   // GpuRoceTransceiver start() pops the CUDA context via cuCtxPopCurrent;
   // restore it.
   BRIDGE_CUDA_CHECK(cudaSetDevice(config.gpu_id));
-
-  // On iGPU unified mode, start() didn't pre-post receive WQEs (transceiver
-  // was created with forward=false, rx_only=false, tx_only=false).  Call the
-  // prepare kernel here so the NIC has receive buffers before any packets
-  // arrive.
-  if (unified_igpu) {
-    if (!gpu_roce_prepare_receive_send(transceiver, config.frame_size)) {
-      std::cerr << "ERROR: Failed to pre-post receive WQEs" << std::endl;
-      gpu_roce_destroy_transceiver(transceiver);
-      return 1;
-    }
-    std::cout << "  Pre-posted receive WQEs (iGPU unified mode)" << std::endl;
-  }
 
   std::cout << "  QP connected to remote peer" << std::endl;
 
@@ -383,14 +342,8 @@ inline int bridge_run(BridgeConfig &config) {
   cudaq_dispatch_manager_t *manager = nullptr;
   cudaq_dispatcher_t *dispatcher = nullptr;
 
-  // Transport context for unified mode.  The kernel's hooks read it on the
-  // GPU, so the dispatcher is handed the device copy; the host struct is only
-  // the staging buffer.  The device copy must outlive the dispatcher.
-  gpu_roce_doca_transport_ctx unified_ctx{};
-  void *d_unified_ctx = nullptr;
-
   if (!config.forward) {
-    if (!config.unified && !is_host_loop) {
+    if (!is_host_loop) {
       int dispatch_blocks = 0;
       cudaError_t occ_err =
           cudaq_dispatch_kernel_query_occupancy(&dispatch_blocks, 1);
@@ -407,10 +360,8 @@ inline int bridge_run(BridgeConfig &config) {
     // [4] Wire dispatch kernel
     //==========================================================================
     std::cout << "\n[4/5] Wiring dispatch kernel ("
-              << (is_host_loop     ? "host-loop"
-                  : config.unified ? "unified"
-                                   : "3-kernel")
-              << ")..." << std::endl;
+              << (is_host_loop ? "host-loop" : "3-kernel") << ")..."
+              << std::endl;
 
     void *tmp_shutdown = nullptr;
     BRIDGE_CUDA_CHECK(
@@ -455,20 +406,11 @@ inline int bridge_run(BridgeConfig &config) {
       dconfig.skip_tx_markers = 1;
     } else {
       dconfig.dispatch_mode = CUDAQ_DISPATCH_DEVICE_CALL;
-
-      if (config.unified) {
-        dconfig.kernel_type = CUDAQ_KERNEL_UNIFIED;
-        dconfig.num_blocks = 1;
-        dconfig.threads_per_block = 1;
-        dconfig.num_slots = static_cast<uint32_t>(config.num_pages);
-        dconfig.slot_size = static_cast<uint32_t>(config.page_size);
-      } else {
-        dconfig.kernel_type = config.kernel_type;
-        dconfig.num_blocks = config.num_blocks;
-        dconfig.threads_per_block = config.threads_per_block;
-        dconfig.num_slots = static_cast<uint32_t>(config.num_pages);
-        dconfig.slot_size = static_cast<uint32_t>(config.page_size);
-      }
+      dconfig.kernel_type = config.kernel_type;
+      dconfig.num_blocks = config.num_blocks;
+      dconfig.threads_per_block = config.threads_per_block;
+      dconfig.num_slots = static_cast<uint32_t>(config.num_pages);
+      dconfig.slot_size = static_cast<uint32_t>(config.page_size);
     }
 
     if (cudaq_dispatcher_create(manager, &dconfig, &dispatcher) != CUDAQ_OK) {
@@ -514,36 +456,6 @@ inline int bridge_run(BridgeConfig &config) {
           std::cerr << "ERROR: Failed to set mailbox" << std::endl;
           return 1;
         }
-      }
-    } else if (config.unified) {
-      // Pack DOCA transport handles into the opaque context
-      unified_ctx.gpu_dev_qp = gpu_roce_get_gpu_dev_qp(transceiver);
-      unified_ctx.rx_ring_data = rx_ring_data;
-      unified_ctx.rx_ring_stride_sz = gpu_roce_get_page_size(transceiver);
-      unified_ctx.rx_ring_stride_num = gpu_roce_get_num_pages(transceiver);
-      unified_ctx.tx_ring_data = tx_ring_data;
-      unified_ctx.tx_ring_stride_sz = gpu_roce_get_page_size(transceiver);
-      unified_ctx.tx_ring_mkey = htonl(gpu_roce_get_tx_ring_lkey(transceiver));
-      unified_ctx.frame_size = config.frame_size;
-      unified_ctx.use_bf = is_igpu ? 0 : 1;
-
-      const int stage_err =
-          gpu_roce_unified_ctx_to_device(&unified_ctx, &d_unified_ctx);
-      if (stage_err != cudaSuccess) {
-        std::cerr << "ERROR: Failed to stage the unified transport context "
-                     "on the device: "
-                  << cudaGetErrorString(static_cast<cudaError_t>(stage_err))
-                  << std::endl;
-        return 1;
-      }
-
-      // NULL: no loop override, so the dispatcher runs its own unified
-      // kernel over the device hooks this build linked in.
-      if (cudaq_dispatcher_set_unified_launch(dispatcher, nullptr,
-                                              d_unified_ctx) != CUDAQ_OK) {
-        std::cerr << "ERROR: Failed to set unified launch function"
-                  << std::endl;
-        return 1;
       }
     } else {
       cudaq_ringbuffer_t ringbuffer{};
@@ -598,25 +510,12 @@ inline int bridge_run(BridgeConfig &config) {
   //============================================================================
   std::thread gpu_roce_thread;
 
-  if (config.unified && !unified_igpu) {
-    std::cout << "\n[5/5] Unified mode (dGPU) -- GpuRoceTransceiver kernels "
-                 "not needed"
-              << std::endl;
-  } else if (unified_igpu) {
-    std::cout
-        << "\n[5/5] Unified mode (iGPU) -- starting GpuRoceTransceiver monitor "
-        << "(CPU proxy only, no gpu_roce kernels)" << std::endl;
-    gpu_roce_thread = std::thread(
-        [transceiver]() { gpu_roce_blocking_monitor(transceiver); });
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
-  } else {
-    std::cout << "\n[5/5] Launching GpuRoceTransceiver kernels..." << std::endl;
-    std::cout.flush();
-    gpu_roce_thread = std::thread(
-        [transceiver]() { gpu_roce_blocking_monitor(transceiver); });
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
-    std::cout << "  GpuRoceTransceiver RX+TX kernels started" << std::endl;
-  }
+  std::cout << "\n[5/5] Launching GpuRoceTransceiver kernels..." << std::endl;
+  std::cout.flush();
+  gpu_roce_thread =
+      std::thread([transceiver]() { gpu_roce_blocking_monitor(transceiver); });
+  std::this_thread::sleep_for(std::chrono::milliseconds(500));
+  std::cout << "  GpuRoceTransceiver RX+TX kernels started" << std::endl;
 
   // Print QP info for FPGA stimulus tool
   std::cout << "\n=== Bridge Ready ===" << std::endl;
@@ -692,8 +591,6 @@ inline int bridge_run(BridgeConfig &config) {
     cudaq_dispatcher_destroy(dispatcher);
   if (manager)
     cudaq_dispatch_manager_destroy(manager);
-  if (d_unified_ctx)
-    gpu_roce_unified_ctx_free(d_unified_ctx);
   gpu_roce_destroy_transceiver(transceiver);
 
   if (shutdown_flag)
