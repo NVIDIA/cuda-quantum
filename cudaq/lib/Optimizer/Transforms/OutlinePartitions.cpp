@@ -10,6 +10,7 @@
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
+#include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SetVector.h"
@@ -93,9 +94,48 @@ outlinePartitionImpl(ArrayRef<Operation *> partition,
         return failure();
 
   auto inputList = inputs.takeVector();
-  auto outputList = outputs.takeVector();
   auto nonWireInputList = nonWireInputs.takeVector();
   auto nonWireOutputList = nonWireOutputs.takeVector();
+
+  // Create a map to order the output wires in the same order as the
+  // discovered wire inputs by tracing wire flow
+  // current wire --> original input index
+  DenseMap<Value, unsigned> outputIdxByWire;
+  // create vector of ordered wire outputs to match input wire order
+  SmallVector<Value> orderedWireOutputs(inputList.begin(), inputList.end());
+
+  for (auto [i, wire] : llvm::enumerate(inputList))
+    outputIdxByWire[wire] = i;
+
+  // now order the outputs based on discovered wire inputs
+  for (Operation *op : orderedOps) {
+    // no wire input in `quake.discriminate`
+    if (isa<cudaq::quake::DiscriminateOp>(op))
+      continue;
+
+    auto flow = cudaq::quake::detail::getScalarWireFlow(op);
+    if (!flow)
+      return failure();
+
+    for (auto [in, out] : llvm::zip(flow->inputs, flow->results)) {
+      auto it = outputIdxByWire.find(in);
+      if (it == outputIdxByWire.end())
+        return failure();
+
+      unsigned idx = it->second;
+      outputIdxByWire.erase(it);
+      outputIdxByWire[out] = idx;
+      orderedWireOutputs[idx] = out;
+    }
+  }
+
+  // Check that tracing found exactly the discovered output wires.
+  if (orderedWireOutputs.size() != outputs.size())
+    return failure();
+
+  for (Value out : orderedWireOutputs)
+    if (!out || !outputs.contains(out))
+      return failure();
 
   // Prepare a callable with wire inputs and non-wire results before wire
   // results.
@@ -105,7 +145,7 @@ outlinePartitionImpl(ArrayRef<Operation *> partition,
     inTys.push_back(v.getType());
   for (Value v : nonWireOutputList)
     outTys.push_back(v.getType());
-  for (Value v : outputList)
+  for (Value v : orderedWireOutputs)
     outTys.push_back(v.getType());
   auto callableTy =
       cudaq::cc::CallableType::get(ctx, FunctionType::get(ctx, inTys, outTys));
@@ -115,7 +155,7 @@ outlinePartitionImpl(ArrayRef<Operation *> partition,
   // unavailable.
   OpBuilder builder(ctx);
   Operation *insertBefore = nullptr;
-  for (Value out : llvm::concat<Value>(nonWireOutputList, outputList))
+  for (Value out : llvm::concat<Value>(nonWireOutputList, orderedWireOutputs))
     for (Operation *user : out.getUsers())
       if (!inPartition.contains(user))
         if (!insertBefore || user->isBeforeInBlock(insertBefore))
@@ -147,7 +187,7 @@ outlinePartitionImpl(ArrayRef<Operation *> partition,
         SmallVector<Value> results;
         for (Value out : nonWireOutputList)
           results.push_back(map.lookup(out));
-        for (Value out : outputList)
+        for (Value out : orderedWireOutputs)
           results.push_back(map.lookup(out));
         cudaq::cc::ReturnOp::create(b, l, results);
       });
@@ -162,7 +202,7 @@ outlinePartitionImpl(ArrayRef<Operation *> partition,
 
   for (auto [i, out] : llvm::enumerate(nonWireOutputList))
     out.replaceAllUsesWith(call.getResult(i));
-  for (auto [i, out] : llvm::enumerate(outputList))
+  for (auto [i, out] : llvm::enumerate(orderedWireOutputs))
     out.replaceAllUsesWith(call.getResult(i + nonWireOutputList.size()));
   for (Operation *op : llvm::reverse(orderedOps))
     op->erase();

@@ -95,6 +95,84 @@ TEST(OutlinePartitions, ContiguousRun) {
   EXPECT_EQ(strayGates, 0u);
 }
 
+// Return successor wires in input order, even when their final definitions
+// appear in the opposite order.
+TEST(OutlinePartitions, WireOutputsFollowInputOrder) {
+  const char *ir = R"(
+    func.func @k(%a: !quake.wire, %b: !quake.wire) {
+      %a1 = quake.h %a : (!quake.wire) -> !quake.wire
+      %b_out = quake.x %b : (!quake.wire) -> !quake.wire
+      %a_out = quake.z %a1 : (!quake.wire) -> !quake.wire
+      %a2 = quake.t %a_out : (!quake.wire) -> !quake.wire
+      %b2 = quake.y %b_out : (!quake.wire) -> !quake.wire
+      return
+    }
+  )";
+
+  MLIRContext ctx;
+  auto mod = parse(ctx, ir);
+  ASSERT_TRUE(mod);
+  ASSERT_TRUE(succeeded(verify(*mod)));
+  auto funcOp = mod->lookupSymbol<func::FuncOp>("k");
+  ASSERT_TRUE(funcOp);
+
+  SmallVector<Operation *> partition;
+  cudaq::quake::TOp outsideT;
+  cudaq::quake::YOp outsideY;
+  funcOp.walk([&](Operation *op) {
+    if (isa<cudaq::quake::HOp, cudaq::quake::XOp, cudaq::quake::ZOp>(op))
+      partition.push_back(op);
+    else if (auto t = dyn_cast<cudaq::quake::TOp>(op))
+      outsideT = t;
+    else if (auto y = dyn_cast<cudaq::quake::YOp>(op))
+      outsideY = y;
+  });
+  ASSERT_EQ(partition.size(), 3u);
+  ASSERT_TRUE(outsideT);
+  ASSERT_TRUE(outsideY);
+
+  auto lambda = cudaq::opt::outlinePartition(partition);
+  ASSERT_TRUE(succeeded(lambda));
+  ASSERT_TRUE(succeeded(verify(*mod)));
+
+  cudaq::quake::HOp clonedH;
+  cudaq::quake::XOp clonedX;
+  cudaq::quake::ZOp clonedZ;
+  lambda->walk([&](cudaq::quake::HOp op) { clonedH = op; });
+  lambda->walk([&](cudaq::quake::XOp op) { clonedX = op; });
+  lambda->walk([&](cudaq::quake::ZOp op) { clonedZ = op; });
+  ASSERT_TRUE(clonedH);
+  ASSERT_TRUE(clonedX);
+  ASSERT_TRUE(clonedZ);
+
+  Block &body = lambda->getBody().front();
+  ASSERT_EQ(body.getNumArguments(), 2u);
+
+  // Input slot 0 follows a through H and Z; slot 1 follows b through X.
+  EXPECT_EQ(clonedH.getTargets().front(), body.getArgument(0));
+  EXPECT_EQ(clonedX.getTargets().front(), body.getArgument(1));
+  EXPECT_EQ(clonedZ.getTargets().front(), clonedH->getResult(0));
+
+  auto ret = cast<cudaq::cc::ReturnOp>(body.getTerminator());
+  ASSERT_EQ(ret->getNumOperands(), 2u);
+  // note the order here:
+  // The Z output is actually first output operand, then the x
+  EXPECT_EQ(ret->getOperand(0), clonedZ->getResult(0));
+  EXPECT_EQ(ret->getOperand(1), clonedX->getResult(0));
+
+  cudaq::cc::CallCallableOp call;
+  funcOp.walk([&](cudaq::cc::CallCallableOp op) { call = op; });
+  ASSERT_TRUE(call);
+  ASSERT_EQ(call.getArgOperands().size(), 2u);
+  EXPECT_EQ(call.getArgOperands()[0], funcOp.getArgument(0));
+  EXPECT_EQ(call.getArgOperands()[1], funcOp.getArgument(1));
+
+  // Outside consumers receive the result corresponding to their input wire.
+  ASSERT_EQ(call->getNumResults(), 2u);
+  EXPECT_EQ(outsideT.getTargets().front(), call.getResult(0));
+  EXPECT_EQ(outsideY.getTargets().front(), call.getResult(1));
+}
+
 // A partition whose output wire is consumed by a non-partition op before the
 // block ends is still valid: the closure is inserted before the consumer so
 // its results dominate all uses.
