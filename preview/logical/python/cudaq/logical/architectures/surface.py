@@ -1,5 +1,5 @@
 # ============================================================================ #
-# Copyright (c) 2026 NVIDIA Corporation & Affiliates.
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
 # All rights reserved.
 #
 # This source code and the accompanying materials are made available under
@@ -1343,11 +1343,16 @@ def _admitted_auxiliary_regions(
 ) -> tuple[devices.QECRegion, ...]:
     encodings = {}
     paulis = ("X", "Y", "Z")
+    code = codes.Surface[distance]
+    single_patch_counts = {
+        pauli: _wsc._wsc_kappa_count(code, ((0, pauli),)) for pauli in paulis
+    }
     for weight in range(1, max_product_weight + 1):
-        direct_sum = _surface_direct_sum(distance, weight)
         for factors in cartesian_product(paulis, repeat=weight):
-            terms = tuple(enumerate(factors))
-            kappa_count = _wsc._wsc_kappa_count(direct_sum, terms)
+            # Per-patch counts add. Joining the stars adds weight - 1 edges.
+            kappa_count = (
+                sum(single_patch_counts[pauli] for pauli in factors) + weight -
+                1)
             encoding = _surface_auxiliary_code(kappa_count).default_encoding
             encodings[encoding.name] = (
                 kappa_count,
