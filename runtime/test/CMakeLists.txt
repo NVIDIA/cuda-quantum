@@ -49,7 +49,8 @@ add_cudaq_hybrid_test(resource_count_wireset)
 # closure.
 add_executable(profile_stages Regress/profile_stages.cpp
                ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/JITTargetPipeline.cpp
-               ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/LoweringHandler.cpp)
+               ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/LoweringHandler.cpp
+               ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/QuakeReferenceSemanticsHandler.cpp)
 target_include_directories(profile_stages PRIVATE
                            ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/include
                            ${CMAKE_SOURCE_DIR}/runtime
@@ -58,6 +59,23 @@ target_include_directories(profile_stages PRIVATE
                            ${CMAKE_SOURCE_DIR}/cudaq/include)
 target_link_libraries(profile_stages PRIVATE CUDAQTargetConfig cudaq-logger)
 set_target_properties(profile_stages PROPERTIES
+                      RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
+# quake_reference_semantics_pipeline exercises the built-in quake-reference-semantics lowering
+# handler: planned inferred pipelines plus actual lowered IR produced by
+# running the generated pipelines with cudaq-opt; no MLIR/runtime closure.
+add_executable(quake_reference_semantics_pipeline Regress/quake_reference_semantics_pipeline.cpp
+               ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/JITTargetPipeline.cpp
+               ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/LoweringHandler.cpp
+               ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/QuakeReferenceSemanticsHandler.cpp)
+target_include_directories(quake_reference_semantics_pipeline PRIVATE
+                           ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/include
+                           ${CMAKE_SOURCE_DIR}/runtime
+                           ${CMAKE_SOURCE_DIR}/runtime/include
+                           ${CMAKE_SOURCE_DIR}/runtime/cudaq
+                           ${CMAKE_SOURCE_DIR}/cudaq/include)
+target_link_libraries(quake_reference_semantics_pipeline PRIVATE CUDAQTargetConfig cudaq-logger)
+set_target_properties(quake_reference_semantics_pipeline PROPERTIES
                       RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 # lit-based regression testing over the hybrid tests above. Each is a
@@ -86,6 +104,8 @@ if (CUDAQ_BUILD_TESTS AND NOT CUDAQ_DISABLE_CPP_FRONTEND)
     argument_conversion
     compile_target
     compile_target_conditional_feedback_crash
+    cudaq-opt
+    quake_reference_semantics_pipeline
     profile_stages
     resource_count_phase
     resource_count_qubit_indices
