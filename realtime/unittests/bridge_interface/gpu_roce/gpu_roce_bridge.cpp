@@ -47,6 +47,12 @@
 
 extern "C" void
 setup_rpc_increment_function_table(cudaq_function_entry_t *d_entries);
+// The unified dispatcher links its own module at run time, from this binary's
+// device code among others (rpc_increment_handler.cu exports the
+// handler), so the entry takes the handler address the dispatcher hands out.
+extern "C" cudaq_status_t
+setup_rpc_increment_function_table_linked(cudaq_function_entry_t *d_entries,
+                                          cudaq_dispatcher_t *dispatcher);
 
 /// @brief Configuration for dispatch kernel setup.
 struct DispatchConfig {
@@ -249,7 +255,12 @@ int main(int argc, char *argv[]) {
       // Populate the GPU function table with the increment handler entry
       BRIDGE_CUDA_CHECK(
           cudaMalloc(&d_function_entries, sizeof(cudaq_function_entry_t)));
-      setup_rpc_increment_function_table(d_function_entries);
+      if (config.unified) {
+        HANDLE_CUDAQ_REALTIME_ERROR(setup_rpc_increment_function_table_linked(
+            d_function_entries, dispatcher));
+      } else {
+        setup_rpc_increment_function_table(d_function_entries);
+      }
       // Create a function table struct to pass to the dispatcher
       cudaq_function_table_t table{};
       table.entries = d_function_entries;

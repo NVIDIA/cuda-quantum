@@ -49,7 +49,10 @@ cudaq_status_t cudaq_bridge_connect(cudaq_realtime_bridge_handle_t bridge);
 ### Retrieve the transport context information
 
 This context information can be either a ring buffer (for `cudaq_dispatcher_set_ringbuffer`)
-or a unified context for (`cudaq_dispatcher_set_unified_launch`).
+or, for a transport that replaces the whole unified dispatch loop, a launch
+override.  A provider serving the unified GPU kernel answers
+`get_gpu_dataplane` instead (see below).  `cudaq_dispatcher_set_bridge` makes
+these calls itself.
 
 ```cpp
 /// @brief Retrieve the transport context for the given bridge.
@@ -126,6 +129,10 @@ typedef struct {
   cudaq_status_t (*set_function_table)(cudaq_realtime_bridge_handle_t,
                                        const cudaq_function_table_t *table);
 
+  // Version 4 field.
+  cudaq_status_t (*get_gpu_dataplane)(cudaq_realtime_bridge_handle_t,
+                                      cudaq_gpu_dataplane_t *out);
+
 } cudaq_realtime_bridge_interface_t;
 ```
 
@@ -149,6 +156,12 @@ A provider that does not implement an optional capability sets that entry to
 for pre-staging. A transport that does not need the table simply leaves
 the entry `NULL`, and the call then returns `CUDAQ_OK` instead of
 dispatching into the provider.  
+
+`get_gpu_dataplane` (version 4) is how a provider serves the unified GPU
+dispatch kernel: it returns the device-accessible context the kernel's hooks
+read, and the hooks' relocatable device code, which the dispatcher links with
+its kernel and the application's handlers at run time.  See
+[device_code_contract.md](device_code_contract.md).
 
 At runtime, when a `CUDAQ_PROVIDER_EXTERNAL` is requested in `cudaq_bridge_create`,
 CUDA-Q will retrieve the environment variable `CUDAQ_REALTIME_BRIDGE_LIB`
@@ -265,6 +278,7 @@ cudaq_realtime_bridge_interface_t *cudaq_realtime_get_bridge_interface() {
       /*get_endpoint_info=*/nullptr,
       /*get_ring_geometry=*/nullptr,
       /*set_function_table=*/nullptr,
+      /*get_gpu_dataplane=*/nullptr,
   };
   return &cudaq_provider_name_bridge_interface;
 }
@@ -273,6 +287,8 @@ cudaq_realtime_bridge_interface_t *cudaq_realtime_get_bridge_interface() {
 ```
 
 A sample of a `CMakeLists.txt` configuration is also provided here for reference.
+A provider links no realtime library: `libcudaq-realtime.so` loads the
+provider, never the reverse, so the provider uses the realtime headers only.
 
 ```cmake
 find_package(<your_networking_library> REQUIRED)
@@ -286,6 +302,37 @@ target_include_directories(cudaq-realtime-bridge-provider-name
 
 target_link_libraries(cudaq-realtime-bridge-provider-name      
     PRIVATE
-      cudaq-realtime
       <your_networking_library target>)
 ```
+
+### Serving the unified GPU dispatch kernel
+
+A provider whose transport the GPU drives directly implements the three device
+hooks of `unified_device_transport.cuh` (`cudaq_dev_enter_kernel`,
+`cudaq_dev_rx_poll`, `cudaq_dev_tx_publish`) in a CUDA source of its library,
+built with `-rdc` (`CUDA_SEPARABLE_COMPILATION ON`), and fills
+`get_gpu_dataplane`:
+
+```cpp
+#include "cudaq/realtime/device_code/device_code_reader.h"
+
+static cudaq_status_t
+provider_name_bridge_get_gpu_dataplane(cudaq_realtime_bridge_handle_t handle,
+                                       cudaq_gpu_dataplane_t *out) {
+  auto *ctx = reinterpret_cast<ProviderNameNetworkContext *>(handle);
+  // The image must outlive the bridge, so it lives in the context.
+  const cudaq_status_t status =
+      cudaq_device_code_of_this_binary(&ctx->device_code);
+  if (status != CUDAQ_OK)
+    return status;
+  out->ctx = ctx->device_ctx; // device-accessible; read by the hooks
+  out->device_code = &ctx->device_code;
+  out->device_code_count = 1;
+  return CUDAQ_OK;
+}
+```
+
+The dispatcher links the hooks with its kernel and the application's
+handlers at run time.  See [device_code_contract.md](device_code_contract.md)
+for the build rules, including the optional `LTO` that inlines the hooks into
+the kernel.

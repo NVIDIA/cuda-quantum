@@ -13,8 +13,9 @@
 /// This is the only TU in the unified path that sees DOCA.  The kernel itself
 /// lives in dispatcher/unified_dispatch_kernel.cu, compiled without any DOCA
 /// or HSB include path; it reaches the wire exclusively through the three
-/// hooks below.  Both ship in libcudaq-realtime-dispatch.a and are
-/// device-linked into the consumer, together with its handlers.
+/// hooks below.  They are built with -rdc into the bridge library, which hands
+/// them to the dispatcher through get_gpu_dataplane; the dispatcher links them
+/// with the kernel and the consumer's handlers at run time.
 ///
 /// Two TX paths selected at runtime via the use_bf flag:
 ///   dGPU: send_bf (BlueFlame, shared-memory WQE) -- lowest latency.
@@ -36,7 +37,7 @@
 //
 // Holds what were kernel locals before the transport split: the derived DOCA
 // handles and the RX/TX cursors.  Built in the kernel's local session storage
-// (see cudaq_dev_transport_attach), which keeps it in registers once the hooks
+// (see cudaq_dev_enter_kernel), which keeps it in registers once the hooks
 // are inlined, so it must stay trivially constructible -- no member
 // initializers, no constructors.  The BlueFlame WQE is the one piece that has
 // to be in shared memory; the session only points at it.
@@ -121,9 +122,8 @@ __device__ inline void recycle_receive(gpu_roce_session &s) {
 // Device data-plane hooks
 //==============================================================================
 
-extern "C" __device__ void *
-cudaq_dev_transport_attach(void *storage, void *ctx,
-                           volatile int *shutdown_flag) {
+extern "C" __device__ void *cudaq_dev_enter_kernel(void *storage, void *ctx,
+                                                   volatile int *shutdown_flag) {
   // Statically allocated per block.  Declaring it here rather than in the
   // kernel is what keeps doca_gpu_dev_verbs_wqe out of the core TU.
   __shared__ alignas(16) struct doca_gpu_dev_verbs_wqe wqe_sh;
