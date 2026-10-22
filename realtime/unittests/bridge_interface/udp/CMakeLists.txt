@@ -83,6 +83,8 @@ if (TARGET cudaq-realtime-test-server AND TARGET cudaq-realtime-udp-transport)
   # The server is exec'd, not linked.
   add_dependencies(test_udp_two_process cudaq-realtime-test-server)
 
-  cudaq_gtest_discover_tests(test_udp_two_process DISCOVERY_TIMEOUT 120)
+  # Each case takes seconds. A hung case must not wait for the 1500 s default.
+  cudaq_gtest_discover_tests(test_udp_two_process DISCOVERY_TIMEOUT 120
+    PROPERTIES TIMEOUT 120)
   message(STATUS "  - test_udp_two_process (UDP dispatch, two processes)")
 endif()
