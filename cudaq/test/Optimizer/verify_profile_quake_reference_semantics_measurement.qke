@@ -8,8 +8,8 @@
 
 // With measurement-type=single-qubit, multi-qubit measurements are rejected.
 
-// RUN: cudaq-opt --verify-profile-physical-quake='measurement-type=single-qubit' --split-input-file --verify-diagnostics %s
-// RUN: not cudaq-opt --verify-profile-physical-quake='measurement-type=bogus' %s 2>&1 | FileCheck %s --check-prefix=BADOPT
+// RUN: cudaq-opt --verify-profile-quake-reference-semantics='measurement-type=single-qubit' --split-input-file --verify-diagnostics %s
+// RUN: not cudaq-opt --verify-profile-quake-reference-semantics='measurement-type=bogus' %s 2>&1 | FileCheck %s --check-prefix=BADOPT
 
 // BADOPT: error: invalid value 'bogus' for option 'measurement-type' (expected 'any' or 'single-qubit')
 

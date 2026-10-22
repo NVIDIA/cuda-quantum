@@ -15,7 +15,7 @@
 #include "mlir/Transforms/DialectConversion.h"
 
 namespace cudaq::opt {
-#define GEN_PASS_DEF_VERIFYPROFILEPHYSICALQUAKE
+#define GEN_PASS_DEF_VERIFYPROFILEQUAKEREFERENCESEMANTICS
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
@@ -23,11 +23,11 @@ using namespace mlir;
 
 namespace {
 
-/// Read-only verifier pass for the physical-quake profile.
-struct VerifyProfilePhysicalQuake
-    : public cudaq::opt::impl::VerifyProfilePhysicalQuakeBase<
-          VerifyProfilePhysicalQuake> {
-  using VerifyProfilePhysicalQuakeBase::VerifyProfilePhysicalQuakeBase;
+/// Read-only verifier pass for the quake-reference-semantics profile.
+struct VerifyProfileQuakeReferenceSemantics
+    : public cudaq::opt::impl::VerifyProfileQuakeReferenceSemanticsBase<
+          VerifyProfileQuakeReferenceSemantics> {
+  using VerifyProfileQuakeReferenceSemanticsBase::VerifyProfileQuakeReferenceSemanticsBase;
 
   void runOnOperation() override;
 };
@@ -75,8 +75,8 @@ static bool isSupportedCall(CallOpInterface call) {
          llvm::none_of(sig.getResults(), isQuantumOrCallableType);
 }
 
-/// Physical-quake requires reference-form Quake: no wire/control/cable
-/// values anywhere, including in function signatures.
+/// Quake reference semantics requires reference-form Quake: no
+/// wire/control/cable values anywhere, including in function signatures.
 static LogicalResult checkReferenceForm(Operation *op) {
   bool valueForm =
       llvm::any_of(op->getOperandTypes(), cudaq::quake::isQuantumValueType);
@@ -90,7 +90,7 @@ static LogicalResult checkReferenceForm(Operation *op) {
   }
   if (!valueForm)
     return success();
-  return op->emitOpError("profile violation: physical-quake requires "
+  return op->emitOpError("profile violation: quake-reference-semantics requires "
                          "reference-form Quake (no !quake.wire, "
                          "!quake.control, or !quake.cable values)");
 }
@@ -142,7 +142,7 @@ static LogicalResult checkBasis(Operation *op, ConversionTarget &target) {
       "profile violation: operation is not in the target basis");
 }
 
-void VerifyProfilePhysicalQuake::runOnOperation() {
+void VerifyProfileQuakeReferenceSemantics::runOnOperation() {
   auto module = getOperation();
 
   if (measurementType != "any" && measurementType != "single-qubit") {
@@ -156,7 +156,7 @@ void VerifyProfilePhysicalQuake::runOnOperation() {
 
   if (resetAfterMeasure)
     module.emitWarning("reset-after-measure is not currently validated by "
-                       "verify-profile-physical-quake");
+                       "verify-profile-quake-reference-semantics");
 
   // An empty basis imposes no gate-basis restriction.
   std::unique_ptr<ConversionTarget> basisTarget;

@@ -6,21 +6,21 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.    #
 # ============================================================================ #
 
-# RUN: %cudaq-target-db-gen -o %t.db.cpp v2-physical=%s
+# RUN: %cudaq-target-db-gen -o %t.db.cpp v2-quake-reference-semantics=%s
 # RUN: FileCheck %s --input-file=%t.db.cpp
 
-# Test that `cudaq-target-db-gen` parses `physical-quake` correctly.
+# Test that `cudaq-target-db-gen` parses `quake-reference-semantics` correctly.
 
 version: 2
-name: v2-physical
-description: "Physical profile options round trip"
+name: v2-quake-reference-semantics
+description: "Quake reference-semantics profile options round trip"
 config:
   library-mode: false
 
 compile-target:
   stages:
     - ir-output-profile:
-        name: physical-quake
+        name: quake-reference-semantics
         options:
           basis-gates: ["h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)"]
           measurement-type: single-qubit
@@ -29,6 +29,6 @@ compile-target:
         custom-pipeline: "canonicalize"
   codegen: nop
 
-# CHECK: kBuiltinTarget_v2_physical
-# CHECK: .irOutputProfile = cudaq::config::Profile{std::in_place_type<cudaq::config::PhysicalQuakeProfile>, cudaq::config::PhysicalQuakeProfile{.basisGates = {"h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)", }, .measurementType = cudaq::config::MeasurementForm::single_qubit, .resetAfterMeasure = true}
+# CHECK: kBuiltinTarget_v2_quake_reference_semantics
+# CHECK: .irOutputProfile = cudaq::config::Profile{std::in_place_type<cudaq::config::QuakeReferenceSemanticsProfile>, cudaq::config::QuakeReferenceSemanticsProfile{.basisGates = {"h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)", }, .measurementType = cudaq::config::MeasurementForm::single_qubit, .resetAfterMeasure = true}
 # CHECK: .lowering = cudaq::config::CustomPipelineLowering{.overridePassPipeline = "canonicalize"

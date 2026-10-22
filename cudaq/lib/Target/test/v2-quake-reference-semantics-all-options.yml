@@ -8,18 +8,18 @@
 
 # RUN: %target-catalog-driver parse %s | FileCheck %s
 
-# Test YAML parsing of `physical-quake`.
+# Test YAML parsing of `quake-reference-semantics`.
 
 version: 2
-name: v2-phys-all-options
-description: "All physical profile options parsed"
+name: v2-quake-reference-semantics-all-options
+description: "All quake reference-semantics profile options parsed"
 config:
   library-mode: false
 
 compile-target:
   stages:
     - ir-output-profile:
-        name: physical-quake
+        name: quake-reference-semantics
         options:
           basis-gates: ["h", "rz", "x(1)"]
           measurement-type: single-qubit
@@ -28,8 +28,8 @@ compile-target:
         custom-pipeline: "canonicalize"
   codegen: nop
 
-# CHECK: name: v2-phys-all-options
-# CHECK:   ir-output-profile=physical-quake
+# CHECK: name: v2-quake-reference-semantics-all-options
+# CHECK:   ir-output-profile=quake-reference-semantics
 # CHECK-NEXT:     basis-gates: ["h", "rz", "x(1)"]
 # CHECK-NEXT:     measurement-type: single-qubit
 # CHECK-NEXT:     reset-after-measure: true

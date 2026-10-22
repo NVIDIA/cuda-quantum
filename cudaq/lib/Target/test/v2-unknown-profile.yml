@@ -27,4 +27,4 @@ compile-target:
 
 # CHECK: error: Failed to parse target configuration YAML
 # CHECK: could not match name 'quake-value-semantics'
-# CHECK: The following tags are allowed: unchecked, physical-quake
+# CHECK: The following tags are allowed: unchecked, quake-reference-semantics

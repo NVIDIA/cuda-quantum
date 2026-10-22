@@ -224,9 +224,9 @@ std::string cxxMeasurementForm(cudaq::config::MeasurementForm form) {
 }
 
 std::string
-cxxPhysicalQuakeProfile(const cudaq::config::PhysicalQuakeProfile &profile) {
+cxxQuakeReferenceSemanticsProfile(const cudaq::config::QuakeReferenceSemanticsProfile &profile) {
   std::ostringstream os;
-  os << "cudaq::config::PhysicalQuakeProfile{"
+  os << "cudaq::config::QuakeReferenceSemanticsProfile{"
      << ".basisGates = " << cxxStringVector(profile.basisGates) << ", "
      << ".measurementType = " << cxxMeasurementForm(profile.measurementType)
      << ", "
@@ -259,9 +259,9 @@ std::string cxxStage(const cudaq::config::CompilationStage &stage) {
         if constexpr (std::is_same_v<T, cudaq::config::UncheckedProfile>)
           os << "cudaq::config::UncheckedProfile>}";
         else if constexpr (std::is_same_v<T,
-                                          cudaq::config::PhysicalQuakeProfile>)
-          os << "cudaq::config::PhysicalQuakeProfile>, "
-             << cxxPhysicalQuakeProfile(p) << "}";
+                                          cudaq::config::QuakeReferenceSemanticsProfile>)
+          os << "cudaq::config::QuakeReferenceSemanticsProfile>, "
+             << cxxQuakeReferenceSemanticsProfile(p) << "}";
       },
       stage.irOutputProfile);
   os << ", .lowering = "

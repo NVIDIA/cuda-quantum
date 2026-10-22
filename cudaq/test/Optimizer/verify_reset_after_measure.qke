@@ -8,10 +8,10 @@
 
 // reset-after-measure=true is currently not validated: report a warning if set
 
-// RUN: cudaq-opt --verify-profile-physical-quake='reset-after-measure=true' %s -o /dev/null
-// RUN: cudaq-opt --verify-profile-physical-quake='reset-after-measure=true' %s -o /dev/null 2>&1 | FileCheck %s
+// RUN: cudaq-opt --verify-profile-quake-reference-semantics='reset-after-measure=true' %s -o /dev/null
+// RUN: cudaq-opt --verify-profile-quake-reference-semantics='reset-after-measure=true' %s -o /dev/null 2>&1 | FileCheck %s
 
-// CHECK: warning: reset-after-measure is not currently validated by verify-profile-physical-quake
+// CHECK: warning: reset-after-measure is not currently validated by verify-profile-quake-reference-semantics
 
 func.func @measured_and_reused(%q: !quake.ref) {
   %m = quake.mz %q : (!quake.ref) -> !quake.measure

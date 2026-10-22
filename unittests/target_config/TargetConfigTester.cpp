@@ -205,12 +205,12 @@ compile-target:
   EXPECT_TRUE(config.BackendConfig->hasPassPipeline());
 }
 
-TEST(TargetConfigTester, physicalQuakeProfileIdentity) {
-  const cudaq::config::PhysicalQuakeProfile baseline{
+TEST(TargetConfigTester, quakeReferenceSemanticsProfileIdentity) {
+  const cudaq::config::QuakeReferenceSemanticsProfile baseline{
       .basisGates = {"h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)"},
       .measurementType = cudaq::config::MeasurementForm::single_qubit,
       .resetAfterMeasure = true};
-  const std::hash<cudaq::config::PhysicalQuakeProfile> hash;
+  const std::hash<cudaq::config::QuakeReferenceSemanticsProfile> hash;
 
   // Distinct profile kinds are never equal.
   EXPECT_NE(cudaq::config::Profile{cudaq::config::UncheckedProfile{}},
@@ -232,15 +232,15 @@ TEST(TargetConfigTester, physicalQuakeProfileIdentity) {
   EXPECT_NE(resetChanged, baseline);
   EXPECT_NE(hash(resetChanged), hash(baseline));
 }
-TEST(TargetConfigTester, physicalQuakeProfileTargetIdentity) {
+TEST(TargetConfigTester, quakeReferenceSemanticsProfileTargetIdentity) {
   cudaq::CompileTarget target;
   target.stages = {cudaq::config::CompilationStage{
-      .irOutputProfile = cudaq::config::PhysicalQuakeProfile{},
+      .irOutputProfile = cudaq::config::QuakeReferenceSemanticsProfile{},
       .lowering = cudaq::config::CustomPipelineLowering{}}};
 
   // Profile options contribute to stage and compile-target identity.
   cudaq::CompileTarget changed = target;
-  std::get<cudaq::config::PhysicalQuakeProfile>(
+  std::get<cudaq::config::QuakeReferenceSemanticsProfile>(
       changed.stages[0].irOutputProfile)
       .resetAfterMeasure = true;
   EXPECT_NE(target, changed);

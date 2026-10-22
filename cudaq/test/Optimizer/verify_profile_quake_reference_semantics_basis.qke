@@ -9,7 +9,7 @@
 // With a specified basis gate set, unsupported quantum types and calls to
 // unresolved kernels are rejected.
 
-// RUN: cudaq-opt --verify-profile-physical-quake='basis=h,rz,x(1)' --split-input-file --verify-diagnostics %s
+// RUN: cudaq-opt --verify-profile-quake-reference-semantics='basis=h,rz,x(1)' --split-input-file --verify-diagnostics %s
 
 func.func @in_basis(%q0: !quake.ref, %q1: !quake.ref) {
   %c = arith.constant 0.5 : f64

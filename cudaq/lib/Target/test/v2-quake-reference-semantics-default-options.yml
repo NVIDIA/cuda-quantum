@@ -8,23 +8,23 @@
 
 # RUN: %target-catalog-driver parse %s | FileCheck %s
 
-# Test YAML parsing of `physical-quake` with omitted default options.
+# Test YAML parsing of `quake-reference-semantics` with omitted default options.
 
 version: 2
-name: v2-phys-default-options
-description: "Physical profile option defaults"
+name: v2-quake-reference-semantics-default-options
+description: "Quake reference-semantics profile option defaults"
 config:
   library-mode: false
 
 compile-target:
   stages:
     - ir-output-profile:
-        name: physical-quake
+        name: quake-reference-semantics
       lowering:
         custom-pipeline: "canonicalize"
   codegen: nop
 
-# CHECK: name: v2-phys-default-options
-# CHECK:   ir-output-profile=physical-quake
+# CHECK: name: v2-quake-reference-semantics-default-options
+# CHECK:   ir-output-profile=quake-reference-semantics
 # CHECK-NEXT:     measurement-type: any
 # CHECK-NEXT:     reset-after-measure: false

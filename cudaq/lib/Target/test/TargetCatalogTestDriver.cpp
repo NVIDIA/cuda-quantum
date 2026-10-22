@@ -84,7 +84,7 @@ void printLowering(const char *indent, const CustomPipelineLowering &lowering) {
 // Profile options print under the stage, mirroring `printLowering` below.
 void printProfileOptions(const char *, const UncheckedProfile &) {}
 void printProfileOptions(const char *indent,
-                         const PhysicalQuakeProfile &profile) {
+                         const QuakeReferenceSemanticsProfile &profile) {
   printList(indent, "basis-gates", profile.basisGates);
   std::cout << indent << "measurement-type: "
             << measurementFormName(profile.measurementType) << "\n"

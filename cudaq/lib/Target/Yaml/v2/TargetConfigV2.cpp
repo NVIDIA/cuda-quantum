@@ -16,8 +16,8 @@ toCanonicalProfile(const cudaq::config::v2::UncheckedProfileV2 &profile) {
   return cudaq::config::UncheckedProfile{};
 }
 static cudaq::config::Profile
-toCanonicalProfile(const cudaq::config::v2::PhysicalQuakeProfileV2 &profile) {
-  return cudaq::config::PhysicalQuakeProfile{
+toCanonicalProfile(const cudaq::config::v2::QuakeReferenceSemanticsProfileV2 &profile) {
+  return cudaq::config::QuakeReferenceSemanticsProfile{
       .basisGates = profile.options.value().basisGates.value(),
       .measurementType = profile.options.value().measurementType.value(),
       .resetAfterMeasure = profile.options.value().resetAfterMeasure.value()};

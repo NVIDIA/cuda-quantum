@@ -2374,10 +2374,10 @@ def VerifyAtomicQuantumRegions :
   }];
 }
 
-def VerifyProfilePhysicalQuake : Pass<"verify-profile-physical-quake", "mlir::ModuleOp"> {
-  let summary = "Verify physical-quake profile conformance (read-only)";
+def VerifyProfileQuakeReferenceSemantics : Pass<"verify-profile-quake-reference-semantics", "mlir::ModuleOp"> {
+  let summary = "Verify quake-reference-semantics profile conformance (read-only)";
   let description = [{
-    This pass verifies that the IR conforms to the physical-quake IR profile:
+    This pass verifies that the IR conforms to the quake-reference-semantics IR profile:
      - uses reference semantics (no `!quake.wire`/`!quake.control`/`!quake.cable`
        values)
      - every quake operation is a member of the requested target basis

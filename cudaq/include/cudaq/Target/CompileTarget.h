@@ -114,9 +114,9 @@ struct std::hash<cudaq::config::UncheckedProfile> {
   operator()(const cudaq::config::UncheckedProfile &profile) const noexcept;
 };
 template <>
-struct std::hash<cudaq::config::PhysicalQuakeProfile> {
+struct std::hash<cudaq::config::QuakeReferenceSemanticsProfile> {
   std::size_t
-  operator()(const cudaq::config::PhysicalQuakeProfile &profile) const noexcept;
+  operator()(const cudaq::config::QuakeReferenceSemanticsProfile &profile) const noexcept;
 };
 template <>
 struct std::hash<cudaq::config::CustomPipelineLowering> {

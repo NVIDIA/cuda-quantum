@@ -13,7 +13,8 @@
 
 namespace cudaq::config {
 
-/// Constraints on measurement operations enforced by the physical IR profile.
+/// Constraints on measurement operations enforced by the reference-semantics
+/// profile.
 enum class MeasurementForm {
   /// Any measurement is allowed.
   any,
@@ -21,12 +22,13 @@ enum class MeasurementForm {
   single_qubit,
 };
 
-/// IR profile for physical, reference-semantics Quake IR.
+/// IR profile for reference-semantics Quake IR, independent of whether the
+/// represented qubits are logical, physical, or anything in between.
 ///
 /// Value semantics Quake is currently not supported.
-struct PhysicalQuakeProfile {
+struct QuakeReferenceSemanticsProfile {
   /// Name identifying this profile in target configurations.
-  static constexpr char name[] = "physical-quake";
+  static constexpr char name[] = "quake-reference-semantics";
 
   /// Gates the IR is restricted to, using the basis-conversion grammar
   /// (e.g. `rx`, `x(1)`). An empty list imposes no gate-basis restriction.
@@ -39,7 +41,7 @@ struct PhysicalQuakeProfile {
   /// non-measurement quantum use.
   bool resetAfterMeasure = false;
 
-  bool operator==(const PhysicalQuakeProfile &other) const = default;
+  bool operator==(const QuakeReferenceSemanticsProfile &other) const = default;
 };
 
 } // namespace cudaq::config
