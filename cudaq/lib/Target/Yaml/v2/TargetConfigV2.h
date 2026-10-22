@@ -77,8 +77,8 @@ struct QuakeReferenceSemanticsProfileV2 {
 };
 
 /// Union of all supported IR profiles, selected by its `name`.
-using IrOutputProfileV2 =
-    rfl::TaggedUnion<"name", UncheckedProfileV2, QuakeReferenceSemanticsProfileV2>;
+using IrOutputProfileV2 = rfl::TaggedUnion<"name", UncheckedProfileV2,
+                                           QuakeReferenceSemanticsProfileV2>;
 
 /// Staged pipelines inserted at the appropriate compilation stages.
 struct StagedPipelinesV2 {

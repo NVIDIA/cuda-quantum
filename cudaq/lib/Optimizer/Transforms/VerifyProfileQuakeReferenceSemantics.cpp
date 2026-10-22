@@ -21,19 +21,6 @@ namespace cudaq::opt {
 
 using namespace mlir;
 
-namespace {
-
-/// Read-only verifier pass for the quake-reference-semantics profile.
-struct VerifyProfileQuakeReferenceSemantics
-    : public cudaq::opt::impl::VerifyProfileQuakeReferenceSemanticsBase<
-          VerifyProfileQuakeReferenceSemantics> {
-  using VerifyProfileQuakeReferenceSemanticsBase::VerifyProfileQuakeReferenceSemanticsBase;
-
-  void runOnOperation() override;
-};
-
-} // namespace
-
 /// Whether the operation passes an opaque C++/kernel callable, whose body is
 /// statically unavailable.
 static bool hasCallableOperand(Operation *op) {
@@ -90,9 +77,10 @@ static LogicalResult checkReferenceForm(Operation *op) {
   }
   if (!valueForm)
     return success();
-  return op->emitOpError("profile violation: quake-reference-semantics requires "
-                         "reference-form Quake (no !quake.wire, "
-                         "!quake.control, or !quake.cable values)");
+  return op->emitOpError(
+      "profile violation: quake-reference-semantics requires "
+      "reference-form Quake (no !quake.wire, "
+      "!quake.control, or !quake.cable values)");
 }
 
 /// With `measurement-type=single-qubit`, every measurement operates on
@@ -142,38 +130,51 @@ static LogicalResult checkBasis(Operation *op, ConversionTarget &target) {
       "profile violation: operation is not in the target basis");
 }
 
-void VerifyProfileQuakeReferenceSemantics::runOnOperation() {
-  auto module = getOperation();
+namespace {
 
-  if (measurementType != "any" && measurementType != "single-qubit") {
-    module.emitError(
-        "invalid value '" + measurementType +
-        "' for option 'measurement-type' (expected 'any' or 'single-qubit')");
-    signalPassFailure();
-    return;
+/// Read-only verifier pass for the quake-reference-semantics profile.
+struct VerifyProfileQuakeReferenceSemantics
+    : public cudaq::opt::impl::VerifyProfileQuakeReferenceSemanticsBase<
+          VerifyProfileQuakeReferenceSemantics> {
+  using VerifyProfileQuakeReferenceSemanticsBase::
+      VerifyProfileQuakeReferenceSemanticsBase;
+
+  void runOnOperation() override {
+    auto module = getOperation();
+
+    if (measurementType != "any" && measurementType != "single-qubit") {
+      module.emitError(
+          "invalid value '" + measurementType +
+          "' for option 'measurement-type' (expected 'any' or 'single-qubit')");
+      signalPassFailure();
+      return;
+    }
+    const bool singleQubitForm = measurementType == "single-qubit";
+
+    if (resetAfterMeasure)
+      module.emitWarning("reset-after-measure is not currently validated by "
+                         "verify-profile-quake-reference-semantics");
+
+    // An empty basis imposes no gate-basis restriction.
+    std::unique_ptr<ConversionTarget> basisTarget;
+    if (!basis.empty())
+      basisTarget = cudaq::createBasisTarget(*module.getContext(), basis);
+
+    bool ok = true;
+    module.walk([&](Operation *op) {
+      ok &= succeeded(checkReferenceForm(op));
+      if (singleQubitForm)
+        ok &= succeeded(checkMeasurementForm(op));
+      if (basisTarget || singleQubitForm)
+        ok &=
+            succeeded(checkInvocation(op, /*basisRestricted=*/!basis.empty()));
+      if (basisTarget)
+        ok &= succeeded(checkBasis(op, *basisTarget));
+    });
+
+    if (!ok)
+      signalPassFailure();
   }
-  const bool singleQubitForm = measurementType == "single-qubit";
+};
 
-  if (resetAfterMeasure)
-    module.emitWarning("reset-after-measure is not currently validated by "
-                       "verify-profile-quake-reference-semantics");
-
-  // An empty basis imposes no gate-basis restriction.
-  std::unique_ptr<ConversionTarget> basisTarget;
-  if (!basis.empty())
-    basisTarget = cudaq::createBasisTarget(*module.getContext(), basis);
-
-  bool ok = true;
-  module.walk([&](Operation *op) {
-    ok &= succeeded(checkReferenceForm(op));
-    if (singleQubitForm)
-      ok &= succeeded(checkMeasurementForm(op));
-    if (basisTarget || singleQubitForm)
-      ok &= succeeded(checkInvocation(op, /*basisRestricted=*/!basis.empty()));
-    if (basisTarget)
-      ok &= succeeded(checkBasis(op, *basisTarget));
-  });
-
-  if (!ok)
-    signalPassFailure();
-}
+} // namespace
