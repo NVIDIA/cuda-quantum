@@ -21,9 +21,12 @@ protocols are built for the row's two surface-code distances.
 # Import the APIs used to define the factory protocols and physical device.
 from __future__ import annotations
 
+import dataclasses
 from dataclasses import dataclass
 import functools
+import json
 import math
+import os
 
 import cudaq.logical as cql
 
@@ -796,15 +799,52 @@ def characterize_surface_autoccz_factory(
     )
 
     # Make sure the compiler is using the expected factory reference values.
-    assert resource_estimate.event_count == len(
-        detailed_schedule.entries) == point.factory_schedule_events
-    assert math.isclose(factory_model.startup_cycles,
-                        point.factory_startup_cycles)
-    assert math.isclose(factory_model.output_interval_cycles,
-                        point.factory_output_interval_cycles)
-    assert (factory_model.characterization.physical_units ==
-            point.factory_lane_physical_qubits)
+    checks = (
+        ("estimate event_count", resource_estimate.event_count,
+         point.factory_schedule_events),
+        ("schedule entries", len(detailed_schedule.entries),
+         point.factory_schedule_events),
+        ("startup_cycles", factory_model.startup_cycles,
+         point.factory_startup_cycles),
+        ("output_interval_cycles", factory_model.output_interval_cycles,
+         point.factory_output_interval_cycles),
+        ("physical_units", factory_model.characterization.physical_units,
+         point.factory_lane_physical_qubits),
+    )
+    mismatches = [
+        f"{name}: got {actual!r}, expected {expected!r}"
+        for name, actual, expected in checks
+        if not _matches(actual, expected)
+    ]
+    if mismatches:
+        dump = _dump_schedule(detailed_schedule, point)
+        raise AssertionError(
+            f"RSA-{point.modulus_bits} factory characterization differs from "
+            "the reference: " + "; ".join(mismatches) +
+            (f" (schedule dumped to {dump})" if dump else ""))
     return resource_estimate, factory_model
+
+
+def _matches(actual, expected):
+    if isinstance(expected, int):
+        return actual == expected
+    return math.isclose(actual, expected)
+
+
+def _dump_schedule(schedule, point):
+    """Write the schedule as JSON under QLX_SCHEDULE_DUMP_DIR, if it is set."""
+
+    directory = os.environ.get("QLX_SCHEDULE_DUMP_DIR")
+    if not directory:
+        return None
+    os.makedirs(directory, exist_ok=True)
+    path = os.path.join(directory,
+                        f"gidney_ekera_{point.modulus_bits}_schedule.json")
+    with open(path, "w") as stream:
+        json.dump([dataclasses.asdict(entry) for entry in schedule.entries],
+                  stream,
+                  indent=1)
+    return path
 
 
 # %%

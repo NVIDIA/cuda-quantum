@@ -149,13 +149,13 @@ struct BridgeConfig {
   size_t func_count = 0;                                ///< Number of entries
 
   /// @brief Dispatch kernel grid configuration.
-  /// Defaults match the regular (non-cooperative) kernel.
+  /// Defaults match the regular kernel.
   cudaq_kernel_type_t kernel_type = CUDAQ_KERNEL_REGULAR;
   uint32_t num_blocks = 1;
   uint32_t threads_per_block = 32;
 
   /// @brief Pointer to the dispatch kernel launch function.
-  /// Default: cudaq_launch_dispatch_kernel_regular
+  /// Default (nullptr): the dispatcher's own, for `kernel_type`.
   cudaq_dispatch_launch_fn_t launch_fn = nullptr;
 
   // Set this to CUDAQ_DISPATCH_PATH_HOST for the HOST_LOOP graph launch mode --
@@ -189,13 +189,15 @@ struct BridgeConfig {
 /// Recognized flags: `--device=`, `--peer-ip=`, `--remote-qp=`, `--gpu=`,
 /// `--timeout=`, `--page-size=`, `--num-pages=`, `--exchange-qp`,
 /// `--exchange-port=`. Unknown flags are silently ignored (so tool-specific
-/// flags can co-exist).
+/// flags can co-exist).  Every token is examined, `argv[0]` included: a
+/// bridge's create() may be handed only its own options, with no program name
+/// in front.
 ///
 /// @param argc Argument count
 /// @param argv Argument vector
 /// @param [out] config Bridge configuration to populate
 inline void parse_bridge_args(int argc, char *argv[], BridgeConfig &config) {
-  for (int i = 1; i < argc; i++) {
+  for (int i = 0; i < argc; i++) {
     std::string arg = argv[i];
     if (arg.find("--device=") == 0)
       config.device = arg.substr(9);
@@ -390,13 +392,8 @@ inline int bridge_run(BridgeConfig &config) {
   if (!config.forward) {
     if (!config.unified && !is_host_loop) {
       int dispatch_blocks = 0;
-      cudaError_t occ_err;
-      if (config.kernel_type == CUDAQ_KERNEL_COOPERATIVE) {
-        occ_err = cudaq_dispatch_kernel_cooperative_query_occupancy(
-            &dispatch_blocks, config.threads_per_block);
-      } else {
-        occ_err = cudaq_dispatch_kernel_query_occupancy(&dispatch_blocks, 1);
-      }
+      cudaError_t occ_err =
+          cudaq_dispatch_kernel_query_occupancy(&dispatch_blocks, 1);
       if (occ_err != cudaSuccess) {
         std::cerr << "ERROR: Dispatch kernel occupancy query failed: "
                   << cudaGetErrorString(occ_err) << std::endl;
@@ -563,11 +560,8 @@ inline int bridge_run(BridgeConfig &config) {
         return 1;
       }
 
-      cudaq_dispatch_launch_fn_t launch_fn = config.launch_fn;
-      if (!launch_fn) {
-        launch_fn = &cudaq_launch_dispatch_kernel_regular;
-      }
-      if (cudaq_dispatcher_set_launch_fn(dispatcher, launch_fn) != CUDAQ_OK) {
+      if (config.launch_fn && cudaq_dispatcher_set_launch_fn(
+                                  dispatcher, config.launch_fn) != CUDAQ_OK) {
         std::cerr << "ERROR: Failed to set launch function" << std::endl;
         return 1;
       }

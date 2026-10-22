@@ -98,6 +98,10 @@ static void registerTargetPassPipeline(const std::string &pipelineName,
 /// stops a future target/entry name from containing '.' either, so
 /// registration also checks for and rejects any resulting collision
 /// outright rather than relying solely on the separator choice.
+// TODO: it seems inconsistent that we only register named pipelines (and nvq++
+// executes them) when the YAML uses 'target-pass-pipeline' to specify them.
+// Alternatives pipeline declarations such as 'jit-*-level-pipeline' options are
+// currently ignored.
 static void
 registerAllTargetPassPipelines(llvm::ArrayRef<std::string> configPaths = {}) {
   cudaq::config::TargetCatalog registry;
@@ -120,8 +124,9 @@ registerAllTargetPassPipelines(llvm::ArrayRef<std::string> configPaths = {}) {
       [](const cudaq::config::BackendEndConfigEntry &backend) -> std::string {
     if (backend.CompileTarget.stages.empty())
       return std::string{};
-    const auto &lowering = backend.CompileTarget.getCustomPipelineLowering();
-    return lowering.overridePassPipeline;
+    const auto *overridePassPipeline =
+        backend.CompileTarget.getOverridePassPipeline();
+    return overridePassPipeline ? *overridePassPipeline : std::string{};
   };
   for (const auto *entry : registry.list()) {
     const auto &config = *entry->config;
