@@ -17,6 +17,7 @@
 #ifndef QLX_C_TRANSLATE_TRANSLATIONS_H
 #define QLX_C_TRANSLATE_TRANSLATIONS_H
 
+#include "cudaq/gf2/memory.h"
 #include "mlir-c/IR.h"
 #include "mlir-c/Support.h"
 
@@ -36,6 +37,17 @@ MLIR_CAPI_EXPORTED MlirLogicalResult qlxTranslateFabricToStim(
 MLIR_CAPI_EXPORTED MlirLogicalResult
 qlxProjectCliffordJson(MlirModule module, MlirStringRef gadget,
                        MlirStringCallback callback, void *userData);
+
+/// Returns one owned, checked packed EDEM without copying its payload.
+/// An empty profile selects the unique fabric.gadget_profile. Faults use the
+/// external cudaq.logical.edem-faults/v1 JSON schema. Does not mutate the
+/// module. Output must point to a zero-initialized record. Failure leaves it
+/// unchanged; release the returned record with
+/// cudaq_gf2_owned_buffer_release. Checked view tokens do not cross this
+/// boundary.
+MLIR_CAPI_EXPORTED MlirLogicalResult
+qlxDeriveGadgetEDEM(MlirModule module, MlirStringRef profile,
+                    MlirStringRef faults, cudaq_gf2_owned_buffer *output);
 
 #ifdef __cplusplus
 }

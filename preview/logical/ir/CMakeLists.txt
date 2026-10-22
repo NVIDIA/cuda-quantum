@@ -33,6 +33,8 @@ add_subdirectory(lib/Conversion/QLXToLVM)
 # Translation backends (MLIR-style Target/).
 add_subdirectory(lib/Target/Fabric)
 
+add_subdirectory(lib/Analysis/EDEM)
+
 # C-API shims for the Python bindings (always built; pure additive layer).
 add_subdirectory(lib/CAPI)
 

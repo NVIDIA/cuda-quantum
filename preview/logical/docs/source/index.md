@@ -102,6 +102,7 @@ use-cases/magic-states-and-protocols
 use-cases/logical-synthesis
 use-cases/estimation
 use-cases/stim-emission
+use-cases/gadget-edems
 ```
 
 ```{toctree}

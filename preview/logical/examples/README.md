@@ -52,6 +52,20 @@ python preview/logical/examples/standalone/06_surface_memory.py --shots 1000 --s
 The summary reports detection events and uncorrected observable flips. The
 core exporter does not depend on Stim.
 
+`standalone/07_memory_edem.py` compares the circuit-derived DEM with a DEM
+obtained by deriving and composing per-gadget EDEMs from the same profiles and
+noise policy. It calls the native `cudaq_edem.compose_chain` and `project_DEM`
+operations, retaining each occurrence's exact fault laws and reusing repeated
+SEC definitions. An optional Stim adapter renders the projected DEM. Stim is
+required for this comparison:
+
+```bash
+python preview/logical/examples/standalone/07_memory_edem.py --distance 3 --rounds 3 --output memory-comparison
+```
+
+The output directory contains the circuit text, both Stim DEMs, per-definition
+packed EDEMs, the composed EDEM, and the projected packed DEM.
+
 The `mlir/` examples use `qlx-opt` and `qlx-translate` directly.
 
 ## Gidney--Ekerå physical compilation

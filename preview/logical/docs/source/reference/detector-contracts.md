@@ -101,6 +101,8 @@ with a declared outcome map. They do **not** prove ideal determinism or
 completeness. In particular, `boundary_complete` checks assignment coverage; it
 does not establish that detector parities vanish on every ideal outcome or
 that the contract captures all required relations.
+[`analysis.derive_edem`](../use-cases/gadget-edems.md) performs the semantic
+check before constructing an EDEM.
 
 ## Project the realization
 
@@ -141,3 +143,25 @@ calls, non-Clifford gates, and dynamic control. It preserves the source Build
 and shares the native traversal used for Stim emission. The result describes
 the ideal realization; projection does not insert noise, propagate faults,
 produce an EDEM, or prove detector-contract correctness.
+
+## Boundary for EDEM producers
+
+Projection stays independent of EDEM storage and ownership. A subsequent
+Logical analysis owns code algebra, contract verification and fault propagation,
+then submits coefficients through EDEM's semantic construction API. Producers
+name endpoints such as output syndrome of code block 2; they do not assemble
+GF(2) type tables or packed offsets. EDEM validates the model and returns an
+owned packed buffer. GF(2) supplies the checked map view and allocation-free
+apply operation.
+
+The producer integration uses the standalone `cudaq-edem` distribution as its
+build and runtime dependency. That wheel supplies `cudaq_edem`, the native
+libraries, headers and CMake exports; Logical uses that shared copy rather than
+bundling another. cudaq-qec can depend on the same distribution.
+
+The native producer hands its caller-held ownership record to Python through
+the capsule protocol in `cudaq/edem/python.h`. `cudaq_edem.EDEM.adopt` validates
+the packed bytes before consuming ownership, keeps the producer's lifetime
+dependency alive, and retains the original payload address. Serialized input
+can still use `EDEM.from_bytes`, which copies into aligned storage. Native
+checked views and C++ objects do not cross this boundary.

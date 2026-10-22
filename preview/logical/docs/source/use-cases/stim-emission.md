@@ -89,6 +89,14 @@ vertical logical X string; Z hooks run vertically, across the horizontal
 logical Z string. This orientation preserves the circuit distance.
 Preparation and readout each contribute one extraction round.
 
+Ancillas are reset at the start of the extraction that uses them, keeping
+reset faults within the same gadget's analysis. The readout retains the final
+unused ancilla resets. This places gadget cuts without changing the operation
+order on any carrier. The
+[per-gadget EDEM comparison](gadget-edems.md#compare-circuit-and-per-gadget-dem-construction)
+uses the same recipe, with native EDEM composition and `project_DEM` followed
+by an optional Stim adapter.
+
 Using `surface_memory` from the example:
 
 <!--

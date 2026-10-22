@@ -50,6 +50,8 @@ enables Python by default. `CUDAQ_ENABLE_LOGICAL` is shorthand for
 `-DCUDAQ_EXTERNAL_PROJECTS=logical -DCUDAQ_EXTERNAL_LOGICAL_SOURCE_DIR=<repo>/preview/logical`.
 Logical's Python package, extensions, and tools land in CUDA-Q's own build
 tree (`python/cudaq/...`, `bin/`) and install into CUDA-Q's install prefix.
+Logical also requires EDEM. The parent build automatically includes `edem`,
+builds its Python bindings, and stages `python/cudaq_edem` in that same tree.
 
 ## Option 2: out-of-tree, against a CUDA-Q installation
 
@@ -89,6 +91,13 @@ so Logical and CUDA-Q end up in one tree. You also need `nanobind`
 (`-Dnanobind_DIR=...` or `NANOBIND_INSTALL_PREFIX`), the GMP/MPFR headers, and
 `lit`.
 
+EDEM's native library and Python value package are required as well. Install
+the `cudaq-edem` wheel in the selected Python environment; CMake discovers its
+package automatically. For a native EDEM installation, pass
+`-Dcudaq-edem_DIR=<prefix>/lib/cmake/cudaq-edem` and make its Python package
+available to the same interpreter. See the
+[EDEM source-build instructions](../use-cases/gadget-edems.md#build-from-source).
+
 `LLVM_DIR` and `MLIR_DIR` still work as overrides -- needed when CUDA-Q was
 installed without `CUDAQ_BUNDLE_MLIR_INSTALL=ON` -- but they must name the exact
 LLVM/MLIR installation CUDA-Q itself was built against.
@@ -109,7 +118,7 @@ in CI. It is not the way to build from a source checkout, and the wheel may not
 be available on your package index while Logical is in preview.
 
 ```bash
-pip install <path-to-cudaq-devel-wheel> "nanobind<3" "lit<23" cmake ninja
+pip install <path-to-cudaq-devel-wheel> <path-to-cudaq-edem-wheel> "nanobind<3" "lit<23" cmake ninja
 cmake -S preview/logical -B preview/logical/build -G Ninja
 cmake --build preview/logical/build
 ```

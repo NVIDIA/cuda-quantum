@@ -15,6 +15,8 @@
 
 #include "qlx/Target/Fabric/EmitStim.h"
 
+#include "qlx/Analysis/GadgetEDEM.h"
+
 #include "llvm/Support/JSON.h"
 #include "llvm/Support/raw_ostream.h"
 
@@ -35,6 +37,20 @@ inline void shipString(const std::string &s, MlirStringCallback callback,
 }
 
 } // namespace
+
+MlirLogicalResult qlxDeriveGadgetEDEM(MlirModule module, MlirStringRef profile,
+                                      MlirStringRef faults,
+                                      cudaq_gf2_owned_buffer *output) {
+  if (!output || output->data || output->size || output->deallocate ||
+      output->context)
+    return mlirLogicalResultFailure();
+  auto result = cudaq::logical::deriveGadgetEDEM(
+      unwrap(module), unwrap(profile), unwrap(faults));
+  if (mlir::failed(result))
+    return mlirLogicalResultFailure();
+  *output = result->release();
+  return mlirLogicalResultSuccess();
+}
 
 MlirLogicalResult qlxProjectCliffordJson(MlirModule module,
                                          MlirStringRef gadget,

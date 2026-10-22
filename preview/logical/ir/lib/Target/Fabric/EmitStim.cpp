@@ -509,9 +509,9 @@ private:
         .Case<ReadSyndromeAncillasOp>(
             [&](auto o) { emitReadSyndromeAncillas(o); })
         .Case<AssembleSyndromeOp>([&](auto o) { emitAssembleSyndrome(o); })
-        // Affine classical result rows are recorded by GadgetSpec's outcome
-        // map; their source measurements already appear in the projection.
-        .Case<ParityOp>([](auto) {})
+        // Affine outcome processing has no carrier action. GadgetSpec records
+        // its exact parity; dynamic uses still fail at their controlling op.
+        .Case<ParityOp, XorOp>([](auto) {})
         // Resource preparation/injection has no faithful Stim text form.
         .Case<ProduceResourceOp, InjectOp, DiscardResourceOp>([&](auto op) {
           op.emitError("fabric-to-stim: unsupported operation '")

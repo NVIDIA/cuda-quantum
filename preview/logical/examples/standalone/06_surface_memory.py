@@ -79,26 +79,36 @@ def surface_memory(distance=3, rounds=3):
                         block = cql.cx(block.data[(data[point],)],
                                        block.sz[(i,)])
         block = cql.h(block.sx)
-        # Measure-reset each ancilla. The same carriers continue into the next
-        # occurrence; this also retains the final round's reset fault sites.
+        # Leave reset to the next extraction so its faults belong to the gadget
+        # that uses the ancilla. Only data-code errors cross encoded boundaries.
         for _, partition, i in ancillas:
             block, _ = cql.ops.mz(getattr(block, partition)[(i,)],
                                   record=f"{partition}{i}")
-            block = cql.reset(getattr(block, partition)[(i,)])
         return block
 
-    sec = define(extract, "sec", cql.logical.idle, cql.patch[code])
+    extraction = define(extract, "extract", cql.logical.idle, cql.patch[code])
+
+    def syndrome_round(block):
+        block = cql.reset(block.sx)
+        block = cql.reset(block.sz)
+        return extraction(block)
+
+    sec = define(syndrome_round, "sec", cql.logical.idle, cql.patch[code])
 
     def prepare(block):
         block = cql.reset(block.data)
         block = cql.reset(block.sx)
         block = cql.reset(block.sz)
-        return sec(block)
+        return extraction(block)
 
     prep0 = define(prepare, "prep0", cql.logical.prepare_zero, cql.patch[code])
 
     def readout(block):
         block = sec(block)
+        # Retain the reference circuit's terminal reset fault sites. These
+        # ancillas have no subsequent interactions, so their responses are zero.
+        block = cql.reset(block.sx)
+        block = cql.reset(block.sz)
         logical = []
         for i in range(code.n):
             block, outcome = cql.ops.mz(block.data[(i,)], record=f"data{i}")
@@ -115,7 +125,7 @@ def surface_memory(distance=3, rounds=3):
         measured = {
             row.carriers[0]: gadget.record(row.record)
             for row in projection.interface.measurements
-            if row.symbol == sec.name
+            if row.symbol == extraction.name
         }
         records = {
             (partition, i): measured[q] for partition in ("sx", "sz")
