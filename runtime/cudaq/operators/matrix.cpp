@@ -400,8 +400,11 @@ cudaq::complex_matrix cudaq::complex_matrix::exponential() {
   auto result = cudaq::complex_matrix(rows, columns);
   // Taylor Series Approximation, fixed at 20 steps.
   std::size_t taylor_steps = 20;
+  auto term = cudaq::complex_matrix::identity(rows);
   for (std::size_t step = 0; step < taylor_steps; step++) {
-    auto term = this->power(step);
+    // Reuse A^(step - 1) instead of recomputing every power from identity.
+    if (step != 0)
+      term *= *this;
     for (std::size_t i = 0; i < rows; i++) {
       for (std::size_t j = 0; j < columns; j++) {
         result[{i, j}] += term[{i, j}] / factorial(step);
