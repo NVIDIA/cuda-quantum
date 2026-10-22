@@ -1,21 +1,22 @@
-# CUDA-Q EDEM
+# cudaq-edem
 
-**CUDA-Q EDEM is provided for early experimental scenarios. Its APIs are
-evolving quickly and may change incompatibly during v0.x development.**
+**Early development: the API, ABI, and packed format are unstable and subject
+to rapid, potentially incompatible changes during v0.x development.**
+
+cudaq-edem provides shared data structures and operations for extended detector
+error models (EDEMs). Its packed representation and C API allow compilers and
+runtime components to exchange and evaluate EDEMs.
 
 This component provides caller-owned sparse GF(2) matrices, typed linear maps,
 and open EDEM values.
 It constructs, validates, packs, reads, and evaluates models independently of
-CUDA-Q Logical. The public interface is C11. The private implementation uses
+cudaq-logical. The public interface is C11. The private implementation uses
 C++20 without exceptions, RTTI, or a C++ runtime dependency. Setup operations
 use per-call allocation callbacks, with `malloc`/`free` as the default.
 Evaluation uses caller vectors and never allocates.
 
-The API, ABI, and packed format are v0.x and may change between development
-releases.
-
-GF2 sources live in `math/gf2`. EDEM owns their combined installation and CMake
-package. GF2 has no separate package or release version.
+GF2 sources live in `math/gf2`. cudaq-edem owns their combined installation and
+CMake package. GF2 has no separate package or release version.
 
 ## Standalone build
 
@@ -34,7 +35,7 @@ cmake --install build-edem --prefix /path/to/install
 Set `BUILD_SHARED_LIBS=OFF` for static libraries and
 `CUDAQ_EDEM_BUILD_TESTS=OFF` to omit tests. The standalone build brings GF2 in
 from the sibling source directory.
-GF2 can also build and test independently, without configuring EDEM:
+GF2 can also build and test independently, without configuring cudaq-edem:
 
 ```sh
 cmake -S math/gf2 -B build-gf2 -DBUILD_SHARED_LIBS=ON
@@ -43,7 +44,7 @@ ctest --test-dir build-gf2 --output-on-failure
 ```
 
 Use `CUDAQ_GF2_BUILD_TESTS=OFF` to omit its sparse-matrix and typed-map tests.
-When included by EDEM, their default follows `CUDAQ_EDEM_BUILD_TESTS`.
+When included by cudaq-edem, their default follows `CUDAQ_EDEM_BUILD_TESTS`.
 GF2's standalone build does not create another distribution or install package.
 
 ## Python bindings and wheel
@@ -72,10 +73,10 @@ python3 -m pip install "build[virtualenv]"
 python3 edem/scripts/build_wheel.py --outdir dist/edem
 ```
 
-The script stages the EDEM and GF2 sources with `pyproject.toml.edem` as the
+The script stages the cudaq-edem and GF2 sources with `pyproject.toml.edem` as the
 standard `pyproject.toml`. It leaves the repository's main wheel configuration
-unchanged. Scikit-build-core builds the standalone EDEM project and packages
-its CMake installation. The wheel version comes from `CUDAQ_EDEM_VERSION`.
+unchanged. Scikit-build-core builds the standalone cudaq-edem project and
+packages its CMake installation. The wheel version comes from `CUDAQ_EDEM_VERSION`.
 
 Source staging copies only the exact paths in `edem/package-sources.txt`.
 Add new package files to that manifest; missing files and paths outside the
@@ -102,7 +103,7 @@ cmake -S . -B build -DCUDAQ_ENABLE_PROJECTS="cudaq;runtime;edem"
 ```
 
 The top-level CUDA-Q configuration retains its usual toolchain and dependency
-requirements. EDEM tests default to off in a parent build; enable them with
+requirements. cudaq-edem tests default to off in a parent build; enable them with
 `CUDAQ_EDEM_BUILD_TESTS=ON`.
 
 ## Installed package
@@ -115,11 +116,11 @@ target_link_libraries(my_application PRIVATE cudaq::edem)
 ```
 
 Add the installation prefix to `CMAKE_PREFIX_PATH`. The package also exports
-`cudaq::gf2`; linking EDEM supplies that dependency transitively. Both targets
-share the EDEM distribution version.
+`cudaq::gf2`; linking cudaq-edem supplies that dependency transitively. Both
+targets share the cudaq-edem distribution version.
 
 Each native shared library exports an explicit list of C symbols. On ELF,
-the EDEM and GF2 lists use the `CUDAQ_EDEM_0.1` and `CUDAQ_GF2_0.1` ABI version
+the cudaq-edem and GF2 lists use the `CUDAQ_EDEM_0.1` and `CUDAQ_GF2_0.1` ABI version
 nodes. macOS derives its export lists from the same files. Build checks verify
 the complete exported surface and, on ELF, each symbol's version node.
 
@@ -133,7 +134,7 @@ belong to `EDEMPython`.
 
 The tests compile and link C and C++ consumers using the build-tree targets,
 then install, relocate, and consume the package from a separate build. They
-also exercise a parent that defines GF2 before adding EDEM and installs both
+also exercise a parent that defines GF2 before adding cudaq-edem and installs both
 libraries through one `Core` component, and a standalone build with custom
 library and header installation directories.
 
@@ -142,7 +143,7 @@ including incoming boundary errors and faults that survive at the output.
 They also check sparse construction, exact fault groups, canonical packing,
 relocation, invalid content, large fault distributions, and canonical packed
 bytes. GF2's own tests under `math/gf2/test` check sparse matrices, typed maps,
-multiwire bundles and the trailing directory without linking EDEM. Native build
+multiwire bundles and the trailing directory without linking cudaq-edem. Native build
 checks permit `malloc`/`free` only in GF2's default allocator and reject other
 allocator imports, C++ runtime dependencies, and exports outside the C API.
 Failure-injection and bounded-arena tests check callback routing, cleanup and
@@ -171,7 +172,7 @@ matrices; `cudaq/gf2/map.h` provides typed linear maps and their packed storage.
 checks, endpoint translation, and access to fault distributions.
 
 Construction accepts blocks keyed by semantic endpoints such as output syndrome
-of code block 2. Producers supply code presentations and coefficients; EDEM
+of code block 2. Producers supply code presentations and coefficients; cudaq-edem
 builds the type table and bundles. It returns a checked `cudaq_edem_view`
 containing a GF2 map in its `.map` member. EDEM getters accept this distinct
 checked type. Use `&value.map` with the GF2 map API for bundles, widths,
@@ -251,8 +252,8 @@ The installed header `cudaq/edem/owned.hpp` provides
 record and a checked EDEM view. Its operations return C status codes and work
 with exceptions and RTTI disabled. Construction takes the semantic C description.
 
-CUDA-Q Logical can keep this owner in compiler code and translate status codes
-into LLVM or MLIR diagnostics. A library such as CUDA-Q QEC can reuse it inside
+cudaq-logical can keep this owner in compiler code and translate status codes
+into LLVM or MLIR diagnostics. A library such as cudaq-qec can reuse it inside
 its model implementation and provide its own public C++ type for decoder-facing
 operations. An implementation behind a pointer keeps the helper out of that
 type's binary layout. This reuses ownership and validation without duplicating
@@ -303,7 +304,7 @@ UTF-8 bytes, without normalization. Types are nominal, with no subtyping.
 Free bundles do not participate in wiring. Interface bundle compatibility
 requires matching type names, roles, wire counts and widths. Local type IDs are
 indices, not cross-value identities. GF2 constructs, validates and applies
-typed maps; EDEM also provides serial composition of its packed values.
+typed maps; cudaq-edem also provides serial composition of its packed values.
 
 EDEM uses four reserved, single-wire free types: `edem.fault`,
 `edem.detector`, `edem.observable`, and `edem.success`. It retains all four in
@@ -315,7 +316,7 @@ ordering and logical representatives; producers supply their code algebra and
 coefficients.
 
 GF2 owns type/bundle layout, block validation, canonical storage, matrix
-interning, packing, reading and apply. EDEM checks its vocabulary, permitted
+interning, packing, reading and apply. cudaq-edem checks its vocabulary, permitted
 input/output roles, presentation consistency, and structural zeros from V_in
 to O, S_out and L_out. Fault inputs have one distribution per bundle. Exact
 independent and mutually exclusive groups cover original indicators once;
@@ -397,9 +398,9 @@ constructed results without intermediate strings or byte copies.
 ## Packed format
 
 The v0.x storage schemas are declared in `cudaq/gf2/format.h` and
-`cudaq/edem/format.h`. These schemas are experimental. Numeric ABI and
-format tags identify concrete development revisions, not major releases.
-The distribution remains v0.x.
+`cudaq/edem/format.h`. These schemas are unstable during v0.x development.
+Numeric ABI and format tags identify concrete development revisions, not major
+releases.
 Multibyte integers and IEEE binary64 probabilities are little-endian; indices
 are 32-bit, and counts and offsets are 64-bit.
 
@@ -443,7 +444,7 @@ preserved. Blocks sort by output bundle/wire, then input bundle/wire. Duplicate
 endpoint pairs are rejected, zero blocks are omitted, and equal matrices are
 stored once in first-use order. Packed wire offsets are checked against widths.
 Fault groups sort by kind and first indicator, with sorted members and positive
-zero probabilities. EDEM checks their exact coverage with caller scratch.
+zero probabilities. cudaq-edem checks their exact coverage with caller scratch.
 
 Appending optional metadata preserves every required payload's bytes and
 offset: copy the required region, emit optional payloads in ID order, write a

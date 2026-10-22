@@ -5,7 +5,7 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-"""Build and verify an EDEM source distribution with extra local files present."""
+"""Verify a cudaq-edem source distribution with extra local files present."""
 
 import argparse
 from pathlib import Path, PurePosixPath
@@ -89,7 +89,7 @@ def main():
         for artifact in archives + wheels:
             shutil.copy2(artifact, outdir / artifact.name)
     print(
-        "EDEM source manifest, file contents, and unlisted-file exclusion passed"
+        "cudaq-edem source manifest, file contents, and unlisted-file exclusion passed"
     )
 
 
