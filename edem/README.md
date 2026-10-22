@@ -1,7 +1,12 @@
 # cudaq-edem
 
-**Early development: the API, ABI, and packed format are unstable and subject
-to rapid, potentially incompatible changes during v0.x development.**
+> [!NOTE]
+> This library's API, ABI, and packed format are unstable and subject to
+> breaking changes during 0.x development.
+> It is provided as-is for the sake of open development and the benefit of
+> developers interested in using it on that basis.
+> Feedback and contributions are always welcome, just please understand that
+> its purpose is the support of other user-facing components in CUDA-Q.
 
 cudaq-edem provides shared data structures and operations for extended detector
 error models (EDEMs). Its packed representation and C API allow compilers and
