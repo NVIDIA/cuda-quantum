@@ -37,13 +37,17 @@ def _laws(models):
 @pytest.mark.parametrize("distance, rounds", [(3, 2), (3, 3), (3, 5), (5, 5)])
 def test_memory_edem_matches_circuit_and_generated_dem(example, distance,
                                                        rounds):
-    noise = cql.compiler.StandardDepolarizingNoise(.001, .002, .003, .004)
+    noise = cql.compiler.StandardDepolarizingNoise(.001, .003, .004)
     (memory, values, composed, projected, circuit, circuit_dem,
-     edem_dem) = example["compare"](distance, rounds, noise)
+     edem_dem) = example["compare"](distance,
+                                    rounds,
+                                    noise,
+                                    data_depolarization=.002)
     reference = stim.Circuit.generated(
         "surface_code:rotated_memory_z",
         distance=distance,
         rounds=rounds,
+        before_round_data_depolarization=.002,
         **{name: getattr(noise, name) for name in noise.__dataclass_fields__})
     expected = example["dem_errors"](reference.detector_error_model())
     assert example["dem_errors"](edem_dem) == pytest.approx(expected,
@@ -65,16 +69,23 @@ def test_memory_edem_matches_circuit_and_generated_dem(example, distance,
         pytest.approx(example["dem_errors"](circuit_dem), abs=1e-12, rel=0)
 
 
-@pytest.mark.parametrize(
-    "parameter", cql.compiler.StandardDepolarizingNoise.__dataclass_fields__)
+@pytest.mark.parametrize("parameter", [
+    "data_depolarization",
+    *cql.compiler.StandardDepolarizingNoise.__dataclass_fields__
+])
 def test_each_noise_component_agrees_after_composition(example, parameter):
-    noise = cql.compiler.StandardDepolarizingNoise(**{parameter: .01})
-    example["compare"](3, 3, noise)
+    parameters = {} if parameter == "data_depolarization" else {parameter: .01}
+    noise = cql.compiler.StandardDepolarizingNoise(**parameters)
+    example["compare"](
+        3,
+        3,
+        noise,
+        data_depolarization=.01 if parameter == "data_depolarization" else 0)
 
 
 def test_noiseless_memory_dem_and_open_boundary_rejection(example):
     memory, values, composed, projected, _, _, dem = example["compare"](
-        3, 3, cql.compiler.StandardDepolarizingNoise())
+        3, 3, cql.compiler.StandardDepolarizingNoise(), data_depolarization=0)
     assert composed.vector_sizes == (0, 25)
     assert example["dem_errors"](dem) == {}
     assert projected.vector_sizes == composed.vector_sizes

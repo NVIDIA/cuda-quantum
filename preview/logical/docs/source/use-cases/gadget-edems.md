@@ -16,8 +16,8 @@ another EDEM library.
 ## Compare circuit and per-gadget DEM construction
 
 The [memory comparison example](../../../examples/standalone/07_memory_edem.py)
-uses the same surface-memory profiles and `StandardDepolarizingNoise` policy
-for two paths:
+uses the same surface-memory profiles, `StandardDepolarizingNoise` policy,
+and explicit extra data-noise placements for two paths:
 
 1. Emit the complete Stim circuit and obtain its DEM with
    `circuit.detector_error_model()`.
@@ -30,7 +30,11 @@ for two paths:
 `analysis.standard_depolarizing_faults` constructs the finite `FaultSet` using
 the same standard-noise placement as circuit export. Measurement noise is a
 physical Pauli immediately before measurement; it also affects later uses of
-that carrier. Round-start sites remain explicit recipe inputs.
+that carrier. Extra data-noise layers remain explicit recipe inputs, passed as
+`compiler.Depolarize1Placement` values through the `depolarizations` argument
+to both APIs. The memory recipe places them immediately before each extraction,
+including the extractions inside preparation and final readout. They have a
+separate `data_depolarization` probability, independent of the operation noise.
 
 The native EDEM library connects the `(ΔV, S, L)` boundary wires and checks
 adjacent code presentations. Each occurrence keeps its own fault indicators

@@ -8,27 +8,58 @@ from dataclasses import dataclass
 from math import isfinite
 
 
+def _probability(value, name):
+    if (isinstance(value, bool) or not isinstance(value, (int, float)) or
+            not isfinite(value) or not 0 <= value <= 1):
+        raise ValueError(f"{name} must be finite in [0, 1]")
+    return float(value)
+
+
 @dataclass(frozen=True, slots=True)
 class StandardDepolarizingNoise:
     """Circuit depolarization with physical reset and measurement flips.
 
-    Round-start data noise requires explicit instruction sites. Pauli channels
-    retain categorical alternatives; no independent-Pauli approximation is made.
+    Channels attach only to physical operations. Additional noise layers use
+    explicit ``Depolarize1Placement`` values. Pauli channels retain categorical
+    alternatives; no independent-Pauli approximation is made.
     """
 
     after_clifford_depolarization: float = 0.0
-    before_round_data_depolarization: float = 0.0
     before_measure_flip_probability: float = 0.0
     after_reset_flip_probability: float = 0.0
 
     def __post_init__(self):
         for name in self.__dataclass_fields__:
-            value = getattr(self, name)
-            if (isinstance(value, bool) or not isinstance(value,
-                                                          (int, float)) or
-                    not isfinite(value) or not 0 <= value <= 1):
-                raise ValueError(f"{name} must be finite in [0, 1]")
-            object.__setattr__(self, name, float(value))
+            object.__setattr__(self, name,
+                               _probability(getattr(self, name), name))
+
+
+@dataclass(frozen=True, slots=True)
+class Depolarize1Placement:
+    """Independent one-qubit depolarization on explicit projected carriers.
+
+    ``before`` is a native instruction site ID in the selected realization.
+    Each carrier receives its own categorical X/Y/Z channel of total
+    ``probability`` immediately before that instruction. Carrier indices are
+    local to its projection. Circuit export and fault construction accept the
+    same placements, independently of the operation-attached noise policy.
+    """
+
+    before: str
+    carriers: tuple[int, ...]
+    probability: float
+
+    def __post_init__(self):
+        if not isinstance(self.before, str) or not self.before:
+            raise ValueError("before must be a nonempty instruction site ID")
+        carriers = tuple(self.carriers)
+        if (not carriers or
+                any(not isinstance(q, int) or isinstance(q, bool) or q < 0
+                    for q in carriers) or len(set(carriers)) != len(carriers)):
+            raise ValueError("carriers must be distinct nonnegative integers")
+        object.__setattr__(self, "carriers", carriers)
+        object.__setattr__(self, "probability",
+                           _probability(self.probability, "probability"))
 
 
 @dataclass(frozen=True, slots=True)
@@ -38,10 +69,7 @@ class _Channel:
     probability: float
 
 
-def _standard_noise_placement(projection,
-                              noise,
-                              round_starts=(),
-                              data_carriers=None):
+def _standard_noise_placement(projection, noise, depolarizations=()):
     """Return before/after channels indexed by projected instruction.
 
     After-Clifford channels follow the physical gate groups in each instruction.
@@ -53,34 +81,25 @@ def _standard_noise_placement(projection,
         raise TypeError("noise placement requires a CliffordProjection")
     if not isinstance(noise, StandardDepolarizingNoise):
         raise TypeError("noise must be StandardDepolarizingNoise")
-    if isinstance(round_starts, str):
-        raise ValueError("round starts must be distinct instruction site IDs")
-    selected = tuple(round_starts)
-    if (any(not isinstance(site, str) for site in selected) or
-            len(set(selected)) != len(selected)):
-        raise ValueError("round starts must be distinct instruction site IDs")
-    if not set(selected) <= {op.site_id for op in projection.instructions}:
-        raise ValueError("round start does not name a projected instruction")
-    if data_carriers is None:
-        boundaries = projection.interface.inputs or projection.interface.outputs
-        data_carriers = tuple(
-            dict.fromkeys(
-                q for boundary in boundaries for q in boundary.data_carriers))
-    else:
-        data_carriers = tuple(data_carriers)
-    if (len(set(data_carriers)) != len(data_carriers) or
-            any(not isinstance(q, int) or isinstance(q, bool) or
-                not 0 <= q < projection.interface.carrier_count
-                for q in data_carriers)):
-        raise ValueError("data carriers must be distinct projected carriers")
+    sites = {op.site_id for op in projection.instructions}
+    selected = {}
+    for placement in depolarizations:
+        if not isinstance(placement, Depolarize1Placement):
+            raise TypeError(
+                "depolarizations must contain Depolarize1Placement values")
+        if placement.before not in sites:
+            raise ValueError(
+                "depolarization does not name a projected instruction")
+        if any(q >= projection.interface.carrier_count
+               for q in placement.carriers):
+            raise ValueError("depolarization carrier is out of range")
+        if placement.probability:
+            selected.setdefault(placement.before, []).extend(
+                _Channel("DEPOLARIZE1", (q,), placement.probability)
+                for q in placement.carriers)
     before, after = [], []
     for op in projection.instructions:
-        pre, post = [], []
-        if op.site_id in selected and noise.before_round_data_depolarization:
-            pre.extend(
-                _Channel("DEPOLARIZE1", (
-                    q,), noise.before_round_data_depolarization)
-                for q in data_carriers)
+        pre, post = list(selected.get(op.site_id, ())), []
         if op.kind == "MPP":
             if noise.before_measure_flip_probability:
                 raise ValueError(
@@ -109,4 +128,4 @@ def _standard_noise_placement(projection,
     return tuple(before), tuple(after)
 
 
-__all__ = ["StandardDepolarizingNoise"]
+__all__ = ["StandardDepolarizingNoise", "Depolarize1Placement"]

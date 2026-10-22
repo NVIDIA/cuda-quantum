@@ -27,24 +27,24 @@ def memory_recipe(distance, rounds):
     return factory(distance, rounds)
 
 
-def memory_faults(profile, noise, round_starts):
-    """Use Logical's shared standard-noise placement API."""
+def memory_faults(profile, noise, depolarizations):
+    """Use the same operation noise and explicit placements as circuit export."""
     build = cql.compile(profile)
     projection = cql.compiler.project_clifford(build,
                                                gadget=profile.gadget.name)
     faults = cql.analysis.standard_depolarizing_faults(
-        projection, noise, round_starts=round_starts)
+        projection, noise, depolarizations=depolarizations)
     return build, faults
 
 
-def derive_memory_edems(memory, noise):
+def derive_memory_edems(memory, noise, *, data_depolarization=0.0):
     """Derive each distinct definition once; repeated SECs reuse its value."""
     cache, occurrences = {}, []
+    placements = memory.depolarizations(data_depolarization)
     for index, profile in enumerate(memory.profiles):
-        key = id(profile), tuple(memory.round_starts[index])
+        key = id(profile), placements[index]
         if key not in cache:
-            build, faults = memory_faults(profile, noise,
-                                          memory.round_starts[index])
+            build, faults = memory_faults(profile, noise, placements[index])
             cache[key] = cql.analysis.derive_edem(build, faults=faults)
         occurrences.append(cache[key])
     return tuple(occurrences)
@@ -114,16 +114,18 @@ def dem_errors(model):
     return errors
 
 
-def compare(distance=3, rounds=3, noise=None):
+def compare(distance=3, rounds=3, noise=None, *, data_depolarization=.001):
     """Build both paths from identical gadget profiles and noise parameters."""
     import stim
 
-    noise = noise or cql.compiler.StandardDepolarizingNoise(
-        .001, .001, .001, .001)
+    noise = noise or cql.compiler.StandardDepolarizingNoise(.001, .001, .001)
     memory = memory_recipe(distance, rounds)
-    circuit = stim.Circuit(memory.to_stim(noise))
+    circuit = stim.Circuit(
+        memory.to_stim(noise, data_depolarization=data_depolarization))
     circuit_dem = circuit.detector_error_model()
-    occurrences = derive_memory_edems(memory, noise)
+    occurrences = derive_memory_edems(memory,
+                                      noise,
+                                      data_depolarization=data_depolarization)
     composed = edem.compose_chain(occurrences)
     projected = edem.project_DEM(composed)
     independent = edem.factorize_dem(projected)

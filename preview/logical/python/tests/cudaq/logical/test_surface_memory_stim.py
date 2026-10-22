@@ -38,11 +38,12 @@ def stim():
     return pytest.importorskip("stim", minversion="1.16")
 
 
-def _reference(stim, distance, rounds, noise):
+def _reference(stim, distance, rounds, noise, data_depolarization=0.0):
     return stim.Circuit.generated(
         "surface_code:rotated_memory_z",
         distance=distance,
         rounds=rounds,
+        before_round_data_depolarization=data_depolarization,
         **{name: getattr(noise, name) for name in noise.__dataclass_fields__})
 
 
@@ -195,8 +196,8 @@ def test_surface_memory_emits_text_without_stim(example, make_memory,
 
     monkeypatch.setattr(builtins, "__import__", without_stim)
     memory = make_memory(3, 3)
-    noise = cql.compiler.StandardDepolarizingNoise(.001, .002, .003, .004)
-    text = memory.to_stim(noise)
+    noise = cql.compiler.StandardDepolarizingNoise(.001, .003, .004)
+    text = memory.to_stim(noise, data_depolarization=.002)
     output = tmp_path / "surface-memory.stim"
     output.write_text(text)
     assert output.read_text() == text
@@ -322,18 +323,21 @@ def test_surface_memory_profiles_and_noiseless_boundaries(
         cql.compile(p).content_sha256 for p in memory.profiles)
 
 
-@pytest.mark.parametrize(
-    "active",
-    [None, *cql.compiler.StandardDepolarizingNoise.__dataclass_fields__])
+@pytest.mark.parametrize("active", [
+    None, "data_depolarization",
+    *cql.compiler.StandardDepolarizingNoise.__dataclass_fields__
+])
 def test_surface_memory_exact_fault_laws_match_stim(make_memory, stim, active):
     parameters = {
         name: .001 if active is None or active == name else 0
         for name in cql.compiler.StandardDepolarizingNoise.__dataclass_fields__
     }
     noise = cql.compiler.StandardDepolarizingNoise(**parameters)
+    data_probability = .001 if active in (None, "data_depolarization") else 0
     memory = make_memory(3, 3)
-    circuit = stim.Circuit(memory.to_stim(noise))
-    reference = _reference(stim, 3, 3, noise)
+    circuit = stim.Circuit(
+        memory.to_stim(noise, data_depolarization=data_probability))
+    reference = _reference(stim, 3, 3, noise, data_probability)
     assert _surface_circuit_contents(circuit) == _surface_circuit_contents(
         reference)
     assert _fault_laws(stim, circuit) == _fault_laws(stim, reference)
@@ -341,35 +345,87 @@ def test_surface_memory_exact_fault_laws_match_stim(make_memory, stim, active):
 
 
 def test_distance_five_memory_matches_exact_fault_laws(make_memory, stim):
-    noise = cql.compiler.StandardDepolarizingNoise(.001, .002, .003, .004)
-    circuit = stim.Circuit(make_memory(5, 5).to_stim(noise))
+    noise = cql.compiler.StandardDepolarizingNoise(.001, .003, .004)
+    circuit = stim.Circuit(
+        make_memory(5, 5).to_stim(noise, data_depolarization=.002))
     assert _surface_circuit_contents(circuit) == _surface_circuit_contents(
-        _reference(stim, 5, 5, noise))
-    assert _fault_laws(stim,
-                       circuit) == _fault_laws(stim,
-                                               _reference(stim, 5, 5, noise))
+        _reference(stim, 5, 5, noise, .002))
+    assert _fault_laws(stim, circuit) == _fault_laws(
+        stim, _reference(stim, 5, 5, noise, .002))
     assert len(circuit.shortest_graphlike_error()) == 5
 
 
 def test_distance_seven_memory_preserves_circuit_distance(make_memory, stim):
-    noise = cql.compiler.StandardDepolarizingNoise(.001, .001, .001, .001)
-    circuit = stim.Circuit(make_memory(7, 7).to_stim(noise))
+    noise = cql.compiler.StandardDepolarizingNoise(.001, .001, .001)
+    circuit = stim.Circuit(
+        make_memory(7, 7).to_stim(noise, data_depolarization=.001))
     assert _surface_circuit_contents(circuit) == _surface_circuit_contents(
-        _reference(stim, 7, 7, noise))
+        _reference(stim, 7, 7, noise, .001))
     assert len(circuit.shortest_graphlike_error()) == 7
 
 
-def test_surface_memory_noise_needs_round_sites_and_rejects_open_chains(
+def test_stim_export_validates_explicit_noise_sites_and_closed_chain(
         make_memory):
     memory = make_memory()
-    with pytest.raises(ValueError, match="explicit round_starts"):
-        cql.compiler.emit_stim(memory.profiles,
-                               noise=cql.compiler.StandardDepolarizingNoise(
-                                   before_round_data_depolarization=.01))
+    # Operation-attached noise needs no extra layer placements.
+    assert "DEPOLARIZE2(0.01)" in cql.compiler.emit_stim(
+        memory.profiles,
+        noise=cql.compiler.StandardDepolarizingNoise(
+            after_clifford_depolarization=.01))
     with pytest.raises(ValueError, match="closed single-block chain"):
         cql.compiler.emit_stim(memory.profiles[1:])
     with pytest.raises(ValueError, match="projected instruction"):
-        cql.compiler.emit_stim(memory.profiles, round_starts={0: ("missing",)})
+        cql.compiler.emit_stim(memory.profiles,
+                               depolarizations={
+                                   0: (cql.compiler.Depolarize1Placement(
+                                       "missing", (0,), .01),)
+                               })
+    for index in (-1, len(memory.profiles), True):
+        with pytest.raises(ValueError, match="occurrence index"):
+            cql.compiler.emit_stim(memory.profiles, depolarizations={index: ()})
+    site, _ = memory.extraction_entries[0]
+    with pytest.raises(ValueError, match="carrier is out of range"):
+        cql.compiler.emit_stim(memory.profiles,
+                               depolarizations={
+                                   0: (cql.compiler.Depolarize1Placement(
+                                       site, (len(memory.coordinates),), .01),)
+                               })
+    with pytest.raises(TypeError, match="Depolarize1Placement"):
+        cql.compiler.emit_stim(memory.profiles,
+                               depolarizations={0: ("missing",)})
+
+
+def test_extra_data_layers_match_extraction_entries(make_memory, stim):
+    memory = make_memory(3, 3)
+    placements = memory.depolarizations(.02)
+    channels = [
+        op for op in stim.Circuit(memory.to_stim(data_depolarization=.02))
+        if op.name == "DEPOLARIZE1"
+    ]
+    assert sum(len(op.targets_copy()) for op in channels) == 3 * 9
+    for index, profile in enumerate(memory.profiles):
+        projection = cql.compiler.project_clifford(cql.compile(profile),
+                                                   gadget=profile.gadget.name)
+        entry = next(i for i, op in enumerate(projection.instructions)
+                     if op.site_id == placements[index][0].before)
+        assert all(op.kind == "R" for op in projection.instructions[:entry])
+        assert projection.instructions[entry].kind == "H"
+        faults = cql.analysis.standard_depolarizing_faults(
+            projection,
+            cql.compiler.StandardDepolarizingNoise(),
+            depolarizations=placements[index])
+        assert len(faults.faults) == 9 * 3
+        assert len(faults.exclusive_groups) == 9
+        for q, group in zip(placements[index][0].carriers,
+                            faults.exclusive_groups):
+            alternatives = [faults.faults[i] for i in group]
+            assert [f.insertions[0].factors for f in alternatives
+                   ] == [((q, p),) for p in "xyz"]
+            assert all(f.probability == .02 / 3 for f in alternatives)
+            assert all(
+                f.insertions[0].after == projection.instructions[entry -
+                                                                 1].site_id
+                for f in alternatives)
 
 
 def test_stim_export_rejects_missing_virtual_bindings_and_incompatible_presentations(
@@ -426,3 +482,11 @@ def test_standard_depolarizing_noise_rejects_invalid_probabilities(probability):
     with pytest.raises(ValueError, match=r"finite in \[0, 1\]"):
         cql.compiler.StandardDepolarizingNoise(
             after_clifford_depolarization=probability)
+    with pytest.raises(ValueError, match=r"finite in \[0, 1\]"):
+        cql.compiler.Depolarize1Placement("site", (0,), probability)
+
+
+@pytest.mark.parametrize("carriers", [(), (0, 0), (-1,), (True,), ("0",)])
+def test_explicit_depolarization_rejects_invalid_carriers(carriers):
+    with pytest.raises(ValueError, match="distinct nonnegative integers"):
+        cql.compiler.Depolarize1Placement("site", carriers, .01)

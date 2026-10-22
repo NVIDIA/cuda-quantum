@@ -13,13 +13,16 @@ from typing import Mapping, Sequence
 
 from .clifford import project_clifford
 from .compile import compile
-from .noise import StandardDepolarizingNoise, _standard_noise_placement
+from .noise import (Depolarize1Placement, StandardDepolarizingNoise,
+                    _standard_noise_placement)
 
 
-def emit_stim(profiles,
-              *,
-              noise: StandardDepolarizingNoise | None = None,
-              round_starts: Mapping[int, Sequence[str]] | None = None) -> str:
+def emit_stim(
+    profiles,
+    *,
+    noise: StandardDepolarizingNoise | None = None,
+    depolarizations: Mapping[int, Sequence[Depolarize1Placement]] | None = None
+) -> str:
     """Export a closed single-block chain of ``GadgetProfile`` values.
 
     The first occurrence prepares one encoded block, interior occurrences
@@ -29,9 +32,8 @@ def emit_stim(profiles,
     observables; postselection is unsupported. Construction checks structure,
     not ideal detector-contract correctness.
 
-    ``round_starts`` maps occurrence indices to native instruction site IDs
-    before which round-start data noise is inserted. These sites are explicit
-    because a round may begin inside preparation or readout. Gate, reset and
+    ``depolarizations`` maps occurrence indices to explicit one-qubit noise
+    placements, with realization-local sites and carriers. Gate, reset and
     measurement noise is attached to physical operations, not encoded calls.
     The source profiles and their compiled realizations remain unchanged.
 
@@ -53,13 +55,10 @@ def emit_stim(profiles,
         noise = StandardDepolarizingNoise()
     if not isinstance(noise, StandardDepolarizingNoise):
         raise TypeError("noise must be StandardDepolarizingNoise")
-    starts = dict(round_starts or {})
+    placements = dict(depolarizations or {})
     if any(not isinstance(i, int) or isinstance(i, bool) or
-           not 0 <= i < len(profiles) for i in starts):
-        raise ValueError("round-start occurrence index is out of range")
-    if noise.before_round_data_depolarization and not any(starts.values()):
-        raise ValueError(
-            "round-start data noise requires explicit round_starts")
+           not 0 <= i < len(profiles) for i in placements):
+        raise ValueError("depolarization occurrence index is out of range")
 
     lines = []
     measurement_count = 0
@@ -106,8 +105,8 @@ def emit_stim(profiles,
                 carriers[local] = next_carrier
                 next_carrier += 1
 
-        before, after = _standard_noise_placement(projection, noise,
-                                                  starts.get(occurrence, ()))
+        before, after = _standard_noise_placement(
+            projection, noise, placements.get(occurrence, ()))
         measurement_offset = measurement_count
 
         def append_noise(channel):
@@ -190,4 +189,4 @@ def emit_stim(profiles,
     return "\n".join(lines) + "\n"
 
 
-__all__ = ["StandardDepolarizingNoise", "emit_stim"]
+__all__ = ["emit_stim"]

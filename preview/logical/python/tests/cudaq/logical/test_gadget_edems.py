@@ -509,9 +509,30 @@ def test_standard_measurement_noise_preserves_later_carrier_effects():
         assert model.apply([first, second, x,
                             z]) == [second, first ^ second ^ x]
     with pytest.raises(ValueError, match="projected instruction"):
-        standard_depolarizing_faults(projection,
-                                     cql.compiler.StandardDepolarizingNoise(),
-                                     round_starts=("missing",))
+        standard_depolarizing_faults(
+            projection,
+            cql.compiler.StandardDepolarizingNoise(),
+            depolarizations=(cql.compiler.Depolarize1Placement(
+                "missing", (0,), .1),))
+
+    # Explicit layers also work at entry and between measurements, without
+    # assuming any extraction structure. X/Y before the first measurement flip
+    # both records; X/Y before the second flip only the second record.
+    first, second = projection.instructions
+    placed = standard_depolarizing_faults(
+        projection,
+        cql.compiler.StandardDepolarizingNoise(),
+        depolarizations=(cql.compiler.Depolarize1Placement(
+            first.site_id, (0,),
+            .3), cql.compiler.Depolarize1Placement(second.site_id, (0,), .6)))
+    assert len(placed.faults) == 6
+    assert placed.exclusive_groups == ((0, 1, 2), (3, 4, 5))
+    model = derive_edem(build, faults=placed)
+    for column, expected in enumerate(
+        ([0, 1], [0, 1], [0, 0], [1, 1], [1, 1], [0, 0])):
+        vector = [0] * model.vector_sizes[0]
+        vector[column] = 1
+        assert model.apply(vector) == expected
 
 
 def test_overlapping_detector_and_observable_rows_do_not_complete_missing_rank(

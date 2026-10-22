@@ -206,19 +206,15 @@ def _check_probability(value: float) -> None:
         raise ValueError("fault probability must be finite in [0, 1]")
 
 
-def standard_depolarizing_faults(projection,
-                                 noise,
-                                 *,
-                                 round_starts=(),
-                                 data_carriers=None) -> FaultSet:
+def standard_depolarizing_faults(projection, noise, *,
+                                 depolarizations=()) -> FaultSet:
     """Place the standard circuit noise policy on a Clifford projection.
 
-    Uses the same channel placement as ``compiler.emit_stim``. Round starts
-    name instructions before which to depolarize data; data carriers default
-    to the input boundaries, or the output boundaries for preparation. Explicit
-    carriers may be supplied for other realizations. Measurement noise inserts
-    a physical anticommuting Pauli before measurement, preserving its effect
-    even if the measured carrier is subsequently reused without reset.
+    Uses the same channel placement as ``compiler.emit_stim``. Additional
+    one-qubit noise layers use explicit ``compiler.Depolarize1Placement``
+    values with projection-local instruction sites and carriers. Measurement
+    noise inserts a physical anticommuting Pauli before measurement, preserving
+    its effect even if the measured carrier is subsequently reused without reset.
 
     The result keeps exclusive one-/two-qubit Pauli alternatives and independent
     reset/measurement faults. No Stim dependency or probability approximation.
@@ -228,8 +224,8 @@ def standard_depolarizing_faults(projection,
     from itertools import product
     from cudaq.logical.compiler.noise import _standard_noise_placement
 
-    before, after = _standard_noise_placement(projection, noise, round_starts,
-                                              data_carriers)
+    before, after = _standard_noise_placement(projection, noise,
+                                              depolarizations)
     faults, groups = [], []
 
     def place(channel, site):
