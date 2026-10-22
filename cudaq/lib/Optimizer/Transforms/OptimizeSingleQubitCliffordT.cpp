@@ -8,8 +8,8 @@
 
 #include "PassDetails.h"
 #include "PhaseUtilities.h"
+#include "SingleQubitChain.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
-#include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
@@ -17,10 +17,10 @@
 #include "cudaq/Synthesis/Circuit/Gate.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/ADT/TypeSwitch.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinOps.h"
-#include "mlir/Interfaces/CallInterfaces.h"
 #include <cmath>
 #include <compare>
 #include <optional>
@@ -35,32 +35,8 @@ using namespace mlir;
 
 namespace {
 
-enum class ExactGate { H, S, T, X, Y, Z };
-
-struct ExactWireOp {
-  Operation *operation;
-  llvm::SmallVector<Value> inputs;
-  llvm::SmallVector<Value> outputs;
-  llvm::SmallVector<bool> controlPolarities;
-  ExactGate gate;
-  bool isAdj;
-};
-
-struct ScopeStep {
-  Value wire;
-  OpOperand *continueOperand;
-};
-
-struct ScalarWireStep {
-  Operation *operation;
-  std::optional<ScopeStep> scopeStep;
-};
-
 struct Candidate {
-  llvm::SmallVector<Operation *> operations;
-  llvm::SmallVector<llvm::SmallVector<ScopeStep>> scopeSteps;
-  llvm::SmallVector<Value> inputs;
-  llvm::SmallVector<Value> outputs;
+  cudaq::opt::SingleQubitChain chain;
   llvm::SmallVector<bool> controlPolarities;
   cudaq::synth::Circuit normalized;
 };
@@ -82,218 +58,63 @@ public:
 
 } // namespace
 
-static std::optional<ExactGate> getExactGate(Operation *operation) {
-  if (isa<cudaq::quake::HOp>(operation))
-    return ExactGate::H;
-  if (isa<cudaq::quake::SOp>(operation))
-    return ExactGate::S;
-  if (isa<cudaq::quake::TOp>(operation))
-    return ExactGate::T;
-  if (isa<cudaq::quake::XOp>(operation))
-    return ExactGate::X;
-  if (isa<cudaq::quake::YOp>(operation))
-    return ExactGate::Y;
-  if (isa<cudaq::quake::ZOp>(operation))
-    return ExactGate::Z;
-  return std::nullopt;
+// The gates with an exact Clifford+T word. The collector separately requires
+// that all of a gate's operands thread `!quake.wire` values.
+static bool isExactGate(Operation *operation) {
+  return isa<cudaq::quake::HOp, cudaq::quake::SOp, cudaq::quake::TOp,
+             cudaq::quake::XOp, cudaq::quake::YOp, cudaq::quake::ZOp>(
+             operation) &&
+         cast<cudaq::quake::OperatorInterface>(operation).getTargets().size() ==
+             1;
 }
 
-// Accept one-target exact gates whose complete predicate is in scalar linear
-// form. Every other operand or result shape is a chain boundary.
-static std::optional<ExactWireOp> getExactWireOp(Operation *operation) {
-  std::optional<ExactGate> gate = getExactGate(operation);
-  if (!gate)
-    return std::nullopt;
-
-  auto gateInterface = dyn_cast<cudaq::quake::OperatorInterface>(operation);
-  auto flow = cudaq::quake::detail::getScalarWireFlow(operation);
-  if (!gateInterface || !flow || gateInterface.getTargets().size() != 1)
-    return std::nullopt;
-
-  return ExactWireOp{operation,
-                     std::move(flow->inputs),
-                     std::move(flow->results),
-                     cudaq::quake::getControlPolarities(gateInterface),
-                     *gate,
-                     gateInterface.isAdj()};
-}
-
-// Returns whether `nested` is inside `outer` through only single-block
-// `cc.scope` operations. Any other enclosing region prevents traversal.
-static bool entersSingleBlockLexicalScopesOnly(Block *nested, Block *outer) {
-  while (nested != outer) {
-    if (!nested)
-      return false;
-    auto scope = dyn_cast_or_null<cudaq::cc::ScopeOp>(nested->getParentOp());
-    if (!scope || scope.getAtomicQuantumRegionAttr() ||
-        !scope.getInitRegion().hasOneBlock())
-      return false;
-    nested = scope->getBlock();
-  }
-  return true;
-}
-
-/// Return whether an operation can be followed as a direct scalar-wire step.
-/// Calls, region operations, and terminators require control-flow semantics
-/// that this pass deliberately does not model.
-static bool isDirectScalarWireStep(Operation *operation) {
-  return !isa<CallOpInterface>(operation) && operation->getNumRegions() == 0 &&
-         !operation->hasTrait<OpTrait::IsTerminator>();
-}
-
-// Follow the unique scalar-wire use forward. A direct use reaches its user;
-// a `cc.continue` use reaches the matching result of its enclosing scope.
-static std::optional<ScalarWireStep> traverseScalarWire(Value wire) {
-  if (!isa<cudaq::quake::WireType>(wire.getType()) || !wire.hasOneUse())
-    return std::nullopt;
-
-  OpOperand *use = &*wire.getUses().begin();
-  Operation *user = use->getOwner();
-  if (auto cont = dyn_cast<cudaq::cc::ContinueOp>(user)) {
-    auto scope = dyn_cast<cudaq::cc::ScopeOp>(cont->getParentOp());
-    if (!scope || scope.getAtomicQuantumRegionAttr() ||
-        !scope.getInitRegion().hasOneBlock() ||
-        scope.getInitRegion().front().getTerminator() != user ||
-        cont.getNumOperands() != scope->getNumResults())
-      return std::nullopt;
-    unsigned index = use->getOperandNumber();
-    if (index >= scope->getNumResults() ||
-        !isa<cudaq::quake::WireType>(scope->getResult(index).getType()))
-      return std::nullopt;
-    Value result = scope->getResult(index);
-    if (!result.hasOneUse())
-      return std::nullopt;
-    return ScalarWireStep{scope, ScopeStep{result, use}};
-  }
-  if (!isDirectScalarWireStep(user) ||
-      !entersSingleBlockLexicalScopesOnly(user->getBlock(),
-                                          wire.getParentBlock()))
-    return std::nullopt;
-  return ScalarWireStep{user, std::nullopt};
-}
-
-struct WirePathEnd {
-  Operation *operation;
-  Value wire;
-};
-
-// Follow one tuple lane through transparent scopes to its next direct user.
-static std::optional<WirePathEnd>
-traceWire(Value wire, llvm::SmallVectorImpl<ScopeStep> &scopeSteps) {
-  auto step = traverseScalarWire(wire);
-  while (step && step->scopeStep) {
-    scopeSteps.push_back(*step->scopeStep);
-    wire = step->scopeStep->wire;
-    step = traverseScalarWire(wire);
-  }
-  return step ? std::optional<WirePathEnd>{WirePathEnd{step->operation, wire}}
-              : std::nullopt;
-}
-
-// A controlled chain continues only when every output lane reaches the same
-// gate at its corresponding input position with the same ordered predicate.
-static std::optional<ExactWireOp> matchNextExactGate(
-    const ExactWireOp &current,
-    llvm::MutableArrayRef<llvm::SmallVector<ScopeStep>> scopeSteps) {
-  llvm::SmallVector<std::optional<WirePathEnd>> pathEnds;
-  pathEnds.reserve(current.outputs.size());
-  for (auto [output, steps] : llvm::zip(current.outputs, scopeSteps))
-    pathEnds.push_back(traceWire(output, steps));
-
-  if (llvm::any_of(pathEnds, [](const auto &path) { return !path; }))
-    return std::nullopt;
-
-  Operation *nextOperation = pathEnds.front()->operation;
-  if (llvm::any_of(pathEnds, [&](const auto &path) {
-        return path->operation != nextOperation;
-      }))
-    return std::nullopt;
-
-  std::optional<ExactWireOp> next = getExactWireOp(nextOperation);
-  if (!next || next->inputs.size() != current.outputs.size() ||
-      next->controlPolarities != current.controlPolarities)
-    return std::nullopt;
-
-  for (auto [index, path] : llvm::enumerate(pathEnds))
-    if (next->inputs[index] != path->wire)
-      return std::nullopt;
-  return next;
-}
-
-// Collect a maximal chain through exactly-once scalar-wire values. Unsupported
-// operations and non-linear wire flow terminate the chain.
-static llvm::SmallVector<ExactWireOp> collectLinearChain(
-    Operation *operation, llvm::SmallDenseSet<Operation *> &collected,
-    llvm::SmallVectorImpl<llvm::SmallVector<ScopeStep>> &scopeSteps) {
-  if (collected.contains(operation))
-    return {};
-
-  std::optional<ExactWireOp> first = getExactWireOp(operation);
-  if (!first || llvm::any_of(first->inputs,
-                             [](Value input) { return !input.hasOneUse(); }))
-    return {};
-
-  scopeSteps.resize(first->inputs.size());
-  llvm::SmallVector<ExactWireOp> chain;
-  std::optional<ExactWireOp> current = std::move(first);
-  while (current) {
-    chain.push_back(*current);
-    collected.insert(current->operation);
-    if (llvm::any_of(current->outputs,
-                     [](Value output) { return !output.hasOneUse(); }))
-      break;
-    std::optional<ExactWireOp> nextGate =
-        matchNextExactGate(*current, scopeSteps);
-    if (!nextGate)
-      break;
-    current = std::move(nextGate);
-  }
-  return chain;
+static llvm::SmallVector<bool> getPolarities(Operation *operation) {
+  return cudaq::quake::getControlPolarities(
+      cast<cudaq::quake::OperatorInterface>(operation));
 }
 
 static void appendExactGate(cudaq::synth::Circuit &circuit,
-                            const ExactWireOp &operation) {
+                            Operation *operation) {
   using cudaq::synth::Gate;
-  switch (operation.gate) {
-  case ExactGate::H:
-    circuit.push_back(Gate::H);
-    break;
-  case ExactGate::S:
-    if (operation.isAdj) {
-      circuit.push_back(Gate::S);
-      circuit.push_back(Gate::S);
-    }
-    circuit.push_back(Gate::S);
-    break;
-  case ExactGate::T:
-    circuit.push_back(Gate::T);
-    if (operation.isAdj) {
-      circuit.push_back(Gate::S);
-      circuit.push_back(Gate::S);
-      circuit.push_back(Gate::S);
-    }
-    break;
-  case ExactGate::X:
-    circuit.push_back(Gate::X);
-    break;
-  case ExactGate::Y:
-    circuit.push_back(Gate::W);
-    circuit.push_back(Gate::W);
-    circuit.push_back(Gate::X);
-    circuit.push_back(Gate::S);
-    circuit.push_back(Gate::S);
-    break;
-  case ExactGate::Z:
-    circuit.push_back(Gate::S);
-    circuit.push_back(Gate::S);
-    break;
-  }
+  const bool isAdj = cast<cudaq::quake::OperatorInterface>(operation).isAdj();
+  llvm::TypeSwitch<Operation *>(operation)
+      .Case<cudaq::quake::HOp>([&](auto) { circuit.push_back(Gate::H); })
+      .Case<cudaq::quake::SOp>([&](auto) {
+        if (isAdj) {
+          circuit.push_back(Gate::S);
+          circuit.push_back(Gate::S);
+        }
+        circuit.push_back(Gate::S);
+      })
+      .Case<cudaq::quake::TOp>([&](auto) {
+        circuit.push_back(Gate::T);
+        if (isAdj) {
+          circuit.push_back(Gate::S);
+          circuit.push_back(Gate::S);
+          circuit.push_back(Gate::S);
+        }
+      })
+      .Case<cudaq::quake::XOp>([&](auto) { circuit.push_back(Gate::X); })
+      .Case<cudaq::quake::YOp>([&](auto) {
+        circuit.push_back(Gate::W);
+        circuit.push_back(Gate::W);
+        circuit.push_back(Gate::X);
+        circuit.push_back(Gate::S);
+        circuit.push_back(Gate::S);
+      })
+      .Case<cudaq::quake::ZOp>([&](auto) {
+        circuit.push_back(Gate::S);
+        circuit.push_back(Gate::S);
+      })
+      .Default([](Operation *) {
+        llvm_unreachable("collected an unsupported exact gate");
+      });
 }
 
 static cudaq::synth::Circuit
-buildMatrixProduct(llvm::ArrayRef<ExactWireOp> operations) {
+buildMatrixProduct(llvm::ArrayRef<Operation *> operations) {
   cudaq::synth::Circuit circuit;
-  for (const ExactWireOp &operation : llvm::reverse(operations))
+  for (Operation *operation : llvm::reverse(operations))
     appendExactGate(circuit, operation);
   return circuit;
 }
@@ -309,12 +130,10 @@ static CircuitCost emittedCost(const cudaq::synth::Circuit &circuit) {
   return {circuit.t_count(), emittedGateCount};
 }
 
-static CircuitCost inputCost(llvm::ArrayRef<ExactWireOp> chain) {
-  return {static_cast<int>(llvm::count_if(chain,
-                                          [](const ExactWireOp &gate) {
-                                            return gate.gate == ExactGate::T;
-                                          })),
-          chain.size()};
+static CircuitCost inputCost(llvm::ArrayRef<Operation *> chain) {
+  return {
+      static_cast<int>(llvm::count_if(chain, llvm::IsaPred<cudaq::quake::TOp>)),
+      chain.size()};
 }
 
 template <typename OpTy>
@@ -376,54 +195,35 @@ emitCircuit(OpBuilder &builder, Location location, ValueRange inputs,
 
 static void optimizeBlock(Block &block) {
   llvm::SmallVector<Candidate, 0> candidates;
-  llvm::SmallDenseSet<Operation *> collected;
+  auto chains = cudaq::opt::collectSingleQubitChains(block, isExactGate);
 
-  for (Operation &operation : block) {
-    llvm::SmallVector<llvm::SmallVector<ScopeStep>> scopeSteps;
-    llvm::SmallVector<ExactWireOp> chain =
-        collectLinearChain(&operation, collected, scopeSteps);
-    if (chain.empty())
-      continue;
-
+  for (cudaq::opt::SingleQubitChain &chain : chains) {
     // A single exact gate cannot improve the T-count or emitted gate count
     // used by this pass, so it does not need normal-form construction.
-    if (chain.size() == 1)
+    if (chain.operations.size() == 1)
       continue;
 
-    cudaq::synth::Circuit inputCircuit = buildMatrixProduct(chain);
+    cudaq::synth::Circuit inputCircuit = buildMatrixProduct(chain.operations);
     cudaq::synth::Circuit normalized = inputCircuit.normalized();
-    if (emittedCost(normalized) >= inputCost(chain))
+    if (emittedCost(normalized) >= inputCost(chain.operations))
       continue;
 
     Candidate candidate;
-    candidate.inputs = chain.front().inputs;
-    candidate.outputs = chain.back().outputs;
-    candidate.controlPolarities = chain.front().controlPolarities;
-    candidate.scopeSteps = std::move(scopeSteps);
+    candidate.controlPolarities = getPolarities(chain.operations.front());
+    candidate.chain = std::move(chain);
     candidate.normalized = std::move(normalized);
-    for (const ExactWireOp &gate : chain)
-      candidate.operations.push_back(gate.operation);
     candidates.push_back(std::move(candidate));
   }
 
   // Later candidates are rewritten first so recorded endpoints for earlier
   // chains remain valid throughout block mutation.
   for (Candidate &candidate : llvm::reverse(candidates)) {
-    OpBuilder builder(candidate.operations.front());
-    llvm::SmallVector<Value> outputs = emitCircuit(
-        builder, candidate.operations.front()->getLoc(), candidate.inputs,
-        candidate.controlPolarities, candidate.normalized);
-    for (auto [output, original, steps] :
-         llvm::zip(outputs, candidate.outputs, candidate.scopeSteps)) {
-      Value replacement = output;
-      for (ScopeStep &scopeStep : steps) {
-        scopeStep.continueOperand->set(replacement);
-        replacement = scopeStep.wire;
-      }
-      original.replaceAllUsesWith(replacement);
-    }
-    for (Operation *operation : llvm::reverse(candidate.operations))
-      operation->erase();
+    OpBuilder builder(candidate.chain.operations.front());
+    llvm::SmallVector<Value> outputs =
+        emitCircuit(builder, candidate.chain.operations.front()->getLoc(),
+                    candidate.chain.inputs, candidate.controlPolarities,
+                    candidate.normalized);
+    cudaq::opt::replaceSingleQubitChain(std::move(candidate.chain), outputs);
   }
 }
 

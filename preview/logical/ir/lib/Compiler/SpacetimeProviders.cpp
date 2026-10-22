@@ -300,7 +300,7 @@ expectedSpacetimeFactoryModel(SpacetimePlanOp plan,
     Region *body = spacetimeCallableBody(callable);
     body->walk([&](qlx::fabric::ResourceRequestOp request) {
       FactoryModelOp match;
-      for (FactoryModelOp candidate : module.getOps<FactoryModelOp>()) {
+      for (FactoryModelOp candidate : moduleFactoryModels(module)) {
         if (candidate.getStreamAttr() != request.getStreamAttr() ||
             candidate.getResourceKindAttr().getValue() != request.getKind())
           continue;

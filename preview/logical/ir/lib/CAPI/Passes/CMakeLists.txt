@@ -12,6 +12,7 @@
 set(_qlx_optional_pass_libraries)
 if(QLX_USE_CUDAQ_SDK)
   list(APPEND _qlx_optional_pass_libraries MLIRQuakeToQLX)
+  list(APPEND _qlx_optional_pass_libraries MLIRPhysToQuake)
 endif()
 
 add_mlir_public_c_api_library(QLXCAPIPasses

@@ -7,6 +7,51 @@
  ******************************************************************************/
 
 #include "CUDAQTestUtils.h"
+#include "common/QuditIdTracker.h"
+#include <iterator>
+#include <random>
+#include <set>
+
+TEST(QuditIdTrackerTest, ReusesSmallestIdAcrossMixedAllocations) {
+  cudaq::QuditIdTracker tracker;
+  std::set<std::size_t> live;
+  std::mt19937 random(42);
+  for (std::size_t i = 0; i < 10000; ++i) {
+    if (live.empty() || random() % 2) {
+      std::size_t expected = 0;
+      while (live.count(expected))
+        ++expected;
+      auto id = tracker.getNextIndex();
+      ASSERT_EQ(id, expected);
+      live.insert(id);
+    } else {
+      auto it = live.begin();
+      std::advance(it, random() % live.size());
+      tracker.returnIndex(*it);
+      live.erase(it);
+    }
+    EXPECT_EQ(tracker.numAllocated(), live.size());
+    EXPECT_EQ(tracker.allDeallocated(), live.empty());
+  }
+  for (auto id : live)
+    tracker.returnIndex(id);
+  EXPECT_TRUE(tracker.allDeallocated());
+  EXPECT_EQ(tracker.getNextIndex(), 0);
+}
+
+TEST(QuditIdTrackerTest, ResetDiscardsRecycledIds) {
+  cudaq::QuditIdTracker tracker;
+  for (std::size_t i = 0; i < 8; ++i)
+    ASSERT_EQ(tracker.getNextIndex(), i);
+  for (auto id : {5, 1, 6, 3})
+    tracker.returnIndex(id);
+  EXPECT_EQ(tracker.getNextIndex(), 1);
+  tracker.reset();
+  EXPECT_TRUE(tracker.allDeallocated());
+  EXPECT_EQ(tracker.numAllocated(), 0);
+  for (std::size_t i = 0; i < 8; ++i)
+    EXPECT_EQ(tracker.getNextIndex(), i);
+}
 
 // Host-side quantum types (qubit.id(), qvector outside __qpu__, parameterized
 // custom ops using std::exp on complex values) require the CUDAQ_LIBRARY_MODE
