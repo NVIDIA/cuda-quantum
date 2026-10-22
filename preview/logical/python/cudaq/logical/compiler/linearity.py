@@ -213,10 +213,10 @@ class _BodyAnalysis:
     def __init__(self, body_operation):
         self.body = body_operation
         self.body_symbol = _symbol_of(body_operation)
-        # Operation -> tuple of (ancestor Operation, region index) from the
-        # body root down to (excluding) the operation itself.
+        # Block -> tuple of (ancestor Operation, region index) from the body
+        # root to the block's region. All operations in a block share a path.
+        # Block hashes use identity; operation hashes scan operands/results.
         self._paths: dict[object, tuple] = {}
-        self._names = {body_operation: body_operation.name}
         self._definitions: list[tuple] = []
         self.violations: list[LinearityViolation] = []
         self.linear_values = 0
@@ -230,10 +230,11 @@ class _BodyAnalysis:
         stack = [(self.body, ())]
         while stack:
             operation, path = stack.pop()
-            operation_name = self._names[operation]
+            operation_name = operation.name
             for region_index, region in enumerate(operation.regions):
                 scope = path + ((operation, region_index),)
                 for block in region.blocks:
+                    self._paths[block] = scope
                     for argument in block.arguments:
                         if is_linear_type(argument.type):
                             self._definitions.append((
@@ -245,8 +246,6 @@ class _BodyAnalysis:
                     for child in block.operations:
                         child_operation = child.operation
                         child_name = child_operation.name
-                        self._names[child_operation] = child_name
-                        self._paths[child_operation] = scope
                         if child_name in BODY_OPS:
                             continue
                         for result in child_operation.results:
@@ -259,11 +258,7 @@ class _BodyAnalysis:
                         stack.append((child_operation, scope))
 
     def _name(self, operation) -> str:
-        name = self._names.get(operation)
-        if name is None:
-            name = operation.name
-            self._names[operation] = name
-        return name
+        return operation.name
 
     # -- ownership analysis ------------------------------------------------
 
@@ -277,7 +272,11 @@ class _BodyAnalysis:
         for use in value.uses:
             owner = use.owner
             owner_operation = getattr(owner, "operation", owner)
-            full_chain = self._paths.get(owner_operation)
+            try:
+                full_chain = (self._paths.get(owner_operation.block)
+                              if owner_operation.parent is not None else None)
+            except ValueError:  # Detached consumer outside the analyzed body.
+                full_chain = None
             if full_chain is None:
                 # Use outside this body's walk (cannot happen for verified
                 # SSA); treat as consuming at top level to stay conservative.

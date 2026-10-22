@@ -76,6 +76,42 @@ static_assert(sizeof(gpu_roce_session) <= CUDAQ_DEV_TRANSPORT_SESSION_BYTES &&
                       CUDAQ_DEV_TRANSPORT_SESSION_ALIGN,
               "gpu_roce_session must fit the kernel's session storage");
 
+/// The send-WQE template HSB's prepare_send_shared() builds, minus the NOP it
+/// now also writes into the SQ slot.  That NOP serves HSB's own TX kernel.
+/// With it in place this kernel's BlueFlame sends never reach the wire.
+__device__ inline void
+prepare_send_template(struct doca_gpu_dev_verbs_qp *qp,
+                      struct doca_gpu_dev_verbs_wqe *wqe_sh,
+                      const std::size_t frame_size, const std::uint32_t mkey) {
+  auto *wqe_ptr = &wqe_sh[threadIdx.x];
+  struct doca_gpu_dev_verbs_wqe_ctrl_seg cseg;
+  cseg.opmod_idx_opcode = doca_gpu_dev_verbs_bswap32(
+      (static_cast<std::uint32_t>(threadIdx.x)
+       << DOCA_GPUNETIO_VERBS_WQE_IDX_SHIFT) |
+      DOCA_GPUNETIO_MLX5_OPCODE_SEND);
+  cseg.fm_ce_se = DOCA_GPUNETIO_MLX5_WQE_CTRL_CQ_ERROR_UPDATE;
+
+  if (frame_size > MAX_SEND_INLINE_WQE) {
+    cseg.qpn_ds = doca_gpu_dev_verbs_bswap32(__ldg(&qp->sq_num_shift8) | 2);
+    wqe_ptr->dseg1.byte_count =
+        doca_gpu_dev_verbs_bswap32(static_cast<std::uint32_t>(frame_size));
+    wqe_ptr->dseg1.lkey = mkey;
+  } else {
+    if (frame_size <= DSEG_SIZE_2)
+      cseg.qpn_ds = doca_gpu_dev_verbs_bswap32(__ldg(&qp->sq_num_shift8) | 2);
+    else if (frame_size <= DSEG_SIZE_3)
+      cseg.qpn_ds = doca_gpu_dev_verbs_bswap32(__ldg(&qp->sq_num_shift8) | 3);
+    else
+      cseg.qpn_ds = doca_gpu_dev_verbs_bswap32(__ldg(&qp->sq_num_shift8) | 4);
+    wqe_ptr->dseg1.byte_count = doca_gpu_dev_verbs_bswap32(
+        static_cast<std::uint32_t>(frame_size) | MLX5_INLINE_SEG);
+  }
+
+  doca_gpu_dev_verbs_store_wqe_seg(
+      reinterpret_cast<std::uint64_t *>(&wqe_ptr->dseg0),
+      reinterpret_cast<std::uint64_t *>(&cseg));
+}
+
 /// Spin-poll the CQE owner bit with periodic shutdown_flag checks.  Inlines
 /// the DOCA CQ state update (fence + consumer-index advance) to avoid the
 /// double CQE read that calling poll_cq_at would cause.  Returns UINT32_MAX
@@ -104,10 +140,14 @@ __device__ inline std::uint32_t poll_receive(gpu_roce_session &s) {
   return doca_gpu_dev_verbs_bswap32(cqe64->imm_inval_pkey) & 0xFFF;
 }
 
-/// Hand the NIC a fresh receive WQE and step the completion cursor onto it.
+/// Hand the NIC back the receive WQE just consumed and step the completion
+/// cursor to the next one.  The doorbell goes WQE_NUM past the consumed count,
+/// so every WQE of the queue stays posted, as start() left them: one posted
+/// only a single WQE ahead leaves none between a request's arrival and its
+/// repost, and UC silently drops a request that lands then.
 __device__ inline void recycle_receive(gpu_roce_session &s) {
   s.sq_wqe_idx++;
-  repost_receive(s.qp, s.sq_wqe_idx);
+  repost_receive(s.qp, s.sq_wqe_idx + WQE_NUM - 1);
   s.cq_ticket = s.sq_wqe_idx;
 }
 
@@ -160,7 +200,7 @@ cudaq_dev_transport_attach(void *storage, void *ctx,
   // send side is prepared here.  Sends read from the TX ring, so its key is
   // the one the WQE needs.
   if (s.use_bf)
-    prepare_send_shared(qp, s.wqe_sh, s.frame_size, tctx->tx_ring_mkey);
+    prepare_send_template(qp, s.wqe_sh, s.frame_size, tctx->tx_ring_mkey);
   else
     prepare_receive_send(qp, s.frame_size, tctx->tx_ring_mkey);
 
