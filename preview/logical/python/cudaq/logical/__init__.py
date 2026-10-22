@@ -35,12 +35,6 @@ def _require_cudaq_core() -> None:
 
 _require_cudaq_core()
 
-_warnings.warn(
-    "cudaq-logical is in preview. Its APIs, behavior, and documentation "
-    "may change substantially in upcoming versions.",
-    stacklevel=2,
-)
-
 from . import (  # noqa: E402
     analysis, algebra, architecture, architectures, codes, compiler, devices,
     errors, estimate, experiments, gadgets, ops, programs, protocols, qec,
@@ -89,6 +83,14 @@ finally:
     globals().pop("_installed", None)
     globals().pop("_package_root", None)
     globals().pop("_metadata_root", None)
+
+# The frontend can retry an optional import after a build-tree binding path
+# becomes available. Warn only once this import has completed successfully.
+_warnings.warn(
+    "cudaq-logical is in preview. Its APIs, behavior, and documentation "
+    "may change substantially in upcoming versions.",
+    stacklevel=2,
+)
 
 __all__ = [
     "program",
