@@ -410,6 +410,8 @@ bool find_fault(const cudaq_gf2_map_view *view, uint32_t bundle, sections &s,
 } // namespace
 uint32_t cudaq_edem_abi_version(void) { return CUDAQ_EDEM_ABI_VERSION; }
 const char *cudaq_edem_status_string(cudaq_edem_status s) {
+  if (s == CUDAQ_EDEM_UNSUPPORTED_DISTRIBUTION)
+    return "unsupported fault distribution";
   return cudaq_gf2_status_string(static_cast<cudaq_gf2_status>(s));
 }
 cudaq_gf2_schema cudaq_edem_schema(void) { return {required_sections, 2, 0}; }

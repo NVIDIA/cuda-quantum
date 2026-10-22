@@ -31,11 +31,14 @@ from cudaq_edem import _core
 
 assert cudaq_edem.__version__ == version('cudaq-edem')
 assert callable(cudaq_edem.EDEM.adopt)
-assert {'DEM', 'compose_chain', 'project_DEM'} <= set(cudaq_edem.__all__)
+assert {'DEM', 'compose_chain', 'project_DEM', 'factorize_dem',
+        'coalesce_dem_columns'} <= set(cudaq_edem.__all__)
 composed = cudaq_edem.compose_chain([cudaq_edem.EDEM()])
 projected = cudaq_edem.project_DEM(composed)
 assert isinstance(projected, cudaq_edem.DEM)
 assert cudaq_edem.DEM.from_bytes(projected.to_bytes()).is_dem
+reduced, mapping = cudaq_edem.coalesce_dem_columns(cudaq_edem.factorize_dem(projected))
+assert isinstance(reduced, cudaq_edem.DEM) and mapping == []
 assert _core.__file__.endswith(('.so', '.pyd'))
 assert not list(Path(cudaq_edem.__file__).parent.glob('_adoption_test*'))
 for name in ('LICENSE.nanobind', 'LICENSE.robin-map'):
@@ -52,6 +55,8 @@ assert (include / 'edem' / 'python.h').is_file()
 assert (include / 'edem' / 'owned.hpp').is_file()
 assert (include / 'edem' / 'composition.h').is_file()
 assert (include / 'edem' / 'composition.hpp').is_file()
+assert (include / 'edem' / 'noise.h').is_file()
+assert (include / 'edem' / 'noise.hpp').is_file()
 library_dir = cmake.parent.parent
 libraries = []
 for name in ('cudaq-edem', 'cudaq-gf2'):
@@ -76,13 +81,14 @@ script = sys.argv[1]
 sys.argv = [script]
 runpy.run_path(script, run_name='__main__')
 """
-    command = [
-        str(python), "-I", "-c", code,
-        str(Path(__file__).with_name("test_values.py").resolve())
-    ]
-    if directory is not None:
-        command.append(str(directory))
-    subprocess.run(command, check=True)
+    for name in ("test_values.py", "test_noise.py"):
+        command = [
+            str(python), "-I", "-c", code,
+            str(Path(__file__).with_name(name).resolve())
+        ]
+        if directory is not None:
+            command.append(str(directory))
+        subprocess.run(command, check=True)
 
 
 def main():
