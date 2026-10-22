@@ -29,9 +29,9 @@ include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 enable_language(CXX)
 
-option(CUDAQ_EDEM_BUILD_TESTS "Build EDEM component and packaging tests"
+option(CUDAQ_EDEM_BUILD_TESTS "Build cudaq-edem component and packaging tests"
   ${CUDAQ_EDEM_STANDALONE_BUILD})
-option(CUDAQ_EDEM_BUILD_PYTHON "Build EDEM Python bindings" OFF)
+option(CUDAQ_EDEM_BUILD_PYTHON "Build cudaq-edem Python bindings" OFF)
 
 if(NOT TARGET cudaq-gf2)
   add_subdirectory(../math/gf2 "${CMAKE_CURRENT_BINARY_DIR}/gf2")
@@ -139,7 +139,8 @@ if(DEFINED CUDAQ_CORE_DEVELOPMENT_COMPONENT)
   set(CUDAQ_EDEM_DEVELOPMENT_COMPONENT "${CUDAQ_CORE_DEVELOPMENT_COMPONENT}")
 endif()
 
-# GF2 defines its target; EDEM owns installation and packaging of both libraries.
+# GF2 defines its target; cudaq-edem owns installation and packaging of both
+# libraries.
 install(TARGETS cudaq-edem cudaq-gf2
   EXPORT cudaq-edem-targets
   RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"

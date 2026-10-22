@@ -10,7 +10,7 @@ for the corresponding copyright notices and source-code locations.
 | --------------------- | --------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | `LICENSE.LGPLv3`      | GNU Lesser General Public License v3    | GMP (`libgmp`), MPFR (`libmpfr`)                                                                               |
 | `LICENSE.GPLv3`       | GNU General Public License v3           | Incorporated by reference by the LGPL v3 (the LGPL v3 is a set of additional permissions on top of the GPL v3) |
-| `LICENSE.nanobind`    | BSD 3-Clause License                    | nanobind runtime, including the EDEM Python extension                                                         |
+| `LICENSE.nanobind`    | BSD 3-Clause License                    | nanobind runtime, including the cudaq-edem Python extension                                                   |
 | `LICENSE.robin-map`   | MIT License                             | robin-map, header-only dependency bundled by nanobind                                                          |
 | `LICENSE.reflect-cpp` | MIT License                             | reflect-cpp, statically linked into `libCUDAQTargetCatalog`                                                    |
 | `LICENSE.yaml-cpp`    | MIT License                             | yaml-cpp, statically linked into `libCUDAQTargetCatalog`                                                       |
@@ -22,9 +22,9 @@ Clifford+T rotation synthesis library (`cudaq-synth`). They can be replaced with
 compatible versions by substituting the shared library files; see the "Dynamic
 linking to GMP and MPFR" section of the installation documentation for details.
 
-The EDEM Python extension statically links the nanobind runtime, which uses
+The cudaq-edem Python extension statically links the nanobind runtime, which uses
 robin-map headers. Its wheel includes both license texts from this directory.
-EDEM and GF2 themselves use CUDA-Q's Apache License 2.0.
+Both native libraries use CUDA-Q's Apache License 2.0.
 
 `reflect-cpp` and `yaml-cpp` are fetched from immutable pinned commits and built
 from source at configure time (`FetchContent`, see

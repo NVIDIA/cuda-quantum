@@ -2514,6 +2514,27 @@ class Build:
     def to_mlir(self) -> str:
         return self._ensure_snapshot()
 
+    def to_quake(self) -> mlir_ir.Module:
+        """Translate this physical Build to a Quake module for CUDA-Q
+        algorithmic primitives like ``cudaq.run``.
+
+        Each call returns a new module, and the Build does not change. A
+        graph that the translation does not support raises ``RuntimeError``
+        with the translation's diagnostic.
+        """
+
+        if self.root.kind != "physical_graph":
+            raise ValueError(
+                "`to_quake()` requires a `Build` of a physical graph, "
+                f"not of a {self.root.kind}")
+
+        from cudaq.mlir._mlir_libs import _qlxRuntime
+
+        module = self._fresh_module()
+        _qlxRuntime.run_pass_capsule(
+            module, "phys-to-quake{entry=" + json.dumps(self.root.symbol) + "}")
+        return module
+
     @property
     def content_sha256(self) -> str:
         """Stable authenticated commitment of this complete Build bundle."""

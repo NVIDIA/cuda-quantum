@@ -5,7 +5,7 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-"""Build the EDEM source distribution and wheel from an isolated source tree."""
+"""Build the cudaq-edem source distribution and wheel from isolated sources."""
 
 import argparse
 from pathlib import Path, PurePosixPath

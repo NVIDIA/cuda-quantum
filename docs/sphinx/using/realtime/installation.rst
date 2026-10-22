@@ -18,7 +18,7 @@ Users may also implement their own transport layer and make it accessible to `cu
 .. tab:: Using Holoscan Sensor Bridge
 
   - CUDA Runtime with version 12.6+ or 13.x
-  - `DOCA 3.3.0 installation <https://developer.nvidia.com/doca-downloads>`__ with `gpunetio` support.
+  - `DOCA 3.4.0 installation <https://developer.nvidia.com/doca-downloads>`__ with `gpunetio` support.
 
   .. note:: 
 

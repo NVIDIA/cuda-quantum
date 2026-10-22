@@ -7,6 +7,7 @@
 # ============================================================================ #
 
 import os
+import shutil
 import lit.formats
 import lit.util
 
@@ -41,6 +42,16 @@ if hasattr(config,
 if hasattr(config, "llvm_tools_dir") and config.llvm_tools_dir:
     path = config.llvm_tools_dir + os.pathsep + path
 config.environment["PATH"] = path
+
+# cudaq-opt runs CUDA-Q's own passes on the Quake that Logical emits. In-tree
+# it is in `qlx_tools_dir`, CUDA-Q's bin/. The `cudaq-devel` wheel keeps it
+# next to the LLVM tools. Other development setups have it on PATH.
+# `%cudaq_opt` expands to the path found. Adding its directory to PATH
+# instead could let an installed qlx-opt there shadow the one under test.
+_cudaq_opt = shutil.which("cudaq-opt", path=path)
+if _cudaq_opt:
+    config.available_features.add("cudaq-opt")
+    config.substitutions.append(("%cudaq_opt", _cudaq_opt))
 
 # Python support for FileCheck tests.
 #

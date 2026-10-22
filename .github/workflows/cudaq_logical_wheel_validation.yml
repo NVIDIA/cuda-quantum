@@ -171,10 +171,32 @@ jobs:
 
       - name: Run cudaq.logical Python tests
         uses: ./.github/actions/run-in-docker
+        env:
+          # Lets a failing factory-characterization check keep its schedule.
+          QLX_SCHEDULE_DUMP_DIR: /tmp/qlx-schedule-dumps
         with:
           image: cudaq_logical_wheel_validation:local
           shell: bash
+          volume: ${{ runner.temp }}/qlx-schedule-dumps:/tmp/qlx-schedule-dumps
+          env: QLX_SCHEDULE_DUMP_DIR
           run: |
             # Full test suite, incl. all examples end-to-end via
             # test_examples_execute.
             python${{ needs.config.outputs.python_version }} -m pytest /tmp/cudaq-logical/python/tests/cudaq/logical -v
+
+      - name: Name schedule dump artifact
+        if: failure()
+        id: dump_name
+        env:
+          OS_IMAGE: ${{ matrix.os_image }}
+          PIP_INSTALL_FLAGS: ${{ matrix.pip_install_flags }}
+        run: |
+          echo "name=$(echo "qlx-schedule-dumps-wheel-${OS_IMAGE}${PIP_INSTALL_FLAGS}-py${{ needs.config.outputs.python_version }}" | tr '/: ' '---')" >> "$GITHUB_OUTPUT"
+
+      - name: Upload schedule dumps from failed tests
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.dump_name.outputs.name }}
+          path: ${{ runner.temp }}/qlx-schedule-dumps
+          if-no-files-found: ignore

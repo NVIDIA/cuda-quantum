@@ -9,7 +9,7 @@
 [project]
 name = "cudaq-edem"
 dynamic = ["version"]
-description = "EDEM native library and Python bindings for CUDA-Q (work in progress)"
+description = "Shared EDEM data structures and operations with a C API and Python bindings"
 readme = "edem/README.md"
 authors = [{name = "NVIDIA Corporation & Affiliates"}]
 requires-python = ">=3.11"

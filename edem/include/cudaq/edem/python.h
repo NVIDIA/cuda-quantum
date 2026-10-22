@@ -8,7 +8,7 @@
 #define CUDAQ_EDEM_PYTHON_H
 #include "cudaq/gf2/memory.h"
 
-/* Experimental v0.x native-to-Python adoption protocol (no Python headers
+/* Unstable v0.x native-to-Python adoption protocol (no Python headers
  * needed). A named PyCapsule points to a stable cudaq_gf2_owned_buffer record.
  * The producer owns the record storage and keeps callback/context dependencies
  * alive for the capsule's lifetime. EDEM.adopt validates before transfer,
