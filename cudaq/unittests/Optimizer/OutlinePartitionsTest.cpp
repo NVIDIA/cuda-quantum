@@ -300,8 +300,8 @@ TEST(OutlinePartitions, ThreePartitionsWithCrossFlow) {
   EXPECT_EQ(calls[2].getOperand(2), calls[1].getResult(0));
 }
 
-// A shared angle is passed once, while the internal measurement handle stays
-// inside the lambda. The bit's consumer precedes the outgoing wire's consumer.
+// Both rotations capture the same angle. The measurement handle stays inside
+// the lambda, and the bit's consumer precedes the outgoing wire's consumer.
 TEST(OutlinePartitions, ClassicalInputsAndOutputs) {
   const char *ir = R"(
     func.func @k(%theta: f64, %other: f64) {
@@ -344,12 +344,11 @@ TEST(OutlinePartitions, ClassicalInputsAndOutputs) {
   ASSERT_TRUE(succeeded(lambda));
   ASSERT_TRUE(succeeded(verify(*mod)));
 
-  // Exactly one angle argument, followed by the wire; no handle crosses the
-  // boundary. Only the bit and the successor wire are returned.
+  // Only the wire is an explicit input; the angle is captured.
+  // Results are the bit followed by the successor wire.
   auto sig = lambda->getType().getSignature();
-  ASSERT_EQ(sig.getNumInputs(), 2u);
-  EXPECT_TRUE(sig.getInput(0).isF64());
-  EXPECT_TRUE(isa<cudaq::quake::WireType>(sig.getInput(1)));
+  ASSERT_EQ(sig.getNumInputs(), 1u);
+  EXPECT_TRUE(isa<cudaq::quake::WireType>(sig.getInput(0)));
   ASSERT_EQ(sig.getNumResults(), 2u);
   EXPECT_TRUE(sig.getResult(0).isInteger(1));
   EXPECT_TRUE(isa<cudaq::quake::WireType>(sig.getResult(1)));
@@ -359,9 +358,8 @@ TEST(OutlinePartitions, ClassicalInputsAndOutputs) {
   ASSERT_EQ(calls.size(), 1u);
   auto call = calls.front();
   EXPECT_EQ(call.getCallee(), lambda->getResult());
-  ASSERT_EQ(call.getArgOperands().size(), 2u);
-  EXPECT_EQ(call.getArgOperands()[0], funcOp.getArgument(0));
-  EXPECT_EQ(call.getArgOperands()[1], wireIn);
+  ASSERT_EQ(call.getArgOperands().size(), 1u);
+  EXPECT_EQ(call.getArgOperands()[0], wireIn);
   ASSERT_EQ(call->getNumResults(), 2u);
   EXPECT_TRUE(call->isBeforeInBlock(select.getOperation()));
   EXPECT_EQ(select.getCondition(), call.getResult(0));
@@ -381,9 +379,11 @@ TEST(OutlinePartitions, ClassicalInputsAndOutputs) {
   ASSERT_TRUE(clonedMz);
   ASSERT_TRUE(clonedDiscriminate);
   Block &body = lambda->getBody().front();
-  EXPECT_EQ(clonedRx.getParameters().front(), body.getArgument(0));
-  EXPECT_EQ(clonedRz.getParameters().front(), body.getArgument(0));
-  EXPECT_EQ(clonedRx.getTargets().front(), body.getArgument(1));
+  ASSERT_EQ(body.getNumArguments(), 1u);
+  Value theta = funcOp.getArgument(0);
+  EXPECT_EQ(clonedRx.getParameters().front(), theta);
+  EXPECT_EQ(clonedRz.getParameters().front(), theta);
+  EXPECT_EQ(clonedRx.getTargets().front(), body.getArgument(0));
   EXPECT_EQ(clonedRz.getTargets().front(), clonedRx->getResult(0));
   EXPECT_EQ(clonedMz->getOperand(0), clonedRz->getResult(0));
   EXPECT_EQ(clonedDiscriminate->getOperand(0), clonedMz->getResult(0));

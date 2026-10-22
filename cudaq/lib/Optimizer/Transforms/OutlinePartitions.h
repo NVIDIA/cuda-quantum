@@ -16,9 +16,9 @@
 namespace cudaq::opt {
 
 /// Outline supported operations from one block into a lambda and a call.
-/// Operations are cloned in block order, with non-wire inputs and results
-/// before wires in the callable signature. Returns failure without modifying
-/// the IR if the selection cannot be outlined.
+/// Operations are cloned in block order, with captured non-wire inputs and
+/// explicit wire parameters. Non-wire results precede wire results. Returns
+/// failure without modifying the IR if the selection cannot be outlined.
 mlir::FailureOr<cudaq::cc::CreateLambdaOp>
 outlinePartition(llvm::ArrayRef<mlir::Operation *> partition);
 

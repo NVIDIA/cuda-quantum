@@ -54,8 +54,8 @@ outlinePartitionImpl(ArrayRef<Operation *> partition,
   });
   Operation *anchor = orderedOps.back();
 
-  // Collect the input/output boundary, keeping non-wire values separate so
-  // they can precede wires in the callable signature.
+  // Collect inputs and outputs. Non-wire inputs are captured, while non-wire
+  // outputs precede wires in the callable results.
   SetVector<Value> inputs, outputs, nonWireInputs, nonWireOutputs;
   for (Operation *op : orderedOps) {
     for (Value operand : op->getOperands()) {
@@ -97,11 +97,10 @@ outlinePartitionImpl(ArrayRef<Operation *> partition,
   auto nonWireInputList = nonWireInputs.takeVector();
   auto nonWireOutputList = nonWireOutputs.takeVector();
 
-  // Prepare the callable type with non-wire values first.
+  // Prepare a callable with wire inputs and non-wire results before wire
+  // results.
   auto *ctx = block->getParentOp()->getContext();
   SmallVector<Type> inTys, outTys;
-  for (Value v : nonWireInputList)
-    inTys.push_back(v.getType());
   for (Value v : inputList)
     inTys.push_back(v.getType());
   for (Value v : nonWireOutputList)
@@ -140,10 +139,9 @@ outlinePartitionImpl(ArrayRef<Operation *> partition,
       builder, loc, callableTy, [&](OpBuilder &b, Location l) {
         Block *body = b.getInsertionBlock();
         IRMapping map;
-        for (auto [i, in] : llvm::enumerate(nonWireInputList))
-          map.map(in, body->getArgument(i));
+        // Map wires to explicit arguments; non-wire inputs remain captures.
         for (auto [i, in] : llvm::enumerate(inputList))
-          map.map(in, body->getArgument(i + nonWireInputList.size()));
+          map.map(in, body->getArgument(i));
         for (Operation *op : orderedOps)
           b.clone(*op, map);
         SmallVector<Value> results;
@@ -154,12 +152,11 @@ outlinePartitionImpl(ArrayRef<Operation *> partition,
         cudaq::cc::ReturnOp::create(b, l, results);
       });
 
-  // Call the lambda with non-wire arguments followed by wires.
+  // Call the lambda with its explicit wire arguments.
   builder.setInsertionPointAfter(lambda);
   OperationState state(loc, cudaq::cc::CallCallableOp::getOperationName());
   state.addTypes(outTys);
   state.addOperands(lambda.getResult());
-  state.addOperands(nonWireInputList);
   state.addOperands(inputList);
   auto call = cast<cudaq::cc::CallCallableOp>(builder.create(state));
 
