@@ -79,7 +79,7 @@ if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME)
     DISCOVERY_TIMEOUT 120)
 
   # cpu_roce DeviceCallChannel test + its service-side daemon. Only when the
-  # CPU RoCE transport (libibverbs) is available; the fixture itself GTEST_SKIPs
+  # CPU RoCE transport (HololinkRoce) is available; the fixture itself GTEST_SKIPs
   # unless the loopback test topology is provided via environment variables.
   if (TARGET cudaq::cudaq-realtime-cpu-roce-transport)
     add_executable(cpu_roce_test_daemon

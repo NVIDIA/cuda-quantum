@@ -15,9 +15,9 @@
 # rather than living under bridge_interface/<transport>/.
 
 # The increment handler + function-table initialiser is shared with
-# hsb_bridge_cpu, where it is compiled BELOW that directory's ibverbs return()
+# hsb_bridge_cpu, where it is compiled BELOW that directory's CPU RoCE return()
 # guard.  Referencing the source directly keeps this target independent of
-# libibverbs being present.
+# the CPU RoCE transport being built.
 add_executable(cudaq-realtime-test-server
   cudaq_realtime_test_server.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/../cpu_transport/init_rpc_increment_function_table_host.cpp

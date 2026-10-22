@@ -76,6 +76,42 @@ static_assert(sizeof(gpu_roce_session) <= CUDAQ_DEV_TRANSPORT_SESSION_BYTES &&
                       CUDAQ_DEV_TRANSPORT_SESSION_ALIGN,
               "gpu_roce_session must fit the kernel's session storage");
 
+/// The send-WQE template HSB's prepare_send_shared() builds, minus the NOP it
+/// now also writes into the SQ slot.  That NOP serves HSB's own TX kernel.
+/// With it in place this kernel's BlueFlame sends never reach the wire.
+__device__ inline void
+prepare_send_template(struct doca_gpu_dev_verbs_qp *qp,
+                      struct doca_gpu_dev_verbs_wqe *wqe_sh,
+                      const std::size_t frame_size, const std::uint32_t mkey) {
+  auto *wqe_ptr = &wqe_sh[threadIdx.x];
+  struct doca_gpu_dev_verbs_wqe_ctrl_seg cseg;
+  cseg.opmod_idx_opcode = doca_gpu_dev_verbs_bswap32(
+      (static_cast<std::uint32_t>(threadIdx.x)
+       << DOCA_GPUNETIO_VERBS_WQE_IDX_SHIFT) |
+      DOCA_GPUNETIO_MLX5_OPCODE_SEND);
+  cseg.fm_ce_se = DOCA_GPUNETIO_MLX5_WQE_CTRL_CQ_ERROR_UPDATE;
+
+  if (frame_size > MAX_SEND_INLINE_WQE) {
+    cseg.qpn_ds = doca_gpu_dev_verbs_bswap32(__ldg(&qp->sq_num_shift8) | 2);
+    wqe_ptr->dseg1.byte_count =
+        doca_gpu_dev_verbs_bswap32(static_cast<std::uint32_t>(frame_size));
+    wqe_ptr->dseg1.lkey = mkey;
+  } else {
+    if (frame_size <= DSEG_SIZE_2)
+      cseg.qpn_ds = doca_gpu_dev_verbs_bswap32(__ldg(&qp->sq_num_shift8) | 2);
+    else if (frame_size <= DSEG_SIZE_3)
+      cseg.qpn_ds = doca_gpu_dev_verbs_bswap32(__ldg(&qp->sq_num_shift8) | 3);
+    else
+      cseg.qpn_ds = doca_gpu_dev_verbs_bswap32(__ldg(&qp->sq_num_shift8) | 4);
+    wqe_ptr->dseg1.byte_count = doca_gpu_dev_verbs_bswap32(
+        static_cast<std::uint32_t>(frame_size) | MLX5_INLINE_SEG);
+  }
+
+  doca_gpu_dev_verbs_store_wqe_seg(
+      reinterpret_cast<std::uint64_t *>(&wqe_ptr->dseg0),
+      reinterpret_cast<std::uint64_t *>(&cseg));
+}
+
 /// Spin-poll the CQE owner bit with periodic shutdown_flag checks.  Inlines
 /// the DOCA CQ state update (fence + consumer-index advance) to avoid the
 /// double CQE read that calling poll_cq_at would cause.  Returns UINT32_MAX
@@ -164,7 +200,7 @@ cudaq_dev_transport_attach(void *storage, void *ctx,
   // send side is prepared here.  Sends read from the TX ring, so its key is
   // the one the WQE needs.
   if (s.use_bf)
-    prepare_send_shared(qp, s.wqe_sh, s.frame_size, tctx->tx_ring_mkey);
+    prepare_send_template(qp, s.wqe_sh, s.frame_size, tctx->tx_ring_mkey);
   else
     prepare_receive_send(qp, s.frame_size, tctx->tx_ring_mkey);
 

@@ -137,7 +137,7 @@ add_subdirectory(bridge_interface/cpu_roce)
 
 # CPU RoCE transport (Phase 1 of cpu_transport umbrella).
 # Self-gates on TARGET cudaq-realtime-cpu-roce-transport so this is harmless when
-# libibverbs is not available.
+# HololinkRoce is not available.
 add_subdirectory(cpu_transport)
 
 # A host that must run the RoCE tests must also build them: otherwise a
