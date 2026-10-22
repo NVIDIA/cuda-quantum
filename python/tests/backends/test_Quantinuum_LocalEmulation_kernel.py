@@ -461,6 +461,30 @@ def test_quantinuum_state_preparation():
     assert not '111' in counts
 
 
+@pytest.mark.parametrize('n_qubits', [3, 5])
+def test_state_preparation_complex_amplitudes(n_qubits):
+
+    @cudaq.kernel
+    def prepare(amplitudes: List[complex]):
+        q = cudaq.qvector(amplitudes)
+
+    rng = np.random.default_rng(41 + n_qubits)
+    amplitudes = (rng.normal(size=2**n_qubits) +
+                  1j * rng.normal(size=2**n_qubits))
+    amplitudes /= np.linalg.norm(amplitudes)
+    # X and Y expectations check relative phases as well as magnitudes after
+    # state preparation has been synthesized into gates for the target.
+    for prefix in ['XYZ', 'YZX', 'ZXY']:
+        op = cudaq.SpinOperator.from_word(prefix + 'I' * (n_qubits - 3))
+        expected = np.vdot(amplitudes, op.to_matrix() @ amplitudes).real
+        cudaq.set_random_seed(23)
+        actual = cudaq.observe(prepare,
+                               op,
+                               amplitudes.tolist(),
+                               shots_count=100000).expectation()
+        assert abs(actual - expected) < 0.015
+
+
 def test_named_reg_in_sample(capfd):
 
     @cudaq.kernel
