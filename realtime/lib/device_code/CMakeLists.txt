@@ -18,8 +18,10 @@ if(NOT CUDA_FOUND)
 endif()
 
 # A DEVICE + UNIFIED dispatcher links its kernel, the bridge's hooks and the
-# application's handlers at run time.  CUDA-Q's dev images install only the
-# runtime library, without the header or the unversioned .so.
+# application's handlers at run time.  Building it needs the nvJitLink header
+# and unversioned .so, which a default CUDA toolkit install may lack; the dev images
+# install libnvjitlink-dev.  Users of the built library need only the runtime
+# libnvJitLink.so.<major>, which every CUDA runtime install provides.
 if (NOT TARGET CUDA::nvJitLink)
   message(FATAL_ERROR
     "cudaq-realtime needs nvJitLink (header and unversioned library); "
@@ -91,6 +93,7 @@ target_include_directories(cudaq-realtime-device-code
 target_link_libraries(cudaq-realtime-device-code
   PUBLIC
     CUDA::cudart_static
+  PRIVATE
     CUDA::nvJitLink
 )
 
