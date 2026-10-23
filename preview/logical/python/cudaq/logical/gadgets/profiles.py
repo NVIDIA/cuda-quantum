@@ -49,6 +49,8 @@ from .records import (
     SyndromeBundleRef,
 )
 from .semantics import (
+    Detector,
+    LogicalObservable,
     OutputSyndromeAssignment,
     SuccessPredicate,
     _reconcile_profile_role,
@@ -59,7 +61,13 @@ from .specification import _gadget_boundary_profiles
 
 @dataclass(frozen=True, slots=True)
 class GadgetProfile:
-    """Immutable success and boundary analysis for one unchanged gadget."""
+    """Immutable analysis declarations for one unchanged gadget.
+
+    Detectors, output virtual syndromes, and endpoint code presentations form
+    the gadget detector contract. Observable rows belong to the gadget's
+    outcome map; success rows describe acceptance. Local validation checks
+    references and affine tables, not ideal determinism or completeness.
+    """
 
     gadget: "GadgetDefinition"
     code_profile: Any | None = None
@@ -71,6 +79,8 @@ class GadgetProfile:
     boundary_complete: bool = False
     name: str | None = None
     metadata: Mapping[str, Any] | None = None
+    detectors: tuple[Detector, ...] = ()
+    observables: tuple[LogicalObservable, ...] = ()
 
     def __post_init__(self) -> None:
         # Local import closes the lifecycle cycle: definitions own profiles,
@@ -131,12 +141,36 @@ class GadgetProfile:
         if self.code_profile is None and all_profiles and all(
                 profile is all_profiles[0] for profile in all_profiles):
             object.__setattr__(self, "code_profile", all_profiles[0])
+        profile_name = self.name or f"{self.gadget.name}_profile"
+        detectors = tuple(self.detectors)
+        observables = tuple(self.observables)
+        if any(not isinstance(row, Detector) for row in detectors):
+            raise TypeError(
+                "GadgetProfile detectors must contain Detector values")
+        if any(not isinstance(row, LogicalObservable) for row in observables):
+            raise TypeError(
+                "GadgetProfile observables must contain LogicalObservable values"
+            )
+        indices = sorted(row.index for row in observables)
+        if indices != list(range(len(observables))):
+            raise ValueError(
+                "observable indices must be unique and contiguous from zero")
+        observables = tuple(sorted(observables, key=lambda row: row.index))
+        observables = tuple(
+            LogicalObservable(parity, index) for index, parity in enumerate(
+                _reconcile_profile_role(
+                    self.gadget,
+                    profile_name,
+                    OutcomeRole.RESULT,
+                    _scalar_profile_parities(observables),
+                )))
+        object.__setattr__(self, "detectors", detectors)
+        object.__setattr__(self, "observables", observables)
         success = tuple(self.success)
         if any(not isinstance(predicate, SuccessPredicate)
                for predicate in success):
             raise TypeError(
                 "GadgetProfile success must contain SuccessPredicate values")
-        profile_name = self.name or f"{self.gadget.name}_profile"
         success = tuple(
             SuccessPredicate(parity) for parity in _reconcile_profile_role(
                 self.gadget,
@@ -195,7 +229,7 @@ class GadgetProfile:
             self, "metadata",
             _freeze_gadget_metadata(dict(self.metadata or {}),
                                     what="GadgetProfile.metadata"))
-        for expression in self.success:
+        for expression in (*detectors, *observables, *self.success):
             if isinstance(expression.parity, RecordVectorParity):
                 parities = tuple(
                     ProfileParity(records=row.records)
@@ -311,6 +345,8 @@ class ProfileGraph:
         "code_profile",
         "metadata",
         "_success",
+        "_detectors",
+        "_observables",
         "_boundary",
     )
 
@@ -330,7 +366,17 @@ class ProfileGraph:
         self.code_profile = code_profile
         self.metadata = metadata
         self._success = []
+        self._detectors = []
+        self._observables = []
         self._boundary = {}
+
+    def detector(self, parity) -> "ProfileGraph":
+        self._detectors.append(Detector(parity))
+        return self
+
+    def observable(self, index: int, parity) -> "ProfileGraph":
+        self._observables.append(LogicalObservable(parity, index))
+        return self
 
     def success(self, parity) -> "ProfileGraph":
         self._success.append(SuccessPredicate(parity))
@@ -360,6 +406,8 @@ class ProfileGraph:
         return GadgetProfile(
             self.interface.gadget,
             code_profile=self.code_profile,
+            detectors=tuple(self._detectors),
+            observables=tuple(self._observables),
             success=tuple(self._success),
             boundary=self._boundary,
             name=self.name,

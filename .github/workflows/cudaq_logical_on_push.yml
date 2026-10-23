@@ -34,7 +34,13 @@ jobs:
         uses: ./.github/actions/check-changed-paths
         with:
           paths: |
+            CMakeLists.txt
             preview/logical/
+            edem/
+            math/gf2/
+            pyproject.toml.edem
+            docker/release/install_logical_wheel.py
+            docker/test/wheels/integration/test_logical_release_install.py
             .github/workflows/cudaq_logical_on_push.yml
             .github/workflows/cudaq_logical_build_or_retrieve.yml
             .github/workflows/cudaq_logical_build.yml
@@ -62,6 +68,7 @@ jobs:
       platform: linux/amd64
       python_version: "3.11"
       wheel_name: ${{ needs.build_and_test_amd64_py311.outputs.wheel_name }}
+      edem_wheel_name: ${{ needs.build_and_test_amd64_py311.outputs.edem_wheel_name }}
       runtime_artifact_name:
         ${{ needs.build_and_test_amd64_py311.outputs.runtime_artifact_name }}
       metapackage_artifact_name:
@@ -82,6 +89,8 @@ jobs:
     with:
       cudaq_logical_wheel:
         ${{ needs.build_and_test_amd64_py311.outputs.wheel_name }}
+      cudaq_edem_wheel:
+        ${{ needs.build_and_test_amd64_py311.outputs.edem_wheel_name }}
       cudaq_wheel:
         ${{ needs.build_and_test_amd64_py311.outputs.runtime_artifact_name }}
       cudaq_metapackage:

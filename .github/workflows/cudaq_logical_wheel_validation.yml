@@ -10,6 +10,10 @@ on:
       cudaq_logical_wheel:
         type: string
         description: Artifact name of a pre-built cudaq-logical wheel to reuse.
+      cudaq_edem_wheel:
+        type: string
+        required: true
+        description: Artifact name of the matching cudaq-edem wheel.
       cudaq_wheel:
         type: string
         description: Artifact name of the matching CUDA-Q runtime wheel.
@@ -76,6 +80,7 @@ jobs:
       CUDAQ_VERSION: ${{ inputs.cudaq_version }}
       CUDAQ_LOGICAL_VERSION: ${{ inputs.cudaq_logical_version }}
       CUDAQ_LOGICAL_WHEEL: ${{ inputs.cudaq_logical_wheel }}
+      CUDAQ_EDEM_WHEEL: ${{ inputs.cudaq_edem_wheel }}
       CUDAQ_WHEEL: ${{ inputs.cudaq_wheel }}
       CUDAQ_METAPACKAGE: ${{ inputs.cudaq_metapackage }}
 
@@ -98,6 +103,11 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           name: ${{ env.CUDAQ_WHEEL }}
+          path: wheel-validation
+      - name: Download cudaq-edem wheel
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ env.CUDAQ_EDEM_WHEEL }}
           path: wheel-validation
       - name: Download CUDA-Q metapackage
         uses: actions/download-artifact@v8
@@ -130,7 +140,7 @@ jobs:
             --build-arg python_version=$PYTHON_VERSION \
             --build-arg cudaq_version=$CUDAQ_VERSION \
             --build-arg cudaq_logical_version=$CUDAQ_LOGICAL_VERSION \
-            --build-arg preinstalled_modules="pytest" \
+            --build-arg preinstalled_modules="pytest stim>=1.16,<2" \
             --build-arg pip_install_flags=$PIP_INSTALL_FLAGS \
 
       - name: Validate installed cudaq.logical tools

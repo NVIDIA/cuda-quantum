@@ -5,11 +5,13 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-"""Cross-domain resource estimation and evidence APIs."""
+"""Resource estimation, gadget EDEM analysis, and evidence APIs."""
 
 from importlib import import_module
 
 from .evidence import Provenance, citation, computation, report, user_assertion
+from .edem import (ElementaryFault, FaultSet, PauliInsertion, derive_edem,
+                   standard_depolarizing_faults)
 from ..estimate import (
     EvidencePolicy,
     FabricCounts,
@@ -43,6 +45,11 @@ def estimate(build, *, tier=Tier.STATIC, **kwargs):
 
 
 __all__ = [
+    "ElementaryFault",
+    "FaultSet",
+    "PauliInsertion",
+    "derive_edem",
+    "standard_depolarizing_faults",
     "EvidencePolicy",
     "FabricCounts",
     "FabricEstimate",

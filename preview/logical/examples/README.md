@@ -29,6 +29,45 @@ target.
 The `standalone/` examples use `cudaq.logical` directly and expose each
 compiler step. They do not define CUDA-Q kernels or call `cudaq.estimate`.
 
+`standalone/06_surface_memory.py` constructs a rotated surface-code Z-memory
+experiment from preparation, SEC, and destructive-readout gadget profiles. It
+exports detector and observable annotations with circuit-level depolarizing
+noise using an interleaved N/Z schedule that preserves distance. Both
+preparation and readout include an extraction round. It emits plain text
+without the Stim Python package:
+
+```bash
+python preview/logical/examples/standalone/06_surface_memory.py > surface-memory.stim
+```
+
+To compile the emitted text into a Stim circuit and sample it, install Stim
+for the example and pass `--shots`. Sampling summaries go to stderr; stdout
+continues to contain only the circuit text.
+
+```bash
+python -m pip install 'stim>=1.16,<2'
+python preview/logical/examples/standalone/06_surface_memory.py --shots 1000 --seed 7 > surface-memory.stim
+```
+
+The summary reports detection events and uncorrected observable flips. The
+core exporter does not depend on Stim.
+
+`standalone/07_memory_edem.py` compares the circuit-derived DEM with a DEM
+obtained by deriving and composing per-gadget EDEMs from the same profiles and
+noise policy. Logical supplies shared standard-noise placement. Native
+`cudaq_edem.compose_chain` and `project_DEM` retain each occurrence's exact fault
+laws and reuse repeated SEC definitions. Explicit `factorize_dem` and
+`coalesce_dem_columns` calls produce independent error terms and a response-column
+mapping. The optional Stim adapter formats those terms without performing any
+probability transformations. Stim is required for this comparison:
+
+```bash
+python preview/logical/examples/standalone/07_memory_edem.py --distance 3 --rounds 3 --output memory-comparison
+```
+
+The output directory contains the circuit text, both Stim DEMs, per-definition
+packed EDEMs, the composed EDEM, and the projected packed DEM.
+
 The `mlir/` examples use `qlx-opt` and `qlx-translate` directly.
 
 ## Gidney--Ekerå physical compilation

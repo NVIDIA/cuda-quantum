@@ -255,6 +255,12 @@ add_cudaq_python_common_capi_library(QLXPythonCAPI
 )
 set(CUDAQ_CHECK_MLIR_SYMBOL_CLOSURE "${_qlx_saved_symbol_check}")
 
+# Resolve LLVM/MLIR from the shared SDK before transitive static libraries
+# such as cudaq-synth bring in LLVMSupport. A private option parser would make
+# passes register their options in a different registry on macOS.
+target_link_options(QLXPythonCAPI BEFORE PRIVATE
+  "$<TARGET_FILE:cudaq::cudaqMLIR>")
+
 # QLXCAPI* libraries declare a PUBLIC dep on MLIRCAPIIR. Exclude the
 # upstream CAPI aggregates so their objects are not copied into this DSO;
 # the implementations live in libcudaqMLIRCAPI.
@@ -315,6 +321,9 @@ add_cudaq_python_modules(QLXPythonModules
     cudaq::cudaqMLIRCAPI
     cudaq::MLIRPythonSupport
 )
+if(TARGET cudaq-edem-python)
+  add_dependencies(QLXPythonModules cudaq-edem-python)
+endif()
 
 # MLIRPythonSupport and nanobind live in the runtime wheel's
 # cudaq/mlir/_mlir_libs, not in lib/. The build-tree output directory is
@@ -349,6 +358,7 @@ if(TARGET ${_qlx_runtime_target})
   target_link_libraries(${_qlx_runtime_target} PRIVATE
     MLIRQLXTransforms
     MLIRFabricTransforms
+    cudaq::edem
     ${_qlx_runtime_mlir_link_libraries}
   )
   target_compile_definitions(${_qlx_runtime_target} PRIVATE
@@ -397,6 +407,19 @@ if(SKBUILD)
     list(APPEND _qlx_cudaq_runtime_rpaths
       "${_qlx_origin}/../../../cudaq_core/cudaq/core/lib"
       "${_qlx_origin}/../../../cudaq_core/cudaq/mlir/_mlir_libs")
+  endif()
+
+  # EDEM remains owned by the cudaq-edem dependency wheel. Resolve its native
+  # libraries relative to site-packages instead of bundling a second copy.
+  list(APPEND _qlx_cudaq_runtime_rpaths
+    "${_qlx_origin}/../../../cudaq_edem/lib")
+  if(TARGET ${_qlx_runtime_target})
+    # This extension also releases owned EDEM buffers directly. Preserve the
+    # MLIR helper's existing paths while resolving the dependency wheel.
+    set_property(TARGET ${_qlx_runtime_target} APPEND PROPERTY
+      INSTALL_RPATH "${_qlx_origin}/../../../cudaq_edem/lib")
+    set_property(TARGET ${_qlx_runtime_target} PROPERTY
+      INSTALL_RPATH_USE_LINK_PATH FALSE)
   endif()
 
   set(_qlx_cudaq_runtime_targets QLXPythonCAPI)

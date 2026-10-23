@@ -661,6 +661,7 @@ jobs:
       cuda_versions: "['', '12.6', '13.0']"
       wheel_artifacts: '*-wheels'
       logical_wheel_artifacts: 'cudaq_logical-*'
+      edem_wheel_artifacts: 'cudaq_edem-*'
       cudaq_logical_version: ${{ needs.cudaq_logical_wheels.outputs.logical_version }}
       github_commit: ${{ inputs.github_commit || needs.metadata.outputs.github_commit }}
 
@@ -1018,6 +1019,13 @@ jobs:
           path: /tmp/wheels
           merge-multiple: true
 
+      - name: Load matching EDEM wheels
+        uses: actions/download-artifact@v8
+        with:
+          pattern: 'cudaq_edem-*'
+          path: /tmp/wheels
+          merge-multiple: true
+
       - name: Load metapackage
         if: ${{ matrix.cuda_major == '' }}
         uses: actions/download-artifact@v8
@@ -1039,6 +1047,18 @@ jobs:
           # Create and activate virtual environment
           python3 -m venv /opt/cudaq-venv
           source /opt/cudaq-venv/bin/activate
+
+          # Keep the native dependency paired with this run's Logical wheel.
+          python_tag="$(python3 -c 'import sys; print(f"{sys.version_info.major}{sys.version_info.minor}")')"
+          shopt -s nullglob
+          edem_wheels=(/tmp/packages/cudaq_edem-*-cp${python_tag}-*_"$(uname -m)".whl)
+          if [ "${#edem_wheels[@]}" -ne 1 ]; then
+            echo "::error::Expected one matching EDEM wheel, found ${#edem_wheels[@]}."
+            exit 1
+          fi
+          printf 'cudaq-edem @ file://%s\n' "${edem_wheels[0]}" > /tmp/edem-constraints.txt
+          export PIP_CONSTRAINT=/tmp/edem-constraints.txt
+          pip install --no-index --no-deps --ignore-installed --find-links /tmp/packages cudaq-edem
 
           if [ -n "${{ matrix.cuda_major }}" ]; then
             retry pip install cuda-quantum-cu${{ matrix.cuda_major }}==${{ needs.metadata.outputs.cudaq_version }} -v \
@@ -1131,6 +1151,13 @@ jobs:
           path: /tmp/wheels
           merge-multiple: true
 
+      - name: Load matching EDEM wheels
+        uses: actions/download-artifact@v8
+        with:
+          pattern: 'cudaq_edem-*'
+          path: /tmp/wheels
+          merge-multiple: true
+
       - name: Load metapackage
         uses: actions/download-artifact@v8
         with:
@@ -1145,6 +1172,17 @@ jobs:
           retry apt-get install -y --no-install-recommends \
             ca-certificates vim wget unzip openssh-client binutils
           mv /tmp/wheels/* /tmp/packages && rmdir /tmp/wheels
+
+          # The validator creates a Python 3.12 conda environment. Its pip
+          # subprocesses inherit this exact local native dependency constraint.
+          shopt -s nullglob
+          edem_wheels=(/tmp/packages/cudaq_edem-*-cp312-*_"$(uname -m)".whl)
+          if [ "${#edem_wheels[@]}" -ne 1 ]; then
+            echo "::error::Expected one matching EDEM wheel, found ${#edem_wheels[@]}."
+            exit 1
+          fi
+          printf 'cudaq-edem @ file://%s\n' "${edem_wheels[0]}" > /tmp/edem-constraints.txt
+          export PIP_CONSTRAINT=/tmp/edem-constraints.txt
 
           # Extract README from metapackage
           cudaq_metapackage=cudaq-${{ needs.metadata.outputs.cudaq_version }}
@@ -1314,6 +1352,13 @@ jobs:
           path: logical-wheels
           merge-multiple: true
 
+      - name: Download matching EDEM wheels
+        uses: actions/download-artifact@v8
+        with:
+          pattern: 'cudaq_edem-*'
+          path: edem-wheels
+          merge-multiple: true
+
       - name: Download cudaq-devel wheels
         uses: actions/download-artifact@v8
         with:
@@ -1399,6 +1444,11 @@ jobs:
                 exit 1
               fi
               mv -v logical-wheels/cudaq_logical-*_${p}.whl wheelhouse-${p}/
+              if ! compgen -G "edem-wheels/cudaq_edem-*_${p}.whl" > /dev/null; then
+                echo "::error::No cudaq-edem wheel found for platform ${p} in edem-wheels/."
+                exit 1
+              fi
+              mv -v edem-wheels/cudaq_edem-*_${p}.whl wheelhouse-${p}/
             fi
             if [[ ${p} != "darwin" ]]; then
               if ! compgen -G "devel-wheels/cudaq_devel-*_${p}.whl" > /dev/null; then

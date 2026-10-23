@@ -775,6 +775,26 @@ jobs:
             exit 1
           fi
 
+      - name: Download matching EDEM wheel
+        if: inputs.include_logical
+        uses: actions/download-artifact@v8
+        with:
+          pattern: cudaq_edem-*-cp312-*manylinux_2_28_${{ steps.logical_wheel.outputs.arch }}.whl
+          path: docker/release/logical-wheels
+          merge-multiple: true
+          skip-decompress: true
+
+      - name: Check EDEM wheel download
+        if: inputs.include_logical
+        shell: bash
+        run: |
+          shopt -s nullglob
+          wheels=(docker/release/logical-wheels/cudaq_edem-*.whl)
+          if [ "${#wheels[@]}" -ne 1 ]; then
+            echo "::error::Expected exactly one matching cudaq-edem wheel, found ${#wheels[@]}."
+            exit 1
+          fi
+
       - name: Build cuda-quantum image
         id: cudaq_build
         if: success() && !cancelled()

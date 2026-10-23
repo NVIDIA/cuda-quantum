@@ -22,6 +22,11 @@ on:
         type: string
         default: 'cudaq_logical-*'
         description: A pattern that matches cudaq-logical wheel artifacts.
+      edem_wheel_artifacts:
+        required: false
+        type: string
+        default: 'cudaq_edem-*'
+        description: A pattern that matches the corresponding cudaq-edem wheel artifacts.
       cudaq_logical_version:
         required: false
         type: string
@@ -183,6 +188,13 @@ jobs:
           path: /tmp/logical-wheels/
           merge-multiple: true
 
+      - name: Load cudaq-edem wheels
+        uses: actions/download-artifact@v8
+        with:
+          pattern: ${{ inputs.edem_wheel_artifacts }}
+          path: /tmp/edem-wheels/
+          merge-multiple: true
+
       - name: Test installation
         run: |
           retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
@@ -199,8 +211,21 @@ jobs:
           mkdir -p /tmp/packages
           mv /tmp/wheels/* /tmp/packages
           mv /tmp/logical-wheels/* /tmp/packages
+          mv /tmp/edem-wheels/* /tmp/packages
           mv /tmp/metapackages/* /tmp/packages
-          rmdir /tmp/wheels /tmp/logical-wheels /tmp/metapackages
+          rmdir /tmp/wheels /tmp/logical-wheels /tmp/edem-wheels /tmp/metapackages
+
+          # Bind runtime and isolated pip builds to this run's native artifact,
+          # even if the public index contains a newer compatible EDEM release.
+          shopt -s nullglob
+          edem_wheels=(/tmp/packages/cudaq_edem-*-cp${python_tag}-*_"$(uname -m)".whl)
+          if [ "${#edem_wheels[@]}" -ne 1 ]; then
+            echo "::error::Expected one matching EDEM wheel, found ${#edem_wheels[@]}."
+            exit 1
+          fi
+          printf 'cudaq-edem @ file://%s\n' "${edem_wheels[0]}" > /tmp/edem-constraints.txt
+          export PIP_CONSTRAINT=/tmp/edem-constraints.txt
+          echo "PIP_CONSTRAINT=$PIP_CONSTRAINT" >> "$GITHUB_ENV"
 
           if [ -n "${{ matrix.cuda_version }}" ]; then
             CUDA_DOWNLOAD_URL=https://developer.download.nvidia.com/compute/cuda/repos
@@ -216,6 +241,9 @@ jobs:
 
           python=python${{ matrix.python_version }}
           retry $python -m pip install pip3-autoremove
+          # Install the native dependency from this run before resolving the
+          # metapackage. It must not come from the public package index.
+          $python -m pip install --no-index --no-deps --ignore-installed --find-links /tmp/packages cudaq-edem
 
           # autoremove is in an odd location that isn't found unless we search for it...
           autoremove="$python $($python -m pip show pip3-autoremove |  grep -e 'Location: .*$' | cut -d ' ' -f2)/pip_autoremove.py"
@@ -277,6 +305,7 @@ jobs:
               # not a version-increasing upgrade in branch CI.
               retry "$venv/bin/python" -m pip install cudaq==0.16.0
             fi
+            "$venv/bin/python" -m pip install --no-index --no-deps --find-links /tmp/packages cudaq-edem
             retry "$venv/bin/python" -m pip install --upgrade "cudaq==$CUDAQ_VERSION" --find-links /tmp/packages
             "$venv/bin/python" -m pip check
             "$venv/bin/python" /tmp/test_installation.py --logical --frontend

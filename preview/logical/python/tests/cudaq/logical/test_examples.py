@@ -33,7 +33,7 @@ def test_examples_execute(capsys, monkeypatch):
     import cudaq
 
     assert len(KERNEL_EXAMPLES) == 6
-    assert len(STANDALONE_EXAMPLES) == 6
+    assert len(STANDALONE_EXAMPLES) == 8
     monkeypatch.syspath_prepend(str(EXAMPLE_ROOT))
     output = {}
     for example in (*KERNEL_EXAMPLES, *STANDALONE_EXAMPLES):

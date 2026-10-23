@@ -33,6 +33,9 @@ on:
       logical_version:
         description: "Version of the built cudaq-logical wheel."
         value: ${{ jobs.build.outputs.logical_version }}
+      edem_wheel_name:
+        description: "Artifact name of the required cudaq-edem wheel."
+        value: ${{ jobs.build.outputs.edem_wheel_name }}
 
 jobs:
   resolve:
@@ -109,6 +112,7 @@ jobs:
     outputs:
       wheel_name: ${{ steps.repair.outputs.wheel_name }}
       logical_version: ${{ steps.repair.outputs.logical_version }}
+      edem_wheel_name: ${{ steps.edem.outputs.wheel_name }}
 
     # Build in a vanilla manylinux_2_28 container (AlmaLinux 8, glibc 2.28).
     container:
@@ -205,6 +209,7 @@ jobs:
             ninja \
             "patchelf>=0.17" \
             "lit<23"
+          uv pip install "build[virtualenv]"
 
           echo "Contents of dist:"
           find dist -type f
@@ -225,6 +230,27 @@ jobs:
       - name: Validate devel wheel
         if: needs.resolve.outputs.python_version == '3.11'
         run: PYTHON=python bash scripts/validate_devel_wheel.sh -i dist -r dist
+
+      - name: Build and install the EDEM dependency
+        id: edem
+        run: |
+          python edem/scripts/build_wheel.py --outdir build/edem-wheel
+          raw_wheel="$(find build/edem-wheel -name 'cudaq_edem-*.whl' -print -quit)"
+          test -n "$raw_wheel"
+          python -m auditwheel repair --plat "$PLAT" --wheel-dir dist "$raw_wheel"
+          wheel="$(find dist -name "cudaq_edem-*-cp${PY_TAG}-*${PLAT}.whl" -print -quit)"
+          test -n "$wheel"
+          uv pip install --no-deps "$wheel"
+          echo "wheel_path=$wheel" >> "$GITHUB_OUTPUT"
+          echo "wheel_name=$(basename "$wheel")" >> "$GITHUB_OUTPUT"
+
+      - name: Upload cudaq-edem wheel
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.edem.outputs.wheel_name }}
+          path: ${{ steps.edem.outputs.wheel_path }}
+          archive: false
+          if-no-files-found: error
 
       - name: Build cudaq.logical
         id: build
@@ -266,8 +292,7 @@ jobs:
           echo "=== Pre-repair auditwheel analysis ==="
           python -m auditwheel show "$RAW_WHEEL"
 
-          # CUDA-Q MLIR and gmp/mpfr ship in core; do not
-          # vendor them into cudaq-logical.
+          # Native dependencies remain owned by core and cudaq-edem.
           python -m auditwheel repair \
             --plat "$PLAT" \
             --exclude libcudaqMLIR.so \
@@ -276,6 +301,8 @@ jobs:
             --exclude libMLIRPythonSupport-cudaq.so \
             --exclude libgmp.so.10 \
             --exclude libmpfr.so.6 \
+            --exclude libcudaq-edem.so.0 \
+            --exclude libcudaq-gf2.so.0 \
             --wheel-dir dist "$RAW_WHEEL"
 
           wheel="$(find dist -name "cudaq_logical-*-cp${PY_TAG}-*${PLAT}.whl" -print -quit)"
@@ -342,6 +369,12 @@ jobs:
           name: ${{ needs.build.outputs.wheel_name }}
           path: dist
 
+      - name: Download cudaq-edem wheel
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ needs.build.outputs.edem_wheel_name }}
+          path: dist
+
       - name: Download runtime wheel
         uses: actions/download-artifact@v8
         with:
@@ -368,7 +401,8 @@ jobs:
           cp docker/test/wheels/integration/test_installation.py /tmp/test_installation.py
           uv pip install -f dist "cudaq-core==$CUDAQ_VERSION"
           python /tmp/test_installation.py
-          uv pip install -f dist "cudaq-logical==$CUDAQ_LOGICAL_VERSION"
+          uv pip install -f dist "cudaq-logical==$CUDAQ_LOGICAL_VERSION" \
+            "dist/${{ needs.build.outputs.edem_wheel_name }}"
           python /tmp/test_installation.py --logical
           printf 'module {}\n' | qlx-opt
           uv pip check
@@ -378,7 +412,8 @@ jobs:
         run: |
           set -euo pipefail
           if [ -n "$METAPACKAGE_ARTIFACT_NAME" ]; then
-            uv pip install -f dist "cudaq==$CUDAQ_VERSION"
+            uv pip install -f dist "cudaq==$CUDAQ_VERSION" \
+              "dist/${{ needs.build.outputs.edem_wheel_name }}"
           else
             # No metapackage sdist: install the local runtime wheel and
             # cudaq-logical without resolving the `cudaq` PyPI dependency.
@@ -426,7 +461,7 @@ jobs:
           QLX_SCHEDULE_DUMP_DIR: ${{ runner.temp }}/qlx-schedule-dumps
         run: |
           set -euo pipefail
-          uv pip install "pytest>=7.0"
+          uv pip install "pytest>=7.0" "stim>=1.16,<2"
 
           # Run from the workspace root: `python -m pytest` puts the working
           # directory on sys.path, and preview/logical/python holds a source-only
@@ -442,6 +477,7 @@ jobs:
           esac
 
           python -m pytest preview/logical/python/tests/cudaq/logical -v
+          python -m pytest docker/test/wheels/integration/test_logical_release_install.py -v
 
       - name: Upload schedule dumps from failed tests
         if: failure()
