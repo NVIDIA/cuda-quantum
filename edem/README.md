@@ -60,6 +60,13 @@ installing `nanobind>=2.12,<3` into the chosen Python environment. Set
 `Python_EXECUTABLE` to select an interpreter. Native builds default to
 `CUDAQ_EDEM_BUILD_PYTHON=OFF`.
 
+Native Python bindings install under
+`lib/pythonX.Y/site-packages/cudaq_edem` by default. Set
+`CUDAQ_EDEM_PYTHON_INSTALL_DIR` to change the package directory relative to
+`CMAKE_INSTALL_PREFIX`. `scripts/build_cudaq.sh -L` sets it to `cudaq_edem`,
+beside the native installation's `cudaq` package, so the same `PYTHONPATH`
+entry exposes both packages.
+
 The `cudaq-edem` wheel includes the `cudaq_edem` Python package, both native
 libraries, headers, and CMake exports. The Python module owns aligned buffers
 and delegates construction, validation, and evaluation to the C interface.

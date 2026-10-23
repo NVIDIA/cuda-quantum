@@ -398,6 +398,8 @@ if $build_logical; then
     -DCMAKE_INSTALL_LIBDIR=lib
     -DBUILD_SHARED_LIBS=ON
     -DCUDAQ_EDEM_BUILD_PYTHON=ON
+    # Match CUDA-Q's prefix-level Python package layout.
+    -DCUDAQ_EDEM_PYTHON_INSTALL_DIR=cudaq_edem
     -DCUDAQ_EDEM_BUILD_TESTS=OFF
     -DCUDAQ_GF2_BUILD_TESTS=OFF
   )
