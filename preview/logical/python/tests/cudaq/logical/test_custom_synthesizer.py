@@ -2,6 +2,7 @@
 # Licensed under the Apache License, Version 2.0.
 
 from dataclasses import replace
+from pathlib import Path
 import subprocess
 import sys
 
@@ -349,6 +350,24 @@ _ensure_registered(Synth())
                             text=True)
     assert result.returncode == 0, result.stderr
     assert "leaked" not in result.stderr
+
+
+def test_example_runs_without_optional_mpmath():
+    example = Path(__file__).resolve(
+    ).parents[4] / "examples/standalone/06_custom_synthesizer.py"
+    script = """
+import sys
+sys.modules['mpmath'] = None
+import _cudaq_logical_devpath
+import runpy
+runpy.run_path(sys.argv[1], run_name='__main__')
+"""
+    result = subprocess.run([sys.executable, "-c", script,
+                             str(example)],
+                            capture_output=True,
+                            text=True)
+    assert result.returncode == 0, result.stderr
+    assert "toy-su2/0.1.0" in result.stdout
 
 
 @cudaq.kernel

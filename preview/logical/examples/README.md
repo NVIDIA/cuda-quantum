@@ -28,6 +28,8 @@ target.
 
 The `standalone/` examples use `cudaq.logical` directly and expose each
 compiler step. They do not define CUDA-Q kernels or call `cudaq.estimate`.
+`standalone/06_custom_synthesizer.py` demonstrates a Python rotation synthesizer,
+whole-U3 dispatch, and inspectable plugin provenance.
 
 The `mlir/` examples use `qlx-opt` and `qlx-translate` directly.
 

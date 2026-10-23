@@ -100,6 +100,7 @@ use-cases/gadgets-and-verification
 use-cases/devices-and-placement
 use-cases/magic-states-and-protocols
 use-cases/logical-synthesis
+use-cases/custom-synthesizers
 use-cases/estimation
 use-cases/stim-emission
 ```
