@@ -11,17 +11,17 @@
 #include "qlx/Dialect/QLX/IR/QLXOps.h"
 #include "qlx/Dialect/QLX/IR/QLXTypes.h"
 #include "qlx/Dialect/QLX/Transforms/Passes.h"
-#include "cudaq/Synthesis/Circuit/Circuit.h"
-#include "cudaq/Synthesis/Circuit/Gate.h"
+#include "qlx/Dialect/QLX/Transforms/RotationSynthesizer.h"
 #include "cudaq/Synthesis/Math/Real.h"
-#include "cudaq/Synthesis/Synthesis/Gridsynth.h"
 #include "llvm/ADT/SmallVector.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/IR/Builders.h"
 
 #include <cmath>
 #include <cstdint>
+#include <map>
 #include <optional>
+#include <tuple>
 
 namespace qlx {
 #define GEN_PASS_DEF_QLXSYNTHESIZEROTATIONS
@@ -61,29 +61,6 @@ static llvm::ArrayRef<BuiltinAction> suffixFor(char basis) {
     return kY;
   default:
     return {};
-  }
-}
-
-/// Append one native synthesis gate as a chronological word over positive
-/// H/S/T generators. W is global phase and X = H S^2 H.
-static void appendGate(cudaq::synth::Gate gate,
-                       llvm::SmallVectorImpl<BuiltinAction> &out) {
-  switch (gate) {
-  case cudaq::synth::Gate::H:
-    out.push_back(BuiltinAction::h);
-    break;
-  case cudaq::synth::Gate::S:
-    out.push_back(BuiltinAction::s);
-    break;
-  case cudaq::synth::Gate::T:
-    out.push_back(BuiltinAction::t);
-    break;
-  case cudaq::synth::Gate::X:
-    out.append({BuiltinAction::h, BuiltinAction::s, BuiltinAction::s,
-                BuiltinAction::h});
-    break;
-  case cudaq::synth::Gate::W:
-    break;
   }
 }
 
@@ -312,16 +289,43 @@ static std::optional<int64_t> exactQuarterTurns(ApplyOp operation) {
 /// For float-authored angles, using the nearest exact lattice point is valid
 /// only when that word itself meets the authored precision. This avoids the
 /// old fixed-tolerance snap, which could violate tight precision requests.
-static bool approximateQuarterWord(double angle, double precision,
-                                   llvm::SmallVectorImpl<BuiltinAction> &out) {
-  double quarter = angle / (M_PI / 4.0);
-  int64_t nearest = std::llround(quarter);
-  double nearestAngle = static_cast<double>(nearest) * (M_PI / 4.0);
-  double error = 2.0 * std::abs(std::sin((angle - nearestAngle) / 4.0));
-  if (error > precision)
-    return false;
-  exactQuarterWord(nearest, out);
-  return true;
+static std::optional<int64_t> approximateQuarterTurns(double angle,
+                                                      double precision) {
+  if (!std::isfinite(angle) || !std::isfinite(precision) || precision <= 0)
+    return std::nullopt;
+  using cudaq::synth::Real;
+  // Retain enough bits for cancellation even for very large f64 angles. The
+  // nearest lattice index can exceed int64_t, so reduce it as a GMP integer.
+  auto bits = static_cast<mpfr_prec_t>(
+      64 + std::ceil(-std::log2(precision)) +
+      (angle == 0 ? 0 : std::max(0, std::ilogb(std::abs(angle)) + 1)));
+  cudaq::synth::ScopedDefaultPrecision workingPrecision(
+      std::max<mpfr_prec_t>(128, bits));
+  Real theta(angle), quarter = theta / (Real::pi() / Real(4));
+  cudaq::synth::Integer nearest;
+  mpfr_get_z(nearest.get_mpz_t(), quarter.get_mpfr(), MPFR_RNDN);
+
+  // Bound the distance from the original f64 to n*pi/4 using directed
+  // rounding. The projective Rz error is <= |theta - n*pi/4| / 2.
+  Real lower, upper;
+  mpfr_const_pi(lower.get_mpfr(), MPFR_RNDD);
+  mpfr_const_pi(upper.get_mpfr(), MPFR_RNDU);
+  if (mpz_sgn(nearest.get_mpz_t()) < 0)
+    std::swap(lower, upper);
+  mpfr_mul_z(lower.get_mpfr(), lower.get_mpfr(), nearest.get_mpz_t(),
+             MPFR_RNDD);
+  mpfr_mul_z(upper.get_mpfr(), upper.get_mpfr(), nearest.get_mpz_t(),
+             MPFR_RNDU);
+  mpfr_div_ui(lower.get_mpfr(), lower.get_mpfr(), 4, MPFR_RNDD);
+  mpfr_div_ui(upper.get_mpfr(), upper.get_mpfr(), 4, MPFR_RNDU);
+  mpfr_sub(lower.get_mpfr(), lower.get_mpfr(), theta.get_mpfr(), MPFR_RNDD);
+  mpfr_sub(upper.get_mpfr(), upper.get_mpfr(), theta.get_mpfr(), MPFR_RNDU);
+  mpfr_abs(lower.get_mpfr(), lower.get_mpfr(), MPFR_RNDU);
+  mpfr_abs(upper.get_mpfr(), upper.get_mpfr(), MPFR_RNDU);
+  Real budget = Real(precision) * Real(2);
+  if (lower > budget || upper > budget)
+    return std::nullopt;
+  return static_cast<int64_t>(mpz_fdiv_ui(nearest.get_mpz_t(), 8));
 }
 
 /// Read the constant f64 angle feeding a pauli_rotation.
@@ -385,8 +389,13 @@ static LogicalResult verifyCanonicalRotation(ApplyOp operation, double angle) {
   return success();
 }
 
+using WordCache =
+    std::map<std::tuple<char, double, double, double, double>, SynthesizedWord>;
+
 static LogicalResult synthesizePauliRotations(ModuleOp module,
-                                              double defaultPrecision) {
+                                              double defaultPrecision,
+                                              RotationSynthesizer &synthesizer,
+                                              WordCache &cache) {
   SmallVector<ApplyOp> rotations;
   module.walk([&](ApplyOp operation) {
     auto builtin = dyn_cast<BuiltinActionAttr>(operation.getActionAttr());
@@ -402,6 +411,8 @@ static LogicalResult synthesizePauliRotations(ModuleOp module,
       return operation.emitOpError(
           "Clifford+T synthesis requires a static angle; specialize the "
           "program parameter before synthesis");
+    if (!std::isfinite(*angle))
+      return operation.emitOpError("rotation angle must be finite");
 
     SmallVector<Value> qubits;
     for (Value input : operation.getInputs().drop_back())
@@ -462,29 +473,20 @@ static LogicalResult synthesizePauliRotations(ModuleOp module,
     std::optional<int64_t> exactTurns = signedExactQuarterTurns(operation);
     if (exactTurns) {
       exactQuarterWord(*exactTurns, core);
-    } else if (!approximateQuarterWord(*signedTheta, precision, core)) {
-      cudaq::synth::Real epsilon(precision);
-      cudaq::synth::ScopedDefaultPrecision workingPrecision(
-          cudaq::synth::details::required_precision(epsilon));
-      cudaq::synth::GridsynthOptions options;
-      // Compilation is a replayable transformation. CUDA-Q's GridSynth
-      // intentionally uses entropy by default, so pin its factoring stream
-      // at this compiler boundary to make identical inputs produce identical
-      // Clifford+T words regardless of earlier synthesis calls.
-      options.seed = 0;
-      auto circuit =
-          cudaq::synth::gridsynth(cudaq::synth::Real(*signedTheta),
-                                  cudaq::synth::Real(precision), options);
-      if (failed(circuit))
-        return operation.emitOpError(
-            "GridSynth failed to synthesize the rotation");
-
-      // Circuit stores the algebraic product U = g1*g2*...*gn. QLX applies
-      // gates chronologically, whose matrix is gn*...*g2*g1, so emit the
-      // stored sequence in reverse. This is observable for off-lattice words.
-      for (auto iterator = circuit->rbegin(); iterator != circuit->rend();
-           ++iterator)
-        appendGate(*iterator, core);
+    } else if (auto turns = approximateQuarterTurns(*signedTheta, precision)) {
+      exactQuarterWord(*turns, core);
+    } else {
+      auto key = std::make_tuple('z', *signedTheta, 0.0, 0.0, precision);
+      auto found = cache.find(key);
+      if (found == cache.end()) {
+        auto word = synthesizer.synthesizeRz(*signedTheta, precision);
+        if (failed(word))
+          return operation.emitOpError("rotation synthesizer '")
+                 << synthesizer.name()
+                 << "' failed: " << synthesizer.lastError();
+        found = cache.emplace(key, std::move(*word)).first;
+      }
+      core = found->second.actions;
     }
 
     OpBuilder builder(operation);
@@ -539,16 +541,22 @@ LogicalResult qlx::verifyCliffordT(ModuleOp module) {
   return failure(failedVerification);
 }
 
-LogicalResult qlx::synthesizeRotations(ModuleOp module, double precision) {
+LogicalResult qlx::synthesizeRotations(ModuleOp module, double precision,
+                                       StringRef synthesizerName) {
   if (!std::isfinite(precision) || precision <= 0.0 || precision >= 1.0)
     return module.emitError(
         "default synthesis precision must be finite and in (0, 1)");
+  auto synthesizer = lookupRotationSynthesizer(synthesizerName);
+  if (!synthesizer)
+    return module.emitError("unknown rotation synthesizer '")
+           << synthesizerName << "'";
+  WordCache cache;
   MLIRContext *context = module.getContext();
   context->getOrLoadDialect<arith::ArithDialect>();
 
   if (failed(legalizeFiniteActions(module)))
     return failure();
-  if (failed(synthesizePauliRotations(module, precision)))
+  if (failed(synthesizePauliRotations(module, precision, *synthesizer, cache)))
     return failure();
   return success();
 }
@@ -559,7 +567,8 @@ struct QLXSynthesizeRotationsPass
     : public qlx::impl::QLXSynthesizeRotationsBase<QLXSynthesizeRotationsPass> {
   using QLXSynthesizeRotationsBase::QLXSynthesizeRotationsBase;
   void runOnOperation() override {
-    if (failed(qlx::synthesizeRotations(getOperation(), precision)))
+    if (failed(
+            qlx::synthesizeRotations(getOperation(), precision, synthesizer)))
       signalPassFailure();
   }
 };

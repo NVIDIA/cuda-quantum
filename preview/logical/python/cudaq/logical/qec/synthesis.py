@@ -21,9 +21,8 @@ table and do not require the optional package.
 
 from __future__ import annotations
 
-import hashlib
 import math
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from importlib.metadata import PackageNotFoundError, version as package_version
 from inspect import Parameter, Signature
 
@@ -39,51 +38,9 @@ from cudaq.logical.gadgets import (
 from cudaq.logical.qec.lowering import GeneratedQECArtifact
 from cudaq.logical.protocols.definition import ProtocolDefinition
 from cudaq.logical.std import pauli_rotation
+from cudaq.logical.compiler.synthesizers import CliffordTWord, _verify_word
 
 _ANGLE_TOLERANCE = 1.0e-12
-_ERROR_METRIC = "projective_operator_norm"
-
-
-@dataclass(frozen=True, slots=True)
-class CliffordTWord:
-    """One normalized H/S/T word and its synthesis certificate."""
-
-    gates: tuple[str, ...]
-    requested_precision: float
-    achieved_error: float
-    algorithm: str
-    implementation: str
-    implementation_version: str
-    error_metric: str = _ERROR_METRIC
-
-    @property
-    def text(self) -> str:
-        return " ".join(self.gates)
-
-    @property
-    def sha256(self) -> str:
-        return hashlib.sha256(self.text.encode("utf-8")).hexdigest()
-
-    @property
-    def t_count(self) -> int:
-        return self.gates.count("t")
-
-    @property
-    def clifford_count(self) -> int:
-        return len(self.gates) - self.t_count
-
-    def evidence(self) -> dict[str, str | int | float]:
-        return {
-            "synthesis_algorithm": self.algorithm,
-            "synthesis_implementation": self.implementation,
-            "synthesis_version": self.implementation_version,
-            "synthesis_error_metric": self.error_metric,
-            "synthesis_requested_precision": self.requested_precision,
-            "synthesis_achieved_error": self.achieved_error,
-            "synthesis_word_sha256": self.sha256,
-            "synthesis_t_count": self.t_count,
-            "synthesis_clifford_count": self.clifford_count,
-        }
 
 
 def _validate_precision(precision) -> float:
@@ -99,6 +56,8 @@ def _exact_word(angle: float) -> tuple[str, ...] | None:
     """Return an exact H/S/T word for a multiple of pi/4, up to phase."""
 
     quarter = angle / (math.pi / 4.0)
+    if not math.isfinite(quarter):
+        return None
     nearest = round(quarter)
     if not math.isclose(quarter, nearest, rel_tol=0.0,
                         abs_tol=_ANGLE_TOLERANCE):
@@ -117,59 +76,6 @@ def _exact_word(angle: float) -> tuple[str, ...] | None:
         7: ("s", "s", "s", "t"),
     }
     return exact[value]
-
-
-def _exact_word_error(angle: float) -> float:
-    nearest_angle = round(angle / (math.pi / 4.0)) * (math.pi / 4.0)
-    return 2.0 * abs(math.sin((angle - nearest_angle) / 4.0))
-
-
-def _high_precision_word_error(mpmath, gates, angle) -> float:
-    """Measure the emitted chronological word, independently of GridSynth."""
-
-    root_half = mpmath.sqrt(mpmath.mpf("0.5"))
-    matrices = {
-        "h": ((root_half, root_half), (root_half, -root_half)),
-        "s": ((1, 0), (0, 1j)),
-        "t": ((1, 0), (0, mpmath.exp(0.25j * mpmath.pi))),
-    }
-    result = ((1, 0), (0, 1))
-    for gate in gates:
-        left = matrices[gate]
-        result = tuple(
-            tuple(
-                sum(left[row][inner] * result[inner][column]
-                    for inner in range(2))
-                for column in range(2))
-            for row in range(2))
-    target = (
-        (mpmath.exp(-0.5j * angle), 0),
-        (0, mpmath.exp(0.5j * angle)),
-    )
-
-    def determinant(matrix):
-        return matrix[0][0] * matrix[1][1] - matrix[0][1] * matrix[1][0]
-
-    phase = 0.5 * mpmath.arg(determinant(result) / determinant(target))
-
-    def distance(candidate_phase):
-        factor = mpmath.exp(1.0j * candidate_phase)
-        delta = tuple(
-            tuple(result[row][column] - factor * target[row][column]
-                  for column in range(2))
-            for row in range(2))
-        h00 = abs(delta[0][0])**2 + abs(delta[1][0])**2
-        h11 = abs(delta[0][1])**2 + abs(delta[1][1])**2
-        h01 = (delta[0][0].conjugate() * delta[0][1] +
-               delta[1][0].conjugate() * delta[1][1])
-        trace = h00 + h11
-        zero = mpmath.mpf("0")
-        det = max(zero, h00 * h11 - abs(h01)**2)
-        discriminant = max(zero, trace * trace - 4 * det)
-        return mpmath.sqrt(max(zero, (trace + mpmath.sqrt(discriminant)) / 2))
-
-    # Taking the square root of the determinant phase has two branches.
-    return float(min(distance(phase), distance(phase + mpmath.pi)))
 
 
 def _pygridsynth_version() -> str:
@@ -191,16 +97,15 @@ def pygridsynth_rz(angle: float, precision: float) -> CliffordTWord:
         raise ValueError("PyGridSynth angle must be finite")
     precision = _validate_precision(precision)
     exact = _exact_word(angle)
-    exact_error = _exact_word_error(angle) if exact is not None else None
-    if exact is not None and exact_error <= precision:
-        return CliffordTWord(
-            exact,
-            requested_precision=precision,
-            achieved_error=exact_error,
-            algorithm="exact-clifford-t",
-            implementation="qlx",
-            implementation_version="0.3",
-        )
+    if exact is not None:
+        candidate = CliffordTWord(exact, precision, 0.0, "exact-clifford-t",
+                                  "qlx", "0.3")
+        try:
+            return _verify_word("rz", (angle,), precision, candidate)
+        except ValueError:
+            # A float close to a lattice point can still be too far away for
+            # this precision. Synthesize the original binary angle instead.
+            pass
 
     try:
         import mpmath  # noqa: PLC0415
@@ -212,9 +117,12 @@ def pygridsynth_rz(angle: float, precision: float) -> CliffordTWord:
                           "PyGridSynth dependency; install "
                           "`cudaq-logical[synthesis]`") from error
 
-    work_digits = max(50, math.ceil(-math.log10(precision)) + 20)
+    angle_digits = max(0, math.ceil(math.log10(abs(angle)))) if angle else 0
+    work_digits = max(50, math.ceil(-math.log10(precision)) + angle_digits + 20)
     with mpmath.workdps(work_digits):
-        unitary = gridsynth(mpmath.mpf(str(angle)), mpmath.mpf(str(precision)))
+        # Match the compiler's target: the exact binary f64, not its shortest
+        # decimal rendering (which differs at tight synthesis precisions).
+        unitary = gridsynth(mpmath.mpf(angle), mpmath.mpf(precision))
         circuit = tuple(decompose_domega_unitary(unitary, [0]))
 
     # PyGridSynth 2.x calls Pauli X ``SXGate``.  Normalize X and inverse phase
@@ -243,30 +151,27 @@ def pygridsynth_rz(angle: float, precision: float) -> CliffordTWord:
                 f"PyGridSynth emitted unsupported gate type {name!r}"
             ) from error
 
-    with mpmath.workdps(work_digits):
-        achieved_error = _high_precision_word_error(mpmath, gates,
-                                                    mpmath.mpf(str(angle)))
-    if achieved_error > precision:
-        raise RuntimeError(
-            "PyGridSynth word failed the requested projective operator-norm "
-            f"bound: achieved {achieved_error:.6e}, requested {precision:.6e}")
-    return CliffordTWord(
-        tuple(gates),
-        requested_precision=precision,
-        achieved_error=achieved_error,
-        algorithm="ross-selinger-gridsynth",
-        implementation="pygridsynth",
-        implementation_version=_pygridsynth_version(),
-    )
+    return _verify_word(
+        "rz", (angle,), precision,
+        CliffordTWord(
+            tuple(gates),
+            requested_precision=precision,
+            achieved_error=0.0,
+            algorithm="ross-selinger-gridsynth",
+            implementation="pygridsynth",
+            implementation_version=_pygridsynth_version(),
+        ))
 
 
 def _require_primitive(value, name):
     if not isinstance(value, (GadgetDefinition, ProtocolDefinition)):
-        raise TypeError(f"PyGridSynth {name}= must be a gadget or protocol")
+        raise TypeError(
+            f"rotation synthesis {name}= must be a gadget or protocol")
     return value
 
 
-def _generated_rpp_protocol(*, site, context, word, h, s, cx, t, strategy):
+def _generated_rpp_protocol(*, site, context, word, h, s, cx, t, strategy,
+                            compiler):
     x_mask = int(site.parameters.get("x_mask", 0))
     z_mask = int(site.parameters.get("z_mask", 0))
     sign = int(site.parameters.get("sign", 1))
@@ -281,7 +186,7 @@ def _generated_rpp_protocol(*, site, context, word, h, s, cx, t, strategy):
         binding.block or binding.placement for binding in context.placements)
     if len(set(block_keys)) != len(block_keys):
         raise NotImplementedError(
-            "PyGridSynth RPP synthesis currently requires at most one product "
+            "RPP synthesis currently requires at most one product "
             "factor per encoded patch")
 
     encoding = context.encoding
@@ -345,7 +250,7 @@ def _generated_rpp_protocol(*, site, context, word, h, s, cx, t, strategy):
     hints = {parameter.name: annotation for parameter in parameters}
     hints["return"] = result_annotation
     metadata = {
-        "compiler": "synthesis.pygridsynth_rpp",
+        "compiler": compiler,
         "strategy": strategy,
         "x_mask": x_mask,
         "z_mask": z_mask,
@@ -369,6 +274,8 @@ class _RPPStrategy:
     cx: GadgetDefinition | ProtocolDefinition
     t: GadgetDefinition | ProtocolDefinition
     approximate: bool
+    synthesizer: object = None
+    compiler: str = "synthesis.pygridsynth_rpp"
 
     @property
     def dependencies(self):
@@ -382,8 +289,13 @@ class _RPPStrategy:
             precision = site.parameters.get("precision",
                                             context.policy.get("rpp_precision"))
             if precision is None:
-                raise ValueError("PyGridSynth synthesis requires a precision")
-            word = pygridsynth_rz(effective_angle, float(precision))
+                raise ValueError("rotation synthesis requires a precision")
+            if self.synthesizer is None:
+                word = pygridsynth_rz(effective_angle, float(precision))
+            else:
+                word = _verify_word(
+                    "rz", (effective_angle,), float(precision),
+                    self.synthesizer.rz(effective_angle, float(precision)))
             strategy = "synthesis"
         else:
             gates = _exact_word(effective_angle)
@@ -392,19 +304,16 @@ class _RPPStrategy:
                     "exact RPP strategy requires a multiple of pi/4")
             requested_precision = float(
                 site.parameters.get("precision", _ANGLE_TOLERANCE))
-            achieved_error = _exact_word_error(effective_angle)
-            if achieved_error > requested_precision:
+            try:
+                word = _verify_word(
+                    "rz", (effective_angle,), requested_precision,
+                    CliffordTWord(gates, requested_precision, 0.0,
+                                  "exact-clifford-t", "qlx", "0.3"))
+            except ValueError as error:
                 raise ValueError(
                     "exact RPP strategy cannot meet the requested precision; "
-                    "reduce the compiler angle_tolerance or force synthesis")
-            word = CliffordTWord(
-                gates,
-                requested_precision=requested_precision,
-                achieved_error=achieved_error,
-                algorithm="exact-clifford-t",
-                implementation="qlx",
-                implementation_version="0.3",
-            )
+                    "reduce the compiler angle_tolerance or force synthesis"
+                ) from error
             strategy = "exact"
         protocol = _generated_rpp_protocol(
             site=site,
@@ -415,20 +324,31 @@ class _RPPStrategy:
             cx=self.cx,
             t=self.t,
             strategy=strategy,
+            compiler=self.compiler,
         )
         return GeneratedQECArtifact(protocol, word.evidence())
 
 
-def pygridsynth_strategy(*, h, s, cx, t):
-    """Return an explicit ``synthesis=`` provider for an RPP compiler."""
-
+def synthesis_strategy(synthesizer, *, h, s, cx, t):
+    """Use a Python rotation synthesizer in a code-specific RPP compiler."""
+    if not callable(getattr(synthesizer, "rz", None)):
+        raise TypeError("rotation synthesizer requires a callable rz method")
     return _RPPStrategy(
         _require_primitive(h, "h"),
         _require_primitive(s, "s"),
         _require_primitive(cx, "cx"),
         _require_primitive(t, "t"),
         approximate=True,
+        synthesizer=synthesizer,
+        compiler="synthesis.rpp",
     )
+
+
+def pygridsynth_strategy(*, h, s, cx, t):
+    """Return an explicit ``synthesis=`` provider for an RPP compiler."""
+    from cudaq.logical.compiler.synthesizers import PyGridSynth
+    return replace(synthesis_strategy(PyGridSynth(), h=h, s=s, cx=cx, t=t),
+                   compiler="synthesis.pygridsynth_rpp")
 
 
 def pygridsynth_rpp_compiler(
@@ -477,5 +397,6 @@ __all__ = [
     "CliffordTWord",
     "pygridsynth_rz",
     "pygridsynth_strategy",
+    "synthesis_strategy",
     "pygridsynth_rpp_compiler",
 ]

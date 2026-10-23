@@ -19,6 +19,7 @@ add_mlir_library(MLIRQLXTransforms
   QLXEstimateLogical.cpp
   QLXVerifyPBC.cpp
   QLXSynthesize.cpp
+  RotationSynthesizer.cpp
   QLXToPBC.cpp
 
   ADDITIONAL_HEADER_DIRS

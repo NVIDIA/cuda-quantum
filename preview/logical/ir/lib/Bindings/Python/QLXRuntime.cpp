@@ -16,6 +16,7 @@
 
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/string.h>
+#include <nanobind/stl/tuple.h>
 
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include "mlir/Bytecode/BytecodeReader.h"
@@ -52,6 +53,7 @@
 #include "qlx/Dialect/QLX/Transforms/QLXSynthesize.h"
 #include "qlx/Dialect/QLX/Transforms/QLXToPBC.h"
 #include "qlx/Dialect/QLX/Transforms/QLXVerifyPBC.h"
+#include "qlx/Dialect/QLX/Transforms/RotationSynthesizer.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 
 #include "PassDebug.h"
@@ -323,6 +325,71 @@ MlirContext contextFromPythonCapsule(nb::handle pyContext) {
   return MlirContext{ptr};
 }
 
+class PythonRotationSynthesizer final : public qlx::RotationSynthesizer {
+public:
+  PythonRotationSynthesizer(std::string name, std::string version,
+                            nb::callable rz, nb::object u3)
+      : name_(std::move(name)), version_(std::move(version)),
+        rz_(std::move(rz)), u3_(std::move(u3)) {}
+  llvm::StringRef name() const override { return name_; }
+  llvm::StringRef version() const override { return version_; }
+  bool supportsU3() const override { return !u3_.is_none(); }
+  llvm::StringRef lastError() const override { return error_; }
+  mlir::FailureOr<qlx::SynthesizedWord>
+  synthesizeRz(double angle, double precision) override {
+    return invoke([&] { return rz_(angle, precision); });
+  }
+  mlir::FailureOr<qlx::SynthesizedWord>
+  synthesizeU3(double theta, double phi, double lam,
+               double precision) override {
+    return invoke([&] { return u3_(theta, phi, lam, precision); });
+  }
+
+private:
+  template <typename Callback>
+  mlir::FailureOr<qlx::SynthesizedWord> invoke(Callback callback) {
+    nb::gil_scoped_acquire acquire;
+    try {
+      error_.clear();
+      auto [gates, achieved, algorithm] =
+          nb::cast<std::tuple<std::string, double, std::string>>(callback());
+      qlx::SynthesizedWord word;
+      word.achievedError = achieved;
+      word.algorithm = std::move(algorithm);
+      word.implementation = name_;
+      word.version = version_;
+      for (char gate : gates) {
+        switch (gate) {
+        case 'h':
+          word.actions.push_back(qlx::BuiltinAction::h);
+          break;
+        case 's':
+          word.actions.push_back(qlx::BuiltinAction::s);
+          break;
+        case 't':
+          word.actions.push_back(qlx::BuiltinAction::t);
+          break;
+        default:
+          throw std::runtime_error(
+              "synthesizer returned a non-H/S/T generator");
+        }
+      }
+      return word;
+    } catch (const std::exception &error) {
+      error_ = error.what();
+      return mlir::failure();
+    }
+  }
+  std::string name_, version_, error_;
+  nb::callable rz_;
+  nb::object u3_;
+};
+
+std::vector<std::string> &pythonSynthesizerNames() {
+  static auto *names = new std::vector<std::string>;
+  return *names;
+}
+
 } // namespace
 
 NB_MODULE(_qlxRuntime, m) {
@@ -330,6 +397,28 @@ NB_MODULE(_qlxRuntime, m) {
 
   mlirRegisterTransformsPasses();
   qlxRegisterAllPasses();
+  m.def(
+      "register_rotation_synthesizer",
+      [](const std::string &name, const std::string &version, nb::callable rz,
+         nb::object u3) {
+        if (!u3.is_none() && !PyCallable_Check(u3.ptr()))
+          throw nb::type_error("u3 must be callable or None");
+        auto value = std::make_shared<PythonRotationSynthesizer>(
+            name, version, std::move(rz), std::move(u3));
+        if (!qlx::registerRotationSynthesizer(std::move(value)))
+          throw nb::value_error(
+              "rotation synthesizer name is already registered");
+        pythonSynthesizerNames().push_back(name);
+      },
+      nb::arg("name"), nb::arg("version"), nb::arg("rz"),
+      nb::arg("u3") = nb::none());
+  m.def("_clear_python_rotation_synthesizers", [] {
+    for (const auto &name : pythonSynthesizerNames())
+      qlx::unregisterRotationSynthesizer(name);
+    pythonSynthesizerNames().clear();
+  });
+  nb::module_::import_("atexit").attr("register")(
+      m.attr("_clear_python_rotation_synthesizers"));
 #ifdef QLX_HAS_CUDAQ_QUAKE
   m.attr("has_quake_import") = true;
 #else
@@ -396,7 +485,9 @@ NB_MODULE(_qlxRuntime, m) {
       "synthesize_qlx",
       [](const std::string &mlirText, double precision) -> std::string {
         mlir::MLIRContext context;
-        context.getOrLoadDialect<qlx::QLXDialect>();
+        // The transform and its dialect TypeIDs live in the common image.
+        mlirDialectHandleLoadDialect(mlirGetDialectHandle__qlx__(),
+                                     wrap(&context));
         context.getOrLoadDialect<mlir::arith::ArithDialect>();
 
         auto module =
@@ -404,7 +495,8 @@ NB_MODULE(_qlxRuntime, m) {
         if (!module)
           throw std::runtime_error("Failed to parse MLIR for synthesis");
 
-        if (mlir::failed(qlx::synthesizeRotations(*module, precision)))
+        if (mlirLogicalResultIsFailure(qlxSynthesizeRotationsModule(
+                wrap(*module), precision, toRef("gridsynth"))))
           throw std::runtime_error("QLX rotation synthesis failed");
 
         std::string result;
@@ -420,7 +512,8 @@ NB_MODULE(_qlxRuntime, m) {
       "verify_clifford_t",
       [](const std::string &mlirText) -> bool {
         mlir::MLIRContext context;
-        context.getOrLoadDialect<qlx::QLXDialect>();
+        mlirDialectHandleLoadDialect(mlirGetDialectHandle__qlx__(),
+                                     wrap(&context));
         context.getOrLoadDialect<mlir::arith::ArithDialect>();
 
         auto module =
@@ -428,7 +521,8 @@ NB_MODULE(_qlxRuntime, m) {
         if (!module)
           throw std::runtime_error(
               "Failed to parse MLIR for Clifford+T verification");
-        return mlir::succeeded(qlx::verifyCliffordT(*module));
+        return mlirLogicalResultIsSuccess(
+            qlxVerifyCliffordTModule(wrap(*module)));
       },
       nb::arg("mlir_text"),
       "Return true when every logical apply is legal in positive H/S/T/CX.");

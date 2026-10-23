@@ -282,6 +282,8 @@ endif()
 # CUDA-Q's aggregate helper exports the standard MLIR/CUDA-Q C APIs. Extend
 # that export set with every retained CUDA-Q Logical P0-P3 C API so the Python
 # extensions and the Quake plugin share one symbol/type universe.
+# The internal C++ synthesizer registry is shared with _qlxRuntime as well;
+# exporting its entry points prevents a second registry in the extension DSO.
 get_target_property(_qlx_capi_link_options QLXPythonCAPI LINK_OPTIONS)
 if(NOT _qlx_capi_link_options
     OR _qlx_capi_link_options STREQUAL "_qlx_capi_link_options-NOTFOUND")
@@ -292,7 +294,7 @@ if(APPLE)
   set(_qlx_capi_exports
     "${CMAKE_CURRENT_BINARY_DIR}/QLXPythonCAPI-qlx-exported.txt")
   file(WRITE "${_qlx_capi_exports}"
-    "_mlir*\n_cudaq*\n_qlx*\n_lvm*\n_phys*\n_fabric*\n_event*\n")
+    "_mlir*\n_cudaq*\n_qlx*\n_lvm*\n_phys*\n_fabric*\n_event*\n__ZN3qlx*RotationSynthesizer*\n")
   set(_qlx_capi_export_option
     "LINKER:-exported_symbols_list,${_qlx_capi_exports}")
 else()
@@ -302,6 +304,7 @@ else()
   file(WRITE "${_qlx_capi_exports}"
     "{\n  global:\n    mlir*;\n    cudaq*;\n    qlx*;\n    lvm*;\n"
     "    phys*;\n    fabric*;\n    event*;\n"
+    "    _ZN3qlx*RotationSynthesizer*;\n"
     "  local:\n    *;\n};\n")
   set(_qlx_capi_export_option
     "LINKER:--version-script=${_qlx_capi_exports}")

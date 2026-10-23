@@ -19,6 +19,9 @@ extern "C" {
 /// Register every native QLX pass with the global pass registry.
 MLIR_CAPI_EXPORTED void qlxRegisterAllPasses(void);
 
+MLIR_CAPI_EXPORTED MlirLogicalResult qlxSynthesizeRotationsModule(
+    MlirModule module, double precision, MlirStringRef synthesizer);
+
 /// Run typed QLX/PBC transforms through the process-wide common C API image.
 MLIR_CAPI_EXPORTED MlirLogicalResult
 qlxVerifyCliffordTModule(MlirModule module);

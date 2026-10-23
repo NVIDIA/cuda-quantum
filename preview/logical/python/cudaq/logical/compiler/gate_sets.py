@@ -45,12 +45,14 @@ class GateSet:
             raise ValueError(
                 "a gate set requires actions and legalization passes")
 
-    def pipeline(self, *, precision: float = 1.0e-10):
+    def pipeline(self, *, precision: float = 1.0e-10, synthesizer="gridsynth"):
         """Return the P0-to-P0 pipeline required by this gate set."""
 
         from .pipeline import PassSpec, Pipeline
+        from .synthesizers import _ensure_registered, _synthesizer_label
 
         precision = _validate_precision(precision)
+        synthesizer = _ensure_registered(synthesizer)
         passes = []
         for name in self.legalization_passes:
             options = ()
@@ -59,6 +61,10 @@ class GateSet:
                     ("gate_set", self.name),
                     ("precision", precision),
                 )
+                if synthesizer != "gridsynth":
+                    options += (("synthesizer", synthesizer),
+                                ("synthesizer_producer",
+                                 _synthesizer_label(synthesizer)))
             passes.append(PassSpec(name, options))
         return Pipeline(tuple(passes), output_profile="p0")
 
@@ -74,7 +80,7 @@ clifford_t = GateSet(
 
 
 def _match_pipeline(pipeline):
-    """Return ``(gate_set, precision)`` for a canonical gate-set pipeline."""
+    """Return ``(gate_set, precision, synthesizer)`` for a canonical gate-set pipeline."""
 
     if not hasattr(pipeline, "passes"):
         return None
@@ -86,9 +92,11 @@ def _match_pipeline(pipeline):
         if options.get("gate_set") != gate_set.name:
             continue
         precision = _validate_precision(options.get("precision"))
-        if pipeline != gate_set.pipeline(precision=precision):
+        synthesizer = options.get("synthesizer", "gridsynth")
+        if pipeline != gate_set.pipeline(precision=precision,
+                                         synthesizer=synthesizer):
             continue
-        return gate_set, precision
+        return gate_set, precision, synthesizer
     return None
 
 

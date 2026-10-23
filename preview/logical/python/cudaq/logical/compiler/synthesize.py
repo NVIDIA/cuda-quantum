@@ -17,7 +17,9 @@ from .build import Build, EvidenceRecord
 def _pass_pipeline_string(pass_spec, gate_set: GateSet) -> str:
     options = dict(pass_spec.options)
     if pass_spec.name == "qlx-synthesize-rotations":
-        return f"qlx-synthesize-rotations{{precision={options['precision']!r}}}"
+        synthesizer = options.get("synthesizer", "gridsynth")
+        return (f"qlx-synthesize-rotations{{precision={options['precision']!r} "
+                f"synthesizer={synthesizer}}}")
     if pass_spec.name == "qlx-verify-clifford-t":
         return pass_spec.name
     raise ValueError(f"gate set {gate_set.name!r} requires unsupported "
@@ -45,7 +47,8 @@ def _execute_pipeline(source: Build, gate_set: GateSet, pipeline) -> Build:
             *source.evidence,
             EvidenceRecord(
                 kind="logical_gate_set_legalization",
-                producer="cudaq-synth/gridsynth",
+                producer=dict(pipeline.passes[0].options).get(
+                    "synthesizer_producer", "cudaq-synth/gridsynth"),
                 result="pass",
                 obligations=(
                     f"gate-set:{gate_set.name}",
@@ -73,6 +76,7 @@ def _synthesize(
     *,
     gate_set: GateSet,
     precision: float,
+    synthesizer=None,
     parameters=None,
     pipeline=None,
     experiment=None,
@@ -80,7 +84,8 @@ def _synthesize(
     if not isinstance(gate_set, GateSet):
         raise TypeError(
             "synthesize gate_set= must be a cudaq.logical compiler GateSet")
-    pipeline = pipeline or gate_set.pipeline(precision=precision)
+    pipeline = pipeline or gate_set.pipeline(precision=precision,
+                                             synthesizer=synthesizer)
 
     if isinstance(definition, Build):
         if definition.profile != "p0":
@@ -93,6 +98,32 @@ def _synthesize(
                 "parameters= can specialize a cudaq.logical program, not an existing "
                 "Build; synthesize the ProgramDefinition directly")
         source = definition
+        synthesis = source.synthesis
+        if synthesis is None and any(
+                record.kind == "logical_gate_set_legalization" and
+                record.result == "pass" for record in source.evidence):
+            # PBC and frame normalization retain evidence while replacing the
+            # latest pipeline. Its absence cannot erase earlier approximation.
+            raise ValueError(
+                "Build was already synthesized before another transformation; "
+                "re-synthesis requires the original program or unsynthesized "
+                "P0 Build")
+        if synthesis is not None:
+            previous = next(item for item in source.pipeline.passes
+                            if item.name == "qlx-synthesize-rotations")
+            prior, requested = dict(previous.options), dict(
+                pipeline.passes[0].options)
+            if (prior.get("gate_set") != gate_set.name or
+                    prior.get("synthesizer", "gridsynth") != requested.get(
+                        "synthesizer", "gridsynth") or
+                    requested["precision"] < prior["precision"]):
+                raise ValueError(
+                    "Build is already synthesized; changing its synthesizer "
+                    "or tightening precision requires the original program "
+                    "or unsynthesized P0 Build")
+            # The source angles are gone. Reuse compatible synthesis without
+            # relabeling its producer or claiming a different achieved bound.
+            return source
     else:
         if not isinstance(definition, ProgramDefinition):
             raise TypeError("cudaq.logical.compiler.synthesize expects an "
@@ -115,6 +146,7 @@ def synthesize(
     *,
     gate_set: GateSet,
     precision: float = 1.0e-10,
+    synthesizer=None,
     parameters=None,
 ) -> Build:
     """Legalize a logical program to ``gate_set`` without selecting a device.
@@ -122,16 +154,18 @@ def synthesize(
     ``precision`` is the default projective operator-norm bound for each
     off-lattice rotation. A rotation's explicitly authored ``precision=``
     takes precedence. Runtime-dependent angles must be specialized through
-    ``parameters=``.
+    ``parameters=``. ``synthesizer`` may supply a Python ``rz`` method and an
+    optional whole-``u3`` method; returned words are independently verified.
     """
 
     if not isinstance(gate_set, GateSet):
         raise TypeError("synthesize gate_set= must be a cudaq.logical.GateSet")
-    pipeline = gate_set.pipeline(precision=precision)
+    pipeline = gate_set.pipeline(precision=precision, synthesizer=synthesizer)
     return _synthesize(
         definition,
         gate_set=gate_set,
         precision=precision,
+        synthesizer=synthesizer,
         parameters=parameters,
         pipeline=pipeline,
     )

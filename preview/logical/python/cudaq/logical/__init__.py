@@ -47,6 +47,7 @@ from . import (  # noqa: E402
     stages, targets, types,
 )
 from .compiler import compile, materialize  # noqa: E402
+from .algebra import pi  # noqa: E402
 from .programs import (
     abort_on,
     condition_results,
@@ -104,6 +105,7 @@ __all__ = [
     "abort_on",
     "compile",
     "materialize",
+    "pi",
     "estimate",
     "emit",
     "allocate",

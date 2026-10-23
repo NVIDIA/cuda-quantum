@@ -140,12 +140,15 @@ class _Pipelines:
             output_profile="p0",
         )
 
-    def clifford_t(self, *, precision: float = 1.0e-10) -> Pipeline:
+    def clifford_t(self,
+                   *,
+                   precision: float = 1.0e-10,
+                   synthesizer=None) -> Pipeline:
         """Device-free P0 legalization to positive H/S/T/CX."""
 
         from ..compiler.gate_sets import clifford_t
 
-        return clifford_t.pipeline(precision=precision)
+        return clifford_t.pipeline(precision=precision, synthesizer=synthesizer)
 
     def pbc(self) -> Pipeline:
         """Device-free P0 normalization of Clifford+T into PBC form."""
