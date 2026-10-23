@@ -1166,6 +1166,17 @@ LogicalResult ApplyOp::verify() {
   if (!builtin)
     return emitOpError(
         "action must be #qlx.action<...> or a qlx.action symbol reference");
+  if (builtin.getValue() == BuiltinAction::u3) {
+    if (getInputs().size() != 4 || getNumResults() != 1 ||
+        !isa<LogicalQubitType>(getInputs().front().getType()) ||
+        !isa<LogicalQubitType>(getResult(0).getType()))
+      return emitOpError("u3 requires one logical-qubit input and result and "
+                         "three trailing f64 angles");
+    if (!llvm::all_of(getInputs().drop_front(),
+                      [](Value value) { return value.getType().isF64(); }))
+      return emitOpError("u3 requires three trailing f64 angle operands");
+    return success();
+  }
   unsigned expectedArity = 1;
   switch (builtin.getValue()) {
   case BuiltinAction::cx:
@@ -1329,6 +1340,8 @@ LogicalResult ConsumeResourceOp::verify() {
   case BuiltinAction::pauli_rotation:
     return emitOpError(
         "resource consumption cannot encode a parameterized Pauli rotation");
+  case BuiltinAction::u3:
+    return emitOpError("resource consumption cannot encode a parameterized u3");
   }
   if (getInputs().size() != expectedArity)
     return emitOpError("built-in resource action has the wrong logical arity");

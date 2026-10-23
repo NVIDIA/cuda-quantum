@@ -6301,6 +6301,7 @@ static std::optional<unsigned> builtinActionArity(qlx::BuiltinAction action) {
   case qlx::BuiltinAction::ccx:
     return 3;
   case qlx::BuiltinAction::pauli_rotation:
+  case qlx::BuiltinAction::u3:
     return std::nullopt;
   default:
     return 1;

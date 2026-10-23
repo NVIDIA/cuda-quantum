@@ -243,6 +243,20 @@ def rz(q, angle, *, precision=None):
     return rotate(Z(q), angle=angle, precision=precision)[0]
 
 
+def u3(q, theta, phi, lam, *, precision=None):
+    """Rz(phi) Ry(theta) Rz(lam), up to phase; P0 programs only.
+
+    ``precision`` bounds the whole unitary in projective operator norm.
+    """
+    from cudaq.logical.programs.builder import UnplacedBuilder
+
+    trace = require_trace("u3")
+    if not isinstance(trace,
+                      UnplacedBuilder) or trace.definition.kind != "program":
+        raise TypeError("u3 is available only in P0 programs")
+    return trace.u3(q, theta, phi, lam, precision=precision)
+
+
 def x_if(bit, q):
     """Byproduct-correction sugar: apply X to ``q`` exactly when ``bit`` is set."""
     (result,) = cond(

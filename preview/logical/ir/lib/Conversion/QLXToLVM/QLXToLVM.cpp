@@ -898,6 +898,17 @@ struct QLXToLVMPass : public qlx::impl::QLXToLVMBase<QLXToLVMPass> {
 
   void runOnOperation() override {
     ModuleOp module = getOperation();
+    bool hasU3 = false;
+    module.walk([&](qlx::ApplyOp op) {
+      auto builtin = dyn_cast<qlx::BuiltinActionAttr>(op.getActionAttr());
+      if (builtin && builtin.getValue() == qlx::BuiltinAction::u3) {
+        op.emitOpError("u3 must be legalized before placement; run "
+                       "cudaq.logical.compiler.synthesize first.");
+        hasU3 = true;
+      }
+    });
+    if (hasU3)
+      return signalPassFailure();
     SmallVector<Operation *> importedDomains;
     if (!archModule.empty()) {
       auto buffer = llvm::MemoryBuffer::getFile(archModule);

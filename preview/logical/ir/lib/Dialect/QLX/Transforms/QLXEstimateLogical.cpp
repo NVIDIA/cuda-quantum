@@ -211,7 +211,8 @@ private:
       if (builtin && (builtin.getValue() == BuiltinAction::t ||
                       builtin.getValue() == BuiltinAction::tdg ||
                       builtin.getValue() == BuiltinAction::ccz ||
-                      builtin.getValue() == BuiltinAction::ccx))
+                      builtin.getValue() == BuiltinAction::ccx ||
+                      builtin.getValue() == BuiltinAction::u3))
         if (failed(bump(synthesis, action, multiplier, operation, "synthesis")))
           return failure();
     } else if (auto instrument = dyn_cast<InstrumentOp>(operation)) {
