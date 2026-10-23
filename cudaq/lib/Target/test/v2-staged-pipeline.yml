@@ -46,6 +46,7 @@ compile-target:
 # PARSE:   jit-high-level-pipeline: high-pipe
 # PARSE:   jit-mid-level-pipeline: mid-pipe
 # PARSE:   jit-low-level-pipeline: low-pipe
+# PARSE:   ir-output-profile=unchecked
 # PARSE:   codegen-emission: qir-base
 # PARSE:   post-codegen-passes: canonicalize
 # PARSE:   platform-qpu: remote_rest

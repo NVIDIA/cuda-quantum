@@ -97,6 +97,7 @@ add_cudaq_library(OptTransforms
   UnwindByDataFlow.cpp
   UpdateRegisterNames.cpp
   VariableCoalesce.cpp
+  VerifyProfileQuakeReferenceSemantics.cpp
   WiresToWiresets.cpp
   WriteAfterWriteElimination.cpp
 

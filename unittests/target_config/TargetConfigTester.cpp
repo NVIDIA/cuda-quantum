@@ -205,6 +205,49 @@ compile-target:
   EXPECT_TRUE(config.BackendConfig->hasPassPipeline());
 }
 
+TEST(TargetConfigTester, quakeReferenceSemanticsProfileIdentity) {
+  const cudaq::config::QuakeReferenceSemanticsProfile baseline{
+      .basisGates = {"h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)"},
+      .measurementType = cudaq::config::MeasurementForm::single_qubit,
+      .resetAfterMeasure = true};
+  const std::hash<cudaq::config::QuakeReferenceSemanticsProfile> hash;
+
+  // Distinct profile kinds are never equal.
+  EXPECT_NE(cudaq::config::Profile{cudaq::config::UncheckedProfile{}},
+            cudaq::config::Profile{baseline});
+
+  // Changing any single constraint changes equality and identity.
+  auto basisChanged = baseline;
+  basisChanged.basisGates = {"h", "rz"};
+  EXPECT_NE(basisChanged, baseline);
+  EXPECT_NE(hash(basisChanged), hash(baseline));
+
+  auto measurementTypeChanged = baseline;
+  measurementTypeChanged.measurementType = cudaq::config::MeasurementForm::any;
+  EXPECT_NE(measurementTypeChanged, baseline);
+  EXPECT_NE(hash(measurementTypeChanged), hash(baseline));
+
+  auto resetChanged = baseline;
+  resetChanged.resetAfterMeasure = false;
+  EXPECT_NE(resetChanged, baseline);
+  EXPECT_NE(hash(resetChanged), hash(baseline));
+}
+TEST(TargetConfigTester, quakeReferenceSemanticsProfileTargetIdentity) {
+  cudaq::CompileTarget target;
+  target.stages = {cudaq::config::CompilationStage{
+      .irOutputProfile = cudaq::config::QuakeReferenceSemanticsProfile{},
+      .lowering = cudaq::config::CustomPipelineLowering{}}};
+
+  // Profile options contribute to stage and compile-target identity.
+  cudaq::CompileTarget changed = target;
+  std::get<cudaq::config::QuakeReferenceSemanticsProfile>(
+      changed.stages[0].irOutputProfile)
+      .resetAfterMeasure = true;
+  EXPECT_NE(target, changed);
+  EXPECT_NE(std::hash<cudaq::CompileTarget>{}(target),
+            std::hash<cudaq::CompileTarget>{}(changed));
+}
+
 TEST(TargetConfigTester, v2RejectsV1CompilationKeys) {
   const std::string yaml = R"(
 version: 2

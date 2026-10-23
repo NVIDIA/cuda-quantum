@@ -11,14 +11,26 @@
 #include "Yaml/v2/TargetConfigV2.h"
 #include "Yaml/CanonicalConversion.h"
 
+static cudaq::config::Profile
+toCanonicalProfile(const cudaq::config::v2::UncheckedProfileV2 &profile) {
+  return cudaq::config::UncheckedProfile{};
+}
+static cudaq::config::Profile toCanonicalProfile(
+    const cudaq::config::v2::QuakeReferenceSemanticsProfileV2 &profile) {
+  return cudaq::config::QuakeReferenceSemanticsProfile{
+      .basisGates = profile.options.value().basisGates.value(),
+      .measurementType = profile.options.value().measurementType.value(),
+      .resetAfterMeasure = profile.options.value().resetAfterMeasure.value()};
+}
+
+static cudaq::config::Profile
+toCanonicalProfile(const cudaq::config::v2::IrOutputProfileV2 &profile) {
+  return profile.visit([](const auto &p) { return toCanonicalProfile(p); });
+}
+
 static cudaq::config::CompilationStage
 toCanonicalStage(const cudaq::config::v2::CompilationStageV2 &stage) {
-  cudaq::config::Profile profile;
-  stage.irOutputProfile.visit([&](const auto &p) {
-    using T = std::decay_t<decltype(p)>;
-    if constexpr (std::is_same_v<T, cudaq::config::v2::UncheckedProfileV2>)
-      profile = cudaq::config::UncheckedProfile{};
-  });
+  cudaq::config::Profile profile = toCanonicalProfile(stage.irOutputProfile);
   cudaq::config::CustomPipelineLowering lowering;
   stage.lowering.customPipeline.visit([&](const auto &pipelines) {
     using T = std::decay_t<decltype(pipelines)>;

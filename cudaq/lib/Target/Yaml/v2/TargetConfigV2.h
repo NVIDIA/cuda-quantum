@@ -15,6 +15,7 @@
 // IR profiles.
 
 #include "Yaml/v1/TargetConfigV1.h"
+#include "cudaq/Target/Profile/QuakeReferenceSemanticsProfile.h"
 #include <optional>
 #include <string>
 #include <vector>
@@ -58,11 +59,26 @@ struct BackendFeatureMapV2 {
 
 /// (Dummy) IR profile that accepts any IR.
 struct UncheckedProfileV2 {
-  using Tag = rfl::Literal<"unchecked">;
+  using Tag = rfl::Literal<UncheckedProfile::name>;
+};
+
+/// IR profile for reference-semantics Quake IR.
+struct QuakeReferenceSemanticsProfileV2 {
+  using Tag = rfl::Literal<"quake-reference-semantics">;
+
+  /// Valid options.
+  struct QuakeReferenceSemanticsProfileOptionsV2 {
+    rfl::DefaultVal<std::vector<std::string>> basisGates;
+    rfl::DefaultVal<MeasurementForm> measurementType = MeasurementForm::any;
+    rfl::DefaultVal<bool> resetAfterMeasure = false;
+  };
+
+  rfl::DefaultVal<QuakeReferenceSemanticsProfileOptionsV2> options;
 };
 
 /// Union of all supported IR profiles, selected by its `name`.
-using IrOutputProfileV2 = rfl::TaggedUnion<"name", UncheckedProfileV2>;
+using IrOutputProfileV2 = rfl::TaggedUnion<"name", UncheckedProfileV2,
+                                           QuakeReferenceSemanticsProfileV2>;
 
 /// Staged pipelines inserted at the appropriate compilation stages.
 struct StagedPipelinesV2 {

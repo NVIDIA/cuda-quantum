@@ -16,8 +16,8 @@
 #include <filesystem>
 #include <iostream>
 #include <map>
-#include <optional>
 #include <string>
+#include <variant>
 #include <vector>
 
 using namespace cudaq::config;
@@ -41,6 +41,10 @@ std::string escaped(const std::string &value) {
 }
 
 std::string boolStr(bool value) { return value ? "true" : "false"; }
+
+std::string measurementFormName(MeasurementForm form) {
+  return form == MeasurementForm::single_qubit ? "single-qubit" : "any";
+}
 
 std::string argTypeName(ArgumentType type) {
   static const char *names[] = {"string", "integer", "uuid", "option-flags",
@@ -70,6 +74,38 @@ void printList(const char *indent, const char *key,
     std::cout << indent << key << ": " << listStr(values) << "\n";
 }
 
+void printLowering(const char *indent, const CustomPipelineLowering &lowering) {
+  printField(indent, "jit-high-level-pipeline", lowering.highLevelPipeline);
+  printField(indent, "jit-mid-level-pipeline", lowering.midLevelPipeline);
+  printField(indent, "jit-low-level-pipeline", lowering.lowLevelPipeline);
+  printField(indent, "target-pass-pipeline", lowering.overridePassPipeline);
+}
+
+// Profile options print under the stage, mirroring `printLowering` below.
+void printProfileOptions(const char *, const UncheckedProfile &) {}
+void printProfileOptions(const char *indent,
+                         const QuakeReferenceSemanticsProfile &profile) {
+  printList(indent, "basis-gates", profile.basisGates);
+  std::cout << indent << "measurement-type: "
+            << measurementFormName(profile.measurementType) << "\n"
+            << indent
+            << "reset-after-measure: " << boolStr(profile.resetAfterMeasure)
+            << "\n";
+}
+
+void printProfile(const CompilationStage &stage, const char *indent) {
+  /// Get `::name` from a variant by delegating to inner variant `::name` field.
+  const auto name = [](const auto &variant) {
+    auto inner = [](const auto &v) -> const char * { return v.name; };
+    return std::visit(inner, variant);
+  };
+  std::cout << indent << "ir-output-profile=" << name(stage.irOutputProfile)
+            << "\n";
+  const std::string nested = std::string(indent) + "  ";
+  std::visit([&](const auto &p) { printProfileOptions(nested.c_str(), p); },
+             stage.irOutputProfile);
+}
+
 void printBackend(const BackendEndConfigEntry &backend, const char *indent) {
   std::cout << indent
             << "gen-target-backend: " << boolStr(backend.GenTargetBackend)
@@ -83,10 +119,8 @@ void printBackend(const BackendEndConfigEntry &backend, const char *indent) {
     pipelines = backend.CompileTarget.getCustomPipelineLowering();
   // A backend without compilation stages has no pipeline fields to print.
   if (pipelines) {
-    printField(indent, "jit-high-level-pipeline", pipelines->highLevelPipeline);
-    printField(indent, "jit-mid-level-pipeline", pipelines->midLevelPipeline);
-    printField(indent, "jit-low-level-pipeline", pipelines->lowLevelPipeline);
-    printField(indent, "target-pass-pipeline", pipelines->overridePassPipeline);
+    printLowering(indent, *pipelines);
+    printProfile(backend.CompileTarget.stages[0], indent);
   }
   printField(indent, "codegen-emission",
              backend.CompileTarget.codegen.emissionFormat);
