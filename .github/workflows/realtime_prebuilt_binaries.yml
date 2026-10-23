@@ -62,10 +62,9 @@ jobs:
         ports:
           - 5000:5000
     steps:
+    # realtime/ uses no submodules.
     - name: Checkout repository
       uses: actions/checkout@v6
-      with:
-        submodules: true
 
     - name: Log in to DockerHub
       uses: docker/login-action@v4
