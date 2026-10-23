@@ -804,6 +804,61 @@ class UnplacedBuilder:
         )
         return [self._new_qubit(result) for result in op.results]
 
+    def u3(self, value, theta, phi, lam, *, precision=None):
+        from cudaq.logical.compiler.gate_sets import _validate_precision
+
+        i64 = mlir_ir.IntegerType.get_signless(64, context=self.context)
+        parameters = {}
+        if precision is not None:
+            with self.location:
+                parameters["precision"] = mlir_ir.FloatAttr.get(
+                    mlir_ir.F64Type.get(context=self.context),
+                    _validate_precision(precision))
+        angles = []
+        for name, angle in zip(("theta", "phi", "lambda"), (theta, phi, lam)):
+            if isinstance(angle, Float64Value):
+                if angle.owner is not self:
+                    raise TypeError(
+                        "u3 angles must belong to the active P0 trace")
+                angles.append(angle.mlir_value)
+                continue
+            if isinstance(angle, Angle):
+                numer, denom = angle.pi_fraction
+                angle = Angle(numer % (2 * denom), denom)
+                numer, denom = angle.pi_fraction
+                if max(numer, denom) > (1 << 63) - 1:
+                    raise ValueError(
+                        "canonical u3 coefficient does not fit QLX i64 metadata"
+                    )
+                parameters[f"{name}_pi_numer"] = mlir_ir.IntegerAttr.get(
+                    i64, numer)
+                parameters[f"{name}_pi_denom"] = mlir_ir.IntegerAttr.get(
+                    i64, denom)
+                angle = float(angle)
+            else:
+                if (not isinstance(angle,
+                                   (int, float)) or isinstance(angle, bool) or
+                        not math.isfinite(float(angle))):
+                    raise TypeError(
+                        "u3 angles must be finite numbers, Angle, or Float64Value"
+                    )
+                # The exact binary f64 is the numerical target. Reducing it
+                # with a rounded math.tau would spend an uncounted error budget.
+                angle = float(angle)
+            angles.append(self._constant_f64(angle))
+        qubit, = self._consume_qubits((value,), "qlx.u3")
+        op = self._emit("qlx.apply",
+                        operands=(qubit.mlir_value, *angles),
+                        results=(self.logical_type,),
+                        attributes={
+                            "action":
+                                _builtin_action(self.context, "u3"),
+                            "parameters":
+                                mlir_ir.DictAttr.get(parameters,
+                                                     context=self.context),
+                        })
+        return self._new_qubit(op.result)
+
     def mpp(self, product: PauliProduct):
         operands, parameters = self._pauli_parameters(product)
         values = self._consume_qubits(operands, "qlx.mpp")

@@ -20,6 +20,7 @@ _SYNTHESIS_ACTIONS = frozenset({
     "qlx_standard_tdg",
     "qlx_standard_ccz",
     "qlx_standard_ccx",
+    "qlx_standard_u3",
 })
 
 _STANDARD_PREFIX = "qlx_standard_"

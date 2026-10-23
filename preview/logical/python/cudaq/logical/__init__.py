@@ -64,7 +64,7 @@ from .ops import (  # noqa: E402
     extract_syndrome, h, idle, measure, measure_x, measure_z, mpp, mz,
     pack_resource, postselect, prepare, prepare_plus, prepare_zero, produce,
     request, request_many, reset, resource_rotate, rx, ry, rz, s, sdg, t, tdg,
-    unpack_resource, x, xor, y, z,
+    u3, unpack_resource, x, xor, y, z,
 )
 from .algorithms.reversible import MCXPolicy, ccx, cswap, mcx  # noqa: E402
 
@@ -134,6 +134,7 @@ __all__ = [
     "rx",
     "ry",
     "rz",
+    "u3",
     "cx",
     "cz",
     "ccz",
