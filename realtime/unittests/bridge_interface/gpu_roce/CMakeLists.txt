@@ -104,7 +104,9 @@ if (TARGET cudaq-realtime-bridge-gpu-roce AND
   add_dependencies(test_gpu_roce_two_process
     cudaq-realtime-test-server cudaq-realtime-bridge-gpu-roce)
 
-  cudaq_gtest_discover_tests(test_gpu_roce_two_process DISCOVERY_TIMEOUT 120)
+  # Each case takes seconds. A hung case must not wait for the 1500 s default.
+  cudaq_gtest_discover_tests(test_gpu_roce_two_process DISCOVERY_TIMEOUT 120
+    PROPERTIES TIMEOUT 120)
   message(STATUS
     "  - test_gpu_roce_two_process (gpu_roce DEVICE dispatch, two processes)")
 endif()

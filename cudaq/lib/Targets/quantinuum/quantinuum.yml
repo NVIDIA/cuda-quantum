@@ -6,7 +6,7 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-version: 1
+version: 2
 name: quantinuum
 description: "CUDA-Q target for Quantinuum."
 config:
@@ -22,12 +22,17 @@ config:
   # nvq++ links it in; on the JIT/Python path nothing links it, so it must
   # be dlopen'd before `platform-qpu` can be found in the QPU registry.
   plugin-libraries: ["libcudaq-rest-qpu"]
-  # Define the JIT lowering pipeline
-  jit-high-level-pipeline: "expand-measurements"
-  jit-mid-level-pipeline: "quantinuum-gate-set-mapping"
-  jit-low-level-pipeline: "func.func(combine-quantum-alloc,qubit-reset-before-reuse)"
+
+compile-target:
+  stages:
+    - ir-output-profile:
+        name: quake-reference-semantics
+        options:
+          basis-gates: ["h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)"]
+          measurement-type: single-qubit
+          reset-after-measure: true
   # Tell the rest-qpu that we are generating Adaptive QIR.
-  codegen-emission: qir-adaptive:0.1:int_computations
+  codegen: qir-adaptive:0.1:int_computations
 
 target-arguments:
   - key: url

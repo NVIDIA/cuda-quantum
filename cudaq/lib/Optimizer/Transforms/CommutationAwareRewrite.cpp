@@ -21,11 +21,11 @@ using namespace mlir;
 
 namespace {
 
-/// One cursor per frontier lane in the anchor's ordered scalar-wire support.
+/// One cursor per frontier lane in the anchor's ordered wire support.
 /// `value` is the result consumed by `downstream`, and `previous` is its
 /// defining operation.
 ///
-/// Each cursor follows one scalar-wire use-def chain. The frontier never grows
+/// Each cursor follows one wire use-def chain. The frontier never grows
 /// because only the anchor's input lanes participate.
 struct WireCursor {
   Value value;
@@ -35,7 +35,7 @@ struct WireCursor {
 
 } // namespace
 
-static Value mapWireBackward(const cudaq::quake::detail::ScalarWireFlow &flow,
+static Value mapWireBackward(const cudaq::quake::detail::WireFlow &flow,
                              Value value) {
   for (auto [input, result] : llvm::zip(flow.inputs, flow.results))
     if (result == value)
@@ -45,8 +45,7 @@ static Value mapWireBackward(const cudaq::quake::detail::ScalarWireFlow &flow,
 
 // Open one cursor per frontier lane in the anchor's ordered support.
 static llvm::SmallVector<WireCursor>
-openFrontier(Operation *anchor,
-             const cudaq::quake::detail::ScalarWireFlow &flow) {
+openFrontier(Operation *anchor, const cudaq::quake::detail::WireFlow &flow) {
   llvm::SmallVector<WireCursor> frontier;
   for (Value wire : flow.inputs)
     frontier.push_back({wire, wire.getDefiningOp(), anchor});
@@ -101,7 +100,7 @@ enum class DirectWireThreading { NotDirect, Exact, Mismatch };
 // A unary operation cannot repeat a qubit in another operand role. Multi-wire
 // operations need identity normalization to establish that precondition.
 static bool
-requiresDistinctQubitProof(const cudaq::quake::detail::ScalarWireFlow &flow) {
+requiresDistinctQubitProof(const cudaq::quake::detail::WireFlow &flow) {
   return flow.inputs.size() > 1;
 }
 
@@ -118,13 +117,13 @@ static DirectWireThreading classifyDirectWireThreading(Operation *lhs,
                                                        Operation *rhs) {
   auto lhsInterface = dyn_cast<cudaq::quake::OperatorInterface>(lhs);
   auto rhsInterface = dyn_cast<cudaq::quake::OperatorInterface>(rhs);
-  auto lhsFlow = cudaq::quake::detail::getScalarWireFlow(lhs);
-  auto rhsFlow = cudaq::quake::detail::getScalarWireFlow(rhs);
+  auto lhsFlow = cudaq::quake::detail::getWireFlow(lhs);
+  auto rhsFlow = cudaq::quake::detail::getWireFlow(rhs);
   if (!lhsInterface || !rhsInterface || !lhsFlow || !rhsFlow)
     return DirectWireThreading::NotDirect;
 
-  auto feeds = [](const cudaq::quake::detail::ScalarWireFlow &producerFlow,
-                  const cudaq::quake::detail::ScalarWireFlow &consumerFlow,
+  auto feeds = [](const cudaq::quake::detail::WireFlow &producerFlow,
+                  const cudaq::quake::detail::WireFlow &consumerFlow,
                   Operation *consumer) {
     return hasSameOrderedWireTypes(producerFlow.results, consumerFlow.inputs) &&
            llvm::all_of(producerFlow.results, [consumer](Value result) {
@@ -164,10 +163,9 @@ static DirectWireThreading classifyDirectWireThreading(Operation *lhs,
 
 // An operation shared by several frontier lanes advances those lanes together
 // and is visited once.
-static void
-stepFrontierBackward(llvm::SmallVectorImpl<WireCursor> &frontier,
-                     Operation *candidate,
-                     const cudaq::quake::detail::ScalarWireFlow &flow) {
+static void stepFrontierBackward(llvm::SmallVectorImpl<WireCursor> &frontier,
+                                 Operation *candidate,
+                                 const cudaq::quake::detail::WireFlow &flow) {
   for (WireCursor &cursor : frontier) {
     if (cursor.previous != candidate)
       continue;
@@ -423,7 +421,7 @@ Operation *cudaq::opt::CommutationAwareRewriteMatcher::find_nearest(
   if (!anchor || !anchor->getBlock())
     return nullptr;
   auto anchorInterface = dyn_cast<cudaq::quake::OperatorInterface>(anchor);
-  auto anchorFlow = cudaq::quake::detail::getScalarWireFlow(anchor);
+  auto anchorFlow = cudaq::quake::detail::getWireFlow(anchor);
   if (!anchorInterface || !anchorFlow)
     return nullptr;
 
@@ -468,7 +466,7 @@ Operation *cudaq::opt::CommutationAwareRewriteMatcher::find_nearest(
       return canCrossScope(candidate);
     }
 
-    auto candidateFlow = cudaq::quake::detail::getScalarWireFlow(candidate);
+    auto candidateFlow = cudaq::quake::detail::getWireFlow(candidate);
     if (!isFrontierHead && !candidateFlow) {
       if (canCrossIdentityBoundary(candidate) ||
           requireAnalysis().canCommute(anchor, candidate))
@@ -493,7 +491,7 @@ Operation *cudaq::opt::CommutationAwareRewriteMatcher::find_nearest(
     }
 
     // Every frontier head the consumer declines and every other crossed
-    // scalar-wire operation requires a commutation proof.
+    // wire operation requires a commutation proof.
     auto &blockAnalysis = requireAnalysis();
     if (!isFrontierHead &&
         blockAnalysis.hasDisjointQuantumSupport(anchor, candidateFlow->inputs))
@@ -537,7 +535,7 @@ bool cudaq::opt::CommutationAwareRewriteMatcher::has_distinct_quantum_operands(
   if (!operation || !operation->getBlock() ||
       !isa<cudaq::quake::OperatorInterface>(operation))
     return false;
-  auto flow = cudaq::quake::detail::getScalarWireFlow(operation);
+  auto flow = cudaq::quake::detail::getWireFlow(operation);
   if (!flow)
     return false;
   return !requiresDistinctQubitProof(*flow) ||

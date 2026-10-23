@@ -85,11 +85,11 @@ int main() {
     // Extract and print results
     for (size_t i = 0; i < steps.size(); i++) {
       double ex =
-          evolution_result.expectation_values.value()[0][i].expectation();
+          evolution_result.expectation_values.value()[i][0].expectation();
       double ey =
-          evolution_result.expectation_values.value()[1][i].expectation();
+          evolution_result.expectation_values.value()[i][1].expectation();
       double ez =
-          evolution_result.expectation_values.value()[2][i].expectation();
+          evolution_result.expectation_values.value()[i][2].expectation();
       std::cout << steps[i] << " " << ex << " " << ey << " " << ez << "\n";
     }
     // [End Print]
