@@ -10,7 +10,7 @@ matrix:
   sources:
   # Exclude third-party code (tpls/), build artifacts, and signed skill bundles
   # (skills/ content is fixed by skill.oms.sig and must not be modified).
-  - '**/*.md|!tpls/**/*.md|!_skbuild/**/*.md|!build/**/*.md|!build_*/**/*.md|!**/build/**/*.md|!skills/**/*.md'
+  - '**/*.md|!tpls/**/*.md|!_skbuild/**/*.md|!build/**/*.md|!build_*/**/*.md|!**/build/**/*.md|!**/_build/**/*.md|!skills/**/*.md'
   glob_flags: N|G|B
   expect_match: false
   aspell:
@@ -20,6 +20,13 @@ matrix:
     wordlists:
     - .github/pre-commit/spelling_allowlist.txt
   pipeline:
+  - pyspelling.filters.context:
+      context_visible_first: true
+      delimiters:
+      # Ignore MyST literalinclude directives before Markdown parsing, since
+      # their path arguments are not recognized by SuperFences.
+      - open: '(?s)^[ \t]*(?P<literalinclude_fence>`{3,}|~{3,})\{literalinclude\}[^\n]*\n'
+        close: '^[ \t]*(?P=literalinclude_fence)[ \t]*$'
   - pyspelling.filters.markdown:
       markdown_extensions:
       - pymdownx.superfences:
@@ -113,7 +120,7 @@ matrix:
 - name: html
   sources:
   # Exclude third-party code, build artifacts, and auto-generated templates
-  - '**/*.html|!tpls/**/*.html|!_skbuild/**/*.html|!build/**/*.html|!build_*/**/*.html|!**/build/**/*.html|!docs/sphinx/_templates/**/*.html'
+  - '**/*.html|!tpls/**/*.html|!_skbuild/**/*.html|!build/**/*.html|!build_*/**/*.html|!**/build/**/*.html|!**/_build/**/*.html|!docs/sphinx/_templates/**/*.html'
   glob_flags: N|G|B
   expect_match: true
   aspell:

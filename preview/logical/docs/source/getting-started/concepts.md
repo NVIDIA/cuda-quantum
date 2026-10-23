@@ -1,239 +1,232 @@
 # Core concepts
 
-Everything in CUDA-Q Logical follows from a small set of ideas. Learn these
-eight, and the rest of the system becomes predictable.
+A logical program describes a quantum computation. A quantum error-correction
+(QEC) code specifies how its logical qubits are protected using physical qubits.
+Gadgets implement logical operations on those encoded qubits, and a device
+describes the available resources and their capabilities. CUDA-Q Logical
+compiles these inputs into builds and estimates resources from those builds.
 
-The package is `cudaq.logical`, which this documentation names in full when it
-refers to a symbol. Code examples import it under the conventional short alias
-and use that instead:
+For a runnable introduction to this workflow, see the
+[Bell-pair walkthrough](cudaq-logical-in-practice.md). Examples use
+`import cudaq.logical as cql`.
 
-```python
-import cudaq.logical as cql
+## Logical programs and quantum values
+
+A **logical program** specifies operations on logical qubits independently of
+a QEC code or device. Logical qubits represent the computation's quantum
+information; a QEC implementation protects it using physical qubits.
+Operations include unitary **actions**, such as Hadamard and controlled-X,
+and **instruments**, such as preparation and measurement.
+Measurements produce classical results; the Bell program returns two Boolean
+Z-basis outcomes. You can author the workload as a CUDA-Q kernel or directly
+with `@cql.program`.
+
+Quantum values have **linear ownership**: each live qubit has one current value.
+A gate consumes its input values and returns their successors. Reassigning the
+results keeps the program's references current:
+
+```{literalinclude} ../../../examples/steane_bell_e2e_workflow.py
+:language: python
+:start-at:     qubits = cql.allocate
+:end-at:     return cql.measure_z
+:dedent: 4
 ```
 
-## 1. Four stages, one direction
+`allocate` creates two logical qubits in the zero state. The gates return
+successors, and the terminal `measure_z` calls consume the qubits. Reusing a
+consumed value is invalid. Encoded patches follow the same ownership rule.
 
-Executable intent is refined through exactly four semantic stages
-(`cudaq.logical.stages.Stage`):
+## Definitions, builds, and compilation
 
-| Stage                    | Question it answers                                              | Primary IR family |
-| ------------------------ | ---------------------------------------------------------------- | ----------------- |
-| **P0** unplaced logical  | What logical computation is requested?                           | `qlx`             |
-| **P1** placed logical    | Where may each logical owner reside on a logical machine?        | `lvm`             |
-| **P2** QEC realization   | Which code, gadgets, and protocols realize it, and at what cost? | `fabric`          |
-| **P3** physical schedule | Which carriers and timed events physically realize it?           | `phys`            |
+A **definition** is a reusable description authored in Python, such as the
+`bell` program, `Steane` code, or `steane_h` gadget. A **build** is a compiled
+artifact containing the program or definition and the realization choices made
+so far.
 
-A later stage only adds realization facts — it never silently reinterprets the
-logical behavior you asked for. Every stage root is verified and immutable, so
-when a lowering fails you fall back to the retained earlier root instead of
-repairing in place. `cudaq.logical.compile` produces the P0 root of a
-`@cudaq.logical.program`, `cudaq.logical.compiler.place` refines it to a
-code-agnostic P1 placement, and selecting codes, gadgets, and protocols produces
-P2. Physical lowering and scheduling produce P3. Emitting Stim text consumes a
-P2 build; it is an interchange product, not a stage.
+`cql.materialize(Steane)` creates a compiler representation of the code for
+inspection. `cql.compile(bell)` compiles the logical program into a P0 build.
+A **pipeline** specifies compiler steps: `cql.compiler.pipelines.qec()` selects
+encoded implementations; `cql.compiler.pipelines.physical()` maps them to
+physical resources and events.
 
-## 2. Facets, not extra stages
+Compilation adds information through four **stages**:
 
-QEC specifications, gadget realizations, protocol networks, and patch graphs are
-**facets** (`cudaq.logical.stages.Facet`). A facet is an independently verified
-fact attached to an immutable stage root, not another point in the P0–P3
-lowering order. Physical lowering and scheduling attach their own facets the
-same way. Several facets can coexist on one root without recompiling the
-program. Every pipeline pass declares the facets it requires, provides, and
-invalidates; a facet survives a pass unless that pass explicitly invalidates or
-recomputes it. A compiled gadget build, for example, is a P2 root carrying
-exactly `QEC_SPEC` and `QEC_REALIZATION` — see `build.facets` in concept 5.
+| Stage | Information added |
+| --- | --- |
+| **P0: logical program** | Logical operations, values, and measurement results. |
+| **P1: logical placement** | Assignments of logical values to logical machine regions and slots. |
+| **P2: QEC realization** | Selected codes, encodings, and operation implementations. |
+| **P3: physical events** | Physical allocations, native operations, and dependencies; scheduling adds event times. |
 
-## 3. Linear ownership
+Builds are immutable: continuing compilation produces a new build and retains
+the earlier one for inspection or estimation.
 
-Quantum values are _linear_: each value has one live owner, and every operation
-consumes that owner and produces its successor.
+See the [architecture reference](../reference/architecture.md) for compiler
+representations, pipeline details, and build inspection APIs.
 
-```python
-import cudaq.logical as cql
+## Clifford+T decomposition
 
-@cql.program
-def ownership() -> tuple[bool, bool]:
-    q = cql.allocate(1, state=cql.types.zero)
-    q[0] = cql.h(q[0])                    # consume q[0], produce its successor
-    q[0], z = cql.mpp(cql.types.Z(q[0]))  # nondestructive: the owner survives
-    return z, cql.measure_z(q[0])         # destructive: q[0] is gone
+**Clifford+T decomposition**, also called **synthesis**, rewrites logical gates
+as sequences of Hadamard (`H`), phase (`S`), controlled-X (`CX`), and `T` gates.
+`H`, `S`, and `CX` are Clifford gates; `T` is a non-Clifford phase gate with an
+angle of π/4. Expressing a workload in this gate set exposes its T-gate demand
+before choosing a QEC implementation.
+
+Some operations have exact decompositions; general rotations require
+approximation. The synthesis `precision` sets an error bound for each
+approximated rotation. A smaller bound usually requires more T gates, so the
+chosen precision affects resource counts. Synthesis produces a new P0 build
+without selecting a code or device; placement and QEC compilation can follow.
+
+For direct logical programs, use `cql.compiler.synthesize` with
+`gate_set=cql.compiler.gate_sets.clifford_t`. For CUDA-Q kernels,
+`cql.targets.clifford_t` provides an estimation target;
+`cql.targets.clifford_t_target(precision=...)` sets a custom approximation bound.
+A device target can include the same step with
+`Target.from_device(..., clifford_t_precision=...)`.
+
+This step is optional. The Bell-pair walkthrough uses only `H` and `CX`, so
+it needs no rotation synthesis.
+
+See [Logical Clifford+T synthesis](../use-cases/logical-synthesis.md) for
+precision semantics and supported operations, and the
+[Clifford+T example](../use-cases/examples/clifford-t.md) for resource estimates
+at different precisions.
+
+## Codes and operation implementations
+
+A **QEC code** defines how logical information is protected. The notation
+`[[n,k,d]]` describes `k` logical qubits encoded in `n` data qubits with
+distance `d`: the minimum number of data qubits affected by an undetectable
+nontrivial logical Pauli error.
+
+A **CSS code** defines separate X and Z stabilizer checks: products of X or Z
+Pauli operators on selected data qubits. The checks commute and define the
+allowed encoded states. Their measurements give a
+**syndrome**, information about errors without revealing the logical state.
+Steane's `hx` and `hz` list each check's data-qubit indices; `lx` and `lz`
+specify logical X and Z operators. `@cql.code` checks the algebraic structure;
+`d = 3` separately declares the distance.
+
+A code's data width differs from its complete **block** footprint.
+`CSSBlock(data=7, sx=3, sz=3)` reserves seven data qubits and six check
+ancillas, auxiliary qubits for check measurements. The walkthrough's Steane
+block therefore has 13 physical qubits.
+
+An **encoding** defines the interface to a code's logical qubits.
+`Steane.default_encoding` supplies it automatically. A **patch** is one live
+encoded block; `cql.patch[Steane]` uses the default encoding, and `block.data`
+selects its data qubits.
+
+An **objective** states ideal logical behavior. A **gadget** implements that
+behavior on encoded patches, with `implements=` identifying the objective:
+
+```{literalinclude} ../../../examples/steane_bell_e2e_workflow.py
+:language: python
+:start-at: @cql.gadget(implements=cql.standard.h)
+:end-at:     return cql.h(block.data)
 ```
 
-Rebinding — `q[0] = cudaq.logical.h(q[0])` — is how you write that contract.
-Using a consumed value raises `cudaq.logical.errors.UseAfterConsume` at trace
-time. The canonical IR checks the same contract independently: every linear SSA
-value must have exactly one owner along every execution path. Double
-consumption, use-after-measure, and leaks are typed failures, not runtime
-surprises.
+Here, `cql.standard.h` is the ideal logical Hadamard. The body applies Hadamard
+to each Steane data qubit, a **transversal** implementation. Construction and
+compilation check code algebra and gadget boundaries; logical-action
+verification depends on the supported realization class.
 
-## 4. Codes, profiles, encodings — three different things
+A **QEC architecture** assembles an encoding and its available implementations.
+`QECArchitecture.link_roots` supplies the Bell program's preparation, gate,
+and measurement gadgets. QEC compilation selects compatible implementations
+for the placed program.
 
-- A **`Code`** is validated algebra: a physical width `n`, a logical width `k`,
-  and independent stabilizer and logical-operator bases, all checked at
-  construction. Distance is _evidence_, held as a
-  `cudaq.logical.codes.Distance`: a bare integer normalizes to `claimed` — a
-  recorded assertion, never a proof — while the evidence-bearing constructors
-  (`exact`, `lower_bound`, `upper_bound`, `circuit`) require a method and
-  provenance.
-- A **`CodeProfile`** is an analysis convention over one code: effective
-  syndrome generators, meta-checks, and derived boundary maps. Change the
-  convention and you get a new profile, not a new code.
-- An **`Encoding`** is a reusable logical view: named logical ports, a block ABI
-  name, and layout facts. Preparation and conversion are _gadgets_ — an encoding
-  never executes circuits.
+See [Defining codes](../use-cases/define-a-code.md) and
+[Gadgets and verification](../use-cases/gadgets-and-verification.md) for custom
+interfaces and verification details.
 
-Every code synthesizes a default profile and encoding, so you write your own
-only when you need a genuinely different view. The catalog
-(`cudaq.logical.codes`) ships `Steane`, `Repetition`,
-`rotated_surface(distance)`, `ReedMuller15`, and `BareQubit`:
+## Devices and placement
 
-```python
-import cudaq.logical as cql
+A **logical machine** describes where logical state can reside and which
+operations are supported. A **region** is a pool of logical capacity with
+capabilities such as computation or measurement. A **slot** holds one logical
+qubit. For example, the Bell device's compute region has two slots.
 
-steane = cql.codes.Steane                      # the [[7,1,3]] CSS code
-assert (steane.n, steane.k) == (7, 1)
-assert (steane.d.value, steane.d.status) == (3, "claimed")
-```
+A **physical machine** describes resources, connectivity, native operations,
+and timing assumptions. A **carrier** is a physical qubit resource. Native
+operations are those implemented directly. The Bell device includes Hadamard
+and controlled-X in its Clifford gate set, Z measurements (`MZ`), and
+measurements of Pauli-operator products (`MPP`).
 
-The two structures most worth keeping apart, side by side:
+A **device** connects these descriptions. `DeviceBuilder` creates logical
+regions, `qec.bind` associates them with QEC architectures or encodings, and
+`physical.bind` associates encoded regions with physical resources.
+`builder.build()` freezes the device description. The Bell device binds two
+logical slots to Steane blocks and provides 26 physical carriers.
 
-| Structure  | Holds                                                                                                                                                                  |
-| ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Code`     | physical width `n`, logical width `k`, `Distance` evidence, independent stabilizers, logical X/Z pairs; CSS constructors are adapters into the same normalized algebra |
-| `Encoding` | the protected `code`, a selected `profile`, a `name`, the `block` ABI name, ordered `logical_ports`, and layout facts; sealed after validation                         |
+**Placement** assigns a particular program's logical values to the machine's
+regions and slots. `cql.compiler.place` records these assignments in a P1
+build. The constraint `colocate(logical.values.data)` keeps the named
+allocation in one region, with a distinct slot for each qubit. Code and gadget
+selection follows at P2.
 
-## 5. Objectives, gadgets, protocols — claims and proofs
+Devices are reusable; workload-specific choices belong to builds.
+**Retargeting** keeps the logical workload fixed while changing the device or
+QEC architecture, producing a new realization for comparison.
 
-A **gadget** is a realization — a typed circuit over encoded patches — plus a
-claim: `implements=<objective>`. That claim is checked. The compiler derives the
-gadget's signed symplectic action, matches it against the objective's Clifford
-action, and records the equivalence evidence — or fails with a typed diagnostic:
+See [Devices and placement](../use-cases/devices-and-placement.md) for other
+regions, constraints, and physical bindings.
 
-```python
-import cudaq.logical as cql
+## Schedules and resource estimates
 
-@cql.objective
-def terminal_memory(q: cql.types.logical_qubit) -> None:
-    cql.discard(q)
+Physical compilation produces an **event graph**: physical operations and
+their dependencies. A **schedule** assigns start times and durations while
+respecting dependencies and resource conflicts. `cql.compiler.schedule`
+constructs the schedule from the P3 build.
 
-@cql.gadget(implements=terminal_memory)
-def steane_memory(block: cql.patch[cql.codes.Steane]) -> None:
-    block, _ = cql.extract_syndrome(block)
-    block, _ = cql.mz(block.data)
-    cql.discard(block)
+A device's **operating point** supplies model assumptions such as timing and
+physical error rates. The walkthrough uses an illustrative `cycle_ns = 1.0`.
+Its estimate options specify `cycle_time` in seconds, `p_phys` as the
+physical-error probability used by the estimation model, and `failure_budget`
+as the acceptable total failure probability for the study.
 
-build = cql.compile(steane_memory)
-assert build.stage == cql.stages.P2
-assert build.facets == (cql.stages.Facet.QEC_SPEC, cql.stages.Facet.QEC_REALIZATION)
-```
+`cql.estimate` analyzes a build or schedule. The **tier** selects which
+quantities to report and which inputs are required:
 
-When several operand-to-port embeddings verify, the compiler refuses to pick one
-silently and raises `cudaq.logical.errors.AmbiguousLogicalPortMap`. An explicit
-`logical_ports=` mapping is a constraint the verifier checks, never evidence it
-trusts.
+| Tier | Required input | Reports |
+| --- | --- | --- |
+| LOGICAL | P0 program | Logical-qubit peak and action/instrument counts. |
+| **STATIC** | Selected P2 realization | Encoded-patch peak and gadget/operation counts. |
+| **ANALYTICAL** | Selected P2 realization and physical-model assumptions | Modeled physical cost, error, acceptance, and runtime. |
+| **SCHEDULE** | Scheduled P3 graph | Physical resources, events, runtime, and utilization. |
 
-A **protocol** composes gadget calls with operational policy. The shipped
-15-to-1 distillation in `examples/standalone/03_magic_state_distillation.py`
-exercises typed resource requests and postselection. Protocols may also use
-bounded retry with explicit commit points; retry policy is normalized at
-construction into immutable, type-checked structures:
+A **peak** counts the greatest number of resources simultaneously live.
+**Makespan** is the elapsed time from the first scheduled event's start to the
+last event's completion. Logical actions, gadget calls, and physical events
+count work at different stages; their counts need not match.
 
-| Type          | Fields                                                                                                                     |
-| ------------- | -------------------------------------------------------------------------------------------------------------------------- |
-| `RetryPolicy` | positive `max_attempts`; a `RetryExhaustion` — `REPORT_FAILURE`, `ABORT`, or `RETURN_LAST`; an optional typed commit point |
-| `CommitPoint` | `before_output(endpoint)` or `before_resource_output()`: the boundary before which an attempt may be replayed safely       |
+The Bell pair therefore has two logical qubits, two encoded patches, and 26
+reserved physical qubits. Its four-nanosecond makespan follows from the teaching
+device's timing model. More physical detail makes dependencies and contention
+visible, while the result still depends on the supplied model assumptions.
 
-## 6. Evidence follows the program
+See [Resource estimation](../use-cases/estimation.md) for analytical models and
+the complete result fields.
 
-Every semantic transition emits evidence records — `pass`, `fail`, or
-`unresolved` — or an explicit declaration that evidence is missing.
-`build.evidence` lists the records, and `build.status` summarizes the build
-(root, stage, facets, and counts by result), as in the gadget build above.
-`build.serialize()` captures the whole build — selected definitions, evidence,
-and all — and `cudaq.logical.compiler.Build.replay` reopens it in a clean
-process with no ambient Python state. The same honesty applies to distances and
-estimates: a `claimed` distance stays a claim, and each estimation tier reports
-exactly which facts it consumed.
+## CUDA-Q integration
 
-## 7. There is no registry — imports are the linker
+A **compilation target** packages a device's compilation workflow and an
+endpoint that consumes the resulting artifacts. `Target.from_device` creates
+that target from the device description, with `cql.targets.estimator` as the
+default endpoint. In the walkthrough, `estimate_options` supplies the
+estimation parameters.
 
-CUDA-Q Logical has no global implementation table, and that is deliberate. A
-registry would make _import order_ part of your program's semantics: two
-sessions that import modules in a different order could select different
-physics, and a serialized build could not say what was visible when it was
-compiled.
+After `cudaq.set_target(target)`, `cudaq.estimate(bell_pair)` compiles the
+CUDA-Q kernel through the configured stages. The result's **annotations**
+contain per-tier resource estimates. Typed views such as `LogicalEstimate`
+and `FabricCounts` expose logical and static fields; the walkthrough reads
+physical schedule results from the `SCHEDULE` annotation.
 
-Instead, discovery is scoped and explicit. Each compilation collects candidates
-from exactly three places:
+Use kernels with CUDA-Q's libraries and infrastructure, or author directly
+with `cudaq.logical` when integrating another frontend. Both routes use the
+same compilation model. Applications can reuse a target for compatible kernels;
+direct compiler calls expose individual builds.
 
-1. definitions bound at module scope in **your program's module**;
-2. definitions bound at module scope in **your device's module**;
-3. definitions exported by a **`cudaq.logical` library submodule you explicitly
-   imported** into one of those modules — the import statement is the link act,
-   and bare `import cudaq.logical` links nothing.
-
-Each compilation derives this candidate set fresh, filters it by objective and
-boundary types, and captures the _selected_ closure into the build:
-`build.source_modules` and `build.definitions` record exactly what was visible
-and what won. Day to day, you feel three consequences:
-
-- a gadget defined in a helper file you never imported is invisible — the
-  failure is a typed "no feasible P2 implementation", not a mystery winner;
-- deleting an import genuinely detaches its implementations;
-- replaying a build needs no ambient Python state at all.
-
-## 8. Global phase is not observable
-
-**CUDA-Q Logical treats states and operators as projective: an overall phase is
-neither observable nor tracked.** The only observables are measurement outcomes,
-and those are invariant under an overall phase. Concretely:
-
-- **Synthesis** targets a projective operator-norm bound
-  (`cudaq.logical.compiler.synthesize(gate_set=..., precision=...)`), so
-  `R_Z(kπ/4) = T^k` holds up to phase.
-- **Rotations are 4π-periodic exactly and 2π-periodic up to phase.**
-  `cudaq.logical.algebra.Angle` keeps angles as exact rational multiples of π,
-  so this stays precise — and the angle you authored is preserved, never
-  auto-reduced:
-
-```python
-import cudaq.logical as cql
-
-assert cql.algebra.Angle(9, 4).pi_fraction == (9, 4)
-assert float(cql.algebra.Angle(9, 4) - cql.algebra.Angle(1, 4)) == float(2 * cql.algebra.pi)
-```
-
-The boundary: dropping global phase is safe for a linear, classically
-conditioned program measured at the end. CUDA-Q Logical's conditionals are
-classical — they condition on measurement outcomes — so no shipped surface needs
-to track phase. Quantum-controlled arbitrary unitaries would change that, and
-they are out of scope.
-
-## Where the pieces live
-
-| You write                                                | You get                                           | Canonical home                      |
-| -------------------------------------------------------- | ------------------------------------------------- | ----------------------------------- |
-| `@cudaq.logical.program`                                 | portable P0 logical program                       | your module                         |
-| `@cudaq.logical.machine`                                 | logical machine for P1 placement                  | `cudaq.logical.architecture`, yours |
-| `@cudaq.logical.code`                                    | validated `Code` + default profile/encoding       | `cudaq.logical.codes`, yours        |
-| `@cudaq.logical.gadget` / `@cudaq.logical.protocol`      | verified realization / composition                | yours, `cudaq.logical.protocols`    |
-| `cudaq.logical.devices.DeviceBuilder`                    | a device layered across P1, P2, and P3            | `cudaq.logical.devices`             |
-| `cudaq.logical.compile` / `cudaq.logical.compiler.place` | immutable, replayable `Build` roots               | `cudaq.logical.compiler`            |
-| `cudaq.logical.compiler.schedule`                        | a verified schedule over a P3 event graph         | `cudaq.logical.compiler`            |
-| `cudaq.logical.estimate(..., tier=...)`                  | logical, static, analytical, or schedule evidence | `cudaq.logical.estimate`            |
-| `cudaq.logical.targets.*`                                | compilation targets that lower a `cudaq.kernel`   | `cudaq.logical.targets`             |
-
-Naming follows PEP 8 throughout — artifact classes are camel case (`Code`,
-`Encoding`), while operations, decorators, and constants are snake_case
-(`@cudaq.logical.machine`, `cudaq.logical.extract_syndrome`). One deliberate
-near-collision to know about: `cudaq.logical.types.X(q)` constructs a Pauli
-factor for products, while `cudaq.logical.x(q)` applies the gate.
-
-## Where to go next
-
-- The [architecture reference](../reference/architecture.md) describes the
-  dialect stack and pipeline presets that realize these concepts.
-- The [use cases](../use-cases/define-a-code.md) put them to work task by task.
-- [Examples](../use-cases/examples/index.md) shows them in runnable, shipped
-  code.
+Follow the [Bell-pair walkthrough](cudaq-logical-in-practice.md) to apply these
+concepts in one runnable example.
