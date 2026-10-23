@@ -275,13 +275,14 @@ def compile(
             )):
                 raise TypeError("logical synthesis does not accept downstream "
                                 "analysis, target, or policy options")
-            gate_set, precision = gate_set_match
+            gate_set, precision, synthesizer = gate_set_match
             from .synthesize import _synthesize
 
             return _synthesize(
                 definition,
                 gate_set=gate_set,
                 precision=precision,
+                synthesizer=synthesizer,
                 parameters=parameters,
                 pipeline=pipeline,
                 experiment=_experiment,
