@@ -1607,6 +1607,9 @@ latest
             -   [Quantum
                 Embeddings](../../api/languages/python_api.html#quantum-embeddings){.reference
                 .internal}
+            -   [Qiskit and OpenQASM
+                Interoperability](../../api/languages/python_api.html#qiskit-and-openqasm-interoperability){.reference
+                .internal}
         -   [Quantum Error
             Correction](../../api/languages/python_api.html#quantum-error-correction){.reference
             .internal}

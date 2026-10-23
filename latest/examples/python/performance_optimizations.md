@@ -1636,6 +1636,9 @@ latest
             -   [Quantum
                 Embeddings](../../api/languages/python_api.html#quantum-embeddings){.reference
                 .internal}
+            -   [Qiskit and OpenQASM
+                Interoperability](../../api/languages/python_api.html#qiskit-and-openqasm-interoperability){.reference
+                .internal}
         -   [Quantum Error
             Correction](../../api/languages/python_api.html#quantum-error-correction){.reference
             .internal}
@@ -2042,14 +2045,14 @@ command line example would look like [`CUDAQ_MGPU_FUSE=4`{.docutils
 .notranslate}]{.pre}` `{.docutils .literal
 .notranslate}[`fp64,mgpu`{.docutils .literal .notranslate}]{.pre}
 
-![0eb098a9eb164a3581cc6a99dda861e1](../../_images/gate-fuse.png)
+![49e4aeac2fac4f20a74dab67b5c0acbe](../../_images/gate-fuse.png)
 
 The importance of gate fusion is system dependent, but can have a large
 influence on the performance of the simulation. See the example below
 for a 24 qubit VQE experiment where changing the fusion level resulted
 in significant performance boosts.
 
-![0e143ed16f6b4a85a163eb789f779bb5](../../_images/gatefusion.png)
+![b0e2f05ef9ae40cda0260e22b308d2b9](../../_images/gatefusion.png)
 :::
 :::
 :::

@@ -1626,6 +1626,9 @@ latest
             -   [Quantum
                 Embeddings](python_api.html#quantum-embeddings){.reference
                 .internal}
+            -   [Qiskit and OpenQASM
+                Interoperability](python_api.html#qiskit-and-openqasm-interoperability){.reference
+                .internal}
         -   [Quantum Error
             Correction](python_api.html#quantum-error-correction){.reference
             .internal}
@@ -10162,8 +10165,9 @@ discriminate a vector of handles.
 
     []{#classcudaq_1_1complex__matrix_1a0bac7616799a0a3ea96ef1881fb5eda5 .target}[[[complex_matrix]{.pre}]{.n}](#_CPPv4N5cudaq14complex_matrixE "cudaq::complex_matrix"){.reference .internal}[ ]{.w}[[[exponential]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq14complex_matrix11exponentialEv "Permalink to this definition"){.headerlink}\
 
-    :   Matrix exponential, uses 20 terms of Taylor Series
-        approximation.
+    :   Matrix exponential, computed with a Pade
+        [`approximant`{.docutils .literal .notranslate}]{.pre} and
+        scaling and squaring.
 
     ```{=html}
     <!-- -->

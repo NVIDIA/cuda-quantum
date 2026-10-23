@@ -946,6 +946,7 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="python_api.html#cudaq-contrib"><code class="docutils literal notranslate"><span class="pre">cudaq.contrib</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#quantum-embeddings">Quantum Embeddings</a></li>
+<li class="toctree-l4"><a class="reference internal" href="python_api.html#qiskit-and-openqasm-interoperability">Qiskit and OpenQASM Interoperability</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="python_api.html#quantum-error-correction">Quantum Error Correction</a><ul>
@@ -6563,7 +6564,7 @@ handles, a vector of <code class="docutils literal notranslate"><span class="pre
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq14complex_matrix11exponentialEv">
 <span class="target" id="classcudaq_1_1complex__matrix_1a0bac7616799a0a3ea96ef1881fb5eda5"></span><a class="reference internal" href="#_CPPv4N5cudaq14complex_matrixE" title="cudaq::complex_matrix"><span class="n"><span class="pre">complex_matrix</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">exponential</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq14complex_matrix11exponentialEv" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Matrix exponential, uses 20 terms of Taylor Series approximation. </p>
+<dd><p>Matrix exponential, computed with a Pade <code class="docutils literal notranslate"><span class="pre">approximant</span></code> and scaling and squaring. </p>
 </dd></dl>
 
 <dl class="cpp function">

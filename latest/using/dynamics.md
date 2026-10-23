@@ -1586,6 +1586,9 @@ latest
             -   [Quantum
                 Embeddings](../api/languages/python_api.html#quantum-embeddings){.reference
                 .internal}
+            -   [Qiskit and OpenQASM
+                Interoperability](../api/languages/python_api.html#qiskit-and-openqasm-interoperability){.reference
+                .internal}
         -   [Quantum Error
             Correction](../api/languages/python_api.html#quantum-error-correction){.reference
             .internal}
@@ -2232,11 +2235,11 @@ C++
         // Extract and print results
         for (size_t i = 0; i < steps.size(); i++) {
           double ex =
-              evolution_result.expectation_values.value()[0][i].expectation();
+              evolution_result.expectation_values.value()[i][0].expectation();
           double ey =
-              evolution_result.expectation_values.value()[1][i].expectation();
+              evolution_result.expectation_values.value()[i][1].expectation();
           double ez =
-              evolution_result.expectation_values.value()[2][i].expectation();
+              evolution_result.expectation_values.value()[i][2].expectation();
           std::cout << steps[i] << " " << ex << " " << ey << " " << ez << "\n";
         }
 :::

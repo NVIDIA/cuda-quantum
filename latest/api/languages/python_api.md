@@ -1624,6 +1624,9 @@ latest
             .notranslate}]{.pre}](#cudaq-contrib){.reference .internal}
             -   [Quantum Embeddings](#quantum-embeddings){.reference
                 .internal}
+            -   [Qiskit and OpenQASM
+                Interoperability](#qiskit-and-openqasm-interoperability){.reference
+                .internal}
         -   [Quantum Error
             Correction](#quantum-error-correction){.reference .internal}
             -   [[`detector()`{.docutils .literal
@@ -3230,6 +3233,37 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     See [`cudaq.contrib.examples`{.docutils .literal
     .notranslate}]{.pre} for complete examples.
+:::
+
+::: {#qiskit-and-openqasm-interoperability .section}
+### Qiskit and OpenQASM Interoperability[¶](#qiskit-and-openqasm-interoperability "Permalink to this heading"){.headerlink}
+
+::: {.admonition .warning}
+Warning
+
+**Deprecated.** [`cudaq.contrib.from_qiskit`{.docutils .literal
+.notranslate}]{.pre} and [`cudaq.contrib.from_qasm`{.docutils .literal
+.notranslate}]{.pre} are deprecated and will be removed in a future
+release. Calling either one now emits a [`DeprecationWarning`{.docutils
+.literal .notranslate}]{.pre}.
+
+Use the standalone
+[cudaq-convert](https://github.com/QuantumRaul/cudaq-convert){.reference
+.external} package instead, which supports OpenQASM 3.0 in addition to
+OpenQASM 2.0 and can convert QASM source strings directly:
+
+::: {.highlight-bash .notranslate}
+::: highlight
+    pip install cudaq-convert
+:::
+:::
+
+::: {.highlight-python .notranslate}
+::: highlight
+    from cudaq_convert import from_qasm, from_qasm_str, from_qiskit
+:::
+:::
+:::
 :::
 :::
 

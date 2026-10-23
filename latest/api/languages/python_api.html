@@ -946,6 +946,7 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#cudaq-contrib"><code class="docutils literal notranslate"><span class="pre">cudaq.contrib</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#quantum-embeddings">Quantum Embeddings</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#qiskit-and-openqasm-interoperability">Qiskit and OpenQASM Interoperability</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#quantum-error-correction">Quantum Error Correction</a><ul>
@@ -1925,6 +1926,24 @@ case-insensitive in builder mode).</p></li>
 <p>See <code class="docutils literal notranslate"><span class="pre">cudaq.contrib.examples</span></code> for complete examples.</p>
 </dd></dl>
 
+</section>
+<section id="qiskit-and-openqasm-interoperability">
+<h3>Qiskit and OpenQASM Interoperability<a class="headerlink" href="#qiskit-and-openqasm-interoperability" title="Permalink to this heading">¶</a></h3>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><strong>Deprecated.</strong> <code class="docutils literal notranslate"><span class="pre">cudaq.contrib.from_qiskit</span></code> and
+<code class="docutils literal notranslate"><span class="pre">cudaq.contrib.from_qasm</span></code> are deprecated and will be removed in a
+future release. Calling either one now emits a <code class="docutils literal notranslate"><span class="pre">DeprecationWarning</span></code>.</p>
+<p>Use the standalone <a class="reference external" href="https://github.com/QuantumRaul/cudaq-convert">cudaq-convert</a>
+package instead, which supports OpenQASM 3.0 in addition to OpenQASM 2.0
+and can convert QASM source strings directly:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>cudaq-convert
+</pre></div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">cudaq_convert</span><span class="w"> </span><span class="kn">import</span> <span class="n">from_qasm</span><span class="p">,</span> <span class="n">from_qasm_str</span><span class="p">,</span> <span class="n">from_qiskit</span>
+</pre></div>
+</div>
+</div>
 </section>
 </section>
 <section id="quantum-error-correction">
