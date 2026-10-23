@@ -12,10 +12,8 @@
 #include "common/cudaq_json.h"
 #include "utils/JsonNanobindAdaptors.h"
 #include <nanobind/stl/map.h>
-#include <nanobind/stl/optional.h>
 #include <nanobind/stl/pair.h>
 #include <nanobind/stl/string.h>
-#include <stdexcept>
 
 using namespace cudaq;
 
@@ -30,44 +28,43 @@ void cudaq::bindEstimateResult(nanobind::module_ &mod) {
       "A data-type containing the results of a call to :func:`cudaq.estimate`.")
       .def(
           "__init__",
-          [](estimate_result *self, std::optional<Resources> resources,
-             const nlohmann::json &annotations,
-             std::optional<InstructionCounts> instructions,
-             std::size_t num_qubits) {
-            if (resources && instructions)
-              throw std::invalid_argument(
-                  "EstimateResult accepts either `resources` or "
-                  "`instructions`, not both.");
-            if (!instructions) {
-              new (self) estimate_result(resources.value_or(Resources{}),
-                                         cudaq_json(annotations));
-              return;
-            }
+          [](estimate_result *self, const Resources &resources,
+             const nlohmann::json &annotations) {
+            new (self) estimate_result(resources, cudaq_json(annotations));
+          },
+          nanobind::arg("resources") = Resources{},
+          nanobind::arg("annotations") = nlohmann::json::object(),
+          R"#(Construct an EstimateResult from a `Resources`.
+
+Args:
+  resources (:class:`Resources`, optional): The gate counts. Defaults to an
+    empty `Resources`.
+  annotations (dict, optional): Metadata dict for anything the fixed
+    `Resources` fields cannot express.)#")
+      .def(
+          "__init__",
+          [](estimate_result *self, const InstructionCounts &instructions,
+             std::size_t num_qubits, const nlohmann::json &annotations) {
             std::vector<estimate_result::InstructionCount> entries;
-            entries.reserve(instructions->size());
-            for (const auto &[key, count] : *instructions)
+            entries.reserve(instructions.size());
+            for (const auto &[key, count] : instructions)
               entries.push_back({key.first, key.second, count});
             new (self)
                 estimate_result(entries, num_qubits, cudaq_json(annotations));
           },
-          nanobind::arg("resources") = nanobind::none(),
+          nanobind::arg("instructions"), nanobind::arg("num_qubits") = 0,
           nanobind::arg("annotations") = nlohmann::json::object(),
-          nanobind::arg("instructions") = nanobind::none(),
-          nanobind::arg("num_qubits") = 0,
-          R"#(Construct an EstimateResult.
+          R"#(Construct an EstimateResult from instruction counts.
 
 Args:
-  resources (:class:`Resources`, optional): The gate counts. Defaults to an
-    empty `Resources`. Mutually exclusive with `instructions`.
-  annotations (dict, optional): Metadata dict for anything the fixed
-    `Resources` fields cannot express.
-  instructions (dict, optional): Maps ``(gate_name, num_controls)`` to the
-    number of occurrences, used to build the `Resources`. The entries are
-    treated as one serial sequence on shared qubits, so `Resources.depth` and
+  instructions (dict): Maps ``(gate_name, num_controls)`` to the number of
+    occurrences, used to build the `Resources`. The entries are treated as one
+    serial sequence on shared qubits, so `Resources.depth` and
     `Resources.t_depth` are upper bounds (the sum over the entries). Use this
     when the producer has no per-qubit dependency information.
-  num_qubits (int, optional): The number of qubits to report when
-    `instructions` is given.)#")
+  num_qubits (int, optional): The number of qubits to report.
+  annotations (dict, optional): Metadata dict for anything the fixed
+    `Resources` fields cannot express.)#")
       .def_prop_ro(
           "resources",
           [](estimate_result &self) -> const Resources & {

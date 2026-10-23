@@ -113,7 +113,7 @@ matrix:
 - name: html
   sources:
   # Exclude third-party code, build artifacts, and auto-generated templates
-  - '**/*.html|!tpls/**/*.html|!_skbuild/**/*.html|!build/**/*.html|!build_*/**/*.html|!**/build/**/*.html|!**/_build/**/*.html|!docs/sphinx/_templates/**/*.html'
+  - '**/*.html|!tpls/**/*.html|!_skbuild/**/*.html|!build/**/*.html|!build_*/**/*.html|!**/build/**/*.html|!docs/sphinx/_templates/**/*.html'
   glob_flags: N|G|B
   expect_match: true
   aspell:
@@ -297,8 +297,8 @@ matrix:
       # Ignore multiline content between three or more backticks
       - open: '(?s)(?P<open>\s*`{3,})\S*\s*$'
         close: '(?P=open)$'
-      # Ignore content between inline backticks
-      - open: '(?P<open>`+)'
+      # Ignore content between backticks, including code wrapped across lines
+      - open: '(?s)(?P<open>`+)'
         close: '(?P=open)'
       # Ignore words that start with uppercase letters or an underscore
       - open: '(^|\s)([A-Z]|_)'

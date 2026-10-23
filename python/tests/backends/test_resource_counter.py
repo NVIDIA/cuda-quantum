@@ -319,6 +319,25 @@ def test_estimate_result_from_instructions():
     assert result.annotations == {"producer": "demo"}
 
 
+def test_estimate_result_from_instructions_positional():
+    result = cudaq.EstimateResult({
+        ("h", 0): 1,
+        ("x", 1): 2,
+    }, 3)
+    resources = result.resources
+    assert resources.count() == 3
+    assert resources.count("h") == 1
+    assert resources.count_controls("x", 1) == 2
+    assert resources.num_qubits == 3
+    assert result.annotations == {}
+
+
+def test_estimate_result_from_resources_positional():
+    result = cudaq.EstimateResult(cudaq.Resources(), {"producer": "demo"})
+    assert result.resources.count() == 0
+    assert result.annotations == {"producer": "demo"}
+
+
 def test_estimate_result_instructions_are_applied_in_constant_time():
     result = cudaq.EstimateResult(instructions={("t", 0): 10**15})
     assert result.resources.count() == 10**15
@@ -327,7 +346,7 @@ def test_estimate_result_instructions_are_applied_in_constant_time():
 
 
 def test_estimate_result_resources_and_instructions_are_exclusive():
-    with pytest.raises(ValueError, match="not both"):
+    with pytest.raises(TypeError):
         cudaq.EstimateResult(resources=cudaq.Resources(),
                              instructions={("h", 0): 1})
 
