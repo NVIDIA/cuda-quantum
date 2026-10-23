@@ -183,18 +183,15 @@ EulerDecomposition EulerDecomposition::get(const Eigen::Matrix2cd &u,
   else if (std::numbers::pi - middleAngle <= roundoffTolerance)
     eulerAngles = {2 * difference, std::numbers::pi, 0.0};
   // A rotation that is a multiple of pi/4 in exact arithmetic comes out a few
-  // ulps off. Snap it to the canonical value so that the classifier counts it
-  // as a quarter turn even when epsilon is zero, and so that a zero rotation
+  // ulps off. Replace it with the canonical value so that the classifier counts
+  // it as a quarter turn even when epsilon is zero, and so that a zero rotation
   // neither counts as a rotation nor survives as a no-op.
-  constexpr double quarterTurn = std::numbers::pi / 4;
-  for (double &angle : eulerAngles) {
-    const double quarterTurns = std::nearbyint(angle / quarterTurn);
-    if (std::abs(angle - quarterTurns * quarterTurn) <= roundoffTolerance)
-      angle = cudaq::opt::detail::canonicalQuarterTurns(
-                  static_cast<std::int64_t>(quarterTurns),
-                  llvm::APFloat::IEEEdouble())
+  for (double &angle : eulerAngles)
+    if (auto quarterTurns = cudaq::opt::detail::matchMultipleOfPi(
+            llvm::APFloat(angle), /*denominator=*/4, roundoffTolerance))
+      angle = cudaq::opt::detail::canonicalMultipleOfPi(
+                  *quarterTurns, /*denominator=*/4, llvm::APFloat::IEEEdouble())
                   .convertToDouble();
-  }
   return {outerAxis, middleAxis, eulerAngles, globalPhase};
 }
 
