@@ -206,8 +206,8 @@ is available through `cudaq.logical.algorithms.estimate_gidney_ekera`.
 When you select a `cudaq.logical` target, ordinary CUDA-Q kernels compile
 through the stages that target owns. The logical, Clifford+T, Fermi–Hubbard,
 surface-code, and Carbon examples exercise progressively deeper target stacks.
-Calling `result = cudaq.estimate(kernel)` returns an `EstimateResult` with two views of the
-estimate:
+Calling `result = cudaq.estimate(kernel)` returns an `EstimateResult` with
+two views of the estimate:
 
 - `result.resources` is a CUDA-Q `Resources` object that reports the **logical**
   program only: gate counts, `num_qubits`, `depth`, and `t_depth`. It is
