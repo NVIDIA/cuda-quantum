@@ -354,7 +354,7 @@ evolveSingle(const cudaq::rydberg_hamiltonian &hamiltonian,
   program.hamiltonian.localDetuning = {};
 
   std::ostringstream programName;
-  programName << "__analog_hamiltonian_kernel__" << []() {
+  programName << "__cudaq_analog_hamiltonian_kernel__" << []() {
     const char chars[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     const auto length = sizeof(chars) / sizeof(char);
     std::random_device rd;

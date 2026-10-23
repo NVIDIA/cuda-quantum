@@ -14,6 +14,7 @@ add_cudaq_unittest("OptimizerUnitTests" "optimizer-unit-tests"
         DecompositionPatternsTest.cpp
         DecompositionPatternSelectionTest.cpp
         CliffordTSynthesisTester.cpp
+        StatePreparationTest.cpp
     INCLUDES
         ${CMAKE_SOURCE_DIR}/runtime
         ${CMAKE_SOURCE_DIR}/cudaq/lib/Optimizer/Transforms

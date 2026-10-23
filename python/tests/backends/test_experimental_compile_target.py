@@ -17,7 +17,8 @@ import os
 import pytest
 
 import cudaq
-from cudaq._experimental import CompileTarget, CustomTarget, PipelineConfig
+from cudaq._experimental import (Codegen, CompileTarget, CustomPipelineLowering,
+                                 CustomTarget)
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.mlir.ir import WalkResult
 
@@ -48,10 +49,49 @@ def make_swap_kernel():
     return swap_kernel
 
 
+def test_frontend_reexports_shared_bindings():
+    from importlib import import_module
+    from types import ModuleType
+    from cudaq.core import backends
+    from cudaq.mlir._mlir_libs import _backends, _quakeDialects, _quakeDialectsCore
+
+    assert Codegen is backends.Codegen
+    assert CompileTarget is backends.CompileTarget
+    assert CustomPipelineLowering is backends.CustomPipelineLowering
+    assert CustomTarget is backends.CustomTarget
+    assert cudaq.Resources is backends.Resources
+    assert cudaq.EstimateResult is backends.EstimateResult
+    # Every public native export must retain object identity through the
+    # frontend, including imports using its original submodule paths.
+    for source, destination in ((_quakeDialectsCore, _quakeDialects),
+                                (_backends, cudaq_runtime)):
+        for name, value in vars(source).items():
+            if name.startswith("_"):
+                continue
+            assert getattr(destination, name) is value
+            if isinstance(value, ModuleType):
+                assert import_module(f"{destination.__name__}.{name}") is value
+
+
+def test_custom_target_runtime_annotations():
+    from dataclasses import fields
+    from typing import get_type_hints
+    from cudaq._experimental import RuntimeEndpoint
+    from cudaq.core import backends
+
+    expected = {
+        "runtime_endpoint": RuntimeEndpoint,
+        "compile_target": CompileTarget,
+    }
+    assert get_type_hints(CustomTarget) == expected
+    assert {
+        field.name: field.type for field in fields(CustomTarget)
+    } == expected
+    assert RuntimeEndpoint is backends.RuntimeEndpoint
+
+
 def swap_pipeline_target():
-    ct = CompileTarget()
-    ct.pipeline_config.override_pass_pipeline = SWAP_TO_CX_PIPELINE
-    return ct
+    return CompileTarget(lowering=SWAP_TO_CX_PIPELINE)
 
 
 class CapturingEndpoint:
@@ -99,7 +139,7 @@ def compiled_quake_ops(kernel, compile_target=None):
 # ---------------------------------------------------------------------------- #
 
 
-def test_pipeline_config_controls_compiled_ir():
+def test_lowering_controls_compiled_ir():
     # Baseline: the default qpp-cpu pipeline keeps the swap intact.
     default_ops = compiled_quake_ops(make_swap_kernel())
     assert any(name == "quake.swap" for name, _ in default_ops)
@@ -158,13 +198,13 @@ def test_support_explicit_measurements():
 # ---------------------------------------------------------------------------- #
 
 
-def test_pipeline_config_equality_and_hash():
-    a = PipelineConfig()
-    b = PipelineConfig()
+def test_custom_pipeline_lowering_equality_and_hash():
+    a = CustomPipelineLowering()
+    b = CustomPipelineLowering()
     assert a == b
     assert hash(a) == hash(b)
 
-    b.disable_qubit_mapping = True
+    b.high_level = SWAP_TO_CX_PIPELINE
     assert a != b
 
 
@@ -174,15 +214,122 @@ def test_compile_target_equality_and_hash():
     assert a == b
     assert hash(a) == hash(b)
 
-    b.pipeline_config.override_pass_pipeline = SWAP_TO_CX_PIPELINE
+    b.lowering = SWAP_TO_CX_PIPELINE
     assert a != b
     assert hash(a) != hash(b)
 
 
+def test_reading_lowering_does_not_mutate_target():
+    a = CompileTarget()
+    b = CompileTarget()
+    assert a.lowering is None
+    assert a == b
+    assert hash(a) == hash(b)
+
+
+def test_lowering_none_roundtrip():
+    ct = CompileTarget(lowering=SWAP_TO_CX_PIPELINE)
+    assert ct != CompileTarget()
+    ct.lowering = None
+    assert ct == CompileTarget()
+    assert ct.lowering is None
+
+
+def test_string_lowering_matches_custom_pipeline_lowering():
+    via_string = CompileTarget(lowering=SWAP_TO_CX_PIPELINE)
+    via_lowering = CompileTarget(
+        lowering=CustomPipelineLowering(SWAP_TO_CX_PIPELINE))
+    assert via_string == via_lowering
+    assert hash(via_string) == hash(via_lowering)
+
+    a = CompileTarget()
+    b = CompileTarget()
+    a.lowering = SWAP_TO_CX_PIPELINE
+    b.lowering = CustomPipelineLowering(SWAP_TO_CX_PIPELINE)
+    assert a == b
+    assert a.lowering.override_pass_pipeline == SWAP_TO_CX_PIPELINE
+
+
+def test_staged_lowering():
+    ct = CompileTarget(lowering=CustomPipelineLowering(
+        high_level=SWAP_TO_CX_PIPELINE))
+    assert ct.lowering.high_level == SWAP_TO_CX_PIPELINE
+    assert ct.lowering.override_pass_pipeline == ""
+
+    # The high-level pipeline runs around the built-in passes: the swap is
+    # still decomposed into three controlled-x (CNOT) ops.
+    decomposed_ops = compiled_quake_ops(make_swap_kernel(), compile_target=ct)
+    assert all(name != "quake.swap" for name, _ in decomposed_ops)
+    controlled_x = [
+        name for name, num_operands in decomposed_ops
+        if name == "quake.x" and num_operands > 1
+    ]
+    assert len(controlled_x) == 3
+
+
+def test_lowering_in_place_mutation_updates_target():
+    ct = CompileTarget(lowering="canonicalize")
+    ct.lowering.high_level = SWAP_TO_CX_PIPELINE
+    assert ct.lowering.high_level == SWAP_TO_CX_PIPELINE
+    assert ct.lowering.override_pass_pipeline == "canonicalize"
+
+
+def test_codegen_defaults_and_equality():
+    a = Codegen()
+    b = Codegen()
+    assert a == b
+    assert hash(a) == hash(b)
+    assert a.emission_format == ""
+    assert a.post_codegen_passes == ""
+
+    b.post_codegen_passes = "canonicalize"
+    assert a != b
+
+
+def test_string_codegen_matches_codegen_object():
+    via_string = CompileTarget(codegen="qir-base")
+    via_codegen = CompileTarget(codegen=Codegen("qir-base"))
+    assert via_string == via_codegen
+    assert hash(via_string) == hash(via_codegen)
+
+    a = CompileTarget()
+    b = CompileTarget()
+    a.codegen = "qir-base"
+    b.codegen = Codegen("qir-base")
+    assert a == b
+    assert a.codegen.emission_format == "qir-base"
+
+
+def test_codegen_in_place_mutation_updates_target():
+    ct = CompileTarget(
+        codegen=Codegen("qir-base", post_codegen_passes="canonicalize"))
+    ct.codegen.post_codegen_passes = "remove-measurements"
+    assert ct.codegen.post_codegen_passes == "remove-measurements"
+    assert ct.codegen.emission_format == "qir-base"
+
+    a = CompileTarget()
+    a.codegen.emission_format = "qir-base"
+    assert a.codegen == Codegen("qir-base")
+
+
+def test_override_and_staged_pipelines_are_mutually_exclusive():
+    with pytest.raises(ValueError):
+        CustomPipelineLowering(SWAP_TO_CX_PIPELINE, high_level="canonicalize")
+
+
 def test_repr_is_informative():
-    assert "PipelineConfig(" in repr(PipelineConfig())
-    assert "CompileTarget(" in repr(CompileTarget())
-    assert SWAP_TO_CX_PIPELINE in repr(swap_pipeline_target())
+    assert repr(CustomPipelineLowering()) == "CustomPipelineLowering()"
+    assert repr(CustomPipelineLowering(SWAP_TO_CX_PIPELINE)
+               ) == f"CustomPipelineLowering(pipeline='{SWAP_TO_CX_PIPELINE}')"
+    assert repr(Codegen("qir:")) == "Codegen('qir:')"
+    assert repr(Codegen("qir-base", post_codegen_passes="canonicalize")) == (
+        "Codegen('qir-base', post_codegen_passes='canonicalize')")
+    assert repr(CompileTarget()
+               ) == "CompileTarget(lowering=None, codegen=Codegen('qir:'))"
+    assert repr(swap_pipeline_target()) == (
+        "CompileTarget(lowering="
+        f"CustomPipelineLowering(pipeline='{SWAP_TO_CX_PIPELINE}'),"
+        " codegen=Codegen('qir:'))")
 
 
 if __name__ == "__main__":

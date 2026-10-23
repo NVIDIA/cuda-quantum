@@ -110,8 +110,12 @@ def test_target_eagerly_exposes_the_cudaq_target_configuration():
     assert isinstance(target, CustomTarget)
     assert target.compile_target is compile_target
     assert compile_target.fully_specialize
-    pipeline = compile_target.pipeline_config.override_pass_pipeline
+    pipeline = compile_target.lowering.override_pass_pipeline
     assert "prepare-for-wireset" in pipeline
+    # Multi-control reduction needs reference semantics, so it must precede
+    # the wire conversion inside `prepare-for-wireset`.
+    assert pipeline.index("multicontrol-decomposition") < pipeline.index(
+        "prepare-for-wireset")
     assert "prepare-quake-for-qlx" not in pipeline
     assert "convert-quake-to-qlx" not in pipeline
 
@@ -133,6 +137,95 @@ def logical_zero_memory(logical_qubits: int):
     mz(qubits)
 
 
+@cudaq.kernel
+def ccry_front_slice():
+    qubits = cudaq.qvector(3)
+    x(qubits[0])
+    x(qubits[1])
+    ry.ctrl(0.7, qubits.front(2), qubits[2])
+    mz(qubits)
+
+
+@cudaq.kernel
+def cccry():
+    qubits = cudaq.qvector(4)
+    ry.ctrl(0.7, qubits[0], qubits[1], qubits[2], qubits[3])
+    mz(qubits)
+
+
+@cudaq.kernel
+def ccrx():
+    qubits = cudaq.qvector(3)
+    rx.ctrl(0.7, qubits[0], qubits[1], qubits[2])
+    mz(qubits)
+
+
+@cudaq.kernel
+def ccrz():
+    qubits = cudaq.qvector(3)
+    rz.ctrl(0.7, qubits[0], qubits[1], qubits[2])
+    mz(qubits)
+
+
+@cudaq.kernel
+def ccr1():
+    qubits = cudaq.qvector(3)
+    r1.ctrl(0.7, qubits[0], qubits[1], qubits[2])
+    mz(qubits)
+
+
+@cudaq.kernel
+def cch():
+    qubits = cudaq.qvector(3)
+    h.ctrl(qubits[0], qubits[1], qubits[2])
+    mz(qubits)
+
+
+@cudaq.kernel
+def cccx():
+    qubits = cudaq.qvector(4)
+    x.ctrl(qubits[0], qubits[1], qubits[2], qubits[3])
+    mz(qubits)
+
+
+@cudaq.kernel
+def ccry_body(qubits: cudaq.qview):
+    ry.ctrl(0.7, qubits[0], qubits[1], qubits[2])
+
+
+@cudaq.kernel
+def ccry_adjoint():
+    qubits = cudaq.qvector(3)
+    cudaq.adjoint(ccry_body, qubits)
+    mz(qubits)
+
+
+@pytest.mark.parametrize(
+    "kernel",
+    [ccry_front_slice, cccry, ccrx, ccrz, ccr1, cch, cccx, ccry_adjoint],
+    ids=lambda kernel: kernel.name)
+def test_clifford_t_target_estimates_multi_controlled_gates(kernel):
+    target = cudaq.logical.targets.clifford_t_target(precision=1.0e-4)
+
+    try:
+        cudaq.set_target(target)
+        result = cudaq.estimate(kernel)
+    finally:
+        cudaq.reset_target()
+
+    assert result.annotations
+
+
+def test_estimator_target_estimates_a_doubly_controlled_ry():
+    try:
+        cudaq.set_target(cudaq.logical.targets.estimator)
+        result = cudaq.estimate(ccry_front_slice)
+    finally:
+        cudaq.reset_target()
+
+    assert result.annotations
+
+
 def test_cudaq_selects_a_qlx_custom_target_for_estimation():
     target = cudaq.logical.targets.surface_target(logical_capacity=1)
 
@@ -145,6 +238,43 @@ def test_cudaq_selects_a_qlx_custom_target_for_estimation():
     resources = cudaq.logical.estimate.FabricCounts.from_annotations(
         estimates.annotations)
     assert resources.patches_peak == 1
+
+
+@pytest.mark.parametrize("backend_options", [
+    {},
+    {
+        "runtime_backend": None
+    },
+    {
+        "runtime_backend": cudaq.logical.targets.estimator
+    },
+],
+                         ids=["omitted", "none", "explicit_estimator"])
+def test_target_from_device_defaults_to_kernel_resource_estimation(
+        backend_options):
+    device = cudaq.logical.targets.surface_physical_target(
+        logical_capacity=1)._device
+    target = cudaq.logical.targets.Target.from_device(
+        "device_estimator",
+        device,
+        estimate_options={"failure_budget": 0.1},
+        **backend_options,
+    )
+
+    try:
+        cudaq.set_target(target)
+        result = cudaq.estimate(logical_zero_readout)
+    finally:
+        cudaq.reset_target()
+
+    logical = cudaq.logical.estimate.LogicalEstimate.from_annotations(
+        result.annotations)
+    assert logical.logical_qubits_peak == 1
+    schedule = result.annotations["SCHEDULE"]
+    assert schedule["physical_qubits"] == (
+        cudaq.logical.codes.Surface[3].block.size)
+    assert schedule["event_count"] > 0
+    assert schedule["source_stage"] == "p3"
 
 
 def test_cudaq_target_estimation_lowers_a_kernel_through_p3():
@@ -171,6 +301,53 @@ def test_cudaq_target_estimation_lowers_a_kernel_through_p3():
         cudaq.logical.codes.Surface[3].block.size)
     assert schedule["event_count"] > 0
     assert schedule["source_stage"] == "p3"
+
+
+def test_target_estimate_options_can_pin_a_tier(monkeypatch):
+    target = cudaq.logical.targets.surface_physical_target(logical_capacity=1)
+    endpoint = target.runtime_endpoint
+    monkeypatch.setattr(endpoint, "estimate_options", {
+        **endpoint.estimate_options, "tier": "SCHEDULE"
+    })
+    builds = []
+    estimate = endpoint.estimate
+    monkeypatch.setattr(
+        endpoint, "estimate", lambda build, *args, **kwargs:
+        (builds.append(build), estimate(build, *args, **kwargs))[1])
+
+    try:
+        cudaq.set_target(target)
+        result = cudaq.estimate(logical_zero_readout)
+    finally:
+        cudaq.reset_target()
+
+    assert set(result.annotations) == {"SCHEDULE"}
+    # An explicit tier still overrides the one the target pins.
+    assert set(estimate(builds[0], tier="LOGICAL").annotations) == {"LOGICAL"}
+
+
+def test_cudaq_target_estimation_traces_each_logical_phase():
+    from cudaq.util import trace
+
+    target = cudaq.logical.targets.surface_physical_target(logical_capacity=1)
+    backend = trace.ChromeBackend()
+    trace.set_backend(backend)
+    try:
+        cudaq.set_target(target)
+        cudaq.estimate(logical_zero_readout)
+    finally:
+        trace.reset_backend()
+        cudaq.reset_target()
+
+    names = {e["name"] for e in backend.to_dict()["traceEvents"]}
+    assert {
+        f"cudaq.logical.target.{tag}" for tag in ("p0", "clifford_t", "p1",
+                                                  "p2", "p3")
+    } <= names
+    assert {
+        f"cudaq.estimate.{tier}" for tier in ("LOGICAL", "STATIC", "ANALYTICAL",
+                                              "SCHEDULE")
+    } <= names
 
 
 def test_cudaq_p3_replays_destructive_multi_carrier_measurements():
@@ -431,3 +608,63 @@ def test_target_emission_preserves_frozen_snapshot_and_cached_inspection():
     assert "qlx.program @bell_pair" in emitted
     assert build.to_mlir() == before
     assert build.module is build.module
+
+
+@pytest.mark.parametrize("backend_options", [
+    {},
+    {
+        "runtime_backend": None
+    },
+    {
+        "runtime_backend": cudaq.logical.targets.estimator
+    },
+],
+                         ids=["omitted", "none", "explicit_estimator"])
+def test_target_from_architecture_defaults_to_kernel_resource_estimation(
+        backend_options):
+    device = cudaq.logical.targets.surface_physical_target(
+        logical_capacity=1)._device
+    target = cudaq.logical.targets.Target.from_architecture(
+        "architecture_estimator",
+        device.logical,
+        estimate_options={"failure_budget": 0.1},
+        **backend_options,
+    )
+
+    assert target.capabilities() == (
+        cudaq.logical.targets.estimator.capabilities())
+    try:
+        cudaq.set_target(target)
+        result = cudaq.estimate(logical_zero_readout)
+    finally:
+        cudaq.reset_target()
+
+    logical = cudaq.logical.estimate.LogicalEstimate.from_annotations(
+        result.annotations)
+    assert logical.logical_qubits_peak == 1
+
+
+def test_target_from_architecture_uses_the_given_runtime_backend():
+    device = cudaq.logical.targets.surface_physical_target(
+        logical_capacity=1)._device
+    runtime = cudaq.logical.targets.Target.define(
+        "arch_ir_only",
+        emit_circuit=cudaq.logical.targets.LoweringSpec(
+            (), cudaq.logical.targets.emit_mlir()),
+    )
+
+    target = cudaq.logical.targets.Target.from_architecture(
+        "architecture_custom_runtime", device.logical, runtime_backend=runtime)
+
+    assert target.capabilities() == runtime.capabilities()
+    assert "sample" not in target.capabilities()
+
+
+def test_target_from_architecture_rejects_non_target_runtime_backend():
+    device = cudaq.logical.targets.surface_physical_target(
+        logical_capacity=1)._device
+
+    with pytest.raises(TypeError, match="runtime_backend must be a Target"):
+        cudaq.logical.targets.Target.from_architecture("bad_runtime",
+                                                       device.logical,
+                                                       runtime_backend=object())

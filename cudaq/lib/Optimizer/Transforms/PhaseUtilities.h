@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "StaticQubitTarget.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/DenseMap.h"
@@ -130,14 +131,14 @@ inline bool mayPhaseAnchorAliasControl(mlir::Value anchor,
 /// ExtractRefOp. Different vector indices are not enough to prove distinct
 /// qubits: a vector may repeat a reference.
 inline bool
-mayPhaseAnchorAliasControl(const cudaq::quake::StaticQubitTarget &anchor,
+mayPhaseAnchorAliasControl(const cudaq::opt::StaticQubitTarget &anchor,
                            mlir::Value control) {
   return phaseOperandsMayShareRoot(anchor.source, control);
 }
 
 /// Return whether a planned phase anchor may alias any control.
 inline bool
-mayPhaseAnchorAliasControl(const cudaq::quake::StaticQubitTarget &anchor,
+mayPhaseAnchorAliasControl(const cudaq::opt::StaticQubitTarget &anchor,
                            mlir::ValueRange controls) {
   for (mlir::Value control : controls)
     if (mayPhaseAnchorAliasControl(anchor, control))
@@ -161,7 +162,7 @@ struct PhaseAnchorFallbackRoot {
   PhaseAnchorFallbackRootKind kind;
 };
 
-/// Return the reference that originated a scalar wire, if it is known.
+/// Return the reference that originated a wire, if it is known.
 inline mlir::Value getPhaseWireSourceReference(mlir::Value value) {
   if (auto unwrap = value.getDefiningOp<cudaq::quake::UnwrapOp>())
     return unwrap.getRefValue();
@@ -312,7 +313,7 @@ inline void collectPhaseAnchorFallbackRootsImpl(
       return;
     }
 
-    // Only scalar wires have an explicit linear control-flow path. Keep other
+    // Only wires have an explicit linear control-flow path. Keep other
     // non-entry block arguments conservative.
     if (!mlir::isa<cudaq::quake::WireType>(argument.getType())) {
       roots.push_back({value, PhaseAnchorFallbackRootKind::Unknown});

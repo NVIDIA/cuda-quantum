@@ -39,6 +39,7 @@ from .build_bundle import (
     _validate_v2_bundle,
     _validate_v2_nested_metadata,
 )
+from .context import _walk_operation
 
 _logger = logging.getLogger("cudaq.logical")
 
@@ -208,20 +209,6 @@ def _attr_text(attribute) -> str:
     value = getattr(attribute, "value", None)
     text = str(attribute if value is None else value)
     return text.strip('"').lstrip("@").split("::@")[-1]
-
-
-def _walk_operation(operation):
-    stack = [operation]
-    while stack:
-        current = stack.pop()
-        yield current
-        children = [
-            view.operation
-            for region in current.regions
-            for block in region.blocks
-            for view in block.operations
-        ]
-        stack.extend(reversed(children))
 
 
 def _string_array_attribute(operation, name: str) -> tuple[str, ...]:
@@ -2513,6 +2500,27 @@ class Build:
 
     def to_mlir(self) -> str:
         return self._ensure_snapshot()
+
+    def to_quake(self) -> mlir_ir.Module:
+        """Translate this physical Build to a Quake module for CUDA-Q
+        algorithmic primitives like ``cudaq.run``.
+
+        Each call returns a new module, and the Build does not change. A
+        graph that the translation does not support raises ``RuntimeError``
+        with the translation's diagnostic.
+        """
+
+        if self.root.kind != "physical_graph":
+            raise ValueError(
+                "`to_quake()` requires a `Build` of a physical graph, "
+                f"not of a {self.root.kind}")
+
+        from cudaq.mlir._mlir_libs import _qlxRuntime
+
+        module = self._fresh_module()
+        _qlxRuntime.run_pass_capsule(
+            module, "phys-to-quake{entry=" + json.dumps(self.root.symbol) + "}")
+        return module
 
     @property
     def content_sha256(self) -> str:

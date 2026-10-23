@@ -196,6 +196,42 @@ struct SidecarGraphVerificationIndex {
 static thread_local SidecarGraphVerificationIndex
     *activeSidecarGraphVerificationIndex = nullptr;
 
+struct PlanModuleIndex {
+  explicit PlanModuleIndex(ModuleOp module)
+      : symbols(module),
+        factories(llvm::to_vector<0>(module.getOps<FactoryModelOp>())) {}
+
+  SymbolTable symbols;
+  SmallVector<FactoryModelOp, 0> factories;
+};
+
+static thread_local PlanModuleIndex *activePlanModuleIndex = nullptr;
+
+Operation *qlx::phys::lookupModuleSymbol(ModuleOp module, StringRef name) {
+  if (activePlanModuleIndex && activePlanModuleIndex->symbols.getOp() == module)
+    return activePlanModuleIndex->symbols.lookup(name);
+  return SymbolTable(module).lookup(name);
+}
+
+SmallVector<FactoryModelOp, 0> qlx::phys::moduleFactoryModels(ModuleOp module) {
+  if (activePlanModuleIndex && activePlanModuleIndex->symbols.getOp() == module)
+    return activePlanModuleIndex->factories;
+  return llvm::to_vector<0>(module.getOps<FactoryModelOp>());
+}
+
+LogicalResult qlx::phys::verifySpacetimePlanBatch(ArrayRef<Operation *> plans) {
+  if (plans.empty())
+    return success();
+  PlanModuleIndex index(plans.front()->getParentOfType<ModuleOp>());
+  PlanModuleIndex *previous = activePlanModuleIndex;
+  activePlanModuleIndex = &index;
+  llvm::scope_exit restore([&] { activePlanModuleIndex = previous; });
+  for (Operation *plan : plans)
+    if (failed(mlir::verify(plan, /*verifyRecursively=*/true)))
+      return failure();
+  return success();
+}
+
 #include "qlx/Dialect/Phys/IR/PhysDialect.cpp.inc"
 
 #define GET_TYPEDEF_CLASSES
@@ -440,15 +476,15 @@ LogicalResult SpacetimePlanOp::verify() {
     return emitOpError("body must contain at least one spacetime operation");
 
   auto module = (*this)->getParentOfType<ModuleOp>();
-  mlir::SymbolTable moduleSymbols(module);
-  auto architecture = moduleSymbols.lookup<ArchitectureOp>(getArchitecture());
+  auto architecture = dyn_cast_or_null<ArchitectureOp>(
+      lookupModuleSymbol(module, getArchitecture()));
   if (!architecture)
     return emitOpError("architecture must resolve to phys.machine");
-  auto source = moduleSymbols.lookup(getSourceProtocol());
+  auto source = lookupModuleSymbol(module, getSourceProtocol());
   if (!source || !isa<qlx::fabric::ProtocolOp>(source))
     return emitOpError("source_protocol must resolve to fabric.protocol");
-  auto operatingPoint =
-      moduleSymbols.lookup<OperatingPointOp>(getOperatingPoint());
+  auto operatingPoint = dyn_cast_or_null<OperatingPointOp>(
+      lookupModuleSymbol(module, getOperatingPoint()));
   if (!operatingPoint ||
       operatingPoint.getMachineAttr() != getArchitectureAttr())
     return emitOpError(
@@ -525,9 +561,8 @@ LogicalResult SpacetimePhaseOp::verify() {
     return emitOpError(
         "phase must claim at least one physical resource or factory model");
 
-  auto architecture = dyn_cast_or_null<ArchitectureOp>(
-      mlir::SymbolTable(plan->getParentOfType<ModuleOp>())
-          .lookup(plan.getArchitecture()));
+  auto architecture = dyn_cast_or_null<ArchitectureOp>(lookupModuleSymbol(
+      plan->getParentOfType<ModuleOp>(), plan.getArchitecture()));
   if (!architecture)
     return emitOpError("parent plan architecture must resolve to phys.machine");
   llvm::SmallDenseSet<Attribute, 8> resources;
@@ -597,9 +632,8 @@ LogicalResult SpacetimePhaseOp::verify() {
     if (!reference || !models.insert(reference).second)
       return emitOpError(
           "factory_models must contain unique flat symbol references");
-    if (!isa_and_nonnull<FactoryModelOp>(
-            mlir::SymbolTable(plan->getParentOfType<ModuleOp>())
-                .lookup(reference.getValue())))
+    if (!isa_and_nonnull<FactoryModelOp>(lookupModuleSymbol(
+            plan->getParentOfType<ModuleOp>(), reference.getValue())))
       return emitOpError("factory model ")
              << reference << " must resolve to phys.factory_model";
   }
@@ -657,9 +691,8 @@ LogicalResult SpacetimeEventOp::verify() {
         "event must claim a physical resource slice or input factory");
 
   auto module = plan->getParentOfType<ModuleOp>();
-  SymbolTable moduleSymbols(module);
-  auto architecture =
-      moduleSymbols.lookup<ArchitectureOp>(plan.getArchitecture());
+  auto architecture = dyn_cast_or_null<ArchitectureOp>(
+      lookupModuleSymbol(module, plan.getArchitecture()));
   if (!architecture)
     return emitOpError("parent plan architecture must resolve to phys.machine");
   ResourceClassOp resource;
@@ -680,8 +713,8 @@ LogicalResult SpacetimeEventOp::verify() {
           "resource slice must resolve and fit inside its physical class");
   }
   if (hasFactory) {
-    auto model =
-        moduleSymbols.lookup<FactoryModelOp>(getFactoryModelAttr().getValue());
+    auto model = dyn_cast_or_null<FactoryModelOp>(
+        lookupModuleSymbol(module, getFactoryModelAttr().getValue()));
     if (!model || model.getOperatingPointAttr() != plan.getOperatingPointAttr())
       return emitOpError(
           "factory_model must resolve at the recurrence operating point");
@@ -1675,32 +1708,54 @@ LogicalResult ReleaseOp::verify() {
   return success();
 }
 
-static bool hasSSAPath(Operation *producer, Operation *consumer) {
+// Caches the users of ops with many results, which lifetime queries revisit.
+using WideSSAUsers =
+    llvm::DenseMap<Operation *, llvm::SmallPtrSet<Operation *, 16>>;
+
+static bool hasSSAPath(Operation *producer, Operation *consumer,
+                       WideSSAUsers &wideUsers) {
   SmallVector<Operation *, 16> worklist;
   llvm::SmallPtrSet<Operation *, 32> visited;
-  for (Value result : producer->getResults())
-    llvm::append_range(worklist, result.getUsers());
+  auto appendUsers = [&](Operation *operation) {
+    if (operation->getNumResults() > 8) {
+      auto [entry, inserted] = wideUsers.try_emplace(operation);
+      if (inserted)
+        for (Value result : operation->getResults())
+          entry->second.insert(result.user_begin(), result.user_end());
+      for (Operation *ancestor = consumer; ancestor;
+           ancestor = ancestor->getParentOp())
+        if (entry->second.contains(ancestor))
+          return true;
+      llvm::append_range(worklist, entry->second);
+    } else {
+      for (Value result : operation->getResults())
+        llvm::append_range(worklist, result.getUsers());
+    }
+    return false;
+  };
+  if (appendUsers(producer))
+    return true;
   while (!worklist.empty()) {
     Operation *operation = worklist.pop_back_val();
     if (operation == consumer || operation->isProperAncestor(consumer))
       return true;
     if (!visited.insert(operation).second)
       continue;
-    for (Value result : operation->getResults())
-      llvm::append_range(worklist, result.getUsers());
+    if (appendUsers(operation))
+      return true;
   }
   return false;
 }
 
 static bool causallyPrecedes(Operation *producer, Operation *consumer,
-                             GraphOp graph) {
+                             GraphOp graph, WideSSAUsers &wideUsers) {
   Operation *producerAnchor = directGraphChild(producer, graph);
   Operation *consumerAnchor = directGraphChild(consumer, graph);
   if (!producerAnchor || !consumerAnchor)
     return false;
   if (producerAnchor == consumerAnchor)
-    return hasSSAPath(producer, consumer);
-  return hasSSAPath(producerAnchor, consumerAnchor);
+    return hasSSAPath(producer, consumer, wideUsers);
+  return hasSSAPath(producerAnchor, consumerAnchor, wideUsers);
 }
 
 static Operation *unsupportedLifetimeControl(Operation *operation,
@@ -1922,12 +1977,13 @@ LogicalResult AllocationMappingOp::verify() {
                  SmallVector<AllocationLifetime, 2>>
       physicalLifetimes;
   llvm::DenseMap<std::pair<Operation *, Operation *>, bool> causalOrder;
+  WideSSAUsers wideUsers;
   auto causallyOrdered = [&](Operation *producer, Operation *consumer) {
     auto key = std::make_pair(producer, consumer);
     auto found = causalOrder.find(key);
     if (found != causalOrder.end())
       return found->second;
-    bool result = causallyPrecedes(producer, consumer, graph);
+    bool result = causallyPrecedes(producer, consumer, graph, wideUsers);
     causalOrder.try_emplace(key, result);
     return result;
   };
@@ -3683,6 +3739,7 @@ LogicalResult GraphOp::verifyRegions() {
 
     llvm::DenseMap<Operation *, llvm::SmallVector<Operation *, 16>>
         callableOperations;
+    SymbolTableCollection sourceSymbols;
     llvm::DenseMap<Operation *, Operation *> resolvedInvocationTargets;
     auto resolveInvocationTarget = [&](Operation *invocation,
                                        FlatSymbolRefAttr callee) {
@@ -3690,7 +3747,7 @@ LogicalResult GraphOp::verifyRegions() {
           resolvedInvocationTargets.try_emplace(invocation, nullptr);
       if (inserted)
         cached->second =
-            SymbolTable::lookupNearestSymbolFrom(invocation, callee);
+            sourceSymbols.lookupNearestSymbolFrom(invocation, callee);
       return cached->second;
     };
     auto collectCallableOperations =
@@ -3702,7 +3759,7 @@ LogicalResult GraphOp::verifyRegions() {
       if (auto gadget = dyn_cast<qlx::fabric::GadgetOp>(callable)) {
         if (auto realization = gadget.getRealizationAttr()) {
           bodyOwner =
-              SymbolTable::lookupNearestSymbolFrom(callable, realization);
+              sourceSymbols.lookupNearestSymbolFrom(callable, realization);
           if (!isa_and_nonnull<qlx::fabric::CircuitOp>(bodyOwner)) {
             emitOpError("projected Fabric gadget @")
                 << gadget.getSymName()
@@ -7064,18 +7121,19 @@ static std::string scheduleFactoryResource(FactoryModelOp model) {
 }
 
 static FailureOr<SmallVector<std::string, 4>>
-expectedSpacetimePhaseResources(ScheduleOp schedule, SpacetimePhaseOp phase) {
+expectedSpacetimePhaseResources(ScheduleOp schedule, SpacetimePhaseOp phase,
+                                SymbolTableCollection &symbolTables) {
   SmallVector<std::string, 4> result;
   auto plan = phase->getParentOfType<SpacetimePlanOp>();
   auto module = phase->getParentOfType<ModuleOp>();
-  SymbolTable moduleSymbols(module);
+  SymbolTable &moduleSymbols = symbolTables.getSymbolTable(module);
   auto architecture =
       plan ? moduleSymbols.lookup<ArchitectureOp>(plan.getArchitecture())
            : ArchitectureOp{};
   if (!plan || !architecture)
     return schedule.emitOpError(
         "cannot resolve a spacetime phase's physical architecture");
-  SymbolTable architectureSymbols(architecture);
+  SymbolTable &architectureSymbols = symbolTables.getSymbolTable(architecture);
   for (Attribute raw : phase.getResourceClasses()) {
     auto reference = dyn_cast<SymbolRefAttr>(raw);
     auto resource = reference &&
@@ -7294,6 +7352,7 @@ static FailureOr<ArrayRef<StringRef>> expectedScheduleResources(
     CanonicalScheduleResourceCache &canonicalResourceCache,
     ExpectedCallTemplateResourceCache &callTemplateResourceCache,
     std::deque<SmallVector<StringRef, 4>> &resourceStorage,
+    SymbolTableCollection &symbolTables,
     ScheduleVerifierProfileStats *profileStats = nullptr) {
   if (profileStats)
     ++profileStats->expectedResourceCalls;
@@ -7478,7 +7537,7 @@ static FailureOr<ArrayRef<StringRef>> expectedScheduleResources(
   if (isa<qlx::cflow::RepeatOp>(operation)) {
     LogicalResult nestedResources = success();
     auto module = operation->getParentOfType<ModuleOp>();
-    SymbolTable moduleSymbols(module);
+    SymbolTable &moduleSymbols = symbolTables.getSymbolTable(module);
     WalkResult walked = operation->walk([&](Operation *nested) {
       if (FactoryModelOp model = scheduleFactoryModel(nested))
         appendResource(scheduleFactoryResource(model));
@@ -7496,7 +7555,8 @@ static FailureOr<ArrayRef<StringRef>> expectedScheduleResources(
       }
       for (SpacetimePhaseOp phase :
            plan.getBody().front().getOps<SpacetimePhaseOp>()) {
-        auto phaseResources = expectedSpacetimePhaseResources(schedule, phase);
+        auto phaseResources =
+            expectedSpacetimePhaseResources(schedule, phase, symbolTables);
         if (failed(phaseResources)) {
           nestedResources = failure();
           return WalkResult::interrupt();
@@ -7512,14 +7572,15 @@ static FailureOr<ArrayRef<StringRef>> expectedScheduleResources(
   }
   if (auto invocation = dyn_cast<SpacetimeCallOp>(operation)) {
     auto plan =
-        dyn_cast_or_null<SpacetimePlanOp>(SymbolTable::lookupNearestSymbolFrom(
+        dyn_cast_or_null<SpacetimePlanOp>(symbolTables.lookupNearestSymbolFrom(
             invocation, invocation.getPlanAttr()));
     if (!plan)
       return schedule.emitOpError("cannot resolve spacetime plan for event '")
              << eventId << "'";
     for (SpacetimePhaseOp phase :
          plan.getBody().front().getOps<SpacetimePhaseOp>()) {
-      auto phaseResources = expectedSpacetimePhaseResources(schedule, phase);
+      auto phaseResources =
+          expectedSpacetimePhaseResources(schedule, phase, symbolTables);
       if (failed(phaseResources))
         return failure();
       for (const std::string &resource : *phaseResources)
@@ -7893,7 +7954,7 @@ static LogicalResult verifyScheduleDomainDependencies(
     std::deque<SmallVector<StringRef, 4>> &resourceStorage,
     MutableArrayRef<ScheduleGraphFacts> graphFacts,
     SmallVectorImpl<double> &clockReadyByEntry,
-    ScheduleVerificationStats *stats,
+    SymbolTableCollection &symbolTables, ScheduleVerificationStats *stats,
     ScheduleVerifierProfileStats *profileStats) {
   auto dependencySet = [](ArrayRef<StringRef> values) {
     return llvm::SmallDenseSet<StringRef, 8>(values.begin(), values.end());
@@ -7974,7 +8035,7 @@ static LogicalResult verifyScheduleDomainDependencies(
           schedule, &operation, eventId, resourceKeys, transportOccurrences,
           concreteResourceKeys, factoryResourceKeys, resourceStrings,
           canonicalCalls, canonicalResourceCache, callTemplateResourceCache,
-          resourceStorage, profileStats);
+          resourceStorage, symbolTables, profileStats);
       if (failed(resources))
         return failure();
       facts.resources = std::move(*resources);
@@ -8023,7 +8084,7 @@ static LogicalResult verifyScheduleDomainDependencies(
 
       if (auto invocation = dyn_cast<SpacetimeCallOp>(operation)) {
         auto plan = dyn_cast_or_null<SpacetimePlanOp>(
-            SymbolTable::lookupNearestSymbolFrom(invocation,
+            symbolTables.lookupNearestSymbolFrom(invocation,
                                                  invocation.getPlanAttr()));
         if (!plan)
           return schedule.emitOpError("spacetime schedule event '")
@@ -8044,7 +8105,7 @@ static LogicalResult verifyScheduleDomainDependencies(
             return schedule.emitOpError(
                 "spacetime phase schedule identity is ambiguous");
           auto phaseResources =
-              expectedSpacetimePhaseResources(schedule, phase);
+              expectedSpacetimePhaseResources(schedule, phase, symbolTables);
           if (failed(phaseResources))
             return failure();
           SmallVector<StringRef, 4> storedPhaseResources;
@@ -8330,10 +8391,10 @@ private:
 LogicalResult ScheduleClaimVerifier::verify(ArrayRef<ScheduleClaim> entries,
                                             ScheduleVerificationStats *stats) {
   // Schedule verification resolves the same module-level graph, plans, and
-  // physical resources for many thousands of rows.  The static symbol lookup
-  // helper constructs transient symbol tables on every call; retain one lazy
-  // collection for the whole proof so repeated state-resource lookups remain
-  // exact while becoming amortized constant-time.
+  // physical resources for many thousands of rows. The static symbol lookup
+  // helper scans the symbol-table region on every call; retain one lazy
+  // collection for the whole proof so repeated plan and state-resource lookups
+  // remain exact while becoming amortized constant-time.
   SymbolTableCollection symbolTables;
   const bool profileEnabled = std::getenv("QLX_PROFILE_P2_TO_P3") != nullptr;
   ScheduleVerifierProfileStats profileStorage;
@@ -8516,7 +8577,7 @@ LogicalResult ScheduleClaimVerifier::verify(ArrayRef<ScheduleClaim> entries,
       ambiguousExpectedEvent = true;
     auto invocation = dyn_cast<SpacetimeCallOp>(operation);
     auto plan = invocation ? dyn_cast_or_null<SpacetimePlanOp>(
-                                 SymbolTable::lookupNearestSymbolFrom(
+                                 symbolTables.lookupNearestSymbolFrom(
                                      invocation, invocation.getPlanAttr()))
                            : SpacetimePlanOp{};
     if (!plan)
@@ -8661,7 +8722,7 @@ LogicalResult ScheduleClaimVerifier::verify(ArrayRef<ScheduleClaim> entries,
         return 0.0;
       }
     }
-    if (auto transport = dyn_cast<TransportResourceOp>(operation))
+    if (auto transport = dyn_cast<TransportResourceOp>(operation)) {
       if (auto reference = transport.getModelAttr()) {
         auto model = dyn_cast_or_null<TransportModelOp>(
             SymbolTable::lookupNearestSymbolFrom(transport, reference));
@@ -8705,6 +8766,7 @@ LogicalResult ScheduleClaimVerifier::verify(ArrayRef<ScheduleClaim> entries,
           }
         }
       }
+    }
     if (Attribute raw = operation->getAttr("duration_ns")) {
       if (auto value = physicalTimingValue(raw))
         return *value;
@@ -8785,7 +8847,7 @@ LogicalResult ScheduleClaimVerifier::verify(ArrayRef<ScheduleClaim> entries,
   if (failed(verifyScheduleDomainDependencies(
           *this, graph, entries, entryById, resourceKeys, stateAliasCache,
           resourceStrings, callTemplateResourceCache, expectedResourceStorage,
-          graphFacts, clockReadyByEntry, stats, profileStats)))
+          graphFacts, clockReadyByEntry, symbolTables, stats, profileStats)))
     return failure();
   reportPhase("domain-proof");
 
@@ -8946,7 +9008,7 @@ LogicalResult ScheduleClaimVerifier::verify(ArrayRef<ScheduleClaim> entries,
     }
     if (auto invocation = dyn_cast<SpacetimeCallOp>(eventOperation)) {
       auto plan = dyn_cast_or_null<SpacetimePlanOp>(
-          SymbolTable::lookupNearestSymbolFrom(invocation,
+          symbolTables.lookupNearestSymbolFrom(invocation,
                                                invocation.getPlanAttr()));
       if (!plan || entry.callee != plan.getSourceProtocol() ||
           entry.instance != invocation.getInstance() ||
@@ -9069,7 +9131,7 @@ LogicalResult ScheduleClaimVerifier::verify(ArrayRef<ScheduleClaim> entries,
                 ? SpacetimeCallOp{}
                 : dyn_cast<SpacetimeCallOp>(parentEvent->second.first);
         auto plan = invocation ? dyn_cast_or_null<SpacetimePlanOp>(
-                                     SymbolTable::lookupNearestSymbolFrom(
+                                     symbolTables.lookupNearestSymbolFrom(
                                          invocation, invocation.getPlanAttr()))
                                : SpacetimePlanOp{};
         forwardingPipelinePhase = plan && plan.getForwardingLatencyNsAttr() &&
@@ -9585,7 +9647,7 @@ LogicalResult ScheduleClaimVerifier::verify(ArrayRef<ScheduleClaim> entries,
               ? SpacetimeCallOp{}
               : dyn_cast<SpacetimeCallOp>(operation->second.first);
       auto plan = invocation ? dyn_cast_or_null<SpacetimePlanOp>(
-                                   SymbolTable::lookupNearestSymbolFrom(
+                                   symbolTables.lookupNearestSymbolFrom(
                                        invocation, invocation.getPlanAttr()))
                              : SpacetimePlanOp{};
       if (plan && plan.getForwardingLatencyNsAttr() &&
@@ -9889,7 +9951,7 @@ LogicalResult ScheduleClaimVerifier::verify(ArrayRef<ScheduleClaim> entries,
                 ? SpacetimeCallOp{}
                 : dyn_cast<SpacetimeCallOp>(operation->second.first);
         auto plan = invocation ? dyn_cast_or_null<SpacetimePlanOp>(
-                                     SymbolTable::lookupNearestSymbolFrom(
+                                     symbolTables.lookupNearestSymbolFrom(
                                          invocation, invocation.getPlanAttr()))
                                : SpacetimePlanOp{};
         bool pipelined = plan && plan.getForwardingLatencyNsAttr() &&
@@ -10112,7 +10174,7 @@ LogicalResult ScheduleClaimVerifier::verify(ArrayRef<ScheduleClaim> entries,
               ? SpacetimeCallOp{}
               : dyn_cast<SpacetimeCallOp>(operation->second.first);
       auto plan = invocation ? dyn_cast_or_null<SpacetimePlanOp>(
-                                   SymbolTable::lookupNearestSymbolFrom(
+                                   symbolTables.lookupNearestSymbolFrom(
                                        invocation, invocation.getPlanAttr()))
                              : SpacetimePlanOp{};
       if (!plan)

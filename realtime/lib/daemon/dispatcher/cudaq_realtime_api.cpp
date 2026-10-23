@@ -13,8 +13,19 @@
 #include <atomic>
 #include <cstdio>
 #include <cstring>
+#include <mutex>
 #include <new>
 #include <thread>
+#include <unordered_set>
+
+// The DEVICE launchers, used when the caller sets none.  Defined in
+// libcudaq-realtime-dispatch.a, which the consumer device-links together with
+// its handlers; they are not part of this library.  Weak, so a binary that
+// never links the archive still loads, and the addresses are null.  Each
+// binds to the first copy exported in the process, so a consumer whose copy
+// is hidden (--exclude-libs) or not the first names its own launcher instead.
+#pragma weak cudaq_launch_dispatch_kernel_regular
+#pragma weak cudaq_launch_unified_dispatch_device
 
 struct cudaq_dispatch_manager_t {
   int reserved = 0;
@@ -32,17 +43,26 @@ struct cudaq_dispatcher_t {
   cudaStream_t stream = nullptr;
   bool running = false;
   void **h_mailbox_bank = nullptr;
-  // The unified loop's data-plane (HOST + UNIFIED path).  The public setter is
-  // void* to keep the API transport-agnostic; stored typed here since this TU
-  // includes bridge_interface.h.
-  cudaq_cpu_dataplane_t *cpu_dataplane = nullptr;
+  // The unified loop's data-plane (HOST + UNIFIED path), copied in by
+  // set_cpu_dataplane or set_bridge; its hooks stay NULL until one of them
+  // runs.  The public setter is void* to keep the API transport-agnostic;
+  // stored typed here since this TU includes bridge_interface.h.
+  cudaq_cpu_dataplane_t cpu_dataplane{};
   // Both HOST dispatch paths (ring and unified) run their loop on this thread
   // and drive GRAPH_LAUNCH work through `engine`, both owned here: created in
   // cudaq_dispatcher_start, torn down in stop/destroy.  `engine` is NULL for a
   // HOST_CALL-only table.
   std::thread host_thread;
   cudaq_graph_launch_engine_t *engine = nullptr;
+  // The bridge wired by cudaq_dispatcher_set_bridge, if any.
+  cudaq_realtime_bridge_handle_t bridge = nullptr;
 };
+
+namespace {
+// Bridges currently wired to a dispatcher.  A bridge drives exactly one.
+std::mutex attached_bridges_mutex;
+std::unordered_set<cudaq_realtime_bridge_handle_t> attached_bridges;
+} // namespace
 
 // True for HOST + UNIFIED: the dispatcher runs cudaq_host_unified_loop on its
 // own thread over the ring data-plane (HOST_CALL inline + GRAPH_LAUNCH via the
@@ -68,11 +88,24 @@ static bool table_has_graph_launch(const cudaq_function_table_t *table) {
 static bool is_valid_kernel_type(cudaq_kernel_type_t kernel_type) {
   switch (kernel_type) {
   case CUDAQ_KERNEL_REGULAR:
-  case CUDAQ_KERNEL_COOPERATIVE:
   case CUDAQ_KERNEL_UNIFIED:
     return true;
   default:
     return false;
+  }
+}
+
+// The DEVICE ring launcher start() calls: the caller's, else the archive's
+// for the kernel type.  Null when neither is available.
+static cudaq_dispatch_launch_fn_t
+ring_launch_fn(const cudaq_dispatcher_t *dispatcher) {
+  if (dispatcher->launch_fn)
+    return dispatcher->launch_fn;
+  switch (dispatcher->config.kernel_type) {
+  case CUDAQ_KERNEL_REGULAR:
+    return &cudaq_launch_dispatch_kernel_regular;
+  default:
+    return nullptr;
   }
 }
 
@@ -99,7 +132,8 @@ static cudaq_status_t validate_dispatcher(cudaq_dispatcher_t *dispatcher) {
 
   if (dispatcher->config.dispatch_path == CUDAQ_DISPATCH_PATH_HOST) {
     if (dispatcher->config.kernel_type == CUDAQ_KERNEL_UNIFIED) {
-      if (!dispatcher->cpu_dataplane)
+      if (!dispatcher->cpu_dataplane.rx_poll ||
+          !dispatcher->cpu_dataplane.tx_publish)
         return CUDAQ_ERR_INVALID_ARG;
       return CUDAQ_OK;
     }
@@ -112,10 +146,17 @@ static cudaq_status_t validate_dispatcher(cudaq_dispatcher_t *dispatcher) {
   }
 
   if (dispatcher->config.kernel_type == CUDAQ_KERNEL_UNIFIED) {
-    if (!dispatcher->unified_launch_fn || !dispatcher->transport_ctx)
+    if (!dispatcher->transport_ctx)
+      return CUDAQ_ERR_INVALID_ARG;
+    // Without an override, the unified kernel must have been linked into the
+    // consumer from libcudaq-realtime-dispatch.a.
+    if (!dispatcher->unified_launch_fn &&
+        !&cudaq_launch_unified_dispatch_device)
+      return CUDAQ_ERR_INVALID_ARG;
+    if (dispatcher->config.slot_size == 0)
       return CUDAQ_ERR_INVALID_ARG;
   } else {
-    if (!dispatcher->launch_fn)
+    if (!ring_launch_fn(dispatcher))
       return CUDAQ_ERR_INVALID_ARG;
     if (!dispatcher->ringbuffer.rx_flags || !dispatcher->ringbuffer.tx_flags)
       return CUDAQ_ERR_INVALID_ARG;
@@ -126,6 +167,53 @@ static cudaq_status_t validate_dispatcher(cudaq_dispatcher_t *dispatcher) {
     if (!is_valid_dispatch_mode(dispatcher->config.dispatch_mode))
       return CUDAQ_ERR_INVALID_ARG;
   }
+  return CUDAQ_OK;
+}
+
+static void release_bridge_attachment(cudaq_realtime_bridge_handle_t bridge) {
+  std::lock_guard<std::mutex> lock(attached_bridges_mutex);
+  attached_bridges.erase(bridge);
+}
+
+static const char *bridge_shape_name(const cudaq_dispatcher_config_t &config) {
+  const bool unified = config.kernel_type == CUDAQ_KERNEL_UNIFIED;
+  if (config.dispatch_path == CUDAQ_DISPATCH_PATH_HOST)
+    return unified ? "HOST unified" : "HOST ring";
+  return unified ? "DEVICE unified" : "DEVICE ring";
+}
+
+// Take the geometry a config left at 0 from the bridge, and refuse one that
+// disagrees with it.  A provider that reports no geometry leaves the config as
+// given, for start() to validate.
+static cudaq_status_t
+apply_bridge_geometry(cudaq_realtime_bridge_handle_t bridge,
+                      cudaq_dispatcher_config_t &config) {
+  uint32_t num_slots = 0;
+  uint32_t slot_size = 0;
+  const cudaq_status_t status =
+      cudaq_bridge_get_ring_geometry(bridge, &num_slots, &slot_size);
+  if (status == CUDAQ_ERR_UNSUPPORTED)
+    return CUDAQ_OK;
+  if (status != CUDAQ_OK) {
+    fprintf(stderr,
+            "ERROR: cudaq_dispatcher_set_bridge: the bridge failed to report "
+            "its ring geometry (status %d)\n",
+            status);
+    return status;
+  }
+  if ((config.num_slots != 0 && config.num_slots != num_slots) ||
+      (config.slot_size != 0 && config.slot_size != slot_size)) {
+    fprintf(stderr,
+            "ERROR: cudaq_dispatcher_set_bridge: the config's geometry "
+            "(num_slots=%u slot_size=%u) disagrees with the bridge's "
+            "(num_slots=%u slot_size=%u); leave them 0 to take the bridge's\n",
+            config.num_slots, config.slot_size, num_slots, slot_size);
+    return CUDAQ_ERR_INVALID_ARG;
+  }
+  if (config.num_slots == 0)
+    config.num_slots = num_slots;
+  if (config.slot_size == 0)
+    config.slot_size = slot_size;
   return CUDAQ_OK;
 }
 
@@ -177,6 +265,8 @@ cudaq_status_t cudaq_dispatcher_destroy(cudaq_dispatcher_t *dispatcher) {
     }
     dispatcher->running = false;
   }
+  if (dispatcher->bridge)
+    release_bridge_attachment(dispatcher->bridge);
   delete dispatcher;
   return CUDAQ_OK;
 }
@@ -236,7 +326,10 @@ cudaq_status_t
 cudaq_dispatcher_set_unified_launch(cudaq_dispatcher_t *dispatcher,
                                     cudaq_unified_launch_fn_t unified_launch_fn,
                                     void *transport_ctx) {
-  if (!dispatcher || !unified_launch_fn || !transport_ctx)
+  // A NULL fn selects the unified kernel from libcudaq-realtime-dispatch.a
+  // (start() fails if the consumer did not link it); the context is required
+  // either way.
+  if (!dispatcher || !transport_ctx)
     return CUDAQ_ERR_INVALID_ARG;
   dispatcher->unified_launch_fn = unified_launch_fn;
   dispatcher->transport_ctx = transport_ctx;
@@ -249,16 +342,159 @@ cudaq_dispatcher_set_cpu_dataplane(cudaq_dispatcher_t *dispatcher,
   if (!dispatcher || !cpu_dataplane)
     return CUDAQ_ERR_INVALID_ARG;
   dispatcher->cpu_dataplane =
-      static_cast<cudaq_cpu_dataplane_t *>(cpu_dataplane);
+      *static_cast<const cudaq_cpu_dataplane_t *>(cpu_dataplane);
+  return CUDAQ_OK;
+}
+
+cudaq_status_t
+cudaq_dispatcher_set_bridge(cudaq_dispatcher_t *dispatcher,
+                            cudaq_realtime_bridge_handle_t bridge) {
+  if (!dispatcher || !bridge || dispatcher->running || dispatcher->bridge)
+    return CUDAQ_ERR_INVALID_ARG;
+  if (!is_valid_kernel_type(dispatcher->config.kernel_type))
+    return CUDAQ_ERR_INVALID_ARG;
+
+  // Everything is gathered into locals and committed only once the bridge
+  // has answered every query, so a refusal leaves the dispatcher untouched.
+  cudaq_dispatcher_config_t config = dispatcher->config;
+  const char *shape = bridge_shape_name(config);
+  const bool host = config.dispatch_path == CUDAQ_DISPATCH_PATH_HOST;
+  const bool unified = config.kernel_type == CUDAQ_KERNEL_UNIFIED;
+
+  cudaq_status_t status = apply_bridge_geometry(bridge, config);
+  if (status != CUDAQ_OK)
+    return status;
+
+  if (config.num_slots == 0) {
+    fprintf(stderr,
+            "ERROR: cudaq_dispatcher_set_bridge (%s): the config's geometry "
+            "(num_slots=%u) is 0; the bridge must report its geometry\n",
+            shape, config.num_slots);
+    return CUDAQ_ERR_INVALID_ARG;
+  }
+
+  cudaq_ringbuffer_t ring{};
+  cudaq_cpu_dataplane_t cpu_dataplane{};
+  cudaq_unified_dispatch_ctx_t unified_ctx{};
+  if (!unified) {
+    status = cudaq_bridge_get_transport_context(bridge, RING_BUFFER, &ring);
+    if (status != CUDAQ_OK) {
+      fprintf(stderr,
+              "ERROR: cudaq_dispatcher_set_bridge (%s): the bridge serves no "
+              "ring buffer (status %d); a provider started in its unified "
+              "mode refuses it\n",
+              shape, status);
+      return status;
+    }
+    const bool complete =
+        host ? (ring.rx_flags_host && ring.tx_flags_host && ring.rx_data_host &&
+                ring.tx_data_host)
+             : (ring.rx_flags && ring.tx_flags && ring.rx_data && ring.tx_data);
+    if (!complete) {
+      fprintf(stderr,
+              "ERROR: cudaq_dispatcher_set_bridge (%s): the bridge's ring "
+              "buffer lacks the %s views this path polls\n",
+              shape, host ? "host" : "device");
+      return CUDAQ_ERR_INVALID_ARG;
+    }
+    // The provider's TX pump owns the wire and reads any non-zero tx flag as
+    // a slot address, so the in-flight sentinel must not be written.
+    if (host)
+      config.skip_tx_markers = 1;
+  } else if (host) {
+    status = cudaq_bridge_get_cpu_dataplane(bridge, &cpu_dataplane);
+    if (status != CUDAQ_OK) {
+      fprintf(stderr,
+              "ERROR: cudaq_dispatcher_set_bridge (%s): the bridge serves no "
+              "CPU data plane (status %d); the provider must be started in "
+              "its unified mode\n",
+              shape, status);
+      return status;
+    }
+    // The unified loop dereferences these without checking them.
+    if (!cpu_dataplane.rx_poll || !cpu_dataplane.tx_publish ||
+        !cpu_dataplane.ring.rx_data_host || !cpu_dataplane.ring.tx_data_host ||
+        cpu_dataplane.ring.rx_stride_sz == 0 ||
+        cpu_dataplane.ring.tx_stride_sz == 0) {
+      fprintf(stderr,
+              "ERROR: cudaq_dispatcher_set_bridge (%s): the bridge returned an "
+              "incomplete CPU data plane\n",
+              shape);
+      return CUDAQ_ERR_INVALID_ARG;
+    }
+  } else {
+    status = cudaq_bridge_get_transport_context(bridge, UNIFIED, &unified_ctx);
+    if (status != CUDAQ_OK) {
+      fprintf(stderr,
+              "ERROR: cudaq_dispatcher_set_bridge (%s): the bridge serves no "
+              "unified context (status %d); the provider must be started in "
+              "its unified mode\n",
+              shape, status);
+      return status;
+    }
+    // A provider whose unified loop runs on the host answers with no device
+    // context at all.
+    if (!unified_ctx.transport_ctx) {
+      fprintf(stderr,
+              "ERROR: cudaq_dispatcher_set_bridge (%s): the bridge has no "
+              "device-side data plane; its unified loop runs on the host "
+              "(use CUDAQ_DISPATCH_PATH_HOST)\n",
+              shape);
+      return CUDAQ_ERR_UNSUPPORTED;
+    }
+  }
+
+  {
+    std::lock_guard<std::mutex> lock(attached_bridges_mutex);
+    if (!attached_bridges.insert(bridge).second) {
+      fprintf(stderr,
+              "ERROR: cudaq_dispatcher_set_bridge (%s): the bridge already "
+              "drives another dispatcher\n",
+              shape);
+      return CUDAQ_ERR_INVALID_ARG;
+    }
+  }
+
+  dispatcher->config = config;
+  dispatcher->bridge = bridge;
+  if (!unified) {
+    dispatcher->ringbuffer = ring;
+  } else if (host) {
+    dispatcher->cpu_dataplane = cpu_dataplane;
+  } else {
+    dispatcher->unified_launch_fn = unified_ctx.launch_fn;
+    dispatcher->transport_ctx = unified_ctx.transport_ctx;
+  }
   return CUDAQ_OK;
 }
 
 cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher) {
+  if (dispatcher &&
+      dispatcher->config.dispatch_path != CUDAQ_DISPATCH_PATH_HOST &&
+      dispatcher->config.kernel_type != CUDAQ_KERNEL_UNIFIED &&
+      !ring_launch_fn(dispatcher)) {
+    fprintf(stderr,
+            "ERROR: cudaq_dispatcher_start (DEVICE ring): no launch function; "
+            "link libcudaq-realtime-dispatch.a into this binary, or name a "
+            "launcher with cudaq_dispatcher_set_launch_fn\n");
+    return CUDAQ_ERR_INVALID_ARG;
+  }
   cudaq_status_t status = validate_dispatcher(dispatcher);
   if (status != CUDAQ_OK)
     return status;
   if (dispatcher->running)
     return CUDAQ_OK;
+  if (dispatcher->bridge) {
+    status =
+        cudaq_bridge_set_function_table(dispatcher->bridge, &dispatcher->table);
+    if (status != CUDAQ_OK) {
+      fprintf(stderr,
+              "ERROR: cudaq_dispatcher_start: the bridge refused the "
+              "function table (status %d)\n",
+              status);
+      return status;
+    }
+  }
 
   if (dispatcher->config.dispatch_path == CUDAQ_DISPATCH_PATH_HOST) {
     const bool unified = is_host_unified_dispatcher(dispatcher);
@@ -273,7 +509,7 @@ cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher) {
         return CUDAQ_ERR_CUDA;
 
       const cudaq_ringbuffer_t *engine_ring =
-          unified ? &dispatcher->cpu_dataplane->ring : &dispatcher->ringbuffer;
+          unified ? &dispatcher->cpu_dataplane.ring : &dispatcher->ringbuffer;
 
       // Unified must keep the markers: its publish_ready reads the per-slot
       // CUDAQ_TX_FLAG_IN_FLIGHT sentinel to tell a still-running graph from a
@@ -295,7 +531,8 @@ cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher) {
     uint64_t *stats = dispatcher->stats;
     cudaq_function_table_t tbl = dispatcher->table;
     if (unified) {
-      cudaq_cpu_dataplane_t *cpu_dataplane = dispatcher->cpu_dataplane;
+      // stop() and destroy() join the thread before the dispatcher goes away.
+      cudaq_cpu_dataplane_t *cpu_dataplane = &dispatcher->cpu_dataplane;
       dispatcher->host_thread =
           std::thread([engine, cpu_dataplane, tbl, shutdown_flag, stats] {
             cudaq_host_unified_loop(cpu_dataplane, &tbl, engine, shutdown_flag,
@@ -352,12 +589,24 @@ cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher) {
   // __constant__ indirection) -- nothing needed here.
 
   if (dispatcher->config.kernel_type == CUDAQ_KERNEL_UNIFIED) {
-    dispatcher->unified_launch_fn(
-        dispatcher->transport_ctx, dispatcher->table.entries,
-        dispatcher->table.count, dispatcher->shutdown_flag, dispatcher->stats,
-        dispatcher->stream);
+    // The unified kernel lives in the consumer binary, linked from
+    // libcudaq-realtime-dispatch.a; the direct call below binds to it at load
+    // time (validate_dispatcher has checked it is there).  unified_launch_fn
+    // is an override, used only by a transport that replaces the dispatch
+    // loop outright.
+    if (dispatcher->unified_launch_fn) {
+      dispatcher->unified_launch_fn(
+          dispatcher->transport_ctx, dispatcher->config.slot_size,
+          dispatcher->table.entries, dispatcher->table.count,
+          dispatcher->shutdown_flag, dispatcher->stats, dispatcher->stream);
+    } else {
+      cudaq_launch_unified_dispatch_device(
+          dispatcher->transport_ctx, dispatcher->config.slot_size,
+          dispatcher->table.entries, dispatcher->table.count,
+          dispatcher->shutdown_flag, dispatcher->stats, dispatcher->stream);
+    }
   } else {
-    dispatcher->launch_fn(
+    ring_launch_fn(dispatcher)(
         dispatcher->ringbuffer.rx_flags, dispatcher->ringbuffer.tx_flags,
         dispatcher->ringbuffer.rx_data, dispatcher->ringbuffer.tx_data,
         dispatcher->ringbuffer.rx_stride_sz,

@@ -144,7 +144,7 @@ The **unified dispatch mode** (`CUDAQ_KERNEL_UNIFIED`) is an alternative to the
 3-kernel architecture that combines receive, RPC dispatch, and transmit into a
 single GPU kernel.  By eliminating the inter-kernel ring-buffer flag handoff
 between RX, dispatch, and TX kernels, the unified kernel reduces round-trip
-latency for simple (non-cooperative) RPC handlers.
+latency for simple RPC handlers.
 
 ### Architecture
 
@@ -191,28 +191,26 @@ without any transport-specific knowledge.
 
 ### When to Use Which Mode
 
-**3-kernel mode** (`CUDAQ_KERNEL_REGULAR` or `CUDAQ_KERNEL_COOPERATIVE`):
+**3-kernel mode** (`CUDAQ_KERNEL_REGULAR`):
 
 - Transport-agnostic -- works with any transport that implements the ring-buffer
     flag protocol
-- Required for cooperative handlers that use `grid.sync()`
 - Supports `CUDAQ_DISPATCH_GRAPH_LAUNCH` mode
 
 **Unified mode** (`CUDAQ_KERNEL_UNIFIED`):
 
-- Lowest latency for regular (non-cooperative) handlers
+- Lowest latency for simple RPC handlers
 - Transport-agnostic API -- the transport provides a pluggable launch function
     and opaque context (e.g., `GpuRoceTransceiver`/`DOCA` supplies `gpu_roce_launch_unified_dispatch`)
 - Single-thread, single-block kernel -- no inter-kernel synchronization overhead
-- Not compatible with cooperative handlers or `CUDAQ_DISPATCH_GRAPH_LAUNCH`
+- Not compatible with `CUDAQ_DISPATCH_GRAPH_LAUNCH`
 
 ### Host API Extensions
 
 ```cpp
 typedef enum {
-  CUDAQ_KERNEL_REGULAR     = 0,
-  CUDAQ_KERNEL_COOPERATIVE = 1,
-  CUDAQ_KERNEL_UNIFIED     = 2
+  CUDAQ_KERNEL_REGULAR = 0,
+  CUDAQ_KERNEL_UNIFIED = 2
 } cudaq_kernel_type_t;
 
 typedef void (*cudaq_unified_launch_fn_t)(
@@ -231,35 +229,41 @@ When `kernel_type == CUDAQ_KERNEL_UNIFIED`:
 
 - `cudaq_dispatcher_set_ringbuffer()` and `cudaq_dispatcher_set_launch_fn()`
     are **not required** (the unified kernel handles transport internally)
-- `cudaq_dispatcher_set_unified_launch()` **must** be called instead
-- `num_slots` and `slot_size` in the `config` may be zero
+- The transport context is wired by `cudaq_dispatcher_set_bridge()` for a
+    bridge-backed dispatcher, or by `cudaq_dispatcher_set_unified_launch()`
+    otherwise
+- `slot_size` must give the slot stride; `cudaq_dispatcher_set_bridge()`
+    fills it from the bridge when the `config` leaves it 0
 - All other wiring (`set_function_table`, `set_control`) remains the same
 
 ### Wiring Example (Unified Mode with GpuRoceTransceiver)
 
-```cpp
-// Pack DOCA transport handles
-doca_transport_ctx ctx;
-ctx.gpu_dev_qp     = gpu_roce_get_gpu_dev_qp(transceiver);
-ctx.rx_ring_data   = gpu_roce_get_rx_ring_data_addr(transceiver);
-ctx.rx_ring_stride_sz  = gpu_roce_get_page_size(transceiver);
-ctx.rx_ring_mkey   = htonl(gpu_roce_get_rkey(transceiver));
-ctx.rx_ring_stride_num = gpu_roce_get_num_pages(transceiver);
-ctx.frame_size     = frame_size;
+The bridge packs its transport handles itself (for `GpuRoceTransceiver`, the
+`DOCA` `QP`, ring addresses and memory keys); the dispatcher asks for them
+through `cudaq_dispatcher_set_bridge`:
 
-// Configure dispatcher for unified mode
+```cpp
+// The provider parses its own options, including --unified
+cudaq_bridge_create(&bridge, CUDAQ_PROVIDER_GPU_ROCE, argc, argv);
+cudaq_bridge_connect(bridge);
+
+// Configure dispatcher for unified mode; ring geometry comes from the bridge
 cudaq_dispatcher_config_t config{};
 config.device_id       = gpu_id;
+config.dispatch_path   = CUDAQ_DISPATCH_PATH_DEVICE;
 config.kernel_type     = CUDAQ_KERNEL_UNIFIED;
 config.dispatch_mode   = CUDAQ_DISPATCH_DEVICE_CALL;
 
 cudaq_dispatcher_create(manager, &config, &dispatcher);
-cudaq_dispatcher_set_unified_launch(
-    dispatcher, &gpu_roce_launch_unified_dispatch, &ctx);
+cudaq_dispatcher_set_bridge(dispatcher, bridge);
 cudaq_dispatcher_set_function_table(dispatcher, &table);
 cudaq_dispatcher_set_control(dispatcher, d_shutdown_flag, d_stats);
 cudaq_dispatcher_start(dispatcher);
+cudaq_bridge_launch(bridge);
 ```
+
+`cudaq_dispatcher_set_unified_launch` remains for dispatchers that are not
+backed by a bridge; a bridge-backed one should not call it directly.
 
 ## What This API Does (In One Paragraph)
 
@@ -276,7 +280,7 @@ decoder handler.
 
 - C host API in `cudaq_realtime.h`
 - RPC messaging protocol (header + payload + response)
-- End-to-end example using the mock decoder in `cudaqx`
+- End-to-end example using the mock decoder in `cudaq-qec`
 - NIC-free testing path
 
 ## Terms and Components
@@ -334,7 +338,7 @@ struct cudaq_handler_schema_t {
   uint8_t  num_args;              // Number of input arguments
   uint8_t  num_results;           // Number of return values
   uint16_t reserved;
-  
+
   cudaq_type_desc_t args[8];      // Argument type descriptors
   cudaq_type_desc_t results[4];   // Result type descriptors
 };
@@ -448,7 +452,6 @@ Parameters:
   not in this API.
   - `kernel_type` (default `CUDAQ_KERNEL_REGULAR`)
     - `CUDAQ_KERNEL_REGULAR`: standard kernel launch
-    - `CUDAQ_KERNEL_COOPERATIVE`: cooperative launch (`grid.sync()` capable)
     - `CUDAQ_KERNEL_UNIFIED`: single-kernel dispatch with integrated transport
     (see [Unified Dispatch Mode](#unified-dispatch-mode))
   - `dispatch_mode` (default `CUDAQ_DISPATCH_DEVICE_CALL`)
@@ -504,6 +507,36 @@ Parameters:
 
 Call this when the dispatcher is no longer needed.
 
+**`cudaq_dispatcher_set_bridge`** wires a transport bridge (see
+`bridge_interface.h`) to the dispatcher.  The configured `dispatch_path` and
+`kernel_type` name the shape, and the dispatcher asks the bridge for the data
+plane that shape needs:
+
+| Shape | What the dispatcher takes from the bridge |
+|-------|-------------------------------------------|
+| HOST + REGULAR | The `RING_BUFFER` context; `skip_tx_markers` is forced to 1 |
+| HOST + UNIFIED | The provider's CPU data plane (`rx_poll` / `tx_publish`) |
+| DEVICE + REGULAR | The `RING_BUFFER` context; `start()` then launches the 3-kernel dispatch kernel from `libcudaq-realtime-dispatch.a` (see `cudaq_dispatcher_set_launch_fn`) |
+| DEVICE + UNIFIED | The provider's unified transport context |
+
+Parameters:
+
+- `dispatcher`: dispatcher handle, not yet started.
+- `bridge`: a bridge from `cudaq_bridge_create_from_library` or
+  `cudaq_bridge_create`.
+
+A `num_slots` or `slot_size` left at 0 in the config is taken from the bridge's
+ring geometry; a non-zero value that disagrees with it is refused.  Everything
+is copied, so only the bridge itself must outlive the dispatcher.  A provider
+started in the other mode makes this return `CUDAQ_ERR_UNSUPPORTED`.  A bridge
+drives exactly one dispatcher.  When a bridge is attached,
+`cudaq_dispatcher_start` also hands it the function table through
+`cudaq_bridge_set_function_table`.
+
+A bridge-backed dispatcher needs none of `cudaq_dispatcher_set_ringbuffer`,
+`cudaq_dispatcher_set_unified_launch` or `cudaq_dispatcher_set_cpu_dataplane`;
+those remain for dispatchers over in-process rings.
+
 **`cudaq_dispatcher_set_ringbuffer`** provides the RX/TX flag and data
 pointers the dispatch kernel will poll and use for request/response slots.
 
@@ -557,11 +590,11 @@ struct cudaq_function_entry_t {
     cudaGraphExec_t     graph_exec;     // for CUDAQ_DISPATCH_GRAPH_LAUNCH
     cudaq_host_rpc_fn_t host_fn;        // for CUDAQ_DISPATCH_HOST_CALL
   } handler;
-  
+
   uint32_t                function_id;
   uint8_t                 dispatch_mode;   // Per-handler dispatch mode
   uint8_t                 reserved[3];
-  
+
   cudaq_handler_schema_t  schema;          // Handler interface schema
 };
 
@@ -604,10 +637,10 @@ Parameters:
 - `dispatcher`: dispatcher handle.
 - `launch_fn`: host launch function pointer.
 
-Call this once during setup. Typically you pass one of the provided launch functions:
+The call is optional. Without it, `cudaq_dispatcher_start` uses the launcher
+from `libcudaq-realtime-dispatch.a`:
 
-- `cudaq_launch_dispatch_kernel_regular` - for `CUDAQ_KERNEL_REGULAR` mode
-- `cudaq_launch_dispatch_kernel_cooperative` - for `CUDAQ_KERNEL_COOPERATIVE` mode
+- `cudaq_launch_dispatch_kernel_regular` for `CUDAQ_KERNEL_REGULAR`
 
 **`cudaq_dispatcher_start`** launches the persistent dispatch kernel and begins
 processing slots.
@@ -638,7 +671,7 @@ Parameters:
 
 ### Occupancy Query and Eager Module Loading
 
-Before calling `cudaq_dispatcher_start`, call the appropriate occupancy query
+Before calling `cudaq_dispatcher_start`, call the occupancy query
 to force eager loading of the dispatch kernel module. This avoids lazy-load
 deadlocks when the dispatch kernel and transport kernels (e.g.,
 GpuRoceTransceiver RX/TX) run as persistent kernels.
@@ -655,23 +688,8 @@ Parameters:
 Returns `cudaSuccess` on success. Call this when `kernel_type` is
 `CUDAQ_KERNEL_REGULAR`.
 
-**`cudaq_dispatch_kernel_cooperative_query_occupancy`**
-returns the maximum number of active blocks per multiprocessor for the
-**cooperative** dispatch kernel.
-
-Parameters:
-
-- `out_blocks`: receives the max blocks per SM (or 0 on error).
-- `threads_per_block`: block size used for the occupancy calculation
-(e.g., 128 for cooperative decoders).
-
-Returns `cudaSuccess` on success. Call this when `kernel_type` is
-`CUDAQ_KERNEL_COOPERATIVE`. Use the same `threads_per_block` value that will
-be passed to the dispatcher configuration and launch function.
-
-Call the occupancy function that matches the dispatcher's `kernel_type` once
-before `cudaq_dispatcher_start`; the result can be used to size the dispatch
-grid (e.g., to reserve `SMs` for transport kernels).
+Call it once before `cudaq_dispatcher_start`; the result can be used to size
+the dispatch grid (e.g., to reserve `SMs` for transport kernels).
 
 Lifetime/ownership:
 
@@ -749,10 +767,11 @@ clean up graph resources.
 
 ### Kernel Launch Helper Functions
 
-The following helper functions are provided for use with `cudaq_dispatcher_set_launch_fn()`:
+The following helper function is the dispatcher's default for the DEVICE
+ring path, and can also be passed to `cudaq_dispatcher_set_launch_fn()`:
 
 **`cudaq_launch_dispatch_kernel_regular`** launches the dispatch kernel in
-regular (non-cooperative) mode.
+regular mode.
 
 Parameters:
 
@@ -772,16 +791,6 @@ Parameters:
 - `stream`: CUDA stream for kernel launch
 
 Use this when `kernel_type` is set to `CUDAQ_KERNEL_REGULAR` in the dispatcher configuration.
-
-**`cudaq_launch_dispatch_kernel_cooperative`** launches the dispatch kernel in
-cooperative mode.
-
-Parameters: Same as `cudaq_launch_dispatch_kernel_regular`.
-
-Use this when `kernel_type` is set to `CUDAQ_KERNEL_COOPERATIVE`
-in the dispatcher configuration.
-This enables the dispatch kernel and handlers to use
-grid-wide synchronization via `cooperative_groups::this_grid().sync()`.
 
 ## Memory Layout and Ring Buffer Wiring
 
@@ -812,7 +821,7 @@ In the NIC-free path, flags and data are allocated with
 ## Step-by-Step: Wiring the Host API (Minimal)
 
 The snippet below is real code from
-`cudaqx/libs/qec/unittests/decoders/realtime/test_realtime_decoding.cu`:
+`cudaq-qec/libs/qec/unittests/decoders/realtime/test_realtime_decoding.cu`:
 
 ```cpp
 // Host API wiring
@@ -877,11 +886,11 @@ constexpr std::uint32_t MOCK_DECODE_FUNCTION_ID =
 __global__ void init_function_table(cudaq_function_entry_t* entries) {
   if (threadIdx.x == 0 && blockIdx.x == 0) {
     // Entry 0: Mock decoder
-    entries[0].handler.device_fn_ptr = 
+    entries[0].handler.device_fn_ptr =
         reinterpret_cast<void*>(&cudaq::qec::realtime::mock_decode_rpc);
     entries[0].function_id = MOCK_DECODE_FUNCTION_ID;
     entries[0].dispatch_mode = CUDAQ_DISPATCH_DEVICE_CALL;
-    
+
     // Schema: 1 arg (bit-packed detection events), 1 result (correction byte)
     entries[0].schema.num_args = 1;
     entries[0].schema.args[0] = {CUDAQ_TYPE_BIT_PACKED, {0}, 16, 128};  // 128 bits
@@ -897,14 +906,14 @@ __global__ void init_function_table(cudaq_function_entry_t* entries) {
 constexpr std::uint32_t ADVANCED_DECODE_FUNCTION_ID =
     cudaq::realtime::fnv1a_hash("advanced_decode");
 
-__global__ void init_advanced_handler(cudaq_function_entry_t* entries, 
+__global__ void init_advanced_handler(cudaq_function_entry_t* entries,
                                        uint32_t index) {
   if (threadIdx.x == 0 && blockIdx.x == 0) {
-    entries[index].handler.device_fn_ptr = 
+    entries[index].handler.device_fn_ptr =
         reinterpret_cast<void*>(&advanced_decode_rpc);
     entries[index].function_id = ADVANCED_DECODE_FUNCTION_ID;
     entries[index].dispatch_mode = CUDAQ_DISPATCH_DEVICE_CALL;
-    
+
     // Schema: 2 args (detection events + calibration), 1 result
     entries[index].schema.num_args = 2;
     entries[index].schema.args[0] = {CUDAQ_TYPE_BIT_PACKED, {0}, 16, 128};
@@ -965,7 +974,7 @@ __global__ void init_function_table_graph(cudaq_function_entry_t* entries) {
     entries[0].handler.graph_exec = /* pre-captured cudaGraphExec_t */;
     entries[0].function_id = DECODE_FUNCTION_ID;
     entries[0].dispatch_mode = CUDAQ_DISPATCH_GRAPH_LAUNCH;
-    
+
     // Schema: same as device call mode
     entries[0].schema.num_args = 1;
     entries[0].schema.args[0] = {TYPE_BIT_PACKED, {0}, 16, 128};
@@ -990,7 +999,7 @@ cudaStreamEndCapture(capture_stream, &graph);
 
 // Instantiate with device launch flag (required for device-side cudaGraphLaunch)
 cudaGraphExec_t graph_exec;
-cudaGraphInstantiateWithFlags(&graph_exec, graph, 
+cudaGraphInstantiateWithFlags(&graph_exec, graph,
                               cudaGraphInstantiateFlagDeviceLaunch);
 
 // Upload graph to device
@@ -1059,7 +1068,7 @@ Use `CUDAQ_DISPATCH_PATH_DEVICE` when:
 
 - Sub-microsecond dispatch latency is required (GPU-resident kernel avoids
     CPU round-trip)
-- Handlers are simple `__device__` functions or cooperative kernels
+- Handlers are simple `__device__` functions
 - Transport uses GPU-polled RDMA (e.g., GpuRoceTransceiver 3-kernel or unified mode)
 - Graph-based handlers are not needed, or the workload is limited to at most
     120 messages per session
@@ -1420,7 +1429,7 @@ when populating RX slots in a GpuRoceTransceiver deployment.
 /// @brief Write detection events to RX buffer in RPC format.
 void write_rpc_request(std::size_t slot, const std::vector<uint8_t>& measurements) {
   uint8_t* slot_data = const_cast<uint8_t*>(rx_data_host_) + slot * slot_size_;
-  
+
   // Write RPCHeader
   cudaq::realtime::RPCHeader* header =
       reinterpret_cast<cudaq::realtime::RPCHeader*>(slot_data);
@@ -1429,7 +1438,7 @@ void write_rpc_request(std::size_t slot, const std::vector<uint8_t>& measurement
   header->arg_len = static_cast<std::uint32_t>(measurements.size());
   header->request_id = static_cast<std::uint32_t>(slot);
   header->ptp_timestamp = 0;  // Set by FPGA in production; 0 for NIC-free tests
-  
+
   // Write measurement data after header
   memcpy(slot_data + sizeof(cudaq::realtime::RPCHeader),
          measurements.data(), measurements.size());
@@ -1453,7 +1462,7 @@ bool read_rpc_response(std::size_t slot, uint8_t& correction,
                        std::uint64_t* ptp_timestamp_out = nullptr) {
   __sync_synchronize();
   const uint8_t* slot_data = const_cast<uint8_t*>(tx_data_host_) + slot * slot_size_;
-  
+
   // Read RPCResponse
   const cudaq::realtime::RPCResponse* response =
       reinterpret_cast<const cudaq::realtime::RPCResponse*>(slot_data);
@@ -1470,11 +1479,11 @@ bool read_rpc_response(std::size_t slot, uint8_t& correction,
     *request_id_out = response->request_id;
   if (ptp_timestamp_out)
     *ptp_timestamp_out = response->ptp_timestamp;
-  
+
   if (response->status != 0) {
     return false;
   }
-  
+
   // Read correction data after response header
   correction = *(slot_data + sizeof(cudaq::realtime::RPCResponse));
   return true;
@@ -1491,9 +1500,9 @@ __device__ void parse_args_from_payload(
     const uint8_t* payload,
     const cudaq_handler_schema_t& schema,
     void** arg_ptrs) {
-  
+
   uint32_t offset = 0;
-  
+
   for (uint8_t i = 0; i < schema.num_args; i++) {
     arg_ptrs[i] = const_cast<uint8_t*>(payload + offset);
     offset += schema.args[i].size_bytes;
@@ -1503,14 +1512,14 @@ __device__ void parse_args_from_payload(
 __device__ void dispatch_with_schema(
     uint8_t* slot_data,
     const cudaq_function_entry_t& entry) {
-  
+
   RPCHeader* hdr = reinterpret_cast<RPCHeader*>(slot_data);
   uint8_t* payload = slot_data + sizeof(RPCHeader);
-  
+
   // Parse arguments using schema
   void* arg_ptrs[8];
   parse_args_from_payload(payload, entry.schema, arg_ptrs);
-  
+
   // Call handler with parsed arguments
   if (entry.dispatch_mode == CUDAQ_DISPATCH_DEVICE_CALL) {
     auto handler = reinterpret_cast<HandlerFn>(entry.handler.device_fn_ptr);
@@ -1563,7 +1572,7 @@ there is no kernel launch overhead in the hot path.
 
 Emulate RX/TX with mapped host memory:
 
-- `cudaqx` mock-decoder test:
+- `cudaq-qec` mock-decoder test:
   - `libs/qec/unittests/decoders/realtime/test_realtime_decoding.cu`
 - `cuda-quantum` host API test:
   - `realtime/unittests/test_dispatch_kernel.cu`
@@ -1578,7 +1587,7 @@ Note: Existing test files may use `SHOT_START` for
 backwards compatibility; this should be interpreted as `ROUND_START`
 in the context of realtime decoding.
 
-## Mock Decoder Example (`cudaqx`)
+## Mock Decoder Example (`cudaq-qec`)
 
 The mock decoder is registered as an RPC handler and invoked by the dispatch
 kernel. The tests show end-to-end wiring with detection events loaded from
@@ -1586,7 +1595,7 @@ the detection event file.
 
 See:
 
-- `cudaqx/libs/qec/unittests/decoders/realtime/test_realtime_decoding.cu`
+- `cudaq-qec/libs/qec/unittests/decoders/realtime/test_realtime_decoding.cu`
 
 ## Troubleshooting
 
@@ -1598,4 +1607,4 @@ See:
 
 - `cuda-quantum/realtime/unittests/test_dispatch_kernel.cu`
 - `cuda-quantum/realtime/unittests/test_host_dispatcher.cu`
-- `cudaqx/libs/qec/unittests/decoders/realtime/test_realtime_decoding.cu`
+- `cudaq-qec/libs/qec/unittests/decoders/realtime/test_realtime_decoding.cu`

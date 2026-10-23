@@ -8,12 +8,21 @@
 
 cmake_minimum_required(VERSION 3.30)
 
-# Refuse to configure in-source.  An in-source configure scatters
-# CMakeFiles/, Makefile, cmake_install.cmake, etc. through every
-# subdirectory that has a CMakeLists.txt -- see build/ for the expected
-# out-of-source layout.  Use `cmake -S . -B build` (or any other build
-# directory that isn't the source tree).
-if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
+# CUDA-Q Logical builds in one of two modes:
+#
+#  * In-tree: added as a subdirectory of the CUDA-Q build, either with
+#    -DCUDAQ_ENABLE_LOGICAL=ON or through CUDAQ_EXTERNAL_PROJECTS. CUDA-Q's own
+#    targets (cudaq::MLIR, the Python bindings, the LLVM/MLIR helpers) are used
+#    directly, so the build is self-consistent by construction.
+#  * Standalone: its own top-level project, built against an *installed* CUDA-Q
+#    development SDK (see cmake/SetupCUDAQ.cmake). This is how the wheel builds.
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+  set(QLX_IN_TREE OFF)
+else()
+  set(QLX_IN_TREE ON)
+endif()
+
+if(NOT QLX_IN_TREE AND CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
   message(FATAL_ERROR
     "In-source builds are not allowed.\n"
     "  Source dir: ${CMAKE_SOURCE_DIR}\n"
@@ -24,15 +33,11 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_BINARY_DIR)
     "  git clean -fdX  # (optional) after updating .gitignore")
 endif()
 
-# CUDA-Q Logical is always its own top-level CMake project. It is never added with
-# add_subdirectory() from CUDA-Q: the only supported configuration builds
-# against an *installed* CUDA-Q development SDK (see cmake/SetupCUDAQ.cmake).
-if(NOT CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
-  message(FATAL_ERROR
-    "CUDA-Q Logical must be configured as a top-level project, not via add_subdirectory().\n"
-    "Build it against an installed cudaq-devel SDK instead:\n"
-    "  cmake -S preview/logical -B preview/logical/build")
-endif()
+# Nothing here uses C++ modules. With C++20 and CMake >= 3.30, CMake otherwise
+# scans every source for module dependencies and requires clang-scan-deps, which
+# toolchains without it (e.g. the CI dev image) fail on. CUDA-Q's top-level
+# CMakeLists.txt does the same, so in-tree builds already inherit it.
+set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 
 project(cudaq-logical LANGUAGES CXX C)
 
@@ -44,13 +49,29 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+if(NOT QLX_IN_TREE)
+  set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
+  set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
+endif()
 
-set(QLX_TOOLS_DIR "${CMAKE_BINARY_DIR}/bin"
-  CACHE INTERNAL "Directory where CUDA-Q Logical command-line tools land")
-set(QLX_PYTHON_DIR "${CMAKE_BINARY_DIR}/python"
-  CACHE INTERNAL "Build-tree root of the CUDA-Q Logical Python package")
+# In-tree, the tools share CUDA-Q's bin/: its $ORIGIN-relative RPATHs (to
+# lib/ and the Python packages) are only valid from there.
+if(QLX_IN_TREE)
+  set(QLX_TOOLS_DIR "${CMAKE_BINARY_DIR}/bin"
+    CACHE INTERNAL "Directory where CUDA-Q Logical command-line tools land")
+else()
+  set(QLX_TOOLS_DIR "${PROJECT_BINARY_DIR}/bin"
+    CACHE INTERNAL "Directory where CUDA-Q Logical command-line tools land")
+endif()
+# In-tree, the Python package dovetails into CUDA-Q's own build-tree package
+# (cudaq/, cudaq/mlir/, cudaq/mlir/_mlir_libs/), exactly like an installation.
+if(QLX_IN_TREE)
+  set(QLX_PYTHON_DIR "${MLIR_BINARY_DIR}/python"
+    CACHE INTERNAL "Build-tree root of the CUDA-Q Python package")
+else()
+  set(QLX_PYTHON_DIR "${PROJECT_BINARY_DIR}/python"
+    CACHE INTERNAL "Build-tree root of the CUDA-Q Logical Python package")
+endif()
 
 # Wheels keep native executables inside the package so their loader paths are
 # stable relative to CUDA-Q's wheel-owned libraries.  Python console entry
@@ -78,7 +99,10 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 option(QLX_BUILD_USE_CCACHE "Use ccache as the C/C++/CUDA compiler launcher" OFF)
 
 # Use ccache as the C/C++/CUDA compiler launcher if it is available.
-find_program(CCACHE_EXECUTABLE ccache)
+# (CUDA-Q's own build already does so when it is the parent project.)
+if(NOT QLX_IN_TREE)
+  find_program(CCACHE_EXECUTABLE ccache)
+endif()
 if(CCACHE_EXECUTABLE)
   execute_process(
     COMMAND "${CCACHE_EXECUTABLE}" --version
@@ -132,28 +156,32 @@ include_directories(${CMAKE_CURRENT_BINARY_DIR}/ir/include)
 # --------------------------------------------------------------------------- #
 add_subdirectory(ir)
 
-# --------------------------------------------------------------------------- #
-# Build-tree package config — lets external backend worktrees find CUDA-Q Logical via
-# cmake -DQLX_DIR=<build>/lib/cmake/QLX ...
-# --------------------------------------------------------------------------- #
-export(TARGETS
-  MLIRQLXDialect
-  MLIRFabricDialect
-  MLIRLVMDialect
-  MLIRPhysDialect
-  MLIRCflowDialect
-  MLIREventDialect
-  NAMESPACE QLX::
-  FILE "${CMAKE_BINARY_DIR}/lib/cmake/QLX/QLXTargets.cmake"
-)
+if(NOT QLX_IN_TREE)
+  # --------------------------------------------------------------------------- #
+  # Build-tree package config — lets external backend worktrees find CUDA-Q Logical via
+  # cmake -DQLX_DIR=<build>/lib/cmake/QLX ...
+  # --------------------------------------------------------------------------- #
+  export(TARGETS
+    MLIRQLXDialect
+    MLIRFabricDialect
+    MLIRLVMDialect
+    MLIRPhysDialect
+    MLIRCflowDialect
+    MLIREventDialect
+    NAMESPACE QLX::
+    FILE "${PROJECT_BINARY_DIR}/lib/cmake/QLX/QLXTargets.cmake"
+  )
 
-configure_file(
-  "${CMAKE_SOURCE_DIR}/cmake/QLXConfig.cmake.in"
-  "${CMAKE_BINARY_DIR}/lib/cmake/QLX/QLXConfig.cmake"
-  @ONLY
-)
+  configure_file(
+    "${PROJECT_SOURCE_DIR}/cmake/QLXConfig.cmake.in"
+    "${PROJECT_BINARY_DIR}/lib/cmake/QLX/QLXConfig.cmake"
+    @ONLY
+  )
+endif()
 
-enable_testing()
+if(NOT QLX_IN_TREE)
+  enable_testing()
+endif()
 
 add_subdirectory(test)
 add_subdirectory(python)

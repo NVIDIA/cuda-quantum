@@ -1085,7 +1085,7 @@ if ${RUN_OPT}; then
 		# may be emitted by realtime-device-call.
 		OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "realtime-device-call,inline,canonicalize,cse")
 	else
-		OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "distributed-device-call{${INSERT_DEFAULT_DEVICE_CALL_IMPL}},canonicalize,cse")
+		OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "qir-device-call{${INSERT_DEFAULT_DEVICE_CALL_IMPL}},canonicalize,cse")
 	fi
 fi
 

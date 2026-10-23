@@ -1918,9 +1918,12 @@ struct QuantumGatePattern : public OpConversionPattern<OP> {
     auto loc = op.getLoc();
     SmallVector<Value> opParams = adaptor.getParameters();
     if (!opParams.empty()) {
-      // If this is adjoint, each parameter is negated.
+      // Note: PhasedRx adjoints reverse the rotation angle but keep the axis
+      // angle.
       if (op.getIsAdj()) {
-        for (std::size_t i = 0; i < opParams.size(); ++i)
+        const auto numAngles =
+            std::is_same_v<OP, cudaq::quake::PhasedRxOp> ? 1 : opParams.size();
+        for (std::size_t i = 0; i < numAngles; ++i)
           opParams[i] = arith::NegFOp::create(rewriter, loc, opParams[i]);
         if constexpr (std::is_same_v<OP, cudaq::quake::U2Op>) {
           std::swap(opParams[0], opParams[1]);

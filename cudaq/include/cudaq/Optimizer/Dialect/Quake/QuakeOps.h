@@ -78,26 +78,34 @@ inline bool isQuakeOperation(mlir::Operation *op) {
 
 namespace cudaq::quake {
 namespace detail {
-/// Scalar-wire inputs and the results that carry the same qubits by position.
-struct ScalarWireFlow {
+/// Wire inputs and the results that carry the same qubits by position.
+struct WireFlow {
   mlir::SmallVector<mlir::Value> inputs;
   mlir::SmallVector<mlir::Value> results;
 };
 
-/// Return the one-to-one scalar-wire flow for a memory-effect-free operator,
+/// Return the one-to-one wire flow for a memory-effect-free operator,
 /// measurement, or reset that owns no regions and has no successors.
 /// Operator inputs contain controls followed by targets in interface order.
 /// Measurement and reset inputs contain targets in interface order.
-/// Unsupported forms and mismatched input and result shapes return no value.
-std::optional<ScalarWireFlow> getScalarWireFlow(mlir::Operation *operation);
+/// Every operand and result must be a wire; `getThreadedWireFlow` accepts mixed
+/// forms. Unsupported forms and mismatched input and result shapes return no
+/// value.
+std::optional<WireFlow> getWireFlow(mlir::Operation *operation);
 
-/// Return the scalar-wire flow of an operator, measurement, or reset, ignoring
+/// True if the operation may modify memory or has effects that cannot be
+/// determined. Read-only operations (e.g. `quake.exp_pauli` reading a dynamic
+/// Pauli word) return false: they cannot change which qubit a wire or
+/// reference denotes.
+bool mayModifyMemory(mlir::Operation *operation);
+
+/// Return the wire flow of an operator, measurement, or reset, ignoring
 /// the operands that thread no wire. A `ref`, `veq`, or `control` operand has
 /// no corresponding result, so only the wire operands are paired with the wire
-/// results by position. Unlike `getScalarWireFlow`, this accepts the mixed
+/// results by position. Unlike `getWireFlow`, this accepts the mixed
 /// forms that arise when some operands are still in reference or control form.
 /// Unsupported forms and mismatched input and result shapes return no value.
-std::optional<ScalarWireFlow> getThreadedWireFlow(mlir::Operation *operation);
+std::optional<WireFlow> getThreadedWireFlow(mlir::Operation *operation);
 } // namespace detail
 
 /// Returns true if and only if any quantum operand has type `!quake.ref` or
@@ -125,62 +133,9 @@ inline std::optional<std::size_t> getVeqSize(mlir::Value v) {
   return std::nullopt;
 }
 
-/// A statically selectable scalar qubit represented by a top-level Quake
-/// target. A vector target records the element that must be extracted; a
-/// scalar reference or wire has no element index.
-struct StaticQubitTarget {
-  mlir::Value source;
-  std::size_t sourceIndex;
-  std::optional<std::size_t> elementIndex;
-};
-
 /// Return whether \p target is a single quantum value rather than an aggregate
 /// vector.
 bool isScalarQubitTarget(mlir::Value target);
-
-/// Plan a statically selectable scalar target without creating IR.
-inline std::optional<StaticQubitTarget>
-planStaticQubitTarget(mlir::Value target, std::size_t sourceIndex) {
-  if (isScalarQubitTarget(target))
-    return StaticQubitTarget{target, sourceIndex, std::nullopt};
-  if (auto size = getVeqSize(target); size && *size != 0)
-    return StaticQubitTarget{target, sourceIndex, *size - 1};
-  return std::nullopt;
-}
-
-/// Plan the last scalar target accepted by \p predicate without creating IR.
-template <typename Predicate>
-inline std::optional<StaticQubitTarget>
-findLastStaticQubitTarget(mlir::ValueRange targets, Predicate predicate) {
-  for (std::size_t i = targets.size(); i != 0; --i) {
-    auto finalTarget = planStaticQubitTarget(targets[i - 1], i - 1);
-    if (!finalTarget)
-      continue;
-    if (!finalTarget->elementIndex) {
-      if (predicate(*finalTarget))
-        return finalTarget;
-      continue;
-    }
-
-    for (std::size_t element = *finalTarget->elementIndex + 1; element != 0;
-         --element) {
-      StaticQubitTarget candidate{finalTarget->source, finalTarget->sourceIndex,
-                                  element - 1};
-      if (predicate(candidate))
-        return candidate;
-    }
-  }
-  return std::nullopt;
-}
-
-/// Plan a deterministic final scalar target without creating IR.
-std::optional<StaticQubitTarget>
-findLastStaticQubitTarget(mlir::ValueRange targets);
-
-/// Materialize a target selected by findLastStaticQubitTarget.
-mlir::Value materializeStaticQubitTarget(mlir::OpBuilder &builder,
-                                         mlir::Location location,
-                                         const StaticQubitTarget &target);
 
 /// Returns true if and only if any quantum operand has type `!quake.ref`.
 inline bool hasNonVectorReference(mlir::Operation *op) {

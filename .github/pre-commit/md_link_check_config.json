@@ -25,6 +25,10 @@
         "pattern": "^https://gcc.gnu.org/"
       },
       {
+        "_comment": "Connections from CI runners time out (ETIMEDOUT) although the site is live.",
+        "pattern": "^https://gmplib\\.org/"
+      },
+      {
         "_comment": "Cloudflare blocks programmatic clients (TLS fingerprint, not UA); no header workaround possible. Verified with curl + lychee + markdown-link-check across multiple UAs.",
         "pattern": "^https://en\\.cppreference\\.com/"
       },
@@ -47,6 +51,10 @@
       {
         "_comment": "Requires an NGC login. Returns 401 to unauthenticated clients even though the page is live.",
         "pattern": "^https://ngc\\.nvidia\\.com/setup/api-key"
+      },
+      {
+        "_comment": "Requires an IQM Resonance login. Returns 401 to unauthenticated clients even though the page is live.",
+        "pattern": "^https://resonance\\.iqm\\.tech/"
       },
       {
         "pattern": "microsoft.com/"

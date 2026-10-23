@@ -7,12 +7,14 @@
  ******************************************************************************/
 
 #include "TargetConfigHelper.h"
+#include "Yaml/TargetConfigSchema.h"
 #ifdef CUDAQ_ENABLE_PYTHON
 #include "LinkedLibraryHolder.h"
 #include "common/RuntimeTarget.h"
 #include "cudaq/platform/qpu_utils.h"
 #endif
 #include "cudaq/Target/TargetCatalog.h"
+#include "cudaq/Target/TargetConfigYaml.h"
 #include "cudaq/Target/TargetPluginLibrary.h"
 #include <cstdlib>
 #include <filesystem>
@@ -132,8 +134,162 @@ description: Version parsing test
 cudaq-version: "0.9.0-rc2+build.1"
 config:
   library-mode: true
-)");
+)",
+                                                       {});
   EXPECT_EQ(config.CudaqVersion, "0.9.0-rc2+build.1");
+}
+
+TEST(TargetConfigTester, parsesV2StagedPipeline) {
+  const auto config = cudaq::config::parseTargetConfig(R"(
+version: 2
+name: v2-target
+description: V2 schema coverage
+config:
+  platform-qpu: remote_rest
+  library-mode: false
+compile-target:
+  stages:
+    - ir-output-profile:
+        name: unchecked
+      lowering:
+        custom-pipeline:
+          high-level: "high-pipe"
+          mid-level: "mid-pipe"
+          low-level: "low-pipe"
+  codegen:
+    emission-format: qir-base
+    post-codegen-passes: "canonicalize"
+)",
+                                                       {});
+  ASSERT_TRUE(config.BackendConfig.has_value());
+  const auto &compileTarget = config.BackendConfig->CompileTarget;
+  ASSERT_EQ(compileTarget.stages.size(), 1);
+  EXPECT_TRUE(std::holds_alternative<cudaq::config::UncheckedProfile>(
+      compileTarget.stages[0].irOutputProfile));
+  const auto *lowering = std::get_if<cudaq::config::CustomPipelineLowering>(
+      &compileTarget.stages[0].lowering);
+  ASSERT_NE(lowering, nullptr);
+  EXPECT_EQ(lowering->highLevelPipeline, "high-pipe");
+  EXPECT_EQ(lowering->midLevelPipeline, "mid-pipe");
+  EXPECT_EQ(lowering->lowLevelPipeline, "low-pipe");
+  EXPECT_TRUE(lowering->overridePassPipeline.empty());
+  EXPECT_EQ(compileTarget.codegen.emissionFormat, "qir-base");
+  EXPECT_EQ(compileTarget.codegen.postCodegenPasses, "canonicalize");
+  EXPECT_EQ(config.getCodeGenSpec({}), "qir-base");
+  EXPECT_TRUE(config.BackendConfig->hasPassPipeline());
+}
+
+TEST(TargetConfigTester, parsesV2OverridePipeline) {
+  const auto config = cudaq::config::parseTargetConfig(R"(
+version: 2
+name: v2-override
+description: V2 override pipeline
+config:
+  library-mode: false
+compile-target:
+  stages:
+    - ir-output-profile:
+        name: unchecked
+      lowering:
+        custom-pipeline: "canonicalize,cse"
+  codegen: nop
+)",
+                                                       {});
+  ASSERT_TRUE(config.BackendConfig.has_value());
+  const auto &lowering =
+      config.BackendConfig->CompileTarget.getCustomPipelineLowering();
+  EXPECT_EQ(lowering.overridePassPipeline, "canonicalize,cse");
+  EXPECT_TRUE(lowering.highLevelPipeline.empty());
+  EXPECT_TRUE(lowering.midLevelPipeline.empty());
+  EXPECT_TRUE(lowering.lowLevelPipeline.empty());
+  EXPECT_TRUE(config.BackendConfig->hasPassPipeline());
+}
+
+TEST(TargetConfigTester, quakeReferenceSemanticsProfileIdentity) {
+  const cudaq::config::QuakeReferenceSemanticsProfile baseline{
+      .basisGates = {"h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)"},
+      .measurementType = cudaq::config::MeasurementForm::single_qubit,
+      .resetAfterMeasure = true};
+  const std::hash<cudaq::config::QuakeReferenceSemanticsProfile> hash;
+
+  // Distinct profile kinds are never equal.
+  EXPECT_NE(cudaq::config::Profile{cudaq::config::UncheckedProfile{}},
+            cudaq::config::Profile{baseline});
+
+  // Changing any single constraint changes equality and identity.
+  auto basisChanged = baseline;
+  basisChanged.basisGates = {"h", "rz"};
+  EXPECT_NE(basisChanged, baseline);
+  EXPECT_NE(hash(basisChanged), hash(baseline));
+
+  auto measurementTypeChanged = baseline;
+  measurementTypeChanged.measurementType = cudaq::config::MeasurementForm::any;
+  EXPECT_NE(measurementTypeChanged, baseline);
+  EXPECT_NE(hash(measurementTypeChanged), hash(baseline));
+
+  auto resetChanged = baseline;
+  resetChanged.resetAfterMeasure = false;
+  EXPECT_NE(resetChanged, baseline);
+  EXPECT_NE(hash(resetChanged), hash(baseline));
+}
+TEST(TargetConfigTester, quakeReferenceSemanticsProfileTargetIdentity) {
+  cudaq::CompileTarget target;
+  target.stages = {cudaq::config::CompilationStage{
+      .irOutputProfile = cudaq::config::QuakeReferenceSemanticsProfile{},
+      .lowering = cudaq::config::CustomPipelineLowering{}}};
+
+  // Profile options contribute to stage and compile-target identity.
+  cudaq::CompileTarget changed = target;
+  std::get<cudaq::config::QuakeReferenceSemanticsProfile>(
+      changed.stages[0].irOutputProfile)
+      .resetAfterMeasure = true;
+  EXPECT_NE(target, changed);
+  EXPECT_NE(std::hash<cudaq::CompileTarget>{}(target),
+            std::hash<cudaq::CompileTarget>{}(changed));
+}
+
+TEST(TargetConfigTester, v2RejectsV1CompilationKeys) {
+  const std::string yaml = R"(
+version: 2
+name: v2-invalid
+description: V1 compilation keys rejected under v2
+config:
+  library-mode: false
+  jit-mid-level-pipeline: "mid-pipe"
+)";
+  try {
+    (void)cudaq::config::parseTargetConfig(yaml, {});
+    FAIL() << "Expected parseTargetConfig to throw";
+  } catch (const std::runtime_error &error) {
+    EXPECT_NE(std::string(error.what()).find("Failed to parse"),
+              std::string::npos);
+  }
+}
+
+TEST(TargetConfigTester, v2RejectsMixedPipelineOptions) {
+  const std::string yaml = R"(
+version: 2
+name: v2-mixed
+description: Mixed pipeline options rejected
+config:
+  library-mode: false
+compile-target:
+  stages:
+    - ir-output-profile:
+        name: unchecked
+      lowering:
+        custom-pipeline:
+          override-pipeline: "canonicalize"
+          mid-level: "mid-pipe"
+  codegen: nop
+)";
+  try {
+    (void)cudaq::config::parseTargetConfig(yaml, {});
+    FAIL() << "Expected parseTargetConfig to throw";
+  } catch (const std::runtime_error &error) {
+    EXPECT_NE(std::string(error.what()).find("Failed to parse"),
+              std::string::npos);
+  }
 }
 
 TEST(TargetConfigTester, missingTargetConfigThrows) {
@@ -266,7 +422,7 @@ target-arguments:
           codegen-emission: qir-adaptive:1.0:int_computations,float_computations
 )";
 
-  auto config = cudaq::config::parseTargetConfig(configYmlContents);
+  auto config = cudaq::config::parseTargetConfig(configYmlContents, {});
   // No machine, use default
   EXPECT_EQ(config.getCodeGenSpec({}), "qir-base");
   // Unspecified machine, use default
@@ -347,7 +503,7 @@ target-arguments:
           codegen-emission: qir-adaptive:1.0:int_computations,float_computations
 )";
 
-  auto config = cudaq::config::parseTargetConfig(configYmlContents);
+  auto config = cudaq::config::parseTargetConfig(configYmlContents, {});
   // No machine, use default
   EXPECT_EQ(config.getCodeGenSpec({}), "qir-base");
   // Unmatched machine, use default
@@ -587,7 +743,9 @@ config:
   ASSERT_EQ(targets.count("my-backend"), 1);
   const auto &config = targets.at("my-backend").config;
   ASSERT_TRUE(config.BackendConfig.has_value());
-  EXPECT_EQ(config.BackendConfig->JITMidLevelPipeline,
+  const auto &lowering =
+      config.BackendConfig->CompileTarget.getCustomPipelineLowering();
+  EXPECT_EQ(lowering.midLevelPipeline,
             "map{device=file(" + expectedTopology + ")}");
   ASSERT_EQ(config.BackendConfig->PreprocessorDefines.size(), 1);
   EXPECT_EQ(config.BackendConfig->PreprocessorDefines.front(),

@@ -8,6 +8,7 @@
 
 #include "CUDAQTestUtils.h"
 #include "nvqir/Gates.h"
+#include "cudaq/ptsbe/PTSBESample.h"
 #include "cudaq/ptsbe/PTSBESamplerImpl.h"
 #include <cmath>
 
@@ -83,4 +84,51 @@ CUDAQ_TEST(TraceConversionTest, MultiTargetGate) {
   EXPECT_EQ(task.targets[0], 3u);
   EXPECT_EQ(task.targets[1], 7u);
   EXPECT_EQ(task.matrix.size(), 16u);
+}
+
+CUDAQ_TEST(TraceConversionTest, OpenControlsRestoreBeforeNoise) {
+  cudaq::Trace trace;
+  trace.appendInstruction("ry", {0.37}, {{2, 1}}, {{2, 0}}, {0});
+  trace.appendMeasurement("mz", {{2, 0}, {2, 1}});
+
+  cudaq::noise_model noise;
+  // Register X noise to detect accidental noise on the synthetic conjugations.
+  noise.add_channel("x", {1}, cudaq::bit_flip_channel(1.));
+  noise.add_channel("ry", {1, 0}, cudaq::depolarization2(0.1));
+  const auto converted = cudaq::ptsbe::detail::buildPTSBETrace(trace, noise);
+
+  // One modeled noise event follows the complete ideal X / controlled-Ry / X.
+  ASSERT_EQ(converted.size(), 5u);
+  for (const auto i : {0, 2}) {
+    EXPECT_EQ(converted[i].type, ptsbe::TraceInstructionType::Gate);
+    EXPECT_EQ(converted[i].name, "x");
+    EXPECT_EQ(converted[i].targets, (std::vector<std::size_t>{1}));
+    EXPECT_TRUE(converted[i].controls.empty());
+  }
+  EXPECT_EQ(converted[1].name, "ry");
+  EXPECT_EQ(converted[1].controls, (std::vector<std::size_t>{1}));
+  EXPECT_EQ(converted[1].targets, (std::vector<std::size_t>{0}));
+  EXPECT_EQ(converted[1].params, (std::vector<double>{0.37}));
+  EXPECT_EQ(converted[3].type, ptsbe::TraceInstructionType::Noise);
+  EXPECT_EQ(converted[4].type, ptsbe::TraceInstructionType::Measurement);
+}
+
+CUDAQ_TEST(TraceConversionTest, MixedControlsKeepOrder) {
+  cudaq::Trace trace;
+  trace.appendInstruction("swap", {}, {{2, 3}, {2, 0}, {2, 2}},
+                          {{2, 1}, {2, 4}}, {0, 1, 0});
+  trace.appendMeasurement("mz", {{2, 4}});
+  const auto converted =
+      cudaq::ptsbe::detail::buildPTSBETrace(trace, cudaq::noise_model{});
+
+  // Only q3 and q2 are open: X(q3), X(q2), SWAP, X(q2), X(q3).
+  // The central gate retains the original control order, including closed q0.
+  ASSERT_EQ(converted.size(), 6u);
+  EXPECT_EQ(converted[0].targets, (std::vector<std::size_t>{3}));
+  EXPECT_EQ(converted[1].targets, (std::vector<std::size_t>{2}));
+  EXPECT_EQ(converted[2].name, "swap");
+  EXPECT_EQ(converted[2].controls, (std::vector<std::size_t>{3, 0, 2}));
+  EXPECT_EQ(converted[2].targets, (std::vector<std::size_t>{1, 4}));
+  EXPECT_EQ(converted[3].targets, (std::vector<std::size_t>{2}));
+  EXPECT_EQ(converted[4].targets, (std::vector<std::size_t>{3}));
 }

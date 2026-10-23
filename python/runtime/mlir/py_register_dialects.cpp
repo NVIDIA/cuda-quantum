@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 #include "py_register_dialects.h"
-#include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/CAPI/Dialects.h"
 #include "cudaq/Optimizer/CodeGen/CodeGenDialect.h"
@@ -17,7 +16,6 @@
 #include "cudaq/Optimizer/Dialect/CC/CCTypes.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
-#include "cudaq/Optimizer/InitAllPasses.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include "mlir/InitAllDialects.h"
@@ -27,8 +25,6 @@
 #include <nanobind/stl/vector.h>
 
 using namespace mlir;
-
-static bool registered = false;
 
 static void registerQuakeDialectAndTypes(nanobind::module_ &m) {
   using namespace mlir::python::nanobind_adaptors;
@@ -41,11 +37,6 @@ static void registerQuakeDialectAndTypes(nanobind::module_ &m) {
         mlirDialectHandleRegisterDialect(handle, context);
         if (load)
           mlirDialectHandleLoadDialect(handle, context);
-
-        if (!registered) {
-          cudaq_internal::compiler::initializeMLIR();
-          registered = true;
-        }
       },
       nanobind::arg("load") = true,
       nanobind::arg("context") = nanobind::none());

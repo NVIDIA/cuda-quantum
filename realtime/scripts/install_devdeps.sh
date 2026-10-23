@@ -22,6 +22,9 @@
 #                      Default: /tmp/holoscan-sensor-bridge
 #   CUDA_NATIVE_ARCH   CUDA architectures to compile HSB for.
 #                      Default: derived from the CUDA toolkit version.
+#   CUDAQ_REALTIME_HSB_PATCH_DIR
+#                      Patches applied to the HSB clone.
+#                      Default: realtime/patches/hsb. Empty: none.
 
 set -e
 

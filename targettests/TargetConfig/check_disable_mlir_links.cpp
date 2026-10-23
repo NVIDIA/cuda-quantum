@@ -7,10 +7,10 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ --disable-mlir-links %s -o %s.x && ! ldd %s.x | grep -q libcudaq-mlir-runtime.so
-// RUN: nvq++ --disable-mlir-links %s -o %s.x && %s.x
+// RUN: nvq++ --disable-mlir-links %s -o %t && ! ldd %t | grep -q libcudaq-mlir-runtime.so
+// RUN: %t
 // We expect a failure when emulating a target that requires JIT compilation.
-// RUN: if %quantinuum_avail; then nvq++ --disable-mlir-links --target quantinuum --emulate %s -o %s.x && CUDAQ_LOG_LEVEL=info %s.x 2>&1 | FileCheck %s --check-prefix=FAIL; fi
+// RUN: if %quantinuum_avail; then nvq++ --disable-mlir-links --target quantinuum --emulate %s -o %t.emulate && CUDAQ_LOG_LEVEL=info %t.emulate 2>&1 | FileCheck %s --check-prefix=FAIL; fi
 // clang-format on
 
 #include "cudaq.h"

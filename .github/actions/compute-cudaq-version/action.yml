@@ -48,6 +48,7 @@ runs:
       shell: bash
       run: |
         set -euo pipefail
+        retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
         if [[ "$(git rev-parse --is-shallow-repository)" == "true" ]]; then
           echo "::error::Computing the CUDA-Q Logical version requires a full Git history. Set fetch-depth: 0 on actions/checkout."
           exit 1
@@ -55,7 +56,7 @@ runs:
 
         venv="$(mktemp -d)/venv"
         python3 -m venv "$venv"
-        "$venv/bin/python" -m pip install --quiet "setuptools-scm>=8,<9"
+        retry "$venv/bin/python" -m pip install --quiet "setuptools-scm>=8,<9"
         cudaq_logical_scmversion="$(
           "$venv/bin/python" -m setuptools_scm \
             -c preview/logical/python/pyproject.toml

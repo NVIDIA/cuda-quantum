@@ -23,9 +23,8 @@ using QubitIdMap = llvm::DenseMap<Value, QubitId>;
 
 // Initial construction preserves every identity it can prove independently.
 // An unknown input leaves only its corresponding result unidentified.
-static void
-propagateKnownQubitIds(llvm::DenseMap<Value, QubitId> &qubitIds,
-                       const cudaq::quake::detail::ScalarWireFlow &flow) {
+static void propagateKnownQubitIds(llvm::DenseMap<Value, QubitId> &qubitIds,
+                                   const cudaq::quake::detail::WireFlow &flow) {
   for (auto [input, result] : llvm::zip(flow.inputs, flow.results)) {
     auto qubitId = qubitIds.find(input);
     if (qubitId != qubitIds.end()) {
@@ -39,7 +38,7 @@ propagateKnownQubitIds(llvm::DenseMap<Value, QubitId> &qubitIds,
 // revisit existing downstream users after a later lane becomes known. A full
 // block-order rebuild can propagate each independently known lane.
 static bool registerQubitIds(llvm::DenseMap<Value, QubitId> &qubitIds,
-                             const cudaq::quake::detail::ScalarWireFlow &flow) {
+                             const cudaq::quake::detail::WireFlow &flow) {
   llvm::SmallVector<QubitId> inputIds;
   inputIds.reserve(flow.inputs.size());
   for (Value input : flow.inputs) {
@@ -118,11 +117,11 @@ static void buildQubitIdMap(Block &block, QubitIdMap &qubitIds) {
       continue;
     }
     if (isa<CallOpInterface>(operation) || operation.getNumRegions() != 0 ||
-        !isMemoryEffectFree(&operation)) {
+        cudaq::quake::detail::mayModifyMemory(&operation)) {
       referenceQubitIds.clear();
       continue;
     }
-    if (auto flow = cudaq::quake::detail::getScalarWireFlow(&operation))
+    if (auto flow = cudaq::quake::detail::getWireFlow(&operation))
       propagateKnownQubitIds(qubitIds, *flow);
   }
 }
@@ -154,10 +153,10 @@ bool QubitIdentityAnalysis::haveSameOrderedQubitIdentities(
 
 bool QubitIdentityAnalysis::registerOperation(Operation &operation) {
   if (isa<CallOpInterface>(operation) || operation.getNumRegions() != 0 ||
-      !isMemoryEffectFree(&operation))
+      cudaq::quake::detail::mayModifyMemory(&operation))
     return false;
 
-  if (auto flow = cudaq::quake::detail::getScalarWireFlow(&operation))
+  if (auto flow = cudaq::quake::detail::getWireFlow(&operation))
     return registerQubitIds(qubitIds, *flow);
 
   bool hasQuantumValue =

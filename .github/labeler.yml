@@ -3,8 +3,12 @@
 
 core compiler:
   - changed-files:
-    - any-glob-to-any-file:
+    - all-globs-to-any-file:
       - cudaq/**
+      - '!**/CMakeLists.txt'
+      - '!**/*.cmake'
+      - '!**/test/**'
+      - '!**/tests/**'
 
 'driver (nvq++)':
   - changed-files:
@@ -13,27 +17,39 @@ core compiler:
 
 c++ bridge:
   - changed-files:
-    - any-glob-to-any-file:
-      - cudaq/lib/Frontend/**
-      - cudaq/tools/cudaq-quake/**
+    - all-globs-to-any-file:
+      - '{cudaq/lib/Frontend,cudaq/tools/cudaq-quake}/**'
+      - '!**/CMakeLists.txt'
+      - '!**/*.cmake'
+      - '!**/test/**'
+      - '!**/tests/**'
 
 codegen:
   - changed-files:
-    - any-glob-to-any-file:
-      - cudaq/lib/Target/**
-      - cudaq/tools/cudaq-translate/**
+    - all-globs-to-any-file:
+      - '{cudaq/lib/Target,cudaq/tools/cudaq-translate}/**'
+      - '!**/CMakeLists.txt'
+      - '!**/*.cmake'
+      - '!**/test/**'
+      - '!**/tests/**'
 
 python-lang:
   - changed-files:
-    - any-glob-to-any-file:
+    - all-globs-to-any-file:
       - python/**
+      - '!**/CMakeLists.txt'
+      - '!**/*.cmake'
+      - '!**/test/**'
+      - '!**/tests/**'
 
 python bridge:
   - changed-files:
-    - any-glob-to-any-file:
-      - python/cudaq/kernel/**
-      - python/cudaq/mlir/**
-      - python/extension/**
+    - all-globs-to-any-file:
+      - '{python/cudaq/kernel,python/cudaq/mlir,python/extension}/**'
+      - '!**/CMakeLists.txt'
+      - '!**/*.cmake'
+      - '!**/test/**'
+      - '!**/tests/**'
 
 kernel builder:
   - changed-files:
@@ -43,13 +59,21 @@ kernel builder:
 
 runtime:
   - changed-files:
-    - any-glob-to-any-file:
+    - all-globs-to-any-file:
       - runtime/**
+      - '!**/CMakeLists.txt'
+      - '!**/*.cmake'
+      - '!**/test/**'
+      - '!**/tests/**'
 
 simulation:
   - changed-files:
-    - any-glob-to-any-file:
+    - all-globs-to-any-file:
       - runtime/nvqir/**
+      - '!**/CMakeLists.txt'
+      - '!**/*.cmake'
+      - '!**/test/**'
+      - '!**/tests/**'
 
 dynamics:
   - changed-files:
@@ -57,6 +81,7 @@ dynamics:
       - python/cudaq/dynamics/**
       - python/runtime/cudaq/dynamics/**
       - python/tests/dynamics/**
+      - unittests/dynamics/**
       - runtime/cudaq/dynamics_integrators.h
       - runtime/nvqir/cudensitymat/**
 
@@ -64,6 +89,7 @@ ptsbe:
   - changed-files:
     - any-glob-to-any-file:
       - runtime/cudaq/ptsbe/**
+      - unittests/ptsbe/**
 
 realtime:
   - changed-files:
@@ -73,11 +99,32 @@ realtime:
       - runtime/cudaq/realtime.cpp
       - runtime/cudaq/realtime/**
 
+cuda-q logical:
+  - changed-files:
+    - any-glob-to-any-file:
+      - preview/logical/**
+
+testing:
+  - changed-files:
+    - any-glob-to-any-file:
+      - unittests/**
+      - targettests/**
+      - cudaq/**/test/**
+      - runtime/**/test/**
+      - python/tests/**
+
+dependencies:
+  - changed-files:
+    - any-glob-to-any-file:
+      - pyproject.toml*
+      - requirements*.txt
+
 documentation:
   - changed-files:
     - any-glob-to-any-file:
       - docs/**
       - '*.md'
+      - llms.txt
 
 applications:
   - changed-files:
@@ -91,7 +138,8 @@ build:
       - cmake/**
       - docker/**
       - scripts/**
-      - CMakeLists.txt
+      - '**/CMakeLists.txt'
+      - '**/*.cmake'
 
 CI:
   - changed-files:

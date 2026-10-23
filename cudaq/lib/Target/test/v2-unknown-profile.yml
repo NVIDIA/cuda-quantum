@@ -1,0 +1,30 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+# RUN: not %target-catalog-driver parse %s 2>&1 | FileCheck %s
+
+# The IR profile tags are fixed by the schema; unknown profiles are rejected
+# with the list of allowed tags.
+
+version: 2
+name: lit-v2-unknown-profile
+description: "Unknown IR profile rejection coverage"
+config:
+  library-mode: false
+
+compile-target:
+  stages:
+    - ir-output-profile:
+        name: quake-value-semantics
+      lowering:
+        custom-pipeline: "canonicalize"
+  codegen: nop
+
+# CHECK: error: Failed to parse target configuration YAML
+# CHECK: could not match name 'quake-value-semantics'
+# CHECK: The following tags are allowed: unchecked, quake-reference-semantics

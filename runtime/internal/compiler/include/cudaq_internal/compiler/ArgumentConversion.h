@@ -51,12 +51,7 @@ class ArgumentConverter {
 public:
   /// Build an instance to create argument substitutions for a specified \p
   /// kernelName in \p sourceModule.
-  ///
-  /// Set \p boolVecBitPacked when `i1` vector arguments are host
-  /// `std::vector<bool>` (local-simulator launch path), not
-  /// `std::vector<char>`.
-  ArgumentConverter(mlir::StringRef kernelName, mlir::ModuleOp sourceModule,
-                    bool boolVecBitPacked = false);
+  ArgumentConverter(mlir::StringRef kernelName, mlir::ModuleOp sourceModule);
 
   ~ArgumentConverter() {
     for (auto *kInfo : kernelSubstitutions) {
@@ -115,10 +110,6 @@ private:
 
   /// Kernel we are substituting the arguments for.
   mlir::StringRef kernelName;
-
-  /// Whether `i1` vector arguments are bit-packed `std::vector<bool>` (vs
-  /// `std::vector<char>`). See the constructor.
-  bool boolVecBitPacked;
 };
 
 /// Merge modules from any CallableClosureArgument arguments into \p intoModule.

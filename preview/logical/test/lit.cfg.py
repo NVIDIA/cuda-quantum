@@ -7,6 +7,7 @@
 # ============================================================================ #
 
 import os
+import shutil
 import lit.formats
 import lit.util
 
@@ -42,6 +43,16 @@ if hasattr(config, "llvm_tools_dir") and config.llvm_tools_dir:
     path = config.llvm_tools_dir + os.pathsep + path
 config.environment["PATH"] = path
 
+# cudaq-opt runs CUDA-Q's own passes on the Quake that Logical emits. In-tree
+# it is in `qlx_tools_dir`, CUDA-Q's bin/. The `cudaq-devel` wheel keeps it
+# next to the LLVM tools. Other development setups have it on PATH.
+# `%cudaq_opt` expands to the path found. Adding its directory to PATH
+# instead could let an installed qlx-opt there shadow the one under test.
+_cudaq_opt = shutil.which("cudaq-opt", path=path)
+if _cudaq_opt:
+    config.available_features.add("cudaq-opt")
+    config.substitutions.append(("%cudaq_opt", _cudaq_opt))
+
 # Python support for FileCheck tests.
 #
 # The %python substitution is always available when an interpreter
@@ -63,8 +74,13 @@ if (hasattr(config, "python_executable") and config.python_executable and
     _probe_env = dict(os.environ)
     _probe_env["PYTHONPATH"] = config.qlx_python_dir
     _probe = subprocess.run([
-        config.python_executable, "-c",
-        "import _cudaq_logical_devpath, cudaq.logical"
+        config.python_executable, "-c", """
+try:
+    import _cudaq_logical_devpath  # standalone build trees only
+except ImportError:
+    pass
+import cudaq.logical
+"""
     ],
                             env=_probe_env,
                             capture_output=True)

@@ -47,6 +47,8 @@ uninstall call.
 
 from typing import Protocol, runtime_checkable
 
+# Keep the frontend import path as an alias of the shared capability protocol.
+from cudaq.core.backends import RuntimeEndpoint
 from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime import (
     CompiledModule,
     DEMResult,
@@ -72,40 +74,6 @@ __all__ = [
     "SupportsObserve",
     "SupportsSample",
 ]
-
-
-@runtime_checkable
-class RuntimeEndpoint(Protocol):
-    """A runtime endpoint is a Python object that can serve kernel launches.
-    
-    Implement one or several of the children protocols for each supported
-    launch policy.
-    
-    Although not required, it is recommended for user-defined endpoints to
-    inherit explicitly from this base class. This ensures all default
-    attributes values are inherited:
-
-    ```python
-    class MyEndpoint(RuntimeEndpoint):
-        def sample(self, module, args, **kwargs):
-            pass
-    
-    ep = MyEndpoint()
-    print(ep.is_simulator)  # True
-    print(ep.is_remote)    # False
-    print(ep.is_emulated)  # False
-    print(ep.supports_jit) # True
-    ```
-
-    Set ``supports_jit = False`` if the endpoint consumes the
-    ``CompiledModule``'s MLIR artifact itself. The runtime then skips local
-    code generation, which is otherwise built and discarded.
-    """
-
-    is_simulator: bool = True
-    is_remote: bool = False
-    is_emulated: bool = False
-    supports_jit: bool = True
 
 
 @runtime_checkable

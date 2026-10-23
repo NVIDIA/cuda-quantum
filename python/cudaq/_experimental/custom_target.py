@@ -45,24 +45,8 @@ will throw an error.
    compilation or execution errors.
 """
 
-from dataclasses import dataclass
-
-from .compile_target import CompileTarget
-from .runtime_endpoint import RuntimeEndpoint
+from cudaq.core.backends import CustomTarget
 
 __all__ = [
     "CustomTarget",
 ]
-
-
-@dataclass
-class CustomTarget:
-    """A compile target and runtime endpoint installed together.
-
-    Args:
-      runtime_endpoint: The endpoint that receives compiled kernels.
-      compile_target: The machine model kernels are compiled against.
-    """
-
-    runtime_endpoint: RuntimeEndpoint
-    compile_target: CompileTarget

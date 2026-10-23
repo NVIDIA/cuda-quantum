@@ -148,16 +148,21 @@ LogicalResult Decomposer::v_decomposition(cudaq::quake::OperatorInterface op) {
   }
 
   // Compute output
+  Operation *out;
   if (!isa<cudaq::quake::XOp, cudaq::quake::ZOp>(op)) {
-    createOperator(loc, name, parameters, ancillas.back(), targets, builder);
+    out = createOperator(loc, name, parameters, ancillas.back(), targets,
+                         builder);
   } else {
     cs = {controls.back(), ancillas.back()};
-    Operation *out =
-        createOperator(loc, name, parameters, cs, targets, builder);
+    out = createOperator(loc, name, parameters, cs, targets, builder);
     if (!negatedControls.empty() && negatedControls.back())
       out->setAttr("negated_qubit_controls",
                    builder.getDenseBoolArrayAttr({true, false}));
   }
+  // The compute/uncompute ladder is self-inverse, so only the output operator
+  // carries the source operator's adjoint.
+  if (op.isAdj())
+    out->setAttr("is_adj", builder.getUnitAttr());
 
   // Cleanup intermediate results
   for (Operation *op : llvm::reverse(toCleanup))
