@@ -15,6 +15,26 @@
 
 namespace cudaq {
 
+enum class OptimizationLevel : unsigned {
+  O0 = 0,
+  O1 = 1,
+  O2 = 2,
+  O3 = 3,
+};
+
+namespace detail {
+/// Process-wide defaults applied by `CompileOptions::populateDefaults`.
+///
+/// Set from Python via `cudaq.set_compile_options` and from `nvq++` via the
+/// `-O<N>` flags (see `CompileOptionsSetter` in `cudaq/host_config.h`).
+struct CompileOptionsDefaults {
+  OptimizationLevel optimizationLevel = OptimizationLevel::O1;
+};
+
+CompileOptionsDefaults getCompileOptionsDefaults();
+void setCompileOptionsDefaults(const CompileOptionsDefaults &defaults);
+} // namespace detail
+
 struct CompileOptions {
   /// Issue a warning if named measurements are contained in the kernel.
   bool warnNamedMeasurements = false;
@@ -74,6 +94,14 @@ struct CompileOptions {
   /// Whether to measure an observable at the end of the kernel, and if so,
   /// the observable to measure.
   std::optional<cudaq::spin_op> measureObservable;
+
+  /// The optimization level to use for the compilation. If unset,
+  /// `populateDefaults` fills it from the process-wide defaults.
+  std::optional<OptimizationLevel> optimizationLevel;
+
+  /// Set every unset option to its process-wide default (see
+  /// `detail::CompileOptionsDefaults`).
+  void populateDefaults();
 };
 
 } // namespace cudaq
@@ -89,6 +117,7 @@ struct std::hash<cudaq::CompileOptions> {
         o.warnNamedMeasurements, o.storeReorderIdx, o.emitResourceCounts,
         o.emitJit, o.emitTargetCode, o.skipTargetLoweringPipeline,
         o.addSampleMeasurements, o.failOnConditionalsOnMeasureResults,
-        o.emulate, o.disableQuantumOpts, o.boolVecBitPacked, pauliStr);
+        o.emulate, o.disableQuantumOpts, o.boolVecBitPacked, pauliStr,
+        o.optimizationLevel);
   }
 };

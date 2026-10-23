@@ -9,6 +9,7 @@
 #include "cudaq.h"
 #define LLVM_DISABLE_ABI_BREAKING_CHECKS_ENFORCING 1
 
+#include "common/CompileOptions.h"
 #include "common/FmtCore.h"
 #include "common/ThunkInterface.h"
 #include "cudaq/Target/TargetConfigYaml.h"
@@ -243,6 +244,16 @@ YamlTargetConfigDisabler::YamlTargetConfigDisabler() {
 TargetSetter::TargetSetter(const char *backend) {
   auto &platform = cudaq::get_platform();
   platform.setTargetBackend(std::string(backend));
+}
+
+CompileOptionsSetter::CompileOptionsSetter(unsigned optimizationLevel) {
+  if (optimizationLevel > static_cast<unsigned>(OptimizationLevel::O3))
+    throw std::runtime_error(fmt::format(
+        "Invalid optimization level {}; expected 0 to 3.", optimizationLevel));
+  auto defaults = getCompileOptionsDefaults();
+  defaults.optimizationLevel =
+      static_cast<OptimizationLevel>(optimizationLevel);
+  setCompileOptionsDefaults(defaults);
 }
 } // namespace cudaq::detail
 

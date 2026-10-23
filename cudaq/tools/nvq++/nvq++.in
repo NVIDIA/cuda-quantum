@@ -291,6 +291,10 @@ function show_help {
 -g
 	Enable debugging output.
 
+-O0 | -O1 | -O2 | -O3
+	Set the optimization level. Also sets the default CUDA-Q compile
+	optimization level used when kernels are JIT compiled at runtime.
+
 -static-libstdc++
 	Statically link the CUDA-Q C++ standard library to create a CUDA-Q binary that can be linked with another standard library.
 
@@ -543,6 +547,7 @@ ENABLE_LAMBDA_LIFTING=true
 ENABLE_QUANTUM_OPTIMIZATION=true
 ENABLE_MLIR_LIB_LINKING=true
 DELETE_TEMPS=true
+CUDAQ_OPT_LEVEL=
 TARGET_CONFIG=
 TARGET_CONFIG_FILE=
 EXPLICIT_TARGET=false
@@ -740,6 +745,11 @@ while [ $# -ne 0 ]; do
 		CUDAQ_TRANSLATE_ARGS="${CUDAQ_TRANSLATE_ARGS} --mlir-print-debuginfo"
 		CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} -g"
 		LLC_FLAGS="${LLC_FLAGS} --dwarf64"
+		;;
+	-O0 | -O1 | -O2 | -O3)
+		CUDAQ_OPT_LEVEL="${1#-O}"
+		ARGS="${ARGS} $1"
+		CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} --Xcudaq $1"
 		;;
 	-static-libstdc++)
 		LINKER_FLAGS="${LINKER_FLAGS} -static-libstdc++"
@@ -939,6 +949,10 @@ if [ -n "${TARGET_CONFIG}" ]; then
 		OBJS="${OBJS} ${GEN_OBJ}"
 		LINKER_FLAGS="${LINKER_FLAGS} ${EXPORT_DYNAMIC_FLAG}"
 	fi
+fi
+
+if [ -n "${CUDAQ_OPT_LEVEL}" ]; then
+	PREPROCESSOR_DEFINES="${PREPROCESSOR_DEFINES} -D NVQPP_OPTIMIZATION_LEVEL=${CUDAQ_OPT_LEVEL}"
 fi
 
 if ! ${ENABLE_QUANTUM_OPTIMIZATION}; then

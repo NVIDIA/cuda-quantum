@@ -39,6 +39,7 @@ function(add_cudaq_hybrid_test TEST_NAME)
 endfunction()
 
 add_cudaq_hybrid_test(argument_conversion)
+add_cudaq_hybrid_test(compile_options_defaults)
 add_cudaq_hybrid_test(compile_target)
 add_cudaq_hybrid_test(compile_target_conditional_feedback_crash)
 add_cudaq_hybrid_test(resource_count_phase)
@@ -102,6 +103,7 @@ if (CUDAQ_BUILD_TESTS AND NOT CUDAQ_DISABLE_CPP_FRONTEND)
   set(RUNTIME_TEST_DEPENDS
     FileCheck
     argument_conversion
+    compile_options_defaults
     compile_target
     compile_target_conditional_feedback_crash
     profile_providers

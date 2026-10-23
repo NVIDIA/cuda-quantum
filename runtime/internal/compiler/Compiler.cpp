@@ -132,6 +132,7 @@ cudaq_internal::compiler::Compiler::Compiler(
     const cudaq::CompileTarget &target_, const cudaq::CompileOptions &options_,
     std::vector<std::unique_ptr<LoweringHandler>> handlers_)
     : target(target_), options(options_), handlers(std::move(handlers_)) {
+  options.populateDefaults();
   emulate = options.emulate;
 
   cudaq_internal::compiler::initializeMLIR();

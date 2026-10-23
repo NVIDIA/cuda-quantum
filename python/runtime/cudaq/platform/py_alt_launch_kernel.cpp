@@ -728,6 +728,7 @@ getCompileConfig(std::optional<cudaq::CompileTarget> target = std::nullopt) {
   if (!cudaq::platform_supports_jit())
     options.emitJit = false;
   options.boolVecBitPacked = !isRemote && !isEmulated;
+  options.populateDefaults();
 
   return {*std::move(target), std::move(options)};
 }
