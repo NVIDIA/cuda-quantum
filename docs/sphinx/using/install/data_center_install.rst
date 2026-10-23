@@ -416,8 +416,10 @@ commands, for example, install the necessary packages for the AlmaLinux 8 enviro
     :start-after: [>CUDARTInstall]
     :end-before: [<CUDARTInstall]
 
-The ``dynamics`` target uses `CuPy <https://cupy.dev>`__, which compiles kernels at runtime and can need the
-CUDA headers. If it reports missing headers, install ``cuda-cudart-dev-<version>`` or the complete CUDA toolkit.
+`CuPy <https://cupy.dev>`__ compiles kernels at runtime and needs the CUDA headers, which the runtime libraries
+do not include. Without them it fails with "Failed to find CUDA headers", for example when using the ``dynamics`` target.
+Install ``cuda-cudart-dev-<version>`` or the complete CUDA toolkit, or install CuPy with its ``ctk`` extra,
+for example ``pip install cupy-cuda13x[ctk]``.
 
 MPI
 ~~~~~~
