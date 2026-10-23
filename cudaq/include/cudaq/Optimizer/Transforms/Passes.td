@@ -558,7 +558,8 @@ def ConvertToCFG : Pass<"convert-to-cfg"> {
            "factor-quantum-alloc, as in the quake_fake mid-level pipeline.">
   ];
 
-  let dependentDialects = [ "mlir::cf::ControlFlowDialect" ];
+  let dependentDialects = [
+    "mlir::cf::ControlFlowDialect", "mlir::LLVM::LLVMDialect"];
 }
 
 def ConvertToCFGPrep : Pass<"convert-to-cfg-prep", "mlir::ModuleOp"> {
@@ -566,6 +567,8 @@ def ConvertToCFGPrep : Pass<"convert-to-cfg-prep", "mlir::ModuleOp"> {
   let description = [{
     This pass must be run before the ConvertToCFG pass.
   }];
+
+  let dependentDialects = ["mlir::LLVM::LLVMDialect"];
 }
 
 def ConvertToDirectCalls : Pass<"indirect-to-direct-calls", "mlir::ModuleOp"> {
@@ -1929,9 +1932,9 @@ def RealtimeDeviceCall : Pass<"realtime-device-call", "mlir::ModuleOp"> {
   // marshaling, `func` calls/declarations for the runtime ABI, and may
   // materialize `quake.discriminate` (within the loaded packing intrinsics)
   // when converting measurement-handle vectors to boolean payload bytes.
-  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::arith::ArithDialect",
-                           "mlir::func::FuncDialect",
-                           "cudaq::quake::QuakeDialect"];
+  let dependentDialects = ["mlir::arith::ArithDialect",
+    "mlir::func::FuncDialect", "mlir::LLVM::LLVMDialect",
+    "cudaq::cc::CCDialect", "cudaq::quake::QuakeDialect"];
 }
 
 def RegToMem : Pass<"regtomem", "mlir::func::FuncOp"> {
