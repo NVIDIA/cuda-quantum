@@ -456,10 +456,55 @@ TEST(Tensor, exponentialNilpotentAndZero) {
     expected(0, 2) = matrix(0, 1) * matrix(1, 2) / 2.;
     for (std::size_t i = 0; i < 3; ++i)
       for (std::size_t j = 0; j < 3; ++j)
-        EXPECT_EQ(actual(i, j), expected(i, j));
+        EXPECT_NEAR(std::abs(actual(i, j) - expected(i, j)), 0., 1e-14);
   }
   cudaq::complex_matrix rectangular(2, 3);
   EXPECT_THROW(rectangular.exponential(), std::runtime_error);
+}
+
+TEST(Tensor, exponentialLargeNorm) {
+  // A 20-term Taylor series loses all accuracy at these norms.
+  {
+    cudaq::complex_matrix matrix(2, 2);
+    const std::complex<double> z(30., 40.);
+    matrix(0, 1) = z;
+    matrix(1, 0) = -std::conj(z);
+    const auto actual = matrix.exponential();
+    // A^2 = -|z|^2 I, so exp(A) = cos(|z|) I + sin(|z|) A / |z|.
+    for (std::size_t i = 0; i < 2; ++i)
+      for (std::size_t j = 0; j < 2; ++j) {
+        const auto expected = i == j ? std::complex<double>(std::cos(50.))
+                                     : std::sin(50.) / 50. * matrix(i, j);
+        EXPECT_NEAR(std::abs(actual(i, j) - expected), 0., 1e-12);
+      }
+  }
+  {
+    cudaq::complex_matrix matrix(2, 2);
+    matrix(0, 0) = -30.;
+    matrix(1, 1) = 20.;
+    const auto actual = matrix.exponential();
+    EXPECT_NEAR(actual(0, 0).real() / std::exp(-30.), 1., 1e-12);
+    EXPECT_NEAR(actual(1, 1).real() / std::exp(20.), 1., 1e-12);
+    EXPECT_EQ(actual(0, 1), std::complex<double>(0.));
+    EXPECT_EQ(actual(1, 0), std::complex<double>(0.));
+  }
+  {
+    // Truncated displacement generator alpha a^dag - conj(alpha) a. It is
+    // anti-Hermitian, so its exponential must be unitary.
+    const std::size_t dim = 10;
+    const std::complex<double> alpha(2., 0.);
+    cudaq::complex_matrix matrix(dim, dim);
+    for (std::size_t i = 0; i + 1 < dim; ++i) {
+      matrix(i + 1, i) = alpha * std::sqrt(static_cast<double>(i + 1));
+      matrix(i, i + 1) =
+          -std::conj(alpha) * std::sqrt(static_cast<double>(i + 1));
+    }
+    auto exp = matrix.exponential();
+    const auto product = exp.adjoint() * exp;
+    for (std::size_t i = 0; i < dim; ++i)
+      for (std::size_t j = 0; j < dim; ++j)
+        EXPECT_NEAR(std::abs(product(i, j) - (i == j ? 1. : 0.)), 0., 1e-12);
+  }
 }
 
 TEST(Tensor, eigenvalues) {
