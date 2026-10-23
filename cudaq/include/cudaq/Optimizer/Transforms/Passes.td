@@ -1880,6 +1880,9 @@ def QuakeSimplify : Pass<"quake-simplify"> {
     A rotation is erased when its folded angle has magnitude at or below
     `threshold`.
 
+    When two constant rotations merge, a sum within floating-point roundoff of
+    a multiple of `pi/4`, zero included, is replaced by that exact multiple.
+
     The optional `rotations-to-clifford-t` pattern family recognizes constant
     `r1`, `rx`, `ry`, and `rz` angles at multiples of `pi/4` and replaces them
     with named-gate sequences instead of leaving them for approximate synthesis.

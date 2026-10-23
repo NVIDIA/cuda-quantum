@@ -44,8 +44,8 @@ static Value emitSimplifiedRotation(PatternRewriter &rewriter, QOP rotation,
         cast<FloatType>(rotation.getParameter().getType());
     const llvm::APFloat phaseAngle = [&] {
       // Compute the canonical angle in the source semantics.
-      llvm::APFloat value = cudaq::opt::detail::canonicalQuarterTurns(
-          quarterTurns, phaseType.getFloatSemantics());
+      llvm::APFloat value = cudaq::opt::detail::canonicalMultipleOfPi(
+          quarterTurns, /*denominator=*/4, phaseType.getFloatSemantics());
       // Divide the angle by two.
       value =
           llvm::scalbn(value, -1, llvm::APFloat::rmNearestTiesToEven);
