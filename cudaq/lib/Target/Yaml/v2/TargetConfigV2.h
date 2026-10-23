@@ -64,7 +64,7 @@ struct UncheckedProfileV2 {
 
 /// IR profile for reference-semantics Quake IR.
 struct QuakeReferenceSemanticsProfileV2 {
-  using Tag = rfl::Literal<"quake-reference-semantics">;
+  using Tag = rfl::Literal<QuakeReferenceSemanticsProfile::name>;
 
   /// Valid options.
   struct QuakeReferenceSemanticsProfileOptionsV2 {
@@ -95,9 +95,11 @@ struct CustomPipelineLoweringV2 {
 
 /// One compilation stage: the IR output profile to lower to and the lowering
 /// to get there.
+///
+/// An omitted `lowering` defaults to `InferredLowering`.
 struct CompilationStageV2 {
   IrOutputProfileV2 irOutputProfile;
-  CustomPipelineLoweringV2 lowering;
+  std::optional<CustomPipelineLoweringV2> lowering;
 };
 
 /// Code generation: emission format and optional `post-codegen-passes`

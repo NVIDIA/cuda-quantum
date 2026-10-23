@@ -67,7 +67,7 @@ std::string cudaq::detail::lower_to_qir_llvm(const std::string &name,
   // RuntimeMLIR.cpp?
   PassManager pm(compiled_module.getContext());
   const auto &t = compiler.getTarget();
-  if (t.stages.empty() || t.getCustomPipelineLowering().empty()) {
+  if (!t.hasPassPipeline()) {
     cudaq::opt::addAggressiveInlining(pm);
     cudaq::opt::createTargetFinalizePipeline(pm);
   }
@@ -119,7 +119,7 @@ std::string cudaq::detail::lower_to_openqasm(const std::string &name,
   auto *ctx = compiled_module.getContext();
   PassManager pm(ctx);
   const auto &t = compiler.getTarget();
-  if (t.stages.empty() || t.getCustomPipelineLowering().empty()) {
+  if (!t.hasPassPipeline()) {
     cudaq::opt::addAggressiveInlining(pm);
     cudaq::opt::createTargetFinalizePipeline(pm);
   }

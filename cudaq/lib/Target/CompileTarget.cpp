@@ -10,37 +10,6 @@
 #include "cudaq/Support/Hash.h"
 #include "cudaq/Target/TargetConfig.h"
 #include <cctype>
-#include <cstdlib>
-#include <iostream>
-
-/// Report an unsupported compilation stage and terminate.
-[[noreturn]] static void reportUnsupportedStage() {
-  std::cerr << "Unsupported compilation stage: only a single stage with a "
-               "custom-pipeline lowering is currently supported\n";
-  std::abort();
-}
-
-const cudaq::config::CustomPipelineLowering &
-cudaq::CompileTarget::getCustomPipelineLowering() const {
-  if (stages.size() != 1)
-    reportUnsupportedStage();
-  const auto *lowering =
-      std::get_if<config::CustomPipelineLowering>(&stages[0].lowering);
-  if (!lowering)
-    reportUnsupportedStage();
-  return *lowering;
-}
-
-cudaq::config::CustomPipelineLowering &
-cudaq::CompileTarget::getCustomPipelineLowering() {
-  if (stages.size() != 1)
-    reportUnsupportedStage();
-  auto *lowering =
-      std::get_if<config::CustomPipelineLowering>(&stages[0].lowering);
-  if (!lowering)
-    reportUnsupportedStage();
-  return *lowering;
-}
 
 const std::string *cudaq::CompileTarget::getOverridePassPipeline() const {
   if (stages.size() != 1)
@@ -146,6 +115,18 @@ cudaq::CompileTarget cudaq::CompileTarget::createFromConfig(
   return target;
 }
 
+/// Whether lowering should be skipped altogether in this compilation stage
+/// (true when an empty custom pipeline is specified).
+static bool skipLoweringPipeline(const cudaq::config::CompilationStage &stage) {
+  const auto *custom =
+      std::get_if<cudaq::config::CustomPipelineLowering>(&stage.lowering);
+  return custom && custom->empty();
+}
+
+bool cudaq::CompileTarget::hasPassPipeline() const {
+  return !std::all_of(stages.begin(), stages.end(), skipLoweringPipeline);
+}
+
 std::size_t std::hash<cudaq::CompileTarget>::operator()(
     const cudaq::CompileTarget &t) const noexcept {
   return cudaq::detail::hashVal(
@@ -179,6 +160,13 @@ std::size_t std::hash<cudaq::config::CustomPipelineLowering>::operator()(
   return cudaq::detail::hashVal(
       lowering.overridePassPipeline, lowering.highLevelPipeline,
       lowering.midLevelPipeline, lowering.lowLevelPipeline);
+}
+
+std::size_t std::hash<cudaq::config::InferredLowering>::operator()(
+    const cudaq::config::InferredLowering &) const noexcept {
+  // Fixed tag: the lowering kind contributes to stage hashes, keeping an
+  // inferred lowering distinct from any custom pipeline (even an empty one).
+  return 0x5e1f9a3b;
 }
 
 std::size_t std::hash<cudaq::config::Codegen>::operator()(
