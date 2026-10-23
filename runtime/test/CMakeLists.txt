@@ -45,8 +45,8 @@ add_cudaq_hybrid_test(resource_count_phase)
 add_cudaq_hybrid_test(resource_count_qubit_indices)
 add_cudaq_hybrid_test(resource_count_wireset)
 
-# profile_stages exercises pure C++ inferred-stage planning; no MLIR/runtime
-# closure.
+# profile_stages exercises pure C++ inferred-stage planning and compile-target
+# YAML validation; no MLIR/runtime closure.
 add_executable(profile_stages Regress/profile_stages.cpp
                ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/JITTargetPipeline.cpp
                ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/LoweringHandler.cpp)
@@ -56,7 +56,7 @@ target_include_directories(profile_stages PRIVATE
                            ${CMAKE_SOURCE_DIR}/runtime/include
                            ${CMAKE_SOURCE_DIR}/runtime/cudaq
                            ${CMAKE_SOURCE_DIR}/cudaq/include)
-target_link_libraries(profile_stages PRIVATE CUDAQTargetConfig cudaq-logger)
+target_link_libraries(profile_stages PRIVATE CUDAQTargetCatalog cudaq-logger)
 set_target_properties(profile_stages PROPERTIES
                       RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 

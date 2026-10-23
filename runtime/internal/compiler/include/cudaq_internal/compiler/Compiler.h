@@ -147,9 +147,9 @@ public:
 ///  - `CustomPipelineLowering`: appends the override pipeline, or its
 ///  high/mid/low pipelines interleaved with the standard prep/deploy/finalize
 ///  stages.
-//   - `InferredLowering`: infers the pipeline using the registered lowering
-//   handlers, based on the stage's input and output profiles. Fills \p
-//   diagnostic when an inferred stage cannot be lowered.
+///   - `InferredLowering`: infers the pipeline using the registered lowering
+///   handlers, based on the stage's input and output profiles. Fills \p
+///   diagnostic when an inferred stage cannot be lowered.
 std::optional<std::string>
 getPassPipeline(const cudaq::CompileTarget &target,
                 const cudaq::CompileOptions &options,

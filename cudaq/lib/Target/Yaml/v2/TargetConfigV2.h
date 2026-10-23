@@ -64,7 +64,7 @@ struct UncheckedProfileV2 {
 
 /// IR profile for reference-semantics Quake IR.
 struct QuakeReferenceSemanticsProfileV2 {
-  using Tag = rfl::Literal<"quake-reference-semantics">;
+  using Tag = rfl::Literal<QuakeReferenceSemanticsProfile::name>;
 
   /// Valid options.
   struct QuakeReferenceSemanticsProfileOptionsV2 {
@@ -110,6 +110,8 @@ struct CodegenV2 {
 };
 
 struct CompileTargetV2 {
+  /// Compilation stages. Multi-stage support is currently limited to inferred
+  /// lowerings.
   std::vector<CompilationStageV2> stages;
   /// Either a plain emission-format string or the full `codegen` mapping.
   rfl::DefaultVal<rfl::Variant<std::string, CodegenV2>> codegen;

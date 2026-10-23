@@ -52,18 +52,17 @@ static std::string codegenRepr(const cudaq::config::Codegen &codegen) {
   return os.str();
 }
 
+static void reportUnsupportedStage() {
+  CUDAQ_ERROR("Unsupported compilation stage: only a single stage with a "
+              "custom-pipeline lowering is currently supported\n");
+}
+
 /// Access the custom pipeline lowering of a compile target with a single
 /// compilation stage.
 // TODO: Remove this once the Python bindings have been updated to handle
 // multiple stages.
 static const cudaq::config::CustomPipelineLowering &
 getCustomPipelineLowering(const cudaq::CompileTarget &target) {
-
-  auto reportUnsupportedStage = []() {
-    CUDAQ_ERROR("Unsupported compilation stage: only a single stage with a "
-                "custom-pipeline lowering is currently supported\n");
-  };
-
   if (target.stages.size() != 1)
     reportUnsupportedStage();
   const auto *lowering = std::get_if<cudaq::config::CustomPipelineLowering>(
@@ -74,12 +73,6 @@ getCustomPipelineLowering(const cudaq::CompileTarget &target) {
 }
 static cudaq::config::CustomPipelineLowering &
 getCustomPipelineLowering(cudaq::CompileTarget &target) {
-
-  auto reportUnsupportedStage = []() {
-    CUDAQ_ERROR("Unsupported compilation stage: only a single stage with a "
-                "custom-pipeline lowering is currently supported\n");
-  };
-
   if (target.stages.size() != 1)
     reportUnsupportedStage();
   auto *lowering = std::get_if<cudaq::config::CustomPipelineLowering>(

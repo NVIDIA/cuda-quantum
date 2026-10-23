@@ -22,8 +22,6 @@ compile-target:
   stages:
     - ir-output-profile:
         name: unchecked
-      lowering:
-        custom-pipeline: "func.func(canonicalize)"
     - ir-output-profile:
         name: quake-reference-semantics
         options:
@@ -32,7 +30,7 @@ compile-target:
   codegen: qir-base
 
 # CHECK: kBuiltinTarget_v2_multi
-# CHECK: .stages = {cudaq::config::CompilationStage{.irOutputProfile = cudaq::config::Profile{std::in_place_type<cudaq::config::UncheckedProfile>}, .lowering = cudaq::config::CustomPipelineLowering{.overridePassPipeline = "func.func(canonicalize)"
+# CHECK: .stages = {cudaq::config::CompilationStage{.irOutputProfile = cudaq::config::Profile{std::in_place_type<cudaq::config::UncheckedProfile>}, .lowering = cudaq::config::InferredLowering{}}
 # CHECK: cudaq::config::CompilationStage{.irOutputProfile = cudaq::config::Profile{std::in_place_type<cudaq::config::QuakeReferenceSemanticsProfile>, cudaq::config::QuakeReferenceSemanticsProfile{.basisGates = {"h", "s", "rz", }, .measurementType = cudaq::config::MeasurementForm::any, .resetAfterMeasure = false}
 # CHECK: .lowering = cudaq::config::InferredLowering{}}, }
 # CHECK: .codegen = cudaq::config::Codegen{.emissionFormat = "qir-base"

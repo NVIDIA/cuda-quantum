@@ -10,6 +10,7 @@
 
 #include "Yaml/v2/TargetConfigV2.h"
 #include "Yaml/CanonicalConversion.h"
+#include <algorithm>
 
 static cudaq::config::Profile
 toCanonicalProfile(const cudaq::config::v2::UncheckedProfileV2 &profile) {
@@ -87,6 +88,12 @@ cudaq::config::v2::toCanonical(const TargetConfigV2 &cfg) {
   if (cfg.compileTarget && !cfg.config)
     throw std::runtime_error(
         "'compile-target' requires a 'config' section to attach to.");
+  if (cfg.compileTarget && cfg.compileTarget->stages.size() > 1 &&
+      std::ranges::any_of(cfg.compileTarget->stages, [](const auto &stage) {
+        return stage.lowering.has_value();
+      }))
+    throw std::runtime_error("A compile-target stage with a 'custom-pipeline' "
+                             "lowering must be the only stage.");
 
   TargetConfig out;
   out.Name = cfg.name;

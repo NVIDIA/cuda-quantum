@@ -12,6 +12,9 @@
 
 #include "cudaq_internal/compiler/Compiler.h"
 #include "cudaq_internal/compiler/LoweringHandler.h"
+#include "cudaq/Target/TargetConfigYaml.h"
+#include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <memory>
 #include <optional>
@@ -168,6 +171,38 @@ void test_zero_stages() {
 // CHECK: zero stages: pipeline=""
 // CHECK: zero stages handler calls: 0
 
+// A YAML compile target that combines a custom-pipeline stage with another
+// stage is rejected.
+void test_custom_stage_not_alone() {
+  const auto path = std::filesystem::temp_directory_path() /
+                    "profile_stages_custom_stage_not_alone.yml";
+  std::ofstream(path) << R"(
+version: 2
+name: custom-stage-not-alone
+description: "A custom-pipeline stage followed by an inferred stage"
+config:
+  gen-target-backend: true
+compile-target:
+  stages:
+    - ir-output-profile:
+        name: unchecked
+      lowering:
+        custom-pipeline: "canonicalize"
+    - ir-output-profile:
+        name: quake-reference-semantics
+  codegen: qir-base
+)";
+  try {
+    (void)cudaq::config::loadTargetConfig(path);
+    std::cout << "custom stage not alone: unexpectedly accepted\n";
+  } catch (const std::runtime_error &error) {
+    std::cout << "custom stage not alone: " << error.what() << "\n";
+  }
+  std::filesystem::remove(path);
+}
+// CHECK: custom stage not alone: Failed to parse target configuration YAML:
+// CHECK-SAME: 'custom-pipeline' lowering must be the only stage
+
 int main() {
   test_custom_then_inferred();
   test_single_inferred();
@@ -175,5 +210,6 @@ int main() {
   test_no_match_diagnostic();
   test_selected_failure_diagnostic();
   test_zero_stages();
+  test_custom_stage_not_alone();
   return 0;
 }
