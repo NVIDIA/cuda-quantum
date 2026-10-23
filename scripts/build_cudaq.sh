@@ -33,7 +33,8 @@
 # -s: Enable sanitizers (ASan, UBSan) for memory error detection. Defaults to False.
 # -p: Install prerequisites before building.
 # -I: Install only (skip configure and build, just run ninja install + post-install).
-# -L: Also build cudaq.logical (preview/logical) against the fresh CUDA-Q installation.
+# -L: Also build cudaq-edem (including Python bindings), then cudaq.logical
+#     (preview/logical) against the fresh CUDA-Q installation.
 #     Set QLX_VERIFY_TOOLCHAIN=ON to audit that toolchain against CUDA-Q's.
 # --: Arguments after -- are passed directly to cmake (e.g., -DVAR=value).
 # 
@@ -134,6 +135,7 @@ fi
 echo "Build directory: $build_dir"
 mkdir -p "$CUDAQ_INSTALL_PREFIX/bin"
 mkdir -p "$build_dir" && cd "$build_dir"
+build_dir=$(pwd -P)
 if ! $install_only && $clean_build; then
   rm -rf *
 fi
@@ -364,37 +366,101 @@ echo "<CUQUANTUM_INSTALL_PREFIX>$CUQUANTUM_INSTALL_PREFIX</CUQUANTUM_INSTALL_PRE
 echo "<CUTENSOR_INSTALL_PREFIX>$CUTENSOR_INSTALL_PREFIX</CUTENSOR_INSTALL_PREFIX>" >> "$CUDAQ_INSTALL_PREFIX/build_config.xml"
 echo "</build_config>" >> "$CUDAQ_INSTALL_PREFIX/build_config.xml"
 
-# Build cudaq.logical against the fresh CUDA-Q installation (opt-in with -L).
-# This step runs its own CMake configure, so it is also executed in
-# install-only mode (-I); its build tree is never cleaned by this script.
+# Build cudaq-edem and cudaq.logical against the fresh CUDA-Q installation
+# (opt-in with -L). Both run their own configure/build/install even in
+# install-only mode (-I), and reuse their build trees in incremental mode (-i).
 if $build_logical; then
+  preview_cmake_args=(
+    -G Ninja
+    "-DCMAKE_BUILD_TYPE=$build_configuration"
+    "-DCMAKE_INSTALL_PREFIX=$CUDAQ_INSTALL_PREFIX"
+    "-Dnanobind_DIR=$NANOBIND_INSTALL_PREFIX/nanobind/cmake"
+  )
+  # Reuse CUDA-Q's configured compilers and Python, including overrides passed
+  # through -- and selections retained by an install-only build.
+  for cmake_var in CMAKE_C_COMPILER CMAKE_CXX_COMPILER nanobind_DIR; do
+    configured_path=$(sed -n "s/^$cmake_var:[^=]*=//p" "$build_dir/CMakeCache.txt")
+    if [ -n "$configured_path" ]; then
+      preview_cmake_args+=("-D$cmake_var=$configured_path")
+    fi
+  done
+  preview_python=$(sed -n 's/^_Python_EXECUTABLE:[^=]*=//p' "$build_dir/CMakeCache.txt")
+  if [ -n "$preview_python" ]; then
+    preview_cmake_args+=("-DPython_EXECUTABLE=$preview_python" "-DPython3_EXECUTABLE=$preview_python")
+  fi
+
+  echo "Building cudaq-edem for cudaq.logical..."
+  edem_build_dir="$build_dir/edem"
+  edem_cmake_args=(
+    "${preview_cmake_args[@]}"
+    -S "$repo_root/edem"
+    -B "$edem_build_dir"
+    -DCMAKE_INSTALL_LIBDIR=lib
+    -DBUILD_SHARED_LIBS=ON
+    -DCUDAQ_EDEM_BUILD_PYTHON=ON
+    -DCUDAQ_EDEM_BUILD_TESTS=OFF
+    -DCUDAQ_GF2_BUILD_TESTS=OFF
+  )
+  if $verbose; then
+    echo "cmake ${edem_cmake_args[*]}"
+    cmake "${edem_cmake_args[@]}"
+    status=$?
+  else
+    echo "The progress of the cudaq-edem CMake configuration is being logged to $logs_dir/edem_cmake_output.txt."
+    cmake "${edem_cmake_args[@]}" \
+      2> "$logs_dir/edem_cmake_error.txt" 1> "$logs_dir/edem_cmake_output.txt"
+    status=$?
+  fi
+  if [ "$status" -ne 0 ]; then
+    echo -e "\e[01;31mError: CMake configuration failed for cudaq-edem. Please check the console output or $logs_dir/edem_cmake_error.txt for details.\e[0m" >&2
+    if ! $verbose; then
+      cat "$logs_dir/edem_cmake_error.txt" >&2
+    fi
+    cd "$working_dir" && (return 0 2>/dev/null) && return 1 || exit 1
+  fi
+
+  if $verbose; then
+    ninja -C "$edem_build_dir" ${num_jobs} install
+    status=$?
+  else
+    echo "The progress of the cudaq-edem build is being logged to $logs_dir/edem_ninja_output.txt."
+    ninja -C "$edem_build_dir" ${num_jobs} install \
+      2> "$logs_dir/edem_ninja_error.txt" 1> "$logs_dir/edem_ninja_output.txt"
+    status=$?
+  fi
+  if [ "$status" -ne 0 ]; then
+    echo -e "\e[01;31mError: Failed to build/install cudaq-edem. Please check the console output or the files in the $logs_dir directory.\e[0m" >&2
+    cd "$working_dir" && (return 0 2>/dev/null) && return 1 || exit 1
+  fi
+  echo "Installed cudaq-edem into $CUDAQ_INSTALL_PREFIX (build tree: $edem_build_dir)"
+
   echo "Building cudaq.logical against the CUDA-Q installation in $CUDAQ_INSTALL_PREFIX..."
-  logical_build_dir="$repo_root/build/preview/logical"
+  logical_build_dir="$build_dir/preview/logical"
   if [ -z "$LLVM_DIR" ]; then
     LLVM_DIR="$LLVM_INSTALL_PREFIX/lib/cmake/llvm"
   fi
-  logical_cmake_args="-G Ninja \
-    -S $repo_root/preview/logical \
-    -B $logical_build_dir \
-    -DCMAKE_BUILD_TYPE=$build_configuration \
-    -DCMAKE_INSTALL_PREFIX=$CUDAQ_INSTALL_PREFIX \
-    -DLLVM_DIR=$LLVM_DIR \
-    -DGMP_ROOT=$GMP_INSTALL_PREFIX \
-    -DMPFR_ROOT=$MPFR_INSTALL_PREFIX \
-    -DCUDAQ_INSTALL_PREFIX=$CUDAQ_INSTALL_PREFIX \
-    -Dnanobind_DIR=$NANOBIND_INSTALL_PREFIX/nanobind/cmake"
+  logical_cmake_args=(
+    "${preview_cmake_args[@]}"
+    -S "$repo_root/preview/logical"
+    -B "$logical_build_dir"
+    "-DLLVM_DIR=$LLVM_DIR"
+    "-DGMP_ROOT=$GMP_INSTALL_PREFIX"
+    "-DMPFR_ROOT=$MPFR_INSTALL_PREFIX"
+    "-DCUDAQ_INSTALL_PREFIX=$CUDAQ_INSTALL_PREFIX"
+    "-Dcudaq-edem_DIR=$CUDAQ_INSTALL_PREFIX/lib/cmake/cudaq-edem"
+  )
   # Opt-in toolchain audit (compiler family, LLVM version); see
   # preview/logical/cmake/SetupCUDAQ.cmake. Set QLX_VERIFY_TOOLCHAIN=ON to enable.
   if [ -n "$QLX_VERIFY_TOOLCHAIN" ]; then
-    logical_cmake_args="$logical_cmake_args -DQLX_VERIFY_TOOLCHAIN=$QLX_VERIFY_TOOLCHAIN"
+    logical_cmake_args+=("-DQLX_VERIFY_TOOLCHAIN=$QLX_VERIFY_TOOLCHAIN")
   fi
   if $verbose; then
-    echo "cmake $logical_cmake_args"
-    cmake $logical_cmake_args
+    echo "cmake ${logical_cmake_args[*]}"
+    cmake "${logical_cmake_args[@]}"
     status=$?
   else
     echo "The progress of the cudaq.logical CMake configuration is being logged to $logs_dir/logical_cmake_output.txt."
-    cmake $logical_cmake_args \
+    cmake "${logical_cmake_args[@]}" \
       2> "$logs_dir/logical_cmake_error.txt" 1> "$logs_dir/logical_cmake_output.txt"
     status=$?
   fi
