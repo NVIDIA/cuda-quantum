@@ -31,7 +31,9 @@ YAML schemas are independently versioned by their top-level `version` field;
 un-versioned files are permanently treated as v1. Changes to a published schema
 must remain backward compatible. Otherwise, add a new schema version under
 `Yaml/`, add it to `TargetConfigSchema`, and add the required logic to convert
-it to `TargetConfig`.
+it to `TargetConfig`. Pre-release tags (e.g. `2-alpha`) on the other hand may
+change or be removed without backward compatibility until they are stabilized
+under a plain version number.
 
 ## Dependencies
 

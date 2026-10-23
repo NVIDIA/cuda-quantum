@@ -23,7 +23,7 @@
 /// that exact stamped symbol name. Both sides derive the symbol name from this
 /// same macro. Should they ever diverge, the linker fails outright with an
 /// undefined-symbol error instead of silently misinterpreting data.
-#define CUDAQ_TARGET_DB_ABI_VERSION 3
+#define CUDAQ_TARGET_DB_ABI_VERSION 1
 
 #define CUDAQ_TARGET_DB_ABI_SYMBOL_PASTE(v) cudaq_target_db_abi_v##v
 #define CUDAQ_TARGET_DB_ABI_SYMBOL_EXPAND(v) CUDAQ_TARGET_DB_ABI_SYMBOL_PASTE(v)
