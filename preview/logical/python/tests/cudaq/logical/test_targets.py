@@ -668,3 +668,98 @@ def test_target_from_architecture_rejects_non_target_runtime_backend():
         cudaq.logical.targets.Target.from_architecture("bad_runtime",
                                                        device.logical,
                                                        runtime_backend=object())
+
+
+@pytest.mark.parametrize("program, expected", [
+    (qec_memory_program, False),
+    (qec_standard_css_program, True),
+])
+def test_surface_target_shares_definitions_and_lowers_without_synthesis(
+        program, expected):
+    from cudaq.logical.architectures import surface
+
+    definitions = surface.definitions(3)
+    target = cudaq.logical.targets.surface_physical_target(
+        logical_capacity=1, clifford_t_precision=None)
+    selected = target._device.logical_to_qec[0].architecture
+    assert any(g is definitions.prepare_zero for g in selected.link_roots)
+    assert any(g is definitions.memory_round for g in selected.link_roots)
+    assert any(g is definitions.measure_z for g in selected.link_roots)
+    root = target.runtime_endpoint
+    p0 = root.compile(cudaq.logical.compile(program))
+    p1 = root.next_backend.compile(p0)
+    p2 = root.next_backend.next_backend.compile(p1)
+    assert p2.profile in {"p2a", "p2n"}
+    physical = cudaq.logical.compile(
+        p2,
+        pipeline=cudaq.logical.compiler.pipelines.physical(),
+        device=target._device)
+    assert physical.stage == cudaq.logical.stages.P3
+    assert physical.module.operation.verify()
+    # Check both Z and X logical outcomes through the built-in surface recipe.
+    try:
+        cudaq.set_target("stim")
+        assert cudaq.run(physical, shots_count=8) == [expected] * 8
+    finally:
+        cudaq.reset_target()
+
+
+@pytest.mark.parametrize("preparation, measurement, expected", [
+    ("prepare_zero", "measure_z", False),
+    ("prepare_one", "measure_z", True),
+    ("prepare_plus", "measure_x", False),
+    ("prepare_minus", "measure_x", True),
+])
+def test_surface_preparations_and_readouts(preparation, measurement, expected):
+    from cudaq.logical.architectures import surface
+
+    definitions = surface.definitions(3)
+    prepare = getattr(definitions, preparation)
+    measure = getattr(definitions, measurement)
+
+    @cudaq.logical.protocol
+    def prepared_readout() -> bool:
+        block = cudaq.logical.allocate_patch(definitions.code, region="compute")
+        return measure(prepare(block))
+
+    target = cudaq.logical.targets.surface_physical_target(
+        logical_capacity=1, clifford_t_precision=None)
+    physical = cudaq.logical.compile(
+        prepared_readout,
+        pipeline=cudaq.logical.compiler.pipelines.physical(),
+        device=target._device)
+    try:
+        cudaq.set_target("stim")
+        assert cudaq.run(physical, shots_count=8) == [expected] * 8
+    finally:
+        cudaq.reset_target()
+
+
+@pytest.mark.parametrize("negative", [False, True])
+def test_native_physical_mpp_projects_record_and_sign(negative):
+    from cudaq.logical.architectures import surface
+    definitions = surface.definitions(3)
+    support = definitions.code.hz[0]
+    paulis = ("-" if negative else "") + "Z" * len(support)
+
+    @cudaq.logical.gadget
+    def stabilizer_readout() -> bool:
+        block = definitions.prepare_zero(
+            cudaq.logical.allocate_patch(definitions.code, region="compute"))
+        block, bits = cudaq.logical.ops.measure_pauli(block.data[support],
+                                                      paulis=paulis)
+        cudaq.logical.discard(block)
+        return cudaq.logical.ops.parity(bits)
+
+    target = cudaq.logical.targets.surface_physical_target(
+        logical_capacity=1, clifford_t_precision=None)
+    physical = cudaq.logical.compile(
+        stabilizer_readout,
+        pipeline=cudaq.logical.compiler.pipelines.physical(),
+        device=target._device)
+    assert "fabric-to-phys@0.3" in [e.producer for e in physical.evidence]
+    try:
+        cudaq.set_target("stim")
+        assert cudaq.run(physical, shots_count=8) == [negative] * 8
+    finally:
+        cudaq.reset_target()

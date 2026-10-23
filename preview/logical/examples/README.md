@@ -29,44 +29,46 @@ target.
 The `standalone/` examples use `cudaq.logical` directly and expose each
 compiler step. They do not define CUDA-Q kernels or call `cudaq.estimate`.
 
-`standalone/06_surface_memory.py` constructs a rotated surface-code Z-memory
-experiment from preparation, SEC, and destructive-readout gadget profiles. It
-exports detector and observable annotations with circuit-level depolarizing
-noise using an interleaved N/Z schedule that preserves distance. Both
-preparation and readout include an extraction round. It emits plain text
-without the Stim Python package:
+The numbered standalone examples use `# %%` cells with editable parameters
+and module-level steps for interactive execution.
+
+`standalone/06_surface_memory.py` demonstrates detector-profile construction,
+noise placement, and circuit export for rotated surface-code Z memory. It
+uses the built-in surface recipe from
+`cudaq.logical.architectures.surface.definitions` for preparation, stabilizer
+rounds, and readout. Detector contracts, round count, and noise remain explicit
+experiment choices.
+The final extraction is a separate occurrence before the shared readout.
+Independent data depolarization is applied before each stabilizer round,
+with ideal measurements. The default `shots = 0` emits plain text without
+the Stim Python package:
 
 ```bash
 python preview/logical/examples/standalone/06_surface_memory.py > surface-memory.stim
 ```
 
-To compile the emitted text into a Stim circuit and sample it, install Stim
-for the example and pass `--shots`. Sampling summaries go to stderr; stdout
-continues to contain only the circuit text.
+To sample, install `stim>=1.16,<2`, set `shots = 1000` and `seed = 7` in the
+parameter cell, and run the sampling cell. Summaries report detection events
+and uncorrected observable flips on stderr; stdout contains only circuit text.
+The compiler's exporter remains independent of Stim.
+
+`standalone/07_memory_edem.py` derives and composes per-gadget EDEMs, then
+compares their DEM with a circuit-derived DEM. It uses the same surface-memory
+experiment, with identical profiles and noise for both paths. Its cells expose
+`standard_depolarizing_faults`, `derive_edem`, `compose_chain`,
+`project_DEM`, `factorize_dem`, and `coalesce_dem_columns`. A Stim adapter formats
+the resulting independent mechanisms without transforming probabilities.
+Stim is required for this comparison:
 
 ```bash
 python -m pip install 'stim>=1.16,<2'
-python preview/logical/examples/standalone/06_surface_memory.py --shots 1000 --seed 7 > surface-memory.stim
+python preview/logical/examples/standalone/07_memory_edem.py
 ```
 
-The summary reports detection events and uncorrected observable flips. The
-core exporter does not depend on Stim.
-
-`standalone/07_memory_edem.py` compares the circuit-derived DEM with a DEM
-obtained by deriving and composing per-gadget EDEMs from the same profiles and
-noise policy. Logical supplies shared standard-noise placement. Native
-`cudaq_edem.compose_chain` and `project_DEM` retain each occurrence's exact fault
-laws and reuse repeated SEC definitions. Explicit `factorize_dem` and
-`coalesce_dem_columns` calls produce independent error terms and a response-column
-mapping. The optional Stim adapter formats those terms without performing any
-probability transformations. Stim is required for this comparison:
-
-```bash
-python preview/logical/examples/standalone/07_memory_edem.py --distance 3 --rounds 3 --output memory-comparison
-```
-
-The output directory contains the circuit text, both Stim DEMs, per-definition
-packed EDEMs, the composed EDEM, and the projected packed DEM.
+Edit `distance`, `rounds`, and the noise parameters in the configuration cell.
+Set `output = Path("memory-comparison")` to save circuit text, both Stim DEMs,
+per-definition packed EDEMs, the composed EDEM, and the projected packed DEM.
+The default `output = None` leaves results in memory for inspection.
 
 The `mlir/` examples use `qlx-opt` and `qlx-translate` directly.
 

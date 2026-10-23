@@ -1055,7 +1055,7 @@ void Walker::walkOp(Operation *op, int64_t mult) {
     gate = "split";
   else if (isa<MultiMeasureOp>(op))
     gate = "multi_measure";
-  else if (isa<MeasureProductOp>(op))
+  else if (isa<MeasureProductOp, MppOp>(op))
     gate = "measure_product";
   else if (isa<RotateProductOp>(op))
     gate = "rotate_product";

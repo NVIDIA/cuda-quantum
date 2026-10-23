@@ -5441,6 +5441,29 @@ class _P2ToP3:
                                               instance_symbol),
                     )
                     continue
+                if name == "fabric.parity":
+                    measured = self._flatten_projected(operands)
+                    if not measured:
+                        raise ValueError(
+                            "fabric.parity requires projected measurement bits")
+                    parity = self._condition(measured[0])
+                    for value in measured[1:]:
+                        parity = self._emit(
+                            "phys.xor",
+                            operands=[parity, self._condition(value)],
+                            results=[
+                                mlir_ir.IntegerType.get_signless(
+                                    1, context=self.context)
+                            ],
+                            attributes={
+                                "event_id":
+                                    mlir_ir.StringAttr.get(
+                                        self._event_id("xor"),
+                                        context=self.context)
+                            },
+                        ).result
+                    self._assign(operation, local_values, (parity,))
+                    continue
                 if name == "fabric.xor":
                     conditioned = [self._condition(value) for value in operands]
                     parity = self._emit(

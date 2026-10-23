@@ -8,7 +8,7 @@
 """Rotated-surface QEC architecture recipes.
 
 The reusable definitions operate on live typed patches: four preparations,
-memory, orientation-correct H and fold-S layers, transversal CX, and an
+memory, orientation-correct H and fold-S layers, transversal CX, and a
 selectable WSC product measurement whose generated protocol owns its temporary
 auxiliary patch. The WSC algebra is exact but is not advertised as geometric
 distance-preserving lattice surgery; its serial check extractor has unknown
@@ -26,7 +26,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 from inspect import Parameter, Signature
 from itertools import product as cartesian_product
-import cudaq.logical.architecture as architecture
+import cudaq.logical.architecture as _architecture
 import cudaq.logical.codes as codes
 import cudaq.logical.devices as devices
 import cudaq.logical.gadgets as gadgets
@@ -39,7 +39,7 @@ from cudaq.logical.programs.decorators import objective as _objective
 
 from . import _wsc
 
-__all__ = ("SurfaceDefinitions", "definitions", "wsc")
+__all__ = ("SurfaceDefinitions", "definitions", "architecture", "wsc")
 
 
 @dataclass(frozen=True, slots=True)
@@ -535,13 +535,46 @@ class _SurfaceBuilder:
     def n(self) -> int:
         return self.code.n
 
-    def prepare_zero(self):
-        return gadgets.prepare_zero(
-            self.encoding, name=f"surface_{self.distance}_prepare_zero")
+    def _measure_stabilizers(self, block, *, record_prefix=""):
+        for family, checks, pauli in (("x_check", self.code.hx, "X"),
+                                      ("z_check", self.code.hz, "Z")):
+            for index, support in enumerate(checks):
+                block, _ = ops.measure_pauli(
+                    block.data[support],
+                    paulis=pauli * len(support),
+                    record=f"{record_prefix}{family}{index}",
+                )
+        return block
 
+    def _define(self, realization, name, objective, *, metadata=None):
+        realization.__name__ = realization.__qualname__ = name
+        realization.__annotations__ = {
+            "block": types.patch[self.encoding],
+            "return": types.patch[self.encoding],
+        }
+        return gadgets.gadget(realization,
+                              implements=objective,
+                              metadata=metadata)
+
+    @lru_cache(maxsize=None)
+    def prepare_zero(self):
+
+        def realization(block):
+            return self._measure_stabilizers(ops.reset(block.data))
+
+        return self._define(realization, f"{self.code.name}_prepare_zero",
+                            standard.prepare_zero)
+
+    @lru_cache(maxsize=None)
     def prepare_plus(self):
-        return gadgets.prepare_plus(
-            self.encoding, name=f"surface_{self.distance}_prepare_plus")
+
+        def realization(block):
+            block = ops.reset(block.data)
+            block = ops.h(block.data)
+            return self._measure_stabilizers(block)
+
+        return self._define(realization, f"{self.code.name}_prepare_plus",
+                            standard.prepare_plus)
 
     def _flipped_preparation(self, *, plus_basis: bool):
         base = self.prepare_plus() if plus_basis else self.prepare_zero()
@@ -578,30 +611,22 @@ class _SurfaceBuilder:
     def prepare_minus(self):
         return self._flipped_preparation(plus_basis=True)
 
-    def memory(self, rounds: int | None = None):
-        rounds = self.distance if rounds is None else rounds
+    def memory(self, rounds: int = 1):
         if not isinstance(rounds, int) or isinstance(rounds,
                                                      bool) or rounds <= 0:
             raise ValueError("rounds must be a positive int")
-        encoding = self.encoding
 
         def realization(block):
-            for _ in range(rounds):
-                block, _ = ops.extract_syndrome(block)
+            for index in range(rounds):
+                prefix = "" if rounds == 1 else f"round{index}_"
+                block = self._measure_stabilizers(block, record_prefix=prefix)
             return block
 
-        realization.__name__ = realization.__qualname__ = (
-            f"surface_{self.distance}_memory_r{rounds}")
-        realization.__annotations__ = {
-            "block": types.patch[encoding],
-            "return": types.patch[encoding],
-        }
-        return gadgets.gadget(
-            realization,
-            implements=standard.idle,
-            name=realization.__name__,
-            metadata={"syndrome_rounds": rounds},
-        )
+        return self._define(realization,
+                            f"{self.code.name}_memory_round" if rounds == 1 else
+                            f"{self.code.name}_memory_r{rounds}",
+                            standard.idle,
+                            metadata={"syndrome_rounds": rounds})
 
     def _h_permutation(self) -> tuple[int, ...]:
         d = self.distance
@@ -1216,11 +1241,18 @@ def _make_wsc_lowering(
 
 @dataclass(frozen=True, slots=True)
 class SurfaceDefinitions:
-    """The complete reusable definition set for one surface-code distance."""
+    """The complete reusable definition set for one surface-code distance.
+
+    Preparation resets the data and measures its stabilizers; ``memory_round``
+    measures them again. Their records are ``x_check{i}.outcome`` and
+    ``z_check{i}.outcome``, in ``code.hx`` then ``code.hz`` order. Detector
+    profiles bind these records to the output syndrome. Readout measures only
+    the logical Pauli product.
+    """
 
     distance: int
     code: codes.Code
-    square_patch_footprint: architecture.PhysicalFootprint
+    square_patch_footprint: _architecture.PhysicalFootprint
     prepare_zero: gadgets.GadgetDefinition
     prepare_one: gadgets.GadgetDefinition
     prepare_plus: gadgets.GadgetDefinition
@@ -1278,18 +1310,18 @@ def _definitions(distance: int) -> SurfaceDefinitions:
     return SurfaceDefinitions(
         distance=distance,
         code=code,
-        square_patch_footprint=architecture.PhysicalFootprint(
+        square_patch_footprint=_architecture.PhysicalFootprint(
             "qubit",
             2 * (distance + 1)**2,
             "square rotated-surface-code patch; arXiv:1905.09749 section 2.14",
         ),
-        prepare_zero=gadgets.prepare_zero(code),
+        prepare_zero=builder.prepare_zero(),
         prepare_one=builder.prepare_one(),
-        prepare_plus=gadgets.prepare_plus(code),
+        prepare_plus=builder.prepare_plus(),
         prepare_minus=builder.prepare_minus(),
-        memory_round=gadgets.css_memory_round(code),
-        measure_z=gadgets.logical_measure(code, basis=architecture.Basis.Z),
-        measure_x=gadgets.logical_measure(code, basis=architecture.Basis.X),
+        memory_round=builder.memory(),
+        measure_z=gadgets.logical_measure(code, basis=_architecture.Basis.Z),
+        measure_x=gadgets.logical_measure(code, basis=_architecture.Basis.X),
         h=logical_h,
         fold_s=builder.fold_s(),
         transversal_cx=transversal_cx,
@@ -1335,6 +1367,28 @@ def definitions(distance: int) -> SurfaceDefinitions:
     """Return the reusable definitions and physical footprint for ``distance``."""
 
     return _family[distance]
+
+
+def architecture(distance: int = 3) -> devices.QECArchitecture:
+    """Bind surface preparation, a memory round, readout, and Pauli gadgets.
+
+    Preparation measures stabilizers to establish the encoded state. Callers
+    choose subsequent memory rounds and their detector profiles.
+    """
+    selected = definitions(distance)
+    return devices.QECArchitecture(
+        f"Surface{distance}Architecture",
+        selected.code.default_encoding,
+        link_roots=(
+            selected.prepare_zero,
+            selected.prepare_plus,
+            selected.memory_round,
+            selected.measure_x,
+            selected.measure_z,
+            gadgets.logical_pauli(selected.code, basis="x"),
+            gadgets.logical_pauli(selected.code, basis="z"),
+        ),
+    )
 
 
 def _admitted_auxiliary_regions(

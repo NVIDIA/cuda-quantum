@@ -7,22 +7,34 @@
 # ============================================================================ #
 """Compare the circuit and packed per-gadget EDEM paths on surface memory."""
 
-from pathlib import Path
-import runpy
-
 import pytest
 
 import cudaq.logical as cql
 import cudaq_edem as edem
 
 stim = pytest.importorskip("stim", minversion="1.16")
-EXAMPLE = Path(
-    __file__).resolve().parents[4] / "examples/standalone/07_memory_edem.py"
 
 
 @pytest.fixture(scope="module")
-def example():
-    return runpy.run_path(str(EXAMPLE))
+def example(run_memory_example):
+    return run_memory_example("07_memory_edem.py")
+
+
+@pytest.fixture(scope="module")
+def compare_memory(run_memory_example, memory_result):
+
+    def compare(distance=3, rounds=3, noise=None, *, data_depolarization=.001):
+        noise = noise or cql.compiler.StandardDepolarizingNoise()
+        result = run_memory_example("07_memory_edem.py",
+                                    distance=distance,
+                                    rounds=rounds,
+                                    noise=noise,
+                                    data_depolarization=data_depolarization)
+        return (memory_result(result), result["occurrences"],
+                result["composed"], result["projected"], result["circuit"],
+                result["circuit_dem"], result["edem_dem"])
+
+    return compare
 
 
 def _laws(models):
@@ -35,28 +47,25 @@ def _laws(models):
 
 
 @pytest.mark.parametrize("distance, rounds", [(3, 2), (3, 3), (3, 5), (5, 5)])
-def test_memory_edem_matches_circuit_and_generated_dem(example, distance,
-                                                       rounds):
-    noise = cql.compiler.StandardDepolarizingNoise(.001, .003, .004)
+def test_memory_edem_matches_reference_dem(example, compare_memory,
+                                           surface_memory_reference, distance,
+                                           rounds):
+    noise = cql.compiler.StandardDepolarizingNoise()
     (memory, values, composed, projected, circuit, circuit_dem,
-     edem_dem) = example["compare"](distance,
-                                    rounds,
-                                    noise,
-                                    data_depolarization=.002)
-    reference = stim.Circuit.generated(
-        "surface_code:rotated_memory_z",
-        distance=distance,
-        rounds=rounds,
-        before_round_data_depolarization=.002,
-        **{name: getattr(noise, name) for name in noise.__dataclass_fields__})
+     edem_dem) = compare_memory(distance,
+                                rounds,
+                                noise,
+                                data_depolarization=.002)
+    reference = surface_memory_reference(stim, distance, rounds, .002)
     expected = example["dem_errors"](reference.detector_error_model())
     assert example["dem_errors"](edem_dem) == pytest.approx(expected,
                                                             abs=1e-12,
                                                             rel=0)
-    assert circuit.num_detectors == rounds * (distance**2 - 1)
+    assert circuit.num_detectors == (distance**2 -
+                                     1) // 2 + (rounds - 1) * (distance**2 - 1)
     assert circuit.num_observables == 1
-    assert len(values) == len(memory.profiles) == rounds
-    assert len({id(model) for model in values}) == min(rounds, 3)
+    assert len(values) == len(memory.profiles) == rounds + 1
+    assert len({id(model) for model in values}) == 3
     if rounds > 3:
         assert values[1] is values[2]
     assert composed.inputs == composed.outputs == []
@@ -69,29 +78,25 @@ def test_memory_edem_matches_circuit_and_generated_dem(example, distance,
         pytest.approx(example["dem_errors"](circuit_dem), abs=1e-12, rel=0)
 
 
-@pytest.mark.parametrize("parameter", [
-    "data_depolarization",
-    *cql.compiler.StandardDepolarizingNoise.__dataclass_fields__
-])
-def test_each_noise_component_agrees_after_composition(example, parameter):
-    parameters = {} if parameter == "data_depolarization" else {parameter: .01}
-    noise = cql.compiler.StandardDepolarizingNoise(**parameters)
-    example["compare"](
-        3,
-        3,
-        noise,
-        data_depolarization=.01 if parameter == "data_depolarization" else 0)
+@pytest.mark.parametrize("probability", [0.0, .0001, .01, .2])
+def test_data_noise_agrees_after_composition(compare_memory, probability):
+    compare_memory(3, 3, data_depolarization=probability)
 
 
-def test_extra_data_faults_match_extraction_entries(example):
-    memory = example["memory_recipe"](3, 3)
+def test_extra_data_faults_match_extraction_entries(make_memory):
+    memory = make_memory(3, 3)
     placements = memory.depolarizations(.02)
     for index, profile in enumerate(memory.profiles):
-        build, faults = example["memory_faults"](
-            profile, cql.compiler.StandardDepolarizingNoise(),
-            placements[index])
+        if index not in placements:
+            assert index == len(memory.profiles) - 1
+            continue
+        build = cql.compile(profile)
         projection = cql.compiler.project_clifford(build,
                                                    gadget=profile.gadget.name)
+        faults = cql.analysis.standard_depolarizing_faults(
+            projection,
+            cql.compiler.StandardDepolarizingNoise(),
+            depolarizations=placements[index])
         entry = next(i for i, op in enumerate(projection.instructions)
                      if op.site_id == placements[index][0].before)
         after = projection.instructions[entry - 1].site_id if entry else ""
@@ -106,10 +111,11 @@ def test_extra_data_faults_match_extraction_entries(example):
             assert all(f.insertions[0].after == after for f in alternatives)
 
 
-def test_noiseless_memory_dem_and_open_boundary_rejection(example):
-    memory, values, composed, projected, _, _, dem = example["compare"](
+def test_noiseless_memory_dem_and_open_boundary_rejection(
+        example, compare_memory):
+    memory, values, composed, projected, _, _, dem = compare_memory(
         3, 3, cql.compiler.StandardDepolarizingNoise(), data_depolarization=0)
-    assert composed.vector_sizes == (0, 25)
+    assert composed.vector_sizes == (0, 21)
     assert example["dem_errors"](dem) == {}
     assert projected.vector_sizes == composed.vector_sizes
     partial = edem.compose_chain(values[1:])
@@ -194,12 +200,13 @@ def test_stim_formatter_preserves_duplicate_mechanisms_without_math(example):
     assert terms[0].args_copy()[0] == pytest.approx(.26)
 
 
-def test_memory_edem_example_writes_exchange_artifacts(example, tmp_path,
-                                                       capsys):
-    example["main"](["--output", str(tmp_path)])
-    assert "219 matching DEM error terms" in capsys.readouterr().out
+def test_memory_edem_example_writes_exchange_artifacts(example,
+                                                       run_memory_example,
+                                                       tmp_path, capsys):
+    run_memory_example("07_memory_edem.py", output=tmp_path)
+    assert "53 matching DEM error terms" in capsys.readouterr().out
     circuit = stim.Circuit((tmp_path / "memory.stim").read_text())
-    assert circuit.num_detectors == 24
+    assert circuit.num_detectors == 20
     generated = stim.DetectorErrorModel((tmp_path / "composed.dem").read_text())
     direct = stim.DetectorErrorModel((tmp_path / "circuit.dem").read_text())
     assert example["dem_errors"](generated) == pytest.approx(
@@ -209,7 +216,11 @@ def test_memory_edem_example_writes_exchange_artifacts(example, tmp_path,
     projected = edem.DEM.from_bytes((tmp_path / "projected.edemb").read_bytes())
     assert projected.to_bytes() == packed.to_bytes()
     assert _laws([projected]) == _laws([packed])
-    assert len(list(tmp_path.glob("surface_d3_*.edemb"))) == 3
+    expected_files = {
+        f"{profile.gadget.name}.edemb" for profile in example["profiles"]
+    }
+    assert len(expected_files) == 3
+    assert all((tmp_path / name).is_file() for name in expected_files)
 
 
 def test_native_projection_retains_successes_but_stim_adapter_rejects_them(

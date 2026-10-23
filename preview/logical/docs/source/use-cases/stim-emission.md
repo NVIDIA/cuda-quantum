@@ -65,143 +65,233 @@ For typed native instructions and exact boundary and measurement records, see
 
 ## Export a profiled surface-code memory
 
-The Python exporter adds detector and observable annotations to a closed,
-sequential chain of single-block gadget profiles. It emits plain text directly;
-the Stim Python package is not required.
-
 The [surface-memory example](../../../examples/standalone/06_surface_memory.py)
-authors three physical gadgets and their detector contracts:
+prepares one encoded logical qubit in the zero state, repeatedly measures its
+stabilizers, and reads out logical Z. A **stabilizer check** measures a product
+of Pauli operators on selected data qubits. Changes in check results can reveal
+errors while preserving the encoded logical information.
 
-- `prep0` resets the data and ancillas and performs one SEC round. Its Z checks
-  supply initial detectors; its X-check outcomes establish virtual syndromes.
-- `sec` compares new check records with incoming virtual syndromes and exports
-  the updated syndrome bundle.
-- `readout_z` performs a final SEC round, then measures every data carrier in Z.
-  It declares the temporal and closing Z-check detectors and the logical-Z
-  observable. It has no encoded output.
+The exported Stim circuit contains the quantum operations plus two kinds of
+annotations:
 
-For `rounds >= 2`, the chain is
-`prep0 -> sec ** (rounds - 2) -> readout_z`. The extraction uses the four
-interleaved N/Z CNOT layers of
-[Stim's rotated surface-code memory](https://github.com/quantumlib/Stim/blob/main/src/stim/gen/gen_surface_code.cc).
-Each layer couples disjoint carriers. X hooks run horizontally, across the
-vertical logical X string; Z hooks run vertically, across the horizontal
-logical Z string. This orientation preserves the circuit distance.
-Preparation and readout each contribute one extraction round.
+- A **detector** identifies a parity of measurement results that should be zero
+  without errors. A nonzero parity is a detection event.
+- A **logical observable** identifies the measurement result of interest: here,
+  the final logical-Z readout.
 
-Ancillas are reset at the start of the extraction that uses them, keeping
-reset faults within the same gadget's analysis. The readout retains the final
-unused ancilla resets. This places gadget cuts without changing the operation
-order on any carrier. The
-[per-gadget EDEM comparison](gadget-edems.md#compare-circuit-and-per-gadget-dem-construction)
-uses the same recipe, with native EDEM composition, `project_DEM`, exact
-`factorize_dem`, and `coalesce_dem_columns` followed by an optional formatter.
+The example groups operations into **gadgets** and attaches a **detector
+profile** to each gadget. A profile declares detector parities, the check
+information passed to the next gadget, and any logical observables. These
+annotations let Stim interpret the circuit's measurement results.
 
-Using `surface_memory` from the example:
+Use an environment with CUDA-Q Logical installed. Stim is needed only for the
+optional sampling step. The file's `# %%` cells also let you run the example
+interactively.
 
-<!--
-% invisible-code-block: python
-%
-% surface_memory = load_ql_example(
-% "preview/logical/examples/standalone/06_surface_memory.py", "surface_memory")
--->
+### Import the library
 
-```python
-import cudaq.logical as cql
+Import the compiler, the built-in surface recipe, and the lattice geometry:
 
-memory = surface_memory(distance=3, rounds=3)
-p = 0.001
-noise = cql.compiler.StandardDepolarizingNoise(
-    after_clifford_depolarization=p,
-    before_measure_flip_probability=p,
-    after_reset_flip_probability=p,
-)
-text = memory.to_stim(noise, data_depolarization=p)
-assert sum(line.startswith("DETECTOR") for line in text.splitlines()) == 24
-assert "OBSERVABLE_INCLUDE(0)" in text
-assert "DEPOLARIZE2(0.001)" in text
+```{eval-rst}
+.. literalinclude:: ../../../examples/standalone/06_surface_memory.py
+   :language: python
+   :start-at: import sys
+   :end-before: # %%
 ```
 
-To write the example's output to a file, run from the repository root:
+### Define detector profiles
+
+The example uses three gadgets from the built-in surface recipe. They operate
+on a typed **patch**, the collection of physical qubits holding the encoded
+state:
+
+- `prepare_zero` resets the data to zero and measures all stabilizers.
+- `memory_round` measures the stabilizers again.
+- `measure_z` measures logical Z and consumes the patch.
+
+The `detector_profile` helper takes a gadget, its role in the experiment
+(`kind`), and the code definition (`code`). `code.hx` and `code.hz` list the
+data-qubit indices for each X and Z stabilizer. Preparation and memory rounds
+name their measurement results
+`x_check0.outcome`, `x_check1.outcome`, and so on for the rows of `code.hx`,
+then `z_check0.outcome`, `z_check1.outcome`, and so on for `code.hz`.
+The helper's `records` dictionary holds symbolic references to these results
+in X-check then Z-check order.
+
+A measured stabilizer has eigenvalue +1 or -1, recorded as bit 0 or 1.
+Successive measurements of the same stabilizer should agree without errors.
+Their XOR, written `previous ^ current`, is therefore a detector: it is zero
+when the results agree and one when they differ.
+
+Preparation needs a different comparison. Resetting the data to zero makes the
+initial Z-check results zero, so each can serve as a detector by itself. Initial
+X-check results can be random even without errors. They establish the baseline
+for later comparisons.
+
+A gadget's profile carries this baseline as a **virtual syndrome**: the
+expected stabilizer signs inferred from the available measurement records.
+The next gadget can reference it through its input interface. In this example,
+`inputs.only()` and `outputs.only()` select the single encoded block at each
+boundary; its `.syndrome` property names the virtual-syndrome bundle.
+The helper uses `ProfileGraph` to declare both the comparisons and the outgoing
+baseline:
+
+| Expression | Purpose |
+| --- | --- |
+| `gadget.record("z_check0.outcome")` | Refer symbolically to a named measurement result. |
+| `ProfileGraph(gadget.interface)` | Start a profile for the gadget's encoded inputs and outputs. |
+| `graph.detector(parity)` | Declare a parity expected to be zero without errors. |
+| `graph.bind(..., tuple(records.values()))` | Bind the outgoing syndrome to the ordered check results. |
+| `graph.freeze()` | Produce the `GadgetProfile` consumed by the compiler. |
+
+These declarations add no quantum operations. For `kind="prep"`, the helper
+adds detectors for the initial Z checks. For memory rounds (`kind="sec"`), it
+compares every incoming check result with the corresponding current result.
+Both branches bind all current results as the outgoing syndrome, preserving
+the dictionary's X-check then Z-check order. For `kind="readout"`, it freezes
+the graph without adding detectors or output bindings: the gadget consumes the
+patch, and its declared result automatically supplies the logical observable.
+
+```{eval-rst}
+.. literalinclude:: ../../../examples/standalone/06_surface_memory.py
+   :language: python
+   :start-at: def detector_profile(
+   :end-before: # %%
+```
+
+### Define data-noise placements
+
+Before every stabilizer round, the example independently applies a
+one-qubit depolarizing channel to each data qubit. With probability
+`data_depolarization`, the channel applies X, Y, or Z with equal probability;
+otherwise it leaves the qubit unchanged. The following helper specifies where
+to insert these channels.
+
+For preparation and memory-round profiles, `data_noise_placements` projects
+the gadget into physical instructions and finds its first stabilizer
+measurement (`MPP` in the projection). A `Depolarize1Placement` names that
+instruction's site, the data-qubit indices to affect, and the error probability.
+The returned dictionary maps each occurrence's index in `profiles` to its
+placements, so repeated memory rounds each receive their own noise layer.
+The helper skips terminal readout, which has no output patch.
+
+```{eval-rst}
+.. literalinclude:: ../../../examples/standalone/06_surface_memory.py
+   :language: python
+   :start-at: def data_noise_placements(
+   :end-before: # %%
+```
+
+### Configure and assemble the experiment
+
+`distance` selects the code size, with `distance ** 2` data qubits; use an odd
+integer of at least three. `rounds` counts all stabilizer-measurement rounds,
+including the one in preparation. Choose at least two rounds to compare
+successive measurements.
+
+`data_depolarization = p` sets the data-error probability before each round.
+The all-zero `StandardDepolarizingNoise()` policy adds no other noise, so
+measurements remain ideal. `shots = 0` selects export only; `seed` controls the
+optional sampler.
+
+```{eval-rst}
+.. literalinclude:: ../../../examples/standalone/06_surface_memory.py
+   :language: python
+   :start-at: distance = 3
+   :end-before: # %%
+```
+
+Select the distance-specific code and gadgets with `surface.definitions`.
+The lattice supplies data-qubit coordinates for the exported circuit:
+
+```{eval-rst}
+.. literalinclude:: ../../../examples/standalone/06_surface_memory.py
+   :language: python
+   :start-at: implementation = surface.definitions(distance)
+   :end-before: # %%
+```
+
+Create a profile for each gadget using `detector_profile`, assemble the profile
+sequence, and call `data_noise_placements` for that sequence:
+
+```{eval-rst}
+.. literalinclude:: ../../../examples/standalone/06_surface_memory.py
+   :language: python
+   :start-at: prep = detector_profile(
+   :end-before: # %%
+```
+
+The sequence starts with `prepare_zero`, repeats `memory_round` a further
+`rounds - 1` times, and ends with `measure_z`. Preparation contributes the first
+round; the final memory round immediately precedes readout. With the default
+distance and round count, there are four initial Z-check detectors and eight
+comparisons for each of two later rounds: 20 detectors in total, plus one
+logical observable.
+
+### Export the circuit
+
+`compiler.emit_stim` connects the patches between successive profiles and
+substitutes the outgoing syndrome bindings into the next gadget's detector
+expressions. It translates named measurement records into Stim `rec[...]`
+references, emits `DETECTOR` annotations, and marks the logical readout with
+`OBSERVABLE_INCLUDE(0)`. The example also supplies qubit coordinates:
+
+```{eval-rst}
+.. literalinclude:: ../../../examples/standalone/06_surface_memory.py
+   :language: python
+   :start-at: coordinates =
+   :end-before: # %%
+```
+
+Run from the repository root to save the circuit. The default `shots = 0`
+needs no Stim Python installation:
 
 ```bash
 python preview/logical/examples/standalone/06_surface_memory.py > surface-memory.stim
 ```
 
-The example can also compile the emitted text with Stim and sample detector
-events and observable flips. Install the optional example dependency and pass
-`--shots`:
+The [gadget EDEM tutorial](gadget-edems.md#compare-circuit-and-per-gadget-dem-construction)
+uses the same experiment to compare a circuit-derived detector error model
+with one assembled from per-gadget models.
+
+### Sample detection events
+
+To simulate the exported circuit, install the optional dependency:
 
 ```bash
 python -m pip install 'stim>=1.16,<2'
-python preview/logical/examples/standalone/06_surface_memory.py --shots 1000 --seed 7 > surface-memory.stim
 ```
 
-Sampling summaries go to stderr, leaving stdout as circuit text. In Python,
-the same handoff uses Stim's
-[detector sampler](https://github.com/quantumlib/Stim/blob/main/doc/python_api_reference_vDev.md#stim.Circuit.compile_detector_sampler):
+Set `shots = 1000` in the parameter cell and run the example. Stim's detector
+sampler returns one row per shot, with a column for each detector and each
+logical observable. At the defaults, the arrays have shapes `(1000, 20)` and
+`(1000, 1)`:
 
-```python
-import stim
-
-circuit = stim.Circuit(text)
-sampler = circuit.compile_detector_sampler(seed=7)
-detectors, observable_flips = sampler.sample(1000, separate_observables=True)
-assert detectors.shape == (1000, 24)
-assert observable_flips.shape == (1000, 1)
+```{eval-rst}
+.. literalinclude:: ../../../examples/standalone/06_surface_memory.py
+   :language: python
+   :start-at: if shots:
 ```
 
-Observable flips are uncorrected parity changes; a decoder has not been
-applied. Stim is used by the example for simulation, while the compiler's text
-exporter remains independent of it.
+The summary counts shots with detection events and shots with a logical-Z
+flip. These are uncorrected results; estimating a decoded logical error rate
+requires a decoder. Summaries go to stderr, so redirected stdout remains valid
+Stim circuit text.
 
-The surface-memory tests compare the emitted circuit with
-`stim.Circuit.generated("surface_code:rotated_memory_z", ...)` at distances
-3, 5, and 7. Qubits are matched by coordinates, `REPEAT` and batched gates are
-expanded, and `MR` is split into measurement and reset. The comparison checks
-operation order on every shared carrier, exact noise probabilities, and the
-detector and observable record parities. Disjoint operations may commute;
-`TICK` and annotation coordinates are excluded, so this checks circuit content
-rather than identical text or timing metadata. Exact categorical fault-law
-comparisons provide a separate check at distances 3 and 5.
+### Exporter constraints
 
-`StandardDepolarizingNoise` applies depolarization after each physical Clifford
-gate, plus separate reset and measurement flips. Its three probabilities can
-be set independently. Additional one-qubit noise layers use explicit
-`Depolarize1Placement(before, carriers, probability)` values: each carrier gets
-an independent categorical channel immediately before that native instruction
-site. The compiler does not infer extraction boundaries from gadget names.
-Depolarizing channels remain categorical: one-qubit noise has three Pauli
-alternatives, and two-qubit noise has fifteen. These settings do not change
-gadget definitions or profiles.
+The Python exporter handles a single encoded patch from preparation through
+destructive readout. Adjacent profiles must agree on the code's stabilizer and
+logical-operator definitions. Each gadget that outputs a patch must bind its
+complete syndrome bundle, and only the final profile may declare observables.
+Postselection, which accepts only selected measurement outcomes, is unsupported.
+Profile construction checks the declarations' structure;
+[detector-contract validation](../reference/detector-contracts.md#declare-a-contract)
+is a separate analysis of their ideal correctness.
 
-**Known limitation for permutations:** `fabric.permute` specifies a noiseless
-relabeling, but projection currently represents it as ordinary `SWAP`
-instructions. With `after_clifford_depolarization` enabled, the exporter adds
-`DEPOLARIZE2` after those SWAPs too. The surface-memory example does not use
-`fabric.permute`. Preserving the distinction between relabeling and physical
-operations through projection and noise policies is future work.
-
-The example's separate `data_depolarization` parameter places one extra channel
-on every data qubit after initialization resets, immediately before each
-extraction. This includes preparation and the extraction inside final readout;
-the destructive data measurements receive only measurement-flip noise. These
-placements reproduce the reference memory circuit's noise convention.
-
-The example calls `cql.compiler.emit_stim(memory.profiles, noise=noise,
-depolarizations=memory.depolarizations(p))`. The mapping associates occurrence
-indices with placements using local instruction sites and carrier indices.
-The exporter binds physical carriers across adjacent ports, substitutes output
-virtual-syndrome formulas into subsequent
-detector rows, and resolves stable records to Stim measurement references.
-
-The exporter supports complete single-block chains with matching code
-presentations. Only the final profile may declare observables; postselection is
-unsupported. It checks structure, while ideal contract correctness remains a
-separate question. The command-line translation above continues to emit the
-selected ideal realization. The output is a circuit text file for downstream
-tools.
-
-Measurement-flip noise supports single-qubit Z and X measurements. Applying
-that policy to an MPP measurement is rejected; such measurements need an
-explicit measurement fault model.
+When extending the noise model, note that the standard measurement-flip policy
+supports single-qubit X and Z measurements. Pauli-product measurements require
+an explicit measurement fault model. Also, `fabric.permute` currently projects
+to `SWAP` instructions: enabling `after_clifford_depolarization` adds noise to
+those instructions even though the source operation denotes a noiseless
+relabeling.

@@ -11,7 +11,7 @@ from __future__ import annotations
 
 from importlib import import_module
 
-__all__ = ["pinnacle", "surface"]
+__all__ = ["pinnacle", "surface", "steane"]
 
 
 def __getattr__(name: str):

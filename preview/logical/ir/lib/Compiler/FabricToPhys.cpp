@@ -1088,7 +1088,7 @@ private:
               qlx::fabric::ResourceRequestOp, qlx::event::AwaitOp,
               qlx::fabric::UnpackResourceOp, qlx::fabric::PackResourceOp,
               qlx::fabric::DiscardResourceOp, qlx::fabric::MeasureProductOp,
-              qlx::fabric::RotateProductOp,
+              qlx::fabric::MppOp, qlx::fabric::RotateProductOp,
               qlx::fabric::ResourceRotateProductOp, qlx::fabric::RetryOp,
               qlx::fabric::SuccessOp>(operation))
         continue;
@@ -3579,6 +3579,67 @@ private:
     return success();
   }
 
+  LogicalResult measurePhysicalProduct(qlx::fabric::MppOp measurement,
+                                       ProjectedValues &projected,
+                                       OpBuilder &builder) {
+    PhysicalGroup patch =
+        takeProjected(projected, measurement.getPatch(), measurement);
+    auto positions =
+        selectedPositions(measurement, measurement.getPatch().getType());
+    if (failed(positions) || positions->empty())
+      return failure();
+    StringRef labels = measurement.getPaulis();
+    bool invert = labels.consume_front("-");
+    if (labels.size() != positions->size())
+      return failure();
+    SmallVector<Value> inputs;
+    SmallVector<Type> resultTypes;
+    SmallVector<Attribute> paulis;
+    DenseSet<int64_t> selected;
+    for (auto [position, label] : llvm::zip(*positions, labels)) {
+      if (position < 0 || size_t(position) >= patch.size() ||
+          !selected.insert(position).second)
+        return failure();
+      inputs.push_back(patch[position]);
+      resultTypes.push_back(patch[position].getType());
+      paulis.push_back(stringAttr(context, StringRef(&label, 1)));
+    }
+    auto instrument = sharedNativeInstrument(inputs, "measure_product");
+    if (failed(instrument))
+      return failure();
+    resultTypes.push_back(qlx::phys::RecordType::get(
+        context, symbolAttr(context, instrument->getRecordSchema())));
+    std::string record = measurement.getRecord().value_or("mpp").str();
+    std::string recordId = llvm::formatv("{0}.{1}.{2}", currentInstance, record,
+                                         measurementRecord++)
+                               .str();
+    SmallVector<NamedAttribute> attrs{
+        builder.getNamedAttr("instrument",
+                             symbolAttr(context, instrument->getSymName())),
+        builder.getNamedAttr("paulis", builder.getArrayAttr(paulis)),
+        builder.getNamedAttr("record_id", stringAttr(context, recordId)),
+        builder.getNamedAttr("event_id", nextEvent("mpp")),
+    };
+    if (invert)
+      attrs.push_back(builder.getNamedAttr("invert", UnitAttr::get(context)));
+    Operation *physical =
+        createGeneric(builder, measurement.getLoc(), "phys.measure_product",
+                      inputs, resultTypes, attrs);
+    for (auto [position, replacement] :
+         llvm::zip(*positions, physical->getResults().drop_back()))
+      patch.set(position, replacement);
+    projected[measurement.getPatchOut()] = std::move(patch);
+    projected[measurement.getBits()] =
+        PhysicalGroup{physical->getResults().back()};
+    if (currentProfile) {
+      std::string qualified = currentCallable + "." + record;
+      mutateRecordProjection({currentInstance, qualified}).push_back(recordId);
+      mutateRecordProjection({currentInstance, qualified + ".outcome"})
+          .push_back(recordId);
+    }
+    return success();
+  }
+
   LogicalResult measureProduct(qlx::fabric::MeasureProductOp measurement,
                                ProjectedValues &projected, OpBuilder &builder) {
     actionFailure.clear();
@@ -5220,6 +5281,13 @@ private:
             builder, discard.getLoc(), "phys.discard_resource_payload",
             resource.values(), {},
             {builder.getNamedAttr("event_id", nextEvent("discard_resource"))});
+        continue;
+      }
+      if (auto measurement = dyn_cast<qlx::fabric::MppOp>(operation)) {
+        if (failed(measurePhysicalProduct(measurement, projected, builder)))
+          return measurement.emitOpError(
+              "requires distinct physical carriers and a native "
+              "measure_product instrument");
         continue;
       }
       if (auto measurement =
