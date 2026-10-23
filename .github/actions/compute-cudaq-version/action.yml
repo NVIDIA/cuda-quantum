@@ -2,6 +2,7 @@ name: Compute CUDA-Q version
 description: |
   Infer cudaq_version from the Git ref (tag, releases/*, or staging/*).
   Unversioned refs use 0.0.0 with the short git SHA appended.
+  An explicit release_version takes precedence over both.
   Infer cudaq_logical_version from cudaq-logical/v* tags using setuptools-scm.
 inputs:
   ref_name:
@@ -12,6 +13,10 @@ inputs:
     description: Git ref type (branch or tag).
     required: false
     default: ${{ github.ref_type }}
+  release_version:
+    description: Release version that overrides the ref's.
+    required: false
+    default: ''
 outputs:
   cudaq_version:
     description: The inferred CUDA-Q version.
@@ -28,13 +33,16 @@ runs:
       env:
         REF_NAME: ${{ inputs.ref_name }}
         REF_TYPE: ${{ inputs.ref_type }}
+        RELEASE_VERSION: ${{ inputs.release_version }}
       run: |
         is_versioned=false
         if [[ "$REF_TYPE" == "tag" ]] || [[ "$REF_NAME" == releases/* ]] || [[ "$REF_NAME" == staging/* ]]; then
           is_versioned=true
         fi
 
-        if $is_versioned; then
+        if [[ -n "$RELEASE_VERSION" ]]; then
+          cudaq_version="$RELEASE_VERSION"
+        elif $is_versioned; then
           cudaq_version=$(echo "$REF_NAME" | egrep -o "([0-9]{1,}\.)+[0-9]{1,}" || true)
         else
           cudaq_version="0.0.0+${GITHUB_SHA:0:12}"

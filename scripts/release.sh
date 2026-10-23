@@ -46,10 +46,10 @@ done
 # Make sure all listed PRs are labeled appropriately.
 
 # Manually launch the deployment workflow from the release branch, setting the appropriate version number for the GitHub release.
-# -> this should automatically launch the publishing workflow from the main branch when the deployment completes
+# -> this creates the draft release right away and attaches installers, wheels and metapackages as they are built
+# -> this should automatically launch the validation workflow, which only tests what was built
 # -> this should automatically launch the documentation publishing for that version
-# Check that all three workflows above completed successfully. 
-# Once the publishing completes, you should see a draft release on GitHub for the new version.
+# Check that all three workflows above completed successfully and the draft has all assets (a note lists any missing).
 
 # Check that all nightly integration tests are enabled and run successfully with the release image. 
 # Work with QA to get the release candidate fully validated.
@@ -79,7 +79,7 @@ done
 # validation only. Nightly artifacts are not published to PyPI and are not an
 # end-user installation path.
 
-# Look at the draft release created by the publishing workflow and update the release notes manually as needed:
+# Look at the draft release created by the deployment workflow and update the release notes manually as needed:
 # - Update the link to the full change log to show the diff between the tag of the current release and the previous one;
 #   the link will not work until the release is made public since the tag does not yet exit
 # - Delete the Python wheels and the Python metapackages from the draft release.
