@@ -27,7 +27,7 @@ using namespace mlir;
 static bool isSupportedOutlineOp(Operation *op) {
   return isMemoryEffectFree(op) &&
          (isa<cudaq::quake::DiscriminateOp>(op) ||
-          cudaq::quake::detail::getScalarWireFlow(op).has_value());
+          cudaq::quake::detail::getWireFlow(op).has_value());
 }
 
 static FailureOr<cudaq::cc::CreateLambdaOp>
@@ -113,7 +113,7 @@ outlinePartitionImpl(ArrayRef<Operation *> partition,
     if (isa<cudaq::quake::DiscriminateOp>(op))
       continue;
 
-    auto flow = cudaq::quake::detail::getScalarWireFlow(op);
+    auto flow = cudaq::quake::detail::getWireFlow(op);
     if (!flow)
       return failure();
 
