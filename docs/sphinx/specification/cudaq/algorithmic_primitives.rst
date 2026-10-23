@@ -86,7 +86,7 @@ extract the result information in the following manner:
     counts.dump()
 
     # Fine-grained access to the bits and counts 
-    for bits, count in counts:
+    for bits, count in counts.items():
         print('Observed: {}, {}'.format(bits, count))
 
 
@@ -540,7 +540,7 @@ This return type can be used in the following way.
   .. code-block:: python 
 
     # I require the result with all generated data 
-    result = cudaq::observe(kernel, spinOp, *args)
+    result = cudaq.observe(kernel, spinOp, *args)
     expVal = result.expectation()
     X0X1Exp = result.expectation(x(0)*x(1))
     X0X1Data = result.counts(x(0)*x(1))
@@ -583,8 +583,8 @@ Here is an example of the utility of the :code:`cudaq::observe` function:
        ry(theta, q[1])
        x.ctrl(q[1], q[0])
     
-    h = 5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
-                    .21829 * z(0) - 6.125 * z(1)
+    h = (5.907 - 2.1433 * x(0) * x(1) - 2.1433 * y(0) * y(1) +
+                    .21829 * z(0) - 6.125 * z(1))
     energy = cudaq.observe(ansatz, h, .59).expectation() 
     print('Energy is {}'.format(energy))
 
