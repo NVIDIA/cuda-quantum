@@ -281,7 +281,14 @@ def _manifest_value(value, active=None):
     if isinstance(value, (tuple, list)):
         active.add(identity)
         try:
-            items = [_manifest_value(item, active) for item in value]
+            # Matrix rows contain integers whose JSON values are unchanged.
+            # Check them without a Python call frame per entry, then copy the
+            # row. Sequence subclasses retain the single recursive traversal.
+            if (type(value) in (tuple, list) and
+                    all(map(int.__instancecheck__, value))):
+                items = list(value)
+            else:
+                items = [_manifest_value(item, active) for item in value]
         finally:
             active.remove(identity)
         return {
