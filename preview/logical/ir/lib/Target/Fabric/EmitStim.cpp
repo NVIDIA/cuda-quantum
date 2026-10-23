@@ -29,6 +29,7 @@
 #include "llvm/ADT/SmallBitVector.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringMap.h"
+#include "llvm/ADT/StringSet.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "llvm/Support/raw_ostream.h"
 #include "mlir/IR/BuiltinOps.h"
@@ -50,6 +51,7 @@ namespace {
 //===----------------------------------------------------------------------===//
 
 struct CodeInfo {
+  std::vector<std::pair<std::string, unsigned>> partitions;
   unsigned dataQubits = 0;
   unsigned sxQubits = 0;
   unsigned szQubits = 0;
@@ -129,12 +131,17 @@ static llvm::StringMap<CodeInfo> buildCodeRegistry(ModuleOp module) {
     info.dataQubits = partitionSize(parts, "data");
     info.sxQubits = partitionSize(parts, "sx");
     info.szQubits = partitionSize(parts, "sz");
+    // Keep the same allocation order as PatchInfo::partitionRange.
+    for (StringRef name : {"data", "sx", "sz"})
+      info.partitions.emplace_back(name.str(), partitionSize(parts, name));
     for (NamedAttribute entry : parts) {
       StringRef name = entry.getName().strref();
       if (name == "data" || name == "sx" || name == "sz")
         continue;
-      if (auto size = dyn_cast<IntegerAttr>(entry.getValue()))
+      if (auto size = dyn_cast<IntegerAttr>(entry.getValue())) {
         info.otherQubits += static_cast<unsigned>(size.getInt());
+        info.partitions.emplace_back(name.str(), size.getInt());
+      }
     }
 
     if (auto hxAttr = codeOp.getHx())
@@ -247,6 +254,7 @@ static StringRef framePreimage(const BasisFrame &frame, StringRef out) {
 //===----------------------------------------------------------------------===//
 
 struct PatchInfo {
+  unsigned identity = 0;
   unsigned baseIndex = 0;
   CodeInfo codeInfo;
   std::string codeName;
@@ -297,22 +305,34 @@ struct DataMeasRecords {
 
 class StimEmitter {
 public:
-  StimEmitter(llvm::raw_ostream &os, ModuleOp module)
-      : os(os), module(module), codeReg(buildCodeRegistry(module)) {}
+  StimEmitter(llvm::raw_ostream &os, ModuleOp module,
+              cudaq::logical::Projection *projection = nullptr,
+              StringRef selectedGadget = {})
+      : os(os), module(module), codeReg(buildCodeRegistry(module)),
+        projection(projection), selectedGadget(selectedGadget.str()) {}
 
   LogicalResult emit() {
-    // 1. Find the entry gadget (must have `entry` attribute + device).
+    // 1. Select the requested gadget, or the unique entry for text emission.
     GadgetOp entry;
     bool ambiguousEntry = false;
-    module.walk([&](GadgetOp g) {
-      if (!g.getEntry())
-        return;
-      if (entry) {
-        ambiguousEntry = true;
-        return;
+    if (!selectedGadget.empty()) {
+      entry = module.lookupSymbol<GadgetOp>(selectedGadget);
+      if (!entry) {
+        module.emitError("fabric-to-stim projection: selected gadget @")
+            << selectedGadget << " does not resolve";
+        return failure();
       }
-      entry = g;
-    });
+    } else {
+      module.walk([&](GadgetOp g) {
+        if (!g.getEntry())
+          return;
+        if (entry) {
+          ambiguousEntry = true;
+          return;
+        }
+        entry = g;
+      });
+    }
     if (!entry) {
       module.emitError("fabric-to-stim: no entry gadget found "
                        "(expected a fabric.gadget with {entry})");
@@ -324,6 +344,7 @@ public:
     }
 
     // 2. Walk the selected realization body, inlining fabric.call targets.
+    rootSymbol = currentSymbol = entry.getSymName().str();
     Block *body = resolveGadgetBody(entry, entry.getOperation());
     if (!body)
       return failure();
@@ -332,6 +353,31 @@ public:
     activeCallables.insert(entry.getOperation());
     walkBlock(*body);
     activeCallables.erase(entry.getOperation());
+    if (projection && !hadError) {
+      if (projection->recordOrder.size() != nextMeasIndex) {
+        entry.emitError("fabric-to-stim projection has a measurement without "
+                        "one stable record path");
+        hadError = true;
+      }
+      llvm::StringSet<> seen;
+      for (const auto &record : projection->records)
+        if (!seen.insert(record.path).second) {
+          entry.emitError("fabric-to-stim projection has duplicate stable "
+                          "measurement record path '")
+              << record.path << "'";
+          hadError = true;
+          break;
+        }
+    }
+    if (projection && !hadError &&
+        failed(captureProjectionBoundaries(entry, *body)))
+      return failure();
+    if (projection && !hadError)
+      captureProjectionMeasurements();
+    if (projection) {
+      projection->carrierCount = nextQubitIndex;
+      projection->measurementCount = nextMeasIndex;
+    }
     return hadError ? failure() : success();
   }
 
@@ -362,6 +408,11 @@ private:
   }
 
   LogicalResult seedEntryArguments(GadgetOp entry, Block &body) {
+    auto specRef = entry.getSpecAttr();
+    auto spec = specRef ? module.lookupSymbol<GadgetSpecOp>(specRef.getValue())
+                        : GadgetSpecOp{};
+    auto ports = spec ? spec.getPortsAttr() : ArrayAttr{};
+    unsigned patchIndex = 0;
     for (BlockArgument argument : body.getArguments()) {
       auto patch = dyn_cast<PatchType>(argument.getType());
       if (!patch) {
@@ -383,10 +434,19 @@ private:
         return failure();
       }
       PatchInfo info;
+      info.identity = nextPatchId++;
       info.baseIndex = nextQubitIndex;
       info.codeInfo = code->second;
       info.codeName = codeName.str();
-      info.initialized.resize(info.codeInfo.totalQubits(), true);
+      bool initialized = true;
+      if (ports && patchIndex < ports.size()) {
+        auto port = dyn_cast<DictionaryAttr>(ports[patchIndex]);
+        auto state =
+            port ? port.getAs<StringAttr>("input_state") : StringAttr{};
+        initialized = !state || state.getValue() != "uninitialized";
+      }
+      ++patchIndex;
+      info.initialized.resize(info.codeInfo.totalQubits(), initialized);
       nextQubitIndex += info.codeInfo.totalQubits();
       patchMap[argument] = std::move(info);
     }
@@ -394,11 +454,16 @@ private:
   }
 
   void walkBlock(Block &block) {
+    unsigned ordinal = 0;
     for (Operation &op : block)
-      emitOp(&op);
+      emitOp(&op, ordinal++);
   }
 
-  void emitOp(Operation *op) {
+  void emitOp(Operation *op, unsigned ordinal) {
+    unsigned previousOrdinal = currentOperationOrdinal;
+    unsigned previousInstructionOrdinal = currentInstructionOrdinal;
+    currentOperationOrdinal = ordinal;
+    currentInstructionOrdinal = 0;
     llvm::TypeSwitch<Operation *>(op)
         // Lifecycle.
         .Case<AllocOp>([&](auto o) { emitAlloc(o); })
@@ -444,6 +509,9 @@ private:
         .Case<ReadSyndromeAncillasOp>(
             [&](auto o) { emitReadSyndromeAncillas(o); })
         .Case<AssembleSyndromeOp>([&](auto o) { emitAssembleSyndrome(o); })
+        // Affine classical result rows are recorded by GadgetSpec's outcome
+        // map; their source measurements already appear in the projection.
+        .Case<ParityOp>([](auto) {})
         // Resource preparation/injection has no faithful Stim text form.
         .Case<ProduceResourceOp, InjectOp, DiscardResourceOp>([&](auto op) {
           op.emitError("fabric-to-stim: unsupported operation '")
@@ -501,6 +569,220 @@ private:
               << op->getName().getStringRef() << "'";
           hadError = true;
         });
+    currentOperationOrdinal = previousOrdinal;
+    currentInstructionOrdinal = previousInstructionOrdinal;
+  }
+
+  using Kind = cudaq::logical::ProjectionInstruction::Kind;
+  using Pauli = cudaq::logical::ProjectionInstruction::Pauli;
+  using PauliFactor = cudaq::logical::ProjectionInstruction::PauliFactor;
+
+  std::string qualify(StringRef local) const {
+    std::string result;
+    for (const std::string &segment : instancePath) {
+      result += segment;
+      result += '.';
+    }
+    result += local;
+    return result;
+  }
+
+  void addInstruction(Kind kind, ArrayRef<unsigned> carriers,
+                      ArrayRef<PauliFactor> paulis = {}, bool inverted = false,
+                      unsigned measurementStart = 0) {
+    if (!projection)
+      return;
+    cudaq::logical::ProjectionInstruction instruction;
+    instruction.kind = kind;
+    instruction.carriers.assign(carriers.begin(), carriers.end());
+    instruction.paulis.assign(paulis.begin(), paulis.end());
+    instruction.inverted = inverted;
+    instruction.measurementStart = measurementStart;
+    instruction.siteId = qualify((Twine("op") + Twine(currentOperationOrdinal) +
+                                  "." + Twine(currentInstructionOrdinal++))
+                                     .str());
+    projection->instructions.push_back(std::move(instruction));
+  }
+
+  void addRecord(StringRef local, unsigned measurementIndex,
+                 bool canonical = true, StringRef field = "outcome",
+                 unsigned lane = 0) {
+    if (!projection)
+      return;
+    if (local.starts_with("__qlx_")) {
+      module.emitError(
+          "projection record names beginning '__qlx_' are reserved "
+          "for compiler-derived invocation paths");
+      hadError = true;
+      return;
+    }
+    std::string path = qualify(local);
+    if (canonical) {
+      projection->recordOrder.push_back(path);
+      cudaq::logical::ProjectionMeasurement measurement;
+      measurement.index = measurementIndex;
+      measurement.record = path;
+      measurement.symbol = currentSymbol;
+      measurement.callPath.assign(instancePath.begin(), instancePath.end());
+      measurement.field = field.str();
+      measurement.lane = lane;
+      projection->measurements.push_back(std::move(measurement));
+    }
+    projection->records.push_back({std::move(path), measurementIndex});
+  }
+
+  void addRecordFamily(StringRef base, StringRef field, unsigned first,
+                       unsigned count, bool canonical = true) {
+    if (!projection)
+      return;
+    for (unsigned i = 0; i < count; ++i)
+      addRecord((Twine(base) + "." + field + Twine(i)).str(), first + i,
+                canonical, field, i);
+  }
+
+  bool requireRecord(Operation *op, std::optional<StringRef> record) {
+    if (!projection || record)
+      return true;
+    op->emitError("fabric-to-stim projection requires a stable record name");
+    hadError = true;
+    return false;
+  }
+
+  void captureProjectionMeasurements() {
+    for (const auto &instruction : projection->instructions) {
+      if (instruction.kind == Kind::M || instruction.kind == Kind::MX) {
+        for (auto [lane, carrier] : llvm::enumerate(instruction.carriers))
+          projection->measurements[instruction.measurementStart + lane]
+              .carriers.push_back(carrier);
+      } else if (instruction.kind == Kind::MPP) {
+        for (const auto &factor : instruction.paulis)
+          projection->measurements[instruction.measurementStart]
+              .carriers.push_back(factor.carrier);
+      }
+    }
+    llvm::StringMap<unsigned> indices;
+    for (const auto &record : projection->records) {
+      auto &aliases = projection->measurements[record.measurementIndex].aliases;
+      for (const std::string &alias :
+           {record.path, rootSymbol + "." + record.path}) {
+        auto [found, inserted] =
+            indices.try_emplace(alias, record.measurementIndex);
+        if (!inserted && found->second != record.measurementIndex) {
+          module.emitError(
+              "projection has an ambiguous measurement record alias '")
+              << alias << "'";
+          hadError = true;
+          return;
+        }
+        aliases.push_back(alias);
+      }
+    }
+  }
+
+  LogicalResult captureProjectionBoundaries(GadgetOp entry, Block &body) {
+    auto specRef = entry.getSpecAttr();
+    auto spec = specRef ? module.lookupSymbol<GadgetSpecOp>(specRef.getValue())
+                        : GadgetSpecOp{};
+    if (!spec) {
+      entry.emitError("fabric-to-stim projection requires a linked GadgetSpec");
+      hadError = true;
+      return failure();
+    }
+    auto returnOp = dyn_cast<ReturnOp>(body.getTerminator());
+    if (!returnOp) {
+      entry.emitError("fabric-to-stim projection requires a gadget return");
+      hadError = true;
+      return failure();
+    }
+    SmallVector<Value> patchInputs;
+    SmallVector<Value> patchOutputs;
+    for (BlockArgument argument : body.getArguments())
+      if (isa<PatchType>(argument.getType()))
+        patchInputs.push_back(argument);
+    for (Value result : returnOp.getOperands())
+      if (isa<PatchType>(result.getType()))
+        patchOutputs.push_back(result);
+    auto ports = spec.getPorts();
+    if (!ports) {
+      if (patchInputs.empty() && patchOutputs.empty())
+        return success();
+      entry.emitError("fabric-to-stim projection requires typed GadgetSpec "
+                      "ports for its patch boundary");
+      hadError = true;
+      return failure();
+    }
+
+    auto capture = [&](Value value, unsigned ordinal, StringRef name,
+                       StringRef direction, bool input) {
+      const PatchInfo *info = lookupPatch(value);
+      cudaq::logical::ProjectionPort port{
+          ordinal, name.str(), direction.str(), info->identity, {}};
+      unsigned offset = info->baseIndex;
+      for (const auto &[partition, width] : info->codeInfo.partitions) {
+        std::vector<unsigned> carriers;
+        for (unsigned index = 0; index < width; ++index)
+          carriers.push_back(offset + index);
+        offset += width;
+        if (partition == "data")
+          (input ? projection->inputDataCarriersByPort
+                 : projection->outputDataCarriersByPort)
+              .push_back(carriers);
+        port.partitions.emplace_back(partition, std::move(carriers));
+      }
+      (input ? projection->inputPorts : projection->outputPorts)
+          .push_back(std::move(port));
+    };
+    unsigned inputIndex = 0;
+    unsigned outputIndex = 0;
+    for (auto [ordinal, rawPort] : llvm::enumerate(*ports)) {
+      auto port = dyn_cast<DictionaryAttr>(rawPort);
+      auto name = port ? port.getAs<StringAttr>("name") : StringAttr{};
+      auto direction =
+          port ? port.getAs<StringAttr>("direction") : StringAttr{};
+      if (!name || !direction) {
+        entry.emitError("fabric-to-stim projection has an invalid GadgetSpec "
+                        "port table");
+        hadError = true;
+        return failure();
+      }
+      StringRef kind = direction.getValue();
+      // Output-only ports still receive uninitialized physical carriers in
+      // the realization ABI. They are not encoded input boundaries.
+      if (inputIndex >= patchInputs.size() ||
+          !lookupPatch(patchInputs[inputIndex])) {
+        entry.emitError("fabric-to-stim projection has an unresolved input "
+                        "patch endpoint");
+        hadError = true;
+        return failure();
+      }
+      Value physicalInput = patchInputs[inputIndex++];
+      if (kind == "input" || kind == "inout")
+        capture(physicalInput, ordinal, name.getValue(), kind, true);
+      if (kind == "output" || kind == "inout") {
+        if (outputIndex >= patchOutputs.size() ||
+            !lookupPatch(patchOutputs[outputIndex])) {
+          entry.emitError("fabric-to-stim projection has an unresolved output "
+                          "patch endpoint");
+          hadError = true;
+          return failure();
+        }
+        capture(patchOutputs[outputIndex++], ordinal, name.getValue(), kind,
+                false);
+      } else if (kind != "input") {
+        entry.emitError("fabric-to-stim projection has an unknown GadgetSpec "
+                        "port direction");
+        hadError = true;
+        return failure();
+      }
+    }
+    if (inputIndex != patchInputs.size() ||
+        outputIndex != patchOutputs.size()) {
+      entry.emitError("fabric-to-stim projection GadgetSpec ports do not cover "
+                      "the patch signature");
+      hadError = true;
+      return failure();
+    }
+    return success();
   }
 
   //===--------------------------------------------------------------------===//
@@ -618,6 +900,7 @@ private:
       return;
     }
     PatchInfo pi;
+    pi.identity = nextPatchId++;
     pi.baseIndex = nextQubitIndex;
     pi.codeInfo = it->second;
     pi.codeName = codeName.str();
@@ -650,6 +933,7 @@ private:
     llvm::SmallVector<unsigned, 16> qubits;
     for (unsigned q = lo; q < hi; ++q)
       qubits.push_back(q);
+    addInstruction(xBasis ? Kind::RX : Kind::R, qubits);
     markInitialized(op.getResult(), qubits);
   }
 
@@ -673,6 +957,18 @@ private:
     for (unsigned q : qubits)
       os << " " << q;
     os << "\n";
+    if (projection) {
+      Kind kind = Kind::X;
+      if (stimName == "H")
+        kind = Kind::H;
+      else if (stimName == "S")
+        kind = Kind::S;
+      else if (stimName == "S_DAG")
+        kind = Kind::SDag;
+      else if (stimName == "Z")
+        kind = Kind::Z;
+      addInstruction(kind, qubits);
+    }
   }
 
   void emitReset(ResetOp op) {
@@ -689,6 +985,7 @@ private:
     for (unsigned qubit : qubits)
       os << " " << qubit;
     os << "\n";
+    addInstruction(Kind::R, qubits);
     markInitialized(op.getResult(), qubits);
   }
 
@@ -788,6 +1085,14 @@ private:
     for (auto [c, t] : pairs)
       os << " " << c << " " << t;
     os << "\n";
+    if (projection) {
+      llvm::SmallVector<unsigned, 16> operands;
+      for (auto [c, t] : pairs) {
+        operands.push_back(c);
+        operands.push_back(t);
+      }
+      addInstruction(stimName == "CX" ? Kind::CX : Kind::CZ, operands);
+    }
   }
 
   template <typename OpT>
@@ -839,6 +1144,7 @@ private:
     for (auto [c, t] : pairs)
       os << " " << c << " " << t;
     os << "\n";
+    addInstruction(stimName == "CX" ? Kind::CX : Kind::CZ, used);
 
     (void)operationKey;
   }
@@ -971,9 +1277,16 @@ private:
     }
 
     os << "CX";
-    for (unsigned i = 0; i < n; ++i)
+    llvm::SmallVector<unsigned, 16> operands;
+    for (unsigned i = 0; i < n; ++i) {
       os << " " << (cLo + i) << " " << tIdx[i];
+      if (projection) {
+        operands.push_back(cLo + i);
+        operands.push_back(tIdx[i]);
+      }
+    }
     os << "\n";
+    addInstruction(Kind::CX, operands);
   }
 
   // A code-automorphism relabeling of the data qubits: realize it as a
@@ -1002,6 +1315,7 @@ private:
       return;
     std::vector<bool> seen(n, false);
     std::string swaps;
+    llvm::SmallVector<unsigned, 16> swapOperands;
     for (unsigned start = 0; start < n; ++start) {
       if (seen[start])
         continue;
@@ -1016,12 +1330,19 @@ private:
         cur = static_cast<unsigned>(permArr[cur]);
       }
       // SWAP(cyc[j], cyc[j+1]) for j = size-2 .. 0 moves content i -> perm[i].
-      for (int j = static_cast<int>(cyc.size()) - 2; j >= 0; --j)
+      for (int j = static_cast<int>(cyc.size()) - 2; j >= 0; --j) {
         swaps += " " + std::to_string(lo + cyc[j]) + " " +
                  std::to_string(lo + cyc[j + 1]);
+        if (projection) {
+          swapOperands.push_back(lo + cyc[j]);
+          swapOperands.push_back(lo + cyc[j + 1]);
+        }
+      }
     }
-    if (!swaps.empty())
+    if (!swaps.empty()) {
       os << "SWAP" << swaps << "\n";
+      addInstruction(Kind::Swap, swapOperands);
+    }
   }
 
   //===--------------------------------------------------------------------===//
@@ -1042,11 +1363,13 @@ private:
     for (unsigned qubit : qubits)
       os << " " << qubit;
     os << "\n";
+    addInstruction(Kind::R, qubits);
     if (op.getBasis() == Prep::x) {
       os << "H";
       for (unsigned qubit : qubits)
         os << " " << qubit;
       os << "\n";
+      addInstruction(Kind::H, qubits);
     }
     markInitialized(op.getResult(), qubits);
   }
@@ -1066,6 +1389,8 @@ private:
     if (!requireInitialized(op.getOperation(), op.getPatch(), qubits,
                             "measurement"))
       return;
+    if (!requireRecord(op.getOperation(), op.getRecord()))
+      return;
 
     os << "M";
     for (unsigned q : qubits)
@@ -1073,6 +1398,10 @@ private:
     os << "\n";
 
     unsigned firstAbs = nextMeasIndex;
+    addInstruction(Kind::M, qubits, {}, false, firstAbs);
+    if (auto record = op.getRecord())
+      addRecordFamily(*record, stringifyPartition(op.getPartition()), firstAbs,
+                      qubits.size());
     nextMeasIndex += qubits.size();
     DataMeasRecords dm;
     dm.firstAbs = firstAbs;
@@ -1096,6 +1425,8 @@ private:
     if (!requireInitialized(op.getOperation(), op.getPatch(), qubits,
                             "measurement"))
       return;
+    if (!requireRecord(op.getOperation(), op.getRecord()))
+      return;
 
     os << (op.getBasis() == Prep::x ? "MX" : "M");
     for (unsigned q : qubits)
@@ -1104,6 +1435,11 @@ private:
 
     DataMeasRecords dm;
     dm.firstAbs = nextMeasIndex;
+    addInstruction(op.getBasis() == Prep::x ? Kind::MX : Kind::M, qubits, {},
+                   false, dm.firstAbs);
+    if (auto record = op.getRecord())
+      addRecordFamily(*record, stringifyPartition(op.getPartition()),
+                      dm.firstAbs, qubits.size());
     dm.count = qubits.size();
     nextMeasIndex += qubits.size();
     dm.codeName = pi->codeName;
@@ -1127,6 +1463,30 @@ private:
     }
     if (!requireInitialized(op.getOperation(), op.getPatch(), qubits, "mpp"))
       return;
+    if (!requireRecord(op.getOperation(), op.getRecord()))
+      return;
+    llvm::SmallVector<PauliFactor, 16> factors;
+    if (projection) {
+      for (unsigned index = 0; index < qubits.size(); ++index) {
+        Pauli basis;
+        switch (paulis[index]) {
+        case 'X':
+          basis = Pauli::X;
+          break;
+        case 'Y':
+          basis = Pauli::Y;
+          break;
+        case 'Z':
+          basis = Pauli::Z;
+          break;
+        default:
+          op.emitError("fabric-to-stim: invalid mpp Pauli factor");
+          hadError = true;
+          return;
+        }
+        factors.push_back({qubits[index], basis});
+      }
+    }
     os << "MPP ";
     for (unsigned index = 0; index < qubits.size(); ++index) {
       if (index)
@@ -1137,6 +1497,9 @@ private:
     }
     os << "\n";
 
+    addInstruction(Kind::MPP, {}, factors, negated, nextMeasIndex);
+    if (auto record = op.getRecord())
+      addRecord((Twine(*record) + ".outcome").str(), nextMeasIndex);
     DataMeasRecords dm;
     dm.firstAbs = nextMeasIndex++;
     dm.count = 1;
@@ -1269,6 +1632,16 @@ private:
       hadError = true;
       return;
     }
+    if (!requireRecord(op.getOperation(), op.getRecord()))
+      return;
+    llvm::SmallVector<PauliFactor, 16> factors;
+    if (projection)
+      for (auto &kv : pauliByQubit) {
+        Pauli basis = kv.second == 1   ? Pauli::X
+                      : kv.second == 2 ? Pauli::Z
+                                       : Pauli::Y;
+        factors.push_back({kv.first, basis});
+      }
     // Stim complements the record when the first target is inverted, which
     // is exactly the negated-product measurement convention.
     if (phase == 2u)
@@ -1281,6 +1654,9 @@ private:
     os << "\n";
 
     // MPP yields exactly one measurement record.
+    addInstruction(Kind::MPP, {}, factors, phase == 2u, nextMeasIndex);
+    if (auto record = op.getRecord())
+      addRecord((Twine(*record) + ".outcome").str(), nextMeasIndex);
     productMeas[op.getOutcome()] = nextMeasIndex;
     nextMeasIndex += 1;
   }
@@ -1307,6 +1683,8 @@ private:
     if (!requireInitialized(op.getOperation(), op.getPatch(), ancillas,
                             "read_syndrome_ancillas"))
       return;
+    if (!requireRecord(op.getOperation(), op.getRecord()))
+      return;
 
     SyndromeRecords rec;
     rec.codeName = pi->codeName;
@@ -1323,6 +1701,7 @@ private:
         os << " " << q;
       os << "\n";
       rec.sxFirstAbs = nextMeasIndex;
+      addInstruction(Kind::M, sxQ, {}, false, nextMeasIndex);
       rec.nSx = nSx;
       nextMeasIndex += nSx;
     }
@@ -1335,9 +1714,17 @@ private:
         os << " " << q;
       os << "\n";
       rec.szFirstAbs = nextMeasIndex;
+      addInstruction(Kind::M, szQ, {}, false, nextMeasIndex);
       rec.nSz = nSz;
       nextMeasIndex += nSz;
     }
+
+    if (auto record = op.getRecord())
+      addRecordFamily(*record, "s", rec.sxFirstAbs, nSx);
+    if (auto record = op.getRecord())
+      for (unsigned i = 0; i < nSz; ++i)
+        addRecord((Twine(*record) + ".s" + Twine(nSx + i)).str(),
+                  rec.szFirstAbs + i, true, "s", nSx + i);
 
     syndromeMap[op.getSyndrome()] = std::move(rec);
   }
@@ -1367,6 +1754,10 @@ private:
     rec.nSx = sx->second.count;
     rec.szFirstAbs = sz->second.firstAbs;
     rec.nSz = sz->second.count;
+    addRecordFamily(op.getRecord(), "s", rec.sxFirstAbs, rec.nSx, false);
+    for (unsigned i = 0; i < rec.nSz; ++i)
+      addRecord((Twine(op.getRecord()) + ".s" + Twine(rec.nSx + i)).str(),
+                rec.szFirstAbs + i, false);
     syndromeMap[op.getSyndrome()] = std::move(rec);
   }
 
@@ -1421,15 +1812,27 @@ private:
       propagateData(actual, formal);
     }
 
-    // Walk, capturing the ReturnOp to wire up results.
+    // Walk, capturing the ReturnOp to wire up results. Qualification matches
+    // the stable record-manifest convention used by GadgetSpec verification.
+    std::string previousSymbol = currentSymbol;
+    if (projection) {
+      instancePath.push_back(
+          (Twine("__qlx_call") + Twine(currentOperationOrdinal)).str());
+      currentSymbol = op.getCallee().str();
+    }
     SmallVector<Value> returnOperands;
+    unsigned ordinal = 0;
     for (Operation &bodyOp : *entry) {
       if (isa<ReturnOp, ProtocolReturnOp>(&bodyOp)) {
         for (Value v : bodyOp.getOperands())
           returnOperands.push_back(v);
         break;
       }
-      emitOp(&bodyOp);
+      emitOp(&bodyOp, ordinal++);
+    }
+    if (projection) {
+      instancePath.pop_back();
+      currentSymbol = std::move(previousSymbol);
     }
 
     // Wire call results to what the callee returned.
@@ -1461,14 +1864,22 @@ private:
     for (int64_t iter = 0; iter < count; ++iter) {
       seed(lastYielded);
       SmallVector<Value> thisYielded;
+      if (projection)
+        instancePath.push_back((Twine("__qlx_repeat") +
+                                Twine(currentOperationOrdinal) + "_" +
+                                Twine(iter))
+                                   .str());
+      unsigned ordinal = 0;
       for (Operation &bodyOp : body) {
         if (auto y = dyn_cast<qlx::cflow::YieldOp>(&bodyOp)) {
           for (Value v : y.getOperands())
             thisYielded.push_back(v);
           break;
         }
-        emitOp(&bodyOp);
+        emitOp(&bodyOp, ordinal++);
       }
+      if (projection)
+        instancePath.pop_back();
       // For the next iteration, we re-read metadata off the yielded
       // block-arg values, which reflect the state after this iteration.
       lastYielded.assign(thisYielded.begin(), thisYielded.end());
@@ -1501,9 +1912,17 @@ private:
   // Absolute Stim measurement index of each measure_product outcome record.
   llvm::DenseMap<Value, unsigned> productMeas;
   unsigned nextQubitIndex = 0;
+  unsigned nextPatchId = 0;
   unsigned nextMeasIndex = 0;
   bool hadError = false;
   llvm::DenseSet<Operation *> activeCallables;
+  cudaq::logical::Projection *projection = nullptr;
+  std::string selectedGadget;
+  std::string rootSymbol;
+  std::string currentSymbol;
+  llvm::SmallVector<std::string, 4> instancePath;
+  unsigned currentOperationOrdinal = 0;
+  unsigned currentInstructionOrdinal = 0;
 };
 
 } // anonymous namespace
@@ -1517,6 +1936,23 @@ LogicalResult qlx::fabric::emitStim(ModuleOp module, llvm::raw_ostream &os) {
     return failure();
   StimEmitter emitter(os, module);
   return emitter.emit();
+}
+
+FailureOr<cudaq::logical::Projection>
+cudaq::logical::projectClifford(ModuleOp module) {
+  return projectClifford(module, {});
+}
+
+FailureOr<cudaq::logical::Projection>
+cudaq::logical::projectClifford(ModuleOp module, StringRef gadgetSymbol) {
+  if (failed(verify(module)))
+    return failure();
+  cudaq::logical::Projection result;
+  llvm::raw_null_ostream sink;
+  StimEmitter emitter(sink, module, &result, gadgetSymbol);
+  if (failed(emitter.emit()))
+    return failure();
+  return result;
 }
 
 //===----------------------------------------------------------------------===//

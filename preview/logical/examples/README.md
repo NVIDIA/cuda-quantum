@@ -29,6 +29,29 @@ target.
 The `standalone/` examples use `cudaq.logical` directly and expose each
 compiler step. They do not define CUDA-Q kernels or call `cudaq.estimate`.
 
+`standalone/06_surface_memory.py` constructs a rotated surface-code Z-memory
+experiment from preparation, SEC, and destructive-readout gadget profiles. It
+exports detector and observable annotations with circuit-level depolarizing
+noise using an interleaved N/Z schedule that preserves distance. Both
+preparation and readout include an extraction round. It emits plain text
+without the Stim Python package:
+
+```bash
+python preview/logical/examples/standalone/06_surface_memory.py > surface-memory.stim
+```
+
+To compile the emitted text into a Stim circuit and sample it, install Stim
+for the example and pass `--shots`. Sampling summaries go to stderr; stdout
+continues to contain only the circuit text.
+
+```bash
+python -m pip install 'stim>=1.16,<2'
+python preview/logical/examples/standalone/06_surface_memory.py --shots 1000 --seed 7 > surface-memory.stim
+```
+
+The summary reports detection events and uncorrected observable flips. The
+core exporter does not depend on Stim.
+
 The `mlir/` examples use `qlx-opt` and `qlx-translate` directly.
 
 ## Gidney--Ekerå physical compilation

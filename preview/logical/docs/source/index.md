@@ -109,6 +109,7 @@ use-cases/stim-emission
 :hidden:
 :caption: Reference
 
+reference/detector-contracts
 reference/for-stim-users
 reference/capabilities
 reference/architecture
