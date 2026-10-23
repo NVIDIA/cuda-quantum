@@ -44,6 +44,7 @@ add_cudaq_library(OptTransforms
   ExpandMeasurements.cpp
   ExpandVeqUses.cpp
   FactorQuantumAlloc.cpp
+  FuseSingleQubitChainsForCliffordT.cpp
   GenKernelExecution.cpp
   GenDeviceCodeLoader.cpp
   GetConcreteMatrix.cpp
@@ -67,8 +68,8 @@ add_cudaq_library(OptTransforms
   MultiControlDecomposition.cpp
   NormalizeAtomicQuantumRegions.cpp
   NormalizePhasePlacement.cpp
+  NormalizeSingleQubitCliffordT.cpp
   ObserveAnsatz.cpp
-  OptimizeSingleQubitCliffordT.cpp
   PhaseFolding.cpp
   Pipelines.cpp
   PruneCtrlRelations.cpp

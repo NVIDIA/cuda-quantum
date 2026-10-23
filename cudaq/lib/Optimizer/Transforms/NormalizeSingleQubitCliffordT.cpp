@@ -9,9 +9,9 @@
 #include "PassDetails.h"
 #include "PhaseUtilities.h"
 #include "SingleQubitChain.h"
+#include "cudaq/Optimizer/Builder/CompilerNames.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Synthesis/Circuit/Circuit.h"
 #include "cudaq/Synthesis/Circuit/Gate.h"
@@ -20,14 +20,12 @@
 #include "llvm/ADT/TypeSwitch.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/Builders.h"
-#include "mlir/IR/BuiltinOps.h"
 #include <cmath>
 #include <compare>
-#include <optional>
 #include <utility>
 
 namespace cudaq::opt {
-#define GEN_PASS_DEF_OPTIMIZESINGLEQUBITCLIFFORDT
+#define GEN_PASS_DEF_NORMALIZESINGLEQUBITCLIFFORDT
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
@@ -48,11 +46,11 @@ struct CircuitCost {
   auto operator<=>(const CircuitCost &) const = default;
 };
 
-class OptimizeSingleQubitCliffordTPass
-    : public cudaq::opt::impl::OptimizeSingleQubitCliffordTBase<
-          OptimizeSingleQubitCliffordTPass> {
+class NormalizeSingleQubitCliffordTPass
+    : public cudaq::opt::impl::NormalizeSingleQubitCliffordTBase<
+          NormalizeSingleQubitCliffordTPass> {
 public:
-  using OptimizeSingleQubitCliffordTBase::OptimizeSingleQubitCliffordTBase;
+  using NormalizeSingleQubitCliffordTBase::NormalizeSingleQubitCliffordTBase;
   void runOnOperation() override;
 };
 
@@ -193,7 +191,7 @@ emitCircuit(OpBuilder &builder, Location location, ValueRange inputs,
   return controls;
 }
 
-static void optimizeBlock(Block &block) {
+static void normalizeBlock(Block &block) {
   llvm::SmallVector<Candidate, 0> candidates;
   auto chains = cudaq::opt::collectSingleQubitChains(block, isExactGate);
 
@@ -227,17 +225,9 @@ static void optimizeBlock(Block &block) {
   }
 }
 
-static void optimizeRegion(Region &region) {
-  for (Block &block : region) {
-    optimizeBlock(block);
-    for (Operation &operation : block)
-      for (Region &nested : operation.getRegions())
-        optimizeRegion(nested);
-  }
-}
-
-void OptimizeSingleQubitCliffordTPass::runOnOperation() {
-  ModuleOp module = getOperation();
-  for (func::FuncOp function : module.getOps<func::FuncOp>())
-    optimizeRegion(function.getBody());
+void NormalizeSingleQubitCliffordTPass::runOnOperation() {
+  func::FuncOp function = getOperation();
+  if (function->hasAttr(cudaq::runtime::disableQuantumOpts))
+    return;
+  cudaq::opt::forEachNestedBlock(function.getBody(), normalizeBlock);
 }
