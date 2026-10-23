@@ -2,6 +2,7 @@
 # Licensed under the Apache License, Version 2.0.
 
 from dataclasses import replace
+from pathlib import Path
 import subprocess
 import sys
 
@@ -335,7 +336,10 @@ def test_custom_synthesizer_generates_qec_protocol(synthesizer_factory):
 
 def test_callbacks_are_cleaned_up_at_interpreter_exit():
     script = """
-import _cudaq_logical_devpath
+try:
+    import _cudaq_logical_devpath
+except ImportError:
+    pass
 from cudaq.logical.compiler.synthesizers import _ensure_registered
 class Synth:
     name = 'shutdown'
@@ -349,6 +353,27 @@ _ensure_registered(Synth())
                             text=True)
     assert result.returncode == 0, result.stderr
     assert "leaked" not in result.stderr
+
+
+def test_example_runs_without_optional_mpmath():
+    example = Path(__file__).resolve(
+    ).parents[4] / "examples/standalone/06_custom_synthesizer.py"
+    script = """
+import sys
+sys.modules['mpmath'] = None
+try:
+    import _cudaq_logical_devpath
+except ImportError:
+    pass
+import runpy
+runpy.run_path(sys.argv[1], run_name='__main__')
+"""
+    result = subprocess.run([sys.executable, "-c", script,
+                             str(example)],
+                            capture_output=True,
+                            text=True)
+    assert result.returncode == 0, result.stderr
+    assert "toy-su2/0.1.0" in result.stdout
 
 
 @cudaq.kernel
