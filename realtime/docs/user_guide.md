@@ -22,7 +22,7 @@ may not have all the required capabilities.
 
 - CUDA Runtime (12+)
 
-- [`DOCA` 3.3.0 installation](https://developer.nvidia.com/doca-downloads)
+- [`DOCA` 3.4.0 installation](https://developer.nvidia.com/doca-downloads)
 with `gpunetio` support.
 
 > **_NOTE:_** `DOCA` is required to run the end-to-end validation with FPGA

@@ -421,6 +421,9 @@ jobs:
       - name: Run cudaq.logical Python tests
         shell: bash
         timeout-minutes: 30
+        env:
+          # Lets a failing factory-characterization check keep its schedule.
+          QLX_SCHEDULE_DUMP_DIR: ${{ runner.temp }}/qlx-schedule-dumps
         run: |
           set -euo pipefail
           uv pip install "pytest>=7.0"
@@ -439,3 +442,11 @@ jobs:
           esac
 
           python -m pytest preview/logical/python/tests/cudaq/logical -v
+
+      - name: Upload schedule dumps from failed tests
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: qlx-schedule-dumps-${{ inputs.runtime_artifact_name }}
+          path: ${{ runner.temp }}/qlx-schedule-dumps
+          if-no-files-found: ignore
