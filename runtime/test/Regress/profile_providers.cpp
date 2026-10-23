@@ -10,37 +10,38 @@
 
 // Test that new inferred pipelines match the expected pipelines.
 
-// CHECK: ionq: match
-// CHECK: fermioniq: match
-// CHECK: quantinuum: match
+// CHECK-LABEL: ionq:
+// CHECK-NEXT: canonicalize
+// CHECK-NEXT: hw-jit-prep-pipeline{allow-early-exit=false}
+// CHECK-NEXT: jit-deploy-pipeline
+// CHECK-NEXT: basis-conversion{basis=h,s,t,rx,ry,rz,x,y,z,x(1)}
+// CHECK-NEXT: jit-finalize-pipeline{lower-device-calls=true}
+// CHECK-EMPTY:
+
+// CHECK-LABEL: fermioniq:
+// CHECK-NEXT: canonicalize
+// CHECK-NEXT: hw-jit-prep-pipeline{allow-early-exit=false}
+// CHECK-NEXT: expand-measurements
+// CHECK-NEXT: jit-deploy-pipeline
+// CHECK-NEXT: basis-conversion{basis=h,s,t,rx,ry,rz,x,y,z,x(1)}
+// CHECK-NEXT: jit-finalize-pipeline{lower-device-calls=true}
+// CHECK-EMPTY:
+
+// CHECK-LABEL: quantinuum:
+// CHECK-NEXT: canonicalize
+// CHECK-NEXT: hw-jit-prep-pipeline{allow-early-exit=true}
+// CHECK-NEXT: expand-measurements
+// CHECK-NEXT: jit-deploy-pipeline
+// CHECK-NEXT: basis-conversion{basis=h,s,t,rx,ry,rz,x,y,z,x(1)}
+// CHECK-NEXT: jit-finalize-pipeline{lower-device-calls=true}
+// CHECK-NEXT: func.func(combine-quantum-alloc,qubit-reset-before-reuse)
+// CHECK-EMPTY:
 
 #include "cudaq_internal/compiler/Compiler.h"
 #include "cudaq_internal/compiler/LoweringHandler.h"
 #include "cudaq/Target/TargetCatalog.h"
 #include <iostream>
-#include <map>
 #include <string>
-
-/// The expected inferred pipelines.
-static const char *expectedIonqPipeline =
-    "canonicalize,"
-    "hw-jit-prep-pipeline{allow-early-exit=false},"
-    "jit-deploy-pipeline,"
-    "basis-conversion{basis=h,s,t,rx,ry,rz,x,y,z,x(1)},"
-    "jit-finalize-pipeline{lower-device-calls=true}";
-static const char *expectedFermioniqPipeline =
-    "canonicalize,"
-    "hw-jit-prep-pipeline{allow-early-exit=false},"
-    "expand-measurements,jit-deploy-pipeline,"
-    "basis-conversion{basis=h,s,t,rx,ry,rz,x,y,z,x(1)},"
-    "jit-finalize-pipeline{lower-device-calls=true}";
-static const char *expectedQuantinuumPipeline =
-    "canonicalize,"
-    "hw-jit-prep-pipeline{allow-early-exit=true},"
-    "expand-measurements,jit-deploy-pipeline,"
-    "basis-conversion{basis=h,s,t,rx,ry,rz,x,y,z,x(1)},"
-    "jit-finalize-pipeline{lower-device-calls=true},"
-    "func.func(combine-quantum-alloc,qubit-reset-before-reuse)";
 
 /// Plan the JIT pipeline of the actual catalog entry through the built-in
 /// lowering handlers, as the production JIT does.
@@ -55,22 +56,30 @@ planPipeline(const cudaq::config::detail::TargetEntry &entry) {
   return pipeline ? *pipeline : "FAILED: " + diagnostic;
 }
 
-static void checkTarget(const cudaq::config::TargetCatalog &catalog,
-                        const char *name, const std::string &expected) {
+static void printPipeline(const cudaq::config::TargetCatalog &catalog,
+                          const char *name) {
   const auto *entry = catalog.lookup(name);
-  const std::string planned =
+  const std::string pipeline =
       entry ? planPipeline(*entry) : "not found in target catalog";
-  const bool match = planned == expected;
-  std::cout << name << ": " << (match ? "match" : "MISMATCH") << "\n";
-  if (!match)
-    std::cout << "  planned: " << planned << "\n"
-              << "  expected: " << expected << "\n";
+  std::cout << name << ":\n";
+  unsigned depth = 0;
+  for (char c : pipeline) {
+    if (c == '{' || c == '(')
+      ++depth;
+    else if ((c == '}' || c == ')') && depth > 0)
+      --depth;
+    if (c == ',' && depth == 0)
+      std::cout << '\n';
+    else
+      std::cout << c;
+  }
+  std::cout << "\n\n";
 }
 
 int main() {
   cudaq::config::TargetCatalog catalog;
-  checkTarget(catalog, "ionq", expectedIonqPipeline);
-  checkTarget(catalog, "fermioniq", expectedFermioniqPipeline);
-  checkTarget(catalog, "quantinuum", expectedQuantinuumPipeline);
+  printPipeline(catalog, "ionq");
+  printPipeline(catalog, "fermioniq");
+  printPipeline(catalog, "quantinuum");
   return 0;
 }

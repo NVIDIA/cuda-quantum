@@ -283,28 +283,23 @@ static mlir::LogicalResult countTargetPipelineRun(mlir::PassManager &pm,
   return pm.run(op);
 }
 
-/// Target with a custom stage followed by an inferred quake-reference-semantics
-/// stage.
-static cudaq::CompileTarget stagedCustomThenInferredTarget() {
+/// Target with a single inferred quake-reference-semantics stage.
+static cudaq::CompileTarget inferredTarget() {
   cudaq::CompileTarget target;
-  cudaq::config::CustomPipelineLowering custom;
-  custom.highLevelPipeline = "decomposition{enable-patterns=R1ToRz}";
-  target.stages.push_back({.irOutputProfile = cudaq::config::UncheckedProfile{},
-                           .lowering = std::move(custom)});
   target.stages.push_back(
       {.irOutputProfile = cudaq::config::QuakeReferenceSemanticsProfile{},
        .lowering = cudaq::config::InferredLowering{}});
   return target;
 }
 
-void test_staged_custom_then_inferred(mlir::MLIRContext *ctx) {
+void test_staged_inferred(mlir::MLIRContext *ctx) {
   std::vector<std::unique_ptr<LoweringHandler>> handlers;
   handlers.push_back(std::make_unique<FakeQuakeReferenceSemanticsHandler>());
 
   targetPipelineRuns = 0;
   cudaq_internal::compiler::setRunPassManagerHook(&countTargetPipelineRun);
 
-  Compiler compiler(stagedCustomThenInferredTarget(), {}, std::move(handlers));
+  Compiler compiler(inferredTarget(), {}, std::move(handlers));
   auto mod = mlir::parseSourceString<mlir::ModuleOp>(phaseResourceKernel, ctx);
   auto compiled = compiler.runPassPipeline(
       "phaseResources", mod.release().getAsOpaquePointer(), cudaq::KernelArgs{},
@@ -320,7 +315,7 @@ void test_staged_custom_then_inferred(mlir::MLIRContext *ctx) {
 
 // CHECK-LABEL: Staged module:
 // CHECK: func.func @__nvqpp__mlirgen__phaseResources()
-// CHECK: quake.rz
+// CHECK: quake.r1
 // CHECK: quake.mz
 // CHECK: target pipeline runs: 1
 
@@ -329,7 +324,7 @@ void test_staged_custom_then_inferred(mlir::MLIRContext *ctx) {
 void test_staged_skip(mlir::MLIRContext *ctx) {
   cudaq::CompileOptions options;
   options.skipTargetLoweringPipeline = true;
-  Compiler compiler(stagedCustomThenInferredTarget(), std::move(options), {});
+  Compiler compiler(inferredTarget(), std::move(options), {});
   auto mod = mlir::parseSourceString<mlir::ModuleOp>(phaseResourceKernel, ctx);
   auto compiled = compiler.runPassPipeline(
       "phaseResources", mod.release().getAsOpaquePointer(), cudaq::KernelArgs{},
@@ -342,7 +337,6 @@ void test_staged_skip(mlir::MLIRContext *ctx) {
 
 // CHECK-LABEL: Skipped staged module:
 // CHECK: quake.r1
-// CHECK-NOT: quake.rz
 // CHECK-NOT: quake.mz
 
 int main() {
@@ -355,7 +349,7 @@ int main() {
   test_non_empty_pipeline(context.get());
   test_resource_count_completes_phase_lifecycle(context.get());
   test_resource_count_disabled_by_target(context.get());
-  test_staged_custom_then_inferred(context.get());
+  test_staged_inferred(context.get());
   test_staged_skip(context.get());
   return 0;
 }

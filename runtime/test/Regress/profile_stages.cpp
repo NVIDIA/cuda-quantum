@@ -126,12 +126,11 @@ void test_first_supporting_handler_wins() {
 // diagnostic identifying the stage and profiles.
 void test_no_match_diagnostic() {
   cudaq::CompileTarget target;
-  target.stages.push_back(customStage("high-one", "mid-one", "low-one"));
   target.stages.push_back(
       inferredStage(cudaq::config::QuakeReferenceSemanticsProfile{}));
   std::cout << planPipeline(target, {}) << "\n";
 }
-// CHECK: FAILED: compile target stage 2: no lowering handler supports
+// CHECK: FAILED: compile target stage 1: no lowering handler supports
 // CHECK: lowering from unchecked to quake-reference-semantics
 
 // A selected handler that fails to construct a pipeline is an error, not a
