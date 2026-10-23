@@ -64,7 +64,7 @@ struct UncheckedProfileV2 {
 
 /// IR profile for reference-semantics Quake IR.
 struct QuakeReferenceSemanticsProfileV2 {
-  using Tag = rfl::Literal<"quake-reference-semantics">;
+  using Tag = rfl::Literal<QuakeReferenceSemanticsProfile::name>;
 
   /// Valid options.
   struct QuakeReferenceSemanticsProfileOptionsV2 {

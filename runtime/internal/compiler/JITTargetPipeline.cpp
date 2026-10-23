@@ -137,6 +137,14 @@ std::optional<std::string> cudaq_internal::compiler::getPassPipeline(
   std::string passPipeline;
   cudaq::config::Profile inputProfile = cudaq::config::UncheckedProfile{};
 
+  // TODO: remove this restriction. This exists as the pipelines inferred for
+  // each stage don't compose nicely (e.g. it doesn't make sense to run
+  // `emul-jit-prep-pipeline` more than once)
+  if (target.stages.size() > 1) {
+    diagnostic = "Multi-stage compilation is currently not supported";
+    return std::nullopt;
+  }
+
   for (std::size_t i = 0; i < target.stages.size(); ++i) {
     const auto &stage = target.stages[i];
     const StageResolutionContext ctx{target, options, handlers, inputProfile,

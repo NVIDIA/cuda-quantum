@@ -80,9 +80,8 @@ static std::string planPipeline(const cudaq::CompileTarget &target,
   return pipeline ? *pipeline : "FAILED: " + diagnostic;
 }
 
-// A custom stage followed by an inferred stage: the inferred stage's handler
-// is consulted with the custom stage's declared output profile.
-void test_custom_then_inferred() {
+// Compilation with more than one stage is not supported yet.
+void test_multiple_stages_rejected() {
   cudaq::CompileTarget target;
   auto custom = customStage("high-one", "mid-one", "low-one");
   custom.irOutputProfile = cudaq::config::QuakeReferenceSemanticsProfile{};
@@ -93,7 +92,7 @@ void test_custom_then_inferred() {
   handlers.push_back(std::make_unique<TestHandler>());
   std::cout << planPipeline(target, handlers) << "\n";
 }
-// CHECK: ,low-one,handler(quake-reference-semantics->quake-reference-semantics)
+// CHECK: FAILED: Multi-stage compilation is currently not supported
 
 // A single inferred stage contributes the supporting handler's pipeline.
 void test_single_inferred() {
@@ -169,7 +168,7 @@ void test_zero_stages() {
 // CHECK: zero stages handler calls: 0
 
 int main() {
-  test_custom_then_inferred();
+  test_multiple_stages_rejected();
   test_single_inferred();
   test_first_supporting_handler_wins();
   test_no_match_diagnostic();

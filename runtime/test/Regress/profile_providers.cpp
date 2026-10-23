@@ -25,21 +25,22 @@
 static const char *expectedIonqPipeline =
     "canonicalize,"
     "hw-jit-prep-pipeline{allow-early-exit=false},"
-    "jit-deploy-pipeline,jit-finalize-pipeline{lower-device-calls=true},"
-    "basis-conversion{basis=h,s,t,rx,ry,rz,x,y,z,x(1)}";
+    "jit-deploy-pipeline,"
+    "basis-conversion{basis=h,s,t,rx,ry,rz,x,y,z,x(1)},"
+    "jit-finalize-pipeline{lower-device-calls=true}";
 static const char *expectedFermioniqPipeline =
     "canonicalize,"
     "hw-jit-prep-pipeline{allow-early-exit=false},"
     "expand-measurements,jit-deploy-pipeline,"
-    "jit-finalize-pipeline{lower-device-calls=true},"
-    "basis-conversion{basis=h,s,t,rx,ry,rz,x,y,z,x(1)}";
+    "basis-conversion{basis=h,s,t,rx,ry,rz,x,y,z,x(1)},"
+    "jit-finalize-pipeline{lower-device-calls=true}";
 static const char *expectedQuantinuumPipeline =
     "canonicalize,"
     "hw-jit-prep-pipeline{allow-early-exit=true},"
     "expand-measurements,jit-deploy-pipeline,"
+    "basis-conversion{basis=h,s,t,rx,ry,rz,x,y,z,x(1)},"
     "jit-finalize-pipeline{lower-device-calls=true},"
-    "func.func(combine-quantum-alloc,qubit-reset-before-reuse),"
-    "basis-conversion{basis=h,s,t,rx,ry,rz,x,y,z,x(1)}";
+    "func.func(combine-quantum-alloc,qubit-reset-before-reuse)";
 
 /// Plan the JIT pipeline of the actual catalog entry through the built-in
 /// lowering handlers, as the production JIT does.

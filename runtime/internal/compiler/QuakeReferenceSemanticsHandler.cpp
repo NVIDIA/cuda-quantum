@@ -81,15 +81,7 @@ std::optional<std::string> QuakeReferenceSemanticsHandler::getPipeline(
 
   pipeline += nopCodegen ? ",jit-deploy-pipeline{no-loop-unroll=true}"
                          : ",jit-deploy-pipeline";
-  pipeline += ",jit-finalize-pipeline{lower-device-calls=";
-  pipeline += nopCodegen && !emulate ? "false" : "true";
-  pipeline += "}";
 
-  if (referenceProfile.resetAfterMeasure)
-    pipeline += ",func.func(combine-quantum-alloc,qubit-reset-before-reuse)";
-
-  // Gate-basis legalization runs last: nothing after it may introduce gates
-  // outside the basis.
   if (!referenceProfile.basisGates.empty()) {
     pipeline += ",basis-conversion{basis=";
     bool first = true;
@@ -101,6 +93,14 @@ std::optional<std::string> QuakeReferenceSemanticsHandler::getPipeline(
     }
     pipeline += "}";
   }
+
+  pipeline += ",jit-finalize-pipeline{lower-device-calls=";
+  pipeline += nopCodegen && !emulate ? "false" : "true";
+  pipeline += "}";
+
+  if (referenceProfile.resetAfterMeasure)
+    pipeline += ",func.func(combine-quantum-alloc,qubit-reset-before-reuse)";
+
   return pipeline;
 }
 

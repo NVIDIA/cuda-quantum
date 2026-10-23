@@ -82,7 +82,7 @@ void printLowering(const char *indent, const CustomPipelineLowering &lowering) {
   printField(indent, "target-pass-pipeline", lowering.overridePassPipeline);
 }
 
-// Profile options print under the stage, mirroring `printLowering` below.
+// Profile options print under the stage, mirroring `printLowering` above.
 void printProfileOptions(const char *, const UncheckedProfile &) {}
 void printProfileOptions(const char *indent,
                          const QuakeReferenceSemanticsProfile &profile) {
