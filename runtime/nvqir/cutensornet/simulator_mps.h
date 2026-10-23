@@ -16,7 +16,7 @@
 namespace nvqir {
 template <typename ScalarType = double>
 class SimulatorMPS : public SimulatorTensorNetBase<ScalarType> {
-  MPSSettings m_settings;
+  MPSSettings m_settings{std::is_same_v<ScalarType, float>};
   std::vector<MPSTensor> m_mpsTensors_d;
 
 public:

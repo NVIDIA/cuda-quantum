@@ -135,7 +135,14 @@ cudaq_realtime_add_doca_repo() {
       retry apt-get install -y --no-install-recommends curl gnupg
     fi
     curl -fsSL https://linux.mellanox.com/public/repo/doca/public_keys/nvidia-doca-rpm-gpg-public-key.asc | gpg --dearmor > /etc/apt/trusted.gpg.d/GPG-KEY-Mellanox.pub
-    echo "deb [signed-by=/etc/apt/trusted.gpg.d/GPG-KEY-Mellanox.pub] $DOCA_URL ./" > /etc/apt/sources.list.d/doca.list
+    # apt 3.2 (Ubuntu 26.04) fails to fetch this repo over https ("unexpected
+    # eof" from the server, then "not signed"). Use http there, the repository
+    # metadata is still verified against the key above.
+    _cudaq_realtime_apt_url="$DOCA_URL"
+    if [ "$(. /etc/os-release && printf '%s' "$VERSION_ID")" = "26.04" ]; then
+      _cudaq_realtime_apt_url="http://${DOCA_URL#https://}"
+    fi
+    echo "deb [signed-by=/etc/apt/trusted.gpg.d/GPG-KEY-Mellanox.pub] $_cudaq_realtime_apt_url ./" > /etc/apt/sources.list.d/doca.list
     retry apt-get update
   elif [ -x "$(command -v dnf)" ]; then
     # dnf fetches the keys itself, so nothing has to be installed to set this

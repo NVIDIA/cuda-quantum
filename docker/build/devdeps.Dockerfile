@@ -19,7 +19,7 @@
 # Supported values: llvm, gcc12. The LLVM toolchain is a fully bootstrapped version.
 
 # [Operating System]
-ARG base_image=ubuntu:24.04
+ARG base_image=ubuntu:26.04
 
 # [CUDA-Q Dependencies]
 FROM ${base_image} AS prereqs
@@ -58,8 +58,10 @@ ENV NANOBIND_INSTALL_PREFIX=/usr/local/nanobind
 ENV PIP_BREAK_SYSTEM_PACKAGES=1
 
 ## [Build Dependencies]
+# Matches the base image's GCC (15 on 26.04, 13 on 24.04).
+ARG libstdcxx_version=15
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    wget git unzip ccache libstdc++-13-dev \
+    wget git unzip ccache libstdc++-${libstdcxx_version}-dev \
     python3-dev python3-pip && \
     python3 -m pip install --no-cache-dir numpy --break-system-packages && \
     apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
@@ -95,9 +97,10 @@ RUN if [ "$(uname -m)" == "x86_64" ]; then \
     else \
     apt-get update && apt-get install -y --no-install-recommends make cmake flex bison g++ && \
     # Fixed commit corresponding to release 1.9.7
+    # CMake 4 rejects doxygen's old minimum version.
     wget https://github.com/doxygen/doxygen/archive/6a2ce4d18b5af1ca501bcf585e4c8e2b2b353b0f.zip -q -O repo.zip && \
     unzip repo.zip && mv doxygen* repo && rm repo.zip && \
-    cmake -G "Unix Makefiles" repo && cmake --build . --target install --config Release && \
+    cmake -G "Unix Makefiles" -DCMAKE_POLICY_VERSION_MINIMUM=3.5 repo && cmake --build . --target install --config Release && \
     rm -rf repo && apt-get remove -y make cmake flex bison g++ && \
     apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*; \
     fi
@@ -185,20 +188,22 @@ ENV PATH="${PATH}:/usr/local/cmake-4.0/bin"
 COPY requirements.txt /cuda-quantum/requirements.txt
 COPY requirements-dev.txt /cuda-quantum/requirements-dev.txt
 COPY requirements-mock-qpu.txt /cuda-quantum/requirements-mock-qpu.txt
+ARG libstdcxx_version=15
 RUN apt-get update && apt-get install -y --no-install-recommends \
     git gdb ninja-build file lldb ccache libatomic1 \
-    libstdc++-13-dev \
+    libstdc++-${libstdcxx_version}-dev \
     python3 python3-pip libpython3-dev \
     && python3 -m pip install --no-cache-dir --break-system-packages \
     -r /cuda-quantum/requirements-dev.txt \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install additional tools for CUDA-Q documentation generation.
+# Sphinx 5.3 does not support Python 3.14 (ast.Str was removed).
 COPY --from=prereqs /usr/local/bin/doxygen /usr/local/bin/doxygen
 ENV PATH="${PATH}:/usr/local/bin"
 RUN apt-get update && apt-get install -y --no-install-recommends python3 python3-pip pandoc aspell aspell-en \
     && python3 -m pip install --no-cache-dir --break-system-packages \
-    ipython==8.15.0 pandoc==2.3 sphinx==5.3.0 sphinx_rtd_theme==1.2.0 sphinx-reredirects==0.1.2 \
-    sphinx-copybutton==0.5.2 sphinx_inline_tabs==2023.4.21 enum-tools[sphinx] breathe==4.34.0 \
-    nbsphinx==0.9.2 sphinx_gallery==0.13.0 myst-parser==1.0.0 ipykernel==6.29.4 notebook==7.3.2 \
+    ipython==8.15.0 pandoc==2.3 sphinx==8.2.3 sphinx_rtd_theme==3.1.0 sphinx-reredirects==1.1.0 \
+    sphinx-copybutton==0.5.2 sphinx_inline_tabs==2025.12.21.14 enum-tools[sphinx] breathe==5.1.0 \
+    nbsphinx==0.9.8 sphinx_gallery==0.22.1 myst-parser==5.1.0 ipykernel==6.29.4 notebook==7.3.2 \
     ipywidgets==8.1.5 sphinx-tags==0.4

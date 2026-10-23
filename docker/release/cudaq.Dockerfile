@@ -22,7 +22,7 @@
 # Quantum build. This Dockerfile copies the built components into the base_image. The specified
 # base_image must contain the necessary CUDA-Q runtime dependencies.
 
-ARG base_image=ubuntu:24.04
+ARG base_image=ubuntu:26.04
 ARG arch=amd64
 ARG cudaqdev_image=ghcr.io/nvidia/cuda-quantum-dev:${arch}-cu13-latest
 FROM $cudaqdev_image AS cudaqbuild
@@ -58,8 +58,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Install CUDA-Q runtime dependencies.
 
+# Matches the base image's GCC (15 on 26.04, 13 on 24.04).
+ARG libstdcxx_version=15
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        libstdc++-13-dev python3 python3-pip adduser \
+        libstdc++-${libstdcxx_version}-dev python3 python3-pip adduser \
     && apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/* \
     && python3 -m pip install --no-cache-dir --break-system-packages numpy scipy \
     && ln -s /bin/python3 /bin/python
@@ -94,7 +96,7 @@ ENV CPLUS_INCLUDE_PATH="$CPLUS_INCLUDE_PATH:$CUDA_QUANTUM_PATH/include"
 # Better alternative to setting the PYTHONPATH, since the PYTHONPATH is generally not preserved when running as sudo.
 RUN echo "$CUDA_QUANTUM_PATH" > /usr/local/lib/python$(python --version | egrep -o "([0-9]{1,}\.)+[0-9]{1,}" | cut -d '.' -f -2)/dist-packages/cudaq.pth
 
-# Deployments supplies one Python 3.12 Logical wheel for this architecture in
+# Deployments supplies one Logical wheel for this architecture in
 # docker/release/logical-wheels/. Bind it so the archive is not retained in a layer.
 ARG include_logical=false
 RUN --mount=type=bind,source=docker/release,target=/tmp/cudaq-release \

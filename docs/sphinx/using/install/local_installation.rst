@@ -768,7 +768,9 @@ Please make sure to install CUDA version 12.0 or newer, and confirm that your
 While the above packages are sufficient to use GPU-acceleration within CUDA-Q, 
 we recommend installing the complete CUDA toolkit (`cuda-toolkit-12-0`) that also 
 includes the `nvcc` compiler. A separate CUDA-Q installer is available for CUDA 12, 
-built against version 12.6, and for CUDA 13, built against version 13.0.
+built against version 12.6, and for CUDA 13, built against version 13.3. The CUDA 13
+installer does not require CUDA 13.3 on your system: CUDA 13.0 or newer works, as long
+as the driver meets the requirement listed in the table below.
 
 .. _distributed-computing-with-mpi:
 
@@ -894,7 +896,7 @@ The following table summarizes the required components.
     * - Operating systems
       - Linux, macOS (ARM64/Apple silicon only), Windows via Windows Subsystem for Linux 2 (WSL2)
     * - Tested Distributions
-      - CentOS 8; Debian 11, 12; Fedora 41; OpenSUSE/SLED/SLES 15.5, 15.6; RHEL 8, 9; Rocky 8, 9; Ubuntu 22.04, 24.04
+      - CentOS 8; Debian 11, 12; Fedora 41; OpenSUSE/SLED/SLES 15.5, 15.6; RHEL 8, 9; Rocky 8, 9; Ubuntu 22.04, 24.04, 26.04 (CUDA 13.3 or newer; CUDA 12 is not available on Ubuntu 26.04)
     * - Python versions
       - 3.11+
 
@@ -911,6 +913,9 @@ The following table summarizes the required components.
         • 12.6+ (Driver 560.35.05+) – For all GPUs with supported architecture  
         • 13.x (Driver 580.65.06+)
         
+CUDA-Q for CUDA 13 is built with CUDA 13.3, but it does not raise the minimum: the driver
+requirement above is unchanged, and it runs with CUDA 13.0 or newer libraries.
+
 Detailed information about supported drivers for different CUDA versions and be found `here <https://docs.nvidia.com/deploy/cuda-compatibility/>`__. For more information on GPU forward capabilities, please refer to `this page <https://docs.nvidia.com/deploy/cuda-compatibility/forward-compatibility.html>`__.
 
 .. note::

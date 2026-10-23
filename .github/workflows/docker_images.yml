@@ -32,7 +32,7 @@ on:
         required: false
         type: boolean
         default: false
-        description: Include the matching Python 3.12 CUDA-Q Logical wheel from this run. The caller must wait for wheel production.
+        description: Include the matching CUDA-Q Logical wheel (Python 3.12 for CUDA 12 images, 3.14 otherwise) from this run. The caller must wait for wheel production.
       environment:
         required: false
         type: string
@@ -201,8 +201,9 @@ jobs:
           # cuda-cudart-dev ships the CUDA headers CuPy JITs against at runtime.
           build-args: |
             ompidev_image=${{ inputs.ompidev_image }}
-            base_image=nvcr.io/nvidia/cuda:${{ inputs.cuda_version }}.0-runtime-ubuntu24.04
-            cuda_version=${{ inputs.cuda_version }}
+            base_image=nvcr.io/nvidia/cuda:${{ inputs.cuda_version == '13.0' && '13.3' || inputs.cuda_version }}.0-runtime-ubuntu${{ startsWith(inputs.cuda_version, '12.') && '24.04' || '26.04' }}
+            cuda_version=${{ inputs.cuda_version == '13.0' && '13.3' || inputs.cuda_version }}
+            python_version=${{ startsWith(inputs.cuda_version, '12.') && '3.12' || '3.14' }}
             cuda_packages=cuda-cudart-dev
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
@@ -532,7 +533,7 @@ jobs:
         id: prereqs
         run: |
           if ${{ needs.ompi_image.result == 'skipped' }}; then
-            base_image=ghcr.io/nvidia/ubuntu:24.04
+            base_image=ghcr.io/nvidia/ubuntu:26.04
           elif ${{ steps.restore_openmpi.outcome != 'skipped' }}; then
             load_output=`docker load --input "${{ needs.ompi_image.outputs.tar_archive }}"`
             base_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
@@ -737,7 +738,7 @@ jobs:
         run: |
           docker run --privileged multiarch/qemu-user-static:latest --reset -p yes --credential yes
 
-      # Ubuntu 24.04 release images use Python 3.12. `cudaq.logical` is CUDA version-independent.
+      # CUDA 12 images: Ubuntu 24.04, Python 3.12; others: 26.04, 3.14. `cudaq.logical` is CUDA-independent.
       - name: Select CUDA-Q Logical wheel
         if: inputs.include_logical
         id: logical_wheel
@@ -759,7 +760,7 @@ jobs:
         if: inputs.include_logical
         uses: actions/download-artifact@v8
         with:
-          pattern: cudaq_logical-*-cp312-*manylinux_2_28_${{ steps.logical_wheel.outputs.arch }}.whl
+          pattern: cudaq_logical-*-${{ startsWith(inputs.cuda_version, '12.') && 'cp312' || 'cp314' }}-*manylinux_2_28_${{ steps.logical_wheel.outputs.arch }}.whl
           path: docker/release/logical-wheels
           merge-multiple: true
           skip-decompress: true
@@ -790,6 +791,7 @@ jobs:
             release_version=${{ steps.prereqs.outputs.image_tag }}
             deprecation_notice=${{ steps.prereqs.outputs.deprecation_notice }}
             include_logical=${{ inputs.include_logical }}
+            libstdcxx_version=${{ startsWith(inputs.cuda_version, '12.') && '13' || '15' }}
           tags: ${{ steps.cudaq_metadata.outputs.tags }}
           labels: ${{ steps.cudaq_metadata.outputs.labels }}
           platforms: ${{ inputs.platforms }}
