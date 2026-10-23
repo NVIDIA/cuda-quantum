@@ -818,23 +818,14 @@ protected:
       }
     } else {
       task.kind = NoiseChannelKind::General;
-      for (const auto &operation : channel.get_ops()) {
-        auto &converted = task.matrices.emplace_back();
-        // Python-defined channels may carry a precision different from the
-        // simulator, so inspect each operation before converting its matrix.
-        converted.reserve(operation.data.size());
-        if (operation.precision == cudaq::simulation_precision::fp32) {
-          const auto *const values =
-              reinterpret_cast<const std::complex<float> *>(
-                  operation.data.data());
-          converted.assign(values, values + operation.data.size());
-        } else {
-          const auto *const values =
-              reinterpret_cast<const std::complex<double> *>(
-                  operation.data.data());
-          converted.assign(values, values + operation.data.size());
-        }
-      }
+      // Both `kraus_op::data` and `NoiseTask::matrices` are always double
+      // precision regardless of the simulator scalar type, so the Kraus
+      // matrices can be moved in directly. `get_ops()` returns by value, so
+      // moving out of the local copy avoids a second copy of each matrix.
+      auto ops = channel.get_ops();
+      task.matrices.reserve(ops.size());
+      for (auto &operation : ops)
+        task.matrices.push_back(std::move(operation.data));
     }
     compactNoiseMatrices(task);
     return task;
