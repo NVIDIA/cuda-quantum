@@ -130,7 +130,10 @@ typedef struct {
 // Dispatcher configuration
 typedef struct {
   int device_id;              // GPU device ID (>=0)
-  uint32_t num_blocks;        // grid size; must be 1 on the device path
+  uint32_t num_blocks;        // grid size; must be 1: a request reaches the
+                              // handler threads through shared memory and
+                              // block barriers, so a wider grid would need a
+                              // cooperative launch
   uint32_t threads_per_block; // block size: the block every DEVICE_CALL
                               // handler runs on (>= 1)
   uint32_t num_slots;         // ring buffer slots

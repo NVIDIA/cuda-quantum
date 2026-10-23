@@ -148,11 +148,12 @@ latency for simple RPC handlers.
 
 ### Architecture
 
-In unified mode, one block of `threads_per_block` threads runs a
-transport-provided kernel that combines receive, dispatch, and transmit into
-one tight loop.  Thread 0 drives the transport (steps 1, 2 and 4-6 below);
-every thread of the block calls the `CUDAQ_DISPATCH_DEVICE_CALL` handler in
-step 3, between two block barriers:
+In unified mode, a transport-provided kernel combines receive, dispatch, and
+transmit into one tight loop.  It runs as a single block of
+`threads_per_block` threads (a request reaches the handler threads through
+shared memory and block barriers, so a wider grid would need a cooperative
+launch): thread 0 drives the transport (steps 1, 2 and 4-6 below) and every
+thread calls the `CUDAQ_DISPATCH_DEVICE_CALL` handler in step 3:
 
 1. Polls for an incoming message (transport-specific mechanism)
 2. Parses the `RPCHeader` from the receive buffer
@@ -205,10 +206,9 @@ without any transport-specific knowledge.
 - Lowest latency for simple RPC handlers
 - Transport-agnostic API -- the transport provides a pluggable launch function
     and opaque context (e.g., `GpuRoceTransceiver`/`DOCA` supplies `gpu_roce_launch_unified_dispatch`)
-- Single-block kernel (one block of `threads_per_block` threads; thread 0
-    drives the transport, every thread calls each `CUDAQ_DISPATCH_DEVICE_CALL`
-    handler between two block barriers) -- no inter-kernel synchronization
-    overhead
+- Thread 0 drives the transport and every thread of the block calls each
+    `CUDAQ_DISPATCH_DEVICE_CALL` handler between two block barriers -- no
+    inter-kernel synchronization overhead
 - Not compatible with `CUDAQ_DISPATCH_GRAPH_LAUNCH`
 
 ### Host API Extensions
@@ -885,16 +885,13 @@ ASSERT_EQ(cudaq_dispatcher_start(dispatcher_), CUDAQ_OK);
 ## Device Handler and Function ID
 
 A `CUDAQ_DISPATCH_DEVICE_CALL` handler runs on every thread of the dispatch
-block: both the ring (3-kernel) and the unified kernel launch one block of
-`threads_per_block` threads and call the handler on each of them, with
-identical arguments, between two `__syncthreads()`.  `blockIdx.x` is always 0
-and there is no grid-wide sync (not a cooperative launch).  Only thread 0's
-return value is recorded; other threads may return early.  A handler that does
-not partition its work must guard side-effecting writes with
-`if (threadIdx.x != 0) return 0;` (a read-modify-write of slot memory is not
-safe unguarded), and may use block barriers only if every thread reaches them.
-The full contract is in the `DeviceRPCFunction` doc comment in
-`dispatch_kernel_launch.h`.
+block: both the ring (3-kernel) and the unified kernel call it on each thread
+of their block with identical arguments, between two `__syncthreads()`, and
+only the first thread's return value is recorded.  A handler that does not
+partition its work should do it on one thread and return early on the others;
+barriers inside a handler must be reached by every thread, and there is no
+grid-wide sync (not a cooperative launch).  The full contract is in the
+`DeviceRPCFunction` doc comment in `dispatch_kernel_launch.h`.
 
 Adapted from `test_realtime_decoding.cu` (the actual test uses a library helper,
 `setup_mock_decode_function_table`, that performs equivalent setup via
