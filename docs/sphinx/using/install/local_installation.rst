@@ -766,7 +766,8 @@ linked for that `CUDA version <https://developer.nvidia.com/cuda-toolkit-archive
 Please make sure to install CUDA version 12.0 or newer, and confirm that your 
 `GPU driver <https://www.nvidia.com/download/index.aspx>`__ supports that version.
 While the above packages are sufficient to use GPU-acceleration within CUDA-Q, 
-we recommend installing the complete CUDA toolkit (`cuda-toolkit-12-0`) that also 
+the `dynamics` target uses CuPy, which compiles kernels at runtime and can need the CUDA headers 
+(`cuda-cudart-dev-12-0`). We recommend installing the complete CUDA toolkit (`cuda-toolkit-12-0`) that also 
 includes the `nvcc` compiler. A separate CUDA-Q installer is available for CUDA 12, 
 built against version 12.6, and for CUDA 13, built against version 13.0.
 

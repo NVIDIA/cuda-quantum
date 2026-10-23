@@ -70,7 +70,8 @@ Once you completed the installation, please follow the instructions
    is available in new shells automatically. To use it in the current shell,
    run ``source /opt/nvidia/cudaq/set_env.sh`` (or the path you chose).
 
-   If you have an NVIDIA GPU on Linux, please also install the `CUDA Toolkit <https://developer.nvidia.com/cuda-downloads>`__ to enable GPU-acceleration within CUDA-Q.
+   If you have an NVIDIA GPU on Linux, please also install the CUDA runtime libraries to enable GPU-acceleration within CUDA-Q.
+   The complete `CUDA Toolkit <https://developer.nvidia.com/cuda-downloads>`__ includes them and also provides the ``nvcc`` compiler, which you only need to build CUDA-Q or other CUDA code.
 
    Please see the complete :ref:`installation guide <install-prebuilt-binaries>` for more details, including
 
