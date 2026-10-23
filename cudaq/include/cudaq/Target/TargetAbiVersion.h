@@ -12,10 +12,10 @@
 /// @brief ABI version shared by the pre-compiled target database and compiled
 /// target plugin libraries.
 
-/// Bump this whenever the `TargetConfig` struct family (TargetConfig.h), or
-/// the layout `cudaq-target-db-gen` serializes it into, changes in a way
-/// that is not compatible with previously-generated `TargetDatabase.gen.cpp`
-/// output.
+/// Bump this on releases whenever the `TargetConfig` struct family
+/// (TargetConfig.h), or the layout `cudaq-target-db-gen` serializes it into,
+/// has changed in a way that is not compatible with previously-generated
+/// `TargetDatabase.gen.cpp` output.
 ///
 /// This is the link-time contract between the generator tool
 /// (`cudaq-target-db-gen`, which stamps this version into the code it

@@ -24,8 +24,9 @@ definitions.
 ## API and schema compatibility
 
 The installed headers in `cudaq/include/cudaq/Target/` are the C++ API used by
-the rest of CUDA-Q. Any breaking change must bump `CUDAQ_TARGET_DB_ABI_VERSION`
-in `TargetDatabase.h`.
+the rest of CUDA-Q. Breaking ABI changes may break pre-compiled target databases
+and thus require a bump of `CUDAQ_TARGET_DB_ABI_VERSION` in `TargetDatabase.h`
+at every CUDA-Q release.
 
 YAML schemas are independently versioned by their top-level `version` field;
 un-versioned files are permanently treated as v1. Changes to a published schema
