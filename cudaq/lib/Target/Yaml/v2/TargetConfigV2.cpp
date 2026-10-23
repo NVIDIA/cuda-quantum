@@ -88,6 +88,12 @@ cudaq::config::v2::toCanonical(const TargetConfigV2 &cfg) {
     throw std::runtime_error(
         "'compile-target' requires a 'config' section to attach to.");
 
+  if (cfg.compileTarget && cfg.compileTarget->stages.size() > 1)
+    std::cerr
+        << "Warning: Multi-stage compile target detected. The new "
+           "compile target format is currently in alpha and multi-stage "
+           "pipelines are currently not supported by the CUDA-Q compiler.\n";
+
   TargetConfig out;
   out.Name = cfg.name;
   out.Description = cfg.description;
