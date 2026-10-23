@@ -12,6 +12,7 @@ from concurrent.futures import ThreadPoolExecutor
 import json
 import math
 import threading
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -165,6 +166,140 @@ def test_static_profile_counts_analysis_and_realization_separately():
     assert counts.success_count == 1
     assert counts.syndrome_rounds == 2
     assert counts.operation_counts["read_syndrome_ancillas"] == 2
+
+
+@cql.protocol(implements=cql.logical.idle)
+def shared_folded_h(block: cql.patch[TinyCode]) -> cql.patch[TinyCode]:
+    block = four_h(block)
+    return cql.ops.repeat(3, carries=(block,), body=lambda value: four_h(value))
+
+
+def test_static_shared_body_counts_preserve_nested_multiplicity(monkeypatch):
+    from cudaq.logical.estimate import static
+
+    walk = static._walk_executable
+    h_visits = 0
+
+    def observed_walk(*args, **kwargs):
+        nonlocal h_visits
+        for visit in walk(*args, **kwargs):
+            h_visits += visit.operation.name == "fabric.h"
+            yield visit
+
+    monkeypatch.setattr(static, "_walk_executable", observed_walk)
+    counts = cql.estimate(shared_folded_h)
+    assert counts.operation_counts["h"] == 16
+    assert counts.operation_counts["repeat"] == 5
+    assert counts.protocol_calls["four_h"] == 4
+    assert counts.gadget_calls["encoded_h"] == 16
+    assert counts.total_operations == 16
+    # Shared bodies are analyzed once, not once per invocation.
+    assert h_visits == 1
+
+
+@pytest.mark.parametrize("attach_profile", [False, True])
+def test_selected_fabric_walk_preserves_invocation_provenance(attach_profile):
+    from cudaq.logical.estimate._fabric_walk import (
+        _children,
+        _symbol,
+        _walk_executable,
+        _walk_selected_executable,
+    )
+
+    build = cql.compile(shared_folded_h)
+    module = build._fresh_module()
+    symbols = {
+        _symbol(view.operation): view.operation
+        for view in module.body.operations
+    }
+    root = symbols[build.root.symbol]
+    # A retry marker in a shared body keeps each caller's path.
+    with module.context, mlir_ir.Location.unknown(module.context):
+        with mlir_ir.InsertionPoint.at_block_terminator(
+                symbols["encoded_h"].regions[0].blocks[0]):
+            mlir_ir.Operation.create("fabric.retry")
+        if attach_profile:
+            with mlir_ir.InsertionPoint(module.body):
+                profile = mlir_ir.Operation.create(
+                    "fabric.gadget_profile",
+                    attributes={
+                        "sym_name": mlir_ir.StringAttr.get("selected_profile"),
+                        "gadget": mlir_ir.FlatSymbolRefAttr.get("encoded_h"),
+                    },
+                    regions=1)
+            profile.regions[0].blocks.append()
+            with mlir_ir.InsertionPoint(profile.regions[0].blocks[0]):
+                mlir_ir.Operation.create("fabric.success")
+            symbols["selected_profile"] = profile
+            call = next(visit.operation
+                        for visit in _walk_executable(_children(root), symbols)
+                        if visit.callee_name == "encoded_h")
+            call.attributes["profile"] = mlir_ir.FlatSymbolRefAttr.get(
+                "selected_profile")
+
+    def selected(visit):
+        return visit.operation.name in {
+            "fabric.h", "fabric.retry", "fabric.success"
+        }
+
+    expected = [
+        visit for visit in _walk_executable(
+            _children(root), symbols, call_stack=(build.root.symbol,))
+        if selected(visit)
+    ]
+    actual = list(
+        _walk_selected_executable(_children(root),
+                                  symbols,
+                                  selected,
+                                  call_stack=(build.root.symbol,)))
+    assert actual == expected
+    retries = [
+        visit for visit in actual if visit.operation.name == "fabric.retry"
+    ]
+    assert [visit.multiplier for visit in retries] == [4, 12]
+    assert retries[0].call_path != retries[1].call_path
+    assert retries[0].call_stack == retries[1].call_stack
+    assert all(
+        visit.suppress_inline_analysis == attach_profile for visit in retries)
+
+
+@pytest.mark.parametrize("callee,diagnostic", [
+    ("missing", "unresolved executable"),
+    ("four_h", "recursive executable"),
+])
+def test_summarized_fabric_walk_validates_unselected_calls(callee, diagnostic):
+    from cudaq.logical.estimate._fabric_walk import (
+        _children,
+        _symbol,
+        _walk_executable,
+        _walk_selected_executable,
+    )
+    from cudaq.logical.estimate.static import count
+
+    build = cql.compile(four_h)
+    module = build._fresh_module()
+    symbols = {
+        _symbol(view.operation): view.operation
+        for view in module.body.operations
+    }
+    root = symbols[build.root.symbol]
+    call = next(visit.operation
+                for visit in _walk_executable(_children(root), symbols)
+                if visit.callee_name is not None)
+    with module.context:
+        call.attributes["callee"] = mlir_ir.FlatSymbolRefAttr.get(callee)
+    with pytest.raises(ValueError, match=diagnostic):
+        list(
+            _walk_selected_executable(_children(root),
+                                      symbols,
+                                      lambda visit: False,
+                                      call_stack=(build.root.symbol,)))
+    # A real Build rejects this graph earlier, so call the estimator directly.
+    malformed = SimpleNamespace(profile=build.profile,
+                                root=build.root,
+                                _fresh_module=lambda: module)
+    with pytest.raises(ValueError, match=diagnostic):
+        count(malformed)
 
 
 def test_estimation_tiers_fail_closed_when_fidelity_inputs_are_missing():

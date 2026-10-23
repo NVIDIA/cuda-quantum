@@ -128,7 +128,6 @@ carbon_device = builder.build()
 carbon_target = cql.targets.Target.from_device(
     "carbon",
     carbon_device,
-    runtime_backend=cql.targets.estimator,
     estimate_options={
         "p_phys": 1.0e-3,
         "failure_budget": 0.1,

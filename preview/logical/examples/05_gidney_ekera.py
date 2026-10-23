@@ -281,7 +281,6 @@ def build_physical_target(point: factory.OperatingPoint = factory.RSA_2048):
     target = cql.targets.Target.from_device(
         "gidney_ekera_physical",
         device,
-        runtime_backend=cql.targets.estimator,
         estimate_options={
             "failure_budget": APPLICATION_FAILURE_BUDGET,
             "tier": "SCHEDULE",

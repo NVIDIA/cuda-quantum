@@ -17,6 +17,7 @@ from ._fabric_walk import (
     _children,
     _symbol,
     _walk_executable,
+    _walk_selected_executable,
 )
 from ._parameters import resolve_physical_parameters
 from .static import count
@@ -454,14 +455,26 @@ def analytical(
 
     def _resource_demand():
         demand = Counter()
+        code_names = {}
         retry_demands = []
         expected_extra_operations = 0.0
         retry_acceptance = 1.0
         retry_logical_error = 0.0
+
+        # Only demand and retry operations need per-invocation records.
+        def relevant(visit):
+            operation = visit.operation
+            for result in operation.results:
+                name = _patch_code(result.type)
+                if name is not None:
+                    code_names.setdefault(name, None)
+            return operation.name in {"fabric.resource_request", "fabric.retry"}
+
         visits = tuple(
-            _walk_executable(
+            _walk_selected_executable(
                 _children(root),
                 symbols,
+                relevant,
                 call_stack=(build.root.symbol,),
                 error_type=MissingEvidence,
             ))
@@ -701,14 +714,14 @@ def analytical(
                     f"{exhaustion_action!r}")
         return (
             demand,
-            visits,
+            tuple(code_names),
             tuple(retry_demands),
             expected_extra_operations,
             retry_acceptance,
             retry_logical_error,
         )
 
-    demand = executable_visits = None
+    demand = executable_codes = None
     retry_demands = ()
     expected_extra_operations = 0.0
     retry_acceptance = 1.0
@@ -725,18 +738,13 @@ def analytical(
         # inside the body instead.
         (
             demand,
-            executable_visits,
+            executable_codes,
             retry_demands,
             expected_extra_operations,
             retry_acceptance,
             retry_logical_error,
         ) = _resource_demand()
-        for visit in executable_visits:
-            operation = visit.operation
-            for result in operation.results:
-                name = _patch_code(result.type)
-                if name is not None and name not in code_names:
-                    code_names.append(name)
+        code_names.extend(executable_codes)
     if not code_names:
         raise MissingEvidence(
             "Tier.ANALYTICAL needs an executable P2 root with typed code boundaries"
@@ -789,7 +797,7 @@ def analytical(
     if demand is None:
         (
             demand,
-            executable_visits,
+            executable_codes,
             retry_demands,
             expected_extra_operations,
             retry_acceptance,

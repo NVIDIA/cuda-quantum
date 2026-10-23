@@ -209,20 +209,6 @@ static StringRef symbolName(Operation *operation) {
   return {};
 }
 
-static Operation *createGeneric(OpBuilder &builder, Location location,
-                                StringRef name, ValueRange operands = {},
-                                TypeRange results = {},
-                                ArrayRef<NamedAttribute> attributes = {},
-                                unsigned regions = 0) {
-  OperationState state(location, name);
-  state.addOperands(operands);
-  state.addTypes(results);
-  state.addAttributes(attributes);
-  for (unsigned i = 0; i < regions; ++i)
-    state.addRegion();
-  return builder.create(state);
-}
-
 static StringAttr stringAttr(MLIRContext *context, StringRef value) {
   return StringAttr::get(context, value);
 }
@@ -454,7 +440,7 @@ public:
       return failure();
     if (preflightOnly)
       return success();
-    if (SymbolTable::lookupSymbolIn(module, graphName))
+    if (hasModuleSymbol(graphName))
       return module.emitError("fabric-to-phys output symbol @")
              << graphName << " already exists";
     if (profile)
@@ -464,6 +450,29 @@ public:
   }
 
 private:
+  bool hasModuleSymbol(StringRef name) const {
+    return symbols.lookup(name) || generatedSymbols.contains(name);
+  }
+
+  Operation *createGeneric(OpBuilder &builder, Location location,
+                           StringRef name, ValueRange operands = {},
+                           TypeRange results = {},
+                           ArrayRef<NamedAttribute> attributes = {},
+                           unsigned regions = 0) {
+    OperationState state(location, name);
+    state.addOperands(operands);
+    state.addTypes(results);
+    state.addAttributes(attributes);
+    for (unsigned i = 0; i < regions; ++i)
+      state.addRegion();
+    Operation *operation = builder.create(state);
+    if (operation->getParentOp() == module)
+      if (auto symbol = operation->getAttrOfType<StringAttr>(
+              SymbolTable::getSymbolAttrName()))
+        generatedSymbols.insert(symbol.getValue());
+    return operation;
+  }
+
   LogicalResult resolveClosure() {
     root = symbols.lookup(rootName);
     if (!root || !isa<qlx::fabric::ProtocolOp, qlx::fabric::GadgetOp>(root)) {
@@ -1484,7 +1493,7 @@ private:
   FailureOr<qlx::phys::FactoryModelOp>
   factoryModelFor(qlx::fabric::ResourceRequestOp request) {
     qlx::phys::FactoryModelOp selected;
-    for (auto candidate : module.getOps<qlx::phys::FactoryModelOp>()) {
+    for (auto candidate : factoryModels) {
       if (candidate.getStreamAttr() != request.getStreamAttr() ||
           candidate.getResourceKindAttr().getValue() != request.getKind())
         continue;
@@ -1996,7 +2005,7 @@ private:
       return failure();
 
     std::string name = (protocol.getSymName() + "_recurrence_plan").str();
-    if (SymbolTable::lookupSymbolIn(module, name))
+    if (hasModuleSymbol(name))
       return protocol.emitOpError(
                  "derived surface-factory recurrence symbol already exists @")
              << name;
@@ -2226,7 +2235,7 @@ private:
                                factoryInterval);
 
     std::string name = (protocol.getSymName() + "_application_plan").str();
-    if (SymbolTable::lookupSymbolIn(module, name))
+    if (hasModuleSymbol(name))
       return protocol.emitOpError(
                  "derived surface-AutoCCZ application symbol already exists @")
              << name;
@@ -2391,7 +2400,7 @@ private:
     }
 
     std::string name = (protocol.getSymName() + "_spacelike_plan").str();
-    if (SymbolTable::lookupSymbolIn(module, name))
+    if (hasModuleSymbol(name))
       return protocol.emitOpError(
                  "derived surface spacelike symbol already exists @")
              << name;
@@ -2959,7 +2968,7 @@ private:
 
   FlatSymbolRefAttr ensureMeasureZInstrument(Location location) {
     constexpr StringLiteral name = "measure_z_instrument";
-    if (!SymbolTable::lookupSymbolIn(module, name)) {
+    if (!hasModuleSymbol(name)) {
       OpBuilder topBuilder(module.getBodyRegion());
       topBuilder.setInsertionPoint(graph);
       createGeneric(
@@ -6801,6 +6810,12 @@ private:
   ModuleOp module;
   MLIRContext *context;
   SymbolTable symbols;
+  // Projection only adds declarations; track their names alongside the
+  // immutable input symbol table to avoid rescanning the growing module.
+  llvm::StringSet<> generatedSymbols;
+  // Factory declarations are read-only throughout projection.
+  SmallVector<qlx::phys::FactoryModelOp> factoryModels =
+      llvm::to_vector(module.getOps<qlx::phys::FactoryModelOp>());
   std::string rootName;
   std::string deviceName;
   std::string graphName;
