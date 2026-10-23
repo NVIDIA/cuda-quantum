@@ -72,13 +72,18 @@ struct adj_ctrl_s {
 };
 
 struct cnot {
-  void operator()(cudaq::qubit &control, cudaq::qubit &target) __qpu__ {
-    x<cudaq::ctrl>(control, target);
+  void operator()(cudaq::qubit &control, cudaq::qubit &target,
+                  bool openControl) __qpu__ {
+    if (openControl)
+      x<cudaq::ctrl>(!control, target);
+    else
+      x<cudaq::ctrl>(control, target);
   }
 };
 
 struct runtime_controls {
-  void operator()(std::size_t n, bool registerOn, bool scalarOn) __qpu__ {
+  void operator()(std::size_t n, bool registerOn, bool scalarOn,
+                  bool openControl) __qpu__ {
     cudaq::qvector qreg(n);
     cudaq::qubit ancilla, target;
     if (registerOn)
@@ -86,7 +91,7 @@ struct runtime_controls {
     if (scalarOn)
       x(ancilla);
     // Specialization gives X both register and scalar controls.
-    cudaq::control(cnot{}, qreg, ancilla, target);
+    cudaq::control(cnot{}, qreg, ancilla, target, openControl);
   }
 };
 
@@ -102,15 +107,17 @@ int main() {
   constexpr std::size_t shots = 10;
   for (std::size_t n : {0, 2})
     for (bool registerOn : {false, true})
-      for (bool scalarOn : {false, true}) {
-        auto counts =
-            cudaq::sample(shots, runtime_controls{}, n, registerOn, scalarOn);
-        const bool targetOn = scalarOn && (n == 0 || registerOn);
-        const auto expected = std::string(n, registerOn ? '1' : '0') +
-                              (scalarOn ? '1' : '0') + (targetOn ? '1' : '0');
-        assert(counts.size() == 1);
-        assert(counts.count(expected) == shots);
-      }
+      for (bool scalarOn : {false, true})
+        for (bool openControl : {false, true}) {
+          auto counts = cudaq::sample(shots, runtime_controls{}, n, registerOn,
+                                      scalarOn, openControl);
+          const bool targetOn =
+              (scalarOn != openControl) && (n == 0 || registerOn);
+          const auto expected = std::string(n, registerOn ? '1' : '0') +
+                                (scalarOn ? '1' : '0') + (targetOn ? '1' : '0');
+          assert(counts.size() == 1);
+          assert(counts.count(expected) == shots);
+        }
   return 0;
 }
 

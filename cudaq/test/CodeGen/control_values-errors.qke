@@ -1,0 +1,48 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// Profile codegen runs `expand-control-negations` before this conversion. A
+// negated control that still reaches it must fail compilation instead of
+// lowering as a positive control. These hand-written inputs skip expansion.
+
+// RUN: cudaq-opt %s --split-input-file --verify-diagnostics \
+// RUN:   --convert-to-qir-api=api=base-profile
+// RUN: cudaq-opt %s --split-input-file --verify-diagnostics \
+// RUN:   --convert-to-qir-api=api=adaptive-profile
+
+func.func @gate(%open: !quake.ref, %closed: !quake.ref, %target: !quake.ref) {
+  // expected-error@+2 {{negated control qubits not allowed.}}
+  // expected-error@+1 {{failed to legalize operation 'quake.x'}}
+  quake.x [%open, %closed neg [true, false]] %target
+      : (!quake.ref, !quake.ref, !quake.ref) -> ()
+  return
+}
+
+// -----
+
+func.func @pauli(%theta: f64, %open: !quake.ref, %target: !quake.veq<1>) {
+  // expected-error@+2 {{negated control qubits not allowed.}}
+  // expected-error@+1 {{failed to legalize operation 'quake.exp_pauli'}}
+  quake.exp_pauli (%theta) [%open neg [true]] %target to "X"
+      : (f64, !quake.ref, !quake.veq<1>) -> ()
+  return
+}
+
+// -----
+
+cc.global constant private @x_matrix
+    (dense<[(0.0, 0.0), (1.0, 0.0), (1.0, 0.0), (0.0, 0.0)]> : tensor<4xcomplex<f64>>)
+    : !cc.array<complex<f64> x 4>
+
+func.func @custom(%open: !quake.ref, %target: !quake.ref) {
+  // expected-error@+2 {{negated control qubits not allowed.}}
+  // expected-error@+1 {{failed to legalize operation 'quake.custom_unitary_constant'}}
+  quake.custom_unitary_constant @x_matrix [%open neg [true]] %target
+      : (!quake.ref, !quake.ref) -> ()
+  return
+}

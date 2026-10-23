@@ -7,6 +7,7 @@
 # ============================================================================ #
 
 import numpy as np
+import pytest
 
 import cudaq
 from cudaq import spin
@@ -46,14 +47,18 @@ def test_ctrl_x():
     assert counts["0011111"] == 1000
 
 
-def test_empty_control_register():
+@pytest.mark.parametrize("negated", [False, True])
+def test_empty_control_register(negated):
 
     @cudaq.kernel
-    def cnot(control: cudaq.qubit, target: cudaq.qubit):
-        x.ctrl(control, target)
+    def cnot(control: cudaq.qubit, target: cudaq.qubit, open_control: bool):
+        if open_control:
+            x.ctrl(~control, target)
+        else:
+            x.ctrl(control, target)
 
     @cudaq.kernel
-    def kernel(n: int, register_on: bool, scalar_on: bool):
+    def kernel(n: int, register_on: bool, scalar_on: bool, open_control: bool):
         qreg = cudaq.qvector(n)
         ancilla = cudaq.qubit()
         target = cudaq.qubit()
@@ -62,7 +67,7 @@ def test_empty_control_register():
         if scalar_on:
             x(ancilla)
         # Specialization gives X both register and scalar controls.
-        cudaq.control(cnot, qreg, ancilla, target)
+        cudaq.control(cnot, qreg, ancilla, target, open_control)
 
     shots = 10
     for n in (0, 2):
@@ -72,13 +77,50 @@ def test_empty_control_register():
                                       n,
                                       register_on,
                                       scalar_on,
+                                      negated,
                                       shots_count=shots)
-                target_on = scalar_on and (n == 0 or register_on)
+                target_on = (scalar_on != negated) and (n == 0 or register_on)
                 expected = ("1" if register_on else "0") * n
                 expected += "1" if scalar_on else "0"
                 expected += "1" if target_on else "0"
                 assert len(counts) == 1
                 assert counts[expected] == shots
+
+
+@pytest.mark.parametrize("adjoint", [False, True])
+def test_mixed_open_controls_match_x_conjugation(adjoint):
+    cudaq.register_operation("open_control_matrix",
+                             np.array([1, 1j, 1, -1j]) / np.sqrt(2))
+
+    @cudaq.kernel
+    def gates(q: cudaq.qview, expand: bool):
+        if expand:
+            x(q[0])
+            ry.ctrl(0.23, q[1], q[0], q[2])
+            u3.ctrl(0.42, -0.17, 0.38, q[0], q[1], q[2])
+            open_control_matrix.ctrl(q[1], q[0], q[3])
+            swap.ctrl(q[0], q[1], q[2], q[3])
+            x(q[0])
+        else:
+            ry.ctrl(0.23, q[1], ~q[0], q[2])
+            u3.ctrl(0.42, -0.17, 0.38, ~q[0], q[1], q[2])
+            open_control_matrix.ctrl(q[1], ~q[0], q[3])
+            swap.ctrl(~q[0], q[1], q[2], q[3])
+
+    @cudaq.kernel
+    def kernel(expand: bool, inverse: bool):
+        q = cudaq.qvector(4)
+        for i in range(4):
+            ry(0.31 * (i + 1), q[i])
+            rz(-0.19 * (i + 1), q[i])
+        if inverse:
+            cudaq.adjoint(gates, q, expand)
+        else:
+            gates(q, expand)
+
+    expected = np.asarray(cudaq.get_state(kernel, True, adjoint))
+    actual = np.asarray(cudaq.get_state(kernel, False, adjoint))
+    np.testing.assert_allclose(actual, expected, atol=1e-6)
 
 
 def test_ctrl_x_list_comprehension():

@@ -41,6 +41,10 @@ static constexpr const char QIRCustomOp[] = "__quantum__qis__custom_unitary";
 static constexpr const char QIRCustomAdjOp[] =
     "__quantum__qis__custom_unitary__adj";
 static constexpr const char QIRExpPauli[] = "__quantum__qis__exp_pauli";
+static constexpr const char NVQIRCustomControlValues[] =
+    "__nvqir__qis__custom_unitary__ctl_values";
+static constexpr const char NVQIRCustomAdjControlValues[] =
+    "__nvqir__qis__custom_unitary__adj__ctl_values";
 
 static constexpr const char QIRDetector[] = "__quantum__qis__detector";
 static constexpr const char QIRLogicalObservable[] =
@@ -58,6 +62,12 @@ static constexpr const char NVQIRInvokeWithControlRegisterOrBits[] =
     "invokeWithControlRegisterOrQubits";
 static constexpr const char NVQIRGeneralizedInvokeAny[] =
     "generalizedInvokeWithRotationsControlsTargets";
+static constexpr const char NVQIRGeneralizedInvokeControlValues[] =
+    "generalizedInvokeWithRotationsControlValuesTargets";
+static constexpr const char NVQIRInvokeCustomControlValues[] =
+    "invokeCustomUnitaryWithControlValues";
+static constexpr const char NVQIRInvokeExpPauliControlValues[] =
+    "invokeExpPauliWithControlValues";
 
 /// QIR Array function name strings
 static constexpr const char QIRArrayGetElementPtr1d[] =
