@@ -85,6 +85,7 @@ def PhysToQuake : Pass<"phys-to-quake", "mlir::ModuleOp"> {
   let dependentDialects = [
     "cudaq::cc::CCDialect",
     "cudaq::quake::QuakeDialect",
+    "mlir::LLVM::LLVMDialect",
     "mlir::arith::ArithDialect",
     "mlir::func::FuncDialect"
   ];

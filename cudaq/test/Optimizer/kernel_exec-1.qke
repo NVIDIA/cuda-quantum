@@ -126,7 +126,7 @@ module attributes {quake.mangled_name_map = {
 // ALT:         func.func private @__nvqpp_vector_bool_to_initializer_list(!cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.ptr<i1>, !cc.ptr<i1>}>>, !cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.array<i8 x {{32|16}}>}>>, !cc.ptr<!cc.ptr<i8>>)
 // ALT:         func.func private @llvm.memcpy.p0.p0.i64(!cc.ptr<i8>, !cc.ptr<i8>, i64, i1)
 
-// ALT-LABEL:   func.func private @__nvqpp_zeroDynamicResult() -> !cc.struct<{!cc.ptr<i8>, i64}> {
+// ALT-LABEL:   func.func private @__nvqpp_zeroDynamicResult() -> !cc.struct<{!cc.ptr<i8>, i64}> attributes {llvm.linkage = #llvm.linkage<linkonce_odr>} {
 // ALT:           %[[VAL_0:.*]] = arith.constant 0 : i64
 // ALT:           %[[VAL_1:.*]] = cc.cast %[[VAL_0]] : (i64) -> !cc.ptr<i8>
 // ALT:           %[[VAL_2:.*]] = cc.undef !cc.struct<{!cc.ptr<i8>, i64}>
@@ -139,7 +139,7 @@ module attributes {quake.mangled_name_map = {
 // ALT-SAME:                                                   %[[VAL_0:.*]]: !cc.ptr<i8>,
 // ALT-SAME:                                                   %[[VAL_1:.*]]: i64,
 // ALT-SAME:                                                   %[[VAL_2:.*]]: !cc.ptr<!cc.struct<{!cc.ptr<i8>, i64}>>,
-// ALT-SAME:                                                   %[[VAL_3:.*]]: i64) -> !cc.struct<{!cc.ptr<i8>, i64}> {
+// ALT-SAME:                                                   %[[VAL_3:.*]]: i64) -> !cc.struct<{!cc.ptr<i8>, i64}> attributes {llvm.linkage = #llvm.linkage<linkonce_odr>} {
 // ALT:           %[[VAL_4:.*]] = cc.compute_ptr %[[VAL_2]][1] : (!cc.ptr<!cc.struct<{!cc.ptr<i8>, i64}>>) -> !cc.ptr<i64>
 // ALT:           %[[VAL_5:.*]] = cc.load %[[VAL_4]] : !cc.ptr<i64>
 // ALT:           %[[VAL_6:.*]] = arith.addi %[[VAL_1]], %[[VAL_5]] : i64
@@ -253,7 +253,7 @@ module attributes {quake.mangled_name_map = {
 // STREAMLINED:         func.func private @__nvqpp_vector_bool_to_initializer_list(!cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.ptr<i1>, !cc.ptr<i1>}>>, !cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.array<i8 x {{32|16}}>}>>, !cc.ptr<!cc.ptr<i8>>)
 // STREAMLINED:         func.func private @llvm.memcpy.p0.p0.i64(!cc.ptr<i8>, !cc.ptr<i8>, i64, i1)
 
-// STREAMLINED-LABEL:   func.func private @__nvqpp_zeroDynamicResult() -> !cc.struct<{!cc.ptr<i8>, i64}> {
+// STREAMLINED-LABEL:   func.func private @__nvqpp_zeroDynamicResult() -> !cc.struct<{!cc.ptr<i8>, i64}> attributes {llvm.linkage = #llvm.linkage<linkonce_odr>} {
 // STREAMLINED:           %[[VAL_0:.*]] = arith.constant 0 : i64
 // STREAMLINED:           %[[VAL_1:.*]] = cc.cast %[[VAL_0]] : (i64) -> !cc.ptr<i8>
 // STREAMLINED:           %[[VAL_2:.*]] = cc.undef !cc.struct<{!cc.ptr<i8>, i64}>
@@ -266,7 +266,7 @@ module attributes {quake.mangled_name_map = {
 // STREAMLINED-SAME:                                                   %[[VAL_0:.*]]: !cc.ptr<i8>,
 // STREAMLINED-SAME:                                                   %[[VAL_1:.*]]: i64,
 // STREAMLINED-SAME:                                                   %[[VAL_2:.*]]: !cc.ptr<!cc.struct<{!cc.ptr<i8>, i64}>>,
-// STREAMLINED-SAME:                                                   %[[VAL_3:.*]]: i64) -> !cc.struct<{!cc.ptr<i8>, i64}> {
+// STREAMLINED-SAME:                                                   %[[VAL_3:.*]]: i64) -> !cc.struct<{!cc.ptr<i8>, i64}> attributes {llvm.linkage = #llvm.linkage<linkonce_odr>} {
 // STREAMLINED:           %[[VAL_4:.*]] = cc.compute_ptr %[[VAL_2]][1] : (!cc.ptr<!cc.struct<{!cc.ptr<i8>, i64}>>) -> !cc.ptr<i64>
 // STREAMLINED:           %[[VAL_5:.*]] = cc.load %[[VAL_4]] : !cc.ptr<i64>
 // STREAMLINED:           %[[VAL_6:.*]] = arith.addi %[[VAL_1]], %[[VAL_5]] : i64
@@ -362,7 +362,7 @@ module attributes {quake.mangled_name_map = {
 // HYBRID:         func.func private @__nvqpp_vector_bool_to_initializer_list(!cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.ptr<i1>, !cc.ptr<i1>}>>, !cc.ptr<!cc.struct<{!cc.ptr<i1>, !cc.array<i8 x {{32|16}}>}>>, !cc.ptr<!cc.ptr<i8>>)
 // HYBRID:         func.func private @llvm.memcpy.p0.p0.i64(!cc.ptr<i8>, !cc.ptr<i8>, i64, i1)
 
-// HYBRID-LABEL:   func.func private @__nvqpp_zeroDynamicResult() -> !cc.struct<{!cc.ptr<i8>, i64}> {
+// HYBRID-LABEL:   func.func private @__nvqpp_zeroDynamicResult() -> !cc.struct<{!cc.ptr<i8>, i64}> attributes {llvm.linkage = #llvm.linkage<linkonce_odr>} {
 // HYBRID:           %[[VAL_0:.*]] = arith.constant 0 : i64
 // HYBRID:           %[[VAL_1:.*]] = cc.cast %[[VAL_0]] : (i64) -> !cc.ptr<i8>
 // HYBRID:           %[[VAL_2:.*]] = cc.undef !cc.struct<{!cc.ptr<i8>, i64}>
@@ -375,7 +375,7 @@ module attributes {quake.mangled_name_map = {
 // HYBRID-SAME:                                                   %[[VAL_0:.*]]: !cc.ptr<i8>,
 // HYBRID-SAME:                                                   %[[VAL_1:.*]]: i64,
 // HYBRID-SAME:                                                   %[[VAL_2:.*]]: !cc.ptr<!cc.struct<{!cc.ptr<i8>, i64}>>,
-// HYBRID-SAME:                                                   %[[VAL_3:.*]]: i64) -> !cc.struct<{!cc.ptr<i8>, i64}> {
+// HYBRID-SAME:                                                   %[[VAL_3:.*]]: i64) -> !cc.struct<{!cc.ptr<i8>, i64}> attributes {llvm.linkage = #llvm.linkage<linkonce_odr>} {
 // HYBRID:           %[[VAL_4:.*]] = cc.compute_ptr %[[VAL_2]][1] : (!cc.ptr<!cc.struct<{!cc.ptr<i8>, i64}>>) -> !cc.ptr<i64>
 // HYBRID:           %[[VAL_5:.*]] = cc.load %[[VAL_4]] : !cc.ptr<i64>
 // HYBRID:           %[[VAL_6:.*]] = arith.addi %[[VAL_1]], %[[VAL_5]] : i64
