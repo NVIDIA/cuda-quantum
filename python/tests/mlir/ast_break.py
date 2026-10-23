@@ -59,3 +59,43 @@ def test_break():
 # CHECK:           quake.dealloc %[[VAL_8]] : !quake.veq<4>
 # CHECK:           return
 # CHECK:         }
+
+
+def test_bare_break():
+    # A `break` that is *not* nested in an `if` must still forward the
+    # loop-carried block arguments to the `cc.break` terminator.
+
+    @cudaq.kernel(verbose=False)
+    def bare_break_kernel(x: float):
+        q = cudaq.qvector(4)
+        for i in range(4):
+            ry(x, q[i])
+            break
+
+    print(bare_break_kernel)
+    bare_break_kernel(1.2)
+
+
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__bare_break_kernel..
+# CHECK-SAME:      %[[VAL_30:.*]]: f64) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+# CHECK-DAG:       %[[VAL_31:.*]] = arith.constant 1 : i64
+# CHECK-DAG:       %[[VAL_32:.*]] = arith.constant 0 : i64
+# CHECK-DAG:       %[[VAL_33:.*]] = arith.constant 4 : i64
+# CHECK-DAG:       %[[VAL_34:.*]] = cc.undef i64
+# CHECK-DAG:       %[[VAL_35:.*]] = quake.alloca !quake.veq<4>
+# CHECK:           %[[VAL_36:.*]]:2 = cc.loop while ((%[[VAL_37:.*]] = %[[VAL_32]], %[[VAL_38:.*]] = %[[VAL_34]]) -> (i64, i64)) {
+# CHECK:             %[[VAL_39:.*]] = arith.cmpi slt, %[[VAL_37]], %[[VAL_33]] : i64
+# CHECK:             cc.condition %[[VAL_39]](%[[VAL_37]], %[[VAL_38]] : i64, i64)
+# CHECK:           } do {
+# CHECK:           ^bb0(%[[VAL_40:.*]]: i64, %[[VAL_41:.*]]: i64):
+# CHECK:             %[[VAL_42:.*]] = quake.extract_ref %[[VAL_35]]{{\[}}%[[VAL_40]]] : (!quake.veq<4>, i64) -> !quake.ref
+# CHECK:             quake.ry (%[[VAL_30]]) %[[VAL_42]] : (f64, !quake.ref) -> ()
+# CHECK:             cc.break %[[VAL_40]], %[[VAL_40]] : i64, i64
+# CHECK:           } step {
+# CHECK:           ^bb0(%[[VAL_43:.*]]: i64, %[[VAL_44:.*]]: i64):
+# CHECK:             %[[VAL_45:.*]] = arith.addi %[[VAL_43]], %[[VAL_31]] : i64
+# CHECK:             cc.continue %[[VAL_45]], %[[VAL_44]] : i64, i64
+# CHECK:           }
+# CHECK:           quake.dealloc %[[VAL_35]] : !quake.veq<4>
+# CHECK:           return
+# CHECK:         }
