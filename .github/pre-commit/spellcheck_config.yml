@@ -304,8 +304,8 @@ matrix:
       # Ignore multiline content between three or more backticks
       - open: '(?s)(?P<open>\s*`{3,})\S*\s*$'
         close: '(?P=open)$'
-      # Ignore content between inline backticks
-      - open: '(?P<open>`+)'
+      # Ignore content between backticks, including code wrapped across lines
+      - open: '(?s)(?P<open>`+)'
         close: '(?P=open)'
       # Ignore words that start with uppercase letters or an underscore
       - open: '(^|\s)([A-Z]|_)'

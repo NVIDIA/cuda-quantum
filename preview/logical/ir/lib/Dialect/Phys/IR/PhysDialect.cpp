@@ -196,21 +196,36 @@ struct SidecarGraphVerificationIndex {
 static thread_local SidecarGraphVerificationIndex
     *activeSidecarGraphVerificationIndex = nullptr;
 
-static thread_local SymbolTable *activePlanModuleSymbols = nullptr;
+struct PlanModuleIndex {
+  explicit PlanModuleIndex(ModuleOp module)
+      : symbols(module),
+        factories(llvm::to_vector<0>(module.getOps<FactoryModelOp>())) {}
+
+  SymbolTable symbols;
+  SmallVector<FactoryModelOp, 0> factories;
+};
+
+static thread_local PlanModuleIndex *activePlanModuleIndex = nullptr;
 
 Operation *qlx::phys::lookupModuleSymbol(ModuleOp module, StringRef name) {
-  if (activePlanModuleSymbols && activePlanModuleSymbols->getOp() == module)
-    return activePlanModuleSymbols->lookup(name);
+  if (activePlanModuleIndex && activePlanModuleIndex->symbols.getOp() == module)
+    return activePlanModuleIndex->symbols.lookup(name);
   return SymbolTable(module).lookup(name);
+}
+
+SmallVector<FactoryModelOp, 0> qlx::phys::moduleFactoryModels(ModuleOp module) {
+  if (activePlanModuleIndex && activePlanModuleIndex->symbols.getOp() == module)
+    return activePlanModuleIndex->factories;
+  return llvm::to_vector<0>(module.getOps<FactoryModelOp>());
 }
 
 LogicalResult qlx::phys::verifySpacetimePlanBatch(ArrayRef<Operation *> plans) {
   if (plans.empty())
     return success();
-  SymbolTable symbols(plans.front()->getParentOfType<ModuleOp>());
-  SymbolTable *previous = activePlanModuleSymbols;
-  activePlanModuleSymbols = &symbols;
-  llvm::scope_exit restore([&] { activePlanModuleSymbols = previous; });
+  PlanModuleIndex index(plans.front()->getParentOfType<ModuleOp>());
+  PlanModuleIndex *previous = activePlanModuleIndex;
+  activePlanModuleIndex = &index;
+  llvm::scope_exit restore([&] { activePlanModuleIndex = previous; });
   for (Operation *plan : plans)
     if (failed(mlir::verify(plan, /*verifyRecursively=*/true)))
       return failure();
@@ -1693,32 +1708,54 @@ LogicalResult ReleaseOp::verify() {
   return success();
 }
 
-static bool hasSSAPath(Operation *producer, Operation *consumer) {
+// Caches the users of ops with many results, which lifetime queries revisit.
+using WideSSAUsers =
+    llvm::DenseMap<Operation *, llvm::SmallPtrSet<Operation *, 16>>;
+
+static bool hasSSAPath(Operation *producer, Operation *consumer,
+                       WideSSAUsers &wideUsers) {
   SmallVector<Operation *, 16> worklist;
   llvm::SmallPtrSet<Operation *, 32> visited;
-  for (Value result : producer->getResults())
-    llvm::append_range(worklist, result.getUsers());
+  auto appendUsers = [&](Operation *operation) {
+    if (operation->getNumResults() > 8) {
+      auto [entry, inserted] = wideUsers.try_emplace(operation);
+      if (inserted)
+        for (Value result : operation->getResults())
+          entry->second.insert(result.user_begin(), result.user_end());
+      for (Operation *ancestor = consumer; ancestor;
+           ancestor = ancestor->getParentOp())
+        if (entry->second.contains(ancestor))
+          return true;
+      llvm::append_range(worklist, entry->second);
+    } else {
+      for (Value result : operation->getResults())
+        llvm::append_range(worklist, result.getUsers());
+    }
+    return false;
+  };
+  if (appendUsers(producer))
+    return true;
   while (!worklist.empty()) {
     Operation *operation = worklist.pop_back_val();
     if (operation == consumer || operation->isProperAncestor(consumer))
       return true;
     if (!visited.insert(operation).second)
       continue;
-    for (Value result : operation->getResults())
-      llvm::append_range(worklist, result.getUsers());
+    if (appendUsers(operation))
+      return true;
   }
   return false;
 }
 
 static bool causallyPrecedes(Operation *producer, Operation *consumer,
-                             GraphOp graph) {
+                             GraphOp graph, WideSSAUsers &wideUsers) {
   Operation *producerAnchor = directGraphChild(producer, graph);
   Operation *consumerAnchor = directGraphChild(consumer, graph);
   if (!producerAnchor || !consumerAnchor)
     return false;
   if (producerAnchor == consumerAnchor)
-    return hasSSAPath(producer, consumer);
-  return hasSSAPath(producerAnchor, consumerAnchor);
+    return hasSSAPath(producer, consumer, wideUsers);
+  return hasSSAPath(producerAnchor, consumerAnchor, wideUsers);
 }
 
 static Operation *unsupportedLifetimeControl(Operation *operation,
@@ -1940,12 +1977,13 @@ LogicalResult AllocationMappingOp::verify() {
                  SmallVector<AllocationLifetime, 2>>
       physicalLifetimes;
   llvm::DenseMap<std::pair<Operation *, Operation *>, bool> causalOrder;
+  WideSSAUsers wideUsers;
   auto causallyOrdered = [&](Operation *producer, Operation *consumer) {
     auto key = std::make_pair(producer, consumer);
     auto found = causalOrder.find(key);
     if (found != causalOrder.end())
       return found->second;
-    bool result = causallyPrecedes(producer, consumer, graph);
+    bool result = causallyPrecedes(producer, consumer, graph, wideUsers);
     causalOrder.try_emplace(key, result);
     return result;
   };
@@ -3701,6 +3739,7 @@ LogicalResult GraphOp::verifyRegions() {
 
     llvm::DenseMap<Operation *, llvm::SmallVector<Operation *, 16>>
         callableOperations;
+    SymbolTableCollection sourceSymbols;
     llvm::DenseMap<Operation *, Operation *> resolvedInvocationTargets;
     auto resolveInvocationTarget = [&](Operation *invocation,
                                        FlatSymbolRefAttr callee) {
@@ -3708,7 +3747,7 @@ LogicalResult GraphOp::verifyRegions() {
           resolvedInvocationTargets.try_emplace(invocation, nullptr);
       if (inserted)
         cached->second =
-            SymbolTable::lookupNearestSymbolFrom(invocation, callee);
+            sourceSymbols.lookupNearestSymbolFrom(invocation, callee);
       return cached->second;
     };
     auto collectCallableOperations =
@@ -3720,7 +3759,7 @@ LogicalResult GraphOp::verifyRegions() {
       if (auto gadget = dyn_cast<qlx::fabric::GadgetOp>(callable)) {
         if (auto realization = gadget.getRealizationAttr()) {
           bodyOwner =
-              SymbolTable::lookupNearestSymbolFrom(callable, realization);
+              sourceSymbols.lookupNearestSymbolFrom(callable, realization);
           if (!isa_and_nonnull<qlx::fabric::CircuitOp>(bodyOwner)) {
             emitOpError("projected Fabric gadget @")
                 << gadget.getSymName()
@@ -8352,10 +8391,10 @@ private:
 LogicalResult ScheduleClaimVerifier::verify(ArrayRef<ScheduleClaim> entries,
                                             ScheduleVerificationStats *stats) {
   // Schedule verification resolves the same module-level graph, plans, and
-  // physical resources for many thousands of rows.  The static symbol lookup
-  // helper constructs transient symbol tables on every call; retain one lazy
-  // collection for the whole proof so repeated state-resource lookups remain
-  // exact while becoming amortized constant-time.
+  // physical resources for many thousands of rows. The static symbol lookup
+  // helper scans the symbol-table region on every call; retain one lazy
+  // collection for the whole proof so repeated plan and state-resource lookups
+  // remain exact while becoming amortized constant-time.
   SymbolTableCollection symbolTables;
   const bool profileEnabled = std::getenv("QLX_PROFILE_P2_TO_P3") != nullptr;
   ScheduleVerifierProfileStats profileStorage;
@@ -8538,7 +8577,7 @@ LogicalResult ScheduleClaimVerifier::verify(ArrayRef<ScheduleClaim> entries,
       ambiguousExpectedEvent = true;
     auto invocation = dyn_cast<SpacetimeCallOp>(operation);
     auto plan = invocation ? dyn_cast_or_null<SpacetimePlanOp>(
-                                 SymbolTable::lookupNearestSymbolFrom(
+                                 symbolTables.lookupNearestSymbolFrom(
                                      invocation, invocation.getPlanAttr()))
                            : SpacetimePlanOp{};
     if (!plan)
@@ -8969,7 +9008,7 @@ LogicalResult ScheduleClaimVerifier::verify(ArrayRef<ScheduleClaim> entries,
     }
     if (auto invocation = dyn_cast<SpacetimeCallOp>(eventOperation)) {
       auto plan = dyn_cast_or_null<SpacetimePlanOp>(
-          SymbolTable::lookupNearestSymbolFrom(invocation,
+          symbolTables.lookupNearestSymbolFrom(invocation,
                                                invocation.getPlanAttr()));
       if (!plan || entry.callee != plan.getSourceProtocol() ||
           entry.instance != invocation.getInstance() ||
@@ -9092,7 +9131,7 @@ LogicalResult ScheduleClaimVerifier::verify(ArrayRef<ScheduleClaim> entries,
                 ? SpacetimeCallOp{}
                 : dyn_cast<SpacetimeCallOp>(parentEvent->second.first);
         auto plan = invocation ? dyn_cast_or_null<SpacetimePlanOp>(
-                                     SymbolTable::lookupNearestSymbolFrom(
+                                     symbolTables.lookupNearestSymbolFrom(
                                          invocation, invocation.getPlanAttr()))
                                : SpacetimePlanOp{};
         forwardingPipelinePhase = plan && plan.getForwardingLatencyNsAttr() &&
@@ -9608,7 +9647,7 @@ LogicalResult ScheduleClaimVerifier::verify(ArrayRef<ScheduleClaim> entries,
               ? SpacetimeCallOp{}
               : dyn_cast<SpacetimeCallOp>(operation->second.first);
       auto plan = invocation ? dyn_cast_or_null<SpacetimePlanOp>(
-                                   SymbolTable::lookupNearestSymbolFrom(
+                                   symbolTables.lookupNearestSymbolFrom(
                                        invocation, invocation.getPlanAttr()))
                              : SpacetimePlanOp{};
       if (plan && plan.getForwardingLatencyNsAttr() &&
@@ -9912,7 +9951,7 @@ LogicalResult ScheduleClaimVerifier::verify(ArrayRef<ScheduleClaim> entries,
                 ? SpacetimeCallOp{}
                 : dyn_cast<SpacetimeCallOp>(operation->second.first);
         auto plan = invocation ? dyn_cast_or_null<SpacetimePlanOp>(
-                                     SymbolTable::lookupNearestSymbolFrom(
+                                     symbolTables.lookupNearestSymbolFrom(
                                          invocation, invocation.getPlanAttr()))
                                : SpacetimePlanOp{};
         bool pipelined = plan && plan.getForwardingLatencyNsAttr() &&
@@ -10135,7 +10174,7 @@ LogicalResult ScheduleClaimVerifier::verify(ArrayRef<ScheduleClaim> entries,
               ? SpacetimeCallOp{}
               : dyn_cast<SpacetimeCallOp>(operation->second.first);
       auto plan = invocation ? dyn_cast_or_null<SpacetimePlanOp>(
-                                   SymbolTable::lookupNearestSymbolFrom(
+                                   symbolTables.lookupNearestSymbolFrom(
                                        invocation, invocation.getPlanAttr()))
                              : SpacetimePlanOp{};
       if (!plan)

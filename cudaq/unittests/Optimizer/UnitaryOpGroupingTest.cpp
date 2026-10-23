@@ -61,13 +61,13 @@ static void expectGroupIndex(const UnitaryOpGroupingAnalysis &analysis,
     EXPECT_EQ(*actual, *expected);
 }
 
-/// Create a scalar wire root with a fresh, known logical-qubit identity.
+/// Create a wire root with a fresh, known logical-qubit identity.
 static Value createNullWire(OpBuilder &builder, Location loc) {
   auto wireTy = builder.getType<cudaq::quake::WireType>();
   return cudaq::quake::NullWireOp::create(builder, loc, wireTy);
 }
 
-/// Create a non-adjoint scalar-wire gate that threads one target through its
+/// Create a non-adjoint wire gate that threads one target through its
 /// result.
 template <typename GateOp>
 static GateOp createWireGate(OpBuilder &builder, Location loc, Value target) {
@@ -77,7 +77,7 @@ static GateOp createWireGate(OpBuilder &builder, Location loc, Value target) {
                         DenseBoolArrayAttr{});
 }
 
-/// Create a non-adjoint scalar-wire gate with one result for every control and
+/// Create a non-adjoint wire gate with one result for every control and
 /// target.
 template <typename GateOp>
 static GateOp createWireGate(OpBuilder &builder, Location loc,
@@ -1042,7 +1042,7 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest, VeqSizeBreaksBetweenGroups) {
 //   group 0: unitaries [h], delimiters [mz]
 //   group 1: unitaries [x], delimiters []
 //   The non-scalar measurement remains a delimiter even though its segment
-//   cannot use scalar-wire ordering.
+//   cannot use wire ordering.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
        VectorMeasurementIsATrailingDelimiter) {
   OpBuilder builder(&context);
@@ -1158,7 +1158,7 @@ TEST_F(BuilderUnitaryOpGroupingAnalysisTest, ResetRefIsATrailingDelimiter) {
 //   ordering mode: textual
 //   group 0: unitaries [x, y, z], delimiters []
 //   Gates with vector controls remain unitary even though the segment cannot
-//   use scalar-wire ordering.
+//   use wire ordering.
 TEST_F(BuilderUnitaryOpGroupingAnalysisTest,
        ControlledGatesWithVeqControlGroupTogether) {
   OpBuilder builder(&context);
