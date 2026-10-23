@@ -142,7 +142,7 @@ results describe these assumptions. See
 [Devices and placement](../use-cases/devices-and-placement.md) for other device
 configurations.
 
-## 4. Place and realize the Bell program
+## 4. Place and realize the program
 
 Use [`cql.compiler.place`](concepts.md#devices-and-placement) to assign the P0
 program's logical values to the device's logical machine. The constraint keeps
