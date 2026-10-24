@@ -336,6 +336,24 @@ pass-by-value semantics at kernel construction.
     # Pass by value semantics 
     assert k != i 
 
+**[8.1]** Note: In C++, the data members of a kernel class are currently limited as follows.
+
+- A data member must be of a scalar type: an arithmetic type (:code:`bool`, the integer types, and the
+  floating-point types) or an enumeration type. A bit-field is not allowed. Members of quantum type
+  (such as :code:`cudaq::qubit` or :code:`cudaq::qvector`) are an error. Members that are
+  references, pointers, :code:`std::vector`, :code:`std::complex`, or other struct or class types are not yet supported.
+- A kernel class that has data members may declare the call operator and the functions that create and
+  manage the object (constructors, the destructor, and the copy and move assignment operators). Any
+  other member function is not yet supported. The kernel cannot create an object of its own class.
+- The values of the data members are read from the object when the kernel is launched. The kernel
+  uses its own copy, as it does for any other argument passed by value. An assignment to a data
+  member in the kernel body is visible for the rest of that execution of the kernel, but it is never
+  reflected in the object on the host.
+- A kernel class that has data members can be launched with :code:`cudaq::sample`,
+  :code:`cudaq::observe`, and :code:`cudaq::get_state`, but not yet with :code:`cudaq::run`. A call of
+  :code:`cudaq::run` on such a kernel reports that the kernel cannot be called by :code:`cudaq::run`.
+- A kernel cannot call a kernel class that has data members, for instance with :code:`cudaq::control`.
+
 **[9]** All quantum kernel invocations are synchronous calls by default. 
 
 **[10]** CUDA-Q kernels can serve as input to other quantum kernels and invoked by kernel 
