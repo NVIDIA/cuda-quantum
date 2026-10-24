@@ -141,15 +141,17 @@ struct BridgeConfig {
 
   // Unified dispatch mode: single kernel combines RDMA RX, RPC dispatch, and
   // RDMA TX via direct DOCA verbs calls.  Eliminates the inter-kernel flag
-  // handoff overhead of the 3-kernel path.  Regular handlers only.
+  // handoff overhead of the 3-kernel path.  DEVICE_CALL handlers only; they
+  // run on the `threads_per_block` block below, as in 3-kernel mode.
   bool unified = false;
 
   // Dispatch kernel config
   cudaq_function_entry_t *d_function_entries = nullptr; ///< GPU function table
   size_t func_count = 0;                                ///< Number of entries
 
-  /// @brief Dispatch kernel grid configuration.
-  /// Defaults match the regular kernel.
+  /// @brief Dispatch kernel grid configuration (both modes).
+  /// One block of `threads_per_block` threads (default 32) is the block every
+  /// DEVICE_CALL handler runs on, in unified mode as in 3-kernel mode.
   cudaq_kernel_type_t kernel_type = CUDAQ_KERNEL_REGULAR;
   uint32_t num_blocks = 1;
   uint32_t threads_per_block = 32;
@@ -188,10 +190,13 @@ struct BridgeConfig {
 ///
 /// Recognized flags: `--device=`, `--peer-ip=`, `--remote-qp=`, `--gpu=`,
 /// `--timeout=`, `--page-size=`, `--num-pages=`, `--exchange-qp`,
-/// `--exchange-port=`. Unknown flags are silently ignored (so tool-specific
-/// flags can co-exist).  Every token is examined, `argv[0]` included: a
-/// bridge's create() may be handed only its own options, with no program name
-/// in front.
+/// `--exchange-port=`, `--threads=`. Unknown flags are silently ignored (so
+/// tool-specific flags can co-exist).  Every token is examined, `argv[0]`
+/// included: a bridge's create() may be handed only its own options, with no
+/// program name in front.
+///
+/// `--threads=N` sets `threads_per_block`: the block every DEVICE_CALL handler
+/// runs on, in unified and 3-kernel mode alike (default 32).
 ///
 /// @param argc Argument count
 /// @param argv Argument vector
@@ -223,6 +228,8 @@ inline void parse_bridge_args(int argc, char *argv[], BridgeConfig &config) {
       config.forward = true;
     else if (arg == "--unified")
       config.unified = true;
+    else if (arg.find("--threads=") == 0)
+      config.threads_per_block = std::stoul(arg.substr(10));
     else if (arg == "--cpu")
       config.dispatch_path = CUDAQ_DISPATCH_PATH_HOST;
   }
@@ -392,8 +399,8 @@ inline int bridge_run(BridgeConfig &config) {
   if (!config.forward) {
     if (!config.unified && !is_host_loop) {
       int dispatch_blocks = 0;
-      cudaError_t occ_err =
-          cudaq_dispatch_kernel_query_occupancy(&dispatch_blocks, 1);
+      cudaError_t occ_err = cudaq_dispatch_kernel_query_occupancy(
+          &dispatch_blocks, config.threads_per_block);
       if (occ_err != cudaSuccess) {
         std::cerr << "ERROR: Dispatch kernel occupancy query failed: "
                   << cudaGetErrorString(occ_err) << std::endl;
@@ -455,20 +462,12 @@ inline int bridge_run(BridgeConfig &config) {
       dconfig.skip_tx_markers = 1;
     } else {
       dconfig.dispatch_mode = CUDAQ_DISPATCH_DEVICE_CALL;
-
-      if (config.unified) {
-        dconfig.kernel_type = CUDAQ_KERNEL_UNIFIED;
-        dconfig.num_blocks = 1;
-        dconfig.threads_per_block = 1;
-        dconfig.num_slots = static_cast<uint32_t>(config.num_pages);
-        dconfig.slot_size = static_cast<uint32_t>(config.page_size);
-      } else {
-        dconfig.kernel_type = config.kernel_type;
-        dconfig.num_blocks = config.num_blocks;
-        dconfig.threads_per_block = config.threads_per_block;
-        dconfig.num_slots = static_cast<uint32_t>(config.num_pages);
-        dconfig.slot_size = static_cast<uint32_t>(config.page_size);
-      }
+      dconfig.kernel_type =
+          config.unified ? CUDAQ_KERNEL_UNIFIED : config.kernel_type;
+      dconfig.num_blocks = config.num_blocks;
+      dconfig.threads_per_block = config.threads_per_block;
+      dconfig.num_slots = static_cast<uint32_t>(config.num_pages);
+      dconfig.slot_size = static_cast<uint32_t>(config.page_size);
     }
 
     if (cudaq_dispatcher_create(manager, &dconfig, &dispatcher) != CUDAQ_OK) {

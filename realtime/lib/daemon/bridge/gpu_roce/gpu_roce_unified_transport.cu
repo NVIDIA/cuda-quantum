@@ -66,8 +66,8 @@ struct gpu_roce_session {
   std::uint64_t sq_wqe_idx;
 
   /// Pre-built send WQE for the BlueFlame path, in shared memory.  `send_bf`
-  /// indexes it by threadIdx.x, which is always 0 here (the kernel is
-  /// <<<1,1>>>).
+  /// indexes it by threadIdx.x, which is always 0 here: the hooks run on
+  /// thread 0 only (THREADING in unified_device_transport.cuh).
   struct doca_gpu_dev_verbs_wqe *wqe_sh;
 };
 
