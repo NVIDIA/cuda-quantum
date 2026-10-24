@@ -176,6 +176,10 @@ else()
   set(CUDAQ_ENABLE_LANGUAGE OFF)
   find_package(CUDAQ REQUIRED CONFIG)
 
+  # Prefer headers from this CUDA-Q installation over a separate LLVM SDK
+  # that may also contain older CUDA-Q headers.
+  include_directories(BEFORE "${CUDAQ_INCLUDE_DIR}")
+
   # QLXSynthesize directly includes CUDA-Q's rotation-synthesis headers, which
   # need the GMP/MPFR development headers.
   find_package(GMP REQUIRED COMPONENTS Headers)

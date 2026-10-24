@@ -54,3 +54,77 @@ qlx.program @bad_symbolic_action : () -> i1 attributes {qlx.stage = "p0"} {
   %m = qlx.measure #qlx.pauli<Z> %r : !qlx.logical_qubit -> i1
   qlx.return %m : i1
 }
+
+// -----
+
+/// Positive-basis builtins have exact qubit-only signatures. Generic
+/// qlx.apply supports typed classical payloads, but those payloads are not
+/// part of H/S/T/CX/idle semantics and cannot receive a Clifford+T certificate.
+qlx.program @bad_t_classical_payload : () -> i1 attributes {qlx.stage = "p0"} {
+  %q = qlx.prepare "zero" {allocation = 0 : i64, value_index = 0 : i64} : !qlx.logical_qubit
+  %c = arith.constant 0.0 : f64
+  // expected-error@+1 {{positive Clifford+T basis actions require exactly 1 logical-qubit inputs and results and no classical payloads}}
+  %t:2 = qlx.apply #qlx.action<t>(%q, %c)
+      : (!qlx.logical_qubit, f64) -> (!qlx.logical_qubit, i1)
+  qlx.discard %t#0 : !qlx.logical_qubit
+  qlx.return %t#1 : i1
+}
+
+// -----
+
+/// Every fixed positive-basis builtin has an empty parameter schema.
+qlx.program @bad_h_parameters : () -> i1 attributes {qlx.stage = "p0"} {
+  %q = qlx.prepare "zero" {allocation = 0 : i64, value_index = 0 : i64} : !qlx.logical_qubit
+  // expected-error@+1 {{fixed built-in actions do not accept parameter bindings}}
+  %h = qlx.apply #qlx.action<h>(%q) {parameters = {unexpected = 1 : i64}}
+      : (!qlx.logical_qubit) -> !qlx.logical_qubit
+  %m = qlx.measure #qlx.pauli<Z> %h : !qlx.logical_qubit -> i1
+  qlx.return %m : i1
+}
+
+// -----
+
+qlx.program @bad_s_parameters : () -> i1 attributes {qlx.stage = "p0"} {
+  %q = qlx.prepare "zero" {allocation = 0 : i64, value_index = 0 : i64} : !qlx.logical_qubit
+  // expected-error@+1 {{fixed built-in actions do not accept parameter bindings}}
+  %s = qlx.apply #qlx.action<s>(%q) {parameters = {unexpected = 1 : i64}}
+      : (!qlx.logical_qubit) -> !qlx.logical_qubit
+  %m = qlx.measure #qlx.pauli<Z> %s : !qlx.logical_qubit -> i1
+  qlx.return %m : i1
+}
+
+// -----
+
+qlx.program @bad_t_parameters : () -> i1 attributes {qlx.stage = "p0"} {
+  %q = qlx.prepare "zero" {allocation = 0 : i64, value_index = 0 : i64} : !qlx.logical_qubit
+  // expected-error@+1 {{fixed built-in actions do not accept parameter bindings}}
+  %t = qlx.apply #qlx.action<t>(%q) {parameters = {unexpected = 1 : i64}}
+      : (!qlx.logical_qubit) -> !qlx.logical_qubit
+  %m = qlx.measure #qlx.pauli<Z> %t : !qlx.logical_qubit -> i1
+  qlx.return %m : i1
+}
+
+// -----
+
+qlx.program @bad_cx_parameters : () -> i1 attributes {qlx.stage = "p0"} {
+  %q0 = qlx.prepare "zero" {allocation = 0 : i64, value_index = 0 : i64} : !qlx.logical_qubit
+  %q1 = qlx.prepare "zero" {allocation = 1 : i64, value_index = 1 : i64} : !qlx.logical_qubit
+  // expected-error@+1 {{fixed built-in actions do not accept parameter bindings}}
+  %c0, %c1 = qlx.apply #qlx.action<cx>(%q0, %q1) {parameters = {unexpected = 1 : i64}}
+      : (!qlx.logical_qubit, !qlx.logical_qubit)
+     -> (!qlx.logical_qubit, !qlx.logical_qubit)
+  qlx.discard %c1 : !qlx.logical_qubit
+  %m = qlx.measure #qlx.pauli<Z> %c0 : !qlx.logical_qubit -> i1
+  qlx.return %m : i1
+}
+
+// -----
+
+qlx.program @bad_idle_parameters : () -> i1 attributes {qlx.stage = "p0"} {
+  %q = qlx.prepare "zero" {allocation = 0 : i64, value_index = 0 : i64} : !qlx.logical_qubit
+  // expected-error@+1 {{fixed built-in actions do not accept parameter bindings}}
+  %i = qlx.apply #qlx.action<idle>(%q) {parameters = {unexpected = 1 : i64}}
+      : (!qlx.logical_qubit) -> !qlx.logical_qubit
+  %m = qlx.measure #qlx.pauli<Z> %i : !qlx.logical_qubit -> i1
+  qlx.return %m : i1
+}

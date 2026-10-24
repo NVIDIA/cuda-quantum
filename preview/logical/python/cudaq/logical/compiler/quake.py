@@ -27,17 +27,17 @@ from .pipeline import pipelines
 # CUDA-Q owns frontend normalization and aggregate-to-linear conversion. QLX's
 # one pre-linear transform expands only statically bounded register traversals
 # that block that conversion; clean paper-scale workload loops remain folded.
-# `erase-implicit-output` drops CUDA-Q's compiler-generated `quake.evince`,
-# which otherwise blocks wire conversion.
 CUDAQ_PREPARATION_PREFIX = (
     "builtin.module(canonicalize,cc-loop-normalize,symbol-dce,"
-    "func.func(erase-implicit-output),expand-measurements)")
+    "expand-measurements)")
 QLX_REGISTER_TRAVERSAL_PIPELINE = (
     "expand-quake-register-traversals{maximum-iterations=4096 "
     "maximum-generated-operations=1000000}")
+# Expand aggregate lifetime uses before factoring allocations to enable wire
+# promotion, as in CUDA-Q's shared linear-values pipeline.
 CUDAQ_LINEAR_VALUES_PIPELINE = (
-    "builtin.module(func.func(expand-control-veqs,factor-quantum-alloc,"
-    "cable-rough-in,canonicalize,"
+    "builtin.module(func.func(expand-veq-uses,expand-control-veqs,"
+    "factor-quantum-alloc,cable-rough-in,canonicalize,"
     "memtoreg{classical=false quantum=true},canonicalize,"
     "repair-linear-type,linear-ctrl-form),canonicalize)")
 

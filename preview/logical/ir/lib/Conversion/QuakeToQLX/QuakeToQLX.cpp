@@ -1406,30 +1406,41 @@ private:
           qlx::ReturnOp::create(builder, sourceReturn.getLoc(), results);
           return success();
         })
-        .Default([&](Operation *unsupported) -> LogicalResult {
-          if (unsupported->getName().getStringRef() == "quake.evince") {
-            // Python frontend lifetime logging has no logical effect.  The
-            // scalar form forwards its wire, so retain the current owner for
-            // the result; aggregate logging has no results and can disappear.
-            if (unsupported->getNumResults() == 0)
-              return success();
-            if (unsupported->getNumOperands() != 1 ||
-                unsupported->getNumResults() != 1 ||
-                !isa<cudaq::quake::WireType>(
-                    unsupported->getOperand(0).getType()) ||
-                !isa<cudaq::quake::WireType>(
-                    unsupported->getResult(0).getType()))
-              return unsupported->emitOpError(
-                  "unsupported quantum lifetime logging shape");
-            auto owner = state.wireOwners.find(unsupported->getOperand(0));
-            if (owner == state.wireOwners.end())
-              return unsupported->emitOpError(
-                  "logs a wire with no live P0 owner");
+        .Case<cudaq::quake::EvinceOp>([&](auto evince) -> LogicalResult {
+          // CUDA-Q expands aggregate lifetime logging before wire conversion.
+          // The resulting compiler-generated evince forwards each wire without
+          // changing its live or measured state in the logical program.
+          if (!evince.getCompilerGenerated() ||
+              evince.getArgs().size() != evince.getOuts().size() ||
+              !llvm::all_of(evince.getArgs().getTypes(),
+                            [](Type type) {
+                              return isa<cudaq::quake::WireType>(type);
+                            }) ||
+              !llvm::all_of(evince.getOuts().getTypes(), [](Type type) {
+                return isa<cudaq::quake::WireType>(type);
+              }))
+            return evince.emitOpError(
+                "unsupported quantum lifetime logging shape");
+          for (auto [input, result] :
+               llvm::zip(evince.getArgs(), evince.getOuts())) {
+            auto owner = state.wireOwners.find(input);
+            if (owner == state.wireOwners.end()) {
+              if (!state.measuredWires.erase(input))
+                return evince.emitOpError(
+                    "logs a wire with no live or measured P0 owner");
+              state.measuredWires.insert(result);
+              continue;
+            }
+            if (state.measuredWires.contains(input))
+              return evince.emitOpError(
+                  "wire lifetime state is both live and measured");
             Value logicalOwner = owner->second;
             state.wireOwners.erase(owner);
-            state.wireOwners[unsupported->getResult(0)] = logicalOwner;
-            return success();
+            state.wireOwners[result] = logicalOwner;
           }
+          return success();
+        })
+        .Default([&](Operation *unsupported) -> LogicalResult {
           return unsupported->emitOpError(
               "is outside the typed Quake-to-P0 conversion contract");
         });
