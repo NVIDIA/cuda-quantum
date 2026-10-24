@@ -399,8 +399,8 @@ gpu_roce_bridge_get_gpu_dataplane(cudaq_realtime_bridge_handle_t handle,
   cudaq_status_t status = stage_device_transport_ctx(ctx);
   if (status != CUDAQ_OK)
     return status;
-  // The hooks in gpu_roce_unified_transport.cu are this library's only
-  // relocatable device code.
+  // The transport in gpu_roce_unified_transport.cu and its hooks in
+  // gpu_roce_device_hooks.cu are this library's only relocatable device code.
   status = cudaq_device_code_of_this_binary(&ctx->device_code);
   if (status != CUDAQ_OK)
     return status;
