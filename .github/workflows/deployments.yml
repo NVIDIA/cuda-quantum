@@ -558,7 +558,6 @@ jobs:
       build_docs: ${{ matrix.cuda_version == '12.6' && matrix.platform == fromJson(needs.metadata.outputs.platforms).ids[0] }}
       environment: ghcr-deployment
       run_validation: false # validation runs in the Validation workflow
-      release_version: ${{ needs.metadata.outputs.cudaq_version }}
 
   digest_config:
     name: Aggregate digests
@@ -587,7 +586,7 @@ jobs:
 
   stitch:
     name: Stitch CUDA-Q (CUDA ${{ matrix.cuda }}) images
-    needs: [metadata, digest_config]
+    needs: digest_config
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -726,9 +725,7 @@ jobs:
              [[ "${{ github.ref_name }}" =~ (pull-request/|.*/pr-)([0-9]+) ]]; then
             pr_number="${BASH_REMATCH[2]}"
           fi
-          if [ -n "${{ needs.metadata.outputs.cudaq_version }}" ]; then
-            image_tag+=${{ needs.metadata.outputs.cudaq_version }}
-          elif [ -n "$pr_number" ]; then
+          if [ -n "$pr_number" ]; then
             image_tag+=pr-${pr_number}
           elif ${{ github.ref_type == 'branch' && github.ref_name == 'main' }}; then
             image_tag+="latest"
@@ -973,7 +970,7 @@ jobs:
     uses: ./.github/workflows/ci_macos.yml
     with:
       cache_base: ${{ needs.metadata.outputs.cache_base }}
-      cudaq_version: ${{ needs.metadata.outputs.release_title }}
+      cudaq_version: ${{ needs.metadata.outputs.cudaq_version }}
 
   # Draft release: created first, assets are attached as each build finishes.
   # Uploads use --clobber so failed jobs can be re-run. Publishing is manual.
