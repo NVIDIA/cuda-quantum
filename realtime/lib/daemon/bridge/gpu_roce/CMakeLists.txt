@@ -154,14 +154,16 @@ if (GPU_ROCE_TRANSCEIVER_LIB AND
   add_library(cudaq-realtime-bridge-gpu-roce SHARED
     bridge_impl.cpp
     gpu_roce_wrapper.cpp
-    gpu_roce_unified_transport.cu)
+    gpu_roce_unified_transport.cu
+    gpu_roce_device_hooks.cu)
 
   # LTO-IR next to the SASS, so the run-time link can inline the hooks into
   # the kernel; per source, to stay clear of host LTO.  One entry per
   # architecture: DOCA picks its fences by __CUDA_ARCH__, which is fixed when
   # the IR is compiled.
   foreach(_arch IN LISTS CUDA_TARGET_ARCHS)
-    set_property(SOURCE gpu_roce_unified_transport.cu APPEND PROPERTY
+    set_property(SOURCE gpu_roce_unified_transport.cu gpu_roce_device_hooks.cu
+      APPEND PROPERTY
       COMPILE_OPTIONS "--generate-code=arch=compute_${_arch},code=lto_${_arch}")
   endforeach()
   unset(_arch)

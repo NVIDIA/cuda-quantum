@@ -8,7 +8,9 @@
 
 /// @file gpu_roce_unified_transport.cu
 /// @brief GpuRoceTransceiver/DOCA implementation of the unified dispatch
-/// device data plane (dispatcher/unified_device_transport.cuh).
+/// device data plane (gpu_roce_device_transport.cuh), which the bridge's
+/// adapters in gpu_roce_device_hooks.cu hand to the unified dispatch kernel.
+/// It includes no CUDA-Q realtime header.
 ///
 /// This is the only TU in the unified path that sees DOCA.  The kernel itself
 /// lives in dispatcher/unified_dispatch_kernel.cu, compiled without any DOCA
@@ -23,9 +25,8 @@
 ///         GPU cannot ring the NIC doorbell directly on integrated GPUs.
 ///
 
+#include "gpu_roce_device_transport.cuh"
 #include "cudaq/realtime/daemon/bridge/gpu_roce/gpu_roce_doca_transport_ctx.h"
-#include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
-#include "cudaq/realtime/daemon/dispatcher/unified_device_transport.cuh"
 
 #include <cstdint>
 #include <cuda_runtime.h>
@@ -37,7 +38,7 @@
 //
 // Holds what were kernel locals before the transport split: the derived DOCA
 // handles and the RX/TX cursors.  Built in the kernel's local session storage
-// (see cudaq_dev_enter_kernel), which keeps it in registers once the hooks
+// (see gpu_roce_dev_enter_kernel), which keeps it in registers once the hooks
 // are inlined, so it must stay trivially constructible -- no member
 // initializers, no constructors.  The BlueFlame WQE is the one piece that has
 // to be in shared memory; the session only points at it.
@@ -72,9 +73,8 @@ struct gpu_roce_session {
   struct doca_gpu_dev_verbs_wqe *wqe_sh;
 };
 
-static_assert(sizeof(gpu_roce_session) <= CUDAQ_DEV_TRANSPORT_SESSION_BYTES &&
-                  alignof(gpu_roce_session) <=
-                      CUDAQ_DEV_TRANSPORT_SESSION_ALIGN,
+static_assert(sizeof(gpu_roce_session) <= GPU_ROCE_DEV_SESSION_BYTES &&
+                  alignof(gpu_roce_session) <= GPU_ROCE_DEV_SESSION_ALIGN,
               "gpu_roce_session must fit the kernel's session storage");
 
 /// Spin-poll the CQE owner bit with periodic shutdown_flag checks.  Inlines
@@ -122,8 +122,9 @@ __device__ inline void recycle_receive(gpu_roce_session &s) {
 // Device data-plane hooks
 //==============================================================================
 
-extern "C" __device__ void *cudaq_dev_enter_kernel(void *storage, void *ctx,
-                                                   volatile int *shutdown_flag) {
+extern "C" __device__ void *
+gpu_roce_dev_enter_kernel(void *storage, void *ctx,
+                          volatile int *shutdown_flag) {
   // Statically allocated per block.  Declaring it here rather than in the
   // kernel is what keeps doca_gpu_dev_verbs_wqe out of the core TU.
   __shared__ alignas(16) struct doca_gpu_dev_verbs_wqe wqe_sh;
@@ -171,8 +172,8 @@ extern "C" __device__ void *cudaq_dev_enter_kernel(void *storage, void *ctx,
   return &s;
 }
 
-extern "C" __device__ cudaq_rx_dev_status_t
-cudaq_dev_rx_poll(void *session, void **out_request, void **out_response) {
+extern "C" __device__ gpu_roce_dev_rx_status_t
+gpu_roce_dev_rx_poll(void *session, void **out_request, void **out_response) {
   auto &s = *static_cast<gpu_roce_session *>(session);
 
   while (true) {
@@ -180,7 +181,7 @@ cudaq_dev_rx_poll(void *session, void **out_request, void **out_response) {
     // Only reachable once the shutdown flag is set; poll_receive spins
     // otherwise.
     if (stride == UINT32_MAX)
-      return CUDAQ_RX_DEV_SHUTDOWN;
+      return GPU_ROCE_DEV_RX_SHUTDOWN;
 
     // An out-of-range stride addresses no slot, so there is nothing to
     // dispatch: recycle the receive WQE and keep waiting rather than surface
@@ -202,11 +203,12 @@ cudaq_dev_rx_poll(void *session, void **out_request, void **out_response) {
     __builtin_assume(__isGlobal(response));
     *out_request = request;
     *out_response = response;
-    return CUDAQ_RX_DEV_READY;
+    return GPU_ROCE_DEV_RX_READY;
   }
 }
 
-extern "C" __device__ void cudaq_dev_tx_publish(void *session, void *response) {
+extern "C" __device__ void gpu_roce_dev_tx_publish(void *session,
+                                                   void *response) {
   auto &s = *static_cast<gpu_roce_session *>(session);
 
   // The send descriptor wants the response's offset into the TX ring's
