@@ -27,6 +27,8 @@
 #include "llvm/Support/Debug.h"
 #include "mlir/IR/Dominance.h"
 #include "mlir/IR/IRMapping.h"
+#include "mlir/IR/PatternMatch.h"
+#include "mlir/Transforms/CSE.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
 #include "mlir/Transforms/Passes.h"
 
@@ -1479,7 +1481,8 @@ public:
       if (variant.needsControlVariant) {
         if (failed(sanityCheck(func)))
           return failure();
-        createControlVariantOf(func, newApplyOps);
+        if (failed(createControlVariantOf(func, newApplyOps)))
+          return failure();
       }
       if (variant.needsAdjointVariant) {
         auto fnName = func.getName().str();
@@ -1538,7 +1541,148 @@ public:
     return controlNotNeeded;
   }
 
-  func::FuncOp
+  //===--------------------------------------------------------------------===//
+  // Measurements inside control variants
+  //
+  // A measurement cannot take a control and is left unconditioned. For the
+  // controlled kernel to be correct, everything the measurement idiom needs to
+  // execute identically in both control branches must stay unconditioned as
+  // well -- the measurement itself and the outcome-conditioned reset of the
+  // measured qubit -- while outcome-conditioned feedforward on other qubits
+  // is controlled as usual, giving (outcome AND control). Two conditions make
+  // that sound: the measured qubit is allocated by the kernel (so with the
+  // control off, every gate that would have written it being controlled, it is
+  // still |0>), and the measurement is in the X or Y basis (so the outcome of
+  // a |0> qubit is a fair coin, as it is when the control is on, and the
+  // outcome distribution does not reveal the control; a Z-basis outcome of |0>
+  // is deterministic and would). Anything the matcher does not recognize
+  // exactly is rejected.
+  //===--------------------------------------------------------------------===//
+
+  /// True iff \p ref is a qubit the kernel allocates itself: a `quake.alloca`
+  /// of a reference, or a constant-index `quake.extract_ref` from a locally
+  /// allocated register.
+  static bool isLocallyAllocated(Value ref) {
+    if (auto ext = ref.getDefiningOp<cudaq::quake::ExtractRefOp>()) {
+      if (!ext.hasConstantIndex())
+        return false;
+      Value veq = ext.getVeq();
+      while (auto relax = veq.getDefiningOp<cudaq::quake::RelaxSizeOp>())
+        veq = relax.getInputVec();
+      return isa_and_nonnull<cudaq::quake::AllocaOp>(veq.getDefiningOp());
+    }
+    return isa_and_nonnull<cudaq::quake::AllocaOp>(ref.getDefiningOp());
+  }
+
+  /// True iff \p block is straight-line code of \p func: every region
+  /// enclosing it, up to the function body, belongs to a `cc.scope` (no
+  /// conditional or loop).
+  static bool isStraightLineBlock(Block *block, func::FuncOp func) {
+    for (Operation *parent = block->getParentOp(); parent != func;
+         parent = parent->getParentOp())
+      if (!isa<cudaq::cc::ScopeOp>(parent))
+        return false;
+    return true;
+  }
+
+  /// Analyze the measurements of \p func (the clone about to be controlled).
+  /// Returns the ops that must not receive the control: outcome-conditioned
+  /// gates whose only target is the measured qubit (its reset). Returns
+  /// `nullopt`, with \p reason set, for any shape not recognized exactly.
+  std::optional<DenseSet<Operation *>>
+  analyzeMeasurementIdioms(func::FuncOp func, std::string &reason) {
+    // `quake.extract_ref` is pure, so merging duplicates first makes "the same
+    // qubit" plain SSA identity below.
+    {
+      IRRewriter rewriter(func.getContext());
+      DominanceInfo domInfo(func);
+      mlir::eliminateCommonSubExpressions(rewriter, domInfo, func);
+    }
+    DenseSet<Operation *> exempt;
+    SmallVector<cudaq::quake::MeasurementInterface> measurements;
+    func.walk([&](cudaq::quake::MeasurementInterface meas) {
+      measurements.push_back(meas);
+    });
+    for (auto meas : measurements) {
+      Operation *m = meas.getOperation();
+      if (!isa<cudaq::quake::MxOp, cudaq::quake::MyOp>(m)) {
+        reason = "a Z-basis measurement, whose outcome is deterministic when "
+                 "the control is off and a coin when it is on, so it would "
+                 "reveal the control; measure the scratch qubit in the X or Y "
+                 "basis (`mx`/`my`)";
+        return std::nullopt;
+      }
+      if (!isStraightLineBlock(m->getBlock(), func)) {
+        reason = "a measurement inside a conditional or a loop";
+        return std::nullopt;
+      }
+      auto targets = meas.getTargets();
+      if (targets.size() != 1 ||
+          !isa<cudaq::quake::RefType>(targets[0].getType())) {
+        reason = "a measurement of more than one qubit";
+        return std::nullopt;
+      }
+      Value qubit = targets[0];
+      if (auto ext = qubit.getDefiningOp<cudaq::quake::ExtractRefOp>();
+          ext && !ext.hasConstantIndex()) {
+        reason = "a measurement of a qubit selected by a non-constant index";
+        return std::nullopt;
+      }
+      if (!isLocallyAllocated(qubit)) {
+        reason = "a measurement of a qubit the kernel does not allocate itself "
+                 "(its state when the control is off is unknown, and the "
+                 "measurement would disturb it)";
+        return std::nullopt;
+      }
+      if (m->getNumResults() != 1) {
+        reason = "a measurement with value-semantics wire results";
+        return std::nullopt;
+      }
+      for (Operation *user : m->getResult(0).getUsers()) {
+        auto discr = dyn_cast<cudaq::quake::DiscriminateOp>(user);
+        if (!discr) {
+          reason = "a measurement result used other than through "
+                   "quake.discriminate";
+          return std::nullopt;
+        }
+        for (Operation *bitUser : discr->getUsers()) {
+          auto ifOp = dyn_cast<cudaq::cc::IfOp>(bitUser);
+          if (!ifOp || ifOp.getCondition() != discr.getResult() ||
+              ifOp->getBlock() != m->getBlock()) {
+            reason = "a measurement outcome used other than as the condition "
+                     "of a cc.if in the measurement's own block";
+            return std::nullopt;
+          }
+          for (Region *region : {&ifOp.getThenRegion(), &ifOp.getElseRegion()})
+            for (Block &block : *region)
+              for (Operation &op : block) {
+                if (op.getNumRegions() || isa<CallOpInterface>(op) ||
+                    isa<cudaq::quake::MeasurementInterface>(op)) {
+                  reason = "nested control flow, a call, or a measurement "
+                           "inside an outcome-conditioned block";
+                  return std::nullopt;
+                }
+                if (!op.hasTrait<cudaq::QuantumGate>())
+                  continue;
+                auto gate = dyn_cast<cudaq::quake::OperatorInterface>(&op);
+                if (gate && gate.getControls().empty() &&
+                    gate.getTargets().size() == 1 &&
+                    gate.getTargets()[0] == qubit)
+                  exempt.insert(&op);
+              }
+        }
+      }
+    }
+    return exempt;
+  }
+
+  /// Create the controlled variant of \p func. A kernel that measures is
+  /// supported when its measurements follow the measured-uncomputation
+  /// idiom (see analyzeMeasurementIdioms); any other measuring kernel is
+  /// rejected with a diagnostic (unless `legacy-classical`), because the
+  /// gate-by-gate construction would condition the measurement basis and
+  /// the outcome-conditioned reset on the control.
+  FailureOr<func::FuncOp>
   createControlVariantOf(func::FuncOp func,
                          SmallVectorImpl<cudaq::quake::ApplyOp> &newApplyOps) {
     ModuleOp module = getOperation();
@@ -1571,12 +1715,36 @@ public:
     auto newFunc = cudaq::opt::factory::createFunction(
         funcName, funcTy.getResults(), inTys, module);
     newFunc.setPrivate();
+    // Diagnostics on the variant (e.g. from a later adjoint of it) point at
+    // the kernel it was generated from.
+    newFunc->setLoc(loc);
     if (auto atomicRegion =
             func->getAttr(cudaq::cc::atomicQuantumRegionAttrName))
       newFunc->setAttr(cudaq::cc::atomicQuantumRegionAttrName, atomicRegion);
     IRMapping mapping;
     func.getBody().cloneInto(&newFunc.getBody(), mapping);
     auto controlNotNeeded = computeActionAnalysis(newFunc);
+    if (cudaq::opt::hasMeasureOp(newFunc)) {
+      std::string reason;
+      auto exempt = analyzeMeasurementIdioms(newFunc, reason);
+      if (!exempt) {
+        newFunc.erase();
+        LLVM_DEBUG(llvm::dbgs() << "cannot make control variant of " +
+                                       funcName + ": " + reason + '\n');
+        if (legacyClassical)
+          return failure();
+        return func.emitOpError(
+            "auto-generation of controlled " + funcName + " failed. " +
+            func.getName().str() + " contains measurements and " + reason +
+            "; a gate-by-gate control variant would be incorrect. Supported "
+            "shape: allocate the scratch qubit in the kernel, measure it in "
+            "the X or Y basis (`mx`/`my`), and use the outcome only as a "
+            "`cc.if` condition whose body holds gates and a reset of the "
+            "measured qubit. Otherwise construct the controlled kernel by "
+            "hand.");
+      }
+      controlNotNeeded.insert(exempt->begin(), exempt->end());
+    }
     // Only the dynamic-callable-self-arg case needs arg0's type rebuilt (to
     // the freshly-built callable type in inTys[1], reflecting the prepended
     // control veq in its signature); the plain case leaves arg0 as-is, and
@@ -1588,6 +1756,10 @@ public:
     newFunc.walk([&](Operation *op) {
       OpBuilder builder(op);
       if (op->hasTrait<cudaq::QuantumGate>()) {
+        // The outcome-conditioned reset of a measured qubit stays
+        // unconditioned.
+        if (controlNotNeeded.count(op))
+          return;
         // If op is in a λ expr where the control is not needed, then skip it.
         if (auto parent = op->getParentOfType<cudaq::cc::CreateLambdaOp>())
           if (controlNotNeeded.count(parent))
@@ -2107,8 +2279,12 @@ public:
     auto funcName = func.getName().str();
     auto ctrlFuncName = getCtrlVariantFunctionName(funcName);
     auto ctrlFunc = module.lookupSymbol<func::FuncOp>(ctrlFuncName);
-    if (!ctrlFunc)
-      ctrlFunc = createControlVariantOf(func, newApplyOps);
+    if (!ctrlFunc) {
+      auto created = createControlVariantOf(func, newApplyOps);
+      if (failed(created))
+        return failure();
+      ctrlFunc = *created;
+    }
 
     auto newFuncName = getAdjCtrlVariantFunctionName(funcName);
     return createAdjointVariantOf(ctrlFunc, std::move(newFuncName),

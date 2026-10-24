@@ -962,7 +962,8 @@ void __quantum__qis__pair_detectors(Result **prev_results,
 // user and about the kernel when executed.
 void __quantum__qis__trap(std::int64_t code) {
   if (code == 0) {
-    CUDAQ_ERROR("could not autogenerate the adjoint of a kernel");
+    CUDAQ_ERROR("could not autogenerate the adjoint or controlled variant of a "
+                "kernel (see the compiler diagnostics above)");
   } else if (code == 1) {
     CUDAQ_ERROR("unsupported return type from entry-point kernel");
   } else if (code == 2) {
