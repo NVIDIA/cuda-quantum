@@ -241,14 +241,16 @@ class CliffordTBackend(Backend):
 
     _trace_tag = "clifford_t"
 
-    def __init__(self, *, precision=1.0e-4, next_backend):
+    def __init__(self, *, precision=1.0e-4, synthesizer=None, next_backend):
         # Let the gate-set own precision validation so this backend and the
         # public ``cudaq.logical.compiler.synthesize`` entry point have identical rules.
         from ..compiler.gate_sets import clifford_t
 
+        self.synthesizer = synthesizer
         self.precision = dict(
             clifford_t.pipeline(
-                precision=precision).passes[0].options)["precision"]
+                precision=precision,
+                synthesizer=synthesizer).passes[0].options)["precision"]
         super().__init__(LoweringSpec((),
                                       None,
                                       accepted_stages=("p0",),
@@ -264,17 +266,23 @@ class CliffordTBackend(Backend):
         if build.profile != "p0":
             raise ValueError("CliffordTBackend accepts only P0 Builds, "
                              f"got {build.profile!r}")
-        synthesis = build.synthesis
-        if synthesis is not None and synthesis.gate_set == "clifford_t":
-            return build
-
         from ..compiler.gate_sets import clifford_t
         from ..compiler.synthesize import synthesize
 
-        return synthesize(build, gate_set=clifford_t, precision=self.precision)
+        return synthesize(build,
+                          gate_set=clifford_t,
+                          precision=self.precision,
+                          synthesizer=self.synthesizer)
 
     def stack_metadata(self):
-        return (("gate set", "H/S/T/CX"), ("precision", f"{self.precision:g}"))
+        entries = (("gate set", "H/S/T/CX"), ("precision",
+                                              f"{self.precision:g}"))
+        if self.synthesizer is not None:
+            from ..compiler.synthesizers import _ensure_registered, _synthesizer_label
+            entries += (("synthesizer",
+                         _synthesizer_label(_ensure_registered(
+                             self.synthesizer))),)
+        return entries
 
 
 def _profile_rank(build):
@@ -943,13 +951,15 @@ estimator = Target.from_backend(
 )
 
 
-def clifford_t_target(*, precision=1.0e-4):
+def clifford_t_target(*, precision=1.0e-4, synthesizer=None):
     """Build an estimation-only target that first legalizes to Clifford+T."""
 
     return Target.from_backend(
         "clifford_t",
-        ProgramBackend(next_backend=CliffordTBackend(
-            precision=precision, next_backend=TerminalBackend())),
+        ProgramBackend(
+            next_backend=CliffordTBackend(precision=precision,
+                                          synthesizer=synthesizer,
+                                          next_backend=TerminalBackend())),
     )
 
 

@@ -76,6 +76,7 @@ __all__ = [
     "rx",
     "ry",
     "rz",
+    "u3",
     "while_",
     "xor",
     "x_if",

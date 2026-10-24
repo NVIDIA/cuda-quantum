@@ -25,6 +25,16 @@
 
 void qlxRegisterAllPasses(void) { qlx::registerAllQLXPasses(); }
 
+MlirLogicalResult qlxSynthesizeRotationsModule(MlirModule module,
+                                               double precision,
+                                               MlirStringRef synthesizer) {
+  return mlir::succeeded(qlx::synthesizeRotations(
+             unwrap(module), precision,
+             llvm::StringRef(synthesizer.data, synthesizer.length)))
+             ? mlirLogicalResultSuccess()
+             : mlirLogicalResultFailure();
+}
+
 MlirLogicalResult qlxVerifyCliffordTModule(MlirModule module) {
   return mlir::succeeded(qlx::verifyCliffordT(unwrap(module)))
              ? mlirLogicalResultSuccess()

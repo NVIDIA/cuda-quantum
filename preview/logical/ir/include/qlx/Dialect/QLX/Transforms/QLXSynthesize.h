@@ -19,8 +19,9 @@ namespace qlx {
 /// parity ladder, and the native Ross-Selinger synthesizer. Each rotation uses
 /// its authored `precision` when present, falling back to the call-wide
 /// precision. Dynamic rotations fail closed.
-mlir::LogicalResult synthesizeRotations(mlir::ModuleOp module,
-                                        double precision);
+mlir::LogicalResult
+synthesizeRotations(mlir::ModuleOp module, double precision,
+                    llvm::StringRef synthesizer = "gridsynth");
 
 /// Verify that every remaining `qlx.apply` is in the positive H/S/T/CX basis
 /// (or is the semantic no-op `idle`). Emits an operation diagnostic on failure.

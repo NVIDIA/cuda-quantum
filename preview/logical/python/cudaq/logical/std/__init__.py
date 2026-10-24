@@ -152,6 +152,7 @@ mpp = LogicalInstrumentRef("mpp", 2, 1)
 # Parameterized Pauli-product rotations use one typed objective name; masks,
 # signs, and angles remain exact action-site specialization parameters.
 pauli_rotation = LogicalActionRef("pauli_rotation", 2)
+u3 = LogicalActionRef("u3", 1)
 
 # Documentation-friendly names are aliases, not a second objective family.
 H, S, SDG, X, Y, Z, T, TDG = h, s, sdg, x, y, z, t, tdg

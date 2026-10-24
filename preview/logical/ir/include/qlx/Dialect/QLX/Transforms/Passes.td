@@ -60,7 +60,9 @@ def QLXSynthesizeRotations
     Option<"precision", "precision", "double",
            /*default=*/"1.0e-10",
            "Default off-lattice rotation synthesis precision; must be "
-           "finite and in (0, 1)">
+           "finite and in (0, 1)">,
+    Option<"synthesizer", "synthesizer", "std::string",
+           /*default=*/"\"gridsynth\"", "Registered rotation synthesizer">
   ];
   let dependentDialects = ["::mlir::arith::ArithDialect"];
 }

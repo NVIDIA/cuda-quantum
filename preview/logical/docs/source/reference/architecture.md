@@ -127,7 +127,7 @@ fails verification instead of guessing:
 | `placed()`                | `qlx-verify-p0`, `qlx-place`, `qlx-to-lvm`, `lvm-verify-p1`                                                                           | verified P1 + placement witness              |
 | `qec()`                   | `lvm-select`, `lvm-apply-qec-lowerings`, `lvm-to-fabric`, `fabric-materialize-default-encodings`, `fabric-verify-generated-protocols` | verified P2 (realization + protocol network) |
 | `physical()`              | `fabric-derive-patch-graph`, `fabric-map-patches`, `fabric-to-phys`, `phys-route`, `phys-legalize-native-actions`, `phys-verify-p3`     | verified P3 physical event graph             |
-| `clifford_t(precision=…)` | `qlx-synthesize-rotations`, `qlx-verify-clifford-t`                                                                                   | P0 legalized to positive H/S/T/CX            |
+| `clifford_t(precision=…, synthesizer=…)` | `qlx-synthesize-rotations`, `qlx-verify-clifford-t`                                                                                   | P0 legalized to positive H/S/T/CX            |
 | `pbc()`                   | `qlx-to-pbc`, `qlx-verify-pbc`, `qlx-verify-p0`                                                                                       | P0 in Pauli-based-computation form           |
 
 Definition-level recipes verify the other facets: `qec_definitions()`

@@ -118,7 +118,7 @@ def logical_counts(build) -> LogicalProfile:
                       _symbol_attribute(operation, "action"))
             actions[action] += multiplier
             depth += multiplier
-            if any(token in action for token in ("_t", "ccz", "ccx")):
+            if any(token in action for token in ("_t", "ccz", "ccx", "_u3")):
                 synthesis[action] += multiplier
         elif name == "qlx.instrument":
             instrument_attr = str(operation.attributes["instrument"])

@@ -2154,6 +2154,7 @@ class SynthesisSummary:
     s_count: int
     t_count: int
     cx_count: int
+    synthesizer: str = "gridsynth"
 
     @property
     def clifford_count(self) -> int:
@@ -2754,6 +2755,7 @@ class Build:
             s_count=counts["s"],
             t_count=counts["t"],
             cx_count=counts["cx"],
+            synthesizer=str(options.get("synthesizer_producer", "gridsynth")),
         )
         self._cache["synthesis"] = summary
         return summary
