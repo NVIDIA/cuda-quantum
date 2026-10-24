@@ -237,6 +237,29 @@ def test_import_cudaq_accepts_a_multicontrolled_gate():
     assert p0.count("qlx.measure <Z>") == 3
 
 
+def test_import_cudaq_accepts_a_callable_kernel_argument():
+    from typing import Callable
+
+    import cudaq
+    import cudaq.logical as cql
+
+    @cudaq.kernel
+    def layer(q: cudaq.qview):
+        h(q[0])
+
+    @cudaq.kernel
+    def circuit(operation: Callable[[cudaq.qview], None]):
+        q = cudaq.qvector(1)
+        operation(q)
+        mz(q)
+
+    source_p0 = cql.compiler.import_cudaq(circuit, layer)
+    assert source_p0 is not None
+    p0 = source_p0.to_mlir()
+    assert "#qlx.action<h>" in p0
+    assert "qlx.measure <Z>" in p0
+
+
 def test_logical_estimate_is_invariant_under_cached_view_mutation():
     import cudaq.logical as cql
     import cudaq.mlir.ir as mlir_ir

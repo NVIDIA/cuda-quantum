@@ -553,14 +553,21 @@ void cudaq::packArgs(
                   delete static_cast<runtime::CallableClosureArgument *>(that);
                 });
           } else {
-            nanobind::object decorator = arg.attr("decorator");
+            nanobind::object decorator =
+                nanobind::hasattr(arg, "decorator") ? arg.attr("decorator") : arg;
             auto kernelName =
                 nanobind::cast<std::string>(decorator.attr("uniqName"));
             auto kernelModule =
                 unwrap(nanobind::cast<MlirModule>(decorator.attr("qkeModule")));
             auto calledFuncOp = kernelModule.lookupSymbol<func::FuncOp>(
                 cudaq::runtime::cudaqGenPrefixName + kernelName);
-            nanobind::list arguments = arg.attr("resolved");
+            nanobind::list arguments =
+                nanobind::hasattr(arg, "resolved")
+                    ? nanobind::cast<nanobind::list>(arg.attr("resolved"))
+                    : (nanobind::hasattr(decorator, "resolve_captured_arguments")
+                           ? nanobind::cast<nanobind::list>(
+                                 decorator.attr("resolve_captured_arguments")())
+                           : nanobind::list());
             auto startLiftedArgs = [&]() -> std::optional<unsigned> {
               if (!arguments.empty())
                 return nanobind::cast<unsigned>(

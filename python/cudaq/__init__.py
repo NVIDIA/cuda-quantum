@@ -72,7 +72,10 @@ from ._packages import get_library_path
 
 # Set the multiprocessing start method to `forkserver` if not already set
 if multiprocessing.get_start_method(allow_none=True) is None:
-    multiprocessing.set_start_method('forkserver')
+    try:
+        multiprocessing.set_start_method('forkserver')
+    except (ValueError, RuntimeError):
+        pass
 
 
 # ============================================================================ #
@@ -454,6 +457,8 @@ orca = getattr(cudaq_runtime, "orca", None)
 
 
 def synthesize(kernel, *args):
+    if hasattr(kernel, "process_call_arguments"):
+        args = kernel.process_call_arguments(*args, allow_no_args=True)
     return PyKernelDecorator(None,
                              module=cudaq_runtime.synthesize(kernel, *args),
                              kernelName=kernel.name,
