@@ -39,6 +39,11 @@ on:
         type: string
         default: ''
         description: Draft release tag to attach the installer to.
+      keep_installer:
+        required: false
+        type: boolean
+        default: false
+        description: Keep the installer artifact after the run for Validation.
     secrets:
       DOCKERHUB_USERNAME:
         required: true
@@ -661,6 +666,7 @@ jobs:
 
     steps:
       - name: Delete artifacts
+        if: ${{ !inputs.keep_installer }}
         uses: actions/github-script@v9
         with:
           # A 500 from the artifacts API used to fail the whole job.

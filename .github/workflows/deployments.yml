@@ -939,6 +939,7 @@ jobs:
       run_validation: false # validation runs in the Validation workflow
       release_version: ${{ needs.metadata.outputs.cudaq_version }}
       release_tag: ${{ needs.release_draft.outputs.release_tag }}
+      keep_installer: true # Validation downloads it
 
   realtime_binaries:
     name: Create CUDA Quantum Realtime installer
