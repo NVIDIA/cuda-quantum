@@ -41,6 +41,11 @@ on:
         type: boolean
         default: true
         description: Run image validation. Deployments disables this; validation runs in the Validation workflow.
+      release_version:
+        required: false
+        type: string
+        default: ''
+        description: Version for the image tag instead of the ref's.
     secrets:
       NGC_CREDENTIALS:
         description: 'Credentials for deployments to NGC.'
@@ -582,7 +587,9 @@ jobs:
              [[ "${{ github.ref_name }}" =~ (pull-request/|.*/pr-)([0-9]+) ]]; then
             pr_number="${BASH_REMATCH[2]}"
           fi
-          if [ -n "$pr_number" ]; then
+          if [ -n "${{ inputs.release_version }}" ]; then
+            image_tag+=${{ inputs.release_version }}
+          elif [ -n "$pr_number" ]; then
             image_tag+=pr-${pr_number}
           elif ${{ github.ref_type == 'branch' && github.ref_name == 'main' }}; then
             image_tag+=latest

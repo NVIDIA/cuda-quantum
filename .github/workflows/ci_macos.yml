@@ -326,7 +326,8 @@ jobs:
           path: |
             dist/cuda_quantum*.whl
             dist/cudaq_core-*.whl
-          retention-days: 3
+          # Kept longer for release runs (Validation, draft release).
+          retention-days: ${{ inputs.cudaq_version != '' && 14 || 3 }}
           if-no-files-found: error
 
   # ============================================================================
@@ -379,7 +380,7 @@ jobs:
         run: |
           # Validates wheel: core tests, examples, snippets, backends.
           # GPU/remote targets are skipped (no CUDA on macOS runners).
-          # TODO: When adding macOS to publishing.yml, align the validation
+          # TODO: When adding macOS to validation.yml, align the validation
           # approach with python_wheels.yml (which uses
           # explicit find exclusions for platform/backends/dynamics paths,
           # and does not use validate_pycudaq.sh for snippets/examples
@@ -534,7 +535,8 @@ jobs:
           # Consistent with Linux: cudaq-<platform>-<config>-installer-<run_id>
           name: cudaq-arm64-darwin-installer-${{ github.run_id }}
           path: out/install_cuda_quantum*
-          retention-days: 3
+          # Kept longer for release runs (Validation, draft release).
+          retention-days: ${{ inputs.cudaq_version != '' && 14 || 3 }}
           if-no-files-found: error
 
   # ============================================================================
