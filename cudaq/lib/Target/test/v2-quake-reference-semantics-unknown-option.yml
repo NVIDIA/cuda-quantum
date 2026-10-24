@@ -10,7 +10,7 @@
 
 # Profile options beyond the declared set are rejected.
 
-version: 2
+version: 2-alpha
 name: v2-quake-reference-semantics-unknown-option
 description: "Unknown profile option rejected"
 config:
