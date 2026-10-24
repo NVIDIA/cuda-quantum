@@ -90,7 +90,8 @@ def kernel(state: cudaq.State):
     q = cudaq.qvector(state)
 
 
-kernel(state_to_pass)
+state = cudaq.get_state(kernel, state_to_pass)
+print(state)
 # [End `PassingState`]
 
 
@@ -222,5 +223,6 @@ def kernel(thetas: list[float]):
 
 
 thetas = [.024, .543]
-kernel(thetas)
+state = cudaq.get_state(kernel, thetas)
+print(state)
 # [End `ParameterizedKernels`]
