@@ -243,6 +243,19 @@ def test_estimate_forwards_the_choice_function():
     assert kwargs["choice"]() is True
 
 
+def test_estimate_forwards_save_temps_only_when_requested(tmp_path):
+    endpoint = DemoEndpoint()
+    set_custom_target(endpoint)
+
+    cudaq.estimate(kernel, 1, [1, 2, 3])
+    cudaq.estimate(kernel, 1, [1, 2, 3], save_temps=tmp_path)
+
+    _, _, without = endpoint.calls[0]
+    _, _, with_save_temps = endpoint.calls[1]
+    assert "save_temps" not in without
+    assert with_save_temps["save_temps"] == str(tmp_path)
+
+
 def test_estimate_resources_launch():
     endpoint = DemoEndpoint()
     set_custom_target(endpoint)

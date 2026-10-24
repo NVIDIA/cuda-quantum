@@ -22,8 +22,8 @@ using namespace cudaq;
 
 static estimate_result
 estimate_impl(const std::string &kernelName, MlirModule kernelMod,
-              std::optional<std::function<bool()>> choice,
-              nanobind::args args) {
+              std::optional<std::function<bool()>> choice, nanobind::args args,
+              std::optional<std::string> saveTemps = std::nullopt) {
   auto &platform = cudaq::get_platform();
   args = simplifiedValidateInputArguments(args);
 
@@ -45,6 +45,7 @@ estimate_impl(const std::string &kernelName, MlirModule kernelMod,
   estimate_policy policy{
       .kernelName = kernelName,
       .choice = *std::move(choice),
+      .saveTemps = saveTemps.value_or(""),
   };
   return detail::launch(policy, 0, ctx, platform, [&]() {
     // Pass nullptr for the compiled slot to disable JIT-artifact caching:
@@ -66,7 +67,9 @@ estimate_resources_impl(const std::string &kernelName, MlirModule kernelMod,
 void cudaq::bindCountResources(nanobind::module_ &mod) {
   mod.def("estimate_impl", estimate_impl, nanobind::arg("kernel_name"),
           nanobind::arg("kernel_mod"), nanobind::arg("choice").none(),
-          nanobind::arg("args"), "See python documentation for estimate.");
+          nanobind::arg("args"),
+          nanobind::arg("save_temps").none() = nanobind::none(),
+          "See python documentation for estimate.");
   mod.def("estimate_resources_impl", estimate_resources_impl,
           nanobind::arg("kernel_name"), nanobind::arg("kernel_mod"),
           nanobind::arg("choice").none(), nanobind::arg("args"),

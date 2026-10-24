@@ -218,6 +218,9 @@ struct PyProtocol<estimate_policy> {
       kw["choice"] = nanobind::cast(policy.choice);
     else
       kw["choice"] = nanobind::none();
+    // Only passed when requested, so that existing endpoints are unaffected.
+    if (!policy.saveTemps.empty())
+      kw["save_temps"] = policy.saveTemps;
     return kw;
   }
 };

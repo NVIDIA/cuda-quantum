@@ -46,7 +46,7 @@ from . import (  # noqa: E402
     errors, estimate, experiments, gadgets, ops, programs, protocols, qec,
     stages, targets, types,
 )
-from .compiler import compile, materialize  # noqa: E402
+from .compiler import compile, load_build, materialize  # noqa: E402
 from .programs import (
     abort_on,
     condition_results,
@@ -103,6 +103,7 @@ __all__ = [
     "condition_results",
     "abort_on",
     "compile",
+    "load_build",
     "materialize",
     "estimate",
     "emit",

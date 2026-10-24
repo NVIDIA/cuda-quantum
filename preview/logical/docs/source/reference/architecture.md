@@ -181,7 +181,9 @@ You inspect builds through typed APIs, not text scraping: `build.stage`,
 `build.placement`, `build.definitions`, `build.calls(symbol)`,
 `build.protocol_for(objective)`, `build.status`, `build.synthesis`,
 `build.patch_graph`, `build.to_mlir()`, `build.content_sha256`, and
-`build.serialize()` / `Build.replay(...)`. Estimate results are typed the same
+`build.serialize()` / `Build.replay(...)`. `cudaq.estimate(kernel,
+save_temps=directory)` saves the builds of a target's stages, and
+`cudaq.logical.load_build` replays them. Estimate results are typed the same
 way: `LogicalEstimate`, `FabricCounts`, `FabricEstimate`, and
 `ScheduleEstimate` expose structured results from the four estimation tiers.
 
@@ -222,6 +224,6 @@ are ordinary Python modules, not global registries.
 ## Where to go next
 
 - The [core concepts](../getting-started/concepts.md) explain the stage,
-  ownership, and evidence model this architecture implements.
+  ownership, and build model this architecture implements.
 - The [use cases](../use-cases/define-a-code.md) apply the Python interface to
   codes, placement, synthesis, estimation, and emission.

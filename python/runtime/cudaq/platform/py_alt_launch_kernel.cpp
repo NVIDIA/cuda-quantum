@@ -700,14 +700,32 @@ static std::size_t digestLogValue(const std::array<uint8_t, 32> &digest) {
   return value;
 }
 
+/// The properties of a runtime endpoint that determine how a kernel is compiled
+/// for it.
+struct EndpointTraits {
+  bool isRemote;
+  bool isEmulated;
+  bool supportsJit;
+
+  /// The traits of the platform currently installed.
+  static EndpointTraits ofCurrentPlatform() {
+    return {cudaq::is_remote_platform(), cudaq::is_emulated_platform(),
+            cudaq::platform_supports_jit()};
+  }
+};
+
 /// Construct the compiler config (`CompileTarget` and `CompileOptions`) from
-/// the current execution context.
+/// the current execution context. By default, the target and the endpoint
+/// traits are those of the current platform.
 static std::pair<cudaq::CompileTarget, cudaq::CompileOptions>
-getCompileConfig(std::optional<cudaq::CompileTarget> target = std::nullopt) {
+getCompileConfig(std::optional<cudaq::CompileTarget> target = std::nullopt,
+                 std::optional<EndpointTraits> traits = std::nullopt) {
   auto *ctx = cudaq::getExecutionContext();
   cudaq::CompileOptions options;
   if (!target)
     target = cudaq::get_compile_target();
+  if (!traits)
+    traits = EndpointTraits::ofCurrentPlatform();
   if (!ctx) {
     options = cudaq::get_compile_options(cudaq::other_policies{});
   } else {
@@ -721,13 +739,11 @@ getCompileConfig(std::optional<cudaq::CompileTarget> target = std::nullopt) {
     });
   }
 
-  const bool isEmulated = cudaq::is_emulated_platform();
-  const bool isRemote = cudaq::is_remote_platform();
-  options.emulate = isEmulated;
-  options.emitJit |= !isRemote;
-  if (!cudaq::platform_supports_jit())
+  options.emulate = traits->isEmulated;
+  options.emitJit |= !traits->isRemote;
+  if (!traits->supportsJit)
     options.emitJit = false;
-  options.boolVecBitPacked = !isRemote && !isEmulated;
+  options.boolVecBitPacked = !traits->isRemote && !traits->isEmulated;
 
   return {*std::move(target), std::move(options)};
 }
@@ -735,8 +751,10 @@ getCompileConfig(std::optional<cudaq::CompileTarget> target = std::nullopt) {
 static cudaq::CompiledModule
 compileModuleImpl(const std::string &name, ModuleOp mod,
                   const std::vector<void *> &rawArgs, bool isEntryPoint,
-                  std::optional<cudaq::CompileTarget> target = std::nullopt) {
-  auto [compileTarget, options] = getCompileConfig(std::move(target));
+                  std::optional<cudaq::CompileTarget> target = std::nullopt,
+                  std::optional<EndpointTraits> traits = std::nullopt) {
+  auto [compileTarget, options] =
+      getCompileConfig(std::move(target), std::move(traits));
   cudaq::SourceModule src{name, mod.getAsOpaquePointer()};
   return cudaq_internal::compiler::compileModule(std::move(compileTarget),
                                                  std::move(options), src,
@@ -1134,6 +1152,39 @@ marshal_and_retain_module(const std::string &name, MlirModule module,
   return compiled;
 }
 
+// Compile a kernel module for a target without launching it. A null `target`
+// compiles for the current platform. Otherwise the kernel is compiled with
+// `target`, for an endpoint with the given traits. An unspecified trait is
+// taken from the current platform.
+static cudaq::CompiledModule
+compile_module(const std::string &name, MlirModule module, bool isEntryPoint,
+               std::optional<cudaq::CompileTarget> target,
+               std::optional<bool> isRemote, std::optional<bool> isEmulated,
+               std::optional<bool> supportsJit, nanobind::tuple runtimeArgs) {
+  ScopedTraceWithContext("compile_module", name);
+
+  auto kernelFunc = cudaq::getKernelFuncOp(module, name);
+  auto mod = unwrap(module);
+  Type retTy = cudaq::runtime::getReturnType(kernelFunc);
+  auto args = cudaq::marshal_arguments_for_module_launch(
+      mod, nanobind::borrow<nanobind::args>(runtimeArgs), kernelFunc);
+  auto rawArgs = appendResultToArgsVector(args, retTy, mod, name);
+  mlir::OwningOpRef<ModuleOp> clone = mod.clone();
+
+  std::optional<EndpointTraits> traits;
+  if (isRemote || isEmulated || supportsJit) {
+    traits = EndpointTraits::ofCurrentPlatform();
+    if (isRemote)
+      traits->isRemote = *isRemote;
+    if (isEmulated)
+      traits->isEmulated = *isEmulated;
+    if (supportsJit)
+      traits->supportsJit = *supportsJit;
+  }
+  return compileModuleImpl(name, clone.get(), rawArgs, isEntryPoint,
+                           std::move(target), std::move(traits));
+}
+
 static MlirModule synthesizeKernel(nanobind::object kernel,
                                    nanobind::args runtimeArgs) {
   auto module = nanobind::cast<MlirModule>(kernel.attr("qkeModule"));
@@ -1354,10 +1405,14 @@ void cudaq::bindAltLaunchKernel(nanobind::module_ &mod,
   nanobind::class_<cudaq::CompiledModule>(mod, "CompiledModule")
       .def_prop_ro(
           "entry_point",
-          [](const cudaq::CompiledModule &ck) {
-            return reinterpret_cast<std::uintptr_t>(ck.getJit()->getFn());
+          [](const cudaq::CompiledModule &ck) -> std::optional<std::uintptr_t> {
+            auto jit = ck.getJit();
+            if (!jit)
+              return std::nullopt;
+            return reinterpret_cast<std::uintptr_t>(jit->getFn());
           },
-          "The address of the JIT-compiled entry point.")
+          "The address of the JIT-compiled entry point, or None if this "
+          "module carries no JIT artifact.")
       .def_prop_ro("name", &cudaq::CompiledModule::getName,
                    "The kernel name this module was compiled for.")
       .def_prop_ro("is_fully_specialized",
@@ -1402,6 +1457,17 @@ void cudaq::bindAltLaunchKernel(nanobind::module_ &mod,
   mod.def("marshal_and_retain_module", marshal_and_retain_module,
           "Compile (specialize + JIT) a kernel module. Returns a "
           "CompiledModule object that owns the JIT engine.");
+
+  mod.def("compile_module", compile_module, nanobind::arg("kernel_name"),
+          nanobind::arg("module"), nanobind::arg("is_entry_point"),
+          nanobind::arg("compile_target").none() = nanobind::none(),
+          nanobind::arg("is_remote").none() = nanobind::none(),
+          nanobind::arg("is_emulated").none() = nanobind::none(),
+          nanobind::arg("supports_jit").none() = nanobind::none(),
+          nanobind::arg("args") = nanobind::tuple(),
+          "Compile a kernel module for a target without launching it. "
+          "Returns a CompiledModule. Unless given, the compile target and the "
+          "endpoint traits are those of the current platform.");
 
   mod.def("synthesize", synthesizeKernel, "FIXME: document!");
 

@@ -15,6 +15,8 @@ assigns illustrative native-operation timing; it is not a hardware claim.
 
 # %%
 # Import CUDA-Q and the CUDA-Q Logical code, gadget, and target APIs.
+import tempfile
+
 import cudaq
 import cudaq.logical as cql
 
@@ -154,7 +156,10 @@ def logical_bell_pairs():
 
 # %%
 # Estimate through the complete Carbon target and inspect each resource layer.
-estimate = cudaq.estimate(logical_bell_pairs)
+# Saving the builds keeps the physical program for reading below.
+with tempfile.TemporaryDirectory() as directory:
+    estimate = cudaq.estimate(logical_bell_pairs, save_temps=directory)
+    physical = cql.load_build(estimate, stage="p3")
 logical = cql.estimate.LogicalEstimate.from_annotations(estimate.annotations)
 static = cql.estimate.FabricCounts.from_annotations(estimate.annotations)
 schedule = estimate.annotations["SCHEDULE"]
@@ -175,3 +180,18 @@ print(f"  selected gadgets: {dict(static.gadget_calls)}")
 print(f"  physical qubits: {schedule['physical_qubits']}")
 print(f"  scheduled events: {schedule['event_count']}")
 print(f"  makespan: {schedule['makespan_ns']:.1f} ns")
+
+# %%
+# Read the physical program: it declares one resource for every physical qubit.
+physical_mlir = physical.to_mlir()
+assert physical_mlir.count("phys.resource @") == schedule["physical_qubits"]
+
+resources = [
+    line.strip()[:90]
+    for line in physical_mlir.splitlines()
+    if "phys.resource @" in line
+]
+print("Carbon physical program:")
+print(f"  MLIR lines: {len(physical_mlir.splitlines())}")
+print(f"  physical resources: {len(resources)}, the first two:")
+print("\n".join(f"    {line}" for line in resources[:2]))
