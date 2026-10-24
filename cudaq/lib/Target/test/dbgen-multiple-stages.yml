@@ -11,7 +11,7 @@
 
 # Test `cudaq-target-db-gen` for multi-stage compile targets.
 
-version: 2
+version: 2-alpha
 name: v2-multi
 description: "Multiple compile-target stages round trip"
 config:

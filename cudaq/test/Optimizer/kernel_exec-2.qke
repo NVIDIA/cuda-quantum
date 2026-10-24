@@ -188,7 +188,7 @@ __nvqpp__mlirgen__function_cargo = "pants"}} {
 // CHECK:           %[[VAL_13:.*]] = cc.sequence_init %[[VAL_12]], %[[VAL_11]] : (!cc.ptr<i32>, i64) -> !cc.sequence<i32>
 // CHECK:           %[[VAL_14:.*]] = cc.cast %[[VAL_5]] : (!cc.ptr<i8>) -> !cc.ptr<!cc.array<i8 x ?>>
 // CHECK:           %[[VAL_15:.*]] = cc.compute_ptr %[[VAL_14]]{{\[}}%[[VAL_10]]] : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.ptr<i8>
-// CHECK:           call @__nvqpp__mlirgen__function_hawaiian(%[[VAL_7]], %[[VAL_13]]) : (i1, !cc.sequence<i32>) -> ()
+// CHECK:           call @__nvqpp__mlirgen__function_hawaiian(%[[VAL_7]], %[[VAL_13]]) {no_inline} : (i1, !cc.sequence<i32>) -> ()
 // CHECK:           %[[VAL_16:.*]] = call @__nvqpp_zeroDynamicResult() : () -> !cc.struct<{!cc.ptr<i8>, i64}>
 // CHECK:           return %[[VAL_16]] : !cc.struct<{!cc.ptr<i8>, i64}>
 // CHECK:         }
