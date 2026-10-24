@@ -69,6 +69,18 @@ public:
 #ifdef NVQPP_TARGET_BACKEND_CONFIG
 inline TargetSetter targetSetter(NVQPP_TARGET_BACKEND_CONFIG);
 #endif
+
+/// @brief Static initializer that sets the default compile optimization level
+/// on program startup. `nvq++` defines `NVQPP_OPTIMIZATION_LEVEL` when invoked
+/// with `-O0` to `-O3`. The constructor body lives in `cudaq.cpp`.
+class CompileOptionsSetter {
+public:
+  CompileOptionsSetter(unsigned optimizationLevel);
+};
+
+#ifdef NVQPP_OPTIMIZATION_LEVEL
+inline CompileOptionsSetter compileOptionsSetter(NVQPP_OPTIMIZATION_LEVEL);
+#endif
 } // namespace detail
 
 } // namespace cudaq

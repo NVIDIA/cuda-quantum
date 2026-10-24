@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "common/CompileOptions.h"
 #include "cudaq.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "runtime/common/py_AnalogHamiltonian.h"
@@ -188,6 +189,30 @@ NB_MODULE(_quakeDialects, m) {
       "Provide the seed for backend quantum kernel simulation, and for "
       "randomized compiler passes such as Clifford+T synthesis. A seed of 0 "
       "leaves both unseeded.");
+  cudaqRuntime.def(
+      "set_compile_options",
+      [](std::optional<int64_t> optimizationLevel) {
+        auto defaults = detail::getCompileOptionsDefaults();
+        if (!optimizationLevel)
+          return;
+        if (*optimizationLevel < 0 ||
+            *optimizationLevel > static_cast<int64_t>(OptimizationLevel::O3))
+          throw nanobind::value_error(
+              "optimization_level must be an integer between 0 and 3.");
+        defaults.optimizationLevel =
+            static_cast<OptimizationLevel>(*optimizationLevel);
+        detail::setCompileOptionsDefaults(defaults);
+      },
+      nanobind::kw_only(),
+      nanobind::arg("optimization_level") = nanobind::none(),
+      "Set the default compile options used when compiling CUDA-Q kernels. "
+      "Options left as `None` keep their current value.\n\n"
+      "Args:\n"
+      "  optimization_level (int): The optimization level, from 0 to 3.");
+  cudaqRuntime.def(
+      "reset_compile_options", []() { detail::setCompileOptionsDefaults({}); },
+      "Reset the default compile options used when compiling CUDA-Q kernels "
+      "to their built-in values.");
   cudaqRuntime.def("num_available_gpus", &num_available_gpus,
                    "The number of available GPUs detected on the system.");
 

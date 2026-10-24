@@ -387,6 +387,8 @@ _register_target_config = cudaq_runtime._register_target_config
 _discover_external_backends()
 del _discover_external_backends
 set_random_seed = cudaq_runtime.set_random_seed
+set_compile_options = cudaq_runtime.set_compile_options
+reset_compile_options = cudaq_runtime.reset_compile_options
 mpi = cudaq_runtime.mpi
 num_available_gpus = cudaq_runtime.num_available_gpus
 

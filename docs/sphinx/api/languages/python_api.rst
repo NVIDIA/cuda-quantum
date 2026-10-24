@@ -193,6 +193,8 @@ Backend Configuration
 .. automethod:: cudaq::initialize_cudaq
 .. automethod:: cudaq::num_available_gpus
 .. automethod:: cudaq::set_random_seed
+.. automethod:: cudaq::set_compile_options
+.. automethod:: cudaq::reset_compile_options
 
 Dynamics
 =============================
