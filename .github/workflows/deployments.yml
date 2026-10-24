@@ -1235,7 +1235,13 @@ jobs:
     name: Trigger Validation
     # macOS and realtime assets are not needed to start Validation.
     needs: [summary, python_wheels, binaries, metapackages]
-    if: inputs.run_validation_after
+    # Explicit: a skipped ancestor (release_draft) would skip this under the default success().
+    if: >-
+      ${{ !cancelled() && inputs.run_validation_after
+      && needs.summary.result == 'success'
+      && needs.python_wheels.result == 'success'
+      && needs.binaries.result == 'success'
+      && needs.metapackages.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       actions: write
