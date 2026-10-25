@@ -473,7 +473,8 @@ jobs:
         os_image: ['redhat/ubi8:8.10', 'ubuntu:24.04']
         cuda_version: ['12.6', '13.0']
         # The per-backend examples take ~90 min in one job; each shard runs a subset.
-        shard: [nvidia, tensornet, other]
+        # Few shards, since every one needs a GPU runner and those are scarce.
+        shard: [core, tensornet]
       fail-fast: false
 
     container:
@@ -609,15 +610,13 @@ jobs:
           touch "$GITHUB_STEP_SUMMARY"
           chmod a+w "$GITHUB_STEP_SUMMARY"
 
-          # nvidia and tensornet* dominate the run time, so they get their own shards.
-          # The other shard also runs the tests that are not specific to a backend.
+          # The tensornet backends take ~40 min, so they get their own shard. The
+          # core shard has all other backends and the non-backend tests.
           case "${{ matrix.shard }}" in
-            nvidia)
-              backends="nvidia"; exclude=""; target_only=true ;;
+            core)
+              backends=""; exclude="tensornet tensornet-mps"; target_only=false ;;
             tensornet)
               backends="tensornet tensornet-mps"; exclude=""; target_only=true ;;
-            other)
-              backends=""; exclude="nvidia tensornet tensornet-mps"; target_only=false ;;
           esac
 
           su cudaqtest -ls /bin/bash -c "
@@ -631,7 +630,7 @@ jobs:
           "
 
           # Check that the tests included the nvidia-mgpu backend:
-          [ "${{ matrix.shard }}" == "nvidia" ] || exit 0
+          [ "${{ matrix.shard }}" == "core" ] || exit 0
           nvidia_block_start=$(grep -n "Testing on nvidia target..." /tmp/validation.out | head -n1 | cut -d: -f1)
           nvidia_block=$(tail -n +$((nvidia_block_start + 1)) /tmp/validation.out | sed -n '/^Testing on /q;p')
 
