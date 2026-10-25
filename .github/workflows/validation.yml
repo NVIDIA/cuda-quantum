@@ -472,6 +472,8 @@ jobs:
       matrix:
         os_image: ['redhat/ubi8:8.10', 'ubuntu:24.04']
         cuda_version: ['12.6', '13.0']
+        # The per-backend examples take ~90 min in one job; each shard runs a subset.
+        shard: [nvidia, tensornet, other]
       fail-fast: false
 
     container:
@@ -607,15 +609,29 @@ jobs:
           touch "$GITHUB_STEP_SUMMARY"
           chmod a+w "$GITHUB_STEP_SUMMARY"
 
+          # nvidia and tensornet* dominate the run time, so they get their own shards.
+          # The other shard also runs the tests that are not specific to a backend.
+          case "${{ matrix.shard }}" in
+            nvidia)
+              backends="nvidia"; exclude=""; target_only=true ;;
+            tensornet)
+              backends="tensornet tensornet-mps"; exclude=""; target_only=true ;;
+            other)
+              backends=""; exclude="nvidia tensornet tensornet-mps"; target_only=false ;;
+          esac
+
           su cudaqtest -ls /bin/bash -c "
             set -o pipefail
             source ${install_path}/set_env.sh
             cd ${workdir}
             GITHUB_STEP_SUMMARY=$GITHUB_STEP_SUMMARY \
-            bash validate_installation.sh | tee /tmp/validation.out
+            CUDAQ_VALIDATION_EXCLUDE='$exclude' \
+            CUDAQ_VALIDATION_TARGET_TESTS_ONLY=$target_only \
+            bash validate_installation.sh $backends | tee /tmp/validation.out
           "
 
           # Check that the tests included the nvidia-mgpu backend:
+          [ "${{ matrix.shard }}" == "nvidia" ] || exit 0
           nvidia_block_start=$(grep -n "Testing on nvidia target..." /tmp/validation.out | head -n1 | cut -d: -f1)
           nvidia_block=$(tail -n +$((nvidia_block_start + 1)) /tmp/validation.out | sed -n '/^Testing on /q;p')
 

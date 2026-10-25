@@ -14,6 +14,10 @@
 #   bash scripts/validate_installation.sh              # Full validation
 #   bash scripts/validate_installation.sh default      # Test specific backend(s)
 #
+# Environment variables to split the validation across several jobs:
+#   CUDAQ_VALIDATION_EXCLUDE="nvidia tensornet"   # Leave out these backends
+#   CUDAQ_VALIDATION_TARGET_TESTS_ONLY=true       # Only run the per-backend C++ examples
+#
 # In Docker container:
 #   Launch the NVIDIA CUDA-Q Docker container,
 #   and run this script from the home directory.
@@ -151,6 +155,11 @@ do
     requested_backends=$(echo "$requested_backends" | grep -vx "$backend_to_remove")
 done
 
+for backend_to_remove in $CUDAQ_VALIDATION_EXCLUDE
+do
+    requested_backends=$(echo "$requested_backends" | grep -vx "$backend_to_remove")
+done
+
 echo
 echo "Installed backends:"
 echo "$installed_backends"
@@ -175,8 +184,10 @@ echo "============================="
 # GMP and MPFR are redistributed with CUDA-Q under the LGPL v3; verify the
 # properties the redistribution relies on (license texts shipped, dynamic
 # linking only, libraries replaceable).
-let "samples+=1"
-if [ -f "$this_file_dir/validate_license_compliance.sh" ]; then
+if [ "$CUDAQ_VALIDATION_TARGET_TESTS_ONLY" == "true" ]; then
+    echo "Skipping license compliance: only per-backend tests were requested."
+elif [ -f "$this_file_dir/validate_license_compliance.sh" ]; then
+    let "samples+=1"
     if bash "$this_file_dir/validate_license_compliance.sh"; then
         let "passed+=1"
     else
@@ -184,6 +195,7 @@ if [ -f "$this_file_dir/validate_license_compliance.sh" ]; then
     fi
 else
     echo -e "\e[01;31mError: validate_license_compliance.sh not found in $this_file_dir.\e[0m" >&2
+    let "samples+=1"
     let "failed+=1"
 fi
 
@@ -318,6 +330,9 @@ do
 done
 
 # Run MPI C++ examples (requires MPI and at least 4 GPUs)
+if [ "$CUDAQ_VALIDATION_TARGET_TESTS_ONLY" == "true" ]; then
+    echo "Only the per-backend C++ examples were requested; skipping the other tests."
+else
 if ! $mpi_available; then
     echo "Skipping MPI C++ examples: MPI not available."
 else
@@ -621,6 +636,8 @@ then
         fi
     done
 fi
+
+fi # CUDAQ_VALIDATION_TARGET_TESTS_ONLY
 
 if [ -f "$GITHUB_STEP_SUMMARY" ]; 
 then
