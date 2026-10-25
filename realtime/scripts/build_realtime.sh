@@ -52,7 +52,7 @@
 #                                   set it to the empty string to never enable them.
 #
 # Prerequisites:
-# - CMake 4.0+, ninja-build
+# - CMake 4.0+, Ninja 1.10+ (custom commands with a DEPFILE)
 # - CUDA toolkit (12+). With CUDAQ_REALTIME_BUILD_TESTS=OFF, a CUDA-less
 #   configure still builds UDP, and builds CPU RoCE when HololinkRoce is
 #   found. Tests currently require CUDAToolkit
