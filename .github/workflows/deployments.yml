@@ -1208,7 +1208,7 @@ jobs:
           zip -r wheelhouse-darwin.zip wheelhouse-darwin
           gh release upload "$RELEASE_TAG" -R ${{ github.repository }} wheelhouse-darwin.zip --clobber
 
-  # Sets the final tag and notes any assets that are missing.
+  # Sets the final tag once every asset is attached.
   release_finalize:
     name: Finalize draft release
     needs:
@@ -1244,23 +1244,26 @@ jobs:
           # No macOS assets expected when it was skipped.
           MACOS_RESULT: ${{ needs.macos_ci.result == 'skipped' && 'success' || needs.release_macos.result }}
         run: |
-          warnings=""
+          # The run id tag is what re-run jobs use to find the draft, so a
+          # draft with missing assets keeps it and this job fails; re-running
+          # the failed jobs then re-runs this one.
+          missing=false
           for item in "installers:$INSTALLERS_RESULT" "realtime installers:$REALTIME_RESULT" \
                       "Linux wheels:$WHEELS_RESULT" "metapackages:$METAPACKAGES_RESULT" \
                       "macOS assets:$MACOS_RESULT"; do
             if [ "${item#*:}" != "success" ]; then
-              echo "::warning::The ${item%%:*} were not attached (${item#*:})."
-              warnings+="<br/>:warning: The ${item%%:*} were not attached (${item#*:}); check the [Deployments run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})."
+              echo "::error::The ${item%%:*} were not attached (${item#*:})."
+              missing=true
             fi
           done
+          if $missing; then
+            echo "::error::Draft release $RELEASE_TAG is incomplete and keeps its run id tag. Re-run the failed jobs to finish it."
+            exit 1
+          fi
 
           flags=()
           if [ "$(echo $RELEASE_VERSION | egrep -o '([0-9]{1,}\.)+[0-9]{1,}')" != "$RELEASE_VERSION" ]; then
             flags+=(--prerelease)
-          fi
-          if [ -n "$warnings" ]; then
-            body="$(gh release view "$RELEASE_TAG" -R ${{ github.repository }} --json body --jq .body)"
-            flags+=(--notes "${body}${warnings}")
           fi
 
           # Stays a draft; publishing is manual.
