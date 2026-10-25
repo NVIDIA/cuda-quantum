@@ -1187,22 +1187,24 @@ jobs:
         with:
           pattern: pycudaq-*-darwin-arm64
           path: wheelhouse
+          merge-multiple: true
 
       - name: Download macOS installer
         uses: actions/download-artifact@v8
         with:
           pattern: cudaq-arm64-darwin-installer-*
           path: installer
+          merge-multiple: true
 
       - name: Attach macOS assets to draft release
         env:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
           RELEASE_TAG: ${{ needs.release_draft.outputs.release_tag }}
         run: |
-          gh release upload "$RELEASE_TAG" -R ${{ github.repository }} installer/*/install_cuda_quantum* --clobber
+          gh release upload "$RELEASE_TAG" -R ${{ github.repository }} installer/install_cuda_quantum* --clobber
 
           mkdir wheelhouse-darwin
-          mv -vf wheelhouse/*/* wheelhouse-darwin/
+          mv -vf wheelhouse/* wheelhouse-darwin/
           zip -r wheelhouse-darwin.zip wheelhouse-darwin
           gh release upload "$RELEASE_TAG" -R ${{ github.repository }} wheelhouse-darwin.zip --clobber
 
