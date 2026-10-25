@@ -396,6 +396,8 @@ jobs:
           outputs: ${{ steps.prereqs.outputs.docker_output }}
 
       - name: Extract ccache from build
+        # Dispatched and pushed branch runs save a cache that no later run restores.
+        if: ${{ !(github.event_name == 'workflow_dispatch' || github.event_name == 'push') || github.ref_name == 'main' || startsWith(github.ref_name, 'pull-request/') }}
         timeout-minutes: 15
         continue-on-error: true
         run: |
@@ -417,6 +419,7 @@ jobs:
           fi
 
       - name: Push ccache to GHCR
+        if: ${{ !(github.event_name == 'workflow_dispatch' || github.event_name == 'push') || github.ref_name == 'main' || startsWith(github.ref_name, 'pull-request/') }}
         uses: ./.github/actions/ccache-push
         with:
           cache-key: ${{ needs.metadata.outputs.platform_tag }}-cudaqdev
@@ -670,6 +673,8 @@ jobs:
           push: true
 
       - name: Extract ccache from release build
+        # Dispatched and pushed branch runs save a cache that no later run restores.
+        if: ${{ !(github.event_name == 'workflow_dispatch' || github.event_name == 'push') || github.ref_name == 'main' || startsWith(github.ref_name, 'pull-request/') }}
         timeout-minutes: 15
         continue-on-error: true
         run: |
@@ -691,6 +696,7 @@ jobs:
           fi
 
       - name: Push ccache to GHCR
+        if: ${{ !(github.event_name == 'workflow_dispatch' || github.event_name == 'push') || github.ref_name == 'main' || startsWith(github.ref_name, 'pull-request/') }}
         uses: ./.github/actions/ccache-push
         with:
           cache-key: ${{ needs.metadata.outputs.platform_tag }}-cudaq-release
