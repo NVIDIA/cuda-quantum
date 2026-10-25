@@ -15,6 +15,11 @@ on:
         description: Create or update the build caches on the container registry. The build terminates after that and no images are pushed.
         required: false
         default: false
+      refresh_ccache:
+        type: boolean
+        description: Save the compiler caches of this run under the branch's tag and restore them from there. Runs on main, schedules, merge queues and PRs always save them.
+        required: false
+        default: false
       cache_base:
         required: false
         type: string
