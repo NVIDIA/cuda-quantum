@@ -145,6 +145,8 @@ jobs:
             elif [ -n "$registry_cache_image" ]; then
               echo "$registry_cache_image:$(echo ${{ github.ref_name }} | tr / -)"
             fi
+            # Cache of the LLVM toolchain with the MLIR Python bindings (prereqs_python stage).
+            echo "${{ inputs.build_cache }}" | sed 's/-assets-prereqs-/-assets-prereqs_python-/' | grep prereqs_python || true
             echo multiline
           } >> $GITHUB_OUTPUT
 
