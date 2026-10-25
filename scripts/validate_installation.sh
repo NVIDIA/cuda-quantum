@@ -428,7 +428,7 @@ dynamics_backend_skipped_examples=(\
     examples/python/dynamics/silicon_spin_qubit.py)
 
 # Note divisive_clustering_src is not currently in the Published container under
-# the "examples" folder, but the Publishing workflow moves all examples from
+# the "examples" folder, but the Validation workflow moves all examples from
 # docs/sphinx/examples, docs/sphinx/targets into the examples directory for the
 # purposes of the container validation. The divisive_clustering_src Python
 # files are used by the Divisive_clustering.ipynb notebook, so they are tested

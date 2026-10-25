@@ -45,11 +45,12 @@ done
 
 # Make sure all listed PRs are labeled appropriately.
 
-# Manually launch the deployment workflow from the release branch, setting the appropriate version number for the GitHub release.
+# Manually launch the deployment workflow from the release branch, setting the appropriate version number (create_release) for the GitHub release.
 # -> this creates the draft release right away and attaches installers, wheels and metapackages as they are built
 # -> this should automatically launch the validation workflow, which only tests what was built
 # -> this should automatically launch the documentation publishing for that version
-# Check that all three workflows above completed successfully and the draft has all assets (a note lists any missing).
+# Check that all three workflows above completed successfully and the draft has all assets.
+# The draft is only retagged with the version once every asset is attached; if a job failed, re-run the failed jobs.
 
 # Check that all nightly integration tests are enabled and run successfully with the release image. 
 # Work with QA to get the release candidate fully validated.
