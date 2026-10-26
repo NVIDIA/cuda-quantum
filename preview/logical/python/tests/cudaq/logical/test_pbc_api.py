@@ -302,6 +302,8 @@ def test_native_pbc_lowering_rejects_live_classical_gate_payload(capfd):
     module = mlir_ir.Module.parse(
         r"""
 module {
+  qlx.action @with_payload : (!qlx.logical_qubit, f64)
+      -> (!qlx.logical_qubit, i1) {kind = "unitary"}
   qlx.program @valid_first : () -> i1 attributes {qlx.stage = "p0"} {
     %q = qlx.prepare "zero" {allocation = 0 : i64, value_index = 0 : i64}
         : !qlx.logical_qubit
@@ -314,7 +316,7 @@ module {
     %q = qlx.prepare "zero" {allocation = 0 : i64, value_index = 0 : i64}
         : !qlx.logical_qubit
     %c = arith.constant 0.0 : f64
-    %t:2 = qlx.apply #qlx.action<t>(%q, %c)
+    %t:2 = qlx.apply @with_payload(%q, %c)
         : (!qlx.logical_qubit, f64) -> (!qlx.logical_qubit, i1)
     qlx.discard %t#0 : !qlx.logical_qubit
     qlx.return %t#1 : i1
@@ -323,6 +325,16 @@ module {
 """,
         mlir_ir.Context(),
     )
+    # Parse a valid symbolic action, then corrupt it into a fixed gate. The
+    # upstream operation verifier now rejects this signature during parsing.
+    payload_apply = next(
+        operation for operation in _walk(module.operation)
+        if operation.name == "qlx.apply" and len(operation.results) == 2)
+    with module.context:
+        payload_apply.attributes["action"] = mlir_ir.Attribute.parse(
+            "#qlx.action<t>", context=module.context)
+    with pytest.raises(mlir_ir.MLIRError, match="no classical payloads"):
+        module.operation.verify()
     with pytest.raises(RuntimeError, match="QLX PBC lowering failed"):
         runtime.lower_to_pbc_module(module)
 
