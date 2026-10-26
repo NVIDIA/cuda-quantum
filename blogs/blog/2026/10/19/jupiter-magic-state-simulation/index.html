@@ -21,7 +21,7 @@
       
       
       <link rel="icon" href="../../../../../assets/images/favicon.png">
-      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.8.0">
     
     
       
@@ -29,10 +29,10 @@
       
     
     
-      <link rel="stylesheet" href="../../../../../assets/stylesheets/main.ec1eaa64.min.css">
+      <link rel="stylesheet" href="../../../../../assets/stylesheets/main.57a0d79d.min.css">
       
         
-        <link rel="stylesheet" href="../../../../../assets/stylesheets/palette.ab4e12ef.min.css">
+        <link rel="stylesheet" href="../../../../../assets/stylesheets/palette.fb2fffe2.min.css">
       
       
 
@@ -1819,7 +1819,7 @@
                       <li class="md-nav__item">
                         <div class="md-nav__link">
                           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M15 13h1.5v2.82l2.44 1.41-.75 1.3L15 16.69zm4-5H5v11h4.67c-.43-.91-.67-1.93-.67-3a7 7 0 0 1 7-7c1.07 0 2.09.24 3 .67zM5 21a2 2 0 0 1-2-2V5c0-1.11.89-2 2-2h1V1h2v2h8V1h2v2h1a2 2 0 0 1 2 2v6.1c1.24 1.26 2 2.99 2 4.9a7 7 0 0 1-7 7c-1.91 0-3.64-.76-4.9-2zm11-9.85A4.85 4.85 0 0 0 11.15 16c0 2.68 2.17 4.85 4.85 4.85A4.85 4.85 0 0 0 20.85 16c0-2.68-2.17-4.85-4.85-4.85"/></svg>
-                          <time datetime="2026-10-19 00:00:00+00:00" class="md-ellipsis">October 19, 2026</time>
+                          <time datetime="2026-10-26 00:00:00+00:00" class="md-ellipsis">October 26, 2026</time>
                         </div>
                       </li>
                     
@@ -2075,7 +2075,8 @@
 <p>The campaign combined development and validation at the NVAQC with large-scale execution on JUPITER. This allowed the team to test and refine the simulation software on the NVAQC in parallel with the largest experiments running on JUPITER - showing how the NVAQC can accelerate work at leading supercomputing centers.</p>
 <h2 id="modeling-the-operations-that-enable-fault-tolerance">Modeling the operations that enable fault tolerance</h2>
 <p>Many operations used in quantum error correction belong to a class called Clifford operations, which can be efficiently simulated under suitable noise assumptions. But performing full, universal, quantum computation requires augmenting Clifford operations with a least one more non-trivial example. Magic states enable this, and simulations involving them are consequently much more difficult. Nevertheless, simulating the preparation of magic states with detailed hardware errors is essential to understand and improve how thery can be created. This requires simulation methods capable of retaining quantum behavior that simpler models can miss.</p>
-<p>The study focuses on a component of a protocol called <a href="https://arxiv.org/abs/2409.17595">magic-state cultivation</a>: preparing a state in a small error-correcting code, checking it for faults, and growing into large code distances. The simulated protocol starts with a distance-3 color code, uses recently designed <a href="https://arxiv.org/abs/2609.17706">additional flag measurements</a> to detect harmful faults, and grows into a distance-7 hybrid color/surface-code configuration before further error-correction rounds and readout. The 104-qubit count for simulating this process includes the data and auxiliary qubits used across the sequence.</p>
+<p>The study focuses on a component of a protocol called <a href="https://arxiv.org/abs/2409.17595">magic-state cultivation</a>: preparing a state in a small error-correcting code, checking it for faults, and growing into large code distances. <a href="https://www.science.org/doi/10.1126/science.aee7961">Rosenfeld et al.</a> experimentally demonstrated magic-state cultivation on Google's superconducting quantum processor, including code switching into a surface code.</p>
+<p>Our simulated protocol starts with a distance-3 color code, uses recently designed <a href="https://arxiv.org/abs/2609.17706">additional flag measurements</a> to detect harmful faults, and grows into a distance-7 hybrid color/surface-code configuration before further error-correction rounds and readout. The 104-qubit count for simulating this process includes the data and auxiliary qubits used across the sequence.</p>
 <p>The model simulated on JUPITER includes coherent phase errors, which can accumulate and interfere, and leakage, in which a superconducting qubit leaves its usual two computational levels. Selected physical sites are therefore modeled with a third energy level, significantly increasing the complexity of the simulation. These mechanisms let researchers examine behavior beyond a model of random bit and phase flips, while retaining the actual non-Clifford operations that prepare the magic state.</p>
 <figure>
   <video controls playsinline preload="metadata" width="1920" height="1080" style="width: 100%; height: auto;" poster="../../../../../images/jupiter/JUPITER-circuit-poster.jpg" aria-label="Animation of the 104-qubit magic-state preparation circuit simulated on 8,192 JUPITER GPUs" aria-describedby="jupiter-video-caption">
@@ -2160,10 +2161,10 @@
     
       
       
-      <script id="__config" type="application/json">{"annotate": null, "base": "../../../../..", "features": ["navigation.indexes"], "search": "../../../../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+      <script id="__config" type="application/json">{"annotate": null, "base": "../../../../..", "features": ["navigation.indexes"], "search": "../../../../../assets/javascripts/workers/search.a7633da7.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
     
     
-      <script src="../../../../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      <script src="../../../../../assets/javascripts/bundle.c21346df.min.js"></script>
       
         <script src="../../../../../javascripts/mathjax.js"></script>
       
