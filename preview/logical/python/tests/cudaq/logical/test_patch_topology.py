@@ -5,7 +5,7 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-"""Patch adjacency follows unowned carriers without crossing other patches."""
+"""Patch adjacency follows `unowned` carriers without crossing other patches."""
 
 from itertools import combinations
 import random

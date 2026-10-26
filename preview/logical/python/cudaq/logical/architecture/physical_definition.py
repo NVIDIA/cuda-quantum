@@ -963,7 +963,7 @@ class PatchTopology:
             neighbors[edge.target].add(edge.source)
         coarse_edges = []
         for left in range(self.capacity - 1):
-            # Search outward from this patch through unowned carriers. A
+            # Search outward from this patch through `unowned`` carriers. A
             # carrier owned by another patch ends the route there. It links
             # the two patches if that patch comes later, and is never expanded,
             # so a route never passes through a third patch.
