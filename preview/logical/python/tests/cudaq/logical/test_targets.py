@@ -610,6 +610,66 @@ def test_target_emission_preserves_frozen_snapshot_and_cached_inspection():
     assert build.module is build.module
 
 
+@cudaq.kernel
+def estimate_bell_pair():
+    qubits = cudaq.qvector(2)
+    h(qubits[0])
+    x.ctrl(qubits[0], qubits[1])
+    mz(qubits)
+
+
+def test_estimate_resources_report_the_logical_profile():
+    try:
+        cudaq.set_target(cudaq.logical.targets.estimator)
+        result = cudaq.estimate(estimate_bell_pair)
+    finally:
+        cudaq.reset_target()
+
+    profile = cudaq.logical.estimate.LogicalEstimate.from_annotations(
+        result.annotations)
+    resources = result.resources
+    assert resources.num_qubits == profile.logical_qubits_peak == 2
+    assert resources.count("h") == 1
+    assert resources.count_controls("x", 1) == 1
+    assert resources.count("mz") == 2
+    assert resources.count("reset") == 2
+    # Depth is the serial sum of everything counted in the profile's bound.
+    assert resources.depth == profile.action_depth_upper_bound
+    assert resources.count() == resources.depth
+
+
+def test_estimate_resources_stay_logical_on_a_full_stack():
+    target = cudaq.logical.targets.surface_physical_target(logical_capacity=1)
+    try:
+        cudaq.set_target(target)
+        result = cudaq.estimate(logical_zero_readout)
+    finally:
+        cudaq.reset_target()
+
+    profile = cudaq.logical.estimate.LogicalEstimate.from_annotations(
+        result.annotations)
+    assert set(result.annotations) >= {"LOGICAL", "SCHEDULE"}
+    assert result.resources.depth == profile.action_depth_upper_bound
+    assert result.resources.num_qubits == profile.logical_qubits_peak
+
+
+def test_estimate_resources_are_empty_without_a_logical_estimate(monkeypatch):
+    target = cudaq.logical.targets.surface_physical_target(logical_capacity=1)
+    endpoint = target.runtime_endpoint
+    monkeypatch.setattr(endpoint, "estimate_options", {
+        **endpoint.estimate_options, "tier": "SCHEDULE"
+    })
+    try:
+        cudaq.set_target(target)
+        result = cudaq.estimate(logical_zero_readout)
+    finally:
+        cudaq.reset_target()
+
+    assert set(result.annotations) == {"SCHEDULE"}
+    assert result.resources.count() == 0
+    assert result.resources.num_qubits == 0
+
+
 @pytest.mark.parametrize("backend_options", [
     {},
     {

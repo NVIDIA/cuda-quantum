@@ -10,7 +10,7 @@
 
 # Test YAML parsing of `quake-reference-semantics` with omitted default options.
 
-version: 2
+version: 2-alpha
 name: v2-quake-reference-semantics-default-options
 description: "Quake reference-semantics profile option defaults"
 config:
