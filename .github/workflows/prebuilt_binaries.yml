@@ -29,11 +29,28 @@ on:
         required: false
         default: true
         description: Run installer validation. Deployments disables this; validation runs in the Validation workflow.
+      release_version:
+        required: false
+        type: string
+        default: ''
+        description: Version for the installer instead of the ref's.
+      release_tag:
+        required: false
+        type: string
+        default: ''
+        description: Draft release tag to attach the installer to.
+      keep_installer:
+        required: false
+        type: boolean
+        default: false
+        description: Keep the installer artifact after the run for Validation.
     secrets:
       DOCKERHUB_USERNAME:
         required: true
       DOCKERHUB_READONLY_TOKEN:
         required: true
+      REPO_BOT_ACCESS_TOKEN:
+        required: false
 
 name: Pre-built binaries
 
@@ -88,7 +105,9 @@ jobs:
         run: |
           platform_tag=`echo ${{ inputs.platform }} | sed 's/linux\///g' | tr -d ' '`
           is_versioned=${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') || startsWith(github.ref_name, 'staging/') }}
-          if ${is_versioned}; then
+          if [ -n "${{ inputs.release_version }}" ]; then
+            cudaq_version="${{ inputs.release_version }}"
+          elif ${is_versioned}; then
             cudaq_version=`echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}"`
           else
             cudaq_version=0.0.0
@@ -125,6 +144,8 @@ jobs:
             elif [ -n "$registry_cache_image" ]; then
               echo "$registry_cache_image:$(echo ${{ github.ref_name }} | tr / -)"
             fi
+            # Cache of the LLVM toolchain with the MLIR Python bindings (prereqs_python stage).
+            echo "${{ inputs.build_cache }}" | sed 's/-assets-prereqs-/-assets-prereqs_python-/' | grep prereqs_python || true
             echo multiline
           } >> $GITHUB_OUTPUT
 
@@ -196,6 +217,8 @@ jobs:
           push: true
 
       - name: Extract ccache from build
+        # Dispatched and pushed branch runs only save it when refresh_ccache is set.
+        if: ${{ !(github.event_name == 'workflow_dispatch' || github.event_name == 'push') || github.event.inputs.refresh_ccache == 'true' || github.ref_name == 'main' || startsWith(github.ref_name, 'pull-request/') }}
         timeout-minutes: 15
         continue-on-error: true
         run: |
@@ -216,6 +239,7 @@ jobs:
           fi
 
       - name: Push ccache to GHCR
+        if: ${{ !(github.event_name == 'workflow_dispatch' || github.event_name == 'push') || github.event.inputs.refresh_ccache == 'true' || github.ref_name == 'main' || startsWith(github.ref_name, 'pull-request/') }}
         uses: ./.github/actions/ccache-push
         with:
           cache-key: ${{ steps.config.outputs.ccache_key }}
@@ -254,8 +278,20 @@ jobs:
         with:
           name: ${{ steps.config.outputs.artifact_name }}
           path: /tmp/install
-          retention-days: 1
+          # Validation fetches this; must outlive the run.
+          retention-days: 14
           if-no-files-found: error
+
+      # The artifact also holds a wheel, which is not a release asset.
+      - name: Attach installer to draft release
+        if: inputs.release_tag != ''
+        env:
+          GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          retry gh release upload "$RELEASE_TAG" /tmp/install/install_cuda_quantum* \
+            -R ${{ github.repository }} --clobber
 
   build_openmpi:
     name: Minimal OpenMPI installation
@@ -634,6 +670,7 @@ jobs:
 
     steps:
       - name: Delete artifacts
+        if: ${{ !inputs.keep_installer }}
         uses: actions/github-script@v9
         with:
           # A 500 from the artifacts API used to fail the whole job.

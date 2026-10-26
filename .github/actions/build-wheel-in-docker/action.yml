@@ -161,6 +161,8 @@ runs:
         outputs: ${{ steps.prereqs.outputs.docker_output }}
 
     - name: Extract ccache from build
+      # Dispatched and pushed branch runs only save it when refresh_ccache is set.
+      if: ${{ !(github.event_name == 'workflow_dispatch' || github.event_name == 'push') || github.event.inputs.refresh_ccache == 'true' || github.ref_name == 'main' || startsWith(github.ref_name, 'pull-request/') }}
       continue-on-error: true
       shell: bash
       env:
@@ -194,6 +196,7 @@ runs:
         fi
 
     - name: Push ccache to GHCR
+      if: ${{ !(github.event_name == 'workflow_dispatch' || github.event_name == 'push') || github.event.inputs.refresh_ccache == 'true' || github.ref_name == 'main' || startsWith(github.ref_name, 'pull-request/') }}
       uses: ./.github/actions/ccache-push
       with:
         cache-key: ${{ steps.prereqs.outputs.ccache_key }}

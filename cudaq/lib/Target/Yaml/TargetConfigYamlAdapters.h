@@ -87,4 +87,16 @@ struct Reflector<cudaq::config::ArgumentType> {
   }
 };
 
+template <>
+struct Reflector<cudaq::config::MeasurementForm> {
+  using ReflType = std::string;
+  static cudaq::config::MeasurementForm to(const std::string &name) {
+    return cudaq::config::detail::enumFromYamlName<
+        cudaq::config::MeasurementForm>(name);
+  }
+  static std::string from(const cudaq::config::MeasurementForm &value) {
+    return cudaq::config::detail::enumToYamlName(value);
+  }
+};
+
 } // namespace rfl

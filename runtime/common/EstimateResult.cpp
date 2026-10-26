@@ -24,6 +24,22 @@ cudaq::estimate_result::estimate_result(Resources counts,
                                                       std::move(annotations));
 }
 
+cudaq::estimate_result::estimate_result(
+    const std::vector<InstructionCount> &instructions, std::size_t numQubits,
+    cudaq_json annotations) {
+  Resources counts;
+  for (const auto &entry : instructions) {
+    std::vector<std::size_t> controls(entry.nControls);
+    for (std::size_t i = 0; i < entry.nControls; ++i)
+      controls[i] = i;
+    counts.appendInstruction(entry.name, controls, {entry.nControls},
+                             entry.count);
+  }
+  counts.setNumQubits(numQubits);
+  impl = std::make_unique<detail::EstimateResultImpl>(std::move(counts),
+                                                      std::move(annotations));
+}
+
 cudaq::estimate_result::estimate_result() {
   impl = std::make_unique<detail::EstimateResultImpl>();
 }

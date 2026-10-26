@@ -39,11 +39,18 @@ on:
         type: string
         default: ''
         description: Holoscan Sensor Bridge branch or tag. Blank uses the deps_common.sh default.
+      release_tag:
+        required: false
+        type: string
+        default: ''
+        description: Draft release tag to attach the installer to.
     secrets:
       DOCKERHUB_USERNAME:
         required: true
       DOCKERHUB_READONLY_TOKEN:
         required: true
+      REPO_BOT_ACCESS_TOKEN:
+        required: false
 
 name: Pre-built realtime binaries
 jobs:
@@ -123,5 +130,15 @@ jobs:
         name: install_cuda_quantum_realtime_cu${{ inputs.cuda_version }}.${{ inputs.platform }}
         path: /tmp/install
         # Validation fetches these from the Deployments run; must outlive it.
-        retention-days: 3
+        retention-days: 14
         if-no-files-found: error
+
+    - name: Attach installer to draft release
+      if: inputs.release_tag != ''
+      env:
+        GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
+        RELEASE_TAG: ${{ inputs.release_tag }}
+      run: |
+        retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+        retry gh release upload "$RELEASE_TAG" /tmp/install/install_cuda_quantum_realtime* \
+          -R ${{ github.repository }} --clobber
