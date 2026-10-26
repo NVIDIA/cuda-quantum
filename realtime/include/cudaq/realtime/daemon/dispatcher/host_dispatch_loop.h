@@ -20,9 +20,8 @@
 /// dropped otherwise.
 ///
 /// Neither loop touches the CUDA runtime, and neither selects a CUDA device.
-/// A handler that needs GPU work (for example a CUDA graph over the request
-/// and response slots) selects its own device, launches that work itself and
-/// synchronizes before returning.
+/// A handler that uses the GPU selects its own device and finishes that work
+/// before returning.
 ///
 /// `cudaq_dispatcher_start` runs one of these on the dispatcher's host thread;
 /// a program that drives its own ring without a dispatcher object may call

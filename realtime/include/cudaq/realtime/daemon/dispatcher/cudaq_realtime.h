@@ -73,9 +73,8 @@ typedef enum {
 //                   entry->handler.host_fn; the response is published when it
 //                   returns.  Use for GPU-less bridges (e.g. the CPU RoCE
 //                   transport in lib/cpu_transport/) or for handlers whose
-//                   work fits on a single CPU thread.  A handler that needs a
-//                   CUDA graph launches it itself and synchronizes before
-//                   returning.
+//                   work fits on a single CPU thread.  Work the handler
+//                   starts elsewhere has to be finished before it returns.
 //   - DEVICE_CALL and GRAPH_LAUNCH belong on the GPU dispatch path.  A request
 //                   for such an entry is left for a peer dispatcher under
 //                   shared_ring_mode and dropped otherwise.
@@ -171,8 +170,7 @@ typedef struct {
 // Ring buffer pointers. For the device backend use device pointers only.
 // For CUDAQ_DISPATCH_PATH_HOST the _host pointers are required: the host loop
 // polls rx_flags_host and uses the host data views.  The memory has to be
-// CUDA-mapped only when a GPU consumer touches it (a GPU transport kernel, or
-// a graph a HOST_CALL handler launches over the slots).
+// CUDA-mapped only when a GPU consumer (a GPU transport kernel) touches it.
 typedef struct {
   volatile uint64_t *rx_flags; // device pointer
   volatile uint64_t *tx_flags; // device pointer
@@ -198,9 +196,9 @@ typedef struct {
 // the smaller of the two is passed defensively).
 //
 // The dispatcher publishes the response as soon as the handler returns; there
-// is no deferred completion, so a handler that offloads work to the GPU (e.g.
-// launches a CUDA graph) synchronizes before returning.  The dispatcher thread
-// has no CUDA device selected; a handler that uses CUDA selects its own.
+// is no deferred completion, so any work the handler starts elsewhere has to
+// be finished before it returns.  The dispatcher thread has no CUDA device
+// selected; a handler that uses CUDA selects its own.
 typedef void (*cudaq_host_rpc_fn_t)(const void *rx_slot, void *tx_slot,
                                     size_t slot_size);
 

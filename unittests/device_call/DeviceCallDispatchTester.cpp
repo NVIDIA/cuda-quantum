@@ -26,9 +26,6 @@ void initializeDeviceCallRuntime(int argc, char **argv);
 void finalizeDeviceCallRuntime();
 
 namespace test {
-bool setupGraphAddThem(int deviceId);
-void teardownGraphAddThem();
-void fillHostGraphAddEntry(cudaq_function_entry_t &entry);
 int populateAddThemTable(cudaq_function_entry_t *entries, bool useOffset,
                          cudaStream_t stream);
 } // namespace test
@@ -60,8 +57,6 @@ static_assert(std::has_virtual_destructor_v<DeviceCallServiceSession>);
 
 constexpr std::uint32_t AddThemFunctionId =
     cudaq::realtime::fnv1a_hash("addThem");
-constexpr std::uint32_t GraphAddThemFunctionId =
-    cudaq::realtime::fnv1a_hash("graphAddThem");
 constexpr std::uint32_t HostAddThemFunctionId =
     cudaq::realtime::fnv1a_hash("hostAddThem");
 constexpr std::int32_t DeviceCallSuccessStatus =
@@ -167,10 +162,8 @@ std::int32_t dispatchUsingFrameLease(std::uint32_t deviceId,
 }
 
 enum class TestGpuTable { AddThem, AddThemOffset };
-enum class TestHostTable { GraphAddThem, HostAddThem, MixedAddThem };
 
 TestGpuTable selectedGpuTable = TestGpuTable::AddThem;
-TestHostTable selectedHostTable = TestHostTable::GraphAddThem;
 
 class TestRealtimeServiceSession : public DeviceCallServiceSession {
 public:
@@ -227,32 +220,18 @@ private:
   }
 
   int setupHostDispatch() {
-    if (selectedHostTable == TestHostTable::HostAddThem) {
-      teardownHostDispatch();
-      fillHostCallAddEntry(hostEntries[0]);
-      hostEntryCount = 1;
-      return 0;
-    }
-
-    if (!test::setupGraphAddThem(/*deviceId=*/0))
-      return 1;
-
-    test::fillHostGraphAddEntry(hostEntries[0]);
+    teardownHostDispatch();
+    fillHostCallAddEntry(hostEntries[0]);
     hostEntryCount = 1;
-    if (selectedHostTable == TestHostTable::MixedAddThem) {
-      fillHostCallAddEntry(hostEntries[1]);
-      hostEntryCount = 2;
-    }
     return 0;
   }
 
   void teardownHostDispatch() noexcept {
-    test::teardownGraphAddThem();
     hostEntries = {};
     hostEntryCount = 0;
   }
 
-  std::array<cudaq_function_entry_t, 2> hostEntries{};
+  std::array<cudaq_function_entry_t, 1> hostEntries{};
   std::uint32_t hostEntryCount = 0;
   cudaq_function_entry_t *deviceEntries = nullptr;
   DeviceCallDispatchTable table;
@@ -287,16 +266,11 @@ void initializeGpuRuntime(TestGpuTable table = TestGpuTable::AddThem) {
   cudaq_internal::device_call::initializeDeviceCallRuntime(1, argv);
 }
 
-void initializeHostRuntime(TestHostTable table) {
-  selectedHostTable = table;
+void initializeHostRuntime() {
   char program[] = "test_device_call_dispatch";
   char option[] = "--cudaq-device-call=host-dispatch";
   char *argv[] = {program, option};
   cudaq_internal::device_call::initializeDeviceCallRuntime(2, argv);
-}
-
-void initializeHostRuntime() {
-  initializeHostRuntime(TestHostTable::GraphAddThem);
 }
 
 void finalizeRuntime() {
@@ -410,51 +384,9 @@ TEST_F(DeviceCallDispatchTest, ReinitializesThroughDiscoveredPlugin) {
   EXPECT_EQ(142, response);
 }
 
-class HostGraphDispatchFrameTest : public ::testing::Test {
-protected:
-  void SetUp() override { ASSERT_NO_THROW(initializeHostRuntime()); }
-
-  void TearDown() override {
-    if (frame)
-      __cudaq_device_call_safely_release_realtime_frame(frame);
-    ASSERT_NO_THROW(finalizeRuntime());
-  }
-
-  void *frame = nullptr;
-};
-
-TEST_F(HostGraphDispatchFrameTest,
-       DispatchesGraphLaunchingHostCallThroughFrameLease) {
-  void *requestPayload = nullptr;
-  void *responsePayload = nullptr;
-  ASSERT_EQ(DeviceCallSuccessStatus,
-            __cudaq_device_call_acquire_realtime_frame(
-                0, GraphAddThemFunctionId, 2 * sizeof(std::int32_t),
-                sizeof(std::int32_t), &frame, &requestPayload,
-                &responsePayload));
-  ASSERT_NE(nullptr, frame);
-  ASSERT_NE(nullptr, requestPayload);
-  ASSERT_NE(nullptr, responsePayload);
-
-  auto *const args = static_cast<std::int32_t *>(requestPayload);
-  args[0] = 19;
-  args[1] = 23;
-
-  std::uint64_t responseLen = 0;
-  ASSERT_EQ(DeviceCallSuccessStatus,
-            __cudaq_device_call_dispatch_realtime_frame(frame, &responseLen));
-  EXPECT_EQ(sizeof(std::int32_t), responseLen);
-  EXPECT_EQ(42, *static_cast<std::int32_t *>(responsePayload));
-
-  __cudaq_device_call_safely_release_realtime_frame(frame);
-  frame = nullptr;
-}
-
 class HostCallDispatchFrameTest : public ::testing::Test {
 protected:
-  void SetUp() override {
-    ASSERT_NO_THROW(initializeHostRuntime(TestHostTable::HostAddThem));
-  }
+  void SetUp() override { ASSERT_NO_THROW(initializeHostRuntime()); }
 
   void TearDown() override { ASSERT_NO_THROW(finalizeRuntime()); }
 };
@@ -470,40 +402,6 @@ TEST_F(HostCallDispatchFrameTest, DispatchesHostCallThroughFrameLease) {
                                     &response, sizeof(response), &responseLen));
   EXPECT_EQ(sizeof(response), responseLen);
   EXPECT_EQ(42, response);
-}
-
-class HostMixedDispatchFrameTest : public ::testing::Test {
-protected:
-  void SetUp() override {
-    ASSERT_NO_THROW(initializeHostRuntime(TestHostTable::MixedAddThem));
-  }
-
-  void TearDown() override { ASSERT_NO_THROW(finalizeRuntime()); }
-};
-
-TEST_F(HostMixedDispatchFrameTest,
-       DispatchesHostCallAndGraphLaunchingHostCallEntries) {
-  std::array<std::int32_t, 2> request{19, 23};
-
-  std::int32_t hostResponse = 0;
-  std::uint64_t hostResponseLen = 0;
-  ASSERT_EQ(DeviceCallSuccessStatus,
-            dispatchUsingFrameLease(0, HostAddThemFunctionId, request.data(),
-                                    request.size() * sizeof(request[0]),
-                                    &hostResponse, sizeof(hostResponse),
-                                    &hostResponseLen));
-  EXPECT_EQ(sizeof(hostResponse), hostResponseLen);
-  EXPECT_EQ(42, hostResponse);
-
-  std::int32_t graphResponse = 0;
-  std::uint64_t graphResponseLen = 0;
-  ASSERT_EQ(DeviceCallSuccessStatus,
-            dispatchUsingFrameLease(0, GraphAddThemFunctionId, request.data(),
-                                    request.size() * sizeof(request[0]),
-                                    &graphResponse, sizeof(graphResponse),
-                                    &graphResponseLen));
-  EXPECT_EQ(sizeof(graphResponse), graphResponseLen);
-  EXPECT_EQ(42, graphResponse);
 }
 
 class DeviceCallServicePluginTest : public ::testing::Test {

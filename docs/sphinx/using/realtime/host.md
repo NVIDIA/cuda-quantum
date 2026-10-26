@@ -454,7 +454,6 @@ Parameters:
 - `mgr`: owning manager.
 - `config`: filled `cudaq_dispatcher_config_t` with:
   - `device_id` (default 0): selects the CUDA device for the dispatcher
-  (`CUDAQ_DISPATCH_PATH_DEVICE` only; the host path selects no device)
   - `num_blocks` (default 1)
   - `threads_per_block` (default 32)
   - `num_slots` (required)

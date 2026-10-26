@@ -11,24 +11,29 @@
 // Test-only helper for building small CUDA device-call service shims. This
 // emits the service plugin discovery entry point consumed by the runtime.
 //
-// Example: given a natural CUDA device function:
+// Example: given a natural function compiled for both host and device:
 //
-//   extern "C" __device__ int foo(int a, int b) { return a + b; }
+//   extern "C" __host__ __device__ int foo(int a, int b) { return a + b; }
 //
-// The macro pair wraps it so the realtime dispatch kernel can call it through
-// the flat byte-buffer realtime RPC ABI (RPCHeader + packed args -> RPCResponse
-// + result):
+// The macro pair wraps it so the realtime dispatcher (the GPU dispatch kernel,
+// or the host loop for the host-dispatch shape) can call it through the flat
+// byte-buffer realtime RPC ABI (RPCHeader + packed args -> RPCResponse +
+// result):
 //
 //   CUDAQ_DEVICE_CALL_LIBRARY_BEGIN(my_lib)
 //   CUDAQ_DEVICE_CALL_EXPORT(foo)
 //   CUDAQ_DEVICE_CALL_LIBRARY_END()
 //
-// At build time this emits a `__global__` init kernel that fills one
-// `cudaq_function_entry_t` for `foo`:
+// At build time this emits a fill function that initialises one
+// `cudaq_function_entry_t` for `foo`.  The GPU shape runs it from a
+// `__global__` init kernel:
 //
 //   entry.function_id       = fnv1a_hash("foo")   // dispatch key
 //   entry.handler.device_fn_ptr = &DeviceCallWrapper<&foo>::call
 //   entry.dispatch_mode     = CUDAQ_DISPATCH_DEVICE_CALL
+//
+// The host-dispatch shape runs the same function on the host and registers
+// `HostCallAdapter<&foo>::call` as a CUDAQ_DISPATCH_HOST_CALL handler instead.
 //
 // At runtime, when the dispatch kernel receives an RPC request with
 // `function_id == fnv1a_hash("foo")`, it calls `DeviceCallWrapper<&foo>::call`
@@ -212,18 +217,18 @@ consteval cudaq_handler_schema_t makeHandlerSchema() {
 // Caller must have aligned `offset` via alignOffset before calling; the
 // direct dereference is safe because the buffer is already T-aligned.
 template <typename T>
-__device__ scalar_storage_t<T> loadScalar(const std::uint8_t *bytes,
-                                          std::uint64_t offset) {
+__host__ __device__ scalar_storage_t<T> loadScalar(const std::uint8_t *bytes,
+                                                   std::uint64_t offset) {
   return *reinterpret_cast<const scalar_storage_t<T> *>(bytes + offset);
 }
 
 template <typename T>
-__device__ void storeScalar(void *bytes, const T &value) {
+__host__ __device__ void storeScalar(void *bytes, const T &value) {
   std::memcpy(bytes, &value, sizeof(scalar_storage_t<T>));
 }
 
 template <typename T>
-__device__ void zeroObject(T &object) {
+__host__ __device__ void zeroObject(T &object) {
   std::memset(&object, 0, sizeof(T));
 }
 
@@ -231,9 +236,9 @@ __device__ void zeroObject(T &object) {
 // `argLen`. If the MLIR marshalling is correct the advance is always zero (the
 // buffer is already aligned); a non-zero advance or a bounds failure indicates
 // a marshalling bug on the host side.
-__device__ inline bool alignOffset(std::uint64_t &offset,
-                                   std::uint64_t alignment,
-                                   std::uint64_t argLen) {
+__host__ __device__ inline bool alignOffset(std::uint64_t &offset,
+                                            std::uint64_t alignment,
+                                            std::uint64_t argLen) {
   if (alignment <= 1)
     return offset <= argLen;
   std::uint64_t addend = alignment - 1;
@@ -248,9 +253,9 @@ __device__ inline bool alignOffset(std::uint64_t &offset,
 // the correct alignment boundary; a non-zero advance signals a marshalling bug.
 // Returns true on success or false if the buffer is malformed.
 template <typename T>
-__device__ inline bool decodeScalar(const std::uint8_t *args,
-                                    std::uint64_t argLen, std::uint64_t &offset,
-                                    scalar_storage_t<T> &out) {
+__host__ __device__ inline bool
+decodeScalar(const std::uint8_t *args, std::uint64_t argLen,
+             std::uint64_t &offset, scalar_storage_t<T> &out) {
   using S = scalar_storage_t<T>;
   if (!alignOffset(offset, scalarAlignment<T>(), argLen) ||
       sizeof(S) > argLen - offset)
@@ -262,12 +267,15 @@ __device__ inline bool decodeScalar(const std::uint8_t *args,
 
 // --- Adapter wrappers --------------------------------------------------------
 
-// Adapter from the realtime handler ABI to the user's natural device function.
-// Important: this wrapper directly calls Fn. Therefore the
-// shim translation unit must have the natural CUDA implementation available in
-// the same CUDA device module, e.g. by including a .cuh implementation body.
-// A device function that exists only in an already-linked CUDA shared library
-// cannot be resolved by this direct-call wrapper.
+// Adapter from the realtime handler ABI to the user's natural function. It is
+// compiled for both the device (the GPU-dispatch shape calls it from the
+// dispatch kernel) and the host (the host-dispatch shape calls it through
+// HostCallAdapter on the dispatcher thread), so Fn must be `__host__
+// __device__`. Important: this wrapper directly calls Fn. Therefore the shim
+// translation unit must have the natural implementation available in the same
+// module, e.g. by including a .cuh implementation body. A function that exists
+// only in an already-linked shared library cannot be resolved by this
+// direct-call wrapper.
 template <auto Fn>
 struct DeviceCallWrapper;
 
@@ -276,9 +284,10 @@ struct DeviceCallWrapper<Fn> {
   // Two-pointer realtime handler ABI (same form as a host-call handler): the
   // RPCHeader + packed argument bytes sit in `rxSlot`; the result bytes go
   // right after the RPCResponse in `txSlot`, whose `result_len` this wrapper
-  // sets.  The dispatch kernel fills the other response header fields.
-  __device__ static std::int32_t call(const void *rxSlot, void *txSlot,
-                                      std::size_t slotSize) {
+  // sets.  The dispatch kernel (GPU shape) or HostCallAdapter (host shape)
+  // fills the other response header fields.
+  __host__ __device__ static std::int32_t call(const void *rxSlot, void *txSlot,
+                                               std::size_t slotSize) {
     if (!rxSlot || !txSlot || slotSize < sizeof(cudaq::realtime::RPCResponse))
       return -1;
     const auto *const request =
@@ -306,10 +315,10 @@ private:
   // stored successfully. Returns false when the result buffer is invalid or
   // too small.
   template <typename... Decoded>
-  __device__ static bool invokeDecoded(void *output, std::uint32_t maxResultLen,
-                                       std::uint32_t *resultLen,
-                                       std::uint32_t byRefResultLen,
-                                       Decoded... decoded) {
+  __host__ __device__ static bool
+  invokeDecoded(void *output, std::uint32_t maxResultLen,
+                std::uint32_t *resultLen, std::uint32_t byRefResultLen,
+                Decoded... decoded) {
     // The realtime ABI always reports an explicit result length. Void
     // functions either produce no bytes or fill one by-ref result array;
     // scalar functions store one packed result.
@@ -331,7 +340,7 @@ private:
   // successfully. Returns false for malformed payloads, insufficient result
   // storage, or allocation failures.
   template <std::size_t Index, typename... Decoded>
-  __device__ static bool
+  __host__ __device__ static bool
   decodeAndInvoke(const std::uint8_t *args, std::uint64_t argLen,
                   std::uint64_t offset, void *output,
                   std::uint32_t maxResultLen, std::uint32_t *resultLen,
@@ -457,15 +466,51 @@ private:
   }
 };
 
-// Initialises one function-table entry inside the CUDA init kernel.
+// HOST_CALL handler behind every entry of the host-dispatch shape. The realtime
+// host dispatcher runs it inline on its own thread; it decodes and invokes the
+// function through the same DeviceCallWrapper the GPU shape runs on the device,
+// then completes the response header, which the host path leaves to the
+// handler. The service side makes no CUDA runtime calls.
 template <auto Fn>
-__device__ void fillEntry(cudaq_function_entry_t &entry,
-                          std::uint32_t functionId) {
+struct HostCallAdapter {
+  static void call(const void *rxSlot, void *txSlot, std::size_t slotSize) {
+    if (!rxSlot || !txSlot || slotSize < sizeof(cudaq::realtime::RPCResponse))
+      return;
+    const auto *const request =
+        static_cast<const cudaq::realtime::RPCHeader *>(rxSlot);
+    // Read the header before the wrapper writes the response: on an in-place
+    // ring the two slots alias.
+    const std::uint32_t requestId = request->request_id;
+    const std::uint64_t ptpTimestamp = request->ptp_timestamp;
+    const std::int32_t status =
+        DeviceCallWrapper<Fn>::call(rxSlot, txSlot, slotSize);
+    auto *const response = static_cast<cudaq::realtime::RPCResponse *>(txSlot);
+    response->magic = cudaq::realtime::RPC_MAGIC_RESPONSE;
+    response->status = status;
+    response->request_id = requestId;
+    response->ptp_timestamp = ptpTimestamp;
+    if (status != 0)
+      response->result_len = 0;
+  }
+};
+
+// Initialises one function-table entry. Compiled for the device it runs inside
+// the generated init kernel and registers the device wrapper as a DEVICE_CALL
+// entry; compiled for the host it runs in the host-dispatch service and
+// registers the host adapter as a HOST_CALL entry.
+template <auto Fn>
+__host__ __device__ void fillEntry(cudaq_function_entry_t &entry,
+                                   std::uint32_t functionId) {
   zeroObject(entry);
+#ifdef __CUDA_ARCH__
   entry.handler.device_fn_ptr =
       reinterpret_cast<void *>(&DeviceCallWrapper<Fn>::call);
-  entry.function_id = functionId;
   entry.dispatch_mode = CUDAQ_DISPATCH_DEVICE_CALL;
+#else
+  entry.handler.host_fn = &HostCallAdapter<Fn>::call;
+  entry.dispatch_mode = CUDAQ_DISPATCH_HOST_CALL;
+#endif
+  entry.function_id = functionId;
   entry.schema = makeHandlerSchema<Fn>();
 }
 
@@ -599,306 +644,43 @@ struct GeneratedDeviceCallService : public DeviceCallService {
   }
 };
 
-// --- Host-dispatch graph trampoline ------------------------------------------
+// --- Host-dispatch table -----------------------------------------------------
 //
-// The host-dispatch service exports the same device functions behind
-// CUDAQ_DISPATCH_HOST_CALL entries. Every entry's `host_fn` is
-// `GeneratedHostDispatchGraphTable::hostTrampoline`, which runs on the realtime
-// host dispatcher thread, launches one single-node CUDA graph that performs the
-// function-table dispatch on the device, waits for it, and returns; the host
-// dispatcher then publishes the response. The dispatcher thread has no CUDA
-// device selected, so the trampoline selects the table's device itself.
-
-// Two-pointer realtime handler ABI: (rx_slot, tx_slot, slot_size) -> status.
-using DeviceCallAbiHandler = std::int32_t (*)(const void *, void *,
-                                              std::size_t);
-
-// ABI value of `DeviceCallStatus::CudaError` from the device_call runtime
-// (`cudaq_internal/device_call/DeviceCallError.h`). The trampoline reports a
-// failed graph launch in-band through `RPCResponse::status` with this value.
-constexpr std::int32_t HostDispatchCudaErrorStatus = 3;
-
-// Graph node kernel for the host-dispatch path of device_call. Handles one RPC
-// request per graph launch. `ioContext` is the device alias of the table's
-// pinned `GraphIOContext`.
-//
-// Launch protocol (performed by
-// `GeneratedHostDispatchGraphTable::hostTrampoline` for every HOST_CALL
-// request):
-//   1. The trampoline fills the pinned `GraphIOContext` with the device views
-//      of the RX/TX slots and `tx_flag = nullptr`.
-//   2. The trampoline calls `cudaGraphLaunch` and `cudaStreamSynchronize`.
-//   3. This kernel runs, dispatches, and writes the response. It never touches
-//      the TX flag: the host dispatcher publishes the slot once the trampoline
-//      returns.
-__global__ void
-deviceCallHostDispatchGraphKernel(cudaq::realtime::GraphIOContext *ioContext,
-                                  cudaq_function_entry_t *functionTable,
-                                  std::uint32_t functionCount) {
-  // Single-thread dispatch: the graph node is always launched with 1 block.
-  if (threadIdx.x != 0 || blockIdx.x != 0)
-    return;
-
-  if (!ioContext || !ioContext->rx_slot || !ioContext->tx_slot)
-    return;
-
-  // `rx_slot` carries `RPCHeader` followed immediately by the packed argument
-  // bytes. `tx_slot` receives `RPCResponse` followed by the result bytes.
-  const auto *const request =
-      static_cast<const cudaq::realtime::RPCHeader *>(ioContext->rx_slot);
-  auto *const response =
-      reinterpret_cast<cudaq::realtime::RPCResponse *>(ioContext->tx_slot);
-
-  std::int32_t status = -1; // default: malformed payload
-  if (request->magic == cudaq::realtime::RPC_MAGIC_REQUEST &&
-      ioContext->tx_stride_sz >= sizeof(cudaq::realtime::RPCResponse)) {
-    // Linear scan over the full device table.
-    const auto *const entry = [&]() -> const cudaq_function_entry_t * {
-      for (std::uint32_t i = 0; i < functionCount; ++i)
-        if (functionTable[i].function_id == request->function_id)
-          return &functionTable[i];
-      return nullptr;
-    }();
-
-    if (entry && entry->dispatch_mode == CUDAQ_DISPATCH_DEVICE_CALL &&
-        entry->handler.device_fn_ptr) {
-      const auto handler =
-          reinterpret_cast<DeviceCallAbiHandler>(entry->handler.device_fn_ptr);
-      // Two-pointer call, as on the device dispatch path: the handler writes
-      // its result bytes immediately after the RPCResponse header and sets
-      // result_len.
-      status = handler(ioContext->rx_slot, ioContext->tx_slot,
-                       ioContext->tx_stride_sz);
-    }
-  }
-
-  response->magic = cudaq::realtime::RPC_MAGIC_RESPONSE;
-  response->request_id = request->request_id;
-  response->ptp_timestamp = request->ptp_timestamp;
-  response->status = status;
-  // The handler owns result_len; force it to 0 for unhandled requests and
-  // failed handlers.  (Not pre-zeroed: tx_slot may alias rx_slot.)
-  if (status != 0)
-    response->result_len = 0;
-}
-
-// Build and instantiate the single-node CUDA graph for the host-dispatch table.
-// The graph is destroyed immediately after instantiation; `cudaGraphExec_t`
-// is self-contained and does not hold a reference to the source graph.
-inline cudaError_t createHostDispatchGraph(
-    cudaGraphExec_t *execOut, cudaq::realtime::GraphIOContext *d_ioContext,
-    cudaq_function_entry_t *d_table, std::uint32_t functionCount) {
-  if (!execOut || !d_ioContext || !d_table)
-    return cudaErrorInvalidValue;
-
-  cudaGraph_t graph = nullptr;
-  cudaError_t err = cudaGraphCreate(&graph, 0);
-  if (err != cudaSuccess)
-    return err;
-
-  void *kernelArgs[] = {&d_ioContext, &d_table, &functionCount};
-  const cudaKernelNodeParams params = [&] {
-    cudaKernelNodeParams result{};
-    result.func = reinterpret_cast<void *>(deviceCallHostDispatchGraphKernel);
-    result.gridDim = dim3(1, 1, 1);
-    result.blockDim = dim3(32, 1, 1);
-    result.kernelParams = kernelArgs;
-    return result;
-  }();
-
-  cudaGraphNode_t node = nullptr;
-  err = cudaGraphAddKernelNode(&node, graph, nullptr, 0, &params);
-  if (err != cudaSuccess) {
-    cudaGraphDestroy(graph);
-    return err;
-  }
-
-  err = cudaGraphInstantiate(execOut, graph, nullptr, nullptr, 0);
-  cudaGraphDestroy(graph);
-  return err;
-}
-
-template <auto InitTableKernel, std::uint32_t Count>
-struct GeneratedHostDispatchGraphTable {
+// The host-dispatch service exports the same functions as the GPU shape behind
+// CUDAQ_DISPATCH_HOST_CALL entries. `FillTable` is the generated fill function
+// (the EXPORT list of the shim) compiled for the host, so every entry gets
+// `HostCallAdapter<Fn>::call` as its `host_fn`.
+template <auto FillTable, std::uint32_t Count>
+struct GeneratedHostDispatchTable {
   static inline cudaq_function_entry_t h_entries[Count]{};
-  static inline cudaq_function_entry_t *d_entries = nullptr;
-  // One graph exec, one stream and one pinned, mapped `GraphIOContext` serve
-  // the whole table: the kernel resolves the function from the request header
-  // and HOST_CALL handlers run serialized on the dispatcher thread.
-  static inline cudaq::realtime::GraphIOContext *h_ioContext = nullptr;
-  static inline cudaq::realtime::GraphIOContext *d_ioContext = nullptr;
-  static inline cudaGraphExec_t graphExec = nullptr;
-  static inline cudaStream_t stream = nullptr;
-  static inline int deviceId = 0;
   static inline bool initialized = false;
 
+  static void setup() {
+    if (initialized)
+      return;
+    std::memset(h_entries, 0, sizeof(h_entries));
+    FillTable(h_entries);
+    initialized = true;
+  }
+
   static void teardown() noexcept {
-    if (graphExec)
-      cudaGraphExecDestroy(graphExec);
-    if (stream)
-      cudaStreamDestroy(stream);
-    if (d_entries)
-      cudaFree(d_entries);
-    if (h_ioContext)
-      cudaFreeHost(h_ioContext);
-    graphExec = nullptr;
-    stream = nullptr;
-    d_entries = nullptr;
-    h_ioContext = nullptr;
-    d_ioContext = nullptr;
     std::memset(h_entries, 0, sizeof(h_entries));
     initialized = false;
   }
-
-  static int setup(int device = 0) {
-    if (initialized)
-      return 0;
-    if (Count == 0)
-      return 1;
-    deviceId = device;
-    if (reportCudaError(cudaSetDevice(deviceId), "cudaSetDevice") !=
-        cudaSuccess)
-      return 1;
-
-    // Scope-exit guard: fires on any early return to undo partial setup.
-    // Skips cleanup once `initialized` is set to true.
-    struct SetupGuard {
-      ~SetupGuard() {
-        if (!initialized)
-          teardown();
-      }
-    } guard;
-
-    if (reportCudaError(
-            cudaStreamCreateWithFlags(&stream, cudaStreamNonBlocking),
-            "cudaStreamCreateWithFlags") != cudaSuccess)
-      return 1;
-
-    if (reportCudaError(
-            cudaMalloc(&d_entries, Count * sizeof(cudaq_function_entry_t)),
-            "cudaMalloc device_call host-dispatch table") != cudaSuccess)
-      return 1;
-
-    InitTableKernel<<<1, 1, 0, stream>>>(d_entries);
-    if (reportCudaError(cudaGetLastError(), "device_call_init_table launch") !=
-            cudaSuccess ||
-        reportCudaError(cudaStreamSynchronize(stream),
-                        "device_call_init_table synchronize") != cudaSuccess)
-      return 1;
-
-    if (reportCudaError(cudaMemcpyAsync(h_entries, d_entries,
-                                        Count * sizeof(cudaq_function_entry_t),
-                                        cudaMemcpyDeviceToHost, stream),
-                        "cudaMemcpyAsync device_call host table") !=
-            cudaSuccess ||
-        reportCudaError(cudaStreamSynchronize(stream),
-                        "cudaMemcpy device_call host table synchronize") !=
-            cudaSuccess)
-      return 1;
-
-    if (reportCudaError(cudaHostAlloc(reinterpret_cast<void **>(&h_ioContext),
-                                      sizeof(cudaq::realtime::GraphIOContext),
-                                      cudaHostAllocMapped),
-                        "cudaHostAlloc device_call graph IO context") !=
-        cudaSuccess)
-      return 1;
-    std::memset(h_ioContext, 0, sizeof(cudaq::realtime::GraphIOContext));
-    if (reportCudaError(
-            cudaHostGetDevicePointer(reinterpret_cast<void **>(&d_ioContext),
-                                     h_ioContext, 0),
-            "cudaHostGetDevicePointer device_call graph IO context") !=
-        cudaSuccess)
-      return 1;
-
-    if (reportCudaError(
-            createHostDispatchGraph(&graphExec, d_ioContext, d_entries, Count),
-            "createHostDispatchGraph") != cudaSuccess)
-      return 1;
-
-    for (std::uint32_t i = 0; i < Count; ++i) {
-      h_entries[i].handler.host_fn = &hostTrampoline;
-      h_entries[i].dispatch_mode = CUDAQ_DISPATCH_HOST_CALL;
-    }
-
-    initialized = true;
-    return 0;
-  }
-
-  // HOST_CALL handler shared by every entry of the table. It runs on the
-  // realtime host dispatcher thread, launches the dispatch graph for this
-  // request and waits for it; the dispatcher publishes the response when the
-  // handler returns. A CUDA failure is reported in-band as an RPCResponse with
-  // `HostDispatchCudaErrorStatus` and no result bytes.
-  static void hostTrampoline(const void *rxSlot, void *txSlot,
-                             std::size_t slotSize) {
-    const cudaError_t err = launchGraph(rxSlot, txSlot, slotSize);
-    if (err == cudaSuccess)
-      return;
-    reportCudaError(err, "device_call host-dispatch graph launch");
-    writeCudaErrorResponse(rxSlot, txSlot, slotSize);
-  }
-
-  static cudaError_t launchGraph(const void *rxSlot, void *txSlot,
-                                 std::size_t slotSize) {
-    // The dispatcher thread has no device selected.
-    cudaError_t err = cudaSetDevice(deviceId);
-    if (err != cudaSuccess)
-      return err;
-
-    // The ring slots are `cudaHostAllocMapped` memory; the kernel needs their
-    // device views.
-    cudaPointerAttributes rxAttributes{};
-    err = cudaPointerGetAttributes(&rxAttributes, rxSlot);
-    if (err != cudaSuccess)
-      return err;
-    cudaPointerAttributes txAttributes{};
-    err = cudaPointerGetAttributes(&txAttributes, txSlot);
-    if (err != cudaSuccess)
-      return err;
-    if (!rxAttributes.devicePointer || !txAttributes.devicePointer)
-      return cudaErrorInvalidValue;
-
-    h_ioContext->rx_slot = rxAttributes.devicePointer;
-    h_ioContext->tx_slot =
-        static_cast<std::uint8_t *>(txAttributes.devicePointer);
-    h_ioContext->tx_flag = nullptr;
-    h_ioContext->tx_flag_value = 0;
-    h_ioContext->tx_stride_sz = slotSize;
-
-    err = cudaGraphLaunch(graphExec, stream);
-    if (err != cudaSuccess)
-      return err;
-    return cudaStreamSynchronize(stream);
-  }
-
-  static void writeCudaErrorResponse(const void *rxSlot, void *txSlot,
-                                     std::size_t slotSize) {
-    if (!rxSlot || !txSlot || slotSize < sizeof(cudaq::realtime::RPCResponse))
-      return;
-    const auto *const request =
-        static_cast<const cudaq::realtime::RPCHeader *>(rxSlot);
-    auto *const response = static_cast<cudaq::realtime::RPCResponse *>(txSlot);
-    response->magic = cudaq::realtime::RPC_MAGIC_RESPONSE;
-    response->request_id = request->request_id;
-    response->ptp_timestamp = request->ptp_timestamp;
-    response->status = HostDispatchCudaErrorStatus;
-    response->result_len = 0;
-  }
 };
 
-template <auto InitTableKernel, std::uint32_t Count>
+template <auto FillTable, std::uint32_t Count>
 struct GeneratedHostDispatchSession : public DeviceCallServiceSession {
-  using Table = GeneratedHostDispatchGraphTable<InitTableKernel, Count>;
+  using Table = GeneratedHostDispatchTable<FillTable, Count>;
 
   GeneratedHostDispatchSession() {
     if constexpr (Count == 0)
       throw std::runtime_error("device_call service exported no functions");
-    if (Table::setup() != 0)
-      throw std::runtime_error("host device_call service table setup failed");
+    Table::setup();
     table.mode = DeviceCallDispatchMode::Host;
     table.entries = Table::h_entries;
     table.count = Count;
-    table.deviceId = Table::deviceId;
+    table.deviceId = 0;
   }
 
   ~GeneratedHostDispatchSession() override { stop(); }
@@ -916,14 +698,13 @@ private:
   DeviceCallDispatchTable table;
 };
 
-template <auto InitTableKernel, std::uint32_t Count>
+template <auto FillTable, std::uint32_t Count>
 struct GeneratedHostDispatchService : public DeviceCallService {
   std::unique_ptr<DeviceCallServiceSession>
   createDispatchSession(DeviceCallDispatchMode mode) override {
     if (mode != DeviceCallDispatchMode::Host)
       return nullptr;
-    return std::make_unique<
-        GeneratedHostDispatchSession<InitTableKernel, Count>>();
+    return std::make_unique<GeneratedHostDispatchSession<FillTable, Count>>();
   }
 
   static DeviceCallService *getService() {
@@ -943,9 +724,11 @@ struct GeneratedHostDispatchService : public DeviceCallService {
   CUDAQ_DEVICE_CALL_CONCAT(cudaqGetDeviceCallServicePluginInfo_, name)
 
 // Begin one device-call registration table. The macro opens a private
-// namespace and a CUDA kernel body; each CUDAQ_DEVICE_CALL_EXPORT invocation
-// appends one entry to that kernel. Use exactly one BEGIN/END pair per shim
-// translation unit in this prototype.
+// namespace and the body of a host- and device-callable fill function; each
+// CUDAQ_DEVICE_CALL_EXPORT invocation appends one entry to it. The END macro
+// decides how the function is run: from an init kernel on the device (GPU
+// dispatch) or directly on the host (host dispatch). Use exactly one BEGIN/END
+// pair per shim translation unit in this prototype.
 #define CUDAQ_DEVICE_CALL_LIBRARY_BEGIN(name)                                  \
   namespace {                                                                  \
   ::cudaq::realtime::DeviceCallService *__cudaq_device_call_get_service();     \
@@ -960,10 +743,8 @@ struct GeneratedHostDispatchService : public DeviceCallService {
   }                                                                            \
   namespace {                                                                  \
   enum { __cudaq_device_call_counter_begin = __COUNTER__ };                    \
-  __global__ void                                                              \
-  __cudaq_device_call_init_table(cudaq_function_entry_t *entries) {            \
-    if (threadIdx.x != 0 || blockIdx.x != 0)                                   \
-      return;
+  __host__ __device__ inline void                                              \
+  __cudaq_device_call_fill_table(cudaq_function_entry_t *entries) {
 
 // Register one natural device function. The function name string is the
 // logical dispatch key. fnv1a_hash is constexpr host-only;
@@ -974,9 +755,16 @@ struct GeneratedHostDispatchService : public DeviceCallService {
       entries[__COUNTER__ - __cudaq_device_call_counter_begin - 1],            \
       cudaq::realtime::fnv1a_hash(#function));
 
-// Finish the table and export the service plugin info entry point.
+// Finish the table and export the service plugin info entry point. The GPU
+// shape fills its device-resident table from an init kernel.
 #define CUDAQ_DEVICE_CALL_LIBRARY_END()                                        \
-  } /* close __cudaq_device_call_init_table */                                 \
+  } /* close __cudaq_device_call_fill_table */                                 \
+  __global__ void __cudaq_device_call_init_table(                              \
+      cudaq_function_entry_t *entries) {                                       \
+    if (threadIdx.x != 0 || blockIdx.x != 0)                                   \
+      return;                                                                  \
+    __cudaq_device_call_fill_table(entries);                                   \
+  }                                                                            \
   constexpr std::uint32_t __cudaq_device_call_count =                          \
       static_cast<std::uint32_t>(__COUNTER__ -                                 \
                                  __cudaq_device_call_counter_begin - 1);       \
@@ -988,14 +776,16 @@ struct GeneratedHostDispatchService : public DeviceCallService {
   }                                                                            \
   } /* close anonymous namespace */
 
+// Finish the table for the host-dispatch shape: the fill function runs on the
+// host and the entries become HOST_CALL handlers.
 #define CUDAQ_DEVICE_CALL_HOST_DISPATCH_LIBRARY_END()                          \
-  } /* close __cudaq_device_call_init_table */                                 \
+  } /* close __cudaq_device_call_fill_table */                                 \
   constexpr std::uint32_t __cudaq_device_call_count =                          \
       static_cast<std::uint32_t>(__COUNTER__ -                                 \
                                  __cudaq_device_call_counter_begin - 1);       \
   using __cudaq_device_call_service_traits =                                   \
       ::cudaq_internal::device_call::detail::GeneratedHostDispatchService<     \
-          &__cudaq_device_call_init_table, __cudaq_device_call_count>;         \
+          &__cudaq_device_call_fill_table, __cudaq_device_call_count>;         \
   ::cudaq::realtime::DeviceCallService *__cudaq_device_call_get_service() {    \
     return __cudaq_device_call_service_traits::getService();                   \
   }                                                                            \

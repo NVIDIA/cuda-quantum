@@ -563,9 +563,8 @@ When `dispatch_path == CUDAQ_DISPATCH_PATH_HOST`, the host dispatcher thread
 polls `rx_flags_host` and uses `rx_data_host` / `tx_data_host`; the four host
 views are required and the device views may be NULL.  The ring must be
 CUDA-mapped (`cudaHostAllocMapped` + `cudaHostGetDevicePointer`, both views
-referring to the same allocation) only when a GPU consumer touches the
-memory, such as a transport kernel polling `tx_flags` or a graph launched
-from a handler.
+referring to the same allocation) only when a GPU consumer, such as a
+transport kernel polling `tx_flags`, touches the memory.
 
 Call this before `cudaq_dispatcher_start`, after allocating mapped host memory
 or device memory for the ring buffers.
@@ -1042,8 +1041,8 @@ The **host dispatch path** (`CUDAQ_DISPATCH_PATH_HOST`) runs the dispatch
 loop on a single CPU thread instead of a GPU-resident kernel.  The thread
 polls `rx_flags_host`, looks up the incoming `function_id` in the function
 table and calls the matching `CUDAQ_DISPATCH_HOST_CALL` handler inline.  The
-loop never touches the CUDA runtime: it selects no device, creates no stream
-and launches no graph.  GPU work, if any, is launched by the handler itself.
+loop never touches the CUDA runtime: it selects no device and creates no
+stream.
 
 Select this path by setting `dispatch_path = CUDAQ_DISPATCH_PATH_HOST` in
 `cudaq_dispatcher_config_t`.  The device path (`CUDAQ_DISPATCH_PATH_DEVICE`)
@@ -1054,12 +1053,8 @@ remains the default and continues to work exactly as described above.
 Use `CUDAQ_DISPATCH_PATH_HOST` when:
 
 - The handler is plain C++ code with no GPU involvement
-- The handler drives the GPU through host-side CUDA calls (libraries, memory
-    allocation, host-launched graphs).  Device-side graph launch allows at
-    most 120 fire-and-forget child launches per execution of the persistent
-    dispatch graph; graphs launched from a host handler have no such limit
-- Standard CUDA tooling is needed for profiling and debugging
-    (host-launched graphs appear in `Nsight Systems` timelines)
+- The service runs on a machine without a GPU (for example the CPU RoCE
+    transport in `lib/cpu_transport/`)
 
 Use `CUDAQ_DISPATCH_PATH_DEVICE` when:
 
@@ -1104,70 +1099,9 @@ each iteration:
 Because the handler runs inline, a long-running handler blocks the loop for
 its duration, and requests in the other slots wait.
 
-### Launching GPU Work from a Handler
-
-A HOST_CALL handler that needs the GPU launches its own work and
-**synchronizes before returning**.  The dispatcher publishes the TX flag as
-soon as `host_fn` returns and offers no deferred completion, so the
-`RPCResponse` must be complete in the TX slot at that point.  The pattern
-below is the one exercised by `test_host_dispatcher.cu`
-(`HostCallGraphTest.HandlerLaunchesGraphSynchronously`):
-
-- The dispatcher thread has no CUDA device selected; the handler calls
-    `cudaSetDevice` itself.
-- The application owns a pre-instantiated `cudaGraphExec_t`, a non-blocking
-    `cudaStream_t` and one `cudaq::realtime::GraphIOContext` (declared in
-    `dispatch_kernel_launch.h`) in mapped pinned memory.  The graph's kernel
-    takes the device view of that context as its argument.
-- The ring slots are mapped pinned memory, so the handler translates the
-    `rx_slot` / `tx_slot` host pointers into device views (by offset from the
-    ring base, or with `cudaPointerGetAttributes`) and fills the context with
-    `tx_flag = nullptr`.  The kernel writes the `RPCResponse` header and the
-    result into `tx_slot` and never touches the TX flag; publishing is the
-    dispatcher's job.
-- The handler calls `cudaGraphLaunch` followed by `cudaStreamSynchronize`.
-- A CUDA failure is reported in-band: the handler writes an `RPCResponse`
-    with a non-zero `status` and `result_len = 0` and returns normally.
-
-```cpp
-// Application-owned state, set up once before the dispatcher starts.
-static int g_device_id;
-static cudaGraphExec_t g_exec;                  // pre-instantiated graph
-static cudaStream_t g_stream;                   // cudaStreamNonBlocking
-static GraphIOContext *g_ctx_host, *g_ctx_dev;  // cudaHostAllocMapped
-static uint8_t *g_rx_host, *g_rx_dev;           // RX ring, both views
-static uint8_t *g_tx_host, *g_tx_dev;           // TX ring, both views
-
-static void graph_host_call(const void *rx_slot, void *tx_slot,
-                            size_t slot_size) {
-  const auto *req = static_cast<const RPCHeader *>(rx_slot);
-  cudaError_t err = cudaSetDevice(g_device_id);
-  if (err == cudaSuccess) {
-    g_ctx_host->rx_slot =
-        g_rx_dev + (static_cast<const uint8_t *>(rx_slot) - g_rx_host);
-    g_ctx_host->tx_slot =
-        g_tx_dev + (static_cast<uint8_t *>(tx_slot) - g_tx_host);
-    g_ctx_host->tx_flag = nullptr;  // the dispatcher publishes the TX flag
-    g_ctx_host->tx_flag_value = 0;
-    g_ctx_host->tx_stride_sz = slot_size;
-    err = cudaGraphLaunch(g_exec, g_stream);  // the kernel reads *g_ctx_dev
-  }
-  if (err == cudaSuccess)
-    err = cudaStreamSynchronize(g_stream);
-  if (err != cudaSuccess) {
-    auto *resp = static_cast<RPCResponse *>(tx_slot);
-    resp->magic = RPC_MAGIC_RESPONSE;
-    resp->status = -1;  // reported in-band
-    resp->result_len = 0;
-    resp->request_id = req->request_id;
-    resp->ptp_timestamp = req->ptp_timestamp;
-  }
-}
-```
-
-HOST_CALL handlers are serialized on the dispatcher thread, so one graph
-exec, one stream and one context are enough; a kernel that serves several
-functions reads `function_id` from the request header.
+The response is published the moment `host_fn` returns and there is no
+deferred completion, so any work the handler starts elsewhere has to be
+finished by then.  The dispatcher thread has no CUDA device selected.
 
 ### TX Flag States
 
@@ -1262,7 +1196,7 @@ The following example shows end-to-end wiring of a HOST_CALL handler through
 the host dispatch path, based on `test_host_dispatcher.cu`.  The handler is
 plain C++, so the ring buffers are ordinary host memory and only the host
 views of `cudaq_ringbuffer_t` are set.  The device views are needed only
-when a GPU consumer (a transport kernel, or a graph launched from a handler)
+when a GPU consumer (a transport kernel)
 touches the ring; allocate the ring with `cudaHostAllocMapped` and set both
 views in that case.
 

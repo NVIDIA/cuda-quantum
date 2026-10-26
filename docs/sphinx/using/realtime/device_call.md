@@ -53,8 +53,7 @@ Additional options:
 The built-in channels (`shared-memory`, `host-dispatch`, `gpu-dispatch`) run an
 in-process service and are not covered in depth here. `host-dispatch` uses the
 `libcudaq-realtime` host path and dispatches service entries as
-`CUDAQ_DISPATCH_HOST_CALL` handlers; a handler that needs the GPU launches its
-own graph and synchronizes before returning.
+`CUDAQ_DISPATCH_HOST_CALL` handlers.
 The remainder of this page documents the `cpu_roce` channel.
 
 ## Extending an in-process service
