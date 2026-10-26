@@ -65,7 +65,8 @@ regressions with:
 ctest --test-dir build -R '^optimizer-config$' --output-on-failure
 ```
 
-They configure isolated build trees without compiling.
+They configure isolated build trees without compiling, reuse the parent build's
+dependency search hints, and do not update source submodules.
 
 ## GPU accelerated backends
 
