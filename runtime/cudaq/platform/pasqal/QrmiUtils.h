@@ -148,11 +148,10 @@ public:
   ~ResourceSession() {
     if (!resource_ || !acquisitionToken_)
       return;
-    auto rc = qrmi_resource_release(resource_.get(), acquisitionToken_.get());
-    if (rc == QRMI_RETURN_CODE_SUCCESS) {
-      unsetenv(acquisitionTokenEnvName_.c_str());
-      acquisitionToken_.reset();
-    }
+    // Only this object owns the variable; never leave it for the next session
+    // to borrow.
+    unsetenv(acquisitionTokenEnvName_.c_str());
+    qrmi_resource_release(resource_.get(), acquisitionToken_.get());
   }
 
   std::string startTask(QrmiPayload &payload) {
