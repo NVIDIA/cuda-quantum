@@ -59,11 +59,12 @@ qlx.program @bad_symbolic_action : () -> i1 attributes {qlx.stage = "p0"} {
 
 /// Positive-basis builtins have exact qubit-only signatures. Generic
 /// qlx.apply supports typed classical payloads, but those payloads are not
-/// part of H/S/T/CX/idle semantics and cannot receive a Clifford+T certificate.
+/// part of H/S/T/CX/idle semantics. Operation verification rejects them before
+/// the Clifford+T certificate pass runs.
 qlx.program @bad_t_classical_payload : () -> i1 attributes {qlx.stage = "p0"} {
   %q = qlx.prepare "zero" {allocation = 0 : i64, value_index = 0 : i64} : !qlx.logical_qubit
   %c = arith.constant 0.0 : f64
-  // expected-error@+1 {{positive Clifford+T basis actions require exactly 1 logical-qubit inputs and results and no classical payloads}}
+  // expected-error@+1 {{fixed built-in action requires exactly 1 logical-qubit inputs and results and no classical payloads}}
   %t:2 = qlx.apply #qlx.action<t>(%q, %c)
       : (!qlx.logical_qubit, f64) -> (!qlx.logical_qubit, i1)
   qlx.discard %t#0 : !qlx.logical_qubit

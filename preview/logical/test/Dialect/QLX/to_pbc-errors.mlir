@@ -73,12 +73,12 @@ qlx.program @bad_workload_idle : () -> i1 attributes {qlx.stage = "p0"} {
 // -----
 
 /// Builtin gates in the synthesized source are qubit-only operations. A
-/// classical payload must fail during preflight instead of surviving until
-/// source erasure with a live result.
+/// classical payload must fail operation verification before lowering can
+/// erase the source with a live result.
 qlx.program @bad_t_classical_payload : () -> i1 attributes {qlx.stage = "p0"} {
   %q = qlx.prepare "zero" {allocation = 0 : i64, value_index = 0 : i64} : !qlx.logical_qubit
   %c = arith.constant 0.0 : f64
-  // expected-error@+1 {{qlx-to-pbc requires this builtin action to have exactly 1 logical-qubit inputs and results and no classical payloads}}
+  // expected-error@+1 {{fixed built-in action requires exactly 1 logical-qubit inputs and results and no classical payloads}}
   %t:2 = qlx.apply #qlx.action<t>(%q, %c)
       : (!qlx.logical_qubit, f64) -> (!qlx.logical_qubit, i1)
   qlx.discard %t#0 : !qlx.logical_qubit
