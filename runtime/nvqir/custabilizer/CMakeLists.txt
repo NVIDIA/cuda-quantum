@@ -6,8 +6,14 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-enable_language(CUDA)
-find_package(CUDAToolkit REQUIRED)
+message(STATUS "cuStabilizer_FOUND - building custabilizer NVQIR backend.")
+message(STATUS "Found custabilizer version: ${cuStabilizer_VERSION}")
+
+# Preserve native cuStabilizer lookup after installation, as for other cuQuantum
+# backends. Relative paths below cover cuStabilizer installed next to the wheel.
+get_target_property(_cust_loc cuStabilizer::cuStabilizer IMPORTED_LOCATION)
+get_filename_component(_cust_dir "${_cust_loc}" DIRECTORY)
+set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:${_cust_dir}")
 
 set(LIBRARY_NAME nvqir-custabilizer)
 set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
@@ -18,9 +24,10 @@ set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS ${LIBRARY_NAME})
 file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/nvqir-custabilizer.map "
 {
   global:
-    *;
+    getCircuitSimulator;
+    getCircuitSimulator_custabilizer;
   local:
-    *4stim*;
+    *;
 };
 ")
 
@@ -30,7 +37,7 @@ target_include_directories(${LIBRARY_NAME}
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
     $<INSTALL_INTERFACE:include>
   PRIVATE
-    ${CUSTABILIZER_INCLUDE_DIR})
+    ${CMAKE_SOURCE_DIR}/tpls/Stim/src)
 
 target_link_libraries(${LIBRARY_NAME}
   PRIVATE
@@ -39,16 +46,20 @@ target_link_libraries(${LIBRARY_NAME}
     fmt::fmt-header-only
     cudaq-common
     cudaq-logger
-    ${CUSTABILIZER_LIBRARY}
-    CUDA::cudart)
+    cuStabilizer::cuStabilizer
+    CUDA::cudart_static)
 
 target_link_options(${LIBRARY_NAME}
   PRIVATE
     "-Wl,--version-script,${CMAKE_CURRENT_BINARY_DIR}/nvqir-custabilizer.map")
 
-get_filename_component(CUSTABILIZER_LIB_DIR ${CUSTABILIZER_LIBRARY} DIRECTORY)
 set_target_properties(${LIBRARY_NAME}
-  PROPERTIES INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:${LLVM_BINARY_DIR}/lib:${CUSTABILIZER_LIB_DIR}")
+  PROPERTIES
+    CXX_VISIBILITY_PRESET hidden
+    VISIBILITY_INLINES_HIDDEN YES
+    BUILD_WITH_INSTALL_RPATH FALSE
+    INSTALL_RPATH_USE_LINK_PATH FALSE
+    INSTALL_RPATH "${CMAKE_INSTALL_RPATH};$ORIGIN/../cuquantum/lib;$ORIGIN/../../cuquantum/lib")
 
 add_custom_command(
   TARGET ${LIBRARY_NAME}
@@ -58,6 +69,6 @@ add_custom_command(
   COMMENT "Verifying that no stim namespace symbols are exported in ${LIBRARY_NAME}..."
 )
 
-install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
+install(TARGETS ${LIBRARY_NAME} DESTINATION lib COMPONENT Runtime)
 
 add_target_config(custabilizer)

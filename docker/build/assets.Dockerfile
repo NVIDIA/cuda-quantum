@@ -213,7 +213,7 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
 
 # Validate that the nvidia backend was built.
 RUN source /cuda-quantum/scripts/configure_build.sh && \
-    for lib in libnvqir-custatevec-fp32.so libnvqir-custatevec-fp64.so; do \
+    for lib in libnvqir-custatevec-fp32.so libnvqir-custatevec-fp64.so libnvqir-custabilizer.so; do \
         if [ ! -f "$CUDAQ_INSTALL_PREFIX/lib/$lib" ]; then \
             echo -e "\e[01;31mError: Missing nvidia backend ($lib).\e[0m" >&2; \
             exit 1; \
@@ -259,7 +259,7 @@ RUN source /cuda-quantum/scripts/configure_build.sh && \
         libname="$(basename "$binary")" && \
         # Linking cublas dynamically necessarily adds a libgcc_s dependency to the GPU-based simulators.
         # The same holds for a range of CUDA libraries, whereas libcudart.so does not have any GCC dependencies.
-        if [ "${libname#libnvqir-custatevec}" != "$libname" ] || [ "${libname#libnvqir-nvidia-mgpu}" != "$libname" ] || [ "${libname#libnvqir-tensornet}" != "$libname" ] || [ "${libname#libnvqir-dynamics}" != "$libname" ]; then \
+        if [ "${libname#libnvqir-custatevec}" != "$libname" ] || [ "${libname#libnvqir-custabilizer}" != "$libname" ] || [ "${libname#libnvqir-nvidia-mgpu}" != "$libname" ] || [ "${libname#libnvqir-tensornet}" != "$libname" ] || [ "${libname#libnvqir-dynamics}" != "$libname" ]; then \
             echo "Skipping validation of $libname."; \
         elif [ -n "$(ldd "${binary}" 2>/dev/null | grep gcc)" ]; then \
             has_gcc_dependencies=true && \
@@ -347,6 +347,7 @@ RUN echo "Patching up wheel using auditwheel..." && \
         --exclude libcutensor.so.2 \
         --exclude libcutensornet.so.2 \
         --exclude libcustatevec.so.1 \
+        --exclude libcustabilizer.so.0 \
         --exclude libcudensitymat.so.0 \
         --exclude libcudart.so.11.0 \
         --exclude libnvToolsExt.so.1 \
@@ -355,7 +356,7 @@ RUN echo "Patching up wheel using auditwheel..." && \
     ## [<CUDAQuantumWheel]
 
 # Validate that the nvidia backend was built.
-RUN for lib in libnvqir-custatevec-fp32.so libnvqir-custatevec-fp64.so; do \
+RUN for lib in libnvqir-custatevec-fp32.so libnvqir-custatevec-fp64.so libnvqir-custabilizer.so; do \
         if [ ! -f "/cuda-quantum/_skbuild/lib/$lib" ]; then \
             echo -e "\e[01;31mError: Missing nvidia backend ($lib).\e[0m" >&2; \
             exit 1; \

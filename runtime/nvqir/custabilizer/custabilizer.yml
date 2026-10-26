@@ -8,6 +8,7 @@
 
 name: custabilizer
 description: "cuStabilizer-accelerated backend target"
+gpu-requirements: true
 config:
   nvqir-simulation-backend: custabilizer
   preprocessor-defines: ["-D CUDAQ_SIMULATION_SCALAR_FP64"]
