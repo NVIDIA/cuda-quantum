@@ -6,13 +6,12 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# Shared by install_prerequisites.sh and bootstrap_prerequisites.sh: library
-# version/source definitions, command line argument parsing, lock-file
-# generation, and common helper functions (retry, download_first,
-# temp_install_if_command_unknown, remove_temp_installs, prepare_exit).
+# Shared by install_prerequisites.sh: library version/source definitions,
+# command line argument parsing, lock-file generation, and common helper
+# functions (retry, download_first, temp_install_if_command_unknown,
+# remove_temp_installs, prepare_exit).
 #
-# Not meant to be run directly -- sourced from one of the two scripts above,
-# which set up the per-toolchain installation steps that follow.
+# Not meant to be run directly -- sourced from install_prerequisites.sh.
 
 # Centralized version / source definitions used by both installation and lockfile
 # generation. Keeping these here avoids duplication between code paths.
@@ -71,17 +70,20 @@ QRMI_ARCHIVE_SHA256=${QRMI_ARCHIVE_SHA256:-38c2f4e28cb74daed3f701a1119a895305e75
 toolchain=''
 exclude_prereq=''
 install_all=true
+bootstrap=false
 lock_mode=false
 prereqs_lock_mode_done=false
 __optind__=$OPTIND
 OPTIND=1
-while getopts ":e:t:ml-:" opt; do
+while getopts ":e:t:mbl-:" opt; do
   case $opt in
     e) exclude_prereq="$(echo "$OPTARG" | tr '[:upper:]' '[:lower:]')"
     ;;
     t) toolchain="$OPTARG"
     ;;
     m) install_all=false
+    ;;
+    b) bootstrap=true
     ;;
     l) lock_mode=true
     ;;

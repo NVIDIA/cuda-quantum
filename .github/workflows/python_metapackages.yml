@@ -44,6 +44,21 @@ on:
         type: boolean
         default: true
         description: Run the test_metapackages job after building.
+      build_packages:
+        required: false
+        type: boolean
+        default: true
+        description: Build the metapackages; if false, reuse cudaq-metapackage-<cudaq_version>.
+      retention_days:
+        required: false
+        type: number
+        default: 1
+        description: Retention of the metapackage artifact.
+      artifacts_run_id:
+        required: false
+        type: string
+        default: ''
+        description: Run to take test artifacts from. Defaults to this run.
     outputs:
       artifact_name:
         description: "The name of the artifact that contains the built metapackages."
@@ -54,6 +69,7 @@ name: Python metapackages
 jobs:
   build_metapackages:
     name: Build Python metapackages
+    if: inputs.build_packages
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -132,15 +148,19 @@ jobs:
         with:
           name: ${{ steps.metapackage_build.outputs.artifact_name }}
           path: /tmp/packages/
-          retention-days: 1
+          retention-days: ${{ inputs.retention_days }}
           if-no-files-found: error
 
   test_metapackages:
     name: Test Python metapackages
     needs: build_metapackages
-    if: inputs.run_tests
+    if: >-
+      ${{ !cancelled() && inputs.run_tests
+      && (needs.build_metapackages.result == 'success'
+      || needs.build_metapackages.result == 'skipped') }}
     runs-on: ubuntu-latest
     permissions:
+      actions: read
       contents: read
       packages: read
 
@@ -165,8 +185,10 @@ jobs:
       - name: Load metapackages
         uses: actions/download-artifact@v8
         with:
-          pattern: ${{ needs.build_metapackages.outputs.artifact_name }}
+          pattern: cudaq-metapackage-${{ inputs.cudaq_version }}
           path: /tmp/metapackages/
+          run-id: ${{ inputs.artifacts_run_id || github.run_id }}
+          github-token: ${{ github.token }}
           merge-multiple: true
 
       - name: Load wheels
@@ -174,6 +196,8 @@ jobs:
         with:
           pattern: ${{ inputs.wheel_artifacts }}
           path: /tmp/wheels/
+          run-id: ${{ inputs.artifacts_run_id || github.run_id }}
+          github-token: ${{ github.token }}
           merge-multiple: true
 
       - name: Load cudaq-logical wheels
@@ -181,6 +205,8 @@ jobs:
         with:
           pattern: ${{ inputs.logical_wheel_artifacts }}
           path: /tmp/logical-wheels/
+          run-id: ${{ inputs.artifacts_run_id || github.run_id }}
+          github-token: ${{ github.token }}
           merge-multiple: true
 
       - name: Test installation

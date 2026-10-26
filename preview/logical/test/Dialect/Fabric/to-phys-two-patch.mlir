@@ -7,6 +7,7 @@
 // ========================================================================== //
 
 // RUN: qlx-opt %s --pass-pipeline='builtin.module(fabric-to-phys{root-symbol=p2 device-symbol=device})' | FileCheck %s
+// RUN: not qlx-opt %s --pass-pipeline='builtin.module(fabric-to-phys{root-symbol=p2 device-symbol=device graph-symbol=code})' 2>&1 | FileCheck %s --check-prefix=COLLISION
 
 module attributes {qlx.profiles = ["p2n"]} {
   phys.action @cx {
@@ -69,9 +70,12 @@ module attributes {qlx.profiles = ["p2n"]} {
       : (!fabric.patch_frame<@frame>) -> !fabric.patch_frame<@frame>
     %measured, %bits = fabric.mz %cz data [0, 1] {record = "readout"}
       : !fabric.patch_frame<@frame> -> tensor<2xi1>
+    // A second measurement must reuse the instrument created by the first.
+    %remeasured, %again = fabric.mz %measured data [0, 1] {record = "again"}
+      : !fabric.patch_frame<@frame> -> tensor<2xi1>
     %parity = fabric.parity %bits : (tensor<2xi1>) -> i1
     %all_zero = fabric.all_zero %bits : tensor<2xi1> -> i1
-    %done = fabric.transform_end %measured using @frame
+    %done = fabric.transform_end %remeasured using @frame
       : (!fabric.patch_frame<@frame>) -> !fabric.patch<@code, @encoding>
     fabric.dealloc %done : !fabric.patch<@code, @encoding>
     fabric.protocol_return
@@ -102,6 +106,7 @@ module attributes {qlx.profiles = ["p2n"]} {
 }
 
 // CHECK: phys.graph @p2_physical
+// COLLISION: fabric-to-phys output symbol @code already exists
 // CHECK: phys.rotate_product
 // CHECK-SAME: angle = 5.000000e-01 : f64
 // CHECK-SAME: paulis = ["Y"]

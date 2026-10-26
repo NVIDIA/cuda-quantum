@@ -321,9 +321,9 @@ public:
         args.push_back(a);
       }
     }
-    auto call = cudaq::cc::NoInlineCallOp::create(
-        builder, loc, funcTy.getResults(), funcOp.getName(), args, ArrayAttr(),
-        ArrayAttr());
+    auto call = func::CallOp::create(builder, loc, funcTy.getResults(),
+                                     funcOp.getName(), args);
+    call.setNoInline(true);
     // After the kernel call, clean up any `Array` allocations during kernel
     // executions.
     func::CallOp::create(builder, loc, TypeRange{},

@@ -40,6 +40,8 @@ done
 DRIVER_CUDA_VERSION_MAJOR=$(nvidia-smi | sed -nE 's/.*CUDA( [A-Z]+)? Version: *([0-9]+).*/\2/p' | head -1)
 
 # DOCA version
+# Names the nvcr.io/nvidia/doca/doca base image, which has no 3.4 release yet;
+# move to 3.4.0, the version the realtime build uses, once it is published.
 DOCA_VERSION=3.3.0
 
 # Only support CUDA 13 for now, as the DOCA version we use only supports CUDA 13.

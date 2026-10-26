@@ -10,11 +10,15 @@
 
 // YAML v2 schema for target configuration.
 //
+// This schema is a pre-release: it is selected with `version: 2-alpha` and
+// has no compatibility guarantees until it stabilizes as `version: 2`.
+//
 // v2 moves the compilation options out of `config` into a dedicated
 // top-level `compile-target` block and introduces support for declarative
 // IR profiles.
 
 #include "Yaml/v1/TargetConfigV1.h"
+#include "cudaq/Target/Profile/QuakeReferenceSemanticsProfile.h"
 #include <optional>
 #include <string>
 #include <vector>
@@ -58,11 +62,26 @@ struct BackendFeatureMapV2 {
 
 /// (Dummy) IR profile that accepts any IR.
 struct UncheckedProfileV2 {
-  using Tag = rfl::Literal<"unchecked">;
+  using Tag = rfl::Literal<UncheckedProfile::name>;
+};
+
+/// IR profile for reference-semantics Quake IR.
+struct QuakeReferenceSemanticsProfileV2 {
+  using Tag = rfl::Literal<QuakeReferenceSemanticsProfile::name>;
+
+  /// Valid options.
+  struct QuakeReferenceSemanticsProfileOptionsV2 {
+    rfl::DefaultVal<std::vector<std::string>> basisGates;
+    rfl::DefaultVal<MeasurementForm> measurementType = MeasurementForm::any;
+    rfl::DefaultVal<bool> resetAfterMeasure = false;
+  };
+
+  rfl::DefaultVal<QuakeReferenceSemanticsProfileOptionsV2> options;
 };
 
 /// Union of all supported IR profiles, selected by its `name`.
-using IrOutputProfileV2 = rfl::TaggedUnion<"name", UncheckedProfileV2>;
+using IrOutputProfileV2 = rfl::TaggedUnion<"name", UncheckedProfileV2,
+                                           QuakeReferenceSemanticsProfileV2>;
 
 /// Staged pipelines inserted at the appropriate compilation stages.
 struct StagedPipelinesV2 {
@@ -79,9 +98,11 @@ struct CustomPipelineLoweringV2 {
 
 /// One compilation stage: the IR output profile to lower to and the lowering
 /// to get there.
+///
+/// An omitted `lowering` defaults to `InferredLowering`.
 struct CompilationStageV2 {
   IrOutputProfileV2 irOutputProfile;
-  CustomPipelineLoweringV2 lowering;
+  std::optional<CustomPipelineLoweringV2> lowering;
 };
 
 /// Code generation: emission format and optional `post-codegen-passes`
@@ -98,7 +119,7 @@ struct CompileTargetV2 {
 };
 
 struct TargetConfigV2 {
-  using Tag = rfl::Literal<"2">;
+  using Tag = rfl::Literal<"2-alpha">;
   std::string name;
   std::string description;
   rfl::DefaultVal<std::string> cudaqVersion;
