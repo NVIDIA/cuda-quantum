@@ -99,15 +99,34 @@ RUN source /cuda-quantum/scripts/configure_build.sh && \
         exit 1; \
     fi
 
+# The LLVM toolchain with the MLIR Python bindings does not depend on the CUDA-Q
+# sources, so it is built here to be cached independently of the Python build.
+FROM prereqs AS prereqs_python
+ARG PYTHON=python3.11
+RUN dnf install -y --nobest --setopt=install_weak_deps=False ${PYTHON}-devel && \
+    ${PYTHON} -m ensurepip --upgrade && \
+    CCACHE_DISABLE=1 ${PYTHON} -m pip install numpy build auditwheel patchelf
+
+RUN cd /cuda-quantum && \
+    . scripts/configure_build.sh && \
+    # Needed to retrigger the LLVM build, since the MLIR Python bindings
+    # are not built in the prereqs stage.
+    rm -rf "${LLVM_INSTALL_PREFIX}" && \
+    # IMPORTANT:
+    # Make sure that the invocation of the install_prerequisites.sh script here matches
+    # the ones in the install_prerequisites.sh invocation in the prereqs stage
+    # and in the python_build stage!
+    LLVM_PROJECTS='clang;flang;lld;mlir;python-bindings;openmp;runtimes' \
+    bash scripts/install_prerequisites.sh -t llvm -e qrmi
+
+## [C++ support]
+FROM prereqs AS cpp_build
 # Checking out a CUDA-Q commit is suboptimal, since the source code
 # version must match this file. At the same time, adding the entire current
 # directory will always rebuild CUDA-Q, so we instead just add only
 # the necessary files for the build to each build stage.
 ADD .git/index /cuda-quantum/.git/index
 ADD .git/modules/ /cuda-quantum/.git/modules/
-
-## [C++ support]
-FROM prereqs AS cpp_build
 ADD "cmake" /cuda-quantum/cmake
 ADD "docs/CMakeLists.txt" /cuda-quantum/docs/CMakeLists.txt
 ADD "docs/sphinx/examples" /cuda-quantum/docs/sphinx/examples
@@ -253,7 +272,9 @@ RUN source /cuda-quantum/scripts/configure_build.sh && \
     fi
 
 ## [Python support]
-FROM prereqs AS python_build
+FROM prereqs_python AS python_build
+ADD .git/index /cuda-quantum/.git/index
+ADD .git/modules/ /cuda-quantum/.git/modules/
 # Bring all possible templates into the image, then pick the exact one
 ADD pyproject.toml.cu* /cuda-quantum/
 ADD "python" /cuda-quantum/python
@@ -288,11 +309,6 @@ RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
         mkdir -p /root/.ccache; \
     fi
 
-ARG PYTHON=python3.11
-RUN dnf install -y --nobest --setopt=install_weak_deps=False ${PYTHON}-devel && \
-    ${PYTHON} -m ensurepip --upgrade && \
-    CCACHE_DISABLE=1 ${PYTHON} -m pip install numpy build auditwheel patchelf
-
 RUN cd /cuda-quantum && \
     . scripts/configure_build.sh && \
     case "${CUDA_VERSION%%.*}" in \
@@ -300,12 +316,7 @@ RUN cd /cuda-quantum && \
       13) cp pyproject.toml.cu13 pyproject.toml || true ;; \
       *)  echo "Unsupported CUDA_VERSION=${CUDA_VERSION}"; exit 1 ;; \
     esac && \
-    # Needed to retrigger the LLVM build, since the MLIR Python bindings
-    # are not built in the prereqs stage.
-    rm -rf "${LLVM_INSTALL_PREFIX}" && \
-    # IMPORTANT:
-    # Make sure that the invocation of the install_prerequisites.sh script here matches
-    # the ones in the install_prerequisites.sh invocation in the prereqs stage!
+    # The LLVM build is a no-op here, since the prereqs_python stage already did it.
     ## [>CUDAQuantumPythonBuild]
     LLVM_PROJECTS='clang;flang;lld;mlir;python-bindings;openmp;runtimes' \
     bash scripts/install_prerequisites.sh -t llvm -e qrmi && \
