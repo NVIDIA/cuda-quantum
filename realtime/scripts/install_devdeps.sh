@@ -35,8 +35,8 @@ if [ ! -x "$(command -v apt-get)" ]; then
   exit 1
 fi
 
-# Fail early if the CUDA toolkit is missing; the exact version is needed below.
-CUDA_FULL_VERSION=$(cudaq_realtime_cuda_version)
+# Fail early if the CUDA toolkit is missing.
+cudaq_realtime_cuda_version > /dev/null
 
 retry apt-get update
 retry apt-get install -y --no-install-recommends \
