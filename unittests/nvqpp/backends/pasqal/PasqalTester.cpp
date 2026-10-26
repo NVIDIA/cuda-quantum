@@ -45,6 +45,15 @@ const std::string sampleSequence = R"(
   }
 })";
 
+CUDAQ_TEST(PasqalTester, checkJsonKeepsNanoseconds) {
+  // Pulser durations are whole nanoseconds; 708 ns must not become 710 ns.
+  cudaq::ahs::TimeSeries series(
+      std::vector<std::pair<double, double>>{{0.0, 0.0}, {1.0e6, 708.0e-9}});
+  nlohmann::json serialized = series;
+  cudaq::ahs::TimeSeries parsed = serialized;
+  EXPECT_TRUE(parsed.almostEqual(series, 1.0e-12));
+}
+
 CUDAQ_TEST(PasqalTester, checkHamiltonianJson) {
   cudaq::ahs::AtomArrangement layout;
   layout.sites = {{0.0, 0.0}, {0.0, 6.0e-6}, {6.0e-6, 0.0}};
