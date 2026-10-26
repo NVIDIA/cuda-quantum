@@ -278,8 +278,8 @@ jobs:
         with:
           name: ${{ steps.config.outputs.artifact_name }}
           path: /tmp/install
-          # Validation fetches this; must outlive the run.
-          retention-days: 14
+          # Validation fetches this; must outlive the run, and a release needs it longer.
+          retention-days: ${{ inputs.release_version != '' && 14 || 3 }}
           if-no-files-found: error
 
       # The artifact also holds a wheel, which is not a release asset.
