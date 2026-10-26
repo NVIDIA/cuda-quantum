@@ -6,10 +6,11 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+// clang-format off
+// RUN: if %quantinuum_avail; then nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s; fi
+// clang-format on
 
-// RUN: nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s
-
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 #include <cudaq/algorithms/resource_estimation.h>
 
 template <std::size_t N>
@@ -32,9 +33,10 @@ int main() {
   auto counts = cudaq::estimate_resources(kernel);
 
   counts.dump();
-  // CHECK: Total # of gates: 54
+  // CHECK: Total # of gates: 64
   // CHECK-DAG: h :  9
   // CHECK-DAG: cx :  45
+  // CHECK-DAG: mz :  10
 
   return 0;
 }

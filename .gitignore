@@ -51,6 +51,7 @@
 /dist/
 /*egg*/
 /python/*egg*
+**/*.egg-info
 /*tmp*/
 /wheelhouse/
 **/.ipynb_checkpoints
@@ -58,10 +59,15 @@ compile_commands.json
 **/*.dat
 **/.antlr
 __pycache__/
+.pytest_cache/
+pytest-of-*/
+.codegraph/
 
 # IDE files
 .vscode/*
 .theia/*
+*.code-workspace
+.env
 
 # Container files
 **/.docker/*
@@ -85,7 +91,7 @@ docs/sphinx/_mdgen
 _version.py
 
 # Generated files
-targettests/generated
+python/tests/mlir/generated
 
 # third party integrations
 simulators/
@@ -96,3 +102,10 @@ apps/
 
 # JetBrains IDE files
 .idea
+
+# PySCF
+*.chk
+*-pyscf.log
+
+# Aspell (pyspelling pre-commit hook)
+dictionary.dic

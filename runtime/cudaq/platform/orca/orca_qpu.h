@@ -10,6 +10,7 @@
 #include "common/ExecutionContext.h"
 #include "common/Future.h"
 #include "common/SampleResult.h"
+#include "policy.h"
 #include "cudaq/platform/quantum_platform.h"
 
 #include <functional>
@@ -26,9 +27,6 @@ struct TBIParameters {
 
   int n_samples;
 };
-
-/// @brief Return type for asynchronous sampling.
-using async_sample_result = cudaq::async_result<cudaq::sample_result>;
 
 /// @brief Implementation of the sample method of the cudaq::orca namespace
 cudaq::sample_result sample(std::vector<std::size_t> &input_state,

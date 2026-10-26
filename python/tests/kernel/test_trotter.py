@@ -11,11 +11,11 @@ import cudaq
 import numpy as np
 
 skipIfNvidiaFP64NotInstalled = pytest.mark.skipif(
-    not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia-fp64')),
+    not cudaq.has_target('nvidia-fp64'),
     reason='Could not find nvidia-fp64 in installation')
 
 skipIfNvidiaNotInstalled = pytest.mark.skipif(
-    not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia')),
+    not cudaq.has_target('nvidia'),
     reason='Could not find nvidia in installation')
 
 
@@ -61,7 +61,7 @@ def trotter():
         def termCoefficients(op: cudaq.SpinOperator) -> list[complex]:
             result = []
             for term in op:
-                result.append(term.get_coefficient())
+                result.append(term.evaluate_coefficient())
             return result
 
         def termWords(op: cudaq.SpinOperator) -> list[str]:

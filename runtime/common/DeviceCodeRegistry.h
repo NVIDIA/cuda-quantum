@@ -16,6 +16,12 @@ namespace registry {
 extern "C" {
 void __cudaq_deviceCodeHolderAdd(const char *, const char *);
 void cudaqRegisterKernelName(const char *);
+/// Register a `device_call` callback by name, along with its unmarshal function
+/// and the underlying device function it wraps. Reserved for future distributed
+/// targets that need to look callbacks up by name; the same-process reference
+/// implementation does not use this registry.
+void cudaqRegisterCallbackName(const char *name, void *unmarshalFunc,
+                               void *devFunc);
 void cudaqRegisterArgsCreator(const char *, char *);
 void cudaqRegisterLambdaName(const char *, const char *);
 
@@ -70,4 +76,21 @@ std::string get_quake_by_name(const std::string &kernelName,
 std::string
 get_quake_by_name(const std::string &kernelName, bool throwException,
                   std::optional<std::string> knownMangledArgs = std::nullopt);
+
+/// Get the name of a plain old function that is marked as a quantum kernel.
+inline std::string get_kernel_function_name(std::string &&name) {
+  return "function_" + std::move(name);
+}
+
+inline std::string get_quake(std::string &&functionName,
+                             const std::string &knownMangledArgs) {
+  return get_quake_by_name(get_kernel_function_name(std::move(functionName)),
+                           knownMangledArgs);
+}
+
+typedef std::size_t (*KernelArgsCreator)(void **, void **);
+KernelArgsCreator getArgsCreator(const std::string &kernelName);
+
+bool kernelHasConditionalFeedback(const std::string &kernelName);
+
 } // namespace cudaq

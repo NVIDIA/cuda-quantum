@@ -1,0 +1,957 @@
+/*******************************************************************************
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
+
+#include "cudaq/Frontend/nvqpp/ASTBridge.h"
+#include "cudaq/Frontend/nvqpp/QisBuilder.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
+#include "clang/AST/ParentMapContext.h"
+#include "clang/Basic/TargetCXXABI.h"
+#include "clang/Basic/TargetInfo.h"
+#include "clang/Frontend/CompilerInstance.h"
+#include "clang/Frontend/DependencyOutputOptions.h"
+#include "clang/Frontend/TextDiagnosticPrinter.h"
+#include "clang/Frontend/Utils.h"
+#include "clang/Lex/Preprocessor.h"
+#include "llvm/Support/CommandLine.h"
+#include "llvm/Support/Debug.h"
+#include "llvm/Support/FileSystem.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
+#include "mlir/IR/IRMapping.h"
+#include <cxxabi.h>
+#include <fstream>
+#include <regex>
+
+#define DEBUG_TYPE "lower-ast"
+
+using namespace mlir;
+
+namespace {
+/// A DependencyFileGenerator that rewrites every recorded prerequisite to its
+/// canonical on-disk path. cudaq-quake runs the frontend through
+/// clang::tooling, which distorts the paths clang would normally emit:
+///   - The main input is mapped to a virtual file named after the (bare) input
+///     spelling, so it is recorded as e.g. "main.cpp" instead of its real path.
+///   - libstdc++ headers are recorded with the search-directory spelling clang
+///     computed in the tooling context, which carries a bogus empty install
+///     prefix, e.g. "/../lib/gcc/.../../../../include/c++/13/cstddef".
+/// Both spellings still resolve on disk (the second via the /lib -> /usr/lib
+/// symlink), but once Ninja textually canonicalizes them they no longer stat,
+/// so every object is treated as perpetually out of date. Resolving each entry
+/// with real_path, and substituting the real main-file path, yields
+/// prerequisites Ninja can match.
+class CanonicalDependencyFileGenerator : public clang::DependencyFileGenerator {
+public:
+  CanonicalDependencyFileGenerator(const clang::DependencyOutputOptions &opts,
+                                   std::string mainFileVirtualName,
+                                   std::string mainFileRealPath)
+      : clang::DependencyFileGenerator(opts),
+        mainFileVirtualName(std::move(mainFileVirtualName)),
+        mainFileRealPath(std::move(mainFileRealPath)) {}
+
+  void maybeAddDependency(llvm::StringRef filename, bool fromModule,
+                          bool isSystem, bool isModuleFile,
+                          bool isMissing) override {
+    llvm::SmallString<256> resolved;
+    if (!mainFileRealPath.empty() && filename == mainFileVirtualName) {
+      resolved.assign(mainFileRealPath);
+    } else if (llvm::sys::fs::real_path(filename, resolved)) {
+      // real_path failed (e.g. a genuinely missing header): keep the original
+      // spelling so an -MP phony target is still emitted for it.
+      resolved.assign(filename);
+    }
+    clang::DependencyFileGenerator::maybeAddDependency(
+        resolved, fromModule, isSystem, isModuleFile, isMissing);
+  }
+
+private:
+  std::string mainFileVirtualName;
+  std::string mainFileRealPath;
+};
+} // namespace
+
+void cudaq::ASTBridgeAction::attachDependencyFileGenerator(
+    clang::CompilerInstance &ci) {
+  if (dependencyFileOptions.outputFile.empty())
+    return;
+  clang::DependencyOutputOptions depOpts;
+  depOpts.OutputFile = dependencyFileOptions.outputFile;
+  depOpts.IncludeSystemHeaders = dependencyFileOptions.includeSystemHeaders;
+  // -MP: emit a phony target for every header so deleting a header does not
+  // wedge the build with a "missing prerequisite" error on the next run.
+  depOpts.UsePhonyTargets = true;
+  // DependencyFileGenerator requires at least one target; nvq++ always supplies
+  // one via -MT, but fall back to the output path to stay well-formed.
+  if (dependencyFileOptions.targets.empty())
+    depOpts.Targets.push_back(dependencyFileOptions.outputFile);
+  else
+    depOpts.Targets = dependencyFileOptions.targets;
+  // The virtual name clang::tooling mapped the main source to; used to rewrite
+  // that entry to the real path (see CanonicalDependencyFileGenerator).
+  std::string mainFileVirtualName;
+  const auto &inputs = ci.getFrontendOpts().Inputs;
+  if (!inputs.empty() && inputs.front().isFile())
+    mainFileVirtualName = inputs.front().getFile().str();
+  auto gen = std::make_shared<CanonicalDependencyFileGenerator>(
+      depOpts, std::move(mainFileVirtualName),
+      dependencyFileOptions.mainFileRealPath);
+  gen->attachToPreprocessor(ci.getPreprocessor());
+  ci.addDependencyCollector(gen);
+}
+
+// Generate a list (as a vector) of all the reachable functions recorded in the
+// call graph, \p cgn.
+static llvm::SmallVector<clang::Decl *>
+listReachableFunctions(clang::CallGraphNode *cgn) {
+  llvm::SmallVector<clang::Decl *> result;
+  for (auto call : *cgn) {
+    auto *decl = call.Callee->getDecl();
+    if (auto *nd = dyn_cast<clang::NamedDecl>(decl)) {
+      LLVM_DEBUG(llvm::dbgs() << "adding function: "
+                              << nd->getQualifiedNameAsString() << '\n');
+    }
+    result.push_back(decl);
+  }
+  return result;
+}
+
+// Does `ty` refer to a Quake quantum type? This also checks custom recursive
+// types. It does not check builtin recursive types; e.g., `!llvm.ptr<T>`.
+static bool isQubitType(Type ty) {
+  if (cudaq::quake::isQuakeType(ty))
+    return true;
+  // FIXME: next if case is a bug.
+  if (auto vecTy = dyn_cast<cudaq::cc::SequenceType>(ty))
+    return isQubitType(vecTy.getElementType());
+  return false;
+}
+
+// Check the builtin type FunctionType to see if it has any references to Quake
+// qubit types or `cc.measure_handle` in its arguments and/or results, in any
+// position the kernel boundary classifier needs to treat as device-only.
+static bool hasAnyQuakeOrHandleTypes(FunctionType funcTy) {
+  auto isDeviceOnly = [](Type ty) {
+    return isQubitType(ty) || cudaq::cc::containsMeasureHandle(ty);
+  };
+  for (auto ty : funcTy.getInputs())
+    if (isDeviceOnly(ty))
+      return true;
+  for (auto ty : funcTy.getResults())
+    if (isDeviceOnly(ty))
+      return true;
+  return false;
+}
+
+// Like `hasAnyQuakeOrHandleTypes`, but only the handle component. Used by the
+// functor-`operator()` diagnostic, which fires only when the signature carries
+// a handle (free `__qpu__` functions silently demote even when they carry
+// qubit references).
+static bool containsHandleInSignature(FunctionType funcTy) {
+  for (auto ty : funcTy.getInputs())
+    if (cudaq::cc::containsMeasureHandle(ty))
+      return true;
+  for (auto ty : funcTy.getResults())
+    if (cudaq::cc::containsMeasureHandle(ty))
+      return true;
+  return false;
+}
+
+// Remove the Itanium mangling "_ZTS" prefix. This is to match the name returned
+// by `typeid(TYPE).name()`.
+static std::string
+trimmedMangledTypeName(clang::QualType ty,
+                       clang::ItaniumMangleContext *mangler) {
+  auto s = cudaq::detail::getCxxMangledTypeName(ty, mangler);
+  // Strip off the prefix.
+  constexpr char prefix[] = "_ZTS";
+  constexpr auto prefixLength = sizeof(prefix) - 1;
+  assert(s.length() > prefixLength);
+  if (s.substr(0, prefixLength) == prefix)
+    s = s.substr(prefixLength);
+  // Strip off any leading length. (Similar to original scheme.)
+  while (std::isdigit(s[0]))
+    s = s.substr(1);
+  return s;
+}
+
+/// Append the mangled names of the type arguments of a template specialization,
+/// in order, looking into packs. This matches the names the host side builds
+/// from the type arguments alone (`cudaq::get_kernel_template_function_name`).
+/// Arguments that are not types (`template <bool B>`, `template <int N>`,
+/// template template arguments, ...) are skipped; the mangled name of the
+/// specialization that the callers append after this identifies them.
+static void
+appendTypeArgumentNames(std::string &name,
+                        llvm::ArrayRef<clang::TemplateArgument> args,
+                        clang::ItaniumMangleContext *mangler) {
+  for (const auto &arg : args) {
+    if (arg.getKind() == clang::TemplateArgument::Type)
+      name += trimmedMangledTypeName(arg.getAsType(), mangler);
+    else if (arg.getKind() == clang::TemplateArgument::Pack)
+      appendTypeArgumentNames(name, arg.pack_elements(), mangler);
+  }
+}
+
+std::string
+cudaq::detail::getTagNameOfFunctionDecl(const clang::FunctionDecl *func,
+                                        clang::ItaniumMangleContext *mangler) {
+  if (auto *cxxMethod = dyn_cast<clang::CXXMethodDecl>(func)) {
+    auto *cxxCls = cast<clang::CXXRecordDecl>(func->getParent());
+    if (cxxMethod->isFunctionTemplateSpecialization()) {
+      // Template member function.
+      // class C {
+      //   template<typename A> T operator()(args...) { ... }
+      // };
+      // cudaq::get_class_kernel_name<C, As...>();
+      auto name =
+          "instance_" +
+          trimmedMangledTypeName(
+              mangler->getASTContext().getCanonicalTagType(cxxCls), mangler);
+      assert(cxxMethod->getTemplateSpecializationArgs());
+      appendTypeArgumentNames(
+          name, cxxMethod->getTemplateSpecializationArgs()->asArray(), mangler);
+      name += '.' + cudaq::detail::getCxxMangledDeclName(func, mangler);
+      LLVM_DEBUG(llvm::dbgs() << "template member name is: " << name << '\n');
+      return name;
+    }
+    // Member function, but not a template function.
+    // cudaq::get_class_kernel_name<C>();
+    auto name = trimmedMangledTypeName(
+        mangler->getASTContext().getCanonicalTagType(cxxCls), mangler);
+    LLVM_DEBUG(llvm::dbgs() << "member name is: " << name << '\n');
+    return name;
+  }
+  if (func->isTemplateInstantiation()) {
+    // Template function.
+    // template<typename A> __qpu__ T func(args ...);
+    // cudaq::get_function_kernel_name<As...>("func");
+    auto name = "instance_function_" + func->getName().str();
+    // A member of a class template that is not itself a template has no
+    // specialization arguments of its own.
+    if (auto *args = func->getTemplateSpecializationArgs())
+      appendTypeArgumentNames(name, args->asArray(), mangler);
+    name += '.' + cudaq::detail::getCxxMangledDeclName(func, mangler);
+    LLVM_DEBUG(llvm::dbgs() << "template function name is: " << name << '\n');
+    return name;
+  }
+  // Plain, old function.
+  // __qpu__ T func(args ...);
+  // cudaq::get_function_kernel_name("func");
+  auto name = "function_" + func->getName().str();
+  name += '.' + cudaq::detail::getCxxMangledDeclName(func, mangler);
+  LLVM_DEBUG(llvm::dbgs() << "function name is: " << name << '\n');
+  return name;
+}
+
+namespace {
+// The finder's handlers of these classes are used for the classes that derive
+// from them.
+static_assert(cudaq::detail::derivedDeclsAreKnown<
+              clang::FunctionDecl, clang::CXXMethodDecl,
+              clang::CXXConstructorDecl, clang::CXXDestructorDecl,
+              clang::CXXConversionDecl, clang::CXXDeductionGuideDecl>());
+static_assert(cudaq::detail::derivedDeclsAreKnown<
+              clang::VarDecl, clang::ParmVarDecl, clang::ImplicitParamDecl,
+              clang::DecompositionDecl, clang::OMPCapturedExprDecl,
+              clang::VarTemplateSpecializationDecl,
+              clang::VarTemplatePartialSpecializationDecl>());
+
+/// Is \p ty a CUDA-Q quantum type? That is `qubit`, `qudit`, `qvector`, and the
+/// rest of the containers of qubits. A reference to one is one, and so is a
+/// pointer to one, an array of them, and a template that is specialized on one
+/// (`std::vector<cudaq::qubit>`).
+bool isQuantumType(clang::QualType ty) {
+  ty = ty.getNonReferenceType();
+  while (!ty.isNull()) {
+    if (auto *ptr = ty->getAs<clang::PointerType>())
+      ty = ptr->getPointeeType();
+    else if (auto *arr = ty->getAsArrayTypeUnsafe())
+      ty = arr->getElementType();
+    else
+      break;
+  }
+  if (ty.isNull())
+    return false;
+  // Look through aliases (`using Q = cudaq::qubit`).
+  ty = ty.getCanonicalType();
+  auto *decl = ty->getAsCXXRecordDecl();
+  if (!decl)
+    return false;
+  if (cudaq::isInNamespace(decl, "cudaq"))
+    if (auto *id = decl->getIdentifier()) {
+      auto name = id->getName();
+      if (name == "qubit" || name == "qudit" || name == "qspan" ||
+          name.starts_with("qreg") || name.starts_with("qvector") ||
+          name.starts_with("qarray") || name.starts_with("qview"))
+        return true;
+    }
+  if (auto *spec = dyn_cast<clang::ClassTemplateSpecializationDecl>(decl)) {
+    auto inArgument = [](const clang::TemplateArgument &arg,
+                         auto &&self) -> bool {
+      if (arg.getKind() == clang::TemplateArgument::Type)
+        return isQuantumType(arg.getAsType());
+      if (arg.getKind() == clang::TemplateArgument::Pack)
+        for (const auto &element : arg.pack_elements())
+          if (self(element, self))
+            return true;
+      return false;
+    };
+    for (const auto &arg : spec->getTemplateArgs().asArray())
+      if (inArgument(arg, inArgument))
+        return true;
+  }
+  return false;
+}
+
+/// Is \p x a kernel, or a generator of a custom operation, as it is declared by
+/// any of its declarations or by its definition?
+bool isKernelOrGenerator(const clang::FunctionDecl *x) {
+  using Consumer = cudaq::ASTBridgeAction::ASTBridgeConsumer;
+  auto is = [](const clang::FunctionDecl *f) {
+    return Consumer::isQuantum(f) || Consumer::isCustomOpGenerator(f);
+  };
+  if (auto *definition = x->getDefinition())
+    if (is(definition))
+      return true;
+  for (auto *redecl : x->redecls())
+    if (is(redecl))
+      return true;
+  return false;
+}
+
+/// The functions of the CUDA-Q library and of the standard library work with
+/// quantum types without being kernels, and so do the functions that are marked
+/// as intrinsics (`__qpu_intrinsic__`) by any of their declarations.
+bool isFencedFunction(const clang::FunctionDecl *x) {
+  if (cudaq::isInNamespace(x, "cudaq") || cudaq::isInNamespace(x, "std"))
+    return true;
+  auto &srcMgr = x->getASTContext().getSourceManager();
+  if (srcMgr.isInSystemHeader(x->getLocation()))
+    return true;
+  for (auto *redecl : x->redecls())
+    for (auto *attr : redecl->specific_attrs<clang::AnnotateAttr>())
+      if (attr->getAnnotation() == cudaq::intrinsicAnnotation)
+        return true;
+  return false;
+}
+
+/// A function that is not a kernel cannot take a quantum type.
+void reportQuantumParameters(const clang::FunctionDecl *x,
+                             clang::ItaniumMangleContext *mangler) {
+  for (auto *parm : x->parameters())
+    if (isQuantumType(parm->getType()))
+      cudaq::detail::reportClangError(
+          parm, mangler, "may not use quantum types in non-kernel functions");
+}
+
+/// The QPU code finder class is used to find all function definitions that the
+/// user has annotated with a QPU attribute (`__qpu__`). The finder is a simple
+/// visitor that traverses declarations as called from the AST consumer.
+///
+/// The finder also enforces that a function can only take (or use) a quantum
+/// type if it is a kernel: it is a function of any kind (free function, method,
+/// constructor, ...) that is annotated `__qpu__`, or a generator of a custom
+/// operation. The functions of the CUDA-Q library and of the C++ standard
+/// library are exempt, and so are the functions that are marked as intrinsics
+/// (`__qpu_intrinsic__`), as are lambdas inside a kernel.
+class QPUCodeFinder
+    : public cudaq::detail::ASTResultVisitor<QPUCodeFinder, std::monostate> {
+public:
+  explicit QPUCodeFinder(
+      cudaq::EmittedFunctionsCollection &funcsToEmit, clang::CallGraph &cgb,
+      clang::ItaniumMangleContext *mangler, ModuleOp module,
+      std::unordered_map<std::string, std::string> &customOperations,
+      std::vector<const clang::FunctionDecl *> &deferredChecks)
+      : functionsToEmit(funcsToEmit), callGraphBuilder(cgb), mangler(mangler),
+        module(module), customOperationNames(customOperations),
+        deferredParameterChecks(deferredChecks) {}
+
+  /// Add a kernel to the list of kernels to process.
+  template <bool replace = true>
+  void processQpu(const std::string &kernelName, const clang::FunctionDecl *f) {
+    LLVM_DEBUG(llvm::dbgs()
+               << "adding kernel: " << kernelName << ", "
+               << reinterpret_cast<void *>(const_cast<clang::FunctionDecl *>(f))
+               << '\n');
+    auto iter = std::find_if(functionsToEmit.begin(), functionsToEmit.end(),
+                             [&](auto p) { return p.first == kernelName; });
+    if constexpr (replace) {
+      if (iter == functionsToEmit.end())
+        functionsToEmit.push_back(std::make_pair(kernelName, f));
+      else
+        iter->second = f;
+      callGraphBuilder.addToCallGraph(const_cast<clang::FunctionDecl *>(f));
+    } else {
+      if (iter == functionsToEmit.end())
+        functionsToEmit.push_back(std::make_pair(kernelName, f));
+    }
+  }
+
+  // Check some of the restrictions and limitations on kernel classes. These
+  // restrictions are noted in the CUDA-Q language specification.
+  void check(const clang::CXXRecordDecl *x) {
+    if (!checkedClass)
+      return;
+
+    auto &de = mangler->getASTContext().getDiagnostics();
+    if (!x->bases().empty()) {
+      auto id = de.getCustomDiagID(
+          clang::DiagnosticsEngine::Error,
+          "class inheritance is not allowed for CUDA-Q kernel");
+      de.Report(x->getBeginLoc(), id);
+    }
+    if (!x->fields().empty()) {
+      auto id = de.getCustomDiagID(
+          clang::DiagnosticsEngine::Error,
+          "CUDA-Q kernel class with data members is not yet supported");
+      de.Report(x->getBeginLoc(), id);
+    }
+    unsigned quantumCount = 0;
+    for (auto *method : x->methods()) {
+      if (cudaq::ASTBridgeAction::ASTBridgeConsumer::isQuantum(method)) {
+        if (quantumCount++) {
+          auto id = de.getCustomDiagID(clang::DiagnosticsEngine::Error,
+                                       "CUDA-Q kernel class with multiple "
+                                       "quantum methods not yet supported");
+          de.Report(method->getBeginLoc(), id);
+          break;
+        }
+      }
+    }
+    checkedClass = nullptr;
+  }
+
+  //===--------------------------------------------------------------------===//
+  // Handlers
+  //===--------------------------------------------------------------------===//
+
+  Result visit(clang::CXXRecordDecl *x) {
+    // Keep track of which CXXRecordDecl is being visited for semantics
+    // checking.
+    auto *savedCheckedClass = checkedClass;
+    checkedClass = x;
+    auto result = defaultVisit(x);
+    checkedClass = savedCheckedClass;
+    return result;
+  }
+
+  // The handler of every kind of function: functions, methods, constructors,
+  // destructors, conversion operators, and deduction guides.
+  Result visit(clang::FunctionDecl *x) {
+    bool saveQuantumTypesNotAllowed = quantumTypesNotAllowed;
+    bool saveInKernel = inKernel;
+    if (!ignoreTemplate) {
+      auto *func = x->getDefinition();
+      if (func) {
+        bool runChecks = false;
+        if (cudaq::ASTBridgeAction::ASTBridgeConsumer::isCustomOpGenerator(
+                func)) {
+          customOperationNames[func->getName().str()] =
+              cudaq::detail::getTagNameOfFunctionDecl(func, mangler);
+          runChecks = true;
+        }
+        if (cudaq::ASTBridgeAction::ASTBridgeConsumer::isQuantum(func))
+          runChecks = true;
+        if (runChecks) {
+          // Run semantics checks on the kernel class.
+          if (isa<clang::CXXMethodDecl>(func)) {
+            auto *cxxClass = cast<clang::CXXRecordDecl>(func->getParent());
+            check(cxxClass);
+          }
+          processQpu(cudaq::detail::getTagNameOfFunctionDecl(func, mangler),
+                     func);
+        }
+      } else if (cudaq::ASTBridgeAction::ASTBridgeConsumer::isQuantum(x)) {
+        // Add declarations to support separate compilation.
+        processQpu</*replace=*/false>(
+            cudaq::detail::getTagNameOfFunctionDecl(x, mangler), x);
+      }
+      // Quantum types can only be used in a kernel. That is the case for the
+      // parameters and the body of this function, and it is the case for every
+      // declaration of the function, whether it has a body or not. A later
+      // declaration can make the function a kernel, so the parameters are
+      // checked when all of them have been seen.
+      bool allowed = isKernelOrGenerator(x) || isFencedFunction(x);
+      quantumTypesNotAllowed = !allowed;
+      inKernel = allowed;
+      if (!allowed)
+        deferredParameterChecks.push_back(x);
+    }
+    auto result = defaultVisit(x);
+    quantumTypesNotAllowed = saveQuantumTypesNotAllowed;
+    inKernel = saveInKernel;
+    return result;
+  }
+
+  Result visit(clang::LambdaExpr *x) {
+    bool saveQuantumTypesNotAllowed = quantumTypesNotAllowed;
+    if (!ignoreTemplate)
+      if (const auto *cxxMethodDecl = x->getCallOperator())
+        if (const auto *f = cxxMethodDecl->getAsFunction()->getDefinition()) {
+          if (cudaq::ASTBridgeAction::ASTBridgeConsumer::isQuantum(f))
+            processQpu(cudaq::detail::getTagNameOfFunctionDecl(f, mangler), f);
+          else if (!inKernel)
+            // A lambda that is not in a kernel is a function like any other.
+            reportQuantumParameters(f, mangler);
+        }
+    // Rationale: a lambda expression that is in a kernel is a part of the
+    // kernel, and may use quantum types.
+    quantumTypesNotAllowed = false;
+    auto result = defaultVisit(x);
+    quantumTypesNotAllowed = saveQuantumTypesNotAllowed;
+    return result;
+  }
+
+  // Ignore the body of a template that has not been instantiated.
+  Result visit(clang::ClassTemplateDecl *x) {
+    bool saveIgnoreTemplate = ignoreTemplate;
+    ignoreTemplate = true;
+    auto result = defaultVisit(x);
+    ignoreTemplate = saveIgnoreTemplate;
+    return result;
+  }
+
+  // Process the body of an instantiated template.
+  Result visit(clang::ClassTemplateSpecializationDecl *x) {
+    bool saveIgnoreTemplate = ignoreTemplate;
+    ignoreTemplate = false;
+    auto result = defaultVisit(x);
+    ignoreTemplate = saveIgnoreTemplate;
+    return result;
+  }
+
+  // For a function template, skip the template declaration and traverse the
+  // instantiations of the template function instead.
+  Result visit(clang::FunctionTemplateDecl *x) {
+    if (x != x->getCanonicalDecl())
+      return std::nullopt;
+    for (auto *specialization : x->specializations())
+      for (auto *redecl : specialization->redecls()) {
+        // An explicit specialization is a declaration that is visited where it
+        // is. The other kinds are not.
+        if (redecl->getTemplateSpecializationKind() ==
+            clang::TSK_ExplicitSpecialization)
+          continue;
+        traverse(static_cast<clang::Decl *>(redecl));
+      }
+    return std::nullopt;
+  }
+
+  bool isTupleReverseVar(clang::VarDecl *decl) {
+    if (cudaq::isInNamespace(decl, "cudaq"))
+      return decl->getName() == "TupleIsReverse";
+    return false;
+  }
+
+  // A variable, a parameter of a function, a static data member, etc.
+  template <typename X>
+    requires(std::is_base_of_v<clang::VarDecl, X>)
+  Result visit(X *x) {
+    if (isTupleReverseVar(x)) {
+      auto opt =
+          x->getAnyInitializer()->getIntegerConstantExpr(x->getASTContext());
+      if (opt) {
+        LLVM_DEBUG(llvm::dbgs() << "tuples are reversed: " << *opt << '\n');
+        tuplesAreReversed = !opt->isZero();
+      }
+    }
+    if (cudaq::isInNamespace(x, "cudaq") && cudaq::isInNamespace(x, "detail") &&
+        x->getName() == "_nvqpp_sizeof") {
+      // This constexpr is the sizeof a pauli_word and a std::string.
+      auto opt =
+          x->getAnyInitializer()->getIntegerConstantExpr(x->getASTContext());
+      assert(opt && "must compute the sizeof a cudaq::pauli_word");
+      auto sizeofString = opt->getZExtValue();
+      auto sizeAttr = module->getAttr(cudaq::runtime::sizeofStringAttrName);
+      if (sizeAttr) {
+        assert(sizeofString == cast<IntegerAttr>(sizeAttr).getUInt());
+      } else {
+        auto *ctx = module.getContext();
+        auto i64Ty = IntegerType::get(ctx, 64);
+        module->setAttr(cudaq::runtime::sizeofStringAttrName,
+                        IntegerAttr::get(i64Ty, sizeofString));
+      }
+    }
+    // The check to make sure that quantum data types are only used in kernels
+    // is done here for variables. (The parameters of a function are checked
+    // with the function.)
+    if (quantumTypesNotAllowed && !isa<clang::ParmVarDecl>(x) &&
+        isQuantumType(x->getType()))
+      cudaq::detail::reportClangError(
+          x, mangler, "may not use quantum types in non-kernel functions");
+    return defaultVisit(x);
+  }
+
+  bool isTupleReversed() const { return tuplesAreReversed; }
+
+private:
+  cudaq::EmittedFunctionsCollection &functionsToEmit;
+  clang::CallGraph &callGraphBuilder;
+  clang::ItaniumMangleContext *mangler;
+  ModuleOp module;
+  std::unordered_map<std::string, std::string> &customOperationNames;
+  std::vector<const clang::FunctionDecl *> &deferredParameterChecks;
+  // A class that is being visited. Need to run semantics checks on it if and
+  // only if it has a quantum kernel.
+  const clang::CXXRecordDecl *checkedClass = nullptr;
+  bool ignoreTemplate = false;
+  // The traversal is in a non-kernel function, where a quantum type cannot be
+  // used by a variable.
+  bool quantumTypesNotAllowed = false;
+  // The traversal is in a kernel (or something that is fenced like one).
+  bool inKernel = false;
+  bool tuplesAreReversed = false;
+};
+} // namespace
+
+namespace cudaq::detail {
+
+bool QuakeBridgeVisitor::generateFunctionDeclaration(
+    StringRef funcName, const clang::FunctionDecl *x) {
+  typeVisitor.allowUnknownRecordType = true;
+  auto kernelTy = convertType(x->getType());
+  typeVisitor.allowUnknownRecordType = false;
+  if (!kernelTy) {
+    clearFailure();
+    reportClangError(x, mangler, "failed to generate type for kernel function");
+    return false;
+  }
+  auto funcTy = cast<FunctionType>(*kernelTy);
+  if (!doSyntaxChecks(x, funcTy))
+    return false;
+  auto loc = toLocation(x);
+  [[maybe_unused]] auto fnPair = getOrAddFunc(loc, funcName, funcTy);
+  assert(fnPair.first && "expected FuncOp to be created");
+  if (!isa<clang::CXXMethodDecl>(x) || x->isStatic())
+    fnPair.first->setAttr("no_this", builder.getUnitAttr());
+  // Retain the attribute for custom operation generator functions
+  if (cudaq::ASTBridgeAction::ASTBridgeConsumer::isCustomOpGenerator(x))
+    fnPair.first->setAttr(cudaq::generatorAnnotation, builder.getUnitAttr());
+  return true;
+}
+
+bool QuakeBridgeVisitor::isItaniumCXXABI() {
+  return clang::TargetCXXABI{astContext->getCXXABIKind()}.isItaniumFamily();
+}
+
+} // namespace cudaq::detail
+
+namespace cudaq {
+bool ASTBridgeAction::ASTBridgeConsumer::isQuantum(
+    const clang::FunctionDecl *decl) {
+  for (auto *attr : decl->specific_attrs<clang::AnnotateAttr>())
+    if (attr->getAnnotation().str() == cudaq::kernelAnnotation)
+      return true;
+  return false;
+}
+
+bool ASTBridgeAction::ASTBridgeConsumer::isCustomOpGenerator(
+    const clang::FunctionDecl *decl) {
+  for (auto *attr : decl->specific_attrs<clang::AnnotateAttr>())
+    if (attr->getAnnotation().str() == cudaq::generatorAnnotation)
+      return true;
+  return false;
+}
+
+ASTBridgeAction::ASTBridgeConsumer::ASTBridgeConsumer(
+    clang::CompilerInstance &compiler, OwningOpRef<ModuleOp> &_module,
+    std::map<std::string, std::string> &cxx_mangled)
+    : astContext(compiler.getASTContext()), ci(compiler),
+      cxx_mangled_kernel_names(cxx_mangled), module(_module),
+      builder(_module->getContext()) {
+  mangler =
+      clang::ItaniumMangleContext::create(astContext, ci.getDiagnostics());
+  assert(mangler && "mangler creation failed");
+  auto triple = astContext.getTargetInfo().getTriple().str();
+  (*module)->setAttr(opt::factory::targetTripleAttrName,
+                     StringAttr::get(module->getContext(), triple));
+  std::string dataLayout{astContext.getTargetInfo().getDataLayoutString()};
+  (*module)->setAttr(opt::factory::targetDataLayoutAttrName,
+                     StringAttr::get(module->getContext(), dataLayout));
+}
+
+static bool isX86_64(clang::ASTContext &astContext) {
+  return astContext.getTargetInfo().getTriple().getArch() ==
+         llvm::Triple::x86_64;
+}
+
+void ASTBridgeAction::ASTBridgeConsumer::addFunctionDecl(
+    const clang::FunctionDecl *funcDecl, detail::QuakeBridgeVisitor &visitor,
+    FunctionType funcTy, StringRef devFuncName, bool isDecl) {
+  auto funcName = visitor.cxxMangledDeclName(funcDecl);
+  if (module->lookupSymbol(funcName))
+    return;
+  auto loc = toSourceLocation(module->getContext(), &astContext,
+                              funcDecl->getSourceRange());
+  auto devFuncTy =
+      module->lookupSymbol<func::FuncOp>(devFuncName).getFunctionType();
+  OpBuilder build(module->getBodyRegion());
+  OpBuilder::InsertionGuard guard(build);
+  build.setInsertionPointToEnd(module->getBody());
+  bool addThisPtr =
+      isa<clang::CXXMethodDecl>(funcDecl) && !funcDecl->isStatic();
+  FunctionType hostFuncTy =
+      opt::factory::toHostSideFuncType(funcTy, addThisPtr, *module);
+  auto func = func::FuncOp::create(build, loc, funcName, hostFuncTy,
+                                   ArrayRef<NamedAttribute>{});
+  if (!addThisPtr)
+    func->setAttr("no_this", build.getUnitAttr());
+
+  if (isDecl) {
+    func.setPrivate();
+  } else {
+    func.setPublic();
+    // Create a dummy implementation for the host-side function. This is so that
+    // MLIR's restriction on "public" visibility is met and MLIR does not remove
+    // the declaration before we can autogenerate the code in a later pass.
+    auto *block = func.addEntryBlock();
+    build.setInsertionPointToStart(block);
+    SmallVector<Value> results;
+    for (auto resTy : hostFuncTy.getResults())
+      results.push_back(cc::UndefOp::create(build, loc, resTy));
+    func::ReturnOp::create(build, loc, results);
+  }
+
+  // Walk the arguments and add byval attributes where needed.
+  assert(visitor.isItaniumCXXABI() && "Microsoft ABI not implemented");
+  auto hiddenSRet = opt::factory::hasHiddenSRet(devFuncTy);
+  auto delta = cc::numberOfHiddenArgs(addThisPtr, hiddenSRet);
+  if (hiddenSRet) {
+    // The first argument should be a pointer type if this function has a hidden
+    // sret.
+    if (auto ptrTy = dyn_cast<cc::PointerType>(hostFuncTy.getInput(0))) {
+      auto eleTy = ptrTy.getElementType();
+      assert(isa<cc::StructType>(eleTy) && "must be a struct");
+      func.setArgAttr(0, LLVM::LLVMDialect::getStructRetAttrName(),
+                      TypeAttr::get(eleTy));
+    }
+  }
+
+  // Pass over the parameters and add a byval attribute where required.
+  for (auto iter : llvm::enumerate(funcDecl->parameters())) {
+    auto *paramDecl = iter.value();
+    // See clang::CodeGen::TargetInfo::getRecordArgABI()
+    auto paramType = paramDecl->getType();
+    if (auto *recTy = paramType->getAs<clang::RecordType>()) {
+      auto *d = recTy->getDecl();
+      if (isa<clang::CXXRecordDecl>(d)) {
+        // On x86_64, canPassInRegisters() returning true corresponds to
+        // RAA_Default, which means the compiler should use "normal C aggregate
+        // rules". Therefore, this struct type value is passed using a pointer
+        // and the byval attribute. Otherwise, the compiler will pass by an
+        // indirection (pointer), omit the byval attribute, and skip making
+        // copies, etc.
+        // On aarch64, the convention is to omit the byval attribute.
+        if (d->canPassInRegisters() && isX86_64(astContext)) {
+          auto idx = iter.index();
+          auto argPos = idx + delta;
+          if (auto ptrTy =
+                  dyn_cast<cc::PointerType>(hostFuncTy.getInput(argPos))) {
+            auto strTy = ptrTy.getElementType();
+            assert(isa<cc::StructType>(strTy) && "must be a struct");
+            func.setArgAttr(argPos, LLVM::LLVMDialect::getByValAttrName(),
+                            TypeAttr::get(strTy));
+          } else if (opt::factory::structUsesTwoArguments(
+                         funcTy.getInput(idx))) {
+            // On x86_64, we may pass the struct as 2 distinct arguments. We
+            // must adjust the offset on the fly.
+            ++delta;
+          }
+        }
+      }
+    }
+  }
+}
+
+void ASTBridgeAction::ASTBridgeConsumer::HandleTranslationUnit(
+    clang::ASTContext &astContext) {
+  // Every declaration of every function has been seen. A function that takes a
+  // quantum type must be a kernel (or an intrinsic).
+  for (auto *func : deferredParameterChecks)
+    if (!isKernelOrGenerator(func) && !isFencedFunction(func))
+      reportQuantumParameters(func, mangler);
+
+  // First make sure there are no syntax errors, etc.
+  auto &de = astContext.getDiagnostics();
+  auto errorCount = de.getClient()->getNumErrors();
+  if (errorCount != 0) {
+    auto id =
+        de.getCustomDiagID(clang::DiagnosticsEngine::Error,
+                           "C++ source has errors. nvq++ cannot proceed.");
+    de.Report(id);
+    std::exit(1);
+  }
+
+  // If no errors, then proceed to lowering the kernels.
+  llvm::SmallVector<clang::Decl *> reachableFuncs =
+      listReachableFunctions(callGraphBuilder.getRoot());
+  auto *ctx = module->getContext();
+  detail::QuakeBridgeVisitor visitor(
+      &astContext, ctx, builder, module.get(), symbol_table, functionsToEmit,
+      reachableFuncs, cxx_mangled_kernel_names, ci, mangler,
+      customOperationNames, allocator, tuplesAreReversed);
+
+  // First generate declarations for all kernels.
+  bool ok = true;
+  for (auto fdPair : functionsToEmit) {
+    std::string entryName = visitor.generateCudaqKernelName(fdPair);
+    ok &= visitor.generateFunctionDeclaration(entryName, fdPair.second);
+  }
+  if (!ok) {
+    // Syntax errors: stop processing the kernels.
+    return;
+  }
+
+  // Now lower each kernel function definition.
+  for (auto fdPair : functionsToEmit) {
+    SymbolTableScope var_scope(symbol_table);
+    std::string entryName = visitor.generateCudaqKernelName(fdPair);
+    visitor.setEntryName(entryName);
+    // Extend the mangled kernel names map.
+    auto mangledFuncName = visitor.cxxMangledDeclName(fdPair.second);
+    cxx_mangled_kernel_names.insert({entryName, mangledFuncName});
+    LLVM_DEBUG(llvm::dbgs() << "lowering function: " << entryName << '\n');
+    visitor.traverseDecl(const_cast<clang::FunctionDecl *>(fdPair.second));
+    // An error was reported. Carry on with the next function.
+    visitor.clearFailure();
+    if (auto func = module->lookupSymbol<func::FuncOp>(entryName)) {
+      // Rationale: If a function marked as quantum code takes or returns
+      // qubits or measurement "handles", then it must be a pure quantum kernel
+      // that can only be called from other quantum code and never from
+      // classical code. Conversely, a kernel that is called from a quantum
+      // kernel entry function must (for now) take or return qubits in order to
+      // be stitched into the same circuit with the calling function. CUDA-Q
+      // does not presently support a quantum circuit that invokes a separable
+      // quantum circuit. Launching a quantum circuit implies exactly one
+      // distinct circuit will be mapped to and execute on the QPU.
+      auto unitAttr = UnitAttr::get(ctx);
+      // Flag func as a quantum kernel.
+      func->setAttr(kernelAttrName, unitAttr);
+      // If the kernel is annotated with disable_quantum_optimization, set the
+      // quake.noOptimization attribute on the module so that value semantics
+      // lowering and related quantum optimization passes are skipped.
+      for (auto *a : fdPair.second->specific_attrs<clang::AnnotateAttr>())
+        if (a->getAnnotation().str() == cudaq::disableQuantumOptAnnotation) {
+          (*module)->setAttr(cudaq::runtime::disableQuantumOpts, unitAttr);
+          func->setAttr(cudaq::runtime::disableQuantumOpts, unitAttr);
+          break;
+        }
+      for (auto *a : fdPair.second->specific_attrs<clang::AnnotateAttr>())
+        if (a->getAnnotation().str() == cudaq::atomicQuantumRegionAnnotation) {
+          func->setAttr(cc::atomicQuantumRegionAttrName, unitAttr);
+          break;
+        }
+      bool hasDeviceOnlyTypes =
+          hasAnyQuakeOrHandleTypes(func.getFunctionType());
+      if (hasDeviceOnlyTypes)
+        if (auto *md = dyn_cast<clang::CXXMethodDecl>(fdPair.second);
+            md && md->getOverloadedOperator() == clang::OO_Call) {
+          // Functor `operator()` with a handle in the signature is the only
+          // entry-point shape we can disambiguate from a free `__qpu__`
+          // function at AST time, so diagnose it explicitly here. Free
+          // functions silently demote to the device-only worklist below.
+          if (containsHandleInSignature(func.getFunctionType())) {
+            cudaq::detail::reportClangError(
+                fdPair.second, mangler,
+                "measurement handle cannot cross the host-device boundary; "
+                "entry-point kernels must discriminate first");
+            continue;
+          }
+        }
+      if (!hasDeviceOnlyTypes &&
+          (!cudaq::ASTBridgeAction::ASTBridgeConsumer::isCustomOpGenerator(
+              fdPair.second))) {
+        // Flag func as an entry point to a quantum kernel.
+        func->setAttr(entryPointAttrName, unitAttr);
+        // Generate a declaration for the CPU C++ function.
+        addFunctionDecl(fdPair.second, visitor, func.getFunctionType(),
+                        entryName, func.empty());
+      }
+    }
+  }
+
+  // Not a kernel or entry point, but part of the call graph.
+  if (LOWERING_TRANSITIVE_CLOSURE) {
+    for (auto *rfp : reachableFuncs) {
+      if (clang::isa<clang::CXXConstructorDecl>(rfp))
+        continue;
+
+      if (auto *rf = dyn_cast<clang::FunctionDecl>(rfp)) {
+        if (rf->getBody()) {
+          SymbolTableScope var_scope(symbol_table);
+          // Create the function and set the builder.
+          auto mangledFuncName = visitor.cxxMangledDeclName(rf);
+          visitor.setCurrentFunctionName(mangledFuncName);
+          // FIXME: lower these classical compute functions to CC.
+          visitor.traverseDecl(rf);
+          visitor.clearFailure();
+        }
+      }
+    }
+  }
+}
+
+bool ASTBridgeAction::ASTBridgeConsumer::HandleTopLevelDecl(
+    clang::DeclGroupRef dg) {
+  QPUCodeFinder finder(functionsToEmit, callGraphBuilder, mangler, module.get(),
+                       customOperationNames, deferredParameterChecks);
+  // Loop over all decls, saving the function decls that are quantum kernels.
+  for (const auto *decl : dg)
+    finder.traverse(const_cast<clang::Decl *>(decl));
+  tuplesAreReversed |= finder.isTupleReversed();
+  return true;
+}
+
+Location toSourceLocation(MLIRContext *ctx, clang::ASTContext *astCtx,
+                          const clang::SourceRange &srcRange) {
+  auto &srcMgr = astCtx->getSourceManager();
+  auto srcLoc = srcRange.getBegin();
+  auto spellingLoc = srcMgr.getSpellingLoc(srcLoc);
+  auto line = srcMgr.getSpellingLineNumber(spellingLoc);
+  auto column = srcMgr.getSpellingColumnNumber(spellingLoc);
+  auto file = srcMgr.getFilename(spellingLoc);
+  return FileLineColLoc::get(ctx, file, line, column);
+}
+
+// Determine if this global has `extern "C"` linkage.
+bool isInExternC(const clang::GlobalDecl &x) {
+  if (auto *funcDecl = dyn_cast<clang::FunctionDecl>(x.getDecl()))
+    return funcDecl->isExternC();
+  if (auto *varDecl = dyn_cast<clang::VarDecl>(x.getDecl()))
+    return varDecl->isExternC();
+  return false;
+}
+
+} // namespace cudaq
+
+namespace cudaq::detail {
+
+std::string getCxxMangledTypeName(clang::QualType ty,
+                                  clang::ItaniumMangleContext *mangler) {
+  std::string s;
+  llvm::raw_string_ostream os(s);
+  mangler->mangleCanonicalTypeName(ty, os);
+  os.flush();
+  LLVM_DEBUG(llvm::dbgs() << "type name mangled as '" << s << "'\n");
+  return s;
+}
+
+std::string getCxxMangledDeclName(clang::GlobalDecl decl,
+                                  clang::ItaniumMangleContext *mangler) {
+  if (isInExternC(decl)) {
+    if (auto *funcDecl = dyn_cast<clang::FunctionDecl>(decl.getDecl()))
+      return funcDecl->getName().str();
+    reportClangError(decl.getDecl(), mangler, "unexpected global");
+  }
+  std::string s;
+  llvm::raw_string_ostream os(s);
+  mangler->mangleCXXName(decl, os);
+  os.flush();
+  return s;
+}
+
+} // namespace cudaq::detail

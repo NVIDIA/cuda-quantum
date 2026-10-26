@@ -12,6 +12,8 @@
 import cudaq
 from cudaq import spin
 
+cudaq.parse_args()
+
 
 @cudaq.kernel
 def ansatz(angle: float):

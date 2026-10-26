@@ -7,13 +7,16 @@
  ******************************************************************************/
 
 #include "OrcaRemoteRESTQPU.h"
-#include "common/Logger.h"
+#include "common/ServerHelper.h"
+#include "orca_qpu.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "llvm/Support/Base64.h"
 
-namespace cudaq {
+using namespace cudaq;
+
 /// @brief This setTargetBackend override is in charge of reading the
 /// specific target backend configuration file.
-void OrcaRemoteRESTQPU::setTargetBackend(const std::string &backend) {
+void cudaq::OrcaRemoteRESTQPU::setTargetBackend(const std::string &backend) {
   CUDAQ_INFO("OrcaRemoteRESTQPU platform is targeting {} with qpu_id = {}.",
              backend, qpu_id);
 
@@ -51,51 +54,55 @@ void OrcaRemoteRESTQPU::setTargetBackend(const std::string &backend) {
   /// pipeline.
   // Set the qpu name
   qpuName = mutableBackend;
-  serverHelper = registry::get<ServerHelper>(qpuName);
+  serverHelper = cudaq::owning_ptr<ServerHelper>(
+      registry::get<ServerHelper>(qpuName).release());
   serverHelper->initialize(backendConfig);
 
   // Give the server helper to the executor
   executor->setServerHelper(serverHelper.get());
 }
 
-/// @brief Launch the experiment.
-KernelThunkResultType OrcaRemoteRESTQPU::launchKernel(
-    const std::string &kernelName, KernelThunkType kernelFunc, void *args,
-    std::uint64_t voidStarSize, std::uint64_t resultOffset,
-    const std::vector<void *> &rawArgs) {
-
+cudaq::detail::future
+cudaq::OrcaRemoteRESTQPU::launchKernelCommon(const CompiledModule &module,
+                                             KernelArgs args) {
+  const auto &kernelName = module.getName();
   CUDAQ_INFO("OrcaRemoteRESTQPU: Launch kernel named '{}' remote QPU {}",
              kernelName, qpu_id);
 
-  auto tid = std::hash<std::thread::id>{}(std::this_thread::get_id());
-  auto ctx = contexts[tid];
-
   // TODO future iterations of this should support non-void return types.
-  if (!ctx)
-    throw std::runtime_error("Remote rest execution can only be performed "
-                             "via cudaq::sample() or cudaq::observe().");
+  if (kernelName != orca::sample_policy::kernelName)
+    throw std::runtime_error(kernelName + " is not supported on this target");
 
-  cudaq::orca::TBIParameters params =
-      *((struct cudaq::orca::TBIParameters *)args);
-  std::size_t shots = params.n_samples;
+  auto packed = args.getPacked();
+  if (!packed || packed->data.size() < sizeof(orca::TBIParameters))
+    throw std::runtime_error("Orca launch requires packed TBI parameters.");
 
-  ctx->shots = shots;
-
-  cudaq::details::future future;
-  future = executor->execute(params, kernelName);
-
-  // Keep this asynchronous if requested
-  if (ctx->asyncExec) {
-    ctx->futureResult = future;
-    return {};
-  }
-
-  // Otherwise make this synchronous
-  ctx->result = future.get();
-
-  // TODO: support dynamic result types.
-  return {};
+  auto params =
+      *reinterpret_cast<const orca::TBIParameters *>(packed->data.data());
+  return executor->execute(params, kernelName);
 }
 
-} // namespace cudaq
-CUDAQ_REGISTER_TYPE(cudaq::QPU, cudaq::OrcaRemoteRESTQPU, orca)
+cudaq::orca::async_sample_policy::result_type
+cudaq::OrcaRemoteRESTQPU::launchKernel(const orca::async_sample_policy &,
+                                       const CompiledModule &module,
+                                       KernelArgs args) {
+  // Keep this asynchronous if requested
+  return async_sample_result(launchKernelCommon(module, args));
+}
+
+cudaq::orca::sample_policy::result_type
+cudaq::OrcaRemoteRESTQPU::launchKernel(const orca::sample_policy &,
+                                       const CompiledModule &module,
+                                       KernelArgs args) {
+  // Otherwise make this synchronous
+  auto result = launchKernelCommon(module, args).get();
+  // TODO: support dynamic result types.
+  return result;
+}
+
+void cudaq::OrcaRemoteRESTQPU::enqueue(cudaq::QuantumTask &task) {
+  CUDAQ_INFO("OrcaRemoteRESTQPU: Enqueue Task on QPU {}", qpu_id);
+  execution_queue->enqueue(task);
+}
+
+CUDAQ_REGISTER_TYPE(QPU, OrcaRemoteRESTQPU, orca)

@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include "cudaq_json.h"
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -80,10 +81,16 @@ struct ExecutionResult {
   /// @param other
   ExecutionResult(const ExecutionResult &other);
 
+  /// @brief Transfer ownership of the counts and sequential shot data.
+  ExecutionResult(ExecutionResult &&) noexcept = default;
+
   /// @brief Set this ExecutionResult equal to the provided one
   /// @param other
   /// @return
   ExecutionResult &operator=(const ExecutionResult &other);
+
+  /// @brief Replace this result by transferring ownership from another.
+  ExecutionResult &operator=(ExecutionResult &&) noexcept = default;
 
   /// @brief Return true if the given `ExecutionResult` is the same as this one.
   /// @param result
@@ -117,35 +124,46 @@ private:
   const ExecutionResult &retrieve_result(const std::string &registerName) const;
   ExecutionResult &retrieve_result(const std::string &registerName);
 
+  /// @brief Language-neutral extension point for backends to attach metadata
+  /// (e.g. job ID, timing, shots requested).
+  cudaq_json annotations;
+
 public:
-  /// @brief Nullary constructor
+  /// @brief Return the backend-attached metadata (read-only).
+  const cudaq_json &get_annotations() const { return annotations; }
+
+  /// @brief Default constructor
   sample_result() = default;
 
   /// @brief The constructor, sets the __global__ sample result.
   sample_result(ExecutionResult &&result);
 
   /// @brief The constructor, sets the __global__ sample result.
-  /// @param result
-  sample_result(ExecutionResult &result);
+  /// @param result - is copied and the copy inserted into the map.
+  sample_result(const ExecutionResult &result);
 
   /// @brief The constructor, appends all provided `ExecutionResult`s
-  sample_result(std::vector<ExecutionResult> &results);
+  sample_result(const std::vector<ExecutionResult> &results);
 
-  /// @brief The constructor, takes a precomputed expectation value and
-  /// stores it with the `__global__` `ExecutionResult`.
-  sample_result(double preComputedExp, std::vector<ExecutionResult> &results);
+  /// @brief The constructor, takes a precomputed expectation value and stores
+  /// it with the `__global__` `ExecutionResult`.
+  sample_result(double preComputedExp,
+                const std::vector<ExecutionResult> &results);
 
-  /// @brief Copy Constructor
+  /// @brief Construct from a counts dictionary and optional annotations.
+  /// The global register is populated with the provided counts.
+  sample_result(CountsDictionary counts, cudaq_json annotations);
+
+  /// @brief Constructors
+  sample_result(sample_result &&) = default;
   sample_result(const sample_result &) = default;
 
-  /// @brief Move constructor
-  sample_result(sample_result &&) = default;
-
-  /// @brief Move assignment constructor
+  /// @brief Assignment operators
   sample_result &operator=(sample_result &&counts) = default;
+  sample_result &operator=(const sample_result &counts) = default;
 
   /// @brief The destructor
-  ~sample_result() = default;
+  virtual ~sample_result() = default;
 
   /// @brief Return true if the `ExecutionResult` with the specified register
   /// name has a precomputed expectation value.
@@ -156,19 +174,13 @@ public:
   /// @param result Result to append
   /// @param concatenate If prior results are found, this concatenates the
   /// bitstrings.
-  void append(ExecutionResult &result, bool concatenate = false);
+  void append(const ExecutionResult &result, bool concatenate = false);
 
   /// @brief Return all register names. Can be used in tandem with
   /// sample_result::to_map(regName : string) to retrieve the counts
   /// for each register.
   /// @return
   std::vector<std::string> register_names() const;
-
-  /// @brief Set this sample_result equal to the provided one
-  /// @param counts
-  /// @return
-  sample_result &operator=(sample_result &counts) = default;
-  sample_result &operator=(const sample_result &counts) = default;
 
   /// @brief Append all the data from other to this sample_result.
   /// Merge when necessary.
@@ -291,7 +303,7 @@ public:
   /// @return
   CountsDictionary::const_iterator end() const { return cend(); }
 
-  /// @brief Get the total number of shots in the result
+  /// @brief Get the total number of shots in the result.
   std::size_t get_total_shots() const { return totalShots; }
 
   /// @brief Return true if the bit string has even parity

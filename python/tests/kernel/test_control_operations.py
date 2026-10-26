@@ -46,6 +46,90 @@ def test_ctrl_x():
     assert counts["0011111"] == 1000
 
 
+def test_empty_control_register():
+
+    @cudaq.kernel
+    def cnot(control: cudaq.qubit, target: cudaq.qubit):
+        x.ctrl(control, target)
+
+    @cudaq.kernel
+    def kernel(n: int, register_on: bool, scalar_on: bool):
+        qreg = cudaq.qvector(n)
+        ancilla = cudaq.qubit()
+        target = cudaq.qubit()
+        if register_on:
+            x(qreg)
+        if scalar_on:
+            x(ancilla)
+        # Specialization gives X both register and scalar controls.
+        cudaq.control(cnot, qreg, ancilla, target)
+
+    shots = 10
+    for n in (0, 2):
+        for register_on in (False, True):
+            for scalar_on in (False, True):
+                counts = cudaq.sample(kernel,
+                                      n,
+                                      register_on,
+                                      scalar_on,
+                                      shots_count=shots)
+                target_on = scalar_on and (n == 0 or register_on)
+                expected = ("1" if register_on else "0") * n
+                expected += "1" if scalar_on else "0"
+                expected += "1" if target_on else "0"
+                assert len(counts) == 1
+                assert counts[expected] == shots
+
+
+def test_ctrl_x_list_comprehension():
+    """Tests x.ctrl with list comprehension."""
+
+    @cudaq.kernel
+    def kernel1():
+        qs = cudaq.qvector(3)
+        x(qs[0])
+        x(qs[1])
+        x.ctrl([qs[i] for i in [0, 1]], qs[2])
+
+    counts = cudaq.sample(kernel1)
+    assert counts["111"] == 1000
+
+    @cudaq.kernel
+    def kernel2():
+        qs = cudaq.qvector(3)
+        x(qs[0])
+        x(qs[1])
+        x.ctrl([qs[i] for i in range(2)], qs[2])
+
+    counts = cudaq.sample(kernel2)
+    assert counts["111"] == 1000
+
+    @cudaq.kernel
+    def kernel3():
+        qs = cudaq.qvector(3)
+        x(qs[0])
+        x(qs[1])
+        cont = [0, 1]
+        x.ctrl([qs[i] for i in cont], qs[2])
+
+    counts = cudaq.sample(kernel3)
+    assert counts["111"] == 1000
+
+    @cudaq.kernel
+    def ctrl_with_param(qs: cudaq.qvector, indices: list[int]):
+        x.ctrl([qs[i] for i in indices], qs[2])
+
+    @cudaq.kernel
+    def kernel4():
+        qs = cudaq.qvector(3)
+        x(qs[0])
+        x(qs[1])
+        ctrl_with_param(qs, [0, 1])
+
+    counts = cudaq.sample(kernel4)
+    assert counts["111"] == 1000
+
+
 def test_ctrl_y():
     """Tests the accuracy of the overloads for the controlled-Y gate."""
 

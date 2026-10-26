@@ -6,7 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ --enable-mlir %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %s -o %t && %t | FileCheck %s
 
 // All tests should pass.
 
@@ -14,7 +14,7 @@
 // vector can be passed through altLaunchKernel() and get the correct values in
 // the span structures in the kernel.
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 #include <iomanip>
 #include <iostream>
 

@@ -25,10 +25,75 @@ on:
         required: false
         type: boolean
         default: false
+      run_validation:
+        required: false
+        type: boolean
+        default: true
+        description: Run wheel validation. Deployments disables this; validation runs in the Validation workflow.
+      build_runtime_wheel:
+        required: false
+        type: boolean
+        default: true
+        description: Build the main cuda_quantum wheel. Defaults to true.
+      runtime_artifact_name:
+        required: false
+        type: string
+        default: ''
+        description: Artifact name of the cuda_quantum wheel, if build_runtime_wheel is false.
+      validate_prebuilt_wheel:
+        required: false
+        type: boolean
+        default: false
+        description: >-
+          Validate the runtime wheel that another job in this workflow run
+          built for the same platform, Python and CUDA version, instead of
+          building one. Set build_runtime_wheel to false.
+      core_artifact_name:
+        required: false
+        type: string
+        default: ''
+        description: >-
+          Artifact containing the CUDA 13-built core for CUDA 12 validation.
+          If omitted, match the Python version and architecture in this run.
+          The caller must finish building or restoring it before validation.
+      devel_artifact_name:
+        required: false
+        type: string
+        default: ''
+        description: Artifact name of an existing cudaq-devel wheel.
+      build_devel_wheel:
+        required: false
+        type: boolean
+        default: false
+        description: Build the cudaq-devel wheel.
+      build_logical_wheel:
+        required: false
+        type: boolean
+        default: false
+        description:
+          Build and test the cudaq-logical wheel from the wheels produced by
+          this workflow. Requires build_devel_wheel or devel_artifact_name.
+      release_version:
+        required: false
+        type: string
+        default: ''
+        description: Version to stamp into the wheels instead of the ref's.
     outputs:
       cudaq_version:
         description: "The version of the built wheels."
-        value: ${{ jobs.build_wheel.outputs.cudaq_version }}
+        value: ${{ jobs.wheel_info.outputs.cudaq_version }}
+      runtime_artifact_name:
+        description: "Artifact name of the runtime wheel."
+        value: ${{ jobs.build_wheel.outputs.artifact_name }}
+      devel_artifact_name:
+        description: "Artifact name of the devel wheel, if requested."
+        value: ${{ jobs.build_devel_wheel.outputs.artifact_name }}
+      logical_artifact_name:
+        description: "Artifact name of the cudaq-logical wheel, if requested."
+        value: ${{ jobs.build_logical_wheel.outputs.wheel_name }}
+      logical_version:
+        description: "Version of the cudaq-logical wheel, if requested."
+        value: ${{ jobs.build_logical_wheel.outputs.logical_version }}
     secrets:
       DOCKERHUB_USERNAME:
         required: true
@@ -38,16 +103,56 @@ on:
 name: Python wheels
 
 jobs:
+  wheel_info:
+    name: Compute wheel info
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    outputs:
+      cudaq_version: ${{ steps.version.outputs.cudaq_version }}
+      runtime_cache_key: ${{ steps.runtime_hash.outputs.cache_key }}
+      devel_cache_key: ${{ steps.devel_hash.outputs.cache_key }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Compute CUDA-Q version
+        id: version
+        uses: ./.github/actions/compute-cudaq-version
+        with:
+          release_version: ${{ inputs.release_version }}
+
+      - name: Hash runtime sources
+        id: runtime_hash
+        uses: ./.github/actions/wheel-source-hash
+        with:
+          platform: ${{ inputs.platform }}
+          python_version: ${{ inputs.python_version }}
+          cuda_version: ${{ inputs.cuda_version }}
+
+      - name: Hash devel sources
+        if: inputs.build_devel_wheel
+        id: devel_hash
+        uses: ./.github/actions/wheel-source-hash
+        with:
+          platform: ${{ inputs.platform }}
+          tag: devel
+
   build_wheel:
     name: Build Python ${{ inputs.python_version }} wheel
+    needs: wheel_info
+    if: inputs.build_runtime_wheel
     runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     permissions:
       contents: read
-      packages: read
-
+      packages: write
+      actions: write
     outputs:
-      artifact_name: ${{ steps.prereqs.outputs.artifact_name }}
-      cudaq_version: ${{ steps.prereqs.outputs.cudaq_version }}
+      artifact_name: ${{ steps.build.outputs.artifact_name }}
 
     # Needed for making local images available to the docker/build-push-action.
     # See also https://stackoverflow.com/a/63927832.
@@ -59,101 +164,114 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Log in to DockerHub
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
 
       - name: Login to GitHub CR
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
-      - name: Restore build environment
-        if: inputs.devdeps_cache && inputs.devdeps_archive
-        id: restore
-        uses: actions/cache/restore@v4
-        with:
-          path: ${{ inputs.devdeps_archive }}
-          key: ${{ inputs.devdeps_cache }}
-          fail-on-cache-miss: true
-
-      - name: Load prerequisites
-        id: prereqs
-        run: |
-          if ${{ steps.restore.outcome != 'skipped' }}; then
-            load_output=`docker load --input "${{ inputs.devdeps_archive }}"`
-            base_image=`echo "$load_output" | grep -o 'Loaded image: \S*:\S*' | head -1 | cut -d ' ' -f 3`
-            echo "Base image: $base_image" >> $GITHUB_STEP_SUMMARY
-            # Push the image to the local registry to make it available within
-            # the containered environment that docker/build-push-action uses.
-            docker push $base_image
-            rm -rf "${{ inputs.devdeps_archive }}"
-          elif ${{ inputs.devdeps_image != '' }}; then
-            base_image=${{ inputs.devdeps_image }}
-            echo "Base image: $base_image" >> $GITHUB_STEP_SUMMARY
-            docker pull $base_image
-          else
-            echo "::error file=python_wheels.yml::Missing configuration for development dependencies. Either specify the image (i.e. provide devdeps_image) or cache (i.e. provide devdeps_cache and devdeps_archive) that should be used for the build."
-            exit 1
-          fi
-
-          devenv_tag=`docker inspect $base_image --format='{{json .Config.Labels}}' | jq -r '."org.opencontainers.image.version"'`
-          docker image rm $base_image && docker image prune --force
-          cache_id=`echo ${{ inputs.python_version }}-$devenv_tag | tr . -`
-
-          mkdir -p "/tmp/wheels"
-          is_versioned=${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') || startsWith(github.ref_name, 'staging/') }}
-          if ${is_versioned}; then
-            cudaq_version=`echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}"`
-          else
-            cudaq_version=0.0.0
-          fi
-        
-          echo "cudaq_version=$cudaq_version" >> $GITHUB_OUTPUT
-          echo "base_image=$base_image" >> $GITHUB_OUTPUT
-          echo "docker_output=type=local,dest=/tmp/wheels" >> $GITHUB_OUTPUT
-          # do not change this prefix without adjusting other workflows
-          echo "artifact_name=pycudaq-$cache_id" >> $GITHUB_OUTPUT
-
-      - name: Set up context for buildx
-        run: |
-          docker context create builder_context
-
-      - name: Set up buildx runner
-        uses: docker/setup-buildx-action@v3
-        with:
-          endpoint: builder_context
-          version: v0.19.0
-          buildkitd-config: /etc/buildkit/buildkitd.toml # hard-coded to run on our runners
-          driver-opts: |
-            network=host
-            image=moby/buildkit:v0.19.0
-
       - name: Build wheel
-        id: wheel_build
-        uses: docker/build-push-action@v5
+        id: build
+        uses: ./.github/actions/build-wheel-in-docker
         with:
-          context: .
-          file: ./docker/release/cudaq.wheel.Dockerfile
-          build-args: |
-            base_image=${{ steps.prereqs.outputs.base_image }}
-            release_version=${{ steps.prereqs.outputs.cudaq_version }}
-            python_version=${{ inputs.python_version }}
-          outputs: ${{ steps.prereqs.outputs.docker_output }}
+          platform: ${{ inputs.platform }}
+          python_version: ${{ inputs.python_version }}
+          release_version: ${{ needs.wheel_info.outputs.cudaq_version }}
+          devdeps_image: ${{ inputs.devdeps_image }}
+          devdeps_cache: ${{ inputs.devdeps_cache }}
+          devdeps_archive: ${{ inputs.devdeps_archive }}
 
       - name: Upload wheel
-        uses: actions/upload-artifact@v4
+        id: upload
+        uses: actions/upload-artifact@v7
         with:
-          name: ${{ steps.prereqs.outputs.artifact_name }}
-          path: /tmp/wheels
-          retention-days: 1
+          name: ${{ steps.build.outputs.artifact_name }}
+          path: ${{ steps.build.outputs.wheel_dir }}
+          retention-days: 14
           if-no-files-found: error
+
+      - name: Register wheel
+        # Release wheels must not seed the CI wheel cache.
+        if: inputs.release_version == ''
+        uses: ./.github/actions/wheel-cache-register
+        with:
+          key: ${{ needs.wheel_info.outputs.runtime_cache_key }}
+          artifact_id: ${{ steps.upload.outputs.artifact-id }}
+          artifact_name: ${{ steps.build.outputs.artifact_name }}
+
+  build_devel_wheel:
+    name: Build cudaq-devel wheel
+    needs: wheel_info
+    if: inputs.build_devel_wheel
+    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
+    permissions:
+      contents: read
+      packages: write
+      actions: write
+    outputs:
+      artifact_name: ${{ steps.build.outputs.artifact_name }}
+
+    services:
+        registry:
+          image: registry:2
+          ports:
+            - 5000:5000
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Log in to DockerHub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+
+      - name: Login to GitHub CR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Build devel wheel
+        id: build
+        uses: ./.github/actions/build-wheel-in-docker
+        with:
+          platform: ${{ inputs.platform }}
+          python_version: ${{ inputs.python_version }}
+          release_version: ${{ needs.wheel_info.outputs.cudaq_version }}
+          devdeps_image: ${{ inputs.devdeps_image }}
+          devdeps_cache: ${{ inputs.devdeps_cache }}
+          devdeps_archive: ${{ inputs.devdeps_archive }}
+          build_devel: '1'
+
+      - name: Upload devel wheel
+        id: upload
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ steps.build.outputs.artifact_name }}
+          path: ${{ steps.build.outputs.wheel_dir }}
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Register devel wheel
+        # Release wheels must not seed the CI wheel cache.
+        if: inputs.release_version == ''
+        uses: ./.github/actions/wheel-cache-register
+        with:
+          key: ${{ needs.wheel_info.outputs.devel_cache_key }}
+          artifact_id: ${{ steps.upload.outputs.artifact-id }}
+          artifact_name: ${{ steps.build.outputs.artifact_name }}
 
   create_test_config:
     name: Prepare validation
@@ -163,20 +281,37 @@ jobs:
 
     outputs:
       json: "${{ steps.config.outputs.json }}"
+      core_artifact_pattern: ${{ steps.config.outputs.core_artifact_pattern }}
+      runtime_artifact_pattern: ${{ steps.config.outputs.runtime_artifact_pattern }}
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - id: config
         run: |
           python_config=`cat .github/workflows/config/validation_config.json | jq ".python"`
           operating_systems=`echo "$python_config" | jq '.[] | select(.version=="${{ inputs.python_version }}").operating_systems'`
           echo "json={\"os_images\":$(echo $operating_systems)}" >> $GITHUB_OUTPUT
+          # Match the published core's Python ABI and architecture for builds
+          # in this run. Cache retrieval supplies the exact core_artifact_name
+          # recorded in the wheel index instead of using this build pattern.
+          python_version=${{ inputs.python_version }}
+          platform=${{ inputs.platform }}
+          echo "core_artifact_pattern=pycudaq-${python_version//./-}-*-${platform#linux/}-cu13-0-*" >> "$GITHUB_OUTPUT"
+          # For validate_prebuilt_wheel: the runtime wheel another job in this
+          # run built for the same platform, Python and CUDA version.
+          cuda_version=${{ inputs.cuda_version }}
+          echo "runtime_artifact_pattern=pycudaq-${python_version//./-}-*-${platform#linux/}-cu${cuda_version//./-}-*" >> "$GITHUB_OUTPUT"
 
   validation:
     name: Validate wheel
     needs: [build_wheel, create_test_config]
+    if: >-
+      ${{ !cancelled() && inputs.run_validation
+          && needs.create_test_config.result == 'success'
+          && (needs.build_wheel.result == 'success'
+              || (inputs.validate_prebuilt_wheel && needs.build_wheel.result == 'skipped')) }}
     runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
     permissions:
       contents: read
@@ -193,20 +328,35 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Log in to GitHub CR
         if: inputs.environment == ''
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
       - name: Load cuda-quantum wheel
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: ${{ needs.build_wheel.outputs.artifact_name }}
+          # Ignored when name is set. With validate_prebuilt_wheel, build_wheel
+          # is skipped, so this finds the wheel built earlier in the run.
+          pattern: ${{ needs.create_test_config.outputs.runtime_artifact_pattern }}
+          merge-multiple: true
+
+      # Core is CUDA-independent. Both frontends are released with the core
+      # built by the CUDA 13 pipeline, so CUDA 12 validation must use it too.
+      - name: Load published core wheel
+        if: startsWith(inputs.cuda_version, '12')
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ inputs.core_artifact_name }}
+          pattern: ${{ needs.create_test_config.outputs.core_artifact_pattern }}
+          path: published-core
+          merge-multiple: true
 
       - name: Install wheel in clean environment
         run: |
@@ -224,10 +374,19 @@ jobs:
           fi
 
           wheelname=`echo cuda_quantum*-manylinux_*_$(uname -m).whl`
+          # Reject missing or ambiguous published wheels; candidate-core is
+          # build-local output and is not the core released with CUDA 12.
+          shopt -s nullglob
+          core_wheels=(cudaq_core-*.whl)
+          if [[ "${{ inputs.cuda_version }}" == 12* ]]; then
+            core_wheels=(published-core/cudaq_core-*.whl)
+          fi
+          [ ${#core_wheels[@]} -eq 1 ] || { echo "::error::Expected exactly one published core wheel."; exit 1; }
           docker build --network host -t wheel_validation:local -f "docker/test/wheels/$distr.Dockerfile" . \
             --build-arg base_image=$base_image \
             --build-arg python_version=${{ inputs.python_version }} \
             --build-arg cuda_quantum_wheel=$wheelname \
+            --build-arg cudaq_core_wheel="${core_wheels[0]}" \
             --build-arg preinstalled_modules="pytest psutil" \
             --build-arg pip_install_flags=${{ matrix.pip_install_flags }}
 
@@ -244,6 +403,7 @@ jobs:
           image: wheel_validation:local
           shell: bash
           run: |
+            retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
             python${{ inputs.python_version }} -m pytest -v /tmp/tests/ \
               --ignore /tmp/tests/backends
             pytest_status=$?
@@ -251,41 +411,91 @@ jobs:
               echo "::error file=python_wheel.yml::Python tests failed with status $pytest_status."
               exit 1
             fi
-            python${{ inputs.python_version }} -m pip install --user fastapi uvicorn llvmlite
-            for backendTest in /tmp/tests/backends/*.py; do 
-              python${{ inputs.python_version }} -m pytest $backendTest
-              pytest_status=$?
-              # Exit code 5 indicates that no tests were collected,
-              # i.e. all tests in this file were skipped.
-              if [ ! $pytest_status -eq 0 ] && [ ! $pytest_status -eq 5 ]; then
-                echo "::error file=python_wheel.yml::Python $backendTest tests failed with status $pytest_status."
-                exit 1
-              fi
-            done
+            retry python${{ inputs.python_version }} -m pip install fastapi uvicorn llvmlite
+            python${{ inputs.python_version }} -m pytest -v /tmp/tests/backends --rootdir /tmp/tests
+            pytest_status=$?
+            # Exit code 5 indicates that no tests were collected,
+            # i.e. all tests in this file were skipped.
+            if [ ! $pytest_status -eq 0 ] && [ ! $pytest_status -eq 5 ]; then
+              echo "::error file=python_wheel.yml::Python backend tests failed with status $pytest_status."
+              exit 1
+            fi
 
-      # TODO: enable
-      # if: matrix.os_image == 'redhat/ubi9:9.2'
-      # once conda license issues are resolved
+      - name: Validate license compliance
+        uses: ./.github/actions/run-in-docker
+        with:
+          image: wheel_validation:local
+          shell: bash
+          volume: ${{ github.workspace }}/scripts:/tmp/scripts:ro
+          run: |
+            retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+
+            if command -v dnf > /dev/null; then
+              retry dnf install -y --nobest --setopt=install_weak_deps=False binutils
+            elif command -v apt-get > /dev/null; then
+              retry apt-get update && retry apt-get install -y --no-install-recommends binutils
+            elif command -v zypper > /dev/null; then
+              retry zypper --non-interactive install binutils
+            fi
+            if ! command -v nm > /dev/null && ! command -v readelf > /dev/null && ! command -v objdump > /dev/null; then
+              echo "::error file=python_wheels.yml::Failed to install binutils; the scan for statically linked GMP/MPFR copies would silently be skipped."
+              exit 1
+            fi
+
+            python_exe=$(command -v python${{ inputs.python_version }})
+            if [ -z "$python_exe" ]; then
+              echo "::error file=python_wheels.yml::python${{ inputs.python_version }} not found in the validation image."
+              exit 1
+            fi
+            mkdir -p /tmp/pyshim
+            printf '#!/bin/sh\nexec "%s" "$@"\n' "$python_exe" > /tmp/pyshim/python3
+            chmod +x /tmp/pyshim/python3
+            export PATH="/tmp/pyshim:$PATH"
+            if ! python3 -c "import cudaq" > /dev/null 2>&1; then
+              echo "::error file=python_wheels.yml::cudaq is not importable via the python3 used for license validation."
+              exit 1
+            fi
+
+            bash /tmp/scripts/validate_license_compliance.sh --wheel
+            if [ $? -ne 0 ]; then
+              echo "::error file=python_wheels.yml::License compliance validation failed for the built wheel."
+              exit 1
+            fi
+
       - name: Run Python MPI tests
-        if: false
+        if: matrix.os_image == 'redhat/ubi9:9.6'
         uses: ./.github/actions/run-in-docker
         with:
           image: wheel_validation:local
           shell: bash
           run: |
+            retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+            retry_dnf() { local pre=""; [ "$(id -u)" -ne 0 ] && pre=sudo; for n in 1 2 3; do $pre dnf "$@" && return 0; [ $n -lt 3 ] && { $pre dnf clean metadata >/dev/null 2>&1 || true; sleep $((15*n*n)); }; done; return 1; }
             # Uninstall pip-installed cuda-quantum in the `wheel_validation:local` image.
-            # In this step, we test the full installation workflow with conda; 
+            # In this step, we test the full installation workflow with conda;
             # hence we don't want to mix conda and pip packages.
             cuda_major=$(echo ${{ inputs.cuda_version }} | cut -d . -f1)
             python${{ inputs.python_version }} -m pip uninstall -y cuda-quantum-cu${cuda_major}
 
             # Install cuda-quantum wheel and all dependencies (including MPI) using conda (README instructions)
-            dnf install -y --nobest --setopt=install_weak_deps=False wget unzip openssh-clients
+            retry_dnf install -y --nobest --setopt=install_weak_deps=False wget unzip openssh-clients
             mkdir -p ~/miniconda3
-            wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-$(uname -m).sh -O ~/miniconda3/miniconda.sh
+            retry wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-$(uname -m).sh -O ~/miniconda3/miniconda.sh
             bash ~/miniconda3/miniconda.sh -b -u -p ~/miniconda3
             ~/miniconda3/bin/conda init bash
             source ~/.bashrc
+
+            # conda-libmamba-solver 26.4.0 enables sharded repodata by default,
+            # and its threaded shard cache races on its sqlite store, failing the
+            # `conda install` of mpi4py/openmpi below with
+            # "sqlite3.OperationalError: database is locked". Disable sharding so
+            # conda uses classic repodata.json (slower, but reliable in CI).
+            export CONDA_PLUGINS_USE_SHARDED_REPODATA=0
+
+            # Accept Anaconda's non-interactive ToS for the default channels;
+            # `conda create -n cudaq-env python=...` below hits pkgs/main.
+            conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/main
+            conda tos accept --override-channels --channel https://repo.anaconda.com/pkgs/r
 
             # Extract the setup script from Python wheel's readme
             cudaq_wheel=/tmp/cuda_quantum_cu*-manylinux_*_$(uname -m).whl
@@ -295,22 +505,47 @@ jobs:
             unzip $tmploc/$archive_name -d $tmploc/cudaq_wheel && rm -rf $tmploc/$archive_name
             metadata=$tmploc/cudaq_wheel/*.dist-info/METADATA
 
+            # Resolve README template placeholders that pyproject.toml leaves
+            # unsubstituted (readme points at README.md.in). Without this the
+            # eval below would hit bash "bad substitution" on un-substituted
+            # README placeholders.
+            cuda_version_conda="${{ inputs.cuda_version }}.0"
+            cuda_version_conda="${cuda_version_conda/13.0.0/13.0.2}"
+            sub_placeholders() {
+              sed -E -e "s/\\\$\\{\\{[[:space:]]*cuda_version_conda[[:space:]]*\\}\\}/${cuda_version_conda}/g" \
+                     -e "s/\\\$\\{\\{[[:space:]]*package_name[[:space:]]*\\}\\}/cuda-quantum-cu${cuda_major}/g"
+            }
+
             # Parse README content to install openmpi
-            conda_script="$(awk '/(Begin conda install)/{flag=1;next}/(End conda install)/{flag=0}flag' $metadata | grep . | sed '/^```/d')" 
+            conda_script="$(awk '/(Begin conda install)/{flag=1;next}/(End conda install)/{flag=0}flag' $metadata | grep . | sed '/^```/d' | sub_placeholders)"
             while IFS= read -r line; do
               # Replace Python version
               line=$(echo $line | sed -E "s/python(=)?3.[0-9]{1,}/python\1${{ inputs.python_version }}/g")
               # Install the wheel file
-              line=${line//pip install cuda-quantum-cu${cuda_major}/pip install ${cudaq_wheel}}
-              eval "$line"
+              # Leave user-site core visible: Conda must reuse it when compatible.
+              line=${line//pip install cuda-quantum-cu${cuda_major}/pip install --find-links /tmp/core ${cudaq_wheel}}
+              echo "+ $line"
+              # Fail loudly on the failing command. Without this a failed
+              # `conda install` is swallowed and only surfaces ~60 lines later
+              # as a misleading "mpirun: command not found". Retry to tolerate
+              # transient network drops mid-download (e.g. a "Connection reset
+              # by peer" while fetching a multi-hundred-MB CUDA package).
+              if ! retry eval "$line"; then
+                echo "::error file=python_wheel.yml::conda install step failed: $line"
+                exit 1
+              fi
             done <<< "$conda_script"
-            ompi_script="$(awk '/(Begin ompi setup)/{flag=1;next}/(End ompi setup)/{flag=0}flag' $metadata | grep . | sed '/^```/d')" 
+            ompi_script="$(awk '/(Begin ompi setup)/{flag=1;next}/(End ompi setup)/{flag=0}flag' $metadata | grep . | sed '/^```/d')"
             while IFS= read -r line; do
-                eval "$line"
+                echo "+ $line"
+                if ! retry eval "$line"; then
+                  echo "::error file=python_wheel.yml::ompi setup step failed: $line"
+                  exit 1
+                fi
             done <<< "$ompi_script"
 
             # Run the MPI test
-            python${{ inputs.python_version }} -m pip install pytest numpy
+            retry python${{ inputs.python_version }} -m pip install pytest numpy
             mpirun --allow-run-as-root -np 4 python${{ inputs.python_version }} -m pytest -v /tmp/tests/parallel/test_mpi_api.py
             pytest_mpi_status=$?
             if [ ! $pytest_mpi_status -eq 0 ]; then
@@ -346,7 +581,7 @@ jobs:
           docker run --rm -dit --name wheel-validation-examples wheel_validation:local
           status_sum=0
 
-          for ex in `find docs/sphinx/examples/python -name '*.py' -not -path '*/building_kernels.py' -not -path '*/dynamics/*'`; do
+          for ex in `find docs/sphinx/examples/python -name '*.py' -not -path '*/building_kernels.py' -not -path '*/dynamics/*' -not -path '*/mpi/*'`; do
             file="${ex#docs/sphinx/examples/python/}"
             echo "__Example ${file}:__" >> /tmp/validation.out
             (docker exec wheel-validation-examples bash -c "python${{ inputs.python_version }} /tmp/examples/$file" >> /tmp/validation.out) && success=true || success=false
@@ -366,7 +601,7 @@ jobs:
 
       - name: Create job summary
         id: job_summary
-        if: always() && !cancelled() 
+        if: always() && !cancelled()
         run: |
           cuda_major=`echo ${{ inputs.cuda_version }} | cut -d . -f1`
           platform_id=`echo "${{ inputs.platform }}" | sed 's/linux\///g' | tr -d ' ' | tr ',' -`
@@ -391,16 +626,188 @@ jobs:
 
       - name: Upload job summary
         if: steps.job_summary.outputs.validation_summary != '' && matrix.pip_install_flags == ''
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ steps.job_summary.outputs.artifact_id }}_${{ steps.job_summary.outputs.os_id }}_py${{ inputs.python_version }}_validation
           path: ${{ steps.job_summary.outputs.validation_summary }}
           retention-days: 1
           if-no-files-found: warn
 
+  gpu_validation:
+    # Merge-queue gate: run the Python test suite against the GPU (nvidia)
+    # statevector simulator. Regressions that only manifest on the nvidia
+    # target pass on qpp-cpu and so escape per-PR CI, which has no GPU. This
+    # reuses the wheel built by build_wheel and runs a single representative
+    # config (amd64 / Python 3.11 / CUDA 12.6) to limit A100 runner cost.
+    name: Validate wheel on GPU (nvidia simulator)
+    needs: [build_wheel, create_test_config]
+    if: >-
+      ${{ !cancelled() && inputs.run_validation
+          && needs.create_test_config.result == 'success'
+          && (needs.build_wheel.result == 'success'
+              || (inputs.validate_prebuilt_wheel && needs.build_wheel.result == 'skipped'))
+          && inputs.platform == 'linux/amd64' && inputs.python_version == '3.11' && inputs.cuda_version == '12.6' }}
+    runs-on: linux-amd64-gpu-a100-latest-1
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Log in to GitHub CR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Load cuda-quantum wheel
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ needs.build_wheel.outputs.artifact_name }}
+          # Ignored when name is set. With validate_prebuilt_wheel, build_wheel
+          # is skipped, so this finds the wheel built earlier in the run.
+          pattern: ${{ needs.create_test_config.outputs.runtime_artifact_pattern }}
+          merge-multiple: true
+
+      # Core is CUDA-independent. Both frontends are released with the core
+      # built by the CUDA 13 pipeline, so GPU validation must use it too.
+      - name: Load published core wheel
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ inputs.core_artifact_name }}
+          pattern: ${{ needs.create_test_config.outputs.core_artifact_pattern }}
+          path: published-core
+          merge-multiple: true
+
+      - name: Build wheel test image
+        run: |
+          # ubuntu:22.04 is the Python 3.11 validation image (see
+          # config/validation_config.json). Mirror the `validation` job and use
+          # the GHCR-mirrored base to limit pull rate on public registries.
+          repo_owner=${{ github.repository_owner }}
+          base_image=ghcr.io/${repo_owner,,}/ubuntu:22.04
+          wheelname=`echo cuda_quantum*-manylinux_*_$(uname -m).whl`
+          # Test the released CUDA 12 frontend / CUDA 13 core pairing.
+          shopt -s nullglob
+          core_wheels=(published-core/cudaq_core-*.whl)
+          [ ${#core_wheels[@]} -eq 1 ] || { echo "::error::Expected exactly one published core wheel."; exit 1; }
+          docker build --network host -t wheel_validation:local -f docker/test/wheels/ubuntu.Dockerfile . \
+            --build-arg base_image=$base_image \
+            --build-arg python_version=${{ inputs.python_version }} \
+            --build-arg cuda_quantum_wheel=$wheelname \
+            --build-arg cudaq_core_wheel="${core_wheels[0]}" \
+            --build-arg preinstalled_modules="numpy pytest psutil" \
+            --build-arg pip_install_flags=
+
+      - name: Run Python tests on nvidia simulator
+        # On the A100 runner, run-in-docker auto-adds `--gpus all` (it detects
+        # nvidia-smi on the host), so the container can reach the GPU.
+        uses: ./.github/actions/run-in-docker
+        with:
+          image: wheel_validation:local
+          shell: bash
+          run: |
+            # Force the GPU statevector backend. Tests that set their own target
+            # override this; the rest run on nvidia instead of the qpp-cpu default.
+            export CUDAQ_DEFAULT_SIMULATOR=nvidia
+
+            # Fail loudly if the GPU / nvidia target is unavailable, so a missing
+            # GPU can't masquerade as a clean "everything skipped" run.
+            python${{ inputs.python_version }} -c "import cudaq; cudaq.set_target('nvidia'); k=cudaq.make_kernel(); q=k.qalloc(2); k.h(q[0]); k.cx(q[0], q[1]); c=cudaq.sample(k); assert c, 'nvidia target returned no samples'; print('nvidia target OK:', c)"
+
+            # Mirror the CPU suite selection: full python/tests minus backends
+            # (need mock QPUs) and contrib (needs qiskit). Also skip parallel
+            # (needs MPI and the multi-QPU mqpu platform, neither of which this
+            # single-GPU validation container provides; MPI is covered by the
+            # dedicated conda/OpenMPI step in the wheel validation job).
+            python${{ inputs.python_version }} -m pytest -v --durations=0 /tmp/tests/ \
+              --ignore /tmp/tests/backends \
+              --ignore /tmp/tests/contrib \
+              --ignore /tmp/tests/parallel
+            pytest_status=$?
+            if [ ! $pytest_status -eq 0 ]; then
+              echo "::error file=python_wheels.yml::Python tests on the nvidia simulator failed with status $pytest_status."
+              exit 1
+            fi
+
+  validation_devel:
+    name: Validate devel wheel
+    needs: [build_wheel, build_devel_wheel]
+    # Validate newly built SDKs, or the shared SDK once per architecture.
+    if: >-
+      ${{ !cancelled() && inputs.run_validation
+          && (inputs.build_devel_wheel || (inputs.devel_artifact_name != '' && inputs.python_version == '3.11' && inputs.cuda_version == '13.0'))
+          && (needs.build_wheel.result == 'success' || inputs.runtime_artifact_name != '')
+          && (needs.build_devel_wheel.result == 'success' || inputs.devel_artifact_name != '') }}
+    runs-on: ${{ (contains(inputs.platform, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
+    permissions:
+      contents: read
+      actions: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Download runtime wheel
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ needs.build_wheel.outputs.artifact_name || inputs.runtime_artifact_name }}
+          path: dist
+
+      - name: Download devel wheel
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ needs.build_devel_wheel.outputs.artifact_name || inputs.devel_artifact_name }}
+          path: dist
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+
+      - name: Set up validation toolchain
+        id: setup
+        env:
+          PY: ${{ inputs.python_version }}
+        run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          uv python install "$PY"
+          uv tool install "cmake==4.0.3"
+          uv tool install "ninja==1.13.0"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+          retry sudo apt-get update
+          retry sudo apt-get install -y g++-12
+          echo "CC=gcc-12" >> "$GITHUB_ENV"
+          echo "CXX=g++-12" >> "$GITHUB_ENV"
+          echo "python_executable=$(uv python find "$PY")" >> "$GITHUB_OUTPUT"
+
+      - name: Validate devel wheel contents
+        run: |
+          PYTHON="${{ steps.setup.outputs.python_executable }}" \
+            bash scripts/validate_devel_wheel.sh -i dist -r dist
+
+  build_logical_wheel:
+    name: Build and test cudaq.logical
+    needs: [wheel_info, build_wheel, build_devel_wheel]
+    if:
+      ${{ !cancelled() && inputs.build_logical_wheel &&
+      (needs.build_devel_wheel.result == 'success' ||
+      inputs.devel_artifact_name != '') }}
+    uses: ./.github/workflows/cudaq_logical_build.yml
+    with:
+      cudaq_version: ${{ needs.wheel_info.outputs.cudaq_version }}
+      runtime_artifact_name:
+        ${{ needs.build_wheel.outputs.artifact_name ||
+        inputs.runtime_artifact_name }}
+      devel_artifact_name:
+        ${{ needs.build_devel_wheel.outputs.artifact_name ||
+        inputs.devel_artifact_name }}
+
   staging:
     name: Staging
-    needs: [build_wheel, validation]
+    needs: [build_wheel]
     if: inputs.create_staging_info
     runs-on: ubuntu-latest
     permissions:
@@ -408,14 +815,15 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Create build info
         id: staging
         run: |
           wheeldeps_hash=${{ inputs.devdeps_image }}
           platform_id=`echo "${{ inputs.platform }}" | sed 's/linux\///g' | tr -d ' ' | tr ',' -`
-          artifact_name=${{ needs.validation.outputs.artifact_id }}_publishing # changing the artifact name requires updating other workflows
+          cuda_major=`echo ${{ inputs.cuda_version }} | cut -d . -f1`
+          artifact_name=python_${platform_id}_cu${cuda_major}_publishing # changing the artifact name requires updating other workflows
 
           echo "platform_id=$platform_id" >> $GITHUB_OUTPUT
           echo "artifact_name=$artifact_name" >> $GITHUB_OUTPUT
@@ -427,10 +835,9 @@ jobs:
           echo "cuda-quantum-wheeldeps-image: $wheeldeps_hash" >> "$info_file"
           echo "platform: ${{ inputs.platform }}" >> "$info_file"
           echo "cuda-version: ${{ inputs.cuda_version }}" >> "$info_file"
-          cat .github/workflows/config/gitlab_commits.txt >> "$info_file"
 
       - name: Upload build info
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ steps.staging.outputs.artifact_name }} # changing the artifact name requires updating other workflows
           path: ${{ steps.staging.outputs.info_file }}

@@ -8,7 +8,9 @@
 
 #pragma once
 
+#include "cudaq/operators/matrix.h"
 #include <algorithm>
+#include <bitset>
 #include <complex>
 #include <memory>
 #include <optional>
@@ -22,16 +24,17 @@ class SimulationState;
 enum class InitialState { ZERO, UNIFORM };
 
 /// @brief Encapsulates a list of tensors (data pointer and dimensions).
-// Note: tensor data is expected in column-major.
+/// @note Each tensor must be contiguous and stored in column-major order.
 using TensorStateData =
     std::vector<std::pair<const void *, std::vector<std::size_t>>>;
 /// @brief state_data is a variant type
 /// encoding different forms of user state vector data
 /// we support.
-using state_data = std::variant<
-    std::vector<std::complex<double>>, std::vector<std::complex<float>>,
-    std::pair<std::complex<double> *, std::size_t>,
-    std::pair<std::complex<float> *, std::size_t>, TensorStateData>;
+using state_data = std::variant<std::vector<std::complex<double>>,
+                                std::vector<std::complex<float>>,
+                                std::pair<std::complex<double> *, std::size_t>,
+                                std::pair<std::complex<float> *, std::size_t>,
+                                complex_matrix, TensorStateData>;
 
 /// @brief The `SimulationState` interface provides and extension point
 /// for concrete circuit simulation sub-types to describe their
@@ -69,18 +72,24 @@ protected:
   /// and extract the data pointer and size.
   template <typename ScalarType = double>
   auto getSizeAndPtr(const state_data &data) {
-    auto type = data.index();
     std::tuple<std::size_t, void *> sizeAndPtr;
-    if (type == 0)
+    if (std::holds_alternative<std::vector<std::complex<double>>>(data))
       sizeAndPtr = getSizeAndPtrFromVec<double, ScalarType>(data);
-    else if (type == 1)
+    else if (std::holds_alternative<std::vector<std::complex<float>>>(data))
       sizeAndPtr = getSizeAndPtrFromVec<float, ScalarType>(data);
-    else if (type == 2)
+    else if (std::holds_alternative<
+                 std::pair<std::complex<double> *, std::size_t>>(data))
       sizeAndPtr = getSizeAndPtrFromPair<double, ScalarType>(data);
-    else if (type == 3)
+    else if (std::holds_alternative<
+                 std::pair<std::complex<float> *, std::size_t>>(data))
       sizeAndPtr = getSizeAndPtrFromPair<float, ScalarType>(data);
     else
-      throw std::runtime_error("unsupported data type for state.");
+      throw std::runtime_error("unsupported data type for state vector.");
+
+    auto &[size, ptr] = sizeAndPtr;
+    if (!ptr || size == 0)
+      throw std::runtime_error(
+          "[getSizeAndPtr] invalid null pointer or zero size");
 
     return sizeAndPtr;
   }
@@ -99,9 +108,12 @@ public:
   /// vector of Tensors. Each tensor tracks its data pointer
   /// and the tensor extents.
   struct Tensor {
+    enum class storage_order { unspecified, row_major, column_major };
+
     void *data = nullptr;
     std::vector<std::size_t> extents;
     precision fp_precision;
+    storage_order order = storage_order::unspecified;
     std::size_t get_rank() const { return extents.size(); }
     std::size_t get_num_elements() const {
       std::size_t num = 1;
@@ -148,8 +160,9 @@ public:
   // is available or can be computed.
   virtual bool hasData() const { return true; }
 
-  /// @brief Helper to retrieve (kernel name, `args` pointers)
-  virtual std::optional<std::pair<std::string, std::vector<void *>>>
+  /// @brief Helper to retrieve (kernel name, kernel code, and `args` pointers)
+  virtual std::optional<
+      std::tuple<std::string, std::string, std::vector<void *>>>
   getKernelInfo() const {
     return std::nullopt;
   }

@@ -1,0 +1,30 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// A function that borrows device wires is already mapped, even when it does
+// not carry result-reconstruction metadata.
+// RUN: cudaq-opt --verify-each '--qubit-mapping=device=path(2)' %s | FileCheck %s
+
+quake.wire_set @mapped_wireset[2] adjacency sparse<[[0, 1], [1, 0]], true> : tensor<2x2xi1> attributes {sym_visibility = "private"}
+
+func.func @already_mapped() {
+  %q0 = quake.borrow_wire @mapped_wireset[0] : !quake.wire
+  %q1 = quake.borrow_wire @mapped_wireset[1] : !quake.wire
+  %wires:2 = quake.x [%q0] %q1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.return_wire %wires#0 : !quake.wire
+  quake.return_wire %wires#1 : !quake.wire
+  return
+}
+
+// CHECK: quake.wire_set @mapped_wireset[2] adjacency
+// CHECK-LABEL: func.func @already_mapped() {
+// CHECK: %[[Q0:.*]] = quake.borrow_wire @mapped_wireset[0] : !quake.wire
+// CHECK: %[[Q1:.*]] = quake.borrow_wire @mapped_wireset[1] : !quake.wire
+// CHECK: %[[WIRES:.*]]:2 = quake.x [%[[Q0]]] %[[Q1]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK: quake.return_wire %[[WIRES]]#0 : !quake.wire
+// CHECK: quake.return_wire %[[WIRES]]#1 : !quake.wire

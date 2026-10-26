@@ -9,8 +9,7 @@
 #include "QIRTypes.h"
 #include "NVQIRUtil.h"
 #include "common/FmtCore.h"
-#include "common/Logger.h"
-#include <algorithm>
+#include "cudaq/runtime/logger/logger.h"
 #include <cassert>
 #include <cstring>
 #include <memory>
@@ -27,18 +26,13 @@ nvqir::ArrayTracker &nvqir::ArrayTracker::getInstance() {
 }
 
 // Track the given array
-void nvqir::ArrayTracker::track(Array *arr) { allocated_arrays.push_back(arr); }
+void nvqir::ArrayTracker::track(Array *arr) { allocated_arrays.insert(arr); }
 // Untrack the given array (manually delete outside)
 void nvqir::ArrayTracker::untrack(Array *arr) {
   if (arr == nullptr)
     return;
 
-  auto it = std::find(allocated_arrays.begin(), allocated_arrays.end(), arr);
-  // Use nullptr to indicate untracked arrays (manually deleted outside) to
-  // prevent vector shrink.
-  if (it != allocated_arrays.end())
-    *it = nullptr;
-  else
+  if (!allocated_arrays.erase(arr))
     CUDAQ_WARN("Attempting to untrack an Array that is not tracked.");
 }
 
@@ -47,8 +41,7 @@ void nvqir::ArrayTracker::clear() {
   CUDAQ_INFO("Cleaning up {} allocated arrays", allocated_arrays.size());
 
   for (auto arr : allocated_arrays)
-    if (arr != nullptr)
-      delete arr;
+    delete arr;
   allocated_arrays.clear();
 }
 

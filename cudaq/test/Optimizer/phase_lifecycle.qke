@@ -1,0 +1,39 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --cse \
+// RUN:   --normalize-phase-placement --lower-phase --canonicalize %s \
+// RUN:   | FileCheck %s
+
+// Phase normalization merges the corrections while their shared vector
+// predicate is still intact. LowerPhase then materializes the known vector
+// controls only for the merged correction it lowers.
+
+func.func @static_vector_merge(%a: f64, %b: f64) {
+  %controls = quake.alloca !quake.veq<2>
+  %first_anchor = quake.alloca !quake.ref
+  %last_anchor = quake.alloca !quake.ref
+  quake.phase (%a) [%controls] %first_anchor
+      : (f64, !quake.veq<2>, !quake.ref) -> ()
+  quake.phase (%b) [%controls] %last_anchor
+      : (f64, !quake.veq<2>, !quake.ref) -> ()
+  quake.dealloc %last_anchor : !quake.ref
+  quake.dealloc %first_anchor : !quake.ref
+  quake.dealloc %controls : !quake.veq<2>
+  return
+}
+
+// CHECK-LABEL: func.func @static_vector_merge(
+// CHECK-SAME: %[[A:[a-zA-Z0-9_.$-]+]]: f64
+// CHECK-SAME: %[[B:[a-zA-Z0-9_.$-]+]]: f64
+// CHECK: %[[CONTROLS:.*]] = quake.alloca !quake.veq<2>
+// CHECK: %[[SUM:.*]] = arith.addf %[[A]], %[[B]] : f64
+// CHECK-NEXT: %[[C0:.*]] = quake.extract_ref %[[CONTROLS]][0]
+// CHECK-NEXT: %[[C1:.*]] = quake.extract_ref %[[CONTROLS]][1]
+// CHECK-NEXT: quake.r1 (%[[SUM]]) {{\[}}%[[C0]]{{\]}} %[[C1]]
+// CHECK-NOT: quake.phase

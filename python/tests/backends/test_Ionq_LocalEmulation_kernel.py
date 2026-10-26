@@ -94,28 +94,6 @@ def test_Ionq_cudaq_uccsd():
     assert '11000000' in counts
 
 
-def test_Ionq_state_synthesis_from_simulator():
-
-    @cudaq.kernel
-    def kernel(state: cudaq.State):
-        qubits = cudaq.qvector(state)
-
-    state = cudaq.State.from_data(
-        np.array([1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.],
-                 dtype=cudaq.complex()))
-
-    counts = cudaq.sample(kernel, state)
-    assert "00" in counts
-    assert "10" in counts
-    assert len(counts) == 2
-
-    synthesized = cudaq.synthesize(kernel, state)
-    counts = cudaq.sample(synthesized)
-    assert '00' in counts
-    assert '10' in counts
-    assert len(counts) == 2
-
-
 def test_Ionq_state_synthesis():
 
     @cudaq.kernel
@@ -133,6 +111,20 @@ def test_Ionq_state_synthesis():
     counts = cudaq.sample(kernel, s)
     assert '10' in counts
     assert len(counts) == 1
+
+
+def test_Ionq_state_preparation():
+
+    @cudaq.kernel
+    def kernel(vec: List[complex]):
+        qubits = cudaq.qvector(vec)
+
+    state = [1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.]
+    counts = cudaq.sample(kernel, state)
+    assert '00' in counts
+    assert '10' in counts
+    assert not '01' in counts
+    assert not '11' in counts
 
 
 # leave for gdb debugging

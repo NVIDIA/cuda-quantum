@@ -1,0 +1,35 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --convert-to-qir-api='api=full' %s | FileCheck %s
+
+// A plain (unpredicated, uncontrolled) quake.apply -- the shape cable-rough-in
+// emits to bridge wire/cable actuals to a reference-semantics callee -- lowers
+// directly to a func.call at codegen, the same as quake.call_by_ref, without
+// needing apply-op-specialization to run again: cudaq-translate/nvq++ always
+// run apply-op-specialization once, early in the pipeline, well before
+// cable-rough-in creates these applies, so they must be resolved by the QIR
+// conversion patterns themselves.
+
+func.func private @callee(!quake.veq<?>, f32)
+
+func.func @test() {
+  %0 = quake.null_cable<2>
+  %1 = arith.constant 1.0 : f32
+  %2 = quake.apply @callee (%0, %1) : (!quake.cable<2>, f32) -> !quake.cable<2>
+  quake.sink %2 : !quake.cable<2>
+  return
+}
+
+// CHECK-LABEL:   func.func @test() {
+// CHECK:           %[[SIZE:.*]] = arith.constant 2 : i64
+// CHECK:           %[[ARR:.*]] = call @__quantum__rt__qubit_allocate_array(%[[SIZE]])
+// CHECK:           call @callee(%[[ARR]], %{{.*}})
+// CHECK:           call @__quantum__rt__qubit_release_array(%[[ARR]])
+// CHECK:           return
+// CHECK:         }

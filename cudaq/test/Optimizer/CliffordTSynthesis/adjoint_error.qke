@@ -1,0 +1,23 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+
+// RUN: cudaq-opt --clifford-t-synthesis='epsilon=1e-3' \
+// RUN:   -verify-diagnostics %s
+
+// Adjoint rotations must be materialized (folded to a negated angle) before
+// this pass. Synthesizing an adjoint op as its non-adjoint form would
+// miscompile, so the pass rejects it with a hard error.
+
+func.func @adj() {
+  %q = quake.alloca !quake.ref
+  %a = arith.constant 0.7853981633974483 : f64
+  // expected-error @+1 {{adjoint rotation reached synthesis}}
+  quake.rz<adj> (%a) %q : (f64, !quake.ref) -> ()
+  return
+}

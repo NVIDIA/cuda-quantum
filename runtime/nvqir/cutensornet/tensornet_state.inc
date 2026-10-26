@@ -73,7 +73,7 @@ TensorNetState<ScalarType>::TensorNetState(const std::vector<int> &basisState,
   HANDLE_CUDA_ERROR(cudaMalloc(&d_gate, sizeBytes));
   HANDLE_CUDA_ERROR(
       cudaMemcpy(d_gate, h_xGate, sizeBytes, cudaMemcpyHostToDevice));
-  m_tempDevicePtrs.emplace_back(d_gate);
+  m_tempDevicePtrs.emplace_back(d_gate, TempDevicePtrDeleter{});
   for (int32_t qId = 0; const auto &bit : basisState) {
     if (bit == 1) {
       applyGate({}, {qId}, d_gate);
@@ -251,7 +251,7 @@ void TensorNetState<ScalarType>::addQubits(
 
   // Project the state of those new qubits to the input state.
   applyQubitProjector(d_proj, qubitIdx);
-  m_tempDevicePtrs.emplace_back(d_proj);
+  m_tempDevicePtrs.emplace_back(d_proj, TempDevicePtrDeleter{});
 }
 
 template <typename ScalarType>
@@ -280,7 +280,8 @@ TensorNetState<ScalarType>::prepareSample(
   // limit # of pathfinding threads to 1 and can therefore cause significant
   // performance impact
   if (m_deterministic) {
-    const int32_t rndSeed = m_randomEngine();
+    const int32_t rndSeed =
+        1 + (m_randomEngine() % std::numeric_limits<int32_t>::max());
     HANDLE_CUTN_ERROR(cutensornetSamplerConfigure(
         m_cutnHandle, sampler, CUTENSORNET_SAMPLER_CONFIG_DETERMINISTIC,
         &rndSeed, sizeof(rndSeed)));
@@ -373,7 +374,8 @@ TensorNetState<ScalarType>::executeSample(
       // threads. If m_deterministic is not set, there is some possibility of a
       // small deviation in sampling results from finite precision on a
       // different contraction path
-      const int32_t rndSeed = m_randomEngine();
+      const int32_t rndSeed =
+          1 + (m_randomEngine() % std::numeric_limits<int32_t>::max());
       HANDLE_CUTN_ERROR(cutensornetSamplerConfigure(
           m_cutnHandle, sampler, CUTENSORNET_SAMPLER_CONFIG_DETERMINISTIC,
           &rndSeed, sizeof(rndSeed)));
@@ -847,7 +849,7 @@ TensorNetState<ScalarType>::computeExpVals(
                                       /*cudaStream*/ 0));
   }
 
-  if (::cudaq::details::should_log(::cudaq::details::LogLevel::info)) {
+  if (::cudaq::detail::should_log(::cudaq::detail::LogLevel::info)) {
     double flops = 0.0;
     HANDLE_CUTN_ERROR(cutensornetExpectationGetInfo(
         m_cutnHandle, tensorNetworkExpectation,
@@ -997,7 +999,7 @@ std::complex<ScalarType> TensorNetState<ScalarType>::computeExpVal(
         workDesc, /*cudaStream*/ 0));
   }
 
-  if (::cudaq::details::should_log(::cudaq::details::LogLevel::info)) {
+  if (::cudaq::detail::should_log(::cudaq::detail::LogLevel::info)) {
     double flops = 0.0;
     HANDLE_CUTN_ERROR(cutensornetExpectationGetInfo(
         m_cutnHandle, tensorNetworkExpectation,
@@ -1077,12 +1079,27 @@ TensorNetState<ScalarType>::createFromOpTensors(
   LOG_API_TIME();
   auto state = std::make_unique<TensorNetState>(numQubits, inScratchPad, handle,
                                                 randomEngine);
-  for (const auto &op : opTensors)
-    if (op.isUnitary)
+  for (const auto &op : opTensors) {
+    // Check for noise channel first (noise channel ops have deviceData ==
+    // nullptr and noiseChannel.has_value() == true)
+    if (op.noiseChannel.has_value()) {
+      const bool isGeneralChannel = op.noiseChannel->tensorData.size() !=
+                                    op.noiseChannel->probabilities.size();
+      if (isGeneralChannel) {
+        state->applyGeneralChannel(op.targetQubitIds,
+                                   op.noiseChannel->tensorData);
+      } else {
+        state->applyUnitaryChannel(op.targetQubitIds,
+                                   op.noiseChannel->tensorData,
+                                   op.noiseChannel->probabilities);
+      }
+    } else if (op.isUnitary) {
       state->applyGate(op.controlQubitIds, op.targetQubitIds, op.deviceData,
                        op.isAdjoint);
-    else
+    } else {
       state->applyQubitProjector(op.deviceData, op.targetQubitIds);
+    }
+  }
 
   return state;
 }
@@ -1219,7 +1236,7 @@ TensorNetState<ScalarType>::createFromStateVector(
   std::iota(qubitIdx.begin(), qubitIdx.end(), 0);
   // Project the state to the input state.
   state->applyQubitProjector(d_proj, qubitIdx);
-  state->m_tempDevicePtrs.emplace_back(d_proj);
+  state->m_tempDevicePtrs.emplace_back(d_proj, TempDevicePtrDeleter{});
   return state;
 }
 
@@ -1227,8 +1244,7 @@ template <typename ScalarType>
 TensorNetState<ScalarType>::~TensorNetState() {
   // Destroy the quantum circuit state
   HANDLE_CUTN_ERROR(cutensornetDestroyState(m_quantumState));
-  for (auto *ptr : m_tempDevicePtrs)
-    HANDLE_CUDA_ERROR(cudaFree(ptr));
+  m_tempDevicePtrs.clear();
 }
 
 } // namespace nvqir

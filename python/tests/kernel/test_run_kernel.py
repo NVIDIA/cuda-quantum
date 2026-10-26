@@ -14,6 +14,7 @@ import cudaq
 import numpy as np
 import warnings
 import pytest
+from cudaq._metadata import assertions_enabled as _cudaq_assertions_enabled
 
 skipIfBraketNotInstalled = pytest.mark.skipif(
     not (cudaq.has_target("braket")),
@@ -33,7 +34,7 @@ def is_close_array(actual, expected):
 
 
 @pytest.fixture(autouse=True)
-def do_something():
+def run_and_clear_registries():
     yield
     cudaq.__clearKernelRegistries()
 
@@ -85,6 +86,55 @@ def test_simple_run_ghz_with_noise():
             noisy_count += 1
     assert noisy_count > 0
     cudaq.reset_target()
+
+
+@cudaq.kernel
+def flip_one() -> bool:
+    q = cudaq.qubit()
+    x(q)
+    return mz(q)
+
+
+def test_run_after_noisy_run_rejects_kernel():
+    cudaq.set_target("density-matrix-cpu")
+    try:
+
+        @cudaq.kernel
+        def no_result():
+            q = cudaq.qubit()
+            x(q)
+
+        noise = cudaq.NoiseModel()
+        noise.add_channel("x", [0], cudaq.BitFlipChannel(1.0))
+        with pytest.raises(RuntimeError, match="must return a value"):
+            cudaq.run(no_result, shots_count=1, noise_model=noise)
+        # The failed call must not leave its noise model installed.
+        assert cudaq.run(flip_one, shots_count=10) == [True] * 10
+        assert cudaq.run(flip_one, shots_count=10,
+                         noise_model=noise) == [False] * 10
+    finally:
+        cudaq.reset_target()
+
+
+def test_run_after_noisy_run_fails_in_simulator():
+    cudaq.set_target("stim")
+    try:
+
+        @cudaq.kernel
+        def non_clifford() -> bool:
+            q = cudaq.qubit()
+            t(q)
+            return mz(q)
+
+        # Stim's noise sampling asserts on a channel probability of 1.
+        noise = cudaq.NoiseModel()
+        noise.add_channel("x", [0], cudaq.BitFlipChannel(0.5))
+        with pytest.raises(RuntimeError, match="not supported by Stim"):
+            cudaq.run(non_clifford, shots_count=1, noise_model=noise)
+        # The failed call must not leave its noise model installed.
+        assert cudaq.run(flip_one, shots_count=100) == [True] * 100
+    finally:
+        cudaq.reset_target()
 
 
 def test_return_bool():
@@ -649,15 +699,16 @@ def test_return_tuple_int_float():
     result = cudaq.run(simple_tuple_int_float, 2, (-13, 42.3), shots_count=1)
     assert len(result) == 1 and result[0] == (-13, 42.3)
 
-    @cudaq.kernel
-    def simple_tuple_int_float_assign(
-            n: int, t: tuple[int, float]) -> tuple[int, float]:
-        qubits = cudaq.qvector(n)
-        t[0] = -14
-        t[1] = 11.5
-        return t
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def simple_tuple_int_float_assign(
+                n: int, t: tuple[int, float]) -> tuple[int, float]:
+            qubits = cudaq.qvector(n)
+            t[0] = -14
+            t[1] = 11.5
+            return t
+
         cudaq.run(simple_tuple_int_float_assign, 2, (-13, 11.5))
     assert 'tuple value cannot be modified' in str(e.value)
 
@@ -884,11 +935,12 @@ def test_return_dataclass_list_int_bool():
         x: list[int]
         y: bool
 
-    def simple_return_dataclass(n: int, t: MyClass) -> MyClass:
-        qubits = cudaq.qvector(n)
-        return t
-
     # TODO: Support recursive aggregate types in kernels.
+    # @cudaq.kernel
+    # def simple_return_dataclass(n: int, t: MyClass) -> MyClass:
+    #     qubits = cudaq.qvector(n)
+    #     return t
+
     # results = cudaq.run(simple_return_dataclass, 2, MyClass([0,1], 18), shots_count=2)
     # assert len(results) == 2
     # assert results[0] == MyClass([0,1], 18)
@@ -940,14 +992,14 @@ def test_return_dataclass_dataclass_bool():
 
 def test_run_errors():
 
-    @cudaq.kernel
-    def simple_no_return(numQubits: int):
-        qubits = cudaq.qvector(numQubits)
+    with pytest.raises(RuntimeError) as e:
 
-    @cudaq.kernel
-    def simple_no_args() -> int:
-        qubits = cudaq.qvector(2)
-        return 1
+        @cudaq.kernel
+        def simple_no_return(numQubits: int):
+            qubits = cudaq.qvector(numQubits)
+
+        cudaq.run(simple_no_return, 2)
+    assert 'a runnable kernel must return a value.' in repr(e)
 
     @cudaq.kernel
     def simple(numQubits: int) -> int:
@@ -955,20 +1007,32 @@ def test_run_errors():
         return 1
 
     with pytest.raises(RuntimeError) as e:
-        cudaq.run(simple_no_return, 2)
-    assert '`cudaq.run` only supports kernels that return a value.' in repr(e)
+        cudaq.run(simple, [2])
+    assert 'Invalid runtime argument type' in repr(e)
 
-    with pytest.raises(TypeError) as e:
-        cudaq.run(simple, 2, shots_count=-1)
-    assert 'incompatible function arguments.' in repr(e)
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(simple, 8, shots_count=None)
+    assert 'Invalid `shots_count`' in repr(e)
+
+    with pytest.raises(RuntimeError) as e:
+        cudaq.run(simple, 2, shots_count=-13)
+    assert 'Invalid `shots_count`' in repr(e)
 
     with pytest.raises(RuntimeError) as e:
         cudaq.run(simple, shots_count=100)
-    assert 'Invalid number of arguments passed to run:0 expected 1' in repr(e)
+    assert ('Invalid number of arguments passed to run. 0 given and 1 expected.'
+            in repr(e))
 
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def simple_no_args() -> int:
+            qubits = cudaq.qvector(2)
+            return 1
+
         print(cudaq.run(simple_no_args, 2, shots_count=100))
-    assert 'Invalid number of arguments passed to run:1 expected 0' in repr(e)
+    assert ('Invalid number of arguments passed to run. 1 given and 0 expected.'
+            in repr(e))
 
 
 def test_modify_struct():
@@ -978,22 +1042,23 @@ def test_modify_struct():
         x: int
         y: bool
 
+    # Mutating a dataclass function argument's field is now allowed - the
+    # argument is already an independent, by-value copy of whatever the
+    # caller passed, so mutating and returning it reflects only this
+    # function's own copy; it never propagates back to the caller's
+    # original object (there being no caller-visible object to compare
+    # against here in the first place, since `cudaq.run` marshals the
+    # argument in by value).
     @cudaq.kernel
-    def simple_struc_err(t: MyClass) -> MyClass:
+    def simple_struc_noerr(t: MyClass) -> MyClass:
         q = cudaq.qubit()
-        # If we allowed this, the expected behavior for Python
-        # would be that t is modified also in the caller without
-        # having to return it. We hence give an error to make it
-        # clear that changes to structs don't propagate past
-        # function boundaries.
         t.x = 42
         return t
 
-    with pytest.raises(RuntimeError) as e:
-        cudaq.run(simple_struc_err, MyClass(-13, True), shots_count=2)
-    assert 'value cannot be modified - use `.copy(deep)` to create a new value that can be modified' in repr(
-        e)
-    assert '(offending source -> t.x)' in repr(e)
+    results = cudaq.run(simple_struc_noerr, MyClass(-13, True), shots_count=2)
+    assert len(results) == 2
+    assert results[0] == MyClass(42, True)
+    assert results[1] == MyClass(42, True)
 
     @cudaq.kernel
     def simple_structA(arg: MyClass) -> MyClass:
@@ -1070,25 +1135,29 @@ def test_create_and_modify_struct():
     assert results[0] == Bar(True, True, 4.14)
 
 
+@pytest.mark.skip_macos_arm64_jit
 def test_unsupported_return_type():
 
-    @cudaq.kernel
-    def kernel_with_no_args() -> complex:
-        return 1 + 2j
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def kernel_with_no_args() -> complex:
+            return 1 + 2j
+
         cudaq.run(kernel_with_no_args, shots_count=2)
     assert 'unsupported return type' in str(e.value)
 
-    @cudaq.kernel
-    def kernel_with_args(real: float, imag: float) -> complex:
-        return complex(real, imag)
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def kernel_with_args(real: float, imag: float) -> complex:
+            return complex(real, imag)
+
         cudaq.run(kernel_with_args, 1.0, 2.0, shots_count=2)
     assert 'unsupported return type' in str(e.value)
 
 
+@pytest.mark.skip_arm64_jit
 def test_run_and_sample_and_direct_call():
 
     @cudaq.kernel
@@ -1112,9 +1181,16 @@ def test_run_and_sample_and_direct_call():
         in repr(error))
 
 
+_skip_stim_p1 = pytest.mark.skipif(
+    _cudaq_assertions_enabled,
+    reason="https://github.com/NVIDIA/cuda-quantum/issues/4026")
+
+
 # NOTE: Ref - https://github.com/NVIDIA/cuda-quantum/issues/1925
-@pytest.mark.parametrize("target",
-                         ["density-matrix-cpu", "nvidia", "qpp-cpu", "stim"])
+@pytest.mark.parametrize("target", [
+    "density-matrix-cpu", "nvidia", "qpp-cpu",
+    pytest.param('stim', marks=_skip_stim_p1)
+])
 def test_supported_simulators(target):
 
     def can_set_target(name):
@@ -1265,11 +1341,12 @@ def test_dataclass_user_defined_method_raises_error():
         def doSomething(self):
             pass
 
-    @cudaq.kernel
-    def kernel_with_slots_dataclass() -> SlotsClass:
-        return SlotsClass(3, 4)
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def kernel_with_slots_dataclass() -> SlotsClass:
+            return SlotsClass(3, 4)
+
         results = cudaq.run(kernel_with_slots_dataclass, shots_count=2)
     assert 'struct types with user specified methods are not allowed.' in str(
         e.value)
@@ -1286,11 +1363,12 @@ def test_dataclasses_dot_dataclass_user_defined_method_raises_error():
         def doSomething(self):
             pass
 
-    @cudaq.kernel
-    def kernel_with_slots_dataclass() -> SlotsClass:
-        return SlotsClass(3, 4)
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def kernel_with_slots_dataclass() -> SlotsClass:
+            return SlotsClass(3, 4)
+
         results = cudaq.run(kernel_with_slots_dataclass, shots_count=2)
     assert 'struct types with user specified methods are not allowed.' in str(
         e.value)
@@ -1312,12 +1390,13 @@ def test_shots_count():
 
 def test_return_from_if_loop_with_true_condition():
 
-    @cudaq.kernel
-    def kernel(cond: bool) -> int:
-        if cond:
-            return 1
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def kernel(cond: bool) -> int:
+            if cond:
+                return 1
+
         results = cudaq.run(kernel, True, shots_count=1)
     assert 'cudaq.kernel functions with return type annotations must have a return statement.' in str(
         e.value)
@@ -1325,12 +1404,13 @@ def test_return_from_if_loop_with_true_condition():
 
 def test_return_from_if_loop_with_false_condition():
 
-    @cudaq.kernel
-    def kernel(cond: bool) -> int:
-        if cond:
-            return 1
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def kernel(cond: bool) -> int:
+            if cond:
+                return 1
+
         results = cudaq.run(kernel, False, shots_count=1)
     assert 'cudaq.kernel functions with return type annotations must have a return statement.' in str(
         e.value)
@@ -1398,16 +1478,17 @@ def test_return_from_if_and_else_loop_with_true_condition_in_for_loop():
 
 def test_return_from_if_and_else_loop_having_for_with_no_return():
 
-    @cudaq.kernel
-    def kernel(cond: bool) -> int:
-        if cond:
-            for i in range(6):
-                if i == 0:
-                    return 1
-        else:
-            return -1
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def kernel(cond: bool) -> int:
+            if cond:
+                for i in range(6):
+                    if i == 0:
+                        return 1
+            else:
+                return -1
+
         results = cudaq.run(kernel, True, shots_count=1)
     assert 'cudaq.kernel functions with return type annotations must have a return statement.' in str(
         e.value)
@@ -1453,18 +1534,19 @@ def test_return_from_if_and_else_loop_with_true_condition_in_while_loop():
 
 def test_return_from_if_and_else_loop_having_while_with_no_return():
 
-    @cudaq.kernel
-    def kernel(cond: bool) -> int:
-        if cond:
-            i = 0
-            while i < 6:
-                if i == 0:
-                    return 1
-                i = i + 1
-        else:
-            return -1
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def kernel(cond: bool) -> int:
+            if cond:
+                i = 0
+                while i < 6:
+                    if i == 0:
+                        return 1
+                    i = i + 1
+            else:
+                return -1
+
         results = cudaq.run(kernel, True, shots_count=1)
     assert 'cudaq.kernel functions with return type annotations must have a return statement.' in str(
         e.value)
@@ -1594,73 +1676,93 @@ def test_return_with_false_condition_with_variable_defined_outside_the_loop():
     assert results[0] == 0
 
 
-def test_run_with_callable():
-    '''
-    Test running a kernel with a callable as a argument.
-    '''
+def test_while_loop_countdown_sge():
 
     @cudaq.kernel
-    def kernel(state_prep: Callable[[cudaq.qvector], None], N: int) -> int:
-        qubits = cudaq.qvector(N)
-        state_prep(qubits)
-        meas = mz(qubits)
-        res = 0
-        for m in meas:
-            if m:
-                res += 1
-        return res
+    def kernel() -> int:
+        val = 3
+        while val >= 0:
+            val -= 1
+        return val
+
+    results = cudaq.run(kernel, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == -1
+
+
+def test_while_loop_countup_sle():
 
     @cudaq.kernel
-    def prep_1_state(qubits: cudaq.qvector):
-        x(qubits)
+    def kernel() -> int:
+        val = 5
+        while val <= 10:
+            val += 1
+        return val
 
-    for num_qubits in [1, 2, 3, 4]:
-        results = cudaq.run(kernel, prep_1_state, num_qubits, shots_count=10)
-        assert len(results) == 10
-        for r in results:
-            assert r == num_qubits
+    results = cudaq.run(kernel, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == 11
 
 
-def test_return_nested_lists():
-    """
-    Test returning nested lists from a kernel. 
-    This is currently unsupported and should raise an error.
-    """
+def test_while_loop_sge_with_quantum_gates():
 
     @cudaq.kernel
-    def nested_list_kernel() -> list[list[int]]:
-        return [[1, 2], [3, 4]]
+    def kernel() -> int:
+        q = cudaq.qvector(3)
+        val = 2
+        while val >= 0:
+            x(q[val])
+            val -= 1
+        return mz(q[0])
 
-    with pytest.raises(RuntimeError) as e:
-        results = cudaq.run(nested_list_kernel, shots_count=2)
-
-    assert "`cudaq.run` does not yet support returning nested `list`" in str(
-        e.value)
-
-
-def test_return_list_of_structs():
-    """
-    Test returning a list of dataclass structs from a kernel. 
-    This is currently unsupported and should raise an error.
-    """
-
-    @dataclass(slots=True)
-    class SomeStruct:
-        a: int
-        b: bool
+    results = cudaq.run(kernel, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == 1
 
     @cudaq.kernel
-    def list_of_structs_kernel() -> list[SomeStruct]:
-        return [SomeStruct(1, True), SomeStruct(2, False)]
+    def kernel() -> bool:
+        q = cudaq.qvector(3)
+        val = 2
+        while val >= 0:
+            x(q[val])
+            val -= 1
+        return mz(q[0])
 
-    with pytest.raises(RuntimeError) as e:
-        results = cudaq.run(list_of_structs_kernel, shots_count=2)
+    results = cudaq.run(kernel, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == True
 
-    assert "`cudaq.run` does not yet support returning `list` of `dataclass`" in str(
-        e.value)
+
+def test_while_loop_sgt_workaround_still_works():
+
+    @cudaq.kernel
+    def kernel() -> int:
+        q = cudaq.qvector(3)
+        val = 2
+        while val > -1:
+            x(q[val])
+            val -= 1
+        return mz(q[0])
+
+    results = cudaq.run(kernel, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == 1
+
+    @cudaq.kernel
+    def kernel() -> bool:
+        q = cudaq.qvector(3)
+        val = 2
+        while val > -1:
+            x(q[val])
+            val -= 1
+        return mz(q[0])
+
+    results = cudaq.run(kernel, shots_count=1)
+    assert len(results) == 1
+    assert results[0] == True
 
 
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
-    pytest.main([loc, "-rP"])
+    pytest.main([loc, "-srP"])

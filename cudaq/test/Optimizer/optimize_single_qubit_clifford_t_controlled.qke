@@ -1,0 +1,151 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --verify-each --optimize-1q-clifford-t %s | FileCheck %s
+// RUN: sed -n '/SEMANTIC-BEGIN$/,/SEMANTIC-END$/p' %s > %t.semantic.qke
+// RUN: cudaq-opt --verify-each --optimize-1q-clifford-t %t.semantic.qke | CircuitCheck %t.semantic.qke
+
+// The complete control predicate must follow the normal form through an
+// ordinary scope. The target remains the phase anchor.
+func.func @controlled_scope(%control0: !quake.wire,
+                            %control1: !quake.wire,
+                            %target: !quake.wire)
+    -> (!quake.wire, !quake.wire, !quake.wire) {
+  %0:3 = quake.s [%control0, %control1 neg [false, true]] %target
+      : (!quake.wire, !quake.wire, !quake.wire)
+        -> (!quake.wire, !quake.wire, !quake.wire)
+  %1:3 = cc.scope -> (!quake.wire, !quake.wire, !quake.wire) {
+    %2:3 = quake.x [%0#0, %0#1 neg [false, true]] %0#2
+        : (!quake.wire, !quake.wire, !quake.wire)
+          -> (!quake.wire, !quake.wire, !quake.wire)
+    cc.continue %2#0, %2#1, %2#2
+        : !quake.wire, !quake.wire, !quake.wire
+  }
+  %3:3 = quake.s [%1#0, %1#1 neg [false, true]] %1#2
+      : (!quake.wire, !quake.wire, !quake.wire)
+        -> (!quake.wire, !quake.wire, !quake.wire)
+  return %3#0, %3#1, %3#2
+      : !quake.wire, !quake.wire, !quake.wire
+}
+
+// CHECK-LABEL: func.func @controlled_scope
+// CHECK-SAME:  (%[[CONTROL0:.*]]: !quake.wire, %[[CONTROL1:.*]]: !quake.wire, %[[TARGET:.*]]: !quake.wire)
+// CHECK:         %[[ANGLE0:.*]] = arith.constant {{0\.7853981633974482[0-9]}} : f64
+// CHECK-NEXT:    %[[PHASE0:.*]]:3 = quake.phase (%[[ANGLE0]]) [%[[CONTROL0]], %[[CONTROL1]] neg [false, true]] %[[TARGET]]
+// CHECK-NEXT:    %[[ANGLE1:.*]] = arith.constant {{0\.7853981633974482[0-9]}} : f64
+// CHECK-NEXT:    %[[PHASE1:.*]]:3 = quake.phase (%[[ANGLE1]]) [%[[PHASE0]]#0, %[[PHASE0]]#1 neg [false, true]] %[[PHASE0]]#2
+// CHECK-NEXT:    %[[X:.*]]:3 = quake.x [%[[PHASE1]]#0, %[[PHASE1]]#1 neg [false, true]] %[[PHASE1]]#2
+// CHECK-NEXT:    %[[SCOPE:.*]]:3 = cc.scope -> (!quake.wire, !quake.wire, !quake.wire) {
+// CHECK-NEXT:      cc.continue %[[X]]#0, %[[X]]#1, %[[X]]#2
+// CHECK-NEXT:    }
+// CHECK-NEXT:    return %[[SCOPE]]#0, %[[SCOPE]]#1, %[[SCOPE]]#2
+
+// Reordering the threaded controls changes the ordered predicate and ends the
+// chain even when the same qubits remain controls.
+func.func @reordered_control_boundary(%control0: !quake.wire,
+                                      %control1: !quake.wire,
+                                      %target: !quake.wire)
+    -> (!quake.wire, !quake.wire, !quake.wire) {
+  %0:3 = quake.s [%control0, %control1 neg [false, true]] %target
+      : (!quake.wire, !quake.wire, !quake.wire)
+        -> (!quake.wire, !quake.wire, !quake.wire)
+  %1:3 = quake.x [%0#1, %0#0 neg [false, true]] %0#2
+      : (!quake.wire, !quake.wire, !quake.wire)
+        -> (!quake.wire, !quake.wire, !quake.wire)
+  %2:3 = quake.s [%1#0, %1#1 neg [false, true]] %1#2
+      : (!quake.wire, !quake.wire, !quake.wire)
+        -> (!quake.wire, !quake.wire, !quake.wire)
+  return %2#0, %2#1, %2#2
+      : !quake.wire, !quake.wire, !quake.wire
+}
+
+// CHECK-LABEL: func.func @reordered_control_boundary
+// CHECK-SAME:  (%[[R_CONTROL0:.*]]: !quake.wire, %[[R_CONTROL1:.*]]: !quake.wire, %[[R_TARGET:.*]]: !quake.wire)
+// CHECK-NOT:     quake.phase
+// CHECK:         %[[S:.*]]:3 = quake.s [%[[R_CONTROL0]], %[[R_CONTROL1]] neg [false, true]] %[[R_TARGET]]
+// CHECK-NEXT:    %[[BOUNDARY_X:.*]]:3 = quake.x [%[[S]]#1, %[[S]]#0 neg [false, true]] %[[S]]#2
+// CHECK-NEXT:    %[[LAST_S:.*]]:3 = quake.s [%[[BOUNDARY_X]]#0, %[[BOUNDARY_X]]#1 neg [false, true]] %[[BOUNDARY_X]]#2
+// CHECK-NEXT:    return %[[LAST_S]]#0, %[[LAST_S]]#1, %[[LAST_S]]#2
+
+// Changing only a control polarity is also a chain boundary.
+func.func @changed_polarity_boundary(%control0: !quake.wire,
+                                     %control1: !quake.wire,
+                                     %target: !quake.wire)
+    -> (!quake.wire, !quake.wire, !quake.wire) {
+  %0:3 = quake.s [%control0, %control1 neg [false, true]] %target
+      : (!quake.wire, !quake.wire, !quake.wire)
+        -> (!quake.wire, !quake.wire, !quake.wire)
+  %1:3 = quake.x [%0#0, %0#1 neg [true, false]] %0#2
+      : (!quake.wire, !quake.wire, !quake.wire)
+        -> (!quake.wire, !quake.wire, !quake.wire)
+  %2:3 = quake.s [%1#0, %1#1 neg [true, false]] %1#2
+      : (!quake.wire, !quake.wire, !quake.wire)
+        -> (!quake.wire, !quake.wire, !quake.wire)
+  return %2#0, %2#1, %2#2
+      : !quake.wire, !quake.wire, !quake.wire
+}
+
+// CHECK-LABEL: func.func @changed_polarity_boundary
+// CHECK-SAME:  (%[[P_CONTROL0:.*]]: !quake.wire, %[[P_CONTROL1:.*]]: !quake.wire, %[[P_TARGET:.*]]: !quake.wire)
+// CHECK-NOT:     quake.phase
+// CHECK:         %[[POLARITY_S:.*]]:3 = quake.s [%[[P_CONTROL0]], %[[P_CONTROL1]] neg [false, true]] %[[P_TARGET]]
+// CHECK-NEXT:    %[[POLARITY_X:.*]]:3 = quake.x [%[[POLARITY_S]]#0, %[[POLARITY_S]]#1 neg [true, false]] %[[POLARITY_S]]#2
+// CHECK-NEXT:    %[[POLARITY_LAST_S:.*]]:3 = quake.s [%[[POLARITY_X]]#0, %[[POLARITY_X]]#1 neg [true, false]] %[[POLARITY_X]]#2
+// CHECK-NEXT:    return %[[POLARITY_LAST_S]]#0, %[[POLARITY_LAST_S]]#1, %[[POLARITY_LAST_S]]#2
+
+// SEMANTIC-BEGIN
+
+func.func @semantic_controlled(%control0: !quake.ref,
+                               %control1: !quake.ref,
+                               %target: !quake.ref) {
+  %control_wire0 = quake.unwrap %control0 : (!quake.ref) -> !quake.wire
+  %control_wire1 = quake.unwrap %control1 : (!quake.ref) -> !quake.wire
+  %target_wire = quake.unwrap %target : (!quake.ref) -> !quake.wire
+  %0:3 = quake.s [%control_wire0, %control_wire1 neg [false, true]] %target_wire
+      : (!quake.wire, !quake.wire, !quake.wire)
+        -> (!quake.wire, !quake.wire, !quake.wire)
+  %1:3 = quake.x [%0#0, %0#1 neg [false, true]] %0#2
+      : (!quake.wire, !quake.wire, !quake.wire)
+        -> (!quake.wire, !quake.wire, !quake.wire)
+  %2:3 = quake.s [%1#0, %1#1 neg [false, true]] %1#2
+      : (!quake.wire, !quake.wire, !quake.wire)
+        -> (!quake.wire, !quake.wire, !quake.wire)
+  quake.wrap %2#0 to %control0 : !quake.wire, !quake.ref
+  quake.wrap %2#1 to %control1 : !quake.wire, !quake.ref
+  quake.wrap %2#2 to %target : !quake.wire, !quake.ref
+  return
+}
+
+// Three T-family gates normalize to the canonical `S S S T` representation
+// of T-dagger, reducing T-count while retaining the control predicate.
+func.func @semantic_controlled_adjoint_t(%control: !quake.ref,
+                                         %target: !quake.ref) {
+  %control_wire = quake.unwrap %control : (!quake.ref) -> !quake.wire
+  %target_wire = quake.unwrap %target : (!quake.ref) -> !quake.wire
+  %0:2 = quake.t<adj> [%control_wire] %target_wire
+      : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %1:2 = quake.t<adj> [%0#0] %0#1
+      : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %2:2 = quake.t [%1#0] %1#1
+      : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.wrap %2#0 to %control : !quake.wire, !quake.ref
+  quake.wrap %2#1 to %target : !quake.wire, !quake.ref
+  return
+}
+
+// CHECK-LABEL: func.func @semantic_controlled_adjoint_t
+// CHECK:         %[[ADJ_CONTROL:.*]] = quake.unwrap %arg0
+// CHECK-NEXT:    %[[ADJ_TARGET:.*]] = quake.unwrap %arg1
+// CHECK-NEXT:    %[[ADJ_S0:.*]]:2 = quake.s [%[[ADJ_CONTROL]]] %[[ADJ_TARGET]]
+// CHECK-NEXT:    %[[ADJ_S1:.*]]:2 = quake.s [%[[ADJ_S0]]#0] %[[ADJ_S0]]#1
+// CHECK-NEXT:    %[[ADJ_S2:.*]]:2 = quake.s [%[[ADJ_S1]]#0] %[[ADJ_S1]]#1
+// CHECK-NEXT:    %[[ADJ_T:.*]]:2 = quake.t [%[[ADJ_S2]]#0] %[[ADJ_S2]]#1
+// CHECK-NEXT:    quake.wrap %[[ADJ_T]]#0 to %arg0
+// CHECK-NEXT:    quake.wrap %[[ADJ_T]]#1 to %arg1
+
+// SEMANTIC-END

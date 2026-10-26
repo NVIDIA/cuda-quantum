@@ -94,7 +94,7 @@ public:
   static bool deserialize(SerializeInputBuffer &) { return true; }
 };
 
-namespace __internal {
+namespace detail {
 // Member detection idiom to detect if this is a class with `operator()`
 // invocation with any signature.
 // https://en.wikibooks.org/wiki/More_C++_Idioms/Member_Detector
@@ -131,14 +131,14 @@ struct isCallable
           typename std::conditional<std::is_class_v<T>, isCallableClassObj<T>,
                                     std::false_type>::type>::type {};
 
-} // namespace __internal
+} // namespace detail
 
 // Non-empty list specialization for SerializeArgs.
 template <typename ArgT, typename... ArgTs>
 class SerializeArgs<ArgT, ArgTs...> {
 public:
   static std::size_t size(const ArgT &arg, const ArgTs &...args) {
-    static_assert(!__internal::isCallable<ArgT>::value,
+    static_assert(!detail::isCallable<ArgT>::value,
                   "Callable entry-point kernel arguments are not supported for "
                   "the remote simulator platform in library mode. Please "
                   "rewrite the entry point kernel or use MLIR mode.");
@@ -365,7 +365,7 @@ public:
 // We use this to customize the error message.
 //
 //===----------------------------------------------------------------------===//
-namespace internal {
+namespace detail {
 // We utilize the fact that an incomplete type doesn't support sizeof.
 template <class T, std::size_t = sizeof(T)>
 std::true_type __has_complete_impl(T *);
@@ -374,12 +374,12 @@ template <typename ArgT>
 // Check whether SerializeArgImpl is defined for this argument type.
 using isSerializable =
     decltype(__has_complete_impl(std::declval<SerializeArgImpl<ArgT> *>()));
-} // namespace internal
+} // namespace detail
 
 // Serialize a list of args into a flat buffer.
 template <typename... Args>
 std::vector<char> serializeArgs(const Args &...args) {
-  static_assert(std::conjunction_v<internal::isSerializable<Args>...>,
+  static_assert(std::conjunction_v<detail::isSerializable<Args>...>,
                 "Argument type can't be serialized.");
 
   using Serializer = SerializeArgs<Args...>;

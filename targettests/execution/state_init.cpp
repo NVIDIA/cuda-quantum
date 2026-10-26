@@ -7,17 +7,15 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ --enable-mlir %s -o %t  && %t | FileCheck %s
+// RUN: nvq++ %s -o %t  && %t | FileCheck %s
 // clang-format on
 
 #include <cudaq.h>
 #include <iostream>
 
-__qpu__ void test(cudaq::state *inState) {
-  cudaq::qvector q(inState);
-}
+__qpu__ void test(cudaq::state *inState) { cudaq::qvector q(inState); }
 
-void printCounts(cudaq::sample_result& result) {
+void printCounts(cudaq::sample_result &result) {
   std::vector<std::string> values{};
   for (auto &&[bits, counts] : result) {
     values.push_back(bits);

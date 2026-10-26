@@ -1,0 +1,149 @@
+# Used by workflows/label_prs.yml: a PR gets every label (must already
+# exist in the repo) whose globs match at least one changed file.
+
+core compiler:
+  - changed-files:
+    - all-globs-to-any-file:
+      - cudaq/**
+      - '!**/CMakeLists.txt'
+      - '!**/*.cmake'
+      - '!**/test/**'
+      - '!**/tests/**'
+
+'driver (nvq++)':
+  - changed-files:
+    - any-glob-to-any-file:
+      - cudaq/tools/nvq++/**
+
+c++ bridge:
+  - changed-files:
+    - all-globs-to-any-file:
+      - '{cudaq/lib/Frontend,cudaq/tools/cudaq-quake}/**'
+      - '!**/CMakeLists.txt'
+      - '!**/*.cmake'
+      - '!**/test/**'
+      - '!**/tests/**'
+
+codegen:
+  - changed-files:
+    - all-globs-to-any-file:
+      - '{cudaq/lib/Target,cudaq/tools/cudaq-translate}/**'
+      - '!**/CMakeLists.txt'
+      - '!**/*.cmake'
+      - '!**/test/**'
+      - '!**/tests/**'
+
+python-lang:
+  - changed-files:
+    - all-globs-to-any-file:
+      - python/**
+      - '!**/CMakeLists.txt'
+      - '!**/*.cmake'
+      - '!**/test/**'
+      - '!**/tests/**'
+
+python bridge:
+  - changed-files:
+    - all-globs-to-any-file:
+      - '{python/cudaq/kernel,python/cudaq/mlir,python/extension}/**'
+      - '!**/CMakeLists.txt'
+      - '!**/*.cmake'
+      - '!**/test/**'
+      - '!**/tests/**'
+
+kernel builder:
+  - changed-files:
+    - any-glob-to-any-file:
+      - runtime/cudaq/builder/**
+      - python/cudaq/kernel/kernel_builder.py
+
+runtime:
+  - changed-files:
+    - all-globs-to-any-file:
+      - runtime/**
+      - '!**/CMakeLists.txt'
+      - '!**/*.cmake'
+      - '!**/test/**'
+      - '!**/tests/**'
+
+simulation:
+  - changed-files:
+    - all-globs-to-any-file:
+      - runtime/nvqir/**
+      - '!**/CMakeLists.txt'
+      - '!**/*.cmake'
+      - '!**/test/**'
+      - '!**/tests/**'
+
+dynamics:
+  - changed-files:
+    - any-glob-to-any-file:
+      - python/cudaq/dynamics/**
+      - python/runtime/cudaq/dynamics/**
+      - python/tests/dynamics/**
+      - unittests/dynamics/**
+      - runtime/cudaq/dynamics_integrators.h
+      - runtime/nvqir/cudensitymat/**
+
+ptsbe:
+  - changed-files:
+    - any-glob-to-any-file:
+      - runtime/cudaq/ptsbe/**
+      - unittests/ptsbe/**
+
+realtime:
+  - changed-files:
+    - any-glob-to-any-file:
+      - realtime/**
+      - runtime/cudaq/realtime.h
+      - runtime/cudaq/realtime.cpp
+      - runtime/cudaq/realtime/**
+
+cuda-q logical:
+  - changed-files:
+    - any-glob-to-any-file:
+      - preview/logical/**
+
+testing:
+  - changed-files:
+    - any-glob-to-any-file:
+      - unittests/**
+      - targettests/**
+      - cudaq/**/test/**
+      - runtime/**/test/**
+      - python/tests/**
+
+dependencies:
+  - changed-files:
+    - any-glob-to-any-file:
+      - pyproject.toml*
+      - requirements*.txt
+
+documentation:
+  - changed-files:
+    - any-glob-to-any-file:
+      - docs/**
+      - '*.md'
+      - llms.txt
+
+applications:
+  - changed-files:
+    - any-glob-to-any-file:
+      - docs/sphinx/applications/**
+      - examples/**
+
+build:
+  - changed-files:
+    - any-glob-to-any-file:
+      - cmake/**
+      - docker/**
+      - scripts/**
+      - '**/CMakeLists.txt'
+      - '**/*.cmake'
+
+CI:
+  - changed-files:
+    - any-glob-to-any-file:
+      - .github/**
+      - .pre-commit-config.yaml
+      - .licenserc.yaml

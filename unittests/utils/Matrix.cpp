@@ -6,7 +6,14 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/utils/matrix.h"
+#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wstringop-overread"
+#endif
+#include "cudaq/operators/matrix.h"
+#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
+#pragma GCC diagnostic pop
+#endif
 #include "gtest/gtest.h"
 #include <algorithm>
 
@@ -407,6 +414,99 @@ TEST(Tensor, exponential) {
                  "(2.10247,0) (2.55646,0) (1.97654,0) (1.39927,0)\n"
                  "(0.800451,0) (0.648569,0) (1.69099,0) (1.76597,0)\n"
                  "(0.498881,0) (1.05119,0) (0.753502,0) (2.03447,0)\n");
+  }
+}
+
+TEST(Tensor, exponentialComplexRotation) {
+  for (auto order : {cudaq::complex_matrix::order::row_major,
+                     cudaq::complex_matrix::order::column_major}) {
+    cudaq::complex_matrix matrix(2, 2, true, order);
+    const std::complex<double> z(0.3, 0.4);
+    matrix(0, 1) = z;
+    matrix(1, 0) = -std::conj(z);
+    const auto original = matrix;
+    const auto actual = matrix.exponential();
+    // A^2 = -|z|^2 I, so exp(A) = cos(|z|) I + sin(|z|) A / |z|.
+    for (std::size_t i = 0; i < 2; ++i)
+      for (std::size_t j = 0; j < 2; ++j) {
+        const auto expected = i == j ? std::complex<double>(std::cos(0.5))
+                                     : std::sin(0.5) / 0.5 * original(i, j);
+        EXPECT_NEAR(std::abs(actual(i, j) - expected), 0., 1e-14);
+        EXPECT_EQ(matrix(i, j), original(i, j));
+      }
+  }
+}
+
+TEST(Tensor, exponentialNilpotentAndZero) {
+  for (auto order : {cudaq::complex_matrix::order::row_major,
+                     cudaq::complex_matrix::order::column_major}) {
+    cudaq::complex_matrix matrix(3, 3, true, order);
+    auto zeroExp = matrix.exponential();
+    for (std::size_t i = 0; i < 3; ++i)
+      for (std::size_t j = 0; j < 3; ++j)
+        EXPECT_EQ(zeroExp(i, j), std::complex<double>(i == j ? 1. : 0.));
+
+    matrix(0, 1) = {1., 2.};
+    matrix(1, 2) = {3., -1.};
+    const auto actual = matrix.exponential();
+    // A^3 = 0, so the exponential terminates at I + A + A^2 / 2.
+    auto expected = cudaq::complex_matrix::identity(3);
+    expected(0, 1) = matrix(0, 1);
+    expected(1, 2) = matrix(1, 2);
+    expected(0, 2) = matrix(0, 1) * matrix(1, 2) / 2.;
+    for (std::size_t i = 0; i < 3; ++i)
+      for (std::size_t j = 0; j < 3; ++j)
+        EXPECT_NEAR(std::abs(actual(i, j) - expected(i, j)), 0., 1e-14);
+  }
+}
+
+TEST(Tensor, exponentialError) {
+  cudaq::complex_matrix rectangular(2, 3);
+  EXPECT_THROW(rectangular.exponential(), std::runtime_error);
+}
+
+TEST(Tensor, exponentialLargeNorm) {
+  // A 20-term Taylor series loses all accuracy at these norms.
+  {
+    cudaq::complex_matrix matrix(2, 2);
+    const std::complex<double> z(30., 40.);
+    matrix(0, 1) = z;
+    matrix(1, 0) = -std::conj(z);
+    const auto actual = matrix.exponential();
+    // A^2 = -|z|^2 I, so exp(A) = cos(|z|) I + sin(|z|) A / |z|.
+    for (std::size_t i = 0; i < 2; ++i)
+      for (std::size_t j = 0; j < 2; ++j) {
+        const auto expected = i == j ? std::complex<double>(std::cos(50.))
+                                     : std::sin(50.) / 50. * matrix(i, j);
+        EXPECT_NEAR(std::abs(actual(i, j) - expected), 0., 1e-12);
+      }
+  }
+  {
+    cudaq::complex_matrix matrix(2, 2);
+    matrix(0, 0) = -30.;
+    matrix(1, 1) = 20.;
+    const auto actual = matrix.exponential();
+    EXPECT_NEAR(actual(0, 0).real() / std::exp(-30.), 1., 1e-12);
+    EXPECT_NEAR(actual(1, 1).real() / std::exp(20.), 1., 1e-12);
+    EXPECT_EQ(actual(0, 1), std::complex<double>(0.));
+    EXPECT_EQ(actual(1, 0), std::complex<double>(0.));
+  }
+  {
+    // Truncated displacement generator alpha a^dag - conj(alpha) a. It is
+    // anti-Hermitian, so its exponential must be unitary.
+    const std::size_t dim = 10;
+    const std::complex<double> alpha(2., 0.);
+    cudaq::complex_matrix matrix(dim, dim);
+    for (std::size_t i = 0; i + 1 < dim; ++i) {
+      matrix(i + 1, i) = alpha * std::sqrt(static_cast<double>(i + 1));
+      matrix(i, i + 1) =
+          -std::conj(alpha) * std::sqrt(static_cast<double>(i + 1));
+    }
+    auto exp = matrix.exponential();
+    const auto product = exp.adjoint() * exp;
+    for (std::size_t i = 0; i < dim; ++i)
+      for (std::size_t j = 0; j < dim; ++j)
+        EXPECT_NEAR(std::abs(product(i, j) - (i == j ? 1. : 0.)), 0., 1e-12);
   }
 }
 

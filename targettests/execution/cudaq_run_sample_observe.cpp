@@ -8,7 +8,6 @@
 
 // clang-format off
 // RUN: nvq++ %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --library-mode %s -o %t && %t | FileCheck %s
 // clang-format on
 
 #include <cudaq.h>

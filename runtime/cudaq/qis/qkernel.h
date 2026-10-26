@@ -27,7 +27,7 @@ using qkernel = std::function<Sig>;
 
 namespace cudaq {
 
-namespace details {
+namespace detail {
 class QKernelDummy;
 
 template <typename R, typename... As>
@@ -90,7 +90,7 @@ public:
   F callable;
 };
 
-} // namespace details
+} // namespace detail
 
 template <typename A>
 using remove_cvref_t = std::remove_cvref_t<A>;
@@ -110,6 +110,8 @@ class qkernel;
 template <typename R, typename... As>
 class qkernel<R(As...)> {
 public:
+  using function_type = R(As...);
+
   qkernel() {}
   qkernel(std::nullptr_t) {}
   qkernel(const qkernel &) = default;
@@ -131,10 +133,9 @@ public:
     if constexpr (std::is_same_v<PS, R (*)(As...)> ||
                   std::is_same_v<PS, R(As...)>) {
       kernelCallable =
-          std::make_unique<details::QKernelHolder<R, R (*)(As...), As...>>(f);
+          std::make_unique<detail::QKernelHolder<R, R (*)(As...), As...>>(f);
     } else {
-      kernelCallable =
-          std::make_unique<details::QKernelHolder<R, PS, As...>>(f);
+      kernelCallable = std::make_unique<detail::QKernelHolder<R, PS, As...>>(f);
     }
   }
 
@@ -150,7 +151,7 @@ public:
   }
 
 private:
-  std::unique_ptr<details::QKernelInterface<R, As...>> kernelCallable;
+  std::unique_ptr<detail::QKernelInterface<R, As...>> kernelCallable;
 };
 
 template <typename>
@@ -181,6 +182,13 @@ qkernel(R (*)(As...)) -> qkernel<R(As...)>;
 template <typename F, typename S = typename qkernel_deduction_guide_helper<
                           decltype(&F::operator())>::type>
 qkernel(F) -> qkernel<S>;
+
+template <typename A>
+struct is_qkernel_type : std::false_type {};
+template <typename A>
+struct is_qkernel_type<qkernel<A>> : std::true_type {};
+template <typename A>
+concept QKernelType = is_qkernel_type<A>::value;
 
 } // namespace cudaq
 

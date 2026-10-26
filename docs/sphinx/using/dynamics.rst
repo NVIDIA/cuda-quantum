@@ -214,6 +214,9 @@ Any environment variables must be set prior to setting the target or running "`i
   * - ``CUDAQ_DYNAMICS_MAX_DIAGONAL_COUNT_FOR_MULTIDIAGONAL``
     - Non-negative number
     - The maximum number of diagonals for multi-diagonal representation. If the operator matrix has more diagonals than this value, the dense format will be used. Default is 1, i.e., operators with only one diagonal line (center, lower, or upper) will use the multi-diagonal sparse storage. 
+  * - ``CUDAQ_DYNAMICS_MAX_FUSED_DIMENSION``
+    - Non-negative number
+    - The maximum dimension of a fused dense operator. Product terms with constant coefficients that act on sub-systems of at most this dimension are summed into a single dense operator per group of degrees of freedom, with terms acting on a subset of a group's degrees folded into that group. For master equations, an operator acting on both sides of the density matrix has the square of its sub-system's dimension: constant Hamiltonian terms and collapse operators :math:`L` on sub-systems whose squared dimension is at most this value are combined into dense superoperators acting on both sides at once, one per group of overlapping degrees of freedom. For other constant collapse operators within this dimension, the :math:`-\frac{1}{2}\{L^\dagger L, \rho\}` part is folded into the Hamiltonian terms. Factors of :math:`L^\dagger L` that act on the same degrees of freedom are multiplied into a single multi-diagonal operator when the product qualifies for multi-diagonal storage. Fusion reduces the number of passes over the state. Increasing the maximum dimension may decrease performance. Default is 64; 0 disables all fusion.
 
 Time-Dependent Dynamics
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -403,7 +406,7 @@ backend target.
     In this case, you need to install a CUDA-enabled Torch package via other mechanisms, e.g., building Torch from source or
     using their Docker images.
 
-For C++, CUDA-Q provides Runge-Kutta integrator, to be used with the ``dynamics``
+For C++, CUDA-Q provides the following integrators, to be used with the ``dynamics``
 backend target.
 
 .. list-table:: Numerical Integrators
@@ -413,7 +416,11 @@ backend target.
         *   - Name
             - Description
         *   - `runge_kutta`
-            - 1st-order (Euler method), 2nd-order (Midpoint method), and 4th-order (classical Runge-Kutta method).
+            - 1st-order (Euler method), 2nd-order (Midpoint method), and 4th-order (classical Runge-Kutta method). Good general-purpose choice.
+        *   - `crank_nicolson`
+            - Implicit predictor-corrector method. Well-suited for stiff systems or when energy conservation is important. Configurable number of corrector iterations.
+        *   - `magnus_expansion`
+            - Approximates the matrix exponential via a finite Taylor series truncation, approximating unitary evolution. Suitable for smooth, oscillatory Hamiltonians. Configurable number of Taylor terms.
 
 Batch simulation
 ^^^^^^^^^^^^^^^^^
@@ -598,6 +605,13 @@ Specifically, it will detect the number of processes (GPUs) and distribute the c
 .. note::
     Not all integrators are capable of handling distributed state. Errors will be raised if parallel execution is activated 
     but the selected integrator does not support distributed state. 
+
+.. note::
+    When running batched simulations in a multi-GPU multi-node environment, the batch size will be automatically divided by the number of MPI processes.
+    Hence, the batch size needs to be divisible by the number of processes. For example, if the original batch size is 8 and there are 4 MPI processes, 
+    then each process (GPU) will simulate a batch size of 2. Errors will be raised if the batch size is not divisible by the number of processes.
+
+    Each process will return its own set of results. The user is responsible for gathering the results from all processes if needed.
 
 Examples
 ^^^^^^^^^^^^^

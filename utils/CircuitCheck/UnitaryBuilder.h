@@ -34,9 +34,9 @@ private:
   // Visitors
   //===--------------------------------------------------------------------===//
 
-  mlir::WalkResult visitExtractOp(quake::ExtractRefOp op);
+  mlir::WalkResult visitExtractOp(cudaq::quake::ExtractRefOp op);
 
-  mlir::WalkResult visitUnwrapOp(quake::UnwrapOp op);
+  mlir::WalkResult visitUnwrapOp(cudaq::quake::UnwrapOp op);
 
   mlir::WalkResult allocateQubits(mlir::Value value);
 

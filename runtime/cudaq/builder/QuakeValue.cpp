@@ -39,13 +39,13 @@ public:
   ~ValueHolder() = default;
 
   /// @brief Whenever we encounter an extract on a
-  /// StdVec QuakeValue, we want to record it here. This
+  /// Sequence QuakeValue, we want to record it here. This
   /// allows us to validate later that the number of runtime
   /// std::vector elements are correct.
   void addUniqueExtraction(std::size_t idx) {
-    if (!isa<cc::StdvecType>(value.getType()))
+    if (!isa<cc::SequenceType>(value.getType()))
       throw std::runtime_error(
-          "Tracking unique extraction on non-stdvec type.");
+          "Tracking unique extraction on non-sequence type.");
 
     uniqueExtractions.insert(idx);
   }
@@ -83,26 +83,27 @@ QuakeValue::QuakeValue(mlir::ImplicitLocOpBuilder &builder, double v)
     : opBuilder(builder) {
   llvm::APFloat d(v);
   value = std::make_shared<QuakeValue::ValueHolder>(
-      opBuilder.create<arith::ConstantFloatOp>(d, opBuilder.getF64Type()));
+      arith::ConstantFloatOp::create(opBuilder, opBuilder.getF64Type(), d));
 }
 
 QuakeValue::QuakeValue(mlir::ImplicitLocOpBuilder &builder, Value v)
     : value(std::make_shared<QuakeValue::ValueHolder>(v)), opBuilder(builder) {}
 
-bool QuakeValue::isStdVec() {
-  return isa<cc::StdvecType>(value->asMLIR().getType());
+bool QuakeValue::isSequence() {
+  return isa<cc::SequenceType>(value->asMLIR().getType());
 }
 
 std::size_t QuakeValue::getRequiredElements() {
-  if (!isStdVec())
-    throw std::runtime_error("Tracking unique extraction on non-stdvec type.");
+  if (!isSequence())
+    throw std::runtime_error(
+        "Tracking unique extraction on non-sequence type.");
   return value->countUniqueExtractions();
 }
 
 QuakeValue QuakeValue::operator[](const std::size_t idx) {
   Value vectorValue = value->asMLIR();
   Type type = vectorValue.getType();
-  if (!isa<cc::StdvecType, quake::VeqType>(type)) {
+  if (!isa<cc::SequenceType, cudaq::quake::VeqType>(type)) {
     std::string typeName;
     {
       llvm::raw_string_ostream os(typeName);
@@ -113,33 +114,34 @@ QuakeValue QuakeValue::operator[](const std::size_t idx) {
                              typeName + ").");
   }
 
-  Value indexVar = opBuilder.create<arith::ConstantIntOp>(idx, 32);
+  Value indexVar = arith::ConstantIntOp::create(opBuilder, idx, 32);
 
-  if (isa<quake::VeqType>(type)) {
+  if (isa<cudaq::quake::VeqType>(type)) {
     Value extractedQubit =
-        opBuilder.create<quake::ExtractRefOp>(vectorValue, indexVar);
+        cudaq::quake::ExtractRefOp::create(opBuilder, vectorValue, indexVar);
     return QuakeValue(opBuilder, extractedQubit);
   }
 
   // must be a std vec type
   value->addUniqueExtraction(idx);
 
-  Type eleTy = vectorValue.getType().cast<cc::StdvecType>().getElementType();
+  Type eleTy =
+      mlir::cast<cc::SequenceType>(vectorValue.getType()).getElementType();
 
   auto arrPtrTy = cc::PointerType::get(cc::ArrayType::get(eleTy));
-  Value vecPtr = opBuilder.create<cc::StdvecDataOp>(arrPtrTy, vectorValue);
+  Value vecPtr = cc::SequenceDataOp::create(opBuilder, arrPtrTy, vectorValue);
   std::int32_t idx32 = static_cast<std::int32_t>(idx);
   auto elePtrTy = cc::PointerType::get(eleTy);
-  Value eleAddr = opBuilder.create<cc::ComputePtrOp>(
-      elePtrTy, vecPtr, ArrayRef<cc::ComputePtrArg>{idx32});
-  Value loaded = opBuilder.create<cc::LoadOp>(eleAddr);
+  Value eleAddr = cc::ComputePtrOp::create(opBuilder, elePtrTy, vecPtr,
+                                           ArrayRef<cc::ComputePtrArg>{idx32});
+  Value loaded = cc::LoadOp::create(opBuilder, eleAddr);
   return QuakeValue(opBuilder, loaded);
 }
 
 QuakeValue QuakeValue::operator[](const QuakeValue &idx) {
   Value vectorValue = value->asMLIR();
   Type type = vectorValue.getType();
-  if (!isa<cc::StdvecType, quake::VeqType>(type)) {
+  if (!isa<cc::SequenceType, cudaq::quake::VeqType>(type)) {
     std::string typeName;
     {
       llvm::raw_string_ostream os(typeName);
@@ -152,9 +154,9 @@ QuakeValue QuakeValue::operator[](const QuakeValue &idx) {
 
   Value indexVar = idx.getValue();
 
-  if (isa<quake::VeqType>(type)) {
+  if (isa<cudaq::quake::VeqType>(type)) {
     Value extractedQubit =
-        opBuilder.create<quake::ExtractRefOp>(vectorValue, indexVar);
+        cudaq::quake::ExtractRefOp::create(opBuilder, vectorValue, indexVar);
     return QuakeValue(opBuilder, extractedQubit);
   }
 
@@ -162,34 +164,35 @@ QuakeValue QuakeValue::operator[](const QuakeValue &idx) {
   // been passed in correctly.
   canValidateVectorNumElements = false;
 
-  Type eleTy = vectorValue.getType().cast<cc::StdvecType>().getElementType();
+  Type eleTy =
+      mlir::cast<cc::SequenceType>(vectorValue.getType()).getElementType();
   auto arrEleTy = cc::PointerType::get(cc::ArrayType::get(eleTy));
-  Value vecPtr = opBuilder.create<cc::StdvecDataOp>(arrEleTy, vectorValue);
+  Value vecPtr = cc::SequenceDataOp::create(opBuilder, arrEleTy, vectorValue);
   auto elePtrTy = cc::PointerType::get(eleTy);
-  Value eleAddr = opBuilder.create<cc::ComputePtrOp>(
-      elePtrTy, vecPtr, ArrayRef<cc::ComputePtrArg>{indexVar});
-  Value loaded = opBuilder.create<cc::LoadOp>(eleAddr);
+  Value eleAddr = cc::ComputePtrOp::create(
+      opBuilder, elePtrTy, vecPtr, ArrayRef<cc::ComputePtrArg>{indexVar});
+  Value loaded = cc::LoadOp::create(opBuilder, eleAddr);
   return QuakeValue(opBuilder, loaded);
 }
 
 QuakeValue QuakeValue::size() {
   Value vectorValue = value->asMLIR();
   Type type = vectorValue.getType();
-  if (!isa<cc::StdvecType, quake::VeqType>(type))
+  if (!isa<cc::SequenceType, cudaq::quake::VeqType>(type))
     throw std::runtime_error("This QuakeValue does not expose .size().");
 
   Type i64Ty = opBuilder.getI64Type();
   Value ret;
-  if (isa<cc::StdvecType>(type))
-    ret = opBuilder.create<cc::StdvecSizeOp>(i64Ty, vectorValue);
+  if (isa<cc::SequenceType>(type))
+    ret = cc::SequenceSizeOp::create(opBuilder, i64Ty, vectorValue);
   else
-    ret = opBuilder.create<quake::VeqSizeOp>(i64Ty, vectorValue);
+    ret = cudaq::quake::VeqSizeOp::create(opBuilder, i64Ty, vectorValue);
 
   return QuakeValue(opBuilder, ret);
 }
 
 std::optional<std::size_t> QuakeValue::constantSize() {
-  if (auto qvecTy = dyn_cast<quake::VeqType>(getValue().getType()))
+  if (auto qvecTy = dyn_cast<cudaq::quake::VeqType>(getValue().getType()))
     if (qvecTy.hasSpecifiedSize())
       return qvecTy.getSize();
 
@@ -200,32 +203,32 @@ QuakeValue QuakeValue::slice(const std::size_t startIdx,
                              const std::size_t count) {
   Value vectorValue = value->asMLIR();
   Type type = vectorValue.getType();
-  if (!isa<cc::StdvecType, quake::VeqType>(type))
+  if (!isa<cc::SequenceType, cudaq::quake::VeqType>(type))
     throw std::runtime_error("This QuakeValue is not sliceable.");
 
   if (count == 0)
     throw std::runtime_error("QuakeValue::slice requesting slice of size 0.");
 
-  Value startIdxValue = opBuilder.create<arith::ConstantIntOp>(startIdx, 64);
-  Value countValue = opBuilder.create<arith::ConstantIntOp>(count, 64);
-  if (auto veqType = type.dyn_cast_or_null<quake::VeqType>()) {
+  Value startIdxValue = arith::ConstantIntOp::create(opBuilder, startIdx, 64);
+  Value countValue = arith::ConstantIntOp::create(opBuilder, count, 64);
+  if (auto veqType = mlir::dyn_cast_if_present<cudaq::quake::VeqType>(type)) {
     auto veqSize = veqType.getSize();
     if (startIdx + count > veqSize)
       throw std::runtime_error("Invalid number of elements requested in slice, "
                                "must be less than size of array (" +
                                std::to_string(veqSize) + ").");
 
-    auto one = opBuilder.create<arith::ConstantIntOp>(1, 64);
-    Value offset = opBuilder.create<arith::AddIOp>(startIdxValue, countValue);
-    offset = opBuilder.create<arith::SubIOp>(offset, one);
-    auto sizedVecTy = quake::VeqType::get(opBuilder.getContext(), count);
-    Value subVeq = opBuilder.create<quake::SubVeqOp>(sizedVecTy, vectorValue,
-                                                     startIdxValue, offset);
+    auto one = arith::ConstantIntOp::create(opBuilder, 1, 64);
+    Value offset = arith::AddIOp::create(opBuilder, startIdxValue, countValue);
+    offset = arith::SubIOp::create(opBuilder, offset, one);
+    auto sizedVecTy = cudaq::quake::VeqType::get(opBuilder.getContext(), count);
+    Value subVeq = cudaq::quake::SubVeqOp::create(
+        opBuilder, sizedVecTy, vectorValue, startIdxValue, offset);
     return QuakeValue(opBuilder, subVeq);
   }
 
-  // must be a stdvec type
-  auto svecTy = dyn_cast<cc::StdvecType>(vectorValue.getType());
+  // must be a sequence type
+  auto svecTy = dyn_cast<cc::SequenceType>(vectorValue.getType());
   auto eleTy = svecTy.getElementType();
   assert(!isa<cc::ArrayType>(eleTy));
   Value vecPtr;
@@ -235,22 +238,22 @@ QuakeValue QuakeValue::slice(const std::size_t startIdx,
     // actually appear in CodeGen when lowering this to the LLVM-IR dialect.
     eleTy = opBuilder.getI8Type();
     auto ptrTy = cc::PointerType::get(cc::ArrayType::get(eleTy));
-    vecPtr = opBuilder.create<cc::StdvecDataOp>(ptrTy, vectorValue);
+    vecPtr = cc::SequenceDataOp::create(opBuilder, ptrTy, vectorValue);
     auto bits = svecTy.getElementType().getIntOrFloatBitWidth();
     assert(bits > 0);
-    auto scale = opBuilder.create<arith::ConstantIntOp>(
-        (bits + 7) / 8, startIdxValue.getType());
-    offset = opBuilder.create<arith::MulIOp>(scale, startIdxValue);
+    auto scale = arith::ConstantIntOp::create(
+        opBuilder, startIdxValue.getType(), (bits + 7) / 8);
+    offset = arith::MulIOp::create(opBuilder, scale, startIdxValue);
   } else {
     auto ptrTy = cc::PointerType::get(cc::ArrayType::get(eleTy));
-    vecPtr = opBuilder.create<cc::StdvecDataOp>(ptrTy, vectorValue);
+    vecPtr = cc::SequenceDataOp::create(opBuilder, ptrTy, vectorValue);
     offset = startIdxValue;
   }
-  auto ptr = opBuilder.create<cc::ComputePtrOp>(
-      cudaq::cc::PointerType::get(eleTy), vecPtr,
-      ArrayRef<cc::ComputePtrArg>{offset});
-  Value subVeqInit = opBuilder.create<cc::StdvecInitOp>(vectorValue.getType(),
-                                                        ptr, countValue);
+  auto ptr =
+      cc::ComputePtrOp::create(opBuilder, cudaq::cc::PointerType::get(eleTy),
+                               vecPtr, ArrayRef<cc::ComputePtrArg>{offset});
+  Value subVeqInit = cc::SequenceInitOp::create(
+      opBuilder, vectorValue.getType(), ptr, countValue);
 
   // If this is a slice, then we know we have
   // unique extraction on the elements of the slice,
@@ -268,7 +271,7 @@ QuakeValue QuakeValue::operator-() const {
   if (!v.getType().isIntOrFloat())
     throw std::runtime_error("Can only negate double/float QuakeValues.");
 
-  Value negated = opBuilder.create<arith::NegFOp>(v.getType(), v);
+  Value negated = arith::NegFOp::create(opBuilder, v.getType(), v);
   return QuakeValue(opBuilder, negated);
 }
 
@@ -279,8 +282,8 @@ QuakeValue QuakeValue::operator*(const double constValue) {
 
   llvm::APFloat d(constValue);
   Value constant =
-      opBuilder.create<arith::ConstantFloatOp>(d, opBuilder.getF64Type());
-  Value multiplied = opBuilder.create<arith::MulFOp>(v.getType(), constant, v);
+      arith::ConstantFloatOp::create(opBuilder, opBuilder.getF64Type(), d);
+  Value multiplied = arith::MulFOp::create(opBuilder, v.getType(), constant, v);
   return QuakeValue(opBuilder, multiplied);
 }
 
@@ -293,7 +296,7 @@ QuakeValue QuakeValue::operator*(QuakeValue other) {
   if (!otherV.getType().isIntOrFloat())
     throw std::runtime_error("Can only multiply double/float QuakeValues.");
 
-  Value multiplied = opBuilder.create<arith::MulFOp>(v.getType(), v, otherV);
+  Value multiplied = arith::MulFOp::create(opBuilder, v.getType(), v, otherV);
   return QuakeValue(opBuilder, multiplied);
 }
 
@@ -304,8 +307,8 @@ QuakeValue QuakeValue::operator/(const double constValue) {
 
   llvm::APFloat d(constValue);
   Value constant =
-      opBuilder.create<arith::ConstantFloatOp>(d, opBuilder.getF64Type());
-  Value div = opBuilder.create<arith::DivFOp>(v.getType(), v, constant);
+      arith::ConstantFloatOp::create(opBuilder, opBuilder.getF64Type(), d);
+  Value div = arith::DivFOp::create(opBuilder, v.getType(), v, constant);
   return QuakeValue(opBuilder, div);
 }
 
@@ -318,7 +321,7 @@ QuakeValue QuakeValue::operator/(QuakeValue other) {
   if (!otherV.getType().isIntOrFloat())
     throw std::runtime_error("Can only divide double/float QuakeValues.");
 
-  Value div = opBuilder.create<arith::DivFOp>(v.getType(), v, otherV);
+  Value div = arith::DivFOp::create(opBuilder, v.getType(), v, otherV);
   return QuakeValue(opBuilder, div);
 }
 
@@ -329,8 +332,8 @@ QuakeValue QuakeValue::operator+(const double constValue) {
 
   llvm::APFloat d(constValue);
   Value constant =
-      opBuilder.create<arith::ConstantFloatOp>(d, opBuilder.getF64Type());
-  Value added = opBuilder.create<arith::AddFOp>(v.getType(), constant, v);
+      arith::ConstantFloatOp::create(opBuilder, opBuilder.getF64Type(), d);
+  Value added = arith::AddFOp::create(opBuilder, v.getType(), constant, v);
   return QuakeValue(opBuilder, added);
 }
 
@@ -340,8 +343,8 @@ QuakeValue QuakeValue::operator+(const int constValue) {
     throw std::runtime_error("Can only add integral QuakeValues.");
 
   Value constant =
-      opBuilder.create<arith::ConstantIntOp>(constValue, v.getType());
-  Value added = opBuilder.create<arith::AddIOp>(v.getType(), constant, v);
+      arith::ConstantIntOp::create(opBuilder, v.getType(), constValue);
+  Value added = arith::AddIOp::create(opBuilder, v.getType(), constant, v);
   return QuakeValue(opBuilder, added);
 }
 
@@ -354,7 +357,7 @@ QuakeValue QuakeValue::operator+(QuakeValue other) {
   if (!otherV.getType().isIntOrFloat())
     throw std::runtime_error("Can only add double/float QuakeValues.");
 
-  Value added = opBuilder.create<arith::AddFOp>(v.getType(), v, otherV);
+  Value added = arith::AddFOp::create(opBuilder, v.getType(), v, otherV);
   return QuakeValue(opBuilder, added);
 }
 
@@ -365,8 +368,8 @@ QuakeValue QuakeValue::operator-(const double constValue) {
 
   llvm::APFloat d(constValue);
   Value constant =
-      opBuilder.create<arith::ConstantFloatOp>(d, opBuilder.getF64Type());
-  Value subtracted = opBuilder.create<arith::SubFOp>(v.getType(), v, constant);
+      arith::ConstantFloatOp::create(opBuilder, opBuilder.getF64Type(), d);
+  Value subtracted = arith::SubFOp::create(opBuilder, v.getType(), v, constant);
   return QuakeValue(opBuilder, subtracted);
 }
 
@@ -376,9 +379,9 @@ QuakeValue QuakeValue::operator-(const int constValue) {
     throw std::runtime_error("Can only subtract double/float QuakeValues.");
 
   Value constant =
-      opBuilder.create<arith::ConstantIntOp>(constValue, v.getType());
+      arith::ConstantIntOp::create(opBuilder, v.getType(), constValue);
 
-  Value subtracted = opBuilder.create<arith::SubIOp>(v.getType(), v, constant);
+  Value subtracted = arith::SubIOp::create(opBuilder, v.getType(), v, constant);
   return QuakeValue(opBuilder, subtracted);
 }
 
@@ -391,7 +394,7 @@ QuakeValue QuakeValue::operator-(QuakeValue other) {
   if (!otherV.getType().isIntOrFloat())
     throw std::runtime_error("Can only subtract double/float QuakeValues.");
 
-  Value subtracted = opBuilder.create<arith::SubFOp>(v.getType(), v, otherV);
+  Value subtracted = arith::SubFOp::create(opBuilder, v.getType(), v, otherV);
   return QuakeValue(opBuilder, subtracted);
 }
 
@@ -399,9 +402,9 @@ QuakeValue QuakeValue::inverse() const {
   auto v = value->asMLIR();
   if (!v.getType().isIntOrFloat())
     throw std::runtime_error("Can only inverse double/float QuakeValues.");
-  Value constantOne = opBuilder.create<arith::ConstantFloatOp>(
-      llvm::APFloat(1.0), opBuilder.getF64Type());
-  Value inv = opBuilder.create<arith::DivFOp>(v.getType(), constantOne, v);
+  Value constantOne = arith::ConstantFloatOp::create(
+      opBuilder, opBuilder.getF64Type(), llvm::APFloat(1.0));
+  Value inv = arith::DivFOp::create(opBuilder, v.getType(), constantOne, v);
   return QuakeValue(opBuilder, inv);
 }
 } // namespace cudaq

@@ -1,0 +1,88 @@
+name: Wheel cache lookup
+description: |
+  Restore the wheel index entry for a cache key and confirm the recorded
+  artifact is still alive and downloadable.
+
+inputs:
+  key:
+    description: Actions cache key emitted by wheel-source-hash.
+    required: true
+
+outputs:
+  hit:
+    description: "'true' if a live artifact is recorded for this key."
+    value: ${{ steps.lookup.outputs.hit }}
+  run_id:
+    description: Workflow run that uploaded the artifact.
+    value: ${{ steps.lookup.outputs.run_id }}
+  artifact_id:
+    description: Artifact id to download.
+    value: ${{ steps.lookup.outputs.artifact_id }}
+  artifact_name:
+    description: Artifact name recorded in the index.
+    value: ${{ steps.lookup.outputs.artifact_name }}
+
+runs:
+  using: composite
+  steps:
+    - name: Clear previous entry
+      shell: bash
+      env:
+        ENTRY_FILE: .wheel-index/entry.json
+      run: rm -f "$ENTRY_FILE"
+
+    - name: Restore wheel index
+      id: cache
+      uses: actions/cache/restore@v6
+      with:
+        path: .wheel-index/entry.json
+        key: ${{ inputs.key }}-${{ github.run_id }}
+        restore-keys: |
+          ${{ inputs.key }}
+
+    - name: Verify artifact
+      id: lookup
+      shell: bash
+      env:
+        ENTRY_FILE: .wheel-index/entry.json
+        CACHE_MATCHED_KEY: ${{ steps.cache.outputs.cache-matched-key }}
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        set -euo pipefail
+        hit=false
+        run_id=""
+        artifact_id=""
+        artifact_name=""
+
+        # cache-hit is true only for an exact key match. Prefix hits from
+        # restore-keys still populate the file and set cache-matched-key.
+        if [ -f "$ENTRY_FILE" ]; then
+          echo "Restored index from ${CACHE_MATCHED_KEY:-unknown key}"
+          run_id=$(jq -r '.run_id // empty' "$ENTRY_FILE")
+          artifact_id=$(jq -r '.artifact_id // empty' "$ENTRY_FILE")
+          artifact_name=$(jq -r '.artifact_name // empty' "$ENTRY_FILE")
+          if [ -n "$run_id" ] && [ -n "$artifact_name" ]; then
+            # Retrieve artifact by name rather than ID to handle name shadowing.
+            newest=$(gh api --method GET \
+              "repos/$GITHUB_REPOSITORY/actions/runs/$run_id/artifacts" \
+              -f "name=$artifact_name" \
+              --jq '[.artifacts[]] | max_by(.id) | select(.expired == false) | .id' \
+              2>/dev/null || true)
+            if [ -z "$newest" ]; then
+              echo "Index hit but no live artifact named $artifact_name in run $run_id."
+            else
+              if [ "$newest" != "$artifact_id" ]; then
+                echo "::warning::Artifact $artifact_id ($artifact_name) is shadowed by " \
+                  "a newer artifact; downloading $newest instead."
+                artifact_id="$newest"
+              fi
+              hit=true
+            fi
+          fi
+        fi
+
+        echo "hit=$hit" >> "$GITHUB_OUTPUT"
+        echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+        echo "artifact_id=$artifact_id" >> "$GITHUB_OUTPUT"
+        echo "artifact_name=$artifact_name" >> "$GITHUB_OUTPUT"
+        echo "Wheel cache hit=$hit key=${{ inputs.key }}"

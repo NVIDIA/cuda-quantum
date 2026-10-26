@@ -6,12 +6,29 @@
 			"destination": "workspaces/host"
 		}
 	},
+	"workspaceMount": "source=${localWorkspaceFolder},target=/workspaces/cuda-quantum,type=bind",
+	"workspaceFolder": "/workspaces/cuda-quantum",
 	// If you do not have the NVIDIA container runtime installed, available GPUs will not be automatically detected.
 	// You can manually pass the flag to enable GPU support to docker by uncommenting the line below.
 	// "runArgs": [ "--gpus=all" ],
 	"hostRequirements": {
 		"gpu": "optional"
 	},
+	// Dev container features for pre-commit hook dependencies
+	"features": {
+		"ghcr.io/devcontainers/features/node:1": {
+			"version": "20"
+		},
+		"ghcr.io/devcontainers/features/go:1": {
+			"version": "latest"
+		}
+	},
+	// Install pre-commit and tools needed by its system hooks (markdown-link-check, license-eye)
+	"postCreateCommand": "git config --global --add safe.directory /workspaces/cuda-quantum && python3 -m pip install --break-system-packages pre-commit && npm install -g markdown-link-check && go install github.com/apache/skywalking-eyes/cmd/license-eye@latest",
+	// To automatically install pre-commit git hooks when the container is created, add to postCreateCommand:
+	//   && pre-commit install --install-hooks
+	// Note: Hooks are stored in .git/hooks/ on the host. Only enable if you commit from within the container.
+	// Alternatively, run checks manually with: pre-commit run --all-files
 	// To use certain debugging tools, you may want uncomment the two lines below.
 	// Be mindful of security implications when you do. See also 
 	// - https://github.com/rr-debugger/rr/wiki/Docker

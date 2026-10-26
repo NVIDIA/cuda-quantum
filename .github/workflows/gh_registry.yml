@@ -1,7 +1,9 @@
 on:
   workflow_dispatch:
   schedule:
-    - cron: 0 3 * * *
+    # Half an hour before the Deployments cache rebuild: pruning untagged
+    # versions drops the build caches, so the rebuild should follow closely.
+    - cron: 30 13 * * *
 
 name: Update GHCR
 
@@ -18,7 +20,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       
       - name: Get images list
         id: ghcr_config
@@ -57,9 +59,10 @@ jobs:
           echo "internal_images=$(echo $internal_images)" >> $GITHUB_OUTPUT
           echo "external_images=$(echo $external_images)" >> $GITHUB_OUTPUT
 
+  # Prune only after a successful push, so a failed push can't strip the mirror.
   delete_images:
     name: Delete old images on GHCR
-    needs: ghcr_config
+    needs: [ghcr_config, push_images]
     runs-on: ubuntu-latest
     permissions:
       packages: write
@@ -75,23 +78,25 @@ jobs:
 
     steps:
       - name: Login to GitHub CR
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
-      - name: Delete old images
+      - name: Delete old untagged images
         uses: actions/delete-package-versions@v5
-        with: 
+        with:
           package-name: ${{ fromJson(needs.ghcr_config.outputs.external_images)[format('{0}', matrix.image)].package_name }}
           package-type: 'container'
-          min-versions-to-keep: 1 # the used action does not support 0 here
+          # Untagged only, with a large floor so live image children survive.
+          delete-only-untagged-versions: 'true'
+          min-versions-to-keep: 400
         continue-on-error: true
 
   push_images:
     name: Push new images to GHCR
-    needs: [ghcr_config, delete_images]
+    needs: ghcr_config
     runs-on: ubuntu-latest
     permissions:
       packages: write
@@ -107,18 +112,24 @@ jobs:
 
     steps:
       - name: Login to GitHub CR
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ github.token }}
+
+      - name: Log in to DockerHub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
 
       - name: Set up context for buildx
         run: |
           docker context create builder_context
 
       - name: Set up buildx runner
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
         with:
           endpoint: builder_context
           version: v0.19.0
@@ -145,7 +156,9 @@ jobs:
 
       - name: Push image to GHCR
         id: docker_build
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: "false"
         with:
           context: .
           file: ${{ steps.metadata.outputs.dockerfile }}
@@ -172,7 +185,7 @@ jobs:
 
     steps:
       - name: Login to GitHub CR
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}

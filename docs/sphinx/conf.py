@@ -19,6 +19,7 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 
 import os
+from pygments.lexers.special import TextLexer
 import sphinx_rtd_theme
 
 # -- Project information -----------------------------------------------------
@@ -114,39 +115,40 @@ master_doc = 'index'
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = [
-    '**/_*', '.DS_Store', 'examples/python/building_kernels.ipynb',
+    '_doxygen/**', '_static/**', '_tags/**', '_templates/**',
+    '**/__pycache__/**', 'using/extending/_noise.rst', '.DS_Store',
+    'examples/python/building_kernels.ipynb',
     'examples/python/measuring_kernels.ipynb',
-    'examples/python/executing_kernels.ipynb', 'examples/python/operators.ipynb'
+    'examples/python/executing_kernels.ipynb', 'examples/python/operators.ipynb',
+    'examples/plugins/README.md', 'examples/plugins/mock_rest/README.md',
+    'examples/plugins/mlir_extension/README.md',
 ]
 
-#redirect links
-redirects = {"backends/dynamics": "../dynamics.html"}
+compiler_developer_docs = (
+    os.getenv('CUDAQ_BUILD_COMPILER_DEVELOPER_DOCS') == '1'
+)
 
-# Generate OpenAPI spec for the REST API
-import ruamel.yaml
-import json
-
-current_path = os.path.dirname(os.path.realpath(__file__))
-# YAML file defines the spec
-yaml_file = current_path + '/api/rest/.openapi.yaml'
-yaml = ruamel.yaml.YAML(typ='safe')
-with open(yaml_file) as fpi:
-    data = yaml.load(fpi)
-json_spec = json.dumps(data, indent=2)
-
-# Auto-generate the HTML file with the embedded OpenAPI spec.
-html_template_file = current_path + '/_templates/openapi.html'
-with open(html_template_file, 'r') as file:
-    filedata = file.read()
-# Replace the placeholder with the spec
-filedata = filedata.replace("##SPEC_JSON##", json_spec)
-html_output_file = current_path + '/Output/openapi.html'
-os.makedirs(os.path.dirname(html_output_file), exist_ok=True)
-# Write the file out again
-with open(html_output_file, 'w') as file:
-    file.write(filedata)
-# Add this to `html_extra_path` so that it is copied to the deployed docs.
-html_extra_path = ['Output/openapi.html']
+if compiler_developer_docs:
+    tags.add('compiler_developer_docs')
+    rst_epilog = '''
+.. |CUDA-Q dialect documentation| replace:: :doc:`CUDA-Q dialect documentation </using/extending/compiler/dialect_reference>`
+.. |compiler pass development guide| replace:: :doc:`compiler pass development guide </using/extending/compiler/mlir_pass>`
+.. |available compiler passes| replace:: :doc:`available compiler passes </using/extending/compiler/available_passes>`
+'''
+else:
+    rst_epilog = '''
+.. |CUDA-Q dialect documentation| replace:: CUDA-Q dialect documentation
+.. |compiler pass development guide| replace:: compiler pass development guide
+.. |available compiler passes| replace:: available compiler passes
+'''
+    exclude_patterns.extend([
+        'using/extending/compiler/mlir_pass.rst',
+        'using/extending/compiler/available_passes.md',
+        'using/extending/compiler/dialect_reference.rst',
+        '_mdgen/Dialects/**',
+        '_mdgen/Transforms.md',
+        '_mdgen/CodeGenPasses.md',
+    ])
 
 # The reST default role (used for this markup: `text`) to use for all documents.
 default_role = 'code'  # NOTE: the following may be a better choice to error on the side of flagging anything that is referenced but but not declared
@@ -190,6 +192,7 @@ htmlhelp_basename = 'cudaqDoc'
 
 
 def setup(app):
+    app.add_lexer('mlir', TextLexer)
     app.add_css_file('cudaq_override.css')
 
 
@@ -209,12 +212,30 @@ autosummary_generate = True
 # see also https://github.com/sphinx-doc/sphinx/issues/11211.
 # autodoc_mock_imports = ['cuquantum', 'cupy']
 
+# Prefer the inventories build_docs.sh fetched, falling back to the network.
+# Without this a transient outage upstream fails the whole -W build.
+_inventory_dir = os.environ.get('CUDAQ_INTERSPHINX_INVENTORIES')
+
+
+def _inventory(name):
+    if _inventory_dir:
+        path = os.path.join(_inventory_dir, name + '.inv')
+        if os.path.isfile(path):
+            return (path, None)
+    return None
+
+
 intersphinx_mapping = {
-    'python': ('https://docs.python.org/3/', None),
-    'numpy': ('https://numpy.org/doc/stable/', None),
+    'python': ('https://docs.python.org/3/', _inventory('python')),
+    'numpy': ('https://numpy.org/doc/stable/', _inventory('numpy')),
 }
 
-redirects = {"versions": "../latest/releases.html"}
+redirects = {
+    "backends/dynamics": "../dynamics.html",
+    "versions": "../latest/releases.html",
+    "using/extending/cudaq_ir": "compiler/cudaq_ir.html",
+    "using/extending/mlir_pass": "compiler/pass_plugins.html",
+}
 
 nitpick_ignore = [
     ('cpp:identifier', 'GlobalRegisterName'),
@@ -235,13 +256,32 @@ nitpick_ignore = [
     ('py:class', 'function'),
     ('py:class', 'type'),
     ('py:class', 'numpy.ndarray[]'),
+    # numpy documents NDArray as py:data, so the py:class reference that
+    # autodoc generates for the annotation cannot resolve via intersphinx
+    ('py:class', 'NDArray'),
+    ('py:class', 'numpy.typing.NDArray'),
     # FIXME: remove these after adding proper documentation
     # (also reexamine why some of the ones above are ignored)
     ('py:class', 'cudaq::sum_op<cudaq::spin_handler>'),
     ('py:class', 'SpinOperatorTerm'),
     ('cpp:identifier', 'cudaq::detail'),
     ('cpp:identifier', 'cudaq::detail::EigenSparseMatrix'),
+    ('cpp:identifier', 'detail'),
+    ('cpp:identifier', 'detail::NoisePoint'),
+    ('cpp:identifier', 'CompileTarget'),
+    ('cpp:identifier', 'sample_policy'),
+    ('py:class', 'optional'),
+    ('py:class', 'State'),
+    ('py:class', 'Kernel'),
+    ('py:class', 'QuakeValue'),
+    ('py:class', 'SampleResult'),
+    # nanobind generates RST function directives whose description text gets
+    # misinterpreted as py:class cross-references in nitpick mode
+    ('py:class', 'Convert spin_op to JSON string'),
+    ('py:class', 'Checks if all operators in the product are the identity. Note'),
 ]
+
+suppress_warnings = ["myst.duplicate_def", "ref.ref"]
 
 napoleon_google_docstring = True
 napoleon_numpy_docstring = False

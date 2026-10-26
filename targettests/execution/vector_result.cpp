@@ -6,9 +6,10 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ --enable-mlir %s -o %t && %t
+// NB: uses internal checks and return code.
+// RUN: nvq++ %s -o %t && %t
 
-#include "cudaq.h"
+#include "cudaq/qis/qubit_qis.h"
 #include <cstdio>
 
 struct VectorBoolResult {

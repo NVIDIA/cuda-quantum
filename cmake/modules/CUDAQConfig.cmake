@@ -1,0 +1,220 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+get_filename_component(CUDAQ_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+
+include(CMakeFindDependencyMacro)
+list(APPEND CMAKE_MODULE_PATH "${CUDAQ_CMAKE_DIR}")
+
+# The devel wheel keeps compiler tools here, while core owns shared providers
+# under its private wheel prefix. Native installations use one common prefix.
+set(_cudaq_core_cmake_dir "${CUDAQ_CMAKE_DIR}")
+if(EXISTS "${CUDAQ_CMAKE_DIR}/../../../cudaq_core/cudaq/core/lib/cmake/cudaq")
+  get_filename_component(_cudaq_core_cmake_dir
+    "${CUDAQ_CMAKE_DIR}/../../../cudaq_core/cudaq/core/lib/cmake/cudaq" ABSOLUTE)
+endif()
+get_filename_component(CUDAQ_CORE_LIBRARY_DIR "${_cudaq_core_cmake_dir}/../.." ABSOLUTE)
+
+# If MLIR_DIR/LLVM_DIR are not set explicitly, make educated guesses about where to find them.
+foreach(_cudaq_cmake_root "${CUDAQ_CMAKE_DIR}/.." "${CUDAQ_CMAKE_DIR}/../../llvm/lib/cmake")
+  if(NOT MLIR_DIR AND EXISTS "${_cudaq_cmake_root}/mlir/MLIRConfig.cmake")
+    get_filename_component(MLIR_DIR "${_cudaq_cmake_root}/mlir" ABSOLUTE)
+  endif()
+  if(NOT LLVM_DIR AND EXISTS "${_cudaq_cmake_root}/llvm/LLVMConfig.cmake")
+    get_filename_component(LLVM_DIR "${_cudaq_cmake_root}/llvm" ABSOLUTE)
+  endif()
+endforeach()
+unset(_cudaq_cmake_root)
+
+set (CUDAQOperator_DIR "${_cudaq_core_cmake_dir}")
+find_dependency(CUDAQOperator REQUIRED)
+
+set (CUDAQLogger_DIR "${_cudaq_core_cmake_dir}")
+find_dependency(CUDAQLogger REQUIRED)
+
+set (CUDAQCommon_DIR "${_cudaq_core_cmake_dir}")
+find_dependency(CUDAQCommon REQUIRED)
+
+# Shared provider configs set CUDAQ_CMAKE_DIR to core's directory. The remaining
+# frontend and compiler exports belong to this SDK's directory.
+get_filename_component(CUDAQ_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+
+# The frontend execution runtime depends on compiler/JIT support.
+set (CUDAQMlirRuntime_DIR "${CUDAQ_CMAKE_DIR}")
+find_dependency(CUDAQMlirRuntime REQUIRED)
+
+if(EXISTS "${_cudaq_core_cmake_dir}/CUDAQCoreTargets.cmake")
+  include("${_cudaq_core_cmake_dir}/CUDAQCoreTargets.cmake")
+endif()
+
+set (CUDAQEmDefault_DIR "${CUDAQ_CMAKE_DIR}")
+find_dependency(CUDAQEmDefault REQUIRED)
+
+set (CUDAQPlatformDefault_DIR "${CUDAQ_CMAKE_DIR}")
+find_dependency(CUDAQPlatformDefault REQUIRED)
+
+set (CUDAQNlopt_DIR "${CUDAQ_CMAKE_DIR}")
+find_dependency(CUDAQNlopt REQUIRED)
+
+set (CUDAQEnsmallen_DIR "${CUDAQ_CMAKE_DIR}")
+find_dependency(CUDAQEnsmallen REQUIRED)
+
+set (CUDAQPythonInterop_DIR "${CUDAQ_CMAKE_DIR}")
+find_dependency(CUDAQPythonInterop)
+
+# Not REQUIRED: this sets CUDAQ_ENABLE_PYTHON_BINDINGS to reflect whether this
+# install was built with cudaq/'s own MLIR Python bindings, for a python/
+# build configured independently of cudaq/ to check. See
+# CUDAQPythonBindingsConfig.cmake.
+set (CUDAQPythonBindings_DIR "${_cudaq_core_cmake_dir}")
+find_dependency(CUDAQPythonBindings)
+
+if (CUDAQ_REALTIME_DIR)
+  find_dependency(cudaq-realtime CONFIG REQUIRED
+    PATHS "${CUDAQ_REALTIME_DIR}"
+    NO_DEFAULT_PATH)
+else()
+  # Do not use find_dependency here: it inherits find_package(CUDAQ REQUIRED)
+  # and would make realtime mandatory for CUDA-Q installs that do not use it.
+  # Preflight the dependency as well: a CUDA-enabled realtime package requires
+  # the CUDA development toolkit, which is intentionally absent from some
+  # supported CUDA-Q runtime installations.
+  find_package(CUDAToolkit QUIET)
+  if (CUDAToolkit_FOUND)
+    find_package(cudaq-realtime CONFIG QUIET
+      PATHS "${CUDAQ_CMAKE_DIR}/../cudaq-realtime"
+      NO_DEFAULT_PATH)
+  endif()
+endif()
+
+get_filename_component(PARENT_DIRECTORY ${CUDAQ_CMAKE_DIR} DIRECTORY)
+get_filename_component(CUDAQ_LIBRARY_DIR ${PARENT_DIRECTORY} DIRECTORY)
+get_filename_component(CUDAQ_INSTALL_DIR ${CUDAQ_LIBRARY_DIR} DIRECTORY)
+set(CUDAQ_INCLUDE_DIR ${CUDAQ_INSTALL_DIR}/include)
+
+find_dependency(GMP)
+find_dependency(MPFR)
+
+set (NVQIR_DIR "${_cudaq_core_cmake_dir}/../nvqir")
+find_dependency(NVQIR REQUIRED)
+
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED on)
+
+# Consumers that only use CUDA-Q libraries (e.g. MLIR/compiler plugins) and never
+# compile CUDA-Q quantum kernels do not need the `nvq++` (CUDAQ language) toolchain.
+# They can set CUDAQ_ENABLE_LANGUAGE=OFF before find_package(CUDAQ) to skip it.
+option(CUDAQ_ENABLE_LANGUAGE "Enable the CUDAQ compiler language (requires nvq++)" ON)
+if(CUDAQ_ENABLE_LANGUAGE AND NOT CUDAQ_LIBRARY_MODE)
+  enable_language(CUDAQ)
+endif() 
+
+set (CUDAQTargetCatalog_DIR "${CUDAQ_CMAKE_DIR}/../CUDAQTargetCatalog")
+find_dependency(CUDAQTargetCatalog REQUIRED)
+
+# ---- TARGET EXPORTS ----
+# Default Target
+add_library(cudaq::cudaq-default-target SHARED IMPORTED)
+set_target_properties(cudaq::cudaq-default-target PROPERTIES
+  IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libnvqir-custatevec-fp64${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_SONAME "libnvqir-custatevec-fp64${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_LINK_INTERFACE_LIBRARIES "cudaq::cudaq-platform-default;cudaq::cudaq-em-default")
+
+# NVIDIA Target
+add_library(cudaq::cudaq-nvidia-target SHARED IMPORTED)
+set_target_properties(cudaq::cudaq-nvidia-target PROPERTIES
+  IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libnvqir-custatevec-fp32${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_SONAME "libnvqir-custatevec-fp32${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_LINK_INTERFACE_LIBRARIES "cudaq::cudaq-platform-default;cudaq::cudaq-em-default")
+
+# NVIDIA FP64 Target
+add_library(cudaq::cudaq-nvidia-fp64-target SHARED IMPORTED)
+set_target_properties(cudaq::cudaq-nvidia-fp64-target PROPERTIES
+  IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libnvqir-custatevec-fp64${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_SONAME "libnvqir-custatevec-fp64${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_LINK_INTERFACE_LIBRARIES "cudaq::cudaq-platform-default;cudaq::cudaq-em-default")
+
+# NVIDIA MGPU Target
+add_library(cudaq::cudaq-nvidia-mgpu-target SHARED IMPORTED)
+set_target_properties(cudaq::cudaq-nvidia-mgpu-target PROPERTIES
+  IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libnvqir-nvidia-mgpu-fp32${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_SONAME "libnvqir-nvidia-mgpu-fp32${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_LINK_INTERFACE_LIBRARIES "cudaq::cudaq-platform-default;cudaq::cudaq-em-default")
+
+# NVIDIA MGPU-FP64 Target
+add_library(cudaq::cudaq-nvidia-mgpu-fp64-target SHARED IMPORTED)
+set_target_properties(cudaq::cudaq-nvidia-mgpu-fp64-target PROPERTIES
+  IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libnvqir-nvidia-mgpu${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_SONAME "libnvqir-nvidia-mgpu${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_LINK_INTERFACE_LIBRARIES "cudaq::cudaq-platform-default;cudaq::cudaq-em-default")
+
+# NVIDIA MQPU Target
+add_library(cudaq::cudaq-nvidia-mqpu-target SHARED IMPORTED)
+set_target_properties(cudaq::cudaq-nvidia-mqpu-target PROPERTIES
+  IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libnvqir-custatevec-fp32${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_SONAME "libnvqir-custatevec-fp32${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_LINK_INTERFACE_LIBRARIES "cudaq::cudaq-platform-mqpu;cudaq::cudaq-em-default")
+
+# NVIDIA MQPU FP64 Target
+add_library(cudaq::cudaq-nvidia-mqpu-fp64-target SHARED IMPORTED)
+set_target_properties(cudaq::cudaq-nvidia-mqpu-fp64-target PROPERTIES
+  IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libnvqir-custatevec-fp64${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_SONAME "libnvqir-custatevec-fp64${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_LINK_INTERFACE_LIBRARIES "cudaq::cudaq-platform-mqpu;cudaq::cudaq-em-default")
+
+# QPP CPU Target
+add_library(cudaq::cudaq-qpp-cpu-target SHARED IMPORTED)
+set_target_properties(cudaq::cudaq-qpp-cpu-target PROPERTIES
+  IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libnvqir-qpp${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_SONAME "libnvqir-qpp${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_LINK_INTERFACE_LIBRARIES "cudaq::cudaq-platform-default;cudaq::cudaq-em-default")
+
+# QPP CPU DensityMatrix Target
+add_library(cudaq::cudaq-qpp-density-matrix-cpu-target SHARED IMPORTED)
+set_target_properties(cudaq::cudaq-qpp-density-matrix-cpu-target PROPERTIES
+  IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libnvqir-dm${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_SONAME "libnvqir-dm${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_LINK_INTERFACE_LIBRARIES "cudaq::cudaq-platform-default;cudaq::cudaq-em-default")
+
+# Stim Target
+add_library(cudaq::cudaq-stim-target SHARED IMPORTED)
+set_target_properties(cudaq::cudaq-stim-target PROPERTIES
+  IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libnvqir-stim${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_SONAME "libnvqir-stim${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_LINK_INTERFACE_LIBRARIES "cudaq::cudaq-platform-default;cudaq::cudaq-em-default")
+# -------------------------
+
+if(NOT TARGET cudaq::cudaq)
+    include("${CUDAQ_CMAKE_DIR}/CUDAQTargets.cmake")
+endif()
+
+function(cudaq_set_target TARGETNAME)
+  message(STATUS "CUDA Quantum Target = ${TARGETNAME}")
+  target_link_libraries(cudaq::cudaq INTERFACE cudaq::cudaq-${TARGETNAME}-target)
+endfunction()
+
+add_library(cudaq::cudaq-builder SHARED IMPORTED)
+set_target_properties(cudaq::cudaq-builder PROPERTIES
+  IMPORTED_LOCATION "${CUDAQ_LIBRARY_DIR}/libcudaq-builder${CMAKE_SHARED_LIBRARY_SUFFIX}"
+  IMPORTED_SONAME "libcudaq-builder${CMAKE_SHARED_LIBRARY_SUFFIX}")
+
+# Check for the presence of NVIDIA GPUs, if none
+# are found set the default target to qpp-cpu
+set(__tmp_cudaq_target "qpp-cpu")
+find_program(NVIDIA_SMI "nvidia-smi")
+if(NVIDIA_SMI)
+  execute_process(COMMAND bash -c "nvidia-smi --list-gpus | wc -l" OUTPUT_VARIABLE NGPUS OUTPUT_STRIP_TRAILING_WHITESPACE)
+  if (${NGPUS} GREATER_EQUAL 1)
+    # We have NVIDIA GPUs, set the NVIDIA target as the default
+    message(STATUS "Number of NVIDIA GPUs detected: ${NGPUS}")
+    set(__tmp_cudaq_target "nvidia")
+  endif()
+endif()
+
+set(CUDAQ_TARGET ${__tmp_cudaq_target} CACHE STRING "The CUDA Quantum target to compile for and execute on. Defaults to `${__tmp_cudaq_target}`")
+cudaq_set_target(${CUDAQ_TARGET})

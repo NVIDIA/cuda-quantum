@@ -1,0 +1,406 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+import cudaq
+from fastapi import FastAPI, HTTPException, Request
+import uvicorn, uuid, base64, ctypes, sys, re
+from llvmlite import binding as llvm
+from cudaq.mlir.passmanager import PassManager
+from cudaq.mlir.ir import Module
+from cudaq.kernel.utils import getMLIRContext
+from cudaq.mlir.dialects import func, quake
+from cudaq.mlir.dialects import llvm as mlir_llvm
+
+# Define the REST Server App
+app = FastAPI()
+
+llvm.initialize_native_target()
+llvm.initialize_native_asmprinter()
+target = llvm.Target.from_default_triple()
+targetMachine = target.create_target_machine()
+backing_mod = llvm.parse_assembly("")
+engine = llvm.create_mcjit_compiler(backing_mod, targetMachine)
+
+# Keep track of Job Ids to their Names
+createdJobs = {}
+
+SERVER_EXECUTION_PIPELINE = (
+    "builtin.module("
+    "canonicalize,qir-device-call,cse,return-to-output-log,"
+    "func.func("
+    "memtoreg,canonicalize,cc-loop-normalize,"
+    "cc-loop-unroll{maximum-iterations=1024 "
+    "signal-failure-if-any-loop-cannot-be-completely-unrolled=true "
+    "allow-early-exit=true},"
+    "canonicalize"
+    "),"
+    "canonicalize,cse,symbol-dce,lower-to-cfg,"
+    "func.func(stack-frame-prealloc,combine-quantum-alloc,canonicalize,cse),"
+    "symbol-dce,"
+    "lower-wireset-to-profile-qir{convert-to=qir-adaptive},"
+    "lower-to-cfg,symbol-dce,cc-to-llvm"
+    ")")
+
+REFERENCE_SEMANTICS_OPS = {
+    "quake.alloca",
+    "quake.extract_ref",
+    "quake.subveq",
+    "quake.concat",
+    "quake.relax_size",
+    "quake.unwrap",
+    "quake.wrap",
+}
+
+
+def isQuantumReferenceType(ty):
+    return quake.RefType.isinstance(ty) or quake.VeqType.isinstance(
+        ty) or quake.StruqType.isinstance(ty)
+
+
+def verifyValueSemanticsPayload(module):
+    """Check that the kernel bodies in the payload are in value-semantics
+    form."""
+    seen = set()
+    for op in module.body.operations:
+        seen.add(op.operation.name)
+        if not isinstance(op, func.FuncOp) or op.is_external:
+            continue
+        for inner in walkOperations(op.operation):
+            name = inner.operation.name
+            seen.add(name)
+            if name in REFERENCE_SEMANTICS_OPS:
+                raise RuntimeError(
+                    f"Remote payload still contains reference-semantics"
+                    f" operation `{name}` in `{op.name.value}`. The server"
+                    " must receive wireset MLIR.")
+            for value in list(inner.operands) + list(inner.results):
+                if isQuantumReferenceType(value.type):
+                    raise RuntimeError(
+                        f"Remote payload still contains a quantum reference"
+                        f" value of type `{value.type}` in `{op.name.value}`."
+                        " The server must receive wireset MLIR.")
+
+    for required in ["quake.wire_set", "quake.borrow_wire"]:
+        if required not in seen:
+            raise RuntimeError(
+                f"Remote payload is missing `{required}`. The server must"
+                " receive value-semantics MLIR with an assigned wireset.")
+
+
+def verifyExpectedMapping(decoded_payload, entry_func_name):
+    if "mapping" not in entry_func_name:
+        return
+
+    required_tokens = ["@mapped_wireset", "mapping_v2p", "mapping_reorder_idx"]
+    for token in required_tokens:
+        if token not in decoded_payload:
+            raise RuntimeError(
+                f"Mapped kernel `{entry_func_name}` is missing `{token}`.")
+
+
+def walkOperations(operation):
+    for region in operation.regions:
+        for block in region:
+            for op in block:
+                yield op
+                yield from walkOperations(op.operation)
+
+
+def verifyExpectedDirectionality(entry_func):
+    entry_func_name = entry_func.name.value
+    if "directional_mapping" not in entry_func_name:
+        return
+
+    # Mirror the forward-only line declared by
+    # `directional_mapping_device.txt`: 0 -> 1 -> ... -> 5.
+    native_edges = {(physical, physical + 1) for physical in range(5)}
+    wire_to_physical = {}
+    for op in walkOperations(entry_func.operation):
+        if isinstance(op, quake.BorrowWireOp):
+            if op.set_name.value == "mapped_wireset":
+                wire_to_physical[op.operation.results[0]] = op.identity.value
+            continue
+
+        if not all(
+                hasattr(op, field)
+                for field in ("controls", "targets", "wires")):
+            continue
+
+        quantum_operands = [*op.controls, *op.targets]
+        if any(operand not in wire_to_physical for operand in quantum_operands):
+            raise RuntimeError(
+                "Could not resolve the physical operands of mapped operation "
+                f"`{op.operation.name}`.")
+
+        # The target basis admits only single-qubit gates and CX/CZ: every
+        # operator has exactly one target and either zero or one control.
+        if len(op.targets) != 1 or len(op.controls) > 1:
+            raise RuntimeError(
+                f"Mapped operation `{op.operation.name}` must have exactly "
+                "one target and at most one control.")
+
+        if len(op.controls) == 1:
+            if not isinstance(op, (quake.XOp, quake.ZOp)):
+                raise RuntimeError(
+                    "Mapped controlled operation must be CX or CZ, got "
+                    f"`{op.operation.name}`.")
+            control_physical, target_physical = (
+                wire_to_physical[operand] for operand in quantum_operands)
+            # The test topology contains only the forward edges 0->1->...->5.
+            # Validate the ordered control-target pair, not just adjacency, so
+            # a CX mapped onto the reverse direction fails this request.
+            if (control_physical, target_physical) not in native_edges:
+                raise RuntimeError(
+                    "Mapped controlled gate uses unsupported physical "
+                    f"direction {control_physical}->{target_physical}.")
+
+        if len(quantum_operands) != len(op.wires):
+            raise RuntimeError(
+                f"Mapped operation `{op.operation.name}` does not thread one "
+                "wire result per quantum operand.")
+        for operand, result in zip(quantum_operands, op.wires):
+            wire_to_physical[result] = wire_to_physical[operand]
+
+
+def verifyExpectedLoopCount(decoded_payload, entry_func_name):
+    match = re.search(r"expected_(\d+)_loops?", entry_func_name)
+    if not match:
+        return
+
+    expectedCount = int(match.group(1))
+    actualCount = len(re.findall(r"\bcc\.loop\b", decoded_payload))
+    if actualCount != expectedCount:
+        raise RuntimeError(
+            "Remote payload preserved an unexpected number of `cc.loop` ops "
+            f"for `{entry_func_name}`: expected {expectedCount}, got "
+            f"{actualCount}.")
+
+
+def getNumRequiredQubits(function):
+    for a in function.attributes:
+        if "required_num_qubits" in str(a):
+            return int(
+                str(a).split(f'required_num_qubits\"=')[-1].split(" ")
+                [0].replace("\"", "").replace("'", ""))
+        elif "requiredQubits" in str(a):
+            return int(
+                str(a).split(f'requiredQubits\"=')[-1].split(" ")[0].replace(
+                    "\"", "").replace("'", ""))
+
+
+def getNumRequiredResults(function):
+    for a in function.attributes:
+        if "required_num_results" in str(a):
+            return int(
+                str(a).split(f'required_num_results\"=')[-1].split(" ")
+                [0].replace("\"", "").replace("'", ""))
+        elif "requiredResults" in str(a):
+            return int(
+                str(a).split(f'requiredResults\"=')[-1].split(" ")[0].replace(
+                    "\"", "").replace("'", ""))
+
+
+def getKernelFunction(module):
+    for f in module.functions:
+        if not f.is_declaration:
+            return f
+    return None
+
+
+def verifyModule(module, stage):
+    if not module.operation.verify():
+        raise RuntimeError(f"MLIR verification failed for {stage} module.")
+
+
+def stubExternalQuantumCalls(recovered_mod):
+    """Treat a call the backend is meant to implement as the identity.
+
+    `lower-wireset-to-profile-qir` marks `quake.apply` illegal, and the
+    mock has no implementation to offer, so each wire operand is threaded to
+    the matching result. Only a symbol the payload declares without a body is
+    stubbed; anything else is reported.
+    """
+    stubbed = []
+    declared = set()
+    defined = set()
+    for op in recovered_mod.body.operations:
+        if isinstance(op, func.FuncOp):
+            (declared if op.is_external else defined).add(op.name.value)
+
+    def walk(op):
+        for region in op.regions:
+            for block in region.blocks:
+                for inner in list(block.operations):
+                    if inner.operation.name != "quake.apply":
+                        walk(inner.operation)
+                        continue
+                    name = str(inner.attributes["callee"]).lstrip("@")
+                    if name in defined:
+                        raise RuntimeError(
+                            f"Call to `{name}` reached the server in wire "
+                            "form, but the payload defines it. A call to a "
+                            "kernel with a body should have been inlined.")
+                    if name not in declared:
+                        raise RuntimeError(
+                            f"Call to `{name}` reached the server, but the "
+                            "payload does not declare it. The mock only "
+                            "stubs operations the backend is meant to "
+                            "implement.")
+                    quantum = [
+                        o for o in inner.operands
+                        if str(o.type) == "!quake.wire"
+                    ]
+                    if len(quantum) != len(inner.results):
+                        raise RuntimeError(
+                            f"External call `{name}` has {len(quantum)} wire "
+                            f"operand(s) but {len(inner.results)} result(s).")
+                    for result, operand in zip(inner.results, quantum):
+                        result.replace_all_uses_with(operand)
+                    inner.operation.erase()
+                    stubbed.append(name)
+
+    walk(recovered_mod.operation)
+    return stubbed
+
+
+def lowerValueSemanticsPayloadForExecution(recovered_mod, ctx):
+    # The client/server contract is checked before this point. The client has
+    # already run the target JIT pipeline through `wireset` assignment. For
+    # execution, the mock server fully unrolls the submitted value-semantic IR
+    # and lowers the `wireset` directly to QIR.
+    pm = PassManager.parse(SERVER_EXECUTION_PIPELINE, context=ctx)
+    try:
+        pm.run(recovered_mod.operation)
+    except Exception as e:
+        raise RuntimeError("Failed to lower recovered module for execution: "
+                           f"{e}\n{recovered_mod}") from e
+
+    verifyModule(recovered_mod, "server-lowered")
+    return mlir_llvm.translate_module_to_llvmir(recovered_mod.operation)
+
+
+@app.post("/job")
+async def postJob(request: Request):
+    global createdJobs
+    payload = await request.json()
+    # Decode base64
+    decoded_payload = base64.b64decode(payload["ir"]).decode('utf-8')
+    # Verify that the input MLIR does not contain actual `malloc` or `memcpy`
+    # calls. Match `@malloc` or `@llvm.memcpy` as function references (calls or
+    # declarations).
+    if re.search(r'@malloc\b', decoded_payload) or \
+       re.search(r'@(llvm\.)?memcpy\b', decoded_payload):
+        raise RuntimeError(
+            "Input MLIR contains malloc or memcpy calls. These should have been"
+            " eliminated by the eliminate-dead-heap-copy pass.")
+
+    ctx = getMLIRContext()
+    recovered_mod = Module.parse(decoded_payload, context=ctx)
+    verifyModule(recovered_mod, "submitted")
+
+    # Stub first, so `symbol-dce` can drop the declarations left behind.
+    for name in stubExternalQuantumCalls(recovered_mod):
+        print(f"Stubbed external quantum call `{name}`")
+    dce = PassManager.parse("builtin.module(symbol-dce)", context=ctx)
+    try:
+        dce.run(recovered_mod.operation)
+    except Exception as e:
+        raise RuntimeError(
+            f"Failed to run `symbol-dce` on the recovered module: {e}")
+
+    verifyValueSemanticsPayload(recovered_mod)
+
+    pm = PassManager.parse("builtin.module(canonicalize,qir-device-call,cse)",
+                           context=ctx)
+    try:
+        pm.run(recovered_mod.operation)
+    except Exception as e:
+        raise RuntimeError(
+            f"Failed to run pass manager on the recovered module: {e}")
+
+    entry_func = None
+    for op in recovered_mod.body.operations:
+        if isinstance(op, func.FuncOp):
+            for attr in op.attributes:
+                if attr == "cudaq-entrypoint":
+                    entry_func = op
+                    break
+    if entry_func is None:
+        raise RuntimeError(
+            "Remote payload is missing a `cudaq-entrypoint` function.")
+    entry_func_name = entry_func.name.value
+    verifyExpectedMapping(decoded_payload, entry_func_name)
+    verifyExpectedDirectionality(entry_func)
+    verifyExpectedLoopCount(decoded_payload, entry_func_name)
+
+    # Lower the module to LLVM IR.
+    qir_code = lowerValueSemanticsPayloadForExecution(recovered_mod, ctx)
+    m = llvm.module.parse_assembly(qir_code)
+    m.verify()
+
+    # Get the function, number of qubits, and kernel name.
+    function = getKernelFunction(m)
+    if function == None:
+        raise Exception("Could not find kernel function")
+    numQubitsRequired = getNumRequiredQubits(function)
+    numResultsRequired = getNumRequiredResults(function)
+    kernelFunctionName = function.name
+
+    # Job ID
+    newId = str(uuid.uuid4())
+
+    # JIT Compile and get Function Pointer
+    engine.add_module(m)
+    engine.finalize_object()
+    engine.run_static_constructors()
+    funcPtr = engine.get_function_address(kernelFunctionName)
+    kernel = ctypes.CFUNCTYPE(None)(funcPtr)
+    qir_log = f"HEADER\tschema_id\tlabeled\nHEADER\tschema_version\t1.0\nSTART\nMETADATA\tentry_point\nMETADATA\tqir_profiles\tadaptive_profile\nMETADATA\trequired_num_qubits\t{numQubitsRequired}\nMETADATA\trequired_num_results\t{numResultsRequired}\n"
+
+    shots = payload["shots"]
+    for i in range(shots):
+        shot_log = cudaq.testing.runKernel(numQubitsRequired, kernel)
+        if i > 0:
+            qir_log += "START\n"
+        qir_log += shot_log
+        qir_log += "END\t0\n"
+
+    engine.remove_module(m)
+    createdJobs[newId] = qir_log
+    # Job "created", return the id
+    return ({"id": newId}, 201)
+
+
+@app.get("/job/{jobId}")
+async def getJob(jobId: str):
+    if jobId not in createdJobs:
+        raise HTTPException(status_code=404, detail="Job ID not found")
+
+    job_output = createdJobs[jobId]
+    if job_output.startswith("FAILURE:"):
+        res = ({"status": "error", "message": job_output}, 200)
+    else:
+        res = ({"status": "done", "qir_output": job_output}, 201)
+    return res
+
+
+def startServer(port):
+    print("Server Started")
+    uvicorn.run(app, port=port, host='0.0.0.0', log_level="debug")
+
+
+if __name__ == '__main__':
+    args = sys.argv[1:]
+
+    # Load the device library if provided as an argument
+    if len(args) == 2 and args[0] == '-device-lib':
+        print(f"Loading device library from {args[1]}")
+        llvm.load_library_permanently(args[1])
+
+    print("Server Starting")
+    startServer(62453)

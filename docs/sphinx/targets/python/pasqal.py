@@ -3,6 +3,9 @@ from cudaq.operators import RydbergHamiltonian, ScalarOperator
 from cudaq.dynamics import Schedule
 
 # This example illustrates how to use Pasqal's EMU_MPS emulator over Pasqal's cloud via CUDA-Q.
+# It uses the direct `pasqal` target with Pasqal credentials.
+# For the QRMI-routed flow use a supported cluster and set `machine="qrmi"`
+# (see QRMI docs).
 #
 # To obtain the authentication token for the cloud  we recommend logging in with
 # Pasqal's Python SDK. See our documentation https://docs.pasqal.com/cloud/ for more.

@@ -11,7 +11,8 @@ add_library(cudaq-serverhelper-fermioniq SHARED FermioniqServerHelper.cpp )
 target_link_libraries(cudaq-serverhelper-fermioniq
   PUBLIC 
     cudaq-common 
-    fmt::fmt-header-only 
+    cudaq-logger 
 )
-install(TARGETS cudaq-serverhelper-fermioniq DESTINATION lib)
+install(TARGETS cudaq-serverhelper-fermioniq DESTINATION lib
+        COMPONENT Runtime)
 

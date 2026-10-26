@@ -13,13 +13,12 @@ from typing import List
 
 import cudaq
 
-skipIfNoGQPU = pytest.mark.skipif(
-    not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia')),
-    reason="nvidia-mqpu backend not available")
+skipIfNoGQPU = pytest.mark.skipif(not cudaq.has_target('nvidia'),
+                                  reason="nvidia-mqpu backend not available")
 
 
 @pytest.fixture(autouse=True)
-def do_something():
+def run_and_clear_registries():
     yield
     cudaq.__clearKernelRegistries()
 
@@ -162,6 +161,28 @@ def test_state_density_matrix_simple():
     np.isclose(.5, got_state[3, 0].real)
     np.isclose(.5, got_state[3, 3].real)
 
+    # state[4, 0]: row equals dimension.
+    with pytest.raises(IndexError):
+        got_state[4, 0]
+    # state[0, 4]: column equals dimension.
+    with pytest.raises(IndexError):
+        got_state[0, 4]
+    # state[INT_MAX, 0]: row exceeds dimension.
+    with pytest.raises(IndexError):
+        got_state[2147483647, 0]
+    # state[[INT_MAX, 0]]: row exceeds dimension.
+    with pytest.raises(IndexError):
+        got_state[[2147483647, 0]]
+    # state[-5, 0]: row below -dimension.
+    with pytest.raises(IndexError):
+        got_state[-5, 0]
+    # state[[0]]: one matrix index.
+    with pytest.raises(RuntimeError):
+        got_state[[0]]
+    # state[[0, 0, 0]]: three matrix indices.
+    with pytest.raises(RuntimeError):
+        got_state[[0, 0, 0]]
+
     # Check the entire matrix with numpy.
     assert np.allclose(want_state, np.array(got_state))
 
@@ -185,7 +206,7 @@ def test_state_vector_async():
     want_state = np.array([-1j / np.sqrt(2.), 0., 0., -1j / np.sqrt(2.)],
                           dtype=np.complex128)
     state = future.get()
-    state.dump()
+    print(state)
     assert np.allclose(state, want_state, atol=1e-3)
     # Check invalid qpu_id
     with pytest.raises(Exception) as error:

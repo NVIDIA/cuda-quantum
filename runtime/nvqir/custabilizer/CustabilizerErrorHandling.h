@@ -7,9 +7,9 @@
  ******************************************************************************/
 
 #pragma once
-#include "common/cudaq_fmt.h"
 #include "cuda_runtime.h"
 #include "custabilizer.h"
+#include "cudaq/runtime/logger/cudaq_fmt.h"
 #include <stdexcept>
 
 #define HANDLE_CUDA_ERROR(x)                                                   \

@@ -10,11 +10,10 @@ set(LIBRARY_NAME nvqir)
 
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ctad-maybe-unsupported")
 
-set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
-
 set(NVQIR_RUNTIME_SRC
   QIRTypes.cpp
   NVQIR.cpp
+  dem/DemScope.cpp
   resourcecounter/ResourceCounter.cpp
   ../cudaq/qis/state.cpp
 )
@@ -31,11 +30,21 @@ set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS ${LIBRARY_NAME})
 # and by keeping it private, others can specify the
 # backend library later on
 target_link_libraries(${LIBRARY_NAME}
-  PUBLIC cudaq-common cudaq-operator dl fmt::fmt-header-only)
+  PUBLIC cudaq-common cudaq-operator dl fmt::fmt-header-only
+  PRIVATE cudaq-logger
+)
 
-install(TARGETS ${LIBRARY_NAME} 
-        EXPORT nvqir-targets 
+if(CUDAQ_BUILD_SPLIT_WHEELS)
+  # libnvqir in cudaq_core/cudaq/core/lib must find frontend simulator plugins
+  # in site-packages/lib when they are opened by name with dlopen.
+  set_property(TARGET ${LIBRARY_NAME} APPEND PROPERTY INSTALL_RPATH
+    "${_wheel_origin}/../../../../lib")
+endif()
+
+install(TARGETS ${LIBRARY_NAME}
+        EXPORT nvqir-targets
         LIBRARY DESTINATION lib
+        COMPONENT ${CUDAQ_CORE_LIBRARY_COMPONENT}
         INCLUDES DESTINATION include/nvqir)
 
 add_subdirectory(qpp)
@@ -64,17 +73,18 @@ if (CUSTABILIZER_INCLUDE_DIR AND CUSTABILIZER_LIBRARY AND CUDA_FOUND)
   add_subdirectory(custabilizer)
 endif()
 
-if (CUSTATEVEC_ROOT AND CUDA_FOUND) 
+if (cuStateVec_FOUND)
   add_subdirectory(custatevec)
-endif() 
-if (CUTENSORNET_ROOT AND CUDA_FOUND)
-  add_subdirectory(cutensornet)  
 endif()
-if (CUDENSITYMAT_ROOT AND CUDA_FOUND)
+if (cuTensorNet_FOUND)
+  add_subdirectory(cutensornet)
+endif()
+if (cuDensityMat_FOUND)
   add_subdirectory(cudensitymat)
 endif()
 
 install(EXPORT nvqir-targets
         FILE NVQIRTargets.cmake
         NAMESPACE nvqir::
-        DESTINATION lib/cmake/nvqir)
+        DESTINATION lib/cmake/nvqir
+        COMPONENT ${CUDAQ_CORE_DEVELOPMENT_COMPONENT})

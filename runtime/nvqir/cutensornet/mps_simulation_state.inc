@@ -543,6 +543,8 @@ std::unique_ptr<cudaq::SimulationState>
 MPSSimulationState<ScalarType>::createFromSizeAndPtr(std::size_t size,
                                                      void *ptr,
                                                      std::size_t dataType) {
+  if (!ptr || size == 0)
+    throw std::runtime_error("[createFromSizeAndPtr] invalid null pointer or zero size");
   if (dataType == cudaq::detail::variant_index<cudaq::state_data,
                                                cudaq::TensorStateData>()) {
     std::vector<MPSTensor> mpsTensors;

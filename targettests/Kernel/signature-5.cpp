@@ -6,15 +6,16 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ --enable-mlir %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %s -o %t && %t | FileCheck %s
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 #include <iomanip>
 #include <iostream>
 
 // Test kernels can take arguments of tuple or pair as well as return values of
 // same.
 
+// The bridge cannot construct a std::tuple or std::pair in a kernel.
 #define NYI /*__qpu__*/
 
 void ok() { std::cout << "ok\n"; }

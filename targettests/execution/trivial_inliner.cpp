@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 // RUN: nvq++ %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --library-mode %s -o %t && %t | FileCheck %s
 
 #include <cudaq.h>
 

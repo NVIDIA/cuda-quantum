@@ -7,13 +7,12 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ --target infleqtion --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --target ionq       --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --target iqm        --emulate %s -o %t && IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt  %t | FileCheck %s
-// RUN: nvq++ --target oqc        --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s
+// RUN: if %infleqtion_avail; then nvq++ --target infleqtion --emulate %s -o %t && %t | FileCheck %s; fi
+// RUN: if %ionq_avail; then nvq++ --target ionq       --emulate %s -o %t && %t | FileCheck %s; fi
+// RUN: if %iqm_avail; then nvq++ --target iqm        --emulate %s -o %t && IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt  %t | FileCheck %s; fi
+// RUN: if %oqc_avail; then nvq++ --target oqc        --emulate %s -o %t && %t | FileCheck %s; fi
+// RUN: if %quantinuum_avail; then nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s; fi
 // RUN: if %braket_avail; then nvq++ --target braket --emulate %s -o %t && %t | FileCheck %s; fi
-// RUN: if %qci_avail; then nvq++ --target qci --emulate %s -o %t && %t | FileCheck %s; fi
 // clang-format on
 
 #include <cudaq.h>
@@ -23,9 +22,7 @@
 // function in computing expected values of provided spin_ops.
 
 struct ansatz {
-  auto operator()() __qpu__ {
-    cudaq::qvector q(1);
-  }
+  auto operator()() __qpu__ { cudaq::qvector q(1); }
 };
 
 int main() {

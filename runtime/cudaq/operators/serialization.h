@@ -7,7 +7,9 @@
  ******************************************************************************/
 
 #include "cudaq/operators.h"
+#include <cstdint>
 #include <fstream>
+#include <limits>
 
 namespace cudaq {
 class spin_op_reader {
@@ -24,39 +26,31 @@ public:
       throw std::runtime_error(data_filename + " does not exist.");
 
     input.seekg(0, std::ios_base::end);
-    std::size_t size = input.tellg();
+    const std::streamoff file_size = input.tellg();
+    if (file_size <= 0)
+      throw std::runtime_error("Serialized spin operator file is empty or has "
+                               "an invalid size.");
+
+    const auto byte_count = static_cast<std::uintmax_t>(file_size);
+    if (byte_count % sizeof(double) != 0 ||
+        byte_count > std::numeric_limits<std::size_t>::max() ||
+        byte_count > static_cast<std::uintmax_t>(
+                         std::numeric_limits<std::streamsize>::max()))
+      throw std::runtime_error(
+          "Serialized spin operator file size is invalid.");
+
     input.seekg(0, std::ios_base::beg);
-    std::vector<double> input_vec(size / sizeof(double));
-    input.read((char *)&input_vec[0], size);
-    return spin_op(input_vec);
-  }
-
-  [[deprecated("overload provided for compatibility with the deprecated "
-               "serialization format - please migrate to the new format and "
-               "use the overload read(const std::string &)")]] spin_op
-  read(const std::string &data_filename, bool legacy_format) {
-    if (!legacy_format)
-      return read(data_filename);
-
-    std::ifstream input(data_filename, std::ios::binary);
     if (input.fail())
-      throw std::runtime_error(data_filename + " does not exist.");
+      throw std::runtime_error("Failed to seek serialized spin operator file.");
 
-    input.seekg(0, std::ios_base::end);
-    std::size_t size = input.tellg();
-    input.seekg(0, std::ios_base::beg);
+    const auto size = static_cast<std::size_t>(byte_count);
     std::vector<double> input_vec(size / sizeof(double));
-    input.read((char *)&input_vec[0], size);
-#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-#endif
-    auto n_terms = (std::size_t)input_vec.back();
-    auto nQubits = (input_vec.size() - 1 - 2 * n_terms) / n_terms;
-    return spin_op(input_vec, nQubits);
-#if (defined(__GNUC__) && !defined(__clang__) && !defined(__INTEL_COMPILER))
-#pragma GCC diagnostic pop
-#endif
+    input.read(reinterpret_cast<char *>(input_vec.data()),
+               static_cast<std::streamsize>(size));
+    if (input.fail() || input.gcount() != static_cast<std::streamsize>(size))
+      throw std::runtime_error("Failed to read serialized spin operator file.");
+
+    return spin_op(input_vec);
   }
 };
 } // namespace cudaq

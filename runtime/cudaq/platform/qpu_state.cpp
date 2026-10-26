@@ -83,9 +83,9 @@ void QPUState::toHost(std::complex<float> *clientAllocatedData,
   throw std::runtime_error("toHost is not implemented for quantum hardware");
 }
 
-std::optional<std::pair<std::string, std::vector<void *>>>
+std::optional<std::tuple<std::string, std::string, std::vector<void *>>>
 QPUState::getKernelInfo() const {
-  return std::make_pair(kernelName, args);
+  return std::make_tuple(kernelName, kernelQuake, args);
 }
 
 std::vector<std::complex<double>>

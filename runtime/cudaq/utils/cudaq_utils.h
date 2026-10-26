@@ -9,11 +9,15 @@
 #pragma once
 #include <algorithm>
 #include <cassert>
+#include <functional>
+#include <iostream>
 #include <memory>
 #include <numeric>
+#include <optional>
 #include <random>
 #include <sstream>
 #include <string>
+#include <type_traits>
 #include <variant>
 #include <vector>
 
@@ -22,19 +26,20 @@
 #else
 #include <link.h>
 #endif
-namespace cudaq::__internal__ {
+namespace cudaq::detail {
 
 struct CUDAQLibraryData {
   std::string path;
 };
 
+// Execution resources belong to the frontend library, not cudaq-common in core.
 #if defined(__APPLE__) && defined(__MACH__)
 inline static void getCUDAQLibraryPath(CUDAQLibraryData *data) {
   auto nLibs = _dyld_image_count();
   for (uint32_t i = 0; i < nLibs; i++) {
     auto ptr = _dyld_get_image_name(i);
     std::string libName(ptr);
-    if (libName.find("cudaq-common") != std::string::npos) {
+    if (libName.find("libcudaq.") != std::string::npos) {
       auto casted = static_cast<CUDAQLibraryData *>(data);
       casted->path = std::string(ptr);
     }
@@ -44,7 +49,7 @@ inline static void getCUDAQLibraryPath(CUDAQLibraryData *data) {
 inline static int getCUDAQLibraryPath(struct dl_phdr_info *info, size_t size,
                                       void *data) {
   std::string libraryName(info->dlpi_name);
-  if (libraryName.find("cudaq-common") != std::string::npos) {
+  if (libraryName.find("libcudaq.") != std::string::npos) {
     auto casted = static_cast<CUDAQLibraryData *>(data);
     casted->path = std::string(info->dlpi_name);
   }
@@ -53,17 +58,17 @@ inline static int getCUDAQLibraryPath(struct dl_phdr_info *info, size_t size,
 #endif
 
 extern std::string demangle_kernel(const char *);
-} // namespace cudaq::__internal__
+} // namespace cudaq::detail
 
 namespace cudaq {
 class sample_result;
 
 inline static std::string getCUDAQLibraryPath() {
-  __internal__::CUDAQLibraryData data;
+  detail::CUDAQLibraryData data;
 #if defined(__APPLE__) && defined(__MACH__)
   getCUDAQLibraryPath(&data);
 #else
-  dl_iterate_phdr(__internal__::getCUDAQLibraryPath, &data);
+  dl_iterate_phdr(detail::getCUDAQLibraryPath, &data);
 #endif
   return data.path;
 }
@@ -119,6 +124,57 @@ constexpr std::size_t variant_index() {
     return variant_index<VariantType, T, index + 1>();
   }
 }
+
+/// @brief Invoke a function and silence any exceptions
+template <typename F>
+void invoke_no_throw(F &&f) {
+  try {
+    (void)std::invoke(std::forward<F>(f));
+  } catch (const std::runtime_error &e) {
+    std::cerr << "Silencing runtime error: " << e.what() << std::endl;
+  } catch (...) {
+    std::cerr << "Silencing unknown exception";
+  }
+}
+
+/// @brief Invoke `g` after `f`, returning what `f` returns (if any).
+///
+/// If `f` throws an exception, `g` is called before the exception is re-thrown.
+/// More specifically:
+///  - if `f` does not throw an exception, `auto val = try_finally(f, g);` is
+///  equivalent to `auto val = f(); g();`
+///  - if `f` throws an exception, it will be re-thrown after `g` is called. Any
+///  further exceptions are ignored.
+template <typename F, typename G>
+auto try_finally(F &&f, G &&g) -> decltype(std::invoke(std::forward<F>(f))) {
+  using Ret = decltype(std::invoke(std::forward<F>(f)));
+  // If the return type is void, use a placeholder type to store the
+  // (non-existent) result.
+  using ResultType = std::conditional_t<std::is_void_v<Ret>, std::monostate,
+                                        std::optional<Ret>>;
+  ResultType result;
+
+  try {
+    // handle void-returning callables separately
+    if constexpr (std::is_void_v<Ret>) {
+      std::invoke(std::forward<F>(f));
+    } else {
+      result.emplace(std::invoke(std::forward<F>(f)));
+    }
+  } catch (...) {
+    invoke_no_throw(std::forward<G>(g));
+    throw;
+  }
+
+  (void)std::invoke(std::forward<G>(g));
+
+  if constexpr (std::is_void_v<Ret>) {
+    return;
+  } else {
+    return std::move(result).value();
+  }
+}
+
 } // namespace detail
 
 template <std::size_t I1, std::size_t I2, class Cont>
@@ -150,7 +206,7 @@ std::string getKernelName(QuantumKernel &kernel) {
     kernel_name = kernel.name();
   } else {
 #ifndef CUDAQ_RTTI_DISABLED
-    kernel_name = __internal__::demangle_kernel(typeid(kernel).name());
+    kernel_name = detail::demangle_kernel(typeid(kernel).name());
 #endif
   }
   return kernel_name;

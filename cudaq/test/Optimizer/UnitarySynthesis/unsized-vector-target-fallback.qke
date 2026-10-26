@@ -1,0 +1,28 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// PhaseOp intentionally has no aggregate anchor form. Preserve the existing
+// exact identity encoding when an unsized target vector has no deterministic
+// scalar element to attach bookkeeping to.
+// RUN: cudaq-opt --unitary-synthesis --canonicalize %s | FileCheck %s
+
+module {
+  func.func @synthesize_unsized_x(%target: !quake.veq<?>) {
+    quake.custom_unitary_constant @x %target : (!quake.veq<?>) -> ()
+    return
+  }
+  cc.global constant private @x (dense<[(0.000000e+00,0.000000e+00), (1.000000e+00,0.000000e+00), (1.000000e+00,0.000000e+00), (0.000000e+00,0.000000e+00)]> : tensor<4xcomplex<f64>>) : !cc.array<complex<f64> x 4>
+}
+
+// CHECK-LABEL: func.func private @x.kernel(
+// CHECK-SAME: %[[TARGET:.*]]: !quake.veq<?>) {
+// CHECK-DAG: %[[DOUBLED:.*]] = arith.constant 3.1415926535897931 : f64
+// CHECK-DAG: %[[NEGATED:.*]] = arith.constant -3.1415926535897931 : f64
+// CHECK: quake.r1 (%[[DOUBLED]]) %[[TARGET]] : (f64, !quake.veq<?>) -> ()
+// CHECK: quake.rz (%[[NEGATED]]) %[[TARGET]] : (f64, !quake.veq<?>) -> ()
+// CHECK-NOT: quake.phase

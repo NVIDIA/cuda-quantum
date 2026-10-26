@@ -6,11 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include <pybind11/pybind11.h>
-
-namespace py = pybind11;
+#include <nanobind/nanobind.h>
 
 namespace cudaq {
 /// @brief Bind the cudaq::noise_model data-type to Python.
-void bindNoise(py::module &mod);
+void bindNoise(nanobind::module_ &mod);
 } // namespace cudaq

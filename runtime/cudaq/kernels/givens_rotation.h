@@ -7,9 +7,10 @@
  ******************************************************************************/
 
 #pragma once
-#include <cudaq.h>
+#include "cudaq/builder/QuakeValue.h"
+#include "cudaq/qis/qubit_qis.h"
 
-namespace cudaq {
+namespace cudaq_internal {
 /// @brief Implement Givens rotation at a specific angle
 ///
 /// This kernel is equivalent to matrix exp(-i theta (YX - XY) / 2)
@@ -54,4 +55,4 @@ void givens_rotation(KernelBuilder &kernel, double theta, cudaq::QuakeValue q0,
   givens_rotation(kernel, kernel.constantVal(theta), q0, q1);
 }
 } // namespace builder
-} // namespace cudaq
+} // namespace cudaq_internal

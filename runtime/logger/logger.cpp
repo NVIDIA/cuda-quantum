@@ -1,0 +1,290 @@
+/*******************************************************************************
+ * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
+
+#include "cudaq/runtime/logger/logger.h"
+#include "common/FmtCore.h"
+#include "common/Timing.h"
+#include "fmt/args.h"
+#include "cudaq/runtime/logger/tracer.h"
+#include <chrono>
+#include <complex>
+#include <ctime>
+#include <filesystem>
+#include <functional>
+#include <map>
+#include <set>
+#include <spdlog/cfg/env.h>
+#include <spdlog/sinks/basic_file_sink.h>
+#include <spdlog/sinks/rotating_file_sink.h>
+#include <spdlog/spdlog.h>
+#include <sstream>
+#include <vector>
+
+namespace cudaq {
+
+// This must be a function rather than a global variable to avoid a startup
+// ordering issue that would otherwise occur if we simply made this a global
+// variable and then accessed it in the initializeLogger function.
+// NOTE: the only time that this list should be modified is at startup time.
+static std::set<int> &g_timingList() {
+  static std::set<int> timingList;
+  return timingList;
+}
+
+bool isTimingTagEnabled(int tag) {
+  // Note: this function is called very frequently, so it needs to be fast. It
+  // is assumed that g_timingList() contains a small number of elements
+  // (typically less than 10).
+  return g_timingList().contains(tag);
+}
+
+/// @brief This function will run at startup and initialize
+/// the logger for the runtime to use. It will set the log
+/// level and optionally dump to file if specified.
+__attribute__((constructor)) void initializeLogger() {
+  // Default to no logging
+  spdlog::set_level(spdlog::level::warn);
+
+  // but someone can specify CUDAQ_LOG_LEVEL=info (for example)
+  // as an environment variable. Can also stack them
+  // e.g. CUDAQ_LOG_LEVEL=info,debug
+  auto envVal = spdlog::details::os::getenv("CUDAQ_LOG_LEVEL");
+  if (!envVal.empty()) {
+    spdlog::cfg::helpers::load_levels(envVal);
+  }
+
+  envVal = spdlog::details::os::getenv("CUDAQ_LOG_FILE");
+  if (!envVal.empty()) {
+    auto fileLogger = spdlog::basic_logger_mt("cudaqFileLogger", envVal);
+    spdlog::set_default_logger(fileLogger);
+    spdlog::flush_on(spdlog::get_level());
+  } else {
+    // make sure warnings always show before crashes
+    spdlog::flush_on(spdlog::level::warn);
+  }
+
+  // Parse comma separated integers into g_timingList. Process integer values
+  // like this: "1,3,5,7-10,12".
+  if (auto *val = std::getenv("CUDAQ_TIMING_TAGS")) {
+    std::string valueStr(val);
+    std::stringstream ss(valueStr);
+    int tag = 0;
+    int priorTag = -1; // initialize invalid to invalid tag
+    while (ss >> tag) {
+      if (tag > cudaq::TIMING_MAX_VALUE)
+        fmt::print("WARNING: value in CUDAQ_TIMING_TAGS ({}) is too high and "
+                   "will be ignored!\n",
+                   tag);
+      else
+        g_timingList().insert(tag);
+
+      // Handle the A-B range (if necessary)
+      if (priorTag != -1)
+        for (int t = priorTag + 1; t < tag; t++)
+          g_timingList().insert(t);
+      if (ss.peek() == ',') {
+        priorTag = -1; // this is not a range
+        ss.ignore();
+      } else if (ss.peek() == '-') {
+        priorTag = tag; // save the lower end of the range
+        ss.ignore();
+      }
+    }
+  }
+
+  configureTracerFromEnv();
+}
+
+namespace detail {
+void trace(const std::string_view msg) { spdlog::trace(msg); }
+void info(const std::string_view msg) { spdlog::info(msg); }
+void warn(const std::string_view msg) { spdlog::warn(msg); }
+void error(const std::string_view msg) { spdlog::error(msg); }
+void debug(const std::string_view msg) {
+#ifdef CUDAQ_DEBUG
+  spdlog::debug(msg);
+#endif
+}
+
+// These asserts are needed for should_log
+static_assert(static_cast<int>(LogLevel::debug) ==
+                  static_cast<int>(spdlog::level::debug),
+              "log level enum mismatch");
+static_assert(static_cast<int>(LogLevel::trace) ==
+                  static_cast<int>(spdlog::level::trace),
+              "log level enum mismatch");
+static_assert(static_cast<int>(LogLevel::info) ==
+                  static_cast<int>(spdlog::level::info),
+              "log level enum mismatch");
+static_assert(static_cast<int>(LogLevel::warn) ==
+                  static_cast<int>(spdlog::level::warn),
+              "log level enum mismatch");
+static_assert(static_cast<int>(LogLevel::error) ==
+                  static_cast<int>(spdlog::level::err),
+              "log level enum mismatch");
+bool should_log(const LogLevel logLevel) {
+  return spdlog::should_log(static_cast<spdlog::level::level_enum>(logLevel));
+}
+
+void setLogLevel(LogLevel level) {
+  spdlog::set_level(static_cast<spdlog::level::level_enum>(level));
+}
+
+LogLevel getLogLevel() { return static_cast<LogLevel>(spdlog::get_level()); }
+
+void flushLogs() {
+  if (auto logger = spdlog::default_logger())
+    logger->flush();
+}
+
+std::string pathToFileName(const std::string_view fullFilePath) {
+  const std::filesystem::path file(fullFilePath);
+  return file.filename().string();
+}
+
+void logMessagePacked(LogLevel logLevel, const std::string_view message,
+                      const std::span<const cudaq_fmt::FormatArgument> &args,
+                      const char *fileName, int lineNo) {
+  auto msg = cudaq_fmt::detail::format_packed(message, args);
+  msg = "[" + pathToFileName(fileName) + ":" + std::to_string(lineNo) + "] " +
+        msg;
+
+  switch (logLevel) {
+  case LogLevel::trace:
+    trace(msg);
+    return;
+  case LogLevel::debug:
+    debug(msg);
+    return;
+  case LogLevel::info:
+    info(msg);
+    return;
+  case LogLevel::warn:
+    warn(msg);
+    return;
+  case LogLevel::error:
+    error(msg);
+    return;
+  }
+}
+
+void logWithTimestampPacked(
+    const std::string_view message,
+    const std::span<const cudaq_fmt::FormatArgument> &args) {
+  const auto timestamp = std::chrono::system_clock::now();
+  const auto now_c = std::chrono::system_clock::to_time_t(timestamp);
+  std::tm now_tm;
+  localtime_r(&now_c, &now_tm);
+  cudaq_fmt::print("[{:04}-{:02}-{:02} {:02}:{:02}:{:%S}] {}\n",
+                   now_tm.tm_year + 1900, now_tm.tm_mon + 1, now_tm.tm_mday,
+                   now_tm.tm_hour, now_tm.tm_min,
+                   std::chrono::round<std::chrono::milliseconds>(
+                       timestamp.time_since_epoch()),
+                   cudaq_fmt::detail::format_packed(message, args));
+}
+
+} // namespace detail
+} // namespace cudaq
+
+namespace cudaq_fmt {
+
+template <typename T>
+void FormatArgument::appendArgument(void *store, const void *value) {
+  auto &fmtStore =
+      *static_cast<::fmt::dynamic_format_arg_store<::fmt::format_context> *>(
+          store);
+  fmtStore.push_back(*static_cast<const T *>(value));
+}
+
+void FormatArgument::appendCString(void *store, const void *value) {
+  auto &fmtStore =
+      *static_cast<::fmt::dynamic_format_arg_store<::fmt::format_context> *>(
+          store);
+  fmtStore.push_back(static_cast<const char *>(value));
+}
+
+#define CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(...)                                 \
+  template void FormatArgument::appendArgument<__VA_ARGS__>(void *,            \
+                                                            const void *)
+
+#define CUDAQ_INSTANTIATE_FORMAT_REF_ARGUMENT(...)                             \
+  template <>                                                                  \
+  void FormatArgument::appendArgument<__VA_ARGS__>(void *store,                \
+                                                   const void *value) {        \
+    auto &fmtStore = *static_cast<                                             \
+        ::fmt::dynamic_format_arg_store<::fmt::format_context> *>(store);      \
+    fmtStore.push_back(std::cref(*static_cast<const __VA_ARGS__ *>(value)));   \
+  }
+
+// Note: On aarch64, unsigned long is not the same type as std::uint64_t. It is
+// the same size, but not the same type. The templates instantiated below are
+// based on the types used in the codebase. Feel free to add more types here if
+// needed.
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(bool);
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(char);
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(signed char);
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(unsigned char);
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(short);
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(unsigned short);
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(int);
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(unsigned int);
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(long);
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(unsigned long);
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(long long);
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(unsigned long long);
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(float);
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(double);
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(long double);
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(std::complex<float>);
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(std::complex<double>);
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(std::string_view);
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(void *);
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(const void *);
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(std::chrono::milliseconds);
+CUDAQ_INSTANTIATE_FORMAT_ARGUMENT(std::chrono::system_clock::time_point);
+CUDAQ_INSTANTIATE_FORMAT_REF_ARGUMENT(std::string);
+CUDAQ_INSTANTIATE_FORMAT_REF_ARGUMENT(std::vector<int>);
+CUDAQ_INSTANTIATE_FORMAT_REF_ARGUMENT(std::vector<unsigned int>);
+CUDAQ_INSTANTIATE_FORMAT_REF_ARGUMENT(std::vector<long>);
+CUDAQ_INSTANTIATE_FORMAT_REF_ARGUMENT(std::vector<unsigned long>);
+CUDAQ_INSTANTIATE_FORMAT_REF_ARGUMENT(std::vector<long long>);
+CUDAQ_INSTANTIATE_FORMAT_REF_ARGUMENT(std::vector<unsigned long long>);
+CUDAQ_INSTANTIATE_FORMAT_REF_ARGUMENT(std::vector<float>);
+CUDAQ_INSTANTIATE_FORMAT_REF_ARGUMENT(std::vector<double>);
+CUDAQ_INSTANTIATE_FORMAT_REF_ARGUMENT(std::vector<std::string>);
+CUDAQ_INSTANTIATE_FORMAT_REF_ARGUMENT(std::map<std::string, std::string>);
+CUDAQ_INSTANTIATE_FORMAT_REF_ARGUMENT(std::vector<std::complex<float>>);
+CUDAQ_INSTANTIATE_FORMAT_REF_ARGUMENT(std::vector<std::complex<double>>);
+
+#undef CUDAQ_INSTANTIATE_FORMAT_ARGUMENT
+#undef CUDAQ_INSTANTIATE_FORMAT_REF_ARGUMENT
+
+namespace detail {
+
+void print_packed(const std::string_view message,
+                  const std::span<const FormatArgument> &args) {
+  ::fmt::dynamic_format_arg_store<::fmt::format_context> store;
+  for (auto const &a : args)
+    a.append(&store, a.value);
+
+  if (::fmt::detail::const_check(!::fmt::detail::use_utf8))
+    return ::fmt::detail::vprint_mojibake(stdout, message, store, false);
+  return ::fmt::vprint_buffered(stdout, message, store);
+}
+
+std::string format_packed(const std::string_view fmt_str,
+                          const std::span<const FormatArgument> &args) {
+  ::fmt::dynamic_format_arg_store<::fmt::format_context> store;
+  for (auto const &a : args)
+    a.append(&store, a.value);
+
+  return ::fmt::vformat(fmt_str, store);
+}
+
+} // namespace detail
+} // namespace cudaq_fmt

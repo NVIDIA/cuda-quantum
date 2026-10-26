@@ -9,9 +9,9 @@
 The following tests are disabled because the demo server only supports 5 qubits
 and the test tries to use more.
 
-- test/NVQPP/graph_coloring-1.cpp
-- test/NVQPP/graph_coloring.cpp
-- test/NVQPP/sudoku_2x2-1.cpp
-- test/NVQPP/sudoku_2x2-bit_names.cpp
-- test/NVQPP/sudoku_2x2-reg_name.cpp
-- test/NVQPP/sudoku_2x2.cpp
+- targettests/execution/graph_coloring-1.cpp
+- targettests/execution/graph_coloring.cpp
+- targettests/execution/sudoku_2x2-1.cpp
+- targettests/execution/sudoku_2x2-bit_name.cpp
+- targettests/execution/sudoku_2x2-reg_name.cpp
+- targettests/execution/sudoku_2x2.cpp

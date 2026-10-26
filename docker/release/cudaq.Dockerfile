@@ -9,7 +9,7 @@
 # This file builds an image that contains a CUDA-Q installation and all necessary runtime 
 # dependencies for using CUDA-Q.
 #
-# This image requires specifing an image as argument that contains a CUDA-Q installation
+# This image requires specifying an image as argument that contains a CUDA-Q installation
 # along with its development dependencies. This file then copies that installation into a more
 # minimal runtime environment. 
 # A suitable base image can be obtained by building docker/build/cudaq.dev.Dockerfile.
@@ -23,7 +23,8 @@
 # base_image must contain the necessary CUDA-Q runtime dependencies.
 
 ARG base_image=ubuntu:24.04
-ARG cudaqdev_image=ghcr.io/nvidia/cuda-quantum-dev:latest
+ARG arch=amd64
+ARG cudaqdev_image=ghcr.io/nvidia/cuda-quantum-dev:${arch}-cu13-latest
 FROM $cudaqdev_image AS cudaqbuild
 
 # Unfortunately, there is no way to use the environment variables defined in the dev image
@@ -51,6 +52,8 @@ ENV UCX_LOG_LEVEL=error
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
         ca-certificates wget git sudo vim \
+        # needed to follow the backend credential setup in our documentation:
+        curl jq \
     && apt-get autoremove -y --purge && apt-get clean && rm -rf /var/lib/apt/lists/* 
 
 # Install CUDA-Q runtime dependencies.
@@ -60,8 +63,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/* \
     && python3 -m pip install --no-cache-dir --break-system-packages numpy scipy \
     && ln -s /bin/python3 /bin/python
+ADD ./requirements.txt /tmp/requirements.txt
 RUN apt-get update && apt-get install -y --no-install-recommends gcc g++ python3-dev \
-    && python3 -m pip install --no-cache-dir --break-system-packages notebook==7.3.2 "qutip>5" matplotlib \
+    && python3 -m pip install --no-cache-dir --break-system-packages -r /tmp/requirements.txt "qutip>5" matplotlib \
+    && rm /tmp/requirements.txt \
     && apt-get remove -y gcc g++ python3-dev \
     && apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/*
 
@@ -88,6 +93,16 @@ ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$CUDA_QUANTUM_PATH/lib"
 ENV CPLUS_INCLUDE_PATH="$CPLUS_INCLUDE_PATH:$CUDA_QUANTUM_PATH/include"
 # Better alternative to setting the PYTHONPATH, since the PYTHONPATH is generally not preserved when running as sudo.
 RUN echo "$CUDA_QUANTUM_PATH" > /usr/local/lib/python$(python --version | egrep -o "([0-9]{1,}\.)+[0-9]{1,}" | cut -d '.' -f -2)/dist-packages/cudaq.pth
+
+# Deployments supplies one Python 3.12 Logical wheel for this architecture in
+# docker/release/logical-wheels/. Bind it so the archive is not retained in a layer.
+ARG include_logical=false
+RUN --mount=type=bind,source=docker/release,target=/tmp/cudaq-release \
+    if [ "$include_logical" = true ]; then \
+        python3 /tmp/cudaq-release/install_logical_wheel.py \
+            --wheel-dir /tmp/cudaq-release/logical-wheels \
+            --prefix "$CUDA_QUANTUM_PATH"; \
+    fi
 
 # Some tools related to shell handling.
 
@@ -130,5 +145,12 @@ WORKDIR /home/cudaq
 # If we don't do that, then apt-get will get confused if some CUDA
 # components are already installed but not all of them.
 RUN sudo apt-get update
+
+# Check the installed package and native tools as the image's normal user before
+# build-push-action can publish the image.
+RUN --mount=type=bind,source=docker/release,target=/tmp/cudaq-release \
+    if [ "$include_logical" = true ]; then \
+        python3 /tmp/cudaq-release/validate_logical.py; \
+    fi
 
 ENTRYPOINT ["bash", "-l"]

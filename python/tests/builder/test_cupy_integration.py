@@ -99,6 +99,29 @@ def test_state_vector_to_cupy():
     assert np.isclose(stateInCuPy[2], 0., atol=1e-3)
 
 
+def test_state_vector_to_cupy_exports_full_buffer():
+    cudaq.set_target('nvidia')
+    try:
+        kernel = cudaq.make_kernel()
+        q = kernel.qalloc(10)
+        kernel.h(q[0])
+        for i in range(9):
+            kernel.cx(q[i], q[i + 1])
+
+        state = cudaq.get_state(kernel)
+        tensor = state.getTensors()[0]
+        expectedSize = tensor.get_num_elements() * tensor.get_element_size()
+
+        stateInCuPy = cudaq.to_cupy(state)[0]
+
+        assert stateInCuPy.data.mem.size == expectedSize
+        assert np.isclose(stateInCuPy[0], 1. / np.sqrt(2.), atol=1e-3)
+        assert np.isclose(stateInCuPy[-1], 1. / np.sqrt(2.), atol=1e-3)
+        assert np.isclose(stateInCuPy[1], 0., atol=1e-3)
+    finally:
+        cudaq.reset_target()
+
+
 def test_cupy_to_state():
     cudaq.set_target('nvidia')
     cp_data = cp.array([.707107, 0, 0, .707107], dtype=cp.complex64)
@@ -128,6 +151,47 @@ def test_cupy_to_state_without_dtype():
     result = state.overlap(state_from_cupy)
     assert np.isclose(result, 1.0, atol=1e-3)
     cudaq.reset_target()
+
+
+def test_cupy_to_state_strided_1d():
+    cudaq.set_target('nvidia', option='fp64')
+    # Use distinct, non-symmetric values so a buggy "read first 2 contiguous
+    # elements from .data.ptr" path would produce [1+1j, 2+2j] while the
+    # correct strided view is [1+1j, 3+3j]. This catches the original bug.
+    base = cp.array([1 + 1j, 2 + 2j, 3 + 3j, 4 + 4j], dtype=cp.complex128)
+    strided = base[::2]
+    assert not strided.flags['C_CONTIGUOUS']
+    state_from_cupy = cudaq.State.from_data(strided)
+    np.testing.assert_allclose(np.array(state_from_cupy),
+                               cp.asnumpy(strided),
+                               atol=1e-12)
+    cudaq.reset_target()
+
+
+def test_cupy_to_state_strided_canonicalization_is_independent():
+    """Non-contiguous CuPy input is canonicalized via cupy.asnumpy() into
+    an independent host buffer, so the resulting State must NOT observe
+    later mutations of the source CuPy array.
+
+    Independence is part of the strided-import fix's contract: cupy.asnumpy
+    always copies to host, so the state cannot share storage with the
+    original device buffer.
+
+    Note: this test does NOT make any claim about the contiguous fast path.
+    Whether the cuStateVec backend adopts the user-supplied device pointer
+    or eagerly copies it into its own pool is a backend implementation
+    detail and varies across cupy / CUDA runtime versions (see #4441).
+    """
+    cudaq.set_target('nvidia', option='fp64')
+    try:
+        base = cp.array([1 + 1j, 2 + 2j, 3 + 3j, 4 + 4j], dtype=cp.complex128)
+        strided = base[::2]
+        s_strided = cudaq.State.from_data(strided)
+        base[0] = 999 + 0j  # Mutate the source AFTER state construction.
+        independent = np.array(s_strided)
+        np.testing.assert_allclose(independent, [1 + 1j, 3 + 3j], atol=1e-12)
+    finally:
+        cudaq.reset_target()
 
 
 @pytest.mark.parametrize("target", ["qpp-cpu", "density-matrix-cpu"])

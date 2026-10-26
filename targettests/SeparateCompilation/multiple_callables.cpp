@@ -6,9 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ --enable-mlir %s -o %t && %t
+// RUN: nvq++ %s -o %t && %t
 
-#include "cudaq.h"
+#include "cudaq/qis/qubit_qis.h"
 
 __qpu__ void entry(const cudaq::qkernel<void(cudaq::qvector<> &)> &o,
                    const cudaq::qkernel<void(cudaq::qvector<> &, int)> &p) {

@@ -23,8 +23,7 @@ Simulate Multiple QPUs in Parallel
 +++++++++++++++++++++++++++++++++++++
 
 In the multi-QPU mode (:code:`mqpu` option), the NVIDIA backend provides a simulated QPU for every available NVIDIA GPU on the underlying system. 
-Each QPU is simulated via a `cuStateVec` simulator backend as defined by the NVIDIA backend. For more information about using multiple GPUs 
-to simulate each virtual QPU, or using a different backend for virtual QPUs, please see :ref:`remote MQPU platform <remote-mqpu-platform>`.
+Each QPU is simulated via a `cuStateVec` simulator backend as defined by the NVIDIA backend. 
 This target enables asynchronous parallel execution of quantum kernel tasks.
 
 Here is a simple example demonstrating its usage.
@@ -55,7 +54,7 @@ primitive functions like :code:`sample`, :code:`observe`, and :code:`get_state`
 (e.g., :code:`sample_async` function in the above code snippets).
 
 Depending on the number of GPUs available on the system, the :code:`nvidia` multi-QPU platform will create the same number of virtual QPU instances.
-For example, on a system with 4 GPUs, the above code will distribute the four sampling tasks among those :code:`GPUEmulatedQPU` instances.
+For example, on a system with 4 GPUs, the above code will distribute the four sampling tasks among those virtual QPU instances.
 
 The results might look like the following 4 different random samplings:
 
@@ -73,7 +72,7 @@ The results might look like the following 4 different random samplings:
   To specify the number QPUs to be instantiated, one can set the :code:`CUDAQ_MQPU_NGPUS` environment variable.
   For example, use :code:`export CUDAQ_MQPU_NGPUS=2` to specify that only 2 QPUs (GPUs) are needed.
 
-Since the underlying :code:`GPUEmulatedQPU` is a simulator backend, we can also retrieve the state vector from each
+Since the underlying virtual QPU is a simulator backend, we can also retrieve the state vector from each
 QPU via the :code:`cudaq::get_state_async` (C++) or :code:`cudaq.get_state_async` (Python) as shown in the bellow code snippets.
 
 .. tab:: Python
@@ -141,206 +140,211 @@ An example of MPI distribution mode usage in both C++ and Python is given below:
         mpiexec -np <N> a.out
 
 In the above example, the parallel distribution mode was set to :code:`mpi` using :code:`cudaq::parallel::mpi` in C++ or :code:`cudaq.parallel.mpi` in Python.
-CUDA-Q provides MPI utility functions to initialize, finalize, or query (rank, size, etc.) the MPI runtime. 
-Last but not least, the compiled executable (C++) or Python script needs to be launched with an appropriate MPI command, 
+CUDA-Q provides MPI utility functions to initialize, finalize, or query (rank, size, etc.) the MPI runtime.
+Last but not least, the compiled executable (C++) or Python script needs to be launched with an appropriate MPI command,
 e.g., :code:`mpiexec`, :code:`mpirun`, :code:`srun`, etc.
 
-Multi-QPU + Other Backends 
-+++++++++++++++++++++++++++++
+.. _multi-node-mqpu:
 
-.. _remote-mqpu-platform:
+Multi-QPU with Multi-Node Multi-GPU Backends
++++++++++++++++++++++++++++++++++++++++++++++++
 
-As shown in the above examples, the multi-QPU NVIDIA platform enables
-multi-QPU distribution whereby each QPU is simulated by a :ref:`single NVIDIA GPU <cuQuantum single-GPU>`.
-To run multi-QPU workloads on different simulator backends, one can use the :code:`remote-mqpu` platform,
-which encapsulates simulated QPUs as independent HTTP REST server instances. 
-The following code illustrates how to launch asynchronous sampling tasks on multiple virtual QPUs, 
-each simulated by a `tensornet` simulator backend.
+Some simulator backends, such as :code:`tensornet` and :code:`nvidia` with the :code:`mgpu` option,
+can distribute a single simulation across multiple GPUs on multiple nodes using MPI.
+This section shows how to run *multiple independent simulations in parallel* within the same MPI program,
+where each simulation uses its own dedicated group of MPI ranks and GPUs.
+
+The approach is straightforward:
+
+1. Partition the global MPI communicator into `sub-communicators <https://www.mpich.org/static/docs/latest/www3/MPI_Comm_split.html>`__ — one per QPU group.
+2. Pass each sub-communicator to CUDA-Q so the underlying simulator uses only the ranks in that group.
+3. Each QPU group then calls CUDA-Q APIs independently.
+
+.. note::
+
+    This replaces the former :code:`remote-mqpu` target, which required standing up HTTP servers and had
+    higher overhead. With direct MPI distribution, users leverage the job scheduler's resource binding
+    (e.g., `SLURM's <https://slurm.schedmd.com/mc_support.html>`__ :code:`--ntasks-per-node`) and have
+    full control over rank placement.
+
+Once the communicator is set, all standard CUDA-Q execution APIs —
+:code:`sample`, :code:`observe`, :code:`run`, and :code:`get_state` — work as usual within each QPU group.
+
+In all examples below, 4 MPI ranks are divided into 2 QPU groups of 2 ranks each (2 GPUs per
+simulation).
+
+Using the CUDA-Q MPI API
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+For users new to MPI, CUDA-Q provides its own :code:`cudaq::mpi` (C++) and :code:`cudaq.mpi`
+(Python) helpers that wrap the common MPI operations needed to set up QPU groups.
 
 .. tab:: Python
 
-    .. literalinclude:: ../../../snippets/python/using/cudaq/platform/sample_async_remote.py
+    .. literalinclude:: ../../../examples/python/mpi/sample_cudaq_mpi.py
         :language: python
         :start-after: [Begin Documentation]
         :end-before: [End Documentation]
 
+    .. code-block:: console
+
+        mpirun -n 4 python3 sample_cudaq_mpi.py
+        QPU 0 (40 qubits):
+        { 0000000000000000000000000000000000000000:489 1111111111111111111111111111111111111111:511 }
+        QPU 1 (45 qubits):
+        { 000000000000000000000000000000000000000000000:495 111111111111111111111111111111111111111111111:505 }
+
 .. tab:: C++
 
-    .. literalinclude:: ../../../snippets/cpp/using/cudaq/platform/sample_async_remote.cpp
+    .. literalinclude:: ../../../examples/cpp/mpi/sample_cudaq_mpi.cpp
         :language: cpp
         :start-after: [Begin Documentation]
         :end-before: [End Documentation]
 
-    The code above is saved in `sample_async.cpp` and compiled with the following command, targeting the :code:`remote-mqpu` platform:
+    .. code-block:: console
+
+        nvq++ --target tensornet -o sample_cudaq_mpi sample_cudaq_mpi.cpp
+        mpirun -n 4 ./sample_cudaq_mpi
+        QPU 0 (40 qubits):
+        { 0000000000000000000000000000000000000000:483 1111111111111111111111111111111111111111:517 }
+        QPU 1 (45 qubits):
+        { 000000000000000000000000000000000000000000000:501 111111111111111111111111111111111111111111111:499 }
+
+Using Native MPI APIs
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Users who already manage MPI in their application (e.g. with :code:`<mpi.h>` in C++ or
+`mpi4py <https://mpi4py.readthedocs.io/>`__ in Python) can split the communicator using
+those libraries directly and hand the result to CUDA-Q.
+
+.. tab:: Python
+
+    The sub-communicator handle is passed to CUDA-Q via the :code:`comm_handle` keyword argument
+    of :code:`cudaq.set_target()`.
+
+    .. literalinclude:: ../../../examples/python/mpi/sample.py
+        :language: python
+        :start-after: [Begin Documentation]
 
     .. code-block:: console
 
-        nvq++ sample_async.cpp -o sample_async.x --target remote-mqpu --remote-mqpu-backend tensornet --remote-mqpu-auto-launch 2
-        ./sample_async.x
-
-In the above code snippets, the :code:`remote-mqpu` platform was used in the auto-launch mode,
-whereby a specific number of server instances, i.e., virtual QPUs, are launched on the local machine
-in the background. The remote QPU daemon service, :code:`cudaq-qpud`, will also be shut down automatically
-at the end of the session.
-
-.. note:: 
-    By default, auto launching daemon services do not support MPI parallelism.
-    Hence, using the `nvidia-mgpu` backend to simulate each virtual QPU requires 
-    manually launching each server instance. How to do that is explained in the rest of this section.
-
-.. _custom_remote_qpud_launch:
-
-To customize how many and which GPUs are used for simulating each virtual QPU, one can launch each server manually.
-For instance, on a machine with 8 NVIDIA GPUs, one may wish to partition those GPUs into
-4 virtual QPU instances, each manages 2 GPUs. To do so, first launch a :code:`cudaq-qpud` server for each virtual QPU:
-
-.. tab:: Python
-
-     .. See scripts/validate_wheel.sh for examples of how similar commands are run automatically during release validation.
-
-     .. code-block:: bash
-         
-         # Use cudaq-qpud.py wrapper script to automatically find dependencies for the Python wheel configuration.
-         cudaq_location=`python3 -m pip show cudaq | grep -e 'Location: .*$'`
-         qpud_py="${cudaq_location#Location: }/bin/cudaq-qpud.py"
-         CUDA_VISIBLE_DEVICES=0,1 mpiexec -np 2 python3 "$qpud_py" --port <QPU 1 TCP/IP port number>
-         CUDA_VISIBLE_DEVICES=2,3 mpiexec -np 2 python3 "$qpud_py" --port <QPU 2 TCP/IP port number>
-         CUDA_VISIBLE_DEVICES=4,5 mpiexec -np 2 python3 "$qpud_py" --port <QPU 3 TCP/IP port number>
-         CUDA_VISIBLE_DEVICES=6,7 mpiexec -np 2 python3 "$qpud_py" --port <QPU 4 TCP/IP port number>
+        mpirun -n 4 python3 sample.py
+        QPU 0 (40 qubits):
+        { 0000000000000000000000000000000000000000:489 1111111111111111111111111111111111111111:511 }
+        QPU 1 (45 qubits):
+        { 000000000000000000000000000000000000000000000:495 111111111111111111111111111111111111111111111:505 }
 
 .. tab:: C++
-     
-     .. code-block:: bash
-         
-         # It is assumed that your $LD_LIBRARY_PATH is able to find all the necessary dependencies.
-         CUDA_VISIBLE_DEVICES=0,1 mpiexec -np 2 cudaq-qpud --port <QPU 1 TCP/IP port number>
-         CUDA_VISIBLE_DEVICES=2,3 mpiexec -np 2 cudaq-qpud --port <QPU 2 TCP/IP port number>
-         CUDA_VISIBLE_DEVICES=4,5 mpiexec -np 2 cudaq-qpud --port <QPU 3 TCP/IP port number>
-         CUDA_VISIBLE_DEVICES=6,7 mpiexec -np 2 cudaq-qpud --port <QPU 4 TCP/IP port number>
 
-
-In the above code snippet, four :code:`nvidia-mgpu` daemons are started in MPI context via the :code:`mpiexec` launcher.
-This activates MPI runtime environment required by the :code:`nvidia-mgpu` backend. Each QPU daemon is assigned a unique 
-TCP/IP port number via the :code:`--port` command-line option. The :code:`CUDA_VISIBLE_DEVICES` environment variable restricts the GPU devices 
-that each QPU daemon sees so that it targets specific GPUs. 
-
-With these invocations, each virtual QPU is locally addressable at the URL `localhost:<port>`. 
-
-.. warning:: 
-
-    There is no authentication required to communicate with this server app. 
-    Hence, please make sure to either (1) use a non-public TCP/IP port for internal use or 
-    (2) use firewalls or other security mechanisms to manage user access. 
-
-User code can then target these QPUs for multi-QPU workloads, such as asynchronous sample or observe shown above for the multi-QPU NVIDIA platform platform.
-
-.. tab:: Python
-
-     .. code:: python 
-
-        cudaq.set_target("remote-mqpu", url="localhost:<port1>,localhost:<port2>,localhost:<port3>,localhost:<port4>", backend="nvidia-mgpu")
-        
-.. tab:: C++
+    .. literalinclude:: ../../../examples/cpp/mpi/sample.cpp
+        :language: cpp
+        :start-after: [Begin Documentation]
+        :end-before: [End Documentation]
 
     .. code-block:: console
 
-        nvq++ distributed.cpp --target remote-mqpu --remote-mqpu-url localhost:<port1>,localhost:<port2>,localhost:<port3>,localhost:<port4> --remote-mqpu-backend nvidia-mgpu
-    
+        nvq++ --target tensornet -o sample sample.cpp \
+            -I$(mpicc -showme:incdirs) -L$(mpicc -showme:libdirs) -lmpi
+        mpirun -n 4 ./sample
+        QPU 0 (40 qubits):
+        { 0000000000000000000000000000000000000000:483 1111111111111111111111111111111111111111:517 }
+        QPU 1 (45 qubits):
+        { 000000000000000000000000000000000000000000000:501 111111111111111111111111111111111111111111111:499 }
 
-Each URL is treated as an independent QPU, hence the number of QPUs (:code:`num_qpus()`) is equal to the number of URLs provided. 
-The multi-node multi-GPU simulator backend (:code:`nvidia-mgpu`) is requested via the :code:`--remote-mqpu-backend` command-line option.
+.. note::
 
-.. note:: 
+    When using native MPI APIs, the pointer passed to :code:`cudaq::mpi::set_communicator` must
+    refer to a live :code:`MPI_Comm` object. Keep it alive for the duration of all CUDA-Q calls
+    in that QPU group and free it with :code:`MPI_Comm_free` once simulation is complete.
 
-    The requested backend (:code:`nvidia-mgpu`) will be executed inside the context of the QPU daemon service, thus 
-    inherits its GPU resource allocation (two GPUs per backend simulator instance). 
+.. note::
 
-Supported Kernel Arguments
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+    MPI must be initialized before calling :code:`cudaq::mpi::set_communicator`,
+    :code:`cudaq.mpi.set_communicator`, or :code:`cudaq.set_target` with a :code:`comm_handle`.
+    CUDA-Q will raise an error if MPI has not been initialized. Refer to
+    :ref:`distributed-computing-with-mpi` for instructions on enabling MPI support in CUDA-Q.
 
-The platform serializes kernel invocation to QPU daemons via REST APIs. 
-Please refer to the `Open API Docs <../../openapi.html>`_  for the latest API information.
-Runtime arguments are serialized into a flat memory buffer (`args` field of the request JSON). 
-For more information about argument type serialization, please see :ref:`the table below <type_serialization_table>`.
+Gradient Computation for VQE
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-When using a remote backend to simulate each virtual QPU, 
-by default, we currently do not support passing complex data structures, 
-such as nested vectors or class objects, or other kernels as arguments to the entry point kernels.
-These type limitations only apply to the **entry-point** kernel and not when passing arguments
-to other quantum kernels.
+A common application of the multi-QPU pattern is computing the energy gradient
+for the `Variational Quantum Eigensolver (VQE)
+<https://www.nature.com/articles/ncomms5213>`__.
+Most gradient rules (e.g. parameter-shift) evaluate each gradient component
+independently via one or more :code:`observe` calls per parameter, which maps
+naturally onto the multi-QPU model: assign one QPU group per parameter and all
+gradient components are evaluated in parallel.
+The pattern scales linearly — a circuit with :math:`N` variational parameters
+requires :math:`N` QPU groups and :math:`N \times` :code:`ranks_per_qpu` total
+MPI ranks, with no code changes beyond launching more ranks and providing more
+initial parameters.
 
-Support for the full range of argument types within CUDA-Q can be enabled by compiling the 
-code with the :code:`--enable-mlir` option. This flag forces quantum kernels to be compiled with 
-the CUDA-Q MLIR-based compiler. As a result, runtime arguments can be resolved by the CUDA 
-Quantum compiler infrastructure to support wider range of argument types. However, certain
-language constructs within quantum kernels may not yet be fully supported.
+.. note::
 
-.. _type_serialization_table:
+    This MPI-based approach offers two advantages over the thread-based
+    multi-QPU mode (:ref:`mqpu-platform`):
 
-.. list-table:: Kernel argument serialization
-   :widths: 50 50 50
-   :header-rows: 1
+    * **Larger problems**: increasing :code:`ranks_per_qpu` assigns more GPUs
+      to each virtual QPU, allowing each :code:`observe` call to simulate
+      circuits that exceed the memory of a single GPU.
+    * **Arbitrary cluster scale**: QPU groups span across nodes via MPI,
+      so the total number of virtual QPUs is limited only by the cluster size,
+      not by the number of GPUs on a single node.
 
-   * - Data type
-     - Example
-     - Serialization
-   * -  Trivial type (occupies a contiguous memory area)
-     -  `int`, `std::size_t`, `double`, etc.
-     - Byte data (via `memcpy`)
-   * - `std::vector` of trivial type
-     - `std::vector<int>`, `std::vector<double>`, etc. 
-     - Total vector size in bytes as a 64-bit integer followed by serialized data of all vector elements.
-   * - `cudaq::pauli_word`
-     - `cudaq::pauli_word("IXIZ")`
-     - Same as `std::vector<char>`: total vector size in bytes as a 64-bit integer followed by serialized data of all characters.
-   * - Single-level nested `std::vector` of supported `std::vector` types
-     - `std::vector<std::vector<int>>`, `std::vector<cudaq::pauli_word>`, etc. 
-     - Number of top-level elements (as a 64-bit integer) followed sizes in bytes of element vectors (as a contiguous array of 64-bit integers) then serialized data of the inner vectors.
-     
-For CUDA-Q kernels that return a value, the remote platform supports returning simple data types of 
-`bool`, integral (e.g., `int` or `std::size_t`), and floating-point types (`float` or `double`) 
-when MLIR-based compilation is enabled (:code:`--enable-mlir`).
+The examples below use a 40-qubit placeholder ansatz and Hamiltonian to
+illustrate the distribution pattern. To use this in a real VQE workflow,
+substitute your application-specific ansatz and physical Hamiltonian (e.g.
+generated from a chemistry package such as ``PySCF``), wrap the gradient evaluation
+in an optimization loop (e.g. using :code:`cudaq.optimizers`), and feed the
+gathered gradient back to the optimizer at each iteration.
 
-Accessing Simulated Quantum State
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. tab:: Python (cudaq.mpi)
 
-The remote `MQPU` platform supports accessing simulator backend's state vector via the 
-`cudaq::get_state` (C++) or `cudaq.get_state` (Python) APIs, similar to local simulator backends.
+    .. literalinclude:: ../../../examples/python/mpi/observe_gradient_cudaq_mpi.py
+        :language: python
+        :start-after: [Begin Documentation]
+        :end-before: [End Documentation]
 
-State data can be retrieved as a full state vector or as individual basis states' amplitudes.
-The later is designed for large quantum states, which incurred data transfer overheads.
+    .. code-block:: console
 
-.. tab:: Python
+        mpirun -n 4 python3 observe_gradient_cudaq_mpi.py
+        Gradient: [-9.588510772084065, -5.91040413322679]
 
-    .. code:: python 
-        
-        state = cudaq.get_state(kernel)
-        amplitudes = state.amplitudes(['0000', '1111'])
-        
-.. tab:: C++
+.. tab:: Python (mpi4py)
 
-    .. code-block:: cpp
-        
-        auto state = cudaq::get_state(kernel)
-        auto amplitudes = state.amplitudes({{0, 0, 0, 0}, {1, 1, 1, 1}});
+    .. literalinclude:: ../../../examples/python/mpi/observe_gradient.py
+        :language: python
+        :start-after: [Begin Documentation]
+        :end-before: [End Documentation]
 
-In the above example, the amplitudes of the two requested states are returned.
+    .. code-block:: console
 
-For C++ quantum kernels [*]_ compiled with the CUDA-Q MLIR-based compiler and Python kernels,
-state accessor is evaluated in a just-in-time/on-demand manner, and hence can be customize to
-users' need.
+        mpirun -n 4 python3 observe_gradient.py
+        Gradient: [-9.588510772084065, -5.91040413322679]
 
-For instance, in the above amplitude access example, if the state vector is very large, e.g.,
-multi-GPU distributed state vectors or tensor-network encoded quantum states, the full state vector
-will not be retrieved when `get_state` is called. Instead, when the `amplitudes` accessor is called,
-a specific amplitude calculation request will be sent to the server. 
-Thus, only the amplitudes of those basis states will be computed and returned. 
+.. tab:: C++ (cudaq::mpi)
 
-Similarly, for state overlap calculation, if deferred state evaluation is available (Python/MLIR-based compiler)
-for both of the operand quantum states, a custom overlap calculation request will be constructed and sent to the server.
-Only the final overlap result will be returned, thereby eliminating back-and-forth state data transfers. 
+    .. literalinclude:: ../../../examples/cpp/mpi/observe_gradient_cudaq_mpi.cpp
+        :language: cpp
+        :start-after: [Begin Documentation]
+        :end-before: [End Documentation]
 
-.. [*] Only C++ quantum kernels whose names are available via run-time type information (RTTI) are supported.
-    For example, quantum kernels expressed as named `struct` are supported but not standalone functions.
-    Kernels that do not have deferred state evaluation support will perform synchronous `get_state`, whereby the full state
-    vector is returned from the server immediately.   
+    .. code-block:: console
+
+        nvq++ --target tensornet -o observe_gradient_cudaq_mpi observe_gradient_cudaq_mpi.cpp
+        mpirun -n 4 ./observe_gradient_cudaq_mpi
+        Gradient: [-9.588511, -5.910404]
+
+.. tab:: C++ (native MPI)
+
+    .. literalinclude:: ../../../examples/cpp/mpi/observe_gradient.cpp
+        :language: cpp
+        :start-after: [Begin Documentation]
+        :end-before: [End Documentation]
+
+    .. code-block:: console
+
+        nvq++ --target tensornet -o observe_gradient observe_gradient.cpp \
+            -I$(mpicc -showme:incdirs) -L$(mpicc -showme:libdirs) -lmpi
+        mpirun -n 4 ./observe_gradient
+        Gradient: [-9.588511, -5.910404]

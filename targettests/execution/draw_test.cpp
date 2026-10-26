@@ -7,11 +7,11 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ %s -o %t --target ionq --emulate && %t | FileCheck --check-prefix=IONQ %s
-// RUN: nvq++ %s -o %t --target oqc --emulate && %t | FileCheck --check-prefix=OQC %s
+// RUN: if %ionq_avail; then nvq++ %s -o %t --target ionq --emulate && %t | FileCheck --check-prefix=IONQ %s; fi
+// RUN: if %oqc_avail; then nvq++ %s -o %t --target oqc --emulate && %t | FileCheck --check-prefix=OQC %s; fi
 // clang-format on
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 #include <cudaq/algorithms/draw.h>
 #include <iostream>
 

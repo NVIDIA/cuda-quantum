@@ -35,7 +35,7 @@ def const(constant_value: NumericType) -> ScalarOperator:
 def zero(
         degrees: Sequence[int] | int = []
 ) -> ScalarOperator | MatrixOperatorTerm:
-    if hasattr(degrees, "len") and len(degrees) == 0:
+    if hasattr(degrees, "__len__") and len(degrees) == 0:
         return ScalarOperator.const(0)
     zero_op = MatrixOperatorTerm(0.)
     if isinstance(degrees, int):
@@ -49,7 +49,7 @@ def zero(
 def identity(
         degrees: Sequence[int] | int = []
 ) -> ScalarOperator | MatrixOperatorTerm:
-    if hasattr(degrees, "len") and len(degrees) == 0:
+    if hasattr(degrees, "__len__") and len(degrees) == 0:
         return ScalarOperator.const(1)
     id_op = MatrixOperatorTerm()
     if isinstance(degrees, int):

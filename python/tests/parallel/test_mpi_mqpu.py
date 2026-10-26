@@ -11,7 +11,7 @@ from cudaq import spin
 import numpy as np
 
 skipIfUnsupported = pytest.mark.skipif(
-    not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia-mqpu')),
+    not cudaq.has_target('nvidia-mqpu'),
     reason="nvidia-mqpu backend not available or mpi not found")
 
 
@@ -23,7 +23,7 @@ def mpi_init_finalize():
 
 
 @pytest.fixture(autouse=True)
-def do_something():
+def set_up_target():
     cudaq.set_target('nvidia-mqpu')
     yield
     cudaq.__clearKernelRegistries()

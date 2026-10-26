@@ -11,7 +11,7 @@
 // RUN: nvq++ --target qpp-cpu %s -o %t && CUDAQ_LOG_LEVEL=info %t | FileCheck --check-prefix=CHECK-QPP %s
 // RUN: CUDAQ_DEFAULT_SIMULATOR="density-matrix-cpu" nvq++ %s -o %t && CUDAQ_LOG_LEVEL=info %t | FileCheck --check-prefix=CHECK-DM %s
 // RUN: CUDAQ_DEFAULT_SIMULATOR="foo" nvq++ %s -o %t && CUDAQ_LOG_LEVEL=info %t | FileCheck %s
-// RUN: CUDAQ_DEFAULT_SIMULATOR="qpp-cpu" nvq++ --target quantinuum --emulate %s -o %t && CUDAQ_LOG_LEVEL=info %t | FileCheck --check-prefix=CHECK-QPP %s
+// RUN: if %quantinuum_avail; then CUDAQ_DEFAULT_SIMULATOR="qpp-cpu" nvq++ --target quantinuum --emulate %s -o %t && CUDAQ_LOG_LEVEL=info %t | FileCheck --check-prefix=CHECK-QPP %s; fi
 // clang-format on
 
 #include <cudaq.h>
@@ -33,6 +33,7 @@ int main() {
   return 0;
 }
 
+// clang-format off
 // CHECK-QPP: [info] [NVQIR.cpp:{{[0-9]+}}] Creating the qpp backend.
 // CHECK-QPP: [info] [DefaultExecutionManager.cpp:{{[0-9]+}}] [DefaultExecutionManager] Creating the qpp backend.
 
@@ -40,3 +41,4 @@ int main() {
 // CHECK-DM: [info] [DefaultExecutionManager.cpp:{{[0-9]+}}] [DefaultExecutionManager] Creating the dm backend.
 
 // CHECK-NOT: foo
+// clang-format on

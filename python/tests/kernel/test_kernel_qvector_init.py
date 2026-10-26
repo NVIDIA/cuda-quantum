@@ -10,14 +10,15 @@ import sys
 import pytest
 
 import cudaq
+from cudaq.kernel_types import KernelTypeError
 import numpy as np
 
 skipIfNvidiaFP64NotInstalled = pytest.mark.skipif(
-    not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia-fp64')),
+    not cudaq.has_target('nvidia-fp64'),
     reason='Could not find nvidia-fp64 in installation')
 
 skipIfNvidiaNotInstalled = pytest.mark.skipif(
-    not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia')),
+    not cudaq.has_target('nvidia'),
     reason='Could not find nvidia in installation')
 
 
@@ -433,11 +434,12 @@ def test_kernel_simulation_dtype_np_array_capture():
 def test_kernel_error_invalid_array_size():
     cudaq.reset_target()
 
-    @cudaq.kernel
-    def kernel():
-        qubits = cudaq.qvector(np.array([1., 0., 0.], dtype=complex))
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def kernel():
+            qubits = cudaq.qvector(np.array([1., 0., 0.], dtype=complex))
+
         counts = cudaq.sample(kernel)
     assert 'Invalid input state size for qvector init (not a power of 2)' in repr(
         e)
@@ -446,11 +448,12 @@ def test_kernel_error_invalid_array_size():
 def test_kernel_error_invalid_list_size():
     cudaq.reset_target()
 
-    @cudaq.kernel
-    def kernel():
-        qubits = cudaq.qvector([1., 0., 0.])
-
     with pytest.raises(RuntimeError) as e:
+
+        @cudaq.kernel
+        def kernel():
+            qubits = cudaq.qvector([1., 0., 0.])
+
         counts = cudaq.sample(kernel)
     assert 'Invalid input state size for qvector init (not a power of 2)' in repr(
         e)
@@ -459,7 +462,7 @@ def test_kernel_error_invalid_list_size():
 def test_kernel_qvector_init_from_param_int():
     cudaq.reset_target()
 
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def kernel(n: int):
         q = cudaq.qvector(n)
 
@@ -476,7 +479,7 @@ def test_kernel_qvector_init_from_capture_int():
 
     n = 2
 
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def kernel():
         q = cudaq.qvector(n)
 
@@ -498,7 +501,7 @@ def test_kernel_qvector_init_from_capture_int():
 def test_kernel_qvector_init_from_int():
     cudaq.reset_target()
 
-    @cudaq.kernel
+    @cudaq.kernel(disable_quantum_optimization=True)
     def kernel():
         q = cudaq.qvector(2)
 
@@ -508,3 +511,40 @@ def test_kernel_qvector_init_from_int():
     assert not '10' in counts
     assert not '01' in counts
     assert '00' in counts
+
+
+def test_kernel_qvector_init_outside_of_kernel():
+    # cannot instantiate a qvector outside a kernel
+    with pytest.raises(KernelTypeError):
+        cudaq.qvector(2)
+
+
+def test_qubit_init_outside_of_kernel():
+    # cannot instantiate a qubit outside a kernel
+    with pytest.raises(KernelTypeError):
+        cudaq.qubit()
+
+
+@cudaq.kernel
+def ancilla_then_state_init(vec: list[complex]):
+    ancilla = cudaq.qubit()
+    qubits = cudaq.qvector(vec)
+    h(ancilla)
+
+
+@pytest.mark.parametrize('target', ['qpp-cpu', 'density-matrix-cpu'])
+def test_ancilla_then_state_init(target):
+    # A deferred allocation before a state-initialised register used to
+    # double-count qubits, giving a 5-qubit state for a 3-qubit kernel.
+    cudaq.set_target(target)
+    try:
+        vec = [1. + 0j, 0j, 0j, 0j]
+        assert cudaq.get_state(ancilla_then_state_init, vec).num_qubits() == 3
+
+        expectations = [
+            cudaq.observe(ancilla_then_state_init, op(0), vec).expectation()
+            for op in (cudaq.spin.x, cudaq.spin.y, cudaq.spin.z)
+        ]
+        assert np.allclose(expectations, [1., 0., 0.], atol=1e-6)
+    finally:
+        cudaq.reset_target()

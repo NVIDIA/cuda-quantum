@@ -1,0 +1,23 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+get_filename_component(CUDAQ_COMMON_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
+
+set (CUDAQLogger_DIR "${CUDAQ_COMMON_CMAKE_DIR}")
+find_dependency(CUDAQLogger REQUIRED)
+
+# Common's public value types link the operator library, not the JIT runtime.
+set (CUDAQOperator_DIR "${CUDAQ_COMMON_CMAKE_DIR}")
+find_dependency(CUDAQOperator REQUIRED)
+
+set (CUDAQTargetConfig_DIR "${CUDAQ_COMMON_CMAKE_DIR}/../CUDAQTargetConfig")
+find_dependency(CUDAQTargetConfig REQUIRED)
+
+if(NOT TARGET cudaq::cudaq-common)
+  include("${CUDAQ_COMMON_CMAKE_DIR}/CUDAQCommonTargets.cmake")
+endif()

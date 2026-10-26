@@ -9,19 +9,14 @@
 #pragma once
 
 #include "common/BaseRemoteRESTQPU.h"
+#include "cudaq/platform/qpu_utils.h"
+#include <optional>
 
 namespace cudaq {
 
 /// @brief Base QPU class for analog platforms like `quera` and `pasqal`.
 /// Provides common functionality and implementation.
 class AnalogRemoteRESTQPU : public BaseRemoteRESTQPU {
-protected:
-  std::tuple<mlir::ModuleOp, mlir::MLIRContext *, void *>
-  extractQuakeCodeAndContext(const std::string &kernelName,
-                             void *data) override {
-    throw std::runtime_error("Not supported on this target.");
-  }
-
 public:
   /// @brief Check if this is a remote target
   virtual bool isRemote() override { return true; }
@@ -29,21 +24,20 @@ public:
   /// @brief Check if this is an emulated target
   virtual bool isEmulated() override { return false; }
 
-  /// @brief Launch a kernel with the given arguments
-  void launchKernel(const std::string &kernelName,
-                    const std::vector<void *> &rawArgs) override {
-    throw std::runtime_error(
-        "Arbitrary kernel execution is not supported on this target.");
+  using BaseRemoteRESTQPU::getCompileTarget;
+  using BaseRemoteRESTQPU::launchKernel;
+
+  CompileTarget getCompileTarget(const RuntimeTarget * = nullptr) override {
+    return {.overrideAOTCompilation = false};
   }
 
   /// @brief Launch a kernel with the given arguments
   /// Only analog Hamiltonian kernels are supported
-  KernelThunkResultType
-  launchKernel(const std::string &kernelName, KernelThunkType kernelFunc,
-               void *args, std::uint64_t voidStarSize,
-               std::uint64_t resultOffset,
-               const std::vector<void *> &rawArgs) override {
-    if (kernelName.find(cudaq::runtime::cudaqAHKPrefixName) != 0)
+  detail::future launchKernelCommon(const sample_policy &policy,
+                                    const CompiledModule &module,
+                                    KernelArgs args) {
+    const auto &kernelName = module.getName();
+    if (!cudaq::detail::isAnalogHamiltonianKernel(kernelName))
       throw std::runtime_error(
           "Arbitrary kernel execution is not supported on this target.");
 
@@ -54,25 +48,31 @@ public:
     CUDAQ_INFO("Launching remote kernel ({})", kernelName);
     std::vector<cudaq::KernelExecution> codes;
     std::string name = kernelName;
-    char *charArgs = (char *)(args);
-    std::string strArgs = charArgs;
-    nlohmann::json j;
-    std::vector<std::size_t> mapping_reorder_idx;
-    codes.emplace_back(name, strArgs, j, mapping_reorder_idx);
+    const auto packed = args.getPacked();
+    if (!packed)
+      throw std::runtime_error(
+          "Analog Hamiltonian launch requires a packed JSON payload.");
+    std::string strArgs(reinterpret_cast<const char *>(packed->data.data()),
+                        packed->data.size());
+    codes.push_back(KernelExecution{.name = name, .code = strArgs});
 
-    if (executionContext) {
-      executor->setShots(executionContext->shots);
-      cudaq::details::future future;
-      future = executor->execute(codes);
-      // Keep this asynchronous if requested
-      if (executionContext->asyncExec) {
-        executionContext->asyncResult = async_sample_result(std::move(future));
-        return {};
-      }
-      // Otherwise make this synchronous
-      executionContext->result = future.get();
-    }
-    return {};
+    executor->setShots(policy.options.shots);
+    return executor->execute(codes);
+  }
+
+  async_sample_result launchKernel(const async_sample_policy &policy,
+                                   const CompiledModule &module,
+                                   KernelArgs args) override {
+    // Keep this asynchronous if requested
+    return async_sample_result(
+        launchKernelCommon(policy.inner, module, std::move(args)));
+  }
+
+  sample_result launchKernel(const sample_policy &policy,
+                             const CompiledModule &module,
+                             KernelArgs args) override {
+    // Otherwise make this synchronous
+    return launchKernelCommon(policy, module, std::move(args)).get();
   }
 };
 

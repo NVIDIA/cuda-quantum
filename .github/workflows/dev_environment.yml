@@ -50,12 +50,16 @@ on:
       checkout_submodules:
         required: false
         type: boolean
-        description: Whether to checkout submodules when checking out the repository.
+        description: Whether the image build needs the recorded submodule commits.
         default: false
       matrix_key:
         required: false
         type: string
-        description: The key to use for the json entry in the output of the cloudposse GitHub action (only needed when the workflow runs as part of a matrix job).
+        description: The key to use for the json entry in the output of the matrix-outputs action (only needed when the workflow runs as part of a matrix job).
+      matrix_step_name:
+        required: false
+        type: string
+        description: Override the step name used when writing matrix outputs (enables split config so downstream jobs can start as soon as their deps are ready).
       environment:
         required: false
         type: string
@@ -106,10 +110,11 @@ jobs:
     environment:
       name: ${{ inputs.environment || 'default' }}
       url: ${{ vars.deployment_url || format('https://github.com/{0}', github.repository) }}
+      deployment: ${{ inputs.environment != 'ghcr-ci' && inputs.update_registry_cache == '' }}
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: "${{ (inputs.pull_request_number != '' && (inputs.pull_request_commit || format('refs/pull/{0}/merge', inputs.pull_request_number))) || '' }}"
 
@@ -139,10 +144,17 @@ jobs:
           tag_prefix=`echo $image_id | cut -s -d "." -f 2- | xargs -I "%" echo %. | tr . -`${platform_tag:+$platform_tag-}${build_config_id:+$build_config_id-}
           tag_suffix=""
 
-          if ${{ inputs.pull_request_number != '' }} || ${{ github.event.pull_request.number != '' }}; then
-            pr_number=${{ inputs.pull_request_number || github.event.pull_request.number}}
-          elif ${{ startsWith(github.ref_name, 'pull-request/') }}; then
-            pr_number=`echo ${{ github.ref_name }} | cut -d / -f2`
+          # PR number detection (also handles merge queue refs)
+          if ${{ inputs.pull_request_number != '' }}; then
+            pr_number=${{ inputs.pull_request_number }}
+          elif ${{ github.event.pull_request.number != '' }}; then
+            pr_number=${{ github.event.pull_request.number }}
+          elif [[ "${{ github.ref_name }}" =~ (pull-request/|.*/pr-)([0-9]+) ]]; then
+            pr_number="${BASH_REMATCH[2]}"
+          fi
+
+          if [ -n "$pr_number" ]; then
+            image_name=${image_name}-ci
           fi
 
           if ${{ inputs.pull_request_commit != '' }}; then
@@ -167,7 +179,7 @@ jobs:
 
       - name: Extract metadata for Docker image
         id: metadata
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ steps.build_info.outputs.image_name }}
           flavor: |
@@ -202,20 +214,31 @@ jobs:
     environment:
       name: ${{ inputs.environment || 'default' }}
       url: ${{ vars.deployment_url || format('https://github.com/{0}', github.repository) }}
+      deployment: ${{ inputs.environment != 'ghcr-ci' && inputs.update_registry_cache == '' }}
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: "${{ (inputs.pull_request_number != '' && (inputs.pull_request_commit || format('refs/pull/{0}/merge', inputs.pull_request_number))) || '' }}"
-          submodules: ${{ inputs.checkout_submodules }}
+
+      - name: Record submodule commits
+        if: ${{ inputs.checkout_submodules }}
+        run: |
+          # These images clone the submodules themselves and only read the
+          # commit out of .git/modules/<path>/HEAD, so skip the checkout.
+          paths=$(git config -f .gitmodules --get-regexp '^submodule\..*\.path$' | awk '{print $2}')
+          for path in $paths; do
+            mkdir -p ".git/modules/$path"
+            git rev-parse "HEAD:$path" > ".git/modules/$path/HEAD"
+          done
 
       - name: Set up context for buildx
         run: |
           docker context create builder_context
 
       - name: Set up buildx runner
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
         with:
           endpoint: builder_context
           version: v0.19.0
@@ -224,14 +247,20 @@ jobs:
             network=host
             image=moby/buildkit:v0.19.0
 
+      - name: Setup proxy cache
+        if: needs.metadata.outputs.runner != 'ubuntu-latest'
+        uses: nv-gha-runners/setup-proxy-cache@main
+        with:
+          enable-apt: true
+
       - name: Log in to DockerHub
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
 
       - name: Log in to GitHub CR
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -242,6 +271,11 @@ jobs:
         run: |
           build_config_id=${{ inputs.build_config_id }}
           registry_cache=ghcr.io/${{ needs.metadata.outputs.owner }}/${{ vars.packages_prefix }}buildcache-cuda-quantum
+          if ${{ needs.metadata.outputs.pr_number != '' }}; then
+            registry_cache=${registry_cache}-ci
+          elif ${{ github.event_name == 'merge_group' }}; then
+            registry_cache=${registry_cache}-merge-group
+          fi
           nvidia_registry_cache=ghcr.io/nvidia/buildcache-cuda-quantum
           registry_cache_base=$(echo ${{ inputs.registry_cache_from || github.event.pull_request.base.ref || 'main' }} | tr / -)
           cache_id=$(echo ${{ needs.metadata.outputs.image_id }}${build_config_id:+-$build_config_id} | tr . -)
@@ -257,16 +291,26 @@ jobs:
           local_buildcache_key="${local_cache_from}-cuda-quantum-${cache_id}-${platform_id}"
           local_buildcache_key_suffix="-$(git rev-parse HEAD)"
           local_buildcache_path="/tmp/.buildcache.${{ needs.metadata.outputs.image_id }}"
+          # Fallback for PR/merge-queue builds, whose own local_buildcache_key is never warm.
+          base_buildcache_key="${registry_cache_base}-cuda-quantum-${cache_id}-${platform_id}"
 
           if ${{ inputs.update_registry_cache != '' }}; then
             registry_cache_target=$(echo ${{ inputs.update_registry_cache }} | tr / -)
             build_cache="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:$registry_cache_target"
-            cache_to="${build_cache},mode=max,ignore-error=false"
+            cache_to="${build_cache},mode=max,ignore-error=false,compression=zstd"
           elif ${{ inputs.create_local_cache }}; then
             # In general, using the build cache from the registry/parent branch is the quickest.
             # We hence create a build cache only upon request.
             build_cache="${local_buildcache_key}"
             cache_to="type=local,dest=${local_buildcache_path}-new,mode=max,ignore-error=true"
+          elif ${{ needs.metadata.outputs.pr_number != '' }}; then
+            # for PRs, also push buildkit cache to the registry to speed up subsequent builds
+            cache_to="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:pull-request-${{ needs.metadata.outputs.pr_number }},compression=zstd"
+            build_cache="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:$registry_cache_base"
+          elif ${{ github.event_name == 'merge_group' }}; then
+            # for merge queues, also push buildkit cache to the registry to speed up subsequent builds
+            cache_to="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:merge-group-$registry_cache_base,compression=zstd"
+            build_cache="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:merge-group-$registry_cache_base"
           else 
             build_cache="type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:$registry_cache_base"
           fi
@@ -285,6 +329,8 @@ jobs:
             for platform_id in $platform_ids; do
               if ${{ needs.metadata.outputs.pr_number != '' }}; then
                 echo "type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:pull-request-${{ needs.metadata.outputs.pr_number }}"
+              elif ${{ github.event_name == 'merge_group' }}; then
+                echo "type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:merge-group-$registry_cache_base"
               fi
               echo "type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:${registry_cache_base}"
               echo "type=registry,ref=${nvidia_registry_cache}-${cache_id}-${platform_id}:${registry_cache_base}"
@@ -295,6 +341,7 @@ jobs:
           echo "local_buildcache_key=$local_buildcache_key" >> $GITHUB_OUTPUT
           echo "local_buildcache_key_suffix=$local_buildcache_key_suffix" >> $GITHUB_OUTPUT
           echo "local_buildcache_path=$local_buildcache_path" >> $GITHUB_OUTPUT
+          echo "base_buildcache_key=$base_buildcache_key" >> $GITHUB_OUTPUT
 
           echo "cache_to=$cache_to" >> $GITHUB_OUTPUT
           echo "build_cache=$build_cache" >> $GITHUB_OUTPUT
@@ -308,16 +355,19 @@ jobs:
           fi
 
       - name: Check out local cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: ${{ steps.cache.outputs.local_buildcache_path }}
           key: ${{ steps.cache.outputs.local_buildcache_key }}${{ steps.cache.outputs.local_buildcache_key_suffix }}
           restore-keys: |
             ${{ steps.cache.outputs.local_buildcache_key }}
+            ${{ steps.cache.outputs.base_buildcache_key }}
 
       - name: Build ${{ needs.metadata.outputs.image_title }} image
         id: docker_build
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: "false"
         with:
           context: .
           file: ./docker/${{ needs.metadata.outputs.dockerfile }}
@@ -346,7 +396,57 @@ jobs:
         env:
           DIGEST: ${{ steps.docker_build.outputs.digest }}
           TAGS: ${{ needs.metadata.outputs.image_tags }}
-        run: cosign sign --yes --recursive "${TAGS}@${DIGEST}"
+        run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          retry cosign sign --yes --recursive "${TAGS}@${DIGEST}"
+
+      # GHCR has a practical per-layer size limit; a layer over that can fail
+      # to push/pull reliably. Report every layer's pushed (compressed) size
+      # and fail if any single layer is over the limit.
+      - name: Check Docker layer sizes
+        if: steps.cache.outputs.push_to_registry == 'true'
+        env:
+          IMAGE_REF: ${{ needs.metadata.outputs.image_name }}@${{ steps.docker_build.outputs.digest }}
+        run: |
+          max_bytes=$((5 * 1000 * 1000 * 1000))
+          report_layers() {
+            local manifest_file=$1 label=$2
+            echo "--- $label ---"
+            jq -r '.layers[] | "\(.size)\t\(.mediaType)"' "$manifest_file" \
+              | sort -rn \
+              | while IFS=$'\t' read -r size media; do
+                  gb=$(awk -v s="$size" 'BEGIN { printf "%.3f", s/1000000000 }')
+                  marker=""
+                  if [ "$size" -gt "$max_bytes" ]; then
+                    marker="  <<<< OVER ${max_bytes}-byte (5GB) LIMIT"
+                    echo over >> /tmp/layer_size_over_limit
+                  fi
+                  printf "  %8s GB  %s%s\n" "$gb" "$media" "$marker"
+                done
+          }
+
+          rm -f /tmp/layer_size_over_limit
+          echo "=== Docker layer sizes for $IMAGE_REF ==="
+          docker buildx imagetools inspect "$IMAGE_REF" --raw > /tmp/index.json
+          media_type=$(jq -r '.mediaType' /tmp/index.json)
+          repo="${IMAGE_REF%@*}"
+
+          if [ "$media_type" = "application/vnd.oci.image.index.v1+json" ] || \
+             [ "$media_type" = "application/vnd.docker.distribution.manifest.list.v2+json" ]; then
+            digests=$(jq -r '.manifests[] | select(.platform.architecture != null and .platform.architecture != "unknown") | .digest' /tmp/index.json)
+            for digest in $digests; do
+              platform=$(jq -r --arg d "$digest" '.manifests[] | select(.digest == $d) | "\(.platform.os)/\(.platform.architecture)"' /tmp/index.json)
+              docker buildx imagetools inspect "$repo@$digest" --raw > /tmp/platform_manifest.json
+              report_layers /tmp/platform_manifest.json "$platform"
+            done
+          else
+            report_layers /tmp/index.json "$(uname -m)"
+          fi
+
+          if [ -f /tmp/layer_size_over_limit ]; then
+            echo "::error::One or more Docker layers for $IMAGE_REF exceed the 5GB GHCR practical limit."
+            exit 1
+          fi
 
       # See also https://github.com/moby/buildkit/issues/1896
       - name: Clean up build cache
@@ -359,7 +459,7 @@ jobs:
 
       - name: Update local cache
         if: inputs.create_local_cache
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: ${{ steps.cache.outputs.local_buildcache_path }}
           key: ${{ steps.cache.outputs.local_buildcache_key }}${{ steps.cache.outputs.local_buildcache_key_suffix }}
@@ -368,6 +468,7 @@ jobs:
         id: uploaded_image
         if: inputs.update_registry_cache == '' && inputs.build_target == ''
         run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           if ${{ inputs.environment != '' }}; then
             image_hash=${{ needs.metadata.outputs.image_name }}@${{ steps.docker_build.outputs.digest }}
             echo "image_hash=$image_hash" >> $GITHUB_OUTPUT
@@ -390,14 +491,17 @@ jobs:
             # - https://github.com/docker/cli/issues/3350.
 
             remote_image=ghcr.io/${{ needs.metadata.outputs.owner }}/${{ vars.packages_prefix }}${{ needs.metadata.outputs.image_title }}
+            if ${{ needs.metadata.outputs.pr_number != '' }}; then
+              remote_image=${remote_image}-ci
+            fi
             remote_tag=${{ needs.metadata.outputs.tag_prefix }}${{ steps.cache.outputs.registry_cache_base }}${{ needs.metadata.outputs.tag_suffix }}
             echo "Trying to pull remote tag $remote_image:$remote_tag."
-            docker pull $remote_image:$remote_tag || true
+            retry docker pull $remote_image:$remote_tag || true
             if [ "$(docker images -q $remote_image:$remote_tag 2> /dev/null)" == "" ]; then
               platform_tag=${{ needs.metadata.outputs.platform_tag }}
               remote_tag=`echo $remote_tag | sed s/"${platform_tag:+$platform_tag-}"//`
               echo "Trying to pull remote tag $remote_image:$remote_tag."
-              docker pull $remote_image:$remote_tag || true
+              retry docker pull $remote_image:$remote_tag || true
             fi
 
             if [ "$(docker images -q $remote_image:$remote_tag 2> /dev/null)" != "" ]; then
@@ -416,7 +520,7 @@ jobs:
       - name: Cache ${{ needs.metadata.outputs.image_title }} image
         id: cache_upload
         if: steps.uploaded_image.outcome != 'skipped' && steps.uploaded_image.outputs.image_hash == ''
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6
         with:
           path: ${{ steps.cache.outputs.tar_archive }}
           key: ${{ steps.cache.outputs.tar_cache }}
@@ -434,13 +538,19 @@ jobs:
       build_cache: ${{ fromJson(steps.write_json.outputs.result).build_cache }}
 
     steps:        
-      - uses: cloudposse/github-action-matrix-outputs-write@1.0.0
+      - name: Checkout action code
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: .github/actions
+
+      - uses: ./.github/actions/matrix-outputs-write
         id: write_json
         with:
-          matrix-step-name: ${{ inputs.matrix_key && 'dev_environment' }}
+          matrix-step-name: ${{ inputs.matrix_step_name || (inputs.matrix_key && 'dev_environment') }}
           matrix-key: ${{ inputs.matrix_key }}
           outputs: |
             image_hash: ${{ needs.build.outputs.image_hash }}
             cache_key: ${{ needs.build.outputs.tar_cache }}
             tar_archive: ${{ needs.build.outputs.tar_archive }}
             build_cache: ${{ needs.build.outputs.build_cache }}
+            image_tag: ${{ needs.metadata.outputs.image_tags }}

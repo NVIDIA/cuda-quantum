@@ -17,19 +17,19 @@
 # 3) set the CC and CXX environment variable to use the same compiler toolchain
 #    as the LLVM dependencies have been built with.
 
-ARG base_image=ghcr.io/nvidia/cuda-quantum-devdeps:ext-cu12.6-gcc11-main
-FROM $base_image
+ARG base_image=ghcr.io/nvidia/cuda-quantum-devcontainer:cu12.6-gcc12-main
+# Default empty stage for ccache data. CI overrides this with
+# --build-context ccache-data=<path> to inject a pre-populated cache,
+# while the devcontainer builds get the scratch as a noop.
+FROM scratch AS ccache-data
+FROM $base_image AS devbuild
 
 ENV CUDAQ_REPO_ROOT=/workspaces/cuda-quantum
 ENV CUDAQ_INSTALL_PREFIX=/usr/local/cudaq
 ENV PATH="$CUDAQ_INSTALL_PREFIX/bin:${PATH}"
 ENV PYTHONPATH="$CUDAQ_INSTALL_PREFIX:${PYTHONPATH}"
 
-ARG workspace=.
-ARG destination="$CUDAQ_REPO_ROOT"
-ADD "$workspace" "$destination"
-WORKDIR "$destination"
-
+# Install MPI before ADD so this layer is cached across source changes.
 # mpich or openmpi
 ARG mpi=
 RUN if [ -n "$mpi" ]; \
@@ -41,24 +41,167 @@ RUN if [ -n "$mpi" ]; \
 		fi \
     fi
 
+ARG workspace=.
+ARG destination="$CUDAQ_REPO_ROOT"
+ADD "$workspace" "$destination"
+WORKDIR "$destination"
+
 # Configuring a base image that contains the necessary dependencies for GPU
 # accelerated components and passing a build argument 
 #   install="CMAKE_BUILD_TYPE=Release CUDA_QUANTUM_VERSION=latest"
 # creates a dev image that can be used as argument to docker/release/cudaq.Dockerfile
 # to create the released cuda-quantum image.
 ARG install=
+ARG cudaq_enable_projects=
 ARG git_source_sha=xxxxxxxx
-RUN if [ -n "$install" ]; \
-    then \
+ENV CCACHE_DIR=/root/.ccache
+# Capped here, not by ccache-setup: that configures the runner host, which the
+# build never sees. One build's working set is ~535 MiB.
+ENV CCACHE_MAXSIZE=2G
+ENV CCACHE_BASEDIR="$CUDAQ_REPO_ROOT"
+ENV CCACHE_SLOPPINESS=include_file_mtime,include_file_ctime,time_macros,pch_defines
+ENV CCACHE_COMPILERCHECK=content
+ENV CCACHE_LOGFILE=/root/.ccache/ccache.log
+RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
+    if [ -d /tmp/ccache-import ] && [ "$(ls -A /tmp/ccache-import 2>/dev/null)" ]; then \
+        echo "Importing ccache data..." && \
+        mkdir -p /root/.ccache && cp -a /tmp/ccache-import/. /root/.ccache/ && \
+        ccache -s 2>/dev/null || true && \
+        ccache -z 2>/dev/null || true && \
+        find /root/.ccache -type f | wc -l | tr -d ' ' > /root/.ccache/_restore_file_count.txt; \
+    else \
+        echo "No ccache data injected using empty scratch stage." && \
+        mkdir -p /root/.ccache; \
+    fi
+
+# Build core CUDA-Q first, tests in a separate layer below (test
+# binaries are much larger and would otherwise bloat one layer).
+RUN if [ -n "$install" ]; then \
+        install=`echo $install | xargs` && export $install; \
+        cudaq_cmake_args=(-DCUDAQ_TEST_OMP_SLOTS=2); \
+        if [ -n "$cudaq_enable_projects" ]; then \
+            cudaq_cmake_args+=("-DCUDAQ_ENABLE_PROJECTS=$cudaq_enable_projects"); \
+        fi; \
+        CUDAQ_BUILD_TESTS=FALSE bash scripts/build_cudaq.sh -v -- "${cudaq_cmake_args[@]}" || exit 1; \
+    fi
+
+# Add tests incrementally (-i) on top of the already-built core.
+# Skipped for any CMake false constant (FALSE, OFF, NO, N, 0), any case.
+RUN if [ -n "$install" ]; then \
+        install=`echo $install | xargs` && export $install; \
+        if ! echo "${CUDAQ_BUILD_TESTS:-TRUE}" | grep -qiE '^(false|off|no|n|0)$'; then \
+            cudaq_cmake_args=(-DCUDAQ_TEST_OMP_SLOTS=2); \
+            if [ -n "$cudaq_enable_projects" ]; then \
+                cudaq_cmake_args+=("-DCUDAQ_ENABLE_PROJECTS=$cudaq_enable_projects"); \
+            fi; \
+            CUDAQ_BUILD_TESTS=TRUE bash scripts/build_cudaq.sh -v -i -- "${cudaq_cmake_args[@]}" || exit 1; \
+        fi; \
+    fi
+
+RUN if [ -n "$install" ]; then \
         expected_prefix=$CUDAQ_INSTALL_PREFIX; \
         install=`echo $install | xargs` && export $install; \
-        bash scripts/build_cudaq.sh -v; \
-        if [ ! "$?" -eq "0" ]; then \
-            exit 1; \
-        elif [ "$CUDAQ_INSTALL_PREFIX" != "$expected_prefix" ]; then \
+        if [ "$CUDAQ_INSTALL_PREFIX" != "$expected_prefix" ]; then \
             mkdir -p "$expected_prefix"; \
             mv "$CUDAQ_INSTALL_PREFIX"/* "$expected_prefix"; \
             rmdir "$CUDAQ_INSTALL_PREFIX"; \
         fi; \
         echo "source-sha: $git_source_sha" > "$CUDAQ_INSTALL_PREFIX/build_info.txt"; \
+    fi && \
+    echo "=== ccache stats ===" && (ccache -s 2>/dev/null || true) && \
+    (ccache --print-stats 2>/dev/null || ccache -s 2>/dev/null) > /root/.ccache/_build_stats.txt
+
+# CI test stages. Build with --target test or --target test-mpi to run
+# tests inside BuildKit without exporting the image. The run_tests arg
+# defaults to false so non-CI builds skip these stages entirely.
+FROM devbuild AS test
+ARG run_tests=false
+RUN if [ "$run_tests" = "true" ]; then \
+        cd $CUDAQ_REPO_ROOT && \
+        python3 -m pip install -r requirements-tests-backend.txt --break-system-packages && \
+        bash scripts/run_tests.sh -v; \
     fi
+
+FROM test AS test-mpi
+ARG run_tests=false
+ARG mpi=
+RUN if [ "$run_tests" = "true" ] && [ -n "$mpi" ]; then \
+        has_ompiinfo=$(which ompi_info || true) && \
+        if [ -n "$has_ompiinfo" ]; then \
+            export MPI_PATH="/usr/lib/$(uname -m)-linux-gnu/openmpi/"; \
+        else \
+            export MPI_PATH="/usr/lib/$(uname -m)-linux-gnu/mpich/"; \
+        fi && \
+        source $CUDAQ_INSTALL_PREFIX/distributed_interfaces/activate_custom_mpi.sh && \
+        cd $CUDAQ_REPO_ROOT && \
+        ctest --test-dir build -R MPIApiTest -V; \
+    fi
+
+# CI stages for cudaq.logical (preview/logical). Both start from the freshly
+# built devbuild and only run when run_tests=true. They are independent: each
+# builds Logical one way into its own layer, so one never sees the other's
+# files in the CUDA-Q installation prefix.
+#
+# qlx-python-tests is one long pytest process, slow on Debug builds on loaded
+# runners; PYTEST_ADDOPTS makes pytest use xdist (workers capped as in
+# test_in_devenv.yml to bound memory).
+#
+# Out-of-tree: configure Logical against the CUDA-Q *installation*, with the
+# toolchain audit on, then run its ctest suite.
+FROM devbuild AS test-logical
+ARG run_tests=false
+ARG install=
+RUN if [ "$run_tests" = "true" ] && [ -n "$install" ]; then \
+        install=`echo $install | xargs` && export $install; \
+        cd $CUDAQ_REPO_ROOT && \
+        python3 -m pip install "lit<23" pytest-xdist --break-system-packages && \
+        QLX_VERIFY_TOOLCHAIN=ON bash scripts/build_cudaq.sh -v -I -L || exit 1; \
+        ctest_listing="$(ctest --test-dir build/preview/logical -N)" && \
+        echo "$ctest_listing" && \
+        grep -q 'qlx-filecheck-tests' <<< "$ctest_listing" || \
+            { echo "qlx-filecheck-tests is not registered; lit/FileCheck missing at configure time." >&2; exit 1; }; \
+        PYTEST_ADDOPTS="-n $(( ($(nproc) + 1) / 2 ))" OMP_NUM_THREADS=1 \
+            ctest --test-dir build/preview/logical --output-on-failure -j "$(nproc)" || exit 1; \
+    fi
+
+# In-tree: reconfigure the CUDA-Q build with -DCUDAQ_ENABLE_LOGICAL=ON on top of
+# the existing build tree, then run Logical's ctest suite from it.
+FROM devbuild AS test-logical-intree
+ARG run_tests=false
+ARG install=
+RUN if [ "$run_tests" = "true" ] && [ -n "$install" ]; then \
+        install=`echo $install | xargs` && export $install; \
+        cd $CUDAQ_REPO_ROOT && \
+        python3 -m pip install "lit<23" pytest-xdist --break-system-packages && \
+        CUDAQ_BUILD_TESTS=FALSE bash scripts/build_cudaq.sh -v -i -- \
+            -DCUDAQ_TEST_OMP_SLOTS=2 -DCUDAQ_ENABLE_LOGICAL=ON || exit 1; \
+        PYTEST_ADDOPTS="-n $(( ($(nproc) + 1) / 2 ))" OMP_NUM_THREADS=1 \
+            ctest --test-dir build -R '^qlx-' --output-on-failure -j "$(nproc)" || exit 1; \
+    fi
+
+# CI coverage stage. Build with --target coverage to generate code
+# coverage inside BuildKit. The run_coverage arg defaults to false
+# so non-CI builds skip this stage entirely.
+FROM devbuild AS coverage
+ARG run_coverage=false
+RUN if [ "$run_coverage" = "true" ]; then \
+        cd $CUDAQ_REPO_ROOT && \
+        bash scripts/generate_cc.sh -v -c -p; \
+    fi
+
+FROM scratch AS coverage-export
+COPY --from=coverage /workspaces/cuda-quantum/build/ccoverage/coverage.txt /coverage.txt
+COPY --from=coverage /workspaces/cuda-quantum/build/pycoverage/coverage.xml /coverage.xml
+
+# Export ccache data so CI can extract it for persistence.
+# Tar inside the container to export a single file instead of thousands of
+# small ccache entries. This avoids pathological slowness in BuildKit's
+# per-file gRPC export through the docker-container driver.
+# Build with --target ccache-export --output type=local,dest=/tmp/ccache-export
+FROM devbuild AS ccache-tar
+RUN tar cf /ccache.tar -C /root/.ccache .
+
+FROM scratch AS ccache-export
+COPY --from=ccache-tar /ccache.tar /
+
+FROM devbuild

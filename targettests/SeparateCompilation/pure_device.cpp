@@ -9,9 +9,9 @@
 // clang-format off
 // RUN: if [ command -v split-file ]; then \
 // RUN: split-file %s %t && \
-// RUN: nvq++ --enable-mlir -c %t/pd_lib.cpp -o %t/pd_lib.o && \
-// RUN: nvq++ --enable-mlir -c %t/pd_main.cpp -o %t/pd_main.o && \
-// RUN: nvq++ --enable-mlir %t/pd_lib.o %t/pd_main.o -o %t/pd.a.out && \
+// RUN: nvq++ -c %t/pd_lib.cpp -o %t/pd_lib.o && \
+// RUN: nvq++ -c %t/pd_main.cpp -o %t/pd_main.o && \
+// RUN: nvq++ %t/pd_lib.o %t/pd_main.o -o %t/pd.a.out && \
 // RUN: %t/pd.a.out | FileCheck %s ; else \
 // RUN: echo "skipping" ; fi
 // clang-format on
@@ -20,7 +20,7 @@
 
 #pragma once
 
-#include "cudaq.h"
+#include "cudaq/qis/qubit_qis.h"
 
 // NB: The __qpu__ here on this declaration cannot be omitted!
 __qpu__ void callMe(cudaq::qvector<> &q, int i);

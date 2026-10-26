@@ -44,6 +44,47 @@ TEST(EvolveAPITester, checkSimple) {
   }
 }
 
+TEST(EvolveAPITester, checkComplexDensityMatrixInputLayout) {
+  cudaq::complex_matrix densityMatrix(2, 2);
+  densityMatrix[{0, 0}] = 0.5;
+  densityMatrix[{0, 1}] = std::complex<double>(0.0, 0.25);
+  densityMatrix[{1, 0}] = std::complex<double>(0.0, -0.25);
+  densityMatrix[{1, 1}] = 0.5;
+
+  auto initialState = cudaq::state::from_data(densityMatrix);
+  cudaq::schedule schedule(std::vector<double>{0.0}, {"time"});
+  cudaq::integrators::runge_kutta integrator(4, 0.01);
+  auto result =
+      cudaq::evolve(0.0 * cudaq::spin_op::x(0), {{0, 2}}, schedule,
+                    initialState, integrator, {}, {cudaq::spin_op::y(0)},
+                    cudaq::IntermediateResultSave::ExpectationValue);
+
+  ASSERT_TRUE(result.expectation_values.has_value());
+  ASSERT_EQ(result.expectation_values->size(), 1);
+  ASSERT_EQ(result.expectation_values->front().size(), 1);
+  EXPECT_NEAR(static_cast<double>(result.expectation_values->front().front()),
+              -0.5, 1e-12);
+}
+
+TEST(EvolveAPITester, checkDensityMatrixOutputStorageOrder) {
+  cudaq::complex_matrix densityMatrix(2, 2);
+  densityMatrix[{0, 0}] = 1.0;
+
+  auto initialState = cudaq::state::from_data(densityMatrix);
+  cudaq::schedule schedule(std::vector<double>{0.0}, {"time"});
+  cudaq::integrators::runge_kutta integrator(4, 0.01);
+  auto result =
+      cudaq::evolve(0.0 * cudaq::spin_op::x(0), {{0, 2}}, schedule,
+                    initialState, integrator, {}, {cudaq::spin_op::z(0)},
+                    cudaq::IntermediateResultSave::ExpectationValue);
+
+  ASSERT_TRUE(result.states.has_value());
+  ASSERT_EQ(result.states->size(), 1);
+  const auto tensor = result.states->front().get_tensor();
+  EXPECT_EQ(tensor.order,
+            cudaq::SimulationState::Tensor::storage_order::column_major);
+}
+
 TEST(EvolveAPITester, checkCavityModel) {
   constexpr int N = 10;
   constexpr int numSteps = 101;

@@ -8,7 +8,6 @@
 
 set(LIBRARY_NAME cudaq-operator)
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ctad-maybe-unsupported")
-set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
 
 set(CUDAQ_OPS_SRC
   callback.cpp
@@ -24,6 +23,7 @@ set(CUDAQ_OPS_SRC
   handler.cpp
   helpers.cpp
   super_op.cpp
+  matrix.cpp
 )
 
 add_library(${LIBRARY_NAME} SHARED ${CUDAQ_OPS_SRC})
@@ -43,9 +43,13 @@ add_openmp_configurations(${LIBRARY_NAME} OPERATOR_DEPENDENCIES)
 
 target_link_libraries(${LIBRARY_NAME} PRIVATE ${OPERATOR_DEPENDENCIES})
 
-install(TARGETS ${LIBRARY_NAME} EXPORT cudaq-operator-targets DESTINATION lib)
+install(TARGETS ${LIBRARY_NAME}
+        EXPORT cudaq-operator-targets
+        DESTINATION lib
+        COMPONENT ${CUDAQ_CORE_LIBRARY_COMPONENT})
 
 install(EXPORT cudaq-operator-targets
         FILE CUDAQOperatorTargets.cmake
         NAMESPACE cudaq::
-        DESTINATION lib/cmake/cudaq)
+        DESTINATION lib/cmake/cudaq
+        COMPONENT ${CUDAQ_CORE_DEVELOPMENT_COMPONENT})

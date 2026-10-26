@@ -1,0 +1,72 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --delay-measurements %s | FileCheck %s
+
+// This test that measurement "result0" and all of its descendents get delayed
+// after the "%4 = quake.x %1" operation.
+func.func @delayCheckForValueSemantics() {
+  %0 = quake.null_wire
+  %1 = quake.null_wire
+  %2 = quake.x %0 : (!quake.wire) -> !quake.wire
+  %bits, %wires = quake.mz %2 name "result0": (!quake.wire) -> (!quake.measure, !quake.wire)
+  %3 = quake.z %wires : (!quake.wire) -> !quake.wire
+  quake.sink %3 : !quake.wire
+  %4 = quake.x %1 : (!quake.wire) -> !quake.wire
+  %bits_0, %wires_1 = quake.mz %4 name "result1": (!quake.wire) -> (!quake.measure, !quake.wire)
+  quake.sink %wires_1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @delayCheckForValueSemantics() {
+// CHECK:           %[[VAL_0:.*]] = quake.null_wire
+// CHECK:           %[[VAL_1:.*]] = quake.null_wire
+// CHECK:           %[[VAL_2:.*]] = quake.x %[[VAL_0]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_3:.*]] = quake.x %[[VAL_1]] : (!quake.wire) -> !quake.wire
+// CHECK:           %[[VAL_4:.*]], %[[VAL_5:.*]] = quake.mz %[[VAL_2]] name "result0" : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:           %[[VAL_6:.*]] = quake.z %[[VAL_5]] : (!quake.wire) -> !quake.wire
+// CHECK:           quake.sink %[[VAL_6]] : !quake.wire
+// CHECK:           %[[VAL_7:.*]], %[[VAL_8:.*]] = quake.mz %[[VAL_3]] name "result1" : (!quake.wire) -> (!quake.measure, !quake.wire)
+// CHECK:           quake.sink %[[VAL_8]] : !quake.wire
+// CHECK:           return
+// CHECK:         }
+
+// Shared descendants and repeated operands must be moved once, after all
+// their definitions, preserving the original traversal's final ordering.
+func.func @sharedUsers() -> i1 {
+  %q = quake.alloca !quake.ref
+  %r = quake.alloca !quake.ref
+  %m = quake.mz %q : (!quake.ref) -> !quake.measure
+  %b = quake.discriminate %m : (!quake.measure) -> i1
+  %n = quake.mz %r : (!quake.ref) -> !quake.measure
+  %c = quake.discriminate %n : (!quake.measure) -> i1
+  %both = arith.andi %b, %c : i1
+  %either = arith.ori %b, %c : i1
+  %xor = arith.xori %both, %either : i1
+  %result = arith.ori %xor, %xor : i1
+  quake.x %q : (!quake.ref) -> ()
+  quake.dealloc %q : !quake.ref
+  quake.dealloc %r : !quake.ref
+  return %result : i1
+}
+
+// CHECK-LABEL: func.func @sharedUsers
+// CHECK: %[[Q:.*]] = quake.alloca
+// CHECK: %[[R:.*]] = quake.alloca
+// CHECK-NEXT: %[[M:.*]] = quake.mz %[[Q]]
+// CHECK-NEXT: %[[B:.*]] = quake.discriminate %[[M]]
+// CHECK-NEXT: %[[N:.*]] = quake.mz %[[R]]
+// CHECK-NEXT: %[[C:.*]] = quake.discriminate %[[N]]
+// CHECK-NEXT: %[[EITHER:.*]] = arith.ori %[[B]], %[[C]]
+// CHECK-NEXT: %[[BOTH:.*]] = arith.andi %[[B]], %[[C]]
+// CHECK-NEXT: %[[XOR:.*]] = arith.xori %[[BOTH]], %[[EITHER]]
+// CHECK-NEXT: %[[RESULT:.*]] = arith.ori %[[XOR]], %[[XOR]]
+// CHECK-NEXT: quake.x %[[Q]]
+// CHECK-NEXT: quake.dealloc %[[Q]]
+// CHECK-NEXT: quake.dealloc %[[R]]
+// CHECK-NEXT: return %[[RESULT]]

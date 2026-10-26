@@ -7,8 +7,8 @@
  ******************************************************************************/
 
 #pragma once
-#include "Logger.h"
-#include "cudaq_fmt.h"
+#include "cudaq/runtime/logger/cudaq_fmt.h"
+#include "cudaq/runtime/logger/logger.h"
 #include <dlfcn.h>
 #include <mutex>
 #include <string_view>
@@ -22,9 +22,10 @@ namespace cudaq {
 template <typename PluginPointerType>
 PluginPointerType *getUniquePluginInstance(const std::string_view symbolName,
                                            const char *libName = nullptr) {
-  CUDAQ_INFO("Requesting {} plugin via symbol name {}.",
-             typeid(PluginPointerType).name(), symbolName);
-  std::mutex m;
+  CUDAQ_INFO("Requesting {} plugin via symbol name {} ({}).",
+             typeid(PluginPointerType).name(), symbolName,
+             libName ? libName : "null");
+  static std::mutex m;
   std::lock_guard<std::mutex> l(m);
   using GetPluginFunction = PluginPointerType *(*)();
   auto handle = dlopen(libName, RTLD_LAZY);

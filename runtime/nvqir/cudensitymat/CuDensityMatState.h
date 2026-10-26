@@ -9,7 +9,12 @@
 
 #include "common/SimulationState.h"
 #include <cudensitymat.h>
+#include <memory>
 #include <unordered_map>
+
+namespace cudaq::dynamics {
+class MpiBuffer;
+}
 
 namespace cudaq {
 /// @cond
@@ -26,15 +31,24 @@ private:
   cudensitymatHandle_t cudmHandle = nullptr;
   std::vector<int64_t> hilbertSpaceDims;
   std::size_t batchSize = 1;
+  // The dimension of a single state in the batch (used for distributed mode).
+  // For non-batched states, this equals dimension.
+  // For batched states in distributed mode, dimension < batchSize *
+  // singleStateDimension.
+  std::size_t singleStateDimension = 0;
+  bool borrowedData = false;
+  // Owns `devicePtr` for states created by `mpi_buffer_like`.
+  std::unique_ptr<dynamics::MpiBuffer> mpiStorage;
 
 public:
   // Create a state with a size and data pointer.
   // Note: the underlying cudm state is not yet initialized as we don't know the
   // dimensions of sub-systems.
-  CuDensityMatState(std::size_t s, void *ptr);
+  // If `borrowed` is true, the state does not own the device data pointer.
+  CuDensityMatState(std::size_t s, void *ptr, bool borrowed = false);
 
   // Default constructor
-  CuDensityMatState() {}
+  CuDensityMatState();
 
   // Create an initial state of a specific type, e.g., uniform distribution.
   static std::unique_ptr<CuDensityMatState> createInitialState(
@@ -81,6 +95,9 @@ public:
 
   // Create the state from external data
   std::unique_ptr<SimulationState>
+  createFromData(const state_data &data) override;
+
+  std::unique_ptr<SimulationState>
   createFromSizeAndPtr(std::size_t size, void *dataPtr,
                        std::size_t type) override;
 
@@ -114,6 +131,25 @@ public:
   // Clone a state
   static std::unique_ptr<CuDensityMatState>
   clone(const CuDensityMatState &other);
+  // Create a state with the shape of `other` and uninitialized contents, stored
+  // in a buffer that cuDensityMat may send over MPI (fabric memory when the
+  // context enables it).
+  static std::unique_ptr<CuDensityMatState>
+  mpi_buffer_like(const CuDensityMatState &other);
+
+  /// @brief Overwrite the contents with those of a state of the same shape.
+  void copy_from(const CuDensityMatState &other);
+
+  /// @brief Set every element to zero.
+  void set_zero();
+
+  /// @brief Exchange contents and storage with another state.
+  void swap(CuDensityMatState &other) noexcept;
+
+  /// @brief Return true if `other` has the same dimensions, batch size, and
+  /// kind (state vector or density matrix).
+  bool has_same_shape(const CuDensityMatState &other) const;
+
   // Prevent copies (avoids double free issues)
   CuDensityMatState(const CuDensityMatState &) = delete;
   CuDensityMatState &operator=(const CuDensityMatState &) = delete;
@@ -136,6 +172,15 @@ public:
   /// @brief Convert the state vector to a density matrix.
   /// @return A new CuDensityMatState representing the density matrix.
   CuDensityMatState to_density_matrix() const;
+
+  /// @brief Convert an uninitialized global state vector to a density matrix.
+  /// @return A new initialized CuDensityMatState representing the density
+  /// matrix.
+  CuDensityMatState
+  to_density_matrix(const std::vector<int64_t> &hilbertSpaceDims) const;
+
+  /// @brief Return the number of elements in the current storage buffer.
+  std::size_t get_element_count() const { return dimension; }
 
   /// @brief Get the underlying implementation (if any).
   /// @return The underlying state implementation.

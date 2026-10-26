@@ -57,8 +57,28 @@ public:
       throw std::invalid_argument(
           "[SimulatorMPS simulator] Incompatible state input");
     if (!m_state) {
+      std::vector<MPSTensor> copiedTensors;
+      copiedTensors.reserve(casted->getMpsTensors().size());
+      for (const auto &mpsTensor : casted->getMpsTensors()) {
+        std::vector<int64_t> extents = mpsTensor.extents;
+        const auto numElements =
+            std::reduce(extents.begin(), extents.end(), 1, std::multiplies());
+        const auto tensorSizeBytes =
+            sizeof(std::complex<ScalarType>) * numElements;
+        void *mpsTensorCopy{nullptr};
+        HANDLE_CUDA_ERROR(cudaMalloc(&mpsTensorCopy, tensorSizeBytes));
+        HANDLE_CUDA_ERROR(cudaMemcpy(mpsTensorCopy, mpsTensor.deviceData,
+                                     tensorSizeBytes, cudaMemcpyDefault));
+        copiedTensors.emplace_back(MPSTensor(mpsTensorCopy, extents));
+      }
+
       m_state = TensorNetState<ScalarType>::createFromMpsTensors(
-          casted->getMpsTensors(), scratchPad, m_cutnHandle, m_randomEngine);
+          copiedTensors, scratchPad, m_cutnHandle, m_randomEngine);
+      for (const auto &mpsTensor : copiedTensors) {
+        m_state->m_tempDevicePtrs.emplace_back(
+            mpsTensor.deviceData,
+            typename TensorNetState<ScalarType>::TempDevicePtrDeleter{});
+      }
     } else {
       // Expand an existing state: Append MPS tensors
       // Factor the existing state
@@ -123,12 +143,15 @@ public:
             exp_itheta2,       0., 0., 0., 0., exp_minus_itheta2};
   };
 
-  virtual void applyExpPauli(double theta,
-                             const std::vector<std::size_t> &controls,
-                             const std::vector<std::size_t> &qubitIds,
-                             const cudaq::spin_op_term &op) override {
-    if (this->isInTracerMode()) {
-      nvqir::CircuitSimulator::applyExpPauli(theta, controls, qubitIds, op);
+  virtual void
+  applyExpPauli(double theta, const std::vector<std::size_t> &controls,
+                const std::vector<std::size_t> &qubitIds,
+                const cudaq::spin_op_term &op,
+                const std::vector<std::int32_t> &controlValues = {}) override {
+    this->validateControlValues(controls.size(), controlValues);
+    if (cudaq::isInTracerMode()) {
+      nvqir::CircuitSimulator::applyExpPauli(theta, controls, qubitIds, op,
+                                             controlValues);
       return;
     }
     // Special handling for equivalence of Rxx(theta), Ryy(theta), Rzz(theta)
@@ -177,7 +200,7 @@ public:
     }
     // Let the base class to handle this Pauli rotation
     SimulatorTensorNetBase<ScalarType>::applyExpPauli(theta, controls, qubitIds,
-                                                      op);
+                                                      op, controlValues);
   }
 
   // Helper to compute expectation value from a bit string distribution
@@ -216,11 +239,14 @@ public:
 
   /// @brief Sample a subset of qubits
   cudaq::ExecutionResult sample(const std::vector<std::size_t> &measuredBits,
-                                const int shots) override {
-    const bool hasNoise =
-        this->executionContext && this->executionContext->noiseModel;
+                                const int shots,
+                                bool includeSequentialData = true) override {
+    auto executionContext = cudaq::getExecutionContext();
+
+    const bool hasNoise = this->getNoiseModel() != nullptr;
     if (!hasNoise || shots < 1)
-      return SimulatorTensorNetBase<ScalarType>::sample(measuredBits, shots);
+      return SimulatorTensorNetBase<ScalarType>::sample(measuredBits, shots,
+                                                        includeSequentialData);
 
     LOG_API_TIME();
     cudaq::ExecutionResult counts;
@@ -253,8 +279,12 @@ public:
       const auto samples = m_state->executeSample(
           sampler, workDesc, measuredBitIds, 1, requireCacheWorkspace());
       assert(samples.size() == 1);
-      for (const auto &[bitString, count] : samples)
-        counts.appendResult(bitString, count);
+      for (const auto &[bitString, count] : samples) {
+        if (includeSequentialData)
+          counts.appendResult(bitString, count);
+        else
+          counts.counts[bitString] += count;
+      }
     }
 
     for (const auto &[k, v] : samplerCache) {
@@ -287,17 +317,18 @@ public:
 
   cudaq::observe_result observe(const cudaq::spin_op &ham) override {
     assert(cudaq::spin_op::canonicalize(ham) == ham);
+    auto executionContext = cudaq::getExecutionContext();
+
     LOG_API_TIME();
-    const bool hasNoise =
-        this->executionContext && this->executionContext->noiseModel;
+    const bool hasNoise = this->getNoiseModel() != nullptr;
     // If no noise, just use base class implementation.
     if (!hasNoise)
       return SimulatorTensorNetBase<ScalarType>::observe(ham);
 
     setUpFactorizeForTrajectoryRuns();
     const std::size_t numObserveTrajectories =
-        this->executionContext->numberTrajectories.has_value()
-            ? this->executionContext->numberTrajectories.value()
+        executionContext->numberTrajectories.has_value()
+            ? executionContext->numberTrajectories.value()
             : TensorNetState<ScalarType>::g_numberTrajectoriesForObserve;
 
     auto [termStrs, terms] = prepareSpinOpTermData(ham);
@@ -407,6 +438,7 @@ public:
 
   std::unique_ptr<cudaq::SimulationState> getSimulationState() override {
     LOG_API_TIME();
+    this->flushPendingQubits();
 
     if (!m_state || m_state->getNumQubits() == 0)
       return std::make_unique<MPSSimulationState<ScalarType>>(
@@ -431,6 +463,14 @@ public:
     return std::make_unique<MPSSimulationState<ScalarType>>(
         std::move(m_state), std::vector<MPSTensor>{stateTensor}, scratchPad,
         m_cutnHandle, m_randomEngine);
+  }
+
+  std::unique_ptr<cudaq::SimulationState>
+  createStateFromData(const cudaq::state_data &data) override {
+    return std::make_unique<MPSSimulationState<ScalarType>>(
+               nullptr, std::vector<MPSTensor>{}, scratchPad, m_cutnHandle,
+               m_randomEngine)
+        ->createFromData(data);
   }
 
   bool requireCacheWorkspace() const override { return false; }

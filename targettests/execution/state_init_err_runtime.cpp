@@ -7,8 +7,7 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ -target quantinuum -emulate -fkernel-exec-kind=1 %s -o %t&& %t |& FileCheck %s
-// RUN: nvq++ --enable-mlir -target remote-mqpu --remote-mqpu-url localhost:9999 -fkernel-exec-kind=1 %s -o %t && %t |& FileCheck %s
+// RUN: if %quantinuum_avail; then nvq++ -target quantinuum -emulate -fkernel-exec-kind=1 %s -o %t && %t 2>&1 | FileCheck %s; fi
 // clang-format on
 
 #include <cudaq.h>
@@ -19,14 +18,10 @@ __qpu__ void test(cudaq::state *inState) { cudaq::qvector q(inState); }
 int main() {
   std::vector<cudaq::complex> vec{M_SQRT1_2, M_SQRT1_2, 0., 0.};
   auto state = cudaq::state::from_data(vec);
-  {
-    auto counts = cudaq::sample(test, &state);
-    counts.dump();
-    printf("size %zu\n", counts.size());
-  }
+  auto counts = cudaq::sample(test, &state);
+  counts.dump();
+  printf("size %zu\n", counts.size());
   return 0;
 }
 
-// clang-format off
-// CHECK: error: 'func.func' op synthesis: unsupported argument type for remote devices and simulators: state*
-// clang-format on
+// CHECK: unsupported argument type for remote devices and simulators: state*

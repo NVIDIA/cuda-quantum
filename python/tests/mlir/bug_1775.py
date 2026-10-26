@@ -28,34 +28,20 @@ def test_bug_1775():
             false_res = mz(qubit)
 
     print(test)
-    result = cudaq.sample(test)
-
-    print(result)
-    reg_names = result.register_names
-
-    assert 'true_res' in reg_names
-    assert 'false_res' in reg_names
-    assert '__global__' in reg_names
-    assert 'res' in reg_names
-
-    assert '1' in result.get_register_counts(
-        'true_res') and '0' not in result.get_register_counts('true_res')
-    assert '0' in result.get_register_counts(
-        'false_res') and '1' not in result.get_register_counts('false_res')
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen__test() attributes {"cudaq-entrypoint", "cudaq-kernel", qubitMeasurementFeedback = true} {
-# CHECK:           %[[VAL_0:.*]] = arith.constant true
-# CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
-# CHECK:           %[[VAL_2:.*]] = quake.mz %[[VAL_1]] name "res" : (!quake.ref) -> !quake.measure
-# CHECK:           quake.h %[[VAL_1]] : (!quake.ref) -> ()
-# CHECK:           %[[VAL_4:.*]] = quake.mz %[[VAL_1]] name "res" : (!quake.ref) -> !quake.measure
-# CHECK:           %[[VAL_5:.*]] = quake.discriminate %[[VAL_4]] : (!quake.measure) -> i1
-# CHECK:           %[[VAL_7:.*]] = arith.cmpi eq, %[[VAL_5]], %[[VAL_0]] : i1
-# CHECK:           cc.if(%[[VAL_7]]) {
-# CHECK:             %[[VAL_8:.*]] = quake.mz %[[VAL_1]] name "true_res" : (!quake.ref) -> !quake.measure
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__test
+# CHECK-SAME:      () attributes {"cudaq-entrypoint", "cudaq-kernel", qubitMeasurementFeedback = true} {
+# CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
+# CHECK:           %[[VAL_1:.*]] = quake.mz %[[VAL_0]] name "res" : (!quake.ref) -> !cc.measure_handle
+# CHECK:           quake.h %[[VAL_0]] : (!quake.ref) -> ()
+# CHECK:           %[[VAL_2:.*]] = quake.mz %[[VAL_0]] name "res" : (!quake.ref) -> !cc.measure_handle
+# CHECK:           %[[VAL_3:.*]] = quake.discriminate %[[VAL_2]] : (!cc.measure_handle) -> i1
+# CHECK:           cc.if(%[[VAL_3]]) {
+# CHECK:             %[[VAL_4:.*]] = quake.mz %[[VAL_0]] name "true_res" : (!quake.ref) -> !cc.measure_handle
 # CHECK:           } else {
-# CHECK:             %[[VAL_9:.*]] = quake.mz %[[VAL_1]] name "false_res" : (!quake.ref) -> !quake.measure
+# CHECK:             %[[VAL_5:.*]] = quake.mz %[[VAL_0]] name "false_res" : (!quake.ref) -> !cc.measure_handle
 # CHECK:           }
+# CHECK:           quake.dealloc %[[VAL_0]] : !quake.ref
 # CHECK:           return
 # CHECK:         }

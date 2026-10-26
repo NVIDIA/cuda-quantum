@@ -10,11 +10,16 @@
 
 #include "common/ExecutionContext.h"
 #include "common/SampleResult.h"
+#include "common/Timing.h"
 #include "cudaq/algorithms/broadcast.h"
+#include "cudaq/algorithms/launch.h"
+#include "cudaq/algorithms/run/policy.h"
 #include "cudaq/concepts.h"
 #include "cudaq/host_config.h"
+#include "cudaq/platform.h"
 #include "cudaq/platform/QuantumExecutionQueue.h"
 #include "cudaq/qis/kernel_utils.h"
+#include "cudaq/utils/cudaq_utils.h"
 #include <cstdint>
 
 extern "C" {
@@ -22,9 +27,16 @@ void __nvqpp_initializer_list_to_vector_bool(std::vector<bool> &, char *,
                                              std::size_t);
 }
 
+namespace cudaq_internal::compiler {
+
+using LayoutInfoType = std::pair<std::size_t, std::vector<std::size_t>>;
+
+LayoutInfoType getLayoutInfo(const std::string &name, void *opt_module);
+} // namespace cudaq_internal::compiler
+
 namespace cudaq {
 
-namespace details {
+namespace detail {
 // The span-like structure for the results of a `cudaq::run` kernel run. The
 // span is a variable number of typed result values. These values will be stored
 // in a contiguous buffer, the start of which is `data`. The size of the buffer
@@ -34,18 +46,77 @@ namespace details {
 struct RunResultSpan {
   char *data;
   std::uint64_t lengthInBytes;
+  std::uint64_t resultCount = 0;
 };
 
 // The main entry point to launching a kernel, \p kernel, in a `cudaq::run`
 // context and getting back a span containing the results. (The kernel is
 // logically executed \p shots times, which can result in up to \p shots
 // distinct result values. The results are returned in a span, which is a
-// pointer to a buffer and the size of that buffer in bytes.
-RunResultSpan runTheKernel(std::function<void()> &&kernel,
-                           quantum_platform &platform,
-                           const std::string &kernel_name,
-                           const std::string &original_name, std::size_t shots,
-                           std::size_t qpu_id = 0);
+// pointer to a buffer and the size of that buffer in bytes. Backend
+// executions with nonzero END status are omitted, so the returned span may
+// contain fewer than \p shots results and reports its actual count.
+
+// Parse a `cudaq::run` output log into a RunResultSpan. The parsing step is
+// kept out of line (in libcudaq) so the RecordLogParser is not instantiated at
+// every call site. The kernel launch that produces \p outputLog happens in the
+// caller's scope (see `launchRun`) so that the JIT compiler dependency is only
+// linked when the user compiles with nvq++.
+RunResultSpan convertToRunResultSpan(
+    const std::string &outputLog,
+    const cudaq_internal::compiler::LayoutInfoType &layoutInfo);
+
+// Launch a runnable \p kernel \p shots times and return the raw output log.
+//
+// This is deliberately defined in the header so that the `detail::launch`
+// machinery (which references the JIT `compileModule`) is instantiated in the
+// caller's translation unit rather than in libcudaq, which does not link the
+// JIT compiler runtime.
+inline run_result launchRun(std::function<void()> kernel,
+                            quantum_platform &platform,
+                            const std::string &kernel_name, std::size_t shots,
+                            std::size_t qpu_id) {
+  ScopedTraceWithContext(cudaq::TIMING_RUN, "launchRun");
+
+  // Some platforms do not support run yet, emit error.
+  if (!platform.get_codegen_config().outputLog)
+    throw std::runtime_error("`run` is not yet supported on this target.");
+
+  run_result result;
+  run_policy policy;
+  policy.kernelName = kernel_name;
+  policy.noiseModel = platform.get_noise(qpu_id);
+  if (platform.is_remote()) {
+    cudaq::ExecutionContext ctx("run", shots, qpu_id);
+    ctx.kernelName = kernel_name;
+    ctx.noiseModel = policy.noiseModel;
+    policy.shots = shots;
+    async_run_policy asyncPolicy;
+    asyncPolicy.inner = policy;
+    result =
+        detail::launch(asyncPolicy, qpu_id, ctx, platform, std::move(kernel))
+            .get();
+  } else if (platform.is_emulated()) {
+    // In a remote simulator execution or hardware emulation environment, set
+    // the `run` context name and number of iterations (shots)
+    cudaq::ExecutionContext ctx("run", shots, qpu_id);
+    ctx.kernelName = kernel_name;
+    ctx.noiseModel = policy.noiseModel;
+    policy.shots = shots;
+    // Launch the kernel a single time to post the 'run' request to the remote
+    // server or emulation executor.
+    result = detail::launch(policy, qpu_id, ctx, platform, std::move(kernel));
+  } else {
+    cudaq::ExecutionContext ctx("run", 1, qpu_id);
+    ctx.kernelName = kernel_name;
+    ctx.noiseModel = policy.noiseModel;
+    for (std::size_t i = 0; i < shots; ++i) {
+      auto shotResult = detail::launch(policy, qpu_id, ctx, platform, kernel);
+      result.outputLog += shotResult.outputLog;
+    }
+  }
+  return result;
+}
 
 // Template to transfer the ownership of the buffer in a RunResultSpan to a
 // `std::vector<T>` object. This special code is required because a
@@ -96,7 +167,7 @@ void (*get_run_entry_point(qkernel<R(As...)>, const std::string &name))(As...) {
 }
 #endif
 
-} // namespace details
+} // namespace detail
 
 /// @brief Run a kernel \p shots number of times and return a `std::vector` of
 /// results.
@@ -119,25 +190,35 @@ run(std::size_t shots, QuantumKernel &&kernel, ARGS &&...args) {
   std::vector<ResultTy> results;
   auto &platform = get_platform();
 #ifdef CUDAQ_LIBRARY_MODE
-  auto ctx = std::make_unique<cudaq::ExecutionContext>("run", 1);
+  cudaq::ExecutionContext ctx("run", 1);
+  run_policy policy;
+  policy.kernelName = detail::getKernelName(kernel);
+  policy.noiseModel = platform.get_noise();
   // Direct kernel invocation loop for library mode
   results.reserve(shots);
   for (std::size_t i = 0; i < shots; ++i) {
-    platform.set_exec_ctx(ctx.get());
-    results.emplace_back(kernel(std::forward<ARGS>(args)...));
-    platform.reset_exec_ctx();
+    std::optional<ResultTy> result;
+    detail::launch(policy, 0, ctx, platform, [&] {
+      result.emplace(std::invoke(std::forward<QuantumKernel>(kernel),
+                                 std::forward<ARGS>(args)...));
+    });
+    results.emplace_back(std::move(*result));
   }
 #else
   // Launch the kernel in the appropriate context.
-  std::string kernelName{details::getKernelName(kernel)};
-  details::RunResultSpan span = details::runTheKernel(
+  std::string kernelName{detail::getKernelName(kernel)};
+  cudaq_internal::compiler::LayoutInfoType layoutInfo =
+      cudaq_internal::compiler::getLayoutInfo(kernelName, nullptr);
+  cudaq::run_result runResult = detail::launchRun(
       [&]() mutable {
         auto *runKernel =
-            details::get_run_entry_point(qkernel{kernel}, kernelName);
+            detail::get_run_entry_point(qkernel{kernel}, kernelName);
         (*runKernel)(std::forward<ARGS>(args)...);
       },
-      platform, kernelName, kernelName, shots);
-  details::resultSpanToVectorViaOwnership<ResultTy>(results, span);
+      platform, kernelName, shots, /*qpu_id=*/0);
+  detail::RunResultSpan span =
+      detail::convertToRunResultSpan(runResult.outputLog, layoutInfo);
+  detail::resultSpanToVectorViaOwnership<ResultTy>(results, span);
 #endif
   return results;
 }
@@ -159,8 +240,7 @@ std::vector<
 run(std::size_t shots, cudaq::noise_model &noise_model, QuantumKernel &&kernel,
     ARGS &&...args) {
   auto &platform = cudaq::get_platform();
-  if (platform.get_remote_capabilities().isRemoteSimulator ||
-      platform.is_remote())
+  if (platform.is_remote())
     throw std::runtime_error(
         "Noise model is not supported on remote platforms.");
   if (shots == 0)
@@ -171,27 +251,40 @@ run(std::size_t shots, cudaq::noise_model &noise_model, QuantumKernel &&kernel,
 #ifdef CUDAQ_LIBRARY_MODE
   // Direct kernel invocation loop for library mode
   platform.set_noise(&noise_model);
-  auto ctx = std::make_unique<cudaq::ExecutionContext>("run", 1);
+  cudaq::ExecutionContext ctx("run", 1);
+  run_policy policy;
+  policy.kernelName = detail::getKernelName(kernel);
+  policy.noiseModel = &noise_model;
   results.reserve(shots);
   for (std::size_t i = 0; i < shots; ++i) {
-    platform.set_exec_ctx(ctx.get());
-    results.emplace_back(kernel(std::forward<ARGS>(args)...));
-    platform.reset_exec_ctx();
+    std::optional<ResultTy> result;
+    detail::launch(policy, 0, ctx, platform, [&] {
+      result.emplace(std::invoke(std::forward<QuantumKernel>(kernel),
+                                 std::forward<ARGS>(args)...));
+    });
+    results.emplace_back(std::move(*result));
   }
   platform.reset_noise();
 #else
+  std::string kernelName{detail::getKernelName(kernel)};
+  cudaq_internal::compiler::LayoutInfoType layoutInfo =
+      cudaq_internal::compiler::getLayoutInfo(kernelName, nullptr);
   // Launch the kernel in the appropriate context.
   platform.set_noise(&noise_model);
-  std::string kernelName{details::getKernelName(kernel)};
-  details::RunResultSpan span = details::runTheKernel(
-      [&]() mutable {
-        auto *runKernel =
-            details::get_run_entry_point(qkernel{kernel}, kernelName);
-        (*runKernel)(std::forward<ARGS>(args)...);
+  cudaq::run_result runResult = detail::try_finally(
+      [&] {
+        return detail::launchRun(
+            [&]() mutable {
+              auto *runKernel =
+                  detail::get_run_entry_point(qkernel{kernel}, kernelName);
+              (*runKernel)(std::forward<ARGS>(args)...);
+            },
+            platform, kernelName, shots, /*qpu_id=*/0);
       },
-      platform, kernelName, kernelName, shots);
-  platform.reset_noise();
-  details::resultSpanToVectorViaOwnership<ResultTy>(results, span);
+      [&] { platform.reset_noise(); });
+  detail::RunResultSpan span =
+      detail::convertToRunResultSpan(runResult.outputLog, layoutInfo);
+  detail::resultSpanToVectorViaOwnership<ResultTy>(results, span);
 #endif
   return results;
 }
@@ -233,25 +326,35 @@ run_async(std::size_t qpu_id, std::size_t shots, QuantumKernel &&kernel,
 #ifdef CUDAQ_LIBRARY_MODE
         // Direct kernel invocation loop for library mode
         std::vector<ResultTy> res;
-        auto ctx = std::make_unique<cudaq::ExecutionContext>("run", 1, qpu_id);
+        cudaq::ExecutionContext ctx("run", 1, qpu_id);
+        run_policy policy;
+        policy.kernelName = detail::getKernelName(kernel);
+        policy.noiseModel = platform.get_noise(qpu_id);
         res.reserve(shots);
         for (std::size_t i = 0; i < shots; ++i) {
-          platform.set_exec_ctx(ctx.get());
-          res.emplace_back(kernel(std::forward<ARGS>(args)...));
-          platform.reset_exec_ctx();
+          std::optional<ResultTy> result;
+          detail::launch(policy, qpu_id, ctx, platform, [&] {
+            result.emplace(std::invoke(std::forward<QuantumKernel>(kernel),
+                                       std::forward<ARGS>(args)...));
+          });
+          res.emplace_back(std::move(*result));
         }
         p.set_value(std::move(res));
 #else
-        const std::string kernelName{details::getKernelName(kernel)};
-        details::RunResultSpan span = details::runTheKernel(
+        const std::string kernelName{detail::getKernelName(kernel)};
+        cudaq_internal::compiler::LayoutInfoType layoutInfo =
+            cudaq_internal::compiler::getLayoutInfo(kernelName, nullptr);
+        cudaq::run_result runResult = detail::launchRun(
             [&]() mutable {
               auto *runKernel =
-                  details::get_run_entry_point(qkernel{kernel}, kernelName);
+                  detail::get_run_entry_point(qkernel{kernel}, kernelName);
               (*runKernel)(std::forward<ARGS>(args)...);
             },
-            platform, kernelName, kernelName, shots, qpu_id);
+            platform, kernelName, shots, qpu_id);
+        detail::RunResultSpan span =
+            detail::convertToRunResultSpan(runResult.outputLog, layoutInfo);
         std::vector<ResultTy> results;
-        details::resultSpanToVectorViaOwnership<ResultTy>(results, span);
+        detail::resultSpanToVectorViaOwnership<ResultTy>(results, span);
         p.set_value(std::move(results));
 #endif
       });
@@ -282,8 +385,7 @@ run_async(std::size_t qpu_id, std::size_t shots,
   if (qpu_id >= platform.num_qpus())
     throw std::invalid_argument(
         "Provided qpu_id is invalid (must be <= to platform.num_qpus()).");
-  if (platform.get_remote_capabilities().isRemoteSimulator ||
-      platform.is_remote())
+  if (platform.is_remote())
     throw std::runtime_error(
         "Noise model is not supported on remote platforms.");
   // Launch the kernel in the appropriate context.
@@ -301,29 +403,39 @@ run_async(std::size_t qpu_id, std::size_t shots,
 #ifdef CUDAQ_LIBRARY_MODE
         // Direct kernel invocation loop for library mode
         platform.set_noise(&noise_model);
-        auto ctx = std::make_unique<cudaq::ExecutionContext>("run", 1, qpu_id);
+        cudaq::ExecutionContext ctx("run", 1, qpu_id);
+        run_policy policy;
+        policy.kernelName = detail::getKernelName(kernel);
+        policy.noiseModel = &noise_model;
         std::vector<ResultTy> res;
         res.reserve(shots);
         for (std::size_t i = 0; i < shots; ++i) {
-          platform.set_exec_ctx(ctx.get());
-          res.emplace_back(kernel(std::forward<ARGS>(args)...));
-          platform.reset_exec_ctx();
+          std::optional<ResultTy> result;
+          detail::launch(policy, qpu_id, ctx, platform, [&] {
+            result.emplace(std::invoke(std::forward<QuantumKernel>(kernel),
+                                       std::forward<ARGS>(args)...));
+          });
+          res.emplace_back(std::move(*result));
         }
         platform.reset_noise();
         p.set_value(std::move(res));
 #else
         platform.set_noise(&noise_model);
-        const std::string kernelName{details::getKernelName(kernel)};
-        details::RunResultSpan span = details::runTheKernel(
+        const std::string kernelName{detail::getKernelName(kernel)};
+        cudaq_internal::compiler::LayoutInfoType layoutInfo =
+            cudaq_internal::compiler::getLayoutInfo(kernelName, nullptr);
+        cudaq::run_result runResult = detail::launchRun(
             [&]() mutable {
               auto *runKernel =
-                  details::get_run_entry_point(qkernel{kernel}, kernelName);
+                  detail::get_run_entry_point(qkernel{kernel}, kernelName);
               (*runKernel)(std::forward<ARGS>(args)...);
             },
-            platform, kernelName, kernelName, shots, qpu_id);
+            platform, kernelName, shots, qpu_id);
         platform.reset_noise();
+        detail::RunResultSpan span =
+            detail::convertToRunResultSpan(runResult.outputLog, layoutInfo);
         std::vector<ResultTy> results;
-        details::resultSpanToVectorViaOwnership<ResultTy>(results, span);
+        detail::resultSpanToVectorViaOwnership<ResultTy>(results, span);
         p.set_value(std::move(results));
 #endif
       });

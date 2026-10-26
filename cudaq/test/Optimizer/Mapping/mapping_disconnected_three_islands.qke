@@ -1,0 +1,47 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_three_islands.txt) placement=auto     search=none'  %s | FileCheck --implicit-check-not=quake.swap %s
+// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_three_islands.txt) placement=auto     search=sabre' %s | FileCheck --implicit-check-not=quake.swap %s
+// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_three_islands.txt) placement=greedy   search=none'  %s | FileCheck --implicit-check-not=quake.swap %s
+// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_three_islands.txt) placement=greedy   search=sabre' %s | FileCheck --implicit-check-not=quake.swap %s
+// RUN: not cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_three_islands.txt) placement=identity'  %s 2>&1 | FileCheck --check-prefix=IDENTITY %s
+
+quake.wire_set @wires[2147483647]
+
+func.func @three_islands() {
+  %q0 = quake.borrow_wire @wires[0] : !quake.wire
+  %q1 = quake.borrow_wire @wires[1] : !quake.wire
+  %q2 = quake.borrow_wire @wires[2] : !quake.wire
+  %q3 = quake.borrow_wire @wires[3] : !quake.wire
+  %q4 = quake.borrow_wire @wires[4] : !quake.wire
+  %q5 = quake.borrow_wire @wires[5] : !quake.wire
+  %a:2 = quake.x [%q0] %q5 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %b:2 = quake.x [%q1] %q2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %c:2 = quake.x [%q3] %q4 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.return_wire %a#0 : !quake.wire
+  quake.return_wire %a#1 : !quake.wire
+  quake.return_wire %b#0 : !quake.wire
+  quake.return_wire %b#1 : !quake.wire
+  quake.return_wire %c#0 : !quake.wire
+  quake.return_wire %c#1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @three_islands() attributes {mapping_reorder_idx = [0, 2, 3, 4, 5, 1], mapping_v2p = [0, 2, 3, 4, 5, 1]} {
+// CHECK:           %[[BORROW_WIRE_0:.*]] = quake.borrow_wire @mapped_wireset[0] : !quake.wire
+// CHECK:           %[[BORROW_WIRE_1:.*]] = quake.borrow_wire @mapped_wireset[2] : !quake.wire
+// CHECK:           %[[BORROW_WIRE_2:.*]] = quake.borrow_wire @mapped_wireset[3] : !quake.wire
+// CHECK:           %[[BORROW_WIRE_3:.*]] = quake.borrow_wire @mapped_wireset[4] : !quake.wire
+// CHECK:           %[[BORROW_WIRE_4:.*]] = quake.borrow_wire @mapped_wireset[5] : !quake.wire
+// CHECK:           %[[BORROW_WIRE_5:.*]] = quake.borrow_wire @mapped_wireset[1] : !quake.wire
+// CHECK:           %[[X_0:.*]]:2 = quake.x {{\[}}%[[BORROW_WIRE_0]]] %[[BORROW_WIRE_5]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[X_1:.*]]:2 = quake.x {{\[}}%[[BORROW_WIRE_1]]] %[[BORROW_WIRE_2]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[X_2:.*]]:2 = quake.x {{\[}}%[[BORROW_WIRE_3]]] %[[BORROW_WIRE_4]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+
+// IDENTITY: cannot place two-qubit interaction between virtual qubits 0 and 5 on disconnected device topology

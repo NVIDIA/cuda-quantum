@@ -18,6 +18,10 @@
 # CUDAQ_INSTALL_PREFIX=/path/for/installing/cudaq LLVM_INSTALL_PREFIX=/path/to/dir bash scripts/build_cudaq.sh
 # -or-
 # CUQUANTUM_INSTALL_PREFIX=/path/to/dir bash scripts/build_cudaq.sh
+# -or-
+# bash scripts/build_cudaq.sh -- -DCUDAQ_LIT_JOBS=2 
+# -or-
+# bash scripts/build_cudaq.sh -L
 #
 # Options:
 # -c <build_configuration>: The build configuration to use. Defaults to Release.
@@ -26,6 +30,12 @@
 # -v: Whether to print verbose output. Defaults to False.
 # -B <build_dir>: The build directory to use. Defaults to build.
 # -i: Whether to build incrementally. Defaults to False.
+# -s: Enable sanitizers (ASan, UBSan) for memory error detection. Defaults to False.
+# -p: Install prerequisites before building.
+# -I: Install only (skip configure and build, just run ninja install + post-install).
+# -L: Also build cudaq.logical (preview/logical) against the fresh CUDA-Q installation.
+#     Set QLX_VERIFY_TOOLCHAIN=ON to audit that toolchain against CUDA-Q's.
+# --: Arguments after -- are passed directly to cmake (e.g., -DVAR=value).
 # 
 # Prerequisites:
 # - glibc including development headers (available via package manager)
@@ -53,18 +63,40 @@ CUDAQ_INSTALL_PREFIX=${CUDAQ_INSTALL_PREFIX:-"$HOME/.cudaq"}
 build_configuration=${CMAKE_BUILD_TYPE:-Release}
 verbose=false
 clean_build=true
+install_prereqs=false
 install_toolchain=""
+install_only=false
+build_logical=false
 num_jobs=""
+enable_sanitizers=false
+extra_cmake_args=""
+
+# Extract extra cmake args after -- separator
+args_before_sep=()
+found_sep=false
+for arg in "$@"; do
+  if [ "$arg" = "--" ]; then
+    found_sep=true
+  elif $found_sep; then
+    extra_cmake_args="$extra_cmake_args $arg"
+  else
+    args_before_sep+=("$arg")
+  fi
+done
+set -- "${args_before_sep[@]}"
 
 # Run the script from the top-level of the repo
 working_dir=`pwd`
-this_file_dir=`dirname "$(readlink -f "${BASH_SOURCE[0]}")"`
+this_file_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 repo_root=$(cd "$this_file_dir" && git rev-parse --show-toplevel)
 build_dir="$working_dir/build"
 
+# Set default environment variables (won't override if already set)
+source "$this_file_dir/set_env_defaults.sh"
+
 __optind__=$OPTIND
 OPTIND=1
-while getopts ":c:t:j:vB:i" opt; do
+while getopts ":c:t:j:vB:ispIL" opt; do
   case $opt in
     c) build_configuration="$OPTARG"
     ;;
@@ -78,6 +110,14 @@ while getopts ":c:t:j:vB:i" opt; do
     ;;
     i) clean_build=false
     ;;
+    s) enable_sanitizers=true
+    ;;
+    p) install_prereqs=true
+    ;;
+    I) install_only=true
+    ;;
+    L) build_logical=true
+    ;;
     \?) echo "Invalid command line option -$OPTARG" >&2
     (return 0 2>/dev/null) && return 1 || exit 1
     ;;
@@ -85,26 +125,46 @@ while getopts ":c:t:j:vB:i" opt; do
 done
 OPTIND=$__optind__
 
+if $build_logical && [ "$(uname)" = "Darwin" ]; then
+  echo "Support for cudaq.logical is currently limited to Linux."
+  (return 0 2>/dev/null) && return 1 || exit 1
+fi
+
 # Prepare the build directory
 echo "Build directory: $build_dir"
 mkdir -p "$CUDAQ_INSTALL_PREFIX/bin"
 mkdir -p "$build_dir" && cd "$build_dir"
-if $clean_build; then
+if ! $install_only && $clean_build; then
   rm -rf *
 fi
 mkdir -p logs && rm -rf logs/*
 
-if [ -n "$install_toolchain" ]; then
-  echo "Installing pre-requisites..."
+# Skip configure/build if install-only mode
+if $install_only; then
+  echo "Install-only mode: skipping configure and build..."
+else
+
+# Install prerequisites (opt-in with -p or -t)
+if $install_prereqs || [ -n "$install_toolchain" ]; then
+  echo "Installing prerequisites..."
+  # Save and clear positional parameters to avoid passing them to sourced script
+  saved_args=("$@")
+  if [ -n "$install_toolchain" ]; then
+    set -- -t "$install_toolchain"
+  else
+    set --
+  fi
   if $verbose; then
-    source "$this_file_dir/install_prerequisites.sh" -t "$install_toolchain"
+    source "$this_file_dir/install_prerequisites.sh" "$@"
     status=$?
   else
     echo "The install log can be found in `pwd`/logs/prereqs_output.txt."
-    source "$this_file_dir/install_prerequisites.sh" -t "$install_toolchain" \
+    source "$this_file_dir/install_prerequisites.sh" "$@" \
       2> logs/prereqs_error.txt 1> logs/prereqs_output.txt
     status=$?
   fi
+  # Restore positional parameters
+  set -- "${saved_args[@]}"
 
   if [ "$status" = "" ] || [ ! "$status" -eq "0" ]; then
     echo -e "\e[01;31mError: Failed to install prerequisites.\e[0m" >&2
@@ -144,18 +204,29 @@ else
   fi
 fi
 
-# Determine linker and linker flags
-if [ -x "$(command -v "$LLVM_INSTALL_PREFIX/bin/ld.lld")" ]; then
-  echo "Configuring nvq++ and local build to use the lld linker by default."
-  NVQPP_LD_PATH="$LLVM_INSTALL_PREFIX/bin/ld.lld"
+# Determine linker and linker flags.
+# On macOS, prefer LLVM's Mach-O lld (ld64.lld) when available; on Linux use
+# ld.lld. In either case fall back to the system linker if lld isn't present.
+if [ "$(uname)" = "Darwin" ] && [ -x "$LLVM_INSTALL_PREFIX/bin/ld64.lld" ]; then
+  LLD_BIN="$LLVM_INSTALL_PREFIX/bin/ld64.lld"
+elif [ "$(uname)" != "Darwin" ] && [ -x "$LLVM_INSTALL_PREFIX/bin/ld.lld" ]; then
+  LLD_BIN="$LLVM_INSTALL_PREFIX/bin/ld.lld"
+else
+  LLD_BIN=""
+fi
+if [ -n "$LLD_BIN" ] && [ "$(uname)" != "Darwin" ]; then
+  echo "Configuring nvq++ and local build to use the lld linker by default ($LLD_BIN)."
+  NVQPP_LD_PATH="$LLD_BIN"
   LINKER_TO_USE="lld"
   LINKER_FLAGS="-fuse-ld=lld -B$LLVM_INSTALL_PREFIX/bin"
   LINKER_FLAG_LIST="\
     -DCMAKE_LINKER='"$LINKER_TO_USE"' \
     -DCMAKE_EXE_LINKER_FLAGS='"$LINKER_FLAGS"' \
+    -DCMAKE_SHARED_LINKER_FLAGS='"$LINKER_FLAGS"' \
+    -DCMAKE_MODULE_LINKER_FLAGS='"$LINKER_FLAGS"' \
     -DLLVM_USE_LINKER='"$LINKER_TO_USE"'"
 else
-  echo "No lld linker detected. Using the system linker."
+  echo "Using the system linker."
   LINKER_FLAG_LIST=""
 fi
 
@@ -171,11 +242,13 @@ if [ -z "$CUDAHOSTCXX" ] && [ -z "$CUDAFLAGS" ]; then
   fi
 fi
 
-# Determine OpenMP flags
-if [ -n "$(find "$LLVM_INSTALL_PREFIX" -name 'libomp.so')" ]; then
-  OMP_LIBRARY=${OMP_LIBRARY:-libomp}
-  OpenMP_libomp_LIBRARY=${OMP_LIBRARY#lib}
-  OpenMP_FLAGS="${OpenMP_FLAGS:-'-fopenmp'}"
+# Determine OpenMP flags (check for .so on Linux, .dylib on macOS).
+# Use -idirafter so omp.h is searched after system headers (avoids a conflict
+# with clang's stdint.h on macOS).
+OpenMP_libomp_LIBRARY_PATH=$(find "$LLVM_INSTALL_PREFIX" \( -name 'libomp.so' -o -name 'libomp.dylib' \) 2>/dev/null | head -1)
+if [ -n "$OpenMP_libomp_LIBRARY_PATH" ]; then
+  omp_header_dir=$(find "$LLVM_INSTALL_PREFIX" -name 'omp.h' -print -quit 2>/dev/null | xargs dirname)
+  OpenMP_FLAGS="${OpenMP_FLAGS:--fopenmp -idirafter $omp_header_dir}"
 fi
 
 # Check for ccache and configure compiler launcher
@@ -193,6 +266,13 @@ else
   echo "ccache not found. To speed up recompilation, consider installing ccache."
 fi
 
+# Configure sanitizer option for CMake
+SANITIZER_FLAGS=""
+if $enable_sanitizers; then
+  echo "Enabling Address Sanitizer (ASan) and Undefined Behavior Sanitizer (UBSan)..."
+  SANITIZER_FLAGS="-DCUDAQ_ENABLE_SANITIZERS=ON"
+fi
+
 # Generate CMake files 
 # (utils are needed for custom testing tools, e.g. CircuitCheck)
 echo "Preparing CUDA-Q build with LLVM installation in $LLVM_INSTALL_PREFIX..."
@@ -200,21 +280,32 @@ cmake_args="-G Ninja '"$repo_root"' \
   -DCMAKE_INSTALL_PREFIX='"$CUDAQ_INSTALL_PREFIX"' \
   -DCMAKE_BUILD_TYPE=$build_configuration \
   -DNVQPP_LD_PATH='"$NVQPP_LD_PATH"' \
-  -DCMAKE_CUDA_COMPILER='"$cuda_driver"' \
-  -DCMAKE_CUDA_FLAGS='"$CUDAFLAGS"' \
-  -DCMAKE_CUDA_HOST_COMPILER='"${CUDAHOSTCXX:-$CXX}"' \
   ${LINKER_FLAG_LIST} \
   ${CCACHE_FLAGS} \
-  ${OpenMP_libomp_LIBRARY:+-DOpenMP_C_LIB_NAMES=lib$OpenMP_libomp_LIBRARY} \
-  ${OpenMP_libomp_LIBRARY:+-DOpenMP_CXX_LIB_NAMES=lib$OpenMP_libomp_LIBRARY} \
-  ${OpenMP_libomp_LIBRARY:+-DOpenMP_libomp_LIBRARY=$OpenMP_libomp_LIBRARY} \
+  ${SANITIZER_FLAGS} \
+  ${OpenMP_libomp_LIBRARY_PATH:+-DOpenMP_C_LIB_NAMES=omp} \
+  ${OpenMP_libomp_LIBRARY_PATH:+-DOpenMP_CXX_LIB_NAMES=omp} \
+  ${OpenMP_libomp_LIBRARY_PATH:+-DOpenMP_omp_LIBRARY='"$OpenMP_libomp_LIBRARY_PATH"'} \
   ${OpenMP_FLAGS:+"-DOpenMP_C_FLAGS='"$OpenMP_FLAGS"'"} \
   ${OpenMP_FLAGS:+"-DOpenMP_CXX_FLAGS='"$OpenMP_FLAGS"'"} \
   -DCUDAQ_REQUIRE_OPENMP=${CUDAQ_REQUIRE_OPENMP:-FALSE} \
   -DCUDAQ_ENABLE_PYTHON=${CUDAQ_PYTHON_SUPPORT:-TRUE} \
   -DCUDAQ_BUILD_TESTS=${CUDAQ_BUILD_TESTS:-TRUE} \
   -DCUDAQ_TEST_MOCK_SERVERS=${CUDAQ_BUILD_TESTS:-TRUE} \
-  -DCMAKE_COMPILE_WARNING_AS_ERROR=${CUDAQ_WERROR:-ON}"
+  -DCMAKE_COMPILE_WARNING_AS_ERROR=${CUDAQ_WERROR:-ON} \
+  -Dnanobind_DIR=$NANOBIND_INSTALL_PREFIX/nanobind/cmake \
+  -DCUDAQ_STATIC_CXX_RUNTIME=${CUDAQ_STATIC_CXX_RUNTIME:-OFF} \
+  -DCUDAQ_STATIC_DEPS=${CUDAQ_STATIC_DEPS:-OFF} \
+  $extra_cmake_args"
+
+# Add CUDA-specific flags only on non-macOS systems
+if [ "$(uname)" != "Darwin" ]; then
+  cmake_args="$cmake_args \
+  -DCMAKE_CUDA_COMPILER='"$cuda_driver"' \
+  -DCMAKE_CUDA_FLAGS='"$CUDAFLAGS"' \
+  -DCMAKE_CUDA_HOST_COMPILER='"${CUDAHOSTCXX:-$CXX}"'"
+fi
+
 # Note that even though we specify CMAKE_CUDA_HOST_COMPILER above, it looks like the 
 # CMAKE_CUDA_COMPILER_WORKS checks do *not* use that host compiler unless the CUDAHOSTCXX 
 # environment variable is specified. Setting this variable may hence be necessary in 
@@ -222,10 +313,10 @@ cmake_args="-G Ninja '"$repo_root"' \
 # the set host compiler is not officially supported. We hence don't set that variable 
 # here, but keep the definition for CMAKE_CUDA_HOST_COMPILER.
 if $verbose; then 
-  echo $cmake_args | xargs cmake
+  echo "$cmake_args" | xargs cmake
   status=$?
 else
-  echo $cmake_args | xargs cmake \
+  echo "$cmake_args" | xargs cmake \
     2> logs/cmake_error.txt 1> logs/cmake_output.txt
   status=$?
 fi
@@ -237,8 +328,14 @@ if [ "$status" -ne 0 ]; then
   cd "$working_dir" && (return 0 2>/dev/null) && return 1 || exit 1
 fi
 
-# Build and install CUDA-Q
-echo "Building CUDA-Q with configuration $build_configuration..."
+fi # end of skip for install-only mode
+
+# Install CUDA-Q (and build if not install-only)
+if $install_only; then
+  echo "Running ninja install..."
+else
+  echo "Building CUDA-Q with configuration $build_configuration..."
+fi
 logs_dir=`pwd`/logs
 if $verbose; then 
   ninja ${num_jobs} install
@@ -266,5 +363,64 @@ echo "<LLVM_INSTALL_PREFIX>$LLVM_INSTALL_PREFIX</LLVM_INSTALL_PREFIX>" >> "$CUDA
 echo "<CUQUANTUM_INSTALL_PREFIX>$CUQUANTUM_INSTALL_PREFIX</CUQUANTUM_INSTALL_PREFIX>" >> "$CUDAQ_INSTALL_PREFIX/build_config.xml"
 echo "<CUTENSOR_INSTALL_PREFIX>$CUTENSOR_INSTALL_PREFIX</CUTENSOR_INSTALL_PREFIX>" >> "$CUDAQ_INSTALL_PREFIX/build_config.xml"
 echo "</build_config>" >> "$CUDAQ_INSTALL_PREFIX/build_config.xml"
+
+# Build cudaq.logical against the fresh CUDA-Q installation (opt-in with -L).
+# This step runs its own CMake configure, so it is also executed in
+# install-only mode (-I); its build tree is never cleaned by this script.
+if $build_logical; then
+  echo "Building cudaq.logical against the CUDA-Q installation in $CUDAQ_INSTALL_PREFIX..."
+  logical_build_dir="$repo_root/build/preview/logical"
+  if [ -z "$LLVM_DIR" ]; then
+    LLVM_DIR="$LLVM_INSTALL_PREFIX/lib/cmake/llvm"
+  fi
+  logical_cmake_args="-G Ninja \
+    -S $repo_root/preview/logical \
+    -B $logical_build_dir \
+    -DCMAKE_BUILD_TYPE=$build_configuration \
+    -DCMAKE_INSTALL_PREFIX=$CUDAQ_INSTALL_PREFIX \
+    -DLLVM_DIR=$LLVM_DIR \
+    -DGMP_ROOT=$GMP_INSTALL_PREFIX \
+    -DMPFR_ROOT=$MPFR_INSTALL_PREFIX \
+    -DCUDAQ_INSTALL_PREFIX=$CUDAQ_INSTALL_PREFIX \
+    -Dnanobind_DIR=$NANOBIND_INSTALL_PREFIX/nanobind/cmake"
+  # Opt-in toolchain audit (compiler family, LLVM version); see
+  # preview/logical/cmake/SetupCUDAQ.cmake. Set QLX_VERIFY_TOOLCHAIN=ON to enable.
+  if [ -n "$QLX_VERIFY_TOOLCHAIN" ]; then
+    logical_cmake_args="$logical_cmake_args -DQLX_VERIFY_TOOLCHAIN=$QLX_VERIFY_TOOLCHAIN"
+  fi
+  if $verbose; then
+    echo "cmake $logical_cmake_args"
+    cmake $logical_cmake_args
+    status=$?
+  else
+    echo "The progress of the cudaq.logical CMake configuration is being logged to $logs_dir/logical_cmake_output.txt."
+    cmake $logical_cmake_args \
+      2> "$logs_dir/logical_cmake_error.txt" 1> "$logs_dir/logical_cmake_output.txt"
+    status=$?
+  fi
+  if [ "$status" -ne 0 ]; then
+    echo -e "\e[01;31mError: CMake configuration failed for cudaq.logical. Please check $logs_dir/logical_cmake_error.txt for details.\e[0m" >&2
+    if ! $verbose; then
+      cat "$logs_dir/logical_cmake_error.txt" >&2
+    fi
+    cd "$working_dir" && (return 0 2>/dev/null) && return 1 || exit 1
+  fi
+
+  echo "Building cudaq.logical with configuration $build_configuration..."
+  if $verbose; then
+    ninja -C "$logical_build_dir" ${num_jobs} install
+    status=$?
+  else
+    echo "The progress of the cudaq.logical build is being logged to $logs_dir/logical_ninja_output.txt."
+    ninja -C "$logical_build_dir" ${num_jobs} install \
+      2> "$logs_dir/logical_ninja_error.txt" 1> "$logs_dir/logical_ninja_output.txt"
+    status=$?
+  fi
+  if [ "$status" = "" ] || [ ! "$status" -eq "0" ]; then
+    echo -e "\e[01;31mError: Failed to build/install cudaq.logical. Please check the console output or the files in the $logs_dir directory.\e[0m" >&2
+    cd "$working_dir" && (return 0 2>/dev/null) && return 1 || exit 1
+  fi
+  echo "Installed cudaq.logical into $CUDAQ_INSTALL_PREFIX (build tree: $logical_build_dir)"
+fi
 
 cd "$working_dir" && echo "Installed CUDA-Q in directory: $CUDAQ_INSTALL_PREFIX"

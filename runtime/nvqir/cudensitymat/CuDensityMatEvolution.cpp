@@ -13,12 +13,15 @@
 #include "CuDensityMatState.h"
 #include "CuDensityMatTimeStepper.h"
 #include "CuDensityMatUtils.h"
-#include "cudaq/algorithms/evolve_internal.h"
+#include "common/EvolveResult.h"
+#include "common/FmtCore.h"
 #include "cudaq/algorithms/integrator.h"
 #include <iterator>
+#include <numeric>
 #include <random>
 #include <stdexcept>
-namespace cudaq::__internal__ {
+
+namespace cudaq::detail {
 template <typename Key, typename Value>
 std::map<Key, Value>
 convertToOrderedMap(const std::unordered_map<Key, Value> &unorderedMap) {
@@ -201,6 +204,30 @@ static CuDensityMatState *asCudmState(cudaq::state &cudaqState) {
   return cudmState;
 }
 
+static state prepareInitialState(cudensitymatHandle_t handle,
+                                 const state &initialState,
+                                 const std::vector<int64_t> &dims,
+                                 bool requireDensityMatrix) {
+  auto *cudmState = asCudmState(const_cast<state &>(initialState));
+  if (!cudmState->is_initialized()) {
+    const auto stateVectorSize = std::accumulate(
+        dims.begin(), dims.end(), std::size_t{1}, std::multiplies<>());
+    if (requireDensityMatrix &&
+        cudmState->get_element_count() == stateVectorSize)
+      return state(new CuDensityMatState(cudmState->to_density_matrix(dims)));
+    cudmState->initialize_cudm(handle, dims, /*batchSize=*/1);
+  }
+  if (requireDensityMatrix && !cudmState->is_density_matrix())
+    return state(new CuDensityMatState(cudmState->to_density_matrix()));
+  return initialState;
+}
+
+static bool requiresDensityMatrix(const super_op &superOp) {
+  return std::any_of(
+      superOp.begin(), superOp.end(),
+      [](const auto &operatorPair) { return operatorPair.second.has_value(); });
+}
+
 static evolve_result
 evolveSingleImpl(const std::vector<int64_t> &dims, const schedule &schedule,
                  base_integrator &integrator,
@@ -220,8 +247,8 @@ evolveSingleImpl(const std::vector<int64_t> &dims, const schedule &schedule,
   std::vector<cudaq::state> intermediateStates;
   for (const auto &step : schedule) {
     integrator.integrate(step.real());
-    auto [t, currentState] = integrator.getState();
     if (storeIntermediateResults != cudaq::IntermediateResultSave::None) {
+      auto [t, currentState] = integrator.getState();
       std::vector<double> expVals;
 
       for (auto &expectation : expectations) {
@@ -238,7 +265,7 @@ evolveSingleImpl(const std::vector<int64_t> &dims, const schedule &schedule,
     }
   }
 
-  if (cudaq::details::should_log(cudaq::details::LogLevel::trace))
+  if (cudaq::detail::should_log(cudaq::detail::LogLevel::trace))
     cudaq::dynamics::dumpPerfTrace();
 
   if (storeIntermediateResults == cudaq::IntermediateResultSave::All) {
@@ -292,19 +319,12 @@ evolve_result evolveSingle(
   for (const auto &[id, dim] : dimensions)
     dims.emplace_back(dim);
 
-  auto *cudmState = asCudmState(const_cast<state &>(initialState));
-  if (!cudmState->is_initialized())
-    cudmState->initialize_cudm(handle, dims, /*batchSize=*/1);
-
-  state initial_State = [&]() {
-    if (!collapseOperators.empty() && !cudmState->is_density_matrix())
-      return state(new CuDensityMatState(cudmState->to_density_matrix()));
-    return initialState;
-  }();
+  auto preparedInitialState = prepareInitialState(handle, initialState, dims,
+                                                  !collapseOperators.empty());
 
   SystemDynamics system(dims, hamiltonian, collapseOperators);
   cudaq::integrator_helper::init_system_dynamics(integrator, system, schedule);
-  integrator.setState(initial_State, 0.0);
+  integrator.setState(preparedInitialState, 0.0);
   return evolveSingleImpl(dims, schedule, integrator, observables,
                           storeIntermediateResults);
 }
@@ -346,6 +366,16 @@ evolveBatchedImpl(const std::vector<int64_t> dims, const schedule &schedule,
   cudensitymatHandle_t handle =
       dynamics::Context::getCurrentContext()->getHandle();
 
+  // We requires an even partition for distributed batched states.
+  if (batchSize > 1 &&
+      batchSize % dynamics::Context::getCurrentContext()->getNumRanks() != 0) {
+    throw std::runtime_error(fmt::format(
+        "Distributed batched states require an even partition across ranks: "
+        "batch size {} is not divisible by number of ranks {}. Please adjust "
+        "the number of MPI ranks or the batch size.",
+        batchSize, dynamics::Context::getCurrentContext()->getNumRanks()));
+  }
+
   std::vector<CuDensityMatExpectation> expectations;
   auto &opConverter =
       cudaq::dynamics::Context::getCurrentContext()->getOpConverter();
@@ -354,12 +384,21 @@ evolveBatchedImpl(const std::vector<int64_t> dims, const schedule &schedule,
     expectations.emplace_back(CuDensityMatExpectation(handle, cudmObsOp));
   }
 
+  // Helper to compute the state idx within the batch for distributed mode
+  const auto getDistributedGlobalIdx = [](int localIdx, int batchSize) {
+    const auto mpiNumRanks =
+        dynamics::Context::getCurrentContext()->getNumRanks();
+    const auto mpiRank = dynamics::Context::getCurrentContext()->getRank();
+    const auto statesPerRank = batchSize / mpiNumRanks;
+    return mpiRank * statesPerRank + localIdx;
+  };
+
   std::vector<std::vector<std::vector<double>>> expectationVals(batchSize);
   std::vector<std::vector<cudaq::state>> intermediateStates(batchSize);
   for (const auto &step : schedule) {
     integrator.integrate(step.real());
-    auto [t, currentState] = integrator.getState();
     if (storeIntermediateResults != cudaq::IntermediateResultSave::None) {
+      auto [t, currentState] = integrator.getState();
       auto *cudmState = asCudmState(currentState);
       std::vector<std::vector<double>> expVals(batchSize);
       for (auto &expectation : expectations) {
@@ -374,9 +413,24 @@ evolveBatchedImpl(const std::vector<int64_t> dims, const schedule &schedule,
 
       if (storeIntermediateResults == cudaq::IntermediateResultSave::All) {
         auto states = CuDensityMatState::splitBatchedState(*cudmState);
-        assert(states.size() == batchSize);
-        for (int i = 0; i < batchSize; ++i) {
-          intermediateStates[i].emplace_back(cudaq::state(states[i]));
+        // In distributed mode, the split operation only returns the local
+        // states held by this rank. The number of split states may be less than
+        // batch_size.
+        assert(states.size() <= batchSize);
+
+        const auto numLocalStates = states.size();
+        if (numLocalStates == batchSize) {
+          // Non-distributed mode: all states are local
+          for (int i = 0; i < batchSize; ++i) {
+            intermediateStates[i].emplace_back(states[i]);
+          }
+        } else {
+          for (int i = 0; i < numLocalStates; ++i) {
+            const auto globalIdx = getDistributedGlobalIdx(i, batchSize);
+            if (globalIdx < batchSize) {
+              intermediateStates[globalIdx].emplace_back(states[i]);
+            }
+          }
         }
       }
       for (int i = 0; i < batchSize; ++i) {
@@ -387,7 +441,12 @@ evolveBatchedImpl(const std::vector<int64_t> dims, const schedule &schedule,
 
   if (storeIntermediateResults == cudaq::IntermediateResultSave::All) {
     std::vector<evolve_result> results;
+    // Note: In distributed mode, each rank only has local states.
+    // Hence, return results only for the states this rank holds.
     for (int i = 0; i < batchSize; ++i) {
+      // Skip if we don't have the data
+      if (intermediateStates[i].empty())
+        continue;
       results.emplace_back(
           evolve_result(intermediateStates[i], expectationVals[i]));
     }
@@ -397,17 +456,49 @@ evolveBatchedImpl(const std::vector<int64_t> dims, const schedule &schedule,
     auto [finalTime, finalState] = integrator.getState();
     auto *cudmState = asCudmState(finalState);
     auto states = CuDensityMatState::splitBatchedState(*cudmState);
-    assert(states.size() == batchSize);
+    // In distributed mode, the split operation only returns the local
+    // states held by this rank. The number of split states may be less than
+    // batch_size.
+    assert(states.size() <= batchSize);
+
+    // Helper to construct results based on distribution mode (distributed or
+    // non-distributed)
+    const auto constructResults =
+        [batchSize, getDistributedGlobalIdx](
+            const auto &states,
+            const auto &expVals) -> std::vector<evolve_result> {
+      const auto numLocalStates = states.size();
+      std::vector<evolve_result> results;
+      if (numLocalStates == batchSize) {
+        // Non-distributed mode: all states are local
+        for (int i = 0; i < batchSize; ++i) {
+          results.emplace_back(
+              evolve_result({cudaq::state(states[i])}, expVals[i]));
+        }
+      } else {
+        // Distributed mode: each rank contains only a subset of batch data.
+        for (int i = 0; i < numLocalStates; ++i) {
+          const auto globalIdx = getDistributedGlobalIdx(i, batchSize);
+          if (globalIdx < batchSize) {
+            results.emplace_back(
+                evolve_result({cudaq::state(states[i])}, expVals[globalIdx]));
+          }
+        }
+      }
+
+      return results;
+    };
 
     if (storeIntermediateResults ==
         cudaq::IntermediateResultSave::ExpectationValue) {
-      std::vector<evolve_result> results;
-      for (int i = 0; i < batchSize; ++i) {
-        results.emplace_back(
-            evolve_result({cudaq::state(states[i])}, expectationVals[i]));
-      }
-      return results;
+      // Construct results with only final states and all expectation values
+      // (including intermediate expectation values)
+      return constructResults(states, expectationVals);
     }
+
+    assert(storeIntermediateResults == cudaq::IntermediateResultSave::None);
+    // Save option is None: only the final state and final expectation value (no
+    // intermediate expectation values).
 
     // Compute final expectation values
     std::vector<std::vector<double>> expVals(batchSize);
@@ -420,12 +511,8 @@ evolveBatchedImpl(const std::vector<int64_t> dims, const schedule &schedule,
         expVals[i].emplace_back(expVal[i].real());
       }
     }
-
-    std::vector<evolve_result> results;
-    for (int i = 0; i < batchSize; ++i) {
-      results.emplace_back(evolve_result(cudaq::state(states[i]), expVals[i]));
-    }
-    return results;
+    // Construct results with only final states and final expectation values.
+    return constructResults(states, expVals);
   }
 }
 
@@ -474,13 +561,12 @@ evolveSingle(const super_op &superOp, const cudaq::dimension_map &dimensionsMap,
   for (const auto &[id, dim] : dimensions)
     dims.emplace_back(dim);
 
-  auto *cudmState = asCudmState(const_cast<state &>(initialState));
-  if (!cudmState->is_initialized())
-    cudmState->initialize_cudm(handle, dims, /*batchSize=*/1);
+  auto preparedInitialState = prepareInitialState(
+      handle, initialState, dims, requiresDensityMatrix(superOp));
 
   cudaq::integrator_helper::init_system_dynamics(integrator, {superOp}, dims,
                                                  schedule);
-  integrator.setState(initialState, 0.0);
+  integrator.setState(preparedInitialState, 0.0);
 
   return evolveSingleImpl(dims, schedule, integrator, observables,
                           storeIntermediateResults);
@@ -496,13 +582,7 @@ evolveSingle(const super_op &superOp, const cudaq::dimension_map &dimensionsMap,
   LOG_API_TIME();
   cudensitymatHandle_t handle =
       dynamics::Context::getCurrentContext()->getHandle();
-  const bool has_right_apply = [&]() {
-    for (const auto &[leftOp, rightOp] : superOp) {
-      if (rightOp.has_value())
-        return true;
-    }
-    return false;
-  }();
+  const bool has_right_apply = requiresDensityMatrix(superOp);
   auto cudmState = CuDensityMatState::createInitialState(
       handle, initial_state, dimensionsMap, has_right_apply);
   return evolveSingle(superOp, dimensionsMap, schedule,
@@ -530,13 +610,7 @@ evolveBatched(const super_op &superOp,
   for (auto &initialState : initialStates) {
     states.emplace_back(asCudmState(const_cast<state &>(initialState)));
   }
-  const bool has_right_apply = [&]() {
-    for (const auto &[leftOp, rightOp] : superOp) {
-      if (rightOp.has_value())
-        return true;
-    }
-    return false;
-  }();
+  const bool has_right_apply = requiresDensityMatrix(superOp);
   auto batchedState = CuDensityMatState::createBatchedState(
       handle, states, dims, has_right_apply);
   cudaq::integrator_helper::init_system_dynamics(integrator, {superOp}, dims,
@@ -654,14 +728,9 @@ evolveBatched(const std::vector<sum_op<cudaq::matrix_handler>> &hamiltonians,
                         std::make_move_iterator(results.begin()),
                         std::make_move_iterator(results.end()));
     } else {
-      if (!states[0]->is_initialized())
-        states[0]->initialize_cudm(handle, dims, /*batchSize=*/1);
-      state canonicalize_initial_state = [&]() {
-        if (isMasterEquation && !states[0]->is_density_matrix())
-          return state(new CuDensityMatState(states[0]->to_density_matrix()));
-        return initial_states[i];
-      }();
-      integrator.setState(canonicalize_initial_state, 0.0);
+      auto preparedInitialState = prepareInitialState(handle, initial_states[i],
+                                                      dims, isMasterEquation);
+      integrator.setState(preparedInitialState, 0.0);
       auto result = evolveSingleImpl(dims, schedule, integrator, observables,
                                      store_intermediate_results);
       allResults.emplace_back(std::move(result));
@@ -722,15 +791,8 @@ evolveBatched(const std::vector<super_op> &superOps,
     params[param] = schedule.get_value_function()(param, 0.0);
   }
 
-  const bool has_right_apply = [&]() {
-    for (const auto &superOp : superOps) {
-      for (const auto &[leftOp, rightOp] : superOp) {
-        if (rightOp.has_value())
-          return true;
-      }
-    }
-    return false;
-  }();
+  const bool has_right_apply =
+      std::any_of(superOps.begin(), superOps.end(), requiresDensityMatrix);
   // Run batched evolution up to the batch size and concatenate the results.
   std::vector<evolve_result> allResults;
   allResults.reserve(superOps.size());
@@ -773,16 +835,9 @@ evolveBatched(const std::vector<super_op> &superOps,
                         std::make_move_iterator(results.begin()),
                         std::make_move_iterator(results.end()));
     } else {
-      if (!states[0]->is_initialized())
-        states[0]->initialize_cudm(handle, dims, /*batchSize=*/1);
-
-      state canonicalize_initial_state = [&]() {
-        if (has_right_apply && !states[0]->is_density_matrix())
-          return state(new CuDensityMatState(states[0]->to_density_matrix()));
-        return initial_states[i];
-      }();
-
-      integrator.setState(canonicalize_initial_state, 0.0);
+      auto preparedInitialState =
+          prepareInitialState(handle, initial_states[i], dims, has_right_apply);
+      integrator.setState(preparedInitialState, 0.0);
       auto result = evolveSingleImpl(dims, schedule, integrator, observables,
                                      store_intermediate_results);
       allResults.emplace_back(std::move(result));
@@ -791,4 +846,4 @@ evolveBatched(const std::vector<super_op> &superOps,
 
   return allResults;
 }
-} // namespace cudaq::__internal__
+} // namespace cudaq::detail

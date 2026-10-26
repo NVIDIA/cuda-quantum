@@ -9,16 +9,16 @@
 // clang-format off
 // RUN: if [ command -v split-file ]; then \
 // RUN: split-file %s %t && \
-// RUN: nvq++ --enable-mlir -c %t/classlib.cpp -o %t/classlib.o && \
-// RUN: nvq++ --enable-mlir -c %t/classuser.cpp -o %t/classuser.o && \
-// RUN: nvq++ --enable-mlir %t/classlib.o %t/classuser.o -o %t/class.a.out && \
+// RUN: nvq++ -c %t/classlib.cpp -o %t/classlib.o && \
+// RUN: nvq++ -c %t/classuser.cpp -o %t/classuser.o && \
+// RUN: nvq++ %t/classlib.o %t/classuser.o -o %t/class.a.out && \
 // RUN: %t/class.a.out | FileCheck %s ; else \
 // RUN: echo "skipping" ; fi
 // clang-format on
 
 //--- classlib.h
 
-#include "cudaq.h"
+#include "cudaq/qis/qubit_qis.h"
 
 struct HereIsTheThing {
   void operator()(cudaq::qvector<> &q) __qpu__;

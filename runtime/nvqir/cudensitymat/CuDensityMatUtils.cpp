@@ -7,7 +7,7 @@
  ******************************************************************************/
 
 #include "CuDensityMatUtils.h"
-#include "cudaq.h"
+#include "cudaq/cudaq_mpi.h"
 #include <mutex>
 
 namespace {
@@ -21,7 +21,7 @@ cudaq::dynamics::PerfMetricScopeTimer::PerfMetricScopeTimer(
     : m_name(name), m_startTime(std::chrono::system_clock::now()) {}
 
 cudaq::dynamics::PerfMetricScopeTimer::~PerfMetricScopeTimer() {
-  if (!cudaq::details::should_log(cudaq::details::LogLevel::trace))
+  if (!cudaq::detail::should_log(cudaq::detail::LogLevel::trace))
     return;
 
   auto duration =
@@ -61,8 +61,4 @@ void cudaq::dynamics::dumpPerfTrace(std::ostream &os) {
     }
   }
   g_perfMetric.clear();
-}
-
-int cudaq::dynamics::getNumRanks() {
-  return cudaq::mpi::is_initialized() ? cudaq::mpi::num_ranks() : 1;
 }

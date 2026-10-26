@@ -1,0 +1,159 @@
+# ============================================================================ #
+# Copyright (c) 2024 - 2026 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+# External Dependencies 
+# ==============================================================================
+
+FetchContent_Declare(
+  googletest
+  GIT_REPOSITORY https://github.com/google/googletest.git
+  GIT_TAG v1.17.0
+  EXCLUDE_FROM_ALL
+)
+
+set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+set(INSTALL_GTEST OFF CACHE BOOL "" FORCE)
+
+FetchContent_MakeAvailable(googletest)
+
+# Bug in GCC 12 leads to spurious warnings (-Wrestrict)
+# https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105329
+# Scope to CXX-language compiles via a generator expression so the flag
+# does NOT propagate through cmake's PUBLIC interface options into nvcc
+# command lines for consumer CUDA targets. nvcc forwards host options to
+# its own host compiler, which can be a different gcc than CMAKE_CXX_COMPILER
+# (e.g. CMAKE_CXX_COMPILER=gcc-12 but CMAKE_CUDA_HOST_COMPILER=gcc-13, where
+# gcc-13 has removed --param=evrp-mode= and would error on it).
+if (CMAKE_COMPILER_IS_GNUCXX 
+  AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 12.0.0 
+  AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 13.0.0)
+  target_compile_options(gtest PUBLIC $<$<COMPILE_LANGUAGE:CXX>:--param=evrp-mode=legacy>)
+endif()
+include(GoogleTest)
+# Explicit path: standalone realtime builds do not have cmake/modules on
+# CMAKE_MODULE_PATH.
+include(${CMAKE_CURRENT_LIST_DIR}/../../cmake/modules/CUDAQGtestDiscovery.cmake)
+
+
+add_compile_options(-Wno-attributes)
+
+# ==============================================================================
+# GPU Dispatch Kernel Tests
+# ==============================================================================
+
+find_package(CUDAToolkit)
+if(CMAKE_CUDA_COMPILER)
+  enable_language(CUDA)
+  
+  # The dispatch kernel sources are compiled into this test directly instead
+  # of linking cudaq-realtime-dispatch: the unified-kernel tests define the
+  # three cudaq_dev_* transport hooks over a fake pinned-memory ring, and the
+  # archive carries its own hook TU (unified_transport_none.cu or the gpu_roce
+  # one), which would collide at device link.  libcudaq-realtime.so's weak
+  # references to the launchers bind to this executable's copies.
+  add_executable(test_dispatch_kernel
+    test_dispatch_kernel.cu
+    ${CUDAQ_REALTIME_SOURCE_DIR}/lib/daemon/dispatcher/dispatch_kernel.cu
+    ${CUDAQ_REALTIME_SOURCE_DIR}/lib/daemon/dispatcher/unified_dispatch_kernel.cu
+  )
+  
+  set_target_properties(test_dispatch_kernel PROPERTIES
+    CUDA_SEPARABLE_COMPILATION ON
+    CUDA_STANDARD 20
+  )
+  
+  target_include_directories(test_dispatch_kernel PRIVATE
+    ${CUDAToolkit_INCLUDE_DIRS}
+    ${CUDAQ_REALTIME_INCLUDE_DIR}
+  )
+  
+  find_library(CUDADEVRT_LIBRARY cudadevrt
+    HINTS ${CUDAToolkit_LIBRARY_DIR}
+    REQUIRED
+  )
+  
+  target_link_libraries(test_dispatch_kernel PRIVATE 
+    GTest::gtest_main 
+    CUDA::cudart
+    cudaq-realtime
+    ${CUDADEVRT_LIBRARY}
+  )
+  
+  cudaq_gtest_discover_tests(test_dispatch_kernel
+    TEST_PREFIX "test_dispatch_kernel."
+  )
+  
+  message(STATUS "  - test_dispatch_kernel (GPU dispatch infrastructure)")
+
+  # Host dispatcher tests (CUDAQ_DISPATCH_PATH_HOST)
+  add_executable(test_host_dispatcher test_host_dispatcher.cu)
+  set_target_properties(test_host_dispatcher PROPERTIES
+    CUDA_SEPARABLE_COMPILATION ON
+    CUDA_STANDARD 20
+  )
+  target_include_directories(test_host_dispatcher PRIVATE
+    ${CUDAToolkit_INCLUDE_DIRS}
+    ${CUDAQ_REALTIME_INCLUDE_DIR}
+  )
+  target_link_libraries(test_host_dispatcher PRIVATE
+    GTest::gtest_main
+    CUDA::cudart
+    cudaq-realtime
+    cudaq-realtime-dispatch
+    cudaq-realtime-host-dispatch
+    ${CUDADEVRT_LIBRARY}
+  )
+  cudaq_gtest_discover_tests(test_host_dispatcher
+    TEST_PREFIX "test_host_dispatcher."
+  )
+  message(STATUS "  - test_host_dispatcher (host dispatcher loop)")
+
+endif()
+
+# ==============================================================================
+# HSB bridge/emulator/playback tools (optional, not CI)
+# ==============================================================================
+
+# utils defines rpc_increment_ft, which the test server links for its device
+# path, so it is configured before test_server.
+if (CUDAQ_REALTIME_ENABLE_HSB_TOOLS)
+  add_subdirectory(utils)
+endif()
+
+# Transport-agnostic two-process test server.  Links cudaq-realtime, which
+# only exists when CUDA was found, and must be configured BEFORE the transport
+# test directories that exec it.
+if (TARGET cudaq-realtime)
+  add_subdirectory(test_server)
+endif()
+
+if (CUDAQ_REALTIME_ENABLE_HSB_TOOLS)
+  add_subdirectory(bridge_interface/gpu_roce)
+endif()
+
+# UDP bridge provider tests: self-gated on the always-built udp provider
+# target, so they run in CI without any HSB/RDMA setup.
+add_subdirectory(bridge_interface/udp)
+
+# CPU RoCE bridge provider tests: self-gated on the cpu_roce provider target;
+# they skip at run time unless CUDAQ_CPU_ROCE_TEST_* name an RDMA topology.
+add_subdirectory(bridge_interface/cpu_roce)
+
+# CPU RoCE transport (Phase 1 of cpu_transport umbrella).
+# Self-gates on TARGET cudaq-realtime-cpu-roce-transport so this is harmless when
+# HololinkRoce is not available.
+add_subdirectory(cpu_transport)
+
+# A host that must run the RoCE tests must also build them: otherwise a
+# configuration that silently drops the binaries reports "no tests" and passes.
+if (CUDAQ_REALTIME_REQUIRE_ROCE_TESTS AND
+    NOT (TARGET test_cpu_roce_transceiver AND TARGET test_cpu_roce_two_process))
+  message(FATAL_ERROR
+    "CUDAQ_REALTIME_REQUIRE_ROCE_TESTS=ON but the cpu_roce RDMA tests are not "
+    "built (they need the CPU RoCE transport and the test server)")
+endif()

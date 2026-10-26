@@ -9,9 +9,9 @@
 #include "QuantinuumHelper.h"
 #include "common/ExtraPayloadProvider.h"
 #include "common/FmtCore.h"
-#include "common/Logger.h"
 #include "common/RestClient.h"
 #include "common/ServerHelper.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include "llvm/Support/Base64.h"
 #include <fstream>
@@ -28,7 +28,7 @@ constexpr const char *qirEndpoint = "api/qir/v1beta/";
 // Legacy result endpoint (PYTKET)
 constexpr const char *resultsEndpoint = "api/results/v1beta3/";
 // NG device result endpoint (QSYS)
-constexpr const char *qsysResultsEndpoint = "api/qsys_results/v1beta/";
+constexpr const char *qsysResultsEndpoint = "api/qsys_results/v1beta2/partial/";
 // Decoder config endpoint
 constexpr const char *gpuDecoderConfigEndpoint =
     "api/gpu_decoder_configs/v1beta";
@@ -420,47 +420,56 @@ QuantinuumServerHelper::createJob(std::vector<KernelExecution> &circuitCodes) {
     // Add backend configuration
     j["data"]["attributes"]["definition"]["backend_config"] =
         ServerMessage::object();
-    j["data"]["attributes"]["definition"]["backend_config"]["type"] =
-        "QuantinuumConfig";
-    j["data"]["attributes"]["definition"]["backend_config"]["device_name"] =
-        machine;
-    // On Helios devices, we need to specify max-cost and max-qubits unless it's
-    // a syntax checker
-    if (machine.starts_with("Helios") && !machine.ends_with("SC")) {
-      std::vector<std::string> errors;
-      if (!maxCost.has_value())
-        errors.push_back("Please specify maximum HQC cost "
-                         "(`--quantinuum-max-cost <val>` when compiling with "
-                         "nvq++ or `max_cost=<val>` in Python `set_target`)");
-      if (!maxQubits.has_value())
-        errors.push_back(
-            "Please specify maximum number of qubits (`--quantinuum-max-qubits "
-            "<val>` when compiling with nvq++ or `max_qubits=<val>` in Python "
-            "`set_target`)");
-      if (!errors.empty())
-        throw std::runtime_error(
-            fmt::format("Missing required configuration for device '{}': {}",
-                        machine, fmt::join(errors, "; ")));
-    }
-
+    auto &backendConfig =
+        j["data"]["attributes"]["definition"]["backend_config"];
     if (maxCost.has_value())
-      j["data"]["attributes"]["definition"]["backend_config"]["max_cost"] =
-          maxCost.value();
+      backendConfig["max_cost"] = maxCost.value();
+    if (machine.starts_with("Helios")) {
+      backendConfig["type"] = "HeliosConfig";
+      backendConfig["system_name"] = machine;
+      // Required args on non-syntax-checkers
+      if (!machine.ends_with("SC")) {
+        std::vector<std::string> errors;
+        if (!maxCost.has_value())
+          errors.push_back("Please specify maximum HQC cost "
+                           "(`--quantinuum-max-cost <val>` when compiling with "
+                           "nvq++ or `max_cost=<val>` in Python `set_target`)");
+        if (!maxQubits.has_value())
+          errors.push_back(
+              "Please specify maximum number of qubits "
+              "(`--quantinuum-max-qubits <val>` when compiling with nvq++ or "
+              "`max_qubits=<val>` in Python `set_target`)");
+        if (!errors.empty())
+          throw std::runtime_error(
+              fmt::format("Missing required configuration for device '{}': {}",
+                          machine, fmt::join(errors, "; ")));
+      }
+      // Emulators require an `emulator_config` section
+      if (machine.ends_with("E")) {
+        backendConfig["emulator_config"] = ServerMessage::object();
+        auto &emulatorConfig = backendConfig["emulator_config"];
 
-    if (maxQubits.has_value()) {
-      j["data"]["attributes"]["definition"]["backend_config"]
-       ["compiler_options"] = ServerMessage::object();
-      j["data"]["attributes"]["definition"]["backend_config"]
-       ["compiler_options"]["max-qubits"] = maxQubits.value();
+        if (maxQubits.has_value())
+          emulatorConfig["n_qubits"] = maxQubits.value();
+
+        if (noisySim.has_value() && !noisySim.value()) {
+          emulatorConfig["error_model"] = ServerMessage::object();
+          emulatorConfig["error_model"]["type"] = "NoErrorModel";
+        }
+      }
+    } else {
+      backendConfig["type"] = "QuantinuumConfig";
+      backendConfig["device_name"] = machine;
+
+      if (maxQubits.has_value()) {
+        backendConfig["compiler_options"] = ServerMessage::object();
+        backendConfig["compiler_options"]["max-qubits"] = maxQubits.value();
+      }
+      if (noisySim.has_value() && machine.ends_with("E"))
+        backendConfig["noisy_simulation"] = noisySim.value();
+      if (!simulator.empty())
+        backendConfig["simulator"] = simulator;
     }
-
-    if (noisySim.has_value() && machine.ends_with("E"))
-      j["data"]["attributes"]["definition"]["backend_config"]
-       ["noisy_simulation"] = noisySim.value() ? "true" : "false";
-
-    if (!simulator.empty())
-      j["data"]["attributes"]["definition"]["backend_config"]["simulator"] =
-          simulator;
 
     // Add program items
     j["data"]["attributes"]["definition"]["items"] = ServerMessage::array();

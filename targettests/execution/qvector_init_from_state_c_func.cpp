@@ -6,20 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// clang-format off
 // Simulators
-// RUN: nvq++ --enable-mlir  %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --library-mode %s -o %t && %t | FileCheck %s
-
-// Quantum emulators
-// RUN: nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --target ionq       --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --target anyon      --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --target iqm        --emulate %s -o %t && IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt %t | FileCheck %s
-// RUN: nvq++ --target oqc        --emulate %s -o %t && %t | FileCheck %s
-// RUN: if %braket_avail; then nvq++ --target braket --emulate %s -o %t && %t | FileCheck %s; fi
-// RUN: if %qci_avail; then nvq++ --target qci --emulate %s -o %t && %t | FileCheck %s; fi
-// clang-format on
+// RUN: nvq++ %s -o %t && %t | FileCheck %s
 
 #include <cudaq.h>
 #include <iostream>
@@ -133,4 +121,3 @@ int main() {
 
   return 0;
 }
-

@@ -10,12 +10,15 @@
 #define LLVM_DISABLE_ABI_BREAKING_CHECKS_ENFORCING 1
 
 #include "common/FmtCore.h"
-#include "common/Logger.h"
+#include "common/ThunkInterface.h"
+#include "cudaq/Target/TargetConfigYaml.h"
+#include "cudaq/runtime/logger/logger.h"
 #ifdef CUDAQ_HAS_CUDA
 #include "cuda_runtime_api.h"
 #endif
-#include "cudaq/platform.h"
 #include "distributed/mpi_plugin.h"
+#include "cudaq/platform.h"
+#include "cudaq/simulators.h"
 #include <dlfcn.h>
 #include <filesystem>
 #include <map>
@@ -129,7 +132,7 @@ bool is_initialized() {
   return commPlugin->is_initialized();
 }
 
-namespace details {
+namespace detail {
 
 #define CUDAQ_ALL_REDUCE_IMPL(TYPE, BINARY, REDUCE_OP)                         \
   TYPE allReduce(const TYPE &local, const BINARY<TYPE> &) {                    \
@@ -148,7 +151,7 @@ CUDAQ_ALL_REDUCE_IMPL(float, std::multiplies, PROD)
 CUDAQ_ALL_REDUCE_IMPL(double, std::plus, SUM)
 CUDAQ_ALL_REDUCE_IMPL(double, std::multiplies, PROD)
 
-} // namespace details
+} // namespace detail
 
 #define CUDAQ_ALL_GATHER_IMPL(TYPE)                                            \
   void all_gather(std::vector<TYPE> &global, const std::vector<TYPE> &local) { \
@@ -179,6 +182,39 @@ std::pair<void *, std::size_t> comm_dup() {
   return std::make_pair(dupComm->commPtr, dupComm->commSize);
 }
 
+void *split_communicator(int color, const std::optional<int> &key) {
+  if (!is_initialized())
+    throw std::runtime_error(
+        "MPI must be initialized before calling split_communicator.");
+  auto *commPlugin = getMpiPlugin();
+  cudaqDistributedCommunicator_t *newComm = nullptr;
+  cudaqDistributedCommunicator_t *comm = commPlugin->getComm();
+  const auto splitStatus =
+      commPlugin->get()->CommSplit(comm, color, key.value_or(rank()), &newComm);
+  if (splitStatus != 0 || newComm == nullptr)
+    throw std::runtime_error("Failed to split the MPI communicator.");
+  return newComm->commPtr;
+}
+
+void set_communicator(void *comm) {
+  if (!is_initialized())
+    throw std::runtime_error(
+        "MPI must be initialized before calling set_communicator.");
+  auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();
+  auto *asMpiSim = dynamic_cast<nvqir::MpiCircuitSimulator *>(circuitSimulator);
+  if (!asMpiSim) {
+    // Output a warning and return if the current simulator doesn't support
+    // MPI-based distributed simulation.
+    CUDAQ_WARN("The current circuit simulator '{}' does not support MPI-based "
+               "distributed simulation. Ignoring the set_communicator call.",
+               circuitSimulator->name());
+    return;
+  }
+
+  asMpiSim->setMpiCommunicator(
+      comm, static_cast<int>(getMpiPlugin()->getComm()->commSize));
+}
+
 void finalize() {
   // Inform the simulator that we are
   // about to run MPI Finalize
@@ -193,13 +229,22 @@ void finalize() {
 
 } // namespace cudaq::mpi
 
-namespace cudaq::__internal__ {
+namespace cudaq::detail {
 std::map<std::string, std::string> runtime_registered_mlir;
 std::string demangle_kernel(const char *name) {
   return quantum_platform::demangle(name);
 }
 bool globalFalse = false;
-} // namespace cudaq::__internal__
+
+YamlTargetConfigDisabler::YamlTargetConfigDisabler() {
+  cudaq::config::disableYAMLTargetConfigParsing();
+}
+
+TargetSetter::TargetSetter(const char *backend) {
+  auto &platform = cudaq::get_platform();
+  platform.setTargetBackend(std::string(backend));
+}
+} // namespace cudaq::detail
 
 //===----------------------------------------------------------------------===//
 
@@ -208,11 +253,6 @@ void setRandomSeed(std::size_t);
 }
 
 namespace cudaq {
-
-void set_target_backend(const char *backend) {
-  auto &platform = cudaq::get_platform();
-  platform.setTargetBackend(std::string(backend));
-}
 
 void set_noise(const cudaq::noise_model &model) {
   auto &platform = cudaq::get_platform();
@@ -247,7 +287,7 @@ int num_available_gpus() {
   return nDevices;
 }
 
-namespace __internal__ {
+namespace detail {
 void cudaqCtrlCHandler(int signal) {
   printf(" CTRL-C caught in cudaq runtime.\n");
   std::exit(1);
@@ -260,7 +300,7 @@ __attribute__((constructor)) void startSigIntHandler() {
   sigIntHandler.sa_flags = 0;
   sigaction(SIGINT, &sigIntHandler, NULL);
 }
-} // namespace __internal__
+} // namespace detail
 
 } // namespace cudaq
 
@@ -270,7 +310,7 @@ void __nvqpp_initializer_list_to_vector_bool(std::vector<bool> &result,
                                              char *initList, std::size_t size) {
   // result is a sret return value. Make sure it is default initialized. Takes
   // advantage of default empty vector being all 0s.
-  std::memset(&result, 0, sizeof(result));
+  std::memset(static_cast<void *>(&result), 0, sizeof(result));
   // Allocate space.
   result.reserve(size);
   // Copy in the initialization list data.
@@ -309,6 +349,20 @@ void __nvqpp_vector_bool_to_initializer_list(
     newData[i] = static_cast<char>(inVec[i]);
 }
 
+/// Destroy the host `std::vector<bool>` that \p vec refers to, releasing its
+/// storage. The vector is left in an unspecified state and must not be used
+/// again. The compiler cannot know the layout of the host's specialization of
+/// `std::vector<bool>`, so the destruction is done here.
+/// This helper routine may only be called on the host side.
+void __nvqpp_vector_bool_destroy(std::vector<bool> &vec) { vec.~vector(); }
+
+/// Release storage that was obtained with `operator new`, such as the storage
+/// of a host `std::vector<T>`. The compiler calls this wrapper instead of the
+/// mangled name of `operator delete`, which varies by platform and standard
+/// library.
+/// This helper routine may only be called on the host side.
+void __nvqpp_hostDeallocate(void *ptr) { ::operator delete(ptr); }
+
 /// This helper routine deletes the vector that tracks all the temporaries that
 /// were created as well as the temporaries themselves.
 /// This routine may only be called on the host side.
@@ -325,5 +379,23 @@ void __nvqpp_vector_bool_free_temporary_initlists(
 /// should not be a compatibility issue.
 const char *__nvqpp_getStringData(const std::string &s) { return s.data(); }
 std::uint64_t __nvqpp_getStringSize(const std::string &s) { return s.size(); }
+
+/// Dispatch hook for the generalized, distributed-memory reference
+/// `device_call` lowering. This reference implementation assumes the `device`
+/// and host share the same process and address space: the compiler-generated
+/// marshal code already passes the unmarshal function pointer directly (no
+/// registry lookup by name is needed here), so dispatch is just an indirect
+/// call through it with the shared communication buffer. \p deviceId, \p name,
+/// \p numBlocks, and \p numThreads are unused by this same-process
+/// reference implementation; a distributed target's runtime would replace this
+/// hook to route the call to the appropriate remote device instead.
+cudaq::KernelThunkResultType
+__nvqpp__device_callback_run(std::int64_t deviceId, const char *name,
+                             void *unmarshalFunc, void *buffer,
+                             std::int64_t bufferSize, std::int64_t returnOffset,
+                             std::int64_t numBlocks, std::int64_t numThreads) {
+  auto thunk = reinterpret_cast<cudaq::KernelThunkType>(unmarshalFunc);
+  return thunk(buffer, /*isRemote=*/false);
+}
 }
 } // namespace cudaq::support

@@ -5,15 +5,6 @@
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
-
-/****************************************************************-*- C++ -*-****
- * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
- * All rights reserved.                                                        *
- *                                                                             *
- * This source code and the accompanying materials are made available under    *
- * the terms of the Apache License 2.0 which accompanies this distribution.    *
- ******************************************************************************/
-
 #include "operator_leafs.h"
 #include <complex>
 #include <type_traits>
@@ -32,11 +23,10 @@ template <typename HandlerTy>
 class sum_op;
 
 #define TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype)                             \
-  std::enable_if_t<!std::is_same<LHtype, RHtype>::value &&                     \
-                       !std::is_same<matrix_handler, LHtype>::value &&         \
-                       std::is_base_of<operator_handler, LHtype>::value &&     \
-                       std::is_base_of<operator_handler, RHtype>::value,       \
-                   bool>
+  typename = std::enable_if_t < !std::is_same<LHtype, RHtype>::value &&        \
+             !std::is_same<matrix_handler, LHtype>::value &&                   \
+             std::is_base_of<operator_handler, LHtype>::value &&               \
+             std::is_base_of<operator_handler, RHtype>::value >
 
 template <typename HandlerTy>
 product_op<HandlerTy> operator*(const scalar_operator &other,
@@ -58,15 +48,15 @@ sum_op<HandlerTy> operator-(const scalar_operator &other,
                             product_op<HandlerTy> &&self);
 
 template <typename LHtype, typename RHtype,
-          TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
+          TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype)>
 product_op<matrix_handler> operator*(const product_op<LHtype> &other,
                                      const product_op<RHtype> &self);
 template <typename LHtype, typename RHtype,
-          TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
+          TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype)>
 sum_op<matrix_handler> operator+(const product_op<LHtype> &other,
                                  const product_op<RHtype> &self);
 template <typename LHtype, typename RHtype,
-          TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
+          TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype)>
 sum_op<matrix_handler> operator-(const product_op<LHtype> &other,
                                  const product_op<RHtype> &self);
 
@@ -90,39 +80,39 @@ sum_op<HandlerTy> operator-(const scalar_operator &other,
                             sum_op<HandlerTy> &&self);
 
 template <typename LHtype, typename RHtype,
-          TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
+          TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype)>
 sum_op<matrix_handler> operator*(const sum_op<LHtype> &other,
                                  const product_op<RHtype> &self);
 template <typename LHtype, typename RHtype,
-          TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
+          TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype)>
 sum_op<matrix_handler> operator+(const sum_op<LHtype> &other,
                                  const product_op<RHtype> &self);
 template <typename LHtype, typename RHtype,
-          TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
+          TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype)>
 sum_op<matrix_handler> operator-(const sum_op<LHtype> &other,
                                  const product_op<RHtype> &self);
 template <typename LHtype, typename RHtype,
-          TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
+          TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype)>
 sum_op<matrix_handler> operator*(const product_op<LHtype> &other,
                                  const sum_op<RHtype> &self);
 template <typename LHtype, typename RHtype,
-          TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
+          TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype)>
 sum_op<matrix_handler> operator+(const product_op<LHtype> &other,
                                  const sum_op<RHtype> &self);
 template <typename LHtype, typename RHtype,
-          TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
+          TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype)>
 sum_op<matrix_handler> operator-(const product_op<LHtype> &other,
                                  const sum_op<RHtype> &self);
 template <typename LHtype, typename RHtype,
-          TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
+          TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype)>
 sum_op<matrix_handler> operator*(const sum_op<LHtype> &other,
                                  const sum_op<RHtype> &self);
 template <typename LHtype, typename RHtype,
-          TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
+          TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype)>
 sum_op<matrix_handler> operator+(const sum_op<LHtype> &other,
                                  const sum_op<RHtype> &self);
 template <typename LHtype, typename RHtype,
-          TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype) = true>
+          TYPE_CONVERSION_CONSTRAINT(LHtype, RHtype)>
 sum_op<matrix_handler> operator-(const sum_op<LHtype> &other,
                                  const sum_op<RHtype> &self);
 

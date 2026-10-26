@@ -16,9 +16,9 @@
 #include <vector>
 
 #include "operators/evaluation.h"
+#include "operators/matrix.h"
 #include "operators/operator_leafs.h"
 #include "operators/templates.h"
-#include "utils/matrix.h"
 
 namespace cudaq {
 
@@ -27,26 +27,21 @@ enum class pauli;
 
 #define HANDLER_SPECIFIC_TEMPLATE(ConcreteTy)                                  \
   template <typename T = HandlerTy,                                            \
-            std::enable_if_t<std::is_same<T, ConcreteTy>::value &&             \
-                                 std::is_same<HandlerTy, T>::value,            \
-                             bool> = true>
+            typename = std::enable_if_t<std::is_same<T, ConcreteTy>::value &&  \
+                                        std::is_same<HandlerTy, T>::value>,    \
+            ConcreteTy * = nullptr>
 
 #define PROPERTY_SPECIFIC_TEMPLATE(property)                                   \
   template <typename T = HandlerTy,                                            \
-            std::enable_if_t<std::is_same<HandlerTy, T>::value && property,    \
-                             std::true_type> = std::true_type()>
+            typename = std::enable_if_t<std::is_same<HandlerTy, T>::value &&   \
+                                        property>,                             \
+            std::true_type = std::true_type{}>
 
 #define PROPERTY_AGNOSTIC_TEMPLATE(property)                                   \
   template <typename T = HandlerTy,                                            \
-            std::enable_if_t<std::is_same<HandlerTy, T>::value && !property,   \
-                             std::false_type> = std::false_type()>
-
-#define SPIN_OPS_BACKWARD_COMPATIBILITY(deprecation_message)                   \
-  template <typename T = HandlerTy,                                            \
-            std::enable_if_t<std::is_same<HandlerTy, spin_handler>::value &&   \
-                                 std::is_same<HandlerTy, T>::value,            \
-                             bool> = true>                                     \
-  [[deprecated(deprecation_message)]]
+            typename = std::enable_if_t<std::is_same<HandlerTy, T>::value &&   \
+                                        !property>,                            \
+            std::false_type = std::false_type{}>
 
 /// @brief Represents a sum of operator products in a quantum operator algebra.
 ///
@@ -81,7 +76,7 @@ protected:
   std::vector<scalar_operator> coefficients;
   bool is_default = true;
 
-  constexpr sum_op(bool is_default) : is_default(is_default){};
+  constexpr sum_op(bool is_default) : is_default(is_default) {};
   sum_op(const sum_op<HandlerTy> &other, bool is_default, std::size_t size);
   sum_op(sum_op<HandlerTy> &&other, bool is_default, std::size_t size);
 
@@ -192,11 +187,10 @@ public:
   /// product_op<HandlerTy> types.
   /// @param args One or more product operator objects used in the summation
   /// operation.
-  template <typename... Args,
-            std::enable_if_t<std::conjunction<std::is_same<
-                                 product_op<HandlerTy>, Args>...>::value &&
-                                 sizeof...(Args),
-                             bool> = true>
+  template <typename... Args, typename = std::enable_if_t<
+                                  std::conjunction<std::is_same<
+                                      product_op<HandlerTy>, Args>...>::value &&
+                                  sizeof...(Args)>>
   sum_op(Args &&...args);
 
   /// @brief Constructs a sum_op instance from a given product_op instance.
@@ -208,10 +202,9 @@ public:
   /// instantiated with a different type.
   /// @tparam T The type of the other sum_op object, which must not be HandlerTy
   /// and must be constructible to HandlerTy.
-  template <typename T,
-            std::enable_if_t<!std::is_same<T, HandlerTy>::value &&
-                                 std::is_constructible<HandlerTy, T>::value,
-                             bool> = true>
+  template <typename T, typename = std::enable_if_t<
+                            !std::is_same<T, HandlerTy>::value &&
+                            std::is_constructible<HandlerTy, T>::value>>
   sum_op(const sum_op<T> &other);
 
   /// @brief Constructs a new sum_op object from an existing sum_op of a
@@ -220,11 +213,10 @@ public:
   /// construction.
   /// @param behavior The commutation behavior to be applied during
   /// construction.
-  template <typename T,
-            std::enable_if_t<std::is_same<HandlerTy, matrix_handler>::value &&
-                                 !std::is_same<T, HandlerTy>::value &&
-                                 std::is_constructible<HandlerTy, T>::value,
-                             bool> = true>
+  template <typename T, typename = std::enable_if_t<
+                            std::is_same<HandlerTy, matrix_handler>::value &&
+                            !std::is_same<T, HandlerTy>::value &&
+                            std::is_constructible<HandlerTy, T>::value>>
   sum_op(const sum_op<T> &other,
          const matrix_handler::commutation_behavior &behavior);
 
@@ -244,10 +236,9 @@ public:
   /// sum_op<HandlerTy>. It is only enabled when T is not the same as HandlerTy
   /// and when HandlerTy is constructible from T. This constraint ensures that
   /// only compatible types are allowed in the assignment operation.
-  template <typename T,
-            std::enable_if_t<!std::is_same<T, HandlerTy>::value &&
-                                 std::is_constructible<HandlerTy, T>::value,
-                             bool> = true>
+  template <typename T, typename = std::enable_if_t<
+                            !std::is_same<T, HandlerTy>::value &&
+                            std::is_constructible<HandlerTy, T>::value>>
   sum_op<HandlerTy> &operator=(const product_op<T> &other);
 
   /// @brief Assign a product_op object to a sum_op object.
@@ -267,10 +258,9 @@ public:
   /// @tparam T The type of the sum_op object being assigned from.
   /// @param other The sum_op object with type T to be assigned.
   /// @return A reference to the current sum_op object after assignment.
-  template <typename T,
-            std::enable_if_t<!std::is_same<T, HandlerTy>::value &&
-                                 std::is_constructible<HandlerTy, T>::value,
-                             bool> = true>
+  template <typename T, typename = std::enable_if_t<
+                            !std::is_same<T, HandlerTy>::value &&
+                            std::is_constructible<HandlerTy, T>::value>>
   sum_op<HandlerTy> &operator=(const sum_op<T> &other);
 
   /// @brief Performs a copy assignment of one sum_op to another.
@@ -847,53 +837,6 @@ public:
 
   HANDLER_SPECIFIC_TEMPLATE(spin_handler)
   std::vector<double> get_data_representation() const;
-
-  // utility functions for backward compatibility
-  /// @cond
-
-  SPIN_OPS_BACKWARD_COMPATIBILITY(
-      "serialization format changed - use the constructor without a size_t "
-      "argument to create a spin_op from the new format")
-  sum_op(const std::vector<double> &input_vec, std::size_t nQubits);
-
-  SPIN_OPS_BACKWARD_COMPATIBILITY(
-      "construction from binary symplectic form will no longer be supported")
-  sum_op(const std::vector<std::vector<bool>> &bsf_terms,
-         const std::vector<std::complex<double>> &coeffs);
-
-  SPIN_OPS_BACKWARD_COMPATIBILITY(
-      "serialization format changed - use get_data_representation instead")
-  std::vector<double> getDataRepresentation() const;
-
-  SPIN_OPS_BACKWARD_COMPATIBILITY(
-      "data tuple is no longer used for serialization - use "
-      "get_data_representation instead")
-  std::tuple<std::vector<double>, std::size_t> getDataTuple() const;
-
-  SPIN_OPS_BACKWARD_COMPATIBILITY("raw data access will no longer be supported")
-  std::pair<std::vector<std::vector<bool>>, std::vector<std::complex<double>>>
-  get_raw_data() const;
-
-  SPIN_OPS_BACKWARD_COMPATIBILITY(
-      "use to_string(), get_term_id or get_pauli_word depending on your use "
-      "case - see release notes for more detail")
-  std::string to_string(bool printCoeffs) const;
-
-  SPIN_OPS_BACKWARD_COMPATIBILITY(
-      "iterate over the operator instead to access each term")
-  void for_each_term(std::function<void(sum_op<HandlerTy> &)> &&functor) const;
-
-  SPIN_OPS_BACKWARD_COMPATIBILITY(
-      "iterate over each term in the operator instead and use as_pauli to "
-      "access each pauli")
-  void for_each_pauli(std::function<void(pauli, std::size_t)> &&functor) const;
-
-  SPIN_OPS_BACKWARD_COMPATIBILITY(
-      "is_identity will no longer be supported on an entire sum_op, but will "
-      "continue to be supported on each term")
-  bool is_identity() const;
-
-  /// @endcond
 };
 
 /// @brief Represents an operator expression consisting of a product of
@@ -941,10 +884,8 @@ protected:
   std::vector<HandlerTy> operators;
   scalar_operator coefficient;
 
-  template <typename... Args,
-            std::enable_if_t<
-                std::conjunction<std::is_same<HandlerTy, Args>...>::value,
-                bool> = true>
+  template <typename... Args, typename = std::enable_if_t<std::conjunction<
+                                  std::is_same<HandlerTy, Args>...>::value>>
   product_op(scalar_operator coefficient, Args &&...args);
 
   // keep this constructor protected (otherwise it needs to ensure canonical
@@ -1116,10 +1057,9 @@ public:
   /// if HandlerTy can be constructed from T. It allows implicit conversion
   /// between different instantiations of product_op.
   /// @param other The product_op instance to copy from.
-  template <typename T,
-            std::enable_if_t<!std::is_same<T, HandlerTy>::value &&
-                                 std::is_constructible<HandlerTy, T>::value,
-                             bool> = true>
+  template <typename T, typename = std::enable_if_t<
+                            !std::is_same<T, HandlerTy>::value &&
+                            std::is_constructible<HandlerTy, T>::value>>
   product_op(const product_op<T> &other);
 
   /// @brief Constructs a product operator from an existing product operator
@@ -1134,11 +1074,10 @@ public:
   /// object.
   /// @param behavior The commutation behavior to be used with the
   /// matrix_handler.
-  template <typename T,
-            std::enable_if_t<std::is_same<HandlerTy, matrix_handler>::value &&
-                                 !std::is_same<T, HandlerTy>::value &&
-                                 std::is_constructible<HandlerTy, T>::value,
-                             bool> = true>
+  template <typename T, typename = std::enable_if_t<
+                            std::is_same<HandlerTy, matrix_handler>::value &&
+                            !std::is_same<T, HandlerTy>::value &&
+                            std::is_constructible<HandlerTy, T>::value>>
   product_op(const product_op<T> &other,
              const matrix_handler::commutation_behavior &behavior);
 
@@ -1170,10 +1109,9 @@ public:
   /// product_op instance of type T into one of type HandlerTy.
   /// @tparam T The type of the product_op to be assigned from, which must
   /// satisfy that it is not HandlerTy and is constructible as HandlerTy.
-  template <typename T,
-            std::enable_if_t<!std::is_same<T, HandlerTy>::value &&
-                                 std::is_constructible<HandlerTy, T>::value,
-                             bool> = true>
+  template <typename T, typename = std::enable_if_t<
+                            !std::is_same<T, HandlerTy>::value &&
+                            std::is_constructible<HandlerTy, T>::value>>
   product_op<HandlerTy> &operator=(const product_op<T> &other);
 
   /// @brief Assignment operator for the product_op class.
@@ -1706,16 +1644,6 @@ public:
       const std::unordered_map<std::string, std::complex<double>> &parameters =
           {},
       bool invert_order = false) const;
-
-  // utility functions for backward compatibility
-  /// @cond
-
-  SPIN_OPS_BACKWARD_COMPATIBILITY(
-      "use to_string(), get_term_id or get_pauli_word depending on your use "
-      "case - see release notes for more detail")
-  std::string to_string(bool printCoeffs) const;
-
-  /// @endcond
 };
 
 /// @brief Representation of a time-dependent Hamiltonian for Rydberg system

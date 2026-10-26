@@ -17,16 +17,16 @@ namespace cudaq {
 /// API.
 class OrcaExecutor : public Executor {
 public:
-  details::future execute(std::vector<KernelExecution> &codesToExecute,
-                          cudaq::details::ExecutionContextType execType,
-                          std::vector<char> *rawOutput) override {
+  detail::future execute(std::vector<KernelExecution> &codesToExecute,
+                         cudaq::detail::ExecutionContextType execType,
+                         std::vector<char> *rawOutput) override {
     throw std::runtime_error(
         "ORCA backend does not support executing arbitrary kernels");
   }
   /// @brief Execute the provided ORCA quantum parameters and return a future
   /// object. The caller can make this synchronous by just immediately calling
   /// .get().
-  details::future execute(cudaq::orca::TBIParameters params,
-                          const std::string &kernelName);
+  detail::future execute(cudaq::orca::TBIParameters params,
+                         const std::string &kernelName);
 };
 } // namespace cudaq

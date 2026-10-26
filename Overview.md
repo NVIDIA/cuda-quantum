@@ -32,9 +32,9 @@ the CC dialect.
 
 The dialects for Quake and CC are defined in
 
-[Quake](https://github.com/NVIDIA/cuda-quantum/blob/main/include/cudaq/Optimizer/Dialect/Quake/QuakeOps.td)
+[Quake](https://github.com/NVIDIA/cuda-quantum/blob/main/cudaq/include/cudaq/Optimizer/Dialect/Quake/QuakeOps.td)
 
-[CC](https://github.com/NVIDIA/cuda-quantum/blob/main/include/cudaq/Optimizer/Dialect/CC/CCOps.td)
+[CC](https://github.com/NVIDIA/cuda-quantum/blob/main/cudaq/include/cudaq/Optimizer/Dialect/CC/CCOps.td)
 
 We have designed the compiler to be modular, and the compiler workflow itself is
 composed of a set of tools (executables) that achieve a specific task.
@@ -143,7 +143,7 @@ This folder contains the implementation of the `cudaq-translate` tool. This tool
 takes as input a Quake file and lowers that representation to QIR or Base
 Profile QIR.
 
-### `tools/nvqpp`
+### `tools/nvq++`
 
 This folder contains the `nvq++` compiler tool. This tool is a bash script that
 orchestrates the workflow necessary to map CUDA-Q C++ to MLIR and ultimately

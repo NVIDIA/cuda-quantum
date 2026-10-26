@@ -6,11 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-
 // clang-format off
-// RUN: nvq++ --target quantinuum --emulate %s -o %t && %t |& FileCheck %s -check-prefix=FAIL
-// RUN: nvq++ --target quantinuum --quantinuum-machine Helios-1SC --emulate %s -o %t && %t | FileCheck %s
-// RUN: if %qci_avail; then nvq++ --target qci --emulate %s -o %t && %t | FileCheck %s; fi
+// RUN: if %quantinuum_avail; then nvq++ --target quantinuum --emulate %s -o %t && %t 2>&1 | FileCheck %s -check-prefix=FAIL; fi
+// RUN: if %quantinuum_avail; then nvq++ --target quantinuum --quantinuum-machine Helios-1SC --emulate %s -o %t && %t | FileCheck %s; fi
 // clang-format on
 
 #include <cudaq.h>
@@ -30,7 +28,7 @@ __qpu__ int test_kernel(int count) {
 __qpu__ std::vector<bool> mz_test(int count) {
   cudaq::qvector v(count);
   h(v);
-  return mz(v);
+  return cudaq::to_bools(mz(v));
 }
 
 int main() {

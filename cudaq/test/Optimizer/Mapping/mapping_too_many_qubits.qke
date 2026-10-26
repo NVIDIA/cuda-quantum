@@ -1,0 +1,34 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// A circuit that needs more qubits than the device provides must be rejected
+// before the scan indexes device-sized tables.
+// RUN: cudaq-opt '--qubit-mapping=device=path(2) raise-fatal-errors=true' %s -verify-diagnostics
+// RUN: cudaq-opt '--qubit-mapping=device=path(2)' %s | FileCheck %s
+
+quake.wire_set @wires[2147483647]
+
+// A composable run leaves the function unmapped rather than crashing.
+// CHECK-LABEL: func.func @too_many
+// CHECK: quake.borrow_wire @wires[0]
+// CHECK: quake.borrow_wire @wires[1]
+// CHECK: quake.borrow_wire @wires[2]
+
+// expected-error @+1 {{Too many qubits [3] for device [2]}}
+func.func @too_many() {
+  %q0 = quake.borrow_wire @wires[0] : !quake.wire
+  %q1 = quake.borrow_wire @wires[1] : !quake.wire
+  %q2 = quake.borrow_wire @wires[2] : !quake.wire
+  %0 = quake.h %q0 : (!quake.wire) -> !quake.wire
+  %1 = quake.h %q1 : (!quake.wire) -> !quake.wire
+  %2 = quake.h %q2 : (!quake.wire) -> !quake.wire
+  quake.return_wire %0 : !quake.wire
+  quake.return_wire %1 : !quake.wire
+  quake.return_wire %2 : !quake.wire
+  return
+}

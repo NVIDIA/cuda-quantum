@@ -12,6 +12,58 @@ and is also available as a Docker image. More information about installing the n
 - `Documentation <https://nvidia.github.io/cuda-quantum/latest>`__
 - `Examples <https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples>`__
 
+**0.16.0**
+
+This release integrates CUDA-Q Logical version 0.1.1. CUDA-Q Logical expands CUDA-Q with an open, extensible
+logical layer for fault-tolerant quantum computing. It provides additional language tools to express and compose
+quantum error correction gadget and understand the resources they need to run across different system architectures.
+For more information, see `our docs <https://nvidia.github.io/cuda-quantum/0.16.0/preview/logical/index.html>`__.
+
+0.16.0 also adds support for Python 3.14. It improves quantum optimization and qubit mapping capabilities,
+adds support for static rotation synthesis, and introduces atomic quantum regions among other exciting changes.
+
+- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum/tags>`__
+- `Python wheel <https://pypi.org/project/cudaq/0.16.0>`__
+- `C++ installer <https://github.com/NVIDIA/cuda-quantum/releases/0.16.0>`__
+- `CUDA-Q Realtime installer <https://github.com/NVIDIA/cuda-quantum/releases/0.16.0>`__
+- `Documentation <https://nvidia.github.io/cuda-quantum/0.16.0>`__
+- `Examples <https://github.com/NVIDIA/cuda-quantum/tree/releases/v0.16.0/docs/sphinx/examples>`__
+
+The full change log can be found `here <https://github.com/NVIDIA/cuda-quantum/releases/0.16.0>`__.
+
+**0.15.0**
+
+0.15.0 adds support for detectors and observables to CUDA-Q, and builds on LLVM 22.
+
+- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum/tags>`__
+- `Python wheel <https://pypi.org/project/cudaq/0.15.0>`__
+- `C++ installer <https://github.com/NVIDIA/cuda-quantum/releases/0.15.0>`__
+- `CUDA-Q Realtime installer <https://github.com/NVIDIA/cuda-quantum/releases/0.15.0>`__
+- `Documentation <https://nvidia.github.io/cuda-quantum/0.15.0>`__
+- `Examples <https://github.com/NVIDIA/cuda-quantum/tree/releases/v0.15.0/docs/sphinx/examples>`__
+
+The full change log can be found `here <https://github.com/NVIDIA/cuda-quantum/releases/0.15.0>`__.
+
+**0.14.0**
+
+This release comes with a range of exciting improvement. 
+
+This release includes the first 0.1.0 version of CUDA-Q Realtime. CUDA-Q Realtime is built to support low-latency high-bandwidth data transfer between FPGAs and GPUs using NVQLink. CUDA-Q Realtime is installed separately via the C++ installer provided in the release assets. For more information about CUDA-Q Realtime, please see our `docs <https://nvidia.github.io/cuda-quantum/0.14.0/using/realtime.html>`__.
+
+0.14.0 adds support for Pre-Trajectory Sampling with Batch Execution (PTSBE). PTSBE can be used to capture millions of times more noisy shot data, which can then be used as training data in ML tasks such as AI decoders, or it can be deployed proportionally, capturing the exact statistics of the problem while still offering a considerable speedup. For more information, see our `docs <https://nvidia.github.io/cuda-quantum/0.14.0/using/examples/ptsbe.html>`__ and `applications <https://nvidia.github.io/cuda-quantum/0.14.0/applications/python/ptsbe_end_to_end_workflow.html>`__.
+
+Starting with version 0.14.0, we now also distribute MacOS wheels on PyPI, and have made the C++ installer usable without root privileges. 
+Additionally, we have completely overhauled the Python compiler. 
+
+- `Docker image <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/quantum/containers/cuda-quantum/tags>`__
+- `Python wheel <https://pypi.org/project/cudaq/0.14.0>`__
+- `C++ installer <https://github.com/NVIDIA/cuda-quantum/releases/0.14.0>`__
+- `CUDA-Q Realtime installer <https://github.com/NVIDIA/cuda-quantum/releases/0.14.0>`__
+- `Documentation <https://nvidia.github.io/cuda-quantum/0.14.0>`__
+- `Examples <https://github.com/NVIDIA/cuda-quantum/tree/releases/v0.14.0/docs/sphinx/examples>`__
+
+The full change log can be found `here <https://github.com/NVIDIA/cuda-quantum/releases/0.14.0>`__.
+
 **0.13.0**
 
 This release adds support for CUDA 13 and Python 3.13 and removes support for 
@@ -182,7 +234,7 @@ The full change log can be found `here <https://github.com/NVIDIA/cuda-quantum/r
 
 The 0.6.0 release contains improved support for various HPC scenarios. We have added a
 :ref:`plugin infrastructure <distributed-computing-with-mpi>` for connecting CUDA-Q 
-with an existing MPI installation, and we've added a :ref:`new platform target <remote-mqpu-platform>` that distributes workloads across multiple virtual QPUs, 
+with an existing MPI installation, and we've added a `new platform target <https://nvidia.github.io/cuda-quantum/0.6.0/using/cudaq/platform.html#remote-mqpu-platform>`__ that distributes workloads across multiple virtual QPUs,
 each simulated by one or more GPUs.
 
 Starting with 0.6.0, we are now also distributing 

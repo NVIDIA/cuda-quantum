@@ -12,7 +12,7 @@ import cudaq
 
 
 @pytest.fixture(autouse=True)
-def do_something():
+def reset_and_run():
     cudaq.reset_target()
     yield
     ## Ref: https://github.com/NVIDIA/cuda-quantum/issues/1954
@@ -71,7 +71,8 @@ def test_cz_gate():
         "custom_cz", np.array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0,
                                -1]))
 
-    @cudaq.kernel
+    # Not all of the allocated qubits are used. Disable DQE on this test.
+    @cudaq.kernel(disable_quantum_optimization=True)
     def ctrl_z_kernel():
         qubits = cudaq.qvector(5)
         controls = cudaq.qvector(2)
@@ -179,13 +180,14 @@ def test_bad_attribute():
 
     cudaq.register_operation("custom_s", np.array([1, 0, 0, 1j]))
 
-    @cudaq.kernel
-    def kernel():
-        q = cudaq.qubit()
-        custom_s.foo(q)
-        mz(q)
-
     with pytest.raises(Exception) as error:
+
+        @cudaq.kernel
+        def kernel():
+            q = cudaq.qubit()
+            custom_s.foo(q)
+            mz(q)
+
         cudaq.sample(kernel)
 
 
@@ -219,12 +221,13 @@ def test_builder_mode_control():
 def test_invalid_ctrl():
     cudaq.register_operation("custom_x", np.array([0, 1, 1, 0]))
 
-    @cudaq.kernel
-    def bell():
-        q = cudaq.qubit()
-        custom_x.ctrl(q)
-
     with pytest.raises(RuntimeError) as error:
+
+        @cudaq.kernel
+        def bell():
+            q = cudaq.qubit()
+            custom_x.ctrl(q)
+
         bell.compile()
     assert 'missing value' in repr(error)
 
@@ -232,12 +235,13 @@ def test_invalid_ctrl():
 def test_bug_2452():
     cudaq.register_operation("custom_i", np.array([1, 0, 0, 1]))
 
-    @cudaq.kernel
-    def kernel1():
-        qubits = cudaq.qvector(2)
-        custom_i(qubits)
-
     with pytest.raises(RuntimeError) as error:
+
+        @cudaq.kernel
+        def kernel1():
+            qubits = cudaq.qvector(2)
+            custom_i(qubits)
+
         kernel1.compile()
     assert 'broadcasting is not supported on custom operations' in repr(error)
 
@@ -257,14 +261,50 @@ def test_bug_2452():
         "custom_cz", np.array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0,
                                -1]))
 
-    @cudaq.kernel
-    def kernel3():
-        qubits = cudaq.qvector(2)
-        custom_cz(qubits)
-
     with pytest.raises(RuntimeError) as error:
+
+        @cudaq.kernel
+        def kernel3():
+            qubits = cudaq.qvector(2)
+            custom_cz(qubits)
+
         cudaq.sample(kernel3)
     assert 'missing value' in repr(error)
+
+
+def test_nested_kernel_single_qubit():
+    """Regression test for issue #2485: custom op in a nested kernel on a single qubit."""
+    cudaq.register_operation("custom_x_nested", np.array([0, 1, 1, 0]))
+
+    @cudaq.kernel
+    def inner(q: cudaq.qubit):
+        custom_x_nested(q)
+
+    @cudaq.kernel
+    def outer():
+        q = cudaq.qubit()
+        inner(q)
+
+    counts = cudaq.sample(outer, shots_count=100)
+    assert counts["1"] == 100
+
+
+def test_nested_kernel_qview():
+    """Regression test for issue #2485: custom op in a nested kernel on a qview."""
+    cudaq.register_operation("custom_x_qview", np.array([0, 1, 1, 0]))
+
+    @cudaq.kernel
+    def inner(qubits: cudaq.qview):
+        for i in range(len(qubits)):
+            custom_x_qview(qubits[i])
+
+    @cudaq.kernel
+    def outer():
+        qubits = cudaq.qvector(2)
+        inner(qubits)
+
+    counts = cudaq.sample(outer, shots_count=100)
+    assert counts["11"] == 100
 
 
 # leave for gdb debugging

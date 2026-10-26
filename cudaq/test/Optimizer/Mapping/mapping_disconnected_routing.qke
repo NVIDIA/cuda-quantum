@@ -1,0 +1,27 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_line.txt) placement=identity search=none' %s | FileCheck --implicit-check-not=quake.swap %s
+
+quake.wire_set @wires[2147483647]
+
+func.func @route_line_endpoints() {
+  %q5 = quake.borrow_wire @wires[5] : !quake.wire
+  %q7 = quake.borrow_wire @wires[7] : !quake.wire
+  %0:2 = quake.x [%q5] %q7 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.return_wire %0#0 : !quake.wire
+  quake.return_wire %0#1 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @route_line_endpoints() attributes {mapping_reorder_idx = [0, 1], mapping_v2p = [0, 1, 2, 3, 4, 6, 5, 7]} {
+// CHECK:           %[[BORROW_WIRE_0:.*]] = quake.borrow_wire @mapped_wireset[5] : !quake.wire
+// CHECK:           %[[BORROW_WIRE_1:.*]] = quake.borrow_wire @mapped_wireset[7] : !quake.wire
+// CHECK:           %[[BORROW_WIRE_2:.*]] = quake.borrow_wire @mapped_wireset[6] : !quake.wire
+// CHECK:           %[[SWAP_0:.*]]:2 = quake.swap %[[BORROW_WIRE_0]], %[[BORROW_WIRE_2]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:           %[[X_0:.*]]:2 = quake.x {{\[}}%[[SWAP_0]]#1] %[[BORROW_WIRE_1]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)

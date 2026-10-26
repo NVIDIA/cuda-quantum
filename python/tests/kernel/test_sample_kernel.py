@@ -7,6 +7,7 @@
 # ============================================================================ #
 
 import sys, os
+import math
 
 import pytest
 import numpy as np
@@ -16,7 +17,7 @@ import cudaq
 
 
 @pytest.fixture(autouse=True)
-def do_something():
+def run_and_clear_registries():
     yield
     cudaq.__clearKernelRegistries()
 
@@ -170,6 +171,31 @@ def test_broadcastPy39Plus():
         assert len(c) == 2
 
 
+def test_list_pauli_word_not_broadcast():
+    """
+    Test that list[pauli_word] arguments are not incorrectly detected as 
+    broadcast arguments. This is a regression test for a bug where
+    list[pauli_word] was missing from the broadcast detection whitelist,
+    causing the list elements to be iterated as separate argument sets
+    instead of passing the whole list as a single argument.
+    """
+
+    @cudaq.kernel
+    def kernel_pauli_list(words: list[cudaq.pauli_word]):
+        qreg = cudaq.qvector(2)
+        exp_pauli(0.1, qreg, words[0])
+
+    # Test with list of pauli_word objects
+    words_obj = [cudaq.pauli_word("ZZ"), cudaq.pauli_word("XX")]
+    counts = cudaq.sample(kernel_pauli_list, words_obj)
+    assert len(counts) > 0
+
+    # Test with list of strings (auto-converted to pauli_word)
+    words_str = ["ZZ", "XX"]
+    counts = cudaq.sample(kernel_pauli_list, words_str)
+    assert len(counts) > 0
+
+
 def test_sample_async():
 
     @cudaq.kernel()
@@ -182,29 +208,68 @@ def test_sample_async():
     assert '1' in sample_result and len(sample_result) == 1
 
 
-def test_issue_2798():
+def test_conditional_bare_return():
 
     @cudaq.kernel
-    def verification(n_qubits: int):
-        qvector = cudaq.qvector(n_qubits)
-        h(qvector[0])
-        for i in range(n_qubits - 1):
-            cx(qvector[i], qvector[i + 1])
-        if mz(qvector[0]):
-            x(qvector[0])
-        mz(qvector)
+    def kernel(skip: bool):
+        q = cudaq.qubit()
 
-    counts_1 = cudaq.sample_async(verification, 4, shots_count=100).get()
-    print(counts_1)
-    assert len(counts_1) == 2
-    assert "0000" in counts_1
-    assert "0111" in counts_1
+        if skip:
+            return
+        x(q)
 
-    counts_2 = cudaq.sample_async(verification, 5, shots_count=100).get()
-    print(counts_2)
-    assert len(counts_2) == 2
-    assert "00000" in counts_2
-    assert "01111" in counts_2
+    counts = cudaq.sample(kernel, True, shots_count=100)
+    assert '0' in counts and len(counts) == 1
+
+    counts = cudaq.sample(kernel, False, shots_count=100)
+    assert '1' in counts and len(counts) == 1
+
+
+def test_composite_conditional_bare_return():
+
+    @cudaq.kernel
+    def kernel(value: int):
+        q = cudaq.qubit()
+        if value != 1 and value != 2:
+            return
+        x(q)
+
+    counts = cudaq.sample(kernel, 0, shots_count=100)
+    assert '0' in counts and len(counts) == 1
+
+    for value in [1, 2]:
+        counts = cudaq.sample(kernel, value, shots_count=100)
+        assert '1' in counts and len(counts) == 1
+
+
+def test_bare_return_in_loop():
+
+    @cudaq.kernel
+    def kernel(n: int):
+        q = cudaq.qubit()
+        for i in range(n):
+            if i == 2:
+                return
+            x(q)
+
+    counts = cudaq.sample(kernel, 1, shots_count=100)
+    assert '1' in counts and len(counts) == 1
+
+    counts = cudaq.sample(kernel, 3, shots_count=100)
+    assert '0' in counts and len(counts) == 1
+
+
+def test_function_scope_bare_return():
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qubit()
+
+        return
+        x(q)
+
+    counts = cudaq.sample(kernel, shots_count=100)
+    assert '0' in counts and len(counts) == 1
 
 
 # leave for gdb debugging

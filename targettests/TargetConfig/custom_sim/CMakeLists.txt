@@ -8,5 +8,5 @@
 
 # This CMakeLists.txt just generates a default target config yml file
 # for a custom simulator backend. We then use lit to validate the generated yml file.
-include(${CMAKE_SOURCE_DIR}/cmake/Modules/NVQIRTargetConfigGen.cmake)
+include(NVQIRTargetConfigGen)
 nvqir_write_target_config(MyCustomSimulator true "${CMAKE_BINARY_DIR}/targets/MyCustomSimulator.yml")

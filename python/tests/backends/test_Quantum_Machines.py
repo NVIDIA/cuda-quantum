@@ -7,16 +7,14 @@
 # ============================================================================ #
 
 import cudaq
+import numpy as np
 import os
 import pytest
 from multiprocessing import Process
 from network_utils import check_server_connection
+from utils.mock_qpu.quantum_machines import start_server
 
-try:
-    from utils.mock_qpu.quantum_machines import start_server
-except:
-    print("Mock qpu not available, skipping Quantum Machines tests.")
-    pytest.skip("Mock qpu not available.", allow_module_level=True)
+pytestmark = pytest.mark.xdist_group("quantum_machines_mock")
 
 skipIfQuantumMachinesNotInstalled = pytest.mark.skipif(
     not (cudaq.has_target("quantum_machines")),
@@ -29,7 +27,6 @@ port = 62448
 @pytest.fixture(scope="session", autouse=True)
 def startUpMockServer():
     os.environ["QUANTUM_MACHINES_API_KEY"] = "00000000000000000000000000000000"
-    cudaq.set_target("quantum_machines", url="http://localhost:{}".format(port))
 
     # Launch the Mock Server
     p = Process(target=start_server, args=(port,))
@@ -39,6 +36,8 @@ def startUpMockServer():
         p.terminate()
         pytest.exit("Mock server did not start in time, skipping tests.",
                     returncode=1)
+
+    cudaq.set_target("quantum_machines", url="http://localhost:{}".format(port))
 
     yield "Server started."
 
@@ -79,6 +78,27 @@ def test_async_with_args():
     counts = results.get()
     counts.dump()
     assert len(counts) == 8
+
+
+@skipIfQuantumMachinesNotInstalled
+def test_extern_kernel_ramsey():
+    # The payload carries a call the compiler never lowers.
+
+    @cudaq.kernel(external=True)
+    def wait(duration: float, q: cudaq.qubit) -> None:
+        ...
+
+    @cudaq.kernel
+    def ramsey_single(wait_duration: float):
+        qubit = cudaq.qubit()
+        rx(np.pi / 2, qubit)
+        wait(wait_duration, qubit)
+        rx(np.pi / 2, qubit)
+        mz(qubit)
+
+    counts = cudaq.sample(ramsey_single, 1.0)
+    counts.dump()
+    assert len(counts) > 0
 
 
 # leave for gdb debugging

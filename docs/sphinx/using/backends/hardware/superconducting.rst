@@ -25,7 +25,8 @@ Users can also login and get the keys manually using the following commands:
 
 .. code:: bash
 
-    # You may need to run: `apt-get update && apt-get install curl jq`
+    # curl and jq are preinstalled in the CUDA-Q container. Elsewhere, you may
+    # need to run: `apt-get update && apt-get install curl jq`
     curl -X POST --user "<username>:<password>"  -H "Content-Type: application/json" \
     https://api.anyon.cloud:5000/login > credentials.json
     id_token=`cat credentials.json | jq -r '."id_token"'`
@@ -113,24 +114,21 @@ IQM
 
 .. _iqm-backend:
 
-`IQM Resonance <https://meetiqm.com/products/iqm-resonance/>`__ offers access to various different IQM quantum computers.
-The machines available there will be constantly extended as development progresses.
+`IQM Resonance <https://iqm.tech/products/iqm-resonance/>`__ offers access to various different IQM quantum computers.
+The quantum computers available there will be constantly extended as development progresses.
 Programmers of CUDA-Q may use IQM Resonance with either C++ or Python.
 
-With this version it is no longer necessary to define the target QPU architecture in the code or at compile time.
-The IQM backend integration now contacts at runtime the configured IQM server and fetches the active dynamic quantum architecture of the QPU.
-This is then used as input to transpile the quantum kernel code just-in-time for the target QPU topology.
-By setting the environment variable ``IQM_SERVER_URL`` the target server can be selected just before executing the program.
-As result the python script or the compiled C++ program can be executed on different QPUs without recompilation or code changes.
-
-Please find also more documentation after logging in to the IQM Resonance portal.
+To address an IQM quantum computer on Resonance set the environment variables ``IQM_SERVER_URL`` and ``IQM_QUANTUM_COMPUTER``.
+You can find the address information in Resonance by clicking on the name of the quantum computer of your choice and opening the "Get started" section.
+The environment variables are evaluated at runtime of your program.
+As result the python script or the compiled C++ program can be executed on different QPUs without any code changes or recompilation.
 
 
 Setting Credentials
 ```````````````````
 
-Create a free account on the `IQM Resonance portal <https://meetiqm.com/products/iqm-resonance/>`__ and log-in.
-Navigate to the account profile (top right). There generate an "API Token" and copy the generated token-string.
+Create a free account on the `IQM Resonance portal <https://iqm.tech/products/iqm-resonance/>`__ and `log-in <https://resonance.iqm.tech/>`__.
+Navigate to the account profile (top right). There create a new "API Token" and copy the generated token-string.
 Set the environment variable ``IQM_TOKEN`` to contain the value of the token-string.
 The IQM backend integration will use this as authorization token at the IQM server.
 
@@ -140,32 +138,54 @@ Submitting
 
 .. tab:: Python
 
-    The target to which quantum kernels are submitted can be controlled with the ``cudaq.set_target()`` function.
+    To target IQM quantum computers for your quantum kernel use  `"iqm"` as first parameter of the ``cudaq.set_target()`` function.
 
     .. code:: python
 
-        cudaq.set_target("iqm", url="https://<IQM Server>/")
+        cudaq.set_target("iqm")
 
-    Please note that setting the environment variable ``IQM_SERVER_URL`` takes precedence over the URL configured in the code.
-
+    Then address the quantum computer by setting the environment variables ``IQM_SERVER_URL``, ``IQM_QUANTUM_COMPUTER`` and ``IQM_TOKEN`` before running the program.
 
 .. tab:: C++
 
-    To target quantum kernel code for execution on an IQM Server, pass the ``--target iqm`` option to the ``nvq++`` compiler.
-
-    .. code:: bash
-
-        nvq++ --target iqm src.cpp
-
-    Once the binary for an IQM QPU is compiled, it can be executed against any IQM Server by setting the environment variable ``IQM_SERVER_URL`` as shown here:
+    To target quantum kernel code for execution on an IQM quantum computer pass the ``--target iqm`` option to the ``nvq++`` compiler.
 
     .. code:: bash
 
         nvq++ --target iqm src.cpp -o program
-        IQM_SERVER_URL="https://demo.qc.iqm.fi/" ./program
+
+    Once the binary for an IQM QPU is compiled, it can be executed against any IQM Server by setting the environment variables ``IQM_SERVER_URL``, ``IQM_QUANTUM_COMPUTER`` and ``IQM_TOKEN`` and running the program.
 
 
-To see a complete example for using IQM server backends, take a look at :ref:`IQM examples <iqm-examples>`.
+Example
+```````
+
+.. tab:: Python
+
+    Save the :ref:`Python code variant of this example<iqm-examples>` to a file named `ghz.py`.
+
+    Then set the address and your personal API token for an IQM quantum computer in environment variables and execute the code.
+
+    .. code:: bash
+
+        export IQM_TOKEN="replace with your personal API token"
+        export IQM_SERVER_URL="https://resonance.iqm.tech/"
+        export IQM_QUANTUM_COMPUTER="garnet"
+        python3 ghz.py
+
+.. tab:: C++
+
+    Save the :ref:`C++ code variant of this example<iqm-examples>` to a file named `ghz.cpp`.
+
+    Compile and execute the program like this:
+
+    .. code:: bash
+
+        nvq++ --target iqm ghz.cpp -o ghz
+        export IQM_TOKEN="replace with your personal API token"
+        export IQM_SERVER_URL="https://resonance.iqm.tech/"
+        export IQM_QUANTUM_COMPUTER="garnet"
+        ./ghz
 
 
 Advanced use cases
@@ -177,6 +197,8 @@ The IQM backend integration offers more options for advanced use cases. Please f
    :maxdepth: 2
 
         IQM backend advanced use cases <backend_iqm.rst>
+
+Please find more documentation after logging in to the `IQM Resonance portal <https://resonance.iqm.tech/>`__.
 
 
 OQC
@@ -267,258 +289,75 @@ Submitting
 To see a complete example, take a look at :ref:`OQC examples <oqc-examples>`.
 
 
-Quantum Circuits, Inc.
-+++++++++++++++++++++++
+TII
++++
 
-.. _qci-backend:
+.. _tii-backend:
 
-Quantum Circuits offers users the ability to execute CUDA-Q programs on its 
-`Seeker QPU <https://quantumcircuits.com/product/#seeker>`__ and simulate 
-them using its simulator, `AquSim <https://quantumcircuits.com/product/#simulator>`__. 
-The Seeker is the first dual-rail qubit QPU available over the cloud today, and through
-CUDA-Q users have access to its universal gate set, high fidelity operations, and fast 
-throughput. Upcoming releases of CUDA-Q will continue to evolve these capabilities to 
-include real-time control flow and access to an expanded collection of actionable data 
-enabled by the Quantum Circuits error aware technology.
+TII enables execution of CUDA-Q programs on a cloud-based simulator and superconducting quantum hardware.
+The infrastructure is orchestrated by `Qibo <https://qibo.science>`__.
 
-AquSim models error detection and real-time control of Quantum Circuits’ Dual-Rail Cavity Qubit 
-systems, and uses a Monte Carlo approach to do so on a shot-by-shot basis. The supported 
-features include all of the single and two-qubit gates offered by CUDA-Q. AquSim additionally 
-supports real-time conditional logic enabled by feed-forward capability. Noise modeling is 
-offered, effectively enabling users to emulate the execution of programs on the Seeker QPU 
-and thereby providing a powerful application prototyping tool to be leveraged in advance of 
-execution on hardware.
+Credential setup
+````````````````
 
-With C++ and Python programming supported, users are able to prototype, test and explore 
-quantum applications in CUDA-Q on the Seeker and AquSim. Users who wish to get started with 
-running CUDA-Q with Quantum Circuits should visit our `Explore <https://quantumcircuits.com/explore/>`__ 
-page to learn more about the Quantum Circuits Select Quantum Release Program.
+Access to TII hardware requires user registration.
+New accounts can be requested at `TII's quantum computing cloud portal <https://q-cloud.tii.ae>`__.
+Authentication is performed using an email address and password.
 
-Installation & Getting Started
-```````````````````````````````
+After the first login, users can generate personal access tokens.
+This token is used to authenticate backend requests and can be set as an environment variable
+(``TII_API_TOKEN``) for convenience.
 
-.. |:spellcheck-disable:| replace:: \
-.. |:spellcheck-enable:| replace:: \
+Backend parameters
+``````````````````
 
-Until CUDA-Q release 0.13.0 is available, the integration with Quantum Circuits will be supported through the 
-|:spellcheck-disable:| `nightly build Docker images <https://catalog.ngc.nvidia.com/orgs/nvidia/teams/nightly/containers/cuda-quantum/tags>`__. |:spellcheck-enable:|
+In addition to authentication, users must specify the quantum device and the project under which
+jobs will be executed.
 
-Instructions on how to install and get started with CUDA-Q using Docker can be found :ref:`here <install-docker-image>`.
+The full list of projects and devices available to the user is shown on the
+`TII dashboard <https://q-cloud.tii.ae/projects/>`__.
 
-You may present your user token to Quantum Circuits via CUDA-Q by setting an environment variable 
-named :code:`QCI_AUTH_TOKEN` before running your CUDA-Q program. 
+Supported parameters:
 
-For example:
+- ``api_key``: Authentication token. If not provided explicitly, it is read from the
+  ``TII_API_TOKEN`` environment variable.
+- ``device``: Quantum device on which the job is executed (required).
+- ``project``: User project associated with the job (required).
+- ``verbatim``: When set to ``true`` the circuit is dispatched without transpilation. Defaults to ``false``.
 
-.. code:: bash
-
-    export QCI_AUTH_TOKEN="example-token"
-
-Tokens are provided as part of the Strategic Quantum Release Program. Please visit our 
-`Explore <https://quantumcircuits.com/explore/>`__  page to learn more.
-
-Using CUDA-Q with Quantum Circuits
-```````````````````````````````````
-
-Quantum Circuits' Seeker system detects errors in real-time and returns not just 0s and 1s 
-as the measurement outcomes, but unique results tagged as -1, which indicate that an erasure 
-was detected on the Dual-Rail Cavity Qubit. AquSim emulates this execution as well, enabling 
-users to model error aware programs in advance of execution on the QPU. While -1 data is not 
-yet available via the CUDA-Q API, the user still has insight into these dynamics through the 
-number of shots that are collected in a given run.
-
-
-Yield
-```````
-
-Quantum Circuits architecture can detect errors in measurements. The target will return to
-the user the outcome from every measurement for every shot, regardless of
-whether errors were detected. However, the data from a shot in which any of the
-measurements had an error detected will:
-
-- Every **RESULT** where an error is detected will be ``-1`` (instead of ``0``
-  or ``1``).
-- The shot will be marked with an **exit code** of ``1`` (instead of ``0``).
-- It will be **excluded** from the histogram.
-
-Apart from an ideal simulation, most jobs will include at least some shots for
-which errors were detected.
-
-The shots that have no errors detected are referred to as **post-selected** and
-will have an exit code of ``0``. The **yield** represents the fraction of
-executed shots that are not rejected due to detected errors:
-
-.. math::
-
-    \text{yield} = \frac{\text{number of post-selected shots}}{\text{number of shots executed}}
-
-The yield depends on the number of qubits and the depth of the circuit.
-
-Options
-`````````
-
-**machine**
-    This is a string option with 2 supported values.
-
-    - **Seeker**
-
-      - Name of the QPU supported by Quantum Circuits.
-      - Supports up to **8 qubit** programs and the ``base_profile``.
-      - Regardless of whether the method is ``execute`` or ``simulate``, the
-        program will be **fully compiled** for strict validation of suitability
-        to run on the QPU.
-
-    - **AquSim**
-
-      - This "machine" is not associated with a specific QPU and not strictly
-        validated.
-      - Supports up to **25 qubits**, a **square grid coupling map**, and the
-        ``adaptive_profile``.
-
-**method**
-    This is a string option with 2 supported values.
-
-    - **execute**
-
-      - If ``machine="Seeker"``, the program will run on the QPU (depending on
-        availability).
-      - Not supported if ``machine="AquSim"``.
-
-    - **simulate**
-
-      - The program will be run in ``AquSim``.
-
-**noisy**
-    This boolean option is only supported for ``method="simulate"``.
-
-    - **True**
-
-      - ``AquSim`` will simulate noise and error detection using a **Dual-Rail
-        statevector-based noise model** on a transpiled program.
-
-    - **False**
-
-      - An **ideal simulation**.
-
-**repeat_until_shots_requested**
-    This is a boolean option.
-
-    - **True**
-
-      - The machine will return as many post-selected shots as were requested
-        (unless an upper limit of shots executed is encountered first).
-      - The **execution time is proportional to 1 / yield**.
-
-    - **False**
-
-      - The machine will execute **exactly the number of shots requested**,
-        regardless of how many errors are detected.
-      - The execution time does **not depend on yield**.
-
-
-Submitting
-```````````
+Submitting jobs
+```````````````
 
 .. tab:: Python
 
-        To set the target to Quantum Circuits, add the following to your Python
-        program:
+    Before submitting a job, the TII backend must be selected using ``cudaq.set_target()``.
+    The following example runs a circuit simulation using the user's ``personal`` project:
 
-        .. code:: python
+    .. code:: python
 
-            cudaq.set_target('qci')
-            [... your Python here]
+        cudaq.set_target("tii", device="tii-sim", project="personal")
 
-        To run on AquSim, simply execute the script using your Python interpreter.
-        
-        To specify which Quantum Circuits machine to use, set the :code:`machine` parameter:
+    If the ``TII_API_TOKEN`` environment variable is not set, the authentication token can be
+    passed directly:
 
-        .. code:: python
+    .. code:: python
 
-            # The default machine is AquSim
-            cudaq.set_target('qci', machine='AquSim') 
-            # or
-            cudaq.set_target('qci', machine='Seeker')
-
-        You can control the execution method using the :code:`method` parameter:
-
-        .. code:: python
-
-            # For simulation (default)
-            cudaq.set_target('Seeker', method='simulate')
-            # For hardware execution
-            cudaq.set_target('Seeker', method='execute')
-
-        For noisy simulation, you can enable the :code:`noisy` parameter:
-
-        .. code:: python
-
-            cudaq.set_target('qci', noisy=True)
-
-        When collecting shots, you can ensure the requested number of shots are obtained
-        by enabling the :code:`repeat_until_shots_requested` parameter:
-
-        .. code:: python
-
-            cudaq.set_target('qci', repeat_until_shots_requested=True)
-
+        cudaq.set_target("tii", api_key="my_authentication_token", device="tii-sim", project="personal")
 
 .. tab:: C++
 
-        When executing programs in C++, they must first be compiled using the
-        CUDA-Q nvq++ compiler, and then submitted to run on the Seeker or AquSim.
+    C++ programs must first be compiled using ``nvq++``.
 
-        Note that your token is fetched from your environment at run time, not at compile time.
+    When compiling, both the target device and the project must be specified:
 
-        In the example below, the compilation step shows two flags being passed to the nvq++
-        compiler: the Quantum Circuits target :code:`--target qci`, and the output file
-        :code:`-o example.x`.  The second line executes the program against AquSim. Here are the
-        shell commands in full:
+    .. code:: bash
 
-        .. code:: bash
+        nvq++ --target tii --tii-device tii-sim --tii-project personal main.cpp -o main.x
 
-            nvq++ example.cpp --target qci -o example.x
-            ./example.x
+    The ``TII_API_TOKEN`` environment variable must be set at runtime to authenticate the job.
 
-        To specify which Quantum Circuits machine to use, pass the ``--qci-machine`` flag:
+To see a complete example of using TII's backends, please take a look at the :ref:`TII examples <tii-examples>`.
 
-        .. code:: bash
-
-            # The default machine is AquSim
-            nvq++ --target qci --qci-machine AquSim src.cpp -o example.x
-            # or
-            nvq++ --target qci --qci-machine Seeker src.cpp -o example.x
-
-        You can control the execution method using the ``--qci-method`` flag:
-
-        .. code:: bash
-
-            # For simulation (default)
-            nvq++ --target qci --qci-machine Seeker --qci-method simulate src.cpp -o example.x
-            # For hardware execution
-            nvq++ --target qci --qci-machine Seeker --qci-method execute src.cpp -o example.x
-
-        For noisy simulation, you can set the ``--qci-noisy`` argument to `true`:
-
-        .. code:: bash
-
-            nvq++ --target qci --qci-noisy true src.cpp -o example.x
-
-        When collecting shots, you can ensure the requested number of shots are obtained
-        with the ``--qci-repeat_until_shots_requested`` argument:
-
-        .. code:: bash
-
-            nvq++ --target qci --qci-repeat_until_shots_requested true src.cpp -o example.x
-
-.. note::
-    By default, only successful shots are presented to the user and may be fewer than the 
-    requested number. Enabling :code:`repeat_until_shots_requested` ensures the full 
-    requested shot count is collected, at the cost of increased execution time.
-
-
-To see a complete example of using Quantum Circuits' backends, please take a look at the
-:ref:`Quantum Circuits examples <quantum-circuits-examples>`.
 
 .. note:: 
 
@@ -528,4 +367,4 @@ To see a complete example of using Quantum Circuits' backends, please take a loo
         For example, the simulation floating point accuracy and/or the simulation capabilities (e.g., maximum number of qubits, supported quantum gates),
         depend on the selected simulator.  
         
-        Any environment variables must be set prior to setting the target or running "`import cudaq`".
+        Any environment variables must be set prior to setting the target or running `import cudaq`.

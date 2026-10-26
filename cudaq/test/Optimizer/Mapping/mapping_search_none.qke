@@ -1,0 +1,33 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// Option matrix with refinement off. `placement=auto search=none` routes both
+// seeds once and keeps the better, while `placement=greedy search=none` routes
+// the greedy seed alone. For this gate-order circuit the greedy seed is worse,
+// so the two configurations select different layouts.
+
+// RUN: cudaq-opt '--qubit-mapping=device=star(5,2) placement=auto search=none' %s | FileCheck --check-prefix=AUTO %s
+// RUN: cudaq-opt '--qubit-mapping=device=star(5,2) placement=greedy search=none' %s | FileCheck --check-prefix=GREEDY %s
+
+quake.wire_set @wires[2147483647]
+
+func.func @gate_order() {
+  %v0 = quake.borrow_wire @wires[0] : !quake.wire
+  %v1 = quake.borrow_wire @wires[1] : !quake.wire
+  %v2 = quake.borrow_wire @wires[2] : !quake.wire
+  %a:2 = quake.x [%v1] %v2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %b:2 = quake.x [%v0] %a#0 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %c:2 = quake.x [%b#0] %a#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.return_wire %b#1 : !quake.wire
+  quake.return_wire %c#0 : !quake.wire
+  quake.return_wire %c#1 : !quake.wire
+  return
+}
+
+// AUTO: mapping_v2p = [2, 1, 0]
+// GREEDY: mapping_v2p = [2, 0, 1]

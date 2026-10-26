@@ -9,9 +9,9 @@
 // clang-format off
 // RUN: if [ command -v split-file ]; then \
 // RUN: split-file %s %t && \
-// RUN: nvq++ --enable-mlir -c %t/pauli_word_display.cpp -o %t/pauli_word_display.o && \
-// RUN: nvq++ --enable-mlir -c %t/pauli_wordle.cpp -o %t/pauli_wordle.o && \
-// RUN: nvq++ --enable-mlir %t/pauli_word_display.o %t/pauli_wordle.o -o %t/pauli_wordle.out && \
+// RUN: nvq++ -c %t/pauli_word_display.cpp -o %t/pauli_word_display.o && \
+// RUN: nvq++ -c %t/pauli_wordle.cpp -o %t/pauli_wordle.o && \
+// RUN: nvq++ %t/pauli_word_display.o %t/pauli_wordle.o -o %t/pauli_wordle.out && \
 // RUN: %t/pauli_wordle.out | FileCheck %s ; else \
 // RUN: echo "skipping" ; fi
 // clang-format on
@@ -31,7 +31,7 @@ void display(std::span<char> x) {
 
 //--- pauli_wordle.cpp
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 // Fake host C++ signature that matches. Since this is called on the device side
 // the pauli_word will have been converted to a span.

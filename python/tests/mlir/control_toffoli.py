@@ -27,13 +27,15 @@ def test_tuple_assign():
     print(toffoli)
 
 
-# CHECK-LABEL:   func.func @__nvqpp__mlirgen__toffoli() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
-# CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.veq<3>
-# CHECK:           %[[VAL_1:.*]] = quake.extract_ref %[[VAL_0]][0] : (!quake.veq<3>) -> !quake.ref
-# CHECK:           %[[VAL_2:.*]] = quake.extract_ref %[[VAL_0]][2] : (!quake.veq<3>) -> !quake.ref
-# CHECK:           quake.x %[[VAL_1]] : (!quake.ref) -> ()
-# CHECK:           quake.x %[[VAL_2]] : (!quake.ref) -> ()
-# CHECK:           %[[VAL_3:.*]] = quake.extract_ref %[[VAL_0]][1] : (!quake.veq<3>) -> !quake.ref
-# CHECK:           quake.apply @__nvqpp__mlirgen__fancyCnot [%[[VAL_1]]] %[[VAL_3]], %[[VAL_2]] : (!quake.ref, !quake.ref, !quake.ref) -> ()
+# CHECK-LABEL:   func.func @__nvqpp__mlirgen__toffoli..
+# CHECK-SAME:      (%[[ARG0:.*]]: !cc.callable<(!quake.ref, !quake.ref) -> ()> {quake.pylifted}) attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+# CHECK:           %[[ALLOCA_0:.*]] = quake.alloca !quake.veq<3>
+# CHECK:           %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[ALLOCA_0]][0] : (!quake.veq<3>) -> !quake.ref
+# CHECK:           %[[EXTRACT_REF_1:.*]] = quake.extract_ref %[[ALLOCA_0]][2] : (!quake.veq<3>) -> !quake.ref
+# CHECK:           quake.x %[[EXTRACT_REF_0]] : (!quake.ref) -> ()
+# CHECK:           quake.x %[[EXTRACT_REF_1]] : (!quake.ref) -> ()
+# CHECK:           %[[EXTRACT_REF_2:.*]] = quake.extract_ref %[[ALLOCA_0]][1] : (!quake.veq<3>) -> !quake.ref
+# CHECK:           quake.apply %[[ARG0]] {{\[}}%[[EXTRACT_REF_0]]] (%[[EXTRACT_REF_2]], %[[EXTRACT_REF_1]]) : (!quake.ref, !quake.ref, !quake.ref) -> ()
+# CHECK:           quake.dealloc %[[ALLOCA_0]] : !quake.veq<3>
 # CHECK:           return
 # CHECK:         }

@@ -1,0 +1,67 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt -add-dealloc -factor-quantum-alloc -canonicalize %s | FileCheck %s
+
+func.func @test1() {
+  %0 = quake.alloca !quake.struq<!quake.ref, !quake.veq<4>>
+  %1 = quake.get_member %0[1] : (!quake.struq<!quake.ref, !quake.veq<4>>) -> !quake.veq<4>
+  %2 = quake.extract_ref %1[2] : (!quake.veq<4>) -> !quake.ref
+  %3 = quake.extract_ref %1[1] : (!quake.veq<4>) -> !quake.ref
+  quake.x [%2] %3 : (!quake.ref, !quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @test1() {
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_3:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_4:.*]] = quake.alloca !quake.ref
+// CHECK:           quake.x
+// CHECK:           quake.dealloc %[[VAL_0]] : !quake.ref
+// CHECK:           quake.dealloc %[[VAL_1]] : !quake.ref
+// CHECK:           quake.dealloc %[[VAL_2]] : !quake.ref
+// CHECK:           quake.dealloc %[[VAL_3]] : !quake.ref
+// CHECK:           quake.dealloc %[[VAL_4]] : !quake.ref
+// CHECK:           return
+// CHECK:         }
+
+func.func @test2() {
+  %0 = quake.alloca !quake.veq<3>
+  %1 = quake.extract_ref %0[1] : (!quake.veq<3>) -> !quake.ref
+  quake.y %1 : (!quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @test2() {
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_2:.*]] = quake.alloca !quake.ref
+// CHECK:           quake.y
+// CHECK:           quake.dealloc %[[VAL_0]] : !quake.ref
+// CHECK:           quake.dealloc %[[VAL_1]] : !quake.ref
+// CHECK:           quake.dealloc %[[VAL_2]] : !quake.ref
+// CHECK:           return
+// CHECK:         }
+
+// This one cannot be factored. This is not a hard failure.
+func.func @test3(%arg: i64) {
+  %0 = quake.alloca !quake.veq<?>[%arg : i64]
+  %1 = quake.extract_ref %0[0] : (!quake.veq<?>) -> !quake.ref
+  quake.z %1 : (!quake.ref) -> ()
+  return
+}
+
+// CHECK-LABEL:   func.func @test3(
+// CHECK-SAME:                     %[[VAL_0:.*]]: i64) {
+// CHECK:           %[[VAL_1:.*]] = quake.alloca !quake.veq<?>{{\[}}%[[VAL_0]] : i64]
+// CHECK:           quake.z
+// CHECK:           quake.dealloc %[[VAL_1]] : !quake.veq<?>
+// CHECK:           return
+// CHECK:         }

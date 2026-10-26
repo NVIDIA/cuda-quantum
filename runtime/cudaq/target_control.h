@@ -7,7 +7,7 @@
  ******************************************************************************/
 #pragma once
 
-namespace cudaq::__internal__ {
+namespace cudaq::detail {
 
 /// @brief Provide an API call that enables
 /// target modification at runtime (primarily used by
@@ -22,4 +22,4 @@ void disableTargetModification();
 /// @brief Provide an API call that returns
 /// true if the target is modifiable at runtime.
 bool canModifyTarget();
-} // namespace cudaq::__internal__
+} // namespace cudaq::detail

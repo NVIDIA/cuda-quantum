@@ -6,11 +6,8 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
-
 message(STATUS "Building REST QPU.")
-add_library(cudaq-rest-qpu SHARED RemoteRESTQPU.cpp 
-   ../../common/QuantumExecutionQueue.cpp)
+add_library(cudaq-rest-qpu SHARED RemoteRESTQPU.cpp)
 
 add_subdirectory(helpers)
 
@@ -19,24 +16,20 @@ target_include_directories(cudaq-rest-qpu PRIVATE .
        $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/runtime>
        $<INSTALL_INTERFACE:include>)
 
-if (AWSSDK_ROOT)
-  set(SERVICE_COMPONENTS braket s3-crt sts)
-  find_package(AWSSDK REQUIRED COMPONENTS ${SERVICE_COMPONENTS})
-else()
-  set(AWSSDK_LINK_LIBRARIES "")
-endif()
+# The AWS SDK belongs to `cudaq-serverhelper-braket` alone. See the note in
+# helpers/braket/CMakeLists.txt on why it must not be linked twice.
 
-target_link_libraries(cudaq-rest-qpu 
-  PUBLIC 
+target_link_libraries(cudaq-rest-qpu
+  PUBLIC
     cudaq-operator
-    cudaq-common 
-  PRIVATE 
-    cudaq-mlir-runtime 
-    MLIRTranslateLib
-    fmt::fmt-header-only 
-    cudaq 
+    cudaq-common
+  PRIVATE
+    cudaq-mlir-runtime
+    fmt::fmt-header-only
+    cudaq
     cudaq-platform-default
-    ${AWSSDK_LINK_LIBRARIES})
+    nvqir
+    ZLIB::ZLIB
+    cudaqMLIR)
 
-install(TARGETS cudaq-rest-qpu DESTINATION lib)
-
+install(TARGETS cudaq-rest-qpu DESTINATION lib COMPONENT Runtime)

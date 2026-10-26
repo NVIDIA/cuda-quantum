@@ -50,7 +50,7 @@ jobs:
   
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ (github.event.workflow_run.name == 'CI' && vars.preview_branch) || vars.live_branch }}
           token: ${{ (github.event.workflow_run.name == 'CI' && github.token) || secrets.REPO_BOT_ACCESS_TOKEN }}
@@ -58,12 +58,13 @@ jobs:
       - name: Download artifacts
         id: artifacts
         run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           if ${{ github.event_name == 'workflow_dispatch' }}; then
             artifacts_url=https://api.github.com/repos/${{ inputs.github_repository || github.repository }}/actions/runs/${{ inputs.deployment_id }}/artifacts
           else
             artifacts_url=${{ github.event.workflow_run.artifacts_url }}
           fi
-          artifacts=$(gh api --paginate $artifacts_url -q '.artifacts[] | {name: .name, url: .archive_download_url}')
+          artifacts=$(retry gh api --paginate $artifacts_url -q '.artifacts[] | {name: .name, url: .archive_download_url}')
           artifact_name=cuda_quantum_docs
 
           docs_found=${{ github.event.workflow_run.name == 'CI' || false }}
@@ -71,11 +72,15 @@ jobs:
             name=`echo $artifact | jq -r '.name'`
             if [ "$name" == "$artifact_name" ]; then
               url=`echo $artifact | jq -r '.url'`
-              gh api $url > cuda_quantum_docs.zip
+              retry gh api $url > cuda_quantum_docs.zip
               docs_found=true && echo "docs_archive=cuda_quantum_docs.zip" >> $GITHUB_OUTPUT
+            elif [ "$name" == "cudaq_logical_docs" ]; then
+              url=`echo $artifact | jq -r '.url'`
+              retry gh api $url > cudaq_logical_docs.zip
+              echo "logical_docs_archive=cudaq_logical_docs.zip" >> $GITHUB_OUTPUT
             elif [ "$name" == "metadata_ci" ]; then
               url=`echo $artifact | jq -r '.url'`
-              gh api $url > metadata.zip
+              retry gh api $url > metadata.zip
               unzip -d metadata metadata.zip
               for file in `find metadata/ -type f`; do
                 cat "$file" >> metadata.txt
@@ -94,8 +99,9 @@ jobs:
           fi
 
           if [ -f metadata.txt ]; then
-            pr_number=`cat metadata.txt | grep -o 'pr-number: \S*' | cut -d ' ' -f 2`
-            pr_base=`cat metadata.txt | grep -o 'pr-base: \S*' | cut -d ' ' -f 2`
+            # More than one metadata artifact would repeat the values.
+            pr_number=`cat metadata.txt | grep -o 'pr-number: \S*' | cut -d ' ' -f 2 | head -n 1`
+            pr_base=`cat metadata.txt | grep -o 'pr-base: \S*' | cut -d ' ' -f 2 | head -n 1`
             rm metadata.txt && echo "pr_number=$pr_number" >> $GITHUB_OUTPUT
           fi
 
@@ -114,7 +120,7 @@ jobs:
             elif ${{ github.event.workflow_run.name != 'CI' }} && [ "$head_branch" != "${head_branch#staging/}" ]; then
               # Only publish docs if no release branch exists for that version.
               version=`echo ${head_branch#staging/} | (egrep -o "^v?([0-9]{1,}\.)+[0-9]{1,}$" || true)`
-              gh api repos/${{ github.repository }}/branches \
+              retry gh api repos/${{ github.repository }}/branches \
                 -H "Accept: application/vnd.github+json" \
                 -H "X-GitHub-Api-Version: 2022-11-28" \
                 --paginate --jq '.[].name | select(startswith("releases/"))' \
@@ -147,6 +153,27 @@ jobs:
           target_folder="${target_folder:-${{ steps.artifacts.outputs.target_folder }}}"
           rm -rf "$target_folder"
           unzip -d "$target_folder" "${{ steps.artifacts.outputs.docs_archive }}"
+
+          logical_docs_archive="${{ steps.artifacts.outputs.logical_docs_archive }}"
+          if [ -n "$logical_docs_archive" ]; then
+            mkdir -p "$target_folder"/preview
+            unzip -d "$target_folder"/preview/logical "$logical_docs_archive"
+          fi
+
+          # llms.txt also belongs at the site root, where the convention
+          # expects it. Its links are relative to the version directory, so
+          # point them at latest/ for the root copy.
+          if [ "$target_folder" == "latest" ]; then
+            if [ -f "$target_folder/llms.txt" ]; then
+              sed -E 's|\]\((latest/)?([^):]+)\)|](latest/\2)|g' \
+                "$target_folder/llms.txt" > llms.txt
+              git add llms.txt
+            fi
+            if [ -f "$target_folder/llms-full.txt" ]; then
+              cp "$target_folder/llms-full.txt" llms-full.txt
+              git add llms-full.txt
+            fi
+          fi
 
           git config --global user.name "cuda-quantum-bot"
           git config --global user.email "cuda-quantum-bot@users.noreply.github.com"
@@ -190,7 +217,7 @@ jobs:
       - name: Comment on PR
         if: steps.artifacts.outputs.pr_number != '' && steps.push_docs.outcome != 'skipped'
         continue-on-error: true # PR may be locked by the time this workflow runs if auto-merge is set to true
-        uses: peter-evans/create-or-update-comment@v3
+        uses: peter-evans/create-or-update-comment@v5
         with:
           issue-number: ${{ steps.artifacts.outputs.pr_number }}
           body: ${{ steps.push_docs.outputs.pr_comment }}

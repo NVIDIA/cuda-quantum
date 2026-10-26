@@ -226,7 +226,7 @@ print('<H> =', result)
 # Compute the statevector of the kernel
 result = cudaq.get_state(kernel, qubit_count)
 
-print(np.array(result))
+print(np.array(result.dump()))
 # [End `GetState`]
 ''' [Begin `GetStateOutput`]
 [0.+0.j 0.+0.j 0.+0.j 1.+0.j]
@@ -252,7 +252,7 @@ print("Computing state asynchronously...")
 # Get the state when ready
 state = state_future.get()
 print("Bell state vector:")
-print(np.array(state))
+print(np.array(state.dump()))
 # [End `GetStateAsync`]
 ''' [Begin `GetStateAsyncOutput`]
 Computing state asynchronously...

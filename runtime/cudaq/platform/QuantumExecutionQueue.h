@@ -12,6 +12,7 @@
 #include <condition_variable>
 #include <functional>
 #include <future>
+#include <mutex>
 #include <queue>
 #include <string>
 #include <thread>
@@ -35,8 +36,12 @@ public:
   /// The Destructor
   ~QuantumExecutionQueue();
 
-  /// Enqueue a Sampling task.
+  /// Enqueue a Sampling task. Throws once the queue has been shut down.
   void enqueue(QuantumTask &task);
+
+  /// Stop accepting tasks, discard any still queued, and join the thread,
+  /// waiting for the task currently executing.
+  void shutdown();
 
   /// Get id of the thread this queue executes on.
   std::thread::id getExecutionThreadId() const;
@@ -56,6 +61,9 @@ protected:
 
   /// Should we quit this thread?
   bool quit = false;
+
+  /// Ensures concurrent shutdown callers wait for completion.
+  std::once_flag shutdownFlag;
 
   /// Main execution thread, loops until destruction,
   /// continuously pops tasks off the queue and executes them

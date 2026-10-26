@@ -7,21 +7,29 @@
  ******************************************************************************/
 
 #include "SampleResult.h"
+#include "nlohmann/json.hpp"
+#include "cudaq/runtime/logger/logger.h"
 #include "cudaq/spin_op.h"
-
 #include <algorithm>
-#include <numeric>
-#include <string.h>
-
+#include <climits>
 #include <iostream>
 #include <map>
+#include <numeric>
+#include <stdexcept>
+#include <string.h>
 #include <vector>
 
-namespace cudaq {
-std::string longToBitString(int size, long x) {
+static std::string longToBitString(std::size_t size, long x) {
+  if (size > sizeof(long) * CHAR_BIT)
+    throw std::runtime_error("Invalid serialized sample_result. Bitstring "
+                             "length exceeds supported range.");
+
   std::string s(size, '0');
-  int counter = 0;
+  std::size_t counter = 0;
   do {
+    if (counter >= s.size())
+      throw std::runtime_error("Invalid serialized sample_result. Bitstring "
+                               "value does not fit declared length.");
     s[counter] = '0' + (x & 1);
     counter++;
   } while (x >>= 1);
@@ -29,31 +37,51 @@ std::string longToBitString(int size, long x) {
   return s;
 }
 
-void deserializeCounts(
-    std::vector<std::size_t> &data, std::size_t &stride,
-    std::unordered_map<std::string, std::size_t> &localCounts) {
+static void
+deserializeCounts(std::vector<std::size_t> &data, std::size_t &stride,
+                  std::unordered_map<std::string, std::size_t> &localCounts) {
+  if (stride >= data.size())
+    throw std::runtime_error(
+        "Invalid serialized sample_result. Missing counts length.");
   auto nBs = data[stride];
   stride++;
 
-  for (std::size_t j = stride; j < stride + nBs * 3; j += 3) {
+  // Each counts entry is serialized as 3 words: {value, length, count}.
+  constexpr std::size_t wordsPerEntry = 3;
+  std::size_t remaining = data.size() - stride;
+  if (nBs > remaining / wordsPerEntry)
+    throw std::runtime_error(
+        "Invalid serialized sample_result. Counts length exceeds data size.");
+
+  for (std::size_t j = stride; j < stride + nBs * wordsPerEntry;
+       j += wordsPerEntry) {
     auto bitstring_as_long = data[j];
     auto size_of_bitstring = data[j + 1];
     auto count = data[j + 2];
     auto bs = longToBitString(size_of_bitstring, bitstring_as_long);
     localCounts.insert({bs, count});
   }
-  stride += nBs * 3;
+  stride += nBs * wordsPerEntry;
 }
 
-std::string extractNameFromData(std::vector<std::size_t> &data,
-                                std::size_t &stride) {
+static std::string extractNameFromData(std::vector<std::size_t> &data,
+                                       std::size_t &stride) {
+  if (stride >= data.size())
+    throw std::runtime_error(
+        "Invalid serialized sample_result. Missing register name length.");
   auto nChars = data[stride++];
+
+  if (nChars > data.size() - stride)
+    throw std::runtime_error("Invalid serialized sample_result. Register name "
+                             "length exceeds data size.");
 
   std::string name(data.begin() + stride, data.begin() + stride + nChars);
 
   stride += nChars;
   return name;
 }
+
+namespace cudaq {
 
 ExecutionResult::ExecutionResult(CountsDictionary c) : counts(c) {}
 ExecutionResult::ExecutionResult(std::string name) : registerName(name) {}
@@ -130,6 +158,8 @@ void ExecutionResult::deserialize(std::vector<std::size_t> &data) {
   }
 }
 
+//===----------------------------------------------------------------------===//
+
 std::vector<std::size_t> sample_result::serialize() const {
   std::vector<std::size_t> retData;
   for (auto &result : sampleResults) {
@@ -159,41 +189,41 @@ void sample_result::deserialize(std::vector<std::size_t> &data) {
   }
 }
 
-sample_result::sample_result(ExecutionResult &&result) {
-  sampleResults.insert({result.registerName, result});
-  for (auto &[bits, count] : result.counts)
+sample_result::sample_result(CountsDictionary counts, cudaq_json annots)
+    : annotations(std::move(annots)) {
+  for (auto &[bits, count] : counts)
     totalShots += count;
+  sampleResults.insert(
+      {GlobalRegisterName, ExecutionResult(std::move(counts))});
 }
 
-sample_result::sample_result(ExecutionResult &result)
-    : sample_result(std::move(result)) {}
-
-sample_result::sample_result(std::vector<ExecutionResult> &results) {
-  for (auto &result : results) {
-    sampleResults.insert({result.registerName, result});
-  }
-  if (!results.empty())
-    for (auto &[bits, count] : results[0].counts)
-      totalShots += count;
+sample_result::sample_result(ExecutionResult &&result) {
+  for (const auto &[bits, count] : result.counts)
+    totalShots += count;
+  sampleResults.insert({result.registerName, std::move(result)});
 }
 
-sample_result::sample_result(double preComputedExp,
-                             std::vector<ExecutionResult> &results) {
-  for (auto &result : results) {
-    sampleResults.insert({result.registerName, result});
-  }
+sample_result::sample_result(const ExecutionResult &result)
+    : sample_result(ExecutionResult{result}) {}
 
-  // Create a spot for the pre-computed exp val
-  sampleResults.emplace(GlobalRegisterName, preComputedExp);
+sample_result::sample_result(const std::vector<ExecutionResult> &results) {
+  for (auto &result : results)
+    sampleResults.insert({result.registerName, result});
 
   if (results.empty())
     return;
-
   for (auto &[bits, count] : results[0].counts)
     totalShots += count;
 }
 
-void sample_result::append(ExecutionResult &result, bool concatenate) {
+sample_result::sample_result(double preComputedExp,
+                             const std::vector<ExecutionResult> &results)
+    : sample_result(results) {
+  // Create a spot for the pre-computed exp val
+  sampleResults.emplace(GlobalRegisterName, preComputedExp);
+}
+
+void sample_result::append(const ExecutionResult &result, bool concatenate) {
   // If given a result corresponding to the same register name, either a)
   // replace the existing one if concatenate is false, or b) if concatenate is
   // true, stitch the bitstrings from "result" into the existing one.
@@ -228,16 +258,14 @@ bool sample_result::operator==(const sample_result &counts) const {
 }
 
 sample_result &sample_result::operator+=(const sample_result &other) {
-
   for (auto &otherResults : other.sampleResults) {
     auto regName = otherResults.first;
     auto foundIter = sampleResults.find(regName);
-    if (foundIter == sampleResults.end())
+    if (foundIter == sampleResults.end()) {
       sampleResults.insert({regName, otherResults.second});
-    else {
-
-      // we already have a sample result with this name, so
-      // now lets just merge them
+    } else {
+      // We already have a sample result with this name, so now lets just merge
+      // them.
       auto &sr = sampleResults[regName];
       for (auto &[bits, count] : otherResults.second.counts) {
         auto &ourCounts = sr.counts;
@@ -255,6 +283,23 @@ sample_result &sample_result::operator+=(const sample_result &other) {
     if (regName == GlobalRegisterName)
       totalShots += other.totalShots;
   }
+
+  const auto &otherAnnotations = other.annotations.get();
+  if (otherAnnotations.is_object()) {
+    auto &thisAnnotations = annotations.get();
+    if (!thisAnnotations.is_object())
+      thisAnnotations = nlohmann::json::object();
+
+    for (const auto &[key, value] : otherAnnotations.items()) {
+      const auto existing = thisAnnotations.find(key);
+      if (existing != thisAnnotations.end() && *existing != value)
+        CUDAQ_WARN("Conflicting SampleResult annotation '{}'; using the "
+                   "value from the second result.",
+                   key);
+      thisAnnotations[key] = value;
+    }
+  }
+
   return *this;
 }
 
@@ -415,7 +460,7 @@ sample_result::get_marginal(const std::vector<std::size_t> &marginalIndices,
     for ([[maybe_unused]] auto &m : mutableIndices)
       newBits += "0";
     for (int counter = 0; auto &index : mutableIndices) {
-      if (index > bits.size())
+      if (index >= bits.size())
         throw std::runtime_error("Invalid marginal index (" +
                                  std::to_string(index) +
                                  ", size=" + std::to_string(bits.size()));
@@ -431,6 +476,7 @@ sample_result::get_marginal(const std::vector<std::size_t> &marginalIndices,
 void sample_result::clear() {
   sampleResults.clear();
   totalShots = 0;
+  annotations = nlohmann::json::object();
 }
 
 /// @brief This is a helper function to sort the keys of an unordered map

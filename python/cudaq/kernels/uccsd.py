@@ -343,7 +343,7 @@ def uccsd_odd_electrons(qubits: cudaq.qview, thetas: list[float],
     virtual_beta_indices = [0 for k in range(n_virtual + 1)]
     virtual_beta_indices[0] = 2 * n_occupied - 1
     for i in range(n_virtual):
-        virtual_beta_indices[i + 1] = i * 2 + 1 + n_electrons
+        virtual_beta_indices[i + 1] = (i * 2) + 2 + n_electrons
 
     lenOccA = len(occupied_alpha_indices)
     lenOccB = len(occupied_beta_indices)

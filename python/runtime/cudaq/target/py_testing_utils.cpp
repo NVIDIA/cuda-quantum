@@ -8,12 +8,17 @@
 
 #include "py_testing_utils.h"
 #include "LinkedLibraryHolder.h"
+#include "common/ExecutionContext.h"
 #include "cudaq.h"
-#include "cudaq/platform.h"
 #include "nvqir/CircuitSimulator.h"
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-namespace py = pybind11;
+#include "cudaq/algorithms/run/policy.h"
+#include "cudaq/algorithms/sample/policy.h"
+#include "cudaq/platform.h"
+#include "cudaq/qis/execution_manager.h"
+#include <nanobind/nanobind.h>
+#include <nanobind/stl/function.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/vector.h>
 
 namespace nvqir {
 void toggleDynamicQubitManagement();
@@ -21,59 +26,87 @@ void toggleDynamicQubitManagement();
 
 namespace cudaq {
 
-void bindTestUtils(py::module &mod, LinkedLibraryHolder &holder) {
+void bindTestUtils(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
   auto testingSubmodule = mod.def_submodule("testing");
-
-  /// NOTE: "ExecutionContext" is already registered in
-  /// python/runtime/common/py_ExecutionContext.cpp
-  // // py::class_<ExecutionContext>(testingSubmodule, "ExecutionContext", "");
-
-  // Vision for all this
-  //
-  // cudaq.testing.toggleDynamicQubitManagement()
-  // qubits, context = cudaq.testing.initialize(numQubits, 1000)
-  // .. use llvmlite.jit to execute kernel function
-  // results = cudaq.testing.finalize(qubits, context);
-  // results.dump()
 
   testingSubmodule.def(
       "toggleDynamicQubitManagement",
       [&]() { nvqir::toggleDynamicQubitManagement(); }, "");
 
   testingSubmodule.def(
-      "initialize",
-      [&](std::size_t numQubits, std::size_t numShots,
-          const std::string &contextName = "sample") {
-        cudaq::ExecutionContext *context =
-            new cudaq::ExecutionContext(contextName, numShots);
-        static bool runOnce = false;
-        if (!runOnce) {
-          runOnce = true;
-          cudaq::set_random_seed(13);
-        }
+      "allocateQubits",
+      [&](std::size_t numQubits) {
         auto simName = holder.getTarget().simulatorName;
-        holder.getSimulator(simName)->setExecutionContext(context);
-        return std::make_tuple(
-            holder.getSimulator(simName)->allocateQubits(numQubits), context);
+        return holder.getSimulator(simName)->allocateQubits(numQubits);
       },
-      py::arg("numQubits"), py::arg("numShots"),
-      py::arg("contextName") = "sample");
+      nanobind::arg("numQubits"));
 
-  testingSubmodule.def("finalize", [&](const std::vector<std::size_t> &qubits,
-                                       cudaq::ExecutionContext *context) {
-    auto simName = holder.getTarget().simulatorName;
-    holder.getSimulator(simName)->deallocateQubits(qubits);
-    holder.getSimulator(simName)->resetExecutionContext();
-    nvqir::toggleDynamicQubitManagement();
-    // Pybind will delete the context bc its been wrapped in a unique_ptr
-    return context->result;
-  });
+  testingSubmodule.def("deallocateQubits",
+                       [&](const std::vector<std::size_t> &qubits) {
+                         auto simName = holder.getTarget().simulatorName;
+                         holder.getSimulator(simName)->deallocateQubits(qubits);
+                       });
+
   testingSubmodule.def("getAndClearOutputLog", [&]() {
     auto simName = holder.getTarget().simulatorName;
     auto log = holder.getSimulator(simName)->outputLog;
     holder.getSimulator(simName)->outputLog.clear();
     return log;
   });
+
+  // Run a mock-QPU kernel under a sampling policy and return the sample_result
+  // directly. This mirrors the C++ emulation path in BaseRemoteRESTQPU (via
+  // detail::with_policy_and_ctx + ExecutionManager::with_default_em), so the
+  // result flows through the policy return value rather than the execution
+  // context. Qubits are preallocated because mock bitcode references qubits by
+  // static index without allocating them itself.
+  testingSubmodule.def(
+      "sampleKernel",
+      [&](std::size_t numQubits, std::size_t numShots,
+          std::function<void()> kernel) {
+        auto simName = holder.getTarget().simulatorName;
+        auto *sim = holder.getSimulator(simName);
+        nvqir::toggleDynamicQubitManagement();
+        auto qubits = sim->allocateQubits(numQubits);
+        cudaq::sample_policy policy;
+        policy.options.shots = numShots;
+        cudaq::ExecutionContext ctx(cudaq::sample_policy::name, numShots);
+        auto result = cudaq::detail::with_policy_and_ctx(policy, ctx, [&]() {
+          return cudaq::ExecutionManager::with_default_em(policy,
+                                                          [&]() { kernel(); });
+        });
+        nvqir::toggleDynamicQubitManagement();
+        sim->deallocateQubits(qubits);
+        return result;
+      },
+      nanobind::arg("numQubits"), nanobind::arg("numShots"),
+      nanobind::arg("kernel"));
+
+  // Run a mock-QPU kernel once under a run policy and return the raw QIR output
+  // log for that shot (from run_result), rather than reading the simulator's
+  // output log out of band. Callers loop this once per shot.
+  testingSubmodule.def(
+      "runKernel",
+      [&](std::size_t numQubits, std::function<void()> kernel) {
+        auto simName = holder.getTarget().simulatorName;
+        auto *sim = holder.getSimulator(simName);
+        nvqir::toggleDynamicQubitManagement();
+        auto qubits = sim->allocateQubits(numQubits);
+        cudaq::run_policy policy;
+        policy.shots = 1;
+        // The context name must stay "run" so NVQIR's result_record_output
+        // records outputs; the result is returned via run_result, not read from
+        // the context.
+        cudaq::ExecutionContext ctx(cudaq::run_policy::name, 1);
+        auto result = cudaq::detail::with_policy_and_ctx(policy, ctx, [&]() {
+          return cudaq::ExecutionManager::with_default_em(policy,
+                                                          [&]() { kernel(); });
+        });
+        nvqir::toggleDynamicQubitManagement();
+        sim->deallocateQubits(qubits);
+        return result.outputLog;
+      },
+      nanobind::arg("numQubits"), nanobind::arg("kernel"));
 }
 
 } // namespace cudaq

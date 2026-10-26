@@ -42,10 +42,11 @@ Program Construction
     .. automethod:: swap
     .. automethod:: cswap
     .. automethod:: exp_pauli
+    .. automethod:: givens_rotation
+    .. automethod:: fermionic_swap
     .. automethod:: mx
     .. automethod:: my
     .. automethod:: mz
-    .. automethod:: c_if
     .. automethod:: for_loop
     .. automethod:: adjoint
     .. automethod:: control
@@ -72,11 +73,59 @@ Kernel Execution
 .. autofunction:: cudaq::vqe
 .. autofunction:: cudaq::draw
 .. autofunction:: cudaq::translate
+.. autofunction:: cudaq::estimate
 .. autofunction:: cudaq::estimate_resources
+.. autofunction:: cudaq::dem_from_kernel
+
+``cudaq.contrib``
+=============================
+
+Quantum Embeddings
+-----------------------------
+
+.. autofunction:: cudaq.contrib.amplitude_encode
+.. autofunction:: cudaq.contrib.angular_encode
+
+Qiskit and OpenQASM Interoperability
+------------------------------------
+
+.. warning::
+
+   **Deprecated.** ``cudaq.contrib.from_qiskit`` and
+   ``cudaq.contrib.from_qasm`` are deprecated and will be removed in a
+   future release. Calling either one now emits a ``DeprecationWarning``.
+
+   Use the standalone `cudaq-convert <https://github.com/QuantumRaul/cudaq-convert>`__
+   package instead, which supports OpenQASM 3.0 in addition to OpenQASM 2.0
+   and can convert QASM source strings directly:
+
+   .. code:: bash
+
+       pip install cudaq-convert
+
+   .. code:: python
+
+       from cudaq_convert import from_qasm, from_qasm_str, from_qiskit
+
+Quantum Error Correction
+=============================
+
+These functions are called inside an ``@cudaq.kernel`` body to declare
+detectors and logical observables for detector-error-model generation with
+``cudaq.dem_from_kernel``, and to discriminate measurement handles. They are
+intercepted by the compiler; calling them at host scope raises
+``RuntimeError``. (``cudaq.to_integer`` is likewise available inside kernels
+to pack discriminated bits into an integer.)
+
+.. autofunction:: cudaq::detector
+.. autofunction:: cudaq::detectors
+.. autofunction:: cudaq::logical_observable
+.. autofunction:: cudaq::to_bools
 
 Backend Configuration
 =============================
 
+.. autofunction:: cudaq::parse_args
 .. autofunction:: cudaq::has_target
 .. autofunction:: cudaq::get_target
 .. autofunction:: cudaq::get_targets
@@ -96,7 +145,7 @@ Backend Configuration
     it is automatically (and silently) stripped from any programs submitted to
     hardware targets.
 
-    :param error_type: A subtype of :class:`cudaq.KrausChannel` that
+    :`param` error_type: A subtype of :class:`cudaq.KrausChannel` that
         implements/defines the desired noise mechanisms as Kraus channels (e.g.
         :class:`cudaq.Depolarization2`). If you want to use a custom
         :class:`cudaq.KrausChannel` (i.e. not built-in to CUDA-Q), it must
@@ -127,7 +176,7 @@ Backend Configuration
             noise = cudaq.NoiseModel()
             noise.register_channel(CustomNoiseChannel)
 
-    :param parameters: The precise argument pack depend on the concrete
+    :`param` parameters: The precise argument pack depend on the concrete
         :class:`cudaq.KrausChannel` being used. The arguments are a concatenated
         list of parameters and targets.  For example, to apply a 2-qubit
         depolarization channel, which has `num_parameters = 1` and `num_targets =
@@ -138,7 +187,7 @@ Backend Configuration
             q, r = cudaq.qubit(), cudaq.qubit()
             cudaq.apply_noise(cudaq.Depolarization2, 0.1, q, r)
 
-    :param targets: The target qubits on which to apply the noise
+    :`param` targets: The target qubits on which to apply the noise
 
 
 .. automethod:: cudaq::initialize_cudaq
@@ -259,6 +308,8 @@ Data Types
 .. autoclass:: cudaq::qreg
 .. autoclass:: cudaq::qvector
 
+.. autoclass:: cudaq::measure_handle
+
 .. autoclass:: cudaq::ComplexMatrix
     :members:
     :special-members: __getitem__, __str__
@@ -268,6 +319,9 @@ Data Types
     :special-members: __getitem__, __len__, __iter__
 
 .. autoclass:: cudaq::AsyncSampleResult
+    :members:
+
+.. autoclass:: cudaq.DEMResult
     :members:
 
 .. autoclass:: cudaq::ObserveResult
@@ -291,22 +345,58 @@ Data Types
 .. autoclass:: cudaq::Resources
     :members:
 
+.. autoclass:: cudaq::EstimateResult
+    :members:
+
 Optimizers
 -----------------
+.. |:spellcheck-disable:| replace:: \
 
-.. autoclass:: cudaq.optimizers::optimizer
+.. py:method:: optimize(dimensions: int, function) -> tuple[float, list[float]]
+   :noindex:
+
+   Run the optimization procedure.
+
+   :`param` dimensions: The number of parameters to optimize
+   :`param` function: The objective function to minimize
+   :returns: tuple of (optimal_value, optimal_parameters)
+
+.. py:method:: requires_gradients() -> bool
+   :noindex:
+
+   Check whether this optimizer requires gradient information.
+
+   :returns: True if gradients required, False otherwise
 
 .. autoclass:: cudaq.optimizers::GradientDescent
     :members:
+    :exclude-members: optimize, requires_gradients
 
 .. autoclass:: cudaq.optimizers::COBYLA
     :members:
+    :exclude-members: optimize, requires_gradients
 
 .. autoclass:: cudaq.optimizers::NelderMead
     :members:
+    :exclude-members: optimize, requires_gradients
 
 .. autoclass:: cudaq.optimizers::LBFGS
     :members:
+    :exclude-members: optimize, requires_gradients
+
+.. autoclass:: cudaq.optimizers::Adam
+    :members:
+    :exclude-members: optimize, requires_gradients
+
+.. autoclass:: cudaq.optimizers::SGD
+    :members:
+    :exclude-members: optimize, requires_gradients
+
+.. autoclass:: cudaq.optimizers::SPSA
+    :members:
+    :exclude-members: optimize, requires_gradients
+
+.. |:spellcheck-enable:| replace:: \
 
 Gradients
 -----------------
@@ -379,9 +469,106 @@ MPI Submodule
 .. automethod:: cudaq.mpi::all_gather
 .. automethod:: cudaq.mpi::broadcast
 .. automethod:: cudaq.mpi::is_initialized
+.. automethod:: cudaq.mpi::split_communicator
+.. automethod:: cudaq.mpi::set_communicator
 .. automethod:: cudaq.mpi::finalize
 
 ORCA Submodule
 =============================
 
 .. automethod:: cudaq.orca::sample
+
+PTSBE Submodule
+=============================
+
+.. _ptsbe_api:
+
+The ``cudaq.ptsbe`` submodule implements Pre-Trajectory Sampling with Batch
+Execution (PTSBE). For a conceptual overview and usage tutorial see
+:doc:`../../using/examples/ptsbe`.
+
+Sampling Functions
+-------------------
+
+.. autofunction:: cudaq.ptsbe.sample
+
+.. autofunction:: cudaq.ptsbe.sample_async
+
+----
+
+Result Type
+------------
+
+.. autoclass:: cudaq.ptsbe.PTSBESampleResult
+    :members:
+
+----
+
+Trajectory Sampling Strategies
+--------------------------------
+
+.. autoclass:: cudaq.ptsbe.PTSSamplingStrategy
+    :members:
+
+.. autoclass:: cudaq.ptsbe.ProbabilisticSamplingStrategy
+    :members:
+
+.. autoclass:: cudaq.ptsbe.OrderedSamplingStrategy
+    :members:
+
+.. autoclass:: cudaq.ptsbe.ExhaustiveSamplingStrategy
+    :members:
+
+----
+
+Shot Allocation Strategy
+-------------------------
+
+.. autoclass:: cudaq.ptsbe.ShotAllocationStrategy
+    :members:
+
+.. autoclass:: cudaq.ptsbe.ShotAllocationType
+    :members:
+
+----
+
+Execution Data
+---------------
+
+.. autoclass:: cudaq.ptsbe.PTSBEExecutionData
+    :members:
+
+.. autoclass:: cudaq.ptsbe.TraceInstruction
+    :members:
+
+.. autoclass:: cudaq.ptsbe.TraceInstructionType
+    :members:
+
+----
+
+Trajectory and Selection Types
+--------------------------------
+
+.. autoclass:: cudaq.ptsbe.KrausTrajectory
+    :members:
+
+.. autoclass:: cudaq.ptsbe.KrausSelection
+    :members:
+
+Synth Submodule
+=============================
+
+.. _synth_api:
+
+The ``cudaq.synth`` submodule approximates rotations as Clifford+T gate
+sequences, providing an implementation of the Gridsynth algorithm of Ross and
+Selinger (`arXiv:1403.2975 <https://arxiv.org/abs/1403.2975>`__). It is not
+imported with ``cudaq``, so import it explicitly with ``from cudaq import
+synth``. For a usage guide see :doc:`../../using/examples/rotation_synthesis`.
+
+.. autofunction:: cudaq.synth.gridsynth
+
+.. autofunction:: cudaq.synth.rz_error
+
+.. autoclass:: cudaq.synth.CliffordTSequence
+    :members:

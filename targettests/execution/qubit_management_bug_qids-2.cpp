@@ -6,13 +6,15 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
-// RUN: nvq++ --target opt-test --target-option dep-analysis,qpp %s -o %t && %t
+// clang-format off
+// RUN: nvq++ --build-target-from-config %cudaq_src_dir/targettests/targets/opt-test.yml --target-option dep-analysis,qpp %s -o %t && %t
+// clang-format on
 
 struct run_test {
   __qpu__ auto operator()() {
-    cudaq::qubit q,p,r;
+    cudaq::qubit q, p, r;
 
     h(r);
 
@@ -20,14 +22,14 @@ struct run_test {
     if (true) {
       x(q);
       x(r);
-      x<cudaq::ctrl>(q,p);
+      x<cudaq::ctrl>(q, p);
     } else {
       if (true)
         x(p);
       else
         x(p);
       y(q);
-      x<cudaq::ctrl>(q,r);
+      x<cudaq::ctrl>(q, r);
     }
 
     bool b = mz(r);

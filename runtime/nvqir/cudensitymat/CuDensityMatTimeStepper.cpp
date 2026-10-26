@@ -15,7 +15,7 @@
 namespace cudaq {
 CuDensityMatTimeStepper::CuDensityMatTimeStepper(
     cudensitymatHandle_t handle, cudensitymatOperator_t liouvillian)
-    : m_handle(handle), m_liouvillian(liouvillian){};
+    : m_handle(handle), m_liouvillian(liouvillian) {};
 
 state CuDensityMatTimeStepper::compute(
     const state &inputState, double t,
@@ -34,6 +34,28 @@ state CuDensityMatTimeStepper::compute(
               state.getBatchSize());
   return cudaq::state(
       std::make_unique<CuDensityMatState>(std::move(next_state)).release());
+}
+
+void CuDensityMatTimeStepper::computeInto(
+    const CuDensityMatState &inputState, CuDensityMatState &outputState,
+    double t,
+    const std::unordered_map<std::string, std::complex<double>> &parameters) {
+  assert(outputState.has_same_shape(inputState));
+  // The operator action accumulates into the output state.
+  outputState.set_zero();
+  computeImpl(inputState.get_impl(), outputState.get_impl(), t, parameters,
+              inputState.getBatchSize());
+}
+
+CuDensityMatState &
+CuDensityMatTimeStepper::workspaceState(std::size_t index,
+                                        const CuDensityMatState &like) {
+  if (index >= m_workspaceStates.size())
+    m_workspaceStates.resize(index + 1);
+  auto &state = m_workspaceStates[index];
+  if (!state || !state->has_same_shape(like))
+    state = CuDensityMatState::mpi_buffer_like(like);
+  return *state;
 }
 
 void CuDensityMatTimeStepper::computeImpl(
@@ -85,7 +107,6 @@ void CuDensityMatTimeStepper::computeImpl(
   }
   double *param_d =
       static_cast<double *>(cudaq::dynamics::createArrayGpu(paramValues));
-  HANDLE_CUDA_ERROR(cudaDeviceSynchronize());
   {
     cudaq::dynamics::PerfMetricScopeTimer metricTimer(
         "cudensitymatOperatorComputeAction");

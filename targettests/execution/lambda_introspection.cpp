@@ -6,9 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// RUN: nvq++ --enable-mlir %s -o %t && %t | FileCheck %s
+// RUN: nvq++ %s -o %t && %t | FileCheck %s
 // RUN: if [ $(echo | cut -c4- ) -ge 20 ]; then \
-// RUN:   nvq++ --enable-mlir %s -o %t && %t | FileCheck %s; \
+// RUN:   nvq++ %s -o %t && %t | FileCheck %s; \
 // RUN: fi
 
 #include <cudaq.h>
@@ -57,7 +57,9 @@ int main() {
   return 0;
 }
 
+// clang-format off
 // CHECK: 2: module {{.*}} func.func @__nvqpp__mlirgen__Z4mainE3$_0() attributes {
 // CHECK: 3: module {{.*}} func.func @__nvqpp__mlirgen__Z4mainE3$_1() attributes {
 // CHECK: 4: module {{.*}} func.func @__nvqpp__mlirgen__ghz{{.*}}() attributes {{{.*}}"cudaq-entrypoint"{{.*}}} {
 // CHECK: 5: module {{.*}} func.func @__nvqpp__mlirgen__Z8functionvE3$_0() attributes {
+// clang-format on

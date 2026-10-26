@@ -18,9 +18,11 @@ target_include_directories(cudaq-builder PUBLIC
 target_link_libraries(cudaq-builder
   PRIVATE
     cudaq
+    cudaq-logger
     fmt::fmt-header-only
     nvqir
     cudaq-mlir-runtime
+    cudaqMLIR
 )
 
-install(TARGETS cudaq-builder DESTINATION lib)
+install(TARGETS cudaq-builder DESTINATION lib COMPONENT Runtime)

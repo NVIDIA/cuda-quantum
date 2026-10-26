@@ -11,10 +11,10 @@
 // nvq++ --target dynamics qubit_dynamics.cpp -o a.out && ./a.out
 // ```
 
+#include "export_csv_helper.h"
 #include "cudaq/algorithms/evolve.h"
 #include "cudaq/algorithms/integrator.h"
 #include "cudaq/operators.h"
-#include "export_csv_helper.h"
 #include <cudaq.h>
 
 int main() {

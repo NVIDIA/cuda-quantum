@@ -6,11 +6,13 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "common/Logger.h"
-#include "cudaq.h"
+#include "DeviceCodeRegistry.h"
+#include "cudaq/qis/qkernel.h"
+#include "cudaq/runtime/logger/logger.h"
+#include <algorithm>
 #include <map>
+#include <mutex>
 #include <shared_mutex>
-#include <string>
 #include <vector>
 
 // Shared mutex to guard concurrent access to global kernel data (e.g.,
@@ -60,6 +62,15 @@ static std::map<std::string, void *> runnableKernelRegistry;
 void cudaq::registry::cudaqRegisterKernelName(const char *kernelName) {
   std::unique_lock<std::shared_mutex> lock(globalRegistryMutex);
   kernelRegistry.emplace_back(kernelName);
+}
+
+static std::map<std::string, std::pair<void *, void *>> callbackRegistry;
+
+void cudaq::registry::cudaqRegisterCallbackName(const char *name,
+                                                void *unmarshalFunc,
+                                                void *devFunc) {
+  std::unique_lock<std::shared_mutex> lock(globalRegistryMutex);
+  callbackRegistry[name] = {unmarshalFunc, devFunc};
 }
 
 void cudaq::registry::__cudaq_registerRunnableKernel(const char *kernelName,
@@ -112,6 +123,12 @@ const char *cudaq::registry::__cudaq_getLinkableKernelName(std::intptr_t key) {
 
 void *
 cudaq::registry::__cudaq_getLinkableKernelDeviceFunction(std::intptr_t key) {
+  if (key & 1) {
+    // This is a python kernel decorator. The key is the function address | 1.
+    // Python kernel decorators are never initialized via .init sections and are
+    // not part of the C++ runtime.
+    return reinterpret_cast<void *>(key ^ 1);
+  }
   auto iter = linkableKernelRegistry.find(reinterpret_cast<void *>(key));
   if (iter != linkableKernelRegistry.end())
     return iter->second.second;
@@ -135,10 +152,6 @@ bool cudaq::detail::isKernelGenerated(const std::string &kernelName) {
   std::shared_lock<std::shared_mutex> lock(globalRegistryMutex);
   return std::find(kernelRegistry.begin(), kernelRegistry.end(), kernelName) !=
          kernelRegistry.end();
-}
-
-bool cudaq::__internal__::isLibraryMode(const std::string &kernelname) {
-  return !detail::isKernelGenerated(kernelname);
 }
 
 //===----------------------------------------------------------------------===//
@@ -190,12 +203,13 @@ std::string get_quake_by_name(const std::string &kernelName,
 }
 
 std::string get_quake_by_name(const std::string &kernelName) {
-  return get_quake_by_name(kernelName, true);
+  return get_quake_by_name(kernelName, /*throwException=*/true);
 }
 
 std::string get_quake_by_name(const std::string &kernelName,
                               std::optional<std::string> knownMangledArgs) {
-  return get_quake_by_name(kernelName, true, knownMangledArgs);
+  return get_quake_by_name(kernelName, /*throwException=*/true,
+                           knownMangledArgs);
 }
 
 bool kernelHasConditionalFeedback(const std::string &kernelName) {

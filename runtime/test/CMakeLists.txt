@@ -6,25 +6,133 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# Hybrid test. Build the executable like any of the other tools, but
+# Hybrid tests. Build the executable like any of the other tools, but
 # run it like it was a lit test.
-set(TEST_NAME test_argument_conversion)
-
-add_llvm_executable(${TEST_NAME} test_argument_conversion.cpp)
-
-target_compile_options(${TEST_NAME} PUBLIC -Wno-type-limits -fexceptions)
-
-target_include_directories(${TEST_NAME}
-  PUBLIC
-    ${CMAKE_SOURCE_DIR}/runtime
-)
-
 link_directories(${CMAKE_BINARY_DIR}/lib)
 
-target_link_libraries(${TEST_NAME}
-  PUBLIC
-    cudaq-mlir-runtime
-    cudaq
-)
+function(add_cudaq_hybrid_test TEST_NAME)
+  add_llvm_executable(${TEST_NAME} Regress/${TEST_NAME}.cpp PARTIAL_SOURCES_INTENDED)
 
-set_property(TARGET ${TEST_NAME} PROPERTY FOLDER test)
+  target_compile_options(${TEST_NAME} PUBLIC -Wno-type-limits -fexceptions -DCUDAQ_RTTI_DISABLED)
+
+  target_include_directories(${TEST_NAME}
+    PUBLIC
+      ${CMAKE_SOURCE_DIR}/runtime
+  )
+
+  target_link_libraries(${TEST_NAME}
+    PUBLIC
+      cudaq-mlir-runtime
+      cudaq
+      cudaq-platform-default
+      cudaqMLIR)
+
+  # On GCC, the default is --as-needed for linking, so the nvqir
+  # simulation plugin (whose symbols are only referenced by JIT-generated
+  # code, never directly by this executable's own compiled sources) may
+  # get dropped. This works as-is on Clang; force it here for GCC.
+  if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+    target_link_options(${TEST_NAME} PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
+  endif()
+
+  set_property(TARGET ${TEST_NAME} PROPERTY FOLDER test)
+endfunction()
+
+add_cudaq_hybrid_test(argument_conversion)
+add_cudaq_hybrid_test(compile_target)
+add_cudaq_hybrid_test(compile_target_conditional_feedback_crash)
+add_cudaq_hybrid_test(resource_count_phase)
+add_cudaq_hybrid_test(resource_count_qubit_indices)
+add_cudaq_hybrid_test(resource_count_wireset)
+
+# profile_stages exercises pure C++ inferred-stage planning; no MLIR/runtime
+# closure.
+add_executable(profile_stages Regress/profile_stages.cpp
+               ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/JITTargetPipeline.cpp
+               ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/LoweringHandler.cpp
+               ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/QuakeReferenceSemanticsHandler.cpp)
+target_include_directories(profile_stages PRIVATE
+                           ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/include
+                           ${CMAKE_SOURCE_DIR}/runtime
+                           ${CMAKE_SOURCE_DIR}/runtime/include
+                           ${CMAKE_SOURCE_DIR}/runtime/cudaq
+                           ${CMAKE_SOURCE_DIR}/cudaq/include)
+target_link_libraries(profile_stages PRIVATE CUDAQTargetConfig cudaq-logger)
+set_target_properties(profile_stages PROPERTIES
+                      RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
+# profile_providers checks that the pipelines planned from the actual IonQ,
+# Fermioniq, and Quantinuum catalog entries (through the production lowering
+# handlers) are exactly the expected inferred lowerings.
+add_executable(profile_providers Regress/profile_providers.cpp
+               ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/JITTargetPipeline.cpp
+               ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/LoweringHandler.cpp
+               ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/QuakeReferenceSemanticsHandler.cpp)
+target_include_directories(profile_providers PRIVATE
+                           ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/include
+                           ${CMAKE_SOURCE_DIR}/runtime
+                           ${CMAKE_SOURCE_DIR}/runtime/include
+                           ${CMAKE_SOURCE_DIR}/runtime/cudaq
+                           ${CMAKE_SOURCE_DIR}/cudaq/include)
+target_link_libraries(profile_providers PRIVATE CUDAQTargetCatalog cudaq-logger)
+set_target_properties(profile_providers PROPERTIES
+                      RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
+# lit-based regression testing over the hybrid tests above. Each is a
+# self-contained executable invoked directly by its own embedded RUN line
+# (see add_cudaq_hybrid_test). This gives the runtime subsystem its own
+# llvm-lit test area, separate from cudaq/test, so these tests are not
+# piggybacking on the cudaq lit suite for their test infrastructure.
+if (CUDAQ_BUILD_TESTS AND NOT CUDAQ_DISABLE_CPP_FRONTEND)
+  if(NOT TARGET FileCheck)
+    add_executable(FileCheck IMPORTED)
+    set_target_properties(FileCheck PROPERTIES IMPORTED_LOCATION "/usr/local/llvm/bin/FileCheck")
+  endif()
+
+  configure_lit_site_cfg(
+    ${CMAKE_CURRENT_SOURCE_DIR}/lit.site.cfg.py.in
+    ${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg.py
+    MAIN_CONFIG
+    ${CMAKE_CURRENT_SOURCE_DIR}/lit.cfg.py
+  )
+
+  set(RUNTIME_TEST_PARAMS
+    cudaq_site_config=${CMAKE_CURRENT_BINARY_DIR}/lit.site.cfg.py)
+
+  set(RUNTIME_TEST_DEPENDS
+    FileCheck
+    argument_conversion
+    compile_target
+    compile_target_conditional_feedback_crash
+    profile_providers
+    profile_stages
+    resource_count_phase
+    resource_count_qubit_indices
+    resource_count_wireset
+  )
+
+  add_custom_target(runtime-test-depends DEPENDS ${RUNTIME_TEST_DEPENDS})
+  set_target_properties(runtime-test-depends PROPERTIES FOLDER "Tests")
+
+  add_lit_testsuite(check-runtime "Running the runtime regression tests"
+    ${CMAKE_CURRENT_BINARY_DIR}
+    PARAMS ${RUNTIME_TEST_PARAMS}
+    DEPENDS ${RUNTIME_TEST_DEPENDS}
+  )
+  set_target_properties(check-runtime PROPERTIES FOLDER "Tools")
+
+  # Add runtime tests to the ctest suite.
+  add_test(NAME ctest-runtime
+    COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR} --target check-runtime
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+  # This test runs llvm-lit internally with parallelism, so have ctest
+  # reserve all processors to prevent concurrent scheduling.
+  include(ProcessorCount)
+  ProcessorCount(NPROC)
+  if(NPROC EQUAL 0)
+    set(NPROC 1)
+  endif()
+  set_tests_properties(ctest-runtime PROPERTIES
+    TIMEOUT 3600
+    PROCESSORS ${NPROC})
+endif()

@@ -1,0 +1,230 @@
+#!/bin/bash
+
+# ============================================================================ #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+checkServerConnection() {
+  PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ - << EOF
+import socket
+try:
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.connect(("localhost", 62453))
+    s.close()
+except Exception:
+    exit(1)
+EOF
+}
+
+# Launch the fake server
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  LIB_EXT="dylib"
+else
+  LIB_EXT="so"
+fi
+
+
+PYTHONPATH=@CMAKE_BINARY_DIR@/python:@CMAKE_SOURCE_DIR@/python/tests/utils/mock_qpu @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/mock_server.py -device-lib @CMAKE_BINARY_DIR@/unittests/nvqpp/backends/quake_backend/libfake_quake_backend_device_funcs.$LIB_EXT &
+# we'll need the process id to kill it
+pid=$(echo "$!")
+n=0
+while ! checkServerConnection; do
+  sleep 1
+  n=$((n+1))
+  if [ "$n" -eq "60" ]; then
+    echo "Failed to start the server after 20 seconds"
+    # kill the server
+    kill -INT $pid
+    exit 99
+  fi
+done
+
+echo "Server started successfully"
+test_err_sum=0
+# Test the app nvq++ (remote execution on the mock server)
+PATH=@CMAKE_BINARY_DIR@/bin:$PATH nvq++ --target quake_fake @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/test_app.cpp -o test_app
+if [ $? -ne 0 ]; then
+  echo ":x: nvq++ compilation failed"
+  test_err_sum=$((test_err_sum+1))
+else
+  echo ":white_check_mark: Successfully compiled test_app with nvq++"
+  # Run the test app
+  ./test_app
+  if [ $? -ne 0 ]; then
+    echo ":x: test_app failed"
+    test_err_sum=$((test_err_sum+1))
+  else
+    echo ":white_check_mark: Successfully ran test_app"
+  fi
+fi
+
+# Scalar-return test with client-side qubit mapping enabled explicitly.
+PATH=@CMAKE_BINARY_DIR@/bin:$PATH nvq++ --target quake_fake --mapping-file @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/mapping_device.txt @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/test_mapping_app.cpp -o test_mapping_app
+if [ $? -ne 0 ]; then
+  echo ":x: nvq++ compilation failed for test_mapping_app"
+  test_err_sum=$((test_err_sum+1))
+else
+  echo ":white_check_mark: Successfully compiled test_mapping_app with nvq++"
+  ./test_mapping_app
+  if [ $? -ne 0 ]; then
+    echo ":x: test_mapping_app failed"
+    test_err_sum=$((test_err_sum+1))
+  else
+    echo ":white_check_mark: Successfully ran test_mapping_app"
+  fi
+fi
+
+# Verify a nontrivial CX network against a forward-only device topology. The
+# mock server checks every mapped CX direction before executing the payload.
+PATH=@CMAKE_BINARY_DIR@/bin:$PATH nvq++ --target quake_fake --mapping-file @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/directional_mapping_device.txt @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/test_directional_mapping_app.cpp -o test_directional_mapping_app
+if [ $? -ne 0 ]; then
+  echo ":x: nvq++ compilation failed for test_directional_mapping_app"
+  test_err_sum=$((test_err_sum+1))
+else
+  echo ":white_check_mark: Successfully compiled test_directional_mapping_app with nvq++"
+  ./test_directional_mapping_app
+  if [ $? -ne 0 ]; then
+    echo ":x: test_directional_mapping_app failed"
+    test_err_sum=$((test_err_sum+1))
+  else
+    echo ":white_check_mark: Successfully ran test_directional_mapping_app"
+  fi
+fi
+
+# Loop remote execution test. CUDAQ_DUMP_JIT_IR validates that the client
+# preserves cc.loop operations, and the mock server validates and executes the
+# submitted payload.
+PATH=@CMAKE_BINARY_DIR@/bin:$PATH nvq++ --target quake_fake @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/test_loop_app.cpp -o test_loop_app
+if [ $? -ne 0 ]; then
+  echo ":x: nvq++ compilation failed for test_loop_app"
+  test_err_sum=$((test_err_sum+1))
+else
+  echo ":white_check_mark: Successfully compiled test_loop_app with nvq++"
+  CUDAQ_DUMP_JIT_IR=1 ./test_loop_app > test_loop_app.out 2>&1
+  if [ $? -ne 0 ]; then
+    echo ":x: test_loop_app failed"
+    cat test_loop_app.out
+    test_err_sum=$((test_err_sum+1))
+  else
+    loop_count=$(grep -c "cc.loop" test_loop_app.out)
+    # Expected loops: the nested for lowers to two cc.loop ops, and the while
+    # lowers to one.
+    if [ "$loop_count" -lt 3 ]; then
+      echo ":x: test_loop_app client IR did not preserve expected cc.loop ops"
+      cat test_loop_app.out
+      test_err_sum=$((test_err_sum+1))
+    else
+      echo ":white_check_mark: Successfully ran test_loop_app with preserved client loops"
+    fi
+  fi
+fi
+
+# External quantum call test. The mock server checks that the call reaches it
+# in wire form, then erases it.
+PATH=@CMAKE_BINARY_DIR@/bin:$PATH nvq++ --target quake_fake @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/test_extern_call.cpp -o test_extern_call @CMAKE_BINARY_DIR@/unittests/nvqpp/backends/quake_backend/libfake_quake_backend_device_funcs.$LIB_EXT
+if [ $? -ne 0 ]; then
+  echo ":x: nvq++ compilation failed for test_extern_call"
+  test_err_sum=$((test_err_sum+1))
+else
+  echo ":white_check_mark: Successfully compiled test_extern_call with nvq++"
+  CUDAQ_DUMP_JIT_IR=1 ./test_extern_call > test_extern_call.out 2>&1
+  if [ $? -ne 0 ]; then
+    echo ":x: test_extern_call failed"
+    cat test_extern_call.out
+    test_err_sum=$((test_err_sum+1))
+  elif ! grep -q "quake.apply @__qm__wait_function" test_extern_call.out; then
+    echo ":x: test_extern_call client IR is missing the wire-form external call"
+    cat test_extern_call.out
+    test_err_sum=$((test_err_sum+1))
+  else
+    echo ":white_check_mark: Successfully ran test_extern_call"
+  fi
+fi
+
+# Emulation test
+# Note: for emulation, we need to link in the device library. 
+PATH=@CMAKE_BINARY_DIR@/bin:$PATH nvq++ --target quake_fake --emulate @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/test_app.cpp -o test_app @CMAKE_BINARY_DIR@/unittests/nvqpp/backends/quake_backend/libfake_quake_backend_device_funcs.$LIB_EXT
+if [ $? -ne 0 ]; then
+  echo ":x: nvq++ compilation failed"
+  test_err_sum=$((test_err_sum+1))
+else
+  echo ":white_check_mark: Successfully compiled test_app (emulation) with nvq++"
+  # Run the test app
+  ./test_app
+  if [ $? -ne 0 ]; then
+    echo ":x: test_app failed"
+    test_err_sum=$((test_err_sum+1))
+  else
+    echo ":white_check_mark: Successfully ran test_app (emulation)"
+  fi
+fi
+
+# Loop emulation test. This covers structured control flow that survives the
+# target pipeline before local wire-set-to-QIR lowering.
+PATH=@CMAKE_BINARY_DIR@/bin:$PATH nvq++ --target quake_fake --emulate @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/test_loop_app.cpp -o test_loop_app_emulate
+if [ $? -ne 0 ]; then
+  echo ":x: nvq++ compilation failed for test_loop_app (emulation)"
+  test_err_sum=$((test_err_sum+1))
+else
+  echo ":white_check_mark: Successfully compiled test_loop_app (emulation) with nvq++"
+  ./test_loop_app_emulate
+  if [ $? -ne 0 ]; then
+    echo ":x: test_loop_app failed (emulation)"
+    test_err_sum=$((test_err_sum+1))
+  else
+    echo ":white_check_mark: Successfully ran test_loop_app (emulation)"
+  fi
+fi
+
+# Run the Python test
+PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/test_app.py
+if [ $? -ne 0 ]; then
+  echo ":x: Python test_app.py failed"
+  test_err_sum=$((test_err_sum+1))
+else
+  echo ":white_check_mark: Successfully ran Python test_app.py"
+fi
+
+# The `cudaq.kernel(external=True)` spelling of the C++ test above.
+CUDAQ_DUMP_JIT_IR=1 PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/test_extern_call.py > test_extern_call.py.out 2>&1
+if [ $? -ne 0 ]; then
+  echo ":x: Python test_extern_call.py failed"
+  cat test_extern_call.py.out
+  test_err_sum=$((test_err_sum+1))
+elif ! grep -q "quake.apply @wait" test_extern_call.py.out; then
+  echo ":x: test_extern_call.py client IR is missing the wire-form external call"
+  cat test_extern_call.py.out
+  test_err_sum=$((test_err_sum+1))
+else
+  echo ":white_check_mark: Successfully ran Python test_extern_call.py"
+fi
+
+# Python loop remote execution test. CUDAQ_DUMP_JIT_IR validates that the Python
+# client preserves cc.loop operations for the nop codegen path.
+CUDAQ_DUMP_JIT_IR=1 PYTHONPATH=@CMAKE_BINARY_DIR@/python @Python_EXECUTABLE@ @CMAKE_SOURCE_DIR@/unittests/nvqpp/backends/quake_backend/test_loop_app.py > test_loop_app.py.out 2>&1
+if [ $? -ne 0 ]; then
+  echo ":x: Python test_loop_app.py failed"
+  cat test_loop_app.py.out
+  test_err_sum=$((test_err_sum+1))
+else
+  loop_count=$(grep -c "cc.loop" test_loop_app.py.out)
+  if [ "$loop_count" -lt 3 ]; then
+    echo ":x: Python test_loop_app.py client IR did not preserve expected cc.loop ops"
+    cat test_loop_app.py.out
+    test_err_sum=$((test_err_sum+1))
+  else
+    echo ":white_check_mark: Successfully ran Python test_loop_app.py with preserved client loops"
+  fi
+fi
+
+# kill the server
+kill -INT $pid
+# return success / failure
+if [ ! $test_err_sum -eq 0 ]; then
+  echo "::error::${test_err_sum} tests failed."
+  exit 1
+fi

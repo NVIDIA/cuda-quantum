@@ -8,38 +8,24 @@
 
 #pragma once
 
+#include "CompiledModule.h"
 #include "ExecutionContext.h"
 #include "Future.h"
+#include "KernelExecution.h"
 #include "Registry.h"
+#include "Resources.h"
 #include "RuntimeTarget.h"
 #include "SampleResult.h"
 #include "common/RecordLogParser.h"
-#include "nlohmann/json.hpp"
+#include "cudaq_json.h"
 #include <filesystem>
+#include <map>
 
 namespace cudaq {
 
 /// @brief Typedef for a mapping of key-values describing the remote server
 /// configuration.
 using BackendConfig = std::map<std::string, std::string>;
-
-/// @brief Every kernel execution has a name, compiled code representation, and
-/// (optionally) an output_names mapping showing how each Result maps back
-/// to the original program's Qubits.
-struct KernelExecution {
-  std::string name;
-  std::string code;
-  nlohmann::json output_names;
-  std::vector<std::size_t> mapping_reorder_idx;
-  nlohmann::json user_data;
-  KernelExecution(std::string &n, std::string &c, nlohmann::json &o,
-                  std::vector<std::size_t> &m)
-      : name(n), code(c), output_names(o), mapping_reorder_idx(m) {}
-  KernelExecution(std::string &n, std::string &c, nlohmann::json &o,
-                  std::vector<std::size_t> &m, nlohmann::json &ud)
-      : name(n), code(c), output_names(o), mapping_reorder_idx(m),
-        user_data(ud) {}
-};
 
 /// @brief Responses / Submissions to the Server are modeled via JSON
 using ServerMessage = nlohmann::json;
@@ -148,9 +134,12 @@ public:
   virtual cudaq::sample_result processResults(ServerMessage &postJobResponse,
                                               std::string &jobId) = 0;
 
-  /// @brief Adjust the compiler pass pipeline (if desired)
-  virtual void updatePassPipeline(const std::filesystem::path &platformPath,
-                                  std::string &passPipeline) {}
+  /// @brief Return placeholder substitutions for config-derived pipeline
+  /// stages.
+  virtual std::map<std::string, std::string>
+  getPipelineSubstitutions(const std::filesystem::path &platformPath) {
+    return {};
+  }
 
   /// @brief Set the runtime target information
   void setRuntimeTarget(const RuntimeTarget &target) { runtimeTarget = target; }
@@ -174,17 +163,7 @@ public:
   createSampleResultFromQirOutput(const std::string &qirOutputLog) {
     // Parse the QIR output log
     cudaq::RecordLogParser parser;
-    parser.parse(qirOutputLog);
-
-    // Get the buffer and length of buffer (in bytes) from the parser.
-    auto *origBuffer = parser.getBufferPtr();
-    std::size_t bufferSize = parser.getBufferSize();
-    char *buffer = static_cast<char *>(malloc(bufferSize));
-    std::memcpy(buffer, origBuffer, bufferSize);
-
-    std::vector<std::vector<bool>> results = {
-        reinterpret_cast<std::vector<bool> *>(buffer),
-        reinterpret_cast<std::vector<bool> *>(buffer + bufferSize)};
+    auto results = parser.parseResults(qirOutputLog);
     const auto numShots = results.size();
     // Create the counts dictionary
     cudaq::CountsDictionary globalCounts;

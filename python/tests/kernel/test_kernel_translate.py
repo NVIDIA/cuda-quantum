@@ -8,6 +8,7 @@
 
 import pytest
 import cudaq
+import re
 
 import numpy as np
 
@@ -57,14 +58,50 @@ def kernel_with_call():
     inner()
 
 
+@cudaq.kernel
+def kernel_returns_bool() -> bool:
+    return False
+
+
+@cudaq.kernel
+def kernel_measures_and_returns() -> bool:
+    q = cudaq.qubit()
+    x(q)
+    return mz(q)
+
+
 def test_translate_openqasm():
     asm = cudaq.translate(bell_pair, format="openqasm2")
     assert "qreg var0[2];" in asm
 
 
+def test_translate_openqasm_negated_custom_control():
+    cudaq.register_operation("custom_x", np.array([[0, 1], [1, 0]]))
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(2)
+        h(q[0])
+        x(q[1])
+        custom_x.ctrl(~q[0], q[1])
+
+    @cudaq.kernel
+    def reference():
+        q = cudaq.qvector(2)
+        h(q[0])
+        x(q[1])
+        x(q[0])
+        custom_x.ctrl(q[0], q[1])
+        x(q[0])
+
+    assert cudaq.translate(kernel, format="openqasm2") == cudaq.translate(
+        reference, format="openqasm2")
+
+
 def test_translate_openqasm_with_ignored_args():
-    asm = cudaq.translate(bell_pair, 5, format="openqasm2")
-    assert "qreg var0[2];" in asm
+    with pytest.raises(RuntimeError) as e:
+        asm = cudaq.translate(bell_pair, 5, format="openqasm2")
+    assert 'Invalid number of argu' in repr(e)
 
 
 def test_translate_openqasm_loop():
@@ -74,48 +111,53 @@ def test_translate_openqasm_loop():
 
 def test_translate_openqasm_vector():
     asm = cudaq.translate(kernel_vector, format="openqasm2")
-    assert "qreg var0[2];" in asm
+    assert 'translation failed' in asm
 
 
 def test_translate_openqasm_with_args():
     with pytest.raises(RuntimeError) as e:
         print(cudaq.translate(kernel_loop_params, 5, format="openqasm2"))
-    assert 'Cannot translate function with arguments to OpenQASM 2.0.' in repr(
-        e)
+    assert 'Use synthesize before translate' in repr(e)
 
 
 def test_translate_openqasm_synth():
     synth = cudaq.synthesize(kernel_loop_params, 4)
-
     asm = cudaq.translate(synth, format="openqasm2")
     assert "measure var0[3] -> var8[0]" in asm
 
 
 def test_translate_openqasm_call():
-    # error: 'cc.instantiate_callable' op unable to translate op to OpenQASM 2.0
-    with pytest.raises(RuntimeError) as e:
-        print(cudaq.translate(kernel_with_call, format="openqasm2"))
-    assert 'getASM: failed to translate to OpenQASM.' in repr(e)
+    asm = cudaq.translate(kernel_with_call, format="openqasm2")
+    assert 'qreg var0[2];' in asm
+
+
+def test_translate_openqasm_return_typed_kernel():
+    asm = cudaq.translate(kernel_returns_bool, format="openqasm2")
+    assert "OPENQASM 2.0;" in asm
 
 
 def test_translate_qir():
     qir = cudaq.translate(bell_pair, format="qir")
-    assert "%1 = tail call %Array* @__quantum__rt__qubit_allocate_array(i64 2)" in qir
+    pattern = r"call .* @__quantum__rt__qubit_allocate.*call .* @__quantum__rt__qubit_allocate"
+    assert re.search(pattern, qir, re.DOTALL), f"{qir} content mismatch"
 
 
 def test_translate_qir_ignored_args():
-    qir = cudaq.translate(bell_pair, 5, format="qir")
-    assert "%1 = tail call %Array* @__quantum__rt__qubit_allocate_array(i64 2)" in qir
+    with pytest.raises(RuntimeError) as e:
+        qir = cudaq.translate(bell_pair, 5, format="qir")
+    assert 'Invalid number of argu' in repr(e)
 
 
 def test_translate_qir_with_args():
     qir = cudaq.translate(kernel_loop_params, 5, format="qir")
-    assert "%2 = tail call %Array* @__quantum__rt__qubit_allocate_array(i64 %0)" in qir
+    pattern = r"call .* @__quantum__rt__qubit_allocate.*call .* @__quantum__rt__qubit_allocate.*call .* @__quantum__rt__qubit_allocate.*call .* @__quantum__rt__qubit_allocate.*call .* @__quantum__rt__qubit_allocate"
+    assert re.search(pattern, qir, re.DOTALL), f"{qir} content mismatch"
 
 
 def test_translate_qir_call():
     qir = cudaq.translate(kernel_with_call, format="qir")
-    assert "%2 = tail call %Array* @__quantum__rt__qubit_allocate_array(i64 2)" in qir
+    pattern = r"call .* @__quantum__rt__qubit_allocate.*call .* @__quantum__rt__qubit_allocate"
+    assert not re.search(pattern, qir, re.DOTALL), f"{qir} content mismatch"
 
 
 def test_translate_qir_base():
@@ -124,14 +166,16 @@ def test_translate_qir_base():
 
 
 def test_translate_qir_base_ignored_args():
-    qir = cudaq.translate(bell_pair, 5, format="qir-base")
-    assert '"qir_profiles"="base_profile"' in qir
+    with pytest.raises(RuntimeError) as e:
+        qir = cudaq.translate(bell_pair, 5, format="qir-base")
+    assert 'Invalid number of argu' in repr(e)
 
 
 def test_translate_qir_base_args():
-    synth = cudaq.synthesize(kernel_loop_params, 5)
-    qir = cudaq.translate(synth, 5, format="qir-base")
-    assert '"qir_profiles"="base_profile"' in qir
+    with pytest.raises(RuntimeError) as e:
+        synth = cudaq.synthesize(kernel_loop_params, 5)
+        qir = cudaq.translate(synth, 5, format="qir-base")
+    assert 'Invalid number of argu' in repr(e)
 
 
 def test_translate_qir_adaptive():
@@ -140,11 +184,38 @@ def test_translate_qir_adaptive():
 
 
 def test_translate_qir_adaptive_ignored_args():
-    qir = cudaq.translate(bell_pair, 5, format="qir-adaptive")
-    assert '"qir_profiles"="adaptive_profile"' in qir
+    with pytest.raises(RuntimeError) as e:
+        qir = cudaq.translate(bell_pair, 5, format="qir-adaptive")
+    assert 'Invalid number of argu' in repr(e)
 
 
 def test_translate_qir_adaptive_args():
-    synth = cudaq.synthesize(kernel_loop_params, 5)
-    qir = cudaq.translate(synth, 5, format="qir-adaptive")
-    assert '"qir_profiles"="adaptive_profile"' in qir
+    with pytest.raises(RuntimeError) as e:
+        synth = cudaq.synthesize(kernel_loop_params, 5)
+        qir = cudaq.translate(synth, 5, format="qir-adaptive")
+    assert 'Invalid number of argu' in repr(e)
+
+
+def test_translate_qir_return_typed_kernel():
+    qir = cudaq.translate(kernel_returns_bool, format="qir")
+    assert "define i1 @__nvqpp__mlirgen__" in qir
+    assert "ret i1 false" in qir
+
+
+@pytest.mark.parametrize("fmt,expected", [
+    ("qir", "define i1 @__nvqpp__mlirgen__"),
+    ("qir-base", '"qir_profiles"="base_profile"'),
+    ("qir-adaptive", '"qir_profiles"="adaptive_profile"'),
+])
+def test_translate_return_typed_kernel_qir_profiles(fmt, expected):
+    qir = cudaq.translate(kernel_measures_and_returns, format=fmt)
+    assert expected in qir
+
+
+def test_translate_qir_return_typed_kernel_with_emulated_target():
+    cudaq.set_target("ionq", emulate=True)
+    try:
+        qir = cudaq.translate(kernel_returns_bool, format="qir")
+        assert "ret i1 false" in qir
+    finally:
+        cudaq.reset_target()

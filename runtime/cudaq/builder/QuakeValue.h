@@ -39,7 +39,7 @@ protected:
   /// @brief Pointer to the OpBuilder we are using
   mlir::ImplicitLocOpBuilder &opBuilder;
 
-  /// @brief For Values of StdVecType, we might be able
+  /// @brief For Values of SequenceType, we might be able
   /// to validate that the number of required unique elements
   /// is equal to the number provided as input at runtime.
   bool canValidateVectorNumElements = true;
@@ -66,7 +66,7 @@ public:
   /// @brief Dump the QuakeValue to the given output stream.
   void dump(std::ostream &);
 
-  /// @brief Return true if this QuakeValue of StdVecType can
+  /// @brief Return true if this QuakeValue of SequenceType can
   /// validate its number of unique elements. We cannot do this in the
   /// case of QuakeValue extractions within for loops where we do not know
   /// the bounds of the loop.
@@ -76,7 +76,7 @@ public:
   /// starting at the given startIdx and including the following count elements.
   QuakeValue slice(const std::size_t startIdx, const std::size_t count);
 
-  /// @brief For a QuakeValue with type StdVec or Veq, return
+  /// @brief For a QuakeValue with type Sequence or Veq, return
   /// the size QuakeValue.
   QuakeValue size();
 
@@ -84,22 +84,22 @@ public:
   /// if it is of Veq type.
   std::optional<std::size_t> constantSize();
 
-  /// @brief Return true if this QuakeValue is of type StdVec.
+  /// @brief Return true if this QuakeValue is of type Sequence.
   /// @return
-  bool isStdVec();
+  bool isSequence();
 
-  /// @brief For a QuakeValue of type StdVec, return the
+  /// @brief For a QuakeValue of type Sequence, return the
   /// number of required elements, i.e. the number of unique
   /// extractions observed.
   std::size_t getRequiredElements();
 
   /// @brief Return a new QuakeValue when the current value
-  /// is indexed, specifically for QuakeValues of type StdVecType
+  /// is indexed, specifically for QuakeValues of type SequenceType
   /// and VeqType.
   QuakeValue operator[](const std::size_t idx);
 
   /// @brief Return a new QuakeValue when the current value
-  /// is indexed, specifically for QuakeValues of type StdVecType
+  /// is indexed, specifically for QuakeValues of type SequenceType
   /// and VeqType.
   QuakeValue operator[](const QuakeValue &idx);
 

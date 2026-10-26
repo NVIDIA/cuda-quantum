@@ -40,12 +40,20 @@ MPI_Datatype convertType(DataType dataType) {
   switch (dataType) {
   case INT_8:
     return MPI_INT8_T;
+  case UINT_8:
+    return MPI_UINT8_T;
   case INT_16:
     return MPI_INT16_T;
+  case UINT_16:
+    return MPI_UINT16_T;
   case INT_32:
     return MPI_INT32_T;
+  case UINT_32:
+    return MPI_UINT32_T;
   case INT_64:
     return MPI_INT64_T;
+  case UINT_64:
+    return MPI_UINT64_T;
   case FLOAT_32:
     return MPI_FLOAT;
   case FLOAT_64:
@@ -98,7 +106,7 @@ MPI_Comm unpackMpiCommunicator(const cudaqDistributedCommunicator_t *comm) {
 struct PendingRequest {
   MPI_Request requests[2] = {MPI_REQUEST_NULL, MPI_REQUEST_NULL};
   int nActiveRequests;
-  PendingRequest() : nActiveRequests(0){};
+  PendingRequest() : nActiveRequests(0) {};
   static std::mutex g_mutex;
   static std::unordered_map<const cudaqDistributedCommunicator_t *,
                             PendingRequest>

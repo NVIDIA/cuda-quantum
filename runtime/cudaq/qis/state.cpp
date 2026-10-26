@@ -8,23 +8,37 @@
 
 #include "state.h"
 #include "common/EigenDense.h"
-#include "common/FmtCore.h"
-#include "common/Logger.h"
 #include "cudaq/simulators.h"
 #include <iostream>
+#include <limits>
+
+namespace {
+/// Create a shared pointer that calls destroyState at destruction.
+std::shared_ptr<cudaq::SimulationState>
+makeSharedSimulationState(cudaq::SimulationState *ptrToOwn) {
+  return std::shared_ptr<cudaq::SimulationState>(
+      ptrToOwn, [](cudaq::SimulationState *ptr) {
+        ptr->destroyState();
+        delete ptr;
+      });
+}
+} // namespace
 
 namespace cudaq {
 
-std::mutex deleteStateMutex;
-
-state state::from_data(const state_data &data) {
+state &state::initialize(const state_data &data) {
   auto *simulator = cudaq::get_simulator();
   if (!simulator)
     throw std::runtime_error(
         "[state::from_data] Could not find valid simulator backend.");
-
-  return state(simulator->createStateFromData(data).release());
+  std::shared_ptr<SimulationState> newPtr =
+      makeSharedSimulationState(simulator->createStateFromData(data).release());
+  std::swap(internal, newPtr);
+  return *this;
 }
+
+state::state(SimulationState *ptrToOwn)
+    : internal(makeSharedSimulationState(ptrToOwn)) {}
 
 SimulationState::precision state::get_precision() const {
   return internal->getPrecision();
@@ -50,6 +64,16 @@ std::complex<double>
 state::operator()(const std::initializer_list<std::size_t> &indices,
                   std::size_t tensorIdx) const {
   std::vector<std::size_t> idxVec(indices.begin(), indices.end());
+  if (internal->isArrayLike()) {
+    // Array-like element extraction is indexed against the selected tensor's
+    // rank and per-axis extents. Hence, check indices against storage bounds.
+    const auto tensor = internal->getTensor(tensorIdx);
+    if (idxVec.size() != tensor.extents.size())
+      throw std::runtime_error("Invalid number of state indices.");
+    for (std::size_t i = 0; i < idxVec.size(); ++i)
+      if (idxVec[i] >= tensor.extents[i])
+        throw std::out_of_range("State index out of bounds.");
+  }
   return (*internal)(tensorIdx, idxVec);
 }
 
@@ -58,6 +82,11 @@ std::complex<double> state::operator[](std::size_t idx) const {
   std::size_t numElements = internal->getNumElements();
 
   if (!internal->isArrayLike()) {
+    // Non-array-like tensor-network states are indexed in the logical N-qubit
+    // basis; their component-tensor element counts are not logical bounds.
+    constexpr auto indexBits = std::numeric_limits<std::size_t>::digits;
+    if (numQubits < indexBits && idx >= (std::size_t{1} << numQubits))
+      throw std::out_of_range("State index out of bounds.");
     // Use amplitude accessor if linear indexing is not supported, e.g., tensor
     // network state.
     std::vector<int> basisState(numQubits, 0);
@@ -77,6 +106,11 @@ std::complex<double> state::operator[](std::size_t idx) const {
     }
     return internal->getAmplitude(basisState);
   }
+
+  // numElements is a valid flat-storage bound only for array-like state
+  // representations, including qubit and non-qubit state vectors.
+  if (idx >= numElements)
+    throw std::out_of_range("State index out of bounds.");
 
   std::size_t newIdx = 0;
   if (std::log2(numElements) / numQubits > 1) {
@@ -112,50 +146,42 @@ state &state::operator=(state &&other) {
   return *this;
 }
 
-state::~state() {
-  // Make sure destroying the state is thread safe.
-  std::lock_guard<std::mutex> lock(deleteStateMutex);
-
-  // Current use count is 1, so the
-  // shared_ptr is about to go out of scope,
-  // there are no users. Delete the state data.
-  if (internal && internal.use_count() == 1)
-    internal->destroyState();
-}
-
 extern "C" {
 std::int64_t __nvqpp_cudaq_state_numberOfQubits(state *obj) {
   return obj->get_num_qubits();
 }
 
-state *__nvqpp_cudaq_state_createFromData_fp64(void *data, std::size_t size) {
-  auto d = reinterpret_cast<std::complex<double> *>(data);
+// Code gen helpers to convert spans (device side data) to state objects.
+state *__nvqpp_cudaq_state_createFromData_complex_f64(std::complex<double> *d,
+                                                      std::size_t size) {
+  if (cudaq::get_simulator()->isSinglePrecision())
+    return new state(std::vector<std::complex<float>>{d, d + size});
 
-  // Convert the data to the current simulation precision
-  // if different from the data's precision.
-  auto *simulator = cudaq::get_simulator();
-  if (simulator->isSinglePrecision()) {
-    std::vector<std::complex<float>> converted(d, d + size);
-    return new state(state::from_data(converted));
-  }
-
-  std::vector<std::complex<double>> current(d, d + size);
-  return new state(state::from_data(current));
+  return new state(std::vector<std::complex<double>>{d, d + size});
 }
 
-state *__nvqpp_cudaq_state_createFromData_fp32(void *data, std::size_t size) {
-  auto d = reinterpret_cast<std::complex<float> *>(data);
+state *__nvqpp_cudaq_state_createFromData_f64(double *d, std::size_t size) {
 
-  // Convert the data to the current simulation precision
-  // if different from the data's precision.
-  auto *simulator = cudaq::get_simulator();
-  if (simulator->isDoublePrecision()) {
-    std::vector<std::complex<double>> converted(d, d + size);
-    return new state(state::from_data(converted));
-  }
+  if (cudaq::get_simulator()->isSinglePrecision())
+    return new state(std::vector<std::complex<float>>{d, d + size});
 
-  std::vector<std::complex<float>> current(d, d + size);
-  return new state(state::from_data(current));
+  return new state(std::vector<std::complex<double>>{d, d + size});
+}
+
+state *__nvqpp_cudaq_state_createFromData_complex_f32(std::complex<float> *d,
+                                                      std::size_t size) {
+  if (cudaq::get_simulator()->isSinglePrecision())
+    return new state(std::vector<std::complex<float>>{d, d + size});
+
+  return new state(std::vector<std::complex<double>>{d, d + size});
+}
+
+state *__nvqpp_cudaq_state_createFromData_f32(float *d, std::size_t size) {
+
+  if (cudaq::get_simulator()->isSinglePrecision())
+    return new state(std::vector<std::complex<float>>{d, d + size});
+
+  return new state(std::vector<std::complex<double>>{d, d + size});
 }
 
 void __nvqpp_cudaq_state_delete(state *obj) { delete obj; }

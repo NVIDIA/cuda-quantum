@@ -8,6 +8,7 @@
 
 import pytest
 import cudaq
+from cudaq.kernel_types import KernelTypeError
 
 
 def test_qview_zero_length():
@@ -34,3 +35,9 @@ def test_qview_non_zero_length():
     counts = cudaq.sample(kernel1, 2)
     print(counts)
     assert '0011' in counts
+
+
+def test_qview_init_outside_of_kernel():
+    # cannot instantiate a qview outside a kernel
+    with pytest.raises(KernelTypeError):
+        cudaq.qview()

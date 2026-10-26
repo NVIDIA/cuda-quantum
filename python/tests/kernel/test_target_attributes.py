@@ -9,13 +9,12 @@
 import pytest
 import cudaq
 
-skipIfNoGPU = pytest.mark.skipif(
-    not (cudaq.num_available_gpus() > 0 and cudaq.has_target('nvidia')),
-    reason="nvidia backend not available")
+skipIfNoGPU = pytest.mark.skipif(not cudaq.has_target('nvidia'),
+                                 reason="nvidia backend not available")
 
 
 @pytest.fixture
-def do_something():
+def set_up_target():
     cudaq.set_target("nvidia", option="fp32")
     yield "Running the tests."
     cudaq.__clearKernelRegistries()
@@ -23,7 +22,7 @@ def do_something():
 
 
 @skipIfNoGPU
-def test_target_valid_option_attribute(do_something):
+def test_target_valid_option_attribute(set_up_target):
     """Tests the target valid option attribute."""
 
     target = cudaq.get_target()

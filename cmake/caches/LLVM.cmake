@@ -20,15 +20,17 @@ set(LLVM_ENABLE_ZSTD OFF CACHE BOOL "")
 set(LLVM_ENABLE_ASSERTIONS ON CACHE BOOL "")
 
 set(LLVM_BUILD_TESTS OFF CACHE BOOL "")
+set(LLVM_INCLUDE_TESTS OFF CACHE BOOL "")
 set(LLVM_BUILD_EXAMPLES OFF CACHE BOOL "")
 set(LLVM_ENABLE_OCAMLDOC OFF CACHE BOOL "")
 
 if(DEFINED LLVM_ENABLE_RUNTIMES AND LLVM_ENABLE_RUNTIMES MATCHES "libcxx")
     message(STATUS "Setting defaults to use LLVM runtimes.")
 
-    # If we want to build dynamic libraries for the unwinder,
-    # we need to build support for exception handling.
-    set(LLVM_ENABLE_EH ON CACHE BOOL "")
+    # The runtimes (libcxx, libcxxabi, libunwind) control exception support
+    # independently via LIBCXX_ENABLE_EXCEPTIONS and LIBCXXABI_ENABLE_EXCEPTIONS.
+    # LLVM_ENABLE_EH must remain OFF when Flang is a project, since Flang
+    # rejects LLVM_ENABLE_EH=ON with a FATAL_ERROR.
     set(LLVM_ENABLE_RTTI ON CACHE BOOL "")
     set(LIBCXX_ENABLE_EXCEPTIONS ON CACHE BOOL "")
     set(LIBCXXABI_ENABLE_EXCEPTIONS ON CACHE BOOL "")

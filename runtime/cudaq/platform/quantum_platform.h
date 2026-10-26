@@ -9,11 +9,18 @@
 #pragma once
 
 #include "common/CodeGenConfig.h"
+#include "common/CompiledModule.h"
 #include "common/ExecutionContext.h"
+#include "common/KernelArgs.h"
 #include "common/NoiseModel.h"
 #include "common/ObserveResult.h"
+#include "common/RuntimeTarget.h"
+#include "common/SampleResult.h"
 #include "common/ThunkInterface.h"
-#include "cudaq/remote_capabilities.h"
+#include "nvqpp_interface.h"
+#include "cudaq/Target/CompileTarget.h"
+#include "cudaq/platform/RuntimeEndpoint.h"
+#include "cudaq/platform/qpu.h"
 #include "cudaq/utils/cudaq_utils.h"
 #include <cstring>
 #include <cxxabi.h>
@@ -30,10 +37,13 @@ class QPU;
 class gradient;
 class optimizer;
 struct RuntimeTarget;
+class LinkedLibraryHolder;
 
-/// Typedefs for defining the connectivity structure of a QPU
-using QubitEdge = std::pair<std::size_t, std::size_t>;
-using QubitConnectivity = std::vector<QubitEdge>;
+namespace detail {
+class TargetSetter;
+class PlatformTestAccess;
+class with_platform_in_library_mode;
+} // namespace detail
 
 /// A sampling tasks takes no input arguments and returns
 /// a sample_result instance.
@@ -43,58 +53,86 @@ using KernelExecutionTask = std::function<sample_result()>;
 /// a double expectation value.
 using ObserveTask = std::function<observe_result()>;
 
-namespace detail {
-/// Temporary per-thread execution context storage.
-/// Will be removed when executionContext is eliminated.
-struct PerThreadExecCtx {
-  PerThreadExecCtx();
-  ~PerThreadExecCtx();
-  ExecutionContext *get() const;
-  void set(ExecutionContext *ctx);
-
-  struct Impl;
-  std::unique_ptr<Impl> impl;
-};
-} // namespace detail
-
 /// The quantum_platform corresponds to a specific quantum architecture.
 /// The quantum_platform exposes a public API for programmers to
-/// query specific information about the targeted QPU(s) (e.g. number
-/// of qubits, qubit connectivity, etc.). This type is meant to
+/// query specific information about the targeted QPU(s). This type is meant to
 /// be subclassed for concrete realizations of quantum platforms, which
-/// are intended to populate this platformQPUs member of this base class.
+/// are intended to populate the QPUs of this base class via `addQPU` and
+/// `clearQPUs`.
 class quantum_platform {
 public:
   quantum_platform() = default;
   virtual ~quantum_platform() = default;
-
-  /// Fetch the connectivity info
-  std::optional<QubitConnectivity> connectivity();
-
-  /// Get the number of qubits for the QPU with ID qpu_id.
-  std::size_t get_num_qubits(std::size_t qpu_id = 0) const;
 
   /// @brief Return true if this platform exposes multiple QPUs and
   /// supports parallel distribution of quantum tasks.
   virtual bool supports_task_distribution() const { return false; }
 
   /// Specify the execution context for the current thread.
-  void set_exec_ctx(ExecutionContext *ctx);
+  // [remove at]: runtime refactor release
+  [[deprecated("set_exec_ctx is deprecated - please use with_execution_context "
+               "instead.")]] void
+  set_exec_ctx(ExecutionContext *ctx);
 
   /// Return the current execution context
-  ExecutionContext *get_exec_ctx() const { return executionContext.get(); }
+  // [remove at]: runtime refactor release
+  [[deprecated("get_exec_ctx is deprecated - please use "
+               "cudaq::getExecutionContext() instead.")]] ExecutionContext *
+  get_exec_ctx() const {
+    return getExecutionContext();
+  }
 
   /// Reset the execution context for the current thread.
-  void reset_exec_ctx();
+  // [remove at]: runtime refactor release
+  [[deprecated("reset_exec_ctx is deprecated - please use "
+               "with_execution_context instead.")]] void
+  reset_exec_ctx();
+
+  /// @brief Execute the given function within the given execution context.
+  template <typename Callable, typename... Args>
+  auto with_execution_context(ExecutionContext &ctx, Callable &&f,
+                              Args &&...args) {
+    // Save the outer execution context (if any) so we can restore it after.
+    auto *outerContext = getExecutionContext();
+
+    configureExecutionContext(ctx);
+    detail::setExecutionContext(&ctx);
+    beginExecution();
+
+    // Cleanup runs after the kernel returns or throws. It finalizes results
+    // and tears down, then resets the execution context.
+    // The context reset always runs even if finalization throws.
+    auto cleanup = [this, &ctx, &outerContext]() {
+      detail::try_finally(
+          [this, &ctx] {
+            finalizeExecutionContext(ctx);
+            endExecution();
+          },
+          [&outerContext] {
+            detail::resetExecutionContext();
+            if (outerContext)
+              detail::setExecutionContext(outerContext);
+          });
+    };
+
+    if constexpr (std::is_void_v<std::invoke_result_t<Callable, Args...>>) {
+      detail::try_finally([&] { f(std::forward<Args>(args)...); }, cleanup);
+    } else {
+      return detail::try_finally([&] { return f(std::forward<Args>(args)...); },
+                                 cleanup);
+    }
+  }
 
   ///  Get the number of QPUs available with this platform.
-  std::size_t num_qpus() const { return platformQPUs.size(); }
+  std::size_t num_qpus() const { return compileTargets.size(); }
+
+  /// \cond
+  /// Get the RuntimeEndpoint for the QPU with ID @p qpuId.
+  RuntimeEndpoint &getRuntimeEndpoint(std::size_t qpuId = 0);
+  /// \endcond
 
   /// Return whether this platform is a simulator.
   bool is_simulator(std::size_t qpu_id = 0) const;
-
-  /// @brief Return whether the QPU has conditional feedback support
-  bool supports_conditional_feedback(std::size_t qpu_id = 0) const;
 
   /// @brief Return whether the QPU supports explicit measurements.
   bool supports_explicit_measurements(std::size_t qpu_id = 0) const;
@@ -103,23 +141,20 @@ public:
   /// platform file.
   std::string name() const { return platformName; }
 
-  /// Get the ID of the QPU in the current execution context.
-  std::size_t get_current_qpu() const;
-
   /// @brief Return true if the QPU is remote.
   bool is_remote(std::size_t qpu_id = 0) const;
 
   /// @brief Return true if QPU is locally emulating a remote QPU
   bool is_emulated(std::size_t qpu_id = 0) const;
 
+  /// @brief Return true if the QPU consumes JIT-compiled artifacts.
+  bool supports_jit(std::size_t qpu_id = 0) const;
+
   /// @brief Set the noise model for @p qpu_id on this platform.
   void set_noise(const noise_model *model, std::size_t qpu_id = 0);
 
   /// @brief Return the noise model for @p qpu_id on this platform.
   const noise_model *get_noise(std::size_t qpu_id = 0);
-
-  /// @brief Get the remote capabilities (only applicable for remote platforms)
-  RemoteCapabilities get_remote_capabilities(std::size_t qpu_id = 0) const;
 
   /// Get code generation configuration values
   CodeGenConfig get_codegen_config();
@@ -130,8 +165,24 @@ public:
   // `set_target` arguments).
   const RuntimeTarget *get_runtime_target() const;
 
+  /// True if the active target runs without the MLIR/QIR kernel launch path.
+  bool is_library_mode() const;
+
   /// @brief Turn off any noise models.
   void reset_noise(std::size_t qpu_id = 0);
+
+  /// Specify the execution context for this platform.
+  void configureExecutionContext(ExecutionContext &ctx) const;
+
+  /// @brief Post-process the results stored in @p ctx after execution on this
+  /// platform.
+  void finalizeExecutionContext(cudaq::ExecutionContext &ctx) const;
+
+  /// @brief Begin a new execution on this platform.
+  virtual void beginExecution();
+
+  /// @brief End the current execution on this platform.
+  virtual void endExecution();
 
   /// Enqueue an asynchronous sampling task.
   std::future<sample_result> enqueueAsyncTask(const std::size_t qpu_id,
@@ -140,20 +191,12 @@ public:
   /// @brief Enqueue a general task that runs on the specified QPU
   void enqueueAsyncTask(const std::size_t qpu_id, std::function<void()> &f);
 
-  /// @brief Launch a VQE operation on the platform.
-  void launchVQE(const std::string kernelName, const void *kernelArgs,
-                 cudaq::gradient *gradient, const cudaq::spin_op &H,
-                 cudaq::optimizer &optimizer, const int n_params,
-                 const std::size_t shots, std::size_t qpu_id = 0);
-
-  // This method is the hook for the kernel rewrites to invoke quantum kernels.
   [[nodiscard]] KernelThunkResultType
-  launchKernel(const std::string &kernelName, KernelThunkType kernelFunc,
-               void *args, std::uint64_t voidStarSize,
-               std::uint64_t resultOffset, const std::vector<void *> &rawArgs,
-               std::size_t qpu_id = 0);
-  void launchKernel(const std::string &kernelName, const std::vector<void *> &,
-                    std::size_t qpu_id = 0);
+  unifiedLaunchModule(const AnyModule &module, KernelArgs args,
+                      std::size_t qpu_id = 0);
+
+  [[nodiscard]] cudaq::CompileTarget
+  getCompileTarget(std::size_t qpu_id = 0) const;
 
   /// List all available platforms
   static std::vector<std::string> list_platforms();
@@ -164,51 +207,74 @@ public:
     return {ptr.get()};
   }
 
+  /// @brief Called by the runtime to notify that a new random seed value is
+  /// set.
+  virtual void onRandomSeedSet(std::size_t seed);
+
+protected:
+  friend class cudaq::LinkedLibraryHolder;
+  friend class cudaq::detail::TargetSetter;
+  friend class cudaq::detail::PlatformTestAccess;
   /// @brief Set the target backend, by default do nothing, let subclasses
   /// override
   /// @param name
   virtual void setTargetBackend(const std::string &name) {}
 
-  /// @brief Called by the runtime to notify that a new random seed value is
-  /// set.
-  virtual void onRandomSeedSet(std::size_t seed);
+  /// Append @p qpu to the platform's QPUs.
+  ///
+  /// Note that any reference to `QPU`s, `CompileTarget`s or `RuntimeEndpoint`s
+  /// may get invalidated by this operation (`std::vector` reallocation).
+  QPU &addQPU(std::unique_ptr<QPU> qpu);
 
-  /// @brief Turn off any custom logging stream.
-  void resetLogStream();
+  /// Append a new QPU to the platform, as defined by @p target and @p endpoint.
+  void addQPU(const CompileTarget &target, const RuntimeEndpoint &endpoint);
 
-  /// @brief Get the stream for info logging.
-  // Returns null if no specific stream was set.
-  std::ostream *getLogStream();
+  /// Destroy all of the platform's QPUs and runtime endpoints.
+  void clearQPUs();
 
-  /// @brief Set the info logging stream.
-  void setLogStream(std::ostream &logStream);
-
-protected:
   /// The runtime target settings
   std::unique_ptr<RuntimeTarget> runtimeTarget;
 
   /// Code generation configuration
   std::optional<CodeGenConfig> codeGenConfig;
 
-  /// The Platform QPUs, populated by concrete subtypes
-  std::vector<std::unique_ptr<QPU>> platformQPUs;
-
   /// Name of the platform.
   std::string platformName;
 
-  /// Keep a per-thread pointer to the current execution context.
-  // TODO: Remove this
-  detail::PerThreadExecCtx executionContext;
-
-  /// Optional logging stream for platform output.
-  // If set, the platform and its QPUs will print info log to this stream.
-  // Otherwise, default output stream (std::cout) will be used.
-  std::ostream *platformLogStream = nullptr;
-
 private:
+  friend class detail::with_platform_in_library_mode;
+
   // Helper to validate QPU Id
   void validateQpuId(std::size_t qpuId) const;
+
+  /// The compilation targets for each QPU on the platform.
+  std::vector<CompileTarget> compileTargets;
+  /// The runtime endpoints to launch kernels for each QPU on the platform.
+  std::vector<RuntimeEndpoint> runtimeEndpoints;
+
+  int libraryModeOverride = 0;
 };
+
+namespace detail {
+
+/// @brief RAII guard that temporarily forces
+/// `quantum_platform::is_library_mode()` to return true for non-QIR algorithm
+/// functors (e.g. evolve observe lambdas).
+class with_platform_in_library_mode {
+  quantum_platform &platform_;
+
+public:
+  explicit with_platform_in_library_mode(quantum_platform &platform)
+      : platform_(platform) {
+    ++platform_.libraryModeOverride;
+  }
+  ~with_platform_in_library_mode() { --platform_.libraryModeOverride; }
+  with_platform_in_library_mode(const with_platform_in_library_mode &) = delete;
+  with_platform_in_library_mode &
+  operator=(const with_platform_in_library_mode &) = delete;
+};
+
+} // namespace detail
 
 /// Entry point for the auto-generated kernel execution path. TODO: Needs to be
 /// tied to the quantum platform instance somehow. Note that the compiler cannot

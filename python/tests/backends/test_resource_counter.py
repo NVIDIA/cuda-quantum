@@ -10,7 +10,7 @@ import cudaq
 import pytest
 
 
-@pytest.fixture(scope="session", autouse=True)
+@pytest.fixture(scope="function", autouse=True)
 def clean():
     cudaq.reset_target()
 
@@ -91,7 +91,54 @@ def test_control_gates_resources():
     assert d["ch"] == 1
 
 
-def test_choice_function():
+def test_atomic_quantum_region_resources():
+
+    @cudaq.kernel(atomic_quantum_region=True)
+    def atomic_workload(q: cudaq.qview):
+        h(q[0])
+        x.ctrl(q[0], q[1])
+        x.ctrl(q[1], q[2])
+
+    @cudaq.kernel
+    def round_trip():
+        q = cudaq.qvector(3)
+        atomic_workload(q)
+        cudaq.adjoint(atomic_workload, q)
+        mz(q)
+
+    def check_resources(resources):
+        assert resources.to_dict() == {"cx": 4, "h": 2, "mz": 3}
+        assert resources.num_qubits == 3
+        assert resources.depth == 7
+        assert resources.multi_qubit_depth == 4
+
+    check_resources(cudaq.estimate_resources(round_trip))
+
+    cudaq.set_target("quantinuum", emulate=True)
+    check_resources(cudaq.estimate_resources(round_trip))
+
+
+def test_atomic_quantum_region_builder_resources():
+    workload, q0, q1, q2 = cudaq.make_kernel(cudaq.qubit, cudaq.qubit,
+                                             cudaq.qubit)
+    workload.atomic_quantum_region()
+    workload.h(q0)
+    workload.cx(q0, q1)
+    workload.cx(q1, q2)
+
+    round_trip = cudaq.make_kernel()
+    qubits = round_trip.qalloc(3)
+    round_trip.apply_call(workload, qubits[0], qubits[1], qubits[2])
+    round_trip.adjoint(workload, qubits[0], qubits[1], qubits[2])
+
+    resources = cudaq.estimate_resources(round_trip)
+    assert resources.to_dict() == {"cx": 4, "h": 2}
+    assert resources.num_qubits == 3
+    assert resources.depth == 6
+    assert resources.multi_qubit_depth == 4
+
+
+def test_choice_function_1():
 
     @cudaq.kernel
     def mykernel():
@@ -140,7 +187,7 @@ def test_choice_function():
     assert d2["x"] == 1
 
 
-def test_choice_function():
+def test_choice_function_2():
 
     @cudaq.kernel
     def mykernel():
@@ -148,32 +195,27 @@ def test_choice_function():
         p = cudaq.qubit()
 
         h(q)
-
-        m1 = mz(q)
-        if m1:
-            x(p)
-            m2 = mz(p)
-        else:
-            m3 = mz(p)
+        x(p)
 
     counts1 = cudaq.sample(mykernel, shots_count=5)
     counts2 = cudaq.estimate_resources(mykernel)
     counts3 = cudaq.sample(mykernel, shots_count=10)
 
-    assert counts1.count("00") + counts1.count("11") == 5
+    assert counts1.count("01") + counts1.count("11") == 5
     assert counts2.count("h") == 1
-    assert counts3.count("00") + counts3.count("11") == 10
+    assert counts3.count("01") + counts3.count("11") == 10
 
     cudaq.set_target("quantinuum", emulate=True)
     counts1 = cudaq.sample(mykernel, shots_count=5)
     counts2 = cudaq.estimate_resources(mykernel)
     counts3 = cudaq.sample(mykernel, shots_count=10)
 
-    assert counts1.count("00") + counts1.count("11") == 5
+    assert counts1.count("01") + counts1.count("11") == 5
     assert counts2.count("h") == 1
-    assert counts3.count("00") + counts3.count("11") == 10
+    assert counts3.count("01") + counts3.count("11") == 10
 
 
+@pytest.mark.skip_macos_arm64_jit
 def test_sample_in_choice():
 
     @cudaq.kernel
@@ -195,11 +237,11 @@ def test_sample_in_choice():
         return True
 
     with pytest.raises(RuntimeError):
-        cudaq.estimate_resources(mykernel, choice)
+        cudaq.estimate_resources(mykernel, choice=choice)
 
     with pytest.raises(RuntimeError):
         cudaq.set_target("quantinuum", emulate=True)
-        cudaq.estimate_resources(mykernel, choice)
+        cudaq.estimate_resources(mykernel, choice=choice)
 
 
 def test_loop_with_args():
@@ -225,7 +267,7 @@ def test_loop_with_args():
     assert d["rx"] == 3
     assert d["h"] == 1
 
-    cudaq.set_target("qci", emulate=True)
+    cudaq.set_target("quantinuum", emulate=True)
     counts = cudaq.estimate_resources(caller, 3, [4.0, 5.0, 6.0])
     assert counts.count("rx") == 3
     assert counts.count("h") == 1
@@ -234,6 +276,101 @@ def test_loop_with_args():
     assert isinstance(d, dict)
     assert d["rx"] == 3
     assert d["h"] == 1
+
+
+def test_estimate_result_construction():
+    result = cudaq.EstimateResult()
+    assert result.resources.count() == 0
+    assert result.annotations == {}
+    assert repr(result) == (
+        "EstimateResult(Resources({}, num_qubits=0, num_used_qubits=0, depth=0))"
+    )
+
+
+def test_estimate_result_annotations():
+    annotations = {"backend": "somewhere", "revision": 3}
+    result = cudaq.EstimateResult(annotations=annotations)
+
+    assert result.annotations == annotations
+    assert "annotations=" in repr(result)
+    assert "'backend': 'somewhere'" in repr(result)
+
+
+def test_estimate_result_from_instructions():
+    result = cudaq.EstimateResult(
+        instructions={
+            ("h", 0): 1,
+            ("x", 1): 2,
+            ("t", 0): 5,
+        },
+        num_qubits=3,
+        annotations={"producer": "demo"},
+    )
+    resources = result.resources
+    assert resources.count() == 8
+    assert resources.count("h") == 1
+    assert resources.count_controls("x", 1) == 2
+    assert resources.count("t") == 5
+    assert resources.num_qubits == 3
+    # Entries are one serial sequence on shared qubits: depth and T depth are
+    # the sums over the entries.
+    assert resources.depth == 8
+    assert resources.t_depth == 5
+    assert result.annotations == {"producer": "demo"}
+
+
+def test_estimate_result_from_instructions_positional():
+    result = cudaq.EstimateResult({
+        ("h", 0): 1,
+        ("x", 1): 2,
+    }, 3)
+    resources = result.resources
+    assert resources.count() == 3
+    assert resources.count("h") == 1
+    assert resources.count_controls("x", 1) == 2
+    assert resources.num_qubits == 3
+    assert result.annotations == {}
+
+
+def test_estimate_result_from_resources_positional():
+    result = cudaq.EstimateResult(cudaq.Resources(), {"producer": "demo"})
+    assert result.resources.count() == 0
+    assert result.annotations == {"producer": "demo"}
+
+
+def test_estimate_result_instructions_are_applied_in_constant_time():
+    result = cudaq.EstimateResult(instructions={("t", 0): 10**15})
+    assert result.resources.count() == 10**15
+    assert result.resources.depth == 10**15
+    assert result.resources.t_depth == 10**15
+
+
+def test_estimate_result_resources_and_instructions_are_exclusive():
+    with pytest.raises(TypeError):
+        cudaq.EstimateResult(resources=cudaq.Resources(),
+                             instructions={("h", 0): 1})
+
+
+def test_estimate():
+
+    @cudaq.kernel
+    def mykernel():
+        q = cudaq.qvector(2)
+        h(q[0])
+        x.ctrl(q[0], q[1])
+
+    result = cudaq.estimate(mykernel)
+    assert result.resources.count("h") == 1
+    assert result.resources.count_controls("x", 1) == 1
+    assert result.resources.count() == 2
+
+    chosen = cudaq.estimate(mykernel, choice=lambda: True)
+    assert chosen.resources.count("h") == 1
+    assert chosen.resources.count_controls("x", 1) == 1
+
+    # `estimate_resources` is a thin wrapper and must keep agreeing.
+    resources = cudaq.estimate_resources(mykernel)
+    assert resources.count() == result.resources.count()
 
 
 # leave for gdb debugging

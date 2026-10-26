@@ -14,11 +14,14 @@ if cudaq.num_available_gpus() == 0:
 else:
     # Note: the test model may create state, hence need to set the target to "dynamics"
     cudaq.set_target("dynamics")
-    from system_models import *
+    try:
+        from system_models import *
+    finally:
+        cudaq.reset_target()
 
 
 @pytest.fixture(autouse=True)
-def do_something():
+def set_up_target():
     cudaq.set_target("dynamics")
     yield
     cudaq.reset_target()
@@ -38,7 +41,7 @@ all_models = [
     TestBatchedCavityModelSuperOperator, TestBatchedCavityModelWithBatchSize,
     TestBatchedCavityModelSuperOperatorBroadcastInputState,
     TestBatchedCavityModelSuperOperatorWithBatchSize, TestBug3326,
-    TestMultiDegreeElemOp
+    TestMultiDegreeElemOp, TestDensityMatrixIndexing
 ]
 
 
@@ -79,6 +82,84 @@ def test_euler_integrator():
         expt.append(exp_vals[0].expectation())
     expected_answer = (N - 1) * np.exp(-decay_rate * steps)
     np.testing.assert_allclose(expected_answer, expt, 1e-3)
+
+
+def test_evolve_async_dynamics_target():
+    """Test async evolution on the dynamics target."""
+    steps = np.linspace(0, 0.1, 3)
+    hamiltonian = operators.number(0)
+    dimensions = {0: 2}
+    save_all = cudaq.IntermediateResultSave.ALL
+    save_expectations = cudaq.IntermediateResultSave.EXPECTATION_VALUE
+    psi0_ = cp.zeros(2, dtype=cp.complex128)
+    psi0_[1] = 1.0
+    psi0 = cudaq.State.from_data(psi0_)
+
+    expected = cudaq.evolve(hamiltonian, dimensions, Schedule(steps, ["t"]),
+                            psi0)
+    evolution_result = cudaq.evolve_async(hamiltonian, dimensions,
+                                          Schedule(steps, ["t"]), psi0).get()
+
+    assert len(evolution_result.intermediate_states()) == 1
+    np.testing.assert_allclose(np.array(evolution_result.final_state()),
+                               np.array(expected.final_state()),
+                               atol=1e-12)
+
+    expected = cudaq.evolve(hamiltonian,
+                            dimensions,
+                            Schedule(steps, ["t"]),
+                            psi0,
+                            store_intermediate_results=save_all)
+    evolution_result = cudaq.evolve_async(
+        hamiltonian,
+        dimensions,
+        Schedule(steps, ["t"]),
+        psi0,
+        store_intermediate_results=save_all).get()
+
+    assert len(evolution_result.intermediate_states()) == len(steps)
+    np.testing.assert_allclose(np.array(evolution_result.final_state()),
+                               np.array(expected.final_state()),
+                               atol=1e-12)
+
+    expected = cudaq.evolve(hamiltonian,
+                            dimensions,
+                            Schedule(steps, ["t"]),
+                            psi0,
+                            observables=[hamiltonian],
+                            store_intermediate_results=save_expectations)
+    evolution_result = cudaq.evolve_async(
+        hamiltonian,
+        dimensions,
+        Schedule(steps, ["t"]),
+        psi0,
+        observables=[hamiltonian],
+        store_intermediate_results=save_expectations).get()
+
+    assert len(evolution_result.intermediate_states()) == 1
+    assert len(evolution_result.expectation_values()) == len(steps)
+    expected_values = [[obs.expectation()
+                        for obs in step]
+                       for step in expected.expectation_values()]
+    actual_values = [[obs.expectation()
+                      for obs in step]
+                     for step in evolution_result.expectation_values()]
+    np.testing.assert_allclose(actual_values, expected_values, atol=1e-12)
+
+
+def test_evolve_async_dynamics_target_propagates_errors():
+    """Test async dynamics errors are reported through get()."""
+    steps = np.linspace(0, 0.1, 3)
+    schedule = Schedule(steps, ["t"])
+    hamiltonian = operators.number(0)
+    psi0_ = cp.zeros(2, dtype=cp.complex128)
+    psi0_[1] = 1.0
+    psi0 = cudaq.State.from_data(psi0_)
+
+    result = cudaq.evolve_async(hamiltonian, {1: 2}, schedule, psi0)
+
+    with pytest.raises(Exception):
+        result.get()
 
 
 def test_save_all_intermediate_states():
@@ -154,85 +235,370 @@ def test_batching_bugs():
         assert len(evolution_result.intermediate_states()) == len(steps)
 
 
-def test_density_matrix_indexing():
+def test_should_use_mixed_state_batch_no_right_apply():
     """
-    Test that density matrix element access uses correct indexing.
-    
-    This is a regression test for a bug where the operator() function
-    used the total dimension (dim*dim) instead of single-side dimension (dim)
-    for bounds checking and linear index calculation.
-    
-    For a 2-qubit system (4x4 density matrix with 16 total elements):
-    - Valid indices should be 0, 1, 2, 3
-    - Accessing rho[i, j] should compute linear index as i * 4 + j
-    - The bug computed i * 16 + j, causing out-of-bounds access
+    `should_use_mixed_state` must only promote to a mixed (density-matrix)
+    state when a super-operator actually has a right-apply term (i.e. is a
+    genuine dissipator). A batch of super-operators that are all pure
+    left-multiplies (no dissipator) does not need a mixed state, same as a
+    single such super-operator.
     """
-    from cudaq import spin
-    from cudaq.dynamics import Schedule
+    from cudaq.dynamics.cudm_solver import should_use_mixed_state
 
-    # 1-qubit system: 2x2 density matrix
-    psi0_1q = cudaq.State.from_data(cp.array([1.0, 0.0], dtype=cp.complex128))
-    hamiltonian_1q = 0.0 * spin.z(0)
-    steps = np.linspace(0.0, 0.1, 2)
-    schedule = Schedule(steps, ["t"])
+    hamiltonian = boson.create(0) * boson.annihilate(0)
+    pure_left_multiply = SuperOperator.left_multiply(-1j * hamiltonian)
+    dissipative = SuperOperator.left_right_multiply(boson.annihilate(0),
+                                                    boson.create(0))
 
-    result_1q = cudaq.evolve(
-        hamiltonian_1q,
+    assert should_use_mixed_state(pure_left_multiply, []) == False
+    assert should_use_mixed_state([pure_left_multiply, pure_left_multiply],
+                                  []) == False
+    assert should_use_mixed_state(dissipative, []) == True
+    assert should_use_mixed_state([dissipative, dissipative], []) == True
+
+
+def test_precision_info():
+    """
+    Test that the target info is correct: double precision for dynamics
+    """
+    target = cudaq.get_target()
+    assert target.name == "dynamics"
+    assert target.get_precision() == cudaq.SimulationPrecision.fp64
+
+
+@pytest.mark.parametrize("order", ["C", "F"])
+def test_evolve_density_matrix_complex_input_observable_cudm(order):
+    from cudaq.operators import spin
+
+    rho = np.array([[0.5, 0.25j], [-0.25j, 0.5]],
+                   dtype=np.complex128,
+                   order=order)
+    initial_state = cudaq.State.from_data(rho)
+
+    result = cudaq.evolve(
+        0.0 * spin.x(0),
         {0: 2},
-        schedule,
-        psi0_1q,
-        collapse_operators=[spin.z(0)],
-        store_intermediate_results=cudaq.IntermediateResultSave.ALL,
+        Schedule([0.0], ["time"]),
+        initial_state,
+        observables=[spin.y(0)],
+        collapse_operators=[],
+        store_intermediate_results=cudaq.IntermediateResultSave.
+        EXPECTATION_VALUE,
     )
 
-    rho_1q = result_1q.final_state()
-    # For |0> initial state, density matrix is |0><0|
-    # rho[0,0] = 1, rho[1,1] = 0
-    assert abs(rho_1q[0, 0] - 1.0) < 1e-10
-    assert abs(rho_1q[1, 1]) < 1e-10
-    assert abs(rho_1q[0, 1]) < 1e-10
-    assert abs(rho_1q[1, 0]) < 1e-10
+    expectation_values = result.expectation_values()
+    assert expectation_values is not None
+    assert np.isclose(expectation_values[0][0].expectation(), -0.5)
 
-    # Test out-of-bounds access is rejected
-    with pytest.raises(RuntimeError, match="indices out of range"):
-        _ = rho_1q[2, 0]
 
-    # 2-qubit system: 4x4 density matrix
-    psi0_2q = cudaq.State.from_data(
-        cp.array([1.0, 0.0, 0.0, 0.0], dtype=cp.complex128))
-    hamiltonian_2q = 0.0 * spin.z(0) + 0.0 * spin.z(1)
+def test_evolve_density_matrix_numpy_readback_cudm():
+    from cudaq.operators import spin
 
-    result_2q = cudaq.evolve(
-        hamiltonian_2q,
-        {
-            0: 2,
-            1: 2
-        },
-        schedule,
-        psi0_2q,
-        collapse_operators=[spin.z(0)],
-        store_intermediate_results=cudaq.IntermediateResultSave.ALL,
+    initial_state = cudaq.State.from_data(
+        np.array([[1.0, 0.0], [0.0, 0.0]], dtype=np.complex128))
+    result = cudaq.evolve(
+        spin.x(0),
+        {0: 2},
+        Schedule(np.linspace(0.0, np.pi / 4.0, 101), ["time"]),
+        initial_state,
+        observables=[],
+        collapse_operators=[],
+        store_intermediate_results=cudaq.IntermediateResultSave.NONE,
     )
 
-    rho_2q = result_2q.final_state()
-    # For |00> initial state, density matrix is |00><00|
-    # Only rho[0,0] = 1, all other elements = 0
-    assert abs(rho_2q[0, 0] - 1.0) < 1e-10
-    # These indices would cause out-of-bounds access with the old buggy code
-    assert abs(rho_2q[1, 1]) < 1e-10
-    assert abs(rho_2q[2, 2]) < 1e-10
-    assert abs(rho_2q[3, 3]) < 1e-10
-    # Off-diagonal elements
-    assert abs(rho_2q[0, 3]) < 1e-10
-    assert abs(rho_2q[3, 0]) < 1e-10
+    expected = np.array([[0.5, 0.5j], [-0.5j, 0.5]], dtype=np.complex128)
+    # The default integrator contributes about 1e-2 numerical error, while the
+    # transposed layout differs by O(1).
+    np.testing.assert_allclose(np.array(result.final_state()),
+                               expected,
+                               atol=1e-2)
 
-    # Test out-of-bounds access is rejected
-    with pytest.raises(RuntimeError, match="indices out of range"):
-        _ = rho_2q[4, 0]
-    with pytest.raises(RuntimeError, match="indices out of range"):
-        _ = rho_2q[0, 4]
-    with pytest.raises(RuntimeError, match="indices out of range"):
-        _ = rho_2q[4, 4]
+
+def test_evolve_density_matrix_numpy_layout_cudm():
+    from cudaq.operators import spin
+
+    cudaq.set_random_seed(13)
+    hamiltonian = 2 * np.pi * 0.1 * spin.x(0)
+    dimensions = {0: 2}
+    steps = np.linspace(0, 10, 101)
+    schedule = Schedule(steps, ["time"])
+
+    rho_c = np.array([[1.0, 0.0], [0.0, 0.0]], dtype=np.complex128, order="C")
+    assert rho_c.flags["C_CONTIGUOUS"] and not rho_c.flags["F_CONTIGUOUS"]
+    rho_f = np.array([[1.0, 0.0], [0.0, 0.0]], dtype=np.complex128, order="F")
+    assert rho_f.flags["F_CONTIGUOUS"]
+
+    rho0_c = cudaq.State.from_data(rho_c)
+    rho0_f = cudaq.State.from_data(rho_f)
+
+    result_c = cudaq.evolve(
+        hamiltonian,
+        dimensions,
+        schedule,
+        rho0_c,
+        observables=[spin.y(0), spin.z(0)],
+        collapse_operators=[],
+        store_intermediate_results=cudaq.IntermediateResultSave.
+        EXPECTATION_VALUE,
+    )
+    schedule.reset()
+    result_f = cudaq.evolve(
+        hamiltonian,
+        dimensions,
+        schedule,
+        rho0_f,
+        observables=[spin.y(0), spin.z(0)],
+        collapse_operators=[],
+        store_intermediate_results=cudaq.IntermediateResultSave.
+        EXPECTATION_VALUE,
+    )
+
+    exp_c = result_c.expectation_values()
+    exp_f = result_f.expectation_values()
+    assert exp_c is not None and exp_f is not None
+    np.testing.assert_allclose(
+        [[e.expectation() for e in step] for step in exp_c],
+        [[e.expectation() for e in step] for step in exp_f],
+        atol=1e-10,
+        err_msg=
+        "C-order and F-order density matrix initial states should give same evolution on CuDM",
+    )
+
+
+def test_evolve_density_matrix_cupy_strided_layout_cudm():
+    base = cp.array([[1.0 + 0.0j, 2.0 + 0.0j], [3.0 + 0.0j, 4.0 + 0.0j]],
+                    dtype=cp.complex128)
+    cases = [
+        ("c_order", base, cp.asnumpy(base)),
+        ("fortran_order", cp.asfortranarray(base), cp.asnumpy(base)),
+        ("transpose_view", base.T, cp.asnumpy(base.T)),
+    ]
+
+    for _, rho, expected in cases:
+        state = cudaq.State.from_data(rho)
+        evolution_result = cudaq.evolve(
+            0.0 * boson.number(0),
+            {0: 2},
+            Schedule([0.0], ["t"]),
+            state,
+            observables=[],
+            collapse_operators=[],
+            store_intermediate_results=cudaq.IntermediateResultSave.NONE,
+        )
+
+        final_arr = np.array(evolution_result.final_state())
+        np.testing.assert_allclose(final_arr, expected, atol=1e-12)
+
+
+@pytest.mark.parametrize("layout",
+                         ["c_order", "fortran_order", "transpose_view"])
+def test_evolve_density_matrix_cupy_complex_input_observable_cudm(layout):
+    from cudaq.operators import spin
+
+    base = cp.array([[0.5, 0.25j], [-0.25j, 0.5]], dtype=cp.complex128)
+    if layout == "c_order":
+        rho = base
+    elif layout == "fortran_order":
+        rho = cp.asfortranarray(base)
+    else:
+        rho = cp.array(base.T, order="C").T
+
+    initial_state = cudaq.State.from_data(rho)
+    result = cudaq.evolve(
+        0.0 * spin.x(0),
+        {0: 2},
+        Schedule([0.0], ["time"]),
+        initial_state,
+        observables=[spin.y(0)],
+        collapse_operators=[],
+        store_intermediate_results=cudaq.IntermediateResultSave.
+        EXPECTATION_VALUE,
+    )
+
+    expectation_values = result.expectation_values()
+    assert expectation_values is not None
+    assert np.isclose(expectation_values[0][0].expectation(), -0.5)
+
+
+def test_from_data_density_matrix_to_cupy_layout_cudm():
+    rho = cp.array([[0.5, 0.25j], [-0.25j, 0.5]], dtype=cp.complex128)
+    state = cudaq.State.from_data(rho)
+
+    cupy_state = cudaq.to_cupy(state)[0]
+
+    cp.testing.assert_allclose(cupy_state, rho, atol=1e-12)
+
+
+@pytest.mark.parametrize("layout",
+                         ["c_order", "fortran_order", "transpose_view"])
+def test_from_data_cupy_2d_square_metadata_preserved_pre_evolve(layout):
+    """State metadata (extents, array shape) must be correct immediately
+    after `from_data`, before any `evolve()` call re-initializes the state.
+
+    Regression for the `isDensityMatrix` flag not being propagated through
+    `CuDensityMatState::createFromSizeAndPtr` (dropped in PR #2853).
+    """
+    base = cp.array([[1.0 + 0.2j, 0.3 + 0.0j], [0.3 + 0.0j, 0.4 + 0.5j]],
+                    dtype=cp.complex128)
+    if layout == "c_order":
+        rho = base
+    elif layout == "fortran_order":
+        rho = cp.asfortranarray(base)
+    else:
+        rho = base.T
+
+    state = cudaq.State.from_data(rho)
+    assert state.getTensor().extents == [2, 2]
+    arr = np.array(state)
+    assert arr.shape == (2, 2)
+    np.testing.assert_allclose(arr, cp.asnumpy(rho), atol=1e-12)
+
+
+def test_from_data_cupy_2d_non_square_rejected():
+    """Non-square 2D CuPy arrays on dynamics target must be rejected at
+    `from_data` time with the same error as the host 2D path, not deferred
+    to a cryptic failure inside `evolve()`."""
+    rho = cp.array([[1, 2, 3], [4, 5, 6]], dtype=cp.complex128)
+    assert rho.flags["C_CONTIGUOUS"]
+    with pytest.raises(RuntimeError, match="square matrix"):
+        cudaq.State.from_data(rho)
+
+
+def test_from_data_cupy_complex64_rejected_cudm():
+    rho = cp.eye(2, dtype=cp.complex64)
+    with pytest.raises(RuntimeError, match="complex128"):
+        cudaq.State.from_data(rho)
+
+
+def test_evolve_from_data_random_density_matrix_preserved_cudm():
+    np.random.seed(42)
+    N = 64
+    A = np.random.rand(N, N) + 1j * np.random.rand(N, N)
+    rho = A @ A.conj().T
+    rho /= np.trace(rho)
+    state = cudaq.State.from_data(rho)
+
+    schedule = Schedule([0.0], ["t"])
+    hamiltonian = 0.0 * boson.number(0)
+    dimensions = {0: N}
+    evolution_result = cudaq.evolve(
+        hamiltonian,
+        dimensions,
+        schedule,
+        state,
+        observables=[],
+        collapse_operators=[],
+        store_intermediate_results=cudaq.IntermediateResultSave.NONE,
+    )
+
+    final_state = evolution_result.final_state()
+    final_arr = np.array(final_state).reshape(N, N)
+    np.testing.assert_allclose(
+        final_arr,
+        rho,
+        atol=1e-6,
+        err_msg="final state should match initial density matrix")
+
+
+def test_batched_density_matrix_layout_matches_single_cudm():
+    """A state split out of a batch must look like a non-batched state.
+
+    Batching should change execution and storage aggregation only, not the
+    shape or storage order reported for each returned state.
+    """
+    np.random.seed(7)
+    N = 4
+    A = np.random.rand(N, N) + 1j * np.random.rand(N, N)
+    rho = A @ A.conj().T
+    rho /= np.trace(rho)
+
+    hamiltonian = 2 * np.pi * 0.1 * boson.number(0)
+    dimensions = {0: N}
+    schedule = Schedule(np.linspace(0.0, 1.0, 11), ["t"])
+    collapse_operators = [0.05 * boson.annihilate(0)]
+
+    def evolve(hamiltonians, initial_states, collapse):
+        return cudaq.evolve(
+            hamiltonians,
+            dimensions,
+            schedule,
+            initial_states,
+            observables=[],
+            collapse_operators=collapse,
+            store_intermediate_results=cudaq.IntermediateResultSave.NONE,
+        )
+
+    single = evolve(hamiltonian, cudaq.State.from_data(rho), collapse_operators)
+    batched = evolve([hamiltonian, hamiltonian],
+                     [cudaq.State.from_data(rho),
+                      cudaq.State.from_data(rho)],
+                     [collapse_operators, collapse_operators])
+
+    single_state = single.final_state()
+    single_arr = np.array(single_state)
+    assert single_arr.shape == (N, N)
+
+    for result in batched:
+        batched_arr = np.array(result.final_state())
+        assert batched_arr.shape == single_arr.shape
+        np.testing.assert_allclose(batched_arr, single_arr, atol=1e-6)
+
+
+def test_user_provided_stepper_scipy():
+    """Verify that ScipyZvodeIntegrator uses a user-provided stepper."""
+    from cudaq.dynamics.integrators.builtin_integrators import cuDensityMatTimeStepper
+    from cudaq.dynamics.integrator import BaseTimeStepper
+    from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime import MatrixOperator, State
+    from cudaq.dynamics import nvqir_dynamics_bindings as bindings
+
+    N = 10
+    steps = np.linspace(0, 10, 101)
+    schedule = Schedule(steps, ["t"])
+    hamiltonian = boson.number(0)
+    dimensions = {0: N}
+    decay_rate = 0.1
+    collapse_operators = [np.sqrt(decay_rate) * boson.annihilate(0)]
+
+    bindings_schedule = bindings.Schedule(steps, ["t"])
+    # The actual stepper that will be used for integration. We will wrap this with a `TrackingStepper` to verify that it is called during integration.
+    real_stepper = cuDensityMatTimeStepper(
+        bindings_schedule, MatrixOperator(hamiltonian),
+        [MatrixOperator(op) for op in collapse_operators], [N], True)
+
+    class TrackingStepper(BaseTimeStepper[State]):
+
+        def __init__(self, stepper):
+            self.stepper = stepper
+            # A counter to let us know that this stepper is actually being called during integration.
+            self.call_count = 0
+
+        def compute(self, state, t):
+            self.call_count += 1
+            return self.stepper.compute(state, t)
+
+    tracking = TrackingStepper(real_stepper)
+    psi0_ = cp.zeros(N, dtype=cp.complex128)
+    psi0_[-1] = 1.0
+    psi0 = cudaq.State.from_data(psi0_)
+
+    evolution_result = cudaq.evolve(
+        hamiltonian,
+        dimensions,
+        schedule,
+        psi0,
+        observables=[hamiltonian],
+        collapse_operators=collapse_operators,
+        store_intermediate_results=cudaq.IntermediateResultSave.
+        EXPECTATION_VALUE,
+        integrator=ScipyZvodeIntegrator(stepper=tracking))
+
+    assert tracking.call_count > 0
+    expectation_values = [
+        exp_vals[0].expectation()
+        for exp_vals in evolution_result.expectation_values()
+    ]
+    expected_answer = (N - 1) * np.exp(-decay_rate * steps)
+    np.testing.assert_allclose(expected_answer, expectation_values, 1e-3)
 
 
 # leave for gdb debugging

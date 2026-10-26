@@ -8,7 +8,7 @@
 
 include(HandleLLVMOptions)
 add_subdirectory(default)
-if (OPENSSL_FOUND)
+if (CUDAQ_ENABLE_ORCA_BACKEND)
   add_subdirectory(orca)
 endif()
 if (CUDAQ_ENABLE_REST)
@@ -17,7 +17,7 @@ endif()
 
 add_subdirectory(fermioniq)
 
-if (AWSSDK_ROOT)
+if (AWSSDK_ROOT AND CUDAQ_ENABLE_BRAKET_BACKEND)
   add_subdirectory(quera)
 endif()
 

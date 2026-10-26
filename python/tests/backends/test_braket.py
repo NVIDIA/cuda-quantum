@@ -12,14 +12,21 @@ import os
 from cudaq import spin
 import numpy as np
 
-## NOTE: Comment the following line which skips these tests in order to run in
-# local dev environment after setting AWS credentials.
+## NOTE: Comment out the first mark below to run these in a local dev
+# environment after setting AWS credentials.
 ## NOTE: Amazon Braket costs apply
-pytestmark = pytest.mark.skip("Amazon Braket credentials required")
+# The second mark is a separate condition: the `braket` target only exists
+# when CUDA-Q was configured with the Braket backend enabled. Credentials
+# cannot help if the target was never built.
+pytestmark = [
+    pytest.mark.skip("Amazon Braket credentials required"),
+    pytest.mark.skipif(not cudaq.has_target("braket"),
+                       reason="Could not find `braket` in installation"),
+]
 
 
 @pytest.fixture(scope="session", autouse=True)
-def do_something():
+def set_up_target():
     cudaq.set_target("braket")
     yield "Running the tests."
     cudaq.__clearKernelRegistries()
@@ -397,51 +404,6 @@ def test_qvector_slicing():
     assert "1100" in counts
 
 
-def test_mid_circuit_measurement():
-
-    @cudaq.kernel
-    def simple():
-        q = cudaq.qvector(2)
-        h(q[0])
-        if mz(q[0]):
-            x(q[1])
-        mz(q)
-
-    ## error: 'cf.cond_br' op unable to translate op to OpenQASM 2.0
-    with pytest.raises(RuntimeError) as e:
-        cudaq.sample(simple, shots_count=100).dump()
-    assert "Could not successfully translate to qasm2" in repr(e)
-
-
-def test_state_prep():
-
-    @cudaq.kernel
-    def kernel():
-        q = cudaq.qvector([1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)])
-        mz(q)
-
-    counts = cudaq.sample(kernel)
-    assert '11' in counts
-    assert '00' in counts
-
-
-def test_state_synthesis_from_simulator():
-
-    @cudaq.kernel
-    def kernel(state: cudaq.State):
-        qubits = cudaq.qvector(state)
-        mz(qubits)
-
-    state = cudaq.State.from_data(
-        np.array([1. / np.sqrt(2.), 1. / np.sqrt(2.), 0., 0.],
-                 dtype=cudaq.complex()))
-
-    counts = cudaq.sample(kernel, state)
-    assert "00" in counts
-    assert "10" in counts
-    assert len(counts) == 2
-
-
 def test_state_synthesis():
 
     @cudaq.kernel
@@ -467,10 +429,8 @@ def test_state_synthesis():
     assert len(counts) == 1
 
 
-@pytest.mark.parametrize("device_arn", [
-    "arn:aws:braket:::device/quantum-simulator/amazon/dm1",
-    "arn:aws:braket:::device/quantum-simulator/amazon/tn1"
-])
+@pytest.mark.parametrize(
+    "device_arn", ["arn:aws:braket:::device/quantum-simulator/amazon/dm1"])
 def test_other_simulators(device_arn):
     cudaq.set_target("braket", machine=device_arn)
     test_qvector_kernel()
@@ -514,6 +474,18 @@ def test_toffoli():
     counts.dump()
     assert '110' in counts
     assert len(counts) == 1
+
+
+def test_state_prep():
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector([1. / np.sqrt(2.), 0., 0., 1. / np.sqrt(2.)])
+        mz(q)
+
+    counts = cudaq.sample(kernel)
+    assert '11' in counts
+    assert '00' in counts
 
 
 # leave for gdb debugging

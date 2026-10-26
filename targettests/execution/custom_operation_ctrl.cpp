@@ -7,13 +7,12 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ --enable-mlir %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --target anyon      --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --target ionq       --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --target iqm        --emulate %s -o %t && IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt  %t | FileCheck %s
-// RUN: nvq++ --target oqc        --emulate %s -o %t && %t | FileCheck %s
-// RUN: nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s
-// RUN: if %qci_avail; then nvq++ --target qci --emulate %s -o %t && %t | FileCheck %s; fi
+// RUN: nvq++ %s -o %t && %t | FileCheck %s
+// RUN: if %anyon_avail; then nvq++ --target anyon --emulate %s -o %t && %t | FileCheck %s; fi
+// RUN: if %ionq_avail; then nvq++ --target ionq  --emulate %s -o %t && %t | FileCheck %s; fi
+// RUN: if %iqm_avail; then nvq++ --target iqm   --emulate %s -o %t && IQM_QPU_QA=%iqm_tests_dir/Crystal_5.txt  %t | FileCheck %s; fi
+// RUN: if %oqc_avail; then nvq++ --target oqc   --emulate %s -o %t && %t | FileCheck %s; fi
+// RUN: if %quantinuum_avail; then nvq++ --target quantinuum --emulate %s -o %t && %t | FileCheck %s; fi
 // clang-format on
 
 #include <cudaq.h>
@@ -34,6 +33,7 @@ int main() {
   for (auto &[bits, count] : counts) {
     printf("%s\n", bits.data());
   }
+  return 0;
 }
 
 // CHECK-DAG: 11

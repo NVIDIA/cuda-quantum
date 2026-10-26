@@ -19,6 +19,7 @@ from cudaq.kernel.kernel_builder import PyKernel, make_kernel
 from cudaq.kernel.register_op import register_operation
 from cudaq.kernel.utils import ahkPrefix
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
+from cudaq.util import trace
 from ..operators import NumericType, Operator, RydbergHamiltonian, SuperOperator
 from .helpers import InitialState, InitialStateArgT, IntermediateResultSave
 from .integrator import BaseIntegrator
@@ -44,12 +45,62 @@ def _taylor_series_expm(op_matrix: NDArray[numpy.complexfloating],
     return result
 
 
+def _validate_system_dimensions(dimensions: Mapping[int, int]):
+    actual_degrees = set(dimensions.keys())
+    expected_degrees = set(range(len(dimensions)))
+    if actual_degrees != expected_degrees:
+        raise ValueError(
+            "`dimensions` must define contiguous degrees starting at 0.")
+
+
+def _validate_operator_degrees(operator: Operator, dimensions: Mapping[int,
+                                                                       int]):
+    operator_degrees = set(operator.degrees)
+    missing_degrees = operator_degrees - set(dimensions.keys())
+    if missing_degrees:
+        raise ValueError(
+            f"operator degrees {sorted(missing_degrees)} are not present in the provided dimensions"
+        )
+
+
+def _canonicalize_operator_to_dimensions(
+        operator: Operator, dimensions: Mapping[int, int]) -> Operator:
+    _validate_operator_degrees(operator, dimensions)
+    system_operator = operator.copy()
+    system_operator.canonicalize(set(dimensions.keys()))
+    return system_operator
+
+
+def _canonicalize_initial_state(initial_state: InitialStateArgT,
+                                num_qubits: int) -> InitialStateArgT:
+    if not isinstance(initial_state, InitialState):
+        return initial_state
+
+    state_size = 2**num_qubits
+    if initial_state == InitialState.ZERO:
+        state_data = numpy.zeros(state_size, dtype=numpy.complex128)
+        state_data[0] = 1.0
+    elif initial_state == InitialState.UNIFORM:
+        state_data = (1. / numpy.sqrt(state_size)) * numpy.ones(
+            state_size, dtype=numpy.complex128)
+    else:
+        raise ValueError("Unsupported initial state type")
+
+    sim_name = cudaq_runtime.get_target().simulator.strip()
+    if sim_name == "dm":
+        return cudaq_runtime.State.from_data(
+            numpy.outer(state_data, numpy.conj(state_data)))
+    return cudaq_runtime.State.from_data(state_data)
+
+
 def _compute_step_matrix(hamiltonian: Operator,
                          dimensions: Mapping[int, int],
                          parameters: Mapping[str, NumericType],
                          dt: float,
                          use_gpu: bool = False) -> NDArray[complexfloating]:
-    op_matrix = hamiltonian.to_matrix(dimensions, **parameters)
+    op_matrix = hamiltonian.to_matrix(dimensions,
+                                      invert_order=True,
+                                      **parameters)
     op_matrix = -1j * op_matrix * dt
 
     if use_gpu:
@@ -67,7 +118,7 @@ def _add_noise_channel_for_step(step_kernel_name: str,
                                 parameters: Mapping[str,
                                                     NumericType], dt: float):
     for collapse_op in collapse_operators:
-        L = collapse_op.to_matrix(dimensions, **parameters)
+        L = collapse_op.to_matrix(dimensions, invert_order=True, **parameters)
         G = -0.5 * numpy.dot(L.conj().T, L)
         M0 = G * dt + numpy.eye(2**len(dimensions))
         M1 = numpy.sqrt(dt) * L
@@ -139,22 +190,12 @@ def _launch_analog_hamiltonian_kernel(target_name: str,
             random.choice(string.ascii_uppercase + string.digits)
             for _ in range(10)))
 
-    ctx = cudaq_runtime.ExecutionContext("sample", shots_count)
-    ctx.asyncExec = is_async
-    cudaq_runtime.setExecutionContext(ctx)
-    try:
-        cudaq_runtime.pyAltLaunchAnalogKernel(funcName, program.to_json())
-    except BaseException:
-        # silence any further exceptions
-        try:
-            cudaq_runtime.resetExecutionContext()
-        except BaseException:
-            pass
-        raise
-    else:
-        cudaq_runtime.resetExecutionContext()
-
-    return ctx.asyncResult if is_async else ctx.result
+    if is_async:
+        return cudaq_runtime.launch_analog_kernel_async(funcName,
+                                                        program.to_json(),
+                                                        shots_count)
+    return cudaq_runtime.launch_analog_kernel(funcName, program.to_json(),
+                                              shots_count)
 
 
 # FIXME: move to C++
@@ -246,7 +287,15 @@ def evolve_single(
             "collapse operators can only be defined when using the dynamics or density-matrix-cpu target"
         )
 
-    num_qubits = len(hamiltonian.degrees)
+    _validate_system_dimensions(dimensions)
+    num_qubits = len(dimensions)
+    hamiltonian = _canonicalize_operator_to_dimensions(hamiltonian, dimensions)
+    collapse_operators = [
+        _canonicalize_operator_to_dimensions(op, dimensions)
+        for op in collapse_operators
+    ]
+    for observable in observables:
+        _validate_operator_degrees(observable, dimensions)
     parameters = [mapping for mapping in schedule]
     schedule.reset()
     tlist = [schedule.current_step for _ in schedule]
@@ -262,24 +311,7 @@ def evolve_single(
         step_parameters, dt)
     if shots_count is None:
         shots_count = -1
-    if isinstance(initial_state, InitialState):
-        # This is an initial state enum, create concrete state.
-        state_size = 2**num_qubits
-        if initial_state == InitialState.ZERO:
-            state_data = numpy.zeros(state_size, dtype=numpy.complex128)
-            state_data[0] = 1.0
-        elif initial_state == InitialState.UNIFORM:
-            state_data = (1. / numpy.sqrt(state_size)) * numpy.ones(
-                state_size, dtype=numpy.complex128)
-        else:
-            raise ValueError("Unsupported initial state type")
-
-        sim_name = cudaq_runtime.get_target().simulator.strip()
-        if sim_name == "dm":
-            initial_state = cudaq_runtime.State.from_data(
-                numpy.outer(state_data, numpy.conj(state_data)))
-        else:
-            initial_state = cudaq_runtime.State.from_data(state_data)
+    initial_state = _canonicalize_initial_state(initial_state, num_qubits)
 
     if store_intermediate_results != IntermediateResultSave.NONE:
         evolution = _evolution_kernel(
@@ -292,15 +324,30 @@ def evolve_single(
         kernels = [kernel for kernel in evolution]
         save_intermediate_states = store_intermediate_results == IntermediateResultSave.ALL
         if len(observables) == 0:
-            return cudaq_runtime.evolve(initial_state, kernels,
-                                        save_intermediate_states)
+            if len(collapse_operators) > 0:
+                cudaq_runtime.set_noise(noise)
+                try:
+                    return cudaq_runtime.evolve(
+                        initial_state,
+                        kernels,
+                        save_intermediate_states=save_intermediate_states)
+                finally:
+                    cudaq_runtime.unset_noise()
+            return cudaq_runtime.evolve(
+                initial_state,
+                kernels,
+                save_intermediate_states=save_intermediate_states)
         if len(collapse_operators) > 0:
             cudaq_runtime.set_noise(noise)
-        result = cudaq_runtime.evolve(initial_state, kernels, parameters,
-                                      observable_spinops, shots_count,
-                                      save_intermediate_states)
-        cudaq_runtime.unset_noise()
-        return result
+            try:
+                return cudaq_runtime.evolve(initial_state, kernels, parameters,
+                                            observable_spinops, shots_count,
+                                            save_intermediate_states)
+            finally:
+                cudaq_runtime.unset_noise()
+        return cudaq_runtime.evolve(initial_state, kernels, parameters,
+                                    observable_spinops, shots_count,
+                                    save_intermediate_states)
     else:
         kernel = next(
             _evolution_kernel(
@@ -310,17 +357,28 @@ def evolve_single(
                 parameters,
                 register_kraus_channel=add_noise_channel_for_step))
         if len(observables) == 0:
+            if len(collapse_operators) > 0:
+                cudaq_runtime.set_noise(noise)
+                try:
+                    return cudaq_runtime.evolve(initial_state, kernel)
+                finally:
+                    cudaq_runtime.unset_noise()
             return cudaq_runtime.evolve(initial_state, kernel)
         # FIXME: permit to compute expectation values for operators defined as matrix
         if len(collapse_operators) > 0:
             cudaq_runtime.set_noise(noise)
-        result = cudaq_runtime.evolve(initial_state, kernel, parameters[-1],
-                                      observable_spinops, shots_count)
-        cudaq_runtime.unset_noise()
-        return result
+            try:
+                return cudaq_runtime.evolve(initial_state, kernel,
+                                            parameters[-1], observable_spinops,
+                                            shots_count)
+            finally:
+                cudaq_runtime.unset_noise()
+        return cudaq_runtime.evolve(initial_state, kernel, parameters[-1],
+                                    observable_spinops, shots_count)
 
 
 # Top level API for the CUDA-Q master equation solver.
+@trace.traced
 def evolve(
     hamiltonian: Operator | SuperOperator | Sequence[Operator] |
     Sequence[SuperOperator],
@@ -469,12 +527,23 @@ def evolve(
                                max_batch_size)
     else:
         if isinstance(initial_state, Sequence):
+
+            def evolve_one(ham, state, collapse_ops):
+                schedule.reset()
+                return evolve_single(ham, dimensions, schedule, state,
+                                     collapse_ops, observables,
+                                     store_intermediate_results, integrator,
+                                     shots_count)
+
+            if isinstance(hamiltonian, Sequence):
+                return [
+                    evolve_one(ham, state, collapse_ops)
+                    for ham, state, collapse_ops in zip(
+                        hamiltonian, initial_state, collapse_operators)
+                ]
             return [
-                evolve_single(ham, dimensions, schedule, state, collapse_ops,
-                              observables, store_intermediate_results,
-                              integrator, shots_count)
-                for ham, state, collapse_ops in zip(hamiltonian, initial_state,
-                                                    collapse_operators)
+                evolve_one(hamiltonian, state, collapse_operators)
+                for state in initial_state
             ]
         else:
             return evolve_single(hamiltonian, dimensions, schedule,
@@ -535,7 +604,15 @@ def evolve_single_async(
         raise ValueError(
             "collapse operators can only be defined when using the dynamics or density-matrix-cpu target"
         )
-    num_qubits = len(hamiltonian.degrees)
+    _validate_system_dimensions(dimensions)
+    num_qubits = len(dimensions)
+    hamiltonian = _canonicalize_operator_to_dimensions(hamiltonian, dimensions)
+    collapse_operators = [
+        _canonicalize_operator_to_dimensions(op, dimensions)
+        for op in collapse_operators
+    ]
+    for observable in observables:
+        _validate_operator_degrees(observable, dimensions)
     parameters = [mapping for mapping in schedule]
     schedule.reset()
     tlist = [schedule.current_step for _ in schedule]
@@ -551,6 +628,7 @@ def evolve_single_async(
         step_parameters, dt)
     if shots_count is None:
         shots_count = -1
+    initial_state = _canonicalize_initial_state(initial_state, num_qubits)
     if store_intermediate_results != IntermediateResultSave.NONE:
         evolution = _evolution_kernel(
             num_qubits,
@@ -560,8 +638,20 @@ def evolve_single_async(
             split_into_steps=True,
             register_kraus_channel=add_noise_channel_for_step)
         kernels = [kernel for kernel in evolution]
+        save_intermediate_states = store_intermediate_results == IntermediateResultSave.ALL
         if len(observables) == 0:
-            return cudaq_runtime.evolve_async(initial_state, kernels)
+            if len(collapse_operators) > 0:
+                return cudaq_runtime.evolve_async(
+                    initial_state,
+                    kernels,
+                    noise_model=noise,
+                    shots_count=shots_count,
+                    save_intermediate_states=save_intermediate_states)
+            return cudaq_runtime.evolve_async(
+                initial_state,
+                kernels,
+                shots_count=shots_count,
+                save_intermediate_states=save_intermediate_states)
         if len(collapse_operators) > 0:
             return cudaq_runtime.evolve_async(initial_state,
                                               kernels,
@@ -583,6 +673,11 @@ def evolve_single_async(
                 parameters,
                 register_kraus_channel=add_noise_channel_for_step))
         if len(observables) == 0:
+            if len(collapse_operators) > 0:
+                return cudaq_runtime.evolve_async(initial_state,
+                                                  kernel,
+                                                  noise_model=noise,
+                                                  shots_count=shots_count)
             return cudaq_runtime.evolve_async(initial_state, kernel)
         # FIXME: permit to compute expectation values for operators defined as matrix
         if len(collapse_operators) > 0:
@@ -599,6 +694,7 @@ def evolve_single_async(
                                           shots_count=shots_count)
 
 
+@trace.traced
 def evolve_async(
     hamiltonian: Operator,
     dimensions: Mapping[int, int] = {},

@@ -1,0 +1,38 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_pair.txt) placement=greedy search=none' %s -verify-diagnostics
+// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_pair.txt) placement=auto   search=none' %s -verify-diagnostics
+
+quake.wire_set @wires[2147483647]
+
+// expected-error @+1 {{could not find a routable initial layout for disconnected device topology}}
+func.func @ghz_chain() {
+  %q0 = quake.borrow_wire @wires[0] : !quake.wire
+  %q1 = quake.borrow_wire @wires[1] : !quake.wire
+  %q2 = quake.borrow_wire @wires[2] : !quake.wire
+  %a:2 = quake.x [%q0] %q1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %b:2 = quake.x [%a#1] %q2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.return_wire %a#0 : !quake.wire
+  quake.return_wire %b#0 : !quake.wire
+  quake.return_wire %b#1 : !quake.wire
+  return
+}
+
+// expected-error @+1 {{could not find a routable initial layout for disconnected device topology}}
+func.func @ghz_star() {
+  %q0 = quake.borrow_wire @wires[0] : !quake.wire
+  %q1 = quake.borrow_wire @wires[1] : !quake.wire
+  %q2 = quake.borrow_wire @wires[2] : !quake.wire
+  %a:2 = quake.x [%q0] %q1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  %b:2 = quake.x [%a#0] %q2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.return_wire %b#0 : !quake.wire
+  quake.return_wire %a#1 : !quake.wire
+  quake.return_wire %b#1 : !quake.wire
+  return
+}

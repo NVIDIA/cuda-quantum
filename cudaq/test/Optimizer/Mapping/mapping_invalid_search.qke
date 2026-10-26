@@ -1,0 +1,27 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// An unknown search strategy is fatal under raise-fatal-errors and otherwise
+// warns and falls back to the default.
+
+// RUN: cudaq-opt '--qubit-mapping=device=path(3) search=bogus raise-fatal-errors=1' %s -split-input-file -verify-diagnostics
+// RUN: cudaq-opt '--qubit-mapping=device=path(3) search=bogus' %s 2>&1 | FileCheck --check-prefix=WARN %s
+
+quake.wire_set @wires[2147483647]
+
+// expected-error @+1 {{unknown qubit-mapping search strategy 'bogus'}}
+func.func @bad_search() {
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
+  %1 = quake.borrow_wire @wires[1] : !quake.wire
+  %2:2 = quake.x [%0] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+  quake.return_wire %2#0 : !quake.wire
+  quake.return_wire %2#1 : !quake.wire
+  return
+}
+
+// WARN: warning: unknown qubit-mapping search strategy 'bogus'; using 'none'

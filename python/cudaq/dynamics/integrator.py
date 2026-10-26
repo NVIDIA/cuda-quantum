@@ -30,12 +30,22 @@ class BaseIntegrator(ABC, Generic[TState]):
 
     def __init__(self, **kwargs):
         self.state = None
-        self.integrator_options.update(kwargs)
+        # Use a fresh, per-instance dict rather than mutating the class-level
+        # default in place - otherwise options passed to one integrator leak
+        # into every other integrator instance created in the same process.
+        self.integrator_options = dict(self.integrator_options, **kwargs)
         self.t = None
         self.dimensions = None
         self.schedule = None
         self.hamiltonian = None
+        # The actual stepper used for integration.
+        # This may be set in the constructor with a user-provided stepper,
+        # or it may be auto-created by the integrator when `integrate()` is called based on the system dynamics.
         self.stepper = None
+        # User-provided stepper.
+        # This will be used for integration if provided.
+        # Note: it's user's responsibility to ensure that the provided stepper is compatible with the system dynamics.
+        self._user_provided_stepper = None
         self.collapse_operators = None
         self.super_op = None
         self.__post_init__()
@@ -69,7 +79,10 @@ class BaseIntegrator(ABC, Generic[TState]):
             self.hamiltonian = hamiltonian
 
         self.collapse_operators = collapse_operators
-        self.stepper = None
+        # Restore the user-provided stepper if one was given at construction,
+        # otherwise reset to None so `integrate()` builds a fresh stepper from
+        # the new system dynamics.
+        self.stepper = self._user_provided_stepper
 
     @abstractmethod
     def integrate(self, t):

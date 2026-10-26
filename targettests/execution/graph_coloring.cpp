@@ -7,10 +7,9 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: nvq++ %s -o %t --target infleqtion --emulate && %t | FileCheck %s
-// RUN: nvq++ %s -o %t --target quantinuum --emulate && %t | FileCheck %s
+// RUN: if %infleqtion_avail; then nvq++ %s -o %t --target infleqtion --emulate && %t | FileCheck %s; fi
+// RUN: if %quantinuum_avail; then nvq++ %s -o %t --target quantinuum --emulate && %t | FileCheck %s; fi
 // RUN: if %braket_avail; then nvq++ %s -o %t --target braket --emulate && %t | FileCheck %s; fi
-// RUN: if %qci_avail; then nvq++ --target qci --emulate %s -o %t && %t | FileCheck %s; fi
 // clang-format on
 
 #include <cudaq.h>
@@ -59,7 +58,8 @@ __qpu__ void reflect_uniform(cudaq::qvector<> &qubits, double theta) {
   // cudaq::adjoint(init_state, qubits, theta);
   init_state_adj(qubits, theta);
   x(qubits);
-  z<cudaq::ctrl>(qubits[0], qubits[1], qubits[2], qubits[3], qubits[4], qubits[5], qubits[6], qubits[7]);
+  z<cudaq::ctrl>(qubits[0], qubits[1], qubits[2], qubits[3], qubits[4],
+                 qubits[5], qubits[6], qubits[7]);
   x(qubits);
   init_state(qubits, theta);
 }
@@ -120,7 +120,7 @@ int main() {
   for (auto &&[bits, count] : result) {
     strings.push_back(bits);
   }
-  std::sort(strings.begin(), strings.end(), [&](auto& a, auto& b) {
+  std::sort(strings.begin(), strings.end(), [&](auto &a, auto &b) {
     return result.count(a) > result.count(b);
   });
 
@@ -149,6 +149,7 @@ int main() {
   return 0;
 }
 
+// clang-format off
 // CHECK-DAG: 01 10 11 01
 // CHECK-DAG: 10 11 01 10
 // CHECK-DAG: 11 10 11 01
@@ -161,3 +162,4 @@ int main() {
 // CHECK-DAG: 10 01 10 11
 // CHECK-DAG: 10 01 11 10
 // CHECK-DAG: 11 01 10 11
+// clang-format on

@@ -24,8 +24,10 @@ on:
           - oqc
           - orca
           - pasqal
-          - qci
           - quantinuum
+          - scaleway
+          - tii
+          - qbraid
       single_test_name:
         type: string
         required: false
@@ -55,6 +57,7 @@ on:
         - '3.11'
         - '3.12'
         - '3.13'
+        - '3.14'
 
   schedule:
     - cron: 0 3 * * *
@@ -63,20 +66,6 @@ env:
   python_version: '3.12'
 
 jobs:
-  # Run a daily check of all links in the docs to find any newly broken links
-  links:
-    runs-on: ubuntu-latest
-    name: "Check links"
-    permissions:
-      contents: read
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Check links in Markdown files
-        uses: ./.github/actions/check-markdown-links
-
   # We need this job purely to choose the container image values because the
   # `env` context is unavailable outside of "steps" contexts.
   setup:
@@ -88,19 +77,29 @@ jobs:
     environment:
       name: ghcr-deployment
       url: ${{ vars.deployment_url }}
+      deployment: false
 
     outputs:
       cudaq_test_image: ${{ steps.vars.outputs.cudaq_nightly_image }}@${{ steps.test_image.outputs.digest }}
 
     steps:
+      - name: Log in to GitHub CR
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
       - name: Set variables
         id: vars
         run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           cudaq_test_image=${{ inputs.cudaq_test_image || vars.cudaq_test_image }}
           cudaq_nightly_image=ghcr.io/nvidia/${{ vars.packages_prefix }}cuda-quantum
 
-          sudo apt-get update && sudo apt-get install -y --no-install-recommends curl
-          curl -L https://github.com/regclient/regclient/releases/latest/download/regctl-linux-amd64 > regctl
+          retry sudo apt-get update
+          retry sudo apt-get install -y --no-install-recommends curl
+          retry curl -L https://github.com/regclient/regclient/releases/latest/download/regctl-linux-amd64 > regctl
           chmod 755 regctl
 
           manifest=`./regctl image manifest $cudaq_test_image --format "{{ json . }}"`
@@ -110,19 +109,12 @@ jobs:
           echo "platforms=$(echo $platforms | tr ' ' ,)" >> $GITHUB_OUTPUT
           echo "cudaq_nightly_image=$cudaq_nightly_image" >> $GITHUB_OUTPUT
 
-      - name: Log in to GitHub CR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ github.token }}
-
       - name: Set up context for buildx
         run: |
           docker context create builder_context
 
       - name: Set up buildx runner
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v4
         with:
           endpoint: builder_context
           version: v0.19.0
@@ -131,7 +123,7 @@ jobs:
 
       - name: Extract metadata
         id: metadata
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ steps.vars.outputs.cudaq_nightly_image }}
           flavor: latest=false
@@ -142,7 +134,9 @@ jobs:
 
       - name: Update nightly image on GHCR
         id: test_image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v7
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: "false"
         with:
           context: .
           file: test_image.Dockerfile
@@ -189,7 +183,7 @@ jobs:
         run: |
           # Determine which providers to test based on inputs and event type
           if [[ "${{ github.event_name }}" == "schedule" || "${{ inputs.target }}" == "nightly" ]]; then
-            providers='["anyon", "fermioniq", "infleqtion", "ionq", "iqm", "oqc", "orca", "pasqal", "qci", "quantinuum"]'
+            providers='["anyon", "fermioniq", "infleqtion", "ionq", "iqm", "oqc", "orca", "pasqal", "qbraid", "quantinuum", "scaleway", "tii"]'
           else
             # Just run the specified target provider
             providers="[\"${{ inputs.target }}\"]"
@@ -217,7 +211,7 @@ jobs:
 
     steps:
       - name: Get code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ needs.metadata.outputs.cudaq_commit }}
           fetch-depth: 1
@@ -259,12 +253,18 @@ jobs:
               pasqal)
                 filelist="docs/sphinx/targets/cpp/pasqal.cpp docs/sphinx/targets/python/pasqal.py"
                 ;;
-              qci)
-                filelist="targettests/qci/*.cpp"
+              qbraid)
+                filelist="targettests/qbraid/*.cpp docs/sphinx/targets/cpp/qbraid.cpp docs/sphinx/targets/python/qbraid.py"
                 ;;
               quantinuum)
                 # Include both legacy Quantinuum and Quantinuum-NG tests
                 filelist="targettests/quantinuum/*.cpp targettests/quantinuum_ng/*.cpp docs/sphinx/targets/python/quantinuum.py"
+                ;;
+              scaleway)
+                filelist="targettests/scaleway/*.cpp docs/sphinx/targets/python/scaleway.py"
+                ;;
+              tii)
+                filelist="docs/sphinx/targets/cpp/tii.cpp docs/sphinx/targets/python/tii.py"
                 ;;
             esac
             echo "testlist=$filelist" >> $GITHUB_OUTPUT
@@ -273,6 +273,7 @@ jobs:
       # Provider-specific setup steps
       - name: Setup ${{ matrix.provider }} account
         run: |
+          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           case "${{ matrix.provider }}" in
             anyon)
               echo "### Setting up Anyon account" >> $GITHUB_STEP_SUMMARY
@@ -341,7 +342,7 @@ jobs:
               ;;
             pasqal)
               echo "### Setting up Pasqal account" >> $GITHUB_STEP_SUMMARY
-              python3 -m pip install pasqal-cloud
+              retry python3 -m pip install pasqal-cloud
               echo "::add-mask::${{ secrets.PASQAL_USERNAME }}"
               echo "::add-mask::${{ secrets.PASQAL_PASSWORD }}"
               echo "::add-mask::${{ secrets.PASQAL_PROJECT_ID }}"
@@ -372,19 +373,59 @@ jobs:
               echo "PASQAL_PROJECT_ID=${{ secrets.PASQAL_PROJECT_ID }}" >> $GITHUB_ENV
               echo "PASQAL_MACHINE_TARGET=EMU_FREE" >> $GITHUB_ENV
               ;;
-            qci)
-              echo "### Setting up QCI account" >> $GITHUB_STEP_SUMMARY
-              echo "::add-mask::${{ secrets.QCI_AUTH_TOKEN }}"
-              echo "QCI_AUTH_TOKEN=${{ secrets.QCI_AUTH_TOKEN }}" >> $GITHUB_ENV
+            qbraid)
+              echo "### Setting up qBraid account" >> $GITHUB_STEP_SUMMARY
+              echo "::add-mask::${{ secrets.QBRAID_API_KEY }}"
+              echo "QBRAID_API_KEY=${{ secrets.QBRAID_API_KEY }}" >> $GITHUB_ENV
               ;;
             quantinuum)
               echo "### Setting up Quantinuum account" >> $GITHUB_STEP_SUMMARY
               echo "::add-mask::${{ secrets.BACKEND_LOGIN_EMAIL }}"
               echo "::add-mask::${{ secrets.QUANTINUUM_NEXUS_PASSWORD }}"
-              curl -c ~/.quantinuum_cookies.txt -X POST https://nexus.quantinuum.com/auth/login -H "Content-Type: application/json" -d '{ "email":"${{ secrets.BACKEND_LOGIN_EMAIL }}","password":"${{ secrets.QUANTINUUM_NEXUS_PASSWORD }}" }' >/dev/null
+              response=$(
+                curl -sS -w "%{http_code}" \
+                  -c ~/.quantinuum_cookies.txt \
+                  -X POST https://nexus.quantinuum.com/auth/login \
+                  -H "Content-Type: application/json" \
+                  -d '{ "email":"${{ secrets.BACKEND_LOGIN_EMAIL }}","password":"${{ secrets.QUANTINUUM_NEXUS_PASSWORD }}" }' \
+                  -o ~/.quantinuum_login_response.json
+              ) || {
+                echo "::error::Quantinuum login request failed (curl error)"
+                exit 1
+              }
+              if [ "$response" -ne 200 ]; then
+                echo "::error::Quantinuum login failed with HTTP $response"
+                exit 1
+              fi
+              if ! grep -q "myqos_oat" ~/.quantinuum_cookies.txt || \
+                 ! grep -q "myqos_id" ~/.quantinuum_cookies.txt; then
+                echo "::error::Quantinuum login succeeded (HTTP 200) but expected cookies (myqos_oat, myqos_id) were not set. Cookie jar contents:"
+                awk '{if(NF>=7){$7="REDACTED"} print}' ~/.quantinuum_cookies.txt
+                # Show the response with long values (tokens) redacted.
+                echo "Login response (values redacted):"
+                python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); print({k: (v if isinstance(v,str) and len(v)<40 else "REDACTED") for k,v in d.items()} if isinstance(d,dict) else type(d).__name__)' \
+                  ~/.quantinuum_login_response.json 2>/dev/null || echo "(non-JSON body)"
+                rm -f ~/.quantinuum_login_response.json
+                exit 1
+              fi
+              rm -f ~/.quantinuum_login_response.json
               awk '$6 == "myqos_oat" {refresh=$7} $6 == "myqos_id" {key=$7} END {print "key: " key "\nrefresh: " refresh}' ~/.quantinuum_cookies.txt > ~/.quantinuum_config
               chmod 600 ~/.quantinuum_config
               rm ~/.quantinuum_cookies.txt
+              ;;
+            scaleway)
+              echo "### Setting up Scaleway account" >> $GITHUB_STEP_SUMMARY
+              echo "::add-mask::${{ secrets.SCW_PROJECT_ID }}"
+              echo "::add-mask::${{ secrets.SCW_SECRET_KEY }}"
+              echo "SCW_PROJECT_ID=${{ secrets.SCW_PROJECT_ID }}" >> $GITHUB_ENV
+              echo "SCW_SECRET_KEY=${{ secrets.SCW_SECRET_KEY }}" >> $GITHUB_ENV
+              ;;
+            tii)
+              echo "### Setting up TII account" >> $GITHUB_STEP_SUMMARY
+              echo "::add-mask::${{ secrets.TII_API_TOKEN }}"
+              echo "::add-mask::${{ secrets.TII_PROJECT }}"
+              echo "TII_API_TOKEN=${{ secrets.TII_API_TOKEN }}" >> $GITHUB_ENV
+              echo "TII_PROJECT=${{ secrets.TII_PROJECT }}" >> $GITHUB_ENV
               ;;
           esac
         shell: bash
@@ -394,6 +435,24 @@ jobs:
         run: |
           echo "### Testing ${{ matrix.provider }}" >> $GITHUB_STEP_SUMMARY
           export CUDAQ_LOG_LEVEL="info"
+
+          tii_retry() {
+            local attempt output status
+            for attempt in 1 2 3 4 5; do
+              output=$("$@" 2>&1)
+              status=$?
+              printf '%s\n' "$output"
+              if [ $status -eq 0 ] || ! echo "$output" | grep -q "parallel jobs exceeded"; then
+                return $status
+              fi
+              if [ $attempt -lt 5 ]; then
+                echo "::warning::TII parallel job limit reached; retrying $1 in $((60*attempt))s (attempt $attempt of 5)"
+                sleep $((60*attempt))
+              fi
+            done
+            echo "::error::TII parallel job limit still reached after 5 attempts"
+            return $status
+          }
           set +e # Allow script to keep going through errors
           test_err_sum=0
           test_skip_sum=0
@@ -601,6 +660,55 @@ jobs:
                   python3 $filename 1> /dev/null
                   test_status=$?
                   if [ $test_status -eq 0 ]; then
+                    echo ":white_check_mark: Successfully ran test: $filename  (direct execution)" >> $GITHUB_STEP_SUMMARY
+                  else
+                    echo ":x: Test failed (failed to execute): $filename (direct execution)" >> $GITHUB_STEP_SUMMARY
+                    test_err_sum=$((test_err_sum+1))
+                  fi
+                  if [ "$(uname)" = "Linux" ] && [ "$(uname -m)" = "x86_64" ] && \
+                     [ -f "${QRMI_INSTALL_PREFIX:-/usr/local/qrmi}/lib64/libqrmi.so" ]; then
+                    PASQAL_MACHINE_TARGET=qrmi \
+                    SLURM_JOB_QPU_RESOURCES=EMU_FREE \
+                    EMU_FREE_QRMI_PASQAL_CLOUD_PROJECT_ID=$PASQAL_PROJECT_ID \
+                    python3 "$filename" 1> /dev/null
+                    test_status=$?
+                    if [ $test_status -eq 0 ]; then
+                      echo ":white_check_mark: Successfully ran test: $filename (qrmi execution)" >> $GITHUB_STEP_SUMMARY
+                    else
+                      echo ":x: Test failed (failed to execute): $filename (qrmi execution)" >> $GITHUB_STEP_SUMMARY
+                      test_err_sum=$((test_err_sum+1))
+                    fi
+                  else
+                    echo ":information_source: Skipped QRMI test for $filename (QRMI not available in this build)" >> $GITHUB_STEP_SUMMARY
+                  fi
+                else
+                  echo "::warning::Unsupported file type: $filename"
+                  echo ":warning: Test skipped (unsupported file type): $filename" >> $GITHUB_STEP_SUMMARY
+                  test_skip_sum=$((test_skip_sum+1))
+                fi
+                ;;
+
+              qbraid)
+                if [[ "$filename" == *.cpp ]]; then
+                  nvq++ -v $filename --target qbraid --qbraid-machine qbraid:qbraid:sim:qir-sv
+                  test_status=$?
+                  if [ $test_status -eq 0 ]; then
+                    ./a.out
+                    test_status=$?
+                    if [ $test_status -eq 0 ]; then
+                      echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                    else
+                      echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                      test_err_sum=$((test_err_sum+1))
+                    fi
+                  else
+                    echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
+                    test_err_sum=$((test_err_sum+1))
+                  fi
+                elif [[ "$filename" == *.py ]]; then
+                  python3 $filename 1> /dev/null
+                  test_status=$?
+                  if [ $test_status -eq 0 ]; then
                     echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
                   else
                     echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
@@ -613,29 +721,11 @@ jobs:
                 fi
                 ;;
 
-              qci)
-                nvq++ -v $filename --target qci
-                test_status=$?
-                if [ $test_status -eq 0 ]; then
-                  ./a.out
-                  test_status=$?
-                  if [ $test_status -eq 0 ]; then
-                    echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
-                  else
-                    echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
-                    test_err_sum=$((test_err_sum+1))
-                  fi
-                else
-                  echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
-                  test_err_sum=$((test_err_sum+1))
-                fi
-                ;;
-
               quantinuum)
                 if [[ "$filename" == *.cpp ]]; then
                   if [[ "$filename" == *"quantinuum_ng/"* ]]; then
                     echo "### Running Quantinuum-NG test" >> $GITHUB_STEP_SUMMARY
-                    nvq++ -v $filename --target quantinuum --quantinuum-machine Helios-1E --quantinuum-project ${{ secrets.QUANTINUUM_NEXUS_PROJECT_ID }} --quantinuum-max-cost 15 --quantinuum-max-qubits 7 --quantinuum-noisy-simulation false
+                    nvq++ -v $filename --target quantinuum --quantinuum-machine Helios-1E --quantinuum-project ${{ secrets.QUANTINUUM_NEXUS_PROJECT_ID }} --quantinuum-max-cost 26 --quantinuum-max-qubits 7 --quantinuum-noisy-simulation false
                   else
                     echo "### Running standard Quantinuum test" >> $GITHUB_STEP_SUMMARY
                     nvq++ -v $filename -DSYNTAX_CHECK --target quantinuum --quantinuum-machine H2-1SC --quantinuum-project ${{ secrets.QUANTINUUM_NEXUS_PROJECT_ID }}
@@ -657,6 +747,72 @@ jobs:
                 elif [[ "$filename" == *.py ]]; then
                   echo "### Running Quantinuum Python test" >> $GITHUB_STEP_SUMMARY
                   QUANTINUUM_NEXUS_PROJECT=${{ secrets.QUANTINUUM_NEXUS_PROJECT_ID }} python3 $filename 1> /dev/null
+                  test_status=$?
+                  if [ $test_status -eq 0 ]; then
+                    echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                  else
+                    echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                    test_err_sum=$((test_err_sum+1))
+                  fi
+                else
+                  echo "::warning::Unsupported file type: $filename"
+                  echo ":warning: Test skipped (unsupported file type): $filename" >> $GITHUB_STEP_SUMMARY
+                  test_skip_sum=$((test_skip_sum+1))
+                fi
+                ;;
+
+              scaleway)
+                if [[ "$filename" == *.cpp ]]; then
+                  nvq++ -v $filename --target scaleway --scaleway-machine EMU-CUDAQ-64C-512M --scaleway-deduplication-id ghci-workflow-testing
+                  test_status=$?
+                  if [ $test_status -eq 0 ]; then
+                    ./a.out
+                    test_status=$?
+                    if [ $test_status -eq 0 ]; then
+                      echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                    else
+                      echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                      test_err_sum=$((test_err_sum+1))
+                    fi
+                  else
+                    echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
+                    test_err_sum=$((test_err_sum+1))
+                  fi
+                elif [[ "$filename" == *.py ]]; then
+                  python3 $filename 1> /dev/null
+                  test_status=$?
+                  if [ $test_status -eq 0 ]; then
+                    echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                  else
+                    echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                    test_err_sum=$((test_err_sum+1))
+                  fi
+                else
+                  echo "::warning::Unsupported file type: $filename"
+                  echo ":warning: Test skipped (unsupported file type): $filename" >> $GITHUB_STEP_SUMMARY
+                  test_skip_sum=$((test_skip_sum+1))
+                fi
+                ;;
+
+              tii)
+                if [[ "$filename" == *.cpp ]]; then
+                  nvq++ -v $filename --target tii --tii-device tii-sim --tii-project ${{ secrets.TII_PROJECT }}
+                  test_status=$?
+                  if [ $test_status -eq 0 ]; then
+                    tii_retry ./a.out
+                    test_status=$?
+                    if [ $test_status -eq 0 ]; then
+                      echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                    else
+                      echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                      test_err_sum=$((test_err_sum+1))
+                    fi
+                  else
+                    echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
+                    test_err_sum=$((test_err_sum+1))
+                  fi
+                elif [[ "$filename" == *.py ]]; then
+                  tii_retry python3 $filename
                   test_status=$?
                   if [ $test_status -eq 0 ]; then
                     echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY

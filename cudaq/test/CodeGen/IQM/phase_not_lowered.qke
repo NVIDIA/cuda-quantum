@@ -1,0 +1,25 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// IQM phase bookkeeping must be lowered and remapped to native PRX operations
+// before JSON emission.
+// RUN: cudaq-translate --convert-to=iqm %s | FileCheck %s
+
+module {
+  func.func @phase_iqm() attributes {"cudaq-entrypoint"} {
+    %theta = arith.constant 5.000000e-01 : f64
+    %control = quake.alloca !quake.ref
+    %anchor = quake.alloca !quake.ref
+    quake.phase (%theta) [%control] %anchor
+        : (f64, !quake.ref, !quake.ref) -> ()
+    return
+  }
+}
+
+// CHECK-COUNT-3: "name": "prx"
+// CHECK: "name": "phase_iqm"

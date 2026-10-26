@@ -6,12 +6,13 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "common/Logger.h"
+#include "nvqir/CircuitSimulator.h"
 #include "cudaq/operators.h"
+#include "cudaq/ptsbe/PTSBESampler.h"
 #include "cudaq/qis/managers/BasicExecutionManager.h"
 #include "cudaq/qis/qudit.h"
+#include "cudaq/runtime/logger/logger.h"
 #include "cudaq/utils/cudaq_utils.h"
-#include "nvqir/CircuitSimulator.h"
 #include "llvm/ADT/StringSwitch.h"
 #include <span>
 
@@ -142,15 +143,17 @@ protected:
     simulator()->deallocateQubits(local);
   }
 
-  void handleExecutionContextChanged() override {
+  void beginExecution() override {
+    BasicExecutionManager::beginExecution();
     requestedAllocations.clear();
-    simulator()->setExecutionContext(executionContext);
   }
 
-  void handleExecutionContextEnded() override {
+  void finalizeExecutionContextImpl() {
+    BasicExecutionManager::finalizeExecutionContextImpl();
+
     if (!requestedAllocations.empty()) {
       CUDAQ_INFO("[DefaultExecutionManager] Flushing remaining {} allocations "
-                 "at handleExecutionContextEnded.",
+                 "at finalizeExecutionContext.",
                  requestedAllocations.size());
       // If there are pending allocations, flush them to the simulator.
       // Making sure the simulator's state is consistent with the number of
@@ -158,7 +161,56 @@ protected:
       simulator()->allocateQubits(requestedAllocations.size());
       requestedAllocations.clear();
     }
-    simulator()->resetExecutionContext();
+  }
+
+  sample_result finalizeExecutionContext(const sample_policy &policy) override {
+    finalizeExecutionContextImpl();
+    return simulator()->finalizeExecutionContext(policy);
+  }
+
+  observe_result
+  finalizeExecutionContext(const observe_policy &policy) override {
+    finalizeExecutionContextImpl();
+    return simulator()->finalizeExecutionContext(policy);
+  }
+
+  run_result finalizeExecutionContext(const run_policy &policy) override {
+    finalizeExecutionContextImpl();
+    return simulator()->finalizeExecutionContext(policy);
+  }
+
+  msm_dimensions
+  finalizeExecutionContext(const msm_size_policy &policy) override {
+    finalizeExecutionContextImpl();
+    return simulator()->finalizeExecutionContext(policy);
+  }
+
+  msm_result finalizeExecutionContext(const msm_policy &policy) override {
+    finalizeExecutionContextImpl();
+    return simulator()->finalizeExecutionContext(policy);
+  }
+
+  dem_result finalizeExecutionContext(const dem_policy &policy) override {
+    finalizeExecutionContextImpl();
+    return simulator()->finalizeExecutionContext(policy);
+  }
+
+  ptsbe::sample_policy::result_type
+  finalizeExecutionContext(const ptsbe::sample_policy &policy) override {
+    finalizeExecutionContextImpl();
+    return cudaq::ptsbe::detail::finalizePTSBE(policy);
+  }
+
+  void finalizeExecutionContext(const other_policies &policy,
+                                ExecutionContext &ctx) override {
+    finalizeExecutionContextImpl();
+    simulator()->finalizeExecutionContext(ctx);
+  }
+
+  void endExecution() override {
+    BasicExecutionManager::endExecution();
+    // Note: this needs to run after the above, which deallocates the qubits.
+    simulator()->endExecution();
   }
 
   void executeInstruction(const Instruction &instruction) override {
@@ -223,8 +275,16 @@ protected:
 
   void applyNoise(const kraus_channel &channel,
                   const std::vector<QuditInfo> &targets) override {
-    if (isInTracerMode())
+    if (isInTracerMode()) {
+      auto *ctx = cudaq::getExecutionContext();
+      if (ctx) {
+        std::intptr_t key = static_cast<std::intptr_t>(
+            std::hash<std::string>{}(channel.get_type_name()));
+        ctx->kernelTrace.appendNoiseInstruction(
+            key, channel.get_type_name(), channel.parameters, {}, targets);
+      }
       return;
+    }
 
     flushGateQueue();
 
@@ -256,9 +316,9 @@ protected:
     simulator()->flushGateQueue();
   }
 
-  void measureSpinOp(const cudaq::spin_op &op) override {
+  cudaq::SpinMeasureResult measureSpinOp(const cudaq::spin_op &op) override {
     flushRequestedAllocations();
-    simulator()->measureSpinOp(op);
+    return simulator()->measureSpinOp(op);
   }
 
 public:
@@ -269,6 +329,12 @@ public:
   virtual ~DefaultExecutionManager() = default;
 
   void resetQudit(const cudaq::QuditInfo &q) override {
+    if (isInTracerMode()) {
+      auto *ctx = cudaq::getExecutionContext();
+      if (ctx)
+        ctx->kernelTrace.appendMeasurement("reset", {q});
+      return;
+    }
     flushRequestedAllocations();
     simulator()->resetQubit(q.id);
   }

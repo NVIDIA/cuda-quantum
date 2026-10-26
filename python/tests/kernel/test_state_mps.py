@@ -15,13 +15,12 @@ import cudaq
 
 cp = pytest.importorskip('cupy')
 
-skipIfNoGPU = pytest.mark.skipif(
-    not (cudaq.num_available_gpus() > 0 and cudaq.has_target('tensornet-mps')),
-    reason="tensornet-mps backend not available")
+skipIfNoGPU = pytest.mark.skipif(not cudaq.has_target('tensornet-mps'),
+                                 reason="tensornet-mps backend not available")
 
 
 @pytest.fixture(autouse=True)
-def do_something():
+def run_and_clear_registries():
     yield
     cudaq.__clearKernelRegistries()
     cudaq.reset_target()
@@ -37,6 +36,17 @@ def test_state_from_mps_simple():
     assert np.isclose(state[1], 0.0)
     assert np.isclose(state[2], 0.0)
     assert np.isclose(state[3], 0.0)
+    assert np.isclose(state[-1], 0.0)
+    assert np.isclose(state[-4], 1.0)
+    # state[2**2]: index equals dimension.
+    with pytest.raises(IndexError):
+        state[2**2]
+    # state[INT_MAX]: index exceeds dimension.
+    with pytest.raises(IndexError):
+        state[2147483647]
+    # state[-5]: index below -dimension.
+    with pytest.raises(IndexError):
+        state[-5]
 
 
 @skipIfNoGPU

@@ -104,6 +104,9 @@ struct QppState : public cudaq::SimulationState {
 
   std::unique_ptr<SimulationState>
   createFromSizeAndPtr(std::size_t size, void *ptr, std::size_t) override {
+    if (!ptr || size == 0)
+      throw std::runtime_error(
+          "[createFromSizeAndPtr] invalid null pointer or zero size");
     return std::make_unique<QppState>(Eigen::Map<qpp::ket>(
         reinterpret_cast<std::complex<double> *>(ptr), size));
   }
@@ -201,12 +204,14 @@ protected:
         const_cast<void *>(stateDataIn));
 
     if (state.size() == 0) {
-      // If this is the first time, allocate the state
+      // Size from qubitCount: with deferred allocations stateDimension
+      // can already count qubits this call is not materializing.
+      const auto dimension = calculateStateDim(qubitCount);
       if (stateData == nullptr) {
-        state = qpp::ket::Zero(stateDimension);
+        state = qpp::ket::Zero(dimension);
         state(0) = 1.0;
       } else
-        state = qpp::ket::Map(stateData, stateDimension);
+        state = qpp::ket::Map(stateData, dimension);
       return;
     }
     // If we are resizing an existing, allocate
@@ -262,6 +267,8 @@ protected:
 
   /// @brief Set the current state back to the |0> state.
   void setToZeroState() override {
+    // `stateDimension` already counts queued allocations.
+    flushPendingQubits();
     state = qpp::ket::Zero(stateDimension);
     state(0) = 1.0;
   }
@@ -304,6 +311,8 @@ public:
   }
 
   bool canHandleObserve() override {
+    auto executionContext = cudaq::getExecutionContext();
+
     // Do not compute <H> from matrix if shots based sampling requested
     if (executionContext &&
         executionContext->shots != static_cast<std::size_t>(-1)) {
@@ -349,7 +358,8 @@ public:
 
   /// @brief Sample the multi-qubit state.
   cudaq::ExecutionResult sample(const std::vector<std::size_t> &qubits,
-                                const int shots) override {
+                                const int shots,
+                                bool includeSequentialData = true) override {
     if (shots < 1) {
       double expectationValue = calculateExpectationValue(qubits);
       CUDAQ_INFO("Computed expectation value = {}", expectationValue);
@@ -377,7 +387,10 @@ public:
       // Add to the sample result
       // in mid-circ sampling mode this will append 1 bitstring
       auto bitstring = bitstream.str();
-      counts.appendResult(bitstring, count);
+      if (includeSequentialData)
+        counts.appendResult(bitstring, count);
+      else
+        counts.counts[bitstring] += count;
       auto par = cudaq::sample_result::has_even_parity(bitstring);
       auto p = count / (double)shots;
       if (!par) {
@@ -398,15 +411,15 @@ public:
     return std::make_unique<QppState>(std::move(state));
   }
 
+  std::unique_ptr<cudaq::SimulationState>
+  createStateFromData(const cudaq::state_data &data) override {
+    return std::make_unique<QppState>(qpp::ket{})->createFromData(data);
+  }
+
   bool isStateVectorSimulator() const override {
     return std::is_same_v<StateType, qpp::ket>;
   }
 
-  /// @brief Primarily used for testing.
-  auto getStateVector() {
-    flushGateQueue();
-    return state;
-  }
   std::string name() const override { return "qpp"; }
   NVQIR_SIMULATOR_CLONE_IMPL(QppCircuitSimulator<StateType>)
 };

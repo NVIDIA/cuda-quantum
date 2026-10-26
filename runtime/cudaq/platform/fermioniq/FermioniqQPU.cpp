@@ -6,48 +6,107 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "FermioniqBaseQPU.h"
-// #include "common/BaseRemoteRESTQPU.h"
+#include "FermioniqQPU.h"
+#include "cudaq_internal/compiler/Compiler.h"
+#include "nlohmann/json.hpp"
+#include "cudaq/algorithms/observe/policy.h"
+#include "cudaq/runtime/logger/cudaq_fmt.h"
 
-using namespace mlir;
-
-namespace cudaq {
-std::string get_quake_by_name(const std::string &);
-} // namespace cudaq
-
-namespace {
-
-/// @brief The `FermioniqRestQPU` is a subtype of QPU that enables the
-/// execution of CUDA-Q kernels on the Fermioniq simulator via a REST Client.
-class FermioniqRestQPU : public cudaq::FermioniqBaseQPU {
-protected:
-  std::tuple<ModuleOp, MLIRContext *, void *>
-  extractQuakeCodeAndContext(const std::string &kernelName,
-                             void *data) override {
-
-    CUDAQ_INFO("extract quake code\n");
-
-    auto contextPtr = cudaq::initializeMLIR();
-    MLIRContext &context = *contextPtr.get();
-
-    // Get the quake representation of the kernel
-    auto quakeCode = cudaq::get_quake_by_name(kernelName);
-    auto m_module = parseSourceString<ModuleOp>(quakeCode, &context);
-    if (!m_module)
-      throw std::runtime_error("module cannot be parsed");
-
-    return std::make_tuple(m_module.release(), contextPtr.release(), data);
+static void attachFermioniqObservable(cudaq::KernelExecution &code,
+                                      const cudaq::spin_op &spin) {
+  auto user_data = nlohmann::json::object();
+  auto obs = nlohmann::json::array();
+  for (const auto &term : spin) {
+    auto terms = nlohmann::json::array();
+    terms.push_back(term.get_term_id());
+    auto coeff = term.evaluate_coefficient();
+    auto coeff_str = cudaq_fmt::format("{}{}{}j", coeff.real(),
+                                       coeff.imag() < 0.0 ? "-" : "+",
+                                       std::fabs(coeff.imag()));
+    terms.push_back(coeff_str);
+    obs.push_back(terms);
   }
+  user_data["observable"] = obs;
+  code.user_data = user_data;
+}
 
-  void cleanupContext(MLIRContext *context) override { delete context; }
+static std::vector<cudaq::KernelExecution>
+emitCodegen(const cudaq::CompiledModule &module, cudaq::CompileTarget target) {
+  cudaq_internal::compiler::Compiler compiler(std::move(target), {});
+  auto codes = compiler.emitKernelExecutions(module);
 
-public:
-  /// @brief The constructor
-  FermioniqRestQPU() : FermioniqBaseQPU() {}
+  if (codes.size() != 1)
+    throw std::runtime_error("Provider only allows 1 circuit at a time.");
 
-  FermioniqRestQPU(FermioniqRestQPU &&) = delete;
-  virtual ~FermioniqRestQPU() = default;
-};
-} // namespace
+  return codes;
+}
 
-CUDAQ_REGISTER_TYPE(cudaq::QPU, FermioniqRestQPU, fermioniq)
+cudaq::FermioniqQPU::~FermioniqQPU() = default;
+
+cudaq::sample_result
+cudaq::FermioniqQPU::launchKernel(const cudaq::sample_policy &policy,
+                                  const CompiledModule &module,
+                                  KernelArgs args) {
+  CUDAQ_INFO("FermioniqQPU launching kernel ({}) with policy {}",
+             module.getName(), policy.name);
+
+  if (module.getMlirArtifacts().empty())
+    throw std::runtime_error("QPU does not support launching a "
+                             "CompiledModule without MLIR artifacts.");
+
+  auto codes = emitCodegen(module, getCompileTarget());
+  return completeLaunchKernel(policy, module.getName(), std::move(codes));
+}
+
+cudaq::async_sample_result
+cudaq::FermioniqQPU::launchKernel(const cudaq::async_sample_policy &policy,
+                                  const CompiledModule &module,
+                                  KernelArgs args) {
+  CUDAQ_INFO("FermioniqQPU launching kernel ({}) with policy {}",
+             module.getName(), policy.inner.name);
+
+  if (module.getMlirArtifacts().empty())
+    throw std::runtime_error("QPU does not support launching a "
+                             "CompiledModule without MLIR artifacts.");
+
+  auto codes = emitCodegen(module, getCompileTarget());
+  return completeLaunchKernel(policy, module.getName(), std::move(codes));
+}
+
+cudaq::observe_result
+cudaq::FermioniqQPU::launchKernel(const cudaq::observe_policy &policy,
+                                  const CompiledModule &module,
+                                  KernelArgs args) {
+  CUDAQ_INFO("FermioniqQPU launching kernel ({}) with policy {}",
+             module.getName(), policy.name);
+
+  if (module.getMlirArtifacts().empty())
+    throw std::runtime_error("QPU does not support launching a "
+                             "CompiledModule without MLIR artifacts.");
+
+  auto codes = emitCodegen(module, getCompileTarget());
+  attachFermioniqObservable(codes[0], policy.spin);
+  auto result =
+      completeLaunchKernel(policy, module.getName(), std::move(codes));
+  auto expectation = result.raw_data().expectation(GlobalRegisterName);
+  return cudaq::observe_result(expectation, result.get_spin(),
+                               result.raw_data());
+}
+
+cudaq::async_observe_result
+cudaq::FermioniqQPU::launchKernel(const cudaq::async_observe_policy &policy,
+                                  const CompiledModule &module,
+                                  KernelArgs args) {
+  CUDAQ_INFO("FermioniqQPU launching kernel ({}) with policy {}",
+             module.getName(), policy.inner.name);
+
+  if (module.getMlirArtifacts().empty())
+    throw std::runtime_error("QPU does not support launching a "
+                             "CompiledModule without MLIR artifacts.");
+
+  auto codes = emitCodegen(module, getCompileTarget());
+  attachFermioniqObservable(codes[0], policy.inner.spin);
+  return completeLaunchKernel(policy, module.getName(), std::move(codes));
+}
+
+CUDAQ_REGISTER_TYPE(cudaq::QPU, cudaq::FermioniqQPU, fermioniq)

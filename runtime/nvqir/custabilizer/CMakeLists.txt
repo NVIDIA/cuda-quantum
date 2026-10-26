@@ -38,6 +38,7 @@ target_link_libraries(${LIBRARY_NAME}
     libstim
     fmt::fmt-header-only
     cudaq-common
+    cudaq-logger
     ${CUSTABILIZER_LIBRARY}
     CUDA::cudart)
 

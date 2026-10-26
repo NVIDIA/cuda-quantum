@@ -1,0 +1,52 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --stack-frame-prealloc --split-input-file \
+// RUN:   --verify-diagnostics %s
+
+// It is invalid for a cc.alloca to appear directly inside a cc.if or
+// cc.loop without an intervening cc.scope that is itself nested inside that
+// same cc.if/cc.loop. stack-frame-prealloc relies on that invariant (see
+// validateAllocaNesting); rather than risk reasoning about IR it cannot
+// analyze correctly, it must diagnose the violation and leave the offending
+// scope untouched.
+
+func.func @bad_if_no_scope(%b: i1) {
+  %c1 = arith.constant 1 : i32
+  cc.if(%b) {
+    // expected-warning@+1 {{without an intervening cc.scope}}
+    %x = cc.alloca i32
+    cc.store %c1, %x : !cc.ptr<i32>
+    cc.continue
+  }
+  return
+}
+
+// -----
+
+func.func @bad_loop_no_scope(%n: i32) {
+  %c1 = arith.constant 1 : i32
+  %c0 = arith.constant 0 : i32
+  %i = cc.alloca i32
+  cc.store %c0, %i : !cc.ptr<i32>
+  cc.loop while {
+    %iv = cc.load %i : !cc.ptr<i32>
+    %cond = arith.cmpi ult, %iv, %n : i32
+    cc.condition %cond
+  } do {
+    // expected-warning@+1 {{without an intervening cc.scope}}
+    %x = cc.alloca i32
+    cc.store %c1, %x : !cc.ptr<i32>
+    cc.continue
+  } step {
+    %iv = cc.load %i : !cc.ptr<i32>
+    %inc = arith.addi %iv, %c1 : i32
+    cc.store %inc, %i : !cc.ptr<i32>
+  }
+  return
+}

@@ -1,0 +1,161 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --cc-loop-unroll=unroll-only-index-use-loops=true %s | FileCheck %s
+// RUN: cudaq-opt --cc-loop-unroll %s | FileCheck --check-prefix=DEFAULT %s
+
+// `uses_induction` indexes a qubit with its induction variable, so it is an
+// index use loop and is unrolled. `ignores_induction` applies the same gate to
+// the same qubit every iteration, so with unroll-only-index-use-loops=true it
+// stays rolled. The default cc-loop-unroll
+// (DEFAULT) unrolls both, i.e. existing behavior is unchanged.
+
+// CHECK-LABEL:   func.func @uses_induction() {
+// CHECK-NOT:       cc.loop
+// CHECK:           quake.extract_ref %{{.*}}[0]
+// CHECK:           quake.extract_ref %{{.*}}[1]
+// CHECK:           quake.extract_ref %{{.*}}[2]
+// CHECK:           quake.extract_ref %{{.*}}[3]
+// CHECK:           return
+
+// DEFAULT-LABEL:   func.func @uses_induction() {
+// DEFAULT-NOT:     cc.loop
+
+func.func @uses_induction() {
+  %c0_i64 = arith.constant 0 : i64
+  %c1_i64 = arith.constant 1 : i64
+  %c4_i64 = arith.constant 4 : i64
+  %0 = quake.alloca !quake.veq<4>
+  %1 = cc.loop while ((%arg0 = %c0_i64) -> (i64)) {
+    %2 = arith.cmpi slt, %arg0, %c4_i64 : i64
+    cc.condition %2(%arg0 : i64)
+  } do {
+  ^bb0(%arg0: i64):
+    %2 = quake.extract_ref %0[%arg0] : (!quake.veq<4>, i64) -> !quake.ref
+    quake.h %2 : (!quake.ref) -> ()
+    cc.continue %arg0 : i64
+  } step {
+  ^bb0(%arg0: i64):
+    %2 = arith.addi %arg0, %c1_i64 : i64
+    cc.continue %2 : i64
+  }
+  return
+}
+
+// CHECK-LABEL:   func.func @ignores_induction() {
+// CHECK:           cc.loop while
+// CHECK:           quake.extract_ref %{{.*}}[0]
+// CHECK:           quake.h
+
+// DEFAULT-LABEL:   func.func @ignores_induction() {
+// DEFAULT-NOT:     cc.loop
+
+func.func @ignores_induction() {
+  %c0_i64 = arith.constant 0 : i64
+  %c1_i64 = arith.constant 1 : i64
+  %c4_i64 = arith.constant 4 : i64
+  %0 = quake.alloca !quake.veq<4>
+  %1 = cc.loop while ((%arg0 = %c0_i64) -> (i64)) {
+    %2 = arith.cmpi slt, %arg0, %c4_i64 : i64
+    cc.condition %2(%arg0 : i64)
+  } do {
+  ^bb0(%arg0: i64):
+    %2 = quake.extract_ref %0[0] : (!quake.veq<4>) -> !quake.ref
+    quake.h %2 : (!quake.ref) -> ()
+    cc.continue %arg0 : i64
+  } step {
+  ^bb0(%arg0: i64):
+    %2 = arith.addi %arg0, %c1_i64 : i64
+    cc.continue %2 : i64
+  }
+  return
+}
+
+// An outer loop that ignores its induction variable stays rolled even when the
+// inner loop it contains is an index use loop: the inner one is classified and
+// unrolled on its own.
+
+// CHECK-LABEL:   func.func @nested_outer_ignores() {
+// CHECK:           cc.loop while
+// CHECK:           quake.extract_ref %{{.*}}[0]
+// CHECK:           quake.extract_ref %{{.*}}[1]
+// CHECK:           quake.extract_ref %{{.*}}[2]
+// CHECK:           quake.extract_ref %{{.*}}[3]
+// CHECK:           cc.continue
+
+// DEFAULT-LABEL:   func.func @nested_outer_ignores() {
+// DEFAULT-NOT:     cc.loop
+
+func.func @nested_outer_ignores() {
+  %c0_i64 = arith.constant 0 : i64
+  %c1_i64 = arith.constant 1 : i64
+  %c2_i64 = arith.constant 2 : i64
+  %c4_i64 = arith.constant 4 : i64
+  %0 = quake.alloca !quake.veq<4>
+  %1 = cc.loop while ((%arg0 = %c0_i64) -> (i64)) {
+    %2 = arith.cmpi slt, %arg0, %c2_i64 : i64
+    cc.condition %2(%arg0 : i64)
+  } do {
+  ^bb0(%arg0: i64):
+    %2 = cc.loop while ((%arg1 = %c0_i64) -> (i64)) {
+      %3 = arith.cmpi slt, %arg1, %c4_i64 : i64
+      cc.condition %3(%arg1 : i64)
+    } do {
+    ^bb0(%arg1: i64):
+      %3 = quake.extract_ref %0[%arg1] : (!quake.veq<4>, i64) -> !quake.ref
+      quake.h %3 : (!quake.ref) -> ()
+      cc.continue %arg1 : i64
+    } step {
+    ^bb0(%arg1: i64):
+      %3 = arith.addi %arg1, %c1_i64 : i64
+      cc.continue %3 : i64
+    }
+    cc.continue %arg0 : i64
+  } step {
+  ^bb0(%arg0: i64):
+    %2 = arith.addi %arg0, %c1_i64 : i64
+    cc.continue %2 : i64
+  }
+  return
+}
+
+// The induction variable feeds a classical computation rather than a qubit
+// index. That is still a use, so the loop is unrolled.
+
+// CHECK-LABEL:   func.func @classical_use() {
+// CHECK-NOT:       cc.loop
+// CHECK:           quake.rz
+// CHECK:           quake.rz
+// CHECK:           quake.rz
+// CHECK:           return
+
+// DEFAULT-LABEL:   func.func @classical_use() {
+// DEFAULT-NOT:     cc.loop
+
+func.func @classical_use() {
+  %c0_i64 = arith.constant 0 : i64
+  %c1_i64 = arith.constant 1 : i64
+  %c3_i64 = arith.constant 3 : i64
+  %cst = arith.constant 5.000000e-01 : f64
+  %0 = quake.alloca !quake.ref
+  %1 = cc.loop while ((%arg0 = %c0_i64) -> (i64)) {
+    %2 = arith.cmpi slt, %arg0, %c3_i64 : i64
+    cc.condition %2(%arg0 : i64)
+  } do {
+  ^bb0(%arg0: i64):
+    %2 = arith.sitofp %arg0 : i64 to f64
+    %3 = arith.mulf %2, %cst : f64
+    quake.rz (%3) %0 : (f64, !quake.ref) -> ()
+    cc.continue %arg0 : i64
+  } step {
+  ^bb0(%arg0: i64):
+    %2 = arith.addi %arg0, %c1_i64 : i64
+    cc.continue %2 : i64
+  }
+  return
+}

@@ -23,12 +23,11 @@ struct CustabilizerCircuit {
 
   explicit CustabilizerCircuit(const std::string &stim_circuit_str) {
     HANDLE_CUST_ERROR(custabilizerCreate(&handle));
-    HANDLE_CUST_ERROR(custabilizerCircuitSizeFromString(handle, stim_circuit_str.c_str(),
-                                                &buffer_size));
+    HANDLE_CUST_ERROR(custabilizerCircuitSizeFromString(
+        handle, stim_circuit_str.c_str(), &buffer_size));
     HANDLE_CUDA_ERROR(cudaMalloc(&buffer_d, static_cast<size_t>(buffer_size)));
-    HANDLE_CUST_ERROR(custabilizerCreateCircuitFromString(handle, stim_circuit_str.c_str(),
-                                                  buffer_d, buffer_size,
-                                                  &circuit));
+    HANDLE_CUST_ERROR(custabilizerCreateCircuitFromString(
+        handle, stim_circuit_str.c_str(), buffer_d, buffer_size, &circuit));
   }
 
   ~CustabilizerCircuit() {
@@ -60,7 +59,8 @@ struct CustabilizerFrameRunner {
   explicit CustabilizerFrameRunner(int64_t num_qubits)
       : num_qubits(num_qubits) {
     if (num_qubits <= 0)
-      throw std::runtime_error("cuStabilizer frame simulator requires num_qubits > 0");
+      throw std::runtime_error(
+          "cuStabilizer frame simulator requires num_qubits > 0");
     HANDLE_CUST_ERROR(custabilizerCreate(&handle));
   }
 
@@ -90,7 +90,8 @@ struct CustabilizerFrameRunner {
       throw std::runtime_error("num_shots must be > 0");
     int64_t measurement_count = circuitCache.count_measurements();
 
-    if (num_shots > allocated_shots || measurement_count > allocated_measurements) {
+    if (num_shots > allocated_shots ||
+        measurement_count > allocated_measurements) {
       reallocate(num_shots, measurement_count);
     }
 
@@ -104,11 +105,13 @@ struct CustabilizerFrameRunner {
     }
 
     const size_t words_per_row = static_cast<size_t>((num_shots + 31) / 32);
-    const size_t total_words = words_per_row * static_cast<size_t>(measurement_count);
+    const size_t total_words =
+        words_per_row * static_cast<size_t>(measurement_count);
     std::vector<uint32_t> out(total_words);
     const size_t total_bytes = total_words * sizeof(uint32_t);
     if (total_bytes > 0)
-      HANDLE_CUDA_ERROR(cudaMemcpy(out.data(), m_table_d, total_bytes, cudaMemcpyDeviceToHost));
+      HANDLE_CUDA_ERROR(cudaMemcpy(out.data(), m_table_d, total_bytes,
+                                   cudaMemcpyDeviceToHost));
     return out;
   }
 
@@ -139,12 +142,13 @@ private:
 
     allocated_shots = new_shots;
     allocated_measurements = new_measurements;
-    stride_bytes = ((new_shots + 31) / 32) * static_cast<int64_t>(sizeof(uint32_t));
+    stride_bytes =
+        ((new_shots + 31) / 32) * static_cast<int64_t>(sizeof(uint32_t));
 
     const size_t xz_bytes =
         static_cast<size_t>(stride_bytes) * static_cast<size_t>(num_qubits);
-    const size_t m_bytes =
-        static_cast<size_t>(stride_bytes) * static_cast<size_t>(new_measurements);
+    const size_t m_bytes = static_cast<size_t>(stride_bytes) *
+                           static_cast<size_t>(new_measurements);
 
     HANDLE_CUDA_ERROR(cudaMalloc(&x_table_d, xz_bytes));
     HANDLE_CUDA_ERROR(cudaMalloc(&z_table_d, xz_bytes));
@@ -153,9 +157,9 @@ private:
     HANDLE_CUDA_ERROR(cudaMemset(z_table_d, 0, xz_bytes));
     HANDLE_CUDA_ERROR(cudaMemset(m_table_d, 0, m_bytes));
 
-    HANDLE_CUST_ERROR(custabilizerCreateFrameSimulator(handle, num_qubits, new_shots,
-                                               new_measurements, stride_bytes,
-                                               &frame_simulator));
+    HANDLE_CUST_ERROR(custabilizerCreateFrameSimulator(
+        handle, num_qubits, new_shots, new_measurements, stride_bytes,
+        &frame_simulator));
   }
 };
 
@@ -172,11 +176,13 @@ protected:
   /// @brief Override: reject MSM mode, initialize frame runner
   void addQubitsToState(std::size_t qubitCount,
                         const void *stateDataIn = nullptr) override {
+    auto *executionContext = getExecutionContext();
     if (stateDataIn)
-      throw std::runtime_error(
-          "The cuStabilizer backend does not support initialization of qubits from state data.");
+      throw std::runtime_error("The cuStabilizer backend does not support "
+                               "initialization of qubits from state data.");
     if (executionContext && executionContext->name == "msm")
-      throw std::runtime_error("MSM mode is not supported by custabilizer backend.");
+      throw std::runtime_error(
+          "MSM mode is not supported by custabilizer backend.");
     StimCircuitSimulator::addQubitsToState(qubitCount, stateDataIn);
     if (nQubitsAllocated > 0 && !frameRunner) {
       frameRunner = std::make_unique<CustabilizerFrameRunner>(
@@ -212,7 +218,8 @@ protected:
     CUDAQ_INFO("[custabilizer] apply kraus channel {}, is_msm_mode = {}",
                channel.get_type_name(), is_msm_mode);
     if (is_msm_mode)
-      throw std::runtime_error("MSM mode is not supported by custabilizer backend.");
+      throw std::runtime_error(
+          "MSM mode is not supported by custabilizer backend.");
 
     if (auto res = isValidStimNoiseChannel(channel)) {
       stim::Circuit noiseOps;
@@ -225,6 +232,7 @@ protected:
 
   /// @brief Override: use frame runner for mid-circuit measurements
   bool measureQubit(const std::size_t index) override {
+    auto *executionContext = getExecutionContext();
     applyOpToSims(
         "M", std::vector<std::uint32_t>{static_cast<std::uint32_t>(index)});
     num_measurements++;
@@ -250,7 +258,9 @@ protected:
 
   /// @brief Override: use frame runner for batch sampling
   cudaq::ExecutionResult sample(const std::vector<std::size_t> &qubits,
-                                const int shots) override {
+                                const int shots,
+                                bool includeSequentialData = true) override {
+    auto *executionContext = getExecutionContext();
     if (executionContext->explicitMeasurements && qubits.empty() &&
         num_measurements == 0)
       throw std::runtime_error(
@@ -264,11 +274,13 @@ protected:
     }();
 
     if (nQubitsAllocated == 0)
-      throw std::runtime_error("custabilizer backend state is not initialized.");
+      throw std::runtime_error(
+          "custabilizer backend state is not initialized.");
 
     const auto batch_size = static_cast<int64_t>(getBatchSize());
     if (shots > batch_size)
-      throw std::runtime_error("Requested shots exceed custabilizer batch size.");
+      throw std::runtime_error(
+          "Requested shots exceed custabilizer batch size.");
 
     std::vector<std::uint32_t> stimTargetQubits(qubits.begin(), qubits.end());
     applyOpToSims("M", stimTargetQubits);
@@ -279,7 +291,8 @@ protected:
 
     const std::vector<bool> &v = tableau->measurement_record.storage;
     if (v.size() != num_measurements)
-      throw std::runtime_error("Internal error: tableau measurement record size mismatch.");
+      throw std::runtime_error(
+          "Internal error: tableau measurement record size mismatch.");
 
     if (!frameRunner)
       throw std::runtime_error("Frame runner not initialized");
@@ -295,12 +308,14 @@ protected:
 
     const size_t bits_per_sample = num_measurements;
     assert(bits_per_sample >= qubits.size());
-    const std::size_t first_bit_to_save =
-        executionContext->explicitMeasurements ? 0 : bits_per_sample - qubits.size();
+    const std::size_t first_bit_to_save = executionContext->explicitMeasurements
+                                              ? 0
+                                              : bits_per_sample - qubits.size();
 
     CountsDictionary counts;
     std::vector<std::string> sequentialData;
-    sequentialData.reserve(shots);
+    if (includeSequentialData)
+      sequentialData.reserve(shots);
     for (std::size_t shot = 0; shot < static_cast<std::size_t>(shots); shot++) {
       std::string aShot(bits_per_sample - first_bit_to_save, '0');
       for (std::size_t b = first_bit_to_save; b < bits_per_sample; b++) {
@@ -308,11 +323,13 @@ protected:
         aShot[b - first_bit_to_save] = bit ? '1' : '0';
       }
       counts[aShot]++;
-      sequentialData.push_back(std::move(aShot));
+      if (includeSequentialData)
+        sequentialData.push_back(std::move(aShot));
     }
 
     ExecutionResult result(counts);
-    result.sequentialData = std::move(sequentialData);
+    if (includeSequentialData)
+      result.sequentialData = std::move(sequentialData);
     return result;
   }
 

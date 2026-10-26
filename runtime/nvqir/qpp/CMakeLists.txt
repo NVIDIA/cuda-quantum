@@ -7,14 +7,13 @@
 # ============================================================================ #
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ctad-maybe-unsupported")
-set(INTERFACE_POSITION_INDEPENDENT_CODE ON)
 
 macro (AddQppBackend LIBRARY_NAME SOURCE_FILE)
   add_library(${LIBRARY_NAME} SHARED ${SOURCE_FILE})
   set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS ${LIBRARY_NAME})
 
   set (QPP_DEPENDENCIES "")
-  list(APPEND QPP_DEPENDENCIES fmt::fmt-header-only cudaq-common)
+  list(APPEND QPP_DEPENDENCIES fmt::fmt-header-only cudaq-common cudaq-logger)
   add_openmp_configurations(${LIBRARY_NAME} QPP_DEPENDENCIES)
 
   target_include_directories(${LIBRARY_NAME}
@@ -29,15 +28,16 @@ macro (AddQppBackend LIBRARY_NAME SOURCE_FILE)
     PRIVATE ${QPP_DEPENDENCIES})
 
   set_target_properties(${LIBRARY_NAME}
-      PROPERTIES INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:${LLVM_BINARY_DIR}/lib")
+      PROPERTIES
+        INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:${LLVM_BINARY_DIR}/lib"
+        CXX_VISIBILITY_PRESET hidden
+        VISIBILITY_INLINES_HIDDEN YES)
 
-  install(TARGETS ${LIBRARY_NAME} DESTINATION lib)
+  install(TARGETS ${LIBRARY_NAME} DESTINATION lib
+        COMPONENT Runtime)
 endmacro()
 
 
 
 AddQppBackend(nvqir-qpp QppCircuitSimulator.cpp)
 AddQppBackend(nvqir-dm QppDMCircuitSimulator.cpp)
-
-add_target_config(qpp-cpu)
-add_target_config(density-matrix-cpu)

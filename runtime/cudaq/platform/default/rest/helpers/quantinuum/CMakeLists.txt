@@ -6,13 +6,14 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 target_sources(cudaq-rest-qpu PRIVATE QuantinuumServerHelper.cpp)
-add_target_config(quantinuum)
 
 add_library(cudaq-serverhelper-quantinuum SHARED QuantinuumServerHelper.cpp )
 target_link_libraries(cudaq-serverhelper-quantinuum
   PUBLIC 
-    cudaq-common 
+    cudaq-common
+    cudaq-logger 
     fmt::fmt-header-only 
 )
-install(TARGETS cudaq-serverhelper-quantinuum DESTINATION lib)
+install(TARGETS cudaq-serverhelper-quantinuum DESTINATION lib
+        COMPONENT Runtime)
 
