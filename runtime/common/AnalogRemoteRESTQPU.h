@@ -84,16 +84,13 @@ public:
   }
 
   /// @brief Set the target backend, loading the local emulation engine when
-  /// `emulate` is requested.
+  /// `emulate` is requested. A missing engine is reported at launch, after the
+  /// kernel checks, as before emulation existed.
   void setTargetBackend(const std::string &backend) override {
     BaseRemoteRESTQPU::setTargetBackend(backend);
     engine.reset();
-    if (!emulate)
-      return;
-    if (supportsEmulation())
+    if (emulate && supportsEmulation())
       engine = analog::loadEngine("dynamics");
-    if (!engine)
-      throw emulationUnavailable();
   }
 
   /// @brief Remote only: emulated targets run asynchronous launches on the
