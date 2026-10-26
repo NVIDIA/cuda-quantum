@@ -7,7 +7,6 @@
  ******************************************************************************/
 
 #include <gtest/gtest.h>
-#include <cuda/std/atomic>
 #include <cuda_runtime.h>
 #include <atomic>
 #include <cstdint>
@@ -19,7 +18,7 @@
 #include "cudaq/realtime/daemon/bridge/bridge_interface.h"
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
-#include "cudaq/realtime/daemon/dispatcher/graph_launch_engine.h"
+#include "cudaq/realtime/daemon/dispatcher/host_dispatch_loop.h"
 
 #define CUDA_CHECK(call)                                                       \
   do {                                                                         \
@@ -88,169 +87,9 @@ void free_ring_buffer(volatile uint64_t* host_flags, std::uint8_t* host_data) {
 }
 
 //==============================================================================
-// Minimal graph for dummy GRAPH_LAUNCH entry (so C API starts the host thread)
-//==============================================================================
-
-__global__ void noop_kernel() {}
-
-// Creates a minimal executable graph and returns it. Caller must destroy with
-// cudaGraphExecDestroy and cudaGraphDestroy.
-bool create_dummy_graph(cudaGraph_t* graph_out, cudaGraphExec_t* exec_out) {
-  cudaGraph_t graph = nullptr;
-  if (cudaGraphCreate(&graph, 0) != cudaSuccess)
-    return false;
-
-  cudaKernelNodeParams params = {};
-  void* args[] = {};
-  params.func = reinterpret_cast<void*>(noop_kernel);
-  params.gridDim = dim3(1, 1, 1);
-  params.blockDim = dim3(1, 1, 1);
-  params.sharedMemBytes = 0;
-  params.kernelParams = args;
-  params.extra = nullptr;
-
-  cudaGraphNode_t node = nullptr;
-  if (cudaGraphAddKernelNode(&node, graph, nullptr, 0, &params) !=
-      cudaSuccess) {
-    cudaGraphDestroy(graph);
-    return false;
-  }
-
-  cudaGraphExec_t exec = nullptr;
-  if (cudaGraphInstantiate(&exec, graph, nullptr, nullptr, 0) != cudaSuccess) {
-    cudaGraphDestroy(graph);
-    return false;
-  }
-
-  *graph_out = graph;
-  *exec_out = exec;
-  return true;
-}
-
-//==============================================================================
-// Graph launch test: kernel that reads slot from mailbox and writes response
-// in-place (same buffer as request; use single ring buffer for rx/tx).
-//==============================================================================
-
-__global__ void graph_increment_kernel(void** mailbox_slot_ptr) {
-  if (threadIdx.x == 0 && blockIdx.x == 0) {
-    void* buffer = *mailbox_slot_ptr;
-    cudaq::realtime::RPCHeader* header =
-        static_cast<cudaq::realtime::RPCHeader*>(buffer);
-    std::uint32_t arg_len = header->arg_len;
-    void* arg_buffer = static_cast<void*>(header + 1);
-    std::uint8_t* data = static_cast<std::uint8_t*>(arg_buffer);
-    for (std::uint32_t i = 0; i < arg_len; ++i)
-      data[i] = data[i] + 1;
-    cudaq::realtime::RPCResponse* response =
-        static_cast<cudaq::realtime::RPCResponse*>(buffer);
-    response->magic = cudaq::realtime::RPC_MAGIC_RESPONSE;
-    response->status = 0;
-    response->result_len = arg_len;
-  }
-}
-
-constexpr std::uint32_t RPC_GRAPH_INCREMENT_FUNCTION_ID =
-    cudaq::realtime::fnv1a_hash("rpc_graph_increment");
-
-/// Creates an executable graph that runs graph_increment_kernel with
-/// kernel arg = d_mailbox_bank (device pointer to first mailbox slot).
-/// Caller must cudaGraphExecDestroy / cudaGraphDestroy.
-bool create_increment_graph(void** d_mailbox_bank, cudaGraph_t* graph_out,
-                            cudaGraphExec_t* exec_out) {
-  cudaGraph_t graph = nullptr;
-  if (cudaGraphCreate(&graph, 0) != cudaSuccess)
-    return false;
-
-  // kernelParams[i] must be a *pointer to* the i-th argument value.
-  // The kernel takes void** so we pass &d_mailbox_bank (a void***).
-  cudaKernelNodeParams params = {};
-  void* kernel_args[] = {&d_mailbox_bank};
-  params.func = reinterpret_cast<void*>(graph_increment_kernel);
-  params.gridDim = dim3(1, 1, 1);
-  params.blockDim = dim3(32, 1, 1);
-  params.sharedMemBytes = 0;
-  params.kernelParams = kernel_args;
-  params.extra = nullptr;
-
-  cudaGraphNode_t node = nullptr;
-  if (cudaGraphAddKernelNode(&node, graph, nullptr, 0, &params) !=
-      cudaSuccess) {
-    cudaGraphDestroy(graph);
-    return false;
-  }
-
-  cudaGraphExec_t exec = nullptr;
-  if (cudaGraphInstantiate(&exec, graph, nullptr, nullptr, 0) != cudaSuccess) {
-    cudaGraphDestroy(graph);
-    return false;
-  }
-
-  *graph_out = graph;
-  *exec_out = exec;
-  return true;
-}
-
-//==============================================================================
-// Graph launch test: kernel that reads slot from mailbox and doubles payload
-// in-place (for function_id routing differentiation vs increment kernel).
-//==============================================================================
-
-__global__ void graph_double_kernel(void** mailbox_slot_ptr) {
-  if (threadIdx.x == 0 && blockIdx.x == 0) {
-    void* buffer = *mailbox_slot_ptr;
-    cudaq::realtime::RPCHeader* header =
-        static_cast<cudaq::realtime::RPCHeader*>(buffer);
-    std::uint32_t arg_len = header->arg_len;
-    void* arg_buffer = static_cast<void*>(header + 1);
-    std::uint8_t* data = static_cast<std::uint8_t*>(arg_buffer);
-    for (std::uint32_t i = 0; i < arg_len; ++i)
-      data[i] = data[i] * 2;
-    cudaq::realtime::RPCResponse* response =
-        static_cast<cudaq::realtime::RPCResponse*>(buffer);
-    response->magic = cudaq::realtime::RPC_MAGIC_RESPONSE;
-    response->status = 0;
-    response->result_len = arg_len;
-  }
-}
-
-constexpr std::uint32_t RPC_GRAPH_DOUBLE_FUNCTION_ID =
-    cudaq::realtime::fnv1a_hash("rpc_graph_double");
-
-bool create_double_graph(void** d_mailbox_slot, cudaGraph_t* graph_out,
-                         cudaGraphExec_t* exec_out) {
-  cudaGraph_t graph = nullptr;
-  if (cudaGraphCreate(&graph, 0) != cudaSuccess)
-    return false;
-
-  cudaKernelNodeParams params = {};
-  void* kernel_args[] = {&d_mailbox_slot};
-  params.func = reinterpret_cast<void*>(graph_double_kernel);
-  params.gridDim = dim3(1, 1, 1);
-  params.blockDim = dim3(32, 1, 1);
-  params.sharedMemBytes = 0;
-  params.kernelParams = kernel_args;
-  params.extra = nullptr;
-
-  cudaGraphNode_t node = nullptr;
-  if (cudaGraphAddKernelNode(&node, graph, nullptr, 0, &params) !=
-      cudaSuccess) {
-    cudaGraphDestroy(graph);
-    return false;
-  }
-
-  cudaGraphExec_t exec = nullptr;
-  if (cudaGraphInstantiate(&exec, graph, nullptr, nullptr, 0) != cudaSuccess) {
-    cudaGraphDestroy(graph);
-    return false;
-  }
-
-  *graph_out = graph;
-  *exec_out = exec;
-  return true;
-}
-
 // HOST_CALL handler (two-pointer ABI): increments the rx payload into tx.
+//==============================================================================
+
 void host_increment(const void* rx_slot, void* tx_slot, std::size_t slot_size) {
   const auto* h = static_cast<const RPCHeader*>(rx_slot);
   if (h->magic != cudaq::realtime::RPC_MAGIC_REQUEST)
@@ -273,14 +112,17 @@ void host_increment(const void* rx_slot, void* tx_slot, std::size_t slot_size) {
     out[i] = in[i] + 1;
 }
 
+constexpr std::uint32_t HOST_INCREMENT_FUNCTION_ID =
+    cudaq::realtime::fnv1a_hash("host_increment");
+
 //==============================================================================
-// Test fixture: drives the slim 3-thread ring loop (cudaq_host_ring_dispatch_loop)
-// over a standalone GRAPH_LAUNCH engine, for full control over idle_mask,
-// enabling worker recycling and backpressure tests.  In-place ring
-// (rx_data == tx_data): the raw-mailbox graphs write the response into the RX slot.
+// Test fixture: drives the ring loop (cudaq_host_ring_dispatch_loop) directly
+// over a HOST_CALL function table, for full control over slot sequencing and
+// the stats counter.  Separate RX and TX rings: the handler reads the request
+// from the RX slot and writes the response into the TX slot.
 //==============================================================================
 
-static constexpr std::size_t kMaxWorkers = 8;
+static constexpr std::size_t kMaxFunctionEntries = 8;
 
 class HostDispatcherLoopTest : public ::testing::Test {
 protected:
@@ -293,29 +135,23 @@ protected:
                                      &tx_flags_dev_, &tx_data_host_,
                                      &tx_data_dev_));
 
-    CUDA_CHECK(cudaHostAlloc(&h_mailbox_bank_,
-                             kMaxWorkers * sizeof(void*),
-                             cudaHostAllocMapped));
-    std::memset(h_mailbox_bank_, 0, kMaxWorkers * sizeof(void*));
-    CUDA_CHECK(cudaHostGetDevicePointer(
-        reinterpret_cast<void**>(&d_mailbox_bank_), h_mailbox_bank_, 0));
-
     stats_counter_ = 0;
 
-    function_table_ = new cudaq_function_entry_t[kMaxWorkers];
-    std::memset(function_table_, 0, kMaxWorkers * sizeof(cudaq_function_entry_t));
+    function_table_ = new cudaq_function_entry_t[kMaxFunctionEntries];
+    std::memset(function_table_, 0,
+                kMaxFunctionEntries * sizeof(cudaq_function_entry_t));
 
     std::memset(&ringbuffer_, 0, sizeof(ringbuffer_));
     ringbuffer_.rx_flags = rx_flags_dev_;
     ringbuffer_.tx_flags = tx_flags_dev_;
     ringbuffer_.rx_data = rx_data_dev_;
-    ringbuffer_.tx_data = rx_data_dev_; // in-place: the graph writes into the RX slot
+    ringbuffer_.tx_data = tx_data_dev_;
     ringbuffer_.rx_stride_sz = slot_size_;
     ringbuffer_.tx_stride_sz = slot_size_;
     ringbuffer_.rx_flags_host = rx_flags_host_;
     ringbuffer_.tx_flags_host = tx_flags_host_;
     ringbuffer_.rx_data_host = rx_data_host_;
-    ringbuffer_.tx_data_host = rx_data_host_;
+    ringbuffer_.tx_data_host = tx_data_host_;
 
     config_.num_slots = static_cast<uint32_t>(num_slots_);
     config_.slot_size = static_cast<uint32_t>(slot_size_);
@@ -328,37 +164,18 @@ protected:
       if (loop_thread_.joinable())
         loop_thread_.join();
     }
-    if (engine_)
-      cudaq_graph_launch_engine_destroy(engine_);
-
-    for (auto& w : worker_info_) {
-      if (w.graph_exec)
-        cudaGraphExecDestroy(w.graph_exec);
-      if (w.graph)
-        cudaGraphDestroy(w.graph);
-    }
 
     free_ring_buffer(rx_flags_host_, rx_data_host_);
     free_ring_buffer(tx_flags_host_, tx_data_host_);
-    if (h_mailbox_bank_)
-      cudaFreeHost(h_mailbox_bank_);
     delete[] function_table_;
   }
 
-  struct WorkerInfo {
-    cudaGraphExec_t graph_exec = nullptr;
-    cudaGraph_t graph = nullptr;
-  };
-
-  // Register a GRAPH_LAUNCH entry; the engine creates the worker stream from it.
-  void AddWorker(std::uint32_t function_id, cudaGraphExec_t exec,
-                 cudaGraph_t graph) {
-    worker_info_.push_back({exec, graph});
-
+  // Register a HOST_CALL entry.
+  void AddHostCall(std::uint32_t function_id, cudaq_host_rpc_fn_t fn) {
     std::size_t idx = function_table_count_;
-    function_table_[idx].handler.graph_exec = exec;
+    function_table_[idx].handler.host_fn = fn;
     function_table_[idx].function_id = function_id;
-    function_table_[idx].dispatch_mode = CUDAQ_DISPATCH_GRAPH_LAUNCH;
+    function_table_[idx].dispatch_mode = CUDAQ_DISPATCH_HOST_CALL;
     function_table_count_++;
   }
 
@@ -366,16 +183,8 @@ protected:
     table_.entries = function_table_;
     table_.count = static_cast<uint32_t>(function_table_count_);
 
-    // Build the standalone engine (one worker per GRAPH_LAUNCH entry); it owns
-    // the worker streams / idle_mask and uses our caller-supplied pinned mailbox.
-    cudaq_status_t st = CUDAQ_OK;
-    engine_ = cudaq_graph_launch_engine_create(
-        &ringbuffer_, &table_, config_.skip_tx_markers, h_mailbox_bank_, &st);
-    ASSERT_EQ(st, CUDAQ_OK);
-    ASSERT_NE(engine_, nullptr);
-
     loop_thread_ = std::thread([this]() {
-      cudaq_host_ring_dispatch_loop(&ringbuffer_, &table_, &config_, engine_,
+      cudaq_host_ring_dispatch_loop(&ringbuffer_, &table_, &config_,
                                     &shutdown_flag_, &stats_counter_);
     });
   }
@@ -413,28 +222,19 @@ protected:
     loop_stopped_ = true;
   }
 
-  // Return a worker to the idle pool by poking the engine's idle_mask directly
-  // (simulates the recycle the loop's stream sweep does once a graph completes).
-  void RestoreWorker(int worker_id) {
-    static_cast<cuda::std::atomic<uint64_t>*>(engine_->idle_mask)
-        ->fetch_or(1ULL << worker_id, cuda::std::memory_order_release);
-  }
-
   void ClearSlot(std::size_t slot) {
     cudaq_host_ringbuffer_clear_slot(&ringbuffer_, static_cast<uint32_t>(slot));
-    std::memset(rx_data_host_ + slot * slot_size_, 0, slot_size_);
+    std::memset(tx_data_host_ + slot * slot_size_, 0, slot_size_);
   }
 
   void VerifyResponse(std::size_t slot, const std::uint8_t* expected,
                       std::size_t len) {
-    int cuda_err = 0;
     cudaq_tx_status_t st = cudaq_host_ringbuffer_poll_tx_flag(
-        &ringbuffer_, static_cast<uint32_t>(slot), &cuda_err);
-    ASSERT_TRUE(st == CUDAQ_TX_READY || st == CUDAQ_TX_IN_FLIGHT)
-        << "slot " << slot
-        << ": tx_flag unexpected (status=" << st << " cuda_err=" << cuda_err << ")";
+        &ringbuffer_, static_cast<uint32_t>(slot), nullptr);
+    ASSERT_EQ(st, CUDAQ_TX_READY)
+        << "slot " << slot << ": tx_flag unexpected (status=" << st << ")";
 
-    std::uint8_t* slot_data = rx_data_host_ + slot * slot_size_;
+    std::uint8_t* slot_data = tx_data_host_ + slot * slot_size_;
     auto* resp =
         reinterpret_cast<cudaq::realtime::RPCResponse*>(slot_data);
     ASSERT_EQ(resp->magic, CUDAQ_RPC_MAGIC_RESPONSE)
@@ -461,30 +261,24 @@ protected:
   std::uint8_t* rx_data_dev_ = nullptr;
   std::uint8_t* tx_data_dev_ = nullptr;
 
-  void** h_mailbox_bank_ = nullptr;
-  void** d_mailbox_bank_ = nullptr;
-
   volatile int shutdown_flag_ = 0;
   uint64_t stats_counter_ = 0;
   bool loop_stopped_ = false;
 
   cudaq_function_entry_t* function_table_ = nullptr;
   std::size_t function_table_count_ = 0;
-  std::vector<WorkerInfo> worker_info_;
 
   cudaq_ringbuffer_t ringbuffer_{};
   cudaq_function_table_t table_{};
   cudaq_dispatcher_config_t config_;
-  cudaq_graph_launch_engine_t* engine_ = nullptr;
   std::thread loop_thread_;
 };
 
 //==============================================================================
-// Test 1: Smoke test — host loop starts and drops slot with unknown function_id
+// Smoke test: the C API starts the host loop over a HOST_CALL table, and the
+// loop drops a slot whose function_id is not in the table (no response).
 //==============================================================================
 
-constexpr std::uint32_t DUMMY_GRAPH_FUNCTION_ID =
-    cudaq::realtime::fnv1a_hash("dummy_graph");
 // Use a different function_id in the slot so the host loop does not find it.
 constexpr std::uint32_t UNKNOWN_FUNCTION_ID = 0xdeadbeefu;
 
@@ -501,18 +295,15 @@ protected:
     ASSERT_NE(shutdown_flag_, nullptr);
     ASSERT_NE(stats_, nullptr);
 
-    ASSERT_TRUE(create_dummy_graph(&dummy_graph_, &dummy_graph_exec_));
-
     host_table_ = new (std::nothrow) cudaq_function_entry_t[1];
     ASSERT_NE(host_table_, nullptr);
     std::memset(host_table_, 0, sizeof(cudaq_function_entry_t));
-    host_table_[0].handler.graph_exec = dummy_graph_exec_;
-    host_table_[0].function_id = DUMMY_GRAPH_FUNCTION_ID;
-    host_table_[0].dispatch_mode = CUDAQ_DISPATCH_GRAPH_LAUNCH;
+    host_table_[0].handler.host_fn = &host_increment;
+    host_table_[0].function_id = HOST_INCREMENT_FUNCTION_ID;
+    host_table_[0].dispatch_mode = CUDAQ_DISPATCH_HOST_CALL;
 
     ASSERT_EQ(cudaq_dispatch_manager_create(&manager_), CUDAQ_OK);
     cudaq_dispatcher_config_t config{};
-    config.device_id = 0;
     config.num_slots = static_cast<uint32_t>(num_slots_);
     config.slot_size = static_cast<uint32_t>(slot_size_);
     config.dispatch_path = CUDAQ_DISPATCH_PATH_HOST;
@@ -567,10 +358,6 @@ protected:
       delete stats_;
     if (host_table_)
       delete[] host_table_;
-    if (dummy_graph_exec_)
-      cudaGraphExecDestroy(dummy_graph_exec_);
-    if (dummy_graph_)
-      cudaGraphDestroy(dummy_graph_);
   }
 
   void write_rpc_request_unknown_function(std::size_t slot) {
@@ -596,8 +383,6 @@ protected:
   int* shutdown_flag_ = nullptr;
   uint64_t* stats_ = nullptr;
   cudaq_function_entry_t* host_table_ = nullptr;
-  cudaGraph_t dummy_graph_ = nullptr;
-  cudaGraphExec_t dummy_graph_exec_ = nullptr;
 
   cudaq_ringbuffer_t ringbuffer_{};
   cudaq_dispatch_manager_t* manager_ = nullptr;
@@ -623,303 +408,14 @@ TEST_F(HostDispatcherSmokeTest, DropsSlotWithUnknownFunctionId) {
 }
 
 //==============================================================================
-// Test 2: GRAPH_LAUNCH via host loop (full RPC round-trip) using the C API
+// Stats counter accuracy (internal API)
 //
-// End-to-end test of: RPC in ring buffer → C API dispatcher → CUDA graph
-// launch via pinned mailbox → in-place response.
-//
-// Flow:
-//   1. Allocate pinned ring buffers and pinned mailbox (cudaHostAllocMapped).
-//   2. Capture graph_increment_kernel with d_mailbox_bank baked in.
-//   3. Build function table with one GRAPH_LAUNCH entry.
-//   4. Wire the C API: manager → dispatcher → ringbuffer, function table,
-//      control, mailbox → start.
-//   5. Write an RPC request {0,1,2,3} into slot 0 and signal rx_flags.
-//   6. The dispatcher picks up the slot, matches function_id → GRAPH_LAUNCH,
-//      acquires the idle worker, writes the slot device pointer into the
-//      pinned mailbox, and launches the graph.
-//   7. The graph reads the slot pointer from the mailbox, increments each
-//      payload byte, and writes an RPCResponse header in-place.
-//   8. Test polls tx_flags, syncs device, then asserts the response is
-//      {1,2,3,4} with correct magic/status/result_len.
-//==============================================================================
-
-TEST(HostDispatcherGraphLaunchTest, FullRpcRoundTripViaPinnedMailbox) {
-  constexpr std::size_t num_slots = 2;
-  constexpr std::size_t slot_size = 256;
-
-  // --- Ring buffers ---
-  // Separate flag arrays for RX and TX: the dispatcher clears rx_flags[slot]
-  // right after setting tx_flags[slot], so sharing would clobber the signal.
-  // Data buffers are shared (graph writes response in-place to the RX slot).
-  volatile uint64_t* rx_flags_host = nullptr;
-  volatile uint64_t* rx_flags_dev = nullptr;
-  std::uint8_t* rx_data_host = nullptr;
-  std::uint8_t* rx_data_dev = nullptr;
-  volatile uint64_t* tx_flags_host = nullptr;
-  volatile uint64_t* tx_flags_dev = nullptr;
-  std::uint8_t* tx_data_host_unused = nullptr;
-  std::uint8_t* tx_data_dev_unused = nullptr;
-
-  ASSERT_TRUE(allocate_ring_buffer(num_slots, slot_size, &rx_flags_host,
-                                   &rx_flags_dev, &rx_data_host,
-                                   &rx_data_dev));
-  ASSERT_TRUE(allocate_ring_buffer(num_slots, slot_size, &tx_flags_host,
-                                   &tx_flags_dev, &tx_data_host_unused,
-                                   &tx_data_dev_unused));
-
-  // --- Pinned mailbox ---
-  // cudaHostAllocMapped gives us host + device views of the same memory.
-  // The host dispatcher writes the slot device pointer to h_mailbox_bank[0];
-  // the graph reads it from d_mailbox_bank[0] (same physical location).
-  void** h_mailbox_bank = nullptr;
-  void** d_mailbox_bank = nullptr;
-  CUDA_CHECK(cudaHostAlloc(&h_mailbox_bank, sizeof(void*),
-                           cudaHostAllocMapped));
-  std::memset(h_mailbox_bank, 0, sizeof(void*));
-  CUDA_CHECK(
-      cudaHostGetDevicePointer((void**)&d_mailbox_bank, h_mailbox_bank, 0));
-
-  // --- Graph ---
-  // Capture graph_increment_kernel with d_mailbox_bank baked in as the
-  // kernel arg. At runtime the kernel reads *d_mailbox_bank to find
-  // the slot, so different slots can be processed on each launch.
-  cudaGraph_t graph = nullptr;
-  cudaGraphExec_t graph_exec = nullptr;
-  ASSERT_TRUE(
-      create_increment_graph(d_mailbox_bank, &graph, &graph_exec));
-
-  // --- Function table (one GRAPH_LAUNCH entry) ---
-  cudaq_function_entry_t host_table[1];
-  std::memset(host_table, 0, sizeof(host_table));
-  host_table[0].function_id = RPC_GRAPH_INCREMENT_FUNCTION_ID;
-  host_table[0].dispatch_mode = CUDAQ_DISPATCH_GRAPH_LAUNCH;
-  host_table[0].handler.graph_exec = graph_exec;
-
-  // --- C API: create manager + dispatcher ---
-  cudaq_dispatch_manager_t* manager = nullptr;
-  ASSERT_EQ(cudaq_dispatch_manager_create(&manager), CUDAQ_OK);
-
-  cudaq_dispatcher_config_t disp_config{};
-  disp_config.device_id = 0;
-  disp_config.num_slots = static_cast<uint32_t>(num_slots);
-  disp_config.slot_size = static_cast<uint32_t>(slot_size);
-  disp_config.dispatch_path = CUDAQ_DISPATCH_PATH_HOST;
-
-  cudaq_dispatcher_t* dispatcher = nullptr;
-  ASSERT_EQ(cudaq_dispatcher_create(manager, &disp_config, &dispatcher),
-            CUDAQ_OK);
-
-  // --- Wire ring buffer (rx/tx flags separate, data shared for in-place) ---
-  cudaq_ringbuffer_t ringbuffer{};
-  ringbuffer.rx_flags = rx_flags_dev;
-  ringbuffer.tx_flags = tx_flags_dev;
-  ringbuffer.rx_data = rx_data_dev;
-  ringbuffer.tx_data = rx_data_dev;
-  ringbuffer.rx_stride_sz = slot_size;
-  ringbuffer.tx_stride_sz = slot_size;
-  ringbuffer.rx_flags_host = rx_flags_host;
-  ringbuffer.tx_flags_host = tx_flags_host;
-  ringbuffer.rx_data_host = rx_data_host;
-  ringbuffer.tx_data_host = rx_data_host;
-  ASSERT_EQ(cudaq_dispatcher_set_ringbuffer(dispatcher, &ringbuffer),
-            CUDAQ_OK);
-
-  cudaq_function_table_t table{};
-  table.entries = host_table;
-  table.count = 1;
-  ASSERT_EQ(cudaq_dispatcher_set_function_table(dispatcher, &table),
-            CUDAQ_OK);
-
-  int shutdown_flag = 0;
-  uint64_t stats_counter = 0;
-  ASSERT_EQ(cudaq_dispatcher_set_control(dispatcher, &shutdown_flag,
-                                         &stats_counter),
-            CUDAQ_OK);
-
-  // Provide the caller-allocated pinned mailbox so the dispatcher uses it
-  // instead of allocating plain host memory (which the graph can't read).
-  ASSERT_EQ(cudaq_dispatcher_set_mailbox(dispatcher, h_mailbox_bank),
-            CUDAQ_OK);
-
-  // --- Start ---
-  ASSERT_EQ(cudaq_dispatcher_start(dispatcher), CUDAQ_OK);
-
-  // --- Send RPC request (simulates FPGA / producer) ---
-  const std::uint8_t payload[] = {0, 1, 2, 3};
-  ASSERT_EQ(cudaq_host_ringbuffer_write_rpc_request(
-                &ringbuffer, 0, RPC_GRAPH_INCREMENT_FUNCTION_ID, payload, 4, 0, 0),
-            CUDAQ_OK);
-  cudaq_host_ringbuffer_signal_slot(&ringbuffer, 0);
-
-  // --- Verify: dispatcher picked up slot and launched graph ---
-  int cuda_err = 0;
-  cudaq_tx_status_t st = CUDAQ_TX_EMPTY;
-  for (int i = 0; i < 5000 && st == CUDAQ_TX_EMPTY; ++i) {
-    usleep(200);
-    st = cudaq_host_ringbuffer_poll_tx_flag(&ringbuffer, 0, &cuda_err);
-  }
-  ASSERT_NE(st, CUDAQ_TX_EMPTY) << "Timeout waiting for tx flag";
-  ASSERT_NE(st, CUDAQ_TX_ERROR)
-      << "Dispatcher reported graph launch error (cuda_err=" << cuda_err << ")";
-
-  // cudaGraphLaunch is async; sync device so the in-place response is visible
-  CUDA_CHECK(cudaDeviceSynchronize());
-
-  // --- Verify: graph wrote correct response in-place ---
-  std::uint8_t* slot_data = rx_data_host + 0 * slot_size;
-  auto* resp = reinterpret_cast<cudaq::realtime::RPCResponse*>(slot_data);
-  ASSERT_EQ(resp->magic, CUDAQ_RPC_MAGIC_RESPONSE)
-      << "Expected response magic (graph in-place write)";
-  ASSERT_EQ(resp->status, 0);
-  ASSERT_EQ(resp->result_len, 4u);
-  std::uint8_t* result = slot_data + sizeof(cudaq::realtime::RPCResponse);
-  EXPECT_EQ(result[0], 1);
-  EXPECT_EQ(result[1], 2);
-  EXPECT_EQ(result[2], 3);
-  EXPECT_EQ(result[3], 4);
-
-  // --- Teardown (C API handles thread join) ---
-  shutdown_flag = 1;
-  __sync_synchronize();
-  cudaq_dispatcher_stop(dispatcher);
-  cudaq_dispatcher_destroy(dispatcher);
-  cudaq_dispatch_manager_destroy(manager);
-
-  cudaGraphExecDestroy(graph_exec);
-  cudaGraphDestroy(graph);
-  cudaFreeHost(h_mailbox_bank);
-  free_ring_buffer(rx_flags_host, rx_data_host);
-  free_ring_buffer(tx_flags_host, tx_data_host_unused);
-}
-
-//==============================================================================
-// Test 3: Multiple workers with function_id routing (internal API)
-//
-// Two workers: worker 0 runs graph_increment_kernel (func_id A),
-// worker 1 runs graph_double_kernel (func_id B). Sends one RPC per worker
-// and verifies each graph produced the expected output, confirming the
-// dispatcher routed by function_id.
-//==============================================================================
-
-TEST_F(HostDispatcherLoopTest, MultiWorkerFunctionIdRouting) {
-  cudaGraph_t inc_graph = nullptr;
-  cudaGraphExec_t inc_exec = nullptr;
-  ASSERT_TRUE(create_increment_graph(d_mailbox_bank_ + 0, &inc_graph, &inc_exec));
-  AddWorker(RPC_GRAPH_INCREMENT_FUNCTION_ID, inc_exec, inc_graph);
-
-  cudaGraph_t dbl_graph = nullptr;
-  cudaGraphExec_t dbl_exec = nullptr;
-  ASSERT_TRUE(create_double_graph(d_mailbox_bank_ + 1, &dbl_graph, &dbl_exec));
-  AddWorker(RPC_GRAPH_DOUBLE_FUNCTION_ID, dbl_exec, dbl_graph);
-
-  StartLoop();
-
-  const std::uint8_t payload[] = {1, 2, 3, 4};
-  WriteRpcRequest(0, RPC_GRAPH_INCREMENT_FUNCTION_ID, payload, 4);
-  WriteRpcRequest(1, RPC_GRAPH_DOUBLE_FUNCTION_ID, payload, 4);
-  SignalSlot(0);
-  SignalSlot(1);
-
-  ASSERT_TRUE(PollTxFlag(0)) << "Timeout on slot 0 (increment)";
-  ASSERT_TRUE(PollTxFlag(1)) << "Timeout on slot 1 (double)";
-  ASSERT_EQ(cudaDeviceSynchronize(), cudaSuccess);
-
-  const std::uint8_t expected_inc[] = {2, 3, 4, 5};
-  const std::uint8_t expected_dbl[] = {2, 4, 6, 8};
-  VerifyResponse(0, expected_inc, 4);
-  VerifyResponse(1, expected_dbl, 4);
-}
-
-//==============================================================================
-// Test 4: Worker recycling — idle_mask round-trip (internal API)
-//
-// One worker, two sequential RPCs to the same slot. The second dispatch
-// can only proceed after the test restores idle_mask (simulating the
-// external worker thread that returns the worker to the pool).
-//==============================================================================
-
-TEST_F(HostDispatcherLoopTest, WorkerRecycling) {
-  cudaGraph_t graph = nullptr;
-  cudaGraphExec_t exec = nullptr;
-  ASSERT_TRUE(create_increment_graph(d_mailbox_bank_, &graph, &exec));
-  AddWorker(RPC_GRAPH_INCREMENT_FUNCTION_ID, exec, graph);
-
-  StartLoop();
-
-  // RPC 1 on slot 0 — after dispatch, current_slot advances to 1.
-  const std::uint8_t payload1[] = {0, 1, 2, 3};
-  WriteRpcRequest(0, RPC_GRAPH_INCREMENT_FUNCTION_ID, payload1, 4);
-  SignalSlot(0);
-  ASSERT_TRUE(PollTxFlag(0)) << "Timeout on first RPC";
-  ASSERT_EQ(cudaDeviceSynchronize(), cudaSuccess);
-
-  const std::uint8_t expected1[] = {1, 2, 3, 4};
-  VerifyResponse(0, expected1, 4);
-
-  RestoreWorker(0);
-
-  // RPC 2 on slot 1 — the dispatcher is now polling slot 1.
-  // This can only dispatch if idle_mask was properly restored above.
-  const std::uint8_t payload2[] = {10, 11, 12, 13};
-  WriteRpcRequest(1, RPC_GRAPH_INCREMENT_FUNCTION_ID, payload2, 4);
-  SignalSlot(1);
-  ASSERT_TRUE(PollTxFlag(1)) << "Timeout on second RPC (worker not recycled?)";
-  ASSERT_EQ(cudaDeviceSynchronize(), cudaSuccess);
-
-  const std::uint8_t expected2[] = {11, 12, 13, 14};
-  VerifyResponse(1, expected2, 4);
-}
-
-//==============================================================================
-// Test 5: Backpressure — dispatcher stalls when all workers are busy
-//
-// One worker, two slots signalled simultaneously. Slot 0 dispatches
-// immediately; slot 1 stalls until the test restores idle_mask.
-//==============================================================================
-
-TEST_F(HostDispatcherLoopTest, BackpressureWhenAllBusy) {
-  cudaGraph_t graph = nullptr;
-  cudaGraphExec_t exec = nullptr;
-  ASSERT_TRUE(create_increment_graph(d_mailbox_bank_, &graph, &exec));
-  AddWorker(RPC_GRAPH_INCREMENT_FUNCTION_ID, exec, graph);
-
-  StartLoop();
-
-  const std::uint8_t payload0[] = {0, 1, 2, 3};
-  const std::uint8_t payload1[] = {10, 11, 12, 13};
-  WriteRpcRequest(0, RPC_GRAPH_INCREMENT_FUNCTION_ID, payload0, 4);
-  WriteRpcRequest(1, RPC_GRAPH_INCREMENT_FUNCTION_ID, payload1, 4);
-  SignalSlot(0);
-  SignalSlot(1);
-
-  // sweep_completed_workers auto-releases workers, so both slots
-  // complete without an explicit RestoreWorker call.
-  ASSERT_TRUE(PollTxFlag(0)) << "Timeout on slot 0";
-  ASSERT_TRUE(PollTxFlag(1)) << "Timeout on slot 1";
-  ASSERT_EQ(cudaDeviceSynchronize(), cudaSuccess);
-
-  const std::uint8_t expected0[] = {1, 2, 3, 4};
-  const std::uint8_t expected1[] = {11, 12, 13, 14};
-  VerifyResponse(0, expected0, 4);
-  VerifyResponse(1, expected1, 4);
-
-  StopLoop();
-  EXPECT_EQ(stats_counter_, 2u);
-}
-
-//==============================================================================
-// Test 6: Stats counter accuracy (internal API)
-//
-// Sends 5 sequential RPCs through a single worker (recycling between each)
-// and verifies stats_counter == 5 at the end.
+// Sends 5 sequential RPCs through one HOST_CALL entry and verifies
+// stats_counter == 5 at the end.
 //==============================================================================
 
 TEST_F(HostDispatcherLoopTest, StatsCounterAccuracy) {
-  cudaGraph_t graph = nullptr;
-  cudaGraphExec_t exec = nullptr;
-  ASSERT_TRUE(create_increment_graph(d_mailbox_bank_, &graph, &exec));
-  AddWorker(RPC_GRAPH_INCREMENT_FUNCTION_ID, exec, graph);
+  AddHostCall(HOST_INCREMENT_FUNCTION_ID, &host_increment);
 
   StartLoop();
 
@@ -937,10 +433,9 @@ TEST_F(HostDispatcherLoopTest, StatsCounterAccuracy) {
         static_cast<std::uint8_t>(i * 10 + 1),
         static_cast<std::uint8_t>(i * 10 + 2),
         static_cast<std::uint8_t>(i * 10 + 3)};
-    WriteRpcRequest(slot, RPC_GRAPH_INCREMENT_FUNCTION_ID, payload, 4);
+    WriteRpcRequest(slot, HOST_INCREMENT_FUNCTION_ID, payload, 4);
     SignalSlot(slot);
     ASSERT_TRUE(PollTxFlag(slot)) << "Timeout on RPC " << i << " (slot " << slot << ")";
-    ASSERT_EQ(cudaDeviceSynchronize(), cudaSuccess);
 
     std::uint8_t expected[] = {
         static_cast<std::uint8_t>(i * 10 + 1),
@@ -948,8 +443,6 @@ TEST_F(HostDispatcherLoopTest, StatsCounterAccuracy) {
         static_cast<std::uint8_t>(i * 10 + 3),
         static_cast<std::uint8_t>(i * 10 + 4)};
     VerifyResponse(slot, expected, 4);
-
-    RestoreWorker(0);
   }
 
   StopLoop();
@@ -957,21 +450,15 @@ TEST_F(HostDispatcherLoopTest, StatsCounterAccuracy) {
 }
 
 //==============================================================================
-// Test 7: Multi-slot round-robin dispatch (internal API)
+// Multi-slot round-robin dispatch (internal API)
 //
-// 4 slots, 4 workers (all same function_id). All slots signalled at once;
-// the dispatcher processes them 0 → 1 → 2 → 3 using one worker each.
+// 4 slots, one HOST_CALL entry.  All slots signalled at once; the dispatcher
+// processes them 0 → 1 → 2 → 3.
 //==============================================================================
 
 TEST_F(HostDispatcherLoopTest, MultiSlotRoundRobin) {
   constexpr int kNumSlots = 4;
-  cudaGraph_t graphs[kNumSlots];
-  cudaGraphExec_t execs[kNumSlots];
-  for (int i = 0; i < kNumSlots; ++i) {
-    ASSERT_TRUE(create_increment_graph(d_mailbox_bank_ + i, &graphs[i],
-                                       &execs[i]));
-    AddWorker(RPC_GRAPH_INCREMENT_FUNCTION_ID, execs[i], graphs[i]);
-  }
+  AddHostCall(HOST_INCREMENT_FUNCTION_ID, &host_increment);
 
   StartLoop();
 
@@ -981,8 +468,8 @@ TEST_F(HostDispatcherLoopTest, MultiSlotRoundRobin) {
         static_cast<std::uint8_t>(i * 4 + 2),
         static_cast<std::uint8_t>(i * 4 + 3),
         static_cast<std::uint8_t>(i * 4 + 4)};
-    WriteRpcRequest(static_cast<std::size_t>(i),
-                    RPC_GRAPH_INCREMENT_FUNCTION_ID, payload, 4);
+    WriteRpcRequest(static_cast<std::size_t>(i), HOST_INCREMENT_FUNCTION_ID,
+                    payload, 4);
   }
 
   for (int i = 0; i < kNumSlots; ++i)
@@ -992,7 +479,6 @@ TEST_F(HostDispatcherLoopTest, MultiSlotRoundRobin) {
     ASSERT_TRUE(PollTxFlag(static_cast<std::size_t>(i)))
         << "Timeout on slot " << i;
   }
-  ASSERT_EQ(cudaDeviceSynchronize(), cudaSuccess);
 
   for (int i = 0; i < kNumSlots; ++i) {
     std::uint8_t expected[] = {
@@ -1008,28 +494,27 @@ TEST_F(HostDispatcherLoopTest, MultiSlotRoundRobin) {
 }
 
 //==============================================================================
-// Test 8: GraphIOContext mode -- separate RX/TX buffers via HOST_LOOP C API
+// Application pattern: a HOST_CALL handler that launches its own CUDA graph.
 //
-// Graph kernel reads GraphIOContext* from void** mailbox, reads input from
-// rx_slot, writes response to tx_slot, and signals *tx_flag = tx_flag_value.
-// HOST_LOOP fills the GraphIOContext before each launch (io_ctxs_host != NULL).
+// The HOST path runs HOST_CALL handlers only and publishes the response as
+// soon as the handler returns, so a handler that offloads to the GPU launches
+// its graph and synchronizes before returning.  The graph kernel fills the TX
+// slot (payload and RPCResponse header) but never touches the TX flag: the
+// dispatcher owns publication.  The dispatcher thread has no CUDA device
+// selected, so the handler selects its own.
 //==============================================================================
 
-__global__ void graph_io_ctx_increment_kernel(void **mailbox_slot_ptr) {
+__global__ void
+host_call_graph_increment_kernel(cudaq::realtime::GraphIOContext *io_ctx) {
   if (threadIdx.x == 0 && blockIdx.x == 0) {
-    auto *io_ctx = reinterpret_cast<cudaq::realtime::GraphIOContext *>(
-        *mailbox_slot_ptr);
-    if (!io_ctx || !io_ctx->rx_slot)
-      return;
-
-    auto *header =
-        static_cast<cudaq::realtime::RPCHeader *>(io_ctx->rx_slot);
-    std::uint8_t *measurements =
-        reinterpret_cast<std::uint8_t *>(header + 1);
+    auto *header = static_cast<cudaq::realtime::RPCHeader *>(io_ctx->rx_slot);
+    const std::uint8_t *measurements =
+        reinterpret_cast<const std::uint8_t *>(header + 1);
 
     auto *response =
         reinterpret_cast<cudaq::realtime::RPCResponse *>(io_ctx->tx_slot);
-    std::uint8_t *result = io_ctx->tx_slot + sizeof(cudaq::realtime::RPCResponse);
+    std::uint8_t *result =
+        io_ctx->tx_slot + sizeof(cudaq::realtime::RPCResponse);
 
     for (std::uint32_t i = 0; i < header->arg_len; ++i)
       result[i] = measurements[i] + 1;
@@ -1039,17 +524,122 @@ __global__ void graph_io_ctx_increment_kernel(void **mailbox_slot_ptr) {
     response->result_len = header->arg_len;
     response->request_id = header->request_id;
     response->ptp_timestamp = header->ptp_timestamp;
-
-    __threadfence_system();
-    if (io_ctx->tx_flag)
-      *(io_ctx->tx_flag) = io_ctx->tx_flag_value;
   }
 }
 
-constexpr std::uint32_t RPC_IO_CTX_INCREMENT_FUNCTION_ID =
-    cudaq::realtime::fnv1a_hash("rpc_io_ctx_increment");
+constexpr std::uint32_t HOST_CALL_GRAPH_FUNCTION_ID =
+    cudaq::realtime::fnv1a_hash("host_call_graph_increment");
 
-TEST(HostDispatcherGraphIOContextTest, SeparateRxTxBuffersViaCApi) {
+// File-scope state for the handler (cudaq_host_rpc_fn_t carries no context
+// argument): the executable graph, a non-blocking stream, one pinned
+// GraphIOContext the graph reads through its device view, and the ring's host
+// and device views, used to translate slot pointers.
+struct HostCallGraphState {
+  int device_id = 0;
+  cudaGraph_t graph = nullptr;
+  cudaGraphExec_t exec = nullptr;
+  cudaStream_t stream = nullptr;
+  cudaq::realtime::GraphIOContext *io_ctx_host = nullptr;
+  cudaq::realtime::GraphIOContext *io_ctx_dev = nullptr;
+  cudaq_ringbuffer_t ring{};
+};
+
+HostCallGraphState g_host_call_graph;
+
+bool host_call_graph_setup(int device_id, const cudaq_ringbuffer_t &ring) {
+  auto &s = g_host_call_graph;
+  s.device_id = device_id;
+  s.ring = ring;
+
+  if (cudaSetDevice(device_id) != cudaSuccess)
+    return false;
+  if (cudaStreamCreateWithFlags(&s.stream, cudaStreamNonBlocking) !=
+      cudaSuccess)
+    return false;
+
+  void *ctx_host = nullptr;
+  if (cudaHostAlloc(&ctx_host, sizeof(cudaq::realtime::GraphIOContext),
+                    cudaHostAllocMapped) != cudaSuccess)
+    return false;
+  std::memset(ctx_host, 0, sizeof(cudaq::realtime::GraphIOContext));
+  s.io_ctx_host = static_cast<cudaq::realtime::GraphIOContext *>(ctx_host);
+  void *ctx_dev = nullptr;
+  if (cudaHostGetDevicePointer(&ctx_dev, ctx_host, 0) != cudaSuccess)
+    return false;
+  s.io_ctx_dev = static_cast<cudaq::realtime::GraphIOContext *>(ctx_dev);
+
+  // The context's device pointer is baked into the graph; the handler refills
+  // the context before every launch.
+  if (cudaGraphCreate(&s.graph, 0) != cudaSuccess)
+    return false;
+  cudaKernelNodeParams params = {};
+  void *kernel_args[] = {&s.io_ctx_dev};
+  params.func = reinterpret_cast<void *>(host_call_graph_increment_kernel);
+  params.gridDim = dim3(1, 1, 1);
+  params.blockDim = dim3(32, 1, 1);
+  params.sharedMemBytes = 0;
+  params.kernelParams = kernel_args;
+  params.extra = nullptr;
+  cudaGraphNode_t node = nullptr;
+  if (cudaGraphAddKernelNode(&node, s.graph, nullptr, 0, &params) !=
+      cudaSuccess)
+    return false;
+  if (cudaGraphInstantiate(&s.exec, s.graph, nullptr, nullptr, 0) !=
+      cudaSuccess)
+    return false;
+  return true;
+}
+
+void host_call_graph_teardown() {
+  auto &s = g_host_call_graph;
+  if (s.exec)
+    cudaGraphExecDestroy(s.exec);
+  if (s.graph)
+    cudaGraphDestroy(s.graph);
+  if (s.io_ctx_host)
+    cudaFreeHost(s.io_ctx_host);
+  if (s.stream)
+    cudaStreamDestroy(s.stream);
+  s = HostCallGraphState{};
+}
+
+// HOST_CALL handler: translates the host slot pointers to their device views
+// by offset into the ring, fills the context (tx_flag = nullptr: the
+// dispatcher publishes when this returns), launches the graph and waits for
+// it.  A CUDA failure is reported in-band as status -1 with result_len 0.
+void host_call_graph_handler(const void *rx_slot, void *tx_slot,
+                             std::size_t slot_size) {
+  auto &s = g_host_call_graph;
+  const auto *h = static_cast<const RPCHeader *>(rx_slot);
+  const std::uint32_t request_id = h->request_id;
+  const std::uint64_t ptp = h->ptp_timestamp;
+
+  const std::size_t rx_off = static_cast<std::size_t>(
+      static_cast<const std::uint8_t *>(rx_slot) - s.ring.rx_data_host);
+  const std::size_t tx_off = static_cast<std::size_t>(
+      static_cast<std::uint8_t *>(tx_slot) - s.ring.tx_data_host);
+  s.io_ctx_host->rx_slot = s.ring.rx_data + rx_off;
+  s.io_ctx_host->tx_slot = s.ring.tx_data + tx_off;
+  s.io_ctx_host->tx_flag = nullptr;
+  s.io_ctx_host->tx_flag_value = 0;
+  s.io_ctx_host->tx_stride_sz = slot_size;
+
+  cudaError_t err = cudaSetDevice(s.device_id);
+  if (err == cudaSuccess)
+    err = cudaGraphLaunch(s.exec, s.stream);
+  if (err == cudaSuccess)
+    err = cudaStreamSynchronize(s.stream);
+  if (err != cudaSuccess) {
+    auto *resp = static_cast<RPCResponse *>(tx_slot);
+    resp->magic = cudaq::realtime::RPC_MAGIC_RESPONSE;
+    resp->status = -1;
+    resp->result_len = 0;
+    resp->request_id = request_id;
+    resp->ptp_timestamp = ptp;
+  }
+}
+
+TEST(HostCallGraphTest, HandlerLaunchesGraphSynchronously) {
   constexpr std::size_t num_slots = 2;
   constexpr std::size_t slot_size = 256;
 
@@ -1064,61 +654,11 @@ TEST(HostDispatcherGraphIOContextTest, SeparateRxTxBuffersViaCApi) {
   std::uint8_t *tx_data_dev = nullptr;
 
   ASSERT_TRUE(allocate_ring_buffer(num_slots, slot_size, &rx_flags_host,
-                                   &rx_flags_dev, &rx_data_host,
-                                   &rx_data_dev));
+                                   &rx_flags_dev, &rx_data_host, &rx_data_dev));
   ASSERT_TRUE(allocate_ring_buffer(num_slots, slot_size, &tx_flags_host,
-                                   &tx_flags_dev, &tx_data_host,
-                                   &tx_data_dev));
+                                   &tx_flags_dev, &tx_data_host, &tx_data_dev));
 
-  // Pinned mailbox (graph kernel reads *d_mailbox to get GraphIOContext*)
-  void **h_mailbox_bank = nullptr;
-  void **d_mailbox_bank = nullptr;
-  CUDA_CHECK(
-      cudaHostAlloc(&h_mailbox_bank, sizeof(void *), cudaHostAllocMapped));
-  std::memset(h_mailbox_bank, 0, sizeof(void *));
-  CUDA_CHECK(
-      cudaHostGetDevicePointer((void **)&d_mailbox_bank, h_mailbox_bank, 0));
-
-  // Capture graph with the GraphIOContext kernel
-  cudaGraph_t graph = nullptr;
-  cudaGraphExec_t graph_exec = nullptr;
-  ASSERT_EQ(cudaGraphCreate(&graph, 0), cudaSuccess);
-  cudaKernelNodeParams params = {};
-  void *kernel_args[] = {&d_mailbox_bank};
-  params.func = reinterpret_cast<void *>(graph_io_ctx_increment_kernel);
-  params.gridDim = dim3(1, 1, 1);
-  params.blockDim = dim3(32, 1, 1);
-  params.sharedMemBytes = 0;
-  params.kernelParams = kernel_args;
-  params.extra = nullptr;
-  cudaGraphNode_t node = nullptr;
-  ASSERT_EQ(cudaGraphAddKernelNode(&node, graph, nullptr, 0, &params),
-            cudaSuccess);
-  ASSERT_EQ(cudaGraphInstantiate(&graph_exec, graph, nullptr, nullptr, 0),
-            cudaSuccess);
-
-  // Function table
-  cudaq_function_entry_t host_table[1];
-  std::memset(host_table, 0, sizeof(host_table));
-  host_table[0].function_id = RPC_IO_CTX_INCREMENT_FUNCTION_ID;
-  host_table[0].dispatch_mode = CUDAQ_DISPATCH_GRAPH_LAUNCH;
-  host_table[0].handler.graph_exec = graph_exec;
-
-  // C API: manager + dispatcher
-  cudaq_dispatch_manager_t *manager = nullptr;
-  ASSERT_EQ(cudaq_dispatch_manager_create(&manager), CUDAQ_OK);
-
-  cudaq_dispatcher_config_t disp_config{};
-  disp_config.device_id = 0;
-  disp_config.num_slots = static_cast<uint32_t>(num_slots);
-  disp_config.slot_size = static_cast<uint32_t>(slot_size);
-  disp_config.dispatch_path = CUDAQ_DISPATCH_PATH_HOST;
-
-  cudaq_dispatcher_t *dispatcher = nullptr;
-  ASSERT_EQ(cudaq_dispatcher_create(manager, &disp_config, &dispatcher),
-            CUDAQ_OK);
-
-  // Wire ringbuffer with SEPARATE rx_data and tx_data
+  // Host and device views of the rings; the handler uses both.
   cudaq_ringbuffer_t ringbuffer{};
   ringbuffer.rx_flags = rx_flags_dev;
   ringbuffer.tx_flags = tx_flags_dev;
@@ -1130,6 +670,28 @@ TEST(HostDispatcherGraphIOContextTest, SeparateRxTxBuffersViaCApi) {
   ringbuffer.tx_flags_host = tx_flags_host;
   ringbuffer.rx_data_host = rx_data_host;
   ringbuffer.tx_data_host = tx_data_host;
+
+  ASSERT_TRUE(host_call_graph_setup(/*device_id=*/0, ringbuffer));
+
+  // Function table: one HOST_CALL entry whose handler launches the graph
+  cudaq_function_entry_t host_table[1];
+  std::memset(host_table, 0, sizeof(host_table));
+  host_table[0].function_id = HOST_CALL_GRAPH_FUNCTION_ID;
+  host_table[0].dispatch_mode = CUDAQ_DISPATCH_HOST_CALL;
+  host_table[0].handler.host_fn = &host_call_graph_handler;
+
+  // C API: manager + dispatcher on the HOST path
+  cudaq_dispatch_manager_t *manager = nullptr;
+  ASSERT_EQ(cudaq_dispatch_manager_create(&manager), CUDAQ_OK);
+
+  cudaq_dispatcher_config_t disp_config{};
+  disp_config.num_slots = static_cast<uint32_t>(num_slots);
+  disp_config.slot_size = static_cast<uint32_t>(slot_size);
+  disp_config.dispatch_path = CUDAQ_DISPATCH_PATH_HOST;
+
+  cudaq_dispatcher_t *dispatcher = nullptr;
+  ASSERT_EQ(cudaq_dispatcher_create(manager, &disp_config, &dispatcher),
+            CUDAQ_OK);
   ASSERT_EQ(cudaq_dispatcher_set_ringbuffer(dispatcher, &ringbuffer), CUDAQ_OK);
 
   cudaq_function_table_t table{};
@@ -1139,128 +701,73 @@ TEST(HostDispatcherGraphIOContextTest, SeparateRxTxBuffersViaCApi) {
 
   int shutdown_flag = 0;
   uint64_t stats_counter = 0;
-  ASSERT_EQ(cudaq_dispatcher_set_control(dispatcher, &shutdown_flag,
-                                         &stats_counter),
-            CUDAQ_OK);
-
-  ASSERT_EQ(cudaq_dispatcher_set_mailbox(dispatcher, h_mailbox_bank), CUDAQ_OK);
+  ASSERT_EQ(
+      cudaq_dispatcher_set_control(dispatcher, &shutdown_flag, &stats_counter),
+      CUDAQ_OK);
   ASSERT_EQ(cudaq_dispatcher_start(dispatcher), CUDAQ_OK);
 
   // Send RPC request
-  const std::uint8_t payload[] = {10, 20, 30, 40};
+  const std::uint8_t payload[] = {1, 2, 3, 4};
   ASSERT_EQ(cudaq_host_ringbuffer_write_rpc_request(
-                &ringbuffer, 0, RPC_IO_CTX_INCREMENT_FUNCTION_ID, payload, 4,
-                42, 0),
+                &ringbuffer, 0, HOST_CALL_GRAPH_FUNCTION_ID, payload, 4, 42, 0),
             CUDAQ_OK);
   cudaq_host_ringbuffer_signal_slot(&ringbuffer, 0);
 
-  // Poll for READY (graph kernel sets tx_flag_value, not just IN_FLIGHT)
-  int cuda_err = 0;
+  // The dispatcher publishes once the handler returns; by then the graph has
+  // completed, so the TX slot is final when the flag reads READY.
   cudaq_tx_status_t st = CUDAQ_TX_EMPTY;
-  for (int i = 0; i < 10000 && st != CUDAQ_TX_READY; ++i) {
+  for (int i = 0; i < 10000 && st == CUDAQ_TX_EMPTY; ++i) {
     usleep(200);
-    st = cudaq_host_ringbuffer_poll_tx_flag(&ringbuffer, 0, &cuda_err);
+    st = cudaq_host_ringbuffer_poll_tx_flag(&ringbuffer, 0, nullptr);
   }
-  ASSERT_EQ(st, CUDAQ_TX_READY)
-      << "Expected READY from graph kernel tx_flag write";
-  CUDA_CHECK(cudaDeviceSynchronize());
+  ASSERT_EQ(st, CUDAQ_TX_READY) << "Timeout waiting for tx flag";
 
-  // Verify response in the SEPARATE TX buffer (not RX)
+  // Verify the response the graph wrote into the TX slot
   auto *resp = reinterpret_cast<cudaq::realtime::RPCResponse *>(tx_data_host);
   ASSERT_EQ(resp->magic, CUDAQ_RPC_MAGIC_RESPONSE);
-  ASSERT_EQ(resp->status, 0);
+  ASSERT_EQ(resp->status, 0) << "handler reported a CUDA failure in-band";
   ASSERT_EQ(resp->result_len, 4u);
-  ASSERT_EQ(resp->request_id, 42u);
+  EXPECT_EQ(resp->request_id, 42u);
   std::uint8_t *result = tx_data_host + sizeof(cudaq::realtime::RPCResponse);
-  EXPECT_EQ(result[0], 11);
-  EXPECT_EQ(result[1], 21);
-  EXPECT_EQ(result[2], 31);
-  EXPECT_EQ(result[3], 41);
+  EXPECT_EQ(result[0], 2);
+  EXPECT_EQ(result[1], 3);
+  EXPECT_EQ(result[2], 4);
+  EXPECT_EQ(result[3], 5);
 
   // Verify RX buffer is untouched (still has the request)
-  auto *rx_header = reinterpret_cast<cudaq::realtime::RPCHeader *>(rx_data_host);
+  auto *rx_header =
+      reinterpret_cast<cudaq::realtime::RPCHeader *>(rx_data_host);
   EXPECT_EQ(rx_header->magic, CUDAQ_RPC_MAGIC_REQUEST);
 
-  // Teardown
+  // Teardown (C API handles thread join)
   shutdown_flag = 1;
   __sync_synchronize();
   cudaq_dispatcher_stop(dispatcher);
+  EXPECT_EQ(stats_counter, 1u);
   cudaq_dispatcher_destroy(dispatcher);
   cudaq_dispatch_manager_destroy(manager);
 
-  cudaGraphExecDestroy(graph_exec);
-  cudaGraphDestroy(graph);
-  cudaFreeHost(h_mailbox_bank);
+  host_call_graph_teardown();
   free_ring_buffer(rx_flags_host, rx_data_host);
   free_ring_buffer(tx_flags_host, tx_data_host);
 }
 
 //==============================================================================
 // Shared-ring-mode test: HOST_LOOP + DEVICE_LOOP on one RX ring
+//
+// The function table holds one HOST_CALL entry and one DEVICE_CALL entry.
+// The device kernel SKIPs the HOST_CALL slots and the host loop leaves the
+// DEVICE_CALL slots for its peer; each request is answered exactly once.
 //==============================================================================
 
 constexpr std::size_t kSharedRingNumSlots = 8;
 constexpr std::size_t kSharedRingSlotSize = 256;
 
-constexpr std::uint32_t HOST_GRAPH_FN_ID =
+constexpr std::uint32_t HOST_CALL_FN_ID =
     cudaq::realtime::fnv1a_hash("shared_ring_host_increment");
 
 constexpr std::uint32_t DEVICE_CALL_FN_ID =
     cudaq::realtime::fnv1a_hash("shared_ring_device_double");
-
-__global__ void host_graph_increment_kernel(void** mailbox_slot_ptr) {
-  if (threadIdx.x == 0 && blockIdx.x == 0) {
-    void* buffer = *mailbox_slot_ptr;
-    cudaq::realtime::RPCHeader* header =
-        static_cast<cudaq::realtime::RPCHeader*>(buffer);
-    std::uint32_t arg_len = header->arg_len;
-    std::uint32_t request_id = header->request_id;
-    std::uint8_t* data = static_cast<std::uint8_t*>(buffer) +
-                         sizeof(cudaq::realtime::RPCHeader);
-    for (std::uint32_t i = 0; i < arg_len; ++i)
-      data[i] = data[i] + 1;
-    cudaq::realtime::RPCResponse* response =
-        static_cast<cudaq::realtime::RPCResponse*>(buffer);
-    response->magic = cudaq::realtime::RPC_MAGIC_RESPONSE;
-    response->status = 0;
-    response->result_len = arg_len;
-    response->request_id = request_id;
-  }
-}
-
-bool create_shared_ring_host_graph(void** d_mailbox_bank,
-                                   cudaGraph_t* graph_out,
-                                   cudaGraphExec_t* exec_out) {
-  cudaGraph_t graph = nullptr;
-  if (cudaGraphCreate(&graph, 0) != cudaSuccess)
-    return false;
-
-  cudaKernelNodeParams params = {};
-  void* kernel_args[] = {&d_mailbox_bank};
-  params.func = reinterpret_cast<void*>(host_graph_increment_kernel);
-  params.gridDim = dim3(1, 1, 1);
-  params.blockDim = dim3(32, 1, 1);
-  params.sharedMemBytes = 0;
-  params.kernelParams = kernel_args;
-  params.extra = nullptr;
-
-  cudaGraphNode_t node = nullptr;
-  if (cudaGraphAddKernelNode(&node, graph, nullptr, 0, &params) !=
-      cudaSuccess) {
-    cudaGraphDestroy(graph);
-    return false;
-  }
-
-  cudaGraphExec_t exec = nullptr;
-  if (cudaGraphInstantiate(&exec, graph, nullptr, nullptr, 0) != cudaSuccess) {
-    cudaGraphDestroy(graph);
-    return false;
-  }
-
-  *graph_out = graph;
-  *exec_out = exec;
-  return true;
-}
 
 // DEVICE_CALL handler (same two-pointer form as host_increment above, plus a
 // returned status): doubles the rx payload into tx and sets result_len.
@@ -1281,16 +788,10 @@ __device__ int device_double_handler(const void* rx_slot, void* tx_slot,
   return 0;
 }
 
-__global__ void init_shared_function_table(cudaq_function_entry_t* entries,
-                                           cudaGraphExec_t host_graph_exec) {
+// The DEVICE_CALL entry needs the device function's address, which only device
+// code can take; the HOST_CALL entry is written from the host.
+__global__ void init_shared_function_table(cudaq_function_entry_t* entries) {
   if (threadIdx.x == 0 && blockIdx.x == 0) {
-    entries[0].handler.graph_exec = host_graph_exec;
-    entries[0].function_id = HOST_GRAPH_FN_ID;
-    entries[0].dispatch_mode = CUDAQ_DISPATCH_GRAPH_LAUNCH;
-    entries[0].reserved[0] = 0;
-    entries[0].reserved[1] = 0;
-    entries[0].reserved[2] = 0;
-
     entries[1].handler.device_fn_ptr =
         reinterpret_cast<void*>(&device_double_handler);
     entries[1].function_id = DEVICE_CALL_FN_ID;
@@ -1348,17 +849,11 @@ protected:
     std::memset(function_table_host_, 0,
                 2 * sizeof(cudaq_function_entry_t));
 
-    CUDA_CHECK(cudaHostAlloc(&h_mailbox_bank_, sizeof(void*),
-                             cudaHostAllocMapped));
-    h_mailbox_bank_[0] = nullptr;
-    CUDA_CHECK(cudaHostGetDevicePointer(&d_mailbox_bank_void_,
-                                        h_mailbox_bank_, 0));
-    d_mailbox_bank_ = static_cast<void**>(d_mailbox_bank_void_);
-    ASSERT_TRUE(create_shared_ring_host_graph(d_mailbox_bank_, &host_graph_,
-                                              &host_graph_exec_));
+    function_table_host_[0].handler.host_fn = &host_increment;
+    function_table_host_[0].function_id = HOST_CALL_FN_ID;
+    function_table_host_[0].dispatch_mode = CUDAQ_DISPATCH_HOST_CALL;
 
-    init_shared_function_table<<<1, 1>>>(function_table_dev_,
-                                         host_graph_exec_);
+    init_shared_function_table<<<1, 1>>>(function_table_dev_);
     CUDA_CHECK(cudaDeviceSynchronize());
 
     CUDA_CHECK(cudaq_dispatch_kernel_set_shared_ring_mode(1));
@@ -1420,7 +915,7 @@ protected:
     host_ringbuffer_.rx_data_host = rx_data_host_;
     host_ringbuffer_.tx_data_host = tx_data_host_;
 
-    host_table_.entries = function_table_dev_;
+    host_table_.entries = function_table_host_;
     host_table_.count = 2;
 
     std::memset(&host_config_, 0, sizeof(host_config_));
@@ -1428,17 +923,10 @@ protected:
     host_config_.slot_size = static_cast<uint32_t>(kSharedRingSlotSize);
     host_config_.shared_ring_mode = 1;
 
-    cudaq_status_t engine_st = CUDAQ_OK;
-    host_engine_ = cudaq_graph_launch_engine_create(
-        &host_ringbuffer_, &host_table_, host_config_.skip_tx_markers,
-        h_mailbox_bank_, &engine_st);
-    ASSERT_EQ(engine_st, CUDAQ_OK);
-    ASSERT_NE(host_engine_, nullptr);
-
     host_loop_thread_ = std::thread([this]() {
       cudaq_host_ring_dispatch_loop(&host_ringbuffer_, &host_table_,
-                                    &host_config_, host_engine_,
-                                    shutdown_flag_host_, &host_loop_stats_);
+                                    &host_config_, shutdown_flag_host_,
+                                    &host_loop_stats_);
     });
   }
 
@@ -1448,11 +936,6 @@ protected:
 
     if (host_loop_thread_.joinable())
       host_loop_thread_.join();
-
-    if (host_engine_) {
-      cudaq_graph_launch_engine_destroy(host_engine_);
-      host_engine_ = nullptr;
-    }
 
     if (device_dispatcher_) {
       cudaq_dispatcher_stop(device_dispatcher_);
@@ -1466,17 +949,10 @@ protected:
 
     (void)cudaq_dispatch_kernel_set_shared_ring_mode(0);
 
-    if (host_graph_exec_)
-      cudaGraphExecDestroy(host_graph_exec_);
-    if (host_graph_)
-      cudaGraphDestroy(host_graph_);
-
     if (function_table_host_)
       cudaFreeHost(function_table_host_);
     if (device_loop_stats_)
       cudaFree(device_loop_stats_);
-    if (h_mailbox_bank_)
-      cudaFreeHost(h_mailbox_bank_);
 
     free_ring_buffer(rx_flags_host_, rx_data_host_);
     if (tx_flags_host_)
@@ -1549,15 +1025,9 @@ protected:
   cudaq_dispatcher_t* device_dispatcher_ = nullptr;
   uint64_t* device_loop_stats_ = nullptr;
 
-  cudaGraph_t host_graph_ = nullptr;
-  cudaGraphExec_t host_graph_exec_ = nullptr;
-  void** h_mailbox_bank_ = nullptr;
-  void* d_mailbox_bank_void_ = nullptr;
-  void** d_mailbox_bank_ = nullptr;
   cudaq_ringbuffer_t host_ringbuffer_{};
   cudaq_function_table_t host_table_{};
   cudaq_dispatcher_config_t host_config_{};
-  cudaq_graph_launch_engine_t* host_engine_ = nullptr;
   uint64_t host_loop_stats_ = 0;
   std::thread host_loop_thread_;
 };
@@ -1568,9 +1038,9 @@ TEST_F(SharedRingDispatcherTest, InterleavedHostAndDeviceRequests) {
   std::vector<std::uint8_t> p2 = {1, 2, 3, 4};
   std::vector<std::uint8_t> p3 = {6, 12, 24, 48};
 
-  WriteAndSignal(0, HOST_GRAPH_FN_ID, /*request_id=*/100, p0);
+  WriteAndSignal(0, HOST_CALL_FN_ID, /*request_id=*/100, p0);
   WriteAndSignal(1, DEVICE_CALL_FN_ID, /*request_id=*/101, p1);
-  WriteAndSignal(2, HOST_GRAPH_FN_ID, /*request_id=*/102, p2);
+  WriteAndSignal(2, HOST_CALL_FN_ID, /*request_id=*/102, p2);
   WriteAndSignal(3, DEVICE_CALL_FN_ID, /*request_id=*/103, p3);
 
   ASSERT_TRUE(WaitForResponseInSlot(0)) << "Slot 0 (HOST_LOOP) timed out";
@@ -1705,7 +1175,7 @@ TEST(UnifiedLoopTest, HostCallOverRingDataplane) {
 
   cudaq_function_entry_t entry{};
   entry.handler.host_fn = &host_increment;
-  entry.function_id = RPC_GRAPH_INCREMENT_FUNCTION_ID;
+  entry.function_id = HOST_INCREMENT_FUNCTION_ID;
   entry.dispatch_mode = CUDAQ_DISPATCH_HOST_CALL;
 
   cudaq_cpu_dataplane_t dp = fake.dataplane();
@@ -1713,12 +1183,12 @@ TEST(UnifiedLoopTest, HostCallOverRingDataplane) {
   uint64_t stats = 0;
   cudaq_function_table_t table{&entry, 1};
   std::thread loop([&] {
-    cudaq_host_unified_loop(&dp, &table, nullptr, &shutdown_flag, &stats);
+    cudaq_host_unified_loop(&dp, &table, &shutdown_flag, &stats);
   });
 
   const std::uint8_t payload[] = {10, 20, 30, 40};
   ASSERT_EQ(cudaq_host_ringbuffer_write_rpc_request(
-                &fake.ring(), 1, RPC_GRAPH_INCREMENT_FUNCTION_ID, payload, 4, 7,
+                &fake.ring(), 1, HOST_INCREMENT_FUNCTION_ID, payload, 4, 7,
                 0),
             CUDAQ_OK);
   fake.enqueue(1);
@@ -1754,7 +1224,7 @@ TEST(UnifiedLoopTest, DropsBadMagicOverRingDataplane) {
 
   cudaq_function_entry_t entry{};
   entry.handler.host_fn = &host_increment;
-  entry.function_id = RPC_GRAPH_INCREMENT_FUNCTION_ID;
+  entry.function_id = HOST_INCREMENT_FUNCTION_ID;
   entry.dispatch_mode = CUDAQ_DISPATCH_HOST_CALL;
 
   cudaq_cpu_dataplane_t dp = fake.dataplane();
@@ -1762,14 +1232,14 @@ TEST(UnifiedLoopTest, DropsBadMagicOverRingDataplane) {
   uint64_t stats = 0;
   cudaq_function_table_t table{&entry, 1};
   std::thread loop([&] {
-    cudaq_host_unified_loop(&dp, &table, nullptr, &shutdown_flag, &stats);
+    cudaq_host_unified_loop(&dp, &table, &shutdown_flag, &stats);
   });
 
   const std::uint8_t payload[] = {10, 20, 30, 40};
 
   // Slot 1: a well-formed request whose magic we then corrupt.
   ASSERT_EQ(cudaq_host_ringbuffer_write_rpc_request(
-                &fake.ring(), 1, RPC_GRAPH_INCREMENT_FUNCTION_ID, payload, 4, 7,
+                &fake.ring(), 1, HOST_INCREMENT_FUNCTION_ID, payload, 4, 7,
                 0),
             CUDAQ_OK);
   auto* bad = reinterpret_cast<RPCHeader*>(
@@ -1782,7 +1252,7 @@ TEST(UnifiedLoopTest, DropsBadMagicOverRingDataplane) {
   // single-threaded, so once slot 2 is published slot 1 has already been
   // processed (and, correctly, dropped).
   ASSERT_EQ(cudaq_host_ringbuffer_write_rpc_request(
-                &fake.ring(), 2, RPC_GRAPH_INCREMENT_FUNCTION_ID, payload, 4, 8,
+                &fake.ring(), 2, HOST_INCREMENT_FUNCTION_ID, payload, 4, 8,
                 0),
             CUDAQ_OK);
   fake.enqueue(2);
@@ -1796,87 +1266,6 @@ TEST(UnifiedLoopTest, DropsBadMagicOverRingDataplane) {
   __sync_synchronize();
   loop.join();
   EXPECT_EQ(stats, 1u); // only the fence request was dispatched
-}
-
-TEST(UnifiedLoopTest, GraphLaunchOverRingDataplane) {
-  constexpr std::size_t num_slots = 4;
-  constexpr std::size_t slot_size = 256;
-  FakeRing fake(num_slots, slot_size, /*in_place=*/false);
-  ASSERT_TRUE(fake.ok());
-
-  void** h_mailbox = nullptr;
-  void** d_mailbox = nullptr;
-  CUDA_CHECK(cudaHostAlloc(&h_mailbox, sizeof(void*), cudaHostAllocMapped));
-  std::memset(h_mailbox, 0, sizeof(void*));
-  CUDA_CHECK(cudaHostGetDevicePointer((void**)&d_mailbox, h_mailbox, 0));
-
-  // Per-RPC graph reading the GraphIOContext from the mailbox (separate rx/tx).
-  cudaGraph_t graph = nullptr;
-  cudaGraphExec_t exec = nullptr;
-  ASSERT_EQ(cudaGraphCreate(&graph, 0), cudaSuccess);
-  cudaKernelNodeParams params = {};
-  void* kernel_args[] = {&d_mailbox};
-  params.func = reinterpret_cast<void*>(graph_io_ctx_increment_kernel);
-  params.gridDim = dim3(1, 1, 1);
-  params.blockDim = dim3(32, 1, 1);
-  params.kernelParams = kernel_args;
-  cudaGraphNode_t node = nullptr;
-  ASSERT_EQ(cudaGraphAddKernelNode(&node, graph, nullptr, 0, &params),
-            cudaSuccess);
-  ASSERT_EQ(cudaGraphInstantiate(&exec, graph, nullptr, nullptr, 0),
-            cudaSuccess);
-
-  cudaq_function_entry_t entry{};
-  entry.handler.graph_exec = exec;
-  entry.function_id = RPC_IO_CTX_INCREMENT_FUNCTION_ID;
-  entry.dispatch_mode = CUDAQ_DISPATCH_GRAPH_LAUNCH;
-
-  cudaq_cpu_dataplane_t dp = fake.dataplane();
-  volatile int shutdown_flag = 0;
-  uint64_t stats = 0;
-  // The caller owns the engine now; build it from the fake ring (mirrors
-  // cudaq_dispatcher_start).  The unified loop needs IN_FLIGHT markers, so
-  // skip_tx_markers = 0.
-  cudaq_function_table_t engine_table{&entry, 1};
-  cudaq_status_t engine_st = CUDAQ_OK;
-  cudaq_graph_launch_engine_t *engine = cudaq_graph_launch_engine_create(
-      &dp.ring, &engine_table, /*skip_tx_markers=*/0, h_mailbox, &engine_st);
-  ASSERT_EQ(engine_st, CUDAQ_OK);
-  std::thread loop([&] {
-    cudaq_host_unified_loop(&dp, &engine_table, engine, &shutdown_flag, &stats);
-  });
-
-  const std::uint8_t payload[] = {1, 2, 3, 4};
-  ASSERT_EQ(cudaq_host_ringbuffer_write_rpc_request(
-                &fake.ring(), 2, RPC_IO_CTX_INCREMENT_FUNCTION_ID, payload, 4, 9,
-                0),
-            CUDAQ_OK);
-  fake.enqueue(2);
-
-  for (int i = 0; i < 10000 && !fake.published(2); ++i)
-    usleep(200);
-  ASSERT_TRUE(fake.published(2)) << "GRAPH_LAUNCH response not published";
-  CUDA_CHECK(cudaDeviceSynchronize());
-
-  auto* resp = reinterpret_cast<RPCResponse*>(fake.tx_host(2));
-  EXPECT_EQ(resp->magic, CUDAQ_RPC_MAGIC_RESPONSE);
-  EXPECT_EQ(resp->result_len, 4u);
-  EXPECT_EQ(resp->request_id, 9u);
-  std::uint8_t* result = fake.tx_host(2) + sizeof(RPCResponse);
-  EXPECT_EQ(result[0], 2);
-  EXPECT_EQ(result[1], 3);
-  EXPECT_EQ(result[2], 4);
-  EXPECT_EQ(result[3], 5);
-
-  shutdown_flag = 1;
-  __sync_synchronize();
-  loop.join();
-  EXPECT_EQ(stats, 1u);
-
-  cudaq_graph_launch_engine_destroy(engine);
-  cudaGraphExecDestroy(exec);
-  cudaGraphDestroy(graph);
-  cudaFreeHost(h_mailbox);
 }
 
 } // namespace

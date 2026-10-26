@@ -65,7 +65,7 @@ Typical uses:
 - **Unused**: Set to 0 when not needed. The dispatcher echoes it regardless.
 
 The dispatcher echoes `request_id` in all dispatch paths (regular and
-graph-launch).
+graph-launch, where graph-launch means the device-side graph scheduler).
 
 ## `PTP` Timestamp Semantics
 
@@ -94,7 +94,7 @@ interpretation. By convention, the field carries a `PTP` time-of-day in
 nanoseconds, but senders and receivers may agree on any encoding.
 
 The dispatcher echoes `ptp_timestamp` in all dispatch paths (regular and
-graph-launch).
+graph-launch, where graph-launch means the device-side graph scheduler).
 
 ## Function ID Semantics
 

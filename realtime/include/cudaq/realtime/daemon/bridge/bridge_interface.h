@@ -97,28 +97,26 @@ typedef cudaq_rx_status_t (*cudaq_cpu_rx_poll_fn_t)(void *ctx,
 /// order their requests arrived.
 typedef cudaq_status_t (*cudaq_cpu_tx_publish_fn_t)(void *ctx, uint32_t slot);
 
-/// The CPU/host-driven unified data-plane: a device-visible ringbuffer plus the
-/// two host-callable ops that drive it, which a transport provider exposes for
-/// the CPU dispatch loop.
+/// The CPU/host-driven unified data-plane: a host-addressable RX/TX ring plus
+/// the two host-callable ops that drive it, which a transport provider exposes
+/// for the CPU dispatch loop.
 ///
 /// The library's single-thread unified dispatch loop
 /// (`cudaq_host_unified_loop`, used for CUDAQ_DISPATCH_PATH_HOST +
 /// CUDAQ_KERNEL_UNIFIED) owns one of these and, on its own thread, repeatedly
-/// calls `rx_poll` to pull the next request out of `ring`, dispatches it
-/// (HOST_CALL inline, GRAPH_LAUNCH via the graph engine), and calls
-/// `tx_publish` to send each response back out `ring`.  A provider that
-/// supports this shape returns a fully populated instance from its
-/// `get_cpu_dataplane` callback; providers that do not leave that callback
-/// NULL.
+/// calls `rx_poll` to pull the next request out of `ring`, runs its HOST_CALL
+/// handler inline, and calls `tx_publish` to send each response back out
+/// `ring`.  A provider that supports this shape returns a fully populated
+/// instance from its `get_cpu_dataplane` callback; providers that do not leave
+/// that callback NULL.
 typedef struct {
   void *ctx; ///< Transport-resident ring state.  Passed verbatim as the first
              ///< argument to `rx_poll` and `tx_publish`; opaque to the library.
-  cudaq_ringbuffer_t ring; ///< Device-visible RX/TX data + tx flags together
-                           ///< with their host-mapped views.  The unified loop
-                           ///< reads `rx_data_host` / `tx_data_host` (and
-                           ///< `tx_flags_host` to detect GRAPH_LAUNCH graph
-                           ///< completion), so the host-view pointers and slot
-                           ///< strides MUST be populated.
+  cudaq_ringbuffer_t ring; ///< RX/TX data rings.  The unified loop reads
+                           ///< `rx_data_host` / `tx_data_host`, so the
+                           ///< host-view pointers and slot strides MUST be
+                           ///< populated; the memory needs to be CUDA-mapped
+                           ///< only when a GPU consumer touches it.
   cudaq_cpu_rx_poll_fn_t rx_poll; ///< Non-blocking inbound poll; required.
   cudaq_cpu_tx_publish_fn_t tx_publish; ///< Outbound publish; required.
 } cudaq_cpu_dataplane_t;

@@ -86,10 +86,9 @@ if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME)
       device_call/cpu_roce_test_daemon.cpp)
     target_include_directories(cpu_roce_test_daemon
       PRIVATE ${CUDAToolkit_INCLUDE_DIRS})
-    # host-dispatch.a contains relocatable device code (host_dispatcher.cu); the
-    # final link must run the CUDA device-link step even though this target has
-    # no .cu sources. Same "bridge as .cpp with CUDA device linking" pattern as
-    # the realtime gpu_roce/hsb bridge tools.
+    # This target has no .cu sources and the host-dispatch library is plain
+    # C++ without device code; it keeps the "bridge as .cpp with CUDA device
+    # linking" link setup of the realtime gpu_roce/hsb bridge tools.
     set_target_properties(cpu_roce_test_daemon PROPERTIES
       LINKER_LANGUAGE CUDA
       CUDA_SEPARABLE_COMPILATION ON

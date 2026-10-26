@@ -599,37 +599,46 @@ struct GeneratedDeviceCallService : public DeviceCallService {
   }
 };
 
-// --- Host-dispatch graph table helpers ---------------------------------------
+// --- Host-dispatch graph trampoline ------------------------------------------
+//
+// The host-dispatch service exports the same device functions behind
+// CUDAQ_DISPATCH_HOST_CALL entries. Every entry's `host_fn` is
+// `GeneratedHostDispatchGraphTable::hostTrampoline`, which runs on the realtime
+// host dispatcher thread, launches one single-node CUDA graph that performs the
+// function-table dispatch on the device, waits for it, and returns; the host
+// dispatcher then publishes the response. The dispatcher thread has no CUDA
+// device selected, so the trampoline selects the table's device itself.
 
 // Two-pointer realtime handler ABI: (rx_slot, tx_slot, slot_size) -> status.
 using DeviceCallAbiHandler = std::int32_t (*)(const void *, void *,
                                               std::size_t);
 
+// ABI value of `DeviceCallStatus::CudaError` from the device_call runtime
+// (`cudaq_internal/device_call/DeviceCallError.h`). The trampoline reports a
+// failed graph launch in-band through `RPCResponse::status` with this value.
+constexpr std::int32_t HostDispatchCudaErrorStatus = 3;
+
 // Graph node kernel for the host-dispatch path of device_call. Handles one RPC
-// request per graph launch. Follows the same `GraphIOContext` mailbox protocol
-// used by `graph_io_ctx_increment_kernel` in
-// `realtime/unittests/test_host_dispatcher.cu`; this kernel adds function-table
-// dispatch on top of that base pattern.
+// request per graph launch. `ioContext` is the device alias of the table's
+// pinned `GraphIOContext`.
 //
-// Launch protocol (performed for `GeneratedHostDispatchSession` before each
-// `cudaGraphLaunch`):
-//   1. Host fills `GraphIOContext { rx_slot, tx_slot, tx_flag, ... }`.
-//   2. Host writes `GraphIOContext*` into the pinned mailbox slot.
-//   3. Host calls `cudaGraphLaunch(graphExec[i], stream)`.
-//   4. This kernel runs, dispatches, writes the response, and signals the host.
+// Launch protocol (performed by
+// `GeneratedHostDispatchGraphTable::hostTrampoline` for every HOST_CALL
+// request):
+//   1. The trampoline fills the pinned `GraphIOContext` with the device views
+//      of the RX/TX slots and `tx_flag = nullptr`.
+//   2. The trampoline calls `cudaGraphLaunch` and `cudaStreamSynchronize`.
+//   3. This kernel runs, dispatches, and writes the response. It never touches
+//      the TX flag: the host dispatcher publishes the slot once the trampoline
+//      returns.
 __global__ void
-deviceCallHostDispatchGraphKernel(void **mailboxSlotPtr,
+deviceCallHostDispatchGraphKernel(cudaq::realtime::GraphIOContext *ioContext,
                                   cudaq_function_entry_t *functionTable,
                                   std::uint32_t functionCount) {
   // Single-thread dispatch: the graph node is always launched with 1 block.
   if (threadIdx.x != 0 || blockIdx.x != 0)
     return;
 
-  // `mailboxSlotPtr` is a device pointer into the pinned mailbox bank. The host
-  // writes a `GraphIOContext*` there before each launch (see
-  // `GeneratedHostDispatchGraphTable::setup` and `host_dispatcher.cu`).
-  auto *const ioContext =
-      reinterpret_cast<cudaq::realtime::GraphIOContext *>(*mailboxSlotPtr);
   if (!ioContext || !ioContext->rx_slot || !ioContext->tx_slot)
     return;
 
@@ -671,21 +680,15 @@ deviceCallHostDispatchGraphKernel(void **mailboxSlotPtr,
   // failed handlers.  (Not pre-zeroed: tx_slot may alias rx_slot.)
   if (status != 0)
     response->result_len = 0;
-
-  // Fence before signalling so the host sees a consistent response buffer.
-  __threadfence_system();
-  if (ioContext->tx_flag)
-    *ioContext->tx_flag = ioContext->tx_flag_value;
 }
 
-// Build and instantiate a single-node CUDA graph for one host-dispatch slot.
+// Build and instantiate the single-node CUDA graph for the host-dispatch table.
 // The graph is destroyed immediately after instantiation; `cudaGraphExec_t`
 // is self-contained and does not hold a reference to the source graph.
-inline cudaError_t createHostDispatchGraph(cudaGraphExec_t *execOut,
-                                           void **d_mailboxSlot,
-                                           cudaq_function_entry_t *d_table,
-                                           std::uint32_t functionCount) {
-  if (!execOut || !d_mailboxSlot || !d_table)
+inline cudaError_t createHostDispatchGraph(
+    cudaGraphExec_t *execOut, cudaq::realtime::GraphIOContext *d_ioContext,
+    cudaq_function_entry_t *d_table, std::uint32_t functionCount) {
+  if (!execOut || !d_ioContext || !d_table)
     return cudaErrorInvalidValue;
 
   cudaGraph_t graph = nullptr;
@@ -693,7 +696,7 @@ inline cudaError_t createHostDispatchGraph(cudaGraphExec_t *execOut,
   if (err != cudaSuccess)
     return err;
 
-  void *kernelArgs[] = {&d_mailboxSlot, &d_table, &functionCount};
+  void *kernelArgs[] = {&d_ioContext, &d_table, &functionCount};
   const cudaKernelNodeParams params = [&] {
     cudaKernelNodeParams result{};
     result.func = reinterpret_cast<void *>(deviceCallHostDispatchGraphKernel);
@@ -719,55 +722,57 @@ template <auto InitTableKernel, std::uint32_t Count>
 struct GeneratedHostDispatchGraphTable {
   static inline cudaq_function_entry_t h_entries[Count]{};
   static inline cudaq_function_entry_t *d_entries = nullptr;
-  static inline void **h_mailbox = nullptr;
-  static inline void **d_mailbox = nullptr;
-  static inline cudaGraphExec_t graphExecs[Count]{};
+  // One graph exec, one stream and one pinned, mapped `GraphIOContext` serve
+  // the whole table: the kernel resolves the function from the request header
+  // and HOST_CALL handlers run serialized on the dispatcher thread.
+  static inline cudaq::realtime::GraphIOContext *h_ioContext = nullptr;
+  static inline cudaq::realtime::GraphIOContext *d_ioContext = nullptr;
+  static inline cudaGraphExec_t graphExec = nullptr;
+  static inline cudaStream_t stream = nullptr;
+  static inline int deviceId = 0;
   static inline bool initialized = false;
 
   static void teardown() noexcept {
-    for (std::uint32_t i = 0; i < Count; ++i) {
-      if (graphExecs[i])
-        cudaGraphExecDestroy(graphExecs[i]);
-      graphExecs[i] = nullptr;
-    }
+    if (graphExec)
+      cudaGraphExecDestroy(graphExec);
+    if (stream)
+      cudaStreamDestroy(stream);
     if (d_entries)
       cudaFree(d_entries);
-    if (h_mailbox)
-      cudaFreeHost(h_mailbox);
+    if (h_ioContext)
+      cudaFreeHost(h_ioContext);
+    graphExec = nullptr;
+    stream = nullptr;
     d_entries = nullptr;
-    h_mailbox = nullptr;
-    d_mailbox = nullptr;
+    h_ioContext = nullptr;
+    d_ioContext = nullptr;
     std::memset(h_entries, 0, sizeof(h_entries));
     initialized = false;
   }
 
-  static int setup(std::uint32_t deviceId = 0) {
+  static int setup(int device = 0) {
     if (initialized)
       return 0;
     if (Count == 0)
       return 1;
+    deviceId = device;
     if (reportCudaError(cudaSetDevice(deviceId), "cudaSetDevice") !=
         cudaSuccess)
       return 1;
 
-    cudaStream_t stream = nullptr;
+    // Scope-exit guard: fires on any early return to undo partial setup.
+    // Skips cleanup once `initialized` is set to true.
+    struct SetupGuard {
+      ~SetupGuard() {
+        if (!initialized)
+          teardown();
+      }
+    } guard;
+
     if (reportCudaError(
             cudaStreamCreateWithFlags(&stream, cudaStreamNonBlocking),
             "cudaStreamCreateWithFlags") != cudaSuccess)
       return 1;
-
-    // Scope-exit guard: fires on any early return to destroy the stream and
-    // undo partial setup. Skips cleanup once `initialized` is set to true.
-    struct SetupGuard {
-      cudaStream_t &stream;
-      ~SetupGuard() {
-        if (initialized)
-          return;
-        if (stream)
-          cudaStreamDestroy(stream);
-        teardown();
-      }
-    } guard{stream};
 
     if (reportCudaError(
             cudaMalloc(&d_entries, Count * sizeof(cudaq_function_entry_t)),
@@ -791,35 +796,93 @@ struct GeneratedHostDispatchGraphTable {
             cudaSuccess)
       return 1;
 
-    if (reportCudaError(cudaHostAlloc(&h_mailbox, Count * sizeof(void *),
+    if (reportCudaError(cudaHostAlloc(reinterpret_cast<void **>(&h_ioContext),
+                                      sizeof(cudaq::realtime::GraphIOContext),
                                       cudaHostAllocMapped),
-                        "cudaHostAlloc device_call host mailbox") !=
+                        "cudaHostAlloc device_call graph IO context") !=
         cudaSuccess)
       return 1;
-    std::memset(h_mailbox, 0, Count * sizeof(void *));
+    std::memset(h_ioContext, 0, sizeof(cudaq::realtime::GraphIOContext));
     if (reportCudaError(
-            cudaHostGetDevicePointer(reinterpret_cast<void **>(&d_mailbox),
-                                     h_mailbox, 0),
-            "cudaHostGetDevicePointer device_call host mailbox") != cudaSuccess)
+            cudaHostGetDevicePointer(reinterpret_cast<void **>(&d_ioContext),
+                                     h_ioContext, 0),
+            "cudaHostGetDevicePointer device_call graph IO context") !=
+        cudaSuccess)
+      return 1;
+
+    if (reportCudaError(
+            createHostDispatchGraph(&graphExec, d_ioContext, d_entries, Count),
+            "createHostDispatchGraph") != cudaSuccess)
       return 1;
 
     for (std::uint32_t i = 0; i < Count; ++i) {
-      if (reportCudaError(createHostDispatchGraph(&graphExecs[i], d_mailbox + i,
-                                                  d_entries, Count),
-                          "createHostDispatchGraph") != cudaSuccess)
-        return 1;
-      h_entries[i].handler.graph_exec = graphExecs[i];
-      h_entries[i].dispatch_mode = CUDAQ_DISPATCH_GRAPH_LAUNCH;
+      h_entries[i].handler.host_fn = &hostTrampoline;
+      h_entries[i].dispatch_mode = CUDAQ_DISPATCH_HOST_CALL;
     }
 
-    if (reportCudaError(cudaStreamDestroy(stream), "cudaStreamDestroy") !=
-        cudaSuccess) {
-      stream = nullptr; // prevent double-destroy in guard destructor
-      return 1;
-    }
-    stream = nullptr;
     initialized = true;
     return 0;
+  }
+
+  // HOST_CALL handler shared by every entry of the table. It runs on the
+  // realtime host dispatcher thread, launches the dispatch graph for this
+  // request and waits for it; the dispatcher publishes the response when the
+  // handler returns. A CUDA failure is reported in-band as an RPCResponse with
+  // `HostDispatchCudaErrorStatus` and no result bytes.
+  static void hostTrampoline(const void *rxSlot, void *txSlot,
+                             std::size_t slotSize) {
+    const cudaError_t err = launchGraph(rxSlot, txSlot, slotSize);
+    if (err == cudaSuccess)
+      return;
+    reportCudaError(err, "device_call host-dispatch graph launch");
+    writeCudaErrorResponse(rxSlot, txSlot, slotSize);
+  }
+
+  static cudaError_t launchGraph(const void *rxSlot, void *txSlot,
+                                 std::size_t slotSize) {
+    // The dispatcher thread has no device selected.
+    cudaError_t err = cudaSetDevice(deviceId);
+    if (err != cudaSuccess)
+      return err;
+
+    // The ring slots are `cudaHostAllocMapped` memory; the kernel needs their
+    // device views.
+    cudaPointerAttributes rxAttributes{};
+    err = cudaPointerGetAttributes(&rxAttributes, rxSlot);
+    if (err != cudaSuccess)
+      return err;
+    cudaPointerAttributes txAttributes{};
+    err = cudaPointerGetAttributes(&txAttributes, txSlot);
+    if (err != cudaSuccess)
+      return err;
+    if (!rxAttributes.devicePointer || !txAttributes.devicePointer)
+      return cudaErrorInvalidValue;
+
+    h_ioContext->rx_slot = rxAttributes.devicePointer;
+    h_ioContext->tx_slot =
+        static_cast<std::uint8_t *>(txAttributes.devicePointer);
+    h_ioContext->tx_flag = nullptr;
+    h_ioContext->tx_flag_value = 0;
+    h_ioContext->tx_stride_sz = slotSize;
+
+    err = cudaGraphLaunch(graphExec, stream);
+    if (err != cudaSuccess)
+      return err;
+    return cudaStreamSynchronize(stream);
+  }
+
+  static void writeCudaErrorResponse(const void *rxSlot, void *txSlot,
+                                     std::size_t slotSize) {
+    if (!rxSlot || !txSlot || slotSize < sizeof(cudaq::realtime::RPCResponse))
+      return;
+    const auto *const request =
+        static_cast<const cudaq::realtime::RPCHeader *>(rxSlot);
+    auto *const response = static_cast<cudaq::realtime::RPCResponse *>(txSlot);
+    response->magic = cudaq::realtime::RPC_MAGIC_RESPONSE;
+    response->request_id = request->request_id;
+    response->ptp_timestamp = request->ptp_timestamp;
+    response->status = HostDispatchCudaErrorStatus;
+    response->result_len = 0;
   }
 };
 
@@ -835,8 +898,7 @@ struct GeneratedHostDispatchSession : public DeviceCallServiceSession {
     table.mode = DeviceCallDispatchMode::Host;
     table.entries = Table::h_entries;
     table.count = Count;
-    table.deviceId = 0;
-    table.mailbox = Table::h_mailbox;
+    table.deviceId = Table::deviceId;
   }
 
   ~GeneratedHostDispatchSession() override { stop(); }

@@ -39,7 +39,7 @@
 #include "cudaq/realtime/cpu_transport/roce_wrapper.h"
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
-#include "cudaq/realtime/daemon/dispatcher/graph_launch_engine.h"
+#include "cudaq/realtime/daemon/dispatcher/host_dispatch_loop.h"
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -441,16 +441,15 @@ int main(int argc, char **argv) {
   dcfg.slot_size = static_cast<uint32_t>(cfg.page_size);
   dcfg.dispatch_path = CUDAQ_DISPATCH_PATH_HOST;
   dcfg.dispatch_mode = CUDAQ_DISPATCH_HOST_CALL;
-  dcfg.skip_tx_markers = 1;
   cudaq_function_table_t table{};
   table.entries = entries;
   table.count = 4;
 
-  // HOST_CALL-only table -> the ring loop runs the handler inline with a NULL
-  // engine (no graph workers, nothing to sweep).
+  // The ring loop runs each HOST_CALL handler inline on this thread and
+  // publishes the response as soon as the handler returns.
   std::thread dispatcher_thread([&]() {
-    cudaq_host_ring_dispatch_loop(&ring, &table, &dcfg, /*engine=*/nullptr,
-                                  &dispatcher_shutdown, &packets_dispatched);
+    cudaq_host_ring_dispatch_loop(&ring, &table, &dcfg, &dispatcher_shutdown,
+                                  &packets_dispatched);
   });
   std::thread xcvr_monitor([xcvr]() { cpu_roce_blocking_monitor(xcvr); });
 

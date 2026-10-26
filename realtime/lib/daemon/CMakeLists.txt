@@ -30,13 +30,13 @@ if(CUDA_FOUND)
   # otherwise defaults to libc++). The public interface is C-compatible and
   # does not expose C++ standard-library ABI types.
   if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    set_property(SOURCE ${CUDAQ_REALTIME_SOURCES} APPEND PROPERTY
-      COMPILE_OPTIONS -stdlib=libstdc++)
+    set_property(SOURCE ${CUDAQ_REALTIME_SOURCES} dispatcher/host_dispatcher.cpp
+      APPEND PROPERTY COMPILE_OPTIONS -stdlib=libstdc++)
     target_link_options(cudaq-realtime PRIVATE
       "$<HOST_LINK:-stdlib=libstdc++>")
     if(DEFINED ENV{GCC_TOOLCHAIN} AND IS_DIRECTORY "$ENV{GCC_TOOLCHAIN}")
-      set_property(SOURCE ${CUDAQ_REALTIME_SOURCES} APPEND PROPERTY
-        COMPILE_OPTIONS "--gcc-toolchain=$ENV{GCC_TOOLCHAIN}")
+      set_property(SOURCE ${CUDAQ_REALTIME_SOURCES} dispatcher/host_dispatcher.cpp
+        APPEND PROPERTY COMPILE_OPTIONS "--gcc-toolchain=$ENV{GCC_TOOLCHAIN}")
       target_link_options(cudaq-realtime PRIVATE
         "$<HOST_LINK:--gcc-toolchain=$ENV{GCC_TOOLCHAIN}>")
     endif()
@@ -114,13 +114,13 @@ if(CUDA_FOUND)
   )
 
   # ============================================================================
-  # Host-side graph dispatcher (optional, for Grace Hopper / Grace Blackwell etc.)
+  # Host dispatch loops (CUDAQ_DISPATCH_PATH_HOST)
   # ============================================================================
-  # Compiled with nvcc so libcu++ (<cuda/std/atomic>) works without extra
-  # include paths. Host-only code; no device code in this TU.
+  # Plain C++: the loops run HOST_CALL handlers and never call the CUDA
+  # runtime, so the library links no cudart.  The CUDA include directories are
+  # needed only because cudaq_realtime.h names CUDA types.
   add_library(cudaq-realtime-host-dispatch STATIC
-    dispatcher/host_dispatcher.cu
-    dispatcher/graph_launch_engine.cu
+    dispatcher/host_dispatcher.cpp
   )
   # Source-tree CUDA-Q integration uses the same cudaq:: target names
   # that installed exports provide.
@@ -130,15 +130,11 @@ if(CUDA_FOUND)
     PUBLIC
       $<BUILD_INTERFACE:${CUDAQ_REALTIME_INCLUDE_DIR}>
       $<INSTALL_INTERFACE:include>
-  )
-
-  target_link_libraries(cudaq-realtime-host-dispatch
-    PUBLIC
-      CUDA::cudart_static
+    PRIVATE
+      ${CUDAToolkit_INCLUDE_DIRS}
   )
 
   set_target_properties(cudaq-realtime-host-dispatch PROPERTIES
-    CUDA_SEPARABLE_COMPILATION ON
     POSITION_INDEPENDENT_CODE ON
     ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib
   )

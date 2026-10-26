@@ -52,8 +52,9 @@ Additional options:
 
 The built-in channels (`shared-memory`, `host-dispatch`, `gpu-dispatch`) run an
 in-process service and are not covered in depth here. `host-dispatch` uses the
-`libcudaq-realtime` host path and can dispatch service entries as either
-`CUDAQ_DISPATCH_HOST_CALL` handlers or `CUDAQ_DISPATCH_GRAPH_LAUNCH` workers.
+`libcudaq-realtime` host path and dispatches service entries as
+`CUDAQ_DISPATCH_HOST_CALL` handlers; a handler that needs the GPU launches its
+own graph and synchronizes before returning.
 The remainder of this page documents the `cpu_roce` channel.
 
 ## Extending an in-process service
@@ -64,8 +65,8 @@ in `<cudaq/realtime/device_call_service.h>`. A plugin implements the abstract
 for the requested host or GPU dispatch mode. Returning null rejects an
 unsupported mode.
 
-The session owns its function table and any associated graphs, streams, or
-mapped mailbox. Its `dispatchTable()` result must remain valid until CUDA-Q
+The session owns its function table and any associated graphs or streams.
+Its `dispatchTable()` result must remain valid until CUDA-Q
 calls `stop()` and destroys the session. CUDA-Q constructs the selected
 `DeviceCallChannel` from that table, starts the service session after the
 channel is ready, and stops and destroys the channel before stopping the

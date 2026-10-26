@@ -94,7 +94,7 @@ cudaq_unified_dispatch_kernel(void *transport_ctx, std::size_t tx_stride_sz,
           entry->dispatch_mode == CUDAQ_DISPATCH_DEVICE_CALL) {
         auto func =
             reinterpret_cast<DeviceRPCFunction>(entry->handler.device_fn_ptr);
-        // Same two-pointer call as the host path (host_dispatcher.cu): the
+        // Same two-pointer call as the host path (host_dispatcher.cpp): the
         // handler reads the request from `request`, writes its result after
         // the RPCResponse in `response_frame` and sets response->result_len.
         status = func(request, response_frame, tx_stride_sz);

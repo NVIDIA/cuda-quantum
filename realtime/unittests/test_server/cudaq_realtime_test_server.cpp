@@ -420,8 +420,8 @@ int main(int argc, char **argv) {
     return 1;
   }
 
-  // [6] Control variables, then start polling.  A HOST_CALL-only table needs
-  //     no graph engine and therefore no GPU.
+  // [6] Control variables, then start polling.  The host loops never touch the
+  //     CUDA runtime, so the host path needs no GPU.
   volatile int host_shutdown_flag = 0;
   std::uint64_t host_stats = 0;
   volatile int *shutdown_flag = &host_shutdown_flag;

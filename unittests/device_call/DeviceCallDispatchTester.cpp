@@ -26,10 +26,9 @@ void initializeDeviceCallRuntime(int argc, char **argv);
 void finalizeDeviceCallRuntime();
 
 namespace test {
-bool createGraphAddThem(void **dMailbox, cudaGraph_t *graphOut,
-                        cudaGraphExec_t *execOut);
-void fillHostGraphAddEntry(cudaq_function_entry_t &entry,
-                           cudaGraphExec_t graphExec);
+bool setupGraphAddThem(int deviceId);
+void teardownGraphAddThem();
+void fillHostGraphAddEntry(cudaq_function_entry_t &entry);
 int populateAddThemTable(cudaq_function_entry_t *entries, bool useOffset,
                          cudaStream_t stream);
 } // namespace test
@@ -225,7 +224,6 @@ private:
     table.entries = hostEntries.data();
     table.count = hostEntryCount;
     table.deviceId = 0;
-    table.mailbox = h_mailbox;
   }
 
   int setupHostDispatch() {
@@ -236,24 +234,10 @@ private:
       return 0;
     }
 
-    if (h_mailbox && graphExec)
-      return 0;
+    if (!test::setupGraphAddThem(/*deviceId=*/0))
+      return 1;
 
-    if (cudaHostAlloc(&h_mailbox, sizeof(void *), cudaHostAllocMapped) !=
-        cudaSuccess)
-      return 1;
-    std::memset(h_mailbox, 0, sizeof(void *));
-    if (cudaHostGetDevicePointer(reinterpret_cast<void **>(&d_mailbox),
-                                 h_mailbox, 0) != cudaSuccess) {
-      teardownHostDispatch();
-      return 1;
-    }
-    if (!test::createGraphAddThem(d_mailbox, &graph, &graphExec)) {
-      teardownHostDispatch();
-      return 1;
-    }
-
-    test::fillHostGraphAddEntry(hostEntries[0], graphExec);
+    test::fillHostGraphAddEntry(hostEntries[0]);
     hostEntryCount = 1;
     if (selectedHostTable == TestHostTable::MixedAddThem) {
       fillHostCallAddEntry(hostEntries[1]);
@@ -263,25 +247,11 @@ private:
   }
 
   void teardownHostDispatch() noexcept {
-    if (graphExec)
-      cudaGraphExecDestroy(graphExec);
-    if (graph)
-      cudaGraphDestroy(graph);
-    if (h_mailbox)
-      cudaFreeHost(h_mailbox);
-
-    graphExec = nullptr;
-    graph = nullptr;
-    h_mailbox = nullptr;
-    d_mailbox = nullptr;
+    test::teardownGraphAddThem();
     hostEntries = {};
     hostEntryCount = 0;
   }
 
-  void **h_mailbox = nullptr;
-  void **d_mailbox = nullptr;
-  cudaGraph_t graph = nullptr;
-  cudaGraphExec_t graphExec = nullptr;
   std::array<cudaq_function_entry_t, 2> hostEntries{};
   std::uint32_t hostEntryCount = 0;
   cudaq_function_entry_t *deviceEntries = nullptr;
@@ -453,7 +423,8 @@ protected:
   void *frame = nullptr;
 };
 
-TEST_F(HostGraphDispatchFrameTest, DispatchesGraphLaunchThroughFrameLease) {
+TEST_F(HostGraphDispatchFrameTest,
+       DispatchesGraphLaunchingHostCallThroughFrameLease) {
   void *requestPayload = nullptr;
   void *responsePayload = nullptr;
   ASSERT_EQ(DeviceCallSuccessStatus,
@@ -510,7 +481,8 @@ protected:
   void TearDown() override { ASSERT_NO_THROW(finalizeRuntime()); }
 };
 
-TEST_F(HostMixedDispatchFrameTest, DispatchesHostCallAndGraphLaunchEntries) {
+TEST_F(HostMixedDispatchFrameTest,
+       DispatchesHostCallAndGraphLaunchingHostCallEntries) {
   std::array<std::int32_t, 2> request{19, 23};
 
   std::int32_t hostResponse = 0;

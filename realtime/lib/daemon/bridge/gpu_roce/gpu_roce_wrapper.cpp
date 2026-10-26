@@ -104,13 +104,6 @@ void gpu_roce_blocking_monitor(gpu_roce_transceiver_t handle) {
   }
 }
 
-void gpu_roce_set_cpu_ring_buffers(gpu_roce_transceiver_t handle, int enable) {
-  if (handle) {
-    auto *impl = reinterpret_cast<GpuRoceTransceiverImpl *>(handle);
-    impl->transceiver->set_cpu_ring_buffers(enable != 0);
-  }
-}
-
 //==============================================================================
 // QP information
 //==============================================================================

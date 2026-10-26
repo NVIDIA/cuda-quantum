@@ -158,7 +158,7 @@ __global__ void dispatch_kernel_device_call_only(
                 reinterpret_cast<DeviceRPCFunction>(entry->handler.device_fn_ptr);
 
             std::uint8_t* tx_slot = tx_data + current_slot * tx_stride_sz;
-            // Same two-pointer call as the host path (host_dispatcher.cu):
+            // Same two-pointer call as the host path (host_dispatcher.cpp):
             // the handler reads the request from rx_slot, writes its result
             // after the RPCResponse in tx_slot and sets response->result_len.
             // Nothing is written to tx_slot before the call: on an in-place
@@ -283,7 +283,7 @@ __global__ void dispatch_kernel_with_graph(
               DeviceRPCFunction func =
                   reinterpret_cast<DeviceRPCFunction>(entry->handler.device_fn_ptr);
 
-              // Same two-pointer call as the host path (host_dispatcher.cu):
+              // Same two-pointer call as the host path (host_dispatcher.cpp):
               // the handler reads the request from rx_slot, writes its result
               // after the RPCResponse in tx_slot and sets response->result_len.
               // Nothing is written to tx_slot before the call: on an in-place
