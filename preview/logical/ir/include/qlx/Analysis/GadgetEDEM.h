@@ -13,6 +13,8 @@
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/Support/LogicalResult.h"
 
+#include <string>
+
 namespace cudaq::logical {
 
 /// Internal move-only ownership convenience. Affine offsets remain in the
@@ -28,6 +30,17 @@ using PackedGadgetEDEM = cudaq::edem::PackedEDEM;
 mlir::FailureOr<PackedGadgetEDEM> deriveGadgetEDEM(mlir::ModuleOp module,
                                                    llvm::StringRef profile,
                                                    llvm::StringRef faultJson);
+
+/// Checks a selected gadget detector contract, and optionally the gadget's
+/// declared logical action, against one Choi-state probe of its realization.
+/// `actionJson` is a JSON object {arity, matrix, phases} (a signed symplectic
+/// Clifford action) or empty/null to skip the action check. Semantic
+/// violations are reported in the returned cudaq.logical.gadget-verification/v1
+/// JSON; structural problems fail with diagnostics. Reads the module without
+/// mutation.
+mlir::FailureOr<std::string> verifyGadgetProfile(mlir::ModuleOp module,
+                                                 llvm::StringRef profile,
+                                                 llvm::StringRef actionJson);
 
 } // namespace cudaq::logical
 

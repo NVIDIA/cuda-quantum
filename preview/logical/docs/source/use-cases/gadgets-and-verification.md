@@ -199,18 +199,23 @@ claims. Do not conflate the levels:
 | Python construction   | typed fields, linear ownership, boundary liveness                               |
 | MLIR verification     | canonical cross-object and stage invariants (`build.module.operation.verify()`) |
 | code algebra checks   | symplectic rank, commutation, canonical pairing                                 |
-| objective equivalence | the realization's induced action matches its `implements=` claim                |
+| objective equivalence | the realization's induced action matches its `implements=` claim (automatic for code automorphisms; `verify_gadget` for Clifford realizations) |
 
-Objective equivalence is automatic for **code-automorphism realizations** —
-gadgets whose realization is a single typed permutation of the code's carriers.
-The compiler derives the induced logical action from the code algebra and
-compares it with the `implements=` claim, failing closed on mismatch: a
-permutation that is genuinely the identity on the logical qubit verifies, and
-one claiming to be a logical `H` is rejected with a `ValueError` naming the
-objective it failed to implement.
+Objective equivalence is automatic at construction for **code-automorphism
+realizations** — gadgets whose realization is a single typed permutation of the
+code's carriers. The compiler derives the induced logical action from the code
+algebra and compares it with the `implements=` claim, failing closed on
+mismatch: a permutation that is genuinely the identity on the logical qubit
+verifies, and one claiming to be a logical `H` is rejected with a `ValueError`
+naming the objective it failed to implement.
 
-For realization classes outside that set the claim is recorded rather than
-derived, and the boundary is stated on the build instead of assumed.
+For other realization classes the claim is recorded, not derived, until you ask
+for it: `cudaq.logical.gadgets.verify_gadget` checks the realization's Clifford
+action, and the gadget's detector contract, from one Choi-state probe. A
+syndrome round that declares the wrong action compiles, and is rejected by
+`verify_gadget` with a sign or basis mismatch on the named Choi stabilizer.
+See [Detector contracts](../reference/detector-contracts.md#verify-a-contract-and-the-logical-action).
+Actions that are not Clifford are reported as unsupported rather than trusted.
 
 ## Design rules that keep the model crisp
 
