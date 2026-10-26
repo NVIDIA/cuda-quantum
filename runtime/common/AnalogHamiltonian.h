@@ -21,10 +21,9 @@ namespace ahs {
 using json = nlohmann::json;
 
 /// @brief Convert a double to a JSON string. Times are in seconds and positions
-/// in meters; 9 decimals keep whole nanoseconds, the time resolution of the
-/// analog backends.
+/// in meters; 12 decimals keep a resolution of 1e-12 in both.
 inline std::string doubleAsJsonString(double d) {
-  std::string s = cudaq_fmt::format("{:.9f}", d);
+  std::string s = cudaq_fmt::format("{:.12f}", d);
   return s;
 }
 

@@ -50,7 +50,8 @@ CUDAQ_TEST(PasqalTester, checkJsonKeepsNanoseconds) {
   cudaq::ahs::TimeSeries series(
       std::vector<std::pair<double, double>>{{0.0, 0.0}, {1.0e6, 708.0e-9}});
   nlohmann::json serialized = series;
-  EXPECT_EQ(serialized["times"][1], "0.000000708");
+  cudaq::ahs::TimeSeries parsed = serialized;
+  EXPECT_TRUE(parsed.almostEqual(series, 1.0e-12));
 }
 
 CUDAQ_TEST(PasqalTester, checkHamiltonianJson) {
