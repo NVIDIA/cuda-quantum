@@ -112,7 +112,8 @@ std::vector<
 cudaq::dynamics::CuDensityMatOpConverter::computeLindbladTerms(
     const std::vector<sum_op<cudaq::matrix_handler>> &batchedCollapseOps,
     const std::vector<int64_t> &modeExtents,
-    const std::unordered_map<std::string, std::complex<double>> &parameters) {
+    const std::unordered_map<std::string, std::complex<double>> &parameters,
+    bool includeAntiCommutator) {
   if (batchedCollapseOps.empty())
     return {};
   // Split the collapse operators into batched product terms.
@@ -121,15 +122,20 @@ cudaq::dynamics::CuDensityMatOpConverter::computeLindbladTerms(
                         cudensitymatOperatorTerm_t>>
       lindbladTerms;
 
-  for (const auto &collapseOp : batchedCollapsedProdTerms) {
-    const auto allSameDegrees =
-        std::all_of(collapseOp.begin(), collapseOp.end(),
-                    [&](const product_op<matrix_handler> &prodOp) {
-                      return prodOp.degrees() == collapseOp[0].degrees();
-                    });
-    if (!allSameDegrees) {
-      throw std::invalid_argument("All product terms in a collapse operator "
-                                  "must have the same degrees.");
+  // Batched collapse operators must have all their product terms on the same
+  // degrees. Without batching, each pair of product terms gives its own
+  // Lindblad terms, so the product terms may act on any degrees.
+  if (batchedCollapsedProdTerms.size() > 1) {
+    for (const auto &collapseOp : batchedCollapsedProdTerms) {
+      const auto allSameDegrees =
+          std::all_of(collapseOp.begin(), collapseOp.end(),
+                      [&](const product_op<matrix_handler> &prodOp) {
+                        return prodOp.degrees() == collapseOp[0].degrees();
+                      });
+      if (!allSameDegrees) {
+        throw std::invalid_argument("All product terms in a collapse operator "
+                                    "must have the same degrees.");
+      }
     }
   }
 
@@ -209,6 +215,9 @@ cudaq::dynamics::CuDensityMatOpConverter::computeLindbladTerms(
         lindbladTerms.emplace_back(std::make_pair(coeffs, D1_term));
       }
 
+      if (!includeAntiCommutator)
+        continue;
+
       std::vector<product_op<matrix_handler>> L_daggerTimesL;
       std::vector<scalar_operator> L_daggerTimesL_coeffs;
       L_daggerTimesL.reserve(batchedSize);
@@ -229,27 +238,46 @@ cudaq::dynamics::CuDensityMatOpConverter::computeLindbladTerms(
         std::vector<std::vector<int>> all_action_dual_modalities_right;
 
         const auto numOps = L_daggerTimesL[0].num_ops();
-        for (std::size_t i = 0; i < numOps; ++i) {
-          std::vector<cudaq::matrix_handler> components;
-          for (const auto &prodOp : L_daggerTimesL) {
-            const auto &component = prodOp[i];
-            if (const auto *elemOp =
-                    dynamic_cast<const cudaq::matrix_handler *>(&component)) {
-              components.emplace_back(*elemOp);
-            } else {
-              // Catch anything that we don't know
-              throw std::runtime_error("Unhandled type!");
+        for (std::size_t i = 0; i < numOps;) {
+          // Factors [i, end) act on the same degrees; fuse them if possible.
+          std::size_t end = i + 1;
+          cudensitymatElementaryOperator_t cudmElemOp = nullptr;
+          if (batchedSize == 1) {
+            const auto &prodOp = L_daggerTimesL[0];
+            while (end < numOps && prodOp[end].degrees() == prodOp[i].degrees())
+              ++end;
+            if (end - i > 1) {
+              std::vector<cudaq::matrix_handler> factors;
+              for (std::size_t k = i; k < end; ++k)
+                factors.emplace_back(prodOp[k]);
+              cudmElemOp = createFusedMultidiagonalOperator(factors, parameters,
+                                                            modeExtents);
             }
+            if (!cudmElemOp)
+              end = i + 1;
           }
-
-          auto cudmElemOp =
-              createElementaryOperator(components, parameters, modeExtents);
+          if (!cudmElemOp) {
+            std::vector<cudaq::matrix_handler> components;
+            for (const auto &prodOp : L_daggerTimesL) {
+              const auto &component = prodOp[i];
+              if (const auto *elemOp =
+                      dynamic_cast<const cudaq::matrix_handler *>(&component)) {
+                components.emplace_back(*elemOp);
+              } else {
+                // Catch anything that we don't know
+                throw std::runtime_error("Unhandled type!");
+              }
+            }
+            cudmElemOp =
+                createElementaryOperator(components, parameters, modeExtents);
+          }
           elemOps.emplace_back(cudmElemOp);
           allDegrees.emplace_back(L_daggerTimesL[0][i].degrees());
           all_action_dual_modalities_left.emplace_back(
               std::vector<int>(L_daggerTimesL[0][i].degrees().size(), 0));
           all_action_dual_modalities_right.emplace_back(
               std::vector<int>(L_daggerTimesL[0][i].degrees().size(), 1));
+          i = end;
         }
 
         {
@@ -336,30 +364,109 @@ cudaq::dynamics::CuDensityMatOpConverter::constructLiouvillian(
       rightHam.emplace_back(computeDagger(ham) *
                             std::complex<double>(0.0, 1.0));
     }
-    // -i constant (left multiplication)
-    appendToCudensitymatOperator(liouvillian, parameters, leftHam, modeExtents,
-                                 /*duality=*/0);
-    // +i constant (right multiplication, i.e., dual)
-    appendToCudensitymatOperator(liouvillian, parameters, rightHam, modeExtents,
-                                 /*duality=*/1);
-
     // Check that all collapsed operator vectors have the same size
-    if (!collapseOperators.empty()) {
-      const auto collapseSize = collapseOperators[0].size();
-      for (const auto &collapseOperator : collapseOperators) {
-        if (collapseOperator.size() != collapseSize) {
-          throw std::invalid_argument(
-              "All collapse operator vectors must have the same size.");
-        }
+    const auto collapseSize =
+        collapseOperators.empty() ? 0 : collapseOperators[0].size();
+    for (const auto &collapseOperator : collapseOperators) {
+      if (collapseOperator.size() != collapseSize) {
+        throw std::invalid_argument(
+            "All collapse operator vectors must have the same size.");
       }
+    }
+
+    const bool isUnbatched = batchSize == 1 && collapseOperators.size() <= 1;
+    // Constant Hamiltonian terms and dissipators on small subspaces are
+    // applied as dense superoperators, each acting on both sides of the
+    // density matrix at once.
+    std::vector<bool> isCollapseOpFused(collapseSize, false);
+    if (isUnbatched) {
+      std::vector<FusedSuperoperatorTerm> superoperatorTerms;
+      const auto extractFusable = [&](sum_op<cudaq::matrix_handler> &ham,
+                                      bool isLeft) {
+        auto remaining = sum_op<cudaq::matrix_handler>::empty();
+        for (const auto &prodOp : ham) {
+          auto fused =
+              computeFusableProductTerm(prodOp, parameters, modeExtents,
+                                        /*bothSides=*/true);
+          if (!fused) {
+            remaining += prodOp;
+            continue;
+          }
+          auto &term = superoperatorTerms.emplace_back();
+          term.degrees = std::move(fused->degrees);
+          (isLeft ? term.left : term.right) = std::move(fused->matrix);
+        }
+        ham = std::move(remaining);
+      };
+      extractFusable(leftHam[0], /*isLeft=*/true);
+      extractFusable(rightHam[0], /*isLeft=*/false);
+      for (std::size_t i = 0; i < collapseSize; ++i) {
+        auto collapseOp = computeFusableCollapseOperator(
+            collapseOperators[0][i], parameters, modeExtents,
+            /*bothSides=*/true);
+        if (!collapseOp)
+          continue;
+        isCollapseOpFused[i] = true;
+        const auto &lMat = collapseOp->matrix;
+        const auto lDagMat = cudaq::complex_matrix(lMat).adjoint();
+        const auto antiCommutator =
+            std::complex<double>(-0.5, 0.0) * (lDagMat * lMat);
+        superoperatorTerms.push_back({collapseOp->degrees, lMat, lDagMat});
+        superoperatorTerms.push_back(
+            {collapseOp->degrees, antiCommutator, std::nullopt});
+        superoperatorTerms.push_back(
+            {collapseOp->degrees, std::nullopt, antiCommutator});
+      }
+      appendFusedSuperoperatorTerms(liouvillian, superoperatorTerms,
+                                    modeExtents);
+    }
+
+    // The -1/2 {L^dagger L, rho} part of each remaining dissipator acts like
+    // the Hamiltonian from the left and the right, so fold it into those
+    // actions when possible.
+    std::vector<bool> isAntiCommutatorFused(collapseSize, false);
+    std::vector<FusedTerm> antiCommutatorTerms;
+    if (isUnbatched) {
+      for (std::size_t i = 0; i < collapseSize; ++i) {
+        if (isCollapseOpFused[i])
+          continue;
+        auto collapseOp = computeFusableCollapseOperator(
+            collapseOperators[0][i], parameters, modeExtents);
+        if (!collapseOp)
+          continue;
+        isAntiCommutatorFused[i] = true;
+        const auto &lMat = collapseOp->matrix;
+        const auto lDagMat = cudaq::complex_matrix(lMat).adjoint();
+        antiCommutatorTerms.push_back(
+            {collapseOp->degrees,
+             std::complex<double>(-0.5, 0.0) * (lDagMat * lMat)});
+      }
+    }
+
+    // -i constant (left multiplication)
+    if (leftHam[0].num_terms() > 0 || !antiCommutatorTerms.empty())
+      appendToCudensitymatOperator(liouvillian, parameters, leftHam,
+                                   modeExtents, /*duality=*/0,
+                                   antiCommutatorTerms);
+    // +i constant (right multiplication, i.e., dual)
+    if (rightHam[0].num_terms() > 0 || !antiCommutatorTerms.empty())
+      appendToCudensitymatOperator(liouvillian, parameters, rightHam,
+                                   modeExtents, /*duality=*/1,
+                                   antiCommutatorTerms);
+
+    if (collapseSize > 0) {
       // Handle collapsed operators
       for (std::size_t i = 0; i < collapseSize; ++i) {
+        if (isCollapseOpFused[i])
+          continue;
+
         std::vector<sum_op<cudaq::matrix_handler>> batchedCollapseTerms;
         for (const auto &collapseOperator : collapseOperators) {
           batchedCollapseTerms.push_back(collapseOperator[i]);
         }
         for (auto &[coeffs, term] : computeLindbladTerms(
-                 batchedCollapseTerms, modeExtents, parameters)) {
+                 batchedCollapseTerms, modeExtents, parameters,
+                 /*includeAntiCommutator=*/!isAntiCommutatorFused[i])) {
           assert(coeffs.size() == batchSize);
           appendBatchedTermToOperator(liouvillian, term, coeffs, keys);
         }

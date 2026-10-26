@@ -380,11 +380,23 @@ def _merge_estimates(own, downstream):
 
 
 def _cudaq_estimate_result(estimates):
-    from cudaq.core.backends import EstimateResult
+    """Wrap estimates as an ``EstimateResult``.
 
-    return EstimateResult(annotations={
-        name: value.to_dict() for name, value in estimates.items()
-    })
+    ``resources`` reports the logical program (only when a LOGICAL estimate is
+    available); every tier, including LOGICAL, is also kept in ``annotations``.
+    """
+
+    from cudaq.core.backends import EstimateResult
+    from .. import estimate
+    from ..estimate.logical import logical_instruction_counts
+
+    annotations = {name: value.to_dict() for name, value in estimates.items()}
+    logical = estimates.get(estimate.Tier.LOGICAL.name)
+    if logical is None:
+        return EstimateResult(annotations=annotations)
+    return EstimateResult(annotations=annotations,
+                          instructions=logical_instruction_counts(logical),
+                          num_qubits=logical.logical_qubits_peak)
 
 
 class LogicalMachineBackend(Backend):
@@ -504,7 +516,7 @@ class Target(CustomTarget):
         target.fully_specialize = True
         target.support_resource_counts = False
         target.support_conditionals_on_measure_results = False
-        target.pipeline_config.override_pass_pipeline = CUDAQ_TARGET_PREPARATION_PIPELINE
+        target.lowering = CUDAQ_TARGET_PREPARATION_PIPELINE
         return target
 
     @classmethod
@@ -641,9 +653,16 @@ class Target(CustomTarget):
         return target
 
     @classmethod
-    def from_device(cls, name, device, *, clifford_t_precision=None, **kwargs):
+    def from_device(cls,
+                    name,
+                    device,
+                    *,
+                    runtime_backend=None,
+                    clifford_t_precision=None,
+                    **kwargs):
         """Create a target that lowers through the device's configured layers.
 
+        ``runtime_backend`` defaults to ``estimator`` when omitted or ``None``.
         A non-``None`` ``clifford_t_precision`` inserts Clifford+T synthesis
         before device lowering. ``None`` leaves the synthesis layer out.
         """
@@ -653,9 +672,12 @@ class Target(CustomTarget):
         if not isinstance(device, Device):
             raise TypeError(
                 "Target device must be a cudaq.logical.devices.Device")
+        if runtime_backend is None:
+            runtime_backend = estimator
         return cls._from_stack(name,
                                architecture=device.logical,
                                device=device,
+                               runtime_backend=runtime_backend,
                                clifford_t_precision=clifford_t_precision,
                                **kwargs)
 
@@ -664,17 +686,22 @@ class Target(CustomTarget):
                           name,
                           architecture,
                           *,
+                          runtime_backend=None,
                           clifford_t_precision=None,
                           **kwargs):
         """Create a target that lowers through a logical architecture.
 
+        ``runtime_backend`` defaults to ``estimator`` when omitted or ``None``.
         A non-``None`` ``clifford_t_precision`` inserts Clifford+T synthesis
         before architecture lowering. ``None`` leaves the synthesis layer out.
         """
 
+        if runtime_backend is None:
+            runtime_backend = estimator
         return cls._from_stack(name,
                                architecture=architecture,
                                device=None,
+                               runtime_backend=runtime_backend,
                                clifford_t_precision=clifford_t_precision,
                                **kwargs)
 
@@ -1052,7 +1079,6 @@ def surface_physical_target(*,
     return Target.from_device(
         "surface_physical",
         builder.build(),
-        runtime_backend=estimator,
         estimate_options={"failure_budget": failure_budget},
         clifford_t_precision=clifford_t_precision,
     )

@@ -58,7 +58,7 @@ struct DispatchConfig {
       384; ///< Ring buffer slot size (>= frame_size, 128-aligned)
   unsigned num_pages = 64; ///< Number of ring buffer slots
   /// @brief Dispatch kernel grid configuration.
-  /// Defaults match the regular (non-cooperative) kernel.
+  /// Defaults match the regular kernel.
   cudaq_kernel_type_t kernel_type = CUDAQ_KERNEL_REGULAR;
   uint32_t num_blocks = 1;
   uint32_t threads_per_block = 32;
@@ -198,13 +198,8 @@ int main(int argc, char *argv[]) {
     if (!config.forward) {
       if (!config.unified) {
         int dispatch_blocks = 0;
-        cudaError_t occ_err;
-        if (config.kernel_type == CUDAQ_KERNEL_COOPERATIVE) {
-          occ_err = cudaq_dispatch_kernel_cooperative_query_occupancy(
-              &dispatch_blocks, config.threads_per_block);
-        } else {
-          occ_err = cudaq_dispatch_kernel_query_occupancy(&dispatch_blocks, 1);
-        }
+        cudaError_t occ_err =
+            cudaq_dispatch_kernel_query_occupancy(&dispatch_blocks, 1);
         if (occ_err != cudaSuccess) {
           std::cerr << "ERROR: Dispatch kernel occupancy query failed: "
                     << cudaGetErrorString(occ_err) << std::endl;
@@ -227,6 +222,8 @@ int main(int argc, char *argv[]) {
 
       // Create CUDA-Q dispatcher manager
       HANDLE_CUDAQ_REALTIME_ERROR(cudaq_dispatch_manager_create(&manager));
+      // Ring geometry stays 0: the dispatcher takes it from the bridge, which
+      // parsed --num-pages / --page-size itself.
       cudaq_dispatcher_config_t dconfig{};
       dconfig.device_id = config.gpu_id;
       dconfig.vp_id = 0;
@@ -236,55 +233,17 @@ int main(int argc, char *argv[]) {
         dconfig.kernel_type = CUDAQ_KERNEL_UNIFIED;
         dconfig.num_blocks = 1;
         dconfig.threads_per_block = 1;
-        dconfig.num_slots = static_cast<uint32_t>(config.num_pages);
-        dconfig.slot_size = static_cast<uint32_t>(config.page_size);
       } else {
         dconfig.kernel_type = config.kernel_type;
         dconfig.num_blocks = config.num_blocks;
         dconfig.threads_per_block = config.threads_per_block;
-        dconfig.num_slots = static_cast<uint32_t>(config.num_pages);
-        dconfig.slot_size = static_cast<uint32_t>(config.page_size);
       }
 
       // Create dispatcher with the above config
       HANDLE_CUDAQ_REALTIME_ERROR(
           cudaq_dispatcher_create(manager, &dconfig, &dispatcher));
-
-      // Transport context for unified mode (must outlive the dispatcher)
-      cudaq_unified_dispatch_ctx_t unified_dispatch{};
-
-      if (config.unified) {
-        std::cout << "Retrieving the unified dispatch context ..." << std::endl;
-        HANDLE_CUDAQ_REALTIME_ERROR(cudaq_bridge_get_transport_context(
-            bridge_handle, UNIFIED, &unified_dispatch));
-        // launch_fn is NULL unless the provider overrides the dispatch loop;
-        // the dispatcher then runs its own unified kernel.
-        if (cudaq_dispatcher_set_unified_launch(
-                dispatcher, unified_dispatch.launch_fn,
-                unified_dispatch.transport_ctx) != CUDAQ_OK) {
-          std::cerr << "ERROR: Failed to set unified launch function"
-                    << std::endl;
-          return 1;
-        }
-      } else {
-        std::cout << "Retrieving the ring buffer ..." << std::endl;
-
-        cudaq_ringbuffer_t ringbuffer{};
-        HANDLE_CUDAQ_REALTIME_ERROR(cudaq_bridge_get_transport_context(
-            bridge_handle, RING_BUFFER, &ringbuffer));
-        if (cudaq_dispatcher_set_ringbuffer(dispatcher, &ringbuffer) !=
-            CUDAQ_OK) {
-          std::cerr << "ERROR: Failed to set ringbuffer" << std::endl;
-          return 1;
-        }
-
-        if (cudaq_dispatcher_set_launch_fn(
-                dispatcher, &cudaq_launch_dispatch_kernel_regular) !=
-            CUDAQ_OK) {
-          std::cerr << "ERROR: Failed to set launch function" << std::endl;
-          return 1;
-        }
-      }
+      HANDLE_CUDAQ_REALTIME_ERROR(
+          cudaq_dispatcher_set_bridge(dispatcher, bridge_handle));
 
       // Set up the function table with the increment handler entries
       // Populate the GPU function table with the increment handler entry

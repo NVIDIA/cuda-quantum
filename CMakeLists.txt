@@ -56,6 +56,20 @@ project(cudaq LANGUAGES CXX C)
 # By default, install everything to the "Runtime" component.
 set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME Runtime)
 
+# By default, the core library and development components are set for a combined wheel 
+# (e.g., build from source).
+option(CUDAQ_BUILD_SPLIT_WHEELS "Build separate core and frontend wheels" OFF)
+set(CUDAQ_CORE_LIBRARY_COMPONENT Runtime)
+set(CUDAQ_CORE_DEVELOPMENT_COMPONENT Development)
+set(CUDAQ_CORE_EXPORT_SET cudaq-targets)
+set(CUDAQ_CORE_CAPI_COMPONENT CUDAQuantumPythonModules)
+if(CUDAQ_BUILD_SPLIT_WHEELS)
+  set(CUDAQ_CORE_LIBRARY_COMPONENT Core)
+  set(CUDAQ_CORE_DEVELOPMENT_COMPONENT Core)
+  set(CUDAQ_CORE_EXPORT_SET cudaq-core-targets)
+  set(CUDAQ_CORE_CAPI_COMPONENT Core)
+endif()
+
 # Always install to `lib`. This avoids the `lib` vs `lib64` mismatch depending
 # on distribution.
 set(CMAKE_INSTALL_LIBDIR lib CACHE PATH "Object code libraries (lib)" FORCE)
@@ -248,6 +262,17 @@ endif()
 # =============================================================================
 set(CUDAQ_EXTERNAL_PROJECTS "" CACHE STRING
     "Semicolon-separated list of external projects to add to the CUDA-Q build.")
+
+# cudaq.logical (preview/logical) is an in-tree external project. It needs the
+# CUDA-Q Python bindings, so CUDAQ_ENABLE_PROJECTS must include 'python'
+# (the deprecated CUDAQ_ENABLE_PYTHON=ON does the same).
+option(CUDAQ_ENABLE_LOGICAL
+  "Build the cudaq.logical fault-tolerance resource-estimation toolkit." OFF)
+if(CUDAQ_ENABLE_LOGICAL AND NOT "logical" IN_LIST CUDAQ_EXTERNAL_PROJECTS)
+  list(APPEND CUDAQ_EXTERNAL_PROJECTS logical)
+  set(CUDAQ_EXTERNAL_LOGICAL_SOURCE_DIR
+      "${CMAKE_CURRENT_SOURCE_DIR}/preview/logical" CACHE PATH "" FORCE)
+endif()
 foreach(_cudaq_ext_proj IN LISTS CUDAQ_EXTERNAL_PROJECTS)
   string(TOUPPER "${_cudaq_ext_proj}" _cudaq_ext_upper)
   string(REGEX REPLACE "-" "_" _cudaq_ext_upper "${_cudaq_ext_upper}")
@@ -272,9 +297,19 @@ if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
   option(GIT_SUBMODULE "Check submodules during build" ON)
   if(GIT_SUBMODULE)
     message(STATUS "Submodule update")
-    execute_process(COMMAND ${GIT_EXECUTABLE} -c submodule.tpls/llvm.update=none submodule update --init --recursive
-                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                    RESULT_VARIABLE GIT_SUBMOD_RESULT)
+    # Retry with backoff: gitlab.com sheds load with transient 503s.
+    set(_submod_delay 15)
+    foreach(_submod_attempt RANGE 1 5)
+      execute_process(COMMAND ${GIT_EXECUTABLE} -c submodule.tpls/llvm.update=none submodule update --init --recursive
+                      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                      RESULT_VARIABLE GIT_SUBMOD_RESULT)
+      if(GIT_SUBMOD_RESULT EQUAL "0" OR _submod_attempt EQUAL 5)
+        break()
+      endif()
+      message(WARNING "Submodule update failed (attempt ${_submod_attempt} of 5), retrying in ${_submod_delay}s")
+      execute_process(COMMAND ${CMAKE_COMMAND} -E sleep ${_submod_delay})
+      math(EXPR _submod_delay "${_submod_delay} * 2")
+    endforeach()
     if(NOT GIT_SUBMOD_RESULT EQUAL "0")
         message(FATAL_ERROR "Cloning git submodules failed with ${GIT_SUBMOD_RESULT}, please checkout submodules manually")
     endif()
@@ -501,6 +536,21 @@ if(APPLE)
   SET(CMAKE_INSTALL_RPATH "@loader_path;@loader_path/lib;@loader_path/lib/plugins;@loader_path/../lib;@loader_path/../lib/plugins;@loader_path/../cudaq/mlir/_mlir_libs;@loader_path/../python/cudaq/mlir/_mlir_libs;@executable_path;@executable_path/lib;@executable_path/lib/plugins;@executable_path/../lib;@executable_path/../lib/plugins;@executable_path/../cudaq/mlir/_mlir_libs;@executable_path/../python/cudaq/mlir/_mlir_libs")
 else()
   SET(CMAKE_INSTALL_RPATH "$ORIGIN:$ORIGIN/lib:$ORIGIN/lib/plugins:$ORIGIN/../lib:$ORIGIN/../lib/plugins:$ORIGIN/../cudaq/mlir/_mlir_libs:$ORIGIN/../python/cudaq/mlir/_mlir_libs")
+endif()
+
+if(CUDAQ_BUILD_SPLIT_WHEELS)
+  # Use build-tree paths during development, and do not automatically append
+  # linker search directories to the installed wheel's relative loader paths.
+  set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
+  set(CMAKE_INSTALL_RPATH_USE_LINK_PATH FALSE)
+  if(APPLE)
+    set(_wheel_origin "@loader_path")
+  else()
+    set(_wheel_origin "$ORIGIN")
+  endif()
+  list(APPEND CMAKE_INSTALL_RPATH
+    "${_wheel_origin}/../cudaq_core/cudaq/core/lib"
+    "${_wheel_origin}/../cudaq_core/cudaq/mlir/_mlir_libs")
 endif()
 
 if(NOT SKBUILD)
@@ -839,7 +889,12 @@ include_directories(SYSTEM tpls/json/single_include)
 include_directories(SYSTEM tpls/json/single_include_fwd)
 install(FILES tpls/json/single_include_fwd/nlohmann/json_fwd.hpp
   DESTINATION include/nlohmann
-  COMPONENT Development)
+  COMPONENT ${CUDAQ_CORE_DEVELOPMENT_COMPONENT})
+if(CUDAQ_BUILD_SPLIT_WHEELS)
+  # Public backend headers include json.hpp as well as the forward declarations.
+  install(FILES tpls/json/single_include/nlohmann/json.hpp
+    DESTINATION include/nlohmann COMPONENT Core)
+endif()
 
 # Add spdlog
 #
@@ -877,7 +932,8 @@ set(BUILD_SHARED_LIBS ${CUDAQ_SAVED_BUILD_SHARED_LIBS})
 unset(CUDAQ_SAVED_BUILD_SHARED_LIBS)
 target_compile_options(spdlog PRIVATE -Wno-covered-switch-default)
 if (CUDAQ_SPDLOG_BUILD_SHARED AND CUDAQ_INSTALL_SPDLOG)
-  install(TARGETS spdlog DESTINATION lib)
+  install(TARGETS spdlog DESTINATION lib
+    COMPONENT ${CUDAQ_CORE_LIBRARY_COMPONENT})
 endif()
 
 if (OPENSSL_FOUND AND CUDAQ_ENABLE_REST)
@@ -1118,6 +1174,10 @@ if(CUDAQ_BUILD_TESTS AND NOT CUDAQ_DISABLE_CPP_FRONTEND)
     add_subdirectory(docs)
   endif()
   umbrella_lit_testsuite_end(check-all)
+endif()
+
+if(CUDAQ_BUILD_SPLIT_WHEELS)
+  add_subdirectory(cmake/wheels)
 endif()
 
 if (CUDAQ_EXTERNAL_NVQIR_SIMS)

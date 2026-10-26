@@ -81,8 +81,10 @@ RUN . /cuda-quantum/realtime/scripts/deps_common.sh && \
 # code the dev containers use. epel and crb supply its dependencies. The userspace
 # profile, because doca-all pulls OFED kernel modules that DKMS cannot build in a
 # container, and this image only needs headers and libraries.
+# hwloc-libs goes in before the DOCA repository exists: from 3.4.0 DOCA's openmpi
+# needs libhwloc.so.15, which DOCA itself only ships inside hpcx, built for CUDA 13.
 ARG DOCA_VERSION=
-RUN dnf -y install epel-release && \
+RUN dnf -y install epel-release hwloc-libs && \
     crb enable && \
     . /cuda-quantum/realtime/scripts/deps_common.sh && \
     cudaq_realtime_add_doca_repo && \

@@ -162,6 +162,7 @@ nanobind::tuple gridsynthWithStatsBinding(RealArg theta, RealArg epsilon,
       stats.candidates_iteration_limited.load();
   out["diophantine_calls"] = stats.diophantine_calls.load();
   out["diophantine_successes"] = stats.diophantine_successes.load();
+  out["orbit_t_count_ties"] = stats.orbit_t_count_ties.load();
   out["factoring_calls"] = stats.factoring_calls.load();
   out["factoring_successes"] = stats.factoring_successes.load();
   out["factoring_restarts"] = stats.factoring_restarts.load();

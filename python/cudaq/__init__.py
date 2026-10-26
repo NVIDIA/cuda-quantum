@@ -15,6 +15,25 @@ from typing import Dict, List, Sequence, Tuple
 
 import numpy
 
+# Split wheels share the cudaq namespace across installation prefixes. The
+# frontend owns this initializer; core alone is a namespace package.
+from pkgutil import extend_path as _extend_path
+
+__path__ = _extend_path(__path__, __name__)
+
+from . import core as _core
+
+_core_lib = Path(_core.__file__).parent / "lib"
+if _core_lib.is_dir():
+    # Resolve shared providers before loading the frontend extension. Relative
+    # RPATHs alone cannot reach core when pip reuses it from another prefix.
+    import ctypes as _ctypes
+    from .mlir._mlir_libs import _backends
+    _ctypes.CDLL(
+        str(_core_lib /
+            ("libnvqir.dylib" if sys.platform == "darwin" else "libnvqir.so")),
+        mode=_ctypes.RTLD_GLOBAL)
+
 # ============================================================================ #
 # Enable logging to match the CUDAQ_LOG_LEVEL environment variable.
 # ============================================================================ #
@@ -254,11 +273,19 @@ else:
     from .visualization.bloch_visualize import add_to_bloch_sphere
     from .visualization.bloch_visualize import show_bloch_sphere as show
 
-# If cudaq-logical is installed, check that it can be imported. Catches cases where cudaq
-# and cudaq-logical are installed in different directories, which is currently not supported.
+# cudaq.logical is optional and may be absent. If cudaq-logical is installed, check that it
+# can be imported. Catches cases where cudaq and cudaq-logical are installed in different
+# directories, which is currently not supported.
 try:
     from . import logical  # noqa: F401
 except ImportError:
+    # A failed import can leave half-initialized `cudaq.logical*` modules behind,
+    # which would break any later attempt to import them.
+    for _m in [
+            m for m in sys.modules if m == f"{__name__}.logical" or
+            m.startswith(f"{__name__}.logical.")
+    ]:
+        del sys.modules[_m]
     from importlib.metadata import PackageNotFoundError as _PkgNotFound, distribution as _dist
     try:
         _dist("cudaq-logical")

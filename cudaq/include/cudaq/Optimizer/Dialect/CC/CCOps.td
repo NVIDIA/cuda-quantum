@@ -309,11 +309,7 @@ def cc_LoopOp : CCOp<"loop",
     static constexpr llvm::StringRef postCondAttrName() {
       return llvm::StringLiteral("post_condition");
     }
-    bool isPostConditional() {
-      return getOperation()
-          ->getAttrOfType<mlir::IntegerAttr>(postCondAttrName())
-          .getInt();
-    }
+    bool isPostConditional() { return getPostCondition(); }
 
     mlir::Block *getWhileBlock() { return &getWhileRegion().front(); }
     mlir::Block::BlockArgListType getWhileArguments() {
@@ -1828,57 +1824,6 @@ def cc_CallableClosureOp : CCOp<"callable_closure", [Pure]> {
     $callable `:` functional-type(operands, results) attr-dict
   }];
   let hasCanonicalizer = 1;
-}
-
-def cc_NoInlineCallOp : CCOp<"noinline_call",
-    [CallOpInterface, SymbolUserOpInterface]> {
-  let summary = "Create a call that the inliner will not inline.";
-  let description = [{
-    The MLIR inliner in LLVM is too smart and will inline trivial calls.
-    Moreover, there is no mechanism in MLIR to stop the inliner
-    from inlining these trivial functions.
-
-    The cc.noinline_call is therefore a special op that prevents the inliner
-    from doing the inlining by misreporting what function is called.
-  }];
-
-  let arguments = (ins
-    FlatSymbolRefAttr:$callee,
-    Variadic<AnyType>:$args,
-    OptionalAttr<DictArrayAttr>:$arg_attrs,
-    OptionalAttr<DictArrayAttr>:$res_attrs
-  );
-  let results = (outs Variadic<AnyType>);
-
-  let assemblyFormat = [{
-    $callee `(` $args `)` `:` functional-type(operands, results) attr-dict
-  }];
-
-  let extraClassDeclaration = [{
-    operand_range getArgOperands() {
-      return {arg_operand_begin(), arg_operand_end()};
-    }
-
-    operand_iterator arg_operand_begin() { return operand_begin(); }
-    operand_iterator arg_operand_end() { return operand_end(); }
-
-    mlir::MutableOperandRange getArgOperandsMutable() {
-      return getArgsMutable();
-    }
-
-    /// Set the callee for this operation.
-    void setCalleeFromCallable(mlir::CallInterfaceCallable callee) {
-      setOperand(0, mlir::cast<mlir::Value>(callee));
-    }
-
-    /// DO NOT RETURN the callee of this operation. This fools the inliner into
-    /// not knowing what is actually called.
-    mlir::CallInterfaceCallable getCallableForCallee() {
-      return mlir::FlatSymbolRefAttr::get(getContext(), ".no.inline");
-    }
-
-    mlir::LogicalResult verifySymbolUses(mlir::SymbolTableCollection &);
-  }];
 }
 
 def cc_DeviceCallOp : CCOp<"device_call",

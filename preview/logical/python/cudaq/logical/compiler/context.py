@@ -33,6 +33,21 @@ def _symbol_path(attribute) -> tuple[str, ...]:
     return tuple(item.lstrip("@") for item in text.split("::") if item)
 
 
+def _walk_operation(operation):
+    """Snapshot operations in pre-order using MLIR's native tree traversal."""
+
+    operations = []
+
+    def visit(current):
+        operations.append(current)
+        return mlir_ir.WalkResult.ADVANCE
+
+    operation.walk(visit, mlir_ir.WalkOrder.PRE_ORDER)
+    # Retain the root wrapper that owns the module, not its callback wrapper.
+    operations[0] = operation
+    return iter(operations)
+
+
 class CompilationContext:
     """Private, transaction-local linker and MLIR owner."""
 
@@ -54,6 +69,7 @@ class CompilationContext:
                                                 tuple[Any, ...], str]] = {}
         self._value_groups: dict[int, dict[str, int]] = {}
         self._symbols: dict[str, object] = {}
+        self._symbol_suffixes: dict[str, int] = {}
         self._symbol_operations: dict[str, object] = {}
         self._symbol_operations_by_kind: dict[tuple[str, str], object] = {}
         self._objectives: dict[tuple[Any, ...], str] = {}
@@ -96,15 +112,7 @@ class CompilationContext:
         return cls(module=build._fresh_module())
 
     def walk(self):
-
-        def visit(operation):
-            yield operation
-            for region in operation.regions:
-                for block in region.blocks:
-                    for child in block.operations:
-                        yield from visit(child.operation)
-
-        yield from visit(self.module.operation)
+        return _walk_operation(self.module.operation)
 
     def bind_resource_streams(self, device, *, logical_symbol=None) -> None:
         """Bind portable Fabric request placeholders to one selected device."""
@@ -172,6 +180,7 @@ class CompilationContext:
                 # return that stale wrapper from this transaction-local index.
                 self._symbol_operations.pop(name, None)
                 self._symbols.pop(name, None)
+                self._symbol_suffixes.clear()
                 self._symbol_operations_by_kind.pop((operation_name, name),
                                                     None)
             else:
@@ -180,6 +189,7 @@ class CompilationContext:
                     # declaration through the underlying MLIR API.
                     self._symbol_operations.pop(name, None)
                     self._symbols.pop(name, None)
+                    self._symbol_suffixes.clear()
                     self._symbol_operations_by_kind.pop(
                         (cached_operation_name, name), None)
                     if cached_name is not None:
@@ -243,11 +253,13 @@ class CompilationContext:
     def unique_symbol(self, requested: str) -> str:
         base = _symbol(requested)
         candidate = base
-        suffix = 1
+        # Skip suffixes already taken; find_symbol resets this on eviction.
+        suffix = self._symbol_suffixes.get(base, 1)
         while candidate in self._symbols:
             candidate = f"{base}_{suffix}"
             suffix += 1
         self._symbols[candidate] = object()
+        self._symbol_suffixes[base] = suffix
         return candidate
 
     def objective(

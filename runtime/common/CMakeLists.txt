@@ -16,7 +16,6 @@ set(COMMON_RUNTIME_SRC
   AnalogRydberg.cpp
   AnalysisScope.cpp
   CodeGenConfig.cpp
-  CompileTarget.cpp
   cudaq_json.cpp
   CustomOp.cpp
   DeviceCodeRegistry.cpp
@@ -64,17 +63,11 @@ target_link_libraries(${LIBRARY_NAME}
 
 # Bug in GCC 12 leads to spurious warnings (-Wrestrict)
 # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=105329
-# Scope to CXX-language compiles via a generator expression so the flag
-# does NOT propagate through cmake's PUBLIC interface options into nvcc
-# command lines for consumer CUDA targets. nvcc forwards host options to
-# its own host compiler, which can be a different gcc than CMAKE_CXX_COMPILER
-# (e.g. CMAKE_CXX_COMPILER=gcc-12 but CMAKE_CUDA_HOST_COMPILER=gcc-13, where
-# gcc-13 has removed --param=evrp-mode= and would error on it).
-if (CMAKE_COMPILER_IS_GNUCXX
-  AND CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 12.0.0
-  AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 13.0.0)
-  target_compile_options(${LIBRARY_NAME} PUBLIC $<$<COMPILE_LANGUAGE:CXX>:--param=evrp-mode=legacy>)
-endif()
+# Evaluate the compiler restriction in the consuming project too: installed
+# targets may be used with a different compiler, and GCC 13 removed this option.
+# Keep it CXX-only so nvcc does not forward it to a different CUDA host compiler.
+target_compile_options(${LIBRARY_NAME} PUBLIC
+  "$<$<AND:$<COMPILE_LANG_AND_ID:CXX,GNU>,$<VERSION_GREATER_EQUAL:$<CXX_COMPILER_VERSION>,12.0.0>,$<VERSION_LESS:$<CXX_COMPILER_VERSION>,13.0.0>>:--param=evrp-mode=legacy>")
 
 # We can only build the RestClient support if we have OpenSSL and REST is on.
 if(OPENSSL_FOUND AND CUDAQ_ENABLE_REST)
@@ -101,12 +94,12 @@ endif()
 install(TARGETS ${LIBRARY_NAME}
         EXPORT cudaq-common-targets
         DESTINATION lib
-        COMPONENT Runtime)
+        COMPONENT ${CUDAQ_CORE_LIBRARY_COMPONENT})
 install(EXPORT cudaq-common-targets
         FILE CUDAQCommonTargets.cmake
         NAMESPACE cudaq::
         DESTINATION lib/cmake/cudaq
-        COMPONENT Development)
+        COMPONENT ${CUDAQ_CORE_DEVELOPMENT_COMPONENT})
 if(EXISTS "$ENV{CURL_INSTALL_PREFIX}/cacert.pem")
   # Copy to build directory so that developers can run from the build directory
   file(COPY "$ENV{CURL_INSTALL_PREFIX}/cacert.pem" DESTINATION "${CMAKE_BINARY_DIR}")

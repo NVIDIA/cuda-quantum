@@ -78,26 +78,34 @@ inline bool isQuakeOperation(mlir::Operation *op) {
 
 namespace cudaq::quake {
 namespace detail {
-/// Scalar-wire inputs and the results that carry the same qubits by position.
-struct ScalarWireFlow {
+/// Wire inputs and the results that carry the same qubits by position.
+struct WireFlow {
   mlir::SmallVector<mlir::Value> inputs;
   mlir::SmallVector<mlir::Value> results;
 };
 
-/// Return the one-to-one scalar-wire flow for a memory-effect-free operator,
+/// Return the one-to-one wire flow for a memory-effect-free operator,
 /// measurement, or reset that owns no regions and has no successors.
 /// Operator inputs contain controls followed by targets in interface order.
 /// Measurement and reset inputs contain targets in interface order.
-/// Unsupported forms and mismatched input and result shapes return no value.
-std::optional<ScalarWireFlow> getScalarWireFlow(mlir::Operation *operation);
+/// Every operand and result must be a wire; `getThreadedWireFlow` accepts mixed
+/// forms. Unsupported forms and mismatched input and result shapes return no
+/// value.
+std::optional<WireFlow> getWireFlow(mlir::Operation *operation);
 
-/// Return the scalar-wire flow of an operator, measurement, or reset, ignoring
+/// True if the operation may modify memory or has effects that cannot be
+/// determined. Read-only operations (e.g. `quake.exp_pauli` reading a dynamic
+/// Pauli word) return false: they cannot change which qubit a wire or
+/// reference denotes.
+bool mayModifyMemory(mlir::Operation *operation);
+
+/// Return the wire flow of an operator, measurement, or reset, ignoring
 /// the operands that thread no wire. A `ref`, `veq`, or `control` operand has
 /// no corresponding result, so only the wire operands are paired with the wire
-/// results by position. Unlike `getScalarWireFlow`, this accepts the mixed
+/// results by position. Unlike `getWireFlow`, this accepts the mixed
 /// forms that arise when some operands are still in reference or control form.
 /// Unsupported forms and mismatched input and result shapes return no value.
-std::optional<ScalarWireFlow> getThreadedWireFlow(mlir::Operation *operation);
+std::optional<WireFlow> getThreadedWireFlow(mlir::Operation *operation);
 } // namespace detail
 
 /// Returns true if and only if any quantum operand has type `!quake.ref` or

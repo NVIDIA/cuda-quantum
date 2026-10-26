@@ -273,16 +273,29 @@ struct DeviceCallWrapper;
 
 template <typename R, typename... Args, R (*Fn)(Args...)>
 struct DeviceCallWrapper<Fn> {
-  __device__ static std::int32_t call(const void *input, void *output,
-                                      std::uint32_t argLen,
-                                      std::uint32_t maxResultLen,
-                                      std::uint32_t *resultLen) {
+  // Two-pointer realtime handler ABI (same form as a host-call handler): the
+  // RPCHeader + packed argument bytes sit in `rxSlot`; the result bytes go
+  // right after the RPCResponse in `txSlot`, whose `result_len` this wrapper
+  // sets.  The dispatch kernel fills the other response header fields.
+  __device__ static std::int32_t call(const void *rxSlot, void *txSlot,
+                                      std::size_t slotSize) {
+    if (!rxSlot || !txSlot || slotSize < sizeof(cudaq::realtime::RPCResponse))
+      return -1;
+    const auto *const request =
+        static_cast<const cudaq::realtime::RPCHeader *>(rxSlot);
+    auto *const response = static_cast<cudaq::realtime::RPCResponse *>(txSlot);
     // The realtime payload is exactly the canonical device-call argument
     // buffer.
-    const auto *const args = static_cast<const std::uint8_t *>(input);
-    const bool success =
-        resultLen && (argLen == 0 || input) &&
-        decodeAndInvoke<0>(args, argLen, 0, output, maxResultLen, resultLen, 0);
+    const auto *const args =
+        reinterpret_cast<const std::uint8_t *>(request + 1);
+    const std::uint32_t argLen = request->arg_len;
+    void *const output = response + 1;
+    const auto maxResultLen = static_cast<std::uint32_t>(
+        slotSize - sizeof(cudaq::realtime::RPCResponse));
+    std::uint32_t resultLen = 0;
+    const bool success = decodeAndInvoke<0>(args, argLen, 0, output,
+                                            maxResultLen, &resultLen, 0);
+    response->result_len = success ? resultLen : 0;
     // This test-only library has a single error code, -1. Convert the internal
     // boolean result at the Realtime handler ABI boundary.
     return success ? 0 : -1;
@@ -588,9 +601,9 @@ struct GeneratedDeviceCallService : public DeviceCallService {
 
 // --- Host-dispatch graph table helpers ---------------------------------------
 
+// Two-pointer realtime handler ABI: (rx_slot, tx_slot, slot_size) -> status.
 using DeviceCallAbiHandler = std::int32_t (*)(const void *, void *,
-                                              std::uint32_t, std::uint32_t,
-                                              std::uint32_t *);
+                                              std::size_t);
 
 // Graph node kernel for the host-dispatch path of device_call. Handles one RPC
 // request per graph launch. Follows the same `GraphIOContext` mailbox protocol
@@ -628,7 +641,6 @@ deviceCallHostDispatchGraphKernel(void **mailboxSlotPtr,
       reinterpret_cast<cudaq::realtime::RPCResponse *>(ioContext->tx_slot);
 
   std::int32_t status = -1; // default: malformed payload
-  std::uint32_t resultLen = 0;
   if (request->magic == cudaq::realtime::RPC_MAGIC_REQUEST &&
       ioContext->tx_stride_sz >= sizeof(cudaq::realtime::RPCResponse)) {
     // Linear scan over the full device table.
@@ -643,13 +655,11 @@ deviceCallHostDispatchGraphKernel(void **mailboxSlotPtr,
         entry->handler.device_fn_ptr) {
       const auto handler =
           reinterpret_cast<DeviceCallAbiHandler>(entry->handler.device_fn_ptr);
-      // Result bytes are written immediately after the RPCResponse header.
-      auto *const result =
-          ioContext->tx_slot + sizeof(cudaq::realtime::RPCResponse);
-      const auto maxResultLen = static_cast<std::uint32_t>(
-          ioContext->tx_stride_sz - sizeof(cudaq::realtime::RPCResponse));
-      status = handler(request + 1, result, request->arg_len, maxResultLen,
-                       &resultLen);
+      // Two-pointer call, as on the device dispatch path: the handler writes
+      // its result bytes immediately after the RPCResponse header and sets
+      // result_len.
+      status = handler(ioContext->rx_slot, ioContext->tx_slot,
+                       ioContext->tx_stride_sz);
     }
   }
 
@@ -657,7 +667,10 @@ deviceCallHostDispatchGraphKernel(void **mailboxSlotPtr,
   response->request_id = request->request_id;
   response->ptp_timestamp = request->ptp_timestamp;
   response->status = status;
-  response->result_len = status == 0 ? resultLen : 0;
+  // The handler owns result_len; force it to 0 for unhandled requests and
+  // failed handlers.  (Not pre-zeroed: tx_slot may alias rx_slot.)
+  if (status != 0)
+    response->result_len = 0;
 
   // Fence before signalling so the host sees a consistent response buffer.
   __threadfence_system();

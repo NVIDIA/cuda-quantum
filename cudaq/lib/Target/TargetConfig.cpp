@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq/Target/TargetConfig.h"
+#include <algorithm>
 #include <regex>
 
 namespace {
@@ -21,11 +22,13 @@ std::string cudaq::config::TargetConfig::getCodeGenSpec(
   const auto machineConfigIter = std::find_if(
       TargetArguments.begin(), TargetArguments.end(),
       [&](const cudaq::config::TargetArgument &argConfig) {
-        return argConfig.Type == cudaq::config::ArgumentType::MachineConfig;
+        return argConfig.Type == cudaq::config::ArgumentType::machine_config;
       });
   if (machineConfigIter == TargetArguments.end()) {
     // No machine specific config
-    return BackendConfig.has_value() ? BackendConfig->CodegenEmission : "";
+    return BackendConfig.has_value()
+               ? BackendConfig->CompileTarget.codegen.emissionFormat
+               : "";
   }
 
   // Get the machine name from the CLI argument
@@ -58,12 +61,13 @@ std::string cudaq::config::TargetConfig::getCodeGenSpec(
 
   // No machine specific config rule matches, fallback to the default backend
   // config
-  return BackendConfig.has_value() ? BackendConfig->CodegenEmission : "";
+  return BackendConfig.has_value()
+             ? BackendConfig->CompileTarget.codegen.emissionFormat
+             : "";
 }
 
 bool cudaq::config::BackendEndConfigEntry::hasPassPipeline() const {
-  return !TargetPassPipeline.empty() || !JITHighLevelPipeline.empty() ||
-         !JITMidLevelPipeline.empty() || !JITLowLevelPipeline.empty();
+  return CompileTarget.hasPassPipeline();
 }
 
 cudaq::config::TargetVersionCompatibilityResult

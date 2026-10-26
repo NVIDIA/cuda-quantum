@@ -815,22 +815,6 @@ class VarargCallPattern
     return success();
   }
 };
-
-class NoInlineCallPattern
-    : public ConvertOpToLLVMPattern<cudaq::cc::NoInlineCallOp> {
-  using ConvertOpToLLVMPattern::ConvertOpToLLVMPattern;
-
-  LogicalResult
-  matchAndRewrite(cudaq::cc::NoInlineCallOp nicall, OpAdaptor adaptor,
-                  ConversionPatternRewriter &rewriter) const override {
-    SmallVector<Type> types;
-    for (auto ty : nicall.getResultTypes())
-      types.push_back(getTypeConverter()->convertType(ty));
-    rewriter.replaceOpWithNewOp<func::CallOp>(nicall, types, nicall.getCallee(),
-                                              adaptor.getArgs());
-    return success();
-  }
-};
 } // namespace
 
 void cudaq::opt::populateCCToLLVMPatterns(LLVMTypeConverter &typeConverter,
@@ -841,8 +825,7 @@ void cudaq::opt::populateCCToLLVMPatterns(LLVMTypeConverter &typeConverter,
       CallIndirectCallableOpPattern, CastOpPattern, ComputePtrOpPattern,
       CreateStringLiteralOpPattern, ExtractValueOpPattern, FuncToPtrOpPattern,
       GlobalOpPattern, InsertValueOpPattern, InstantiateCallableOpPattern,
-      LoadOpPattern, NoInlineCallPattern, OffsetOfOpPattern, PoisonOpPattern,
-      SizeOfOpPattern, SequenceDataOpPattern, SequenceInitOpPattern,
-      SequenceSizeOpPattern, StoreOpPattern, UndefOpPattern, VarargCallPattern>(
-      typeConverter);
+      LoadOpPattern, OffsetOfOpPattern, PoisonOpPattern, SizeOfOpPattern,
+      SequenceDataOpPattern, SequenceInitOpPattern, SequenceSizeOpPattern,
+      StoreOpPattern, UndefOpPattern, VarargCallPattern>(typeConverter);
 }

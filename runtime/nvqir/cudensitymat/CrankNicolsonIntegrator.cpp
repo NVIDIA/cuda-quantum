@@ -35,7 +35,9 @@ std::shared_ptr<base_integrator> crank_nicolson::clone() {
   clone->m_num_corrector_steps = this->m_num_corrector_steps;
   clone->m_dt = this->m_dt;
   clone->m_t = this->m_t;
-  clone->m_state = this->m_state;
+  // Integration updates the state in place, so the clone needs its own copy.
+  if (m_state)
+    cudmIntHelp::setState(clone->m_state, clone->m_t, *m_state, m_t);
   clone->m_system = this->m_system;
   clone->m_schedule = this->m_schedule;
   return clone;
@@ -53,6 +55,7 @@ void crank_nicolson::integrate(double targetTime) {
   cudaq::dynamics::PerfMetricScopeTimer metricTimer(
       "crank_nicolson::integrate");
   cudmIntHelp::ensureStepper(m_stepper, m_state, m_system, m_schedule);
+  auto &stepper = cudmIntHelp::asCudmStepper(m_stepper);
 
   const double startTime = m_t;
   const auto numSubSteps =
@@ -62,31 +65,31 @@ void crank_nicolson::integrate(double targetTime) {
         cudmIntHelp::subStepTime(startTime, targetTime, subStep, numSubSteps);
     const double step_size = nextTime - m_t;
     auto &castSimState = *cudmIntHelp::asCudmState(*m_state);
+    auto &k1 = stepper.workspaceState(0, castSimState);
+    auto &k2 = stepper.workspaceState(1, castSimState);
+    auto *rho_iter = &stepper.workspaceState(2, castSimState);
+    auto *rho_next = &stepper.workspaceState(3, castSimState);
 
     auto params = cudmIntHelp::scheduleParamsAt(m_schedule, m_t);
-    auto k1State = m_stepper->compute(*m_state, m_t, params);
-    auto &k1 = *cudmIntHelp::asCudmState(k1State);
+    stepper.computeInto(castSimState, k1, m_t, params);
 
     auto params_next =
         cudmIntHelp::scheduleParamsAt(m_schedule, m_t + step_size);
 
-    auto rho_iter_ptr = CuDensityMatState::clone(castSimState);
-    rho_iter_ptr->accumulate_inplace(k1, step_size);
-    auto rho_iter = std::make_shared<cudaq::state>(rho_iter_ptr.release());
+    rho_iter->copy_from(castSimState);
+    rho_iter->accumulate_inplace(k1, step_size);
 
     for (int iter = 0; iter < m_num_corrector_steps; ++iter) {
-      auto k2State =
-          m_stepper->compute(*rho_iter, m_t + step_size, params_next);
-      auto &k2 = *cudmIntHelp::asCudmState(k2State);
+      stepper.computeInto(*rho_iter, k2, m_t + step_size, params_next);
 
-      auto rho_next = CuDensityMatState::clone(castSimState);
+      rho_next->copy_from(castSimState);
       rho_next->accumulate_inplace(k1, step_size / 2.0);
       rho_next->accumulate_inplace(k2, step_size / 2.0);
 
-      rho_iter = std::make_shared<cudaq::state>(rho_next.release());
+      std::swap(rho_iter, rho_next);
     }
 
-    m_state = rho_iter;
+    castSimState.swap(*rho_iter);
     m_t = nextTime;
   }
 }

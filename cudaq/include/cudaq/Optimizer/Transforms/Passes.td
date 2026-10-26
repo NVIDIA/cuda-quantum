@@ -169,6 +169,60 @@ def BasisConversion : Pass<"basis-conversion", "mlir::ModuleOp"> {
   ];
 }
 
+def BorrowChecking : Pass<"borrow-checking"> {
+  let summary = "Checking borrowing constraints.";
+  let description = [{
+    In the "physical qubit" form of quake, we have a constant number of qubits
+    at our disposal. These are modeled as hardware resources in our model. (This
+    differs from higher-level representations which have an "infinite" supply
+    of qubits.)
+
+    In this physical qubit form, a program may borrow and return qubits from a
+    reified `quake.wire_set`. Any particular qubit can be borrowed exactly once
+    until it is returned.
+
+    This pass performs a static analysis to verify these constraints. It
+    reports wires that are borrowed while already borrowed, and wires that are
+    borrowed but neither returned nor passed out of the function. The analysis
+    works on structured control flow (`cc.if`, `cc.scope`, `cc.loop` with
+    `cc.break` and `cc.continue`), on CFG form, and on a mix of the two, so this
+    pass has no requirements on where it is placed in a pipeline. (The
+    `cc.unwind_*` operations are not modeled. They are source-level operations,
+    and lowering to wire form necessarily eliminates them.)
+
+    A violation is *definite* when it occurs on every path reaching the
+    operation. A violation is *possible* when it occurs on only some paths
+    (such as a borrow in a loop body that is not returned before the next
+    iteration) or when the analysis cannot tell which wire a `return_wire`
+    returns.
+
+    A call is not a place where a wire can come from or go to. A borrowed wire
+    that is passed to a call that produces no wire vanishes into it, and a call
+    that produces a wire without being passed one produces it out of nowhere.
+    Either is always an error, whatever the options. Since the IR is broken, the
+    analysis stops without reporting anything else about the function.
+
+    NB: Call sites present a horizon obstacle in that the body of the called
+    kernel may be entirely unknown. It is therefore impossible to check if that
+    unknowable code has borrow violations or not. It is possible there are
+    borrow violations, but that are not statically known.
+
+    This pass is not composable. (Think of it as an extension of the IR
+    verifier.) It never modifies the IR.
+  }];
+  let dependentDialects = ["cudaq::quake::QuakeDialect"];
+  let options = [
+    Option<"raiseFailure", "raise-failure", "bool", /*default=*/"true",
+           "Emit an error and fail the pass when a wire is definitely "
+           "borrowed while already borrowed, or definitely never returned. "
+           "If false, these are emitted as warnings and the pass succeeds.">,
+    Option<"warnOnPossible", "warn-on-possible", "bool", /*default=*/"true",
+           "Emit a warning for a borrow that only possibly conflicts, or when "
+           "the wire being returned cannot be determined. If false, the "
+           "pass assumes such cases are correct and stays silent.">
+  ];
+}
+
 def CableRoughIn : Pass<"cable-rough-in", "mlir::func::FuncOp"> {
   let summary = "Perform the rough-in cabling for value semantics conversion.";
   let description = [{
@@ -504,7 +558,8 @@ def ConvertToCFG : Pass<"convert-to-cfg"> {
            "factor-quantum-alloc, as in the quake_fake mid-level pipeline.">
   ];
 
-  let dependentDialects = [ "mlir::cf::ControlFlowDialect" ];
+  let dependentDialects = [
+    "mlir::cf::ControlFlowDialect", "mlir::LLVM::LLVMDialect"];
 }
 
 def ConvertToCFGPrep : Pass<"convert-to-cfg-prep", "mlir::ModuleOp"> {
@@ -512,6 +567,8 @@ def ConvertToCFGPrep : Pass<"convert-to-cfg-prep", "mlir::ModuleOp"> {
   let description = [{
     This pass must be run before the ConvertToCFG pass.
   }];
+
+  let dependentDialects = ["mlir::LLVM::LLVMDialect"];
 }
 
 def ConvertToDirectCalls : Pass<"indirect-to-direct-calls", "mlir::ModuleOp"> {
@@ -545,8 +602,26 @@ def DeadStoreRemoval : Pass<"dead-store-removal"> {
   let summary = "Dead store removal (DSR).";
   let description = [{
     This pass performs classic dead store removal to clean up code that may
-    contain residual dead stores.
+    contain residual dead stores. It also forwards stored values to loads and
+    removes loads that are redundant and stores that are overwritten. The
+    options bound the work done per operation so that the pass remains linear
+    in the size of the function.
   }];
+  let options = [
+    Option<"maxTrackedLocations", "max-tracked-locations", "unsigned",
+      /*default=*/"32",
+      "Maximum number of memory locations whose contents are tracked at once. "
+      "The oldest is forgotten when the limit is reached.">,
+    Option<"maxAddressDepth", "max-address-depth", "unsigned",
+      /*default=*/"8",
+      "Maximum depth to which two address computations are compared for "
+      "equality.">,
+    Option<"maxEscapingUses", "max-escaping-uses", "unsigned",
+      /*default=*/"8",
+      "Maximum number of operations that are tracked as making the address of "
+      "a stack slot available to other code. A slot with more than this many "
+      "is treated as escaping from the start of the function.">
+  ];
 }
 
 def Decomposition : Pass<"decomposition", "mlir::ModuleOp"> {
@@ -677,22 +752,20 @@ def DesugarCableOps : Pass<"desugar-cable-ops"> {
 }
 
 def DistributedDeviceCall : Pass<"distributed-device-call", "mlir::ModuleOp"> {
-  let summary = "Translate cc.device_call operations";
+  let summary = "Translate cc.device_call operations to the generalized "
+                "distributed-memory reference implementation";
 
   let description = [{
-    Perform the translation of cc.device_call to a set of substeps for a
-    distributed memory model.
+    Lower cc.device_call to the generalized, distributed-memory reference
+    implementation: autogenerate marshal/unmarshal functions that reuse the
+    kernel-launch thunk buffer format and dispatch through the runtime's
+    callback hook. This is required if different processing units in the
+    aggregate QPU have distributed (not shared) memory spaces. Also resolves
+    cc.resolve_device_ptr operations.
   }];
 
-  let dependentDialects = ["mlir::LLVM::LLVMDialect"];
-
-  let options = [
-    Option<"insertTrapImplementation", "insert-trap", "bool",
-      /*default=*/"false",
-      "Enable pass to insert a default implementation (runtime trap) for "
-      "device call (default=false). The default implementation has weak "
-      "linkage, i.e., allowed to be overridden at link time.">
-  ];
+  let dependentDialects = ["mlir::LLVM::LLVMDialect",
+                           "mlir::cf::ControlFlowDialect"];
 }
 
 def EraseNoise : Pass<"erase-noise"> {
@@ -731,31 +804,6 @@ def EraseVectorCopyCtor : Pass<"erase-vector-copy-ctor"> {
     the calling function copying the heap data to a new vector on the stack.
     Since the callee is inlined, none of this is really required. The callee and
     caller share a common stack frame, so one copy is plenty.
-  }];
-}
-
-def ExpandBroadcasts : Pass<"expand-broadcasts", "mlir::func::FuncOp"> {
-  let summary = "Expands veqs used as targets into individual qubits.";
-  let description = [{
-    A one-target operator applied to a `veq` broadcasts that operator over
-    every element of the vector. Given a vector of constant size `n`, this
-    pass rewrites
-    ```mlir
-    quake.* %veq : (!quake.veq<n>) -> ()
-    ```
-    into the `n` operations it stands for:
-    ```mlir
-    %arg0 = quake.extract_ref %veq[0] : (!quake.veq<n>) -> !quake.ref
-    quake.* %arg0 : (!quake.ref) -> ()
-    ...
-    %argn = quake.extract_ref %veq[n-1] : (!quake.veq<n>) -> !quake.ref
-    quake.* %argn : (!quake.ref) -> ()
-    ```
-    Parameters and attributes are replicated on each operation. Multi-qubit
-    operators (`swap`, `exp_pauli`, custom unitaries) are left alone: for those
-    a `veq` target is the operand list of a single N-qubit gate rather than a
-    broadcast. Controlled operators are left alone as well: only an
-    uncontrolled operator broadcasts.
   }];
 }
 
@@ -805,6 +853,31 @@ def ExpandMeasurements : Pass<"expand-measurements"> {
   let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect"];
 
   let constructor = "cudaq::opt::createExpandMeasurementsPass()";
+}
+
+def ExpandVeqUses : Pass<"expand-veq-uses", "mlir::func::FuncOp"> {
+  let summary = "Expands veqs used as targets into individual qubits.";
+  let description = [{
+    A one-target operator applied to a `veq` broadcasts that operator over
+    every element of the vector. Given a vector of constant size `n`, this
+    pass rewrites
+    ```mlir
+    quake.* %veq : (!quake.veq<n>) -> ()
+    ```
+    into the `n` operations it stands for:
+    ```mlir
+    %arg0 = quake.extract_ref %veq[0] : (!quake.veq<n>) -> !quake.ref
+    quake.* %arg0 : (!quake.ref) -> ()
+    ...
+    %argn = quake.extract_ref %veq[n-1] : (!quake.veq<n>) -> !quake.ref
+    quake.* %argn : (!quake.ref) -> ()
+    ```
+    Parameters and attributes are replicated on each operation. Multi-qubit
+    operators (`swap`, `exp_pauli`, custom unitaries) are left alone: for those
+    a `veq` target is the operand list of a single N-qubit gate rather than a
+    broadcast. Controlled operators are left alone as well: only an
+    uncontrolled operator broadcasts.
+  }];
 }
 
 def FactorQuantumAllocations :
@@ -1690,6 +1763,28 @@ def PySynthCallableBlockArgs :
   }];
 }
 
+def QIRDeviceCall : Pass<"qir-device-call", "mlir::ModuleOp"> {
+  let summary = "Translate cc.device_call operations to a QIR-vendor passthrough";
+
+  let description = [{
+    Lower cc.device_call to a QIR-vendor style passthrough call: encode a
+    stable per-callback id (via an MD5 hash of the callee name) as a
+    `passthrough` function attribute on the callee and replace the
+    device_call with a direct call, letting a vendor's runtime resolve the
+    callback out of band. Also resolves cc.resolve_device_ptr operations.
+  }];
+
+  let dependentDialects = ["mlir::LLVM::LLVMDialect"];
+
+  let options = [
+    Option<"insertTrapImplementation", "insert-trap", "bool",
+      /*default=*/"false",
+      "Enable pass to insert a default implementation (runtime trap) for "
+      "device call (default=false). The default implementation has weak "
+      "linkage, i.e., allowed to be overridden at link time.">
+  ];
+}
+
 def QuakeAddMetadata : Pass<"quake-add-metadata", "mlir::func::FuncOp"> {
   let summary = "Add various metadata attributes to a Quake function.";
   let description = [{
@@ -1837,9 +1932,9 @@ def RealtimeDeviceCall : Pass<"realtime-device-call", "mlir::ModuleOp"> {
   // marshaling, `func` calls/declarations for the runtime ABI, and may
   // materialize `quake.discriminate` (within the loaded packing intrinsics)
   // when converting measurement-handle vectors to boolean payload bytes.
-  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::arith::ArithDialect",
-                           "mlir::func::FuncDialect",
-                           "cudaq::quake::QuakeDialect"];
+  let dependentDialects = ["mlir::arith::ArithDialect",
+    "mlir::func::FuncDialect", "mlir::LLVM::LLVMDialect",
+    "cudaq::cc::CCDialect", "cudaq::quake::QuakeDialect"];
 }
 
 def RegToMem : Pass<"regtomem", "mlir::func::FuncOp"> {
@@ -2280,6 +2375,40 @@ def VerifyAtomicQuantumRegions :
     Run the pass before the conversion to value semantics, where a qubit
     allocation stops being a `quake.alloca`.
   }];
+}
+
+def VerifyProfileQuakeReferenceSemantics : Pass<"verify-profile-quake-reference-semantics", "mlir::ModuleOp"> {
+  let summary = "Verify quake-reference-semantics profile conformance (read-only)";
+  let description = [{
+    This pass verifies that the IR conforms to the quake-reference-semantics IR profile:
+     - uses reference semantics (no `!quake.wire`/`!quake.control`/`!quake.cable`
+       values)
+     - every quake operation is a member of the requested target basis
+     - with `measurement-type=single-qubit`, every measurement operates on
+       exactly one `!quake.ref`
+
+    The pass never modifies the IR; any violation fails the pass. The `basis`
+    option uses the same grammar and legality machinery as
+    `basis-conversion`; an empty basis (the default) imposes no gate-basis
+    restriction.
+
+    The `reset-after-measure` option is accepted but not yet validated: the
+    pass emits a warning when it is set.
+
+    This verification pass is conservative: if a required property could not
+    be verified (e.g. due to opaque calls), verification will fail with a
+    diagnostic.
+  }];
+  let options = [
+    ListOption<"basis", "basis", "std::string",
+               "Set of allowed basis operations (empty = unrestricted)">,
+    Option<"measurementType", "measurement-type", "std::string",
+           /*default=*/"\"any\"",
+           "Measurement form: 'any' or 'single-qubit'">,
+    Option<"resetAfterMeasure", "reset-after-measure", "bool",
+           /*default=*/"false",
+           "Require reset after measurement before quantum reuse">,
+  ];
 }
 
 def WriteAfterWriteElimination : Pass<"write-after-write-elimination"> {

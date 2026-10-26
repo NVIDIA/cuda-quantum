@@ -208,7 +208,7 @@ func.func @nested_ordinary_scope(%arg0: !quake.wire) -> !quake.wire {
 // CHECK-NEXT:    }
 // CHECK-NEXT:    return %[[OUTER]]
 
-// Scope traversal follows only the threaded scalar wire. An unrelated local
+// Scope traversal follows only the threaded wire. An unrelated local
 // reference allocation does not affect that def-use chain.
 func.func @scope_with_unrelated_allocation(%arg0: !quake.wire) -> !quake.wire {
   %0 = quake.t %arg0 : (!quake.wire) -> !quake.wire
@@ -294,7 +294,7 @@ func.func @if_boundary(%arg0: !quake.wire, %cond: i1) -> !quake.wire {
 // CHECK:         %[[T1:.*]] = quake.t %[[IF]]
 
 // These ref-semantics wrappers let CircuitCheck compare the unitaries while
-// the pass still operates only on the scalar wire chains between unwrap/wrap.
+// the pass still operates only on the wire chains between unwrap/wrap.
 // SEMANTIC-BEGIN
 
 func.func @semantic_order(%arg0: !quake.ref) {

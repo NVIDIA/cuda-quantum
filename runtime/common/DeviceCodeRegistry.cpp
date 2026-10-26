@@ -64,6 +64,15 @@ void cudaq::registry::cudaqRegisterKernelName(const char *kernelName) {
   kernelRegistry.emplace_back(kernelName);
 }
 
+static std::map<std::string, std::pair<void *, void *>> callbackRegistry;
+
+void cudaq::registry::cudaqRegisterCallbackName(const char *name,
+                                                void *unmarshalFunc,
+                                                void *devFunc) {
+  std::unique_lock<std::shared_mutex> lock(globalRegistryMutex);
+  callbackRegistry[name] = {unmarshalFunc, devFunc};
+}
+
 void cudaq::registry::__cudaq_registerRunnableKernel(const char *kernelName,
                                                      void *runnableEntry) {
   std::unique_lock<std::shared_mutex> lock(globalRegistryMutex);

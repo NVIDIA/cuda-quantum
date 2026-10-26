@@ -34,6 +34,7 @@
 # -p: Install prerequisites before building.
 # -I: Install only (skip configure and build, just run ninja install + post-install).
 # -L: Also build cudaq.logical (preview/logical) against the fresh CUDA-Q installation.
+#     Set QLX_VERIFY_TOOLCHAIN=ON to audit that toolchain against CUDA-Q's.
 # --: Arguments after -- are passed directly to cmake (e.g., -DVAR=value).
 # 
 # Prerequisites:
@@ -382,6 +383,11 @@ if $build_logical; then
     -DMPFR_ROOT=$MPFR_INSTALL_PREFIX \
     -DCUDAQ_INSTALL_PREFIX=$CUDAQ_INSTALL_PREFIX \
     -Dnanobind_DIR=$NANOBIND_INSTALL_PREFIX/nanobind/cmake"
+  # Opt-in toolchain audit (compiler family, LLVM version); see
+  # preview/logical/cmake/SetupCUDAQ.cmake. Set QLX_VERIFY_TOOLCHAIN=ON to enable.
+  if [ -n "$QLX_VERIFY_TOOLCHAIN" ]; then
+    logical_cmake_args="$logical_cmake_args -DQLX_VERIFY_TOOLCHAIN=$QLX_VERIFY_TOOLCHAIN"
+  fi
   if $verbose; then
     echo "cmake $logical_cmake_args"
     cmake $logical_cmake_args

@@ -19,6 +19,7 @@
 #include "cudaq/platform.h"
 #include "cudaq/platform/QuantumExecutionQueue.h"
 #include "cudaq/qis/kernel_utils.h"
+#include "cudaq/utils/cudaq_utils.h"
 #include <cstdint>
 
 extern "C" {
@@ -265,19 +266,22 @@ run(std::size_t shots, cudaq::noise_model &noise_model, QuantumKernel &&kernel,
   }
   platform.reset_noise();
 #else
-  // Launch the kernel in the appropriate context.
-  platform.set_noise(&noise_model);
   std::string kernelName{detail::getKernelName(kernel)};
   cudaq_internal::compiler::LayoutInfoType layoutInfo =
       cudaq_internal::compiler::getLayoutInfo(kernelName, nullptr);
-  cudaq::run_result runResult = detail::launchRun(
-      [&]() mutable {
-        auto *runKernel =
-            detail::get_run_entry_point(qkernel{kernel}, kernelName);
-        (*runKernel)(std::forward<ARGS>(args)...);
+  // Launch the kernel in the appropriate context.
+  platform.set_noise(&noise_model);
+  cudaq::run_result runResult = detail::try_finally(
+      [&] {
+        return detail::launchRun(
+            [&]() mutable {
+              auto *runKernel =
+                  detail::get_run_entry_point(qkernel{kernel}, kernelName);
+              (*runKernel)(std::forward<ARGS>(args)...);
+            },
+            platform, kernelName, shots, /*qpu_id=*/0);
       },
-      platform, kernelName, shots, /*qpu_id=*/0);
-  platform.reset_noise();
+      [&] { platform.reset_noise(); });
   detail::RunResultSpan span =
       detail::convertToRunResultSpan(runResult.outputLog, layoutInfo);
   detail::resultSpanToVectorViaOwnership<ResultTy>(results, span);

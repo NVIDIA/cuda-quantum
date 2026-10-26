@@ -27,10 +27,6 @@
 extern "C" {
 #endif
 
-///@brief Opaque data structure storing the details of the transport layer
-/// connection
-typedef void *cudaq_realtime_bridge_handle_t;
-
 typedef enum {
   CUDAQ_PROVIDER_GPU_ROCE = 0, /// GpuRoceTransceiver (built-in provider)
   CUDAQ_PROVIDER_EXTERNAL = 1, /// Externally managed transport
@@ -156,6 +152,10 @@ cudaq_status_t cudaq_bridge_destroy(cudaq_realtime_bridge_handle_t bridge);
 /// @brief Retrieve the transport context for the given bridge: a
 /// `cudaq_ringbuffer_t` for RING_BUFFER, a `cudaq_unified_dispatch_ctx_t` for
 /// UNIFIED.
+///
+/// Applications wiring a dispatcher should call `cudaq_dispatcher_set_bridge`
+/// rather than this; asking for UNIFIED directly is deprecated, since which
+/// data plane serves a unified dispatcher is the dispatcher's business.
 cudaq_status_t cudaq_bridge_get_transport_context(
     cudaq_realtime_bridge_handle_t bridge,
     cudaq_realtime_transport_context_t context_type, void *out_context);
