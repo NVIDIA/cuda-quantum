@@ -229,6 +229,7 @@ RTS
 Rabi
 Realtime
 RepeatOp
+Retargeting
 RoCE
 Roetteler
 RydbergAtom
