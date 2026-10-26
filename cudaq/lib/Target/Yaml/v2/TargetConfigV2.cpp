@@ -11,25 +11,49 @@
 #include "Yaml/v2/TargetConfigV2.h"
 #include "Yaml/CanonicalConversion.h"
 
+static cudaq::config::Profile
+toCanonicalProfile(const cudaq::config::v2::UncheckedProfileV2 &profile) {
+  return cudaq::config::UncheckedProfile{};
+}
+static cudaq::config::Profile toCanonicalProfile(
+    const cudaq::config::v2::QuakeReferenceSemanticsProfileV2 &profile) {
+  return cudaq::config::QuakeReferenceSemanticsProfile{
+      .basisGates = profile.options.value().basisGates.value(),
+      .measurementType = profile.options.value().measurementType.value(),
+      .resetAfterMeasure = profile.options.value().resetAfterMeasure.value()};
+}
+
+static cudaq::config::Profile
+toCanonicalProfile(const cudaq::config::v2::IrOutputProfileV2 &profile) {
+  return profile.visit([](const auto &p) { return toCanonicalProfile(p); });
+}
+
+static cudaq::config::Lowering
+toCanonicalLowering(const std::string &lowering) {
+  return cudaq::config::CustomPipelineLowering{.overridePassPipeline =
+                                                   lowering};
+}
+
+static cudaq::config::Lowering
+toCanonicalLowering(const cudaq::config::v2::StagedPipelinesV2 &pipelines) {
+  return cudaq::config::CustomPipelineLowering{
+      .highLevelPipeline = pipelines.highLevel.value(),
+      .midLevelPipeline = pipelines.midLevel.value(),
+      .lowLevelPipeline = pipelines.lowLevel.value()};
+}
+
+static cudaq::config::Lowering toCanonicalLowering(
+    const cudaq::config::v2::CustomPipelineLoweringV2 &lowering) {
+  return lowering.customPipeline.visit(
+      [](const auto &l) { return toCanonicalLowering(l); });
+}
+
 static cudaq::config::CompilationStage
 toCanonicalStage(const cudaq::config::v2::CompilationStageV2 &stage) {
-  cudaq::config::Profile profile;
-  stage.irOutputProfile.visit([&](const auto &p) {
-    using T = std::decay_t<decltype(p)>;
-    if constexpr (std::is_same_v<T, cudaq::config::v2::UncheckedProfileV2>)
-      profile = cudaq::config::UncheckedProfile{};
-  });
-  cudaq::config::CustomPipelineLowering lowering;
-  stage.lowering.customPipeline.visit([&](const auto &pipelines) {
-    using T = std::decay_t<decltype(pipelines)>;
-    if constexpr (std::is_same_v<T, std::string>) {
-      lowering.overridePassPipeline = pipelines;
-    } else {
-      lowering.highLevelPipeline = pipelines.highLevel.value();
-      lowering.midLevelPipeline = pipelines.midLevel.value();
-      lowering.lowLevelPipeline = pipelines.lowLevel.value();
-    }
-  });
+  cudaq::config::Profile profile = toCanonicalProfile(stage.irOutputProfile);
+  cudaq::config::Lowering lowering = cudaq::config::InferredLowering{};
+  if (stage.lowering)
+    lowering = toCanonicalLowering(*stage.lowering);
   return cudaq::config::CompilationStage{.irOutputProfile = profile,
                                          .lowering = std::move(lowering)};
 }
@@ -57,15 +81,18 @@ toCanonicalEntry(const cudaq::config::v2::BackendEndConfigEntryV2 &cfg,
 
 cudaq::config::TargetConfig
 cudaq::config::v2::toCanonical(const TargetConfigV2 &cfg) {
-  if (cfg.compileTarget && cfg.compileTarget->stages.size() != 1)
-    throw std::runtime_error(
-        "'compile-target.stages' must currently contain exactly one stage.");
   if (cfg.compileTarget && !cfg.configurationMatrix.value().empty())
     throw std::runtime_error(
         "'compile-target' cannot be combined with 'configuration-matrix'.");
   if (cfg.compileTarget && !cfg.config)
     throw std::runtime_error(
         "'compile-target' requires a 'config' section to attach to.");
+
+  if (cfg.compileTarget && cfg.compileTarget->stages.size() > 1)
+    std::cerr
+        << "Warning: Multi-stage compile target detected. The new "
+           "compile target format is currently in alpha and multi-stage "
+           "pipelines are currently not supported by the CUDA-Q compiler.\n";
 
   TargetConfig out;
   out.Name = cfg.name;

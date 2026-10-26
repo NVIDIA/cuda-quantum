@@ -1,8 +1,5 @@
-# Runs automatically after Deployments completes (see its trigger_validation
-# job, which dispatches this with an explicit ref) or on demand via
-# workflow_dispatch with a deployment run id. Rebuilds installers/wheels/
-# metapackages from the deployment's dependency images and validates the
-# release image, debug image, and those artifacts.
+# Tests what Deployments built (dispatched by its trigger_validation job, or
+# by hand with a deployment run id). Builds nothing.
 #
 # No workflow_run trigger: it always resolves this file, and what it
 # calls, from the default branch instead of the branch being validated.
@@ -49,13 +46,9 @@ jobs:
       github_commit: ${{ steps.artifacts.outputs.github_commit }}
       cudaq_version: ${{ steps.artifacts.outputs.cudaq_version }}
       artifacts_url: ${{ steps.artifacts.outputs.artifacts_url }}
-      retrieved_build_info: ${{ steps.artifacts.outputs.retrieved_build_info }}
-      release_title: ${{ steps.artifacts.outputs.release_title }}
-      release_version: ${{ steps.artifacts.outputs.release_version }}
+      deployment_id: ${{ steps.artifacts.outputs.deployment_id }}
       release_images: ${{ steps.artifacts.outputs.release_images }}
       debug_images: ${{ steps.artifacts.outputs.debug_images }}
-      python_wheels: ${{ steps.artifacts.outputs.python_wheels }}
-      installers: ${{ steps.artifacts.outputs.installers }}
 
     steps:
       - name: Download build info
@@ -84,67 +77,49 @@ jobs:
 
           release_images="[]"
           debug_images="[]"
-          python_wheels="{\"info_files\":[]}"
-          installers="{\"info_files\":[]}"
           github_commit=""
-          release_title=""
           release_version=""
+          cudaq_version=""
 
           for artifact in `echo "$artifacts"`; do
             name=`echo $artifact | jq -r '.name'`
             url=`echo $artifact | jq -r '.url'`
-            if [ "${name%_publishing}" != "$name" ]; then
+            if [ "${name%_publishing}" != "$name" ] && [ "${name#image}" != "$name" ]; then
               download "$name" "$url"
               info="$build_info_folder/$name/$name.txt"
-              if [ "${name#image}" != "$name" ]; then
-                release_image=`grep -o 'cuda-quantum-image: \S*' "$info" | cut -d ' ' -f 2`
-                debug_image=`grep -o 'cuda-quantum-dev-image: \S*' "$info" | cut -d ' ' -f 2`
-                [ -n "$release_image" ] && release_images=`echo "$release_images" | jq --arg v "$release_image" '. + [$v]'`
-                [ -n "$debug_image" ] && debug_images=`echo "$debug_images" | jq --arg v "$debug_image" '. + [$v]'`
-              elif [ "${name#python}" != "$name" ]; then
-                python_wheels=`echo $python_wheels | jq ".info_files |= . + [\"$name\"]"`
-              elif [ "${name#installer}" != "$name" ]; then
-                installers=`echo $installers | jq ".info_files |= . + [\"$name\"]"`
-              fi
+              release_image=`grep -o 'cuda-quantum-image: \S*' "$info" | cut -d ' ' -f 2`
+              debug_image=`grep -o 'cuda-quantum-dev-image: \S*' "$info" | cut -d ' ' -f 2`
+              [ -n "$release_image" ] && release_images=`echo "$release_images" | jq --arg v "$release_image" '. + [$v]'`
+              [ -n "$debug_image" ] && debug_images=`echo "$debug_images" | jq --arg v "$debug_image" '. + [$v]'`
             elif [ "${name#deployment_info}" != "$name" ]; then
               download "$name" "$url"
               info="$build_info_folder/$name/$name.txt"
               github_commit=`grep -o 'source-sha: \S*' "$info" | cut -d ' ' -f 2`
-              release_title=`grep -o 'release-title: \S*' "$info" | cut -d ' ' -f 2`
               release_version=`grep -o 'release-version: \S*' "$info" | cut -d ' ' -f 2`
+              cudaq_version=`grep -o 'cudaq-version: \S*' "$info" | cut -d ' ' -f 2`
             fi
           done
 
-          # CUDA-Q version number (matches the deployment's staging logic).
-          is_versioned=${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') || startsWith(github.ref_name, 'staging/') }}
-          if ${is_versioned}; then
-            cudaq_version=`echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}"`
-          else
-            cudaq_version=${release_version:-0.0.0}
+          # Older deployments lack cudaq-version; derive it from the ref.
+          if [ -z "$cudaq_version" ]; then
+            is_versioned=${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') || startsWith(github.ref_name, 'staging/') }}
+            if ${is_versioned}; then
+              cudaq_version=`echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}"`
+            else
+              cudaq_version=${release_version:-0.0.0}
+            fi
           fi
 
-          echo "retrieved_build_info=validation_build_info_${{ github.run_id }}" >> $GITHUB_OUTPUT
+          echo "deployment_id=$deployment_id" >> $GITHUB_OUTPUT
           echo "artifacts_url=$artifacts_url" >> $GITHUB_OUTPUT
           echo "github_commit=$github_commit" >> $GITHUB_OUTPUT
-          echo "release_title=$release_title" >> $GITHUB_OUTPUT
-          echo "release_version=$release_version" >> $GITHUB_OUTPUT
           echo "cudaq_version=$cudaq_version" >> $GITHUB_OUTPUT
           echo "release_images=$(echo $release_images | jq -c .)" >> $GITHUB_OUTPUT
           echo "debug_images=$(echo $debug_images | jq -c .)" >> $GITHUB_OUTPUT
-          echo "python_wheels=$(echo $python_wheels)" >> $GITHUB_OUTPUT
-          echo "installers=$(echo $installers)" >> $GITHUB_OUTPUT
           echo "Release images: $release_images"
           echo "Debug images: $debug_images"
         env:
           GH_TOKEN: ${{ github.token }}
-
-      - name: Upload validation build information
-        uses: actions/upload-artifact@v7
-        with:
-          name: ${{ steps.artifacts.outputs.retrieved_build_info }}
-          path: /tmp/validation-build-info
-          retention-days: 1
-          if-no-files-found: error
 
   debug_image_validation:
     name: Debug image validation (${{ matrix.arch }})
@@ -196,8 +171,9 @@ jobs:
             exit 1
           fi
 
-          # Check the CPU transport and device-call runtime built with libibverbs.
-          test -f "$CUDAQ_INSTALL_PREFIX/lib/libcudaq-realtime-cpu-roce-transport.a"
+          # The CPU RoCE transport needs HololinkRoce from an HSB build, which the
+          # dev image does not ship, so only the UDP transport is always present.
+          test -f "$CUDAQ_INSTALL_PREFIX/lib/libcudaq-realtime-udp-transport.a"
           test -f "$CUDAQ_INSTALL_PREFIX/lib/libcudaq-device-call-runtime.so"
 
   logical_release_image_validation:
@@ -390,289 +366,35 @@ jobs:
             exit 1
           fi
 
-  cudaq_installers:
-    name: CUDA-Q installer
-    if: ${{ toJson(fromJson(needs.metadata.outputs.installers).info_files) != '[]' }}
-    needs: metadata
-    permissions:
-      contents: read
-      packages: read
-      id-token: write
-
-    environment:
-      name: ghcr-deployment
-      url: ${{ vars.deployment_url }}
-      deployment: false
-
-    strategy:
-      matrix:
-        info_file: ${{ fromJson(needs.metadata.outputs.installers).info_files }}
-      fail-fast: false
-
-    runs-on: ${{ (contains(matrix.info_file, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-        with:
-          ref: ${{ inputs.github_commit || needs.metadata.outputs.github_commit }}
-
-      - name: Load validation build information
-        uses: actions/download-artifact@v8
-        with:
-          name: ${{ needs.metadata.outputs.retrieved_build_info }}
-          path: /tmp/validation-build-info
-
-      - name: Read build information
-        id: release_info
-        run: |
-          build_info=/tmp/validation-build-info/${{ matrix.info_file }}/${{ matrix.info_file }}.txt
-
-          platform=`cat "$build_info" | grep -o 'platform: \S*' | cut -d ' ' -f 2`
-          platform_id=`echo $platform | sed 's/linux\///g' | tr -d ' '`
-          platform_arch=`([ "$platform_id" == "amd64" ] && echo x86_64) || ([ "$platform_id" == "arm64" ] && echo aarch64) || echo any`
-          cuda_version=`cat "$build_info" | grep -o 'cuda-version: \S*' | cut -d ' ' -f 2`
-          assets_image=`cat "$build_info" | grep -o 'cuda-quantum-assets-image: \S*' | cut -d ' ' -f 2`
-
-          echo "platform=$platform" >> $GITHUB_OUTPUT
-          echo "platform_arch=$platform_arch" >> $GITHUB_OUTPUT
-          echo "cuda_major_version=$(echo $cuda_version | cut -d . -f1)" >> $GITHUB_OUTPUT
-          echo "assets_image=$assets_image" >> $GITHUB_OUTPUT
-
-      - name: Log in to DockerHub
-        uses: docker/login-action@v4
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
-
-      - name: Log in to GitHub CR
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ github.token }}
-
-      - name: Set up buildx runner
-        uses: docker/setup-buildx-action@v4
-        with:
-          version: v0.19.0
-          buildkitd-config: /etc/buildkit/buildkitd.toml # hard-coded to run on our runners
-          driver-opts: |
-            image=moby/buildkit:v0.19.0
-
-      - name: Setup proxy cache
-        uses: nv-gha-runners/setup-proxy-cache@main
-        with:
-          enable-apt: true
-
-      - name: Build installer
-        uses: docker/build-push-action@v7
-        env:
-          DOCKER_BUILD_RECORD_UPLOAD: "false"
-        with:
-          context: .
-          file: ./docker/release/installer.Dockerfile
-          build-args: |
-            base_image=${{ steps.release_info.outputs.assets_image }}
-          platforms: ${{ steps.release_info.outputs.platform }}
-          outputs: type=local,dest=/tmp/install
-
-      - name: Upload installer
-        uses: actions/upload-artifact@v7
-        with:
-          name: ${{ steps.release_info.outputs.platform_arch }}-cu${{ steps.release_info.outputs.cuda_major_version }}-installer
-          path: /tmp/install
-          retention-days: 1
-          if-no-files-found: error
-
-  cudaq_wheels:
-    name: CUDA-Q Python wheels
-    if: ${{ toJson(fromJson(needs.metadata.outputs.python_wheels).info_files) != '[]' }}
-    needs: metadata
-    permissions:
-      contents: read
-      packages: read
-
-    environment:
-      name: ghcr-deployment
-      url: ${{ vars.deployment_url }}
-      deployment: false
-
-    strategy:
-      matrix:
-        info_file: ${{ fromJson(needs.metadata.outputs.python_wheels).info_files }}
-        python_version: ['3.11', '3.12', '3.13', '3.14']
-      fail-fast: false
-
-    runs-on: ${{ (contains(matrix.info_file, 'arm') && 'linux-arm64-cpu8') || 'linux-amd64-cpu8' }}
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v6
-        with:
-          ref: ${{ inputs.github_commit || needs.metadata.outputs.github_commit }}
-
-      - name: Load validation build information
-        uses: actions/download-artifact@v8
-        with:
-          name: ${{ needs.metadata.outputs.retrieved_build_info }}
-          path: /tmp/validation-build-info
-
-      - name: Read build information
-        id: release_info
-        run: |
-          build_info=/tmp/validation-build-info/${{ matrix.info_file }}/${{ matrix.info_file }}.txt
-
-          platform=`cat "$build_info" | grep -o 'platform: \S*' | cut -d ' ' -f 2`
-          platform_id=`echo $platform | sed 's/linux\///g' | tr -d ' '`
-          platform_arch=`([ "$platform_id" == "amd64" ] && echo x86_64) || ([ "$platform_id" == "arm64" ] && echo aarch64) || echo any`
-          cuda_version=`cat "$build_info" | grep -o 'cuda-version: \S*' | cut -d ' ' -f 2`
-          cudaqwheeldeps_image=`cat "$build_info" | grep -o 'cuda-quantum-wheeldeps-image: \S*' | cut -d ' ' -f 2`
-
-          echo "platform=$platform" >> $GITHUB_OUTPUT
-          echo "platform_arch=$platform_arch" >> $GITHUB_OUTPUT
-          echo "cuda_major_version=$(echo $cuda_version | cut -d . -f1)" >> $GITHUB_OUTPUT
-          echo "cudaqwheeldeps_image=$cudaqwheeldeps_image" >> $GITHUB_OUTPUT
-          echo "docker_output=type=local,dest=/tmp/wheels" >> $GITHUB_OUTPUT
-
-      - name: Log in to DockerHub
-        uses: docker/login-action@v4
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
-
-      - name: Log in to GitHub CR
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ github.token }}
-
-      - name: Set up context for buildx
-        run: |
-          docker context create builder_context
-
-      - name: Set up buildx runner
-        uses: docker/setup-buildx-action@v4
-        with:
-          endpoint: builder_context
-          version: v0.19.0
-          buildkitd-config: /etc/buildkit/buildkitd.toml # hard-coded to run on our runners
-          driver-opts: |
-            network=host
-            image=moby/buildkit:v0.19.0
-
-      - name: Setup proxy cache
-        uses: nv-gha-runners/setup-proxy-cache@main
-        with:
-          enable-apt: true
-
-      - name: Build cuda-quantum wheel
-        id: build_wheel
-        uses: docker/build-push-action@v7
-        env:
-          DOCKER_BUILD_RECORD_UPLOAD: "false"
-        with:
-          context: .
-          file: ./docker/release/cudaq.wheel.Dockerfile
-          build-args: |
-            base_image=${{ steps.release_info.outputs.cudaqwheeldeps_image }}
-            release_version=${{ needs.metadata.outputs.cudaq_version }}
-            python_version=${{ matrix.python_version }}
-          outputs: ${{ steps.release_info.outputs.docker_output }}
-
-      - name: Upload wheels
-        uses: actions/upload-artifact@v7
-        with:
-          name: ${{ steps.release_info.outputs.platform_arch }}-cu${{ steps.release_info.outputs.cuda_major_version }}-py${{ matrix.python_version }}-wheels
-          path: /tmp/wheels
-          retention-days: 1
-          if-no-files-found: error
-
-      # -d builds the cudaq-devel wheel INSTEAD OF the runtime wheel (see
-      # scripts/build_wheel.sh usage), so it must be a separate build, not a
-      # build-arg on the step above -- that silently replaced the amd64/cu13/
-      # py3.11 runtime wheel with a devel wheel and broke that cell entirely.
-      # One devel wheel per architecture (cu13/py3.11) is reused across python
-      # versions to build cudaq-logical below -- same pattern as ci.yml's shared
-      # python_devel_wheel job.
-      - name: Build cudaq-devel wheel
-        id: build_devel_wheel
-        if: >-
-          matrix.python_version == '3.11' &&
-          steps.release_info.outputs.cuda_major_version == '13'
-        uses: docker/build-push-action@v7
-        env:
-          DOCKER_BUILD_RECORD_UPLOAD: "false"
-        with:
-          context: .
-          file: ./docker/release/cudaq.wheel.Dockerfile
-          build-args: |
-            base_image=${{ steps.release_info.outputs.cudaqwheeldeps_image }}
-            release_version=${{ needs.metadata.outputs.cudaq_version }}
-            python_version=${{ matrix.python_version }}
-            build_devel=1
-          outputs: type=local,dest=/tmp/wheels-devel
-
-      - name: Upload cudaq-devel wheel
-        if: >-
-          matrix.python_version == '3.11' &&
-          steps.release_info.outputs.cuda_major_version == '13'
-        uses: actions/upload-artifact@v7
-        with:
-          name: ${{ steps.release_info.outputs.platform_arch }}-cu13-devel-wheel
-          path: /tmp/wheels-devel/cudaq_devel*.whl
-          retention-days: 1
-          if-no-files-found: error
-
-  cudaq_logical_wheels:
-    name: Build cudaq.logical (${{ matrix.arch }}, py${{ matrix.python_version }})
-    needs: [metadata, cudaq_wheels]
-    if: >-
-      ${{ contains(fromJson(needs.metadata.outputs.python_wheels).info_files, 'python_amd64_cu13_publishing') ||
-      contains(fromJson(needs.metadata.outputs.python_wheels).info_files, 'python_arm64_cu13_publishing') }}
-    strategy:
-      matrix:
-        arch: >-
-          ${{ fromJson(
-          contains(fromJson(needs.metadata.outputs.python_wheels).info_files, 'python_amd64_cu13_publishing') &&
-          (contains(fromJson(needs.metadata.outputs.python_wheels).info_files, 'python_arm64_cu13_publishing') &&
-          '["x86_64", "aarch64"]' || '["x86_64"]') || '["aarch64"]') }}
-        python_version: ['3.11', '3.12', '3.13', '3.14']
-      fail-fast: false
-    uses: ./.github/workflows/cudaq_logical_build.yml
-    with:
-      cudaq_version: ${{ needs.metadata.outputs.cudaq_version }}
-      runtime_artifact_name: ${{ matrix.arch }}-cu13-py${{ matrix.python_version }}-wheels
-      devel_artifact_name: ${{ matrix.arch }}-cu13-devel-wheel
-
+  # Tests the Deployments sdists and wheels.
   cudaq_metapackages:
     name: CUDA-Q metapackages
-    needs: [metadata, cudaq_wheels, cudaq_logical_wheels]
-    if: >-
-      ${{ !cancelled() && needs.metadata.result == 'success' &&
-      needs.cudaq_wheels.result == 'success' &&
-      needs.cudaq_logical_wheels.result != 'failure' }}
+    needs: metadata
+    permissions:
+      actions: read
+      contents: read
+      packages: read
     uses: ./.github/workflows/python_metapackages.yml
     with:
       cudaq_version: ${{ needs.metadata.outputs.cudaq_version }}
       python_versions: "['3.11', '3.12', '3.13', '3.14']"
       cuda_versions: "['', '12.6', '13.0']"
-      wheel_artifacts: '*-wheels'
+      wheel_artifacts: 'pycudaq-*-manylinux-*'
       logical_wheel_artifacts: 'cudaq_logical-*'
-      cudaq_logical_version: ${{ needs.cudaq_logical_wheels.outputs.logical_version }}
       github_commit: ${{ inputs.github_commit || needs.metadata.outputs.github_commit }}
+      build_packages: false
+      artifacts_run_id: ${{ needs.metadata.outputs.deployment_id }}
 
   macos_artifacts:
     name: macOS artifacts
     needs: metadata
     runs-on: ubuntu-latest
+    timeout-minutes: 150
     permissions:
       actions: read
 
     outputs:
       has_macos_wheels: ${{ steps.fetch.outputs.has_macos_wheels }}
-      has_macos_installer: ${{ steps.fetch.outputs.has_macos_installer }}
 
     steps:
       - name: Fetch macOS artifacts from Deployments run
@@ -686,18 +408,30 @@ jobs:
           if [ -z "$artifacts_url" ]; then
             echo "No artifacts URL available."
             echo "has_macos_wheels=false" >> $GITHUB_OUTPUT
-            echo "has_macos_installer=false" >> $GITHUB_OUTPUT
             exit 0
           fi
 
+          # Validation does not wait for macOS; wait here until its wheels
+          # exist or the Deployments run ends.
           # Keep the list off stdin: unzip eats it when it prompts.
-          retry gh api "$artifacts_url" --paginate \
-            -q '.artifacts[] | {name: .name, url: .archive_download_url}' \
-            | jq -c '.' > /tmp/macos_artifacts.jsonl
+          for attempt in $(seq 1 120); do
+            retry gh api "$artifacts_url" --paginate \
+              -q '.artifacts[] | {name: .name, url: .archive_download_url}' \
+              | jq -c '.' > /tmp/macos_artifacts.jsonl
+            wheels=$(grep -c '"pycudaq-[^"]*-darwin-arm64"' /tmp/macos_artifacts.jsonl || true)
+            if [ "$wheels" -ge 4 ]; then
+              break
+            fi
+            status=$(retry gh api "repos/${{ github.repository }}/actions/runs/${{ needs.metadata.outputs.deployment_id }}" --jq .status)
+            if [ "$status" == "completed" ]; then
+              break
+            fi
+            echo "Waiting for the macOS artifacts ($wheels wheels found, attempt $attempt)."
+            sleep 60
+          done
 
           has_macos_wheels=false
-          has_macos_installer=false
-          mkdir -p wheels installer
+          mkdir -p wheels
 
           while IFS= read -r artifact; do
             name=$(jq -r '.name' <<< "$artifact")
@@ -710,18 +444,10 @@ jobs:
               unzip -o "/tmp/${name}.zip" -d wheels/ < /dev/null
               rm "/tmp/${name}.zip"
               has_macos_wheels=true
-
-            elif [[ "$name" == cudaq-arm64-darwin-installer-* ]]; then
-              echo "Downloading macOS installer: $name"
-              retry download "$url" "/tmp/${name}.zip"
-              unzip -o "/tmp/${name}.zip" -d installer/ < /dev/null
-              rm "/tmp/${name}.zip"
-              has_macos_installer=true
             fi
           done < /tmp/macos_artifacts.jsonl
 
           echo "has_macos_wheels=$has_macos_wheels" >> $GITHUB_OUTPUT
-          echo "has_macos_installer=$has_macos_installer" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ github.token }}
 
@@ -734,100 +460,29 @@ jobs:
           retention-days: 1
           if-no-files-found: error
 
-      - name: Upload macOS installer
-        if: steps.fetch.outputs.has_macos_installer == 'true'
-        uses: actions/upload-artifact@v7
-        with:
-          name: darwin-arm64-installer
-          path: installer/
-          retention-days: 1
-          if-no-files-found: error
-
-  realtime_artifacts:
-    name: Realtime installers
-    needs: metadata
-    runs-on: ubuntu-latest
-    permissions:
-      actions: read
-
-    outputs:
-      has_realtime_installers: ${{ steps.fetch.outputs.has_realtime_installers }}
-
-    steps:
-      - name: Fetch realtime installers from Deployments run
-        id: fetch
-        run: |
-          set -euo pipefail
-          retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
-          # Redirect inside retry() so a retry truncates instead of appending.
-          download() { gh api "$1" > "$2"; }
-
-          artifacts_url="${{ needs.metadata.outputs.artifacts_url }}"
-          if [ -z "$artifacts_url" ]; then
-            echo "No artifacts URL available."
-            echo "has_realtime_installers=false" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          # Keep the list off stdin: unzip eats it when it prompts.
-          retry gh api "$artifacts_url" --paginate \
-            -q '.artifacts[] | select(.name | startswith("install_cuda_quantum_realtime_")) | {name: .name, url: .archive_download_url}' \
-            | jq -c '.' > /tmp/realtime_artifacts.jsonl
-
-          mkdir -p installers
-          count=0
-
-          while IFS= read -r artifact; do
-            name=$(jq -r '.name' <<< "$artifact")
-            url=$(jq -r '.url' <<< "$artifact")
-            echo "Downloading realtime installer: $name"
-            retry download "$url" "/tmp/${name}.zip"
-            # Installer only; the buildx provenance.json collides across artifacts.
-            unzip -o "/tmp/${name}.zip" 'install_cuda_quantum_realtime_*' -d installers/ < /dev/null
-            rm "/tmp/${name}.zip"
-            count=$((count + 1))
-          done < /tmp/realtime_artifacts.jsonl
-
-          echo "Fetched $count realtime installer artifact(s)."
-          if [ "$count" -gt 0 ]; then
-            ls -l installers/
-            echo "has_realtime_installers=true" >> $GITHUB_OUTPUT
-          else
-            echo "has_realtime_installers=false" >> $GITHUB_OUTPUT
-          fi
-          # Deployments builds amd64/arm64 x cu12.6/cu13.0.
-          if [ "$count" -gt 0 ] && [ "$count" -lt 4 ]; then
-            echo "::warning::Expected 4 realtime installers, found $count."
-          fi
-        env:
-          GH_TOKEN: ${{ github.token }}
-
-      # Re-upload under a single name so create_release can pull them with one
-      # download step (they are built in Deployments, i.e. a different run).
-      - name: Upload realtime installers
-        if: steps.fetch.outputs.has_realtime_installers == 'true'
-        uses: actions/upload-artifact@v7
-        with:
-          name: realtime-installers
-          path: installers/
-          retention-days: 1
-          if-no-files-found: error
-
   installer_validation:
     name: Installer validation
-    needs: [metadata, cudaq_installers]
+    needs: metadata
     runs-on: linux-amd64-gpu-a100-latest-1
     permissions:
+      actions: read
       contents: read
 
     strategy:
       matrix:
         os_image: ['redhat/ubi8:8.10', 'ubuntu:24.04']
         cuda_version: ['12.6', '13.0']
+        # The per-backend examples take ~90 min in one job; each shard runs a subset.
+        # Few shards, since every one needs a GPU runner and those are scarce.
+        shard: [core, tensornet]
         include:
           # 26.04 has CUDA 13.3+ only.
           - os_image: 'ubuntu:26.04'
             cuda_version: '13.3'
+            shard: core
+          - os_image: 'ubuntu:26.04'
+            cuda_version: '13.3'
+            shard: tensornet
       fail-fast: false
 
     container:
@@ -848,17 +503,21 @@ jobs:
         run: |
           cuda_major=`echo ${{ matrix.cuda_version }} | cut -d . -f1`
           echo "cuda_major=$cuda_major" >> $GITHUB_OUTPUT
+          # Deployments labels its CUDA 13 installer 13.0, also for the 13.3 one used on 26.04.
+          echo "artifact_cuda=${{ matrix.cuda_version == '13.3' && '13.0' || matrix.cuda_version }}" >> $GITHUB_OUTPUT
 
       - name: Load installer
         uses: actions/download-artifact@v8
         with:
-          name: x86_64-cu${{ steps.config.outputs.cuda_major }}-installer
+          name: cudaq-amd64-cu${{ steps.config.outputs.artifact_cuda }}-llvm-installer-${{ needs.metadata.outputs.deployment_id }}
           path: /tmp/install
+          run-id: ${{ needs.metadata.outputs.deployment_id }}
+          github-token: ${{ github.token }}
 
       - name: Verify installer integrity (re-fetch if corrupt)
         env:
           GH_TOKEN: ${{ github.token }}
-          ARTIFACT_NAME: x86_64-cu${{ steps.config.outputs.cuda_major }}-installer
+          ARTIFACT_NAME: cudaq-amd64-cu${{ steps.config.outputs.artifact_cuda }}-llvm-installer-${{ needs.metadata.outputs.deployment_id }}
         run: |
           retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           installer=/tmp/install/install_cuda_quantum_cu${{ steps.config.outputs.cuda_major }}.x86_64
@@ -866,7 +525,7 @@ jobs:
           if ! bash "$installer" --check; then
             echo "::warning::Installer failed integrity check after download; re-fetching artifact."
             rm -rf /tmp/install && mkdir -p /tmp/install
-            retry gh run download ${{ github.run_id }} -R ${{ github.repository }} -n "$ARTIFACT_NAME" -D /tmp/install
+            retry gh run download ${{ needs.metadata.outputs.deployment_id }} -R ${{ github.repository }} -n "$ARTIFACT_NAME" -D /tmp/install
             bash "$installer" --check
           fi
 
@@ -961,15 +620,27 @@ jobs:
           touch "$GITHUB_STEP_SUMMARY"
           chmod a+w "$GITHUB_STEP_SUMMARY"
 
+          # The tensornet backends take ~40 min, so they get their own shard. The
+          # core shard has all other backends and the non-backend tests.
+          case "${{ matrix.shard }}" in
+            core)
+              backends=""; exclude="tensornet tensornet-mps"; target_only=false ;;
+            tensornet)
+              backends="tensornet tensornet-mps"; exclude=""; target_only=true ;;
+          esac
+
           su cudaqtest -ls /bin/bash -c "
             set -o pipefail
             source ${install_path}/set_env.sh
             cd ${workdir}
             GITHUB_STEP_SUMMARY=$GITHUB_STEP_SUMMARY \
-            bash validate_installation.sh | tee /tmp/validation.out
+            CUDAQ_VALIDATION_EXCLUDE='$exclude' \
+            CUDAQ_VALIDATION_TARGET_TESTS_ONLY=$target_only \
+            bash validate_installation.sh $backends | tee /tmp/validation.out
           "
 
           # Check that the tests included the nvidia-mgpu backend:
+          [ "${{ matrix.shard }}" == "core" ] || exit 0
           nvidia_block_start=$(grep -n "Testing on nvidia target..." /tmp/validation.out | head -n1 | cut -d: -f1)
           nvidia_block=$(tail -n +$((nvidia_block_start + 1)) /tmp/validation.out | sed -n '/^Testing on /q;p')
 
@@ -982,8 +653,9 @@ jobs:
 
   wheel_validation_piponly:
     name: Wheel validation, pip only
-    needs: [metadata, cudaq_wheels, cudaq_logical_wheels, cudaq_metapackages]
+    needs: metadata
     permissions:
+      actions: read
       contents: read
 
     strategy:
@@ -1010,8 +682,10 @@ jobs:
       - name: Load CUDA-Q wheels
         uses: actions/download-artifact@v8
         with:
-          pattern: '*-wheels'
+          pattern: 'pycudaq-*-manylinux-*'
           path: /tmp/wheels
+          run-id: ${{ needs.metadata.outputs.deployment_id }}
+          github-token: ${{ github.token }}
           merge-multiple: true
 
       - name: Load CUDA-Q Logical wheels
@@ -1019,14 +693,18 @@ jobs:
         with:
           pattern: 'cudaq_logical-*'
           path: /tmp/wheels
+          run-id: ${{ needs.metadata.outputs.deployment_id }}
+          github-token: ${{ github.token }}
           merge-multiple: true
 
       - name: Load metapackage
         if: ${{ matrix.cuda_major == '' }}
         uses: actions/download-artifact@v8
         with:
-          name: ${{ needs.cudaq_metapackages.outputs.artifact_name }}
+          name: cudaq-metapackage-${{ needs.metadata.outputs.cudaq_version }}
           path: /tmp/packages
+          run-id: ${{ needs.metadata.outputs.deployment_id }}
+          github-token: ${{ github.token }}
 
       - name: Run basic validation
         shell: bash
@@ -1089,9 +767,10 @@ jobs:
 
   metapackage_validation_conda:
     name: Python metapackage validation, conda environment
-    needs: [metadata, cudaq_wheels, cudaq_logical_wheels, cudaq_metapackages]
+    needs: metadata
     runs-on: linux-amd64-gpu-a100-latest-1
     permissions:
+      actions: read
       contents: read
 
     strategy:
@@ -1123,8 +802,10 @@ jobs:
       - name: Load CUDA-Q wheels
         uses: actions/download-artifact@v8
         with:
-          pattern: '*-wheels'
+          pattern: 'pycudaq-*-manylinux-*'
           path: /tmp/wheels
+          run-id: ${{ needs.metadata.outputs.deployment_id }}
+          github-token: ${{ github.token }}
           merge-multiple: true
 
       - name: Load CUDA-Q Logical wheels
@@ -1132,13 +813,17 @@ jobs:
         with:
           pattern: 'cudaq_logical-*'
           path: /tmp/wheels
+          run-id: ${{ needs.metadata.outputs.deployment_id }}
+          github-token: ${{ github.token }}
           merge-multiple: true
 
       - name: Load metapackage
         uses: actions/download-artifact@v8
         with:
-          name: ${{ needs.cudaq_metapackages.outputs.artifact_name }}
+          name: cudaq-metapackage-${{ needs.metadata.outputs.cudaq_version }}
           path: /tmp/packages
+          run-id: ${{ needs.metadata.outputs.deployment_id }}
+          github-token: ${{ github.token }}
 
       - name: Run validation
         shell: bash
@@ -1186,9 +871,12 @@ jobs:
 
   metapackage_validation_macos:
     name: Python metapackage validation, macOS
-    needs: [metadata, cudaq_metapackages, macos_artifacts]
+    needs: [metadata, macos_artifacts]
     if: needs.macos_artifacts.outputs.has_macos_wheels == 'true'
     runs-on: macos-15
+    permissions:
+      actions: read
+      contents: read
 
     steps:
       - name: Checkout repository
@@ -1210,8 +898,10 @@ jobs:
       - name: Download metapackage
         uses: actions/download-artifact@v8
         with:
-          name: ${{ needs.cudaq_metapackages.outputs.artifact_name }}
+          name: cudaq-metapackage-${{ needs.metadata.outputs.cudaq_version }}
           path: /tmp/metapackages
+          run-id: ${{ needs.metadata.outputs.deployment_id }}
+          github-token: ${{ github.token }}
 
       - name: Validate metapackage install chain
         run: |
@@ -1259,168 +949,3 @@ jobs:
             echo "::error::Error running validation script"
             exit $script_rc
           fi
-
-  create_release:
-    name: CUDA-Q Release (draft)
-    # Validation jobs stay in needs so the draft runs after them, but the if:
-    # does not require them to pass.
-    needs: [metadata, cudaq_installers, cudaq_wheels, cudaq_logical_wheels, cudaq_metapackages, macos_artifacts, realtime_artifacts, release_image_validation, logical_release_image_validation, debug_image_validation, installer_validation, wheel_validation_piponly, metapackage_validation_conda, metapackage_validation_macos]
-    # Draft on a requested release title; tolerate validation flakes but require
-    # the build jobs (nothing to attach otherwise).
-    if: >-
-      always() && !cancelled()
-      && needs.metadata.outputs.release_title != ''
-      && inputs.github_commit == ''
-      && needs.cudaq_installers.result == 'success'
-      && needs.cudaq_wheels.result == 'success'
-      && needs.cudaq_logical_wheels.result == 'success'
-      && needs.cudaq_metapackages.result == 'success'
-    runs-on: ubuntu-latest
-
-    environment:
-      name: ghcr-deployment
-      url: ${{ vars.deployment_url }}
-      deployment: false
-
-    steps:
-      - name: Download CUDA-Q installer
-        uses: actions/download-artifact@v8
-        with:
-          pattern: '*-installer'
-          path: installers
-
-      - name: Download CUDA-Q Python wheels
-        uses: actions/download-artifact@v8
-        with:
-          pattern: '*-wheels'
-          path: wheelhouse
-
-      - name: Download CUDA-Q Realtime installer
-        if: >-
-          needs.realtime_artifacts.result == 'success'
-          && needs.realtime_artifacts.outputs.has_realtime_installers == 'true'
-        uses: actions/download-artifact@v8
-        with:
-          name: realtime-installers
-          path: installers
-
-      - name: Download CUDA-Q metapackages
-        uses: actions/download-artifact@v8
-        with:
-          name: ${{ needs.cudaq_metapackages.outputs.artifact_name }}
-          path: metapackages
-
-      - name: Download CUDA-Q Logical wheels
-        uses: actions/download-artifact@v8
-        with:
-          pattern: 'cudaq_logical-*'
-          path: logical-wheels
-          merge-multiple: true
-
-      - name: Download cudaq-devel wheels
-        uses: actions/download-artifact@v8
-        with:
-          pattern: "*-devel-wheel"
-          path: devel-wheels
-          merge-multiple: true
-
-      # Wheels are attached as release assets only; PyPI push is manual.
-      - name: Create draft release
-        run: |
-          for installer in `find installers/ -type f -not -name '*.whl'`; do
-            mv -v "$installer" "$(basename -- "$installer")"
-          done
-
-          release_id=${{ github.run_id }}
-          release_title="${{ needs.metadata.outputs.release_title }}"
-          github_commit=${{ needs.metadata.outputs.github_commit }}
-          version=${{ needs.metadata.outputs.release_version }}
-          versions=`gh release list -R ${{ github.repository }} --exclude-drafts --exclude-pre-releases | egrep -o "([0-9]{1,}\.)+[0-9]{1,}\S*" | sort -r -V`
-          latest_tag=`echo $versions | cut -d ' ' -f 1`
-          prerelease=`([ "$(echo $version | egrep -o '([0-9]{1,}\.)+[0-9]{1,}')" == "$version" ] && echo '') || echo '--prerelease'`
-
-          rel_notes="Release created by workflow [${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})."
-          rel_notes+=$(echo "<br/>GitHub commit [$github_commit](https://github.com/${{ github.repository }}/tree/$github_commit)")
-
-          # Flag a draft cut despite validation failure so reviewers see it.
-          validation_ok=true
-          for r in "${{ needs.release_image_validation.result }}" \
-                   "${{ needs.logical_release_image_validation.result }}" \
-                   "${{ needs.debug_image_validation.result }}" \
-                   "${{ needs.installer_validation.result }}" \
-                   "${{ needs.wheel_validation_piponly.result }}" \
-                   "${{ needs.metapackage_validation_conda.result }}" \
-                   "${{ needs.metapackage_validation_macos.result }}"; do
-            [ "$r" = "success" ] || [ "$r" = "skipped" ] || validation_ok=false
-          done
-          if [ "$validation_ok" != true ]; then
-            echo "::warning::Release draft created despite one or more validation failures."
-            rel_notes+="<br/>:warning: Created despite one or more validation failures; review the Validation run before publishing."
-          fi
-
-          # Count staged files, not the upstream flag: realtime installers come
-          # from Deployments, so a gap there would ship silently.
-          realtime_count=$(ls -1 install_cuda_quantum_realtime_* 2>/dev/null | wc -l)
-          echo "Realtime installers staged for upload: $realtime_count"
-          if [ "$realtime_count" -eq 0 ]; then
-            echo "::warning::No realtime installers found in the deployment run."
-            rel_notes+="<br/>:warning: No realtime installers were attached; check the Deployments run."
-          elif [ "$realtime_count" -lt 4 ]; then
-            echo "::warning::Only $realtime_count of 4 realtime installers were attached."
-            rel_notes+="<br/>:warning: Only $realtime_count of 4 realtime installers were attached; check the Deployments run."
-          fi
-
-          gh release create $release_id --title $release_id -R ${{ github.repository }} \
-            --target $github_commit --draft $prerelease \
-            --generate-notes --notes-start-tag $latest_tag --notes "$rel_notes"
-
-          # Installers are the biggest thing on disk (~10 GB): upload and
-          # free them before staging wheelhouses, or the runner runs out of
-          # space partway through zipping.
-          gh release upload $release_id -R ${{ github.repository }} install_cuda_quantum* --clobber
-          rm -f install_cuda_quantum*
-
-          # A single wheelhouse.zip file is too big. Split it up by platform,
-          # and upload + delete each one immediately -- zip leaves the
-          # uncompressed wheelhouse-${p}/ dir behind, so keeping all three
-          # around (plus their zips) at once is another ~5 GB we don't need.
-          platforms=$(ls wheelhouse | cut -d- -f1 | sort | uniq)
-          for p in $platforms; do
-            mkdir wheelhouse-${p}
-            for fulldir in wheelhouse/${p}-*; do
-              dir=$(basename $fulldir)
-              # CUDA-independent core is published from the CUDA 13 pipeline
-              # for both frontends. CUDA 12 builds also keep a copy under
-              # candidate-core/ for build-local validation only; delete it so
-              # it is not published and does not hold on to disk space.
-              rm -rf "wheelhouse/$dir/candidate-core"
-              mv -v "wheelhouse/$dir"/* wheelhouse-${p}/ && rmdir "wheelhouse/$dir"
-            done
-            if [[ ${p} != "darwin" ]]; then
-              if ! compgen -G "logical-wheels/cudaq_logical-*_${p}.whl" > /dev/null; then
-                echo "::error::No cudaq-logical wheel found for platform ${p} in logical-wheels/."
-                exit 1
-              fi
-              mv -v logical-wheels/cudaq_logical-*_${p}.whl wheelhouse-${p}/
-            fi
-            if [[ ${p} != "darwin" ]]; then
-              if ! compgen -G "devel-wheels/cudaq_devel-*_${p}.whl" > /dev/null; then
-                echo "::error::No cudaq-devel wheel found for platform ${p} in devel-wheels/."
-                exit 1
-              fi
-              mv -v devel-wheels/cudaq_devel-*_${p}.whl wheelhouse-${p}/
-            fi
-            zip -r wheelhouse-${p}.zip wheelhouse-${p}
-            gh release upload $release_id -R ${{ github.repository }} wheelhouse-${p}.zip --clobber
-            rm -rf wheelhouse-${p} wheelhouse-${p}.zip
-          done
-
-          zip -r metapackages.zip metapackages
-          gh release upload $release_id -R ${{ github.repository }} metapackages.zip --clobber
-          rm -rf metapackages metapackages.zip
-
-          # The release is left as a draft (the --draft=false toggle stays off).
-          gh release edit $release_id -R ${{ github.repository }} \
-            --title "$release_title" --tag $version $prerelease # --draft=false
-        env:
-          GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}

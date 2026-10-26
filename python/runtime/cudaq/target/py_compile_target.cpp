@@ -8,6 +8,7 @@
 
 #include "py_compile_target.h"
 #include "cudaq/Target/CompileTarget.h"
+#include "cudaq/runtime/logger/logger.h"
 #include <nanobind/nanobind.h>
 #include <nanobind/operators.h>
 #include <nanobind/stl/optional.h>
@@ -51,13 +52,43 @@ static std::string codegenRepr(const cudaq::config::Codegen &codegen) {
   return os.str();
 }
 
+static void reportUnsupportedStage() {
+  CUDAQ_ERROR("Unsupported compilation stage: only a single stage with a "
+              "custom-pipeline lowering is currently supported\n");
+}
+
+/// Access the custom pipeline lowering of a compile target with a single
+/// compilation stage.
+// TODO: Remove this once the Python bindings have been updated to handle
+// multiple stages.
+static const cudaq::config::CustomPipelineLowering &
+getCustomPipelineLowering(const cudaq::CompileTarget &target) {
+  if (target.stages.size() != 1)
+    reportUnsupportedStage();
+  const auto *lowering = std::get_if<cudaq::config::CustomPipelineLowering>(
+      &target.stages[0].lowering);
+  if (!lowering)
+    reportUnsupportedStage();
+  return *lowering;
+}
+static cudaq::config::CustomPipelineLowering &
+getCustomPipelineLowering(cudaq::CompileTarget &target) {
+  if (target.stages.size() != 1)
+    reportUnsupportedStage();
+  auto *lowering = std::get_if<cudaq::config::CustomPipelineLowering>(
+      &target.stages[0].lowering);
+  if (!lowering)
+    reportUnsupportedStage();
+  return *lowering;
+}
+
 static std::string compileTargetRepr(const cudaq::CompileTarget &ct) {
   std::ostringstream os;
   os << "CompileTarget(lowering=";
   if (ct.stages.empty())
     os << "None";
   else
-    os << customPipelineLoweringRepr(ct.getCustomPipelineLowering());
+    os << customPipelineLoweringRepr(getCustomPipelineLowering(ct));
   os << ", codegen=" << codegenRepr(ct.codegen) << ")";
   return os.str();
 }
@@ -156,7 +187,7 @@ void cudaq::bindCompileTarget(nanobind::module_ &mod) {
           [](CompileTarget &target) -> CustomPipelineLowering * {
             if (target.stages.empty())
               return nullptr;
-            return &target.getCustomPipelineLowering();
+            return &getCustomPipelineLowering(target);
           },
           [](CompileTarget &target,
              std::optional<CustomPipelineLowering> lowering) {
@@ -170,7 +201,8 @@ void cudaq::bindCompileTarget(nanobind::module_ &mod) {
                   .lowering = std::move(*lowering)});
               return;
             }
-            target.getCustomPipelineLowering() = std::move(*lowering);
+            auto &target_lowering = getCustomPipelineLowering(target);
+            target_lowering = std::move(*lowering);
           },
           nanobind::rv_policy::reference_internal)
       .def_rw("codegen", &CompileTarget::codegen,
