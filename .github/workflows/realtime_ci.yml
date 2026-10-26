@@ -116,13 +116,6 @@ jobs:
           name: install_cuda_quantum_realtime_cu${{ matrix.cuda_version }}.${{ matrix.platform }} 
           path: ./installers
 
-      # Only the install requirements, which the build scripts extend with the
-      # build-only packages; apt only, hence ubuntu.
-      - name: Install the install requirements
-        if: matrix.distro == 'ubuntu24.04'
-        shell: bash
-        run: bash realtime/scripts/install_prerequisites.sh
-      
       - name: Install CUDA Quantum Realtime using installer
         shell: bash
         run: |
@@ -133,18 +126,6 @@ jobs:
           # Make the installer executable and run it
           chmod +x "$installer_file"
           ./"$installer_file" --accept
-
-      - name: Check that the installed libraries load
-        if: matrix.distro == 'ubuntu24.04'
-        shell: bash
-        run: |
-          # With only the install requirements present, every library the
-          # installer ships must find what it links against.
-          export LD_LIBRARY_PATH=/opt/nvidia/cudaq/realtime/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
-          if ldd /opt/nvidia/cudaq/realtime/lib/*.so* | grep 'not found'; then
-            echo "ERROR: install_prerequisites.sh does not cover what the installed libraries load" >&2
-            exit 1
-          fi
 
       - name: Test CUDA Quantum Realtime installation
         shell: bash
@@ -176,6 +157,61 @@ jobs:
           make -j$(nproc)
           ./dispatch_kernel
   
+  # The runtime image has no development packages, so this fails if
+  # install_prerequisites.sh misses something the installed libraries load.
+  check_runtime_prerequisites:
+    name: Check Runtime Prerequisites
+    needs: build_installer
+    strategy:
+      matrix:
+        platform: [amd64, arm64]
+        cuda_version: ['12.6', '13.0']
+      fail-fast: false
+    runs-on: ${{ (contains(matrix.platform, 'arm') && 'linux-arm64-gpu-a100-latest-1') || 'linux-amd64-gpu-a100-latest-1' }}
+    permissions:
+      contents: read
+      packages: read
+
+    container:
+      image: nvidia/cuda:${{ matrix.cuda_version }}.0-runtime-ubuntu24.04
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Download installer
+        uses: actions/download-artifact@v8
+        with:
+          name: install_cuda_quantum_realtime_cu${{ matrix.cuda_version }}.${{ matrix.platform }}
+          path: ./installers
+
+      - name: Install the install requirements
+        shell: bash
+        run: bash realtime/scripts/install_prerequisites.sh
+
+      - name: Install CUDA Quantum Realtime using installer
+        shell: bash
+        run: |
+          cd ./installers
+          installer_file=$(ls install_cuda_quantum_realtime_*)
+          chmod +x "$installer_file"
+          ./"$installer_file" --accept
+
+      - name: Check that the installed libraries load
+        shell: bash
+        run: |
+          shopt -s nullglob
+          libs=(/opt/nvidia/cudaq/realtime/lib/*.so*)
+          if [ ${#libs[@]} -eq 0 ]; then
+            echo "ERROR: no libraries found in /opt/nvidia/cudaq/realtime/lib" >&2
+            exit 1
+          fi
+          export LD_LIBRARY_PATH=/opt/nvidia/cudaq/realtime/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
+          if ldd "${libs[@]}" | grep 'not found'; then
+            echo "ERROR: install_prerequisites.sh does not cover what the installed libraries load" >&2
+            exit 1
+          fi
+
   build_realtime:
     name: Build
     needs: changes

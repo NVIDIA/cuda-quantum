@@ -21,19 +21,13 @@ set -e
 . "$(dirname "$0")/deps_common.sh"
 
 if [ -x "$(command -v apt-get)" ]; then
-  # Fail early if the CUDA toolkit is missing.
-  cudaq_realtime_cuda_major > /dev/null
-
   retry apt-get update
-
-  # [libibverbs]
-  # The cpu_roce and gpu_roce transports load it.
-  retry apt-get install -y --no-install-recommends libibverbs1
 
   # [DOCA Host]
   cudaq_realtime_add_doca_repo
 
   # [Runtime packages]
+  # This also brings libibverbs1, which the cpu_roce and gpu_roce transports load.
   cudaq_realtime_install_runtime_packages
 
 elif [ -x "$(command -v dnf)" ]; then
