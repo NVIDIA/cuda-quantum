@@ -11,7 +11,7 @@
 
 # Test that `cudaq-target-db-gen` parses `quake-reference-semantics` correctly.
 
-version: 2
+version: 2-alpha
 name: v2-quake-reference-semantics
 description: "Quake reference-semantics profile options round trip"
 config:

@@ -10,7 +10,7 @@
 
 # The `unchecked` profile takes no options; extra fields are rejected.
 
-version: 2
+version: 2-alpha
 name: lit-v2-profile-options
 description: "Profile options rejected on the unchecked profile"
 config:

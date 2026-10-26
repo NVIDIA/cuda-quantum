@@ -10,6 +10,9 @@
 
 // YAML v2 schema for target configuration.
 //
+// This schema is a pre-release: it is selected with `version: 2-alpha` and
+// has no compatibility guarantees until it stabilizes as `version: 2`.
+//
 // v2 moves the compilation options out of `config` into a dedicated
 // top-level `compile-target` block and introduces support for declarative
 // IR profiles.
@@ -116,7 +119,7 @@ struct CompileTargetV2 {
 };
 
 struct TargetConfigV2 {
-  using Tag = rfl::Literal<"2">;
+  using Tag = rfl::Literal<"2-alpha">;
   std::string name;
   std::string description;
   rfl::DefaultVal<std::string> cudaqVersion;

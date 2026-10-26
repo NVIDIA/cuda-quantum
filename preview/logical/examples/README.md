@@ -8,9 +8,9 @@ a target stack, and call `cudaq.estimate`; compilation details stay inside the
 target.
 
 1. `00_logical_resource_estimate.py` is the minimal introduction: author a
-   kernel and count its portable logical resources.
+   kernel and read its portable logical resources from `estimate.resources`.
 2. `01_clifford_t_resource_estimate.py` descends one layer, changing rotation
-   precision and estimating the resulting Clifford+T resources.
+   precision and reading the resulting Clifford+T resources.
 3. `02_surface_code_resource_estimate.py` descends through surface-code and
    physical compilation. It varies layout parameters, then holds the layout
    fixed to expose operating-point effects.

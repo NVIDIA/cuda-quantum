@@ -1743,6 +1743,14 @@ static bool hasSSAPath(Operation *producer, Operation *consumer,
       continue;
     if (appendUsers(operation))
       return true;
+    // A captured state can reach the conditional's results through a branch
+    // yield. Follow result users, not the parent operation: reaching the parent
+    // would also claim causality into the opposite branch.
+    if (isa<qlx::cflow::YieldOp>(operation))
+      if (auto conditional =
+              dyn_cast<qlx::cflow::IfOp>(operation->getParentOp()))
+        if (appendUsers(conditional))
+          return true;
   }
   return false;
 }

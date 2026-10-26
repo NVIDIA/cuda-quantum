@@ -11,7 +11,7 @@
 # The IR profile tags are fixed by the schema; unknown profiles are rejected
 # with the list of allowed tags.
 
-version: 2
+version: 2-alpha
 name: lit-v2-unknown-profile
 description: "Unknown IR profile rejection coverage"
 config:
