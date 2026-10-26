@@ -47,81 +47,137 @@ unified_lookup_entry(std::uint32_t function_id, cudaq_function_entry_t *entries,
 }
 
 //==============================================================================
-// Unified dispatch kernel -- single thread, single block.
+// Unified dispatch kernel -- one block, every thread runs the handler.
 //
-// Each turn claims a request and its response frame from the transport, runs
-// the handler from one into the other, and hands the response back.  The
-// wait, the wire transfer and all receive bookkeeping live behind the hooks,
-// so what remains here is framing and dispatch.
+// Thread 0 owns the transport session: it claims each request and its
+// response frame from the hooks, hands a DEVICE_CALL request to the block
+// through a __shared__ descriptor, and after every thread has run the handler
+// writes the response header and publishes.  Frames nothing can be dispatched
+// to (bad magic, unknown function, wrong mode) are answered by thread 0 alone
+// without waking the block.  The wait, the wire transfer and all receive
+// bookkeeping live behind the hooks, so what remains here is framing and
+// dispatch.
 //==============================================================================
+
+namespace {
+
+/// Work descriptor thread 0 hands to the block for one DEVICE_CALL request.
+/// Written before the first barrier of a turn, read by every thread between
+/// the two barriers, written again only after the second.  `func == nullptr`
+/// means "leave the loop".
+struct UnifiedWork {
+  DeviceRPCFunction func;
+  void *request;
+  void *response;
+  std::uint32_t request_id;
+  std::uint64_t ptp_timestamp;
+};
+
+/// Fill the response header.  Written for every frame, bad magic included: the
+/// publish is mandatory, and an unwritten response frame would put whatever
+/// the slot last held on the wire.  The handler owns result_len; it is forced
+/// to 0 for unhandled frames and failed handlers.
+__device__ static inline void
+write_response_header(RPCResponse *response, int status,
+                      std::uint32_t request_id, std::uint64_t ptp_timestamp) {
+  response->magic = RPC_MAGIC_RESPONSE;
+  response->status = status;
+  if (status != 0)
+    response->result_len = 0;
+  response->request_id = request_id;
+  response->ptp_timestamp = ptp_timestamp;
+}
+
+} // namespace
 
 __global__ void
 cudaq_unified_dispatch_kernel(void *transport_ctx, std::size_t tx_stride_sz,
                               volatile int *shutdown_flag,
                               cudaq_function_entry_t *function_table,
                               std::size_t func_count, std::uint64_t *stats) {
+  if (blockIdx.x != 0) // one block, as for the ring kernels
+    return;
+  __shared__ UnifiedWork s_work;
+  // The session belongs to thread 0.  Every thread declares the storage (it
+  // is kernel-local); only thread 0 attaches and calls the hooks.
   alignas(CUDAQ_DEV_TRANSPORT_SESSION_ALIGN) unsigned char
       session_storage[CUDAQ_DEV_TRANSPORT_SESSION_BYTES];
-  void *session = cudaq_dev_transport_attach(session_storage, transport_ctx,
-                                             shutdown_flag);
-  if (session == nullptr)
-    return;
-
+  void *session = nullptr;
   std::uint64_t packet_count = 0;
+  if (threadIdx.x == 0)
+    session = cudaq_dev_transport_attach(session_storage, transport_ctx,
+                                         shutdown_flag);
+  // A refused attach (nullptr) makes the first turn publish "leave" below, so
+  // the whole block exits without a separate broadcast.
 
   while (true) {
-    void *request = nullptr;
-    void *response_frame = nullptr;
-    if (cudaq_dev_rx_poll(session, &request, &response_frame) !=
-        CUDAQ_RX_DEV_READY)
-      break;
+    if (threadIdx.x == 0) {
+      DeviceRPCFunction func = nullptr;
+      while (session != nullptr) {
+        void *request = nullptr;
+        void *response_frame = nullptr;
+        if (cudaq_dev_rx_poll(session, &request, &response_frame) !=
+            CUDAQ_RX_DEV_READY)
+          break; // shutdown: func stays nullptr
 
-    auto *header = static_cast<RPCHeader *>(request);
-    auto *response = static_cast<RPCResponse *>(response_frame);
+        auto *header = static_cast<RPCHeader *>(request);
+        // Read before anything is written: after the handler the compiler
+        // has to assume the request may have changed.
+        const std::uint32_t request_id = header->request_id;
+        const std::uint64_t ptp_timestamp = header->ptp_timestamp;
 
-    // Read before the handler runs: after its call the compiler has to assume
-    // the request may have changed and reload it behind the response stores.
-    const std::uint32_t request_id = header->request_id;
-    const std::uint64_t ptp_timestamp = header->ptp_timestamp;
+        if (header->magic == RPC_MAGIC_REQUEST) {
+          const cudaq_function_entry_t *entry = unified_lookup_entry(
+              header->function_id, function_table, func_count);
+          if (entry != nullptr &&
+              entry->dispatch_mode == CUDAQ_DISPATCH_DEVICE_CALL)
+            func = reinterpret_cast<DeviceRPCFunction>(
+                entry->handler.device_fn_ptr);
+        }
+        if (func != nullptr) {
+          s_work.request = request;
+          s_work.response = response_frame;
+          s_work.request_id = request_id;
+          s_work.ptp_timestamp = ptp_timestamp;
+          break;
+        }
 
-    int status = -1;
-
-    if (header->magic == RPC_MAGIC_REQUEST) {
-      const cudaq_function_entry_t *entry =
-          unified_lookup_entry(header->function_id, function_table, func_count);
-
-      if (entry != nullptr &&
-          entry->dispatch_mode == CUDAQ_DISPATCH_DEVICE_CALL) {
-        auto func =
-            reinterpret_cast<DeviceRPCFunction>(entry->handler.device_fn_ptr);
-        // Same two-pointer call as the host path (host_dispatcher.cpp): the
-        // handler reads the request from `request`, writes its result after
-        // the RPCResponse in `response_frame` and sets response->result_len.
-        status = func(request, response_frame, tx_stride_sz);
+        // Unhandled frame: answered here by thread 0 alone.  Published
+        // unconditionally: tx_publish is also what returns the slot's receive
+        // credit, so dropping one here would starve the transport a slot at a
+        // time.
+        write_response_header(static_cast<RPCResponse *>(response_frame), -1,
+                              request_id, ptp_timestamp);
+        cudaq_dev_tx_publish(session, response_frame);
+        packet_count++;
       }
+      s_work.func = func;
     }
 
-    // Written for every frame, bad magic included: the publish below is
-    // mandatory, and an unwritten response frame would put whatever the slot
-    // last held on the wire.
-    response->magic = RPC_MAGIC_RESPONSE;
-    response->status = status;
-    // The handler owns result_len; force it to 0 for unhandled frames and
-    // failed handlers.
-    if (status != 0)
-      response->result_len = 0;
-    response->request_id = request_id;
-    response->ptp_timestamp = ptp_timestamp;
+    __syncthreads(); // (1) the descriptor is published to the block
+    const UnifiedWork work = s_work;
+    if (work.func == nullptr)
+      break; // uniform: every thread read the same descriptor
 
-    // Published unconditionally, including for a frame whose magic did not
-    // match: tx_publish is also what returns the slot's receive credit, so
-    // dropping one here would starve the transport a slot at a time.
-    cudaq_dev_tx_publish(session, response_frame);
+    // Same two-pointer call as the host path (host_dispatcher.cpp): the handler
+    // reads the request from `request`, writes its result after the
+    // RPCResponse in `response` and sets response->result_len.  Every thread
+    // of the block makes the call; thread 0's return value is the one
+    // recorded.
+    const int status = work.func(work.request, work.response, tx_stride_sz);
 
-    packet_count++;
+    __syncthreads(); // (2) every thread's handler writes are done
+
+    if (threadIdx.x == 0) {
+      write_response_header(static_cast<RPCResponse *>(work.response), status,
+                            work.request_id, work.ptp_timestamp);
+      cudaq_dev_tx_publish(session, work.response);
+      packet_count++;
+    }
   }
 
-  atomicAdd(reinterpret_cast<unsigned long long *>(stats), packet_count);
+  if (threadIdx.x == 0)
+    atomicAdd(reinterpret_cast<unsigned long long *>(stats), packet_count);
 }
 
 //==============================================================================
@@ -131,8 +187,11 @@ cudaq_unified_dispatch_kernel(void *transport_ctx, std::size_t tx_stride_sz,
 extern "C" void cudaq_launch_unified_dispatch_device(
     void *transport_ctx, size_t tx_stride_sz,
     cudaq_function_entry_t *function_table, size_t func_count,
-    volatile int *shutdown_flag, uint64_t *stats, cudaStream_t stream) {
-  cudaq_unified_dispatch_kernel<<<1, 1, 0, stream>>>(
+    volatile int *shutdown_flag, uint64_t *stats, uint32_t threads_per_block,
+    cudaStream_t stream) {
+  // One block: the block is what every DEVICE_CALL handler runs on.
+  // cudaq_dispatcher_start validates threads_per_block >= 1.
+  cudaq_unified_dispatch_kernel<<<1, threads_per_block, 0, stream>>>(
       transport_ctx, tx_stride_sz, shutdown_flag, function_table, func_count,
       stats);
 }

@@ -67,6 +67,7 @@ NUM_PAGES=128
 CONTROL_PORT=8193
 FORWARD=false
 UNIFIED=false
+THREADS=32
 # Build parallelism
 JOBS=$(nproc 2>/dev/null || echo 8)
 
@@ -109,6 +110,8 @@ Run options:
   --payload-size N       Bytes per RPC payload (default: 16)
   --page-size N          Ring buffer slot size in bytes (default: 384)
   --num-pages N          Number of ring buffer slots (default: 128)
+  --threads N            Dispatch block size; every DEVICE_CALL handler runs
+                         on it, in both dispatch modes (default: 32)
   --control-port N       UDP control port for emulator (default: 8193)
   --bin-dir DIR          Binary directory containing executables (default: None)
   --help, -h             Show this help
@@ -134,6 +137,7 @@ while [[ $# -gt 0 ]]; do
         --gpu)              GPU_ID="$2"; shift ;;
         --forward)          FORWARD=true ;;
         --unified)          UNIFIED=true ;;
+        --threads)          THREADS="$2"; shift ;;
         --timeout)          TIMEOUT="$2"; shift ;;
         --num-messages)     NUM_MESSAGES="$2"; shift ;;
         --payload-size)     PAYLOAD_SIZE="$2"; shift ;;
@@ -456,6 +460,7 @@ do_run() {
     if $UNIFIED; then
         bridge_args+=(--unified)
     fi
+    bridge_args+=(--threads="$THREADS")
     CUDA_MODULE_LOADING=EAGER "$bridge_bin" "${bridge_args[@]}" > /tmp/bridge.log 2>&1 &
     BRIDGE_PID=$!
     PIDS+=($BRIDGE_PID)

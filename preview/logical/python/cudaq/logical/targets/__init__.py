@@ -380,11 +380,23 @@ def _merge_estimates(own, downstream):
 
 
 def _cudaq_estimate_result(estimates):
-    from cudaq.core.backends import EstimateResult
+    """Wrap estimates as an ``EstimateResult``.
 
-    return EstimateResult(annotations={
-        name: value.to_dict() for name, value in estimates.items()
-    })
+    ``resources`` reports the logical program (only when a LOGICAL estimate is
+    available); every tier, including LOGICAL, is also kept in ``annotations``.
+    """
+
+    from cudaq.core.backends import EstimateResult
+    from .. import estimate
+    from ..estimate.logical import logical_instruction_counts
+
+    annotations = {name: value.to_dict() for name, value in estimates.items()}
+    logical = estimates.get(estimate.Tier.LOGICAL.name)
+    if logical is None:
+        return EstimateResult(annotations=annotations)
+    return EstimateResult(annotations=annotations,
+                          instructions=logical_instruction_counts(logical),
+                          num_qubits=logical.logical_qubits_peak)
 
 
 class LogicalMachineBackend(Backend):

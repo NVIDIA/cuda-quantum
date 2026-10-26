@@ -138,12 +138,18 @@ static cudaq_status_t validate_dispatcher(cudaq_dispatcher_t *dispatcher) {
       return CUDAQ_ERR_INVALID_ARG;
     if (dispatcher->config.slot_size == 0)
       return CUDAQ_ERR_INVALID_ARG;
+    // One block of >= 1 threads: the block is what every DEVICE_CALL handler
+    // runs on.
+    if (dispatcher->config.num_blocks != 1 ||
+        dispatcher->config.threads_per_block == 0)
+      return CUDAQ_ERR_INVALID_ARG;
   } else {
     if (!ring_launch_fn(dispatcher))
       return CUDAQ_ERR_INVALID_ARG;
     if (!dispatcher->ringbuffer.rx_flags || !dispatcher->ringbuffer.tx_flags)
       return CUDAQ_ERR_INVALID_ARG;
-    if (dispatcher->config.num_blocks == 0 ||
+    // One block of >= 1 threads, as for the unified kernel.
+    if (dispatcher->config.num_blocks != 1 ||
         dispatcher->config.threads_per_block == 0 ||
         dispatcher->config.num_slots == 0 || dispatcher->config.slot_size == 0)
       return CUDAQ_ERR_INVALID_ARG;
@@ -524,12 +530,14 @@ cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher) {
       dispatcher->unified_launch_fn(
           dispatcher->transport_ctx, dispatcher->config.slot_size,
           dispatcher->table.entries, dispatcher->table.count,
-          dispatcher->shutdown_flag, dispatcher->stats, dispatcher->stream);
+          dispatcher->shutdown_flag, dispatcher->stats,
+          dispatcher->config.threads_per_block, dispatcher->stream);
     } else {
       cudaq_launch_unified_dispatch_device(
           dispatcher->transport_ctx, dispatcher->config.slot_size,
           dispatcher->table.entries, dispatcher->table.count,
-          dispatcher->shutdown_flag, dispatcher->stats, dispatcher->stream);
+          dispatcher->shutdown_flag, dispatcher->stats,
+          dispatcher->config.threads_per_block, dispatcher->stream);
     }
   } else {
     ring_launch_fn(dispatcher)(

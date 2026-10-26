@@ -288,6 +288,14 @@ struct DeviceCallWrapper<Fn> {
   // fills the other response header fields.
   __host__ __device__ static std::int32_t call(const void *rxSlot, void *txSlot,
                                                std::size_t slotSize) {
+#ifdef __CUDA_ARCH__
+    // The dispatch kernel calls the handler on every thread of its block and
+    // records thread 0's status; the wrapped function runs once, on thread 0
+    // (it may allocate, and bool outputs are packed with read-modify-write).
+    // On the host the dispatcher calls the handler once, so no guard is needed.
+    if (threadIdx.x != 0 || blockIdx.x != 0)
+      return 0;
+#endif
     if (!rxSlot || !txSlot || slotSize < sizeof(cudaq::realtime::RPCResponse))
       return -1;
     const auto *const request =

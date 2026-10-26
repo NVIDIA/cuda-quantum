@@ -9,6 +9,7 @@
 #include "cudaq/Target/CompileTarget.h"
 #include "cudaq/Support/Hash.h"
 #include "cudaq/Target/TargetConfig.h"
+#include <algorithm>
 #include <cctype>
 
 const std::string *cudaq::CompileTarget::getOverridePassPipeline() const {

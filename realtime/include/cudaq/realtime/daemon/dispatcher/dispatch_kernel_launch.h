@@ -64,6 +64,13 @@ struct __attribute__((packed)) RPCResponse {
 /// @param slot_size Byte size of each slot (the TX stride on the device path).
 /// @return Status code (0 = success).  CUDAQ_DISPATCH_STATUS_TRIGGER_GRAPH
 ///         keeps its meaning (see cudaq_realtime.h).
+///
+/// Threading: the dispatch kernel calls the handler on every thread of its
+/// block with identical arguments and synchronizes before writing the
+/// response; only the first thread's return value is recorded.  A handler
+/// that does not partition its work should do it on one thread and return
+/// early on the others.  Barriers inside a handler must be reached by every
+/// thread; there is no grid-wide sync.
 using DeviceRPCFunction = int (*)(const void *rx_slot, void *tx_slot,
                                   std::size_t slot_size);
 
