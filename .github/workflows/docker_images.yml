@@ -212,9 +212,9 @@ jobs:
 
       - name: Install Cosign
         if: inputs.environment
-        uses: sigstore/cosign-installer@v3.3.0
+        uses: sigstore/cosign-installer@v4.1.2
         with:
-          cosign-release: 'v2.2.2'
+          cosign-release: 'v2.6.5'
 
       - name: Sign image with GitHub OIDC Token
         if: inputs.environment && false # Signing is disabled as long as the package is private, since we can't clean up signatures in that case
@@ -437,9 +437,9 @@ jobs:
 
       - name: Install Cosign
         if: inputs.environment
-        uses: sigstore/cosign-installer@v3.3.0
+        uses: sigstore/cosign-installer@v4.1.2
         with:
-          cosign-release: 'v2.2.2'
+          cosign-release: 'v2.6.5'
 
       - name: Sign image with GitHub OIDC Token
         if: inputs.environment
@@ -705,9 +705,9 @@ jobs:
 
       - name: Install Cosign
         if: inputs.environment
-        uses: sigstore/cosign-installer@v3.3.0
+        uses: sigstore/cosign-installer@v4.1.2
         with:
-          cosign-release: 'v2.2.2'
+          cosign-release: 'v2.6.5'
 
       - name: Sign image with GitHub OIDC Token
         if: inputs.environment
@@ -976,7 +976,7 @@ jobs:
       - name: Spell check HTML documentation
         if: success()
         continue-on-error: true # to be removed once we update all docs for this check to pass
-        uses: rojopolis/spellcheck-github-actions@0.30.0
+        uses: rojopolis/spellcheck-github-actions@0.68.0
         with:
           config_path: '.github/pre-commit/spellcheck_config.yml'
           task_name: html
