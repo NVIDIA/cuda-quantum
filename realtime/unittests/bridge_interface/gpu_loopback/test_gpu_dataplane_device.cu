@@ -30,9 +30,12 @@ __device__ int gpu_dataplane_test_handler(const void *rx_slot, void *tx_slot,
   const std::uint32_t len =
       header->arg_len < capacity ? header->arg_len
                                  : static_cast<std::uint32_t>(capacity);
-  for (std::uint32_t i = 0; i < len; ++i)
+  // Every thread of the dispatch block runs this; each increments its own
+  // bytes.
+  for (std::uint32_t i = threadIdx.x; i < len; i += blockDim.x)
     out[i] = static_cast<std::uint8_t>(in[i] + 1);
-  response->result_len = len;
+  if (threadIdx.x == 0)
+    response->result_len = len;
   return 0;
 }
 

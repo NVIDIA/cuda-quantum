@@ -256,47 +256,13 @@ CUDAQ_REALTIME_DISPATCH_API void cudaq_launch_dispatch_kernel_regular(
 // The unified kernel combines RDMA RX, RPC dispatch, and RDMA TX into a single
 // kernel, eliminating inter-kernel flag handoff overhead.  Transport-specific
 // details are passed via an opaque context pointer so the dispatcher API
-// remains transport-agnostic.
+// remains transport-agnostic.  `threads_per_block` is the one block the
+// kernel runs as: thread 0 drives the transport and every thread calls each
+// DEVICE_CALL handler (see DeviceRPCFunction in dispatch_kernel_launch.h).
 // Only a transport that replaces the whole dispatch loop supplies one; the
 // dispatcher's own unified kernel is linked at run time
 // (cudaq_dispatcher_get_device_handler).
 typedef void (*cudaq_unified_launch_fn_t)(
-    void *transport_ctx, size_t tx_stride_sz,
-    cudaq_function_entry_t *function_table, size_t func_count,
-    volatile int *shutdown_flag, uint64_t *stats, uint32_t threads_per_block,
-    cudaStream_t stream);
-
-// Transport-agnostic unified dispatch kernel launcher (from
-// libcudaq-realtime-dispatch.a).  The kernel it launches reaches
-// its transport through the three __device__ hooks in
-// unified_device_transport.cuh, so a transport wires itself up by
-// implementing those rather than by writing a kernel.
-//
-// `tx_stride_sz` means what it does in the launch functions above: the slot
-// stride, which the kernel hands to DEVICE_CALL handlers as `slot_size`.  See
-// the KNOWN ISSUE on cudaq_dispatcher_config_t::slot_size for the caveat that
-// bound carries, which this path shares with the ring path.
-//
-// `transport_ctx` must be device-accessible: unlike the launch functions
-// above, which pass ring pointers as kernel arguments, the hooks dereference
-// it on the GPU.
-//
-// The kernel is launched as one block of `threads_per_block` threads.  Thread
-// 0 alone calls the transport hooks; every thread calls each DEVICE_CALL
-// handler between two block barriers, exactly as the ring kernels do.
-//
-// Because CUDA resolves __device__ calls at device-link time and never across
-// modules, and a device-function pointer is only valid inside the module that
-// defines it, the kernel must share one module with both the transport's hook
-// implementations and the consumer's DEVICE_CALL handlers.  The hooks ship in
-// this archive next to the kernel; a unified consumer links the archive and
-// device-links it together with its handlers, as the 3-kernel path does.
-//
-// cudaq_dispatcher_start calls it directly whenever no unified_launch_fn
-// override was set, through a weak reference that binds at load time to the
-// copy linked into the consumer binary; start() fails with
-// CUDAQ_ERR_INVALID_ARG if the archive was not linked.
-CUDAQ_REALTIME_DISPATCH_API void cudaq_launch_unified_dispatch_device(
     void *transport_ctx, size_t tx_stride_sz,
     cudaq_function_entry_t *function_table, size_t func_count,
     volatile int *shutdown_flag, uint64_t *stats, uint32_t threads_per_block,
@@ -486,14 +452,12 @@ typedef struct {
 // When set, cudaq_dispatcher_start() will invoke unified_launch_fn instead of
 // the 3-kernel launch_fn.  Ringbuffer setup is not required for unified mode.
 //
-// `unified_launch_fn` may be NULL, and normally is: start() then runs the
-// unified kernel from libcudaq-realtime-dispatch.a, which the consumer must
-// link.  Pass a function only to override the whole dispatch loop; it
-// receives config.threads_per_block and must keep the one-block threading
-// contract (see DeviceRPCFunction in dispatch_kernel_launch.h).
-// Whichever kernel runs must be device-linked into the same module as the
-// DEVICE_CALL handlers in the function table.  `transport_ctx` is required
-// either way, and
+// `unified_launch_fn` is required: the dispatcher's own unified kernel runs
+// only over a bridge's GPU data plane.  It receives config.threads_per_block
+// and must keep the one-block threading contract (see DeviceRPCFunction in
+// dispatch_kernel_launch.h).  Whichever kernel runs must be device-linked
+// into the same module as the DEVICE_CALL handlers in the function table.
+// `transport_ctx` is required too, and
 // config.slot_size must give the slot stride, which reaches the kernel as
 // its tx_stride_sz.
 cudaq_status_t

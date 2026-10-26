@@ -51,11 +51,12 @@ if(CMAKE_CUDA_COMPILER)
   enable_language(CUDA)
   
   # The dispatch kernel sources are compiled into this test directly instead
-  # of linking cudaq-realtime-dispatch: the unified-kernel tests define the
-  # three cudaq_dev_* transport hooks over a fake pinned-memory ring, and the
-  # archive carries its own hook TU (unified_transport_none.cu or the gpu_roce
-  # one), which would collide at device link.  libcudaq-realtime.so's weak
-  # references to the launchers bind to this executable's copies.
+  # of linking cudaq-realtime-dispatch: the unified kernel ships in no archive
+  # (libcudaq-realtime links it at run time over a bridge), and the
+  # unified-kernel tests define the three cudaq_dev_* transport hooks over a
+  # fake pinned-memory ring and device-link them with it here.
+  # libcudaq-realtime.so's weak references to the ring launchers bind to this
+  # executable's copies.
   add_executable(test_dispatch_kernel
     test_dispatch_kernel.cu
     ${CUDAQ_REALTIME_SOURCE_DIR}/lib/daemon/dispatcher/dispatch_kernel.cu

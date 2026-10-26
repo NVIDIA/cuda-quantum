@@ -59,6 +59,37 @@ unified_lookup_entry(std::uint32_t function_id, cudaq_function_entry_t *entries,
 // dispatch.
 //==============================================================================
 
+namespace {
+
+/// Work descriptor thread 0 hands to the block for one DEVICE_CALL request.
+/// Written before the first barrier of a turn, read by every thread between
+/// the two barriers, written again only after the second.  `func == nullptr`
+/// means "leave the loop".
+struct UnifiedWork {
+  DeviceRPCFunction func;
+  void *request;
+  void *response;
+  std::uint32_t request_id;
+  std::uint64_t ptp_timestamp;
+};
+
+/// Fill the response header.  Written for every frame, bad magic included: the
+/// publish is mandatory, and an unwritten response frame would put whatever
+/// the slot last held on the wire.  The handler owns result_len; it is forced
+/// to 0 for unhandled frames and failed handlers.
+__device__ static inline void
+write_response_header(RPCResponse *response, int status,
+                      std::uint32_t request_id, std::uint64_t ptp_timestamp) {
+  response->magic = RPC_MAGIC_RESPONSE;
+  response->status = status;
+  if (status != 0)
+    response->result_len = 0;
+  response->request_id = request_id;
+  response->ptp_timestamp = ptp_timestamp;
+}
+
+} // namespace
+
 extern "C" __global__ void
 cudaq_unified_dispatch_kernel(void *transport_ctx, std::size_t tx_stride_sz,
                               volatile int *shutdown_flag,
@@ -71,15 +102,11 @@ cudaq_unified_dispatch_kernel(void *transport_ctx, std::size_t tx_stride_sz,
   // is kernel-local); only thread 0 attaches and calls the hooks.
   alignas(CUDAQ_DEV_TRANSPORT_SESSION_ALIGN) unsigned char
       session_storage[CUDAQ_DEV_TRANSPORT_SESSION_BYTES];
-  void *session =
-      cudaq_dev_enter_kernel(session_storage, transport_ctx, shutdown_flag);
-  if (session == nullptr)
-    return;
-
+  void *session = nullptr;
   std::uint64_t packet_count = 0;
   if (threadIdx.x == 0)
-    session = cudaq_dev_transport_attach(session_storage, transport_ctx,
-                                         shutdown_flag);
+    session =
+        cudaq_dev_enter_kernel(session_storage, transport_ctx, shutdown_flag);
   // A refused attach (nullptr) makes the first turn publish "leave" below, so
   // the whole block exits without a separate broadcast.
 

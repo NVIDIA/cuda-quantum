@@ -654,18 +654,20 @@ static bool is_linked_device_code(const cudaq_dispatcher_t *dispatcher,
 }
 
 // Launch the unified kernel of the dispatcher's linked module, with the
-// arguments of cudaq_unified_launch_fn_t.
+// arguments of cudaq_unified_launch_fn_t: one block of `threads_per_block`
+// threads.
 static CUresult launch_linked_unified_kernel(
     CUkernel kernel, void *transport_ctx, size_t tx_stride_sz,
     cudaq_function_entry_t *function_table, size_t func_count,
-    volatile int *shutdown_flag, uint64_t *stats, cudaStream_t stream) {
+    volatile int *shutdown_flag, uint64_t *stats, uint32_t threads_per_block,
+    cudaStream_t stream) {
   // Exactly the kernel's parameter types: cudaLaunchKernel copies each
   // argument by the size of the parameter it lands in.
   void *args[] = {&transport_ctx,  &tx_stride_sz, &shutdown_flag,
                   &function_table, &func_count,   &stats};
   return cudaq::realtime::detail::driver_library()->launch_kernel(
-      reinterpret_cast<CUfunction>(kernel), 1, 1, 1, 1, 1, 1, 0, stream, args,
-      nullptr);
+      reinterpret_cast<CUfunction>(kernel), 1, 1, 1, threads_per_block, 1, 1, 0,
+      stream, args, nullptr);
 }
 
 // Address and size of the global `name` in the linked module.
@@ -897,8 +899,7 @@ cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher) {
           dispatcher->jit_device_lib.dispatch_kernel, dispatcher->transport_ctx,
           dispatcher->config.slot_size, dispatcher->table.entries,
           dispatcher->table.count, dispatcher->shutdown_flag, dispatcher->stats,
-          dispatcher->config.threads_per_block,
-          dispatcher->stream);
+          dispatcher->config.threads_per_block, dispatcher->stream);
       if (launched != CUDA_SUCCESS) {
         fprintf(stderr, "CUDA error in dispatcher launch: CUresult %d\n",
                 static_cast<int>(launched));

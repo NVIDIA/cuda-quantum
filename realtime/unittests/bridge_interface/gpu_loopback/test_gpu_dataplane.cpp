@@ -54,6 +54,8 @@ cudaq_dispatcher_config_t make_config(cudaq_dispatch_path_t path,
   config.dispatch_path = path;
   config.dispatch_mode = CUDAQ_DISPATCH_DEVICE_CALL;
   config.kernel_type = kernel_type;
+  config.num_blocks = 1;
+  config.threads_per_block = 32;
   return config;
 }
 
