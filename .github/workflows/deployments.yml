@@ -313,7 +313,7 @@ jobs:
   source_build_python:
     name: Build cross-platform dependencies (Python)
     needs: metadata
-    # Only refreshes the cache that the installer build restores its Python toolchain from.
+    # Only refreshes the cache that the installer builds in ci.yml restore their Python toolchain from.
     if: needs.metadata.outputs.build_dependencies == 'true' && needs.metadata.outputs.cache_target != ''
     strategy:
       matrix:
@@ -947,8 +947,7 @@ jobs:
 
   binaries:
     name: Create CUDA Quantum installer
-    # source_build_python fills the cache that the installer build restores; it may be skipped or fail.
-    needs: [metadata, config, release_draft, source_build_python]
+    needs: [metadata, config, release_draft]
     # release_draft is skipped without create_release.
     if: >-
       ${{ !cancelled() && ! inputs.devcontainer_only
@@ -972,6 +971,7 @@ jobs:
       build_cache: ${{ fromJson(needs.config.outputs.json).build_cache[format('{0}-cu{1}-installer', matrix.platform, matrix.cuda_version)] }}
       environment: ghcr-deployment
       run_validation: false # validation runs in the Validation workflow
+      build_python: false # only the installer validation in CI uses the wheel
       release_version: ${{ needs.metadata.outputs.cudaq_version }}
       release_tag: ${{ needs.release_draft.outputs.release_tag }}
       keep_installer: true # Validation downloads it

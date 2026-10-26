@@ -17,6 +17,10 @@
 # [Operating System]
 ARG base_image=amd64/almalinux:8
 
+# Set to false to skip building and testing the Python wheel, which only the CI
+# validation of the installer uses.
+ARG build_python=true
+
 # Default empty stage for ccache data. CI overrides this with
 # --build-context ccache-data=<path> to inject a pre-populated cache.
 FROM scratch AS ccache-data
@@ -459,8 +463,15 @@ RUN tar cf /ccache.tar -C /root/.ccache .
 FROM scratch AS ccache-export
 COPY --from=ccache-tar /ccache.tar /
 
+# Selecting the stage by build argument keeps the Python stages out of the build
+# when they are not needed.
+FROM python_tests AS python_wheelhouse_true
+FROM prereqs AS python_wheelhouse_false
+RUN mkdir /wheelhouse
+FROM python_wheelhouse_${build_python} AS python_wheelhouse
+
 FROM cpp_tests
-COPY --from=python_tests /wheelhouse /cuda-quantum/wheelhouse
+COPY --from=python_wheelhouse /wheelhouse /cuda-quantum/wheelhouse
 
 # Installing a minimal set of CUDA development dependencies.
 RUN . /cuda-quantum/scripts/configure_build.sh install-gcc && \

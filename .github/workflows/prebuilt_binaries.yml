@@ -44,6 +44,11 @@ on:
         type: boolean
         default: false
         description: Keep the installer artifact after the run for Validation.
+      build_python:
+        required: false
+        type: boolean
+        default: true
+        description: Also build and test the Python wheel. Needed by run_validation, which installs it.
     secrets:
       DOCKERHUB_USERNAME:
         required: true
@@ -145,7 +150,9 @@ jobs:
               echo "$registry_cache_image:$(echo ${{ github.ref_name }} | tr / -)"
             fi
             # Cache of the LLVM toolchain with the MLIR Python bindings (prereqs_python stage).
-            echo "${{ inputs.build_cache }}" | sed 's/-assets-prereqs-/-assets-prereqs_python-/' | grep prereqs_python || true
+            if ${{ inputs.build_python }}; then
+              echo "${{ inputs.build_cache }}" | sed 's/-assets-prereqs-/-assets-prereqs_python-/' | grep prereqs_python || true
+            fi
             echo multiline
           } >> $GITHUB_OUTPUT
 
@@ -208,6 +215,7 @@ jobs:
             release_version=${{ steps.config.outputs.cudaq_version }}
             base_image=${{ inputs.platform_base_image }}
             cuda_version=${{ inputs.cuda_version }}
+            build_python=${{ inputs.build_python }}
           tags: ${{ steps.metadata.outputs.tags }}
           labels: ${{ steps.metadata.outputs.labels }}
           platforms: ${{ inputs.platform }}
@@ -282,7 +290,7 @@ jobs:
           retention-days: ${{ inputs.release_version != '' && 14 || 3 }}
           if-no-files-found: error
 
-      # The artifact also holds a wheel, which is not a release asset.
+      # With build_python, the artifact also holds a wheel, which is not a release asset.
       - name: Attach installer to draft release
         if: inputs.release_tag != ''
         env:
