@@ -2232,8 +2232,8 @@ Key fields:
     .notranslate}[`api_key=...)`{.docutils .literal .notranslate}]{.pre}
     in Python.
 
-For the full list of recognized YAML fields see the mapping traits in
-[TargetConfigYaml.cpp](https://github.com/NVIDIA/cuda-quantum/blob/main/cudaq/lib/Target/Yaml/TargetConfigYaml.cpp){.reference
+For the full list of recognized YAML fields see the versioned schemas in
+[cudaq/lib/Target/Yaml](https://github.com/NVIDIA/cuda-quantum/tree/main/cudaq/lib/Target/Yaml){.reference
 .external}. For a complete working example of a REST-style plugin, see
 the [mock_rest reference
 plugin](https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples/plugins/mock_rest){.reference

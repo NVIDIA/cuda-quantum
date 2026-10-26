@@ -2171,9 +2171,14 @@ current shell, run [`source`{.docutils .literal
 .notranslate}[`/opt/nvidia/cudaq/set_env.sh`{.docutils .literal
 .notranslate}]{.pre} (or the path you chose).
 
-If you have an NVIDIA GPU on Linux, please also install the [CUDA
+If you have an NVIDIA GPU on Linux, please also install the [[CUDA
+runtime libraries]{.std
+.std-ref}](install/local_installation.html#cuda-dependencies-prebuilt-binaries){.reference
+.internal} to enable GPU-acceleration within CUDA-Q. The complete [CUDA
 Toolkit](https://developer.nvidia.com/cuda-downloads){.reference
-.external} to enable GPU-acceleration within CUDA-Q.
+.external} includes them and also provides the [`nvcc`{.docutils
+.literal .notranslate}]{.pre} compiler, which you only need to build
+CUDA-Q or other CUDA code.
 
 Please see the complete [[installation guide]{.std
 .std-ref}](install/local_installation.html#install-prebuilt-binaries){.reference

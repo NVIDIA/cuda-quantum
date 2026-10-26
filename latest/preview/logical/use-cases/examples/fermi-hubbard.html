@@ -346,25 +346,25 @@ Clifford+T synthesis.</p>
 <span class="c1"># %%</span>
 <span class="c1"># Estimate the workload directly as portable logical actions.</span>
 <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="n">cql</span><span class="o">.</span><span class="n">targets</span><span class="o">.</span><span class="n">estimator</span><span class="p">)</span>
-<span class="n">logical_estimate</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">estimate</span><span class="p">(</span><span class="n">fermi_hubbard_trotter</span><span class="p">,</span> <span class="o">*</span><span class="n">kernel_arguments</span><span class="p">)</span>
-<span class="n">logical_resources</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">estimate</span><span class="o">.</span><span class="n">LogicalEstimate</span><span class="o">.</span><span class="n">from_annotations</span><span class="p">(</span>
-    <span class="n">logical_estimate</span><span class="o">.</span><span class="n">annotations</span><span class="p">)</span>
+<span class="n">logical_resources</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">estimate</span><span class="p">(</span><span class="n">fermi_hubbard_trotter</span><span class="p">,</span>
+                                   <span class="o">*</span><span class="n">kernel_arguments</span><span class="p">)</span><span class="o">.</span><span class="n">resources</span>
 
 <span class="c1"># %%</span>
 <span class="c1"># Estimate the same workload after synthesis with the Clifford+T target.</span>
 <span class="n">clifford_t_target</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">targets</span><span class="o">.</span><span class="n">clifford_t_target</span><span class="p">(</span><span class="n">precision</span><span class="o">=</span><span class="mf">1.0e-6</span><span class="p">)</span>
 <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="n">clifford_t_target</span><span class="p">)</span>
-<span class="n">clifford_t_estimate</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">estimate</span><span class="p">(</span><span class="n">fermi_hubbard_trotter</span><span class="p">,</span> <span class="o">*</span><span class="n">kernel_arguments</span><span class="p">)</span>
-<span class="n">clifford_t_resources</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">estimate</span><span class="o">.</span><span class="n">LogicalEstimate</span><span class="o">.</span><span class="n">from_annotations</span><span class="p">(</span>
-    <span class="n">clifford_t_estimate</span><span class="o">.</span><span class="n">annotations</span><span class="p">)</span>
+<span class="n">clifford_t_resources</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">estimate</span><span class="p">(</span><span class="n">fermi_hubbard_trotter</span><span class="p">,</span>
+                                      <span class="o">*</span><span class="n">kernel_arguments</span><span class="p">)</span><span class="o">.</span><span class="n">resources</span>
 
 <span class="c1"># %%</span>
 <span class="c1"># Print the two independently calculated resource summaries.</span>
 <span class="nb">print</span><span class="p">(</span><span class="s2">"Fermi--Hubbard logical resources:"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  logical: depth=</span><span class="si">{</span><span class="n">logical_resources</span><span class="o">.</span><span class="n">action_depth_upper_bound</span><span class="si">}</span><span class="s2">, "</span>
-      <span class="sa">f</span><span class="s2">"actions=</span><span class="si">{</span><span class="nb">dict</span><span class="p">(</span><span class="n">logical_resources</span><span class="o">.</span><span class="n">actions</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
-<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  clifford_t: depth=</span><span class="si">{</span><span class="n">clifford_t_resources</span><span class="o">.</span><span class="n">action_depth_upper_bound</span><span class="si">}</span><span class="s2">, "</span>
-      <span class="sa">f</span><span class="s2">"actions=</span><span class="si">{</span><span class="nb">dict</span><span class="p">(</span><span class="n">clifford_t_resources</span><span class="o">.</span><span class="n">actions</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">name</span><span class="p">,</span> <span class="n">resources</span> <span class="ow">in</span> <span class="p">((</span><span class="s2">"logical"</span><span class="p">,</span> <span class="n">logical_resources</span><span class="p">),</span> <span class="p">(</span><span class="s2">"clifford_t"</span><span class="p">,</span>
+                                                         <span class="n">clifford_t_resources</span><span class="p">)):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">: qubits=</span><span class="si">{</span><span class="n">resources</span><span class="o">.</span><span class="n">num_qubits</span><span class="si">}</span><span class="s2">, "</span>
+          <span class="sa">f</span><span class="s2">"operations=</span><span class="si">{</span><span class="n">resources</span><span class="o">.</span><span class="n">count</span><span class="p">()</span><span class="si">}</span><span class="s2">, T=</span><span class="si">{</span><span class="n">resources</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s1">'t'</span><span class="p">)</span><span class="si">}</span><span class="s2">, "</span>
+          <span class="sa">f</span><span class="s2">"depth=</span><span class="si">{</span><span class="n">resources</span><span class="o">.</span><span class="n">depth</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"    gates=</span><span class="si">{</span><span class="n">resources</span><span class="o">.</span><span class="n">to_dict</span><span class="p">()</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </pre></div>
 </div>
 <p><a class="reference internal" href="index.html"><span class="std std-doc">Back to examples</span></a></p>

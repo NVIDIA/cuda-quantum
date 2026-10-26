@@ -2179,14 +2179,16 @@ you set for the corresponding environment variable(s).
 ::: {#cuda .section}
 ### CUDA[¶](#cuda "Permalink to this heading"){.headerlink}
 
-Building CUDA-Q requires a full installation of the CUDA toolkit. **You
-can install the CUDA toolkit and use the CUDA compiler without having a
-GPU.** The instructions are tested using version 12.6 and 13.0, but
-other CUDA 12 or 13 versions should work, as long as the CUDA runtime
-version on the host system matches the CUDA version used for the build,
-and the installed driver on the host system supports that CUDA version.
-We recommend using the latest CUDA version that is supported by the
-driver on the host system.
+Building CUDA-Q requires a full installation of the CUDA toolkit.
+Running CUDA-Q only requires the CUDA runtime libraries, see
+[[below]{.std .std-ref}](#cuda-runtime-libraries){.reference .internal}.
+**You can install the CUDA toolkit and use the CUDA compiler without
+having a GPU.** The instructions are tested using version 12.6 and 13.0,
+but other CUDA 12 or 13 versions should work, as long as the CUDA
+runtime version on the host system matches the CUDA version used for the
+build, and the installed driver on the host system supports that CUDA
+version. We recommend using the latest CUDA version that is supported by
+the driver on the host system.
 
 Download a suitable [CUDA
 version](https://developer.nvidia.com/cuda-toolkit-archive){.reference
@@ -2643,6 +2645,8 @@ dependencies that are not included in the migrated assets and are needed
 to use some of the CUDA-Q features and components.
 
 ::: {#cuda-runtime-libraries .section}
+[]{#id1}
+
 ### CUDA Runtime Libraries[¶](#cuda-runtime-libraries "Permalink to this heading"){.headerlink}
 
 To use GPU-acceleration in CUDA-Q you will need to install the necessary
@@ -2676,6 +2680,20 @@ packages for the AlmaLinux 8 environment:
     fi
 :::
 :::
+
+[CuPy](https://cupy.dev){.reference .external} compiles kernels at
+runtime and needs the CUDA headers, which the runtime libraries do not
+include. Without them it fails with "Failed to find CUDA headers", for
+example when using the [`dynamics`{.docutils .literal
+.notranslate}]{.pre} target. Install
+[`cuda-cudart-dev-<version>`{.docutils .literal .notranslate}]{.pre} or
+the complete CUDA toolkit, or install CuPy with its [`ctk`{.docutils
+.literal .notranslate}]{.pre} extra, for example [`pip`{.docutils
+.literal .notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`install`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`cupy-cuda13x[ctk]`{.docutils .literal
+.notranslate}]{.pre}.
 :::
 
 ::: {#mpi .section}

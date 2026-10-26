@@ -1267,6 +1267,7 @@ corresponding environment variable(s).</p>
 <section id="cuda">
 <h3>CUDA<a class="headerlink" href="#cuda" title="Permalink to this heading">¶</a></h3>
 <p>Building CUDA-Q requires a full installation of the CUDA toolkit.
+Running CUDA-Q only requires the CUDA runtime libraries, see <a class="reference internal" href="#cuda-runtime-libraries"><span class="std std-ref">below</span></a>.
 <strong>You can install the CUDA toolkit and use the CUDA compiler without having a GPU.</strong>
 The instructions are tested using version 12.6 and 13.0, but other CUDA 12 or 13 versions
 should work, as long as the CUDA runtime version on the host system matches the
@@ -1573,7 +1574,7 @@ libraries that can be used with CUDA-Q, please take a look at <a class="referenc
 that are not included in the migrated assets and are needed to use some of the
 CUDA-Q features and components.</p>
 <section id="cuda-runtime-libraries">
-<h3>CUDA Runtime Libraries<a class="headerlink" href="#cuda-runtime-libraries" title="Permalink to this heading">¶</a></h3>
+<span id="id1"></span><h3>CUDA Runtime Libraries<a class="headerlink" href="#cuda-runtime-libraries" title="Permalink to this heading">¶</a></h3>
 <p>To use GPU-acceleration in CUDA-Q you will need to install the necessary
 CUDA runtime libraries. Their version (at least the version major) needs to match the version
 used for the build. While not necessary, we recommend installing
@@ -1601,6 +1602,10 @@ dnf<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </s
 <span class="k">fi</span>
 </pre></div>
 </div>
+<p><a class="reference external" href="https://cupy.dev">CuPy</a> compiles kernels at runtime and needs the CUDA headers, which the runtime libraries
+do not include. Without them it fails with “Failed to find CUDA headers”, for example when using the <code class="docutils literal notranslate"><span class="pre">dynamics</span></code> target.
+Install <code class="docutils literal notranslate"><span class="pre">cuda-cudart-dev-&lt;version&gt;</span></code> or the complete CUDA toolkit, or install CuPy with its <code class="docutils literal notranslate"><span class="pre">ctk</span></code> extra,
+for example <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">cupy-cuda13x[ctk]</span></code>.</p>
 </section>
 <section id="mpi">
 <h3>MPI<a class="headerlink" href="#mpi" title="Permalink to this heading">¶</a></h3>

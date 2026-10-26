@@ -283,25 +283,33 @@ synthesizes a CUDA-Q rotation into Clifford+T operations before estimation.</p>
 <span class="k">def</span><span class="w"> </span><span class="nf">estimate_at_precision</span><span class="p">(</span><span class="n">precision</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
     <span class="n">target</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">targets</span><span class="o">.</span><span class="n">clifford_t_target</span><span class="p">(</span><span class="n">precision</span><span class="o">=</span><span class="n">precision</span><span class="p">)</span>
     <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
-    <span class="n">estimate</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">estimate</span><span class="p">(</span><span class="n">arbitrary_rotation</span><span class="p">)</span>
-    <span class="k">return</span> <span class="n">cql</span><span class="o">.</span><span class="n">estimate</span><span class="o">.</span><span class="n">LogicalEstimate</span><span class="o">.</span><span class="n">from_annotations</span><span class="p">(</span><span class="n">estimate</span><span class="o">.</span><span class="n">annotations</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">estimate</span><span class="p">(</span><span class="n">arbitrary_rotation</span><span class="p">)</span>
 
 
 <span class="c1"># %%</span>
 <span class="c1"># Compare successively tighter synthesis tolerances.</span>
 <span class="n">precisions</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0e-2</span><span class="p">,</span> <span class="mf">1.0e-6</span><span class="p">,</span> <span class="mf">1.0e-10</span><span class="p">)</span>
-<span class="n">resources_by_precision</span> <span class="o">=</span> <span class="p">{</span>
+<span class="n">estimates</span> <span class="o">=</span> <span class="p">{</span>
     <span class="n">precision</span><span class="p">:</span> <span class="n">estimate_at_precision</span><span class="p">(</span><span class="n">precision</span><span class="p">)</span> <span class="k">for</span> <span class="n">precision</span> <span class="ow">in</span> <span class="n">precisions</span>
 <span class="p">}</span>
 
-<span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="n">resources</span><span class="o">.</span><span class="n">actions</span><span class="p">[</span><span class="s2">"qlx_standard_t"</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">0</span>
-           <span class="k">for</span> <span class="n">resources</span> <span class="ow">in</span> <span class="n">resources_by_precision</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+<span class="k">assert</span> <span class="nb">all</span><span class="p">(</span><span class="n">estimate</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s2">"t"</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">for</span> <span class="n">estimate</span> <span class="ow">in</span> <span class="n">estimates</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
 
 <span class="nb">print</span><span class="p">(</span><span class="s2">"Clifford+T resources by rotation precision:"</span><span class="p">)</span>
-<span class="k">for</span> <span class="n">precision</span><span class="p">,</span> <span class="n">resources</span> <span class="ow">in</span> <span class="n">resources_by_precision</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+<span class="k">for</span> <span class="n">precision</span><span class="p">,</span> <span class="n">estimate</span> <span class="ow">in</span> <span class="n">estimates</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+    <span class="n">resources</span> <span class="o">=</span> <span class="n">estimate</span><span class="o">.</span><span class="n">resources</span>
     <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  precision=</span><span class="si">{</span><span class="n">precision</span><span class="si">:</span><span class="s2">g</span><span class="si">}</span><span class="s2">: "</span>
-          <span class="sa">f</span><span class="s2">"T=</span><span class="si">{</span><span class="n">resources</span><span class="o">.</span><span class="n">actions</span><span class="p">[</span><span class="s1">'qlx_standard_t'</span><span class="p">]</span><span class="si">}</span><span class="s2">, "</span>
-          <span class="sa">f</span><span class="s2">"depth=</span><span class="si">{</span><span class="n">resources</span><span class="o">.</span><span class="n">action_depth_upper_bound</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+          <span class="sa">f</span><span class="s2">"T=</span><span class="si">{</span><span class="n">resources</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s1">'t'</span><span class="p">)</span><span class="si">}</span><span class="s2">, "</span>
+          <span class="sa">f</span><span class="s2">"T-depth=</span><span class="si">{</span><span class="n">resources</span><span class="o">.</span><span class="n">t_depth</span><span class="si">}</span><span class="s2">, "</span>
+          <span class="sa">f</span><span class="s2">"depth=</span><span class="si">{</span><span class="n">resources</span><span class="o">.</span><span class="n">depth</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+<span class="c1"># %%</span>
+<span class="c1"># Going deeper: the full logical estimate lives in</span>
+<span class="c1"># `estimate.annotations["LOGICAL"]`. For example, `synthesis_demand` lists the</span>
+<span class="c1"># gates that a fault-tolerant machine has to synthesize or distill.</span>
+<span class="n">tightest</span> <span class="o">=</span> <span class="n">estimates</span><span class="p">[</span><span class="n">precisions</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]]</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">"Synthesis demand at the tightest precision:"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"  </span><span class="si">{</span><span class="n">tightest</span><span class="o">.</span><span class="n">annotations</span><span class="p">[</span><span class="s1">'LOGICAL'</span><span class="p">][</span><span class="s1">'synthesis_demand'</span><span class="p">]</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
 </pre></div>
 </div>
 <p><a class="reference internal" href="index.html"><span class="std std-doc">Back to examples</span></a></p>

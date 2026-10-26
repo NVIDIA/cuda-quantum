@@ -463,8 +463,21 @@ is available through <code class="docutils literal notranslate"><span class="pre
 <p>When you select a <code class="docutils literal notranslate"><span class="pre">cudaq.logical</span></code> target, ordinary CUDA-Q kernels compile
 through the stages that target owns. The logical, Clifford+T, Fermi–Hubbard,
 surface-code, and Carbon examples exercise progressively deeper target stacks.
-<code class="docutils literal notranslate"><span class="pre">cudaq.estimate(kernel)</span></code> returns the available per-tier results as CUDA-Q
-annotations, and typed views rehydrate directly from them:</p>
+Calling <code class="docutils literal notranslate"><span class="pre">result</span> <span class="pre">=</span> <span class="pre">cudaq.estimate(kernel)</span></code> returns an <code class="docutils literal notranslate"><span class="pre">EstimateResult</span></code> with
+two views of the estimate:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">result.resources</span></code> is a CUDA-Q <code class="docutils literal notranslate"><span class="pre">Resources</span></code> object that reports the <strong>logical</strong>
+program only: gate counts, <code class="docutils literal notranslate"><span class="pre">num_qubits</span></code>, <code class="docutils literal notranslate"><span class="pre">depth</span></code>, and <code class="docutils literal notranslate"><span class="pre">t_depth</span></code>. It is
+populated whenever a LOGICAL estimate is available, which is the case for
+every full target stack, and is empty otherwise (for example when a target
+pins a physical tier). Measurements appear as <code class="docutils literal notranslate"><span class="pre">mz</span></code>, preparations as <code class="docutils literal notranslate"><span class="pre">reset</span></code>,
+and idle steps as <code class="docutils literal notranslate"><span class="pre">idle</span></code>; a consumed magic state counts as the gate it
+applies. <code class="docutils literal notranslate"><span class="pre">depth</span></code> is a serial upper bound, so it is not a critical-path depth.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">result.annotations</span></code> holds the full per-tier results, including the LOGICAL
+tier and every physical tier. Typed views rehydrate directly from them, which
+is the way to reach details <code class="docutils literal notranslate"><span class="pre">Resources</span></code> cannot express, such as idle sites,
+synthesis demand, resource requests, and the physical tiers:</p></li>
+</ul>
 <!--
 % invisible-code-block: python
 %
@@ -481,6 +494,7 @@ annotations, and typed views rehydrate directly from them:</p>
 <span class="n">logical</span> <span class="o">=</span> <span class="n">LogicalEstimate</span><span class="o">.</span><span class="n">from_annotations</span><span class="p">(</span><span class="n">estimates</span><span class="o">.</span><span class="n">annotations</span><span class="p">)</span>
 <span class="k">assert</span> <span class="n">static</span><span class="o">.</span><span class="n">patches_peak</span> <span class="o">==</span> <span class="mi">1</span>
 <span class="k">assert</span> <span class="n">logical</span><span class="o">.</span><span class="n">logical_qubits_peak</span> <span class="o">==</span> <span class="mi">1</span>
+<span class="k">assert</span> <span class="n">estimates</span><span class="o">.</span><span class="n">resources</span><span class="o">.</span><span class="n">num_qubits</span> <span class="o">==</span> <span class="n">logical</span><span class="o">.</span><span class="n">logical_qubits_peak</span>
 </pre></div>
 </div>
 </section>

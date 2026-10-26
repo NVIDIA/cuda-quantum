@@ -512,6 +512,9 @@ defines each size’s operating point and the factory.</p>
     <span class="n">point</span> <span class="o">=</span> <span class="n">factory</span><span class="o">.</span><span class="n">OPERATING_POINTS</span><span class="p">[</span><span class="n">modulus_bits</span><span class="p">]</span>
     <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="n">cql</span><span class="o">.</span><span class="n">targets</span><span class="o">.</span><span class="n">estimator</span><span class="p">)</span>
     <span class="n">estimate</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">estimate</span><span class="p">(</span><span class="n">build_resource_kernel</span><span class="p">(</span><span class="n">point</span><span class="p">))</span>
+    <span class="c1"># The closed-form model consumes the full logical profile (for example its</span>
+    <span class="c1"># action-depth bound and synthesis demand), which `estimate.resources` only</span>
+    <span class="c1"># partly carries, so rehydrate the LOGICAL annotation.</span>
     <span class="n">logical</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">estimate</span><span class="o">.</span><span class="n">LogicalEstimate</span><span class="o">.</span><span class="n">from_annotations</span><span class="p">(</span>
         <span class="n">estimate</span><span class="o">.</span><span class="n">annotations</span><span class="p">)</span>
     <span class="n">result</span> <span class="o">=</span> <span class="n">calculate_analytical_metrics</span><span class="p">(</span><span class="n">logical</span><span class="p">,</span> <span class="n">point</span><span class="p">)</span>

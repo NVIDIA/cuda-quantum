@@ -3135,13 +3135,21 @@ version](https://developer.nvidia.com/cuda-toolkit-archive){.reference
 .external}. Please make sure to install CUDA version 12.0 or newer, and
 confirm that your [GPU
 driver](https://www.nvidia.com/download/index.aspx){.reference
-.external} supports that version. While the above packages are
-sufficient to use GPU-acceleration within CUDA-Q, we recommend
-installing the complete CUDA toolkit ([`cuda-toolkit-12-0`{.code
-.docutils .literal .notranslate}]{.pre}) that also includes the
-[`nvcc`{.code .docutils .literal .notranslate}]{.pre} compiler. A
-separate CUDA-Q installer is available for CUDA 12, built against
-version 12.6, and for CUDA 13, built against version 13.0.
+.external} supports that version. The above packages are sufficient for
+the GPU kernels in CUDA-Q itself. CuPy, which the [`dynamics`{.code
+.docutils .literal .notranslate}]{.pre} target uses, compiles kernels at
+runtime and also needs the CUDA headers ([`cuda-cudart-dev-12-0`{.code
+.docutils .literal .notranslate}]{.pre}), or CuPy installed with
+[`pip`{.code .docutils .literal .notranslate}]{.pre}` `{.code .docutils
+.literal .notranslate}[`install`{.code .docutils .literal
+.notranslate}]{.pre}` `{.code .docutils .literal
+.notranslate}[`cupy-cuda12x[ctk]`{.code .docutils .literal
+.notranslate}]{.pre}. We recommend installing the complete CUDA toolkit
+([`cuda-toolkit-12-0`{.code .docutils .literal .notranslate}]{.pre})
+that includes both and also the [`nvcc`{.code .docutils .literal
+.notranslate}]{.pre} compiler. A separate CUDA-Q installer is available
+for CUDA 12, built against version 12.6, and for CUDA 13, built against
+version 13.0.
 :::
 :::
 

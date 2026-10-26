@@ -6112,7 +6112,7 @@ discriminated bits into an integer.)
 
     :   Print the state to the console.
 
-    [[from_data]{.pre}]{.sig-name .descname}*[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[\<nanobind.nb_func]{.pre} [object\>]{.pre}*[¶](#cudaq.State.from_data "Permalink to this definition"){.headerlink}
+    [[from_data]{.pre}]{.sig-name .descname}*[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[\<nanobind.nb_func]{.pre} [object]{.pre} [at]{.pre} [0xd95f210\>]{.pre}*[¶](#cudaq.State.from_data "Permalink to this definition"){.headerlink}
 
     :   
 
@@ -7419,7 +7419,9 @@ discriminated bits into an integer.)
 
     :   The [[`Resources`{.xref .py .py-class .docutils .literal
         .notranslate}]{.pre}](#cudaq.Resources "cudaq.Resources"){.reference
-        .internal} gate counts for the estimated kernel.
+        .internal} for the estimated kernel. For logical targets these
+        are the logical resources only; see [`annotations`{.code
+        .docutils .literal .notranslate}]{.pre} for other tiers.
 
 ::: {#optimizers .section}
 ### Optimizers[¶](#optimizers "Permalink to this heading"){.headerlink}
