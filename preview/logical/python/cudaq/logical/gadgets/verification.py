@@ -94,10 +94,11 @@ def _action_label(implements) -> str | None:
     name = getattr(implements, "name", None)
     if name is None:
         return None
-    from cudaq.logical.std import LogicalActionRef
+    from cudaq.logical.std import LogicalActionRef, LogicalInstrumentRef
 
-    return f"ql.logical.{name}" if isinstance(implements,
-                                              LogicalActionRef) else str(name)
+    if isinstance(implements, (LogicalActionRef, LogicalInstrumentRef)):
+        return f"ql.logical.{name}"
+    return str(name)
 
 
 def _declared_action(gadget: GadgetDefinition):

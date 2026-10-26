@@ -216,3 +216,95 @@ def test_verified_contract_derives_an_edem():
     pytest.importorskip("cudaq_edem")
     ql.gadgets.verify_gadget(_contract())
     ql.analysis.derive_edem(ql.compile(_contract()))
+
+
+def test_destructive_readout_reports_its_action_as_unsupported():
+
+    @ql.gadget(implements=ql.logical.measure_z)
+    def readout(block: RepetitionPatch) -> bool:
+        block, result = ql.ops.mpp(ql.algebra.Z(block[0]))
+        ql.discard(block)
+        return result
+
+    receipt = ql.gadgets.verify_gadget(ql.gadgets.GadgetProfile(readout))
+    assert receipt.detector_contract.ok
+    assert receipt.detector_contract.observable_count == 1
+    assert receipt.logical_action.status == "unsupported"
+    assert receipt.logical_action.action == "ql.logical.measure_z"
+    assert not receipt.verified
+
+
+def test_action_over_a_different_number_of_logical_qubits_is_unsupported():
+
+    @ql.gadget(implements=ql.logical.idle)
+    def two_blocks(
+            a: RepetitionPatch,
+            b: RepetitionPatch) -> tuple[RepetitionPatch, RepetitionPatch]:
+        a, _ = ql.extract_syndrome(a)
+        b, _ = ql.extract_syndrome(b)
+        return a, b
+
+    rows = []
+    boundary = {}
+    for index in range(2):
+        incoming, outgoing = two_blocks.inputs[index], two_blocks.outputs[index]
+        new_checks = two_blocks.records.syndrome(index).checks
+        rows.extend(_rows(incoming, new_checks))
+        boundary[outgoing.syndrome] = new_checks
+    receipt = ql.gadgets.verify_gadget(
+        ql.gadgets.GadgetProfile(two_blocks,
+                                 detectors=tuple(rows),
+                                 boundary=boundary))
+    assert receipt.detector_contract.ok
+    assert receipt.logical_action.status == "unsupported"
+    assert "1 logical qubit(s)" in receipt.logical_action.reason
+
+
+def test_logical_stabilizer_fixed_only_up_to_a_random_outcome():
+
+    @ql.gadget(implements=ql.logical.idle)
+    def reset_round(block: RepetitionPatch) -> RepetitionPatch:
+        return ql.reset(block.data)
+
+    profile = ql.gadgets.GadgetProfile(
+        reset_round, boundary={reset_round.outputs.only().syndrome: False})
+    with pytest.raises(GadgetVerificationError,
+                       match="nondeterministic sign on Z_ref Z\u0304") as exc:
+        ql.gadgets.verify_gadget(profile)
+    assert exc.value.receipt.detector_contract.ok
+    assert _kinds(exc) == ([], ["action_mismatch", "random_sign"])
+
+
+def test_incorrect_output_syndrome_binding_names_the_relation():
+    wrong = ql.gadgets.GadgetProfile(
+        syndrome_round,
+        detectors=_rows(block_in, checks),
+        boundary={block_out.syndrome: checks.select([1, 0])})
+    with pytest.raises(GadgetVerificationError,
+                       match="output virtual syndrome 0") as exc:
+        ql.gadgets.verify_gadget(wrong)
+    assert _kinds(exc)[0] == ["output_syndrome_mismatch"] * 2
+
+
+def test_success_rows_must_be_deterministic_on_the_ideal_realization():
+    rows = _rows(block_in, checks)
+    boundary = {block_out.syndrome: checks}
+    good = ql.gadgets.GadgetProfile(
+        syndrome_round,
+        boundary=boundary,
+        success=tuple(ql.gadgets.SuccessPredicate(row.parity) for row in rows))
+    receipt = ql.gadgets.verify_gadget(good)
+    assert receipt.detector_contract.success_count == 2
+    # A bare record is random on a random input syndrome.
+    bad = ql.gadgets.GadgetProfile(syndrome_round,
+                                   boundary=boundary,
+                                   success=(ql.gadgets.SuccessPredicate(
+                                       checks[0]),))
+    with pytest.raises(GadgetVerificationError, match="success row 0") as exc:
+        ql.gadgets.verify_gadget(bad)
+    assert _kinds(exc)[0] == ["success_not_deterministic"]
+
+
+def test_incomplete_boundary_is_rejected_before_verification():
+    with pytest.raises(RuntimeError, match="complete selected boundary"):
+        ql.gadgets.verify_gadget(ql.gadgets.GadgetProfile(syndrome_round))
