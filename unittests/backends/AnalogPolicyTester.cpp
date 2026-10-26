@@ -33,7 +33,7 @@ TEST(AnalogPolicyTester, MissingEmulatorReportsRequirement) {
   cudaq::KernelArgs args(
       cudaq::KernelArgs::PackedArgs{payload.data(), payload.size(), 0});
   cudaq::CompiledModule module(
-      cudaq::SourceModule("__analog_hamiltonian_kernel__no_dynamics"));
+      cudaq::SourceModule("__cudaq_analog_hamiltonian_kernel__no_dynamics"));
   try {
     qpu.launchKernel(cudaq::sample_policy{}, module, args);
     FAIL() << "An AHS backend without an emulator must reject emulation.";
@@ -52,7 +52,7 @@ TEST(AnalogPolicyTester, EmulatedAsyncLaunchIsRejected) {
   cudaq::KernelArgs args(
       cudaq::KernelArgs::PackedArgs{payload.data(), payload.size(), 0});
   cudaq::CompiledModule module(
-      cudaq::SourceModule("__analog_hamiltonian_kernel__async"));
+      cudaq::SourceModule("__cudaq_analog_hamiltonian_kernel__async"));
   EXPECT_THROW(qpu.launchKernel(cudaq::async_sample_policy{}, module, args),
                std::runtime_error);
 }

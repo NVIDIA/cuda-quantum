@@ -58,7 +58,8 @@ def test_emulation_pulser_sampling_parity(monkeypatch):
     cudaq.set_target("pasqal", emulate=True)
     cudaq.set_random_seed(31)
     result = cudaq_runtime.launch_analog_kernel(
-        "__analog_hamiltonian_kernel__pulser_parity", program.to_json(), 20000)
+        "__cudaq_analog_hamiltonian_kernel__pulser_parity", program.to_json(),
+        20000)
     assert result.get_total_shots() == 20000
     for basis, probability in enumerate(np.abs(state)**2):
         assert result.probability(format(
@@ -77,7 +78,7 @@ def test_emulation_seeding_matches_digital(monkeypatch):
     # A pi/2 pulse on two distant atoms: each basis state has probability 1/4.
     payload = _program([(0., 0.), (1e-4, 0.)], [np.pi / 2 * 1e7] * 2, [0.] * 2,
                        [0.] * 2, [0., 1e-7]).to_json()
-    name = "__analog_hamiltonian_kernel__seeding"
+    name = "__cudaq_analog_hamiltonian_kernel__seeding"
     counts = lambda result: {k: result.count(k) for k in result}
 
     cudaq.set_random_seed(11)
