@@ -146,7 +146,7 @@ jobs:
           echo "artifact_id=$artifact_id" >> $GITHUB_OUTPUT
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: ${{ inputs.python_version }}
 
