@@ -1,10 +1,10 @@
-/******************************************************************************
+/*******************************************************************************
  * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
- * the terms of the Apache License 2.0 which accompanies this distribution.  *
- ******************************************************************************/
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ *******************************************************************************/
 
 #include "qlx/Dialect/QLX/Transforms/QLXSynthesize.h"
 #include "qlx/Dialect/QLX/IR/QLXAttrs.h"
@@ -15,7 +15,9 @@
 #include "cudaq/Synthesis/Circuit/Gate.h"
 #include "cudaq/Synthesis/Math/Real.h"
 #include "cudaq/Synthesis/Synthesis/Gridsynth.h"
+#include "llvm/ADT/DenseMap.h"
 #include "llvm/ADT/SmallVector.h"
+#include "llvm/Support/MathExtras.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/IR/Builders.h"
 
@@ -387,6 +389,11 @@ static LogicalResult verifyCanonicalRotation(ApplyOp operation, double angle) {
 
 static LogicalResult synthesizePauliRotations(ModuleOp module,
                                               double defaultPrecision) {
+  // The Rz core depends only on the signed angle and effective precision,
+  // not on the Pauli basis or operands. Reuse it across repeated rotations
+  // within this invocation, while keeping exact-angle metadata authoritative.
+  llvm::DenseMap<std::pair<uint64_t, uint64_t>, SmallVector<BuiltinAction>>
+      synthesizedWords;
   SmallVector<ApplyOp> rotations;
   module.walk([&](ApplyOp operation) {
     auto builtin = dyn_cast<BuiltinActionAttr>(operation.getActionAttr());
@@ -463,28 +470,36 @@ static LogicalResult synthesizePauliRotations(ModuleOp module,
     if (exactTurns) {
       exactQuarterWord(*exactTurns, core);
     } else if (!approximateQuarterWord(*signedTheta, precision, core)) {
-      cudaq::synth::Real epsilon(precision);
-      cudaq::synth::ScopedDefaultPrecision workingPrecision(
-          cudaq::synth::details::required_precision(epsilon));
-      cudaq::synth::GridsynthOptions options;
-      // Compilation is a replayable transformation. CUDA-Q's GridSynth
-      // intentionally uses entropy by default, so pin its factoring stream
-      // at this compiler boundary to make identical inputs produce identical
-      // Clifford+T words regardless of earlier synthesis calls.
-      options.seed = 0;
-      auto circuit =
-          cudaq::synth::gridsynth(cudaq::synth::Real(*signedTheta),
-                                  cudaq::synth::Real(precision), options);
-      if (failed(circuit))
-        return operation.emitOpError(
-            "GridSynth failed to synthesize the rotation");
+      auto key = std::make_pair(llvm::bit_cast<uint64_t>(*signedTheta),
+                                llvm::bit_cast<uint64_t>(precision));
+      auto cached = synthesizedWords.find(key);
+      if (cached != synthesizedWords.end()) {
+        core = cached->second;
+      } else {
+        cudaq::synth::Real epsilon(precision);
+        cudaq::synth::ScopedDefaultPrecision workingPrecision(
+            cudaq::synth::details::required_precision(epsilon));
+        cudaq::synth::GridsynthOptions options;
+        // Compilation is a replayable transformation. CUDA-Q's GridSynth
+        // intentionally uses entropy by default, so pin its factoring stream
+        // at this compiler boundary to make identical inputs produce identical
+        // Clifford+T words regardless of earlier synthesis calls.
+        options.seed = 0;
+        auto circuit =
+            cudaq::synth::gridsynth(cudaq::synth::Real(*signedTheta),
+                                    cudaq::synth::Real(precision), options);
+        if (failed(circuit))
+          return operation.emitOpError(
+              "GridSynth failed to synthesize the rotation");
 
-      // Circuit stores the algebraic product U = g1*g2*...*gn. QLX applies
-      // gates chronologically, whose matrix is gn*...*g2*g1, so emit the
-      // stored sequence in reverse. This is observable for off-lattice words.
-      for (auto iterator = circuit->rbegin(); iterator != circuit->rend();
-           ++iterator)
-        appendGate(*iterator, core);
+        // Circuit stores the algebraic product U = g1*g2*...*gn. QLX applies
+        // gates chronologically, whose matrix is gn*...*g2*g1, so emit the
+        // stored sequence in reverse. This is observable for off-lattice words.
+        for (auto iterator = circuit->rbegin(); iterator != circuit->rend();
+             ++iterator)
+          appendGate(*iterator, core);
+        synthesizedWords.try_emplace(key, core);
+      }
     }
 
     OpBuilder builder(operation);
