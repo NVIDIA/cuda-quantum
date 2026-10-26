@@ -266,7 +266,8 @@ class FakeQuakeReferenceSemanticsHandler : public LoweringHandler {
 public:
   std::optional<std::string>
   getPipeline(const cudaq::config::Profile &,
-              const cudaq::config::Profile &output) const override {
+              const cudaq::config::Profile &output,
+              const cudaq::CompileOptions &options) const override {
     if (!std::holds_alternative<cudaq::config::QuakeReferenceSemanticsProfile>(
             output))
       return std::nullopt;

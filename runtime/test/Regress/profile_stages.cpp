@@ -35,13 +35,15 @@ public:
   /// `forceSupports` is the explicit override knob; otherwise the
   /// interface-default probe of getPipeline applies.
   bool supports(const cudaq::config::Profile &input,
-                const cudaq::config::Profile &output) const override {
-    return forceSupports || getPipeline(input, output).has_value();
+                const cudaq::config::Profile &output,
+                const cudaq::CompileOptions &options) const override {
+    return forceSupports || getPipeline(input, output, options).has_value();
   }
 
   std::optional<std::string>
   getPipeline(const cudaq::config::Profile &input,
-              const cudaq::config::Profile &output) const override {
+              const cudaq::config::Profile &output,
+              const cudaq::CompileOptions &options) const override {
     ++calls;
     if (!supported)
       return std::nullopt;
