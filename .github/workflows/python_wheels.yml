@@ -196,7 +196,8 @@ jobs:
         with:
           name: ${{ steps.build.outputs.artifact_name }}
           path: ${{ steps.build.outputs.wheel_dir }}
-          retention-days: 14
+          # Release runs keep them for the Validation and draft release; others for the wheel cache.
+          retention-days: ${{ inputs.release_version != '' && 14 || 7 }}
           if-no-files-found: error
 
       - name: Register wheel
@@ -261,7 +262,8 @@ jobs:
         with:
           name: ${{ steps.build.outputs.artifact_name }}
           path: ${{ steps.build.outputs.wheel_dir }}
-          retention-days: 14
+          # Release runs keep them for the Validation and draft release; others for the wheel cache.
+          retention-days: ${{ inputs.release_version != '' && 14 || 7 }}
           if-no-files-found: error
 
       - name: Register devel wheel
