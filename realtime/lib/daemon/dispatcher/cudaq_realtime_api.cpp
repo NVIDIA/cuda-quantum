@@ -41,8 +41,8 @@ struct cudaq_dispatch_manager_t {
 
 struct JitDeviceLibrary {
   std::vector<cudaq_device_image_t> bridge_device_code;
-  cudaLibrary_t library = nullptr;
-  cudaKernel_t dispatch_kernel = nullptr;
+  CUlibrary library = nullptr;
+  CUkernel dispatch_kernel = nullptr;
   std::vector<cudaq_device_image_t> application_device_code;
   // Handler addresses get_device_handler has handed out; start() accepts no
   // other DEVICE_CALL address.
@@ -328,7 +328,8 @@ cudaq_status_t cudaq_dispatcher_destroy(cudaq_dispatcher_t *dispatcher) {
   // A DEVICE kernel that was never stopped may still run from the module, so
   // the module is left loaded rather than unloaded under it.
   if (dispatcher->jit_device_lib.library && !dispatcher->stream)
-    cudaLibraryUnload(dispatcher->jit_device_lib.library);
+    cudaq::realtime::detail::driver_library()->unload(
+        dispatcher->jit_device_lib.library);
   delete dispatcher;
   return CUDAQ_OK;
 }
@@ -613,21 +614,22 @@ static cudaq_status_t link_dispatcher(cudaq_dispatcher_t *dispatcher,
        dispatcher->jit_device_lib.bridge_device_code.size()},
       {"application", images, count},
   };
-  cudaLibrary_t library = nullptr;
+  CUlibrary library = nullptr;
   const cudaq_status_t status = cudaq::realtime::detail::link_device_code(
       inputs, sizeof(inputs) / sizeof(inputs[0]), &library);
   if (status != CUDAQ_OK)
     return status;
 
-  cudaKernel_t kernel = nullptr;
-  const cudaError_t err =
-      cudaLibraryGetKernel(&kernel, library, "cudaq_unified_dispatch_kernel");
-  if (err != cudaSuccess) {
+  const auto *driver = cudaq::realtime::detail::driver_library();
+  CUkernel kernel = nullptr;
+  const CUresult err =
+      driver->get_kernel(&kernel, library, "cudaq_unified_dispatch_kernel");
+  if (err != CUDA_SUCCESS) {
     fprintf(stderr,
             "ERROR: %s: the linked module has no "
-            "cudaq_unified_dispatch_kernel: %s\n",
-            caller, cudaGetErrorString(err));
-    cudaLibraryUnload(library);
+            "cudaq_unified_dispatch_kernel: CUresult %d\n",
+            caller, static_cast<int>(err));
+    driver->unload(library);
     return CUDAQ_ERR_CUDA;
   }
   dispatcher->jit_device_lib.library = library;
@@ -653,25 +655,29 @@ static bool is_linked_device_code(const cudaq_dispatcher_t *dispatcher,
 
 // Launch the unified kernel of the dispatcher's linked module, with the
 // arguments of cudaq_unified_launch_fn_t.
-static void launch_linked_unified_kernel(
-    cudaKernel_t kernel, void *transport_ctx, size_t tx_stride_sz,
+static CUresult launch_linked_unified_kernel(
+    CUkernel kernel, void *transport_ctx, size_t tx_stride_sz,
     cudaq_function_entry_t *function_table, size_t func_count,
     volatile int *shutdown_flag, uint64_t *stats, cudaStream_t stream) {
   // Exactly the kernel's parameter types: cudaLaunchKernel copies each
   // argument by the size of the parameter it lands in.
   void *args[] = {&transport_ctx,  &tx_stride_sz, &shutdown_flag,
                   &function_table, &func_count,   &stats};
-  cudaLaunchKernel(reinterpret_cast<const void *>(kernel), dim3(1), dim3(1),
-                   args, 0, stream);
+  return cudaq::realtime::detail::driver_library()->launch_kernel(
+      reinterpret_cast<CUfunction>(kernel), 1, 1, 1, 1, 1, 1, 0, stream, args,
+      nullptr);
 }
 
 // Address and size of the global `name` in the linked module.
 static bool find_device_global(cudaq_dispatcher_t *dispatcher, const char *name,
                                void **out_ptr, size_t *out_size) {
-  if (cudaLibraryGetGlobal(out_ptr, out_size,
-                           dispatcher->jit_device_lib.library,
-                           name) == cudaSuccess)
+  CUdeviceptr ptr = 0;
+  if (cudaq::realtime::detail::driver_library()->get_global(
+          &ptr, out_size, dispatcher->jit_device_lib.library, name) ==
+      CUDA_SUCCESS) {
+    *out_ptr = reinterpret_cast<void *>(ptr);
     return true;
+  }
   // Clear the sticky lookup error so later CUDA calls do not report it.
   (void)cudaGetLastError();
   return false;
@@ -887,12 +893,19 @@ cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher) {
           dispatcher->shutdown_flag, dispatcher->stats,
           dispatcher->config.threads_per_block, dispatcher->stream);
     } else {
-      launch_linked_unified_kernel(
+      const CUresult launched = launch_linked_unified_kernel(
           dispatcher->jit_device_lib.dispatch_kernel, dispatcher->transport_ctx,
           dispatcher->config.slot_size, dispatcher->table.entries,
           dispatcher->table.count, dispatcher->shutdown_flag, dispatcher->stats,
           dispatcher->config.threads_per_block,
           dispatcher->stream);
+      if (launched != CUDA_SUCCESS) {
+        fprintf(stderr, "CUDA error in dispatcher launch: CUresult %d\n",
+                static_cast<int>(launched));
+        cudaStreamDestroy(dispatcher->stream);
+        dispatcher->stream = nullptr;
+        return CUDAQ_ERR_CUDA;
+      }
     }
   } else {
     ring_launch_fn(dispatcher)(

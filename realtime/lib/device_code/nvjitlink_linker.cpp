@@ -54,7 +54,8 @@ bool split_fatbins(const cudaq_device_image_t &image,
 }
 
 void print_link_failure(nvJitLinkHandle handle, const std::string &what,
-                        nvJitLinkResult result, bool adding_input) {
+                        nvJitLinkResult result, bool adding_input,
+                        const std::string &arch = {}) {
   unsigned major = 0;
   unsigned minor = 0;
   nvJitLinkVersion(&major, &minor);
@@ -72,18 +73,56 @@ void print_link_failure(nvJitLinkHandle handle, const std::string &what,
   if (adding_input)
     std::fprintf(stderr,
                  "  images must come from a CUDA toolkit no newer than this "
-                 "nvJitLink (%u.%u)\n",
-                 major, minor);
+                 "nvJitLink (%u.%u),\n"
+                 "  and this nvJitLink must support %s\n",
+                 major, minor, arch.c_str());
 }
 
 } // namespace
 
+const cudaq::realtime::detail::driver_library_api *
+cudaq::realtime::detail::driver_library() {
+  static const driver_library_api *const api =
+      []() -> const driver_library_api * {
+    static driver_library_api table{};
+    const struct {
+      const char *name;
+      void **fn;
+    } entries[] = {
+        {"cuLibraryLoadData", reinterpret_cast<void **>(&table.load_data)},
+        {"cuLibraryGetKernel", reinterpret_cast<void **>(&table.get_kernel)},
+        {"cuLibraryGetGlobal", reinterpret_cast<void **>(&table.get_global)},
+        {"cuLibraryUnload", reinterpret_cast<void **>(&table.unload)},
+        {"cuLaunchKernel", reinterpret_cast<void **>(&table.launch_kernel)},
+    };
+    for (const auto &entry : entries) {
+      cudaDriverEntryPointQueryResult found =
+          cudaDriverEntryPointSymbolNotFound;
+      if (cudaGetDriverEntryPointByVersion(entry.name, entry.fn, 12000,
+                                           cudaEnableDefault,
+                                           &found) != cudaSuccess ||
+          found != cudaDriverEntryPointSuccess || !*entry.fn) {
+        std::fprintf(stderr,
+                     "ERROR: device link: the CUDA driver does not provide "
+                     "%s\n",
+                     entry.name);
+        return nullptr;
+      }
+    }
+    return &table;
+  }();
+  return api;
+}
+
 cudaq_status_t
 cudaq::realtime::detail::link_device_code(const device_code_input *inputs,
                                           std::size_t input_count,
-                                          cudaLibrary_t *out_library) {
+                                          CUlibrary *out_library) {
   if (!inputs || !out_library)
     return CUDAQ_ERR_INVALID_ARG;
+  const driver_library_api *driver = driver_library();
+  if (!driver)
+    return CUDAQ_ERR_CUDA;
 
   int device = 0;
   int major = 0;
@@ -130,7 +169,7 @@ cudaq::realtime::detail::link_device_code(const device_code_input *inputs,
             nvJitLinkAddData(handle, NVJITLINK_INPUT_FATBIN, fatbins[k].data,
                              fatbins[k].size, name.c_str());
         if (result != NVJITLINK_SUCCESS) {
-          print_link_failure(handle, "adding the " + name, result, true);
+          print_link_failure(handle, "adding the " + name, result, true, arch);
           nvJitLinkDestroy(&handle);
           return CUDAQ_ERR_INTERNAL;
         }
@@ -159,14 +198,14 @@ cudaq::realtime::detail::link_device_code(const device_code_input *inputs,
   }
   nvJitLinkDestroy(&handle);
 
-  cudaLibrary_t library = nullptr;
-  const cudaError_t err = cudaLibraryLoadData(&library, cubin.data(), nullptr,
-                                              nullptr, 0, nullptr, nullptr, 0);
-  if (err != cudaSuccess) {
+  CUlibrary library = nullptr;
+  const CUresult err = driver->load_data(&library, cubin.data(), nullptr,
+                                         nullptr, 0, nullptr, nullptr, 0);
+  if (err != CUDA_SUCCESS) {
     std::fprintf(stderr,
                  "ERROR: device link: loading the linked module "
-                 "failed: %s\n",
-                 cudaGetErrorString(err));
+                 "failed: CUresult %d\n",
+                 static_cast<int>(err));
     return CUDAQ_ERR_CUDA;
   }
   *out_library = library;

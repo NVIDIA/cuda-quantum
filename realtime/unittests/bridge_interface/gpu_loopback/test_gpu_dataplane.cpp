@@ -63,6 +63,17 @@ protected:
     int devices = 0;
     if (cudaGetDeviceCount(&devices) != cudaSuccess || devices == 0)
       GTEST_SKIP() << "no CUDA device";
+#if CUDART_VERSION < 12080
+    // The run-time link uses this toolkit's nvJitLink, which only targets
+    // sm_100 and newer from CUDA 12.8.
+    int major = 0;
+    if (cudaDeviceGetAttribute(&major, cudaDevAttrComputeCapabilityMajor, 0) ==
+            cudaSuccess &&
+        major >= 10)
+      GTEST_SKIP() << "nvJitLink " << CUDART_VERSION / 1000 << "."
+                   << CUDART_VERSION % 1000 / 10 << " cannot target sm_"
+                   << major << "x";
+#endif
     ASSERT_EQ(cudaq_dispatch_manager_create(&manager), CUDAQ_OK);
     // The kernel polls the flag, so the host must reach it while the kernel
     // runs: mapped pinned memory, written through its host view.

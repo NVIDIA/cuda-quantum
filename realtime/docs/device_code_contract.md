@@ -151,7 +151,9 @@ running GPU.  DOCA's device headers do, for example.
 
 Images must come from a CUDA toolkit no newer than the `nvJitLink` the
 application runs with.  Newer code fails in every form, `LTO-IR`, SASS and `PTX`,
-and the dispatcher's error then names the `nvJitLink` version.
+and the dispatcher's error then names the `nvJitLink` version.  That
+`nvJitLink` must also support the running GPU's architecture: for `sm_100`,
+12.8 or newer, even for a build made with CUDA 12.6.
 
 ## Wiring sequence
 
