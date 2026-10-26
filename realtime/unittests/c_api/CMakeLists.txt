@@ -18,6 +18,12 @@ target_include_directories(cudaq-realtime-c-api-check PRIVATE
 
 # Applications and bridges build against these headers without the nvJitLink
 # dev package, so none of them may include nvJitLink.h.
+#
+# The script runs from a copy in the build tree, which CI's test jobs have
+# without the sources; it skips there.
+configure_file(check_no_nvjitlink.cmake check_no_nvjitlink.cmake COPYONLY)
 add_test(NAME cudaq_realtime_public_headers_without_nvjitlink
   COMMAND ${CMAKE_COMMAND} -DINCLUDE_DIR=${CUDAQ_REALTIME_INCLUDE_DIR}
-    -P ${CMAKE_CURRENT_SOURCE_DIR}/check_no_nvjitlink.cmake)
+    -P ${CMAKE_CURRENT_BINARY_DIR}/check_no_nvjitlink.cmake)
+set_tests_properties(cudaq_realtime_public_headers_without_nvjitlink
+  PROPERTIES SKIP_REGULAR_EXPRESSION "Skipped: no realtime headers")
