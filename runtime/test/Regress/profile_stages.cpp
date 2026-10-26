@@ -112,15 +112,25 @@ void test_first_supporting_handler_wins() {
   target.stages.push_back(
       inferredStage(cudaq::config::QuakeReferenceSemanticsProfile{}));
   HandlerVector handlers;
-  handlers.push_back(std::make_unique<TestHandler>(/*supported=*/false));
-  handlers.push_back(std::make_unique<TestHandler>());
+  auto *first = static_cast<TestHandler *>(
+      handlers.emplace_back(std::make_unique<TestHandler>(/*supported=*/false))
+          .get());
+  auto *second = static_cast<TestHandler *>(
+      handlers.emplace_back(std::make_unique<TestHandler>()).get());
   auto *last = static_cast<TestHandler *>(
       handlers.emplace_back(std::make_unique<TestHandler>()).get());
   std::cout << planPipeline(target, handlers) << "\n";
+  std::cout << "first handler calls: " << first->calls << "\n";
+  std::cout << "second handler calls: " << second->calls << "\n";
   std::cout << "last handler calls: " << last->calls << "\n";
 }
 // CHECK: handler(unchecked->quake-reference-semantics)
-// CHECK: last handler calls: 0
+// first handler probed once; unsupported and returns no pipeline
+// CHECK: first handler calls: 1{{$}}
+// second handler probed once to check support, then again to construct
+// CHECK: second handler calls: 2{{$}}
+// never consulted since the second handler supports the lowering
+// CHECK: last handler calls: 0{{$}}
 
 // No supporting handler for an inferred stage fails the composition with a
 // diagnostic identifying the stage and profiles.
@@ -131,7 +141,7 @@ void test_no_match_diagnostic() {
   std::cout << planPipeline(target, {}) << "\n";
 }
 // CHECK: FAILED: compile target stage 1: no lowering handler supports
-// CHECK: lowering from unchecked to quake-reference-semantics
+// CHECK-SAME: lowering from unchecked to quake-reference-semantics
 
 // A selected handler that fails to construct a pipeline is an error, not a
 // fallback to the next handler.
@@ -145,8 +155,10 @@ void test_selected_failure_diagnostic() {
   handlers.push_back(std::make_unique<TestHandler>());
   std::cout << planPipeline(target, handlers) << "\n";
 }
+// clang-format off
 // CHECK: FAILED: compile target stage 1: the selected lowering handler failed
-// CHECK: to construct a pipeline from unchecked to quake-reference-semantics
+// CHECK-SAME: to construct a pipeline from unchecked to quake-reference-semantics
+// clang-format on
 
 // A target with zero stages results in an empty pipeline.
 void test_zero_stages() {
