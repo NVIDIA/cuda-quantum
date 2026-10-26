@@ -478,8 +478,8 @@ struct HostCallAdapter {
       return;
     const auto *const request =
         static_cast<const cudaq::realtime::RPCHeader *>(rxSlot);
-    // Read the header before the wrapper writes the response: on an in-place
-    // ring the two slots alias.
+    // Read the header fields before the wrapper writes the response, in case
+    // the two slots alias.
     const std::uint32_t requestId = request->request_id;
     const std::uint64_t ptpTimestamp = request->ptp_timestamp;
     const std::int32_t status =
@@ -746,8 +746,8 @@ struct GeneratedHostDispatchService : public DeviceCallService {
   __host__ __device__ inline void                                              \
   __cudaq_device_call_fill_table(cudaq_function_entry_t *entries) {
 
-// Register one natural device function. The function name string is the
-// logical dispatch key. fnv1a_hash is constexpr host-only;
+// Register one natural `__host__ __device__` function. The function name
+// string is the logical dispatch key. fnv1a_hash is constexpr host-only;
 // --expt-relaxed-constexpr allows it to be constant-folded here without a
 // device-runtime call.
 #define CUDAQ_DEVICE_CALL_EXPORT(function)                                     \
