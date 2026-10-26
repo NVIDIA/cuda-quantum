@@ -947,7 +947,8 @@ jobs:
 
   binaries:
     name: Create CUDA Quantum installer
-    needs: [metadata, config, release_draft]
+    # source_build_python fills the cache that the installer build restores; it may be skipped or fail.
+    needs: [metadata, config, release_draft, source_build_python]
     # release_draft is skipped without create_release.
     if: >-
       ${{ !cancelled() && ! inputs.devcontainer_only
