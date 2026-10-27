@@ -841,6 +841,216 @@ def test_observe():
     assert abs(res.expectation() - expected_energy) < energy_tol
 
 
+def observeNoiseModel(probability):
+    """A noise model that flips every qubit after every `x` operation."""
+    model = cudaq.NoiseModel()
+    model.add_all_qubit_channel("x", cudaq.BitFlipChannel(probability))
+    return model
+
+
+def noisyQubitKernel(*types):
+    """A kernel that puts its qubit in the `|1>` state.
+
+    With a bit flip channel of probability one, the qubit ends up in the
+    `|0>` state instead.
+    """
+    built = cudaq.make_kernel(*types)
+    kernel = built[0] if types else built
+    qubit = kernel.qalloc()
+    kernel.x(qubit)
+    return kernel
+
+
+def test_observe_clears_argument_noise_on_exception():
+    """The noise model of a failed `observe` call must not stay active."""
+    cudaq.reset_target()
+    cudaq.set_target("density-matrix-cpu")
+    try:
+        cudaq.unset_noise()
+
+        clean_kernel = noisyQubitKernel()
+        bad_kernel = noisyQubitKernel(float, float)
+
+        # The noise model is kept alive, a leaked model would still apply.
+        noise = observeNoiseModel(1.0)
+        with pytest.raises(RuntimeError):
+            cudaq.observe(bad_kernel, spin.z(0), noise_model=noise)
+
+        # The bit flip of the failed call must not leak into this simulation.
+        result = cudaq.sample(clean_kernel, shots_count=100)
+        assert result["1"] == 100
+    finally:
+        cudaq.unset_noise()
+        cudaq.reset_target()
+
+
+def test_observe_clears_argument_noise_after_success():
+    """The noise model of an `observe` call must only apply to that call."""
+    cudaq.reset_target()
+    cudaq.set_target("density-matrix-cpu")
+    try:
+        cudaq.unset_noise()
+
+        clean_kernel = noisyQubitKernel()
+
+        # The noise model is kept alive, a leaked model would still apply.
+        noise = observeNoiseModel(1.0)
+        cudaq.observe(clean_kernel, spin.z(0), noise_model=noise)
+
+        # The bit flip of the call must not leak into this simulation.
+        result = cudaq.sample(clean_kernel, shots_count=100)
+        assert result["1"] == 100
+    finally:
+        cudaq.unset_noise()
+        cudaq.reset_target()
+
+
+def test_observe_restores_externally_set_noise_after_argument_noise():
+    """The noise model configured by the user must survive an `observe` call
+    with its own noise model."""
+    cudaq.reset_target()
+    cudaq.set_target("density-matrix-cpu")
+    try:
+        cudaq.unset_noise()
+
+        kernel = noisyQubitKernel()
+
+        external_noise = observeNoiseModel(1.0)
+        call_noise = observeNoiseModel(0.0)
+        cudaq.set_noise(external_noise)
+        call_result = cudaq.observe(kernel, spin.z(0), noise_model=call_noise)
+        restored_result = cudaq.sample(kernel, shots_count=100)
+
+        # The call sees no bit flip, the user model applies again afterwards.
+        assert assert_close(-1.0, call_result.expectation())
+        assert restored_result["0"] == 100
+    finally:
+        cudaq.unset_noise()
+        cudaq.reset_target()
+
+
+def test_observe_keeps_externally_set_noise_after_failed_call():
+    """The noise model configured by the user must survive a failed `observe`
+    call with its own noise model."""
+    cudaq.reset_target()
+    cudaq.set_target("density-matrix-cpu")
+    try:
+        cudaq.unset_noise()
+
+        clean_kernel = noisyQubitKernel()
+        bad_kernel = noisyQubitKernel(float, float)
+
+        external_noise = observeNoiseModel(1.0)
+        call_noise = observeNoiseModel(0.0)
+        cudaq.set_noise(external_noise)
+        with pytest.raises(RuntimeError):
+            cudaq.observe(bad_kernel, spin.z(0), noise_model=call_noise)
+        restored_result = cudaq.sample(clean_kernel, shots_count=100)
+
+        # The user model applies again, the failed call did not clear it.
+        assert restored_result["0"] == 100
+    finally:
+        cudaq.unset_noise()
+        cudaq.reset_target()
+
+
+def test_observe_list_clears_argument_noise_on_exception():
+    """The noise model of a failed `observe` call on a list of operators must
+    not stay active."""
+    cudaq.reset_target()
+    cudaq.set_target("density-matrix-cpu")
+    try:
+        cudaq.unset_noise()
+
+        clean_kernel = noisyQubitKernel()
+        bad_kernel = noisyQubitKernel(float, float)
+
+        # The noise model is kept alive, a leaked model would still apply.
+        noise = observeNoiseModel(1.0)
+        with pytest.raises(RuntimeError):
+            cudaq.observe(bad_kernel, [spin.z(0)], noise_model=noise)
+
+        # The bit flip of the failed call must not leak into this simulation.
+        result = cudaq.sample(clean_kernel, shots_count=100)
+        assert result["1"] == 100
+    finally:
+        cudaq.unset_noise()
+        cudaq.reset_target()
+
+
+def test_observe_list_clears_argument_noise_after_success():
+    """The noise model of an `observe` call on a list of operators must only
+    apply to that call."""
+    cudaq.reset_target()
+    cudaq.set_target("density-matrix-cpu")
+    try:
+        cudaq.unset_noise()
+
+        clean_kernel = noisyQubitKernel()
+
+        # The noise model is kept alive, a leaked model would still apply.
+        noise = observeNoiseModel(1.0)
+        cudaq.observe(clean_kernel, [spin.z(0)], noise_model=noise)
+
+        # The bit flip of the call must not leak into this simulation.
+        result = cudaq.sample(clean_kernel, shots_count=100)
+        assert result["1"] == 100
+    finally:
+        cudaq.unset_noise()
+        cudaq.reset_target()
+
+
+def test_observe_list_restores_externally_set_noise_after_argument_noise():
+    """The noise model configured by the user must survive an `observe` call
+    on a list of operators with its own noise model."""
+    cudaq.reset_target()
+    cudaq.set_target("density-matrix-cpu")
+    try:
+        cudaq.unset_noise()
+
+        kernel = noisyQubitKernel()
+
+        external_noise = observeNoiseModel(1.0)
+        call_noise = observeNoiseModel(0.0)
+        cudaq.set_noise(external_noise)
+        call_results = cudaq.observe(kernel, [spin.z(0)],
+                                     noise_model=call_noise)
+        restored_result = cudaq.sample(kernel, shots_count=100)
+
+        # The call sees no bit flip, the user model applies again afterwards.
+        assert len(call_results) == 1
+        assert assert_close(-1.0, call_results[0].expectation())
+        assert restored_result["0"] == 100
+    finally:
+        cudaq.unset_noise()
+        cudaq.reset_target()
+
+
+def test_observe_list_keeps_externally_set_noise_after_failed_call():
+    """The noise model configured by the user must survive a failed `observe`
+    call on a list of operators with its own noise model."""
+    cudaq.reset_target()
+    cudaq.set_target("density-matrix-cpu")
+    try:
+        cudaq.unset_noise()
+
+        clean_kernel = noisyQubitKernel()
+        bad_kernel = noisyQubitKernel(float, float)
+
+        external_noise = observeNoiseModel(1.0)
+        call_noise = observeNoiseModel(0.0)
+        cudaq.set_noise(external_noise)
+        with pytest.raises(RuntimeError):
+            cudaq.observe(bad_kernel, [spin.z(0)], noise_model=call_noise)
+        restored_result = cudaq.sample(clean_kernel, shots_count=100)
+
+        # The user model applies again, the failed call did not clear it.
+        assert restored_result["0"] == 100
+    finally:
+        cudaq.unset_noise()
+        cudaq.reset_target()
+
+
 # leave for gdb debugging
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
