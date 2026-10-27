@@ -739,8 +739,6 @@ void ASTBridgeAction::ASTBridgeConsumer::addFunctionDecl(
     return;
   auto loc = toSourceLocation(module->getContext(), &astContext,
                               funcDecl->getSourceRange());
-  auto devFuncTy =
-      module->lookupSymbol<func::FuncOp>(devFuncName).getFunctionType();
   // The values of the data members of a kernel class are not arguments on the
   // host. They are read from the object. Record where they are.
   auto members = detail::QuakeBridgeVisitor::getKernelClassMembers(funcDecl);
@@ -748,7 +746,6 @@ void ASTBridgeAction::ASTBridgeConsumer::addFunctionDecl(
   funcTy = FunctionType::get(funcTy.getContext(),
                              funcTy.getInputs().drop_front(numMembers),
                              funcTy.getResults());
-  devFuncTy = funcTy;
   OpBuilder build(module->getBodyRegion());
   OpBuilder::InsertionGuard guard(build);
   build.setInsertionPointToEnd(module->getBody());
@@ -795,7 +792,7 @@ void ASTBridgeAction::ASTBridgeConsumer::addFunctionDecl(
 
   // Walk the arguments and add byval attributes where needed.
   assert(visitor.isItaniumCXXABI() && "Microsoft ABI not implemented");
-  auto hiddenSRet = opt::factory::hasHiddenSRet(devFuncTy);
+  auto hiddenSRet = opt::factory::hasHiddenSRet(funcTy);
   auto delta = cc::numberOfHiddenArgs(addThisPtr, hiddenSRet);
   if (hiddenSRet) {
     // The first argument should be a pointer type if this function has a hidden

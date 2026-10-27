@@ -349,9 +349,13 @@ pass-by-value semantics at kernel construction.
   uses its own copy, as it does for any other argument passed by value. An assignment to a data
   member in the kernel body is visible for the rest of that execution of the kernel, but it is never
   reflected in the object on the host.
-- A kernel class that has data members can be launched with :code:`cudaq::sample`,
-  :code:`cudaq::observe`, and :code:`cudaq::get_state`, but not yet with :code:`cudaq::run`. A call of
-  :code:`cudaq::run` on such a kernel reports that the kernel cannot be called by :code:`cudaq::run`.
+- A kernel class that has data members can be launched with :code:`cudaq::sample` and
+  :code:`cudaq::observe`, but not with :code:`cudaq::run`. A call of :code:`cudaq::run` on such a kernel
+  reports that the kernel cannot be called by :code:`cudaq::run`.
+- :code:`cudaq::get_state` can be used on a kernel class that has data members when the target is a
+  simulator. On a target that is a quantum device, a state is the name of the kernel and its arguments,
+  which do not include the object, so the values of the data members would be lost. A call of
+  :code:`cudaq::get_state` on such a kernel is an error on those targets.
 - A kernel cannot call a kernel class that has data members, for instance with :code:`cudaq::control`.
 
 **[9]** All quantum kernel invocations are synchronous calls by default. 
