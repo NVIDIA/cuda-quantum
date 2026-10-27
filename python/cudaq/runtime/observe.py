@@ -69,6 +69,14 @@ def observe(kernel,
     nested list of results over `arguments` then `spin_operator` will be
     returned.
 
+    If the `spin_operator` is a list, each element is reported separately.
+    An element with more than one term reports the coefficient weighted sum
+    of the expectation values of its terms, and hence agrees with an
+    equivalent per-operator `observe` call for the same operator. An element
+    with a single term reports the raw Pauli expectation of that term,
+    matching the term-list overload of the C++ `observe`, so its coefficient
+    has to be applied by the caller.
+
     Args:
       kernel (:class:`Kernel`): The :class:`Kernel` to evaluate the 
           expectation value with respect to.
@@ -116,11 +124,57 @@ def observe(kernel,
                                 shots_count=shots_count,
                                 noise_model=noise_model)
 
-    def __computeTermExpectation(term, observe_result):
+    def __termOf(op):
+        """Return the single term of `op`.
+
+        `op` is either a `SpinOperatorTerm` or a `SpinOperator` with
+        exactly one term.
+        """
+        if isinstance(op, cudaq_runtime.SpinOperatorTerm):
+            return op
+        return next(iter(op))
+
+    def __computeTermExpectation(term, observe_result, weighted=False):
+        """Return the contribution of `term` to an expectation value.
+
+        The identity term is never measured, so it contributes its
+        coefficient either way. Any other `term` contributes the raw Pauli
+        expectation, scaled by the term's coefficient if `weighted`.
+        """
         if term.is_identity():
             return term.evaluate_coefficient().real
-        else:
-            return observe_result.expectation(term)
+        exp_val = observe_result.expectation(term)
+        if weighted:
+            exp_val *= term.evaluate_coefficient().real
+        return exp_val
+
+    def __computeListExpectation(op, observe_result):
+        """Return the expectation value of `op`, an element of a
+        `spin_operator` list.
+
+        A single-term `op` yields the raw Pauli expectation, matching the
+        C++ term-list overload in `runtime/cudaq/algorithms/observe.h`. A
+        multi-term `op` yields the coefficient weighted sum of its terms, so
+        that the list form agrees with a per-operator `observe` call for the
+        same operator.
+        """
+        if op.term_count == 1:
+            return __computeTermExpectation(__termOf(op), observe_result)
+
+        exp_val = 0.0
+        for term in op:
+            exp_val += __computeTermExpectation(term, observe_result, True)
+        return exp_val
+
+    def __listCountsData(observe_result):
+        """Return the counts data shared by the elements of a
+        `spin_operator` list.
+
+        All the operators of a list are measured together, so every element
+        shares the same counts data. It holds one register per measured
+        term, and the identity term, which is never measured, has none.
+        """
+        return observe_result.counts()
 
     if noise_model != None:
         cudaq_runtime.set_noise(noise_model)
@@ -157,7 +211,8 @@ def observe(kernel,
 
         if isinstance(spin_operator, list):
             results = [[
-                cudaq_runtime.ObserveResult(p.expectation(o), o, p.counts(o))
+                cudaq_runtime.ObserveResult(__computeListExpectation(o, p), o,
+                                            __listCountsData(p))
                 for o in spin_operator
             ]
                        for p in results]
@@ -182,21 +237,11 @@ def observe(kernel,
 
             return observeResult
 
-        results = []
-        for op in spin_operator:
-            exp_val = 0.0
-
-            if op.term_count == 1:
-                term = op if isinstance(
-                    op, cudaq_runtime.SpinOperatorTerm) else next(iter(op))
-                exp_val = __computeTermExpectation(term, observeResult)
-            else:
-                for term in op:
-                    exp_val += __computeTermExpectation(term, observeResult)
-
-            results.append(
-                cudaq_runtime.ObserveResult(exp_val, op,
-                                            observeResult.counts()))
+        results = [
+            cudaq_runtime.ObserveResult(
+                __computeListExpectation(op, observeResult), op,
+                __listCountsData(observeResult)) for op in spin_operator
+        ]
 
     if noise_model != None:
         cudaq_runtime.unset_noise()
