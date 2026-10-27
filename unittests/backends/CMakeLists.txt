@@ -54,7 +54,6 @@ if(TARGET nvqir-custabilizer)
   target_link_libraries(custabilizer_tester PRIVATE
     nvqir
     nvqir-custabilizer
-    nvqir-stim
     libstim
     cuStabilizer::cuStabilizer
     CUDA::cudart_static

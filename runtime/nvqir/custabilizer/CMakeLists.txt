@@ -41,7 +41,6 @@ target_include_directories(${LIBRARY_NAME}
 
 target_link_libraries(${LIBRARY_NAME}
   PRIVATE
-    nvqir-stim
     libstim
     fmt::fmt-header-only
     cudaq-common
