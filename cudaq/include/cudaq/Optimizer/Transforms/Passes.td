@@ -1961,24 +1961,6 @@ def RegToMem : Pass<"regtomem", "mlir::func::FuncOp"> {
     "cudaq::quake::QuakeDialect"];
 }
 
-def RepairLinearType : Pass<"repair-linear-type", "mlir::func::FuncOp"> {
-  let summary = "Repair linear type constraints.";
-  let description = [{
-    The desired linear type constraint is that a value of linear type must be
-    used exactly once. That is \e not SSA. Unfortunately, MLIR assumes SSA
-    semantics at a very deep level and can and will destroy the linear type
-    constraints in its own default optimizations.
-
-    Running this pass will repair the damage in such a way that the linear type
-    value is lifted to a reference type, which is a valid SSA value.
-  }];
-  let dependentDialects = ["cudaq::quake::QuakeDialect"];
-  let statistics = [
-    Statistic<"numRepairs", "repairs",
-              "Number of linear type violations repaired with wrap/unwrap">,
-  ];
-}
-
 def ReplaceStateWithKernel : Pass<"replace-state-with-kernel",
     "mlir::func::FuncOp"> {
   let summary = "Replace `init_state` operations with calls to a kernel.";
