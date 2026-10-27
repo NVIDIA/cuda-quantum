@@ -62,11 +62,11 @@ static void test_maps(void) {
   cudaq_gf2_csc_view identity = {1, 1, 1, identity_offsets, rows},
                      identity2 = {2, 2, 2, identity_offsets, rows},
                      zero = {2, 1, 0, zero_offsets, NULL};
-  cudaq_gf2_map_block blocks[] = {{{1, 0}, {2, 0}, identity},
-                                  {{0, 1}, {1, 1}, identity2},
-                                  {{0, 0}, {1, 0}, identity},
-                                  {{0, 0}, {0, 0}, identity},
-                                  {{0, 1}, {0, 0}, zero}};
+  cudaq_gf2_map_matrix_block blocks[] = {{{1, 0}, {2, 0}, identity},
+                                         {{0, 1}, {1, 1}, identity2},
+                                         {{0, 0}, {1, 0}, identity},
+                                         {{0, 0}, {0, 0}, identity},
+                                         {{0, 1}, {0, 0}, zero}};
   cudaq_gf2_map_description d = {2,     3,      2,       0,      5,
                                  types, inputs, outputs, blocks, NULL};
   cudaq_gf2_map_view v;
@@ -81,13 +81,15 @@ static void test_maps(void) {
   OK(cudaq_gf2_map_get_type(&v, 0, &type));
   CHECK(type.name_size == 6 && !memcmp(type.name, "a/free", 6));
   cudaq_gf2_bundle bundle;
-  OK(cudaq_gf2_map_get_bundle(&v, 0, 1, &bundle));
+  OK(cudaq_gf2_map_get_bundle(&v, CUDAQ_GF2_INPUT, 1, &bundle));
   CHECK(bundle.type == 1);
   uint32_t width;
   uint64_t offset, ni, no;
-  OK(cudaq_gf2_map_get_wire(&v, 0, (cudaq_gf2_wire){1, 2}, &width, &offset));
+  OK(cudaq_gf2_map_get_wire(&v, CUDAQ_GF2_INPUT, (cudaq_gf2_wire){1, 2}, &width,
+                            &offset));
   CHECK(width == 0 && offset == 4);
-  OK(cudaq_gf2_map_get_wire(&v, 0, (cudaq_gf2_wire){2, 0}, &width, &offset));
+  OK(cudaq_gf2_map_get_wire(&v, CUDAQ_GF2_INPUT, (cudaq_gf2_wire){2, 0}, &width,
+                            &offset));
   CHECK(width == 1 && offset == 4);
   OK(cudaq_gf2_map_vector_sizes(&v, &ni, &no));
   CHECK(ni == 5 && no == 4);
@@ -103,9 +105,9 @@ static void test_maps(void) {
   CHECK(cudaq_gf2_map_apply(&v, bad, 5, unchanged, 4) ==
         CUDAQ_GF2_INVALID_ARGUMENT);
   CHECK(unchanged[0] == 7 && unchanged[3] == 7);
-  cudaq_gf2_map_block a, b;
-  OK(cudaq_gf2_map_get_block(&v, 0, &a));
-  OK(cudaq_gf2_map_get_block(&v, 1, &b));
+  cudaq_gf2_map_matrix_block a, b;
+  OK(cudaq_gf2_map_get_matrix_block(&v, 0, &a));
+  OK(cudaq_gf2_map_get_matrix_block(&v, 1, &b));
   CHECK(a.matrix.column_offsets == b.matrix.column_offsets);
   /* Remapping local type IDs and presentation order preserves the value. */
   cudaq_gf2_bundle_type temp = types[0];
@@ -116,7 +118,7 @@ static void test_maps(void) {
   for (unsigned i = 0; i < 2; ++i)
     outputs[i].type = 1 - outputs[i].type;
   for (unsigned i = 0; i < 2; ++i) {
-    cudaq_gf2_map_block t = blocks[i];
+    cudaq_gf2_map_matrix_block t = blocks[i];
     blocks[i] = blocks[4 - i];
     blocks[4 - i] = t;
   }
@@ -139,7 +141,7 @@ static void test_maps(void) {
   widths[1] = 3;
   CHECK(validate(&d) == CUDAQ_GF2_INVALID_CONTENT);
   widths[1] = 2;
-  cudaq_gf2_map_block saved = blocks[0];
+  cudaq_gf2_map_matrix_block saved = blocks[0];
   blocks[0] = blocks[1];
   CHECK(validate(&d) == CUDAQ_GF2_INVALID_CONTENT);
   blocks[0] = saved;

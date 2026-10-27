@@ -28,7 +28,7 @@ static void reorder_bundles(const cudaq_edem_view *source,
   cudaq_gf2_bundle_type types[MAX_TYPES];
   cudaq_gf2_bundle inputs[MAX_BUNDLES], outputs[MAX_BUNDLES];
   uint32_t input_ids[MAX_BUNDLES], output_ids[MAX_BUNDLES];
-  cudaq_gf2_map_block blocks[MAX_BLOCKS];
+  cudaq_gf2_map_matrix_block blocks[MAX_BLOCKS];
   for (uint32_t i = 0; i < shape.type_count; ++i)
     TA_CHECK(cudaq_gf2_map_get_type(&source->map, i, types + i) ==
              CUDAQ_GF2_OK);
@@ -46,7 +46,7 @@ static void reorder_bundles(const cudaq_edem_view *source,
     }
   }
   for (uint32_t i = 0; i < shape.block_count; ++i) {
-    TA_CHECK(cudaq_gf2_map_get_block(&source->map, i, blocks + i) ==
+    TA_CHECK(cudaq_gf2_map_get_matrix_block(&source->map, i, blocks + i) ==
              CUDAQ_GF2_OK);
     blocks[i].input.bundle = input_ids[blocks[i].input.bundle];
     blocks[i].output.bundle = output_ids[blocks[i].output.bundle];

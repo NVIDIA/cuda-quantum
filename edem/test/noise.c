@@ -43,15 +43,16 @@ static void reordered_outputs(void) {
            shape.input_bundle_count == 1 && shape.section_count == 2);
   cudaq_gf2_bundle_type types[4];
   cudaq_gf2_bundle input, outputs[3];
-  cudaq_gf2_map_block reordered_blocks[3];
+  cudaq_gf2_map_matrix_block reordered_blocks[3];
   for (uint32_t i = 0; i < 4; ++i)
     TA_CHECK(cudaq_gf2_map_get_type(&source.map, i, types + i) == CUDAQ_GF2_OK);
-  TA_CHECK(cudaq_gf2_map_get_bundle(&source.map, 0, 0, &input) == CUDAQ_GF2_OK);
+  TA_CHECK(cudaq_gf2_map_get_bundle(&source.map, CUDAQ_EDEM_INPUT, 0, &input) ==
+           CUDAQ_GF2_OK);
   for (uint32_t i = 0; i < 3; ++i) {
-    TA_CHECK(cudaq_gf2_map_get_bundle(&source.map, 1, 2 - i, outputs + i) ==
-             CUDAQ_GF2_OK);
-    TA_CHECK(cudaq_gf2_map_get_block(&source.map, i, reordered_blocks + i) ==
-             CUDAQ_GF2_OK);
+    TA_CHECK(cudaq_gf2_map_get_bundle(&source.map, CUDAQ_EDEM_OUTPUT, 2 - i,
+                                      outputs + i) == CUDAQ_GF2_OK);
+    TA_CHECK(cudaq_gf2_map_get_matrix_block(
+                 &source.map, i, reordered_blocks + i) == CUDAQ_GF2_OK);
     reordered_blocks[i].output.bundle = 2 - reordered_blocks[i].output.bundle;
   }
   cudaq_gf2_section sections[2];

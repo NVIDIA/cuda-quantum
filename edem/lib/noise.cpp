@@ -88,8 +88,8 @@ struct responses {
     if (columns == SIZE_MAX)
       return CUDAQ_EDEM_INSUFFICIENT_CAPACITY;
     for (uint64_t b = 0; b < block_count; ++b) {
-      cudaq_gf2_map_block block;
-      EDEM_TRY(cudaq_gf2_map_get_block(&value->edem.map, b, &block));
+      cudaq_gf2_map_matrix_block block;
+      EDEM_TRY(cudaq_gf2_map_get_matrix_block(&value->edem.map, b, &block));
       if (!add(nonzeros, block.matrix.nonzeros))
         return CUDAQ_EDEM_INSUFFICIENT_CAPACITY;
     }
@@ -139,8 +139,8 @@ struct responses {
       uint64_t ignored;
       EDEM_TRY(cudaq_edem_describe_wire(&value->edem, CUDAQ_EDEM_OUTPUT, {p, 0},
                                         &endpoint));
-      EDEM_TRY(cudaq_gf2_map_get_wire(&value->edem.map, true, {p, 0}, &width,
-                                      &ignored));
+      EDEM_TRY(cudaq_gf2_map_get_wire(&value->edem.map, CUDAQ_EDEM_OUTPUT,
+                                      {p, 0}, &width, &ignored));
       const uint64_t index = output_index(endpoint);
       outputs[index] = {endpoint, 0, width};
       sizes[index] = width;
@@ -151,8 +151,8 @@ struct responses {
       start += output.size;
     }
     for (uint64_t b = 0; b < block_count; ++b) {
-      cudaq_gf2_map_block block;
-      EDEM_TRY(cudaq_gf2_map_get_block(&value->edem.map, b, &block));
+      cudaq_gf2_map_matrix_block block;
+      EDEM_TRY(cudaq_gf2_map_get_matrix_block(&value->edem.map, b, &block));
       EDEM_TRY(cudaq_edem_describe_wire(&value->edem, CUDAQ_EDEM_OUTPUT,
                                         block.output, &blocks[b].output));
       EDEM_TRY(cudaq_edem_describe_wire(&value->edem, CUDAQ_EDEM_INPUT,

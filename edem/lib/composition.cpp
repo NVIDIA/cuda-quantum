@@ -62,18 +62,20 @@ cudaq_edem_status describe(const cudaq_edem_view &value,
   EDEM_TRY(cudaq_edem_get_shape(&value, &info.shape));
   EDEM_TRY(cudaq_edem_get_code_count(&value, &info.code_count));
   EDEM_TRY(cudaq_gf2_map_vector_sizes(&value.map, &info.inputs, &info.outputs));
-  for (uint32_t side = 0; side < 2; ++side) {
+  for (cudaq_edem_endpoint_direction direction = CUDAQ_EDEM_INPUT;
+       direction <= CUDAQ_EDEM_OUTPUT; ++direction) {
     uint32_t count =
-        side ? info.shape.detector_ports_count +
-                   info.shape.observable_ports_count +
-                   info.shape.success_ports_count + info.shape.output_code_count
-             : info.shape.fault_ports_count + info.shape.input_code_count;
+        direction == CUDAQ_EDEM_OUTPUT
+            ? info.shape.detector_ports_count +
+                  info.shape.observable_ports_count +
+                  info.shape.success_ports_count + info.shape.output_code_count
+            : info.shape.fault_ports_count + info.shape.input_code_count;
     for (uint32_t i = 0; i < count; ++i) {
       cudaq_gf2_bundle bundle;
-      EDEM_TRY(cudaq_gf2_map_get_bundle(&value.map, side, i, &bundle));
+      EDEM_TRY(cudaq_gf2_map_get_bundle(&value.map, direction, i, &bundle));
       if (bundle.type < info.code_count)
         continue;
-      if (side) {
+      if (direction == CUDAQ_EDEM_OUTPUT) {
         info.free_outputs += bundle.widths[0];
       } else {
         uint32_t width, groups;
@@ -153,13 +155,15 @@ cudaq_edem_status cudaq_edem_get_shape(const cudaq_edem_view *value,
   EDEM_TRY(cudaq_gf2_map_get_shape(&value->map, &map));
   EDEM_TRY(cudaq_edem_get_code_count(value, &code_count));
   cudaq_edem_shape shape{};
-  for (uint32_t side = 0; side < 2; ++side) {
-    uint32_t count = side ? map.output_bundle_count : map.input_bundle_count;
+  for (cudaq_edem_endpoint_direction direction = CUDAQ_EDEM_INPUT;
+       direction <= CUDAQ_EDEM_OUTPUT; ++direction) {
+    uint32_t count = direction == CUDAQ_EDEM_OUTPUT ? map.output_bundle_count
+                                                    : map.input_bundle_count;
     for (uint32_t i = 0; i < count; ++i) {
       cudaq_gf2_bundle bundle;
-      EDEM_TRY(cudaq_gf2_map_get_bundle(&value->map, side, i, &bundle));
+      EDEM_TRY(cudaq_gf2_map_get_bundle(&value->map, direction, i, &bundle));
       if (bundle.type < code_count) {
-        if (side)
+        if (direction == CUDAQ_EDEM_OUTPUT)
           ++shape.output_code_count;
         else
           ++shape.input_code_count;
@@ -351,7 +355,8 @@ cudaq_edem_status cudaq_edem_compose_chain(const cudaq_edem_view *values,
         info[t].shape.fault_ports_count + info[t].shape.input_code_count;
     for (uint32_t p = 0; p < input_bundles; ++p) {
       cudaq_gf2_bundle bundle;
-      EDEM_TRY(cudaq_gf2_map_get_bundle(&values[t].map, false, p, &bundle));
+      EDEM_TRY(cudaq_gf2_map_get_bundle(&values[t].map, CUDAQ_EDEM_INPUT, p,
+                                        &bundle));
       if (bundle.type < info[t].code_count)
         continue;
       uint32_t width, law_count;
@@ -363,7 +368,7 @@ cudaq_edem_status cudaq_edem_compose_chain(const cudaq_edem_view *values,
       auto &wire = inputs[fault_index];
       wire.endpoint = {CUDAQ_EDEM_FAULT, static_cast<uint32_t>(fault_index)};
       wire.occurrence = t;
-      EDEM_TRY(cudaq_gf2_map_get_wire(&values[t].map, false, {p, 0},
+      EDEM_TRY(cudaq_gf2_map_get_wire(&values[t].map, CUDAQ_EDEM_INPUT, {p, 0},
                                       &wire.width, &wire.local_offset));
       ++fault_index;
     }

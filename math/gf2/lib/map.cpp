@@ -19,7 +19,7 @@ static_assert(sizeof(cudaq_gf2_packed_header) == 64);
 static_assert(sizeof(cudaq_gf2_packed_section) == 32);
 static_assert(sizeof(cudaq_gf2_packed_type) == 24);
 static_assert(sizeof(cudaq_gf2_packed_bundle) == 24);
-static_assert(sizeof(cudaq_gf2_packed_block) == 24);
+static_assert(sizeof(cudaq_gf2_packed_matrix_block) == 24);
 static_assert(sizeof(cudaq_gf2_packed_matrix) == 32);
 constexpr uint8_t magic[8] = {'C', 'Q', 'G', 'F', '2', 0, 0, 0};
 struct source {
@@ -57,11 +57,11 @@ struct source {
             reinterpret_cast<const uint64_t *>(p + m.column_offsets),
             reinterpret_cast<const uint32_t *>(p + m.row_indices)};
   }
-  cudaq_gf2_map_block block(uint32_t i) const {
+  cudaq_gf2_map_matrix_block block(uint32_t i) const {
     if (!data)
       return d.blocks[i];
     const auto &b =
-        reinterpret_cast<const cudaq_gf2_packed_block *>(payload(3))[i];
+        reinterpret_cast<const cudaq_gf2_packed_matrix_block *>(payload(3))[i];
     return {{b.output_bundle, b.output_wire},
             {b.input_bundle, b.input_wire},
             matrix(b.matrix)};
@@ -86,7 +86,7 @@ struct workspace_requirements {
   uint64_t bytes;
   uint32_t alignment, reserved;
 };
-bool block_less(cudaq_gf2_map_block a, cudaq_gf2_map_block b) {
+bool block_less(cudaq_gf2_map_matrix_block a, cudaq_gf2_map_matrix_block b) {
   if (a.output.bundle != b.output.bundle)
     return a.output.bundle < b.output.bundle;
   if (a.output.wire != b.output.wire)
@@ -382,7 +382,7 @@ void write(const source &s, const workspace &w, const layout &l,
     }
   }
   auto *blocks =
-      reinterpret_cast<cudaq_gf2_packed_block *>(data + dir[3].offset);
+      reinterpret_cast<cudaq_gf2_packed_matrix_block *>(data + dir[3].offset);
   uint32_t written = 0;
   for (uint32_t i : w.blocks) {
     auto b = s.block(i);
@@ -500,7 +500,8 @@ cudaq_gf2_status parse(const void *buffer, uint64_t bytes,
             !r.take(b.offsets, uint64_t{n} + 1, 8))
           return CUDAQ_GF2_INVALID_CONTENT;
       } else if (part == 3) {
-        const auto &b = reinterpret_cast<const cudaq_gf2_packed_block *>(p)[i];
+        const auto &b =
+            reinterpret_cast<const cudaq_gf2_packed_matrix_block *>(p)[i];
         if (b.matrix >= dir[4].count || b.reserved)
           return CUDAQ_GF2_INVALID_CONTENT;
       } else {
@@ -582,8 +583,8 @@ cudaq_gf2_status cudaq_gf2_map_construct(const cudaq_gf2_map_description *d,
     return CUDAQ_GF2_INVALID_ARGUMENT;
   cudaq_gf2_owned_buffer candidate_owner{};
   cudaq_gf2_map_view candidate;
-  const auto status =
-      with_description(d, memory, [&](const source &s, workspace &w) {
+  const auto status = with_description(
+      d, memory, [&](const source &s, workspace &w) -> cudaq_gf2_status {
         prepare_matrices(s, w);
         layout l;
         if (!measure(s, w, l))
@@ -632,7 +633,8 @@ cudaq_gf2_status cudaq_gf2_map_read(const void *buffer, uint64_t bytes,
   prepare_matrices(s, w);
   if (w.unique != s.directory[4].count)
     return CUDAQ_GF2_INVALID_CONTENT;
-  auto *blocks = reinterpret_cast<const cudaq_gf2_packed_block *>(s.payload(3));
+  auto *blocks =
+      reinterpret_cast<const cudaq_gf2_packed_matrix_block *>(s.payload(3));
   for (uint32_t i = 0; i < s.d.block_count; ++i)
     if (blocks[i].matrix != w.matrix_ids[i])
       return CUDAQ_GF2_INVALID_CONTENT;
@@ -659,29 +661,32 @@ cudaq_gf2_status cudaq_gf2_map_get_type(const cudaq_gf2_map_view *view,
   return CUDAQ_GF2_OK;
 }
 cudaq_gf2_status cudaq_gf2_map_get_bundle(const cudaq_gf2_map_view *view,
-                                          uint32_t side, uint32_t i,
-                                          cudaq_gf2_bundle *out) {
+                                          cudaq_gf2_wire_direction direction,
+                                          uint32_t i, cudaq_gf2_bundle *out) {
   source s;
-  if (!out || side > 1 || !view_source(view, s) ||
-      i >= (side ? s.d.output_bundle_count : s.d.input_bundle_count))
+  if (!out || direction > CUDAQ_GF2_OUTPUT || !view_source(view, s) ||
+      i >= (direction == CUDAQ_GF2_OUTPUT ? s.d.output_bundle_count
+                                          : s.d.input_bundle_count))
     return CUDAQ_GF2_INVALID_ARGUMENT;
-  *out = s.bundle(side, i);
+  *out = s.bundle(direction, i);
   return CUDAQ_GF2_OK;
 }
 cudaq_gf2_status cudaq_gf2_map_get_wire(const cudaq_gf2_map_view *view,
-                                        uint32_t side, cudaq_gf2_wire wire,
-                                        uint32_t *width, uint64_t *offset) {
+                                        cudaq_gf2_wire_direction direction,
+                                        cudaq_gf2_wire wire, uint32_t *width,
+                                        uint64_t *offset) {
   source s;
   uint32_t candidate;
-  if (!width || !offset || side > 1 || !view_source(view, s) ||
-      !wire_width(s, side, wire, candidate))
+  if (!width || !offset || direction > CUDAQ_GF2_OUTPUT ||
+      !view_source(view, s) || !wire_width(s, direction, wire, candidate))
     return CUDAQ_GF2_INVALID_ARGUMENT;
   *width = candidate;
-  *offset = s.offsets(side, wire.bundle)[wire.wire];
+  *offset = s.offsets(direction, wire.bundle)[wire.wire];
   return CUDAQ_GF2_OK;
 }
-cudaq_gf2_status cudaq_gf2_map_get_block(const cudaq_gf2_map_view *view,
-                                         uint64_t i, cudaq_gf2_map_block *out) {
+cudaq_gf2_status
+cudaq_gf2_map_get_matrix_block(const cudaq_gf2_map_view *view, uint64_t i,
+                               cudaq_gf2_map_matrix_block *out) {
   source s;
   if (!out || !view_source(view, s) || i >= s.d.block_count)
     return CUDAQ_GF2_INVALID_ARGUMENT;
@@ -689,7 +694,7 @@ cudaq_gf2_status cudaq_gf2_map_get_block(const cudaq_gf2_map_view *view,
   return CUDAQ_GF2_OK;
 }
 cudaq_gf2_status cudaq_gf2_map_get_section(const cudaq_gf2_map_view *view,
-                                           uint32_t id,
+                                           cudaq_gf2_section_id id,
                                            cudaq_gf2_section *out) {
   source s;
   if (!out || !view_source(view, s))

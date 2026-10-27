@@ -88,9 +88,13 @@ cudaq_edem_status describe(const cudaq_edem_description *d, plan &p) {
             3 * (uint64_t{s.input_code_count} + s.output_code_count);
   uint64_t ignored;
   // Names are reserved per code bundle, an upper bound on the codes used.
-  for (uint32_t side = 0; side < 2; ++side) {
-    uint32_t count = side ? s.output_code_count : s.input_code_count;
-    const auto *indices = side ? d->output_code_indices : d->input_code_indices;
+  for (cudaq_edem_endpoint_direction direction = CUDAQ_EDEM_INPUT;
+       direction <= CUDAQ_EDEM_OUTPUT; ++direction) {
+    uint32_t count = direction == CUDAQ_EDEM_OUTPUT ? s.output_code_count
+                                                    : s.input_code_count;
+    const auto *indices = direction == CUDAQ_EDEM_OUTPUT
+                              ? d->output_code_indices
+                              : d->input_code_indices;
     for (uint32_t i = 0; i < count; ++i) {
       if (indices[i] >= table_count(*table))
         return CUDAQ_EDEM_INVALID_CONTENT;
@@ -124,7 +128,8 @@ cudaq_edem_status describe(const cudaq_edem_description *d, plan &p) {
       !reserve(n, p.inputs, sizeof(cudaq_gf2_bundle), ignored) ||
       !reserve(n, p.outputs, sizeof(cudaq_gf2_bundle), ignored) ||
       !reserve(n, p.wires, 4, ignored) ||
-      !reserve(n, d->block_count, sizeof(cudaq_gf2_map_block), ignored) ||
+      !reserve(n, d->block_count, sizeof(cudaq_gf2_map_matrix_block),
+               ignored) ||
       !reserve(n, p.names, 1, ignored) ||
       !reserve(n, code_bundles, sizeof(cudaq_edem_packed_code), ignored) ||
       !reserve(n, p.fault_bytes, 1, ignored) ||
@@ -182,22 +187,26 @@ cudaq_edem_status check_distribution(uint32_t size, uint32_t count, Group group,
   }
   return total == size ? CUDAQ_EDEM_OK : CUDAQ_EDEM_INVALID_CONTENT;
 }
-bool semantic_wire(const cudaq_edem_shape &s, uint32_t side,
+bool semantic_wire(const cudaq_edem_shape &s,
+                   cudaq_edem_endpoint_direction direction,
                    cudaq_edem_endpoint e, cudaq_gf2_wire &wire) {
   if (e.kind >= CUDAQ_EDEM_VIRTUAL && e.kind <= CUDAQ_EDEM_LOGICAL) {
-    if (e.index >= (side ? s.output_code_count : s.input_code_count))
+    if (e.index >= (direction == CUDAQ_EDEM_OUTPUT ? s.output_code_count
+                                                   : s.input_code_count))
       return false;
-    uint32_t start = side ? s.detector_ports_count + s.observable_ports_count +
-                                s.success_ports_count
-                          : s.fault_ports_count;
+    uint32_t start = direction == CUDAQ_EDEM_OUTPUT
+                         ? s.detector_ports_count + s.observable_ports_count +
+                               s.success_ports_count
+                         : s.fault_ports_count;
     wire = {start + e.index, e.kind - CUDAQ_EDEM_VIRTUAL};
     return true;
   }
-  if (!side && e.kind == CUDAQ_EDEM_FAULT && e.index < s.fault_ports_count) {
+  if (direction == CUDAQ_EDEM_INPUT && e.kind == CUDAQ_EDEM_FAULT &&
+      e.index < s.fault_ports_count) {
     wire = {e.index, 0};
     return true;
   }
-  if (side) {
+  if (direction == CUDAQ_EDEM_OUTPUT) {
     if (e.kind == CUDAQ_EDEM_DETECTOR && e.index < s.detector_ports_count) {
       wire = {e.index, 0};
       return true;
@@ -237,7 +246,7 @@ cudaq_edem_status lower(const cudaq_edem_description *d,
   auto inputs = a.take<cudaq_gf2_bundle>(p.inputs),
        outputs = a.take<cudaq_gf2_bundle>(p.outputs);
   auto widths = a.take<uint32_t>(p.wires);
-  auto blocks = a.take<cudaq_gf2_map_block>(d->block_count);
+  auto blocks = a.take<cudaq_gf2_map_matrix_block>(d->block_count);
   auto names = a.take<char>(p.names);
   auto codes = a.take<cudaq_edem_packed_code>(code_bundles);
   auto fault_data = a.take<uint8_t>(p.fault_bytes);
@@ -274,15 +283,17 @@ cudaq_edem_status lower(const cudaq_edem_description *d,
     types[code_count + i] = {free_names[i], strlen(free_names[i]),
                              CUDAQ_GF2_FREE, 1};
   uint64_t wi = 0;
-  for (uint32_t side = 0; side < 2; ++side) {
-    auto bundles = side ? outputs : inputs;
-    uint32_t free_count = side ? s.detector_ports_count +
-                                     s.observable_ports_count +
-                                     s.success_ports_count
-                               : s.fault_ports_count;
+  for (cudaq_edem_endpoint_direction direction = CUDAQ_EDEM_INPUT;
+       direction <= CUDAQ_EDEM_OUTPUT; ++direction) {
+    auto bundles = direction == CUDAQ_EDEM_OUTPUT ? outputs : inputs;
+    uint32_t free_count = direction == CUDAQ_EDEM_OUTPUT
+                              ? s.detector_ports_count +
+                                    s.observable_ports_count +
+                                    s.success_ports_count
+                              : s.fault_ports_count;
     for (uint32_t i = 0; i < free_count; ++i) {
       uint32_t type, width;
-      if (!side) {
+      if (direction == CUDAQ_EDEM_INPUT) {
         type = 1;
         width = d->fault_ports_distributions[i].size;
       } else if (i < s.detector_ports_count) {
@@ -299,9 +310,11 @@ cudaq_edem_status lower(const cudaq_edem_description *d,
       widths[wi] = width;
       bundles[i] = {code_count + type, 0, widths.data() + wi++};
     }
-    uint32_t count = side ? s.output_code_count : s.input_code_count;
-    const auto *code_indices =
-        side ? d->output_code_indices : d->input_code_indices;
+    uint32_t count = direction == CUDAQ_EDEM_OUTPUT ? s.output_code_count
+                                                    : s.input_code_count;
+    const auto *code_indices = direction == CUDAQ_EDEM_OUTPUT
+                                   ? d->output_code_indices
+                                   : d->input_code_indices;
     for (uint32_t i = 0; i < count; ++i) {
       uint32_t id = local(code_indices[i]);
       auto c = codes[id];
@@ -314,8 +327,8 @@ cudaq_edem_status lower(const cudaq_edem_description *d,
   }
   for (uint32_t i = 0; i < d->block_count; ++i) {
     auto b = d->blocks[i];
-    if (!semantic_wire(s, 1, b.output, blocks[i].output) ||
-        !semantic_wire(s, 0, b.input, blocks[i].input))
+    if (!semantic_wire(s, CUDAQ_EDEM_OUTPUT, b.output, blocks[i].output) ||
+        !semantic_wire(s, CUDAQ_EDEM_INPUT, b.input, blocks[i].input))
       return CUDAQ_EDEM_INVALID_CONTENT;
     if (b.matrix.nonzeros && b.input.kind == CUDAQ_EDEM_VIRTUAL &&
         (b.output.kind == CUDAQ_EDEM_SYNDROME ||
@@ -633,12 +646,13 @@ cudaq_edem_status cudaq_edem_check(const cudaq_gf2_map_view *view,
       return CUDAQ_EDEM_INVALID_CONTENT;
   }
   uint32_t fault = 0;
-  for (uint32_t side = 0; side < 2; ++side) {
-    uint32_t count =
-        side ? shape.output_bundle_count : shape.input_bundle_count;
+  for (cudaq_edem_endpoint_direction direction = CUDAQ_EDEM_INPUT;
+       direction <= CUDAQ_EDEM_OUTPUT; ++direction) {
+    uint32_t count = direction == CUDAQ_EDEM_OUTPUT ? shape.output_bundle_count
+                                                    : shape.input_bundle_count;
     for (uint32_t i = 0; i < count; ++i) {
       cudaq_gf2_bundle b;
-      cudaq_gf2_map_get_bundle(view, side, i, &b);
+      cudaq_gf2_map_get_bundle(view, direction, i, &b);
       if (b.type < s.codes.count) {
         used[b.type] = 1;
         auto c = s.code_data[b.type];
@@ -648,10 +662,10 @@ cudaq_edem_status cudaq_edem_check(const cudaq_gf2_map_view *view,
           return CUDAQ_EDEM_INVALID_CONTENT;
       } else {
         uint32_t kind = free_kinds[b.type - s.codes.count];
-        if ((!side && kind != CUDAQ_EDEM_FAULT) ||
-            (side && kind == CUDAQ_EDEM_FAULT))
+        if ((direction == CUDAQ_EDEM_INPUT && kind != CUDAQ_EDEM_FAULT) ||
+            (direction == CUDAQ_EDEM_OUTPUT && kind == CUDAQ_EDEM_FAULT))
           return CUDAQ_EDEM_INVALID_CONTENT;
-        if (!side) {
+        if (direction == CUDAQ_EDEM_INPUT) {
           if (fault >= s.faults.count || s.fault_data[fault].bundle != i ||
               s.fault_data[fault].size != b.widths[0])
             return CUDAQ_EDEM_INVALID_CONTENT;
@@ -674,11 +688,11 @@ cudaq_edem_status cudaq_edem_check(const cudaq_gf2_map_view *view,
       std::find(used, used + s.codes.count, uint8_t{0}) != used + s.codes.count)
     return CUDAQ_EDEM_INVALID_CONTENT;
   for (uint64_t i = 0; i < shape.block_count; ++i) {
-    cudaq_gf2_map_block b;
-    cudaq_gf2_map_get_block(view, i, &b);
+    cudaq_gf2_map_matrix_block b;
+    cudaq_gf2_map_get_matrix_block(view, i, &b);
     cudaq_gf2_bundle in, out;
-    cudaq_gf2_map_get_bundle(view, 0, b.input.bundle, &in);
-    cudaq_gf2_map_get_bundle(view, 1, b.output.bundle, &out);
+    cudaq_gf2_map_get_bundle(view, CUDAQ_EDEM_INPUT, b.input.bundle, &in);
+    cudaq_gf2_map_get_bundle(view, CUDAQ_EDEM_OUTPUT, b.output.bundle, &out);
     if (in.type < s.codes.count && b.input.wire == 0 &&
         out.type < s.codes.count && b.output.wire != 0)
       return CUDAQ_EDEM_INVALID_CONTENT;

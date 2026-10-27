@@ -102,12 +102,13 @@ static void test_open_round(void) {
   cudaq_gf2_bundle bundle;
   cudaq_gf2_wire wire;
   uint64_t offset, inputs, outputs;
-  OK(cudaq_gf2_map_get_bundle(&relocated.map, 1, 1, &bundle));
+  OK(cudaq_gf2_map_get_bundle(&relocated.map, CUDAQ_EDEM_OUTPUT, 1, &bundle));
   CHECK(bundle.type == 0);
   OK(cudaq_edem_resolve_endpoint(&relocated, CUDAQ_EDEM_INPUT,
                                  (cudaq_edem_endpoint){CUDAQ_EDEM_LOGICAL, 0},
                                  &wire));
-  OK(cudaq_gf2_map_get_wire(&relocated.map, 0, wire, &width, &offset));
+  OK(cudaq_gf2_map_get_wire(&relocated.map, CUDAQ_EDEM_INPUT, wire, &width,
+                            &offset));
   CHECK(width == 2 && offset == 6);
   OK(cudaq_gf2_map_vector_sizes(&relocated.map, &inputs, &outputs));
   CHECK(inputs == 8 && outputs == 8);
@@ -121,12 +122,12 @@ static void test_open_round(void) {
     OK(cudaq_gf2_map_apply(&relocated.map, x, 8, y, 8));
     CHECK(!memcmp(y, expected, 8));
   }
-  cudaq_gf2_map_block a, b;
-  OK(cudaq_gf2_map_get_block(&relocated.map, 0, &a));
+  cudaq_gf2_map_matrix_block a, b;
+  OK(cudaq_gf2_map_get_matrix_block(&relocated.map, 0, &a));
   CHECK(a.output.bundle == 0 && a.output.wire == 0 && a.input.bundle == 0 &&
         a.input.wire == 0);
-  OK(cudaq_gf2_map_get_block(&relocated.map, 1, &a));
-  OK(cudaq_gf2_map_get_block(&relocated.map, 2, &b));
+  OK(cudaq_gf2_map_get_matrix_block(&relocated.map, 1, &a));
+  OK(cudaq_gf2_map_get_matrix_block(&relocated.map, 2, &b));
   CHECK(a.matrix.column_offsets ==
         b.matrix.column_offsets); /* shared identity */
   cudaq_edem_fault_group read_group;
@@ -174,8 +175,8 @@ static void test_open_round(void) {
   matrices[0].nonzeros = UINT64_MAX;
   INVALID(cudaq_edem_read(copy, bytes, NULL, &value));
   memcpy(copy, packed, (size_t)bytes);
-  cudaq_gf2_packed_block *packed_blocks =
-      (cudaq_gf2_packed_block *)((uint8_t *)copy + directory[3].offset);
+  cudaq_gf2_packed_matrix_block *packed_blocks =
+      (cudaq_gf2_packed_matrix_block *)((uint8_t *)copy + directory[3].offset);
   packed_blocks[0].matrix = UINT32_MAX;
   INVALID(cudaq_edem_read(copy, bytes, NULL, &value));
   /* Exercise the reader's nested length/offset checks under sanitizers. A
@@ -224,7 +225,7 @@ static void test_distributions_and_names(void) {
   OK(cudaq_edem_construct(&d, NULL, &owner, &value));
   OK(cudaq_edem_read(owner.data, owner.size, NULL, &value));
   cudaq_gf2_bundle bundle;
-  OK(cudaq_gf2_map_get_bundle(&value.map, 0, 1, &bundle));
+  OK(cudaq_gf2_map_get_bundle(&value.map, CUDAQ_EDEM_INPUT, 1, &bundle));
   CHECK(bundle.type == 1); /* sorted names remap presentation IDs */
   probabilities[1] = 0.76;
   INVALID(cudaq_edem_validate(&d, NULL));
@@ -314,7 +315,7 @@ static void test_domain_checks(void) {
     if (trial == 1)
       ((cudaq_gf2_packed_type *)(copy + to))->role = CUDAQ_GF2_FREE;
     if (trial == 2)
-      ((cudaq_gf2_packed_block *)(copy + bo))->input_bundle = 1;
+      ((cudaq_gf2_packed_matrix_block *)(copy + bo))->input_bundle = 1;
     if (trial == 3)
       ((cudaq_edem_packed_fault *)(copy + fo))->bundle = 1;
     if (trial == 4) {

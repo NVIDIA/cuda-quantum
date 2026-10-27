@@ -49,9 +49,12 @@ enum {
 };
 
 /* Side of the EDEM map: inputs carry F and input code bundles; outputs carry
- * D, O, Success and output code bundles. Values match GF2 map sides. */
-typedef uint32_t cudaq_edem_endpoint_direction;
-enum { CUDAQ_EDEM_INPUT = 0, CUDAQ_EDEM_OUTPUT = 1 };
+ * D, O, Success and output code bundles. Values are the GF2 wire directions. */
+typedef cudaq_gf2_wire_direction cudaq_edem_endpoint_direction;
+enum {
+  CUDAQ_EDEM_INPUT = CUDAQ_GF2_INPUT,
+  CUDAQ_EDEM_OUTPUT = CUDAQ_GF2_OUTPUT
+};
 
 /* An endpoint and an endpoint direction together describe a port. A code
  * bundle is the (V,S,L) port triple of one code on one side. V, S and L

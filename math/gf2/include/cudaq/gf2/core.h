@@ -18,14 +18,17 @@ extern "C" {
 /* Numeric compatibility revision for v0.x development, not a major release. */
 #define CUDAQ_GF2_ABI_VERSION 1
 
-typedef enum cudaq_gf2_status {
+/* Enumerated types are fixed-width so the ABI does not depend on the
+ * compiler's enum size. */
+typedef uint32_t cudaq_gf2_status;
+enum {
   CUDAQ_GF2_OK = 0,
   CUDAQ_GF2_INVALID_ARGUMENT = 1,
   CUDAQ_GF2_INVALID_CONTENT = 2,
   CUDAQ_GF2_INSUFFICIENT_CAPACITY = 3,
   CUDAQ_GF2_UNSUPPORTED_VERSION = 4,
   CUDAQ_GF2_ALLOCATION_FAILED = 5
-} cudaq_gf2_status;
+};
 
 /* Canonical compressed sparse columns: sorted, duplicate-free row indices in
  * each column. All entries are one. Empty shapes and empty columns are valid.

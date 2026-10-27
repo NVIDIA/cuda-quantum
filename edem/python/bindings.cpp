@@ -40,7 +40,7 @@ static void check(cudaq_edem_status status) {
     throw nb::value_error(cudaq_edem_status_string(status));
 }
 
-static void check(cudaq_gf2_status status) {
+static void check_gf2(cudaq_gf2_status status) {
   if (status == CUDAQ_GF2_ALLOCATION_FAILED)
     throw std::bad_alloc();
   if (status != CUDAQ_GF2_OK)
@@ -64,7 +64,7 @@ struct SparseMatrix {
     for (auto [row, column] : entries)
       input.push_back({row, column});
     cudaq_gf2_csc_view result;
-    check(cudaq_gf2_csc_construct(
+    check_gf2(cudaq_gf2_csc_construct(
         r, c, input.data(), input.size(), offsets.data(), offsets.size(),
         indices.data(), indices.size(), scratch.data(),
         scratch.size() * sizeof(cudaq_gf2_entry), &result));
@@ -99,9 +99,9 @@ struct SparseMatrix {
       throw nb::value_error("affine offset must have one bit per matrix row");
     auto matrix = view();
     std::vector<uint8_t> output(rows);
-    check(cudaq_gf2_csc_apply(&matrix, input.data(), input.size(),
-                              offset ? offset->data() : nullptr, output.data(),
-                              output.size()));
+    check_gf2(cudaq_gf2_csc_apply(&matrix, input.data(), input.size(),
+                                  offset ? offset->data() : nullptr,
+                                  output.data(), output.size()));
     return output;
   }
 };
@@ -414,14 +414,14 @@ public:
     auto value = view();
     auto side = static_cast<cudaq_edem_endpoint_direction>(direction);
     cudaq_gf2_map_shape map;
-    check(cudaq_gf2_map_get_shape(&value.map, &map));
+    check_gf2(cudaq_gf2_map_get_shape(&value.map, &map));
     uint32_t n = side == CUDAQ_EDEM_OUTPUT ? map.output_bundle_count
                                            : map.input_bundle_count;
     auto codes = code_count();
     std::vector<uint32_t> result;
     for (uint32_t i = 0; i < n; ++i) {
       cudaq_gf2_bundle bundle;
-      check(cudaq_gf2_map_get_bundle(&value.map, side, i, &bundle));
+      check_gf2(cudaq_gf2_map_get_bundle(&value.map, side, i, &bundle));
       if (bundle.type < codes)
         result.push_back(bundle.type);
     }
@@ -433,11 +433,11 @@ public:
     std::vector<FaultDistribution> result;
     auto codes = code_count();
     cudaq_gf2_map_shape map;
-    check(cudaq_gf2_map_get_shape(&value.map, &map));
+    check_gf2(cudaq_gf2_map_get_shape(&value.map, &map));
     for (uint64_t p = 0; p < map.input_bundle_count; ++p) {
       cudaq_gf2_bundle bundle;
-      check(cudaq_gf2_map_get_bundle(&value.map, 0, static_cast<uint32_t>(p),
-                                     &bundle));
+      check_gf2(cudaq_gf2_map_get_bundle(&value.map, CUDAQ_EDEM_INPUT,
+                                         static_cast<uint32_t>(p), &bundle));
       if (bundle.type != codes + 1)
         continue;
       uint32_t size, groups;
@@ -464,11 +464,11 @@ public:
     auto value = view();
     std::vector<MatrixBlock> result;
     cudaq_gf2_map_shape map;
-    check(cudaq_gf2_map_get_shape(&value.map, &map));
+    check_gf2(cudaq_gf2_map_get_shape(&value.map, &map));
     for (uint64_t i = 0; i < map.block_count; ++i) {
-      cudaq_gf2_map_block block;
+      cudaq_gf2_map_matrix_block block;
       cudaq_edem_endpoint output, input;
-      check(cudaq_gf2_map_get_block(&value.map, i, &block));
+      check_gf2(cudaq_gf2_map_get_matrix_block(&value.map, i, &block));
       check(cudaq_edem_describe_wire(&value, CUDAQ_EDEM_OUTPUT, block.output,
                                      &output));
       check(cudaq_edem_describe_wire(&value, CUDAQ_EDEM_INPUT, block.input,
@@ -488,7 +488,7 @@ public:
     uint64_t offset;
     cudaq_gf2_wire wire;
     check(cudaq_edem_resolve_endpoint(&value, side, endpoint.view(), &wire));
-    check(cudaq_gf2_map_get_wire(&value.map, side, wire, &width, &offset));
+    check_gf2(cudaq_gf2_map_get_wire(&value.map, side, wire, &width, &offset));
     return {width, offset};
   }
 
@@ -509,15 +509,15 @@ public:
   std::pair<uint64_t, uint64_t> vector_sizes() const {
     auto value = view();
     uint64_t inputs, outputs;
-    check(cudaq_gf2_map_vector_sizes(&value.map, &inputs, &outputs));
+    check_gf2(cudaq_gf2_map_vector_sizes(&value.map, &inputs, &outputs));
     return {inputs, outputs};
   }
 
   std::vector<uint8_t> apply(const std::vector<uint8_t> &input) const {
     auto value = view();
     std::vector<uint8_t> output(vector_sizes().second);
-    check(cudaq_gf2_map_apply(&value.map, input.data(), input.size(),
-                              output.data(), output.size()));
+    check_gf2(cudaq_gf2_map_apply(&value.map, input.data(), input.size(),
+                                  output.data(), output.size()));
     return output;
   }
 };
