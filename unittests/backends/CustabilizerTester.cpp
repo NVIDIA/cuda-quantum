@@ -37,6 +37,51 @@ void expectDisjointTargets(const stim::Circuit &recorded) {
 
 } // namespace
 
+CUDAQ_TEST(CustabilizerResults, PackedConversionMatchesScalarReference) {
+  // Cover partial bytes, words and tiles, skipped measurement prefixes, and
+  // strides larger than the requested shot count. Random padding must not
+  // appear in the output.
+  std::mt19937_64 random(1997);
+  for (std::size_t width :
+       {0, 1, 7, 8, 9, 31, 32, 33, 63, 64, 65, 127, 128, 129, 801, 5185}) {
+    for (std::size_t shots : {1, 31, 32, 33, 63, 64, 65, 129, 257}) {
+      for (std::size_t extraWords : {0, 2}) {
+        const auto words = (shots + 31) / 32 + extraWords;
+        for (std::size_t prefix : {0, 3}) {
+          SCOPED_TRACE(::testing::Message()
+                       << "width=" << width << " shots=" << shots
+                       << " words=" << words << " prefix=" << prefix);
+          std::vector<bool> reference(width + prefix);
+          for (std::size_t m = 0; m < reference.size(); ++m)
+            reference[m] = random() & 1;
+          std::vector<std::uint32_t> packed(reference.size() * words);
+          for (auto &word : packed)
+            word = random();
+          cudaq::ExecutionResult expected;
+          for (std::size_t s = 0; s < shots; ++s) {
+            std::string bits;
+            for (std::size_t m = prefix; m < reference.size(); ++m) {
+              const auto flip = (packed[m * words + s / 32] >> (s % 32)) & 1;
+              bits.push_back((flip ^ reference[m]) ? '1' : '0');
+            }
+            ++expected.counts[bits];
+            expected.sequentialData.push_back(std::move(bits));
+          }
+          for (bool sequential : {false, true}) {
+            const auto actual = nvqir::makeSampleResult(
+                packed, words, reference, prefix, shots, sequential);
+            EXPECT_EQ(actual.counts, expected.counts);
+            if (sequential)
+              EXPECT_EQ(actual.sequentialData, expected.sequentialData);
+            else
+              EXPECT_TRUE(actual.sequentialData.empty());
+          }
+        }
+      }
+    }
+  }
+}
+
 CUDAQ_TEST(FrameRunner, SeparatesOverlapsAcrossAppendCalls) {
   nvqir::CustabilizerFrameRunner runner(4);
   for (const auto &text : {"CX 0 1", "CX 0 2", "CX 1 2", "CX 1 2"})

@@ -7,14 +7,19 @@
  ******************************************************************************/
 
 #include "CustabilizerErrorHandling.h"
+#include "stim/mem/simd_util.h"
 #include "../stim/StimCircuitSimulator.h"
 
+#include <algorithm>
+#include <array>
 #include <cassert>
+#include <cstring>
 #include <iomanip>
 #include <limits>
 #include <locale>
 #include <numeric>
 #include <optional>
+#include <span>
 #include <sstream>
 #include <unordered_set>
 
@@ -23,6 +28,89 @@ using namespace cudaq;
 namespace nvqir {
 
 namespace {
+
+/// Convert packed GPU measurement rows into CUDA-Q's chronological shot
+/// strings. Work on 64 shots at a time so each input word supplies all of its
+/// bits, and expand eight adjacent result bits per copy instead of a separate
+/// load per character. The working set is bounded by 64 output strings.
+inline cudaq::ExecutionResult
+makeSampleResult(std::span<const std::uint32_t> measurements,
+                 std::size_t wordsPerRow, const std::vector<bool> &reference,
+                 std::size_t firstMeasurement, std::size_t shots,
+                 bool includeSequentialData) {
+  static constexpr auto byteStrings = [] {
+    std::array<std::array<char, 8>, 256> table{};
+    for (std::size_t value = 0; value < table.size(); ++value)
+      for (std::size_t bit = 0; bit < 8; ++bit)
+        table[value][bit] = '0' + ((value >> bit) & 1);
+    return table;
+  }();
+
+  cudaq::ExecutionResult result;
+  if (includeSequentialData)
+    result.sequentialData.reserve(shots);
+  const auto bitsPerShot = reference.size() - firstMeasurement;
+  auto save = [&](std::string bits) {
+    // Build the result in place: ExecutionResult(CountsDictionary) copies its
+    // by-value argument again, which duplicates every distinct long bitstring.
+    auto [entry, inserted] =
+        includeSequentialData ? result.counts.try_emplace(bits, 0)
+                              : result.counts.try_emplace(std::move(bits), 0);
+    ++entry->second;
+    if (includeSequentialData)
+      result.sequentialData.push_back(std::move(bits));
+  };
+
+  // Avoid a full transpose for tiny batches.
+  if (shots < 32) {
+    for (std::size_t s = 0; s < shots; ++s) {
+      std::string bits(bitsPerShot, '0');
+      for (std::size_t b = 0; b < bitsPerShot; ++b) {
+        const auto m = firstMeasurement + b;
+        bits[b] =
+            '0' + (((measurements[m * wordsPerRow + s / 32] >> (s % 32)) & 1u) ^
+                   reference[m]);
+      }
+      save(std::move(bits));
+    }
+    return result;
+  }
+
+  for (std::size_t begin = 0; begin < shots; begin += 64) {
+    const auto count = std::min(std::size_t{64}, shots - begin);
+    const auto word = begin / 32;
+    std::array<std::string, 64> strings;
+    for (std::size_t s = 0; s < count; ++s)
+      strings[s].assign(bitsPerShot, '0');
+
+    for (std::size_t bit = 0; bit < bitsPerShot; bit += 64) {
+      const auto width = std::min(std::size_t{64}, bitsPerShot - bit);
+      std::array<std::uint64_t, 64> tile{};
+      for (std::size_t b = 0; b < width; ++b) {
+        const auto m = firstMeasurement + bit + b;
+        const auto *row = measurements.data() + m * wordsPerRow;
+        std::uint64_t value = row[word];
+        if (word + 1 < wordsPerRow)
+          value |= std::uint64_t{row[word + 1]} << 32;
+        tile[b] = value ^ (reference[m] ? UINT64_MAX : 0);
+      }
+      stim::inplace_transpose_64x64(tile.data(), 1);
+      for (std::size_t s = 0; s < count; ++s) {
+        auto *destination = strings[s].data() + bit;
+        std::size_t b = 0;
+        for (; b + 8 <= width; b += 8)
+          std::memcpy(destination + b,
+                      byteStrings[(tile[s] >> b) & 0xff].data(), 8);
+        if (b < width)
+          std::memcpy(destination + b,
+                      byteStrings[(tile[s] >> b) & 0xff].data(), width - b);
+      }
+    }
+    for (std::size_t s = 0; s < count; ++s)
+      save(std::move(strings[s]));
+  }
+  return result;
+}
 
 struct CustabilizerCircuit {
   custabilizerHandle_t handle = nullptr;
@@ -473,37 +561,18 @@ protected:
     const auto m_table =
         frameRunner->getMeasurementTable(batch_size, *frameSeed);
 
-    const size_t words_per_row = static_cast<size_t>((batch_size + 31) / 32);
-    auto get_flip = [&](size_t shot, size_t meas) -> bool {
-      const uint32_t word = m_table[meas * words_per_row + (shot >> 5)];
-      return ((word >> (shot & 31)) & 1u) != 0;
-    };
-
-    const size_t bits_per_sample = num_measurements;
-    assert(bits_per_sample >= qubits.size());
-    const std::size_t first_bit_to_save = executionContext->explicitMeasurements
-                                              ? 0
-                                              : bits_per_sample - qubits.size();
-
-    CountsDictionary counts;
-    std::vector<std::string> sequentialData;
-    if (includeSequentialData)
-      sequentialData.reserve(shots);
-    for (std::size_t shot = 0; shot < static_cast<std::size_t>(shots); shot++) {
-      std::string aShot(bits_per_sample - first_bit_to_save, '0');
-      for (std::size_t b = first_bit_to_save; b < bits_per_sample; b++) {
-        const bool bit = get_flip(shot, b) ^ v[b];
-        aShot[b - first_bit_to_save] = bit ? '1' : '0';
-      }
-      counts[aShot]++;
-      if (includeSequentialData)
-        sequentialData.push_back(std::move(aShot));
-    }
-
-    ExecutionResult result(counts);
-    if (includeSequentialData)
-      result.sequentialData = std::move(sequentialData);
-    return result;
+    const std::size_t words_per_row =
+        static_cast<std::size_t>((batch_size + 31) / 32);
+    if (m_table.size() / words_per_row < v.size())
+      throw std::runtime_error(
+          "Internal error: cuStabilizer measurement table size mismatch.");
+    assert(num_measurements >= qubits.size());
+    const std::size_t first_bit_to_save =
+        executionContext->explicitMeasurements
+            ? 0
+            : num_measurements - qubits.size();
+    return makeSampleResult(m_table, words_per_row, v, first_bit_to_save, shots,
+                            includeSequentialData);
   }
 
 public:
