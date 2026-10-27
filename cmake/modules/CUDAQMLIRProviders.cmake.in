@@ -1,0 +1,58 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+# CUDA-Q-namespaced imports of the upstream LLVM/MLIR runtime providers that
+# ship next to libcudaqMLIR in the CUDA-Q core package.
+#
+# They are defined under cudaq:: names (instead of loading the upstream
+# LLVM/MLIR CMake packages) so that
+#  - core-only consumers can load the CUDA-Q package without any LLVM
+#    development files installed, and
+#  - a later find_package(LLVM/MLIR) against the devel package's upstream
+#    configuration cannot conflict with these names.
+#
+# In-tree builds define the same cudaq::Upstream* names as ALIASes of the real
+# upstream targets (see AddCUDAQ.cmake); the guards below make both orders
+# compose.
+
+# This file lives in <prefix>/lib/cmake/cudaq; the providers live in <prefix>/lib.
+get_filename_component(_cudaq_provider_libdir
+  "${CMAKE_CURRENT_LIST_DIR}/../.." ABSOLUTE)
+
+set(_cudaq_provider_suffix "@CMAKE_SHARED_LIBRARY_SUFFIX@")
+if(NOT APPLE)
+  set(_cudaq_provider_version_suffix
+    ".@LLVM_VERSION_MAJOR@.@LLVM_VERSION_MINOR@")
+else()
+  set(_cudaq_provider_version_suffix "")
+endif()
+
+foreach(_cudaq_provider_pair
+    "UpstreamLLVM:LLVM"
+    "UpstreamMLIR:MLIR"
+    "UpstreamMLIRCAPI:MLIR-C"
+    "UpstreamMLIRExecutionEngine:MLIRExecutionEngineShared")
+  string(REPLACE ":" ";" _cudaq_provider_pair "${_cudaq_provider_pair}")
+  list(GET _cudaq_provider_pair 0 _cudaq_provider_alias)
+  list(GET _cudaq_provider_pair 1 _cudaq_provider_name)
+  if(NOT TARGET cudaq::${_cudaq_provider_alias})
+    add_library(cudaq::${_cudaq_provider_alias} SHARED IMPORTED GLOBAL)
+    set_target_properties(cudaq::${_cudaq_provider_alias} PROPERTIES
+      IMPORTED_LOCATION
+        "${_cudaq_provider_libdir}/lib${_cudaq_provider_name}${_cudaq_provider_suffix}")
+    if(NOT APPLE)
+      set_target_properties(cudaq::${_cudaq_provider_alias} PROPERTIES
+        IMPORTED_SONAME
+          "lib${_cudaq_provider_name}${_cudaq_provider_suffix}${_cudaq_provider_version_suffix}")
+    endif()
+  endif()
+endforeach()
+
+unset(_cudaq_provider_libdir)
+unset(_cudaq_provider_suffix)
+unset(_cudaq_provider_version_suffix)

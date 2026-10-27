@@ -124,6 +124,9 @@ set(CUDAQ_CORE_PYTHON_DECLARED_SOURCES
 # sibling subdirectory processed after this one), so it cannot contribute to
 # this aggregation pass. It instead links against this already-built
 # cudaqMLIRCAPI target directly (see python/extension/CMakeLists.txt).
+# With shared upstream providers, add_cudaq_python_common_capi_library drops
+# the upstream MLIRCAPITransforms from the embed set and resolves it from
+# libMLIR-C instead; only the CUDA-Q CAPI objects remain embedded.
 add_cudaq_python_common_capi_library(cudaqMLIRCAPI
   DECLARED_SOURCES ${CUDAQ_CORE_PYTHON_DECLARED_SOURCES}
   EMBED_LIBS

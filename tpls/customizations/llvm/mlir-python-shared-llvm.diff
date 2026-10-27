@@ -1,0 +1,48 @@
+diff --git a/mlir/cmake/modules/AddMLIRPython.cmake b/mlir/cmake/modules/AddMLIRPython.cmake
+index 97873d0c07..235784df78 100644
+--- a/mlir/cmake/modules/AddMLIRPython.cmake
++++ b/mlir/cmake/modules/AddMLIRPython.cmake
+@@ -262,6 +262,17 @@ function(declare_mlir_python_extension name)
+     "$<BUILD_INTERFACE:${_build_sources}>"
+     "$<INSTALL_INTERFACE:${_install_sources}>"
+   )
++  # CUDA-Q shared-provider build: resolve LLVM support code from the
++  # shared libLLVM provider instead of embedding the static archives
++  # (dylib-gated; the static/monolithic layout keeps upstream behavior).
++  # The dylib provider target exists whenever LLVM_LINK_LLVM_DYLIB is
++  # ON; gating on the option alone keeps the substitution visible to
++  # declare-time callers (the LLVM target may be added later).
++  if(LLVM_LINK_LLVM_DYLIB)
++    list(TRANSFORM ARG_PRIVATE_LINK_LIBS REPLACE "^LLVMSupport$" "LLVM")
++    list(TRANSFORM ARG_PRIVATE_LINK_LIBS REPLACE "^LLVMDemangle$" "LLVM")
++    list(REMOVE_DUPLICATES ARG_PRIVATE_LINK_LIBS)
++  endif()
+   target_link_libraries(${name} INTERFACE
+     ${ARG_PRIVATE_LINK_LIBS}
+   )
+@@ -460,6 +471,16 @@ function(add_mlir_python_modules name)
+ 
+   # Build all support libs first.
+   set(_mlir_python_support_libs)
++  # CUDA-Q shared-provider build: link the shared libLLVM provider into
++  # support DSOs instead of embedding the static LLVMSupport archives.
++  # The dylib provider target exists whenever the option is ON, so gate on
++  # the option alone: this branch may be evaluated before the LLVM target
++  # is added (an option-gated forward reference).
++  if(LLVM_LINK_LLVM_DYLIB)
++    set(_mlir_python_support_llvm_lib LLVM)
++  else()
++    set(_mlir_python_support_llvm_lib LLVMSupport)
++  endif()
+   foreach(sources_target ${_flat_targets})
+     get_target_property(_source_type ${sources_target} mlir_python_SOURCES_TYPE)
+     if(_source_type STREQUAL "support")
+@@ -474,7 +495,7 @@ function(add_mlir_python_modules name)
+         MLIR_BINDINGS_PYTHON_NB_DOMAIN ${ARG_MLIR_BINDINGS_PYTHON_NB_DOMAIN}
+         _PRIVATE_SUPPORT_LIB
+         LINK_LIBS PRIVATE
+-          LLVMSupport
++          ${_mlir_python_support_llvm_lib}
+           ${sources_target}
+           ${ARG_COMMON_CAPI_LINK_LIBS}
+       )

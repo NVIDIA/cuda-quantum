@@ -32,6 +32,7 @@ install(FILES
   ../modules/CUDAQOperatorConfig.cmake
   ../modules/CUDAQLoggerConfig.cmake
   ../modules/CUDAQPythonBindingsConfig.cmake
+  "${CMAKE_BINARY_DIR}/cmake/modules/CUDAQMLIRProviders.cmake"
   DESTINATION lib/cmake/cudaq COMPONENT Core)
 # Component installs select the core-only package configuration; full native
 # installs use cmake/modules/CUDAQConfig.cmake with frontend targets.

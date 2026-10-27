@@ -75,7 +75,9 @@ if(CUDAQ_MLIR_SHARED_PROVIDERS)
       "${LIBRARY_NAME}: upstream MLIR/LLVM resolved from shared providers: "
       "${_cudaq_bundle_whole_archive_libs}")
   endif()
-  target_link_libraries(${LIBRARY_NAME} PUBLIC MLIR MLIRExecutionEngineShared)
+  target_link_libraries(${LIBRARY_NAME} PUBLIC
+    cudaq::UpstreamMLIR cudaq::UpstreamMLIRExecutionEngine
+    cudaq::UpstreamLLVM)
   # The bundled objects' non-MLIR dependencies stay direct (e.g. cudaq-synth
   # needs GMP/MPFR); they are not part of the provider set. Re-run the find
   # modules here: imported find targets are directory-scoped, and the ones
@@ -93,8 +95,18 @@ endif()
 # symbol it references from the providers without redefining any of them.
 if(CUDAQ_MLIR_SHARED_PROVIDERS AND CUDAQ_CHECK_MLIR_SYMBOL_CLOSURE
     AND CUDAQ_CHECK_SYMBOL_SCRIPT AND CUDAQ_NM)
+  # Link-input provenance for the stripped/strip-installed view, same as
+  # the other consumer gates (only the Ninja generator exposes it).
+  string(REPLACE ";" ":" _cudaq_implicit_link_dirs
+    "${CMAKE_CXX_IMPLICIT_LINK_DIRECTORIES}")
+  set(_cudaq_shlib_closure_env "NM=${CUDAQ_NM}"
+    "CUDAQ_IMPLICIT_LINK_DIRS=${_cudaq_implicit_link_dirs}")
+  if(CMAKE_GENERATOR MATCHES "Ninja")
+    list(APPEND _cudaq_shlib_closure_env
+      "CUDAQ_BUILD_NINJA=${CMAKE_BINARY_DIR}/build.ninja")
+  endif()
   add_custom_command(TARGET ${LIBRARY_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E env "NM=${CUDAQ_NM}"
+    COMMAND ${CMAKE_COMMAND} -E env ${_cudaq_shlib_closure_env}
       bash "${CUDAQ_CHECK_SYMBOL_SCRIPT}"
       "$<TARGET_FILE:${LIBRARY_NAME}>"
       "$<TARGET_FILE:MLIR>" "$<TARGET_FILE:MLIRExecutionEngineShared>"

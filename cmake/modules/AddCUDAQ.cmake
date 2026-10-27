@@ -116,6 +116,33 @@ if(TARGET MLIR AND TARGET MLIR-C AND TARGET MLIRExecutionEngineShared)
   set(CUDAQ_MLIR_SHARED_PROVIDERS ON)
 endif()
 
+# CUDA-Q-namespaced interfaces of the shared upstream providers. Exported
+# targets link through these names so core's installed CMake exports stay
+# loadable without the upstream LLVM/MLIR packages; the installed
+# CUDAQMLIRProviders.cmake defines the matching imported targets. These are
+# INTERFACE IMPORTED wrappers rather than ALIASes: install(EXPORT) resolves
+# aliases back to the upstream names, which would break core-only consumers.
+# Upstream CAPI objects are never aggregated into CUDA-Q libraries in this
+# mode: they are provided by libMLIR-C (see
+# add_cudaq_python_common_capi_library).
+if(CUDAQ_MLIR_SHARED_PROVIDERS)
+  foreach(_cudaq_provider_pair
+      "UpstreamLLVM:LLVM"
+      "UpstreamMLIR:MLIR"
+      "UpstreamMLIRCAPI:MLIR-C"
+      "UpstreamMLIRExecutionEngine:MLIRExecutionEngineShared")
+    string(REPLACE ":" ";" _cudaq_provider_pair "${_cudaq_provider_pair}")
+    list(GET _cudaq_provider_pair 0 _cudaq_provider_alias)
+    list(GET _cudaq_provider_pair 1 _cudaq_provider_real)
+    if(NOT TARGET cudaq::${_cudaq_provider_alias})
+      add_library(cudaq::${_cudaq_provider_alias} INTERFACE IMPORTED GLOBAL)
+      set_target_properties(cudaq::${_cudaq_provider_alias} PROPERTIES
+        INTERFACE_LINK_LIBRARIES ${_cudaq_provider_real})
+    endif()
+  endforeach()
+  get_property(CUDAQ_UPSTREAM_CAPI_LIBS GLOBAL PROPERTY MLIR_UPSTREAM_CAPI_LIBS)
+endif()
+
 # Define `CUDAQ_MLIR_BUNDLED_LIBS`: the single list of MLIR libraries bundled into
 # libcudaqMLIR.
 if(EXISTS "${CUDAQ_MLIR_BUNDLED_LIBS_PATH}")
@@ -175,14 +202,35 @@ function(cudaq_check_mlir_symbol_closure name)
       OR NOT CUDAQ_NM)
     return()
   endif()
+  if(CUDAQ_MLIR_SHARED_PROVIDERS)
+    # libcudaqMLIR no longer carries the upstream implementation: the symbol
+    # closure must hold against the whole provider set.
+    list(APPEND ARG_PROVIDERS
+      MLIR MLIR-C MLIRExecutionEngineShared LLVM)
+  endif()
   set(_providers)
   foreach(_provider IN LISTS ARG_PROVIDERS)
     if(TARGET ${_provider})
       list(APPEND _providers "$<TARGET_FILE:${_provider}>")
     endif()
   endforeach()
+  # The pre-strip hidden-copy gate needs link-input evidence for stripped
+  # consumers (nanobind strips extension DSOs at link). Only the Ninja
+  # generator exposes it as build.ninja; other generators rely on the
+  # unstripped symbol-table path.
+  # The toolchain's implicit library dirs, so the audit's -l resolution
+  # matches this build's link step on any platform (no host-tuple guess).
+  # Serialized with ':' — a ';' list would split the -E env argument list.
+  string(REPLACE ";" ":" _cudaq_implicit_link_dirs
+    "${CMAKE_CXX_IMPLICIT_LINK_DIRECTORIES}")
+  set(_cudaq_closure_env "NM=${CUDAQ_NM}"
+    "CUDAQ_IMPLICIT_LINK_DIRS=${_cudaq_implicit_link_dirs}")
+  if(CMAKE_GENERATOR MATCHES "Ninja")
+    list(APPEND _cudaq_closure_env
+      "CUDAQ_BUILD_NINJA=${CMAKE_BINARY_DIR}/build.ninja")
+  endif()
   add_custom_command(TARGET ${name} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E env "NM=${CUDAQ_NM}"
+    COMMAND ${CMAKE_COMMAND} -E env ${_cudaq_closure_env}
     bash "${CUDAQ_CHECK_SYMBOL_SCRIPT}"
     "$<TARGET_FILE:${name}>" "$<TARGET_FILE:cudaq::cudaqMLIR>" ${_providers}
     COMMENT "Checking MLIR/LLVM symbol closure of ${name}"
@@ -255,22 +303,71 @@ function(add_cudaq_python_common_capi_library name)
   # libraries provided by `libcudaqMLIR.so` and instead link in `cudaq::cudaqMLIR`.
   # We then hide all symbols by default (same as add_mlir_python_common_capi_library).
   #
+  # With shared upstream providers, upstream CAPI libraries are never
+  # embedded: their implementation comes from libMLIR-C, linked as a provider.
+  # Only the project's own CAPI objects remain in the aggregate.
+  #
   # SHARED by default (CUDAQ_PYTHON_BINDINGS_SHARED_LIBS): this is what a
   # Python interpreter dlopen()s. See that option's docstring for the STATIC
   # override use case.
+  set(_cudaq_public_libs cudaq::cudaqMLIR)
+  if(CUDAQ_MLIR_SHARED_PROVIDERS)
+    set(_upstream_embeds)
+    foreach(_lib IN LISTS _embed_libs)
+      if(_lib IN_LIST CUDAQ_UPSTREAM_CAPI_LIBS)
+        list(APPEND _upstream_embeds ${_lib})
+      endif()
+    endforeach()
+    if(_upstream_embeds)
+      list(REMOVE_ITEM _embed_libs ${_upstream_embeds})
+      list(APPEND _cudaq_public_libs cudaq::UpstreamMLIRCAPI)
+    endif()
+  endif()
   if(CUDAQ_PYTHON_BINDINGS_SHARED_LIBS)
     set(_cudaq_python_capi_libtype SHARED)
   else()
     set(_cudaq_python_capi_libtype STATIC)
   endif()
-  add_mlir_aggregate(${name}
-    ${_cudaq_python_capi_libtype}
-    DISABLE_INSTALL
-    EMBED_LIBS ${_embed_libs}
-    PUBLIC_LIBS cudaq::cudaqMLIR)
+  if(NOT _embed_libs)
+    # The whole embed set resolved to the upstream providers: this library is
+    # only a linkage anchor for the extension modules. Build it directly with
+    # a placeholder source instead of an empty aggregate.
+    file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/${name}.capi-empty.cpp"
+      "// No own C API objects; all C API symbols come from the providers.\n")
+    add_library(${name} ${_cudaq_python_capi_libtype}
+      "${CMAKE_CURRENT_BINARY_DIR}/${name}.capi-empty.cpp")
+    target_link_libraries(${name} PUBLIC ${_cudaq_public_libs})
+    set_target_properties(${name} PROPERTIES
+      LINKER_LANGUAGE CXX
+      CXX_VISIBILITY_PRESET hidden
+      VISIBILITY_INLINES_HIDDEN YES)
+    # Keep the provider reference alive despite the absent own references.
+    if(CUDAQ_MLIR_SHARED_PROVIDERS AND NOT APPLE)
+      target_link_options(${name} PRIVATE
+        "LINKER:--push-state,--no-as-needed,$<TARGET_FILE:MLIR-C>,--pop-state")
+    endif()
+  else()
+    add_mlir_aggregate(${name}
+      ${_cudaq_python_capi_libtype}
+      DISABLE_INSTALL
+      EMBED_LIBS ${_embed_libs}
+      PUBLIC_LIBS ${_cudaq_public_libs})
 
-  set_property(TARGET ${name} APPEND PROPERTY
-    MLIR_AGGREGATE_EXCLUDE_LIBS ${CUDAQ_MLIR_BUNDLED_LIBS})
+    # The upstream C API is a PUBLIC provider dependency of this library.
+    # Two independent pins are required: upstream add_mlir_aggregate links its
+    # PUBLIC_LIBS privately, and --as-needed (this toolchain's default) would
+    # drop libMLIR-C because the embedded objects carry no direct references
+    # to it — plugins (python/utils/LinkedLibraryHolder.cpp) load this library
+    # for the aggregate C API rather than preloading libMLIR-C.
+    target_link_libraries(${name} PUBLIC ${_cudaq_public_libs})
+    if(CUDAQ_MLIR_SHARED_PROVIDERS AND _upstream_embeds AND NOT APPLE)
+      target_link_options(${name} PRIVATE
+        "LINKER:--push-state,--no-as-needed,$<TARGET_FILE:MLIR-C>,--pop-state")
+    endif()
+
+    set_property(TARGET ${name} APPEND PROPERTY
+      MLIR_AGGREGATE_EXCLUDE_LIBS ${CUDAQ_MLIR_BUNDLED_LIBS})
+  endif()
 
   set_target_properties(${name} PROPERTIES
     LINKER_LANGUAGE CXX
@@ -349,10 +446,13 @@ function(add_cudaq_python_modules name)
       "${_origin_prefix}/../../../lib/plugins")
   endif()
   # An installed split SDK supplies MLIR through core even when the consuming
-  # extension is built directly with CMake, rather than as a wheel.
+  # extension is built directly with CMake, rather than as a wheel. Detect the
+  # nested core prefix in the canonical forwarded layout too, where the core
+  # library directory IS this configuration's library directory.
   if(CUDAQ_BUILD_SPLIT_WHEELS OR
      (CUDAQ_CORE_LIBRARY_DIR AND
-      NOT "${CUDAQ_CORE_LIBRARY_DIR}" STREQUAL "${CUDAQ_LIBRARY_DIR}"))
+      NOT "${CUDAQ_CORE_LIBRARY_DIR}" STREQUAL "${CUDAQ_LIBRARY_DIR}") OR
+     (CUDAQ_LIBRARY_DIR AND CUDAQ_LIBRARY_DIR MATCHES "cudaq_core"))
     list(APPEND _cudaq_python_install_rpaths
       "${_origin_prefix}/../../core/lib"
       "${_origin_prefix}/../../../cudaq_core/cudaq/core/lib"
@@ -368,6 +468,11 @@ function(add_cudaq_python_modules name)
     # Put cudaqMLIR BEFORE all other deps on the link line so its MLIR/LLVM
     # symbols shadow any static component archives in the common CAPI lib.
     target_link_libraries(${_dso} PRIVATE cudaq::cudaqMLIR)
+    if(CUDAQ_MLIR_SHARED_PROVIDERS)
+      # The upstream C API lives in libMLIR-C; extension DSOs reference its
+      # symbols directly, so link the provider explicitly.
+      target_link_libraries(${_dso} PRIVATE cudaq::UpstreamMLIRCAPI)
+    endif()
     target_link_options(${_dso} BEFORE PRIVATE
       "$<TARGET_FILE:cudaq::cudaqMLIR>")
 

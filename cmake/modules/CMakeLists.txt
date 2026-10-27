@@ -87,6 +87,20 @@ install(FILES ${CUDAQ_MLIR_BUNDLED_LIBS_PATH}
 install(PROGRAMS ${CMAKE_SOURCE_DIR}/scripts/check_mlir_symbols.sh
   DESTINATION lib/cmake/cudaq
   COMPONENT Development)
+install(FILES ${CMAKE_SOURCE_DIR}/scripts/link_audit_lib.sh
+  DESTINATION lib/cmake/cudaq
+  COMPONENT Development)
+
+# CUDA-Q-namespaced imports of the shared upstream LLVM/MLIR providers. Ships
+# with the core package (see also cmake/wheels/CMakeLists.txt) so core-only
+# consumers can resolve cudaq::cudaqMLIR's provider references.
+configure_file(
+  ${CMAKE_CURRENT_SOURCE_DIR}/CUDAQMLIRProviders.cmake.in
+  ${CMAKE_BINARY_DIR}/cmake/modules/CUDAQMLIRProviders.cmake
+  @ONLY)
+install(FILES ${CMAKE_BINARY_DIR}/cmake/modules/CUDAQMLIRProviders.cmake
+  DESTINATION lib/cmake/cudaq
+  COMPONENT Development)
 
 # Optionally, bundle MLIR with the CUDA-Q installation.
 include(${CMAKE_CURRENT_SOURCE_DIR}/BundleMLIRDevel.cmake)

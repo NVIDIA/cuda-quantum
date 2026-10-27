@@ -26,11 +26,19 @@ add_dependencies(trivial-mlir
 # Compile with the same flags as LLVM to ensure ABI compatibility.
 llvm_update_compile_flags(trivial-mlir)
 
-# Define the dependencies of `trivial-mlir` using the usual static MLIR components.
-# When `trivial-mlir` is pulled into the shared Python extension, the MLIR/LLVM symbols
-# will be resolved from the single cudaq::MLIR DSO instead.
-target_link_libraries(trivial-mlir PUBLIC
-  MLIRIR MLIRPass MLIRSupport MLIRFuncDialect MLIRTransformUtils)
+# Define the dependencies of `trivial-mlir`. In a shared-provider SDK
+# (installed MLIRConfig defines the shared aggregate targets) every
+# MLIR/LLVM symbol resolves from the provider DSOs — linking the upstream
+# component archives here would embed a second full MLIR implementation
+# into the extension, hidden by --exclude-libs but rejected by the SDK's
+# pre-strip audit. Only the legacy static SDK uses the component archives.
+if(TARGET MLIR)
+  target_link_libraries(trivial-mlir PUBLIC
+    MLIR MLIRExecutionEngineShared LLVM)
+else()
+  target_link_libraries(trivial-mlir PUBLIC
+    MLIRIR MLIRPass MLIRSupport MLIRFuncDialect MLIRTransformUtils)
+endif()
 
 # Make sure this static library can be embedded into the shared Python extension.
 set_target_properties(trivial-mlir PROPERTIES POSITION_INDEPENDENT_CODE ON)

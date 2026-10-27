@@ -294,6 +294,18 @@ if [ "$status" = "" ] || [ ! "$status" -eq "0" ]; then
   cd "$working_dir" && (return 0 2>/dev/null) && return 1 || exit 1
 else
   cp bin/llvm-lit "$LLVM_INSTALL_PREFIX/bin/"
+  # Mandatory build-stage audit for producer builds that installed the
+  # shared providers: the spec's single-implementation evidence (link-map +
+  # pre-strip) only exists before the binaries are stripped.
+  provider_audit="$this_file_dir/check_mlir_providers.sh"
+  if compgen -G "$LLVM_INSTALL_PREFIX/lib/libMLIR-C.so*" > /dev/null \
+      && [ -f "$provider_audit" ]; then
+    echo "Auditing shared MLIR/LLVM runtime providers..."
+    if ! bash "$provider_audit" "$LLVM_INSTALL_PREFIX" --build-dir "$llvm_build_dir"; then
+      echo "Provider audit failed."
+      cd "$working_dir" && (return 0 2>/dev/null) && return 1 || exit 1
+    fi
+  fi
 fi
 
 # Install libomp if OpenMP was built (no standard install target exists for distribution builds)
