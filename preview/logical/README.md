@@ -3,8 +3,9 @@
 `cudaq.logical` is the CUDA-Q toolkit for estimating the resources required by
 fault-tolerant quantum computations. It connects ordinary CUDA-Q kernels and
 portable logical programs to logical placement, codes, gadgets, distillation
-protocols, and inspectable resource estimates. As a secondary interchange path,
-a selected P2 program can be emitted as standards-compatible Stim circuit text.
+protocols, and inspectable resource estimates.
+Supported P3 physical builds can also execute through `cudaq.run` on CUDA-Q
+simulators, returning the program's explicit Boolean results per shot.
 
 `cudaq.logical` organizes compilation into explicit semantic stages:
 
@@ -18,6 +19,9 @@ Python is the main authoring interface. The same compiler and estimation
 workflows are also available from `qlx-opt` through ordinary MLIR pass-pipeline
 strings, and Stim circuits can be emitted from `qlx-translate`.
 
+As a secondary interchange path, a selected P2 program can be emitted as
+standards-compatible Stim circuit text.
+
 ## Start with the examples
 
 The executable walkthroughs in [`examples/`](examples/README.md) cover:
@@ -28,7 +32,9 @@ The executable walkthroughs in [`examples/`](examples/README.md) cover:
 - complete custom target construction with the Carbon code, kernel-backed
   gadgets, and an explicit physical machine;
 - Fermi--Hubbard and Gidney--Ekerå application studies;
-- standalone Python authoring with each compiler step exposed; and
+- standalone Python authoring with each compiler step exposed;
+- encoded circuit execution and T-state distillation through `cudaq.run`
+  (standalone examples 06 and 07); and
 - standalone MLIR workflows through `qlx-opt` and `qlx-translate`.
 
 The full documentation (quick start, concepts, workflow guides, and the example
