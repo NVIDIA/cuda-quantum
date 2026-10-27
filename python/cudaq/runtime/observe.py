@@ -122,86 +122,94 @@ def observe(kernel,
         else:
             return observe_result.expectation(term)
 
-    if noise_model != None:
+    # A per call noise model only applies to this call, the noise model that
+    # was configured before the call is restored on every exit path.
+    set_noise_for_call = noise_model is not None
+    previous_noise = cudaq_runtime.get_noise() if set_noise_for_call else None
+    if set_noise_for_call:
         cudaq_runtime.set_noise(noise_model)
 
-    # Process spin_operator if its a list
-    if isinstance(spin_operator, cudaq_runtime.SpinOperatorTerm):
-        localOp = cudaq_runtime.SpinOperator(spin_operator)
-    elif isinstance(spin_operator, list):
-        localOp = cudaq_runtime.SpinOperator.empty()
-        for o in spin_operator:
-            localOp += o
-    else:
-        localOp = spin_operator
-
-    results = None
-    if isa_kernel_decorator(kernel):
-        decorator = kernel
-    elif isa_dynamic_kernel(kernel):
-        decorator = mk_decorator(kernel)
-    else:
-        raise RuntimeError(
-            "unrecognized kernel - did you forget the @kernel attribute?")
-    if (decorator.launch_args_required() != 0) and (decorator.formal_arity()
-                                                    != len(args)):
-        raise RuntimeError("Invalid number of arguments passed to observe. " +
-                           str(len(args)) + " given and " +
-                           str(decorator.formal_arity()) + " expected.")
-    if __isBroadcast(kernel, *args):
-        results = __broadcastObserve(kernel,
-                                     localOp,
-                                     *args,
-                                     shots_count=shots_count,
-                                     qpu_id=qpu_id)
-
-        if isinstance(spin_operator, list):
-            results = [[
-                cudaq_runtime.ObserveResult(p.expectation(o), o, p.counts(o))
-                for o in spin_operator
-            ]
-                       for p in results]
-    else:
-        if shots_count > 0:
-            ctx = cudaq_runtime.ExecutionContext('observe', shots_count, qpu_id)
+    try:
+        # Process spin_operator if its a list
+        if isinstance(spin_operator, cudaq_runtime.SpinOperatorTerm):
+            localOp = cudaq_runtime.SpinOperator(spin_operator)
+        elif isinstance(spin_operator, list):
+            localOp = cudaq_runtime.SpinOperator.empty()
+            for o in spin_operator:
+                localOp += o
         else:
-            ctx = cudaq_runtime.ExecutionContext('observe', 0, qpu_id)
-        ctx.setSpinOperator(localOp)
-        if num_trajectories is not None:
-            if noise_model is None:
-                raise RuntimeError(
-                    "num_trajectories is provided without a noise_model.")
-            ctx.numberTrajectories = num_trajectories
-        kernel_name = kernel.name if hasattr(kernel, 'name') else ''
-        policy = cudaq_runtime.ObservePolicy(ctx, kernel_name, localOp)
-        observeResult = cudaq_runtime.launch_observe(
-            policy, ctx, lambda args=args: kernel(*args))
-        if not isinstance(spin_operator, list):
-            if noise_model != None:
-                cudaq_runtime.unset_noise()
+            localOp = spin_operator
 
-            return observeResult
+        results = None
+        if isa_kernel_decorator(kernel):
+            decorator = kernel
+        elif isa_dynamic_kernel(kernel):
+            decorator = mk_decorator(kernel)
+        else:
+            raise RuntimeError(
+                "unrecognized kernel - did you forget the @kernel attribute?")
+        if (decorator.launch_args_required()
+                != 0) and (decorator.formal_arity() != len(args)):
+            raise RuntimeError(
+                "Invalid number of arguments passed to observe. " +
+                str(len(args)) + " given and " + str(decorator.formal_arity()) +
+                " expected.")
+        if __isBroadcast(kernel, *args):
+            results = __broadcastObserve(kernel,
+                                         localOp,
+                                         *args,
+                                         shots_count=shots_count,
+                                         qpu_id=qpu_id)
 
-        results = []
-        for op in spin_operator:
-            exp_val = 0.0
-
-            if op.term_count == 1:
-                term = op if isinstance(
-                    op, cudaq_runtime.SpinOperatorTerm) else next(iter(op))
-                exp_val = __computeTermExpectation(term, observeResult)
+            if isinstance(spin_operator, list):
+                results = [[
+                    cudaq_runtime.ObserveResult(p.expectation(o), o,
+                                                p.counts(o))
+                    for o in spin_operator
+                ]
+                           for p in results]
+        else:
+            if shots_count > 0:
+                ctx = cudaq_runtime.ExecutionContext('observe', shots_count,
+                                                     qpu_id)
             else:
-                for term in op:
-                    exp_val += __computeTermExpectation(term, observeResult)
+                ctx = cudaq_runtime.ExecutionContext('observe', 0, qpu_id)
+            ctx.setSpinOperator(localOp)
+            if num_trajectories is not None:
+                if noise_model is None:
+                    raise RuntimeError(
+                        "num_trajectories is provided without a noise_model.")
+                ctx.numberTrajectories = num_trajectories
+            kernel_name = kernel.name if hasattr(kernel, 'name') else ''
+            policy = cudaq_runtime.ObservePolicy(ctx, kernel_name, localOp)
+            observeResult = cudaq_runtime.launch_observe(
+                policy, ctx, lambda args=args: kernel(*args))
+            if not isinstance(spin_operator, list):
+                return observeResult
 
-            results.append(
-                cudaq_runtime.ObserveResult(exp_val, op,
-                                            observeResult.counts()))
+            results = []
+            for op in spin_operator:
+                exp_val = 0.0
 
-    if noise_model != None:
-        cudaq_runtime.unset_noise()
+                if op.term_count == 1:
+                    term = op if isinstance(
+                        op, cudaq_runtime.SpinOperatorTerm) else next(iter(op))
+                    exp_val = __computeTermExpectation(term, observeResult)
+                else:
+                    for term in op:
+                        exp_val += __computeTermExpectation(term, observeResult)
 
-    return results
+                results.append(
+                    cudaq_runtime.ObserveResult(exp_val, op,
+                                                observeResult.counts()))
+
+        return results
+    finally:
+        if set_noise_for_call:
+            if previous_noise is not None:
+                cudaq_runtime.set_noise(previous_noise)
+            else:
+                cudaq_runtime.unset_noise()
 
 
 @trace.traced
