@@ -62,7 +62,8 @@ static void matrix_roundtrip(void) {
     int length =
         snprintf(names[i], sizeof(names[i]), "presentation-%u", 299 - i);
     CHECK(length > 0 && (size_t)length < sizeof(names[i]));
-    codes[i] = (cudaq_edem_code_presentation){names[i], (uint64_t)length, 0, 0};
+    codes[i] =
+        (cudaq_edem_code_presentation){names[i], (uint64_t)length, 0, 0, 0};
   }
   cudaq_edem_fault_group group = {CUDAQ_EDEM_INDEPENDENT, 64, ids,
                                   probabilities};
@@ -70,11 +71,11 @@ static void matrix_roundtrip(void) {
   uint32_t input_code = 299, output_code = 0;
   cudaq_edem_description d = {0};
   d.shape = (cudaq_edem_shape){300, 1, 1, 1, n, 0, 0, n};
-  d.codes = codes;
+  d.shared_code_table = codes;
   d.input_codes = &input_code;
   d.output_codes = &output_code;
   d.faults = &fault;
-  d.detector_sizes = detectors;
+  d.detector_ports_sizes = detectors;
   d.blocks = blocks;
   cudaq_gf2_owned_buffer owner = {0}, canonical = {0};
   cudaq_edem_view value;
@@ -122,7 +123,7 @@ int main(void) {
     }
     cudaq_edem_fault_distribution fault = {3 * n, n, groups};
     cudaq_edem_description d = {0};
-    d.shape.fault_ports = 1;
+    d.shape.fault_ports_count = 1;
     d.faults = &fault;
     cudaq_gf2_owned_buffer owner = {0}, canonical = {0};
     cudaq_edem_view value;

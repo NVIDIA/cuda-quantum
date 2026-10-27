@@ -62,7 +62,7 @@ def open_round():
         (PortKind.LOGICAL, PortKind.LOGICAL, identity),
     ]
     return EDEM(
-        codes=[CodePresentation("repetition-3", 2, 1)],
+        codes=[CodePresentation("repetition-3", 2, 2, 1)],
         inputs=[0],
         outputs=[0],
         faults=[FaultDistribution.independent([0.01, 0.02])],
@@ -162,8 +162,9 @@ class CompositionTest(unittest.TestCase):
             DEM()
 
     def test_projection_rejects_all_structural_boundaries(self):
-        for generators, logical_qubits in ((0, 0), (1, 1)):
-            code = CodePresentation("boundary", generators, logical_qubits)
+        for syndrome_count, logical_qubit_count in ((0, 0), (1, 1)):
+            code = CodePresentation("boundary", syndrome_count, syndrome_count,
+                                    logical_qubit_count)
             for side in ("inputs", "outputs"):
                 source = EDEM(codes=[code], **{side: [0]})
                 self.assertFalse(source.is_dem)
@@ -184,8 +185,8 @@ class CompositionTest(unittest.TestCase):
             compose_chain([object()])
         with self.assertRaises(ValueError):
             compose_chain([open_round(), EDEM()])
-        left = EDEM(codes=[CodePresentation("left", 0, 0)], outputs=[0])
-        right = EDEM(codes=[CodePresentation("right", 0, 0)], inputs=[0])
+        left = EDEM(codes=[CodePresentation("left", 0, 0, 0)], outputs=[0])
+        right = EDEM(codes=[CodePresentation("right", 0, 0, 0)], inputs=[0])
         with self.assertRaises(ValueError):
             compose_chain([left, right])
         self.assertEqual(compose_chain([EDEM()]).to_bytes(), EDEM().to_bytes())
@@ -246,7 +247,7 @@ class ValuesTest(unittest.TestCase):
         # Golden bytes for the typed-map format with a trailing directory.
         self.assertEqual(
             hashlib.sha256(packed).hexdigest(),
-            "24f4e841ebdddfa5634c75257ec04d13f047364e7eae2f665831ac3c1f2b1d43")
+            "4335c484e15e0b4270886909e83f05556284dfb649e2ff579bc611b4cef513cf")
         loaded = EDEM.from_bytes(packed)
         blocks = loaded.blocks
         del original, loaded
@@ -293,7 +294,7 @@ class ValuesTest(unittest.TestCase):
             "edem.observable", "edem.success"
         ])
         self.assertEqual(struct.unpack_from("<IIII", packed, entries[5][4]),
-                         (0, 2, 1, 0))
+                         (0, 2, 2, 1))
         # Widths do not replace the retained presentation metadata check.
         broken = bytearray(packed)
         struct.pack_into("<I", broken, entries[5][4] + 4, 3)
@@ -312,8 +313,8 @@ class ValuesTest(unittest.TestCase):
                        blocks=[zero, *reversed(value.blocks)])
         self.assertEqual(rebuilt.to_bytes(), value.to_bytes())
         # Presentation order is local; bytes depend on the named presentation.
-        a = CodePresentation("a", 0, 1)
-        z = CodePresentation("z", 0, 1)
+        a = CodePresentation("a", 0, 0, 1)
+        z = CodePresentation("z", 0, 0, 1)
         x = EDEM(codes=[z, a], inputs=[0], outputs=[1])
         y = EDEM(codes=[a, z], inputs=[1], outputs=[0])
         self.assertEqual(x.to_bytes(), y.to_bytes())
@@ -339,9 +340,8 @@ class ValuesTest(unittest.TestCase):
         self.assertEqual(ordered.apply(x), expected)
 
     def test_invalid_boundaries_and_structural_zeros(self):
-        code = CodePresentation("test", 1, 1)
-        for output in (PortKind.SYNDROME, PortKind.LOGICAL,
-                       PortKind.OBSERVABLE):
+        code = CodePresentation("test", 1, 1, 1)
+        for output in (PortKind.SYNDROME, PortKind.LOGICAL):
             rows = 2 if output == PortKind.LOGICAL else 1
             with self.assertRaises(ValueError):
                 EDEM(codes=[code],
@@ -352,6 +352,17 @@ class ValuesTest(unittest.TestCase):
                          Block(Endpoint(output), Endpoint(PortKind.VIRTUAL),
                                SparseMatrix(rows, 1, [(0, 0)]))
                      ])
+        observed = EDEM(codes=[code],
+                        inputs=[0],
+                        outputs=[0],
+                        observables=[1],
+                        blocks=[
+                            Block(Endpoint(PortKind.OBSERVABLE),
+                                  Endpoint(PortKind.VIRTUAL),
+                                  SparseMatrix(1, 1, [(0, 0)]))
+                        ])
+        packed = observed.to_bytes()
+        self.assertEqual(EDEM.from_bytes(packed).to_bytes(), packed)
         with self.assertRaises(ValueError):
             EDEM(codes=[code], inputs=[1])
         with self.assertRaises(ValueError):

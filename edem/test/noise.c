@@ -27,8 +27,8 @@ static void reordered_outputs(void) {
   cudaq_edem_description description = {0};
   description.shape = (cudaq_edem_shape){0, 0, 0, 1, 1, 1, 1, 3};
   description.faults = &fault;
-  description.detector_sizes = description.observable_sizes =
-      description.success_sizes = &width;
+  description.detector_ports_sizes = description.observable_ports_sizes =
+      description.success_ports_sizes = &width;
   description.blocks = blocks;
   cudaq_gf2_owned_buffer original = {0}, reordered = {0}, converted = {0},
                          reduced = {0}, mapping = {0};
@@ -145,11 +145,11 @@ static uint64_t channels(uint32_t count, int bounded) {
                             {CUDAQ_EDEM_FAULT, 0},
                             {1, columns, count * 2, offsets, rows}};
   cudaq_edem_description description = {0};
-  description.shape.fault_ports = 1;
-  description.shape.detector_ports = 1;
+  description.shape.fault_ports_count = 1;
+  description.shape.detector_ports_count = 1;
   description.shape.blocks = 1;
   description.faults = &fault;
-  description.detector_sizes = &width;
+  description.detector_ports_sizes = &width;
   description.blocks = &block;
   cudaq_gf2_owned_buffer original = {0}, independent = {0}, reduced = {0},
                          map = {0};

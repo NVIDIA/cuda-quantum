@@ -25,7 +25,7 @@
 #define INVALID(call) CHECK((call) == CUDAQ_EDEM_INVALID_CONTENT)
 
 static void test_open_round(void) {
-  const cudaq_edem_code_presentation codes[] = {{"repetition-3", 12, 2, 1}};
+  const cudaq_edem_code_presentation codes[] = {{"repetition-3", 12, 2, 2, 1}};
   const uint32_t boundary[] = {0}, sizes[] = {2}, ids[] = {0, 1};
   const double probabilities[] = {0.01, 0.02};
   const cudaq_edem_fault_group group = {CUDAQ_EDEM_INDEPENDENT, 2, ids,
@@ -78,8 +78,8 @@ static void test_open_round(void) {
         shape.output_bundle_count == 2);
   cudaq_edem_code_presentation code;
   OK(cudaq_edem_get_code(&relocated, 0, &code));
-  CHECK(code.generators == 2 && code.logical_qubits == 1 &&
-        code.name_size == 12);
+  CHECK(code.syndrome_count == 2 && code.virtual_outcome_count == 2 &&
+        code.logical_qubit_count == 1 && code.name_size == 12);
   uint32_t width;
   cudaq_gf2_bundle bundle;
   cudaq_gf2_wire wire;
@@ -184,7 +184,7 @@ static void test_distributions_and_names(void) {
   double probabilities[] = {0.25, 0.75};
   cudaq_edem_fault_group g = {CUDAQ_EDEM_EXCLUSIVE, 2, ids, probabilities};
   cudaq_edem_fault_distribution f = {2, 1, &g};
-  cudaq_edem_code_presentation codes[] = {{"z", 1, 0, 1}, {"a", 1, 0, 1}};
+  cudaq_edem_code_presentation codes[] = {{"z", 1, 0, 0, 1}, {"a", 1, 0, 0, 1}};
   cudaq_edem_description d = {{2, 1, 0, 1, 0, 0, 0, 0},
                               codes,
                               &boundary,
@@ -224,7 +224,7 @@ static void test_distributions_and_names(void) {
 }
 
 static void test_domain_checks(void) {
-  cudaq_edem_code_presentation code = {"test", 4, 1, 1};
+  cudaq_edem_code_presentation code = {"test", 4, 1, 1, 1};
   uint32_t boundary = 0, id = 0, row = 0;
   double probability = 0.1;
   uint64_t offsets[] = {0, 1};
@@ -266,7 +266,7 @@ static void test_domain_checks(void) {
   for (unsigned trial = 0; trial < 5; ++trial) {
     memcpy(copy, packed, (size_t)bytes);
     if (trial == 0)
-      ((cudaq_edem_packed_code *)(copy + co))->generators = 2;
+      ((cudaq_edem_packed_code *)(copy + co))->syndrome_count = 2;
     if (trial == 1)
       ((cudaq_gf2_packed_type *)(copy + to))->role = CUDAQ_GF2_FREE;
     if (trial == 2)
@@ -310,7 +310,7 @@ static void test_safe_read(void) {
                                   probabilities};
   cudaq_edem_fault_distribution fault = {n, 1, &group};
   cudaq_edem_description d = {0};
-  d.shape.fault_ports = 1;
+  d.shape.fault_ports_count = 1;
   d.faults = &fault;
   cudaq_gf2_owned_buffer owner = {0};
   cudaq_edem_view original, result, from_map;

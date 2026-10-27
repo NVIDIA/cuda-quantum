@@ -35,11 +35,11 @@ static void fixture_init(fixture *f) {
       {CUDAQ_EDEM_DETECTOR, 0},
       {CUDAQ_EDEM_FAULT, 0},
       {1, FAULT_INDICATORS, FAULT_INDICATORS, f->offsets, f->rows}};
-  f->description.shape.fault_ports = 1;
-  f->description.shape.detector_ports = 1;
+  f->description.shape.fault_ports_count = 1;
+  f->description.shape.detector_ports_count = 1;
   f->description.shape.blocks = 1;
   f->description.faults = &f->fault;
-  f->description.detector_sizes = &f->detector_size;
+  f->description.detector_ports_sizes = &f->detector_size;
   f->description.blocks = &f->block;
 }
 static void check_apply(const cudaq_edem_view *view) {

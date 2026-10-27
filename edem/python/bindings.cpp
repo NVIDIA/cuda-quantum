@@ -126,9 +126,10 @@ struct Endpoint {
 
 struct CodePresentation {
   std::string name;
-  uint32_t generators, logical_qubits;
+  uint32_t syndrome_count, virtual_outcome_count, logical_qubit_count;
   cudaq_edem_code_presentation view() const {
-    return {name.data(), name.size(), generators, logical_qubits};
+    return {name.data(), name.size(), syndrome_count, virtual_outcome_count,
+            logical_qubit_count};
   }
 };
 
@@ -351,22 +352,22 @@ public:
         check(cudaq_gf2_map_get_bundle(&value.map, side, i, &b));
         if (b.type < codes.count) {
           if (side)
-            ++result.output_code_blocks;
+            ++result.output_code_blocks_count;
           else
-            ++result.input_code_blocks;
+            ++result.input_code_blocks_count;
         } else {
           switch (b.type - codes.count) {
           case 0:
-            ++result.detector_ports;
+            ++result.detector_ports_count;
             break;
           case 1:
-            ++result.fault_ports;
+            ++result.fault_ports_count;
             break;
           case 2:
-            ++result.observable_ports;
+            ++result.observable_ports_count;
             break;
           case 3:
-            ++result.success_ports;
+            ++result.success_ports_count;
             break;
           }
         }
@@ -382,8 +383,9 @@ public:
     for (uint64_t i = 0; i < n; ++i) {
       cudaq_edem_code_presentation code;
       check(cudaq_edem_get_code(&value, static_cast<uint32_t>(i), &code));
-      result.push_back({std::string(code.name, code.name_size), code.generators,
-                        code.logical_qubits});
+      result.push_back({std::string(code.name, code.name_size),
+                        code.syndrome_count, code.virtual_outcome_count,
+                        code.logical_qubit_count});
     }
     return result;
   }
@@ -466,10 +468,10 @@ public:
 
   std::vector<uint32_t> partition_sizes(PortKind kind) const {
     auto s = shape();
-    uint32_t size = kind == PortKind::DETECTOR
-                        ? s.detector_ports
-                        : (kind == PortKind::OBSERVABLE ? s.observable_ports
-                                                        : s.success_ports);
+    uint32_t size = kind == PortKind::DETECTOR ? s.detector_ports_count
+                                               : (kind == PortKind::OBSERVABLE
+                                                      ? s.observable_ports_count
+                                                      : s.success_ports_count);
     std::vector<uint32_t> result(size);
     for (uint64_t i = 0; i < size; ++i)
       result[i] = port({kind, static_cast<uint32_t>(i)}, true).first;
@@ -619,11 +621,13 @@ NB_MODULE(_core, m) {
       .def_ro("kind", &Endpoint::kind)
       .def_ro("index", &Endpoint::index);
   nb::class_<CodePresentation>(m, "CodePresentation")
-      .def(nb::init<std::string, uint32_t, uint32_t>(), "name"_a,
-           "generators"_a, "logical_qubits"_a)
+      .def(nb::init<std::string, uint32_t, uint32_t, uint32_t>(), "name"_a,
+           "syndrome_count"_a, "virtual_outcome_count"_a,
+           "logical_qubit_count"_a)
       .def_ro("name", &CodePresentation::name)
-      .def_ro("generators", &CodePresentation::generators)
-      .def_ro("logical_qubits", &CodePresentation::logical_qubits);
+      .def_ro("syndrome_count", &CodePresentation::syndrome_count)
+      .def_ro("virtual_outcome_count", &CodePresentation::virtual_outcome_count)
+      .def_ro("logical_qubit_count", &CodePresentation::logical_qubit_count);
   nb::class_<FaultGroup>(m, "FaultGroup")
       .def(nb::init<GroupKind, std::vector<uint32_t>, std::vector<double>>(),
            "kind"_a, "fault_ids"_a, "probabilities"_a)

@@ -67,18 +67,18 @@ struct responses {
   }
 
   uint64_t output_index(cudaq_edem_endpoint endpoint) const {
-    return endpoint.index +
-           (endpoint.kind == CUDAQ_EDEM_DETECTOR ? 0
-            : endpoint.kind == CUDAQ_EDEM_OBSERVABLE
-                ? uint64_t(shape.detector_ports)
-                : uint64_t(shape.detector_ports) + shape.observable_ports);
+    return endpoint.index + (endpoint.kind == CUDAQ_EDEM_DETECTOR ? 0
+                             : endpoint.kind == CUDAQ_EDEM_OBSERVABLE
+                                 ? uint64_t(shape.detector_ports_count)
+                                 : uint64_t(shape.detector_ports_count) +
+                                       shape.observable_ports_count);
   }
 
   cudaq_edem_status load(const cudaq_edem_dem_view *value) {
     if (!value)
       return CUDAQ_EDEM_INVALID_ARGUMENT;
     EDEM_TRY(cudaq_edem_get_shape(&value->edem, &shape));
-    if (shape.input_code_blocks || shape.output_code_blocks)
+    if (shape.input_code_blocks_count || shape.output_code_blocks_count)
       return CUDAQ_EDEM_INVALID_CONTENT;
     uint64_t row_count;
     EDEM_TRY(
@@ -91,16 +91,17 @@ struct responses {
       if (!add(nonzeros, block.matrix.nonzeros))
         return CUDAQ_EDEM_INSUFFICIENT_CAPACITY;
     }
-    const uint64_t output_count = uint64_t(shape.detector_ports) +
-                                  shape.observable_ports + shape.success_ports;
+    const uint64_t output_count = uint64_t(shape.detector_ports_count) +
+                                  shape.observable_ports_count +
+                                  shape.success_ports_count;
     uint64_t bytes = 0;
     if (!space<cudaq_edem_code_presentation>(bytes, shape.code_presentations) ||
         !space<cudaq_edem_block>(bytes, shape.blocks) ||
         !space<output_port>(bytes, output_count) ||
         !space<uint32_t>(bytes, output_count) ||
-        !space<cudaq_edem_fault_distribution>(bytes, shape.fault_ports) ||
-        !space<cudaq_edem_fault_group>(bytes, shape.fault_ports) ||
-        !space<uint64_t>(bytes, uint64_t(shape.fault_ports) + 1) ||
+        !space<cudaq_edem_fault_distribution>(bytes, shape.fault_ports_count) ||
+        !space<cudaq_edem_fault_group>(bytes, shape.fault_ports_count) ||
+        !space<uint64_t>(bytes, uint64_t(shape.fault_ports_count) + 1) ||
         !space<uint64_t>(bytes, columns + 1) ||
         !space<uint64_t>(bytes, columns) || !space<uint64_t>(bytes, nonzeros) ||
         !space<uint32_t>(bytes, columns) || !space<double>(bytes, columns))
@@ -111,9 +112,9 @@ struct responses {
     blocks = a.take<cudaq_edem_block>(shape.blocks);
     outputs = a.take<output_port>(output_count);
     sizes = a.take<uint32_t>(output_count);
-    faults = a.take<cudaq_edem_fault_distribution>(shape.fault_ports);
-    groups = a.take<cudaq_edem_fault_group>(shape.fault_ports);
-    fault_offsets = a.take<uint64_t>(uint64_t(shape.fault_ports) + 1);
+    faults = a.take<cudaq_edem_fault_distribution>(shape.fault_ports_count);
+    groups = a.take<cudaq_edem_fault_group>(shape.fault_ports_count);
+    fault_offsets = a.take<uint64_t>(uint64_t(shape.fault_ports_count) + 1);
     offsets = a.take<uint64_t>(columns + 1);
     auto cursor = a.take<uint64_t>(columns);
     rows = a.take<uint64_t>(nonzeros);
@@ -121,7 +122,7 @@ struct responses {
     probabilities = a.take<double>(columns);
     for (uint32_t i = 0; i < shape.code_presentations; ++i)
       EDEM_TRY(cudaq_edem_get_code(&value->edem, i, &codes[i]));
-    for (uint32_t p = 0; p < shape.fault_ports; ++p) {
+    for (uint32_t p = 0; p < shape.fault_ports_count; ++p) {
       uint32_t size, ignored;
       EDEM_TRY(cudaq_edem_get_fault(&value->edem, p, &size, &ignored));
       const uint64_t start = fault_offsets[p];
@@ -195,8 +196,9 @@ struct responses {
             nullptr,
             faults.data(),
             sizes.data(),
-            data_at(shape.detector_ports),
-            data_at(uint64_t(shape.detector_ports) + shape.observable_ports),
+            data_at(shape.detector_ports_count),
+            data_at(uint64_t(shape.detector_ports_count) +
+                    shape.observable_ports_count),
             blocks.data()};
   }
 };
@@ -273,7 +275,7 @@ void compensated_add(double x, double &sum, double &correction) {
 
 cudaq_edem_status probabilities(const cudaq_edem_dem_view &value,
                                 responses &data, bool factorize) {
-  for (uint32_t p = 0; p < data.shape.fault_ports; ++p) {
+  for (uint32_t p = 0; p < data.shape.fault_ports_count; ++p) {
     uint32_t width, count;
     EDEM_TRY(cudaq_edem_get_fault(&value.edem, p, &width, &count));
     uint64_t start = data.fault_offsets[p];

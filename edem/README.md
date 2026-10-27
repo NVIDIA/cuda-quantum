@@ -301,7 +301,7 @@ the capsule protocol in `cudaq/edem/python.h`.
 
 EDEM supports the map
 `(F, V_in, S_in, L_in) -> (D, O, Success, V_out, S_out, L_out)`.
-Each code-block bundle has three wires, `(V,S,L)`, with widths `(g,g,2k)`.
+Each code-block bundle has three wires, `(V,S,L)`, with widths `(v,s,2k)`.
 Input and output code-block counts are independent.
 
 A type is a nonempty UTF-8 name, a role and a wire count. Names compare by exact
@@ -315,15 +315,15 @@ EDEM uses four reserved, single-wire free types: `edem.fault`,
 `edem.detector`, `edem.observable`, and `edem.success`. It retains all four in
 its type table, including unused types. A presentation named `P` creates the
 three-wire interface type `edem.code/P`. The separate, name-sorted presentation
-table records `g` and `k` explicitly. Every bundle using that code type must
-have the recorded `(g,g,2k)` widths. Presentation names identify generator
+table records `s`, `v` and `k` explicitly. Every bundle using that code type
+must have the recorded `(v,s,2k)` widths. Presentation names identify generator
 ordering and logical representatives; producers supply their code algebra and
 coefficients.
 
 GF2 owns type/bundle layout, block validation, canonical storage, matrix
 interning, packing, reading and apply. cudaq-edem checks its vocabulary, permitted
 input/output roles, presentation consistency, and structural zeros from V_in
-to O, S_out and L_out. Fault inputs have one distribution per bundle. Exact
+to S_out and L_out. Fault inputs have one distribution per bundle. Exact
 independent and mutually exclusive groups cover original indicators once;
 separate bundles retain separate laws. Equal matrix blocks never identify
 faults. Original indicators are used directly as fault coordinates.
@@ -359,7 +359,8 @@ from cudaq_edem import (
 
 identity = SparseMatrix(2, 2, [(0, 0), (1, 1)])
 model = EDEM(
-    codes=[CodePresentation("repetition-3", generators=2, logical_qubits=1)],
+    codes=[CodePresentation("repetition-3", syndrome_count=2,
+                            virtual_outcome_count=2, logical_qubit_count=1)],
     inputs=[0], outputs=[0],
     faults=[FaultDistribution.independent([0.01])],
     blocks=[
@@ -428,7 +429,7 @@ Extension schemas start at `0x10000`. The five required map sections are:
 | 3 | Output bundles, wire widths and vector offsets |
 | 4 | Sparse block bindings |
 | 5 | Interned CSC matrices |
-| `0x10000` | EDEM presentation table: type ID, g, k |
+| `0x10000` | EDEM presentation table: type ID, s, v, k |
 | `0x10001` | EDEM distributions associated with input fault bundles |
 
 Required payloads follow the header, optional payloads follow those, and the

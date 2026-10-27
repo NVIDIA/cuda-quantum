@@ -24,7 +24,10 @@ extern "C" {
  * probabilities remain in [0, 1]; accepted values are never renormalized. */
 #define CUDAQ_EDEM_EXCLUSIVE_TOTAL_TOLERANCE 1e-6
 
-typedef enum cudaq_edem_status {
+/* Enumerated types are fixed-width so the ABI does not depend on the
+ * compiler's enum size. */
+typedef uint32_t cudaq_edem_status;
+enum {
   CUDAQ_EDEM_OK = 0,
   CUDAQ_EDEM_INVALID_ARGUMENT = 1,
   CUDAQ_EDEM_INVALID_CONTENT = 2,
@@ -32,9 +35,10 @@ typedef enum cudaq_edem_status {
   CUDAQ_EDEM_UNSUPPORTED_VERSION = 4,
   CUDAQ_EDEM_ALLOCATION_FAILED = 5,
   CUDAQ_EDEM_UNSUPPORTED_DISTRIBUTION = 6
-} cudaq_edem_status;
+};
 
-typedef enum cudaq_edem_port_kind {
+typedef uint32_t cudaq_edem_port_kind;
+enum {
   CUDAQ_EDEM_FAULT = 0,
   CUDAQ_EDEM_VIRTUAL = 1,
   CUDAQ_EDEM_SYNDROME = 2,
@@ -42,27 +46,26 @@ typedef enum cudaq_edem_port_kind {
   CUDAQ_EDEM_DETECTOR = 4,
   CUDAQ_EDEM_OBSERVABLE = 5,
   CUDAQ_EDEM_SUCCESS = 6
-} cudaq_edem_port_kind;
+};
 
 /* V, S and L indices identify code-block ordinals, independently on each side.
  * Other indices identify partitions of that kind. Directions are implicit in
  * the containing block: output first, input second. */
 typedef struct cudaq_edem_endpoint {
-  uint32_t kind;
+  cudaq_edem_port_kind kind;
   uint32_t index;
 } cudaq_edem_endpoint;
 
 typedef struct cudaq_edem_code_presentation {
   const char *name;
   uint64_t name_size;
-  uint32_t generators;
-  uint32_t logical_qubits;
+  uint32_t syndrome_count;
+  uint32_t virtual_outcome_count;
+  uint32_t logical_qubit_count;
 } cudaq_edem_code_presentation;
 
-typedef enum cudaq_edem_group_kind {
-  CUDAQ_EDEM_INDEPENDENT = 0,
-  CUDAQ_EDEM_EXCLUSIVE = 1
-} cudaq_edem_group_kind;
+typedef uint32_t cudaq_edem_fault_group_kind;
+enum { CUDAQ_EDEM_INDEPENDENT = 0, CUDAQ_EDEM_EXCLUSIVE = 1 };
 
 /* Sorted original indicator IDs and one probability per ID. All indicators
  * occur in exactly one group. There is at most one Independent group;
@@ -71,7 +74,7 @@ typedef enum cudaq_edem_group_kind {
  * and within [0, 1], without an individual tolerance.
  * Fault coordinates are original indicator IDs. */
 typedef struct cudaq_edem_fault_group {
-  uint32_t kind;
+  cudaq_edem_fault_group_kind kind;
   uint32_t size;
   const uint32_t *fault_ids;
   const double *probabilities;
@@ -91,31 +94,32 @@ typedef struct cudaq_edem_block {
 
 typedef struct cudaq_edem_shape {
   uint32_t code_presentations;
-  uint32_t input_code_blocks;
-  uint32_t output_code_blocks;
-  uint32_t fault_ports;
-  uint32_t detector_ports;
-  uint32_t observable_ports;
-  uint32_t success_ports;
+  uint32_t input_code_blocks_count;
+  uint32_t output_code_blocks_count;
+  uint32_t fault_ports_count;
+  uint32_t detector_ports_count;
+  uint32_t observable_ports_count;
+  uint32_t success_ports_count;
   uint64_t blocks;
 } cudaq_edem_shape;
 
 /* Semantic construction input. Arrays have the counts in shape. Code blocks
- * name presentation IDs; V/S widths are generators, L widths are 2*k. A block
- * names semantic endpoints, so producers never assemble flattened offsets or
- * port-binding tables. Omitted blocks are zero; duplicate endpoint pairs are
- * rejected. Blocks and presentations may be supplied in any order. Packing
- * orders them canonically, removes zero blocks and interns equal matrices.
- * These borrowed arrays and output storage must be disjoint. */
+ * name presentation IDs; V widths are virtual outcome counts, S widths are
+ * syndrome counts, L widths are 2*k. A block names semantic endpoints, so
+ * producers never assemble flattened offsets or port-binding tables. Omitted
+ * blocks are zero; duplicate endpoint pairs are rejected. Blocks and
+ * presentations may be supplied in any order. Packing orders them canonically,
+ * removes zero blocks and interns equal matrices. These borrowed arrays and
+ * output storage must be disjoint. */
 typedef struct cudaq_edem_description {
   cudaq_edem_shape shape;
-  const cudaq_edem_code_presentation *codes;
+  const cudaq_edem_code_presentation *shared_code_table;
   const uint32_t *input_codes;
   const uint32_t *output_codes;
   const cudaq_edem_fault_distribution *faults;
-  const uint32_t *detector_sizes;
-  const uint32_t *observable_sizes;
-  const uint32_t *success_sizes;
+  const uint32_t *detector_ports_sizes;
+  const uint32_t *observable_ports_sizes;
+  const uint32_t *success_ports_sizes;
   const cudaq_edem_block *blocks;
 } cudaq_edem_description;
 

@@ -114,7 +114,7 @@ MovingOwner throughReturn(MovingOwner value) { return value; }
 
 cudaq_edem_status constructRound(const cudaq_gf2_memory *memory,
                                  cudaq::edem::PackedEDEM &owner) {
-  const cudaq_edem_code_presentation codes[] = {{"repetition-3", 12, 2, 1}};
+  const cudaq_edem_code_presentation codes[] = {{"repetition-3", 12, 2, 2, 1}};
   const uint32_t boundary[] = {0}, sizes[] = {2}, ids[] = {0, 1};
   const double probabilities[] = {0.01, 0.02};
   const cudaq_edem_fault_group group = {CUDAQ_EDEM_INDEPENDENT, 2, ids,

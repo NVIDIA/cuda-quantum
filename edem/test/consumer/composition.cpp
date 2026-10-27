@@ -141,10 +141,11 @@ int main() {
                          {CUDAQ_EDEM_FAULT, 0},
                          {1, 2, 2, offsets, rows}};
   cudaq_edem_description description{};
-  description.shape.fault_ports = description.shape.detector_ports = 1;
+  description.shape.fault_ports_count = description.shape.detector_ports_count =
+      1;
   description.shape.blocks = 1;
   description.faults = &fault;
-  description.detector_sizes = &width;
+  description.detector_ports_sizes = &width;
   description.blocks = &block;
   check(PackedEDEM::construct(description, value) == CUDAQ_EDEM_OK);
   cudaq::edem::ColumnMapping mapping;

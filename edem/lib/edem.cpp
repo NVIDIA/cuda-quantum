@@ -41,36 +41,38 @@ cudaq_edem_status describe(const cudaq_edem_description *d, plan &p) {
     return CUDAQ_EDEM_INVALID_ARGUMENT;
   const auto &s = d->shape;
   if (s.code_presentations > UINT32_MAX - 4 || s.blocks > UINT32_MAX ||
-      uint64_t{s.fault_ports} + s.input_code_blocks > UINT32_MAX ||
-      uint64_t{s.detector_ports} + s.observable_ports + s.success_ports +
-              s.output_code_blocks >
+      uint64_t{s.fault_ports_count} + s.input_code_blocks_count > UINT32_MAX ||
+      uint64_t{s.detector_ports_count} + s.observable_ports_count +
+              s.success_ports_count + s.output_code_blocks_count >
           UINT32_MAX ||
-      !array_ok(d->codes, s.code_presentations, sizeof(*d->codes)) ||
-      !array_ok(d->input_codes, s.input_code_blocks, 4) ||
-      !array_ok(d->output_codes, s.output_code_blocks, 4) ||
-      !array_ok(d->faults, s.fault_ports, sizeof(*d->faults)) ||
-      !array_ok(d->detector_sizes, s.detector_ports, 4) ||
-      !array_ok(d->observable_sizes, s.observable_ports, 4) ||
-      !array_ok(d->success_sizes, s.success_ports, 4) ||
+      !array_ok(d->shared_code_table, s.code_presentations,
+                sizeof(*d->shared_code_table)) ||
+      !array_ok(d->input_codes, s.input_code_blocks_count, 4) ||
+      !array_ok(d->output_codes, s.output_code_blocks_count, 4) ||
+      !array_ok(d->faults, s.fault_ports_count, sizeof(*d->faults)) ||
+      !array_ok(d->detector_ports_sizes, s.detector_ports_count, 4) ||
+      !array_ok(d->observable_ports_sizes, s.observable_ports_count, 4) ||
+      !array_ok(d->success_ports_sizes, s.success_ports_count, 4) ||
       !array_ok(d->blocks, s.blocks, sizeof(*d->blocks)))
     return CUDAQ_EDEM_INVALID_ARGUMENT;
-  p.inputs = s.fault_ports + s.input_code_blocks;
-  p.outputs = s.detector_ports + s.observable_ports + s.success_ports +
-              s.output_code_blocks;
-  p.wires = uint64_t{s.fault_ports} + s.detector_ports + s.observable_ports +
-            s.success_ports +
-            3 * (uint64_t{s.input_code_blocks} + s.output_code_blocks);
+  p.inputs = s.fault_ports_count + s.input_code_blocks_count;
+  p.outputs = s.detector_ports_count + s.observable_ports_count +
+              s.success_ports_count + s.output_code_blocks_count;
+  p.wires =
+      uint64_t{s.fault_ports_count} + s.detector_ports_count +
+      s.observable_ports_count + s.success_ports_count +
+      3 * (uint64_t{s.input_code_blocks_count} + s.output_code_blocks_count);
   uint64_t ignored;
   for (uint32_t i = 0; i < s.code_presentations; ++i) {
-    auto c = d->codes[i];
+    auto c = d->shared_code_table[i];
     if (!array_ok(c.name, c.name_size, 1) || c.name_size > SIZE_MAX - 10 ||
         !reserve(p.names, c.name_size + 10, 1, ignored, 1))
       return CUDAQ_EDEM_INVALID_ARGUMENT;
   }
-  if (!reserve(p.fault_bytes, s.fault_ports, sizeof(cudaq_edem_packed_fault),
-               ignored))
+  if (!reserve(p.fault_bytes, s.fault_ports_count,
+               sizeof(cudaq_edem_packed_fault), ignored))
     return CUDAQ_EDEM_INSUFFICIENT_CAPACITY;
-  for (uint32_t i = 0; i < s.fault_ports; ++i) {
+  for (uint32_t i = 0; i < s.fault_ports_count; ++i) {
     auto f = d->faults[i];
     if (!array_ok(f.groups, f.group_count, sizeof(*f.groups)))
       return CUDAQ_EDEM_INVALID_ARGUMENT;
@@ -156,29 +158,30 @@ cudaq_edem_status check_distribution(uint32_t size, uint32_t count, Group group,
 bool semantic_wire(const cudaq_edem_shape &s, uint32_t side,
                    cudaq_edem_endpoint e, cudaq_gf2_wire &wire) {
   if (e.kind >= CUDAQ_EDEM_VIRTUAL && e.kind <= CUDAQ_EDEM_LOGICAL) {
-    if (e.index >= (side ? s.output_code_blocks : s.input_code_blocks))
+    if (e.index >=
+        (side ? s.output_code_blocks_count : s.input_code_blocks_count))
       return false;
-    uint32_t start =
-        side ? s.detector_ports + s.observable_ports + s.success_ports
-             : s.fault_ports;
+    uint32_t start = side ? s.detector_ports_count + s.observable_ports_count +
+                                s.success_ports_count
+                          : s.fault_ports_count;
     wire = {start + e.index, e.kind - CUDAQ_EDEM_VIRTUAL};
     return true;
   }
-  if (!side && e.kind == CUDAQ_EDEM_FAULT && e.index < s.fault_ports) {
+  if (!side && e.kind == CUDAQ_EDEM_FAULT && e.index < s.fault_ports_count) {
     wire = {e.index, 0};
     return true;
   }
   if (side) {
-    if (e.kind == CUDAQ_EDEM_DETECTOR && e.index < s.detector_ports) {
+    if (e.kind == CUDAQ_EDEM_DETECTOR && e.index < s.detector_ports_count) {
       wire = {e.index, 0};
       return true;
     }
-    if (e.kind == CUDAQ_EDEM_OBSERVABLE && e.index < s.observable_ports) {
-      wire = {s.detector_ports + e.index, 0};
+    if (e.kind == CUDAQ_EDEM_OBSERVABLE && e.index < s.observable_ports_count) {
+      wire = {s.detector_ports_count + e.index, 0};
       return true;
     }
-    if (e.kind == CUDAQ_EDEM_SUCCESS && e.index < s.success_ports) {
-      wire = {s.detector_ports + s.observable_ports + e.index, 0};
+    if (e.kind == CUDAQ_EDEM_SUCCESS && e.index < s.success_ports_count) {
+      wire = {s.detector_ports_count + s.observable_ports_count + e.index, 0};
       return true;
     }
   }
@@ -214,18 +217,19 @@ cudaq_edem_status lower(const cudaq_edem_description *d,
   auto group_order = a.take<uint32_t>(p.max_groups);
   auto seen = a.take<uint8_t>((uint64_t{p.max_faults} + 7) / 8);
   for (uint32_t i = 0; i < s.code_presentations; ++i)
-    if (!utf8_name(d->codes[i].name, d->codes[i].name_size) ||
-        d->codes[i].logical_qubits > UINT32_MAX / 2)
+    if (!utf8_name(d->shared_code_table[i].name,
+                   d->shared_code_table[i].name_size) ||
+        d->shared_code_table[i].logical_qubit_count > UINT32_MAX / 2)
       return CUDAQ_EDEM_INVALID_CONTENT;
   sort_indices(order, [&](uint32_t x, uint32_t y) {
-    auto c = d->codes[x], b = d->codes[y];
+    auto c = d->shared_code_table[x], b = d->shared_code_table[y];
     return name_compare(c.name, c.name_size, b.name, b.name_size) < 0;
   });
   uint64_t cursor = 0;
   for (uint32_t i = 0; i < s.code_presentations; ++i) {
-    auto c = d->codes[order[i]];
+    auto c = d->shared_code_table[order[i]];
     if (i) {
-      auto previous = d->codes[order[i - 1]];
+      auto previous = d->shared_code_table[order[i - 1]];
       if (!name_compare(previous.name, previous.name_size, c.name, c.name_size))
         return CUDAQ_EDEM_INVALID_CONTENT;
     }
@@ -234,7 +238,8 @@ cudaq_edem_status lower(const cudaq_edem_description *d,
     memcpy(name + 10, c.name, c.name_size);
     cursor += 10 + c.name_size;
     types[i] = {name, 10 + c.name_size, CUDAQ_GF2_INTERFACE, 3};
-    codes[i] = {i, c.generators, c.logical_qubits, 0};
+    codes[i] = {i, c.syndrome_count, c.virtual_outcome_count,
+                c.logical_qubit_count};
     ids[order[i]] = i;
   }
   for (uint32_t i = 0; i < 4; ++i)
@@ -243,37 +248,40 @@ cudaq_edem_status lower(const cudaq_edem_description *d,
   uint64_t wi = 0;
   for (uint32_t side = 0; side < 2; ++side) {
     auto bundles = side ? outputs : inputs;
-    uint32_t free_count =
-        side ? s.detector_ports + s.observable_ports + s.success_ports
-             : s.fault_ports;
+    uint32_t free_count = side ? s.detector_ports_count +
+                                     s.observable_ports_count +
+                                     s.success_ports_count
+                               : s.fault_ports_count;
     for (uint32_t i = 0; i < free_count; ++i) {
       uint32_t type, width;
       if (!side) {
         type = 1;
         width = d->faults[i].size;
-      } else if (i < s.detector_ports) {
+      } else if (i < s.detector_ports_count) {
         type = 0;
-        width = d->detector_sizes[i];
-      } else if (i < s.detector_ports + s.observable_ports) {
+        width = d->detector_ports_sizes[i];
+      } else if (i < s.detector_ports_count + s.observable_ports_count) {
         type = 2;
-        width = d->observable_sizes[i - s.detector_ports];
+        width = d->observable_ports_sizes[i - s.detector_ports_count];
       } else {
         type = 3;
-        width = d->success_sizes[i - s.detector_ports - s.observable_ports];
+        width = d->success_ports_sizes[i - s.detector_ports_count -
+                                       s.observable_ports_count];
       }
       widths[wi] = width;
       bundles[i] = {s.code_presentations + type, 0, widths.data() + wi++};
     }
-    uint32_t count = side ? s.output_code_blocks : s.input_code_blocks;
+    uint32_t count =
+        side ? s.output_code_blocks_count : s.input_code_blocks_count;
     const auto *code_ids = side ? d->output_codes : d->input_codes;
     for (uint32_t i = 0; i < count; ++i) {
       if (code_ids[i] >= s.code_presentations)
         return CUDAQ_EDEM_INVALID_CONTENT;
       uint32_t id = ids[code_ids[i]];
       auto c = codes[id];
-      widths[wi] = c.generators;
-      widths[wi + 1] = c.generators;
-      widths[wi + 2] = 2 * c.logical_qubits;
+      widths[wi] = c.virtual_outcome_count;
+      widths[wi + 1] = c.syndrome_count;
+      widths[wi + 2] = 2 * c.logical_qubit_count;
       bundles[free_count + i] = {id, 0, widths.data() + wi};
       wi += 3;
     }
@@ -284,15 +292,14 @@ cudaq_edem_status lower(const cudaq_edem_description *d,
         !semantic_wire(s, 0, b.input, blocks[i].input))
       return CUDAQ_EDEM_INVALID_CONTENT;
     if (b.matrix.nonzeros && b.input.kind == CUDAQ_EDEM_VIRTUAL &&
-        (b.output.kind == CUDAQ_EDEM_OBSERVABLE ||
-         b.output.kind == CUDAQ_EDEM_SYNDROME ||
+        (b.output.kind == CUDAQ_EDEM_SYNDROME ||
          b.output.kind == CUDAQ_EDEM_LOGICAL))
       return CUDAQ_EDEM_INVALID_CONTENT;
     blocks[i].matrix = b.matrix;
   }
   auto *faults = reinterpret_cast<cudaq_edem_packed_fault *>(fault_data.data());
-  cursor = uint64_t{s.fault_ports} * sizeof(*faults);
-  for (uint32_t i = 0; i < s.fault_ports; ++i) {
+  cursor = uint64_t{s.fault_ports_count} * sizeof(*faults);
+  for (uint32_t i = 0; i < s.fault_ports_count; ++i) {
     auto f = d->faults[i];
     st = check_distribution(
         f.size, f.group_count, [&](uint32_t j) { return f.groups[j]; }, seen,
@@ -327,7 +334,7 @@ cudaq_edem_status lower(const cudaq_edem_description *d,
       {CUDAQ_EDEM_SECTION_PRESENTATIONS, CUDAQ_GF2_SECTION_REQUIRED,
        s.code_presentations, codes.size_bytes(), codes.data()},
       {CUDAQ_EDEM_SECTION_DISTRIBUTIONS, CUDAQ_GF2_SECTION_REQUIRED,
-       s.fault_ports, fault_data.size(), fault_data.data()}};
+       s.fault_ports_count, fault_data.size(), fault_data.data()}};
   cudaq_gf2_map_description map = {s.code_presentations + 4,
                                    p.inputs,
                                    p.outputs,
@@ -483,7 +490,7 @@ cudaq_edem_status cudaq_edem_check(const cudaq_gf2_map_view *view,
     cudaq_gf2_map_get_type(view, i, &t);
     if (i < s.codes.count) {
       auto c = s.code_data[i];
-      if (c.type != i || c.reserved || c.logical_qubits > UINT32_MAX / 2 ||
+      if (c.type != i || c.logical_qubit_count > UINT32_MAX / 2 ||
           t.role != CUDAQ_GF2_INTERFACE || t.wire_count != 3 ||
           t.name_size <= 10 || memcmp(t.name, code_prefix, 10))
         return CUDAQ_EDEM_INVALID_CONTENT;
@@ -500,8 +507,9 @@ cudaq_edem_status cudaq_edem_check(const cudaq_gf2_map_view *view,
       cudaq_gf2_map_get_bundle(view, side, i, &b);
       if (b.type < s.codes.count) {
         auto c = s.code_data[b.type];
-        if (b.widths[0] != c.generators || b.widths[1] != c.generators ||
-            b.widths[2] != 2 * c.logical_qubits)
+        if (b.widths[0] != c.virtual_outcome_count ||
+            b.widths[1] != c.syndrome_count ||
+            b.widths[2] != 2 * c.logical_qubit_count)
           return CUDAQ_EDEM_INVALID_CONTENT;
       } else {
         uint32_t kind = free_kinds[b.type - s.codes.count];
@@ -535,8 +543,7 @@ cudaq_edem_status cudaq_edem_check(const cudaq_gf2_map_view *view,
     cudaq_gf2_map_get_bundle(view, 0, b.input.bundle, &in);
     cudaq_gf2_map_get_bundle(view, 1, b.output.bundle, &out);
     if (in.type < s.codes.count && b.input.wire == 0 &&
-        ((out.type < s.codes.count && b.output.wire != 0) ||
-         out.type == s.codes.count + 2))
+        out.type < s.codes.count && b.output.wire != 0)
       return CUDAQ_EDEM_INVALID_CONTENT;
   }
   scratch.reset();
@@ -556,7 +563,8 @@ cudaq_edem_status cudaq_edem_get_code(const cudaq_edem_view *value, uint32_t i,
   cudaq_gf2_bundle_type t;
   if (cudaq_gf2_map_get_type(view, c.type, &t) != CUDAQ_GF2_OK)
     return CUDAQ_EDEM_INVALID_ARGUMENT;
-  *out = {t.name + 10, t.name_size - 10, c.generators, c.logical_qubits};
+  *out = {t.name + 10, t.name_size - 10, c.syndrome_count,
+          c.virtual_outcome_count, c.logical_qubit_count};
   return CUDAQ_EDEM_OK;
 }
 cudaq_edem_status cudaq_edem_describe_wire(const cudaq_edem_view *value,
