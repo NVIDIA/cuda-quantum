@@ -291,3 +291,31 @@ To execute a program on the :code:`stim` target, use the following commands:
     can be slower than executing Stim a single time and generating all the shots
     from that single execution.
     Set the `explicit_measurements` flag with `sample` API for efficient execution.
+
+
+.. _custabilizer-backend:
+
+``cuStabilizer``
+++++++++++++++++
+
+The :code:`custabilizer` backend provides GPU-accelerated stabilizer simulation
+using NVIDIA's `cuStabilizer
+<https://docs.nvidia.com/cuda/cuquantum/latest/custabilizer/index.html>`_ library.
+It is compatible with the Clifford sampling kernels and Pauli noise models
+supported by :ref:`Stim <stim-backend>`.
+To use an existing Stim sampling program, change its target to :code:`custabilizer`.
+This backend requires an NVIDIA GPU and a CUDA-Q installation with the
+:code:`custabilizer` backend enabled.
+
+.. tab:: Python
+
+    .. code:: python
+
+        cudaq.set_target('custabilizer')
+
+.. tab:: C++
+
+    .. code:: bash
+
+        nvq++ --target custabilizer program.cpp -o program.x
+        ./program.x
