@@ -32,7 +32,8 @@ static bool isSupportedOutlineOp(Operation *op) {
 
 static FailureOr<cudaq::cc::CreateLambdaOp>
 outlinePartitionImpl(ArrayRef<Operation *> partition,
-                     const DominanceInfo &dominance) {
+                     const DominanceInfo &dominance,
+                     const bool acceptOrderedPartition) {
   if (partition.empty())
     return failure();
 
@@ -47,13 +48,28 @@ outlinePartitionImpl(ArrayRef<Operation *> partition,
       return failure();
   }
 
-  // Sort the unique selected operations in block (topological) order so
-  // selected definitions are cloned before their users.
-  SmallVector<Operation *> orderedOps(inPartition.begin(), inPartition.end());
-  llvm::sort(orderedOps, [](Operation *lhs, Operation *rhs) {
-    return lhs->isBeforeInBlock(rhs);
-  });
-  Operation *anchor = orderedOps.back();
+  SmallVector<Operation *> orderedOps(partition.begin(), partition.end());
+  if (!acceptOrderedPartition) {
+    // Sort the unique selected operations in block (topological) order.
+    orderedOps.assign(inPartition.begin(), inPartition.end());
+    llvm::sort(orderedOps, [](Operation *lhs, Operation *rhs) {
+      return lhs->isBeforeInBlock(rhs);
+    });
+  } else {
+    // Verify that producers inside the partition precede their consumers in
+    // the supplied order. Captured inputs are checked later for dominance at
+    // the lambda insertion point.
+    DenseSet<Operation *> seen;
+    for (Operation *op : orderedOps) {
+      for (Value operand : op->getOperands()) {
+        Operation *def = operand.getDefiningOp();
+        if (def && inPartition.contains(def) && !seen.contains(def))
+          return failure();
+      }
+      if (!seen.insert(op).second)
+        return failure();
+    }
+  }
 
   // Collect captured inputs and outputs. Non-wire outputs precede wires in the
   // callable results.
@@ -129,10 +145,18 @@ outlinePartitionImpl(ArrayRef<Operation *> partition,
     }
   }
 
-  // Check that tracing found exactly the discovered output wires.
+  // Anchor is last selected op in IR block. If the caller
+  // specifies an ordered partition, anchor is not guaranteed to be the last op
+  // in `orderedOps` so search for true anchor.
+  Operation *anchor = orderedOps.back();
+  if (acceptOrderedPartition)
+    for (Operation *op : orderedOps)
+      if (anchor->isBeforeInBlock(op))
+        anchor = op;
   if (orderedWireOutputs.size() != outputs.size())
     return failure();
 
+  // Check that tracing found exactly the discovered output wires.
   for (Value out : orderedWireOutputs)
     if (!out || !outputs.contains(out))
       return failure();
@@ -206,19 +230,22 @@ outlinePartitionImpl(ArrayRef<Operation *> partition,
 }
 
 FailureOr<cudaq::cc::CreateLambdaOp>
-cudaq::opt::outlinePartition(ArrayRef<Operation *> partition) {
+cudaq::opt::outlinePartition(ArrayRef<Operation *> partition,
+                             const bool acceptOrderedPartition) {
   DominanceInfo dominance;
-  return outlinePartitionImpl(partition, dominance);
+  return outlinePartitionImpl(partition, dominance, acceptOrderedPartition);
 }
 
 LogicalResult
-cudaq::opt::outlinePartitions(ArrayRef<SmallVector<Operation *>> partitions) {
+cudaq::opt::outlinePartitions(ArrayRef<SmallVector<Operation *>> partitions,
+                              const bool acceptOrderedPartition) {
   // The CFG of existing regions is unchanged, so cached dominance information
   // remains valid across these rewrites.
   DominanceInfo dominance;
   auto result = success();
   for (const auto &partition : partitions)
-    if (failed(outlinePartitionImpl(partition, dominance)))
+    if (failed(
+            outlinePartitionImpl(partition, dominance, acceptOrderedPartition)))
       result = failure();
   return result;
 }

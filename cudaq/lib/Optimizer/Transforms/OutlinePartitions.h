@@ -16,16 +16,23 @@
 namespace cudaq::opt {
 
 /// Outline supported operations from one block into a lambda and a call.
-/// Operations are cloned in block order, with all external inputs captured.
+/// By default, duplicate operations are ignored and operations are cloned in
+/// block order. If acceptOrderedPartition is true, operations are cloned in the
+/// supplied order, which must contain no duplicates and place each internal
+/// producer before its consumers. The caller must preserve any additional
+/// semantic ordering constraints. All external inputs are captured.
 /// Non-wire results precede wire results. Wire results follow the first-use
 /// order of their corresponding incoming wires. Returns failure without
 /// modifying the IR if the selection cannot be outlined.
 mlir::FailureOr<cudaq::cc::CreateLambdaOp>
-outlinePartition(llvm::ArrayRef<mlir::Operation *> partition);
+outlinePartition(llvm::ArrayRef<mlir::Operation *> partition,
+                 const bool acceptOrderedPartition = false);
 
-/// Outline each supplied partition, returning failure if any is rejected.
+/// Outline each supplied partition using outlinePartition's ordering policy,
+/// returning failure if any is rejected.
 /// Successful rewrites are retained even if another partition is rejected.
 mlir::LogicalResult outlinePartitions(
-    llvm::ArrayRef<llvm::SmallVector<mlir::Operation *>> partitions);
+    llvm::ArrayRef<llvm::SmallVector<mlir::Operation *>> partitions,
+    const bool acceptOrderedPartition = false);
 
 } // namespace cudaq::opt

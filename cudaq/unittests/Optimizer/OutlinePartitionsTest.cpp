@@ -110,6 +110,95 @@ TEST(OutlinePartitions, ContiguousRun) {
   EXPECT_EQ(strayGates, 0u);
 }
 
+// Preserve a supplied order that differs from block order. The angle is defined
+// after the last operation in the supplied order, so fallback placement must
+// use the physically last selected operation to make the capture available.
+TEST(OutlinePartitions, SuppliedOrderPreserved) {
+  const char *ir = R"(
+    func.func @k() {
+      %w0 = quake.null_wire
+      %w1 = quake.null_wire
+      %m, %measured = quake.mz %w0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+      %angle = arith.constant 0.5 : f64
+      %rotated = quake.rx (%angle) %w1 : (f64, !quake.wire) -> !quake.wire
+      return
+    }
+  )";
+  MLIRContext ctx;
+  auto mod = parse(ctx, ir);
+  ASSERT_TRUE(mod);
+  ASSERT_TRUE(succeeded(verify(*mod)));
+
+  cudaq::quake::MzOp measurement;
+  cudaq::quake::RxOp rotation;
+  arith::ConstantOp angle;
+  mod->walk([&](cudaq::quake::MzOp op) { measurement = op; });
+  mod->walk([&](cudaq::quake::RxOp op) { rotation = op; });
+  mod->walk([&](arith::ConstantOp op) { angle = op; });
+  ASSERT_TRUE(measurement);
+  ASSERT_TRUE(rotation);
+  ASSERT_TRUE(angle);
+
+  SmallVector<Operation *> partition{rotation.getOperation(),
+                                     measurement.getOperation()};
+  auto lambda = cudaq::opt::outlinePartition(partition, true);
+  ASSERT_TRUE(succeeded(lambda));
+  EXPECT_TRUE(succeeded(verify(*mod)));
+  EXPECT_TRUE(angle->isBeforeInBlock(lambda->getOperation()));
+
+  auto &body = lambda->getBody().front();
+  auto it = body.begin();
+  ASSERT_NE(it, body.end());
+  EXPECT_TRUE(isa<cudaq::quake::RxOp>(*it));
+  EXPECT_EQ(it->getOperand(0), angle.getResult());
+  ++it;
+  ASSERT_NE(it, body.end());
+  EXPECT_TRUE(isa<cudaq::quake::MzOp>(*it));
+  ++it;
+  ASSERT_NE(it, body.end());
+  EXPECT_TRUE(isa<cudaq::cc::ReturnOp>(*it));
+  EXPECT_EQ(++it, body.end());
+
+  unsigned calls = 0;
+  mod->walk([&](cudaq::cc::CallCallableOp call) {
+    ++calls;
+    EXPECT_EQ(call->getOperand(0), lambda->getResult());
+    EXPECT_EQ(call->getNumResults(), 2u);
+  });
+  EXPECT_EQ(calls, 1u);
+}
+
+// Dominance in the original block does not validate supplied cloning order.
+// Reject a consumer placed before its selected producer without changing IR.
+TEST(OutlinePartitions, SuppliedConsumerBeforeProducerRejected) {
+  const char *ir = R"(
+    func.func @k() {
+      %w0 = quake.null_wire
+      %h = quake.h %w0 : (!quake.wire) -> !quake.wire
+      %x = quake.x %h : (!quake.wire) -> !quake.wire
+      return
+    }
+  )";
+  MLIRContext ctx;
+  auto mod = parse(ctx, ir);
+  ASSERT_TRUE(mod);
+  ASSERT_TRUE(succeeded(verify(*mod)));
+
+  cudaq::quake::HOp producer;
+  cudaq::quake::XOp consumer;
+  mod->walk([&](cudaq::quake::HOp op) { producer = op; });
+  mod->walk([&](cudaq::quake::XOp op) { consumer = op; });
+  ASSERT_TRUE(producer);
+  ASSERT_TRUE(consumer);
+
+  SmallVector<Operation *> partition{consumer.getOperation(),
+                                     producer.getOperation()};
+  std::string before = printModule(*mod);
+  EXPECT_TRUE(failed(cudaq::opt::outlinePartition(partition, true)));
+  EXPECT_EQ(printModule(*mod), before);
+  EXPECT_TRUE(succeeded(verify(*mod)));
+}
+
 // Return successor wires in input order, even when their final definitions
 // appear in the opposite order.
 TEST(OutlinePartitions, WireOutputsFollowInputOrder) {
