@@ -53,7 +53,7 @@ def _resolve(strategy, site, context):
     raise TypeError("RPP strategy must be a gadget, protocol, or provider")
 
 
-def _rpp_objective_adapter(definition, site, selected_name):
+def _rpp_action_adapter(definition, site, selected_name):
     """Declare the exact RPP objective around a selected implementation step."""
 
     def generated(*blocks):
@@ -259,7 +259,7 @@ def compiler(
 
         definition, strategy_evidence = _resolve(strategies[selected_name],
                                                  site, context)
-        definition = _rpp_objective_adapter(definition, site, selected_name)
+        definition = _rpp_action_adapter(definition, site, selected_name)
         evidence = {
             **strategy_evidence,
             "rpp_strategy": selected_name,
@@ -273,7 +273,7 @@ def compiler(
     provider.__name__ = name or f"{getattr(code, 'name', 'code')}_rpp_compiler"
     return QECLowering(
         provider,
-        objective_family="pauli_product_rotation",
+        action_family="pauli_product_rotation",
         codes=(code,),
         dependencies=_fixed_dependencies(strategies.values()),
         plugin=plugin,

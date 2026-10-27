@@ -72,7 +72,7 @@ class CompilationContext:
         self._symbol_suffixes: dict[str, int] = {}
         self._symbol_operations: dict[str, object] = {}
         self._symbol_operations_by_kind: dict[tuple[str, str], object] = {}
-        self._objectives: dict[tuple[Any, ...], str] = {}
+        self._actions: dict[tuple[Any, ...], str] = {}
         # Exact Boolean-result provenance for protocol calls materialized in
         # this private transaction.  This lets a closed protocol attempt expose
         # a success predicate derived unchanged from a selected gadget profile
@@ -262,7 +262,7 @@ class CompilationContext:
         self._symbol_suffixes[base] = suffix
         return candidate
 
-    def objective(
+    def action(
         self,
         *,
         family: str,
@@ -272,9 +272,9 @@ class CompilationContext:
         semantics: Any = None,
     ) -> str:
         key = (family, name, tuple(map(str, inputs)), tuple(map(str, results)))
-        if key in self._objectives:
-            return self._objectives[key]
-        symbol = self.declare_objective(
+        if key in self._actions:
+            return self._actions[key]
+        symbol = self.declare_action(
             family=family,
             requested_symbol=f"qlx_standard_{name}",
             kind=name,
@@ -282,10 +282,10 @@ class CompilationContext:
             results=results,
             semantics=semantics,
         )
-        self._objectives[key] = symbol
+        self._actions[key] = symbol
         return symbol
 
-    def declare_objective(
+    def declare_action(
         self,
         *,
         family: str,
@@ -335,6 +335,11 @@ class CompilationContext:
         self._symbol_operations[symbol] = operation
         return symbol
 
+    # Existing clients can keep their spellings without declaring a second
+    # artifact or changing the MLIR symbol/digest boundary.
+    objective = action
+    declare_objective = declare_action
+
     def materialize(self, definition):
         """Materialize a definition and retain its transaction-local closure."""
 
@@ -372,11 +377,11 @@ class CompilationContext:
                   if isinstance(definition, ProgramDefinition) else None)
         if kernel is not None and not hasattr(definition,
                                               "_qlx_direct_snapshot"):
-            from cudaq.logical.programs.kernel_objective import (
-                materialize_kernel_objective,)
+            from cudaq.logical.programs.kernel_action import (
+                materialize_kernel_action,)
 
             object.__setattr__(definition, "_qlx_direct_snapshot",
-                               materialize_kernel_objective(definition))
+                               materialize_kernel_action(definition))
         snapshot = getattr(definition, "_qlx_direct_snapshot", None)
         if snapshot is not None:
             return self._import_direct_snapshot(definition, snapshot)
@@ -550,9 +555,9 @@ class CompilationContext:
                 handle = DefinitionHandle(symbol=builder.symbol,
                                           kind="program",
                                           profile="p0")
-            elif definition.kind == "objective":
-                family = builder.objective_family()
-                objective_symbol = self.declare_objective(
+            elif definition.kind == "action":
+                family = builder.action_family()
+                objective_symbol = self.declare_action(
                     family=family,
                     requested_symbol=definition.name,
                     kind="composite",

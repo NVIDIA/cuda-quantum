@@ -27,7 +27,7 @@ def _conjugate(images, name, wires):
         return
     if name in {"t", "tdg", "ccz", "ccx"}:
         raise NonCliffordAction(
-            f"logical objective contains non-Clifford action {name!r}")
+            f"logical action contains non-Clifford action {name!r}")
     if name in {"x", "y", "z", "h", "s", "sdg"}:
         if len(wires) != 1:
             raise TypeError(f"logical action {name!r} requires one operand")
@@ -77,7 +77,7 @@ def _conjugate(images, name, wires):
                 z_mask ^= control_bit
             images[index] = (x_mask, z_mask, phase)
         return
-    raise NonCliffordAction(f"unsupported Clifford objective action {name!r}")
+    raise NonCliffordAction(f"unsupported Clifford action {name!r}")
 
 
 def _symbol_name(attribute):
@@ -109,7 +109,7 @@ def _derive_program(program, arity):
                 wires = tuple(wire_of[value] for value in operation.operands)
             except KeyError as exc:
                 raise NonCliffordAction(
-                    "Clifford objective applies an action to a non-qubit value"
+                    "Clifford action applies an action to a non-qubit value"
                 ) from exc
             _conjugate(images, action_name, wires)
             if len(operation.results) != len(wires):
@@ -122,14 +122,14 @@ def _derive_program(program, arity):
                     wire_of[value] for value in operation.operands)
             except KeyError as exc:
                 raise NonCliffordAction(
-                    "Clifford objective returns a non-qubit value") from exc
+                    "Clifford action returns a non-qubit value") from exc
         else:
             raise NonCliffordAction(
                 "canonical Clifford analysis requires a straight-line logical "
                 f"action; found {operation.name}")
     if returned_wires is None or sorted(returned_wires) != list(range(arity)):
         raise NonCliffordAction(
-            "Clifford objective must return every logical operand once")
+            "Clifford action must return every logical operand once")
     output_of_wire = {
         wire: output for output, wire in enumerate(returned_wires)
     }
@@ -248,9 +248,9 @@ class CliffordAction:
         from ..compiler import compile
 
         if not isinstance(definition,
-                          ProgramDefinition) or definition.kind != "objective":
+                          ProgramDefinition) or definition.kind != "action":
             raise TypeError(
-                "CliffordAction.from_program expects @cudaq.logical.objective")
+                "CliffordAction.from_program expects @cudaq.logical.action")
         build = compile(definition)
         module = build.module
         action = next(
@@ -262,7 +262,7 @@ class CliffordAction:
         )
         if action is None or "semantics" not in action.attributes:
             raise ValueError(
-                "logical objective is not an action with a semantics program")
+                "logical action is not an action with a semantics program")
         semantics = _symbol_name(action.attributes["semantics"])
         program = next(
             (view.operation
@@ -272,7 +272,7 @@ class CliffordAction:
             None,
         )
         if program is None:
-            raise ValueError("logical objective semantics body is missing")
+            raise ValueError("logical action semantics body is missing")
         return cls.from_mlir_program(program,
                                      ports=tuple(
                                          definition.signature.parameters))

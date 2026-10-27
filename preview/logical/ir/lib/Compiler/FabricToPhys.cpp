@@ -1930,9 +1930,9 @@ private:
       auto spec = dyn_cast_or_null<qlx::fabric::GadgetSpecOp>(
           symbols.lookup(candidate.getSpecAttr().getValue()));
       auto objective =
-          spec ? dyn_cast_or_null<qlx::fabric::ObjectiveOp>(
+          spec ? dyn_cast_or_null<qlx::fabric::ActionOp>(
                      symbols.lookup(spec.getObjectiveAttr().getValue()))
-               : qlx::fabric::ObjectiveOp{};
+               : qlx::fabric::ActionOp{};
       auto logical = objective && objective.getLogicalAttr()
                          ? dyn_cast_or_null<qlx::ActionOp>(symbols.lookup(
                                objective.getLogicalAttr().getValue()))
@@ -3771,9 +3771,9 @@ private:
                           symbols.lookup(gadget.getSpecAttr().getValue()))
                     : qlx::fabric::GadgetSpecOp{};
     auto objective =
-        spec ? dyn_cast_or_null<qlx::fabric::ObjectiveOp>(
+        spec ? dyn_cast_or_null<qlx::fabric::ActionOp>(
                    symbols.lookup(spec.getObjectiveAttr().getValue()))
-             : qlx::fabric::ObjectiveOp{};
+             : qlx::fabric::ActionOp{};
     Operation *logical =
         objective && objective.getLogicalAttr()
             ? symbols.lookup(objective.getLogicalAttr().getValue())
@@ -3801,7 +3801,7 @@ private:
       return failure();
     auto semanticsRef =
         dyn_cast<FlatSymbolRefAttr>(instrument.getSemanticsAttr());
-    auto semantics = dyn_cast_or_null<qlx::ObjectiveBodyOp>(
+    auto semantics = dyn_cast_or_null<qlx::ActionBodyOp>(
         semanticsRef ? symbols.lookup(semanticsRef.getValue()) : nullptr);
     if (!semantics || semantics.getBody().empty())
       return failure();

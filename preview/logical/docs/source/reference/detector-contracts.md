@@ -1,10 +1,64 @@
 # Detector contracts and Clifford projection
 
 A gadget has a logical action, a realization, encoded input and output
-boundaries, and an affine outcome map. The existing `implements=` API calls the
-action its **objective**. A detector contract describes how realization
+boundaries, and an affine outcome map. `implements=` names the action, while
+the gadget body describes its realization. A detector contract describes how realization
 measurements and virtual boundary syndromes determine detector parities and
 output virtual syndromes.
+
+## Gadget terminology
+
+An **action** is the ideal logical circuit a gadget claims to implement. It can
+prepare or discard qubits and return measurement outcomes; it need not be a
+unitary operation. A **realization** is the circuit over the gadget's physical
+code blocks. The affine **outcome map** converts realization outcomes into
+action outcomes, which are the gadget's logical observables.
+
+These concepts are separate from the **gadget detector contract**, which fixes
+the virtual detectors, output virtual-syndrome relations, and input/output
+**code presentations**. A code presentation selects stabilizer generators and
+boundary-error coordinates. `GadgetProfile` and `CodeProfile` are compiler
+containers supplying those mathematical objects; their other fields do not
+change the definitions.
+
+Use `@cudaq.logical.action` to author a reusable ideal circuit. Its default
+`kind="auto"` infers whether the circuit is unitary or an instrument.
+`kind="unitary"` requires a body of unitary actions, and `kind="instrument"` permits
+preparation, measurement, and changed quantum boundaries. `CliffordAction`
+remains the narrower signed symplectic description of a Clifford unitary.
+The verification receipt's `logical_action` reports the check of the declared
+action; the current verifier supports Clifford unitaries and explicitly
+reports other action classes as unsupported.
+
+### Compatibility spellings
+
+The former `objective` vocabulary remains accepted at compatibility boundaries:
+
+| Canonical authoring name | Accepted compatibility name |
+| --- | --- |
+| `@cudaq.logical.action` | `@cudaq.logical.objective` |
+| `kind="unitary"` | `kind="action"` |
+| `ProgramDefinition.action_kind` | `ProgramDefinition.objective_kind` (the explicit unitary kind uses the legacy value `"action"`) |
+| `ActionOperandRef`, `ActionOperands` | `ObjectiveOperandRef`, `ObjectiveOperands` |
+| `ActionMismatch`, `MissingAction` | `ObjectiveMismatch`, `MissingObjective` |
+| `logical.ActionFamily`, `logical.SyndromeExtractionAction` | `logical.ObjectiveFamily`, `logical.SyndromeExtractionObjective` |
+| `CompilationContext.action`, `declare_action` | `objective`, `declare_objective` |
+| QEC lowering `action=`, `action_family=` and corresponding read-only views | `objective=`, `objective_family=` and the stored fields |
+
+These are alternate spellings of the same values, rather than separately
+registered actions. Passing both keyword spellings is an error. The public
+definition kind is `"action"`; constructing a definition with the legacy
+`kind="objective"` normalizes it to that kind.
+
+Saved MLIR and build bundles keep their existing `qlx.objective_body`,
+`fabric.objective`, `objective_kind`, `objective_family`, and logical-link
+`objective` spellings. Python and C++ expose `ActionBodyOp` and Fabric
+`ActionOp` aliases for these operations. Provider manifest identities also
+retain their existing wire names. These format choices preserve replay and
+linkage without requiring a serialized-schema migration.
+
+Placement and scheduling **optimization objectives** describe costs or solver
+policies. Their `objective` names have that separate meaning and are unchanged.
 
 ## Virtual syndromes and boundary errors
 

@@ -27,7 +27,7 @@ from typing import (
 
 from cudaq.logical.programs.binding import (
     LogicalPortRef,
-    ObjectiveOperandRef,
+    ActionOperandRef,
 )
 from cudaq.logical._core.immutable import ImmutableValue
 
@@ -208,7 +208,7 @@ def before_resource_output() -> CommitPoint:
 
 @dataclass(frozen=True, slots=True)
 class OutcomeSyndromeTerm:
-    """One typed incoming-syndrome term in an objective outcome row.
+    """One typed incoming-syndrome term in an action outcome row.
 
     ``port`` is the input endpoint ordinal in the gadget interface, not its
     diagnostic Python name. ``index`` is the component in that endpoint's
@@ -228,12 +228,12 @@ class OutcomeSyndromeTerm:
 
 @dataclass(frozen=True, slots=True)
 class OutcomeMap:
-    """Total GF(2) affine map from realization records to objective outcomes.
+    """Total GF(2) affine map from realization records to action outcomes.
 
     Columns are the named realization records in ``records`` order; row ``i``
-    defines objective outcome bit ``i`` as the record parity, that row's typed
+    defines action outcome bit ``i`` as the record parity, that row's typed
     incoming-syndrome terms, and ``constants[i]``. ``roles[i]`` identifies
-    whether the objective result is an ordinary application result or a
+    whether the action result is an ordinary application result or a
     zero-on-accept success mismatch.
     """
 
@@ -435,7 +435,7 @@ class _PredicateProvenance:
 
 @dataclass(frozen=True, slots=True)
 class ParameterMap:
-    """Bijection between realization and objective parameter names."""
+    """Bijection between realization and action parameter names."""
 
     pairs: tuple[tuple[str, str], ...]
 
@@ -449,26 +449,28 @@ class ParameterMap:
                                       for name in item)
                 for item in pairs):
             raise ValueError(
-                "ParameterMap pairs must be (realization, objective) name pairs"
-            )
+                "ParameterMap pairs must be (realization, action) name pairs")
         realization = tuple(item[0] for item in pairs)
-        objective = tuple(item[1] for item in pairs)
+        action = tuple(item[1] for item in pairs)
         if len(set(realization)) != len(realization):
             raise ValueError(
                 "ParameterMap is not a bijection: a realization parameter "
                 "name appears more than once")
-        if len(set(objective)) != len(objective):
+        if len(set(action)) != len(action):
             raise ValueError(
-                "ParameterMap is not a bijection: an objective parameter "
+                "ParameterMap is not a bijection: an action parameter "
                 "name appears more than once")
         object.__setattr__(self, "pairs", pairs)
 
     @property
-    def realization_to_objective(self) -> Mapping[str, str]:
+    def realization_to_action(self) -> Mapping[str, str]:
         return MappingProxyType(dict(self.pairs))
 
     @property
-    def objective_to_realization(self) -> Mapping[str, str]:
+    def action_to_realization(self) -> Mapping[str, str]:
         return MappingProxyType({
-            objective: realization for realization, objective in self.pairs
+            action: realization for realization, action in self.pairs
         })
+
+    realization_to_objective = realization_to_action
+    objective_to_realization = action_to_realization

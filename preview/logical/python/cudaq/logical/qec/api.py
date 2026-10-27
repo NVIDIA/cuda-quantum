@@ -120,7 +120,8 @@ from cudaq.logical.programs.selection import (
     condition_results,
     require,
 )
-from cudaq.logical.qec.objectives import (
+from cudaq.logical.qec.actions import (
+    SubsystemFragmentAction,
     SubsystemFragmentObjective,
     subsystem_fragment,
 )
@@ -190,6 +191,7 @@ __all__ = [
     "StabilizerCode",
     "SubsystemCode",
     "SyndromeBundleRef",
+    "SubsystemFragmentAction",
     "SubsystemFragmentObjective",
     "SuccessPredicate",
     "abort_on",

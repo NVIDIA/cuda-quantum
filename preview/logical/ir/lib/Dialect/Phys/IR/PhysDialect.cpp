@@ -3926,7 +3926,7 @@ LogicalResult GraphOp::verifyRegions() {
                 retained->second->getAttr("objective") != objective)
               return emitOpError(
                   "selected Fabric resource call must resolve one exact "
-                  "resource action site and objective");
+                  "resource action site and action");
             selectedFabricCalls.emplace_back(site, objective, callee,
                                              instanceAttr);
           }
@@ -5695,7 +5695,7 @@ LogicalResult ResourceRequestOp::verify() {
                             static_cast<unsigned>(!!rawConsumerObjective);
   if (consumerFields != 0 && consumerFields != 3)
     return emitOpError(
-        "consumer action site, callee, and objective must appear together");
+        "consumer action site, callee, and action must appear together");
   if (!rawConsumerSite)
     return success();
   auto consumerSite = dyn_cast<SymbolRefAttr>(rawConsumerSite);
@@ -5717,8 +5717,7 @@ LogicalResult ResourceRequestOp::verify() {
         "consumer_callee must resolve to a Fabric gadget or protocol");
   if (!site->getAttr("objective") ||
       site->getAttr("objective") != rawConsumerObjective)
-    return emitOpError(
-        "consumer action objective must match the selected callee");
+    return emitOpError("consumer action must match the selected callee");
   unsigned matchingCalls = 0;
   auto module = (*this)->getParentOfType<ModuleOp>();
   if (module)
@@ -5982,10 +5981,10 @@ verifiedPatchMacro(qlx::fabric::GadgetOp gadget) {
                         SymbolTable::lookupNearestSymbolFrom(
                             gadget, gadget.getSpecAttr()))
                   : qlx::fabric::GadgetSpecOp{};
-  auto objective = spec ? dyn_cast_or_null<qlx::fabric::ObjectiveOp>(
+  auto objective = spec ? dyn_cast_or_null<qlx::fabric::ActionOp>(
                               SymbolTable::lookupNearestSymbolFrom(
                                   spec, spec.getObjectiveAttr()))
-                        : qlx::fabric::ObjectiveOp{};
+                        : qlx::fabric::ActionOp{};
   Operation *logical = objective && objective.getLogicalAttr()
                            ? SymbolTable::lookupNearestSymbolFrom(
                                  objective, objective.getLogicalAttr())
@@ -6011,9 +6010,9 @@ verifiedPatchMacro(qlx::fabric::GadgetOp gadget) {
       dyn_cast_or_null<FlatSymbolRefAttr>(instrument.getSemanticsAttr());
   auto semantics =
       instrument.getKind() == "composite" && semanticsRef
-          ? dyn_cast_or_null<qlx::ObjectiveBodyOp>(
+          ? dyn_cast_or_null<qlx::ActionBodyOp>(
                 SymbolTable::lookupNearestSymbolFrom(instrument, semanticsRef))
-          : qlx::ObjectiveBodyOp{};
+          : qlx::ActionBodyOp{};
   if (!semantics || semantics.getBody().empty())
     return failure();
   Block &body = semantics.getBody().front();
@@ -6075,7 +6074,7 @@ static LogicalResult verifyPatchMacroCall(CallOp call,
     if (!apply || !action || action.getSymName() != macro->physicalOperation ||
         yield.getOperands() != apply.getOutputs())
       return call.emitOpError(
-          "patch-macro action body contradicts the retained gadget objective");
+          "patch-macro action body contradicts the retained gadget action");
     return success();
   }
   if (macro->kind == VerifiedPatchMacroKind::Prepare) {
@@ -6083,7 +6082,7 @@ static LogicalResult verifyPatchMacroCall(CallOp call,
     if (!prepare || prepare.getState() != macro->physicalOperation ||
         yield.getOperands() != prepare.getOutputs())
       return call.emitOpError("patch-macro preparation body contradicts the "
-                              "retained gadget objective");
+                              "retained gadget action");
     return success();
   }
   auto measure = dyn_cast<MeasureOp>(event);
@@ -6096,7 +6095,7 @@ static LogicalResult verifyPatchMacroCall(CallOp call,
       instrument.getKind() != macro->physicalOperation ||
       yield.getNumOperands() != 1 || yield.getOperand(0) != measure.getRecord())
     return call.emitOpError("patch-macro measurement body contradicts the "
-                            "retained gadget objective");
+                            "retained gadget action");
   return success();
 }
 
@@ -6133,8 +6132,7 @@ LogicalResult CallOp::verify() {
   Attribute rawResourceObjective = (*this)->getAttr("resource_objective");
   if (static_cast<bool>(rawResourceSite) !=
       static_cast<bool>(rawResourceObjective))
-    return emitOpError(
-        "resource action site and objective must appear together");
+    return emitOpError("resource action site and action must appear together");
   if (rawResourceSite) {
     auto resourceSite = dyn_cast<SymbolRefAttr>(rawResourceSite);
     if (!resourceSite)
@@ -6150,8 +6148,7 @@ LogicalResult CallOp::verify() {
             "resource_action_site must resolve to a resource action site");
       if (!site->getAttr("objective") ||
           site->getAttr("objective") != rawResourceObjective)
-        return emitOpError(
-            "resource action objective must match the selected callee");
+        return emitOpError("resource action must match the selected callee");
     }
     if (!llvm::any_of(getInputs().getTypes(),
                       [](Type type) { return isa<ResourcePayloadType>(type); }))

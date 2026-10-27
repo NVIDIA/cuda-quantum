@@ -1,7 +1,7 @@
 # Gadgets and verification
 
 A gadget in CUDA-Q Logical is a bounded, typed realization of a logical
-objective. Three artifacts travel together through compilation: the
+action. Three artifacts travel together through compilation: the
 `implements=` clause states the ideal logical claim, the
 `cudaq.logical.patch[...]` signature states the encoded boundary (code,
 encoding, ownership), and the body states the executable realization. The
@@ -18,17 +18,17 @@ claim is rejected with a `TypeError`.
 There are two ways to write the claim, and the choice is about where the ideal
 operation already lives.
 
-### Author the objective in CUDA-Q Logical
+### Author the action in CUDA-Q Logical
 
 When the ideal operation has no existing definition, declare it with
-`@cudaq.logical.objective` and implement it in a gadget:
+`@cudaq.logical.action` and implement it in a gadget:
 
 ```{eval-rst}
 .. literalinclude:: ../../../examples/standalone/02_code_and_gadget.py
    :language: python
-   :start-at: @cql.objective
+   :start-at: @cql.action
    :end-before: # Materialize both definitions
-   :caption: An authored objective and the gadget that realizes it (examples/standalone/02_code_and_gadget.py).
+   :caption: An authored action and the gadget that realizes it (examples/standalone/02_code_and_gadget.py).
 ```
 
 `terminal_memory` says what the operation means at P0 — a logical qubit is
@@ -103,7 +103,7 @@ gadget signatures may take and return records directly:
 import cudaq.logical as cql
 
 
-@cql.objective
+@cql.action
 def memory_round(qubit: cql.types.logical_qubit) -> cql.types.logical_qubit:
     return qubit
 
@@ -135,15 +135,15 @@ Two boundary patterns cover most library gadgets:
   boundary look symmetric.
 
 The shipped Steane example pairs both halves of the pattern — a terminal
-objective and the gadget that realizes it by one syndrome-extraction pass
+action and the gadget that realizes it by one syndrome-extraction pass
 followed by data-qubit readout:
 
 ```{eval-rst}
 .. literalinclude:: ../../../examples/standalone/02_code_and_gadget.py
    :language: python
-   :start-at: @cql.objective
+   :start-at: @cql.action
    :end-before: code = cql.materialize
-   :caption: A terminal-memory objective and its gadget (examples/standalone/02_code_and_gadget.py).
+   :caption: A terminal-memory action and its gadget (examples/standalone/02_code_and_gadget.py).
 ```
 
 Ownership is linear throughout: consuming a patch twice, or dropping one that is
@@ -199,15 +199,15 @@ claims. Do not conflate the levels:
 | Python construction   | typed fields, linear ownership, boundary liveness                               |
 | MLIR verification     | canonical cross-object and stage invariants (`build.module.operation.verify()`) |
 | code algebra checks   | symplectic rank, commutation, canonical pairing                                 |
-| objective equivalence | the realization's induced action matches its `implements=` claim (automatic for code automorphisms; `verify_gadget` for Clifford realizations) |
+| action equivalence | the realization's induced action matches its `implements=` claim (automatic for code automorphisms; `verify_gadget` for supported Clifford unitary actions) |
 
-Objective equivalence is automatic at construction for **code-automorphism
+Action equivalence is automatic at construction for **code-automorphism
 realizations** — gadgets whose realization is a single typed permutation of the
 code's carriers. The compiler derives the induced logical action from the code
 algebra and compares it with the `implements=` claim, failing closed on
 mismatch: a permutation that is genuinely the identity on the logical qubit
 verifies, and one claiming to be a logical `H` is rejected with a `ValueError`
-naming the objective it failed to implement.
+naming the action it failed to implement.
 
 For other realization classes the claim is recorded, not derived, until you ask
 for it: `cudaq.logical.gadgets.verify_gadget` checks the realization's Clifford
@@ -221,7 +221,7 @@ Actions that are not Clifford are reported as unsupported rather than trusted.
 
 1. Derive canonical facts from the code algebra instead of asking users to
    repeat them.
-2. Keep the logical objective, the realization, and the execution policy in
+2. Keep the logical action, the realization, and the execution policy in
    their owning objects — no hidden retry or acceptance inside a gadget.
 3. Use typed endpoints, records, and logical ports instead of raw strings where
    typed identities exist.

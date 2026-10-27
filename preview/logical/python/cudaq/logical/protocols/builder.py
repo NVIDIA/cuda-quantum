@@ -100,7 +100,7 @@ class ProtocolBuilder:
                                                       self.result_types,
                                                       context=self.context)
         self.symbol = transaction.unique_symbol(definition.name)
-        self.objective = self._materialize_objective(definition.implements)
+        self.objective = self._materialize_action(definition.implements)
         self._create_protocol()
 
     def _encoding_from_annotation(self, annotation):
@@ -214,7 +214,7 @@ class ProtocolBuilder:
         return mlir_ir.Type.parse(f"!fabric.resource<@{self._kind_name(kind)}>",
                                   context=self.context)
 
-    def _materialize_objective(self, logical):
+    def _materialize_action(self, logical):
         if logical is None:
             return None
         if isinstance(logical, LogicalActionRef):
@@ -230,7 +230,7 @@ class ProtocolBuilder:
             results = ((logical_type,) * logical.result_arity
                        if logical.name.startswith("prepare_") else
                        (self.i1_type,) * logical.result_arity)
-            symbol = self.transaction.objective(
+            symbol = self.transaction.action(
                 family="instrument",
                 name=logical.name,
                 inputs=inputs,
@@ -246,21 +246,20 @@ class ProtocolBuilder:
             else:
                 raise ValueError(
                     f"unsupported resource-flow objective {logical.kind!r}")
-            symbol = self.transaction.objective(
+            symbol = self.transaction.action(
                 family="action",
                 name=logical.name,
                 inputs=inputs,
                 results=results,
             )
             return mlir_ir.FlatSymbolRefAttr.get(symbol, context=self.context)
-        if isinstance(logical,
-                      ProgramDefinition) and logical.kind == "objective":
+        if isinstance(logical, ProgramDefinition) and logical.kind == "action":
             return mlir_ir.FlatSymbolRefAttr.get(
                 self.transaction.materialize(logical).symbol,
                 context=self.context,
             )
         raise TypeError(
-            "@cudaq.logical.protocol implements= requires a logical objective")
+            "@cudaq.logical.protocol implements= requires a logical action")
 
     def _create_protocol(self):
         with self.context:

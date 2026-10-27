@@ -103,17 +103,21 @@ The two structures most worth keeping apart, side by side:
 | `Code`     | physical width `n`, logical width `k`, `Distance` evidence, independent stabilizers, logical X/Z pairs; CSS constructors are adapters into the same normalized algebra |
 | `Encoding` | the protected `code`, a selected `profile`, a `name`, the `block` ABI name, ordered `logical_ports`, and layout facts; sealed after validation                         |
 
-## 5. Objectives, gadgets, protocols — claims and proofs
+## 5. Actions, gadgets, protocols — claims and proofs
 
-A **gadget** is a realization — a typed circuit over encoded patches — plus a
-claim: `implements=<objective>`. That claim is checked. The compiler derives the
-gadget's signed symplectic action, matches it against the objective's Clifford
-action, and records the equivalence evidence — or fails with a typed diagnostic:
+A **gadget** couples an ideal logical **action** with a **realization**, a typed
+circuit over encoded patches, through `implements=<action>`. The action may
+include preparation or measurement. Construction checks the encoded boundary;
+code-automorphism realizations also receive automatic action-equivalence
+checking. `gadgets.verify_gadget` explicitly checks detector contracts and
+supported Clifford unitary actions. Other action classes are reported as
+unsupported by that action check; see
+[gadget terminology and verification limits](../reference/detector-contracts.md#gadget-terminology).
 
 ```python
 import cudaq.logical as cql
 
-@cql.objective
+@cql.action
 def terminal_memory(q: cql.types.logical_qubit) -> None:
     cql.discard(q)
 
@@ -173,7 +177,7 @@ from exactly three places:
    imported** into one of those modules — the import statement is the link act,
    and bare `import cudaq.logical` links nothing.
 
-Each compilation derives this candidate set fresh, filters it by objective and
+Each compilation derives this candidate set fresh, filters it by action and
 boundary types, and captures the _selected_ closure into the build:
 `build.source_modules` and `build.definitions` record exactly what was visible
 and what won. Day to day, you feel three consequences:

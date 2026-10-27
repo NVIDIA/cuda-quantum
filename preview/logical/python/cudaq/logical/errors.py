@@ -41,11 +41,14 @@ class InvalidReversibleSignature(QLXError, TypeError):
 
 
 class AmbiguousLogicalPortMap(QLXError, ValueError):
-    """Several logical-port embeddings satisfy the declared objective."""
+    """Several logical-port embeddings satisfy the declared action."""
 
 
-class ObjectiveMismatch(QLXError, ValueError):
-    """A realization does not implement its declared logical objective."""
+class ActionMismatch(QLXError, ValueError):
+    """A realization does not implement its declared logical action."""
+
+
+ObjectiveMismatch = ActionMismatch
 
 
 class GadgetVerificationError(QLXError, ValueError):
@@ -64,8 +67,11 @@ class PlacementInfeasible(QLXError, ValueError):
     """No placement satisfies the declared constraints and capacities."""
 
 
-class MissingObjective(QLXError, TypeError):
+class MissingAction(QLXError, TypeError):
     """A gadget/protocol definition lacks a resolvable ``implements=``."""
+
+
+MissingObjective = MissingAction
 
 
 class InvalidDefinitionSignature(QLXError, TypeError):
@@ -187,8 +193,10 @@ __all__ = [
     "InvalidReversibleCall",
     "InvalidReversibleSignature",
     "AmbiguousLogicalPortMap",
+    "ActionMismatch",
     "ObjectiveMismatch",
     "PlacementInfeasible",
+    "MissingAction",
     "MissingObjective",
     "InvalidDefinitionSignature",
     "NotSampleable",

@@ -78,7 +78,7 @@ _API_NAMES = (
     "StabilizerCode",
     "SubsystemCode",
     "SyndromeBundleRef",
-    "SubsystemFragmentObjective",
+    "SubsystemFragmentAction",
     "SuccessPredicate",
     "abort_on",
     "before_output",
@@ -116,9 +116,12 @@ _EXPORTS = {
             "qec_lowering",
         )
     },
+    "SubsystemFragmentAction":
+        "cudaq.logical.qec.actions:SubsystemFragmentAction",
     "SubsystemFragmentObjective":
-        "cudaq.logical.qec.objectives:SubsystemFragmentObjective",
-    "subsystem_fragment": "cudaq.logical.qec.objectives:subsystem_fragment",
+        "cudaq.logical.qec.actions:SubsystemFragmentObjective",
+    "subsystem_fragment":
+        "cudaq.logical.qec.actions:subsystem_fragment",
     **{
         name: f"cudaq.logical.qec.{name}" for name in (
             "floquet",

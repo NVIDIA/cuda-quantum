@@ -73,10 +73,10 @@ def surface_memory(distance=3, rounds=3):
         key=lambda item: (item[0][1], item[0][0]))
     z_boundary_order = sorted(range(len(zs)), key=lambda i: zs[i].coordinate)
 
-    def define(function, name, objective, result):
+    def define(function, name, action, result):
         function.__name__ = function.__qualname__ = f"surface_d{distance}_{name}"
         function.__annotations__ = {"block": cql.patch[code], "return": result}
-        return cql.gadget(function, implements=objective)
+        return cql.gadget(function, implements=action)
 
     def extract(block):
         block = cql.h(block.sx)
