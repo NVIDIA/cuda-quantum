@@ -15,6 +15,13 @@
 
 namespace cudaq {
 
+enum class OptimizationLevel : unsigned {
+  O0 = 0,
+  O1 = 1,
+  O2 = 2,
+  O3 = 3,
+};
+
 struct CompileOptions {
   /// Issue a warning if named measurements are contained in the kernel.
   bool warnNamedMeasurements = false;
@@ -74,6 +81,9 @@ struct CompileOptions {
   /// Whether to measure an observable at the end of the kernel, and if so,
   /// the observable to measure.
   std::optional<cudaq::spin_op> measureObservable;
+
+  /// The optimization level to use for the compilation.
+  OptimizationLevel optimizationLevel = OptimizationLevel::O1;
 };
 
 } // namespace cudaq
@@ -89,6 +99,7 @@ struct std::hash<cudaq::CompileOptions> {
         o.warnNamedMeasurements, o.storeReorderIdx, o.emitResourceCounts,
         o.emitJit, o.emitTargetCode, o.skipTargetLoweringPipeline,
         o.addSampleMeasurements, o.failOnConditionalsOnMeasureResults,
-        o.emulate, o.disableQuantumOpts, o.boolVecBitPacked, pauliStr);
+        o.emulate, o.disableQuantumOpts, o.boolVecBitPacked, pauliStr,
+        o.optimizationLevel);
   }
 };

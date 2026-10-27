@@ -27,7 +27,8 @@ public:
       : emulate(emulate_), emissionFormat(std::move(emissionFormat_)) {}
 
   bool supports(const cudaq::config::Profile &input,
-                const cudaq::config::Profile &output) const override {
+                const cudaq::config::Profile &output,
+                const cudaq::CompileOptions &options) const override {
     const auto *referenceProfile =
         std::get_if<cudaq::config::QuakeReferenceSemanticsProfile>(&output);
     if (!referenceProfile ||
@@ -40,8 +41,9 @@ public:
 
   std::optional<std::string>
   getPipeline(const cudaq::config::Profile &input,
-              const cudaq::config::Profile &output) const override {
-    if (!supports(input, output))
+              const cudaq::config::Profile &output,
+              const cudaq::CompileOptions &options) const override {
+    if (!supports(input, output, options))
       return std::nullopt;
     const auto &referenceProfile =
         std::get<cudaq::config::QuakeReferenceSemanticsProfile>(output);

@@ -111,11 +111,12 @@ static bool appendResolvedStagePipeline(std::string &passPipeline,
                                         const StageResolutionContext &ctx,
                                         std::string &diagnostic) {
   const auto *handler = cudaq_internal::compiler::selectLoweringHandler(
-      ctx.handlers, ctx.inputProfile, ctx.outputProfile);
+      ctx.handlers, ctx.inputProfile, ctx.outputProfile, ctx.options);
   std::optional<std::string> pipeline;
   const char *failure = "no lowering handler supports lowering from ";
   if (handler) {
-    pipeline = handler->getPipeline(ctx.inputProfile, ctx.outputProfile);
+    pipeline =
+        handler->getPipeline(ctx.inputProfile, ctx.outputProfile, ctx.options);
     failure = "the selected lowering handler failed to construct a "
               "pipeline from ";
   }
