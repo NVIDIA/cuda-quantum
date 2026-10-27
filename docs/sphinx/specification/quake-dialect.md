@@ -28,7 +28,7 @@ greater, the extra qubits are considered controls.
 The main motivation behind Quake's value model is to directly expose
 quantum and classical data dependencies for optimization purposes,
 i.e., to represent the dataflow in quantum computations.  In contrast
-to Quake's memory model, which uses memory semantics (quantum
+to QTX's memory model, which uses memory semantics (quantum
 operators act as side-effects on qubit references), the value model
 uses value semantics, that is quantum operators consume and produce
 values. These values are not truly SSA values, however, as operations
