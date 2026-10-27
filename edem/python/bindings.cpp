@@ -542,8 +542,8 @@ public:
   static DEM factorize(const DEM &source) {
     DEM result;
     cudaq_edem_dem_view input{source.value.view()}, checked;
-    check(cudaq_edem_factorize_dem(&input, nullptr, &result.value.storage,
-                                   &checked));
+    check(cudaq_edem_into_independent_faults_dem(
+        &input, nullptr, &result.value.storage, &checked));
     result.value.checked = checked.edem;
     return result;
   }

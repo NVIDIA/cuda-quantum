@@ -319,10 +319,9 @@ bool valid_outputs(const cudaq_gf2_memory *memory,
 }
 } // namespace
 
-cudaq_edem_status cudaq_edem_factorize_dem(const cudaq_edem_dem_view *value,
-                                           const cudaq_gf2_memory *memory,
-                                           cudaq_gf2_owned_buffer *owner,
-                                           cudaq_edem_dem_view *result) {
+cudaq_edem_status cudaq_edem_into_independent_faults_dem(
+    const cudaq_edem_dem_view *value, const cudaq_gf2_memory *memory,
+    cudaq_gf2_owned_buffer *owner, cudaq_edem_dem_view *result) {
   if (!valid_outputs(memory, owner, result))
     return CUDAQ_EDEM_INVALID_ARGUMENT;
   responses data(memory);

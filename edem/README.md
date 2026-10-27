@@ -537,9 +537,9 @@ independent = factorize_dem(dem)
 reduced, source_to_result = coalesce_dem_columns(independent)
 ```
 
-`cudaq_edem_factorize_dem` preserves response columns and partitions. It keeps
-independent probabilities and exactly factors supported exclusive channels into
-independent mechanisms. A supported exclusive group has 3 or 15 equally
+`cudaq_edem_into_independent_faults_dem` preserves response columns and
+partitions. It keeps independent probabilities and exactly factors supported
+exclusive channels into independent mechanisms. A supported exclusive group has 3 or 15 equally
 probable alternatives whose complete response columns, including identity,
 form a uniform linear image of the one- or two-qubit Pauli group. The total
 probability must be at most `3/4` or `15/16`, respectively. Unsupported groups

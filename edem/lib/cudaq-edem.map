@@ -17,12 +17,12 @@ CUDAQ_EDEM_0.1 {
     cudaq_edem_compose_chain;
     cudaq_edem_construct;
     cudaq_edem_describe_wire;
-    cudaq_edem_factorize_dem;
     cudaq_edem_get_code;
     cudaq_edem_get_code_count;
     cudaq_edem_get_fault;
     cudaq_edem_get_group;
     cudaq_edem_get_shape;
+    cudaq_edem_into_independent_faults_dem;
     cudaq_edem_is_dem;
     cudaq_edem_project_dem;
     cudaq_edem_read;

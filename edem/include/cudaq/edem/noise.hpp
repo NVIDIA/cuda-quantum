@@ -59,7 +59,8 @@ factorize_dem(const PackedEDEM &value, PackedEDEM &result,
               const cudaq_gf2_memory *memory = nullptr) noexcept {
   cudaq_edem_dem_view input{value.view()}, view{};
   cudaq_gf2_owned_buffer owner{};
-  auto status = cudaq_edem_factorize_dem(&input, memory, &owner, &view);
+  auto status =
+      cudaq_edem_into_independent_faults_dem(&input, memory, &owner, &view);
   if (status == CUDAQ_EDEM_OK)
     status = PackedEDEM::adopt(owner, result, memory);
   cudaq_gf2_owned_buffer_release(&owner);

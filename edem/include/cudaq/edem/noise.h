@@ -27,16 +27,15 @@ extern "C" {
  * is preserved. Retain the source DEM for its original event laws and bindings.
  * The source must be a checked closed DEM. Result memory/ownership and failure
  * rules are those of project_dem; owner and result are unchanged on failure. */
-cudaq_edem_status cudaq_edem_factorize_dem(const cudaq_edem_dem_view *value,
-                                           const cudaq_gf2_memory *memory,
-                                           cudaq_gf2_owned_buffer *owner,
-                                           cudaq_edem_dem_view *result);
+cudaq_edem_status cudaq_edem_into_independent_faults_dem(
+    const cudaq_edem_dem_view *value, const cudaq_gf2_memory *memory,
+    cudaq_gf2_owned_buffer *owner, cudaq_edem_dem_view *result);
 
 /* Coalesce independent mechanisms with equal complete response columns. All
- * groups must be independent; factorize_dem is an explicit preceding step
- * when needed. Probabilities combine by parity, p+q-2pq, with stable
- * evaluation. Zero responses and zero-probability combined mechanisms are
- * removed.
+ * groups must be independent; cudaq_edem_into_independent_faults_dem is an
+ * explicit preceding step when needed. Probabilities combine by parity,
+ * p+q-2pq, with stable evaluation. Zero responses and zero-probability combined
+ * mechanisms are removed.
  *
  * Global rows retain detector, observable, then success order, each in original
  * partition/row order. Result partitions consolidate to one fault partition
