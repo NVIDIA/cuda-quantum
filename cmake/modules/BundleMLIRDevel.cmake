@@ -24,16 +24,34 @@ set(_cudaq_mlir_devel_dirs
   bin
   src/python
 )
+# The shared runtime providers (libLLVM/libMLIR/libMLIR-C/
+# libMLIRExecutionEngineShared and their aliases) are owned by the core
+# package; never recopy them into the devel tree. Static archives, TableGen,
+# clang tooling libraries and the upstream CMake packages stay with devel.
+set(_cudaq_devel_excludes)
+foreach(_provider IN ITEMS "LLVM" "LLVM-*" "MLIR" "MLIR-C" "MLIRExecutionEngineShared")
+  list(APPEND _cudaq_devel_excludes
+    "lib${_provider}${CMAKE_SHARED_LIBRARY_SUFFIX}*")
+endforeach()
 foreach(_dir IN LISTS _cudaq_mlir_devel_dirs)
   if(EXISTS "${CUDAQ_LLVM_INSTALL_PREFIX}/${_dir}")
     get_filename_component(_install_destination "${_dir}" DIRECTORY)
     if(NOT _install_destination)
       set(_install_destination ".")
     endif()
+    set(_exclude_args)
+    if(_dir STREQUAL "lib")
+      foreach(_pattern IN LISTS _cudaq_devel_excludes)
+        list(APPEND _exclude_args PATTERN "${_pattern}" EXCLUDE)
+      endforeach()
+    endif()
+    # Own component: the wheel staging nests the bundled LLVM tree into the
+    # shared private prefix while CUDA-Q's own devel files stay flat.
     install(DIRECTORY "${CUDAQ_LLVM_INSTALL_PREFIX}/${_dir}"
       DESTINATION "${_install_destination}"
-      COMPONENT Development
-      USE_SOURCE_PERMISSIONS)
+      COMPONENT BundledLLVMDevel
+      USE_SOURCE_PERMISSIONS
+      ${_exclude_args})
   endif()
 endforeach()
 
@@ -44,5 +62,7 @@ configure_file(
   "${CMAKE_CURRENT_LIST_DIR}/RelocateBundledLLVM.cmake.in"
   "${CMAKE_CURRENT_BINARY_DIR}/RelocateBundledLLVM.cmake"
   @ONLY)
+# The relocation script must run with the same component as the bundled
+# tree it rewrites (wheel staging nests it into the private prefix).
 install(SCRIPT "${CMAKE_CURRENT_BINARY_DIR}/RelocateBundledLLVM.cmake"
-  COMPONENT Development)
+  COMPONENT BundledLLVMDevel)

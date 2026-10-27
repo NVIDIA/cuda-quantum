@@ -16,6 +16,11 @@ requires-python = ">=3.11"
 license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE", "CITATION.cff"]
 dependencies = [
+  # FALLBACK (per SDK contract v1 §1, approved by Luca, onsen #6
+  # note_79265934): the full CUDAQConfig.cmake requires frontend runtime
+  # libraries, so devel keeps the full cudaq dependency for now. The
+  # config-side follow-up (conditional frontend imports) is staged for a
+  # later product decision.
   "cudaq==__CUDAQ_VERSION__",
 ]
 classifiers = [
@@ -38,7 +43,8 @@ build-backend = "scikit_build_core.build"
 
 [tool.scikit-build]
 build-dir = "_skbuild_devel"
-install.components = ["Development", "Nvqpp", "fmt_core"]
+# WheelDevel stages the devel content into core's private prefix.
+install.components = ["WheelDevel"]
 wheel.py-api = "py3"
 metadata.version.provider = "scikit_build_core.metadata.setuptools_scm"
 cmake.version = ">=4.0"

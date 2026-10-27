@@ -336,8 +336,9 @@ else
     fi
 fi
 
-# Build CMAKE_ARGS for OpenMP (same variables as build_cudaq.sh lines 249-253)
-CMAKE_ARGS="${OpenMP_libomp_LIBRARY_PATH:+-DOpenMP_C_LIB_NAMES=omp}"
+# Build CMAKE_ARGS for OpenMP (same variables as build_cudaq.sh lines 249-253).
+# Append: callers may inject additional CMake arguments through CMAKE_ARGS.
+CMAKE_ARGS="${CMAKE_ARGS:-} ${OpenMP_libomp_LIBRARY_PATH:+-DOpenMP_C_LIB_NAMES=omp}"
 CMAKE_ARGS="$CMAKE_ARGS ${OpenMP_libomp_LIBRARY_PATH:+-DOpenMP_CXX_LIB_NAMES=omp}"
 CMAKE_ARGS="$CMAKE_ARGS ${OpenMP_libomp_LIBRARY_PATH:+-DOpenMP_omp_LIBRARY=$OpenMP_libomp_LIBRARY_PATH}"
 CMAKE_ARGS="$CMAKE_ARGS ${OpenMP_FLAGS:+-DOpenMP_C_FLAGS=\"$OpenMP_FLAGS\"}"
@@ -408,8 +409,11 @@ fi
 
 # Frontend wheels resolve these libraries from core. Linux bundles OpenMP
 # through CMake; macOS lets delocate bundle and repair it in the core wheel.
+# The LLVM/MLIR shared providers are core-owned; repair must never rebundle
+# them into frontend/devel wheels or give copies different hashed SONAMEs.
 core_libraries=(cudaqMLIR cudaqMLIRCAPI cudaq-common cudaq-operator cudaq-logger
-                nvqir MLIRPythonSupport-cudaq nanobind-cudaq gomp omp)
+                nvqir MLIRPythonSupport-cudaq nanobind-cudaq gomp omp
+                LLVM MLIR MLIR-C MLIRExecutionEngineShared)
 for wheel_file in "${repair_wheels[@]}"; do
 
 # Repair the wheel (bundle dependencies)
@@ -430,10 +434,14 @@ if [ "$platform" = "Darwin" ]; then
     # references.
     #
     # A missing libcudaqMLIR dependency is expected for cudaq-devel, as it
-    # is shipped in upstream cudaq.
+    # is shipped in upstream cudaq. The shared LLVM/MLIR providers are
+    # likewise core-owned and must never be bundled into the devel wheel.
     delocate_extra=""
     if $build_devel; then
         delocate_extra="--ignore-missing-dependencies"
+        for library in LLVM MLIR MLIR-C MLIRExecutionEngineShared; do
+            delocate_extra="$delocate_extra -e lib$library."
+        done
     fi
     if $build_split; then
         # Core repair must inspect its libraries to discover and bundle OpenMP.
@@ -525,9 +533,13 @@ else
     auditwheel_args="$auditwheel_args --exclude libmpfr.so.6"
 
     # A missing libcudaqMLIR dependency is expected for cudaq-devel, as it
-    # is shipped in upstream cudaq.
+    # is shipped in upstream cudaq. The shared LLVM/MLIR providers likewise
+    # ship in cudaq-core, which cudaq-devel depends on; never bundle copies.
     if $build_devel; then
         auditwheel_args="$auditwheel_args --exclude libcudaqMLIR.so"
+        for library in LLVM MLIR MLIR-C MLIRExecutionEngineShared; do
+            auditwheel_args="$auditwheel_args --exclude lib$library.so*"
+        done
     fi
     core_excludes=()
     if $build_split; then

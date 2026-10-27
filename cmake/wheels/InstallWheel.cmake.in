@@ -12,6 +12,9 @@
 # exposes the cudaq namespace to Python.
 if("@CUDAQ_WHEEL_KIND@" STREQUAL "core")
   set(components Core fmt_core CUDAQCorePythonModules)
+elseif("@CUDAQ_WHEEL_KIND@" STREQUAL "devel")
+  # fmt_core ships with the core wheel, which cudaq-devel depends on.
+  set(components Development Nvqpp BundledLLVMDevel)
 else()
   set(components Runtime CUDAQuantumPythonModules)
 endif()
@@ -22,6 +25,13 @@ foreach(component IN LISTS components)
     if(NOT component STREQUAL "CUDAQCorePythonModules")
       string(APPEND prefix "/cudaq/core")
     endif()
+  elseif("@CUDAQ_WHEEL_KIND@" STREQUAL "devel" AND component STREQUAL "BundledLLVMDevel")
+    # The bundled LLVM/MLIR toolchain and the payload-independent devel
+    # helper set nest into the shared private prefix: tools under P/bin
+    # resolve core-owned providers in P/lib through their $ORIGIN/../lib
+    # RPATH, and P/lib/cmake/cudaq is the SDK's canonical module directory.
+    # CUDA-Q's own devel files stay flat next to the frontend's payloads.
+    string(APPEND prefix "/cudaq_core/cudaq/core")
   endif()
   set(strip_argument)
   if(CMAKE_INSTALL_DO_STRIP)
@@ -33,6 +43,23 @@ foreach(component IN LISTS components)
       --prefix "${prefix}" ${strip_argument}
     COMMAND_ERROR_IS_FATAL ANY)
 endforeach()
+if("@CUDAQ_WHEEL_KIND@" STREQUAL "devel")
+  # nvqir's package files are core-owned in split wheels; devel must not
+  # ship the duplicate (it would shadow core's nested NVQIRTargets).
+  file(REMOVE_RECURSE "${CMAKE_INSTALL_PREFIX}/lib/cmake/nvqir")
+  # The shared runtime providers are core-owned; assert none slipped into
+  # the bundled LLVM tree (see BundleMLIRDevel.cmake for the filtering).
+  file(GLOB _devel_providers
+    "${CMAKE_INSTALL_PREFIX}/cudaq_core/cudaq/core/lib/libLLVM@CMAKE_SHARED_LIBRARY_SUFFIX@*"
+    "${CMAKE_INSTALL_PREFIX}/cudaq_core/cudaq/core/lib/libLLVM-*@CMAKE_SHARED_LIBRARY_SUFFIX@*"
+    "${CMAKE_INSTALL_PREFIX}/cudaq_core/cudaq/core/lib/libMLIR@CMAKE_SHARED_LIBRARY_SUFFIX@*"
+    "${CMAKE_INSTALL_PREFIX}/cudaq_core/cudaq/core/lib/libMLIR-C@CMAKE_SHARED_LIBRARY_SUFFIX@*"
+    "${CMAKE_INSTALL_PREFIX}/cudaq_core/cudaq/core/lib/libMLIRExecutionEngineShared@CMAKE_SHARED_LIBRARY_SUFFIX@*")
+  if(_devel_providers)
+    message(FATAL_ERROR
+      "Devel wheel staging contains core-owned providers: ${_devel_providers}")
+  endif()
+endif()
 if("@CUDAQ_WHEEL_KIND@" STREQUAL "core")
   file(WRITE "${CMAKE_INSTALL_PREFIX}/cudaq_core.pth" "cudaq_core\n")
   if(NOT APPLE)

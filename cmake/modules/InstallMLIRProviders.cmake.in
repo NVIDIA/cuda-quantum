@@ -1,0 +1,72 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+# Generated from InstallMLIRProviders.cmake.in -- do not edit.
+#
+# Installs the shared upstream runtime providers (libLLVM, libMLIR,
+# libMLIRExecutionEngineShared, libMLIR-C) into the core package's lib
+# directory. Canonical files are installed as real files; link/runtime alias
+# names become symlinks. Wheel packaging materializes the symlinks as
+# byte-equivalent copies, so every required link/load name remains a usable
+# ELF file.
+
+# name|real-path|real-name|soname-name|link-name, resolved at configure time.
+set(_cudaq_provider_specs "@_cudaq_provider_specs@")
+
+# Staged (DESTDIR) and native installs both honor the same effective prefix.
+set(_cudaq_install_prefix "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}")
+foreach(_spec IN LISTS _cudaq_provider_specs)
+  string(REPLACE "|" ";" _spec "${_spec}")
+  list(GET _spec 1 _real)
+  list(GET _spec 2 _real_name)
+  list(GET _spec 3 _soname_name)
+  list(GET _spec 4 _link_name)
+  # file(INSTALL) applies DESTDIR itself; the destination must stay the
+  # plain prefix or staged installs double-apply DESTDIR. The CREATE_LINK
+  # blocks and existence guards below do NOT honor DESTDIR and use the
+  # effective prefix.
+  file(INSTALL "${_real}"
+    DESTINATION "${CMAKE_INSTALL_PREFIX}/lib" USE_SOURCE_PERMISSIONS)
+  if(NOT _soname_name STREQUAL _real_name
+      AND NOT EXISTS "${_cudaq_install_prefix}/lib/${_soname_name}")
+    file(CREATE_LINK "${_real_name}"
+      "${_cudaq_install_prefix}/lib/${_soname_name}" SYMBOLIC)
+  endif()
+  if(NOT _link_name STREQUAL _soname_name
+      AND NOT EXISTS "${_cudaq_install_prefix}/lib/${_link_name}")
+    file(CREATE_LINK "${_soname_name}"
+      "${_cudaq_install_prefix}/lib/${_link_name}" SYMBOLIC)
+  endif()
+endforeach()
+
+# Upstream compatibility link name for the LLVM dylib.
+if(NOT APPLE)
+  if(NOT EXISTS
+      "${_cudaq_install_prefix}/lib/@_cudaq_llvm_compat_link_name@")
+    file(CREATE_LINK "@_cudaq_llvm_soname_name@"
+      "${_cudaq_install_prefix}/lib/@_cudaq_llvm_compat_link_name@" SYMBOLIC)
+  endif()
+endif()
+
+# The providers resolve each other and their own dependencies relative to
+# their own location, never against build-machine absolute paths.
+foreach(_spec IN LISTS _cudaq_provider_specs)
+  string(REPLACE "|" ";" _spec "${_spec}")
+  list(GET _spec 2 _real_name)
+  set(_installed "${_cudaq_install_prefix}/lib/${_real_name}")
+  if(NOT APPLE AND EXISTS "${_installed}")
+    execute_process(COMMAND readelf -d "${_installed}"
+      OUTPUT_VARIABLE _dynamic ERROR_QUIET)
+    if(_dynamic MATCHES "Library runpath: \\[([^\\]]+)\\]")
+      if(NOT CMAKE_MATCH_1 MATCHES "^\\$ORIGIN")
+        message(WARNING
+          "provider ${_real_name} has non-relocatable RPATH: ${CMAKE_MATCH_1}")
+      endif()
+    endif()
+  endif()
+endforeach()

@@ -8,6 +8,18 @@
 
 get_filename_component(CUDAQ_CMAKE_DIR "${CMAKE_CURRENT_LIST_FILE}" PATH)
 
+# Without the frontend runtime package, this legacy top-level entry is only
+# a compatibility forwarding route to the canonical core entry of the shared
+# private prefix: the full configuration below requires the frontend runtime
+# libraries, which are never loaded unconditionally.
+if(NOT DEFINED CUDAQ_FORWARDED_TO_PREFIX
+    AND NOT EXISTS "${CUDAQ_CMAKE_DIR}/../../libcudaq${CMAKE_SHARED_LIBRARY_SUFFIX}"
+    AND EXISTS "${CUDAQ_CMAKE_DIR}/../../../cudaq_core/cudaq/core/lib/cmake/cudaq/CUDAQConfig.cmake")
+  set(CUDAQ_FORWARDED_TO_PREFIX TRUE)
+  include("${CUDAQ_CMAKE_DIR}/../../../cudaq_core/cudaq/core/lib/cmake/cudaq/CUDAQConfig.cmake")
+  return()
+endif()
+
 include(CMakeFindDependencyMacro)
 list(APPEND CMAKE_MODULE_PATH "${CUDAQ_CMAKE_DIR}")
 
@@ -20,8 +32,16 @@ if(EXISTS "${CUDAQ_CMAKE_DIR}/../../../cudaq_core/cudaq/core/lib/cmake/cudaq")
 endif()
 get_filename_component(CUDAQ_CORE_LIBRARY_DIR "${_cudaq_core_cmake_dir}/../.." ABSOLUTE)
 
+# CUDA-Q-namespaced imports of the shared upstream providers. Core owns this
+# module; core's exported targets reference the cudaq::Upstream* names, so
+# load it before any CUDA-Q target exports. Absent in pre-SDK installs.
+include("${_cudaq_core_cmake_dir}/CUDAQMLIRProviders.cmake" OPTIONAL)
+
 # If MLIR_DIR/LLVM_DIR are not set explicitly, make educated guesses about where to find them.
-foreach(_cudaq_cmake_root "${CUDAQ_CMAKE_DIR}/.." "${CUDAQ_CMAKE_DIR}/../../llvm/lib/cmake")
+foreach(_cudaq_cmake_root
+    "${CUDAQ_CMAKE_DIR}/.."
+    "${_cudaq_core_cmake_dir}/.."
+    "${CUDAQ_CMAKE_DIR}/../../llvm/lib/cmake")
   if(NOT MLIR_DIR AND EXISTS "${_cudaq_cmake_root}/mlir/MLIRConfig.cmake")
     get_filename_component(MLIR_DIR "${_cudaq_cmake_root}/mlir" ABSOLUTE)
   endif()

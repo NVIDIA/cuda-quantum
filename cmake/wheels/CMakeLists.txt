@@ -58,3 +58,9 @@ configure_file(InstallWheel.cmake.in InstallCoreWheel.cmake @ONLY)
 # Wheel-specific paths are staged only when WheelCore is explicitly selected.
 install(SCRIPT "${CMAKE_CURRENT_BINARY_DIR}/InstallCoreWheel.cmake"
   COMPONENT WheelCore EXCLUDE_FROM_ALL)
+
+set(CUDAQ_WHEEL_KIND devel)
+configure_file(InstallWheel.cmake.in InstallDevelWheel.cmake @ONLY)
+# The devel wheel shares core's private prefix and never re-owns its files.
+install(SCRIPT "${CMAKE_CURRENT_BINARY_DIR}/InstallDevelWheel.cmake"
+  COMPONENT WheelDevel EXCLUDE_FROM_ALL)
