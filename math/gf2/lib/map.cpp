@@ -12,6 +12,7 @@
 #include "allocation.h"
 #include "csc_xor.h"
 #include "storage.h"
+#include <climits>
 
 using namespace cudaq_gf2_private;
 namespace {
@@ -22,6 +23,24 @@ static_assert(sizeof(cudaq_gf2_packed_bundle) == 24);
 static_assert(sizeof(cudaq_gf2_packed_matrix_block) == 24);
 static_assert(sizeof(cudaq_gf2_packed_matrix) == 32);
 constexpr uint8_t magic[8] = {'C', 'Q', 'G', 'F', '2', 0, 0, 0};
+constexpr uint32_t index_bits = CHAR_BIT * sizeof(uint32_t);
+// Core sections have IDs TYPES..MATRICES and lead the directory in that order.
+constexpr uint32_t core_section_count = 5;
+static_assert(CUDAQ_GF2_SECTION_TYPES == 1 && CUDAQ_GF2_SECTION_INPUTS == 2 &&
+              CUDAQ_GF2_SECTION_OUTPUTS == 3 && CUDAQ_GF2_SECTION_BLOCKS == 4 &&
+              CUDAQ_GF2_SECTION_MATRICES == core_section_count);
+constexpr uint32_t core_index(cudaq_gf2_section_id id) {
+  return id - CUDAQ_GF2_SECTION_TYPES;
+}
+constexpr uint32_t types_part = core_index(CUDAQ_GF2_SECTION_TYPES),
+                   inputs_part = core_index(CUDAQ_GF2_SECTION_INPUTS),
+                   outputs_part = core_index(CUDAQ_GF2_SECTION_OUTPUTS),
+                   blocks_part = core_index(CUDAQ_GF2_SECTION_BLOCKS),
+                   matrices_part = core_index(CUDAQ_GF2_SECTION_MATRICES);
+constexpr uint64_t record_sizes[core_section_count] = {
+    sizeof(cudaq_gf2_packed_type), sizeof(cudaq_gf2_packed_bundle),
+    sizeof(cudaq_gf2_packed_bundle), sizeof(cudaq_gf2_packed_matrix_block),
+    sizeof(cudaq_gf2_packed_matrix)};
 struct source {
   cudaq_gf2_map_description d{};
   const uint8_t *data = nullptr;
@@ -33,25 +52,25 @@ struct source {
     if (!data)
       return d.types[i];
     const auto &t =
-        reinterpret_cast<const cudaq_gf2_packed_type *>(payload(0))[i];
-    return {reinterpret_cast<const char *>(payload(0) + t.name), t.name_size,
-            t.role, t.wire_count};
+        reinterpret_cast<const cudaq_gf2_packed_type *>(payload(types_part))[i];
+    return {reinterpret_cast<const char *>(payload(types_part) + t.name),
+            t.name_size, t.role, t.wire_count};
   }
   cudaq_gf2_bundle bundle(uint32_t side, uint32_t i) const {
     if (!data)
       return (side ? d.outputs : d.inputs)[i];
-    auto *p = payload(side + 1);
+    auto *p = payload(inputs_part + side);
     const auto &b = reinterpret_cast<const cudaq_gf2_packed_bundle *>(p)[i];
     return {b.type, b.reserved,
             reinterpret_cast<const uint32_t *>(p + b.widths)};
   }
   const uint64_t *offsets(uint32_t side, uint32_t i) const {
-    auto *p = payload(side + 1);
+    auto *p = payload(inputs_part + side);
     return reinterpret_cast<const uint64_t *>(
         p + reinterpret_cast<const cudaq_gf2_packed_bundle *>(p)[i].offsets);
   }
   cudaq_gf2_csc_view matrix(uint32_t i) const {
-    auto *p = payload(4);
+    auto *p = payload(matrices_part);
     const auto &m = reinterpret_cast<const cudaq_gf2_packed_matrix *>(p)[i];
     return {m.rows, m.columns, m.nonzeros,
             reinterpret_cast<const uint64_t *>(p + m.column_offsets),
@@ -60,8 +79,8 @@ struct source {
   cudaq_gf2_map_matrix_block block(uint32_t i) const {
     if (!data)
       return d.blocks[i];
-    const auto &b =
-        reinterpret_cast<const cudaq_gf2_packed_matrix_block *>(payload(3))[i];
+    const auto &b = reinterpret_cast<const cudaq_gf2_packed_matrix_block *>(
+        payload(blocks_part))[i];
     return {{b.output_bundle, b.output_wire},
             {b.input_bundle, b.input_wire},
             matrix(b.matrix)};
@@ -69,7 +88,7 @@ struct source {
   cudaq_gf2_section extension(uint32_t i) const {
     if (!data)
       return d.sections[i];
-    const auto &e = directory[5 + i];
+    const auto &e = directory[core_section_count + i];
     return {e.id, e.flags, e.count, e.bytes, data + e.offset};
   }
 };
@@ -100,18 +119,20 @@ int type_compare(cudaq_gf2_bundle_type a, cudaq_gf2_bundle_type b) {
 }
 cudaq_gf2_status requirements(const source &s, workspace_requirements &req) {
   const auto &d = s.d;
-  if (d.block_count > UINT32_MAX || d.section_count > UINT32_MAX - 5)
+  if (d.block_count > UINT32_MAX ||
+      d.section_count > UINT32_MAX - core_section_count)
     return CUDAQ_GF2_INVALID_ARGUMENT;
-  uint64_t bytes = 0, ignored;
-  if (!reserve(bytes, d.type_count, 4, ignored) ||
-      !reserve(bytes, d.type_count, 4, ignored) ||
-      !reserve(bytes, d.block_count, 4, ignored) ||
-      !reserve(bytes, d.block_count, 4, ignored) ||
-      !reserve(bytes, d.block_count, 4, ignored) ||
-      !reserve(bytes, d.block_count, sizeof(matrix_record), ignored) ||
-      !reserve(bytes, d.section_count, 4, ignored))
+  uint64_t bytes = 0;
+  // Mirrors the arena layout in make_workspace.
+  if (!reserve_scratch<uint32_t>(bytes, d.type_count) ||
+      !reserve_scratch<uint32_t>(bytes, d.type_count) ||
+      !reserve_scratch<uint32_t>(bytes, d.block_count) ||
+      !reserve_scratch<uint32_t>(bytes, d.block_count) ||
+      !reserve_scratch<uint32_t>(bytes, d.block_count) ||
+      !reserve_scratch<matrix_record>(bytes, d.block_count) ||
+      !reserve_scratch<uint32_t>(bytes, d.section_count))
     return CUDAQ_GF2_INSUFFICIENT_CAPACITY;
-  req = {bytes, 8, 0};
+  req = {bytes, scratch_alignment, 0};
   return CUDAQ_GF2_OK;
 }
 cudaq_gf2_status make_workspace(const source &s, void *buffer, uint64_t bytes,
@@ -122,7 +143,8 @@ cudaq_gf2_status make_workspace(const source &s, void *buffer, uint64_t bytes,
     return status;
   if (bytes < req.bytes || (req.bytes && !buffer))
     return CUDAQ_GF2_INSUFFICIENT_CAPACITY;
-  if ((bytes && !buffer) || (buffer && reinterpret_cast<uintptr_t>(buffer) % 8))
+  if ((bytes && !buffer) ||
+      (buffer && reinterpret_cast<uintptr_t>(buffer) % scratch_alignment))
     return CUDAQ_GF2_INVALID_ARGUMENT;
   arena a{static_cast<std::byte *>(buffer), bytes};
   w.types = a.take<uint32_t>(s.d.type_count);
@@ -154,7 +176,7 @@ cudaq_gf2_status validate(const source &s, workspace &w) {
     return CUDAQ_GF2_INVALID_ARGUMENT;
   for (uint32_t i = 0; i < s.d.type_count; ++i) {
     auto t = s.type(i);
-    if (!array_ok(t.name, t.name_size, 1))
+    if (!array_ok(t.name, t.name_size))
       return CUDAQ_GF2_INVALID_ARGUMENT;
     if (!utf8_name(t.name, t.name_size) || t.role > CUDAQ_GF2_INTERFACE)
       return CUDAQ_GF2_INVALID_CONTENT;
@@ -177,7 +199,7 @@ cudaq_gf2_status validate(const source &s, workspace &w) {
       if (b.type >= s.d.type_count || b.reserved)
         return CUDAQ_GF2_INVALID_CONTENT;
       uint32_t n = s.type(b.type).wire_count;
-      if (!array_ok(b.widths, n, 4))
+      if (!array_ok(b.widths, n))
         return CUDAQ_GF2_INVALID_ARGUMENT;
       for (uint64_t j = 0; j < n; ++j) {
         if (s.data && s.offsets(side, i)[j] != offset)
@@ -288,57 +310,59 @@ void prepare_matrices(const source &s, workspace &w) {
 }
 struct layout {
   cudaq_gf2_packed_header h{};
-  cudaq_gf2_packed_section sections[5]{};
+  cudaq_gf2_packed_section sections[core_section_count]{};
 };
 bool measure(const source &s, const workspace &w, layout &out) {
   auto &h = out.h;
-  memcpy(h.magic, magic, 8);
+  memcpy(h.magic, magic, sizeof(h.magic));
   h.version = CUDAQ_GF2_FORMAT_VERSION;
   h.kind = CUDAQ_GF2_KIND_LINEAR_MAP;
   h.alignment = CUDAQ_GF2_PACKED_ALIGNMENT;
-  h.index_bits = 32;
-  h.directory_count = 5 + uint64_t{s.d.section_count};
-  h.directory_bytes = h.directory_count * 32;
+  h.index_bits = index_bits;
+  h.directory_count = core_section_count + uint64_t{s.d.section_count};
+  h.directory_bytes = h.directory_count * sizeof(cudaq_gf2_packed_section);
   uint64_t block_count = 0;
   for (uint32_t i = 0; i < s.d.block_count; ++i)
     block_count += s.block(i).matrix.nonzeros != 0;
-  uint64_t counts[5] = {s.d.type_count, s.d.input_bundle_count,
-                        s.d.output_bundle_count, block_count, w.unique};
-  uint64_t sizes[5] = {24, 24, 24, 24, 32};
+  uint64_t counts[core_section_count] = {s.d.type_count, s.d.input_bundle_count,
+                                         s.d.output_bundle_count, block_count,
+                                         w.unique};
   uint64_t cursor = sizeof(h), ignored;
-  for (uint32_t part = 0; part < 5; ++part) {
+  for (uint32_t part = 0; part < core_section_count; ++part) {
     uint64_t bytes = 0;
-    if (!reserve(bytes, counts[part], sizes[part], ignored))
+    if (!reserve(bytes, counts[part], record_sizes[part], ignored,
+                 CUDAQ_GF2_PACKED_ALIGNMENT))
       return false;
-    if (part == 0)
+    if (part == types_part)
       for (uint32_t i = 0; i < s.d.type_count; ++i) {
-        if (!reserve(bytes, s.type(w.types[i]).name_size, 1, ignored, 1))
+        if (!reserve_packed<char>(bytes, s.type(w.types[i]).name_size))
           return false;
       }
-    if (part == 1 || part == 2)
+    if (part == inputs_part || part == outputs_part)
       for (uint32_t i = 0; i < counts[part]; ++i) {
-        auto b = s.bundle(part - 1, i);
+        auto b = s.bundle(part - inputs_part, i);
         uint32_t n = s.type(b.type).wire_count;
-        if (!reserve(bytes, n, 4, ignored, 4) ||
-            !reserve(bytes, uint64_t{n} + 1, 8, ignored))
+        if (!reserve_packed<uint32_t>(bytes, n) ||
+            !reserve_packed<uint64_t>(bytes, uint64_t{n} + 1))
           return false;
       }
-    if (part == 4)
+    if (part == matrices_part)
       for (uint32_t i = 0; i < w.unique; ++i) {
         auto m = s.block(w.owners[i]).matrix;
-        if (!reserve(bytes, uint64_t{m.columns} + 1, 8, ignored) ||
-            !reserve(bytes, m.nonzeros, 4, ignored, 4))
+        if (!reserve_packed<uint64_t>(bytes, uint64_t{m.columns} + 1) ||
+            !reserve_packed<uint32_t>(bytes, m.nonzeros))
           return false;
       }
-    out.sections[part] = {part + 1, CUDAQ_GF2_SECTION_REQUIRED, counts[part],
-                          bytes, 0};
-    if (!reserve(cursor, bytes, 1, out.sections[part].offset))
+    out.sections[part] = {CUDAQ_GF2_SECTION_TYPES + part,
+                          CUDAQ_GF2_SECTION_REQUIRED, counts[part], bytes, 0};
+    if (!reserve_payload(cursor, bytes, out.sections[part].offset))
       return false;
   }
   for (uint32_t i : w.extensions)
-    if (!reserve(cursor, s.extension(i).bytes, 1, ignored))
+    if (!reserve_payload(cursor, s.extension(i).bytes, ignored))
       return false;
-  if (!reserve(cursor, h.directory_count, 32, h.directory_offset))
+  if (!reserve_packed<cudaq_gf2_packed_section>(cursor, h.directory_count,
+                                                h.directory_offset))
     return false;
   h.size = cursor;
   return true;
@@ -350,29 +374,32 @@ void write(const source &s, const workspace &w, const layout &l,
   auto *dir =
       reinterpret_cast<cudaq_gf2_packed_section *>(data + l.h.directory_offset);
   memcpy(dir, l.sections, sizeof(l.sections));
-  uint64_t cursor = s.d.type_count * uint64_t{24}, offset;
-  auto *types = reinterpret_cast<cudaq_gf2_packed_type *>(data + dir[0].offset);
+  uint64_t cursor = s.d.type_count * uint64_t{sizeof(cudaq_gf2_packed_type)},
+           offset;
+  const auto &type_section = dir[types_part];
+  auto *types =
+      reinterpret_cast<cudaq_gf2_packed_type *>(data + type_section.offset);
   for (uint32_t i = 0; i < s.d.type_count; ++i) {
     auto t = s.type(w.types[i]);
-    reserve(cursor, t.name_size, 1, offset, 1);
+    reserve_packed<char>(cursor, t.name_size, offset);
     types[i] = {offset, t.name_size, t.role, t.wire_count};
-    memcpy(data + dir[0].offset + offset, t.name, t.name_size);
+    memcpy(data + type_section.offset + offset, t.name, t.name_size);
   }
   for (uint32_t side = 0; side < 2; ++side) {
-    auto &e = dir[side + 1];
+    auto &e = dir[inputs_part + side];
     auto *p = data + e.offset;
     auto *bundles = reinterpret_cast<cudaq_gf2_packed_bundle *>(p);
-    cursor = e.count * 24;
+    cursor = e.count * sizeof(cudaq_gf2_packed_bundle);
     uint64_t vector_offset = 0;
     for (uint32_t i = 0; i < e.count; ++i) {
       auto b = s.bundle(side, i);
       uint32_t n = s.type(b.type).wire_count;
       uint64_t widths, offsets;
-      reserve(cursor, n, 4, widths, 4);
-      reserve(cursor, uint64_t{n} + 1, 8, offsets);
+      reserve_packed<uint32_t>(cursor, n, widths);
+      reserve_packed<uint64_t>(cursor, uint64_t{n} + 1, offsets);
       bundles[i] = {w.type_ids[b.type], 0, widths, offsets};
       if (n)
-        memcpy(p + widths, b.widths, uint64_t{n} * 4);
+        memcpy(p + widths, b.widths, uint64_t{n} * sizeof(*b.widths));
       auto *positions = reinterpret_cast<uint64_t *>(p + offsets);
       for (uint64_t j = 0; j < n; ++j) {
         positions[j] = vector_offset;
@@ -381,8 +408,8 @@ void write(const source &s, const workspace &w, const layout &l,
       positions[n] = vector_offset;
     }
   }
-  auto *blocks =
-      reinterpret_cast<cudaq_gf2_packed_matrix_block *>(data + dir[3].offset);
+  auto *blocks = reinterpret_cast<cudaq_gf2_packed_matrix_block *>(
+      data + dir[blocks_part].offset);
   uint32_t written = 0;
   for (uint32_t i : w.blocks) {
     auto b = s.block(i);
@@ -391,27 +418,28 @@ void write(const source &s, const workspace &w, const layout &l,
     blocks[written++] = {b.output.bundle, b.output.wire,   b.input.bundle,
                          b.input.wire,    w.matrix_ids[i], 0};
   }
-  auto *p = data + dir[4].offset;
+  auto *p = data + dir[matrices_part].offset;
   auto *matrices = reinterpret_cast<cudaq_gf2_packed_matrix *>(p);
-  cursor = uint64_t{w.unique} * 32;
+  cursor = uint64_t{w.unique} * sizeof(cudaq_gf2_packed_matrix);
   for (uint32_t i = 0; i < w.unique; ++i) {
     auto m = s.block(w.owners[i]).matrix;
     uint64_t offsets, indices;
-    reserve(cursor, uint64_t{m.columns} + 1, 8, offsets);
-    reserve(cursor, m.nonzeros, 4, indices, 4);
+    reserve_packed<uint64_t>(cursor, uint64_t{m.columns} + 1, offsets);
+    reserve_packed<uint32_t>(cursor, m.nonzeros, indices);
     matrices[i] = {m.rows, m.columns, m.nonzeros, offsets, indices};
-    memcpy(p + offsets, m.column_offsets, (uint64_t{m.columns} + 1) * 8);
-    memcpy(p + indices, m.row_indices, m.nonzeros * 4);
+    memcpy(p + offsets, m.column_offsets,
+           (uint64_t{m.columns} + 1) * sizeof(*m.column_offsets));
+    memcpy(p + indices, m.row_indices, m.nonzeros * sizeof(*m.row_indices));
   }
   cursor = sizeof(l.h);
   for (const auto &e : l.sections) {
     uint64_t ignored;
-    reserve(cursor, e.bytes, 1, ignored);
+    reserve_payload(cursor, e.bytes, ignored);
   }
-  uint32_t i = 5;
+  uint32_t i = core_section_count;
   for (uint32_t index : w.extensions) {
     auto e = s.extension(index);
-    reserve(cursor, e.bytes, 1, offset);
+    reserve_payload(cursor, e.bytes, offset);
     dir[i++] = {e.id, e.flags, e.count, e.bytes, offset};
     if (e.bytes)
       memcpy(data + offset, e.data, e.bytes);
@@ -420,25 +448,29 @@ void write(const source &s, const workspace &w, const layout &l,
 /* Validate byte ranges before any count-indexed or nested access. */
 cudaq_gf2_status parse(const void *buffer, uint64_t bytes,
                        const cudaq_gf2_schema *schema, source &s) {
-  if (!buffer || reinterpret_cast<uintptr_t>(buffer) % 8 ||
+  if (!buffer ||
+      reinterpret_cast<uintptr_t>(buffer) % CUDAQ_GF2_PACKED_ALIGNMENT ||
       bytes < sizeof(cudaq_gf2_packed_header) || bytes > SIZE_MAX)
     return CUDAQ_GF2_INVALID_ARGUMENT;
   if (!little_endian())
     return CUDAQ_GF2_UNSUPPORTED_VERSION;
-  if (schema &&
-      (schema->reserved ||
-       !array_ok(schema->required_sections, schema->required_section_count, 4)))
+  if (schema && (schema->reserved || !array_ok(schema->required_sections,
+                                               schema->required_section_count)))
     return CUDAQ_GF2_INVALID_ARGUMENT;
   auto *data = static_cast<const uint8_t *>(buffer);
   const auto &h = *reinterpret_cast<const cudaq_gf2_packed_header *>(data);
-  if (memcmp(h.magic, magic, 8) || h.version != CUDAQ_GF2_FORMAT_VERSION ||
+  if (memcmp(h.magic, magic, sizeof(h.magic)) ||
+      h.version != CUDAQ_GF2_FORMAT_VERSION ||
       h.kind != CUDAQ_GF2_KIND_LINEAR_MAP)
     return CUDAQ_GF2_UNSUPPORTED_VERSION;
-  if (h.size != bytes || h.alignment != 8 || h.index_bits != 32 || h.reserved ||
-      h.directory_count < 5 || h.directory_count > UINT32_MAX ||
-      h.directory_offset % 8 || h.directory_offset < sizeof(h) ||
-      h.directory_offset > bytes ||
-      h.directory_bytes != h.directory_count * 32 ||
+  if (h.size != bytes || h.alignment != CUDAQ_GF2_PACKED_ALIGNMENT ||
+      h.index_bits != index_bits || h.reserved ||
+      h.directory_count < core_section_count ||
+      h.directory_count > UINT32_MAX ||
+      h.directory_offset % CUDAQ_GF2_PACKED_ALIGNMENT ||
+      h.directory_offset < sizeof(h) || h.directory_offset > bytes ||
+      h.directory_bytes !=
+          h.directory_count * sizeof(cudaq_gf2_packed_section) ||
       h.directory_bytes != bytes - h.directory_offset)
     return CUDAQ_GF2_INVALID_CONTENT;
   auto *dir = reinterpret_cast<const cudaq_gf2_packed_section *>(
@@ -450,11 +482,12 @@ cudaq_gf2_status parse(const void *buffer, uint64_t bytes,
         e.flags != (e.id < CUDAQ_GF2_OPTIONAL_SECTION_MIN
                         ? CUDAQ_GF2_SECTION_REQUIRED
                         : CUDAQ_GF2_SECTION_OPTIONAL) ||
-        (i < 5 && e.id != i + 1) || !outer.take(e.offset, e.bytes, 1))
+        (i < core_section_count && e.id != CUDAQ_GF2_SECTION_TYPES + i) ||
+        !outer.take_payload(e.offset, e.bytes))
       return CUDAQ_GF2_INVALID_CONTENT;
-    if (i >= 5 && e.id < CUDAQ_GF2_EXTENSION_SECTION_MIN)
+    if (i >= core_section_count && e.id < CUDAQ_GF2_EXTENSION_SECTION_MIN)
       return CUDAQ_GF2_UNSUPPORTED_VERSION;
-    if (i >= 5 && e.flags == CUDAQ_GF2_SECTION_REQUIRED) {
+    if (i >= core_section_count && e.flags == CUDAQ_GF2_SECTION_REQUIRED) {
       bool known = false;
       if (schema)
         for (uint32_t j = 0; j < schema->required_section_count; ++j)
@@ -464,50 +497,51 @@ cudaq_gf2_status parse(const void *buffer, uint64_t bytes,
     }
   }
   uint64_t expected, aligned = outer.cursor;
-  if (!reserve(aligned, 1, 1, expected) || expected != h.directory_offset ||
+  if (!reserve_payload(aligned, 1, expected) ||
+      expected != h.directory_offset ||
       !zeros(data, outer.cursor, h.directory_offset))
     return CUDAQ_GF2_INVALID_CONTENT;
-  for (uint32_t part = 0; part < 5; ++part)
+  for (uint32_t part = 0; part < core_section_count; ++part)
     if (dir[part].count > UINT32_MAX)
       return CUDAQ_GF2_INVALID_CONTENT;
-  if (dir[4].count > dir[3].count)
+  if (dir[matrices_part].count > dir[blocks_part].count)
     return CUDAQ_GF2_INVALID_CONTENT;
   s.data = data;
   s.directory = dir;
-  s.d.type_count = static_cast<uint32_t>(dir[0].count);
-  s.d.input_bundle_count = static_cast<uint32_t>(dir[1].count);
-  s.d.output_bundle_count = static_cast<uint32_t>(dir[2].count);
-  s.d.block_count = dir[3].count;
-  s.d.section_count = static_cast<uint32_t>(h.directory_count - 5);
-  uint64_t widths[5] = {24, 24, 24, 24, 32};
-  for (uint32_t part = 0; part < 5; ++part) {
+  s.d.type_count = static_cast<uint32_t>(dir[types_part].count);
+  s.d.input_bundle_count = static_cast<uint32_t>(dir[inputs_part].count);
+  s.d.output_bundle_count = static_cast<uint32_t>(dir[outputs_part].count);
+  s.d.block_count = dir[blocks_part].count;
+  s.d.section_count =
+      static_cast<uint32_t>(h.directory_count - core_section_count);
+  for (uint32_t part = 0; part < core_section_count; ++part) {
     auto *p = s.payload(part);
     const auto &e = dir[part];
     reader r{p, e.bytes};
-    if (!r.take(0, e.count, widths[part]))
+    if (!r.take(0, e.count, record_sizes[part], CUDAQ_GF2_PACKED_ALIGNMENT))
       return CUDAQ_GF2_INVALID_CONTENT;
     for (uint32_t i = 0; i < e.count; ++i) {
-      if (part == 0) {
+      if (part == types_part) {
         const auto &t = reinterpret_cast<const cudaq_gf2_packed_type *>(p)[i];
-        if (!r.take(t.name, t.name_size, 1, 1))
+        if (!r.take<char>(t.name, t.name_size))
           return CUDAQ_GF2_INVALID_CONTENT;
-      } else if (part == 1 || part == 2) {
+      } else if (part == inputs_part || part == outputs_part) {
         const auto &b = reinterpret_cast<const cudaq_gf2_packed_bundle *>(p)[i];
         if (b.type >= s.d.type_count || b.reserved)
           return CUDAQ_GF2_INVALID_CONTENT;
         uint32_t n = s.type(b.type).wire_count;
-        if (!r.take(b.widths, n, 4, 4) ||
-            !r.take(b.offsets, uint64_t{n} + 1, 8))
+        if (!r.take<uint32_t>(b.widths, n) ||
+            !r.take<uint64_t>(b.offsets, uint64_t{n} + 1))
           return CUDAQ_GF2_INVALID_CONTENT;
-      } else if (part == 3) {
+      } else if (part == blocks_part) {
         const auto &b =
             reinterpret_cast<const cudaq_gf2_packed_matrix_block *>(p)[i];
-        if (b.matrix >= dir[4].count || b.reserved)
+        if (b.matrix >= dir[matrices_part].count || b.reserved)
           return CUDAQ_GF2_INVALID_CONTENT;
       } else {
         const auto &m = reinterpret_cast<const cudaq_gf2_packed_matrix *>(p)[i];
-        if (!r.take(m.column_offsets, uint64_t{m.columns} + 1, 8) ||
-            !r.take(m.row_indices, m.nonzeros, 4, 4))
+        if (!r.take<uint64_t>(m.column_offsets, uint64_t{m.columns} + 1) ||
+            !r.take<uint32_t>(m.row_indices, m.nonzeros))
           return CUDAQ_GF2_INVALID_CONTENT;
       }
     }
@@ -517,7 +551,8 @@ cudaq_gf2_status parse(const void *buffer, uint64_t bytes,
   return CUDAQ_GF2_OK;
 }
 bool view_source(const cudaq_gf2_map_view *view, source &s) {
-  if (!view || !view->data || reinterpret_cast<uintptr_t>(view->data) % 8 ||
+  if (!view || !view->data ||
+      reinterpret_cast<uintptr_t>(view->data) % CUDAQ_GF2_PACKED_ALIGNMENT ||
       view->size < sizeof(cudaq_gf2_packed_header))
     return false;
   auto *p = static_cast<const uint8_t *>(view->data);
@@ -527,11 +562,14 @@ bool view_source(const cudaq_gf2_map_view *view, source &s) {
   s.data = p;
   s.directory = reinterpret_cast<const cudaq_gf2_packed_section *>(
       p + h.directory_offset);
-  s.d.type_count = static_cast<uint32_t>(s.directory[0].count);
-  s.d.input_bundle_count = static_cast<uint32_t>(s.directory[1].count);
-  s.d.output_bundle_count = static_cast<uint32_t>(s.directory[2].count);
-  s.d.block_count = s.directory[3].count;
-  s.d.section_count = static_cast<uint32_t>(h.directory_count - 5);
+  s.d.type_count = static_cast<uint32_t>(s.directory[types_part].count);
+  s.d.input_bundle_count =
+      static_cast<uint32_t>(s.directory[inputs_part].count);
+  s.d.output_bundle_count =
+      static_cast<uint32_t>(s.directory[outputs_part].count);
+  s.d.block_count = s.directory[blocks_part].count;
+  s.d.section_count =
+      static_cast<uint32_t>(h.directory_count - core_section_count);
   return true;
 }
 uint64_t vector_size(const source &s, uint32_t side) {
@@ -699,7 +737,7 @@ cudaq_gf2_status cudaq_gf2_map_get_section(const cudaq_gf2_map_view *view,
   source s;
   if (!out || !view_source(view, s))
     return CUDAQ_GF2_INVALID_ARGUMENT;
-  uint64_t lo = 0, hi = 5 + uint64_t{s.d.section_count};
+  uint64_t lo = 0, hi = core_section_count + uint64_t{s.d.section_count};
   while (lo < hi) {
     uint64_t mid = lo + (hi - lo) / 2;
     if (s.directory[mid].id < id)
@@ -707,7 +745,8 @@ cudaq_gf2_status cudaq_gf2_map_get_section(const cudaq_gf2_map_view *view,
     else
       hi = mid;
   }
-  if (lo >= 5 + uint64_t{s.d.section_count} || s.directory[lo].id != id)
+  if (lo >= core_section_count + uint64_t{s.d.section_count} ||
+      s.directory[lo].id != id)
     return CUDAQ_GF2_INVALID_ARGUMENT;
   auto e = s.directory[lo];
   *out = {e.id, e.flags, e.count, e.bytes, s.data + e.offset};

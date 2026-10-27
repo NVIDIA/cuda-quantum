@@ -22,11 +22,6 @@ using namespace cudaq_gf2_private;
   } while (false)
 
 namespace {
-template <class T>
-bool space(uint64_t &bytes, uint64_t count) {
-  uint64_t offset;
-  return reserve(bytes, count, sizeof(T), offset);
-}
 
 bool add(uint64_t &sum, uint64_t n) {
   if (n > SIZE_MAX - sum)
@@ -97,15 +92,20 @@ struct responses {
                                   shape.observable_ports_count +
                                   shape.success_ports_count;
     uint64_t bytes = 0;
-    if (!space<cudaq_edem_matrix_block>(bytes, block_count) ||
-        !space<output_port>(bytes, output_count) ||
-        !space<uint32_t>(bytes, output_count) ||
-        !space<cudaq_edem_fault_distribution>(bytes, shape.fault_ports_count) ||
-        !space<cudaq_edem_fault_group>(bytes, shape.fault_ports_count) ||
-        !space<uint64_t>(bytes, uint64_t(shape.fault_ports_count) + 1) ||
-        !space<uint64_t>(bytes, columns + 1) ||
-        !space<uint64_t>(bytes, columns) || !space<uint64_t>(bytes, nonzeros) ||
-        !space<uint32_t>(bytes, columns) || !space<double>(bytes, columns))
+    if (!reserve_scratch<cudaq_edem_matrix_block>(bytes, block_count) ||
+        !reserve_scratch<output_port>(bytes, output_count) ||
+        !reserve_scratch<uint32_t>(bytes, output_count) ||
+        !reserve_scratch<cudaq_edem_fault_distribution>(
+            bytes, shape.fault_ports_count) ||
+        !reserve_scratch<cudaq_edem_fault_group>(bytes,
+                                                 shape.fault_ports_count) ||
+        !reserve_scratch<uint64_t>(bytes,
+                                   uint64_t(shape.fault_ports_count) + 1) ||
+        !reserve_scratch<uint64_t>(bytes, columns + 1) ||
+        !reserve_scratch<uint64_t>(bytes, columns) ||
+        !reserve_scratch<uint64_t>(bytes, nonzeros) ||
+        !reserve_scratch<uint32_t>(bytes, columns) ||
+        !reserve_scratch<double>(bytes, columns))
       return CUDAQ_EDEM_INSUFFICIENT_CAPACITY;
     EDEM_TRY(storage.reserve(bytes, CUDAQ_EDEM_PACKED_ALIGNMENT));
     arena a{static_cast<std::byte *>(storage.data()), bytes};
@@ -190,7 +190,7 @@ struct responses {
       return sizes.empty() ? nullptr : sizes.data() + i;
     };
     return {shape,
-            nullptr,
+            {},
             nullptr,
             nullptr,
             faults.data(),
@@ -346,9 +346,9 @@ cudaq_edem_status cudaq_edem_coalesce_dem_columns(
   EDEM_TRY(data.load(value));
   EDEM_TRY(probabilities(*value, data, false));
   uint64_t bytes = 0;
-  if (!space<uint64_t>(bytes, data.columns) ||
-      !space<uint64_t>(bytes, data.columns) ||
-      !space<double>(bytes, data.columns))
+  if (!reserve_scratch<uint64_t>(bytes, data.columns) ||
+      !reserve_scratch<uint64_t>(bytes, data.columns) ||
+      !reserve_scratch<double>(bytes, data.columns))
     return CUDAQ_EDEM_INSUFFICIENT_CAPACITY;
   allocation workspace(scratch_allocator(memory));
   EDEM_TRY(workspace.reserve(bytes, CUDAQ_EDEM_PACKED_ALIGNMENT));
@@ -419,8 +419,8 @@ cudaq_edem_status cudaq_edem_coalesce_dem_columns(
   for (uint32_t kind = 0; kind < 3; ++kind)
     row_starts[kind + 1] = row_starts[kind] + widths[kind];
   bytes = 0;
-  if (!space<uint64_t>(bytes, 3 * (count + 1)) ||
-      !space<uint32_t>(bytes, data.nonzeros))
+  if (!reserve_scratch<uint64_t>(bytes, 3 * (count + 1)) ||
+      !reserve_scratch<uint32_t>(bytes, data.nonzeros))
     return CUDAQ_EDEM_INSUFFICIENT_CAPACITY;
   allocation matrices(scratch_allocator(memory));
   EDEM_TRY(matrices.reserve(bytes, CUDAQ_EDEM_PACKED_ALIGNMENT));
@@ -454,7 +454,7 @@ cudaq_edem_status cudaq_edem_coalesce_dem_columns(
                                       count ? 1u : 0u, &group};
   cudaq_edem_description description{
       {0, 0, count ? 1u : 0u, port_counts[0], port_counts[1], port_counts[2]},
-      nullptr,
+      {},
       nullptr,
       nullptr,
       count ? &fault : nullptr,

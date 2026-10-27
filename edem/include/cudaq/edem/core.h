@@ -69,11 +69,9 @@ typedef struct cudaq_edem_endpoint {
   uint32_t index;
 } cudaq_edem_endpoint;
 
-/* Producers assign id; equal ids denote the same code presentation, so
- * comparing ids is a complete equality test. Ids and names are each unique
- * within a code table. */
+/* The name identifies a code presentation and is unique within a code table.
+ * Presentations with equal names must have equal counts. */
 typedef struct cudaq_edem_code_presentation {
-  uint64_t id;
   const char *name;
   uint64_t name_size;
   uint32_t syndrome_count;
@@ -81,21 +79,11 @@ typedef struct cudaq_edem_code_presentation {
   uint32_t logical_qubit_count;
 } cudaq_edem_code_presentation;
 
-/* Producer input for cudaq_edem_code_table_construct. */
+/* Construction input: names are nonempty UTF-8 and unique. */
 typedef struct cudaq_edem_code_table {
   uint32_t code_count;
   const cudaq_edem_code_presentation *codes;
 } cudaq_edem_code_table;
-
-/* Trusted borrowed token for a checked code table, initialized only by a
- * successful cudaq_edem_code_table_construct. Build a table once and share it,
- * read-only, across any number of EDEM constructions. Its owner's bytes must
- * remain alive and unchanged while a description refers to it. The bytes are
- * private to this library and are not a packed exchange format. */
-typedef struct cudaq_edem_checked_code_table {
-  const void *data;
-  uint64_t size;
-} cudaq_edem_checked_code_table;
 
 typedef uint32_t cudaq_edem_fault_group_kind;
 enum { CUDAQ_EDEM_INDEPENDENT = 0, CUDAQ_EDEM_EXCLUSIVE = 1 };
@@ -136,18 +124,17 @@ typedef struct cudaq_edem_shape {
 } cudaq_edem_shape;
 
 /* Semantic construction input. Port arrays have the counts in shape. Code
- * bundles name indices into shared_code_table, in the order its codes were
- * supplied; it may be NULL when there are no code bundles. The packed EDEM
- * retains only the presentations its code bundles use. V widths are virtual
- * outcome counts, S widths are syndrome counts, L widths are 2*k. A block names
- * semantic endpoints, so producers never assemble flattened offsets or
- * port-binding tables. Omitted blocks are zero; duplicate endpoint pairs are
+ * bundles name indices into code_table, which construction checks; the packed
+ * EDEM retains only the presentations its code bundles use. V widths are
+ * virtual outcome counts, S widths are syndrome counts, L widths are 2*k. A
+ * block names semantic endpoints, so producers never assemble flattened offsets
+ * or port-binding tables. Omitted blocks are zero; duplicate endpoint pairs are
  * rejected. Blocks and presentations may be supplied in any order. Packing
  * orders them canonically, removes zero blocks and interns equal matrices.
  * These borrowed arrays and output storage must be disjoint. */
 typedef struct cudaq_edem_description {
   cudaq_edem_shape shape;
-  const cudaq_edem_checked_code_table *shared_code_table;
+  cudaq_edem_code_table code_table;
   const uint32_t *input_code_indices;
   const uint32_t *output_code_indices;
   const cudaq_edem_fault_distribution *fault_ports_distributions;
@@ -170,20 +157,6 @@ typedef struct cudaq_edem_view {
 
 uint32_t cudaq_edem_abi_version(void);
 const char *cudaq_edem_status_string(cudaq_edem_status);
-/* Check and copy a code table once: names are nonempty UTF-8, and ids and names
- * are each unique. Allocation follows cudaq_edem_construct; the owner must be
- * zero-initialized and empty, and failure preserves owner and result. The
- * input arrays are not retained. Indices are those of the input array. */
-cudaq_edem_status cudaq_edem_code_table_construct(
-    const cudaq_edem_code_table *table, const cudaq_gf2_memory *memory,
-    cudaq_gf2_owned_buffer *owner, cudaq_edem_checked_code_table *result);
-cudaq_edem_status
-cudaq_edem_code_table_get_count(const cudaq_edem_checked_code_table *table,
-                                uint32_t *count);
-cudaq_edem_status
-cudaq_edem_code_table_get_code(const cudaq_edem_checked_code_table *table,
-                               uint32_t index,
-                               cudaq_edem_code_presentation *code);
 /* One-call setup. NULL memory selects the heap; explicit resources never fall
  * back. Validation uses scratch only; construction also allocates through the
  * result resource and copies its deallocator/context into the owner. No options

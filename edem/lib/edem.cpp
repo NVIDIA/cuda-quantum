@@ -11,47 +11,23 @@
 #pragma GCC visibility pop
 #include "allocation.h"
 #include "storage.h"
+#include "vocabulary.h"
 #include "cudaq/edem/format.h"
 #include <float.h>
+#include <iterator>
 #include <math.h>
 using namespace cudaq_gf2_private;
+using namespace cudaq_edem_private;
 namespace {
-static_assert(sizeof(cudaq_edem_packed_code) == 24);
+static_assert(sizeof(cudaq_edem_packed_code) == 16);
 static_assert(sizeof(cudaq_edem_packed_fault) == 24);
 static_assert(sizeof(cudaq_edem_packed_group) == 24);
 static_assert(sizeof(double) == 8 && FLT_RADIX == 2 && DBL_MANT_DIG == 53 &&
               DBL_MAX_EXP == 1024);
-constexpr char code_prefix[] = "edem.code/";
-constexpr const char *free_names[] = {"edem.detector", "edem.fault",
-                                      "edem.observable", "edem.success"};
-constexpr uint32_t free_kinds[] = {CUDAQ_EDEM_DETECTOR, CUDAQ_EDEM_FAULT,
-                                   CUDAQ_EDEM_OBSERVABLE, CUDAQ_EDEM_SUCCESS};
 constexpr uint32_t required_sections[] = {CUDAQ_EDEM_SECTION_PRESENTATIONS,
                                           CUDAQ_EDEM_SECTION_DISTRIBUTIONS};
 cudaq_edem_status status(cudaq_gf2_status s) {
   return static_cast<cudaq_edem_status>(s);
-}
-// Private checked code table bytes: a header, entries in input order, then
-// names. Ranks give each entry's position in name order.
-struct table_header {
-  uint32_t code_count, reserved;
-};
-struct table_entry {
-  uint64_t id, name_offset, name_size;
-  uint32_t syndrome_count, virtual_outcome_count, logical_qubit_count, rank;
-};
-static_assert(sizeof(table_header) == 8 && sizeof(table_entry) == 40);
-uint32_t table_count(const cudaq_edem_checked_code_table &t) {
-  return static_cast<const table_header *>(t.data)->code_count;
-}
-const table_entry &table_at(const cudaq_edem_checked_code_table &t,
-                            uint32_t i) {
-  return reinterpret_cast<const table_entry *>(
-      static_cast<const std::byte *>(t.data) + sizeof(table_header))[i];
-}
-const char *table_name(const cudaq_edem_checked_code_table &t,
-                       const table_entry &e) {
-  return static_cast<const char *>(t.data) + e.name_offset;
 }
 struct plan {
   uint64_t names = 0, fault_bytes = 0, total = 0;
@@ -62,31 +38,37 @@ cudaq_edem_status describe(const cudaq_edem_description *d, plan &p) {
   if (!d)
     return CUDAQ_EDEM_INVALID_ARGUMENT;
   const auto &s = d->shape;
-  const auto *table = d->shared_code_table;
+  const auto &table = d->code_table;
   const uint64_t code_bundles =
       uint64_t{s.input_code_count} + s.output_code_count;
-  if ((code_bundles && (!table || !table->data)) ||
-      code_bundles > UINT32_MAX - 4 || d->block_count > UINT32_MAX ||
+  if (!array_ok(table.codes, table.code_count) ||
+      code_bundles > UINT32_MAX - free_type_count ||
+      d->block_count > UINT32_MAX ||
       uint64_t{s.fault_ports_count} + s.input_code_count > UINT32_MAX ||
       uint64_t{s.detector_ports_count} + s.observable_ports_count +
               s.success_ports_count + s.output_code_count >
           UINT32_MAX ||
-      !array_ok(d->input_code_indices, s.input_code_count, 4) ||
-      !array_ok(d->output_code_indices, s.output_code_count, 4) ||
-      !array_ok(d->fault_ports_distributions, s.fault_ports_count,
-                sizeof(*d->fault_ports_distributions)) ||
-      !array_ok(d->detector_ports_sizes, s.detector_ports_count, 4) ||
-      !array_ok(d->observable_ports_sizes, s.observable_ports_count, 4) ||
-      !array_ok(d->success_ports_sizes, s.success_ports_count, 4) ||
-      !array_ok(d->blocks, d->block_count, sizeof(*d->blocks)))
+      !array_ok(d->input_code_indices, s.input_code_count) ||
+      !array_ok(d->output_code_indices, s.output_code_count) ||
+      !array_ok(d->fault_ports_distributions, s.fault_ports_count) ||
+      !array_ok(d->detector_ports_sizes, s.detector_ports_count) ||
+      !array_ok(d->observable_ports_sizes, s.observable_ports_count) ||
+      !array_ok(d->success_ports_sizes, s.success_ports_count) ||
+      !array_ok(d->blocks, d->block_count))
     return CUDAQ_EDEM_INVALID_ARGUMENT;
+  for (uint32_t i = 0; i < table.code_count; ++i) {
+    auto c = table.codes[i];
+    if (!array_ok(c.name, c.name_size) ||
+        c.name_size > SIZE_MAX - code_prefix_size)
+      return CUDAQ_EDEM_INVALID_ARGUMENT;
+  }
   p.inputs = s.fault_ports_count + s.input_code_count;
   p.outputs = s.detector_ports_count + s.observable_ports_count +
               s.success_ports_count + s.output_code_count;
-  p.wires = uint64_t{s.fault_ports_count} + s.detector_ports_count +
-            s.observable_ports_count + s.success_ports_count +
-            3 * (uint64_t{s.input_code_count} + s.output_code_count);
-  uint64_t ignored;
+  p.wires =
+      uint64_t{s.fault_ports_count} + s.detector_ports_count +
+      s.observable_ports_count + s.success_ports_count +
+      code_wire_count * (uint64_t{s.input_code_count} + s.output_code_count);
   // Names are reserved per code bundle, an upper bound on the codes used.
   for (cudaq_edem_endpoint_direction direction = CUDAQ_EDEM_INPUT;
        direction <= CUDAQ_EDEM_OUTPUT; ++direction) {
@@ -96,45 +78,47 @@ cudaq_edem_status describe(const cudaq_edem_description *d, plan &p) {
                               ? d->output_code_indices
                               : d->input_code_indices;
     for (uint32_t i = 0; i < count; ++i) {
-      if (indices[i] >= table_count(*table))
+      if (indices[i] >= table.code_count)
         return CUDAQ_EDEM_INVALID_CONTENT;
-      if (!reserve(p.names, table_at(*table, indices[i]).name_size + 10, 1,
-                   ignored, 1))
+      if (!reserve_packed<char>(p.names, code_prefix_size +
+                                             table.codes[indices[i]].name_size))
         return CUDAQ_EDEM_INSUFFICIENT_CAPACITY;
     }
   }
-  if (!reserve(p.fault_bytes, s.fault_ports_count,
-               sizeof(cudaq_edem_packed_fault), ignored))
+  if (!reserve_packed<cudaq_edem_packed_fault>(p.fault_bytes,
+                                               s.fault_ports_count))
     return CUDAQ_EDEM_INSUFFICIENT_CAPACITY;
   for (uint32_t i = 0; i < s.fault_ports_count; ++i) {
     auto f = d->fault_ports_distributions[i];
-    if (!array_ok(f.groups, f.group_count, sizeof(*f.groups)))
+    if (!array_ok(f.groups, f.group_count))
       return CUDAQ_EDEM_INVALID_ARGUMENT;
     if (f.group_count > f.size || (f.size && !f.group_count))
       return CUDAQ_EDEM_INVALID_CONTENT;
     p.max_groups = std::max(p.max_groups, f.group_count);
     p.max_faults = std::max(p.max_faults, f.size);
-    if (!reserve(p.fault_bytes, f.group_count, sizeof(cudaq_edem_packed_group),
-                 ignored))
+    if (!reserve_packed<cudaq_edem_packed_group>(p.fault_bytes, f.group_count))
       return CUDAQ_EDEM_INSUFFICIENT_CAPACITY;
     for (uint32_t j = 0; j < f.group_count; ++j)
-      if (!reserve(p.fault_bytes, f.groups[j].size, 4, ignored, 4) ||
-          !reserve(p.fault_bytes, f.groups[j].size, 8, ignored))
+      if (!reserve_packed<uint32_t>(p.fault_bytes, f.groups[j].size) ||
+          !reserve_packed<double>(p.fault_bytes, f.groups[j].size))
         return CUDAQ_EDEM_INSUFFICIENT_CAPACITY;
   }
+  // Mirrors the arena layout in lower.
   uint64_t &n = p.total;
-  if (!reserve(n, code_bundles, 4, ignored) ||
-      !reserve(n, code_bundles + 4, sizeof(cudaq_gf2_bundle_type), ignored) ||
-      !reserve(n, p.inputs, sizeof(cudaq_gf2_bundle), ignored) ||
-      !reserve(n, p.outputs, sizeof(cudaq_gf2_bundle), ignored) ||
-      !reserve(n, p.wires, 4, ignored) ||
-      !reserve(n, d->block_count, sizeof(cudaq_gf2_map_matrix_block),
-               ignored) ||
-      !reserve(n, p.names, 1, ignored) ||
-      !reserve(n, code_bundles, sizeof(cudaq_edem_packed_code), ignored) ||
-      !reserve(n, p.fault_bytes, 1, ignored) ||
-      !reserve(n, p.max_groups, 4, ignored) ||
-      !reserve(n, (uint64_t{p.max_faults} + 7) / 8, 1, ignored))
+  if (!reserve_scratch<uint32_t>(n, table.code_count) ||
+      !reserve_scratch<uint32_t>(n, table.code_count) ||
+      !reserve_scratch<uint32_t>(n, code_bundles) ||
+      !reserve_scratch<cudaq_gf2_bundle_type>(n,
+                                              code_bundles + free_type_count) ||
+      !reserve_scratch<cudaq_gf2_bundle>(n, p.inputs) ||
+      !reserve_scratch<cudaq_gf2_bundle>(n, p.outputs) ||
+      !reserve_scratch<uint32_t>(n, p.wires) ||
+      !reserve_scratch<cudaq_gf2_map_matrix_block>(n, d->block_count) ||
+      !reserve_scratch<char>(n, p.names) ||
+      !reserve_scratch<cudaq_edem_packed_code>(n, code_bundles) ||
+      !reserve_scratch<uint8_t>(n, p.fault_bytes) ||
+      !reserve_scratch<uint32_t>(n, p.max_groups) ||
+      !reserve_scratch<uint8_t>(n, (uint64_t{p.max_faults} + 7) / 8))
     return CUDAQ_EDEM_INSUFFICIENT_CAPACITY;
   return CUDAQ_EDEM_OK;
 }
@@ -149,8 +133,7 @@ cudaq_edem_status check_distribution(uint32_t size, uint32_t count, Group group,
   uint32_t independent = 0;
   for (uint32_t i = 0; i < count; ++i) {
     auto g = group(i);
-    if (!array_ok(g.fault_ids, g.size, 4) ||
-        !array_ok(g.probabilities, g.size, 8))
+    if (!array_ok(g.fault_ids, g.size) || !array_ok(g.probabilities, g.size))
       return CUDAQ_EDEM_INVALID_ARGUMENT;
     if (!g.size || g.kind > CUDAQ_EDEM_EXCLUSIVE ||
         (g.kind == CUDAQ_EDEM_EXCLUSIVE && g.size < 2) ||
@@ -238,11 +221,13 @@ cudaq_edem_status lower(const cudaq_edem_description *d,
   if (allocated != CUDAQ_GF2_OK)
     return status(allocated);
   const auto &s = d->shape;
-  const auto *table = d->shared_code_table;
+  const auto &table = d->code_table;
   const uint32_t code_bundles = s.input_code_count + s.output_code_count;
   arena a{static_cast<std::byte *>(scratch.data()), p.total};
+  auto order = a.take<uint32_t>(table.code_count),
+       rank = a.take<uint32_t>(table.code_count);
   auto used = a.take<uint32_t>(code_bundles);
-  auto types = a.take<cudaq_gf2_bundle_type>(code_bundles + 4);
+  auto types = a.take<cudaq_gf2_bundle_type>(code_bundles + free_type_count);
   auto inputs = a.take<cudaq_gf2_bundle>(p.inputs),
        outputs = a.take<cudaq_gf2_bundle>(p.outputs);
   auto widths = a.take<uint32_t>(p.wires);
@@ -252,25 +237,38 @@ cudaq_edem_status lower(const cudaq_edem_description *d,
   auto fault_data = a.take<uint8_t>(p.fault_bytes);
   auto group_order = a.take<uint32_t>(p.max_groups);
   auto seen = a.take<uint8_t>((uint64_t{p.max_faults} + 7) / 8);
-  // The table was checked when built; keep the codes used, in name order.
+  // Check the whole table, then keep the codes used, in name order.
+  for (uint32_t i = 0; i < table.code_count; ++i)
+    if (!utf8_name(table.codes[i].name, table.codes[i].name_size) ||
+        table.codes[i].logical_qubit_count > UINT32_MAX / 2)
+      return CUDAQ_EDEM_INVALID_CONTENT;
+  auto name_less = [&](uint32_t x, uint32_t y) {
+    const auto &u = table.codes[x], &v = table.codes[y];
+    return name_compare(u.name, u.name_size, v.name, v.name_size) < 0;
+  };
+  sort_indices(order, name_less);
+  for (uint32_t i = 0; i < table.code_count; ++i) {
+    if (i && !name_less(order[i - 1], order[i]))
+      return CUDAQ_EDEM_INVALID_CONTENT;
+    rank[order[i]] = i;
+  }
   std::copy_n(d->input_code_indices, s.input_code_count, used.begin());
   std::copy_n(d->output_code_indices, s.output_code_count,
               used.begin() + s.input_code_count);
-  auto by_rank = [&](uint32_t x, uint32_t y) {
-    return table_at(*table, x).rank < table_at(*table, y).rank;
-  };
+  auto by_rank = [&](uint32_t x, uint32_t y) { return rank[x] < rank[y]; };
   std::sort(used.begin(), used.end(), by_rank);
   const uint32_t code_count = static_cast<uint32_t>(
       std::unique(used.begin(), used.end()) - used.begin());
   uint64_t cursor = 0;
   for (uint32_t i = 0; i < code_count; ++i) {
-    const auto &c = table_at(*table, used[i]);
+    const auto &c = table.codes[used[i]];
     char *name = names.data() + cursor;
-    memcpy(name, code_prefix, 10);
-    memcpy(name + 10, table_name(*table, c), c.name_size);
-    cursor += 10 + c.name_size;
-    types[i] = {name, 10 + c.name_size, CUDAQ_GF2_INTERFACE, 3};
-    codes[i] = {c.id, i, c.syndrome_count, c.virtual_outcome_count,
+    memcpy(name, code_prefix, code_prefix_size);
+    memcpy(name + code_prefix_size, c.name, c.name_size);
+    cursor += code_prefix_size + c.name_size;
+    types[i] = {name, code_prefix_size + c.name_size, CUDAQ_GF2_INTERFACE,
+                code_wire_count};
+    codes[i] = {i, c.syndrome_count, c.virtual_outcome_count,
                 c.logical_qubit_count};
   }
   auto local = [&](uint32_t index) {
@@ -279,9 +277,9 @@ cudaq_edem_status lower(const cudaq_edem_description *d,
                                                   index, by_rank) -
                                  used.begin());
   };
-  for (uint32_t i = 0; i < 4; ++i)
+  for (uint32_t i = 0; i < free_type_count; ++i)
     types[code_count + i] = {free_names[i], strlen(free_names[i]),
-                             CUDAQ_GF2_FREE, 1};
+                             CUDAQ_GF2_FREE, free_wire_count};
   uint64_t wi = 0;
   for (cudaq_edem_endpoint_direction direction = CUDAQ_EDEM_INPUT;
        direction <= CUDAQ_EDEM_OUTPUT; ++direction) {
@@ -294,16 +292,16 @@ cudaq_edem_status lower(const cudaq_edem_description *d,
     for (uint32_t i = 0; i < free_count; ++i) {
       uint32_t type, width;
       if (direction == CUDAQ_EDEM_INPUT) {
-        type = 1;
+        type = free_type(CUDAQ_EDEM_FAULT);
         width = d->fault_ports_distributions[i].size;
       } else if (i < s.detector_ports_count) {
-        type = 0;
+        type = free_type(CUDAQ_EDEM_DETECTOR);
         width = d->detector_ports_sizes[i];
       } else if (i < s.detector_ports_count + s.observable_ports_count) {
-        type = 2;
+        type = free_type(CUDAQ_EDEM_OBSERVABLE);
         width = d->observable_ports_sizes[i - s.detector_ports_count];
       } else {
-        type = 3;
+        type = free_type(CUDAQ_EDEM_SUCCESS);
         width = d->success_ports_sizes[i - s.detector_ports_count -
                                        s.observable_ports_count];
       }
@@ -322,7 +320,7 @@ cudaq_edem_status lower(const cudaq_edem_description *d,
       widths[wi + 1] = c.syndrome_count;
       widths[wi + 2] = 2 * c.logical_qubit_count;
       bundles[free_count + i] = {id, 0, widths.data() + wi};
-      wi += 3;
+      wi += code_wire_count;
     }
   }
   for (uint32_t i = 0; i < d->block_count; ++i) {
@@ -346,7 +344,7 @@ cudaq_edem_status lower(const cudaq_edem_description *d,
     if (st != CUDAQ_EDEM_OK)
       return st;
     uint64_t groups;
-    reserve(cursor, f.group_count, sizeof(cudaq_edem_packed_group), groups);
+    reserve_packed<cudaq_edem_packed_group>(cursor, f.group_count, groups);
     faults[i] = {i, f.size, f.group_count, 0, groups};
     auto ordered = group_order.first(f.group_count);
     sort_indices(ordered, [&](uint32_t x, uint32_t y) {
@@ -357,12 +355,13 @@ cudaq_edem_status lower(const cudaq_edem_description *d,
     for (uint32_t j = 0; j < f.group_count; ++j) {
       auto g = f.groups[ordered[j]];
       uint64_t fault_ids, probabilities;
-      reserve(cursor, g.size, 4, fault_ids, 4);
-      reserve(cursor, g.size, 8, probabilities);
+      reserve_packed<uint32_t>(cursor, g.size, fault_ids);
+      reserve_packed<double>(cursor, g.size, probabilities);
       reinterpret_cast<cudaq_edem_packed_group *>(
           fault_data.data() + groups)[j] = {g.kind, g.size, fault_ids,
                                             probabilities};
-      memcpy(fault_data.data() + fault_ids, g.fault_ids, uint64_t{g.size} * 4);
+      memcpy(fault_data.data() + fault_ids, g.fault_ids,
+             uint64_t{g.size} * sizeof(*g.fault_ids));
       auto *values =
           reinterpret_cast<double *>(fault_data.data() + probabilities);
       for (uint32_t k = 0; k < g.size; ++k)
@@ -374,10 +373,16 @@ cudaq_edem_status lower(const cudaq_edem_description *d,
        code_count * sizeof(cudaq_edem_packed_code), codes.data()},
       {CUDAQ_EDEM_SECTION_DISTRIBUTIONS, CUDAQ_GF2_SECTION_REQUIRED,
        s.fault_ports_count, fault_data.size(), fault_data.data()}};
-  cudaq_gf2_map_description map = {
-      code_count + 4, p.inputs,     p.outputs,     2,
-      d->block_count, types.data(), inputs.data(), outputs.data(),
-      blocks.data(),  sections};
+  cudaq_gf2_map_description map = {code_count + free_type_count,
+                                   p.inputs,
+                                   p.outputs,
+                                   std::size(required_sections),
+                                   d->block_count,
+                                   types.data(),
+                                   inputs.data(),
+                                   outputs.data(),
+                                   blocks.data(),
+                                   sections};
   return status(op(map));
 }
 struct sections {
@@ -399,21 +404,21 @@ cudaq_edem_status inspect_sections(sections &s, uint64_t &scratch) {
   s.code_data = static_cast<const cudaq_edem_packed_code *>(s.codes.data);
   s.fault_data = static_cast<const cudaq_edem_packed_fault *>(s.faults.data);
   reader r{static_cast<const uint8_t *>(s.faults.data), s.faults.bytes};
-  if (!r.take(0, s.faults.count, sizeof(cudaq_edem_packed_fault)))
+  if (!r.take<cudaq_edem_packed_fault>(0, s.faults.count))
     return CUDAQ_EDEM_INVALID_CONTENT;
   scratch = 0;
   for (uint32_t i = 0; i < s.faults.count; ++i) {
     auto f = s.fault_data[i];
     if (f.reserved || (i && s.fault_data[i - 1].bundle >= f.bundle) ||
         f.group_count > f.size || (f.size && !f.group_count) ||
-        !r.take(f.groups, f.group_count, sizeof(cudaq_edem_packed_group)))
+        !r.take<cudaq_edem_packed_group>(f.groups, f.group_count))
       return CUDAQ_EDEM_INVALID_CONTENT;
     scratch = std::max(scratch, (uint64_t{f.size} + 7) / 8);
     auto *groups =
         reinterpret_cast<const cudaq_edem_packed_group *>(r.data + f.groups);
     for (uint32_t j = 0; j < f.group_count; ++j)
-      if (!r.take(groups[j].fault_ids, groups[j].size, 4, 4) ||
-          !r.take(groups[j].probabilities, groups[j].size, 8))
+      if (!r.take<uint32_t>(groups[j].fault_ids, groups[j].size) ||
+          !r.take<double>(groups[j].probabilities, groups[j].size))
         return CUDAQ_EDEM_INVALID_CONTENT;
   }
   return r.end() ? CUDAQ_EDEM_OK : CUDAQ_EDEM_INVALID_CONTENT;
@@ -455,105 +460,6 @@ const char *cudaq_edem_status_string(cudaq_edem_status s) {
   return cudaq_gf2_status_string(static_cast<cudaq_gf2_status>(s));
 }
 cudaq_gf2_schema cudaq_edem_schema(void) { return {required_sections, 2, 0}; }
-cudaq_edem_status cudaq_edem_code_table_construct(
-    const cudaq_edem_code_table *table, const cudaq_gf2_memory *memory,
-    cudaq_gf2_owned_buffer *owner, cudaq_edem_checked_code_table *out) {
-  if (!table || !owner || !out || !empty_owner(*owner) ||
-      !array_ok(table->codes, table->code_count, sizeof(*table->codes)))
-    return CUDAQ_EDEM_INVALID_ARGUMENT;
-  const auto scratch_resource = scratch_allocator(memory),
-             result_resource = result_allocator(memory);
-  if (!valid_allocator(scratch_resource) || !valid_allocator(result_resource))
-    return CUDAQ_EDEM_INVALID_ARGUMENT;
-  const uint32_t count = table->code_count;
-  const auto *codes = table->codes;
-  uint64_t bytes = sizeof(table_header), entries, ignored;
-  if (!reserve(bytes, count, sizeof(table_entry), entries))
-    return CUDAQ_EDEM_INSUFFICIENT_CAPACITY;
-  for (uint32_t i = 0; i < count; ++i) {
-    if (!array_ok(codes[i].name, codes[i].name_size, 1))
-      return CUDAQ_EDEM_INVALID_ARGUMENT;
-    if (!codes[i].name_size || codes[i].name_size > SIZE_MAX - 10 ||
-        !utf8_name(codes[i].name, codes[i].name_size) ||
-        codes[i].logical_qubit_count > UINT32_MAX / 2)
-      return CUDAQ_EDEM_INVALID_CONTENT;
-    if (!reserve(bytes, codes[i].name_size, 1, ignored, 1))
-      return CUDAQ_EDEM_INSUFFICIENT_CAPACITY;
-  }
-  uint64_t scratch_bytes = 0;
-  if (!reserve(scratch_bytes, count, 4, ignored) ||
-      !reserve(scratch_bytes, count, 4, ignored))
-    return CUDAQ_EDEM_INSUFFICIENT_CAPACITY;
-  allocation scratch(scratch_resource);
-  auto allocated = scratch.reserve(scratch_bytes, CUDAQ_EDEM_PACKED_ALIGNMENT);
-  if (allocated != CUDAQ_GF2_OK)
-    return status(allocated);
-  arena a{static_cast<std::byte *>(scratch.data()), scratch_bytes};
-  auto order = a.take<uint32_t>(count), rank = a.take<uint32_t>(count);
-  sort_indices(
-      order, [&](uint32_t x, uint32_t y) { return codes[x].id < codes[y].id; });
-  for (uint32_t i = 1; i < count; ++i)
-    if (codes[order[i - 1]].id == codes[order[i]].id)
-      return CUDAQ_EDEM_INVALID_CONTENT;
-  sort_indices(order, [&](uint32_t x, uint32_t y) {
-    return name_compare(codes[x].name, codes[x].name_size, codes[y].name,
-                        codes[y].name_size) < 0;
-  });
-  for (uint32_t i = 0; i < count; ++i) {
-    if (i &&
-        !name_compare(codes[order[i - 1]].name, codes[order[i - 1]].name_size,
-                      codes[order[i]].name, codes[order[i]].name_size))
-      return CUDAQ_EDEM_INVALID_CONTENT;
-    rank[order[i]] = i;
-  }
-  allocation storage(result_resource);
-  allocated = storage.reserve(bytes, CUDAQ_EDEM_PACKED_ALIGNMENT);
-  if (allocated != CUDAQ_GF2_OK)
-    return status(allocated);
-  auto *data = static_cast<std::byte *>(storage.data());
-  memset(data, 0, static_cast<size_t>(bytes));
-  *reinterpret_cast<table_header *>(data) = {count, 0};
-  auto *entry = reinterpret_cast<table_entry *>(data + entries);
-  uint64_t cursor = entries + uint64_t{count} * sizeof(table_entry);
-  for (uint32_t i = 0; i < count; ++i) {
-    const auto &c = codes[i];
-    entry[i] = {c.id,
-                cursor,
-                c.name_size,
-                c.syndrome_count,
-                c.virtual_outcome_count,
-                c.logical_qubit_count,
-                rank[i]};
-    memcpy(data + cursor, c.name, static_cast<size_t>(c.name_size));
-    cursor += c.name_size;
-  }
-  *owner = storage.relinquish();
-  *out = {owner->data, bytes};
-  return CUDAQ_EDEM_OK;
-}
-cudaq_edem_status
-cudaq_edem_code_table_get_count(const cudaq_edem_checked_code_table *table,
-                                uint32_t *count) {
-  if (!table || !table->data || !count)
-    return CUDAQ_EDEM_INVALID_ARGUMENT;
-  *count = table_count(*table);
-  return CUDAQ_EDEM_OK;
-}
-cudaq_edem_status
-cudaq_edem_code_table_get_code(const cudaq_edem_checked_code_table *table,
-                               uint32_t index,
-                               cudaq_edem_code_presentation *out) {
-  if (!table || !table->data || !out || index >= table_count(*table))
-    return CUDAQ_EDEM_INVALID_ARGUMENT;
-  const auto &e = table_at(*table, index);
-  *out = {e.id,
-          table_name(*table, e),
-          e.name_size,
-          e.syndrome_count,
-          e.virtual_outcome_count,
-          e.logical_qubit_count};
-  return CUDAQ_EDEM_OK;
-}
 cudaq_edem_status cudaq_edem_validate(const cudaq_edem_description *d,
                                       const cudaq_gf2_memory *memory) {
   cudaq_gf2_memory resources{};
@@ -609,28 +515,21 @@ cudaq_edem_status cudaq_edem_check(const cudaq_gf2_map_view *view,
   auto st = inspect(view, s, required);
   if (st != CUDAQ_EDEM_OK)
     return st;
-  // Scratch holds a distribution bitset, then the sorted code ids, which are
-  // later reused as one used flag per code.
-  uint64_t bytes = required, id_offset;
-  if (!reserve(bytes, s.codes.count, sizeof(uint64_t), id_offset))
+  // Scratch holds a distribution bitset, then one used flag per code.
+  uint64_t bytes = required, used_offset;
+  if (!reserve_scratch<uint8_t>(bytes, s.codes.count, used_offset))
     return CUDAQ_EDEM_INSUFFICIENT_CAPACITY;
   allocation scratch(resource);
   auto allocated = scratch.reserve(bytes, CUDAQ_EDEM_PACKED_ALIGNMENT);
   if (allocated != CUDAQ_GF2_OK)
     return status(allocated);
-  auto *sorted_ids = reinterpret_cast<uint64_t *>(
-      static_cast<std::byte *>(scratch.data()) + id_offset);
-  for (uint64_t i = 0; i < s.codes.count; ++i)
-    sorted_ids[i] = s.code_data[i].id;
-  std::sort(sorted_ids, sorted_ids + s.codes.count);
-  if (std::adjacent_find(sorted_ids, sorted_ids + s.codes.count) !=
-      sorted_ids + s.codes.count)
-    return CUDAQ_EDEM_INVALID_CONTENT;
-  auto *used = reinterpret_cast<uint8_t *>(sorted_ids);
+  auto *used = reinterpret_cast<uint8_t *>(
+      static_cast<std::byte *>(scratch.data()) + used_offset);
   std::fill_n(used, s.codes.count, uint8_t{0});
   cudaq_gf2_map_shape shape;
   if (cudaq_gf2_map_get_shape(view, &shape) != CUDAQ_GF2_OK ||
-      s.codes.count > UINT32_MAX - 4 || shape.type_count != s.codes.count + 4)
+      s.codes.count > UINT32_MAX - free_type_count ||
+      shape.type_count != s.codes.count + free_type_count)
     return CUDAQ_EDEM_INVALID_CONTENT;
   for (uint32_t i = 0; i < shape.type_count; ++i) {
     cudaq_gf2_bundle_type t;
@@ -638,10 +537,11 @@ cudaq_edem_status cudaq_edem_check(const cudaq_gf2_map_view *view,
     if (i < s.codes.count) {
       auto c = s.code_data[i];
       if (c.type != i || c.logical_qubit_count > UINT32_MAX / 2 ||
-          t.role != CUDAQ_GF2_INTERFACE || t.wire_count != 3 ||
-          t.name_size <= 10 || memcmp(t.name, code_prefix, 10))
+          t.role != CUDAQ_GF2_INTERFACE || t.wire_count != code_wire_count ||
+          t.name_size <= code_prefix_size ||
+          memcmp(t.name, code_prefix, code_prefix_size))
         return CUDAQ_EDEM_INVALID_CONTENT;
-    } else if (t.role != CUDAQ_GF2_FREE || t.wire_count != 1 ||
+    } else if (t.role != CUDAQ_GF2_FREE || t.wire_count != free_wire_count ||
                !same_name(t, free_names[i - s.codes.count]))
       return CUDAQ_EDEM_INVALID_CONTENT;
   }
@@ -714,12 +614,8 @@ cudaq_edem_status cudaq_edem_get_code(const cudaq_edem_view *value, uint32_t i,
   cudaq_gf2_bundle_type t;
   if (cudaq_gf2_map_get_type(view, c.type, &t) != CUDAQ_GF2_OK)
     return CUDAQ_EDEM_INVALID_ARGUMENT;
-  *out = {c.id,
-          t.name + 10,
-          t.name_size - 10,
-          c.syndrome_count,
-          c.virtual_outcome_count,
-          c.logical_qubit_count};
+  *out = {t.name + code_prefix_size, t.name_size - code_prefix_size,
+          c.syndrome_count, c.virtual_outcome_count, c.logical_qubit_count};
   return CUDAQ_EDEM_OK;
 }
 cudaq_edem_status cudaq_edem_get_code_count(const cudaq_edem_view *value,
@@ -751,7 +647,7 @@ cudaq_edem_describe_wire(const cudaq_edem_view *value,
   cudaq_gf2_bundle bundle;
   cudaq_gf2_map_get_bundle(view, direction, wire.bundle, &bundle);
   bool code = bundle.type < section.count;
-  if (wire.wire >= (code ? 3u : 1u))
+  if (wire.wire >= (code ? code_wire_count : free_wire_count))
     return CUDAQ_EDEM_INVALID_ARGUMENT;
   uint32_t index = 0;
   for (uint32_t i = 0; i < wire.bundle; ++i) {

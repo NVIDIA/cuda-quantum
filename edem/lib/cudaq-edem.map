@@ -10,9 +10,6 @@ CUDAQ_EDEM_0.1 {
   global:
     cudaq_edem_abi_version;
     cudaq_edem_check;
-    cudaq_edem_code_table_construct;
-    cudaq_edem_code_table_get_code;
-    cudaq_edem_code_table_get_count;
     cudaq_edem_coalesce_dem_columns;
     cudaq_edem_compose_chain;
     cudaq_edem_construct;

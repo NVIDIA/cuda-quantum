@@ -316,19 +316,16 @@ EDEM uses four reserved, single-wire free types: `edem.fault`,
 `edem.detector`, `edem.observable`, and `edem.success`. It retains all four in
 its type table, including unused types. A presentation named `P` creates the
 three-wire interface type `edem.code/P`. The separate, name-sorted presentation
-table records a producer-assigned 64-bit `id` and `s`, `v` and `k` explicitly.
-Ids and names are each unique, and equal ids denote the same presentation. A
-packed EDEM retains exactly the presentations its code bundles use. Every bundle
-using that code type must have the recorded `(v,s,2k)` widths. Presentation
-names identify generator ordering and logical representatives; producers supply
-their code algebra and coefficients.
+table records `s`, `v` and `k` explicitly. Names are unique and identify a
+presentation; equal names must have equal counts. A packed EDEM retains exactly
+the presentations its code bundles use. Every bundle using that code type must
+have the recorded `(v,s,2k)` widths. Presentation names identify generator
+ordering and logical representatives; producers supply their code algebra and
+coefficients.
 
-Producers build a code table once with `cudaq_edem_code_table_construct`, which
-checks names and ids and copies the presentations into an owned buffer. Any
-number of descriptions then share it through `shared_code_table`, naming codes
-by their index in the array that built the table. Construction neither copies
-nor rechecks the table, and its cost does not grow with the table size. The
-table owner must outlive those constructions, not their results.
+A description carries its presentations in `code_table`, and code bundles name
+them by index into that array. Construction checks the whole table: names are
+nonempty UTF-8 and unique.
 
 `cudaq_edem_shape` holds only port counts, with `input_code_count` and
 `output_code_count` counting code bundles. `block_count` sits beside `blocks`
@@ -369,17 +366,14 @@ adds one late data fault to the outgoing syndrome:
 
 ```python
 from cudaq_edem import (
-    CodePresentation, CodeTable, EDEM, Endpoint, FaultDistribution,
-    MatrixBlock, PortKind, SparseMatrix,
+    CodePresentation, EDEM, Endpoint, FaultDistribution, MatrixBlock, PortKind,
+    SparseMatrix,
 )
 
-# Build once; share with every EDEM that uses these codes.
-codes = CodeTable([CodePresentation(1, "repetition-3", syndrome_count=2,
-                                    virtual_outcome_count=2,
-                                    logical_qubit_count=1)])
 identity = SparseMatrix(2, 2, [(0, 0), (1, 1)])
 model = EDEM(
-    code_table=codes,
+    codes=[CodePresentation("repetition-3", syndrome_count=2,
+                            virtual_outcome_count=2, logical_qubit_count=1)],
     inputs=[0], outputs=[0],
     faults=[FaultDistribution.independent([0.01])],
     blocks=[
@@ -451,7 +445,7 @@ Extension schemas start at `0x10000`. The five required map sections are:
 | 3 | Output bundles, wire widths and vector offsets |
 | 4 | Sparse block bindings |
 | 5 | Interned CSC matrices |
-| `0x10000` | EDEM presentation table: id, type ID, s, v, k |
+| `0x10000` | EDEM presentation table: type ID, s, v, k |
 | `0x10001` | EDEM distributions associated with input fault bundles |
 
 Required payloads follow the header, optional payloads follow those, and the
@@ -486,9 +480,9 @@ meaning.
 `cudaq/edem/composition.h` provides `cudaq_edem_compose_chain`,
 `cudaq_edem_is_dem`, and `cudaq_edem_project_dem`. Serial composition connects
 every output code bundle to the same ordinal input bundle of the next
-occurrence. Counts and code presentation ids must match. The first input and
-last output boundaries remain exposed. Repeated definitions create distinct
-occurrence fault ports with their original indicators and exact
+occurrence. Counts and code presentations (name, `s`, `v` and `k`) must match.
+The first input and last output boundaries remain exposed. Repeated definitions
+create distinct occurrence fault ports with their original indicators and exact
 independent/exclusive distributions.
 
 The C++17 conveniences in `cudaq/edem/composition.hpp` use `PackedEDEM` and

@@ -130,15 +130,10 @@ struct Endpoint {
 };
 
 struct CodePresentation {
-  uint64_t id;
   std::string name;
   uint32_t syndrome_count, virtual_outcome_count, logical_qubit_count;
   cudaq_edem_code_presentation view() const {
-    return {id,
-            name.data(),
-            name.size(),
-            syndrome_count,
-            virtual_outcome_count,
+    return {name.data(), name.size(), syndrome_count, virtual_outcome_count,
             logical_qubit_count};
   }
 };
@@ -186,46 +181,6 @@ struct MatrixBlock {
   SparseMatrix matrix;
   cudaq_edem_matrix_block view() const {
     return {output.view(), input.view(), matrix.view()};
-  }
-};
-
-class CodeTable {
-  cudaq_gf2_owned_buffer storage{};
-  cudaq_edem_checked_code_table checked{};
-
-public:
-  explicit CodeTable(const std::vector<CodePresentation> &codes) {
-    if (codes.size() > UINT32_MAX)
-      throw nb::value_error("too many code presentations");
-    std::vector<cudaq_edem_code_presentation> views;
-    for (const auto &code : codes)
-      views.push_back(code.view());
-    const cudaq_edem_code_table table{static_cast<uint32_t>(views.size()),
-                                      views.data()};
-    check(cudaq_edem_code_table_construct(&table, nullptr, &storage, &checked));
-  }
-  CodeTable(const CodeTable &) = delete;
-  CodeTable &operator=(const CodeTable &) = delete;
-  ~CodeTable() { cudaq_gf2_owned_buffer_release(&storage); }
-
-  const cudaq_edem_checked_code_table *view() const { return &checked; }
-
-  uint32_t size() const {
-    uint32_t result;
-    check(cudaq_edem_code_table_get_count(&checked, &result));
-    return result;
-  }
-
-  std::vector<CodePresentation> codes() const {
-    std::vector<CodePresentation> result;
-    for (uint32_t i = 0, n = size(); i < n; ++i) {
-      cudaq_edem_code_presentation code;
-      check(cudaq_edem_code_table_get_code(&checked, i, &code));
-      result.push_back({code.id, std::string(code.name, code.name_size),
-                        code.syndrome_count, code.virtual_outcome_count,
-                        code.logical_qubit_count});
-    }
-    return result;
   }
 };
 
@@ -294,16 +249,20 @@ public:
     return result != 0;
   }
 
-  EDEM(const CodeTable *code_table, const std::vector<uint32_t> &inputs,
+  EDEM(const std::vector<CodePresentation> &codes,
+       const std::vector<uint32_t> &inputs,
        const std::vector<uint32_t> &outputs,
        const std::vector<FaultDistribution> &faults,
        const std::vector<uint32_t> &detectors,
        const std::vector<uint32_t> &observables,
        const std::vector<uint32_t> &successes,
        const std::vector<MatrixBlock> &blocks) {
+    std::vector<cudaq_edem_code_presentation> code_views;
     std::vector<std::vector<cudaq_edem_fault_group>> group_views(faults.size());
     std::vector<cudaq_edem_fault_distribution> fault_views;
     std::vector<cudaq_edem_matrix_block> block_views;
+    for (const auto &code : codes)
+      code_views.push_back(code.view());
     for (size_t p = 0; p < faults.size(); ++p) {
       for (const auto &group : faults[p].groups)
         group_views[p].push_back(group.view());
@@ -316,7 +275,7 @@ public:
         {count(inputs.size()), count(outputs.size()), count(faults.size()),
          count(detectors.size()), count(observables.size()),
          count(successes.size())},
-        code_table ? code_table->view() : nullptr,
+        {count(codes.size()), code_views.data()},
         inputs.data(),
         outputs.data(),
         fault_views.data(),
@@ -403,7 +362,7 @@ public:
     for (uint64_t i = 0; i < n; ++i) {
       cudaq_edem_code_presentation code;
       check(cudaq_edem_get_code(&value, static_cast<uint32_t>(i), &code));
-      result.push_back({code.id, std::string(code.name, code.name_size),
+      result.push_back({std::string(code.name, code.name_size),
                         code.syndrome_count, code.virtual_outcome_count,
                         code.logical_qubit_count});
     }
@@ -656,10 +615,9 @@ NB_MODULE(_core, m) {
       .def_ro("kind", &Endpoint::kind)
       .def_ro("index", &Endpoint::index);
   nb::class_<CodePresentation>(m, "CodePresentation")
-      .def(nb::init<uint64_t, std::string, uint32_t, uint32_t, uint32_t>(),
-           "id"_a, "name"_a, "syndrome_count"_a, "virtual_outcome_count"_a,
+      .def(nb::init<std::string, uint32_t, uint32_t, uint32_t>(), "name"_a,
+           "syndrome_count"_a, "virtual_outcome_count"_a,
            "logical_qubit_count"_a)
-      .def_ro("id", &CodePresentation::id)
       .def_ro("name", &CodePresentation::name)
       .def_ro("syndrome_count", &CodePresentation::syndrome_count)
       .def_ro("virtual_outcome_count", &CodePresentation::virtual_outcome_count)
@@ -693,21 +651,15 @@ NB_MODULE(_core, m) {
       .def_ro("output", &MatrixBlock::output)
       .def_ro("input", &MatrixBlock::input)
       .def_ro("matrix", &MatrixBlock::matrix);
-  nb::class_<CodeTable>(m, "CodeTable",
-                        "Checked code presentations, built once and shared "
-                        "by any number of EDEM constructions.")
-      .def(nb::init<const std::vector<CodePresentation> &>(), "codes"_a)
-      .def("__len__", &CodeTable::size)
-      .def_prop_ro("codes", &CodeTable::codes);
   auto edem = nb::class_<EDEM>(m, "EDEM");
   edem.def(
-          nb::init<const CodeTable *, const std::vector<uint32_t> &,
-                   const std::vector<uint32_t> &,
+          nb::init<const std::vector<CodePresentation> &,
+                   const std::vector<uint32_t> &, const std::vector<uint32_t> &,
                    const std::vector<FaultDistribution> &,
                    const std::vector<uint32_t> &, const std::vector<uint32_t> &,
                    const std::vector<uint32_t> &,
                    const std::vector<MatrixBlock> &>(),
-          nb::kw_only(), "code_table"_a = nb::none(),
+          nb::kw_only(), "codes"_a = std::vector<CodePresentation>{},
           "inputs"_a = std::vector<uint32_t>{},
           "outputs"_a = std::vector<uint32_t>{},
           "faults"_a = std::vector<FaultDistribution>{},

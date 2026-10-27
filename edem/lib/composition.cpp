@@ -10,9 +10,11 @@
 #pragma GCC visibility pop
 #include "allocation.h"
 #include "storage.h"
+#include "vocabulary.h"
 #include "cudaq/edem/format.h"
 
 using namespace cudaq_gf2_private;
+using namespace cudaq_edem_private;
 
 #define EDEM_TRY(expression)                                                   \
   do {                                                                         \
@@ -95,10 +97,16 @@ bool add(uint64_t &sum, uint64_t value) {
   return true;
 }
 
-template <class T>
-bool space(uint64_t &bytes, uint64_t count) {
-  uint64_t ignored;
-  return reserve(bytes, count, sizeof(T), ignored);
+bool same_name(const cudaq_edem_code_presentation &a,
+               const cudaq_edem_code_presentation &b) {
+  return name_compare(a.name, a.name_size, b.name, b.name_size) == 0;
+}
+
+bool same_code(const cudaq_edem_code_presentation &a,
+               const cudaq_edem_code_presentation &b) {
+  return same_name(a, b) && a.syndrome_count == b.syndrome_count &&
+         a.virtual_outcome_count == b.virtual_outcome_count &&
+         a.logical_qubit_count == b.logical_qubit_count;
 }
 
 cudaq_edem_status boundary_code(const cudaq_edem_view &value,
@@ -168,17 +176,17 @@ cudaq_edem_status cudaq_edem_get_shape(const cudaq_edem_view *value,
         else
           ++shape.input_code_count;
       } else {
-        switch (bundle.type - code_count) {
-        case 0:
+        switch (free_kinds[bundle.type - code_count]) {
+        case CUDAQ_EDEM_DETECTOR:
           ++shape.detector_ports_count;
           break;
-        case 1:
+        case CUDAQ_EDEM_FAULT:
           ++shape.fault_ports_count;
           break;
-        case 2:
+        case CUDAQ_EDEM_OBSERVABLE:
           ++shape.observable_ports_count;
           break;
-        case 3:
+        case CUDAQ_EDEM_SUCCESS:
           ++shape.success_ports_count;
           break;
         }
@@ -256,7 +264,7 @@ cudaq_edem_status cudaq_edem_compose_chain(const cudaq_edem_view *values,
   }
   if (!add(columns, first.inputs - first.faults) ||
       !add(response_size, last.outputs - last.free_outputs) ||
-      code_capacity > UINT32_MAX - 4 || faults > UINT32_MAX ||
+      code_capacity > UINT32_MAX - free_type_count || faults > UINT32_MAX ||
       detectors > UINT32_MAX || observables > UINT32_MAX ||
       successes > UINT32_MAX ||
       detectors + observables + successes > UINT32_MAX)
@@ -276,22 +284,23 @@ cudaq_edem_status cudaq_edem_compose_chain(const cudaq_edem_view *values,
   uint64_t block_count = input_count * output_count;
   uint64_t offset_count = output_count * (columns + input_count);
   uint64_t bytes = 0;
-  if (!space<occurrence_info>(bytes, count) ||
-      !space<boundary_transfer>(bytes, transfer_count) ||
-      !space<cudaq_edem_code_presentation>(bytes, code_capacity) ||
-      !space<uint32_t>(bytes, first.shape.input_code_count) ||
-      !space<uint32_t>(bytes, last.shape.output_code_count) ||
-      !space<cudaq_edem_fault_distribution>(bytes, faults) ||
-      !space<cudaq_edem_fault_group>(bytes, groups) ||
-      !space<uint32_t>(bytes, detectors) ||
-      !space<uint32_t>(bytes, observables) ||
-      !space<uint32_t>(bytes, successes) ||
-      !space<input_wire>(bytes, input_count) ||
-      !space<output_wire>(bytes, output_count) ||
-      !space<cudaq_edem_matrix_block>(bytes, block_count) ||
-      !space<uint64_t>(bytes, offset_count) ||
-      !space<uint8_t>(bytes, max_input) || !space<uint8_t>(bytes, max_output) ||
-      !space<uint8_t>(bytes, response_size))
+  if (!reserve_scratch<occurrence_info>(bytes, count) ||
+      !reserve_scratch<boundary_transfer>(bytes, transfer_count) ||
+      !reserve_scratch<cudaq_edem_code_presentation>(bytes, code_capacity) ||
+      !reserve_scratch<uint32_t>(bytes, first.shape.input_code_count) ||
+      !reserve_scratch<uint32_t>(bytes, last.shape.output_code_count) ||
+      !reserve_scratch<cudaq_edem_fault_distribution>(bytes, faults) ||
+      !reserve_scratch<cudaq_edem_fault_group>(bytes, groups) ||
+      !reserve_scratch<uint32_t>(bytes, detectors) ||
+      !reserve_scratch<uint32_t>(bytes, observables) ||
+      !reserve_scratch<uint32_t>(bytes, successes) ||
+      !reserve_scratch<input_wire>(bytes, input_count) ||
+      !reserve_scratch<output_wire>(bytes, output_count) ||
+      !reserve_scratch<cudaq_edem_matrix_block>(bytes, block_count) ||
+      !reserve_scratch<uint64_t>(bytes, offset_count) ||
+      !reserve_scratch<uint8_t>(bytes, max_input) ||
+      !reserve_scratch<uint8_t>(bytes, max_output) ||
+      !reserve_scratch<uint8_t>(bytes, response_size))
     return CUDAQ_EDEM_INSUFFICIENT_CAPACITY;
   allocation workspace(scratch_allocator(memory));
   EDEM_TRY(workspace.reserve(bytes, CUDAQ_EDEM_PACKED_ALIGNMENT));
@@ -326,7 +335,7 @@ cudaq_edem_status cudaq_edem_compose_chain(const cudaq_edem_view *values,
         cudaq_edem_code_presentation left, right;
         EDEM_TRY(boundary_code(values[t - 1], CUDAQ_EDEM_OUTPUT, p, left));
         EDEM_TRY(boundary_code(values[t], CUDAQ_EDEM_INPUT, p, right));
-        if (left.id != right.id)
+        if (!same_code(left, right))
           return CUDAQ_EDEM_INVALID_CONTENT;
         for (uint32_t kind = CUDAQ_EDEM_VIRTUAL; kind <= CUDAQ_EDEM_LOGICAL;
              ++kind) {
@@ -346,10 +355,12 @@ cudaq_edem_status cudaq_edem_compose_chain(const cudaq_edem_view *values,
       cudaq_edem_code_presentation code;
       EDEM_TRY(cudaq_edem_get_code(&values[t], p, &code));
       uint32_t i = 0;
-      while (i < code_count && codes[i].id != code.id)
+      while (i < code_count && !same_name(codes[i], code))
         ++i;
       if (i == code_count)
         codes[code_count++] = code;
+      else if (!same_code(codes[i], code))
+        return CUDAQ_EDEM_INVALID_CONTENT;
     }
     const uint32_t input_bundles =
         info[t].shape.fault_ports_count + info[t].shape.input_code_count;
@@ -382,7 +393,7 @@ cudaq_edem_status cudaq_edem_compose_chain(const cudaq_edem_view *values,
       cudaq_edem_code_presentation code;
       EDEM_TRY(boundary_code(values[t], direction, p, code));
       for (uint32_t i = 0; i < code_count; ++i)
-        if (codes[i].id == code.id) {
+        if (same_name(codes[i], code)) {
           destination[p] = i;
           break;
         }
@@ -460,7 +471,7 @@ cudaq_edem_status cudaq_edem_compose_chain(const cudaq_edem_view *values,
       }
     }
   uint64_t row_bytes = 0;
-  if (!space<uint32_t>(row_bytes, nonzeros))
+  if (!reserve_scratch<uint32_t>(row_bytes, nonzeros))
     return CUDAQ_EDEM_INSUFFICIENT_CAPACITY;
   allocation row_storage(scratch_allocator(memory));
   EDEM_TRY(row_storage.reserve(row_bytes, CUDAQ_EDEM_PACKED_ALIGNMENT));
@@ -485,19 +496,11 @@ cudaq_edem_status cudaq_edem_compose_chain(const cudaq_edem_view *values,
             indices[position++] = row;
       }
     }
-  // The merged table lives in scratch only for this construction.
-  const cudaq_edem_code_table merged{code_count, codes.data()};
-  const cudaq_gf2_memory table_memory{scratch_allocator(memory),
-                                      scratch_allocator(memory)};
-  cudaq_gf2_owned_buffer table_owner{};
-  cudaq_edem_checked_code_table table;
-  EDEM_TRY(cudaq_edem_code_table_construct(&merged, &table_memory, &table_owner,
-                                           &table));
   cudaq_edem_description description{
       {first.shape.input_code_count, last.shape.output_code_count,
        static_cast<uint32_t>(faults), static_cast<uint32_t>(detectors),
        static_cast<uint32_t>(observables), static_cast<uint32_t>(successes)},
-      &table,
+      {code_count, codes.data()},
       input_codes.data(),
       output_codes.data(),
       distributions.data(),
@@ -506,7 +509,5 @@ cudaq_edem_status cudaq_edem_compose_chain(const cudaq_edem_view *values,
       success_ports_sizes.data(),
       block_count,
       blocks.data()};
-  auto status = cudaq_edem_construct(&description, memory, owner, result);
-  cudaq_gf2_owned_buffer_release(&table_owner);
-  return status;
+  return cudaq_edem_construct(&description, memory, owner, result);
 }

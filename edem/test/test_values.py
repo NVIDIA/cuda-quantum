@@ -20,7 +20,6 @@ import weakref
 
 from cudaq_edem import (
     CodePresentation,
-    CodeTable,
     DEM,
     EDEM,
     Endpoint,
@@ -44,6 +43,59 @@ except ModuleNotFoundError as error:
     _adoption_test = None
 
 
+class Layout:
+    """A little-endian packed record, stated once by its named fields."""
+
+    def __init__(self, **fields):
+        self.codes = fields
+        self.struct = struct.Struct("<" + "".join(fields.values()))
+        self.size = self.struct.size
+        self.offsets, prefix = {}, "<"
+        for name, code in fields.items():
+            self.offsets[name] = struct.calcsize(prefix)
+            prefix += code
+
+    def unpack(self, data, offset=0):
+        return dict(zip(self.codes, self.struct.unpack_from(data, offset)))
+
+    def pack_into(self, buffer, offset, field, value):
+        struct.pack_into("<" + self.codes[field], buffer,
+                         offset + self.offsets[field], value)
+
+
+# These tests pin the exchange format; its records are described only here.
+HEADER = Layout(magic="8s",
+                version="I",
+                kind="I",
+                size="Q",
+                alignment="I",
+                index_bits="I",
+                directory_offset="Q",
+                directory_count="Q",
+                directory_bytes="Q",
+                reserved="Q")
+SECTION = Layout(id="I", flags="I", count="Q", bytes="Q", offset="Q")
+TYPE = Layout(name="Q", name_size="Q", role="I", wire_count="I")
+BUNDLE = Layout(type="I", reserved="I", widths="Q", offsets="Q")
+PRESENTATION = Layout(type="I",
+                      syndrome_count="I",
+                      virtual_outcome_count="I",
+                      logical_qubit_count="I")
+SECTION_OUTPUTS, SECTION_PRESENTATIONS = 3, 0x10000
+
+
+def directory(packed):
+    header = HEADER.unpack(packed)
+    return [
+        SECTION.unpack(packed, header["directory_offset"] + SECTION.size * i)
+        for i in range(header["directory_count"])
+    ]
+
+
+def section(packed, section_id):
+    return next(e for e in directory(packed) if e["id"] == section_id)
+
+
 def open_round():
     """An explicit repetition-code seam; this fixture is not circuit compilation.
 
@@ -64,7 +116,7 @@ def open_round():
         (PortKind.LOGICAL, PortKind.LOGICAL, identity),
     ]
     return EDEM(
-        code_table=CodeTable([CodePresentation(1, "repetition-3", 2, 2, 1)]),
+        codes=[CodePresentation("repetition-3", 2, 2, 1)],
         inputs=[0],
         outputs=[0],
         faults=[FaultDistribution.independent([0.01, 0.02])],
@@ -81,7 +133,7 @@ class CompositionTest(unittest.TestCase):
     def test_repeated_rounds_keep_occurrence_faults_and_exact_laws(self):
         original = open_round()
         source = EDEM(
-            code_table=CodeTable(original.codes),
+            codes=original.codes,
             inputs=original.inputs,
             outputs=original.outputs,
             detectors=original.detectors,
@@ -167,10 +219,10 @@ class CompositionTest(unittest.TestCase):
 
     def test_projection_rejects_all_structural_boundaries(self):
         for syndrome_count, logical_qubit_count in ((0, 0), (1, 1)):
-            code = CodePresentation(10, "boundary", syndrome_count,
-                                    syndrome_count, logical_qubit_count)
+            code = CodePresentation("boundary", syndrome_count, syndrome_count,
+                                    logical_qubit_count)
             for side in ("inputs", "outputs"):
-                source = EDEM(code_table=CodeTable([code]), **{side: [0]})
+                source = EDEM(codes=[code], **{side: [0]})
                 self.assertFalse(source.is_dem)
                 with self.assertRaises(ValueError):
                     project_DEM(source)
@@ -189,12 +241,15 @@ class CompositionTest(unittest.TestCase):
             compose_chain([object()])
         with self.assertRaises(ValueError):
             compose_chain([open_round(), EDEM()])
-        left = EDEM(code_table=CodeTable([CodePresentation(3, "left", 0, 0, 0)]), outputs=[0])
-        right = EDEM(code_table=CodeTable([CodePresentation(4, "right", 0, 0, 0)]), inputs=[0])
+        left = EDEM(codes=[CodePresentation("left", 0, 0, 0)], outputs=[0])
+        right = EDEM(codes=[CodePresentation("right", 0, 0, 0)], inputs=[0])
         with self.assertRaises(ValueError):
             compose_chain([left, right])
-        # Ids alone decide code equality across boundaries.
-        right = EDEM(code_table=CodeTable([CodePresentation(3, "right", 0, 0, 0)]), inputs=[0])
+        # Names identify codes across boundaries; counts must also match.
+        right = EDEM(codes=[CodePresentation("left", 1, 0, 0)], inputs=[0])
+        with self.assertRaises(ValueError):
+            compose_chain([left, right])
+        right = EDEM(codes=[CodePresentation("left", 0, 0, 0)], inputs=[0])
         self.assertTrue(compose_chain([left, right]).is_dem)
         self.assertEqual(compose_chain([EDEM()]).to_bytes(), EDEM().to_bytes())
 
@@ -255,7 +310,7 @@ class ValuesTest(unittest.TestCase):
         # Golden bytes for the typed-map format with a trailing directory.
         self.assertEqual(
             hashlib.sha256(packed).hexdigest(),
-            "5e10d6466fa962d6c2db4a79f89491339e2ac91044b5b24c138a0f529530485d")
+            "4335c484e15e0b4270886909e83f05556284dfb649e2ff579bc611b4cef513cf")
         loaded = EDEM.from_bytes(packed)
         blocks = loaded.blocks
         del original, loaded
@@ -276,36 +331,36 @@ class ValuesTest(unittest.TestCase):
 
     def test_typed_layout_and_presentation_checks(self):
         packed = open_round().to_bytes()
-        header = struct.unpack_from("<8sIIQIIQQQQ", packed)
-        self.assertEqual(header[0], b"CQGF2\0\0\0")
-        self.assertEqual(header[3], len(packed))
-        self.assertEqual(header[4:6], (8, 32))
-        directory_offset, count, directory_bytes = header[6:9]
-        self.assertEqual(directory_bytes, 32 * count)
-        self.assertEqual(directory_offset + directory_bytes, len(packed))
-        entries = [
-            struct.unpack_from("<IIQQQ", packed, directory_offset + 32 * i)
-            for i in range(count)
-        ]
-        self.assertEqual([e[0] for e in entries],
+        header = HEADER.unpack(packed)
+        self.assertEqual(header["magic"], b"CQGF2\0\0\0")
+        self.assertEqual(header["size"], len(packed))
+        self.assertEqual((header["alignment"], header["index_bits"]), (8, 32))
+        self.assertEqual(header["directory_bytes"],
+                         SECTION.size * header["directory_count"])
+        self.assertEqual(header["directory_offset"] + header["directory_bytes"],
+                         len(packed))
+        entries = directory(packed)
+        self.assertEqual([e["id"] for e in entries],
                          [1, 2, 3, 4, 5, 0x10000, 0x10001])
         types = entries[0]
         names = []
-        for i in range(types[2]):
-            name, size, role, wires = struct.unpack_from(
-                "<QQII", packed, types[4] + 24 * i)
-            names.append(packed[types[4] + name:types[4] + name +
-                                size].decode())
-            self.assertEqual((role, wires), (1, 3) if i == 0 else (0, 1))
+        for i in range(types["count"]):
+            t = TYPE.unpack(packed, types["offset"] + TYPE.size * i)
+            start = types["offset"] + t["name"]
+            names.append(packed[start:start + t["name_size"]].decode())
+            self.assertEqual((t["role"], t["wire_count"]), (1, 3) if i == 0 else
+                             (0, 1))
         self.assertEqual(names, [
             "edem.code/repetition-3", "edem.detector", "edem.fault",
             "edem.observable", "edem.success"
         ])
-        self.assertEqual(struct.unpack_from("<QIIII", packed, entries[5][4]),
-                         (1, 0, 2, 2, 1))
+        codes = section(packed, SECTION_PRESENTATIONS)
+        self.assertEqual(
+            PRESENTATION.struct.unpack_from(packed, codes["offset"]),
+            (0, 2, 2, 1))
         # Widths do not replace the retained presentation metadata check.
         broken = bytearray(packed)
-        struct.pack_into("<I", broken, entries[5][4] + 12, 3)
+        PRESENTATION.pack_into(broken, codes["offset"], "syndrome_count", 3)
         with self.assertRaises(ValueError):
             EDEM.from_bytes(bytes(broken))
 
@@ -313,7 +368,7 @@ class ValuesTest(unittest.TestCase):
         value = open_round()
         zero = MatrixBlock(Endpoint(PortKind.DETECTOR),
                            Endpoint(PortKind.LOGICAL), SparseMatrix(2, 2))
-        rebuilt = EDEM(code_table=CodeTable(value.codes),
+        rebuilt = EDEM(codes=value.codes,
                        inputs=value.inputs,
                        outputs=value.outputs,
                        faults=value.faults,
@@ -321,62 +376,51 @@ class ValuesTest(unittest.TestCase):
                        blocks=[zero, *reversed(value.blocks)])
         self.assertEqual(rebuilt.to_bytes(), value.to_bytes())
         # Presentation order is local; bytes depend on the named presentation.
-        a = CodePresentation(6, "a", 0, 0, 1)
-        z = CodePresentation(5, "z", 0, 0, 1)
-        x = EDEM(code_table=CodeTable([z, a]), inputs=[0], outputs=[1])
-        y = EDEM(code_table=CodeTable([a, z]), inputs=[1], outputs=[0])
+        a = CodePresentation("a", 0, 0, 1)
+        z = CodePresentation("z", 0, 0, 1)
+        x = EDEM(codes=[z, a], inputs=[0], outputs=[1])
+        y = EDEM(codes=[a, z], inputs=[1], outputs=[0])
         self.assertEqual(x.to_bytes(), y.to_bytes())
-        self.assertEqual([(c.id, c.name) for c in x.codes], [(6, "a"),
-                                                              (5, "z")])
-        # Ids are unique within a code table, at construction and on read.
+        self.assertEqual([c.name for c in x.codes], ["a", "z"])
+        # Names are unique within a code table.
         with self.assertRaises(ValueError):
-            EDEM(code_table=CodeTable([a, CodePresentation(6, "z", 0, 0, 1)]))
+            EDEM(codes=[a, CodePresentation("a", 0, 0, 1)])
         packed = x.to_bytes()
-        directory_offset, entry_count = struct.unpack_from("<QQ", packed, 32)
-        codes_offset = next(
-            offset for section, _, _, _, offset in (
-                struct.unpack_from("<IIQQQ", packed, directory_offset + 32 * i)
-                for i in range(entry_count)) if section == 0x10000)
+        codes = section(packed, SECTION_PRESENTATIONS)
+        # Each presentation record names its own type ID.
         broken = bytearray(packed)
-        struct.pack_into("<Q", broken, codes_offset + 24, 6)
+        PRESENTATION.pack_into(broken, codes["offset"] + PRESENTATION.size,
+                               "type", 0)
         with self.assertRaises(ValueError):
             EDEM.from_bytes(bytes(broken))
         # Packed EDEMs retain only presentations used by code bundles: point
         # the output bundle at "z" so "a" is left unused.
-        outputs_offset = next(
-            offset for section, _, _, _, offset in (
-                struct.unpack_from("<IIQQQ", packed, directory_offset + 32 * i)
-                for i in range(entry_count)) if section == 3)
+        outputs = section(packed, SECTION_OUTPUTS)
         broken = bytearray(packed)
-        struct.pack_into("<I", broken, outputs_offset, 1)
+        BUNDLE.pack_into(broken, outputs["offset"], "type", 1)
         with self.assertRaises(ValueError):
             EDEM.from_bytes(bytes(broken))
 
-    def test_shared_code_table(self):
-        codes = [CodePresentation(i, f"code-{i}", 0, 0, 1) for i in range(50)]
-        table = CodeTable(codes)
-        self.assertEqual(len(table), 50)
-        self.assertEqual([(c.id, c.name) for c in table.codes],
-                         [(c.id, c.name) for c in codes])
-        first = EDEM(code_table=table, inputs=[7], outputs=[3])
-        second = EDEM(code_table=table, inputs=[3], outputs=[7])
+    def test_retains_used_presentations(self):
+        codes = [CodePresentation(f"code-{i}", 0, 0, 1) for i in range(50)]
+        first = EDEM(codes=codes, inputs=[7], outputs=[3])
+        second = EDEM(codes=codes, inputs=[3], outputs=[7])
         # Each EDEM keeps only the presentations it uses, in name order.
-        self.assertEqual([c.id for c in first.codes], [3, 7])
+        self.assertEqual([c.name for c in first.codes], ["code-3", "code-7"])
         self.assertEqual(first.inputs, [1])
         self.assertEqual(first.outputs, [0])
         composed = compose_chain([first, second])
-        self.assertEqual([c.id for c in composed.codes], [7])
+        self.assertEqual([c.name for c in composed.codes], ["code-7"])
         self.assertEqual((composed.inputs, composed.outputs), ([0], [0]))
-        del table
-        gc.collect()
         self.assertEqual(EDEM.from_bytes(first.to_bytes()).to_bytes(),
                          first.to_bytes())
         with self.assertRaises(ValueError):
             EDEM(inputs=[0])
         with self.assertRaises(ValueError):
-            EDEM(code_table=CodeTable(codes[:1]), inputs=[1])
+            EDEM(codes=codes[:1], inputs=[1])
+        # The whole table is checked, including unused presentations.
         with self.assertRaises(ValueError):
-            CodeTable([CodePresentation(1, "", 0, 0, 0)])
+            EDEM(codes=[CodePresentation("", 0, 0, 0)])
 
     def test_many_distinct_and_shared_matrices(self):
         blocks = [
@@ -400,11 +444,11 @@ class ValuesTest(unittest.TestCase):
         self.assertEqual(ordered.apply(x), expected)
 
     def test_invalid_boundaries_and_structural_zeros(self):
-        code = CodePresentation(7, "test", 1, 1, 1)
+        code = CodePresentation("test", 1, 1, 1)
         for output in (PortKind.SYNDROME, PortKind.LOGICAL):
             rows = 2 if output == PortKind.LOGICAL else 1
             with self.assertRaises(ValueError):
-                EDEM(code_table=CodeTable([code]),
+                EDEM(codes=[code],
                      inputs=[0],
                      outputs=[0],
                      observables=[1],
@@ -413,7 +457,7 @@ class ValuesTest(unittest.TestCase):
                                      Endpoint(PortKind.VIRTUAL),
                                      SparseMatrix(rows, 1, [(0, 0)]))
                      ])
-        observed = EDEM(code_table=CodeTable([code]),
+        observed = EDEM(codes=[code],
                         inputs=[0],
                         outputs=[0],
                         observables=[1],
@@ -425,9 +469,9 @@ class ValuesTest(unittest.TestCase):
         packed = observed.to_bytes()
         self.assertEqual(EDEM.from_bytes(packed).to_bytes(), packed)
         with self.assertRaises(ValueError):
-            EDEM(code_table=CodeTable([code]), inputs=[1])
+            EDEM(codes=[code], inputs=[1])
         with self.assertRaises(ValueError):
-            EDEM(code_table=CodeTable([code]),
+            EDEM(codes=[code],
                  inputs=[0],
                  detectors=[2],
                  blocks=[
@@ -437,7 +481,7 @@ class ValuesTest(unittest.TestCase):
                  ])
         duplicate = open_round().blocks[0]
         with self.assertRaises(ValueError):
-            EDEM(code_table=CodeTable(open_round().codes),
+            EDEM(codes=open_round().codes,
                  inputs=[0],
                  outputs=[0],
                  detectors=[2],
@@ -500,10 +544,10 @@ class ValuesTest(unittest.TestCase):
         for size in range(len(packed)):
             with self.assertRaises(ValueError):
                 EDEM.from_bytes(packed[:size])
-        for offset, fmt, value in ((0, "Q", 0), (8, "I", 0xffffffff),
-                                   (40, "Q", 0xffffffffffffffff)):
+        for field, value in (("magic", bytes(8)), ("version", 0xffffffff),
+                             ("directory_count", 0xffffffffffffffff)):
             broken = bytearray(packed)
-            struct.pack_into("<" + fmt, broken, offset, value)
+            HEADER.pack_into(broken, 0, field, value)
             with self.assertRaises(ValueError):
                 EDEM.from_bytes(bytes(broken))
         with self.assertRaises(ValueError):

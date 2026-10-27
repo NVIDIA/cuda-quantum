@@ -15,7 +15,6 @@
 #define CUDAQ_EDEM_SECTION_PRESENTATIONS UINT32_C(0x00010000)
 #define CUDAQ_EDEM_SECTION_DISTRIBUTIONS UINT32_C(0x00010001)
 typedef struct cudaq_edem_packed_code {
-  uint64_t id;
   uint32_t type, syndrome_count, virtual_outcome_count, logical_qubit_count;
 } cudaq_edem_packed_code;
 typedef struct cudaq_edem_packed_fault {
