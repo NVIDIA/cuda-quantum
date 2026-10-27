@@ -6,7 +6,9 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+import json
 import pytest
+from cudaq.dynamics import Schedule
 from cudaq.operators import RydbergHamiltonian, ScalarOperator
 
 
@@ -61,3 +63,41 @@ def test_mismatched_atom_filling_still_rejected():
                            phase=phase,
                            delta_global=delta,
                            atom_filling=[1])
+
+
+def _capture_analog_programs(monkeypatch):
+    from cudaq.dynamics import evolution
+    programs = []
+    monkeypatch.setattr(
+        evolution.cudaq_runtime, "launch_analog_kernel",
+        lambda name, program, shots: programs.append(json.loads(program)))
+    return evolution, programs
+
+
+def test_analog_launch_reuses_schedule(monkeypatch):
+    # Reusing a Schedule must send the same time points every launch.
+    evolution, programs = _capture_analog_programs(monkeypatch)
+    h = RydbergHamiltonian(atom_sites=[(0.0, 0.0), (1e-4, 0.0)],
+                           amplitude=ScalarOperator.const(1e7),
+                           phase=ScalarOperator.const(0.0),
+                           delta_global=ScalarOperator.const(0.0))
+    schedule = Schedule([0.0, 1e-7], ["t"])
+    for _ in range(2):
+        evolution._launch_analog_hamiltonian_kernel("pasqal", h, schedule, 100)
+    assert len(programs) == 2
+    assert programs[0] == programs[1]
+    amplitude = programs[0]["hamiltonian"]["drivingFields"][0]["amplitude"]
+    assert len(amplitude["time_series"]["times"]) == 2
+
+
+def test_analog_launch_rejects_empty_schedule(monkeypatch):
+    evolution, programs = _capture_analog_programs(monkeypatch)
+    amp, phase, delta = _scalars()
+    h = RydbergHamiltonian(atom_sites=[(0.0, 0.0)],
+                           amplitude=amp,
+                           phase=phase,
+                           delta_global=delta)
+    with pytest.raises(ValueError, match="at least one time step"):
+        evolution._launch_analog_hamiltonian_kernel("pasqal", h,
+                                                    Schedule([], ["t"]), 100)
+    assert programs == []

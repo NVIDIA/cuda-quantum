@@ -11,7 +11,6 @@
 #include "common/ServerHelper.h"
 #include "nlohmann/json.hpp"
 
-#include <algorithm>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -23,12 +22,10 @@ inline ExecutionResult parseExecutionResult(const nlohmann::json &payload) {
     throw std::runtime_error(
         std::string("Invalid JSON object received as job result."));
 
+  // Pasqal bitstrings list atoms in register order, as CUDA-Q does.
   CountsDictionary counts;
-  for (auto &[bitstring, count] : payload.items()) {
-    auto littleEndianBitstring = bitstring;
-    std::reverse(littleEndianBitstring.begin(), littleEndianBitstring.end());
-    counts[littleEndianBitstring] = count.get<std::size_t>();
-  }
+  for (auto &[bitstring, count] : payload.items())
+    counts[bitstring] = count.get<std::size_t>();
 
   return ExecutionResult(counts);
 }

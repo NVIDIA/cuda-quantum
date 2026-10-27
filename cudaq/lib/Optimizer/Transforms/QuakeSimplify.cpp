@@ -344,7 +344,9 @@ static bool isIdentityRotation(QOP qop, double threshold) {
   // given one by control synthesis of the function it is in.
   double residual = std::remainder(theta, exactIdentityPeriod<QOP>());
 
-  // A positive threshold permits approximate identity elimination.
+  // A positive threshold permits approximate identity elimination. A merged
+  // sum within roundoff of zero is already exactly zero; see
+  // `createCombinedRotationAngle`.
   return std::abs(residual) <= threshold;
 }
 
@@ -361,12 +363,34 @@ static bool haveExactValue(Value lhs, Value rhs) {
          lhsConstant == rhsConstant;
 }
 
+// Return the value of a constant `angle`, negated for an adjoint rotation.
+static std::optional<APFloat> getSignedConstantAngle(Value angle,
+                                                     bool isAdjoint) {
+  FloatAttr constant;
+  if (!matchPattern(angle, m_Constant(&constant)))
+    return std::nullopt;
+  APFloat value = constant.getValue();
+  if (isAdjoint)
+    value.changeSign();
+  return value;
+}
+
 static Value createCombinedRotationAngle(PatternRewriter &rewriter,
                                          Location location, Value laterAngle,
                                          bool laterIsAdjoint,
                                          Value earlierAngle,
                                          bool earlierIsAdjoint) {
   Type angleType = laterAngle.getType();
+  // Add two constant angles here rather than leaving the sum to the folder, so
+  // that a sum within roundoff of a multiple of pi/4 becomes that multiple on
+  // every target. The exact-mode Clifford+T classifier then recognizes it, and
+  // `isIdentityRotation` sees an exact zero.
+  if (auto later = getSignedConstantAngle(laterAngle, laterIsAdjoint))
+    if (auto earlier = getSignedConstantAngle(earlierAngle, earlierIsAdjoint))
+      return arith::ConstantOp::create(
+          rewriter, location,
+          rewriter.getFloatAttr(
+              angleType, cudaq::opt::detail::addAngles(*later, *earlier)));
   if (laterIsAdjoint)
     laterAngle =
         arith::NegFOp::create(rewriter, location, angleType, laterAngle);

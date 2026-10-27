@@ -368,14 +368,13 @@ int main(int argc, char **argv) {
     dcfg.dispatch_path = CUDAQ_DISPATCH_PATH_HOST;
     dcfg.dispatch_mode = CUDAQ_DISPATCH_HOST_CALL;
   } else {
-    // [3d] DEVICE path, DEVICE_CALL mode.  The 3-kernel dispatch kernel is a
-    //      single warp; the unified kernel sizes its own launch.
+    // [3d] DEVICE path, DEVICE_CALL mode.  Both dispatch kernels run one
+    //      block of threads_per_block threads, which every DEVICE_CALL
+    //      handler runs on.
     dcfg.dispatch_path = CUDAQ_DISPATCH_PATH_DEVICE;
     dcfg.dispatch_mode = CUDAQ_DISPATCH_DEVICE_CALL;
-    if (!cfg.unified) {
-      dcfg.num_blocks = 1;
-      dcfg.threads_per_block = 32;
-    }
+    dcfg.num_blocks = 1;
+    dcfg.threads_per_block = 32;
   }
   if (cudaq_dispatcher_create(res.manager, &dcfg, &res.dispatcher) !=
       CUDAQ_OK) {
