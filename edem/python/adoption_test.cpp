@@ -137,8 +137,14 @@ cudaq_edem_status constructRound(const cudaq_gf2_memory *memory,
       {{CUDAQ_EDEM_SYNDROME, 0}, {CUDAQ_EDEM_SYNDROME, 0}, identity},
       {{CUDAQ_EDEM_VIRTUAL, 0}, {CUDAQ_EDEM_FAULT, 0}, measurement},
       {{CUDAQ_EDEM_DETECTOR, 0}, {CUDAQ_EDEM_VIRTUAL, 0}, identity}};
+  // The shared table is setup, not part of the counted result allocations.
+  cudaq::edem::CodeTable table;
+  const cudaq_edem_code_table input = {1, codes};
+  auto status = cudaq::edem::CodeTable::construct(input, table);
+  if (status != CUDAQ_EDEM_OK)
+    return status;
   const cudaq_edem_description description = {{1, 1, 1, 1, 0, 0},
-                                              {1, codes},
+                                              table.table(),
                                               boundary,
                                               boundary,
                                               &fault,

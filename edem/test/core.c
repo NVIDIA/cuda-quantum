@@ -24,6 +24,15 @@
 #define OK(call) CHECK((int)(call) == 0)
 #define INVALID(call) CHECK((call) == CUDAQ_EDEM_INVALID_CONTENT)
 
+static cudaq_edem_checked_code_table
+make_table(const cudaq_edem_code_presentation *codes, uint32_t count,
+           cudaq_gf2_owned_buffer *owner) {
+  const cudaq_edem_code_table input = {count, codes};
+  cudaq_edem_checked_code_table table;
+  OK(cudaq_edem_code_table_construct(&input, NULL, owner, &table));
+  return table;
+}
+
 static void test_open_round(void) {
   const cudaq_edem_code_presentation codes[] = {
       {1, "repetition-3", 12, 2, 2, 1}};
@@ -52,8 +61,11 @@ static void test_open_round(void) {
       {{CUDAQ_EDEM_DETECTOR, 0}, {CUDAQ_EDEM_VIRTUAL, 0}, identity},
       {{CUDAQ_EDEM_DETECTOR, 0}, {CUDAQ_EDEM_LOGICAL, 0}, zero},
   };
+  cudaq_gf2_owned_buffer table_owner = {0};
+  const cudaq_edem_checked_code_table table =
+      make_table(codes, 1, &table_owner);
   cudaq_edem_description d = {{1, 1, 1, 1, 0, 0},
-                              {1, codes},
+                              &table,
                               boundary,
                               boundary,
                               &fault,
@@ -183,18 +195,22 @@ static void test_open_round(void) {
   }
   free(copy);
   cudaq_gf2_owned_buffer_release(&owner);
+  cudaq_gf2_owned_buffer_release(&table_owner);
 }
 
 static void test_distributions_and_names(void) {
-  uint32_t ids[] = {0, 1}, boundary = 0;
+  uint32_t ids[] = {0, 1}, boundary[] = {0, 1};
   double probabilities[] = {0.25, 0.75};
   cudaq_edem_fault_group g = {CUDAQ_EDEM_EXCLUSIVE, 2, ids, probabilities};
   cudaq_edem_fault_distribution f = {2, 1, &g};
   cudaq_edem_code_presentation codes[] = {{5, "z", 1, 0, 0, 1},
                                           {6, "a", 1, 0, 0, 1}};
-  cudaq_edem_description d = {{1, 0, 1, 0, 0, 0},
-                              {2, codes},
-                              &boundary,
+  cudaq_gf2_owned_buffer table_owner = {0};
+  const cudaq_edem_checked_code_table table =
+      make_table(codes, 2, &table_owner);
+  cudaq_edem_description d = {{2, 0, 1, 0, 0, 0},
+                              &table,
+                              boundary,
                               NULL,
                               &f,
                               NULL,
@@ -217,11 +233,26 @@ static void test_distributions_and_names(void) {
   ids[1] = 0;
   INVALID(cudaq_edem_validate(&d, NULL));
   ids[1] = 1;
+  /* Code tables reject repeated names and ids and invalid UTF-8 when built. */
+  cudaq_edem_checked_code_table rejected = {0};
+  const cudaq_edem_code_table input = {2, codes};
+  cudaq_gf2_owned_buffer rejected_owner = {0};
   codes[0].name = "a";
-  INVALID(cudaq_edem_validate(&d, NULL));
+  INVALID(cudaq_edem_code_table_construct(&input, NULL, &rejected_owner,
+                                          &rejected));
   codes[0].name = "\xff";
+  INVALID(cudaq_edem_code_table_construct(&input, NULL, &rejected_owner,
+                                          &rejected));
+  codes[0].name = "z";
+  codes[0].id = codes[1].id;
+  INVALID(cudaq_edem_code_table_construct(&input, NULL, &rejected_owner,
+                                          &rejected));
+  CHECK(!rejected_owner.data && !rejected.data);
+  /* Indices are checked against the shared table. */
+  boundary[1] = 2;
   INVALID(cudaq_edem_validate(&d, NULL));
   cudaq_gf2_owned_buffer_release(&owner);
+  cudaq_gf2_owned_buffer_release(&table_owner);
   /* Empty EDEMs still retain their vocabulary and required sections. */
   cudaq_edem_description empty = {0};
   OK(cudaq_edem_validate(&empty, NULL));
@@ -241,8 +272,11 @@ static void test_domain_checks(void) {
   cudaq_edem_block block = {{CUDAQ_EDEM_SYNDROME, 0},
                             {CUDAQ_EDEM_FAULT, 0},
                             {1, 1, 1, offsets, &row}};
+  cudaq_gf2_owned_buffer table_owner = {0};
+  const cudaq_edem_checked_code_table table =
+      make_table(&code, 1, &table_owner);
   cudaq_edem_description d = {{1, 1, 1, 0, 0, 0},
-                              {1, &code},
+                              &table,
                               &boundary,
                               &boundary,
                               &fault,
@@ -302,6 +336,7 @@ static void test_domain_checks(void) {
   CHECK(value.map.data == packed && value.map.size == bytes);
   free(copy);
   cudaq_gf2_owned_buffer_release(&owner);
+  cudaq_gf2_owned_buffer_release(&table_owner);
 }
 
 static void test_safe_read(void) {
@@ -356,16 +391,8 @@ static void probability_case(const double *probabilities, uint32_t count,
     ids[i] = i;
   cudaq_edem_fault_group group = {kind, count, ids, probabilities};
   cudaq_edem_fault_distribution fault = {count, 1, &group};
-  cudaq_edem_description description = {{0, 0, 1, 0, 0, 0},
-                                        {0, NULL},
-                                        NULL,
-                                        NULL,
-                                        &fault,
-                                        NULL,
-                                        NULL,
-                                        NULL,
-                                        0,
-                                        NULL};
+  cudaq_edem_description description = {
+      {0, 0, 1, 0, 0, 0}, NULL, NULL, NULL, &fault, NULL, NULL, NULL, 0, NULL};
   CHECK(cudaq_edem_validate(&description, NULL) == expected);
   cudaq_gf2_owned_buffer constructed = {0};
   cudaq_edem_view value = {{NULL, 0}};

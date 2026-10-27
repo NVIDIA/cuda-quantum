@@ -46,9 +46,7 @@ struct output_port {
 struct responses {
   allocation storage;
   cudaq_edem_shape shape{};
-  uint32_t code_count = 0;
   uint64_t block_count = 0, columns = 0, nonzeros = 0;
-  std::span<cudaq_edem_code_presentation> codes;
   std::span<cudaq_edem_block> blocks;
   std::span<output_port> outputs;
   std::span<uint32_t> sizes, ids;
@@ -81,7 +79,6 @@ struct responses {
     EDEM_TRY(cudaq_edem_get_shape(&value->edem, &shape));
     if (shape.input_code_blocks_count || shape.output_code_blocks_count)
       return CUDAQ_EDEM_INVALID_CONTENT;
-    EDEM_TRY(cudaq_edem_get_code_count(&value->edem, &code_count));
     cudaq_gf2_map_shape map;
     EDEM_TRY(cudaq_gf2_map_get_shape(&value->edem.map, &map));
     block_count = map.block_count;
@@ -100,8 +97,7 @@ struct responses {
                                   shape.observable_ports_count +
                                   shape.success_ports_count;
     uint64_t bytes = 0;
-    if (!space<cudaq_edem_code_presentation>(bytes, code_count) ||
-        !space<cudaq_edem_block>(bytes, block_count) ||
+    if (!space<cudaq_edem_block>(bytes, block_count) ||
         !space<output_port>(bytes, output_count) ||
         !space<uint32_t>(bytes, output_count) ||
         !space<cudaq_edem_fault_distribution>(bytes, shape.fault_ports_count) ||
@@ -113,7 +109,6 @@ struct responses {
       return CUDAQ_EDEM_INSUFFICIENT_CAPACITY;
     EDEM_TRY(storage.reserve(bytes, CUDAQ_EDEM_PACKED_ALIGNMENT));
     arena a{static_cast<std::byte *>(storage.data()), bytes};
-    codes = a.take<cudaq_edem_code_presentation>(code_count);
     blocks = a.take<cudaq_edem_block>(block_count);
     outputs = a.take<output_port>(output_count);
     sizes = a.take<uint32_t>(output_count);
@@ -125,8 +120,6 @@ struct responses {
     rows = a.take<uint64_t>(nonzeros);
     ids = a.take<uint32_t>(columns);
     probabilities = a.take<double>(columns);
-    for (uint32_t i = 0; i < code_count; ++i)
-      EDEM_TRY(cudaq_edem_get_code(&value->edem, i, &codes[i]));
     for (uint32_t p = 0; p < shape.fault_ports_count; ++p) {
       uint32_t size, ignored;
       EDEM_TRY(cudaq_edem_get_fault(&value->edem, p, &size, &ignored));
@@ -196,7 +189,7 @@ struct responses {
       return sizes.empty() ? nullptr : sizes.data() + i;
     };
     return {shape,
-            {code_count, codes.data()},
+            nullptr,
             nullptr,
             nullptr,
             faults.data(),
@@ -461,7 +454,7 @@ cudaq_edem_status cudaq_edem_coalesce_dem_columns(
                                       count ? 1u : 0u, &group};
   cudaq_edem_description description{
       {0, 0, count ? 1u : 0u, port_counts[0], port_counts[1], port_counts[2]},
-      {data.code_count, data.codes.data()},
+      nullptr,
       nullptr,
       nullptr,
       count ? &fault : nullptr,

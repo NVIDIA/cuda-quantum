@@ -316,15 +316,23 @@ EDEM uses four reserved, single-wire free types: `edem.fault`,
 its type table, including unused types. A presentation named `P` creates the
 three-wire interface type `edem.code/P`. The separate, name-sorted presentation
 table records a producer-assigned 64-bit `id` and `s`, `v` and `k` explicitly.
-Ids and names are each unique within a table, and equal ids denote the same
-presentation. Every bundle using that code type must have the recorded
-`(v,s,2k)` widths. Presentation names identify generator ordering and logical
-representatives; producers supply their code algebra and coefficients.
+Ids and names are each unique, and equal ids denote the same presentation. A
+packed EDEM retains exactly the presentations its code bundles use. Every bundle
+using that code type must have the recorded `(v,s,2k)` widths. Presentation
+names identify generator ordering and logical representatives; producers supply
+their code algebra and coefficients.
 
-`cudaq_edem_shape` holds only port counts. The description carries the
-presentation table as `shared_code_table` (a count and an array) and the block
-count beside `blocks`. On a checked value, `cudaq_edem_get_code_count` returns
-the table size and the GF2 map shape returns the packed block count.
+Producers build a code table once with `cudaq_edem_code_table_construct`, which
+checks names and ids and copies the presentations into an owned buffer. Any
+number of descriptions then share it through `shared_code_table`, naming codes
+by their index in the array that built the table. Construction neither copies
+nor rechecks the table, and its cost does not grow with the table size. The
+table owner must outlive those constructions, not their results.
+
+`cudaq_edem_shape` holds only port counts; `block_count` sits beside `blocks`
+in the description. On a checked value, `cudaq_edem_get_code_count` returns the
+number of retained presentations and the GF2 map shape returns the packed block
+count.
 
 GF2 owns type/bundle layout, block validation, canonical storage, matrix
 interning, packing, reading and apply. cudaq-edem checks its vocabulary, permitted
@@ -359,14 +367,17 @@ adds one late data fault to the outgoing syndrome:
 
 ```python
 from cudaq_edem import (
-    Block, CodePresentation, EDEM, Endpoint, FaultDistribution, PortKind,
-    SparseMatrix,
+    Block, CodePresentation, CodeTable, EDEM, Endpoint, FaultDistribution,
+    PortKind, SparseMatrix,
 )
 
+# Build once; share with every EDEM that uses these codes.
+codes = CodeTable([CodePresentation(1, "repetition-3", syndrome_count=2,
+                                    virtual_outcome_count=2,
+                                    logical_qubit_count=1)])
 identity = SparseMatrix(2, 2, [(0, 0), (1, 1)])
 model = EDEM(
-    codes=[CodePresentation(1, "repetition-3", syndrome_count=2,
-                            virtual_outcome_count=2, logical_qubit_count=1)],
+    code_table=codes,
     inputs=[0], outputs=[0],
     faults=[FaultDistribution.independent([0.01])],
     blocks=[

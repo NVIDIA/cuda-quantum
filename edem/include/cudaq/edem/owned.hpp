@@ -150,6 +150,55 @@ public:
   }
 };
 
+/// Owner of a checked code table. Build it once and pass table() in any number
+/// of descriptions; it must outlive those constructions, not their results.
+class CUDAQ_EDEM_CPP_LOCAL CodeTable final {
+  cudaq_gf2_owned_buffer owner_{};
+  cudaq_edem_checked_code_table table_{};
+
+public:
+  CodeTable() noexcept = default;
+  CodeTable(const CodeTable &) = delete;
+  CodeTable &operator=(const CodeTable &) = delete;
+  CodeTable(CodeTable &&other) noexcept
+      : owner_(std::exchange(other.owner_, {})),
+        table_(std::exchange(other.table_, {})) {}
+  CodeTable &operator=(CodeTable &&other) noexcept {
+    if (this != &other) {
+      reset();
+      owner_ = std::exchange(other.owner_, {});
+      table_ = std::exchange(other.table_, {});
+    }
+    return *this;
+  }
+  ~CodeTable() noexcept { reset(); }
+
+  [[nodiscard]] bool empty() const noexcept { return owner_.data == nullptr; }
+
+  /// The token belongs to this object and is empty after a move or reset.
+  [[nodiscard]] const cudaq_edem_checked_code_table *table() const & noexcept {
+    return &table_;
+  }
+  const cudaq_edem_checked_code_table *table() const && = delete;
+
+  void reset() noexcept {
+    table_ = {};
+    cudaq_gf2_owned_buffer_release(&owner_);
+  }
+
+  /// Check and copy table. Failure preserves result.
+  [[nodiscard]] static cudaq_edem_status
+  construct(const cudaq_edem_code_table &table, CodeTable &result,
+            const cudaq_gf2_memory *memory = nullptr) noexcept {
+    CodeTable candidate;
+    auto status = cudaq_edem_code_table_construct(
+        &table, memory, &candidate.owner_, &candidate.table_);
+    if (status == CUDAQ_EDEM_OK)
+      result = std::move(candidate);
+    return status;
+  }
+};
+
 } // namespace v0
 } // namespace cudaq::edem
 

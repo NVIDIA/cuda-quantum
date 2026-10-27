@@ -477,11 +477,19 @@ cudaq_edem_status cudaq_edem_compose_chain(const cudaq_edem_view *values,
             indices[position++] = row;
       }
     }
+  // The merged table lives in scratch only for this construction.
+  const cudaq_edem_code_table merged{code_count, codes.data()};
+  const cudaq_gf2_memory table_memory{scratch_allocator(memory),
+                                      scratch_allocator(memory)};
+  cudaq_gf2_owned_buffer table_owner{};
+  cudaq_edem_checked_code_table table;
+  EDEM_TRY(cudaq_edem_code_table_construct(&merged, &table_memory, &table_owner,
+                                           &table));
   cudaq_edem_description description{
       {first.shape.input_code_blocks_count, last.shape.output_code_blocks_count,
        static_cast<uint32_t>(faults), static_cast<uint32_t>(detectors),
        static_cast<uint32_t>(observables), static_cast<uint32_t>(successes)},
-      {code_count, codes.data()},
+      &table,
       input_codes.data(),
       output_codes.data(),
       distributions.data(),
@@ -490,5 +498,7 @@ cudaq_edem_status cudaq_edem_compose_chain(const cudaq_edem_view *values,
       success_ports_sizes.data(),
       block_count,
       blocks.data()};
-  return cudaq_edem_construct(&description, memory, owner, result);
+  auto status = cudaq_edem_construct(&description, memory, owner, result);
+  cudaq_gf2_owned_buffer_release(&table_owner);
+  return status;
 }

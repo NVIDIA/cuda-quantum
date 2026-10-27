@@ -184,6 +184,46 @@ struct Block {
   }
 };
 
+class CodeTable {
+  cudaq_gf2_owned_buffer storage{};
+  cudaq_edem_checked_code_table checked{};
+
+public:
+  explicit CodeTable(const std::vector<CodePresentation> &codes) {
+    if (codes.size() > UINT32_MAX)
+      throw nb::value_error("too many code presentations");
+    std::vector<cudaq_edem_code_presentation> views;
+    for (const auto &code : codes)
+      views.push_back(code.view());
+    const cudaq_edem_code_table table{static_cast<uint32_t>(views.size()),
+                                      views.data()};
+    check(cudaq_edem_code_table_construct(&table, nullptr, &storage, &checked));
+  }
+  CodeTable(const CodeTable &) = delete;
+  CodeTable &operator=(const CodeTable &) = delete;
+  ~CodeTable() { cudaq_gf2_owned_buffer_release(&storage); }
+
+  const cudaq_edem_checked_code_table *view() const { return &checked; }
+
+  uint32_t size() const {
+    uint32_t result;
+    check(cudaq_edem_code_table_get_count(&checked, &result));
+    return result;
+  }
+
+  std::vector<CodePresentation> codes() const {
+    std::vector<CodePresentation> result;
+    for (uint32_t i = 0, n = size(); i < n; ++i) {
+      cudaq_edem_code_presentation code;
+      check(cudaq_edem_code_table_get_code(&checked, i, &code));
+      result.push_back({code.id, std::string(code.name, code.name_size),
+                        code.syndrome_count, code.virtual_outcome_count,
+                        code.logical_qubit_count});
+    }
+    return result;
+  }
+};
+
 class DEM;
 
 class EDEM {
@@ -249,20 +289,16 @@ public:
     return result != 0;
   }
 
-  EDEM(const std::vector<CodePresentation> &codes,
-       const std::vector<uint32_t> &inputs,
+  EDEM(const CodeTable *code_table, const std::vector<uint32_t> &inputs,
        const std::vector<uint32_t> &outputs,
        const std::vector<FaultDistribution> &faults,
        const std::vector<uint32_t> &detectors,
        const std::vector<uint32_t> &observables,
        const std::vector<uint32_t> &successes,
        const std::vector<Block> &blocks) {
-    std::vector<cudaq_edem_code_presentation> code_views;
     std::vector<std::vector<cudaq_edem_fault_group>> group_views(faults.size());
     std::vector<cudaq_edem_fault_distribution> fault_views;
     std::vector<cudaq_edem_block> block_views;
-    for (const auto &code : codes)
-      code_views.push_back(code.view());
     for (size_t p = 0; p < faults.size(); ++p) {
       for (const auto &group : faults[p].groups)
         group_views[p].push_back(group.view());
@@ -275,7 +311,7 @@ public:
         {count(inputs.size()), count(outputs.size()), count(faults.size()),
          count(detectors.size()), count(observables.size()),
          count(successes.size())},
-        {count(codes.size()), code_views.data()},
+        code_table ? code_table->view() : nullptr,
         inputs.data(),
         outputs.data(),
         fault_views.data(),
@@ -637,14 +673,20 @@ NB_MODULE(_core, m) {
       .def_ro("output", &Block::output)
       .def_ro("input", &Block::input)
       .def_ro("matrix", &Block::matrix);
+  nb::class_<CodeTable>(m, "CodeTable",
+                        "Checked code presentations, built once and shared "
+                        "by any number of EDEM constructions.")
+      .def(nb::init<const std::vector<CodePresentation> &>(), "codes"_a)
+      .def("__len__", &CodeTable::size)
+      .def_prop_ro("codes", &CodeTable::codes);
   auto edem = nb::class_<EDEM>(m, "EDEM");
   edem.def(
-          nb::init<const std::vector<CodePresentation> &,
-                   const std::vector<uint32_t> &, const std::vector<uint32_t> &,
+          nb::init<const CodeTable *, const std::vector<uint32_t> &,
+                   const std::vector<uint32_t> &,
                    const std::vector<FaultDistribution> &,
                    const std::vector<uint32_t> &, const std::vector<uint32_t> &,
                    const std::vector<uint32_t> &, const std::vector<Block> &>(),
-          nb::kw_only(), "codes"_a = std::vector<CodePresentation>{},
+          nb::kw_only(), "code_table"_a = nb::none(),
           "inputs"_a = std::vector<uint32_t>{},
           "outputs"_a = std::vector<uint32_t>{},
           "faults"_a = std::vector<FaultDistribution>{},
