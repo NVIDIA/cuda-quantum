@@ -73,7 +73,8 @@ unsigned binaryRank(std::vector<Bits> rows, unsigned columns) {
 }
 
 FailureOr<std::vector<BoundaryPort>>
-readPorts(qlx::fabric::GadgetProfileOp profile, std::optional<ArrayAttr> values,
+readPorts(qlx::fabric::GadgetContractOp profile,
+          std::optional<ArrayAttr> values,
           const std::vector<std::vector<unsigned>> &carriers, StringRef label) {
   if (!values || values->size() != carriers.size()) {
     profile.emitOpError() << "EDEM " << label
@@ -115,7 +116,7 @@ readPorts(qlx::fabric::GadgetProfileOp profile, std::optional<ArrayAttr> values,
 }
 
 FailureOr<std::unordered_map<std::string, unsigned>>
-readRecordMap(qlx::fabric::GadgetProfileOp profile,
+readRecordMap(qlx::fabric::GadgetContractOp profile,
               const Projection &projection) {
   auto gadget = dyn_cast_or_null<qlx::fabric::GadgetOp>(
       SymbolTable::lookupNearestSymbolFrom(profile, profile.getGadgetAttr()));
@@ -209,7 +210,7 @@ readParity(Operation *owner, StringRef gadgetName,
 }
 
 FailureOr<ProfileRows>
-readProfileRows(qlx::fabric::GadgetProfileOp profile,
+readProfileRows(qlx::fabric::GadgetContractOp profile,
                 const Projection &projection,
                 const std::unordered_map<std::string, unsigned> &recordMap,
                 const std::vector<BoundaryPort> &inputs,
@@ -289,7 +290,7 @@ IdealBoundaryPort idealPort(const BoundaryPort &port) {
   return result;
 }
 
-LogicalResult verifyIdealProfile(qlx::fabric::GadgetProfileOp profile,
+LogicalResult verifyIdealProfile(qlx::fabric::GadgetContractOp profile,
                                  const Projection &projection,
                                  const std::vector<BoundaryPort> &inputs,
                                  const std::vector<BoundaryPort> &outputs,
@@ -458,7 +459,7 @@ struct PreparedFaults {
 };
 
 FailureOr<PreparedFaults> prepareFaults(
-    qlx::fabric::GadgetProfileOp profile, const Projection &projection,
+    qlx::fabric::GadgetContractOp profile, const Projection &projection,
     const std::unordered_map<std::string, unsigned> &recordMap,
     const edem_analysis::FaultInput &faults, const SourceLayout &layout) {
   std::unordered_map<std::string, std::size_t> sites;
@@ -518,7 +519,7 @@ struct Propagated {
   std::vector<Bits> records;
 };
 
-FailureOr<Propagated> propagate(qlx::fabric::GadgetProfileOp profile,
+FailureOr<Propagated> propagate(qlx::fabric::GadgetContractOp profile,
                                 const Projection &projection,
                                 const std::vector<BoundaryPort> &inputs,
                                 const SourceLayout &layout,
@@ -734,7 +735,7 @@ struct MatrixStorage {
   std::vector<uint32_t> indices;
 };
 
-FailureOr<PackedGadgetEDEM> assemble(qlx::fabric::GadgetProfileOp profile,
+FailureOr<PackedGadgetEDEM> assemble(qlx::fabric::GadgetContractOp profile,
                                      const std::vector<BoundaryPort> &inputs,
                                      const std::vector<BoundaryPort> &outputs,
                                      const ProfileRows &profileRows,
@@ -905,7 +906,7 @@ FailureOr<PackedGadgetEDEM> assemble(qlx::fabric::GadgetProfileOp profile,
 }
 
 FailureOr<PackedGadgetEDEM>
-buildGadgetEDEM(qlx::fabric::GadgetProfileOp profile,
+buildGadgetEDEM(qlx::fabric::GadgetContractOp profile,
                 const Projection &projection,
                 const edem_analysis::FaultInput &faults) {
   if (!profile.getBoundaryComplete()) {
@@ -953,21 +954,21 @@ deriveGadgetEDEM(ModuleOp module, StringRef profileName, StringRef faultJson) {
                        << llvm::toString(faults.takeError());
     return failure();
   }
-  qlx::fabric::GadgetProfileOp selected;
+  qlx::fabric::GadgetContractOp selected;
   if (!profileName.empty()) {
-    selected = module.lookupSymbol<qlx::fabric::GadgetProfileOp>(profileName);
+    selected = module.lookupSymbol<qlx::fabric::GadgetContractOp>(profileName);
   } else {
-    for (auto candidate : module.getOps<qlx::fabric::GadgetProfileOp>()) {
+    for (auto candidate : module.getOps<qlx::fabric::GadgetContractOp>()) {
       if (selected) {
-        module.emitError(
-            "EDEM requires profile= when multiple gadget profiles are present");
+        module.emitError("EDEM requires profile= when multiple gadget "
+                         "contracts are present");
         return failure();
       }
       selected = candidate;
     }
   }
   if (!selected) {
-    module.emitError("EDEM requires a selected fabric.gadget_profile");
+    module.emitError("EDEM requires a selected fabric.gadget_contract");
     return failure();
   }
   auto projection = projectClifford(module, selected.getGadget());

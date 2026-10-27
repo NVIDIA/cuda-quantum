@@ -41,9 +41,9 @@ seed = 7
 # %%
 # Assemble recipe-provided profiles; an explicit profile can replace any default.
 implementation = surface.definitions(distance)
-prep = surface.gadget_profile(implementation.prepare_zero)
-sec = surface.gadget_profile(implementation.memory_round)
-readout = surface.gadget_profile(implementation.measure_z)
+prep = surface.gadget_contract(implementation.prepare_zero)
+sec = surface.gadget_contract(implementation.memory_round)
+readout = surface.gadget_contract(implementation.measure_z)
 profiles = (prep, *((sec,) * (rounds - 1)), readout)
 
 

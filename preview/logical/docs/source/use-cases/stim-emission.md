@@ -19,7 +19,7 @@ This page covers two ways to export:
 - **From an MLIR module.** Convert an existing gadget to its ideal circuit with
   `qlx-translate`. See [Native MLIR emission](#native-mlir-emission).
 
-## Export a profiled surface-code memory
+## Export a surface-code memory with detector contracts
 
 With CUDA-Q Logical installed, run the
 [surface-memory example](../../../examples/standalone/06_stim_emission.py)
@@ -148,7 +148,7 @@ comparing consecutive rounds reveals the change.
 
 A gadget specifies only quantum operations. To annotate the circuit, the
 exporter also needs to know which parities of results should be zero without
-errors and which result is the logical outcome. A **gadget profile** attaches
+errors and which result is the logical outcome. A **gadget contract** attaches
 these rules to a gadget:
 
 - **Detectors** are parities of measurement results that are zero when no
@@ -167,12 +167,12 @@ The memory round shows how these fit together. For each check `i`, it
 declares the detector `incoming[i] ^ round[i]`, because in an ideal round the
 new result equals the expected value. It then binds its own results as the
 outgoing virtual syndrome, so they become the next round's baseline. In the
-profile API, these steps are one `graph.detector(incoming[i] ^ record)` call
-per check followed by `graph.bind(outgoing, records)`.
+contract API, these steps are one `builder.detector(incoming[i] ^ record)` call
+per check followed by `builder.bind(outgoing, records)`.
 [Declare a contract](../reference/detector-contracts.md#declare-a-contract)
 works through a complete Steane memory round.
 
-The three surface profiles produce the detectors described earlier:
+The three surface contracts produce the detectors described earlier:
 
 - `prepare_zero` declares the four first-round Z-check detectors and binds all
   eight results as its outgoing virtual syndrome.
@@ -180,15 +180,15 @@ The three surface profiles produce the detectors described earlier:
   syndrome and passes its own results on.
 - `measure_z` declares the logical observable.
 
-`surface.gadget_profile(gadget)` returns these profiles. It recognizes only
+`surface.gadget_contract(gadget)` returns these contracts. It recognizes only
 gadget objects created by `surface.definitions`. Any other gadget raises
 `ValueError`, even one with the same name or code. See
-[Recipe-provided profiles](../reference/detector-contracts.md#recipe-provided-profiles).
+[Recipe-provided contracts](../reference/detector-contracts.md#recipe-provided-contracts).
 
 The reference pages also use the term *detector contract*: a gadget's
 detectors and virtual-syndrome bindings, together with the code at each
-boundary. A profile is the container that holds the contract and the
-observables.
+boundary. `GadgetContract` holds these declarations together with observables
+and success conditions.
 
 ### Add data errors and assemble the experiment
 
@@ -197,12 +197,12 @@ channel on every data qubit immediately before each round's first stabilizer
 measurement. In preparation, this is after the reset, so the reset does not
 erase the injected errors. The final readout receives no additional noise.
 
-Select the profiles in execution order and apply the helper:
+Select the contracts in execution order and apply the helper:
 
 ```{eval-rst}
 .. literalinclude:: ../../../examples/standalone/06_stim_emission.py
    :language: python
-   :start-at: prep = surface.gadget_profile(implementation.prepare_zero)
+   :start-at: prep = surface.gadget_contract(implementation.prepare_zero)
    :end-before: # %%
 ```
 
@@ -211,26 +211,26 @@ before the readout.
 
 ### Save the Stim circuit
 
-`compiler.emit_stim` combines the profiles into one annotated circuit. It
+`compiler.emit_stim` combines the contracts into one annotated circuit. It
 accepts a **closed single-block chain**:
 
-- the first profile prepares one encoded block from nothing;
-- each interior profile takes that block in and passes it on;
-- the last profile consumes it with a measurement.
+- the first contract prepares one encoded block from nothing;
+- each interior contract takes that block in and passes it on;
+- the last contract consumes it with a measurement.
 
-Adjacent profiles must use the same code presentation, meaning the same code
+Adjacent contracts must use the same code presentation, meaning the same code
 and stabilizer ordering, so that each outgoing virtual syndrome lines up with
 the next gadget's incoming one. `emit_stim` substitutes the outgoing virtual
 syndrome into the next gadget's detectors. That substitution turns
 `incoming[i] ^ round[i]` into a comparison of two concrete results, such as
-`DETECTOR rec[-25] rec[-17]`. Only the last profile may declare observables, and
+`DETECTOR rec[-25] rec[-17]`. Only the last contract may declare observables, and
 postselection is unsupported.
 
 `emit_stim` checks the chain's structure. It does not check that the declared
-detectors are deterministic, so a profile you write yourself needs separate
+detectors are deterministic, so a contract you write yourself needs separate
 verification (see [Customize the experiment](#customize-the-experiment)).
 
-The example passes the profiles and noise placements to `emit_stim` and adds
+The example passes the contracts and noise placements to `emit_stim` and adds
 qubit coordinates for visualization:
 
 ```{eval-rst}
@@ -282,10 +282,10 @@ samples need not show every kind of error.
   changed independently. The detector count scales as
   4 + 8 × (`rounds` − 1) at distance three. In general, it is the number of
   Z-type checks plus `distance² − 1` comparisons for each memory round.
-- **Use your own gadgets.** Recipe profiles exist only for the recipe's
+- **Use your own gadgets.** Recipe contracts exist only for the recipe's
   gadgets, so use preparation, memory, and readout gadgets from the same
   `surface.definitions(distance)` result. For a gadget you author,
-  [declare its profile](../reference/detector-contracts.md#declare-a-contract)
+  [declare its contract](../reference/detector-contracts.md#declare-a-contract)
   before exporting. The sequence must still form a closed chain on one encoded
   block.
 - **Add circuit-level noise.** The `StandardDepolarizingNoise` fields add
@@ -301,7 +301,7 @@ samples need not show every kind of error.
 
 ## Native MLIR emission
 
-The Python export starts from gadget profiles. It knows which results to
+The Python export starts from gadget contracts. It knows which results to
 compare, carries virtual syndromes from one gadget to the next, and adds noise.
 `qlx-translate --fabric-to-stim` starts instead from an MLIR module, written by
 hand or saved from an earlier compile, and converts one of its gadgets to Stim
@@ -389,7 +389,7 @@ measurement records, see
 - To derive an error model directly from the gadgets and sample it in CUDA-Q
   QEC, continue with
   [Derive an error model from gadgets](gadget-edems.md).
-- To write and verify profiles for your own gadgets, read
+- To write and verify contracts for your own gadgets, read
   [Detector contracts and Clifford projection](../reference/detector-contracts.md).
 - To map common Stim workflows onto CUDA-Q Logical, see
   [For Stim users](../reference/for-stim-users.md).

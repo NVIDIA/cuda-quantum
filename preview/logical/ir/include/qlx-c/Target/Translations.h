@@ -40,7 +40,7 @@ qlxProjectCliffordJson(MlirModule module, MlirStringRef gadget,
                        MlirStringCallback callback, void *userData);
 
 /// Returns one owned, checked packed EDEM without copying its payload.
-/// An empty profile selects the unique fabric.gadget_profile. Faults use the
+/// An empty profile selects the unique fabric.gadget_contract. Faults use the
 /// external cudaq.logical.edem-faults/v1 JSON schema. Does not mutate the
 /// module. Output must point to a zero-initialized record. Failure leaves it
 /// unchanged; release the returned record with

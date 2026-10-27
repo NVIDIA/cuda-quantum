@@ -60,7 +60,7 @@ from .specification import _gadget_boundary_profiles
 
 
 @dataclass(frozen=True, slots=True)
-class GadgetProfile:
+class GadgetContract:
     """Immutable analysis declarations for one unchanged gadget.
 
     Detectors, output virtual syndromes, and endpoint code presentations form
@@ -89,7 +89,7 @@ class GadgetProfile:
 
         if not isinstance(self.gadget, GadgetDefinition):
             raise TypeError(
-                "GadgetProfile requires a @cudaq.logical.gadget definition")
+                "GadgetContract requires a @cudaq.logical.gadget definition")
         from cudaq.logical.codes import CodeProfile
 
         inferred_inputs, inferred_outputs = _gadget_boundary_profiles(
@@ -97,7 +97,7 @@ class GadgetProfile:
         if self.code_profile is not None:
             if not isinstance(self.code_profile, CodeProfile):
                 raise TypeError(
-                    "GadgetProfile code_profile must be cudaq.logical.CodeProfile"
+                    "GadgetContract code_profile must be cudaq.logical.CodeProfile"
                 )
             for label, inferred in (
                 ("input", inferred_inputs),
@@ -106,27 +106,27 @@ class GadgetProfile:
                 if any(profile is not self.code_profile
                        for profile in inferred.values()):
                     raise ValueError(
-                        f"GadgetProfile code_profile is not the profile carried "
+                        f"GadgetContract code_profile is not the profile carried "
                         f"by every typed {label} endpoint Encoding")
 
         def normalize_profiles(provided, inferred, label):
             values = dict(inferred if provided is None else provided)
             if set(values) != set(inferred):
                 raise ValueError(
-                    f"GadgetProfile {label}_profiles must cover exactly "
+                    f"GadgetContract {label}_profiles must cover exactly "
                     f"{tuple(inferred)}")
             for endpoint, profile in values.items():
                 if not isinstance(endpoint, BlockEndpoint):
                     raise TypeError(
-                        f"GadgetProfile {label}_profiles keys must be BlockEndpoint values"
+                        f"GadgetContract {label}_profiles keys must be BlockEndpoint values"
                     )
                 if not isinstance(profile, CodeProfile):
                     raise TypeError(
-                        f"GadgetProfile {label} endpoint {endpoint!r} must use CodeProfile"
+                        f"GadgetContract {label} endpoint {endpoint!r} must use CodeProfile"
                     )
                 if profile is not inferred[endpoint]:
                     raise ValueError(
-                        f"GadgetProfile {label} endpoint {endpoint!r} profile "
+                        f"GadgetContract {label} endpoint {endpoint!r} profile "
                         "is not carried by that endpoint Encoding")
             return MappingProxyType(values)
 
@@ -141,15 +141,15 @@ class GadgetProfile:
         if self.code_profile is None and all_profiles and all(
                 profile is all_profiles[0] for profile in all_profiles):
             object.__setattr__(self, "code_profile", all_profiles[0])
-        profile_name = self.name or f"{self.gadget.name}_profile"
+        profile_name = self.name or f"{self.gadget.name}_contract"
         detectors = tuple(self.detectors)
         observables = tuple(self.observables)
         if any(not isinstance(row, Detector) for row in detectors):
             raise TypeError(
-                "GadgetProfile detectors must contain Detector values")
+                "GadgetContract detectors must contain Detector values")
         if any(not isinstance(row, LogicalObservable) for row in observables):
             raise TypeError(
-                "GadgetProfile observables must contain LogicalObservable values"
+                "GadgetContract observables must contain LogicalObservable values"
             )
         indices = sorted(row.index for row in observables)
         if indices != list(range(len(observables))):
@@ -170,7 +170,7 @@ class GadgetProfile:
         if any(not isinstance(predicate, SuccessPredicate)
                for predicate in success):
             raise TypeError(
-                "GadgetProfile success must contain SuccessPredicate values")
+                "GadgetContract success must contain SuccessPredicate values")
         success = tuple(
             SuccessPredicate(parity) for parity in _reconcile_profile_role(
                 self.gadget,
@@ -188,13 +188,13 @@ class GadgetProfile:
             for target, value in self.boundary.items():
                 if not isinstance(target, SyndromeBundleRef):
                     raise TypeError(
-                        "GadgetProfile boundary keys must be endpoint.syndrome bundles"
+                        "GadgetContract boundary keys must be endpoint.syndrome bundles"
                     )
                 endpoint = target.endpoint
                 profile = output_profiles.get(endpoint)
                 if profile is None:
                     raise ValueError(
-                        "GadgetProfile boundary target is not an output of its gadget"
+                        "GadgetContract boundary target is not an output of its gadget"
                     )
                 expression = ProfileVectorExpr.from_value(
                     value, width=profile.effective_stabilizers.nrows)
@@ -218,7 +218,7 @@ class GadgetProfile:
         assignments = tuple(assignments)
         if any(not isinstance(assignment, OutputSyndromeAssignment)
                for assignment in assignments):
-            raise TypeError("GadgetProfile output_syndromes must contain "
+            raise TypeError("GadgetContract output_syndromes must contain "
                             "OutputSyndromeAssignment values")
         object.__setattr__(self, "output_syndromes", assignments)
         object.__setattr__(self, "boundary",
@@ -228,7 +228,7 @@ class GadgetProfile:
         object.__setattr__(
             self, "metadata",
             _freeze_gadget_metadata(dict(self.metadata or {}),
-                                    what="GadgetProfile.metadata"))
+                                    what="GadgetContract.metadata"))
         for expression in (*detectors, *observables, *self.success):
             if isinstance(expression.parity, RecordVectorParity):
                 parities = tuple(
@@ -242,7 +242,7 @@ class GadgetProfile:
                 if any(record.gadget is not self.gadget
                        for record in parity.records):
                     raise ValueError(
-                        "a gadget profile may only reference records from its gadget"
+                        "a gadget contract may only reference records from its gadget"
                     )
                 for syndrome in parity.input_syndromes:
                     profile = input_profiles.get(syndrome.endpoint)
@@ -297,7 +297,7 @@ class GadgetProfile:
                                 key=lambda item: (item[0].index, item[1]),
                             ))
             raise ValueError(
-                f"boundary-complete GadgetProfile is missing {missing}")
+                f"boundary-complete GadgetContract is missing {missing}")
         object.__setattr__(self, "boundary_complete", complete)
 
     def _effective_role_parities(self, role):
@@ -331,12 +331,13 @@ class GadgetProfile:
         return compile(self, module=module)
 
 
-class ProfileGraph:
-    """Advanced block-and-record graph builder for a detached profile.
+class GadgetContractBuilder:
+    """Build a detached gadget contract from boundary and measurement declarations.
 
-    The graph is attached to a typed ``GadgetInterface``. ``bind`` adds one
+    The builder is attached to a typed ``GadgetInterface``. ``bind`` adds one
     vector equation over a complete output syndrome bundle; scalar rows are
-    introduced only when ``freeze`` normalizes the graph to ``GadgetProfile``.
+    introduced only when ``freeze`` normalizes the declarations to a
+    ``GadgetContract``.
     """
 
     __slots__ = (
@@ -360,7 +361,8 @@ class ProfileGraph:
     ) -> None:
         if not isinstance(interface, GadgetInterface):
             raise TypeError(
-                "ProfileGraph requires a cudaq.logical.GadgetInterface")
+                "GadgetContractBuilder requires a cudaq.logical.GadgetInterface"
+            )
         self.interface = interface
         self.name = name
         self.code_profile = code_profile
@@ -370,22 +372,22 @@ class ProfileGraph:
         self._observables = []
         self._boundary = {}
 
-    def detector(self, parity) -> "ProfileGraph":
+    def detector(self, parity) -> "GadgetContractBuilder":
         self._detectors.append(Detector(parity))
         return self
 
-    def observable(self, index: int, parity) -> "ProfileGraph":
+    def observable(self, index: int, parity) -> "GadgetContractBuilder":
         self._observables.append(LogicalObservable(parity, index))
         return self
 
-    def success(self, parity) -> "ProfileGraph":
+    def success(self, parity) -> "GadgetContractBuilder":
         self._success.append(SuccessPredicate(parity))
         return self
 
-    def bind(self, target: SyndromeBundleRef, value) -> "ProfileGraph":
+    def bind(self, target: SyndromeBundleRef, value) -> "GadgetContractBuilder":
         if not isinstance(target, SyndromeBundleRef):
             raise TypeError(
-                "ProfileGraph.bind target must be endpoint.syndrome")
+                "GadgetContractBuilder.bind target must be endpoint.syndrome")
         if target.endpoint.gadget is not self.interface.gadget:
             raise ValueError("profile binding target belongs to another gadget")
         if target in self._boundary:
@@ -402,8 +404,8 @@ class ProfileGraph:
             ProfileBinding(target, value)
             for target, value in self._boundary.items())
 
-    def freeze(self) -> GadgetProfile:
-        return GadgetProfile(
+    def freeze(self) -> GadgetContract:
+        return GadgetContract(
             self.interface.gadget,
             code_profile=self.code_profile,
             detectors=tuple(self._detectors),

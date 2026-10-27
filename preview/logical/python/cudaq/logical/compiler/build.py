@@ -406,7 +406,7 @@ def _validate_v2_retained_p3_links(module) -> None:
         profile = _require_unique_link(
             top_level_index,
             _attr_text(sidecar.attributes["source_profile"]),
-            frozenset({"fabric.gadget_profile"}),
+            frozenset({"fabric.gadget_contract"}),
             "sidecar source profile",
         )
         gadget = _require_unique_link(
@@ -537,7 +537,7 @@ def _validate_v2_selected_p3_links(module, root, bundle) -> None:
                 _require_unique_link(
                     top_level_index,
                     _attr_text(operation.attributes["profile"]),
-                    frozenset({"fabric.gadget_profile"}),
+                    frozenset({"fabric.gadget_contract"}),
                     "call profile",
                 )
         elif operation.name == "phys.move":
@@ -2378,7 +2378,7 @@ class Build:
             "program",
             "kernel",
             "gadget",
-            "gadget_profile",
+            "gadget_contract",
             "protocol",
             "physical_graph",
             "control_plan",

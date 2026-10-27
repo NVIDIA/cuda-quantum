@@ -185,11 +185,11 @@ fails closed. Exhaustion is explicit (`RetryExhaustion.REPORT_FAILURE` / `ABORT`
 
 ## Verification: claims are checked, not trusted
 
-Analysis profiles can declare virtual detectors, action-outcome observables,
+Gadget contracts can declare virtual detectors, action-outcome observables,
 and output virtual-syndrome relations without changing a gadget's realization.
 See [Declare a contract](../reference/detector-contracts.md#declare-a-contract)
 for a worked example of authoring and verifying a custom memory gadget's
-profile. Use `ProfileGraph` to declare the detector parities and outgoing
+contract. Use `GadgetContractBuilder` to declare the detector parities and outgoing
 syndrome values for a gadget you author.
 
 Construction and MLIR verification establish local shape, ownership, symbol, and

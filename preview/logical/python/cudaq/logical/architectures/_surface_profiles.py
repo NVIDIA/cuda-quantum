@@ -10,13 +10,13 @@
 from cudaq.logical.algebra.clifford import _conjugate
 from cudaq.logical.algebra.pauli import PauliGroupElement
 from cudaq.logical.compiler import compile, project_clifford
-from cudaq.logical.gadgets.profiles import ProfileGraph
+from cudaq.logical.gadgets.contracts import GadgetContractBuilder
 from cudaq.logical.gadgets.records import ProfileParity
 
 
 def passthrough_profile(gadget):
     """Declare unchanged virtual syndromes for an encoded operation."""
-    graph = ProfileGraph(gadget.interface)
+    graph = GadgetContractBuilder(gadget.interface)
     for source, target in zip(gadget.inputs.blocks, gadget.outputs.blocks):
         graph.bind(target.syndrome, source.syndrome)
     return graph.freeze()
@@ -84,7 +84,7 @@ def clifford_profile(gadget):
             parity = parity ^ value
         values.append(parity ^ (operator.phase_exponent_mod_4 == 2))
 
-    graph = ProfileGraph(gadget.interface)
+    graph = GadgetContractBuilder(gadget.interface)
     start = 0
     for endpoint in gadget.outputs.blocks:
         end = start + endpoint.syndrome.width

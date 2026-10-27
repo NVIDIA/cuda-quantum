@@ -24,7 +24,7 @@ code-presentation map sends `E` to `(S, L)`. A code presentation may list
 redundant generators, so its attainable coordinates need not fill the whole
 declared bit space.
 
-The existing profile spellings `endpoint.syndrome`, `InputSyndromeRef`, and
+The contract spellings `endpoint.syndrome`, `InputSyndromeRef`, and
 `OutputSyndromeAssignment` describe **virtual syndromes**. They do not declare
 residual-error coordinates. `CodeProfile` remains the compiler's larger code
 algebra container; its selected generators and boundary coordinates supply a
@@ -54,31 +54,31 @@ OM: M -> O
 `LogicalObservable` declares one indexed action-outcome parity. Observable rows
 use measurement records and constants, with no `V_in` terms. Random action
 outcomes are valid observables too; they need not be deterministic detectors.
-When a gadget has an `OutcomeMap` with `RESULT` rows, a `GadgetProfile` derives
+When a gadget has an `OutcomeMap` with `RESULT` rows, a `GadgetContract` derives
 its observables from those rows. Explicit declarations must reproduce that
 ordered affine table. The broader existing `OutcomeMap.input_syndromes` API
 cannot be used in these observable rows.
 
 A **gadget detector contract** consists of the detector map and the input and
-output code presentations. `GadgetProfile` is a compiler container that also
+output code presentations. `GadgetContract` is a compiler container that also
 holds observable and success declarations; those additional fields do not
 change the mathematical definition of a detector contract. Success rows are
 acceptance mismatch parities; retry and selection policy stay in the protocol.
 
-## Recipe-provided profiles
+## Recipe-provided contracts
 
-Recipes expose `gadget_profile(gadget)` functions. For example:
+Recipes expose `gadget_contract(gadget)` functions. For example:
 
 ```python
 from cudaq.logical.architectures import surface
 
 recipe = surface.definitions(3)
-profile = surface.gadget_profile(recipe.memory_round)
+contract = surface.gadget_contract(recipe.memory_round)
 ```
 
-The Surface recipe returns cached profiles for the gadget objects it creates.
+The Surface recipe returns cached contracts for the gadget objects it creates.
 A gadget it did not create raises `ValueError`. For
-custom gadgets, declare a `GadgetProfile` explicitly.
+custom gadgets, declare a `GadgetContract` explicitly.
 
 The surface recipe supplies preparation and memory detectors, Clifford syndrome
 transfers, and readout observables. Clifford transfers are derived from
@@ -86,7 +86,7 @@ physical gates, while measurement comparisons are selected by the recipe.
 
 ## Declare a contract
 
-For a custom gadget, use `ProfileGraph` to declare how recorded measurements
+For a custom gadget, use `GadgetContractBuilder` to declare how recorded measurements
 relate to its virtual boundary. This Steane memory round names its extracted
 syndrome `round`:
 
@@ -112,20 +112,20 @@ its incoming expectation, so their XOR forms a detector. The current results
 then become the outgoing baseline:
 
 ```python
-graph = cql.gadgets.ProfileGraph(memory_round.interface)
+builder = cql.gadgets.GadgetContractBuilder(memory_round.interface)
 incoming = memory_round.inputs.only().syndrome
 outgoing = memory_round.outputs.only().syndrome
 records = tuple(memory_round.record(f"round.s{i}") for i in range(incoming.width))
 
 for i, record in enumerate(records):
-    graph.detector(incoming[i] ^ record)
-graph.bind(outgoing, records)
-profile = graph.freeze()
+    builder.detector(incoming[i] ^ record)
+builder.bind(outgoing, records)
+contract = builder.freeze()
 ```
 
 `detector` declares a parity expected to vanish without errors. `bind` supplies
 the complete outgoing virtual syndrome that a subsequent gadget can reference.
-`freeze()` produces an immutable `GadgetProfile`; these declarations add no
+`freeze()` produces an immutable `GadgetContract`; these declarations add no
 quantum operations or noise probabilities to the realization.
 
 This memory round returns no logical measurement outcome, so it has no
@@ -133,10 +133,10 @@ observable rows. For a readout gadget, observables come from its declared
 outcome map. Explicit observable declarations must agree with that map, as
 explained in [Detector map and outcome map](#detector-map-and-outcome-map).
 
-Compile the profile and verify the module:
+Compile the contract and verify the module:
 
 ```python
-build = cql.compile(profile)
+build = cql.compile(contract)
 assert build.module.operation.verify()
 ```
 
@@ -146,11 +146,11 @@ syndrome bounds, observable indices, and agreement with the outcome map.
 additionally checks ideal determinism and completeness before constructing an
 EDEM.
 
-Pass the explicit profile as an occurrence in a closed, compatible profile
+Pass the explicit contract as an occurrence in a closed, compatible contract
 sequence for
 [`compiler.emit_stim`](../use-cases/stim-emission.md#save-the-stim-circuit). For
 EDEM construction, pass its compiled Build and an explicit fault set to
-[`analysis.derive_edem`](../use-cases/gadget-edems.md#specify-faults). The profile
+[`analysis.derive_edem`](../use-cases/gadget-edems.md#specify-faults). The contract
 is authored here; it is not inferred automatically from the gadget definition.
 
 ## Project the realization
