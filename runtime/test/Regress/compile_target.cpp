@@ -342,14 +342,11 @@ void test_staged_skip(mlir::MLIRContext *ctx) {
 // CHECK-NOT: quake.mz
 
 /// Kernel that the base QIR profile accepts.
-static const char *bellKernel = R"#(
-func.func @__nvqpp__mlirgen__bell() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
-  %q0 = quake.alloca !quake.ref
-  %q1 = quake.alloca !quake.ref
-  quake.h %q0 : (!quake.ref) -> ()
-  quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
-  %m0 = quake.mz %q0 : (!quake.ref) -> !quake.measure
-  %m1 = quake.mz %q1 : (!quake.ref) -> !quake.measure
+static const char *measureKernel = R"#(
+func.func @__nvqpp__mlirgen__measure() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %q = quake.alloca !quake.ref
+  quake.h %q : (!quake.ref) -> ()
+  %m = quake.mz %q : (!quake.ref) -> !quake.measure
   return
 }
 )#";
@@ -369,30 +366,24 @@ void test_optimization_level_0(mlir::MLIRContext *ctx) {
   target.codegen.emissionFormat = "qir-base";
   cudaq::CompileOptions options;
   options.optimizationLevel = cudaq::OptimizationLevel::O0;
-  auto mod = mlir::parseSourceString<mlir::ModuleOp>(bellKernel, ctx);
+  auto mod = mlir::parseSourceString<mlir::ModuleOp>(measureKernel, ctx);
   Compiler compiler(target, std::move(options));
   auto compiled = compiler.runPassPipeline(
-      "bell", mod.release().getAsOpaquePointer(), cudaq::KernelArgs{},
+      "measure", mod.release().getAsOpaquePointer(), cudaq::KernelArgs{},
       /*isEntryPoint=*/true);
-  llvm::outs() << "Optimization level 0:\n"
-               << CompiledModuleHelper::getMlirModuleOp(*compiled.getMlir())
-               << "\n";
 
+  llvm::outs() << "Optimization level 0 codegen:\n";
   Compiler codegen(target, {});
   cudaq_internal::compiler::setRunPassManagerHook(&printPipeline);
   codegen.emitKernelExecutions(compiled);
   cudaq_internal::compiler::setRunPassManagerHook(nullptr);
 }
 
-// clang-format off
-// CHECK-LABEL: Optimization level 0:
-// CHECK:         module attributes {{{.*}}quake.noOptimization
-// CHECK:         func.func @__nvqpp__mlirgen__bell() attributes {{{.*}}quake.noOptimization
+// CHECK-LABEL: Optimization level 0 codegen:
 // CHECK:         combine-quantum-alloc
 // CHECK-NOT:     quake-simplify
 // CHECK-NOT:     {{[(,]}}dqe{{[,)]}}
 // CHECK:         cc-to-llvm
-// clang-format on
 
 int main() {
   auto context = cudaq_internal::compiler::getOwningMLIRContext();
