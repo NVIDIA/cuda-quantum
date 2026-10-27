@@ -56,22 +56,22 @@ protected:
   /// @brief Stim Frame/Flip simulator (used to generate multiple shots)
   std::unique_ptr<stim::FrameSimulator<W>> sampleSim;
 
-  /// @brief Error counter for MSM generation. This is only used for "msm" and
-  /// "msm_size" policies.
+  /// @brief Error counter for MSM generation. This is only used for `msm` and
+  /// `msm_size` policies.
   std::size_t msm_err_count = 0;
 
-  /// @brief Error ID counter for MSM generation. This is only used for "msm"
-  /// and "msm_size" execution contexts.
+  /// @brief Error ID counter for MSM generation. This is only used for `msm`
+  /// and `msm_size` execution contexts.
   std::size_t msm_id_counter = 0;
 
-  /// @brief Whether or not the execution context name is "msm" (value is cached
+  /// @brief Whether or not the execution context name is `msm` (value is cached
   /// for speed)
   bool is_msm_mode = false;
 
   std::optional<cudaq::msm_dimensions> activeMsmDimensions;
 
   /// @brief Probabilities of each error mechanism, accumulated during MSM
-  /// execution. Only used for "msm" policy.
+  /// execution. Only used for `msm` policy.
   std::vector<double> msmProbabilities;
 
   /// @brief Error IDs corresponding to each entry in @c msmProbabilities.
