@@ -12,7 +12,15 @@ import sys
 
 # Helper function to convert cmake variable boolean definitions to True/False.
 def cmake_boolvar_to_bool(s):
-  return s == "1"
+  # Follow CMake's own rules for a true constant: 1, ON, YES, TRUE, Y, or a
+  # non-zero number, in any case. Everything else is false.
+  s = s.strip().upper()
+  if s in ("ON", "YES", "TRUE", "Y"):
+    return True
+  import re
+  if re.fullmatch(r"[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?", s):
+    return float(s) != 0
+  return False
 
 config.llvm_tools_dir = lit_config.substitute("@LLVM_TOOLS_BINARY_DIR@")
 config.llvm_shlib_dir = lit_config.substitute(path(r"@SHLIBDIR@"))

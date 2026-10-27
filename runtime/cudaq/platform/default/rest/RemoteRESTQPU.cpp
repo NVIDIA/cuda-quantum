@@ -90,6 +90,10 @@ RemoteRESTQPU::unifiedLaunchModule(const AnyModule &module, KernelArgs args) {
   CompiledModule compiled;
   auto target = getCompileTarget();
   CompileOptions options = cudaq::get_compile_options(other_policies{});
+  // A launch without a policy (e.g. `draw`) does not go through `launch.h`,
+  // which sets this for the policy-based launches. Without it, an emulated
+  // target gets neither the emulation pipeline nor a JIT artifact.
+  options.emulate = isEmulated();
   cudaq_internal::compiler::Compiler compiler(std::move(target),
                                               std::move(options));
 
