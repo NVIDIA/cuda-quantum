@@ -9,6 +9,7 @@
 #include "CUDAQTestUtils.h"
 #include "common/AnalogHamiltonian.h"
 #include "nlohmann/json.hpp"
+#include "cudaq/platform/pasqal/PasqalUtils.h"
 
 const std::string sampleSequence = R"(
 {
@@ -73,4 +74,13 @@ CUDAQ_TEST(PasqalTester, checkHamiltonianJson) {
   nlohmann::json serializedSequence = sequence;
   cudaq::ahs::Program refSequence = nlohmann::json::parse(sampleSequence);
   EXPECT_EQ(serializedSequence, refSequence);
+}
+
+CUDAQ_TEST(PasqalTester, resultsKeepRegisterOrder) {
+  // Atom 0 is the first character in both Pasqal and CUDA-Q bitstrings.
+  auto result = cudaq::pasqal::parseExecutionResult(
+      nlohmann::json{{"100", 7}, {"110", 3}});
+  EXPECT_EQ(result.counts.at("100"), 7);
+  EXPECT_EQ(result.counts.at("110"), 3);
+  EXPECT_FALSE(result.counts.contains("001"));
 }

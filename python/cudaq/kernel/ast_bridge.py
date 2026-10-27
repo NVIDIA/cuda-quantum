@@ -4339,9 +4339,19 @@ class PyASTBridge(ast.NodeVisitor):
             self.emitWarning(
                 "produced elements in list comprehension contain None - "
                 "expression will be evaluated but no list is generated", node)
+            body = [node.elt]
+            if hasFilter:
+                # Apply the `if` clauses so only the selected elements are
+                # evaluated, matching Python semantics.
+                test = (if_clauses[0] if len(if_clauses) == 1 else ast.BoolOp(
+                    op=ast.And(), values=list(if_clauses)))
+                ifNode = ast.If(test=test, body=body, orelse=[])
+                ast.copy_location(ifNode, node.elt)
+                ast.fix_missing_locations(ifNode)
+                body = [ifNode]
             forNode = ast.For(target=node.generators[0].target,
                               iter=node.generators[0].iter,
-                              body=[node.elt],
+                              body=body,
                               orelse=[])
             forNode.lineno = node.lineno
             # This loop could be marked as invariant if we didn't use
