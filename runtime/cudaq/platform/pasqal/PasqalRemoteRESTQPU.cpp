@@ -14,8 +14,14 @@ void cudaq::PasqalRemoteRESTQPU::setTargetBackend(const std::string &backend) {
   AnalogRemoteRESTQPU::setTargetBackend(backend);
   rydbergC6 = ahs::fresnelCan.rydbergC6;
   auto it = backendConfig.find("emulation_rydberg_c6");
-  if (!emulate || it == backendConfig.end())
+  if (it == backendConfig.end())
     return;
+  if (!emulate) {
+    CUDAQ_WARN(
+        "`emulation_rydberg_c6` is set on a non-emulation target; it has "
+        "no effect.");
+    return;
+  }
   std::size_t parsed = 0;
   try {
     rydbergC6 = std::stod(it->second, &parsed);

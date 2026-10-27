@@ -114,6 +114,16 @@ def test_invalid_emulation_rydberg_c6_fails_at_set_target():
     cudaq.reset_target()
 
 
+def test_emulation_rydberg_c6_ignored_without_emulate():
+    """Accept the emulation-only C6 override on the remote target, without effect."""
+    import cudaq
+
+    if not cudaq.has_target("pasqal"):
+        pytest.skip("Requires the PASQAL target")
+    cudaq.set_target("pasqal", emulation_rydberg_c6="5.42e-24")
+    cudaq.reset_target()
+
+
 def test_vacancy_e2e(monkeypatch):
     """Evolve occupied atoms around a vacancy through the real QPU launch path."""
     import cudaq
