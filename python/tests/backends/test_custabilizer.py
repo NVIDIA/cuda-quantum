@@ -69,6 +69,20 @@ def test_custabilizer_sample():
     assert '1' * 250 in counts
 
 
+@pytest.mark.parametrize("shots", [2, 256, 257, 1024])
+def test_custabilizer_observe_rejects_excess_shots(shots):
+    """Observe must reject shots beyond its single-frame capacity."""
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qubit()
+        x(q)
+
+    with pytest.raises(RuntimeError,
+                       match="Requested shots exceed custabilizer batch size"):
+        cudaq.observe(kernel, cudaq.spin.z(0), shots_count=shots)
+
+
 def test_custabilizer_all_mz_types():
     """Test different measurement basis types."""
 
@@ -789,13 +803,15 @@ def test_custabilizer_qec_observable_annotations_preserve_raw_measurements():
     assert result.get_sequential_data() == ["101"] * 33
 
 
-def test_custabilizer_qec_noisy_conditional_feedback():
+@pytest.mark.parametrize("probability", [0.0, 1.0])
+@pytest.mark.parametrize("shots", [1, 33])
+def test_custabilizer_qec_noisy_conditional_feedback(probability, shots):
     """A measured fault drives feedback while reset clears the measured qubit."""
 
     @cudaq.kernel
-    def feedback() -> List[bool]:
+    def feedback(probability: float) -> List[bool]:
         q = cudaq.qvector(2)
-        cudaq.apply_noise(cudaq.XError, 1.0, q[0])
+        cudaq.apply_noise(cudaq.XError, probability, q[0])
         outcome = mz(q[0])
         reset(q[0])
         if outcome:
@@ -804,10 +820,62 @@ def test_custabilizer_qec_noisy_conditional_feedback():
 
     cudaq.set_random_seed(13)
     results = cudaq.run(feedback,
+                        probability,
                         noise_model=cudaq.NoiseModel(),
-                        shots_count=33)
-    assert len(results) == 33
-    assert all(list(bits) == [False, True] for bits in results)
+                        shots_count=shots)
+    assert len(results) == shots
+    assert all(list(bits) == [False, bool(probability)] for bits in results)
+
+
+@pytest.mark.parametrize("shots", [1, 129])
+def test_custabilizer_run_measurement_history(shots):
+    """Run without conditionals preserves measurements across allocation/reset."""
+
+    @cudaq.kernel
+    def history() -> List[bool]:
+        q = cudaq.qubit()
+        h(q)
+        first = mz(q)
+        repeated = mz(q)
+        extra = cudaq.qubit()
+        cudaq.apply_noise(cudaq.XError, 1.0, extra)
+        reset(q)
+        return [first, repeated, mz(q), mz(extra)]
+
+    cudaq.set_random_seed(13)
+    results = cudaq.run(history,
+                        noise_model=cudaq.NoiseModel(),
+                        shots_count=shots)
+    assert len(results) == shots
+    assert all(bits[0] == bits[1] and list(bits[2:]) == [False, True]
+               for bits in results)
+    if shots > 1:
+        assert {bits[0] for bits in results} == {False, True}
+
+
+@pytest.mark.parametrize("shots", [1, 65])
+def test_custabilizer_broadcast_sampling_resets_state(shots):
+    """Broadcast calls reset frames and measurement records between executions."""
+
+    @cudaq.kernel
+    def noisy_measurement(probability: float):
+        q = cudaq.qubit()
+        cudaq.apply_noise(cudaq.XError, probability, q)
+        mz(q)
+
+    cudaq.set_random_seed(13)
+    probabilities = [1.0, 0.0, 1.0, 0.0]
+    results = cudaq.sample(noisy_measurement,
+                           probabilities,
+                           noise_model=cudaq.NoiseModel(),
+                           shots_count=shots,
+                           explicit_measurements=True)
+    assert len(results) == len(probabilities)
+    for result, probability in zip(results, probabilities):
+        expected = "1" if probability else "0"
+        assert len(result) == 1
+        assert result[expected] == shots
+        assert result.get_sequential_data() == [expected] * shots
 
 
 # leave for gdb debugging

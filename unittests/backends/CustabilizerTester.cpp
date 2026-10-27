@@ -208,3 +208,119 @@ CUDAQ_TEST(FrameRunner, GeneratedCircuitsHaveDisjointSerializedTargets) {
     }
   }
 }
+
+CUDAQ_TEST(FrameRunner, IncreasingShotCountReplaysCachedCircuit) {
+  nvqir::CustabilizerFrameRunner runner(2);
+  runner.apply(stim::Circuit("R 0 1\nX_ERROR(1) 1\nM 0 1"));
+  for (int64_t shots : {33, 65, 129}) {
+    SCOPED_TRACE(shots);
+    const auto table = runner.getMeasurementTable(shots, 13);
+    const auto words = (shots + 31) / 32;
+    ASSERT_EQ(table.size(), 2 * words);
+    for (int64_t shot = 0; shot < shots; ++shot) {
+      EXPECT_EQ((table[shot / 32] >> (shot % 32)) & 1u, 0u);
+      EXPECT_EQ((table[words + shot / 32] >> (shot % 32)) & 1u, 1u);
+    }
+  }
+}
+
+CUDAQ_TEST(FrameRunner, DecreasingShotCountPreservesMeasurementRows) {
+  nvqir::CustabilizerFrameRunner runner(2);
+  runner.apply(stim::Circuit("R 0 1\nX_ERROR(1) 1\nM 0 1"));
+  for (int64_t shots : {129, 65, 33, 1}) {
+    SCOPED_TRACE(shots);
+    const auto table = runner.getMeasurementTable(shots, 13);
+    const auto words = (shots + 31) / 32;
+    ASSERT_EQ(table.size(), 2 * words);
+    for (int64_t shot = 0; shot < shots; ++shot) {
+      EXPECT_EQ((table[shot / 32] >> (shot % 32)) & 1u, 0u);
+      EXPECT_EQ((table[words + shot / 32] >> (shot % 32)) & 1u, 1u);
+    }
+  }
+}
+
+CUDAQ_TEST(FrameRunner, ReusesHandleAndCircuitBufferAcrossReplays) {
+  nvqir::CustabilizerFrameRunner runner(2);
+  runner.apply(stim::Circuit("R 0 1\nX_ERROR(1) 1\nM 0 1"));
+  runner.getMeasurementTable(33, 13);
+  ASSERT_NE(runner.preparedCircuit, nullptr);
+  EXPECT_EQ(runner.preparedCircuit->handle, runner.handle);
+  const auto buffer = runner.preparedCircuit->buffer_d;
+
+  // A new shot count requires replay, reusing the handle and buffer capacity.
+  runner.getMeasurementTable(65, 13);
+  EXPECT_EQ(runner.preparedCircuit->handle, runner.handle);
+  EXPECT_EQ(runner.preparedCircuit->buffer_d, buffer);
+
+  // Replacing the circuit updates its contents while retaining buffer capacity.
+  runner.clear();
+  runner.apply(stim::Circuit("R 0 1\nX_ERROR(1) 0\nM 0 1"));
+  auto table = runner.getMeasurementTable(65, 13);
+  EXPECT_EQ(runner.preparedCircuit->buffer_d, buffer);
+  ASSERT_EQ(table.size(), 6);
+  for (int64_t shot = 0; shot < 65; ++shot) {
+    EXPECT_EQ((table[shot / 32] >> (shot % 32)) & 1u, 1u);
+    EXPECT_EQ((table[3 + shot / 32] >> (shot % 32)) & 1u, 0u);
+  }
+
+  // Appending a measurement must rebuild the circuit and update its results.
+  runner.apply(stim::Circuit("M 0"));
+  table = runner.getMeasurementTable(65, 13);
+  ASSERT_EQ(table.size(), 9);
+  for (int64_t shot = 0; shot < 65; ++shot)
+    EXPECT_EQ((table[6 + shot / 32] >> (shot % 32)) & 1u, 1u);
+}
+
+CUDAQ_TEST(CustabilizerSimulator, MultiShotSamplingExecutesOnGpu) {
+  class Simulator : public nvqir::CustabilizerCircuitSimulator {
+  public:
+    using CustabilizerCircuitSimulator::applyNoise;
+    using CustabilizerCircuitSimulator::flushGateQueue;
+    using CustabilizerCircuitSimulator::sample;
+    const nvqir::CustabilizerFrameRunner *gpuRunner() const {
+      return frameRunner.get();
+    }
+  };
+
+  constexpr int shots = 65;
+  cudaq::ExecutionContext context("sample", shots);
+  cudaq::detail::with_policy_and_ctx(cudaq::sample_policy{}, context, [&] {
+    Simulator sim;
+    sim.configureExecutionContext(context);
+    sim.setRandomSeed(13);
+    auto q0 = sim.allocateQubit();
+    auto q1 = sim.allocateQubit();
+    sim.x(q0);
+    sim.flushGateQueue();
+    sim.applyNoise(cudaq::x_error(1.0),
+                   std::vector<std::uint32_t>{static_cast<std::uint32_t>(q1)});
+
+    ASSERT_NE(sim.gpuRunner(), nullptr);
+    EXPECT_FALSE(sim.gpuRunner()->cache_executed);
+    const auto result = sim.sample({q0, q1}, shots);
+    const auto &runner = *sim.gpuRunner();
+    EXPECT_TRUE(runner.cache_executed);
+    EXPECT_EQ(runner.allocated_shots, shots);
+    ASSERT_NE(runner.frame_simulator, nullptr);
+    ASSERT_NE(runner.m_table_d, nullptr);
+
+    // Verify that sampling wrote measurement flips to actual device memory.
+    // X on q0 belongs to the tableau reference; X_ERROR on q1 flips its frame.
+    cudaPointerAttributes attributes{};
+    ASSERT_EQ(cudaPointerGetAttributes(&attributes, runner.m_table_d),
+              cudaSuccess);
+    EXPECT_EQ(attributes.type, cudaMemoryTypeDevice);
+    std::vector<std::uint32_t> flips(6);
+    ASSERT_EQ(cudaMemcpy(flips.data(), runner.m_table_d,
+                         flips.size() * sizeof(std::uint32_t),
+                         cudaMemcpyDeviceToHost),
+              cudaSuccess);
+    for (int shot = 0; shot < shots; ++shot) {
+      EXPECT_EQ((flips[shot / 32] >> (shot % 32)) & 1u, 0u);
+      EXPECT_EQ((flips[3 + shot / 32] >> (shot % 32)) & 1u, 1u);
+    }
+    ASSERT_EQ(result.counts.size(), 1);
+    EXPECT_EQ(result.counts.at("11"), shots);
+    EXPECT_EQ(result.sequentialData, std::vector<std::string>(shots, "11"));
+  });
+}
