@@ -217,10 +217,10 @@ CUDAQ_TEST(NVQIRTester, checkArrayTrackingPastScanLimit) {
   // Enough live arrays to switch the tracker to its set.
   for (int round = 0; round < 2; ++round) {
     std::vector<Array *> arrays;
-    for (std::int64_t i = 0; i < 600; ++i) {
+    for (std::size_t i = 0; i < 600; ++i) {
       auto *array = __quantum__rt__array_create_1d(sizeof(std::int64_t), 1);
-      *reinterpret_cast<std::int64_t *>(
-          __quantum__rt__array_get_element_ptr_1d(array, 0)) = i;
+      *reinterpret_cast<std::int64_t *>(__quantum__rt__array_get_element_ptr_1d(
+          array, 0)) = static_cast<std::int64_t>(i);
       arrays.push_back(array);
     }
 
@@ -230,7 +230,7 @@ CUDAQ_TEST(NVQIRTester, checkArrayTrackingPastScanLimit) {
     for (int i = 0; i < 64; ++i)
       __quantum__rt__array_release(
           __quantum__rt__array_create_1d(sizeof(std::int64_t), 1));
-    for (int i = static_cast<int>(arrays.size()) - 1; i >= 0; --i)
+    for (std::size_t i = arrays.size(); i-- > 0;)
       if (i % 3 == 2)
         __quantum__rt__array_release(arrays[i]);
     for (std::size_t i = 1; i < arrays.size(); i += 3)
