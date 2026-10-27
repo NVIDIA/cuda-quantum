@@ -10,6 +10,7 @@
 #include "NVQIRUtil.h"
 #include "common/FmtCore.h"
 #include "cudaq/runtime/logger/logger.h"
+#include <algorithm>
 #include <cassert>
 #include <cstring>
 #include <memory>
@@ -26,23 +27,55 @@ nvqir::ArrayTracker &nvqir::ArrayTracker::getInstance() {
 }
 
 // Track the given array
-void nvqir::ArrayTracker::track(Array *arr) { allocated_arrays.insert(arr); }
+void nvqir::ArrayTracker::track(Array *arr) {
+  if (use_set)
+    allocated_arrays.insert(arr);
+  else
+    recent_arrays.push_back(arr);
+}
 // Untrack the given array (manually delete outside)
 void nvqir::ArrayTracker::untrack(Array *arr) {
   if (arr == nullptr)
     return;
 
-  if (!allocated_arrays.erase(arr))
+  if (!use_set && recent_arrays.size() > maxScannedArrays) {
+    allocated_arrays.reserve(recent_arrays.size());
+    allocated_arrays.insert(recent_arrays.begin(), recent_arrays.end());
+    recent_arrays.clear();
+    use_set = true;
+  }
+
+  if (use_set) {
+    if (!allocated_arrays.erase(arr))
+      CUDAQ_WARN("Attempting to untrack an Array that is not tracked.");
+    return;
+  }
+
+  // Newest arrays are usually released first.
+  auto it = std::find(recent_arrays.rbegin(), recent_arrays.rend(), arr);
+  if (it == recent_arrays.rend()) {
     CUDAQ_WARN("Attempting to untrack an Array that is not tracked.");
+    return;
+  }
+  *it = recent_arrays.back();
+  recent_arrays.pop_back();
 }
 
 // Clean up all tracked arrays
 void nvqir::ArrayTracker::clear() {
-  CUDAQ_INFO("Cleaning up {} allocated arrays", allocated_arrays.size());
+  CUDAQ_INFO("Cleaning up {} allocated arrays",
+             recent_arrays.size() + allocated_arrays.size());
 
-  for (auto arr : allocated_arrays)
+  for (auto arr : recent_arrays)
     delete arr;
-  allocated_arrays.clear();
+  recent_arrays.clear();
+  // Clearing the set touches every bucket, so skip it when unused.
+  if (use_set) {
+    for (auto arr : allocated_arrays)
+      delete arr;
+    allocated_arrays.clear();
+    use_set = false;
+  }
 }
 
 int8_t *Array::operator[](std::size_t index) {
