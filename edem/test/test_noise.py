@@ -29,9 +29,10 @@ def make_model(responses, faults, detectors=(4,), observables=(), successes=()):
                     if responses[column_start + col] >> (row_start + row) & 1
                 ]
                 blocks.append(
-                    edem.Block(edem.Endpoint(kind, index),
-                               edem.Endpoint(edem.PortKind.FAULT, port),
-                               edem.SparseMatrix(size, fault.size, entries)))
+                    edem.MatrixBlock(
+                        edem.Endpoint(kind, index),
+                        edem.Endpoint(edem.PortKind.FAULT, port),
+                        edem.SparseMatrix(size, fault.size, entries)))
                 row_start += size
         column_start += fault.size
     return edem.project_DEM(

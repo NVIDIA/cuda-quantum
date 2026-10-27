@@ -148,7 +148,7 @@ static void boundaries(void) {
       make_table(codes, 2, &table_owner);
   uint32_t code = 0;
   cudaq_edem_description description = {0};
-  description.shape.output_code_blocks_count = 1;
+  description.shape.output_code_count = 1;
   description.shared_code_table = &table;
   description.output_code_indices = &code;
   cudaq_gf2_owned_buffer prep_owner = {0}, mz_owner = {0}, result_owner = {0};
@@ -162,8 +162,8 @@ static void boundaries(void) {
            CUDAQ_EDEM_INVALID_CONTENT);
   TA_CHECK(!result_owner.data && dem.edem.map.data == prep.map.data);
 
-  description.shape.output_code_blocks_count = 0;
-  description.shape.input_code_blocks_count = 1;
+  description.shape.output_code_count = 0;
+  description.shape.input_code_count = 1;
   description.output_code_indices = 0;
   description.input_code_indices = &code;
   code = 1;
@@ -243,10 +243,10 @@ static void make_gadget(unsigned kind, cudaq_gf2_owned_buffer *owner,
                            all = {1, 3, 3, all_offsets, three_zeros},
                            l0 = {1, 2, 1, l0_offsets, zero},
                            l01 = {1, 2, 2, identity_offsets, two_zeros};
-  cudaq_edem_block blocks[16];
+  cudaq_edem_matrix_block blocks[16];
   uint32_t n = 0;
 #define BLOCK(out, in, m)                                                      \
-  blocks[n++] = (cudaq_edem_block) {                                           \
+  blocks[n++] = (cudaq_edem_matrix_block) {                                    \
     {CUDAQ_EDEM_##out, 0}, {CUDAQ_EDEM_##in, 0}, m                             \
   }
   if (kind == 0) {
@@ -402,7 +402,7 @@ static void make_multiport_gadget(cudaq_gf2_owned_buffer *owner,
                            first = {1, 2, 1, first_offsets, zero},
                            both = {1, 2, 2, identity_offsets, both_rows},
                            last = {2, 1, 1, one_offsets, last_row};
-  const cudaq_edem_block blocks[] = {
+  const cudaq_edem_matrix_block blocks[] = {
       {{CUDAQ_EDEM_VIRTUAL, 0}, {CUDAQ_EDEM_VIRTUAL, 0}, identity_one},
       {{CUDAQ_EDEM_SYNDROME, 0}, {CUDAQ_EDEM_SYNDROME, 0}, identity_one},
       {{CUDAQ_EDEM_LOGICAL, 0}, {CUDAQ_EDEM_LOGICAL, 0}, identity_two},
@@ -458,15 +458,14 @@ static void interleaved_multiport_chain(void) {
   same_value(&canonical, &composed);
   cudaq_edem_shape shape;
   TA_CHECK(cudaq_edem_get_shape(&composed, &shape) == CUDAQ_EDEM_OK);
-  TA_CHECK(shape.input_code_blocks_count == 2 &&
-           shape.output_code_blocks_count == 2 &&
+  TA_CHECK(shape.input_code_count == 2 && shape.output_code_count == 2 &&
            shape.fault_ports_count == 6 && shape.detector_ports_count == 6 &&
            shape.observable_ports_count == 3 && shape.success_ports_count == 3);
   failure_sites(reordered_sequence, 3, 0);
   cudaq_gf2_owned_buffer_release(&source_owner);
   for (unsigned i = 0; i < 2; ++i)
     cudaq_gf2_owned_buffer_release(reordered_owners + i);
-  /* Every occurrence keeps both original partitions and their exact laws,
+  /* Every occurrence keeps both original fault ports and their exact laws,
    * independently of definition reuse or source allocation lifetime. */
   for (uint32_t p = 0; p < 6; ++p) {
     uint32_t width, count;
@@ -515,8 +514,8 @@ static void serial_chain(void) {
   TA_CHECK(cudaq_edem_get_shape(&composed, &shape) == CUDAQ_EDEM_OK);
   TA_CHECK(shape.fault_ports_count == 4 && shape.detector_ports_count == 4 &&
            shape.observable_ports_count == 3 &&
-           shape.success_ports_count == 3 && !shape.input_code_blocks_count &&
-           !shape.output_code_blocks_count);
+           shape.success_ports_count == 3 && !shape.input_code_count &&
+           !shape.output_code_count);
   check_laws(&composed, 4);
   // Hand-derived equations, in D/O/Success port order, for all 12 original
   // indicators. The repeated round definition has two distinct fault ports.

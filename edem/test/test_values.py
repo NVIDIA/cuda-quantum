@@ -19,14 +19,15 @@ import unittest
 import weakref
 
 from cudaq_edem import (
-    Block,
     CodePresentation,
     CodeTable,
     DEM,
     EDEM,
     Endpoint,
+    EndpointDirection,
     FaultDistribution,
     FaultGroup,
+    MatrixBlock,
     GroupKind,
     PortKind,
     SparseMatrix,
@@ -69,7 +70,8 @@ def open_round():
         faults=[FaultDistribution.independent([0.01, 0.02])],
         detectors=[2],
         blocks=[
-            Block(Endpoint(out), Endpoint(inp), m) for out, inp, m in edges
+            MatrixBlock(Endpoint(out), Endpoint(inp), m)
+            for out, inp, m in edges
         ],
     )
 
@@ -122,15 +124,16 @@ class CompositionTest(unittest.TestCase):
                       observables=[1],
                       successes=[1],
                       blocks=[
-                          Block(Endpoint(PortKind.DETECTOR),
-                                Endpoint(PortKind.FAULT),
-                                SparseMatrix(2, 3, [(0, 0), (1, 1), (0, 2)])),
-                          Block(Endpoint(PortKind.OBSERVABLE),
-                                Endpoint(PortKind.FAULT),
-                                SparseMatrix(1, 3, [(0, 2)])),
-                          Block(Endpoint(PortKind.SUCCESS),
-                                Endpoint(PortKind.FAULT),
-                                SparseMatrix(1, 3, [(0, 1)])),
+                          MatrixBlock(
+                              Endpoint(PortKind.DETECTOR),
+                              Endpoint(PortKind.FAULT),
+                              SparseMatrix(2, 3, [(0, 0), (1, 1), (0, 2)])),
+                          MatrixBlock(Endpoint(PortKind.OBSERVABLE),
+                                      Endpoint(PortKind.FAULT),
+                                      SparseMatrix(1, 3, [(0, 2)])),
+                          MatrixBlock(Endpoint(PortKind.SUCCESS),
+                                      Endpoint(PortKind.FAULT),
+                                      SparseMatrix(1, 3, [(0, 1)])),
                       ])
         packed = source.to_bytes()
         result = project_DEM(source)
@@ -233,8 +236,9 @@ class ValuesTest(unittest.TestCase):
         value = open_round()
         self.assertEqual(value.vector_sizes, (8, 8))
         self.assertEqual(value.port(Endpoint(PortKind.LOGICAL)), (2, 6))
-        self.assertEqual(value.port(Endpoint(PortKind.VIRTUAL), output=True),
-                         (2, 2))
+        self.assertEqual(
+            value.port(Endpoint(PortKind.VIRTUAL),
+                       direction=EndpointDirection.OUTPUT), (2, 2))
         for f0, f1, v0, v1, s0, s1, l0, l1 in itertools.product((0, 1),
                                                                 repeat=8):
             self.assertEqual(
@@ -307,8 +311,8 @@ class ValuesTest(unittest.TestCase):
 
     def test_canonical_construction(self):
         value = open_round()
-        zero = Block(Endpoint(PortKind.DETECTOR), Endpoint(PortKind.LOGICAL),
-                     SparseMatrix(2, 2))
+        zero = MatrixBlock(Endpoint(PortKind.DETECTOR),
+                           Endpoint(PortKind.LOGICAL), SparseMatrix(2, 2))
         rebuilt = EDEM(code_table=CodeTable(value.codes),
                        inputs=value.inputs,
                        outputs=value.outputs,
@@ -376,8 +380,9 @@ class ValuesTest(unittest.TestCase):
 
     def test_many_distinct_and_shared_matrices(self):
         blocks = [
-            Block(Endpoint(PortKind.DETECTOR, i), Endpoint(PortKind.FAULT),
-                  SparseMatrix(64, 64, [(i % 32, (i // 32) % 16)]))
+            MatrixBlock(Endpoint(PortKind.DETECTOR, i),
+                        Endpoint(PortKind.FAULT),
+                        SparseMatrix(64, 64, [(i % 32, (i // 32) % 16)]))
             for i in range(600)
         ]
         arguments = dict(faults=[FaultDistribution.independent([0.001] * 64)],
@@ -404,17 +409,18 @@ class ValuesTest(unittest.TestCase):
                      outputs=[0],
                      observables=[1],
                      blocks=[
-                         Block(Endpoint(output), Endpoint(PortKind.VIRTUAL),
-                               SparseMatrix(rows, 1, [(0, 0)]))
+                         MatrixBlock(Endpoint(output),
+                                     Endpoint(PortKind.VIRTUAL),
+                                     SparseMatrix(rows, 1, [(0, 0)]))
                      ])
         observed = EDEM(code_table=CodeTable([code]),
                         inputs=[0],
                         outputs=[0],
                         observables=[1],
                         blocks=[
-                            Block(Endpoint(PortKind.OBSERVABLE),
-                                  Endpoint(PortKind.VIRTUAL),
-                                  SparseMatrix(1, 1, [(0, 0)]))
+                            MatrixBlock(Endpoint(PortKind.OBSERVABLE),
+                                        Endpoint(PortKind.VIRTUAL),
+                                        SparseMatrix(1, 1, [(0, 0)]))
                         ])
         packed = observed.to_bytes()
         self.assertEqual(EDEM.from_bytes(packed).to_bytes(), packed)
@@ -425,8 +431,9 @@ class ValuesTest(unittest.TestCase):
                  inputs=[0],
                  detectors=[2],
                  blocks=[
-                     Block(Endpoint(PortKind.DETECTOR),
-                           Endpoint(PortKind.SYNDROME), SparseMatrix(1, 1))
+                     MatrixBlock(Endpoint(PortKind.DETECTOR),
+                                 Endpoint(PortKind.SYNDROME),
+                                 SparseMatrix(1, 1))
                  ])
         duplicate = open_round().blocks[0]
         with self.assertRaises(ValueError):
@@ -478,8 +485,8 @@ class ValuesTest(unittest.TestCase):
                      observables=[1],
                      successes=[1],
                      blocks=[
-                         Block(Endpoint(kind), Endpoint(PortKind.FAULT),
-                               SparseMatrix(1, 1, [(0, 0)]))
+                         MatrixBlock(Endpoint(kind), Endpoint(PortKind.FAULT),
+                                     SparseMatrix(1, 1, [(0, 0)]))
                          for kind in (PortKind.DETECTOR, PortKind.OBSERVABLE,
                                       PortKind.SUCCESS)
                      ])

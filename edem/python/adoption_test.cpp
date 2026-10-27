@@ -128,7 +128,7 @@ cudaq_edem_status constructRound(const cudaq_gf2_memory *memory,
                                        identity_rows};
   const cudaq_gf2_csc_view measurement = {2, 2, 1, measurement_offsets, row};
   const cudaq_gf2_csc_view data = {2, 2, 1, data_offsets, row};
-  const cudaq_edem_block blocks[] = {
+  const cudaq_edem_matrix_block blocks[] = {
       {{CUDAQ_EDEM_LOGICAL, 0}, {CUDAQ_EDEM_LOGICAL, 0}, identity},
       {{CUDAQ_EDEM_SYNDROME, 0}, {CUDAQ_EDEM_FAULT, 0}, data},
       {{CUDAQ_EDEM_DETECTOR, 0}, {CUDAQ_EDEM_FAULT, 0}, measurement},

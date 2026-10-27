@@ -19,11 +19,12 @@ static void reordered_outputs(void) {
   cudaq_edem_fault_group group = {CUDAQ_EDEM_INDEPENDENT, 3, ids,
                                   probabilities};
   cudaq_edem_fault_distribution fault = {3, 1, &group};
-  cudaq_edem_block blocks[3];
+  cudaq_edem_matrix_block blocks[3];
   for (uint32_t i = 0; i < 3; ++i)
-    blocks[i] = (cudaq_edem_block){{CUDAQ_EDEM_DETECTOR + i, 0},
-                                   {CUDAQ_EDEM_FAULT, 0},
-                                   {1, 3, offsets[i][3], offsets[i], rows}};
+    blocks[i] =
+        (cudaq_edem_matrix_block){{CUDAQ_EDEM_DETECTOR + i, 0},
+                                  {CUDAQ_EDEM_FAULT, 0},
+                                  {1, 3, offsets[i][3], offsets[i], rows}};
   cudaq_edem_description description = {0};
   description.shape = (cudaq_edem_shape){0, 0, 1, 1, 1, 1};
   description.block_count = 3;
@@ -143,9 +144,9 @@ static uint64_t channels(uint32_t count, int bounded) {
                                          probabilities + 3 * i};
   cudaq_edem_fault_distribution fault = {columns, count, groups};
   uint32_t width = 1;
-  cudaq_edem_block block = {{CUDAQ_EDEM_DETECTOR, 0},
-                            {CUDAQ_EDEM_FAULT, 0},
-                            {1, columns, count * 2, offsets, rows}};
+  cudaq_edem_matrix_block block = {{CUDAQ_EDEM_DETECTOR, 0},
+                                   {CUDAQ_EDEM_FAULT, 0},
+                                   {1, columns, count * 2, offsets, rows}};
   cudaq_edem_description description = {0};
   description.shape.fault_ports_count = 1;
   description.shape.detector_ports_count = 1;

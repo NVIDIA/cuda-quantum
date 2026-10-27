@@ -32,7 +32,7 @@ static void matrix_roundtrip(void) {
   /* Exercise sorting and interning on a large description with repeated and
    * zero matrices, reordered blocks, and remapped code IDs. */
   const uint32_t n = 3000;
-  cudaq_edem_block *blocks = malloc(n * sizeof(*blocks));
+  cudaq_edem_matrix_block *blocks = malloc(n * sizeof(*blocks));
   uint32_t *detectors = malloc(n * sizeof(*detectors));
   CHECK(blocks && detectors);
   uint64_t offsets[16][65], zero_offsets[65] = {0};
@@ -53,7 +53,7 @@ static void matrix_roundtrip(void) {
                                  rows + i % 32};
     if (i % 17 == 0)
       matrix = (cudaq_gf2_csc_view){64, 64, 0, zero_offsets, NULL};
-    blocks[i] = (cudaq_edem_block){
+    blocks[i] = (cudaq_edem_matrix_block){
         {CUDAQ_EDEM_DETECTOR, n - i - 1}, {CUDAQ_EDEM_FAULT, 0}, matrix};
   }
   char names[300][24];
@@ -86,7 +86,7 @@ static void matrix_roundtrip(void) {
   cudaq_edem_view value;
   OK(cudaq_edem_construct(&d, NULL, &owner, &value));
   for (uint32_t i = 0; i < n / 2; ++i) {
-    cudaq_edem_block tmp = blocks[i];
+    cudaq_edem_matrix_block tmp = blocks[i];
     blocks[i] = blocks[n - i - 1];
     blocks[n - i - 1] = tmp;
   }

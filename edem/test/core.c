@@ -50,7 +50,7 @@ static void test_open_round(void) {
   const cudaq_gf2_csc_view measurement = {2, 2, 1, measurement_offsets, row};
   const cudaq_gf2_csc_view data = {2, 2, 1, data_offsets, row};
   const cudaq_gf2_csc_view zero = {2, 2, 0, zero_offsets, NULL};
-  cudaq_edem_block blocks[] = {
+  cudaq_edem_matrix_block blocks[] = {
       {{CUDAQ_EDEM_LOGICAL, 0}, {CUDAQ_EDEM_LOGICAL, 0}, identity},
       {{CUDAQ_EDEM_SYNDROME, 0}, {CUDAQ_EDEM_FAULT, 0}, data},
       {{CUDAQ_EDEM_DETECTOR, 0}, {CUDAQ_EDEM_FAULT, 0}, measurement},
@@ -104,8 +104,9 @@ static void test_open_round(void) {
   uint64_t offset, inputs, outputs;
   OK(cudaq_gf2_map_get_bundle(&relocated.map, 1, 1, &bundle));
   CHECK(bundle.type == 0);
-  OK(cudaq_edem_resolve_endpoint(
-      &relocated, 0, (cudaq_edem_endpoint){CUDAQ_EDEM_LOGICAL, 0}, &wire));
+  OK(cudaq_edem_resolve_endpoint(&relocated, CUDAQ_EDEM_INPUT,
+                                 (cudaq_edem_endpoint){CUDAQ_EDEM_LOGICAL, 0},
+                                 &wire));
   OK(cudaq_gf2_map_get_wire(&relocated.map, 0, wire, &width, &offset));
   CHECK(width == 2 && offset == 6);
   OK(cudaq_gf2_map_vector_sizes(&relocated.map, &inputs, &outputs));
@@ -134,7 +135,7 @@ static void test_open_round(void) {
         read_group.probabilities[1] == 0.02);
   /* Construction order does not affect canonical bytes. */
   for (uint32_t i = 0; i < 4; ++i) {
-    cudaq_edem_block tmp = blocks[i];
+    cudaq_edem_matrix_block tmp = blocks[i];
     blocks[i] = blocks[8 - i];
     blocks[8 - i] = tmp;
   }
@@ -144,12 +145,12 @@ static void test_open_round(void) {
   cudaq_gf2_owned_buffer_release(&reordered);
   value = (cudaq_edem_view){{packed, bytes}};
   /* Publication is atomic on invalid content. */
-  cudaq_edem_block saved = blocks[0];
+  cudaq_edem_matrix_block saved = blocks[0];
   blocks[0] = blocks[1];
   INVALID(cudaq_edem_construct(&d, NULL, &reordered, &value));
   CHECK(!reordered.data && value.map.data == packed && value.map.size == bytes);
   blocks[0] = saved;
-  blocks[0] = (cudaq_edem_block){
+  blocks[0] = (cudaq_edem_matrix_block){
       {CUDAQ_EDEM_SYNDROME, 0}, {CUDAQ_EDEM_VIRTUAL, 0}, identity};
   INVALID(cudaq_edem_validate(&d, NULL));
   blocks[0] = saved;
@@ -269,9 +270,9 @@ static void test_domain_checks(void) {
   uint64_t offsets[] = {0, 1};
   cudaq_edem_fault_group group = {CUDAQ_EDEM_INDEPENDENT, 1, &id, &probability};
   cudaq_edem_fault_distribution fault = {1, 1, &group};
-  cudaq_edem_block block = {{CUDAQ_EDEM_SYNDROME, 0},
-                            {CUDAQ_EDEM_FAULT, 0},
-                            {1, 1, 1, offsets, &row}};
+  cudaq_edem_matrix_block block = {{CUDAQ_EDEM_SYNDROME, 0},
+                                   {CUDAQ_EDEM_FAULT, 0},
+                                   {1, 1, 1, offsets, &row}};
   cudaq_gf2_owned_buffer table_owner = {0};
   const cudaq_edem_checked_code_table table =
       make_table(&code, 1, &table_owner);

@@ -176,9 +176,10 @@ matrices; `cudaq/gf2/map.h` provides typed linear maps and their packed storage.
 `cudaq/edem/core.h` adds semantic construction, presentation and distribution
 checks, endpoint translation, and access to fault distributions.
 
-Construction accepts blocks keyed by semantic endpoints such as output syndrome
-of code block 2. Producers supply code presentations and coefficients; cudaq-edem
-builds the type table and bundles. It returns a checked `cudaq_edem_view`
+Construction accepts matrix blocks keyed by semantic endpoints such as output
+syndrome of code bundle 2. Producers supply code presentations and
+coefficients; cudaq-edem builds the type table and bundles. It returns a
+checked `cudaq_edem_view`
 containing a GF2 map in its `.map` member. EDEM getters accept this distinct
 checked type. Use `&value.map` with the GF2 map API for bundles, widths,
 offsets, blocks, vector sizes and evaluation.
@@ -301,8 +302,8 @@ the capsule protocol in `cudaq/edem/python.h`.
 
 EDEM supports the map
 `(F, V_in, S_in, L_in) -> (D, O, Success, V_out, S_out, L_out)`.
-Each code-block bundle has three wires, `(V,S,L)`, with widths `(v,s,2k)`.
-Input and output code-block counts are independent.
+Each code bundle has three wires, `(V,S,L)`, with widths `(v,s,2k)`.
+Input and output code bundle counts are independent.
 
 A type is a nonempty UTF-8 name, a role and a wire count. Names compare by exact
 UTF-8 bytes, without normalization. Types are nominal, with no subtyping.
@@ -329,10 +330,11 @@ by their index in the array that built the table. Construction neither copies
 nor rechecks the table, and its cost does not grow with the table size. The
 table owner must outlive those constructions, not their results.
 
-`cudaq_edem_shape` holds only port counts; `block_count` sits beside `blocks`
-in the description. On a checked value, `cudaq_edem_get_code_count` returns the
-number of retained presentations and the GF2 map shape returns the packed block
-count.
+`cudaq_edem_shape` holds only port counts, with `input_code_count` and
+`output_code_count` counting code bundles. `block_count` sits beside `blocks`
+(`cudaq_edem_matrix_block`) in the description. On a checked value,
+`cudaq_edem_get_code_count` returns the number of retained presentations and the
+GF2 map shape returns the packed matrix block count.
 
 GF2 owns type/bundle layout, block validation, canonical storage, matrix
 interning, packing, reading and apply. cudaq-edem checks its vocabulary, permitted
@@ -367,8 +369,8 @@ adds one late data fault to the outgoing syndrome:
 
 ```python
 from cudaq_edem import (
-    Block, CodePresentation, CodeTable, EDEM, Endpoint, FaultDistribution,
-    PortKind, SparseMatrix,
+    CodePresentation, CodeTable, EDEM, Endpoint, FaultDistribution,
+    MatrixBlock, PortKind, SparseMatrix,
 )
 
 # Build once; share with every EDEM that uses these codes.
@@ -381,22 +383,25 @@ model = EDEM(
     inputs=[0], outputs=[0],
     faults=[FaultDistribution.independent([0.01])],
     blocks=[
-        Block(Endpoint(kind), Endpoint(kind), identity)
+        MatrixBlock(Endpoint(kind), Endpoint(kind), identity)
         for kind in (PortKind.VIRTUAL, PortKind.SYNDROME, PortKind.LOGICAL)
     ] + [
-        Block(Endpoint(PortKind.SYNDROME), Endpoint(PortKind.FAULT),
-              SparseMatrix(2, 1, [(0, 0)])),
+        MatrixBlock(Endpoint(PortKind.SYNDROME), Endpoint(PortKind.FAULT),
+                    SparseMatrix(2, 1, [(0, 0)])),
     ],
 )
 assert model.apply([1, 0, 0, 0, 0, 0, 0]) == [0, 0, 1, 0, 0, 0]
 assert EDEM.from_bytes(model.to_bytes()).to_bytes() == model.to_bytes()
 ```
 
-For constructor-created models, input vector order is F partitions followed by
-`(V,S,L)` for each input block; output order is D, O, Success partitions followed
-by `(V,S,L)` for each output block. Values loaded from packed bytes retain the
-GF2 map's bundle order. `model.port(endpoint, output=False)` returns an input
-port's width and offset; use `output=True` for output ports.
+For constructor-created models, input vector order is F ports followed by
+`(V,S,L)` for each input code bundle; output order is D, O, Success ports
+followed by `(V,S,L)` for each output code bundle. Input ports thus partition
+the columns of the EDEM matrix and output ports partition its rows. Values
+loaded from packed bytes retain the GF2 map's bundle order. An endpoint and an
+endpoint direction describe a port. `model.port(endpoint)` returns an input
+port's width and offset; pass `direction=EndpointDirection.OUTPUT` for output
+ports.
 
 Properties return independent metadata/matrix copies. Reconstructing a loaded
 value from these properties uses the constructor's bundle order. Use
@@ -513,7 +518,7 @@ exclusive groups do not prevent closure. Strict projection rejects either
 exposed boundary. The semantic format already uses original indicator
 coordinates, so projection copies the closed packed EDEM into an independently
 owned, checked DEM value without changing its basis or fault laws. Detector,
-observable and success matrices remain its fault-to-output blocks. Partitions
+observable and success matrices remain its fault-to-output blocks. Ports
 retain occurrence/local-port order; consumers concatenate columns by fault
 port and then original indicator. Projection does not convert exclusive laws
 to independent errors or serialize a Stim detector error model.
@@ -538,9 +543,10 @@ reduced, source_to_result = coalesce_dem_columns(independent)
 ```
 
 `cudaq_edem_into_independent_faults_dem` preserves response columns and
-partitions. It keeps independent probabilities and exactly factors supported
-exclusive channels into independent mechanisms. A supported exclusive group has 3 or 15 equally
-probable alternatives whose complete response columns, including identity,
+ports. It keeps independent probabilities and exactly factors supported
+exclusive channels into independent mechanisms. A supported exclusive group
+has 3 or 15 equally probable alternatives whose complete response columns,
+including identity,
 form a uniform linear image of the one- or two-qubit Pauli group. The total
 probability must be at most `3/4` or `15/16`, respectively. Unsupported groups
 return `CUDAQ_EDEM_UNSUPPORTED_DISTRIBUTION`; conversion never approximates or
@@ -553,9 +559,9 @@ mechanisms with the same responses, rather than the original physical events.
 complete responses using the parity probability `p + q - 2*p*q`, evaluated
 stably for small probabilities and probabilities above one half. It discards
 zero responses and zero-probability combined mechanisms. The result has one
-fault partition and at most one partition for each output kind; global rows
-retain detector, observable, then success order, each in original partition/row
-order. Distinct columns sort lexicographically by their sorted global row IDs.
+fault port and at most one port for each output kind; global rows retain
+detector, observable, then success order, each in original port/row order.
+Distinct columns sort lexicographically by their sorted global row IDs.
 Per-kind row totals and the result column count must fit `uint32_t`.
 
 The C operation also returns an owned `uint64_t` array mapping each input

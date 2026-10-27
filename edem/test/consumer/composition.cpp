@@ -137,9 +137,9 @@ int main() {
   double probabilities[] = {.1, .2};
   cudaq_edem_fault_group group{CUDAQ_EDEM_INDEPENDENT, 2, ids, probabilities};
   cudaq_edem_fault_distribution fault{2, 1, &group};
-  cudaq_edem_block block{{CUDAQ_EDEM_DETECTOR, 0},
-                         {CUDAQ_EDEM_FAULT, 0},
-                         {1, 2, 2, offsets, rows}};
+  cudaq_edem_matrix_block block{{CUDAQ_EDEM_DETECTOR, 0},
+                                {CUDAQ_EDEM_FAULT, 0},
+                                {1, 2, 2, offsets, rows}};
   cudaq_edem_description description{};
   description.shape.fault_ports_count = description.shape.detector_ports_count =
       1;

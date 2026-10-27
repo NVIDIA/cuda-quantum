@@ -47,7 +47,7 @@ struct responses {
   allocation storage;
   cudaq_edem_shape shape{};
   uint64_t block_count = 0, columns = 0, nonzeros = 0;
-  std::span<cudaq_edem_block> blocks;
+  std::span<cudaq_edem_matrix_block> blocks;
   std::span<output_port> outputs;
   std::span<uint32_t> sizes, ids;
   std::span<cudaq_edem_fault_distribution> faults;
@@ -77,7 +77,7 @@ struct responses {
     if (!value)
       return CUDAQ_EDEM_INVALID_ARGUMENT;
     EDEM_TRY(cudaq_edem_get_shape(&value->edem, &shape));
-    if (shape.input_code_blocks_count || shape.output_code_blocks_count)
+    if (shape.input_code_count || shape.output_code_count)
       return CUDAQ_EDEM_INVALID_CONTENT;
     cudaq_gf2_map_shape map;
     EDEM_TRY(cudaq_gf2_map_get_shape(&value->edem.map, &map));
@@ -97,7 +97,7 @@ struct responses {
                                   shape.observable_ports_count +
                                   shape.success_ports_count;
     uint64_t bytes = 0;
-    if (!space<cudaq_edem_block>(bytes, block_count) ||
+    if (!space<cudaq_edem_matrix_block>(bytes, block_count) ||
         !space<output_port>(bytes, output_count) ||
         !space<uint32_t>(bytes, output_count) ||
         !space<cudaq_edem_fault_distribution>(bytes, shape.fault_ports_count) ||
@@ -109,7 +109,7 @@ struct responses {
       return CUDAQ_EDEM_INSUFFICIENT_CAPACITY;
     EDEM_TRY(storage.reserve(bytes, CUDAQ_EDEM_PACKED_ALIGNMENT));
     arena a{static_cast<std::byte *>(storage.data()), bytes};
-    blocks = a.take<cudaq_edem_block>(block_count);
+    blocks = a.take<cudaq_edem_matrix_block>(block_count);
     outputs = a.take<output_port>(output_count);
     sizes = a.take<uint32_t>(output_count);
     faults = a.take<cudaq_edem_fault_distribution>(shape.fault_ports_count);
@@ -137,7 +137,8 @@ struct responses {
       cudaq_edem_endpoint endpoint;
       uint32_t width;
       uint64_t ignored;
-      EDEM_TRY(cudaq_edem_describe_wire(&value->edem, true, {p, 0}, &endpoint));
+      EDEM_TRY(cudaq_edem_describe_wire(&value->edem, CUDAQ_EDEM_OUTPUT, {p, 0},
+                                        &endpoint));
       EDEM_TRY(cudaq_gf2_map_get_wire(&value->edem.map, true, {p, 0}, &width,
                                       &ignored));
       const uint64_t index = output_index(endpoint);
@@ -152,10 +153,10 @@ struct responses {
     for (uint64_t b = 0; b < block_count; ++b) {
       cudaq_gf2_map_block block;
       EDEM_TRY(cudaq_gf2_map_get_block(&value->edem.map, b, &block));
-      EDEM_TRY(cudaq_edem_describe_wire(&value->edem, true, block.output,
-                                        &blocks[b].output));
-      EDEM_TRY(cudaq_edem_describe_wire(&value->edem, false, block.input,
-                                        &blocks[b].input));
+      EDEM_TRY(cudaq_edem_describe_wire(&value->edem, CUDAQ_EDEM_OUTPUT,
+                                        block.output, &blocks[b].output));
+      EDEM_TRY(cudaq_edem_describe_wire(&value->edem, CUDAQ_EDEM_INPUT,
+                                        block.input, &blocks[b].input));
       blocks[b].matrix = block.matrix;
       const uint64_t column_start = fault_offsets[blocks[b].input.index];
       for (uint64_t c = 0; c < block.matrix.columns; ++c)
@@ -426,7 +427,7 @@ cudaq_edem_status cudaq_edem_coalesce_dem_columns(
   arena b{static_cast<std::byte *>(matrices.data()), bytes};
   auto offsets = b.take<uint64_t>(3 * (count + 1));
   auto rows = b.take<uint32_t>(data.nonzeros);
-  cudaq_edem_block blocks[3] = {};
+  cudaq_edem_matrix_block blocks[3] = {};
   uint64_t block_count = 0, cursor = 0;
   for (uint32_t kind = 0; kind < 3; ++kind) {
     uint64_t start = cursor;

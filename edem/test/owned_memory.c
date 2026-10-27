@@ -16,7 +16,7 @@ typedef struct fixture {
   uint64_t offsets[FAULT_INDICATORS + 1];
   cudaq_edem_fault_group group;
   cudaq_edem_fault_distribution fault;
-  cudaq_edem_block block;
+  cudaq_edem_matrix_block block;
   cudaq_edem_description description;
 } fixture;
 static void fixture_init(fixture *f) {
@@ -31,7 +31,7 @@ static void fixture_init(fixture *f) {
   f->group = (cudaq_edem_fault_group){CUDAQ_EDEM_INDEPENDENT, FAULT_INDICATORS,
                                       f->ids, f->probabilities};
   f->fault = (cudaq_edem_fault_distribution){FAULT_INDICATORS, 1, &f->group};
-  f->block = (cudaq_edem_block){
+  f->block = (cudaq_edem_matrix_block){
       {CUDAQ_EDEM_DETECTOR, 0},
       {CUDAQ_EDEM_FAULT, 0},
       {1, FAULT_INDICATORS, FAULT_INDICATORS, f->offsets, f->rows}};
