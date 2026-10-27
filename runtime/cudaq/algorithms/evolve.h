@@ -664,7 +664,9 @@ evolve_async(const cudaq::rydberg_hamiltonian &hamiltonian,
   std::size_t seed = cudaq::get_random_seed();
   return cudaq::detail::evolve_async(
       [=]() {
-        if (seed > 0)
+        // The worker thread keeps its seed between launches: reset it to the
+        // caller's, also when that is unset (0).
+        if (cudaq::get_random_seed() != seed)
           cudaq::set_random_seed(seed);
         ExecutionContext context("evolve");
         context.qpuId = qpu_id;

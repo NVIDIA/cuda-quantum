@@ -302,7 +302,9 @@ launchAnalogKernelAsync(const std::string &kernel_name,
     // execution queue. The random seed is thread-local, so carry it over.
     std::size_t seed = cudaq::get_random_seed();
     KernelExecutionTask task([=]() {
-      if (seed > 0)
+      // The worker thread keeps its seed between launches: reset it to the
+      // caller's, also when that is unset (0).
+      if (cudaq::get_random_seed() != seed)
         cudaq::set_random_seed(seed);
       return launchAnalogKernel(kernel_name, program, shots_count, qpu_id);
     });

@@ -98,6 +98,13 @@ def test_emulation_seeding_matches_digital(monkeypatch):
         for _ in range(2)
     ]
     assert unseeded[0] != unseeded[1]
+    # Queued launches run on a worker thread that ran the seeded launches above.
+    unseeded = [
+        counts(
+            cudaq_runtime.launch_analog_kernel_async(name, payload, 4000).get())
+        for _ in range(2)
+    ]
+    assert unseeded[0] != unseeded[1]
 
 
 def test_invalid_emulation_rydberg_c6_fails_at_set_target():
