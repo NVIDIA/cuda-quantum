@@ -278,7 +278,8 @@ def test_empty_stages_roundtrip():
 
 
 def test_staged_lowering():
-    ct = CompileTarget(custom_pipeline=SWAP_TO_CX_PIPELINE)
+    ct = CompileTarget(custom_pipeline=CustomPipelineLowering(
+        high_level=SWAP_TO_CX_PIPELINE))
     assert ct.stages[0].lowering.high_level == SWAP_TO_CX_PIPELINE
     assert ct.stages[0].lowering.override_pass_pipeline == ""
 
