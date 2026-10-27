@@ -1276,8 +1276,12 @@ between RX, dispatch, and TX kernels, the unified kernel reduces round-trip
 latency for simple RPC handlers.</p>
 <section id="architecture">
 <h3>Architecture<a class="headerlink" href="#architecture" title="Permalink to this heading">¶</a></h3>
-<p>In unified mode, a single GPU thread runs a transport-provided kernel that
-combines receive, dispatch, and transmit into one tight loop:</p>
+<p>In unified mode, a transport-provided kernel combines receive, dispatch, and
+transmit into one tight loop.  It runs as a single block of
+<code class="docutils literal notranslate"><span class="pre">threads_per_block</span></code> threads (a request reaches the handler threads through
+shared memory and block barriers, so a wider grid would need a cooperative
+launch): thread 0 drives the transport (steps 1, 2 and 4-6 below) and every
+thread calls the <code class="docutils literal notranslate"><span class="pre">CUDAQ_DISPATCH_DEVICE_CALL</span></code> handler in step 3:</p>
 <ol class="arabic simple">
 <li><p>Polls for an incoming message (transport-specific mechanism)</p></li>
 <li><p>Parses the <code class="docutils literal notranslate"><span class="pre">RPCHeader</span></code> from the receive buffer</p></li>
@@ -1329,7 +1333,9 @@ flag protocol</p></li>
 <li><p>Lowest latency for simple RPC handlers</p></li>
 <li><p>Transport-agnostic API – the transport provides a pluggable launch function
 and opaque context (e.g., <code class="docutils literal notranslate"><span class="pre">GpuRoceTransceiver</span></code>/<code class="docutils literal notranslate"><span class="pre">DOCA</span></code> supplies <code class="docutils literal notranslate"><span class="pre">gpu_roce_launch_unified_dispatch</span></code>)</p></li>
-<li><p>Single-thread, single-block kernel – no inter-kernel synchronization overhead</p></li>
+<li><p>Thread 0 drives the transport and every thread of the block calls each
+<code class="docutils literal notranslate"><span class="pre">CUDAQ_DISPATCH_DEVICE_CALL</span></code> handler between two block barriers – no
+inter-kernel synchronization overhead</p></li>
 <li><p>Not compatible with <code class="docutils literal notranslate"><span class="pre">CUDAQ_DISPATCH_GRAPH_LAUNCH</span></code></p></li>
 </ul>
 </section>
@@ -1341,10 +1347,10 @@ and opaque context (e.g., <code class="docutils literal notranslate"><span class
 <span class="p">}</span><span class="w"> </span><span class="n">cudaq_kernel_type_t</span><span class="p">;</span>
 
 <span class="k">typedef</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="n">cudaq_unified_launch_fn_t</span><span class="p">)(</span>
-<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="n">transport_ctx</span><span class="p">,</span>
+<span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="n">transport_ctx</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">tx_stride_sz</span><span class="p">,</span>
 <span class="w">    </span><span class="n">cudaq_function_entry_t</span><span class="w"> </span><span class="o">*</span><span class="n">function_table</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">func_count</span><span class="p">,</span>
 <span class="w">    </span><span class="k">volatile</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="o">*</span><span class="n">shutdown_flag</span><span class="p">,</span><span class="w"> </span><span class="kt">uint64_t</span><span class="w"> </span><span class="o">*</span><span class="n">stats</span><span class="p">,</span>
-<span class="w">    </span><span class="n">cudaStream_t</span><span class="w"> </span><span class="n">stream</span><span class="p">);</span>
+<span class="w">    </span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">threads_per_block</span><span class="p">,</span><span class="w"> </span><span class="n">cudaStream_t</span><span class="w"> </span><span class="n">stream</span><span class="p">);</span>
 
 <span class="n">cudaq_status_t</span><span class="w"> </span><span class="nf">cudaq_dispatcher_set_unified_launch</span><span class="p">(</span>
 <span class="w">    </span><span class="n">cudaq_dispatcher_t</span><span class="w"> </span><span class="o">*</span><span class="n">dispatcher</span><span class="p">,</span>
@@ -1357,7 +1363,10 @@ and opaque context (e.g., <code class="docutils literal notranslate"><span class
 <li><p><code class="docutils literal notranslate"><span class="pre">cudaq_dispatcher_set_ringbuffer()</span></code> and <code class="docutils literal notranslate"><span class="pre">cudaq_dispatcher_set_launch_fn()</span></code>
 are <strong>not required</strong> (the unified kernel handles transport internally)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">cudaq_dispatcher_set_unified_launch()</span></code> <strong>must</strong> be called instead</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">num_slots</span></code> and <code class="docutils literal notranslate"><span class="pre">slot_size</span></code> in the configuration may be zero</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">slot_size</span></code> must give the slot stride; <code class="docutils literal notranslate"><span class="pre">cudaq_dispatcher_set_bridge()</span></code>
+fills it from the bridge when the <code class="docutils literal notranslate"><span class="pre">config</span></code> leaves it 0</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">num_blocks</span></code> must be 1 and <code class="docutils literal notranslate"><span class="pre">threads_per_block</span> <span class="pre">&gt;=</span> <span class="pre">1</span></code> (the block every
+<code class="docutils literal notranslate"><span class="pre">CUDAQ_DISPATCH_DEVICE_CALL</span></code> handler runs on)</p></li>
 <li><p>All other wiring (<code class="docutils literal notranslate"><span class="pre">set_function_table</span></code>, <code class="docutils literal notranslate"><span class="pre">set_control</span></code>) remains the same</p></li>
 </ul>
 </section>
@@ -1378,6 +1387,8 @@ are <strong>not required</strong> (the unified kernel handles transport internal
 <span class="c1">// Configure dispatcher for unified mode</span>
 <span class="n">cudaq_dispatcher_config_t</span><span class="w"> </span><span class="n">config</span><span class="p">{};</span>
 <span class="n">config</span><span class="p">.</span><span class="n">device_id</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="n">gpu_id</span><span class="p">;</span>
+<span class="n">config</span><span class="p">.</span><span class="n">num_blocks</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+<span class="n">config</span><span class="p">.</span><span class="n">threads_per_block</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">32</span><span class="p">;</span>
 <span class="n">config</span><span class="p">.</span><span class="n">kernel_type</span><span class="w">     </span><span class="o">=</span><span class="w"> </span><span class="n">CUDAQ_KERNEL_UNIFIED</span><span class="p">;</span>
 <span class="n">config</span><span class="p">.</span><span class="n">dispatch_mode</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="n">CUDAQ_DISPATCH_DEVICE_CALL</span><span class="p">;</span>
 
@@ -1571,8 +1582,9 @@ dispatcher instance and validates the configuration.</p>
 <li><p><code class="docutils literal notranslate"><span class="pre">config</span></code>: filled <code class="docutils literal notranslate"><span class="pre">cudaq_dispatcher_config_t</span></code> with:</p>
 <ul>
 <li><p><code class="docutils literal notranslate"><span class="pre">device_id</span></code> (default 0): selects the CUDA device for the dispatcher</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">num_blocks</span></code> (default 1)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">threads_per_block</span></code> (default 32)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">num_blocks</span></code> (default 1; must be 1 on the device path)</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">threads_per_block</span></code> (default 32; the block every
+<code class="docutils literal notranslate"><span class="pre">CUDAQ_DISPATCH_DEVICE_CALL</span></code> handler runs on)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">num_slots</span></code> (required)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">slot_size</span></code> (required)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">vp_id</span></code> (default 0): tags a dispatcher to a transport channel.
@@ -1769,7 +1781,7 @@ a graph-based dispatch context that enables device-side graph launching.</p>
 <li><p><code class="docutils literal notranslate"><span class="pre">shutdown_flag</span></code>: device-visible shutdown flag</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">stats</span></code>: device-visible stats buffer</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">num_slots</span></code>: number of ring buffer slots</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">num_blocks</span></code>: grid size for dispatch kernel</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">num_blocks</span></code>: grid size for dispatch kernel (1)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">threads_per_block</span></code>: block size for dispatch kernel</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">stream</span></code>: CUDA stream for graph operations</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">out_context</span></code>: receives the created graph context handle</p></li>
@@ -1817,7 +1829,7 @@ the dispatch kernel in regular mode.</p>
 <li><p><code class="docutils literal notranslate"><span class="pre">shutdown_flag</span></code>: device-visible shutdown flag</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">stats</span></code>: device-visible stats buffer</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">num_slots</span></code>: number of ring buffer slots</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">num_blocks</span></code>: grid size for dispatch kernel</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">num_blocks</span></code>: grid size for dispatch kernel (1)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">threads_per_block</span></code>: block size for dispatch kernel</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">stream</span></code>: CUDA stream for kernel launch</p></li>
 </ul>
@@ -1898,6 +1910,14 @@ the slot as complete only after the flag is set.</p>
 </section>
 <section id="device-handler-and-function-id">
 <h2>Device Handler and Function ID<a class="headerlink" href="#device-handler-and-function-id" title="Permalink to this heading">¶</a></h2>
+<p>A <code class="docutils literal notranslate"><span class="pre">CUDAQ_DISPATCH_DEVICE_CALL</span></code> handler runs on every thread of the dispatch
+block: both the ring (3-kernel) and the unified kernel call it on each thread
+of their block with identical arguments, between two <code class="docutils literal notranslate"><span class="pre">__syncthreads()</span></code>, and
+only the first thread’s return value is recorded.  A handler that does not
+partition its work should do it on one thread and return early on the others;
+barriers inside a handler must be reached by every thread, and there is no
+grid-wide sync (not a cooperative launch).  The full contract is in the
+<code class="docutils literal notranslate"><span class="pre">DeviceRPCFunction</span></code> doc comment in <code class="docutils literal notranslate"><span class="pre">dispatch_kernel_launch.h</span></code>.</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// The dispatcher uses function_id to find the handler</span>
 <span class="k">constexpr</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="kt">uint32_t</span><span class="w"> </span><span class="n">MOCK_DECODE_FUNCTION_ID</span><span class="w"> </span><span class="o">=</span>
 <span class="w">    </span><span class="n">cudaq</span><span class="o">::</span><span class="n">realtime</span><span class="o">::</span><span class="n">fnv1a_hash</span><span class="p">(</span><span class="s">"mock_decode"</span><span class="p">);</span>

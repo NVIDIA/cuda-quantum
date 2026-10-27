@@ -2121,8 +2121,14 @@ round-trip latency for simple RPC handlers.
 ::: {#architecture .section}
 ### Architecture[¶](#architecture "Permalink to this heading"){.headerlink}
 
-In unified mode, a single GPU thread runs a transport-provided kernel
-that combines receive, dispatch, and transmit into one tight loop:
+In unified mode, a transport-provided kernel combines receive, dispatch,
+and transmit into one tight loop. It runs as a single block of
+[`threads_per_block`{.docutils .literal .notranslate}]{.pre} threads (a
+request reaches the handler threads through shared memory and block
+barriers, so a wider grid would need a cooperative launch): thread 0
+drives the transport (steps 1, 2 and 4-6 below) and every thread calls
+the [`CUDAQ_DISPATCH_DEVICE_CALL`{.docutils .literal
+.notranslate}]{.pre} handler in step 3:
 
 1.  Polls for an incoming message (transport-specific mechanism)
 
@@ -2224,8 +2230,10 @@ identically without any transport-specific knowledge.
     [`gpu_roce_launch_unified_dispatch`{.docutils .literal
     .notranslate}]{.pre})
 
--   Single-thread, single-block kernel -- no inter-kernel
-    synchronization overhead
+-   Thread 0 drives the transport and every thread of the block calls
+    each [`CUDAQ_DISPATCH_DEVICE_CALL`{.docutils .literal
+    .notranslate}]{.pre} handler between two block barriers -- no
+    inter-kernel synchronization overhead
 
 -   Not compatible with [`CUDAQ_DISPATCH_GRAPH_LAUNCH`{.docutils
     .literal .notranslate}]{.pre}
@@ -2242,10 +2250,10 @@ identically without any transport-specific knowledge.
     } cudaq_kernel_type_t;
 
     typedef void (*cudaq_unified_launch_fn_t)(
-        void *transport_ctx,
+        void *transport_ctx, size_t tx_stride_sz,
         cudaq_function_entry_t *function_table, size_t func_count,
         volatile int *shutdown_flag, uint64_t *stats,
-        cudaStream_t stream);
+        uint32_t threads_per_block, cudaStream_t stream);
 
     cudaq_status_t cudaq_dispatcher_set_unified_launch(
         cudaq_dispatcher_t *dispatcher,
@@ -2269,9 +2277,19 @@ When [`kernel_type`{.docutils .literal .notranslate}]{.pre}` `{.docutils
 -   [`cudaq_dispatcher_set_unified_launch()`{.docutils .literal
     .notranslate}]{.pre} **must** be called instead
 
--   [`num_slots`{.docutils .literal .notranslate}]{.pre} and
-    [`slot_size`{.docutils .literal .notranslate}]{.pre} in the
-    configuration may be zero
+-   [`slot_size`{.docutils .literal .notranslate}]{.pre} must give the
+    slot stride; [`cudaq_dispatcher_set_bridge()`{.docutils .literal
+    .notranslate}]{.pre} fills it from the bridge when the
+    [`config`{.docutils .literal .notranslate}]{.pre} leaves it 0
+
+-   [`num_blocks`{.docutils .literal .notranslate}]{.pre} must be 1 and
+    [`threads_per_block`{.docutils .literal
+    .notranslate}]{.pre}` `{.docutils .literal
+    .notranslate}[`>=`{.docutils .literal
+    .notranslate}]{.pre}` `{.docutils .literal
+    .notranslate}[`1`{.docutils .literal .notranslate}]{.pre} (the block
+    every [`CUDAQ_DISPATCH_DEVICE_CALL`{.docutils .literal
+    .notranslate}]{.pre} handler runs on)
 
 -   All other wiring ([`set_function_table`{.docutils .literal
     .notranslate}]{.pre}, [`set_control`{.docutils .literal
@@ -2298,6 +2316,8 @@ When [`kernel_type`{.docutils .literal .notranslate}]{.pre}` `{.docutils
     // Configure dispatcher for unified mode
     cudaq_dispatcher_config_t config{};
     config.device_id       = gpu_id;
+    config.num_blocks      = 1;
+    config.threads_per_block = 32;
     config.kernel_type     = CUDAQ_KERNEL_UNIFIED;
     config.dispatch_mode   = CUDAQ_DISPATCH_DEVICE_CALL;
 
@@ -2580,10 +2600,12 @@ Parameters:
         0): selects the CUDA device for the dispatcher
 
     -   [`num_blocks`{.docutils .literal .notranslate}]{.pre} (default
-        1)
+        1; must be 1 on the device path)
 
     -   [`threads_per_block`{.docutils .literal .notranslate}]{.pre}
-        (default 32)
+        (default 32; the block every
+        [`CUDAQ_DISPATCH_DEVICE_CALL`{.docutils .literal
+        .notranslate}]{.pre} handler runs on)
 
     -   [`num_slots`{.docutils .literal .notranslate}]{.pre} (required)
 
@@ -2906,7 +2928,7 @@ Parameters:
     buffer slots
 
 -   [`num_blocks`{.docutils .literal .notranslate}]{.pre}: grid size for
-    dispatch kernel
+    dispatch kernel (1)
 
 -   [`threads_per_block`{.docutils .literal .notranslate}]{.pre}: block
     size for dispatch kernel
@@ -3006,7 +3028,7 @@ Parameters:
     buffer slots
 
 -   [`num_blocks`{.docutils .literal .notranslate}]{.pre}: grid size for
-    dispatch kernel
+    dispatch kernel (1)
 
 -   [`threads_per_block`{.docutils .literal .notranslate}]{.pre}: block
     size for dispatch kernel
@@ -3111,6 +3133,18 @@ device and host see the same memory.
 
 ::: {#device-handler-and-function-id .section}
 ## Device Handler and Function ID[¶](#device-handler-and-function-id "Permalink to this heading"){.headerlink}
+
+A [`CUDAQ_DISPATCH_DEVICE_CALL`{.docutils .literal .notranslate}]{.pre}
+handler runs on every thread of the dispatch block: both the ring
+(3-kernel) and the unified kernel call it on each thread of their block
+with identical arguments, between two [`__syncthreads()`{.docutils
+.literal .notranslate}]{.pre}, and only the first thread's return value
+is recorded. A handler that does not partition its work should do it on
+one thread and return early on the others; barriers inside a handler
+must be reached by every thread, and there is no grid-wide sync (not a
+cooperative launch). The full contract is in the
+[`DeviceRPCFunction`{.docutils .literal .notranslate}]{.pre} doc comment
+in [`dispatch_kernel_launch.h`{.docutils .literal .notranslate}]{.pre}.
 
 ::: {.highlight-cpp .notranslate}
 ::: highlight

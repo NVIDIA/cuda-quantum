@@ -46,37 +46,30 @@
               <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../getting-started/quickstart.html">Quick start</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../getting-started/quickstart.html#install">Install</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../getting-started/quickstart.html#running-the-shipped-examples">Running the shipped examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../getting-started/quickstart.html#step-1-estimate-an-existing-cuda-q-kernel">Step 1 — Estimate an existing CUDA-Q kernel</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../getting-started/quickstart.html#step-2-author-a-portable-p0-program">Step 2 — Author a portable P0 program</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../getting-started/quickstart.html#step-3-choose-a-code-and-a-gadget-p2">Step 3 — Choose a code and a gadget (P2)</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../getting-started/quickstart.html#step-4-lower-to-physical-events-and-schedule-them-p3">Step 4 — Lower to physical events and schedule them (P3)</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../getting-started/quickstart.html#step-5-emit-stim-text-from-the-command-line">Step 5 — Emit Stim text from the command line</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/quickstart.html#use-a-cuda-q-kernel">Use a CUDA-Q kernel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/quickstart.html#write-a-standalone-logical-program">Write a standalone logical program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/quickstart.html#build-from-source">Build from source</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../getting-started/quickstart.html#where-to-go-next">Where to go next</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html">The logical programming stack</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#write-the-logical-program">1. Write the logical program</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#place-the-qubits-on-a-logical-machine">2. Place the qubits on a logical machine</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#define-a-qec-realization">3. Define a QEC realization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#estimate-a-selected-realization">4. Estimate a selected realization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#emit-a-verified-gadget-as-stim">5. Emit a verified gadget as Stim</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#what-each-stage-owns">What each stage owns</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#compile-and-estimate-the-logical-program">1. Compile and estimate the logical program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#choose-the-code-and-its-implementations">2. Choose the code and its implementations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#describe-the-device">3. Describe the device</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#place-and-realize-the-program">4. Place and realize the program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#schedule-and-estimate-the-physical-resources">5. Schedule and estimate the physical resources</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#expose-the-device-as-a-cuda-q-target">6. Expose the device as a CUDA-Q target</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#where-to-go-next">Where to go next</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../getting-started/concepts.html">Core concepts</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#four-stages-one-direction">1. Four stages, one direction</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#facets-not-extra-stages">2. Facets, not extra stages</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#linear-ownership">3. Linear ownership</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#codes-profiles-encodings-three-different-things">4. Codes, profiles, encodings — three different things</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#objectives-gadgets-protocols-claims-and-proofs">5. Objectives, gadgets, protocols — claims and proofs</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#evidence-follows-the-program">6. Evidence follows the program</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#there-is-no-registry-imports-are-the-linker">7. There is no registry — imports are the linker</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#global-phase-is-not-observable">8. Global phase is not observable</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#where-the-pieces-live">Where the pieces live</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#where-to-go-next">Where to go next</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#logical-programs-and-quantum-values">Logical programs and quantum values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#definitions-builds-and-compilation">Definitions, builds, and compilation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#clifford-t-decomposition">Clifford+T decomposition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#codes-and-operation-implementations">Codes and operation implementations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#devices-and-placement">Devices and placement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#schedules-and-resource-estimates">Schedules and resource estimates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#cuda-q-integration">CUDA-Q integration</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../use-cases/examples/index.html">CUDA-Q Logical by Example</a><ul>
@@ -205,16 +198,7 @@
 <li class="toctree-l2"><a class="reference internal" href="architecture.html#where-to-go-next">Where to go next</a></li>
 </ul>
 </li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Building against CUDA-Q</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#use-one-compiler-for-everything">Use one compiler for everything</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#option-1-recommended-in-tree">Option 1 (recommended): in-tree</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#option-2-out-of-tree-against-a-cuda-q-installation">Option 2: out-of-tree, against a CUDA-Q installation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#fallback-the-cudaq-devel-wheel">Fallback: the <code class="docutils literal notranslate"><span class="pre">cudaq-devel</span></code> wheel</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#build-options">Build options</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#verifying-the-build">Verifying the build</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#troubleshooting">Troubleshooting</a></li>
-</ul>
-</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Building against CUDA-Q</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">CUDA-Q</span></p>
 <ul>
@@ -249,176 +233,19 @@
              
   <section class="tex2jax_ignore mathjax_ignore" id="building-against-cuda-q">
 <h1>Building against CUDA-Q<a class="headerlink" href="#building-against-cuda-q" title="Link to this heading"></a></h1>
-<p>CUDA-Q Logical is part of CUDA-Q: it shares CUDA-Q’s single <code class="docutils literal notranslate"><span class="pre">libcudaqMLIR</span></code>
-image, its LLVM/MLIR, its Python bindings, and its nanobind domain. Every MLIR
-symbol in Logical’s libraries, tools, and Python extensions must resolve from
-that one image. Otherwise the dialect registry, the pass registry, and MLIR
-<code class="docutils literal notranslate"><span class="pre">TypeID</span></code>s are duplicated between Logical and CUDA-Q, and in-process <code class="docutils literal notranslate"><span class="pre">quake</span></code>
-import breaks in confusing ways.</p>
-<p>There are two ways to build it. Both assume you build everything – CUDA-Q,
-LLVM/MLIR, and Logical – with the same toolchain.</p>
-<section id="use-one-compiler-for-everything">
-<h2>Use one compiler for everything<a class="headerlink" href="#use-one-compiler-for-everything" title="Link to this heading"></a></h2>
-<div class="admonition important">
-<p class="admonition-title">Important</p>
-<p>Build CUDA-Q, its LLVM/MLIR, and CUDA-Q Logical with <strong>the same C++ compiler
-family</strong> (clang or GCC), and ideally the same version.</p>
-</div>
-<p>This is a requirement, not a preference. MLIR derives some <code class="docutils literal notranslate"><span class="pre">TypeID</span></code>s – for
-example the <code class="docutils literal notranslate"><span class="pre">SymbolTable</span></code> op trait – from compiler-specific type-name strings.
-Objects built by a different compiler family disagree with <code class="docutils literal notranslate"><span class="pre">libcudaqMLIR</span></code> about
-those IDs. The result compiles and links cleanly and then fails at runtime, for
-example with <code class="docutils literal notranslate"><span class="pre">'qlx.program'</span> <span class="pre">op</span> <span class="pre">symbol's</span> <span class="pre">parent</span> <span class="pre">must</span> <span class="pre">have</span> <span class="pre">the</span> <span class="pre">SymbolTable</span> <span class="pre">trait</span></code>
-on almost every Python test.</p>
-<ul class="simple">
-<li><p>In-tree builds get this for free: there is one configure and one compiler.</p></li>
-<li><p>For an out-of-tree build, configure with the compiler CUDA-Q was built with,
-e.g. <code class="docutils literal notranslate"><span class="pre">CC=clang</span> <span class="pre">CXX=clang++</span></code> (or <code class="docutils literal notranslate"><span class="pre">-DCMAKE_C_COMPILER</span></code>/<code class="docutils literal notranslate"><span class="pre">-DCMAKE_CXX_COMPILER</span></code>).
-CMake otherwise silently picks the system default, which is often GCC.</p></li>
-<li><p>To have CMake check this for you, configure with
-<code class="docutils literal notranslate"><span class="pre">-DQLX_VERIFY_TOOLCHAIN=ON</span></code>. It fails the configure when the compiler family
-differs from the one recorded in <code class="docutils literal notranslate"><span class="pre">libcudaqMLIR</span></code>, and when the LLVM version
-differs from the one CUDA-Q was built with.</p></li>
-</ul>
-</section>
-<section id="option-1-recommended-in-tree">
-<h2>Option 1 (recommended): in-tree<a class="headerlink" href="#option-1-recommended-in-tree" title="Link to this heading"></a></h2>
-<p>Enable it in the CUDA-Q build, together with the Python bindings:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>cmake<span class="w"> </span>-S<span class="w"> </span>.<span class="w"> </span>-B<span class="w"> </span>build<span class="w"> </span>-DCUDAQ_ENABLE_LOGICAL<span class="o">=</span>ON<span class="w"> </span>-DCUDAQ_ENABLE_PROJECTS<span class="o">=</span><span class="s2">"cudaq;runtime;python"</span><span class="w">  </span><span class="c1"># plus your usual CUDA-Q options</span>
-cmake<span class="w"> </span>--build<span class="w"> </span>build
-ctest<span class="w"> </span>--test-dir<span class="w"> </span>build/external/logical
+<p>Build CUDA-Q Logical with the standard CUDA-Q build script by adding <code class="docutils literal notranslate"><span class="pre">-L</span></code>.
+From the root of the CUDA-Q repository, run:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>bash<span class="w"> </span>scripts/build_cudaq.sh<span class="w"> </span>-L
 </pre></div>
 </div>
-<p><code class="docutils literal notranslate"><span class="pre">CUDAQ_ENABLE_LOGICAL</span></code> requires CUDA-Q’s Python bindings: include <code class="docutils literal notranslate"><span class="pre">python</span></code> in
-<code class="docutils literal notranslate"><span class="pre">CUDAQ_ENABLE_PROJECTS</span></code> (for example <code class="docutils literal notranslate"><span class="pre">-DCUDAQ_ENABLE_PROJECTS=&quot;cudaq;runtime;python&quot;</span></code>;
-the deprecated <code class="docutils literal notranslate"><span class="pre">-DCUDAQ_ENABLE_PYTHON=ON</span></code> is equivalent). <code class="docutils literal notranslate"><span class="pre">scripts/build_cudaq.sh</span></code>
-enables Python by default. <code class="docutils literal notranslate"><span class="pre">CUDAQ_ENABLE_LOGICAL</span></code> is shorthand for
-<code class="docutils literal notranslate"><span class="pre">-DCUDAQ_EXTERNAL_PROJECTS=logical</span> <span class="pre">-DCUDAQ_EXTERNAL_LOGICAL_SOURCE_DIR=&lt;repo&gt;/preview/logical</span></code>.
-Logical’s Python package, extensions, and tools land in CUDA-Q’s own build
-tree (<code class="docutils literal notranslate"><span class="pre">python/cudaq/...</span></code>, <code class="docutils literal notranslate"><span class="pre">bin/</span></code>) and install into CUDA-Q’s install prefix.</p>
-</section>
-<section id="option-2-out-of-tree-against-a-cuda-q-installation">
-<h2>Option 2: out-of-tree, against a CUDA-Q installation<a class="headerlink" href="#option-2-out-of-tree-against-a-cuda-q-installation" title="Link to this heading"></a></h2>
-<p>Build against an <em>installation</em> of CUDA-Q – the prefix given to
-<code class="docutils literal notranslate"><span class="pre">cmake</span> <span class="pre">--install</span></code> on a CUDA-Q build <strong>of the same sources</strong>. Use this route to
-build Logical separately, for instance when iterating on Logical alone.</p>
-<p>We recommend installing CUDA-Q with <code class="docutils literal notranslate"><span class="pre">CUDAQ_BUNDLE_MLIR_INSTALL=ON</span></code> so the
-matching LLVM/MLIR development tree is colocated in the prefix:</p>
-<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>$CUDAQ_INSTALL_PREFIX/
-├── bin/
-├── include/
-├── cudaq/mlir/_mlir_libs/        Python bindings and nanobind
-└── lib/
-    ├── cmake/
-    │   ├── cudaq/CUDAQConfig.cmake
-    │   ├── llvm/LLVMConfig.cmake
-    │   └── mlir/MLIRConfig.cmake
-    └── libcudaqMLIR.so
-</pre></div>
-</div>
-<p>Then configure against it, with the same compiler:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">CC</span><span class="o">=</span>clang<span class="w"> </span><span class="nv">CXX</span><span class="o">=</span>clang++<span class="w"> </span>cmake<span class="w"> </span>-S<span class="w"> </span>preview/logical<span class="w"> </span>-B<span class="w"> </span>build/preview/logical<span class="w"> </span>-G<span class="w"> </span>Ninja<span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-DCUDAQ_INSTALL_PREFIX<span class="o">=</span><span class="s2">"</span><span class="nv">$CUDAQ_INSTALL_PREFIX</span><span class="s2">"</span><span class="w"> </span><span class="se">\</span>
-<span class="w">  </span>-DQLX_VERIFY_TOOLCHAIN<span class="o">=</span>ON
-cmake<span class="w"> </span>--build<span class="w"> </span>build/preview/logical
-cmake<span class="w"> </span>--install<span class="w"> </span>build/preview/logical<span class="w">   </span><span class="c1"># installs into the CUDA-Q prefix</span>
-</pre></div>
-</div>
-<p><code class="docutils literal notranslate"><span class="pre">CUDAQ_DIR</span></code> or <code class="docutils literal notranslate"><span class="pre">CMAKE_PREFIX_PATH</span></code> work in place of <code class="docutils literal notranslate"><span class="pre">CUDAQ_INSTALL_PREFIX</span></code>.
-Unless you set <code class="docutils literal notranslate"><span class="pre">CMAKE_INSTALL_PREFIX</span></code>, installation goes into the same prefix,
-so Logical and CUDA-Q end up in one tree. You also need <code class="docutils literal notranslate"><span class="pre">nanobind</span></code>
-(<code class="docutils literal notranslate"><span class="pre">-Dnanobind_DIR=...</span></code> or <code class="docutils literal notranslate"><span class="pre">NANOBIND_INSTALL_PREFIX</span></code>), the GMP/MPFR headers, and
-<code class="docutils literal notranslate"><span class="pre">lit</span></code>.</p>
-<p><code class="docutils literal notranslate"><span class="pre">LLVM_DIR</span></code> and <code class="docutils literal notranslate"><span class="pre">MLIR_DIR</span></code> still work as overrides – needed when CUDA-Q was
-installed without <code class="docutils literal notranslate"><span class="pre">CUDAQ_BUNDLE_MLIR_INSTALL=ON</span></code> – but they must name the exact
-LLVM/MLIR installation CUDA-Q itself was built against.</p>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Make sure the installation is clean. <code class="docutils literal notranslate"><span class="pre">cmake</span> <span class="pre">--install</span></code> never removes files left
-by an older CUDA-Q build, and stale libraries from an earlier packaging (such as
-a second copy of MLIR embedded in an old Python binding) can make <code class="docutils literal notranslate"><span class="pre">import</span> <span class="pre">cudaq</span></code>
-itself abort with <code class="docutils literal notranslate"><span class="pre">Trying</span> <span class="pre">to</span> <span class="pre">register</span> <span class="pre">different</span> <span class="pre">dialects</span> <span class="pre">for</span> <span class="pre">the</span> <span class="pre">same</span> <span class="pre">namespace</span></code>.</p>
-</div>
-</section>
-<section id="fallback-the-cudaq-devel-wheel">
-<h2>Fallback: the <code class="docutils literal notranslate"><span class="pre">cudaq-devel</span></code> wheel<a class="headerlink" href="#fallback-the-cudaq-devel-wheel" title="Link to this heading"></a></h2>
-<p>If no CUDA-Q installation is given, CMake falls back to the <code class="docutils literal notranslate"><span class="pre">cudaq-devel</span></code> wheel
-in the active Python environment. This is how the <code class="docutils literal notranslate"><span class="pre">cudaq-logical</span></code> wheel is built
-in CI. It is not the way to build from a source checkout, and the wheel may not
-be available on your package index while Logical is in preview.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>&lt;path-to-cudaq-devel-wheel&gt;<span class="w"> </span><span class="s2">"nanobind&lt;3"</span><span class="w"> </span><span class="s2">"lit&lt;23"</span><span class="w"> </span>cmake<span class="w"> </span>ninja
-cmake<span class="w"> </span>-S<span class="w"> </span>preview/logical<span class="w"> </span>-B<span class="w"> </span>preview/logical/build<span class="w"> </span>-G<span class="w"> </span>Ninja
-cmake<span class="w"> </span>--build<span class="w"> </span>preview/logical/build
-</pre></div>
-</div>
-</section>
-<section id="build-options">
-<h2>Build options<a class="headerlink" href="#build-options" title="Link to this heading"></a></h2>
-<table class="docutils align-default">
-<thead>
-<tr class="row-odd"><th class="head"><p>Option</p></th>
-<th class="head"><p>Default</p></th>
-<th class="head"><p>Purpose</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_ENABLE_LOGICAL</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">OFF</span></code></p></td>
-<td><p>In-tree builds: build Logical as part of the CUDA-Q build.</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_INSTALL_PREFIX</span></code></p></td>
-<td><p>empty</p></td>
-<td><p>Out-of-tree builds: prefix of the CUDA-Q installation to build against.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">QLX_VERIFY_TOOLCHAIN</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">OFF</span></code></p></td>
-<td><p>Out-of-tree builds: fail the configure if the compiler family or LLVM version differs from CUDA-Q’s.</p></td>
-</tr>
-</tbody>
-</table>
-</section>
-<section id="verifying-the-build">
-<h2>Verifying the build<a class="headerlink" href="#verifying-the-build" title="Link to this heading"></a></h2>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># In-tree: C++ (lit) and Python tests</span>
-ctest<span class="w"> </span>--test-dir<span class="w"> </span>build/external/logical
-<span class="c1"># Out-of-tree</span>
-ctest<span class="w"> </span>--test-dir<span class="w"> </span>build/preview/logical
-</pre></div>
-</div>
-<p>The <code class="docutils literal notranslate"><span class="pre">FileCheck</span></code> suite needs <code class="docutils literal notranslate"><span class="pre">lit</span></code> plus the LLVM utilities <code class="docutils literal notranslate"><span class="pre">FileCheck</span></code>, <code class="docutils literal notranslate"><span class="pre">not</span></code>,
-and <code class="docutils literal notranslate"><span class="pre">count</span></code>, found under the CUDA-Q prefix or on <code class="docutils literal notranslate"><span class="pre">PATH</span></code>; CMake reports which
-suites it had to disable when one is missing.</p>
-</section>
-<section id="troubleshooting">
-<h2>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Link to this heading"></a></h2>
-<table class="docutils align-default">
-<thead>
-<tr class="row-odd"><th class="head"><p>Symptom</p></th>
-<th class="head"><p>Cause</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">No</span> <span class="pre">CUDA-Q</span> <span class="pre">installation</span> <span class="pre">found</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_INSTALL_PREFIX</span></code> does not name a CUDA-Q installation (it must contain <code class="docutils literal notranslate"><span class="pre">lib/cmake/cudaq/CUDAQConfig.cmake</span></code>).</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Could</span> <span class="pre">NOT</span> <span class="pre">find</span> <span class="pre">MLIR</span></code> after CUDA-Q was found</p></td>
-<td><p>The CUDA-Q installation was built without <code class="docutils literal notranslate"><span class="pre">CUDAQ_BUNDLE_MLIR_INSTALL=ON</span></code>, so LLVM/MLIR are not colocated; pass <code class="docutils literal notranslate"><span class="pre">LLVM_DIR</span></code>/<code class="docutils literal notranslate"><span class="pre">MLIR_DIR</span></code>.</p></td>
-</tr>
-<tr class="row-even"><td><p>Hundreds of <code class="docutils literal notranslate"><span class="pre">...parent</span> <span class="pre">must</span> <span class="pre">have</span> <span class="pre">the</span> <span class="pre">SymbolTable</span> <span class="pre">trait</span></code> errors; links fine</p></td>
-<td><p>Logical was built with a different compiler family than CUDA-Q. Rebuild with the same one (see above).</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">error:</span> <span class="pre">...</span> <span class="pre">no</span> <span class="pre">member</span> <span class="pre">named</span> <span class="pre">'SSIType'</span> <span class="pre">in</span> <span class="pre">mlir::TypeTrait</span></code> while compiling</p></td>
-<td><p>The <code class="docutils literal notranslate"><span class="pre">LLVM_DIR</span></code>/<code class="docutils literal notranslate"><span class="pre">MLIR_DIR</span></code> found is not the LLVM CUDA-Q was built against.</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">import</span> <span class="pre">cudaq</span></code> aborts with <code class="docutils literal notranslate"><span class="pre">Trying</span> <span class="pre">to</span> <span class="pre">register</span> <span class="pre">different</span> <span class="pre">dialects</span> <span class="pre">...</span> <span class="pre">namespace</span></code></p></td>
-<td><p>Stale files from an older CUDA-Q packaging in the install prefix; install into a clean prefix.</p></td>
-</tr>
-<tr class="row-odd"><td><p>Duplicate dialect/pass registration or a <code class="docutils literal notranslate"><span class="pre">TypeID</span></code> mismatch at import</p></td>
-<td><p>Two MLIR images in one process – usually an <code class="docutils literal notranslate"><span class="pre">LLVM_DIR</span></code>/<code class="docutils literal notranslate"><span class="pre">MLIR_DIR</span></code> override pointing outside the CUDA-Q prefix.</p></td>
-</tr>
-</tbody>
-</table>
-</section>
+<p>The script builds and installs CUDA-Q, then configures, builds, and installs
+CUDA-Q Logical against that installation. The CUDA-Q Logical build directory
+is <code class="docutils literal notranslate"><span class="pre">build/preview/logical</span></code>.</p>
+<p>For development environment setup, prerequisites, and general build instructions,
+see <a class="reference external" href="https://github.com/NVIDIA/cuda-quantum/blob/main/Developing.md">Developing.md</a>
+in the main repository. The build script’s usual options also apply when using
+<code class="docutils literal notranslate"><span class="pre">-L</span></code>, including <code class="docutils literal notranslate"><span class="pre">-i</span></code> for incremental builds, <code class="docutils literal notranslate"><span class="pre">-c</span> <span class="pre">Debug</span></code> for a debug build, and
+<code class="docutils literal notranslate"><span class="pre">-j</span></code> to set the number of build jobs.</p>
 </section>
 
 

@@ -46,37 +46,30 @@
               <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="getting-started/quickstart.html">Quick start</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="getting-started/quickstart.html#install">Install</a></li>
-<li class="toctree-l2"><a class="reference internal" href="getting-started/quickstart.html#running-the-shipped-examples">Running the shipped examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="getting-started/quickstart.html#step-1-estimate-an-existing-cuda-q-kernel">Step 1 — Estimate an existing CUDA-Q kernel</a></li>
-<li class="toctree-l2"><a class="reference internal" href="getting-started/quickstart.html#step-2-author-a-portable-p0-program">Step 2 — Author a portable P0 program</a></li>
-<li class="toctree-l2"><a class="reference internal" href="getting-started/quickstart.html#step-3-choose-a-code-and-a-gadget-p2">Step 3 — Choose a code and a gadget (P2)</a></li>
-<li class="toctree-l2"><a class="reference internal" href="getting-started/quickstart.html#step-4-lower-to-physical-events-and-schedule-them-p3">Step 4 — Lower to physical events and schedule them (P3)</a></li>
-<li class="toctree-l2"><a class="reference internal" href="getting-started/quickstart.html#step-5-emit-stim-text-from-the-command-line">Step 5 — Emit Stim text from the command line</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started/quickstart.html#use-a-cuda-q-kernel">Use a CUDA-Q kernel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started/quickstart.html#write-a-standalone-logical-program">Write a standalone logical program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started/quickstart.html#build-from-source">Build from source</a></li>
 <li class="toctree-l2"><a class="reference internal" href="getting-started/quickstart.html#where-to-go-next">Where to go next</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="getting-started/cudaq-logical-in-practice.html">The logical programming stack</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="getting-started/cudaq-logical-in-practice.html#write-the-logical-program">1. Write the logical program</a></li>
-<li class="toctree-l2"><a class="reference internal" href="getting-started/cudaq-logical-in-practice.html#place-the-qubits-on-a-logical-machine">2. Place the qubits on a logical machine</a></li>
-<li class="toctree-l2"><a class="reference internal" href="getting-started/cudaq-logical-in-practice.html#define-a-qec-realization">3. Define a QEC realization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="getting-started/cudaq-logical-in-practice.html#estimate-a-selected-realization">4. Estimate a selected realization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="getting-started/cudaq-logical-in-practice.html#emit-a-verified-gadget-as-stim">5. Emit a verified gadget as Stim</a></li>
-<li class="toctree-l2"><a class="reference internal" href="getting-started/cudaq-logical-in-practice.html#what-each-stage-owns">What each stage owns</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started/cudaq-logical-in-practice.html#compile-and-estimate-the-logical-program">1. Compile and estimate the logical program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started/cudaq-logical-in-practice.html#choose-the-code-and-its-implementations">2. Choose the code and its implementations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started/cudaq-logical-in-practice.html#describe-the-device">3. Describe the device</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started/cudaq-logical-in-practice.html#place-and-realize-the-program">4. Place and realize the program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started/cudaq-logical-in-practice.html#schedule-and-estimate-the-physical-resources">5. Schedule and estimate the physical resources</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started/cudaq-logical-in-practice.html#expose-the-device-as-a-cuda-q-target">6. Expose the device as a CUDA-Q target</a></li>
 <li class="toctree-l2"><a class="reference internal" href="getting-started/cudaq-logical-in-practice.html#where-to-go-next">Where to go next</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="getting-started/concepts.html">Core concepts</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="getting-started/concepts.html#four-stages-one-direction">1. Four stages, one direction</a></li>
-<li class="toctree-l2"><a class="reference internal" href="getting-started/concepts.html#facets-not-extra-stages">2. Facets, not extra stages</a></li>
-<li class="toctree-l2"><a class="reference internal" href="getting-started/concepts.html#linear-ownership">3. Linear ownership</a></li>
-<li class="toctree-l2"><a class="reference internal" href="getting-started/concepts.html#codes-profiles-encodings-three-different-things">4. Codes, profiles, encodings — three different things</a></li>
-<li class="toctree-l2"><a class="reference internal" href="getting-started/concepts.html#objectives-gadgets-protocols-claims-and-proofs">5. Objectives, gadgets, protocols — claims and proofs</a></li>
-<li class="toctree-l2"><a class="reference internal" href="getting-started/concepts.html#evidence-follows-the-program">6. Evidence follows the program</a></li>
-<li class="toctree-l2"><a class="reference internal" href="getting-started/concepts.html#there-is-no-registry-imports-are-the-linker">7. There is no registry — imports are the linker</a></li>
-<li class="toctree-l2"><a class="reference internal" href="getting-started/concepts.html#global-phase-is-not-observable">8. Global phase is not observable</a></li>
-<li class="toctree-l2"><a class="reference internal" href="getting-started/concepts.html#where-the-pieces-live">Where the pieces live</a></li>
-<li class="toctree-l2"><a class="reference internal" href="getting-started/concepts.html#where-to-go-next">Where to go next</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started/concepts.html#logical-programs-and-quantum-values">Logical programs and quantum values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started/concepts.html#definitions-builds-and-compilation">Definitions, builds, and compilation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started/concepts.html#clifford-t-decomposition">Clifford+T decomposition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started/concepts.html#codes-and-operation-implementations">Codes and operation implementations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started/concepts.html#devices-and-placement">Devices and placement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started/concepts.html#schedules-and-resource-estimates">Schedules and resource estimates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting-started/concepts.html#cuda-q-integration">CUDA-Q integration</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="use-cases/examples/index.html">CUDA-Q Logical by Example</a><ul>
@@ -205,16 +198,7 @@
 <li class="toctree-l2"><a class="reference internal" href="reference/architecture.html#where-to-go-next">Where to go next</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="reference/building-against-cudaq.html">Building against CUDA-Q</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="reference/building-against-cudaq.html#use-one-compiler-for-everything">Use one compiler for everything</a></li>
-<li class="toctree-l2"><a class="reference internal" href="reference/building-against-cudaq.html#option-1-recommended-in-tree">Option 1 (recommended): in-tree</a></li>
-<li class="toctree-l2"><a class="reference internal" href="reference/building-against-cudaq.html#option-2-out-of-tree-against-a-cuda-q-installation">Option 2: out-of-tree, against a CUDA-Q installation</a></li>
-<li class="toctree-l2"><a class="reference internal" href="reference/building-against-cudaq.html#fallback-the-cudaq-devel-wheel">Fallback: the <code class="docutils literal notranslate"><span class="pre">cudaq-devel</span></code> wheel</a></li>
-<li class="toctree-l2"><a class="reference internal" href="reference/building-against-cudaq.html#build-options">Build options</a></li>
-<li class="toctree-l2"><a class="reference internal" href="reference/building-against-cudaq.html#verifying-the-build">Verifying the build</a></li>
-<li class="toctree-l2"><a class="reference internal" href="reference/building-against-cudaq.html#troubleshooting">Troubleshooting</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="reference/building-against-cudaq.html">Building against CUDA-Q</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">CUDA-Q</span></p>
 <ul>
