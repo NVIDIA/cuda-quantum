@@ -137,7 +137,7 @@ static void boundaries(void) {
   description.shape.code_presentations = 1;
   description.shape.output_code_blocks_count = 1;
   description.shared_code_table = codes;
-  description.output_codes = &code;
+  description.output_code_ids = &code;
   cudaq_gf2_owned_buffer prep_owner = {0}, mz_owner = {0}, result_owner = {0};
   cudaq_edem_view prep, mz, result;
   TA_CHECK(cudaq_edem_construct(&description, 0, &prep_owner, &prep) ==
@@ -151,8 +151,8 @@ static void boundaries(void) {
 
   description.shape.output_code_blocks_count = 0;
   description.shape.input_code_blocks_count = 1;
-  description.output_codes = 0;
-  description.input_codes = &code;
+  description.output_code_ids = 0;
+  description.input_code_ids = &code;
   description.shared_code_table = codes + 1;
   TA_CHECK(cudaq_edem_construct(&description, 0, &mz_owner, &mz) ==
            CUDAQ_EDEM_OK);

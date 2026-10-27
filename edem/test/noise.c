@@ -26,7 +26,7 @@ static void reordered_outputs(void) {
                                    {1, 3, offsets[i][3], offsets[i], rows}};
   cudaq_edem_description description = {0};
   description.shape = (cudaq_edem_shape){0, 0, 0, 1, 1, 1, 1, 3};
-  description.faults = &fault;
+  description.fault_ports_distributions = &fault;
   description.detector_ports_sizes = description.observable_ports_sizes =
       description.success_ports_sizes = &width;
   description.blocks = blocks;
@@ -147,8 +147,8 @@ static uint64_t channels(uint32_t count, int bounded) {
   cudaq_edem_description description = {0};
   description.shape.fault_ports_count = 1;
   description.shape.detector_ports_count = 1;
-  description.shape.blocks = 1;
-  description.faults = &fault;
+  description.shape.block_count = 1;
+  description.fault_ports_distributions = &fault;
   description.detector_ports_sizes = &width;
   description.blocks = &block;
   cudaq_gf2_owned_buffer original = {0}, independent = {0}, reduced = {0},

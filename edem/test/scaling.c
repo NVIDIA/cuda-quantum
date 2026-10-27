@@ -72,9 +72,9 @@ static void matrix_roundtrip(void) {
   cudaq_edem_description d = {0};
   d.shape = (cudaq_edem_shape){300, 1, 1, 1, n, 0, 0, n};
   d.shared_code_table = codes;
-  d.input_codes = &input_code;
-  d.output_codes = &output_code;
-  d.faults = &fault;
+  d.input_code_ids = &input_code;
+  d.output_code_ids = &output_code;
+  d.fault_ports_distributions = &fault;
   d.detector_ports_sizes = detectors;
   d.blocks = blocks;
   cudaq_gf2_owned_buffer owner = {0}, canonical = {0};
@@ -124,7 +124,7 @@ int main(void) {
     cudaq_edem_fault_distribution fault = {3 * n, n, groups};
     cudaq_edem_description d = {0};
     d.shape.fault_ports_count = 1;
-    d.faults = &fault;
+    d.fault_ports_distributions = &fault;
     cudaq_gf2_owned_buffer owner = {0}, canonical = {0};
     cudaq_edem_view value;
     double start = seconds();

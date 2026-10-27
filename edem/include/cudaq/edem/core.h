@@ -100,7 +100,7 @@ typedef struct cudaq_edem_shape {
   uint32_t detector_ports_count;
   uint32_t observable_ports_count;
   uint32_t success_ports_count;
-  uint64_t blocks;
+  uint64_t block_count;
 } cudaq_edem_shape;
 
 /* Semantic construction input. Arrays have the counts in shape. Code blocks
@@ -114,9 +114,9 @@ typedef struct cudaq_edem_shape {
 typedef struct cudaq_edem_description {
   cudaq_edem_shape shape;
   const cudaq_edem_code_presentation *shared_code_table;
-  const uint32_t *input_codes;
-  const uint32_t *output_codes;
-  const cudaq_edem_fault_distribution *faults;
+  const uint32_t *input_code_ids;
+  const uint32_t *output_code_ids;
+  const cudaq_edem_fault_distribution *fault_ports_distributions;
   const uint32_t *detector_ports_sizes;
   const uint32_t *observable_ports_sizes;
   const uint32_t *success_ports_sizes;

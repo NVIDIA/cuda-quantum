@@ -143,8 +143,8 @@ int main() {
   cudaq_edem_description description{};
   description.shape.fault_ports_count = description.shape.detector_ports_count =
       1;
-  description.shape.blocks = 1;
-  description.faults = &fault;
+  description.shape.block_count = 1;
+  description.fault_ports_distributions = &fault;
   description.detector_ports_sizes = &width;
   description.blocks = &block;
   check(PackedEDEM::construct(description, value) == CUDAQ_EDEM_OK);

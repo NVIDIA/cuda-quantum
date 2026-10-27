@@ -158,7 +158,7 @@ cudaq_edem_status cudaq_edem_get_shape(const cudaq_edem_view *value,
                                      CUDAQ_EDEM_SECTION_PRESENTATIONS, &codes));
   cudaq_edem_shape shape{};
   shape.code_presentations = static_cast<uint32_t>(codes.count);
-  shape.blocks = map.block_count;
+  shape.block_count = map.block_count;
   for (uint32_t side = 0; side < 2; ++side) {
     uint32_t count = side ? map.output_bundle_count : map.input_bundle_count;
     for (uint32_t i = 0; i < count; ++i) {

@@ -311,7 +311,7 @@ static void test_safe_read(void) {
   cudaq_edem_fault_distribution fault = {n, 1, &group};
   cudaq_edem_description d = {0};
   d.shape.fault_ports_count = 1;
-  d.faults = &fault;
+  d.fault_ports_distributions = &fault;
   cudaq_gf2_owned_buffer owner = {0};
   cudaq_edem_view original, result, from_map;
   OK(cudaq_edem_construct(&d, NULL, &owner, &original));
