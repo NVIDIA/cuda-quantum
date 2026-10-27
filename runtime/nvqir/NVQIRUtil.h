@@ -8,7 +8,9 @@
 
 #pragma once
 #include "QIRTypes.h"
+#include <cstddef>
 #include <unordered_set>
+#include <vector>
 
 namespace nvqir {
 // Singleton struct to track allocated arrays
@@ -32,8 +34,13 @@ private:
   ~ArrayTracker() = default;
   ArrayTracker(const ArrayTracker &) = delete;
   ArrayTracker &operator=(const ArrayTracker &) = delete;
-  // The live tracked arrays
+  // Scan a vector for small counts; switch to the set above this.
+  static constexpr std::size_t maxScannedArrays = 256;
+  // Live arrays, newest last (when not using the set).
+  std::vector<Array *> recent_arrays;
+  // Live arrays (when using the set).
   std::unordered_set<Array *> allocated_arrays;
+  bool use_set = false;
 };
 
 } // namespace nvqir
