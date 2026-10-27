@@ -45,7 +45,7 @@ struct EulerDecomposition {
   double phase;
 
   /// Decompose `u` into rotations about `outerAxis`, `middleAxis`, and
-  /// `outerAxis`.
+  /// `outerAxis`, which must be ZXZ or XZX.
   static EulerDecomposition get(const Eigen::Matrix2cd &u,
                                 cudaq::quake::Pauli outerAxis,
                                 cudaq::quake::Pauli middleAxis);
@@ -77,15 +77,22 @@ struct RotationCost {
 
 } // namespace
 
-/// Euler angles computed from a product of constant gates are a few ulps off
-/// their exact values. An angle within this distance of a degenerate middle
-/// angle or a multiple of pi/4 is treated as that value. The bound covers the
-/// chains in the tests and benchmarks; a chain that drifts further only misses
-/// a snap and keeps an approximate rotation, and the rewrite stays exact up to
-/// the drift. https://github.com/NVIDIA/cuda-quantum/issues/5680 tracks making
-/// exact-angle matching consistent across passes.
-static constexpr double roundoffTolerance =
-    32 * std::numeric_limits<double>::epsilon();
+/// One unit in the last place of a double in [4, 8). Every Euler angle has a
+/// magnitude of at most 2*pi, which lies in that range, so the unit bounds the
+/// spacing of doubles near any of them.
+static constexpr double ulpAtTwoPi = 4 * std::numeric_limits<double>::epsilon();
+
+/// The absolute drift, in multiples of `ulpAtTwoPi`, assumed for an Euler angle
+/// computed from a product of constant gates. The bound covers the chains in
+/// the tests and benchmarks; a chain that drifts further only misses a snap and
+/// keeps an approximate rotation, and the rewrite stays exact up to the drift.
+static constexpr double eulerAngleUlps = 8;
+
+/// An Euler angle within this distance, about 7e-15 radians, of a degenerate
+/// middle angle or a multiple of pi/4 is treated as that value.
+/// https://github.com/NVIDIA/cuda-quantum/issues/5680 tracks making exact-angle
+/// matching consistent across passes.
+static constexpr double roundoffTolerance = eulerAngleUlps * ulpAtTwoPi;
 
 /// Return the value of `parameter` when it is a finite `arith.constant` that
 /// converts to double exactly, as the angle classifier requires, and null
@@ -127,32 +134,32 @@ static Eigen::Matrix2cd getMatrix(Operation *operation) {
   return Eigen::Map<const Eigen::Matrix2cd>(columnMajor.data());
 }
 
-/// Decompose a unitary into rotations about `outer`, `middle`, `outer`. This is
-/// the Euler decomposition of a one-qubit unitary (Barenco et al.,
-/// https://arxiv.org/abs/quant-ph/9503016, Lemma 4.1) with the axes relabeled.
+/// Decompose a unitary into rotations about `outer`, `middle`, `outer`, where
+/// the basis is ZXZ or XZX. This is the Euler decomposition of a one-qubit
+/// unitary (Barenco et al., https://arxiv.org/abs/quant-ph/9503016, Lemma 4.1)
+/// with the axes relabeled.
 ///
 /// Write the special unitary as `w*I - i*(x*X + y*Y + z*Z)`. With `a` the
 /// outer axis, `b` the middle axis, and `c` the remaining axis, the middle
 /// angle is `2*atan2(hypot(b, c), hypot(w, a))` and the outer angles are
 /// `atan2(a, w) +/- atan2(+/-c, b)`, where the inner sign is negative exactly
-/// when (a, b, c) is a cyclic permutation of (x, y, z). Every angle comes from
-/// an `atan2`, so the result is defined for singular unitaries and unchanged
-/// by a uniform scaling of the input, which absorbs roundoff drift from long
-/// products.
+/// when (a, b, c) is a cyclic permutation of (x, y, z). In both bases the
+/// remaining axis is Y, and only ZXZ, as (z, x, y), is cyclic. Every angle
+/// comes from an `atan2`, so the result is defined for singular unitaries and
+/// unchanged by a uniform scaling of the input, which absorbs roundoff drift
+/// from long products.
 EulerDecomposition EulerDecomposition::get(const Eigen::Matrix2cd &u,
                                            cudaq::quake::Pauli outerAxis,
                                            cudaq::quake::Pauli middleAxis) {
   using cudaq::quake::Pauli;
-  // The coefficients below are indexed by `Pauli`, and the axis arithmetic
-  // relies on `X`, `Y`, and `Z` being 1, 2, and 3.
+  // The coefficients below are indexed by `Pauli`.
   static_assert(static_cast<unsigned>(Pauli::I) == 0 &&
                 static_cast<unsigned>(Pauli::X) == 1 &&
                 static_cast<unsigned>(Pauli::Y) == 2 &&
                 static_cast<unsigned>(Pauli::Z) == 3);
-  assert(outerAxis != Pauli::I && middleAxis != Pauli::I &&
-         outerAxis != middleAxis && "Euler axes are distinct Paulis");
-  const auto outerIndex = static_cast<unsigned>(outerAxis);
-  const auto middleIndex = static_cast<unsigned>(middleAxis);
+  assert(((outerAxis == Pauli::Z && middleAxis == Pauli::X) ||
+          (outerAxis == Pauli::X && middleAxis == Pauli::Z)) &&
+         "only ZXZ and XZX are emitted");
   using namespace std::complex_literals;
   const double globalPhase = std::arg(u.determinant()) / 2;
   const Eigen::Matrix2cd su = std::exp(-1i * globalPhase) * u;
@@ -163,11 +170,10 @@ EulerDecomposition EulerDecomposition::get(const Eigen::Matrix2cd &u,
       (su(1, 0).real() - su(0, 1).real()) / 2,
       (su(1, 1).imag() - su(0, 0).imag()) / 2};
   const double w = coefficients[static_cast<unsigned>(Pauli::I)];
-  const double a = coefficients[outerIndex];
-  const double b = coefficients[middleIndex];
-  // `X + Y + Z` is 6, and `X -> Y -> Z -> X` is the cyclic order.
-  const double c = coefficients[6 - outerIndex - middleIndex];
-  const bool cyclic = middleIndex == outerIndex % 3 + 1;
+  const double a = coefficients[static_cast<unsigned>(outerAxis)];
+  const double b = coefficients[static_cast<unsigned>(middleAxis)];
+  const double c = coefficients[static_cast<unsigned>(Pauli::Y)];
+  const bool cyclic = outerAxis == Pauli::Z;
 
   const double sum = std::atan2(a, w);
   const double difference = std::atan2(cyclic ? -c : c, b);

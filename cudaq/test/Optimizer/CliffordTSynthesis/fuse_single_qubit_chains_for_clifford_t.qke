@@ -63,6 +63,10 @@ func.func @mixed_chain(%target: !quake.ref) {
 // CHECK-NEXT: quake.rz
 // CHECK-NEXT: quake.phase
 // CHECK-NEXT: quake.wrap
+// FT-LABEL: func.func @mixed_chain(
+// FT: call @__cliffordt_rz_
+// FT-NOT: call @__cliffordt_rz_
+// FT: return
 
 // A half-turn middle angle leaves only the difference of the outer angles
 // meaningful, so one rotation remains next to the half turn.
@@ -79,6 +83,10 @@ func.func @half_turn(%target: !quake.ref) {
 // CHECK: quake.rz
 // CHECK-NEXT: quake.rx
 // CHECK-NEXT: quake.wrap
+// FT-LABEL: func.func @half_turn(
+// FT: call @__cliffordt_rz_
+// FT-NOT: call @__cliffordt_rz_
+// FT: return
 
 // A chain whose every Euler form needs the same number of approximate
 // rotations is left alone. Neither basis emits Ry, so any rewrite would show.
@@ -96,6 +104,10 @@ func.func @tie(%target: !quake.ref) {
 // CHECK-NEXT: quake.ry
 // CHECK-NEXT: quake.rz
 // CHECK-NEXT: quake.wrap
+// FT-LABEL: func.func @tie(
+// FT-COUNT-3: call @__cliffordt_rz_
+// FT-NOT: call @__cliffordt_rz_
+// FT: return
 
 // Rotations within epsilon of a quarter turn count as exact, so the chain
 // below needs no rewrite at epsilon 1e-3 but is rewritten at epsilon zero.
@@ -121,6 +133,9 @@ func.func @epsilon(%target: !quake.ref) {
 // EPSILON-NEXT: quake.rx
 // EPSILON-NEXT: quake.ry
 // EPSILON-NEXT: quake.wrap
+// FT-LABEL: func.func @epsilon(
+// FT-NOT: call @__cliffordt_rz_
+// FT: return
 
 // The function-level opt-out keeps the chain intact.
 func.func @no_optimization(%target: !quake.ref)
@@ -134,3 +149,7 @@ func.func @no_optimization(%target: !quake.ref)
 // CHECK-LABEL: func.func @no_optimization(
 // CHECK: quake.rz
 // CHECK-NEXT: quake.rz
+// FT-LABEL: func.func @no_optimization(
+// FT-COUNT-2: call @__cliffordt_rz_
+// FT-NOT: call @__cliffordt_rz_
+// FT: return

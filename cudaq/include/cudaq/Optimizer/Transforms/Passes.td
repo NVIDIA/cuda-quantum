@@ -923,8 +923,13 @@ def FuseSingleQubitChainsForCliffordT
     `y`, `z`, `phase`, `r1`, `rx`, `ry`, and `rz` gates on one wire whose
     angles are constants. Any other operation, including a controlled or
     multi-qubit gate or a gate whose angle is not a constant, ends the
-    sequence. The pass multiplies the sequence into one unitary and writes
-    it in two ways, as `rz`-`rx`-`rz` and as `rx`-`rz`-`rx`. It keeps
+    sequence. A sequence continues through a single-block `cc.scope` that is
+    not an atomic quantum region, so gates inside and outside the scope fuse.
+    Any other operation with regions, such as `cc.if` or `cc.loop`, ends the
+    sequence, and the pass handles each block inside it on its own.
+
+    The pass combines the sequence into a single unitary and rewrites that
+    unitary in two ways, as `rz`-`rx`-`rz` and as `rx`-`rz`-`rx`. It keeps
     whichever form needs the fewest approximations, using the total number
     of rotations to break ties, but only if that form is strictly better
     than the original sequence. A `quake.phase` gate keeps the global phase

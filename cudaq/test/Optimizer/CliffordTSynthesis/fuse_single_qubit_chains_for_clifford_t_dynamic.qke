@@ -13,9 +13,11 @@
 // RUN:   func.func(fuse-1q-chains-for-clifford-t))' %s | \
 // RUN:   FileCheck %s --check-prefix=NESTED
 
-// A controlled gate or a non-constant parameter ends a chain. The constant U3
-// after the boundaries is optimized on its own, and the boundaries are
-// untouched.
+// A controlled gate or a non-constant parameter ends a chain. The controlled
+// U3 decomposes into five controlled rotations and a controlled phase, which
+// the pass leaves as they are. The `quake.rz` with a non-constant angle is
+// also left alone. The uncontrolled U3 after both is a chain of its own and
+// becomes XZX.
 func.func @boundaries(%control: !quake.ref, %target: !quake.ref,
                       %dynamic: f64) {
   %theta = arith.constant 2.124031875205279 : f64
@@ -28,8 +30,14 @@ func.func @boundaries(%control: !quake.ref, %target: !quake.ref,
   return
 }
 // CHECK-LABEL: func.func @boundaries(
-// CHECK: quake.phase (%{{.*}}) [%
-// CHECK: quake.rz (%arg2)
+// CHECK: quake.rz (%{{.*}}) [%
+// CHECK-NEXT: quake.rx (%{{.*}}) [%
+// CHECK-NEXT: quake.rz (%{{.*}}) [%
+// CHECK-NEXT: quake.rx (%{{.*}}) [%
+// CHECK-NEXT: quake.rz (%{{.*}}) [%
+// CHECK-NEXT: quake.phase (%{{.*}}) [%
+// CHECK-NEXT: quake.wrap
+// CHECK-NEXT: quake.rz (%arg2)
 // CHECK-NEXT: quake.rx
 // CHECK-NEXT: quake.rz
 // CHECK-NEXT: quake.rx
@@ -52,8 +60,12 @@ func.func @unsupported_constants(%target: !quake.ref) {
 // CHECK-COUNT-4: quake.rz
 // CHECK-NEXT: quake.wrap
 
-// Chains are rewritten inside nested regions, and a chain may continue through
-// a `cc.scope`, whose `cc.continue` then receives the replacement wire.
+// A chain continues through a `cc.scope`, whose `cc.continue` then receives
+// the replacement wire, so the `quake.rz` before the scope and the one inside
+// it fuse. A chain does not continue into or out of a `cc.if`. The pair inside
+// the `then` region fuses on its own, and the fused `quake.rz` before the
+// `cc.if` and the `quake.rz` after it stay separate. If the chain crossed the
+// `cc.if`, these two would fuse into one rotation.
 func.func @nested_regions(%arg0: !quake.wire, %c: i1) -> !quake.wire {
   %a = arith.constant 0.3 : f64
   %b = arith.constant 0.5 : f64
@@ -69,13 +81,18 @@ func.func @nested_regions(%arg0: !quake.wire, %c: i1) -> !quake.wire {
   } else {
     cc.continue %w : !quake.wire
   }
-  return %3 : !quake.wire
+  %6 = quake.rz (%a) %3 : (f64, !quake.wire) -> !quake.wire
+  return %6 : !quake.wire
 }
 // NESTED-LABEL: func.func @nested_regions(
 // NESTED: %[[FUSED:.*]] = quake.rz (%{{.*}}) %arg0
 // NESTED: %[[SCOPE:.*]] = cc.scope -> (!quake.wire) {
 // NESTED-NEXT: cc.continue %[[FUSED]]
-// NESTED: cc.if(%arg1) ((%[[W:.*]] = %[[SCOPE]])) -> !quake.wire {
+// NESTED: %[[IF:.*]] = cc.if(%arg1) ((%[[W:.*]] = %[[SCOPE]])) -> !quake.wire {
 // NESTED: %[[INNER:.*]] = quake.rz (%{{.*}}) %[[W]]
 // NESTED-NOT: quake.rz
 // NESTED: cc.continue %[[INNER]]
+// NESTED: } else {
+// NESTED-NEXT: cc.continue %[[W]]
+// NESTED: %[[AFTER:.*]] = quake.rz (%{{.*}}) %[[IF]]
+// NESTED-NEXT: return %[[AFTER]]
