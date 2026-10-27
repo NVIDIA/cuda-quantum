@@ -181,6 +181,16 @@ TEST(AHSModelTest, RejectInvalidPrograms) {
   program.setup.ahs_register.sites[1] = {0., 0.};
   EXPECT_THROW(ahs::makeRydbergModel(program, ahs::fresnelCan),
                std::invalid_argument);
+  auto empty = makeProgram({{0., 0.}});
+  for (auto *series : {&empty.hamiltonian.drivingFields[0].amplitude,
+                       &empty.hamiltonian.drivingFields[0].phase,
+                       &empty.hamiltonian.drivingFields[0].detuning})
+    series->time_series = ahs::TimeSeries();
+  EXPECT_THROW(ahs::makeRydbergModel(empty, ahs::fresnelCan),
+               std::invalid_argument);
+  empty.hamiltonian.drivingFields.clear();
+  EXPECT_THROW(ahs::makeRydbergModel(empty, ahs::fresnelCan),
+               std::invalid_argument);
   auto local = makeProgram({{0., 0.}});
   local.hamiltonian.localDetuning.push_back(
       {{ahs::TimeSeries({{0., 0.}, {4e6, 1e-6}}),

@@ -159,6 +159,11 @@ void validateProgram(const cudaq::ahs::Program &program) {
     validateField(drive.phase);
     validateField(drive.detuning);
   }
+  // Without this, a program with no time points (e.g. from a Schedule that was
+  // already iterated) evolves for no time and returns the ground state.
+  if (uniqueTimes(program).size() < 2)
+    throw std::invalid_argument(
+        "AHS emulation requires driving fields over a positive duration.");
 }
 
 } // namespace
