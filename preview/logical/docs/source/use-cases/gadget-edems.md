@@ -1,254 +1,36 @@
-# Derive a gadget EDEM
+# Derive an error model from gadgets
 
-The [Stim emission tutorial](stim-emission.md#export-a-profiled-surface-code-memory)
-exports a circuit containing quantum operations, noise, detectors, and a logical
-observable. A **detector error model (DEM)** describes how faults in that circuit
-flip detectors and logical observables, together with their probabilities.
-Stim can derive a DEM by analyzing the complete circuit.
+A **detector error model (DEM)** lists an experiment's possible faults. For
+each fault it gives the detectors and logical observables the fault flips and
+the fault's probability. Samplers and decoders take a DEM as input. Stim
+derives one by analyzing a complete circuit, such as the one exported in
+[Stim emission](stim-emission.md).
 
-An **extended detector error model (EDEM)** describes these effects for an
-individual gadget while keeping its encoded inputs and outputs open. It also
-tracks error information entering and leaving those boundaries. This lets you
-derive a model for each gadget, reuse it for repeated occurrences, and compose
-the models into a larger experiment. Once preparation and readout close all
-encoded boundaries, the composed model can be projected to a DEM.
+CUDA-Q Logical can instead build the model gadget by gadget. An **extended
+detector error model (EDEM)** describes the faults of a single gadget while its
+encoded input and output remain open. Besides detectors and observables, it
+records how each fault changes the error carried into the next gadget. This
+lets you:
 
-`cudaq.logical.analysis.derive_edem` builds the gadget models;
-`cudaq_edem` provides composition and DEM operations. The example below
-demonstrates this modular construction and checks its result against Stim's
-analysis of the complete circuit. Circuit export supplies the reference for
-that check; the EDEM path derives its result from the gadget models.
+- derive each gadget's model once and reuse it wherever the gadget repeats;
+- compose the models in execution order;
+- **project** the result to an ordinary DEM once preparation and readout close
+  both ends.
 
-## Compare circuit and per-gadget DEM construction
+No circuit simulation is involved. For the surface-memory experiment from the
+Stim tutorial, the projected model is the DEM that Stim derives from the
+exported circuit; the test suite checks that the two agree.
 
-The [memory comparison example](../../../examples/standalone/07_memory_edem.py)
-uses the same built-in surface recipe and experiment as the Stim emission
-tutorial. It computes the DEM in two ways:
+This page first shows what an EDEM records for one gadget. It then derives,
+inspects, saves, and samples the surface-memory model. The final section covers
+custom faults, derivation one stage at a time, and the checks that run during
+derivation.
 
-1. Emit the complete Stim circuit and obtain its DEM with
-   `circuit.detector_error_model()`.
-2. Derive EDEMs for preparation, a memory round, and readout; compose their
-   occurrences; then project the result to a DEM and convert it to the same
-   independent-error form for comparison.
+## What an EDEM records
 
-Both paths use the same detector profiles and noise placements. Their agreement
-checks that the modular construction reproduces the complete-circuit model.
-The file's `# %%` cells let you inspect each stage interactively.
-
-Use an environment with CUDA-Q Logical installed; its wheel also installs the
-required `cudaq-edem` dependency. This example additionally requires Stim for
-the comparison:
-
-```bash
-python -m pip install 'stim>=1.16,<2'
-```
-
-### Import the libraries
-
-Import Logical, the surface recipe and geometry, the EDEM operations, and Stim:
-
-```{eval-rst}
-.. literalinclude:: ../../../examples/standalone/07_memory_edem.py
-   :language: python
-   :start-at: from math import isclose
-   :end-before: # %%
-```
-
-The script's `detector_profile` and `data_noise_placements` helpers are explained
-in [Define detector profiles](stim-emission.md#define-detector-profiles) and
-[Define data-noise placements](stim-emission.md#define-data-noise-placements).
-The walkthrough below continues with the experiment setup and EDEM construction.
-
-### Configure and assemble the experiment
-
-Keep the same distance, round count, and data-error probability as the circuit
-export example. The additional `output` setting controls whether to save the
-results; `None` keeps them in memory:
-
-```{eval-rst}
-.. literalinclude:: ../../../examples/standalone/07_memory_edem.py
-   :language: python
-   :start-at: distance = 3
-   :end-before: # %%
-```
-
-Select the built-in surface definitions and data-qubit geometry:
-
-```{eval-rst}
-.. literalinclude:: ../../../examples/standalone/07_memory_edem.py
-   :language: python
-   :start-at: implementation = surface.definitions(distance)
-   :end-before: # %%
-```
-
-Use the shared helpers to build the profile sequence and its noise placements:
-
-```{eval-rst}
-.. literalinclude:: ../../../examples/standalone/07_memory_edem.py
-   :language: python
-   :start-at: prep = detector_profile(
-   :end-before: # %%
-```
-
-At the defaults, the sequence has four occurrences: preparation, two memory
-rounds, and logical-Z readout. The two memory rounds reuse the same profile.
-
-### Obtain the circuit-derived reference DEM
-
-Export the complete circuit using the same Python exporter as the Stim emission
-tutorial:
-
-```{eval-rst}
-.. literalinclude:: ../../../examples/standalone/07_memory_edem.py
-   :language: python
-   :start-at: coordinates =
-   :end-before: # %%
-```
-
-Ask Stim to derive a DEM from that circuit's operations, annotations, and noise:
-
-```{eval-rst}
-.. literalinclude:: ../../../examples/standalone/07_memory_edem.py
-   :language: python
-   :start-at: circuit = stim.Circuit(text)
-   :end-before: # %%
-```
-
-Keep `circuit_dem` as the reference. The following steps construct the other
-DEM from the individual gadgets.
-
-### Derive reusable gadget EDEMs
-
-For each profile, compile its gadget and obtain the physical Clifford
-instructions with `project_clifford`. Then construct a **fault set**, the
-possible physical faults and their probabilities, and derive the EDEM:
-
-| Operation | Purpose |
-| --- | --- |
-| `cql.compile(profile)` | Build the gadget with its detector profile. |
-| `project_clifford(build, ...)` | Expose the physical instructions and fault insertion sites. |
-| `standard_depolarizing_faults(...)` | Construct faults using the same noise policy and placements as circuit export. |
-| `derive_edem(build, faults=faults)` | Compute fault effects and error transfer through the gadget's encoded boundaries. |
-
-The cache uses a profile and its noise placements as the key. With the default
-parameters, it derives three models: preparation, one memory round, and readout.
-`occurrences` lists the four models in execution order, reusing the memory-round
-model for both rounds:
-
-```{eval-rst}
-.. literalinclude:: ../../../examples/standalone/07_memory_edem.py
-   :language: python
-   :start-at: cache, occurrences =
-   :end-before: # %%
-```
-
-### Compose the models and close the boundaries
-
-`compose_chain` connects each occurrence's encoded outputs to the next one's
-inputs, carrying error information forward to later detectors and readout.
-Repeated occurrences receive separate fault indicators, so reusing a model
-does not correlate the faults in different rounds.
-
-Preparation starts the patch and readout consumes it. The complete chain
-therefore has no open encoded inputs or outputs, as the assertion checks.
-`project_DEM` converts that closed EDEM to a DEM while preserving its fault
-probabilities and mutually exclusive alternatives:
-
-```{eval-rst}
-.. literalinclude:: ../../../examples/standalone/07_memory_edem.py
-   :language: python
-   :start-at: composed = edem.compose_chain
-   :end-before: # %%
-```
-
-### Put the DEM in independent-error form
-
-`projected` is the composed DEM. To compare it with Stim's DEM, the example
-converts its fault laws to the independent-error form used by Stim.
-
-A depolarizing fault chooses mutually exclusive Pauli alternatives: X, Y, or Z
-on one qubit. `factorize_dem` converts supported depolarizing laws to equivalent
-independent mechanisms without changing the resulting error distribution.
-`coalesce_dem_columns` then merges mechanisms with the same detector and
-observable flips, combining their probabilities according to whether an odd
-number of those mechanisms occur.
-
-The local `to_stim_dem` helper formats the resulting mechanisms as a
-`stim.DetectorErrorModel` for the comparison:
-
-```{eval-rst}
-.. literalinclude:: ../../../examples/standalone/07_memory_edem.py
-   :language: python
-   :start-at: independent = edem.factorize_dem(
-   :end-before: # %%
-```
-
-`source_columns` records where each column goes during coalescing, with `None`
-for discarded columns. The original mutually exclusive fault laws remain
-available in `projected`; `to_stim_dem` only formats the transformed model.
-
-### Compare the two results
-
-Check that both DEMs have the same detector and observable counts. The local
-`dem_errors` helper reads each error term into a dictionary keyed by the
-detectors and observables it flips. Comparing the keys checks that both models
-contain the same error patterns; comparing the values checks their
-probabilities with an absolute tolerance of `1e-12`:
-
-```{eval-rst}
-.. literalinclude:: ../../../examples/standalone/07_memory_edem.py
-   :language: python
-   :start-at: assert (circuit_dem.num_detectors
-   :end-before: # %%
-```
-
-Detector coordinates and timing annotations are excluded from this comparison.
-`dem_errors` expects coalesced terms and rejects duplicate error patterns.
-
-### Run the example and save its results
-
-Run from the repository root:
-
-```bash
-python preview/logical/examples/standalone/07_memory_edem.py
-```
-
-With the default parameters, it reports agreement for 20 detectors, one logical
-observable, and 53 error terms. Four occurrences use three derived models and
-retain 81 original fault indicators.
-
-Set `output = Path("memory-comparison")` in the parameter cell to save the
-circuit, both Stim DEMs, per-definition EDEMs, the composed EDEM, and the
-projected packed DEM. The final cell performs the export:
-
-```{eval-rst}
-.. literalinclude:: ../../../examples/standalone/07_memory_edem.py
-   :language: python
-   :start-at: if output is not None:
-```
-
-### Model and comparison constraints
-
-EDEM composition currently supports serial chains, and adjacent encoded
-boundaries must use matching code presentations. DEM projection requires all
-encoded boundaries to be closed; it preserves the original fault laws.
-
-The independent-error conversion supports uniform one- and two-qubit
-depolarization with total probabilities at most `3/4` and `15/16`, respectively.
-Other exclusive laws return an unsupported-distribution error from
-`factorize_dem`, although they can still be retained in the projected DEM.
-Coalescing combines mechanisms with identical complete responses, including
-any success bits, and removes zero responses and zero-probability mechanisms.
-
-Postselection accepts only selected measurement outcomes. `project_DEM`
-preserves these success outputs, but the example's Stim formatter rejects
-nonempty success outputs because it has no postselection semantics.
-
-## A boundary-transfer example
-
-To inspect error transfer through an open boundary, consider a one-qubit H
-gadget. H turns an incoming X error into a Z error. The example inserts an X
-fault at the input and checks the resulting logical error:
+Consider a one-qubit H gadget on a bare qubit with no error correction. H turns
+an X error into a Z error. The example inserts an X fault at the gadget's input
+and derives its EDEM:
 
 ```python
 import cudaq.logical as cql
@@ -261,91 +43,301 @@ def bare_h(block: cql.patch[cql.codes.BareQubit]) -> cql.patch[cql.codes.BareQub
 
 
 build = cql.compile(cql.gadgets.GadgetProfile(bare_h))
-projection = cql.compiler.project_clifford(build, gadget="bare_h")
 
-# An empty insertion site denotes the input boundary. H sends this X to Z.
+# An empty insertion site denotes the input boundary.
 faults = FaultSet().pauli_error("", 0, "x", 0.01)
 model = derive_edem(build, faults=faults)
 assert model.apply([1, 0, 0]) == [0, 1]
-
-# Packed values use EDEM's checked reader and retain canonical bytes.
-from cudaq_edem import EDEM
-assert EDEM.from_bytes(model.to_bytes()).to_bytes() == model.to_bytes()
 ```
 
-The input vector contains the fault indicators followed by `(ΔV, S, L)` for
-each input code block. The output contains detector, observable, and success
-flips followed by `(ΔV, S, L)` for each output code block. `L` uses interleaved
-logical X and Z coordinates. This bare code has no stabilizers, so both `ΔV`
-and `S` have width zero. Input and output code-block counts are independent;
-preparation and destructive readout retain their asymmetric boundaries.
-The [detector-contract reference](../reference/detector-contracts.md#virtual-syndromes-and-boundary-errors)
-defines the virtual-syndrome changes `ΔV`, residual-error syndrome `S`, and
-logical-error coordinates `L` used at encoded boundaries.
+`model.apply` maps the bits entering the gadget to the bits leaving it, over
+GF(2):
 
-`model.port(Endpoint(PortKind.LOGICAL), output=True)` returns the output
-logical width and offset. Other metadata and matrix inspection use the
-`cudaq_edem` interface. Logical supplies semantic blocks to the native EDEM
-constructor; EDEM owns layout, validation, packing, and evaluation.
+- **Input `[1, 0, 0]`.** The first bit is the fault indicator: the X fault
+  occurred. The remaining bits describe the error already on the incoming
+  encoded block. Here the incoming block carries no error.
+- **Output `[0, 1]`.** The gadget has no detectors, observables, or success
+  rows, so the output is only the error on the outgoing block. `[0, 1]` is a
+  logical Z error.
 
-`derive_edem` transfers the native constructor's owned packed buffer directly
-into `cudaq_edem.EDEM` through validated adoption. The hand-off preserves the
-payload address and retains the producer's lifetime dependency until release.
-It avoids intermediate string and Python-byte copies. `to_bytes` and
-`from_bytes` remain explicit serialization conveniences. See the
-[producer boundary](../reference/detector-contracts.md#boundary-for-edem-producers)
-for the ownership contract.
+In general, each encoded block on either side contributes three coordinates:
 
-## Declare and check the detector contract
+- `ΔV` is the change in the expected stabilizer values, the virtual syndrome.
+- `S` is the syndrome of the residual error.
+- `L` is the residual error's logical effect, with X and Z coordinates
+  interleaved.
 
-For a recorded syndrome-extraction gadget, declare detector parities and
-output virtual-syndrome bindings using `ProfileGraph`, as shown in
+The bare code has no stabilizers, so `ΔV` and `S` have width zero and only
+`L = (x, z)` remains. The input `L` is `(0, 0)` and the output `L` is `(0, 1)`.
+[Virtual syndromes and boundary errors](../reference/detector-contracts.md#virtual-syndromes-and-boundary-errors)
+defines these coordinates precisely.
+
+Composition connects these coordinates. One gadget's output error becomes the
+next gadget's input error, which is how a fault in one gadget can flip a later
+gadget's detectors. A preparation has no encoded input and a destructive
+readout has no encoded output. A chain that starts with one and ends with the
+other is therefore **closed**: no boundary coordinates remain, and its model
+can be projected to a DEM.
+
+## Derive a surface-memory model
+
+The [memory experiment](../../../examples/standalone/07_memory_edem.py)
+derives the model for the surface-memory experiment in the Stim tutorial:
+prepare logical zero, measure the stabilizers for several rounds, and read out
+logical Z. Run it from the repository root:
+
+```bash
+python3 preview/logical/examples/standalone/07_memory_edem.py
+```
+
+```text
+Exported d=3, rounds=3: 20 detectors, 1 observable, 81 fault indicators
+Model: memory-edem/memory.edemb
+```
+
+To also sample the model with Stim, see [Sample the model](#sample-the-model).
+The following
+steps explain the example's `# %%` cells so you can modify the experiment. Run
+the full script, or work through its cells interactively.
+
+### Import the libraries
+
+Import CUDA-Q Logical, the surface recipe, and `cudaq_edem`, which provides
+composition and DEM operations. It is installed with CUDA-Q Logical:
+
+```{eval-rst}
+.. literalinclude:: ../../../examples/standalone/07_memory_edem.py
+   :language: python
+   :start-at: from pathlib import Path
+   :end-before: # %%
+```
+
+### Configure the experiment
+
+The parameter cell controls the experiment size and where noise occurs:
+
+```{eval-rst}
+.. literalinclude:: ../../../examples/standalone/07_memory_edem.py
+   :language: python
+   :start-at: distance = 3
+   :end-before: # %%
+```
+
+- `distance` sets the code size; distance three uses nine data qubits.
+- `rounds` counts stabilizer rounds, including preparation's. For
+  `rounds = 3`, the sequence is preparation, two memory rounds, and logical-Z
+  readout.
+- `data_pauli_probabilities` sets one Pauli channel per noisy data qubit and
+  round. The channel applies X, Y, or Z with the given probabilities and
+  otherwise leaves the qubit unchanged.
+- `noisy_rounds` selects which rounds receive the channel. Round 0 is
+  preparation.
+- `noisy_data_qubits` restricts the channel to some data qubits; `None` means
+  all of them.
+- `shots` and `seed` control the optional Stim sampling step. The default
+  `shots = 0` skips it.
+
+Stabilizer measurements and readout are ideal; all noise comes from the data
+channels. Useful changes include:
+
+- Set `noisy_rounds = (1,)` to apply data noise only before the first memory
+  round.
+- Set `noisy_data_qubits = (0, 1)` to restrict noise to two data qubits.
+- Change `data_pauli_probabilities` to compare symmetric and Z-biased noise.
+  The model and saved file represent biased channels exactly, but the Stim
+  sampling step supports only symmetric channels, so keep `shots = 0` for
+  biased noise.
+- Increase `distance` or `rounds` to change the experiment size.
+
+### Select the gadget profiles
+
+The model uses the same three recipe gadgets and profiles as the Stim tutorial:
+
+```{eval-rst}
+.. literalinclude:: ../../../examples/standalone/07_memory_edem.py
+   :language: python
+   :start-at: implementation = surface.definitions(distance)
+   :end-before: # %%
+```
+
+Each profile declares a gadget's detectors, its incoming and outgoing virtual
+syndromes, and, for readout, the logical observable. The Stim tutorial explains
+these rules for the surface gadgets in
+[Describe which results signal errors](stim-emission.md#describe-which-results-signal-errors).
+To use a gadget of your own, put its profile in the sequence; see
 [Declare a contract](../reference/detector-contracts.md#declare-a-contract).
-Compile that profile and pass the Build to `derive_edem`.
 
-Derivation proves the following ideal conditions using an exact affine
-Clifford tableau with encoded logical inputs paired to inaccessible Choi
-references and independent input stabilizer signs:
+### Choose where faults occur
 
-- Every declared detector is identically zero, including its affine constant.
-- Every output virtual-syndrome formula agrees with the actual ideal output
-  stabilizer sign, including signs introduced by products of Pauli operators.
-- Success mismatch parities agree with their accepted ideal value.
-- The declared detectors, output relations, success rows, and deterministic
-  combinations of action outcomes span all deterministic outcome relations.
+Faults are inserted at **sites** of each gadget's Clifford projection, the
+list of physical instructions in its realization. A fault takes effect
+immediately *after* the instruction with the given `site_id`. The empty site
+`""` means the gadget's input boundary, before its first instruction.
 
-Detector families may be redundant and may include zero rows. Observables may
-be random; only their deterministic combinations contribute to the
-completeness rank. `boundary_complete` alone establishes assignment coverage,
-so a structurally complete profile can still fail this semantic check.
+`derive_edem_chain` calls a **fault factory** once for each occurrence, that
+is, each position in the profile sequence. The factory receives the
+occurrence index, the profile, and the projection, and returns that
+occurrence's complete fault set:
 
-These checks establish detector-contract correctness. They do not certify that
-the realization implements its declared logical action. Action verification
-remains a separate analysis.
+```{eval-rst}
+.. literalinclude:: ../../../examples/standalone/07_memory_edem.py
+   :language: python
+   :start-at: def memory_faults(
+   :end-before: # %%
+```
 
-For redundant stabilizer presentations, Logical constructs the input section
-using the profile's `kept_from_effective` matrix and the code's canonical
-anti-stabilizers. This is a section on attainable syndrome coordinates.
-Evaluation on an inconsistent redundant bitstring does not give that bitstring
-a physical interpretation. Presentation type names encode a versioned digest
-of the ordered boundary algebra, so equal dimensions do not alias different
-generators or logical representatives. These names do not constitute an EDEM
-registry or an exchange-envelope signature.
+The factory finds each gadget's first stabilizer check (`MPP`) and inserts the
+noise just before it:
 
-## Specify faults
+- In preparation, the noise goes after the reset, so the reset does not erase
+  it.
+- In a memory round, the check is the first instruction, so the noise goes at
+  the input boundary.
+- Readout receives no faults.
 
-Insertion sites come from `projection.instructions[i].site_id`. Insertions
-occur immediately after that instruction and must target a live carrier.
-Site IDs belong to a fixed realization; obtain a new projection after circuit
-rewrites. A stable record flip changes the classical measurement bit without
-adding a physical Pauli error:
+`pauli_channel` adds one channel per data qubit. Its X, Y, and Z alternatives
+are mutually exclusive, and each one becomes a **fault indicator**, a column
+of the model that is 1 when that fault occurs. With the defaults, there are
+9 data qubits × 3 alternatives × 3 noisy rounds = 81 fault indicators.
+
+For the standard noise policy, you can skip the factory. Pass
+`noise=StandardDepolarizingNoise(...)` and per-occurrence `depolarizations=` to
+`derive_edem_chain` instead, using the same placements as `compiler.emit_stim`.
+The two styles can't be combined. To insert other faults, such as measurement
+flips or correlated errors, see [Specify faults](#specify-faults).
+
+### Derive and compose the model
+
+Pass the profiles and the factory to `derive_edem_chain`, then project the
+result:
+
+```{eval-rst}
+.. literalinclude:: ../../../examples/standalone/07_memory_edem.py
+   :language: python
+   :start-at: composed = cql.analysis.derive_edem_chain(
+   :end-before: # %%
+```
+
+`derive_edem_chain` derives one EDEM for each distinct pair of gadget and
+fault set. Here the two memory rounds receive identical faults, so they share
+one derived model. Composition then gives every occurrence its own fault
+indicators, so faults in different rounds stay independent. Because the chain
+starts with a preparation and ends with a readout, it is closed, and
+`edem.project_DEM` turns it into a DEM.
+
+### Inspect the model
 
 <!--
 % invisible-code-block: python
 %
-% profiles = load_ql_example(
-% "preview/logical/examples/standalone/07_memory_edem.py", "profiles")
+% profiles, projected = load_ql_example(
+%     "preview/logical/examples/standalone/07_memory_edem.py", "profiles",
+%     "projected")
 -->
+
+The projected model groups its detectors and fault indicators by occurrence:
+
+```python
+assert projected.inputs == projected.outputs == []
+assert projected.detectors == [4, 8, 8]
+assert projected.observables == [1]
+assert [fault.size for fault in projected.faults] == [27, 27, 27]
+```
+
+- Empty `inputs` and `outputs` mean the model is closed.
+- The 4 + 8 + 8 detectors are the same 20 described in the Stim tutorial's
+  [Read the exported circuit](stim-emission.md#read-the-exported-circuit).
+- Each noisy occurrence contributes 27 fault indicators. Readout has none.
+
+`apply` shows the effect of any combination of faults. Indicator 0 is the X
+alternative on data qubit 0 before the first round:
+
+```python
+x_error_on_qubit_0 = [1] + [0] * 80
+flips = projected.apply(x_error_on_qubit_0)
+assert [i for i, bit in enumerate(flips[:20]) if bit] == [0]
+assert flips[20:] == [1]
+```
+
+This fault fires detector 0, the first-round check `Z0*Z1*Z3*Z4`, and flips the
+logical-Z observable. Indicator 2, the Z alternative on the same qubit, flips
+nothing, because the X-type checks only set a baseline in the first round.
+
+### Save and reload the model
+
+Save the projected model to `memory-edem/memory.edemb`:
+
+```{eval-rst}
+.. literalinclude:: ../../../examples/standalone/07_memory_edem.py
+   :language: python
+   :start-at: output = Path(output)
+   :end-before: # %%
+```
+
+The file keeps each Pauli channel exactly as specified, without approximating it
+as independent errors. Loading it requires only `cudaq_edem`, with no gadget
+definitions or CUDA-Q Logical installation:
+
+```python
+from pathlib import Path
+from cudaq_edem import DEM
+
+model = DEM.from_bytes(Path("memory-edem/memory.edemb").read_bytes())
+assert model.to_bytes() == projected.to_bytes()
+```
+
+### Sample the model
+
+The script's last cell converts the model to a Stim DEM and samples it. To
+enable it, install Stim and set `shots` to a positive number, such as `100`:
+
+```bash
+python3 -m pip install 'stim>=1.16,<2'
+```
+
+```{eval-rst}
+.. literalinclude:: ../../../examples/standalone/07_memory_edem.py
+   :language: python
+   :start-at: if shots:
+```
+
+Stim samples independent errors, so the conversion takes three steps:
+
+1. `factorize_dem` replaces each Pauli channel with independent errors that
+   have exactly the same distribution.
+2. `coalesce_dem_columns` merges errors that flip the same detectors and
+   observables.
+3. `to_stim_dem` formats the result as a `stim.DetectorErrorModel`.
+
+The exact factorization exists for uniform one- and two-qubit Pauli channels,
+with total error probability up to `3/4` and `15/16`, respectively. Other
+channels, such as the Z-biased example, make `factorize_dem` raise
+`ValueError`. Models with postselection can't be converted.
+
+Each shot reports which detectors fired and whether the logical-Z observable
+flipped. These counts are uncorrected; to estimate a logical error rate after
+correction, pass the Stim DEM to a decoder.
+
+You can also load the saved file directly in CUDA-Q QEC and evaluate it there.
+Support for EDEM files is being added in
+[NVIDIA/cudaq-qec#868](https://github.com/NVIDIA/cudaq-qec/pull/868).
+
+<!-- TODO: Replace the pull-request link with the CUDA-Q QEC documentation URL
+once NVIDIA/cudaq-qec#868 is merged. -->
+
+## Going further
+
+### Specify faults
+
+A `FaultSet` lists faults explicitly. Each fault is placed at a site from
+`projection.instructions[i].site_id` and takes effect immediately after that
+instruction. It must target a carrier that is live at that point. Site IDs
+belong to a fixed realization, so obtain a new projection after rewriting the
+circuit.
+
+Besides Pauli errors, a **record flip** inverts a recorded measurement bit
+without adding a physical error. This example flips a memory round's first
+check result and adds an X error after its last check:
 
 ```python
 round_profile = profiles[1]
@@ -359,54 +351,75 @@ faults = faults.pauli_error(last_check_site, data_carrier, "x", 0.02)
 model = derive_edem(round_build, faults=faults)
 ```
 
-Record paths and non-measuring aliases resolve to exact physical measurement
-indices. A faulty measurement can change outgoing `ΔV` without changing
-outgoing `S`; a late data fault can change `S` without changing `ΔV`.
-Incoming `ΔV` contributes through the detector map, with structural zeros to
-observable flips and outgoing `(S, L)`.
+The two faults affect the output boundary differently. The record flip changes
+the outgoing virtual syndrome `ΔV` without leaving a physical error, so `S`
+does not change. The late X error changes `S` without changing `ΔV`, because no
+later check in this gadget measures it.
 
-`ElementaryFault` can group several `PauliInsertion` values and record flips
-into one correlated indicator. `FaultSet.pauli_channel`, `depolarize1`, and
-`depolarize2` retain categorical alternatives as mutually exclusive original
-indicators. Ungrouped faults are independent. Equal effect columns keep their
-separate indicators and probabilities.
-Fault column `i` corresponds to `faults.faults[i]`; retain that ordered input
-set when interpreting source IDs, which are not stored in the packed EDEM.
+Faults can be combined in several ways:
 
-Individual probabilities must be finite and within `[0, 1]`. EDEM performs the
-exclusive-total check with its current library policy; Logical adds no
-separate tolerance or renormalization. The same native constructor is used by
-direct EDEM construction and this producer.
+- **Independent faults.** Ungrouped faults are independent. Each has its own
+  indicator, even when two faults have identical effects.
+- **Mutually exclusive alternatives.** `FaultSet.pauli_channel`, `depolarize1`,
+  and `depolarize2` keep each alternative as a separate indicator, and at most
+  one alternative occurs.
+- **Correlated events.** An `ElementaryFault` can group several
+  `PauliInsertion` values and record flips into one indicator.
 
-The first producer supports canonical stabilizer codes (`r = 0`), the typed
-Clifford projection, static calls and repeats, Pauli insertions, and record
-flips. The native producer requires an explicit fault set; the memory example
-constructs one for its standard noise policy. Erasures, subsystem boundaries,
-dynamic feedback, and non-Clifford realizations are outside this slice.
-EDEM composition currently supports serial chains; general diagrams and
-window construction are outside this slice. Unsupported inputs fail with diagnostics.
+Probabilities must be finite and in `[0, 1]`, and mutually exclusive
+alternatives must sum to at most one. Fault column `i` corresponds to
+`faults.faults[i]`. The packed EDEM doesn't store fault sources, so keep the
+ordered fault set if you need to map columns back to faults.
 
-## Build from source
+The workflow supports stabilizer codes with `r = 0` (no gauge qubits), Clifford
+operations, static calls and repeats, Pauli errors, and record flips. Erasures,
+subsystem codes, dynamic feedback, and non-Clifford operations are
+unsupported.
 
-From the CUDA-Q repository root, build and install the EDEM dependency:
+### Derive models stage by stage
 
-```sh
-cmake -S edem -B build-edem -DCUDAQ_EDEM_BUILD_PYTHON=ON \
-  -DCMAKE_INSTALL_PREFIX=/path/to/edem-install
-cmake --build build-edem
-cmake --install build-edem
+`derive_edem_chain` packages a sequence of steps you can also run yourself:
+compile each profile, project it, choose its faults, derive its EDEM, and
+compose the results:
+
+```python
+import cudaq_edem as edem
+
+prep_profile, round_profile, *_, readout_profile = profiles
+noise = cql.compiler.StandardDepolarizingNoise()
+
+
+def gadget_model(profile):
+    build = cql.compile(profile)
+    projection = cql.compiler.project_clifford(build,
+                                               gadget=profile.gadget.name)
+    faults = cql.analysis.standard_depolarizing_faults(projection, noise)
+    return cql.analysis.derive_edem(build, faults=faults)
+
+
+round_model = gadget_model(round_profile)
+chain = edem.compose_chain([
+    gadget_model(prep_profile), round_model, round_model,
+    gadget_model(readout_profile)
+])
+assert sum(edem.project_DEM(chain).detectors) == 20
 ```
 
-Then add this option to the normal
-[standalone Logical configuration](../reference/building-against-cudaq.md):
+`standard_depolarizing_faults` applies the same noise policy as
+`compiler.emit_stim`. Replace it with your own `FaultSet` to model other faults.
+`compose_chain` supports serial chains in which adjacent boundaries use the
+same code presentation, meaning the same code and stabilizer ordering. Call
+`project_DEM` only once every encoded boundary is closed.
 
-```sh
--Dcudaq-edem_DIR=/path/to/edem-install/lib/cmake/cudaq-edem
-```
+### Contract checks during derivation
 
-Make the installed `cudaq_edem` Python package available to the same Python
-interpreter. CMake also discovers an installed `cudaq-edem` wheel through that
-interpreter, so no package path is needed when using the wheel. In a parent
-build that already defines the `cudaq::edem` target, Logical uses that target
-directly. Enabling Logical in the CUDA-Q source build also builds EDEM and
-stages its Python package alongside Logical.
+`derive_edem` checks the profile against the realization before deriving a
+model. Declared detectors must be zero without faults, and outgoing virtual
+syndromes must match the measured stabilizers. The profile must also account
+for every deterministic measurement relation. An inconsistent or incomplete
+profile is rejected. These are the detector-contract conditions in
+[Verify a contract and the logical action](../reference/detector-contracts.md#verify-a-contract-and-the-logical-action).
+
+Derivation does not check the gadget's logical action. Use
+`cql.gadgets.verify_gadget` to confirm that the realization implements its
+declared action as well.

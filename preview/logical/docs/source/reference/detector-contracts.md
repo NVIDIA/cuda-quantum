@@ -65,10 +65,39 @@ holds observable and success declarations; those additional fields do not
 change the mathematical definition of a detector contract. Success rows are
 acceptance mismatch parities; retry and selection policy stay in the protocol.
 
+## Recipe-provided profiles
+
+Recipes expose `gadget_profile(gadget)` functions. For example:
+
+```python
+from cudaq.logical.architectures import surface
+
+recipe = surface.definitions(3)
+profile = surface.gadget_profile(recipe.memory_round)
+```
+
+The Surface recipe returns cached profiles for the gadget objects it creates.
+An unrelated gadget raises `ValueError`, including one
+with the same name or code. A `GadgetDefinition` has no profile property or
+`profile_factory` argument. Custom gadgets can use explicit `GadgetProfile`
+declarations instead.
+
+The surface recipe supplies preparation and memory detectors, Clifford syndrome
+transfers, and readout observables. Surface WSC measurements reuse their
+existing analysis profiles. Other recipes are outside this API's current scope.
+These declarations are not a general
+inference pass. Clifford transfers are derived from physical gates, while
+measurement comparisons are selected by the recipe.
+
+A profile does not extend the EDEM producer's supported operations. Abstract
+encoded preparations and non-Clifford resource operations may compile with
+profiles while remaining unsupported by Clifford projection or EDEM derivation.
+
 ## Declare a contract
 
-The profile graph can relate recorded syndrome-extraction results to a
-gadget's virtual boundary:
+For a custom gadget, use `ProfileGraph` to declare how recorded measurements
+relate to its virtual boundary. This Steane memory round names its extracted
+syndrome `round`:
 
 ```python
 import cudaq.logical as cql
@@ -80,29 +109,61 @@ def memory_round(
 ) -> cql.patch[cql.codes.Steane]:
     block, _ = cql.extract_syndrome(block, record="round")
     return block
+```
 
+`memory_round.record("round.s0")` refers symbolically to the first check result;
+constructing the reference does not run the gadget. The check indices follow
+the endpoint code profile's effective stabilizer ordering.
 
+The incoming virtual syndrome contains the expected stabilizer signs inferred
+from earlier results. In an ideal round, each current measurement agrees with
+its incoming expectation, so their XOR forms a detector. The current results
+then become the outgoing baseline:
+
+```python
 graph = cql.gadgets.ProfileGraph(memory_round.interface)
-incoming = memory_round.interface.inputs.only().syndrome
-outgoing = memory_round.interface.outputs.only().syndrome
+incoming = memory_round.inputs.only().syndrome
+outgoing = memory_round.outputs.only().syndrome
 records = tuple(memory_round.record(f"round.s{i}") for i in range(incoming.width))
 
 for i, record in enumerate(records):
     graph.detector(incoming[i] ^ record)
 graph.bind(outgoing, records)
 profile = graph.freeze()
-build = cql.compile(profile)
-assert build.module.operation.verify()
 ```
 
-Python construction and MLIR verification check row structure, exact record
-ownership, virtual-syndrome bounds, contiguous observable indices, and agreement
-with a declared outcome map. They do **not** prove ideal determinism or
-completeness. In particular, `boundary_complete` checks assignment coverage; it
-does not establish that detector parities vanish on every ideal outcome or
-that the contract captures all required relations.
-[`analysis.derive_edem`](../use-cases/gadget-edems.md) performs the semantic
-check before constructing an EDEM.
+`detector` declares a parity expected to vanish without errors. `bind` supplies
+the complete outgoing virtual syndrome that a subsequent gadget can reference.
+`freeze()` produces an immutable `GadgetProfile`; these declarations add no
+quantum operations or noise probabilities to the realization.
+
+This memory round returns no logical measurement outcome, so it has no
+observable rows. For a readout gadget, observables come from its declared
+outcome map. Explicit observable declarations must agree with that map, as
+explained in [Detector map and outcome map](#detector-map-and-outcome-map).
+
+Compile the profile and verify both its detector contract and the claimed idle
+action:
+
+```python
+build = cql.compile(profile)
+assert build.module.operation.verify()
+receipt = cql.gadgets.verify_gadget(profile)
+assert receipt.verified
+```
+
+Python construction and MLIR verification check row structure, record ownership,
+syndrome bounds, observable indices, and agreement with the outcome map.
+`verify_gadget` additionally checks ideal determinism, completeness, and the
+logical action; the next section describes those checks. `boundary_complete`
+only checks assignment coverage. None of these checks proves fault tolerance.
+
+Pass the explicit profile as an occurrence in a closed, compatible profile
+sequence for
+[`compiler.emit_stim`](../use-cases/stim-emission.md#save-the-stim-circuit). For
+EDEM construction, pass its compiled Build and an explicit fault set to
+[`analysis.derive_edem`](../use-cases/gadget-edems.md#specify-faults). The profile
+is authored here; it is not inferred automatically from the gadget definition.
 
 ## Project the realization
 
@@ -136,7 +197,7 @@ boundaries.
 Currently, `fabric.permute` projects to ordinary `SWAP` instructions without
 retaining that they represent a noiseless relabeling. This limits downstream
 noise policies; see the
-[permutation limitation](../use-cases/stim-emission.md#export-a-profiled-surface-code-memory).
+[permutation limitation](../use-cases/stim-emission.md#customize-the-experiment).
 
 Projection verifies the module and rejects unsupported operations, recursive
 calls, non-Clifford gates, and dynamic control. It preserves the source Build

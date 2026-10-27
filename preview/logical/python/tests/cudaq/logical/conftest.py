@@ -19,9 +19,13 @@ EXAMPLES = Path(__file__).resolve().parents[4] / "examples/standalone"
 
 
 @pytest.fixture(scope="module")
-def run_memory_example():
+def run_memory_example(tmp_path_factory):
 
     def run(name, **parameters):
+        parameters.setdefault("shots", 0)
+        if name == "07_memory_edem.py":
+            parameters.setdefault("output",
+                                  tmp_path_factory.mktemp("memory-edem"))
         path = EXAMPLES / name
         namespace = {"__name__": "__main__", "__file__": str(path)}
         lineno = 0
@@ -67,7 +71,7 @@ def make_memory(run_memory_example, memory_result):
 
     def make(distance=3, rounds=3):
         return memory_result(
-            run_memory_example("06_surface_memory.py",
+            run_memory_example("06_stim_emission.py",
                                distance=distance,
                                rounds=rounds))
 

@@ -29,12 +29,14 @@ def reset_cudaq_target_after_test():
     cudaq.reset_target()
 
 
-def test_examples_execute(capsys, monkeypatch):
+def test_examples_execute(capsys, monkeypatch, tmp_path):
     import cudaq
 
     assert len(KERNEL_EXAMPLES) == 6
     assert len(STANDALONE_EXAMPLES) == 8
     monkeypatch.syspath_prepend(str(EXAMPLE_ROOT))
+    # Example 07 exports memory-edem/memory.edemb relative to the working directory.
+    monkeypatch.chdir(tmp_path)
     output = {}
     for example in (*KERNEL_EXAMPLES, *STANDALONE_EXAMPLES):
         monkeypatch.setattr(sys, "argv", [str(example)])

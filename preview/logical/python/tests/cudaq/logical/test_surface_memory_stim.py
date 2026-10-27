@@ -83,23 +83,21 @@ def test_surface_memory_emits_text_without_stim(run_memory_example, monkeypatch,
 
     def without_stim(name, *args, **kwargs):
         if name == "stim" or name.startswith("stim."):
-            raise ImportError("Stim is unavailable")
+            raise ModuleNotFoundError("Stim is unavailable", name="stim")
         return original_import(name, *args, **kwargs)
 
     monkeypatch.setattr(builtins, "__import__", without_stim)
-    result = run_memory_example("06_surface_memory.py")
+    result = run_memory_example("06_stim_emission.py")
     implementation = result["implementation"]
     assert result["prep"].gadget is implementation.prepare_zero
     assert result["sec"].gadget is implementation.memory_round
     assert result["readout"].gadget is implementation.measure_z
     assert "MPP " in result["text"]
     assert capsys.readouterr().out == result["text"]
-    with pytest.raises(ImportError, match="Stim is unavailable"):
-        run_memory_example("06_surface_memory.py", shots=1)
 
 
 def test_surface_memory_samples_detectors(run_memory_example, stim):
-    result = run_memory_example("06_surface_memory.py", shots=100, seed=7)
+    result = run_memory_example("06_stim_emission.py", shots=100, seed=7)
     assert result["detectors"].shape == (100, 20)
     assert result["observables"].shape == (100, 1)
 

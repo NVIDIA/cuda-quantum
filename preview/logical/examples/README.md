@@ -26,51 +26,15 @@ target.
    `estimate_physically()` is the direct, opt-in paper-scale compilation and
    scheduling path.
 
-The `standalone/` examples use `cudaq.logical` directly and expose each
-compiler step. They do not define CUDA-Q kernels or call `cudaq.estimate`.
+The [`standalone/`](standalone/README.md) examples use `cudaq.logical` directly
+and expose each compiler step, from logical authoring through physical
+scheduling, Stim circuit export, and detector error models. The
+[`mlir/`](mlir/README.md) examples run the same pipelines with `qlx-opt` and
+`qlx-translate`.
 
-The numbered standalone examples use `# %%` cells with editable parameters
-and module-level steps for interactive execution.
-
-`standalone/06_surface_memory.py` demonstrates detector-profile construction,
-noise placement, and circuit export for rotated surface-code Z memory. It
-uses the built-in surface recipe from
-`cudaq.logical.architectures.surface.definitions` for preparation, stabilizer
-rounds, and readout. Detector contracts, round count, and noise remain explicit
-experiment choices.
-The final extraction is a separate occurrence before the shared readout.
-Independent data depolarization is applied before each stabilizer round,
-with ideal measurements. The default `shots = 0` emits plain text without
-the Stim Python package:
-
-```bash
-python preview/logical/examples/standalone/06_surface_memory.py > surface-memory.stim
-```
-
-To sample, install `stim>=1.16,<2`, set `shots = 1000` and `seed = 7` in the
-parameter cell, and run the sampling cell. Summaries report detection events
-and uncorrected observable flips on stderr; stdout contains only circuit text.
-The compiler's exporter remains independent of Stim.
-
-`standalone/07_memory_edem.py` derives and composes per-gadget EDEMs, then
-compares their DEM with a circuit-derived DEM. It uses the same surface-memory
-experiment, with identical profiles and noise for both paths. Its cells expose
-`standard_depolarizing_faults`, `derive_edem`, `compose_chain`,
-`project_DEM`, `factorize_dem`, and `coalesce_dem_columns`. A Stim adapter formats
-the resulting independent mechanisms without transforming probabilities.
-Stim is required for this comparison:
-
-```bash
-python -m pip install 'stim>=1.16,<2'
-python preview/logical/examples/standalone/07_memory_edem.py
-```
-
-Edit `distance`, `rounds`, and the noise parameters in the configuration cell.
-Set `output = Path("memory-comparison")` to save circuit text, both Stim DEMs,
-per-definition packed EDEMs, the composed EDEM, and the projected packed DEM.
-The default `output = None` leaves results in memory for inspection.
-
-The `mlir/` examples use `qlx-opt` and `qlx-translate` directly.
+Every numbered example is organized into `# %%` cells with editable
+parameters, so you can run it as a script or step through it interactively.
+Run the commands in these READMEs from the repository root.
 
 ## Gidney--Ekerå physical compilation
 
@@ -93,11 +57,11 @@ the file from the command line to select the paper-scale compilation, and
 `--bits` to select the modulus size:
 
 ```bash
-python 05_gidney_ekera.py
+python3 preview/logical/examples/05_gidney_ekera.py
 
-python 05_gidney_ekera.py --physical
+python3 preview/logical/examples/05_gidney_ekera.py --physical
 
-python 05_gidney_ekera.py --bits 4096 --physical
+python3 preview/logical/examples/05_gidney_ekera.py --bits 4096 --physical
 ```
 
 Each size is one row of Table 3 in arXiv:1905.09749. The factory module derives

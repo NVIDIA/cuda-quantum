@@ -187,8 +187,10 @@ fails closed. Exhaustion is explicit (`RetryExhaustion.REPORT_FAILURE` / `ABORT`
 
 Analysis profiles can declare virtual detectors, action-outcome observables,
 and output virtual-syndrome relations without changing a gadget's realization.
-See [Detector contracts and Clifford projection](../reference/detector-contracts.md)
-for the terminology, affine maps, declaration API, and verification limits.
+See [Declare a contract](../reference/detector-contracts.md#declare-a-contract)
+for a worked example of authoring and verifying a custom memory gadget's
+profile. Use `ProfileGraph` to declare the detector parities and outgoing
+syndrome values for a gadget you author.
 
 Construction and MLIR verification establish local shape, ownership, symbol, and
 algebra invariants; semantic checks establish that a realization does what it

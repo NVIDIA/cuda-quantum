@@ -15,24 +15,59 @@ import cudaq_edem as edem
 stim = pytest.importorskip("stim", minversion="1.16")
 
 
-@pytest.fixture(scope="module")
-def example(run_memory_example):
-    return run_memory_example("07_memory_edem.py")
+def dem_errors(model):
+    errors = {}
+    for instruction in model.flattened():
+        if instruction.type != "error":
+            continue
+        support = tuple(sorted(str(t) for t in instruction.targets_copy()))
+        if support in errors:
+            raise ValueError("DEM comparison requires coalesced error terms")
+        errors[support] = instruction.args_copy()[0]
+    return errors
 
 
 @pytest.fixture(scope="module")
-def compare_memory(run_memory_example, memory_result):
+def example():
+    return {"dem_errors": dem_errors, "to_stim_dem": cql.analysis.to_stim_dem}
+
+
+@pytest.fixture(scope="module")
+def compare_memory(make_memory):
 
     def compare(distance=3, rounds=3, noise=None, *, data_depolarization=.001):
         noise = noise or cql.compiler.StandardDepolarizingNoise()
-        result = run_memory_example("07_memory_edem.py",
-                                    distance=distance,
-                                    rounds=rounds,
-                                    noise=noise,
-                                    data_depolarization=data_depolarization)
-        return (memory_result(result), result["occurrences"],
-                result["composed"], result["projected"], result["circuit"],
-                result["circuit_dem"], result["edem_dem"])
+        memory = make_memory(distance, rounds)
+        placements = memory.depolarizations(data_depolarization)
+        circuit = stim.Circuit(
+            memory.to_stim(noise, data_depolarization=data_depolarization))
+        circuit_dem = circuit.detector_error_model()
+        # Keep the expanded path here as an oracle for the cached chain helper.
+        cache, values = {}, []
+        for index, profile in enumerate(memory.profiles):
+            key = id(profile), placements.get(index, ())
+            if key not in cache:
+                build = cql.compile(profile)
+                projection = cql.compiler.project_clifford(
+                    build, gadget=profile.gadget.name)
+                faults = cql.analysis.standard_depolarizing_faults(
+                    projection,
+                    noise,
+                    depolarizations=placements.get(index, ()))
+                cache[key] = cql.analysis.derive_edem(build, faults=faults)
+            values.append(cache[key])
+        composed = cql.analysis.derive_edem_chain(memory.profiles,
+                                                  noise=noise,
+                                                  depolarizations=placements)
+        assert composed.to_bytes() == edem.compose_chain(values).to_bytes()
+        projected = edem.project_DEM(composed)
+        reduced, _ = edem.coalesce_dem_columns(edem.factorize_dem(projected))
+        formatted = cql.analysis.to_stim_dem(reduced)
+        assert dem_errors(formatted) == pytest.approx(dem_errors(circuit_dem),
+                                                      abs=1e-12,
+                                                      rel=0)
+        return memory, tuple(
+            values), composed, projected, circuit, circuit_dem, formatted
 
     return compare
 
@@ -124,8 +159,9 @@ def test_noiseless_memory_dem_and_open_boundary_rejection(
         edem.project_DEM(partial)
     with pytest.raises(ValueError):
         edem.DEM.from_bytes(values[0].to_bytes())
-    with pytest.raises(TypeError, match="project_DEM"):
-        example["to_stim_dem"](composed)
+    assert example["to_stim_dem"](composed) == dem
+    with pytest.raises(ValueError, match="closed code boundaries"):
+        example["to_stim_dem"](partial)
 
 
 def _uniform_channel(responses, probability):
@@ -200,27 +236,39 @@ def test_stim_formatter_preserves_duplicate_mechanisms_without_math(example):
     assert terms[0].args_copy()[0] == pytest.approx(.26)
 
 
-def test_memory_edem_example_writes_exchange_artifacts(example,
-                                                       run_memory_example,
+def test_memory_edem_example_writes_exchange_artifacts(run_memory_example,
                                                        tmp_path, capsys):
-    run_memory_example("07_memory_edem.py", output=tmp_path)
-    assert "53 matching DEM error terms" in capsys.readouterr().out
-    circuit = stim.Circuit((tmp_path / "memory.stim").read_text())
-    assert circuit.num_detectors == 20
-    generated = stim.DetectorErrorModel((tmp_path / "composed.dem").read_text())
-    direct = stim.DetectorErrorModel((tmp_path / "circuit.dem").read_text())
-    assert example["dem_errors"](generated) == pytest.approx(
-        example["dem_errors"](direct), abs=1e-12, rel=0)
-    packed = edem.EDEM.from_bytes((tmp_path / "composed.edemb").read_bytes())
+    result = run_memory_example("07_memory_edem.py", output=tmp_path)
+    assert "20 detectors, 1 observable, 81 fault indicators" in capsys.readouterr(
+    ).out
+    packed = edem.DEM.from_bytes((tmp_path / "memory.edemb").read_bytes())
     assert packed.inputs == packed.outputs == []
-    projected = edem.DEM.from_bytes((tmp_path / "projected.edemb").read_bytes())
-    assert projected.to_bytes() == packed.to_bytes()
-    assert _laws([projected]) == _laws([packed])
-    expected_files = {
-        f"{profile.gadget.name}.edemb" for profile in example["profiles"]
-    }
-    assert len(expected_files) == 3
-    assert all((tmp_path / name).is_file() for name in expected_files)
+    assert packed.to_bytes() == result["projected"].to_bytes()
+    assert _laws([packed]) == _laws([result["composed"]])
+    assert list(tmp_path.iterdir()) == [tmp_path / "memory.edemb"]
+
+
+def test_memory_edem_example_samples_uniform_noise_with_stim(
+        run_memory_example, tmp_path, capsys):
+    run_memory_example("07_memory_edem.py", output=tmp_path, shots=20)
+    out = capsys.readouterr().out
+    assert "Sampled 20 shots" in out
+    assert "Shots with uncorrected observable flips: " in out
+
+
+def test_memory_edem_example_rejects_stim_sampling_for_biased_noise(
+        run_memory_example, tmp_path):
+    p = 0.001
+    with pytest.raises(ValueError, match="unsupported fault distribution"):
+        run_memory_example("07_memory_edem.py",
+                           output=tmp_path,
+                           shots=20,
+                           data_pauli_probabilities={
+                               "x": p / 20,
+                               "y": p / 20,
+                               "z": 9 * p / 10
+                           })
+    assert (tmp_path / "memory.edemb").is_file()
 
 
 def test_native_projection_retains_successes_but_stim_adapter_rejects_them(

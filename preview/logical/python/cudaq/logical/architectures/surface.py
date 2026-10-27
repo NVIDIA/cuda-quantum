@@ -35,11 +35,44 @@ import cudaq.logical.protocols as protocols
 import cudaq.logical.qec as qec
 import cudaq.logical.std as standard
 import cudaq.logical.types as types
+from ._surface_profiles import clifford_profile, passthrough_profile
 from cudaq.logical.programs.decorators import objective as _objective
 
 from . import _wsc
 
-__all__ = ("SurfaceDefinitions", "definitions", "architecture", "wsc")
+__all__ = ("SurfaceDefinitions", "definitions", "architecture", "wsc",
+           "gadget_profile")
+
+# Gadget identities and the recipe data needed to construct their profiles.
+_profile_specs = {}
+
+
+@lru_cache(maxsize=None)
+def gadget_profile(gadget: gadgets.GadgetDefinition) -> gadgets.GadgetProfile:
+    """Return a profile for a gadget created by this Surface recipe.
+
+    Profiles are cached by gadget identity. Unrelated gadgets raise ValueError,
+    even when they use the same code or name as a recipe gadget.
+    """
+    try:
+        spec = _profile_specs[gadget]
+    except KeyError:
+        raise ValueError(
+            "gadget does not belong to the surface recipe") from None
+    match spec:
+        case ("prepare", builder, basis, prefix):
+            return builder._preparation_profile(gadget, basis, prefix)
+        case ("memory", builder, rounds):
+            return builder._memory_profile(gadget, rounds)
+        case ("clifford",):
+            return clifford_profile(gadget)
+        case ("readout",):
+            return gadgets.GadgetProfile(gadget)
+        case ("pauli",):
+            return passthrough_profile(gadget)
+        case ("wsc", plan):
+            return _wsc.measurement_profile(plan,
+                                            name=f"{gadget.name}_analysis")
 
 
 @dataclass(frozen=True, slots=True)
@@ -556,6 +589,36 @@ class _SurfaceBuilder:
                               implements=objective,
                               metadata=metadata)
 
+    def _check_records(self, gadget, prefix=""):
+        return tuple(
+            gadget.record(f"{prefix}{family}{i}.outcome")
+            for family, checks in (("x_check", self.code.hx), ("z_check",
+                                                               self.code.hz))
+            for i in range(len(checks)))
+
+    def _preparation_profile(self, gadget, basis, prefix=""):
+        graph = gadgets.ProfileGraph(gadget.interface)
+        records = self._check_records(gadget, prefix)
+        deterministic = (records[:len(self.code.hx)]
+                         if basis == "X" else records[len(self.code.hx):])
+        for record in deterministic:
+            graph.detector(record)
+        graph.bind(gadget.outputs.only().syndrome, records)
+        return graph.freeze()
+
+    def _memory_profile(self, gadget, rounds):
+        graph = gadgets.ProfileGraph(gadget.interface)
+        incoming = gadget.inputs.only().syndrome
+        previous = tuple(incoming[i] for i in range(incoming.width))
+        for index in range(rounds):
+            records = self._check_records(
+                gadget, "" if rounds == 1 else f"round{index}_")
+            for old, current in zip(previous, records):
+                graph.detector(old ^ current)
+            previous = records
+        graph.bind(gadget.outputs.only().syndrome, previous)
+        return graph.freeze()
+
     @lru_cache(maxsize=None)
     def prepare_zero(self):
 
@@ -884,7 +947,7 @@ class _SurfaceBuilder:
             frame_recovery=frame_recovery,
             sign=sign,
         )
-        return SurfaceWSCMeasurementPlan(
+        plan = SurfaceWSCMeasurementPlan(
             code=direct_sum,
             terms=terms,
             requested=requested,
@@ -899,6 +962,8 @@ class _SurfaceBuilder:
             auxiliary_code=auxiliary,
             gadget=definition,
         )
+        _profile_specs[definition] = ("wsc", plan)
+        return plan
 
 
 def _surface_rounds(code: codes.Code,
@@ -1083,8 +1148,7 @@ def _wsc_measurement(
     return _wsc.WSCMeasurementBundle(
         product=product,
         realization=plan.gadget,
-        analysis=_wsc.measurement_profile(plan,
-                                          name=f"{plan.gadget.name}_analysis"),
+        analysis=gadget_profile(plan.gadget),
         evidence=plan.evidence,
         rounds=rounds,
         data_code=code,
@@ -1246,8 +1310,11 @@ class SurfaceDefinitions:
     Preparation resets the data and measures its stabilizers; ``memory_round``
     measures them again. Their records are ``x_check{i}.outcome`` and
     ``z_check{i}.outcome``, in ``code.hx`` then ``code.hz`` order. Detector
-    profiles bind these records to the output syndrome. Readout measures only
-    the logical Pauli product.
+    profiles are available through ``surface.gadget_profile(gadget)`` for every fixed
+    gadget. Preparations and memory rounds bind their recorded syndromes;
+    Clifford layers transfer incoming syndromes through their physical action.
+    Readout's profile carries its logical observable. Generated WSC gadgets
+    expose the same profile as their measurement bundle's ``analysis`` field.
     """
 
     distance: int
@@ -1307,7 +1374,7 @@ def _definitions(distance: int) -> SurfaceDefinitions:
     surgery = qec.lattice_surgery.surface_primitives(code)
     logical_h = builder.logical_h()
     transversal_cx = builder.transversal_cx()
-    return SurfaceDefinitions(
+    result = SurfaceDefinitions(
         distance=distance,
         code=code,
         square_patch_footprint=_architecture.PhysicalFootprint(
@@ -1347,6 +1414,21 @@ def _definitions(distance: int) -> SurfaceDefinitions:
             ),),
     )
 
+    _profile_specs.update({
+        result.prepare_zero: ("prepare", builder, "Z", ""),
+        result.prepare_one: ("prepare", builder, "Z", "__qlx_call0."),
+        result.prepare_plus: ("prepare", builder, "X", ""),
+        result.prepare_minus: ("prepare", builder, "X", "__qlx_call0."),
+        result.memory_round: ("memory", builder, 1),
+        result.measure_z: ("readout",),
+        result.measure_x: ("readout",),
+        result.h: ("clifford",),
+        result.fold_s: ("clifford",),
+        result.transversal_cx: ("clifford",),
+        result.cz: ("clifford",),
+    })
+    return result
+
 
 class SurfaceFamily:
     """Indexable family of cached surface implementation definitions."""
@@ -1373,9 +1455,12 @@ def architecture(distance: int = 3) -> devices.QECArchitecture:
     """Bind surface preparation, a memory round, readout, and Pauli gadgets.
 
     Preparation measures stabilizers to establish the encoded state. Callers
-    choose subsequent memory rounds and their detector profiles.
+    choose subsequent memory rounds; the recipe supplies their default profiles.
     """
     selected = definitions(distance)
+    logical_x = gadgets.logical_pauli(selected.code, basis="x")
+    logical_z = gadgets.logical_pauli(selected.code, basis="z")
+    _profile_specs.update({logical_x: ("pauli",), logical_z: ("pauli",)})
     return devices.QECArchitecture(
         f"Surface{distance}Architecture",
         selected.code.default_encoding,
@@ -1385,8 +1470,8 @@ def architecture(distance: int = 3) -> devices.QECArchitecture:
             selected.memory_round,
             selected.measure_x,
             selected.measure_z,
-            gadgets.logical_pauli(selected.code, basis="x"),
-            gadgets.logical_pauli(selected.code, basis="z"),
+            logical_x,
+            logical_z,
         ),
     )
 
