@@ -72,6 +72,18 @@ void gpu_roce_close(gpu_roce_transceiver_t handle);
  */
 void gpu_roce_blocking_monitor(gpu_roce_transceiver_t handle);
 
+/**
+ * Allocate the RX/TX ring flags and data as CPU+GPU accessible memory
+ * (DOCA_GPU_MEM_TYPE_CPU_GPU) even on a discrete GPU. CQ/QP UMEMs and the TX
+ * kernel's BlueFlame handler are unaffected. Call after create and before
+ * start(). Needed by a host-side ring consumer that polls the ring flags and
+ * reads and writes slot data from a CPU thread, such as cudaq-qec's
+ * gpu_roce_predecoder_bridge, which hands the rings to its own host dispatch
+ * loop. A no-op on an integrated GPU, where the rings are already
+ * CPU-accessible.
+ */
+void gpu_roce_set_cpu_ring_buffers(gpu_roce_transceiver_t handle, int enable);
+
 //==============================================================================
 // QP information (for RDMA setup)
 //==============================================================================
