@@ -417,9 +417,4 @@ same code presentation, meaning the same code and stabilizer ordering. Call
 model. Declared detectors must be zero without faults, and outgoing virtual
 syndromes must match the measured stabilizers. The profile must also account
 for every deterministic measurement relation. An inconsistent or incomplete
-profile is rejected. These are the detector-contract conditions in
-[Verify a contract and the logical action](../reference/detector-contracts.md#verify-a-contract-and-the-logical-action).
-
-Derivation does not check the gadget's logical action. Use
-`cql.gadgets.verify_gadget` to confirm that the realization implements its
-declared action as well.
+profile is rejected.

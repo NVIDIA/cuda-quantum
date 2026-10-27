@@ -286,10 +286,8 @@ samples need not show every kind of error.
   gadgets, so use preparation, memory, and readout gadgets from the same
   `surface.definitions(distance)` result. For a gadget you author,
   [declare its profile](../reference/detector-contracts.md#declare-a-contract)
-  and
-  [verify the profile and its logical action](../reference/detector-contracts.md#verify-a-contract-and-the-logical-action)
-  before exporting. `emit_stim` relies on that verification. The sequence must
-  still form a closed chain on one encoded block.
+  before exporting. The sequence must still form a closed chain on one encoded
+  block.
 - **Add circuit-level noise.** The `StandardDepolarizingNoise` fields add
   noise to physical gates, resets, and measurements. Two limits apply:
   - The surface recipe measures stabilizers with `MPP`. Setting

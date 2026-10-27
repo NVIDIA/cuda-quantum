@@ -77,21 +77,12 @@ profile = surface.gadget_profile(recipe.memory_round)
 ```
 
 The Surface recipe returns cached profiles for the gadget objects it creates.
-An unrelated gadget raises `ValueError`, including one
-with the same name or code. A `GadgetDefinition` has no profile property or
-`profile_factory` argument. Custom gadgets can use explicit `GadgetProfile`
-declarations instead.
+A gadget it did not create raises `ValueError`. For
+custom gadgets, declare a `GadgetProfile` explicitly.
 
 The surface recipe supplies preparation and memory detectors, Clifford syndrome
-transfers, and readout observables. Surface WSC measurements reuse their
-existing analysis profiles. Other recipes are outside this API's current scope.
-These declarations are not a general
-inference pass. Clifford transfers are derived from physical gates, while
-measurement comparisons are selected by the recipe.
-
-A profile does not extend the EDEM producer's supported operations. Abstract
-encoded preparations and non-Clifford resource operations may compile with
-profiles while remaining unsupported by Clifford projection or EDEM derivation.
+transfers, and readout observables. Clifford transfers are derived from
+physical gates, while measurement comparisons are selected by the recipe.
 
 ## Declare a contract
 
@@ -142,21 +133,18 @@ observable rows. For a readout gadget, observables come from its declared
 outcome map. Explicit observable declarations must agree with that map, as
 explained in [Detector map and outcome map](#detector-map-and-outcome-map).
 
-Compile the profile and verify both its detector contract and the claimed idle
-action:
+Compile the profile and verify the module:
 
 ```python
 build = cql.compile(profile)
 assert build.module.operation.verify()
-receipt = cql.gadgets.verify_gadget(profile)
-assert receipt.verified
 ```
 
 Python construction and MLIR verification check row structure, record ownership,
 syndrome bounds, observable indices, and agreement with the outcome map.
-`verify_gadget` additionally checks ideal determinism, completeness, and the
-logical action; the next section describes those checks. `boundary_complete`
-only checks assignment coverage. None of these checks proves fault tolerance.
+[`analysis.derive_edem`](../use-cases/gadget-edems.md#contract-checks-during-derivation)
+additionally checks ideal determinism and completeness before constructing an
+EDEM.
 
 Pass the explicit profile as an occurrence in a closed, compatible profile
 sequence for
