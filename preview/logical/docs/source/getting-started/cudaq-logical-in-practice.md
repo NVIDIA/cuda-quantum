@@ -260,6 +260,12 @@ individual compiler calls.
 
 ## Where to go next
 
+- Execute an encoded program with `cudaq.run` in the
+  [Steane Bernstein–Vazirani example](../use-cases/examples/steane-bernstein-vazirani.md).
+  It supplies an encoding circuit and returns measurement bits per shot.
+  The [T-state distillation example](../use-cases/examples/t-factory-evaluation.md)
+  runs on distance-1 `BareQubit` patches and adds non-Clifford gates,
+  measurement feedback, and noise.
 - Read [Core concepts](concepts.md) for definitions of programs, machines,
   codes, gadgets, devices, and targets.
 - Work through the guides for [defining a code](../use-cases/define-a-code.md),
