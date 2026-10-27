@@ -13,7 +13,7 @@ import string
 import warnings
 import uuid
 from numpy.typing import NDArray
-from typing import Callable, Iterable, Mapping, Optional, Sequence
+from typing import Callable, Generator, Iterable, Mapping, Optional, Sequence
 
 from cudaq.kernel.kernel_builder import PyKernel, make_kernel
 from cudaq.kernel.register_op import register_operation
