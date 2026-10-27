@@ -143,7 +143,7 @@ int main() {
   cudaq_edem_description description{};
   description.shape.fault_ports_count = description.shape.detector_ports_count =
       1;
-  description.shape.block_count = 1;
+  description.block_count = 1;
   description.fault_ports_distributions = &fault;
   description.detector_ports_sizes = &width;
   description.blocks = &block;

@@ -92,14 +92,15 @@ const cudaq_edem_description &description() {
   static const cudaq_edem_fault_distribution fault = {1, 1, &group};
   static const cudaq_edem_block block = {
       {CUDAQ_EDEM_DETECTOR, 0}, {CUDAQ_EDEM_FAULT, 0}, {1, 1, 1, offsets, id}};
-  static const cudaq_edem_description value = {{0, 0, 0, 1, 1, 0, 0, 1},
-                                               nullptr,
+  static const cudaq_edem_description value = {{0, 0, 1, 1, 0, 0},
+                                               {0, nullptr},
                                                nullptr,
                                                nullptr,
                                                &fault,
                                                sizes,
                                                nullptr,
                                                nullptr,
+                                               1,
                                                &block};
   return value;
 }

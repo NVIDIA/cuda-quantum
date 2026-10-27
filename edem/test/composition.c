@@ -130,14 +130,13 @@ static void failure_sites(const cudaq_edem_view *sources, uint32_t count,
 }
 
 static void boundaries(void) {
-  cudaq_edem_code_presentation codes[] = {{"left", 4, 0, 0, 0},
-                                          {"right", 5, 0, 0, 0}};
+  cudaq_edem_code_presentation codes[] = {{3, "left", 4, 0, 0, 0},
+                                          {4, "right", 5, 0, 0, 0}};
   uint32_t code = 0;
   cudaq_edem_description description = {0};
-  description.shape.code_presentations = 1;
   description.shape.output_code_blocks_count = 1;
-  description.shared_code_table = codes;
-  description.output_code_ids = &code;
+  description.shared_code_table = (cudaq_edem_code_table){1, codes};
+  description.output_code_indices = &code;
   cudaq_gf2_owned_buffer prep_owner = {0}, mz_owner = {0}, result_owner = {0};
   cudaq_edem_view prep, mz, result;
   TA_CHECK(cudaq_edem_construct(&description, 0, &prep_owner, &prep) ==
@@ -151,9 +150,9 @@ static void boundaries(void) {
 
   description.shape.output_code_blocks_count = 0;
   description.shape.input_code_blocks_count = 1;
-  description.output_code_ids = 0;
-  description.input_code_ids = &code;
-  description.shared_code_table = codes + 1;
+  description.output_code_indices = 0;
+  description.input_code_indices = &code;
+  description.shared_code_table = (cudaq_edem_code_table){1, codes + 1};
   TA_CHECK(cudaq_edem_construct(&description, 0, &mz_owner, &mz) ==
            CUDAQ_EDEM_OK);
   TA_CHECK(cudaq_edem_is_dem(&mz, &closed) == CUDAQ_EDEM_OK && !closed);
@@ -164,9 +163,9 @@ static void boundaries(void) {
   TA_CHECK(cudaq_edem_compose_chain(sequence, 2, 0, &result_owner, &result) ==
            CUDAQ_EDEM_INVALID_CONTENT);
   TA_CHECK(!result_owner.data && result.map.data == prep.map.data);
-  // Matching names alone are insufficient: presentation metadata must agree.
+  // Matching ids identify the code; mismatched widths are still rejected.
   cudaq_gf2_owned_buffer_release(&mz_owner);
-  codes[1] = (cudaq_edem_code_presentation){"left", 4, 1, 1, 0};
+  codes[1] = (cudaq_edem_code_presentation){3, "left", 4, 1, 1, 0};
   TA_CHECK(cudaq_edem_construct(&description, 0, &mz_owner, &mz) ==
            CUDAQ_EDEM_OK);
   sequence[1] = mz;
@@ -174,7 +173,7 @@ static void boundaries(void) {
            CUDAQ_EDEM_INVALID_CONTENT);
   TA_CHECK(!result_owner.data && result.map.data == prep.map.data);
   cudaq_gf2_owned_buffer_release(&mz_owner);
-  description.shared_code_table = codes;
+  description.shared_code_table = (cudaq_edem_code_table){1, codes};
   TA_CHECK(cudaq_edem_construct(&description, 0, &mz_owner, &mz) ==
            CUDAQ_EDEM_OK);
   sequence[1] = mz;
@@ -193,7 +192,7 @@ static void boundaries(void) {
 
 static void make_gadget(unsigned kind, cudaq_gf2_owned_buffer *owner,
                         cudaq_edem_view *view) {
-  const cudaq_edem_code_presentation code = {"test", 4, 1, 1, 1};
+  const cudaq_edem_code_presentation code = {7, "test", 4, 1, 1, 1};
   const uint32_t code_id = 0, width = 1;
   const uint32_t exclusive_ids[] = {0, 1}, independent_ids[] = {2};
   const double exclusive_p[] = {0.1, 0.2}, independent_p[] = {0.3};
@@ -259,14 +258,15 @@ static void make_gadget(unsigned kind, cudaq_gf2_owned_buffer *owner,
   }
 #undef BLOCK
   cudaq_edem_description description = {
-      {1, kind != 0, kind != 2, 1, 1, kind != 0, kind != 0, n},
-      &code,
+      {kind != 0, kind != 2, 1, 1, kind != 0, kind != 0},
+      {1, &code},
       &code_id,
       &code_id,
       &faults,
       &width,
       &width,
       &width,
+      n,
       blocks};
   TA_CHECK(cudaq_edem_construct(&description, 0, owner, view) == CUDAQ_EDEM_OK);
 }
@@ -359,8 +359,8 @@ static void reordered_chain(void) {
 
 static void make_multiport_gadget(cudaq_gf2_owned_buffer *owner,
                                   cudaq_edem_view *view) {
-  const cudaq_edem_code_presentation codes[] = {{"one", 3, 1, 1, 1},
-                                                {"two", 3, 2, 2, 0}};
+  const cudaq_edem_code_presentation codes[] = {{8, "one", 3, 1, 1, 1},
+                                                {9, "two", 3, 2, 2, 0}};
   const uint32_t code_ids[] = {0, 1}, detectors[] = {1, 2}, one = 1,
                  ids[] = {0, 1}, zero[] = {0}, last_row[] = {1},
                  both_rows[] = {0, 0};
@@ -395,16 +395,17 @@ static void make_multiport_gadget(cudaq_gf2_owned_buffer *owner,
       {{CUDAQ_EDEM_OBSERVABLE, 0}, {CUDAQ_EDEM_LOGICAL, 0}, both},
       {{CUDAQ_EDEM_SUCCESS, 0}, {CUDAQ_EDEM_FAULT, 1}, identity_one},
       {{CUDAQ_EDEM_SUCCESS, 0}, {CUDAQ_EDEM_SYNDROME, 0}, identity_one}};
-  const cudaq_edem_description description = {
-      {2, 2, 2, 2, 2, 1, 1, sizeof(blocks) / sizeof(blocks[0])},
-      codes,
-      code_ids,
-      code_ids,
-      faults,
-      detectors,
-      &one,
-      &one,
-      blocks};
+  const cudaq_edem_description description = {{2, 2, 2, 2, 1, 1},
+                                              {2, codes},
+                                              code_ids,
+                                              code_ids,
+                                              faults,
+                                              detectors,
+                                              &one,
+                                              &one,
+                                              sizeof(blocks) /
+                                                  sizeof(blocks[0]),
+                                              blocks};
   TA_CHECK(cudaq_edem_construct(&description, 0, owner, view) == CUDAQ_EDEM_OK);
 }
 

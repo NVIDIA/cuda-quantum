@@ -56,13 +56,22 @@ typedef struct cudaq_edem_endpoint {
   uint32_t index;
 } cudaq_edem_endpoint;
 
+/* Producers assign id; equal ids denote the same code presentation, so
+ * comparing ids is a complete equality test. Ids and names are each unique
+ * within a code table. */
 typedef struct cudaq_edem_code_presentation {
+  uint64_t id;
   const char *name;
   uint64_t name_size;
   uint32_t syndrome_count;
   uint32_t virtual_outcome_count;
   uint32_t logical_qubit_count;
 } cudaq_edem_code_presentation;
+
+typedef struct cudaq_edem_code_table {
+  uint32_t code_count;
+  const cudaq_edem_code_presentation *codes;
+} cudaq_edem_code_table;
 
 typedef uint32_t cudaq_edem_fault_group_kind;
 enum { CUDAQ_EDEM_INDEPENDENT = 0, CUDAQ_EDEM_EXCLUSIVE = 1 };
@@ -92,34 +101,34 @@ typedef struct cudaq_edem_block {
   cudaq_gf2_csc_view matrix;
 } cudaq_edem_block;
 
+/* Port counts of each kind. */
 typedef struct cudaq_edem_shape {
-  uint32_t code_presentations;
   uint32_t input_code_blocks_count;
   uint32_t output_code_blocks_count;
   uint32_t fault_ports_count;
   uint32_t detector_ports_count;
   uint32_t observable_ports_count;
   uint32_t success_ports_count;
-  uint64_t block_count;
 } cudaq_edem_shape;
 
-/* Semantic construction input. Arrays have the counts in shape. Code blocks
- * name presentation IDs; V widths are virtual outcome counts, S widths are
- * syndrome counts, L widths are 2*k. A block names semantic endpoints, so
- * producers never assemble flattened offsets or port-binding tables. Omitted
- * blocks are zero; duplicate endpoint pairs are rejected. Blocks and
- * presentations may be supplied in any order. Packing orders them canonically,
- * removes zero blocks and interns equal matrices. These borrowed arrays and
- * output storage must be disjoint. */
+/* Semantic construction input. Port arrays have the counts in shape. Code
+ * blocks name indices into shared_code_table; V widths are virtual outcome
+ * counts, S widths are syndrome counts, L widths are 2*k. A block names
+ * semantic endpoints, so producers never assemble flattened offsets or
+ * port-binding tables. Omitted blocks are zero; duplicate endpoint pairs are
+ * rejected. Blocks and presentations may be supplied in any order. Packing
+ * orders them canonically, removes zero blocks and interns equal matrices.
+ * These borrowed arrays and output storage must be disjoint. */
 typedef struct cudaq_edem_description {
   cudaq_edem_shape shape;
-  const cudaq_edem_code_presentation *shared_code_table;
-  const uint32_t *input_code_ids;
-  const uint32_t *output_code_ids;
+  cudaq_edem_code_table shared_code_table;
+  const uint32_t *input_code_indices;
+  const uint32_t *output_code_indices;
   const cudaq_edem_fault_distribution *fault_ports_distributions;
   const uint32_t *detector_ports_sizes;
   const uint32_t *observable_ports_sizes;
   const uint32_t *success_ports_sizes;
+  uint64_t block_count;
   const cudaq_edem_block *blocks;
 } cudaq_edem_description;
 
@@ -167,7 +176,9 @@ cudaq_edem_status cudaq_edem_check(const cudaq_gf2_map_view *value,
 cudaq_edem_status cudaq_edem_get_shape(const cudaq_edem_view *value,
                                        cudaq_edem_shape *shape);
 /* Presentation indices enumerate the retained, name-sorted presentation table.
- */
+ * Its size is the code count; the block count is in the GF2 map shape. */
+cudaq_edem_status cudaq_edem_get_code_count(const cudaq_edem_view *value,
+                                            uint32_t *count);
 cudaq_edem_status cudaq_edem_get_code(const cudaq_edem_view *value,
                                       uint32_t index,
                                       cudaq_edem_code_presentation *code);

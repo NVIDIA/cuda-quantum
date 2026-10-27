@@ -25,7 +25,8 @@
 #define INVALID(call) CHECK((call) == CUDAQ_EDEM_INVALID_CONTENT)
 
 static void test_open_round(void) {
-  const cudaq_edem_code_presentation codes[] = {{"repetition-3", 12, 2, 2, 1}};
+  const cudaq_edem_code_presentation codes[] = {
+      {1, "repetition-3", 12, 2, 2, 1}};
   const uint32_t boundary[] = {0}, sizes[] = {2}, ids[] = {0, 1};
   const double probabilities[] = {0.01, 0.02};
   const cudaq_edem_fault_group group = {CUDAQ_EDEM_INDEPENDENT, 2, ids,
@@ -51,14 +52,15 @@ static void test_open_round(void) {
       {{CUDAQ_EDEM_DETECTOR, 0}, {CUDAQ_EDEM_VIRTUAL, 0}, identity},
       {{CUDAQ_EDEM_DETECTOR, 0}, {CUDAQ_EDEM_LOGICAL, 0}, zero},
   };
-  cudaq_edem_description d = {{1, 1, 1, 1, 1, 0, 0, 9},
-                              codes,
+  cudaq_edem_description d = {{1, 1, 1, 1, 0, 0},
+                              {1, codes},
                               boundary,
                               boundary,
                               &fault,
                               sizes,
                               NULL,
                               NULL,
+                              9,
                               blocks};
   cudaq_gf2_owned_buffer owner = {0}, reordered = {0};
   CHECK(cudaq_edem_abi_version() == CUDAQ_EDEM_ABI_VERSION);
@@ -77,9 +79,13 @@ static void test_open_round(void) {
   CHECK(shape.block_count == 8 && shape.input_bundle_count == 2 &&
         shape.output_bundle_count == 2);
   cudaq_edem_code_presentation code;
+  uint32_t code_count;
+  OK(cudaq_edem_get_code_count(&relocated, &code_count));
+  CHECK(code_count == 1);
   OK(cudaq_edem_get_code(&relocated, 0, &code));
-  CHECK(code.syndrome_count == 2 && code.virtual_outcome_count == 2 &&
-        code.logical_qubit_count == 1 && code.name_size == 12);
+  CHECK(code.id == 1 && code.syndrome_count == 2 &&
+        code.virtual_outcome_count == 2 && code.logical_qubit_count == 1 &&
+        code.name_size == 12);
   uint32_t width;
   cudaq_gf2_bundle bundle;
   cudaq_gf2_wire wire;
@@ -184,15 +190,17 @@ static void test_distributions_and_names(void) {
   double probabilities[] = {0.25, 0.75};
   cudaq_edem_fault_group g = {CUDAQ_EDEM_EXCLUSIVE, 2, ids, probabilities};
   cudaq_edem_fault_distribution f = {2, 1, &g};
-  cudaq_edem_code_presentation codes[] = {{"z", 1, 0, 0, 1}, {"a", 1, 0, 0, 1}};
-  cudaq_edem_description d = {{2, 1, 0, 1, 0, 0, 0, 0},
-                              codes,
+  cudaq_edem_code_presentation codes[] = {{5, "z", 1, 0, 0, 1},
+                                          {6, "a", 1, 0, 0, 1}};
+  cudaq_edem_description d = {{1, 0, 1, 0, 0, 0},
+                              {2, codes},
                               &boundary,
                               NULL,
                               &f,
                               NULL,
                               NULL,
                               NULL,
+                              0,
                               NULL};
   cudaq_gf2_owned_buffer owner = {0};
   cudaq_edem_view value;
@@ -224,7 +232,7 @@ static void test_distributions_and_names(void) {
 }
 
 static void test_domain_checks(void) {
-  cudaq_edem_code_presentation code = {"test", 4, 1, 1, 1};
+  cudaq_edem_code_presentation code = {7, "test", 4, 1, 1, 1};
   uint32_t boundary = 0, id = 0, row = 0;
   double probability = 0.1;
   uint64_t offsets[] = {0, 1};
@@ -233,14 +241,15 @@ static void test_domain_checks(void) {
   cudaq_edem_block block = {{CUDAQ_EDEM_SYNDROME, 0},
                             {CUDAQ_EDEM_FAULT, 0},
                             {1, 1, 1, offsets, &row}};
-  cudaq_edem_description d = {{1, 1, 1, 1, 0, 0, 0, 1},
-                              &code,
+  cudaq_edem_description d = {{1, 1, 1, 0, 0, 0},
+                              {1, &code},
                               &boundary,
                               &boundary,
                               &fault,
                               NULL,
                               NULL,
                               NULL,
+                              1,
                               &block};
   cudaq_gf2_owned_buffer owner = {0};
   cudaq_edem_view value;
@@ -347,14 +356,15 @@ static void probability_case(const double *probabilities, uint32_t count,
     ids[i] = i;
   cudaq_edem_fault_group group = {kind, count, ids, probabilities};
   cudaq_edem_fault_distribution fault = {count, 1, &group};
-  cudaq_edem_description description = {{0, 0, 0, 1, 0, 0, 0, 0},
-                                        NULL,
+  cudaq_edem_description description = {{0, 0, 1, 0, 0, 0},
+                                        {0, NULL},
                                         NULL,
                                         NULL,
                                         &fault,
                                         NULL,
                                         NULL,
                                         NULL,
+                                        0,
                                         NULL};
   CHECK(cudaq_edem_validate(&description, NULL) == expected);
   cudaq_gf2_owned_buffer constructed = {0};

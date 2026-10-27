@@ -46,7 +46,8 @@ struct output_port {
 struct responses {
   allocation storage;
   cudaq_edem_shape shape{};
-  uint64_t columns = 0, nonzeros = 0;
+  uint32_t code_count = 0;
+  uint64_t block_count = 0, columns = 0, nonzeros = 0;
   std::span<cudaq_edem_code_presentation> codes;
   std::span<cudaq_edem_block> blocks;
   std::span<output_port> outputs;
@@ -80,12 +81,16 @@ struct responses {
     EDEM_TRY(cudaq_edem_get_shape(&value->edem, &shape));
     if (shape.input_code_blocks_count || shape.output_code_blocks_count)
       return CUDAQ_EDEM_INVALID_CONTENT;
+    EDEM_TRY(cudaq_edem_get_code_count(&value->edem, &code_count));
+    cudaq_gf2_map_shape map;
+    EDEM_TRY(cudaq_gf2_map_get_shape(&value->edem.map, &map));
+    block_count = map.block_count;
     uint64_t row_count;
     EDEM_TRY(
         cudaq_gf2_map_vector_sizes(&value->edem.map, &columns, &row_count));
     if (columns == SIZE_MAX)
       return CUDAQ_EDEM_INSUFFICIENT_CAPACITY;
-    for (uint64_t b = 0; b < shape.block_count; ++b) {
+    for (uint64_t b = 0; b < block_count; ++b) {
       cudaq_gf2_map_block block;
       EDEM_TRY(cudaq_gf2_map_get_block(&value->edem.map, b, &block));
       if (!add(nonzeros, block.matrix.nonzeros))
@@ -95,8 +100,8 @@ struct responses {
                                   shape.observable_ports_count +
                                   shape.success_ports_count;
     uint64_t bytes = 0;
-    if (!space<cudaq_edem_code_presentation>(bytes, shape.code_presentations) ||
-        !space<cudaq_edem_block>(bytes, shape.block_count) ||
+    if (!space<cudaq_edem_code_presentation>(bytes, code_count) ||
+        !space<cudaq_edem_block>(bytes, block_count) ||
         !space<output_port>(bytes, output_count) ||
         !space<uint32_t>(bytes, output_count) ||
         !space<cudaq_edem_fault_distribution>(bytes, shape.fault_ports_count) ||
@@ -108,8 +113,8 @@ struct responses {
       return CUDAQ_EDEM_INSUFFICIENT_CAPACITY;
     EDEM_TRY(storage.reserve(bytes, CUDAQ_EDEM_PACKED_ALIGNMENT));
     arena a{static_cast<std::byte *>(storage.data()), bytes};
-    codes = a.take<cudaq_edem_code_presentation>(shape.code_presentations);
-    blocks = a.take<cudaq_edem_block>(shape.block_count);
+    codes = a.take<cudaq_edem_code_presentation>(code_count);
+    blocks = a.take<cudaq_edem_block>(block_count);
     outputs = a.take<output_port>(output_count);
     sizes = a.take<uint32_t>(output_count);
     faults = a.take<cudaq_edem_fault_distribution>(shape.fault_ports_count);
@@ -120,7 +125,7 @@ struct responses {
     rows = a.take<uint64_t>(nonzeros);
     ids = a.take<uint32_t>(columns);
     probabilities = a.take<double>(columns);
-    for (uint32_t i = 0; i < shape.code_presentations; ++i)
+    for (uint32_t i = 0; i < code_count; ++i)
       EDEM_TRY(cudaq_edem_get_code(&value->edem, i, &codes[i]));
     for (uint32_t p = 0; p < shape.fault_ports_count; ++p) {
       uint32_t size, ignored;
@@ -151,7 +156,7 @@ struct responses {
       output.offset = start;
       start += output.size;
     }
-    for (uint64_t b = 0; b < shape.block_count; ++b) {
+    for (uint64_t b = 0; b < block_count; ++b) {
       cudaq_gf2_map_block block;
       EDEM_TRY(cudaq_gf2_map_get_block(&value->edem.map, b, &block));
       EDEM_TRY(cudaq_edem_describe_wire(&value->edem, true, block.output,
@@ -191,7 +196,7 @@ struct responses {
       return sizes.empty() ? nullptr : sizes.data() + i;
     };
     return {shape,
-            codes.data(),
+            {code_count, codes.data()},
             nullptr,
             nullptr,
             faults.data(),
@@ -199,6 +204,7 @@ struct responses {
             data_at(shape.detector_ports_count),
             data_at(uint64_t(shape.detector_ports_count) +
                     shape.observable_ports_count),
+            block_count,
             blocks.data()};
   }
 };
@@ -454,15 +460,15 @@ cudaq_edem_status cudaq_edem_coalesce_dem_columns(
   cudaq_edem_fault_distribution fault{static_cast<uint32_t>(count),
                                       count ? 1u : 0u, &group};
   cudaq_edem_description description{
-      {data.shape.code_presentations, 0, 0, count ? 1u : 0u, port_counts[0],
-       port_counts[1], port_counts[2], block_count},
-      data.codes.data(),
+      {0, 0, count ? 1u : 0u, port_counts[0], port_counts[1], port_counts[2]},
+      {data.code_count, data.codes.data()},
       nullptr,
       nullptr,
       count ? &fault : nullptr,
       &widths[0],
       &widths[1],
       &widths[2],
+      block_count,
       blocks};
   cudaq_edem_view view;
   EDEM_TRY(cudaq_edem_construct(&description, memory, owner, &view));

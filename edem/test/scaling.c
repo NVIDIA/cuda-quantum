@@ -63,17 +63,18 @@ static void matrix_roundtrip(void) {
         snprintf(names[i], sizeof(names[i]), "presentation-%u", 299 - i);
     CHECK(length > 0 && (size_t)length < sizeof(names[i]));
     codes[i] =
-        (cudaq_edem_code_presentation){names[i], (uint64_t)length, 0, 0, 0};
+        (cudaq_edem_code_presentation){i, names[i], (uint64_t)length, 0, 0, 0};
   }
   cudaq_edem_fault_group group = {CUDAQ_EDEM_INDEPENDENT, 64, ids,
                                   probabilities};
   cudaq_edem_fault_distribution fault = {64, 1, &group};
   uint32_t input_code = 299, output_code = 0;
   cudaq_edem_description d = {0};
-  d.shape = (cudaq_edem_shape){300, 1, 1, 1, n, 0, 0, n};
-  d.shared_code_table = codes;
-  d.input_code_ids = &input_code;
-  d.output_code_ids = &output_code;
+  d.shape = (cudaq_edem_shape){1, 1, 1, n, 0, 0};
+  d.shared_code_table = (cudaq_edem_code_table){300, codes};
+  d.block_count = n;
+  d.input_code_indices = &input_code;
+  d.output_code_indices = &output_code;
   d.fault_ports_distributions = &fault;
   d.detector_ports_sizes = detectors;
   d.blocks = blocks;

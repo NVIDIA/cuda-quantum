@@ -125,10 +125,15 @@ struct Endpoint {
 };
 
 struct CodePresentation {
+  uint64_t id;
   std::string name;
   uint32_t syndrome_count, virtual_outcome_count, logical_qubit_count;
   cudaq_edem_code_presentation view() const {
-    return {name.data(), name.size(), syndrome_count, virtual_outcome_count,
+    return {id,
+            name.data(),
+            name.size(),
+            syndrome_count,
+            virtual_outcome_count,
             logical_qubit_count};
   }
 };
@@ -267,16 +272,17 @@ public:
     for (const auto &block : blocks)
       block_views.push_back(block.view());
     cudaq_edem_description description = {
-        {count(codes.size()), count(inputs.size()), count(outputs.size()),
-         count(faults.size()), count(detectors.size()),
-         count(observables.size()), count(successes.size()), blocks.size()},
-        code_views.data(),
+        {count(inputs.size()), count(outputs.size()), count(faults.size()),
+         count(detectors.size()), count(observables.size()),
+         count(successes.size())},
+        {count(codes.size()), code_views.data()},
         inputs.data(),
         outputs.data(),
         fault_views.data(),
         detectors.data(),
         observables.data(),
         successes.data(),
+        blocks.size(),
         block_views.data()};
     check(cudaq_edem_construct(&description, nullptr, &storage, &checked));
   }
@@ -337,53 +343,26 @@ public:
 
   cudaq_edem_shape shape() const {
     auto value = view();
-    cudaq_gf2_map_shape map;
-    cudaq_gf2_section codes;
-    check(cudaq_gf2_map_get_shape(&value.map, &map));
-    check(cudaq_gf2_map_get_section(&value.map,
-                                    CUDAQ_EDEM_SECTION_PRESENTATIONS, &codes));
-    cudaq_edem_shape result{};
-    result.code_presentations = count(codes.count);
-    result.block_count = map.block_count;
-    for (uint32_t side = 0; side < 2; ++side) {
-      uint32_t n = side ? map.output_bundle_count : map.input_bundle_count;
-      for (uint32_t i = 0; i < n; ++i) {
-        cudaq_gf2_bundle b;
-        check(cudaq_gf2_map_get_bundle(&value.map, side, i, &b));
-        if (b.type < codes.count) {
-          if (side)
-            ++result.output_code_blocks_count;
-          else
-            ++result.input_code_blocks_count;
-        } else {
-          switch (b.type - codes.count) {
-          case 0:
-            ++result.detector_ports_count;
-            break;
-          case 1:
-            ++result.fault_ports_count;
-            break;
-          case 2:
-            ++result.observable_ports_count;
-            break;
-          case 3:
-            ++result.success_ports_count;
-            break;
-          }
-        }
-      }
-    }
+    cudaq_edem_shape result;
+    check(cudaq_edem_get_shape(&value, &result));
+    return result;
+  }
+
+  uint32_t code_count() const {
+    auto value = view();
+    uint32_t result;
+    check(cudaq_edem_get_code_count(&value, &result));
     return result;
   }
 
   std::vector<CodePresentation> codes() const {
     auto value = view();
     std::vector<CodePresentation> result;
-    auto n = shape().code_presentations;
+    auto n = code_count();
     for (uint64_t i = 0; i < n; ++i) {
       cudaq_edem_code_presentation code;
       check(cudaq_edem_get_code(&value, static_cast<uint32_t>(i), &code));
-      result.push_back({std::string(code.name, code.name_size),
+      result.push_back({code.id, std::string(code.name, code.name_size),
                         code.syndrome_count, code.virtual_outcome_count,
                         code.logical_qubit_count});
     }
@@ -395,12 +374,12 @@ public:
     cudaq_gf2_map_shape map;
     check(cudaq_gf2_map_get_shape(&value.map, &map));
     uint32_t n = output ? map.output_bundle_count : map.input_bundle_count;
-    auto s = shape();
+    auto codes = code_count();
     std::vector<uint32_t> result;
     for (uint32_t i = 0; i < n; ++i) {
       cudaq_gf2_bundle bundle;
       check(cudaq_gf2_map_get_bundle(&value.map, output, i, &bundle));
-      if (bundle.type < s.code_presentations)
+      if (bundle.type < codes)
         result.push_back(bundle.type);
     }
     return result;
@@ -409,14 +388,14 @@ public:
   std::vector<FaultDistribution> faults() const {
     auto value = view();
     std::vector<FaultDistribution> result;
-    auto s = shape();
+    auto codes = code_count();
     cudaq_gf2_map_shape map;
     check(cudaq_gf2_map_get_shape(&value.map, &map));
     for (uint64_t p = 0; p < map.input_bundle_count; ++p) {
       cudaq_gf2_bundle bundle;
       check(cudaq_gf2_map_get_bundle(&value.map, 0, static_cast<uint32_t>(p),
                                      &bundle));
-      if (bundle.type != s.code_presentations + 1)
+      if (bundle.type != codes + 1)
         continue;
       uint32_t size, groups;
       check(cudaq_edem_get_fault(&value, static_cast<uint32_t>(p), &size,
@@ -621,9 +600,10 @@ NB_MODULE(_core, m) {
       .def_ro("kind", &Endpoint::kind)
       .def_ro("index", &Endpoint::index);
   nb::class_<CodePresentation>(m, "CodePresentation")
-      .def(nb::init<std::string, uint32_t, uint32_t, uint32_t>(), "name"_a,
-           "syndrome_count"_a, "virtual_outcome_count"_a,
+      .def(nb::init<uint64_t, std::string, uint32_t, uint32_t, uint32_t>(),
+           "id"_a, "name"_a, "syndrome_count"_a, "virtual_outcome_count"_a,
            "logical_qubit_count"_a)
+      .def_ro("id", &CodePresentation::id)
       .def_ro("name", &CodePresentation::name)
       .def_ro("syndrome_count", &CodePresentation::syndrome_count)
       .def_ro("virtual_outcome_count", &CodePresentation::virtual_outcome_count)

@@ -315,10 +315,16 @@ EDEM uses four reserved, single-wire free types: `edem.fault`,
 `edem.detector`, `edem.observable`, and `edem.success`. It retains all four in
 its type table, including unused types. A presentation named `P` creates the
 three-wire interface type `edem.code/P`. The separate, name-sorted presentation
-table records `s`, `v` and `k` explicitly. Every bundle using that code type
-must have the recorded `(v,s,2k)` widths. Presentation names identify generator
-ordering and logical representatives; producers supply their code algebra and
-coefficients.
+table records a producer-assigned 64-bit `id` and `s`, `v` and `k` explicitly.
+Ids and names are each unique within a table, and equal ids denote the same
+presentation. Every bundle using that code type must have the recorded
+`(v,s,2k)` widths. Presentation names identify generator ordering and logical
+representatives; producers supply their code algebra and coefficients.
+
+`cudaq_edem_shape` holds only port counts. The description carries the
+presentation table as `shared_code_table` (a count and an array) and the block
+count beside `blocks`. On a checked value, `cudaq_edem_get_code_count` returns
+the table size and the GF2 map shape returns the packed block count.
 
 GF2 owns type/bundle layout, block validation, canonical storage, matrix
 interning, packing, reading and apply. cudaq-edem checks its vocabulary, permitted
@@ -359,7 +365,7 @@ from cudaq_edem import (
 
 identity = SparseMatrix(2, 2, [(0, 0), (1, 1)])
 model = EDEM(
-    codes=[CodePresentation("repetition-3", syndrome_count=2,
+    codes=[CodePresentation(1, "repetition-3", syndrome_count=2,
                             virtual_outcome_count=2, logical_qubit_count=1)],
     inputs=[0], outputs=[0],
     faults=[FaultDistribution.independent([0.01])],
@@ -429,7 +435,7 @@ Extension schemas start at `0x10000`. The five required map sections are:
 | 3 | Output bundles, wire widths and vector offsets |
 | 4 | Sparse block bindings |
 | 5 | Interned CSC matrices |
-| `0x10000` | EDEM presentation table: type ID, s, v, k |
+| `0x10000` | EDEM presentation table: id, type ID, s, v, k |
 | `0x10001` | EDEM distributions associated with input fault bundles |
 
 Required payloads follow the header, optional payloads follow those, and the
@@ -464,8 +470,8 @@ meaning.
 `cudaq/edem/composition.h` provides `cudaq_edem_compose_chain`,
 `cudaq_edem_is_dem`, and `cudaq_edem_project_dem`. Serial composition connects
 every output code bundle to the same ordinal input bundle of the next
-occurrence. Counts and code presentations must match. The first input and last
-output boundaries remain exposed. Repeated definitions create distinct
+occurrence. Counts and code presentation ids must match. The first input and
+last output boundaries remain exposed. Repeated definitions create distinct
 occurrence fault ports with their original indicators and exact
 independent/exclusive distributions.
 
