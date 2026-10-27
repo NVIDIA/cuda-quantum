@@ -137,6 +137,7 @@ ADD "cudaq" /cuda-quantum/cudaq
 ADD "realtime" /cuda-quantum/realtime
 ADD "runtime" /cuda-quantum/runtime
 ADD "scripts/build_cudaq.sh" /cuda-quantum/scripts/build_cudaq.sh
+ADD "scripts/update_submodules.sh" /cuda-quantum/scripts/update_submodules.sh
 ADD "scripts/migrate_assets.sh" /cuda-quantum/scripts/migrate_assets.sh
 ADD "scripts/cudaq_set_env.sh" /cuda-quantum/scripts/cudaq_set_env.sh
 ADD "scripts/build_installer.sh" /cuda-quantum/scripts/build_installer.sh
@@ -285,6 +286,7 @@ ADD "tpls/customizations" /cuda-quantum/tpls/customizations
 ADD "tpls/json" /cuda-quantum/tpls/json
 ADD "utils" /cuda-quantum/utils
 ADD "scripts/check_mlir_symbols.sh" /cuda-quantum/scripts/check_mlir_symbols.sh
+ADD "scripts/update_submodules.sh" /cuda-quantum/scripts/update_submodules.sh
 ADD "CMakeLists.txt" /cuda-quantum/CMakeLists.txt
 ADD "LICENSE" /cuda-quantum/LICENSE
 ADD "LICENSES" /cuda-quantum/LICENSES
