@@ -137,7 +137,9 @@ def _launch_analog_hamiltonian_kernel(target_name: str,
                                       schedule: Schedule,
                                       shots_count: int,
                                       is_async: bool = False):
-    # Get the operators to generate time series
+    # Get the operators to generate time series; the schedule may have been
+    # iterated by an earlier evolve.
+    schedule.reset()
     tlist = [schedule.current_step for _ in schedule]
     amp_ts = []
     ph_ts = []

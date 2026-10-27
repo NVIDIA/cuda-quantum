@@ -121,6 +121,28 @@ def test_invalid_emulation_rydberg_c6_fails_at_set_target():
     cudaq.reset_target()
 
 
+def test_emulation_reuses_schedule(monkeypatch):
+    """Evolve twice with the same Schedule object."""
+    import cudaq
+    from cudaq.dynamics import Schedule
+    from cudaq.operators import RydbergHamiltonian, ScalarOperator
+
+    if not (cudaq.has_target("pasqal") and cudaq.has_target("dynamics") and
+            cudaq.num_available_gpus()):
+        pytest.skip("AHS emulation requires PASQAL, dynamics and a GPU")
+    monkeypatch.setenv("DISABLE_REMOTE_SEND", "1")
+    cudaq.set_target("pasqal", emulate=True)
+    # A pi/2 pulse on two distant atoms: each basis state has probability 1/4.
+    h = RydbergHamiltonian([(0., 0.), (1e-4, 0.)],
+                           ScalarOperator.const(np.pi / 2 * 1e7),
+                           ScalarOperator.const(0.), ScalarOperator.const(0.))
+    schedule = Schedule([0., 1e-7], ["t"])
+    for _ in range(2):
+        result = cudaq.evolve(h, schedule=schedule, shots_count=4000)
+        for bits in ("00", "01", "10", "11"):
+            assert result.probability(bits) == pytest.approx(0.25, abs=0.04)
+
+
 def test_emulation_rydberg_c6_ignored_without_emulate():
     """Accept the emulation-only C6 override on the remote target, without effect."""
     import cudaq
