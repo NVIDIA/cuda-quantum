@@ -8,7 +8,7 @@
 
 from __future__ import annotations
 from dataclasses import dataclass
-from typing import List
+from typing import Any, List
 
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 
@@ -63,7 +63,7 @@ class QuditManager(object):
         cls.reset()
 
 
-def _is_qudit_type(q: any) -> bool:
+def _is_qudit_type(q: Any) -> bool:
     """
     Utility function to check whether the input argument is instance of 
     `PyQudit` class.
@@ -79,7 +79,7 @@ def _is_qudit_type(q: any) -> bool:
     return False
 
 
-def _check_args(q: any):
+def _check_args(q: Any):
     """
     Utility function to verify the arguments to a photonic quantum operation.
 
