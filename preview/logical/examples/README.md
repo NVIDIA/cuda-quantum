@@ -3,8 +3,8 @@
 The top-level sequence is the primary path through CUDA-Q Logical. It starts
 with the smallest useful estimate, descends through progressively more of the
 compilation stack, then applies that workflow to larger kernels and a complete
-user-authored target. Each example authors an ordinary `@cudaq.kernel`, selects
-a target stack, and calls `cudaq.estimate`; compilation details stay inside the
+user-authored target. Most examples author an ordinary `@cudaq.kernel`, select
+a target stack, and call `cudaq.estimate`; compilation details stay inside the
 target.
 
 1. `00_logical_resource_estimate.py` is the minimal introduction: author a
@@ -26,23 +26,11 @@ target.
    `estimate_physically()` is the direct, opt-in paper-scale compilation and
    scheduling path.
 
-## Where do the results live?
-
-`cudaq.estimate` returns an `EstimateResult` with two views:
-
-- `estimate.resources` is a CUDA-Q `Resources` object that reports the
-  **logical** program only, whenever a LOGICAL estimate is available: gate
-  counts (`count`, `count_controls`, `to_dict`), `num_qubits`, `depth`, and
-  `t_depth`. Measurements appear as `mz`, preparations as `reset`, and idle
-  steps as `idle`. `depth` is a serial upper bound. This is all most examples
-  need (00, 01, 03, and the logical part of 04).
-- `estimate.annotations[<TIER>]` holds the full result of each tier that was
-  computed (`LOGICAL`, `STATIC`, `ANALYTICAL`, `SCHEDULE`). Use it for the
-  physical tiers and for logical details `Resources` cannot express, such as
-  idle sites, synthesis demand, and resource requests. The typed views
-  (`LogicalEstimate`, `FabricCounts`, ...) rehydrate from it with
-  `from_annotations`; examples 00 and 01 show this as a "going deeper" step,
-  and 05 reads annotations because its analytical model needs those details.
+`steane_bell_e2e_workflow.py` follows a Bell pair through logical compilation,
+placement, QEC realization, and physical scheduling using Steane. It then
+exposes the same device as a CUDA-Q target and verifies that both entry
+points report the same resources. Its excerpts supply the
+[logical programming stack walkthrough](../docs/source/getting-started/cudaq-logical-in-practice.md).
 
 The `standalone/` examples use `cudaq.logical` directly and expose each
 compiler step. They do not define CUDA-Q kernels or call `cudaq.estimate`.

@@ -11,9 +11,10 @@
 const cudaq_internal::compiler::LoweringHandler *
 cudaq_internal::compiler::selectLoweringHandler(
     const std::vector<std::unique_ptr<LoweringHandler>> &handlers,
-    const cudaq::config::Profile &input, const cudaq::config::Profile &output) {
+    const cudaq::config::Profile &input, const cudaq::config::Profile &output,
+    const cudaq::CompileOptions &options) {
   for (const auto &handler : handlers)
-    if (handler->supports(input, output))
+    if (handler->supports(input, output, options))
       return handler.get();
   return nullptr;
 }

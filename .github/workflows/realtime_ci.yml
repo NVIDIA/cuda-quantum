@@ -52,7 +52,7 @@ jobs:
       realtime: ${{ steps.filter.outputs.matched }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Check changed paths
         id: filter
