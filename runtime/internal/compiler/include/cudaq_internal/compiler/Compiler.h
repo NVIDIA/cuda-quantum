@@ -87,12 +87,13 @@ class Compiler {
                 cudaq::KernelArgs args, bool isEntryPoint);
 
   /// Delay combine-measurements for emulation, then run the main pass
-  /// pipeline built for \p optimizationLevel.  Returns
+  /// pipeline built from \p resolvedOptions, the options resolved for this
+  /// compile.  Returns
   ///  - whether combine-measurements was delayed,
   ///  - the pass pipeline that was executed.
   std::pair<bool, std::string>
   executeMainPipeline(mlir::ModuleOp moduleOp, const std::string &kernelName,
-                      cudaq::OptimizationLevel optimizationLevel);
+                      const cudaq::CompileOptions &resolvedOptions);
 
   /// Create JIT and MLIR artifacts and assemble a CompiledModule.
   cudaq::CompiledModule assembleCompiledModule(

@@ -304,19 +304,13 @@ cudaq_internal::compiler::Compiler::prepareModule(const std::string &kernelName,
 std::pair<bool, std::string>
 cudaq_internal::compiler::Compiler::executeMainPipeline(
     mlir::ModuleOp moduleOp, const std::string &kernelName,
-    cudaq::OptimizationLevel optimizationLevel) {
-  if (options.skipTargetLoweringPipeline || !target.hasPassPipeline()) {
+    const cudaq::CompileOptions &resolvedOptions) {
+  if (resolvedOptions.skipTargetLoweringPipeline || !target.hasPassPipeline()) {
     return {false, ""};
   }
-  // Handlers build their pipeline for the level this compile resolved, which a
-  // kernel annotation can lower to 0. `options.optimizationLevel` stays the
-  // requested level, so code in this class must not read it as the resolved
-  // one.
-  auto pipelineOptions = options;
-  pipelineOptions.optimizationLevel = optimizationLevel;
   std::string diagnostic;
   auto stagedPipeline =
-      getPassPipeline(target, pipelineOptions, handlers, diagnostic);
+      getPassPipeline(target, resolvedOptions, handlers, diagnostic);
   if (!stagedPipeline)
     throw std::runtime_error(diagnostic);
   auto passPipelineConfig = std::move(*stagedPipeline);
@@ -438,8 +432,12 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
   auto [moduleOp, epFunc, isFullySpecialized] =
       prepareModule(kernelName, m_module, args, isEntryPoint);
 
-  const auto optimizationLevel = resolveOptimizationLevel(moduleOp, options);
-  if (optimizationLevel == cudaq::OptimizationLevel::O0)
+  // `options` holds what the caller requested. The compile path below reads
+  // `resolvedOptions`, which carries the values resolved for this kernel.
+  auto resolvedOptions = options;
+  resolvedOptions.optimizationLevel =
+      resolveOptimizationLevel(moduleOp, options);
+  if (resolvedOptions.optimizationLevel == cudaq::OptimizationLevel::O0)
     disableQuantumOptimization(moduleOp);
 
   bool hasConditionalsOnMeasRes = hasConditionalsOnMeasureResults(moduleOp);
@@ -463,7 +461,7 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
   }
 
   auto [combineMeasurements, passPipeline] =
-      executeMainPipeline(moduleOp, kernelName, optimizationLevel);
+      executeMainPipeline(moduleOp, kernelName, resolvedOptions);
 
   // We need to run resource counting preprocessing after the pass pipeline as
   // the pre-processing might change the IR structure (may interfere with
