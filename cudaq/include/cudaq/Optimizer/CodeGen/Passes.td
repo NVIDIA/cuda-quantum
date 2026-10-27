@@ -161,7 +161,7 @@ def QuakeToCCPrep : Pass<"quake-to-cc-prep", "mlir::ModuleOp"> {
     `quake-to-cc` pass is run.
   }];
 
-  let dependentDialects = ["cudaq::cc::CCDialect"];
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::LLVM::LLVMDialect"];
 }
 
 def QuakeToQIRAPI : Pass<"quake-to-qir-api"> {
@@ -283,7 +283,8 @@ def WireSetToProfileQIRPost :
     This pass should be run immediately after wireset-to-profile-qir.
   }];
 
-  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::func::FuncDialect"];
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::func::FuncDialect",
+                           "mlir::LLVM::LLVMDialect"];
 }
 
 def WireSetToProfileQIRPrep :
@@ -293,7 +294,8 @@ def WireSetToProfileQIRPrep :
     This pass should be run immediately before wireset-to-profile-qir.
   }];
 
-  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::func::FuncDialect"];
+  let dependentDialects = ["cudaq::cc::CCDialect", "mlir::func::FuncDialect",
+                           "mlir::LLVM::LLVMDialect"];
 }
 
 #endif // CUDAQ_OPT_OPTIMIZER_CODEGEN_PASSES

@@ -21,16 +21,16 @@
 # RUN: %cudaq-target-db-gen --help > %t.help.txt
 # RUN: FileCheck %s --input-file=%t.help.txt --check-prefix=HELP
 
-# DB: extern "C" void cudaq_target_db_abi_v2() {}
+# DB: extern "C" void cudaq_target_db_abi_v1() {}
 # DB: const TargetConfig kBuiltinTarget_lit_defaults
 # DB: .Name = "lit-defaults"
 # DB: const TargetConfig kBuiltinTarget_lit_backend
 # DB: {"lit-defaults", &kBuiltinTarget_lit_defaults},
 
-# PLUGIN: extern "C" const cudaq::config::TargetConfig *cudaq_target_config_v2()
+# PLUGIN: extern "C" const cudaq::config::TargetConfig *cudaq_target_config_v1()
 # PLUGIN: kPluginTarget_lit_backend
 
-# STDOUT: extern "C" void cudaq_target_db_abi_v2() {}
+# STDOUT: extern "C" void cudaq_target_db_abi_v1() {}
 
 # ERR: Malformed input
 # PLUGINARGS: --plugin requires exactly one <name>=<path> input, got 2

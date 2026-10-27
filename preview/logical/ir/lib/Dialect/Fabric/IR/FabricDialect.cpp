@@ -7445,9 +7445,9 @@ LogicalResult CodeOp::verify() {
   auto symplectic = [n](const llvm::SmallBitVector &left,
                         const llvm::SmallBitVector &right) {
     bool value = false;
-    for (int64_t index = 0; index < n; ++index)
-      value ^= (left.test(index) && right.test(n + index)) ^
-               (left.test(n + index) && right.test(index));
+    // Zero coefficients contribute nothing to x_left.z_right + z_left.x_right.
+    for (int index : left.set_bits())
+      value ^= right.test(index < n ? n + index : index - n);
     return value;
   };
   auto sRows = rowsOf(*stabilizers);

@@ -6,9 +6,9 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --optimize-1q-clifford-t %s | FileCheck %s
+// RUN: cudaq-opt --normalize-1q-clifford-t %s | FileCheck %s
 // RUN: sed -n '/SEMANTIC-BEGIN$/,/SEMANTIC-END$/p' %s > %t.semantic.qke
-// RUN: cudaq-opt --optimize-1q-clifford-t %t.semantic.qke | CircuitCheck %t.semantic.qke
+// RUN: cudaq-opt --normalize-1q-clifford-t %t.semantic.qke | CircuitCheck %t.semantic.qke
 
 func.func @independent_wires(%arg0: !quake.wire, %arg1: !quake.wire)
     -> (!quake.wire, !quake.wire) {
@@ -35,6 +35,19 @@ func.func @unchanged(%arg0: !quake.wire) -> !quake.wire {
 // CHECK-NEXT:    %[[H:.*]] = quake.h %arg0
 // CHECK-NEXT:    %[[T:.*]] = quake.t %[[H]]
 // CHECK-NEXT:    return %[[T]]
+
+// The function-level opt-out keeps a chain that would otherwise normalize.
+func.func @no_optimization(%arg0: !quake.wire) -> !quake.wire
+    attributes {"quake.noOptimization"} {
+  %0 = quake.t %arg0 : (!quake.wire) -> !quake.wire
+  %1 = quake.t %0 : (!quake.wire) -> !quake.wire
+  return %1 : !quake.wire
+}
+
+// CHECK-LABEL: func.func @no_optimization
+// CHECK-NEXT:    %[[T0:.*]] = quake.t %arg0
+// CHECK-NEXT:    %[[T1:.*]] = quake.t %[[T0]]
+// CHECK-NEXT:    return %[[T1]]
 
 // `S X S` normalizes exactly to `X W W`. Each `W` is retained as an anchored
 // `quake.phase(pi/4)`, so the rewrite remains exact when this callable is
@@ -208,7 +221,7 @@ func.func @nested_ordinary_scope(%arg0: !quake.wire) -> !quake.wire {
 // CHECK-NEXT:    }
 // CHECK-NEXT:    return %[[OUTER]]
 
-// Scope traversal follows only the threaded scalar wire. An unrelated local
+// Scope traversal follows only the threaded wire. An unrelated local
 // reference allocation does not affect that def-use chain.
 func.func @scope_with_unrelated_allocation(%arg0: !quake.wire) -> !quake.wire {
   %0 = quake.t %arg0 : (!quake.wire) -> !quake.wire
@@ -294,7 +307,7 @@ func.func @if_boundary(%arg0: !quake.wire, %cond: i1) -> !quake.wire {
 // CHECK:         %[[T1:.*]] = quake.t %[[IF]]
 
 // These ref-semantics wrappers let CircuitCheck compare the unitaries while
-// the pass still operates only on the scalar wire chains between unwrap/wrap.
+// the pass still operates only on the wire chains between unwrap/wrap.
 // SEMANTIC-BEGIN
 
 func.func @semantic_order(%arg0: !quake.ref) {

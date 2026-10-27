@@ -237,7 +237,7 @@ phys.graph @entry on @machine : (index, f64, i1, i8, i16, i32, i64, f32) -> (!ph
 // CHECK-LABEL:   func.func private @__nvqpp_vectorCopyCtor(
 // CHECK-SAME:      %[[ARG0:[^:]*]]: !cc.ptr<i8>,
 // CHECK-SAME:      %[[ARG1:[^:]*]]: i64,
-// CHECK-SAME:      %[[ARG2:[^:]*]]: i64) -> !cc.ptr<i8> {
+// CHECK-SAME:      %[[ARG2:[^:]*]]: i64) -> !cc.ptr<i8> attributes {llvm.linkage = #llvm.linkage<linkonce_odr>} {
 // CHECK:           %[[MULI_0:.*]] = arith.muli %[[ARG1]], %[[ARG2]] : i64
 // CHECK:           %[[VAL_0:.*]] = call @malloc(%[[MULI_0]]) : (i64) -> !cc.ptr<i8>
 // CHECK:           %[[CONSTANT_0:.*]] = arith.constant false

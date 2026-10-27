@@ -6,6 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
+#include "CliffordTAngle.h"
 #include "PassDetails.h"
 #include "PhaseUtilities.h"
 #include "QuakeOperatorCreator.h"
@@ -126,7 +127,7 @@ template <typename QOP>
 static QOP
 getCrossScopePredecessor(QOP later,
                          cudaq::opt::CommutationAwareRewriteMatcher &matcher) {
-  auto laterFlow = cudaq::quake::detail::getScalarWireFlow(later);
+  auto laterFlow = cudaq::quake::detail::getWireFlow(later);
   if (!laterFlow || laterFlow->inputs.empty())
     return {};
 
@@ -147,14 +148,14 @@ getCrossScopePredecessor(QOP later,
 
 template <typename QOP>
 static bool hasOrderedResultThreading(QOP predecessor, QOP later) {
-  auto laterFlow = cudaq::quake::detail::getScalarWireFlow(later);
-  auto predecessorFlow = cudaq::quake::detail::getScalarWireFlow(predecessor);
+  auto laterFlow = cudaq::quake::detail::getWireFlow(later);
+  auto predecessorFlow = cudaq::quake::detail::getWireFlow(predecessor);
   return laterFlow && predecessorFlow &&
          llvm::equal(predecessorFlow->results, laterFlow->inputs);
 }
 
 // Reference-form operators have no results. Value-form operators forward each
-// scalar wire control and target to the result that carries the same qubit.
+// wire control and target to the result that carries the same qubit.
 // Reusable controls are not consumed and therefore have no forwarded result.
 static void eraseOrForward(cudaq::quake::OperatorInterface operation,
                            PatternRewriter &rewriter) {
@@ -171,7 +172,7 @@ static void eraseOrForward(cudaq::quake::OperatorInterface operation,
     if (isa<cudaq::quake::WireType>(target.getType()))
       wires.push_back(target);
   assert(wires.size() == operation->getNumResults() &&
-         "operator results must correspond to scalar wire operands");
+         "operator results must correspond to wire operands");
   rewriter.replaceOp(operation, wires);
 }
 
@@ -245,8 +246,8 @@ private:
 // transposed. Linear use means this is necessarily adjacent.
 static bool hasTransposedTargetsOnEarlierWires(cudaq::quake::SwapOp earlier,
                                                cudaq::quake::SwapOp later) {
-  auto earlierFlow = cudaq::quake::detail::getScalarWireFlow(earlier);
-  auto laterFlow = cudaq::quake::detail::getScalarWireFlow(later);
+  auto earlierFlow = cudaq::quake::detail::getWireFlow(earlier);
+  auto laterFlow = cudaq::quake::detail::getWireFlow(later);
   if (!earlierFlow || !laterFlow)
     return false;
   const auto &laterWires = laterFlow->inputs;
@@ -343,7 +344,9 @@ static bool isIdentityRotation(QOP qop, double threshold) {
   // given one by control synthesis of the function it is in.
   double residual = std::remainder(theta, exactIdentityPeriod<QOP>());
 
-  // A positive threshold permits approximate identity elimination.
+  // A positive threshold permits approximate identity elimination. A merged
+  // sum within roundoff of zero is already exactly zero; see
+  // `createCombinedRotationAngle`.
   return std::abs(residual) <= threshold;
 }
 
@@ -360,12 +363,34 @@ static bool haveExactValue(Value lhs, Value rhs) {
          lhsConstant == rhsConstant;
 }
 
+// Return the value of a constant `angle`, negated for an adjoint rotation.
+static std::optional<APFloat> getSignedConstantAngle(Value angle,
+                                                     bool isAdjoint) {
+  FloatAttr constant;
+  if (!matchPattern(angle, m_Constant(&constant)))
+    return std::nullopt;
+  APFloat value = constant.getValue();
+  if (isAdjoint)
+    value.changeSign();
+  return value;
+}
+
 static Value createCombinedRotationAngle(PatternRewriter &rewriter,
                                          Location location, Value laterAngle,
                                          bool laterIsAdjoint,
                                          Value earlierAngle,
                                          bool earlierIsAdjoint) {
   Type angleType = laterAngle.getType();
+  // Add two constant angles here rather than leaving the sum to the folder, so
+  // that a sum within roundoff of a multiple of pi/4 becomes that multiple on
+  // every target. The exact-mode Clifford+T classifier then recognizes it, and
+  // `isIdentityRotation` sees an exact zero.
+  if (auto later = getSignedConstantAngle(laterAngle, laterIsAdjoint))
+    if (auto earlier = getSignedConstantAngle(earlierAngle, earlierIsAdjoint))
+      return arith::ConstantOp::create(
+          rewriter, location,
+          rewriter.getFloatAttr(
+              angleType, cudaq::opt::detail::addAngles(*later, *earlier)));
   if (laterIsAdjoint)
     laterAngle =
         arith::NegFOp::create(rewriter, location, angleType, laterAngle);
@@ -764,7 +789,7 @@ static bool hasExclusiveNullWireLineage(Value wire, Operation *downstream) {
     if (isa<cudaq::quake::NullWireOp>(producer))
       return true;
 
-    auto flow = cudaq::quake::detail::getScalarWireFlow(producer);
+    auto flow = cudaq::quake::detail::getWireFlow(producer);
     if (!flow || flow->inputs.size() != 1 || flow->results.size() != 1 ||
         flow->results.front() != wire)
       return false;

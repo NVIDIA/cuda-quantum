@@ -519,6 +519,53 @@ func.func @fold_and_merge() {
 // EXACT-COUNT-2: quake.t
 // EXACT-NOT: quake.r1
 
+// Merging two rotations adds two rounded angles, so the sum can miss pi/2 by
+// a few ulps even when the exact angles sum to pi/2. A sum within the roundoff
+// bound of its operands becomes pi/2, so exact mode legalizes it, while
+// `@rejections` keeps an input constant that is off by one ulp.
+//   - %q0: 2.9802058126763811 - 1.4094094858814836 is pi/2 + 4 ulps.
+//   - %q1: the operands cancel. 100.5 - 98.9292036732051 is about 8.9e-15
+//     above pi/2, or 40 ulps of the sum but under one ulp of 100.5.
+//   - %q2: 100.5 - 98.92920367320488 is about 2.2e-13 above pi/2, beyond the
+//     bound for 4 ulps of each operand, so the merged rotation remains.
+func.func @merge_within_roundoff() {
+  %a0 = arith.constant 2.9802058126763811 : f64
+  %b0 = arith.constant -1.4094094858814836 : f64
+  %a1 = arith.constant 100.5 : f64
+  %b1 = arith.constant -98.9292036732051 : f64
+  %b2 = arith.constant -98.92920367320488 : f64
+  %q0 = quake.null_wire
+  %q1 = quake.null_wire
+  %q2 = quake.null_wire
+  %r0 = quake.rx (%a0) %q0 : (f64, !quake.wire) -> !quake.wire
+  %r1 = quake.rx (%b0) %r0 : (f64, !quake.wire) -> !quake.wire
+  %r2 = quake.rx (%a1) %q1 : (f64, !quake.wire) -> !quake.wire
+  %r3 = quake.rx (%b1) %r2 : (f64, !quake.wire) -> !quake.wire
+  %r4 = quake.rx (%a1) %q2 : (f64, !quake.wire) -> !quake.wire
+  %r5 = quake.rx (%b2) %r4 : (f64, !quake.wire) -> !quake.wire
+  quake.sink %r1 : !quake.wire
+  quake.sink %r3 : !quake.wire
+  quake.sink %r5 : !quake.wire
+  return
+}
+
+// The replacement does not depend on `rotations-to-clifford-t`: without it,
+// %q0 and %q1 keep exact pi/2 rotations and %q2 keeps its computed sum.
+// OFF-LABEL: func.func @merge_within_roundoff
+// OFF-DAG: %[[FAR:.*]] = arith.constant 1.5707963267951186 : f64
+// OFF-DAG: %[[HALF:.*]] = arith.constant 1.5707963267948966 : f64
+// OFF: quake.rx (%[[HALF]])
+// OFF: quake.rx (%[[HALF]])
+// OFF: quake.rx (%[[FAR]])
+// OFF: return
+
+// EXACT-LABEL: func.func @merge_within_roundoff
+// EXACT: %[[FAR:.*]] = arith.constant 1.5707963267951186 : f64
+// EXACT-COUNT-2: quake.s
+// EXACT: quake.rx (%[[FAR]])
+// EXACT-NOT: quake.rx
+// EXACT: return
+
 // Legalizing Rx(pi/4) emits phase, H, T, H. The fresh simplification driver
 // must cancel the final emitted H with the existing H.
 func.func @cleanup_after_legalization() {

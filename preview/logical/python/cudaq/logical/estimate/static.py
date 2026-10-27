@@ -113,60 +113,83 @@ def count(build) -> FabricCounts:
         raise ValueError(
             f"build root @{build.root.symbol} is absent from its module")
 
-    operation_counts = Counter()
-    gadget_calls = Counter()
-    protocol_calls = Counter()
-    success_count = syndrome_rounds = 0
+    # Count each body once and scale its totals by call-site multiplicity.
+    summaries = {}
 
-    def consume(visit):
-        nonlocal success_count, syndrome_rounds
+    def consume(visit, counts):
         operation = visit.operation
         multiplier = visit.multiplier
-        suppress_inline_analysis = visit.suppress_inline_analysis
         name = operation.name
         if visit.callee_name is not None:
-            calls = (gadget_calls if visit.callee_kind == "fabric.gadget" else
-                     protocol_calls)
-            calls[visit.callee_name] += visit.callee_multiplier
+            kind = ("gadget"
+                    if visit.callee_kind == "fabric.gadget" else "protocol")
+            counts[kind, visit.callee_name] += visit.callee_multiplier
         if name == "fabric.success":
-            success_count += multiplier
+            counts["success", ""] += multiplier
         elif name in {
                 "fabric.read_syndrome_ancillas",
                 "fabric.assemble_syndrome",
         }:
-            syndrome_rounds += multiplier
+            counts["syndrome", ""] += multiplier
         if (name.startswith("fabric.") and name not in _DECLARATIONS and
                 name not in _TERMINATORS and name not in {
                     "fabric.gadget", "fabric.protocol", "fabric.gadget_profile"
                 }):
-            operation_counts[name.removeprefix("fabric.")] += multiplier
+            counts["operation", name.removeprefix("fabric.")] += multiplier
         elif name in _CFLOW_OP_COUNT_NAMES:
-            operation_counts[_CFLOW_OP_COUNT_NAMES[name]] += multiplier
+            counts["operation", _CFLOW_OP_COUNT_NAMES[name]] += multiplier
         elif name in _EVENT_OP_COUNT_NAMES:
-            operation_counts[_EVENT_OP_COUNT_NAMES[name]] += multiplier
+            counts["operation", _EVENT_OP_COUNT_NAMES[name]] += multiplier
 
-    def consume_walk(operations, **kwargs):
+    def add(counts, nested, multiplier):
+        for key, value in nested.items():
+            counts[key] += value * multiplier
+
+    def summarize(name, stack):
+        if name in stack:
+            raise ValueError(
+                f"recursive executable Fabric graph through @{name}")
+        if name not in summaries:
+            summaries[name] = consume_walk(_children(symbols[name]),
+                                           call_stack=(*stack, name))
+        return summaries[name]
+
+    def consume_walk(operations, *, call_stack=()):
+        counts = Counter()
         for visit in _walk_executable(operations,
                                       symbols,
                                       error_type=ValueError,
-                                      **kwargs):
-            consume(visit)
+                                      call_stack=call_stack,
+                                      expand_calls=False):
+            consume(visit, counts)
+            if visit.callee_name is None:
+                continue
+            add(counts, summarize(visit.callee_name, call_stack),
+                visit.callee_multiplier)
+            operation = visit.operation
+            if operation.name == "fabric.call" and "profile" in operation.attributes:
+                add(
+                    counts,
+                    summarize(_attr_text(operation.attributes["profile"]),
+                              call_stack), visit.multiplier)
+        return counts
 
     # A profile is analysis attached to a realization, so count both its
     # declarative body and the referenced executable gadget exactly once.
     if root.name == "fabric.gadget_profile":
-        consume_walk(_children(root))
+        counts = consume_walk(_children(root))
         gadget = _attr_text(root.attributes["gadget"])
         realization = symbols.get(gadget)
         if realization is None:
             raise ValueError(f"profile references missing gadget @{gadget}")
-        consume_walk(
-            _children(realization),
-            call_stack=(gadget,),
-            suppress_inline_analysis=True,
-        )
+        add(counts, summarize(gadget, ()), 1)
     else:
-        consume_walk(_children(root), call_stack=(build.root.symbol,))
+        counts = summarize(build.root.symbol, ())
+
+    def category(kind):
+        return Counter({
+            name: value for (tag, name), value in counts.items() if tag == kind
+        })
 
     patches_peak, logical_peak = _root_patch_peaks(root, symbols)
     hierarchy_depths = {
@@ -176,11 +199,11 @@ def count(build) -> FabricCounts:
         if operation.operation.name == "fabric.encoding_hierarchy"
     }
     return FabricCounts(
-        operation_counts=operation_counts,
-        gadget_calls=gadget_calls,
-        protocol_calls=protocol_calls,
-        success_count=success_count,
-        syndrome_rounds=syndrome_rounds,
+        operation_counts=category("operation"),
+        gadget_calls=category("gadget"),
+        protocol_calls=category("protocol"),
+        success_count=counts["success", ""],
+        syndrome_rounds=counts["syndrome", ""],
         patches_peak=patches_peak,
         logical_qubits_peak=logical_peak,
         hierarchy_depths=hierarchy_depths,

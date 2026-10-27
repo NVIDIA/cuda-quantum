@@ -212,9 +212,9 @@ jobs:
 
       - name: Install Cosign
         if: inputs.environment
-        uses: sigstore/cosign-installer@v3.3.0
+        uses: sigstore/cosign-installer@v4.1.2
         with:
-          cosign-release: 'v2.2.2'
+          cosign-release: 'v2.6.5'
 
       - name: Sign image with GitHub OIDC Token
         if: inputs.environment && false # Signing is disabled as long as the package is private, since we can't clean up signatures in that case
@@ -396,6 +396,8 @@ jobs:
           outputs: ${{ steps.prereqs.outputs.docker_output }}
 
       - name: Extract ccache from build
+        # Dispatched and pushed branch runs only save it when refresh_ccache is set.
+        if: ${{ !(github.event_name == 'workflow_dispatch' || github.event_name == 'push') || github.event.inputs.refresh_ccache == 'true' || github.ref_name == 'main' || startsWith(github.ref_name, 'pull-request/') }}
         timeout-minutes: 15
         continue-on-error: true
         run: |
@@ -417,6 +419,7 @@ jobs:
           fi
 
       - name: Push ccache to GHCR
+        if: ${{ !(github.event_name == 'workflow_dispatch' || github.event_name == 'push') || github.event.inputs.refresh_ccache == 'true' || github.ref_name == 'main' || startsWith(github.ref_name, 'pull-request/') }}
         uses: ./.github/actions/ccache-push
         with:
           cache-key: ${{ needs.metadata.outputs.platform_tag }}-cudaqdev
@@ -434,9 +437,9 @@ jobs:
 
       - name: Install Cosign
         if: inputs.environment
-        uses: sigstore/cosign-installer@v3.3.0
+        uses: sigstore/cosign-installer@v4.1.2
         with:
-          cosign-release: 'v2.2.2'
+          cosign-release: 'v2.6.5'
 
       - name: Sign image with GitHub OIDC Token
         if: inputs.environment
@@ -670,6 +673,8 @@ jobs:
           push: true
 
       - name: Extract ccache from release build
+        # Dispatched and pushed branch runs only save it when refresh_ccache is set.
+        if: ${{ !(github.event_name == 'workflow_dispatch' || github.event_name == 'push') || github.event.inputs.refresh_ccache == 'true' || github.ref_name == 'main' || startsWith(github.ref_name, 'pull-request/') }}
         timeout-minutes: 15
         continue-on-error: true
         run: |
@@ -691,6 +696,7 @@ jobs:
           fi
 
       - name: Push ccache to GHCR
+        if: ${{ !(github.event_name == 'workflow_dispatch' || github.event_name == 'push') || github.event.inputs.refresh_ccache == 'true' || github.ref_name == 'main' || startsWith(github.ref_name, 'pull-request/') }}
         uses: ./.github/actions/ccache-push
         with:
           cache-key: ${{ needs.metadata.outputs.platform_tag }}-cudaq-release
@@ -699,9 +705,9 @@ jobs:
 
       - name: Install Cosign
         if: inputs.environment
-        uses: sigstore/cosign-installer@v3.3.0
+        uses: sigstore/cosign-installer@v4.1.2
         with:
-          cosign-release: 'v2.2.2'
+          cosign-release: 'v2.6.5'
 
       - name: Sign image with GitHub OIDC Token
         if: inputs.environment
@@ -950,7 +956,7 @@ jobs:
 
       - name: Install uv
         if: success()
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v10.3.2
         with:
           python-version: '3.11'
 
@@ -970,7 +976,7 @@ jobs:
       - name: Spell check HTML documentation
         if: success()
         continue-on-error: true # to be removed once we update all docs for this check to pass
-        uses: rojopolis/spellcheck-github-actions@0.30.0
+        uses: rojopolis/spellcheck-github-actions@0.68.0
         with:
           config_path: '.github/pre-commit/spellcheck_config.yml'
           task_name: html
@@ -1023,7 +1029,7 @@ jobs:
       - name: Load cuda-quantum-dev image
         id: restore_cudaqdev
         if: needs.cudaqdev_image.outputs.tar_cache && needs.cudaqdev_image.outputs.tar_archive
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6
         with:
           path: ${{ needs.cudaqdev_image.outputs.tar_archive }}
           key: ${{ needs.cudaqdev_image.outputs.tar_cache }}

@@ -222,6 +222,6 @@ are ordinary Python modules, not global registries.
 ## Where to go next
 
 - The [core concepts](../getting-started/concepts.md) explain the stage,
-  ownership, and evidence model this architecture implements.
+  ownership, and build model this architecture implements.
 - The [use cases](../use-cases/define-a-code.md) apply the Python interface to
   codes, placement, synthesis, estimation, and emission.
