@@ -583,8 +583,8 @@ cudaq_gf2_status cudaq_gf2_map_construct(const cudaq_gf2_map_description *d,
     return CUDAQ_GF2_INVALID_ARGUMENT;
   cudaq_gf2_owned_buffer candidate_owner{};
   cudaq_gf2_map_view candidate;
-  const auto status = with_description(
-      d, memory, [&](const source &s, workspace &w) -> cudaq_gf2_status {
+  const auto status =
+      with_description(d, memory, [&](const source &s, workspace &w) {
         prepare_matrices(s, w);
         layout l;
         if (!measure(s, w, l))

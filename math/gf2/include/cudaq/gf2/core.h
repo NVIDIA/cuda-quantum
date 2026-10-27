@@ -18,17 +18,18 @@ extern "C" {
 /* Numeric compatibility revision for v0.x development, not a major release. */
 #define CUDAQ_GF2_ABI_VERSION 1
 
-/* Enumerated types are fixed-width so the ABI does not depend on the
- * compiler's enum size. */
-typedef uint32_t cudaq_gf2_status;
-enum {
+/* Statuses are returned by value only, so they stay a distinct enum type.
+ * MAX_ENUM forces a 32-bit enum, including under -fshort-enums; it is never
+ * returned. Values stored in structs or the packed format are uint32_t. */
+typedef enum cudaq_gf2_status {
   CUDAQ_GF2_OK = 0,
   CUDAQ_GF2_INVALID_ARGUMENT = 1,
   CUDAQ_GF2_INVALID_CONTENT = 2,
   CUDAQ_GF2_INSUFFICIENT_CAPACITY = 3,
   CUDAQ_GF2_UNSUPPORTED_VERSION = 4,
-  CUDAQ_GF2_ALLOCATION_FAILED = 5
-};
+  CUDAQ_GF2_ALLOCATION_FAILED = 5,
+  CUDAQ_GF2_STATUS_MAX_ENUM = 0x7FFFFFFF
+} cudaq_gf2_status;
 
 /* Canonical compressed sparse columns: sorted, duplicate-free row indices in
  * each column. All entries are one. Empty shapes and empty columns are valid.

@@ -24,19 +24,22 @@ extern "C" {
  * probabilities remain in [0, 1]; accepted values are never renormalized. */
 #define CUDAQ_EDEM_EXCLUSIVE_TOTAL_TOLERANCE 1e-6
 
-/* Enumerated types are fixed-width so the ABI does not depend on the
- * compiler's enum size. */
-typedef uint32_t cudaq_edem_status;
-enum {
+/* Statuses are returned by value only, so they stay a distinct enum type.
+ * Values 0-5 equal the cudaq_gf2_status values. MAX_ENUM forces a 32-bit enum,
+ * including under -fshort-enums; it is never returned. */
+typedef enum cudaq_edem_status {
   CUDAQ_EDEM_OK = 0,
   CUDAQ_EDEM_INVALID_ARGUMENT = 1,
   CUDAQ_EDEM_INVALID_CONTENT = 2,
   CUDAQ_EDEM_INSUFFICIENT_CAPACITY = 3,
   CUDAQ_EDEM_UNSUPPORTED_VERSION = 4,
   CUDAQ_EDEM_ALLOCATION_FAILED = 5,
-  CUDAQ_EDEM_UNSUPPORTED_DISTRIBUTION = 6
-};
+  CUDAQ_EDEM_UNSUPPORTED_DISTRIBUTION = 6,
+  CUDAQ_EDEM_STATUS_MAX_ENUM = 0x7FFFFFFF
+} cudaq_edem_status;
 
+/* Values stored in structs are fixed-width so the ABI does not depend on the
+ * compiler's enum size. */
 typedef uint32_t cudaq_edem_port_kind;
 enum {
   CUDAQ_EDEM_FAULT = 0,
