@@ -10,8 +10,12 @@
 #include "../stim/StimCircuitSimulator.h"
 
 #include <cassert>
+#include <iomanip>
+#include <limits>
+#include <locale>
 #include <numeric>
 #include <optional>
+#include <sstream>
 #include <unordered_set>
 
 using namespace cudaq;
@@ -177,7 +181,12 @@ struct CustabilizerFrameRunner {
     }
 
     if (!cache_executed) {
-      CustabilizerCircuit circuit(circuitCache.str());
+      // Preserve double precision and the decimal point cuStabilizer expects.
+      std::ostringstream text;
+      text.imbue(std::locale::classic());
+      text << std::setprecision(std::numeric_limits<double>::max_digits10)
+           << circuitCache;
+      CustabilizerCircuit circuit(text.str());
       HANDLE_CUST_ERROR(custabilizerFrameSimulatorApplyCircuit(
           handle, frame_simulator, circuit.circuit,
           /*randomizeFrameAfterMeasurement=*/1, seed, x_table_d, z_table_d,
@@ -498,6 +507,8 @@ protected:
   }
 
 public:
+  CustabilizerCircuitSimulator() { summaryData.name = name(); }
+
   void setRandomSeed(std::size_t seed) override {
     StimCircuitSimulator::setRandomSeed(seed);
     frameSeed.reset();

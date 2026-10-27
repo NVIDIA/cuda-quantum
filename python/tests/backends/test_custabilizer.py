@@ -193,6 +193,31 @@ def test_custabilizer_noise_support():
     assert len(counts_with_noise) > 1
 
 
+def test_custabilizer_noise_probability_precision():
+    """Nearby noise probabilities must remain distinct during GPU sampling."""
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(256)
+        x(q)
+        mz(q)
+
+    def sample_with_probability(probability):
+        cudaq.set_random_seed(13)
+        noise = cudaq.NoiseModel()
+        noise.add_all_qubit_channel("x", cudaq.BitFlipChannel(probability))
+        counts = cudaq.sample(kernel, noise_model=noise, shots_count=250_000)
+        return dict(counts.items())
+
+    # These probabilities serialize identically at six significant digits.
+    # Use the same seed so that rounding makes the two samples identical.
+    # 64 million noise applications make the small difference observable
+    # when the original probability is preserved.
+    nearly_certain = sample_with_probability(0.9999996)
+    certain = sample_with_probability(1.0)
+    assert nearly_certain != certain, "Noise probabilities below 1 were rounded to 1"
+
+
 def test_custabilizer_explicit_measurements():
     """Test explicit measurements flag."""
 
