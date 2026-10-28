@@ -34,8 +34,8 @@ cudaq_edem_status cudaq_edem_into_independent_faults_dem(
 /* Coalesce independent mechanisms with equal complete response columns. All
  * groups must be independent; cudaq_edem_into_independent_faults_dem is an
  * explicit preceding step when needed. Probabilities combine by parity,
- * p+q-2pq, with stable evaluation. Zero responses and zero-probability combined
- * mechanisms are removed.
+ * `p + q - 2*p*q`, with stable evaluation. Zero responses and zero-probability
+ * combined mechanisms are removed.
  *
  * Global rows retain detector, observable, then success order, each in original
  * port/row order. Result ports consolidate to one fault port and at most one

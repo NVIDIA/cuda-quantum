@@ -412,8 +412,8 @@ class ValuesTest(unittest.TestCase):
         composed = compose_chain([first, second])
         self.assertEqual([c.name for c in composed.codes], ["code-7"])
         self.assertEqual((composed.inputs, composed.outputs), ([0], [0]))
-        self.assertEqual(EDEM.from_bytes(first.to_bytes()).to_bytes(),
-                         first.to_bytes())
+        self.assertEqual(
+            EDEM.from_bytes(first.to_bytes()).to_bytes(), first.to_bytes())
         with self.assertRaises(ValueError):
             EDEM(inputs=[0])
         with self.assertRaises(ValueError):

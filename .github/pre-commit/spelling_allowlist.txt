@@ -34,6 +34,7 @@ CPTP
 CPU
 CPUs
 CPython
+CSC
 CTest
 CUDA
 CX
@@ -49,6 +50,7 @@ ConnectX
 CuDensityMat
 CuPy
 DCO
+DEMs
 DGX
 DLP
 DOCA
@@ -59,6 +61,7 @@ Deutsch
 Devcontainer
 Dockerfile
 Doxygen
+EDEMs
 Ekerå
 Eq
 Exponentiating
@@ -155,6 +158,7 @@ NVLink
 NVQIR
 NVQLink
 Nielsen
+NumPy
 OPX
 OQC
 ORCA
@@ -226,6 +230,7 @@ RSH
 RTL
 RTR
 RTS
+RTTI
 Rabi
 Realtime
 RepeatOp
@@ -263,6 +268,7 @@ UC
 UCCSD
 UDD
 UMA
+UTF
 Uhrig
 VQE
 VTU
@@ -293,6 +299,7 @@ afqmc
 al
 alap
 alloc
+allocator
 amongst
 anc
 ancilla
@@ -415,6 +422,7 @@ deallocated
 deallocates
 deallocation
 deallocations
+deallocator
 decomposer
 decompositions
 decrement
@@ -431,6 +439,7 @@ deserialization
 deserialize
 deserializes
 destructor
+destructors
 deterministically
 detuning
 deutsch
@@ -502,6 +511,8 @@ frontends
 func
 functors
 gaussian
+getter
+getters
 ghz
 globals
 gpu
@@ -557,6 +568,7 @@ kets
 krylov
 legalizations
 len
+lexicographically
 libcudm
 libs
 libunwind
@@ -603,8 +615,10 @@ monotonicity
 mpp
 mps
 mul
+multibyte
 multinomial
 multithreaded
+multiwire
 mutex
 namespace
 namespaces
@@ -617,6 +631,7 @@ nonidentity
 nonnegative
 nonterminal
 nontrivially
+nonzeros
 noqa
 normalization
 normalizer
@@ -715,6 +730,9 @@ recv
 rehydrate
 rehydrated
 renderer
+renormalization
+renormalized
+renormalizes
 reparsed
 reparsing
 replanning

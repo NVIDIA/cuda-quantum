@@ -26,7 +26,7 @@ extern "C" {
 
 /* Statuses are returned by value only, so they stay a distinct enum type.
  * Values 0-5 equal the cudaq_gf2_status values. MAX_ENUM forces a 32-bit enum,
- * including under -fshort-enums; it is never returned. */
+ * including under `-fshort-enums`; it is never returned. */
 typedef enum cudaq_edem_status {
   CUDAQ_EDEM_OK = 0,
   CUDAQ_EDEM_INVALID_ARGUMENT = 1,
