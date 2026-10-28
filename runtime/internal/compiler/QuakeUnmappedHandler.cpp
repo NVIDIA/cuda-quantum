@@ -9,6 +9,12 @@
 #include "common/CompileOptions.h"
 #include "cudaq_internal/compiler/LoweringHandler.h"
 #include <algorithm>
+#include <iomanip>
+#include <iterator>
+#include <limits>
+#include <locale>
+#include <sstream>
+#include <string_view>
 
 /// Loops up to this length are unrolled so that their qubits become wires, as
 /// in `classical-optimization-pipeline`. Longer loops stay on references.
@@ -23,6 +29,28 @@ static std::string join(const std::vector<std::string> &items) {
     joined += item;
   }
   return joined;
+}
+
+/// Whether reaching \p profile's basis requires Clifford+T synthesis, which is
+/// when the cost model is `t-count` and a non-empty basis cannot express an
+/// uncontrolled rotation.
+static bool
+requiresSynthesis(const cudaq::config::QuakeUnmappedProfile &profile) {
+  // A basis with any of these continuous rotations, uncontrolled or with any
+  // number of controls, can express every rotation without approximating it.
+  static constexpr std::string_view rotations[] = {"r1", "rx",        "ry",
+                                                   "rz", "phased_rx", "u3"};
+  const auto isRotation = [](std::string_view gate) {
+    const auto controls = gate.find('(');
+    if (controls != std::string_view::npos && gate.substr(controls) != "(n)")
+      return false;
+    gate = gate.substr(0, controls);
+    return std::find(std::begin(rotations), std::end(rotations), gate) !=
+           std::end(rotations);
+  };
+  const auto &basis = profile.basisGates;
+  return profile.costModel == cudaq::config::CostModel::t_count &&
+         !basis.empty() && std::none_of(basis.begin(), basis.end(), isRotation);
 }
 
 namespace {
@@ -50,10 +78,13 @@ public:
 
     std::vector<std::string> passes;
     if (profile.costModel == cudaq::config::CostModel::t_count) {
-      // A tolerance of 0 accepts only exact rewrites.
-      const std::string tolerance = profile.approximationTolerance.empty()
-                                        ? "0"
-                                        : profile.approximationTolerance;
+      // Print every digit the passes need to read back the same tolerance.
+      std::ostringstream toleranceText;
+      toleranceText.imbue(std::locale::classic());
+      toleranceText << std::setprecision(
+                           std::numeric_limits<double>::max_digits10)
+                    << profile.approximationTolerance;
+      const std::string tolerance = toleranceText.str();
       const auto level = static_cast<unsigned>(options.optimizationLevel);
 
       // Keep rotations so that the optimizer can merge and snap them.
@@ -72,7 +103,7 @@ public:
         passes.push_back("clifford-t-optimization-pipeline{level=" +
                          std::to_string(level) + " epsilon=" + tolerance + "}");
       }
-      if (profile.requiresSynthesis()) {
+      if (requiresSynthesis(profile)) {
         passes.push_back("clifford-t-synthesis-pipeline{epsilon=" + tolerance +
                          " seed=" + std::to_string(options.seed) + "}");
         // Clifford+T normalization emits a global phase, so lower it again.
@@ -84,11 +115,8 @@ public:
       }
     }
 
-    const std::string basisOption =
-        basis.empty() ? "" : "{basis=" + join(basis) + "}";
     if (!basis.empty())
-      passes.push_back("basis-conversion" + basisOption);
-    passes.push_back("verify-profile-quake-unmapped" + basisOption);
+      passes.push_back("basis-conversion{basis=" + join(basis) + "}");
     cudaq_internal::compiler::StagePasses stagePasses;
     stagePasses.postDeployPasses = join(passes);
     return stagePasses;

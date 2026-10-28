@@ -336,10 +336,9 @@ def CliffordTSynthesis : Pass<"clifford-t-synthesis", "mlir::ModuleOp"> {
     the pass reproducible. Its cost grows sharply as `epsilon` tightens.
     Roughly 2 ms per distinct rotation at the default 1e-10, but orders of
     magnitude more below 1e-30. Repeated angles are cached, so the cost is per
-    distinct angle rather than per operation. Targets reach this pass through
-    `clifford-t-synthesis-pipeline`, which a `quake-unmapped` stage with the
-    `t-count` cost model runs when its basis has no rotation gate. It is not
-    added to the default target-prep pipeline.
+    distinct angle rather than per operation. This pass is opt-in, and
+    `clifford-t-synthesis-pipeline` runs it. It is not added to the default
+    target-prep pipeline.
 
     The work-budget options below cap the search work gridsynth may spend on
     each rotation. They trade compile time against T-count: raise

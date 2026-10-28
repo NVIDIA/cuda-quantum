@@ -23,7 +23,11 @@
 #include <cerrno>
 #include <filesystem>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
+#include <limits>
+#include <optional>
+#include <rfl.hpp>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -134,21 +138,31 @@ std::string cxxStringVector(const std::vector<std::string> &values) {
 
 std::string cxxBool(bool value) { return value ? "true" : "false"; }
 
-std::string cxxArgumentType(cudaq::config::ArgumentType type) {
-  using cudaq::config::ArgumentType;
-  switch (type) {
-  case ArgumentType::string:
-    return "cudaq::config::ArgumentType::string";
-  case ArgumentType::integer:
-    return "cudaq::config::ArgumentType::integer";
-  case ArgumentType::uuid:
-    return "cudaq::config::ArgumentType::uuid";
-  case ArgumentType::option_flags:
-    return "cudaq::config::ArgumentType::option_flags";
-  case ArgumentType::machine_config:
-    return "cudaq::config::ArgumentType::machine_config";
-  }
-  return "cudaq::config::ArgumentType::string";
+template <typename T>
+std::string cxxTypeName() {
+  return rfl::type_name_t<T>().str();
+}
+
+std::string cxxValue(bool value) { return cxxBool(value); }
+std::string cxxValue(const std::string &value) {
+  return cxxStringLiteral(value);
+}
+std::string cxxValue(const std::vector<std::string> &values) {
+  return cxxStringVector(values);
+}
+std::string cxxValue(double value) {
+  std::ostringstream os;
+  os << std::setprecision(std::numeric_limits<double>::max_digits10) << value;
+  return os.str();
+}
+template <typename E>
+  requires std::is_enum_v<E>
+std::string cxxValue(E value) {
+  return cxxTypeName<E>() + "::" + rfl::enum_to_string(value);
+}
+template <typename T>
+std::string cxxValue(const std::optional<T> &value) {
+  return value ? cxxValue(*value) : "std::nullopt";
 }
 
 std::string
@@ -184,8 +198,9 @@ cxxTargetArguments(const std::vector<cudaq::config::TargetArgument> &args) {
        << ".KeyName = " << cxxStringLiteral(a.KeyName) << ", "
        << ".IsRequired = " << (a.IsRequired ? "true" : "false") << ", "
        << ".PlatformArgKey = " << cxxStringLiteral(a.PlatformArgKey) << ", "
+       << ".ProfileOption = " << cxxValue(a.ProfileOption) << ", "
        << ".HelpString = " << cxxStringLiteral(a.HelpString) << ", "
-       << ".Type = " << cxxArgumentType(a.Type) << ", "
+       << ".Type = " << cxxValue(a.Type) << ", "
        << ".MachineConfigs = " << cxxMachineConfigs(a.MachineConfigs) << "}, ";
   }
   os << "}";
@@ -212,97 +227,33 @@ cxxSimulationBackend(const cudaq::config::SimulationBackendSetting &s) {
          cxxStringVector(s.values) + "}";
 }
 
-std::string cxxMeasurementForm(cudaq::config::MeasurementForm form) {
-  using cudaq::config::MeasurementForm;
-  switch (form) {
-  case MeasurementForm::any:
-    return "cudaq::config::MeasurementForm::any";
-  case MeasurementForm::single_qubit:
-    return "cudaq::config::MeasurementForm::single_qubit";
-  }
-  return "cudaq::config::MeasurementForm::any";
-}
-
-std::string cxxQuakeReferenceSemanticsProfile(
-    const cudaq::config::QuakeReferenceSemanticsProfile &profile) {
-  std::ostringstream os;
-  os << "cudaq::config::QuakeReferenceSemanticsProfile{"
-     << ".basisGates = " << cxxStringVector(profile.basisGates) << ", "
-     << ".measurementType = " << cxxMeasurementForm(profile.measurementType)
-     << ", "
-     << ".resetAfterMeasure = " << cxxBool(profile.resetAfterMeasure) << "}";
-  return os.str();
-}
-
-std::string cxxCostModel(std::optional<cudaq::config::CostModel> costModel) {
-  if (!costModel)
-    return "std::nullopt";
-  switch (*costModel) {
-  case cudaq::config::CostModel::t_count:
-    return "cudaq::config::CostModel::t_count";
-  }
-  return "std::nullopt";
-}
-
-std::string
-cxxQuakeUnmappedProfile(const cudaq::config::QuakeUnmappedProfile &profile) {
-  std::ostringstream os;
-  os << "cudaq::config::QuakeUnmappedProfile{"
-     << ".basisGates = " << cxxStringVector(profile.basisGates) << ", "
-     << ".approximationTolerance = "
-     << cxxStringLiteral(profile.approximationTolerance) << ", "
-     << ".costModel = " << cxxCostModel(profile.costModel) << "}";
-  return os.str();
-}
-
-std::string cxxCustomPipelineLowering(
-    const cudaq::config::CustomPipelineLowering &lowering) {
-  std::ostringstream os;
-  os << "cudaq::config::CustomPipelineLowering{"
-     << ".overridePassPipeline = "
-     << cxxStringLiteral(lowering.overridePassPipeline) << ", "
-     << ".highLevelPipeline = " << cxxStringLiteral(lowering.highLevelPipeline)
-     << ", "
-     << ".midLevelPipeline = " << cxxStringLiteral(lowering.midLevelPipeline)
-     << ", "
-     << ".lowLevelPipeline = " << cxxStringLiteral(lowering.lowLevelPipeline)
-     << "}";
-  return os.str();
-}
-
-std::string cxxLowering(const cudaq::config::Lowering &lowering) {
-  return std::visit(
-      [](const auto &l) -> std::string {
-        using T = std::decay_t<decltype(l)>;
-        if constexpr (std::is_same_v<T, cudaq::config::CustomPipelineLowering>)
-          return cxxCustomPipelineLowering(l);
-        else if constexpr (std::is_same_v<T, cudaq::config::InferredLowering>)
-          return "cudaq::config::InferredLowering{}";
-      },
-      lowering);
+/// Print a profile or lowering as a designated initializer of every field, so
+/// that a new field needs no change here.
+template <typename T>
+std::string cxxAggregate(const T &value) {
+  std::string out = cxxTypeName<T>() + "{";
+  rfl::to_view(value).apply([&](const auto &field) {
+    out += "." + std::string(field.name()) + " = " + cxxValue(*field.value()) +
+           ", ";
+  });
+  return out + "}";
 }
 
 std::string cxxStage(const cudaq::config::CompilationStage &stage) {
   std::ostringstream os;
   os << "cudaq::config::CompilationStage{"
-     << ".irOutputProfile = cudaq::config::Profile{std::in_place_type<";
+     << ".irOutputProfile = cudaq::config::Profile{";
   std::visit(
       [&](const auto &p) {
         using T = std::decay_t<decltype(p)>;
-        if constexpr (std::is_same_v<T, cudaq::config::UncheckedProfile>) {
-          os << "cudaq::config::UncheckedProfile>}";
-        } else if constexpr (
-            std::is_same_v<T, cudaq::config::QuakeReferenceSemanticsProfile>) {
-          os << "cudaq::config::QuakeReferenceSemanticsProfile>, "
-             << cxxQuakeReferenceSemanticsProfile(p) << "}";
-        } else if constexpr (std::is_same_v<
-                                 T, cudaq::config::QuakeUnmappedProfile>) {
-          os << "cudaq::config::QuakeUnmappedProfile>, "
-             << cxxQuakeUnmappedProfile(p) << "}";
-        }
+        os << "std::in_place_type<" << cxxTypeName<T>() << ">, "
+           << cxxAggregate(p) << "}";
       },
       stage.irOutputProfile);
-  os << ", .lowering = " << cxxLowering(stage.lowering) << "}";
+  os << ", .lowering = "
+     << std::visit([](const auto &l) { return cxxAggregate(l); },
+                   stage.lowering)
+     << "}";
   return os.str();
 }
 

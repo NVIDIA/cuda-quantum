@@ -360,6 +360,17 @@ func.func @__nvqpp__mlirgen__fusable() attributes {"cudaq-entrypoint", "cudaq-ke
 }
 )#";
 
+/// `exp_pauli(pi/8, Z)` lowers to `rz(-pi/4)`, an exact angle that synthesis
+/// rewrites as one `t<adj>` rather than a gridsynth sequence.
+static const char *expPauliKernel = R"#(
+func.func @__nvqpp__mlirgen__expPauli() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %angle = arith.constant 0.39269908169872414 : f64
+  %q = quake.alloca !quake.veq<1>
+  quake.exp_pauli (%angle) %q to "Z" : (f64, !quake.veq<1>) -> ()
+  return
+}
+)#";
+
 /// A loop longer than any unroll limit in the quake-unmapped stage.
 static const char *longLoopKernel = R"#(
 func.func @__nvqpp__mlirgen__longLoop() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
@@ -397,7 +408,7 @@ void test_quake_unmapped_levels(mlir::MLIRContext *ctx) {
         {.irOutputProfile =
              cudaq::config::QuakeUnmappedProfile{
                  .basisGates = std::move(basis),
-                 .approximationTolerance = "1e-3",
+                 .approximationTolerance = 1e-3,
                  .costModel = cudaq::config::CostModel::t_count},
          .lowering = cudaq::config::InferredLowering{}});
     cudaq::CompileOptions options;
@@ -424,6 +435,8 @@ void test_quake_unmapped_levels(mlir::MLIRContext *ctx) {
         OptimizationLevel::O0);
   count("Clifford+T level 2", "fusable", fusableRotationsKernel, cliffordT,
         OptimizationLevel::O2);
+  count("Clifford+T exact angle", "expPauli", expPauliKernel, cliffordT,
+        OptimizationLevel::O0);
 }
 
 // CHECK-LABEL: Rotations level 0 resource counts:
@@ -440,6 +453,8 @@ void test_quake_unmapped_levels(mlir::MLIRContext *ctx) {
 // CHECK-LABEL: Clifford+T level 2 resource counts:
 // CHECK: rz: 0{{$}}
 // CHECK: r1: 0{{$}}
+// CHECK-LABEL: Clifford+T exact angle resource counts:
+// CHECK: total: 1{{$}}
 
 /// Kernel that the base QIR profile accepts.
 static const char *measureKernel = R"#(

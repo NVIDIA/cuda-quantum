@@ -10,13 +10,18 @@
 // deterministically for FileCheck.
 
 #include "TargetConfigHelper.h"
+#include "Yaml/TargetConfigYamlAdapters.h"
 #include "cudaq/Target/TargetCatalog.h"
 #include "cudaq/Target/TargetConfig.h"
 #include "cudaq/Target/TargetConfigYaml.h"
+#include <cctype>
 #include <filesystem>
 #include <iostream>
 #include <map>
+#include <optional>
+#include <sstream>
 #include <string>
+#include <type_traits>
 #include <variant>
 #include <vector>
 
@@ -41,19 +46,6 @@ std::string escaped(const std::string &value) {
 }
 
 std::string boolStr(bool value) { return value ? "true" : "false"; }
-
-std::string measurementFormName(MeasurementForm form) {
-  return form == MeasurementForm::single_qubit ? "single-qubit" : "any";
-}
-
-std::string argTypeName(ArgumentType type) {
-  static const char *names[] = {"string", "integer", "uuid", "option-flags",
-                                "machine-config"};
-  const auto index = static_cast<unsigned>(type);
-  return index <= static_cast<unsigned>(ArgumentType::machine_config)
-             ? names[index]
-             : "unknown";
-}
 
 void printField(const char *indent, const char *key, const std::string &value) {
   if (!value.empty())
@@ -82,28 +74,45 @@ void printLowering(const char *indent, const CustomPipelineLowering &lowering) {
   printField(indent, "target-pass-pipeline", lowering.overridePassPipeline);
 }
 
-// Profile options print under the stage, mirroring `printLowering` above.
-void printProfileOptions(const char *, const UncheckedProfile &) {}
-void printProfileOptions(const char *indent,
-                         const QuakeReferenceSemanticsProfile &profile) {
-  printList(indent, "basis-gates", profile.basisGates);
-  std::cout << indent << "measurement-type: "
-            << measurementFormName(profile.measurementType) << "\n"
-            << indent
-            << "reset-after-measure: " << boolStr(profile.resetAfterMeasure)
-            << "\n";
+/// The YAML spelling of a profile option's value. An empty list or an unset
+/// optional value prints as empty and is left out.
+std::string yamlValue(bool value) { return boolStr(value); }
+std::string yamlValue(double value) {
+  std::ostringstream os;
+  os << value;
+  return os.str();
 }
-void printProfileOptions(const char *indent,
-                         const QuakeUnmappedProfile &profile) {
-  printList(indent, "basis-gates", profile.basisGates);
-  printField(indent, "approximation-tolerance", profile.approximationTolerance);
-  if (!profile.costModel)
-    return;
-  switch (*profile.costModel) {
-  case CostModel::t_count:
-    std::cout << indent << "cost-model: t-count\n";
-    break;
-  }
+std::string yamlValue(const std::vector<std::string> &values) {
+  return values.empty() ? "" : listStr(values);
+}
+template <typename E>
+  requires std::is_enum_v<E>
+std::string yamlValue(E value) {
+  return rfl::Reflector<E>::from(value);
+}
+template <typename T>
+std::string yamlValue(const std::optional<T> &value) {
+  return value ? yamlValue(*value) : "";
+}
+
+/// Profile options print under the stage, one per field, with the YAML key the
+/// parser derives from the field name, such as `basis-gates` for `basisGates`.
+template <typename Profile>
+void printProfileOptions(const char *indent, const Profile &profile) {
+  rfl::to_view(profile).apply([&](const auto &field) {
+    const std::string value = yamlValue(*field.value());
+    if (value.empty())
+      return;
+    std::cout << indent;
+    for (char c : field.name())
+      if (std::isupper(static_cast<unsigned char>(c)))
+        std::cout << '-'
+                  << static_cast<char>(
+                         std::tolower(static_cast<unsigned char>(c)));
+      else
+        std::cout << c;
+    std::cout << ": " << value << "\n";
+  });
 }
 
 void printStage(const CompilationStage &stage, const char *indent) {
@@ -162,11 +171,14 @@ void printConfig(const TargetConfig &config) {
             << "\n";
   for (const auto &arg : config.TargetArguments) {
     std::cout << "argument: " << arg.KeyName
-              << " type=" << argTypeName(arg.Type)
+              << " type=" << rfl::Reflector<ArgumentType>::from(arg.Type)
               << " required=" << (arg.IsRequired ? "true" : "false")
               << " platform-arg="
-              << (arg.PlatformArgKey.empty() ? "-" : arg.PlatformArgKey)
-              << "\n";
+              << (arg.PlatformArgKey.empty() ? "-" : arg.PlatformArgKey);
+    if (arg.ProfileOption)
+      std::cout << " profile-option="
+                << rfl::Reflector<ProfileOption>::from(*arg.ProfileOption);
+    std::cout << "\n";
     if (!arg.HelpString.empty())
       std::cout << "  help-string: " << escaped(arg.HelpString) << "\n";
     for (const auto &arch : arg.MachineConfigs)

@@ -39,6 +39,7 @@ struct TargetArgumentV1 {
   std::string key;
   rfl::DefaultVal<bool> required;
   rfl::DefaultVal<std::string> platformArg;
+  std::optional<ProfileOption> profileOption;
   rfl::DefaultVal<std::string> helpString;
   // Omitted type means `ArgumentType::string` (enumerator value 0).
   rfl::DefaultVal<ArgumentType> type;

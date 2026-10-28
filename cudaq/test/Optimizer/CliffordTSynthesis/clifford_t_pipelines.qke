@@ -22,11 +22,11 @@
 // RUN: cudaq-opt --clifford-t-synthesis-pipeline='epsilon=1e-3' %s | \
 // RUN:   FileCheck %s --check-prefix=SYNTH \
 // RUN:   --implicit-check-not='quake.r{{[xyz1]}}' \
-// RUN:   --implicit-check-not='call @' --implicit-check-not='quake.phase'
+// RUN:   --implicit-check-not='@__cliffordt_' --implicit-check-not='quake.phase'
 
 // Level 1 of the optimization pipeline only cleans up, and level 3 runs level
 // 2. No level erases a rotation larger than the tolerance. The synthesis
-// pipeline leaves no rotation, call, or phase behind.
+// pipeline leaves no rotation, helper, or phase behind.
 
 // The angle is within the tolerance of pi/4, so level 2 snaps it to a T gate
 // and level 1 keeps the rotation.

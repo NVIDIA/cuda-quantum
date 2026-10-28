@@ -87,7 +87,7 @@ struct QuakeUnmappedProfileV2 {
   /// Valid options.
   struct QuakeUnmappedProfileOptionsV2 {
     rfl::DefaultVal<std::vector<std::string>> basisGates;
-    rfl::DefaultVal<std::string> approximationTolerance;
+    rfl::DefaultVal<double> approximationTolerance;
     std::optional<CostModel> costModel;
   };
 

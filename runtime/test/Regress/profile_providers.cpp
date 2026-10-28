@@ -79,14 +79,12 @@
 // CHECK-NEXT:  clifford-t-synthesis-pipeline{epsilon=1e-10 seed=0}
 // CHECK-NEXT:  func.func(quake-simplify{threshold=1e-10},normalize-1q-clifford-t,phase-folding,normalize-phase-placement,lower-phase,canonicalize,dqe)
 // CHECK-NEXT:  basis-conversion{basis=h,s,t,x,y,z,swap,x(1),y(1),z(1)}
-// CHECK-NEXT:  verify-profile-quake-unmapped{basis=h,s,t,x,y,z,swap,x(1),y(1),z(1)}
 // CHECK-NEXT:  jit-finalize-pipeline
 
 // Without a cost model, a `quake-unmapped` stage runs no optimization.
 // CHECK-LABEL: no cost model:
 // CHECK:       jit-deploy-pipeline
 // CHECK-NEXT:  basis-conversion{basis=h,x(1)}
-// CHECK-NEXT:  verify-profile-quake-unmapped{basis=h,x(1)}
 // CHECK-NEXT:  jit-finalize-pipeline
 // clang-format on
 

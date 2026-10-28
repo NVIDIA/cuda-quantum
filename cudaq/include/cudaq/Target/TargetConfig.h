@@ -42,6 +42,9 @@ inline unsigned combineFeatureFlags(std::span<const TargetFeatureFlag> flags) {
 // e.g., to support type validation.
 enum class ArgumentType { string, integer, uuid, option_flags, machine_config };
 
+/// A profile option that a target argument can set.
+enum class ProfileOption { approximation_tolerance };
+
 /// @brief Architecture-specific compilation settings
 // Different device architectures of a target may require customization.
 // This is a subset of `BackendEndConfigEntry` that we provide
@@ -76,6 +79,9 @@ struct TargetArgument {
   /// Platform argument that this option should be mapped to.
   // If provided, value provided will be forwarded to the platform via this key.
   std::string PlatformArgKey;
+  /// Profile option that this argument sets. If provided, the value replaces
+  /// that option in every stage whose profile has it.
+  std::optional<cudaq::config::ProfileOption> ProfileOption;
   /// Help string for this argument.
   std::string HelpString;
   /// Type of the expected input value.

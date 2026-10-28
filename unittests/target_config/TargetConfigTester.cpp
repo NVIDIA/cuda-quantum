@@ -251,18 +251,22 @@ TEST(TargetConfigTester, quakeReferenceSemanticsProfileTargetIdentity) {
             std::hash<cudaq::CompileTarget>{}(changed));
 }
 
-// `CompileTarget::createFromConfig` replaces a target-argument placeholder in
-// `approximation-tolerance`, requires a non-negative number, and requires the
-// option when reaching the basis needs synthesis.
-TEST(TargetConfigTester, quakeUnmappedSynthesisTolerance) {
+// `CompileTarget::createFromConfig` sets `approximation-tolerance` from the
+// target argument that names it and rejects a value that is not a number.
+TEST(TargetConfigTester, quakeUnmappedToleranceArgument) {
   const auto create = [](cudaq::config::QuakeUnmappedProfile profile,
                          std::map<std::string, std::string> args) {
     cudaq::config::BackendEndConfigEntry backend;
     backend.CompileTarget.stages.push_back(
         {.irOutputProfile = std::move(profile),
          .lowering = cudaq::config::InferredLowering{}});
+    cudaq::config::TargetArgument epsilon;
+    epsilon.KeyName = "epsilon";
+    epsilon.ProfileOption =
+        cudaq::config::ProfileOption::approximation_tolerance;
     cudaq::config::TargetConfig config;
     config.BackendConfig = backend;
+    config.TargetArguments.push_back(epsilon);
     return cudaq::CompileTarget::createFromConfig(config, std::move(args));
   };
   const auto tolerance = [](const cudaq::CompileTarget &target) {
@@ -272,21 +276,16 @@ TEST(TargetConfigTester, quakeUnmappedSynthesisTolerance) {
   };
   cudaq::config::QuakeUnmappedProfile profile{
       .basisGates = {"h", "s", "t", "x(1)"},
-      .approximationTolerance = "%EPSILON:1e-10%",
+      .approximationTolerance = 1e-10,
       .costModel = cudaq::config::CostModel::t_count};
 
   const auto byDefault = create(profile, {});
   const auto fromArgument = create(profile, {{"epsilon", "1e-3"}});
-  EXPECT_EQ(tolerance(byDefault), "1e-10");
-  EXPECT_EQ(tolerance(fromArgument), "1e-3");
+  EXPECT_EQ(tolerance(byDefault), 1e-10);
+  EXPECT_EQ(tolerance(fromArgument), 1e-3);
   EXPECT_NE(std::hash<cudaq::CompileTarget>{}(byDefault),
             std::hash<cudaq::CompileTarget>{}(fromArgument));
   EXPECT_THROW(create(profile, {{"epsilon", "small"}}), std::runtime_error);
-
-  profile.approximationTolerance.clear();
-  EXPECT_THROW(create(profile, {}), std::runtime_error);
-  profile.basisGates.push_back("rz");
-  EXPECT_NO_THROW(create(profile, {}));
 }
 
 TEST(TargetConfigTester, inferredLoweringIdentityAndHash) {
