@@ -86,7 +86,7 @@ cudaq::CompileTarget cudaq::CompileTarget::createFromConfig(
     std::string pipeline = stage;
     if (!pipeline.empty()) {
       bool usesSeed = substitutePipelinePlaceholders(pipeline, runtimeConfig);
-      target.resetOnRandomSeedSet = usesSeed;
+      target.resetOnRandomSeedSet |= usesSeed;
       applyPipelineSubstitutions(pipeline, pipelineSubstitutions);
     }
     return pipeline;
