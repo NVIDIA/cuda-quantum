@@ -24,6 +24,9 @@ extern "C" {
  * probabilities remain in [0, 1]; accepted values are never renormalized. */
 #define CUDAQ_EDEM_EXCLUSIVE_TOTAL_TOLERANCE 1e-6
 
+/* Statuses are returned by value only, so they stay a distinct enum type.
+ * Values 0-5 equal the cudaq_gf2_status values. MAX_ENUM forces a 32-bit enum,
+ * including under -fshort-enums; it is never returned. */
 typedef enum cudaq_edem_status {
   CUDAQ_EDEM_OK = 0,
   CUDAQ_EDEM_INVALID_ARGUMENT = 1,
@@ -31,10 +34,14 @@ typedef enum cudaq_edem_status {
   CUDAQ_EDEM_INSUFFICIENT_CAPACITY = 3,
   CUDAQ_EDEM_UNSUPPORTED_VERSION = 4,
   CUDAQ_EDEM_ALLOCATION_FAILED = 5,
-  CUDAQ_EDEM_UNSUPPORTED_DISTRIBUTION = 6
+  CUDAQ_EDEM_UNSUPPORTED_DISTRIBUTION = 6,
+  CUDAQ_EDEM_STATUS_MAX_ENUM = 0x7FFFFFFF
 } cudaq_edem_status;
 
-typedef enum cudaq_edem_port_kind {
+/* Values stored in structs are fixed-width so the ABI does not depend on the
+ * compiler's enum size. */
+typedef uint32_t cudaq_edem_port_kind;
+enum {
   CUDAQ_EDEM_FAULT = 0,
   CUDAQ_EDEM_VIRTUAL = 1,
   CUDAQ_EDEM_SYNDROME = 2,
@@ -42,27 +49,44 @@ typedef enum cudaq_edem_port_kind {
   CUDAQ_EDEM_DETECTOR = 4,
   CUDAQ_EDEM_OBSERVABLE = 5,
   CUDAQ_EDEM_SUCCESS = 6
-} cudaq_edem_port_kind;
+};
 
-/* V, S and L indices identify code-block ordinals, independently on each side.
- * Other indices identify partitions of that kind. Directions are implicit in
- * the containing block: output first, input second. */
+/* Side of the EDEM map: inputs carry F and input code bundles; outputs carry
+ * D, O, Success and output code bundles. Values are the GF2 wire directions. */
+typedef cudaq_gf2_wire_direction cudaq_edem_endpoint_direction;
+enum {
+  CUDAQ_EDEM_INPUT = CUDAQ_GF2_INPUT,
+  CUDAQ_EDEM_OUTPUT = CUDAQ_GF2_OUTPUT
+};
+
+/* An endpoint and an endpoint direction together describe a port. A code
+ * bundle is the (V,S,L) port triple of one code on one side. V, S and L
+ * indices identify code-bundle ordinals, independently on each side. Other
+ * indices identify ports of that kind. Directions are implicit in the
+ * containing matrix block: output first, input second. */
 typedef struct cudaq_edem_endpoint {
-  uint32_t kind;
+  cudaq_edem_port_kind kind;
   uint32_t index;
 } cudaq_edem_endpoint;
 
+/* The name identifies a code presentation and is unique within a code table.
+ * Presentations with equal names must have equal counts. */
 typedef struct cudaq_edem_code_presentation {
   const char *name;
   uint64_t name_size;
-  uint32_t generators;
-  uint32_t logical_qubits;
+  uint32_t syndrome_count;
+  uint32_t virtual_outcome_count;
+  uint32_t logical_qubit_count;
 } cudaq_edem_code_presentation;
 
-typedef enum cudaq_edem_group_kind {
-  CUDAQ_EDEM_INDEPENDENT = 0,
-  CUDAQ_EDEM_EXCLUSIVE = 1
-} cudaq_edem_group_kind;
+/* Construction input: names are nonempty UTF-8 and unique. */
+typedef struct cudaq_edem_code_table {
+  uint32_t code_count;
+  const cudaq_edem_code_presentation *codes;
+} cudaq_edem_code_table;
+
+typedef uint32_t cudaq_edem_fault_group_kind;
+enum { CUDAQ_EDEM_INDEPENDENT = 0, CUDAQ_EDEM_EXCLUSIVE = 1 };
 
 /* Sorted original indicator IDs and one probability per ID. All indicators
  * occur in exactly one group. There is at most one Independent group;
@@ -71,7 +95,7 @@ typedef enum cudaq_edem_group_kind {
  * and within [0, 1], without an individual tolerance.
  * Fault coordinates are original indicator IDs. */
 typedef struct cudaq_edem_fault_group {
-  uint32_t kind;
+  cudaq_edem_fault_group_kind kind;
   uint32_t size;
   const uint32_t *fault_ids;
   const double *probabilities;
@@ -83,40 +107,42 @@ typedef struct cudaq_edem_fault_distribution {
   const cudaq_edem_fault_group *groups;
 } cudaq_edem_fault_distribution;
 
-typedef struct cudaq_edem_block {
+typedef struct cudaq_edem_matrix_block {
   cudaq_edem_endpoint output;
   cudaq_edem_endpoint input;
   cudaq_gf2_csc_view matrix;
-} cudaq_edem_block;
+} cudaq_edem_matrix_block;
 
+/* Port counts of each kind; code counts are code bundles per side. */
 typedef struct cudaq_edem_shape {
-  uint32_t code_presentations;
-  uint32_t input_code_blocks;
-  uint32_t output_code_blocks;
-  uint32_t fault_ports;
-  uint32_t detector_ports;
-  uint32_t observable_ports;
-  uint32_t success_ports;
-  uint64_t blocks;
+  uint32_t input_code_count;
+  uint32_t output_code_count;
+  uint32_t fault_ports_count;
+  uint32_t detector_ports_count;
+  uint32_t observable_ports_count;
+  uint32_t success_ports_count;
 } cudaq_edem_shape;
 
-/* Semantic construction input. Arrays have the counts in shape. Code blocks
- * name presentation IDs; V/S widths are generators, L widths are 2*k. A block
- * names semantic endpoints, so producers never assemble flattened offsets or
- * port-binding tables. Omitted blocks are zero; duplicate endpoint pairs are
+/* Semantic construction input. Port arrays have the counts in shape. Code
+ * bundles name indices into code_table, which construction checks; the packed
+ * EDEM retains only the presentations its code bundles use. V widths are
+ * virtual outcome counts, S widths are syndrome counts, L widths are 2*k. A
+ * block names semantic endpoints, so producers never assemble flattened offsets
+ * or port-binding tables. Omitted blocks are zero; duplicate endpoint pairs are
  * rejected. Blocks and presentations may be supplied in any order. Packing
  * orders them canonically, removes zero blocks and interns equal matrices.
  * These borrowed arrays and output storage must be disjoint. */
 typedef struct cudaq_edem_description {
   cudaq_edem_shape shape;
-  const cudaq_edem_code_presentation *codes;
-  const uint32_t *input_codes;
-  const uint32_t *output_codes;
-  const cudaq_edem_fault_distribution *faults;
-  const uint32_t *detector_sizes;
-  const uint32_t *observable_sizes;
-  const uint32_t *success_sizes;
-  const cudaq_edem_block *blocks;
+  cudaq_edem_code_table code_table;
+  const uint32_t *input_code_indices;
+  const uint32_t *output_code_indices;
+  const cudaq_edem_fault_distribution *fault_ports_distributions;
+  const uint32_t *detector_ports_sizes;
+  const uint32_t *observable_ports_sizes;
+  const uint32_t *success_ports_sizes;
+  uint64_t block_count;
+  const cudaq_edem_matrix_block *blocks;
 } cudaq_edem_description;
 
 /* Trusted borrowed EDEM token, initialized only by successful EDEM construct,
@@ -162,19 +188,23 @@ cudaq_edem_status cudaq_edem_check(const cudaq_gf2_map_view *value,
                                    cudaq_edem_view *result);
 cudaq_edem_status cudaq_edem_get_shape(const cudaq_edem_view *value,
                                        cudaq_edem_shape *shape);
-/* Presentation indices enumerate the retained, name-sorted presentation table.
- */
+/* Presentation indices enumerate the retained, name-sorted presentations used
+ * by this EDEM's code bundles. The count is of presentations, not of code
+ * bundles (see shape); the matrix block count is in the GF2 map shape. */
+cudaq_edem_status cudaq_edem_get_code_count(const cudaq_edem_view *value,
+                                            uint32_t *count);
 cudaq_edem_status cudaq_edem_get_code(const cudaq_edem_view *value,
                                       uint32_t index,
                                       cudaq_edem_code_presentation *code);
 /* Resolve semantic endpoints to GF2 wires, or translate a wire back. */
-cudaq_edem_status cudaq_edem_resolve_endpoint(const cudaq_edem_view *value,
-                                              uint32_t output,
-                                              cudaq_edem_endpoint endpoint,
-                                              cudaq_gf2_wire *wire);
-cudaq_edem_status cudaq_edem_describe_wire(const cudaq_edem_view *value,
-                                           uint32_t output, cudaq_gf2_wire wire,
-                                           cudaq_edem_endpoint *endpoint);
+cudaq_edem_status
+cudaq_edem_resolve_endpoint(const cudaq_edem_view *value,
+                            cudaq_edem_endpoint_direction direction,
+                            cudaq_edem_endpoint endpoint, cudaq_gf2_wire *wire);
+cudaq_edem_status
+cudaq_edem_describe_wire(const cudaq_edem_view *value,
+                         cudaq_edem_endpoint_direction direction,
+                         cudaq_gf2_wire wire, cudaq_edem_endpoint *endpoint);
 /* Distributions are addressed by their input bundle, not by type ID. */
 cudaq_edem_status cudaq_edem_get_fault(const cudaq_edem_view *value,
                                        uint32_t input_bundle, uint32_t *size,

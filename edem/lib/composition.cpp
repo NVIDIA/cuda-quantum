@@ -10,9 +10,11 @@
 #pragma GCC visibility pop
 #include "allocation.h"
 #include "storage.h"
+#include "vocabulary.h"
 #include "cudaq/edem/format.h"
 
 using namespace cudaq_gf2_private;
+using namespace cudaq_edem_private;
 
 #define EDEM_TRY(expression)                                                   \
   do {                                                                         \
@@ -24,6 +26,7 @@ using namespace cudaq_gf2_private;
 namespace {
 struct occurrence_info {
   cudaq_edem_shape shape{};
+  uint32_t code_count = 0;
   uint64_t inputs = 0, outputs = 0, faults = 0, free_outputs = 0;
   uint64_t groups = 0, transfer_begin = 0, transfer_count = 0;
 };
@@ -45,30 +48,36 @@ struct output_wire {
   uint64_t local_offset = 0, response_offset = 0;
 };
 
-cudaq_edem_status location(const cudaq_edem_view &value, bool output,
+cudaq_edem_status location(const cudaq_edem_view &value,
+                           cudaq_edem_endpoint_direction direction,
                            cudaq_edem_endpoint endpoint, uint32_t &width,
                            uint64_t &offset) {
   cudaq_gf2_wire wire;
-  EDEM_TRY(cudaq_edem_resolve_endpoint(&value, output, endpoint, &wire));
-  EDEM_TRY(cudaq_gf2_map_get_wire(&value.map, output, wire, &width, &offset));
+  EDEM_TRY(cudaq_edem_resolve_endpoint(&value, direction, endpoint, &wire));
+  EDEM_TRY(
+      cudaq_gf2_map_get_wire(&value.map, direction, wire, &width, &offset));
   return CUDAQ_EDEM_OK;
 }
 
 cudaq_edem_status describe(const cudaq_edem_view &value,
                            occurrence_info &info) {
   EDEM_TRY(cudaq_edem_get_shape(&value, &info.shape));
+  EDEM_TRY(cudaq_edem_get_code_count(&value, &info.code_count));
   EDEM_TRY(cudaq_gf2_map_vector_sizes(&value.map, &info.inputs, &info.outputs));
-  for (uint32_t side = 0; side < 2; ++side) {
+  for (cudaq_edem_endpoint_direction direction = CUDAQ_EDEM_INPUT;
+       direction <= CUDAQ_EDEM_OUTPUT; ++direction) {
     uint32_t count =
-        side ? info.shape.detector_ports + info.shape.observable_ports +
-                   info.shape.success_ports + info.shape.output_code_blocks
-             : info.shape.fault_ports + info.shape.input_code_blocks;
+        direction == CUDAQ_EDEM_OUTPUT
+            ? info.shape.detector_ports_count +
+                  info.shape.observable_ports_count +
+                  info.shape.success_ports_count + info.shape.output_code_count
+            : info.shape.fault_ports_count + info.shape.input_code_count;
     for (uint32_t i = 0; i < count; ++i) {
       cudaq_gf2_bundle bundle;
-      EDEM_TRY(cudaq_gf2_map_get_bundle(&value.map, side, i, &bundle));
-      if (bundle.type < info.shape.code_presentations)
+      EDEM_TRY(cudaq_gf2_map_get_bundle(&value.map, direction, i, &bundle));
+      if (bundle.type < info.code_count)
         continue;
-      if (side) {
+      if (direction == CUDAQ_EDEM_OUTPUT) {
         info.free_outputs += bundle.widths[0];
       } else {
         uint32_t width, groups;
@@ -88,26 +97,28 @@ bool add(uint64_t &sum, uint64_t value) {
   return true;
 }
 
-template <class T>
-bool space(uint64_t &bytes, uint64_t count) {
-  uint64_t ignored;
-  return reserve(bytes, count, sizeof(T), ignored);
+bool same_name(const cudaq_edem_code_presentation &a,
+               const cudaq_edem_code_presentation &b) {
+  return name_compare(a.name, a.name_size, b.name, b.name_size) == 0;
 }
 
 bool same_code(const cudaq_edem_code_presentation &a,
                const cudaq_edem_code_presentation &b) {
-  return a.generators == b.generators && a.logical_qubits == b.logical_qubits &&
-         name_compare(a.name, a.name_size, b.name, b.name_size) == 0;
+  return same_name(a, b) && a.syndrome_count == b.syndrome_count &&
+         a.virtual_outcome_count == b.virtual_outcome_count &&
+         a.logical_qubit_count == b.logical_qubit_count;
 }
 
-cudaq_edem_status boundary_code(const cudaq_edem_view &value, bool output,
+cudaq_edem_status boundary_code(const cudaq_edem_view &value,
+                                cudaq_edem_endpoint_direction direction,
                                 uint32_t index,
                                 cudaq_edem_code_presentation &code) {
   cudaq_gf2_wire wire;
-  EDEM_TRY(cudaq_edem_resolve_endpoint(&value, output,
+  EDEM_TRY(cudaq_edem_resolve_endpoint(&value, direction,
                                        {CUDAQ_EDEM_VIRTUAL, index}, &wire));
   cudaq_gf2_bundle bundle;
-  EDEM_TRY(cudaq_gf2_map_get_bundle(&value.map, output, wire.bundle, &bundle));
+  EDEM_TRY(
+      cudaq_gf2_map_get_bundle(&value.map, direction, wire.bundle, &bundle));
   return cudaq_edem_get_code(&value, bundle.type, &code);
 }
 
@@ -148,36 +159,35 @@ cudaq_edem_status cudaq_edem_get_shape(const cudaq_edem_view *value,
   if (!value || !result)
     return CUDAQ_EDEM_INVALID_ARGUMENT;
   cudaq_gf2_map_shape map;
-  cudaq_gf2_section codes;
+  uint32_t code_count;
   EDEM_TRY(cudaq_gf2_map_get_shape(&value->map, &map));
-  EDEM_TRY(cudaq_gf2_map_get_section(&value->map,
-                                     CUDAQ_EDEM_SECTION_PRESENTATIONS, &codes));
+  EDEM_TRY(cudaq_edem_get_code_count(value, &code_count));
   cudaq_edem_shape shape{};
-  shape.code_presentations = static_cast<uint32_t>(codes.count);
-  shape.blocks = map.block_count;
-  for (uint32_t side = 0; side < 2; ++side) {
-    uint32_t count = side ? map.output_bundle_count : map.input_bundle_count;
+  for (cudaq_edem_endpoint_direction direction = CUDAQ_EDEM_INPUT;
+       direction <= CUDAQ_EDEM_OUTPUT; ++direction) {
+    uint32_t count = direction == CUDAQ_EDEM_OUTPUT ? map.output_bundle_count
+                                                    : map.input_bundle_count;
     for (uint32_t i = 0; i < count; ++i) {
       cudaq_gf2_bundle bundle;
-      EDEM_TRY(cudaq_gf2_map_get_bundle(&value->map, side, i, &bundle));
-      if (bundle.type < codes.count) {
-        if (side)
-          ++shape.output_code_blocks;
+      EDEM_TRY(cudaq_gf2_map_get_bundle(&value->map, direction, i, &bundle));
+      if (bundle.type < code_count) {
+        if (direction == CUDAQ_EDEM_OUTPUT)
+          ++shape.output_code_count;
         else
-          ++shape.input_code_blocks;
+          ++shape.input_code_count;
       } else {
-        switch (bundle.type - codes.count) {
-        case 0:
-          ++shape.detector_ports;
+        switch (free_kinds[bundle.type - code_count]) {
+        case CUDAQ_EDEM_DETECTOR:
+          ++shape.detector_ports_count;
           break;
-        case 1:
-          ++shape.fault_ports;
+        case CUDAQ_EDEM_FAULT:
+          ++shape.fault_ports_count;
           break;
-        case 2:
-          ++shape.observable_ports;
+        case CUDAQ_EDEM_OBSERVABLE:
+          ++shape.observable_ports_count;
           break;
-        case 3:
-          ++shape.success_ports;
+        case CUDAQ_EDEM_SUCCESS:
+          ++shape.success_ports_count;
           break;
         }
       }
@@ -193,7 +203,7 @@ cudaq_edem_status cudaq_edem_is_dem(const cudaq_edem_view *value,
     return CUDAQ_EDEM_INVALID_ARGUMENT;
   cudaq_edem_shape shape;
   EDEM_TRY(cudaq_edem_get_shape(value, &shape));
-  *result = !shape.input_code_blocks && !shape.output_code_blocks;
+  *result = !shape.input_code_count && !shape.output_code_count;
   return CUDAQ_EDEM_OK;
 }
 
@@ -239,29 +249,29 @@ cudaq_edem_status cudaq_edem_compose_chain(const cudaq_edem_view *values,
     if (!t)
       first = current;
     last = current;
-    if (!add(code_capacity, current.shape.code_presentations) ||
-        !add(faults, current.shape.fault_ports) ||
-        !add(detectors, current.shape.detector_ports) ||
-        !add(observables, current.shape.observable_ports) ||
-        !add(successes, current.shape.success_ports) ||
+    if (!add(code_capacity, current.code_count) ||
+        !add(faults, current.shape.fault_ports_count) ||
+        !add(detectors, current.shape.detector_ports_count) ||
+        !add(observables, current.shape.observable_ports_count) ||
+        !add(successes, current.shape.success_ports_count) ||
         !add(columns, current.faults) ||
         !add(response_size, current.free_outputs) ||
         !add(groups, current.groups) ||
-        (t && !add(transfer_count, 3ull * current.shape.input_code_blocks)))
+        (t && !add(transfer_count, 3ull * current.shape.input_code_count)))
       return CUDAQ_EDEM_INSUFFICIENT_CAPACITY;
     max_input = std::max(max_input, current.inputs);
     max_output = std::max(max_output, current.outputs);
   }
   if (!add(columns, first.inputs - first.faults) ||
       !add(response_size, last.outputs - last.free_outputs) ||
-      code_capacity > UINT32_MAX - 4 || faults > UINT32_MAX ||
+      code_capacity > UINT32_MAX - free_type_count || faults > UINT32_MAX ||
       detectors > UINT32_MAX || observables > UINT32_MAX ||
       successes > UINT32_MAX ||
       detectors + observables + successes > UINT32_MAX)
     return CUDAQ_EDEM_INSUFFICIENT_CAPACITY;
-  uint64_t input_count = faults + 3ull * first.shape.input_code_blocks;
-  uint64_t output_count = detectors + observables + successes +
-                          3ull * last.shape.output_code_blocks;
+  uint64_t input_count = faults + 3ull * first.shape.input_code_count;
+  uint64_t output_count =
+      detectors + observables + successes + 3ull * last.shape.output_code_count;
   if (input_count > UINT32_MAX || output_count > UINT32_MAX ||
       (input_count && output_count > UINT32_MAX / input_count) ||
       columns > SIZE_MAX - input_count ||
@@ -274,22 +284,23 @@ cudaq_edem_status cudaq_edem_compose_chain(const cudaq_edem_view *values,
   uint64_t block_count = input_count * output_count;
   uint64_t offset_count = output_count * (columns + input_count);
   uint64_t bytes = 0;
-  if (!space<occurrence_info>(bytes, count) ||
-      !space<boundary_transfer>(bytes, transfer_count) ||
-      !space<cudaq_edem_code_presentation>(bytes, code_capacity) ||
-      !space<uint32_t>(bytes, first.shape.input_code_blocks) ||
-      !space<uint32_t>(bytes, last.shape.output_code_blocks) ||
-      !space<cudaq_edem_fault_distribution>(bytes, faults) ||
-      !space<cudaq_edem_fault_group>(bytes, groups) ||
-      !space<uint32_t>(bytes, detectors) ||
-      !space<uint32_t>(bytes, observables) ||
-      !space<uint32_t>(bytes, successes) ||
-      !space<input_wire>(bytes, input_count) ||
-      !space<output_wire>(bytes, output_count) ||
-      !space<cudaq_edem_block>(bytes, block_count) ||
-      !space<uint64_t>(bytes, offset_count) ||
-      !space<uint8_t>(bytes, max_input) || !space<uint8_t>(bytes, max_output) ||
-      !space<uint8_t>(bytes, response_size))
+  if (!reserve_scratch<occurrence_info>(bytes, count) ||
+      !reserve_scratch<boundary_transfer>(bytes, transfer_count) ||
+      !reserve_scratch<cudaq_edem_code_presentation>(bytes, code_capacity) ||
+      !reserve_scratch<uint32_t>(bytes, first.shape.input_code_count) ||
+      !reserve_scratch<uint32_t>(bytes, last.shape.output_code_count) ||
+      !reserve_scratch<cudaq_edem_fault_distribution>(bytes, faults) ||
+      !reserve_scratch<cudaq_edem_fault_group>(bytes, groups) ||
+      !reserve_scratch<uint32_t>(bytes, detectors) ||
+      !reserve_scratch<uint32_t>(bytes, observables) ||
+      !reserve_scratch<uint32_t>(bytes, successes) ||
+      !reserve_scratch<input_wire>(bytes, input_count) ||
+      !reserve_scratch<output_wire>(bytes, output_count) ||
+      !reserve_scratch<cudaq_edem_matrix_block>(bytes, block_count) ||
+      !reserve_scratch<uint64_t>(bytes, offset_count) ||
+      !reserve_scratch<uint8_t>(bytes, max_input) ||
+      !reserve_scratch<uint8_t>(bytes, max_output) ||
+      !reserve_scratch<uint8_t>(bytes, response_size))
     return CUDAQ_EDEM_INSUFFICIENT_CAPACITY;
   allocation workspace(scratch_allocator(memory));
   EDEM_TRY(workspace.reserve(bytes, CUDAQ_EDEM_PACKED_ALIGNMENT));
@@ -297,16 +308,16 @@ cudaq_edem_status cudaq_edem_compose_chain(const cudaq_edem_view *values,
   auto info = a.take<occurrence_info>(count);
   auto transfers = a.take<boundary_transfer>(transfer_count);
   auto codes = a.take<cudaq_edem_code_presentation>(code_capacity);
-  auto input_codes = a.take<uint32_t>(first.shape.input_code_blocks);
-  auto output_codes = a.take<uint32_t>(last.shape.output_code_blocks);
+  auto input_codes = a.take<uint32_t>(first.shape.input_code_count);
+  auto output_codes = a.take<uint32_t>(last.shape.output_code_count);
   auto distributions = a.take<cudaq_edem_fault_distribution>(faults);
   auto laws = a.take<cudaq_edem_fault_group>(groups);
-  auto detector_sizes = a.take<uint32_t>(detectors);
-  auto observable_sizes = a.take<uint32_t>(observables);
-  auto success_sizes = a.take<uint32_t>(successes);
+  auto detector_ports_sizes = a.take<uint32_t>(detectors);
+  auto observable_ports_sizes = a.take<uint32_t>(observables);
+  auto success_ports_sizes = a.take<uint32_t>(successes);
   auto inputs = a.take<input_wire>(input_count);
   auto outputs = a.take<output_wire>(output_count);
-  auto blocks = a.take<cudaq_edem_block>(block_count);
+  auto blocks = a.take<cudaq_edem_matrix_block>(block_count);
   auto offsets = a.take<uint64_t>(offset_count);
   auto input = a.take<uint8_t>(max_input);
   auto output = a.take<uint8_t>(max_output);
@@ -317,36 +328,34 @@ cudaq_edem_status cudaq_edem_compose_chain(const cudaq_edem_view *values,
   for (uint32_t t = 0; t < count; ++t) {
     EDEM_TRY(describe(values[t], info[t]));
     if (t) {
-      if (info[t - 1].shape.output_code_blocks !=
-          info[t].shape.input_code_blocks)
+      if (info[t - 1].shape.output_code_count != info[t].shape.input_code_count)
         return CUDAQ_EDEM_INVALID_CONTENT;
       info[t].transfer_begin = transfer_index;
-      for (uint32_t p = 0; p < info[t].shape.input_code_blocks; ++p) {
+      for (uint32_t p = 0; p < info[t].shape.input_code_count; ++p) {
         cudaq_edem_code_presentation left, right;
-        EDEM_TRY(boundary_code(values[t - 1], true, p, left));
-        EDEM_TRY(boundary_code(values[t], false, p, right));
+        EDEM_TRY(boundary_code(values[t - 1], CUDAQ_EDEM_OUTPUT, p, left));
+        EDEM_TRY(boundary_code(values[t], CUDAQ_EDEM_INPUT, p, right));
         if (!same_code(left, right))
           return CUDAQ_EDEM_INVALID_CONTENT;
         for (uint32_t kind = CUDAQ_EDEM_VIRTUAL; kind <= CUDAQ_EDEM_LOGICAL;
              ++kind) {
           auto &transfer = transfers[transfer_index++];
           uint32_t output_width;
-          EDEM_TRY(location(values[t - 1], true, {kind, p}, output_width,
-                            transfer.output_offset));
-          EDEM_TRY(location(values[t], false, {kind, p}, transfer.width,
-                            transfer.input_offset));
+          EDEM_TRY(location(values[t - 1], CUDAQ_EDEM_OUTPUT, {kind, p},
+                            output_width, transfer.output_offset));
+          EDEM_TRY(location(values[t], CUDAQ_EDEM_INPUT, {kind, p},
+                            transfer.width, transfer.input_offset));
           if (output_width != transfer.width)
             return CUDAQ_EDEM_INVALID_CONTENT;
         }
       }
       info[t].transfer_count = transfer_index - info[t].transfer_begin;
     }
-    for (uint32_t p = 0; p < info[t].shape.code_presentations; ++p) {
+    for (uint32_t p = 0; p < info[t].code_count; ++p) {
       cudaq_edem_code_presentation code;
       EDEM_TRY(cudaq_edem_get_code(&values[t], p, &code));
       uint32_t i = 0;
-      while (i < code_count && name_compare(codes[i].name, codes[i].name_size,
-                                            code.name, code.name_size))
+      while (i < code_count && !same_name(codes[i], code))
         ++i;
       if (i == code_count)
         codes[code_count++] = code;
@@ -354,11 +363,12 @@ cudaq_edem_status cudaq_edem_compose_chain(const cudaq_edem_view *values,
         return CUDAQ_EDEM_INVALID_CONTENT;
     }
     const uint32_t input_bundles =
-        info[t].shape.fault_ports + info[t].shape.input_code_blocks;
+        info[t].shape.fault_ports_count + info[t].shape.input_code_count;
     for (uint32_t p = 0; p < input_bundles; ++p) {
       cudaq_gf2_bundle bundle;
-      EDEM_TRY(cudaq_gf2_map_get_bundle(&values[t].map, false, p, &bundle));
-      if (bundle.type < info[t].shape.code_presentations)
+      EDEM_TRY(cudaq_gf2_map_get_bundle(&values[t].map, CUDAQ_EDEM_INPUT, p,
+                                        &bundle));
+      if (bundle.type < info[t].code_count)
         continue;
       uint32_t width, law_count;
       EDEM_TRY(cudaq_edem_get_fault(&values[t], p, &width, &law_count));
@@ -369,66 +379,68 @@ cudaq_edem_status cudaq_edem_compose_chain(const cudaq_edem_view *values,
       auto &wire = inputs[fault_index];
       wire.endpoint = {CUDAQ_EDEM_FAULT, static_cast<uint32_t>(fault_index)};
       wire.occurrence = t;
-      EDEM_TRY(cudaq_gf2_map_get_wire(&values[t].map, false, {p, 0},
+      EDEM_TRY(cudaq_gf2_map_get_wire(&values[t].map, CUDAQ_EDEM_INPUT, {p, 0},
                                       &wire.width, &wire.local_offset));
       ++fault_index;
     }
   }
-  for (uint32_t side = 0; side < 2; ++side) {
-    auto destination = side ? output_codes : input_codes;
-    uint32_t t = side ? count - 1 : 0;
+  for (cudaq_edem_endpoint_direction direction = CUDAQ_EDEM_INPUT;
+       direction <= CUDAQ_EDEM_OUTPUT; ++direction) {
+    auto destination =
+        direction == CUDAQ_EDEM_OUTPUT ? output_codes : input_codes;
+    uint32_t t = direction == CUDAQ_EDEM_OUTPUT ? count - 1 : 0;
     for (uint32_t p = 0; p < destination.size(); ++p) {
       cudaq_edem_code_presentation code;
-      EDEM_TRY(boundary_code(values[t], side, p, code));
+      EDEM_TRY(boundary_code(values[t], direction, p, code));
       for (uint32_t i = 0; i < code_count; ++i)
-        if (same_code(codes[i], code)) {
+        if (same_name(codes[i], code)) {
           destination[p] = i;
           break;
         }
     }
   }
   uint64_t in_index = faults;
-  for (uint32_t p = 0; p < first.shape.input_code_blocks; ++p)
+  for (uint32_t p = 0; p < first.shape.input_code_count; ++p)
     for (uint32_t kind = CUDAQ_EDEM_VIRTUAL; kind <= CUDAQ_EDEM_LOGICAL;
          ++kind) {
       auto &wire = inputs[in_index++];
       wire.endpoint = {kind, p};
-      EDEM_TRY(location(values[0], false, wire.endpoint, wire.width,
+      EDEM_TRY(location(values[0], CUDAQ_EDEM_INPUT, wire.endpoint, wire.width,
                         wire.local_offset));
     }
   uint64_t out_index = 0, response_offset = 0;
   for (uint32_t kind = CUDAQ_EDEM_DETECTOR; kind <= CUDAQ_EDEM_SUCCESS;
        ++kind) {
-    auto sizes = kind == CUDAQ_EDEM_DETECTOR     ? detector_sizes
-                 : kind == CUDAQ_EDEM_OBSERVABLE ? observable_sizes
-                                                 : success_sizes;
-    uint32_t partition = 0;
+    auto sizes = kind == CUDAQ_EDEM_DETECTOR     ? detector_ports_sizes
+                 : kind == CUDAQ_EDEM_OBSERVABLE ? observable_ports_sizes
+                                                 : success_ports_sizes;
+    uint32_t port = 0;
     for (uint32_t t = 0; t < count; ++t) {
-      uint32_t n = kind == CUDAQ_EDEM_DETECTOR ? info[t].shape.detector_ports
-                   : kind == CUDAQ_EDEM_OBSERVABLE
-                       ? info[t].shape.observable_ports
-                       : info[t].shape.success_ports;
+      uint32_t n =
+          kind == CUDAQ_EDEM_DETECTOR     ? info[t].shape.detector_ports_count
+          : kind == CUDAQ_EDEM_OBSERVABLE ? info[t].shape.observable_ports_count
+                                          : info[t].shape.success_ports_count;
       for (uint32_t p = 0; p < n; ++p) {
         auto &wire = outputs[out_index++];
-        wire.endpoint = {kind, partition};
+        wire.endpoint = {kind, port};
         wire.occurrence = t;
         wire.response_offset = response_offset;
-        EDEM_TRY(location(values[t], true, {kind, p}, wire.width,
+        EDEM_TRY(location(values[t], CUDAQ_EDEM_OUTPUT, {kind, p}, wire.width,
                           wire.local_offset));
-        sizes[partition++] = wire.width;
+        sizes[port++] = wire.width;
         response_offset += wire.width;
       }
     }
   }
-  for (uint32_t p = 0; p < last.shape.output_code_blocks; ++p)
+  for (uint32_t p = 0; p < last.shape.output_code_count; ++p)
     for (uint32_t kind = CUDAQ_EDEM_VIRTUAL; kind <= CUDAQ_EDEM_LOGICAL;
          ++kind) {
       auto &wire = outputs[out_index++];
       wire.endpoint = {kind, p};
       wire.occurrence = count - 1;
       wire.response_offset = response_offset;
-      EDEM_TRY(location(values[count - 1], true, wire.endpoint, wire.width,
-                        wire.local_offset));
+      EDEM_TRY(location(values[count - 1], CUDAQ_EDEM_OUTPUT, wire.endpoint,
+                        wire.width, wire.local_offset));
       response_offset += wire.width;
     }
 
@@ -459,7 +471,7 @@ cudaq_edem_status cudaq_edem_compose_chain(const cudaq_edem_view *values,
       }
     }
   uint64_t row_bytes = 0;
-  if (!space<uint32_t>(row_bytes, nonzeros))
+  if (!reserve_scratch<uint32_t>(row_bytes, nonzeros))
     return CUDAQ_EDEM_INSUFFICIENT_CAPACITY;
   allocation row_storage(scratch_allocator(memory));
   EDEM_TRY(row_storage.reserve(row_bytes, CUDAQ_EDEM_PACKED_ALIGNMENT));
@@ -485,17 +497,17 @@ cudaq_edem_status cudaq_edem_compose_chain(const cudaq_edem_view *values,
       }
     }
   cudaq_edem_description description{
-      {code_count, first.shape.input_code_blocks, last.shape.output_code_blocks,
+      {first.shape.input_code_count, last.shape.output_code_count,
        static_cast<uint32_t>(faults), static_cast<uint32_t>(detectors),
-       static_cast<uint32_t>(observables), static_cast<uint32_t>(successes),
-       block_count},
-      codes.data(),
+       static_cast<uint32_t>(observables), static_cast<uint32_t>(successes)},
+      {code_count, codes.data()},
       input_codes.data(),
       output_codes.data(),
       distributions.data(),
-      detector_sizes.data(),
-      observable_sizes.data(),
-      success_sizes.data(),
+      detector_ports_sizes.data(),
+      observable_ports_sizes.data(),
+      success_ports_sizes.data(),
+      block_count,
       blocks.data()};
   return cudaq_edem_construct(&description, memory, owner, result);
 }

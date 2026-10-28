@@ -15,8 +15,8 @@ CUDAQ_GF2_0.1 {
     cudaq_gf2_default_allocator;
     cudaq_gf2_map_apply;
     cudaq_gf2_map_construct;
-    cudaq_gf2_map_get_block;
     cudaq_gf2_map_get_bundle;
+    cudaq_gf2_map_get_matrix_block;
     cudaq_gf2_map_get_section;
     cudaq_gf2_map_get_shape;
     cudaq_gf2_map_get_type;
