@@ -95,8 +95,19 @@ EDEM's native library and Python value package are required as well. Install
 the `cudaq-edem` wheel in the selected Python environment; CMake discovers its
 package automatically. For a native EDEM installation, pass
 `-Dcudaq-edem_DIR=<prefix>/lib/cmake/cudaq-edem` and make its Python package
-available to the same interpreter. See the
-[EDEM source-build instructions](../use-cases/gadget-edems.md#build-from-source).
+available to the same interpreter. From a source checkout, build and install
+EDEM before configuring Logical:
+
+```sh
+cmake -S edem -B build-edem -DCUDAQ_EDEM_BUILD_PYTHON=ON \
+  -DCMAKE_INSTALL_PREFIX=/path/to/edem-install
+cmake --build build-edem
+cmake --install build-edem
+```
+
+Then pass `-Dcudaq-edem_DIR=/path/to/edem-install/lib/cmake/cudaq-edem` to the
+Logical configuration above and add the installed `cudaq_edem` Python package
+to the selected interpreter's module search path.
 
 `LLVM_DIR` and `MLIR_DIR` still work as overrides -- needed when CUDA-Q was
 installed without `CUDAQ_BUNDLE_MLIR_INSTALL=ON` -- but they must name the exact

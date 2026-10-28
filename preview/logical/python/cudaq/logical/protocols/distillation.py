@@ -19,7 +19,7 @@ from __future__ import annotations
 import math
 
 from .. import codes, std
-from cudaq.logical.programs.decorators import objective
+from cudaq.logical.programs.decorators import action as _action
 from cudaq.logical.ops._impl import (
     allocate_patch,
     discard,
@@ -83,7 +83,7 @@ CCZ_8TO1_SYNDROME_OUTPUTS = (0, 2, 1)
 def _make_rotation_step(index: int, support: tuple[int, ...]):
     label = "".join(map(str, support))
 
-    @objective(name=f"z_product_pi_over_4_{index}_{label}")
+    @_action(name=f"z_product_pi_over_4_{index}_{label}")
     def intent(
         q0: logical_qubit,
         q1: logical_qubit,
@@ -143,7 +143,7 @@ FIFTEEN_TO_ONE_ROTATION_STEPS = tuple(
     for index, support in enumerate(FIFTEEN_TO_ONE_ROTATION_SUPPORTS))
 
 
-@objective
+@_action
 def bare_s_action(q: logical_qubit) -> logical_qubit:
     return s(q)
 
@@ -153,7 +153,7 @@ def bare_s(block: patch[codes.BareQubit]) -> patch[codes.BareQubit]:
     return s(block.data)
 
 
-@objective
+@_action
 def bare_measure_x_intent(q: logical_qubit) -> bool:
     return measure_x(q)
 

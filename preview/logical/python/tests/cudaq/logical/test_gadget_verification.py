@@ -48,8 +48,8 @@ def _contract(gadget=syndrome_round, *, detectors=None):
     if detectors is None:
         detectors = _rows(incoming, new_checks)
     return ql.gadgets.GadgetContract(gadget,
-                                    detectors=detectors,
-                                    boundary={outgoing.syndrome: new_checks})
+                                     detectors=detectors,
+                                     boundary={outgoing.syndrome: new_checks})
 
 
 def _kinds(error):
@@ -157,8 +157,8 @@ def test_steane_transversal_h_swaps_the_check_families():
 
     # The adjacent-round contract does not hold across a Hadamard.
     unswapped = ql.gadgets.GadgetContract(steane_h_round,
-                                         detectors=_rows(h_in, h_checks),
-                                         boundary={h_out.syndrome: h_checks})
+                                          detectors=_rows(h_in, h_checks),
+                                          boundary={h_out.syndrome: h_checks})
     with pytest.raises(GadgetVerificationError) as exc:
         ql.gadgets.verify_gadget(unswapped)
     assert _kinds(exc)[0] == ["detector_not_deterministic"] * 6
@@ -256,8 +256,8 @@ def test_action_over_a_different_number_of_logical_qubits_is_unsupported():
         boundary[outgoing.syndrome] = new_checks
     receipt = ql.gadgets.verify_gadget(
         ql.gadgets.GadgetContract(two_blocks,
-                                 detectors=tuple(rows),
-                                 boundary=boundary))
+                                  detectors=tuple(rows),
+                                  boundary=boundary))
     assert receipt.detector_contract.ok
     assert receipt.logical_action.status == "unsupported"
     assert "1 logical qubit(s)" in receipt.logical_action.reason
@@ -300,9 +300,9 @@ def test_success_rows_must_be_deterministic_on_the_ideal_realization():
     assert receipt.detector_contract.success_count == 2
     # A bare record is random on a random input syndrome.
     bad = ql.gadgets.GadgetContract(syndrome_round,
-                                   boundary=boundary,
-                                   success=(ql.gadgets.SuccessPredicate(
-                                       checks[0]),))
+                                    boundary=boundary,
+                                    success=(ql.gadgets.SuccessPredicate(
+                                        checks[0]),))
     with pytest.raises(GadgetVerificationError, match="success row 0") as exc:
         ql.gadgets.verify_gadget(bad)
     assert _kinds(exc)[0] == ["success_not_deterministic"]

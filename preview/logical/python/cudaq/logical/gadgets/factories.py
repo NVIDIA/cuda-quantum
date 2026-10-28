@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import hashlib
 
-from cudaq.logical.programs.decorators import objective
+from cudaq.logical.programs.decorators import action as _action
 from cudaq.logical.ops._impl import (
     cx,
     cz,
@@ -54,19 +54,19 @@ from cudaq.logical.types.semantic import (
     zero,
 )
 from ..std import LogicalInstrumentRef
-from ..std import idle as idle_objective
-from ..std import prepare_plus as prepare_plus_objective
-from ..std import prepare_zero as prepare_zero_objective
-from ..std import x as x_objective
-from ..std import z as z_objective
+from ..std import idle as idle_action
+from ..std import prepare_plus as prepare_plus_action
+from ..std import prepare_zero as prepare_zero_action
+from ..std import x as x_action
+from ..std import z as z_action
 
 
-@objective(name="qlx_standard_measure_z")
+@_action(name="qlx_standard_measure_z")
 def _measure_z_intent(q: logical_qubit) -> bool:
     return logical_measure_z(q)
 
 
-@objective(name="qlx_standard_measure_x")
+@_action(name="qlx_standard_measure_x")
 def _measure_x_intent(q: logical_qubit) -> bool:
     return logical_measure_x(q)
 
@@ -94,7 +94,7 @@ def _measurement(
         raise TypeError("logical measurement port must be an int")
     if not 0 <= logical < code.k:
         raise ValueError(f"code {code.name} has no protected logical {logical}")
-    objective = _measure_z_intent if basis == "z" else _measure_x_intent
+    action = _measure_z_intent if basis == "z" else _measure_x_intent
     pauli = Z if basis == "z" else X
 
     def realization(block):
@@ -112,7 +112,7 @@ def _measurement(
         "block": patch[encoding],
         "return": tuple[patch[encoding], bool] if preserve_block else bool,
     }
-    return gadget(realization, implements=objective, name=realization.__name__)
+    return gadget(realization, implements=action, name=realization.__name__)
 
 
 def measure_z(
@@ -213,7 +213,7 @@ def logical_pauli(
     }
     return gadget(
         realization,
-        implements=x_objective if basis == "x" else z_objective,
+        implements=x_action if basis == "x" else z_action,
         name=realization.__name__,
         metadata={
             "logical": logical,
@@ -232,7 +232,7 @@ def css_memory_round(value,
     One syndrome-extraction pass over the encoded block: the gadget consumes
     and returns the same linear patch owner while its check records update the
     syndrome history. It implements the standard ``cudaq.logical.logical.idle``
-    objective, so QEC selection binds it to explicit ``cudaq.logical.idle`` memory
+    action, so QEC selection binds it to explicit ``cudaq.logical.idle`` memory
     workloads placed on the code.
     """
     encoding = _encoding(value)
@@ -252,11 +252,11 @@ def css_memory_round(value,
         "return": patch[encoding],
     }
     return gadget(realization,
-                  implements=idle_objective,
+                  implements=idle_action,
                   name=realization.__name__)
 
 
-def _preparation(value, *, state, objective, name: str | None):
+def _preparation(value, *, state, action, name: str | None):
     encoding = _encoding(value)
     code = encoding.code
 
@@ -269,7 +269,7 @@ def _preparation(value, *, state, objective, name: str | None):
         "block": patch[encoding],
         "return": patch[encoding],
     }
-    return gadget(realization, implements=objective, name=realization.__name__)
+    return gadget(realization, implements=action, name=realization.__name__)
 
 
 def prepare_zero(value, *, name: str | None = None):
@@ -278,7 +278,7 @@ def prepare_zero(value, *, name: str | None = None):
     return _preparation(
         value,
         state=zero,
-        objective=prepare_zero_objective,
+        action=prepare_zero_action,
         name=name,
     )
 
@@ -289,7 +289,7 @@ def prepare_plus(value, *, name: str | None = None):
     return _preparation(
         value,
         state=plus,
-        objective=prepare_plus_objective,
+        action=prepare_plus_action,
         name=name,
     )
 

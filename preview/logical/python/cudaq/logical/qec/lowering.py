@@ -17,6 +17,7 @@ from types import MappingProxyType
 from typing import Any, Callable, Iterable, Mapping
 
 from ..std import LogicalActionRef, LogicalInstrumentRef, ResourceKind
+from cudaq.logical._core.compat import UNSET, resolve_alias
 from cudaq.logical._core.immutable import ImmutableValue
 from cudaq.logical.programs.definition import ProgramDefinition
 from cudaq.logical.gadgets import GadgetDefinition
@@ -49,6 +50,18 @@ class ActionSiteHandle:
     resource_kind: str | None = None
     resource_stream: str | None = None
     resource_stream_owner: str | None = None
+
+    @property
+    def action_family(self) -> str:
+        """Selector family of the action, using the canonical terminology."""
+
+        return self.objective_family
+
+    @property
+    def action(self) -> str | None:
+        """Declared logical action; the stored field preserves bundle format."""
+
+        return self.objective
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "placements", tuple(self.placements))
@@ -223,7 +236,19 @@ class _FunctionSiteCompiler(QECCompiler):
 
 def _manifest_type_name(value) -> str:
     kind = type(value)
-    return f"{kind.__module__}.{kind.__qualname__}"
+    name = f"{kind.__module__}.{kind.__qualname__}"
+    # Public aliases must not change existing provider identity commitments.
+    legacy = {
+        "cudaq.logical.std.SyndromeExtractionAction":
+            "cudaq.logical.std.SyndromeExtractionObjective",
+        "cudaq.logical.std.ActionFamily":
+            "cudaq.logical.std.ObjectiveFamily",
+        "cudaq.logical.programs.binding.ActionOperandRef":
+            "cudaq.logical.programs.binding.ObjectiveOperandRef",
+        "cudaq.logical.qec.actions.SubsystemFragmentAction":
+            "cudaq.logical.qec.objectives.SubsystemFragmentObjective",
+    }
+    return legacy.get(name, name)
 
 
 def _manifest_value(value, active=None):
@@ -406,21 +431,21 @@ def _manifest_reference(value):
     raise TypeError(
         "QEC lowering manifest references require a typed QLX program, "
         "gadget, protocol, "
-        "capability, logical objective, or symbol string")
+        "capability, logical action, or symbol string")
 
 
-def _manifest_objective(value):
+def _manifest_action(value):
     """Return one exact typed objective identity or fail before hashing."""
 
     if value is None:
         return None
     if isinstance(value, (LogicalActionRef, LogicalInstrumentRef)):
         return _manifest_reference(value)
-    if isinstance(value, ProgramDefinition) and value.kind == "objective":
+    if isinstance(value, ProgramDefinition) and value.kind == "action":
         return _manifest_reference(value)
     raise TypeError(
-        "QECLowering objective must be a typed logical action, instrument, "
-        "or @cudaq.logical.objective definition")
+        "QECLowering action must be a typed logical action, instrument, "
+        "or @cudaq.logical.action definition")
 
 
 def _manifest_mapping(value, *, field: str) -> Mapping[str, str]:
@@ -459,7 +484,7 @@ def _qec_lowering_manifest_sha256(definition) -> str:
         "objective_family":
             definition.objective_family,
         "objective":
-            _manifest_objective(definition.objective),
+            _manifest_action(definition.objective),
         "codes": [_manifest_reference(value) for value in definition.codes],
         "requirements": [
             _manifest_reference(value) for value in definition.requires
@@ -526,8 +551,10 @@ class QECLowering(ImmutableValue):
         provider: Callable[..., Any] | None = None,
         *,
         compiler: QECCompiler | None = None,
-        objective_family: str,
-        objective=None,
+        action_family=UNSET,
+        action=UNSET,
+        objective_family=UNSET,
+        objective=UNSET,
         codes: Iterable[Code | Encoding] = (),
         requires: Iterable[Any] = (),
         dependencies: Iterable[Any] = (),
@@ -538,6 +565,15 @@ class QECLowering(ImmutableValue):
         policy_schema: Mapping[str, Any] | None = None,
         metadata: Mapping[str, Any] | None = None,
     ) -> None:
+        objective_family = resolve_alias(action_family,
+                                         objective_family,
+                                         name="action_family",
+                                         legacy_name="objective_family")
+        objective = resolve_alias(action,
+                                  objective,
+                                  name="action",
+                                  legacy_name="objective",
+                                  default=None)
         if provider is not None and compiler is not None:
             raise TypeError(
                 "QECLowering accepts provider= or compiler=, not both")
@@ -546,7 +582,7 @@ class QECLowering(ImmutableValue):
         elif not isinstance(compiler, QECCompiler):
             raise TypeError("QECLowering compiler must be a typed QECCompiler")
         if not isinstance(objective_family, str) or not objective_family:
-            raise ValueError("QECLowering objective_family must be nonempty")
+            raise ValueError("QECLowering action_family must be nonempty")
         if (not isinstance(plugin, str) or not plugin or
                 not isinstance(version, str) or not version):
             raise ValueError("QECLowering requires versioned plugin provenance")
@@ -572,7 +608,7 @@ class QECLowering(ImmutableValue):
             if compiler.key != expected_key:
                 raise ValueError("QECNetworkCompiler key must be canonical "
                                  f"{expected_key!r}")
-        _manifest_objective(objective)
+        _manifest_action(objective)
         if name is not None and (not isinstance(name, str) or not name):
             raise TypeError("QECLowering name must be a nonempty string")
         self.compiler = compiler
@@ -601,6 +637,18 @@ class QECLowering(ImmutableValue):
         self.provides_facets = (QEC_REALIZATION, PROTOCOL_NETWORK)
         self.manifest_sha256 = _qec_lowering_manifest_sha256(self)
         self._seal()
+
+    @property
+    def action_family(self) -> str:
+        """Family selected by this compiler manifest."""
+
+        return self.objective_family
+
+    @property
+    def action(self):
+        """Logical action selected by this compiler manifest."""
+
+        return self.objective
 
     @property
     def provider(self):
@@ -700,22 +748,23 @@ class QECNetworkContext:
         )
 
 
-def _inferred_objective_family(objective) -> str:
-    """Infer the selector family of one exact typed logical objective."""
+def _inferred_action_family(objective) -> str:
+    """Infer the selector family of one exact typed logical action."""
 
     if isinstance(objective, ProgramDefinition):
-        if (objective.kind == "objective" and
-                objective.objective_kind in {"action", "instrument"}):
-            return objective.objective_kind
-        raise TypeError("qec_lowering requires objective_family= for an "
-                        "@cudaq.logical.objective(kind='auto') definition")
+        if (objective.kind == "action" and
+                objective.action_kind in {"unitary", "instrument"}):
+            return ("action"
+                    if objective.action_kind == "unitary" else "instrument")
+        raise TypeError("qec_lowering requires action_family= for an "
+                        "@cudaq.logical.action(kind='auto') definition")
     if not isinstance(
             objective,
         (LogicalActionRef, LogicalInstrumentRef),
     ):
         raise TypeError(
-            "qec_lowering requires objective_family= when objective= is not "
-            "a typed logical objective")
+            "qec_lowering requires action_family= when action= is not "
+            "a typed logical action")
     name = objective.name
     explicit_family = getattr(objective, "family", None)
     if explicit_family:
@@ -734,14 +783,16 @@ def _inferred_objective_family(objective) -> str:
         return "instrument"
     if isinstance(objective, LogicalActionRef):
         return "action"
-    raise AssertionError(f"unhandled typed QEC objective {objective!r}")
+    raise AssertionError(f"unhandled typed QEC action {objective!r}")
 
 
 def qec_lowering(
         fn=None,
         *,
-        objective_family=None,
-        objective=None,
+        action_family=UNSET,
+        action=UNSET,
+        objective_family=UNSET,
+        objective=UNSET,
         codes=(),
         requires=(),
         dependencies=(),
@@ -751,9 +802,19 @@ def qec_lowering(
         name=None,
         policy_schema=None,
 ):
+    objective_family = resolve_alias(action_family,
+                                     objective_family,
+                                     name="action_family",
+                                     legacy_name="objective_family",
+                                     default=None)
+    objective = resolve_alias(action,
+                              objective,
+                              name="action",
+                              legacy_name="objective",
+                              default=None)
 
     def decorate(provider):
-        family = (_inferred_objective_family(objective)
+        family = (_inferred_action_family(objective)
                   if objective_family is None else objective_family)
         provider_plugin = plugin
         if provider_plugin is None:
@@ -761,8 +822,8 @@ def qec_lowering(
         provider_version = "linked" if version is None else version
         return QECLowering(
             provider,
-            objective_family=family,
-            objective=objective,
+            action_family=family,
+            action=objective,
             codes=codes,
             requires=requires,
             dependencies=dependencies,

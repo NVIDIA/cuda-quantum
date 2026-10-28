@@ -99,7 +99,7 @@ Synthesis legalizes off-lattice rotations to Clifford+T; see
 Magic states are typed resources, not ad-hoc qubits. The standard library
 namespace `cudaq.logical.logical` declares the kinds — `T_STATE`,
 `RAW_T_STATE`, `Y_STATE`, `CCZ_STATE`, `CS_STATE`, `ENCODED_BELL_PAIR` — each
-with a typed consume action, and its `produce(...)` builds the objective a
+with a typed consume action, and its `produce(...)` builds the action a
 production protocol claims to implement. A protocol body sees resources through
 `cudaq.logical.types.resource[...]` handles: `cudaq.logical.request_many` draws
 raw inputs, `cudaq.logical.unpack_resource` opens a resource into a patch, and

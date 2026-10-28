@@ -42,6 +42,7 @@ from . import (  # noqa: E402
 )
 from .compiler import compile, materialize  # noqa: E402
 from .programs import (
+    action,
     abort_on,
     condition_results,
     objective,
@@ -94,6 +95,7 @@ _warnings.warn(
 
 __all__ = [
     "program",
+    "action",
     "objective",
     "code",
     "gadget",

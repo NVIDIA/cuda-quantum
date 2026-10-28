@@ -93,8 +93,8 @@ the example demonstrates.
 ## 3. Define a QEC realization
 
 At P2, codes and gadgets describe how to realize logical behavior. The next
-example defines the Steane code, an objective for terminal memory, and a gadget
-that implements that objective:
+example defines the Steane code, an action for terminal memory, and a gadget
+that implements that action:
 
 ```{eval-rst}
 .. literalinclude:: ../../../examples/standalone/02_code_and_gadget.py
@@ -109,7 +109,7 @@ works on a typed Steane patch, extracts its syndrome, measures its data qubits,
 and ends their lifetime.
 
 `implements=terminal_memory` is a checked claim about the gadget's behavior.
-CUDA-Q Logical compares the gadget with the objective using their types and
+CUDA-Q Logical compares the gadget with the action using their types and
 derived actions; a matching Python name alone is not enough.
 
 Materialize the code and compile the gadget to inspect the verified P2

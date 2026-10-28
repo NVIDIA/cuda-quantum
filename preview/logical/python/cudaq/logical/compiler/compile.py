@@ -795,7 +795,7 @@ def compile(
             machine=None,
             selection=definition.selection,
             kind=definition.kind,
-            objective_kind=definition.objective_kind,
+            action_kind=definition.action_kind,
             name=definition.name,
             metadata=definition.metadata,
             type_hints=definition.type_hints,

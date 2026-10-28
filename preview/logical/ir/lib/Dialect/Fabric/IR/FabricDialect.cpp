@@ -2005,10 +2005,10 @@ static LogicalResult verifyGeneratedRemoteProvenance(Operation *owner) {
   if (!generatorObjective || !protocol.getObjectiveAttr() ||
       protocol.getObjectiveAttr() != generatorObjective)
     return owner->emitOpError(
-        "generated protocol objective must equal its generator objective");
+        "generated protocol action must equal its generator action");
   if (site && site->getAttr("objective") != generatorObjective)
     return owner->emitOpError(
-        "generated protocol objective must equal its action-site objective");
+        "generated protocol action must equal its action-site declaration");
   if (!family || family.getValue() != "pauli_product_measurement")
     return owner->emitOpError("remote observable generator must select "
                               "pauli_product_measurement");
@@ -2341,15 +2341,15 @@ LogicalResult GadgetSpecOp::verify() {
           SymbolTable::lookupNearestSymbolFrom(*this, getObjectiveAttr())) {
     objective = dyn_cast<ObjectiveOp>(target);
     if (!objective)
-      return emitOpError("objective must resolve to fabric.objective");
+      return emitOpError("action must resolve to fabric.objective");
   }
   bool isEntrypoint = static_cast<bool>(getEntrypoint());
   if (isEntrypoint) {
     if (!objective)
       return emitOpError(
-          "entrypoint GadgetSpec objective must resolve to fabric.objective");
+          "entrypoint GadgetSpec action must resolve to fabric.objective");
     if (objective.getFunctionType() != getFunctionType())
-      return emitOpError("entrypoint GadgetSpec objective and realization "
+      return emitOpError("entrypoint GadgetSpec action and realization "
                          "function types must match exactly");
   }
 
@@ -2439,7 +2439,7 @@ LogicalResult GadgetSpecOp::verify() {
     if ((realizationOutcomes != 0 && shape[0] != realizationOutcomes) ||
         (objectiveOutcomes && shape[0] != *objectiveOutcomes))
       return emitOpError(
-          "outcome_map rows must exactly cover objective and realization "
+          "outcome_map rows must exactly cover action and realization "
           "Boolean outcomes");
     if (llvm::any_of(constants.asArrayRef(),
                      [](int64_t value) { return value != 0 && value != 1; }))
@@ -2558,7 +2558,7 @@ LogicalResult GadgetSpecOp::verify() {
   } else if (!isEntrypoint &&
              (realizationOutcomes != 0 ||
               (objectiveOutcomes && *objectiveOutcomes != 0))) {
-    return emitOpError("Boolean objective and realization results require a "
+    return emitOpError("Boolean action and realization results require a "
                        "total outcome_map");
   }
 
@@ -2577,15 +2577,15 @@ LogicalResult GadgetSpecOp::verify() {
       if (auto objective = dyn_cast<StringAttr>(entry.getValue());
           !objective || objective.empty())
         return emitOpError(
-            "parameter_map values must be nonempty objective parameter names");
+            "parameter_map values must be nonempty action parameter names");
       else if (!objectiveNames.insert(objective.getValue()).second)
         return emitOpError(
-            "parameter_map must be a bijection onto objective parameters");
+            "parameter_map must be a bijection onto action parameters");
     if (static_cast<int64_t>(parameters->size()) != realizationParameters ||
         (objectiveParameters &&
          static_cast<int64_t>(parameters->size()) != *objectiveParameters))
       return emitOpError(
-          "parameter_map must be total over objective and realization runtime "
+          "parameter_map must be total over action and realization runtime "
           "parameters");
   }
 
@@ -3435,7 +3435,7 @@ static LogicalResult verifyDerivedCSSCX(GadgetOp gadget, GadgetSpecOp spec) {
     return success();
   if (gadgetLogicalAction(gadget) != std::optional<StringRef>("cx"))
     return gadget.emitOpError(
-        "derived CSS transversal CX requires the typed logical CX objective");
+        "derived CSS transversal CX requires the typed logical CX action");
   auto semantic = straightLineBody(gadget);
   if (semantic.size() != 1)
     return gadget.emitOpError(
@@ -3471,7 +3471,7 @@ static LogicalResult verifyDerivedCSSHPermutation(GadgetOp gadget,
     return success();
   if (gadgetLogicalAction(gadget) != std::optional<StringRef>("h"))
     return gadget.emitOpError(
-        "derived CSS H-permutation requires the typed logical H objective");
+        "derived CSS H-permutation requires the typed logical H action");
   auto semantic = straightLineBody(gadget);
   auto h = semantic.empty() ? HOp{} : dyn_cast<HOp>(semantic.front());
   Block &entry = gadget.getBody().front();
@@ -3656,7 +3656,7 @@ static LogicalResult verifyDerivedBareCZ(GadgetOp gadget, GadgetSpecOp spec) {
     return success();
   if (gadgetLogicalAction(gadget) != std::optional<StringRef>("cz"))
     return gadget.emitOpError(
-        "derived bare physical CZ requires the typed logical CZ objective");
+        "derived bare physical CZ requires the typed logical CZ action");
   auto semantic = straightLineBody(gadget);
   auto cz = semantic.size() == 1 ? dyn_cast<CZOp>(semantic.front()) : CZOp{};
   auto returnOp = dyn_cast<ReturnOp>(gadget.getBody().front().getTerminator());
@@ -3762,7 +3762,7 @@ static LogicalResult verifyAutomorphismObjective(Operation *realization,
   if (permutations.size() != 1)
     return fail("automorphism realization must contain exactly one "
                 "fabric.permute; compose permutations before declaring "
-                "objective equivalence");
+                "action equivalence");
   // A partially linked or legacy gadget without a spec is still checked by
   // PermuteOp's local canonical-code verifier.  Objective equivalence remains
   // a link-time obligation until a GadgetSpec is present.
@@ -3789,7 +3789,7 @@ static LogicalResult verifyAutomorphismObjective(Operation *realization,
       SymbolTable::lookupNearestSymbolFrom(spec, spec.getObjectiveAttr());
   auto objective = dyn_cast_or_null<ObjectiveOp>(objectiveTarget);
   if (!objective || !objective.getLogicalAttr())
-    return fail("automorphism GadgetSpec objective must resolve through "
+    return fail("automorphism GadgetSpec action must resolve through "
                 "fabric.objective to a typed logical action");
   auto *logicalTarget = SymbolTable::lookupNearestSymbolFrom(
       objective, objective.getLogicalAttr());
@@ -3799,12 +3799,12 @@ static LogicalResult verifyAutomorphismObjective(Operation *realization,
                             "clifford_action")
                       : ::qlx::CliffordActionAttr{};
   if (!logicalAction || !clifford)
-    return fail("automorphism objective must carry a typed independently "
+    return fail("automorphism action must carry a typed independently "
                 "derived #qlx.clifford_action");
 
   auto patch = cast<PatchType>(permutation.getPatch().getType());
   if (!patch.getEncoding())
-    return fail("automorphism objective verification requires an "
+    return fail("automorphism action verification requires an "
                 "encoding-qualified patch");
   auto *encodingTarget =
       SymbolTable::lookupNearestSymbolFrom(permutation, patch.getEncoding());
@@ -3833,7 +3833,7 @@ static LogicalResult verifyAutomorphismObjective(Operation *realization,
   ArrayRef<int64_t> objectiveMatrix = clifford.getMatrix().asArrayRef();
   ArrayRef<int64_t> phases = clifford.getPhases().asArrayRef();
   if (static_cast<int64_t>(binding.size()) != arity)
-    return fail("objective_binding must cover every typed objective port "
+    return fail("objective_binding must cover every typed action port "
                 "exactly once");
 
   SmallVector<int64_t> objectiveToCode(arity, -1);
@@ -3841,10 +3841,10 @@ static LogicalResult verifyAutomorphismObjective(Operation *realization,
   for (auto [objectiveIndex, rawPort] : llvm::enumerate(objectivePorts)) {
     auto objectivePort = dyn_cast<StringAttr>(rawPort);
     if (!objectivePort)
-      return fail("typed Clifford objective ports must be strings");
+      return fail("typed Clifford action ports must be strings");
     auto boundPort = binding.getAs<StringAttr>(objectivePort.getValue());
     if (!boundPort)
-      return fail("objective_binding is missing typed objective port '" +
+      return fail("objective_binding is missing typed action port '" +
                   objectivePort.getValue() + "'");
     int64_t codeIndex = -1;
     for (auto [index, rawEncodingPort] :
@@ -3914,7 +3914,7 @@ static LogicalResult verifyAutomorphismObjective(Operation *realization,
           basis == 0 ? expectedZ : expectedX;
       if (expectedPhase != 0 || mixedBasis.any() || *actual != sameBasis)
         return fail("fabric.permute action does not implement the typed "
-                    "objective's exact signed-symplectic action");
+                    "action's exact signed-symplectic action");
     }
   }
   for (int64_t gauge = protectedCount; gauge < totalCount; ++gauge) {
@@ -4123,11 +4123,11 @@ static LogicalResult verifyRetainedStreamProtocols(ProtocolOp protocol) {
       dyn_cast_or_null<qlx::BuiltinActionAttr>(objectiveAttr);
   if (!objective && !builtinObjective)
     return protocol.emitOpError(
-        "a retained stream protocol requires a typed action objective");
+        "a retained stream protocol requires a typed unitary action");
   if (objective && objective.getFunctionType() != protocol.getFunctionType())
     return protocol.emitOpError(
         "a retained stream protocol function type must exactly match its "
-        "qlx.action objective");
+        "qlx.action declaration");
 
   auto verifyRole = [&](qlx::lvm::StreamOp stream, StringRef role,
                         bool producer) -> LogicalResult {
@@ -4156,7 +4156,7 @@ static LogicalResult verifyRetainedStreamProtocols(ProtocolOp protocol) {
                                  stream.getProducesAttr().getValue().str();
       if (objective.getKind() != expectedKind)
         return protocol.emitOpError()
-               << "retained stream " << role << " objective must be the exact '"
+               << "retained stream " << role << " action must be the exact '"
                << expectedKind << "' qlx.action";
       return success();
     }
@@ -4200,7 +4200,7 @@ static LogicalResult verifyRetainedStreamProtocols(ProtocolOp protocol) {
     });
     if (failed(exactObjective))
       return protocol.emitOpError(
-          "retained stream transfer objective must exactly equal its P1 "
+          "retained stream transfer action must exactly equal its P1 "
           "resource-consume action");
     return success();
   };
@@ -4315,8 +4315,7 @@ LogicalResult ProtocolOp::verify() {
           isa<ResourceStateType>(objectiveType.getResult(0));
       if (producesResource) {
         if (functionType.getResults() != objectiveType.getResults())
-          return emitOpError(
-              "result types must match the production objective");
+          return emitOpError("result types must match the production action");
       }
     }
   }
@@ -5667,7 +5666,7 @@ static LogicalResult verifyCommunicationObligation(CallOp op) {
   Attribute siteObjective = actionSite->getAttr("objective");
   if (!siteObjective || lowering->getAttr("objective") != siteObjective)
     return op.emitOpError(
-        "generated_by objective does not match action_site provenance");
+        "generated_by action does not match action_site provenance");
 
   Operation *callee = SymbolTable::lookupNearestSymbolFrom(op.getOperation(),
                                                            op.getCalleeAttr());
@@ -5681,7 +5680,7 @@ static LogicalResult verifyCommunicationObligation(CallOp op) {
   if (!protocol.getObjectiveAttr() ||
       protocol.getObjectiveAttr() != siteObjective)
     return op.emitOpError(
-        "callee objective does not match action_site provenance");
+        "callee action does not match action_site provenance");
 
   SmallVector<Type> inputOwners;
   SmallVector<Type> resultOwners;
@@ -5772,7 +5771,7 @@ verifyLocalGeneratedRPPProvenance(Operation *owner, Operation *callee,
   Attribute loweringObjective = lowering->getAttr("objective");
   if (loweringObjective && loweringObjective != siteObjective)
     return owner->emitOpError(
-        "local generated RPP lowering objective must match action_site "
+        "local generated RPP lowering action must match action_site "
         "pauli_rotation");
 
   auto calleeName = callee->getAttrOfType<StringAttr>("sym_name");
@@ -5937,7 +5936,7 @@ verifyLocalGeneratedRPPProvenance(Operation *owner, Operation *callee,
   if (!protocol.getObjectiveAttr() ||
       protocol.getObjectiveAttr() != siteObjective)
     return owner->emitOpError(
-        "local generated RPP protocol objective must match action_site "
+        "local generated RPP protocol action must match action_site "
         "pauli_rotation");
   return success();
 }
@@ -6390,7 +6389,7 @@ LogicalResult UnpackResourceOp::verify() {
             protocol.getObjectiveAttr());
         objective && objective != action)
       return emitOpError(
-          "payload_action must match the enclosing protocol objective");
+          "payload_action must match the enclosing protocol action");
   }
   llvm::SmallDenseSet<std::pair<int64_t, int64_t>, 8> mappings;
   llvm::SmallDenseSet<int64_t, 8> coveredBlocks;

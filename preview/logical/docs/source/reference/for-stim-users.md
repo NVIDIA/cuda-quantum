@@ -20,7 +20,7 @@ sampling, DEM extraction, and decoding use the downstream Stim ecosystem.
 | Hand-maintain a circuit template per code                      | One portable program; swap `code=`/`Surface[d]` and recompile — the program is untouched                                                        |
 | Read the circuit to guess its cost                             | `cudaq.logical.estimate(build, tier=...)`: logical counts at P0, static and analytical counts at P2, schedule-backed counts at P3                          |
 | Ship circuit text                                              | `qlx-translate <module>.mlir --fabric-to-stim` projects a selected P2 entry gadget to Stim text                                                  |
-| (no equivalent)                                                | Placement onto logical machines, verified gadget objectives, magic-state protocols, replayable builds with evidence                             |
+| (no equivalent)                                                | Placement onto logical machines, verified gadget actions, magic-state protocols, replayable builds with evidence                             |
 
 ## Worked emission
 
@@ -46,7 +46,7 @@ boundaries it fails closed on.
 
 ## What has no Stim equivalent
 
-- **Verified gadget objectives.** A gadget _claims_ a logical action with
+- **Verified gadget actions.** A gadget _claims_ a logical action with
   `implements=`; for code-automorphism realizations the compiler derives the
   induced action from the code algebra and rejects mismatches.
 - **Linear ownership.** A measured-out or double-consumed patch is a typed error

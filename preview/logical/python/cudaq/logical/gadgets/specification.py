@@ -27,7 +27,7 @@ from typing import (
 
 from cudaq.logical.programs.binding import (
     LogicalPortRef,
-    ObjectiveOperandRef,
+    ActionOperandRef,
 )
 from cudaq.logical._core.immutable import ImmutableValue
 
@@ -154,11 +154,10 @@ class Port:
             targets = set()
             for raw_operand, raw_target in logical_ports.items():
                 operand = (raw_operand.name if isinstance(
-                    raw_operand, ObjectiveOperandRef) else raw_operand)
+                    raw_operand, ActionOperandRef) else raw_operand)
                 if not isinstance(operand, str) or not operand:
                     raise ValueError(
-                        "Port logical_ports keys must be objective operand names"
-                    )
+                        "Port logical_ports keys must be action operand names")
                 if isinstance(raw_target, LogicalPortRef):
                     if raw_target.encoding is not encoding:
                         raise ValueError(
@@ -173,7 +172,7 @@ class Port:
                     )
                 if operand in normalized:
                     raise ValueError(
-                        f"Port logical_ports repeats objective operand {operand!r}"
+                        f"Port logical_ports repeats action operand {operand!r}"
                     )
                 if target in targets:
                     raise ValueError(
@@ -243,7 +242,7 @@ class GadgetSpec:
 
     def __post_init__(self) -> None:
         if self.implements is None:
-            raise ValueError("GadgetSpec requires an implements= objective")
+            raise ValueError("GadgetSpec requires an implements= action")
         ports = tuple(self.ports)
         if any(not isinstance(port, Port) for port in ports):
             raise TypeError(
@@ -456,7 +455,7 @@ def _inferred_port_table(interface: GadgetInterface):
 def _verify_explicit_spec(definition: "GadgetDefinition") -> None:
     """An explicit spec constrains the realization boundary, never overrides it."""
 
-    from ..errors import InvalidPortBinding, ObjectiveMismatch
+    from ..errors import InvalidPortBinding, ActionMismatch
     from cudaq.logical.types.values import logical_qubit
     from ..std import LogicalInstrumentRef
     from cudaq.logical.programs.definition import ProgramDefinition
@@ -496,26 +495,25 @@ def _verify_explicit_spec(definition: "GadgetDefinition") -> None:
                          for item in flattened(member))
         return (annotation,)
 
-    objective = definition.implements
-    if isinstance(objective, LogicalInstrumentRef):
-        objective_outcomes = (0 if objective.name.startswith("prepare_") else
-                              objective.result_arity)
-    elif isinstance(objective,
-                    ProgramDefinition) and objective.kind == "objective":
-        result = objective.type_hints.get("return",
-                                          objective.signature.return_annotation)
-        objective_outcomes = sum(item is bool for item in flattened(result))
+    action = definition.implements
+    if isinstance(action, LogicalInstrumentRef):
+        action_outcomes = (0 if action.name.startswith("prepare_") else
+                           action.result_arity)
+    elif isinstance(action, ProgramDefinition) and action.kind == "action":
+        result = action.type_hints.get("return",
+                                       action.signature.return_annotation)
+        action_outcomes = sum(item is bool for item in flattened(result))
     else:
-        objective_outcomes = 0
+        action_outcomes = 0
 
     mapped_outcomes = (spec.outcome_map.outcome_count
                        if spec.outcome_map is not None else 0)
-    if mapped_outcomes != objective_outcomes:
-        raise ObjectiveMismatch(
+    if mapped_outcomes != action_outcomes:
+        raise ActionMismatch(
             f"gadget {definition.name!r} explicit OutcomeMap has "
-            f"{mapped_outcomes} row(s), but objective "
-            f"{getattr(objective, 'name', objective)!r} exposes "
-            f"{objective_outcomes} classical Boolean outcome(s)")
+            f"{mapped_outcomes} row(s), but action "
+            f"{getattr(action, 'name', action)!r} exposes "
+            f"{action_outcomes} classical Boolean outcome(s)")
 
     realization_port_origins = {patch, record, resource}
     realization_parameters = tuple(
@@ -523,45 +521,43 @@ def _verify_explicit_spec(definition: "GadgetDefinition") -> None:
         if get_origin(definition.type_hints.get(
             name, parameter.annotation)) not in realization_port_origins)
 
-    objective_parameters = ()
-    if isinstance(objective,
-                  ProgramDefinition) and objective.kind == "objective":
-        objective_port_origins = {
+    action_parameters = ()
+    if isinstance(action, ProgramDefinition) and action.kind == "action":
+        action_port_origins = {
             logical_event,
             logical_frame,
             logical_record,
             logical_resource,
         }
-        objective_parameters = tuple(
-            name for name, parameter in objective.signature.parameters.items()
-            if (annotation := objective.type_hints.get(
-                name, parameter.annotation)) is not logical_qubit and
-            get_origin(annotation) not in objective_port_origins)
+        action_parameters = tuple(
+            name for name, parameter in action.signature.parameters.items()
+            if (annotation := action.type_hints.get(name, parameter.annotation)
+               ) is not logical_qubit and
+            get_origin(annotation) not in action_port_origins)
 
     parameter_pairs = (spec.parameter_map.pairs
                        if spec.parameter_map is not None else ())
     mapped_realization = tuple(pair[0] for pair in parameter_pairs)
-    mapped_objective = tuple(pair[1] for pair in parameter_pairs)
+    mapped_action = tuple(pair[1] for pair in parameter_pairs)
     missing_realization = sorted(
         set(realization_parameters) - set(mapped_realization))
     extra_realization = sorted(
         set(mapped_realization) - set(realization_parameters))
-    missing_objective = sorted(
-        set(objective_parameters) - set(mapped_objective))
-    extra_objective = sorted(set(mapped_objective) - set(objective_parameters))
+    missing_action = sorted(set(action_parameters) - set(mapped_action))
+    extra_action = sorted(set(mapped_action) - set(action_parameters))
     if any((
             missing_realization,
             extra_realization,
-            missing_objective,
-            extra_objective,
+            missing_action,
+            extra_action,
     )):
-        raise ObjectiveMismatch(
+        raise ActionMismatch(
             f"gadget {definition.name!r} ParameterMap must be total and "
             "bijective over non-port parameters; "
             f"missing realization={missing_realization}, "
             f"unknown realization={extra_realization}, "
-            f"missing objective={missing_objective}, "
-            f"unknown objective={extra_objective}")
+            f"missing action={missing_action}, "
+            f"unknown action={extra_action}")
 
 
 def _gadget_boundary_profiles(gadget):
@@ -589,10 +585,10 @@ def _normalize_gadget_logical_ports(implements, interface, logical_ports):
             "@cudaq.logical.gadget logical_ports= expects a mapping")
 
     try:
-        objective_operands = tuple(implements.operands)
+        action_operands = tuple(implements.operands)
     except (AttributeError, TypeError):
-        objective_operands = ()
-    objective_names = {operand.name for operand in objective_operands}
+        action_operands = ()
+    action_names = {operand.name for operand in action_operands}
 
     endpoints = {}
     for endpoint in (*interface.inputs, *interface.outputs):
@@ -661,32 +657,32 @@ def _normalize_gadget_logical_ports(implements, interface, logical_ports):
     normalized = {}
     claimed_targets = set()
     for raw_operand, raw_target in logical_ports.items():
-        if isinstance(raw_operand, ObjectiveOperandRef):
-            if raw_operand.objective is not implements:
+        if isinstance(raw_operand, ActionOperandRef):
+            if raw_operand.action is not implements:
                 raise InvalidPortBinding(
-                    f"objective operand {raw_operand!r} belongs to a different "
-                    "objective")
-            if raw_operand not in objective_operands:
+                    f"action operand {raw_operand!r} belongs to a different "
+                    "action")
+            if raw_operand not in action_operands:
                 raise InvalidPortBinding(
-                    f"objective operand reference {raw_operand!r} is not "
-                    "declared by the objective")
+                    f"action operand reference {raw_operand!r} is not "
+                    "declared by the action")
             operand = raw_operand.name
         elif isinstance(raw_operand, str) and raw_operand:
             operand = raw_operand
         else:
             raise TypeError(
-                "logical_ports keys must be cudaq.logical.ObjectiveOperandRef values or "
+                "logical_ports keys must be cudaq.logical.ActionOperandRef values or "
                 "legacy nonempty strings")
-        if operand not in objective_names:
+        if operand not in action_names:
             raise InvalidPortBinding(
-                f"logical_ports contains unknown objective operand {operand!r}")
+                f"logical_ports contains unknown action operand {operand!r}")
         if operand in normalized:
             raise InvalidPortBinding(
-                f"logical_ports repeats objective operand {operand!r}")
+                f"logical_ports repeats action operand {operand!r}")
         target, identity = normalize_target(raw_target)
         if identity in claimed_targets:
             raise InvalidPortBinding(
-                f"logical port {target!r} is bound to more than one objective "
+                f"logical port {target!r} is bound to more than one action "
                 "operand")
         normalized[operand] = target
         claimed_targets.add(identity)
