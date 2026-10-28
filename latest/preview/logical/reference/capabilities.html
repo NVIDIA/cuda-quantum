@@ -90,6 +90,8 @@
 <li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/distillation.html">T-State Distillation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/physical-schedule.html">Standalone Physical Schedule</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/lookup-addition.html">Gidney–Ekerå Lookup Addition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/steane-bernstein-vazirani.html">Steane-Encoded Bernstein–Vazirani on Stim</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/t-factory-evaluation.html">T-State Distillation with <code class="docutils literal notranslate"><span class="pre">cudaq.run</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -138,6 +140,8 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../use-cases/magic-states-and-protocols.html#typed-resource-kinds">Typed resource kinds</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../use-cases/magic-states-and-protocols.html#to-1-a-concrete-factory">15-to-1: a concrete factory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/magic-states-and-protocols.html#compact-factory-models-at-p3">Compact factory models at P3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/magic-states-and-protocols.html#continue-from-here">Continue from here</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../use-cases/logical-synthesis.html">Logical Clifford+T synthesis</a><ul>
@@ -172,6 +176,7 @@
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="for-stim-users.html">CUDA-Q Logical for Stim users</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="for-stim-users.html#the-translation-table">The translation table</a></li>
+<li class="toctree-l2"><a class="reference internal" href="for-stim-users.html#execute-a-physical-build">Execute a physical build</a></li>
 <li class="toctree-l2"><a class="reference internal" href="for-stim-users.html#worked-emission">Worked emission</a></li>
 <li class="toctree-l2"><a class="reference internal" href="for-stim-users.html#what-has-no-stim-equivalent">What has no Stim equivalent</a></li>
 <li class="toctree-l2"><a class="reference internal" href="for-stim-users.html#when-to-just-use-stim">When to just use Stim</a></li>
@@ -181,7 +186,7 @@
 <li class="toctree-l2"><a class="reference internal" href="#what-the-product-is">What the product is</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#subsystem-status">Subsystem status</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#present-but-not-yet-exercised">Present but not yet exercised</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#documented-boundaries-all-fail-closed">Documented boundaries (all fail closed)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#execution-and-documented-boundaries">Execution and documented boundaries</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="architecture.html">Architecture</a><ul>
@@ -241,16 +246,18 @@ part of the installed <code class="docutils literal notranslate"><span class="pr
 shipped test or example executes it — the <code class="docutils literal notranslate"><span class="pre">lit</span></code>/<code class="docutils literal notranslate"><span class="pre">FileCheck</span></code> suites and the
 <code class="docutils literal notranslate"><span class="pre">pytest</span></code> suite (which runs every Python example under
 <code class="docutils literal notranslate"><span class="pre">preview/logical/examples/</span></code>) are the evidence. A capability that is neither is
-<strong>out of scope</strong>: a deliberate boundary, stated here, that fails closed instead
-of approximating past an implemented edge.</p>
+<strong>out of scope</strong>: a deliberate boundary, stated here. Execution limitations and
+the information omitted during lowering are listed below.</p>
 <section id="what-the-product-is">
 <h2>What the product is<a class="headerlink" href="#what-the-product-is" title="Link to this heading"></a></h2>
-<p>CUDA-Q Logical is a resource-estimation toolkit for fault-tolerant quantum
-computing. A program is refined through four strict semantic stages — <strong>P0</strong>
+<p>CUDA-Q Logical is a compiler and resource-estimation toolkit for fault-tolerant
+quantum computing. A program is refined through four strict semantic stages — <strong>P0</strong>
 unplaced logical, <strong>P1</strong> placed logical, <strong>P2</strong> QEC realization, and <strong>P3</strong>
 physical event graph and schedule. The estimation ladder has four tiers:
 <code class="docutils literal notranslate"><span class="pre">Tier.LOGICAL</span></code>, <code class="docutils literal notranslate"><span class="pre">Tier.STATIC</span></code>, <code class="docutils literal notranslate"><span class="pre">Tier.ANALYTICAL</span></code>, and <code class="docutils literal notranslate"><span class="pre">Tier.SCHEDULE</span></code>. Stim
-circuit text is the interchange emission target from a verified P2 gadget.</p>
+circuit text is an interchange emission target from a verified P2 gadget.
+Supported P3 physical builds also translate to Quake for execution through
+ordinary <code class="docutils literal notranslate"><span class="pre">cudaq.run</span></code>.</p>
 </section>
 <section id="subsystem-status">
 <h2>Subsystem status<a class="headerlink" href="#subsystem-status" title="Link to this heading"></a></h2>
@@ -315,6 +322,10 @@ circuit text is the interchange emission target from a verified P2 gadget.</p>
 <td><p>shipped, exercised</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">examples/mlir/stim_memory.mlir</span></code> via <code class="docutils literal notranslate"><span class="pre">qlx-translate</span></code>; Stim-emission tests</p></td>
 </tr>
+<tr class="row-odd"><td><p>P3 execution — <code class="docutils literal notranslate"><span class="pre">Build.to_quake()</span></code> and <code class="docutils literal notranslate"><span class="pre">cudaq.run</span></code></p></td>
+<td><p>shipped, exercised</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">python/tests/cudaq/logical/test_run_physical.py</span></code>; standalone examples 06 and 07</p></td>
+</tr>
 </tbody>
 </table>
 </section>
@@ -328,21 +339,37 @@ concatenation (<code class="docutils literal notranslate"><span class="pre">cuda
 (<code class="docutils literal notranslate"><span class="pre">cudaq.logical.codes.qec_block</span></code>). Treat them as preview surface: use them at
 your own risk until exercised evidence lands.</p>
 </section>
-<section id="documented-boundaries-all-fail-closed">
-<h2>Documented boundaries (all fail closed)<a class="headerlink" href="#documented-boundaries-all-fail-closed" title="Link to this heading"></a></h2>
-<p><strong>There are no detector, observable, detector-error-model, decoder, or sampling
-semantics.</strong> P3 retains typed physical error and timing <em>assumptions</em> so that
-<code class="docutils literal notranslate"><span class="pre">Tier.ANALYTICAL</span></code> and <code class="docutils literal notranslate"><span class="pre">Tier.SCHEDULE</span></code> can cost a realization — that is a
-parameter surface, not a noise model. CUDA-Q Logical does not annotate
-detectors or observables, generate or compose detector error models, sample
-circuits, or decode results. Those studies begin downstream of the emitted
-Stim text, in the Stim ecosystem.</p>
+<section id="execution-and-documented-boundaries">
+<h2>Execution and documented boundaries<a class="headerlink" href="#execution-and-documented-boundaries" title="Link to this heading"></a></h2>
+<p><strong>Execution uses ordinary CUDA-Q targets.</strong> <code class="docutils literal notranslate"><span class="pre">cudaq.run(physical_build,</span> <span class="pre">...)</span></code>
+translates a supported P3 <code class="docutils literal notranslate"><span class="pre">Build</span></code> through <code class="docutils literal notranslate"><span class="pre">Build.to_quake()</span></code> and executes the
+resulting circuit on the selected target. Each shot returns the entry’s explicit
+Boolean results: one result becomes a <code class="docutils literal notranslate"><span class="pre">bool</span></code>, and multiple results become a
+<code class="docutils literal notranslate"><span class="pre">list[bool]</span></code> in physical return order. No implicit final measurements or decoding
+are added. See the <a class="reference internal" href="../use-cases/examples/steane-bernstein-vazirani.html"><span class="std std-doc">Steane Bernstein–Vazirani</span></a>
+and <a class="reference internal" href="../use-cases/examples/t-factory-evaluation.html"><span class="std std-doc">T-factory</span></a> execution examples.</p>
+<p><strong>Execution covers a subset of P3.</strong> Resource and factory flows, in-graph
+postselection, code epoch changes, and patch-granularity resources produce
+diagnostics instead of executable Quake. Support for compiling or estimating
+these forms does not imply execution support.</p>
+<p><strong>Target capabilities and memory limits still apply.</strong> CUDA-Q’s <code class="docutils literal notranslate"><span class="pre">stim</span></code> target
+executes Clifford circuits with supported Pauli noise. Non-Clifford examples
+require a compatible target, such as <code class="docutils literal notranslate"><span class="pre">nvidia</span></code> or <code class="docutils literal notranslate"><span class="pre">density-matrix-cpu</span></code>.
+Successful compilation does not guarantee that a simulator has enough memory
+for the physical carriers, including ancillas. The ordinary <code class="docutils literal notranslate"><span class="pre">noise_model</span></code>
+argument applies supported channels to emitted gates. P3 operating-point error
+and timing assumptions remain estimation inputs, not runtime noise channels.</p>
+<p><strong>Execution does not model the physical schedule.</strong> The current lowering omits
+<code class="docutils literal notranslate"><span class="pre">phys.delay</span></code>, <code class="docutils literal notranslate"><span class="pre">phys.barrier</span></code>, <code class="docutils literal notranslate"><span class="pre">phys.move</span></code>, and <code class="docutils literal notranslate"><span class="pre">event.fence</span></code>. It does not execute
+their timing, transport, or synchronization effects or model the associated
+idle and transport noise. It does not submit P3 schedules to hardware.</p>
+<p><strong>No Logical detector-error-model or decoder pipeline.</strong> The execution path
+returns authored measurement and check bits. It does not add detector or
+observable annotations, generate detector error models, or decode results.
+Those analyses require separate downstream tooling.</p>
 <p><strong>Stages stop at P3.</strong> P3 represents physical carriers, routing, native events,
-and schedules. It remains a compiler and estimation artifact: CUDA-Q Logical
-does not submit a physical schedule to hardware or provide a runtime execution
-service for it.</p>
-<p><strong>No simulator plugin surface.</strong> Nothing in the package consumes or executes
-physical simulations.</p>
+and schedules. Quake translation connects supported physical graphs to CUDA-Q’s
+existing execution path and simulators without adding a Logical compilation stage.</p>
 <p><strong>The native P1 placer is a subset.</strong> <code class="docutils literal notranslate"><span class="pre">qlx-to-lvm</span></code> is a deterministic first-fit
 placement for explicitly machine-scoped, inlined programs; the Python placement
 solver (<code class="docutils literal notranslate"><span class="pre">cudaq.logical.compiler.place</span></code>) is the rich path. The native pass fails

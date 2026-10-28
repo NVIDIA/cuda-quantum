@@ -768,6 +768,9 @@ latest
                 Matrix](../sims/noisy.html#density-matrix){.reference
                 .internal}
             -   [Stim](../sims/noisy.html#stim){.reference .internal}
+            -   [[`cuStabilizer`{.docutils .literal
+                .notranslate}]{.pre}](../sims/noisy.html#custabilizer){.reference
+                .internal}
         -   [Photonics Simulators](../sims/photonics.html){.reference
             .internal}
             -   [orca-photonics](../sims/photonics.html#orca-photonics){.reference
@@ -2409,6 +2412,67 @@ To see a complete example, take a look at [[Pasqal examples]{.std
 .internal}.
 :::
 
+::: {#local-emulation .section}
+### Local Emulation[¶](#local-emulation "Permalink to this heading"){.headerlink}
+
+The [`pasqal`{.docutils .literal .notranslate}]{.pre} target supports
+local emulation for Rydberg programs through CUDA-Q's dynamics simulator
+stack. This requires a CUDA-capable GPU and the dynamics backend
+library, which is loaded when the target is selected. No cloud
+credentials are needed. Use the same [`evolve`{.docutils .literal
+.notranslate}]{.pre} or [`evolve_async`{.docutils .literal
+.notranslate}]{.pre} call as for remote execution; as with other
+emulated targets, a fixed random seed gives the same samples on every
+call.
+
+This is ideal coherent emulation, not a calibrated hardware noise model.
+Coordinates are in meters, times in seconds, amplitude and detuning in
+rad/s, and phase in radians. Amplitude and detuning are linearly
+interpolated between schedule points; phase is held constant until the
+next point. The default [`C6/hbar`{.docutils .literal
+.notranslate}]{.pre} is [`8.6572302e-25`{.docutils .literal
+.notranslate}]{.pre} rad m\^6/s, for the FRESNEL_CAN1 level-60 Rydberg
+state. The [`emulation_rydberg_c6`{.docutils .literal
+.notranslate}]{.pre} target argument overrides this coefficient for
+local emulation only; pass it as a string, e.g.
+[`cudaq.set_target('pasqal',`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`emulate=True,`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`emulation_rydberg_c6='5.42e-24')`{.docutils .literal
+.notranslate}]{.pre}. Hardware limits are not enforced. Remote and
+emulated results list atoms in register order: the first character is
+atom 0.
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+Set [`emulate=True`{.docutils .literal .notranslate}]{.pre} when
+selecting the target:
+
+::: {.highlight-python .notranslate}
+::: highlight
+    cudaq.set_target('pasqal', emulate=True)
+:::
+:::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+Pass [`--emulate`{.docutils .literal .notranslate}]{.pre} to
+[`nvq++`{.docutils .literal .notranslate}]{.pre}:
+
+::: {.highlight-bash .notranslate}
+::: highlight
+    nvq++ --target pasqal --emulate src.cpp -o program
+:::
+:::
+:::
+:::
+:::
+
 ::: {#submitting-via-qrmi .section}
 ### Submitting via QRMI[¶](#submitting-via-qrmi "Permalink to this heading"){.headerlink}
 
@@ -2438,7 +2502,8 @@ The job submission process is the same as for the [`pasqal`{.docutils
 
 ::: {.highlight-bash .notranslate}
 ::: highlight
-    export SLURM_JOB_QPU_RESOURCES=EMU_FREE
+    export QRMI_JOB_QPU_RESOURCES=EMU_FREE
+    export QRMI_JOB_QPU_TYPES=pasqal-cloud
 :::
 :::
 
@@ -2462,14 +2527,6 @@ C++
 :::
 :::
 :::
-:::
-
-::: {.admonition .note}
-Note
-
-Local emulation via [`emulate`{.docutils .literal .notranslate}]{.pre}
-flag is not yet supported on the [`pasqal`{.code .docutils .literal
-.notranslate}]{.pre} target.
 :::
 :::
 :::

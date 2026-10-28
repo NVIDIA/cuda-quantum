@@ -764,6 +764,9 @@ latest
             -   [Density Matrix](noisy.html#density-matrix){.reference
                 .internal}
             -   [Stim](noisy.html#stim){.reference .internal}
+            -   [[`cuStabilizer`{.docutils .literal
+                .notranslate}]{.pre}](noisy.html#custabilizer){.reference
+                .internal}
         -   [Photonics Simulators](photonics.html){.reference .internal}
             -   [orca-photonics](photonics.html#orca-photonics){.reference
                 .internal}

@@ -494,6 +494,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../backends/sims/noisy.html#trajectory-noisy-simulation">Trajectory Noisy Simulation</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/sims/noisy.html#density-matrix">Density Matrix</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/sims/noisy.html#stim">Stim</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../backends/sims/noisy.html#custabilizer"><code class="docutils literal notranslate"><span class="pre">cuStabilizer</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../backends/sims/photonics.html">     Photonics Simulators</a><ul>
@@ -2209,6 +2210,11 @@ argument is supplied by QRMI at runtime.</p>
 <span class="c1">// ```</span>
 <span class="c1">// Assumes credentials are configured either with environment variables</span>
 <span class="c1">// (`PASQAL_AUTH_TOKEN`, `PASQAL_PROJECT_ID`).</span>
+<span class="c1">// To run the same Rydberg program locally through CUDA-Q's simulator stack:</span>
+<span class="c1">// ```</span>
+<span class="c1">// nvq++ --target pasqal --emulate pasqal.cpp -o out.x</span>
+<span class="c1">// ./out.x</span>
+<span class="c1">// ```</span>
 <span class="c1">// For QRMI-routed execution, see the `pasqal` notes</span>
 <span class="c1">// in the CUDA-Q docs or the QRMI project for QRMI specific setup.</span>
 

@@ -494,6 +494,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/sims/noisy.html#trajectory-noisy-simulation">Trajectory Noisy Simulation</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/sims/noisy.html#density-matrix">Density Matrix</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/sims/noisy.html#stim">Stim</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/sims/noisy.html#custabilizer"><code class="docutils literal notranslate"><span class="pre">cuStabilizer</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/backends/sims/photonics.html">     Photonics Simulators</a><ul>
@@ -1456,6 +1457,28 @@ pass-by-value semantics at kernel construction.</p>
 </div>
 </div>
 </div>
+<p><strong>[8.1]</strong> Note: In C++, the data members of a kernel class are currently limited as follows.</p>
+<ul class="simple">
+<li><p>A data member must be of a scalar type: an arithmetic type (<code class="code docutils literal notranslate"><span class="pre">bool</span></code>, the integer types, and the
+floating-point types) or an enumeration type. A bit-field is not allowed. Members of quantum type
+(such as <code class="code docutils literal notranslate"><span class="pre">cudaq::qubit</span></code> or <code class="code docutils literal notranslate"><span class="pre">cudaq::qvector</span></code>) are an error. Members that are
+references, pointers, <code class="code docutils literal notranslate"><span class="pre">std::vector</span></code>, <code class="code docutils literal notranslate"><span class="pre">std::complex</span></code>, or other struct or class types are not yet supported.</p></li>
+<li><p>A kernel class that has data members may declare the call operator and the functions that create and
+manage the object (constructors, the destructor, and the copy and move assignment operators). Any
+other member function is not yet supported. The kernel cannot create an object of its own class.</p></li>
+<li><p>The values of the data members are read from the object when the kernel is launched. The kernel
+uses its own copy, as it does for any other argument passed by value. An assignment to a data
+member in the kernel body is visible for the rest of that execution of the kernel, but it is never
+reflected in the object on the host.</p></li>
+<li><p>A kernel class that has data members can be launched with <code class="code docutils literal notranslate"><span class="pre">cudaq::sample</span></code> and
+<code class="code docutils literal notranslate"><span class="pre">cudaq::observe</span></code>, but not with <code class="code docutils literal notranslate"><span class="pre">cudaq::run</span></code>. A call of <code class="code docutils literal notranslate"><span class="pre">cudaq::run</span></code> on such a kernel
+reports that the kernel cannot be called by <code class="code docutils literal notranslate"><span class="pre">cudaq::run</span></code>.</p></li>
+<li><p><code class="code docutils literal notranslate"><span class="pre">cudaq::get_state</span></code> can be used on a kernel class that has data members when the target is a
+simulator. On a target that is a quantum device, a state is the name of the kernel and its arguments,
+which do not include the object, so the values of the data members would be lost. A call of
+<code class="code docutils literal notranslate"><span class="pre">cudaq::get_state</span></code> on such a kernel is an error on those targets.</p></li>
+<li><p>A kernel cannot call a kernel class that has data members, for instance with <code class="code docutils literal notranslate"><span class="pre">cudaq::control</span></code>.</p></li>
+</ul>
 <p><strong>[9]</strong> All quantum kernel invocations are synchronous calls by default.</p>
 <p><strong>[10]</strong> CUDA-Q kernels can serve as input to other quantum kernels and invoked by kernel
 function body code. To support CUDA-Q kernel parameterization on callable quantum kernel

@@ -772,6 +772,9 @@ latest
                 .internal}
             -   [Stim](../../using/backends/sims/noisy.html#stim){.reference
                 .internal}
+            -   [[`cuStabilizer`{.docutils .literal
+                .notranslate}]{.pre}](../../using/backends/sims/noisy.html#custabilizer){.reference
+                .internal}
         -   [Photonics
             Simulators](../../using/backends/sims/photonics.html){.reference
             .internal}
@@ -2045,14 +2048,14 @@ command line example would look like [`CUDAQ_MGPU_FUSE=4`{.docutils
 .notranslate}]{.pre}` `{.docutils .literal
 .notranslate}[`fp64,mgpu`{.docutils .literal .notranslate}]{.pre}
 
-![22b3f024c7074ff8b0b9ca9973ad0c19](../../_images/gate-fuse.png)
+![27e8fdcec73e483f8fd66616f051c832](../../_images/gate-fuse.png)
 
 The importance of gate fusion is system dependent, but can have a large
 influence on the performance of the simulation. See the example below
 for a 24 qubit VQE experiment where changing the fusion level resulted
 in significant performance boosts.
 
-![330151c3d9904df5b41a42d48a2aff71](../../_images/gatefusion.png)
+![8f043cf8d4344c47ba60c41c1ce379aa](../../_images/gatefusion.png)
 :::
 :::
 :::

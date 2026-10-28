@@ -90,6 +90,8 @@
 <li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/distillation.html">T-State Distillation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/physical-schedule.html">Standalone Physical Schedule</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/lookup-addition.html">Gidney–Ekerå Lookup Addition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/steane-bernstein-vazirani.html">Steane-Encoded Bernstein–Vazirani on Stim</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/t-factory-evaluation.html">T-State Distillation with <code class="docutils literal notranslate"><span class="pre">cudaq.run</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -138,6 +140,8 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../use-cases/magic-states-and-protocols.html#typed-resource-kinds">Typed resource kinds</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../use-cases/magic-states-and-protocols.html#to-1-a-concrete-factory">15-to-1: a concrete factory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/magic-states-and-protocols.html#compact-factory-models-at-p3">Compact factory models at P3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/magic-states-and-protocols.html#continue-from-here">Continue from here</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../use-cases/logical-synthesis.html">Logical Clifford+T synthesis</a><ul>
@@ -172,6 +176,7 @@
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">CUDA-Q Logical for Stim users</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#the-translation-table">The translation table</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#execute-a-physical-build">Execute a physical build</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#worked-emission">Worked emission</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#what-has-no-stim-equivalent">What has no Stim equivalent</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#when-to-just-use-stim">When to just use Stim</a></li>
@@ -181,7 +186,7 @@
 <li class="toctree-l2"><a class="reference internal" href="capabilities.html#what-the-product-is">What the product is</a></li>
 <li class="toctree-l2"><a class="reference internal" href="capabilities.html#subsystem-status">Subsystem status</a></li>
 <li class="toctree-l2"><a class="reference internal" href="capabilities.html#present-but-not-yet-exercised">Present but not yet exercised</a></li>
-<li class="toctree-l2"><a class="reference internal" href="capabilities.html#documented-boundaries-all-fail-closed">Documented boundaries (all fail closed)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="capabilities.html#execution-and-documented-boundaries">Execution and documented boundaries</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="architecture.html">Architecture</a><ul>
@@ -238,11 +243,11 @@
 <p>You know Stim: circuits as text, <code class="docutils literal notranslate"><span class="pre">REPEAT</span></code> blocks, fast stabilizer simulation.
 This page maps that world onto CUDA-Q Logical, whose scope is deliberately
 narrower in one direction and much wider in another.</p>
-<p>The one-sentence version: <strong>Stim is the assembly language of QEC experiments;
-CUDA-Q Logical is the resource-estimation compiler stack above it</strong> — and Stim
-text is its emission target. CUDA-Q Logical does not simulate, sample, or
-decode: no detector annotations, no detector error models, no samplers. Those
-studies start from the emitted circuit and belong to the Stim ecosystem.</p>
+<p>CUDA-Q Logical compiles logical programs into selected realizations and
+estimates their resources. It can emit a verified P2 gadget as Stim text or
+translate a supported P3 physical build to Quake for execution with <code class="docutils literal notranslate"><span class="pre">cudaq.run</span></code>.
+These are separate paths. Logical does not supply detector annotations,
+detector error models, or decoding for either path.</p>
 <section id="the-translation-table">
 <h2>The translation table<a class="headerlink" href="#the-translation-table" title="Link to this heading"></a></h2>
 <table class="docutils align-default">
@@ -270,11 +275,27 @@ studies start from the emitted circuit and belong to the Stim ecosystem.</p>
 <tr class="row-odd"><td><p>Ship circuit text</p></td>
 <td><p><code class="docutils literal notranslate"><span class="pre">qlx-translate</span> <span class="pre">&lt;module&gt;.mlir</span> <span class="pre">--fabric-to-stim</span></code> projects a selected P2 entry gadget to Stim text</p></td>
 </tr>
-<tr class="row-even"><td><p>(no equivalent)</p></td>
+<tr class="row-even"><td><p>Execute a Clifford circuit</p></td>
+<td><p>Select CUDA-Q’s <code class="docutils literal notranslate"><span class="pre">stim</span></code> target and call <code class="docutils literal notranslate"><span class="pre">cudaq.run</span></code> on a supported P3 physical <code class="docutils literal notranslate"><span class="pre">Build</span></code> with explicit Boolean results</p></td>
+</tr>
+<tr class="row-odd"><td><p>(no equivalent)</p></td>
 <td><p>Placement onto logical machines, verified gadget objectives, magic-state protocols, replayable builds with evidence</p></td>
 </tr>
 </tbody>
 </table>
+</section>
+<section id="execute-a-physical-build">
+<h2>Execute a physical build<a class="headerlink" href="#execute-a-physical-build" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">cudaq.run(physical_build,</span> <span class="pre">shots_count=...)</span></code> calls <code class="docutils literal notranslate"><span class="pre">Build.to_quake()</span></code> and uses
+CUDA-Q’s selected target. This path does not emit or load Stim text and does
+not require the Python <code class="docutils literal notranslate"><span class="pre">stim</span></code> package. It returns one Boolean or Boolean list
+per shot, containing only the entry’s explicit results. CUDA-Q’s <code class="docutils literal notranslate"><span class="pre">stim</span></code> target
+supports Clifford circuits and supported Pauli channels supplied through
+<code class="docutils literal notranslate"><span class="pre">noise_model</span></code>; it cannot execute T gates or arbitrary rotations.</p>
+<p>The <a class="reference internal" href="../use-cases/examples/steane-bernstein-vazirani.html"><span class="std std-doc">Steane Bernstein–Vazirani example</span></a>
+checks encoded preparation before execution. It does not run a decoder.
+See <a class="reference internal" href="capabilities.html#execution-and-documented-boundaries"><span class="std std-ref">execution boundaries</span></a>
+for omitted timing operations, target memory limits, and noise-model scope.</p>
 </section>
 <section id="worked-emission">
 <h2>Worked emission<a class="headerlink" href="#worked-emission" title="Link to this heading"></a></h2>

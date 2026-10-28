@@ -494,6 +494,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../sims/noisy.html#trajectory-noisy-simulation">Trajectory Noisy Simulation</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../sims/noisy.html#density-matrix">Density Matrix</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../sims/noisy.html#stim">Stim</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../sims/noisy.html#custabilizer"><code class="docutils literal notranslate"><span class="pre">cuStabilizer</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../sims/photonics.html">     Photonics Simulators</a><ul>
@@ -1344,6 +1345,39 @@ set to 100.</p>
 </div>
 <p>To see a complete example, take a look at <a class="reference internal" href="../../examples/hardware_providers.html#pasqal-examples"><span class="std std-ref">Pasqal examples</span></a>.</p>
 </section>
+<section id="local-emulation">
+<h3>Local Emulation<a class="headerlink" href="#local-emulation" title="Permalink to this heading">¶</a></h3>
+<p>The <code class="docutils literal notranslate"><span class="pre">pasqal</span></code> target supports local emulation for Rydberg programs through
+CUDA-Q’s dynamics simulator stack. This requires a CUDA-capable GPU and the
+dynamics backend library, which is loaded when the target is selected. No cloud
+credentials are needed. Use the same <code class="docutils literal notranslate"><span class="pre">evolve</span></code> or <code class="docutils literal notranslate"><span class="pre">evolve_async</span></code> call as for
+remote execution; as with other emulated targets, a fixed random seed gives
+the same samples on every call.</p>
+<p>This is ideal coherent emulation, not a calibrated hardware noise model.
+Coordinates are in meters, times in seconds, amplitude and detuning in rad/s,
+and phase in radians. Amplitude and detuning are linearly interpolated between
+schedule points; phase is held constant until the next point. The default
+<code class="docutils literal notranslate"><span class="pre">C6/hbar</span></code> is <code class="docutils literal notranslate"><span class="pre">8.6572302e-25</span></code> rad m^6/s, for the FRESNEL_CAN1 level-60
+Rydberg state. The <code class="docutils literal notranslate"><span class="pre">emulation_rydberg_c6</span></code> target argument overrides this
+coefficient for local emulation only; pass it as a string, e.g.
+<code class="docutils literal notranslate"><span class="pre">cudaq.set_target('pasqal',</span> <span class="pre">emulate=True,</span> <span class="pre">emulation_rydberg_c6='5.42e-24')</span></code>.
+Hardware limits are not enforced. Remote and emulated results list atoms in
+register order: the first character is atom 0.</p>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--2-input--1" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--1">Python</label><div class="tab-content docutils">
+<p>Set <code class="docutils literal notranslate"><span class="pre">emulate=True</span></code> when selecting the target:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">'pasqal'</span><span class="p">,</span> <span class="n">emulate</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--2-input--2" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--2">C++</label><div class="tab-content docutils">
+<p>Pass <code class="docutils literal notranslate"><span class="pre">--emulate</span></code> to <code class="docutils literal notranslate"><span class="pre">nvq++</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>pasqal<span class="w"> </span>--emulate<span class="w"> </span>src.cpp<span class="w"> </span>-o<span class="w"> </span>program
+</pre></div>
+</div>
+</div>
+</div>
+</section>
 <section id="submitting-via-qrmi">
 <h3>Submitting via QRMI<a class="headerlink" href="#submitting-via-qrmi" title="Permalink to this heading">¶</a></h3>
 <div class="admonition note">
@@ -1359,24 +1393,21 @@ and let QRMI handle submission.</p>
 <p>For this route, credentials and project ID are read by QRMI using either
 <code class="docutils literal notranslate"><span class="pre">~/.pasqal/config</span></code> or other methods supported by your cluster’s QRMI setup.</p>
 <p>The job submission process is the same as for the <code class="docutils literal notranslate"><span class="pre">pasqal</span></code> target.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">SLURM_JOB_QPU_RESOURCES</span><span class="o">=</span>EMU_FREE
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">QRMI_JOB_QPU_RESOURCES</span><span class="o">=</span>EMU_FREE
+<span class="nb">export</span><span class="w"> </span><span class="nv">QRMI_JOB_QPU_TYPES</span><span class="o">=</span>pasqal-cloud
 </pre></div>
 </div>
 <div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--2-input--1" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--1">Python</label><div class="tab-content docutils">
+<input checked="True" class="tab-input" id="tab-set--3-input--1" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--1">Python</label><div class="tab-content docutils">
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">'pasqal'</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="s1">'qrmi'</span><span class="p">)</span>
 </pre></div>
 </div>
 </div>
-<input class="tab-input" id="tab-set--2-input--2" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--2">C++</label><div class="tab-content docutils">
+<input class="tab-input" id="tab-set--3-input--2" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--2">C++</label><div class="tab-content docutils">
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>pasqal<span class="w"> </span>--pasqal-machine<span class="w"> </span>qrmi<span class="w"> </span>src.cpp
 </pre></div>
 </div>
 </div>
-</div>
-<div class="admonition note">
-<p class="admonition-title">Note</p>
-<p>Local emulation via <code class="docutils literal notranslate"><span class="pre">emulate</span></code> flag is not yet supported on the <code class="code docutils literal notranslate"><span class="pre">pasqal</span></code> target.</p>
 </div>
 </section>
 </section>
@@ -1410,7 +1441,7 @@ Refer to QuEra’s <a class="reference external" href="https://cdn.prod.website-
 <section id="id3">
 <h3>Submitting<a class="headerlink" href="#id3" title="Permalink to this heading">¶</a></h3>
 <div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--3-input--1" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--1">Python</label><div class="tab-content docutils">
+<input checked="True" class="tab-input" id="tab-set--4-input--1" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--1">Python</label><div class="tab-content docutils">
 <p>The target to which quantum kernels are submitted
 can be controlled with the <code class="docutils literal notranslate"><span class="pre">cudaq.set_target()</span></code> function.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">'quera'</span><span class="p">)</span>
@@ -1435,7 +1466,7 @@ set to 100.</p>
 </pre></div>
 </div>
 </div>
-<input class="tab-input" id="tab-set--3-input--2" name="tab-set--3" type="radio"><label class="tab-label" for="tab-set--3-input--2">C++</label><div class="tab-content docutils">
+<input class="tab-input" id="tab-set--4-input--2" name="tab-set--4" type="radio"><label class="tab-label" for="tab-set--4-input--2">C++</label><div class="tab-content docutils">
 <p>To target quantum kernel code for execution on QuEra’s Aquila,
 pass the flag <code class="docutils literal notranslate"><span class="pre">--target</span> <span class="pre">quera</span></code> to the <code class="docutils literal notranslate"><span class="pre">nvq++</span></code> compiler.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>quera<span class="w"> </span>src.cpp

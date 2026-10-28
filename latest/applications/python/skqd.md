@@ -757,6 +757,9 @@ latest
                 .internal}
             -   [Stim](../../using/backends/sims/noisy.html#stim){.reference
                 .internal}
+            -   [[`cuStabilizer`{.docutils .literal
+                .notranslate}]{.pre}](../../using/backends/sims/noisy.html#custabilizer){.reference
+                .internal}
         -   [Photonics
             Simulators](../../using/backends/sims/photonics.html){.reference
             .internal}
@@ -2558,7 +2561,7 @@ scales exponentially with k. For higher k values, GPU acceleration
 transforms previously intractable postprocessing into feasible
 computation times.
 
-![c4d82c7641e54e818f3d6e6adda6a253](../../_images/speedup.png){.no-scaled-link
+![6aef32ed961c4d77a23b44b588b1ca3e](../../_images/speedup.png){.no-scaled-link
 style="width: 500px;"}
 :::
 
@@ -2572,9 +2575,9 @@ behavior on a problem with a much larger computational subspace than the
 22-qubit demo above.
 
 ::: {style="display: flex; gap: 10px;"}
-![d48aeafd62304dc6bfc459de43d21712](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
+![461954e09a3744429ec23d3d38e462fa](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
 style="width: 450px;"}
-![e140a17ad8df499693361eeb9c337327](../../_images/efficiency.jpeg){.no-scaled-link
+![7f30d9cb6ba845d7a365d8e23226943e](../../_images/efficiency.jpeg){.no-scaled-link
 style="width: 450px;"}
 :::
 

@@ -768,6 +768,9 @@ latest
                 Matrix](../sims/noisy.html#density-matrix){.reference
                 .internal}
             -   [Stim](../sims/noisy.html#stim){.reference .internal}
+            -   [[`cuStabilizer`{.docutils .literal
+                .notranslate}]{.pre}](../sims/noisy.html#custabilizer){.reference
+                .internal}
         -   [Photonics Simulators](../sims/photonics.html){.reference
             .internal}
             -   [orca-photonics](../sims/photonics.html#orca-photonics){.reference

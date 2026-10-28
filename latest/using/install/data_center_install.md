@@ -770,6 +770,9 @@ latest
                 .internal}
             -   [Stim](../backends/sims/noisy.html#stim){.reference
                 .internal}
+            -   [[`cuStabilizer`{.docutils .literal
+                .notranslate}]{.pre}](../backends/sims/noisy.html#custabilizer){.reference
+                .internal}
         -   [Photonics
             Simulators](../backends/sims/photonics.html){.reference
             .internal}
@@ -2416,6 +2419,7 @@ builds the final wheel, not including CUDA dependencies:
         --exclude libcutensor.so.2 \
         --exclude libcutensornet.so.2 \
         --exclude libcustatevec.so.1 \
+        --exclude libcustabilizer.so.0 \
         --exclude libcudensitymat.so.0 \
         --exclude libcudart.so.11.0 \
         --exclude libnvToolsExt.so.1 \

@@ -760,6 +760,9 @@ latest
                 .internal}
             -   [Stim](backends/sims/noisy.html#stim){.reference
                 .internal}
+            -   [[`cuStabilizer`{.docutils .literal
+                .notranslate}]{.pre}](backends/sims/noisy.html#custabilizer){.reference
+                .internal}
         -   [Photonics
             Simulators](backends/sims/photonics.html){.reference
             .internal}
@@ -3212,6 +3215,9 @@ latest
                 .internal}
             -   [Stim](../using/backends/sims/noisy.html#stim){.reference
                 .internal}
+            -   [[`cuStabilizer`{.docutils .literal
+                .notranslate}]{.pre}](../using/backends/sims/noisy.html#custabilizer){.reference
+                .internal}
         -   [Photonics
             Simulators](../using/backends/sims/photonics.html){.reference
             .internal}
@@ -5250,6 +5256,9 @@ latest
                 .internal}
             -   [Stim](../backends/sims/noisy.html#stim){.reference
                 .internal}
+            -   [[`cuStabilizer`{.docutils .literal
+                .notranslate}]{.pre}](../backends/sims/noisy.html#custabilizer){.reference
+                .internal}
         -   [Photonics
             Simulators](../backends/sims/photonics.html){.reference
             .internal}
@@ -7277,6 +7286,9 @@ latest
                 Matrix](../backends/sims/noisy.html#density-matrix){.reference
                 .internal}
             -   [Stim](../backends/sims/noisy.html#stim){.reference
+                .internal}
+            -   [[`cuStabilizer`{.docutils .literal
+                .notranslate}]{.pre}](../backends/sims/noisy.html#custabilizer){.reference
                 .internal}
         -   [Photonics
             Simulators](../backends/sims/photonics.html){.reference
@@ -9333,6 +9345,9 @@ latest
                 Matrix](backends/sims/noisy.html#density-matrix){.reference
                 .internal}
             -   [Stim](backends/sims/noisy.html#stim){.reference
+                .internal}
+            -   [[`cuStabilizer`{.docutils .literal
+                .notranslate}]{.pre}](backends/sims/noisy.html#custabilizer){.reference
                 .internal}
         -   [Photonics
             Simulators](backends/sims/photonics.html){.reference
@@ -11577,6 +11592,9 @@ latest
                 Matrix](sims/noisy.html#density-matrix){.reference
                 .internal}
             -   [Stim](sims/noisy.html#stim){.reference .internal}
+            -   [[`cuStabilizer`{.docutils .literal
+                .notranslate}]{.pre}](sims/noisy.html#custabilizer){.reference
+                .internal}
         -   [Photonics Simulators](sims/photonics.html){.reference
             .internal}
             -   [orca-photonics](sims/photonics.html#orca-photonics){.reference
@@ -12848,6 +12866,9 @@ available in CUDA-Q.
         -   [Density Matrix](sims/noisy.html#density-matrix){.reference
             .internal}
         -   [Stim](sims/noisy.html#stim){.reference .internal}
+        -   [[`cuStabilizer`{.docutils .literal
+            .notranslate}]{.pre}](sims/noisy.html#custabilizer){.reference
+            .internal}
     -   [Photonics Simulators](sims/photonics.html){.reference
         .internal}
         -   [orca-photonics](sims/photonics.html#orca-photonics){.reference
@@ -13690,6 +13711,9 @@ latest
                 Matrix](backends/sims/noisy.html#density-matrix){.reference
                 .internal}
             -   [Stim](backends/sims/noisy.html#stim){.reference
+                .internal}
+            -   [[`cuStabilizer`{.docutils .literal
+                .notranslate}]{.pre}](backends/sims/noisy.html#custabilizer){.reference
                 .internal}
         -   [Photonics
             Simulators](backends/sims/photonics.html){.reference
@@ -17404,6 +17428,9 @@ latest
                 .internal}
             -   [Stim](../backends/sims/noisy.html#stim){.reference
                 .internal}
+            -   [[`cuStabilizer`{.docutils .literal
+                .notranslate}]{.pre}](../backends/sims/noisy.html#custabilizer){.reference
+                .internal}
         -   [Photonics
             Simulators](../backends/sims/photonics.html){.reference
             .internal}
@@ -19456,6 +19483,9 @@ latest
                 .internal}
             -   [Stim](../backends/sims/noisy.html#stim){.reference
                 .internal}
+            -   [[`cuStabilizer`{.docutils .literal
+                .notranslate}]{.pre}](../backends/sims/noisy.html#custabilizer){.reference
+                .internal}
         -   [Photonics
             Simulators](../backends/sims/photonics.html){.reference
             .internal}
@@ -21498,6 +21528,9 @@ latest
                 Matrix](using/backends/sims/noisy.html#density-matrix){.reference
                 .internal}
             -   [Stim](using/backends/sims/noisy.html#stim){.reference
+                .internal}
+            -   [[`cuStabilizer`{.docutils .literal
+                .notranslate}]{.pre}](using/backends/sims/noisy.html#custabilizer){.reference
                 .internal}
         -   [Photonics
             Simulators](using/backends/sims/photonics.html){.reference
@@ -24120,6 +24153,9 @@ latest
                 .internal}
             -   [Stim](../backends/sims/noisy.html#stim){.reference
                 .internal}
+            -   [[`cuStabilizer`{.docutils .literal
+                .notranslate}]{.pre}](../backends/sims/noisy.html#custabilizer){.reference
+                .internal}
         -   [Photonics
             Simulators](../backends/sims/photonics.html){.reference
             .internal}
@@ -26151,6 +26187,9 @@ latest
                 Matrix](../backends/sims/noisy.html#density-matrix){.reference
                 .internal}
             -   [Stim](../backends/sims/noisy.html#stim){.reference
+                .internal}
+            -   [[`cuStabilizer`{.docutils .literal
+                .notranslate}]{.pre}](../backends/sims/noisy.html#custabilizer){.reference
                 .internal}
         -   [Photonics
             Simulators](../backends/sims/photonics.html){.reference
@@ -28190,6 +28229,9 @@ latest
                 .internal}
             -   [Stim](../backends/sims/noisy.html#stim){.reference
                 .internal}
+            -   [[`cuStabilizer`{.docutils .literal
+                .notranslate}]{.pre}](../backends/sims/noisy.html#custabilizer){.reference
+                .internal}
         -   [Photonics
             Simulators](../backends/sims/photonics.html){.reference
             .internal}
@@ -30227,6 +30269,9 @@ latest
                 Matrix](../using/backends/sims/noisy.html#density-matrix){.reference
                 .internal}
             -   [Stim](../using/backends/sims/noisy.html#stim){.reference
+                .internal}
+            -   [[`cuStabilizer`{.docutils .literal
+                .notranslate}]{.pre}](../using/backends/sims/noisy.html#custabilizer){.reference
                 .internal}
         -   [Photonics
             Simulators](../using/backends/sims/photonics.html){.reference

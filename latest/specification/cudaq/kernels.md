@@ -783,6 +783,9 @@ latest
                 .internal}
             -   [Stim](../../using/backends/sims/noisy.html#stim){.reference
                 .internal}
+            -   [[`cuStabilizer`{.docutils .literal
+                .notranslate}]{.pre}](../../using/backends/sims/noisy.html#custabilizer){.reference
+                .internal}
         -   [Photonics
             Simulators](../../using/backends/sims/photonics.html){.reference
             .internal}
@@ -2479,6 +2482,53 @@ Python
 :::
 :::
 :::
+
+**\[8.1\]** Note: In C++, the data members of a kernel class are
+currently limited as follows.
+
+-   A data member must be of a scalar type: an arithmetic type
+    ([`bool`{.code .docutils .literal .notranslate}]{.pre}, the integer
+    types, and the floating-point types) or an enumeration type. A
+    bit-field is not allowed. Members of quantum type (such as
+    [`cudaq::qubit`{.code .docutils .literal .notranslate}]{.pre} or
+    [`cudaq::qvector`{.code .docutils .literal .notranslate}]{.pre}) are
+    an error. Members that are references, pointers,
+    [`std::vector`{.code .docutils .literal .notranslate}]{.pre},
+    [`std::complex`{.code .docutils .literal .notranslate}]{.pre}, or
+    other struct or class types are not yet supported.
+
+-   A kernel class that has data members may declare the call operator
+    and the functions that create and manage the object (constructors,
+    the destructor, and the copy and move assignment operators). Any
+    other member function is not yet supported. The kernel cannot create
+    an object of its own class.
+
+-   The values of the data members are read from the object when the
+    kernel is launched. The kernel uses its own copy, as it does for any
+    other argument passed by value. An assignment to a data member in
+    the kernel body is visible for the rest of that execution of the
+    kernel, but it is never reflected in the object on the host.
+
+-   A kernel class that has data members can be launched with
+    [`cudaq::sample`{.code .docutils .literal .notranslate}]{.pre} and
+    [`cudaq::observe`{.code .docutils .literal .notranslate}]{.pre}, but
+    not with [`cudaq::run`{.code .docutils .literal
+    .notranslate}]{.pre}. A call of [`cudaq::run`{.code .docutils
+    .literal .notranslate}]{.pre} on such a kernel reports that the
+    kernel cannot be called by [`cudaq::run`{.code .docutils .literal
+    .notranslate}]{.pre}.
+
+-   [`cudaq::get_state`{.code .docutils .literal .notranslate}]{.pre}
+    can be used on a kernel class that has data members when the target
+    is a simulator. On a target that is a quantum device, a state is the
+    name of the kernel and its arguments, which do not include the
+    object, so the values of the data members would be lost. A call of
+    [`cudaq::get_state`{.code .docutils .literal .notranslate}]{.pre} on
+    such a kernel is an error on those targets.
+
+-   A kernel cannot call a kernel class that has data members, for
+    instance with [`cudaq::control`{.code .docutils .literal
+    .notranslate}]{.pre}.
 
 **\[9\]** All quantum kernel invocations are synchronous calls by
 default.

@@ -22,7 +22,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="Gadgets and verification" href="gadgets-and-verification.html" />
-    <link rel="prev" title="Gidney–Ekerå Lookup Addition" href="examples/lookup-addition.html" /> 
+    <link rel="prev" title="T-State Distillation with cudaq.run" href="examples/t-factory-evaluation.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -90,6 +90,8 @@
 <li class="toctree-l3"><a class="reference internal" href="examples/distillation.html">T-State Distillation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/physical-schedule.html">Standalone Physical Schedule</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/lookup-addition.html">Gidney–Ekerå Lookup Addition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/steane-bernstein-vazirani.html">Steane-Encoded Bernstein–Vazirani on Stim</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/t-factory-evaluation.html">T-State Distillation with <code class="docutils literal notranslate"><span class="pre">cudaq.run</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -138,6 +140,8 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="magic-states-and-protocols.html#typed-resource-kinds">Typed resource kinds</a></li>
 <li class="toctree-l2"><a class="reference internal" href="magic-states-and-protocols.html#to-1-a-concrete-factory">15-to-1: a concrete factory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="magic-states-and-protocols.html#compact-factory-models-at-p3">Compact factory models at P3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="magic-states-and-protocols.html#continue-from-here">Continue from here</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="logical-synthesis.html">Logical Clifford+T synthesis</a><ul>
@@ -172,6 +176,7 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../reference/for-stim-users.html">CUDA-Q Logical for Stim users</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../reference/for-stim-users.html#the-translation-table">The translation table</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/for-stim-users.html#execute-a-physical-build">Execute a physical build</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../reference/for-stim-users.html#worked-emission">Worked emission</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../reference/for-stim-users.html#what-has-no-stim-equivalent">What has no Stim equivalent</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../reference/for-stim-users.html#when-to-just-use-stim">When to just use Stim</a></li>
@@ -181,7 +186,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../reference/capabilities.html#what-the-product-is">What the product is</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../reference/capabilities.html#subsystem-status">Subsystem status</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../reference/capabilities.html#present-but-not-yet-exercised">Present but not yet exercised</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../reference/capabilities.html#documented-boundaries-all-fail-closed">Documented boundaries (all fail closed)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/capabilities.html#execution-and-documented-boundaries">Execution and documented boundaries</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../reference/architecture.html">Architecture</a><ul>
@@ -225,7 +230,7 @@
             <a href="../_sources/use-cases/define-a-code.md.txt" rel="nofollow"> View page source</a>
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
-        <a href="examples/lookup-addition.html" class="btn btn-neutral float-left" title="Gidney–Ekerå Lookup Addition" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="examples/t-factory-evaluation.html" class="btn btn-neutral float-left" title="T-State Distillation with cudaq.run" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="gadgets-and-verification.html" class="btn btn-neutral float-right" title="Gadgets and verification" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
@@ -398,7 +403,7 @@ page draws from.</p></li>
            </div>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="examples/lookup-addition.html" class="btn btn-neutral float-left" title="Gidney–Ekerå Lookup Addition" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="examples/t-factory-evaluation.html" class="btn btn-neutral float-left" title="T-State Distillation with cudaq.run" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
         <a href="gadgets-and-verification.html" class="btn btn-neutral float-right" title="Gadgets and verification" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 

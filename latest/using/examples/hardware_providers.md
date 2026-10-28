@@ -734,6 +734,9 @@ latest
                 .internal}
             -   [Stim](../backends/sims/noisy.html#stim){.reference
                 .internal}
+            -   [[`cuStabilizer`{.docutils .literal
+                .notranslate}]{.pre}](../backends/sims/noisy.html#custabilizer){.reference
+                .internal}
         -   [Photonics
             Simulators](../backends/sims/photonics.html){.reference
             .internal}
@@ -3171,6 +3174,11 @@ C++
     // ```
     // Assumes credentials are configured either with environment variables
     // (`PASQAL_AUTH_TOKEN`, `PASQAL_PROJECT_ID`).
+    // To run the same Rydberg program locally through CUDA-Q's simulator stack:
+    // ```
+    // nvq++ --target pasqal --emulate pasqal.cpp -o out.x
+    // ./out.x
+    // ```
     // For QRMI-routed execution, see the `pasqal` notes
     // in the CUDA-Q docs or the QRMI project for QRMI specific setup.
 

@@ -90,6 +90,8 @@
 <li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/distillation.html">T-State Distillation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/physical-schedule.html">Standalone Physical Schedule</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/lookup-addition.html">Gidney–Ekerå Lookup Addition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/steane-bernstein-vazirani.html">Steane-Encoded Bernstein–Vazirani on Stim</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/t-factory-evaluation.html">T-State Distillation with <code class="docutils literal notranslate"><span class="pre">cudaq.run</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -138,6 +140,8 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../use-cases/magic-states-and-protocols.html#typed-resource-kinds">Typed resource kinds</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../use-cases/magic-states-and-protocols.html#to-1-a-concrete-factory">15-to-1: a concrete factory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/magic-states-and-protocols.html#compact-factory-models-at-p3">Compact factory models at P3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/magic-states-and-protocols.html#continue-from-here">Continue from here</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../use-cases/logical-synthesis.html">Logical Clifford+T synthesis</a><ul>
@@ -172,6 +176,7 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../reference/for-stim-users.html">CUDA-Q Logical for Stim users</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../reference/for-stim-users.html#the-translation-table">The translation table</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/for-stim-users.html#execute-a-physical-build">Execute a physical build</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../reference/for-stim-users.html#worked-emission">Worked emission</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../reference/for-stim-users.html#what-has-no-stim-equivalent">What has no Stim equivalent</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../reference/for-stim-users.html#when-to-just-use-stim">When to just use Stim</a></li>
@@ -181,7 +186,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../reference/capabilities.html#what-the-product-is">What the product is</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../reference/capabilities.html#subsystem-status">Subsystem status</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../reference/capabilities.html#present-but-not-yet-exercised">Present but not yet exercised</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../reference/capabilities.html#documented-boundaries-all-fail-closed">Documented boundaries (all fail closed)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/capabilities.html#execution-and-documented-boundaries">Execution and documented boundaries</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../reference/architecture.html">Architecture</a><ul>
@@ -458,6 +463,13 @@ CUDA-Q kernel through the configured stages. The result’s <strong>annotations<
 contain per-tier resource estimates. Typed views such as <code class="docutils literal notranslate"><span class="pre">LogicalEstimate</span></code>
 and <code class="docutils literal notranslate"><span class="pre">FabricCounts</span></code> expose logical and static fields; the walkthrough reads
 physical schedule results from the <code class="docutils literal notranslate"><span class="pre">SCHEDULE</span></code> annotation.</p>
+<p>Physical builds also run on CUDA-Q simulators. When the program returns
+Booleans, <code class="docutils literal notranslate"><span class="pre">cudaq.run(build)</span></code> executes its P3 build on a simulator target, such
+as <code class="docutils literal notranslate"><span class="pre">stim</span></code> or <code class="docutils literal notranslate"><span class="pre">nvidia</span></code>. Each shot returns a <code class="docutils literal notranslate"><span class="pre">bool</span></code> for one result or a
+<code class="docutils literal notranslate"><span class="pre">list[bool]</span></code> for several, the same types <code class="docutils literal notranslate"><span class="pre">cudaq.run</span></code> returns for a kernel.
+Unsupported P3 forms raise an error.
+<a class="reference internal" href="../reference/capabilities.html#execution-and-documented-boundaries"><span class="std std-ref">Execution boundaries</span></a>
+lists the main ones.</p>
 <p>Use kernels with CUDA-Q’s libraries and infrastructure, or author directly
 with <code class="docutils literal notranslate"><span class="pre">cudaq.logical</span></code> when integrating another frontend. Both routes use the
 same compilation model. Applications can reuse a target for compatible kernels;

@@ -776,6 +776,9 @@ latest
                 .internal}
             -   [Stim](../../../using/backends/sims/noisy.html#stim){.reference
                 .internal}
+            -   [[`cuStabilizer`{.docutils .literal
+                .notranslate}]{.pre}](../../../using/backends/sims/noisy.html#custabilizer){.reference
+                .internal}
         -   [Photonics
             Simulators](../../../using/backends/sims/photonics.html){.reference
             .internal}

@@ -92,6 +92,8 @@
 <li class="toctree-l3"><a class="reference internal" href="examples/distillation.html">T-State Distillation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/physical-schedule.html">Standalone Physical Schedule</a></li>
 <li class="toctree-l3"><a class="reference internal" href="examples/lookup-addition.html">Gidney–Ekerå Lookup Addition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/steane-bernstein-vazirani.html">Steane-Encoded Bernstein–Vazirani on Stim</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/t-factory-evaluation.html">T-State Distillation with <code class="docutils literal notranslate"><span class="pre">cudaq.run</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -140,6 +142,8 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#typed-resource-kinds">Typed resource kinds</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#to-1-a-concrete-factory">15-to-1: a concrete factory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#compact-factory-models-at-p3">Compact factory models at P3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#continue-from-here">Continue from here</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="logical-synthesis.html">Logical Clifford+T synthesis</a><ul>
@@ -174,6 +178,7 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../reference/for-stim-users.html">CUDA-Q Logical for Stim users</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../reference/for-stim-users.html#the-translation-table">The translation table</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/for-stim-users.html#execute-a-physical-build">Execute a physical build</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../reference/for-stim-users.html#worked-emission">Worked emission</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../reference/for-stim-users.html#what-has-no-stim-equivalent">What has no Stim equivalent</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../reference/for-stim-users.html#when-to-just-use-stim">When to just use Stim</a></li>
@@ -183,7 +188,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../reference/capabilities.html#what-the-product-is">What the product is</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../reference/capabilities.html#subsystem-status">Subsystem status</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../reference/capabilities.html#present-but-not-yet-exercised">Present but not yet exercised</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../reference/capabilities.html#documented-boundaries-all-fail-closed">Documented boundaries (all fail closed)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/capabilities.html#execution-and-documented-boundaries">Execution and documented boundaries</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../reference/architecture.html">Architecture</a><ul>
@@ -364,8 +369,8 @@ placeholder:</p>
 </pre></div>
 </div>
 </div>
-<p>The protocol unpacks fifteen linear raw-state inputs onto bare patches; eleven
-resource-assisted product rotations from
+<p>The protocol requests fifteen linear raw-state inputs and unpacks four onto bare
+patches as check rows; eleven resource-assisted product rotations from
 <code class="docutils literal notranslate"><span class="pre">cudaq.logical.protocols.FIFTEEN_TO_ONE_ROTATION_STEPS</span></code> apply the triorthogonal
 circuit; <code class="docutils literal notranslate"><span class="pre">cudaq.logical.protocols.bare_s</span></code> converts the resulting T† on the odd
 row to the canonical T|+⟩; and exactly the four even rows must measure <span class="math notranslate nohighlight">\(+X\)</span> —
@@ -405,13 +410,20 @@ for supply/demand studies — output error <span class="math notranslate nohighl
 <code class="docutils literal notranslate"><span class="pre">FIFTEEN_TO_ONE_ROTATION_STEPS</span></code> and their supports, <code class="docutils literal notranslate"><span class="pre">bare_s</span></code>, <code class="docutils literal notranslate"><span class="pre">bare_measure_x</span></code>,
 and the ready-made <code class="docutils literal notranslate"><span class="pre">distill_15to1</span></code> definition — so you can compose your own
 production protocol from verified parts.</p>
-<div class="admonition-evidence-boundary-class-note admonition">
-<p class="admonition-title">Evidence boundary :class: note</p>
+<div class="note admonition">
+<p class="admonition-title">Evidence boundary</p>
 <p>A static estimate counts what the declared protocol costs; it does not sample
 the factory, decode its checks, or model the noise that makes distillation
 necessary. The estimate reports postselection as counts and success rows, not
-as simulated accept/reject statistics. :::</p>
-<p class="rubric" id="compact-factory-models-at-p3">Compact factory models at P3</p>
+as simulated accept/reject statistics. The
+<a class="reference internal" href="examples/t-factory-evaluation.html"><span class="std std-doc">T-state distillation example</span></a> runs the same
+rotations and checks with <code class="docutils literal notranslate"><span class="pre">cudaq.run</span></code>, realizing each rotation by gate
+teleportation, and compares its acceptance and output error with
+<code class="docutils literal notranslate"><span class="pre">DISTILL_15TO1_T</span></code>.</p>
+</div>
+</section>
+<section id="compact-factory-models-at-p3">
+<h2>Compact factory models at P3<a class="headerlink" href="#compact-factory-models-at-p3" title="Link to this heading"></a></h2>
 <p>A protocol says what a factory does; at P3 a factory binding can also say how
 fast it does it. <code class="docutils literal notranslate"><span class="pre">cudaq.logical.devices.FactoryModel</span></code> carries a startup
 latency, a steady output interval, and the evidence behind both:</p>
@@ -452,7 +464,9 @@ characterizes the factory it implements.</p>
 recording the physical units it took. A supply/demand study can then use a
 compact factory model in place of the full protocol schedule, without losing
 track of where its timing came from.</p>
-<p class="rubric" id="continue-from-here">Continue from here</p>
+</section>
+<section id="continue-from-here">
+<h2>Continue from here<a class="headerlink" href="#continue-from-here" title="Link to this heading"></a></h2>
 <ul class="simple">
 <li><p><a class="reference internal" href="logical-synthesis.html"><span class="std std-doc">Logical Clifford+T synthesis</span></a> — the other route for
 off-lattice rotations.</p></li>
@@ -461,7 +475,6 @@ resource streams live on a machine.</p></li>
 <li><p><a class="reference internal" href="examples/index.html"><span class="std std-doc">Examples</span></a> — the distillation example in the context of
 the full shipped set.</p></li>
 </ul>
-</div>
 </section>
 </section>
 
