@@ -196,20 +196,24 @@ void test_selected_failure_diagnostic() {
 
 // `disable_qubit_mapping` sets `device=bypass` on every `qubit-mapping`,
 // including one in an override pipeline. It replaces the whole device value
-// even when it contains a comma, and keeps the pass's other options.
+// even when it contains a comma, parentheses, an apostrophe, or a quoted path
+// with a space, and keeps the pass's other options.
 void test_disable_qubit_mapping() {
   cudaq::CompileTarget target;
   target.disableQubitMapping = true;
-  target.stages.push_back(customStage(
-      "qubit-mapping{device=grid(3,3)}",
-      "qubit-mapping{device=file(arch) extended-layer-size=4}", ""));
+  target.stages.push_back(
+      customStage("qubit-mapping{device=grid(3,3)}",
+                  "qubit-mapping{device=file(/tmp/team's-arch(1).txt) "
+                  "extended-layer-size=4}",
+                  ""));
   std::cout << "custom: " << planPipeline(target, {}) << "\n";
-  target.stages = {overrideStage("qubit-mapping{device=file(arch)}")};
+  target.stages = {overrideStage(
+      "qubit-mapping{device=file('/tmp/arch (1).txt') placement=greedy}")};
   std::cout << "override: " << planPipeline(target, {}) << "\n";
 }
 // clang-format off
 // CHECK: custom: {{.*}},qubit-mapping{device=bypass},jit-deploy-pipeline,qubit-mapping{device=bypass extended-layer-size=4},jit-finalize-pipeline
-// CHECK: override: qubit-mapping{device=bypass}{{$}}
+// CHECK: override: qubit-mapping{device=bypass placement=greedy}{{$}}
 // clang-format on
 
 // A target with zero stages results in an empty pipeline.

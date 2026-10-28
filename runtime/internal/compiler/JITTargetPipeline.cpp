@@ -22,17 +22,19 @@ static void appendPipelineStage(std::string &pipeline,
 }
 
 /// Apply the target's `disable_qubit_mapping` runtime option, which sets
-/// `device=bypass` on every `qubit-mapping` pass in \p pipeline. A device value
-/// ends at the next space or at the end of the pass options, and it may contain
-/// one level of parentheses with commas inside, as in `grid(3,3)` or
-/// `file(path)`. The pass's other options are kept.
+/// `device=bypass` on every `qubit-mapping` pass in \p pipeline. As in MLIR's
+/// pass option parser, a device value ends at the first space outside a pair
+/// of single or double quotes, and an unpaired quote is an ordinary character.
+/// It also ends at `}`, which closes the pass options. So `grid(3,3)`,
+/// `file('/path/arch (1).txt')`, and `file(/home/o'brien/arch.txt)` are each
+/// replaced whole, and the pass's other options are kept.
 static std::string
 applyDisableQubitMapping(std::string pipeline,
                          const cudaq::CompileTarget &target) {
   if (!target.disableQubitMapping)
     return pipeline;
   std::regex qubitMappingDevice(
-      R"((qubit-mapping\{(?:[^}]*\s)?device=)(?:\([^()]*\)|[^\s(){}])+)");
+      R"re((qubit-mapping\{(?:[^}]*\s)?device=)(?:'[^'}]*'|"[^"}]*"|[^\s{}])+)re");
   pipeline = std::regex_replace(pipeline, qubitMappingDevice, "$1bypass");
   CUDAQ_INFO("disable_qubit_mapping option found, so updated lowering "
              "pipeline to {}",
