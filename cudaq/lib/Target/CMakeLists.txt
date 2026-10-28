@@ -168,6 +168,10 @@ if(CUDAQ_TARGET_STANDALONE_BUILD)
     FILES_MATCHING PATTERN "*.h")
 endif()
 
+if(CUDAQ_ENABLE_PYTHON_BINDINGS)
+  add_subdirectory(python)
+endif()
+
 # Component-local LIT suite.
 if (CUDAQ_BUILD_TESTS)
   add_subdirectory(test)
