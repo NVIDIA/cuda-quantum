@@ -48,6 +48,18 @@ class ObjectiveMismatch(QLXError, ValueError):
     """A realization does not implement its declared logical objective."""
 
 
+class GadgetVerificationError(QLXError, ValueError):
+    """A gadget's detector contract or logical action failed verification.
+
+    ``receipt`` carries the full :class:`GadgetVerificationReceipt`, including
+    the conditions that passed.
+    """
+
+    def __init__(self, message, receipt=None):
+        super().__init__(message)
+        self.receipt = receipt
+
+
 class PlacementInfeasible(QLXError, ValueError):
     """No placement satisfies the declared constraints and capacities."""
 

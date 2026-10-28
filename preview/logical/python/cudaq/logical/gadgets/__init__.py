@@ -60,6 +60,14 @@ _FACTORY_NAMES = (
     "stabilizer_preparation",
 )
 
+_VERIFICATION_NAMES = (
+    "ContractVerification",
+    "GadgetVerificationReceipt",
+    "LogicalActionVerification",
+    "VerificationFailure",
+    "verify_gadget",
+)
+
 _EXPORTS = {
     **{
         name: f"cudaq.logical.gadgets.interface:{name}" for name in _INTERFACE_NAMES
@@ -81,6 +89,9 @@ _EXPORTS = {
     },
     **{
         name: f"cudaq.logical.gadgets.factories:{name}" for name in _FACTORY_NAMES
+    },
+    **{
+        name: f"cudaq.logical.gadgets.verification:{name}" for name in _VERIFICATION_NAMES
     },
     "GadgetBuilder":
         "cudaq.logical.gadgets.builder:GadgetBuilder",

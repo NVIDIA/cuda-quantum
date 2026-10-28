@@ -13,6 +13,7 @@
 
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallBitVector.h"
+#include "llvm/Support/JSON.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/SymbolTable.h"
 
@@ -289,11 +290,35 @@ IdealBoundaryPort idealPort(const BoundaryPort &port) {
   return result;
 }
 
-LogicalResult verifyIdealProfile(qlx::fabric::GadgetProfileOp profile,
-                                 const Projection &projection,
-                                 const std::vector<BoundaryPort> &inputs,
-                                 const std::vector<BoundaryPort> &outputs,
-                                 const ProfileRows &rows) {
+/// One violated ideal-contract condition. `kind` names the condition and
+/// `message` is the text emitted when the condition aborts EDEM derivation.
+struct ContractFailure {
+  std::string kind;
+  std::optional<unsigned> index;
+  std::string message;
+};
+
+/// Ranks and violations of the ideal detector-contract check. The outcome code
+/// is the space of deterministic parities of the Choi-probed realization;
+/// declared rows must be deterministic and, with the observables, span it.
+struct ContractReport {
+  unsigned outcomeCount = 0;
+  unsigned randomBits = 0;
+  unsigned outcomeCodeRank = 0;
+  unsigned detectorRank = 0;
+  unsigned logicalOutcomeRank = 0;
+  std::vector<ContractFailure> failures;
+  IdealActionReport action;
+};
+
+/// Evaluates the profile's declared rows against the ideal outcome analysis of
+/// its realization. Structural problems fail with diagnostics; semantic
+/// violations are returned in the report so callers choose whether to abort.
+FailureOr<ContractReport> evaluateIdealProfile(
+    qlx::fabric::GadgetProfileOp profile, const Projection &projection,
+    const std::vector<BoundaryPort> &inputs,
+    const std::vector<BoundaryPort> &outputs, const ProfileRows &rows,
+    const IdealLogicalAction *action = nullptr) {
   std::vector<IdealBoundaryPort> idealInputs, idealOutputs;
   idealInputs.reserve(inputs.size());
   idealOutputs.reserve(outputs.size());
@@ -301,7 +326,8 @@ LogicalResult verifyIdealProfile(qlx::fabric::GadgetProfileOp profile,
     idealInputs.push_back(idealPort(port));
   for (const auto &port : outputs)
     idealOutputs.push_back(idealPort(port));
-  auto result = analyzeIdealOutcomes(projection, idealInputs, idealOutputs);
+  auto result =
+      analyzeIdealOutcomes(projection, idealInputs, idealOutputs, action);
   if (!result) {
     profile.emitOpError() << "EDEM ideal Clifford analysis failed: "
                           << llvm::toString(result.takeError());
@@ -375,22 +401,27 @@ LogicalResult verifyIdealProfile(qlx::fabric::GadgetProfileOp profile,
     return value;
   };
 
+  ContractReport report;
+  report.outcomeCount = outcomeCount;
+  report.randomBits = ideal.independentRandomBits();
+  report.action = ideal.action();
+  auto fail = [&](StringRef kind, unsigned index, const llvm::Twine &message) {
+    report.failures.push_back({kind.str(), index, message.str()});
+  };
+
   for (auto [index, row] : llvm::enumerate(rows.detectors)) {
     auto parity = authored(row);
-    if (image(parity.support).any() || shift(parity)) {
-      profile.emitOpError()
-          << "EDEM detector " << index
-          << " is not deterministically zero in the ideal gadget";
-      return failure();
-    }
+    if (image(parity.support).any() || shift(parity))
+      fail("detector_not_deterministic", index,
+           "EDEM detector " + llvm::Twine(index) +
+               " is not deterministically zero in the ideal gadget");
   }
   for (auto [index, row] : llvm::enumerate(rows.success)) {
     auto parity = authored(row);
-    if (image(parity.support).any() || shift(parity)) {
-      profile.emitOpError() << "EDEM success row " << index
-                            << " disagrees with its ideal accepted value";
-      return failure();
-    }
+    if (image(parity.support).any() || shift(parity))
+      fail("success_not_deterministic", index,
+           "EDEM success row " + llvm::Twine(index) +
+               " disagrees with its ideal accepted value");
   }
 
   std::vector<Bits> declared;
@@ -398,31 +429,49 @@ LogicalResult verifyIdealProfile(qlx::fabric::GadgetProfileOp profile,
     declared.push_back(authored(row).support);
   for (auto [index, row] : llvm::enumerate(rows.outputVirtual)) {
     auto relation = authored(row, index);
-    if (image(relation.support).any() || shift(relation)) {
-      profile.emitOpError() << "EDEM output virtual-syndrome relation " << index
-                            << " disagrees with the ideal output stabilizer";
-      return failure();
-    }
+    if (image(relation.support).any() || shift(relation))
+      fail("output_syndrome_mismatch", index,
+           "EDEM output virtual-syndrome relation " + llvm::Twine(index) +
+               " disagrees with the ideal output stabilizer");
     declared.push_back(std::move(relation.support));
   }
   for (const auto &row : rows.success)
     declared.push_back(authored(row).support);
+  auto declaredRank = [&](const std::vector<Bits> &supports) {
+    std::vector<Bits> images;
+    for (const auto &row : supports)
+      images.push_back(image(row));
+    return binaryRank(supports, outcomeCount) -
+           binaryRank(std::move(images), ideal.independentRandomBits());
+  };
+  report.detectorRank = declaredRank(declared);
   // Observables may be random. Their deterministic combinations, modulo the
   // detector/assignment/success rows, complete the ideal outcome code. Take
   // the rank of the union: summing separate ranks double-counts overlap.
   for (const auto &row : rows.observables)
     declared.push_back(authored(row).support);
-  std::vector<Bits> images;
-  for (const auto &row : declared)
-    images.push_back(image(row));
-  const unsigned declaredRank =
-      binaryRank(declared, outcomeCount) -
-      binaryRank(std::move(images), ideal.independentRandomBits());
-  const unsigned requiredRank = ideal.outcomeDeterministicRelationDimension();
-  if (declaredRank != requiredRank) {
-    profile.emitOpError()
-        << "EDEM contract is rank-incomplete: ideal relation rank "
-        << requiredRank << ", declared rank " << declaredRank;
+  const unsigned totalRank = declaredRank(declared);
+  report.logicalOutcomeRank = totalRank - report.detectorRank;
+  report.outcomeCodeRank = ideal.outcomeDeterministicRelationDimension();
+  if (report.failures.empty() && totalRank != report.outcomeCodeRank)
+    fail("rank_incomplete", 0,
+         "EDEM contract is rank-incomplete: ideal relation rank " +
+             llvm::Twine(report.outcomeCodeRank) + ", declared rank " +
+             llvm::Twine(totalRank));
+  return report;
+}
+
+LogicalResult verifyIdealProfile(qlx::fabric::GadgetProfileOp profile,
+                                 const Projection &projection,
+                                 const std::vector<BoundaryPort> &inputs,
+                                 const std::vector<BoundaryPort> &outputs,
+                                 const ProfileRows &rows) {
+  auto report =
+      evaluateIdealProfile(profile, projection, inputs, outputs, rows);
+  if (failed(report))
+    return failure();
+  if (!report->failures.empty()) {
+    profile.emitOpError() << report->failures.front().message;
     return failure();
   }
   return success();
@@ -941,18 +990,8 @@ buildGadgetEDEM(qlx::fabric::GadgetProfileOp profile,
                   *propagated);
 }
 
-} // namespace
-
-FailureOr<PackedGadgetEDEM>
-deriveGadgetEDEM(ModuleOp module, StringRef profileName, StringRef faultJson) {
-  if (failed(verify(module)))
-    return failure();
-  auto faults = edem_analysis::parseFaultInput(faultJson);
-  if (!faults) {
-    module.emitError() << "invalid EDEM fault input: "
-                       << llvm::toString(faults.takeError());
-    return failure();
-  }
+FailureOr<qlx::fabric::GadgetProfileOp> selectProfile(ModuleOp module,
+                                                      StringRef profileName) {
   qlx::fabric::GadgetProfileOp selected;
   if (!profileName.empty()) {
     selected = module.lookupSymbol<qlx::fabric::GadgetProfileOp>(profileName);
@@ -970,10 +1009,194 @@ deriveGadgetEDEM(ModuleOp module, StringRef profileName, StringRef faultJson) {
     module.emitError("EDEM requires a selected fabric.gadget_profile");
     return failure();
   }
-  auto projection = projectClifford(module, selected.getGadget());
+  return selected;
+}
+
+/// Parses the optional declared logical action (a JSON object with `arity`,
+/// `matrix` rows of 0/1, and `phases`); null or empty means none.
+FailureOr<std::optional<IdealLogicalAction>> parseAction(ModuleOp module,
+                                                         StringRef text) {
+  if (text.trim().empty())
+    return std::optional<IdealLogicalAction>();
+  auto parsed = llvm::json::parse(text);
+  if (!parsed) {
+    module.emitError() << "invalid logical action: "
+                       << llvm::toString(parsed.takeError());
+    return failure();
+  }
+  if (parsed->kind() == llvm::json::Value::Null)
+    return std::optional<IdealLogicalAction>();
+  auto *object = parsed->getAsObject();
+  auto arity = object ? object->getInteger("arity") : std::nullopt;
+  auto *matrix = object ? object->getArray("matrix") : nullptr;
+  auto *phases = object ? object->getArray("phases") : nullptr;
+  if (!arity || *arity < 0 || !matrix || !phases) {
+    module.emitError("logical action requires arity, matrix, and phases");
+    return failure();
+  }
+  IdealLogicalAction action;
+  action.arity = static_cast<unsigned>(*arity);
+  const std::size_t width = 2 * std::size_t{action.arity};
+  if (matrix->size() != width || phases->size() != width) {
+    module.emitError("logical action matrix and phases must have 2 * arity "
+                     "rows");
+    return failure();
+  }
+  for (const llvm::json::Value &rawRow : *matrix) {
+    const auto *row = rawRow.getAsArray();
+    if (!row || row->size() != width) {
+      module.emitError("logical action matrix must be square, 2 * arity wide");
+      return failure();
+    }
+    Bits bits(width);
+    for (auto [column, entry] : llvm::enumerate(*row)) {
+      auto value = entry.getAsInteger();
+      if (!value || (*value != 0 && *value != 1)) {
+        module.emitError("logical action matrix entries must be 0 or 1");
+        return failure();
+      }
+      bits[column] = *value;
+    }
+    action.images.push_back(std::move(bits));
+  }
+  for (const llvm::json::Value &entry : *phases) {
+    auto value = entry.getAsInteger();
+    if (!value || (*value != 0 && *value != 1)) {
+      module.emitError("logical action phases must be 0 or 1");
+      return failure();
+    }
+    action.phases.push_back(*value);
+  }
+  return std::optional<IdealLogicalAction>(std::move(action));
+}
+
+const char *actionRowStatusName(IdealActionRowStatus status) {
+  switch (status) {
+  case IdealActionRowStatus::Verified:
+    return "verified";
+  case IdealActionRowStatus::NotStabilized:
+    return "not_stabilized";
+  case IdealActionRowStatus::SignMismatch:
+    return "sign_mismatch";
+  case IdealActionRowStatus::RandomSign:
+    return "random_sign";
+  }
+  return "unknown";
+}
+
+} // namespace
+
+FailureOr<PackedGadgetEDEM>
+deriveGadgetEDEM(ModuleOp module, StringRef profileName, StringRef faultJson) {
+  if (failed(verify(module)))
+    return failure();
+  auto faults = edem_analysis::parseFaultInput(faultJson);
+  if (!faults) {
+    module.emitError() << "invalid EDEM fault input: "
+                       << llvm::toString(faults.takeError());
+    return failure();
+  }
+  auto selected = selectProfile(module, profileName);
+  if (failed(selected))
+    return failure();
+  auto projection = projectClifford(module, selected->getGadget());
   if (failed(projection))
     return failure();
-  return buildGadgetEDEM(selected, *projection, *faults);
+  return buildGadgetEDEM(*selected, *projection, *faults);
+}
+
+FailureOr<std::string> verifyGadgetProfile(ModuleOp module,
+                                           StringRef profileName,
+                                           StringRef actionJson) {
+  if (failed(verify(module)))
+    return failure();
+  auto action = parseAction(module, actionJson);
+  if (failed(action))
+    return failure();
+  auto selected = selectProfile(module, profileName);
+  if (failed(selected))
+    return failure();
+  qlx::fabric::GadgetProfileOp profile = *selected;
+  auto projection = projectClifford(module, profile.getGadget());
+  if (failed(projection))
+    return failure();
+  if (!profile.getBoundaryComplete()) {
+    profile.emitOpError("verification requires a complete selected boundary "
+                        "profile");
+    return failure();
+  }
+  auto inputs = readPorts(profile, profile.getInputs(),
+                          projection->inputDataCarriersByPort, "inputs");
+  auto outputs = readPorts(profile, profile.getOutputs(),
+                           projection->outputDataCarriersByPort, "outputs");
+  if (failed(inputs) || failed(outputs))
+    return failure();
+  auto records = readRecordMap(profile, *projection);
+  if (failed(records))
+    return failure();
+  auto rows =
+      readProfileRows(profile, *projection, *records, *inputs, *outputs);
+  if (failed(rows))
+    return failure();
+  auto report = evaluateIdealProfile(profile, *projection, *inputs, *outputs,
+                                     *rows, *action ? &**action : nullptr);
+  if (failed(report))
+    return failure();
+
+  llvm::json::Array failures;
+  for (const ContractFailure &failure : report->failures) {
+    llvm::json::Object entry;
+    entry["kind"] = failure.kind;
+    if (failure.index)
+      entry["index"] = static_cast<int64_t>(*failure.index);
+    entry["message"] = failure.message;
+    failures.push_back(std::move(entry));
+  }
+  llvm::json::Object contract;
+  contract["ok"] = report->failures.empty();
+  contract["outcome_count"] = static_cast<int64_t>(report->outcomeCount);
+  contract["random_bits"] = static_cast<int64_t>(report->randomBits);
+  contract["outcome_code_rank"] = static_cast<int64_t>(report->outcomeCodeRank);
+  contract["detector_rank"] = static_cast<int64_t>(report->detectorRank);
+  contract["deterministic_logical_outcome_rank"] =
+      static_cast<int64_t>(report->logicalOutcomeRank);
+  contract["detector_count"] = static_cast<int64_t>(rows->detectors.size());
+  contract["output_relation_count"] =
+      static_cast<int64_t>(rows->outputVirtual.size());
+  contract["observable_count"] = static_cast<int64_t>(rows->observables.size());
+  contract["success_count"] = static_cast<int64_t>(rows->success.size());
+  contract["failures"] = std::move(failures);
+
+  llvm::json::Object logical;
+  switch (report->action.status) {
+  case IdealActionReport::Status::Unchecked:
+    logical["status"] = "unchecked";
+    break;
+  case IdealActionReport::Status::Unsupported:
+    logical["status"] = "unsupported";
+    logical["reason"] = report->action.reason;
+    break;
+  case IdealActionReport::Status::Checked: {
+    logical["status"] = report->action.verified() ? "verified" : "failed";
+    logical["logical_rank"] = static_cast<int64_t>(report->action.rows.size());
+    llvm::json::Array statuses;
+    for (IdealActionRowStatus row : report->action.rows)
+      statuses.push_back(actionRowStatusName(row));
+    logical["rows"] = std::move(statuses);
+    break;
+  }
+  }
+
+  llvm::json::Object result;
+  result["schema"] = "cudaq.logical.gadget-verification/v1";
+  result["profile"] = profile.getSymName().str();
+  result["gadget"] = profile.getGadget().str();
+  result["contract"] = std::move(contract);
+  result["logical_action"] = std::move(logical);
+  std::string text;
+  llvm::raw_string_ostream stream(text);
+  stream << llvm::json::Value(std::move(result));
+  return text;
 }
 
 } // namespace cudaq::logical
