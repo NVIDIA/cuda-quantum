@@ -844,6 +844,14 @@ if (CUDAQ_ENABLE_ENSMALLEN)
   endif()
 endif()
 
+if("python" IN_LIST CUDAQ_ENABLE_PROJECTS AND
+   (NOT CUDAQ_ENABLE_ENSMALLEN OR NOT CUDAQ_ENABLE_NLOPT))
+  message(FATAL_ERROR
+    "Python runtime requires CUDAQ_ENABLE_ENSMALLEN=ON and CUDAQ_ENABLE_NLOPT=ON. "
+    "Enable both optimizers and install BLAS (or set BLAS_INSTALL_PREFIX) "
+    "so ensmallen remains enabled, or omit 'python' from CUDAQ_ENABLE_PROJECTS.")
+endif()
+
 find_package(OpenSSL)
 if (CUDAQ_ENABLE_REST)
   if (NOT OPENSSL_FOUND)
@@ -1081,6 +1089,28 @@ add_subdirectory(cmake)
 
 if(CUDAQ_BUILD_TESTS)
   enable_testing()
+  if("python" IN_LIST CUDAQ_ENABLE_PROJECTS)
+    add_test(NAME optimizer-config
+      COMMAND "${CMAKE_COMMAND}"
+        "-DSOURCE_DIR=${CMAKE_SOURCE_DIR}"
+        "-DBINARY_DIR=${CMAKE_BINARY_DIR}/optimizer-config"
+        "-DLLVM_DIR=${LLVM_DIR}" "-DMLIR_DIR=${MLIR_DIR}"
+        "-DCMAKE_C_COMPILER=${CMAKE_C_COMPILER}"
+        "-DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}"
+        "-DCMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}"
+        "-DCMAKE_LIBRARY_PATH=${CMAKE_LIBRARY_PATH}"
+        "-DCMAKE_INCLUDE_PATH=${CMAKE_INCLUDE_PATH}"
+        "-DBLAS_ROOT=${BLAS_ROOT}" "-DBLAS_LIBRARIES=${BLAS_LIBRARIES}"
+        "-DBLA_VENDOR=${BLA_VENDOR}" "-DBLA_STATIC=${BLA_STATIC}"
+        "-DBLA_SIZEOF_INTEGER=${BLA_SIZEOF_INTEGER}"
+        "-DBLA_PREFER_PKGCONFIG=${BLA_PREFER_PKGCONFIG}"
+        "-DBLA_PKGCONFIG_BLAS=${BLA_PKGCONFIG_BLAS}"
+        "-Dnanobind_DIR=${nanobind_DIR}"
+        "-DZLIB_ROOT=${ZLIB_ROOT}" "-DGMP_ROOT=${GMP_ROOT}"
+        "-DMPFR_ROOT=${MPFR_ROOT}" "-DOPENSSL_ROOT_DIR=${OPENSSL_ROOT_DIR}"
+        "-DCURL_ROOT=${CURL_ROOT}"
+        -P "${CMAKE_SOURCE_DIR}/cmake/tests/OptimizerConfig.cmake")
+  endif()
 endif()
 
 if("cudaq" IN_LIST CUDAQ_ENABLE_PROJECTS)

@@ -43,6 +43,31 @@ Once you have built CUDA-Q, you should be able to run the tests and confirm that
 they pass by navigating to the `build` folder and entering the command `ctest`.
 If all tests pass, you are all set to [start developing](./Developing.md).
 
+## Optimizer dependencies
+
+The Python runtime (`python` in `CUDAQ_ENABLE_PROJECTS`, including builds using
+the legacy `CUDAQ_ENABLE_PYTHON=ON` option) requires both
+`CUDAQ_ENABLE_ENSMALLEN=ON` and `CUDAQ_ENABLE_NLOPT=ON`. The `ensmallen` optimizer
+also requires `BLAS`; install it or set `BLAS_INSTALL_PREFIX` to its installation
+prefix.
+Configuration fails if either optimizer is disabled, including when missing
+`BLAS` automatically disables `ensmallen`, rather than producing a Python package
+that cannot be imported.
+
+Builds without the Python runtime can still disable either optimizer. This
+includes standalone MLIR Python bindings enabled by
+`CUDAQ_ENABLE_PYTHON_BINDINGS=ON` without the `python` project.
+
+With the Python runtime and `CUDAQ_BUILD_TESTS=ON`, run the configuration
+regressions with:
+
+```bash
+ctest --test-dir build -R '^optimizer-config$' --output-on-failure
+```
+
+They configure isolated build trees without compiling, reuse the parent build's
+dependency search hints, and do not update source submodules.
+
 ## GPU accelerated backends
 
 CUDA-Q comes with a range of simulator backends for testing and debugging
