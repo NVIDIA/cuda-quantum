@@ -1012,6 +1012,7 @@ endif()
 # cuQuantum / cuTensor component discovery
 if (CUDA_FOUND)
   find_package(cuStateVec 1.14) # Required for custatevecEx API
+  find_package(cuStabilizer 0.5)
   find_package(cuTensor)
   find_package(cuTensorNet)
   find_package(cuDensityMat)
