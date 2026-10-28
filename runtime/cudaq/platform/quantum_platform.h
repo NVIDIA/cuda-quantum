@@ -9,6 +9,7 @@
 #pragma once
 
 #include "common/CodeGenConfig.h"
+#include "common/CompileOptions.h"
 #include "common/CompiledModule.h"
 #include "common/ExecutionContext.h"
 #include "common/KernelArgs.h"
@@ -19,6 +20,7 @@
 #include "common/ThunkInterface.h"
 #include "nvqpp_interface.h"
 #include "cudaq/Target/CompileTarget.h"
+#include "cudaq/algorithms/policy_cpos.h"
 #include "cudaq/platform/RuntimeEndpoint.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/utils/cudaq_utils.h"
@@ -191,12 +193,33 @@ public:
   /// @brief Enqueue a general task that runs on the specified QPU
   void enqueueAsyncTask(const std::size_t qpu_id, std::function<void()> &f);
 
+  /// Launch \p module outside of a launch policy.
+  ///
+  /// If a `SourceModule` is passed, it is compiled against \p target and
+  /// \p options before being launched.
   [[nodiscard]] KernelThunkResultType
-  unifiedLaunchModule(const AnyModule &module, KernelArgs args,
-                      std::size_t qpu_id = 0);
+  compileAndLaunchKernel(const AnyModule &module, KernelArgs args,
+                         std::size_t qpu_id = 0);
 
   [[nodiscard]] cudaq::CompileTarget
   getCompileTarget(std::size_t qpu_id = 0) const;
+
+  /// Get the compile options for launching under \p policy on QPU \p qpu_id
+  ///
+  /// This is obtained from a combination of the execution policy and the
+  /// current runtime endpoint.
+  template <typename Policy>
+  [[nodiscard]] cudaq::CompileOptions
+  getCompileOptions(const Policy &policy, std::size_t qpu_id = 0) const {
+    cudaq::CompileOptions options;
+    if constexpr (requires { policy.inner; }) {
+      options = cudaq::get_compile_options(policy.inner);
+    } else {
+      options = cudaq::get_compile_options(policy);
+    }
+    resolveCompileOptions(options, qpu_id);
+    return options;
+  }
 
   /// List all available platforms
   static std::vector<std::string> list_platforms();
@@ -246,6 +269,10 @@ private:
 
   // Helper to validate QPU Id
   void validateQpuId(std::size_t qpuId) const;
+
+  /// Amend \p options based on the properties of the runtime endpoint.
+  void resolveCompileOptions(cudaq::CompileOptions &options,
+                             std::size_t qpu_id) const;
 
   /// The compilation targets for each QPU on the platform.
   std::vector<CompileTarget> compileTargets;
