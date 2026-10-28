@@ -119,6 +119,8 @@ const char *cudaq_gf2_status_string(cudaq_gf2_status status) {
     return "unsupported format, kind, byte order or required section";
   case CUDAQ_GF2_ALLOCATION_FAILED:
     return "allocation failed";
+  case CUDAQ_GF2_STATUS_MAX_ENUM:
+    break;
   }
   return "unknown status";
 }

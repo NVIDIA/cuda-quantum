@@ -8,18 +8,31 @@
 
 #ifndef CUDAQ_GF2_STORAGE_H
 #define CUDAQ_GF2_STORAGE_H
+#include "cudaq/gf2/format.h"
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <new>
 #include <span>
+#include <type_traits>
 namespace cudaq_gf2_private {
+// Scratch arrays are laid out by arena::take, each at this alignment.
+constexpr uint64_t scratch_alignment = 8;
+// Packed arrays use natural alignment: a scalar's size (one for strings, four
+// for 32-bit and eight for 64-bit values) and the format alignment for records.
+template <class T>
+constexpr uint64_t packed_alignment =
+    std::is_scalar_v<T> ? sizeof(T) : CUDAQ_GF2_PACKED_ALIGNMENT;
 inline bool array_ok(const void *p, uint64_t n, uint64_t width) {
   return n <= SIZE_MAX / width && (!n || p);
 }
+template <class T>
+bool array_ok(const T *p, uint64_t n) {
+  return array_ok(p, n, sizeof(T));
+}
 inline bool reserve(uint64_t &cursor, uint64_t count, uint64_t width,
-                    uint64_t &offset, uint64_t alignment = 8) {
+                    uint64_t &offset, uint64_t alignment) {
   offset = 0;
   if (!count)
     return true;
@@ -32,13 +45,36 @@ inline bool reserve(uint64_t &cursor, uint64_t count, uint64_t width,
   cursor = aligned + count * width;
   return true;
 }
+template <class T>
+bool reserve_scratch(uint64_t &cursor, uint64_t count, uint64_t &offset) {
+  return reserve(cursor, count, sizeof(T), offset, scratch_alignment);
+}
+template <class T>
+bool reserve_scratch(uint64_t &cursor, uint64_t count) {
+  uint64_t ignored;
+  return reserve_scratch<T>(cursor, count, ignored);
+}
+template <class T>
+bool reserve_packed(uint64_t &cursor, uint64_t count, uint64_t &offset) {
+  return reserve(cursor, count, sizeof(T), offset, packed_alignment<T>);
+}
+template <class T>
+bool reserve_packed(uint64_t &cursor, uint64_t count) {
+  uint64_t ignored;
+  return reserve_packed<T>(cursor, count, ignored);
+}
+// Section payloads are byte ranges at the format alignment.
+inline bool reserve_payload(uint64_t &cursor, uint64_t bytes,
+                            uint64_t &offset) {
+  return reserve(cursor, bytes, 1, offset, CUDAQ_GF2_PACKED_ALIGNMENT);
+}
 struct arena {
   std::byte *data;
   uint64_t capacity, used = 0;
   template <class T>
   std::span<T> take(uint64_t count) {
     uint64_t offset, next = used;
-    if (!count || !reserve(next, count, sizeof(T), offset) || next > capacity)
+    if (!count || !reserve_scratch<T>(next, count, offset) || next > capacity)
       return {};
     auto *p = reinterpret_cast<T *>(data + offset);
     for (uint64_t i = 0; i < count; ++i)
@@ -99,7 +135,7 @@ struct reader {
   const uint8_t *data;
   uint64_t bytes, cursor = 0;
   bool take(uint64_t offset, uint64_t count, uint64_t width,
-            uint64_t alignment = 8) {
+            uint64_t alignment) {
     uint64_t expected, next = cursor;
     if (!reserve(next, count, width, expected, alignment) ||
         expected != offset || next > bytes ||
@@ -107,6 +143,13 @@ struct reader {
       return false;
     cursor = next;
     return true;
+  }
+  template <class T>
+  bool take(uint64_t offset, uint64_t count) {
+    return take(offset, count, sizeof(T), packed_alignment<T>);
+  }
+  bool take_payload(uint64_t offset, uint64_t bytes) {
+    return take(offset, bytes, 1, CUDAQ_GF2_PACKED_ALIGNMENT);
   }
   bool end() const { return cursor == bytes; }
 };

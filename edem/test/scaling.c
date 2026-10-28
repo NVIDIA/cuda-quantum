@@ -32,7 +32,7 @@ static void matrix_roundtrip(void) {
   /* Exercise sorting and interning on a large description with repeated and
    * zero matrices, reordered blocks, and remapped code IDs. */
   const uint32_t n = 3000;
-  cudaq_edem_block *blocks = malloc(n * sizeof(*blocks));
+  cudaq_edem_matrix_block *blocks = malloc(n * sizeof(*blocks));
   uint32_t *detectors = malloc(n * sizeof(*detectors));
   CHECK(blocks && detectors);
   uint64_t offsets[16][65], zero_offsets[65] = {0};
@@ -53,7 +53,7 @@ static void matrix_roundtrip(void) {
                                  rows + i % 32};
     if (i % 17 == 0)
       matrix = (cudaq_gf2_csc_view){64, 64, 0, zero_offsets, NULL};
-    blocks[i] = (cudaq_edem_block){
+    blocks[i] = (cudaq_edem_matrix_block){
         {CUDAQ_EDEM_DETECTOR, n - i - 1}, {CUDAQ_EDEM_FAULT, 0}, matrix};
   }
   char names[300][24];
@@ -62,25 +62,27 @@ static void matrix_roundtrip(void) {
     int length =
         snprintf(names[i], sizeof(names[i]), "presentation-%u", 299 - i);
     CHECK(length > 0 && (size_t)length < sizeof(names[i]));
-    codes[i] = (cudaq_edem_code_presentation){names[i], (uint64_t)length, 0, 0};
+    codes[i] =
+        (cudaq_edem_code_presentation){names[i], (uint64_t)length, 0, 0, 0};
   }
   cudaq_edem_fault_group group = {CUDAQ_EDEM_INDEPENDENT, 64, ids,
                                   probabilities};
   cudaq_edem_fault_distribution fault = {64, 1, &group};
   uint32_t input_code = 299, output_code = 0;
   cudaq_edem_description d = {0};
-  d.shape = (cudaq_edem_shape){300, 1, 1, 1, n, 0, 0, n};
-  d.codes = codes;
-  d.input_codes = &input_code;
-  d.output_codes = &output_code;
-  d.faults = &fault;
-  d.detector_sizes = detectors;
+  d.shape = (cudaq_edem_shape){1, 1, 1, n, 0, 0};
+  d.code_table = (cudaq_edem_code_table){300, codes};
+  d.block_count = n;
+  d.input_code_indices = &input_code;
+  d.output_code_indices = &output_code;
+  d.fault_ports_distributions = &fault;
+  d.detector_ports_sizes = detectors;
   d.blocks = blocks;
   cudaq_gf2_owned_buffer owner = {0}, canonical = {0};
   cudaq_edem_view value;
   OK(cudaq_edem_construct(&d, NULL, &owner, &value));
   for (uint32_t i = 0; i < n / 2; ++i) {
-    cudaq_edem_block tmp = blocks[i];
+    cudaq_edem_matrix_block tmp = blocks[i];
     blocks[i] = blocks[n - i - 1];
     blocks[n - i - 1] = tmp;
   }
@@ -122,8 +124,8 @@ int main(void) {
     }
     cudaq_edem_fault_distribution fault = {3 * n, n, groups};
     cudaq_edem_description d = {0};
-    d.shape.fault_ports = 1;
-    d.faults = &fault;
+    d.shape.fault_ports_count = 1;
+    d.fault_ports_distributions = &fault;
     cudaq_gf2_owned_buffer owner = {0}, canonical = {0};
     cudaq_edem_view value;
     double start = seconds();
