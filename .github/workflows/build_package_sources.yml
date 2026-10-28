@@ -65,9 +65,8 @@ jobs:
             echo "base_image=nvcr.io/nvidia/cuda:${{ matrix.cuda }}.0-runtime-ubuntu24.04" | tee -a $GITHUB_OUTPUT
             echo "target_image=nvcr.io/nvidia/nightly/cuda-quantum:cu${cuda_major}-latest" | tee -a $GITHUB_OUTPUT
           else
-            # cudaqx: devcontainer base, cudaqx target
-            cu_tag=$(echo "${{ matrix.cuda }}" | tr -d .)
-            echo "base_image=ghcr.io/nvidia/cuda-quantum-devcontainer:amd64-cu${{ matrix.cuda }}-llvm-main" | tee -a $GITHUB_OUTPUT
+            # cudaqx: docker/release/Dockerfile overlays onto the nightly cuda-quantum image.
+            echo "base_image=nvcr.io/nvidia/nightly/cuda-quantum:cu${cuda_major}-latest" | tee -a $GITHUB_OUTPUT
             echo "target_image=ghcr.io/nvidia/cudaqx:cu${cuda_major}-latest" | tee -a $GITHUB_OUTPUT
           fi
 
