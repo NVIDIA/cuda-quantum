@@ -11,15 +11,18 @@
 namespace {
 
 /// The built-in generic lowering handler for the quake-reference-semantics
-/// profile.
+/// profile. It returns the passes the profile's options request, placed where
+/// the provider targets' pipelines have run them. `expand-measurements` runs
+/// before deploy when the profile requests single-qubit measurements or
+/// `reset-after-measure`. `basis-conversion` runs between deploy and finalize
+/// when the profile lists basis gates. `combine-quantum-alloc` and
+/// `qubit-reset-before-reuse` run after finalize when the profile requests
+/// `reset-after-measure`.
 ///
-/// Returns the passes the profile's options request. `expand-measurements`
-/// runs before deploy and `combine-quantum-alloc` with
-/// `qubit-reset-before-reuse` after finalize, where the provider targets'
-/// pipelines have run them. So a stage with this profile must be its target's
-/// first stage when the profile requests single-qubit measurements or
-/// `reset-after-measure`, and its last stage when it requests
-/// `reset-after-measure`. `basis-conversion` runs between deploy and finalize.
+/// Only a target's first stage may add passes before deploy, and only its
+/// last stage may add passes after finalize. So a stage with this profile must
+/// be first when it requests single-qubit measurements or
+/// `reset-after-measure`, and last when it requests `reset-after-measure`.
 /// The handler is generic over the profile options and never inspects
 /// provider names.
 class QuakeReferenceSemanticsHandler

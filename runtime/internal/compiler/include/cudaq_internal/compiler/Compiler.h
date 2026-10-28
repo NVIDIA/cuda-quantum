@@ -159,8 +159,9 @@ public:
 /// `CompileOptions::emulate`, and joins the stages' passes around them in stage
 /// order. When the target sets `disable_qubit_mapping`, every `qubit-mapping`
 /// in the result gets `device=bypass`. Fills \p diagnostic when no handler
-/// lowers a stage, when an override is not the only stage, or when a stage sets
-/// passes that `StagePasses` reserves for the first or last stage.
+/// lowers a stage, when the selected handler returns no `StagePasses`, when
+/// an override is not the only stage, or when a stage sets passes that
+/// `StagePasses` reserves for the first or last stage.
 std::optional<std::string>
 getPassPipeline(const cudaq::CompileTarget &target,
                 const cudaq::CompileOptions &options,
