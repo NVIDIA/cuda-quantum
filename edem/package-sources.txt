@@ -26,6 +26,7 @@ edem/lib/cudaq-edem.map
 edem/lib/composition.cpp
 edem/lib/edem.cpp
 edem/lib/noise.cpp
+edem/lib/vocabulary.h
 edem/package-sources.txt
 edem/python/CMakeLists.txt
 edem/python/adoption_test.cpp

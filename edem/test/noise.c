@@ -19,16 +19,18 @@ static void reordered_outputs(void) {
   cudaq_edem_fault_group group = {CUDAQ_EDEM_INDEPENDENT, 3, ids,
                                   probabilities};
   cudaq_edem_fault_distribution fault = {3, 1, &group};
-  cudaq_edem_block blocks[3];
+  cudaq_edem_matrix_block blocks[3];
   for (uint32_t i = 0; i < 3; ++i)
-    blocks[i] = (cudaq_edem_block){{CUDAQ_EDEM_DETECTOR + i, 0},
-                                   {CUDAQ_EDEM_FAULT, 0},
-                                   {1, 3, offsets[i][3], offsets[i], rows}};
+    blocks[i] =
+        (cudaq_edem_matrix_block){{CUDAQ_EDEM_DETECTOR + i, 0},
+                                  {CUDAQ_EDEM_FAULT, 0},
+                                  {1, 3, offsets[i][3], offsets[i], rows}};
   cudaq_edem_description description = {0};
-  description.shape = (cudaq_edem_shape){0, 0, 0, 1, 1, 1, 1, 3};
-  description.faults = &fault;
-  description.detector_sizes = description.observable_sizes =
-      description.success_sizes = &width;
+  description.shape = (cudaq_edem_shape){0, 0, 1, 1, 1, 1};
+  description.block_count = 3;
+  description.fault_ports_distributions = &fault;
+  description.detector_ports_sizes = description.observable_ports_sizes =
+      description.success_ports_sizes = &width;
   description.blocks = blocks;
   cudaq_gf2_owned_buffer original = {0}, reordered = {0}, converted = {0},
                          reduced = {0}, mapping = {0};
@@ -41,15 +43,16 @@ static void reordered_outputs(void) {
            shape.input_bundle_count == 1 && shape.section_count == 2);
   cudaq_gf2_bundle_type types[4];
   cudaq_gf2_bundle input, outputs[3];
-  cudaq_gf2_map_block reordered_blocks[3];
+  cudaq_gf2_map_matrix_block reordered_blocks[3];
   for (uint32_t i = 0; i < 4; ++i)
     TA_CHECK(cudaq_gf2_map_get_type(&source.map, i, types + i) == CUDAQ_GF2_OK);
-  TA_CHECK(cudaq_gf2_map_get_bundle(&source.map, 0, 0, &input) == CUDAQ_GF2_OK);
+  TA_CHECK(cudaq_gf2_map_get_bundle(&source.map, CUDAQ_EDEM_INPUT, 0, &input) ==
+           CUDAQ_GF2_OK);
   for (uint32_t i = 0; i < 3; ++i) {
-    TA_CHECK(cudaq_gf2_map_get_bundle(&source.map, 1, 2 - i, outputs + i) ==
-             CUDAQ_GF2_OK);
-    TA_CHECK(cudaq_gf2_map_get_block(&source.map, i, reordered_blocks + i) ==
-             CUDAQ_GF2_OK);
+    TA_CHECK(cudaq_gf2_map_get_bundle(&source.map, CUDAQ_EDEM_OUTPUT, 2 - i,
+                                      outputs + i) == CUDAQ_GF2_OK);
+    TA_CHECK(cudaq_gf2_map_get_matrix_block(
+                 &source.map, i, reordered_blocks + i) == CUDAQ_GF2_OK);
     reordered_blocks[i].output.bundle = 2 - reordered_blocks[i].output.bundle;
   }
   cudaq_gf2_section sections[2];
@@ -67,8 +70,8 @@ static void reordered_outputs(void) {
   cudaq_edem_dem_view input_view, output_view;
   TA_CHECK(cudaq_edem_read(map.data, map.size, 0, &input_view.edem) ==
            CUDAQ_EDEM_OK);
-  TA_CHECK(cudaq_edem_factorize_dem(&input_view, 0, &converted, &output_view) ==
-           CUDAQ_EDEM_OK);
+  TA_CHECK(cudaq_edem_into_independent_faults_dem(
+               &input_view, 0, &converted, &output_view) == CUDAQ_EDEM_OK);
   TA_CHECK(converted.size == original.size &&
            !memcmp(converted.data, original.data, (size_t)original.size));
   TA_CHECK(cudaq_edem_coalesce_dem_columns(&input_view, 0, &reduced,
@@ -99,7 +102,8 @@ static void failure_sites(const cudaq_edem_dem_view *source, int coalesce) {
   cudaq_edem_status status =
       coalesce ? cudaq_edem_coalesce_dem_columns(source, &memory, &owner,
                                                  &result, &mapping)
-               : cudaq_edem_factorize_dem(source, &memory, &owner, &result);
+               : cudaq_edem_into_independent_faults_dem(source, &memory, &owner,
+                                                        &result);
   TA_CHECK(status == CUDAQ_EDEM_OK);
   uint64_t attempts = resource.attempts;
   cudaq_gf2_owned_buffer_release(&owner);
@@ -109,10 +113,10 @@ static void failure_sites(const cudaq_edem_dem_view *source, int coalesce) {
     test_resource_init(&resource);
     resource.fail_on_attempt = fail;
     result = *source;
-    status = coalesce
-                 ? cudaq_edem_coalesce_dem_columns(source, &memory, &owner,
-                                                   &result, &mapping)
-                 : cudaq_edem_factorize_dem(source, &memory, &owner, &result);
+    status = coalesce ? cudaq_edem_coalesce_dem_columns(source, &memory, &owner,
+                                                        &result, &mapping)
+                      : cudaq_edem_into_independent_faults_dem(source, &memory,
+                                                               &owner, &result);
     TA_CHECK(status == CUDAQ_EDEM_ALLOCATION_FAILED);
     TA_CHECK(test_same_owner(owner, (cudaq_gf2_owned_buffer){0}));
     TA_CHECK(test_same_owner(mapping, (cudaq_gf2_owned_buffer){0}));
@@ -141,15 +145,15 @@ static uint64_t channels(uint32_t count, int bounded) {
                                          probabilities + 3 * i};
   cudaq_edem_fault_distribution fault = {columns, count, groups};
   uint32_t width = 1;
-  cudaq_edem_block block = {{CUDAQ_EDEM_DETECTOR, 0},
-                            {CUDAQ_EDEM_FAULT, 0},
-                            {1, columns, count * 2, offsets, rows}};
+  cudaq_edem_matrix_block block = {{CUDAQ_EDEM_DETECTOR, 0},
+                                   {CUDAQ_EDEM_FAULT, 0},
+                                   {1, columns, count * 2, offsets, rows}};
   cudaq_edem_description description = {0};
-  description.shape.fault_ports = 1;
-  description.shape.detector_ports = 1;
-  description.shape.blocks = 1;
-  description.faults = &fault;
-  description.detector_sizes = &width;
+  description.shape.fault_ports_count = 1;
+  description.shape.detector_ports_count = 1;
+  description.block_count = 1;
+  description.fault_ports_distributions = &fault;
+  description.detector_ports_sizes = &width;
   description.blocks = &block;
   cudaq_gf2_owned_buffer original = {0}, independent = {0}, reduced = {0},
                          map = {0};
@@ -166,8 +170,8 @@ static uint64_t channels(uint32_t count, int bounded) {
   test_resource_init(&scratch);
   test_resource_init(&output);
   cudaq_gf2_memory memory = test_memory(&scratch, &output);
-  TA_CHECK(cudaq_edem_factorize_dem(&source, &memory, &independent,
-                                    &converted) == CUDAQ_EDEM_OK);
+  TA_CHECK(cudaq_edem_into_independent_faults_dem(
+               &source, &memory, &independent, &converted) == CUDAQ_EDEM_OK);
   uint64_t peak = scratch.peak_bytes + output.peak_bytes;
   if (count == 1) {
     failure_sites(&source, 0);
@@ -189,8 +193,9 @@ static uint64_t channels(uint32_t count, int bounded) {
     cudaq_gf2_memory arenas = test_memory(&arena_scratch, &arena_result);
     cudaq_gf2_owned_buffer bounded_factor = {0};
     cudaq_edem_dem_view bounded_view;
-    TA_CHECK(cudaq_edem_factorize_dem(&source, &arenas, &bounded_factor,
-                                      &bounded_view) == CUDAQ_EDEM_OK);
+    TA_CHECK(cudaq_edem_into_independent_faults_dem(
+                 &source, &arenas, &bounded_factor, &bounded_view) ==
+             CUDAQ_EDEM_OK);
     cudaq_gf2_owned_buffer_release(&bounded_factor);
     test_resource_reset(&arena_scratch);
     test_resource_reset(&arena_result);

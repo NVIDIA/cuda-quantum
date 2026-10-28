@@ -820,7 +820,7 @@ FailureOr<PackedGadgetEDEM> assemble(qlx::fabric::GadgetContractOp profile,
     }
 
   std::vector<MatrixStorage> matrices;
-  std::vector<cudaq_edem_block> blocks;
+  std::vector<cudaq_edem_matrix_block> blocks;
   auto addRows = [&](cudaq_edem_endpoint output,
                      const std::vector<Bits> &rows) {
     // Sparse staging visits only nonzero coefficients, including across large
@@ -888,10 +888,15 @@ FailureOr<PackedGadgetEDEM> assemble(qlx::fabric::GadgetContractOp profile,
   auto addCode = [&](const BoundaryPort &port) {
     const auto &name = port.boundary.name();
     auto [it, added] = codeIds.emplace(name, codes.size());
+    // Contracts bind one virtual outcome per selected effective stabilizer.
     if (added)
-      codes.push_back({name.data(), name.size(),
-                       port.boundary.effectiveSyndromes(),
-                       port.boundary.logicalQubits()});
+      codes.push_back({
+          .name = name.data(),
+          .name_size = name.size(),
+          .syndrome_count = port.boundary.effectiveSyndromes(),
+          .virtual_outcome_count = port.boundary.effectiveSyndromes(),
+          .logical_qubit_count = port.boundary.logicalQubits(),
+      });
     return it->second;
   };
   for (const auto &port : inputs)
@@ -929,18 +934,22 @@ FailureOr<PackedGadgetEDEM> assemble(qlx::fabric::GadgetContractOp profile,
   uint32_t observableSize = profileRows.observables.size();
   uint32_t successSize = profileRows.success.size();
   cudaq_edem_description description{
-      {unsigned(codes.size()), unsigned(inputs.size()),
-       unsigned(outputs.size()), faults.faults.empty() ? 0u : 1u,
-       detectorSize ? 1u : 0u, observableSize ? 1u : 0u, successSize ? 1u : 0u,
-       blocks.size()},
-      codes.data(),
-      inputCodes.data(),
-      outputCodes.data(),
-      &distribution,
-      &detectorSize,
-      &observableSize,
-      &successSize,
-      blocks.data()};
+      .shape = {.input_code_count = unsigned(inputs.size()),
+                .output_code_count = unsigned(outputs.size()),
+                .fault_ports_count = faults.faults.empty() ? 0u : 1u,
+                .detector_ports_count = detectorSize ? 1u : 0u,
+                .observable_ports_count = observableSize ? 1u : 0u,
+                .success_ports_count = successSize ? 1u : 0u},
+      .code_table = {unsigned(codes.size()), codes.data()},
+      .input_code_indices = inputCodes.data(),
+      .output_code_indices = outputCodes.data(),
+      .fault_ports_distributions = &distribution,
+      .detector_ports_sizes = &detectorSize,
+      .observable_ports_sizes = &observableSize,
+      .success_ports_sizes = &successSize,
+      .block_count = blocks.size(),
+      .blocks = blocks.data(),
+  };
   auto check = [&](cudaq_edem_status status) {
     if (status == CUDAQ_EDEM_OK)
       return true;

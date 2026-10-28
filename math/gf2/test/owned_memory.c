@@ -15,7 +15,7 @@ typedef struct fixture {
   uint32_t width, rows[3];
   uint64_t offsets[4];
   cudaq_gf2_bundle bundle;
-  cudaq_gf2_map_block block;
+  cudaq_gf2_map_matrix_block block;
   cudaq_gf2_map_description description;
 } fixture;
 static void fixture_init(fixture *f) {
@@ -29,8 +29,8 @@ static void fixture_init(fixture *f) {
   }
   f->offsets[3] = 3;
   f->bundle = (cudaq_gf2_bundle){0, 0, &f->width};
-  f->block =
-      (cudaq_gf2_map_block){{0, 0}, {0, 0}, {3, 3, 3, f->offsets, f->rows}};
+  f->block = (cudaq_gf2_map_matrix_block){
+      {0, 0}, {0, 0}, {3, 3, 3, f->offsets, f->rows}};
   f->description = (cudaq_gf2_map_description){
       1, 1, 1, 0, 1, &f->type, &f->bundle, &f->bundle, &f->block, NULL};
 }

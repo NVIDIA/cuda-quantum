@@ -15,10 +15,10 @@
 extern "C" {
 #endif
 
-typedef enum cudaq_gf2_bundle_role {
-  CUDAQ_GF2_FREE = 0,
-  CUDAQ_GF2_INTERFACE = 1
-} cudaq_gf2_bundle_role;
+/* Side of a map: wires of input bundles index columns; wires of output
+ * bundles index rows. */
+typedef uint32_t cudaq_gf2_wire_direction;
+enum { CUDAQ_GF2_INPUT = 0, CUDAQ_GF2_OUTPUT = 1 };
 /* Names are nonempty UTF-8, compared byte-for-byte, without normalization.
  * One name denotes one (role, wire_count) schema. Local type IDs are not
  * identities. Interface bundle compatibility requires matching type schemas
@@ -27,7 +27,8 @@ typedef enum cudaq_gf2_bundle_role {
 typedef struct cudaq_gf2_bundle_type {
   const char *name;
   uint64_t name_size;
-  uint32_t role, wire_count;
+  cudaq_gf2_bundle_role role;
+  uint32_t wire_count;
 } cudaq_gf2_bundle_type;
 typedef struct cudaq_gf2_bundle {
   uint32_t type, reserved;
@@ -36,10 +37,10 @@ typedef struct cudaq_gf2_bundle {
 typedef struct cudaq_gf2_wire {
   uint32_t bundle, wire;
 } cudaq_gf2_wire;
-typedef struct cudaq_gf2_map_block {
+typedef struct cudaq_gf2_map_matrix_block {
   cudaq_gf2_wire output, input;
   cudaq_gf2_csc_view matrix;
-} cudaq_gf2_map_block;
+} cudaq_gf2_map_matrix_block;
 /* Extension payloads are already canonical, with section-relative references.
  * IDs below OPTIONAL_SECTION_MIN require REQUIRED; IDs above require OPTIONAL.
  * Only IDs >= EXTENSION_SECTION_MIN are available to extensions. Optional
@@ -48,7 +49,8 @@ typedef struct cudaq_gf2_map_block {
  * using a value as that domain.
  */
 typedef struct cudaq_gf2_section {
-  uint32_t id, flags;
+  cudaq_gf2_section_id id;
+  cudaq_gf2_section_flags flags;
   uint64_t count, bytes;
   const void *data;
 } cudaq_gf2_section;
@@ -57,7 +59,7 @@ typedef struct cudaq_gf2_map_description {
   uint64_t block_count;
   const cudaq_gf2_bundle_type *types;
   const cudaq_gf2_bundle *inputs, *outputs;
-  const cudaq_gf2_map_block *blocks;
+  const cudaq_gf2_map_matrix_block *blocks;
   const cudaq_gf2_section *sections;
 } cudaq_gf2_map_description;
 /* Trusted borrowed token, initialized only by successful construct/read in this
@@ -113,16 +115,18 @@ cudaq_gf2_status cudaq_gf2_map_get_type(const cudaq_gf2_map_view *value,
                                         uint32_t index,
                                         cudaq_gf2_bundle_type *type);
 cudaq_gf2_status cudaq_gf2_map_get_bundle(const cudaq_gf2_map_view *value,
-                                          uint32_t output, uint32_t index,
+                                          cudaq_gf2_wire_direction direction,
+                                          uint32_t index,
                                           cudaq_gf2_bundle *bundle);
 cudaq_gf2_status cudaq_gf2_map_get_wire(const cudaq_gf2_map_view *value,
-                                        uint32_t output, cudaq_gf2_wire wire,
-                                        uint32_t *width, uint64_t *offset);
-cudaq_gf2_status cudaq_gf2_map_get_block(const cudaq_gf2_map_view *value,
-                                         uint64_t index,
-                                         cudaq_gf2_map_block *block);
+                                        cudaq_gf2_wire_direction direction,
+                                        cudaq_gf2_wire wire, uint32_t *width,
+                                        uint64_t *offset);
+cudaq_gf2_status
+cudaq_gf2_map_get_matrix_block(const cudaq_gf2_map_view *value, uint64_t index,
+                               cudaq_gf2_map_matrix_block *block);
 cudaq_gf2_status cudaq_gf2_map_get_section(const cudaq_gf2_map_view *value,
-                                           uint32_t id,
+                                           cudaq_gf2_section_id id,
                                            cudaq_gf2_section *section);
 cudaq_gf2_status cudaq_gf2_map_vector_sizes(const cudaq_gf2_map_view *value,
                                             uint64_t *inputs,

@@ -179,9 +179,10 @@ def _uniform_channel(responses, probability):
     ],
                      detectors=[rows],
                      blocks=[
-                         edem.Block(edem.Endpoint(edem.PortKind.DETECTOR),
-                                    edem.Endpoint(edem.PortKind.FAULT),
-                                    edem.SparseMatrix(rows, count, entries))
+                         edem.MatrixBlock(
+                             edem.Endpoint(edem.PortKind.DETECTOR),
+                             edem.Endpoint(edem.PortKind.FAULT),
+                             edem.SparseMatrix(rows, count, entries))
                      ])
 
 
@@ -220,9 +221,10 @@ def test_stim_formatter_preserves_duplicate_mechanisms_without_math(example):
         edem.EDEM(faults=[edem.FaultDistribution.independent([.1, .2, .3])],
                   detectors=[1],
                   blocks=[
-                      edem.Block(edem.Endpoint(edem.PortKind.DETECTOR),
-                                 edem.Endpoint(edem.PortKind.FAULT),
-                                 edem.SparseMatrix(1, 3, [(0, 0), (0, 1)]))
+                      edem.MatrixBlock(
+                          edem.Endpoint(edem.PortKind.DETECTOR),
+                          edem.Endpoint(edem.PortKind.FAULT),
+                          edem.SparseMatrix(1, 3, [(0, 0), (0, 1)]))
                   ]))
     formatted = example["to_stim_dem"](model)
     terms = [op for op in formatted if op.type == "error"]

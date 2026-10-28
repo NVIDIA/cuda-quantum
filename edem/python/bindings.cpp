@@ -40,7 +40,7 @@ static void check(cudaq_edem_status status) {
     throw nb::value_error(cudaq_edem_status_string(status));
 }
 
-static void check(cudaq_gf2_status status) {
+static void check_gf2(cudaq_gf2_status status) {
   if (status == CUDAQ_GF2_ALLOCATION_FAILED)
     throw std::bad_alloc();
   if (status != CUDAQ_GF2_OK)
@@ -64,7 +64,7 @@ struct SparseMatrix {
     for (auto [row, column] : entries)
       input.push_back({row, column});
     cudaq_gf2_csc_view result;
-    check(cudaq_gf2_csc_construct(
+    check_gf2(cudaq_gf2_csc_construct(
         r, c, input.data(), input.size(), offsets.data(), offsets.size(),
         indices.data(), indices.size(), scratch.data(),
         scratch.size() * sizeof(cudaq_gf2_entry), &result));
@@ -99,9 +99,9 @@ struct SparseMatrix {
       throw nb::value_error("affine offset must have one bit per matrix row");
     auto matrix = view();
     std::vector<uint8_t> output(rows);
-    check(cudaq_gf2_csc_apply(&matrix, input.data(), input.size(),
-                              offset ? offset->data() : nullptr, output.data(),
-                              output.size()));
+    check_gf2(cudaq_gf2_csc_apply(&matrix, input.data(), input.size(),
+                                  offset ? offset->data() : nullptr,
+                                  output.data(), output.size()));
     return output;
   }
 };
@@ -116,6 +116,11 @@ enum class PortKind : uint32_t {
   SUCCESS = CUDAQ_EDEM_SUCCESS
 };
 
+enum class EndpointDirection : uint32_t {
+  INPUT = CUDAQ_EDEM_INPUT,
+  OUTPUT = CUDAQ_EDEM_OUTPUT
+};
+
 struct Endpoint {
   PortKind kind;
   uint32_t index;
@@ -126,9 +131,10 @@ struct Endpoint {
 
 struct CodePresentation {
   std::string name;
-  uint32_t generators, logical_qubits;
+  uint32_t syndrome_count, virtual_outcome_count, logical_qubit_count;
   cudaq_edem_code_presentation view() const {
-    return {name.data(), name.size(), generators, logical_qubits};
+    return {name.data(), name.size(), syndrome_count, virtual_outcome_count,
+            logical_qubit_count};
   }
 };
 
@@ -170,10 +176,10 @@ struct FaultDistribution {
   }
 };
 
-struct Block {
+struct MatrixBlock {
   Endpoint output, input;
   SparseMatrix matrix;
-  cudaq_edem_block view() const {
+  cudaq_edem_matrix_block view() const {
     return {output.view(), input.view(), matrix.view()};
   }
 };
@@ -193,7 +199,7 @@ class EDEM {
 
   static uint32_t count(size_t size) {
     if (size > UINT32_MAX)
-      throw nb::value_error("too many EDEM partitions");
+      throw nb::value_error("too many EDEM ports");
     return static_cast<uint32_t>(size);
   }
 
@@ -250,11 +256,11 @@ public:
        const std::vector<uint32_t> &detectors,
        const std::vector<uint32_t> &observables,
        const std::vector<uint32_t> &successes,
-       const std::vector<Block> &blocks) {
+       const std::vector<MatrixBlock> &blocks) {
     std::vector<cudaq_edem_code_presentation> code_views;
     std::vector<std::vector<cudaq_edem_fault_group>> group_views(faults.size());
     std::vector<cudaq_edem_fault_distribution> fault_views;
-    std::vector<cudaq_edem_block> block_views;
+    std::vector<cudaq_edem_matrix_block> block_views;
     for (const auto &code : codes)
       code_views.push_back(code.view());
     for (size_t p = 0; p < faults.size(); ++p) {
@@ -266,16 +272,17 @@ public:
     for (const auto &block : blocks)
       block_views.push_back(block.view());
     cudaq_edem_description description = {
-        {count(codes.size()), count(inputs.size()), count(outputs.size()),
-         count(faults.size()), count(detectors.size()),
-         count(observables.size()), count(successes.size()), blocks.size()},
-        code_views.data(),
+        {count(inputs.size()), count(outputs.size()), count(faults.size()),
+         count(detectors.size()), count(observables.size()),
+         count(successes.size())},
+        {count(codes.size()), code_views.data()},
         inputs.data(),
         outputs.data(),
         fault_views.data(),
         detectors.data(),
         observables.data(),
         successes.data(),
+        blocks.size(),
         block_views.data()};
     check(cudaq_edem_construct(&description, nullptr, &storage, &checked));
   }
@@ -336,69 +343,45 @@ public:
 
   cudaq_edem_shape shape() const {
     auto value = view();
-    cudaq_gf2_map_shape map;
-    cudaq_gf2_section codes;
-    check(cudaq_gf2_map_get_shape(&value.map, &map));
-    check(cudaq_gf2_map_get_section(&value.map,
-                                    CUDAQ_EDEM_SECTION_PRESENTATIONS, &codes));
-    cudaq_edem_shape result{};
-    result.code_presentations = count(codes.count);
-    result.blocks = map.block_count;
-    for (uint32_t side = 0; side < 2; ++side) {
-      uint32_t n = side ? map.output_bundle_count : map.input_bundle_count;
-      for (uint32_t i = 0; i < n; ++i) {
-        cudaq_gf2_bundle b;
-        check(cudaq_gf2_map_get_bundle(&value.map, side, i, &b));
-        if (b.type < codes.count) {
-          if (side)
-            ++result.output_code_blocks;
-          else
-            ++result.input_code_blocks;
-        } else {
-          switch (b.type - codes.count) {
-          case 0:
-            ++result.detector_ports;
-            break;
-          case 1:
-            ++result.fault_ports;
-            break;
-          case 2:
-            ++result.observable_ports;
-            break;
-          case 3:
-            ++result.success_ports;
-            break;
-          }
-        }
-      }
-    }
+    cudaq_edem_shape result;
+    check(cudaq_edem_get_shape(&value, &result));
+    return result;
+  }
+
+  uint32_t code_count() const {
+    auto value = view();
+    uint32_t result;
+    check(cudaq_edem_get_code_count(&value, &result));
     return result;
   }
 
   std::vector<CodePresentation> codes() const {
     auto value = view();
     std::vector<CodePresentation> result;
-    auto n = shape().code_presentations;
+    auto n = code_count();
     for (uint64_t i = 0; i < n; ++i) {
       cudaq_edem_code_presentation code;
       check(cudaq_edem_get_code(&value, static_cast<uint32_t>(i), &code));
-      result.push_back({std::string(code.name, code.name_size), code.generators,
-                        code.logical_qubits});
+      result.push_back({std::string(code.name, code.name_size),
+                        code.syndrome_count, code.virtual_outcome_count,
+                        code.logical_qubit_count});
     }
     return result;
   }
 
-  std::vector<uint32_t> boundaries(bool output) const {
+  std::vector<uint32_t> boundaries(EndpointDirection direction) const {
     auto value = view();
+    auto side = static_cast<cudaq_edem_endpoint_direction>(direction);
     cudaq_gf2_map_shape map;
-    check(cudaq_gf2_map_get_shape(&value.map, &map));
-    uint32_t n = output ? map.output_bundle_count : map.input_bundle_count;
-    auto s = shape();
+    check_gf2(cudaq_gf2_map_get_shape(&value.map, &map));
+    uint32_t n = side == CUDAQ_EDEM_OUTPUT ? map.output_bundle_count
+                                           : map.input_bundle_count;
+    auto codes = code_count();
     std::vector<uint32_t> result;
     for (uint32_t i = 0; i < n; ++i) {
       cudaq_gf2_bundle bundle;
-      check(cudaq_gf2_map_get_bundle(&value.map, output, i, &bundle));
-      if (bundle.type < s.code_presentations)
+      check_gf2(cudaq_gf2_map_get_bundle(&value.map, side, i, &bundle));
+      if (bundle.type < codes)
         result.push_back(bundle.type);
     }
     return result;
@@ -407,14 +390,14 @@ public:
   std::vector<FaultDistribution> faults() const {
     auto value = view();
     std::vector<FaultDistribution> result;
-    auto s = shape();
+    auto codes = code_count();
     cudaq_gf2_map_shape map;
-    check(cudaq_gf2_map_get_shape(&value.map, &map));
+    check_gf2(cudaq_gf2_map_get_shape(&value.map, &map));
     for (uint64_t p = 0; p < map.input_bundle_count; ++p) {
       cudaq_gf2_bundle bundle;
-      check(cudaq_gf2_map_get_bundle(&value.map, 0, static_cast<uint32_t>(p),
-                                     &bundle));
-      if (bundle.type != s.code_presentations + 1)
+      check_gf2(cudaq_gf2_map_get_bundle(&value.map, CUDAQ_EDEM_INPUT,
+                                         static_cast<uint32_t>(p), &bundle));
+      if (bundle.type != codes + 1)
         continue;
       uint32_t size, groups;
       check(cudaq_edem_get_fault(&value, static_cast<uint32_t>(p), &size,
@@ -436,17 +419,19 @@ public:
     return result;
   }
 
-  std::vector<Block> blocks() const {
+  std::vector<MatrixBlock> blocks() const {
     auto value = view();
-    std::vector<Block> result;
+    std::vector<MatrixBlock> result;
     cudaq_gf2_map_shape map;
-    check(cudaq_gf2_map_get_shape(&value.map, &map));
+    check_gf2(cudaq_gf2_map_get_shape(&value.map, &map));
     for (uint64_t i = 0; i < map.block_count; ++i) {
-      cudaq_gf2_map_block block;
+      cudaq_gf2_map_matrix_block block;
       cudaq_edem_endpoint output, input;
-      check(cudaq_gf2_map_get_block(&value.map, i, &block));
-      check(cudaq_edem_describe_wire(&value, 1, block.output, &output));
-      check(cudaq_edem_describe_wire(&value, 0, block.input, &input));
+      check_gf2(cudaq_gf2_map_get_matrix_block(&value.map, i, &block));
+      check(cudaq_edem_describe_wire(&value, CUDAQ_EDEM_OUTPUT, block.output,
+                                     &output));
+      check(cudaq_edem_describe_wire(&value, CUDAQ_EDEM_INPUT, block.input,
+                                     &input));
       result.push_back({{static_cast<PortKind>(output.kind), output.index},
                         {static_cast<PortKind>(input.kind), input.index},
                         SparseMatrix(block.matrix)});
@@ -454,40 +439,44 @@ public:
     return result;
   }
 
-  std::pair<uint32_t, uint64_t> port(Endpoint endpoint, bool output) const {
+  std::pair<uint32_t, uint64_t> port(Endpoint endpoint,
+                                     EndpointDirection direction) const {
     auto value = view();
+    auto side = static_cast<cudaq_edem_endpoint_direction>(direction);
     uint32_t width;
     uint64_t offset;
     cudaq_gf2_wire wire;
-    check(cudaq_edem_resolve_endpoint(&value, output, endpoint.view(), &wire));
-    check(cudaq_gf2_map_get_wire(&value.map, output, wire, &width, &offset));
+    check(cudaq_edem_resolve_endpoint(&value, side, endpoint.view(), &wire));
+    check_gf2(cudaq_gf2_map_get_wire(&value.map, side, wire, &width, &offset));
     return {width, offset};
   }
 
-  std::vector<uint32_t> partition_sizes(PortKind kind) const {
+  std::vector<uint32_t> port_sizes(PortKind kind) const {
     auto s = shape();
-    uint32_t size = kind == PortKind::DETECTOR
-                        ? s.detector_ports
-                        : (kind == PortKind::OBSERVABLE ? s.observable_ports
-                                                        : s.success_ports);
+    uint32_t size = kind == PortKind::DETECTOR ? s.detector_ports_count
+                                               : (kind == PortKind::OBSERVABLE
+                                                      ? s.observable_ports_count
+                                                      : s.success_ports_count);
     std::vector<uint32_t> result(size);
     for (uint64_t i = 0; i < size; ++i)
-      result[i] = port({kind, static_cast<uint32_t>(i)}, true).first;
+      result[i] =
+          port({kind, static_cast<uint32_t>(i)}, EndpointDirection::OUTPUT)
+              .first;
     return result;
   }
 
   std::pair<uint64_t, uint64_t> vector_sizes() const {
     auto value = view();
     uint64_t inputs, outputs;
-    check(cudaq_gf2_map_vector_sizes(&value.map, &inputs, &outputs));
+    check_gf2(cudaq_gf2_map_vector_sizes(&value.map, &inputs, &outputs));
     return {inputs, outputs};
   }
 
   std::vector<uint8_t> apply(const std::vector<uint8_t> &input) const {
     auto value = view();
     std::vector<uint8_t> output(vector_sizes().second);
-    check(cudaq_gf2_map_apply(&value.map, input.data(), input.size(),
-                              output.data(), output.size()));
+    check_gf2(cudaq_gf2_map_apply(&value.map, input.data(), input.size(),
+                                  output.data(), output.size()));
     return output;
   }
 };
@@ -525,8 +514,8 @@ public:
   static DEM factorize(const DEM &source) {
     DEM result;
     cudaq_edem_dem_view input{source.value.view()}, checked;
-    check(cudaq_edem_factorize_dem(&input, nullptr, &result.value.storage,
-                                   &checked));
+    check(cudaq_edem_into_independent_faults_dem(
+        &input, nullptr, &result.value.storage, &checked));
     result.value.checked = checked.edem;
     return result;
   }
@@ -560,31 +549,35 @@ static void bind_value(nb::class_<Value> &type) {
       .def_prop_ro("is_dem", [](const Value &v) { return v.model().is_dem(); })
       .def_prop_ro("codes", [](const Value &v) { return v.model().codes(); })
       .def_prop_ro("inputs",
-                   [](const Value &v) { return v.model().boundaries(false); })
+                   [](const Value &v) {
+                     return v.model().boundaries(EndpointDirection::INPUT);
+                   })
       .def_prop_ro("outputs",
-                   [](const Value &v) { return v.model().boundaries(true); })
+                   [](const Value &v) {
+                     return v.model().boundaries(EndpointDirection::OUTPUT);
+                   })
       .def_prop_ro("faults", [](const Value &v) { return v.model().faults(); })
       .def_prop_ro("detectors",
                    [](const Value &v) {
-                     return v.model().partition_sizes(PortKind::DETECTOR);
+                     return v.model().port_sizes(PortKind::DETECTOR);
                    })
       .def_prop_ro("observables",
                    [](const Value &v) {
-                     return v.model().partition_sizes(PortKind::OBSERVABLE);
+                     return v.model().port_sizes(PortKind::OBSERVABLE);
                    })
       .def_prop_ro("successes",
                    [](const Value &v) {
-                     return v.model().partition_sizes(PortKind::SUCCESS);
+                     return v.model().port_sizes(PortKind::SUCCESS);
                    })
       .def_prop_ro("blocks", [](const Value &v) { return v.model().blocks(); })
       .def_prop_ro("vector_sizes",
                    [](const Value &v) { return v.model().vector_sizes(); })
       .def(
           "port",
-          [](const Value &v, Endpoint endpoint, bool output) {
-            return v.model().port(endpoint, output);
+          [](const Value &v, Endpoint endpoint, EndpointDirection direction) {
+            return v.model().port(endpoint, direction);
           },
-          "endpoint"_a, nb::kw_only(), "output"_a = false)
+          "endpoint"_a, nb::kw_only(), "direction"_a = EndpointDirection::INPUT)
       .def(
           "apply",
           [](const Value &v, const std::vector<uint8_t> &input) {
@@ -611,6 +604,9 @@ NB_MODULE(_core, m) {
       .value("DETECTOR", PortKind::DETECTOR)
       .value("OBSERVABLE", PortKind::OBSERVABLE)
       .value("SUCCESS", PortKind::SUCCESS);
+  nb::enum_<EndpointDirection>(m, "EndpointDirection")
+      .value("INPUT", EndpointDirection::INPUT)
+      .value("OUTPUT", EndpointDirection::OUTPUT);
   nb::enum_<GroupKind>(m, "GroupKind")
       .value("INDEPENDENT", GroupKind::INDEPENDENT)
       .value("EXCLUSIVE", GroupKind::EXCLUSIVE);
@@ -619,11 +615,13 @@ NB_MODULE(_core, m) {
       .def_ro("kind", &Endpoint::kind)
       .def_ro("index", &Endpoint::index);
   nb::class_<CodePresentation>(m, "CodePresentation")
-      .def(nb::init<std::string, uint32_t, uint32_t>(), "name"_a,
-           "generators"_a, "logical_qubits"_a)
+      .def(nb::init<std::string, uint32_t, uint32_t, uint32_t>(), "name"_a,
+           "syndrome_count"_a, "virtual_outcome_count"_a,
+           "logical_qubit_count"_a)
       .def_ro("name", &CodePresentation::name)
-      .def_ro("generators", &CodePresentation::generators)
-      .def_ro("logical_qubits", &CodePresentation::logical_qubits);
+      .def_ro("syndrome_count", &CodePresentation::syndrome_count)
+      .def_ro("virtual_outcome_count", &CodePresentation::virtual_outcome_count)
+      .def_ro("logical_qubit_count", &CodePresentation::logical_qubit_count);
   nb::class_<FaultGroup>(m, "FaultGroup")
       .def(nb::init<GroupKind, std::vector<uint32_t>, std::vector<double>>(),
            "kind"_a, "fault_ids"_a, "probabilities"_a)
@@ -647,19 +645,20 @@ NB_MODULE(_core, m) {
                    })
       .def_prop_ro("entries", &SparseMatrix::entries)
       .def("apply", &SparseMatrix::apply, "input"_a, "offset"_a = nb::none());
-  nb::class_<Block>(m, "Block")
+  nb::class_<MatrixBlock>(m, "MatrixBlock")
       .def(nb::init<Endpoint, Endpoint, SparseMatrix>(), "output"_a, "input"_a,
            "matrix"_a)
-      .def_ro("output", &Block::output)
-      .def_ro("input", &Block::input)
-      .def_ro("matrix", &Block::matrix);
+      .def_ro("output", &MatrixBlock::output)
+      .def_ro("input", &MatrixBlock::input)
+      .def_ro("matrix", &MatrixBlock::matrix);
   auto edem = nb::class_<EDEM>(m, "EDEM");
   edem.def(
           nb::init<const std::vector<CodePresentation> &,
                    const std::vector<uint32_t> &, const std::vector<uint32_t> &,
                    const std::vector<FaultDistribution> &,
                    const std::vector<uint32_t> &, const std::vector<uint32_t> &,
-                   const std::vector<uint32_t> &, const std::vector<Block> &>(),
+                   const std::vector<uint32_t> &,
+                   const std::vector<MatrixBlock> &>(),
           nb::kw_only(), "codes"_a = std::vector<CodePresentation>{},
           "inputs"_a = std::vector<uint32_t>{},
           "outputs"_a = std::vector<uint32_t>{},
@@ -667,7 +666,7 @@ NB_MODULE(_core, m) {
           "detectors"_a = std::vector<uint32_t>{},
           "observables"_a = std::vector<uint32_t>{},
           "successes"_a = std::vector<uint32_t>{},
-          "blocks"_a = std::vector<Block>{})
+          "blocks"_a = std::vector<MatrixBlock>{})
       .def_static("from_bytes", &EDEM::from_bytes, "data"_a)
       .def_static("adopt", &EDEM::adopt, "capsule"_a,
                   "Validate and adopt an owned-buffer capsule without copying "
@@ -689,11 +688,11 @@ NB_MODULE(_core, m) {
       "factorize_dem", &DEM::factorize, "value"_a,
       "Exactly factor supported uniform Pauli laws into independent "
       "mechanisms. "
-      "Response columns and partitions stay unchanged; original event laws "
+      "Response columns and ports stay unchanged; original event laws "
       "remain in the source DEM. Unsupported distributions raise ValueError.");
   m.def("coalesce_dem_columns", &DEM::coalesce, "value"_a,
         "Return (DEM, source_to_result) for independent mechanisms with equal "
         "complete responses. Global D/O/success rows retain their numbering; "
-        "partitions consolidate. Mapping entries are result column IDs or None "
+        "ports consolidate. Mapping entries are result column IDs or None "
         "for discarded mechanisms. Factorize exclusive laws explicitly first.");
 }

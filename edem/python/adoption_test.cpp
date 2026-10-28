@@ -114,7 +114,7 @@ MovingOwner throughReturn(MovingOwner value) { return value; }
 
 cudaq_edem_status constructRound(const cudaq_gf2_memory *memory,
                                  cudaq::edem::PackedEDEM &owner) {
-  const cudaq_edem_code_presentation codes[] = {{"repetition-3", 12, 2, 1}};
+  const cudaq_edem_code_presentation codes[] = {{"repetition-3", 12, 2, 2, 1}};
   const uint32_t boundary[] = {0}, sizes[] = {2}, ids[] = {0, 1};
   const double probabilities[] = {0.01, 0.02};
   const cudaq_edem_fault_group group = {CUDAQ_EDEM_INDEPENDENT, 2, ids,
@@ -127,7 +127,7 @@ cudaq_edem_status constructRound(const cudaq_gf2_memory *memory,
                                        identity_rows};
   const cudaq_gf2_csc_view measurement = {2, 2, 1, measurement_offsets, row};
   const cudaq_gf2_csc_view data = {2, 2, 1, data_offsets, row};
-  const cudaq_edem_block blocks[] = {
+  const cudaq_edem_matrix_block blocks[] = {
       {{CUDAQ_EDEM_LOGICAL, 0}, {CUDAQ_EDEM_LOGICAL, 0}, identity},
       {{CUDAQ_EDEM_SYNDROME, 0}, {CUDAQ_EDEM_FAULT, 0}, data},
       {{CUDAQ_EDEM_DETECTOR, 0}, {CUDAQ_EDEM_FAULT, 0}, measurement},
@@ -136,14 +136,15 @@ cudaq_edem_status constructRound(const cudaq_gf2_memory *memory,
       {{CUDAQ_EDEM_SYNDROME, 0}, {CUDAQ_EDEM_SYNDROME, 0}, identity},
       {{CUDAQ_EDEM_VIRTUAL, 0}, {CUDAQ_EDEM_FAULT, 0}, measurement},
       {{CUDAQ_EDEM_DETECTOR, 0}, {CUDAQ_EDEM_VIRTUAL, 0}, identity}};
-  const cudaq_edem_description description = {{1, 1, 1, 1, 1, 0, 0, 8},
-                                              codes,
+  const cudaq_edem_description description = {{1, 1, 1, 1, 0, 0},
+                                              {1, codes},
                                               boundary,
                                               boundary,
                                               &fault,
                                               sizes,
                                               nullptr,
                                               nullptr,
+                                              8,
                                               blocks};
   return cudaq::edem::PackedEDEM::construct(description, owner, memory);
 }

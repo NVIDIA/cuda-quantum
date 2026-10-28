@@ -33,7 +33,7 @@ cudaq_edem_status cudaq_edem_is_dem(const cudaq_edem_view *value,
  *
  * Each occurrence retains its own fault indicators and exact laws, even when
  * the same definition view occurs repeatedly. Fault, detector, observable and
- * success partitions follow occurrence order, then local partition order.
+ * success ports follow occurrence order, then local port order.
  * This ordering supplies occurrence coordinates: (occurrence, local port,
  * local indicator or row). Repeated definitions have distinct occurrences.
  *
@@ -51,7 +51,7 @@ cudaq_edem_status cudaq_edem_compose_chain(const cudaq_edem_view *occurrences,
 
 /* Strict projection: reject either exposed code boundary, never discard it.
  * The current semantic EDEM format already expresses original fault
- * indicators, so projection retains its blocks, partitions and exact laws
+ * indicators, so projection retains its blocks, ports and exact laws
  * without changing basis, merging columns or approximating distributions.
  * The independent owned result remains valid after the source is released.
  * Response matrices are the FAULT -> DETECTOR/OBSERVABLE/SUCCESS blocks of

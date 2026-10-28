@@ -16,7 +16,7 @@ typedef struct fixture {
   uint64_t offsets[FAULT_INDICATORS + 1];
   cudaq_edem_fault_group group;
   cudaq_edem_fault_distribution fault;
-  cudaq_edem_block block;
+  cudaq_edem_matrix_block block;
   cudaq_edem_description description;
 } fixture;
 static void fixture_init(fixture *f) {
@@ -31,15 +31,15 @@ static void fixture_init(fixture *f) {
   f->group = (cudaq_edem_fault_group){CUDAQ_EDEM_INDEPENDENT, FAULT_INDICATORS,
                                       f->ids, f->probabilities};
   f->fault = (cudaq_edem_fault_distribution){FAULT_INDICATORS, 1, &f->group};
-  f->block = (cudaq_edem_block){
+  f->block = (cudaq_edem_matrix_block){
       {CUDAQ_EDEM_DETECTOR, 0},
       {CUDAQ_EDEM_FAULT, 0},
       {1, FAULT_INDICATORS, FAULT_INDICATORS, f->offsets, f->rows}};
-  f->description.shape.fault_ports = 1;
-  f->description.shape.detector_ports = 1;
-  f->description.shape.blocks = 1;
-  f->description.faults = &f->fault;
-  f->description.detector_sizes = &f->detector_size;
+  f->description.shape.fault_ports_count = 1;
+  f->description.shape.detector_ports_count = 1;
+  f->description.block_count = 1;
+  f->description.fault_ports_distributions = &f->fault;
+  f->description.detector_ports_sizes = &f->detector_size;
   f->description.blocks = &f->block;
 }
 static void check_apply(const cudaq_edem_view *view) {

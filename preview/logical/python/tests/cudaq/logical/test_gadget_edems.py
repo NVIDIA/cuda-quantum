@@ -140,6 +140,9 @@ def test_hadamard_transfer_and_fault_sites_all_inputs():
         projection.instructions[0].site_id, 0, "x", .02)
     model = derive_edem(build, faults=faults)
     assert isinstance(model, edem.EDEM)
+    presentation, = model.codes
+    assert (presentation.syndrome_count, presentation.virtual_outcome_count,
+            presentation.logical_qubit_count) == (0, 0, 1)
     assert model.vector_sizes == (4, 2)
     for f0, f1, x, z in product((0, 1), repeat=4):
         assert model.apply([f0, f1, x, z]) == [z ^ f1, x ^ f0]
@@ -328,7 +331,9 @@ def test_overcomplete_presentation_section_on_attainable_syndromes():
     graph.bind(identity.interface.outputs.only().syndrome,
                identity.interface.inputs.only().syndrome)
     model = derive_edem(cql.compile(graph.freeze()))
-    assert model.codes[0].generators == 3
+    presentation, = model.codes
+    assert (presentation.syndrome_count, presentation.virtual_outcome_count,
+            presentation.logical_qubit_count) == (3, 3, 1)
     # The third coordinate is redundant. A section is inverse to the CPM on
     # its image; it need not preserve arbitrary inconsistent three-bit inputs.
     for v0, v1, s0, s1, x, z in product((0, 1), repeat=6):
