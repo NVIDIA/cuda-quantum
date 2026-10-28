@@ -42,11 +42,11 @@ namespace cudaq_internal::compiler {
 /// stage order.
 struct StagePasses {
   /// Passes that run after prep and before deploy.
-  std::string preDeployPasses;
+  std::string preDeployPasses{};
   /// Passes that run after deploy and before finalize.
-  std::string postDeployPasses;
+  std::string postDeployPasses{};
   /// Passes that run after finalize.
-  std::string postFinalizePasses;
+  std::string postFinalizePasses{};
 };
 
 /// Interface for lowering between IR profiles.
