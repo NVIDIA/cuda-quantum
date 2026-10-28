@@ -47,6 +47,31 @@ static std::string_view getProfileName(const cudaq::config::Profile &profile) {
       profile);
 }
 
+/// The passes of the first handler in \p handlers that lowers \p input to
+/// \p output. Sets \p diagnostic and returns `nullopt` when no handler supports
+/// the lowering or the selected handler fails.
+static std::optional<cudaq_internal::compiler::StagePasses>
+getInferredStagePasses(
+    const std::vector<
+        std::unique_ptr<cudaq_internal::compiler::LoweringHandler>> &handlers,
+    const cudaq::config::Profile &input, const cudaq::config::Profile &output,
+    const cudaq::CompileOptions &options, std::string &diagnostic) {
+  const auto *handler = cudaq_internal::compiler::selectLoweringHandler(
+      handlers, input, output, options);
+  std::optional<cudaq_internal::compiler::StagePasses> passes;
+  if (handler)
+    passes = handler->getStagePasses(input, output, options);
+  if (!passes) {
+    diagnostic = handler ? "the selected lowering handler failed to construct "
+                           "a pipeline from "
+                         : "no lowering handler supports lowering from ";
+    diagnostic += getProfileName(input);
+    diagnostic += " to ";
+    diagnostic += getProfileName(output);
+  }
+  return passes;
+}
+
 /// Build the JIT pipeline from `canonicalize`, prep, deploy, and finalize,
 /// with the stages' passes around them. The emission format and `emulate`
 /// set the options of prep, deploy, and finalize.
@@ -105,6 +130,7 @@ std::optional<std::string> cudaq_internal::compiler::getPassPipeline(
     };
 
     std::optional<StagePasses> stagePasses;
+    std::string reason;
     if (const auto *custom = std::get_if<cudaq::config::CustomPipelineLowering>(
             &stage.lowering)) {
       // An override pipeline replaces the whole pipeline, so it must be the
@@ -121,21 +147,11 @@ std::optional<std::string> cudaq_internal::compiler::getPassPipeline(
                                 .postDeployPasses = custom->midLevelPipeline,
                                 .postFinalizePasses = custom->lowLevelPipeline};
     } else {
-      std::string profiles(getProfileName(inputProfile));
-      profiles += " to ";
-      profiles += getProfileName(stage.irOutputProfile);
-      const auto *handler = selectLoweringHandler(
-          handlers, inputProfile, stage.irOutputProfile, options);
-      if (!handler)
-        return failStage("no lowering handler supports lowering from " +
-                         profiles);
-      stagePasses =
-          handler->getStagePasses(inputProfile, stage.irOutputProfile, options);
-      if (!stagePasses)
-        return failStage("the selected lowering handler failed to construct "
-                         "a pipeline from " +
-                         profiles);
+      stagePasses = getInferredStagePasses(
+          handlers, inputProfile, stage.irOutputProfile, options, reason);
     }
+    if (!stagePasses)
+      return failStage(reason);
 
     // A later stage's passes before deploy would run before the earlier
     // stages' passes, and an earlier stage's passes after finalize would run
