@@ -24,14 +24,18 @@
 #   package-source-diff/pip_packages_cudaqx.txt - one pip package==version per line (cudaqx)
 #   package-source-diff/apt_packages_cudaqx_trimmed.txt - cudaqx apt not in cudaq
 #   package-source-diff/pip_packages_cudaqx_trimmed.txt - cudaqx pip not in cudaq
+#   package-source-diff/apt_packages_cudaq-decoding.txt - one apt package name per line (cudaq-decoding)
+#   package-source-diff/pip_packages_cudaq-decoding.txt - one pip package==version per line (cudaq-decoding)
+#   package-source-diff/apt_packages_cudaq-decoding_trimmed.txt - cudaq-decoding apt not in cudaq
+#   package-source-diff/pip_packages_cudaq-decoding_trimmed.txt - cudaq-decoding pip not in cudaq
 #   package-source-diff/pip_packages_macos.txt - one pip package==version per line (macos)
 #   package-source-diff/pip_packages_macos_trimmed.txt - macos pip not in cudaq or cudaqx
 #   tpls_commits.lock                      - "<commit> <path>" per submodule (same as install_prerequisites.sh -l)
 #   .gitmodules                            - submodule paths and URLs
 #   scripts/clone_tpls_from_lock.sh        - clone script
 #   NOTICE, LICENSE, LICENSES/               - attribution and third-party license texts
-#   NOTICE_PIP_cudaq_cu<N>, NOTICE_PIP_cudaqx_cu<N>, NOTICE_PIP_macos_cu<N> - pip attribution per variant (from generate_pip_attribution.py)
-#   NOTICE_APT_cudaq_cu<N>, NOTICE_APT_cudaqx_cu<N> - apt attribution per variant (from generate_apt_attribution.py)
+#   NOTICE_PIP_cudaq_cu<N>, NOTICE_PIP_cudaqx_cu<N>, NOTICE_PIP_cudaq-decoding_cu<N>, NOTICE_PIP_macos_cu<N> - pip attribution per variant (from generate_pip_attribution.py)
+#   NOTICE_APT_cudaq_cu<N>, NOTICE_APT_cudaqx_cu<N>, NOTICE_APT_cudaq-decoding_cu<N> - apt attribution per variant (from generate_apt_attribution.py)
 
 ARG base_image=ubuntu:24.04
 FROM ${base_image}
@@ -78,6 +82,8 @@ RUN mkdir -p "${SOURCES_ROOT}/NOTICES" \
               "${SOURCES_ROOT}/cudaq/pip" \
               "${SOURCES_ROOT}/cudaqx/apt" \
               "${SOURCES_ROOT}/cudaqx/pip" \
+              "${SOURCES_ROOT}/cudaq-decoding/apt" \
+              "${SOURCES_ROOT}/cudaq-decoding/pip" \
               "${SOURCES_ROOT}/tpls" \
               "${SOURCES_ROOT}/.scripts" \
               "${SOURCES_ROOT}/macos/pip"
@@ -90,13 +96,14 @@ COPY tpls_commits.lock "${SCRIPTS_DIR}"/tpls_commits.lock
 COPY scripts/clone_tpls_from_lock.sh "${SCRIPTS_DIR}"/clone_tpls_from_lock.sh
 COPY package-source-diff/apt_packages_cudaq.txt package-source-diff/apt_packages_cudaqx.txt package-source-diff/apt_packages_cudaqx_trimmed.txt "${SCRIPTS_DIR}"/
 COPY package-source-diff/pip_packages_cudaq.txt package-source-diff/pip_packages_cudaqx.txt package-source-diff/pip_packages_cudaqx_trimmed.txt package-source-diff/pip_packages_macos.txt package-source-diff/pip_packages_macos_trimmed.txt "${SCRIPTS_DIR}"/
+COPY package-source-diff/apt_packages_cudaq-decoding.txt package-source-diff/apt_packages_cudaq-decoding_trimmed.txt package-source-diff/pip_packages_cudaq-decoding.txt package-source-diff/pip_packages_cudaq-decoding_trimmed.txt "${SCRIPTS_DIR}"/
 COPY prereqs/ "${SOURCES_ROOT}/prereqs/"
 
 # Copy attribution into NOTICES folder (NOTICE_PIP_* and NOTICE_APT_* generated per variant with CUDA version, e.g. NOTICE_PIP_cudaq_cu12)
 COPY NOTICE LICENSE "${SOURCES_ROOT}/NOTICES/"
 COPY LICENSES "${SOURCES_ROOT}/NOTICES/LICENSES/"
-COPY NOTICE_PIP_cudaq_cu* NOTICE_PIP_cudaqx_cu* NOTICE_PIP_macos_cu* "${SOURCES_ROOT}/NOTICES/"
-COPY NOTICE_APT_cudaq_cu* NOTICE_APT_cudaqx_cu* "${SOURCES_ROOT}/NOTICES/"
+COPY NOTICE_PIP_cudaq_cu* NOTICE_PIP_cudaqx_cu* NOTICE_PIP_cudaq-decoding_cu* NOTICE_PIP_macos_cu* "${SOURCES_ROOT}/NOTICES/"
+COPY NOTICE_APT_cudaq_cu* NOTICE_APT_cudaqx_cu* NOTICE_APT_cudaq-decoding_cu* "${SOURCES_ROOT}/NOTICES/"
 
 # Fetch apt source, pip sdists, and clone tpls in parallel (prefix lines so logs stay readable)
 RUN apt-get update && set -o pipefail && \
@@ -120,6 +127,16 @@ RUN apt-get update && set -o pipefail && \
         done < "$list"; \
       done; \
       ) 2>&1 | sed 's/^/[cudaqx-apt] /' & \
+      ( set -o pipefail; cd "${SOURCES_ROOT}/cudaq-decoding/apt" && \
+      chmod 777 . && \
+      : > "${SOURCES_ROOT}/cudaq-decoding/apt/apt_omitted_packages.txt" && \
+      for list in "${SCRIPTS_DIR}"/apt_packages_cudaq-decoding_trimmed.txt; do \
+        [ -f "$list" ] && while IFS= read -r pkg || [ -n "$pkg" ]; do \
+          [ -z "$pkg" ] && continue; \
+          apt-get source -y "$pkg" || echo "$pkg" >> "${SOURCES_ROOT}/cudaq-decoding/apt/apt_omitted_packages.txt"; \
+        done < "$list"; \
+      done; \
+      ) 2>&1 | sed 's/^/[cudaq-decoding-apt] /' & \
     ( set -o pipefail; : > "${SOURCES_ROOT}/cudaq/pip/pip_omitted_packages.txt" && \
       cd "${SOURCES_ROOT}/cudaq/pip" && \
       for list in "${SCRIPTS_DIR}"/pip_packages_cudaq.txt; do \
@@ -148,6 +165,20 @@ RUN apt-get update && set -o pipefail && \
         done < "$list"; \
       done; \
       ) 2>&1 | sed 's/^/[cudaqx-pip] /' & \
+      ( set -o pipefail; : > "${SOURCES_ROOT}/cudaq-decoding/pip/pip_omitted_packages.txt" && \
+      cd "${SOURCES_ROOT}/cudaq-decoding/pip" && \
+      for list in "${SCRIPTS_DIR}"/pip_packages_cudaq-decoding_trimmed.txt; do \
+        [ -f "$list" ] && while IFS= read -r package || [ -n "$package" ]; do \
+          [ -z "$package" ] && continue; \
+          url=$(unearth --no-binary "$package" 2>/dev/null | jq -r '.link.url'); \
+          if [ -n "$url" ] && [ "$url" != "null" ]; then \
+            curl -fsSL -O "$url" || echo "$package" >> pip_omitted_packages.txt; \
+          else \
+            echo "$package" >> pip_omitted_packages.txt; \
+          fi; \
+        done < "$list"; \
+      done; \
+      ) 2>&1 | sed 's/^/[cudaq-decoding-pip] /' & \
     ( set -o pipefail; : > "${SOURCES_ROOT}/macos/pip/macos_pip_omitted_packages.txt" && \
       cd "${SOURCES_ROOT}/macos/pip" && \
       for list in "${SCRIPTS_DIR}"/pip_packages_macos_trimmed.txt; do \
@@ -167,7 +198,7 @@ RUN apt-get update && set -o pipefail && \
     wait
 
 # Extract pip sdists and remove tarballs
-RUN for dir in "${SOURCES_ROOT}/cudaq/pip" "${SOURCES_ROOT}/cudaqx/pip" "${SOURCES_ROOT}/macos/pip"; do \
+RUN for dir in "${SOURCES_ROOT}/cudaq/pip" "${SOURCES_ROOT}/cudaqx/pip" "${SOURCES_ROOT}/cudaq-decoding/pip" "${SOURCES_ROOT}/macos/pip"; do \
       cd "$dir" && \
       for f in *.tar.gz *.tgz; do \
         [ -f "$f" ] || continue; \
@@ -181,8 +212,10 @@ RUN for dir in "${SOURCES_ROOT}/cudaq/pip" "${SOURCES_ROOT}/cudaqx/pip" "${SOURC
 
 RUN echo -e "CUDAQ apt omitted packages:\n$(cat ${SOURCES_ROOT}/cudaq/apt/apt_omitted_packages.txt)"
 RUN echo -e "CUDAQX apt omitted packages:\n$(cat ${SOURCES_ROOT}/cudaqx/apt/apt_omitted_packages.txt)"
+RUN echo -e "CUDAQ-DECODING apt omitted packages:\n$(cat ${SOURCES_ROOT}/cudaq-decoding/apt/apt_omitted_packages.txt)"
 RUN echo -e "CUDAQ pip omitted packages:\n$(cat ${SOURCES_ROOT}/cudaq/pip/pip_omitted_packages.txt)"
 RUN echo -e "CUDAQX pip omitted packages:\n$(cat ${SOURCES_ROOT}/cudaqx/pip/pip_omitted_packages.txt)"
+RUN echo -e "CUDAQ-DECODING pip omitted packages:\n$(cat ${SOURCES_ROOT}/cudaq-decoding/pip/pip_omitted_packages.txt)"
 RUN echo -e "MACOS pip omitted packages:\n$(cat ${SOURCES_ROOT}/macos/pip/macos_pip_omitted_packages.txt)"
 
 # For omitted apt packages (no source available), extract license/copyright/EULA from the .deb
@@ -199,7 +232,7 @@ RUN echo "Retrieving EULA/copyright for omitted apt packages..." && \
         find "/tmp/deb_extract/${pkg}_pkg" \( -iname "*license*" -o -iname "*eula*" -o -iname "*copyright*" \) -exec cp -a {} "$dest/" \; 2>/dev/null || true; \
         rm -rf "/tmp/deb_extract/${pkg}_pkg" /tmp/deb_extract/*.deb; \
       fi; \
-    done < <(for f in "${SOURCES_ROOT}/cudaq/apt/apt_omitted_packages.txt" "${SOURCES_ROOT}/cudaqx/apt/apt_omitted_packages.txt"; do [ -f "$f" ] && cat "$f"; done); \
+    done < <(for f in "${SOURCES_ROOT}/cudaq/apt/apt_omitted_packages.txt" "${SOURCES_ROOT}/cudaqx/apt/apt_omitted_packages.txt" "${SOURCES_ROOT}/cudaq-decoding/apt/apt_omitted_packages.txt"; do [ -f "$f" ] && cat "$f"; done); \
     rm -rf /tmp/deb_extract
 
 # For omitted pip packages (no sdist), get EULA/license from the wheel: fetch wheel from PyPI, extract, copy license/EULA/copyright files
@@ -225,7 +258,7 @@ RUN echo "Retrieving EULA/license for omitted pip packages..." && \
         fi; \
         rm -f /tmp/pip_wheel.whl; \
       fi; \
-    done < <(for f in "${SOURCES_ROOT}/cudaq/pip/pip_omitted_packages.txt" "${SOURCES_ROOT}/cudaqx/pip/pip_omitted_packages.txt" "${SOURCES_ROOT}/macos/pip/macos_pip_omitted_packages.txt"; do [ -f "$f" ] && cat "$f"; done); \
+    done < <(for f in "${SOURCES_ROOT}/cudaq/pip/pip_omitted_packages.txt" "${SOURCES_ROOT}/cudaqx/pip/pip_omitted_packages.txt" "${SOURCES_ROOT}/cudaq-decoding/pip/pip_omitted_packages.txt" "${SOURCES_ROOT}/macos/pip/macos_pip_omitted_packages.txt"; do [ -f "$f" ] && cat "$f"; done); \
     rm -rf /tmp/wheel_extract
 
 # Summary
