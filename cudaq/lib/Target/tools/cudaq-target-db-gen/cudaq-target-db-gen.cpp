@@ -234,6 +234,27 @@ std::string cxxQuakeReferenceSemanticsProfile(
   return os.str();
 }
 
+std::string cxxCostModel(std::optional<cudaq::config::CostModel> costModel) {
+  if (!costModel)
+    return "std::nullopt";
+  switch (*costModel) {
+  case cudaq::config::CostModel::t_count:
+    return "cudaq::config::CostModel::t_count";
+  }
+  return "std::nullopt";
+}
+
+std::string
+cxxQuakeUnmappedProfile(const cudaq::config::QuakeUnmappedProfile &profile) {
+  std::ostringstream os;
+  os << "cudaq::config::QuakeUnmappedProfile{"
+     << ".basisGates = " << cxxStringVector(profile.basisGates) << ", "
+     << ".approximationTolerance = "
+     << cxxStringLiteral(profile.approximationTolerance) << ", "
+     << ".costModel = " << cxxCostModel(profile.costModel) << "}";
+  return os.str();
+}
+
 std::string cxxCustomPipelineLowering(
     const cudaq::config::CustomPipelineLowering &lowering) {
   std::ostringstream os;
@@ -274,6 +295,10 @@ std::string cxxStage(const cudaq::config::CompilationStage &stage) {
             std::is_same_v<T, cudaq::config::QuakeReferenceSemanticsProfile>) {
           os << "cudaq::config::QuakeReferenceSemanticsProfile>, "
              << cxxQuakeReferenceSemanticsProfile(p) << "}";
+        } else if constexpr (std::is_same_v<
+                                 T, cudaq::config::QuakeUnmappedProfile>) {
+          os << "cudaq::config::QuakeUnmappedProfile>, "
+             << cxxQuakeUnmappedProfile(p) << "}";
         }
       },
       stage.irOutputProfile);

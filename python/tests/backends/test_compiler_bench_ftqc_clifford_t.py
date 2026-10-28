@@ -9,6 +9,7 @@
 import math
 
 import cudaq
+import numpy as np
 import pytest
 
 FTQC_CLIFFORD_T_TARGET = 'compiler-bench-ftqc-clifford-t'
@@ -137,14 +138,27 @@ def test_random_seed_makes_synthesis_reproducible():
     assert depth > 0
 
 
-def test_target_seed_overrides_random_seed():
-    cudaq.set_target(FTQC_CLIFFORD_T_TARGET, epsilon='0.001', seed='7')
+@cudaq.kernel
+def rotations():
+    q = cudaq.qvector(2)
+    h(q[0])
+    rz(0.3, q[0])
+    x.ctrl(q[0], q[1])
+    ry(0.7, q[1])
+    rx(0.2, q[0])
 
-    results = set()
-    for seed in (1, 2, 3, 4):
-        cudaq.set_random_seed(seed)
-        results.add(_synthesize_pi_over_eight())
 
-    # The seed given to set_target wins, so the global seed does not perturb
-    # the result.
-    assert len(results) == 1
+def test_synthesis_preserves_unitary_within_epsilon():
+    epsilon = 1e-6
+    cudaq.set_target('qpp-cpu')
+    exact = np.array(cudaq.get_unitary(rotations))
+    cudaq.reset_target()
+    cudaq.set_target(FTQC_CLIFFORD_T_TARGET, epsilon=str(epsilon))
+    synthesized = np.array(cudaq.get_unitary(rotations))
+
+    # Each of the three rotations is synthesized within epsilon in operator
+    # norm. Taking the global phase from the trace at most doubles the bound
+    # for a two-qubit unitary.
+    overlap = np.trace(exact.conj().T @ synthesized)
+    phase = overlap / abs(overlap)
+    assert np.linalg.norm(synthesized - phase * exact, 2) <= 6 * epsilon

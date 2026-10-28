@@ -26,6 +26,10 @@ enum class MeasurementForm {
 /// represented qubits are logical, physical, or anything in between.
 ///
 /// Value semantics Quake is currently not supported.
+///
+/// `quake-unmapped` supersedes this profile. This profile will be deprecated,
+/// and the targets that use it moved to `quake-unmapped`, once
+/// `quake-unmapped` has a cost model that counts two-qubit gates.
 struct QuakeReferenceSemanticsProfile {
   /// Name identifying this profile in target configurations.
   static constexpr char name[] = "quake-reference-semantics";

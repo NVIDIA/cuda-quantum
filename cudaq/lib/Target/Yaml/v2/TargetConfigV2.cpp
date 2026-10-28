@@ -22,6 +22,14 @@ static cudaq::config::Profile toCanonicalProfile(
       .measurementType = profile.options.value().measurementType.value(),
       .resetAfterMeasure = profile.options.value().resetAfterMeasure.value()};
 }
+static cudaq::config::Profile
+toCanonicalProfile(const cudaq::config::v2::QuakeUnmappedProfileV2 &profile) {
+  const auto &options = profile.options.value();
+  return cudaq::config::QuakeUnmappedProfile{
+      .basisGates = options.basisGates.value(),
+      .approximationTolerance = options.approximationTolerance.value(),
+      .costModel = options.costModel};
+}
 
 static cudaq::config::Profile
 toCanonicalProfile(const cudaq::config::v2::IrOutputProfileV2 &profile) {

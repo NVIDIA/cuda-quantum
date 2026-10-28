@@ -54,8 +54,10 @@ static void compileAndDump(mlir::MLIRContext *ctx,
   llvm::outs() << "Compiled module:\n" << moduleOp << "\n";
 }
 
-/// Compile \p quake and print selected resource metrics in a stable order.
+/// Compile \p quake and print selected resource metrics in a stable order
+/// under \p heading.
 static void compileAndDumpResources(mlir::MLIRContext *ctx,
+                                    const std::string &heading,
                                     const std::string &kernelName,
                                     const std::string &quake,
                                     cudaq::CompileTarget target,
@@ -77,7 +79,7 @@ static void compileAndDumpResources(mlir::MLIRContext *ctx,
     return;
   }
 
-  llvm::outs() << "Phase resource counts:\n"
+  llvm::outs() << heading << " resource counts:\n"
                << "phase: " << resources->count("phase") << "\n"
                << "rz: " << resources->count("rz") << "\n"
                << "rz(0): " << resources->count_controls("rz", 0) << "\n"
@@ -230,7 +232,7 @@ void test_resource_count_completes_phase_lifecycle(mlir::MLIRContext *ctx) {
   cudaq::CompileOptions options;
   options.emitResourceCounts = true;
   options.emitTargetCode = false;
-  compileAndDumpResources(ctx, "phaseResources", phaseResourceKernel,
+  compileAndDumpResources(ctx, "Phase", "phaseResources", phaseResourceKernel,
                           std::move(target), std::move(options));
 }
 
@@ -255,7 +257,7 @@ void test_resource_count_disabled_by_target(mlir::MLIRContext *ctx) {
   cudaq::CompileOptions options;
   options.emitResourceCounts = true;
   options.emitTargetCode = false;
-  compileAndDumpResources(ctx, "phaseResources", phaseResourceKernel,
+  compileAndDumpResources(ctx, "Phase", "phaseResources", phaseResourceKernel,
                           std::move(target), std::move(options));
 }
 
@@ -341,6 +343,115 @@ void test_staged_skip(mlir::MLIRContext *ctx) {
 // CHECK: quake.r1
 // CHECK-NOT: quake.mz
 
+/// Four one-qubit rotations that `fuse-1q-chains-for-clifford-t` rewrites as
+/// three.
+static const char *fusableRotationsKernel = R"#(
+func.func @__nvqpp__mlirgen__fusable() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %a = arith.constant 3.000000e-01 : f64
+  %b = arith.constant 5.000000e-01 : f64
+  %c = arith.constant 7.000000e-01 : f64
+  %d = arith.constant 2.000000e-01 : f64
+  %q = quake.alloca !quake.ref
+  quake.rz (%a) %q : (f64, !quake.ref) -> ()
+  quake.rx (%b) %q : (f64, !quake.ref) -> ()
+  quake.rz (%c) %q : (f64, !quake.ref) -> ()
+  quake.rx (%d) %q : (f64, !quake.ref) -> ()
+  return
+}
+)#";
+
+/// A loop longer than any unroll limit in the quake-unmapped stage.
+static const char *longLoopKernel = R"#(
+func.func @__nvqpp__mlirgen__longLoop() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %c0 = arith.constant 0 : i64
+  %c1 = arith.constant 1 : i64
+  %c4096 = arith.constant 4096 : i64
+  %q = quake.alloca !quake.ref
+  %0 = cc.loop while ((%i = %c0) -> (i64)) {
+    %1 = arith.cmpi slt, %i, %c4096 : i64
+    cc.condition %1(%i : i64)
+  } do {
+  ^bb0(%i: i64):
+    quake.h %q : (!quake.ref) -> ()
+    cc.continue %i : i64
+  } step {
+  ^bb0(%i: i64):
+    %2 = arith.addi %i, %c1 : i64
+    cc.continue %2 : i64
+  }
+  return
+}
+)#";
+
+/// A `quake-unmapped` stage optimizes for T count from level 2, so only level
+/// 2 fuses the rotations. A loop it cannot unroll stays rolled and is still
+/// counted. Without a rotation in the basis, every level synthesizes, so no
+/// rotation or phase is left.
+void test_quake_unmapped_levels(mlir::MLIRContext *ctx) {
+  const auto unmappedTarget = [](cudaq::config::QuakeUnmappedProfile profile) {
+    cudaq::CompileTarget target;
+    target.stages.push_back({.irOutputProfile = std::move(profile),
+                             .lowering = cudaq::config::InferredLowering{}});
+    return target;
+  };
+  const auto countAtLevel =
+      [&](const std::string &heading, const std::string &kernelName,
+          const char *kernel, const cudaq::CompileTarget &target,
+          cudaq::OptimizationLevel level) {
+        cudaq::CompileOptions options;
+        options.emitResourceCounts = true;
+        options.emitTargetCode = false;
+        options.optimizationLevel = level;
+        options.seed = 42;
+        compileAndDumpResources(ctx, heading, kernelName, kernel, target,
+                                std::move(options));
+      };
+  const auto levelName = [](cudaq::OptimizationLevel level) {
+    return "level " + std::to_string(static_cast<unsigned>(level));
+  };
+
+  const auto withRotations = unmappedTarget(
+      {.basisGates = {"h", "s", "t", "rx", "ry", "rz", "x", "x(1)"},
+       .costModel = cudaq::config::CostModel::t_count});
+  for (auto level : {cudaq::OptimizationLevel::O0, cudaq::OptimizationLevel::O1,
+                     cudaq::OptimizationLevel::O2})
+    countAtLevel("Rotations " + levelName(level), "fusable",
+                 fusableRotationsKernel, withRotations, level);
+  countAtLevel("Long loop", "longLoop", longLoopKernel, withRotations,
+               cudaq::OptimizationLevel::O1);
+
+  const auto cliffordT =
+      unmappedTarget({.basisGates = {"h", "s", "t", "x", "y", "z", "swap",
+                                     "x(1)", "y(1)", "z(1)"},
+                      .approximationTolerance = "1e-3",
+                      .costModel = cudaq::config::CostModel::t_count});
+  for (auto level :
+       {cudaq::OptimizationLevel::O0, cudaq::OptimizationLevel::O2})
+    countAtLevel("Clifford+T " + levelName(level), "fusable",
+                 fusableRotationsKernel, cliffordT, level);
+}
+
+// CHECK-LABEL: Rotations level 0 resource counts:
+// CHECK: total: 4
+// CHECK-LABEL: Rotations level 1 resource counts:
+// CHECK: total: 4
+// CHECK-LABEL: Rotations level 2 resource counts:
+// CHECK: total: 3
+// CHECK-LABEL: Long loop resource counts:
+// CHECK: total: 4096
+// CHECK-LABEL: Clifford+T level 0 resource counts:
+// CHECK-NEXT: phase: 0
+// CHECK-NEXT: rz: 0
+// CHECK-NEXT: rz(0): 0
+// CHECK-NEXT: rz(1): 0
+// CHECK-NEXT: r1: 0
+// CHECK-LABEL: Clifford+T level 2 resource counts:
+// CHECK-NEXT: phase: 0
+// CHECK-NEXT: rz: 0
+// CHECK-NEXT: rz(0): 0
+// CHECK-NEXT: rz(1): 0
+// CHECK-NEXT: r1: 0
+
 /// Kernel that the base QIR profile accepts.
 static const char *measureKernel = R"#(
 func.func @__nvqpp__mlirgen__measure() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
@@ -397,6 +508,7 @@ int main() {
   test_resource_count_disabled_by_target(context.get());
   test_staged_inferred(context.get());
   test_staged_skip(context.get());
+  test_quake_unmapped_levels(context.get());
   test_optimization_level_0(context.get());
   return 0;
 }

@@ -6,53 +6,27 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-version: 1
+version: 2-alpha
 name: compiler-bench-ftqc-clifford-t
 description: "Post-rotation-synthesis Clifford+T benchmark target for resource counting"
+
+config:
+  nvqir-simulation-backend: qpp
+
+# The quake-unmapped handler picks the passes from these options and the
+# optimization level. The basis has no rotation gate, so every rotation is
+# synthesized within the tolerance. `cudaq.set_random_seed` seeds synthesis.
+compile-target:
+  stages:
+    - ir-output-profile:
+        name: quake-unmapped
+        options:
+          basis-gates: [h, s, t, x, y, z, swap, "x(1)", "y(1)", "z(1)"]
+          approximation-tolerance: "%EPSILON:1e-10%"
+          cost-model: t-count
 
 target-arguments:
   - key: epsilon
     required: false
     type: string
     help-string: "Per-rotation approximation tolerance. Defaults to 1e-10."
-  - key: seed
-    required: false
-    type: string
-    help-string: "Seed for Clifford+T synthesis. Defaults to the value set by
-      cudaq.set_random_seed. 0 leaves synthesis unseeded."
-
-config:
-  nvqir-simulation-backend: qpp
-  # Preserve named Clifford operations while reducing rotations and
-  # non-Clifford controlled gates before synthesis. Keep the circuit in value
-  # semantics through post-synthesis simplification.
-  #
-  # Re-express constant one-qubit chains with fewer approximate rotations before
-  # commutation-aware simplification, then canonicalize to merge the constants
-  # the pass creates (quake-simplify is about twice as slow otherwise). Keep
-  # Rx and Ry through that simplification so the rotations the pass emits can
-  # merge across compatible two-qubit gates, and lower them to Rz before
-  # synthesis.
-  #
-  # Canonicalize exact and nearby Clifford+T angles before approximate
-  # synthesis, using the same operator-norm tolerance as synthesis.
-  # Use the shared conversion pipeline with compiler-bench-ftqc-logical.yml
-  # so both FTQC targets enter explicit linear value semantics consistently.
-  # Phase folding runs after exact-angle lowering, before approximate synthesis,
-  # and again immediately after one-qubit Clifford+T normalization. The first
-  # fold exposes shared compact rotations; the second captures exact phase terms
-  # exposed by synthesis before the existing cleanup.
-  #
-  # Clifford+T synthesis outlines one private helper for each distinct angle.
-  # Inline those helpers and simplify before the resource-counting boundary.
-  #
-  # Synthesis and one-qubit Clifford+T normalization both emit the omega global
-  # phase, so the phase lifecycle runs again after the last of them.
-  #
-  # Synthesis is randomized, so %SEED% carries cudaq.set_random_seed through
-  # to it. Without a seed the same angle can synthesize to a different
-  # Clifford+T word on every run, changing gate count and depth.
-  #
-  # TODO: Remove fail-on-controlled-rotation after controlled Clifford+T
-  # synthesis preserves the synthesis global phase.
-  jit-mid-level-pipeline: "func.func(add-dealloc,combine-quantum-alloc,canonicalize,dqe),convert-to-linear-values,unitary-synthesis,apply-op-specialization,func.func(constant-propagation),decomposition{basis=h,s,t,rx,ry,rz,x,y,z,swap,mx,my,mz,x(1),y(1),z(1)},func.func(fuse-1q-chains-for-clifford-t{epsilon=%EPSILON:1e-10%},canonicalize,quake-simplify{threshold=%EPSILON:1e-10% rotations-to-clifford-t=true clifford-t-epsilon=%EPSILON:1e-10%},normalize-phase-placement,lower-phase,canonicalize,dqe,phase-folding,canonicalize),decomposition{enable-patterns=RxToRz,RyToRz},clifford-t-synthesis{epsilon=%EPSILON:1e-10% seed=%SEED:0% skip-below=0 fail-on-controlled-rotation=true},inline,func.func(quake-simplify,normalize-1q-clifford-t,phase-folding,normalize-phase-placement,lower-phase,canonicalize,dqe,regtomem),symbol-dce"

@@ -71,16 +71,25 @@ struct TargetFinalizationJitPipelineOptions
       llvm::cl::init(true)};
 };
 
-struct FaultTolerantTargetPipelineOptions
-    : public PassPipelineOptions<FaultTolerantTargetPipelineOptions> {
+struct CliffordTOptimizationPipelineOptions
+    : public PassPipelineOptions<CliffordTOptimizationPipelineOptions> {
+  PassOptions::Option<unsigned> level{
+      *this, "level",
+      llvm::cl::desc("Optimization level. Levels above 2 run level 2."),
+      llvm::cl::init(2)};
+  PassOptions::Option<double> epsilon{
+      *this, "epsilon",
+      llvm::cl::desc("Operator-norm tolerance for erasing small rotations and "
+                     "snapping angles to Clifford+T values."),
+      llvm::cl::init(0)};
+};
+
+struct CliffordTSynthesisPipelineOptions
+    : public PassPipelineOptions<CliffordTSynthesisPipelineOptions> {
   PassOptions::Option<double> epsilon{
       *this, "epsilon",
       llvm::cl::desc("Approximation tolerance for Clifford+T synthesis."),
       llvm::cl::init(1e-10)};
-  PassOptions::Option<bool> failOnControlledRotation{
-      *this, "fail-on-controlled-rotation",
-      llvm::cl::desc("Reject controlled rotations left at synthesis."),
-      llvm::cl::init(false)};
   PassOptions::Option<uint64_t> seed{
       *this, "seed",
       llvm::cl::desc("Seed for Clifford+T synthesis. 0 leaves it unseeded."),
@@ -184,64 +193,81 @@ void cudaq::opt::addDecomposition(OpPassManager &pm,
   pm.addPass(cudaq::opt::createDecomposition(opts));
 }
 
-void cudaq::opt::addCliffordTSynthesis(OpPassManager &pm, double epsilon,
-                                       bool failOnControlledRotation,
-                                       uint64_t seed) {
-  // Synthesis creates ApplyOps, which activate only when every control is |1>.
-  // Expand negated controls into X conjugation before creating those calls.
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
-  pm.addPass(cudaq::opt::createUnitarySynthesis());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopNormalize());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLoopInductionFusion());
-  pm.addPass(cudaq::opt::createApplySpecialization());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createConstantPropagation());
-  cudaq::opt::addDecomposition(pm, {"ExpPauliDecomposition", "U3ToRotations"});
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createAddDeallocs());
-  cudaq::opt::addConvertToLinearValues(pm);
-  cudaq::opt::FuseSingleQubitChainsForCliffordTOptions chainOpts;
-  chainOpts.epsilon = epsilon;
-  pm.addNestedPass<func::FuncOp>(
-      cudaq::opt::createFuseSingleQubitChainsForCliffordT(chainOpts));
-  pm.addNestedPass<func::FuncOp>(mlir::createCanonicalizerPass());
-  cudaq::opt::QuakeSimplifyOptions simplifyOpts;
-  simplifyOpts.rotationsToCliffordT = true;
-  simplifyOpts.cliffordTEpsilon = epsilon;
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeSimplify(simplifyOpts));
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createNormalizePhasePlacement());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLowerPhase());
+/// Reduce the T count and non-Clifford rotations before Clifford+T synthesis.
+/// Level 1 only cleans up. Level 2 also fuses one-qubit chains, folds phases,
+/// and snaps angles within `epsilon` of a Clifford+T value. No pass erases a
+/// rotation larger than `epsilon`.
+static void
+addCliffordTOptimization(OpPassManager &pm,
+                         const CliffordTOptimizationPipelineOptions &options) {
+  if (options.level == 0)
+    return;
+  auto &funcPM = pm.nest<func::FuncOp>();
+  cudaq::opt::QuakeSimplifyOptions cleanupOpts;
+  cleanupOpts.threshold = options.epsilon;
+  funcPM.addPass(createCanonicalizerPass());
+  funcPM.addPass(cudaq::opt::createQuakeSimplify(cleanupOpts));
+  funcPM.addPass(cudaq::opt::createDeadQuantumElimination());
+  if (options.level == 1)
+    return;
 
-  // Restore the memory-semantics form accepted by the existing decomposition
-  // and synthesis pipeline.
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createRegToMem());
-  // Reduce Rx, Ry, and R1 rotations to Rz + Clifford so that Clifford+T
-  // synthesis only has to handle Rz. These are the shared decomposition
-  // patterns.
-  cudaq::opt::addDecomposition(pm, {"RxToRz", "RyToRz", "R1ToRz"});
-  cudaq::opt::CliffordTSynthesisOptions ctsOpts;
-  ctsOpts.epsilon = epsilon;
-  ctsOpts.failOnControlledRotation = failOnControlledRotation;
-  ctsOpts.seed = seed;
-  pm.addPass(cudaq::opt::createCliffordTSynthesis(ctsOpts));
-  // Synthesis emits the omega global phase of each Clifford+T word. It is
-  // uncontrolled here, so lowering erases it. This is the one point where the
-  // phase is discarded, and it happens after the IR that carried it is final.
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLowerPhase());
-  pm.addNestedPass<func::FuncOp>(mlir::createCanonicalizerPass());
-  cudaq::opt::DecompositionOptions decOpts;
-  decOpts.basis = {"h", "s", "t", "x", "z", "x(1)"};
-  pm.addPass(cudaq::opt::createDecomposition(decOpts));
+  cudaq::opt::FuseSingleQubitChainsForCliffordTOptions chainOpts;
+  chainOpts.epsilon = options.epsilon;
+  funcPM.addPass(
+      cudaq::opt::createFuseSingleQubitChainsForCliffordT(chainOpts));
+  // Merge the constants fusion creates. `quake-simplify` runs about twice as
+  // slowly otherwise.
+  funcPM.addPass(createCanonicalizerPass());
+  // Fold phases before snapping to expose shared rotations, and again at the
+  // end to capture the exact phase terms that Clifford+T normalization exposes.
+  funcPM.addPass(cudaq::opt::createPhaseFolding());
+  funcPM.addPass(createCanonicalizerPass());
+  cudaq::opt::QuakeSimplifyOptions snapOpts;
+  snapOpts.threshold = options.epsilon;
+  snapOpts.rotationsToCliffordT = true;
+  snapOpts.cliffordTEpsilon = options.epsilon;
+  funcPM.addPass(cudaq::opt::createQuakeSimplify(snapOpts));
+  funcPM.addPass(cudaq::opt::createNormalizePhasePlacement());
+  funcPM.addPass(cudaq::opt::createLowerPhase());
+  funcPM.addPass(cudaq::opt::createNormalizeSingleQubitCliffordT());
+  funcPM.addPass(createCanonicalizerPass());
+  funcPM.addPass(cudaq::opt::createDeadQuantumElimination());
+  funcPM.addPass(cudaq::opt::createPhaseFolding());
 }
 
-void cudaq::opt::registerFaultTolerantTargetPipeline() {
-  PassPipelineRegistration<FaultTolerantTargetPipelineOptions>(
-      "cudaq-fault-tolerant-target",
-      "Lower rotations to the {H, S, T, X, Z, CNOT} basis via Clifford+T "
-      "synthesis.",
-      [](OpPassManager &pm, const FaultTolerantTargetPipelineOptions &options) {
-        cudaq::opt::addCliffordTSynthesis(pm, options.epsilon,
-                                          options.failOnControlledRotation,
-                                          options.seed);
-      });
+/// Rewrite every uncontrolled `rx`, `ry`, `r1`, and `rz` with a constant angle
+/// as Clifford+T gates within `epsilon`, on references or wires.
+static void
+addCliffordTSynthesis(OpPassManager &pm,
+                      const CliffordTSynthesisPipelineOptions &options) {
+  cudaq::opt::addDecomposition(pm, {"RxToRz", "RyToRz", "R1ToRz"});
+  cudaq::opt::CliffordTSynthesisOptions synthesisOpts;
+  synthesisOpts.epsilon = options.epsilon;
+  synthesisOpts.seed = options.seed;
+  // Synthesize every rotation. Erasing small ones is left to the optimizer,
+  // which bounds it by the same tolerance.
+  synthesisOpts.skipBelow = 0;
+  // TODO: Synthesize controlled rotations once controlled Clifford+T synthesis
+  // preserves the synthesis global phase.
+  synthesisOpts.failOnControlledRotation = true;
+  pm.addPass(cudaq::opt::createCliffordTSynthesis(synthesisOpts));
+  // Synthesis outlines one helper per distinct angle.
+  pm.addPass(createInlinerPass());
+  // Each helper emits the omega global phase of its Clifford+T word. It is
+  // uncontrolled here, so lowering erases it.
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createLowerPhase());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+}
+
+void cudaq::opt::registerCliffordTPipelines() {
+  PassPipelineRegistration<CliffordTOptimizationPipelineOptions>(
+      "clifford-t-optimization-pipeline",
+      "Reduce the T count and non-Clifford rotations before synthesis.",
+      addCliffordTOptimization);
+  PassPipelineRegistration<CliffordTSynthesisPipelineOptions>(
+      "clifford-t-synthesis-pipeline",
+      "Rewrite constant-angle rotations as Clifford+T gates.",
+      addCliffordTSynthesis);
 }
 
 void cudaq::opt::addPhaseLifecycle(OpPassManager &pm) {

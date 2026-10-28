@@ -19,6 +19,7 @@
 
 #include "Yaml/v1/TargetConfigV1.h"
 #include "cudaq/Target/Profile/QuakeReferenceSemanticsProfile.h"
+#include "cudaq/Target/Profile/QuakeUnmappedProfile.h"
 #include <optional>
 #include <string>
 #include <vector>
@@ -79,9 +80,24 @@ struct QuakeReferenceSemanticsProfileV2 {
   rfl::DefaultVal<QuakeReferenceSemanticsProfileOptionsV2> options;
 };
 
+/// IR profile for Quake before qubit mapping.
+struct QuakeUnmappedProfileV2 {
+  using Tag = rfl::Literal<QuakeUnmappedProfile::name>;
+
+  /// Valid options.
+  struct QuakeUnmappedProfileOptionsV2 {
+    rfl::DefaultVal<std::vector<std::string>> basisGates;
+    rfl::DefaultVal<std::string> approximationTolerance;
+    std::optional<CostModel> costModel;
+  };
+
+  rfl::DefaultVal<QuakeUnmappedProfileOptionsV2> options;
+};
+
 /// Union of all supported IR profiles, selected by its `name`.
-using IrOutputProfileV2 = rfl::TaggedUnion<"name", UncheckedProfileV2,
-                                           QuakeReferenceSemanticsProfileV2>;
+using IrOutputProfileV2 =
+    rfl::TaggedUnion<"name", UncheckedProfileV2,
+                     QuakeReferenceSemanticsProfileV2, QuakeUnmappedProfileV2>;
 
 /// Staged pipelines inserted at the appropriate compilation stages.
 struct StagedPipelinesV2 {

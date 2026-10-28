@@ -6,29 +6,27 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-version: 1
+version: 2-alpha
 name: compiler-bench-ftqc-logical
 description: "Logical FTQC benchmark target lowering to a pre-synthesis Clifford+T and rotation basis for resource counting"
+
+config:
+  nvqir-simulation-backend: qpp
+
+# The quake-unmapped handler picks the passes from these options and the
+# optimization level. The basis keeps arbitrary-axis rotations for layer-one
+# FTQC metrics, so this target runs no synthesis.
+compile-target:
+  stages:
+    - ir-output-profile:
+        name: quake-unmapped
+        options:
+          basis-gates: [h, s, t, rx, ry, rz, x, y, z, swap, "x(1)", "y(1)", "z(1)", "x(2)", "z(2)"]
+          approximation-tolerance: "%EPSILON:0%"
+          cost-model: t-count
 
 target-arguments:
   - key: epsilon
     required: false
     type: string
-    help-string: "Operator-norm tolerance for rewriting rotations near discrete Clifford+T angles. Defaults to zero (exact mode)."
-
-config:
-  nvqir-simulation-backend: qpp
-  # Enforce the logical basis while the circuit uses memory semantics. Apply
-  # specialization materializes controlled callable uses, then the shared
-  # linear-value pipeline prepares exact-angle simplification. The final
-  # decomposition removes unresolved R1 gates while preserving arbitrary axis
-  # rotations for layer-one FTQC metrics.
-  # Phase folding runs immediately after conversion to linear values and again
-  # after final canonicalization and dead quantum elimination. The early fold
-  # exposes phase interactions before simplification, while cleanup keeps the
-  # late fold focused on terms exposed by Clifford normalization.
-  #
-  # Before the early fold, re-express constant one-qubit chains with fewer
-  # rotations that are not Clifford+T angles, then canonicalize to merge the
-  # constants the pass creates.
-  jit-mid-level-pipeline: "decomposition{basis=h,s,t,r1,rx,ry,rz,x,y,z,swap,mx,my,mz,x(1),y(1),z(1),x(2),z(2)},apply-op-specialization,func.func(add-dealloc,combine-quantum-alloc,canonicalize,dqe),convert-to-linear-values,func.func(fuse-1q-chains-for-clifford-t{epsilon=%EPSILON:0%},canonicalize,phase-folding,canonicalize),func.func(quake-simplify{rotations-to-clifford-t=true clifford-t-epsilon=%EPSILON:0%},normalize-phase-placement,lower-phase,normalize-1q-clifford-t,canonicalize,dqe,phase-folding,regtomem),decomposition{basis=h,s,t,rx,ry,rz,x,y,z,swap,mx,my,mz,x(1),y(1),z(1),x(2),z(2)}"
+    help-string: "Operator-norm tolerance. From optimization level 1, smaller rotations are erased. From level 2, rotations within it of a Clifford+T angle are rewritten exactly. Defaults to zero (exact mode)."

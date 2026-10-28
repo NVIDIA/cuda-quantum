@@ -19,12 +19,14 @@
 ///  that passes validation.
 
 #include "QuakeReferenceSemanticsProfile.h"
+#include "QuakeUnmappedProfile.h"
 #include "UncheckedProfile.h"
 #include <variant>
 
 namespace cudaq::config {
 
 /// All supported IR profiles.
-using Profile = std::variant<UncheckedProfile, QuakeReferenceSemanticsProfile>;
+using Profile = std::variant<UncheckedProfile, QuakeReferenceSemanticsProfile,
+                             QuakeUnmappedProfile>;
 
 } // namespace cudaq::config

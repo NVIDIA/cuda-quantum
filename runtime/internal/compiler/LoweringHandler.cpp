@@ -23,5 +23,6 @@ std::vector<std::unique_ptr<cudaq_internal::compiler::LoweringHandler>>
 cudaq_internal::compiler::makeBuiltinLoweringHandlers() {
   std::vector<std::unique_ptr<LoweringHandler>> handlers;
   handlers.push_back(makeQuakeReferenceSemanticsHandler());
+  handlers.push_back(makeQuakeUnmappedHandler());
   return handlers;
 }

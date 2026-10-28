@@ -91,4 +91,7 @@ std::vector<std::unique_ptr<LoweringHandler>> makeBuiltinLoweringHandlers();
 /// profile.
 std::unique_ptr<LoweringHandler> makeQuakeReferenceSemanticsHandler();
 
+/// The built-in handler lowering to the `quake-unmapped` profile.
+std::unique_ptr<LoweringHandler> makeQuakeUnmappedHandler();
+
 } // namespace cudaq_internal::compiler

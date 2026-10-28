@@ -93,6 +93,18 @@ void printProfileOptions(const char *indent,
             << "reset-after-measure: " << boolStr(profile.resetAfterMeasure)
             << "\n";
 }
+void printProfileOptions(const char *indent,
+                         const QuakeUnmappedProfile &profile) {
+  printList(indent, "basis-gates", profile.basisGates);
+  printField(indent, "approximation-tolerance", profile.approximationTolerance);
+  if (!profile.costModel)
+    return;
+  switch (*profile.costModel) {
+  case CostModel::t_count:
+    std::cout << indent << "cost-model: t-count\n";
+    break;
+  }
+}
 
 void printStage(const CompilationStage &stage, const char *indent) {
   /// Get `::name` from a variant by delegating to inner variant `::name` field.

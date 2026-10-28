@@ -99,4 +99,16 @@ struct Reflector<cudaq::config::MeasurementForm> {
   }
 };
 
+template <>
+struct Reflector<cudaq::config::CostModel> {
+  using ReflType = std::string;
+  static cudaq::config::CostModel to(const std::string &name) {
+    return cudaq::config::detail::enumFromYamlName<cudaq::config::CostModel>(
+        name);
+  }
+  static std::string from(const cudaq::config::CostModel &value) {
+    return cudaq::config::detail::enumToYamlName(value);
+  }
+};
+
 } // namespace rfl

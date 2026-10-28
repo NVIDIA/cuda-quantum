@@ -118,6 +118,11 @@ struct std::hash<cudaq::config::QuakeReferenceSemanticsProfile> {
                              &profile) const noexcept;
 };
 template <>
+struct std::hash<cudaq::config::QuakeUnmappedProfile> {
+  std::size_t
+  operator()(const cudaq::config::QuakeUnmappedProfile &profile) const noexcept;
+};
+template <>
 struct std::hash<cudaq::config::CustomPipelineLowering> {
   std::size_t operator()(
       const cudaq::config::CustomPipelineLowering &lowering) const noexcept;

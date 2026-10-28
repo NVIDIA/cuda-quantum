@@ -11,6 +11,11 @@
 #include "cudaq/Target/TargetConfig.h"
 #include <algorithm>
 #include <cctype>
+#include <cmath>
+#include <locale>
+#include <sstream>
+#include <stdexcept>
+#include <string_view>
 
 const std::string *cudaq::CompileTarget::getOverridePassPipeline() const {
   if (stages.size() != 1)
@@ -60,6 +65,36 @@ static bool substitutePipelinePlaceholders(
   return usesSeed;
 }
 
+/// Resolve the placeholder in \p profile's `approximation-tolerance` and check
+/// the value, so that a bad or missing tolerance fails when the target is
+/// created rather than when a kernel compiles.
+static void
+resolveProfileOptions(cudaq::config::QuakeUnmappedProfile &profile,
+                      const std::map<std::string, std::string> &runtimeConfig) {
+  auto &tolerance = profile.approximationTolerance;
+  substitutePipelinePlaceholders(tolerance, runtimeConfig);
+  if (tolerance.empty()) {
+    if (profile.requiresSynthesis())
+      throw std::runtime_error(
+          "quake-unmapped requires 'approximation-tolerance' when its cost "
+          "model "
+          "is 't-count' and 'basis-gates' has no rotation gate");
+    return;
+  }
+  // `std::from_chars` for `double` is unavailable on older macOS deployment
+  // targets, so parse with the classic locale and require the whole string.
+  std::istringstream stream(tolerance);
+  stream.imbue(std::locale::classic());
+  double value = 0;
+  stream >> value;
+  if (stream.fail() || stream.peek() != std::char_traits<char>::eof() ||
+      !std::isfinite(value) || value < 0)
+    throw std::runtime_error(
+        "quake-unmapped 'approximation-tolerance' must be a "
+        "non-negative number, got '" +
+        tolerance + "'");
+}
+
 /// Replace literal placeholder keys in a pipeline stage string.
 static void applyPipelineSubstitutions(
     std::string &pipeline,
@@ -107,11 +142,12 @@ cudaq::CompileTarget cudaq::CompileTarget::createFromConfig(
   target.disableQubitMapping =
       disableQM != runtimeConfig.end() && disableQM->second == "true";
   for (auto &stage : target.stages) {
-    auto *lowering =
-        std::get_if<config::CustomPipelineLowering>(&stage.lowering);
-    if (!lowering)
-      continue;
-    resolvePipeline(*lowering);
+    if (auto *lowering =
+            std::get_if<config::CustomPipelineLowering>(&stage.lowering))
+      resolvePipeline(*lowering);
+    if (auto *profile =
+            std::get_if<config::QuakeUnmappedProfile>(&stage.irOutputProfile))
+      resolveProfileOptions(*profile, runtimeConfig);
   }
 
   target.codegen.emissionFormat = targetConfig.getCodeGenSpec(runtimeConfig);
@@ -159,6 +195,33 @@ std::hash<cudaq::config::QuakeReferenceSemanticsProfile>::operator()(
   cudaq::detail::hashCombine(seed, profile.measurementType);
   cudaq::detail::hashCombine(seed, profile.resetAfterMeasure);
   return seed;
+}
+
+std::size_t std::hash<cudaq::config::QuakeUnmappedProfile>::operator()(
+    const cudaq::config::QuakeUnmappedProfile &profile) const noexcept {
+  std::size_t seed = 0;
+  for (const auto &gate : profile.basisGates)
+    cudaq::detail::hashCombine(seed, gate);
+  cudaq::detail::hashCombine(seed, profile.approximationTolerance);
+  cudaq::detail::hashCombine(seed, profile.costModel);
+  return seed;
+}
+
+bool cudaq::config::QuakeUnmappedProfile::requiresSynthesis() const {
+  // A basis with any of these continuous rotations, uncontrolled or with any
+  // number of controls, can express every rotation without approximating it.
+  static constexpr std::string_view rotations[] = {"r1", "rx",        "ry",
+                                                   "rz", "phased_rx", "u3"};
+  const auto isRotation = [](std::string_view gate) {
+    const auto controls = gate.find('(');
+    if (controls != std::string_view::npos && gate.substr(controls) != "(n)")
+      return false;
+    gate = gate.substr(0, controls);
+    return std::find(std::begin(rotations), std::end(rotations), gate) !=
+           std::end(rotations);
+  };
+  return costModel == CostModel::t_count && !basisGates.empty() &&
+         std::none_of(basisGates.begin(), basisGates.end(), isRotation);
 }
 
 std::size_t std::hash<cudaq::config::CustomPipelineLowering>::operator()(

@@ -1,0 +1,93 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --pass-pipeline='builtin.module(convert-to-linear-values, \
+// RUN:   clifford-t-optimization-pipeline{level=1 epsilon=1e-3})' %s | \
+// RUN:   FileCheck %s --check-prefix=LEVEL1
+// RUN: cudaq-opt --pass-pipeline='builtin.module(convert-to-linear-values, \
+// RUN:   clifford-t-optimization-pipeline{level=2 epsilon=1e-3})' %s \
+// RUN:   -o %t.level2
+// RUN: FileCheck %s --check-prefix=LEVEL2 --input-file=%t.level2
+// RUN: cudaq-opt --pass-pipeline='builtin.module(convert-to-linear-values, \
+// RUN:   clifford-t-optimization-pipeline{level=3 epsilon=1e-3})' %s | \
+// RUN:   diff %t.level2 -
+// RUN: cudaq-opt --pass-pipeline='builtin.module(convert-to-linear-values, \
+// RUN:   clifford-t-optimization-pipeline{level=2 epsilon=1e-13})' %s | \
+// RUN:   FileCheck %s --check-prefix=BOUND
+// RUN: cudaq-opt --clifford-t-synthesis-pipeline='epsilon=1e-3' %s | \
+// RUN:   FileCheck %s --check-prefix=SYNTH \
+// RUN:   --implicit-check-not='quake.r{{[xyz1]}}' \
+// RUN:   --implicit-check-not='call @' --implicit-check-not='quake.phase'
+
+// Level 1 of the optimization pipeline only cleans up, and level 3 runs level
+// 2. No level erases a rotation larger than the tolerance. The synthesis
+// pipeline leaves no rotation, call, or phase behind.
+
+// The angle is within the tolerance of pi/4, so level 2 snaps it to a T gate
+// and level 1 keeps the rotation.
+func.func @near_t() -> !quake.measure attributes {"cudaq-entrypoint"} {
+  %q = quake.alloca !quake.ref
+  %a = arith.constant 0.7862981633974483 : f64
+  quake.rz (%a) %q : (f64, !quake.ref) -> ()
+  %m = quake.mz %q : (!quake.ref) -> !quake.measure
+  return %m : !quake.measure
+}
+
+// LEVEL1-LABEL: func.func @near_t()
+// LEVEL1:         quake.rz
+// LEVEL2-LABEL: func.func @near_t()
+// LEVEL2-NOT:     quake.rz
+// LEVEL2:         quake.t
+// SYNTH-LABEL:  func.func @near_t()
+// SYNTH-NEXT:     quake.alloca
+// SYNTH-NEXT:     quake.t
+// SYNTH-NEXT:     quake.mz
+
+// Level 1 erases a rotation below the tolerance.
+func.func @below_tolerance() -> !quake.measure attributes {"cudaq-entrypoint"} {
+  %q = quake.alloca !quake.ref
+  %a = arith.constant 5.000000e-04 : f64
+  quake.rz (%a) %q : (f64, !quake.ref) -> ()
+  %m = quake.mz %q : (!quake.ref) -> !quake.measure
+  return %m : !quake.measure
+}
+
+// LEVEL1-LABEL: func.func @below_tolerance()
+// LEVEL1-NOT:     quake.rz
+// LEVEL1:         quake.mz
+
+// The default threshold of `quake-simplify` would erase this rotation. Level 2
+// keeps it because it is larger than the tolerance.
+func.func @above_tolerance() -> !quake.measure attributes {"cudaq-entrypoint"} {
+  %q = quake.alloca !quake.ref
+  %a = arith.constant 5.000000e-13 : f64
+  quake.rz (%a) %q : (f64, !quake.ref) -> ()
+  %m = quake.mz %q : (!quake.ref) -> !quake.measure
+  return %m : !quake.measure
+}
+
+// BOUND-LABEL: func.func @above_tolerance()
+// BOUND:         quake.rz
+// BOUND:         quake.mz
+
+// Synthesis reduces `rx`, `ry`, and `r1` to `rz` and inlines the helper it
+// outlines for each angle.
+func.func @inexact() -> !quake.measure attributes {"cudaq-entrypoint"} {
+  %q = quake.alloca !quake.ref
+  %a = arith.constant 1.250000e-01 : f64
+  quake.rx (%a) %q : (f64, !quake.ref) -> ()
+  quake.ry (%a) %q : (f64, !quake.ref) -> ()
+  quake.r1 (%a) %q : (f64, !quake.ref) -> ()
+  quake.rz (%a) %q : (f64, !quake.ref) -> ()
+  %m = quake.mz %q : (!quake.ref) -> !quake.measure
+  return %m : !quake.measure
+}
+
+// SYNTH-LABEL: func.func @inexact()
+// SYNTH:         quake.t
+// SYNTH:         quake.mz
