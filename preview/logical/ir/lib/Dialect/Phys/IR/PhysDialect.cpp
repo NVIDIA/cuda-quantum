@@ -6125,8 +6125,8 @@ LogicalResult CallOp::verify() {
       return failure();
   if (auto profile = getProfileAttr()) {
     Operation *target = SymbolTable::lookupNearestSymbolFrom(*this, profile);
-    if (target && target->getName().getStringRef() != "fabric.gadget_profile")
-      return emitOpError("profile must resolve to fabric.gadget_profile");
+    if (target && target->getName().getStringRef() != "fabric.gadget_contract")
+      return emitOpError("profile must resolve to fabric.gadget_contract");
   }
   Attribute rawResourceSite = (*this)->getAttr("resource_action_site");
   Attribute rawResourceObjective = (*this)->getAttr("resource_objective");
@@ -6219,11 +6219,11 @@ static LogicalResult verifyCallTemplateAgainstCanonical(
         "per-site callees");
   }
   if (canonical.getProfileAttr() != invocation.getProfileAttr()) {
-    auto canonicalProfile = dyn_cast_or_null<qlx::fabric::GadgetProfileOp>(
+    auto canonicalProfile = dyn_cast_or_null<qlx::fabric::GadgetContractOp>(
         canonical.getProfileAttr() ? SymbolTable::lookupNearestSymbolFrom(
                                          invocation, canonical.getProfileAttr())
                                    : nullptr);
-    auto invocationProfile = dyn_cast_or_null<qlx::fabric::GadgetProfileOp>(
+    auto invocationProfile = dyn_cast_or_null<qlx::fabric::GadgetContractOp>(
         invocation.getProfileAttr()
             ? SymbolTable::lookupNearestSymbolFrom(invocation,
                                                    invocation.getProfileAttr())
@@ -6511,9 +6511,9 @@ LogicalResult RetryOp::verify() {
   if (!profileAttr)
     return emitOpError("requires the selected projected-attempt profile");
   Operation *profile = SymbolTable::lookupNearestSymbolFrom(*this, profileAttr);
-  if (!profile || profile->getName().getStringRef() != "fabric.gadget_profile")
+  if (!profile || profile->getName().getStringRef() != "fabric.gadget_contract")
     return emitOpError(
-        "profile must resolve to a retained fabric.gadget_profile");
+        "profile must resolve to a retained fabric.gadget_contract");
   auto profileGadget = profile->getAttrOfType<FlatSymbolRefAttr>("gadget");
   if (attemptProtocol) {
     if (!attemptProtocol.getPredicateGadgetAttr() ||
@@ -10645,9 +10645,9 @@ static LogicalResult verifySourceRow(Operation *sidecar, StringRef profileOp,
       SymbolTable::lookupNearestSymbolFrom(sidecar, sourceProfile);
   if (!profile)
     return success(); // Partial linked modules resolve at link time.
-  if (profile->getName().getStringRef() != "fabric.gadget_profile")
+  if (profile->getName().getStringRef() != "fabric.gadget_contract")
     return sidecar->emitOpError(
-        "source_profile must resolve to fabric.gadget_profile");
+        "source_profile must resolve to fabric.gadget_contract");
 
   FailureOr<AffineSourceRow> expected = failure();
   if (sourceKind.getValue() == "profile")
@@ -10927,10 +10927,10 @@ LogicalResult qlx::phys::verifyClosedSidecarLinks(ModuleOp module,
     Operation *profileTarget =
         SymbolTable::lookupNearestSymbolFrom(&operation, profile);
     if (!profileTarget ||
-        profileTarget->getName().getStringRef() != "fabric.gadget_profile")
+        profileTarget->getName().getStringRef() != "fabric.gadget_contract")
       return operation.emitOpError(
           "terminal sidecar source_profile must resolve to "
-          "fabric.gadget_profile");
+          "fabric.gadget_contract");
     auto projection =
         operation.getAttrOfType<FlatSymbolRefAttr>("record_projection");
     Operation *projectionTarget =

@@ -47,7 +47,7 @@ def _contract(gadget=syndrome_round, *, detectors=None):
     new_checks = gadget.records.syndrome(0).checks
     if detectors is None:
         detectors = _rows(incoming, new_checks)
-    return ql.gadgets.GadgetProfile(gadget,
+    return ql.gadgets.GadgetContract(gadget,
                                     detectors=detectors,
                                     boundary={outgoing.syndrome: new_checks})
 
@@ -59,7 +59,10 @@ def _kinds(error):
 
 
 def test_repetition_round_receipt_certifies_contract_and_action():
-    receipt = ql.gadgets.verify_gadget(_contract())
+    declared = _contract()
+    receipt = ql.gadgets.verify_gadget(declared)
+    assert receipt.gadget == declared.gadget.name
+    assert receipt.contract == declared.name
     contract = receipt.detector_contract
     assert contract.ok
     assert (contract.outcome_code_rank, contract.detector_rank,
@@ -142,7 +145,7 @@ def test_steane_transversal_h_swaps_the_check_families():
     h_out = steane_h_round.outputs.only()
     h_checks = steane_h_round.records.syndrome(0).checks
     swapped = tuple(h_in.syndrome[(i + 3) % 6] for i in range(6))
-    contract = ql.gadgets.GadgetProfile(
+    contract = ql.gadgets.GadgetContract(
         steane_h_round,
         detectors=tuple(
             ql.gadgets.Detector(swapped[i] ^ h_checks[i]) for i in range(6)),
@@ -153,7 +156,7 @@ def test_steane_transversal_h_swaps_the_check_families():
     assert receipt.logical_action.action == "ql.logical.h"
 
     # The adjacent-round contract does not hold across a Hadamard.
-    unswapped = ql.gadgets.GadgetProfile(steane_h_round,
+    unswapped = ql.gadgets.GadgetContract(steane_h_round,
                                          detectors=_rows(h_in, h_checks),
                                          boundary={h_out.syndrome: h_checks})
     with pytest.raises(GadgetVerificationError) as exc:
@@ -176,7 +179,7 @@ def test_two_block_gadget_certifies_logical_cx():
     control_out, target_out = cx_round.outputs[0], cx_round.outputs[1]
     control_checks = cx_round.records.syndrome(0).checks
     target_checks = cx_round.records.syndrome(1).checks
-    contract = ql.gadgets.GadgetProfile(
+    contract = ql.gadgets.GadgetContract(
         cx_round,
         detectors=(
             *_rows(control_in, control_checks),
@@ -208,7 +211,7 @@ def test_non_clifford_action_is_reported_as_unsupported():
 
 
 def test_verify_gadget_rejects_a_bare_gadget():
-    with pytest.raises(TypeError, match="GadgetProfile"):
+    with pytest.raises(TypeError, match="GadgetContract"):
         ql.gadgets.verify_gadget(syndrome_round)
 
 
@@ -226,7 +229,7 @@ def test_destructive_readout_reports_its_action_as_unsupported():
         ql.discard(block)
         return result
 
-    receipt = ql.gadgets.verify_gadget(ql.gadgets.GadgetProfile(readout))
+    receipt = ql.gadgets.verify_gadget(ql.gadgets.GadgetContract(readout))
     assert receipt.detector_contract.ok
     assert receipt.detector_contract.observable_count == 1
     assert receipt.logical_action.status == "unsupported"
@@ -252,7 +255,7 @@ def test_action_over_a_different_number_of_logical_qubits_is_unsupported():
         rows.extend(_rows(incoming, new_checks))
         boundary[outgoing.syndrome] = new_checks
     receipt = ql.gadgets.verify_gadget(
-        ql.gadgets.GadgetProfile(two_blocks,
+        ql.gadgets.GadgetContract(two_blocks,
                                  detectors=tuple(rows),
                                  boundary=boundary))
     assert receipt.detector_contract.ok
@@ -266,7 +269,7 @@ def test_logical_stabilizer_fixed_only_up_to_a_random_outcome():
     def reset_round(block: RepetitionPatch) -> RepetitionPatch:
         return ql.reset(block.data)
 
-    profile = ql.gadgets.GadgetProfile(
+    profile = ql.gadgets.GadgetContract(
         reset_round, boundary={reset_round.outputs.only().syndrome: False})
     with pytest.raises(GadgetVerificationError,
                        match="nondeterministic sign on Z_ref Z\u0304") as exc:
@@ -276,7 +279,7 @@ def test_logical_stabilizer_fixed_only_up_to_a_random_outcome():
 
 
 def test_incorrect_output_syndrome_binding_names_the_relation():
-    wrong = ql.gadgets.GadgetProfile(
+    wrong = ql.gadgets.GadgetContract(
         syndrome_round,
         detectors=_rows(block_in, checks),
         boundary={block_out.syndrome: checks.select([1, 0])})
@@ -289,14 +292,14 @@ def test_incorrect_output_syndrome_binding_names_the_relation():
 def test_success_rows_must_be_deterministic_on_the_ideal_realization():
     rows = _rows(block_in, checks)
     boundary = {block_out.syndrome: checks}
-    good = ql.gadgets.GadgetProfile(
+    good = ql.gadgets.GadgetContract(
         syndrome_round,
         boundary=boundary,
         success=tuple(ql.gadgets.SuccessPredicate(row.parity) for row in rows))
     receipt = ql.gadgets.verify_gadget(good)
     assert receipt.detector_contract.success_count == 2
     # A bare record is random on a random input syndrome.
-    bad = ql.gadgets.GadgetProfile(syndrome_round,
+    bad = ql.gadgets.GadgetContract(syndrome_round,
                                    boundary=boundary,
                                    success=(ql.gadgets.SuccessPredicate(
                                        checks[0]),))
@@ -307,4 +310,4 @@ def test_success_rows_must_be_deterministic_on_the_ideal_realization():
 
 def test_incomplete_boundary_is_rejected_before_verification():
     with pytest.raises(RuntimeError, match="complete selected boundary"):
-        ql.gadgets.verify_gadget(ql.gadgets.GadgetProfile(syndrome_round))
+        ql.gadgets.verify_gadget(ql.gadgets.GadgetContract(syndrome_round))

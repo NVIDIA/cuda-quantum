@@ -395,7 +395,7 @@ class SyndromeBundleRef:
 
 @dataclass(frozen=True, slots=True)
 class ProfileBinding:
-    """One vector-valued output-boundary equation in a profile graph."""
+    """One vector-valued output-boundary equation in a contract builder."""
 
     target: SyndromeBundleRef
     value: ProfileVectorExpr

@@ -13,7 +13,7 @@ from typing import Callable, Mapping, Sequence
 
 from cudaq_edem import EDEM, compose_chain
 
-from cudaq.logical.gadgets import GadgetProfile
+from cudaq.logical.gadgets import GadgetContract
 from cudaq.logical.compiler import (
     Depolarize1Placement,
     StandardDepolarizingNoise,
@@ -25,23 +25,23 @@ from .edem import FaultSet, derive_edem, standard_depolarizing_faults
 
 
 def derive_edem_chain(
-    profiles: Sequence[GadgetProfile],
+    profiles: Sequence[GadgetContract],
     *,
     noise: StandardDepolarizingNoise | None = None,
     depolarizations: Mapping[int, Sequence[Depolarize1Placement]] | None = None,
-    fault_factory: Callable[[int, GadgetProfile, CliffordProjection], FaultSet]
+    fault_factory: Callable[[int, GadgetContract, CliffordProjection], FaultSet]
     | None = None,
 ) -> EDEM:
     """Derive a serial chain, reusing identical gadget/fault-set pairs.
 
-    Profiles are supplied explicitly, for example through a recipe's
-    ``gadget_profile(gadget)`` function. The result retains exposed code boundaries and
+    Contracts are supplied explicitly, for example through a recipe's
+    ``gadget_contract(gadget)`` function. The result retains exposed code boundaries and
     all original fault groups; use ``cudaq_edem.project_DEM`` for a closed
     experiment. Repeated occurrences have distinct fault indicators.
 
     By default, use standard physical noise and per-occurrence depolarization
     placements, as in ``compiler.emit_stim``. Alternatively, ``fault_factory``
-    receives (occurrence index, resolved profile, Clifford projection) and
+    receives (occurrence index, contract, Clifford projection) and
     returns the complete ``FaultSet`` for that occurrence. It cannot be combined
     with ``noise`` or ``depolarizations``. Probabilities remain part of each
     fault set; this helper does not introduce a separate distribution API.

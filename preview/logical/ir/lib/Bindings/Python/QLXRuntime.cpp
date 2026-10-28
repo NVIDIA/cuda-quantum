@@ -741,8 +741,8 @@ NB_MODULE(_qlxRuntime, m) {
             });
         std::string result;
         if (mlirLogicalResultIsFailure(
-                qlxVerifyGadgetProfile(pyModule, toRef(profile), toRef(action),
-                                       appendToString, &result)))
+                qlxVerifyGadgetContract(pyModule, toRef(profile), toRef(action),
+                                        appendToString, &result)))
           throw std::runtime_error("Gadget verification failed:\n" +
                                    diagnostics);
         return result;

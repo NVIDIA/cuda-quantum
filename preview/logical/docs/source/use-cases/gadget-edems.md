@@ -42,7 +42,7 @@ def bare_h(block: cql.patch[cql.codes.BareQubit]) -> cql.patch[cql.codes.BareQub
     return cql.h(block.data)
 
 
-build = cql.compile(cql.gadgets.GadgetProfile(bare_h))
+build = cql.compile(cql.gadgets.GadgetContract(bare_h))
 
 # An empty insertion site denotes the input boundary.
 faults = FaultSet().pauli_error("", 0, "x", 0.01)
@@ -149,9 +149,9 @@ channels. Useful changes include:
   biased noise.
 - Increase `distance` or `rounds` to change the experiment size.
 
-### Select the gadget profiles
+### Select the gadget contracts
 
-The model uses the same three recipe gadgets and profiles as the Stim tutorial:
+The model uses the same three recipe gadgets and contracts as the Stim tutorial:
 
 ```{eval-rst}
 .. literalinclude:: ../../../examples/standalone/07_memory_edem.py
@@ -160,11 +160,11 @@ The model uses the same three recipe gadgets and profiles as the Stim tutorial:
    :end-before: # %%
 ```
 
-Each profile declares a gadget's detectors, its incoming and outgoing virtual
+Each contract declares a gadget's detectors, its incoming and outgoing virtual
 syndromes, and, for readout, the logical observable. The Stim tutorial explains
 these rules for the surface gadgets in
 [Describe which results signal errors](stim-emission.md#describe-which-results-signal-errors).
-To use a gadget of your own, put its profile in the sequence; see
+To use a gadget of your own, put its contract in the sequence; see
 [Declare a contract](../reference/detector-contracts.md#declare-a-contract).
 
 ### Choose where faults occur
@@ -175,8 +175,8 @@ immediately *after* the instruction with the given `site_id`. The empty site
 `""` means the gadget's input boundary, before its first instruction.
 
 `derive_edem_chain` calls a **fault factory** once for each occurrence, that
-is, each position in the profile sequence. The factory receives the
-occurrence index, the profile, and the projection, and returns that
+is, each position in the contract sequence. The factory receives the
+occurrence index, the contract, and the projection, and returns that
 occurrence's complete fault set:
 
 ```{eval-rst}
@@ -208,7 +208,7 @@ flips or correlated errors, see [Specify faults](#specify-faults).
 
 ### Derive and compose the model
 
-Pass the profiles and the factory to `derive_edem_chain`, then project the
+Pass the contracts and the factory to `derive_edem_chain`, then project the
 result:
 
 ```{eval-rst}
@@ -379,7 +379,7 @@ unsupported.
 ### Derive models stage by stage
 
 `derive_edem_chain` packages a sequence of steps you can also run yourself:
-compile each profile, project it, choose its faults, derive its EDEM, and
+compile each contract, project it, choose its faults, derive its EDEM, and
 compose the results:
 
 ```python
@@ -413,8 +413,8 @@ same code presentation, meaning the same code and stabilizer ordering. Call
 
 ### Contract checks during derivation
 
-`derive_edem` checks the profile against the realization before deriving a
+`derive_edem` checks the contract against the realization before deriving a
 model. Declared detectors must be zero without faults, and outgoing virtual
-syndromes must match the measured stabilizers. The profile must also account
+syndromes must match the measured stabilizers. The contract must also account
 for every deterministic measurement relation. An inconsistent or incomplete
-profile is rejected.
+contract is rejected.

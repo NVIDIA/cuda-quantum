@@ -436,16 +436,16 @@ def Fabric_GadgetSpecOp : Fabric_Op<"gadget_spec", [Symbol]> {
   let hasVerifier = 1;
 }
 
-def Fabric_ProfileEndOp : Fabric_Op<"profile_end", [
-    Terminator, HasParent<"GadgetProfileOp">
+def Fabric_ContractEndOp : Fabric_Op<"contract_end", [
+    Terminator, HasParent<"GadgetContractOp">
   ]> {
-  let summary = "terminate a declarative gadget-analysis profile";
+  let summary = "terminate a declarative gadget contract";
   let assemblyFormat = "attr-dict";
 }
 
-def Fabric_GadgetProfileOp : Fabric_Op<"gadget_profile", [
+def Fabric_GadgetContractOp : Fabric_Op<"gadget_contract", [
     Symbol, IsolatedFromAbove,
-    SingleBlockImplicitTerminator<"ProfileEndOp">
+    SingleBlockImplicitTerminator<"ContractEndOp">
   ]> {
   let summary = "detector, observable, success, and boundary analysis for one gadget";
   let description = [{
@@ -453,7 +453,7 @@ def Fabric_GadgetProfileOp : Fabric_Op<"gadget_profile", [
     its detector map, endpoint code presentations, observable rows, and success
     conditions. The detector map and code presentations form the gadget
     detector contract; the outcome map belongs to the gadget. More than one
-    profile may reference the same gadget. Profile rows refer to stable
+    contract may reference the same gadget. Contract rows refer to stable
     measurement records through `records` attributes rather than capturing SSA
     values from the gadget body. Local verification does not prove ideal
     determinism or contract completeness.
@@ -515,7 +515,7 @@ def Fabric_SuccessOp : Fabric_Op<"success", []> {
   let summary = "declare a success or postselection predicate over records";
   let description = [{
     Declares a mismatch parity over stable measurement records in a
-    `fabric.gadget_profile`: zero means accepted. It is analysis semantics, not
+    `fabric.gadget_contract`: zero means accepted. It is analysis semantics, not
     executable branch control. Retry, discard, and abort behavior belong to
     the enclosing protocol's explicit selection or retry operation.
   }];

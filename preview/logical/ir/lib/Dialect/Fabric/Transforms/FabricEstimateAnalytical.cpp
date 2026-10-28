@@ -737,7 +737,7 @@ struct FabricEstimateAnalyticalPass
         countsResult, countsResult.getRootAttr());
     if (!rootSymbol.empty()) {
       root = symbols.lookup(rootSymbol);
-      if (!root || !isa<GadgetOp, ProtocolOp, GadgetProfileOp>(root)) {
+      if (!root || !isa<GadgetOp, ProtocolOp, GadgetContractOp>(root)) {
         module.emitError("fabric-estimate-analytical root @")
             << rootSymbol << " must resolve to an executable Fabric root";
         return signalPassFailure();
@@ -749,7 +749,7 @@ struct FabricEstimateAnalyticalPass
         return signalPassFailure();
       }
     }
-    if (!root || !isa<GadgetOp, ProtocolOp, GadgetProfileOp>(root)) {
+    if (!root || !isa<GadgetOp, ProtocolOp, GadgetContractOp>(root)) {
       countsResult.emitOpError(
           "static result root must resolve to an executable Fabric root");
       return signalPassFailure();
@@ -838,7 +838,7 @@ struct FabricEstimateAnalyticalPass
       return signalPassFailure();
     }
     auto gadgetRoot = dyn_cast<GadgetOp>(root);
-    if (auto profile = dyn_cast<GadgetProfileOp>(root))
+    if (auto profile = dyn_cast<GadgetContractOp>(root))
       gadgetRoot = symbols.lookup<GadgetOp>(profile.getGadgetAttr().getValue());
     if (!device.getQecAttr() || !device.getPhysicalAttr() ||
         !device.getLogicalToQecAttr() || !device.getQecToPhysicalAttr() ||

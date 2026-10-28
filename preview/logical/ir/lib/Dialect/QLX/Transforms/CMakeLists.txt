@@ -14,6 +14,8 @@ qlx_select_mlir_link_libraries(_qlx_mlir_link_libraries
   MLIRArithDialect
 )
 
+# Synthesis is provided by cudaq::MLIR. Its inline headers also call GMP/MPFR;
+# linking cudaq-synth here would pull in a second, static LLVM runtime.
 add_mlir_library(MLIRQLXTransforms
   QLXAbsorbCliffordFrame.cpp
   QLXEstimateLogical.cpp
@@ -31,7 +33,8 @@ add_mlir_library(MLIRQLXTransforms
   LINK_LIBS PUBLIC
   MLIRQLXDialect
   MLIRCflowDialect
-  cudaq-synth
+  GMP::gmp
+  MPFR::mpfr
   ${_qlx_mlir_link_libraries}
 )
 

@@ -3022,7 +3022,7 @@ private:
                                                recordBase, lanePrefix, ordinal)
                                      .str();
       // Stable-record projection is consumed only by a selected detached
-      // gadget profile. Retaining every unprofiled helper invocation here
+      // gadget contract. Retaining every unprofiled helper invocation here
       // creates millions of unreachable provenance strings without adding
       // P3 evidence.
       if (currentProfile)
@@ -4002,7 +4002,7 @@ private:
     auto cached = profileSidecarDeclarationCache.find(profileRef);
     if (cached != profileSidecarDeclarationCache.end())
       return &cached->second;
-    auto profile = dyn_cast_or_null<qlx::fabric::GadgetProfileOp>(
+    auto profile = dyn_cast_or_null<qlx::fabric::GadgetContractOp>(
         symbols.lookup(profileRef.getValue()));
     if (!profile)
       return failure();
@@ -4021,7 +4021,7 @@ private:
     auto declarations = profileSidecarDeclarations(profileRef);
     if (failed(declarations))
       return emitError(UnknownLoc::get(context))
-             << "physical call references missing gadget profile @"
+             << "physical call references missing gadget contract @"
              << profileRef.getValue();
     std::map<std::string, int64_t> rowOrdinals;
     for (Operation *declarationPointer : **declarations) {
@@ -4088,9 +4088,9 @@ private:
       return true;
     if (!left || !right)
       return false;
-    auto leftProfile = dyn_cast_or_null<qlx::fabric::GadgetProfileOp>(
+    auto leftProfile = dyn_cast_or_null<qlx::fabric::GadgetContractOp>(
         symbols.lookup(left.getValue()));
-    auto rightProfile = dyn_cast_or_null<qlx::fabric::GadgetProfileOp>(
+    auto rightProfile = dyn_cast_or_null<qlx::fabric::GadgetContractOp>(
         symbols.lookup(right.getValue()));
     if (!leftProfile || !rightProfile ||
         leftProfile.getGadgetAttr() != leftCallee ||
@@ -4314,7 +4314,7 @@ private:
       std::set<std::string> selectedRecordSources;
       auto declarations = profileSidecarDeclarations(profileRef);
       if (failed(declarations)) {
-        emitError(location) << "references an unresolved gadget profile";
+        emitError(location) << "references an unresolved gadget contract";
         return failure();
       }
       for (Operation *declaration : **declarations) {
@@ -5645,7 +5645,7 @@ private:
         // enumerating the repeat's dynamic extent.
         std::set<std::string> selectedProfileRecords;
         if (currentProfile) {
-          auto profile = dyn_cast_or_null<qlx::fabric::GadgetProfileOp>(
+          auto profile = dyn_cast_or_null<qlx::fabric::GadgetContractOp>(
               symbols.lookup(currentProfile.getValue()));
           if (!profile)
             return repeat.emitOpError(

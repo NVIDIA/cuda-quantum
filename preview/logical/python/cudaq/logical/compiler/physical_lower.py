@@ -552,7 +552,7 @@ class _P2ToP3:
         started = checkpoint("increment-verification", started)
         candidate = self.symbols.get(self.source.root.symbol)
         self.root_profile = (candidate if candidate is not None and
-                             candidate.name == "fabric.gadget_profile" else
+                             candidate.name == "fabric.gadget_contract" else
                              None)
         self.root = self._resolve_root()
         checkpoint("root", started)
@@ -1515,7 +1515,7 @@ class _P2ToP3:
         root = self.symbols.get(self.source.root.symbol)
         if root is None:
             raise ValueError(f"missing P2 root @{self.source.root.symbol}")
-        if root.name == "fabric.gadget_profile":
+        if root.name == "fabric.gadget_contract":
             root = self.symbols.get(_text(root.attributes["gadget"]))
         if root is None or root.name not in {
                 "fabric.gadget", "fabric.protocol"
@@ -5227,9 +5227,9 @@ class _P2ToP3:
                         call_profile = self.symbols.get(
                             _text(operation.attributes["profile"]))
                         if (call_profile is None or
-                                call_profile.name != "fabric.gadget_profile"):
+                                call_profile.name != "fabric.gadget_contract"):
                             raise ValueError(
-                                "Fabric call references a missing gadget profile"
+                                "Fabric call references a missing gadget contract"
                             )
                         if _text(call_profile.attributes["gadget"]
                                 ) != callee_name:

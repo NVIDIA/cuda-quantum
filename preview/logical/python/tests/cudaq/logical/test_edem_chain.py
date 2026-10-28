@@ -24,11 +24,11 @@ import cudaq_edem as edem
     "cz"
 ])
 @pytest.mark.parametrize("distance", [3, 5])
-def test_recipe_gadget_profiles_are_stable_and_semantically_valid(
+def test_recipe_gadget_contracts_are_stable_and_semantically_valid(
         name, distance):
     gadget = getattr(surface.definitions(distance), name)
-    profile = surface.gadget_profile(gadget)
-    assert profile is surface.gadget_profile(gadget)
+    profile = surface.gadget_contract(gadget)
+    assert profile is surface.gadget_contract(gadget)
     assert profile.gadget is gadget
     cql.analysis.derive_edem(cql.compile(profile))
 
@@ -37,30 +37,30 @@ def test_generated_surface_measurement_exposes_its_existing_profile():
     recipe = surface.definitions(3)
     measurement = recipe.wsc_measurement(cql.types.Z(0) @ cql.types.Z(1),
                                          rounds=1)
-    assert surface.gadget_profile(
+    assert surface.gadget_contract(
         measurement.realization) is measurement.analysis
     assert cql.compile(measurement.analysis).module.operation.verify()
 
 
 def test_custom_profile_overrides_default():
     gadget = surface.definitions(3).memory_round
-    profile = surface.gadget_profile(gadget)
+    profile = surface.gadget_contract(gadget)
     custom = replace(profile,
                      boundary=None,
                      detectors=profile.detectors + profile.detectors[:1])
     # Redundant detectors are valid and must not be replaced by the default.
     model = cql.analysis.derive_edem_chain(
-        (surface.gadget_profile(surface.definitions(3).prepare_zero), custom,
-         surface.gadget_profile(surface.definitions(3).measure_z)))
+        (surface.gadget_contract(surface.definitions(3).prepare_zero), custom,
+         surface.gadget_contract(surface.definitions(3).measure_z)))
     assert sum(model.detectors) == 4 + 9
-    assert surface.gadget_profile(gadget) is profile
+    assert surface.gadget_contract(gadget) is profile
 
 
 def test_chain_reuses_equal_faults_but_distinguishes_occurrence_noise(
         monkeypatch):
     recipe = surface.definitions(3)
     profiles = tuple(
-        surface.gadget_profile(g)
+        surface.gadget_contract(g)
         for g in (recipe.prepare_zero, recipe.memory_round, recipe.memory_round,
                   recipe.memory_round, recipe.measure_z))
     original = chain.derive_edem
@@ -89,7 +89,7 @@ def test_chain_reuses_equal_faults_but_distinguishes_occurrence_noise(
 def test_chain_rejects_ambiguous_noise_configuration():
     recipe = surface.definitions(3)
     profiles = tuple(
-        surface.gadget_profile(g)
+        surface.gadget_contract(g)
         for g in (recipe.prepare_zero, recipe.measure_z))
     with pytest.raises(ValueError, match="choose fault_factory"):
         chain.derive_edem_chain(
@@ -136,4 +136,4 @@ def test_surface_recipe_rejects_foreign_gadget_with_matching_code_and_name():
     foreign = cql.gadgets.css_memory_round(
         cql.codes.Surface[3], name=surface.definitions(3).memory_round.name)
     with pytest.raises(ValueError, match="does not belong"):
-        surface.gadget_profile(foreign)
+        surface.gadget_contract(foreign)

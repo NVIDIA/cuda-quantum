@@ -4253,7 +4253,7 @@ static LogicalResult verifyRetainedStreamProtocols(ProtocolOp protocol) {
 static LogicalResult verifySelectedPredicateSemantics(
     Operation *owner, Value predicate, ValueRange carries,
     FlatSymbolRefAttr attemptAttr, FlatSymbolRefAttr profileAttr,
-    GadgetOp gadget, GadgetProfileOp profile, GadgetSpecOp spec,
+    GadgetOp gadget, GadgetContractOp profile, GadgetSpecOp spec,
     StringRef operation);
 static LogicalResult verifyEmbeddedSelections(Operation *protocolBody);
 static LogicalResult verifyLocalGeneratedRPPProtocol(ProtocolOp protocol);
@@ -4376,7 +4376,7 @@ LogicalResult ProtocolOp::verify() {
       return emitOpError("predicate_result must name an i1 protocol result");
     auto gadget = dyn_cast_or_null<GadgetOp>(
         SymbolTable::lookupNearestSymbolFrom(*this, getPredicateGadgetAttr()));
-    auto profile = dyn_cast_or_null<GadgetProfileOp>(
+    auto profile = dyn_cast_or_null<GadgetContractOp>(
         SymbolTable::lookupNearestSymbolFrom(*this, getPredicateProfileAttr()));
     if (!gadget || !profile ||
         profile.getGadgetAttr() != getPredicateGadgetAttr())
@@ -4458,7 +4458,7 @@ static FailureOr<BooleanAffineExpression> normalizeBooleanAffine(Value value) {
 static LogicalResult verifySelectedPredicateSemantics(
     Operation *owner, Value predicate, ValueRange carries,
     FlatSymbolRefAttr attemptAttr, FlatSymbolRefAttr profileAttr,
-    GadgetOp gadget, GadgetProfileOp profile, GadgetSpecOp spec,
+    GadgetOp gadget, GadgetContractOp profile, GadgetSpecOp spec,
     StringRef operation) {
   SmallVector<SuccessOp> successes;
   profile.getBody().walk(
@@ -4713,12 +4713,12 @@ LogicalResult RetryOp::verify() {
         "typed selection and predicate-provenance contract");
 
   if (!getProfileAttr())
-    return emitOpError("requires an explicit selected gadget profile");
+    return emitOpError("requires an explicit selected gadget contract");
   Operation *profileTarget =
       SymbolTable::lookupNearestSymbolFrom(*this, getProfileAttr());
-  auto profile = dyn_cast_or_null<GadgetProfileOp>(profileTarget);
+  auto profile = dyn_cast_or_null<GadgetContractOp>(profileTarget);
   if (!profile)
-    return emitOpError("profile must resolve to fabric.gadget_profile");
+    return emitOpError("profile must resolve to fabric.gadget_contract");
   if (protocol) {
     if (protocol.getPredicateProfileAttr() != getProfileAttr())
       return emitOpError(
@@ -5997,10 +5997,10 @@ static LogicalResult verifyLocalGeneratedRPPInvocations(ProtocolOp protocol) {
       Operation *profileTarget =
           symbolTables.lookupNearestSymbolFrom(call, profileRef);
       if (profileTarget) {
-        auto profile = dyn_cast<GadgetProfileOp>(profileTarget);
+        auto profile = dyn_cast<GadgetContractOp>(profileTarget);
         if (!profile) {
-          result =
-              call.emitOpError("profile must resolve to fabric.gadget_profile");
+          result = call.emitOpError(
+              "profile must resolve to fabric.gadget_contract");
           return;
         }
         if (auto gadget = dyn_cast<GadgetOp>(target)) {
@@ -6082,9 +6082,9 @@ LogicalResult CallOp::verify() {
     Operation *profileTarget =
         SymbolTable::lookupNearestSymbolFrom(*this, profileRef);
     if (profileTarget) {
-      auto profile = dyn_cast<GadgetProfileOp>(profileTarget);
+      auto profile = dyn_cast<GadgetContractOp>(profileTarget);
       if (!profile)
-        return emitOpError("profile must resolve to fabric.gadget_profile");
+        return emitOpError("profile must resolve to fabric.gadget_contract");
       if (auto gadget = dyn_cast<GadgetOp>(target)) {
         if (profile.getGadgetAttr() != getCalleeAttr())
           return emitOpError("profile must analyze the called gadget");
@@ -6221,7 +6221,7 @@ LogicalResult EstablishTopologicalRecordOp::verify() {
 // event.selection's shared verifier (EventDialect.cpp) only checks mode/
 // accept_when and that attempt/profile resolve to some symbol, since the
 // shared `event` dialect cannot depend on `fabric` to check that attempt is
-// specifically a fabric.gadget, that profile is its fabric.gadget_profile,
+// specifically a fabric.gadget, that profile is its fabric.gadget_contract,
 // or the outcome-map contract verifySelectedPredicateSemantics enforces.
 // Walking every embedded event.selection in a protocol body from here
 // restores those checks for the one dialect whose selections carry them.
@@ -6244,10 +6244,10 @@ static LogicalResult verifyEmbeddedSelections(Operation *protocolBody) {
     auto profileAttr = selection.getProfileAttr();
     if (!profileAttr)
       return;
-    auto profile = dyn_cast_or_null<GadgetProfileOp>(
+    auto profile = dyn_cast_or_null<GadgetContractOp>(
         SymbolTable::lookupNearestSymbolFrom(selection, profileAttr));
     if (!profile) {
-      selection.emitOpError("profile must resolve to fabric.gadget_profile");
+      selection.emitOpError("profile must resolve to fabric.gadget_contract");
       result = failure();
       return;
     }
@@ -8413,8 +8413,8 @@ LogicalResult TransportOp::verify() {
 }
 
 LogicalResult SuccessOp::verify() {
-  if (!(*this)->getParentOfType<GadgetProfileOp>())
-    return emitOpError("must be nested in a fabric.gadget_profile");
+  if (!(*this)->getParentOfType<GadgetContractOp>())
+    return emitOpError("must be nested in a fabric.gadget_contract");
   if ((*this)->hasAttr("expected") || (*this)->hasAttr("scope") ||
       (*this)->hasAttr("label"))
     return emitOpError(
@@ -8428,14 +8428,14 @@ LogicalResult SuccessOp::verify() {
 }
 
 LogicalResult DetectorOp::verify() {
-  if (!isa_and_nonnull<GadgetProfileOp>((*this)->getParentOp()))
-    return emitOpError("must be a direct child of a fabric.gadget_profile");
+  if (!isa_and_nonnull<GadgetContractOp>((*this)->getParentOp()))
+    return emitOpError("must be a direct child of a fabric.gadget_contract");
   return success();
 }
 
 LogicalResult ObservableOp::verify() {
-  if (!isa_and_nonnull<GadgetProfileOp>((*this)->getParentOp()))
-    return emitOpError("must be a direct child of a fabric.gadget_profile");
+  if (!isa_and_nonnull<GadgetContractOp>((*this)->getParentOp()))
+    return emitOpError("must be a direct child of a fabric.gadget_contract");
   if (getIdxAttr().getInt() < 0)
     return emitOpError("observable index must be nonnegative");
   if (getInputSyndromes() && !getInputSyndromes()->empty())
@@ -8444,14 +8444,14 @@ LogicalResult ObservableOp::verify() {
 }
 
 LogicalResult OutputSyndromeOp::verify() {
-  if (!(*this)->getParentOfType<GadgetProfileOp>())
-    return emitOpError("must be nested in a fabric.gadget_profile");
+  if (!(*this)->getParentOfType<GadgetContractOp>())
+    return emitOpError("must be nested in a fabric.gadget_contract");
   if (getPortIndex() < 0 || getIndex() < 0)
     return emitOpError("requires nonnegative port_index and index");
   return success();
 }
 
-LogicalResult GadgetProfileOp::verify() {
+LogicalResult GadgetContractOp::verify() {
   if ((*this)->hasAttr("selection"))
     return emitOpError(
         "selection policy belongs to fabric.retry or event.selection, not "

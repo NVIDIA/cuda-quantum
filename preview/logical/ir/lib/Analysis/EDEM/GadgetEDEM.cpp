@@ -74,7 +74,8 @@ unsigned binaryRank(std::vector<Bits> rows, unsigned columns) {
 }
 
 FailureOr<std::vector<BoundaryPort>>
-readPorts(qlx::fabric::GadgetProfileOp profile, std::optional<ArrayAttr> values,
+readPorts(qlx::fabric::GadgetContractOp profile,
+          std::optional<ArrayAttr> values,
           const std::vector<std::vector<unsigned>> &carriers, StringRef label) {
   if (!values || values->size() != carriers.size()) {
     profile.emitOpError() << "EDEM " << label
@@ -116,7 +117,7 @@ readPorts(qlx::fabric::GadgetProfileOp profile, std::optional<ArrayAttr> values,
 }
 
 FailureOr<std::unordered_map<std::string, unsigned>>
-readRecordMap(qlx::fabric::GadgetProfileOp profile,
+readRecordMap(qlx::fabric::GadgetContractOp profile,
               const Projection &projection) {
   auto gadget = dyn_cast_or_null<qlx::fabric::GadgetOp>(
       SymbolTable::lookupNearestSymbolFrom(profile, profile.getGadgetAttr()));
@@ -210,7 +211,7 @@ readParity(Operation *owner, StringRef gadgetName,
 }
 
 FailureOr<ProfileRows>
-readProfileRows(qlx::fabric::GadgetProfileOp profile,
+readProfileRows(qlx::fabric::GadgetContractOp profile,
                 const Projection &projection,
                 const std::unordered_map<std::string, unsigned> &recordMap,
                 const std::vector<BoundaryPort> &inputs,
@@ -315,7 +316,7 @@ struct ContractReport {
 /// its realization. Structural problems fail with diagnostics; semantic
 /// violations are returned in the report so callers choose whether to abort.
 FailureOr<ContractReport> evaluateIdealProfile(
-    qlx::fabric::GadgetProfileOp profile, const Projection &projection,
+    qlx::fabric::GadgetContractOp profile, const Projection &projection,
     const std::vector<BoundaryPort> &inputs,
     const std::vector<BoundaryPort> &outputs, const ProfileRows &rows,
     const IdealLogicalAction *action = nullptr) {
@@ -461,7 +462,7 @@ FailureOr<ContractReport> evaluateIdealProfile(
   return report;
 }
 
-LogicalResult verifyIdealProfile(qlx::fabric::GadgetProfileOp profile,
+LogicalResult verifyIdealProfile(qlx::fabric::GadgetContractOp profile,
                                  const Projection &projection,
                                  const std::vector<BoundaryPort> &inputs,
                                  const std::vector<BoundaryPort> &outputs,
@@ -507,7 +508,7 @@ struct PreparedFaults {
 };
 
 FailureOr<PreparedFaults> prepareFaults(
-    qlx::fabric::GadgetProfileOp profile, const Projection &projection,
+    qlx::fabric::GadgetContractOp profile, const Projection &projection,
     const std::unordered_map<std::string, unsigned> &recordMap,
     const edem_analysis::FaultInput &faults, const SourceLayout &layout) {
   std::unordered_map<std::string, std::size_t> sites;
@@ -567,7 +568,7 @@ struct Propagated {
   std::vector<Bits> records;
 };
 
-FailureOr<Propagated> propagate(qlx::fabric::GadgetProfileOp profile,
+FailureOr<Propagated> propagate(qlx::fabric::GadgetContractOp profile,
                                 const Projection &projection,
                                 const std::vector<BoundaryPort> &inputs,
                                 const SourceLayout &layout,
@@ -783,7 +784,7 @@ struct MatrixStorage {
   std::vector<uint32_t> indices;
 };
 
-FailureOr<PackedGadgetEDEM> assemble(qlx::fabric::GadgetProfileOp profile,
+FailureOr<PackedGadgetEDEM> assemble(qlx::fabric::GadgetContractOp profile,
                                      const std::vector<BoundaryPort> &inputs,
                                      const std::vector<BoundaryPort> &outputs,
                                      const ProfileRows &profileRows,
@@ -954,11 +955,11 @@ FailureOr<PackedGadgetEDEM> assemble(qlx::fabric::GadgetProfileOp profile,
 }
 
 FailureOr<PackedGadgetEDEM>
-buildGadgetEDEM(qlx::fabric::GadgetProfileOp profile,
+buildGadgetEDEM(qlx::fabric::GadgetContractOp profile,
                 const Projection &projection,
                 const edem_analysis::FaultInput &faults) {
   if (!profile.getBoundaryComplete()) {
-    profile.emitOpError("EDEM requires a complete selected boundary profile");
+    profile.emitOpError("EDEM requires a complete selected boundary contract");
     return failure();
   }
   auto inputs = readPorts(profile, profile.getInputs(),
@@ -990,23 +991,23 @@ buildGadgetEDEM(qlx::fabric::GadgetProfileOp profile,
                   *propagated);
 }
 
-FailureOr<qlx::fabric::GadgetProfileOp> selectProfile(ModuleOp module,
-                                                      StringRef profileName) {
-  qlx::fabric::GadgetProfileOp selected;
-  if (!profileName.empty()) {
-    selected = module.lookupSymbol<qlx::fabric::GadgetProfileOp>(profileName);
+FailureOr<qlx::fabric::GadgetContractOp>
+selectContract(ModuleOp module, StringRef contractName) {
+  qlx::fabric::GadgetContractOp selected;
+  if (!contractName.empty()) {
+    selected = module.lookupSymbol<qlx::fabric::GadgetContractOp>(contractName);
   } else {
-    for (auto candidate : module.getOps<qlx::fabric::GadgetProfileOp>()) {
+    for (auto candidate : module.getOps<qlx::fabric::GadgetContractOp>()) {
       if (selected) {
-        module.emitError(
-            "EDEM requires profile= when multiple gadget profiles are present");
+        module.emitError("EDEM requires profile= when multiple gadget "
+                         "contracts are present");
         return failure();
       }
       selected = candidate;
     }
   }
   if (!selected) {
-    module.emitError("EDEM requires a selected fabric.gadget_profile");
+    module.emitError("EDEM requires a selected fabric.gadget_contract");
     return failure();
   }
   return selected;
@@ -1087,7 +1088,7 @@ const char *actionRowStatusName(IdealActionRowStatus status) {
 } // namespace
 
 FailureOr<PackedGadgetEDEM>
-deriveGadgetEDEM(ModuleOp module, StringRef profileName, StringRef faultJson) {
+deriveGadgetEDEM(ModuleOp module, StringRef contractName, StringRef faultJson) {
   if (failed(verify(module)))
     return failure();
   auto faults = edem_analysis::parseFaultInput(faultJson);
@@ -1096,7 +1097,7 @@ deriveGadgetEDEM(ModuleOp module, StringRef profileName, StringRef faultJson) {
                        << llvm::toString(faults.takeError());
     return failure();
   }
-  auto selected = selectProfile(module, profileName);
+  auto selected = selectContract(module, contractName);
   if (failed(selected))
     return failure();
   auto projection = projectClifford(module, selected->getGadget());
@@ -1105,24 +1106,24 @@ deriveGadgetEDEM(ModuleOp module, StringRef profileName, StringRef faultJson) {
   return buildGadgetEDEM(*selected, *projection, *faults);
 }
 
-FailureOr<std::string> verifyGadgetProfile(ModuleOp module,
-                                           StringRef profileName,
-                                           StringRef actionJson) {
+FailureOr<std::string> verifyGadgetContract(ModuleOp module,
+                                            StringRef contractName,
+                                            StringRef actionJson) {
   if (failed(verify(module)))
     return failure();
   auto action = parseAction(module, actionJson);
   if (failed(action))
     return failure();
-  auto selected = selectProfile(module, profileName);
+  auto selected = selectContract(module, contractName);
   if (failed(selected))
     return failure();
-  qlx::fabric::GadgetProfileOp profile = *selected;
+  qlx::fabric::GadgetContractOp profile = *selected;
   auto projection = projectClifford(module, profile.getGadget());
   if (failed(projection))
     return failure();
   if (!profile.getBoundaryComplete()) {
     profile.emitOpError("verification requires a complete selected boundary "
-                        "profile");
+                        "contract");
     return failure();
   }
   auto inputs = readPorts(profile, profile.getInputs(),
@@ -1189,9 +1190,9 @@ FailureOr<std::string> verifyGadgetProfile(ModuleOp module,
 
   llvm::json::Object result;
   result["schema"] = "cudaq.logical.gadget-verification/v1";
-  result["profile"] = profile.getSymName().str();
+  result["contract"] = profile.getSymName().str();
   result["gadget"] = profile.getGadget().str();
-  result["contract"] = std::move(contract);
+  result["detector_contract"] = std::move(contract);
   result["logical_action"] = std::move(logical);
   std::string text;
   llvm::raw_string_ostream stream(text);

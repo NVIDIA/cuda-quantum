@@ -255,9 +255,8 @@ add_cudaq_python_common_capi_library(QLXPythonCAPI
 )
 set(CUDAQ_CHECK_MLIR_SYMBOL_CLOSURE "${_qlx_saved_symbol_check}")
 
-# Resolve LLVM/MLIR from the shared SDK before transitive static libraries
-# such as cudaq-synth bring in LLVMSupport. A private option parser would make
-# passes register their options in a different registry on macOS.
+# Resolve LLVM/MLIR from the shared SDK before transitive static LLVM support
+# libraries. A private option registry makes Python pass options unavailable.
 target_link_options(QLXPythonCAPI BEFORE PRIVATE
   "$<TARGET_FILE:cudaq::cudaqMLIR>")
 

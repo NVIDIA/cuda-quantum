@@ -75,7 +75,7 @@ class CompilationContext:
         self._objectives: dict[tuple[Any, ...], str] = {}
         # Exact Boolean-result provenance for protocol calls materialized in
         # this private transaction.  This lets a closed protocol attempt expose
-        # a success predicate derived unchanged from a selected gadget profile
+        # a success predicate derived unchanged from a selected gadget contract
         # without inventing a second protocol-analysis object model.
         self._protocol_result_provenance: dict[str, tuple[Any | None, ...]] = {}
         self._protocol_payload_blocks: dict[int, tuple[str, ...]] = {}
@@ -392,7 +392,7 @@ class CompilationContext:
         )
         from cudaq.logical.gadgets import (
             GadgetDefinition,
-            GadgetProfile,
+            GadgetContract,
         )
         from cudaq.logical.protocols.definition import ProtocolDefinition
         from cudaq.logical.devices.definition import Device
@@ -485,8 +485,8 @@ class CompilationContext:
                 return handle
             finally:
                 self._resolving.remove(identity)
-        if isinstance(definition, GadgetProfile):
-            from cudaq.logical.gadgets.profile_builder import GadgetProfileBuilder
+        if isinstance(definition, GadgetContract):
+            from cudaq.logical.gadgets.contract_lowerer import GadgetContractLowerer
 
             identity = id(definition)
             if identity in self._resolving:
@@ -495,7 +495,7 @@ class CompilationContext:
                     f"{definition.name!r}")
             self._resolving.add(identity)
             try:
-                builder = GadgetProfileBuilder(self, definition)
+                builder = GadgetContractLowerer(self, definition)
                 builder.trace()
                 handle = builder.handle()
                 self.bind(definition, handle)

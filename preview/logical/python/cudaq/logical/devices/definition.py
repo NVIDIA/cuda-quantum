@@ -379,7 +379,7 @@ class QECArchitecture:
         if not isinstance(self.packing, str) or not self.packing:
             raise ValueError("QECArchitecture.packing must be nonempty")
 
-        from cudaq.logical.gadgets import GadgetDefinition, GadgetProfile
+        from cudaq.logical.gadgets import GadgetDefinition, GadgetContract
         from cudaq.logical.qec.lowering import QECLowering
 
         definition_types = (
@@ -389,7 +389,7 @@ class QECArchitecture:
             EncodingHierarchy,
             EncodingProjection,
             GadgetDefinition,
-            GadgetProfile,
+            GadgetContract,
             ProtocolDefinition,
             QECLowering,
         )

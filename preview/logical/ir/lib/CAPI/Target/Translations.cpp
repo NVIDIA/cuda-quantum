@@ -52,12 +52,12 @@ MlirLogicalResult qlxDeriveGadgetEDEM(MlirModule module, MlirStringRef profile,
   return mlirLogicalResultSuccess();
 }
 
-MlirLogicalResult qlxVerifyGadgetProfile(MlirModule module,
-                                         MlirStringRef profile,
-                                         MlirStringRef action,
-                                         MlirStringCallback callback,
-                                         void *userData) {
-  auto result = cudaq::logical::verifyGadgetProfile(
+MlirLogicalResult qlxVerifyGadgetContract(MlirModule module,
+                                          MlirStringRef profile,
+                                          MlirStringRef action,
+                                          MlirStringCallback callback,
+                                          void *userData) {
+  auto result = cudaq::logical::verifyGadgetContract(
       unwrap(module), unwrap(profile), unwrap(action));
   if (mlir::failed(result))
     return mlirLogicalResultFailure();

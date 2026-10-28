@@ -733,7 +733,7 @@ void Walker::propagatePatchValues(Operation *op) {
 void Walker::walkEntry(Operation *entry) {
   if (!entry)
     return;
-  if (auto profile = dyn_cast<GadgetProfileOp>(entry)) {
+  if (auto profile = dyn_cast<GadgetContractOp>(entry)) {
     auto gadget = symTab.lookup<GadgetOp>(profile.getGadgetAttr().getValue());
     if (!gadget || gadget.getBody().empty()) {
       profile.emitOpError("fabric-count profile references missing gadget");
@@ -880,7 +880,7 @@ void Walker::walkOp(Operation *op, int64_t mult) {
   if (isa<DetectorOp, ObservableOp, OutputSyndromeOp>(op))
     return;
   if (operationName.starts_with("fabric.") &&
-      !isa<ReturnOp, ProtocolReturnOp, ProfileEndOp>(op)) {
+      !isa<ReturnOp, ProtocolReturnOp, ContractEndOp>(op)) {
     bump(operationCounts, operationName.drop_front(7), mult, op,
          "operation count");
   } else if (StringRef legacyName =
@@ -1268,7 +1268,7 @@ void Walker::walkOp(Operation *op, int64_t mult) {
   });
   if ((operationName.starts_with("fabric.") || touchesFabricSemantics) &&
       !isa<ReturnOp, ProtocolReturnOp, qlx::cflow::YieldOp, qlx::event::YieldOp,
-           ProfileEndOp>(op)) {
+           ContractEndOp>(op)) {
     op->emitOpError(
         "fabric-count native v1 has no typed cost semantics for this "
         "executable operation");
@@ -1290,7 +1290,7 @@ void Walker::walkCall(CallOp call, int64_t mult) {
   if (hadError || !call.getProfileAttr())
     return;
   auto profile =
-      symTab.lookup<GadgetProfileOp>(call.getProfileAttr().getValue());
+      symTab.lookup<GadgetContractOp>(call.getProfileAttr().getValue());
   if (!profile || profile.getBody().empty()) {
     call.emitOpError("fabric-count cannot resolve selected profile ")
         << call.getProfileAttr();
@@ -2041,7 +2041,7 @@ struct FabricCountPass
             << rootSymbol << " does not resolve to a top-level symbol";
         return signalPassFailure();
       }
-      if (!isa<GadgetOp, ProtocolOp, GadgetProfileOp>(entry)) {
+      if (!isa<GadgetOp, ProtocolOp, GadgetContractOp>(entry)) {
         module.emitError("fabric-count root @")
             << rootSymbol << " resolves to " << entry->getName()
             << ", not an executable Fabric root";
@@ -2078,7 +2078,7 @@ struct FabricCountPass
       return signalPassFailure();
     }
     auto gadgetEntry = dyn_cast<GadgetOp>(entry);
-    if (auto profile = dyn_cast<GadgetProfileOp>(entry))
+    if (auto profile = dyn_cast<GadgetContractOp>(entry))
       gadgetEntry = symTab.lookup<GadgetOp>(profile.getGadgetAttr().getValue());
     if (device && (!device.getQecAttr() ||
                    (gadgetEntry &&

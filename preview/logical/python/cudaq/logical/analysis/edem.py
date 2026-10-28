@@ -269,7 +269,7 @@ def derive_edem(source: Build,
     """Prove a gadget detector contract and return a ``cudaq_edem.EDEM``.
 
     The source is an authenticated compiler Build containing a linked
-    ``GadgetProfile``. Select its root profile by default, or the unique
+    ``GadgetContract``. Select its root profile by default, or the unique
     profile for other roots. Input and output code presentations must contain
     canonical stabilizer-code algebra. Detectors and output virtual-syndrome
     relations must hold ideally and, with success bits and deterministic
@@ -292,9 +292,9 @@ def derive_edem(source: Build,
     if not isinstance(faults, FaultSet):
         raise TypeError("faults must be a FaultSet")
     if profile is None:
-        profile = source.root.symbol if source.root.kind == "gadget_profile" else ""
+        profile = source.root.symbol if source.root.kind == "gadget_contract" else ""
     elif not isinstance(profile, str) or not profile:
-        raise TypeError("profile must be a nonempty gadget-profile symbol")
+        raise TypeError("profile must be a nonempty gadget-contract symbol")
     packed = _qlxRuntime.derive_edem_owned(source._fresh_module(), profile,
                                            faults.to_json())
     return EDEM.adopt(packed)
