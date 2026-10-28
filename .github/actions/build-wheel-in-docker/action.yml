@@ -125,6 +125,15 @@ runs:
         cache-key: ${{ steps.prereqs.outputs.ccache_fallback_key }}
         registry-token: ${{ github.token }}
 
+    - name: Trim restored ccache
+      shell: bash
+      run: |
+        # Restored caches can be far over the limit (17 GB seen) with stale counters.
+        if [ -d /tmp/ccache-data ]; then
+          CCACHE_DIR=/tmp/ccache-data CCACHE_MAXSIZE=8G ccache -c || true
+          du -sh /tmp/ccache-data
+        fi
+
     - name: Set up context for buildx
       shell: bash
       run: docker context create builder_context
