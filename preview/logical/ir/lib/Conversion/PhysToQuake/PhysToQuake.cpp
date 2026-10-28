@@ -205,7 +205,7 @@ private:
   LogicalResult lowerRepeat(qlx::cflow::RepeatOp op);
   LogicalResult lowerWhile(qlx::cflow::WhileOp op);
   LogicalResult lowerOps(Block &block);
-  SmallVector<Attribute> liveCarriers() const;
+  SmallVector<Attribute> liveCarriers();
   void enterRegion(ValueRange arguments, ArrayRef<Attribute> carriers,
                    ValueRange physArguments);
   SmallVector<Value> carriedValues(ArrayRef<Attribute> carriers,
@@ -216,8 +216,8 @@ private:
   LogicalResult lowerAllFalse(qlx::phys::AllFalseOp op);
   LogicalResult lowerReturn(qlx::phys::ReturnOp op);
   Value toBoolean(Value physValue);
-  Attribute carrierOf(Value state) const;
-  Value wireOf(Value state) const;
+  Attribute carrierOf(Value state);
+  Value wireOf(Value state);
   void setWire(Value state, Value wire);
   void mapValue(Value from, Value to);
   void rollbackValues(std::size_t mark);
@@ -484,14 +484,14 @@ LogicalResult GraphLowering::checkCarrier(Operation *op, Value state) {
 /// The physical resource that holds `state`. A state's type names its
 /// resource. While a call template replays a body written for other
 /// resources, `aliases` renames them to the invocation's.
-Attribute GraphLowering::carrierOf(Value state) const {
+Attribute GraphLowering::carrierOf(Value state) {
   Attribute resource =
       cast<qlx::phys::StateType>(state.getType()).getResource();
   return aliases.lookup_or(resource, resource);
 }
 
 /// The current wire of the qubit that holds `state`.
-Value GraphLowering::wireOf(Value state) const {
+Value GraphLowering::wireOf(Value state) {
   return wires.lookup(carrierOf(state));
 }
 
@@ -830,7 +830,7 @@ LogicalResult GraphLowering::lowerOps(Block &block) {
 
 /// The live carriers in resource-name order, so that the Quake is
 /// deterministic.
-SmallVector<Attribute> GraphLowering::liveCarriers() const {
+SmallVector<Attribute> GraphLowering::liveCarriers() {
   SmallVector<Attribute> carriers(llvm::make_first_range(wires));
   llvm::sort(carriers, [](Attribute lhs, Attribute rhs) {
     return cast<FlatSymbolRefAttr>(lhs).getValue() <
