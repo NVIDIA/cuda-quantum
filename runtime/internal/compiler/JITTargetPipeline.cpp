@@ -21,16 +21,19 @@ static void appendPipelineStage(std::string &pipeline,
   pipeline += stage;
 }
 
-/// Apply the target's `disable_qubit_mapping` runtime option, which rewrites
-/// `qubit-mapping{...device=...}` in \p pipeline to use `device=bypass`.
+/// Apply the target's `disable_qubit_mapping` runtime option, which sets
+/// `device=bypass` on every `qubit-mapping` pass in \p pipeline. A device value
+/// ends at the next space or at the end of the pass options, and it may contain
+/// one level of parentheses with commas inside, as in `grid(3,3)` or
+/// `file(path)`. The pass's other options are kept.
 static std::string
 applyDisableQubitMapping(std::string pipeline,
                          const cudaq::CompileTarget &target) {
   if (!target.disableQubitMapping)
     return pipeline;
-  std::regex qubitMapping("(.*)qubit-mapping\\{(.*)device=[^,\\}]+(.*)\\}(.*)");
-  std::string replacement("$1qubit-mapping{$2device=bypass$3}$4");
-  pipeline = std::regex_replace(pipeline, qubitMapping, replacement);
+  std::regex qubitMappingDevice(
+      R"((qubit-mapping\{(?:[^}]*\s)?device=)(?:\([^()]*\)|[^\s(){}])+)");
+  pipeline = std::regex_replace(pipeline, qubitMappingDevice, "$1bypass");
   CUDAQ_INFO("disable_qubit_mapping option found, so updated lowering "
              "pipeline to {}",
              pipeline);
@@ -113,7 +116,7 @@ std::optional<std::string> cudaq_internal::compiler::getPassPipeline(
             &stage.lowering)) {
       // An override pipeline replaces the whole pipeline.
       if (!custom->overridePassPipeline.empty())
-        return custom->overridePassPipeline;
+        return applyDisableQubitMapping(custom->overridePassPipeline, target);
       // A custom stage's high-, mid-, and low-level pipelines run before
       // deploy, between deploy and finalize, and after finalize.
       stagePasses = StagePasses{.preDeployPasses = custom->highLevelPipeline,

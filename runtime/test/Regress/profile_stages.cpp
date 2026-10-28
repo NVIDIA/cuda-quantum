@@ -78,6 +78,14 @@ inferredStage(cudaq::config::Profile output) {
           .lowering = cudaq::config::InferredLowering{}};
 }
 
+static cudaq::config::CompilationStage
+overrideStage(const std::string &pipeline) {
+  cudaq::config::CustomPipelineLowering lowering;
+  lowering.overridePassPipeline = pipeline;
+  return {.irOutputProfile = cudaq::config::UncheckedProfile{},
+          .lowering = std::move(lowering)};
+}
+
 static std::string planPipeline(const cudaq::CompileTarget &target,
                                 const HandlerVector &handlers) {
   std::string diagnostic;
@@ -154,6 +162,24 @@ void test_selected_failure_diagnostic() {
 // CHECK-SAME: to construct a pipeline from unchecked to quake-reference-semantics
 // clang-format on
 
+// `disable_qubit_mapping` sets `device=bypass` on every `qubit-mapping`,
+// including one in an override pipeline. It replaces the whole device value
+// even when it contains a comma, and keeps the pass's other options.
+void test_disable_qubit_mapping() {
+  cudaq::CompileTarget target;
+  target.disableQubitMapping = true;
+  target.stages.push_back(customStage(
+      "qubit-mapping{device=grid(3,3)}",
+      "qubit-mapping{device=file(arch) extended-layer-size=4}", ""));
+  std::cout << "custom: " << planPipeline(target, {}) << "\n";
+  target.stages = {overrideStage("qubit-mapping{device=file(arch)}")};
+  std::cout << "override: " << planPipeline(target, {}) << "\n";
+}
+// clang-format off
+// CHECK: custom: {{.*}},qubit-mapping{device=bypass},jit-deploy-pipeline,qubit-mapping{device=bypass extended-layer-size=4},jit-finalize-pipeline
+// CHECK: override: qubit-mapping{device=bypass}{{$}}
+// clang-format on
+
 // A target with zero stages results in an empty pipeline.
 void test_zero_stages() {
   cudaq::CompileTarget target;
@@ -177,6 +203,7 @@ int main() {
   test_first_supporting_handler_wins();
   test_no_match_diagnostic();
   test_selected_failure_diagnostic();
+  test_disable_qubit_mapping();
   test_zero_stages();
   return 0;
 }

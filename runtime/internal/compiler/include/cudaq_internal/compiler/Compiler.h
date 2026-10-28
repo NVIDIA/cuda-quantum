@@ -152,7 +152,8 @@ public:
 /// and low-level pipelines. An `InferredLowering` takes the `StagePasses` of
 /// the first handler in \p handlers that supports lowering from `unchecked` to
 /// the stage's output profile. Fills \p diagnostic when no handler lowers the
-/// stage.
+/// stage. When the target sets `disable_qubit_mapping`, every `qubit-mapping`
+/// in the result, including one in an override, gets `device=bypass`.
 std::optional<std::string>
 getPassPipeline(const cudaq::CompileTarget &target,
                 const cudaq::CompileOptions &options,
