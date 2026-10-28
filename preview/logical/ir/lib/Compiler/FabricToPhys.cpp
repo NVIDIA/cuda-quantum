@@ -37,6 +37,7 @@
 
 #include <cassert>
 #include <cstdlib>
+#include <functional>
 #include <initializer_list>
 #include <map>
 #include <memory>
@@ -292,14 +293,24 @@ struct CanonicalCallTemplate {
 
 struct StateAliasCacheKey {
   size_t templateIndex = 0;
-  SmallVector<uintptr_t, 4> layouts;
+  size_t inputCount = 0;
+  // The key owns its layout tokens and compares them by address. A freed
+  // token's address can be reused by an unrelated layout, which would then
+  // hit this entry.
+  SmallVector<PhysicalGroup::LayoutIdentity, 4> layouts;
 
   bool operator<(const StateAliasCacheKey &other) const {
     if (templateIndex != other.templateIndex)
       return templateIndex < other.templateIndex;
-    return std::lexicographical_compare(layouts.begin(), layouts.end(),
-                                        other.layouts.begin(),
-                                        other.layouts.end());
+    if (inputCount != other.inputCount)
+      return inputCount < other.inputCount;
+    return std::lexicographical_compare(
+        layouts.begin(), layouts.end(), other.layouts.begin(),
+        other.layouts.end(),
+        [](const PhysicalGroup::LayoutIdentity &left,
+           const PhysicalGroup::LayoutIdentity &right) {
+          return std::less<const char *>()(left.get(), right.get());
+        });
   }
 };
 
@@ -4292,13 +4303,11 @@ private:
       ArrayRef<PhysicalGroup::LayoutIdentity> outputGroupLayouts) {
     StateAliasCacheKey key;
     key.templateIndex = templateIndex;
-    key.layouts.reserve(inputGroups.size() + outputGroupLayouts.size() + 1);
-    key.layouts.push_back(inputGroups.size());
+    key.inputCount = inputGroups.size();
+    key.layouts.reserve(inputGroups.size() + outputGroupLayouts.size());
     for (const PhysicalGroup &group : inputGroups)
-      key.layouts.push_back(
-          reinterpret_cast<uintptr_t>(group.getLayoutIdentity().get()));
-    for (const PhysicalGroup::LayoutIdentity &layout : outputGroupLayouts)
-      key.layouts.push_back(reinterpret_cast<uintptr_t>(layout.get()));
+      key.layouts.push_back(group.getLayoutIdentity());
+    llvm::append_range(key.layouts, outputGroupLayouts);
     return key;
   }
 

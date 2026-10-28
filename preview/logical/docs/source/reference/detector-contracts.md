@@ -297,7 +297,7 @@ a fixed realization; compiler rewrites may change them. Record aliases, such
 as assembled syndrome rows, refer to existing measurement indices and do not
 add measurements. Ambiguous aliases and record names beginning with the
 reserved `__qlx_` prefix are rejected. Input and output encoded ports are
-listed separately in GadgetSpec order, including their carrier partitions
+listed separately in `GadgetSpec` order, including their carrier partitions
 and patch identities.
 Preparation and destructive readout therefore retain their asymmetric
 boundaries.

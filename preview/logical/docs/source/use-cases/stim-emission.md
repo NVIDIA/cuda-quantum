@@ -75,7 +75,7 @@ Reading from the top:
   four X-type and four Z-type checks, eight results in all.
 - `MPP Z0*Z1*Z2` reads out logical Z.
 - The `DETECTOR` and `OBSERVABLE_INCLUDE` annotations follow the last
-  measurement. `rec[-k]` is the *k*-th most recent result. The circuit has 25
+  measurement. `rec[-k]` counts back `k` results from the end. The circuit has 25
   results (three rounds of eight plus the readout), so `rec[-25]` is the first
   check of round one and `rec[-17]` is the first check of round two.
   `DETECTOR rec[-25] rec[-17]` therefore says that those two results should
@@ -393,3 +393,6 @@ measurement records, see
   [Detector contracts and Clifford projection](../reference/detector-contracts.md).
 - To map common Stim workflows onto CUDA-Q Logical, see
   [For Stim users](../reference/for-stim-users.md).
+
+Executing a supported P3 build on CUDA-Q's Stim target uses `cudaq.run`; see
+[CUDA-Q Logical for Stim users](../reference/for-stim-users.md).

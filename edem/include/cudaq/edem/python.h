@@ -13,10 +13,10 @@
  * The producer owns the record storage and keeps callback/context dependencies
  * alive for the capsule's lifetime. EDEM.adopt validates before transfer,
  * clears the source record, marks the capsule used, and retains it as a
- * dependency keepalive. Validation failure leaves the capsule/owner usable.
- * Adoption is single-use. Producer destructors release any remaining owner even
- * when the name has changed, then dispose of record storage. Checked native
- * views do not cross this boundary.
+ * dependency to keep it alive. Validation failure leaves the capsule/owner
+ * usable. Adoption is single-use. Producer destructors release any remaining
+ * owner even when the name has changed, then dispose of record storage. Checked
+ * native views do not cross this boundary.
  */
 #define CUDAQ_EDEM_OWNED_BUFFER_CAPSULE "cudaq_edem.owned_buffer.v0"
 #define CUDAQ_EDEM_USED_BUFFER_CAPSULE "cudaq_edem.owned_buffer.v0.used"

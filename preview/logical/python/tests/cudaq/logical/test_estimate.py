@@ -992,3 +992,69 @@ def test_estimation_tiers_are_reproducible_from_replayed_builds():
                 p_phys=1.0e-3,
                 failure_budget=0.1,
             )
+
+
+def test_logical_instruction_counts_cover_every_depth_contributor():
+    from cudaq.logical.estimate.logical import logical_instruction_counts
+
+    @cql.program
+    def workload() -> None:
+        qubit = cql.prepare_zero()
+        qubit = cql.h(qubit)
+        qubit = cql.ops.t(qubit)
+        event = cql.ops.request(cql.standard.T_STATE)
+        state = cql.ops.event_await(event)
+        qubit = cql.ops.consume(state, qubit, action=cql.standard.t)
+        cql.discard(qubit)
+
+    profile = cql.estimate(workload, tier=Tier.LOGICAL)
+    counts = logical_instruction_counts(profile)
+
+    # One applied T and one consumed T state are both logical T gates.
+    assert counts[("t", 0)] == 2
+    assert counts[("h", 0)] == 1
+    assert counts[("reset", 0)] == 1
+    # Discards and resource requests are not instructions.
+    assert sum(counts.values()) == profile.action_depth_upper_bound
+
+
+def test_logical_instruction_counts_normalize_controlled_actions():
+    from cudaq.logical.estimate.logical import (LogicalProfile,
+                                                logical_instruction_counts)
+
+    profile = LogicalProfile(
+        actions={
+            "qlx_standard_cx": 3,
+            "qlx_standard_cz": 1,
+            "qlx_standard_ccx": 2,
+            "qlx_standard_ccz": 4,
+            "qlx_standard_h": 5,
+            "custom_action": 6,
+        },
+        instruments={
+            "qlx_standard_measure_z": 7,
+            "qlx_standard_measure_x": 1,
+            "qlx_standard_prepare_zero": 8,
+        },
+        idle_sites=9,
+        discards=0,
+        synthesis_demand={
+            # Applications (subtracted) plus 10 resource uses of the same gate.
+            "qlx_standard_ccz": 14,
+            "qlx_standard_t": 10,
+        },
+    )
+
+    assert logical_instruction_counts(profile) == {
+        ("x", 1): 3,
+        ("z", 1): 1,
+        ("x", 2): 2,
+        ("z", 2): 14,
+        ("h", 0): 5,
+        ("custom_action", 0): 6,
+        ("mz", 0): 7,
+        ("mx", 0): 1,
+        ("reset", 0): 8,
+        ("idle", 0): 9,
+        ("t", 0): 10,
+    }

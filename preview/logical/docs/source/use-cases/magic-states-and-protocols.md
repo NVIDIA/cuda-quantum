@@ -119,8 +119,8 @@ placeholder:
    :caption: The 15-to-1 T-state protocol (examples/standalone/03_magic_state_distillation.py).
 ```
 
-The protocol unpacks fifteen linear raw-state inputs onto bare patches; eleven
-resource-assisted product rotations from
+The protocol requests fifteen linear raw-state inputs and unpacks four onto bare
+patches as check rows; eleven resource-assisted product rotations from
 `cudaq.logical.protocols.FIFTEEN_TO_ONE_ROTATION_STEPS` apply the triorthogonal
 circuit; `cudaq.logical.protocols.bare_s` converts the resulting T† on the odd
 row to the canonical T|+⟩; and exactly the four even rows must measure $+X$ —
@@ -160,12 +160,18 @@ The `cudaq.logical.protocols` library also exposes the reusable pieces —
 and the ready-made `distill_15to1` definition — so you can compose your own
 production protocol from verified parts.
 
-:::{admonition} Evidence boundary :class: note
+:::{admonition} Evidence boundary
+:class: note
 
 A static estimate counts what the declared protocol costs; it does not sample
 the factory, decode its checks, or model the noise that makes distillation
 necessary. The estimate reports postselection as counts and success rows, not
-as simulated accept/reject statistics. :::
+as simulated accept/reject statistics. The
+[T-state distillation example](examples/t-factory-evaluation.md) runs the same
+rotations and checks with `cudaq.run`, realizing each rotation by gate
+teleportation, and compares its acceptance and output error with
+`DISTILL_15TO1_T`.
+:::
 
 ## Compact factory models at P3
 

@@ -458,6 +458,9 @@ TEST(Tensor, exponentialNilpotentAndZero) {
       for (std::size_t j = 0; j < 3; ++j)
         EXPECT_NEAR(std::abs(actual(i, j) - expected(i, j)), 0., 1e-14);
   }
+}
+
+TEST(Tensor, exponentialError) {
   cudaq::complex_matrix rectangular(2, 3);
   EXPECT_THROW(rectangular.exponential(), std::runtime_error);
 }

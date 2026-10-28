@@ -64,8 +64,8 @@ typedef struct cudaq_gf2_map_description {
 } cudaq_gf2_map_description;
 /* Trusted borrowed token, initialized only by successful construct/read in this
  * ABI. Backing bytes must stay alive and unchanged. Getters/apply do not
- * revalidate content or make fabricated/stale tokens safe. Only packed bytes
- * cross packages.
+ * validate content again or make fabricated/stale tokens safe. Only packed
+ * bytes cross packages.
  */
 typedef struct cudaq_gf2_map_view {
   const void *data;

@@ -6,17 +6,19 @@ part of the installed `cudaq.logical` package, and **exercised** only when a
 shipped test or example executes it — the `lit`/`FileCheck` suites and the
 `pytest` suite (which runs every Python example under
 `preview/logical/examples/`) are the evidence. A capability that is neither is
-**out of scope**: a deliberate boundary, stated here, that fails closed instead
-of approximating past an implemented edge.
+**out of scope**: a deliberate boundary, stated here. Execution limitations and
+the information omitted during lowering are listed below.
 
 ## What the product is
 
-CUDA-Q Logical is a resource-estimation toolkit for fault-tolerant quantum
-computing. A program is refined through four strict semantic stages — **P0**
+CUDA-Q Logical is a compiler and resource-estimation toolkit for fault-tolerant
+quantum computing. A program is refined through four strict semantic stages — **P0**
 unplaced logical, **P1** placed logical, **P2** QEC realization, and **P3**
 physical event graph and schedule. The estimation ladder has four tiers:
 `Tier.LOGICAL`, `Tier.STATIC`, `Tier.ANALYTICAL`, and `Tier.SCHEDULE`. Stim
-circuit text is the interchange emission target from a verified P2 gadget.
+circuit text is an interchange emission target from a verified P2 gadget.
+Supported P3 physical builds also translate to Quake for execution through
+ordinary `cudaq.run`.
 
 ## Subsystem status
 
@@ -31,12 +33,13 @@ Every row cites its exercising evidence in this repository.
 | Gadget verification — code-automorphism and kernel-backed action matching, fail-closed claims                                                       | shipped, exercised | `examples/04_carbon_code.py`; verifier-error lit suites                                                                |
 | Protocols — `@protocol`, typed resources, postselection, bounded retry, 15-to-1 distillation                                                            | shipped, exercised | `examples/standalone/03_magic_state_distillation.py`, `examples/standalone/05_gidney_ekera_lookup_addition.py`; tests   |
 | Clifford+T synthesis — rotation lowering with provenance                                                                                                | shipped, exercised | `examples/01_clifford_t_resource_estimate.py`, `examples/03_fermi_hubbard.py`                                           |
-| CUDA-Q ingress — `@cudaq.kernel` programs through CUDA-Q Logical targets                                                                                | shipped, exercised | all six top-level numbered examples                                                                                    |
+| CUDA-Q ingress — `@cudaq.kernel` programs through CUDA-Q Logical targets                                                                                | shipped, exercised | all top-level numbered examples                                                                                        |
 | Static P2 estimation — gadget/operation counts with folding                                                                                             | shipped, exercised | `examples/02_surface_code_resource_estimate.py`, `examples/standalone/03_magic_state_distillation.py`                   |
 | P3 physical lowering, routing, native legalization, and scheduling                                                                                      | shipped, exercised | `examples/04_carbon_code.py`, `examples/standalone/04_physical_schedule.py`, `examples/standalone/05_gidney_ekera_lookup_addition.py` |
 | Analytical and schedule estimation                                                                                                                      | shipped, exercised | `examples/02_surface_code_resource_estimate.py`, `examples/standalone/04_physical_schedule.py`, `examples/standalone/05_gidney_ekera_lookup_addition.py` |
 | Paper-specific Gidney–Ekerå RSA-2048/3072/4096 projection                                                                                               | shipped, exercised | `examples/05_gidney_ekera.py`                                                                                          |
 | Stim text emission — the `--fabric-to-stim` translation                                                                                                 | shipped, exercised | `examples/mlir/stim_memory.mlir` via `qlx-translate`; Stim-emission tests                                               |
+| P3 execution — `Build.to_quake()` and `cudaq.run`                                                                                                        | shipped, exercised | `python/tests/cudaq/logical/test_run_physical.py`; standalone examples 06 and 07                                        |
 
 ## Present but not yet exercised
 
@@ -48,9 +51,35 @@ concatenation (`cudaq.logical.codes.Concatenated`), meta-checks
 (`cudaq.logical.codes.qec_block`). Treat them as preview surface: use them at
 your own risk until exercised evidence lands.
 
-## Documented boundaries (all fail closed)
+## Execution and documented boundaries
 
-**Annotated Stim export covers closed single-block profile chains.** The
+**Execution uses ordinary CUDA-Q targets.** `cudaq.run(physical_build, ...)`
+translates a supported P3 `Build` through `Build.to_quake()` and executes the
+resulting circuit on the selected target. Each shot returns the entry's explicit
+Boolean results: one result becomes a `bool`, and multiple results become a
+`list[bool]` in physical return order. No implicit final measurements or decoding
+are added. See the [Steane Bernstein–Vazirani](../use-cases/examples/steane-bernstein-vazirani.md)
+and [T-factory](../use-cases/examples/t-factory-evaluation.md) execution examples.
+
+**Execution covers a subset of P3.** Resource and factory flows, in-graph
+postselection, code epoch changes, and patch-granularity resources produce
+diagnostics instead of executable Quake. Support for compiling or estimating
+these forms does not imply execution support.
+
+**Target capabilities and memory limits still apply.** CUDA-Q's `stim` target
+executes Clifford circuits with supported Pauli noise. Non-Clifford examples
+require a compatible target, such as `nvidia` or `density-matrix-cpu`.
+Successful compilation does not guarantee that a simulator has enough memory
+for the physical carriers, including ancillas. The ordinary `noise_model`
+argument applies supported channels to emitted gates. P3 operating-point error
+and timing assumptions remain estimation inputs, not runtime noise channels.
+
+**Execution does not model the physical schedule.** The current lowering omits
+`phys.delay`, `phys.barrier`, `phys.move`, and `event.fence`. It does not execute
+their timing, transport, or synchronization effects or model the associated
+idle and transport noise. It does not submit P3 schedules to hardware.
+
+**Annotated Stim export covers closed single-block contract chains.** The
 Python exporter lowers detector and observable declarations and attaches an
 explicit physical noise policy. See the
 [surface-memory example](../use-cases/stim-emission.md#export-a-surface-code-memory-with-detector-contracts).
@@ -58,13 +87,12 @@ Sampling, DEM extraction, and decoding use downstream tools. P3 physical error
 and timing assumptions remain inputs to resource estimates; they do not select
 the circuit's noise policy.
 
-**Stages stop at P3.** P3 represents physical carriers, routing, native events,
-and schedules. It remains a compiler and estimation artifact: CUDA-Q Logical
-does not submit a physical schedule to hardware or provide a runtime execution
-service for it.
+Native gadget EDEM derivation and serial composition are also available; see
+[Derive an error model from gadgets](../use-cases/gadget-edems.md).
 
-**No simulator plugin surface.** Nothing in the package consumes or executes
-physical simulations.
+**Stages stop at P3.** P3 represents physical carriers, routing, native events,
+and schedules. Quake translation connects supported physical graphs to CUDA-Q's
+existing execution path and simulators without adding a Logical compilation stage.
 
 **The native P1 placer is a subset.** `qlx-to-lvm` is a deterministic first-fit
 placement for explicitly machine-scoped, inlined programs; the Python placement

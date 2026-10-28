@@ -73,6 +73,11 @@ on:
         description:
           Build and test the cudaq-logical wheel from the wheels produced by
           this workflow. Requires build_devel_wheel or devel_artifact_name.
+      release_version:
+        required: false
+        type: string
+        default: ''
+        description: Version to stamp into the wheels instead of the ref's.
     outputs:
       cudaq_version:
         description: "The version of the built wheels."
@@ -121,6 +126,8 @@ jobs:
       - name: Compute CUDA-Q version
         id: version
         uses: ./.github/actions/compute-cudaq-version
+        with:
+          release_version: ${{ inputs.release_version }}
 
       - name: Hash runtime sources
         id: runtime_hash
@@ -192,10 +199,13 @@ jobs:
         with:
           name: ${{ steps.build.outputs.artifact_name }}
           path: ${{ steps.build.outputs.wheel_dir }}
-          retention-days: 7
+          # Release runs keep them for the Validation and draft release; others for the wheel cache.
+          retention-days: ${{ inputs.release_version != '' && 14 || 7 }}
           if-no-files-found: error
 
       - name: Register wheel
+        # Release wheels must not seed the CI wheel cache.
+        if: inputs.release_version == ''
         uses: ./.github/actions/wheel-cache-register
         with:
           key: ${{ needs.wheel_info.outputs.runtime_cache_key }}
@@ -255,10 +265,13 @@ jobs:
         with:
           name: ${{ steps.build.outputs.artifact_name }}
           path: ${{ steps.build.outputs.wheel_dir }}
-          retention-days: 7
+          # Release runs keep them for the Validation and draft release; others for the wheel cache.
+          retention-days: ${{ inputs.release_version != '' && 14 || 7 }}
           if-no-files-found: error
 
       - name: Register devel wheel
+        # Release wheels must not seed the CI wheel cache.
+        if: inputs.release_version == ''
         uses: ./.github/actions/wheel-cache-register
         with:
           key: ${{ needs.wheel_info.outputs.devel_cache_key }}
@@ -757,7 +770,7 @@ jobs:
           path: dist
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v10.3.2
 
       - name: Set up validation toolchain
         id: setup

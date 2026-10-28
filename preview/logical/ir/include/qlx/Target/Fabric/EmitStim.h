@@ -55,7 +55,8 @@ struct ProjectionInstruction {
   std::vector<PauliFactor> paulis;
   bool inverted = false;
   unsigned measurementStart = 0;
-  /// Qualified call/repeat path, source operation ordinal, and subinstruction.
+  /// Qualified call/repeat path, source operation ordinal, and instruction
+  /// part.
   std::string siteId;
 };
 

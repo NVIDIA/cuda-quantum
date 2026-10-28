@@ -3,11 +3,12 @@
 These examples use `cudaq.logical` directly. They do not define
 `@cudaq.kernel` functions and do not call `cudaq.estimate`. Instead, they make
 the logical authoring, placement, QEC selection, physical lowering, scheduling,
-and direct estimation APIs visible.
+direct estimation, and `cudaq.run` APIs visible.
 
 Examples 00–05 progress from a portable logical program to a complete physical
-schedule. Examples 06 and 07 export a surface-code memory experiment for
-analysis outside CUDA-Q Logical.
+schedule. The Stim-export and EDEM examples analyze a surface-code memory
+experiment. Two execution examples demonstrate ideal computation and noisy
+T-state distillation.
 
 1. `00_logical_program.py` authors a portable Bell program without a CUDA-Q
    kernel and counts its logical resources.
@@ -35,13 +36,24 @@ Run any example from the repository root:
 python3 preview/logical/examples/standalone/00_logical_program.py
 ```
 
-Example 06 prints the circuit to stdout and any sampling summary to stderr, so
-you can redirect the circuit to a file:
+`06_stim_emission.py` prints the circuit to stdout and any sampling summary to
+stderr, so you can redirect the circuit to a file:
 
 ```bash
 python3 preview/logical/examples/standalone/06_stim_emission.py > surface-memory.stim
 ```
 
-Examples 06 and 07 can also sample their results with Stim. Sampling is off by
-default; to enable it, install `stim>=1.16,<2` and set `shots` to a positive
-number in the parameter cell. Example 07 samples only uniform Pauli channels.
+The Stim-export and EDEM examples can also sample their results with Stim.
+Sampling is off by default; to enable it, install `stim>=1.16,<2` and set `shots`
+to a positive number in the parameter cell. `07_memory_edem.py` samples only
+uniform Pauli channels.
+
+The execution examples provide two additional paths:
+
+- `06_steane_bernstein_vazirani.py` recovers a hidden bit string with Steane
+  encoded qubits on Stim.
+- `07_t_factory_evaluation.py` evaluates T-state distillation with non-Clifford
+  gates, measurement feedback, and raw-state noise on `BareQubit` patches.
+
+The encoded example uses an explicit Clifford preparation circuit. It does not
+claim fault-tolerant preparation or decoded error correction.

@@ -34,12 +34,14 @@ CPTP
 CPU
 CPUs
 CPython
+CSC
 CTest
 CUDA
 CX
 Cartesian
 CentOS
 Cheeger
+Choi
 Chuang
 Cliffords
 CompileMetrics
@@ -49,6 +51,7 @@ ConnectX
 CuDensityMat
 CuPy
 DCO
+DEMs
 DGX
 DLP
 DOCA
@@ -59,6 +62,7 @@ Deutsch
 Devcontainer
 Dockerfile
 Doxygen
+EDEMs
 Ekerå
 Eq
 Exponentiating
@@ -155,6 +159,7 @@ NVLink
 NVQIR
 NVQLink
 Nielsen
+NumPy
 OPX
 OQC
 ORCA
@@ -226,9 +231,11 @@ RSH
 RTL
 RTR
 RTS
+RTTI
 Rabi
 Realtime
 RepeatOp
+Retargeting
 RoCE
 Roetteler
 RydbergAtom
@@ -262,6 +269,7 @@ UC
 UCCSD
 UDD
 UMA
+UTF
 Uhrig
 VQE
 VTU
@@ -292,6 +300,7 @@ afqmc
 al
 alap
 alloc
+allocator
 amongst
 anc
 ancilla
@@ -301,6 +310,7 @@ anharmonicity
 ansatz
 ansatzes
 anticommute
+anticommuting
 antiferromagnet
 api
 arXiv
@@ -313,6 +323,7 @@ aspirational
 attr
 attrs
 automorphism
+automorphisms
 auxillary
 backend
 backends
@@ -414,6 +425,7 @@ deallocated
 deallocates
 deallocation
 deallocations
+deallocator
 decomposer
 decompositions
 decrement
@@ -430,6 +442,7 @@ deserialization
 deserialize
 deserializes
 destructor
+destructors
 deterministically
 detuning
 deutsch
@@ -499,8 +512,11 @@ frac
 frontend
 frontends
 func
+functionals
 functors
 gaussian
+getter
+getters
 ghz
 globals
 gpu
@@ -556,6 +572,7 @@ kets
 krylov
 legalizations
 len
+lexicographically
 libcudm
 libs
 libunwind
@@ -602,8 +619,10 @@ monotonicity
 mpp
 mps
 mul
+multibyte
 multinomial
 multithreaded
+multiwire
 mutex
 namespace
 namespaces
@@ -616,6 +635,7 @@ nonidentity
 nonnegative
 nonterminal
 nontrivially
+nonzeros
 noqa
 normalization
 normalizer
@@ -714,6 +734,9 @@ recv
 rehydrate
 rehydrated
 renderer
+renormalization
+renormalized
+renormalizes
 reparsed
 reparsing
 replanning
@@ -765,6 +788,8 @@ splitters
 sqale
 sqrt
 statevector
+stderr
+stdout
 stim
 str
 struct
@@ -816,6 +841,7 @@ toolset
 topologies
 toric
 traceback
+tracebacks
 transactional
 transactionally
 transmon

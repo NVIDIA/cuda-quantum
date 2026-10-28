@@ -27,8 +27,8 @@ typedef struct cudaq_gf2_allocator {
  * Library requests use the fixed eight-byte packed alignment. Callbacks must
  * not reenter an operation using overlapping storage. */
 
-/* NULL policy selects malloc/free. Explicit resources need both callbacks and
- * never fall back to the heap. Both slots may use the same provider. Read,
+/* NULL policy selects `malloc`/`free`. Explicit resources need both callbacks
+ * and never fall back to the heap. Both slots may use the same provider. Read,
  * check and validate use scratch only; constructors also use result. Temporary
  * allocations are released before return. Callback code and the result context
  * must outlive all returned owners. Callbacks must not throw across C.

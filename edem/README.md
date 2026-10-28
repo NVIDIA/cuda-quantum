@@ -1,3 +1,5 @@
+Feedback and contributions welcome.
+
 # cudaq-edem
 
 > [!NOTE]

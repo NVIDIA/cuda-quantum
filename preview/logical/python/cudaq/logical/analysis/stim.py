@@ -13,7 +13,7 @@ import cudaq_edem as edem
 def to_stim_dem(model: edem.EDEM | edem.DEM):
     """Format a closed independent model without changing its columns or laws.
 
-    Run factorize_dem and coalesce_dem_columns explicitly before formatting.
+    Run the explicit factorization and column coalescing operations first.
     This optional adapter only translates row IDs and writes instructions.
     """
     import stim

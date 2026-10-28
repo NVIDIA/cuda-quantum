@@ -3,14 +3,14 @@
 The top-level sequence is the primary path through CUDA-Q Logical. It starts
 with the smallest useful estimate, descends through progressively more of the
 compilation stack, then applies that workflow to larger kernels and a complete
-user-authored target. Each example authors an ordinary `@cudaq.kernel`, selects
-a target stack, and calls `cudaq.estimate`; compilation details stay inside the
+user-authored target. Most examples author an ordinary `@cudaq.kernel`, select
+a target stack, and call `cudaq.estimate`; compilation details stay inside the
 target.
 
 1. `00_logical_resource_estimate.py` is the minimal introduction: author a
-   kernel and count its portable logical resources.
+   kernel and read its portable logical resources from `estimate.resources`.
 2. `01_clifford_t_resource_estimate.py` descends one layer, changing rotation
-   precision and estimating the resulting Clifford+T resources.
+   precision and reading the resulting Clifford+T resources.
 3. `02_surface_code_resource_estimate.py` descends through surface-code and
    physical compilation. It varies layout parameters, then holds the layout
    fixed to expose operating-point effects.
@@ -26,15 +26,25 @@ target.
    `estimate_physically()` is the direct, opt-in paper-scale compilation and
    scheduling path.
 
-The [`standalone/`](standalone/README.md) examples use `cudaq.logical` directly
-and expose each compiler step, from logical authoring through physical
-scheduling, Stim circuit export, and detector error models. The
-[`mlir/`](mlir/README.md) examples run the same pipelines with `qlx-opt` and
-`qlx-translate`.
+`steane_bell_e2e_workflow.py` follows a Bell pair through logical compilation,
+placement, QEC realization, and physical scheduling using Steane. It then
+exposes the same device as a CUDA-Q target and verifies that both entry
+points report the same resources. Its excerpts supply the
+[logical programming stack walkthrough](../docs/source/getting-started/cudaq-logical-in-practice.md).
+
+The `standalone/` examples use `cudaq.logical` directly and expose each
+compiler step. They do not define CUDA-Q kernels or call `cudaq.estimate`.
+The standalone execution examples compile protocols to physical builds and
+execute them with `cudaq.run`: ideal encoded computation and T-state
+distillation with noise. See the [standalone sequence](standalone/README.md).
+
+The [`mlir/`](mlir/README.md) examples run pipelines with `qlx-opt` and
+`qlx-translate`. The standalone sequence also includes annotated Stim export
+and gadget-by-gadget detector error models.
 
 Every numbered example is organized into `# %%` cells with editable
 parameters, so you can run it as a script or step through it interactively.
-Run the commands in these READMEs from the repository root.
+Run the commands from the repository root.
 
 ## Gidney--Ekerå physical compilation
 

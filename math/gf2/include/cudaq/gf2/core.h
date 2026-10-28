@@ -19,7 +19,7 @@ extern "C" {
 #define CUDAQ_GF2_ABI_VERSION 1
 
 /* Statuses are returned by value only, so they stay a distinct enum type.
- * MAX_ENUM forces a 32-bit enum, including under -fshort-enums; it is never
+ * MAX_ENUM forces a 32-bit enum, including under `-fshort-enums`; it is never
  * returned. Values stored in structs or the packed format are uint32_t. */
 typedef enum cudaq_gf2_status {
   CUDAQ_GF2_OK = 0,

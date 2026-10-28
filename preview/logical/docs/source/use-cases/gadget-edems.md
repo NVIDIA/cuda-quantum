@@ -358,8 +358,8 @@ later check in this gadget measures it.
 
 Faults can be combined in several ways:
 
-- **Independent faults.** Ungrouped faults are independent. Each has its own
-  indicator, even when two faults have identical effects.
+- **Independent faults.** Faults outside a group are independent. Each has
+  its own indicator, even when two faults have identical effects.
 - **Mutually exclusive alternatives.** `FaultSet.pauli_channel`, `depolarize1`,
   and `depolarize2` keep each alternative as a separate indicator, and at most
   one alternative occurs.

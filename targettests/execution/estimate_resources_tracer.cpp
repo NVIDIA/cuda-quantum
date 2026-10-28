@@ -28,9 +28,6 @@
 // We don't run CASE3 with emulation on because compilation takes several
 // minutes
 
-// EMULATE: JIT high level:
-// EMULATE-ATOMIC: JIT high level:
-
 // CHECK: Launching kernel with estimate policy
 // CHECK: Launching kernel in sync mode with policy resource-count
 // CHECK: No compiled module found. Compiling.
