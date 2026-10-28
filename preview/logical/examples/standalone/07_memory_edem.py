@@ -5,176 +5,98 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-"""Compare circuit-derived and composed gadget-EDEM surface-memory DEMs.
+"""Configure a surface-memory experiment and export its packed EDEM.
 
-Fault placement uses Logical's shared noise policy. Composition, projection,
-exact factorization and column coalescing use native cudaq-edem operations.
-The optional Stim adapter only formats their result.
+Optionally convert the result to a Stim DEM and sample it. No Stim or QEC
+installation is needed to produce the file.
 """
 
-import argparse
-from math import isclose
+# %%
+# Import Logical, the recipe, and the exchange model library.
 from pathlib import Path
-from runpy import run_path
 
 import cudaq.logical as cql
+from cudaq.logical.architectures import surface
 import cudaq_edem as edem
 
+# %%
+# Configure the memory experiment.
+distance = 3
+rounds = 3  # Includes preparation's first stabilizer round; must be >= 1.
+p = 0.001
+# One categorical Pauli channel per data qubit at each selected round.
+# For Z-biased noise, try {"x": p / 20, "y": p / 20, "z": 9 * p / 10}
+# with shots = 0; Stim sampling supports uniform channels only.
+data_pauli_probabilities = {"x": p / 3, "y": p / 3, "z": p / 3}
+# Round 0 is preparation; omit a round here to leave its data noiseless.
+noisy_rounds = tuple(range(rounds))
+# None means every data qubit; a tuple such as (0, 1) limits the noisy sites.
+noisy_data_qubits = None
+output = Path("memory-edem")
+# Set shots > 0 to sample with Stim (pip install 'stim>=1.16,<2'); exporting
+# the model does not require Stim.
+shots = 0
+seed = 7
 
-def memory_recipe(distance, rounds):
-    factory = run_path(str(
-        Path(__file__).with_name("06_surface_memory.py")))["surface_memory"]
-    return factory(distance, rounds)
-
-
-def memory_faults(profile, noise, depolarizations):
-    """Use the same operation noise and explicit placements as circuit export."""
-    build = cql.compile(profile)
-    projection = cql.compiler.project_clifford(build,
-                                               gadget=profile.gadget.name)
-    faults = cql.analysis.standard_depolarizing_faults(
-        projection, noise, depolarizations=depolarizations)
-    return build, faults
-
-
-def derive_memory_edems(memory, noise, *, data_depolarization=0.0):
-    """Derive each distinct definition once; repeated SECs reuse its value."""
-    cache, occurrences = {}, []
-    placements = memory.depolarizations(data_depolarization)
-    for index, profile in enumerate(memory.profiles):
-        key = id(profile), placements[index]
-        if key not in cache:
-            build, faults = memory_faults(profile, noise, placements[index])
-            cache[key] = cql.analysis.derive_edem(build, faults=faults)
-        occurrences.append(cache[key])
-    return tuple(occurrences)
+# %%
+# Assemble recipe-provided profiles; an explicit profile can replace any default.
+implementation = surface.definitions(distance)
+prep = surface.gadget_profile(implementation.prepare_zero)
+sec = surface.gadget_profile(implementation.memory_round)
+readout = surface.gadget_profile(implementation.measure_z)
+profiles = (prep, *((sec,) * (rounds - 1)), readout)
 
 
-def to_stim_dem(model):
-    """Format an independent-mechanism DEM without changing its columns or laws.
-
-    Run factorize_dem and coalesce_dem_columns explicitly before formatting.
-    This optional adapter only translates row IDs and writes instructions.
-    """
-    import stim
-
-    if not isinstance(model, edem.DEM):
-        raise TypeError("Stim export requires a DEM from edem.project_DEM")
-    if any(model.successes):
-        raise ValueError("Stim DEM export does not support postselection")
-    if any(group.kind != edem.GroupKind.INDEPENDENT
-           for fault in model.faults
-           for group in fault.groups):
-        raise ValueError("run edem.factorize_dem before Stim formatting")
-    offsets, targets, start = [], [], 0
-    for fault in model.faults:
-        offsets.append(start)
-        targets.extend([] for _ in range(fault.size))
-        start += fault.size
-    row_offsets = {}
-    for kind, sizes in ((edem.PortKind.DETECTOR, model.detectors),
-                        (edem.PortKind.OBSERVABLE, model.observables)):
-        start = 0
-        for index, size in enumerate(sizes):
-            row_offsets[kind, index] = start
-            start += size
-    for block in model.blocks:
-        for row, column in block.matrix.entries:
-            index = row_offsets[block.output.kind, block.output.index] + row
-            target = (stim.target_relative_detector_id(index)
-                      if block.output.kind == edem.PortKind.DETECTOR else
-                      stim.target_logical_observable_id(index))
-            targets[offsets[block.input.index] + column].append(target)
-    result = stim.DetectorErrorModel()
-    for offset, fault in zip(offsets, model.faults):
-        for group in fault.groups:
-            for column, probability in zip(group.fault_ids,
-                                           group.probabilities):
-                result.append(
-                    stim.DemInstruction("error", [probability],
-                                        targets[offset + column]))
-    for row in range(sum(model.detectors)):
-        result.append("detector", [], [stim.target_relative_detector_id(row)])
-    for row in range(sum(model.observables)):
-        result.append("logical_observable", [],
-                      [stim.target_logical_observable_id(row)])
-    return result
+# %%
+# Customize the physical fault model. Stabilizer MPPs and readout are ideal.
+# The factory is called once per occurrence; identical fault sets reuse a model.
+def memory_faults(index, profile, projection):
+    faults = cql.analysis.FaultSet()
+    if index not in noisy_rounds:
+        return faults
+    # Insert before the first stabilizer check, after reset in preparation.
+    entry = next(
+        i for i, op in enumerate(projection.instructions) if op.kind == "MPP")
+    after = projection.instructions[entry - 1].site_id if entry else ""
+    port, = projection.interface.inputs or projection.interface.outputs
+    carriers = port.data_carriers
+    selected = range(
+        len(carriers)) if noisy_data_qubits is None else noisy_data_qubits
+    for q in selected:
+        faults = faults.pauli_channel(after, data_pauli_probabilities,
+                                      (carriers[q],))
+    return faults
 
 
-def dem_errors(model):
-    """Read already-coalesced error terms, ignoring annotation instructions."""
-    errors = {}
-    for instruction in model.flattened():
-        if instruction.type != "error":
-            continue
-        support = tuple(sorted(str(t) for t in instruction.targets_copy()))
-        if support in errors:
-            raise ValueError("DEM comparison requires coalesced error terms")
-        errors[support] = instruction.args_copy()[0]
-    return errors
+# %%
+# Derive and compose using the configured faults. No circuit simulator is used.
+composed = cql.analysis.derive_edem_chain(profiles, fault_factory=memory_faults)
+projected = edem.project_DEM(composed)
 
+# %%
+# Save one closed, projected experiment with its original categorical fault laws.
+# Consumers load this exact file; no recipe reconstruction is needed.
+output = Path(output)
+output.mkdir(parents=True, exist_ok=True)
+artifact = output / "memory.edemb"
+artifact.write_bytes(projected.to_bytes())
+print(f"Exported d={distance}, rounds={rounds}: "
+      f"{sum(projected.detectors)} detectors, "
+      f"{sum(projected.observables)} observable, "
+      f"{sum(f.size for f in projected.faults)} fault indicators")
+print(f"Model: {artifact}")
 
-def compare(distance=3, rounds=3, noise=None, *, data_depolarization=.001):
-    """Build both paths from identical gadget profiles and noise parameters."""
-    import stim
-
-    noise = noise or cql.compiler.StandardDepolarizingNoise(.001, .001, .001)
-    memory = memory_recipe(distance, rounds)
-    circuit = stim.Circuit(
-        memory.to_stim(noise, data_depolarization=data_depolarization))
-    circuit_dem = circuit.detector_error_model()
-    occurrences = derive_memory_edems(memory,
-                                      noise,
-                                      data_depolarization=data_depolarization)
-    composed = edem.compose_chain(occurrences)
-    projected = edem.project_DEM(composed)
+# %%
+# Optionally sample detector events and uncorrected observable flips with Stim.
+# Stim samples independent errors, so first factor each Pauli channel exactly;
+# only uniform channels, such as the default above, factor exactly.
+if shots:
     independent = edem.factorize_dem(projected)
-    reduced, source_columns = edem.coalesce_dem_columns(independent)
-    assert len(source_columns) == projected.vector_sizes[0]
-    edem_dem = to_stim_dem(reduced)
-    if (circuit_dem.num_detectors,
-            circuit_dem.num_observables) != (edem_dem.num_detectors,
-                                             edem_dem.num_observables):
-        raise AssertionError("DEM dimensions differ")
-    actual, expected = dem_errors(edem_dem), dem_errors(circuit_dem)
-    if actual.keys() != expected.keys() or any(
-            not isclose(actual[k], expected[k], rel_tol=0, abs_tol=1e-12)
-            for k in expected):
-        raise AssertionError("circuit and composed-EDEM DEM errors differ")
-    return (memory, occurrences, composed, projected, circuit, circuit_dem,
-            edem_dem)
-
-
-def main(argv=None):
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--distance", type=int, default=3)
-    parser.add_argument("--rounds", type=int, default=3)
-    parser.add_argument(
-        "--output",
-        type=Path,
-        help="Write circuit, DEMs, and packed EDEM values to this directory")
-    args = parser.parse_args(argv)
-    (memory, occurrences, composed, projected, circuit, circuit_dem,
-     edem_dem) = compare(args.distance, args.rounds)
-    print(
-        f"DEM agreement at d={args.distance}, rounds={args.rounds}: "
-        f"{circuit.num_detectors} detectors, {circuit.num_observables} observable"
-    )
-    print(f"{len(occurrences)} occurrences, "
-          f"{len({id(m) for m in occurrences})} derived definitions, "
-          f"{sum(f.size for f in composed.faults)} original fault indicators")
-    print(f"{len(dem_errors(edem_dem))} matching DEM error terms (atol=1e-12)")
-    if args.output:
-        args.output.mkdir(parents=True, exist_ok=True)
-        (args.output / "memory.stim").write_text(str(circuit))
-        (args.output / "circuit.dem").write_text(str(circuit_dem))
-        (args.output / "composed.dem").write_text(str(edem_dem))
-        (args.output / "composed.edemb").write_bytes(composed.to_bytes())
-        (args.output / "projected.edemb").write_bytes(projected.to_bytes())
-        for profile, value in zip(memory.profiles, occurrences):
-            (args.output / f"{profile.gadget.name}.edemb").write_bytes(
-                value.to_bytes())
-
-
-if __name__ == "__main__":
-    main()
+    reduced, _ = edem.coalesce_dem_columns(independent)
+    stim_dem = cql.analysis.to_stim_dem(reduced)
+    sampler = stim_dem.compile_sampler(seed=seed)
+    detectors, observables, _ = sampler.sample(shots)
+    print(f"Sampled {shots} shots")
+    print(f"Shots with detection events: {detectors.any(axis=1).sum()}/{shots}")
+    print("Shots with uncorrected observable flips: "
+          f"{observables.any(axis=1).sum()}/{shots}")

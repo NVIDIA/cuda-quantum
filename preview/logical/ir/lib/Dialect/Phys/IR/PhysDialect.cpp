@@ -1199,16 +1199,15 @@ LogicalResult ResourceOp::verify() {
         module ? SymbolTable::lookupSymbolIn(module,
                                              qecReference.getRootReference())
                : nullptr;
-    auto qecRegion =
-        qecMachine
-            ? dyn_cast_or_null<qlx::fabric::RegionOp>(
-                  SymbolTable(qecMachine)
-                      .lookup(qecReference.getLeafReference().getValue()))
-            : qlx::fabric::RegionOp{};
+    auto qecRegion = qecMachine
+                         ? dyn_cast_or_null<qlx::fabric::RegionOp>(
+                               SymbolTable::lookupSymbolIn(
+                                   qecMachine, qecReference.getLeafReference()))
+                         : qlx::fabric::RegionOp{};
     auto code =
         qecRegion
-            ? dyn_cast_or_null<qlx::fabric::CodeOp>(SymbolTable(module).lookup(
-                  qecRegion.getCodeAttr().getValue()))
+            ? dyn_cast_or_null<qlx::fabric::CodeOp>(
+                  SymbolTable::lookupSymbolIn(module, qecRegion.getCodeAttr()))
             : qlx::fabric::CodeOp{};
     if (!code)
       return emitOpError(
