@@ -13,19 +13,15 @@ namespace {
 /// The built-in generic lowering handler for the quake-reference-semantics
 /// profile.
 ///
-/// Builds its pipeline from the common JIT prep/deploy/finalize stages plus
-/// the profile's requested basis-conversion, expand-measurements, and
-/// qubit-reset-before-reuse passes. It is generic over the profile options and
-/// never inspects provider names.
+/// Returns the passes the profile's options request. `expand-measurements`
+/// runs before deploy and `combine-quantum-alloc` with
+/// `qubit-reset-before-reuse` after finalize, where the provider targets'
+/// pipelines have run them. `basis-conversion` runs between deploy and
+/// finalize. The handler is generic over the profile options and never
+/// inspects provider names.
 class QuakeReferenceSemanticsHandler
     : public cudaq_internal::compiler::LoweringHandler {
-  const bool emulate;
-  const std::string emissionFormat;
-
 public:
-  QuakeReferenceSemanticsHandler(bool emulate_, std::string emissionFormat_)
-      : emulate(emulate_), emissionFormat(std::move(emissionFormat_)) {}
-
   bool supports(const cudaq::config::Profile &input,
                 const cudaq::config::Profile &output,
                 const cudaq::CompileOptions &options) const override {
@@ -39,68 +35,46 @@ public:
     return true;
   }
 
-  std::optional<std::string>
-  getPipeline(const cudaq::config::Profile &input,
-              const cudaq::config::Profile &output,
-              const cudaq::CompileOptions &options) const override {
+  std::optional<cudaq_internal::compiler::StagePasses>
+  getStagePasses(const cudaq::config::Profile &input,
+                 const cudaq::config::Profile &output,
+                 const cudaq::CompileOptions &options) const override {
     if (!supports(input, output, options))
       return std::nullopt;
     const auto &referenceProfile =
         std::get<cudaq::config::QuakeReferenceSemanticsProfile>(output);
 
-    // Common preparation, deployment, and finalization, mirroring the
-    // custom-pipeline lowering path.
-    const bool nopCodegen = emissionFormat == "nop";
-    const std::string allowEarlyExit =
-        emissionFormat.starts_with("qir-adaptive") ? "true" : "false";
-    const std::string noLoopUnroll = nopCodegen ? " no-loop-unroll=true" : "";
-    bool expandMeasurements = referenceProfile.measurementType ==
-                              cudaq::config::MeasurementForm::single_qubit;
-    // Force expand measurements if `reset-after-measure` is requested.
-    if (referenceProfile.resetAfterMeasure)
-      expandMeasurements = true;
-
-    std::string pipeline = "canonicalize,";
-    pipeline +=
-        emulate ? "emul-jit-prep-pipeline{erase-noise=true allow-early-exit=" +
-                      allowEarlyExit + noLoopUnroll + "}"
-                : "hw-jit-prep-pipeline{allow-early-exit=" + allowEarlyExit +
-                      noLoopUnroll + "}";
-
-    if (expandMeasurements)
-      pipeline += ",expand-measurements";
-
-    pipeline += nopCodegen ? ",jit-deploy-pipeline{no-loop-unroll=true}"
-                           : ",jit-deploy-pipeline";
+    cudaq_internal::compiler::StagePasses passes;
+    // Single-qubit measurements and `reset-after-measure` both need
+    // `expand-measurements`.
+    if (referenceProfile.measurementType ==
+            cudaq::config::MeasurementForm::single_qubit ||
+        referenceProfile.resetAfterMeasure)
+      passes.preDeployPasses = "expand-measurements";
 
     if (!referenceProfile.basisGates.empty()) {
-      pipeline += ",basis-conversion{basis=";
+      passes.postDeployPasses = "basis-conversion{basis=";
       bool first = true;
       for (const auto &gate : referenceProfile.basisGates) {
         if (!first)
-          pipeline += ",";
+          passes.postDeployPasses += ",";
         first = false;
-        pipeline += gate;
+        passes.postDeployPasses += gate;
       }
-      pipeline += "}";
+      passes.postDeployPasses += "}";
     }
 
-    pipeline += ",jit-finalize-pipeline{lower-device-calls=";
-    pipeline += nopCodegen && !emulate ? "false" : "true";
-    pipeline += "}";
-
     if (referenceProfile.resetAfterMeasure)
-      pipeline += ",func.func(combine-quantum-alloc,qubit-reset-before-reuse)";
+      passes.postFinalizePasses =
+          "func.func(combine-quantum-alloc,qubit-reset-before-reuse)";
 
-    return pipeline;
+    return passes;
   }
 };
 
 } // namespace
 
 std::unique_ptr<cudaq_internal::compiler::LoweringHandler>
-cudaq_internal::compiler::makeQuakeReferenceSemanticsHandler(
-    bool emulate, std::string emissionFormat) {
-  return std::make_unique<QuakeReferenceSemanticsHandler>(
-      emulate, std::move(emissionFormat));
+cudaq_internal::compiler::makeQuakeReferenceSemanticsHandler() {
+  return std::make_unique<QuakeReferenceSemanticsHandler>();
 }

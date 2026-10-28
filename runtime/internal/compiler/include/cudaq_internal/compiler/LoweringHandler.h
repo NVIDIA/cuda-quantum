@@ -20,6 +20,18 @@ struct CompileOptions;
 
 namespace cudaq_internal::compiler {
 
+/// The passes one compilation stage adds to the JIT pipeline. The compiler
+/// runs `canonicalize`, the prep pipeline, `jit-deploy-pipeline`, and
+/// `jit-finalize-pipeline` itself and places these passes around them.
+struct StagePasses {
+  /// Passes that run after prep and before deploy.
+  std::string preDeployPasses;
+  /// Passes that run after deploy and before finalize.
+  std::string postDeployPasses;
+  /// Passes that run after finalize.
+  std::string postFinalizePasses;
+};
+
 /// Interface for lowering between IR profiles.
 ///
 /// Registering lowering handlers with the compiler is what enables the JIT
@@ -32,20 +44,20 @@ public:
 
   /// Whether this handler can lower \p input into \p output.
   ///
-  /// Defaults to calling \p getPipeline and checking for non-`nullopt` return
-  /// value. Override for handlers that can answer this more efficiently.
+  /// Defaults to calling `getStagePasses` and checking for a non-`nullopt`
+  /// result. Override for handlers that can answer this more efficiently.
   virtual bool supports(const cudaq::config::Profile &input,
                         const cudaq::config::Profile &output,
                         const cudaq::CompileOptions &options) const {
-    return getPipeline(input, output, options).has_value();
+    return getStagePasses(input, output, options).has_value();
   }
 
-  /// Return the pass pipeline lowering \p input into \p output, or `nullopt` if
-  /// this handler cannot perform that lowering.
-  virtual std::optional<std::string>
-  getPipeline(const cudaq::config::Profile &input,
-              const cudaq::config::Profile &output,
-              const cudaq::CompileOptions &options) const = 0;
+  /// Return the passes this handler adds to lower \p input into \p output, or
+  /// `nullopt` if this handler cannot perform that lowering.
+  virtual std::optional<StagePasses>
+  getStagePasses(const cudaq::config::Profile &input,
+                 const cudaq::config::Profile &output,
+                 const cudaq::CompileOptions &options) const = 0;
 };
 
 /// Return the first handler in \p handlers supporting the conversion
@@ -56,15 +68,10 @@ const LoweringHandler *selectLoweringHandler(
     const cudaq::CompileOptions &options);
 
 /// The compiler's built-in lowering handlers, in selection order.
-///
-/// \p emulate and \p emissionFormat are the compiler settings handlers
-/// capture for common pipeline preparation.
-std::vector<std::unique_ptr<LoweringHandler>>
-makeBuiltinLoweringHandlers(bool emulate, std::string emissionFormat);
+std::vector<std::unique_ptr<LoweringHandler>> makeBuiltinLoweringHandlers();
 
 /// The built-in generic handler lowering to the quake-reference-semantics
 /// profile.
-std::unique_ptr<LoweringHandler>
-makeQuakeReferenceSemanticsHandler(bool emulate, std::string emissionFormat);
+std::unique_ptr<LoweringHandler> makeQuakeReferenceSemanticsHandler();
 
 } // namespace cudaq_internal::compiler

@@ -21,24 +21,21 @@ static void appendPipelineStage(std::string &pipeline,
   pipeline += stage;
 }
 
-/// Rewrite `qubit-mapping{...device=...}` to use `device=bypass`.
-static void setQubitMappingBypass(std::string &pipeline) {
+/// Apply the target's `disable_qubit_mapping` runtime option, which rewrites
+/// `qubit-mapping{...device=...}` in \p pipeline to use `device=bypass`.
+static std::string
+applyDisableQubitMapping(std::string pipeline,
+                         const cudaq::CompileTarget &target) {
+  if (!target.disableQubitMapping)
+    return pipeline;
   std::regex qubitMapping("(.*)qubit-mapping\\{(.*)device=[^,\\}]+(.*)\\}(.*)");
   std::string replacement("$1qubit-mapping{$2device=bypass$3}$4");
   pipeline = std::regex_replace(pipeline, qubitMapping, replacement);
+  CUDAQ_INFO("disable_qubit_mapping option found, so updated lowering "
+             "pipeline to {}",
+             pipeline);
+  return pipeline;
 }
-
-namespace {
-/// Inputs required to build the passes of a single compile target stage.
-struct StageResolutionContext {
-  const cudaq::CompileTarget &target;
-  const cudaq::CompileOptions &options;
-  const std::vector<std::unique_ptr<cudaq_internal::compiler::LoweringHandler>>
-      &handlers;
-  const cudaq::config::Profile &inputProfile;
-  const cudaq::config::Profile &outputProfile;
-};
-} // namespace
 
 /// Name of the profile kind, for diagnostics.
 static std::string_view getProfileName(const cudaq::config::Profile &profile) {
@@ -47,20 +44,13 @@ static std::string_view getProfileName(const cudaq::config::Profile &profile) {
       profile);
 }
 
-/// Append the JIT pipeline built around the user-provided pipelines of a
-/// `CustomPipelineLowering` to `passPipeline`.
-static bool appendResolvedStagePipeline(
-    std::string &passPipeline,
-    const cudaq::config::CustomPipelineLowering &lowering,
-    const StageResolutionContext &ctx, std::string &) {
-  const auto &target = ctx.target;
-  const auto &options = ctx.options;
-
-  if (!lowering.overridePassPipeline.empty()) {
-    appendPipelineStage(passPipeline, lowering.overridePassPipeline);
-    return true;
-  }
-
+/// Build the JIT pipeline from `canonicalize`, prep, deploy, and finalize,
+/// with the stages' passes around them. The emission format and `emulate`
+/// set the options of prep, deploy, and finalize.
+static std::string
+buildPassPipeline(const cudaq_internal::compiler::StagePasses &targetPasses,
+                  const cudaq::CompileTarget &target,
+                  const cudaq::CompileOptions &options) {
   const std::string lowerDeviceCalls =
       (target.codegen.emissionFormat == "nop" && !options.emulate) ? "false"
                                                                    : "true";
@@ -70,9 +60,7 @@ static bool appendResolvedStagePipeline(
   const std::string noLoopUnroll =
       target.codegen.emissionFormat == "nop" ? " no-loop-unroll=true" : "";
 
-  if (passPipeline.empty())
-    passPipeline = "canonicalize";
-
+  std::string passPipeline = "canonicalize";
   if (options.emulate)
     appendPipelineStage(passPipeline, "emul-jit-prep-pipeline{erase-noise=true "
                                       "allow-early-exit=" +
@@ -88,56 +76,18 @@ static bool appendResolvedStagePipeline(
   const std::string finalizeStage =
       "jit-finalize-pipeline{lower-device-calls=" + lowerDeviceCalls + "}";
 
-  appendPipelineStage(passPipeline, lowering.highLevelPipeline);
+  appendPipelineStage(passPipeline, targetPasses.preDeployPasses);
   appendPipelineStage(passPipeline, deployStage);
-  appendPipelineStage(passPipeline, lowering.midLevelPipeline);
+  appendPipelineStage(passPipeline, targetPasses.postDeployPasses);
   appendPipelineStage(passPipeline, finalizeStage);
-  appendPipelineStage(passPipeline, lowering.lowLevelPipeline);
-
-  // Handle disable_qubit_mapping runtime option.
-  if (target.disableQubitMapping) {
-    setQubitMappingBypass(passPipeline);
-    CUDAQ_INFO("disable_qubit_mapping option found, so updated lowering "
-               "pipeline to {}",
-               passPipeline);
-  }
-  return true;
-}
-
-/// Infer the pipeline using the provided lowering handlers and append it to
-/// `passPipeline`. On failure, sets `diagnostic` and returns false.
-static bool appendResolvedStagePipeline(std::string &passPipeline,
-                                        const cudaq::config::InferredLowering &,
-                                        const StageResolutionContext &ctx,
-                                        std::string &diagnostic) {
-  const auto *handler = cudaq_internal::compiler::selectLoweringHandler(
-      ctx.handlers, ctx.inputProfile, ctx.outputProfile, ctx.options);
-  std::optional<std::string> pipeline;
-  const char *failure = "no lowering handler supports lowering from ";
-  if (handler) {
-    pipeline =
-        handler->getPipeline(ctx.inputProfile, ctx.outputProfile, ctx.options);
-    failure = "the selected lowering handler failed to construct a "
-              "pipeline from ";
-  }
-  if (!pipeline) {
-    diagnostic = failure;
-    diagnostic += getProfileName(ctx.inputProfile);
-    diagnostic += " to ";
-    diagnostic += getProfileName(ctx.outputProfile);
-    return false;
-  }
-  appendPipelineStage(passPipeline, *pipeline);
-  return true;
+  appendPipelineStage(passPipeline, targetPasses.postFinalizePasses);
+  return passPipeline;
 }
 
 std::optional<std::string> cudaq_internal::compiler::getPassPipeline(
     const cudaq::CompileTarget &target, const cudaq::CompileOptions &options,
     const std::vector<std::unique_ptr<LoweringHandler>> &handlers,
     std::string &diagnostic) {
-  std::string passPipeline;
-  cudaq::config::Profile inputProfile = cudaq::config::UncheckedProfile{};
-
   // TODO: remove this restriction. This exists as the pipelines inferred for
   // each stage don't compose nicely (e.g. it doesn't make sense to run
   // `emul-jit-prep-pipeline` more than once)
@@ -145,25 +95,56 @@ std::optional<std::string> cudaq_internal::compiler::getPassPipeline(
     diagnostic = "Multi-stage compilation is currently not supported";
     return std::nullopt;
   }
+  if (target.stages.empty())
+    return std::string{};
 
+  StagePasses targetPasses;
+  cudaq::config::Profile inputProfile = cudaq::config::UncheckedProfile{};
   for (std::size_t i = 0; i < target.stages.size(); ++i) {
     const auto &stage = target.stages[i];
-    const StageResolutionContext ctx{target, options, handlers, inputProfile,
-                                     stage.irOutputProfile};
-    std::string stageDiagnostic;
-    const bool success = std::visit(
-        [&](const auto &lowering) {
-          return appendResolvedStagePipeline(passPipeline, lowering, ctx,
-                                             stageDiagnostic);
-        },
-        stage.lowering);
-    if (!success) {
-      diagnostic = "compile target stage " + std::to_string(i + 1) + ": " +
-                   stageDiagnostic;
+    const auto failStage = [&](std::string_view reason) {
+      diagnostic = "compile target stage " + std::to_string(i + 1) + ": ";
+      diagnostic += reason;
       return std::nullopt;
+    };
+
+    std::optional<StagePasses> stagePasses;
+    if (const auto *custom = std::get_if<cudaq::config::CustomPipelineLowering>(
+            &stage.lowering)) {
+      // An override pipeline replaces the whole pipeline.
+      if (!custom->overridePassPipeline.empty())
+        return custom->overridePassPipeline;
+      // A custom stage's high-, mid-, and low-level pipelines run before
+      // deploy, between deploy and finalize, and after finalize.
+      stagePasses = StagePasses{.preDeployPasses = custom->highLevelPipeline,
+                                .postDeployPasses = custom->midLevelPipeline,
+                                .postFinalizePasses = custom->lowLevelPipeline};
+    } else {
+      std::string profiles(getProfileName(inputProfile));
+      profiles += " to ";
+      profiles += getProfileName(stage.irOutputProfile);
+      const auto *handler = selectLoweringHandler(
+          handlers, inputProfile, stage.irOutputProfile, options);
+      if (!handler)
+        return failStage("no lowering handler supports lowering from " +
+                         profiles);
+      stagePasses =
+          handler->getStagePasses(inputProfile, stage.irOutputProfile, options);
+      if (!stagePasses)
+        return failStage("the selected lowering handler failed to construct "
+                         "a pipeline from " +
+                         profiles);
     }
+
+    appendPipelineStage(targetPasses.preDeployPasses,
+                        stagePasses->preDeployPasses);
+    appendPipelineStage(targetPasses.postDeployPasses,
+                        stagePasses->postDeployPasses);
+    appendPipelineStage(targetPasses.postFinalizePasses,
+                        stagePasses->postFinalizePasses);
     inputProfile = stage.irOutputProfile;
   }
 
-  return passPipeline;
+  return applyDisableQubitMapping(
+      buildPassPipeline(targetPasses, target, options), target);
 }

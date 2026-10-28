@@ -8,7 +8,8 @@
 
 // RUN: profile_stages | FileCheck %s
 
-// Test pipeline inference for compile targets.
+// Test how `getPassPipeline` builds a pipeline from a compile target's
+// stages.
 
 #include "cudaq_internal/compiler/Compiler.h"
 #include "cudaq_internal/compiler/LoweringHandler.h"
@@ -21,7 +22,8 @@
 
 using namespace cudaq_internal::compiler;
 
-/// Handler whose returned pipeline reports the consulted profiles.
+/// Handler whose returned passes name the profiles it was asked to lower
+/// between.
 class TestHandler : public LoweringHandler {
   const bool supported;
   const bool forceSupports;
@@ -33,21 +35,22 @@ public:
       : supported(supported_), forceSupports(forceSupports_) {}
 
   /// `forceSupports` is the explicit override knob; otherwise the
-  /// interface-default probe of getPipeline applies.
+  /// interface-default probe of `getStagePasses` applies.
   bool supports(const cudaq::config::Profile &input,
                 const cudaq::config::Profile &output,
                 const cudaq::CompileOptions &options) const override {
-    return forceSupports || getPipeline(input, output, options).has_value();
+    return forceSupports || getStagePasses(input, output, options).has_value();
   }
 
-  std::optional<std::string>
-  getPipeline(const cudaq::config::Profile &input,
-              const cudaq::config::Profile &output,
-              const cudaq::CompileOptions &options) const override {
+  std::optional<StagePasses>
+  getStagePasses(const cudaq::config::Profile &input,
+                 const cudaq::config::Profile &output,
+                 const cudaq::CompileOptions &options) const override {
     ++calls;
     if (!supported)
       return std::nullopt;
-    return "handler(" + profileKind(input) + "->" + profileKind(output) + ")";
+    return StagePasses{.postDeployPasses = "handler(" + profileKind(input) +
+                                           "->" + profileKind(output) + ")"};
   }
 
   static std::string profileKind(const cudaq::config::Profile &profile) {
@@ -95,17 +98,6 @@ void test_multiple_stages_rejected() {
   std::cout << planPipeline(target, handlers) << "\n";
 }
 // CHECK: FAILED: Multi-stage compilation is currently not supported
-
-// A single inferred stage contributes the supporting handler's pipeline.
-void test_single_inferred() {
-  cudaq::CompileTarget target;
-  target.stages.push_back(
-      inferredStage(cudaq::config::QuakeReferenceSemanticsProfile{}));
-  HandlerVector handlers;
-  handlers.push_back(std::make_unique<TestHandler>());
-  std::cout << planPipeline(target, handlers) << "\n";
-}
-// CHECK: handler(unchecked->quake-reference-semantics)
 
 // Unsupporting handlers are skipped and the first supporting handler wins;
 // later handlers are never consulted.
@@ -182,7 +174,6 @@ void test_zero_stages() {
 
 int main() {
   test_multiple_stages_rejected();
-  test_single_inferred();
   test_first_supporting_handler_wins();
   test_no_match_diagnostic();
   test_selected_failure_diagnostic();
