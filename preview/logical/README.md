@@ -113,3 +113,17 @@ Or install the `cudaq-logical` wheel and run the example files directly.
 
 Run the test suites with `ctest` in the Logical build directory
 (`build/external/logical` for an in-tree build).
+
+Python tests exclude the `slow` group by default, including in PR CI. This
+keeps the RSA-2048 Gidney–Ekerå checks in routine runs while the RSA-3072/4096
+factory-characterization and resource-kernel checks are opt-in. With the
+package installed, run just the slow group or the full Python suite with:
+
+```bash
+python3 -m pytest preview/logical/python/tests/cudaq/logical -m slow
+python3 -m pytest preview/logical/python/tests/cudaq/logical -m ""
+```
+
+For a build-tree CTest run, use `PYTEST_ADDOPTS='-m slow' ctest -R
+qlx-python-tests` from the Logical build directory, or `PYTEST_ADDOPTS='-m ""'`
+to include all Python tests.
