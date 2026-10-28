@@ -104,6 +104,72 @@ that the contract captures all required relations.
 [`analysis.derive_edem`](../use-cases/gadget-edems.md) performs the semantic
 check before constructing an EDEM.
 
+## Verify a contract and the logical action
+
+`verify_gadget` checks a `GadgetProfile` against its gadget's realization:
+
+```python
+RepetitionPatch = cql.patch[cql.codes.Repetition]
+
+
+@cql.gadget(implements=cql.logical.idle)
+def syndrome_round(block: RepetitionPatch) -> RepetitionPatch:
+    block, _ = cql.extract_syndrome(block)
+    return block
+
+
+block_in = syndrome_round.inputs.only()
+block_out = syndrome_round.outputs.only()
+checks = syndrome_round.records.syndrome(0).checks
+
+contract = cql.gadgets.GadgetProfile(
+    syndrome_round,
+    detectors=tuple(
+        cql.gadgets.Detector(block_in.syndrome[i] ^ checks[i])
+        for i in range(block_in.syndrome.width)),
+    boundary={block_out.syndrome: checks},
+)
+receipt = cql.gadgets.verify_gadget(contract)
+assert receipt.detector_contract.outcome_code_rank == 4
+assert receipt.logical_action.action == "ql.logical.idle"
+```
+
+Both checks read one Choi probe of the realization. Every logical input is
+Bell-paired with a reference qubit, the encoded input is placed in an
+arbitrary stabilizer coset, and the realization's Clifford projection runs
+through an outcome-complete symbolic stabilizer simulation over F2:
+
+- **Detector contract.** Every declared detector and output virtual-syndrome
+  relation must be a deterministic parity of the probed realization, and
+  together with the deterministic combinations of the observables they must
+  generate all of them (the rank condition). The receipt reports
+  `outcome_code_rank == detector_rank + deterministic_logical_outcome_rank`.
+  For the round above the Choi probe yields a 6 × 2 affine outcome relation
+  with a four-dimensional left kernel, spanned by the two detectors and the
+  two output relations: `4 = 4 + 0`.
+- **Logical action.** The post-realization Choi state must be stabilized,
+  stabilizer by stabilizer and sign by sign, by the Choi stabilizers of the
+  `implements=` action on the encoded logical qubits (input logical qubit `i`
+  maps to output logical qubit `i`). `logical_action.logical_rank` counts the
+  stabilizers reproduced with matching signs.
+
+Failures raise `cudaq.logical.errors.GadgetVerificationError` and name the
+condition; its `receipt` holds the full result, and
+`verify_gadget(..., raise_on_failure=False)` returns the receipt instead.
+Omitting a detector fails the rank condition (`4 ≠ 3 + 0`). Declaring the same
+round as `implements=cql.logical.x` passes the contract check, which is blind
+to the logical action, and fails the action check with a sign mismatch on
+`Z_ref -Z̄`; declaring `cql.logical.h` fails because `X_ref Z̄` does not
+stabilize the Choi state.
+
+The action check applies to Clifford actions over the gadget's logical qubits,
+with as many output logical qubits as inputs. An action that is not Clifford
+(for example `cql.logical.t`), or that the gadget's boundary does not
+realize one-to-one, is reported as `logical_action.status == "unsupported"`
+with a `reason`; it does not raise, and `receipt.verified` is `False`. The
+checks establish ideal determinism and the ideal logical action. They do not
+prove fault tolerance.
+
 ## Project the realization
 
 `cudaq.logical.compiler.project_clifford` returns typed carrier instructions

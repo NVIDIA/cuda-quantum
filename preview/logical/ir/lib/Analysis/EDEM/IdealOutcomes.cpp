@@ -9,6 +9,7 @@
 #include "qlx/Analysis/IdealOutcomes.h"
 
 #include "llvm/ADT/DenseSet.h"
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/StringRef.h"
 
 #include <algorithm>
@@ -16,6 +17,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
+#include <optional>
 #include <string>
 #include <system_error>
 #include <utility>
@@ -267,6 +269,41 @@ public:
     return remainder.sign;
   }
 
+  /// Value of a Pauli observable in the current state as an affine bit
+  /// (1 means eigenvalue -1), or nullopt when the observable is not, up to
+  /// sign, in the stabilizer group. Does not modify the state. A residual
+  /// odd phase means the observable was not Hermitian and is an error.
+  llvm::Expected<std::optional<IdealAffineBit>>
+  eigenvalue(PauliRow pauli) const {
+    std::vector<PauliRow> basis;
+    basis.reserve(generators_.size());
+    std::vector<int> pivotOf(2 * totalCarriers_, -1);
+    for (const PauliRow &generator : generators_) {
+      PauliRow row = generator;
+      for (std::size_t column = 0; column < pivotOf.size(); ++column) {
+        if (!row.vectorBit(column, totalCarriers_))
+          continue;
+        if (pivotOf[column] < 0) {
+          pivotOf[column] = static_cast<int>(basis.size());
+          basis.push_back(std::move(row));
+          break;
+        }
+        row.multiply(basis[pivotOf[column]]);
+      }
+    }
+    for (std::size_t column = 0; column < pivotOf.size(); ++column) {
+      if (!pauli.vectorBit(column, totalCarriers_))
+        continue;
+      if (pivotOf[column] < 0)
+        return std::optional<IdealAffineBit>();
+      pauli.multiply(basis[pivotOf[column]]);
+    }
+    if (pauli.phase & 1u)
+      return invalid("expected logical stabilizer is not Hermitian");
+    pauli.sign.constant ^= (pauli.phase == 2);
+    return std::optional<IdealAffineBit>(std::move(pauli.sign));
+  }
+
   void reset(unsigned carrier, bool xBasis) {
     PauliRow observable(words_);
     if (xBasis)
@@ -374,7 +411,8 @@ unsigned IdealOutcomeAnalysis::outcomeDeterministicRelationDimension() const {
 llvm::Expected<IdealOutcomeAnalysis>
 analyzeIdealOutcomes(const Projection &projection,
                      llvm::ArrayRef<IdealBoundaryPort> inputPorts,
-                     llvm::ArrayRef<IdealBoundaryPort> outputPorts) {
+                     llvm::ArrayRef<IdealBoundaryPort> outputPorts,
+                     const IdealLogicalAction *action) {
   if (inputPorts.size() != projection.inputDataCarriersByPort.size() ||
       outputPorts.size() != projection.outputDataCarriersByPort.size())
     return invalid("encoded boundary ports do not cover the projection");
@@ -545,6 +583,7 @@ analyzeIdealOutcomes(const Projection &projection,
       return invalid("record alias references a nonexistent measurement");
 
   std::vector<PauliRow> outputChecks;
+  std::vector<PauliRow> outputLogicalX, outputLogicalZ;
   std::vector<bool> seenOutput(projection.carrierCount);
   for (std::size_t portIndex = 0; portIndex < outputPorts.size(); ++portIndex) {
     const IdealBoundaryPort &port = outputPorts[portIndex];
@@ -567,12 +606,83 @@ analyzeIdealOutcomes(const Projection &projection,
           return invalid("output stabilizer checks do not commute");
       outputChecks.push_back(std::move(*row));
     }
+    if (action) {
+      if (port.logicalX.size() != port.logicalZ.size())
+        return invalid("output logical X and Z bases have different sizes");
+      for (std::size_t logical = 0; logical < port.logicalX.size(); ++logical) {
+        auto x = embed(port.logicalX[logical], port.carriers,
+                       projection.carrierCount, tableau.words());
+        if (!x)
+          return x.takeError();
+        auto z = embed(port.logicalZ[logical], port.carriers,
+                       projection.carrierCount, tableau.words());
+        if (!z)
+          return z.takeError();
+        outputLogicalX.push_back(std::move(*x));
+        outputLogicalZ.push_back(std::move(*z));
+      }
+    }
   }
   if (pauliRank(outputChecks, projection.carrierCount) != outputChecks.size())
     return invalid("output kept-stabilizer checks are linearly dependent");
   result.outcomes_.reserve(result.outcomes_.size() + outputChecks.size());
   for (PauliRow &check : outputChecks)
     result.outcomes_.push_back(tableau.measure(std::move(check)));
+  if (action) {
+    const unsigned arity = action->arity;
+    result.action_.status = IdealActionReport::Status::Unsupported;
+    if (action->images.size() != 2 * std::size_t{arity} ||
+        action->phases.size() != 2 * std::size_t{arity} ||
+        llvm::any_of(action->images, [&](const llvm::SmallBitVector &row) {
+          return row.size() != 2 * std::size_t{arity};
+        }))
+      return invalid("declared logical action has an inconsistent shape");
+    if (arity != references || outputLogicalX.size() != references) {
+      result.action_.reason =
+          "the declared action acts on " + std::to_string(arity) +
+          " logical qubit(s), but the gadget's input boundary carries " +
+          std::to_string(references) + " and its output boundary carries " +
+          std::to_string(outputLogicalX.size());
+    } else {
+      result.action_.status = IdealActionReport::Status::Checked;
+      for (unsigned row = 0; row < 2 * arity; ++row) {
+        // Choi stabilizer of the ideal action: the reference Pauli paired with
+        // the input logical Pauli, times that Pauli's declared image on the
+        // output logical qubits. Hermitian Y_j = i X_j Z_j.
+        PauliRow expected(tableau.words());
+        for (unsigned qubit = 0; qubit < arity; ++qubit) {
+          const bool x = action->images[row][qubit];
+          const bool z = action->images[row][arity + qubit];
+          if (x)
+            expected.multiply(outputLogicalX[qubit]);
+          if (z)
+            expected.multiply(outputLogicalZ[qubit]);
+          if (x && z)
+            expected.phase = (expected.phase + 1) & 3u;
+        }
+        if (row < arity)
+          set(expected.x, tableau.referenceCarrier(row));
+        else
+          set(expected.z, tableau.referenceCarrier(row - arity));
+        auto value = tableau.eigenvalue(std::move(expected));
+        if (!value)
+          return value.takeError();
+        if (!*value) {
+          result.action_.rows.push_back(IdealActionRowStatus::NotStabilized);
+          continue;
+        }
+        const IdealAffineBit &bit = **value;
+        const bool random =
+            llvm::any_of(bit.randomWords, [](std::uint64_t w) { return w; });
+        if (random)
+          result.action_.rows.push_back(IdealActionRowStatus::RandomSign);
+        else if (bit.constant != action->phases[row])
+          result.action_.rows.push_back(IdealActionRowStatus::SignMismatch);
+        else
+          result.action_.rows.push_back(IdealActionRowStatus::Verified);
+      }
+    }
+  }
   result.randomBits_ = tableau.randomBits();
   const std::size_t randomWords = (std::size_t{result.randomBits_} + 63) / 64;
   for (IdealAffineBit &outcome : result.outcomes_)

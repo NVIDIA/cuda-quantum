@@ -52,6 +52,19 @@ MlirLogicalResult qlxDeriveGadgetEDEM(MlirModule module, MlirStringRef profile,
   return mlirLogicalResultSuccess();
 }
 
+MlirLogicalResult qlxVerifyGadgetProfile(MlirModule module,
+                                         MlirStringRef profile,
+                                         MlirStringRef action,
+                                         MlirStringCallback callback,
+                                         void *userData) {
+  auto result = cudaq::logical::verifyGadgetProfile(
+      unwrap(module), unwrap(profile), unwrap(action));
+  if (mlir::failed(result))
+    return mlirLogicalResultFailure();
+  shipString(*result, callback, userData);
+  return mlirLogicalResultSuccess();
+}
+
 MlirLogicalResult qlxProjectCliffordJson(MlirModule module,
                                          MlirStringRef gadget,
                                          MlirStringCallback callback,

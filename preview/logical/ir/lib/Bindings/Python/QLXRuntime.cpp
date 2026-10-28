@@ -722,6 +722,38 @@ NB_MODULE(_qlxRuntime, m) {
       "IR.");
 
   m.def(
+      "verify_gadget_json",
+      [](MlirModule pyModule, const std::string &profile,
+         const std::string &action) {
+        mlir::ModuleOp module = unwrap(pyModule);
+        auto diagnosticMutex = contextDiagnosticMutex(module.getContext());
+        std::unique_lock<std::mutex> diagnosticLock(*diagnosticMutex);
+        std::string diagnostics;
+        mlir::ScopedDiagnosticHandler handler(
+            module.getContext(), [&](mlir::Diagnostic &diag) {
+              if (diag.getSeverity() != mlir::DiagnosticSeverity::Error)
+                return mlir::failure();
+              llvm::raw_string_ostream stream(diagnostics);
+              stream << diag.getLocation() << ": ";
+              diag.print(stream);
+              stream << "\n";
+              return mlir::success();
+            });
+        std::string result;
+        if (mlirLogicalResultIsFailure(
+                qlxVerifyGadgetProfile(pyModule, toRef(profile), toRef(action),
+                                       appendToString, &result)))
+          throw std::runtime_error("Gadget verification failed:\n" +
+                                   diagnostics);
+        return result;
+      },
+      nb::arg("module"), nb::arg("profile") = "", nb::arg("action") = "",
+      nb::call_guard<nb::gil_scoped_release>(),
+      "Check a selected gadget detector contract and, optionally, the "
+      "declared Clifford logical action against one Choi-state probe of its "
+      "realization. Returns cudaq.logical.gadget-verification/v1 JSON.");
+
+  m.def(
       "derive_edem_owned",
       [](MlirModule pyModule, const std::string &profile,
          const std::string &faults) {
