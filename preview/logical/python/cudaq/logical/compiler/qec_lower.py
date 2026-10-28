@@ -315,14 +315,23 @@ def _check_p0_qec_coverage(source, device):
     linked = discover_linked_definitions(source.source_modules, device)
     coverage = _ObjectiveCoverage(linked.definitions)
     # Read the Build's own module. Cloning it would be too slow.
-    root = next(
-        view.operation
+    programs = {
+        _text(view.operation.attributes["sym_name"]): view.operation
         for view in source._module.body.operations
-        if view.operation.name == "qlx.program" and
-        _text(view.operation.attributes["sym_name"]) == source.root.symbol)
+        if view.operation.name == "qlx.program"
+    }
     objectives = {}
+    # Follow qlx.call into helpers, as estimate/logical.py does.
+    pending = [source.root.symbol]
+    seen = set(pending)
 
     def site(operation):
+        if operation.name == "qlx.call":
+            callee = _symbol(operation.attributes["callee"])
+            if callee not in seen:
+                seen.add(callee)
+                pending.append(callee)
+            return None
         if operation.name != "qlx.apply":
             return None
         attribute = operation.attributes["action"]
@@ -331,7 +340,8 @@ def _check_p0_qec_coverage(source, device):
             objective = objectives[attribute] = _objective(attribute)
         return "action", objective
 
-    coverage.require(root, site)
+    while pending:
+        coverage.require(programs[pending.pop()], site)
 
 
 def _flatten_annotation(annotation):

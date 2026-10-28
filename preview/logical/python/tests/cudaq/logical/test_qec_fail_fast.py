@@ -202,3 +202,28 @@ def test_preflight_uses_verified_build_not_mutated_inspection_clone():
         "#qlx.action<h>", context=inspected.context)
     # The immutable build still contains X, which has a standard realization.
     _target_placer(_device())._preflight(p0)
+
+
+@pytest.mark.parametrize("depth", (1, 2))
+def test_preflight_rejects_missing_objective_inside_helper(depth):
+
+    @cql.program
+    def inner(q: cql.types.logical_qubit) -> cql.types.logical_qubit:
+        return cql.h(q)
+
+    @cql.program
+    def outer(q: cql.types.logical_qubit) -> cql.types.logical_qubit:
+        return inner(q)
+
+    helper = inner if depth == 1 else outer
+
+    @cql.program
+    def program() -> bool:
+        q = helper(helper(cql.prepare_zero()))
+        return cql.measure_z(q)
+
+    p0 = cql.compile(program)
+    assert "qlx.call" in p0.to_mlir()
+    backend = _target_placer(_device())
+    with pytest.raises(ValueError, match="no feasible P2 implementation for h"):
+        backend._preflight(p0)
