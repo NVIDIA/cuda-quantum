@@ -9,6 +9,7 @@
 #include "PassDetails.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/Transforms/GreedyPatternRewriteDriver.h"
+#include "mlir/Transforms/InliningUtils.h"
 #include "mlir/Transforms/Passes.h"
 
 namespace cudaq::opt {
@@ -45,6 +46,28 @@ class RunSemanticsHackeryPass
     : public cudaq::opt::impl::RunSemanticsHackeryBase<
           RunSemanticsHackeryPass> {
 public:
+  /// Replace the call to the ruined function by the body of the function.
+  static LogicalResult inlineRuinedFunction(func::CallOp callOp,
+                                            func::FuncOp ruinedFn) {
+    InlinerInterface interface(callOp.getContext());
+    auto cloneInto = [](OpBuilder &, Region *src, Block *inlineBlock,
+                        Block *postInsertBlock, IRMapping &mapper,
+                        bool shouldCloneInlinedRegion) {
+      Region *dest = inlineBlock->getParent();
+      if (shouldCloneInlinedRegion)
+        src->cloneInto(dest, postInsertBlock->getIterator(), mapper);
+      else
+        dest->getBlocks().splice(postInsertBlock->getIterator(),
+                                 src->getBlocks(), src->begin(), src->end());
+    };
+    if (failed(inlineCall(interface, cloneInto, callOp,
+                          cast<CallableOpInterface>(ruinedFn.getOperation()),
+                          ruinedFn.getCallableRegion())))
+      return failure();
+    callOp.erase();
+    return success();
+  }
+
   void runOnOperation() override {
     ModuleOp mod = getOperation();
 
@@ -104,9 +127,21 @@ public:
       if (failed(applyPatternsGreedily(ruinedFn, std::move(patterns))))
         return;
 
-      // Rewrite the call to call the new ruined function.
-      callOp.setCallee(ruinedName);
-      LLVM_DEBUG(llvm::dbgs() << "updated to call: " << ruinedName << '\n');
+      // Inline the ruined function into the run entry point. This is not an
+      // optimization and it must not be left to the later inlining pipeline.
+      // Without the copy to the heap, the result of the ruined function refers
+      // to its own stack frame. That is only valid if the frame is the one of
+      // the run entry point, which consumes the result.
+      if (failed(inlineRuinedFunction(callOp, ruinedFn))) {
+        callOp.emitError("cannot inline " + ruinedName +
+                         ", which is required by the semantics of "
+                         "cudaq::run");
+        signalPassFailure();
+        return;
+      }
+      LLVM_DEBUG(llvm::dbgs() << "inlined: " << ruinedName << '\n');
+      if (SymbolTable::symbolKnownUseEmpty(ruinedFn, mod))
+        ruinedFn.erase();
     }
   }
 };

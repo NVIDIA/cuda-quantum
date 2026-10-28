@@ -250,12 +250,35 @@ private:
       verifyCallee(op, call.getCalleeAttr());
   }
 
+  /// A call through a value is opaque: the callee is not a symbol that can be
+  /// descended into, and this pass has no analysis to find out what the value
+  /// may be. By the time this runs, `ConvertToDirectCalls` and the inliner have
+  /// already resolved every call they are able to, so a call that is still
+  /// indirect is one whose callee is unknown. Such a callee may
+  /// measure or allocate qubits, so the region cannot be verified. This is a
+  /// warning for now and not an error, as it can reject programs that are
+  /// accepted today.
+  void verifyIndirectCall(Operation *op) {
+    if (!isa<func::CallIndirectOp, cudaq::cc::CallCallableOp,
+             cudaq::cc::CallIndirectCallableOp>(op))
+      return;
+    if (!reportedOperations.insert(op).second)
+      return;
+    if (auto sourceLoc = op->getLoc()->findInstanceOf<FileLineColLoc>())
+      if (!reportedIndirectCallLocations.insert(sourceLoc).second)
+        return;
+    op->emitWarning(
+        "cannot verify this call inside an atomic quantum region: the callee "
+        "is not known, so it may measure or allocate qubits");
+  }
+
   /// Regions nest but never reopen, so `insideAtomicRegion` only ever gets set.
   void verifyOperation(Operation *op, bool insideAtomicRegion) {
     insideAtomicRegion |= startsAtomicRegion(op);
     if (insideAtomicRegion) {
       verifyForbiddenOperation(op);
       verifyResidualCall(op);
+      verifyIndirectCall(op);
     }
 
     for (Region &region : op->getRegions())
@@ -269,6 +292,7 @@ private:
   llvm::DenseSet<Operation *> reportedOperations;
   llvm::DenseSet<Operation *> verifiedCallees;
   llvm::SmallDenseSet<Location> reportedAllocationLocations;
+  llvm::SmallDenseSet<Location> reportedIndirectCallLocations;
   llvm::SmallDenseSet<Location> reportedMeasurementLocations;
 };
 

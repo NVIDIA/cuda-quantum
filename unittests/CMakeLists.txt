@@ -225,7 +225,7 @@ target_link_libraries(test_utils
   gtest_main)
 cudaq_gtest_discover_tests(test_utils PROPERTIES PROCESSORS ${CUDAQ_TEST_OMP_SLOTS} DISCOVERY_TIMEOUT 120)
 
-add_executable(test_nvqir_verify main.cpp qir/NVQIRVerify.cpp)
+add_executable(test_nvqir_verify main.cpp qir/NVQIRVerify.cpp qir/QIRSpecVerifierTester.cpp)
 target_link_libraries(test_nvqir_verify
   PRIVATE
     cudaq

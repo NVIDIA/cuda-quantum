@@ -2153,9 +2153,12 @@ def RunSemanticsHackery : Pass<"run-semantics-hackery", "mlir::ModuleOp"> {
     through the host ABI. After the `kernel-execution` pass creates the `.run`
     wrapper, this pass finds wrappers that call kernels returning `!cc.sequence`,
     clones those kernels, removes calls to `__nvqpp_vectorCopyCtor` from the
-    clones, and redirects the wrappers to call the clones. It must run after
-    `kernel-execution`, while both the generated wrapper and original kernel are
-    present.
+    clones, and inlines the clones into the wrappers. The inlining is part of
+    the transformation and does not depend on any later inlining pipeline: with
+    the copy to the heap removed, the result of a clone refers to the stack
+    frame of the clone, which must therefore be the frame of the wrapper. This
+    pass must run after `kernel-execution`, while both the generated wrapper and
+    original kernel are present.
   }];
 
   let dependentDialects = ["cudaq::cc::CCDialect", "mlir::func::FuncDialect"];
