@@ -1266,6 +1266,10 @@ bool create_shared_ring_host_graph(void** d_mailbox_bank,
 // returned status): doubles the rx payload into tx and sets result_len.
 __device__ int device_double_handler(const void* rx_slot, void* tx_slot,
                                      std::size_t slot_size) {
+  // The dispatcher calls this on every thread of its block: each thread
+  // doubles its own bytes.  That is safe on the in-place ring of
+  // SharedRingDispatcherTest (tx_slot aliases rx_slot) because no byte is
+  // touched by more than one thread.
   const auto* h = static_cast<const RPCHeader*>(rx_slot);
   const auto* in =
       static_cast<const std::uint8_t*>(rx_slot) + sizeof(RPCHeader);
@@ -1275,9 +1279,13 @@ __device__ int device_double_handler(const void* rx_slot, void* tx_slot,
   std::uint32_t n = h->arg_len;
   if (n > max_result_len)
     n = max_result_len;
-  for (std::uint32_t i = 0; i < n; ++i)
+  for (std::uint32_t i = threadIdx.x; i < n; i += blockDim.x)
     out[i] = static_cast<std::uint8_t>(in[i] * 2);
-  resp->result_len = n;
+  // result_len aliases arg_len on the in-place ring: every thread must have
+  // read the header before thread 0 overwrites it.
+  __syncthreads();
+  if (threadIdx.x == 0)
+    resp->result_len = n;
   return 0;
 }
 

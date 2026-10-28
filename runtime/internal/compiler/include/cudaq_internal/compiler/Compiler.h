@@ -12,6 +12,7 @@
 #include "common/Environment.h"
 #include "common/KernelArgs.h"
 #include "cudaq_internal/compiler/CompiledModuleHelper.h"
+#include "cudaq_internal/compiler/LoweringHandler.h"
 #include "cudaq/Target/CompileTarget.h"
 #include "cudaq/algorithms/sample/policy.h"
 #include "cudaq/runtime/logger/logger.h"
@@ -62,6 +63,10 @@ class Compiler {
   /// @brief The compile options to compile with.
   cudaq::CompileOptions options;
 
+  /// @brief The lowering handlers, consulted in order to infer compilation
+  /// pipelines.
+  std::vector<std::unique_ptr<LoweringHandler>> handlers;
+
   /// @brief Flag indicating whether we should print the IR.
   bool printIR = false;
 
@@ -82,11 +87,13 @@ class Compiler {
                 cudaq::KernelArgs args, bool isEntryPoint);
 
   /// Delay combine-measurements for emulation, then run the main pass
-  /// pipeline.  Returns
+  /// pipeline built from \p resolvedOptions, the options resolved for this
+  /// compile.  Returns
   ///  - whether combine-measurements was delayed,
   ///  - the pass pipeline that was executed.
   std::pair<bool, std::string>
-  executeMainPipeline(mlir::ModuleOp moduleOp, const std::string &kernelName);
+  executeMainPipeline(mlir::ModuleOp moduleOp, const std::string &kernelName,
+                      const cudaq::CompileOptions &resolvedOptions);
 
   /// Create JIT and MLIR artifacts and assemble a CompiledModule.
   cudaq::CompiledModule assembleCompiledModule(
@@ -105,8 +112,14 @@ public:
   static std::pair<const void *, std::shared_ptr<mlir::MLIRContext>>
   loadQuakeCodeByName(const std::string &kernelName);
 
+  /// @brief Construct with the default set of lowering handlers.
   Compiler(const cudaq::CompileTarget &target,
            const cudaq::CompileOptions &options);
+
+  /// @brief Construct with an explicit, complete set of lowering handlers.
+  Compiler(const cudaq::CompileTarget &target,
+           const cudaq::CompileOptions &options,
+           std::vector<std::unique_ptr<LoweringHandler>> handlers);
   ~Compiler();
 
   /// @brief Compile the given module and return a `CompiledModule`.
@@ -129,16 +142,21 @@ public:
   emitKernelExecutions(const cudaq::CompiledModule &compiled);
 };
 
-/// Get the pass pipeline string for the given compile target.
+/// Get the pass pipeline for the given compile target, resolving default
+/// (inferred) stages through \p handlers.
 ///
-/// Currently only supports the CustomPipelineLowering.
-/// If `CustomPipelineLowering.overridePassPipeline` is set, returns it
-/// directly (full override, interleave stages are ignored). Otherwise builds:
-/// [high] [,deployStage] [,mid] [,finalizeStage] [,low] where deployStage and
-/// finalizeStage are fixed stages interleaved between the config-provided
-/// stages. Pass empty strings to skip them.
-std::string getPassPipeline(const cudaq::CompileTarget &target,
-                            const cudaq::CompileOptions &options);
+/// Supports the following lowering strategies:
+///  - `CustomPipelineLowering`: appends the override pipeline, or its
+///  high/mid/low pipelines interleaved with the standard prep/deploy/finalize
+///  stages.
+///  - `InferredLowering`: infers the pipeline using the registered lowering
+///  handlers, based on the stage's input and output profiles. Fills \p
+///  diagnostic when an inferred stage cannot be lowered.
+std::optional<std::string>
+getPassPipeline(const cudaq::CompileTarget &target,
+                const cudaq::CompileOptions &options,
+                const std::vector<std::unique_ptr<LoweringHandler>> &handlers,
+                std::string &diagnostic);
 
 /// Compile a source module for the given policy, compile target and
 /// arguments.

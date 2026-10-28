@@ -6,9 +6,9 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --verify-each --optimize-1q-clifford-t %s | FileCheck %s
+// RUN: cudaq-opt --verify-each --normalize-1q-clifford-t %s | FileCheck %s
 // RUN: sed -n '/SEMANTIC-BEGIN$/,/SEMANTIC-END$/p' %s > %t.semantic.qke
-// RUN: cudaq-opt --verify-each --optimize-1q-clifford-t %t.semantic.qke | CircuitCheck %t.semantic.qke
+// RUN: cudaq-opt --verify-each --normalize-1q-clifford-t %t.semantic.qke | CircuitCheck %t.semantic.qke
 
 // The complete control predicate must follow the normal form through an
 // ordinary scope. The target remains the phase anchor.

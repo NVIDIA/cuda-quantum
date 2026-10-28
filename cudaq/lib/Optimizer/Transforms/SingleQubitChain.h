@@ -43,4 +43,12 @@ collectSingleQubitChains(mlir::Block &block,
 void replaceSingleQubitChain(SingleQubitChain &&chain,
                              mlir::ValueRange replacements);
 
+/// Call `rewriteBlock` on each block of `region`, then visit the regions of
+/// the operations that remain in that block. A rewrite in a nested block may
+/// erase operations that follow the enclosing operation, when a chain leaves a
+/// `cc.scope`, so the next operation is read only after the nested visit
+/// returns. `Operation::walk` reads it in advance and is not safe here.
+void forEachNestedBlock(mlir::Region &region,
+                        llvm::function_ref<void(mlir::Block &)> rewriteBlock);
+
 } // namespace cudaq::opt

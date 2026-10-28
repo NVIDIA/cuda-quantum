@@ -15,6 +15,11 @@ on:
         description: Create or update the build caches on the container registry. The build terminates after that and no images are pushed.
         required: false
         default: false
+      refresh_ccache:
+        type: boolean
+        description: Save the compiler caches of this run under the branch's tag and restore them from there. Runs on main, schedules, merge queues and PRs always save them.
+        required: false
+        default: false
       cache_base:
         required: false
         type: string
@@ -85,6 +90,10 @@ jobs:
       build_dependencies: ${{ steps.build_config.outputs.build_dependencies }}
       create_packages: ${{ steps.build_config.outputs.create_packages }}
       environment: ${{ steps.build_info.outputs.environment }}
+      release_title: ${{ steps.build_info.outputs.release_title }}
+      release_version: ${{ steps.build_info.outputs.release_version }}
+      cudaq_version: ${{ steps.build_info.outputs.cudaq_version }}
+      package_version: ${{ steps.build_info.outputs.package_version }}
 
     steps:
       - name: Retrieve PR info
@@ -150,16 +159,37 @@ jobs:
           # Store deployment info
           release_title="${{ inputs.create_release }}"
           release_version=`echo "$release_title" | (egrep -o "([0-9]{1,}\.)+[0-9]{1,}([A-Za-z0-9_\-\.]*)" || true)`
+          if [ -n "$release_title" ] && [ -z "$release_version" ]; then
+            echo "::error::create_release must contain a version number (e.g. 0.16.0), got '$release_title'."
+            exit 1
+          fi
+          # Packages get the PEP 440 part; other suffixes (-rc1) only reach the tag.
+          cudaq_version=`echo "$release_version" | (egrep -o "^([0-9]+\.)+[0-9]+((a|b|rc)[0-9]+)?(\.post[0-9]+)?(\.dev[0-9]+)?" || true)`
+
+          # Metapackages pin the wheel version.
+          is_versioned=${{ github.ref_type == 'tag' || startsWith(github.ref_name, 'releases/') || startsWith(github.ref_name, 'staging/') }}
+          if [ -n "$cudaq_version" ]; then
+            package_version=$cudaq_version
+          elif $is_versioned; then
+            package_version=`echo ${{ github.ref_name }} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}"`
+          else
+            package_version=0.0.0
+          fi
 
           echo "source-sha: ${{ github.sha }}" >> deployment_info.txt
           echo "release-title: $release_title" >> deployment_info.txt
           echo "release-version: $release_version" >> deployment_info.txt
+          echo "cudaq-version: $package_version" >> deployment_info.txt
 
           echo "cache_base=$cache_base" >> $GITHUB_OUTPUT
           echo "cache_target=$cache_target" >> $GITHUB_OUTPUT
           echo "multi_platform=$(echo $multi_platform)" >> $GITHUB_OUTPUT
           echo "platforms=$(echo $platforms)" >> $GITHUB_OUTPUT
           echo "environment=$environment" >> $GITHUB_OUTPUT
+          echo "release_title=$release_title" >> $GITHUB_OUTPUT
+          echo "release_version=$release_version" >> $GITHUB_OUTPUT
+          echo "cudaq_version=$cudaq_version" >> $GITHUB_OUTPUT
+          echo "package_version=$package_version" >> $GITHUB_OUTPUT
 
       - name: Upload deployment info
         uses: actions/upload-artifact@v7
@@ -279,6 +309,38 @@ jobs:
       environment: ${{ needs.metadata.outputs.environment }}
       # needed only for the matrix-outputs action
       matrix_key: ${{ matrix.platform }}-cu${{ matrix.cuda_version }}-installer
+
+  source_build_python:
+    name: Build cross-platform dependencies (Python)
+    needs: metadata
+    # Only refreshes the cache that the installer build restores its Python toolchain from.
+    if: needs.metadata.outputs.build_dependencies == 'true' && needs.metadata.outputs.cache_target != ''
+    strategy:
+      matrix:
+        platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
+        cuda_version: ["12.6", "13.0"]
+      fail-fast: false
+    uses: ./.github/workflows/dev_environment.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+    with:
+      platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
+      dockerfile: build/assets.Dockerfile
+      build_config_id: cu${{ matrix.cuda_version }}-llvm
+      build_target: prereqs_python
+      build_args: |
+        base_image=${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].minimal_base_image }}
+        cuda_version=${{ matrix.cuda_version }}
+        toolchain=llvm
+      registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
+      update_registry_cache: ${{ needs.metadata.outputs.cache_target }}
+      pull_request_number: ${{ needs.metadata.outputs.pull_request_number }}
+      pull_request_commit: ${{ needs.metadata.outputs.pull_request_commit }}
+      checkout_submodules: true
+      environment: ${{ needs.metadata.outputs.environment }}
+      # needed only for the matrix-outputs action
+      matrix_key: ${{ matrix.platform }}-cu${{ matrix.cuda_version }}-installer-python
 
   openmpi:
     name: Build Open MPI
@@ -852,6 +914,7 @@ jobs:
       build_runtime_wheel: false
       build_devel_wheel: true
       run_validation: false # validation runs in the Validation workflow
+      release_version: ${{ needs.metadata.outputs.cudaq_version }}
 
   python_wheels:
     name: Create Python wheels
@@ -880,11 +943,17 @@ jobs:
       # that output is ambiguous across a matrixed job's instances.
       devel_artifact_name: cudaq-devel-${{ matrix.platform }}
       build_logical_wheel: ${{ matrix.cuda_version == '13.0' }}
+      release_version: ${{ needs.metadata.outputs.cudaq_version }}
 
   binaries:
     name: Create CUDA Quantum installer
-    needs: [metadata, config]
-    if: ${{ ! inputs.devcontainer_only }}
+    # source_build_python fills the cache that the installer build restores; it may be skipped or fail.
+    needs: [metadata, config, release_draft, source_build_python]
+    # release_draft is skipped without create_release.
+    if: >-
+      ${{ !cancelled() && ! inputs.devcontainer_only
+      && needs.config.result == 'success'
+      && contains(fromJson('["success", "skipped"]'), needs.release_draft.result) }}
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
@@ -894,6 +963,7 @@ jobs:
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+      REPO_BOT_ACCESS_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
     with:
       platform: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       platform_base_image: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].minimal_base_image }}
@@ -902,13 +972,17 @@ jobs:
       build_cache: ${{ fromJson(needs.config.outputs.json).build_cache[format('{0}-cu{1}-installer', matrix.platform, matrix.cuda_version)] }}
       environment: ghcr-deployment
       run_validation: false # validation runs in the Validation workflow
+      release_version: ${{ needs.metadata.outputs.cudaq_version }}
+      release_tag: ${{ needs.release_draft.outputs.release_tag }}
+      keep_installer: true # Validation downloads it
 
   realtime_binaries:
     name: Create CUDA Quantum Realtime installer
-    needs: metadata
+    needs: [metadata, release_draft]
     if: >-
-      needs.metadata.outputs.create_packages == 'true'
+      ${{ !cancelled() && needs.metadata.outputs.create_packages == 'true'
       && ! inputs.devcontainer_only
+      && contains(fromJson('["success", "skipped"]'), needs.release_draft.result) }}
     strategy:
       matrix:
         platform: [amd64, arm64]
@@ -918,10 +992,12 @@ jobs:
     secrets:
       DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
       DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+      REPO_BOT_ACCESS_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
     with:
       platform: ${{ matrix.platform }}
       cuda_version: ${{ matrix.cuda_version }}
       environment: ghcr-deployment
+      release_tag: ${{ needs.release_draft.outputs.release_tag }}
 
   macos_ci:
     name: macOS CI
@@ -932,13 +1008,281 @@ jobs:
     uses: ./.github/workflows/ci_macos.yml
     with:
       cache_base: ${{ needs.metadata.outputs.cache_base }}
-      cudaq_version: ${{ inputs.create_release }}
+      cudaq_version: ${{ needs.metadata.outputs.cudaq_version }}
+
+  # Draft release: created first, assets are attached as each build finishes.
+  # Uploads use --clobber so failed jobs can be re-run. Publishing is manual.
+  release_draft:
+    name: Create draft release
+    needs: metadata
+    if: >-
+      needs.metadata.outputs.create_packages == 'true'
+      && needs.metadata.outputs.release_title != ''
+      && ! inputs.devcontainer_only
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    environment:
+      name: ghcr-deployment
+      url: ${{ vars.deployment_url }}
+      deployment: false
+
+    outputs:
+      release_tag: ${{ steps.draft.outputs.release_tag }}
+
+    steps:
+      - name: Create draft release
+        id: draft
+        env:
+          GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
+          RELEASE_TITLE: ${{ needs.metadata.outputs.release_title }}
+          RELEASE_VERSION: ${{ needs.metadata.outputs.release_version }}
+        run: |
+          # Tagged with the run id until release_finalize, to avoid stale drafts.
+          release_tag=${{ github.run_id }}
+          echo "release_tag=$release_tag" >> $GITHUB_OUTPUT
+
+          if gh release view "$release_tag" -R ${{ github.repository }} > /dev/null 2>&1; then
+            echo "Draft release $release_tag already exists."
+            exit 0
+          fi
+
+          versions=`gh release list -R ${{ github.repository }} --exclude-drafts --exclude-pre-releases | egrep -o "([0-9]{1,}\.)+[0-9]{1,}\S*" | sort -r -V`
+          latest_tag=`echo $versions | cut -d ' ' -f 1`
+
+          flags=(--draft)
+          if [ "$(echo $RELEASE_VERSION | egrep -o '([0-9]{1,}\.)+[0-9]{1,}')" != "$RELEASE_VERSION" ]; then
+            flags+=(--prerelease)
+          fi
+          if [ -n "$latest_tag" ]; then
+            flags+=(--generate-notes --notes-start-tag "$latest_tag")
+          fi
+
+          rel_notes="Release created by workflow [${{ github.run_id }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})."
+          rel_notes+="<br/>GitHub commit [${{ github.sha }}](https://github.com/${{ github.repository }}/tree/${{ github.sha }})"
+
+          gh release create "$release_tag" -R ${{ github.repository }} \
+            --title "$RELEASE_TITLE" --target ${{ github.sha }} \
+            --notes "$rel_notes" "${flags[@]}"
+
+  # One zip per platform; a single zip of all wheels is too big.
+  release_wheels:
+    name: Attach ${{ matrix.platform }} wheels to draft release
+    needs: [metadata, release_draft, python_devel_wheel, python_wheels]
+    if: >-
+      ${{ !cancelled() && needs.release_draft.result == 'success'
+      && needs.python_devel_wheel.result == 'success'
+      && needs.python_wheels.result == 'success' }}
+    strategy:
+      matrix:
+        platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
+      fail-fast: false
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Download CUDA-Q Python wheels
+        uses: actions/download-artifact@v8
+        with:
+          pattern: pycudaq-*-manylinux-${{ matrix.platform }}-*
+          path: wheelhouse
+
+      - name: Download cudaq-devel wheel
+        uses: actions/download-artifact@v8
+        with:
+          name: cudaq-devel-${{ matrix.platform }}
+          path: devel-wheels
+
+      - name: Download CUDA-Q Logical wheels
+        uses: actions/download-artifact@v8
+        with:
+          pattern: 'cudaq_logical-*'
+          path: logical-wheels
+          merge-multiple: true
+
+      - name: Attach wheels to draft release
+        env:
+          GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
+          RELEASE_TAG: ${{ needs.release_draft.outputs.release_tag }}
+        run: |
+          arch=`([ "${{ matrix.platform }}" == "amd64" ] && echo x86_64) || echo aarch64`
+          mkdir wheelhouse-${arch}
+
+          for dir in wheelhouse/*/; do
+            # candidate-core/ is for build-local validation; CUDA 13 publishes the core.
+            rm -rf "${dir}candidate-core"
+            mv -vf "${dir}"* wheelhouse-${arch}/
+          done
+
+          for kind in logical devel; do
+            if ! compgen -G "${kind}-wheels/cudaq_${kind}-*${arch}.whl" > /dev/null; then
+              echo "::error::No cudaq-${kind} wheel found for ${arch}."
+              exit 1
+            fi
+            mv -v ${kind}-wheels/cudaq_${kind}-*${arch}.whl wheelhouse-${arch}/
+          done
+
+          zip -r wheelhouse-${arch}.zip wheelhouse-${arch}
+          gh release upload "$RELEASE_TAG" -R ${{ github.repository }} wheelhouse-${arch}.zip --clobber
+
+  # The sdists only need the version, so they do not wait for the wheels.
+  metapackages:
+    name: Build metapackages
+    needs: metadata
+    if: >-
+      needs.metadata.outputs.create_packages == 'true'
+      && ! inputs.devcontainer_only
+    permissions:
+      actions: read
+      contents: read
+      packages: read
+    uses: ./.github/workflows/python_metapackages.yml
+    with:
+      cudaq_version: ${{ needs.metadata.outputs.package_version }}
+      python_versions: "['3.11', '3.12', '3.13', '3.14']"
+      cuda_versions: "['', '12.6', '13.0']"
+      wheel_artifacts: 'pycudaq-*' # unused, the tests run in Validation
+      run_tests: false
+      retention_days: 14
+
+  release_metapackages:
+    name: Attach metapackages to draft release
+    needs: [release_draft, metapackages]
+    if: >-
+      ${{ !cancelled() && needs.release_draft.result == 'success'
+      && needs.metapackages.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Download metapackages
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ needs.metapackages.outputs.artifact_name }}
+          path: metapackages
+
+      - name: Attach metapackages to draft release
+        env:
+          GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
+          RELEASE_TAG: ${{ needs.release_draft.outputs.release_tag }}
+        run: |
+          zip -r metapackages.zip metapackages
+          gh release upload "$RELEASE_TAG" -R ${{ github.repository }} metapackages.zip --clobber
+
+  # macOS is slowest, so its assets are attached whenever it finishes.
+  release_macos:
+    name: Attach macOS assets to draft release
+    needs: [release_draft, macos_ci]
+    if: >-
+      ${{ !cancelled() && needs.release_draft.result == 'success'
+      && needs.macos_ci.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Download macOS wheels
+        uses: actions/download-artifact@v8
+        with:
+          pattern: pycudaq-*-darwin-arm64
+          path: wheelhouse
+          merge-multiple: true
+
+      - name: Download macOS installer
+        uses: actions/download-artifact@v8
+        with:
+          pattern: cudaq-arm64-darwin-installer-*
+          path: installer
+          merge-multiple: true
+
+      - name: Attach macOS assets to draft release
+        env:
+          GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
+          RELEASE_TAG: ${{ needs.release_draft.outputs.release_tag }}
+        run: |
+          gh release upload "$RELEASE_TAG" -R ${{ github.repository }} installer/install_cuda_quantum* --clobber
+
+          mkdir wheelhouse-darwin
+          mv -vf wheelhouse/* wheelhouse-darwin/
+          zip -r wheelhouse-darwin.zip wheelhouse-darwin
+          gh release upload "$RELEASE_TAG" -R ${{ github.repository }} wheelhouse-darwin.zip --clobber
+
+  # Sets the final tag once every asset is attached.
+  release_finalize:
+    name: Finalize draft release
+    needs:
+      - metadata
+      - release_draft
+      - binaries
+      - realtime_binaries
+      - release_wheels
+      - release_metapackages
+      - macos_ci
+      - release_macos
+    if: >-
+      ${{ !cancelled() && needs.release_draft.result == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    environment:
+      name: ghcr-deployment
+      url: ${{ vars.deployment_url }}
+      deployment: false
+
+    steps:
+      - name: Finalize draft release
+        env:
+          GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
+          RELEASE_TAG: ${{ needs.release_draft.outputs.release_tag }}
+          RELEASE_VERSION: ${{ needs.metadata.outputs.release_version }}
+          RELEASE_TITLE: ${{ needs.metadata.outputs.release_title }}
+          INSTALLERS_RESULT: ${{ needs.binaries.result }}
+          REALTIME_RESULT: ${{ needs.realtime_binaries.result }}
+          WHEELS_RESULT: ${{ needs.release_wheels.result }}
+          METAPACKAGES_RESULT: ${{ needs.release_metapackages.result }}
+          # No macOS assets expected when it was skipped.
+          MACOS_RESULT: ${{ needs.macos_ci.result == 'skipped' && 'success' || needs.release_macos.result }}
+        run: |
+          # The run id tag is what re-run jobs use to find the draft, so a
+          # draft with missing assets keeps it and this job fails; re-running
+          # the failed jobs then re-runs this one.
+          missing=false
+          for item in "installers:$INSTALLERS_RESULT" "realtime installers:$REALTIME_RESULT" \
+                      "Linux wheels:$WHEELS_RESULT" "metapackages:$METAPACKAGES_RESULT" \
+                      "macOS assets:$MACOS_RESULT"; do
+            if [ "${item#*:}" != "success" ]; then
+              echo "::error::The ${item%%:*} were not attached (${item#*:})."
+              missing=true
+            fi
+          done
+          if $missing; then
+            echo "::error::Draft release $RELEASE_TAG is incomplete and keeps its run id tag. Re-run the failed jobs to finish it."
+            exit 1
+          fi
+
+          flags=()
+          if [ "$(echo $RELEASE_VERSION | egrep -o '([0-9]{1,}\.)+[0-9]{1,}')" != "$RELEASE_VERSION" ]; then
+            flags+=(--prerelease)
+          fi
+
+          # Stays a draft; publishing is manual.
+          gh release edit "$RELEASE_TAG" -R ${{ github.repository }} \
+            --title "$RELEASE_TITLE" --tag "$RELEASE_VERSION" "${flags[@]}"
 
   # Dispatches validation.yml with an explicit ref, not main (see there).
   trigger_validation:
     name: Trigger Validation
-    needs: [summary, python_wheels, binaries, realtime_binaries]
-    if: inputs.run_validation_after
+    # macOS and realtime assets are not needed to start Validation.
+    needs: [summary, python_wheels, binaries, metapackages]
+    # Explicit: a skipped ancestor (release_draft) would skip this under the default success().
+    if: >-
+      ${{ !cancelled() && inputs.run_validation_after
+      && needs.summary.result == 'success'
+      && needs.python_wheels.result == 'success'
+      && needs.binaries.result == 'success'
+      && needs.metapackages.result == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       actions: write

@@ -11,7 +11,7 @@
 # v1 compilation keys are rejected under a v2 `config`; they moved to
 # `compile-target`.
 
-version: 2
+version: 2-alpha
 name: lit-v2-invalid
 description: "V1 compilation keys rejected under v2"
 config:

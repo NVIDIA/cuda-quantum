@@ -44,6 +44,7 @@ add_cudaq_library(OptTransforms
   ExpandMeasurements.cpp
   ExpandVeqUses.cpp
   FactorQuantumAlloc.cpp
+  FuseSingleQubitChainsForCliffordT.cpp
   GenKernelExecution.cpp
   GenDeviceCodeLoader.cpp
   GetConcreteMatrix.cpp
@@ -67,8 +68,9 @@ add_cudaq_library(OptTransforms
   MultiControlDecomposition.cpp
   NormalizeAtomicQuantumRegions.cpp
   NormalizePhasePlacement.cpp
+  NormalizeSingleQubitCliffordT.cpp
   ObserveAnsatz.cpp
-  OptimizeSingleQubitCliffordT.cpp
+  OutlinePartitions.cpp
   PhaseFolding.cpp
   Pipelines.cpp
   PruneCtrlRelations.cpp
@@ -82,7 +84,6 @@ add_cudaq_library(OptTransforms
   RealtimeDeviceCall.cpp
   RefToVeqAlloc.cpp
   RegToMem.cpp
-  RepairLinearType.cpp
   ReplaceStateWithKernel.cpp
   ResetBeforeReuse.cpp
   ResourceCountPreprocess.cpp
@@ -97,6 +98,7 @@ add_cudaq_library(OptTransforms
   UnwindByDataFlow.cpp
   UpdateRegisterNames.cpp
   VariableCoalesce.cpp
+  VerifyProfileQuakeReferenceSemantics.cpp
   WiresToWiresets.cpp
   WriteAfterWriteElimination.cpp
 

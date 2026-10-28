@@ -87,6 +87,44 @@ def test_empty_control_register(negated):
                 assert counts[expected] == shots
 
 
+def test_gate_list_comprehension_filter():
+    """Tests that `if` filters of a gate-applying list comprehension are
+    honored."""
+
+    @cudaq.kernel
+    def never():
+        qs = cudaq.qvector(3)
+        [x(q) for q in qs if False]
+
+    counts = cudaq.sample(never)
+    assert counts["000"] == 1000
+
+    @cudaq.kernel
+    def skip_one(skip: int):
+        qs = cudaq.qvector(3)
+        [x(qs[i]) for i in range(3) if i != skip]
+
+    counts = cudaq.sample(skip_one, 1)
+    assert counts["101"] == 1000
+
+    @cudaq.kernel
+    def two_filters():
+        qs = cudaq.qvector(4)
+        [x(qs[i]) for i in range(4) if i > 0 if i < 3]
+
+    counts = cudaq.sample(two_filters)
+    assert counts["0110"] == 1000
+
+    @cudaq.kernel
+    def ctrl_filter():
+        qs = cudaq.qvector(4)
+        x(qs[0])
+        [x.ctrl(qs[0], qs[i]) for i in range(1, 4) if i != 2]
+
+    counts = cudaq.sample(ctrl_filter)
+    assert counts["1101"] == 1000
+
+
 @pytest.mark.parametrize("adjoint", [False, True])
 def test_mixed_open_controls_match_x_conjugation(adjoint):
     cudaq.register_operation("open_control_matrix",

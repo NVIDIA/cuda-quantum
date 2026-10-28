@@ -16,6 +16,9 @@ namespace cudaq::config {
 /// validation always passes. It is used until declarative IR profiles are
 /// introduced.
 struct UncheckedProfile {
+  /// Name identifying this profile in target configurations.
+  static constexpr char name[] = "unchecked";
+
   bool operator==(const UncheckedProfile &other) const = default;
 };
 
