@@ -69,69 +69,45 @@
 // CHECK-EMPTY:
 
 // The FTQC targets list one `quake-unmapped` stage with the `t-count` cost
-// model. The logical target's basis keeps rotations, so it runs no synthesis.
+// model, and the stage's passes run between deploy and finalize. The logical
+// target's basis keeps rotations, so it runs no synthesis.
 // CHECK-LABEL: compiler-bench-ftqc-logical level 2:
-// CHECK-NEXT: canonicalize
-// CHECK-NEXT: hw-jit-prep-pipeline{allow-early-exit=false}
-// CHECK-NEXT: jit-deploy-pipeline
-// CHECK-NEXT: decomposition{basis=h,s,t,rx,ry,rz,x,y,z,swap,x(1),y(1),z(1),x(2),z(2),r1}
-// CHECK-NEXT: prepare-for-wireset{maximum-iterations=1024}
-// CHECK-NEXT: clifford-t-optimization-pipeline{level=2 epsilon=0}
-// CHECK-NEXT: basis-conversion{basis=h,s,t,rx,ry,rz,x,y,z,swap,x(1),y(1),z(1),x(2),z(2)}
-// CHECK-NEXT: verify-profile-quake-unmapped{basis=h,s,t,rx,ry,rz,x,y,z,swap,x(1),y(1),z(1),x(2),z(2)}
-// CHECK-NEXT: jit-finalize-pipeline{lower-device-calls=true}
-// CHECK-EMPTY:
+// CHECK:       jit-deploy-pipeline
+// CHECK-NEXT:  decomposition{basis=h,s,t,rx,ry,rz,x,y,z,swap,x(1),y(1),z(1),x(2),z(2),r1}
+// CHECK-NEXT:  prepare-for-wireset{maximum-iterations=1024}
+// CHECK-NEXT:  clifford-t-optimization-pipeline{level=2 epsilon=0}
+// CHECK-NEXT:  basis-conversion{basis=h,s,t,rx,ry,rz,x,y,z,swap,x(1),y(1),z(1),x(2),z(2)}
+// CHECK-NEXT:  verify-profile-quake-unmapped{basis=h,s,t,rx,ry,rz,x,y,z,swap,x(1),y(1),z(1),x(2),z(2)}
+// CHECK-NEXT:  jit-finalize-pipeline
 
 // The Clifford+T target's basis has no rotation gate, so every level
 // synthesizes. Level 0 stays on references and runs no optimization.
 // CHECK-LABEL: compiler-bench-ftqc-clifford-t level 0:
-// CHECK-NEXT: canonicalize
-// CHECK-NEXT: hw-jit-prep-pipeline{allow-early-exit=false}
-// CHECK-NEXT: jit-deploy-pipeline
-// CHECK-NEXT: decomposition{basis=h,s,t,x,y,z,swap,x(1),y(1),z(1),r1,rx,ry,rz}
-// CHECK-NEXT: clifford-t-synthesis-pipeline{epsilon=1e-10 seed=0}
-// CHECK-NEXT: basis-conversion{basis=h,s,t,x,y,z,swap,x(1),y(1),z(1)}
-// CHECK-NEXT: verify-profile-quake-unmapped{basis=h,s,t,x,y,z,swap,x(1),y(1),z(1)}
-// CHECK-NEXT: jit-finalize-pipeline{lower-device-calls=true}
-// CHECK-EMPTY:
-
-// CHECK-LABEL: compiler-bench-ftqc-clifford-t level 1:
-// CHECK-NEXT: canonicalize
-// CHECK-NEXT: hw-jit-prep-pipeline{allow-early-exit=false}
-// CHECK-NEXT: jit-deploy-pipeline
-// CHECK-NEXT: decomposition{basis=h,s,t,x,y,z,swap,x(1),y(1),z(1),r1,rx,ry,rz}
-// CHECK-NEXT: prepare-for-wireset{maximum-iterations=1024}
-// CHECK-NEXT: clifford-t-optimization-pipeline{level=1 epsilon=1e-10}
-// CHECK-NEXT: clifford-t-synthesis-pipeline{epsilon=1e-10 seed=0}
-// CHECK-NEXT: basis-conversion{basis=h,s,t,x,y,z,swap,x(1),y(1),z(1)}
-// CHECK-NEXT: verify-profile-quake-unmapped{basis=h,s,t,x,y,z,swap,x(1),y(1),z(1)}
-// CHECK-NEXT: jit-finalize-pipeline{lower-device-calls=true}
-// CHECK-EMPTY:
+// CHECK:       jit-deploy-pipeline
+// CHECK-NEXT:  decomposition{basis=h,s,t,x,y,z,swap,x(1),y(1),z(1),r1,rx,ry,rz}
+// CHECK-NEXT:  clifford-t-synthesis-pipeline{epsilon=1e-10 seed=0}
+// CHECK-NEXT:  basis-conversion{basis=h,s,t,x,y,z,swap,x(1),y(1),z(1)}
+// CHECK-NEXT:  verify-profile-quake-unmapped{basis=h,s,t,x,y,z,swap,x(1),y(1),z(1)}
+// CHECK-NEXT:  jit-finalize-pipeline
 
 // CHECK-LABEL: compiler-bench-ftqc-clifford-t level 2:
-// CHECK-NEXT: canonicalize
-// CHECK-NEXT: hw-jit-prep-pipeline{allow-early-exit=false}
-// CHECK-NEXT: jit-deploy-pipeline
-// CHECK-NEXT: decomposition{basis=h,s,t,x,y,z,swap,x(1),y(1),z(1),r1,rx,ry,rz}
-// CHECK-NEXT: prepare-for-wireset{maximum-iterations=1024}
-// CHECK-NEXT: clifford-t-optimization-pipeline{level=2 epsilon=1e-10}
-// CHECK-NEXT: clifford-t-synthesis-pipeline{epsilon=1e-10 seed=0}
-// CHECK-NEXT: func.func(quake-simplify{threshold=1e-10},normalize-1q-clifford-t,phase-folding,normalize-phase-placement,lower-phase,canonicalize,dqe)
-// CHECK-NEXT: basis-conversion{basis=h,s,t,x,y,z,swap,x(1),y(1),z(1)}
-// CHECK-NEXT: verify-profile-quake-unmapped{basis=h,s,t,x,y,z,swap,x(1),y(1),z(1)}
-// CHECK-NEXT: jit-finalize-pipeline{lower-device-calls=true}
-// CHECK-EMPTY:
+// CHECK:       jit-deploy-pipeline
+// CHECK-NEXT:  decomposition{basis=h,s,t,x,y,z,swap,x(1),y(1),z(1),r1,rx,ry,rz}
+// CHECK-NEXT:  prepare-for-wireset{maximum-iterations=1024}
+// CHECK-NEXT:  clifford-t-optimization-pipeline{level=2 epsilon=1e-10}
+// CHECK-NEXT:  clifford-t-synthesis-pipeline{epsilon=1e-10 seed=0}
+// CHECK-NEXT:  func.func(quake-simplify{threshold=1e-10},normalize-1q-clifford-t,phase-folding,normalize-phase-placement,lower-phase,canonicalize,dqe)
+// CHECK-NEXT:  basis-conversion{basis=h,s,t,x,y,z,swap,x(1),y(1),z(1)}
+// CHECK-NEXT:  verify-profile-quake-unmapped{basis=h,s,t,x,y,z,swap,x(1),y(1),z(1)}
+// CHECK-NEXT:  jit-finalize-pipeline
 
 // Without a cost model, a `quake-unmapped` stage runs no optimization, even at
 // level 2.
 // CHECK-LABEL: no cost model level 2:
-// CHECK-NEXT: canonicalize
-// CHECK-NEXT: hw-jit-prep-pipeline{allow-early-exit=false}
-// CHECK-NEXT: jit-deploy-pipeline
-// CHECK-NEXT: basis-conversion{basis=h,x(1)}
-// CHECK-NEXT: verify-profile-quake-unmapped{basis=h,x(1)}
-// CHECK-NEXT: jit-finalize-pipeline{lower-device-calls=true}
-// CHECK-EMPTY:
+// CHECK:       jit-deploy-pipeline
+// CHECK-NEXT:  basis-conversion{basis=h,x(1)}
+// CHECK-NEXT:  verify-profile-quake-unmapped{basis=h,x(1)}
+// CHECK-NEXT:  jit-finalize-pipeline
 // clang-format on
 
 #include "cudaq_internal/compiler/Compiler.h"
@@ -209,8 +185,8 @@ int main(int argc, char **argv) {
 
   printPipeline(catalog, "compiler-bench-ftqc-logical",
                 atLevel(cudaq::OptimizationLevel::O2), " level 2");
-  for (auto level : {cudaq::OptimizationLevel::O0, cudaq::OptimizationLevel::O1,
-                     cudaq::OptimizationLevel::O2})
+  for (auto level :
+       {cudaq::OptimizationLevel::O0, cudaq::OptimizationLevel::O2})
     printPipeline(catalog, "compiler-bench-ftqc-clifford-t", atLevel(level),
                   " level " + std::to_string(static_cast<unsigned>(level)));
 

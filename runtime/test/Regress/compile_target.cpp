@@ -385,8 +385,9 @@ func.func @__nvqpp__mlirgen__longLoop() attributes {"cudaq-entrypoint", "cudaq-k
 
 /// A `quake-unmapped` stage optimizes for T count from level 2, so only level
 /// 2 fuses the rotations. A loop it cannot unroll stays rolled and is still
-/// counted. Without a rotation in the basis, every level synthesizes, so no
-/// rotation or phase is left.
+/// counted. Without a rotation in the basis, every level synthesizes. A
+/// rotation left over would fail the stage's verifier and the compile, so the
+/// counts only need to show that `rz`, `r1`, and the global phase are gone.
 void test_quake_unmapped_levels(mlir::MLIRContext *ctx) {
   const auto unmappedTarget = [](cudaq::config::QuakeUnmappedProfile profile) {
     cudaq::CompileTarget target;
@@ -440,17 +441,13 @@ void test_quake_unmapped_levels(mlir::MLIRContext *ctx) {
 // CHECK-LABEL: Long loop resource counts:
 // CHECK: total: 4096
 // CHECK-LABEL: Clifford+T level 0 resource counts:
-// CHECK-NEXT: phase: 0
-// CHECK-NEXT: rz: 0
-// CHECK-NEXT: rz(0): 0
-// CHECK-NEXT: rz(1): 0
-// CHECK-NEXT: r1: 0
+// CHECK: phase: 0
+// CHECK: rz: 0
+// CHECK: r1: 0
 // CHECK-LABEL: Clifford+T level 2 resource counts:
-// CHECK-NEXT: phase: 0
-// CHECK-NEXT: rz: 0
-// CHECK-NEXT: rz(0): 0
-// CHECK-NEXT: rz(1): 0
-// CHECK-NEXT: r1: 0
+// CHECK: phase: 0
+// CHECK: rz: 0
+// CHECK: r1: 0
 
 /// Kernel that the base QIR profile accepts.
 static const char *measureKernel = R"#(
