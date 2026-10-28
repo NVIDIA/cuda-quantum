@@ -144,6 +144,12 @@ runs:
       with:
         enable-apt: true
 
+    - name: Report disk usage before build
+      shell: bash
+      run: |
+        df -h / /tmp
+        du -sh /tmp/ccache-data 2>/dev/null || true
+
     - name: Build wheel
       uses: docker/build-push-action@v7
       env:
@@ -159,6 +165,13 @@ runs:
           python_version=${{ inputs.python_version }}
           build_devel=${{ inputs.build_devel }}
         outputs: ${{ steps.prereqs.outputs.docker_output }}
+
+    - name: Report disk usage after build
+      if: always()
+      shell: bash
+      run: |
+        df -h / /tmp
+        docker system df || true
 
     - name: Extract ccache from build
       # Dispatched and pushed branch runs only save it when refresh_ccache is set.
