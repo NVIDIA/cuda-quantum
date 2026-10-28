@@ -48,18 +48,20 @@ extern const char __stop___nv_relfatbin[]
 ///
 /// Returns CUDAQ_ERR_UNSUPPORTED when the binary carries no relocatable device
 /// code.
-__attribute__((unused)) static cudaq_status_t
+static inline cudaq_status_t
 cudaq_device_code_of_this_binary(cudaq_device_image_t *out_image) {
   if (!out_image)
     return CUDAQ_ERR_INVALID_ARG;
-  if (!__start___nv_relfatbin || !__stop___nv_relfatbin ||
-      __stop___nv_relfatbin == __start___nv_relfatbin) {
+  // As pointers: comparing the arrays themselves is -Warray-compare.
+  const char *begin = __start___nv_relfatbin;
+  const char *end = __stop___nv_relfatbin;
+  if (!begin || !end || end == begin) {
     fprintf(stderr, "ERROR: cudaq_device_code_of_this_binary: this binary "
                     "carries no relocatable device code; build it with -rdc\n");
     return CUDAQ_ERR_UNSUPPORTED;
   }
-  out_image->data = __start___nv_relfatbin;
-  out_image->size = (size_t)(__stop___nv_relfatbin - __start___nv_relfatbin);
+  out_image->data = begin;
+  out_image->size = (size_t)(end - begin);
   return CUDAQ_OK;
 }
 

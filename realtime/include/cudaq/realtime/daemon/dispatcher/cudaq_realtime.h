@@ -582,7 +582,7 @@ cudaq_status_t cudaq_dispatcher_get_device_handler_in(
 //
 // `static` on purpose: each binary must run its own copy, which reads its own
 // device code.
-__attribute__((unused)) static cudaq_status_t
+static inline cudaq_status_t
 cudaq_dispatcher_get_device_handler(cudaq_dispatcher_t *dispatcher,
                                     const char *name, void **out_fn) {
   cudaq_device_image_t image;
