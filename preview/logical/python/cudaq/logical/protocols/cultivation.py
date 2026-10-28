@@ -33,7 +33,7 @@ from cudaq.logical.codes import (
     PatchTransform,
 )
 from cudaq.logical.gadgets import (
-    GadgetProfile,
+    GadgetContract,
     GadgetSpec,
     OutcomeMap,
     Port,
@@ -219,7 +219,7 @@ def grow_color_3_to_5(
     return (state, *outcomes)
 
 
-grow_color_3_to_5_profile = GadgetProfile(
+grow_color_3_to_5_profile = GadgetContract(
     grow_color_3_to_5,
     success=success_all_zero(
         tuple(grow_color_3_to_5.record(name) for name in _growth_records),),

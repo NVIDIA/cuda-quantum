@@ -2096,7 +2096,7 @@ def _make_rus_rotation_strategy(
             rejection_rows = (gadgets.SuccessPredicate(
                 gadgets.ProfileParity.from_value(
                     scratch_readout.record("mpp0.outcome")) ^ True),)
-        attempt_analysis = gadgets.GadgetProfile(
+        attempt_analysis = gadgets.GadgetContract(
             scratch_readout,
             success=rejection_rows,
             name=(f"{context.lowering.name}_{design.sha256[:12]}_rus_success"),

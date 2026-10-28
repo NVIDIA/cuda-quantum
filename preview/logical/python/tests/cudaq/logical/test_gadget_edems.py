@@ -70,7 +70,7 @@ def readout(block: cql.patch[cql.codes.BareQubit]) -> bool:
 
 
 def _round_profile(*, detectors=True, wrong_output=False):
-    graph = cql.gadgets.ProfileGraph(round_checks.interface)
+    graph = cql.gadgets.GadgetContractBuilder(round_checks.interface)
     incoming = round_checks.interface.inputs.only().syndrome
     outgoing = round_checks.interface.outputs.only().syndrome
     records = (round_checks.record("first.outcome"),
@@ -98,7 +98,7 @@ def _native_owned_record(capsule):
 
 
 def test_native_owned_result_adopts_once_without_payload_copy():
-    build = cql.compile(cql.gadgets.GadgetProfile(hadamard))
+    build = cql.compile(cql.gadgets.GadgetContract(hadamard))
     module = build._fresh_module()
     capsule = _qlxRuntime.derive_edem_owned(module, "", FaultSet().to_json())
     record = _native_owned_record(capsule)
@@ -127,13 +127,13 @@ def test_derive_edem_adopts_the_native_allocation(monkeypatch):
         return capsule
 
     monkeypatch.setattr(_qlxRuntime, "derive_edem_owned", capture)
-    model = derive_edem(cql.compile(cql.gadgets.GadgetProfile(hadamard)))
+    model = derive_edem(cql.compile(cql.gadgets.GadgetContract(hadamard)))
     assert addresses == [model._data_address]
     assert model.apply([1, 0]) == [0, 1]
 
 
 def test_hadamard_transfer_and_fault_sites_all_inputs():
-    build = cql.compile(cql.gadgets.GadgetProfile(hadamard))
+    build = cql.compile(cql.gadgets.GadgetContract(hadamard))
     before = build.to_mlir(), build.content_sha256
     projection = cql.compiler.project_clifford(build, gadget="hadamard")
     faults = FaultSet().pauli_error("", 0, "x", .01).pauli_error(
@@ -158,7 +158,7 @@ def test_hadamard_transfer_and_fault_sites_all_inputs():
 
 
 def test_cnot_preserves_separate_code_block_order():
-    model = derive_edem(cql.compile(cql.gadgets.GadgetProfile(cnot)))
+    model = derive_edem(cql.compile(cql.gadgets.GadgetContract(cnot)))
     assert len(model.inputs) == len(model.outputs) == 2
     assert len(model.codes) == 1
     for x0, z0, x1, z1 in product((0, 1), repeat=4):
@@ -187,14 +187,14 @@ def test_open_round_exhaustive_separates_virtual_syndrome_and_boundary_error():
 
 def test_preparation_has_only_output_and_readout_allows_random_observables():
     prepare = cql.gadgets.prepare_zero(cql.codes.BareQubit)
-    build = cql.compile(cql.gadgets.GadgetProfile(prepare))
+    build = cql.compile(cql.gadgets.GadgetContract(prepare))
     projection = cql.compiler.project_clifford(build, gadget=prepare.name)
     faults = FaultSet().pauli_error(projection.instructions[-1].site_id, 0, "x",
                                     .1)
     model = derive_edem(build, faults=faults)
     assert model.inputs == []
     assert model.apply([1]) == [1, 0]
-    build = cql.compile(cql.gadgets.GadgetProfile(readout))
+    build = cql.compile(cql.gadgets.GadgetContract(readout))
     model = derive_edem(build,
                         faults=FaultSet().record_flip("mpp0.outcome", .1))
     assert model.outputs == []
@@ -215,15 +215,15 @@ def test_rank_incomplete_and_incorrect_output_contracts_are_rejected():
 
 
 def test_nondeterministic_detectors_and_wrong_affine_constants_are_rejected():
-    profile = cql.gadgets.GadgetProfile(readout,
-                                        detectors=(cql.gadgets.Detector(
-                                            readout.record("mpp0.outcome")),))
+    profile = cql.gadgets.GadgetContract(readout,
+                                         detectors=(cql.gadgets.Detector(
+                                             readout.record("mpp0.outcome")),))
     with pytest.raises(RuntimeError, match="not deterministically zero"):
         derive_edem(cql.compile(profile))
     build = cql.compile(_round_profile())
     module = _qlxRuntime.clone_module(build.module)
     profile = next(op for op in module.body.operations
-                   if op.operation.name == "fabric.gadget_profile")
+                   if op.operation.name == "fabric.gadget_contract")
     assignment = next(op for op in profile.regions[0].blocks[0].operations
                       if op.operation.name == "fabric.output_syndrome")
     assignment.attributes["constant"] = ir.BoolAttr.get(True,
@@ -245,7 +245,7 @@ def test_redundant_and_zero_detectors_remain_valid():
 
 
 def test_categorical_laws_and_correlated_effects_are_preserved():
-    build = cql.compile(cql.gadgets.GadgetProfile(hadamard))
+    build = cql.compile(cql.gadgets.GadgetContract(hadamard))
     faults = FaultSet().depolarize1("", 0, .3)
     model = derive_edem(build, faults=faults)
     group, = model.faults[0].groups
@@ -277,12 +277,12 @@ def test_categorical_laws_and_correlated_effects_are_preserved():
 ])
 def test_faults_resolve_against_exact_projection(faults, diagnostic):
     with pytest.raises(RuntimeError, match=diagnostic):
-        derive_edem(cql.compile(cql.gadgets.GadgetProfile(hadamard)),
+        derive_edem(cql.compile(cql.gadgets.GadgetContract(hadamard)),
                     faults=faults)
 
 
 def test_native_fault_parser_rejects_malformed_and_unsupported_inputs():
-    module = cql.compile(cql.gadgets.GadgetProfile(hadamard))._fresh_module()
+    module = cql.compile(cql.gadgets.GadgetContract(hadamard))._fresh_module()
     for change in ({
             "exclusive_groups": [[0, 0]]
     }, {
@@ -302,7 +302,7 @@ def test_native_fault_parser_rejects_malformed_and_unsupported_inputs():
 
 
 def test_probability_totals_use_the_same_validator_as_edem_construction():
-    build = cql.compile(cql.gadgets.GadgetProfile(hadamard))
+    build = cql.compile(cql.gadgets.GadgetContract(hadamard))
     faults = FaultSet().pauli_channel("", {"x": .6, "z": .5}, (0,))
     with pytest.raises(RuntimeError, match="EDEM assembly failed"):
         derive_edem(build, faults=faults)
@@ -324,7 +324,7 @@ def test_overcomplete_presentation_section_on_attainable_syndromes():
     def identity(block: cql.patch[encoding]) -> cql.patch[encoding]:
         return block
 
-    graph = cql.gadgets.ProfileGraph(identity.interface)
+    graph = cql.gadgets.GadgetContractBuilder(identity.interface)
     graph.bind(identity.interface.outputs.only().syndrome,
                identity.interface.inputs.only().syndrome)
     model = derive_edem(cql.compile(graph.freeze()))
@@ -353,7 +353,7 @@ def test_effective_stabilizer_products_keep_their_affine_sign():
         return block
 
     incoming = check_bell.interface.inputs.only().syndrome
-    graph = cql.gadgets.ProfileGraph(check_bell.interface)
+    graph = cql.gadgets.GadgetContractBuilder(check_bell.interface)
     graph.bind(check_bell.interface.outputs.only().syndrome, incoming)
     graph.detector(incoming[2] ^ check_bell.record("yy.outcome"))
     model = derive_edem(cql.compile(graph.freeze()))
@@ -373,7 +373,7 @@ def test_canonical_and_assembled_syndrome_aliases_are_one_fault_effect():
 
     incoming = steane.interface.inputs.only().syndrome
     records = tuple(steane.record(f"round.s{i}") for i in range(incoming.width))
-    graph = cql.gadgets.ProfileGraph(steane.interface)
+    graph = cql.gadgets.GadgetContractBuilder(steane.interface)
     graph.bind(steane.interface.outputs.only().syndrome, records)
     for i, record in enumerate(records):
         graph.detector(incoming[i] ^ record)
@@ -397,8 +397,8 @@ def test_same_dimensions_do_not_alias_different_logical_presentations():
     def idle(block: cql.patch[swapped]) -> cql.patch[swapped]:
         return block
 
-    ordinary = derive_edem(cql.compile(cql.gadgets.GadgetProfile(hadamard)))
-    changed = derive_edem(cql.compile(cql.gadgets.GadgetProfile(idle)))
+    ordinary = derive_edem(cql.compile(cql.gadgets.GadgetContract(hadamard)))
+    changed = derive_edem(cql.compile(cql.gadgets.GadgetContract(idle)))
     assert ordinary.codes[0].name != changed.codes[0].name
     assert changed.apply([1, 0]) == [1, 0]
 
@@ -410,7 +410,7 @@ def test_probability_acceptance_tracks_native_edem_policy(values):
         tuple(
             ElementaryFault(str(i), p, (PauliInsertion("", ((0, "x"),)),))
             for i, p in enumerate(values)), (tuple(range(len(values))),))
-    build = cql.compile(cql.gadgets.GadgetProfile(hadamard))
+    build = cql.compile(cql.gadgets.GadgetContract(hadamard))
     distribution = edem.FaultDistribution(len(values), [
         edem.FaultGroup(edem.GroupKind.EXCLUSIVE, list(range(len(values))),
                         values)
@@ -444,10 +444,10 @@ def test_measured_carriers_remain_available_and_late_faults_affect_later_reads(
         cql.discard(block)
         return cql.ops.parity(bits)
 
-    profile = cql.gadgets.GadgetProfile(repeated,
-                                        detectors=(cql.gadgets.Detector(
-                                            repeated.record("first.data0") ^
-                                            repeated.record("second.data0")),))
+    profile = cql.gadgets.GadgetContract(repeated,
+                                         detectors=(cql.gadgets.Detector(
+                                             repeated.record("first.data0") ^
+                                             repeated.record("second.data0")),))
     build = cql.compile(profile)
     projection = cql.compiler.project_clifford(build, gadget="repeated")
     model = derive_edem(build,
@@ -470,7 +470,7 @@ def test_output_virtual_syndrome_can_follow_realization_randomness():
         block, _ = cql.ops.measure_pauli(block.data, paulis="Z", record="sign")
         return block
 
-    graph = cql.gadgets.ProfileGraph(random_sign.interface)
+    graph = cql.gadgets.GadgetContractBuilder(random_sign.interface)
     graph.bind(random_sign.interface.outputs.only().syndrome,
                (random_sign.record("sign.outcome"),))
     model = derive_edem(cql.compile(graph.freeze()),
@@ -490,7 +490,7 @@ def test_standard_measurement_noise_preserves_later_carrier_effects():
         cql.discard(block)
         return cql.ops.parity(bits)
 
-    profile = cql.gadgets.GadgetProfile(
+    profile = cql.gadgets.GadgetContract(
         repeated_noise,
         detectors=(cql.gadgets.Detector(
             repeated_noise.record("first.data0") ^
@@ -546,7 +546,7 @@ def test_overlapping_detector_and_observable_rows_do_not_complete_missing_rank(
         cql.discard(block)
         return cql.ops.parity(first)
 
-    profile = cql.gadgets.GadgetProfile(
+    profile = cql.gadgets.GadgetContract(
         duplicate_check,
         detectors=(cql.gadgets.Detector(
             duplicate_check.record("first.data0")),))
@@ -563,7 +563,7 @@ def test_remaining_single_carrier_cliffords_and_pauli_phases(gate):
     ) -> cql.patch[cql.codes.BareQubit]:
         return getattr(cql.ops, gate)(block.data)
 
-    model = derive_edem(cql.compile(cql.gadgets.GadgetProfile(phase)))
+    model = derive_edem(cql.compile(cql.gadgets.GadgetContract(phase)))
     for x, z in product((0, 1), repeat=2):
         assert model.apply([x,
                             z]) == [x, z ^ (x if gate in ("s", "sdg") else 0)]
@@ -583,9 +583,9 @@ def test_success_bits_have_separate_outputs_and_must_agree_ideally():
     assert model.detectors == []
     assert model.successes == [2]
     assert model.apply([1] + [0] * 6) == [1, 0, 1, 0, 0, 0, 0, 0]
-    bad = cql.gadgets.GadgetProfile(readout,
-                                    success=(cql.gadgets.SuccessPredicate(
-                                        readout.record("mpp0.outcome")),))
+    bad = cql.gadgets.GadgetContract(readout,
+                                     success=(cql.gadgets.SuccessPredicate(
+                                         readout.record("mpp0.outcome")),))
     with pytest.raises(RuntimeError, match="ideal accepted value"):
         derive_edem(cql.compile(bad))
 
@@ -602,7 +602,7 @@ def test_relative_record_can_start_with_the_gadget_name():
         block, _ = cql.ops.measure_pauli(block.data, paulis="Z", record="again")
         return block
 
-    profile = cql.gadgets.GadgetProfile(
+    profile = cql.gadgets.GadgetContract(
         prefixed,
         detectors=(cql.gadgets.Detector(
             prefixed.record("prefixed.read.outcome") ^

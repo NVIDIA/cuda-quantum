@@ -23,7 +23,7 @@ def emit_stim(
     noise: StandardDepolarizingNoise | None = None,
     depolarizations: Mapping[int, Sequence[Depolarize1Placement]] | None = None
 ) -> str:
-    """Export a closed single-block chain of ``GadgetProfile`` values.
+    """Export a closed single-block chain of ``GadgetContract`` values.
 
     The first occurrence prepares one encoded block, interior occurrences
     preserve it, and the last destroys it. Adjacent boundaries must use the
@@ -44,13 +44,13 @@ def emit_stim(
 
     Returns annotated circuit text directly, without a simulator dependency.
     """
-    from cudaq.logical.gadgets import GadgetProfile
+    from cudaq.logical.gadgets import GadgetContract
 
     profiles = tuple(profiles)
     if len(profiles) < 2 or any(
-            not isinstance(profile, GadgetProfile) for profile in profiles):
+            not isinstance(profile, GadgetContract) for profile in profiles):
         raise TypeError(
-            "emit_stim requires a closed chain of GadgetProfile values")
+            "emit_stim requires a closed chain of GadgetContract values")
     if noise is None:
         noise = StandardDepolarizingNoise()
     if not isinstance(noise, StandardDepolarizingNoise):

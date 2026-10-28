@@ -44,7 +44,7 @@ from cudaq.logical.codes import (
 )
 from cudaq.logical.gadgets.definition import GadgetDefinition
 from cudaq.logical.gadgets.interface import patch
-from cudaq.logical.gadgets.profiles import GadgetProfile
+from cudaq.logical.gadgets.contracts import GadgetContract
 from cudaq.logical.gadgets.records import ProfileParity, RecordRef
 from cudaq.logical.gadgets.semantics import (
     OutcomeMap,
@@ -1408,9 +1408,9 @@ class GadgetBuilder:
             raise TypeError(
                 "gadgets may call only other @cudaq.logical.gadget values")
         if analysis is not None:
-            if not isinstance(analysis, GadgetProfile):
+            if not isinstance(analysis, GadgetContract):
                 raise TypeError(
-                    "analysis= requires a cudaq.logical.GadgetProfile")
+                    "analysis= requires a cudaq.logical.GadgetContract")
             if analysis.gadget is not definition:
                 raise ValueError(
                     "analysis profile does not describe this gadget")

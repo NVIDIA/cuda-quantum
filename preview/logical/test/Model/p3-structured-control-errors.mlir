@@ -48,8 +48,8 @@ module {
   fabric.gadget @attempt() {
     fabric.return
   } {realization_boundary = {}, spec = @attempt_spec}
-  fabric.gadget_profile @attempt_profile for @attempt {}
-  fabric.gadget_profile @wrong_profile for @attempt {}
+  fabric.gadget_contract @attempt_profile for @attempt {}
+  fabric.gadget_contract @wrong_profile for @attempt {}
 
   func.func @bad_retry_contract(%q: !phys.state<@q>) {
     %0:2 = "phys.call"(%q) <{
@@ -126,7 +126,7 @@ module {
   fabric.gadget @attempt() {
     fabric.return
   } {realization_boundary = {}, spec = @attempt_spec}
-  fabric.gadget_profile @bogus_profile for @attempt attributes {
+  fabric.gadget_contract @bogus_profile for @attempt attributes {
     metadata = {
       success_probability = "0.5",
       success_probability_evidence = "bogus"
@@ -157,7 +157,7 @@ module {
   fabric.gadget @attempt() {
     fabric.return
   } {realization_boundary = {}, spec = @attempt_spec}
-  fabric.gadget_profile @synthesis_profile for @attempt attributes {
+  fabric.gadget_contract @synthesis_profile for @attempt attributes {
     metadata = {
       success_probability = "0.5",
       success_probability_evidence = "synthesis:sha256:0000000000000000000000000000000000000000000000000000000000000000",
@@ -193,7 +193,7 @@ module {
     {realization_boundary = {}, spec = @attempt_spec}
   fabric.gadget @other() { fabric.return }
     {realization_boundary = {}, spec = @other_spec}
-  fabric.gadget_profile @analysis for @other {}
+  fabric.gadget_contract @analysis for @other {}
   func.func @unrelated_retry_profile(%ok: i1, %q: !phys.state<@q>) {
     // expected-error @+1 {{profile must analyze the retry attempt}}
     %0 = phys.retry %ok carries (%q) {
@@ -215,7 +215,7 @@ module {
   }
   fabric.gadget @attempt() { fabric.return }
     {realization_boundary = {}, spec = @attempt_spec}
-  fabric.gadget_profile @attempt_profile for @attempt {}
+  fabric.gadget_contract @attempt_profile for @attempt {}
   func.func @bad_retry_probability(%ok: i1, %q: !phys.state<@q>) {
     // expected-error @+1 {{success_probability must be finite and lie in (0, 1]}}
     %0 = phys.retry %ok carries (%q) {
@@ -238,7 +238,7 @@ module {
   }
   fabric.gadget @attempt() { fabric.return }
     {realization_boundary = {}, spec = @attempt_spec}
-  fabric.gadget_profile @attempt_profile for @attempt {}
+  fabric.gadget_contract @attempt_profile for @attempt {}
   func.func @uncertified_retry_probability(%ok: i1, %q: !phys.state<@q>) {
     // expected-error @+1 {{success_probability requires a source and nonempty evidence}}
     %0 = phys.retry %ok carries (%q) {
@@ -270,8 +270,8 @@ module {
     {realization_boundary = {}, spec = @attempt_spec}
   fabric.gadget @other() { fabric.return }
     {realization_boundary = {}, spec = @other_spec}
-  fabric.gadget_profile @attempt_profile for @attempt {}
-  fabric.gadget_profile @other_profile for @other {}
+  fabric.gadget_contract @attempt_profile for @attempt {}
+  fabric.gadget_contract @other_profile for @other {}
   func.func @retry_names_another_attempt(%q: !phys.state<@q>) {
     %attempted:2 = "phys.call"(%q) <{
       callee = @attempt, event_id = "attempt0",
@@ -303,7 +303,7 @@ module {
   }
   fabric.gadget @attempt() { fabric.return }
     {realization_boundary = {}, spec = @attempt_spec}
-  fabric.gadget_profile @attempt_profile for @attempt {}
+  fabric.gadget_contract @attempt_profile for @attempt {}
   func.func @retry_carries_another_call(%q: !phys.state<@q>) {
     %first:2 = "phys.call"(%q) <{
       callee = @attempt, event_id = "attempt0",
@@ -344,7 +344,7 @@ module {
   }
   fabric.gadget @attempt() { fabric.return }
     {realization_boundary = {}, spec = @attempt_spec}
-  fabric.gadget_profile @attempt_profile for @attempt {}
+  fabric.gadget_contract @attempt_profile for @attempt {}
   func.func @retry_uses_unrelated_predicate(%ok: i1, %q: !phys.state<@q>) {
     %attempted:2 = "phys.call"(%q) <{
       callee = @attempt, event_id = "attempt0",
@@ -374,7 +374,7 @@ module {
   }
   fabric.gadget @attempt() { fabric.return }
     {realization_boundary = {}, spec = @attempt_spec}
-  fabric.gadget_profile @attempt_profile for @attempt {}
+  fabric.gadget_contract @attempt_profile for @attempt {}
   func.func @retry_condition_cannot_transform_direct_i1(%q: !phys.state<@q>) {
     %attempted:2 = "phys.call"(%q) <{
       callee = @attempt, event_id = "attempt0",

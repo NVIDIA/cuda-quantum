@@ -54,7 +54,7 @@ module attributes {qlx.profiles = ["p3"]} {
   fabric.gadget @leaf() { fabric.return }
   fabric.gadget @attempt() { fabric.return }
   fabric.gadget @outer() { fabric.return }
-  fabric.gadget_profile @attempt_profile for @attempt attributes {
+  fabric.gadget_contract @attempt_profile for @attempt attributes {
     metadata = {
       success_probability = "0.5",
       success_probability_evidence = "analysis:nested-template-test"

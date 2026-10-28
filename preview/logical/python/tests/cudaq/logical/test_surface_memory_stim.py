@@ -63,7 +63,7 @@ def test_builtin_surface_preparations_project_and_validate(
         for family, checks in (("x_check", code.hx), ("z_check", code.hz))
         for i in range(len(checks))
     }
-    graph = cql.gadgets.ProfileGraph(gadget.interface)
+    graph = cql.gadgets.GadgetContractBuilder(gadget.interface)
     for (family, _), record in records.items():
         if family == deterministic_family:
             graph.detector(record)
@@ -179,9 +179,9 @@ def test_stim_export_preserves_signed_measurements_and_affine_constants():
         return cql.ops.parity(outcome)
 
     record = negative_readout.record("negative.outcome")
-    graph = cql.gadgets.ProfileGraph(negative_readout.interface)
+    graph = cql.gadgets.GadgetContractBuilder(negative_readout.interface)
     graph.detector(cql.gadgets.ProfileParity(records=(record,), constant=True))
-    profiles = (cql.gadgets.GadgetProfile(prepare), graph.freeze())
+    profiles = (cql.gadgets.GadgetContract(prepare), graph.freeze())
     text = cql.compiler.emit_stim(profiles)
     # The synthetic constant bit carries the affine offset without changing
     # physical gates. The signed MPP produces one in the ideal realization.

@@ -42,7 +42,7 @@ from .specification import (
     _normalize_gadget_logical_ports,
     _verify_explicit_spec,
 )
-from .profiles import GadgetProfile, ProfileGraph
+from .contracts import GadgetContract, GadgetContractBuilder
 
 
 class GadgetDefinition(ImmutableValue):

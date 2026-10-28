@@ -28,17 +28,17 @@ def readout(block: cql.patch[cql.codes.Steane]) -> bool:
 
 
 def _profile_module():
-    build = cql.compile(cql.gadgets.GadgetProfile(readout))
+    build = cql.compile(cql.gadgets.GadgetContract(readout))
     module = _qlxRuntime.clone_module(build.module)
     profile = next(op for op in module.body.operations
-                   if op.operation.name == "fabric.gadget_profile")
+                   if op.operation.name == "fabric.gadget_contract")
     observable = next(op for op in profile.regions[0].blocks[0].operations
                       if op.operation.name == "fabric.observable")
     return module, observable
 
 
 def test_detector_map_uses_records_and_virtual_syndromes_in_separate_rows():
-    graph = cql.gadgets.ProfileGraph(memory.interface)
+    graph = cql.gadgets.GadgetContractBuilder(memory.interface)
     incoming = memory.interface.inputs.only().syndrome
     outgoing = memory.interface.outputs.only().syndrome
     records = tuple(
@@ -65,10 +65,10 @@ def test_detector_map_uses_records_and_virtual_syndromes_in_separate_rows():
 
 def test_redundant_and_constant_detector_rows_are_declarations_not_proofs():
     detector = cql.gadgets.Detector(memory.record("round.s0"))
-    profile = cql.gadgets.GadgetProfile(memory,
-                                        detectors=(detector, detector,
-                                                   cql.gadgets.Detector(False),
-                                                   cql.gadgets.Detector(True)))
+    profile = cql.gadgets.GadgetContract(memory,
+                                         detectors=(detector, detector,
+                                                    cql.gadgets.Detector(False),
+                                                    cql.gadgets.Detector(True)))
     # Shape verification deliberately does not certify that any row vanishes
     # ideally, nor that the declared family spans the full detector space.
     assert cql.compile(profile).module.operation.verify()
@@ -76,7 +76,7 @@ def test_redundant_and_constant_detector_rows_are_declarations_not_proofs():
 
 
 def test_observable_rows_are_derived_from_the_gadgets_outcome_map():
-    profile = cql.gadgets.GadgetProfile(readout)
+    profile = cql.gadgets.GadgetContract(readout)
     assert profile.observables == (cql.gadgets.LogicalObservable(
         readout.record("mpp0.outcome"), 0),)
     build = cql.compile(profile)
@@ -94,9 +94,9 @@ def test_declared_observables_cannot_override_action_outcomes():
     wrong = cql.gadgets.ProfileParity(records=(readout.record("mpp0.outcome"),),
                                       constant=True)
     with pytest.raises(cql.gadgets.ProfileSemanticError, match="disagrees"):
-        cql.gadgets.GadgetProfile(readout,
-                                  observables=(cql.gadgets.LogicalObservable(
-                                      wrong, 0),))
+        cql.gadgets.GadgetContract(readout,
+                                   observables=(cql.gadgets.LogicalObservable(
+                                       wrong, 0),))
 
 
 def test_observable_rows_cannot_depend_on_incoming_virtual_syndromes():
@@ -115,7 +115,7 @@ def test_observable_rows_cannot_depend_on_incoming_virtual_syndromes():
 @pytest.mark.parametrize("indices", [(1,), (0, 0), (0, 2)])
 def test_observable_indices_must_be_unique_and_contiguous(indices):
     with pytest.raises(ValueError, match="unique and contiguous"):
-        cql.gadgets.GadgetProfile(
+        cql.gadgets.GadgetContract(
             memory,
             observables=tuple(
                 cql.gadgets.LogicalObservable(False, index)
@@ -130,16 +130,16 @@ def test_observable_indices_are_nonnegative_integers(index):
 
 def test_profile_references_are_checked_against_the_selected_gadget():
     with pytest.raises(ValueError, match="records from its gadget"):
-        cql.gadgets.GadgetProfile(memory,
-                                  detectors=(cql.gadgets.Detector(
-                                      readout.record("mpp0.outcome")),))
+        cql.gadgets.GadgetContract(memory,
+                                   detectors=(cql.gadgets.Detector(
+                                       readout.record("mpp0.outcome")),))
     invalid = cql.gadgets.InputSyndromeRef(memory.interface.inputs.only(), 6)
     with pytest.raises(ValueError, match="invalid input syndrome"):
-        cql.gadgets.GadgetProfile(memory,
-                                  detectors=(cql.gadgets.Detector(invalid),))
-    profile = cql.gadgets.GadgetProfile(memory,
-                                        detectors=(cql.gadgets.Detector(
-                                            memory.record("missing.s0")),))
+        cql.gadgets.GadgetContract(memory,
+                                   detectors=(cql.gadgets.Detector(invalid),))
+    profile = cql.gadgets.GadgetContract(memory,
+                                         detectors=(cql.gadgets.Detector(
+                                             memory.record("missing.s0")),))
     with pytest.raises(ir.MLIRError, match="not an exact output"):
         cql.compile(profile)
 
@@ -164,3 +164,32 @@ def test_native_verifier_handles_a_missing_observable_index():
     with pytest.raises(RuntimeError,
                        match="observable index|requires attribute 'idx'"):
         _qlxRuntime.project_clifford_json(module, "readout")
+
+
+def test_contract_compilation_and_replay_preserve_ir_and_stage():
+    contract = cql.gadgets.GadgetContract(readout)
+    build = cql.compile(contract)
+    assert build.root.kind == "gadget_contract"
+    assert build.profile == "p2a"
+    assert "fabric.gadget_contract" in build.to_mlir()
+    contract_op = next(op for op in build.module.body.operations
+                       if op.operation.name == "fabric.gadget_contract")
+    assert contract_op.regions[0].blocks[0].operations[
+        -1].operation.name == "fabric.contract_end"
+    replayed = cql.compiler.Build.replay(build.serialize())
+    assert replayed.root == build.root
+    assert replayed.profile == build.profile
+    assert replayed.to_mlir() == build.to_mlir()
+
+
+def test_contract_api_has_one_authoring_builder_and_no_legacy_aliases():
+    from cudaq.logical.gadgets.contracts import GadgetContract, GadgetContractBuilder
+    from cudaq.logical.gadgets.contract_lowerer import GadgetContractLowerer
+
+    assert cql.gadgets.GadgetContract is GadgetContract
+    assert cql.gadgets.GadgetContractBuilder is GadgetContractBuilder
+    assert cql.gadgets.GadgetContractLowerer is GadgetContractLowerer
+    for old_name in ("GadgetProfile", "ProfileGraph", "GadgetProfileBuilder"):
+        assert not hasattr(cql.gadgets, old_name)
+    assert not hasattr(cql.compiler, "GadgetProfileBuilder")
+    assert not hasattr(cql.compiler, "GadgetContractBuilder")

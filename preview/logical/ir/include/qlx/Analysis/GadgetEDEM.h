@@ -38,9 +38,9 @@ mlir::FailureOr<PackedGadgetEDEM> deriveGadgetEDEM(mlir::ModuleOp module,
 /// violations are reported in the returned cudaq.logical.gadget-verification/v1
 /// JSON; structural problems fail with diagnostics. Reads the module without
 /// mutation.
-mlir::FailureOr<std::string> verifyGadgetProfile(mlir::ModuleOp module,
-                                                 llvm::StringRef profile,
-                                                 llvm::StringRef actionJson);
+mlir::FailureOr<std::string> verifyGadgetContract(mlir::ModuleOp module,
+                                                  llvm::StringRef profile,
+                                                  llvm::StringRef actionJson);
 
 } // namespace cudaq::logical
 

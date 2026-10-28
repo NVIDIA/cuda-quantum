@@ -58,13 +58,13 @@ module {
     } : (!fabric.patch<@c, @e>) -> (!fabric.patch<@c, @e>, i1)
     fabric.return %next : !fabric.patch<@c, @e>
   } {spec = @spec}
-  fabric.gadget_profile @analysis for @measure attributes {
+  fabric.gadget_contract @analysis for @measure attributes {
     inputs = [{endpoint = 0 : i64, name = "block", profile = @cp}],
     outputs = [{endpoint = 0 : i64, name = "block", profile = @cp}]
   } {
     fabric.detector {records = ["measure.read.outcome"]}
     fabric.observable {idx = 0 : i64, records = ["measure.read.outcome"]}
-    fabric.profile_end
+    fabric.contract_end
   }
   fabric.gadget @repeated(%patch: !fabric.patch<@c, @e>)
       -> !fabric.patch<@c, @e> {

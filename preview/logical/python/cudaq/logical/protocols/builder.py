@@ -42,7 +42,7 @@ from cudaq.logical.codes import (
 )
 from cudaq.logical.gadgets import (
     GadgetDefinition,
-    GadgetProfile,
+    GadgetContract,
     patch,
 )
 from cudaq.logical.devices.builder import LogicalRegionBuilder
@@ -405,7 +405,7 @@ class ProtocolBuilder:
                 returned_predicates.append(value.producer if isinstance(
                     value.producer, _PredicateProvenance) else None)
                 if (isinstance(value.producer, _PredicateProvenance) and
-                        isinstance(value.producer.analysis, GadgetProfile) and
+                        isinstance(value.producer.analysis, GadgetContract) and
                         value.producer.profile is not None and
                         value.mlir_value.owner.name == "fabric.call"):
                     predicate_contracts.append((result_index, value.producer))
@@ -1075,14 +1075,14 @@ class ProtocolBuilder:
     @staticmethod
     def _validate_selected_predicate(provenance, *, operation: str) -> None:
         analysis = provenance.analysis
-        if not isinstance(analysis, GadgetProfile):
+        if not isinstance(analysis, GadgetContract):
             raise UnsupportedCombination(
-                f"{operation} requires a selected GadgetProfile with one or "
+                f"{operation} requires a selected GadgetContract with one or "
                 "more success predicates")
         success_parities = analysis._effective_role_parities("success")
         if not success_parities:
             raise UnsupportedCombination(
-                f"{operation} requires a selected GadgetProfile with one or "
+                f"{operation} requires a selected GadgetContract with one or "
                 "more success predicates")
         if not provenance.outcome_rows:
             raise UnsupportedCombination(
@@ -1154,7 +1154,7 @@ class ProtocolBuilder:
             provenance = predicate.producer
             # Postselection is protocol policy and may condition any exact
             # Boolean produced by the selected attempt.  When the call also
-            # selects a GadgetProfile, verify its stronger success-table
+            # selects a GadgetContract, verify its stronger success-table
             # contract; do not require a profile merely to authorize policy.
             if provenance.analysis is not None:
                 self._validate_selected_predicate(provenance,
@@ -1481,9 +1481,9 @@ class ProtocolBuilder:
             raise TypeError("protocols may call @cudaq.logical.gadget or "
                             "@cudaq.logical.protocol values")
         if analysis is not None:
-            if not isinstance(analysis, GadgetProfile):
+            if not isinstance(analysis, GadgetContract):
                 raise TypeError(
-                    "analysis= requires a cudaq.logical.GadgetProfile")
+                    "analysis= requires a cudaq.logical.GadgetContract")
             if not isinstance(
                     definition,
                     GadgetDefinition) or analysis.gadget is not definition:
@@ -1545,7 +1545,7 @@ class ProtocolBuilder:
                         candidate.input_syndromes == parity.input_syndromes)
                     if len(matches) > 1:
                         raise UnsupportedCombination(
-                            "selected GadgetProfile success semantics "
+                            "selected GadgetContract success semantics "
                             "ambiguously match multiple OutcomeMap rows")
                     if not matches:
                         # A detached success family may contain rows that are

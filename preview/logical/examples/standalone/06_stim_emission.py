@@ -56,9 +56,9 @@ lattice = rotated_surface_lattice(distance)
 # Assemble preparation, repeated stabilizer rounds, and logical readout.
 # For custom profiles, see ../../docs/source/reference/detector-contracts.md
 # under "Declare a contract".
-prep = surface.gadget_profile(implementation.prepare_zero)
-sec = surface.gadget_profile(implementation.memory_round)
-readout = surface.gadget_profile(implementation.measure_z)
+prep = surface.gadget_contract(implementation.prepare_zero)
+sec = surface.gadget_contract(implementation.memory_round)
+readout = surface.gadget_contract(implementation.measure_z)
 # Preparation contributes one round; repeat the memory round for the rest.
 profiles = (prep, *((sec,) * (rounds - 1)), readout)
 placements = data_noise_placements(profiles, data_depolarization)

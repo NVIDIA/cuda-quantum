@@ -32,11 +32,7 @@ from cudaq.logical.programs.definition import (
     DefinitionHandle,
     ProgramDefinition,
 )
-from cudaq.logical.gadgets import (
-    GadgetDefinition,
-    GadgetProfile,
-    SuccessPredicate,
-)
+from cudaq.logical.gadgets import GadgetDefinition
 from cudaq.logical.stages import P2
 from cudaq.logical.architecture.physical_definition import PhysicalDefinition
 from cudaq.logical.protocols.definition import ProtocolDefinition
@@ -767,63 +763,6 @@ class CodeBuilder:
         )
 
 
-class GadgetProfileBuilder:
-    """Incremental convenience utility that freezes to GadgetProfile."""
-
-    def __init__(
-        self,
-        gadget,
-        *,
-        code_profile=None,
-        input_profiles=None,
-        output_profiles=None,
-        name=None,
-        metadata=None,
-    ):
-        self.gadget, self.name = gadget, name
-        self.code_profile = code_profile
-        self.input_profiles = input_profiles
-        self.output_profiles = output_profiles
-        self.metadata = metadata
-        self._success = []
-        self._boundary = {}
-
-    def success(self, parity):
-        self._success.append(SuccessPredicate(parity))
-        return self
-
-    def bind(self, target, value):
-        from cudaq.logical.gadgets import (
-            ProfileVectorExpr,
-            SyndromeBundleRef,
-        )
-
-        if not isinstance(target, SyndromeBundleRef):
-            raise TypeError(
-                "bind target must be an output endpoint.syndrome bundle")
-        if target.endpoint.gadget is not self.gadget:
-            raise ValueError("profile binding target belongs to another gadget")
-        if target in self._boundary:
-            raise ValueError("an output syndrome bundle may be bound only once")
-        width = (self.code_profile.effective_stabilizers.nrows
-                 if self.code_profile is not None else target.width)
-        self._boundary[target] = ProfileVectorExpr.from_value(value,
-                                                              width=width)
-        return self
-
-    def finish(self):
-        return GadgetProfile(
-            self.gadget,
-            code_profile=self.code_profile,
-            input_profiles=self.input_profiles,
-            output_profiles=self.output_profiles,
-            success=tuple(self._success),
-            boundary=self._boundary,
-            name=self.name,
-            metadata=self.metadata,
-        )
-
-
 class PhysicalBuilder:
     """Advanced direct P3 event-graph authoring over a concrete architecture."""
 
@@ -957,6 +896,5 @@ __all__ = [
     "GadgetBuilder",
     "ProtocolBuilder",
     "CodeBuilder",
-    "GadgetProfileBuilder",
     "PhysicalBuilder",
 ]

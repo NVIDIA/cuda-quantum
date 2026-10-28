@@ -332,7 +332,7 @@ class OutcomeMap:
 
 
 class ProfileSemanticError(ValueError):
-    """A semantic claim in a GadgetProfile is false or incomplete."""
+    """A semantic claim in a GadgetContract is false or incomplete."""
 
 
 def _scalar_profile_parities(expressions):
@@ -410,7 +410,7 @@ class _PredicateProvenance:
 
     definition: "GadgetDefinition | ProtocolDefinition"
     attempt: str
-    analysis: "GadgetProfile | None"
+    analysis: "GadgetContract | None"
     profile: str | None
     invocation: int
     parity: ProfileParity | None

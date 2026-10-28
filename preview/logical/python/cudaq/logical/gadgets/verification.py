@@ -15,7 +15,7 @@ import json
 from cudaq.logical.errors import GadgetVerificationError
 
 from .definition import GadgetDefinition
-from .profiles import GadgetProfile
+from .contracts import GadgetContract
 
 _SCHEMA = "cudaq.logical.gadget-verification/v1"
 
@@ -78,7 +78,7 @@ class GadgetVerificationReceipt:
     """
 
     gadget: str
-    profile: str
+    contract: str
     detector_contract: ContractVerification
     logical_action: LogicalActionVerification
 
@@ -166,7 +166,7 @@ def _action_verification(native, action, label) -> LogicalActionVerification:
 
 
 def _contract_verification(native) -> ContractVerification:
-    contract = native["contract"]
+    contract = native["detector_contract"]
     logical = contract["deterministic_logical_outcome_rank"]
     failures = []
     for failure in contract["failures"]:
@@ -205,7 +205,7 @@ def _contract_verification(native) -> ContractVerification:
     )
 
 
-def verify_gadget(contract: GadgetProfile,
+def verify_gadget(contract: GadgetContract,
                   *,
                   raise_on_failure: bool = True) -> GadgetVerificationReceipt:
     """Check a gadget and its detector contract from one Choi probe.
@@ -237,8 +237,8 @@ def verify_gadget(contract: GadgetProfile,
     do not prove fault tolerance.
     """
 
-    if not isinstance(contract, GadgetProfile):
-        raise TypeError("verify_gadget expects a GadgetProfile, the detector "
+    if not isinstance(contract, GadgetContract):
+        raise TypeError("verify_gadget expects a GadgetContract, the detector "
                         "contract declared for a gadget")
     from cudaq.mlir._mlir_libs import _qlxRuntime
 
@@ -263,7 +263,7 @@ def verify_gadget(contract: GadgetProfile,
         logical = LogicalActionVerification("unsupported", label, 0, reason)
     else:
         logical = _action_verification(native["logical_action"], action, label)
-    receipt = GadgetVerificationReceipt(gadget.name, native["profile"],
+    receipt = GadgetVerificationReceipt(gadget.name, native["contract"],
                                         _contract_verification(native), logical)
     failures = (*receipt.detector_contract.failures,
                 *receipt.logical_action.failures)

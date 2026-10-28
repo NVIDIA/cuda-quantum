@@ -741,7 +741,7 @@ class WSCMeasurementBundle:
 
     product: types.PauliProduct
     realization: gadgets.GadgetDefinition
-    analysis: gadgets.GadgetProfile
+    analysis: gadgets.GadgetContract
     evidence: WSCMeasurementEvidence
     rounds: int
     data_code: codes.Code
@@ -761,13 +761,13 @@ class WSCMeasurementBundle:
         return len(self.diagnostics.chi_checks)
 
 
-def measurement_profile(diagnostics, *, name: str) -> gadgets.GadgetProfile:
+def measurement_profile(diagnostics, *, name: str) -> gadgets.GadgetContract:
     """Derive the complete output-syndrome boundary for a WSC gadget."""
 
     gadget = diagnostics.gadget
     boundary = {output.syndrome: False for output in gadget.outputs.blocks}
     evidence = diagnostics.evidence
-    return gadgets.GadgetProfile(
+    return gadgets.GadgetContract(
         gadget,
         boundary=boundary,
         boundary_complete=True,

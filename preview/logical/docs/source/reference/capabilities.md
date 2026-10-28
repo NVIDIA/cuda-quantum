@@ -53,7 +53,7 @@ your own risk until exercised evidence lands.
 **Annotated Stim export covers closed single-block profile chains.** The
 Python exporter lowers detector and observable declarations and attaches an
 explicit physical noise policy. See the
-[surface-memory example](../use-cases/stim-emission.md#export-a-profiled-surface-code-memory).
+[surface-memory example](../use-cases/stim-emission.md#export-a-surface-code-memory-with-detector-contracts).
 Sampling, DEM extraction, and decoding use downstream tools. P3 physical error
 and timing assumptions remain inputs to resource estimates; they do not select
 the circuit's noise policy.

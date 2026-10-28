@@ -41,7 +41,7 @@ def discover_linked_definitions(source_modules, device):
     )
     from cudaq.logical.gadgets import (
         GadgetDefinition,
-        GadgetProfile,
+        GadgetContract,
     )
     from cudaq.logical.protocols.definition import ProtocolDefinition
 
@@ -52,7 +52,7 @@ def discover_linked_definitions(source_modules, device):
         EncodingHierarchy,
         EncodingProjection,
         GadgetDefinition,
-        GadgetProfile,
+        GadgetContract,
         ProtocolDefinition,
         QECLowering,
     )
