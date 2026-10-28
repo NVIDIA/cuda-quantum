@@ -237,6 +237,27 @@ def test_import_cudaq_accepts_a_multicontrolled_gate():
     assert p0.count("qlx.measure <Z>") == 3
 
 
+def test_cudaq_qvector_and_scalar_import_as_zero_preparation():
+    import cudaq
+    import cudaq.logical as cql
+
+    @cudaq.kernel
+    def qvector_entry():
+        register = cudaq.qvector(3)
+        scalar = cudaq.qubit()
+        h(register)
+        mz(register)
+        mz(scalar)
+
+    imported = cql.compiler.import_cudaq(qvector_entry)
+    text = imported.to_mlir()
+
+    assert text.count('qlx.prepare "zero"') == 4
+    assert text.count("#qlx.action<h>") == 3
+    assert text.count("qlx.measure <Z>") == 4
+    assert imported.module.operation.verify()
+
+
 def test_logical_estimate_is_invariant_under_cached_view_mutation():
     import cudaq.logical as cql
     import cudaq.mlir.ir as mlir_ir

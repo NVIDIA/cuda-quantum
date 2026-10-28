@@ -20,6 +20,7 @@ qlx.program @positive_quarter_pi : () -> i1 attributes {qlx.stage = "p0"} {
   %m:2 = qlx.instrument #qlx.instrument<mpp>(%r)
       {parameters = {sign = 1 : i64, x_mask = 1 : i64, z_mask = 0 : i64}}
       : (!qlx.logical_qubit) -> (!qlx.logical_qubit, i1)
+  qlx.discard %m#0 : !qlx.logical_qubit
   qlx.return %m#1 : i1
 }
 
@@ -38,7 +39,33 @@ qlx.program @negative_quarter_pi : () -> i1 attributes {qlx.stage = "p0"} {
   %m:2 = qlx.instrument #qlx.instrument<mpp>(%r)
       {parameters = {sign = 1 : i64, x_mask = 0 : i64, z_mask = 1 : i64}}
       : (!qlx.logical_qubit) -> (!qlx.logical_qubit, i1)
+  qlx.discard %m#0 : !qlx.logical_qubit
   qlx.return %m#1 : i1
 }
 
 // CHECK-LABEL: qlx.program @negative_quarter_pi
+
+// -----
+
+/// Canonical rotations may remain folded in a structured repeat. The repeat
+/// carries every qubit touched by its body and preserves carry positions.
+qlx.program @folded_rotations : () -> i1 attributes {qlx.stage = "p0"} {
+  %q = qlx.prepare "zero" {allocation = 0 : i64, value_index = 0 : i64} : !qlx.logical_qubit
+  %r = cflow.repeat 4096
+      iter(%arg : !qlx.logical_qubit = %q) {
+    %angle = arith.constant 0.78539816339744828 : f64
+    %rot = qlx.apply #qlx.action<pauli_rotation>(%arg, %angle)
+        {parameters = {angle_pi_denom = 4 : i64, angle_pi_numer = 1 : i64,
+                       sign = 1 : i64, x_mask = 1 : i64, z_mask = 0 : i64}}
+        : (!qlx.logical_qubit, f64) -> !qlx.logical_qubit
+    cflow.yield %rot : !qlx.logical_qubit
+  }
+  %m:2 = qlx.instrument #qlx.instrument<mpp>(%r)
+      {parameters = {sign = 1 : i64, x_mask = 0 : i64, z_mask = 1 : i64}}
+      : (!qlx.logical_qubit) -> (!qlx.logical_qubit, i1)
+  qlx.discard %m#0 : !qlx.logical_qubit
+  qlx.return %m#1 : i1
+}
+
+// CHECK-LABEL: qlx.program @folded_rotations
+//       CHECK:   cflow.repeat 4096
