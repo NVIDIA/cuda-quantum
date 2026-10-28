@@ -75,12 +75,20 @@ TEST(QPUStateTester, noArguments) {
 // is not part of that, so a kernel class with data members has no state to
 // capture: the values of the data members would be lost.
 TEST(QPUStateTester, rejectsKernelClassWithDataMembers) {
-  EXPECT_ANY_THROW(QPUState("Prep", quakeWithMembers(), 1.5));
+  try {
+    QPUState state("Prep", quakeWithMembers(), 1.5);
+    FAIL() << "expected an exception";
+  } catch (const std::runtime_error &e) {
+    std::string msg = e.what();
+    EXPECT_NE(msg.find("Prep"), std::string::npos) << msg;
+    EXPECT_NE(msg.find("data members"), std::string::npos) << msg;
+  }
 }
 
 TEST(QPUStateTester, rejectionDoesNotDependOnTheArguments) {
-  EXPECT_ANY_THROW(QPUState("Prep", quakeWithMembers()));
-  EXPECT_ANY_THROW(QPUState("Prep", quakeWithMembers(), 1, 1.5));
+  EXPECT_THROW(QPUState("Prep", quakeWithMembers()), std::runtime_error);
+  EXPECT_THROW(QPUState("Prep", quakeWithMembers(), 1, 1.5),
+               std::runtime_error);
 }
 
 TEST(QPUStateTester, acceptsKernelWithoutDataMembers) {
@@ -90,6 +98,6 @@ TEST(QPUStateTester, acceptsKernelWithoutDataMembers) {
 TEST(QPUStateTester, hasNoDataOnTheHost) {
   QPUState state("Prep", quakeWithoutMembers(), 1.5);
   EXPECT_FALSE(state.hasData());
-  EXPECT_ANY_THROW(state.getNumQubits());
-  EXPECT_ANY_THROW(state.getAmplitude({0, 1}));
+  EXPECT_THROW(state.getNumQubits(), std::runtime_error);
+  EXPECT_THROW(state.getAmplitude({0, 1}), std::runtime_error);
 }
