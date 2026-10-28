@@ -39,6 +39,11 @@ add_subdirectory(lib/Target/Fabric)
 # C-API shims for the Python bindings (always built; pure additive layer).
 add_subdirectory(lib/CAPI)
 
+# Unit tests that need Quake (see ir/unittests/PauliProductToQuake).
+if(QLX_USE_CUDAQ_SDK)
+  add_subdirectory(unittests/PauliProductToQuake)
+endif()
+
 # Tools.
 add_subdirectory(tools/qlx-opt)
 add_subdirectory(tools/qlx-translate)
