@@ -306,10 +306,8 @@ void quantum_platform::onRandomSeedSet(std::size_t seed) {
     if (!qpu)
       continue;
     qpu->onRandomSeedSet(seed);
-    // Some targets use the seed to randomize the compilation pipeline, so
-    // rebuild the compile target
-    // TODO: clean this up
-    compileTargets[qpuId] = qpu->getCompileTarget(runtimeTarget.get());
+    if (compileTargets[qpuId].resetOnRandomSeedSet)
+      compileTargets[qpuId] = qpu->getCompileTarget(runtimeTarget.get());
   }
 }
 

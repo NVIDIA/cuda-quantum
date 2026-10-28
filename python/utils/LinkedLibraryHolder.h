@@ -108,9 +108,11 @@ public:
   /// @brief Return true if a target exists with the given name.
   bool hasTarget(const std::string &name, bool includeUnavailable = false);
 
-  /// @brief Set the current target.
+  /// @brief Set the current target. If @p compileTarget is provided, kernels
+  /// are compiled against it instead of the target's default compile target.
   void setTarget(const std::string &targetName,
-                 std::map<std::string, std::string> extraConfig = {});
+                 std::map<std::string, std::string> extraConfig = {},
+                 std::optional<CompileTarget> compileTarget = std::nullopt);
 
   /// @brief Set the current target using a pair of compile target and runtime
   /// endpoint.
@@ -141,6 +143,12 @@ public:
   bool registerTargetConfig(const std::filesystem::path &configPath);
 
 private:
+  /// @brief Replace every QPU of @p platform with @p endpoints, all compiled
+  /// against @p compileTarget.
+  static void setQPUs(quantum_platform &platform,
+                      const CompileTarget &compileTarget,
+                      const std::vector<RuntimeEndpoint> &endpoints);
+
   config::HostEnvironment hostEnv() const;
   void addPluginScope(const std::filesystem::path &scope);
   void reloadTargets();
