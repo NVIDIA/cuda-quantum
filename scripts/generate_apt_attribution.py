@@ -154,7 +154,8 @@ def main():
     if not packages:
         # An empty list is a valid result (e.g. an image that ships no Python);
         # still write the header-only notice so downstream COPY globs match.
-        sys.stderr.write("No packages found in list files; writing empty notice.\n")
+        sys.stderr.write(
+            "No packages found in list files; writing empty notice.\n")
         with open(args.output, "w") as f:
             f.write("" if args.no_header else HEADER)
         return
