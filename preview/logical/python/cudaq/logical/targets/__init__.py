@@ -532,11 +532,11 @@ class Target(CustomTarget):
 
         from ..compiler.quake import CUDAQ_TARGET_PREPARATION_PIPELINE
 
-        target = CompileTarget()
+        target = CompileTarget(
+            custom_pipeline=CUDAQ_TARGET_PREPARATION_PIPELINE)
         target.fully_specialize = True
         target.support_resource_counts = False
         target.support_conditionals_on_measure_results = False
-        target.lowering = CUDAQ_TARGET_PREPARATION_PIPELINE
         return target
 
     @classmethod

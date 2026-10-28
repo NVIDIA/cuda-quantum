@@ -13,9 +13,9 @@ Both halves are installed together as a `CustomTarget` via `cudaq.set_target`.
 The next `cudaq.set_target(...)` or `cudaq.reset_target()` replaces the
 platform's QPUs and drops the custom target.
 
-WARNING: There are currently no checks in place to ensure that the compile target
-and runtime endpoint are compatible. If mis-configured, the behavior is undefined
-and the user will most likely run into confusing runtime errors.
+WARNING: There are currently no checks in place to ensure that the compile
+target and runtime endpoint are compatible. If mis-configured, the behavior is
+undefined and the user will most likely run into confusing runtime errors.
 
 ### Custom targets
 
@@ -52,8 +52,25 @@ rejected so that using the experimental API is an explicit opt-in.
 
 A compile target owns the MLIR pass pipelines, the code generation settings and
 the capabilities that kernels are compiled against. Build one with
-`cudaq._experimental.CompileTarget` and pass it as the `compile_target` field of
-a `CustomTarget`.
+`cudaq._experimental.CompileTarget` and pass it together with a runtime target
+name to `set_target`. `QuakeReferenceSemanticsProfile` is currently the only
+supported IR profile:
+
+```python
+from cudaq._experimental import CompileTarget, QuakeReferenceSemanticsProfile
+
+profile = QuakeReferenceSemanticsProfile(basis_gates=["h", "t", "z(1)"])
+target = CompileTarget(ir_output_profile=profile, codegen="qir-base")
+cudaq.set_target("qpp-cpu", compile_target=target)
+```
+
+The target string name passed to `set_target` specifies the target that kernels
+run on at runtime. Kernels are compiled against `compile_target` if it is given,
+and against the named target's default compile target otherwise.
+
+Alternatively, a `cudaq._experimental.CustomTarget` can also be passed to
+`set_target`. Passing `ir_output_profile=` builds a single stage whose lowering
+is inferred by the registered handlers:
 
 ### Runtime endpoints
 

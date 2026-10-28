@@ -84,6 +84,11 @@ struct CompileTarget {
   /// to emulate its behavior by inserting the corresponding kernel calls.
   bool replaceStateWithKernel = false;
 
+  /// Whether this compile target must be rebuilt from the QPU instance when
+  /// the random seed changes.
+  // TODO: ideally compile targets would be fixed and this could be removed.
+  bool resetOnRandomSeedSet = false;
+
   /// If the entire compilation is given by a single custom pipeline, return a
   /// pointer to it. Otherwise return `nullptr`.
   const std::string *getOverridePassPipeline() const;
