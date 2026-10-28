@@ -57,6 +57,7 @@ jobs:
         release: ['cudaq', 'cudaqx', 'cudaq-decoding']
     permissions:
       contents: read
+      packages: read
 
     steps:
       - name: Checkout repository
