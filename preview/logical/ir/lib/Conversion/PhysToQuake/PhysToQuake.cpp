@@ -26,14 +26,11 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "llvm/ADT/TypeSwitch.h"
 #include "llvm/Support/JSON.h"
-#include "llvm/Support/MathExtras.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/Dialect/LLVMIR/LLVMDialect.h"
 #include "mlir/IR/IRMapping.h"
-#include <cmath>
 #include <cstdint>
-#include <limits>
 #include <optional>
 
 namespace qlx {
@@ -63,10 +60,12 @@ static FailureOr<std::string> builtinProcess(Operation *declaration,
         "lowering to Quake");
   // A process with parameter values, such as `"angle": 0.5`, is more than
   // the gate its name spells, so lowering it by name would drop the values.
-  if (auto *parameters = object->getObject("parameters");
-      parameters && !parameters->empty())
-    return declaration->emitOpError(
-        "has a parameterized process, which has no lowering to Quake");
+  // Only an empty object states that there are none.
+  if (const llvm::json::Value *parameters = object->get("parameters"))
+    if (const llvm::json::Object *map = parameters->getAsObject();
+        !map || !map->empty())
+      return declaration->emitOpError(
+          "has a parameterized process, which has no lowering to Quake");
   return name->str();
 }
 
@@ -206,7 +205,7 @@ private:
   LogicalResult lowerRepeat(qlx::cflow::RepeatOp op);
   LogicalResult lowerWhile(qlx::cflow::WhileOp op);
   LogicalResult lowerOps(Block &block);
-  SmallVector<Attribute> liveCarriers();
+  SmallVector<Attribute> liveCarriers() const;
   void enterRegion(ValueRange arguments, ArrayRef<Attribute> carriers,
                    ValueRange physArguments);
   SmallVector<Value> carriedValues(ArrayRef<Attribute> carriers,
@@ -217,9 +216,11 @@ private:
   LogicalResult lowerAllFalse(qlx::phys::AllFalseOp op);
   LogicalResult lowerReturn(qlx::phys::ReturnOp op);
   Value toBoolean(Value physValue);
-  Attribute carrierOf(Value state);
-  Value wireOf(Value state);
+  Attribute carrierOf(Value state) const;
+  Value wireOf(Value state) const;
   void setWire(Value state, Value wire);
+  void mapValue(Value from, Value to);
+  void rollbackValues(std::size_t mark);
 
   ModuleOp module;
   qlx::phys::GraphOp graph;
@@ -231,6 +232,11 @@ private:
   /// A record from `arith.select` or from a region boundary maps to an `i1`.
   /// States are tracked in `wires`.
   IRMapping values;
+  /// The mapping that each write to `values` replaced, or null for a new key.
+  /// A control-flow region rolls back its writes when it ends, because they
+  /// do not dominate the code after it. Copying `values` per region instead
+  /// makes a graph with many control-flow ops lower in quadratic time.
+  SmallVector<std::pair<Value, Value>> undoLog;
   /// The current wire of each live carrier, keyed by its physical resource.
   /// Note: An elided `phys.call_template` advances its carriers without new
   /// SSA states, and later ops keep using the states from before it. So a
@@ -351,7 +357,7 @@ FailureOr<func::FuncOp> GraphLowering::lower() {
     if (isa<IndexType>(graphArg.getType()))
       value = arith::IndexCastOp::create(builder, graphArg.getLoc(),
                                          builder.getIndexType(), entryArg);
-    values.map(graphArg, value);
+    mapValue(graphArg, value);
   }
   // Step 6: Translate each op in program order. On failure, the diagnostic is
   // already on the P3 op, and the half-built entry point is discarded.
@@ -398,10 +404,10 @@ LogicalResult GraphLowering::lowerOp(Operation *op) {
         return lowerCondition(condition);
       })
       .Case([&](qlx::phys::XorOp xorOp) {
-        values.map(xorOp.getResult(),
-                   arith::XOrIOp::create(builder, loc,
-                                         values.lookup(xorOp.getLhs()),
-                                         values.lookup(xorOp.getRhs())));
+        mapValue(xorOp.getResult(),
+                 arith::XOrIOp::create(builder, loc,
+                                       values.lookup(xorOp.getLhs()),
+                                       values.lookup(xorOp.getRhs())));
         return success();
       })
       .Case([&](qlx::phys::AllFalseOp allFalse) {
@@ -445,6 +451,9 @@ LogicalResult GraphLowering::lowerOp(Operation *op) {
         for (Value operand : other->getOperands())
           if (isa<qlx::phys::RecordType>(operand.getType()))
             toBoolean(operand);
+        // The clone maps its results in `values`, so log what they replace.
+        for (Value result : other->getResults())
+          undoLog.emplace_back(result, values.lookupOrNull(result));
         Operation *lowered = builder.clone(*other, values);
         for (Value result : lowered->getResults())
           if (isa<qlx::phys::RecordType>(result.getType()))
@@ -475,14 +484,14 @@ LogicalResult GraphLowering::checkCarrier(Operation *op, Value state) {
 /// The physical resource that holds `state`. A state's type names its
 /// resource. While a call template replays a body written for other
 /// resources, `aliases` renames them to the invocation's.
-Attribute GraphLowering::carrierOf(Value state) {
+Attribute GraphLowering::carrierOf(Value state) const {
   Attribute resource =
       cast<qlx::phys::StateType>(state.getType()).getResource();
   return aliases.lookup_or(resource, resource);
 }
 
 /// The current wire of the qubit that holds `state`.
-Value GraphLowering::wireOf(Value state) {
+Value GraphLowering::wireOf(Value state) const {
   return wires.lookup(carrierOf(state));
 }
 
@@ -492,12 +501,37 @@ void GraphLowering::setWire(Value state, Value wire) {
   wires[carrierOf(state)] = wire;
 }
 
+/// Maps `from` to `to` in `values`, and logs the mapping that it replaces.
+void GraphLowering::mapValue(Value from, Value to) {
+  undoLog.emplace_back(from, values.lookupOrNull(from));
+  values.map(from, to);
+}
+
+/// Restores `values` to its state when `undoLog` held `mark` entries. A
+/// replaced mapping comes back, such as the handle of a record that
+/// `toBoolean` remapped to a region-local `i1`. A new key is erased, so that
+/// the scope check in `lowerCallTemplate` does not find a region-local value.
+void GraphLowering::rollbackValues(std::size_t mark) {
+  while (undoLog.size() > mark) {
+    auto [from, replaced] = undoLog.pop_back_val();
+    if (replaced)
+      values.map(from, replaced);
+    else
+      values.erase(from);
+  }
+}
+
 LogicalResult GraphLowering::lowerAcquire(qlx::phys::AcquireOp op) {
   // The qubit is allocated here, not at the top of the kernel, so its
   // lifetime in Quake is its lifetime in P3.
   for (Value state : op.getStates()) {
     if (failed(checkCarrier(op, state)))
       return failure();
+    // The Phys verifier allows one acquire op per resource, but a call
+    // template replays the acquire ops of its canonical body.
+    if (wires.contains(carrierOf(state)))
+      return op.emitOpError() << "acquires resource " << carrierOf(state)
+                              << ", which already holds a live state";
     setWire(state, cudaq::quake::NullWireOp::create(
                        builder, op.getLoc(),
                        cudaq::quake::WireType::get(builder.getContext())));
@@ -598,7 +632,7 @@ LogicalResult GraphLowering::lowerMeasure(qlx::phys::MeasureOp op) {
   // The record stays a measurement handle until a Boolean is read from it
   // (`toBoolean`), as in the CUDA-Q front-ends, so a target can defer
   // reading the result.
-  values.map(op.getRecord(), mz.getMeasOut());
+  mapValue(op.getRecord(), mz.getMeasOut());
   wire = mz.getWires().front();
   if (op.getDestructive()) {
     cudaq::quake::SinkOp::create(builder, loc, wire);
@@ -651,47 +685,12 @@ GraphLowering::lowerMeasureProduct(qlx::phys::MeasureProductOp op) {
       TypeRange{cudaq::quake::WireType::get(ctx)}, ValueRange{ancilla},
       StringAttr{});
   cudaq::quake::SinkOp::create(builder, loc, mz.getWires().front());
-  values.map(op.getRecord(), mz.getMeasOut());
+  mapValue(op.getRecord(), mz.getMeasOut());
   // The complement is applied where the bit is read, not as an `x` on the
   // ancilla, which a noise model would also act on.
   if (op.getInvert())
     invertedHandles.insert(mz.getMeasOut());
   return success();
-}
-
-/// A rotation by at most this many radians is the identity, as in core's
-/// `quake-simplify`, whose default `threshold` is the same.
-static constexpr double identityAngle = 1e-12;
-
-/// A Clifford product rotation has at most this many quarter turns, 128 full
-/// turns. Larger angles keep `rz`. Beyond the bound, an arbitrary angle such
-/// as 1e16 divides by pi/2 to an exact integer and would pass the residual
-/// check. The bound also keeps the integer conversion in range and every
-/// accepted angle within 1e-12 rad of the exact `k * pi / 2`.
-static constexpr double maxCliffordQuarterTurns = 512;
-
-/// An angle within this many machine epsilons of `k * (M_PI / 2)`, relative
-/// to that value, is `k` quarter turns. Each way of writing `k * pi / 2` in
-/// double precision rounds to `k * (M_PI / 2)` or to a neighbor one ULP away.
-static constexpr double cliffordAngleEpsilons = 4;
-
-/// Returns `k` when `angle` is `k * pi / 2` up to floating-point rounding,
-/// with `|k| <= maxCliffordQuarterTurns`, and 0 when `|angle|` is at most
-/// `identityAngle`. Returns nullopt for any other angle, including a multiple
-/// of pi/2 beyond the bound, and that rotation keeps `rz`.
-static std::optional<std::int64_t> cliffordQuarterTurns(double angle) {
-  if (std::abs(angle) <= identityAngle)
-    return 0;
-  double quarterTurns = std::round(angle / (M_PI / 2));
-  if (!(std::abs(quarterTurns) <= maxCliffordQuarterTurns))
-    return std::nullopt;
-  double clifford = quarterTurns * (M_PI / 2);
-  double tolerance = cliffordAngleEpsilons *
-                     std::numeric_limits<double>::epsilon() *
-                     std::abs(clifford);
-  if (std::abs(angle - clifford) > tolerance)
-    return std::nullopt;
-  return static_cast<std::int64_t>(quarterTurns);
 }
 
 LogicalResult GraphLowering::lowerRotateProduct(qlx::phys::RotateProductOp op) {
@@ -714,31 +713,11 @@ LogicalResult GraphLowering::lowerRotateProduct(qlx::phys::RotateProductOp op) {
     control = cx[0];
     target = cx[1];
   }
-  // Stim runs no `rz`, so an angle that `cliffordQuarterTurns` classifies
-  // becomes the Clifford gate that equals `rz` up to a global phase. Every
-  // other angle keeps `rz`, which is exact, and Stim rejects the program.
-  if (auto quarterTurns =
-          cliffordQuarterTurns(op.getAngle().convertToDouble())) {
-    switch (llvm::mod(*quarterTurns, 4)) {
-    case 1:
-      target = emitS(builder, loc, /*adj=*/false, target);
-      break;
-    case 2:
-      target =
-          emitGate<cudaq::quake::ZOp>(builder, loc, /*adj=*/false, {}, target)
-              .front();
-      break;
-    case 3:
-      target = emitS(builder, loc, /*adj=*/true, target);
-      break;
-    }
-  } else {
-    Value theta = arith::ConstantFloatOp::create(
-        builder, loc, builder.getF64Type(), op.getAngle());
-    target = emitGate<cudaq::quake::RzOp>(builder, loc, /*adj=*/false, {},
-                                          target, theta)
-                 .front();
-  }
+  Value theta = arith::ConstantFloatOp::create(
+      builder, loc, builder.getF64Type(), op.getAngle());
+  target = emitGate<cudaq::quake::RzOp>(builder, loc, /*adj=*/false, {}, target,
+                                        theta)
+               .front();
   for (Value &control : llvm::reverse(MutableArrayRef(rotated).drop_back())) {
     auto cx = emitGate<cudaq::quake::XOp>(builder, loc, /*adj=*/false, control,
                                           target);
@@ -759,7 +738,7 @@ LogicalResult GraphLowering::lowerBody(qlx::phys::CallOp call,
   Block &body = call.getBody().front();
   for (auto [argument, input] : llvm::zip(body.getArguments(), inputs))
     if (!isa<qlx::phys::StateType>(argument.getType()))
-      values.map(argument, values.lookup(input));
+      mapValue(argument, values.lookup(input));
   activeCalls.insert(call);
   LogicalResult lowered = lowerOps(body);
   activeCalls.erase(call);
@@ -768,7 +747,7 @@ LogicalResult GraphLowering::lowerBody(qlx::phys::CallOp call,
   auto yield = cast<qlx::phys::YieldOp>(body.getTerminator());
   for (auto [yielded, output] : llvm::zip(yield.getOperands(), outputs))
     if (!isa<qlx::phys::StateType>(yielded.getType()))
-      values.map(output, values.lookup(yielded));
+      mapValue(output, values.lookup(yielded));
   return success();
 }
 
@@ -816,6 +795,20 @@ LogicalResult GraphLowering::lowerCallTemplate(qlx::phys::CallTemplateOp op) {
       aliases[alias.get("template")] =
           enclosing.lookup_or(invocationResource, invocationResource);
     }
+  // The elided form names no states, so the Phys verifier cannot check that
+  // the carriers it acts on are live.
+  if (op.getStateBoundaryElided())
+    for (Type type : canonical.getInputs().getTypes()) {
+      Attribute resource = cast<qlx::phys::StateType>(type).getResource();
+      Attribute carrier = aliases.lookup_or(resource, resource);
+      if (!wires.contains(carrier)) {
+        aliases = std::move(enclosing);
+        return op.emitOpError()
+               << "replays the phys.call '" << op.getTemplateEvent()
+               << "' on resource " << carrier
+               << ", which holds no live state here";
+      }
+    }
   // The elided form has an all-state boundary, so the body needs no mapping:
   // it acts on the carriers' current wires.
   LogicalResult lowered =
@@ -837,7 +830,7 @@ LogicalResult GraphLowering::lowerOps(Block &block) {
 
 /// The live carriers in resource-name order, so that the Quake is
 /// deterministic.
-SmallVector<Attribute> GraphLowering::liveCarriers() {
+SmallVector<Attribute> GraphLowering::liveCarriers() const {
   SmallVector<Attribute> carriers(llvm::make_first_range(wires));
   llvm::sort(carriers, [](Attribute lhs, Attribute rhs) {
     return cast<FlatSymbolRefAttr>(lhs).getValue() <
@@ -869,7 +862,7 @@ void GraphLowering::enterRegion(ValueRange arguments,
   ValueRange carried = arguments.drop_front(carriers.size());
   for (Value physArgument : physArguments)
     if (!isa<qlx::phys::StateType>(physArgument.getType())) {
-      values.map(physArgument, carried.front());
+      mapValue(physArgument, carried.front());
       carried = carried.drop_front();
     }
 }
@@ -901,7 +894,7 @@ void GraphLowering::mapResults(ArrayRef<Attribute> carriers,
   ValueRange carried = results.drop_front(carriers.size());
   for (Value physResult : physResults)
     if (!isa<qlx::phys::StateType>(physResult.getType())) {
-      values.map(physResult, carried.front());
+      mapValue(physResult, carried.front());
       carried = carried.drop_front();
     }
 }
@@ -912,7 +905,7 @@ LogicalResult GraphLowering::lowerIf(qlx::cflow::IfOp op) {
   SmallVector<Attribute> carriers = liveCarriers();
   SmallVector<Value> linearArgs = carriedValues(carriers, {});
   // Mappings made in a branch do not dominate the code after the `cc.if`.
-  IRMapping outerValues = values;
+  std::size_t mark = undoLog.size();
   DenseMap<Attribute, Value> outerWires = wires;
   // The result types follow from the branches, so they are lowered into a
   // scratch `cc.if` whose regions then move to the final one.
@@ -925,7 +918,7 @@ LogicalResult GraphLowering::lowerIf(qlx::cflow::IfOp op) {
   SmallVector<Type> resultTypes;
   for (auto [source, target] :
        llvm::zip(op->getRegions(), scratch->getRegions())) {
-    values = outerValues;
+    rollbackValues(mark);
     wires = outerWires;
     Block *block = new Block();
     target.push_back(block);
@@ -952,7 +945,7 @@ LogicalResult GraphLowering::lowerIf(qlx::cflow::IfOp op) {
       });
   scratch.erase();
   builder.setInsertionPointAfter(ifOp);
-  values = std::move(outerValues);
+  rollbackValues(mark);
   mapResults(exitCarriers, op.getResults(), ifOp.getResults());
   return success();
 }
@@ -967,7 +960,7 @@ LogicalResult GraphLowering::lowerRepeat(qlx::cflow::RepeatOp op) {
       arith::ConstantIntOp::create(builder, loc, 0, 64)};
   llvm::append_range(iterArgs, carriedValues(carriers, op.getInits()));
   auto types = llvm::to_vector(ValueRange(iterArgs).getTypes());
-  IRMapping outerValues = values;
+  std::size_t mark = undoLog.size();
   Block &body = op.getBody().front();
   LogicalResult lowered = success();
   // The Phys verifier makes the body yield every state it receives, so each
@@ -1008,7 +1001,7 @@ LogicalResult GraphLowering::lowerRepeat(qlx::cflow::RepeatOp op) {
       });
   if (failed(lowered))
     return failure();
-  values = std::move(outerValues);
+  rollbackValues(mark);
   mapResults(carriers, op.getResults(), loop.getResults().drop_front());
   return success();
 }
@@ -1024,7 +1017,7 @@ LogicalResult GraphLowering::lowerWhile(qlx::cflow::WhileOp op) {
   SmallVector<Attribute> carriers = liveCarriers();
   SmallVector<Value> iterArgs = carriedValues(carriers, op.getInits());
   auto types = llvm::to_vector(ValueRange(iterArgs).getTypes());
-  IRMapping outerValues = values;
+  std::size_t mark = undoLog.size();
   Block &before = op.getBeforeRegion().front();
   Block &after = op.getAfterRegion().front();
   LogicalResult lowered = success();
@@ -1035,7 +1028,7 @@ LogicalResult GraphLowering::lowerWhile(qlx::cflow::WhileOp op) {
       [&](OpBuilder &builder, Location loc, Region &region) {
         cudaq::cc::RegionBuilderGuard guard(builder, loc, region, types);
         Block &block = *builder.getBlock();
-        values = outerValues;
+        rollbackValues(mark);
         enterRegion(block.getArguments(), carriers, before.getArguments());
         lowered = lowerOps(before);
         if (failed(lowered))
@@ -1051,7 +1044,7 @@ LogicalResult GraphLowering::lowerWhile(qlx::cflow::WhileOp op) {
         Block &block = *builder.getBlock();
         if (failed(lowered))
           return;
-        values = outerValues;
+        rollbackValues(mark);
         enterRegion(block.getArguments(), carriers, after.getArguments());
         lowered = lowerOps(after);
         if (failed(lowered))
@@ -1062,7 +1055,7 @@ LogicalResult GraphLowering::lowerWhile(qlx::cflow::WhileOp op) {
       });
   if (failed(lowered))
     return failure();
-  values = std::move(outerValues);
+  rollbackValues(mark);
   mapResults(carriers, op.getResults(), loop.getResults());
   return success();
 }
@@ -1080,7 +1073,7 @@ Value GraphLowering::toBoolean(Value physValue) {
   if (invertedHandles.contains(value))
     bit = arith::XOrIOp::create(
         builder, loc, bit, arith::ConstantIntOp::create(builder, loc, 1, 1));
-  values.map(physValue, bit);
+  mapValue(physValue, bit);
   return bit;
 }
 
@@ -1092,7 +1085,7 @@ LogicalResult GraphLowering::lowerCondition(qlx::phys::ConditionOp op) {
     Value one = arith::ConstantIntOp::create(builder, op.getLoc(), 1, 1);
     bit = arith::XOrIOp::create(builder, op.getLoc(), bit, one);
   }
-  values.map(op.getResult(), bit);
+  mapValue(op.getResult(), bit);
   return success();
 }
 
@@ -1104,7 +1097,7 @@ LogicalResult GraphLowering::lowerAllFalse(qlx::phys::AllFalseOp op) {
   for (Value event : op.getEvents())
     any = arith::OrIOp::create(builder, loc, any, values.lookup(event));
   Value one = arith::ConstantIntOp::create(builder, loc, 1, 1);
-  values.map(op.getResult(), arith::XOrIOp::create(builder, loc, any, one));
+  mapValue(op.getResult(), arith::XOrIOp::create(builder, loc, any, one));
   return success();
 }
 
