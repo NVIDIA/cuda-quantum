@@ -297,19 +297,11 @@ if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
   option(GIT_SUBMODULE "Check submodules during build" ON)
   if(GIT_SUBMODULE)
     message(STATUS "Submodule update")
-    # Retry with backoff: gitlab.com sheds load with transient 503s.
-    set(_submod_delay 15)
-    foreach(_submod_attempt RANGE 1 5)
-      execute_process(COMMAND ${GIT_EXECUTABLE} -c submodule.tpls/llvm.update=none submodule update --init --recursive
-                      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-                      RESULT_VARIABLE GIT_SUBMOD_RESULT)
-      if(GIT_SUBMOD_RESULT EQUAL "0" OR _submod_attempt EQUAL 5)
-        break()
-      endif()
-      message(WARNING "Submodule update failed (attempt ${_submod_attempt} of 5), retrying in ${_submod_delay}s")
-      execute_process(COMMAND ${CMAKE_COMMAND} -E sleep ${_submod_delay})
-      math(EXPR _submod_delay "${_submod_delay} * 2")
-    endforeach()
+    # Retries and falls back to mirrors when gitlab.com is down.
+    execute_process(COMMAND bash ${CMAKE_CURRENT_SOURCE_DIR}/scripts/update_submodules.sh
+                            -c submodule.tpls/llvm.update=none
+                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                    RESULT_VARIABLE GIT_SUBMOD_RESULT)
     if(NOT GIT_SUBMOD_RESULT EQUAL "0")
         message(FATAL_ERROR "Cloning git submodules failed with ${GIT_SUBMOD_RESULT}, please checkout submodules manually")
     endif()
@@ -1020,6 +1012,7 @@ endif()
 # cuQuantum / cuTensor component discovery
 if (CUDA_FOUND)
   find_package(cuStateVec 1.14) # Required for custatevecEx API
+  find_package(cuStabilizer 0.5)
   find_package(cuTensor)
   find_package(cuTensorNet)
   find_package(cuDensityMat)

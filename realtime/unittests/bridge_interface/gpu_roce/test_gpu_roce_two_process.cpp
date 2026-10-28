@@ -341,10 +341,13 @@ protected:
   unsigned txCursor = 0, rxCursor = 0;
 };
 
+// The helpers below fail with ASSERT_*, which only leaves the helper. Wrap each
+// call in ASSERT_NO_FATAL_FAILURE so a failure ends the test body instead of
+// letting a loop run on with a 5 s response timeout per iteration.
 TEST_P(GpuRoceTwoProcess, IncrementsStringPayload) {
   const std::string payload = "hello dispatcher";
-  postIncrement(/*request_id=*/1, payload);
-  expectIncrement(/*request_id=*/1, payload);
+  ASSERT_NO_FATAL_FAILURE(postIncrement(/*request_id=*/1, payload));
+  ASSERT_NO_FATAL_FAILURE(expectIncrement(/*request_id=*/1, payload));
 }
 
 TEST_P(GpuRoceTwoProcess, IncrementsBurstAcrossRingWrap) {
@@ -353,42 +356,44 @@ TEST_P(GpuRoceTwoProcess, IncrementsBurstAcrossRingWrap) {
   const unsigned requests = 3 * numSlots;
   for (unsigned i = 0; i < requests; ++i) {
     const std::string payload = "burst-" + std::to_string(i);
-    postIncrement(/*request_id=*/i + 1, payload);
-    expectIncrement(/*request_id=*/i + 1, payload);
+    ASSERT_NO_FATAL_FAILURE(postIncrement(/*request_id=*/i + 1, payload));
+    ASSERT_NO_FATAL_FAILURE(expectIncrement(/*request_id=*/i + 1, payload));
   }
 }
 
 TEST_P(GpuRoceTwoProcess, RejectsBadMagic) {
   const std::string payload = "before bad magic";
-  postIncrement(/*request_id=*/1, payload);
-  expectIncrement(/*request_id=*/1, payload);
+  ASSERT_NO_FATAL_FAILURE(postIncrement(/*request_id=*/1, payload));
+  ASSERT_NO_FATAL_FAILURE(expectIncrement(/*request_id=*/1, payload));
 
-  postIncrement(/*request_id=*/2, "unframed", /*magic=*/0xdeadbeefu);
-  expectErrorResponse(/*request_id=*/2);
+  ASSERT_NO_FATAL_FAILURE(
+      postIncrement(/*request_id=*/2, "unframed", /*magic=*/0xdeadbeefu));
+  ASSERT_NO_FATAL_FAILURE(expectErrorResponse(/*request_id=*/2));
 
-  expectProcessedCount(countWithError(1));
+  ASSERT_NO_FATAL_FAILURE(expectProcessedCount(countWithError(1)));
 }
 
 TEST_P(GpuRoceTwoProcess, RejectsUnknownFunctionId) {
   const std::string payload = "before unknown id";
-  postIncrement(/*request_id=*/1, payload);
-  expectIncrement(/*request_id=*/1, payload);
+  ASSERT_NO_FATAL_FAILURE(postIncrement(/*request_id=*/1, payload));
+  ASSERT_NO_FATAL_FAILURE(expectIncrement(/*request_id=*/1, payload));
 
-  postIncrement(/*request_id=*/2, "unroutable", RPC_MAGIC_REQUEST,
-                /*function_id=*/fnv1a_hash("no_such_function"));
-  expectErrorResponse(/*request_id=*/2);
+  ASSERT_NO_FATAL_FAILURE(
+      postIncrement(/*request_id=*/2, "unroutable", RPC_MAGIC_REQUEST,
+                    /*function_id=*/fnv1a_hash("no_such_function")));
+  ASSERT_NO_FATAL_FAILURE(expectErrorResponse(/*request_id=*/2));
 
-  expectProcessedCount(countWithError(1));
+  ASSERT_NO_FATAL_FAILURE(expectProcessedCount(countWithError(1)));
 }
 
 TEST_P(GpuRoceTwoProcess, ReportsProcessedCount) {
   constexpr unsigned kRequests = 5;
   for (unsigned i = 0; i < kRequests; ++i) {
     const std::string payload = "counted-" + std::to_string(i);
-    postIncrement(/*request_id=*/i + 1, payload);
-    expectIncrement(/*request_id=*/i + 1, payload);
+    ASSERT_NO_FATAL_FAILURE(postIncrement(/*request_id=*/i + 1, payload));
+    ASSERT_NO_FATAL_FAILURE(expectIncrement(/*request_id=*/i + 1, payload));
   }
-  expectProcessedCount(kRequests);
+  ASSERT_NO_FATAL_FAILURE(expectProcessedCount(kRequests));
 }
 
 INSTANTIATE_TEST_SUITE_P(

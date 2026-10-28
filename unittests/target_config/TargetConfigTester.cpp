@@ -141,7 +141,7 @@ config:
 
 TEST(TargetConfigTester, parsesV2StagedPipeline) {
   const auto config = cudaq::config::parseTargetConfig(R"(
-version: 2
+version: 2-alpha
 name: v2-target
 description: V2 schema coverage
 config:
@@ -181,7 +181,7 @@ compile-target:
 
 TEST(TargetConfigTester, parsesV2OverridePipeline) {
   const auto config = cudaq::config::parseTargetConfig(R"(
-version: 2
+version: 2-alpha
 name: v2-override
 description: V2 override pipeline
 config:
@@ -196,18 +196,92 @@ compile-target:
 )",
                                                        {});
   ASSERT_TRUE(config.BackendConfig.has_value());
-  const auto &lowering =
-      config.BackendConfig->CompileTarget.getCustomPipelineLowering();
-  EXPECT_EQ(lowering.overridePassPipeline, "canonicalize,cse");
-  EXPECT_TRUE(lowering.highLevelPipeline.empty());
-  EXPECT_TRUE(lowering.midLevelPipeline.empty());
-  EXPECT_TRUE(lowering.lowLevelPipeline.empty());
+  ASSERT_EQ(config.BackendConfig->CompileTarget.stages.size(), 1);
+  const auto *lowering = std::get_if<cudaq::config::CustomPipelineLowering>(
+      &config.BackendConfig->CompileTarget.stages[0].lowering);
+  ASSERT_NE(lowering, nullptr);
+  EXPECT_EQ(lowering->overridePassPipeline, "canonicalize,cse");
+  EXPECT_TRUE(lowering->highLevelPipeline.empty());
+  EXPECT_TRUE(lowering->midLevelPipeline.empty());
+  EXPECT_TRUE(lowering->lowLevelPipeline.empty());
   EXPECT_TRUE(config.BackendConfig->hasPassPipeline());
+}
+
+TEST(TargetConfigTester, quakeReferenceSemanticsProfileIdentity) {
+  const cudaq::config::QuakeReferenceSemanticsProfile baseline{
+      .basisGates = {"h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)"},
+      .measurementType = cudaq::config::MeasurementForm::single_qubit,
+      .resetAfterMeasure = true};
+  const std::hash<cudaq::config::QuakeReferenceSemanticsProfile> hash;
+
+  // Distinct profile kinds are never equal.
+  EXPECT_NE(cudaq::config::Profile{cudaq::config::UncheckedProfile{}},
+            cudaq::config::Profile{baseline});
+
+  // Changing any single constraint changes equality and identity.
+  auto basisChanged = baseline;
+  basisChanged.basisGates = {"h", "rz"};
+  EXPECT_NE(basisChanged, baseline);
+  EXPECT_NE(hash(basisChanged), hash(baseline));
+
+  auto measurementTypeChanged = baseline;
+  measurementTypeChanged.measurementType = cudaq::config::MeasurementForm::any;
+  EXPECT_NE(measurementTypeChanged, baseline);
+  EXPECT_NE(hash(measurementTypeChanged), hash(baseline));
+
+  auto resetChanged = baseline;
+  resetChanged.resetAfterMeasure = false;
+  EXPECT_NE(resetChanged, baseline);
+  EXPECT_NE(hash(resetChanged), hash(baseline));
+}
+
+TEST(TargetConfigTester, quakeReferenceSemanticsProfileTargetIdentity) {
+  cudaq::CompileTarget target;
+  target.stages = {cudaq::config::CompilationStage{
+      .irOutputProfile = cudaq::config::QuakeReferenceSemanticsProfile{},
+      .lowering = cudaq::config::CustomPipelineLowering{}}};
+
+  // Profile options contribute to stage and compile-target identity.
+  cudaq::CompileTarget changed = target;
+  std::get<cudaq::config::QuakeReferenceSemanticsProfile>(
+      changed.stages[0].irOutputProfile)
+      .resetAfterMeasure = true;
+  EXPECT_NE(target, changed);
+  EXPECT_NE(std::hash<cudaq::CompileTarget>{}(target),
+            std::hash<cudaq::CompileTarget>{}(changed));
+}
+
+TEST(TargetConfigTester, inferredLoweringIdentityAndHash) {
+  using cudaq::config::CustomPipelineLowering;
+  using cudaq::config::InferredLowering;
+  using cudaq::config::UncheckedProfile;
+
+  const auto singleStageTarget = [](cudaq::config::Lowering lowering) {
+    cudaq::CompileTarget target;
+    target.stages.push_back({UncheckedProfile{}, std::move(lowering)});
+    return target;
+  };
+  const auto inferred = singleStageTarget(InferredLowering{});
+  const auto alsoInferred = singleStageTarget(InferredLowering{});
+  const auto emptyCustom = singleStageTarget(CustomPipelineLowering{});
+  const auto custom =
+      singleStageTarget(CustomPipelineLowering{.highLevelPipeline = "canon"});
+
+  // Inferred lowering is its own kind: equal to itself, distinct from every
+  // custom pipeline, including an empty one.
+  EXPECT_EQ(inferred, alsoInferred);
+  EXPECT_NE(inferred, emptyCustom);
+  EXPECT_NE(inferred, custom);
+
+  const std::hash<cudaq::CompileTarget> targetHash;
+  EXPECT_EQ(targetHash(inferred), targetHash(alsoInferred));
+  EXPECT_NE(targetHash(inferred), targetHash(emptyCustom));
+  EXPECT_NE(targetHash(inferred), targetHash(custom));
 }
 
 TEST(TargetConfigTester, v2RejectsV1CompilationKeys) {
   const std::string yaml = R"(
-version: 2
+version: 2-alpha
 name: v2-invalid
 description: V1 compilation keys rejected under v2
 config:
@@ -225,7 +299,7 @@ config:
 
 TEST(TargetConfigTester, v2RejectsMixedPipelineOptions) {
   const std::string yaml = R"(
-version: 2
+version: 2-alpha
 name: v2-mixed
 description: Mixed pipeline options rejected
 config:
@@ -700,9 +774,11 @@ config:
   ASSERT_EQ(targets.count("my-backend"), 1);
   const auto &config = targets.at("my-backend").config;
   ASSERT_TRUE(config.BackendConfig.has_value());
-  const auto &lowering =
-      config.BackendConfig->CompileTarget.getCustomPipelineLowering();
-  EXPECT_EQ(lowering.midLevelPipeline,
+  ASSERT_EQ(config.BackendConfig->CompileTarget.stages.size(), 1);
+  const auto &lowering = std::get_if<cudaq::config::CustomPipelineLowering>(
+      &config.BackendConfig->CompileTarget.stages[0].lowering);
+  ASSERT_NE(lowering, nullptr);
+  EXPECT_EQ(lowering->midLevelPipeline,
             "map{device=file(" + expectedTopology + ")}");
   ASSERT_EQ(config.BackendConfig->PreprocessorDefines.size(), 1);
   EXPECT_EQ(config.BackendConfig->PreprocessorDefines.front(),

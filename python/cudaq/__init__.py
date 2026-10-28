@@ -92,6 +92,7 @@ def _configure_cuda_library_paths() -> None:
     common_libs: Dict[str, Tuple[str, str]] = {
         'cutensor': ('cutensor-cu{cuda_major}', 'libcutensor.so.2'),
         'custatevec': ('custatevec-cu{cuda_major}', 'libcustatevec.so.1'),
+        'custabilizer': ('custabilizer-cu{cuda_major}', 'libcustabilizer.so.0'),
         'cutensornet': ('cutensornet-cu{cuda_major}', 'libcutensornet.so.2'),
         'cudensitymat': ('cudensitymat-cu{cuda_major}', 'libcudensitymat.so.0'),
     }
@@ -127,7 +128,7 @@ def _configure_cuda_library_paths() -> None:
     load_order: List[str] = [
         'cudart', 'curand', 'nvrtc', 'nvrtc_builtins', 'cublaslt', 'cublas',
         'cusolver', 'cusolvermg', 'cutensor', 'custatevec', 'cutensornet',
-        'cudensitymat'
+        'cudensitymat', 'custabilizer'
     ]
 
     # Select library configuration based on CUDA version

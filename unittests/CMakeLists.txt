@@ -254,6 +254,15 @@ target_link_libraries(test_quantum_platform
   gtest_main)
 cudaq_gtest_discover_tests(test_quantum_platform DISCOVERY_TIMEOUT 120)
 
+add_executable(test_qpu_state main.cpp common/QPUStateTester.cpp)
+target_include_directories(test_qpu_state PRIVATE .)
+target_link_libraries(test_qpu_state
+  PRIVATE
+  cudaq
+  cudaq-platform-default
+  gtest_main)
+cudaq_gtest_discover_tests(test_qpu_state DISCOVERY_TIMEOUT 120)
+
 add_subdirectory(qis)
 add_subdirectory(nvqpp)
 add_subdirectory(output_record)

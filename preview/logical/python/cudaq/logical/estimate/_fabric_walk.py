@@ -9,7 +9,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 _EXECUTABLE_CALLEE_OPS = frozenset({
     "fabric.call",
@@ -74,14 +74,18 @@ def _bundle_hierarchy(operation, error_type):
 
 
 def _walk_executable(
-        operations,
-        symbols,
-        *,
-        call_stack=(),
-        error_type=ValueError,
-        suppress_inline_analysis=False,
+    operations,
+    symbols,
+    *,
+    call_stack=(),
+    error_type=ValueError,
+    suppress_inline_analysis=False,
+    expand_calls=True,
 ):
-    """Yield wrapper and invoked-body operations with exact multiplicities."""
+    """Yield wrapper and invoked-body operations with exact multiplicities.
+
+    With ``expand_calls=False``, call wrappers are yielded but not entered.
+    """
 
     def walk(items, multiplier, stack, path, suppress):
         for operation in items:
@@ -155,6 +159,8 @@ def _walk_executable(
                     callee_kind=target.name,
                     callee_multiplier=callee_multiplier,
                 )
+                if not expand_calls:
+                    continue
                 yield from walk(
                     _children(target),
                     callee_multiplier,
@@ -186,6 +192,72 @@ def _walk_executable(
     )
 
 
+def _walk_selected_executable(operations,
+                              symbols,
+                              predicate,
+                              *,
+                              call_stack=(),
+                              error_type=ValueError):
+    """Visit selected operations, validating each reachable body once.
+
+    Bodies are cached after filtering; each caller's path and multiplicity are
+    applied on emission. ``predicate`` must depend only on the operation.
+    """
+
+    bodies = {}
+
+    def body(name, stack):
+        if name in stack:
+            raise error_type(
+                f"recursive executable Fabric graph through @{name}")
+        if name not in bodies:
+            bodies[name] = prepare(_children(symbols[name]), (*stack, name))
+        return bodies[name]
+
+    def prepare(items, stack):
+        selected = []
+        for visit in _walk_executable(items,
+                                      symbols,
+                                      call_stack=stack,
+                                      error_type=error_type,
+                                      expand_calls=False):
+            callee = profile = ()
+            has_profile = False
+            if visit.callee_name is not None:
+                callee = body(visit.callee_name, stack)
+                operation = visit.operation
+                has_profile = (operation.name == "fabric.call" and
+                               "profile" in operation.attributes)
+                if has_profile:
+                    profile = body(_attr_text(operation.attributes["profile"]),
+                                   stack)
+            keep = predicate(visit)
+            if keep or callee or profile:
+                selected.append((visit, keep, callee, profile, has_profile))
+        return tuple(selected)
+
+    def emit(items, multiplier, stack, path, suppress):
+        for visit, keep, callee, profile, has_profile in items:
+            if keep:
+                yield replace(visit,
+                              multiplier=multiplier * visit.multiplier,
+                              callee_multiplier=multiplier *
+                              visit.callee_multiplier,
+                              call_stack=stack,
+                              call_path=path,
+                              suppress_inline_analysis=suppress)
+            if callee:
+                yield from emit(callee, multiplier * visit.callee_multiplier,
+                                (*stack, visit.callee_name),
+                                (*path, visit.operation), has_profile)
+            if profile:
+                yield from emit(profile, multiplier * visit.multiplier, stack,
+                                path, False)
+
+    stack = tuple(call_stack)
+    yield from emit(prepare(operations, stack), 1, stack, (), False)
+
+
 __all__ = [
     "_EXECUTABLE_CALLEE_OPS",
     "_ExecutionVisit",
@@ -193,4 +265,5 @@ __all__ = [
     "_children",
     "_symbol",
     "_walk_executable",
+    "_walk_selected_executable",
 ]
