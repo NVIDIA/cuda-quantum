@@ -88,10 +88,10 @@ class DecoratorCapture:
         self.resolved = decorator.resolve_captured_arguments()
 
     def __str__(self):
-        self.decorator.name + " -> " + str(self.resolved)
+        return self.decorator.name + " -> " + str(self.resolved)
 
     def __repr__(self):
-        "name: " + self.decorator.name + ", resolved: " + str(self.resolved)
+        return "name: " + self.decorator.name + ", resolved: " + str(self.resolved)
 
 
 class LinkedKernelCapture:
@@ -245,6 +245,14 @@ class PyKernelDecorator(object):
             if cc.CallableType.isinstance(ty) or FunctionType.isinstance(ty):
                 return True
         return False
+
+    @property
+    def decorator(self):
+        return self
+
+    @property
+    def resolved(self):
+        return self.resolve_captured_arguments()
 
     @property
     def return_type(self):
@@ -637,6 +645,9 @@ class PyKernelDecorator(object):
                                                        *processed_args)
 
     def process_argument(self, arg, arg_type):
+        if isinstance(arg, DecoratorCapture):
+            return arg
+
         if isa_kernel_decorator(arg):
             _validate_kernel_callable_arg(arg, arg_type)
             return DecoratorCapture(arg)
