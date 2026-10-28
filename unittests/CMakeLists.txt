@@ -254,6 +254,23 @@ target_link_libraries(test_quantum_platform
   gtest_main)
 cudaq_gtest_discover_tests(test_quantum_platform DISCOVERY_TIMEOUT 120)
 
+# MQPU platform with stubbed CUDA device helpers, runs without GPUs.
+add_executable(test_mqpu_device_selection main.cpp
+  common/MQPUDeviceSelectionTester.cpp
+  ${CMAKE_SOURCE_DIR}/runtime/cudaq/platform/mqpu/MultiQPUPlatform.cpp)
+set_target_properties(test_mqpu_device_selection PROPERTIES ENABLE_EXPORTS TRUE)
+target_compile_definitions(test_mqpu_device_selection PRIVATE CUDAQ_DISABLE_JIT_COMPILER)
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+  target_link_options(test_mqpu_device_selection PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
+endif()
+target_link_libraries(test_mqpu_device_selection PRIVATE
+  cudaq cudaq-qpu-default cudaq-em-default cudaq-common cudaq-logger
+  cudaq-operator nvqir nvqir-qpp fmt::fmt-header-only gtest_main)
+cudaq_gtest_discover_tests(test_mqpu_device_selection
+  PROPERTIES PROCESSORS ${CUDAQ_TEST_OMP_SLOTS}
+             ENVIRONMENT "CUDAQ_MQPU_NGPUS=4"
+  DISCOVERY_TIMEOUT 120)
+
 add_executable(test_qpu_state main.cpp common/QPUStateTester.cpp)
 target_include_directories(test_qpu_state PRIVATE .)
 target_link_libraries(test_qpu_state
