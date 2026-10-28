@@ -69,11 +69,21 @@ The container also defines which extensions will be [loaded
 automatically](.devcontainer/devcontainer.json) when launching it. This does not
 impact your VS Code configuration outside the container environment.
 
+To use GPUs inside the container, the host needs an NVIDIA driver and, on Linux,
+the [NVIDIA Container Toolkit][nvidia_container_toolkit] installed and
+configured for Docker. Without it, GPUs are not detected automatically, even if
+the host has one. If you cannot install the toolkit, you can instead uncomment
+the `runArgs` line in [devcontainer.json](.devcontainer/devcontainer.json) to
+pass `--gpus=all` to Docker. You can confirm that the GPU is visible by running
+`nvidia-smi` inside the container.
+
 You should now be all set to build CUDA-Q and run tests. Please open a terminal
 in VS Code and follow the [build instructions](./Building.md) to confirm that
 everything works as expected.
 
 [vs_code]: https://code.visualstudio.com/download
+[nvidia_container_toolkit]:
+    https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html
 [dev_container_extension]:
     https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers
 
