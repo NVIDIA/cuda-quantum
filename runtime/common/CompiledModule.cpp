@@ -85,6 +85,17 @@ cudaq::FatQuakeModule::getResources(std::string_view resourcesName) const {
   return res ? &res->getResources() : nullptr;
 }
 
+std::optional<cudaq::FatQuakeModule::CodegenArtifact>
+cudaq::FatQuakeModule::getTargetCode() const {
+  return getTargetCode(name);
+}
+
+std::optional<cudaq::FatQuakeModule::CodegenArtifact>
+cudaq::FatQuakeModule::getTargetCode(std::string_view codeName) const {
+  auto *code = artifacts.get<CodegenArtifact>(codeName);
+  return code ? std::optional<CodegenArtifact>{*code} : std::nullopt;
+}
+
 void cudaq::FatQuakeModule::addArtifact(std::string name,
                                         CompiledArtifact artifact) {
   artifacts.add(std::move(name), std::move(artifact));
