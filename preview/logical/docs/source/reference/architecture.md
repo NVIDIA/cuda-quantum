@@ -60,10 +60,10 @@ source, and evidence.
 Decorators create reusable definitions:
 
 - `@cudaq.logical.program` defines an executable application kernel;
-- `@cudaq.logical.objective` defines reusable ideal behavior to claim against;
+- `@cudaq.logical.action` defines reusable ideal behavior to claim against;
 - `@cudaq.logical.machine` defines logical spaces, capabilities, and capacity;
 - `@cudaq.logical.code` defines a QEC code as validated data;
-- `@cudaq.logical.gadget` defines one encoded realization of an objective; and
+- `@cudaq.logical.gadget` defines one encoded realization of an action; and
 - `@cudaq.logical.protocol` composes resources, rotations, and postselection
   into a reusable protocol.
 
@@ -85,11 +85,15 @@ families live in `cudaq.logical.codes` (Steane, rotated surface, repetition,
 Reed–Muller 15, bare qubit); `cudaq.logical.codes.BareQubit` is the honest
 no-protection boundary used by protocol factories.
 
-**The gadget stack.** A gadget claims an objective through `implements=`; an
-ordinary authored body over typed patches realizes it. Matching compares the
-body's derived Clifford action against the claimed objective — a typed contract,
-not a naming convention. Compilation materializes typed gadget records
-(`fabric-materialize-record-schemas`) before verification.
+**The gadget stack.** A gadget claims an action through `implements=`; an
+ordinary authored body over typed patches realizes it. The action is the ideal
+logical circuit, including any classical outcomes. Code automorphisms have
+automatic equivalence checks; `gadgets.verify_gadget` checks supported Clifford
+unitary actions and detector contracts explicitly. Instrument action checks
+remain unsupported. Compilation materializes typed gadget records
+(`fabric-materialize-record-schemas`) before verification. The
+[terminology reference](detector-contracts.md#gadget-terminology) distinguishes
+these semantic names from compatibility spellings in saved IR.
 
 **Machines, placement, and builds.** A `@cudaq.logical.machine` declares
 logical regions with capabilities and capacity; a layered device binds those
@@ -171,7 +175,7 @@ Three independent layers enforce correctness:
   strict link completeness (`compiler/link_check.py`) back them on the
   authoring side.
 - **Semantic verification**: the analysis derives a gadget's Clifford action
-  from its body and compares it against the claimed objective
+  from its body and compares it against the claimed action
   (`cudaq.logical.gadgets.analysis.clifford_action`); names never select
   semantics.
 
@@ -179,7 +183,7 @@ Three independent layers enforce correctness:
 
 You inspect builds through typed APIs, not text scraping: `build.stage`,
 `build.placement`, `build.definitions`, `build.calls(symbol)`,
-`build.protocol_for(objective)`, `build.status`, `build.synthesis`,
+`build.protocol_for(action)`, `build.status`, `build.synthesis`,
 `build.patch_graph`, `build.to_mlir()`, `build.content_sha256`, and
 `build.serialize()` / `Build.replay(...)`. Estimate results are typed the same
 way: `LogicalEstimate`, `FabricCounts`, `FabricEstimate`, and
@@ -189,7 +193,7 @@ way: `LogicalEstimate`, `FabricCounts`, `FabricEstimate`, and
 
 ```text
 cudaq/logical/
-  programs/      programs, objectives, selection intents, typed references
+  programs/      programs, actions, selection intents, typed references
   ops/           canonical executable authoring operations
   types/         canonical values, references, annotations, traced proxies
   algebra/       exact angles, Pauli algebra, Clifford actions, GF(2) values
@@ -205,7 +209,7 @@ cudaq/logical/
   analysis/      resource-estimation and evidence APIs
   lower/         target lowering and Stim emission
   targets/       built-in CUDA-Q targets (estimator, clifford_t, surface)
-  std/           standard resource kinds and objectives (T_STATE, ...)
+  std/           standard resource kinds and actions (T_STATE, ...)
   qec/           QEC implementation-lowering contracts
   dialects/      generated MLIR Python bindings (qlx, lvm, fabric, phys)
   stages.py      stage and facet enums

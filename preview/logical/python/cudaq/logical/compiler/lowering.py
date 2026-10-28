@@ -250,7 +250,7 @@ def materialize_qec_lowering(transaction, definition: QECLowering):
             transaction.materialize(objective).symbol, context=context)
     elif objective is not None:
         raise TypeError("QECLowering objective must be a typed logical action, "
-                        "instrument, or @cudaq.logical.objective definition")
+                        "instrument, or @cudaq.logical.action definition")
     policy = _dict(context, definition.policy_schema)
     metadata = _dict(context, definition.metadata)
     if policy is not None:

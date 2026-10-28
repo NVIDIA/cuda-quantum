@@ -102,7 +102,7 @@ counts directly.
 ## Step 3 — Choose a code and a gadget (P2)
 
 P2 is where codes and gadgets enter. This example defines the `[[7,1,3]]` Steane
-code as a CSS block, declares a terminal-memory objective, and authors a gadget
+code as a CSS block, declares a terminal-memory action, and authors a gadget
 that implements it — one syndrome-extraction pass followed by data-qubit
 readout.
 

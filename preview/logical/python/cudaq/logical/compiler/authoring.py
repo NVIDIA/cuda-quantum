@@ -99,13 +99,14 @@ class UnplacedBuilder:
             },
             "return": _return_annotation(results),
         }
-        definition_kind = "program" if _kind == "program" else "objective"
-        objective_kind = "auto" if _kind == "program" else _kind
+        definition_kind = "program" if _kind == "program" else "action"
+        action_kind = ("auto" if _kind == "program" else
+                       "unitary" if _kind == "action" else _kind)
         self.definition = ProgramDefinition(
             provider,
             name=str(name),
             kind=definition_kind,
-            objective_kind=objective_kind,
+            action_kind=action_kind,
         )
         self.transaction = CompilationContext()
         self._backend = _UnplacedBackend(self.transaction, self.definition)
@@ -183,7 +184,7 @@ class UnplacedBuilder:
         else:
             raise TypeError(
                 "UnplacedBuilder.apply expects a standard action or "
-                "@cudaq.logical.objective definition")
+                "@cudaq.logical.action definition")
         if isinstance(results, list) and len(results) == 1:
             return results[0]
         return tuple(results) if isinstance(results, list) else results
@@ -195,7 +196,7 @@ class UnplacedBuilder:
         if not isinstance(instrument, LogicalInstrumentRef):
             raise TypeError(
                 "UnplacedBuilder.instrument expects a standard instrument or "
-                "@cudaq.logical.objective definition")
+                "@cudaq.logical.action definition")
         if parameters:
             raise TypeError("standard direct instruments take no parameters")
         if instrument.name == "prepare_zero":
@@ -278,8 +279,8 @@ class UnplacedBuilder:
         if self.definition.kind == "program":
             handle = DefinitionHandle(self._backend.symbol, "program", "p0")
         else:
-            family = self._backend.objective_family()
-            objective = self.transaction.declare_objective(
+            family = self._backend.action_family()
+            objective = self.transaction.declare_action(
                 family=family,
                 requested_symbol=self.definition.name,
                 kind="composite",

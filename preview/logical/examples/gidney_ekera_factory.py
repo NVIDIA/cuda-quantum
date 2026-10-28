@@ -547,7 +547,7 @@ def surface_autoccz_factory(level_1_distance: int,
     # an AutoCCZ state, unpacks the nine roles against three live data owners
     # and six fresh routing anchors, and invokes the adaptive consumer above.
     @cql.compiler.qec_lowering(
-        objective=cql.logical.ccx,
+        action=cql.logical.ccx,
         codes=(CODE,),
         dependencies=(consume_surface_autoccz_as_toffoli,),
         consumes=(cql.logical.AUTO_CCZ_STATE,),

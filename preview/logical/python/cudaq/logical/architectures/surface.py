@@ -36,7 +36,7 @@ import cudaq.logical.qec as qec
 import cudaq.logical.std as standard
 import cudaq.logical.types as types
 from ._surface_profiles import clifford_profile, passthrough_profile
-from cudaq.logical.programs.decorators import objective as _objective
+from cudaq.logical.programs.decorators import action as _action
 
 from . import _wsc
 
@@ -150,7 +150,7 @@ def _in_packed_span(row: int, basis: tuple[int, ...]) -> bool:
     return row == 0
 
 
-def _global_preparation_objective(code, logical_state, flip, name: str):
+def _global_preparation_action(code, logical_state, flip, name: str):
 
     def intent():
         values = []
@@ -160,10 +160,10 @@ def _global_preparation_objective(code, logical_state, flip, name: str):
         return tuple(values)
 
     result_annotation = tuple[tuple([types.logical_qubit] * code.k)]
-    intent.__name__ = intent.__qualname__ = f"{name}_objective"
+    intent.__name__ = intent.__qualname__ = f"{name}_action"
     intent.__signature__ = Signature((), return_annotation=result_annotation)
     intent.__annotations__ = {"return": result_annotation}
-    return _objective(intent, name=intent.__name__)
+    return _action(intent, name=intent.__name__)
 
 
 def _surface_fold_image(
@@ -267,10 +267,7 @@ def _surface_auxiliary_code(kappa_count: int) -> codes.CSSCode:
     )
 
 
-def _surface_measurement_objective(terms: tuple[str, ...],
-                                   name: str,
-                                   *,
-                                   sign=1):
+def _surface_measurement_action(terms: tuple[str, ...], name: str, *, sign=1):
     names = tuple(f"block{index}" for index in range(len(terms)))
 
     def intent(*values):
@@ -281,7 +278,7 @@ def _surface_measurement_objective(terms: tuple[str, ...],
         return ops.mpp(product if sign > 0 else -product)
 
     result = tuple[tuple([types.logical_qubit] * len(terms) + [bool])]
-    intent.__name__ = intent.__qualname__ = f"{name}_objective"
+    intent.__name__ = intent.__qualname__ = f"{name}_action"
     intent.__signature__ = Signature(
         tuple(
             Parameter(
@@ -297,7 +294,7 @@ def _surface_measurement_objective(terms: tuple[str, ...],
         },
         "return": result,
     }
-    return _objective(intent, name=intent.__name__)
+    return _action(intent, name=intent.__name__)
 
 
 def _controlled_surface_pauli(blocks, auxiliary, control: int,
@@ -420,7 +417,7 @@ def _surface_measurement_artifacts(
     sign_key = "p" if sign > 0 else "m"
     name = (f"surface_{distance}_wsc_{''.join(terms).lower()}_"
             f"{sign_key}_r{rounds}")
-    intent = _surface_measurement_objective(terms, name, sign=sign)
+    intent = _surface_measurement_action(terms, name, sign=sign)
     block_names = tuple(f"block{index}" for index in range(len(terms)))
     result_annotation = tuple[tuple([types.patch[encoding]] * len(terms) +
                                     [bool])]
@@ -579,15 +576,13 @@ class _SurfaceBuilder:
                 )
         return block
 
-    def _define(self, realization, name, objective, *, metadata=None):
+    def _define(self, realization, name, action, *, metadata=None):
         realization.__name__ = realization.__qualname__ = name
         realization.__annotations__ = {
             "block": types.patch[self.encoding],
             "return": types.patch[self.encoding],
         }
-        return gadgets.gadget(realization,
-                              implements=objective,
-                              metadata=metadata)
+        return gadgets.gadget(realization, implements=action, metadata=metadata)
 
     def _check_records(self, gadget, prefix=""):
         return tuple(
@@ -644,7 +639,7 @@ class _SurfaceBuilder:
         support = self.code.lz[0] if plus_basis else self.code.lx[0]
         operation = ops.z if plus_basis else ops.x
         suffix = "minus" if plus_basis else "one"
-        intent = _global_preparation_objective(
+        intent = _global_preparation_action(
             self.code,
             types.plus if plus_basis else types.zero,
             operation,
@@ -1017,7 +1012,7 @@ def _positive_zz_lowering(lowering: qec.QECLowering) -> qec.QECLowering:
     """Guard the stock seam primitive's exact demonstrated MPP contract."""
 
     def compile_site(site, context):
-        if site.objective_family != "pauli_product_measurement":
+        if site.action_family != "pauli_product_measurement":
             raise ValueError(
                 "surface ZZ lowering accepts only P0 MPP action sites")
         x_mask, z_mask, sign = _canonical_mpp_parameters(site)
@@ -1038,8 +1033,8 @@ def _positive_zz_lowering(lowering: qec.QECLowering) -> qec.QECLowering:
     compile_site.__qualname__ = compile_site.__name__
     return qec.QECLowering(
         compile_site,
-        objective_family=lowering.objective_family,
-        objective=standard.mpp,
+        action_family=lowering.action_family,
+        action=standard.mpp,
         codes=lowering.codes,
         requires=lowering.requires,
         dependencies=lowering.dependencies,
@@ -1060,7 +1055,7 @@ def _positive_zz_lowering(lowering: qec.QECLowering) -> qec.QECLowering:
 def _surface_site_product(site, context) -> tuple[types.PauliProduct, str]:
     """Derive one WSC product and data region from a placed MPP site."""
 
-    if site.objective_family != "pauli_product_measurement":
+    if site.action_family != "pauli_product_measurement":
         raise ValueError(
             "surface WSC lowering accepts only P0 MPP action sites")
     x_mask, z_mask, sign = _canonical_mpp_parameters(site)
@@ -1288,8 +1283,8 @@ def _make_wsc_lowering(
     compile_site.__qualname__ = compile_site.__name__
     return qec.QECLowering(
         compile_site,
-        objective_family="pauli_product_measurement",
-        objective=standard.mpp,
+        action_family="pauli_product_measurement",
+        action=standard.mpp,
         codes=(encoding,),
         plugin="cudaq.logical.architectures.surface_wsc",
         version="1.0.0",

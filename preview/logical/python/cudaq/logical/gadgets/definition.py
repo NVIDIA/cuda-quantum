@@ -26,7 +26,7 @@ from typing import (
 
 from cudaq.logical.programs.binding import (
     LogicalPortRef,
-    ObjectiveOperandRef,
+    ActionOperandRef,
 )
 from cudaq.logical._core.immutable import ImmutableValue
 
@@ -72,8 +72,8 @@ class GadgetDefinition(ImmutableValue):
         implements=None,
         spec: GadgetSpec | None = None,
         name: str | None = None,
-        logical_ports: Mapping[ObjectiveOperandRef | str, LogicalPortRef | str]
-        | None = None,
+        logical_ports: Mapping[ActionOperandRef | str, LogicalPortRef | str] |
+        None = None,
         transform=None,
         device=None,
         metadata: Mapping[str, Any] | None = None,
@@ -85,7 +85,7 @@ class GadgetDefinition(ImmutableValue):
         # Logical-only gadgets must not initialize the execution frontend.
         frontend = sys.modules.get("cudaq.kernel.kernel_decorator")
         if frontend is not None and frontend.isa_kernel_decorator(implements):
-            from cudaq.logical.programs.kernel_objective import (
+            from cudaq.logical.programs.kernel_action import (
                 program_definition_from_kernel,)
 
             implements = program_definition_from_kernel(implements)
@@ -97,11 +97,11 @@ class GadgetDefinition(ImmutableValue):
             if implements is None:
                 implements = spec.implements
             elif implements is not spec.implements and implements != spec.implements:
-                from ..errors import ObjectiveMismatch
+                from ..errors import ActionMismatch
 
-                raise ObjectiveMismatch(
+                raise ActionMismatch(
                     "@cudaq.logical.gadget implements= and spec.implements disagree; "
-                    "declare the objective once on the explicit spec")
+                    "declare the action once on the explicit spec")
         from cudaq.logical._core.definition_signature import resolve_definition_signature
 
         resolved_signature, resolved_hints = resolve_definition_signature(
@@ -126,7 +126,7 @@ class GadgetDefinition(ImmutableValue):
             if implements is not None:
                 raise TypeError(
                     "@cudaq.logical.gadget device= is available only on an "
-                    "objective-free top-level entry gadget")
+                    "action-free top-level entry gadget")
         self.device = device
         self.name = name or provider.__name__
         self.signature: Signature = resolved_signature
@@ -152,10 +152,10 @@ class GadgetDefinition(ImmutableValue):
         self.facets = (QEC_SPEC, QEC_REALIZATION)
         self.interface = _build_gadget_interface(self)
         if self.implements is None and self.interface.inputs.blocks:
-            from ..errors import MissingObjective
+            from ..errors import MissingAction
 
-            raise MissingObjective(
-                "an objective-free @cudaq.logical.gadget must be a zero-quantum-input "
+            raise MissingAction(
+                "an action-free @cudaq.logical.gadget must be a zero-quantum-input "
                 "entry point; gadgets with patch inputs require implements= "
                 "or an explicit spec=")
         self.logical_ports = _normalize_gadget_logical_ports(
@@ -171,7 +171,7 @@ class GadgetDefinition(ImmutableValue):
 
     @property
     def kernel(self):
-        """Return the body-less CUDA-Q declaration for this gadget objective."""
+        """Return the body-less CUDA-Q declaration for this gadget action."""
 
         from cudaq.logical.programs.definition import ProgramDefinition
 
@@ -195,9 +195,9 @@ class GadgetDefinition(ImmutableValue):
     def _attach_inferred_outcome_map(self, outcome_map: OutcomeMap) -> None:
         previous = self._inferred_outcome_map
         if previous is not None and previous != outcome_map:
-            from ..errors import ObjectiveMismatch
+            from ..errors import ActionMismatch
 
-            raise ObjectiveMismatch(
+            raise ActionMismatch(
                 f"gadget {self.name!r} derived a context-dependent OutcomeMap")
         if previous is None:
             object.__setattr__(self, "_inferred_outcome_map", outcome_map)
@@ -254,7 +254,7 @@ class GadgetDefinition(ImmutableValue):
                 "it inside a compatible protocol/gadget trace")
         if self.implements is None:
             raise TypeError(
-                f"objective-free gadget {self.name!r} is a root entry point "
+                f"action-free gadget {self.name!r} is a root entry point "
                 "and cannot be selected or called as a nested realization")
         return trace.call(self, args, kwargs)
 
@@ -265,7 +265,7 @@ def gadget(
     implements=None,
     spec: GadgetSpec | None = None,
     name: str | None = None,
-    logical_ports: Mapping[ObjectiveOperandRef | str, LogicalPortRef | str] |
+    logical_ports: Mapping[ActionOperandRef | str, LogicalPortRef | str] |
     None = None,
     transform=None,
     device=None,

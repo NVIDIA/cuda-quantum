@@ -492,7 +492,7 @@ private:
             !function->hasAttr("qlx-objective"))
           return function.emitOpError(
               "reachable body-less helper must be an explicitly marked "
-              "non-entry CUDA-Q Logical objective declaration");
+              "non-entry CUDA-Q Logical action declaration");
         reachableFunctions.insert(function.getOperation());
         objectiveDeclarations.insert(function.getOperation());
         return success();
@@ -1743,23 +1743,23 @@ private:
                                             OpBuilder &builder) {
     if (!function.getResultTypes().empty())
       return function.emitOpError(
-          "CUDA-Q objective declarations return updated qubits through their "
+          "CUDA-Q action declarations return updated qubits through their "
           "reference arguments");
     if (function.getNumArguments() == 0)
       return function.emitOpError(
-          "CUDA-Q objective declarations require at least one quantum input");
+          "CUDA-Q action declarations require at least one quantum input");
     for (BlockArgument argument : function.getArguments())
       if (!isa<cudaq::quake::RefType, cudaq::quake::VeqType>(
               argument.getType()))
         return function.emitOpError(
-            "CUDA-Q objective declarations accept only quantum reference "
+            "CUDA-Q action declarations accept only quantum reference "
             "arguments");
 
     auto specialization = helperArgumentWidths.find(function.getSymName());
     if (specialization == helperArgumentWidths.end() ||
         specialization->second.size() != function.getNumArguments())
       return function.emitOpError(
-          "CUDA-Q objective declaration is missing its exact call-site width "
+          "CUDA-Q action declaration is missing its exact call-site width "
           "specialization");
     auto symbol = qlxSymbolFor(function.getSymName(), function.getOperation());
     if (failed(symbol))
