@@ -43,8 +43,8 @@ Example
 
 The example below builds an inferred target and an explicit-pipeline target,
 then compiles a kernel against each through the real ``set_target`` path. A
-custom runtime endpoint is used to capture the lowered MLIR rather than would 
-be executed.
+custom runtime endpoint is used to capture the lowered MLIR rather than
+executing it.
 
 .. literalinclude:: ../../../snippets/python/using/examples/compile_targets.py
    :language: python
