@@ -33,12 +33,14 @@ enum class CostModel {
 /// the stage only converts to the basis. For example, a Clifford+T target
 /// lists:
 ///
+/// \code{.yaml}
 ///   ir-output-profile:
 ///     name: quake-unmapped
 ///     options:
 ///       basis-gates: [h, s, t, x, y, z, swap, "x(1)", "y(1)", "z(1)"]
 ///       approximation-tolerance: 1e-10
 ///       cost-model: t-count
+/// \endcode
 struct QuakeUnmappedProfile {
   /// Name identifying this profile in target configurations.
   static constexpr char name[] = "quake-unmapped";
