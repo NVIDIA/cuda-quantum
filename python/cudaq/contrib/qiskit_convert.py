@@ -492,7 +492,6 @@ def _build_kernel(qiskit_circuit):
     _try_import_qiskit()
 
     kernel = make_kernel()
-    kernel.disable_quantum_optimization()
     num_qubits = qiskit_circuit.num_qubits
     qubits = kernel.qalloc(num_qubits)
 
