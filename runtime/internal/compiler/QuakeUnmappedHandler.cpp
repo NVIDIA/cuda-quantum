@@ -107,8 +107,9 @@ public:
       passes.push_back("verify-profile-quake-unmapped{basis=" + basisList +
                        "}");
     }
-    return cudaq_internal::compiler::StagePasses{.postDeployPasses =
-                                                     join(passes)};
+    cudaq_internal::compiler::StagePasses stagePasses;
+    stagePasses.postDeployPasses = join(passes);
+    return stagePasses;
   }
 };
 
