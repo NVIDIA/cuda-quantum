@@ -20,12 +20,26 @@ struct CompileOptions;
 
 namespace cudaq_internal::compiler {
 
-/// The passes one compilation stage adds to the JIT pipeline. The compiler
-/// runs `canonicalize`, the prep pipeline, `jit-deploy-pipeline`, and
-/// `jit-finalize-pipeline` once for the whole target and joins the stages'
-/// passes in stage order around them. Only a target's first stage may set
-/// `preDeployPasses` and only its last stage may set `postFinalizePasses`. The
-/// compiler rejects a target in which another stage sets either.
+/// The passes one compilation stage adds to the JIT pipeline. The pipeline
+/// runs `canonicalize`, prep, deploy, and finalize once for the whole target,
+/// and each field says where a stage's passes go:
+///
+/// \code
+///   canonicalize
+///   prep pipeline
+///     preDeployPasses       (first stage only)
+///   jit-deploy-pipeline
+///     postDeployPasses
+///   jit-finalize-pipeline
+///     postFinalizePasses    (last stage only)
+/// \endcode
+///
+/// The first-stage and last-stage limits keep each stage's passes after those
+/// of the stages before it. Without them, a second stage's passes before
+/// deploy would run ahead of the first stage's passes after deploy.
+/// `getPassPipeline` checks each stage and rejects a target that breaks either
+/// limit. It also uses this struct to collect the passes of all stages, in
+/// stage order.
 struct StagePasses {
   /// Passes that run after prep and before deploy.
   std::string preDeployPasses;
