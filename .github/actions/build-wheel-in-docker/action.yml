@@ -30,6 +30,10 @@ inputs:
     description: Set to 1 to build the cudaq-devel wheel instead of the runtime wheel.
     required: false
     default: ''
+  ccache_max_size:
+    description: Size limit of the ccache, applied before and during the build.
+    required: false
+    default: 8G
 
 outputs:
   artifact_name:
@@ -127,10 +131,15 @@ runs:
 
     - name: Trim restored ccache
       shell: bash
+      env:
+        CCACHE_MAXSIZE: ${{ inputs.ccache_max_size }}
       run: |
         # Restored caches can be far over the limit (17 GB seen) with stale counters.
-        if [ -d /tmp/ccache-data ]; then
-          CCACHE_DIR=/tmp/ccache-data CCACHE_MAXSIZE=8G ccache -c || true
+        if [ -n "$(ls -A /tmp/ccache-data 2>/dev/null)" ]; then
+          export CCACHE_DIR=/tmp/ccache-data
+          # The first pass only recounts; the second enforces the limit.
+          ccache -c || true
+          ccache -c || true
           du -sh /tmp/ccache-data
         fi
 
@@ -173,6 +182,7 @@ runs:
           release_version=${{ inputs.release_version }}
           python_version=${{ inputs.python_version }}
           build_devel=${{ inputs.build_devel }}
+          ccache_max_size=${{ inputs.ccache_max_size }}
         outputs: ${{ steps.prereqs.outputs.docker_output }}
 
     - name: Report disk usage after build
@@ -192,6 +202,7 @@ runs:
         RELEASE_VERSION: ${{ inputs.release_version }}
         PYTHON_VERSION: ${{ inputs.python_version }}
         BUILD_DEVEL: ${{ inputs.build_devel }}
+        CCACHE_MAX_SIZE: ${{ inputs.ccache_max_size }}
       run: |
         # The final image is scratch with only the .whl, so we target the
         # ccache-export stage. Uses buildx to hit the same builder cache
@@ -204,6 +215,7 @@ runs:
           --build-arg release_version="$RELEASE_VERSION" \
           --build-arg python_version="$PYTHON_VERSION" \
           --build-arg build_devel="$BUILD_DEVEL" \
+          --build-arg ccache_max_size="$CCACHE_MAX_SIZE" \
           --target ccache-export \
           --output type=local,dest=/tmp/ccache-export \
           2>&1 | tail -20
