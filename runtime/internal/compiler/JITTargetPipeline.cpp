@@ -91,13 +91,6 @@ std::optional<std::string> cudaq_internal::compiler::getPassPipeline(
     const cudaq::CompileTarget &target, const cudaq::CompileOptions &options,
     const std::vector<std::unique_ptr<LoweringHandler>> &handlers,
     std::string &diagnostic) {
-  // TODO: remove this restriction. This exists as the pipelines inferred for
-  // each stage don't compose nicely (e.g. it doesn't make sense to run
-  // `emul-jit-prep-pipeline` more than once)
-  if (target.stages.size() > 1) {
-    diagnostic = "Multi-stage compilation is currently not supported";
-    return std::nullopt;
-  }
   if (target.stages.empty())
     return std::string{};
 
@@ -114,9 +107,14 @@ std::optional<std::string> cudaq_internal::compiler::getPassPipeline(
     std::optional<StagePasses> stagePasses;
     if (const auto *custom = std::get_if<cudaq::config::CustomPipelineLowering>(
             &stage.lowering)) {
-      // An override pipeline replaces the whole pipeline.
-      if (!custom->overridePassPipeline.empty())
+      // An override pipeline replaces the whole pipeline, so it must be the
+      // target's only stage.
+      if (!custom->overridePassPipeline.empty()) {
+        if (target.stages.size() > 1)
+          return failStage(
+              "an override pipeline must be the target's only stage");
         return applyDisableQubitMapping(custom->overridePassPipeline, target);
+      }
       // A custom stage's high-, mid-, and low-level pipelines run before
       // deploy, between deploy and finalize, and after finalize.
       stagePasses = StagePasses{.preDeployPasses = custom->highLevelPipeline,
@@ -139,6 +137,16 @@ std::optional<std::string> cudaq_internal::compiler::getPassPipeline(
                          profiles);
     }
 
+    // A later stage's passes before deploy would run before the earlier
+    // stages' passes, and an earlier stage's passes after finalize would run
+    // after the later stages' passes, so either would break stage order.
+    if (i > 0 && !stagePasses->preDeployPasses.empty())
+      return failStage(
+          "only the first stage may add passes before jit-deploy-pipeline");
+    if (i + 1 < target.stages.size() &&
+        !stagePasses->postFinalizePasses.empty())
+      return failStage(
+          "only the last stage may add passes after jit-finalize-pipeline");
     appendPipelineStage(targetPasses.preDeployPasses,
                         stagePasses->preDeployPasses);
     appendPipelineStage(targetPasses.postDeployPasses,

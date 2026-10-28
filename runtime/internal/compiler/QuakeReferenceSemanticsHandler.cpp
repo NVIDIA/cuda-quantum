@@ -16,9 +16,12 @@ namespace {
 /// Returns the passes the profile's options request. `expand-measurements`
 /// runs before deploy and `combine-quantum-alloc` with
 /// `qubit-reset-before-reuse` after finalize, where the provider targets'
-/// pipelines have run them. `basis-conversion` runs between deploy and
-/// finalize. The handler is generic over the profile options and never
-/// inspects provider names.
+/// pipelines have run them. So a stage with this profile must be its target's
+/// first stage when the profile requests single-qubit measurements or
+/// `reset-after-measure`, and its last stage when it requests
+/// `reset-after-measure`. `basis-conversion` runs between deploy and finalize.
+/// The handler is generic over the profile options and never inspects
+/// provider names.
 class QuakeReferenceSemanticsHandler
     : public cudaq_internal::compiler::LoweringHandler {
 public:

@@ -93,19 +93,51 @@ static std::string planPipeline(const cudaq::CompileTarget &target,
   return pipeline ? *pipeline : "FAILED: " + diagnostic;
 }
 
-// Compilation with more than one stage is not supported yet.
-void test_multiple_stages_rejected() {
+// The stages' passes join in stage order around one deploy and one finalize,
+// and each stage's input profile is the previous stage's output profile. The
+// first stage adds passes before deploy and the last adds passes after
+// finalize.
+void test_multiple_stages() {
   cudaq::CompileTarget target;
-  auto custom = customStage("high-one", "mid-one", "low-one");
+  auto custom = customStage("high-one", "mid-one", "");
   custom.irOutputProfile = cudaq::config::QuakeReferenceSemanticsProfile{};
   target.stages.push_back(std::move(custom));
   target.stages.push_back(
       inferredStage(cudaq::config::QuakeReferenceSemanticsProfile{}));
+  target.stages.push_back(customStage("", "", "low-three"));
   HandlerVector handlers;
   handlers.push_back(std::make_unique<TestHandler>());
   std::cout << planPipeline(target, handlers) << "\n";
 }
-// CHECK: FAILED: Multi-stage compilation is currently not supported
+// clang-format off
+// CHECK: canonicalize,hw-jit-prep-pipeline{allow-early-exit=false},high-one,jit-deploy-pipeline,mid-one,handler(quake-reference-semantics->quake-reference-semantics),jit-finalize-pipeline{lower-device-calls=true},low-three{{$}}
+// clang-format on
+
+// Only the first stage may add passes before deploy and only the last may add
+// passes after finalize. An override pipeline replaces the whole pipeline, so
+// it must be the target's only stage.
+void test_multiple_stages_rejected() {
+  HandlerVector handlers;
+  handlers.push_back(std::make_unique<TestHandler>());
+  for (auto stages : {
+           std::vector{customStage("", "", "low-one"),
+                       customStage("", "mid-two", "")},
+           std::vector{customStage("", "mid-one", ""),
+                       customStage("high-two", "", "")},
+           std::vector{
+               inferredStage(cudaq::config::QuakeReferenceSemanticsProfile{}),
+               overrideStage("override-two")},
+       }) {
+    cudaq::CompileTarget target;
+    target.stages = std::move(stages);
+    std::cout << planPipeline(target, handlers) << "\n";
+  }
+}
+// clang-format off
+// CHECK: FAILED: compile target stage 1: only the last stage may add passes after jit-finalize-pipeline
+// CHECK: FAILED: compile target stage 2: only the first stage may add passes before jit-deploy-pipeline
+// CHECK: FAILED: compile target stage 2: an override pipeline must be the target's only stage
+// clang-format on
 
 // Unsupporting handlers are skipped and the first supporting handler wins;
 // later handlers are never consulted.
@@ -199,6 +231,7 @@ void test_zero_stages() {
 // CHECK: zero stages handler calls: 0
 
 int main() {
+  test_multiple_stages();
   test_multiple_stages_rejected();
   test_first_supporting_handler_wins();
   test_no_match_diagnostic();

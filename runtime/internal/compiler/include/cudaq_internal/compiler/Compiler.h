@@ -145,15 +145,19 @@ public:
 /// Get the pass pipeline for the given compile target, resolving default
 /// (inferred) stages through \p handlers.
 ///
-/// An override pipeline is the whole pipeline. Otherwise the pipeline runs
-/// `canonicalize`, prep, deploy, and finalize, with options set from the
-/// emission format and `CompileOptions::emulate`, and places the stage's
-/// passes around them. A `CustomPipelineLowering` supplies its high-, mid-,
-/// and low-level pipelines. An `InferredLowering` takes the `StagePasses` of
-/// the first handler in \p handlers that supports lowering from `unchecked` to
-/// the stage's output profile. Fills \p diagnostic when no handler lowers the
-/// stage. When the target sets `disable_qubit_mapping`, every `qubit-mapping`
-/// in the result, including one in an override, gets `device=bypass`.
+/// An override pipeline is the whole pipeline, so it must be the target's only
+/// stage. Otherwise the pipeline runs `canonicalize`, prep, deploy, and
+/// finalize once, with options set from the emission format and
+/// `CompileOptions::emulate`, and joins the stages' passes around them in
+/// stage order. A `CustomPipelineLowering` supplies its high-, mid-, and
+/// low-level pipelines. An `InferredLowering` takes the `StagePasses` of the
+/// first handler in \p handlers that supports lowering from the previous
+/// stage's output profile, or `unchecked` for the first stage, to this stage's
+/// output profile. When the target sets `disable_qubit_mapping`, every
+/// `qubit-mapping` in the result, including one in an override, gets
+/// `device=bypass`. Fills \p diagnostic when no handler lowers a stage, when an
+/// override is not the only stage, or when a stage sets passes that
+/// `StagePasses` reserves for the first or last stage.
 std::optional<std::string>
 getPassPipeline(const cudaq::CompileTarget &target,
                 const cudaq::CompileOptions &options,
