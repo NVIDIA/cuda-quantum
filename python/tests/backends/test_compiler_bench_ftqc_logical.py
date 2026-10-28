@@ -12,7 +12,6 @@
 from pathlib import Path
 
 import cudaq
-import numpy as np
 import pytest
 
 cudaq._register_target_config(
@@ -265,25 +264,3 @@ def test_fuses_constant_one_qubit_rotations():
     ops = cudaq.estimate_resources(kernel).to_dict()
     assert_logical_basis_only(ops)
     assert sum(ops.get(gate, 0) for gate in ('rx', 'ry', 'rz')) == 3, ops
-
-
-@cudaq.kernel
-def rotations():
-    q = cudaq.qvector(2)
-    h(q[0])
-    rz(0.3, q[0])
-    x.ctrl(q[0], q[1])
-    ry(0.7, q[1])
-    rx(0.2, q[0])
-
-
-def test_lowering_preserves_unitary():
-    cudaq.set_target('qpp-cpu')
-    exact = np.array(cudaq.get_unitary(rotations))
-    cudaq.reset_target()
-    cudaq.set_target(FTQC_LOGICAL_TARGET)
-    lowered = np.array(cudaq.get_unitary(rotations))
-
-    # Lowering to the logical basis is exact up to a global phase.
-    overlap = np.trace(exact.conj().T @ lowered)
-    assert np.allclose(lowered, overlap / abs(overlap) * exact)

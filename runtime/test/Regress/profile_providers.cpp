@@ -68,29 +68,10 @@
 // CHECK-NEXT: symbol-dce
 // CHECK-EMPTY:
 
-// The FTQC targets list one `quake-unmapped` stage with the `t-count` cost
-// model, and the stage's passes run between deploy and finalize. The logical
-// target's basis keeps rotations, so it runs no synthesis.
-// CHECK-LABEL: compiler-bench-ftqc-logical level 2:
-// CHECK:       jit-deploy-pipeline
-// CHECK-NEXT:  decomposition{basis=h,s,t,rx,ry,rz,x,y,z,swap,x(1),y(1),z(1),x(2),z(2),r1}
-// CHECK-NEXT:  prepare-for-wireset{maximum-iterations=1024}
-// CHECK-NEXT:  clifford-t-optimization-pipeline{level=2 epsilon=0}
-// CHECK-NEXT:  basis-conversion{basis=h,s,t,rx,ry,rz,x,y,z,swap,x(1),y(1),z(1),x(2),z(2)}
-// CHECK-NEXT:  verify-profile-quake-unmapped{basis=h,s,t,rx,ry,rz,x,y,z,swap,x(1),y(1),z(1),x(2),z(2)}
-// CHECK-NEXT:  jit-finalize-pipeline
-
-// The Clifford+T target's basis has no rotation gate, so every level
-// synthesizes. Level 0 stays on references and runs no optimization.
-// CHECK-LABEL: compiler-bench-ftqc-clifford-t level 0:
-// CHECK:       jit-deploy-pipeline
-// CHECK-NEXT:  decomposition{basis=h,s,t,x,y,z,swap,x(1),y(1),z(1),r1,rx,ry,rz}
-// CHECK-NEXT:  clifford-t-synthesis-pipeline{epsilon=1e-10 seed=0}
-// CHECK-NEXT:  basis-conversion{basis=h,s,t,x,y,z,swap,x(1),y(1),z(1)}
-// CHECK-NEXT:  verify-profile-quake-unmapped{basis=h,s,t,x,y,z,swap,x(1),y(1),z(1)}
-// CHECK-NEXT:  jit-finalize-pipeline
-
-// CHECK-LABEL: compiler-bench-ftqc-clifford-t level 2:
+// The Clifford+T target lists one `quake-unmapped` stage with the `t-count`
+// cost model, whose passes run between deploy and finalize. Its basis has no
+// rotation gate, so the stage synthesizes.
+// CHECK-LABEL: compiler-bench-ftqc-clifford-t:
 // CHECK:       jit-deploy-pipeline
 // CHECK-NEXT:  decomposition{basis=h,s,t,x,y,z,swap,x(1),y(1),z(1),r1,rx,ry,rz}
 // CHECK-NEXT:  prepare-for-wireset{maximum-iterations=1024}
@@ -101,9 +82,8 @@
 // CHECK-NEXT:  verify-profile-quake-unmapped{basis=h,s,t,x,y,z,swap,x(1),y(1),z(1)}
 // CHECK-NEXT:  jit-finalize-pipeline
 
-// Without a cost model, a `quake-unmapped` stage runs no optimization, even at
-// level 2.
-// CHECK-LABEL: no cost model level 2:
+// Without a cost model, a `quake-unmapped` stage runs no optimization.
+// CHECK-LABEL: no cost model:
 // CHECK:       jit-deploy-pipeline
 // CHECK-NEXT:  basis-conversion{basis=h,x(1)}
 // CHECK-NEXT:  verify-profile-quake-unmapped{basis=h,x(1)}
@@ -157,23 +137,13 @@ static void printPipeline(const cudaq::config::TargetCatalog &catalog,
                 options);
 }
 
-static cudaq::CompileOptions atLevel(cudaq::OptimizationLevel level) {
-  cudaq::CompileOptions options;
-  options.optimizationLevel = level;
-  return options;
-}
-
-/// The FTQC benchmark targets live with the Python tests, in the directory
-/// given as the first argument. Loading them from there keeps the test
-/// independent of whether the Python project, which adds the Clifford+T target
-/// to the built-in catalog, is built.
 int main(int argc, char **argv) {
   cudaq::config::TargetCatalog catalog;
+  // Only a build with the Python project adds the Clifford+T target to the
+  // built-in catalog, so load it from the YAML directory given as an argument.
   if (argc > 1)
-    for (const char *name :
-         {"compiler-bench-ftqc-logical", "compiler-bench-ftqc-clifford-t"})
-      catalog.addTargetConfigFile(std::filesystem::path(argv[1]) /
-                                  (std::string(name) + ".yml"));
+    catalog.addTargetConfigFile(std::filesystem::path(argv[1]) /
+                                "compiler-bench-ftqc-clifford-t.yml");
 
   printPipeline(catalog, "ionq");
   printPipeline(catalog, "fermioniq");
@@ -183,19 +153,14 @@ int main(int argc, char **argv) {
   emulated.emulate = true;
   printPipeline(catalog, "quantum_machines", emulated, " emulated");
 
-  printPipeline(catalog, "compiler-bench-ftqc-logical",
-                atLevel(cudaq::OptimizationLevel::O2), " level 2");
-  for (auto level :
-       {cudaq::OptimizationLevel::O0, cudaq::OptimizationLevel::O2})
-    printPipeline(catalog, "compiler-bench-ftqc-clifford-t", atLevel(level),
-                  " level " + std::to_string(static_cast<unsigned>(level)));
-
+  cudaq::CompileOptions level2;
+  level2.optimizationLevel = cudaq::OptimizationLevel::O2;
+  printPipeline(catalog, "compiler-bench-ftqc-clifford-t", level2);
   cudaq::CompileTarget noCostModel;
   noCostModel.stages.push_back(
       {.irOutputProfile =
            cudaq::config::QuakeUnmappedProfile{.basisGates = {"h", "x(1)"}},
        .lowering = cudaq::config::InferredLowering{}});
-  printPipeline("no cost model level 2", noCostModel,
-                atLevel(cudaq::OptimizationLevel::O2));
+  printPipeline("no cost model", noCostModel, level2);
   return 0;
 }

@@ -10,11 +10,8 @@
 #include "cudaq_internal/compiler/LoweringHandler.h"
 #include <algorithm>
 
-/// Loops of up to this many iterations are unrolled so that their qubits can be
-/// promoted to wires. This is the default limit of
-/// `classical-optimization-pipeline`. A longer loop stays rolled on references,
-/// where the optimization pipeline skips it and resource counting still counts
-/// it.
+/// Loops up to this length are unrolled so that their qubits become wires, as
+/// in `classical-optimization-pipeline`. Longer loops stay on references.
 static constexpr unsigned maxUnrollIterations = 1024;
 
 /// Join \p items with commas, as pass pipelines and list options expect.
@@ -28,24 +25,11 @@ static std::string join(const std::vector<std::string> &items) {
   return joined;
 }
 
-/// Return the level-2 cleanup that runs after Clifford+T synthesis.
-/// `normalize-1q-clifford-t` emits an omega global phase, so `lower-phase` runs
-/// after it.
-static std::string cleanupAfterSynthesis(const std::string &tolerance) {
-  return "func.func(quake-simplify{threshold=" + tolerance +
-         "},normalize-1q-clifford-t,phase-folding,normalize-phase-placement,"
-         "lower-phase,canonicalize,dqe)";
-}
-
 namespace {
 
-/// The built-in handler for the quake-unmapped profile. It chooses passes from
-/// the profile's options and the optimization level and seed in
-/// `CompileOptions`, and runs them all between deploy and finalize. With the
-/// `t-count` cost model, the stage keeps rotations through optimization,
-/// converts to wires at level 1 and above, and synthesizes Clifford+T when the
-/// basis has no rotation gate. Without a cost model, the stage only converts
-/// to the basis and verifies the profile.
+/// The built-in handler for the quake-unmapped profile. It picks passes from
+/// the profile's options and the level and seed in `CompileOptions`, and runs
+/// them all between deploy and finalize.
 class QuakeUnmappedHandler : public cudaq_internal::compiler::LoweringHandler {
 public:
   bool supports(const cudaq::config::Profile &input,
@@ -66,15 +50,13 @@ public:
 
     std::vector<std::string> passes;
     if (profile.costModel == cudaq::config::CostModel::t_count) {
-      // A tolerance of 0 only accepts exact rewrites. `CompileTarget` rejects
-      // a profile that needs synthesis without a tolerance.
+      // A tolerance of 0 accepts only exact rewrites.
       const std::string tolerance = profile.approximationTolerance.empty()
                                         ? "0"
                                         : profile.approximationTolerance;
       const auto level = static_cast<unsigned>(options.optimizationLevel);
 
-      // Keep rotations through optimization so that later passes can merge
-      // and snap them before synthesis or the final basis conversion.
+      // Keep rotations so that the optimizer can merge and snap them.
       if (!basis.empty()) {
         auto basisWithRotations = basis;
         for (const char *rotation : {"r1", "rx", "ry", "rz"})
@@ -84,8 +66,7 @@ public:
                          "}");
       }
       if (level >= 1) {
-        // Without `add-wireset`, this unrolls loops and converts to wires but
-        // adds no wire set.
+        // Without `add-wireset`, this converts to wires but adds no wire set.
         passes.push_back("prepare-for-wireset{maximum-iterations=" +
                          std::to_string(maxUnrollIterations) + "}");
         passes.push_back("clifford-t-optimization-pipeline{level=" +
@@ -94,19 +75,20 @@ public:
       if (profile.requiresSynthesis()) {
         passes.push_back("clifford-t-synthesis-pipeline{epsilon=" + tolerance +
                          " seed=" + std::to_string(options.seed) + "}");
+        // Clifford+T normalization emits a global phase, so lower it again.
         if (level >= 2)
-          passes.push_back(cleanupAfterSynthesis(tolerance));
+          passes.push_back("func.func(quake-simplify{threshold=" + tolerance +
+                           "},normalize-1q-clifford-t,phase-folding,"
+                           "normalize-phase-placement,lower-phase,canonicalize,"
+                           "dqe)");
       }
     }
 
-    if (basis.empty()) {
-      passes.push_back("verify-profile-quake-unmapped");
-    } else {
-      const std::string basisList = join(basis);
-      passes.push_back("basis-conversion{basis=" + basisList + "}");
-      passes.push_back("verify-profile-quake-unmapped{basis=" + basisList +
-                       "}");
-    }
+    const std::string basisOption =
+        basis.empty() ? "" : "{basis=" + join(basis) + "}";
+    if (!basis.empty())
+      passes.push_back("basis-conversion" + basisOption);
+    passes.push_back("verify-profile-quake-unmapped" + basisOption);
     cudaq_internal::compiler::StagePasses stagePasses;
     stagePasses.postDeployPasses = join(passes);
     return stagePasses;

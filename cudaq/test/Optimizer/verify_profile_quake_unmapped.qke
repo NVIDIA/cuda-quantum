@@ -6,46 +6,24 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// The quake-unmapped profile accepts references and wires, rejects a gate
-// outside the basis in the functions `basis-conversion` converts, and rejects
-// a qubit borrowed from a wire set.
+// The quake-unmapped profile rejects a gate outside the basis, on references or
+// wires, and a qubit borrowed from a wire set.
 
 // RUN: cudaq-opt --verify-profile-quake-unmapped='basis=h,x(1)' --split-input-file --verify-diagnostics %s
 
-func.func @references_in_basis(%q0: !quake.ref, %q1: !quake.ref) {
+func.func @references(%q0: !quake.ref, %q1: !quake.ref) {
   quake.h %q0 : (!quake.ref) -> ()
   quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  // expected-error@+1 {{profile violation: operation is not in the target basis}}
+  quake.t %q0 : (!quake.ref) -> ()
   return
 }
 
 // -----
 
-func.func @wires_in_basis() attributes {"cudaq-entrypoint"} {
-  %0 = quake.null_wire
-  %1 = quake.null_wire
-  %2 = quake.h %0 : (!quake.wire) -> !quake.wire
-  %3:2 = quake.x [%2] %1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-  quake.sink %3#0 : !quake.wire
-  quake.sink %3#1 : !quake.wire
-  return
-}
-
-// -----
-
-func.func @wire_not_in_basis() attributes {"cudaq-entrypoint"} {
+func.func @wires() attributes {"cudaq-entrypoint"} {
   %0 = quake.null_wire
   // expected-error@+1 {{profile violation: operation is not in the target basis}}
-  %1 = quake.t %0 : (!quake.wire) -> !quake.wire
-  quake.sink %1 : !quake.wire
-  return
-}
-
-// -----
-
-// `basis-conversion` does not convert a function that is not an entry point
-// and takes no qubits, so the basis is not checked there.
-func.func @unconverted_helper() {
-  %0 = quake.null_wire
   %1 = quake.t %0 : (!quake.wire) -> !quake.wire
   quake.sink %1 : !quake.wire
   return

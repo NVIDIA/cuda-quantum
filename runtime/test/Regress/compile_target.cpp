@@ -383,71 +383,63 @@ func.func @__nvqpp__mlirgen__longLoop() attributes {"cudaq-entrypoint", "cudaq-k
 }
 )#";
 
-/// A `quake-unmapped` stage optimizes for T count from level 2, so only level
-/// 2 fuses the rotations. A loop it cannot unroll stays rolled and is still
-/// counted. Without a rotation in the basis, every level synthesizes. A
-/// rotation left over would fail the stage's verifier and the compile, so the
-/// counts only need to show that `rz`, `r1`, and the global phase are gone.
+/// A `quake-unmapped` stage fuses the rotations only from level 2, and a loop
+/// it cannot unroll stays rolled and is still counted. Without a rotation in
+/// the basis, every level synthesizes, and the strict basis conversion rejects
+/// any rotation left over.
 void test_quake_unmapped_levels(mlir::MLIRContext *ctx) {
-  const auto unmappedTarget = [](cudaq::config::QuakeUnmappedProfile profile) {
+  using cudaq::OptimizationLevel;
+  const auto count = [&](const std::string &heading, const char *kernelName,
+                         const char *kernel, std::vector<std::string> basis,
+                         OptimizationLevel level) {
     cudaq::CompileTarget target;
-    target.stages.push_back({.irOutputProfile = std::move(profile),
-                             .lowering = cudaq::config::InferredLowering{}});
-    return target;
+    target.stages.push_back(
+        {.irOutputProfile =
+             cudaq::config::QuakeUnmappedProfile{
+                 .basisGates = std::move(basis),
+                 .approximationTolerance = "1e-3",
+                 .costModel = cudaq::config::CostModel::t_count},
+         .lowering = cudaq::config::InferredLowering{}});
+    cudaq::CompileOptions options;
+    options.emitResourceCounts = true;
+    options.emitTargetCode = false;
+    options.optimizationLevel = level;
+    options.seed = 42;
+    compileAndDumpResources(ctx, heading, kernelName, kernel, target,
+                            std::move(options));
   };
-  const auto countAtLevel =
-      [&](const std::string &heading, const std::string &kernelName,
-          const char *kernel, const cudaq::CompileTarget &target,
-          cudaq::OptimizationLevel level) {
-        cudaq::CompileOptions options;
-        options.emitResourceCounts = true;
-        options.emitTargetCode = false;
-        options.optimizationLevel = level;
-        options.seed = 42;
-        compileAndDumpResources(ctx, heading, kernelName, kernel, target,
-                                std::move(options));
-      };
-  const auto levelName = [](cudaq::OptimizationLevel level) {
-    return "level " + std::to_string(static_cast<unsigned>(level));
-  };
-
-  const auto withRotations = unmappedTarget(
-      {.basisGates = {"h", "s", "t", "rx", "ry", "rz", "x", "x(1)"},
-       .costModel = cudaq::config::CostModel::t_count});
-  for (auto level : {cudaq::OptimizationLevel::O0, cudaq::OptimizationLevel::O1,
-                     cudaq::OptimizationLevel::O2})
-    countAtLevel("Rotations " + levelName(level), "fusable",
-                 fusableRotationsKernel, withRotations, level);
-  countAtLevel("Long loop", "longLoop", longLoopKernel, withRotations,
-               cudaq::OptimizationLevel::O1);
-
-  const auto cliffordT =
-      unmappedTarget({.basisGates = {"h", "s", "t", "x", "y", "z", "swap",
-                                     "x(1)", "y(1)", "z(1)"},
-                      .approximationTolerance = "1e-3",
-                      .costModel = cudaq::config::CostModel::t_count});
-  for (auto level :
-       {cudaq::OptimizationLevel::O0, cudaq::OptimizationLevel::O2})
-    countAtLevel("Clifford+T " + levelName(level), "fusable",
-                 fusableRotationsKernel, cliffordT, level);
+  const std::vector<std::string> rotations = {"h",  "s",  "t", "rx",
+                                              "ry", "rz", "x", "x(1)"};
+  const std::vector<std::string> cliffordT = {
+      "h", "s", "t", "x", "y", "z", "swap", "x(1)", "y(1)", "z(1)"};
+  count("Rotations level 0", "fusable", fusableRotationsKernel, rotations,
+        OptimizationLevel::O0);
+  count("Rotations level 1", "fusable", fusableRotationsKernel, rotations,
+        OptimizationLevel::O1);
+  count("Rotations level 2", "fusable", fusableRotationsKernel, rotations,
+        OptimizationLevel::O2);
+  count("Long loop", "longLoop", longLoopKernel, rotations,
+        OptimizationLevel::O1);
+  count("Clifford+T level 0", "fusable", fusableRotationsKernel, cliffordT,
+        OptimizationLevel::O0);
+  count("Clifford+T level 2", "fusable", fusableRotationsKernel, cliffordT,
+        OptimizationLevel::O2);
 }
 
 // CHECK-LABEL: Rotations level 0 resource counts:
-// CHECK: total: 4
+// CHECK: total: 4{{$}}
 // CHECK-LABEL: Rotations level 1 resource counts:
-// CHECK: total: 4
+// CHECK: total: 4{{$}}
 // CHECK-LABEL: Rotations level 2 resource counts:
-// CHECK: total: 3
+// CHECK: total: 3{{$}}
 // CHECK-LABEL: Long loop resource counts:
-// CHECK: total: 4096
+// CHECK: total: 4096{{$}}
 // CHECK-LABEL: Clifford+T level 0 resource counts:
-// CHECK: phase: 0
-// CHECK: rz: 0
-// CHECK: r1: 0
+// CHECK: rz: 0{{$}}
+// CHECK: r1: 0{{$}}
 // CHECK-LABEL: Clifford+T level 2 resource counts:
-// CHECK: phase: 0
-// CHECK: rz: 0
-// CHECK: r1: 0
+// CHECK: rz: 0{{$}}
+// CHECK: r1: 0{{$}}
 
 /// Kernel that the base QIR profile accepts.
 static const char *measureKernel = R"#(

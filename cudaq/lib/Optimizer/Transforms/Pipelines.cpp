@@ -215,8 +215,7 @@ addCliffordTOptimization(OpPassManager &pm,
   chainOpts.epsilon = options.epsilon;
   funcPM.addPass(
       cudaq::opt::createFuseSingleQubitChainsForCliffordT(chainOpts));
-  // Merge the constants fusion creates. `quake-simplify` runs about twice as
-  // slowly otherwise.
+  // Merge the constants that fusion creates.
   funcPM.addPass(createCanonicalizerPass());
   // Fold phases before snapping to expose shared rotations, and again at the
   // end to capture the exact phase terms that Clifford+T normalization exposes.
@@ -244,8 +243,7 @@ addCliffordTSynthesis(OpPassManager &pm,
   cudaq::opt::CliffordTSynthesisOptions synthesisOpts;
   synthesisOpts.epsilon = options.epsilon;
   synthesisOpts.seed = options.seed;
-  // Synthesize every rotation. Erasing small ones is left to the optimizer,
-  // which bounds it by the same tolerance.
+  // The optimizer erases small rotations, bounded by the same tolerance.
   synthesisOpts.skipBelow = 0;
   // TODO: Synthesize controlled rotations once controlled Clifford+T synthesis
   // preserves the synthesis global phase.
@@ -253,8 +251,7 @@ addCliffordTSynthesis(OpPassManager &pm,
   pm.addPass(cudaq::opt::createCliffordTSynthesis(synthesisOpts));
   // Synthesis outlines one helper per distinct angle.
   pm.addPass(createInlinerPass());
-  // Each helper emits the omega global phase of its Clifford+T word. It is
-  // uncontrolled here, so lowering erases it.
+  // Erase the uncontrolled omega phase of each Clifford+T word.
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createLowerPhase());
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
 }
