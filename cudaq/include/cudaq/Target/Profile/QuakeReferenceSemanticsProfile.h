@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -49,3 +50,9 @@ struct QuakeReferenceSemanticsProfile {
 };
 
 } // namespace cudaq::config
+
+template <>
+struct std::hash<cudaq::config::QuakeReferenceSemanticsProfile> {
+  std::size_t operator()(const cudaq::config::QuakeReferenceSemanticsProfile
+                             &profile) const noexcept;
+};

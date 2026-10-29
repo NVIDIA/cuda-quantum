@@ -11,31 +11,6 @@
 #include "Yaml/v2/TargetConfigV2.h"
 #include "Yaml/CanonicalConversion.h"
 
-static cudaq::config::Profile
-toCanonicalProfile(const cudaq::config::v2::UncheckedProfileV2 &profile) {
-  return cudaq::config::UncheckedProfile{};
-}
-static cudaq::config::Profile toCanonicalProfile(
-    const cudaq::config::v2::QuakeReferenceSemanticsProfileV2 &profile) {
-  return cudaq::config::QuakeReferenceSemanticsProfile{
-      .basisGates = profile.options.value().basisGates.value(),
-      .measurementType = profile.options.value().measurementType.value(),
-      .resetAfterMeasure = profile.options.value().resetAfterMeasure.value()};
-}
-static cudaq::config::Profile
-toCanonicalProfile(const cudaq::config::v2::QuakeUnmappedProfileV2 &profile) {
-  const auto &options = profile.options.value();
-  return cudaq::config::QuakeUnmappedProfile{
-      .basisGates = options.basisGates.value(),
-      .approximationTolerance = options.approximationTolerance.value(),
-      .costModel = options.costModel};
-}
-
-static cudaq::config::Profile
-toCanonicalProfile(const cudaq::config::v2::IrOutputProfileV2 &profile) {
-  return profile.visit([](const auto &p) { return toCanonicalProfile(p); });
-}
-
 static cudaq::config::Lowering
 toCanonicalLowering(const std::string &lowering) {
   return cudaq::config::CustomPipelineLowering{.overridePassPipeline =
@@ -58,7 +33,9 @@ static cudaq::config::Lowering toCanonicalLowering(
 
 static cudaq::config::CompilationStage
 toCanonicalStage(const cudaq::config::v2::CompilationStageV2 &stage) {
-  cudaq::config::Profile profile = toCanonicalProfile(stage.irOutputProfile);
+  cudaq::config::Profile profile =
+      cudaq::config::v2::TaggedProfiles<cudaq::config::Profile>::toProfile(
+          stage.irOutputProfile);
   cudaq::config::Lowering lowering = cudaq::config::InferredLowering{};
   if (stage.lowering)
     lowering = toCanonicalLowering(*stage.lowering);

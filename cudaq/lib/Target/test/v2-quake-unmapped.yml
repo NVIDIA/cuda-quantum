@@ -10,8 +10,8 @@
 # RUN: %cudaq-target-db-gen -o %t.db.cpp v2-quake-unmapped=%s
 # RUN: FileCheck %s --check-prefix=DB --input-file=%t.db.cpp
 
-# Test that `quake-unmapped` options parse and that the database generator
-# prints them.
+# Test that `quake-unmapped` options parse, that the test driver prints the
+# profile's YAML form, and that the database generator prints them.
 
 version: 2-alpha
 name: v2-quake-unmapped
@@ -29,8 +29,9 @@ compile-target:
           cost-model: t-count
 
 # PARSE:      ir-output-profile=quake-unmapped lowering=inferred
-# PARSE-NEXT:   basis-gates: ["h", "s", "t", "x(1)"]
-# PARSE-NEXT:   approximation-tolerance: 1e-10
-# PARSE-NEXT:   cost-model: t-count
+# PARSE-NEXT:   options:
+# PARSE-NEXT:     basis-gates: ["h", "s", "t", "x(1)"]
+# PARSE-NEXT:     approximation-tolerance: 1e-10
+# PARSE-NEXT:     cost-model: t-count
 
 # DB: cudaq::config::QuakeUnmappedProfile{.basisGates = {"h", "s", "t", "x(1)", }, .approximationTolerance = 1e-10, .costModel = cudaq::config::CostModel::t_count, }

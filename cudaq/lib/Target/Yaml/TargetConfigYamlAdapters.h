@@ -107,38 +107,4 @@ struct Reflector<cudaq::config::ArgumentType> {
   }
 };
 
-template <>
-struct Reflector<cudaq::config::MeasurementForm> {
-  using ReflType = std::string;
-  static cudaq::config::MeasurementForm to(const std::string &name) {
-    return cudaq::config::detail::enumFromYamlName<
-        cudaq::config::MeasurementForm>(name);
-  }
-  static std::string from(const cudaq::config::MeasurementForm &value) {
-    switch (value) {
-    case cudaq::config::MeasurementForm::any:
-      return "any";
-    case cudaq::config::MeasurementForm::single_qubit:
-      return "single-qubit";
-    }
-    cudaq::config::detail::unknownEnumerator();
-  }
-};
-
-template <>
-struct Reflector<cudaq::config::CostModel> {
-  using ReflType = std::string;
-  static cudaq::config::CostModel to(const std::string &name) {
-    return cudaq::config::detail::enumFromYamlName<cudaq::config::CostModel>(
-        name);
-  }
-  static std::string from(const cudaq::config::CostModel &value) {
-    switch (value) {
-    case cudaq::config::CostModel::t_count:
-      return "t-count";
-    }
-    cudaq::config::detail::unknownEnumerator();
-  }
-};
-
 } // namespace rfl

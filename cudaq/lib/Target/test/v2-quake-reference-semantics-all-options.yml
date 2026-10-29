@@ -8,7 +8,8 @@
 
 # RUN: %target-catalog-driver parse %s | FileCheck %s
 
-# Test YAML parsing of `quake-reference-semantics`.
+# Test that every `quake-reference-semantics` option parses and that the test
+# driver prints the profile's YAML form.
 
 version: 2-alpha
 name: v2-quake-reference-semantics-all-options
@@ -30,6 +31,7 @@ compile-target:
 
 # CHECK: name: v2-quake-reference-semantics-all-options
 # CHECK:   ir-output-profile=quake-reference-semantics
-# CHECK-NEXT:     basis-gates: ["h", "rz", "x(1)"]
-# CHECK-NEXT:     measurement-type: single-qubit
-# CHECK-NEXT:     reset-after-measure: true
+# CHECK-NEXT:     options:
+# CHECK-NEXT:       basis-gates: ["h", "rz", "x(1)"]
+# CHECK-NEXT:       measurement-type: single-qubit
+# CHECK-NEXT:       reset-after-measure: true

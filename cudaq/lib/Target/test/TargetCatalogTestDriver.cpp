@@ -10,13 +10,14 @@
 // deterministically for FileCheck.
 
 #include "TargetConfigHelper.h"
-#include "Yaml/TargetConfigYamlAdapters.h"
+#include "Yaml/v2/TargetConfigV2.h"
 #include "cudaq/Target/TargetCatalog.h"
 #include "cudaq/Target/TargetConfig.h"
 #include "cudaq/Target/TargetConfigYaml.h"
-#include <cctype>
 #include <filesystem>
+#include <iomanip>
 #include <iostream>
+#include <limits>
 #include <map>
 #include <optional>
 #include <sstream>
@@ -74,45 +75,53 @@ void printLowering(const char *indent, const CustomPipelineLowering &lowering) {
   printField(indent, "target-pass-pipeline", lowering.overridePassPipeline);
 }
 
-/// The YAML spelling of a profile option's value. An empty list or an unset
-/// optional value prints as empty and is left out.
-std::string yamlValue(bool value) { return boolStr(value); }
-std::string yamlValue(double value) {
-  std::ostringstream os;
-  os << value;
-  return os.str();
-}
-std::string yamlValue(const std::vector<std::string> &values) {
-  return values.empty() ? "" : listStr(values);
-}
-template <typename E>
-  requires std::is_enum_v<E>
-std::string yamlValue(E value) {
-  return rfl::Reflector<E>::from(value);
-}
-template <typename T>
-std::string yamlValue(const std::optional<T> &value) {
-  return value ? yamlValue(*value) : "";
+/// The flow-style YAML spelling of a value. Strings are quoted, as in
+/// `listStr`.
+std::string flowValue(const rfl::Generic &value) {
+  return std::visit(
+      [](const auto &v) -> std::string {
+        using T = std::decay_t<decltype(v)>;
+        if constexpr (std::is_same_v<T, std::string>) {
+          return '"' + escaped(v) + '"';
+        } else if constexpr (std::is_same_v<T, bool>) {
+          return boolStr(v);
+        } else if constexpr (std::is_same_v<T, rfl::Generic::Array>) {
+          std::string out = "[";
+          for (std::size_t i = 0; i < v.size(); ++i)
+            out += (i ? ", " : "") + flowValue(v[i]);
+          return out + "]";
+        } else if constexpr (std::is_same_v<T, rfl::Generic::Object>) {
+          std::string out = "{";
+          for (const auto &[key, field] : v)
+            out += (out.size() > 1 ? ", " : "") + key + ": " + flowValue(field);
+          return out + "}";
+        } else if constexpr (std::is_same_v<T, std::nullopt_t>) {
+          return "null";
+        } else {
+          std::ostringstream os;
+          os << std::setprecision(std::numeric_limits<double>::max_digits10)
+             << v;
+          return os.str();
+        }
+      },
+      value.variant());
 }
 
-/// Profile options print under the stage, one per field, with the YAML key the
-/// parser derives from the field name, such as `basis-gates` for `basisGates`.
-template <typename Profile>
-void printProfileOptions(const char *indent, const Profile &profile) {
-  rfl::to_view(profile).apply([&](const auto &field) {
-    const std::string value = yamlValue(*field.value());
-    if (value.empty())
-      return;
-    std::cout << indent;
-    for (char c : field.name())
-      if (std::isupper(static_cast<unsigned char>(c)))
-        std::cout << '-'
-                  << static_cast<char>(
-                         std::tolower(static_cast<unsigned char>(c)));
-      else
-        std::cout << c;
-    std::cout << ": " << value << "\n";
-  });
+/// Prints a mapping in block style, one key per line. Scalar strings are left
+/// unquoted to match the rest of the output.
+void printYaml(const std::string &indent, const rfl::Generic::Object &object) {
+  for (const auto &[key, value] : object) {
+    std::cout << indent << key << ":";
+    if (const auto *nested =
+            std::get_if<rfl::Generic::Object>(&value.variant())) {
+      std::cout << "\n";
+      printYaml(indent + "  ", *nested);
+    } else if (const auto *str = std::get_if<std::string>(&value.variant())) {
+      std::cout << " " << escaped(*str) << "\n";
+    } else {
+      std::cout << " " << flowValue(value) << "\n";
+    }
+  }
 }
 
 void printStage(const CompilationStage &stage, const char *indent) {
@@ -125,8 +134,17 @@ void printStage(const CompilationStage &stage, const char *indent) {
             << "stage: ir-output-profile=" << name(stage.irOutputProfile)
             << " lowering=" << name(stage.lowering) << "\n";
   const std::string nested = std::string(indent) + "  ";
-  std::visit([&](const auto &p) { printProfileOptions(nested.c_str(), p); },
-             stage.irOutputProfile);
+  // Each profile prints as its YAML form. The profile name is already on the
+  // stage line.
+  std::visit(
+      [&](const auto &p) {
+        using P = std::decay_t<decltype(p)>;
+        printYaml(nested,
+                  rfl::to_generic<YamlProcessors>(v2::ProfileYaml<P>::from(p))
+                      .to_object()
+                      .value());
+      },
+      stage.irOutputProfile);
   std::visit([&](const auto &l) { printLowering(nested.c_str(), l); },
              stage.lowering);
 }

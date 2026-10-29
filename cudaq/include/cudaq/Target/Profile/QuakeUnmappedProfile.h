@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <functional>
 #include <optional>
 #include <string>
 #include <vector>
@@ -64,3 +65,9 @@ struct QuakeUnmappedProfile {
 };
 
 } // namespace cudaq::config
+
+template <>
+struct std::hash<cudaq::config::QuakeUnmappedProfile> {
+  std::size_t
+  operator()(const cudaq::config::QuakeUnmappedProfile &profile) const noexcept;
+};
