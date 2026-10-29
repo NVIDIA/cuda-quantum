@@ -16,6 +16,7 @@ on:
         type: choice
         options:
           - nightly
+          - community
           - anyon
           - fermioniq
           - infleqtion
@@ -194,6 +195,7 @@ jobs:
   provider_test:
     name: Test ${{ matrix.provider }}
     needs: [setup, metadata, provider_matrix_setup]
+    if: github.event_name == 'schedule' || inputs.target != 'community'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -842,4 +844,81 @@ jobs:
           fi
           # Clean up
           rm -f "$HOME/.anyon_config" "$HOME/.quantinuum_config"
+        shell: bash
+
+  # Community projects are discovered from `docs/sphinx/community/*/index.rst`,
+  # so adding a project does not require changes to this workflow.
+  community_matrix_setup:
+    name: Setup community matrix
+    needs: [setup, metadata]
+    if: github.event_name == 'schedule' || inputs.target == 'nightly' || inputs.target == 'community'
+    runs-on: ubuntu-latest
+    outputs:
+      projects: ${{ steps.discover.outputs.projects }}
+    steps:
+      - name: Get code
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.metadata.outputs.cudaq_commit }}
+          fetch-depth: 1
+          sparse-checkout: docs/sphinx
+
+      - name: Discover community projects
+        id: discover
+        run: |
+          projects=$(python3 -I docs/sphinx/_ext/community_metadata.py docs/sphinx/community --json)
+          echo "projects=$projects" >> $GITHUB_OUTPUT
+
+  # Runs each community example against the CUDA-Q nightly image to detect
+  # breaking changes. Failures are isolated per project.
+  community_test:
+    name: Test community project ${{ matrix.project.name }}
+    needs: [setup, metadata, community_matrix_setup]
+    if: needs.community_matrix_setup.outputs.projects != '[]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        project: ${{ fromJson(needs.community_matrix_setup.outputs.projects) }}
+
+    container:
+      image: ${{ needs.setup.outputs.cudaq_test_image }}
+      options: --user root
+      credentials:
+        username: ${{ github.actor }}
+        password: ${{ github.token }}
+
+    steps:
+      - name: Get code
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.metadata.outputs.cudaq_commit }}
+          fetch-depth: 1
+
+      # The `install` value comes from a project's metadata; it is passed via
+      # the environment and word-split (never evaluated by the shell) so that it
+      # can only supply arguments to `pip install`.
+      - name: Install project dependencies
+        if: matrix.project.install != ''
+        env:
+          INSTALL_ARGS: ${{ matrix.project.install }}
+        run: |
+          echo "### Installing ${{ matrix.project.name }}: \`pip install $INSTALL_ARGS\`" >> $GITHUB_STEP_SUMMARY
+          python3 -m pip install $INSTALL_ARGS
+        shell: bash
+
+      - name: Run example
+        env:
+          EXAMPLE: ${{ matrix.project.example }}
+        run: |
+          echo "### Testing community project ${{ matrix.project.name }}" >> $GITHUB_STEP_SUMMARY
+          example="$EXAMPLE"
+          cd "$(dirname "$example")"
+          if python3 "$(basename "$example")"; then
+            echo ":white_check_mark: Successfully ran example: $example" >> $GITHUB_STEP_SUMMARY
+          else
+            echo ":x: Example failed: $example" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
         shell: bash
