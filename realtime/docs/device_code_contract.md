@@ -155,6 +155,99 @@ and the dispatcher's error then names the `nvJitLink` version.  That
 `nvJitLink` must also support the running GPU's architecture: for `sm_100`,
 12.8 or newer, even for a build made with CUDA 12.6.
 
+## Providing your own dispatch kernel
+
+The dispatcher's kernel runs one block, and every thread of it calls each
+handler.  An application that wants another shape, such as one thread, a
+cooperative grid or clusters, supplies its own kernel and launches it itself.
+The kernel still has to be in the dispatcher's linked module, since it calls
+the bridge's hooks and the handlers.
+
+- **Write it** as an `extern "C" __global__` function.  Exactly one thread,
+  the same one for the whole launch, calls the hooks of
+  `unified_device_transport.cuh`.  The helpers in
+  `unified_dispatch_device.cuh` (`unified_lookup_entry`,
+  `write_response_header`) do the framing the dispatcher's own kernel does.
+  The handlers' threading contract is the kernel's to define.
+- **Build it with one CMake call,** in the binary that holds the handlers:
+
+  ```cmake
+  find_package(cudaq-realtime CONFIG REQUIRED)
+  add_executable(my_app main.cpp handlers.cu)
+  set_target_properties(my_app PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+  target_link_libraries(my_app PRIVATE cudaq::cudaq-realtime)
+  cudaq_realtime_add_dispatch_kernel(my_app my_dispatcher.cu)
+  ```
+
+  `cudaq_realtime_add_dispatch_kernel(<target> <source> [ARCH <N>])` comes
+  with the package config.  A project that finds realtime without
+  `find_package` can include it by path:
+  `include(<prefix>/lib/cmake/cudaq-realtime/CudaqRealtimeDispatchKernel.cmake)`.
+  Do not list the kernel's file among the target's sources.  Call the function
+  from the directory that defines the target.  The kernel is compiled with
+  the target's include directories, compile definitions and `CUDA_STANDARD`.
+  It targets `ARCH`, by default the architecture `libcudaq-realtime`'s own
+  kernel targets, and `LTO-IR` for one architecture links for that GPU and
+  every newer one.
+
+  **Why a separate build:** the binary cannot resolve the hooks, which only
+  the bridge defines, so its own device link would fail on them.  The function
+  therefore compiles the kernel's file on its own to `LTO-IR`, and embeds that
+  in the binary's `__nv_relfatbin` section, next to the `fatbin`s nvcc puts
+  there.  No host object registers it, so the device link never sees it, while
+  `cudaq_device_code_of_this_binary` hands it over with the handlers.  Without
+  CMake, do the same by hand:
+
+  ```bash
+  nvcc -fatbin -rdc=true -std=c++20 \
+    --generate-code=arch=compute_80,code=lto_80 \
+    -I<realtime include> my_dispatcher.cu -o my_dispatcher.fatbin
+  ```
+
+  ```cpp
+  // my_dispatcher_image.cpp, compiled into the binary that holds the handlers
+  asm(".section __nv_relfatbin,\"a\"\n"
+      ".balign 16\n"
+      ".incbin \"my_dispatcher.fatbin\"\n"
+      ".previous\n");
+  ```
+
+  Neither weak stubs of the hooks nor a weak declaration helps.  nvcc ignores
+  `__attribute__((weak))` on device functions, so a stub would be linked in
+  place of the bridge's hook.
+- **Look it up.**  `cudaq_dispatcher_get_device_kernel` (`cudaq_realtime.h`)
+  returns the kernel from the linked module as a `cudaKernel_t`, which is the
+  driver's `CUkernel`.  Like a handler lookup, it links the module on first
+  use, and the handlers and the kernel come from one binary.
+- **Launch it any way you like.**  Pass a launcher to
+  `cudaq_dispatcher_set_unified_launch`, with a NULL transport context, after
+  `cudaq_dispatcher_set_bridge` and before `cudaq_dispatcher_start`.  `start`
+  calls the launcher with the bridge's context, the slot size, the function
+  table, the control words and the stream.  Realtime plays no part in how the
+  kernel is launched:
+  - **The driver API works the same on CUDA 12 and 13.**  That covers
+    `cuLaunchKernelEx` with the handle cast to `CUfunction` and any launch
+    attributes (cooperative, clusters, ...), `cuKernelSetAttribute`,
+    occupancy queries on `cuKernelGetFunction`'s function, and
+    `cuGraphAddKernelNode`.  An application may link `libcuda` for it.
+  - **From CUDA 13, the runtime also takes the handle** like any kernel:
+    `cudaLaunchKernelExC`, `cudaFuncSetAttribute`, graph kernel nodes and
+    stream capture.  The CUDA 12.6 runtime refuses it with
+    `cudaErrorInvalidDeviceFunction`.
+
+  Launch on the stream the launcher is given, which `cudaq_dispatcher_stop`
+  waits on, and return `CUDAQ_OK` once the kernel is launched.  Any other
+  status fails `start` with it.
+- **`config.num_blocks` is not checked** with a launcher, since the launcher
+  picks the grid.  `start` still refuses handler addresses that are not from
+  the linked module.
+
+`realtime/unittests/test_server/cudaq_realtime_test_server.cpp`
+(`--dispatcher=`, step `[5k]` and `launch_own_dispatcher`) is a complete
+example.  Its kernel is `realtime/unittests/dispatchers/single_thread_dispatcher.cu`,
+built and embedded by `cudaq_realtime_add_dispatch_kernel` in
+`realtime/unittests/test_server/CMakeLists.txt`.
+
 ## Wiring sequence
 
 1. Create the bridge, then the dispatcher with `dispatch_path = DEVICE` and

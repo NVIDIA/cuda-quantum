@@ -30,6 +30,10 @@
 /// __syncwarp, the DOCA *_warp helpers): a warp barrier would never complete
 /// and a block barrier would collide with the one the block is waiting in.
 /// `__shared__` state a transport declares is touched by thread 0 only.
+/// A dispatch kernel the application launches itself
+/// (cudaq_dispatcher_set_unified_launch) keeps the rule in whatever grid it
+/// runs: one thread, the same for the whole launch, calls the hooks, so a hook
+/// must not use cluster- or grid-wide barriers either.
 ///
 /// LINKAGE.  These are `extern __device__` functions with fixed names, NOT
 /// function pointers: a device function pointer is only valid inside the

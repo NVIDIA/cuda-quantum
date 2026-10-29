@@ -37,6 +37,12 @@ add_executable(test_gpu_dataplane
   test_gpu_dataplane.cpp
   test_gpu_dataplane_device.cu
   test_gpu_dataplane_second_handler.cu)
+# The application's own dispatch kernel the test launches, through
+# driver_launch.h.
+cudaq_realtime_add_dispatch_kernel(test_gpu_dataplane
+  ${CUDAQ_REALTIME_TEST_DISPATCHERS_DIR}/single_thread_dispatcher.cu)
+target_include_directories(test_gpu_dataplane PRIVATE
+  ${CUDAQ_REALTIME_TEST_DISPATCHERS_DIR})
 set_target_properties(test_gpu_dataplane PROPERTIES
   CUDA_SEPARABLE_COMPILATION ON
   CUDA_STANDARD 20)

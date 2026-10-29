@@ -12,6 +12,7 @@
 /// handler, linked at run time.  The test plays the wire through the
 /// provider's host views of its rings.  Skips without a GPU.
 
+#include "driver_launch.h"
 #include "cudaq/realtime/daemon/bridge/bridge_interface.h"
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
@@ -47,16 +48,52 @@ using cudaq::realtime::RPCResponse;
 constexpr std::uint32_t kFunctionId =
     cudaq::realtime::fnv1a_hash("gpu_dataplane_test");
 constexpr const char *kHandler = "gpu_dataplane_test_handler";
+// unittests/dispatchers/single_thread_dispatcher.cu
+constexpr const char *kDispatcher = "single_thread_dispatcher";
 
 cudaq_dispatcher_config_t make_config(cudaq_dispatch_path_t path,
-                                      cudaq_kernel_type_t kernel_type) {
+                                      cudaq_kernel_type_t kernel_type,
+                                      std::uint32_t num_blocks) {
   cudaq_dispatcher_config_t config{};
   config.dispatch_path = path;
   config.dispatch_mode = CUDAQ_DISPATCH_DEVICE_CALL;
   config.kernel_type = kernel_type;
-  config.num_blocks = 1;
+  config.num_blocks = num_blocks;
   config.threads_per_block = 32;
   return config;
+}
+
+// The application's launcher.  Its type carries no user data, so the kernel
+// it starts, looked up in the dispatcher's linked module, and the grid come
+// from here.  One thread per block: the kernel works on the grid's first
+// thread, where the block-partitioned handler then does all its work.
+cudaKernel_t own_dispatcher_kernel = nullptr;
+unsigned own_dispatcher_blocks = 1;
+bool own_dispatcher_cooperative = false;
+
+// Through the driver API, which takes the kernel on CUDA 12 and 13 alike.
+cudaq_status_t launch_own_dispatcher(void *transport_ctx, size_t tx_stride_sz,
+                                     cudaq_function_entry_t *function_table,
+                                     size_t func_count,
+                                     volatile int *shutdown_flag,
+                                     uint64_t *stats, uint32_t,
+                                     cudaStream_t stream) {
+  void *args[] = {&transport_ctx,  &tx_stride_sz, &shutdown_flag,
+                  &function_table, &func_count,   &stats};
+  CUlaunchAttribute cooperative{};
+  cooperative.id = CU_LAUNCH_ATTRIBUTE_COOPERATIVE;
+  cooperative.value.cooperative = 1;
+  CUlaunchConfig config{};
+  config.gridDimX = own_dispatcher_blocks;
+  config.gridDimY = config.gridDimZ = 1;
+  config.blockDimX = config.blockDimY = config.blockDimZ = 1;
+  config.hStream = stream;
+  if (own_dispatcher_cooperative) {
+    config.attrs = &cooperative;
+    config.numAttrs = 1;
+  }
+  return cudaq::realtime::testing::launch_kernel_ex(
+      &config, own_dispatcher_kernel, args);
 }
 
 class GpuDataplaneTest : public ::testing::Test {
@@ -128,8 +165,9 @@ protected:
 
   cudaq_dispatcher_t *
   dispatcher(cudaq_dispatch_path_t path = CUDAQ_DISPATCH_PATH_DEVICE,
-             cudaq_kernel_type_t kernel_type = CUDAQ_KERNEL_UNIFIED) {
-    const auto config = make_config(path, kernel_type);
+             cudaq_kernel_type_t kernel_type = CUDAQ_KERNEL_UNIFIED,
+             std::uint32_t num_blocks = 1) {
+    const auto config = make_config(path, kernel_type, num_blocks);
     cudaq_dispatcher_t *d = nullptr;
     EXPECT_EQ(cudaq_dispatcher_create(manager, &config, &d), CUDAQ_OK);
     if (d)
@@ -152,6 +190,78 @@ protected:
     ASSERT_EQ(cudaq_dispatcher_set_control(d, d_shutdown, d_stats), CUDAQ_OK);
   }
 
+  // Plays the wire for started dispatcher `d` over bridge `b`, then stops it
+  // and checks that every request was counted.
+  void round_trip(cudaq_realtime_bridge_handle_t b, cudaq_dispatcher_t *d) {
+    cudaq_ringbuffer_t ring{};
+    ASSERT_EQ(cudaq_bridge_get_transport_context(b, RING_BUFFER, &ring),
+              CUDAQ_OK);
+    std::uint32_t num_slots = 0, slot_size = 0;
+    ASSERT_EQ(cudaq_bridge_get_ring_geometry(b, &num_slots, &slot_size),
+              CUDAQ_OK);
+
+    // Two and a half times around the ring.
+    const std::uint32_t requests = num_slots * 5 / 2;
+    for (std::uint32_t i = 0; i < requests; ++i) {
+      const std::uint32_t slot = i % num_slots;
+      const std::uint8_t payload[4] = {
+          static_cast<std::uint8_t>(i), static_cast<std::uint8_t>(i + 1),
+          static_cast<std::uint8_t>(i + 2), static_cast<std::uint8_t>(i + 3)};
+      ASSERT_EQ(
+          cudaq_host_ringbuffer_write_rpc_request(
+              &ring, slot, kFunctionId, payload, sizeof(payload), 100 + i, 0),
+          CUDAQ_OK);
+      __atomic_store_n(const_cast<std::uint64_t *>(&ring.rx_flags_host[slot]),
+                       1, __ATOMIC_RELEASE);
+
+      const auto deadline =
+          std::chrono::steady_clock::now() + std::chrono::seconds(5);
+      while (__atomic_load_n(
+                 const_cast<std::uint64_t *>(&ring.tx_flags_host[slot]),
+                 __ATOMIC_ACQUIRE) == 0) {
+        ASSERT_LT(std::chrono::steady_clock::now(), deadline)
+            << "no response for request " << i;
+        std::this_thread::yield();
+      }
+      const auto *response = reinterpret_cast<const RPCResponse *>(
+          ring.tx_data_host + slot * ring.tx_stride_sz);
+      EXPECT_EQ(response->magic, cudaq::realtime::RPC_MAGIC_RESPONSE);
+      EXPECT_EQ(response->status, 0);
+      EXPECT_EQ(response->request_id, 100 + i);
+      ASSERT_EQ(response->result_len, sizeof(payload));
+      const auto *result = reinterpret_cast<const std::uint8_t *>(response + 1);
+      for (std::size_t k = 0; k < sizeof(payload); ++k)
+        EXPECT_EQ(result[k], static_cast<std::uint8_t>(payload[k] + 1));
+      __atomic_store_n(const_cast<std::uint64_t *>(&ring.tx_flags_host[slot]),
+                       0, __ATOMIC_RELEASE);
+    }
+
+    *h_shutdown = 1;
+    ASSERT_EQ(cudaq_dispatcher_stop(d), CUDAQ_OK);
+    std::uint64_t processed = 0;
+    ASSERT_EQ(cudaq_dispatcher_get_processed(d, &processed), CUDAQ_OK);
+    EXPECT_EQ(processed, requests);
+  }
+
+  // Wires `d` to `b` with this binary's handler, and has the application's
+  // launcher run this binary's own dispatch kernel.
+  void use_own_dispatcher(cudaq_realtime_bridge_handle_t b,
+                          cudaq_dispatcher_t *d, unsigned blocks,
+                          bool cooperative) {
+    ASSERT_EQ(cudaq_dispatcher_set_bridge(d, b), CUDAQ_OK);
+    void *fn = nullptr;
+    ASSERT_EQ(cudaq_dispatcher_get_device_handler(d, kHandler, &fn), CUDAQ_OK);
+    install(d, fn);
+    ASSERT_EQ(cudaq_dispatcher_get_device_kernel(d, kDispatcher,
+                                                 &own_dispatcher_kernel),
+              CUDAQ_OK);
+    own_dispatcher_blocks = blocks;
+    own_dispatcher_cooperative = cooperative;
+    ASSERT_EQ(
+        cudaq_dispatcher_set_unified_launch(d, launch_own_dispatcher, nullptr),
+        CUDAQ_OK);
+  }
+
   cudaq_dispatch_manager_t *manager = nullptr;
   volatile int *h_shutdown = nullptr;
   volatile int *d_shutdown = nullptr;
@@ -170,55 +280,91 @@ TEST_F(GpuDataplaneTest, RoundTripWrapsTheRing) {
   ASSERT_EQ(cudaq_dispatcher_get_device_handler(d, kHandler, &fn), CUDAQ_OK);
   install(d, fn);
   ASSERT_EQ(cudaq_dispatcher_start(d), CUDAQ_OK);
+  round_trip(b, d);
+}
 
-  cudaq_ringbuffer_t ring{};
-  ASSERT_EQ(cudaq_bridge_get_transport_context(b, RING_BUFFER, &ring),
+// The application's own kernel, from this binary's device code, started by
+// its own launcher: one thread receives, dispatches and publishes.
+TEST_F(GpuDataplaneTest, AnApplicationDispatcherRoundTripsAcrossTheRing) {
+  auto b = bridge();
+  auto *d = dispatcher();
+  use_own_dispatcher(b, d, 1, false);
+  ASSERT_EQ(cudaq_dispatcher_start(d), CUDAQ_OK);
+  round_trip(b, d);
+}
+
+// The launcher owns the grid: the dispatcher's own kernel needs one block,
+// a launcher may start a cooperative grid of two.
+TEST_F(GpuDataplaneTest, AnApplicationLauncherPicksItsOwnGrid) {
+  auto b = bridge();
+  auto *d = dispatcher(CUDAQ_DISPATCH_PATH_DEVICE, CUDAQ_KERNEL_UNIFIED, 2);
+  ASSERT_EQ(cudaq_dispatcher_set_bridge(d, b), CUDAQ_OK);
+  void *fn = nullptr;
+  ASSERT_EQ(cudaq_dispatcher_get_device_handler(d, kHandler, &fn), CUDAQ_OK);
+  install(d, fn);
+  EXPECT_EQ(cudaq_dispatcher_start(d), CUDAQ_ERR_INVALID_ARG);
+
+  ASSERT_EQ(cudaq_dispatcher_get_device_kernel(d, kDispatcher,
+                                               &own_dispatcher_kernel),
             CUDAQ_OK);
-  std::uint32_t num_slots = 0, slot_size = 0;
-  ASSERT_EQ(cudaq_bridge_get_ring_geometry(b, &num_slots, &slot_size),
+  own_dispatcher_blocks = 2;
+  own_dispatcher_cooperative = true;
+  ASSERT_EQ(
+      cudaq_dispatcher_set_unified_launch(d, launch_own_dispatcher, nullptr),
+      CUDAQ_OK);
+  ASSERT_EQ(cudaq_dispatcher_start(d), CUDAQ_OK);
+  round_trip(b, d);
+}
+
+// A launch the driver refuses fails start, though the launcher returns
+// nothing.
+TEST_F(GpuDataplaneTest, StartFailsWhenTheApplicationLaunchFails) {
+  auto b = bridge();
+  auto *d = dispatcher();
+  // Far more cooperative blocks than can be resident at once.
+  use_own_dispatcher(b, d, 1u << 20, true);
+  EXPECT_EQ(cudaq_dispatcher_start(d), CUDAQ_ERR_CUDA);
+}
+
+// The application's launcher does not lift the guard on handler addresses.
+TEST_F(GpuDataplaneTest, AnApplicationLauncherStillNeedsLinkedHandlers) {
+  auto b = bridge();
+  auto *d = dispatcher();
+  use_own_dispatcher(b, d, 1, false);
+  install(d, gpu_dataplane_test_own_module_handler());
+  EXPECT_EQ(cudaq_dispatcher_start(d), CUDAQ_ERR_INVALID_ARG);
+}
+
+TEST_F(GpuDataplaneTest, GetDeviceKernelRefusesUnknownNamesAndTheBuiltInOne) {
+  auto b = bridge();
+  auto *d = dispatcher();
+  ASSERT_EQ(cudaq_dispatcher_set_bridge(d, b), CUDAQ_OK);
+  cudaKernel_t kernel = nullptr;
+  EXPECT_EQ(cudaq_dispatcher_get_device_kernel(d, "no_such_kernel", &kernel),
+            CUDAQ_ERR_INVALID_ARG);
+  EXPECT_EQ(cudaq_dispatcher_get_device_kernel(
+                d, "cudaq_unified_dispatch_kernel", &kernel),
+            CUDAQ_ERR_INVALID_ARG);
+  EXPECT_EQ(cudaq_dispatcher_get_device_kernel(d, kDispatcher, &kernel),
             CUDAQ_OK);
+  EXPECT_NE(kernel, nullptr);
+}
 
-  // Two and a half times around the ring.
-  const std::uint32_t requests = num_slots * 5 / 2;
-  for (std::uint32_t i = 0; i < requests; ++i) {
-    const std::uint32_t slot = i % num_slots;
-    const std::uint8_t payload[4] = {
-        static_cast<std::uint8_t>(i), static_cast<std::uint8_t>(i + 1),
-        static_cast<std::uint8_t>(i + 2), static_cast<std::uint8_t>(i + 3)};
-    ASSERT_EQ(cudaq_host_ringbuffer_write_rpc_request(&ring, slot, kFunctionId,
-                                                      payload, sizeof(payload),
-                                                      100 + i, 0),
-              CUDAQ_OK);
-    __atomic_store_n(const_cast<std::uint64_t *>(&ring.rx_flags_host[slot]), 1,
-                     __ATOMIC_RELEASE);
+// Over a GPU data plane, the bridge's context is the one the launcher gets,
+// and the launcher is set before start.
+TEST_F(GpuDataplaneTest, SetUnifiedLaunchKeepsTheBridgesContext) {
+  auto b = bridge();
+  auto *d = dispatcher();
+  use_own_dispatcher(b, d, 1, false);
+  int other_context = 0;
+  EXPECT_EQ(cudaq_dispatcher_set_unified_launch(d, launch_own_dispatcher,
+                                                &other_context),
+            CUDAQ_ERR_INVALID_ARG);
 
-    const auto deadline =
-        std::chrono::steady_clock::now() + std::chrono::seconds(5);
-    while (
-        __atomic_load_n(const_cast<std::uint64_t *>(&ring.tx_flags_host[slot]),
-                        __ATOMIC_ACQUIRE) == 0) {
-      ASSERT_LT(std::chrono::steady_clock::now(), deadline)
-          << "no response for request " << i;
-      std::this_thread::yield();
-    }
-    const auto *response = reinterpret_cast<const RPCResponse *>(
-        ring.tx_data_host + slot * ring.tx_stride_sz);
-    EXPECT_EQ(response->magic, cudaq::realtime::RPC_MAGIC_RESPONSE);
-    EXPECT_EQ(response->status, 0);
-    EXPECT_EQ(response->request_id, 100 + i);
-    ASSERT_EQ(response->result_len, sizeof(payload));
-    const auto *result = reinterpret_cast<const std::uint8_t *>(response + 1);
-    for (std::size_t k = 0; k < sizeof(payload); ++k)
-      EXPECT_EQ(result[k], static_cast<std::uint8_t>(payload[k] + 1));
-    __atomic_store_n(const_cast<std::uint64_t *>(&ring.tx_flags_host[slot]), 0,
-                     __ATOMIC_RELEASE);
-  }
-
-  *h_shutdown = 1;
-  ASSERT_EQ(cudaq_dispatcher_stop(d), CUDAQ_OK);
-  std::uint64_t processed = 0;
-  ASSERT_EQ(cudaq_dispatcher_get_processed(d, &processed), CUDAQ_OK);
-  EXPECT_EQ(processed, requests);
+  ASSERT_EQ(cudaq_dispatcher_start(d), CUDAQ_OK);
+  EXPECT_EQ(
+      cudaq_dispatcher_set_unified_launch(d, launch_own_dispatcher, nullptr),
+      CUDAQ_ERR_INVALID_ARG);
 }
 
 // An address taken in this binary's own module points at code the linked
