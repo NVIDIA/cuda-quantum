@@ -115,7 +115,11 @@ def test_factory_is_built_once_per_distance_pair(factory):
     assert other.autoccz_factory is not rsa2048.autoccz_factory
 
 
-@pytest.mark.parametrize("modulus_bits", (2048, 3072, 4096))
+@pytest.mark.parametrize("modulus_bits", (
+    2048,
+    pytest.param(3072, marks=pytest.mark.slow),
+    pytest.param(4096, marks=pytest.mark.slow),
+))
 def test_factory_characterization_matches_reference(factory, modulus_bits):
     point = factory.OPERATING_POINTS[modulus_bits]
     estimate, model = factory.characterize_surface_autoccz_factory(point)
@@ -130,8 +134,8 @@ def test_factory_characterization_matches_reference(factory, modulus_bits):
 # Table 3 reports `megaqubits` and hours rounded up to two significant digits.
 @pytest.mark.parametrize("modulus_bits, megaqubits, hours", (
     (2048, 20, 5.1),
-    (3072, 38, 12),
-    (4096, 55, 22),
+    pytest.param(3072, 38, 12, marks=pytest.mark.slow),
+    pytest.param(4096, 55, 22, marks=pytest.mark.slow),
 ))
 def test_resource_kernel_matches_operating_point(factory, example, modulus_bits,
                                                  megaqubits, hours):

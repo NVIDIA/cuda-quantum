@@ -89,7 +89,7 @@ cudaq::registry::__cudaq_getRunnableKernel(const std::string &kernelName) {
   void *result = getRunnableKernelOrNull(kernelName);
   if (!result)
     throw std::runtime_error("runnable kernel " + kernelName +
-                             "is not present: kernel cannot be "
+                             " is not present: kernel cannot be "
                              "called by cudaq::run");
   return result;
 }

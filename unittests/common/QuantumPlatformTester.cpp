@@ -52,6 +52,7 @@ public:
     ct.fullySpecialize = false;
     ct.overrideAOTCompilation = true;
     ct.supportExplicitMeasurements = true;
+    ct.resetOnRandomSeedSet = true;
     return ct;
   }
 

@@ -1,139 +1,211 @@
 # The logical programming stack
 
-This guide uses a few small examples to show how CUDA-Q Logical turns an idea
-into something you can place on fault-tolerant hardware and estimate. In this
-short walk-through, you will write and place a Bell-pair program, define a
-quantum-error-correction (QEC) realization, and inspect its outputs.
+Follow one Bell-pair computation from a portable logical program to a physical
+schedule using the Steane code. First, compile, place, and estimate the program
+directly with `cudaq.logical`. Then expose the same device as a CUDA-Q target
+so application developers can estimate a kernel with a single
+`cudaq.estimate` call.
 
-CUDA-Q Logical formalizes the layers of abstraction involved in this process as
+Install CUDA-Q Logical following the [quick start](quickstart.md). See
+[Core concepts](concepts.md) for the definitions used throughout this guide.
+
+The excerpts below come from the runnable
+[Steane Bell-pair example](../../../examples/steane_bell_e2e_workflow.py).
+From the repository root, run:
+
+```bash
+python3 preview/logical/examples/steane_bell_e2e_workflow.py
+```
+
+The [compilation stages](concepts.md#definitions-builds-and-compilation) are
 **P0**, **P1**, **P2**, and **P3**:
 
 ```text
 P0: logical program → P1: placement → P2: QEC realization → P3: physical schedule
-       │                    │                  │                    │
- logical estimate     region and slots   static/analytical    timed events
-                                             │
-                                         Stim text
 ```
 
-Each compilation stage adds detail without changing the behavior of the original
-program.
+Each stage adds the information needed for more detailed resource estimates.
 
-## 1. Write the logical program
+## 1. Compile and estimate the logical program
 
-Start with a program that prepares and measures a Bell pair:
+Define a [logical program](concepts.md#logical-programs-and-quantum-values) that
+prepares and measures a Bell pair. The program specifies the computation
+independently of its QEC code and device:
 
-```{eval-rst}
-.. literalinclude:: ../../../examples/standalone/00_logical_program.py
-   :language: python
-   :start-at: import cudaq.logical as cql
-   :end-at: tier=cql.estimate.Tier.LOGICAL)
-   :caption: Define, compile, and estimate a Bell program (examples/standalone/00_logical_program.py).
+```{literalinclude} ../../../examples/steane_bell_e2e_workflow.py
+:language: python
+:start-after: START_LOGICAL_PROGRAM
+:end-before: END_LOGICAL_PROGRAM
 ```
 
-The program says what to compute, but not where to place the qubits or which QEC
-code to use. That makes it portable.
+The assignments retain the successor values returned by each operation; see
+[linear ownership](concepts.md#logical-programs-and-quantum-values) for why
+these assignments are required.
 
-The assignments are important. A quantum value has one live owner, so an
-operation consumes the current value and returns its successor. For example,
-`qubits[0] = cudaq.logical.h(qubits[0])` replaces the old value of `qubits[0]`
-with the one returned by `h`. This rule prevents stale or duplicated quantum
-values from reaching the compiled program.
+`cql.compile` translates the program into a P0
+[build](concepts.md#definitions-builds-and-compilation). Pass that build to
+`cql.estimate` to count its logical resources:
 
-`cudaq.logical.compile(bell)` produces an immutable P0 build. At this point, a
-logical estimate can count the program's logical qubits and operations:
-
-```text
-Portable Bell program: 2 logical qubits
-```
-
-It cannot yet count encoded patches or syndrome rounds because you have not
-chosen a realization. Those figures become available later, when the compiler
-has the facts needed to calculate them.
-
-## 2. Place the qubits on a logical machine
-
-Next, describe the available logical machine. This one has a `compute` region
-with two slots and supports logical computation and measurement:
-
-```{eval-rst}
-.. literalinclude:: ../../../examples/standalone/01_logical_placement.py
-   :language: python
-   :start-at: @cql.machine
-   :end-before: # %%
-   :caption: Define a two-slot logical machine (examples/standalone/01_logical_placement.py).
-```
-
-Keep this information out of the Bell program. The same program can then be
-placed on another compatible machine, and the same machine can host other
-programs.
-
-Compile the program and ask the placement solver to keep its two `data` qubits
-together:
-
-```{eval-rst}
-.. literalinclude:: ../../../examples/standalone/01_logical_placement.py
-   :language: python
-   :start-at: @cql.program
-   :end-at: cql.architecture.colocate(logical.values.data)
-   :caption: Place the Bell program and inspect the result.
-```
-
-The resulting P1 build records the region and slot assigned to each logical
-value:
-
-```text
-Bell data[0:2] placed on compute[0:2]
-```
-
-Placement refines the P0 build; it does not retrace or rewrite the Python
-program. The recorded placement is also replayable, as the final assertion in
-the example demonstrates.
-
-## 3. Define a QEC realization
-
-At P2, codes and gadgets describe how to realize logical behavior. The next
-example defines the Steane code, an objective for terminal memory, and a gadget
-that implements that objective:
-
-```{eval-rst}
-.. literalinclude:: ../../../examples/standalone/02_code_and_gadget.py
-   :language: python
-   :start-at: import cudaq.logical as cql
-   :end-at: cql.discard(block)
-   :caption: Define a Steane code and terminal-memory gadget (examples/standalone/02_code_and_gadget.py).
-```
-
-The code supplies its CSS checks, logical operators, and distance. The gadget
-works on a typed Steane patch, extracts its syndrome, measures its data qubits,
-and ends their lifetime.
-
-`implements=terminal_memory` is a checked claim about the gadget's behavior.
-CUDA-Q Logical compares the gadget with the objective using their types and
-derived actions; a matching Python name alone is not enough.
-
-Materialize the code and compile the gadget to inspect the verified P2
-definitions and their operation counts:
-
-```{eval-rst}
-.. literalinclude:: ../../../examples/standalone/02_code_and_gadget.py
-   :language: python
-   :start-at: code = cql.materialize(Steane)
-   :end-at: == (7, 1, 3)
+```{literalinclude} ../../../examples/steane_bell_e2e_workflow.py
+:language: python
+:start-after: START_LOGICAL_ESTIMATE
+:end-before: END_LOGICAL_ESTIMATE
 ```
 
 ```text
-Steane [[7,1,3]] terminal-memory gadget:
-  authored operations: {'reset': 2, 'h': 2, 'cx': 2, 'read_syndrome_ancillas': 1, 'mz': 1, 'dealloc': 1}
+Peak logical qubits: 2
+Hadamard actions: 1
+Controlled-X actions: 1
 ```
 
-The assertions are useful beyond testing the example: they show which code and
-gadget reached the P2 representation and which code properties were available to
-selection.
+These counts describe the workload. Encoded blocks, physical qubits, and timing
+depend on the realization we choose next.
 
-## 4. Estimate a selected realization
+## 2. Choose the code and its implementations
 
-CUDA-Q Logical offers four estimation tiers:
+Define the Steane `[[7,1,3]]`
+[CSS code](concepts.md#codes-and-operation-implementations) explicitly. It
+protects one logical qubit with seven data qubits; `CSSBlock` also reserves
+three X-check and three Z-check ancillas. The `hx` and `hz` rows list the
+data-qubit indices for each X and Z stabilizer check, while `lx` and `lz` define
+the logical X and Z operators.
+
+`@cql.code` validates the code's algebraic structure.
+[`cql.materialize`](concepts.md#definitions-builds-and-compilation) creates its compiler
+representation, which can be inspected independently of the Bell program:
+
+```{literalinclude} ../../../examples/steane_bell_e2e_workflow.py
+:language: python
+:start-after: START_STEANE_CODE
+:end-before: END_STEANE_CODE
+```
+
+The same code is also available as the built-in `cql.codes.Steane`. To use it,
+replace the class definition with `Steane = cql.codes.Steane`.
+
+Supply [gadgets](concepts.md#codes-and-operation-implementations) for the Bell
+program's Hadamard and controlled-X operations. Each `implements=` clause
+names the ideal logical
+[objective](concepts.md#codes-and-operation-implementations); the body
+describes its implementation on encoded patches. For Steane, these operations
+can be applied across the data qubits:
+
+```{literalinclude} ../../../examples/steane_bell_e2e_workflow.py
+:language: python
+:start-after: START_STEANE_GADGETS
+:end-before: END_STEANE_GADGETS
+```
+
+Combine these gadgets with the supplied preparation and measurement gadgets in
+a [QEC architecture](concepts.md#codes-and-operation-implementations).
+Together they cover every operation in the Bell program:
+
+```{literalinclude} ../../../examples/steane_bell_e2e_workflow.py
+:language: python
+:start-after: START_QEC_ARCHITECTURE
+:end-before: END_QEC_ARCHITECTURE
+```
+
+See [Defining a code](../use-cases/define-a-code.md) and
+[Gadgets and verification](../use-cases/gadgets-and-verification.md) for custom
+definitions.
+
+## 3. Describe the device
+
+A [device](concepts.md#devices-and-placement) connects the logical machine, QEC
+realization, and physical resources. First, give its
+[logical machine](concepts.md#devices-and-placement) a compute region with two
+slots, then bind that region to the Steane architecture:
+
+```{literalinclude} ../../../examples/steane_bell_e2e_workflow.py
+:language: python
+:start-after: START_LOGICAL_DEVICE
+:end-before: END_LOGICAL_DEVICE
+```
+
+Each logical qubit needs one Steane block. Here,
+`CSSBlock(data=7, sx=3, sz=3)` reserves seven data qubits and six check ancillas
+per block. The device therefore reserves `2 * (7 + 3 + 3) = 26` physical qubits:
+14 data qubits and 12 ancillas. The ancillas are part of this example's block
+layout. Declare the operations, measurements, and timing available on the
+physical machine:
+
+```{literalinclude} ../../../examples/steane_bell_e2e_workflow.py
+:language: python
+:start-after: START_PHYSICAL_DEVICE
+:end-before: END_PHYSICAL_DEVICE
+```
+
+This is a teaching device with an illustrative one-nanosecond cycle and native
+Clifford operations and Pauli-product measurements. Its resource and timing
+results describe these assumptions. See
+[Devices and placement](../use-cases/devices-and-placement.md) for other device
+configurations.
+
+## 4. Place and realize the program
+
+Use [`cql.compiler.place`](concepts.md#devices-and-placement) to assign the P0
+program's logical values to the device's logical machine. The constraint keeps
+the named `data` allocation in one region:
+
+```{literalinclude} ../../../examples/steane_bell_e2e_workflow.py
+:language: python
+:start-after: START_PLACEMENT
+:end-before: END_PLACEMENT
+```
+
+```text
+[('compute', 0), ('compute', 1)]
+```
+
+This P1 build records placement. It has not yet selected the QEC
+implementations. Continue compilation with the QEC
+[pipeline](concepts.md#definitions-builds-and-compilation) to produce P2, then
+estimate the encoded resources directly:
+
+```{literalinclude} ../../../examples/steane_bell_e2e_workflow.py
+:language: python
+:start-after: START_STATIC_ESTIMATE
+:end-before: END_STATIC_ESTIMATE
+```
+
+```text
+Peak encoded patches: 2
+Hadamard gadget calls: 1
+Controlled-X gadget calls: 1
+```
+
+The same Bell program now uses two Steane patches. Its selected implementations
+also include two preparations and two logical-Z measurements.
+
+## 5. Schedule and estimate the physical resources
+
+Continue with the physical pipeline and
+[schedule](concepts.md#schedules-and-resource-estimates) the resulting P3 events:
+
+```{literalinclude} ../../../examples/steane_bell_e2e_workflow.py
+:language: python
+:start-after: START_PHYSICAL_SCHEDULE
+:end-before: END_PHYSICAL_SCHEDULE
+```
+
+`cql.estimate` can now report physical resources and timing. Keep the estimate
+options together so we can reuse them in the CUDA-Q target below:
+
+```{literalinclude} ../../../examples/steane_bell_e2e_workflow.py
+:language: python
+:start-after: START_SCHEDULE_ESTIMATE
+:end-before: END_SCHEDULE_ESTIMATE
+```
+
+```text
+Physical qubits: 26
+Scheduled events: 13
+Makespan: 4.0 ns
+```
+
+The [estimation tier](concepts.md#schedules-and-resource-estimates) determines
+which resources to report and which compilation stage is required:
 
 | Tier           | Available from | What it reports                                      |
 | -------------- | -------------- | ---------------------------------------------------- |
@@ -142,73 +214,63 @@ CUDA-Q Logical offers four estimation tiers:
 | **ANALYTICAL** | P2             | modeled physical cost, error, acceptance, and timing |
 | **SCHEDULE**   | P3             | physical resources, timed events, and utilization    |
 
-You can also enter this pipeline from a regular CUDA-Q kernel. The following
-example selects a distance-3 surface-code target and asks `cudaq.estimate` for
-the cost of preparing and measuring a logical zero:
+See [Resource estimation](../use-cases/estimation.md) for the analytical tier
+and the complete result fields. The outputs above are estimates for preparing
+and measuring the Bell pair under this device model.
 
-```{eval-rst}
-.. literalinclude:: ../../../examples/02_surface_code_resource_estimate.py
-   :language: python
-   :start-at: import cudaq.logical as cql
-   :end-at: baseline_estimate.annotations["SCHEDULE"]
-   :caption: Estimate a CUDA-Q kernel with a surface-code target (examples/02_surface_code_resource_estimate.py).
+## 6. Expose the device as a CUDA-Q target
+
+The explicit calls above are useful when developing a device or inspecting
+compilation stages. For application developers, a
+[compilation target](concepts.md#cuda-q-integration) packages that workflow so
+an ordinary CUDA-Q kernel can use the same code,
+gadgets, physical bindings, and estimate options.
+
+Expose `device` through `Target.from_device` and select the resulting target:
+
+```{literalinclude} ../../../examples/steane_bell_e2e_workflow.py
+:language: python
+:start-after: START_CUDA_Q_TARGET
+:end-before: END_CUDA_Q_TARGET
 ```
 
-The baseline estimate carries logical, static, analytical, and schedule
-annotations. The rest of the example varies the code distance, logical
-capacity, error rate, failure budget, and cycle time to show which layout and
-timing metrics change. These are resource estimates, not results from a noise
-simulation or hardware execution.
+This target can now be used with CUDA-Q kernels. For example, the same logical
+program can be written as a Bell-pair kernel:
 
-## 5. Emit a verified gadget as Stim
+```{literalinclude} ../../../examples/steane_bell_e2e_workflow.py
+:language: python
+:start-after: START_CUDA_Q_KERNEL
+:end-before: END_CUDA_Q_KERNEL
+```
 
-A selected P2 program can also leave CUDA-Q Logical as standards-compatible
-Stim circuit text. It is an interchange format, not another compilation stage:
-the output contains the explicit resets, Clifford operations, and measurements
-of the selected gadget, and CUDA-Q Logical does not use it to sample or decode
-detector events. If the required realization is missing, emission stops at that
-boundary instead of filling in an implementation.
+The target now handles logical compilation, placement, QEC realization, and
+physical scheduling when the application calls `cudaq.estimate`. Recover the
+logical and static counts with typed views; the schedule results are available
+in the `SCHEDULE` annotation:
 
-The projection runs through `qlx-translate`; see
-[Stim emission](../use-cases/stim-emission.md) for the command and its
-fail-closed boundaries.
+```{literalinclude} ../../../examples/steane_bell_e2e_workflow.py
+:language: python
+:start-after: START_KERNEL_ESTIMATE
+:end-before: END_KERNEL_ESTIMATE
+```
 
-## What each stage owns
-
-Each kind of information belongs to a specific stage:
-
-| Stage                  | Adds                                          | Does not change               |
-| ---------------------- | --------------------------------------------- | ----------------------------- |
-| **P0** logical build   | logical actions and value ownership           | —                             |
-| **P1** placed build    | regions, slot bindings, placement evidence    | requested logical behavior    |
-| **P2** QEC realization | codes, patches, gadgets, and protocol details | logical behavior or placement |
-| **P3** physical build  | carriers, routing, native events, and schedule | requested logical behavior    |
-
-Some verified facts sit alongside a stage rather than extending this sequence.
-CUDA-Q Logical calls them _facets_. Code specifications, gadget realizations,
-protocol networks, patch graphs, carrier mappings, routing, and physical
-schedules are facets that downstream tools can request and inspect.
-
-Builds retain this evidence and can be serialized and replayed. When a required
-fact is absent, CUDA-Q Logical reports the missing requirement rather than
-choosing a machine, code, or gadget on your behalf.
-
-When reading or writing CUDA-Q Logical code, two questions are usually enough to
-orient yourself:
-
-1. Which stage or facet owns this fact?
-2. Did I supply it, or can CUDA-Q Logical derive and verify it?
+Both entry points estimate the same Bell-pair workload on the same device. An
+application can reuse the target for compatible kernels without repeating the
+individual compiler calls.
 
 ## Where to go next
 
-- Work through the task-oriented guides for
-  [defining a code](../use-cases/define-a-code.md),
+- Execute an encoded program with `cudaq.run` in the
+  [Steane Bernstein–Vazirani example](../use-cases/examples/steane-bernstein-vazirani.md).
+  It supplies an encoding circuit and returns measurement bits per shot.
+  The [T-state distillation example](../use-cases/examples/t-factory-evaluation.md)
+  runs on distance-1 `BareQubit` patches and adds non-Clifford gates,
+  measurement feedback, and noise.
+- Read [Core concepts](concepts.md) for definitions of programs, machines,
+  codes, gadgets, devices, and targets.
+- Work through the guides for [defining a code](../use-cases/define-a-code.md),
   [placing a program](../use-cases/devices-and-placement.md), and
   [estimating resources](../use-cases/estimation.md).
-- Browse the complete set of runnable
-  [examples](../use-cases/examples/index.md), including distillation, Clifford+T
-  synthesis, and the Gidney–Ekerå projection.
-- Read [Core concepts](concepts.md) for linear ownership, evidence, and
-  implementation discovery in more detail.
-- See the [architecture reference](../reference/architecture.md) for compiler
-  stages, dialects, and pipelines.
+- Browse the [examples](../use-cases/examples/index.md). The
+  [Carbon target](../use-cases/examples/carbon-code.md) builds a custom code and
+  integrates paired operations with CUDA-Q kernels.

@@ -248,9 +248,9 @@ jobs:
 
       - name: Install Cosign
         if: inputs.environment
-        uses: sigstore/cosign-installer@v3.3.0
+        uses: sigstore/cosign-installer@v4.1.2
         with:
-          cosign-release: 'v2.2.2'
+          cosign-release: 'v2.6.5'
 
       - name: Sign image with GitHub OIDC Token
         if: inputs.environment
@@ -278,8 +278,8 @@ jobs:
         with:
           name: ${{ steps.config.outputs.artifact_name }}
           path: /tmp/install
-          # Validation fetches this; must outlive the run.
-          retention-days: 14
+          # Validation fetches this; must outlive the run, and a release needs it longer.
+          retention-days: ${{ inputs.release_version != '' && 14 || 3 }}
           if-no-files-found: error
 
       # The artifact also holds a wheel, which is not a release asset.

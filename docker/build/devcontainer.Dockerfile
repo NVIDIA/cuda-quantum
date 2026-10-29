@@ -31,6 +31,10 @@ RUN if [ -z "${cuda_version}" ]; then \
     fi
 
 FROM $base_image
+
+# Install uv and uvx.
+COPY --from=ghcr.io/astral-sh/uv:0.13.5 /uv /uvx /usr/local/bin/
+RUN uv --version
 SHELL ["/bin/bash", "-c"]
 ARG cuda_version
 ENV CUDA_VERSION=${cuda_version}

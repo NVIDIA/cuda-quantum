@@ -39,19 +39,16 @@ public:
 
   bool supports_task_distribution() const override { return true; }
 
-  void beginExecution() override {
+  void prepareExecution(std::size_t qid) const override {
     // Only set the CUDA device when GPU-backed QPUs are active.
     // Non-GPU platforms (e.g. ORCA) that replace the default QPUs
     // via setTargetBackend do not require a CUDA device assignment.
-    auto qid = cudaq::getCurrentQpuId();
-    int nDevices = cudaq::getCudaDeviceCount();
-    if (nDevices > 0)
+    if (gpuBackedQpus)
       cudaq::setCudaDevice(qid);
-    // Base implementation of beginExecution will be called after this.
-    cudaq::quantum_platform::beginExecution();
   }
 
 private:
+  bool gpuBackedQpus = false;
   void populateDefaultQPUs();
 
   static std::string getTargetName(const std::string &description) {
@@ -113,6 +110,7 @@ private:
       if (qpuSubType == "orca") {
         auto urls = cudaq::split(getOption(description, "url"), ',');
         clearQPUs();
+        gpuBackedQpus = false;
         for (std::size_t qId = 0; qId < urls.size(); ++qId) {
           // Populate the information and add the QPUs
           auto qpu = cudaq::registry::get<cudaq::QPU>("orca");
@@ -145,6 +143,7 @@ private:
 
 void MultiQPUQuantumPlatform::populateDefaultQPUs() {
   clearQPUs();
+  gpuBackedQpus = false;
   int nDevices = cudaq::getCudaDeviceCount();
   // Skipped if CUDA-Q was built with CUDA but no devices present at
   // runtime.
@@ -172,6 +171,7 @@ void MultiQPUQuantumPlatform::populateDefaultQPUs() {
       qpu->setId(i);
       addQPU(std::move(qpu));
     }
+    gpuBackedQpus = true;
   }
 }
 } // namespace

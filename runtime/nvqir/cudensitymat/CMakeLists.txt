@@ -26,6 +26,7 @@ endif()
 if (${cuDensityMat_VERSION} VERSION_GREATER_EQUAL "0.4")
 
   add_library(${LIBRARY_NAME} SHARED
+    AnalogEvolution.cpp
     CuDensityMatSim.cpp
     mpi_support.cpp
     CuDensityMatTimeStepper.cpp

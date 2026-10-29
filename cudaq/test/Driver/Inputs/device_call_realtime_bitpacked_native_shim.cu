@@ -31,6 +31,10 @@ namespace {
 __device__ std::int32_t nativeCountPackedBitsHandler(const void *rxSlot,
                                                      void *txSlot,
                                                      std::size_t slotSize) {
+  // The dispatch kernel calls the handler on every thread of its block and
+  // records thread 0's status; do the work once, on thread 0.
+  if (threadIdx.x != 0 || blockIdx.x != 0)
+    return 0;
   if (!rxSlot || !txSlot || slotSize < sizeof(cudaq::realtime::RPCResponse))
     return -1;
   const auto *const request =
@@ -75,6 +79,10 @@ __device__ std::int32_t nativeCountPackedBitsHandler(const void *rxSlot,
 
 __device__ std::int32_t nativeIsEvenHandler(const void *rxSlot, void *txSlot,
                                             std::size_t slotSize) {
+  // The dispatch kernel calls the handler on every thread of its block and
+  // records thread 0's status; do the work once, on thread 0.
+  if (threadIdx.x != 0 || blockIdx.x != 0)
+    return 0;
   if (!rxSlot || !txSlot || slotSize < sizeof(cudaq::realtime::RPCResponse))
     return -1;
   const auto *const request =

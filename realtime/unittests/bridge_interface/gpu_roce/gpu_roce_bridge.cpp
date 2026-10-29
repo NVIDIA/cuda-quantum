@@ -57,8 +57,9 @@ struct DispatchConfig {
   size_t page_size =
       384; ///< Ring buffer slot size (>= frame_size, 128-aligned)
   unsigned num_pages = 64; ///< Number of ring buffer slots
-  /// @brief Dispatch kernel grid configuration.
-  /// Defaults match the regular kernel.
+  /// @brief Dispatch kernel grid configuration (both modes).
+  /// One block of `threads_per_block` threads (default 32) is the block every
+  /// DEVICE_CALL handler runs on, in unified mode as in 3-kernel mode.
   cudaq_kernel_type_t kernel_type = CUDAQ_KERNEL_REGULAR;
   uint32_t num_blocks = 1;
   uint32_t threads_per_block = 32;
@@ -69,7 +70,8 @@ struct DispatchConfig {
 
   // Unified dispatch mode: single kernel combines RDMA RX, RPC dispatch, and
   // RDMA TX via direct DOCA verbs calls.  Eliminates the inter-kernel flag
-  // handoff overhead of the 3-kernel path.  Regular handlers only.
+  // handoff overhead of the 3-kernel path.  DEVICE_CALL handlers only; they
+  // run on the `threads_per_block` block below, as in 3-kernel mode.
   bool unified = false;
 };
 
@@ -84,6 +86,8 @@ void parse_bridge_args(int argc, char *argv[], DispatchConfig &config) {
       config.forward = true;
     else if (arg == "--unified")
       config.unified = true;
+    else if (arg.find("--threads=") == 0)
+      config.threads_per_block = std::stoul(arg.substr(10));
   }
 }
 
@@ -154,7 +158,9 @@ int main(int argc, char *argv[]) {
              "(echo) "
              "instead of dispatch\n"
           << "  --unified             Use unified dispatch kernel (RX + "
-             "dispatch + TX in one kernel)\n";
+             "dispatch + TX in one kernel)\n"
+          << "  --threads=N           Block size every DEVICE_CALL handler "
+             "runs on, both modes (default: 32)\n";
       return 0;
     }
   }
@@ -198,8 +204,8 @@ int main(int argc, char *argv[]) {
     if (!config.forward) {
       if (!config.unified) {
         int dispatch_blocks = 0;
-        cudaError_t occ_err =
-            cudaq_dispatch_kernel_query_occupancy(&dispatch_blocks, 1);
+        cudaError_t occ_err = cudaq_dispatch_kernel_query_occupancy(
+            &dispatch_blocks, config.threads_per_block);
         if (occ_err != cudaSuccess) {
           std::cerr << "ERROR: Dispatch kernel occupancy query failed: "
                     << cudaGetErrorString(occ_err) << std::endl;
@@ -228,16 +234,10 @@ int main(int argc, char *argv[]) {
       dconfig.device_id = config.gpu_id;
       dconfig.vp_id = 0;
       dconfig.dispatch_mode = CUDAQ_DISPATCH_DEVICE_CALL;
-
-      if (config.unified) {
-        dconfig.kernel_type = CUDAQ_KERNEL_UNIFIED;
-        dconfig.num_blocks = 1;
-        dconfig.threads_per_block = 1;
-      } else {
-        dconfig.kernel_type = config.kernel_type;
-        dconfig.num_blocks = config.num_blocks;
-        dconfig.threads_per_block = config.threads_per_block;
-      }
+      dconfig.kernel_type =
+          config.unified ? CUDAQ_KERNEL_UNIFIED : config.kernel_type;
+      dconfig.num_blocks = config.num_blocks;
+      dconfig.threads_per_block = config.threads_per_block;
 
       // Create dispatcher with the above config
       HANDLE_CUDAQ_REALTIME_ERROR(
