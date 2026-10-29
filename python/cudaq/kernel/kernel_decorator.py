@@ -498,8 +498,9 @@ class PyKernelDecorator(object):
         if issubclass(type(arg), list):
             # Returned as it came unless it actually holds something to convert.
             # A list of numbers holds no strings and no nested lists, so
-            # unnecessary to rebuild
-            if not any(
+            # unnecessary to rebuild. Only an exact list, because the rebuild
+            # also turns a subclass into a plain list.
+            if type(arg) is list and not any(
                     isinstance(element, str) or
                     issubclass(type(element), list) for element in arg):
                 return arg
