@@ -1230,12 +1230,17 @@ def cc_CreateStringLiteralOp : CCOp<"string_literal", [Pure]> {
 // Span/Sequence operations.
 //===----------------------------------------------------------------------===//
 
-def cc_ReifySpanOp : CCOp<"reify_span", [Pure]> {
+def cc_ReifySpanOp : CCOp<"reify_span", [
+    MemoryEffects<[MemAlloc<AutomaticAllocationScopeResource>]>]> {
   let summary = "Convert a constant array value to a tree of spans.";
   let description = [{
     A ReifySpanOp is a macro op that can be used to convert a first-class
     constant array value, `cc.const_array`, atomically into a tree of spans
     as an object in memory.
+
+    The backing storage is allocated in the enclosing allocation scope, just
+    like `cc.alloca`. Model this allocation before expansion so that inlined
+    calls retain their scopes and stack storage is reclaimed on scope exit.
 
     The following example shows how one recovers the address of the string
     object "YI\0" from a const_array of strings, `%2`. It also shows how to
