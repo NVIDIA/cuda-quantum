@@ -12,9 +12,8 @@
 // RUN: cudaq-opt -aggressive-inlining -lower-to-cfg -stack-frame-prealloc -globalize-array-values -canonicalize %s | FileCheck %s --check-prefix=CFG
 // RUN: cudaq-opt -aggressive-inlining -stack-frame-prealloc -lower-to-cfg -globalize-array-values -canonicalize %s | FileCheck %s --check-prefix=CFG
 
-// Captured lists become reify_span operations before inlining, but their
-// backing allocations may only appear after lowering scopes to CFG. Keep the
-// call-site scope and its stack fence even before those allocations exist.
+// Captured lists become reify_span operations. Their backing storage must be
+// allocated in the function entry block, not in the loop body.
 func.func private @consume(!cc.sequence<i64>, !cc.sequence<!cc.sequence<i64>>)
 
 func.func private @captured_lists() {
@@ -45,21 +44,25 @@ func.func @loop(%n: i64) {
 }
 
 // SCOPE-LABEL: func.func @loop
+// SCOPE-NOT:   cc.scope
 // SCOPE:       cc.loop while
 // SCOPE:       } do {
-// SCOPE:         cc.scope {
-// SCOPE:           cc.reify_span
-// SCOPE:           cc.reify_span
-// SCOPE:           call @consume
-// SCOPE:         }
+// SCOPE-NOT:     cc.scope
+// SCOPE:         cc.reify_span
+// SCOPE:         cc.reify_span
+// SCOPE:         call @consume
 // SCOPE:       } step {
 
-// CFG-LABEL: func.func @loop
-// CFG:       cf.cond_br {{.*}}, ^[[BODY:bb[0-9]+]](
-// CFG:       ^[[BODY]](
-// CFG:         %[[STACK:.*]] = call @llvm.stacksave.p0()
-// CFG-COUNT-4: cc.alloca
-// CFG:         call @consume
-// CFG:         call @llvm.stackrestore.p0(%[[STACK]])
-// CFG:         arith.addi
-// CFG:         cf.br
+// CFG-LABEL:   func.func @loop
+// CFG-COUNT-4:   cc.alloca
+// CFG-NOT:       cc.alloca
+// CFG:           cf.cond_br {{.*}}, ^[[BODY:bb[0-9]+]](
+// CFG-NOT:       llvm.stacksave
+// CFG:         ^[[BODY]](
+// CFG-NOT:       cc.alloca
+// CFG-NOT:       llvm.stacksave
+// CFG:           cc.store
+// CFG:           call @consume
+// CFG-NOT:       llvm.stackrestore
+// CFG:           arith.addi
+// CFG:           cf.br

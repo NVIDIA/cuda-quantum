@@ -184,14 +184,14 @@ static bool hasStackCalls(Operation *root) {
   return found;
 }
 
-/// Return true if and only if \p root has a stack allocation that does not
+/// Return true if and only if \p root has a `cc.alloca` `op` that does not
 /// appear in \p entry, including one nested inside a `cc.scope` / `cc.if` /
 /// `cc.loop`'s own (separate) region.
 static bool hasNonEntryAlloca(Operation *root, Block *entry) {
   bool found = false;
   walkOwnScope(root, [&](Operation *op) {
-    if (isa<cudaq::cc::AllocaOp, cudaq::cc::ReifySpanOp>(op))
-      if (op->getBlock() != entry)
+    if (auto alloc = dyn_cast<cudaq::cc::AllocaOp>(op))
+      if (alloc->getBlock() != entry)
         found = true;
   });
   return found;
@@ -211,16 +211,8 @@ struct SFPAnalysis {
   void classifyAllocas() {
     Block *entry = &body.front();
     walkOwnScope(root, [&](Operation *op) {
-      if (op->getBlock() == entry)
-        return;
-      // Reifying a span will allocate backing storage when it is expanded.
-      // Until then it cannot be preallocated, and its stack fence must remain.
-      if (isa<cudaq::cc::ReifySpanOp>(op)) {
-        pinned.push_back(op);
-        return;
-      }
       auto alloc = dyn_cast<cudaq::cc::AllocaOp>(op);
-      if (!alloc)
+      if (!alloc || alloc->getBlock() == entry)
         return;
       if (!alloc.getSeqSize())
         candidates.push_back(alloc);
@@ -418,7 +410,7 @@ struct SFPAnalysis {
   Operation *root;
   Region &body;
   SmallVector<cudaq::cc::AllocaOp> candidates;
-  SmallVector<Operation *> pinned;
+  SmallVector<cudaq::cc::AllocaOp> pinned;
   SmallVector<func::CallOp> stackSaveCalls;
   SmallVector<Operation *> regionFences;
   SmallVector<llvm::SmallPtrSet<Block *, 4>> sccList;
