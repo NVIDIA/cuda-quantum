@@ -334,6 +334,12 @@ async def postJob(request: Request):
         raise RuntimeError(
             "Remote payload is missing a `cudaq-entrypoint` function.")
     entry_func_name = entry_func.name.value
+    if "directional_mapping" in entry_func_name:
+        # DEBUG-DIRMAP: temporary, remove after CI investigation.
+        print(f"DEBUG-DIRMAP: entry {entry_func_name} attrs "
+              f"{[str(a) for a in entry_func.attributes]}",
+              flush=True)
+        print(f"DEBUG-DIRMAP: payload IR:\n{decoded_payload}", flush=True)
     verifyExpectedMapping(decoded_payload, entry_func_name)
     verifyExpectedDirectionality(entry_func)
     verifyExpectedLoopCount(decoded_payload, entry_func_name)
@@ -371,6 +377,10 @@ async def postJob(request: Request):
         qir_log += "END\t0\n"
 
     engine.remove_module(m)
+    if "directional_mapping" in entry_func_name:
+        # DEBUG-DIRMAP: temporary, remove after CI investigation.
+        print(f"DEBUG-DIRMAP: lowered QIR:\n{qir_code}", flush=True)
+        print(f"DEBUG-DIRMAP: qir_log:\n{qir_log}", flush=True)
     createdJobs[newId] = qir_log
     # Job "created", return the id
     return ({"id": newId}, 201)

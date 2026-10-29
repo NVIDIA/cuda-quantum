@@ -10,6 +10,7 @@
 #include "ObserveResult.h"
 #include "SampleResult.h"
 
+#include <cstdio>
 #include <functional>
 #include <future>
 #include <map>
@@ -200,6 +201,9 @@ public:
       if (!rawOutput)
         throw std::runtime_error(
             "Returning a run_result requires raw output storage.");
+      // DEBUG-DIRMAP: temporary, remove after CI investigation.
+      fprintf(stderr, "DEBUG-DIRMAP: raw run output:\n%s\n",
+              std::string(rawOutput->begin(), rawOutput->end()).c_str());
       return {std::string(rawOutput->begin(), rawOutput->end())};
     }
 
