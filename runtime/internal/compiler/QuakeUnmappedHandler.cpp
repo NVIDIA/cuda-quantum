@@ -72,8 +72,8 @@ cliffordTPasses(const cudaq::config::QuakeUnmappedProfile &profile,
     passes.push_back("clifford-t-optimization-pipeline{level=" +
                      std::to_string(level) + " epsilon=" + tolerance + "}");
   }
-  // The synthesis pipeline adds no passes when the basis expresses any of
-  // these rotations exactly.
+  // The synthesis pipeline adds no passes when the basis can express one of
+  // the rotations it synthesizes exactly.
   if (schedulesCliffordTSynthesis(profile)) {
     const std::string seed =
         options.seed ? " seed=" + std::to_string(*options.seed) : "";
