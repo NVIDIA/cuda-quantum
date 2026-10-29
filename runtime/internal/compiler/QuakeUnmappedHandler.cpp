@@ -8,7 +8,7 @@
 
 #include "common/CompileOptions.h"
 #include "cudaq_internal/compiler/LoweringHandler.h"
-#include "cudaq/Optimizer/Transforms/Passes.h"
+#include "cudaq/Optimizer/Transforms/CliffordTPipelines.h"
 #include <iomanip>
 #include <iterator>
 #include <limits>
