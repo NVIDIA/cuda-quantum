@@ -305,8 +305,7 @@ static PreCheck validateRotationOperands(Operation *op, Value angleVal,
       op->emitError("clifford-t-synthesis: rotation angle is not a "
                     "compile-time constant. Synthesis needs the value of "
                     "every angle at compile time, so it cannot synthesize an "
-                    "angle computed at run time, such as one in a loop too "
-                    "long to unroll.");
+                    "angle computed at run time.");
       *hadHardError = true;
     }
     return {PreCheck::Action::LeaveInPlace, 0.0};
