@@ -251,7 +251,7 @@ TEST_F(CpuRoceUnifiedServiceTest, RxPollFollowsRingOrderAcrossWrap) {
 }
 
 TEST_F(CpuRoceUnifiedServiceTest, RxPollHoldsRequestWhileTxFlagSet) {
-  // Stand-in for a graph still running on slot 0: its tx_flag is non-zero.
+  // Stand-in for a consumer still holding slot 0: its tx_flag is non-zero.
   store_flag(svcTxFlags, 0, 1);
   callerSend("held");
   uint32_t slot = kNumSlots;

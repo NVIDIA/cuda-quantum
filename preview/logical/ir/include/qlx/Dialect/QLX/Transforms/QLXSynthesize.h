@@ -6,8 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.  *
  ******************************************************************************/
 
-#ifndef QLX_DIALECT_QLX_TRANSFORMS_QLXSYNTHESIZE_H
-#define QLX_DIALECT_QLX_TRANSFORMS_QLXSYNTHESIZE_H
+#pragma once
 
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/Support/LogicalResult.h"
@@ -27,5 +26,3 @@ mlir::LogicalResult synthesizeRotations(mlir::ModuleOp module,
 mlir::LogicalResult verifyCliffordT(mlir::ModuleOp module);
 
 } // namespace qlx
-
-#endif // QLX_DIALECT_QLX_TRANSFORMS_QLXSYNTHESIZE_H

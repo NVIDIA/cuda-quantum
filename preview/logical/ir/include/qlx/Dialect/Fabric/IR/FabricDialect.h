@@ -6,11 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  *******************************************************************************/
 
-#ifndef FABRIC_FABRICDIALECT_H
-#define FABRIC_FABRICDIALECT_H
+#pragma once
 
 #include "mlir/IR/Dialect.h"
 
 #include "qlx/Dialect/Fabric/IR/FabricDialect.h.inc"
-
-#endif // FABRIC_FABRICDIALECT_H

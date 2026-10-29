@@ -223,7 +223,7 @@ place of its own kernel.
 ```cpp
 typedef enum {
   CUDAQ_KERNEL_REGULAR = 0,
-  CUDAQ_KERNEL_UNIFIED = 2
+  CUDAQ_KERNEL_UNIFIED = 1
 } cudaq_kernel_type_t;
 
 typedef void (*cudaq_unified_launch_fn_t)(
@@ -476,6 +476,7 @@ Parameters:
 - `mgr`: owning manager.
 - `config`: filled `cudaq_dispatcher_config_t` with:
   - `device_id` (default 0): selects the CUDA device for the dispatcher
+  (`CUDAQ_DISPATCH_PATH_DEVICE` only; the host path selects no device)
   - `num_blocks` (default 1; must be 1 on the device path)
   - `threads_per_block` (default 32; the block every
     `CUDAQ_DISPATCH_DEVICE_CALL` handler runs on)

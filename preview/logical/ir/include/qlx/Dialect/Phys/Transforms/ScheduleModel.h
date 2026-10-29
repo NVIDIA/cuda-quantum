@@ -6,8 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  *******************************************************************************/
 
-#ifndef QLX_DIALECT_PHYS_TRANSFORMS_SCHEDULEMODEL_H
-#define QLX_DIALECT_PHYS_TRANSFORMS_SCHEDULEMODEL_H
+#pragma once
 
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/SmallVector.h"
@@ -70,5 +69,3 @@ struct NativeScheduleView {
 };
 
 } // namespace qlx::phys
-
-#endif // QLX_DIALECT_PHYS_TRANSFORMS_SCHEDULEMODEL_H
