@@ -66,12 +66,13 @@ KernelThunkResultType clean_launch_module(
 /// substituted. See `cudaq_internal::compiler::specializesArguments`.
 bool launchSpecializesArguments(std::size_t qpuId);
 
-/// Marshal Python arguments into an OpaqueArguments for kernel launch. Pass
-/// \p specializeArguments as true when the compile will substitute the
-/// argument values. The arguments then use the layout that argument synthesis
-/// reads. Otherwise they use the runtime ABI layout, unless the kernel is
-/// already fully synthesized. The flag must match the compile, because the two
-/// layouts differ for some types, such as `list[bool]`.
+/// Pack the Python arguments so the kernel can be launched with them.
+///
+/// Set \p specializeArguments to true when the compiler will replace the
+/// arguments with their values. The compiler reads the arguments differently
+/// in that case, so this must match what the compiler actually does. If it
+/// doesn't, some types, such as `list[bool]`, are read as the wrong values,
+/// and nothing reports an error.
 OpaqueArguments marshal_arguments_for_module_launch(
     mlir::ModuleOp mod, nanobind::args runtimeArgs,
     mlir::func::FuncOp kernelFunc, bool specializeArguments);

@@ -1072,18 +1072,19 @@ cudaq::OpaqueArguments cudaq::marshal_arguments_for_module_launch(
                      unsigned pos) {
     return linkResolvedCallable(mod, kernelFunc, pos, pyArg);
   };
-  // Two encodings, one per execution mode (see PackingStyle):
-  //   - Direct launch (argsCreator): the kernel keeps live argument uses that
-  //     are supplied at runtime through the generated `.argsCreator`/thunk,
-  //     whose "C++ side magic" understands a host `std::vector<bool>` for an
-  //     `i1` vector. Used only when the compile keeps the arguments.
-  //   - Argument synthesis (the default): the arguments are folded into the
-  //     kernel as constants by `ArgumentConverter`, which reads every vector as
-  //     the universal `{begin, end, capacity}` triple and therefore must be
-  //     given the triple-compatible `std::vector<char>` for an `i1` vector
-  //     (never the bit-packed `std::vector<bool>` specialization).
-  // A kernel whose formal arguments are all unused is already fully
-  // synthesized (`isFullySynthesized`), so it also uses the synthesis layout.
+  // Everything that reads a list on the device side expects three pointers:
+  // start, end, and capacity. C++'s `std::vector<bool>` breaks that, because
+  // it stores bits instead of elements, so Python should pack a `list[bool]`
+  // as a `std::vector<char>` (see the discussion in #4716).
+  //
+  // The one exception is when the compiler keeps the arguments and the kernel
+  // reads them while it runs. The generated launch code still expects a
+  // `std::vector<bool>` from Python and unpacks it, so we pack that here.
+  //
+  // Nothing checks which layout was used, so packing the wrong one gives
+  // wrong values instead of an error. That is why the caller passes the
+  // compiler's own decision rather than guessing from the platform type. A
+  // kernel that never uses its arguments takes the three-pointer layout.
   const bool directLaunch =
       !specializeArguments &&
       !cudaq::opt::factory::isFullySynthesized(kernelFunc);
