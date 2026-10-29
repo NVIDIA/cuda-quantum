@@ -14,6 +14,15 @@ add_llvm_executable(${TOOL_NAME} ${TOOL_NAME}.cpp)
 
 llvm_update_compile_flags(${TOOL_NAME})
 
+if(CUDAQ_MLIR_SHARED_PROVIDERS)
+  # Resolve the MLIR implementation from libcudaqMLIR and the shared upstream
+  # providers; do not embed a second static copy into the tool.
+  target_link_libraries(${TOOL_NAME}
+    PRIVATE
+      cudaq::MLIR
+      cudaq-qir-verifier
+  )
+else()
 # Link MLIR statically for performance
 cudaq_use_static_mlir(${TOOL_NAME})
 target_link_libraries(${TOOL_NAME}
@@ -41,5 +50,6 @@ target_link_libraries(${TOOL_NAME}
     cudaq-qir-verifier
 )
 mlir_check_all_link_libraries(${TOOL_NAME})
+endif()
 
 install(TARGETS ${TOOL_NAME} DESTINATION bin COMPONENT Nvqpp)

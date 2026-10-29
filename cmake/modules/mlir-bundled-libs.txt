@@ -8,6 +8,13 @@
 
 # Complete list of libraries bundled into libcudaqMLIR.so.
 #
+# The CUDA-Q section lists CUDA-Q's own libraries: their objects are always
+# aggregated into libcudaqMLIR.so. The upstream MLIR/LLVM sections list the
+# implementation the bundled objects depend on: with shared providers
+# (CUDAQ_MLIR_SHARED_PROVIDERS, the SDK default) they are resolved from
+# libLLVM/libMLIR/libMLIRExecutionEngineShared at load time; otherwise they
+# are whole-archived into libcudaqMLIR.so.
+#
 # The only entries not listed are the target-specific codegen libraries, which
 # AddCUDAQ.cmake resolves through llvm_map_components_to_libnames() for
 # "native nativecodegen" because they differ per architecture (LLVMX86* on

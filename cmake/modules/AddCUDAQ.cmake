@@ -106,6 +106,16 @@ function(_cudaq_read_symbol_list _file _out_var)
   set(${_out_var} "${_entries}" PARENT_SCOPE)
 endfunction()
 
+# Define `CUDAQ_MLIR_SHARED_PROVIDERS`: whether the toolchain exports the
+# shared upstream runtime providers (libLLVM, libMLIR, libMLIR-C,
+# libMLIRExecutionEngineShared). When available, libcudaqMLIR carries only
+# CUDA-Q's own objects and resolves MLIR/LLVM from the providers; otherwise
+# the legacy static whole-archive aggregation is used.
+set(CUDAQ_MLIR_SHARED_PROVIDERS OFF)
+if(TARGET MLIR AND TARGET MLIR-C AND TARGET MLIRExecutionEngineShared)
+  set(CUDAQ_MLIR_SHARED_PROVIDERS ON)
+endif()
+
 # Define `CUDAQ_MLIR_BUNDLED_LIBS`: the single list of MLIR libraries bundled into
 # libcudaqMLIR.
 if(EXISTS "${CUDAQ_MLIR_BUNDLED_LIBS_PATH}")

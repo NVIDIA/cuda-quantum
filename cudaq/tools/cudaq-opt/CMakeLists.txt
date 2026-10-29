@@ -12,7 +12,17 @@ add_llvm_executable(cudaq-opt cudaq-opt.cpp)
 
 llvm_update_compile_flags(cudaq-opt)
 
-# Link MLIR statically for performance
+if(CUDAQ_MLIR_SHARED_PROVIDERS)
+  # Resolve the MLIR implementation from libcudaqMLIR and the shared upstream
+  # providers; do not embed a second static copy into the tool.
+  target_link_libraries(cudaq-opt
+    PUBLIC
+    cudaq::MLIR
+    CUDAQSupport
+    CUDAQTargetCatalog  # The collection of pre-built targets
+  )
+else()
+  # Link MLIR statically for performance
 cudaq_use_static_mlir(cudaq-opt)
 target_link_libraries(cudaq-opt
   PUBLIC
@@ -32,6 +42,7 @@ target_link_libraries(cudaq-opt
   CUDAQTargetCatalog  # The collection of pre-built targets
 )
 mlir_check_all_link_libraries(cudaq-opt)
+endif()
 
 export_executable_symbols_for_plugins(cudaq-opt)
 

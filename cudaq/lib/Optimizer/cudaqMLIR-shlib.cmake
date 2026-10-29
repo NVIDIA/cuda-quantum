@@ -59,13 +59,49 @@ if(NOT APPLE)
 endif()
 
 # 2d. Pull in any required transitive dependencies.
-target_link_libraries(${LIBRARY_NAME} PRIVATE ${_cudaq_bundle_link_libs})
+# In shared-provider mode the own libraries' interface dependencies are not
+# linked: they name upstream MLIR/LLVM archives that the shared providers now
+# supply, and the bundled objects resolve against them at load time.
+if(NOT CUDAQ_MLIR_SHARED_PROVIDERS)
+  target_link_libraries(${LIBRARY_NAME} PRIVATE ${_cudaq_bundle_link_libs})
+endif()
 
-# 3. WHOLE_ARCHIVE MLIR/LLVM static libs so their full symbol set is exported
-# for downstream plugins.
-foreach(_lib IN LISTS _cudaq_bundle_whole_archive_libs)
-  target_link_libraries(${LIBRARY_NAME} PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,${_lib}>")
-endforeach()
+# 3. Upstream MLIR/LLVM implementation. With shared providers, link them
+# publicly (consumers resolve them transitively); otherwise whole-archive the
+# static libs so their full symbol set is exported for downstream plugins.
+if(CUDAQ_MLIR_SHARED_PROVIDERS)
+  if(_cudaq_bundle_whole_archive_libs)
+    message(STATUS
+      "${LIBRARY_NAME}: upstream MLIR/LLVM resolved from shared providers: "
+      "${_cudaq_bundle_whole_archive_libs}")
+  endif()
+  target_link_libraries(${LIBRARY_NAME} PUBLIC MLIR MLIRExecutionEngineShared)
+  # The bundled objects' non-MLIR dependencies stay direct (e.g. cudaq-synth
+  # needs GMP/MPFR); they are not part of the provider set. Re-run the find
+  # modules here: imported find targets are directory-scoped, and the ones
+  # created in cudaq/lib/Synthesis are not visible in this directory.
+  find_package(GMP REQUIRED COMPONENTS Headers)
+  find_package(MPFR REQUIRED COMPONENTS Headers)
+  target_link_libraries(${LIBRARY_NAME} PRIVATE GMP::gmp MPFR::mpfr)
+else()
+  foreach(_lib IN LISTS _cudaq_bundle_whole_archive_libs)
+    target_link_libraries(${LIBRARY_NAME} PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,${_lib}>")
+  endforeach()
+endif()
+
+# Self-audit in shared-provider mode: libcudaqMLIR must resolve every MLIR/LLVM
+# symbol it references from the providers without redefining any of them.
+if(CUDAQ_MLIR_SHARED_PROVIDERS AND CUDAQ_CHECK_MLIR_SYMBOL_CLOSURE
+    AND CUDAQ_CHECK_SYMBOL_SCRIPT AND CUDAQ_NM)
+  add_custom_command(TARGET ${LIBRARY_NAME} POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E env "NM=${CUDAQ_NM}"
+      bash "${CUDAQ_CHECK_SYMBOL_SCRIPT}"
+      "$<TARGET_FILE:${LIBRARY_NAME}>"
+      "$<TARGET_FILE:MLIR>" "$<TARGET_FILE:MLIRExecutionEngineShared>"
+      "$<TARGET_FILE:LLVM>"
+    COMMENT "Checking that ${LIBRARY_NAME} carries no second MLIR/LLVM implementation"
+    VERBATIM)
+endif()
 
 # Ideally, we use -Bsymbolic-functions as it removes PLT/GOT indirection. However
 # that also opts the library out of ELF symbol interposition, which we currently

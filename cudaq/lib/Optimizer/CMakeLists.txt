@@ -24,6 +24,8 @@ add_subdirectory(Analysis)
 # Define the shared core library libcudaqMLIR.so
 include(cudaqMLIR-shlib.cmake)
 
-# Define a static variant of the bundled MLIR library
+# Define a static variant of the bundled MLIR library. Only used by tools in
+# the legacy static configuration (CUDAQ_MLIR_STATIC); SDK builds with shared
+# providers resolve MLIR from libcudaqMLIR and the upstream providers.
 add_library(cudaq-mlir-static INTERFACE)
 target_link_libraries(cudaq-mlir-static INTERFACE ${CUDAQ_MLIR_BUNDLED_LIBS})
