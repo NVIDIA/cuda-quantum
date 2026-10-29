@@ -103,14 +103,6 @@ std::vector<std::size_t> extractMappingReorderIdx(mlir::ModuleOp moduleOp,
                      return mlir::cast<mlir::IntegerAttr>(attr).getInt();
                    });
   }
-  // DEBUG-DIRMAP: temporary, remove after CI investigation.
-  if (epFunc.getName().contains("directional_mapping")) {
-    llvm::errs() << "DEBUG-DIRMAP: entry point " << epFunc.getName()
-                 << " mapping_reorder_idx = [";
-    for (auto i : mapping_reorder_idx)
-      llvm::errs() << i << ' ';
-    llvm::errs() << "]\n";
-  }
   return mapping_reorder_idx;
 }
 } // namespace
