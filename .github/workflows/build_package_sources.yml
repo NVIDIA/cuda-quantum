@@ -395,6 +395,17 @@ jobs:
         run: |
           set -euo pipefail
           retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          # Try the primary url, then each comma-separated mirror. A dead host
+          # (ftp.gnu.org has been one) should fail in seconds, not minutes.
+          fetch() { # <dest> <url> [mirrors]
+            local dest=$1 url=$2 mirrors=${3:-} candidate
+            for candidate in "$url" ${mirrors//,/ }; do
+              echo "Downloading $candidate -> $dest"
+              retry curl -fL --connect-timeout 20 "$candidate" -o "$dest" && return 0
+              echo "Failed: $candidate" >&2
+            done
+            return 1
+          }
           # Generate cudaq_prereqs.lock for the current configuration
           bash scripts/install_prerequisites.sh -l
           cat cudaq_prereqs.lock
@@ -410,6 +421,7 @@ jobs:
             name=""
             type=""
             url=""
+            mirrors=""
             ref=""
 
             for kv in $line; do
@@ -419,6 +431,7 @@ jobs:
                 name) name="$val" ;;
                 type) type="$val" ;;
                 url)  url="$val" ;;
+                mirrors) mirrors="$val" ;;
                 ref)  ref="$val" ;;
               esac
             done
@@ -433,22 +446,15 @@ jobs:
 
             case "$type" in
               tar)
-                fname="$(basename "$url")"
-                dest="prereqs/${name}/${fname}"
-                echo "Downloading tar archive for $name from $url -> $dest"
-                retry curl -L "$url" -o "$dest"
+                fetch "prereqs/${name}/$(basename "$url")" "$url" "$mirrors"
                 ;;
               sh)
-                fname="$(basename "$url")"
-                dest="prereqs/${name}/${fname}"
-                echo "Downloading shell installer for $name from $url -> $dest"
-                retry curl -L "$url" -o "$dest"
+                dest="prereqs/${name}/$(basename "$url")"
+                fetch "$dest" "$url" "$mirrors"
                 chmod +x "$dest"
                 ;;
               pem)
-                dest="prereqs/${name}/${name}.pem"
-                echo "Downloading PEM bundle for $name from $url -> $dest"
-                retry curl -L "$url" -o "$dest"
+                fetch "prereqs/${name}/${name}.pem" "$url" "$mirrors"
                 ;;
               git)
                 dest_dir="prereqs/${name}"
