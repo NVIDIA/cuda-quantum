@@ -169,6 +169,7 @@ public:
   launchKernel(const ptsbe::sample_policy &policy, const CompiledModule &module,
                KernelArgs args);
 
+  /// \cond
   /// Launch \p module outside of a launch policy.
   ///
   /// If a `SourceModule` is passed, it is compiled against \p target and
@@ -181,6 +182,7 @@ public:
   compileAndLaunchKernel(const AnyModule &module, KernelArgs args,
                          const CompileTarget &target,
                          const CompileOptions &options);
+  /// \endcond
 
   /// Create the default compile target of this QPU.
   [[nodiscard]] virtual CompileTarget
