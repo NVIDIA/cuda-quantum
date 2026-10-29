@@ -718,7 +718,7 @@ getCompileConfig(std::optional<cudaq::CompileTarget> target = std::nullopt) {
         policy.spin = ctx->spin.value();
       }
 
-      options = platform.getCompileOptions(policy);
+      options = platform.getCompileOptions(policy, ctx->qpuId);
     });
   }
 
