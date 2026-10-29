@@ -45,8 +45,6 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/TargetDatabase.cmake)
 add_library(CUDAQTargetConfig STATIC
   TargetConfig.cpp
   CompileTarget.cpp
-  Profile/QuakeReferenceSemanticsProfile.cpp
-  Profile/QuakeUnmappedProfile.cpp
 )
 target_include_directories(CUDAQTargetConfig PUBLIC
   $<BUILD_INTERFACE:${CUDAQ_TARGET_REPO_ROOT}/cudaq/include>
