@@ -378,6 +378,7 @@ jobs:
             type=""
             url=""
             ref=""
+            mirrors=""
 
             for kv in $line; do
               key="${kv%%=*}"
@@ -387,6 +388,7 @@ jobs:
                 type) type="$val" ;;
                 url)  url="$val" ;;
                 ref)  ref="$val" ;;
+                mirrors) mirrors="${val//,/ }" ;;
               esac
             done
 
@@ -403,7 +405,13 @@ jobs:
                 fname="$(basename "$url")"
                 dest="prereqs/${name}/${fname}"
                 echo "Downloading tar archive for $name from $url -> $dest"
-                retry curl -L "$url" -o "$dest"
+                # Fall back to the mirrors when the primary host is down.
+                for u in "$url" $mirrors; do
+                  retry curl -fL "$u" -o "$dest" && break
+                  echo "Failed to download $name from $u" >&2
+                  u=""
+                done
+                [ -n "$u" ] || { echo "Could not download $name" >&2; exit 1; }
                 ;;
               sh)
                 fname="$(basename "$url")"
