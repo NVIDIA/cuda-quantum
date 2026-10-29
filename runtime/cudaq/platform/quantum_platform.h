@@ -193,6 +193,7 @@ public:
   /// @brief Enqueue a general task that runs on the specified QPU
   void enqueueAsyncTask(const std::size_t qpu_id, std::function<void()> &f);
 
+  /// \cond
   /// Launch \p module outside of a launch policy.
   ///
   /// If a `SourceModule` is passed, it is compiled against \p target and
@@ -220,6 +221,7 @@ public:
     resolveCompileOptions(options, qpu_id);
     return options;
   }
+  /// \endcond
 
   /// List all available platforms
   static std::vector<std::string> list_platforms();
