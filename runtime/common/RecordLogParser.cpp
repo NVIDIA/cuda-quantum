@@ -9,7 +9,6 @@
 #include "RecordLogParser.h"
 #include "FmtCore.h"
 #include "Timing.h"
-#include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
 #include "cudaq/runtime/logger/logger.h"
 
 namespace {
@@ -168,17 +167,6 @@ void cudaq::RecordLogParser::handleMetadata(
     const std::vector<std::string> &entries) {
   if (entries.size() < 2 || entries.size() > 3)
     throw std::runtime_error("Invalid METADATA record");
-  if (entries.size() == 3) {
-    if (entries[1] == cudaq::opt::qir1_0::RequiredResultsAttrName ||
-        entries[1] == cudaq::opt::qir0_1::RequiredResultsAttrName) {
-      detail::parseSize(entries[2]);
-      metadata[ResultCountMetadataName] = entries[2];
-    } else {
-      metadata[entries[1]] = entries[2];
-    }
-  } else {
-    metadata[entries[1]] = "";
-  }
 }
 
 void cudaq::RecordLogParser::handleOutput(
@@ -189,44 +177,18 @@ void cudaq::RecordLogParser::handleOutput(
   std::string recLabel = (entries.size() == 4) ? entries[3] : "";
   cudaq::trim(recLabel);
   if (recType == "RESULT") {
-    // Sample-type QIR output, where we have an array of `RESULT` per shot. For
-    // example,
+    // Sample-type QIR output, where we have an array of `RESULT` per shot. The
+    // `qir-insert-array-record` pass emits the array record. For example,
     //  START
+    //  OUTPUT    ARRAY   10      array<i1 x 10>
     //  OUTPUT    RESULT  1       r00000
     //  ....
     //  OUTPUT    RESULT  1       r00009
     //  END       0
 
     currentOutput = OutputType::RESULT;
-    const bool isUninitializedContainer =
-        (containerMeta.m_type == ContainerType::NONE) ||
-        (containerMeta.m_type == ContainerType::ARRAY &&
-         containerMeta.elementCount == 0);
-    if (isUninitializedContainer) {
-      validateRootContainer(ContainerType::ARRAY,
-                            ContainerStorage::PREALLOCATED);
-      // NOTE: This is a temporary workaround until all backends consistently
-      // use the new transformation pass that wraps result records inside an
-      // array record output. For now, we permit "naked" RESULT records, i.e.,
-      // if the QIR produced by a sampled kernel emits a sequence of RESULT
-      // records without enclosing them in an ARRAY, we interpret them
-      // collectively as an array of results.
-      // NOTE: This assumption prevents us from correctly supporting `run` with
-      // `qir-base` profile.
-      containerMeta.m_type = ContainerType::ARRAY;
-      containerMeta.elementCount =
-          detail::parseSize(metadata[ResultCountMetadataName]);
-      containerMeta.arrayType = "i1";
-      bufferHandler.chargeContainerTracking(containerMeta.elementCount);
-      containerMeta.processedSlots.assign(containerMeta.elementCount, false);
-      if (parsedResults) {
-        bufferHandler.chargeResultStorage(containerMeta.elementCount);
-        parsedResults->emplace_back(containerMeta.elementCount);
-      } else {
-        preallocateArray();
-      }
-      countAndResetContainerIfComplete();
-    }
+    if (containerMeta.m_type != ContainerType::ARRAY)
+      throw std::runtime_error("RESULT record outside an array");
 
     if (parsedResults) {
       if (!containerMeta.arrayType.empty() && containerMeta.arrayType != "i1")

@@ -66,18 +66,17 @@ CUDAQ_TEST(ParserTester, checkOwningResultVectors) {
 
   EXPECT_TRUE(parseResults("").empty());
   {
-    const std::string log = "METADATA\trequired_num_results\t1\n"
-                            "START\nOUTPUT\tRESULT\t1\tr00000\nEND\t0\n";
+    const std::string log = "START\nOUTPUT\tARRAY\t1\tarray<i1 x 1>\n"
+                            "OUTPUT\tRESULT\t1\tr00000\nEND\t0\n";
     const auto results = parseResults(log);
     ASSERT_EQ(1, results.size());
     EXPECT_EQ(std::vector<bool>({true}), results[0]);
   }
   {
     const std::string log =
-        "METADATA\trequired_num_results\t3\n"
-        "START\nOUTPUT\tRESULT\t1\tr00000\n"
+        "START\nOUTPUT\tARRAY\t3\tarray<i1 x 3>\nOUTPUT\tRESULT\t1\tr00000\n"
         "OUTPUT\tRESULT\t0\tr00001\nOUTPUT\tRESULT\t1\tr00002\nEND\t0\n"
-        "START\nOUTPUT\tRESULT\t0\tr00000\n"
+        "START\nOUTPUT\tARRAY\t3\tarray<i1 x 3>\nOUTPUT\tRESULT\t0\tr00000\n"
         "OUTPUT\tRESULT\t1\tr00001\nOUTPUT\tRESULT\t0\tr00002\nEND\t0\n";
     const auto results = parseResults(log);
     ASSERT_EQ(2, results.size());
@@ -97,16 +96,14 @@ CUDAQ_TEST(ParserTester, checkOwningResultVectors) {
     EXPECT_EQ(std::vector<bool>({false, true}), results[1]);
   }
 
-  EXPECT_ANY_THROW(parseResults("METADATA\trequired_num_results\t2\n"
-                                "START\nOUTPUT\tRESULT\t1\tr00000\n"
+  EXPECT_ANY_THROW(parseResults("START\nOUTPUT\tARRAY\t2\tarray<i1 x 2>\n"
+                                "OUTPUT\tRESULT\t1\tr00000\n"
                                 "OUTPUT\tRESULT\t0\tr00000\nEND\t0\n"));
-  EXPECT_ANY_THROW(parseResults("METADATA\trequired_num_results\t8000000000\n"
-                                "OUTPUT\tRESULT\t1\tr00000\n"));
 }
 
 CUDAQ_TEST(ParserTester, checkParseAfterParsingResults) {
-  const std::string log = "METADATA\trequired_num_results\t1\n"
-                          "START\nOUTPUT\tRESULT\t1\tr00000\nEND\t0\n";
+  const std::string log = "START\nOUTPUT\tARRAY\t1\tarray<i1 x 1>\n"
+                          "OUTPUT\tRESULT\t1\tr00000\nEND\t0\n";
   cudaq::RecordLogParser parser;
   parser.parseResults(log);
   parser.parse(log);
@@ -589,9 +586,7 @@ CUDAQ_TEST(ParserTester, checkStrictValueValidation) {
       "OUTPUT\tARRAY\t1junk\tarray<i32 x 1>\n",
       "OUTPUT\tARRAY\t1\tarray<i32 x 1junk>\n",
       "OUTPUT\tARRAY\t" + sizeOverflow + "\tarray<i32 x 1>\n",
-      "START\nOUTPUT\tINT\t7\ti32\nEND\t1junk\n",
-      "METADATA\trequired_num_results\t1junk\n"
-      "OUTPUT\tRESULT\t0\n"};
+      "START\nOUTPUT\tINT\t7\ti32\nEND\t1junk\n"};
   for (const auto &log : invalidLogs) {
     cudaq::RecordLogParser parser;
     EXPECT_ANY_THROW(parser.parse(log));
@@ -637,9 +632,8 @@ CUDAQ_TEST(ParserTester, checkRecordGrammarValidation) {
 
 CUDAQ_TEST(ParserTester, checkContainerValidation) {
   const std::vector<std::string> invalidLogs = {
-      // A scalar root cannot be followed by an implicit RESULT array.
-      "OUTPUT\tINT\t1\n"
-      "OUTPUT\tRESULT\t0\n",
+      // A RESULT record cannot appear outside an array.
+      "START\nOUTPUT\tRESULT\t0\tr00000\nEND\t0\n",
       // A scalar root cannot be followed by an explicit array.
       "OUTPUT\tINT\t1\n"
       "OUTPUT\tARRAY\t1\tarray<i32 x 1>\n"
@@ -674,49 +668,69 @@ CUDAQ_TEST(ParserTester, checkTupleLayoutValidation) {
 
 CUDAQ_TEST(ParserTester, checkResultType) {
   const std::string log =
-      "HEADER\tschema_id\tlabeled\nHEADER\tschema_version\t1."
-      "0\nSTART\nMETADATA\tentry_point\nMETADATA\tqir_profiles\tadaptive_"
-      "profile\nMETADATA\trequired_num_qubits\t10\nMETADATA\trequired_num_"
-      "results\t10\nOUTPUT\tRESULT\t0\tr00000\nOUTPUT\tRESULT\t0\tr00001\nOUTPU"
-      "T\tRESULT\t0\tr00002\nOUTPUT\tRESULT\t0\tr00003\nOUTPUT\tRESULT\t0\tr000"
-      "04\nOUTPUT\tRESULT\t0\tr00005\nOUTPUT\tRESULT\t0\tr00006\nOUTPUT\tRESULT"
-      "\t0\tr00007\nOUTPUT\tRESULT\t0\tr00008\nOUTPUT\tRESULT\t0\tr00009\nEND\t"
-      "0\nSTART\nOUTPUT\tRESULT\t1\tr00000\nOUTPUT\tRESULT\t1\tr00001\nOUTPUT\t"
-      "RESULT\t1\tr00002\nOUTPUT\tRESULT\t1\tr00003\nOUTPUT\tRESULT\t1\tr00004"
-      "\nOUTPUT\tRESULT\t1\tr00005\nOUTPUT\tRESULT\t1\tr00006\nOUTPUT\tRESULT\t"
-      "1\tr00007\nOUTPUT\tRESULT\t1\tr00008\nOUTPUT\tRESULT\t1\tr00009\nEND\t0"
-      "\nSTART\nOUTPUT\tRESULT\t1\tr00000\nOUTPUT\tRESULT\t1\tr00001\nOUTPUT\tR"
-      "ESULT\t1\tr00002\nOUTPUT\tRESULT\t1\tr00003\nOUTPUT\tRESULT\t1\tr00004\n"
-      "OUTPUT\tRESULT\t1\tr00005\nOUTPUT\tRESULT\t1\tr00006\nOUTPUT\tRESULT\t1"
-      "\tr00007\nOUTPUT\tRESULT\t1\tr00008\nOUTPUT\tRESULT\t1\tr00009\nEND\t0\n"
-      "START\nOUTPUT\tRESULT\t1\tr00000\nOUTPUT\tRESULT\t1\tr00001\nOUTPUT\tRES"
-      "ULT\t1\tr00002\nOUTPUT\tRESULT\t1\tr00003\nOUTPUT\tRESULT\t1\tr00004\nOU"
-      "TPUT\tRESULT\t1\tr00005\nOUTPUT\tRESULT\t1\tr00006\nOUTPUT\tRESULT\t1\tr"
-      "00007\nOUTPUT\tRESULT\t1\tr00008\nOUTPUT\tRESULT\t1\tr00009\nEND\t0\nSTA"
-      "RT\nOUTPUT\tRESULT\t0\tr00000\nOUTPUT\tRESULT\t0\tr00001\nOUTPUT\tRESULT"
-      "\t0\tr00002\nOUTPUT\tRESULT\t0\tr00003\nOUTPUT\tRESULT\t0\tr00004\nOUTPU"
-      "T\tRESULT\t0\tr00005\nOUTPUT\tRESULT\t0\tr00006\nOUTPUT\tRESULT\t0\tr000"
-      "07\nOUTPUT\tRESULT\t0\tr00008\nOUTPUT\tRESULT\t0\tr00009\nEND\t0\nSTART"
-      "\nOUTPUT\tRESULT\t1\tr00000\nOUTPUT\tRESULT\t1\tr00001\nOUTPUT\tRESULT\t"
-      "1\tr00002\nOUTPUT\tRESULT\t1\tr00003\nOUTPUT\tRESULT\t1\tr00004\nOUTPUT"
-      "\tRESULT\t1\tr00005\nOUTPUT\tRESULT\t1\tr00006\nOUTPUT\tRESULT\t1\tr0000"
-      "7\nOUTPUT\tRESULT\t1\tr00008\nOUTPUT\tRESULT\t1\tr00009\nEND\t0\nSTART\n"
-      "OUTPUT\tRESULT\t0\tr00000\nOUTPUT\tRESULT\t0\tr00001\nOUTPUT\tRESULT\t0"
-      "\tr00002\nOUTPUT\tRESULT\t0\tr00003\nOUTPUT\tRESULT\t0\tr00004\nOUTPUT\t"
-      "RESULT\t0\tr00005\nOUTPUT\tRESULT\t0\tr00006\nOUTPUT\tRESULT\t0\tr00007"
-      "\nOUTPUT\tRESULT\t0\tr00008\nOUTPUT\tRESULT\t0\tr00009\nEND\t0\nSTART\nO"
-      "UTPUT\tRESULT\t1\tr00000\nOUTPUT\tRESULT\t1\tr00001\nOUTPUT\tRESULT\t1\t"
-      "r00002\nOUTPUT\tRESULT\t1\tr00003\nOUTPUT\tRESULT\t1\tr00004\nOUTPUT\tRE"
-      "SULT\t1\tr00005\nOUTPUT\tRESULT\t1\tr00006\nOUTPUT\tRESULT\t1\tr00007\nO"
-      "UTPUT\tRESULT\t1\tr00008\nOUTPUT\tRESULT\t1\tr00009\nEND\t0\nSTART\nOUTP"
-      "UT\tRESULT\t0\tr00000\nOUTPUT\tRESULT\t0\tr00001\nOUTPUT\tRESULT\t0\tr00"
-      "002\nOUTPUT\tRESULT\t0\tr00003\nOUTPUT\tRESULT\t0\tr00004\nOUTPUT\tRESUL"
-      "T\t0\tr00005\nOUTPUT\tRESULT\t0\tr00006\nOUTPUT\tRESULT\t0\tr00007\nOUTP"
-      "UT\tRESULT\t0\tr00008\nOUTPUT\tRESULT\t0\tr00009\nEND\t0\nSTART\nOUTPUT"
-      "\tRESULT\t1\tr00000\nOUTPUT\tRESULT\t1\tr00001\nOUTPUT\tRESULT\t1\tr0000"
-      "2\nOUTPUT\tRESULT\t1\tr00003\nOUTPUT\tRESULT\t1\tr00004\nOUTPUT\tRESULT"
-      "\t1\tr00005\nOUTPUT\tRESULT\t1\tr00006\nOUTPUT\tRESULT\t1\tr00007\nOUTPU"
-      "T\tRESULT\t1\tr00008\nOUTPUT\tRESULT\t1\tr00009\nEND\t0\n";
+      "HEADER\tschema_id\tlabeled\nHEADER\tschema_version\t1.0\nSTART\n"
+      "METADATA\tentry_point\nMETADATA\tqir_profiles\tadaptive_profile\n"
+      "METADATA\trequired_num_qubits\t10\nMETADATA\trequired_num_results\t10\n"
+      "OUTPUT\tARRAY\t10\tarray<i1 x 10>\nOUTPUT\tRESULT\t0\tr00000\n"
+      "OUTPUT\tRESULT\t0\tr00001\nOUTPUT\tRESULT\t0\tr00002\n"
+      "OUTPUT\tRESULT\t0\tr00003\nOUTPUT\tRESULT\t0\tr00004\n"
+      "OUTPUT\tRESULT\t0\tr00005\nOUTPUT\tRESULT\t0\tr00006\n"
+      "OUTPUT\tRESULT\t0\tr00007\nOUTPUT\tRESULT\t0\tr00008\n"
+      "OUTPUT\tRESULT\t0\tr00009\nEND\t0\nSTART\n"
+      "OUTPUT\tARRAY\t10\tarray<i1 x 10>\nOUTPUT\tRESULT\t1\tr00000\n"
+      "OUTPUT\tRESULT\t1\tr00001\nOUTPUT\tRESULT\t1\tr00002\n"
+      "OUTPUT\tRESULT\t1\tr00003\nOUTPUT\tRESULT\t1\tr00004\n"
+      "OUTPUT\tRESULT\t1\tr00005\nOUTPUT\tRESULT\t1\tr00006\n"
+      "OUTPUT\tRESULT\t1\tr00007\nOUTPUT\tRESULT\t1\tr00008\n"
+      "OUTPUT\tRESULT\t1\tr00009\nEND\t0\nSTART\n"
+      "OUTPUT\tARRAY\t10\tarray<i1 x 10>\nOUTPUT\tRESULT\t1\tr00000\n"
+      "OUTPUT\tRESULT\t1\tr00001\nOUTPUT\tRESULT\t1\tr00002\n"
+      "OUTPUT\tRESULT\t1\tr00003\nOUTPUT\tRESULT\t1\tr00004\n"
+      "OUTPUT\tRESULT\t1\tr00005\nOUTPUT\tRESULT\t1\tr00006\n"
+      "OUTPUT\tRESULT\t1\tr00007\nOUTPUT\tRESULT\t1\tr00008\n"
+      "OUTPUT\tRESULT\t1\tr00009\nEND\t0\nSTART\n"
+      "OUTPUT\tARRAY\t10\tarray<i1 x 10>\nOUTPUT\tRESULT\t1\tr00000\n"
+      "OUTPUT\tRESULT\t1\tr00001\nOUTPUT\tRESULT\t1\tr00002\n"
+      "OUTPUT\tRESULT\t1\tr00003\nOUTPUT\tRESULT\t1\tr00004\n"
+      "OUTPUT\tRESULT\t1\tr00005\nOUTPUT\tRESULT\t1\tr00006\n"
+      "OUTPUT\tRESULT\t1\tr00007\nOUTPUT\tRESULT\t1\tr00008\n"
+      "OUTPUT\tRESULT\t1\tr00009\nEND\t0\nSTART\n"
+      "OUTPUT\tARRAY\t10\tarray<i1 x 10>\nOUTPUT\tRESULT\t0\tr00000\n"
+      "OUTPUT\tRESULT\t0\tr00001\nOUTPUT\tRESULT\t0\tr00002\n"
+      "OUTPUT\tRESULT\t0\tr00003\nOUTPUT\tRESULT\t0\tr00004\n"
+      "OUTPUT\tRESULT\t0\tr00005\nOUTPUT\tRESULT\t0\tr00006\n"
+      "OUTPUT\tRESULT\t0\tr00007\nOUTPUT\tRESULT\t0\tr00008\n"
+      "OUTPUT\tRESULT\t0\tr00009\nEND\t0\nSTART\n"
+      "OUTPUT\tARRAY\t10\tarray<i1 x 10>\nOUTPUT\tRESULT\t1\tr00000\n"
+      "OUTPUT\tRESULT\t1\tr00001\nOUTPUT\tRESULT\t1\tr00002\n"
+      "OUTPUT\tRESULT\t1\tr00003\nOUTPUT\tRESULT\t1\tr00004\n"
+      "OUTPUT\tRESULT\t1\tr00005\nOUTPUT\tRESULT\t1\tr00006\n"
+      "OUTPUT\tRESULT\t1\tr00007\nOUTPUT\tRESULT\t1\tr00008\n"
+      "OUTPUT\tRESULT\t1\tr00009\nEND\t0\nSTART\n"
+      "OUTPUT\tARRAY\t10\tarray<i1 x 10>\nOUTPUT\tRESULT\t0\tr00000\n"
+      "OUTPUT\tRESULT\t0\tr00001\nOUTPUT\tRESULT\t0\tr00002\n"
+      "OUTPUT\tRESULT\t0\tr00003\nOUTPUT\tRESULT\t0\tr00004\n"
+      "OUTPUT\tRESULT\t0\tr00005\nOUTPUT\tRESULT\t0\tr00006\n"
+      "OUTPUT\tRESULT\t0\tr00007\nOUTPUT\tRESULT\t0\tr00008\n"
+      "OUTPUT\tRESULT\t0\tr00009\nEND\t0\nSTART\n"
+      "OUTPUT\tARRAY\t10\tarray<i1 x 10>\nOUTPUT\tRESULT\t1\tr00000\n"
+      "OUTPUT\tRESULT\t1\tr00001\nOUTPUT\tRESULT\t1\tr00002\n"
+      "OUTPUT\tRESULT\t1\tr00003\nOUTPUT\tRESULT\t1\tr00004\n"
+      "OUTPUT\tRESULT\t1\tr00005\nOUTPUT\tRESULT\t1\tr00006\n"
+      "OUTPUT\tRESULT\t1\tr00007\nOUTPUT\tRESULT\t1\tr00008\n"
+      "OUTPUT\tRESULT\t1\tr00009\nEND\t0\nSTART\n"
+      "OUTPUT\tARRAY\t10\tarray<i1 x 10>\nOUTPUT\tRESULT\t0\tr00000\n"
+      "OUTPUT\tRESULT\t0\tr00001\nOUTPUT\tRESULT\t0\tr00002\n"
+      "OUTPUT\tRESULT\t0\tr00003\nOUTPUT\tRESULT\t0\tr00004\n"
+      "OUTPUT\tRESULT\t0\tr00005\nOUTPUT\tRESULT\t0\tr00006\n"
+      "OUTPUT\tRESULT\t0\tr00007\nOUTPUT\tRESULT\t0\tr00008\n"
+      "OUTPUT\tRESULT\t0\tr00009\nEND\t0\nSTART\n"
+      "OUTPUT\tARRAY\t10\tarray<i1 x 10>\nOUTPUT\tRESULT\t1\tr00000\n"
+      "OUTPUT\tRESULT\t1\tr00001\nOUTPUT\tRESULT\t1\tr00002\n"
+      "OUTPUT\tRESULT\t1\tr00003\nOUTPUT\tRESULT\t1\tr00004\n"
+      "OUTPUT\tRESULT\t1\tr00005\nOUTPUT\tRESULT\t1\tr00006\n"
+      "OUTPUT\tRESULT\t1\tr00007\nOUTPUT\tRESULT\t1\tr00008\n"
+      "OUTPUT\tRESULT\t1\tr00009\nEND\t0\n";
 
   cudaq::RecordLogParser parser;
   parser.parse(log);
@@ -745,15 +759,22 @@ CUDAQ_TEST(ParserTester, checkResultType) {
 
 CUDAQ_TEST(ParserTester, checkResultTypeWithRegisterName) {
   const std::string log =
-      "HEADER\tschema_id\tlabeled\nHEADER\tschema_version\t1."
-      "0\nSTART\nMETADATA\tentry_point\nMETADATA\tqir_profiles\tadaptive_"
-      "profile\nMETADATA\trequired_num_qubits\t1\nMETADATA\trequired_num_"
-      "results\t1\nOUTPUT\tRESULT\t1\tresult\nEND\t0\nSTART\nOUTPUT\tRESULT\t1"
-      "\tresult\nEND\t0\nSTART\nOUTPUT\tRESULT\t1\tresult\nEND\t0\nSTART\nOUTPU"
-      "T\tRESULT\t1\tresult\nEND\t0\nSTART\nOUTPUT\tRESULT\t1\tresult\nEND\t0\n"
-      "START\nOUTPUT\tRESULT\t1\tresult\nEND\t0\nSTART\nOUTPUT\tRESULT\t1\tresu"
-      "lt\nEND\t0\nSTART\nOUTPUT\tRESULT\t1\tresult\nEND\t0\nSTART\nOUTPUT\tRES"
-      "ULT\t1\tresult\nEND\t0\nSTART\nOUTPUT\tRESULT\t1\tresult\nEND\t0\n";
+      "HEADER\tschema_id\tlabeled\nHEADER\tschema_version\t1.0\nSTART\n"
+      "METADATA\tentry_point\nMETADATA\tqir_profiles\tadaptive_profile\n"
+      "METADATA\trequired_num_qubits\t1\nMETADATA\trequired_num_results\t1\n"
+      "OUTPUT\tARRAY\t1\tarray<i1 x 1>\nOUTPUT\tRESULT\t1\tresult\nEND\t0\n"
+      "START\nOUTPUT\tARRAY\t1\tarray<i1 x 1>\nOUTPUT\tRESULT\t1\tresult\n"
+      "END\t0\nSTART\nOUTPUT\tARRAY\t1\tarray<i1 x 1>\n"
+      "OUTPUT\tRESULT\t1\tresult\nEND\t0\nSTART\n"
+      "OUTPUT\tARRAY\t1\tarray<i1 x 1>\nOUTPUT\tRESULT\t1\tresult\nEND\t0\n"
+      "START\nOUTPUT\tARRAY\t1\tarray<i1 x 1>\nOUTPUT\tRESULT\t1\tresult\n"
+      "END\t0\nSTART\nOUTPUT\tARRAY\t1\tarray<i1 x 1>\n"
+      "OUTPUT\tRESULT\t1\tresult\nEND\t0\nSTART\n"
+      "OUTPUT\tARRAY\t1\tarray<i1 x 1>\nOUTPUT\tRESULT\t1\tresult\nEND\t0\n"
+      "START\nOUTPUT\tARRAY\t1\tarray<i1 x 1>\nOUTPUT\tRESULT\t1\tresult\n"
+      "END\t0\nSTART\nOUTPUT\tARRAY\t1\tarray<i1 x 1>\n"
+      "OUTPUT\tRESULT\t1\tresult\nEND\t0\nSTART\n"
+      "OUTPUT\tARRAY\t1\tarray<i1 x 1>\nOUTPUT\tRESULT\t1\tresult\nEND\t0\n";
   cudaq::RecordLogParser parser;
   parser.parse(log);
   auto *origBuffer = parser.getBufferPtr();
@@ -833,20 +854,30 @@ CUDAQ_TEST(ParserTester, checkFailedArrayShotIsDiscarded) {
 
 CUDAQ_TEST(ParserTester, checkFailedResultShotIsDiscarded) {
   std::string log =
-      "HEADER\tschema_id\tlabeled\nHEADER\tschema_version\t1."
-      "0\nSTART\nMETADATA\tentry_point\nMETADATA\toutput_labeling_"
-      "schema\tschema_id\nMETADATA\tqir_profiles\tadaptive_"
-      "profile\nMETADATA\trequired_num_qubits\t2\nMETADATA\trequired_num_"
-      "results\t2\nOUTPUT\tRESULT\t1\tr00000\nOUTPUT\tRESULT\t1\tr00001\nEND\t0"
-      "\nSTART\nOUTPUT\tRESULT\t1\tr00000\nOUTPUT\tRESULT\t1\tr00001\nEND\t2\nS"
-      "TART\nOUTPUT\tRESULT\t0\tr00000\nOUTPUT\tRESULT\t0\tr00001\nEND\t3\nSTAR"
-      "T\nOUTPUT\tRESULT\t0\tr00000\nOUTPUT\tRESULT\t0\tr00001\nEND\t0\nSTART\n"
-      "OUTPUT\tRESULT\t0\tr00000\nOUTPUT\tRESULT\t0\tr00001\nEND\t0\nSTART\nOUT"
-      "PUT\tRESULT\t0\tr00000\nOUTPUT\tRESULT\t0\tr00001\nEND\t0\nSTART\nOUTPUT"
-      "\tRESULT\t0\tr00000\nOUTPUT\tRESULT\t0\tr00001\nEND\t127\nSTART\nOUTPUT"
-      "\tRESULT\t1\tr00000\nOUTPUT\tRESULT\t1\tr00001\nEND\t0\nSTART\nOUTPUT\tR"
-      "ESULT\t1\tr00000\nOUTPUT\tRESULT\t1\tr00001\nEND\t0\nSTART\nOUTPUT\tRESU"
-      "LT\t1\tr00000\nOUTPUT\tRESULT\t1\tr00001\nEND\t64";
+      "HEADER\tschema_id\tlabeled\nHEADER\tschema_version\t1.0\nSTART\n"
+      "METADATA\tentry_point\nMETADATA\toutput_labeling_schema\tschema_id\n"
+      "METADATA\tqir_profiles\tadaptive_profile\n"
+      "METADATA\trequired_num_qubits\t2\nMETADATA\trequired_num_results\t2\n"
+      "OUTPUT\tARRAY\t2\tarray<i1 x 2>\nOUTPUT\tRESULT\t1\tr00000\n"
+      "OUTPUT\tRESULT\t1\tr00001\nEND\t0\nSTART\n"
+      "OUTPUT\tARRAY\t2\tarray<i1 x 2>\nOUTPUT\tRESULT\t1\tr00000\n"
+      "OUTPUT\tRESULT\t1\tr00001\nEND\t2\nSTART\n"
+      "OUTPUT\tARRAY\t2\tarray<i1 x 2>\nOUTPUT\tRESULT\t0\tr00000\n"
+      "OUTPUT\tRESULT\t0\tr00001\nEND\t3\nSTART\n"
+      "OUTPUT\tARRAY\t2\tarray<i1 x 2>\nOUTPUT\tRESULT\t0\tr00000\n"
+      "OUTPUT\tRESULT\t0\tr00001\nEND\t0\nSTART\n"
+      "OUTPUT\tARRAY\t2\tarray<i1 x 2>\nOUTPUT\tRESULT\t0\tr00000\n"
+      "OUTPUT\tRESULT\t0\tr00001\nEND\t0\nSTART\n"
+      "OUTPUT\tARRAY\t2\tarray<i1 x 2>\nOUTPUT\tRESULT\t0\tr00000\n"
+      "OUTPUT\tRESULT\t0\tr00001\nEND\t0\nSTART\n"
+      "OUTPUT\tARRAY\t2\tarray<i1 x 2>\nOUTPUT\tRESULT\t0\tr00000\n"
+      "OUTPUT\tRESULT\t0\tr00001\nEND\t127\nSTART\n"
+      "OUTPUT\tARRAY\t2\tarray<i1 x 2>\nOUTPUT\tRESULT\t1\tr00000\n"
+      "OUTPUT\tRESULT\t1\tr00001\nEND\t0\nSTART\n"
+      "OUTPUT\tARRAY\t2\tarray<i1 x 2>\nOUTPUT\tRESULT\t1\tr00000\n"
+      "OUTPUT\tRESULT\t1\tr00001\nEND\t0\nSTART\n"
+      "OUTPUT\tARRAY\t2\tarray<i1 x 2>\nOUTPUT\tRESULT\t1\tr00000\n"
+      "OUTPUT\tRESULT\t1\tr00001\nEND\t64";
 
   cudaq::RecordLogParser parser;
   parser.parse(log);
@@ -883,6 +914,7 @@ CUDAQ_TEST(ParserTester, checkOrder) {
       "METADATA\tqir_profiles\tbase_profile\n"
       "METADATA\trequiredQubits\t8\n"
       "METADATA\trequiredResults\t8\n"
+      "OUTPUT\tARRAY\t8\tarray<i1 x 8>\n"
       "OUTPUT\tRESULT\t1\tr00003\n"
       "OUTPUT\tRESULT\t0\tr00002\n"
       "OUTPUT\tRESULT\t0\tr00000\n"
@@ -936,12 +968,14 @@ CUDAQ_TEST(ParserTester, checkNamedResults) {
       "METADATA\tqir_profiles\tadaptive_profile\n"
       "METADATA\trequired_num_qubits\t5\n"
       "METADATA\trequired_num_results\t4\n"
+      "OUTPUT\tARRAY\t4\tarray<i1 x 4>\n"
       "OUTPUT\tRESULT\t1\tresult%0\n"
       "OUTPUT\tRESULT\t1\tresult%1\n"
       "OUTPUT\tRESULT\t1\tresult%2\n"
       "OUTPUT\tRESULT\t0\tresult%3\n"
       "END\t0\n"
       "START\n"
+      "OUTPUT\tARRAY\t4\tarray<i1 x 4>\n"
       "OUTPUT\tRESULT\t1\tresult%0\n"
       "OUTPUT\tRESULT\t1\tresult%1\n"
       "OUTPUT\tRESULT\t0\tresult%3\n"
@@ -1088,10 +1122,7 @@ CUDAQ_TEST(ParserTester, checkAggregateAllocationBounds) {
       // A small log must not request a disproportionately large array payload.
       "OUTPUT\tARRAY\t1000000\tarray<i8 x 1000000>\n",
       // Reject an oversized tracking vector before allocating it.
-      "OUTPUT\tARRAY\t8000000000\tarray<i8 x 8000000000>\n",
-      // Reject oversized RESULT tracking declared through metadata.
-      "METADATA\trequired_results\t8000000000\n"
-      "OUTPUT\tRESULT\t1\tr00000\n"};
+      "OUTPUT\tARRAY\t8000000000\tarray<i8 x 8000000000>\n"};
 
   for (const auto &log : invalidLogs) {
     cudaq::RecordLogParser parser;
