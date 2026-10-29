@@ -260,20 +260,20 @@ void sample_result::append(const ExecutionResult &result, bool concatenate) {
 }
 
 void sample_result::append(ExecutionResult &&result, bool concatenate) {
-  // Concatenation reads the incoming bitstrings into the entry that is already
-  // here and takes ownership of nothing, so there is nothing to move.
-  if (concatenate)
+  // Concatenation stitches the incoming bitstrings into an entry that is
+  // already here and takes ownership of nothing, so there is nothing to move.
+  // With no such entry it inserts instead, and that can move.
+  if (concatenate && sampleResults.contains(result.registerName))
     return append(static_cast<const ExecutionResult &>(result), true);
 
   if (!totalShots)
     for (auto &[bits, count] : result.counts)
       totalShots += count;
 
-  auto iter = sampleResults.find(result.registerName);
-  if (iter != sampleResults.end())
-    iter->second = std::move(result);
-  else
-    sampleResults.insert({result.registerName, std::move(result)});
+  // Naming the key and moving the value in one call is safe because a pair
+  // builds `first` before `second`, so the name is copied before `result` is
+  // emptied.
+  sampleResults.insert_or_assign(result.registerName, std::move(result));
 }
 
 bool sample_result::operator==(const sample_result &counts) const {
