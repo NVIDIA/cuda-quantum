@@ -1131,13 +1131,11 @@ latest
             -   [Test
                 harness](../../using/realtime/device_call.html#test-harness){.reference
                 .internal}
--   [CUDA-QX](../../using/cudaqx/cudaqx.html){.reference .internal}
-    -   [CUDA-Q
-        Solvers](../../using/cudaqx/cudaqx.html#cuda-q-solvers){.reference
-        .internal}
-    -   [CUDA-Q
-        QEC](../../using/cudaqx/cudaqx.html#cuda-q-qec){.reference
-        .internal}
+-   [CUDA-Q QEC](../../using/cudaq-qec/cudaq-qec.html){.reference
+    .internal}
+-   [CUDA-Q
+    Algorithms](../../using/cudaq-algorithms/cudaq-algorithms.html){.reference
+    .internal}
 -   [Installation](../../using/install/install.html){.reference
     .internal}
     -   [Local
@@ -1278,6 +1276,18 @@ latest
             -   [Source and
                 tests](../../using/extending/compiler/cudaq_ir.html#source-and-tests){.reference
                 .internal}
+        -   [Value-semantics IR change
+            log](../../using/extending/compiler/ir_changelog.html){.reference
+            .internal}
+            -   [Producing this
+                IR](../../using/extending/compiler/ir_changelog.html#producing-this-ir){.reference
+                .internal}
+            -   [Upcoming release ([`main`{.docutils .literal
+                .notranslate}]{.pre}
+                branch)](../../using/extending/compiler/ir_changelog.html#upcoming-release-main-branch){.reference
+                .internal}
+            -   [0.16.0](../../using/extending/compiler/ir_changelog.html#id5){.reference
+                .internal}
         -   [External compiler pass
             plugins](../../using/extending/compiler/pass_plugins.html){.reference
             .internal}
@@ -1326,6 +1336,9 @@ latest
         -   [Plugin Package
             Layout](../../using/extending/packaging.html#plugin-package-layout){.reference
             .internal}
+        -   [How to pre-compile a target config
+            YAML](../../using/extending/packaging.html#how-to-pre-compile-a-target-config-yaml){.reference
+            .internal}
         -   [Target YAML Reference (Plugin
             Fields)](../../using/extending/packaging.html#target-yaml-reference-plugin-fields){.reference
             .internal}
@@ -1338,6 +1351,10 @@ latest
         -   [Building with [`CUDAQ_EXTERNAL_PROJECTS`{.docutils .literal
             .notranslate}]{.pre}](../../using/extending/packaging.html#building-with-cudaq-external-projects){.reference
             .internal}
+            -   [Baking a target into the pre-compiled database instead
+                of shipping a
+                plugin](../../using/extending/packaging.html#baking-a-target-into-the-pre-compiled-database-instead-of-shipping-a-plugin){.reference
+                .internal}
         -   [Python
             Packaging](../../using/extending/packaging.html#python-packaging){.reference
             .internal}
@@ -1606,6 +1623,9 @@ latest
         -   [[`cudaq.contrib`{.docutils .literal
             .notranslate}]{.pre}](#cudaq-contrib){.reference .internal}
             -   [Quantum Embeddings](#quantum-embeddings){.reference
+                .internal}
+            -   [Qiskit and OpenQASM
+                Interoperability](#qiskit-and-openqasm-interoperability){.reference
                 .internal}
         -   [Quantum Error
             Correction](#quantum-error-correction){.reference .internal}
@@ -1882,6 +1902,9 @@ latest
             -   [[`u3`{.code .docutils .literal
                 .notranslate}]{.pre}](../default_ops.html#u3){.reference
                 .internal}
+            -   [[`exp_pauli`{.code .docutils .literal
+                .notranslate}]{.pre}](../default_ops.html#exp-pauli){.reference
+                .internal}
         -   [Adjoint and Controlled
             Operations](../default_ops.html#adjoint-and-controlled-operations){.reference
             .internal}
@@ -1922,8 +1945,7 @@ latest
 
 [Preview]{.caption-text}
 
--   [CUDA-Q Logical](./preview/logical/index.html#http://){.reference
-    .external}
+-   [CUDA-Q Logical](/preview/logical/#http://){.reference .external}
 :::
 :::
 
@@ -2013,7 +2035,7 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
         Type[:]{.colon}
 
         :   [[`str`{.xref .py .py-obj .docutils .literal
-            .notranslate}]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.14)"){.reference
+            .notranslate}]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.15)"){.reference
             .external}
 
     [[arguments]{.pre}]{.sig-name .descname}[¶](#cudaq.PyKernel.arguments "Permalink to this definition"){.headerlink}
@@ -2038,7 +2060,7 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
         Type[:]{.colon}
 
-        :   [int](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference
+        :   [int](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference
             .external}
 
 ```{=html}
@@ -2266,7 +2288,7 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
             argument values of the specified kernel argument type.
 
         -   **shots_count**
-            (*Optional\[*[*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference
+            (*Optional\[*[*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference
             .external}*\]*) -- The number of kernel executions on the
             QPU. Defaults to 1000. Key-word only.
 
@@ -2278,7 +2300,7 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
             simulator. Defaults to an empty noise model.
 
         -   **explicit_measurements**
-            (*Optional\[*[*bool*](https://docs.python.org/3/builtins/functions.html#bool "(in Python v3.14)"){.reference
+            (*Optional\[*[*bool*](https://docs.python.org/3/builtins/functions.html#bool "(in Python v3.15)"){.reference
             .external}*\]*) -- Whether or not to concatenate
             measurements in execution order for the returned sample
             result.
@@ -2335,12 +2357,12 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
             kernel doesn't accept any arguments.
 
         -   **shots_count**
-            (*Optional\[*[*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference
+            (*Optional\[*[*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference
             .external}*\]*) -- The number of kernel executions on the
             QPU. Defaults to 1000. Key-word only.
 
         -   **explicit_measurements**
-            (*Optional\[*[*bool*](https://docs.python.org/3/builtins/functions.html#bool "(in Python v3.14)"){.reference
+            (*Optional\[*[*bool*](https://docs.python.org/3/builtins/functions.html#bool "(in Python v3.15)"){.reference
             .external}*\]*) -- A flag to indicate whether or not to
             concatenate measurements in execution order for the returned
             sample result.
@@ -2353,7 +2375,7 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
             simulator. Defaults to an empty noise model.
 
         -   **qpu_id**
-            (*Optional\[*[*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference
+            (*Optional\[*[*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference
             .external}*\]*) -- The optional identification for which QPU
             on the platform to target. Defaults to zero. Key-word only.
 
@@ -2420,7 +2442,7 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
             .notranslate}]{.pre}.
 
         -   **shots_count**
-            (*Optional\[*[*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference
+            (*Optional\[*[*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference
             .external}*\]*) -- The number of kernel executions on the
             QPU. Defaults to 100. Key-word only.
 
@@ -2432,7 +2454,7 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
             simulator. Defaults to an empty noise model.
 
         -   **qpu_id**
-            (*Optional\[*[*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference
+            (*Optional\[*[*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference
             .external}*\]*) -- The id of the QPU. Defaults to 0.
             Key-word only.
 
@@ -2499,7 +2521,7 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
             kernel doesn't accept any arguments.
 
         -   **shots_count**
-            (*Optional\[*[*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference
+            (*Optional\[*[*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference
             .external}*\]*) -- The number of shots to use for QPU
             execution. Defaults to -1 implying no shots-based sampling.
             Key-word only.
@@ -2512,14 +2534,14 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
             simulator. Defaults to an empty noise model.
 
         -   **num_trajectories**
-            (*Optional\[*[*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference
+            (*Optional\[*[*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference
             .external}*\]*) -- The optional number of trajectories for
             noisy simulation. Only valid if a noise model is provided.
             [`Keyword`{.code .docutils .literal .notranslate}]{.pre}
             only.
 
         -   **qpu_id**
-            (*Optional\[*[*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference
+            (*Optional\[*[*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference
             .external}*\]*) -- The id of the QPU. Defaults to 0.
             Key-word only.
 
@@ -2582,12 +2604,12 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
             kernel doesn't accept any arguments.
 
         -   **qpu_id**
-            (*Optional\[*[*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference
+            (*Optional\[*[*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference
             .external}*\]*) -- The optional identification for which QPU
             on the platform to target. Defaults to zero. Key-word only.
 
         -   **shots_count**
-            (*Optional\[*[*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference
+            (*Optional\[*[*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference
             .external}*\]*) -- The number of shots to use for QPU
             execution. Defaults to -1 implying no shots-based sampling.
             Key-word only.
@@ -2680,7 +2702,7 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
             kernel doesn't accept any arguments.
 
         -   **qpu_id**
-            (*Optional\[*[*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference
+            (*Optional\[*[*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference
             .external}*\]*) -- The optional identification for which QPU
             on the platform to target. Defaults to zero. Key-word only.
 
@@ -2964,37 +2986,37 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
         -   **noise_model** -- Optional noise model.
 
         -   **decompose_errors**
-            ([*bool*](https://docs.python.org/3/builtins/functions.html#bool "(in Python v3.14)"){.reference
+            ([*bool*](https://docs.python.org/3/builtins/functions.html#bool "(in Python v3.15)"){.reference
             .external}) -- Default [`False`{.docutils .literal
             .notranslate}]{.pre}.
 
         -   **fold_loops**
-            ([*bool*](https://docs.python.org/3/builtins/functions.html#bool "(in Python v3.14)"){.reference
+            ([*bool*](https://docs.python.org/3/builtins/functions.html#bool "(in Python v3.15)"){.reference
             .external}) -- Default [`False`{.docutils .literal
             .notranslate}]{.pre}.
 
         -   **allow_gauge_detectors**
-            ([*bool*](https://docs.python.org/3/builtins/functions.html#bool "(in Python v3.14)"){.reference
+            ([*bool*](https://docs.python.org/3/builtins/functions.html#bool "(in Python v3.15)"){.reference
             .external}) -- Default [`False`{.docutils .literal
             .notranslate}]{.pre}.
 
         -   **approximate_disjoint_errors_threshold**
-            ([*float*](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference
+            ([*float*](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference
             .external}) -- Default [`0.0`{.docutils .literal
             .notranslate}]{.pre}.
 
         -   **ignore_decomposition_failures**
-            ([*bool*](https://docs.python.org/3/builtins/functions.html#bool "(in Python v3.14)"){.reference
+            ([*bool*](https://docs.python.org/3/builtins/functions.html#bool "(in Python v3.15)"){.reference
             .external}) -- Default [`False`{.docutils .literal
             .notranslate}]{.pre}.
 
         -   **block_decomposition_from_introducing_remnant_edges**
-            ([*bool*](https://docs.python.org/3/builtins/functions.html#bool "(in Python v3.14)"){.reference
+            ([*bool*](https://docs.python.org/3/builtins/functions.html#bool "(in Python v3.15)"){.reference
             .external}) -- Default [`False`{.docutils .literal
             .notranslate}]{.pre}.
 
         -   **return_measurement_matrices**
-            ([*bool*](https://docs.python.org/3/builtins/functions.html#bool "(in Python v3.14)"){.reference
+            ([*bool*](https://docs.python.org/3/builtins/functions.html#bool "(in Python v3.15)"){.reference
             .external}) -- When [`False`{.docutils .literal
             .notranslate}]{.pre}, [`m2d_matrix`{.docutils .literal
             .notranslate}]{.pre} / [`m2o_matrix`{.docutils .literal
@@ -3015,7 +3037,7 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 ::: {#quantum-embeddings .section}
 ### Quantum Embeddings[¶](#quantum-embeddings "Permalink to this heading"){.headerlink}
 
-[[cudaq.contrib.]{.pre}]{.sig-prename .descclassname}[[amplitude_encode]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[data]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.14)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[numpy.ndarray]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray "(in NumPy v2.5)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.State]{.pre}](#cudaq.State "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State"){.reference .internal}]{.n}*, *[[\*]{.pre}]{.o}*, *[[pad]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[complex]{.pre}](https://docs.python.org/3/builtins/functions.html#complex "(in Python v3.14)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[float]{.pre}](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[0]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[State]{.pre}](#cudaq.State "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State"){.reference .internal}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.contrib.amplitude_encode "Permalink to this definition"){.headerlink}
+[[cudaq.contrib.]{.pre}]{.sig-prename .descclassname}[[amplitude_encode]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[data]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[list]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.15)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[numpy.ndarray]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray "(in NumPy v2.5)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.State]{.pre}](#cudaq.State "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State"){.reference .internal}]{.n}*, *[[\*]{.pre}]{.o}*, *[[pad]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[complex]{.pre}](https://docs.python.org/3/builtins/functions.html#complex "(in Python v3.15)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[float]{.pre}](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[0]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[State]{.pre}](#cudaq.State "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State"){.reference .internal}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.contrib.amplitude_encode "Permalink to this definition"){.headerlink}
 
 :   Map classical features to a normalized quantum state by amplitude
     encoding.
@@ -3084,12 +3106,12 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     Raises[:]{.colon}
 
-    :   -   [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError "(in Python v3.14)"){.reference
+    :   -   [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError "(in Python v3.15)"){.reference
             .external} -- If [`data`{.docutils .literal
             .notranslate}]{.pre} is empty, has zero norm after padding,
             or is not a 1D vector.
 
-        -   [**TypeError**](https://docs.python.org/3/builtins/exceptions.html#TypeError "(in Python v3.14)"){.reference
+        -   [**TypeError**](https://docs.python.org/3/builtins/exceptions.html#TypeError "(in Python v3.15)"){.reference
             .external} -- If [`data`{.docutils .literal
             .notranslate}]{.pre} has an unsupported type.
 
@@ -3195,22 +3217,53 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
     Raises[:]{.colon}
 
-    :   -   [**RuntimeError**](https://docs.python.org/3/builtins/exceptions.html#RuntimeError "(in Python v3.14)"){.reference
+    :   -   [**RuntimeError**](https://docs.python.org/3/builtins/exceptions.html#RuntimeError "(in Python v3.15)"){.reference
             .external} -- Kernel-language host misuse with
             [`(q,`{.docutils .literal .notranslate}]{.pre}` `{.docutils
             .literal .notranslate}[`angles)`{.docutils .literal
             .notranslate}]{.pre}.
 
-        -   [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError "(in Python v3.14)"){.reference
+        -   [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError "(in Python v3.15)"){.reference
             .external} -- Invalid [`rotation`{.docutils .literal
             .notranslate}]{.pre} or angle/qubit count mismatch
             (builder).
 
-        -   [**TypeError**](https://docs.python.org/3/builtins/exceptions.html#TypeError "(in Python v3.14)"){.reference
+        -   [**TypeError**](https://docs.python.org/3/builtins/exceptions.html#TypeError "(in Python v3.15)"){.reference
             .external} -- Invalid builder arguments.
 
     See [`cudaq.contrib.examples`{.docutils .literal
     .notranslate}]{.pre} for complete examples.
+:::
+
+::: {#qiskit-and-openqasm-interoperability .section}
+### Qiskit and OpenQASM Interoperability[¶](#qiskit-and-openqasm-interoperability "Permalink to this heading"){.headerlink}
+
+::: {.admonition .warning}
+Warning
+
+**Deprecated.** [`cudaq.contrib.from_qiskit`{.docutils .literal
+.notranslate}]{.pre} and [`cudaq.contrib.from_qasm`{.docutils .literal
+.notranslate}]{.pre} are deprecated and will be removed in a future
+release. Calling either one now emits a [`DeprecationWarning`{.docutils
+.literal .notranslate}]{.pre}.
+
+Use the standalone
+[cudaq-convert](https://github.com/QuantumRaul/cudaq-convert){.reference
+.external} package instead, which supports OpenQASM 3.0 in addition to
+OpenQASM 2.0 and can convert QASM source strings directly:
+
+::: {.highlight-bash .notranslate}
+::: highlight
+    pip install cudaq-convert
+:::
+:::
+
+::: {.highlight-python .notranslate}
+::: highlight
+    from cudaq_convert import from_qasm, from_qasm_str, from_qiskit
+:::
+:::
+:::
 :::
 :::
 
@@ -3294,24 +3347,30 @@ discriminated bits into an integer.)
 ::: {#backend-configuration .section}
 ## Backend Configuration[¶](#backend-configuration "Permalink to this heading"){.headerlink}
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[parse_args]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[args]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.parse_args "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[parse_args]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[args]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.15)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.parse_args "Permalink to this definition"){.headerlink}
 
-:   Parse command line arguments and initialize the CUDA-Q environment.
+:   Parse CUDA-Q command-line arguments and initialize the CUDA-Q
+    environment.
+
+    This function must be called explicitly. Importing
+    [`cudaq`{.docutils .literal .notranslate}]{.pre} does not inspect or
+    parse command-line arguments.
 
 ```{=html}
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[has_target]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}*, *[[/]{.pre}]{.o}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[bool]{.pre}](https://docs.python.org/3/builtins/functions.html#bool "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.has_target "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[has_target]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[name]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.15)"){.reference .external}]{.n}*, *[[include_unavailable]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/builtins/functions.html#bool "(in Python v3.15)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[False]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[bool]{.pre}](https://docs.python.org/3/builtins/functions.html#bool "(in Python v3.15)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.has_target "Permalink to this definition"){.headerlink}
 
 :   Return true if the [`cudaq.Target`{.code .docutils .literal
-    .notranslate}]{.pre} with the given name exists.
+    .notranslate}]{.pre} with the given name exists. By default only
+    targets available on this host are considered.
 
 ```{=html}
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[get_target]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}*, *[[/]{.pre}]{.o}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.Target]{.pre}](#cudaq.Target "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.Target"){.reference .internal}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.get_target "Permalink to this definition"){.headerlink}\
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[get_target]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.15)"){.reference .external}]{.n}*, *[[/]{.pre}]{.o}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.Target]{.pre}](#cudaq.Target "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.Target"){.reference .internal}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.get_target "Permalink to this definition"){.headerlink}\
 [[cudaq.]{.pre}]{.sig-prename .descclassname}[[get_target]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren} [[→]{.sig-return-icon} [[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.Target]{.pre}](#cudaq.Target "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.Target"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
 :   Return the [`cudaq.Target`{.code .docutils .literal
@@ -3322,10 +3381,14 @@ discriminated bits into an integer.)
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[get_targets]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.Target]{.pre}](#cudaq.Target "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.Target"){.reference .internal}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.get_targets "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[get_targets]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[include_unavailable]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/builtins/functions.html#bool "(in Python v3.15)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[False]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.Target]{.pre}](#cudaq.Target "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.Target"){.reference .internal}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.get_targets "Permalink to this definition"){.headerlink}
 
-:   Return all available [`cudaq.Target`{.code .docutils .literal
-    .notranslate}]{.pre} instances on the current system.
+:   Return [`cudaq.Target`{.code .docutils .literal .notranslate}]{.pre}
+    instances. By default only targets available on this host are
+    returned; pass [`include_unavailable=True`{.code .docutils .literal
+    .notranslate}]{.pre} to include known-but-unavailable targets (see
+    [`Target.availability_diagnostic`{.code .docutils .literal
+    .notranslate}]{.pre}).
 
 ```{=html}
 <!-- -->
@@ -3353,14 +3416,14 @@ discriminated bits into an integer.)
 
     Raises[:]{.colon}
 
-    :   [**TypeError**](https://docs.python.org/3/builtins/exceptions.html#TypeError "(in Python v3.14)"){.reference
+    :   [**TypeError**](https://docs.python.org/3/builtins/exceptions.html#TypeError "(in Python v3.15)"){.reference
         .external} -- For unsupported target types or keyword arguments.
 
 ```{=html}
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[reset_target]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/builtins/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.reset_target "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[reset_target]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/builtins/constants.html#None "(in Python v3.15)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.reset_target "Permalink to this definition"){.headerlink}
 
 :   Reset the current [`cudaq.Target`{.code .docutils .literal
     .notranslate}]{.pre} to the default.
@@ -3385,7 +3448,7 @@ discriminated bits into an integer.)
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[register_set_target_callback]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[collections.abc.Callable]{.pre}](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[\[]{.pre}]{.p}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.Target]{.pre}](#cudaq.Target "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.Target"){.reference .internal}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[None]{.pre}](https://docs.python.org/3/builtins/constants.html#None "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[arg1]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}*, *[[/]{.pre}]{.o}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/builtins/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.register_set_target_callback "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[register_set_target_callback]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[collections.abc.Callable]{.pre}](https://docs.python.org/3/library/collections.abc.html#collections.abc.Callable "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[\[]{.pre}]{.p}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.Target]{.pre}](#cudaq.Target "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.Target"){.reference .internal}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[None]{.pre}](https://docs.python.org/3/builtins/constants.html#None "(in Python v3.15)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[arg1]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.15)"){.reference .external}]{.n}*, *[[/]{.pre}]{.o}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/builtins/constants.html#None "(in Python v3.15)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.register_set_target_callback "Permalink to this definition"){.headerlink}
 
 :   Register a callback function to be executed when the runtime target
     is changed. The string [`id`{.code .docutils .literal
@@ -3396,7 +3459,7 @@ discriminated bits into an integer.)
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[unregister_set_target_callback]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}*, *[[/]{.pre}]{.o}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/builtins/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.unregister_set_target_callback "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[unregister_set_target_callback]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.15)"){.reference .external}]{.n}*, *[[/]{.pre}]{.o}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/builtins/constants.html#None "(in Python v3.15)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.unregister_set_target_callback "Permalink to this definition"){.headerlink}
 
 :   Unregister a callback identified by the input identifier.
 
@@ -3494,7 +3557,7 @@ discriminated bits into an integer.)
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[initialize_cudaq]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[option]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.14)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[None]{.pre}](https://docs.python.org/3/builtins/constants.html#None "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*, *[[emulate]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/builtins/functions.html#bool "(in Python v3.14)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[None]{.pre}](https://docs.python.org/3/builtins/constants.html#None "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*, *[[target]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.14)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[None]{.pre}](https://docs.python.org/3/builtins/constants.html#None "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/builtins/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.initialize_cudaq "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[initialize_cudaq]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[option]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.15)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[None]{.pre}](https://docs.python.org/3/builtins/constants.html#None "(in Python v3.15)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*, *[[emulate]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/builtins/functions.html#bool "(in Python v3.15)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[None]{.pre}](https://docs.python.org/3/builtins/constants.html#None "(in Python v3.15)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*, *[[target]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.15)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[None]{.pre}](https://docs.python.org/3/builtins/constants.html#None "(in Python v3.15)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/builtins/constants.html#None "(in Python v3.15)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.initialize_cudaq "Permalink to this definition"){.headerlink}
 
 :   Initialize the CUDA-Q environment.
 
@@ -3502,7 +3565,7 @@ discriminated bits into an integer.)
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[num_available_gpus]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.num_available_gpus "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[num_available_gpus]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.num_available_gpus "Permalink to this definition"){.headerlink}
 
 :   The number of available GPUs detected on the system.
 
@@ -3510,7 +3573,7 @@ discriminated bits into an integer.)
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[set_random_seed]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[/]{.pre}]{.o}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/builtins/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.set_random_seed "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[set_random_seed]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}]{.n}*, *[[/]{.pre}]{.o}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/builtins/constants.html#None "(in Python v3.15)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.set_random_seed "Permalink to this definition"){.headerlink}
 
 :   Provide the seed for backend quantum kernel simulation, and for
     randomized compiler passes such as Clifford+T synthesis. A seed of 0
@@ -3520,7 +3583,7 @@ discriminated bits into an integer.)
 ::: {#dynamics .section}
 ## Dynamics[¶](#dynamics "Permalink to this heading"){.headerlink}
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[evolve]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[hamiltonian]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Union]{.pre}](https://docs.python.org/3/library/typing.html#typing.Union "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperator"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperator"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperator"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperatorTerm"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperatorTerm"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperatorTerm"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperatorTerm"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[SuperOperator]{.pre}](#cudaq.SuperOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SuperOperator"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[SuperOperator]{.pre}](#cudaq.SuperOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SuperOperator"){.reference .internal}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Mapping]{.pre}](https://docs.python.org/3/library/typing.html#typing.Mapping "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[schedule]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Schedule]{.pre}](#cudaq.Schedule "cudaq.dynamics.schedule.Schedule"){.reference .internal}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*, *[[initial_state]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Union]{.pre}](https://docs.python.org/3/library/typing.html#typing.Union "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[State]{.pre}](#cudaq.State "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[InitialStateType]{.pre}](#cudaq.InitialStateType "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.InitialStateType"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.State]{.pre}](#cudaq.State "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.InitialStateType]{.pre}](#cudaq.InitialStateType "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.InitialStateType"){.reference .internal}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*, *[[collapse_operators]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Union]{.pre}](https://docs.python.org/3/library/typing.html#typing.Union "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[\[\]]{.pre}]{.default_value}*, *[[observables]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[\[\]]{.pre}]{.default_value}*, *[[store_intermediate_results]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[cudaq.dynamics.helpers.IntermediateResultSave]{.pre}](#cudaq.IntermediateResultSave "cudaq.dynamics.helpers.IntermediateResultSave"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[bool]{.pre}](https://docs.python.org/3/builtins/functions.html#bool "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[IntermediateResultSave.NONE]{.pre}]{.default_value}*, *[[integrator]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[BaseIntegrator]{.pre}](#cudaq.dynamics.integrator.BaseIntegrator "cudaq.dynamics.integrator.BaseIntegrator"){.reference .internal}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*, *[[shots_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*, *[[max_batch_size]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[Union]{.pre}](https://docs.python.org/3/library/typing.html#typing.Union "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[EvolveResult]{.pre}](#cudaq.EvolveResult "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.EvolveResult"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[EvolveResult]{.pre}](#cudaq.EvolveResult "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.EvolveResult"){.reference .internal}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.evolve "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[evolve]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[hamiltonian]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Union]{.pre}](https://docs.python.org/3/library/typing.html#typing.Union "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperator"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperator"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperator"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperatorTerm"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperatorTerm"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperatorTerm"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperatorTerm"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[SuperOperator]{.pre}](#cudaq.SuperOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SuperOperator"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[SuperOperator]{.pre}](#cudaq.SuperOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SuperOperator"){.reference .internal}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Mapping]{.pre}](https://docs.python.org/3/library/typing.html#typing.Mapping "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[schedule]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Schedule]{.pre}](#cudaq.Schedule "cudaq.dynamics.schedule.Schedule"){.reference .internal}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*, *[[initial_state]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Union]{.pre}](https://docs.python.org/3/library/typing.html#typing.Union "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[State]{.pre}](#cudaq.State "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[InitialStateType]{.pre}](#cudaq.InitialStateType "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.InitialStateType"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.State]{.pre}](#cudaq.State "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.InitialStateType]{.pre}](#cudaq.InitialStateType "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.InitialStateType"){.reference .internal}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*, *[[collapse_operators]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Union]{.pre}](https://docs.python.org/3/library/typing.html#typing.Union "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[\[\]]{.pre}]{.default_value}*, *[[observables]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[\[\]]{.pre}]{.default_value}*, *[[store_intermediate_results]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[cudaq.dynamics.helpers.IntermediateResultSave]{.pre}](#cudaq.IntermediateResultSave "cudaq.dynamics.helpers.IntermediateResultSave"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[bool]{.pre}](https://docs.python.org/3/builtins/functions.html#bool "(in Python v3.15)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[IntermediateResultSave.NONE]{.pre}]{.default_value}*, *[[integrator]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[BaseIntegrator]{.pre}](#cudaq.dynamics.integrator.BaseIntegrator "cudaq.dynamics.integrator.BaseIntegrator"){.reference .internal}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*, *[[shots_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*, *[[max_batch_size]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[Union]{.pre}](https://docs.python.org/3/library/typing.html#typing.Union "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[EvolveResult]{.pre}](#cudaq.EvolveResult "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.EvolveResult"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[EvolveResult]{.pre}](#cudaq.EvolveResult "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.EvolveResult"){.reference .internal}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.evolve "Permalink to this definition"){.headerlink}
 
 :   Computes the time evolution of one or more initial state(s) under
     the defined operator(s).
@@ -3572,7 +3635,7 @@ discriminated bits into an integer.)
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[evolve_async]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[hamiltonian]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Mapping]{.pre}](https://docs.python.org/3/library/typing.html#typing.Mapping "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[schedule]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Schedule]{.pre}](#cudaq.Schedule "cudaq.dynamics.schedule.Schedule"){.reference .internal}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*, *[[initial_state]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Union]{.pre}](https://docs.python.org/3/library/typing.html#typing.Union "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[State]{.pre}](#cudaq.State "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[InitialStateType]{.pre}](#cudaq.InitialStateType "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.InitialStateType"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.State]{.pre}](#cudaq.State "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.InitialStateType]{.pre}](#cudaq.InitialStateType "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.InitialStateType"){.reference .internal}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*, *[[collapse_operators]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[\[\]]{.pre}]{.default_value}*, *[[observables]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[\[\]]{.pre}]{.default_value}*, *[[store_intermediate_results]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[cudaq.dynamics.helpers.IntermediateResultSave]{.pre}](#cudaq.IntermediateResultSave "cudaq.dynamics.helpers.IntermediateResultSave"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[bool]{.pre}](https://docs.python.org/3/builtins/functions.html#bool "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[IntermediateResultSave.NONE]{.pre}]{.default_value}*, *[[integrator]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[BaseIntegrator]{.pre}](#cudaq.dynamics.integrator.BaseIntegrator "cudaq.dynamics.integrator.BaseIntegrator"){.reference .internal}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*, *[[shots_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[Union]{.pre}](https://docs.python.org/3/library/typing.html#typing.Union "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[AsyncEvolveResult]{.pre}](#cudaq.AsyncEvolveResult "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.AsyncEvolveResult"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[AsyncEvolveResult]{.pre}](#cudaq.AsyncEvolveResult "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.AsyncEvolveResult"){.reference .internal}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.evolve_async "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[evolve_async]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[hamiltonian]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}]{.n}*, *[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Mapping]{.pre}](https://docs.python.org/3/library/typing.html#typing.Mapping "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[schedule]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Schedule]{.pre}](#cudaq.Schedule "cudaq.dynamics.schedule.Schedule"){.reference .internal}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*, *[[initial_state]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Union]{.pre}](https://docs.python.org/3/library/typing.html#typing.Union "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[State]{.pre}](#cudaq.State "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[InitialStateType]{.pre}](#cudaq.InitialStateType "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.InitialStateType"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.State]{.pre}](#cudaq.State "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.State"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.InitialStateType]{.pre}](#cudaq.InitialStateType "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.InitialStateType"){.reference .internal}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*, *[[collapse_operators]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[\[\]]{.pre}]{.default_value}*, *[[observables]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.MatrixOperator]{.pre}](#cudaq.operators.MatrixOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.SpinOperator]{.pre}](#cudaq.operators.spin.SpinOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.BosonOperator]{.pre}](#cudaq.operators.boson.BosonOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.FermionOperator]{.pre}](#cudaq.operators.fermion.FermionOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperator"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.SpinOperatorTerm]{.pre}](#cudaq.operators.spin.SpinOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SpinOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.BosonOperatorTerm]{.pre}](#cudaq.operators.boson.BosonOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.BosonOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.FermionOperatorTerm]{.pre}](#cudaq.operators.fermion.FermionOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.FermionOperatorTerm"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[\[\]]{.pre}]{.default_value}*, *[[store_intermediate_results]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[cudaq.dynamics.helpers.IntermediateResultSave]{.pre}](#cudaq.IntermediateResultSave "cudaq.dynamics.helpers.IntermediateResultSave"){.reference .internal}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[bool]{.pre}](https://docs.python.org/3/builtins/functions.html#bool "(in Python v3.15)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[IntermediateResultSave.NONE]{.pre}]{.default_value}*, *[[integrator]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[BaseIntegrator]{.pre}](#cudaq.dynamics.integrator.BaseIntegrator "cudaq.dynamics.integrator.BaseIntegrator"){.reference .internal}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*, *[[shots_count]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[Union]{.pre}](https://docs.python.org/3/library/typing.html#typing.Union "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[AsyncEvolveResult]{.pre}](#cudaq.AsyncEvolveResult "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.AsyncEvolveResult"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[AsyncEvolveResult]{.pre}](#cudaq.AsyncEvolveResult "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.AsyncEvolveResult"){.reference .internal}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.evolve_async "Permalink to this definition"){.headerlink}
 
 :   Asynchronously computes the time evolution of one or more initial
     state(s) under the defined operator(s). See [`cudaq.evolve`{.code
@@ -3592,7 +3655,7 @@ discriminated bits into an integer.)
 <!-- -->
 ```
 
-*[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[Schedule]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[steps]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Iterable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Iterable "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[Any]{.pre}](https://docs.python.org/3/library/typing.html#typing.Any "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Iterable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Iterable "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[get_value]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[Callable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Callable "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[Any]{.pre}](https://docs.python.org/3/library/typing.html#typing.Any "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[numpy.complexfloating]{.pre}](https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating "(in NumPy v2.5)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/builtins/functions.html#complex "(in Python v3.14)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[float]{.pre}](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.Schedule "Permalink to this definition"){.headerlink}
+*[class]{.pre}[ ]{.w}*[[cudaq.]{.pre}]{.sig-prename .descclassname}[[Schedule]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[steps]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Iterable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Iterable "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[Any]{.pre}](https://docs.python.org/3/library/typing.html#typing.Any "(in Python v3.15)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[parameters]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Iterable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Iterable "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.15)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[get_value]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[Callable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Callable "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[\[]{.pre}]{.p}[[str]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.15)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[Any]{.pre}](https://docs.python.org/3/library/typing.html#typing.Any "(in Python v3.15)"){.reference .external}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[numpy.complexfloating]{.pre}](https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating "(in NumPy v2.5)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/builtins/functions.html#complex "(in Python v3.15)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[float]{.pre}](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.Schedule "Permalink to this definition"){.headerlink}
 
 :   Represents an iterator that produces all values needed for
     evaluating an operator expression at different time steps.
@@ -3701,7 +3764,7 @@ discriminated bits into an integer.)
 
 :   
 
-    *[classmethod]{.pre}[ ]{.w}*[[const]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[constant_value]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[numpy.complexfloating]{.pre}](https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating "(in NumPy v2.5)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/builtins/functions.html#complex "(in Python v3.14)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[float]{.pre}](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.operators.ScalarOperator.const "Permalink to this definition"){.headerlink}
+    *[classmethod]{.pre}[ ]{.w}*[[const]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[constant_value]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[numpy.complexfloating]{.pre}](https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating "(in NumPy v2.5)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/builtins/functions.html#complex "(in Python v3.15)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[float]{.pre}](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.operators.ScalarOperator.const "Permalink to this definition"){.headerlink}
 
     :   Creates a scalar operator that has a constant value.
 
@@ -3718,7 +3781,7 @@ discriminated bits into an integer.)
     :   Returns a dictionary that maps each parameter name to its
         description.
 
-    [[to_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Mapping]{.pre}](https://docs.python.org/3/library/typing.html#typing.Mapping "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[numpy.complexfloating]{.pre}](https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating "(in NumPy v2.5)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/builtins/functions.html#complex "(in Python v3.14)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[float]{.pre}](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[ndarray]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray "(in NumPy v2.5)"){.reference .external}[[\[]{.pre}]{.p}[[Any]{.pre}](https://docs.python.org/3/library/typing.html#typing.Any "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[dtype]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype "(in NumPy v2.5)"){.reference .external}[[\[]{.pre}]{.p}[[complexfloating]{.pre}](https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating "(in NumPy v2.5)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.operators.ScalarOperator.to_matrix "Permalink to this definition"){.headerlink}
+    [[to_matrix]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Mapping]{.pre}](https://docs.python.org/3/library/typing.html#typing.Mapping "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[{}]{.pre}]{.default_value}*, *[[\*\*]{.pre}]{.o}[[kwargs]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[numpy.complexfloating]{.pre}](https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating "(in NumPy v2.5)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[complex]{.pre}](https://docs.python.org/3/builtins/functions.html#complex "(in Python v3.15)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[float]{.pre}](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[ndarray]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray "(in NumPy v2.5)"){.reference .external}[[\[]{.pre}]{.p}[[Any]{.pre}](https://docs.python.org/3/library/typing.html#typing.Any "(in Python v3.15)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[dtype]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype "(in NumPy v2.5)"){.reference .external}[[\[]{.pre}]{.p}[[complexfloating]{.pre}](https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating "(in NumPy v2.5)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.operators.ScalarOperator.to_matrix "Permalink to this definition"){.headerlink}
 
     :   Class method for consistency with other operator classes.
         Invokes the generator with the given keyword arguments.
@@ -3745,7 +3808,7 @@ discriminated bits into an integer.)
 <!-- -->
 ```
 
-*[class]{.pre}[ ]{.w}*[[cudaq.operators.]{.pre}]{.sig-prename .descclassname}[[RydbergHamiltonian]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[atom_sites]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Iterable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Iterable "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[tuple]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#tuple "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[float]{.pre}](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}*, *[[amplitude]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}]{.n}*, *[[phase]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}]{.n}*, *[[delta_global]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}]{.n}*, *[[atom_filling]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[Iterable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Iterable "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[\[\]]{.pre}]{.default_value}*, *[[delta_local]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[tuple]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#tuple "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[Iterable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Iterable "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.operators.RydbergHamiltonian "Permalink to this definition"){.headerlink}
+*[class]{.pre}[ ]{.w}*[[cudaq.operators.]{.pre}]{.sig-prename .descclassname}[[RydbergHamiltonian]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[atom_sites]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Iterable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Iterable "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[tuple]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#tuple "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[float]{.pre}](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}*, *[[amplitude]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}]{.n}*, *[[phase]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}]{.n}*, *[[delta_global]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}]{.n}*, *[[atom_filling]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[Iterable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Iterable "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*, *[[delta_local]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[tuple]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#tuple "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[Iterable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Iterable "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.operators.RydbergHamiltonian "Permalink to this definition"){.headerlink}
 
 :   Representation for the time-dependent Hamiltonian which is simulated
     by analog neutral-atom machines such as QuEra's Aquila and Pasqal's
@@ -3753,7 +3816,7 @@ discriminated bits into an integer.)
     [https://docs.aws.amazon.com/braket/latest/developerguide/braket-quera-submitting-analog-program-aquila.html#braket-quera-ahs-program-schema](https://docs.aws.amazon.com/braket/latest/developerguide/braket-quera-submitting-analog-program-aquila.html#braket-quera-ahs-program-schema){.reference
     .external}
 
-    [[\_\_init\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[atom_sites]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Iterable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Iterable "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[tuple]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#tuple "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[float]{.pre}](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}*, *[[amplitude]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}]{.n}*, *[[phase]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}]{.n}*, *[[delta_global]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}]{.n}*, *[[atom_filling]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[Iterable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Iterable "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[\[\]]{.pre}]{.default_value}*, *[[delta_local]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[tuple]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#tuple "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[Iterable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Iterable "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.operators.RydbergHamiltonian.__init__ "Permalink to this definition"){.headerlink}
+    [[\_\_init\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[atom_sites]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Iterable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Iterable "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[tuple]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#tuple "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[float]{.pre}](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}*, *[[amplitude]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}]{.n}*, *[[phase]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}]{.n}*, *[[delta_global]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}]{.n}*, *[[atom_filling]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[Iterable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Iterable "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*, *[[delta_local]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[tuple]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#tuple "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.ScalarOperator]{.pre}](#cudaq.operators.ScalarOperator "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.ScalarOperator"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[Iterable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Iterable "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.operators.RydbergHamiltonian.__init__ "Permalink to this definition"){.headerlink}
 
     :   Instantiate an operator consumable by [`evolve`{.code .docutils
         .literal .notranslate}]{.pre} API using the supplied parameters.
@@ -3806,7 +3869,7 @@ discriminated bits into an integer.)
 <!-- -->
 ```
 
-[[operators.]{.pre}]{.sig-prename .descclassname}[[define]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[expected_dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[create]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Callable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Callable "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[\[]{.pre}]{.p}[[\...]{.pre}]{.p}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[ndarray]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray "(in NumPy v2.5)"){.reference .external}[[\[]{.pre}]{.p}[[Any]{.pre}](https://docs.python.org/3/library/typing.html#typing.Any "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[dtype]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype "(in NumPy v2.5)"){.reference .external}[[\[]{.pre}]{.p}[[complexfloating]{.pre}](https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating "(in NumPy v2.5)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}*, *[[override]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/builtins/functions.html#bool "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[False]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/builtins/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.operators.define "Permalink to this definition"){.headerlink}
+[[operators.]{.pre}]{.sig-prename .descclassname}[[define]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[expected_dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[create]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Callable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Callable "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[\[]{.pre}]{.p}[[\...]{.pre}]{.p}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[ndarray]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray "(in NumPy v2.5)"){.reference .external}[[\[]{.pre}]{.p}[[Any]{.pre}](https://docs.python.org/3/library/typing.html#typing.Any "(in Python v3.15)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[dtype]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype "(in NumPy v2.5)"){.reference .external}[[\[]{.pre}]{.p}[[complexfloating]{.pre}](https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating "(in NumPy v2.5)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}*, *[[override]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/builtins/functions.html#bool "(in Python v3.15)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[False]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/builtins/constants.html#None "(in Python v3.15)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.operators.define "Permalink to this definition"){.headerlink}
 
 :   Defines a matrix operator element with the given id. After
     definition, an the defined elementary operator can be instantiated
@@ -3856,7 +3919,7 @@ discriminated bits into an integer.)
 <!-- -->
 ```
 
-[[operators.]{.pre}]{.sig-prename .descclassname}[[instantiate]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[degrees]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Union]{.pre}](https://docs.python.org/3/library/typing.html#typing.Union "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[Iterable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Iterable "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.operators.instantiate "Permalink to this definition"){.headerlink}
+[[operators.]{.pre}]{.sig-prename .descclassname}[[instantiate]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[degrees]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Union]{.pre}](https://docs.python.org/3/library/typing.html#typing.Union "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[Iterable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Iterable "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.operators.instantiate "Permalink to this definition"){.headerlink}
 
 :   Instantiates a product operator containing a previously defined
     operator element.
@@ -5757,7 +5820,7 @@ discriminated bits into an integer.)
 
 :   
 
-    *[classmethod]{.pre}[ ]{.w}*[[define]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[id]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}*, *[[expected_dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[create]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Callable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Callable "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[\[]{.pre}]{.p}[[\...]{.pre}]{.p}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[ndarray]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray "(in NumPy v2.5)"){.reference .external}[[\[]{.pre}]{.p}[[Any]{.pre}](https://docs.python.org/3/library/typing.html#typing.Any "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[dtype]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype "(in NumPy v2.5)"){.reference .external}[[\[]{.pre}]{.p}[[complexfloating]{.pre}](https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating "(in NumPy v2.5)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}*, *[[override]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/builtins/functions.html#bool "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[False]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/builtins/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.operators.MatrixOperatorElement.define "Permalink to this definition"){.headerlink}
+    *[classmethod]{.pre}[ ]{.w}*[[define]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[id]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.15)"){.reference .external}]{.n}*, *[[expected_dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[create]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Callable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Callable "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[\[]{.pre}]{.p}[[\...]{.pre}]{.p}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[ndarray]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray "(in NumPy v2.5)"){.reference .external}[[\[]{.pre}]{.p}[[Any]{.pre}](https://docs.python.org/3/library/typing.html#typing.Any "(in Python v3.15)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[dtype]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype "(in NumPy v2.5)"){.reference .external}[[\[]{.pre}]{.p}[[complexfloating]{.pre}](https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating "(in NumPy v2.5)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}*, *[[override]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/builtins/functions.html#bool "(in Python v3.15)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[False]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/builtins/constants.html#None "(in Python v3.15)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.operators.MatrixOperatorElement.define "Permalink to this definition"){.headerlink}
 
     :   Creates the definition of an elementary operator with the given
         id.
@@ -5793,7 +5856,7 @@ discriminated bits into an integer.)
 
 []{#module-cudaq.operators.custom .target}
 
-[[cudaq.operators.custom.]{.pre}]{.sig-prename .descclassname}[[define]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[id]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}*, *[[expected_dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[create]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Callable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Callable "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[\[]{.pre}]{.p}[[\...]{.pre}]{.p}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[ndarray]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray "(in NumPy v2.5)"){.reference .external}[[\[]{.pre}]{.p}[[Any]{.pre}](https://docs.python.org/3/library/typing.html#typing.Any "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[dtype]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype "(in NumPy v2.5)"){.reference .external}[[\[]{.pre}]{.p}[[complexfloating]{.pre}](https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating "(in NumPy v2.5)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}*, *[[override]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/builtins/functions.html#bool "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[False]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/builtins/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.operators.custom.define "Permalink to this definition"){.headerlink}
+[[cudaq.operators.custom.]{.pre}]{.sig-prename .descclassname}[[define]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[id]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.15)"){.reference .external}]{.n}*, *[[expected_dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Sequence]{.pre}](https://docs.python.org/3/library/typing.html#typing.Sequence "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[create]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Callable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Callable "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[\[]{.pre}]{.p}[[\...]{.pre}]{.p}[[\]]{.pre}]{.p}[[,]{.pre}]{.p}[ ]{.w}[[ndarray]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.ndarray.html#numpy.ndarray "(in NumPy v2.5)"){.reference .external}[[\[]{.pre}]{.p}[[Any]{.pre}](https://docs.python.org/3/library/typing.html#typing.Any "(in Python v3.15)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[dtype]{.pre}](https://numpy.org/doc/stable/reference/generated/numpy.dtype.html#numpy.dtype "(in NumPy v2.5)"){.reference .external}[[\[]{.pre}]{.p}[[complexfloating]{.pre}](https://numpy.org/doc/stable/reference/arrays.scalars.html#numpy.complexfloating "(in NumPy v2.5)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}*, *[[override]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[bool]{.pre}](https://docs.python.org/3/builtins/functions.html#bool "(in Python v3.15)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[False]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/builtins/constants.html#None "(in Python v3.15)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.operators.custom.define "Permalink to this definition"){.headerlink}
 
 :   Defines a matrix operator element with the given id. After
     definition, an the defined elementary operator can be instantiated
@@ -5843,7 +5906,7 @@ discriminated bits into an integer.)
 <!-- -->
 ```
 
-[[cudaq.operators.custom.]{.pre}]{.sig-prename .descclassname}[[instantiate]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[op_id]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}*, *[[degrees]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Union]{.pre}](https://docs.python.org/3/library/typing.html#typing.Union "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[Iterable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Iterable "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.operators.custom.instantiate "Permalink to this definition"){.headerlink}
+[[cudaq.operators.custom.]{.pre}]{.sig-prename .descclassname}[[instantiate]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[op_id]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.15)"){.reference .external}]{.n}*, *[[degrees]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Union]{.pre}](https://docs.python.org/3/library/typing.html#typing.Union "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[Iterable]{.pre}](https://docs.python.org/3/library/typing.html#typing.Iterable "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[MatrixOperatorTerm]{.pre}](#cudaq.operators.MatrixOperatorTerm "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.MatrixOperatorTerm"){.reference .internal}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.operators.custom.instantiate "Permalink to this definition"){.headerlink}
 
 :   Instantiates a product operator containing a previously defined
     operator element.
@@ -5877,6 +5940,11 @@ discriminated bits into an integer.)
     .notranslate}]{.pre} describe what simulator they may leverage, the
     quantum_platform required for execution, and a description for the
     target.
+
+    *[property]{.pre}[ ]{.w}*[[availability_diagnostic]{.pre}]{.sig-name .descname}[¶](#cudaq.Target.availability_diagnostic "Permalink to this definition"){.headerlink}
+
+    :   If this target is known but not available on the current host, a
+        diagnostic explaining why; empty otherwise.
 
     *[property]{.pre}[ ]{.w}*[[description]{.pre}]{.sig-name .descname}[¶](#cudaq.Target.description "Permalink to this definition"){.headerlink}
 
@@ -6044,7 +6112,7 @@ discriminated bits into an integer.)
 
     :   Print the state to the console.
 
-    [[from_data]{.pre}]{.sig-name .descname}*[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[\<nanobind.nb_func]{.pre} [object]{.pre} [at]{.pre} [0xc084130\>]{.pre}*[¶](#cudaq.State.from_data "Permalink to this definition"){.headerlink}
+    [[from_data]{.pre}]{.sig-name .descname}*[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[\<nanobind.nb_func]{.pre} [object]{.pre} [at]{.pre} [0x3736080\>]{.pre}*[¶](#cudaq.State.from_data "Permalink to this definition"){.headerlink}
 
     :   
 
@@ -6177,7 +6245,7 @@ discriminated bits into an integer.)
 
         Raises[:]{.colon}
 
-        :   [**RuntimeError**](https://docs.python.org/3/builtins/exceptions.html#RuntimeError "(in Python v3.14)"){.reference
+        :   [**RuntimeError**](https://docs.python.org/3/builtins/exceptions.html#RuntimeError "(in Python v3.15)"){.reference
             .external} -- if the underlying [[`QuakeValue`{.xref .py
             .py-class .docutils .literal
             .notranslate}]{.pre}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
@@ -6202,7 +6270,7 @@ discriminated bits into an integer.)
 
         Raises[:]{.colon}
 
-        :   [**RuntimeError**](https://docs.python.org/3/builtins/exceptions.html#RuntimeError "(in Python v3.14)"){.reference
+        :   [**RuntimeError**](https://docs.python.org/3/builtins/exceptions.html#RuntimeError "(in Python v3.15)"){.reference
             .external} -- if the underlying [[`QuakeValue`{.xref .py
             .py-class .docutils .literal
             .notranslate}]{.pre}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
@@ -6227,7 +6295,7 @@ discriminated bits into an integer.)
 
         Raises[:]{.colon}
 
-        :   [**RuntimeError**](https://docs.python.org/3/builtins/exceptions.html#RuntimeError "(in Python v3.14)"){.reference
+        :   [**RuntimeError**](https://docs.python.org/3/builtins/exceptions.html#RuntimeError "(in Python v3.15)"){.reference
             .external} -- if the underlying [[`QuakeValue`{.xref .py
             .py-class .docutils .literal
             .notranslate}]{.pre}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
@@ -6252,7 +6320,7 @@ discriminated bits into an integer.)
 
         Raises[:]{.colon}
 
-        :   [**RuntimeError**](https://docs.python.org/3/builtins/exceptions.html#RuntimeError "(in Python v3.14)"){.reference
+        :   [**RuntimeError**](https://docs.python.org/3/builtins/exceptions.html#RuntimeError "(in Python v3.15)"){.reference
             .external} -- if the underlying [[`QuakeValue`{.xref .py
             .py-class .docutils .literal
             .notranslate}]{.pre}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
@@ -6276,7 +6344,7 @@ discriminated bits into an integer.)
 
         Raises[:]{.colon}
 
-        :   [**RuntimeError**](https://docs.python.org/3/builtins/exceptions.html#RuntimeError "(in Python v3.14)"){.reference
+        :   [**RuntimeError**](https://docs.python.org/3/builtins/exceptions.html#RuntimeError "(in Python v3.15)"){.reference
             .external} -- if the underlying [[`QuakeValue`{.xref .py
             .py-class .docutils .literal
             .notranslate}]{.pre}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
@@ -6301,7 +6369,7 @@ discriminated bits into an integer.)
 
         Raises[:]{.colon}
 
-        :   [**RuntimeError**](https://docs.python.org/3/builtins/exceptions.html#RuntimeError "(in Python v3.14)"){.reference
+        :   [**RuntimeError**](https://docs.python.org/3/builtins/exceptions.html#RuntimeError "(in Python v3.15)"){.reference
             .external} -- if the underlying [[`QuakeValue`{.xref .py
             .py-class .docutils .literal
             .notranslate}]{.pre}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
@@ -6326,7 +6394,7 @@ discriminated bits into an integer.)
 
         Raises[:]{.colon}
 
-        :   [**RuntimeError**](https://docs.python.org/3/builtins/exceptions.html#RuntimeError "(in Python v3.14)"){.reference
+        :   [**RuntimeError**](https://docs.python.org/3/builtins/exceptions.html#RuntimeError "(in Python v3.15)"){.reference
             .external} -- if the underlying [[`QuakeValue`{.xref .py
             .py-class .docutils .literal
             .notranslate}]{.pre}](#cudaq.QuakeValue "cudaq.QuakeValue"){.reference
@@ -6361,7 +6429,7 @@ discriminated bits into an integer.)
         Parameters[:]{.colon}
 
         :   **index**
-            ([*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference
+            ([*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference
             .external}) -- The element of [`self`{.code .docutils
             .literal .notranslate}]{.pre} that you'd like to return.
 
@@ -6381,7 +6449,7 @@ discriminated bits into an integer.)
 
         Raises[:]{.colon}
 
-        :   [**RuntimeError**](https://docs.python.org/3/builtins/exceptions.html#RuntimeError "(in Python v3.14)"){.reference
+        :   [**RuntimeError**](https://docs.python.org/3/builtins/exceptions.html#RuntimeError "(in Python v3.15)"){.reference
             .external} -- if [`self`{.code .docutils .literal
             .notranslate}]{.pre} is a non-subscriptable
             [[`QuakeValue`{.xref .py .py-class .docutils .literal
@@ -6412,11 +6480,11 @@ discriminated bits into an integer.)
         Parameters[:]{.colon}
 
         :   -   **start**
-                ([*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference
+                ([*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference
                 .external}) -- The index to begin the slice from.
 
             -   **count**
-                ([*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference
+                ([*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference
                 .external}) -- The number of elements to extract after
                 the [`start`{.code .docutils .literal
                 .notranslate}]{.pre} index.
@@ -6590,7 +6658,7 @@ discriminated bits into an integer.)
         Parameters[:]{.colon}
 
         :   **bitstring**
-            ([*str*](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.14)"){.reference
+            ([*str*](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.15)"){.reference
             .external}) -- The binary string to return the measurement
             data of.
 
@@ -6603,7 +6671,7 @@ discriminated bits into an integer.)
 
         Return type[:]{.colon}
 
-        :   [float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference
+        :   [float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference
             .external}
 
     [[\_\_iter\_\_]{.pre}]{.sig-name .descname}[¶](#cudaq.SampleResult.__iter__ "Permalink to this definition"){.headerlink}
@@ -6635,12 +6703,12 @@ discriminated bits into an integer.)
         Parameters[:]{.colon}
 
         :   -   **bitstring**
-                ([*str*](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.14)"){.reference
+                ([*str*](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.15)"){.reference
                 .external}) -- The binary string to return the
                 measurement counts for.
 
             -   **register_name**
-                (*Optional\[*[*str*](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.14)"){.reference
+                (*Optional\[*[*str*](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.15)"){.reference
                 .external}*\]*) -- The optional measurement register
                 name to extract the probability from. Defaults to the
                 '\_\_global\_\_' register.
@@ -6652,7 +6720,7 @@ discriminated bits into an integer.)
 
         Return type[:]{.colon}
 
-        :   [int](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference
+        :   [int](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference
             .external}
 
     *[property]{.pre}[ ]{.w}*[[counts]{.pre}]{.sig-name .descname}[¶](#cudaq.SampleResult.counts "Permalink to this definition"){.headerlink}
@@ -6694,13 +6762,13 @@ discriminated bits into an integer.)
         Parameters[:]{.colon}
 
         :   -   **marginal_indices**
-                ([*list*](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.14)"){.reference
-                .external}*\[*[*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference
+                ([*list*](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.15)"){.reference
+                .external}*\[*[*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference
                 .external}*\]*) -- A list of the qubit indices to
                 extract the measurement data from.
 
             -   **register_name**
-                (*Optional\[*[*str*](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.14)"){.reference
+                (*Optional\[*[*str*](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.15)"){.reference
                 .external}*\]*) -- The optional measurement register
                 name to extract the counts data from. Defaults to the
                 '\_\_global\_\_' register.
@@ -6751,7 +6819,7 @@ discriminated bits into an integer.)
         Parameters[:]{.colon}
 
         :   **register_name**
-            (*Optional\[*[*str*](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.14)"){.reference
+            (*Optional\[*[*str*](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.15)"){.reference
             .external}*\]*) -- The optional measurement register name to
             extract the most probable bitstring from. Defaults to the
             '\_\_global\_\_' register.
@@ -6763,7 +6831,7 @@ discriminated bits into an integer.)
 
         Return type[:]{.colon}
 
-        :   [str](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.14)"){.reference
+        :   [str](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.15)"){.reference
             .external}
 
     [[probability]{.pre}]{.sig-name .descname}[¶](#cudaq.SampleResult.probability "Permalink to this definition"){.headerlink}
@@ -6774,12 +6842,12 @@ discriminated bits into an integer.)
         Parameters[:]{.colon}
 
         :   -   **bitstring**
-                ([*str*](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.14)"){.reference
+                ([*str*](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.15)"){.reference
                 .external}) -- The binary string to return the
                 measurement probability of.
 
             -   **register_name**
-                (*Optional\[*[*str*](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.14)"){.reference
+                (*Optional\[*[*str*](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.15)"){.reference
                 .external}*\]*) -- The optional measurement register
                 name to extract the probability from. Defaults to the
                 '\_\_global\_\_' register.
@@ -6794,7 +6862,7 @@ discriminated bits into an integer.)
 
         Return type[:]{.colon}
 
-        :   [float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference
+        :   [float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference
             .external}
 
     *[property]{.pre}[ ]{.w}*[[register_names]{.pre}]{.sig-name .descname}[¶](#cudaq.SampleResult.register_names "Permalink to this definition"){.headerlink}
@@ -7047,7 +7115,7 @@ discriminated bits into an integer.)
 
         Return type[:]{.colon}
 
-        :   [float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference
+        :   [float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference
             .external}
 
         4.  [`expectation(self,`{.docutils .literal
@@ -7351,12 +7419,14 @@ discriminated bits into an integer.)
 
     :   The [[`Resources`{.xref .py .py-class .docutils .literal
         .notranslate}]{.pre}](#cudaq.Resources "cudaq.Resources"){.reference
-        .internal} gate counts for the estimated kernel.
+        .internal} for the estimated kernel. For logical targets these
+        are the logical resources only; see [`annotations`{.code
+        .docutils .literal .notranslate}]{.pre} for other tiers.
 
 ::: {#optimizers .section}
 ### Optimizers[¶](#optimizers "Permalink to this heading"){.headerlink}
 
-[[cudaq.operators.custom.]{.pre}]{.sig-prename .descclassname}[[optimize]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[function]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#tuple "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+[[cudaq.operators.custom.]{.pre}]{.sig-prename .descclassname}[[optimize]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[dimensions]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}]{.n}*, *[[function]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[tuple]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#tuple "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference .external}[[,]{.pre}]{.p}[ ]{.w}[[list]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference .external}[[\]]{.pre}]{.p}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
 :   Run the optimization procedure.
 
@@ -7374,7 +7444,7 @@ discriminated bits into an integer.)
 <!-- -->
 ```
 
-[[cudaq.operators.custom.]{.pre}]{.sig-prename .descclassname}[[requires_gradients]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren} [[→]{.sig-return-icon} [[[bool]{.pre}](https://docs.python.org/3/builtins/functions.html#bool "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
+[[cudaq.operators.custom.]{.pre}]{.sig-prename .descclassname}[[requires_gradients]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren} [[→]{.sig-return-icon} [[[bool]{.pre}](https://docs.python.org/3/builtins/functions.html#bool "(in Python v3.15)"){.reference .external}]{.sig-return-typehint}]{.sig-return}
 
 :   Check whether this optimizer requires gradient information.
 
@@ -7410,8 +7480,8 @@ discriminated bits into an integer.)
 
         Type[:]{.colon}
 
-        :   [list](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.14)"){.reference
-            .external}\[[float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference
+        :   [list](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.15)"){.reference
+            .external}\[[float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference
             .external}\]
 
     *[property]{.pre}[ ]{.w}*[[lower_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.GradientDescent.lower_bounds "Permalink to this definition"){.headerlink}
@@ -7432,8 +7502,8 @@ discriminated bits into an integer.)
 
         Type[:]{.colon}
 
-        :   [list](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.14)"){.reference
-            .external}\[[float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference
+        :   [list](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.15)"){.reference
+            .external}\[[float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference
             .external}\]
 
     *[property]{.pre}[ ]{.w}*[[max_iterations]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.GradientDescent.max_iterations "Permalink to this definition"){.headerlink}
@@ -7447,7 +7517,7 @@ discriminated bits into an integer.)
 
         Type[:]{.colon}
 
-        :   [int](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference
+        :   [int](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference
             .external}
 
     *[property]{.pre}[ ]{.w}*[[upper_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.GradientDescent.upper_bounds "Permalink to this definition"){.headerlink}
@@ -7468,8 +7538,8 @@ discriminated bits into an integer.)
 
         Type[:]{.colon}
 
-        :   [list](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.14)"){.reference
-            .external}\[[float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference
+        :   [list](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.15)"){.reference
+            .external}\[[float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference
             .external}\]
 
 ```{=html}
@@ -7500,8 +7570,8 @@ discriminated bits into an integer.)
 
         Type[:]{.colon}
 
-        :   [list](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.14)"){.reference
-            .external}\[[float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference
+        :   [list](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.15)"){.reference
+            .external}\[[float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference
             .external}\]
 
     *[property]{.pre}[ ]{.w}*[[lower_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.COBYLA.lower_bounds "Permalink to this definition"){.headerlink}
@@ -7522,8 +7592,8 @@ discriminated bits into an integer.)
 
         Type[:]{.colon}
 
-        :   [list](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.14)"){.reference
-            .external}\[[float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference
+        :   [list](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.15)"){.reference
+            .external}\[[float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference
             .external}\]
 
     *[property]{.pre}[ ]{.w}*[[max_iterations]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.COBYLA.max_iterations "Permalink to this definition"){.headerlink}
@@ -7537,7 +7607,7 @@ discriminated bits into an integer.)
 
         Type[:]{.colon}
 
-        :   [int](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference
+        :   [int](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference
             .external}
 
     *[property]{.pre}[ ]{.w}*[[upper_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.COBYLA.upper_bounds "Permalink to this definition"){.headerlink}
@@ -7558,8 +7628,8 @@ discriminated bits into an integer.)
 
         Type[:]{.colon}
 
-        :   [list](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.14)"){.reference
-            .external}\[[float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference
+        :   [list](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.15)"){.reference
+            .external}\[[float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference
             .external}\]
 
 ```{=html}
@@ -7590,8 +7660,8 @@ discriminated bits into an integer.)
 
         Type[:]{.colon}
 
-        :   [list](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.14)"){.reference
-            .external}\[[float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference
+        :   [list](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.15)"){.reference
+            .external}\[[float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference
             .external}\]
 
     *[property]{.pre}[ ]{.w}*[[lower_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.NelderMead.lower_bounds "Permalink to this definition"){.headerlink}
@@ -7612,8 +7682,8 @@ discriminated bits into an integer.)
 
         Type[:]{.colon}
 
-        :   [list](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.14)"){.reference
-            .external}\[[float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference
+        :   [list](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.15)"){.reference
+            .external}\[[float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference
             .external}\]
 
     *[property]{.pre}[ ]{.w}*[[max_iterations]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.NelderMead.max_iterations "Permalink to this definition"){.headerlink}
@@ -7627,7 +7697,7 @@ discriminated bits into an integer.)
 
         Type[:]{.colon}
 
-        :   [int](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference
+        :   [int](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference
             .external}
 
     *[property]{.pre}[ ]{.w}*[[upper_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.NelderMead.upper_bounds "Permalink to this definition"){.headerlink}
@@ -7648,8 +7718,8 @@ discriminated bits into an integer.)
 
         Type[:]{.colon}
 
-        :   [list](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.14)"){.reference
-            .external}\[[float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference
+        :   [list](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.15)"){.reference
+            .external}\[[float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference
             .external}\]
 
 ```{=html}
@@ -7680,8 +7750,8 @@ discriminated bits into an integer.)
 
         Type[:]{.colon}
 
-        :   [list](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.14)"){.reference
-            .external}\[[float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference
+        :   [list](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.15)"){.reference
+            .external}\[[float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference
             .external}\]
 
     *[property]{.pre}[ ]{.w}*[[lower_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.LBFGS.lower_bounds "Permalink to this definition"){.headerlink}
@@ -7702,8 +7772,8 @@ discriminated bits into an integer.)
 
         Type[:]{.colon}
 
-        :   [list](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.14)"){.reference
-            .external}\[[float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference
+        :   [list](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.15)"){.reference
+            .external}\[[float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference
             .external}\]
 
     *[property]{.pre}[ ]{.w}*[[max_iterations]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.LBFGS.max_iterations "Permalink to this definition"){.headerlink}
@@ -7717,7 +7787,7 @@ discriminated bits into an integer.)
 
         Type[:]{.colon}
 
-        :   [int](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference
+        :   [int](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference
             .external}
 
     *[property]{.pre}[ ]{.w}*[[upper_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.LBFGS.upper_bounds "Permalink to this definition"){.headerlink}
@@ -7738,8 +7808,8 @@ discriminated bits into an integer.)
 
         Type[:]{.colon}
 
-        :   [list](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.14)"){.reference
-            .external}\[[float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference
+        :   [list](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.15)"){.reference
+            .external}\[[float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference
             .external}\]
 
 ```{=html}
@@ -7762,7 +7832,7 @@ discriminated bits into an integer.)
 
         Type[:]{.colon}
 
-        :   [int](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference
+        :   [int](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference
             .external}
 
     *[property]{.pre}[ ]{.w}*[[beta1]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.Adam.beta1 "Permalink to this definition"){.headerlink}
@@ -7777,7 +7847,7 @@ discriminated bits into an integer.)
 
         Type[:]{.colon}
 
-        :   [float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference
+        :   [float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference
             .external}
 
     *[property]{.pre}[ ]{.w}*[[beta2]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.Adam.beta2 "Permalink to this definition"){.headerlink}
@@ -7792,7 +7862,7 @@ discriminated bits into an integer.)
 
         Type[:]{.colon}
 
-        :   [float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference
+        :   [float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference
             .external}
 
     *[property]{.pre}[ ]{.w}*[[epsilon]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.Adam.epsilon "Permalink to this definition"){.headerlink}
@@ -7805,7 +7875,7 @@ discriminated bits into an integer.)
 
         Type[:]{.colon}
 
-        :   [float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference
+        :   [float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference
             .external}
 
     *[property]{.pre}[ ]{.w}*[[f_tol]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.Adam.f_tol "Permalink to this definition"){.headerlink}
@@ -7820,7 +7890,7 @@ discriminated bits into an integer.)
 
         Type[:]{.colon}
 
-        :   [float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference
+        :   [float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference
             .external}
 
     *[property]{.pre}[ ]{.w}*[[initial_parameters]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.Adam.initial_parameters "Permalink to this definition"){.headerlink}
@@ -7843,8 +7913,8 @@ discriminated bits into an integer.)
 
         Type[:]{.colon}
 
-        :   [list](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.14)"){.reference
-            .external}\[[float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference
+        :   [list](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.15)"){.reference
+            .external}\[[float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference
             .external}\]
 
     *[property]{.pre}[ ]{.w}*[[lower_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.Adam.lower_bounds "Permalink to this definition"){.headerlink}
@@ -7865,8 +7935,8 @@ discriminated bits into an integer.)
 
         Type[:]{.colon}
 
-        :   [list](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.14)"){.reference
-            .external}\[[float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference
+        :   [list](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.15)"){.reference
+            .external}\[[float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference
             .external}\]
 
     *[property]{.pre}[ ]{.w}*[[max_iterations]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.Adam.max_iterations "Permalink to this definition"){.headerlink}
@@ -7880,7 +7950,7 @@ discriminated bits into an integer.)
 
         Type[:]{.colon}
 
-        :   [int](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference
+        :   [int](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference
             .external}
 
     *[property]{.pre}[ ]{.w}*[[step_size]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.Adam.step_size "Permalink to this definition"){.headerlink}
@@ -7894,7 +7964,7 @@ discriminated bits into an integer.)
 
         Type[:]{.colon}
 
-        :   [float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference
+        :   [float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference
             .external}
 
     *[property]{.pre}[ ]{.w}*[[upper_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.Adam.upper_bounds "Permalink to this definition"){.headerlink}
@@ -7915,8 +7985,8 @@ discriminated bits into an integer.)
 
         Type[:]{.colon}
 
-        :   [list](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.14)"){.reference
-            .external}\[[float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference
+        :   [list](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.15)"){.reference
+            .external}\[[float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference
             .external}\]
 
 ```{=html}
@@ -7939,7 +8009,7 @@ discriminated bits into an integer.)
 
         Type[:]{.colon}
 
-        :   [int](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference
+        :   [int](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference
             .external}
 
     *[property]{.pre}[ ]{.w}*[[f_tol]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.SGD.f_tol "Permalink to this definition"){.headerlink}
@@ -7955,7 +8025,7 @@ discriminated bits into an integer.)
 
         Type[:]{.colon}
 
-        :   [float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference
+        :   [float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference
             .external}
 
     *[property]{.pre}[ ]{.w}*[[initial_parameters]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.SGD.initial_parameters "Permalink to this definition"){.headerlink}
@@ -7978,8 +8048,8 @@ discriminated bits into an integer.)
 
         Type[:]{.colon}
 
-        :   [list](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.14)"){.reference
-            .external}\[[float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference
+        :   [list](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.15)"){.reference
+            .external}\[[float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference
             .external}\]
 
     *[property]{.pre}[ ]{.w}*[[lower_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.SGD.lower_bounds "Permalink to this definition"){.headerlink}
@@ -8000,8 +8070,8 @@ discriminated bits into an integer.)
 
         Type[:]{.colon}
 
-        :   [list](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.14)"){.reference
-            .external}\[[float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference
+        :   [list](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.15)"){.reference
+            .external}\[[float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference
             .external}\]
 
     *[property]{.pre}[ ]{.w}*[[max_iterations]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.SGD.max_iterations "Permalink to this definition"){.headerlink}
@@ -8015,7 +8085,7 @@ discriminated bits into an integer.)
 
         Type[:]{.colon}
 
-        :   [int](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference
+        :   [int](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference
             .external}
 
     *[property]{.pre}[ ]{.w}*[[step_size]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.SGD.step_size "Permalink to this definition"){.headerlink}
@@ -8030,7 +8100,7 @@ discriminated bits into an integer.)
 
         Type[:]{.colon}
 
-        :   [float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference
+        :   [float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference
             .external}
 
     *[property]{.pre}[ ]{.w}*[[upper_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.SGD.upper_bounds "Permalink to this definition"){.headerlink}
@@ -8051,8 +8121,8 @@ discriminated bits into an integer.)
 
         Type[:]{.colon}
 
-        :   [list](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.14)"){.reference
-            .external}\[[float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference
+        :   [list](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.15)"){.reference
+            .external}\[[float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference
             .external}\]
 
 ```{=html}
@@ -8074,7 +8144,7 @@ discriminated bits into an integer.)
 
         Type[:]{.colon}
 
-        :   [float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference
+        :   [float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference
             .external}
 
     *[property]{.pre}[ ]{.w}*[[initial_parameters]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.SPSA.initial_parameters "Permalink to this definition"){.headerlink}
@@ -8097,8 +8167,8 @@ discriminated bits into an integer.)
 
         Type[:]{.colon}
 
-        :   [list](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.14)"){.reference
-            .external}\[[float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference
+        :   [list](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.15)"){.reference
+            .external}\[[float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference
             .external}\]
 
     *[property]{.pre}[ ]{.w}*[[lower_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.SPSA.lower_bounds "Permalink to this definition"){.headerlink}
@@ -8119,8 +8189,8 @@ discriminated bits into an integer.)
 
         Type[:]{.colon}
 
-        :   [list](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.14)"){.reference
-            .external}\[[float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference
+        :   [list](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.15)"){.reference
+            .external}\[[float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference
             .external}\]
 
     *[property]{.pre}[ ]{.w}*[[max_iterations]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.SPSA.max_iterations "Permalink to this definition"){.headerlink}
@@ -8134,7 +8204,7 @@ discriminated bits into an integer.)
 
         Type[:]{.colon}
 
-        :   [int](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference
+        :   [int](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference
             .external}
 
     *[property]{.pre}[ ]{.w}*[[step_size]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.SPSA.step_size "Permalink to this definition"){.headerlink}
@@ -8148,7 +8218,7 @@ discriminated bits into an integer.)
 
         Type[:]{.colon}
 
-        :   [float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference
+        :   [float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference
             .external}
 
     *[property]{.pre}[ ]{.w}*[[upper_bounds]{.pre}]{.sig-name .descname}[¶](#cudaq.optimizers.SPSA.upper_bounds "Permalink to this definition"){.headerlink}
@@ -8169,8 +8239,8 @@ discriminated bits into an integer.)
 
         Type[:]{.colon}
 
-        :   [list](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.14)"){.reference
-            .external}\[[float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference
+        :   [list](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.15)"){.reference
+            .external}\[[float](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference
             .external}\]
 :::
 
@@ -8255,7 +8325,7 @@ discriminated bits into an integer.)
         Parameters[:]{.colon}
 
         :   -   **operator**
-                ([*str*](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.14)"){.reference
+                ([*str*](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.15)"){.reference
                 .external}) -- The quantum operator to apply the noise
                 channel to.
 
@@ -8302,12 +8372,12 @@ discriminated bits into an integer.)
         Parameters[:]{.colon}
 
         :   -   **operator**
-                ([*str*](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.14)"){.reference
+                ([*str*](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.15)"){.reference
                 .external}) -- The quantum operator to apply the noise
                 channel to.
 
             -   **qubits**
-                (*List\[*[*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference
+                (*List\[*[*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference
                 .external}*\]*) -- The qubit/s to apply the noise
                 channel to.
 
@@ -8347,7 +8417,7 @@ discriminated bits into an integer.)
         Parameters[:]{.colon}
 
         :   -   **operator**
-                ([*str*](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.14)"){.reference
+                ([*str*](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.15)"){.reference
                 .external}) -- The quantum operator to apply the noise
                 channel to.
 
@@ -8776,7 +8846,7 @@ discriminated bits into an integer.)
 ::: {#mpi-submodule .section}
 ## MPI Submodule[¶](#mpi-submodule "Permalink to this heading"){.headerlink}
 
-[[cudaq.mpi.]{.pre}]{.sig-prename .descclassname}[[initialize]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/builtins/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.mpi.initialize "Permalink to this definition"){.headerlink}
+[[cudaq.mpi.]{.pre}]{.sig-prename .descclassname}[[initialize]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/builtins/constants.html#None "(in Python v3.15)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.mpi.initialize "Permalink to this definition"){.headerlink}
 
 :   Initialize MPI if available.
 
@@ -8784,7 +8854,7 @@ discriminated bits into an integer.)
 <!-- -->
 ```
 
-[[cudaq.mpi.]{.pre}]{.sig-prename .descclassname}[[rank]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.mpi.rank "Permalink to this definition"){.headerlink}
+[[cudaq.mpi.]{.pre}]{.sig-prename .descclassname}[[rank]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.mpi.rank "Permalink to this definition"){.headerlink}
 
 :   Return the rank of this process.
 
@@ -8792,7 +8862,7 @@ discriminated bits into an integer.)
 <!-- -->
 ```
 
-[[cudaq.mpi.]{.pre}]{.sig-prename .descclassname}[[num_ranks]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.mpi.num_ranks "Permalink to this definition"){.headerlink}
+[[cudaq.mpi.]{.pre}]{.sig-prename .descclassname}[[num_ranks]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.mpi.num_ranks "Permalink to this definition"){.headerlink}
 
 :   Return the total number of ranks.
 
@@ -8800,8 +8870,8 @@ discriminated bits into an integer.)
 <!-- -->
 ```
 
-[[cudaq.mpi.]{.pre}]{.sig-prename .descclassname}[[all_gather]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[arg1]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[collections.abc.Sequence]{.pre}](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[/]{.pre}]{.o}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.mpi.all_gather "Permalink to this definition"){.headerlink}\
-[[cudaq.mpi.]{.pre}]{.sig-prename .descclassname}[[all_gather]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[arg1]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[collections.abc.Sequence]{.pre}](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[/]{.pre}]{.o}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
+[[cudaq.mpi.]{.pre}]{.sig-prename .descclassname}[[all_gather]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}]{.n}*, *[[arg1]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[collections.abc.Sequence]{.pre}](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[/]{.pre}]{.o}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference .external}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.mpi.all_gather "Permalink to this definition"){.headerlink}\
+[[cudaq.mpi.]{.pre}]{.sig-prename .descclassname}[[all_gather]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}]{.n}*, *[[arg1]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[collections.abc.Sequence]{.pre}](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[/]{.pre}]{.o}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}
 
 :   Overloaded function.
 
@@ -8849,7 +8919,7 @@ discriminated bits into an integer.)
 <!-- -->
 ```
 
-[[cudaq.mpi.]{.pre}]{.sig-prename .descclassname}[[broadcast]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[collections.abc.Sequence]{.pre}](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[arg1]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[arg2]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[/]{.pre}]{.o}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.mpi.broadcast "Permalink to this definition"){.headerlink}
+[[cudaq.mpi.]{.pre}]{.sig-prename .descclassname}[[broadcast]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[arg0]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[collections.abc.Sequence]{.pre}](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[arg1]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}]{.n}*, *[[arg2]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}]{.n}*, *[[/]{.pre}]{.o}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[list]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#list "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference .external}[[\]]{.pre}]{.p}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.mpi.broadcast "Permalink to this definition"){.headerlink}
 
 :   Broadcast an array from a process (rootRank) to all other processes.
     The size of broadcast array must be provided.
@@ -8858,7 +8928,7 @@ discriminated bits into an integer.)
 <!-- -->
 ```
 
-[[cudaq.mpi.]{.pre}]{.sig-prename .descclassname}[[is_initialized]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren} [[→]{.sig-return-icon} [[[bool]{.pre}](https://docs.python.org/3/builtins/functions.html#bool "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.mpi.is_initialized "Permalink to this definition"){.headerlink}
+[[cudaq.mpi.]{.pre}]{.sig-prename .descclassname}[[is_initialized]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren} [[→]{.sig-return-icon} [[[bool]{.pre}](https://docs.python.org/3/builtins/functions.html#bool "(in Python v3.15)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.mpi.is_initialized "Permalink to this definition"){.headerlink}
 
 :   Returns true if MPI has already been initialized.
 
@@ -8866,7 +8936,7 @@ discriminated bits into an integer.)
 <!-- -->
 ```
 
-[[cudaq.mpi.]{.pre}]{.sig-prename .descclassname}[[split_communicator]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[color]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*, *[[key]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[None]{.pre}](https://docs.python.org/3/builtins/constants.html#None "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.mpi.split_communicator "Permalink to this definition"){.headerlink}
+[[cudaq.mpi.]{.pre}]{.sig-prename .descclassname}[[split_communicator]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[color]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}]{.n}*, *[[key]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}[ ]{.w}[[\|]{.pre}]{.p}[ ]{.w}[[None]{.pre}](https://docs.python.org/3/builtins/constants.html#None "(in Python v3.15)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.mpi.split_communicator "Permalink to this definition"){.headerlink}
 
 :   Splits the current communicator into sub-communicators based on the
     input color and key.
@@ -8878,12 +8948,12 @@ discriminated bits into an integer.)
     Parameters[:]{.colon}
 
     :   -   **color**
-            ([*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference
+            ([*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference
             .external}) -- Split color. Ranks with the same color join
             the same communicator.
 
         -   **key**
-            (*Optional\[*[*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference
+            (*Optional\[*[*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference
             .external}*\]*) -- Rank-ordering key within the new
             communicator. Defaults to [`None`{.docutils .literal
             .notranslate}]{.pre}, which uses the current rank in the
@@ -8896,7 +8966,7 @@ discriminated bits into an integer.)
 
     Return type[:]{.colon}
 
-    :   [int](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference
+    :   [int](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference
         .external}
 
     Example:
@@ -8928,7 +8998,7 @@ discriminated bits into an integer.)
 <!-- -->
 ```
 
-[[cudaq.mpi.]{.pre}]{.sig-prename .descclassname}[[set_communicator]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[commPtr]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/builtins/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.mpi.set_communicator "Permalink to this definition"){.headerlink}
+[[cudaq.mpi.]{.pre}]{.sig-prename .descclassname}[[set_communicator]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[commPtr]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/builtins/constants.html#None "(in Python v3.15)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.mpi.set_communicator "Permalink to this definition"){.headerlink}
 
 :   Sets the communicator of the backend simulator based on the input
     communicator address (as an integer). MPI must be initialized. If
@@ -8938,7 +9008,7 @@ discriminated bits into an integer.)
     Parameters[:]{.colon}
 
     :   **commPtr**
-        ([*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference
+        ([*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference
         .external}) -- Integer representation of the communicator
         pointer ([`comm_ptr`{.docutils .literal .notranslate}]{.pre})
         for the backend simulator to use. This can be returned by
@@ -8995,7 +9065,7 @@ discriminated bits into an integer.)
 <!-- -->
 ```
 
-[[cudaq.mpi.]{.pre}]{.sig-prename .descclassname}[[finalize]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/builtins/constants.html#None "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.mpi.finalize "Permalink to this definition"){.headerlink}
+[[cudaq.mpi.]{.pre}]{.sig-prename .descclassname}[[finalize]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren} [[→]{.sig-return-icon} [[[None]{.pre}](https://docs.python.org/3/builtins/constants.html#None "(in Python v3.15)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.mpi.finalize "Permalink to this definition"){.headerlink}
 
 :   Finalize MPI.
 :::
@@ -9003,8 +9073,8 @@ discriminated bits into an integer.)
 ::: {#orca-submodule .section}
 ## ORCA Submodule[¶](#orca-submodule "Permalink to this heading"){.headerlink}
 
-[[cudaq.orca.]{.pre}]{.sig-prename .descclassname}[[sample]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[input_state]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[collections.abc.Sequence]{.pre}](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[loop_lengths]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[collections.abc.Sequence]{.pre}](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[bs_angles]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[collections.abc.Sequence]{.pre}](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[ps_angles]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[collections.abc.Sequence]{.pre}](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[n_samples]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[10000]{.pre}]{.default_value}*, *[[qpu_id]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[0]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.SampleResult]{.pre}](#cudaq.SampleResult "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SampleResult"){.reference .internal}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.orca.sample "Permalink to this definition"){.headerlink}\
-[[cudaq.orca.]{.pre}]{.sig-prename .descclassname}[[sample]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[input_state]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[collections.abc.Sequence]{.pre}](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[loop_lengths]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[collections.abc.Sequence]{.pre}](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[bs_angles]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[collections.abc.Sequence]{.pre}](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[n_samples]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[10000]{.pre}]{.default_value}*, *[[qpu_id]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[0]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.SampleResult]{.pre}](#cudaq.SampleResult "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SampleResult"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
+[[cudaq.orca.]{.pre}]{.sig-prename .descclassname}[[sample]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[input_state]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[collections.abc.Sequence]{.pre}](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[loop_lengths]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[collections.abc.Sequence]{.pre}](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[bs_angles]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[collections.abc.Sequence]{.pre}](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[ps_angles]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[collections.abc.Sequence]{.pre}](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[n_samples]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[10000]{.pre}]{.default_value}*, *[[qpu_id]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[0]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.SampleResult]{.pre}](#cudaq.SampleResult "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SampleResult"){.reference .internal}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.orca.sample "Permalink to this definition"){.headerlink}\
+[[cudaq.orca.]{.pre}]{.sig-prename .descclassname}[[sample]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[input_state]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[collections.abc.Sequence]{.pre}](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[loop_lengths]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[collections.abc.Sequence]{.pre}](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[bs_angles]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[collections.abc.Sequence]{.pre}](https://docs.python.org/3/library/collections.abc.html#collections.abc.Sequence "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[float]{.pre}](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference .external}[[\]]{.pre}]{.p}]{.n}*, *[[n_samples]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[10000]{.pre}]{.default_value}*, *[[qpu_id]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[0]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[cudaq.mlir.\_mlir_libs.\_quakeDialects.cudaq_runtime.SampleResult]{.pre}](#cudaq.SampleResult "cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime.SampleResult"){.reference .internal}]{.sig-return-typehint}]{.sig-return}
 
 :   Performs Time Bin Interferometer (TBI) boson sampling experiments on
     ORCA's backends
@@ -9039,7 +9109,7 @@ with Batch Execution
     :   -   **kernel** -- The quantum kernel to execute.
 
         -   **shots_count**
-            ([*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference
+            ([*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference
             .external}) -- Number of measurement shots. Defaults to
             1000.
 
@@ -9068,14 +9138,14 @@ with Batch Execution
             (weight-based) allocation.
 
         -   **return_execution_data**
-            ([*bool*](https://docs.python.org/3/builtins/functions.html#bool "(in Python v3.14)"){.reference
+            ([*bool*](https://docs.python.org/3/builtins/functions.html#bool "(in Python v3.15)"){.reference
             .external}) -- Include circuit structure, trajectory
             specifications, and per-trajectory measurement outcomes in
             the returned result. Defaults to [`False`{.docutils .literal
             .notranslate}]{.pre}.
 
         -   **include_sequential_data**
-            ([*bool*](https://docs.python.org/3/builtins/functions.html#bool "(in Python v3.14)"){.reference
+            ([*bool*](https://docs.python.org/3/builtins/functions.html#bool "(in Python v3.15)"){.reference
             .external}) -- Populate per-shot sequential bitstring data
             on the result. Defaults to [`False`{.docutils .literal
             .notranslate}]{.pre}.
@@ -9094,7 +9164,7 @@ with Batch Execution
 
     Raises[:]{.colon}
 
-    :   [**RuntimeError**](https://docs.python.org/3/builtins/exceptions.html#RuntimeError "(in Python v3.14)"){.reference
+    :   [**RuntimeError**](https://docs.python.org/3/builtins/exceptions.html#RuntimeError "(in Python v3.15)"){.reference
         .external} -- If the kernel is invalid or arguments are invalid.
 
 ```{=html}
@@ -9111,7 +9181,7 @@ with Batch Execution
     :   -   **kernel** -- The quantum kernel to execute.
 
         -   **shots_count**
-            ([*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference
+            ([*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference
             .external}) -- Number of measurement shots. Defaults to
             1000.
 
@@ -9133,11 +9203,11 @@ with Batch Execution
             across trajectories.
 
         -   **return_execution_data**
-            ([*bool*](https://docs.python.org/3/builtins/functions.html#bool "(in Python v3.14)"){.reference
+            ([*bool*](https://docs.python.org/3/builtins/functions.html#bool "(in Python v3.15)"){.reference
             .external}) -- Include execution data in the result.
 
         -   **include_sequential_data**
-            ([*bool*](https://docs.python.org/3/builtins/functions.html#bool "(in Python v3.14)"){.reference
+            ([*bool*](https://docs.python.org/3/builtins/functions.html#bool "(in Python v3.15)"){.reference
             .external}) -- Populate per-shot sequential data.
 
     Returns[:]{.colon}
@@ -9155,7 +9225,7 @@ with Batch Execution
 
     Raises[:]{.colon}
 
-    :   [**RuntimeError**](https://docs.python.org/3/builtins/exceptions.html#RuntimeError "(in Python v3.14)"){.reference
+    :   [**RuntimeError**](https://docs.python.org/3/builtins/exceptions.html#RuntimeError "(in Python v3.15)"){.reference
         .external} -- If the kernel is invalid or arguments are invalid.
 :::
 
@@ -9416,7 +9486,7 @@ usage guide see [[Rotation Synthesis
 (Clifford+T)]{.doc}](../../using/examples/rotation_synthesis.html){.reference
 .internal}.
 
-[[cudaq.synth.]{.pre}]{.sig-prename .descclassname}[[gridsynth]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[theta]{.pre}]{.n}*, *[[epsilon]{.pre}]{.n}*, *[[max_factoring_iterations]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[500000]{.pre}]{.default_value}*, *[[max_candidate_iterations]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[2000000]{.pre}]{.default_value}*, *[[max_factoring_restarts]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[8]{.pre}]{.default_value}*, *[[max_odgp_scan_steps]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[65536]{.pre}]{.default_value}*, *[[seed]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*, *[[timeout_ms]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.14)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[CliffordTSequence]{.pre}](#cudaq.synth.CliffordTSequence "cudaq.synth.CliffordTSequence"){.reference .internal}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.synth.gridsynth "Permalink to this definition"){.headerlink}
+[[cudaq.synth.]{.pre}]{.sig-prename .descclassname}[[gridsynth]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[theta]{.pre}]{.n}*, *[[epsilon]{.pre}]{.n}*, *[[max_factoring_iterations]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[500000]{.pre}]{.default_value}*, *[[max_candidate_iterations]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[2000000]{.pre}]{.default_value}*, *[[max_factoring_restarts]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[8]{.pre}]{.default_value}*, *[[max_odgp_scan_steps]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[65536]{.pre}]{.default_value}*, *[[seed]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*, *[[timeout_ms]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[Optional]{.pre}](https://docs.python.org/3/library/typing.html#typing.Optional "(in Python v3.15)"){.reference .external}[[\[]{.pre}]{.p}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}[[\]]{.pre}]{.p}]{.n}[ ]{.w}[[=]{.pre}]{.o}[ ]{.w}[[None]{.pre}]{.default_value}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[CliffordTSequence]{.pre}](#cudaq.synth.CliffordTSequence "cudaq.synth.CliffordTSequence"){.reference .internal}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.synth.gridsynth "Permalink to this definition"){.headerlink}
 
 :   Synthesize a Clifford+T sequence approximating R_z(theta).
 
@@ -9515,7 +9585,7 @@ usage guide see [[Rotation Synthesis
 
     Raises[:]{.colon}
 
-    :   [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError "(in Python v3.14)"){.reference
+    :   [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError "(in Python v3.15)"){.reference
         .external} -- if theta or epsilon is a string that does not
         parse as a number, if theta is not finite, if epsilon is not
         finite and strictly positive, or if synthesis fails (degenerate
@@ -9525,7 +9595,7 @@ usage guide see [[Rotation Synthesis
 <!-- -->
 ```
 
-[[cudaq.synth.]{.pre}]{.sig-prename .descclassname}[[rz_error]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[theta]{.pre}]{.n}*, *[[sequence]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[float]{.pre}](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.14)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.synth.rz_error "Permalink to this definition"){.headerlink}
+[[cudaq.synth.]{.pre}]{.sig-prename .descclassname}[[rz_error]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[theta]{.pre}]{.n}*, *[[sequence]{.pre}]{.n}*[)]{.sig-paren} [[→]{.sig-return-icon} [[[float]{.pre}](https://docs.python.org/3/builtins/functions.html#float "(in Python v3.15)"){.reference .external}]{.sig-return-typehint}]{.sig-return}[¶](#cudaq.synth.rz_error "Permalink to this definition"){.headerlink}
 
 :   Operator-norm distance between R_z(theta) and a Clifford+T sequence.
 
@@ -9571,7 +9641,7 @@ usage guide see [[Rotation Synthesis
 
     Raises[:]{.colon}
 
-    :   [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError "(in Python v3.14)"){.reference
+    :   [**ValueError**](https://docs.python.org/3/builtins/exceptions.html#ValueError "(in Python v3.15)"){.reference
         .external} -- if theta is a string that does not parse as a
         number, if theta is not finite, or if [`sequence`{.code
         .docutils .literal .notranslate}]{.pre} contains a character
@@ -9581,7 +9651,7 @@ usage guide see [[Rotation Synthesis
 <!-- -->
 ```
 
-*[class]{.pre}[ ]{.w}*[[cudaq.synth.]{.pre}]{.sig-prename .descclassname}[[CliffordTSequence]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[gates]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.14)"){.reference .external}]{.n}*[)]{.sig-paren}[¶](#cudaq.synth.CliffordTSequence "Permalink to this definition"){.headerlink}
+*[class]{.pre}[ ]{.w}*[[cudaq.synth.]{.pre}]{.sig-prename .descclassname}[[CliffordTSequence]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[gates]{.pre}]{.n}[[:]{.pre}]{.p}[ ]{.w}[[[str]{.pre}](https://docs.python.org/3/builtins/stdtypes.html#str "(in Python v3.15)"){.reference .external}]{.n}*[)]{.sig-paren}[¶](#cudaq.synth.CliffordTSequence "Permalink to this definition"){.headerlink}
 
 :   An ordered Clifford+T gate sequence approximating an R_z rotation.
 
@@ -9610,7 +9680,7 @@ usage guide see [[Rotation Synthesis
         The result keeps matrix-multiplication order and preserves the
         full U(2) operator, including scalar W phase factors.
 
-    *[property]{.pre}[ ]{.w}*[[t_count]{.pre}]{.sig-name .descname}*[[:]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.14)"){.reference .external}*[¶](#cudaq.synth.CliffordTSequence.t_count "Permalink to this definition"){.headerlink}
+    *[property]{.pre}[ ]{.w}*[[t_count]{.pre}]{.sig-name .descname}*[[:]{.pre}]{.p}[ ]{.w}[[int]{.pre}](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference .external}*[¶](#cudaq.synth.CliffordTSequence.t_count "Permalink to this definition"){.headerlink}
 
     :   Number of T gates in the sequence.
 

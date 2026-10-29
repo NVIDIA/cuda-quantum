@@ -688,11 +688,8 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="../../using/cudaqx/cudaqx.html">   CUDA-QX</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../using/cudaqx/cudaqx.html#cuda-q-solvers">CUDA-Q Solvers</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../using/cudaqx/cudaqx.html#cuda-q-qec">CUDA-Q QEC</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="../../using/cudaq-qec/cudaq-qec.html">   CUDA-Q QEC</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../using/cudaq-algorithms/cudaq-algorithms.html">   CUDA-Q Algorithms</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../using/install/install.html">   Installation</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../using/install/local_installation.html">Local Installation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../using/install/local_installation.html#introduction">Introduction</a><ul>
@@ -771,6 +768,12 @@
 <li class="toctree-l4"><a class="reference internal" href="../../using/extending/compiler/cudaq_ir.html#source-and-tests">Source and tests</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/compiler/ir_changelog.html">Value-semantics IR change log</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/compiler/ir_changelog.html#producing-this-ir">Producing this IR</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/compiler/ir_changelog.html#upcoming-release-main-branch">Upcoming release (<code class="docutils literal notranslate"><span class="pre">main</span></code> branch)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/compiler/ir_changelog.html#id5">0.16.0</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/extending/compiler/pass_plugins.html">External compiler pass plugins</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../using/extending/compiler/pass_plugins.html#implement-and-register-the-pass">Implement and register the pass</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/extending/compiler/pass_plugins.html#build-the-plugin">Build the plugin</a></li>
@@ -795,12 +798,16 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/extending/packaging.html">Package &amp; distribute a backend plugin</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../using/extending/packaging.html#plugin-package-layout">Plugin Package Layout</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/packaging.html#how-to-pre-compile-a-target-config-yaml">How to pre-compile a target config YAML</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/extending/packaging.html#target-yaml-reference-plugin-fields">Target YAML Reference (Plugin Fields)</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../using/extending/packaging.html#plugin-root"><code class="docutils literal notranslate"><span class="pre">%PLUGIN_ROOT%</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/extending/packaging.html#target-arguments"><code class="docutils literal notranslate"><span class="pre">target-arguments</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../using/extending/packaging.html#building-with-cudaq-external-projects">Building with <code class="docutils literal notranslate"><span class="pre">CUDAQ_EXTERNAL_PROJECTS</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/packaging.html#building-with-cudaq-external-projects">Building with <code class="docutils literal notranslate"><span class="pre">CUDAQ_EXTERNAL_PROJECTS</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/packaging.html#baking-a-target-into-the-pre-compiled-database-instead-of-shipping-a-plugin">Baking a target into the pre-compiled database instead of shipping a plugin</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/extending/packaging.html#python-packaging">Python Packaging</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../using/extending/packaging.html#pyproject-toml"><code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/extending/packaging.html#init-py"><code class="docutils literal notranslate"><span class="pre">__init__.py</span></code></a></li>
@@ -939,6 +946,7 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="python_api.html#cudaq-contrib"><code class="docutils literal notranslate"><span class="pre">cudaq.contrib</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="python_api.html#quantum-embeddings">Quantum Embeddings</a></li>
+<li class="toctree-l4"><a class="reference internal" href="python_api.html#qiskit-and-openqasm-interoperability">Qiskit and OpenQASM Interoperability</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="python_api.html#quantum-error-correction">Quantum Error Correction</a><ul>
@@ -1064,6 +1072,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../default_ops.html#t"><code class="code docutils literal notranslate"><span class="pre">t</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../default_ops.html#swap"><code class="code docutils literal notranslate"><span class="pre">swap</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../default_ops.html#u3"><code class="code docutils literal notranslate"><span class="pre">u3</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../default_ops.html#exp-pauli"><code class="code docutils literal notranslate"><span class="pre">exp_pauli</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../default_ops.html#adjoint-and-controlled-operations">Adjoint and Controlled Operations</a></li>
@@ -1090,7 +1099,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Preview</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference external" href="./preview/logical/index.html#http://">CUDA-Q Logical</a></li>
+<li class="toctree-l1"><a class="reference external" href="/preview/logical/#http://">CUDA-Q Logical</a></li>
 </ul>
 
         </div>
@@ -5742,6 +5751,12 @@
 </dd></dl>
 
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15ExecutionResult15ExecutionResultERR15ExecutionResult">
+<span class="target" id="structcudaq_1_1ExecutionResult_1a34758de0b66b186aad585c64c3ac0439"></span><span class="sig-name descname"><span class="n"><span class="pre">ExecutionResult</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5cudaq15ExecutionResult15ExecutionResultERR15ExecutionResult" title="cudaq::ExecutionResult::ExecutionResult"><span class="n"><span class="pre">ExecutionResult</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N5cudaq15ExecutionResult15ExecutionResultERR15ExecutionResult" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Transfer ownership of the counts and sequential shot data. </p>
+</dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq15ExecutionResultaSERK15ExecutionResult">
 <span class="target" id="structcudaq_1_1ExecutionResult_1a46de0f6522e69f94787afb745768b0b8"></span><a class="reference internal" href="#_CPPv4N5cudaq15ExecutionResultE" title="cudaq::ExecutionResult"><span class="n"><span class="pre">ExecutionResult</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">=</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq15ExecutionResultE" title="cudaq::ExecutionResult"><span class="n"><span class="pre">ExecutionResult</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq15ExecutionResultaSERK15ExecutionResult" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Set this <a class="reference internal" href="#structcudaq_1_1ExecutionResult"><span class="std std-ref">ExecutionResult</span></a> equal to the provided one. </p>
@@ -5753,6 +5768,12 @@
 <dd class="field-even"><p></p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq15ExecutionResultaSERR15ExecutionResult">
+<span class="target" id="structcudaq_1_1ExecutionResult_1af555929b013a6953bf9e980330c950d3"></span><a class="reference internal" href="#_CPPv4N5cudaq15ExecutionResultE" title="cudaq::ExecutionResult"><span class="n"><span class="pre">ExecutionResult</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">=</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5cudaq15ExecutionResultE" title="cudaq::ExecutionResult"><span class="n"><span class="pre">ExecutionResult</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">noexcept</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N5cudaq15ExecutionResultaSERR15ExecutionResult" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Replace this result by transferring ownership from another. </p>
 </dd></dl>
 
 <dl class="cpp function">
@@ -6543,7 +6564,7 @@ handles, a vector of <code class="docutils literal notranslate"><span class="pre
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq14complex_matrix11exponentialEv">
 <span class="target" id="classcudaq_1_1complex__matrix_1a0bac7616799a0a3ea96ef1881fb5eda5"></span><a class="reference internal" href="#_CPPv4N5cudaq14complex_matrixE" title="cudaq::complex_matrix"><span class="n"><span class="pre">complex_matrix</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">exponential</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq14complex_matrix11exponentialEv" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Matrix exponential, uses 20 terms of Taylor Series approximation. </p>
+<dd><p>Matrix exponential, computed with a Pade <code class="docutils literal notranslate"><span class="pre">approximant</span></code> and scaling and squaring. </p>
 </dd></dl>
 
 <dl class="cpp function">
@@ -8337,7 +8358,7 @@ declare observables <code class="docutils literal notranslate"><span class="pre"
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq3QPUE">
 <span class="target" id="classcudaq_1_1QPU"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">QPU</span></span></span><span class="w"> </span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="k"><span class="pre">public</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq8registryE" title="cudaq::registry"><span class="n"><span class="pre">registry</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4I0EN5cudaq8registry14RegisteredTypeE" title="cudaq::registry::RegisteredType"><span class="n"><span class="pre">RegisteredType</span></span></a><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N5cudaq3QPUE" title="cudaq::QPU"><span class="n"><span class="pre">QPU</span></span></a><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N5cudaq3QPUE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>A CUDA-Q <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> is an abstraction on the quantum processing unit which executes quantum kernel expressions. The <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> exposes certain information about the <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> being targeting, such as the number of available qubits, the logical ID for this <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> in a set of available QPUs, and its qubit connectivity. The <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> keeps track of an execution queue for enqueuing asynchronous tasks that execute quantum kernel expressions. The <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> also tracks the client-provided execution context to enable quantum kernel related tasks such as sampling and observation.</p>
+<dd><p>A CUDA-Q <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> is an abstraction on the quantum processing unit which executes quantum kernel expressions. The <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> exposes certain information about the <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> being targeted, such as the compile target of the <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a>, the logical ID for this <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> in a set of available QPUs and the current noise model. The <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> keeps track of an execution queue for enqueuing asynchronous tasks that execute quantum kernel expressions. The <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> also tracks the client-provided execution context to enable quantum kernel related tasks such as sampling and observation.</p>
 <p>This type is meant to be subtyped by concrete <a class="reference internal" href="#classcudaq_1_1quantum__platform"><span class="std std-ref">quantum_platform</span></a> subtypes. </p>
 <p>Subclassed by <a class="reference internal" href="#classcudaq_1_1BaseRemoteRESTQPU"><span class="std std-ref">cudaq::BaseRemoteRESTQPU</span></a>, <a class="reference internal" href="#classcudaq_1_1DefaultQPU"><span class="std std-ref">cudaq::DefaultQPU</span></a>, <a class="reference internal" href="#classcudaq_1_1GPUEmulatedQPU"><span class="std std-ref">cudaq::GPUEmulatedQPU</span></a>, <a class="reference internal" href="#classcudaq_1_1OrcaRemoteRESTQPU"><span class="std std-ref">cudaq::OrcaRemoteRESTQPU</span></a></p>
 <div class="breathe-sectiondef docutils container">
@@ -8376,18 +8397,6 @@ declare observables <code class="docutils literal notranslate"><span class="pre"
 <dt class="sig sig-object cpp" id="_CPPv4NK5cudaq3QPU20getExecutionThreadIdEv">
 <span class="target" id="classcudaq_1_1QPU_1a79378c8539dd40594956b157b31d469e"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">thread</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">id</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getExecutionThreadId</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq3QPU20getExecutionThreadIdEv" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Get id of the thread this <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a>’s queue executes on. </p>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq3QPU12getNumQubitsEv">
-<span class="target" id="classcudaq_1_1QPU_1aed29436f93c96339d245b906862e0443"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getNumQubits</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq3QPU12getNumQubitsEv" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Return the number of qubits. </p>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq3QPU15getConnectivityEv">
-<span class="target" id="classcudaq_1_1QPU_1a783a0450e73f35edad0322e1c07bc702"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="kt"><span class="pre">auto</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getConnectivity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq3QPU15getConnectivityEv" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Return the qubit connectivity. </p>
 </dd></dl>
 
 <dl class="cpp function">
@@ -8438,12 +8447,6 @@ declare observables <code class="docutils literal notranslate"><span class="pre"
 <span class="target" id="classcudaq_1_1QPU_1ab357cd1bfa8264a52a8ba36f691c8818"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">endExecution</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq3QPU12endExecutionEv" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Clean up after an execution on this <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a>. </p>
 <p>This is called after the execution context has been finalized and before the execution context is reset. </p>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq3QPU16getCompileTargetEb">
-<span class="target" id="classcudaq_1_1QPU_1a945fb6566ca01562c092cb3e4b3d98ab"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">CompileTarget</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getCompileTarget</span></span></span><span class="sig-paren">(</span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">skipPipelineSubstitutions</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq3QPU16getCompileTargetEb" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Get the compile target of the <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a>. </p>
 </dd></dl>
 
 <dl class="cpp function">
@@ -8519,21 +8522,9 @@ declare observables <code class="docutils literal notranslate"><span class="pre"
 <dl class="cpp class">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq16quantum_platformE">
 <span class="target" id="classcudaq_1_1quantum__platform"></span><span class="k"><span class="pre">class</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">quantum_platform</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq16quantum_platformE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>The <a class="reference internal" href="#classcudaq_1_1quantum__platform"><span class="std std-ref">quantum_platform</span></a> corresponds to a specific quantum architecture. The <a class="reference internal" href="#classcudaq_1_1quantum__platform"><span class="std std-ref">quantum_platform</span></a> exposes a public API for programmers to query specific information about the targeted QPU(s) (e.g. number of qubits, qubit connectivity, etc.). This type is meant to be subclassed for concrete realizations of quantum platforms, which are intended to populate the QPUs of this base class via <code class="docutils literal notranslate"><span class="pre">addQPU</span></code> and <code class="docutils literal notranslate"><span class="pre">clearQPUs</span></code>. </p>
+<dd><p>The <a class="reference internal" href="#classcudaq_1_1quantum__platform"><span class="std std-ref">quantum_platform</span></a> corresponds to a specific quantum architecture. The <a class="reference internal" href="#classcudaq_1_1quantum__platform"><span class="std std-ref">quantum_platform</span></a> exposes a public API for programmers to query specific information about the targeted QPU(s). This type is meant to be subclassed for concrete realizations of quantum platforms, which are intended to populate the QPUs of this base class via <code class="docutils literal notranslate"><span class="pre">addQPU</span></code> and <code class="docutils literal notranslate"><span class="pre">clearQPUs</span></code>. </p>
 <div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq16quantum_platform12connectivityEv">
-<span class="target" id="classcudaq_1_1quantum__platform_1aa0162be5a19283a7fe9a933ff93425c2"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">optional</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N5cudaq17QubitConnectivityE" title="cudaq::QubitConnectivity"><span class="n"><span class="pre">QubitConnectivity</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">connectivity</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq16quantum_platform12connectivityEv" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Fetch the connectivity info. </p>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq16quantum_platform14get_num_qubitsENSt6size_tE">
-<span class="target" id="classcudaq_1_1quantum__platform_1a9552749bad6b44d31284b5614b3cc841"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">get_num_qubits</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">qpu_id</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq16quantum_platform14get_num_qubitsENSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Get the number of qubits for the <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> with ID qpu_id. </p>
-</dd></dl>
-
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK5cudaq16quantum_platform26supports_task_distributionEv">
 <span class="target" id="classcudaq_1_1quantum__platform_1aa3371a29fdf210c5a0831f199c2604a7"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">supports_task_distribution</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq16quantum_platform26supports_task_distributionEv" title="Permalink to this definition">¶</a><br /></dt>
@@ -8700,17 +8691,6 @@ declare observables <code class="docutils literal notranslate"><span class="pre"
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq11QuantumTaskE">
 <span class="target" id="QuantumExecutionQueue_8h_1a234ec4683d248518f1c276dc20fc3472"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">QuantumTask</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">function</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">void</span></span><span class="p"><span class="pre">(</span></span><span class="p"><span class="pre">)</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N5cudaq11QuantumTaskE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>The QuantumTask is ultimately what gets added to the execution queue. It is meant to wrap any Sampling or Observe task with an appropriate std::promise instance being provided and set. </p>
-</dd></dl>
-
-<dl class="cpp type">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq17QubitConnectivityE">
-<span class="target" id="quantum__platform_8h_1a104e794b18a96a94b7b3ee6fbd96698d"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">QubitConnectivity</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N5cudaq9QubitEdgeE" title="cudaq::QubitEdge"><span class="n"><span class="pre">QubitEdge</span></span></a><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N5cudaq17QubitConnectivityE" title="Permalink to this definition">¶</a><br /></dt>
-<dd></dd></dl>
-
-<dl class="cpp type">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq9QubitEdgeE">
-<span class="target" id="quantum__platform_8h_1aa2ee059741b84fd4577879dad8e672ef"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-prename descclassname"><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span></span><span class="sig-name descname"><span class="n"><span class="pre">QubitEdge</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">pair</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N5cudaq9QubitEdgeE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Typedefs for defining the connectivity structure of a <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a>. </p>
 </dd></dl>
 
 <dl class="cpp type">

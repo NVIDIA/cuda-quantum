@@ -686,11 +686,8 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="../../cudaqx/cudaqx.html">   CUDA-QX</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../cudaqx/cudaqx.html#cuda-q-solvers">CUDA-Q Solvers</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../cudaqx/cudaqx.html#cuda-q-qec">CUDA-Q QEC</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="../../cudaq-qec/cudaq-qec.html">   CUDA-Q QEC</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../cudaq-algorithms/cudaq-algorithms.html">   CUDA-Q Algorithms</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../install/install.html">   Installation</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../install/local_installation.html">Local Installation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../install/local_installation.html#introduction">Introduction</a><ul>
@@ -769,6 +766,12 @@
 <li class="toctree-l4"><a class="reference internal" href="../../extending/compiler/cudaq_ir.html#source-and-tests">Source and tests</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../extending/compiler/ir_changelog.html">Value-semantics IR change log</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../extending/compiler/ir_changelog.html#producing-this-ir">Producing this IR</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../extending/compiler/ir_changelog.html#upcoming-release-main-branch">Upcoming release (<code class="docutils literal notranslate"><span class="pre">main</span></code> branch)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../extending/compiler/ir_changelog.html#id5">0.16.0</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../../extending/compiler/pass_plugins.html">External compiler pass plugins</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../extending/compiler/pass_plugins.html#implement-and-register-the-pass">Implement and register the pass</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../extending/compiler/pass_plugins.html#build-the-plugin">Build the plugin</a></li>
@@ -793,12 +796,16 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../extending/packaging.html">Package &amp; distribute a backend plugin</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../extending/packaging.html#plugin-package-layout">Plugin Package Layout</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../extending/packaging.html#how-to-pre-compile-a-target-config-yaml">How to pre-compile a target config YAML</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../extending/packaging.html#target-yaml-reference-plugin-fields">Target YAML Reference (Plugin Fields)</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../extending/packaging.html#plugin-root"><code class="docutils literal notranslate"><span class="pre">%PLUGIN_ROOT%</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../extending/packaging.html#target-arguments"><code class="docutils literal notranslate"><span class="pre">target-arguments</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../extending/packaging.html#building-with-cudaq-external-projects">Building with <code class="docutils literal notranslate"><span class="pre">CUDAQ_EXTERNAL_PROJECTS</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../extending/packaging.html#building-with-cudaq-external-projects">Building with <code class="docutils literal notranslate"><span class="pre">CUDAQ_EXTERNAL_PROJECTS</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../extending/packaging.html#baking-a-target-into-the-pre-compiled-database-instead-of-shipping-a-plugin">Baking a target into the pre-compiled database instead of shipping a plugin</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../../extending/packaging.html#python-packaging">Python Packaging</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../extending/packaging.html#pyproject-toml"><code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../extending/packaging.html#init-py"><code class="docutils literal notranslate"><span class="pre">__init__.py</span></code></a></li>
@@ -937,6 +944,7 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq-contrib"><code class="docutils literal notranslate"><span class="pre">cudaq.contrib</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#quantum-embeddings">Quantum Embeddings</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#qiskit-and-openqasm-interoperability">Qiskit and OpenQASM Interoperability</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../../api/languages/python_api.html#quantum-error-correction">Quantum Error Correction</a><ul>
@@ -1062,6 +1070,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../api/default_ops.html#t"><code class="code docutils literal notranslate"><span class="pre">t</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/default_ops.html#swap"><code class="code docutils literal notranslate"><span class="pre">swap</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/default_ops.html#u3"><code class="code docutils literal notranslate"><span class="pre">u3</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/default_ops.html#exp-pauli"><code class="code docutils literal notranslate"><span class="pre">exp_pauli</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../../api/default_ops.html#adjoint-and-controlled-operations">Adjoint and Controlled Operations</a></li>
@@ -1088,7 +1097,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Preview</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference external" href="./preview/logical/index.html#http://">CUDA-Q Logical</a></li>
+<li class="toctree-l1"><a class="reference external" href="/preview/logical/#http://">CUDA-Q Logical</a></li>
 </ul>
 
         </div>
@@ -1122,14 +1131,107 @@
              
   <section id="iqm-backend-advanced-use-cases">
 <h1>IQM Backend Advanced Use Cases<a class="headerlink" href="#iqm-backend-advanced-use-cases" title="Permalink to this heading">¶</a></h1>
-<p>On this page advanced uses cases which are supported by the IQM backend integration are described.</p>
+<p>This page describes advanced uses cases supported by the IQM backend integration.</p>
+<section id="configuring-the-backend">
+<h2>Configuring the backend<a class="headerlink" href="#configuring-the-backend" title="Permalink to this heading">¶</a></h2>
+<p>The IQM backend can be configured either in the code (Python), at compile time (C++), or through the environment in which the process runs.</p>
+<p>The following settings can be configured:</p>
+<ul class="simple">
+<li><p>To which IQM quantum computer a job is sent by setting <code class="code docutils literal notranslate"><span class="pre">IQM</span> <span class="pre">Server</span> <span class="pre">URL</span></code> plus <code class="code docutils literal notranslate"><span class="pre">IQM</span> <span class="pre">Quantum</span> <span class="pre">Computer</span></code>.</p></li>
+<li><p>The API token for authorization at the IQM server.</p></li>
+<li><p>Different QPU architectures for testing.</p></li>
+<li><p>The use of emulation mode.</p></li>
+</ul>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Setting</p></th>
+<th class="head"><p>Environment
+(variable name)</p></th>
+<th class="head"><p>Python
+(parameter to cudaq.set_target())</p></th>
+<th class="head"><p>C++
+(option to nvq++)</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>IQM Server URL</p></td>
+<td><p>IQM_SERVER_URL</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">url</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">--iqm-server-url</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>IQM Quantum Computer</p></td>
+<td><p>IQM_QUANTUM_COMPUTER</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">qc</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">--iqm-quantum-computer</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>API token</p></td>
+<td><p>IQM_TOKEN</p></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>Token file
+(deprecated)</p></td>
+<td><p>IQM_TOKENS_FILE</p></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>load QPU architecture</p></td>
+<td><p>IQM_QPU_QA</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">mapping_file</span></code></p></td>
+<td></td>
+</tr>
+<tr class="row-odd"><td><p>save QPU architecture</p></td>
+<td><p>IQM_SAVE_QPU_QA</p></td>
+<td></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p>Emulation mode</p></td>
+<td></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">emulate</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">--emulate</span></code></p></td>
+</tr>
+</tbody>
+</table>
+<p>Please note that any value in an environment variable takes precedence over any value for the same setting in the code or at compile time.</p>
+<section id="examples">
+<h3>Examples:<a class="headerlink" href="#examples" title="Permalink to this heading">¶</a></h3>
+<blockquote>
+<div><div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--0-input--1" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--1">Environment</label><div class="tab-content docutils">
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">IQM_TOKEN</span><span class="o">=</span><span class="s2">"your personal API token"</span><span class="w"> </span><span class="nv">IQM_SERVER_URL</span><span class="o">=</span><span class="s2">"https://resonance.iqm.tech/"</span><span class="w"> </span><span class="nv">IQM_QUANTUM_COMPUTER</span><span class="o">=</span><span class="s2">"garnet"</span><span class="w"> </span>python3<span class="w"> </span>program.py
+</pre></div>
+</div>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">IQM_TOKEN</span><span class="o">=</span><span class="s2">"your personal API token"</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">IQM_SERVER_URL</span><span class="o">=</span><span class="s2">"https://resonance.iqm.tech/"</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">IQM_QUANTUM_COMPUTER</span><span class="o">=</span><span class="s2">"garnet"</span>
+python3<span class="w"> </span>program.py
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--0-input--2" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--2">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">'iqm'</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="s2">"https://resonance.iqm.tech/"</span><span class="p">,</span> <span class="n">qc</span><span class="o">=</span><span class="s2">"garnet"</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">'iqm'</span><span class="p">,</span> <span class="n">mapping_file</span><span class="o">=</span><span class="s2">"&lt;path+filename&gt;"</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--0-input--3" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--3">C++</label><div class="tab-content docutils">
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>iqm<span class="w"> </span>--iqm-server-url<span class="o">=</span><span class="s2">"https://resonance.iqm.tech"</span><span class="w"> </span>--iqm-quantum-computer<span class="o">=</span><span class="s2">"garnet"</span><span class="w"> </span>src.cpp<span class="w"> </span>-o<span class="w"> </span>program
+</pre></div>
+</div>
+</div>
+</div>
+</div></blockquote>
+</section>
+</section>
 <section id="emulation-mode">
 <h2>Emulation Mode<a class="headerlink" href="#emulation-mode" title="Permalink to this heading">¶</a></h2>
 <div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--0-input--1" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--1">Python</label><div class="tab-content docutils">
+<input checked="True" class="tab-input" id="tab-set--1-input--1" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--1">Python</label><div class="tab-content docutils">
 <p>To emulate the IQM Server locally, without submitting to the IQM Server, you can set the <code class="docutils literal notranslate"><span class="pre">emulate</span></code> flag to <code class="docutils literal notranslate"><span class="pre">True</span></code>.
 This will emit any target specific compiler diagnostics, before running a noise free emulation.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">'iqm'</span><span class="p">,</span> <span class="n">emulate</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="s2">"https://&lt;IQM Server&gt;/"</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">'iqm'</span><span class="p">,</span> <span class="n">emulate</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">url</span><span class="o">=</span><span class="s2">"https://&lt;IQM Server&gt;/"</span><span class="p">,</span> <span class="n">qc</span><span class="o">=</span><span class="s2">"&lt;quantum computer&gt;"</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>Emulation mode will still contact the configured IQM Server to retrieve the dynamic quantum architecture resulting from the active calibration unless a QPU architecture file is explicitly specified.
@@ -1138,53 +1240,55 @@ If an architecture is specified no server URL is needed anymore.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">'iqm'</span><span class="p">,</span> <span class="n">emulate</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">mapping_file</span><span class="o">=</span><span class="s2">"&lt;path+filename&gt;"</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>The folder <code class="docutils literal notranslate"><span class="pre">targettests/Target/IQM/</span></code> contains sample QPU architecture files.
-Find there files for the IQM Crystal architecture as well as files from real life QPUs which can be found on the IQM Resonance portal.</p>
 <p>The QPU quantum architecture of a test with a real life IQM QPU can be saved for later use in emulation runs.
 To do so the environment variable <code class="docutils literal notranslate"><span class="pre">IQM_SAVE_QPU_QA</span></code> must be set to point to a filename in addition to setting the URL of a Resonance server.
 The test can even run as emulation as long as a server URL is given to retrieve the current dynamic quantum architecture from.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">IQM_SERVER_URL</span><span class="o">=</span><span class="s2">"https://demo.qc.iqm.fi/"</span><span class="w"> </span><span class="nv">IQM_SAVE_QPU_QA</span><span class="o">=</span><span class="s2">"&lt;path+filename for QPU architecture file&gt;"</span><span class="w"> </span>python3<span class="w"> </span>program.py
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nv">IQM_SERVER_URL</span><span class="o">=</span><span class="s2">"https://resonance.iqm.tech/"</span><span class="w"> </span><span class="nv">IQM_QUANTUM_COMPUTER</span><span class="o">=</span><span class="s2">"&lt;quantum computer&gt;"</span><span class="w"> </span><span class="nv">IQM_SAVE_QPU_QA</span><span class="o">=</span><span class="s2">"&lt;path+filename for QPU architecture file&gt;"</span><span class="w"> </span>python3<span class="w"> </span>program.py
 </pre></div>
 </div>
-<p>The file will be created with the given name. If the file already exists the test is aborted with an error.</p>
+<p>The file will be created with the given name. If the file already exists the execution is aborted with an error.</p>
 </div>
-<input class="tab-input" id="tab-set--0-input--2" name="tab-set--0" type="radio"><label class="tab-label" for="tab-set--0-input--2">C++</label><div class="tab-content docutils">
+<input class="tab-input" id="tab-set--1-input--2" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--2">C++</label><div class="tab-content docutils">
 <p>To emulate the IQM machine locally, without submitting to the IQM Server, you can pass the <code class="docutils literal notranslate"><span class="pre">--emulate</span></code> option to <code class="docutils literal notranslate"><span class="pre">nvq++</span></code>.
 This will emit any target specific compiler diagnostics, before running a noise free emulation.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>iqm<span class="w"> </span>--emulate<span class="w"> </span>src.cpp<span class="w"> </span>-o<span class="w"> </span>program
-<span class="nv">IQM_SERVER_URL</span><span class="o">=</span><span class="s2">"https://demo.qc.iqm.fi/"</span><span class="w"> </span>./program
+<span class="nv">IQM_SERVER_URL</span><span class="o">=</span><span class="s2">"https://resonance.iqm.tech/"</span><span class="w"> </span><span class="nv">IQM_QUANTUM_COMPUTER</span><span class="o">=</span><span class="s2">"&lt;quantum computer&gt;"</span><span class="w"> </span>./program
 </pre></div>
 </div>
 <p>Emulation mode will still contact the configured IQM Server to retrieve the dynamic quantum architecture resulting from the active calibration unless a QPU architecture file is explicitly specified.
 This can be done by specifying a file with the architecture either at compile time or in an variable in the environment executing the binary.
 If an architecture is specified no server URL is needed anymore.</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>//<span class="w"> </span>With<span class="w"> </span>this<span class="w"> </span>binary<span class="w"> </span>multiple<span class="w"> </span>QPU<span class="w"> </span>architectures<span class="w"> </span>can<span class="w"> </span>be<span class="w"> </span>tested<span class="w"> </span>without<span class="w"> </span>recompilation.
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># With this binary multiple QPU architectures can be tested without recompilation.</span>
 nvq++<span class="w"> </span>--target<span class="w"> </span>iqm<span class="w"> </span>--emulate<span class="w"> </span>src.cpp<span class="w"> </span>-o<span class="w"> </span>program
 <span class="nv">IQM_QPU_QA</span><span class="o">=</span><span class="s2">"&lt;path+filename of QPU architecture file&gt;"</span><span class="w"> </span>./program
 </pre></div>
 </div>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>//<span class="w"> </span>This<span class="w"> </span>binary<span class="w"> </span>will<span class="w"> </span>use<span class="w"> </span>the<span class="w"> </span>given<span class="w"> </span>QPU<span class="w"> </span>architecture<span class="w"> </span>file<span class="w"> </span><span class="k">until</span><span class="w"> </span>overwritten<span class="w"> </span>by<span class="w"> </span>environment<span class="w"> </span>variable<span class="w"> </span><span class="s2">"IQM_QPU_QA"</span>.
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># This binary will use the given QPU architecture file until overwritten by environment variable "IQM_QPU_QA".</span>
 nvq++<span class="w"> </span>--target<span class="w"> </span>iqm<span class="w"> </span>--emulate<span class="w"> </span>--mapping-file<span class="w"> </span>&lt;path+filename<span class="w"> </span>of<span class="w"> </span>QPU<span class="w"> </span>architecture<span class="w"> </span>file&gt;<span class="w"> </span>src.cpp<span class="w"> </span>-o<span class="w"> </span>program
 ./program
 </pre></div>
 </div>
-<p>The folder <code class="docutils literal notranslate"><span class="pre">targettests/Target/IQM/</span></code> contains sample QPU architecture files.
-Find there files for the IQM Crystal architecture as well as files from real life QPUs which can be found on the IQM Resonance portal.</p>
 <p>The QPU architecture of a test with an IQM server can be saved for later use in emulation runs.
-To do so the environment variable <code class="docutils literal notranslate"><span class="pre">IQM_SAVE_QPU_QA</span></code> must be set to point to a filename in addition to setting the URL of a Resonance server.
+To do so the environment variable <code class="docutils literal notranslate"><span class="pre">IQM_SAVE_QPU_QA</span></code> must be set to point to a filename in addition to setting the URL of the Resonance server.
 The test can even run as emulation as long as a server URL is given to retrieve the current dynamic quantum architecture from.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>iqm<span class="w"> </span>--emulate<span class="w"> </span>src.cpp<span class="w"> </span>-o<span class="w"> </span>program
-<span class="nv">IQM_SERVER_URL</span><span class="o">=</span><span class="s2">"https://demo.qc.iqm.fi/"</span><span class="w"> </span><span class="nv">IQM_SAVE_QPU_QA</span><span class="o">=</span><span class="s2">"&lt;path+filename for QPU architecture file&gt;"</span><span class="w"> </span>./program
+<span class="nv">IQM_SERVER_URL</span><span class="o">=</span><span class="s2">"https://resonance.iqm.tech/"</span><span class="w"> </span><span class="nv">IQM_QUANTUM_COMPUTER</span><span class="o">=</span><span class="s2">"&lt;quantum computer&gt;"</span><span class="w"> </span><span class="nv">IQM_SAVE_QPU_QA</span><span class="o">=</span><span class="s2">"&lt;path+filename for QPU architecture file&gt;"</span><span class="w"> </span>./program
 </pre></div>
 </div>
 </div>
 </div>
+<p>The folder <code class="docutils literal notranslate"><span class="pre">targettests/Target/IQM/</span></code> contains sample QPU architecture files.
+Find there files for the IQM Crystal architecture as well as files from real life QPUs which can be found on the IQM Resonance portal.</p>
+<p>When no QPU architecture file is specified and the query to the configured IQM Server fails
+(for example due to missing authentication or no network access), CUDA-Q logs a warning and leaves the compilation pipeline unresolved.
+Kernel launches that do not require qubit mapping, such as <code class="docutils literal notranslate"><span class="pre">dem_from_kernel</span></code>, will still run successfully with an unresolved compilation pipeline.
+On the other hand, kernel launches that require full kernel compilation, such as <code class="docutils literal notranslate"><span class="pre">sample</span></code> or <code class="docutils literal notranslate"><span class="pre">observe</span></code>, will fail at launch.</p>
 <p>To see a complete example, take a look at <a class="reference internal" href="../../examples/hardware_providers.html#iqm-examples"><span class="std std-ref">IQM examples</span></a>.</p>
 </section>
 <section id="setting-the-number-of-shots">
 <h2>Setting the Number of Shots<a class="headerlink" href="#setting-the-number-of-shots" title="Permalink to this heading">¶</a></h2>
 <div class="tab-set docutils">
-<input checked="True" class="tab-input" id="tab-set--1-input--1" name="tab-set--1" type="radio"><label class="tab-label" for="tab-set--1-input--1">Python</label><div class="tab-content docutils">
+<input checked="True" class="tab-input" id="tab-set--2-input--1" name="tab-set--2" type="radio"><label class="tab-label" for="tab-set--2-input--1">Python</label><div class="tab-content docutils">
 <p>The number of shots for a kernel execution can be set through
 the <code class="docutils literal notranslate"><span class="pre">shots_count</span></code> argument to <code class="docutils literal notranslate"><span class="pre">cudaq.sample</span></code> or <code class="docutils literal notranslate"><span class="pre">cudaq.observe</span></code>. By default,
 the <code class="docutils literal notranslate"><span class="pre">shots_count</span></code> is set to 1000.</p>
@@ -1196,7 +1300,9 @@ the <code class="docutils literal notranslate"><span class="pre">shots_count</sp
 </section>
 <section id="using-credentials-saved-in-a-file">
 <h2>Using Credentials Saved in a File<a class="headerlink" href="#using-credentials-saved-in-a-file" title="Permalink to this heading">¶</a></h2>
-<p>The preferred way to pass the “API Token” to the IQM backend is through the environment variable <code class="docutils literal notranslate"><span class="pre">IQM_TOKEN</span></code>. For compatibility the earlier used storage of the “API Token” in a file can still be used as follows:</p>
+<p>This way of providing the “API Token” is deprecated.
+The preferred way to pass the “API Token” to the IQM backend is through the environment variable <code class="docutils literal notranslate"><span class="pre">IQM_TOKEN</span></code>.
+For backward compatibility the earlier used storage of the “API Token” in a file can still be used as follows:</p>
 <p>The previously used <code class="docutils literal notranslate"><span class="pre">IQM_TOKENS_FILE</span></code> environment variable can still be used to point to a tokens file but will be ignored if the <code class="docutils literal notranslate"><span class="pre">IQM_TOKEN</span></code> variable is set.
 The tokens file cannot be generated by the <code class="docutils literal notranslate"><span class="pre">iqmclient</span></code> tool anymore but can be created manually using the “API Token” obtained from the Resonance profile page.
 A tokens file can be created and the environment variable set like this:</p>

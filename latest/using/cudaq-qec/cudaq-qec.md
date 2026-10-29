@@ -1109,9 +1109,10 @@ latest
             -   [Test
                 harness](../realtime/device_call.html#test-harness){.reference
                 .internal}
--   [CUDA-QX](#){.current .reference .internal}
-    -   [CUDA-Q Solvers](#cuda-q-solvers){.reference .internal}
-    -   [CUDA-Q QEC](#cuda-q-qec){.reference .internal}
+-   [CUDA-Q QEC](#){.current .reference .internal}
+-   [CUDA-Q
+    Algorithms](../cudaq-algorithms/cudaq-algorithms.html){.reference
+    .internal}
 -   [Installation](../install/install.html){.reference .internal}
     -   [Local
         Installation](../install/local_installation.html){.reference
@@ -1247,6 +1248,18 @@ latest
             -   [Source and
                 tests](../extending/compiler/cudaq_ir.html#source-and-tests){.reference
                 .internal}
+        -   [Value-semantics IR change
+            log](../extending/compiler/ir_changelog.html){.reference
+            .internal}
+            -   [Producing this
+                IR](../extending/compiler/ir_changelog.html#producing-this-ir){.reference
+                .internal}
+            -   [Upcoming release ([`main`{.docutils .literal
+                .notranslate}]{.pre}
+                branch)](../extending/compiler/ir_changelog.html#upcoming-release-main-branch){.reference
+                .internal}
+            -   [0.16.0](../extending/compiler/ir_changelog.html#id5){.reference
+                .internal}
         -   [External compiler pass
             plugins](../extending/compiler/pass_plugins.html){.reference
             .internal}
@@ -1293,6 +1306,9 @@ latest
         -   [Plugin Package
             Layout](../extending/packaging.html#plugin-package-layout){.reference
             .internal}
+        -   [How to pre-compile a target config
+            YAML](../extending/packaging.html#how-to-pre-compile-a-target-config-yaml){.reference
+            .internal}
         -   [Target YAML Reference (Plugin
             Fields)](../extending/packaging.html#target-yaml-reference-plugin-fields){.reference
             .internal}
@@ -1305,6 +1321,10 @@ latest
         -   [Building with [`CUDAQ_EXTERNAL_PROJECTS`{.docutils .literal
             .notranslate}]{.pre}](../extending/packaging.html#building-with-cudaq-external-projects){.reference
             .internal}
+            -   [Baking a target into the pre-compiled database instead
+                of shipping a
+                plugin](../extending/packaging.html#baking-a-target-into-the-pre-compiled-database-instead-of-shipping-a-plugin){.reference
+                .internal}
         -   [Python
             Packaging](../extending/packaging.html#python-packaging){.reference
             .internal}
@@ -1596,6 +1616,9 @@ latest
             .internal}
             -   [Quantum
                 Embeddings](../../api/languages/python_api.html#quantum-embeddings){.reference
+                .internal}
+            -   [Qiskit and OpenQASM
+                Interoperability](../../api/languages/python_api.html#qiskit-and-openqasm-interoperability){.reference
                 .internal}
         -   [Quantum Error
             Correction](../../api/languages/python_api.html#quantum-error-correction){.reference
@@ -1901,6 +1924,9 @@ latest
             -   [[`u3`{.code .docutils .literal
                 .notranslate}]{.pre}](../../api/default_ops.html#u3){.reference
                 .internal}
+            -   [[`exp_pauli`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#exp-pauli){.reference
+                .internal}
         -   [Adjoint and Controlled
             Operations](../../api/default_ops.html#adjoint-and-controlled-operations){.reference
             .internal}
@@ -1941,8 +1967,7 @@ latest
 
 [Preview]{.caption-text}
 
--   [CUDA-Q Logical](./preview/logical/index.html#http://){.reference
-    .external}
+-   [CUDA-Q Logical](/preview/logical/#http://){.reference .external}
 :::
 :::
 
@@ -1953,7 +1978,7 @@ latest
 ::: rst-content
 ::: {role="navigation" aria-label="Page navigation"}
 -   [](../../index.html){.icon .icon-home aria-label="Home"}
--   CUDA-QX
+-   CUDA-Q QEC
 -   
 
 ::: {.rst-breadcrumbs-buttons role="navigation" aria-label="Sequential page navigation"}
@@ -1961,7 +1986,7 @@ latest
 Previous](../realtime/device_call.html "CUDA-Q device_call Channels"){.btn
 .btn-neutral .float-left accesskey="p"} [Next []{.fa
 .fa-arrow-circle-right
-aria-hidden="true"}](../install/install.html "Installation Guide"){.btn
+aria-hidden="true"}](../cudaq-algorithms/cudaq-algorithms.html "CUDA-Q Algorithms"){.btn
 .btn-neutral .float-right accesskey="n"}
 :::
 
@@ -1970,64 +1995,23 @@ aria-hidden="true"}](../install/install.html "Installation Guide"){.btn
 
 ::: {.document role="main" itemscope="itemscope" itemtype="http://schema.org/Article"}
 ::: {itemprop="articleBody"}
-::: {#cuda-qx .section}
-[]{#cudaqx}
-
-# CUDA-QX[¶](#cuda-qx "Permalink to this heading"){.headerlink}
-
-CUDA-QX is a collection of libraries that build upon the CUDA-Q
-programming model to enable the rapid development of hybrid
-quantum-classical application code leveraging state-of-the-art CPUs,
-GPUs, and QPUs. It provides a collection of C++ libraries and Python
-packages that enable research, development, and application creation for
-use cases in quantum error correction and hybrid quantum-classical
-solvers.
-
-<figure class="align-center">
-<a href="../../_images/cudaqx.png"
-class="reference internal image-reference"><img
-src="../../_images/cudaqx.png" style="width: 500px;"
-alt="../../_images/cudaqx.png" /></a>
-</figure>
-
-You can read more about CUDA-QX in the [release
-blog](https://developer.nvidia.com/blog/introducing-nvidia-cuda-qx-libraries-for-accelerated-quantum-supercomputing/){.reference
-.external} and see code examples in the [CUDA-QX
-documentation](https://nvidia.github.io/cudaqx/){.reference .external}.
-
-::: {#cuda-q-solvers .section}
-## CUDA-Q Solvers[¶](#cuda-q-solvers "Permalink to this heading"){.headerlink}
-
-The CUDA-Q Solvers library provides high-level quantum-classical hybrid
-algorithms and supporting infrastructure for quantum chemistry and
-optimization problems. It features implementations of VQE, ADAPT-VQE,
-and supporting utilities for Hamiltonian generation and operator pool
-management.
-
-Learn more in the [CUDA-Q Solvers
-documentation](https://nvidia.github.io/cudaqx/components/solvers/introduction.html){.reference
-.external} and explore a number of detailed
-[examples](https://nvidia.github.io/cudaqx/examples_rst/solvers/examples.html){.reference
-.external}.
-
-<figure class="align-center">
-<a href="../../_images/solvers.png"
-class="reference internal image-reference"><img
-src="../../_images/solvers.png" style="width: 500px;"
-alt="../../_images/solvers.png" /></a>
-</figure>
-:::
-
 ::: {#cuda-q-qec .section}
-## CUDA-Q QEC[¶](#cuda-q-qec "Permalink to this heading"){.headerlink}
+[]{#cudaq-qec}
 
-The CUDA-Q QEC library provides a comprehensive framework for quantum
-error correction research and development.
+# CUDA-Q QEC[¶](#cuda-q-qec "Permalink to this heading"){.headerlink}
+
+CUDA-Q QEC is a library that builds upon the CUDA-Q programming model to
+enable performant research workflows for quantum error correction. It
+provides an extensible framework for describing quantum error correcting
+codes as collections of CUDA-Q kernels and for describing syndrome
+decoders, state-of-the-art decoder implementations on NVIDIA GPUs,
+real-time decoding for active error correction on quantum hardware, and
+pre-built numerical experiment APIs.
 
 Learn more in the [CUDA-Q QEC
-documentation](https://nvidia.github.io/cudaqx/components/qec/introduction.html){.reference
+documentation](https://nvidia.github.io/cudaq-qec/components/qec/index.html){.reference
 .external} and explore a number of detailed
-[examples](https://nvidia.github.io/cudaqx/examples_rst/qec/examples.html){.reference
+[examples](https://nvidia.github.io/cudaq-qec/examples_rst/qec/examples.html){.reference
 .external}.
 
 <figure class="align-center">
@@ -2039,14 +2023,13 @@ alt="../../_images/qec.png" /></a>
 :::
 :::
 :::
-:::
 
 ::: {.rst-footer-buttons role="navigation" aria-label="Footer"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
 Previous](../realtime/device_call.html "CUDA-Q device_call Channels"){.btn
 .btn-neutral .float-left accesskey="p" rel="prev"} [Next []{.fa
 .fa-arrow-circle-right
-aria-hidden="true"}](../install/install.html "Installation Guide"){.btn
+aria-hidden="true"}](../cudaq-algorithms/cudaq-algorithms.html "CUDA-Q Algorithms"){.btn
 .btn-neutral .float-right accesskey="n" rel="next"}
 :::
 

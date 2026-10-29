@@ -686,11 +686,8 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="../../cudaqx/cudaqx.html">   CUDA-QX</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../cudaqx/cudaqx.html#cuda-q-solvers">CUDA-Q Solvers</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../cudaqx/cudaqx.html#cuda-q-qec">CUDA-Q QEC</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="../../cudaq-qec/cudaq-qec.html">   CUDA-Q QEC</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../cudaq-algorithms/cudaq-algorithms.html">   CUDA-Q Algorithms</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../install/install.html">   Installation</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../install/local_installation.html">Local Installation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../install/local_installation.html#introduction">Introduction</a><ul>
@@ -769,6 +766,12 @@
 <li class="toctree-l4"><a class="reference internal" href="../../extending/compiler/cudaq_ir.html#source-and-tests">Source and tests</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../extending/compiler/ir_changelog.html">Value-semantics IR change log</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../extending/compiler/ir_changelog.html#producing-this-ir">Producing this IR</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../extending/compiler/ir_changelog.html#upcoming-release-main-branch">Upcoming release (<code class="docutils literal notranslate"><span class="pre">main</span></code> branch)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../extending/compiler/ir_changelog.html#id5">0.16.0</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../../extending/compiler/pass_plugins.html">External compiler pass plugins</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../extending/compiler/pass_plugins.html#implement-and-register-the-pass">Implement and register the pass</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../extending/compiler/pass_plugins.html#build-the-plugin">Build the plugin</a></li>
@@ -793,12 +796,16 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../extending/packaging.html">Package &amp; distribute a backend plugin</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../extending/packaging.html#plugin-package-layout">Plugin Package Layout</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../extending/packaging.html#how-to-pre-compile-a-target-config-yaml">How to pre-compile a target config YAML</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../extending/packaging.html#target-yaml-reference-plugin-fields">Target YAML Reference (Plugin Fields)</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../extending/packaging.html#plugin-root"><code class="docutils literal notranslate"><span class="pre">%PLUGIN_ROOT%</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../extending/packaging.html#target-arguments"><code class="docutils literal notranslate"><span class="pre">target-arguments</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../extending/packaging.html#building-with-cudaq-external-projects">Building with <code class="docutils literal notranslate"><span class="pre">CUDAQ_EXTERNAL_PROJECTS</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../extending/packaging.html#building-with-cudaq-external-projects">Building with <code class="docutils literal notranslate"><span class="pre">CUDAQ_EXTERNAL_PROJECTS</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../extending/packaging.html#baking-a-target-into-the-pre-compiled-database-instead-of-shipping-a-plugin">Baking a target into the pre-compiled database instead of shipping a plugin</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../../extending/packaging.html#python-packaging">Python Packaging</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../extending/packaging.html#pyproject-toml"><code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../extending/packaging.html#init-py"><code class="docutils literal notranslate"><span class="pre">__init__.py</span></code></a></li>
@@ -937,6 +944,7 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq-contrib"><code class="docutils literal notranslate"><span class="pre">cudaq.contrib</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#quantum-embeddings">Quantum Embeddings</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#qiskit-and-openqasm-interoperability">Qiskit and OpenQASM Interoperability</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../../api/languages/python_api.html#quantum-error-correction">Quantum Error Correction</a><ul>
@@ -1062,6 +1070,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../api/default_ops.html#t"><code class="code docutils literal notranslate"><span class="pre">t</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/default_ops.html#swap"><code class="code docutils literal notranslate"><span class="pre">swap</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/default_ops.html#u3"><code class="code docutils literal notranslate"><span class="pre">u3</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/default_ops.html#exp-pauli"><code class="code docutils literal notranslate"><span class="pre">exp_pauli</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../../api/default_ops.html#adjoint-and-controlled-operations">Adjoint and Controlled Operations</a></li>
@@ -1088,7 +1097,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Preview</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference external" href="./preview/logical/index.html#http://">CUDA-Q Logical</a></li>
+<li class="toctree-l1"><a class="reference external" href="/preview/logical/#http://">CUDA-Q Logical</a></li>
 </ul>
 
         </div>
@@ -1280,6 +1289,13 @@ If you expect a large number of singular values (e.g., increasing the <code clas
 </div>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
+<p>With CUDA 13 and cuSOLVER 12.3.4.7, <code class="code docutils literal notranslate"><span class="pre">CUDAQ_MPS_SVD_ALGO=GESVD</span></code> may fail with
+an <code class="docutils literal notranslate"><span class="pre">Insufficient</span> <span class="pre">host</span> <span class="pre">workspace</span></code> error from <code class="docutils literal notranslate"><span class="pre">tensorSVD</span></code>.
+cuSOLVER’s <a class="reference external" href="https://docs.nvidia.com/cuda/cuda-toolkit-release-notes/index.html#cusolver-release-13-4-update-1">updated SVD algorithm</a> requires host memory.
+Use another <code class="code docutils literal notranslate"><span class="pre">CUDAQ_MPS_SVD_ALGO</span></code> option or roll back to a cuSOLVER version earlier than 12.3.4.7.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
 <p>Both <code class="code docutils literal notranslate"><span class="pre">tensornet-mps</span></code> and <code class="code docutils literal notranslate"><span class="pre">tensornet</span></code> backends will allocate a scratch space on GPU device memory for their operations.
 For example, the scratch space can be used to store the contracted reduced density matrix to generate measurement bit strings.</p>
 <p>By default, these backends reserve 50% of free memory for its scratch space.
@@ -1297,11 +1313,11 @@ lost when using the single precision setting.</p>
 </section>
 <section id="fermioniq">
 <h2>Fermioniq<a class="headerlink" href="#fermioniq" title="Permalink to this heading">¶</a></h2>
-<p id="fermioniq-backend"><a class="reference external" href="https://fermioniq.com/">Fermioniq</a> offers a cloud-based tensor-network emulation platform, <a class="reference external" href="https://www.fermioniq.com/ava/">Ava</a>,
+<p id="fermioniq-backend"><a class="reference external" href="https://fermioniq.com/">Fermioniq</a> offers a cloud-based tensor-network emulation platform, <a class="reference external" href="https://docs.fermioniq.com/">Ava</a>,
 for the approximate simulation of large-scale quantum circuits beyond the memory limit of state vector and exact tensor network based methods.</p>
 <p>The level of approximation can be controlled by setting the bond dimension: larger values yield more accurate simulations at the expense
 of slower computation time. For a detailed description of Ava users are referred to the <a class="reference external" href="https://docs.fermioniq.com/">online documentation</a>.</p>
-<p>Users of CUDA-Q can access a simplified version of the full Fermioniq emulator (<a class="reference external" href="https://www.fermioniq.com/ava/">Ava</a>) from either
+<p>Users of CUDA-Q can access a simplified version of the full Fermioniq emulator (<a class="reference external" href="https://docs.fermioniq.com/">Ava</a>) from either
 C++ or Python. This version currently supports emulation of quantum circuits without noise, and can return measurement samples and/or
 compute expectation values of observables.</p>
 <div class="admonition note">

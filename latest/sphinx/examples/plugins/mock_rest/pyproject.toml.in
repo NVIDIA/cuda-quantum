@@ -18,4 +18,4 @@ packages = ["@plugin_python_package@"]
 "@plugin_python_package@" = "."
 
 [tool.setuptools.package-data]
-"@plugin_python_package@" = ["targets/*.yml", "lib/*"]
+"@plugin_python_package@" = ["targets/*.yml", "targets/*.so", "targets/*.dylib", "lib/*"]

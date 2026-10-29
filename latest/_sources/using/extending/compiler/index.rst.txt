@@ -6,6 +6,7 @@ CUDA-Q compiler development
    :maxdepth: 1
 
    Compiler IR <cudaq_ir>
+   Value-semantics IR change log <ir_changelog>
    External compiler pass plugins <pass_plugins>
 
 CUDA-Q compiles C++ and Python quantum kernels using the
@@ -40,6 +41,8 @@ pipeline.
   see the :doc:`Quake semantic specification
   <../../../specification/quake-dialect>`.
 * See :doc:`pass_plugins` for the existing external pass plugin interface.
+* See :doc:`ir_changelog` for changes to fully value-semantics IR between
+  releases.
 
 .. only:: compiler_developer_docs
 
@@ -65,8 +68,11 @@ and ``cudaq/lib/Optimizer/CodeGen``. Their shared pipelines are defined in the
 corresponding ``Pipelines.cpp`` files.
 
 ``cudaq-opt`` parses and runs registered MLIR passes. ``cudaq-translate`` owns
-the standalone translation path, while ``cudaq-target-conf`` reads target
-configuration for the C++ driver. Representative lit tests are grouped under
+the standalone translation path, while ``cudaq-target-resolve`` looks a target
+up by name in the unified target registry (built-in database plus registered plugin)
+and emits the ``KEY=value`` assignments ``nvq++`` sources.
+Representative lit tests are grouped
+under
 ``cudaq/test/Frontend``, ``cudaq/test/Optimizer``, and
 ``cudaq/test/CodeGen``. Python MLIR regression tests are under
 ``python/tests/mlir``, with broader frontend behavior tested under

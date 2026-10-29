@@ -686,11 +686,8 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="../cudaqx/cudaqx.html">   CUDA-QX</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../cudaqx/cudaqx.html#cuda-q-solvers">CUDA-Q Solvers</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../cudaqx/cudaqx.html#cuda-q-qec">CUDA-Q QEC</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="../cudaq-qec/cudaq-qec.html">   CUDA-Q QEC</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cudaq-algorithms/cudaq-algorithms.html">   CUDA-Q Algorithms</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../install/install.html">   Installation</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../install/local_installation.html">Local Installation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../install/local_installation.html#introduction">Introduction</a><ul>
@@ -769,6 +766,12 @@
 <li class="toctree-l4"><a class="reference internal" href="../extending/compiler/cudaq_ir.html#source-and-tests">Source and tests</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/compiler/ir_changelog.html">Value-semantics IR change log</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../extending/compiler/ir_changelog.html#producing-this-ir">Producing this IR</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../extending/compiler/ir_changelog.html#upcoming-release-main-branch">Upcoming release (<code class="docutils literal notranslate"><span class="pre">main</span></code> branch)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../extending/compiler/ir_changelog.html#id5">0.16.0</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../extending/compiler/pass_plugins.html">External compiler pass plugins</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../extending/compiler/pass_plugins.html#implement-and-register-the-pass">Implement and register the pass</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../extending/compiler/pass_plugins.html#build-the-plugin">Build the plugin</a></li>
@@ -793,12 +796,16 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../extending/packaging.html">Package &amp; distribute a backend plugin</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../extending/packaging.html#plugin-package-layout">Plugin Package Layout</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/packaging.html#how-to-pre-compile-a-target-config-yaml">How to pre-compile a target config YAML</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../extending/packaging.html#target-yaml-reference-plugin-fields">Target YAML Reference (Plugin Fields)</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../extending/packaging.html#plugin-root"><code class="docutils literal notranslate"><span class="pre">%PLUGIN_ROOT%</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../extending/packaging.html#target-arguments"><code class="docutils literal notranslate"><span class="pre">target-arguments</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../extending/packaging.html#building-with-cudaq-external-projects">Building with <code class="docutils literal notranslate"><span class="pre">CUDAQ_EXTERNAL_PROJECTS</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/packaging.html#building-with-cudaq-external-projects">Building with <code class="docutils literal notranslate"><span class="pre">CUDAQ_EXTERNAL_PROJECTS</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../extending/packaging.html#baking-a-target-into-the-pre-compiled-database-instead-of-shipping-a-plugin">Baking a target into the pre-compiled database instead of shipping a plugin</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../extending/packaging.html#python-packaging">Python Packaging</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../extending/packaging.html#pyproject-toml"><code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../extending/packaging.html#init-py"><code class="docutils literal notranslate"><span class="pre">__init__.py</span></code></a></li>
@@ -937,6 +944,7 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#cudaq-contrib"><code class="docutils literal notranslate"><span class="pre">cudaq.contrib</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#quantum-embeddings">Quantum Embeddings</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#qiskit-and-openqasm-interoperability">Qiskit and OpenQASM Interoperability</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#quantum-error-correction">Quantum Error Correction</a><ul>
@@ -1062,6 +1070,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#t"><code class="code docutils literal notranslate"><span class="pre">t</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#swap"><code class="code docutils literal notranslate"><span class="pre">swap</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#u3"><code class="code docutils literal notranslate"><span class="pre">u3</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#exp-pauli"><code class="code docutils literal notranslate"><span class="pre">exp_pauli</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/default_ops.html#adjoint-and-controlled-operations">Adjoint and Controlled Operations</a></li>
@@ -1088,7 +1097,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Preview</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference external" href="./preview/logical/index.html#http://">CUDA-Q Logical</a></li>
+<li class="toctree-l1"><a class="reference external" href="/preview/logical/#http://">CUDA-Q Logical</a></li>
 </ul>
 
         </div>
@@ -1159,9 +1168,17 @@ variable. For any CUDA-Q executable, just prepend as follows:</p>
 </section>
 <section id="python-stack-traces">
 <h2>Python Stack-Traces<a class="headerlink" href="#python-stack-traces" title="Permalink to this heading">¶</a></h2>
-<p>When CUDA-Q parses Python command-line options via <a class="reference internal" href="../../api/languages/python_api.html#cudaq.parse_args" title="cudaq.parse_args"><code class="xref py py-func docutils literal notranslate"><span class="pre">cudaq.parse_args()</span></code></a>,
-Python stack-traces are suppressed by default to keep runtime errors concise.
-To show the full stack-trace for debugging, pass
+<p>CUDA-Q does not parse command-line options when it is imported. To use CUDA-Q
+runtime options, call <a class="reference internal" href="../../api/languages/python_api.html#cudaq.parse_args" title="cudaq.parse_args"><code class="xref py py-func docutils literal notranslate"><span class="pre">cudaq.parse_args()</span></code></a> explicitly before running the
+rest of the program.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+
+<span class="n">cudaq</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>When <a class="reference internal" href="../../api/languages/python_api.html#cudaq.parse_args" title="cudaq.parse_args"><code class="xref py py-func docutils literal notranslate"><span class="pre">cudaq.parse_args()</span></code></a> processes Python command-line options, Python
+stack-traces are suppressed by default to keep runtime errors concise. To show
+the full stack-trace for debugging, pass
 <code class="code docutils literal notranslate"><span class="pre">--cudaq-full-stack-trace</span></code> when invoking your script.</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>program.py<span class="w"> </span>--cudaq-full-stack-trace
 </pre></div>
@@ -1171,9 +1188,6 @@ To show the full stack-trace for debugging, pass
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>program.py<span class="w"> </span>--target<span class="w"> </span>nvidia<span class="w"> </span>--target-option<span class="w"> </span>fp64<span class="w"> </span>--cudaq-full-stack-trace
 </pre></div>
 </div>
-<p>If your application parses CUDA-Q command-line arguments explicitly, call
-<a class="reference internal" href="../../api/languages/python_api.html#cudaq.parse_args" title="cudaq.parse_args"><code class="xref py py-func docutils literal notranslate"><span class="pre">cudaq.parse_args()</span></code></a> before running the rest of the program so the flag is
-recognized.</p>
 </section>
 </section>
 

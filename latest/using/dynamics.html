@@ -688,11 +688,8 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="cudaqx/cudaqx.html">   CUDA-QX</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="cudaqx/cudaqx.html#cuda-q-solvers">CUDA-Q Solvers</a></li>
-<li class="toctree-l2"><a class="reference internal" href="cudaqx/cudaqx.html#cuda-q-qec">CUDA-Q QEC</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="cudaq-qec/cudaq-qec.html">   CUDA-Q QEC</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cudaq-algorithms/cudaq-algorithms.html">   CUDA-Q Algorithms</a></li>
 <li class="toctree-l1"><a class="reference internal" href="install/install.html">   Installation</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="install/local_installation.html">Local Installation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="install/local_installation.html#introduction">Introduction</a><ul>
@@ -771,6 +768,12 @@
 <li class="toctree-l4"><a class="reference internal" href="extending/compiler/cudaq_ir.html#source-and-tests">Source and tests</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="extending/compiler/ir_changelog.html">Value-semantics IR change log</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="extending/compiler/ir_changelog.html#producing-this-ir">Producing this IR</a></li>
+<li class="toctree-l4"><a class="reference internal" href="extending/compiler/ir_changelog.html#upcoming-release-main-branch">Upcoming release (<code class="docutils literal notranslate"><span class="pre">main</span></code> branch)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="extending/compiler/ir_changelog.html#id5">0.16.0</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="extending/compiler/pass_plugins.html">External compiler pass plugins</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="extending/compiler/pass_plugins.html#implement-and-register-the-pass">Implement and register the pass</a></li>
 <li class="toctree-l4"><a class="reference internal" href="extending/compiler/pass_plugins.html#build-the-plugin">Build the plugin</a></li>
@@ -795,12 +798,16 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="extending/packaging.html">Package &amp; distribute a backend plugin</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="extending/packaging.html#plugin-package-layout">Plugin Package Layout</a></li>
+<li class="toctree-l3"><a class="reference internal" href="extending/packaging.html#how-to-pre-compile-a-target-config-yaml">How to pre-compile a target config YAML</a></li>
 <li class="toctree-l3"><a class="reference internal" href="extending/packaging.html#target-yaml-reference-plugin-fields">Target YAML Reference (Plugin Fields)</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="extending/packaging.html#plugin-root"><code class="docutils literal notranslate"><span class="pre">%PLUGIN_ROOT%</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="extending/packaging.html#target-arguments"><code class="docutils literal notranslate"><span class="pre">target-arguments</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="extending/packaging.html#building-with-cudaq-external-projects">Building with <code class="docutils literal notranslate"><span class="pre">CUDAQ_EXTERNAL_PROJECTS</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="extending/packaging.html#building-with-cudaq-external-projects">Building with <code class="docutils literal notranslate"><span class="pre">CUDAQ_EXTERNAL_PROJECTS</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="extending/packaging.html#baking-a-target-into-the-pre-compiled-database-instead-of-shipping-a-plugin">Baking a target into the pre-compiled database instead of shipping a plugin</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="extending/packaging.html#python-packaging">Python Packaging</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="extending/packaging.html#pyproject-toml"><code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="extending/packaging.html#init-py"><code class="docutils literal notranslate"><span class="pre">__init__.py</span></code></a></li>
@@ -939,6 +946,7 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../api/languages/python_api.html#cudaq-contrib"><code class="docutils literal notranslate"><span class="pre">cudaq.contrib</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#quantum-embeddings">Quantum Embeddings</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/languages/python_api.html#qiskit-and-openqasm-interoperability">Qiskit and OpenQASM Interoperability</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../api/languages/python_api.html#quantum-error-correction">Quantum Error Correction</a><ul>
@@ -1064,6 +1072,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../api/default_ops.html#t"><code class="code docutils literal notranslate"><span class="pre">t</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/default_ops.html#swap"><code class="code docutils literal notranslate"><span class="pre">swap</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../api/default_ops.html#u3"><code class="code docutils literal notranslate"><span class="pre">u3</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../api/default_ops.html#exp-pauli"><code class="code docutils literal notranslate"><span class="pre">exp_pauli</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../api/default_ops.html#adjoint-and-controlled-operations">Adjoint and Controlled Operations</a></li>
@@ -1090,7 +1099,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Preview</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference external" href="./preview/logical/index.html#http://">CUDA-Q Logical</a></li>
+<li class="toctree-l1"><a class="reference external" href="/preview/logical/#http://">CUDA-Q Logical</a></li>
 </ul>
 
         </div>
@@ -1308,11 +1317,11 @@ observable. Hence, we convert them into sequences for plotting purposes.</p>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="w">    </span><span class="c1">// Extract and print results</span>
 <span class="w">    </span><span class="k">for</span><span class="w"> </span><span class="p">(</span><span class="kt">size_t</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="n">i</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">steps</span><span class="p">.</span><span class="n">size</span><span class="p">();</span><span class="w"> </span><span class="n">i</span><span class="o">++</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
 <span class="w">      </span><span class="kt">double</span><span class="w"> </span><span class="n">ex</span><span class="w"> </span><span class="o">=</span>
-<span class="w">          </span><span class="n">evolution_result</span><span class="p">.</span><span class="n">expectation_values</span><span class="p">.</span><span class="n">value</span><span class="p">()[</span><span class="mi">0</span><span class="p">][</span><span class="n">i</span><span class="p">].</span><span class="n">expectation</span><span class="p">();</span>
+<span class="w">          </span><span class="n">evolution_result</span><span class="p">.</span><span class="n">expectation_values</span><span class="p">.</span><span class="n">value</span><span class="p">()[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">].</span><span class="n">expectation</span><span class="p">();</span>
 <span class="w">      </span><span class="kt">double</span><span class="w"> </span><span class="n">ey</span><span class="w"> </span><span class="o">=</span>
-<span class="w">          </span><span class="n">evolution_result</span><span class="p">.</span><span class="n">expectation_values</span><span class="p">.</span><span class="n">value</span><span class="p">()[</span><span class="mi">1</span><span class="p">][</span><span class="n">i</span><span class="p">].</span><span class="n">expectation</span><span class="p">();</span>
+<span class="w">          </span><span class="n">evolution_result</span><span class="p">.</span><span class="n">expectation_values</span><span class="p">.</span><span class="n">value</span><span class="p">()[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">].</span><span class="n">expectation</span><span class="p">();</span>
 <span class="w">      </span><span class="kt">double</span><span class="w"> </span><span class="n">ez</span><span class="w"> </span><span class="o">=</span>
-<span class="w">          </span><span class="n">evolution_result</span><span class="p">.</span><span class="n">expectation_values</span><span class="p">.</span><span class="n">value</span><span class="p">()[</span><span class="mi">2</span><span class="p">][</span><span class="n">i</span><span class="p">].</span><span class="n">expectation</span><span class="p">();</span>
+<span class="w">          </span><span class="n">evolution_result</span><span class="p">.</span><span class="n">expectation_values</span><span class="p">.</span><span class="n">value</span><span class="p">()[</span><span class="n">i</span><span class="p">][</span><span class="mi">2</span><span class="p">].</span><span class="n">expectation</span><span class="p">();</span>
 <span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">cout</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">steps</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">" "</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">ex</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">" "</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">ey</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">" "</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">ez</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">"</span><span class="se">\n</span><span class="s">"</span><span class="p">;</span>
 <span class="w">    </span><span class="p">}</span>
 </pre></div>
@@ -1441,6 +1450,10 @@ Any environment variables must be set prior to setting the target or running “
 <tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_DYNAMICS_MAX_DIAGONAL_COUNT_FOR_MULTIDIAGONAL</span></code></p></td>
 <td><p>Non-negative number</p></td>
 <td><p>The maximum number of diagonals for multi-diagonal representation. If the operator matrix has more diagonals than this value, the dense format will be used. Default is 1, i.e., operators with only one diagonal line (center, lower, or upper) will use the multi-diagonal sparse storage.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_DYNAMICS_MAX_FUSED_DIMENSION</span></code></p></td>
+<td><p>Non-negative number</p></td>
+<td><p>The maximum dimension of a fused dense operator. Product terms with constant coefficients that act on sub-systems of at most this dimension are summed into a single dense operator per group of degrees of freedom, with terms acting on a subset of a group’s degrees folded into that group. For master equations, an operator acting on both sides of the density matrix has the square of its sub-system’s dimension: constant Hamiltonian terms and collapse operators <span class="math notranslate nohighlight">\(L\)</span> on sub-systems whose squared dimension is at most this value are combined into dense superoperators acting on both sides at once, one per group of overlapping degrees of freedom. For other constant collapse operators within this dimension, the <span class="math notranslate nohighlight">\(-\frac{1}{2}\{L^\dagger L, \rho\}\)</span> part is folded into the Hamiltonian terms. Factors of <span class="math notranslate nohighlight">\(L^\dagger L\)</span> that act on the same degrees of freedom are multiplied into a single multi-diagonal operator when the product qualifies for multi-diagonal storage. Fusion reduces the number of passes over the state. Increasing the maximum dimension may decrease performance. Default is 64; 0 disables all fusion.</p></td>
 </tr>
 </tbody>
 </table>

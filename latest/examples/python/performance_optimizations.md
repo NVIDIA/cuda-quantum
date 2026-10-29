@@ -1120,13 +1120,11 @@ latest
             -   [Test
                 harness](../../using/realtime/device_call.html#test-harness){.reference
                 .internal}
--   [CUDA-QX](../../using/cudaqx/cudaqx.html){.reference .internal}
-    -   [CUDA-Q
-        Solvers](../../using/cudaqx/cudaqx.html#cuda-q-solvers){.reference
-        .internal}
-    -   [CUDA-Q
-        QEC](../../using/cudaqx/cudaqx.html#cuda-q-qec){.reference
-        .internal}
+-   [CUDA-Q QEC](../../using/cudaq-qec/cudaq-qec.html){.reference
+    .internal}
+-   [CUDA-Q
+    Algorithms](../../using/cudaq-algorithms/cudaq-algorithms.html){.reference
+    .internal}
 -   [Installation](../../using/install/install.html){.reference
     .internal}
     -   [Local
@@ -1267,6 +1265,18 @@ latest
             -   [Source and
                 tests](../../using/extending/compiler/cudaq_ir.html#source-and-tests){.reference
                 .internal}
+        -   [Value-semantics IR change
+            log](../../using/extending/compiler/ir_changelog.html){.reference
+            .internal}
+            -   [Producing this
+                IR](../../using/extending/compiler/ir_changelog.html#producing-this-ir){.reference
+                .internal}
+            -   [Upcoming release ([`main`{.docutils .literal
+                .notranslate}]{.pre}
+                branch)](../../using/extending/compiler/ir_changelog.html#upcoming-release-main-branch){.reference
+                .internal}
+            -   [0.16.0](../../using/extending/compiler/ir_changelog.html#id5){.reference
+                .internal}
         -   [External compiler pass
             plugins](../../using/extending/compiler/pass_plugins.html){.reference
             .internal}
@@ -1315,6 +1325,9 @@ latest
         -   [Plugin Package
             Layout](../../using/extending/packaging.html#plugin-package-layout){.reference
             .internal}
+        -   [How to pre-compile a target config
+            YAML](../../using/extending/packaging.html#how-to-pre-compile-a-target-config-yaml){.reference
+            .internal}
         -   [Target YAML Reference (Plugin
             Fields)](../../using/extending/packaging.html#target-yaml-reference-plugin-fields){.reference
             .internal}
@@ -1327,6 +1340,10 @@ latest
         -   [Building with [`CUDAQ_EXTERNAL_PROJECTS`{.docutils .literal
             .notranslate}]{.pre}](../../using/extending/packaging.html#building-with-cudaq-external-projects){.reference
             .internal}
+            -   [Baking a target into the pre-compiled database instead
+                of shipping a
+                plugin](../../using/extending/packaging.html#baking-a-target-into-the-pre-compiled-database-instead-of-shipping-a-plugin){.reference
+                .internal}
         -   [Python
             Packaging](../../using/extending/packaging.html#python-packaging){.reference
             .internal}
@@ -1618,6 +1635,9 @@ latest
             .internal}
             -   [Quantum
                 Embeddings](../../api/languages/python_api.html#quantum-embeddings){.reference
+                .internal}
+            -   [Qiskit and OpenQASM
+                Interoperability](../../api/languages/python_api.html#qiskit-and-openqasm-interoperability){.reference
                 .internal}
         -   [Quantum Error
             Correction](../../api/languages/python_api.html#quantum-error-correction){.reference
@@ -1923,6 +1943,9 @@ latest
             -   [[`u3`{.code .docutils .literal
                 .notranslate}]{.pre}](../../api/default_ops.html#u3){.reference
                 .internal}
+            -   [[`exp_pauli`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#exp-pauli){.reference
+                .internal}
         -   [Adjoint and Controlled
             Operations](../../api/default_ops.html#adjoint-and-controlled-operations){.reference
             .internal}
@@ -1963,8 +1986,7 @@ latest
 
 [Preview]{.caption-text}
 
--   [CUDA-Q Logical](./preview/logical/index.html#http://){.reference
-    .external}
+-   [CUDA-Q Logical](/preview/logical/#http://){.reference .external}
 :::
 :::
 
@@ -2023,14 +2045,14 @@ command line example would look like [`CUDAQ_MGPU_FUSE=4`{.docutils
 .notranslate}]{.pre}` `{.docutils .literal
 .notranslate}[`fp64,mgpu`{.docutils .literal .notranslate}]{.pre}
 
-![8e36690b38a54c4bbad4ed8d35348ea5](../../_images/gate-fuse.png)
+![3a22a71c326a475daa34c43296035eeb](../../_images/gate-fuse.png)
 
 The importance of gate fusion is system dependent, but can have a large
 influence on the performance of the simulation. See the example below
 for a 24 qubit VQE experiment where changing the fusion level resulted
 in significant performance boosts.
 
-![23cf38f502f449759bf8ed40f350b105](../../_images/gatefusion.png)
+![e5d66b66197c44dfa0e5a4f309fce62d](../../_images/gatefusion.png)
 :::
 :::
 :::

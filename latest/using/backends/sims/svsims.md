@@ -1094,12 +1094,10 @@ latest
             -   [Test
                 harness](../../realtime/device_call.html#test-harness){.reference
                 .internal}
--   [CUDA-QX](../../cudaqx/cudaqx.html){.reference .internal}
-    -   [CUDA-Q
-        Solvers](../../cudaqx/cudaqx.html#cuda-q-solvers){.reference
-        .internal}
-    -   [CUDA-Q QEC](../../cudaqx/cudaqx.html#cuda-q-qec){.reference
-        .internal}
+-   [CUDA-Q QEC](../../cudaq-qec/cudaq-qec.html){.reference .internal}
+-   [CUDA-Q
+    Algorithms](../../cudaq-algorithms/cudaq-algorithms.html){.reference
+    .internal}
 -   [Installation](../../install/install.html){.reference .internal}
     -   [Local
         Installation](../../install/local_installation.html){.reference
@@ -1237,6 +1235,18 @@ latest
             -   [Source and
                 tests](../../extending/compiler/cudaq_ir.html#source-and-tests){.reference
                 .internal}
+        -   [Value-semantics IR change
+            log](../../extending/compiler/ir_changelog.html){.reference
+            .internal}
+            -   [Producing this
+                IR](../../extending/compiler/ir_changelog.html#producing-this-ir){.reference
+                .internal}
+            -   [Upcoming release ([`main`{.docutils .literal
+                .notranslate}]{.pre}
+                branch)](../../extending/compiler/ir_changelog.html#upcoming-release-main-branch){.reference
+                .internal}
+            -   [0.16.0](../../extending/compiler/ir_changelog.html#id5){.reference
+                .internal}
         -   [External compiler pass
             plugins](../../extending/compiler/pass_plugins.html){.reference
             .internal}
@@ -1283,6 +1293,9 @@ latest
         -   [Plugin Package
             Layout](../../extending/packaging.html#plugin-package-layout){.reference
             .internal}
+        -   [How to pre-compile a target config
+            YAML](../../extending/packaging.html#how-to-pre-compile-a-target-config-yaml){.reference
+            .internal}
         -   [Target YAML Reference (Plugin
             Fields)](../../extending/packaging.html#target-yaml-reference-plugin-fields){.reference
             .internal}
@@ -1295,6 +1308,10 @@ latest
         -   [Building with [`CUDAQ_EXTERNAL_PROJECTS`{.docutils .literal
             .notranslate}]{.pre}](../../extending/packaging.html#building-with-cudaq-external-projects){.reference
             .internal}
+            -   [Baking a target into the pre-compiled database instead
+                of shipping a
+                plugin](../../extending/packaging.html#baking-a-target-into-the-pre-compiled-database-instead-of-shipping-a-plugin){.reference
+                .internal}
         -   [Python
             Packaging](../../extending/packaging.html#python-packaging){.reference
             .internal}
@@ -1586,6 +1603,9 @@ latest
             .internal}
             -   [Quantum
                 Embeddings](../../../api/languages/python_api.html#quantum-embeddings){.reference
+                .internal}
+            -   [Qiskit and OpenQASM
+                Interoperability](../../../api/languages/python_api.html#qiskit-and-openqasm-interoperability){.reference
                 .internal}
         -   [Quantum Error
             Correction](../../../api/languages/python_api.html#quantum-error-correction){.reference
@@ -1891,6 +1911,9 @@ latest
             -   [[`u3`{.code .docutils .literal
                 .notranslate}]{.pre}](../../../api/default_ops.html#u3){.reference
                 .internal}
+            -   [[`exp_pauli`{.code .docutils .literal
+                .notranslate}]{.pre}](../../../api/default_ops.html#exp-pauli){.reference
+                .internal}
         -   [Adjoint and Controlled
             Operations](../../../api/default_ops.html#adjoint-and-controlled-operations){.reference
             .internal}
@@ -1931,8 +1954,7 @@ latest
 
 [Preview]{.caption-text}
 
--   [CUDA-Q Logical](./preview/logical/index.html#http://){.reference
-    .external}
+-   [CUDA-Q Logical](/preview/logical/#http://){.reference .external}
 :::
 :::
 
@@ -1969,12 +1991,12 @@ aria-hidden="true"}](tnsims.html "Tensor Network Simulators"){.btn
 ## CPU[¶](#cpu "Permalink to this heading"){.headerlink}
 
 []{#openmp-cpu-only}The [`qpp-cpu`{.code .docutils .literal
-.notranslate}]{.pre} backend backend provides a state vector simulator
-based on the CPU-only, OpenMP threaded
+.notranslate}]{.pre} backend provides a state vector simulator based on
+the CPU-only, OpenMP threaded
 [Q++](https://github.com/softwareqinc/qpp){.reference .external}
 library. This backend is good for basic testing and experimentation with
 just a few qubits, but performs poorly for all but the smallest
-simulation and is the default target when running on CPU-only systems.
+simulations and is the default target when running on CPU-only systems.
 
 To execute a program on the [`qpp-cpu`{.code .docutils .literal
 .notranslate}]{.pre} target even if a GPU-accelerated backend is
@@ -2239,8 +2261,8 @@ mode**]{.caption-text}[¶](#id1 "Permalink to this table"){.headerlink}
 
 ::: deprecated
 [Deprecated since version 0.8: ]{.versionmodified .deprecated}The
-[`nvidia-fp64`{.code .docutils .literal .notranslate}]{.pre} targets,
-which is equivalent setting the [`fp64`{.code .docutils .literal
+[`nvidia-fp64`{.code .docutils .literal .notranslate}]{.pre} target,
+which is equivalent to setting the [`fp64`{.code .docutils .literal
 .notranslate}]{.pre} option on the [`nvidia`{.code .docutils .literal
 .notranslate}]{.pre} target, is deprecated and will be removed in a
 future release.
@@ -2347,7 +2369,7 @@ line flag given during program invocation.
 ::: {.admonition .note}
 Note
 
--   The order of the option settings are interchangeable. For example,
+-   The order of the option settings is interchangeable. For example,
     [`cudaq.set_target('nvidia',`{.code .docutils .literal
     .notranslate}]{.pre}` `{.code .docutils .literal
     .notranslate}[`option='mgpu,fp64')`{.code .docutils .literal
@@ -2619,8 +2641,8 @@ mode**]{.caption-text}[¶](#id2 "Permalink to this table"){.headerlink}
 [`nvidia-mgpu`{.code .docutils .literal .notranslate}]{.pre} backend,
 which is equivalent to the multi-node multi-GPU double-precision option
 ([`mgpu,fp64`{.code .docutils .literal .notranslate}]{.pre}) of the
-[`nvidia`{.code .docutils .literal .notranslate}]{.pre} is deprecated
-and will be removed in a future release.
+[`nvidia`{.code .docutils .literal .notranslate}]{.pre} target, is
+deprecated and will be removed in a future release.
 :::
 
 The above configuration options of the [`nvidia`{.code .docutils
@@ -2775,7 +2797,7 @@ present before relying on it: [`/proc/devices`{.code .docutils .literal
 must exist under [`/dev/nvidia-caps-imex-channels/`{.code .docutils
 .literal .notranslate}]{.pre} ([`cuMemCreate`{.code .docutils .literal
 .notranslate}]{.pre}, in [CUDA Driver API -- Virtual Memory
-Management](https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__VA.html){.reference
+Management](https://docs.nvidia.com/cuda/cuda-driver-api/cuda_driver_api/group__CUDA__VA.html){.reference
 .external}):
 
 ::: {.highlight-bash .notranslate}

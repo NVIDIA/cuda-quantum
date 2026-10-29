@@ -1118,12 +1118,10 @@ latest
             -   [Test
                 harness](../../realtime/device_call.html#test-harness){.reference
                 .internal}
--   [CUDA-QX](../../cudaqx/cudaqx.html){.reference .internal}
-    -   [CUDA-Q
-        Solvers](../../cudaqx/cudaqx.html#cuda-q-solvers){.reference
-        .internal}
-    -   [CUDA-Q QEC](../../cudaqx/cudaqx.html#cuda-q-qec){.reference
-        .internal}
+-   [CUDA-Q QEC](../../cudaq-qec/cudaq-qec.html){.reference .internal}
+-   [CUDA-Q
+    Algorithms](../../cudaq-algorithms/cudaq-algorithms.html){.reference
+    .internal}
 -   [Installation](../../install/install.html){.reference .internal}
     -   [Local
         Installation](../../install/local_installation.html){.reference
@@ -1257,6 +1255,16 @@ latest
             -   [Source and
                 tests](cudaq_ir.html#source-and-tests){.reference
                 .internal}
+        -   [Value-semantics IR change
+            log](ir_changelog.html){.reference .internal}
+            -   [Producing this
+                IR](ir_changelog.html#producing-this-ir){.reference
+                .internal}
+            -   [Upcoming release ([`main`{.docutils .literal
+                .notranslate}]{.pre}
+                branch)](ir_changelog.html#upcoming-release-main-branch){.reference
+                .internal}
+            -   [0.16.0](ir_changelog.html#id5){.reference .internal}
         -   [External compiler pass
             plugins](pass_plugins.html){.reference .internal}
             -   [Implement and register the
@@ -1299,6 +1307,9 @@ latest
         -   [Plugin Package
             Layout](../packaging.html#plugin-package-layout){.reference
             .internal}
+        -   [How to pre-compile a target config
+            YAML](../packaging.html#how-to-pre-compile-a-target-config-yaml){.reference
+            .internal}
         -   [Target YAML Reference (Plugin
             Fields)](../packaging.html#target-yaml-reference-plugin-fields){.reference
             .internal}
@@ -1311,6 +1322,10 @@ latest
         -   [Building with [`CUDAQ_EXTERNAL_PROJECTS`{.docutils .literal
             .notranslate}]{.pre}](../packaging.html#building-with-cudaq-external-projects){.reference
             .internal}
+            -   [Baking a target into the pre-compiled database instead
+                of shipping a
+                plugin](../packaging.html#baking-a-target-into-the-pre-compiled-database-instead-of-shipping-a-plugin){.reference
+                .internal}
         -   [Python
             Packaging](../packaging.html#python-packaging){.reference
             .internal}
@@ -1601,6 +1616,9 @@ latest
             .internal}
             -   [Quantum
                 Embeddings](../../../api/languages/python_api.html#quantum-embeddings){.reference
+                .internal}
+            -   [Qiskit and OpenQASM
+                Interoperability](../../../api/languages/python_api.html#qiskit-and-openqasm-interoperability){.reference
                 .internal}
         -   [Quantum Error
             Correction](../../../api/languages/python_api.html#quantum-error-correction){.reference
@@ -1906,6 +1924,9 @@ latest
             -   [[`u3`{.code .docutils .literal
                 .notranslate}]{.pre}](../../../api/default_ops.html#u3){.reference
                 .internal}
+            -   [[`exp_pauli`{.code .docutils .literal
+                .notranslate}]{.pre}](../../../api/default_ops.html#exp-pauli){.reference
+                .internal}
         -   [Adjoint and Controlled
             Operations](../../../api/default_ops.html#adjoint-and-controlled-operations){.reference
             .internal}
@@ -1946,8 +1967,7 @@ latest
 
 [Preview]{.caption-text}
 
--   [CUDA-Q Logical](./preview/logical/index.html#http://){.reference
-    .external}
+-   [CUDA-Q Logical](/preview/logical/#http://){.reference .external}
 :::
 :::
 
@@ -2022,6 +2042,10 @@ At a glance
     plugins]{.doc}](pass_plugins.html){.reference .internal} for the
     existing external pass plugin interface.
 
+-   See [[Value-semantics IR change
+    log]{.doc}](ir_changelog.html){.reference .internal} for changes to
+    fully value-semantics IR between releases.
+
 Code organization
 
 The C++ AST bridge is under [`cudaq/lib/Frontend/nvqpp`{.docutils
@@ -2046,15 +2070,17 @@ files.
 [`cudaq-opt`{.docutils .literal .notranslate}]{.pre} parses and runs
 registered MLIR passes. [`cudaq-translate`{.docutils .literal
 .notranslate}]{.pre} owns the standalone translation path, while
-[`cudaq-target-conf`{.docutils .literal .notranslate}]{.pre} reads
-target configuration for the C++ driver. Representative lit tests are
-grouped under [`cudaq/test/Frontend`{.docutils .literal
-.notranslate}]{.pre}, [`cudaq/test/Optimizer`{.docutils .literal
-.notranslate}]{.pre}, and [`cudaq/test/CodeGen`{.docutils .literal
-.notranslate}]{.pre}. Python MLIR regression tests are under
-[`python/tests/mlir`{.docutils .literal .notranslate}]{.pre}, with
-broader frontend behavior tested under [`python/tests/kernel`{.docutils
-.literal .notranslate}]{.pre}.
+[`cudaq-target-resolve`{.docutils .literal .notranslate}]{.pre} looks a
+target up by name in the unified target registry (built-in database plus
+registered plugin) and emits the [`KEY=value`{.docutils .literal
+.notranslate}]{.pre} assignments [`nvq++`{.docutils .literal
+.notranslate}]{.pre} sources. Representative lit tests are grouped under
+[`cudaq/test/Frontend`{.docutils .literal .notranslate}]{.pre},
+[`cudaq/test/Optimizer`{.docutils .literal .notranslate}]{.pre}, and
+[`cudaq/test/CodeGen`{.docutils .literal .notranslate}]{.pre}. Python
+MLIR regression tests are under [`python/tests/mlir`{.docutils .literal
+.notranslate}]{.pre}, with broader frontend behavior tested under
+[`python/tests/kernel`{.docutils .literal .notranslate}]{.pre}.
 :::
 :::
 :::

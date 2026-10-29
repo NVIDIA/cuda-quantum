@@ -47,37 +47,30 @@
               <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quick start</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#install">Install</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#running-the-shipped-examples">Running the shipped examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#step-1-estimate-an-existing-cuda-q-kernel">Step 1 — Estimate an existing CUDA-Q kernel</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#step-2-author-a-portable-p0-program">Step 2 — Author a portable P0 program</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#step-3-choose-a-code-and-a-gadget-p2">Step 3 — Choose a code and a gadget (P2)</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#step-4-lower-to-physical-events-and-schedule-them-p3">Step 4 — Lower to physical events and schedule them (P3)</a></li>
-<li class="toctree-l2"><a class="reference internal" href="quickstart.html#step-5-emit-stim-text-from-the-command-line">Step 5 — Emit Stim text from the command line</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#use-a-cuda-q-kernel">Use a CUDA-Q kernel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#write-a-standalone-logical-program">Write a standalone logical program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="quickstart.html#build-from-source">Build from source</a></li>
 <li class="toctree-l2"><a class="reference internal" href="quickstart.html#where-to-go-next">Where to go next</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="cudaq-logical-in-practice.html">The logical programming stack</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="cudaq-logical-in-practice.html#write-the-logical-program">1. Write the logical program</a></li>
-<li class="toctree-l2"><a class="reference internal" href="cudaq-logical-in-practice.html#place-the-qubits-on-a-logical-machine">2. Place the qubits on a logical machine</a></li>
-<li class="toctree-l2"><a class="reference internal" href="cudaq-logical-in-practice.html#define-a-qec-realization">3. Define a QEC realization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="cudaq-logical-in-practice.html#estimate-a-selected-realization">4. Estimate a selected realization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="cudaq-logical-in-practice.html#emit-a-verified-gadget-as-stim">5. Emit a verified gadget as Stim</a></li>
-<li class="toctree-l2"><a class="reference internal" href="cudaq-logical-in-practice.html#what-each-stage-owns">What each stage owns</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cudaq-logical-in-practice.html#compile-and-estimate-the-logical-program">1. Compile and estimate the logical program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cudaq-logical-in-practice.html#choose-the-code-and-its-implementations">2. Choose the code and its implementations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cudaq-logical-in-practice.html#describe-the-device">3. Describe the device</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cudaq-logical-in-practice.html#place-and-realize-the-program">4. Place and realize the program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cudaq-logical-in-practice.html#schedule-and-estimate-the-physical-resources">5. Schedule and estimate the physical resources</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cudaq-logical-in-practice.html#expose-the-device-as-a-cuda-q-target">6. Expose the device as a CUDA-Q target</a></li>
 <li class="toctree-l2"><a class="reference internal" href="cudaq-logical-in-practice.html#where-to-go-next">Where to go next</a></li>
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Core concepts</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#four-stages-one-direction">1. Four stages, one direction</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#facets-not-extra-stages">2. Facets, not extra stages</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#linear-ownership">3. Linear ownership</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#codes-profiles-encodings-three-different-things">4. Codes, profiles, encodings — three different things</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#objectives-gadgets-protocols-claims-and-proofs">5. Objectives, gadgets, protocols — claims and proofs</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#evidence-follows-the-program">6. Evidence follows the program</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#there-is-no-registry-imports-are-the-linker">7. There is no registry — imports are the linker</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#global-phase-is-not-observable">8. Global phase is not observable</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#where-the-pieces-live">Where the pieces live</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#where-to-go-next">Where to go next</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#logical-programs-and-quantum-values">Logical programs and quantum values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#definitions-builds-and-compilation">Definitions, builds, and compilation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#clifford-t-decomposition">Clifford+T decomposition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#codes-and-operation-implementations">Codes and operation implementations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#devices-and-placement">Devices and placement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#schedules-and-resource-estimates">Schedules and resource estimates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#cuda-q-integration">CUDA-Q integration</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../use-cases/examples/index.html">CUDA-Q Logical by Example</a><ul>
@@ -87,7 +80,7 @@
 <li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/cudaq-resource-estimate.html">CUDA-Q Logical Resource Estimate</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/fermi-hubbard.html">Fermi–Hubbard Estimation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/carbon-code.html">Carbon Code Target</a></li>
-<li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/gidney-ekera.html">Gidney–Ekerå RSA-2048</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/gidney-ekera.html">Gidney–Ekerå RSA</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../use-cases/examples/index.html#standalone-compiler-examples">Standalone compiler examples</a><ul>
@@ -97,6 +90,8 @@
 <li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/distillation.html">T-State Distillation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/physical-schedule.html">Standalone Physical Schedule</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/lookup-addition.html">Gidney–Ekerå Lookup Addition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/steane-bernstein-vazirani.html">Steane-Encoded Bernstein–Vazirani on Stim</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/t-factory-evaluation.html">T-State Distillation with <code class="docutils literal notranslate"><span class="pre">cudaq.run</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -145,6 +140,8 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../use-cases/magic-states-and-protocols.html#typed-resource-kinds">Typed resource kinds</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../use-cases/magic-states-and-protocols.html#to-1-a-concrete-factory">15-to-1: a concrete factory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/magic-states-and-protocols.html#compact-factory-models-at-p3">Compact factory models at P3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/magic-states-and-protocols.html#continue-from-here">Continue from here</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../use-cases/logical-synthesis.html">Logical Clifford+T synthesis</a><ul>
@@ -179,6 +176,7 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../reference/for-stim-users.html">CUDA-Q Logical for Stim users</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../reference/for-stim-users.html#the-translation-table">The translation table</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/for-stim-users.html#execute-a-physical-build">Execute a physical build</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../reference/for-stim-users.html#worked-emission">Worked emission</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../reference/for-stim-users.html#what-has-no-stim-equivalent">What has no Stim equivalent</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../reference/for-stim-users.html#when-to-just-use-stim">When to just use Stim</a></li>
@@ -188,7 +186,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../reference/capabilities.html#what-the-product-is">What the product is</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../reference/capabilities.html#subsystem-status">Subsystem status</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../reference/capabilities.html#present-but-not-yet-exercised">Present but not yet exercised</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../reference/capabilities.html#documented-boundaries-all-fail-closed">Documented boundaries (all fail closed)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/capabilities.html#execution-and-documented-boundaries">Execution and documented boundaries</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../reference/architecture.html">Architecture</a><ul>
@@ -206,18 +204,11 @@
 <li class="toctree-l2"><a class="reference internal" href="../reference/architecture.html#where-to-go-next">Where to go next</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="../reference/building-against-cudaq.html">Building against CUDA-Q</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../reference/building-against-cudaq.html#option-1-default-the-cudaq-devel-wheel">Option 1 (default): the <code class="docutils literal notranslate"><span class="pre">cudaq-devel</span></code> wheel</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../reference/building-against-cudaq.html#option-2-a-cuda-q-installation-built-from-source">Option 2: a CUDA-Q installation built from source</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../reference/building-against-cudaq.html#build-options">Build options</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../reference/building-against-cudaq.html#verifying-the-build">Verifying the build</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../reference/building-against-cudaq.html#troubleshooting">Troubleshooting</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/building-against-cudaq.html">Building against CUDA-Q</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">CUDA-Q</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest/releases.html">Main CUDA-Q documentation</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest/">Main CUDA-Q documentation</a></li>
 </ul>
 
         </div>
@@ -249,307 +240,242 @@
              
   <section class="tex2jax_ignore mathjax_ignore" id="core-concepts">
 <h1>Core concepts<a class="headerlink" href="#core-concepts" title="Link to this heading"></a></h1>
-<p>Everything in CUDA-Q Logical follows from a small set of ideas. Learn these
-eight, and the rest of the system becomes predictable.</p>
-<p>The package is <code class="docutils literal notranslate"><span class="pre">cudaq.logical</span></code>, which this documentation names in full when it
-refers to a symbol. Code examples import it under the conventional short alias
-and use that instead:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq.logical</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cql</span>
+<p>A logical program describes a quantum computation. A quantum error-correction
+(QEC) code specifies how its logical qubits are protected using physical qubits.
+Gadgets implement logical operations on those encoded qubits, and a device
+describes the available resources and their capabilities. CUDA-Q Logical
+compiles these inputs into builds and estimates resources from those builds.</p>
+<p>For a runnable introduction to this workflow, see the
+<a class="reference internal" href="cudaq-logical-in-practice.html"><span class="std std-doc">Bell-pair walkthrough</span></a>. Examples use
+<code class="docutils literal notranslate"><span class="pre">import</span> <span class="pre">cudaq.logical</span> <span class="pre">as</span> <span class="pre">cql</span></code>.</p>
+<section id="logical-programs-and-quantum-values">
+<h2>Logical programs and quantum values<a class="headerlink" href="#logical-programs-and-quantum-values" title="Link to this heading"></a></h2>
+<p>A <strong>logical program</strong> specifies operations on logical qubits independently of
+a QEC code or device. Logical qubits represent the computation’s quantum
+information; a QEC implementation protects it using physical qubits.
+Operations include unitary <strong>actions</strong>, such as Hadamard and controlled-X,
+and <strong>instruments</strong>, such as preparation and measurement.
+Measurements produce classical results; the Bell program returns two Boolean
+Z-basis outcomes. You can author the workload as a CUDA-Q kernel or directly
+with <code class="docutils literal notranslate"><span class="pre">&#64;cql.program</span></code>.</p>
+<p>Quantum values have <strong>linear ownership</strong>: each live qubit has one current value.
+A gate consumes its input values and returns their successors. Reassigning the
+results keeps the program’s references current:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">qubits</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">allocate</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="n">cql</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">zero</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s2">"data"</span><span class="p">)</span>
+<span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<span class="k">return</span> <span class="n">cql</span><span class="o">.</span><span class="n">measure_z</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">cql</span><span class="o">.</span><span class="n">measure_z</span><span class="p">(</span><span class="n">qubits</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
 </pre></div>
 </div>
-<section id="four-stages-one-direction">
-<h2>1. Four stages, one direction<a class="headerlink" href="#four-stages-one-direction" title="Link to this heading"></a></h2>
-<p>Executable intent is refined through exactly four semantic stages
-(<code class="docutils literal notranslate"><span class="pre">cudaq.logical.stages.Stage</span></code>):</p>
+<p><code class="docutils literal notranslate"><span class="pre">allocate</span></code> creates two logical qubits in the zero state. The gates return
+successors, and the terminal <code class="docutils literal notranslate"><span class="pre">measure_z</span></code> calls consume the qubits. Reusing a
+consumed value is invalid. Encoded patches follow the same ownership rule.</p>
+</section>
+<section id="definitions-builds-and-compilation">
+<h2>Definitions, builds, and compilation<a class="headerlink" href="#definitions-builds-and-compilation" title="Link to this heading"></a></h2>
+<p>A <strong>definition</strong> is a reusable description authored in Python, such as the
+<code class="docutils literal notranslate"><span class="pre">bell</span></code> program, <code class="docutils literal notranslate"><span class="pre">Steane</span></code> code, or <code class="docutils literal notranslate"><span class="pre">steane_h</span></code> gadget. A <strong>build</strong> is a compiled
+artifact containing the program or definition and the realization choices made
+so far.</p>
+<p><code class="docutils literal notranslate"><span class="pre">cql.materialize(Steane)</span></code> creates a compiler representation of the code for
+inspection. <code class="docutils literal notranslate"><span class="pre">cql.compile(bell)</span></code> compiles the logical program into a P0 build.
+A <strong>pipeline</strong> specifies compiler steps: <code class="docutils literal notranslate"><span class="pre">cql.compiler.pipelines.qec()</span></code> selects
+encoded implementations; <code class="docutils literal notranslate"><span class="pre">cql.compiler.pipelines.physical()</span></code> maps them to
+physical resources and events.</p>
+<p>Compilation adds information through four <strong>stages</strong>:</p>
 <table class="docutils align-default">
 <thead>
 <tr class="row-odd"><th class="head"><p>Stage</p></th>
-<th class="head"><p>Question it answers</p></th>
-<th class="head"><p>Primary IR family</p></th>
+<th class="head"><p>Information added</p></th>
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td><p><strong>P0</strong> unplaced logical</p></td>
-<td><p>What logical computation is requested?</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">qlx</span></code></p></td>
+<tr class="row-even"><td><p><strong>P0: logical program</strong></p></td>
+<td><p>Logical operations, values, and measurement results.</p></td>
 </tr>
-<tr class="row-odd"><td><p><strong>P1</strong> placed logical</p></td>
-<td><p>Where may each logical owner reside on a logical machine?</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">lvm</span></code></p></td>
+<tr class="row-odd"><td><p><strong>P1: logical placement</strong></p></td>
+<td><p>Assignments of logical values to logical machine regions and slots.</p></td>
 </tr>
-<tr class="row-even"><td><p><strong>P2</strong> QEC realization</p></td>
-<td><p>Which code, gadgets, and protocols realize it, and at what cost?</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">fabric</span></code></p></td>
+<tr class="row-even"><td><p><strong>P2: QEC realization</strong></p></td>
+<td><p>Selected codes, encodings, and operation implementations.</p></td>
 </tr>
-<tr class="row-odd"><td><p><strong>P3</strong> physical schedule</p></td>
-<td><p>Which carriers and timed events physically realize it?</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">phys</span></code></p></td>
+<tr class="row-odd"><td><p><strong>P3: physical events</strong></p></td>
+<td><p>Physical allocations, native operations, and dependencies; scheduling adds event times.</p></td>
 </tr>
 </tbody>
 </table>
-<p>A later stage only adds realization facts — it never silently reinterprets the
-logical behavior you asked for. Every stage root is verified and immutable, so
-when a lowering fails you fall back to the retained earlier root instead of
-repairing in place. <code class="docutils literal notranslate"><span class="pre">cudaq.logical.compile</span></code> produces the P0 root of a
-<code class="docutils literal notranslate"><span class="pre">&#64;cudaq.logical.program</span></code>, <code class="docutils literal notranslate"><span class="pre">cudaq.logical.compiler.place</span></code> refines it to a
-code-agnostic P1 placement, and selecting codes, gadgets, and protocols produces
-P2. Physical lowering and scheduling produce P3. Emitting Stim text consumes a
-P2 build; it is an interchange product, not a stage.</p>
+<p>Builds are immutable: continuing compilation produces a new build and retains
+the earlier one for inspection or estimation.</p>
+<p>See the <a class="reference internal" href="../reference/architecture.html"><span class="std std-doc">architecture reference</span></a> for compiler
+representations, pipeline details, and build inspection APIs.</p>
 </section>
-<section id="facets-not-extra-stages">
-<h2>2. Facets, not extra stages<a class="headerlink" href="#facets-not-extra-stages" title="Link to this heading"></a></h2>
-<p>QEC specifications, gadget realizations, protocol networks, and patch graphs are
-<strong>facets</strong> (<code class="docutils literal notranslate"><span class="pre">cudaq.logical.stages.Facet</span></code>). A facet is an independently verified
-fact attached to an immutable stage root, not another point in the P0–P3
-lowering order. Physical lowering and scheduling attach their own facets the
-same way. Several facets can coexist on one root without recompiling the
-program. Every pipeline pass declares the facets it requires, provides, and
-invalidates; a facet survives a pass unless that pass explicitly invalidates or
-recomputes it. A compiled gadget build, for example, is a P2 root carrying
-exactly <code class="docutils literal notranslate"><span class="pre">QEC_SPEC</span></code> and <code class="docutils literal notranslate"><span class="pre">QEC_REALIZATION</span></code> — see <code class="docutils literal notranslate"><span class="pre">build.facets</span></code> in concept 5.</p>
+<section id="clifford-t-decomposition">
+<h2>Clifford+T decomposition<a class="headerlink" href="#clifford-t-decomposition" title="Link to this heading"></a></h2>
+<p><strong>Clifford+T decomposition</strong>, also called <strong>synthesis</strong>, rewrites logical gates
+as sequences of Hadamard (<code class="docutils literal notranslate"><span class="pre">H</span></code>), phase (<code class="docutils literal notranslate"><span class="pre">S</span></code>), controlled-X (<code class="docutils literal notranslate"><span class="pre">CX</span></code>), and <code class="docutils literal notranslate"><span class="pre">T</span></code> gates.
+<code class="docutils literal notranslate"><span class="pre">H</span></code>, <code class="docutils literal notranslate"><span class="pre">S</span></code>, and <code class="docutils literal notranslate"><span class="pre">CX</span></code> are Clifford gates; <code class="docutils literal notranslate"><span class="pre">T</span></code> is a non-Clifford phase gate with an
+angle of π/4. Expressing a workload in this gate set exposes its T-gate demand
+before choosing a QEC implementation.</p>
+<p>Some operations have exact decompositions; general rotations require
+approximation. The synthesis <code class="docutils literal notranslate"><span class="pre">precision</span></code> sets an error bound for each
+approximated rotation. A smaller bound usually requires more T gates, so the
+chosen precision affects resource counts. Synthesis produces a new P0 build
+without selecting a code or device; placement and QEC compilation can follow.</p>
+<p>For direct logical programs, use <code class="docutils literal notranslate"><span class="pre">cql.compiler.synthesize</span></code> with
+<code class="docutils literal notranslate"><span class="pre">gate_set=cql.compiler.gate_sets.clifford_t</span></code>. For CUDA-Q kernels,
+<code class="docutils literal notranslate"><span class="pre">cql.targets.clifford_t</span></code> provides an estimation target;
+<code class="docutils literal notranslate"><span class="pre">cql.targets.clifford_t_target(precision=...)</span></code> sets a custom approximation bound.
+A device target can include the same step with
+<code class="docutils literal notranslate"><span class="pre">Target.from_device(...,</span> <span class="pre">clifford_t_precision=...)</span></code>.</p>
+<p>This step is optional. The Bell-pair walkthrough uses only <code class="docutils literal notranslate"><span class="pre">H</span></code> and <code class="docutils literal notranslate"><span class="pre">CX</span></code>, so
+it needs no rotation synthesis.</p>
+<p>See <a class="reference internal" href="../use-cases/logical-synthesis.html"><span class="std std-doc">Logical Clifford+T synthesis</span></a> for
+precision semantics and supported operations, and the
+<a class="reference internal" href="../use-cases/examples/clifford-t.html"><span class="std std-doc">Clifford+T example</span></a> for resource estimates
+at different precisions.</p>
 </section>
-<section id="linear-ownership">
-<h2>3. Linear ownership<a class="headerlink" href="#linear-ownership" title="Link to this heading"></a></h2>
-<p>Quantum values are <em>linear</em>: each value has one live owner, and every operation
-consumes that owner and produces its successor.</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq.logical</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cql</span>
-
-<span class="nd">@cql</span><span class="o">.</span><span class="n">program</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">ownership</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]:</span>
-    <span class="n">q</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">allocate</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">state</span><span class="o">=</span><span class="n">cql</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">zero</span><span class="p">)</span>
-    <span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>                    <span class="c1"># consume q[0], produce its successor</span>
-    <span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">z</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">mpp</span><span class="p">(</span><span class="n">cql</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">Z</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>  <span class="c1"># nondestructive: the owner survives</span>
-    <span class="k">return</span> <span class="n">z</span><span class="p">,</span> <span class="n">cql</span><span class="o">.</span><span class="n">measure_z</span><span class="p">(</span><span class="n">q</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>         <span class="c1"># destructive: q[0] is gone</span>
+<section id="codes-and-operation-implementations">
+<h2>Codes and operation implementations<a class="headerlink" href="#codes-and-operation-implementations" title="Link to this heading"></a></h2>
+<p>A <strong>QEC code</strong> defines how logical information is protected. The notation
+<code class="docutils literal notranslate"><span class="pre">[[n,k,d]]</span></code> describes <code class="docutils literal notranslate"><span class="pre">k</span></code> logical qubits encoded in <code class="docutils literal notranslate"><span class="pre">n</span></code> data qubits with
+distance <code class="docutils literal notranslate"><span class="pre">d</span></code>: the minimum number of data qubits affected by an undetectable
+nontrivial logical Pauli error.</p>
+<p>A <strong>CSS code</strong> defines separate X and Z stabilizer checks: products of X or Z
+Pauli operators on selected data qubits. The checks commute and define the
+allowed encoded states. Their measurements give a
+<strong>syndrome</strong>, information about errors without revealing the logical state.
+Steane’s <code class="docutils literal notranslate"><span class="pre">hx</span></code> and <code class="docutils literal notranslate"><span class="pre">hz</span></code> list each check’s data-qubit indices; <code class="docutils literal notranslate"><span class="pre">lx</span></code> and <code class="docutils literal notranslate"><span class="pre">lz</span></code>
+specify logical X and Z operators. <code class="docutils literal notranslate"><span class="pre">&#64;cql.code</span></code> checks the algebraic structure;
+<code class="docutils literal notranslate"><span class="pre">d</span> <span class="pre">=</span> <span class="pre">3</span></code> separately declares the distance.</p>
+<p>A code’s data width differs from its complete <strong>block</strong> footprint.
+<code class="docutils literal notranslate"><span class="pre">CSSBlock(data=7,</span> <span class="pre">sx=3,</span> <span class="pre">sz=3)</span></code> reserves seven data qubits and six check
+ancillas, auxiliary qubits for check measurements. The walkthrough’s Steane
+block therefore has 13 physical qubits.</p>
+<p>An <strong>encoding</strong> defines the interface to a code’s logical qubits.
+<code class="docutils literal notranslate"><span class="pre">Steane.default_encoding</span></code> supplies it automatically. A <strong>patch</strong> is one live
+encoded block; <code class="docutils literal notranslate"><span class="pre">cql.patch[Steane]</span></code> uses the default encoding, and <code class="docutils literal notranslate"><span class="pre">block.data</span></code>
+selects its data qubits.</p>
+<p>An <strong>objective</strong> states ideal logical behavior. A <strong>gadget</strong> implements that
+behavior on encoded patches, with <code class="docutils literal notranslate"><span class="pre">implements=</span></code> identifying the objective:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@cql</span><span class="o">.</span><span class="n">gadget</span><span class="p">(</span><span class="n">implements</span><span class="o">=</span><span class="n">cql</span><span class="o">.</span><span class="n">standard</span><span class="o">.</span><span class="n">h</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">steane_h</span><span class="p">(</span><span class="n">block</span><span class="p">:</span> <span class="n">cql</span><span class="o">.</span><span class="n">patch</span><span class="p">[</span><span class="n">Steane</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">cql</span><span class="o">.</span><span class="n">patch</span><span class="p">[</span><span class="n">Steane</span><span class="p">]:</span>
+    <span class="k">return</span> <span class="n">cql</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">block</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>Rebinding — <code class="docutils literal notranslate"><span class="pre">q[0]</span> <span class="pre">=</span> <span class="pre">cudaq.logical.h(q[0])</span></code> — is how you write that contract.
-Using a consumed value raises <code class="docutils literal notranslate"><span class="pre">cudaq.logical.errors.UseAfterConsume</span></code> at trace
-time. The canonical IR checks the same contract independently: every linear SSA
-value must have exactly one owner along every execution path. Double
-consumption, use-after-measure, and leaks are typed failures, not runtime
-surprises.</p>
+<p>Here, <code class="docutils literal notranslate"><span class="pre">cql.standard.h</span></code> is the ideal logical Hadamard. The body applies Hadamard
+to each Steane data qubit, a <strong>transversal</strong> implementation. Construction and
+compilation check code algebra and gadget boundaries; logical-action
+verification depends on the supported realization class.</p>
+<p>A <strong>QEC architecture</strong> assembles an encoding and its available implementations.
+<code class="docutils literal notranslate"><span class="pre">QECArchitecture.link_roots</span></code> supplies the Bell program’s preparation, gate,
+and measurement gadgets. QEC compilation selects compatible implementations
+for the placed program.</p>
+<p>See <a class="reference internal" href="../use-cases/define-a-code.html"><span class="std std-doc">Defining codes</span></a> and
+<a class="reference internal" href="../use-cases/gadgets-and-verification.html"><span class="std std-doc">Gadgets and verification</span></a> for custom
+interfaces and verification details.</p>
 </section>
-<section id="codes-profiles-encodings-three-different-things">
-<h2>4. Codes, profiles, encodings — three different things<a class="headerlink" href="#codes-profiles-encodings-three-different-things" title="Link to this heading"></a></h2>
-<ul class="simple">
-<li><p>A <strong><code class="docutils literal notranslate"><span class="pre">Code</span></code></strong> is validated algebra: a physical width <code class="docutils literal notranslate"><span class="pre">n</span></code>, a logical width <code class="docutils literal notranslate"><span class="pre">k</span></code>,
-and independent stabilizer and logical-operator bases, all checked at
-construction. Distance is <em>evidence</em>, held as a
-<code class="docutils literal notranslate"><span class="pre">cudaq.logical.codes.Distance</span></code>: a bare integer normalizes to <code class="docutils literal notranslate"><span class="pre">claimed</span></code> — a
-recorded assertion, never a proof — while the evidence-bearing constructors
-(<code class="docutils literal notranslate"><span class="pre">exact</span></code>, <code class="docutils literal notranslate"><span class="pre">lower_bound</span></code>, <code class="docutils literal notranslate"><span class="pre">upper_bound</span></code>, <code class="docutils literal notranslate"><span class="pre">circuit</span></code>) require a method and
-provenance.</p></li>
-<li><p>A <strong><code class="docutils literal notranslate"><span class="pre">CodeProfile</span></code></strong> is an analysis convention over one code: effective
-syndrome generators, meta-checks, and derived boundary maps. Change the
-convention and you get a new profile, not a new code.</p></li>
-<li><p>An <strong><code class="docutils literal notranslate"><span class="pre">Encoding</span></code></strong> is a reusable logical view: named logical ports, a block ABI
-name, and layout facts. Preparation and conversion are <em>gadgets</em> — an encoding
-never executes circuits.</p></li>
-</ul>
-<p>Every code synthesizes a default profile and encoding, so you write your own
-only when you need a genuinely different view. The catalog
-(<code class="docutils literal notranslate"><span class="pre">cudaq.logical.codes</span></code>) ships <code class="docutils literal notranslate"><span class="pre">Steane</span></code>, <code class="docutils literal notranslate"><span class="pre">Repetition</span></code>,
-<code class="docutils literal notranslate"><span class="pre">rotated_surface(distance)</span></code>, <code class="docutils literal notranslate"><span class="pre">ReedMuller15</span></code>, and <code class="docutils literal notranslate"><span class="pre">BareQubit</span></code>:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq.logical</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cql</span>
-
-<span class="n">steane</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">codes</span><span class="o">.</span><span class="n">Steane</span>                      <span class="c1"># the [[7,1,3]] CSS code</span>
-<span class="k">assert</span> <span class="p">(</span><span class="n">steane</span><span class="o">.</span><span class="n">n</span><span class="p">,</span> <span class="n">steane</span><span class="o">.</span><span class="n">k</span><span class="p">)</span> <span class="o">==</span> <span class="p">(</span><span class="mi">7</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-<span class="k">assert</span> <span class="p">(</span><span class="n">steane</span><span class="o">.</span><span class="n">d</span><span class="o">.</span><span class="n">value</span><span class="p">,</span> <span class="n">steane</span><span class="o">.</span><span class="n">d</span><span class="o">.</span><span class="n">status</span><span class="p">)</span> <span class="o">==</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="s2">"claimed"</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>The two structures most worth keeping apart, side by side:</p>
+<section id="devices-and-placement">
+<h2>Devices and placement<a class="headerlink" href="#devices-and-placement" title="Link to this heading"></a></h2>
+<p>A <strong>logical machine</strong> describes where logical state can reside and which
+operations are supported. A <strong>region</strong> is a pool of logical capacity with
+capabilities such as computation or measurement. A <strong>slot</strong> holds one logical
+qubit. For example, the Bell device’s compute region has two slots.</p>
+<p>A <strong>physical machine</strong> describes resources, connectivity, native operations,
+and timing assumptions. A <strong>carrier</strong> is a physical qubit resource. Native
+operations are those implemented directly. The Bell device includes Hadamard
+and controlled-X in its Clifford gate set, Z measurements (<code class="docutils literal notranslate"><span class="pre">MZ</span></code>), and
+measurements of Pauli-operator products (<code class="docutils literal notranslate"><span class="pre">MPP</span></code>).</p>
+<p>A <strong>device</strong> connects these descriptions. <code class="docutils literal notranslate"><span class="pre">DeviceBuilder</span></code> creates logical
+regions, <code class="docutils literal notranslate"><span class="pre">qec.bind</span></code> associates them with QEC architectures or encodings, and
+<code class="docutils literal notranslate"><span class="pre">physical.bind</span></code> associates encoded regions with physical resources.
+<code class="docutils literal notranslate"><span class="pre">builder.build()</span></code> freezes the device description. The Bell device binds two
+logical slots to Steane blocks and provides 26 physical carriers.</p>
+<p><strong>Placement</strong> assigns a particular program’s logical values to the machine’s
+regions and slots. <code class="docutils literal notranslate"><span class="pre">cql.compiler.place</span></code> records these assignments in a P1
+build. The constraint <code class="docutils literal notranslate"><span class="pre">colocate(logical.values.data)</span></code> keeps the named
+allocation in one region, with a distinct slot for each qubit. Code and gadget
+selection follows at P2.</p>
+<p>Devices are reusable; workload-specific choices belong to builds.
+<strong>Retargeting</strong> keeps the logical workload fixed while changing the device or
+QEC architecture, producing a new realization for comparison.</p>
+<p>See <a class="reference internal" href="../use-cases/devices-and-placement.html"><span class="std std-doc">Devices and placement</span></a> for other
+regions, constraints, and physical bindings.</p>
+</section>
+<section id="schedules-and-resource-estimates">
+<h2>Schedules and resource estimates<a class="headerlink" href="#schedules-and-resource-estimates" title="Link to this heading"></a></h2>
+<p>Physical compilation produces an <strong>event graph</strong>: physical operations and
+their dependencies. A <strong>schedule</strong> assigns start times and durations while
+respecting dependencies and resource conflicts. <code class="docutils literal notranslate"><span class="pre">cql.compiler.schedule</span></code>
+constructs the schedule from the P3 build.</p>
+<p>A device’s <strong>operating point</strong> supplies model assumptions such as timing and
+physical error rates. The walkthrough uses an illustrative <code class="docutils literal notranslate"><span class="pre">cycle_ns</span> <span class="pre">=</span> <span class="pre">1.0</span></code>.
+Its estimate options specify <code class="docutils literal notranslate"><span class="pre">cycle_time</span></code> in seconds, <code class="docutils literal notranslate"><span class="pre">p_phys</span></code> as the
+physical-error probability used by the estimation model, and <code class="docutils literal notranslate"><span class="pre">failure_budget</span></code>
+as the acceptable total failure probability for the study.</p>
+<p><code class="docutils literal notranslate"><span class="pre">cql.estimate</span></code> analyzes a build or schedule. The <strong>tier</strong> selects which
+quantities to report and which inputs are required:</p>
 <table class="docutils align-default">
 <thead>
-<tr class="row-odd"><th class="head"><p>Structure</p></th>
-<th class="head"><p>Holds</p></th>
+<tr class="row-odd"><th class="head"><p>Tier</p></th>
+<th class="head"><p>Required input</p></th>
+<th class="head"><p>Reports</p></th>
 </tr>
 </thead>
 <tbody>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">Code</span></code></p></td>
-<td><p>physical width <code class="docutils literal notranslate"><span class="pre">n</span></code>, logical width <code class="docutils literal notranslate"><span class="pre">k</span></code>, <code class="docutils literal notranslate"><span class="pre">Distance</span></code> evidence, independent stabilizers, logical X/Z pairs; CSS constructors are adapters into the same normalized algebra</p></td>
+<tr class="row-even"><td><p>LOGICAL</p></td>
+<td><p>P0 program</p></td>
+<td><p>Logical-qubit peak and action/instrument counts.</p></td>
 </tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">Encoding</span></code></p></td>
-<td><p>the protected <code class="docutils literal notranslate"><span class="pre">code</span></code>, a selected <code class="docutils literal notranslate"><span class="pre">profile</span></code>, a <code class="docutils literal notranslate"><span class="pre">name</span></code>, the <code class="docutils literal notranslate"><span class="pre">block</span></code> ABI name, ordered <code class="docutils literal notranslate"><span class="pre">logical_ports</span></code>, and layout facts; sealed after validation</p></td>
+<tr class="row-odd"><td><p><strong>STATIC</strong></p></td>
+<td><p>Selected P2 realization</p></td>
+<td><p>Encoded-patch peak and gadget/operation counts.</p></td>
 </tr>
-</tbody>
-</table>
-</section>
-<section id="objectives-gadgets-protocols-claims-and-proofs">
-<h2>5. Objectives, gadgets, protocols — claims and proofs<a class="headerlink" href="#objectives-gadgets-protocols-claims-and-proofs" title="Link to this heading"></a></h2>
-<p>A <strong>gadget</strong> is a realization — a typed circuit over encoded patches — plus a
-claim: <code class="docutils literal notranslate"><span class="pre">implements=&lt;objective&gt;</span></code>. That claim is checked. The compiler derives the
-gadget’s signed symplectic action, matches it against the objective’s Clifford
-action, and records the equivalence evidence — or fails with a typed diagnostic:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq.logical</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cql</span>
-
-<span class="nd">@cql</span><span class="o">.</span><span class="n">objective</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">terminal_memory</span><span class="p">(</span><span class="n">q</span><span class="p">:</span> <span class="n">cql</span><span class="o">.</span><span class="n">types</span><span class="o">.</span><span class="n">logical_qubit</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-    <span class="n">cql</span><span class="o">.</span><span class="n">discard</span><span class="p">(</span><span class="n">q</span><span class="p">)</span>
-
-<span class="nd">@cql</span><span class="o">.</span><span class="n">gadget</span><span class="p">(</span><span class="n">implements</span><span class="o">=</span><span class="n">terminal_memory</span><span class="p">)</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">steane_memory</span><span class="p">(</span><span class="n">block</span><span class="p">:</span> <span class="n">cql</span><span class="o">.</span><span class="n">patch</span><span class="p">[</span><span class="n">cql</span><span class="o">.</span><span class="n">codes</span><span class="o">.</span><span class="n">Steane</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-    <span class="n">block</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">extract_syndrome</span><span class="p">(</span><span class="n">block</span><span class="p">)</span>
-    <span class="n">block</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">mz</span><span class="p">(</span><span class="n">block</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
-    <span class="n">cql</span><span class="o">.</span><span class="n">discard</span><span class="p">(</span><span class="n">block</span><span class="p">)</span>
-
-<span class="n">build</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">steane_memory</span><span class="p">)</span>
-<span class="k">assert</span> <span class="n">build</span><span class="o">.</span><span class="n">stage</span> <span class="o">==</span> <span class="n">cql</span><span class="o">.</span><span class="n">stages</span><span class="o">.</span><span class="n">P2</span>
-<span class="k">assert</span> <span class="n">build</span><span class="o">.</span><span class="n">facets</span> <span class="o">==</span> <span class="p">(</span><span class="n">cql</span><span class="o">.</span><span class="n">stages</span><span class="o">.</span><span class="n">Facet</span><span class="o">.</span><span class="n">QEC_SPEC</span><span class="p">,</span> <span class="n">cql</span><span class="o">.</span><span class="n">stages</span><span class="o">.</span><span class="n">Facet</span><span class="o">.</span><span class="n">QEC_REALIZATION</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>When several operand-to-port embeddings verify, the compiler refuses to pick one
-silently and raises <code class="docutils literal notranslate"><span class="pre">cudaq.logical.errors.AmbiguousLogicalPortMap</span></code>. An explicit
-<code class="docutils literal notranslate"><span class="pre">logical_ports=</span></code> mapping is a constraint the verifier checks, never evidence it
-trusts.</p>
-<p>A <strong>protocol</strong> composes gadget calls with operational policy. The shipped
-15-to-1 distillation in <code class="docutils literal notranslate"><span class="pre">examples/standalone/03_magic_state_distillation.py</span></code>
-exercises typed resource requests and postselection. Protocols may also use
-bounded retry with explicit commit points; retry policy is normalized at
-construction into immutable, type-checked structures:</p>
-<table class="docutils align-default">
-<thead>
-<tr class="row-odd"><th class="head"><p>Type</p></th>
-<th class="head"><p>Fields</p></th>
+<tr class="row-even"><td><p><strong>ANALYTICAL</strong></p></td>
+<td><p>Selected P2 realization and physical-model assumptions</p></td>
+<td><p>Modeled physical cost, error, acceptance, and runtime.</p></td>
 </tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">RetryPolicy</span></code></p></td>
-<td><p>positive <code class="docutils literal notranslate"><span class="pre">max_attempts</span></code>; a <code class="docutils literal notranslate"><span class="pre">RetryExhaustion</span></code> — <code class="docutils literal notranslate"><span class="pre">REPORT_FAILURE</span></code>, <code class="docutils literal notranslate"><span class="pre">ABORT</span></code>, or <code class="docutils literal notranslate"><span class="pre">RETURN_LAST</span></code>; an optional typed commit point</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">CommitPoint</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">before_output(endpoint)</span></code> or <code class="docutils literal notranslate"><span class="pre">before_resource_output()</span></code>: the boundary before which an attempt may be replayed safely</p></td>
+<tr class="row-odd"><td><p><strong>SCHEDULE</strong></p></td>
+<td><p>Scheduled P3 graph</p></td>
+<td><p>Physical resources, events, runtime, and utilization.</p></td>
 </tr>
 </tbody>
 </table>
+<p>A <strong>peak</strong> counts the greatest number of resources simultaneously live.
+<strong>Makespan</strong> is the elapsed time from the first scheduled event’s start to the
+last event’s completion. Logical actions, gadget calls, and physical events
+count work at different stages; their counts need not match.</p>
+<p>The Bell pair therefore has two logical qubits, two encoded patches, and 26
+reserved physical qubits. Its four-nanosecond makespan follows from the teaching
+device’s timing model. More physical detail makes dependencies and contention
+visible, while the result still depends on the supplied model assumptions.</p>
+<p>See <a class="reference internal" href="../use-cases/estimation.html"><span class="std std-doc">Resource estimation</span></a> for analytical models and
+the complete result fields.</p>
 </section>
-<section id="evidence-follows-the-program">
-<h2>6. Evidence follows the program<a class="headerlink" href="#evidence-follows-the-program" title="Link to this heading"></a></h2>
-<p>Every semantic transition emits evidence records — <code class="docutils literal notranslate"><span class="pre">pass</span></code>, <code class="docutils literal notranslate"><span class="pre">fail</span></code>, or
-<code class="docutils literal notranslate"><span class="pre">unresolved</span></code> — or an explicit declaration that evidence is missing.
-<code class="docutils literal notranslate"><span class="pre">build.evidence</span></code> lists the records, and <code class="docutils literal notranslate"><span class="pre">build.status</span></code> summarizes the build
-(root, stage, facets, and counts by result), as in the gadget build above.
-<code class="docutils literal notranslate"><span class="pre">build.serialize()</span></code> captures the whole build — selected definitions, evidence,
-and all — and <code class="docutils literal notranslate"><span class="pre">cudaq.logical.compiler.Build.replay</span></code> reopens it in a clean
-process with no ambient Python state. The same honesty applies to distances and
-estimates: a <code class="docutils literal notranslate"><span class="pre">claimed</span></code> distance stays a claim, and each estimation tier reports
-exactly which facts it consumed.</p>
-</section>
-<section id="there-is-no-registry-imports-are-the-linker">
-<h2>7. There is no registry — imports are the linker<a class="headerlink" href="#there-is-no-registry-imports-are-the-linker" title="Link to this heading"></a></h2>
-<p>CUDA-Q Logical has no global implementation table, and that is deliberate. A
-registry would make <em>import order</em> part of your program’s semantics: two
-sessions that import modules in a different order could select different
-physics, and a serialized build could not say what was visible when it was
-compiled.</p>
-<p>Instead, discovery is scoped and explicit. Each compilation collects candidates
-from exactly three places:</p>
-<ol class="arabic simple">
-<li><p>definitions bound at module scope in <strong>your program’s module</strong>;</p></li>
-<li><p>definitions bound at module scope in <strong>your device’s module</strong>;</p></li>
-<li><p>definitions exported by a <strong><code class="docutils literal notranslate"><span class="pre">cudaq.logical</span></code> library submodule you explicitly
-imported</strong> into one of those modules — the import statement is the link act,
-and bare <code class="docutils literal notranslate"><span class="pre">import</span> <span class="pre">cudaq.logical</span></code> links nothing.</p></li>
-</ol>
-<p>Each compilation derives this candidate set fresh, filters it by objective and
-boundary types, and captures the <em>selected</em> closure into the build:
-<code class="docutils literal notranslate"><span class="pre">build.source_modules</span></code> and <code class="docutils literal notranslate"><span class="pre">build.definitions</span></code> record exactly what was visible
-and what won. Day to day, you feel three consequences:</p>
-<ul class="simple">
-<li><p>a gadget defined in a helper file you never imported is invisible — the
-failure is a typed “no feasible P2 implementation”, not a mystery winner;</p></li>
-<li><p>deleting an import genuinely detaches its implementations;</p></li>
-<li><p>replaying a build needs no ambient Python state at all.</p></li>
-</ul>
-</section>
-<section id="global-phase-is-not-observable">
-<h2>8. Global phase is not observable<a class="headerlink" href="#global-phase-is-not-observable" title="Link to this heading"></a></h2>
-<p><strong>CUDA-Q Logical treats states and operators as projective: an overall phase is
-neither observable nor tracked.</strong> The only observables are measurement outcomes,
-and those are invariant under an overall phase. Concretely:</p>
-<ul class="simple">
-<li><p><strong>Synthesis</strong> targets a projective operator-norm bound
-(<code class="docutils literal notranslate"><span class="pre">cudaq.logical.compiler.synthesize(gate_set=...,</span> <span class="pre">precision=...)</span></code>), so
-<code class="docutils literal notranslate"><span class="pre">R_Z(kπ/4)</span> <span class="pre">=</span> <span class="pre">T^k</span></code> holds up to phase.</p></li>
-<li><p><strong>Rotations are 4π-periodic exactly and 2π-periodic up to phase.</strong>
-<code class="docutils literal notranslate"><span class="pre">cudaq.logical.algebra.Angle</span></code> keeps angles as exact rational multiples of π,
-so this stays precise — and the angle you authored is preserved, never
-auto-reduced:</p></li>
-</ul>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq.logical</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cql</span>
-
-<span class="k">assert</span> <span class="n">cql</span><span class="o">.</span><span class="n">algebra</span><span class="o">.</span><span class="n">Angle</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span><span class="o">.</span><span class="n">pi_fraction</span> <span class="o">==</span> <span class="p">(</span><span class="mi">9</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
-<span class="k">assert</span> <span class="nb">float</span><span class="p">(</span><span class="n">cql</span><span class="o">.</span><span class="n">algebra</span><span class="o">.</span><span class="n">Angle</span><span class="p">(</span><span class="mi">9</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span> <span class="o">-</span> <span class="n">cql</span><span class="o">.</span><span class="n">algebra</span><span class="o">.</span><span class="n">Angle</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span> <span class="o">==</span> <span class="nb">float</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">cql</span><span class="o">.</span><span class="n">algebra</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>
-</pre></div>
-</div>
-<p>The boundary: dropping global phase is safe for a linear, classically
-conditioned program measured at the end. CUDA-Q Logical’s conditionals are
-classical — they condition on measurement outcomes — so no shipped surface needs
-to track phase. Quantum-controlled arbitrary unitaries would change that, and
-they are out of scope.</p>
-</section>
-<section id="where-the-pieces-live">
-<h2>Where the pieces live<a class="headerlink" href="#where-the-pieces-live" title="Link to this heading"></a></h2>
-<table class="docutils align-default">
-<thead>
-<tr class="row-odd"><th class="head"><p>You write</p></th>
-<th class="head"><p>You get</p></th>
-<th class="head"><p>Canonical home</p></th>
-</tr>
-</thead>
-<tbody>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&#64;cudaq.logical.program</span></code></p></td>
-<td><p>portable P0 logical program</p></td>
-<td><p>your module</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">&#64;cudaq.logical.machine</span></code></p></td>
-<td><p>logical machine for P1 placement</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">cudaq.logical.architecture</span></code>, yours</p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&#64;cudaq.logical.code</span></code></p></td>
-<td><p>validated <code class="docutils literal notranslate"><span class="pre">Code</span></code> + default profile/encoding</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">cudaq.logical.codes</span></code>, yours</p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">&#64;cudaq.logical.gadget</span></code> / <code class="docutils literal notranslate"><span class="pre">&#64;cudaq.logical.protocol</span></code></p></td>
-<td><p>verified realization / composition</p></td>
-<td><p>yours, <code class="docutils literal notranslate"><span class="pre">cudaq.logical.protocols</span></code></p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">cudaq.logical.devices.DeviceBuilder</span></code></p></td>
-<td><p>a device layered across P1, P2, and P3</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">cudaq.logical.devices</span></code></p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">cudaq.logical.compile</span></code> / <code class="docutils literal notranslate"><span class="pre">cudaq.logical.compiler.place</span></code></p></td>
-<td><p>immutable, replayable <code class="docutils literal notranslate"><span class="pre">Build</span></code> roots</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">cudaq.logical.compiler</span></code></p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">cudaq.logical.compiler.schedule</span></code></p></td>
-<td><p>a verified schedule over a P3 event graph</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">cudaq.logical.compiler</span></code></p></td>
-</tr>
-<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">cudaq.logical.estimate(...,</span> <span class="pre">tier=...)</span></code></p></td>
-<td><p>logical, static, analytical, or schedule evidence</p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">cudaq.logical.estimate</span></code></p></td>
-</tr>
-<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">cudaq.logical.targets.*</span></code></p></td>
-<td><p>compilation targets that lower a <code class="docutils literal notranslate"><span class="pre">cudaq.kernel</span></code></p></td>
-<td><p><code class="docutils literal notranslate"><span class="pre">cudaq.logical.targets</span></code></p></td>
-</tr>
-</tbody>
-</table>
-<p>Naming follows PEP 8 throughout — artifact classes are camel case (<code class="docutils literal notranslate"><span class="pre">Code</span></code>,
-<code class="docutils literal notranslate"><span class="pre">Encoding</span></code>), while operations, decorators, and constants are snake_case
-(<code class="docutils literal notranslate"><span class="pre">&#64;cudaq.logical.machine</span></code>, <code class="docutils literal notranslate"><span class="pre">cudaq.logical.extract_syndrome</span></code>). One deliberate
-near-collision to know about: <code class="docutils literal notranslate"><span class="pre">cudaq.logical.types.X(q)</span></code> constructs a Pauli
-factor for products, while <code class="docutils literal notranslate"><span class="pre">cudaq.logical.x(q)</span></code> applies the gate.</p>
-</section>
-<section id="where-to-go-next">
-<h2>Where to go next<a class="headerlink" href="#where-to-go-next" title="Link to this heading"></a></h2>
-<ul class="simple">
-<li><p>The <a class="reference internal" href="../reference/architecture.html"><span class="std std-doc">architecture reference</span></a> describes the
-dialect stack and pipeline presets that realize these concepts.</p></li>
-<li><p>The <a class="reference internal" href="../use-cases/define-a-code.html"><span class="std std-doc">use cases</span></a> put them to work task by task.</p></li>
-<li><p><a class="reference internal" href="../use-cases/examples/index.html"><span class="std std-doc">Examples</span></a> shows them in runnable, shipped
-code.</p></li>
-</ul>
+<section id="cuda-q-integration">
+<h2>CUDA-Q integration<a class="headerlink" href="#cuda-q-integration" title="Link to this heading"></a></h2>
+<p>A <strong>compilation target</strong> packages a device’s compilation workflow and an
+endpoint that consumes the resulting artifacts. <code class="docutils literal notranslate"><span class="pre">Target.from_device</span></code> creates
+that target from the device description, with <code class="docutils literal notranslate"><span class="pre">cql.targets.estimator</span></code> as the
+default endpoint. In the walkthrough, <code class="docutils literal notranslate"><span class="pre">estimate_options</span></code> supplies the
+estimation parameters.</p>
+<p>After <code class="docutils literal notranslate"><span class="pre">cudaq.set_target(target)</span></code>, <code class="docutils literal notranslate"><span class="pre">cudaq.estimate(bell_pair)</span></code> compiles the
+CUDA-Q kernel through the configured stages. The result’s <strong>annotations</strong>
+contain per-tier resource estimates. Typed views such as <code class="docutils literal notranslate"><span class="pre">LogicalEstimate</span></code>
+and <code class="docutils literal notranslate"><span class="pre">FabricCounts</span></code> expose logical and static fields; the walkthrough reads
+physical schedule results from the <code class="docutils literal notranslate"><span class="pre">SCHEDULE</span></code> annotation.</p>
+<p>Physical builds also run on CUDA-Q simulators. When the program returns
+Booleans, <code class="docutils literal notranslate"><span class="pre">cudaq.run(build)</span></code> executes its P3 build on a simulator target, such
+as <code class="docutils literal notranslate"><span class="pre">stim</span></code> or <code class="docutils literal notranslate"><span class="pre">nvidia</span></code>. Each shot returns a <code class="docutils literal notranslate"><span class="pre">bool</span></code> for one result or a
+<code class="docutils literal notranslate"><span class="pre">list[bool]</span></code> for several, the same types <code class="docutils literal notranslate"><span class="pre">cudaq.run</span></code> returns for a kernel.
+Unsupported P3 forms raise an error.
+<a class="reference internal" href="../reference/capabilities.html#execution-and-documented-boundaries"><span class="std std-ref">Execution boundaries</span></a>
+lists the main ones.</p>
+<p>Use kernels with CUDA-Q’s libraries and infrastructure, or author directly
+with <code class="docutils literal notranslate"><span class="pre">cudaq.logical</span></code> when integrating another frontend. Both routes use the
+same compilation model. Applications can reuse a target for compatible kernels;
+direct compiler calls expose individual builds.</p>
+<p>Follow the <a class="reference internal" href="cudaq-logical-in-practice.html"><span class="std std-doc">Bell-pair walkthrough</span></a> to apply these
+concepts in one runnable example.</p>
 </section>
 </section>
 

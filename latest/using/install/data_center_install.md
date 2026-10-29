@@ -1109,12 +1109,10 @@ latest
             -   [Test
                 harness](../realtime/device_call.html#test-harness){.reference
                 .internal}
--   [CUDA-QX](../cudaqx/cudaqx.html){.reference .internal}
-    -   [CUDA-Q
-        Solvers](../cudaqx/cudaqx.html#cuda-q-solvers){.reference
-        .internal}
-    -   [CUDA-Q QEC](../cudaqx/cudaqx.html#cuda-q-qec){.reference
-        .internal}
+-   [CUDA-Q QEC](../cudaq-qec/cudaq-qec.html){.reference .internal}
+-   [CUDA-Q
+    Algorithms](../cudaq-algorithms/cudaq-algorithms.html){.reference
+    .internal}
 -   [Installation](install.html){.reference .internal}
     -   [Local Installation](local_installation.html){.reference
         .internal}
@@ -1233,6 +1231,18 @@ latest
             -   [Source and
                 tests](../extending/compiler/cudaq_ir.html#source-and-tests){.reference
                 .internal}
+        -   [Value-semantics IR change
+            log](../extending/compiler/ir_changelog.html){.reference
+            .internal}
+            -   [Producing this
+                IR](../extending/compiler/ir_changelog.html#producing-this-ir){.reference
+                .internal}
+            -   [Upcoming release ([`main`{.docutils .literal
+                .notranslate}]{.pre}
+                branch)](../extending/compiler/ir_changelog.html#upcoming-release-main-branch){.reference
+                .internal}
+            -   [0.16.0](../extending/compiler/ir_changelog.html#id5){.reference
+                .internal}
         -   [External compiler pass
             plugins](../extending/compiler/pass_plugins.html){.reference
             .internal}
@@ -1279,6 +1289,9 @@ latest
         -   [Plugin Package
             Layout](../extending/packaging.html#plugin-package-layout){.reference
             .internal}
+        -   [How to pre-compile a target config
+            YAML](../extending/packaging.html#how-to-pre-compile-a-target-config-yaml){.reference
+            .internal}
         -   [Target YAML Reference (Plugin
             Fields)](../extending/packaging.html#target-yaml-reference-plugin-fields){.reference
             .internal}
@@ -1291,6 +1304,10 @@ latest
         -   [Building with [`CUDAQ_EXTERNAL_PROJECTS`{.docutils .literal
             .notranslate}]{.pre}](../extending/packaging.html#building-with-cudaq-external-projects){.reference
             .internal}
+            -   [Baking a target into the pre-compiled database instead
+                of shipping a
+                plugin](../extending/packaging.html#baking-a-target-into-the-pre-compiled-database-instead-of-shipping-a-plugin){.reference
+                .internal}
         -   [Python
             Packaging](../extending/packaging.html#python-packaging){.reference
             .internal}
@@ -1582,6 +1599,9 @@ latest
             .internal}
             -   [Quantum
                 Embeddings](../../api/languages/python_api.html#quantum-embeddings){.reference
+                .internal}
+            -   [Qiskit and OpenQASM
+                Interoperability](../../api/languages/python_api.html#qiskit-and-openqasm-interoperability){.reference
                 .internal}
         -   [Quantum Error
             Correction](../../api/languages/python_api.html#quantum-error-correction){.reference
@@ -1887,6 +1907,9 @@ latest
             -   [[`u3`{.code .docutils .literal
                 .notranslate}]{.pre}](../../api/default_ops.html#u3){.reference
                 .internal}
+            -   [[`exp_pauli`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#exp-pauli){.reference
+                .internal}
         -   [Adjoint and Controlled
             Operations](../../api/default_ops.html#adjoint-and-controlled-operations){.reference
             .internal}
@@ -1927,8 +1950,7 @@ latest
 
 [Preview]{.caption-text}
 
--   [CUDA-Q Logical](./preview/logical/index.html#http://){.reference
-    .external}
+-   [CUDA-Q Logical](/preview/logical/#http://){.reference .external}
 :::
 :::
 
@@ -2157,14 +2179,16 @@ you set for the corresponding environment variable(s).
 ::: {#cuda .section}
 ### CUDA[¶](#cuda "Permalink to this heading"){.headerlink}
 
-Building CUDA-Q requires a full installation of the CUDA toolkit. **You
-can install the CUDA toolkit and use the CUDA compiler without having a
-GPU.** The instructions are tested using version 12.6 and 13.0, but
-other CUDA 12 or 13 versions should work, as long as the CUDA runtime
-version on the host system matches the CUDA version used for the build,
-and the installed driver on the host system supports that CUDA version.
-We recommend using the latest CUDA version that is supported by the
-driver on the host system.
+Building CUDA-Q requires a full installation of the CUDA toolkit.
+Running CUDA-Q only requires the CUDA runtime libraries, see
+[[below]{.std .std-ref}](#cuda-runtime-libraries){.reference .internal}.
+**You can install the CUDA toolkit and use the CUDA compiler without
+having a GPU.** The instructions are tested using version 12.6 and 13.0,
+but other CUDA 12 or 13 versions should work, as long as the CUDA
+runtime version on the host system matches the CUDA version used for the
+build, and the installed driver on the host system supports that CUDA
+version. We recommend using the latest CUDA version that is supported by
+the driver on the host system.
 
 Download a suitable [CUDA
 version](https://developer.nvidia.com/cuda-toolkit-archive){.reference
@@ -2261,9 +2285,9 @@ will not work.
 Please follow the instructions in the respective subsection(s) to build
 the necessary components for using CUDA-Q from C++ and/or Python. After
 the build, check that the GPU-accelerated components have been built by
-confirming that the file [`nvidia.yml`{.code .docutils .literal
-.notranslate}]{.pre} exists in the
-[`$CUDAQ_INSTALL_PREFIX/targets`{.code .docutils .literal
+confirming that the file [`libnvqir-custatevec-fp32.so`{.code .docutils
+.literal .notranslate}]{.pre} exists in the
+[`$CUDAQ_INSTALL_PREFIX/lib`{.code .docutils .literal
 .notranslate}]{.pre} folder. We also recommend checking the build log
 printed to the console to confirm that all desired components have been
 built.
@@ -2440,8 +2464,9 @@ following command to build CUDA-Q:
     CUDAQ_REQUIRE_OPENMP=TRUE \
     CUDAQ_WERROR=TRUE \
     CUDAQ_PYTHON_SUPPORT=OFF \
+    CUDAQ_BUILD_TESTS=TRUE \
     LLVM_PROJECTS='clang;flang;lld;mlir;openmp;runtimes' \
-    bash scripts/build_cudaq.sh -t llvm -v -- \
+    bash scripts/build_cudaq.sh -t llvm -v -i -- \
         "-DCUDAQ_ENABLE_PROJECTS=cudaq;runtime;realtime" \
         -DCUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR=OFF && \
     echo "=== ccache stats (cpp_build) ===" && (ccache -s 2>/dev/null || true) && \
@@ -2620,6 +2645,8 @@ dependencies that are not included in the migrated assets and are needed
 to use some of the CUDA-Q features and components.
 
 ::: {#cuda-runtime-libraries .section}
+[]{#id1}
+
 ### CUDA Runtime Libraries[¶](#cuda-runtime-libraries "Permalink to this heading"){.headerlink}
 
 To use GPU-acceleration in CUDA-Q you will need to install the necessary
@@ -2653,6 +2680,20 @@ packages for the AlmaLinux 8 environment:
     fi
 :::
 :::
+
+[CuPy](https://cupy.dev){.reference .external} compiles kernels at
+runtime and needs the CUDA headers, which the runtime libraries do not
+include. Without them it fails with "Failed to find CUDA headers", for
+example when using the [`dynamics`{.docutils .literal
+.notranslate}]{.pre} target. Install
+[`cuda-cudart-dev-<version>`{.docutils .literal .notranslate}]{.pre} or
+the complete CUDA toolkit, or install CuPy with its [`ctk`{.docutils
+.literal .notranslate}]{.pre} extra, for example [`pip`{.docutils
+.literal .notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`install`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`cupy-cuda13x[ctk]`{.docutils .literal
+.notranslate}]{.pre}.
 :::
 
 ::: {#mpi .section}

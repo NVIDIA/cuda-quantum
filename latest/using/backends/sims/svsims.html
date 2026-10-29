@@ -686,11 +686,8 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="../../cudaqx/cudaqx.html">   CUDA-QX</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../cudaqx/cudaqx.html#cuda-q-solvers">CUDA-Q Solvers</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../cudaqx/cudaqx.html#cuda-q-qec">CUDA-Q QEC</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="../../cudaq-qec/cudaq-qec.html">   CUDA-Q QEC</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../cudaq-algorithms/cudaq-algorithms.html">   CUDA-Q Algorithms</a></li>
 <li class="toctree-l1"><a class="reference internal" href="../../install/install.html">   Installation</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../install/local_installation.html">Local Installation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../install/local_installation.html#introduction">Introduction</a><ul>
@@ -769,6 +766,12 @@
 <li class="toctree-l4"><a class="reference internal" href="../../extending/compiler/cudaq_ir.html#source-and-tests">Source and tests</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../extending/compiler/ir_changelog.html">Value-semantics IR change log</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../extending/compiler/ir_changelog.html#producing-this-ir">Producing this IR</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../extending/compiler/ir_changelog.html#upcoming-release-main-branch">Upcoming release (<code class="docutils literal notranslate"><span class="pre">main</span></code> branch)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../extending/compiler/ir_changelog.html#id5">0.16.0</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../../extending/compiler/pass_plugins.html">External compiler pass plugins</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../extending/compiler/pass_plugins.html#implement-and-register-the-pass">Implement and register the pass</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../extending/compiler/pass_plugins.html#build-the-plugin">Build the plugin</a></li>
@@ -793,12 +796,16 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../extending/packaging.html">Package &amp; distribute a backend plugin</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../extending/packaging.html#plugin-package-layout">Plugin Package Layout</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../extending/packaging.html#how-to-pre-compile-a-target-config-yaml">How to pre-compile a target config YAML</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../extending/packaging.html#target-yaml-reference-plugin-fields">Target YAML Reference (Plugin Fields)</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../extending/packaging.html#plugin-root"><code class="docutils literal notranslate"><span class="pre">%PLUGIN_ROOT%</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../extending/packaging.html#target-arguments"><code class="docutils literal notranslate"><span class="pre">target-arguments</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../../extending/packaging.html#building-with-cudaq-external-projects">Building with <code class="docutils literal notranslate"><span class="pre">CUDAQ_EXTERNAL_PROJECTS</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../extending/packaging.html#building-with-cudaq-external-projects">Building with <code class="docutils literal notranslate"><span class="pre">CUDAQ_EXTERNAL_PROJECTS</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../extending/packaging.html#baking-a-target-into-the-pre-compiled-database-instead-of-shipping-a-plugin">Baking a target into the pre-compiled database instead of shipping a plugin</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../../extending/packaging.html#python-packaging">Python Packaging</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../extending/packaging.html#pyproject-toml"><code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../extending/packaging.html#init-py"><code class="docutils literal notranslate"><span class="pre">__init__.py</span></code></a></li>
@@ -937,6 +944,7 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../../api/languages/python_api.html#cudaq-contrib"><code class="docutils literal notranslate"><span class="pre">cudaq.contrib</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#quantum-embeddings">Quantum Embeddings</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/languages/python_api.html#qiskit-and-openqasm-interoperability">Qiskit and OpenQASM Interoperability</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../../api/languages/python_api.html#quantum-error-correction">Quantum Error Correction</a><ul>
@@ -1062,6 +1070,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../../api/default_ops.html#t"><code class="code docutils literal notranslate"><span class="pre">t</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/default_ops.html#swap"><code class="code docutils literal notranslate"><span class="pre">swap</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../../api/default_ops.html#u3"><code class="code docutils literal notranslate"><span class="pre">u3</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../../api/default_ops.html#exp-pauli"><code class="code docutils literal notranslate"><span class="pre">exp_pauli</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../../api/default_ops.html#adjoint-and-controlled-operations">Adjoint and Controlled Operations</a></li>
@@ -1088,7 +1097,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Preview</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference external" href="./preview/logical/index.html#http://">CUDA-Q Logical</a></li>
+<li class="toctree-l1"><a class="reference external" href="/preview/logical/#http://">CUDA-Q Logical</a></li>
 </ul>
 
         </div>
@@ -1123,8 +1132,8 @@
 <h1>State Vector Simulators<a class="headerlink" href="#state-vector-simulators" title="Permalink to this heading">¶</a></h1>
 <section id="cpu">
 <h2>CPU<a class="headerlink" href="#cpu" title="Permalink to this heading">¶</a></h2>
-<p id="qpp-cpu-backend"><span id="openmp-cpu-only"></span>The <code class="code docutils literal notranslate"><span class="pre">qpp-cpu</span></code> backend backend provides a state vector simulator based on the CPU-only, OpenMP threaded <a class="reference external" href="https://github.com/softwareqinc/qpp">Q++</a> library.
-This backend is good for basic testing and experimentation with just a few qubits, but performs poorly for all but the smallest simulation and is the default target when running on CPU-only systems.</p>
+<p id="qpp-cpu-backend"><span id="openmp-cpu-only"></span>The <code class="code docutils literal notranslate"><span class="pre">qpp-cpu</span></code> backend provides a state vector simulator based on the CPU-only, OpenMP threaded <a class="reference external" href="https://github.com/softwareqinc/qpp">Q++</a> library.
+This backend is good for basic testing and experimentation with just a few qubits, but performs poorly for all but the smallest simulations and is the default target when running on CPU-only systems.</p>
 <p>To execute a program on the <code class="code docutils literal notranslate"><span class="pre">qpp-cpu</span></code> target even if a GPU-accelerated backend is available,</p>
 <p>use the following commands:</p>
 <div class="tab-set docutils">
@@ -1237,7 +1246,7 @@ It is worth drawing attention to gate fusion, a powerful tool for improving simu
 </tbody>
 </table>
 <div class="deprecated">
-<p><span class="versionmodified deprecated">Deprecated since version 0.8: </span>The <code class="code docutils literal notranslate"><span class="pre">nvidia-fp64</span></code> targets, which is equivalent setting the <code class="code docutils literal notranslate"><span class="pre">fp64</span></code> option on the <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> target,
+<p><span class="versionmodified deprecated">Deprecated since version 0.8: </span>The <code class="code docutils literal notranslate"><span class="pre">nvidia-fp64</span></code> target, which is equivalent to setting the <code class="code docutils literal notranslate"><span class="pre">fp64</span></code> option on the <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> target,
 is deprecated and will be removed in a future release.</p>
 </div>
 <div class="admonition note">
@@ -1296,7 +1305,7 @@ invoking the program with the command</p>
 <div class="admonition note">
 <p class="admonition-title">Note</p>
 <ul class="simple">
-<li><p>The order of the option settings are interchangeable.
+<li><p>The order of the option settings is interchangeable.
 For example, <code class="code docutils literal notranslate"><span class="pre">cudaq.set_target('nvidia',</span> <span class="pre">option='mgpu,fp64')</span></code> is equivalent to <code class="code docutils literal notranslate"><span class="pre">cudaq.set_target('nvidia',</span> <span class="pre">option='fp64,mgpu')</span></code>.</p></li>
 <li><p>The <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> target has single-precision as the default setting. Thus, using <code class="code docutils literal notranslate"><span class="pre">option='mgpu'</span></code> implies that <code class="code docutils literal notranslate"><span class="pre">option='mgpu,fp32'</span></code>.</p></li>
 </ul>
@@ -1380,7 +1389,7 @@ the multi-node multi-GPU configuration. Any environment variables must be set pr
 </tbody>
 </table>
 <div class="deprecated">
-<p><span class="versionmodified deprecated">Deprecated since version 0.8: </span>The <code class="code docutils literal notranslate"><span class="pre">nvidia-mgpu</span></code> backend, which is equivalent to the multi-node multi-GPU double-precision option (<code class="code docutils literal notranslate"><span class="pre">mgpu,fp64</span></code>) of the <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code>
+<p><span class="versionmodified deprecated">Deprecated since version 0.8: </span>The <code class="code docutils literal notranslate"><span class="pre">nvidia-mgpu</span></code> backend, which is equivalent to the multi-node multi-GPU double-precision option (<code class="code docutils literal notranslate"><span class="pre">mgpu,fp64</span></code>) of the <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> target,
 is deprecated and will be removed in a future release.</p>
 </div>
 <p>The above configuration options of the <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> backend
@@ -1468,7 +1477,7 @@ bits.</p>
 </div>
 <p>Fabric Handle needs the <code class="code docutils literal notranslate"><span class="pre">IMEX</span></code> channels of the NVIDIA driver. Verify they are present before
 relying on it: <code class="code docutils literal notranslate"><span class="pre">/proc/devices</span></code> must list <code class="code docutils literal notranslate"><span class="pre">nvidia-caps-imex-channels</span></code>, and an accessible device
-node must exist under <code class="code docutils literal notranslate"><span class="pre">/dev/nvidia-caps-imex-channels/</span></code> (<code class="code docutils literal notranslate"><span class="pre">cuMemCreate</span></code>, in <a class="reference external" href="https://docs.nvidia.com/cuda/cuda-driver-api/group__CUDA__VA.html">CUDA Driver API –
+node must exist under <code class="code docutils literal notranslate"><span class="pre">/dev/nvidia-caps-imex-channels/</span></code> (<code class="code docutils literal notranslate"><span class="pre">cuMemCreate</span></code>, in <a class="reference external" href="https://docs.nvidia.com/cuda/cuda-driver-api/cuda_driver_api/group__CUDA__VA.html">CUDA Driver API –
 Virtual Memory Management</a>):</p>
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>grep<span class="w"> </span>nvidia-caps-imex-channels<span class="w"> </span>/proc/devices
 ls<span class="w"> </span>/dev/nvidia-caps-imex-channels/

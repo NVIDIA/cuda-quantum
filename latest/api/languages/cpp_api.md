@@ -1131,13 +1131,11 @@ latest
             -   [Test
                 harness](../../using/realtime/device_call.html#test-harness){.reference
                 .internal}
--   [CUDA-QX](../../using/cudaqx/cudaqx.html){.reference .internal}
-    -   [CUDA-Q
-        Solvers](../../using/cudaqx/cudaqx.html#cuda-q-solvers){.reference
-        .internal}
-    -   [CUDA-Q
-        QEC](../../using/cudaqx/cudaqx.html#cuda-q-qec){.reference
-        .internal}
+-   [CUDA-Q QEC](../../using/cudaq-qec/cudaq-qec.html){.reference
+    .internal}
+-   [CUDA-Q
+    Algorithms](../../using/cudaq-algorithms/cudaq-algorithms.html){.reference
+    .internal}
 -   [Installation](../../using/install/install.html){.reference
     .internal}
     -   [Local
@@ -1278,6 +1276,18 @@ latest
             -   [Source and
                 tests](../../using/extending/compiler/cudaq_ir.html#source-and-tests){.reference
                 .internal}
+        -   [Value-semantics IR change
+            log](../../using/extending/compiler/ir_changelog.html){.reference
+            .internal}
+            -   [Producing this
+                IR](../../using/extending/compiler/ir_changelog.html#producing-this-ir){.reference
+                .internal}
+            -   [Upcoming release ([`main`{.docutils .literal
+                .notranslate}]{.pre}
+                branch)](../../using/extending/compiler/ir_changelog.html#upcoming-release-main-branch){.reference
+                .internal}
+            -   [0.16.0](../../using/extending/compiler/ir_changelog.html#id5){.reference
+                .internal}
         -   [External compiler pass
             plugins](../../using/extending/compiler/pass_plugins.html){.reference
             .internal}
@@ -1326,6 +1336,9 @@ latest
         -   [Plugin Package
             Layout](../../using/extending/packaging.html#plugin-package-layout){.reference
             .internal}
+        -   [How to pre-compile a target config
+            YAML](../../using/extending/packaging.html#how-to-pre-compile-a-target-config-yaml){.reference
+            .internal}
         -   [Target YAML Reference (Plugin
             Fields)](../../using/extending/packaging.html#target-yaml-reference-plugin-fields){.reference
             .internal}
@@ -1338,6 +1351,10 @@ latest
         -   [Building with [`CUDAQ_EXTERNAL_PROJECTS`{.docutils .literal
             .notranslate}]{.pre}](../../using/extending/packaging.html#building-with-cudaq-external-projects){.reference
             .internal}
+            -   [Baking a target into the pre-compiled database instead
+                of shipping a
+                plugin](../../using/extending/packaging.html#baking-a-target-into-the-pre-compiled-database-instead-of-shipping-a-plugin){.reference
+                .internal}
         -   [Python
             Packaging](../../using/extending/packaging.html#python-packaging){.reference
             .internal}
@@ -1608,6 +1625,9 @@ latest
             .internal}
             -   [Quantum
                 Embeddings](python_api.html#quantum-embeddings){.reference
+                .internal}
+            -   [Qiskit and OpenQASM
+                Interoperability](python_api.html#qiskit-and-openqasm-interoperability){.reference
                 .internal}
         -   [Quantum Error
             Correction](python_api.html#quantum-error-correction){.reference
@@ -1906,6 +1926,9 @@ latest
             -   [[`u3`{.code .docutils .literal
                 .notranslate}]{.pre}](../default_ops.html#u3){.reference
                 .internal}
+            -   [[`exp_pauli`{.code .docutils .literal
+                .notranslate}]{.pre}](../default_ops.html#exp-pauli){.reference
+                .internal}
         -   [Adjoint and Controlled
             Operations](../default_ops.html#adjoint-and-controlled-operations){.reference
             .internal}
@@ -1946,8 +1969,7 @@ latest
 
 [Preview]{.caption-text}
 
--   [CUDA-Q Logical](./preview/logical/index.html#http://){.reference
-    .external}
+-   [CUDA-Q Logical](/preview/logical/#http://){.reference .external}
 :::
 :::
 
@@ -9001,6 +9023,14 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
+    []{#structcudaq_1_1ExecutionResult_1a34758de0b66b186aad585c64c3ac0439 .target}[[[ExecutionResult]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[ExecutionResult]{.pre}]{.n}](#_CPPv4N5cudaq15ExecutionResult15ExecutionResultERR15ExecutionResult "cudaq::ExecutionResult::ExecutionResult"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[)]{.sig-paren}[ ]{.w}[[noexcept]{.pre}]{.k}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[default]{.pre}]{.k}[¶](#_CPPv4N5cudaq15ExecutionResult15ExecutionResultERR15ExecutionResult "Permalink to this definition"){.headerlink}\
+
+    :   Transfer ownership of the counts and sequential shot data.
+
+    ```{=html}
+    <!-- -->
+    ```
+
     []{#structcudaq_1_1ExecutionResult_1a46de0f6522e69f94787afb745768b0b8 .target}[[[ExecutionResult]{.pre}]{.n}](#_CPPv4N5cudaq15ExecutionResultE "cudaq::ExecutionResult"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[[operator]{.pre}]{.k}[[=]{.pre}]{.o}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[[ExecutionResult]{.pre}]{.n}](#_CPPv4N5cudaq15ExecutionResultE "cudaq::ExecutionResult"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[other]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq15ExecutionResultaSERK15ExecutionResult "Permalink to this definition"){.headerlink}\
 
     :   Set this [[ExecutionResult]{.std
@@ -9014,6 +9044,14 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
         Returns[:]{.colon}
 
         :   
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#structcudaq_1_1ExecutionResult_1af555929b013a6953bf9e980330c950d3 .target}[[[ExecutionResult]{.pre}]{.n}](#_CPPv4N5cudaq15ExecutionResultE "cudaq::ExecutionResult"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[[operator]{.pre}]{.k}[[=]{.pre}]{.o}]{.sig-name .descname}[(]{.sig-paren}[[[ExecutionResult]{.pre}]{.n}](#_CPPv4N5cudaq15ExecutionResultE "cudaq::ExecutionResult"){.reference .internal}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[)]{.sig-paren}[ ]{.w}[[noexcept]{.pre}]{.k}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[default]{.pre}]{.k}[¶](#_CPPv4N5cudaq15ExecutionResultaSERR15ExecutionResult "Permalink to this definition"){.headerlink}\
+
+    :   Replace this result by transferring ownership from another.
 
     ```{=html}
     <!-- -->
@@ -10127,8 +10165,9 @@ discriminate a vector of handles.
 
     []{#classcudaq_1_1complex__matrix_1a0bac7616799a0a3ea96ef1881fb5eda5 .target}[[[complex_matrix]{.pre}]{.n}](#_CPPv4N5cudaq14complex_matrixE "cudaq::complex_matrix"){.reference .internal}[ ]{.w}[[[exponential]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq14complex_matrix11exponentialEv "Permalink to this definition"){.headerlink}\
 
-    :   Matrix exponential, uses 20 terms of Taylor Series
-        approximation.
+    :   Matrix exponential, computed with a Pade
+        [`approximant`{.docutils .literal .notranslate}]{.pre} and
+        scaling and squaring.
 
     ```{=html}
     <!-- -->
@@ -12917,10 +12956,11 @@ them they are erased before execution.
     executes quantum kernel expressions. The [[QPU]{.std
     .std-ref}](#classcudaq_1_1QPU){.reference .internal} exposes certain
     information about the [[QPU]{.std
-    .std-ref}](#classcudaq_1_1QPU){.reference .internal} being
-    targeting, such as the number of available qubits, the logical ID
+    .std-ref}](#classcudaq_1_1QPU){.reference .internal} being targeted,
+    such as the compile target of the [[QPU]{.std
+    .std-ref}](#classcudaq_1_1QPU){.reference .internal}, the logical ID
     for this [[QPU]{.std .std-ref}](#classcudaq_1_1QPU){.reference
-    .internal} in a set of available QPUs, and its qubit connectivity.
+    .internal} in a set of available QPUs and the current noise model.
     The [[QPU]{.std .std-ref}](#classcudaq_1_1QPU){.reference .internal}
     keeps track of an execution queue for enqueuing asynchronous tasks
     that execute quantum kernel expressions. The [[QPU]{.std
@@ -12993,22 +13033,6 @@ them they are erased before execution.
     :   Get id of the thread this [[QPU]{.std
         .std-ref}](#classcudaq_1_1QPU){.reference .internal}'s queue
         executes on.
-
-    ```{=html}
-    <!-- -->
-    ```
-
-    []{#classcudaq_1_1QPU_1aed29436f93c96339d245b906862e0443 .target}[[inline]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[[getNumQubits]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3QPU12getNumQubitsEv "Permalink to this definition"){.headerlink}\
-
-    :   Return the number of qubits.
-
-    ```{=html}
-    <!-- -->
-    ```
-
-    []{#classcudaq_1_1QPU_1a783a0450e73f35edad0322e1c07bc702 .target}[[inline]{.pre}]{.k}[ ]{.w}[[auto]{.pre}]{.kt}[ ]{.w}[[[getConnectivity]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3QPU15getConnectivityEv "Permalink to this definition"){.headerlink}\
-
-    :   Return the qubit connectivity.
 
     ```{=html}
     <!-- -->
@@ -13089,15 +13113,6 @@ them they are erased before execution.
 
         This is called after the execution context has been finalized
         and before the execution context is reset.
-
-    ```{=html}
-    <!-- -->
-    ```
-
-    []{#classcudaq_1_1QPU_1a945fb6566ca01562c092cb3e4b3d98ab .target}[[virtual]{.pre}]{.k}[ ]{.w}[[CompileTarget]{.pre}]{.n}[ ]{.w}[[[getCompileTarget]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[bool]{.pre}]{.kt}[ ]{.w}[[skipPipelineSubstitutions]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[false]{.pre}]{.k}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3QPU16getCompileTargetEb "Permalink to this definition"){.headerlink}\
-
-    :   Get the compile target of the [[QPU]{.std
-        .std-ref}](#classcudaq_1_1QPU){.reference .internal}.
 
     ```{=html}
     <!-- -->
@@ -13249,8 +13264,7 @@ them they are erased before execution.
     [[quantum_platform]{.std
     .std-ref}](#classcudaq_1_1quantum__platform){.reference .internal}
     exposes a public API for programmers to query specific information
-    about the targeted QPU(s) (e.g. number of qubits, qubit
-    connectivity, etc.). This type is meant to be subclassed for
+    about the targeted QPU(s). This type is meant to be subclassed for
     concrete realizations of quantum platforms, which are intended to
     populate the QPUs of this base class via [`addQPU`{.docutils
     .literal .notranslate}]{.pre} and [`clearQPUs`{.docutils .literal
@@ -13258,24 +13272,6 @@ them they are erased before execution.
 
     ::: {.breathe-sectiondef .docutils .container}
     Public Functions
-
-    []{#classcudaq_1_1quantum__platform_1aa0162be5a19283a7fe9a933ff93425c2 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[optional]{.pre}]{.n}[[\<]{.pre}]{.p}[[[QubitConnectivity]{.pre}]{.n}](#_CPPv4N5cudaq17QubitConnectivityE "cudaq::QubitConnectivity"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[[connectivity]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#_CPPv4N5cudaq16quantum_platform12connectivityEv "Permalink to this definition"){.headerlink}\
-
-    :   Fetch the connectivity info.
-
-    ```{=html}
-    <!-- -->
-    ```
-
-    []{#classcudaq_1_1quantum__platform_1a9552749bad6b44d31284b5614b3cc841 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[[get_num_qubits]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[qpu_id]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[0]{.pre}]{.m}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq16quantum_platform14get_num_qubitsENSt6size_tE "Permalink to this definition"){.headerlink}\
-
-    :   Get the number of qubits for the [[QPU]{.std
-        .std-ref}](#classcudaq_1_1QPU){.reference .internal} with ID
-        qpu_id.
-
-    ```{=html}
-    <!-- -->
-    ```
 
     []{#classcudaq_1_1quantum__platform_1aa3371a29fdf210c5a0831f199c2604a7 .target}[[inline]{.pre}]{.k}[ ]{.w}[[virtual]{.pre}]{.k}[ ]{.w}[[bool]{.pre}]{.kt}[ ]{.w}[[[supports_task_distribution]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq16quantum_platform26supports_task_distributionEv "Permalink to this definition"){.headerlink}\
 
@@ -13508,23 +13504,6 @@ them they are erased before execution.
 :   The QuantumTask is ultimately what gets added to the execution
     queue. It is meant to wrap any Sampling or Observe task with an
     appropriate std::promise instance being provided and set.
-
-```{=html}
-<!-- -->
-```
-
-[]{#quantum__platform_8h_1a104e794b18a96a94b7b3ee6fbd96698d .target}[[using]{.pre}]{.k}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[QubitConnectivity]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[[QubitEdge]{.pre}]{.n}](#_CPPv4N5cudaq9QubitEdgeE "cudaq::QubitEdge"){.reference .internal}[[\>]{.pre}]{.p}[¶](#_CPPv4N5cudaq17QubitConnectivityE "Permalink to this definition"){.headerlink}\
-
-:   
-
-```{=html}
-<!-- -->
-```
-
-[]{#quantum__platform_8h_1aa2ee059741b84fd4577879dad8e672ef .target}[[using]{.pre}]{.k}[ ]{.w}[[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}]{.sig-prename .descclassname}[[[QubitEdge]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[pair]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[[,]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[[\>]{.pre}]{.p}[¶](#_CPPv4N5cudaq9QubitEdgeE "Permalink to this definition"){.headerlink}\
-
-:   Typedefs for defining the connectivity structure of a [[QPU]{.std
-    .std-ref}](#classcudaq_1_1QPU){.reference .internal}.
 
 ```{=html}
 <!-- -->

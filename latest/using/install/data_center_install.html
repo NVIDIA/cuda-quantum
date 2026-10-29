@@ -686,11 +686,8 @@
 </li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="../cudaqx/cudaqx.html">   CUDA-QX</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../cudaqx/cudaqx.html#cuda-q-solvers">CUDA-Q Solvers</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../cudaqx/cudaqx.html#cuda-q-qec">CUDA-Q QEC</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="../cudaq-qec/cudaq-qec.html">   CUDA-Q QEC</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../cudaq-algorithms/cudaq-algorithms.html">   CUDA-Q Algorithms</a></li>
 <li class="toctree-l1 current"><a class="reference internal" href="install.html">   Installation</a><ul class="current">
 <li class="toctree-l2"><a class="reference internal" href="local_installation.html">Local Installation</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="local_installation.html#introduction">Introduction</a><ul>
@@ -769,6 +766,12 @@
 <li class="toctree-l4"><a class="reference internal" href="../extending/compiler/cudaq_ir.html#source-and-tests">Source and tests</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/compiler/ir_changelog.html">Value-semantics IR change log</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../extending/compiler/ir_changelog.html#producing-this-ir">Producing this IR</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../extending/compiler/ir_changelog.html#upcoming-release-main-branch">Upcoming release (<code class="docutils literal notranslate"><span class="pre">main</span></code> branch)</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../extending/compiler/ir_changelog.html#id5">0.16.0</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../extending/compiler/pass_plugins.html">External compiler pass plugins</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../extending/compiler/pass_plugins.html#implement-and-register-the-pass">Implement and register the pass</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../extending/compiler/pass_plugins.html#build-the-plugin">Build the plugin</a></li>
@@ -793,12 +796,16 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../extending/packaging.html">Package &amp; distribute a backend plugin</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../extending/packaging.html#plugin-package-layout">Plugin Package Layout</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/packaging.html#how-to-pre-compile-a-target-config-yaml">How to pre-compile a target config YAML</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../extending/packaging.html#target-yaml-reference-plugin-fields">Target YAML Reference (Plugin Fields)</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../extending/packaging.html#plugin-root"><code class="docutils literal notranslate"><span class="pre">%PLUGIN_ROOT%</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../extending/packaging.html#target-arguments"><code class="docutils literal notranslate"><span class="pre">target-arguments</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="../extending/packaging.html#building-with-cudaq-external-projects">Building with <code class="docutils literal notranslate"><span class="pre">CUDAQ_EXTERNAL_PROJECTS</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/packaging.html#building-with-cudaq-external-projects">Building with <code class="docutils literal notranslate"><span class="pre">CUDAQ_EXTERNAL_PROJECTS</span></code></a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../extending/packaging.html#baking-a-target-into-the-pre-compiled-database-instead-of-shipping-a-plugin">Baking a target into the pre-compiled database instead of shipping a plugin</a></li>
+</ul>
+</li>
 <li class="toctree-l3"><a class="reference internal" href="../extending/packaging.html#python-packaging">Python Packaging</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../extending/packaging.html#pyproject-toml"><code class="docutils literal notranslate"><span class="pre">pyproject.toml</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../extending/packaging.html#init-py"><code class="docutils literal notranslate"><span class="pre">__init__.py</span></code></a></li>
@@ -937,6 +944,7 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#cudaq-contrib"><code class="docutils literal notranslate"><span class="pre">cudaq.contrib</span></code></a><ul>
 <li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#quantum-embeddings">Quantum Embeddings</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/languages/python_api.html#qiskit-and-openqasm-interoperability">Qiskit and OpenQASM Interoperability</a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/languages/python_api.html#quantum-error-correction">Quantum Error Correction</a><ul>
@@ -1062,6 +1070,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#t"><code class="code docutils literal notranslate"><span class="pre">t</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#swap"><code class="code docutils literal notranslate"><span class="pre">swap</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#u3"><code class="code docutils literal notranslate"><span class="pre">u3</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../api/default_ops.html#exp-pauli"><code class="code docutils literal notranslate"><span class="pre">exp_pauli</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../api/default_ops.html#adjoint-and-controlled-operations">Adjoint and Controlled Operations</a></li>
@@ -1088,7 +1097,7 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Preview</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference external" href="./preview/logical/index.html#http://">CUDA-Q Logical</a></li>
+<li class="toctree-l1"><a class="reference external" href="/preview/logical/#http://">CUDA-Q Logical</a></li>
 </ul>
 
         </div>
@@ -1258,6 +1267,7 @@ corresponding environment variable(s).</p>
 <section id="cuda">
 <h3>CUDA<a class="headerlink" href="#cuda" title="Permalink to this heading">¶</a></h3>
 <p>Building CUDA-Q requires a full installation of the CUDA toolkit.
+Running CUDA-Q only requires the CUDA runtime libraries, see <a class="reference internal" href="#cuda-runtime-libraries"><span class="std std-ref">below</span></a>.
 <strong>You can install the CUDA toolkit and use the CUDA compiler without having a GPU.</strong>
 The instructions are tested using version 12.6 and 13.0, but other CUDA 12 or 13 versions
 should work, as long as the CUDA runtime version on the host system matches the
@@ -1334,7 +1344,7 @@ and merely downloading the source code as ZIP archive hence will not work.</p>
 <p>Please follow the instructions in the respective subsection(s) to build the necessary
 components for using CUDA-Q from C++ and/or Python.
 After the build, check that the GPU-accelerated components have been built by confirming
-that the file <code class="code docutils literal notranslate"><span class="pre">nvidia.yml</span></code> exists in the <code class="code docutils literal notranslate"><span class="pre">$CUDAQ_INSTALL_PREFIX/targets</span></code> folder.
+that the file <code class="code docutils literal notranslate"><span class="pre">libnvqir-custatevec-fp32.so</span></code> exists in the <code class="code docutils literal notranslate"><span class="pre">$CUDAQ_INSTALL_PREFIX/lib</span></code> folder.
 We also recommend checking the build log printed to the console to confirm that all desired
 components have been built.</p>
 <div class="admonition note">
@@ -1434,8 +1444,9 @@ command to build CUDA-Q:</p>
 <span class="nv">CUDAQ_REQUIRE_OPENMP</span><span class="o">=</span>TRUE<span class="w"> </span><span class="se">\</span>
 <span class="nv">CUDAQ_WERROR</span><span class="o">=</span>TRUE<span class="w"> </span><span class="se">\</span>
 <span class="nv">CUDAQ_PYTHON_SUPPORT</span><span class="o">=</span>OFF<span class="w"> </span><span class="se">\</span>
+<span class="nv">CUDAQ_BUILD_TESTS</span><span class="o">=</span>TRUE<span class="w"> </span><span class="se">\</span>
 <span class="nv">LLVM_PROJECTS</span><span class="o">=</span><span class="s1">'clang;flang;lld;mlir;openmp;runtimes'</span><span class="w"> </span><span class="se">\</span>
-bash<span class="w"> </span>scripts/build_cudaq.sh<span class="w"> </span>-t<span class="w"> </span>llvm<span class="w"> </span>-v<span class="w"> </span>--<span class="w"> </span><span class="se">\</span>
+bash<span class="w"> </span>scripts/build_cudaq.sh<span class="w"> </span>-t<span class="w"> </span>llvm<span class="w"> </span>-v<span class="w"> </span>-i<span class="w"> </span>--<span class="w"> </span><span class="se">\</span>
 <span class="w">    </span><span class="s2">"-DCUDAQ_ENABLE_PROJECTS=cudaq;runtime;realtime"</span><span class="w"> </span><span class="se">\</span>
 <span class="w">    </span>-DCUDAQ_ENABLE_PASQAL_QRMI_CONNECTOR<span class="o">=</span>OFF<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
 <span class="nb">echo</span><span class="w"> </span><span class="s2">"=== ccache stats (cpp_build) ==="</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="o">(</span>ccache<span class="w"> </span>-s<span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="nb">true</span><span class="o">)</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="se">\</span>
@@ -1563,7 +1574,7 @@ libraries that can be used with CUDA-Q, please take a look at <a class="referenc
 that are not included in the migrated assets and are needed to use some of the
 CUDA-Q features and components.</p>
 <section id="cuda-runtime-libraries">
-<h3>CUDA Runtime Libraries<a class="headerlink" href="#cuda-runtime-libraries" title="Permalink to this heading">¶</a></h3>
+<span id="id1"></span><h3>CUDA Runtime Libraries<a class="headerlink" href="#cuda-runtime-libraries" title="Permalink to this heading">¶</a></h3>
 <p>To use GPU-acceleration in CUDA-Q you will need to install the necessary
 CUDA runtime libraries. Their version (at least the version major) needs to match the version
 used for the build. While not necessary, we recommend installing
@@ -1591,6 +1602,10 @@ dnf<span class="w"> </span>install<span class="w"> </span>-y<span class="w"> </s
 <span class="k">fi</span>
 </pre></div>
 </div>
+<p><a class="reference external" href="https://cupy.dev">CuPy</a> compiles kernels at runtime and needs the CUDA headers, which the runtime libraries
+do not include. Without them it fails with “Failed to find CUDA headers”, for example when using the <code class="docutils literal notranslate"><span class="pre">dynamics</span></code> target.
+Install <code class="docutils literal notranslate"><span class="pre">cuda-cudart-dev-&lt;version&gt;</span></code> or the complete CUDA toolkit, or install CuPy with its <code class="docutils literal notranslate"><span class="pre">ctk</span></code> extra,
+for example <code class="docutils literal notranslate"><span class="pre">pip</span> <span class="pre">install</span> <span class="pre">cupy-cuda13x[ctk]</span></code>.</p>
 </section>
 <section id="mpi">
 <h3>MPI<a class="headerlink" href="#mpi" title="Permalink to this heading">¶</a></h3>

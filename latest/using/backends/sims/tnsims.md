@@ -1094,12 +1094,10 @@ latest
             -   [Test
                 harness](../../realtime/device_call.html#test-harness){.reference
                 .internal}
--   [CUDA-QX](../../cudaqx/cudaqx.html){.reference .internal}
-    -   [CUDA-Q
-        Solvers](../../cudaqx/cudaqx.html#cuda-q-solvers){.reference
-        .internal}
-    -   [CUDA-Q QEC](../../cudaqx/cudaqx.html#cuda-q-qec){.reference
-        .internal}
+-   [CUDA-Q QEC](../../cudaq-qec/cudaq-qec.html){.reference .internal}
+-   [CUDA-Q
+    Algorithms](../../cudaq-algorithms/cudaq-algorithms.html){.reference
+    .internal}
 -   [Installation](../../install/install.html){.reference .internal}
     -   [Local
         Installation](../../install/local_installation.html){.reference
@@ -1237,6 +1235,18 @@ latest
             -   [Source and
                 tests](../../extending/compiler/cudaq_ir.html#source-and-tests){.reference
                 .internal}
+        -   [Value-semantics IR change
+            log](../../extending/compiler/ir_changelog.html){.reference
+            .internal}
+            -   [Producing this
+                IR](../../extending/compiler/ir_changelog.html#producing-this-ir){.reference
+                .internal}
+            -   [Upcoming release ([`main`{.docutils .literal
+                .notranslate}]{.pre}
+                branch)](../../extending/compiler/ir_changelog.html#upcoming-release-main-branch){.reference
+                .internal}
+            -   [0.16.0](../../extending/compiler/ir_changelog.html#id5){.reference
+                .internal}
         -   [External compiler pass
             plugins](../../extending/compiler/pass_plugins.html){.reference
             .internal}
@@ -1283,6 +1293,9 @@ latest
         -   [Plugin Package
             Layout](../../extending/packaging.html#plugin-package-layout){.reference
             .internal}
+        -   [How to pre-compile a target config
+            YAML](../../extending/packaging.html#how-to-pre-compile-a-target-config-yaml){.reference
+            .internal}
         -   [Target YAML Reference (Plugin
             Fields)](../../extending/packaging.html#target-yaml-reference-plugin-fields){.reference
             .internal}
@@ -1295,6 +1308,10 @@ latest
         -   [Building with [`CUDAQ_EXTERNAL_PROJECTS`{.docutils .literal
             .notranslate}]{.pre}](../../extending/packaging.html#building-with-cudaq-external-projects){.reference
             .internal}
+            -   [Baking a target into the pre-compiled database instead
+                of shipping a
+                plugin](../../extending/packaging.html#baking-a-target-into-the-pre-compiled-database-instead-of-shipping-a-plugin){.reference
+                .internal}
         -   [Python
             Packaging](../../extending/packaging.html#python-packaging){.reference
             .internal}
@@ -1586,6 +1603,9 @@ latest
             .internal}
             -   [Quantum
                 Embeddings](../../../api/languages/python_api.html#quantum-embeddings){.reference
+                .internal}
+            -   [Qiskit and OpenQASM
+                Interoperability](../../../api/languages/python_api.html#qiskit-and-openqasm-interoperability){.reference
                 .internal}
         -   [Quantum Error
             Correction](../../../api/languages/python_api.html#quantum-error-correction){.reference
@@ -1891,6 +1911,9 @@ latest
             -   [[`u3`{.code .docutils .literal
                 .notranslate}]{.pre}](../../../api/default_ops.html#u3){.reference
                 .internal}
+            -   [[`exp_pauli`{.code .docutils .literal
+                .notranslate}]{.pre}](../../../api/default_ops.html#exp-pauli){.reference
+                .internal}
         -   [Adjoint and Controlled
             Operations](../../../api/default_ops.html#adjoint-and-controlled-operations){.reference
             .internal}
@@ -1931,8 +1954,7 @@ latest
 
 [Preview]{.caption-text}
 
--   [CUDA-Q Logical](./preview/logical/index.html#http://){.reference
-    .external}
+-   [CUDA-Q Logical](/preview/logical/#http://){.reference .external}
 :::
 :::
 
@@ -2380,6 +2402,23 @@ setting), please adjust the [`CUDAQ_MPS_SVD_ALGO`{.code .docutils
 ::: {.admonition .note}
 Note
 
+With CUDA 13 and cuSOLVER 12.3.4.7, [`CUDAQ_MPS_SVD_ALGO=GESVD`{.code
+.docutils .literal .notranslate}]{.pre} may fail with an
+[`Insufficient`{.docutils .literal .notranslate}]{.pre}` `{.docutils
+.literal .notranslate}[`host`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`workspace`{.docutils .literal .notranslate}]{.pre} error
+from [`tensorSVD`{.docutils .literal .notranslate}]{.pre}. cuSOLVER's
+[updated SVD
+algorithm](https://docs.nvidia.com/cuda/cuda-toolkit-release-notes/index.html#cusolver-release-13-4-update-1){.reference
+.external} requires host memory. Use another [`CUDAQ_MPS_SVD_ALGO`{.code
+.docutils .literal .notranslate}]{.pre} option or roll back to a
+cuSOLVER version earlier than 12.3.4.7.
+:::
+
+::: {.admonition .note}
+Note
+
 Both [`tensornet-mps`{.code .docutils .literal .notranslate}]{.pre} and
 [`tensornet`{.code .docutils .literal .notranslate}]{.pre} backends will
 allocate a scratch space on GPU device memory for their operations. For
@@ -2412,7 +2451,7 @@ when using the single precision setting.
 
 [Fermioniq](https://fermioniq.com/){.reference .external} offers a
 cloud-based tensor-network emulation platform,
-[Ava](https://www.fermioniq.com/ava/){.reference .external}, for the
+[Ava](https://docs.fermioniq.com/){.reference .external}, for the
 approximate simulation of large-scale quantum circuits beyond the memory
 limit of state vector and exact tensor network based methods.
 
@@ -2423,8 +2462,8 @@ referred to the [online
 documentation](https://docs.fermioniq.com/){.reference .external}.
 
 Users of CUDA-Q can access a simplified version of the full Fermioniq
-emulator ([Ava](https://www.fermioniq.com/ava/){.reference .external})
-from either C++ or Python. This version currently supports emulation of
+emulator ([Ava](https://docs.fermioniq.com/){.reference .external}) from
+either C++ or Python. This version currently supports emulation of
 quantum circuits without noise, and can return measurement samples
 and/or compute expectation values of observables.
 

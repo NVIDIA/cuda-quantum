@@ -1087,11 +1087,10 @@ latest
             -   [Test
                 harness](realtime/device_call.html#test-harness){.reference
                 .internal}
--   [CUDA-QX](cudaqx/cudaqx.html){.reference .internal}
-    -   [CUDA-Q Solvers](cudaqx/cudaqx.html#cuda-q-solvers){.reference
-        .internal}
-    -   [CUDA-Q QEC](cudaqx/cudaqx.html#cuda-q-qec){.reference
-        .internal}
+-   [CUDA-Q QEC](cudaq-qec/cudaq-qec.html){.reference .internal}
+-   [CUDA-Q
+    Algorithms](cudaq-algorithms/cudaq-algorithms.html){.reference
+    .internal}
 -   [Installation](install/install.html){.reference .internal}
     -   [Local Installation](install/local_installation.html){.reference
         .internal}
@@ -1223,6 +1222,18 @@ latest
             -   [Source and
                 tests](extending/compiler/cudaq_ir.html#source-and-tests){.reference
                 .internal}
+        -   [Value-semantics IR change
+            log](extending/compiler/ir_changelog.html){.reference
+            .internal}
+            -   [Producing this
+                IR](extending/compiler/ir_changelog.html#producing-this-ir){.reference
+                .internal}
+            -   [Upcoming release ([`main`{.docutils .literal
+                .notranslate}]{.pre}
+                branch)](extending/compiler/ir_changelog.html#upcoming-release-main-branch){.reference
+                .internal}
+            -   [0.16.0](extending/compiler/ir_changelog.html#id5){.reference
+                .internal}
         -   [External compiler pass
             plugins](extending/compiler/pass_plugins.html){.reference
             .internal}
@@ -1268,6 +1279,9 @@ latest
         -   [Plugin Package
             Layout](extending/packaging.html#plugin-package-layout){.reference
             .internal}
+        -   [How to pre-compile a target config
+            YAML](extending/packaging.html#how-to-pre-compile-a-target-config-yaml){.reference
+            .internal}
         -   [Target YAML Reference (Plugin
             Fields)](extending/packaging.html#target-yaml-reference-plugin-fields){.reference
             .internal}
@@ -1280,6 +1294,10 @@ latest
         -   [Building with [`CUDAQ_EXTERNAL_PROJECTS`{.docutils .literal
             .notranslate}]{.pre}](extending/packaging.html#building-with-cudaq-external-projects){.reference
             .internal}
+            -   [Baking a target into the pre-compiled database instead
+                of shipping a
+                plugin](extending/packaging.html#baking-a-target-into-the-pre-compiled-database-instead-of-shipping-a-plugin){.reference
+                .internal}
         -   [Python
             Packaging](extending/packaging.html#python-packaging){.reference
             .internal}
@@ -1567,6 +1585,9 @@ latest
             .internal}
             -   [Quantum
                 Embeddings](../api/languages/python_api.html#quantum-embeddings){.reference
+                .internal}
+            -   [Qiskit and OpenQASM
+                Interoperability](../api/languages/python_api.html#qiskit-and-openqasm-interoperability){.reference
                 .internal}
         -   [Quantum Error
             Correction](../api/languages/python_api.html#quantum-error-correction){.reference
@@ -1872,6 +1893,9 @@ latest
             -   [[`u3`{.code .docutils .literal
                 .notranslate}]{.pre}](../api/default_ops.html#u3){.reference
                 .internal}
+            -   [[`exp_pauli`{.code .docutils .literal
+                .notranslate}]{.pre}](../api/default_ops.html#exp-pauli){.reference
+                .internal}
         -   [Adjoint and Controlled
             Operations](../api/default_ops.html#adjoint-and-controlled-operations){.reference
             .internal}
@@ -1912,8 +1936,7 @@ latest
 
 [Preview]{.caption-text}
 
--   [CUDA-Q Logical](./preview/logical/index.html#http://){.reference
-    .external}
+-   [CUDA-Q Logical](/preview/logical/#http://){.reference .external}
 :::
 :::
 
@@ -2212,11 +2235,11 @@ C++
         // Extract and print results
         for (size_t i = 0; i < steps.size(); i++) {
           double ex =
-              evolution_result.expectation_values.value()[0][i].expectation();
+              evolution_result.expectation_values.value()[i][0].expectation();
           double ey =
-              evolution_result.expectation_values.value()[1][i].expectation();
+              evolution_result.expectation_values.value()[i][1].expectation();
           double ez =
-              evolution_result.expectation_values.value()[2][i].expectation();
+              evolution_result.expectation_values.value()[i][2].expectation();
           std::cout << steps[i] << " " << ex << " " << ey << " " << ez << "\n";
         }
 :::
@@ -2436,6 +2459,49 @@ running "[`import`{.code .docutils .literal
 | .notransl   |                    | line (center, lower, or upper)    |
 | ate}]{.pre} |                    | will use the multi-diagonal       |
 |             |                    | sparse storage.                   |
++-------------+--------------------+-----------------------------------+
+| [`C         | Non-negative       | The maximum dimension of a fused  |
+| UDAQ_DYNAMI | number             | dense operator. Product terms     |
+| CS_MAX_FUSE |                    | with constant coefficients that   |
+| D_DIMENSION |                    | act on sub-systems of at most     |
+| `{.docutils |                    | this dimension are summed into a  |
+| .literal    |                    | single dense operator per group   |
+| .notransl   |                    | of degrees of freedom, with terms |
+| ate}]{.pre} |                    | acting on a subset of a group's   |
+|             |                    | degrees folded into that group.   |
+|             |                    | For master equations, an operator |
+|             |                    | acting on both sides of the       |
+|             |                    | density matrix has the square of  |
+|             |                    | its sub-system's dimension:       |
+|             |                    | constant Hamiltonian terms and    |
+|             |                    | collapse operators                |
+|             |                    | [\\(L\\)]{.math .notranslate      |
+|             |                    | .nohighlight} on sub-systems      |
+|             |                    | whose squared dimension is at     |
+|             |                    | most this value are combined into |
+|             |                    | dense superoperators acting on    |
+|             |                    | both sides at once, one per group |
+|             |                    | of overlapping degrees of         |
+|             |                    | freedom. For other constant       |
+|             |                    | collapse operators within this    |
+|             |                    | dimension, the                    |
+|             |                    | [\\(-\\frac{1}{2}\\{L\^\\dagger   |
+|             |                    | L, \\rho\\}\\)]{.math             |
+|             |                    | .notranslate .nohighlight} part   |
+|             |                    | is folded into the Hamiltonian    |
+|             |                    | terms. Factors of [\\(L\^\\dagger |
+|             |                    | L\\)]{.math .notranslate          |
+|             |                    | .nohighlight} that act on the     |
+|             |                    | same degrees of freedom are       |
+|             |                    | multiplied into a single          |
+|             |                    | multi-diagonal operator when the  |
+|             |                    | product qualifies for             |
+|             |                    | multi-diagonal storage. Fusion    |
+|             |                    | reduces the number of passes over |
+|             |                    | the state. Increasing the maximum |
+|             |                    | dimension may decrease            |
+|             |                    | performance. Default is 64; 0     |
+|             |                    | disables all fusion.              |
 +-------------+--------------------+-----------------------------------+
 
 : [**Additional environment variable options for the \`dynamics\`

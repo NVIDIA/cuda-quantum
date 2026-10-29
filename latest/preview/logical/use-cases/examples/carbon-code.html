@@ -21,7 +21,7 @@
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" />
-    <link rel="next" title="Gidney–Ekerå RSA-2048" href="gidney-ekera.html" />
+    <link rel="next" title="Gidney–Ekerå RSA" href="gidney-ekera.html" />
     <link rel="prev" title="Fermi–Hubbard Estimation" href="fermi-hubbard.html" /> 
 </head>
 
@@ -47,37 +47,30 @@
               <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
 <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="../../getting-started/quickstart.html">Quick start</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../getting-started/quickstart.html#install">Install</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../getting-started/quickstart.html#running-the-shipped-examples">Running the shipped examples</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../getting-started/quickstart.html#step-1-estimate-an-existing-cuda-q-kernel">Step 1 — Estimate an existing CUDA-Q kernel</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../getting-started/quickstart.html#step-2-author-a-portable-p0-program">Step 2 — Author a portable P0 program</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../getting-started/quickstart.html#step-3-choose-a-code-and-a-gadget-p2">Step 3 — Choose a code and a gadget (P2)</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../getting-started/quickstart.html#step-4-lower-to-physical-events-and-schedule-them-p3">Step 4 — Lower to physical events and schedule them (P3)</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../getting-started/quickstart.html#step-5-emit-stim-text-from-the-command-line">Step 5 — Emit Stim text from the command line</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/quickstart.html#use-a-cuda-q-kernel">Use a CUDA-Q kernel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/quickstart.html#write-a-standalone-logical-program">Write a standalone logical program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/quickstart.html#build-from-source">Build from source</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../getting-started/quickstart.html#where-to-go-next">Where to go next</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../getting-started/cudaq-logical-in-practice.html">The logical programming stack</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../getting-started/cudaq-logical-in-practice.html#write-the-logical-program">1. Write the logical program</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../getting-started/cudaq-logical-in-practice.html#place-the-qubits-on-a-logical-machine">2. Place the qubits on a logical machine</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../getting-started/cudaq-logical-in-practice.html#define-a-qec-realization">3. Define a QEC realization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../getting-started/cudaq-logical-in-practice.html#estimate-a-selected-realization">4. Estimate a selected realization</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../getting-started/cudaq-logical-in-practice.html#emit-a-verified-gadget-as-stim">5. Emit a verified gadget as Stim</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../getting-started/cudaq-logical-in-practice.html#what-each-stage-owns">What each stage owns</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/cudaq-logical-in-practice.html#compile-and-estimate-the-logical-program">1. Compile and estimate the logical program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/cudaq-logical-in-practice.html#choose-the-code-and-its-implementations">2. Choose the code and its implementations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/cudaq-logical-in-practice.html#describe-the-device">3. Describe the device</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/cudaq-logical-in-practice.html#place-and-realize-the-program">4. Place and realize the program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/cudaq-logical-in-practice.html#schedule-and-estimate-the-physical-resources">5. Schedule and estimate the physical resources</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/cudaq-logical-in-practice.html#expose-the-device-as-a-cuda-q-target">6. Expose the device as a CUDA-Q target</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../getting-started/cudaq-logical-in-practice.html#where-to-go-next">Where to go next</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../getting-started/concepts.html">Core concepts</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../getting-started/concepts.html#four-stages-one-direction">1. Four stages, one direction</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../getting-started/concepts.html#facets-not-extra-stages">2. Facets, not extra stages</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../getting-started/concepts.html#linear-ownership">3. Linear ownership</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../getting-started/concepts.html#codes-profiles-encodings-three-different-things">4. Codes, profiles, encodings — three different things</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../getting-started/concepts.html#objectives-gadgets-protocols-claims-and-proofs">5. Objectives, gadgets, protocols — claims and proofs</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../getting-started/concepts.html#evidence-follows-the-program">6. Evidence follows the program</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../getting-started/concepts.html#there-is-no-registry-imports-are-the-linker">7. There is no registry — imports are the linker</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../getting-started/concepts.html#global-phase-is-not-observable">8. Global phase is not observable</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../getting-started/concepts.html#where-the-pieces-live">Where the pieces live</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../getting-started/concepts.html#where-to-go-next">Where to go next</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/concepts.html#logical-programs-and-quantum-values">Logical programs and quantum values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/concepts.html#definitions-builds-and-compilation">Definitions, builds, and compilation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/concepts.html#clifford-t-decomposition">Clifford+T decomposition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/concepts.html#codes-and-operation-implementations">Codes and operation implementations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/concepts.html#devices-and-placement">Devices and placement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/concepts.html#schedules-and-resource-estimates">Schedules and resource estimates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/concepts.html#cuda-q-integration">CUDA-Q integration</a></li>
 </ul>
 </li>
 <li class="toctree-l1 current"><a class="reference internal" href="index.html">CUDA-Q Logical by Example</a><ul class="current">
@@ -87,7 +80,7 @@
 <li class="toctree-l3"><a class="reference internal" href="cudaq-resource-estimate.html">CUDA-Q Logical Resource Estimate</a></li>
 <li class="toctree-l3"><a class="reference internal" href="fermi-hubbard.html">Fermi–Hubbard Estimation</a></li>
 <li class="toctree-l3 current"><a class="current reference internal" href="#">Carbon Code Target</a></li>
-<li class="toctree-l3"><a class="reference internal" href="gidney-ekera.html">Gidney–Ekerå RSA-2048</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gidney-ekera.html">Gidney–Ekerå RSA</a></li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="index.html#standalone-compiler-examples">Standalone compiler examples</a><ul>
@@ -97,6 +90,8 @@
 <li class="toctree-l3"><a class="reference internal" href="distillation.html">T-State Distillation</a></li>
 <li class="toctree-l3"><a class="reference internal" href="physical-schedule.html">Standalone Physical Schedule</a></li>
 <li class="toctree-l3"><a class="reference internal" href="lookup-addition.html">Gidney–Ekerå Lookup Addition</a></li>
+<li class="toctree-l3"><a class="reference internal" href="steane-bernstein-vazirani.html">Steane-Encoded Bernstein–Vazirani on Stim</a></li>
+<li class="toctree-l3"><a class="reference internal" href="t-factory-evaluation.html">T-State Distillation with <code class="docutils literal notranslate"><span class="pre">cudaq.run</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -145,6 +140,8 @@
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../magic-states-and-protocols.html#typed-resource-kinds">Typed resource kinds</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../magic-states-and-protocols.html#to-1-a-concrete-factory">15-to-1: a concrete factory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../magic-states-and-protocols.html#compact-factory-models-at-p3">Compact factory models at P3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../magic-states-and-protocols.html#continue-from-here">Continue from here</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../logical-synthesis.html">Logical Clifford+T synthesis</a><ul>
@@ -179,6 +176,7 @@
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="../../reference/for-stim-users.html">CUDA-Q Logical for Stim users</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="../../reference/for-stim-users.html#the-translation-table">The translation table</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/for-stim-users.html#execute-a-physical-build">Execute a physical build</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../reference/for-stim-users.html#worked-emission">Worked emission</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../reference/for-stim-users.html#what-has-no-stim-equivalent">What has no Stim equivalent</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../reference/for-stim-users.html#when-to-just-use-stim">When to just use Stim</a></li>
@@ -188,7 +186,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../reference/capabilities.html#what-the-product-is">What the product is</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../reference/capabilities.html#subsystem-status">Subsystem status</a></li>
 <li class="toctree-l2"><a class="reference internal" href="../../reference/capabilities.html#present-but-not-yet-exercised">Present but not yet exercised</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../reference/capabilities.html#documented-boundaries-all-fail-closed">Documented boundaries (all fail closed)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/capabilities.html#execution-and-documented-boundaries">Execution and documented boundaries</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="../../reference/architecture.html">Architecture</a><ul>
@@ -206,18 +204,11 @@
 <li class="toctree-l2"><a class="reference internal" href="../../reference/architecture.html#where-to-go-next">Where to go next</a></li>
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="../../reference/building-against-cudaq.html">Building against CUDA-Q</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="../../reference/building-against-cudaq.html#option-1-default-the-cudaq-devel-wheel">Option 1 (default): the <code class="docutils literal notranslate"><span class="pre">cudaq-devel</span></code> wheel</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../reference/building-against-cudaq.html#option-2-a-cuda-q-installation-built-from-source">Option 2: a CUDA-Q installation built from source</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../reference/building-against-cudaq.html#build-options">Build options</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../reference/building-against-cudaq.html#verifying-the-build">Verifying the build</a></li>
-<li class="toctree-l2"><a class="reference internal" href="../../reference/building-against-cudaq.html#troubleshooting">Troubleshooting</a></li>
-</ul>
-</li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference/building-against-cudaq.html">Building against CUDA-Q</a></li>
 </ul>
 <p class="caption" role="heading"><span class="caption-text">CUDA-Q</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest/releases.html">Main CUDA-Q documentation</a></li>
+<li class="toctree-l1"><a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest/">Main CUDA-Q documentation</a></li>
 </ul>
 
         </div>
@@ -241,7 +232,7 @@
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
         <a href="fermi-hubbard.html" class="btn btn-neutral float-left" title="Fermi–Hubbard Estimation" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="gidney-ekera.html" class="btn btn-neutral float-right" title="Gidney–Ekerå RSA-2048" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="gidney-ekera.html" class="btn btn-neutral float-right" title="Gidney–Ekerå RSA" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
@@ -383,7 +374,6 @@ complete physical target, and reports logical, static, and scheduled resources.<
 <span class="n">carbon_target</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">targets</span><span class="o">.</span><span class="n">Target</span><span class="o">.</span><span class="n">from_device</span><span class="p">(</span>
     <span class="s2">"carbon"</span><span class="p">,</span>
     <span class="n">carbon_device</span><span class="p">,</span>
-    <span class="n">runtime_backend</span><span class="o">=</span><span class="n">cql</span><span class="o">.</span><span class="n">targets</span><span class="o">.</span><span class="n">estimator</span><span class="p">,</span>
     <span class="n">estimate_options</span><span class="o">=</span><span class="p">{</span>
         <span class="s2">"p_phys"</span><span class="p">:</span> <span class="mf">1.0e-3</span><span class="p">,</span>
         <span class="s2">"failure_budget"</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">,</span>
@@ -411,14 +401,14 @@ complete physical target, and reports logical, static, and scheduled resources.<
 <span class="c1"># %%</span>
 <span class="c1"># Estimate through the complete Carbon target and inspect each resource layer.</span>
 <span class="n">estimate</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">estimate</span><span class="p">(</span><span class="n">logical_bell_pairs</span><span class="p">)</span>
-<span class="n">logical</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">estimate</span><span class="o">.</span><span class="n">LogicalEstimate</span><span class="o">.</span><span class="n">from_annotations</span><span class="p">(</span><span class="n">estimate</span><span class="o">.</span><span class="n">annotations</span><span class="p">)</span>
+<span class="n">logical</span> <span class="o">=</span> <span class="n">estimate</span><span class="o">.</span><span class="n">resources</span>
 <span class="n">static</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">estimate</span><span class="o">.</span><span class="n">FabricCounts</span><span class="o">.</span><span class="n">from_annotations</span><span class="p">(</span><span class="n">estimate</span><span class="o">.</span><span class="n">annotations</span><span class="p">)</span>
 <span class="n">schedule</span> <span class="o">=</span> <span class="n">estimate</span><span class="o">.</span><span class="n">annotations</span><span class="p">[</span><span class="s2">"SCHEDULE"</span><span class="p">]</span>
 
 <span class="k">assert</span> <span class="p">(</span><span class="n">Carbon</span><span class="o">.</span><span class="n">n</span><span class="p">,</span> <span class="n">Carbon</span><span class="o">.</span><span class="n">k</span><span class="p">,</span> <span class="n">Carbon</span><span class="o">.</span><span class="n">d</span><span class="o">.</span><span class="n">value</span><span class="p">)</span> <span class="o">==</span> <span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
-<span class="k">assert</span> <span class="n">logical</span><span class="o">.</span><span class="n">logical_qubits_peak</span> <span class="o">==</span> <span class="mi">4</span>
-<span class="k">assert</span> <span class="n">logical</span><span class="o">.</span><span class="n">actions</span><span class="p">[</span><span class="s2">"paired_h"</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span>
-<span class="k">assert</span> <span class="n">logical</span><span class="o">.</span><span class="n">actions</span><span class="p">[</span><span class="s2">"paired_cx"</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span>
+<span class="k">assert</span> <span class="n">logical</span><span class="o">.</span><span class="n">num_qubits</span> <span class="o">==</span> <span class="mi">4</span>
+<span class="k">assert</span> <span class="n">logical</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s2">"paired_h"</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
+<span class="k">assert</span> <span class="n">logical</span><span class="o">.</span><span class="n">count</span><span class="p">(</span><span class="s2">"paired_cx"</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span>
 <span class="k">assert</span> <span class="n">static</span><span class="o">.</span><span class="n">patches_peak</span> <span class="o">==</span> <span class="mi">2</span>
 <span class="k">assert</span> <span class="n">static</span><span class="o">.</span><span class="n">gadget_calls</span><span class="p">[</span><span class="s2">"paired_h_gadget"</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span>
 <span class="k">assert</span> <span class="n">static</span><span class="o">.</span><span class="n">gadget_calls</span><span class="p">[</span><span class="s2">"paired_cx_gadget"</span><span class="p">]</span> <span class="o">==</span> <span class="mi">1</span>
@@ -441,7 +431,7 @@ complete physical target, and reports logical, static, and scheduled resources.<
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="fermi-hubbard.html" class="btn btn-neutral float-left" title="Fermi–Hubbard Estimation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="gidney-ekera.html" class="btn btn-neutral float-right" title="Gidney–Ekerå RSA-2048" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="gidney-ekera.html" class="btn btn-neutral float-right" title="Gidney–Ekerå RSA" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

@@ -1118,12 +1118,10 @@ latest
             -   [Test
                 harness](../../realtime/device_call.html#test-harness){.reference
                 .internal}
--   [CUDA-QX](../../cudaqx/cudaqx.html){.reference .internal}
-    -   [CUDA-Q
-        Solvers](../../cudaqx/cudaqx.html#cuda-q-solvers){.reference
-        .internal}
-    -   [CUDA-Q QEC](../../cudaqx/cudaqx.html#cuda-q-qec){.reference
-        .internal}
+-   [CUDA-Q QEC](../../cudaq-qec/cudaq-qec.html){.reference .internal}
+-   [CUDA-Q
+    Algorithms](../../cudaq-algorithms/cudaq-algorithms.html){.reference
+    .internal}
 -   [Installation](../../install/install.html){.reference .internal}
     -   [Local
         Installation](../../install/local_installation.html){.reference
@@ -1255,6 +1253,16 @@ latest
                 .internal}
             -   [Source and tests](#source-and-tests){.reference
                 .internal}
+        -   [Value-semantics IR change
+            log](ir_changelog.html){.reference .internal}
+            -   [Producing this
+                IR](ir_changelog.html#producing-this-ir){.reference
+                .internal}
+            -   [Upcoming release ([`main`{.docutils .literal
+                .notranslate}]{.pre}
+                branch)](ir_changelog.html#upcoming-release-main-branch){.reference
+                .internal}
+            -   [0.16.0](ir_changelog.html#id5){.reference .internal}
         -   [External compiler pass
             plugins](pass_plugins.html){.reference .internal}
             -   [Implement and register the
@@ -1297,6 +1305,9 @@ latest
         -   [Plugin Package
             Layout](../packaging.html#plugin-package-layout){.reference
             .internal}
+        -   [How to pre-compile a target config
+            YAML](../packaging.html#how-to-pre-compile-a-target-config-yaml){.reference
+            .internal}
         -   [Target YAML Reference (Plugin
             Fields)](../packaging.html#target-yaml-reference-plugin-fields){.reference
             .internal}
@@ -1309,6 +1320,10 @@ latest
         -   [Building with [`CUDAQ_EXTERNAL_PROJECTS`{.docutils .literal
             .notranslate}]{.pre}](../packaging.html#building-with-cudaq-external-projects){.reference
             .internal}
+            -   [Baking a target into the pre-compiled database instead
+                of shipping a
+                plugin](../packaging.html#baking-a-target-into-the-pre-compiled-database-instead-of-shipping-a-plugin){.reference
+                .internal}
         -   [Python
             Packaging](../packaging.html#python-packaging){.reference
             .internal}
@@ -1599,6 +1614,9 @@ latest
             .internal}
             -   [Quantum
                 Embeddings](../../../api/languages/python_api.html#quantum-embeddings){.reference
+                .internal}
+            -   [Qiskit and OpenQASM
+                Interoperability](../../../api/languages/python_api.html#qiskit-and-openqasm-interoperability){.reference
                 .internal}
         -   [Quantum Error
             Correction](../../../api/languages/python_api.html#quantum-error-correction){.reference
@@ -1904,6 +1922,9 @@ latest
             -   [[`u3`{.code .docutils .literal
                 .notranslate}]{.pre}](../../../api/default_ops.html#u3){.reference
                 .internal}
+            -   [[`exp_pauli`{.code .docutils .literal
+                .notranslate}]{.pre}](../../../api/default_ops.html#exp-pauli){.reference
+                .internal}
         -   [Adjoint and Controlled
             Operations](../../../api/default_ops.html#adjoint-and-controlled-operations){.reference
             .internal}
@@ -1944,8 +1965,7 @@ latest
 
 [Preview]{.caption-text}
 
--   [CUDA-Q Logical](./preview/logical/index.html#http://){.reference
-    .external}
+-   [CUDA-Q Logical](/preview/logical/#http://){.reference .external}
 :::
 :::
 
@@ -1965,7 +1985,7 @@ latest
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
 Previous](index.html "CUDA-Q compiler development"){.btn .btn-neutral
 .float-left accesskey="p"} [Next []{.fa .fa-arrow-circle-right
-aria-hidden="true"}](pass_plugins.html "External compiler pass plugins"){.btn
+aria-hidden="true"}](ir_changelog.html "Value-semantics IR change log"){.btn
 .btn-neutral .float-right accesskey="n"}
 :::
 
@@ -2197,7 +2217,7 @@ Textual IR coverage is under [`cudaq/test/Optimizer`{.docutils .literal
 Previous](index.html "CUDA-Q compiler development"){.btn .btn-neutral
 .float-left accesskey="p" rel="prev"} [Next []{.fa
 .fa-arrow-circle-right
-aria-hidden="true"}](pass_plugins.html "External compiler pass plugins"){.btn
+aria-hidden="true"}](ir_changelog.html "Value-semantics IR change log"){.btn
 .btn-neutral .float-right accesskey="n" rel="next"}
 :::
 

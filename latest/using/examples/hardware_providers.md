@@ -1073,12 +1073,10 @@ latest
             -   [Test
                 harness](../realtime/device_call.html#test-harness){.reference
                 .internal}
--   [CUDA-QX](../cudaqx/cudaqx.html){.reference .internal}
-    -   [CUDA-Q
-        Solvers](../cudaqx/cudaqx.html#cuda-q-solvers){.reference
-        .internal}
-    -   [CUDA-Q QEC](../cudaqx/cudaqx.html#cuda-q-qec){.reference
-        .internal}
+-   [CUDA-Q QEC](../cudaq-qec/cudaq-qec.html){.reference .internal}
+-   [CUDA-Q
+    Algorithms](../cudaq-algorithms/cudaq-algorithms.html){.reference
+    .internal}
 -   [Installation](../install/install.html){.reference .internal}
     -   [Local
         Installation](../install/local_installation.html){.reference
@@ -1214,6 +1212,18 @@ latest
             -   [Source and
                 tests](../extending/compiler/cudaq_ir.html#source-and-tests){.reference
                 .internal}
+        -   [Value-semantics IR change
+            log](../extending/compiler/ir_changelog.html){.reference
+            .internal}
+            -   [Producing this
+                IR](../extending/compiler/ir_changelog.html#producing-this-ir){.reference
+                .internal}
+            -   [Upcoming release ([`main`{.docutils .literal
+                .notranslate}]{.pre}
+                branch)](../extending/compiler/ir_changelog.html#upcoming-release-main-branch){.reference
+                .internal}
+            -   [0.16.0](../extending/compiler/ir_changelog.html#id5){.reference
+                .internal}
         -   [External compiler pass
             plugins](../extending/compiler/pass_plugins.html){.reference
             .internal}
@@ -1260,6 +1270,9 @@ latest
         -   [Plugin Package
             Layout](../extending/packaging.html#plugin-package-layout){.reference
             .internal}
+        -   [How to pre-compile a target config
+            YAML](../extending/packaging.html#how-to-pre-compile-a-target-config-yaml){.reference
+            .internal}
         -   [Target YAML Reference (Plugin
             Fields)](../extending/packaging.html#target-yaml-reference-plugin-fields){.reference
             .internal}
@@ -1272,6 +1285,10 @@ latest
         -   [Building with [`CUDAQ_EXTERNAL_PROJECTS`{.docutils .literal
             .notranslate}]{.pre}](../extending/packaging.html#building-with-cudaq-external-projects){.reference
             .internal}
+            -   [Baking a target into the pre-compiled database instead
+                of shipping a
+                plugin](../extending/packaging.html#baking-a-target-into-the-pre-compiled-database-instead-of-shipping-a-plugin){.reference
+                .internal}
         -   [Python
             Packaging](../extending/packaging.html#python-packaging){.reference
             .internal}
@@ -1563,6 +1580,9 @@ latest
             .internal}
             -   [Quantum
                 Embeddings](../../api/languages/python_api.html#quantum-embeddings){.reference
+                .internal}
+            -   [Qiskit and OpenQASM
+                Interoperability](../../api/languages/python_api.html#qiskit-and-openqasm-interoperability){.reference
                 .internal}
         -   [Quantum Error
             Correction](../../api/languages/python_api.html#quantum-error-correction){.reference
@@ -1868,6 +1888,9 @@ latest
             -   [[`u3`{.code .docutils .literal
                 .notranslate}]{.pre}](../../api/default_ops.html#u3){.reference
                 .internal}
+            -   [[`exp_pauli`{.code .docutils .literal
+                .notranslate}]{.pre}](../../api/default_ops.html#exp-pauli){.reference
+                .internal}
         -   [Adjoint and Controlled
             Operations](../../api/default_ops.html#adjoint-and-controlled-operations){.reference
             .internal}
@@ -1908,8 +1931,7 @@ latest
 
 [Preview]{.caption-text}
 
--   [CUDA-Q Logical](./preview/logical/index.html#http://){.reference
-    .external}
+-   [CUDA-Q Logical](/preview/logical/#http://){.reference .external}
 :::
 :::
 
@@ -2529,23 +2551,17 @@ Python
     # for every execution call on your kernel.
     # To use different targets in the same file, you must update
     # it via another call to `cudaq.set_target()`
-    cudaq.set_target("iqm", url="http://localhost/")
-
-    # Crystal_5 QPU architecture:
-    #       QB1
-    #        |
-    # QB2 - QB3 - QB4
-    #        |
-    #       QB5
+    cudaq.set_target("iqm")
 
 
-    # Create the kernel we'd like to execute on IQM.
+    # Create the kernel we'd like to execute.
     @cudaq.kernel
-    def kernel():
-        qvector = cudaq.qvector(5)
-        h(qvector[2])  # QB3
-        x.ctrl(qvector[2], qvector[0])
-        mz(qvector)
+    def ghz():
+        qubits = cudaq.qvector(5)
+        h(qubits[0])
+        for i in range(4):
+            x.ctrl(qubits[i], qubits[i + 1])
+        mz(qubits)
 
 
     # Execute on IQM Server and print out the results.
@@ -2555,7 +2571,7 @@ Python
     # classical code will be executed while the job is being handled
     # by IQM Server. This is ideal when submitting via a queue over
     # the cloud.
-    async_results = cudaq.sample_async(kernel)
+    async_results = cudaq.sample_async(ghz)
     # ... more classical code to run ...
 
     # We can either retrieve the results later in the program with
@@ -2580,7 +2596,7 @@ Python
     # By using the synchronous `cudaq.sample`, the execution of
     # any remaining classical code in the file will occur only
     # after the job has been returned from IQM Server.
-    counts = cudaq.sample(kernel)
+    counts = cudaq.sample(ghz)
     print(counts)
 :::
 :::
@@ -2601,26 +2617,23 @@ C++
     #include <fstream>
 
     // Define a simple quantum kernel to execute on IQM Server.
-    struct crystal_5_ghz {
-      // Maximally entangled state between 5 qubits on Crystal_5 QPU.
-      //       QB1
-      //        |
-      // QB2 - QB3 - QB4
-      //        |
-      //       QB5
+    struct ghz {
+      // Maximally entangled state between 5 qubits on a Crystal QPU.
 
       void operator()() __qpu__ {
         cudaq::qvector q(5);
         h(q[0]);
 
-        // Note that the CUDA-Q compiler will automatically generate the
-        // necessary instructions to swap qubits to satisfy the required
-        // connectivity constraints for the Crystal_5 QPU. In this program, that
-        // means that despite QB1 not being physically connected to QB2, the user
-        // can still perform joint operations q[0] and q[1] because the compiler
-        // will automatically (and transparently) inject the necessary swap
-        // instructions to execute the user's program without the user having to
-        // worry about the physical constraints.
+        // Note that as a user you do not have to worry about the physical
+        // constraints of qubit connectivity when writing a circuit. The CUDA-Q
+        // compiler will automatically (and transparently) generate the necessary
+        // instructions to swap qubits as needed to satisfy the connectivity of
+        // the QPU.
+        // When this program is executed the current dynamic quantum architecture
+        // of the addressed QPU is retrieved and the `transpiler` gets a map with
+        // the qubits and their connectivity. It places the algorithm on the qubits
+        // and add swaps when needed by the circuit. With this the same code can
+        // run on different QPU layouts without any changes.
         for (int i = 0; i < 4; i++) {
           x<cudaq::ctrl>(q[i], q[i + 1]);
         }
@@ -2631,7 +2644,7 @@ C++
     int main() {
       // Submit to IQM Server asynchronously. E.g, continue executing
       // code in the file until the job has been returned.
-      auto future = cudaq::sample_async(crystal_5_ghz{});
+      auto future = cudaq::sample_async(ghz{});
       // ... classical code to execute in the meantime ...
 
       // Can write the future to file:
@@ -2651,7 +2664,7 @@ C++
 
       // OR: Submit to IQM Server synchronously. E.g, wait for the job
       // result to be returned before proceeding.
-      auto counts = cudaq::sample(crystal_5_ghz{});
+      auto counts = cudaq::sample(ghz{});
       counts.dump();
     }
 :::
@@ -3158,6 +3171,11 @@ C++
     // ```
     // Assumes credentials are configured either with environment variables
     // (`PASQAL_AUTH_TOKEN`, `PASQAL_PROJECT_ID`).
+    // To run the same Rydberg program locally through CUDA-Q's simulator stack:
+    // ```
+    // nvq++ --target pasqal --emulate pasqal.cpp -o out.x
+    // ./out.x
+    // ```
     // For QRMI-routed execution, see the `pasqal` notes
     // in the CUDA-Q docs or the QRMI project for QRMI specific setup.
 

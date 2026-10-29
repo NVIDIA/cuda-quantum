@@ -28,7 +28,7 @@ Every backend plugin follows this layout:
     ├── targets/
     │   └── my-backend.yml       # Target configuration
     ├── lib/
-    │   └── libcudaq-serverhelper-my-backend.so
+    │   └── libcudaq-serverhelper-my-backend.so   # .dylib on macOS
     └── data/                    # Optional auxiliary files
         └── topology.txt
 
@@ -36,6 +36,11 @@ The ``targets/`` directory contains one or more YAML target configurations.
 The ``lib/`` directory contains the shared libraries that implement the backend.
 The optional ``data/`` directory holds auxiliary files (device topologies, noise
 models, calibration data, etc.).
+
+Shared library filenames are written with the Linux ``.so`` extension
+throughout this guide; on macOS the extension is ``.dylib``. Name libraries
+in ``plugin-libraries:`` without any extension - CUDA-Q appends the one this
+platform uses - so that a single target configuration works everywhere.
 
 
 REST-Style Backends (Server Helper)
@@ -207,8 +212,8 @@ Key fields:
   ``--my-backend-api-key <value>`` on the ``nvq++`` command line and as keyword
   arguments to ``cudaq.set_target("my-backend", api_key=...)`` in Python.
 
-For the full list of recognized YAML fields see the mapping traits in
-`TargetConfigYaml.cpp <https://github.com/NVIDIA/cuda-quantum/blob/main/cudaq/lib/Target/Yaml/TargetConfigYaml.cpp>`_.
+For the full list of recognized YAML fields see the versioned schemas in
+`cudaq/lib/Target/Yaml <https://github.com/NVIDIA/cuda-quantum/tree/main/cudaq/lib/Target/Yaml>`_.
 For a complete working example of a REST-style plugin, see the
 `mock_rest reference plugin <https://github.com/NVIDIA/cuda-quantum/tree/main/docs/sphinx/examples/plugins/mock_rest>`_.
 
