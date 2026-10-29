@@ -1292,6 +1292,18 @@ latest
             -   [Load and test the
                 plugin](../../using/extending/compiler/pass_plugins.html#load-and-test-the-plugin){.reference
                 .internal}
+        -   [Using compile targets to customize
+            compilation](../../using/extending/compiler/compile_targets.html){.reference
+            .internal}
+            -   [Constructing single-stage compile
+                targets](../../using/extending/compiler/compile_targets.html#constructing-single-stage-compile-targets){.reference
+                .internal}
+            -   [Setting compile targets with [`set_target`{.docutils
+                .literal
+                .notranslate}]{.pre}](../../using/extending/compiler/compile_targets.html#setting-compile-targets-with-set-target){.reference
+                .internal}
+            -   [Example](../../using/extending/compiler/compile_targets.html#example){.reference
+                .internal}
     -   [Add a hardware
         backend](../../using/extending/backend.html){.reference
         .internal}
@@ -2048,14 +2060,14 @@ command line example would look like [`CUDAQ_MGPU_FUSE=4`{.docutils
 .notranslate}]{.pre}` `{.docutils .literal
 .notranslate}[`fp64,mgpu`{.docutils .literal .notranslate}]{.pre}
 
-![27e8fdcec73e483f8fd66616f051c832](../../_images/gate-fuse.png)
+![e49fba1ac4984aa288a00384d427fa01](../../_images/gate-fuse.png)
 
 The importance of gate fusion is system dependent, but can have a large
 influence on the performance of the simulation. See the example below
 for a 24 qubit VQE experiment where changing the fusion level resulted
 in significant performance boosts.
 
-![8f043cf8d4344c47ba60c41c1ce379aa](../../_images/gatefusion.png)
+![b6cdfabc61f54550b974fd2bbfb48530](../../_images/gatefusion.png)
 :::
 :::
 :::

@@ -1303,6 +1303,18 @@ latest
             -   [Load and test the
                 plugin](../../using/extending/compiler/pass_plugins.html#load-and-test-the-plugin){.reference
                 .internal}
+        -   [Using compile targets to customize
+            compilation](../../using/extending/compiler/compile_targets.html){.reference
+            .internal}
+            -   [Constructing single-stage compile
+                targets](../../using/extending/compiler/compile_targets.html#constructing-single-stage-compile-targets){.reference
+                .internal}
+            -   [Setting compile targets with [`set_target`{.docutils
+                .literal
+                .notranslate}]{.pre}](../../using/extending/compiler/compile_targets.html#setting-compile-targets-with-set-target){.reference
+                .internal}
+            -   [Example](../../using/extending/compiler/compile_targets.html#example){.reference
+                .internal}
     -   [Add a hardware
         backend](../../using/extending/backend.html){.reference
         .internal}
@@ -3397,7 +3409,7 @@ discriminated bits into an integer.)
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[set_target]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[extra_config]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.set_target "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[set_target]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}*, *[[\*]{.pre}]{.o}*, *[[compile_target]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[\*\*]{.pre}]{.o}[[extra_config]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.set_target "Permalink to this definition"){.headerlink}
 
 :   Set the backend used for CUDA-Q kernel execution.
 
@@ -3406,13 +3418,25 @@ discriminated bits into an integer.)
 
     Parameters[:]{.colon}
 
-    :   -   **target** -- The CUDA-Q target, specified as a recognized
-            target name ([`str`{.docutils .literal .notranslate}]{.pre})
-            or a [[`cudaq.Target`{.xref .py .py-class .docutils .literal
+    :   -   **target** -- The CUDA-Q target that kernels run on at
+            runtime, specified as a recognized target name
+            ([`str`{.docutils .literal .notranslate}]{.pre}) or a
+            [[`cudaq.Target`{.xref .py .py-class .docutils .literal
             .notranslate}]{.pre}](#cudaq.Target "cudaq.Target"){.reference
             .internal} instance. Support for instances of
             [`cudaq._experimental.CustomTarget`{.docutils .literal
             .notranslate}]{.pre} is experimental.
+
+        -   **compile_target** -- The
+            [`cudaq._experimental.CompileTarget`{.docutils .literal
+            .notranslate}]{.pre} that kernels are compiled against
+            before running on [`target`{.docutils .literal
+            .notranslate}]{.pre}. If omitted, the target's default
+            compile target is used. Not supported when
+            [`target`{.docutils .literal .notranslate}]{.pre} is a
+            [`CustomTarget`{.docutils .literal .notranslate}]{.pre},
+            which carries its own compile target. This argument is
+            experimental.
 
         -   **\*\*extra_config** -- Target-specific configuration for
             the named-target overload.
