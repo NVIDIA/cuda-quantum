@@ -1053,7 +1053,7 @@ struct FabricEstimateAnalyticalPass
     bool allDistancesEstablished = true;
     for (StringRef name : codeNames) {
       auto code = symbols.lookup<CodeOp>(name);
-      if (!code || code.getDistance() <= 0) {
+      if (!code || code.getDistanceAttr().getInt() <= 0) {
         module.emitError("fabric-estimate-analytical missing usable code @")
             << name;
         return signalPassFailure();

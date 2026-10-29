@@ -1711,7 +1711,7 @@ FailureOr<int64_t> Walker::mapChildrenMultiplicity(MapChildrenOp map,
   auto hierarchy =
       hierarchyRef ? symTab.lookup<EncodingHierarchyOp>(hierarchyRef.getValue())
                    : EncodingHierarchyOp{};
-  if (!hierarchy || hierarchy.getMultiplicity() <= 0) {
+  if (!hierarchy || hierarchy.getMultiplicityAttr().getInt() <= 0) {
     map.emitOpError(
         "fabric-count mapped children require a positive typed hierarchy");
     hadError = true;

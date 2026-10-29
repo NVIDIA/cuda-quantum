@@ -45,6 +45,7 @@
 #include <set>
 #include <string>
 #include <tuple>
+#include <utility>
 
 namespace qlx {
 namespace fabric {
@@ -1243,7 +1244,7 @@ private:
     auto code = selected ? dyn_cast_or_null<qlx::fabric::CodeOp>(symbols.lookup(
                                selected.getCodeAttr().getValue()))
                          : qlx::fabric::CodeOp{};
-    if (!selected || !code || code.getDistance() <= 0) {
+    if (!selected || !code || code.getDistanceAttr().getInt() <= 0) {
       emitError(location) << "QEC region @" << region
                           << " must resolve to a positive code distance";
       return failure();
@@ -1561,10 +1562,10 @@ private:
         return success();
       auto code = dyn_cast_or_null<qlx::fabric::CodeOp>(
           symbols.lookup(patch.getCodeType().getValue()));
-      if (!code || code.getDistance() <= 0)
+      if (!code || code.getDistanceAttr().getInt() <= 0)
         return owner->emitOpError(
             "spacetime-plan patch code must resolve with positive distance");
-      if (selected && *selected != code.getDistance())
+      if (selected && *selected != code.getDistanceAttr().getInt())
         return owner->emitOpError(
             "spacetime plan requires one selected code distance across its "
             "callable closure");
@@ -1608,7 +1609,7 @@ private:
         return success();
       auto code = dyn_cast_or_null<qlx::fabric::CodeOp>(
           symbols.lookup(patch.getCodeType().getValue()));
-      if (!code || code.getDistance() <= 0)
+      if (!code || code.getDistanceAttr().getInt() <= 0)
         return owner->emitOpError(
             "factory-model patch code must resolve with positive distance");
       selected.insert(code.getDistance());
@@ -1745,7 +1746,7 @@ private:
         auto code = dyn_cast_or_null<qlx::fabric::CodeOp>(
             symbols.lookup(allocation.getCodeAttr().getValue()));
         auto binding = regionBindings.find(allocation.getRegion());
-        if (!code || code.getDistance() <= 0 ||
+        if (!code || code.getDistanceAttr().getInt() <= 0 ||
             binding == regionBindings.end()) {
           allocation.emitOpError(
               "surface factory recurrence requires every allocation to "
@@ -1770,17 +1771,18 @@ private:
                                 .lookup<qlx::fabric::RegionOp>(
                                     qecReference.getLeafReference().getValue())
                           : qlx::fabric::RegionOp{};
-        auto capacity = region ? region.getBlockCapacity() : std::nullopt;
-        if (!region || !capacity || *capacity <= 0) {
+        IntegerAttr capacity =
+            region ? region.getBlockCapacityAttr() : IntegerAttr{};
+        if (!region || !capacity || capacity.getInt() <= 0) {
           allocation.emitOpError(
               "surface factory recurrence requires positive QEC-region "
               "block capacities for every selected code distance");
           failedAllocation = true;
           return WalkResult::interrupt();
         }
-        auto [capacityEntry, capacityInserted] =
-            capacityByDistance.try_emplace(code.getDistance(), *capacity);
-        if (!capacityInserted && capacityEntry->second != *capacity) {
+        auto [capacityEntry, capacityInserted] = capacityByDistance.try_emplace(
+            code.getDistanceAttr().getInt(), capacity.getInt());
+        if (!capacityInserted && capacityEntry->second != capacity.getInt()) {
           allocation.emitOpError(
               "surface factory recurrence has inconsistent QEC-region "
               "capacity for one code distance");
@@ -1808,7 +1810,7 @@ private:
           resource ? resource->getAttrOfType<StringAttr>("granularity")
                    : StringAttr{};
       return resource && granularity && granularity.getValue() == "patch" &&
-             resource.getCount() > 0;
+             resource.getCountAttr().getInt() > 0;
     };
     if (level1 == resourceClasses.end() || level2 == resourceClasses.end() ||
         !validPatchClass(level1->second) || !validPatchClass(level2->second))
@@ -2371,8 +2373,7 @@ private:
                               allocations.front().getRegion();
                      }) ||
         binding->second.granularity != "patch" ||
-        binding->second.capacity <
-            static_cast<int64_t>(6 * shape.peakReactionWidth))
+        std::cmp_less(binding->second.capacity, 6 * shape.peakReactionWidth))
       return protocol.emitOpError(
           "surface spacelike callable requires one patch-granularity "
           "routing binding with capacity six per concurrent AutoCCZ "
@@ -3431,7 +3432,7 @@ private:
     if (word.consume_front("-"))
       phase = 2;
     if (patchIndices.size() != logicalIndices.size() ||
-        patchIndices.size() != word.size())
+        std::cmp_not_equal(patchIndices.size(), word.size()))
       return failure();
 
     std::map<std::pair<unsigned, int64_t>, char> factors;

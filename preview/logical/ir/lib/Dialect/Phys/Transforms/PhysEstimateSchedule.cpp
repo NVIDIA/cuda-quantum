@@ -5094,7 +5094,6 @@ private:
             return schedule.emitOpError(
                 "missing evidence: abort retry occurrence lacks an "
                 "authenticated replay slice");
-          const ReplaySlice &slice = retrySlices[retained->second];
           const RetryMetricResult &metrics =
               retryMetricResults[retained->second];
           RetryStatistics statistics =
