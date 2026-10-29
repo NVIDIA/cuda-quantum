@@ -24,6 +24,20 @@ set(LLVM_INCLUDE_TESTS OFF CACHE BOOL "")
 set(LLVM_BUILD_EXAMPLES OFF CACHE BOOL "")
 set(LLVM_ENABLE_OCAMLDOC OFF CACHE BOOL "")
 
+# Shared runtime providers for the CUDA-Q SDK. BUILD_SHARED_LIBS stays OFF so
+# component archives and host tooling remain static; the explicit aggregate
+# shared targets below (libLLVM, libMLIR, libMLIRExecutionEngineShared,
+# libMLIR-C) provide the runtime linkage. See scripts/check_mlir_providers.sh.
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "")
+set(LLVM_ENABLE_PIC ON CACHE BOOL "")
+set(LLVM_BUILD_LLVM_DYLIB ON CACHE BOOL "")
+set(LLVM_LINK_LLVM_DYLIB ON CACHE BOOL "")
+set(LLVM_DYLIB_COMPONENTS all CACHE STRING "")
+set(MLIR_LINK_MLIR_DYLIB ON CACHE BOOL "")
+set(MLIR_BUILD_MLIR_C_DYLIB ON CACHE BOOL "")
+set(MLIR_ENABLE_EXECUTION_ENGINE ON CACHE BOOL "")
+set(MLIR_ENABLE_PDL_IN_PATTERNMATCH ON CACHE BOOL "")
+
 if(DEFINED LLVM_ENABLE_RUNTIMES AND LLVM_ENABLE_RUNTIMES MATCHES "libcxx")
     message(STATUS "Setting defaults to use LLVM runtimes.")
 

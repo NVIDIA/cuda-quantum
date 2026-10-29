@@ -1,0 +1,33 @@
+diff --git a/mlir/tools/mlir-shlib/CMakeLists.txt b/mlir/tools/mlir-shlib/CMakeLists.txt
+index a33c70c580..bfc49671b3 100644
+--- a/mlir/tools/mlir-shlib/CMakeLists.txt
++++ b/mlir/tools/mlir-shlib/CMakeLists.txt
+@@ -47,6 +47,28 @@ if(LLVM_BUILD_LLVM_DYLIB)
+   target_link_libraries(MLIR PRIVATE ${LLVM_PTHREAD_LIB})
+ endif()
+ 
++# In shared-MLIR mode, resolve the C API aggregate's MLIR dependencies from
++# the shared providers instead of embedding a second static copy of them.
++# This is done here (rather than in lib/CAPI) because the MLIR target is only
++# created above; MLIR-C and MLIRExecutionEngineShared are already defined.
++# The exclusions are mandatory in this mode: silently skipping them would
++# embed a second MLIR implementation into libMLIR-C.
++if(MLIR_BUILD_MLIR_C_DYLIB AND MLIR_LINK_MLIR_DYLIB)
++  if(MLIR_ENABLE_EXECUTION_ENGINE AND NOT TARGET MLIRExecutionEngineShared)
++    message(FATAL_ERROR
++      "MLIR_ENABLE_EXECUTION_ENGINE is ON but the MLIRExecutionEngineShared "
++      "target is missing: the shared-provider C API cannot be built without "
++      "duplicating the MLIR implementation. Refusing to continue.")
++  endif()
++  get_property(_mlir_capi_static_libs GLOBAL PROPERTY MLIR_STATIC_LIBS)
++  set_property(TARGET MLIR-C APPEND PROPERTY MLIR_AGGREGATE_EXCLUDE_LIBS
++    ${_mlir_capi_static_libs} MLIRExecutionEngine)
++  target_link_libraries(MLIR-C PUBLIC MLIR)
++  if(TARGET MLIRExecutionEngineShared)
++    target_link_libraries(MLIR-C PUBLIC MLIRExecutionEngineShared)
++  endif()
++endif()
++
+ #message("Libraries included in libMLIR.so: ${mlir_libs}")
+ #message("LLVM Components included in libMLIR.so: ${mlir_llvm_link_components}")
+ 

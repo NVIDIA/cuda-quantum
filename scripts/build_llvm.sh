@@ -178,6 +178,8 @@ fi
 if [ -z "${llvm_projects##*mlir;*}" ]; then
   echo "- including MLIR components"
   llvm_components+="mlir-cmake-exports;mlir-headers;mlir-libraries;mlir-tblgen;mlir-translate;"
+  # Shared runtime providers (built when the CMake cache enables the dylibs).
+  llvm_components+="MLIR;MLIR-C;MLIRExecutionEngineShared;"
   projects=("${projects[@]/mlir}")
   if [ "$mlir_python_bindings" == "ON" ]; then
     echo "- including MLIR Python bindings"
@@ -191,6 +193,8 @@ if [ -z "${llvm_projects##*lld;*}" ]; then
   projects=("${projects[@]/lld}")
 fi
 echo "- including general tools and components"
+# LLVM: shared provider target (plus the libLLVM-<major>.so compatibility name).
+llvm_components+="LLVM;"
 llvm_components+="cmake-exports;llvm-headers;llvm-libraries;"
 llvm_components+="llvm-config;llc;llvm-ar;llvm-as;llvm-nm;llvm-symbolizer;llvm-profdata;llvm-cov;"
 llvm_components+="FileCheck;count;not;split-file;"
