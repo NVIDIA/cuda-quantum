@@ -22,6 +22,7 @@
 /// by the CUDAQ_REALTIME_BRIDGE_LIB environment variable).
 
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
+#include "cudaq/realtime/device_code/device_code.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -123,6 +124,26 @@ typedef struct {
   cudaq_cpu_tx_publish_fn_t tx_publish; ///< Outbound publish; required.
 } cudaq_cpu_dataplane_t;
 
+/// The GPU-driven unified data plane: the device hooks the unified dispatch
+/// kernel calls (unified_device_transport.cuh) plus the context they read.
+///
+/// A DEVICE + UNIFIED dispatcher links the hooks into one CUDA module with its
+/// kernel and the application's handlers at run time, with nvJitLink, so the
+/// provider hands them over as relocatable device code rather than linking
+/// them into anything.  Build the hooks with `-rdc` and fill one image with
+/// `cudaq_device_code_of_this_binary` (device_code_reader.h).  A provider that
+/// supports this shape returns a fully populated instance from its
+/// `get_gpu_dataplane` callback; providers that do not leave that callback
+/// NULL.
+typedef struct {
+  void *ctx; ///< Device-accessible transport state, handed to
+             ///< `cudaq_dev_enter_kernel`; required.
+  const cudaq_device_image_t
+      *device_code;         ///< The hooks' relocatable code; required.  Must
+                            ///< stay valid for the bridge's lifetime.
+  size_t device_code_count; ///< Number of images in `device_code`.
+} cudaq_gpu_dataplane_t;
+
 /// @brief Create and initialize a transport bridge from an explicit provider
 /// library.  `library` is any string `dlopen` accepts: a bare `soname` resolved
 /// via the usual load paths (e.g. `libcudaq-realtime-bridge-udp.so`) or an
@@ -206,13 +227,23 @@ cudaq_status_t
 cudaq_bridge_set_function_table(cudaq_realtime_bridge_handle_t bridge,
                                 const cudaq_function_table_t *table);
 
+/// @brief Retrieve the GPU data plane for the unified dispatch kernel.
+/// Returns CUDAQ_ERR_UNSUPPORTED when the provider does not implement it, or
+/// was not started in its unified mode.
+///
+/// Applications wiring a dispatcher should call `cudaq_dispatcher_set_bridge`,
+/// which makes this call itself.
+cudaq_status_t
+cudaq_bridge_get_gpu_dataplane(cudaq_realtime_bridge_handle_t bridge,
+                               cudaq_gpu_dataplane_t *out_dataplane);
+
 /// A provider must be built against this header: the loader reads the whole
 /// struct and does not adapt to older layouts.  A provider reporting a
 /// different value is rejected at load with a message naming both versions,
 /// so a stale plug-in is identified instead of failing in obscure ways.  A
 /// provider sets entries it does not implement to NULL; the corresponding API
 /// calls then return CUDAQ_ERR_UNSUPPORTED.
-#define CUDAQ_REALTIME_BRIDGE_INTERFACE_VERSION 3
+#define CUDAQ_REALTIME_BRIDGE_INTERFACE_VERSION 4
 
 /// @brief Interface struct for transport layer providers.  Each provider must
 /// implement this interface and provide a `getter` function
@@ -261,6 +292,15 @@ typedef struct {
   /// cudaq_bridge_set_function_table.
   cudaq_status_t (*set_function_table)(cudaq_realtime_bridge_handle_t,
                                        const cudaq_function_table_t *table);
+
+  //--------------------------------------------------------------------------
+  // Added in version 4.  NULL when the provider has no GPU data plane (the
+  // API wrapper then returns CUDAQ_ERR_UNSUPPORTED).
+  //--------------------------------------------------------------------------
+
+  /// Fills *out with the GPU data plane; see cudaq_bridge_get_gpu_dataplane.
+  cudaq_status_t (*get_gpu_dataplane)(cudaq_realtime_bridge_handle_t,
+                                      cudaq_gpu_dataplane_t *out);
 
 } cudaq_realtime_bridge_interface_t;
 

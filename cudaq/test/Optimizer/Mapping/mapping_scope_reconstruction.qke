@@ -36,9 +36,12 @@ func.func @nested_scope_then_swap() attributes {quake.cudaq_run = []} {
       %gate:2 = quake.x [%q1] %inner#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
       cc.continue %inner#0, %gate#0, %gate#1 : !quake.wire, !quake.wire, !quake.wire
     }
-    quake.return_wire %outer#0 : !quake.wire
-    quake.return_wire %outer#1 : !quake.wire
-    quake.return_wire %outer#2 : !quake.wire
+    %m0, %w0 = quake.mz %outer#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+    %m1, %w1 = quake.mz %outer#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+    %m2, %w2 = quake.mz %outer#2 : (!quake.wire) -> (!quake.measure, !quake.wire)
+    quake.return_wire %w0 : !quake.wire
+    quake.return_wire %w1 : !quake.wire
+    quake.return_wire %w2 : !quake.wire
     cc.continue
   }
   return
@@ -74,11 +77,16 @@ func.func @sibling_scope_result_mappings() attributes {quake.cudaq_run = []} {
       %gate:2 = quake.x [%q2] %first#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
       cc.continue %gate#0, %gate#1 : !quake.wire, !quake.wire
     }
-    quake.return_wire %first#0 : !quake.wire
-    quake.return_wire %q1 : !quake.wire
-    quake.return_wire %second#0 : !quake.wire
-    quake.return_wire %second#1 : !quake.wire
-    quake.return_wire %first#2 : !quake.wire
+    %m0, %w0 = quake.mz %first#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+    %m1, %w1 = quake.mz %q1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+    %m2, %w2 = quake.mz %second#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+    %m3, %w3 = quake.mz %second#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+    %m4, %w4 = quake.mz %first#2 : (!quake.wire) -> (!quake.measure, !quake.wire)
+    quake.return_wire %w0 : !quake.wire
+    quake.return_wire %w1 : !quake.wire
+    quake.return_wire %w2 : !quake.wire
+    quake.return_wire %w3 : !quake.wire
+    quake.return_wire %w4 : !quake.wire
     cc.continue
   }
   return
