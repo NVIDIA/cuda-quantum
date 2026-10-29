@@ -303,7 +303,7 @@ CUDAQ_TEST(KernelsTester, checkSampleBug2937) {
 
 #endif
 
-#if defined(CUDAQ_BACKEND_STIM)
+#if defined(CUDAQ_BACKEND_STIM) && !defined(CUDAQ_BACKEND_CUSTABILIZER)
 
 /// Helper function to transpose the Measurement Syndrome Matrix.
 std::vector<std::string> transpose_msm(const std::vector<std::string> &msm) {

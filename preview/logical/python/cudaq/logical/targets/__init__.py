@@ -75,10 +75,17 @@ class Backend:
     def compile(self, build, **_options):
         return build
 
-    def _traced_compile(self, build, **options):
+    def _preflight(self, build):
+        """Reject builds that later stages cannot handle."""
+
+    def _traced_compile(self, build, *, _preflight_checked=False, **options):
         if self._trace_tag is None:
+            if not _preflight_checked:
+                self._preflight(build)
             return self.compile(build, **options)
         with trace.span(f"cudaq.logical.target.{self._trace_tag}"):
+            if not _preflight_checked:
+                self._preflight(build)
             return self.compile(build, **options)
 
     def _launch(self, build, operation, **kwargs):
@@ -101,8 +108,12 @@ class Backend:
         compile_options.setdefault("arguments", args)
 
         if tier is None:
+            # Fail before counting a large program we cannot compile.
+            self._preflight(build)
             own = _stage_estimate(build, **estimate_options)
-            prepared = self._traced_compile(build, **compile_options)
+            prepared = self._traced_compile(build,
+                                            _preflight_checked=True,
+                                            **compile_options)
             if self.next_backend is None:
                 return own
             downstream = self.next_backend._estimate(prepared, args,
@@ -380,11 +391,23 @@ def _merge_estimates(own, downstream):
 
 
 def _cudaq_estimate_result(estimates):
-    from cudaq.core.backends import EstimateResult
+    """Wrap estimates as an ``EstimateResult``.
 
-    return EstimateResult(annotations={
-        name: value.to_dict() for name, value in estimates.items()
-    })
+    ``resources`` reports the logical program (only when a LOGICAL estimate is
+    available); every tier, including LOGICAL, is also kept in ``annotations``.
+    """
+
+    from cudaq.core.backends import EstimateResult
+    from .. import estimate
+    from ..estimate.logical import logical_instruction_counts
+
+    annotations = {name: value.to_dict() for name, value in estimates.items()}
+    logical = estimates.get(estimate.Tier.LOGICAL.name)
+    if logical is None:
+        return EstimateResult(annotations=annotations)
+    return EstimateResult(annotations=annotations,
+                          instructions=logical_instruction_counts(logical),
+                          num_qubits=logical.logical_qubits_peak)
 
 
 class LogicalMachineBackend(Backend):
@@ -397,6 +420,15 @@ class LogicalMachineBackend(Backend):
                                       produced_stage="p1"),
                          next_backend=next_backend)
         self.architecture = architecture
+
+    def _preflight(self, build):
+        # Only when continuing to QEC, check for missing gadgets early.
+        if (_profile_rank(build) == 0 and
+                isinstance(self.next_backend, QECMachineBackend)):
+            from ..compiler.qec_lower import _check_p0_qec_coverage
+
+            with trace.span("cudaq.logical.preflight.p2"):
+                _check_p0_qec_coverage(build, self.next_backend.machine)
 
     def compile(self, build, **options):
         if _profile_rank(build) >= 1:
@@ -500,11 +532,11 @@ class Target(CustomTarget):
 
         from ..compiler.quake import CUDAQ_TARGET_PREPARATION_PIPELINE
 
-        target = CompileTarget()
+        target = CompileTarget(
+            custom_pipeline=CUDAQ_TARGET_PREPARATION_PIPELINE)
         target.fully_specialize = True
         target.support_resource_counts = False
         target.support_conditionals_on_measure_results = False
-        target.lowering = CUDAQ_TARGET_PREPARATION_PIPELINE
         return target
 
     @classmethod

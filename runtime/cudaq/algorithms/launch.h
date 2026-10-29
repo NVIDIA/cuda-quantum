@@ -43,6 +43,9 @@ auto launch(const Policy &policy, std::size_t qpu_id, ExecutionContext &ctx,
             quantum_platform &platform, Callable &&f, Args &&...args)
     -> Policy::result_type {
 
+  // Bind the worker's device before the simulator is initialized.
+  platform.prepareExecution(qpu_id);
+
   // Python builds without CUDAQ_LIBRARY_MODE defined, so we need to check for
   // it at runtime
   bool library_mode = platform.is_library_mode();

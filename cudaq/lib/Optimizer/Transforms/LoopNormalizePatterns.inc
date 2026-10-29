@@ -191,14 +191,18 @@ public:
         c.stepIsAnAddOp() && c.shouldCommuteStepOp() ? 1 : 0);
     rewriter.setInsertionPoint(c.stepOp);
     auto newStep = arith::AddIOp::create(rewriter, c.stepOp->getLoc(), v2, one);
-    // Only the loop-carried counter (the terminator operand) takes the
-    // normalized step. Other uses of the original step op (e.g. `a[i + 1]`)
-    // need the original value. Step 4 rewrites the original step op's induction
+    // Only the loop-carried counter (the terminator operand at the induction
+    // position) takes the normalized step. Other uses of the original step op
+    // (e.g. `a[i + 1]`, or `j` in `i++, j = i`) need the original value. Step
+    // 4 (body) and 4b (step region) rewrite the original step op's induction
     // operand, so it still computes that value.
     c.stepOp->getResult(0).replaceUsesWithIf(
         newStep.getResult(), [&](OpOperand &opnd) {
-          return isa<cudaq::cc::ContinueOp, cudaq::cc::ConditionOp>(
-              opnd.getOwner());
+          Operation *user = opnd.getOwner();
+          unsigned pos = opnd.getOperandNumber();
+          if (isa<cudaq::cc::ConditionOp>(user))
+            return pos == *c.induction + 1; // operand 0 is the condition
+          return isa<cudaq::cc::ContinueOp>(user) && pos == *c.induction;
         });
 
     // 4) Compute original induction value as a loop variant and replace the

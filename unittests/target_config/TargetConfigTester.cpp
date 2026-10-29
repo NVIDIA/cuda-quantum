@@ -141,7 +141,7 @@ config:
 
 TEST(TargetConfigTester, parsesV2StagedPipeline) {
   const auto config = cudaq::config::parseTargetConfig(R"(
-version: 2
+version: 2-alpha
 name: v2-target
 description: V2 schema coverage
 config:
@@ -181,7 +181,7 @@ compile-target:
 
 TEST(TargetConfigTester, parsesV2OverridePipeline) {
   const auto config = cudaq::config::parseTargetConfig(R"(
-version: 2
+version: 2-alpha
 name: v2-override
 description: V2 override pipeline
 config:
@@ -281,7 +281,7 @@ TEST(TargetConfigTester, inferredLoweringIdentityAndHash) {
 
 TEST(TargetConfigTester, v2RejectsV1CompilationKeys) {
   const std::string yaml = R"(
-version: 2
+version: 2-alpha
 name: v2-invalid
 description: V1 compilation keys rejected under v2
 config:
@@ -299,7 +299,7 @@ config:
 
 TEST(TargetConfigTester, v2RejectsMixedPipelineOptions) {
   const std::string yaml = R"(
-version: 2
+version: 2-alpha
 name: v2-mixed
 description: Mixed pipeline options rejected
 config:

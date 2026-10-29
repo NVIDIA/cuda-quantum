@@ -16,7 +16,7 @@
 # passes. The `codegen` mapping form selects the emission format and a
 # post-codegen pass pipeline.
 
-version: 2
+version: 2-alpha
 name: lit-v2
 description: "V2 compile-target coverage"
 config:

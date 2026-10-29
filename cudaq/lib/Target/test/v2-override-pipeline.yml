@@ -13,7 +13,7 @@
 # It is registered under the target's pass-pipeline name, like v1's
 # `target-pass-pipeline`.
 
-version: 2
+version: 2-alpha
 name: lit-v2-override
 description: "V2 override pipeline coverage"
 config:

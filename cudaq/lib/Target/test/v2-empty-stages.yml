@@ -11,7 +11,7 @@
 # An empty `stages` list is accepted, but the key itself remains required:
 # omitting it is a schema error.
 
-version: 2
+version: 2-alpha
 name: lit-v2-empty-stages
 description: "Missing compile-target stages key rejected"
 config:

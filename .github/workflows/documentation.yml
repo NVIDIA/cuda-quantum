@@ -99,8 +99,9 @@ jobs:
           fi
 
           if [ -f metadata.txt ]; then
-            pr_number=`cat metadata.txt | grep -o 'pr-number: \S*' | cut -d ' ' -f 2`
-            pr_base=`cat metadata.txt | grep -o 'pr-base: \S*' | cut -d ' ' -f 2`
+            # More than one metadata artifact would repeat the values.
+            pr_number=`cat metadata.txt | grep -o 'pr-number: \S*' | cut -d ' ' -f 2 | head -n 1`
+            pr_base=`cat metadata.txt | grep -o 'pr-base: \S*' | cut -d ' ' -f 2 | head -n 1`
             rm metadata.txt && echo "pr_number=$pr_number" >> $GITHUB_OUTPUT
           fi
 

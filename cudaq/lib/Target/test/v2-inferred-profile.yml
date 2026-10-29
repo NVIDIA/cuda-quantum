@@ -10,7 +10,7 @@
 
 # Test YAML parsing for a compilation stage with an IR profile and implicit inferred lowering.
 
-version: 2
+version: 2-alpha
 name: lit-v2-inferred
 description: "Inferred lowering through the catalog driver"
 config:

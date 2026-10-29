@@ -189,3 +189,13 @@ void cudaq::opt::replaceSingleQubitChain(SingleQubitChain &&chain,
     result.replaceAllUsesWith(replacement);
   head->erase();
 }
+
+void cudaq::opt::forEachNestedBlock(
+    Region &region, llvm::function_ref<void(Block &)> rewriteBlock) {
+  for (Block &block : region) {
+    rewriteBlock(block);
+    for (Operation &operation : block)
+      for (Region &nested : operation.getRegions())
+        forEachNestedBlock(nested, rewriteBlock);
+  }
+}

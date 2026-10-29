@@ -439,7 +439,8 @@ bool LinkedLibraryHolder::hasTarget(const std::string &name,
 
 void LinkedLibraryHolder::setTarget(
     const std::string &targetName,
-    std::map<std::string, std::string> extraConfig) {
+    std::map<std::string, std::string> extraConfig,
+    std::optional<CompileTarget> compileTarget) {
   // Do not set the default target if the disallow
   // flag has been set.
   if (!cudaq::detail::canModifyTarget())
@@ -530,6 +531,12 @@ void LinkedLibraryHolder::setTarget(
         fmt::format(";__target_config_path;{}", target.configPath.string());
 
   platform->setTargetBackend(backendConfigStr);
+  if (compileTarget) {
+    std::vector<RuntimeEndpoint> endpoints;
+    for (std::size_t qpuId = 0; qpuId < platform->num_qpus(); ++qpuId)
+      endpoints.push_back(platform->getRuntimeEndpoint(qpuId));
+    setQPUs(*platform, *compileTarget, endpoints);
+  }
   setQuantumPlatformInternal(platform);
   currentTarget = targetName;
 
@@ -567,8 +574,15 @@ void LinkedLibraryHolder::setTarget(const CompileTarget &compileTarget,
   resetTarget();
 
   auto *platform = getPlatform(targets.at(currentTarget).platformName);
-  platform->clearQPUs();
-  platform->addQPU(compileTarget, runtimeEndpoint);
+  setQPUs(*platform, compileTarget, {runtimeEndpoint});
+}
+
+void LinkedLibraryHolder::setQPUs(
+    quantum_platform &platform, const CompileTarget &compileTarget,
+    const std::vector<RuntimeEndpoint> &endpoints) {
+  platform.clearQPUs();
+  for (const auto &endpoint : endpoints)
+    platform.addQPU(compileTarget, endpoint);
 }
 
 std::vector<RuntimeTarget>

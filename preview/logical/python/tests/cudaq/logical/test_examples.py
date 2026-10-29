@@ -16,7 +16,10 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[4]
 EXAMPLE_ROOT = ROOT / "examples"
-KERNEL_EXAMPLES = tuple(sorted(EXAMPLE_ROOT.glob("0[0-5]_*.py")))
+KERNEL_EXAMPLES = (
+    *sorted(EXAMPLE_ROOT.glob("[0-9][0-9]_*.py")),
+    EXAMPLE_ROOT / "steane_bell_e2e_workflow.py",
+)
 STANDALONE_EXAMPLES = tuple(
     sorted((EXAMPLE_ROOT / "standalone").glob("[0-9][0-9]_*.py")))
 
@@ -32,11 +35,12 @@ def reset_cudaq_target_after_test():
 def test_examples_execute(capsys, monkeypatch):
     import cudaq
 
-    assert len(KERNEL_EXAMPLES) == 6
-    assert len(STANDALONE_EXAMPLES) == 6
+    assert len(KERNEL_EXAMPLES) == 7
+    assert len(STANDALONE_EXAMPLES) == 8
     monkeypatch.syspath_prepend(str(EXAMPLE_ROOT))
     output = {}
     for example in (*KERNEL_EXAMPLES, *STANDALONE_EXAMPLES):
+        cudaq.reset_target()
         monkeypatch.setattr(sys, "argv", [str(example)])
         runpy.run_path(str(example), run_name="__main__")
         output[example.name] = capsys.readouterr().out

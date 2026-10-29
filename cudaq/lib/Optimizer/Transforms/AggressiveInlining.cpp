@@ -109,7 +109,11 @@ public:
         LLVM_DEBUG(llvm::dbgs() << "Rewriting " << directName << '\n');
       }
 
-      if (!isa<cudaq::cc::DeviceCallOp, cudaq::cc::NoInlineCallOp>(op)) {
+      auto isNoInlineCall = [&]() {
+        auto funcCall = dyn_cast<func::CallOp>(op);
+        return funcCall && funcCall.getNoInline();
+      };
+      if (!isa<cudaq::cc::DeviceCallOp>(op) && !isNoInlineCall()) {
         auto calleeFunc = symbolTables.lookupNearestSymbolFrom<func::FuncOp>(
             call, calleeAttr);
         const bool isAtomicQuantumRegion =
@@ -226,7 +230,7 @@ private:
 
   /// Descend into a callee that the inliner left behind so a marked kernel
   /// cannot hide a violation in an ordinary helper. `verifiedCallees` bounds
-  /// the traversal: a recursive or mutually recursive `cc.noinline_call` chain
+  /// the traversal: a recursive or mutually recursive `no_inline` call chain
   /// would not terminate otherwise. A callee with no body is not checked. It
   /// may be defined in another translation unit, and the link step runs this
   /// pass again on the merged module.
@@ -242,11 +246,7 @@ private:
   }
 
   void verifyResidualCall(Operation *op) {
-    if (auto call = dyn_cast<func::CallOp>(op)) {
-      verifyCallee(op, call.getCalleeAttr());
-      return;
-    }
-    if (auto call = dyn_cast<cudaq::cc::NoInlineCallOp>(op))
+    if (auto call = dyn_cast<func::CallOp>(op))
       verifyCallee(op, call.getCalleeAttr());
   }
 

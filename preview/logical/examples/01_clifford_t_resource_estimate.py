@@ -27,22 +27,30 @@ def arbitrary_rotation():
 def estimate_at_precision(precision: float):
     target = cql.targets.clifford_t_target(precision=precision)
     cudaq.set_target(target)
-    estimate = cudaq.estimate(arbitrary_rotation)
-    return cql.estimate.LogicalEstimate.from_annotations(estimate.annotations)
+    return cudaq.estimate(arbitrary_rotation)
 
 
 # %%
 # Compare successively tighter synthesis tolerances.
 precisions = (1.0e-2, 1.0e-6, 1.0e-10)
-resources_by_precision = {
+estimates = {
     precision: estimate_at_precision(precision) for precision in precisions
 }
 
-assert all(resources.actions["qlx_standard_t"] > 0
-           for resources in resources_by_precision.values())
+assert all(estimate.resources.count("t") > 0 for estimate in estimates.values())
 
 print("Clifford+T resources by rotation precision:")
-for precision, resources in resources_by_precision.items():
+for precision, estimate in estimates.items():
+    resources = estimate.resources
     print(f"  precision={precision:g}: "
-          f"T={resources.actions['qlx_standard_t']}, "
-          f"depth={resources.action_depth_upper_bound}")
+          f"T={resources.count('t')}, "
+          f"T-depth={resources.t_depth}, "
+          f"depth={resources.depth}")
+
+# %%
+# Going deeper: the full logical estimate lives in
+# `estimate.annotations["LOGICAL"]`. For example, `synthesis_demand` lists the
+# gates that a fault-tolerant machine has to synthesize or distill.
+tightest = estimates[precisions[-1]]
+print("Synthesis demand at the tightest precision:")
+print(f"  {tightest.annotations['LOGICAL']['synthesis_demand']}")
