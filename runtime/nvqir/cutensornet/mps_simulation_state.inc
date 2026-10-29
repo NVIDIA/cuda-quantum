@@ -300,13 +300,14 @@ std::complex<double> MPSSimulationState<ScalarType>::getAmplitude(
   }
 
   if (getNumQubits() > 1) {
+    const MPSSettings settings(std::is_same_v<ScalarType, float>);
     TensorNetState basisTensorNetState(
         basisState, scratchPad, state->getInternalContext(), m_randomEngine);
     // Note: this is a basis state, hence bond dim == 1
     std::vector<MPSTensor> basisStateTensors = basisTensorNetState.factorizeMPS(
         1, std::numeric_limits<double>::min(),
-        std::numeric_limits<double>::min(), MPSSettings().svdAlgo,
-        MPSSettings().gaugeOption);
+        std::numeric_limits<double>::min(), settings.svdAlgo,
+        settings.gaugeOption);
     const auto overlap = computeOverlap(m_mpsTensors, basisStateTensors);
     for (auto &mpsTensor : basisStateTensors) {
       HANDLE_CUDA_ERROR(cudaFree(mpsTensor.deviceData));
@@ -569,15 +570,19 @@ MPSSimulationState<ScalarType>::createFromSizeAndPtr(std::size_t size,
     return std::make_unique<MPSSimulationState>(
         std::move(state), mpsTensors, scratchPad, m_cutnHandle, m_randomEngine);
   }
-  auto [state, mpsTensors] =
-      createFromStateVec(m_cutnHandle, scratchPad, size,
-                         reinterpret_cast<std::complex<ScalarType> *>(ptr),
-                         MPSSettings().maxBond, m_randomEngine);
+  auto [state, mpsTensors] = createFromStateVec(
+      m_cutnHandle, scratchPad, size,
+      reinterpret_cast<std::complex<ScalarType> *>(ptr),
+      MPSSettings(std::is_same_v<ScalarType, float>).maxBond, m_randomEngine);
   return std::make_unique<MPSSimulationState>(
       std::move(state), mpsTensors, scratchPad, m_cutnHandle, m_randomEngine);
 }
 
-MPSSettings::MPSSettings() {
+MPSSettings::MPSSettings(bool singlePrecision) {
+  // fp32 GESVDJ aborts with cuSOLVER 12.2.6.9 (CUDA 13.3); GESVDP works on all
+  // tested versions, unlike GESVD (host workspace, cuSOLVER >= 12.3.4.7).
+  if (singlePrecision)
+    svdAlgo = CUTENSORNET_TENSOR_SVD_ALGO_GESVDP;
   if (auto *maxBondEnvVar = std::getenv("CUDAQ_MPS_MAX_BOND")) {
     const std::string maxBondStr(maxBondEnvVar);
     const char *nptr = maxBondStr.data();

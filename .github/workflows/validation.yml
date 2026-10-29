@@ -475,6 +475,14 @@ jobs:
         # The per-backend examples take ~90 min in one job; each shard runs a subset.
         # Few shards, since every one needs a GPU runner and those are scarce.
         shard: [core, tensornet]
+        include:
+          # 26.04 has CUDA 13.3+ only.
+          - os_image: 'ubuntu:26.04'
+            cuda_version: '13.3'
+            shard: core
+          - os_image: 'ubuntu:26.04'
+            cuda_version: '13.3'
+            shard: tensornet
       fail-fast: false
 
     container:
@@ -495,11 +503,13 @@ jobs:
         run: |
           cuda_major=`echo ${{ matrix.cuda_version }} | cut -d . -f1`
           echo "cuda_major=$cuda_major" >> $GITHUB_OUTPUT
+          # Deployments labels its CUDA 13 installer 13.0, also for the 13.3 one used on 26.04.
+          echo "artifact_cuda=${{ matrix.cuda_version == '13.3' && '13.0' || matrix.cuda_version }}" >> $GITHUB_OUTPUT
 
       - name: Load installer
         uses: actions/download-artifact@v8
         with:
-          name: cudaq-amd64-cu${{ matrix.cuda_version }}-llvm-installer-${{ needs.metadata.outputs.deployment_id }}
+          name: cudaq-amd64-cu${{ steps.config.outputs.artifact_cuda }}-llvm-installer-${{ needs.metadata.outputs.deployment_id }}
           path: /tmp/install
           run-id: ${{ needs.metadata.outputs.deployment_id }}
           github-token: ${{ github.token }}
@@ -507,7 +517,7 @@ jobs:
       - name: Verify installer integrity (re-fetch if corrupt)
         env:
           GH_TOKEN: ${{ github.token }}
-          ARTIFACT_NAME: cudaq-amd64-cu${{ matrix.cuda_version }}-llvm-installer-${{ needs.metadata.outputs.deployment_id }}
+          ARTIFACT_NAME: cudaq-amd64-cu${{ steps.config.outputs.artifact_cuda }}-llvm-installer-${{ needs.metadata.outputs.deployment_id }}
         run: |
           retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
           installer=/tmp/install/install_cuda_quantum_cu${{ steps.config.outputs.cuda_major }}.x86_64

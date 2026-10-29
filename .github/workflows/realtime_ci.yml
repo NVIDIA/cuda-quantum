@@ -104,7 +104,8 @@ jobs:
 
     container:
       # Note: in this test, we need to build a CUDA kernel (to use with CUDAQ Realtime), hence we need the CUDA toolkit, not just the runtime.
-      image: nvidia/cuda:${{ matrix.cuda_version }}.0-devel-${{ matrix.distro }}
+      # Ubuntu 26.04 images exist only for CUDA 13.3+.
+      image: nvidia/cuda:${{ (matrix.distro != 'ubi9' && matrix.cuda_version == '13.0') && '13.3' || matrix.cuda_version }}.0-devel-${{ (matrix.distro == 'ubuntu24.04' && matrix.cuda_version != '12.6') && 'ubuntu26.04' || matrix.distro }}
 
     steps:
       - name: Checkout repository
@@ -141,12 +142,12 @@ jobs:
             bash cmake-install.sh --skip-license --exclude-subdir --prefix=/usr/local
             rm cmake-install.sh
           else
-            # TODO: use official apt repo once upgraded to Ubuntu 26.04.
+            # Kitware repo is needed on 24.04.
             retry apt update
             retry apt install -y --no-install-recommends ca-certificates gpg wget
             wget -qO - https://apt.kitware.com/keys/kitware-archive-latest.asc | gpg --dearmor - \
               | tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
-            echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ noble main' \
+            echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ '"$(. /etc/os-release && echo $VERSION_CODENAME)"' main' \
               | tee /etc/apt/sources.list.d/kitware.list >/dev/null
             retry apt update && retry apt install -y --no-install-recommends kitware-archive-keyring cmake
           fi
@@ -187,7 +188,7 @@ jobs:
           CUDAQ_REALTIME_HSB_REF: ${{ inputs.hsb_ref || '' }}
         with:
           # Use a base CUDA development image for compilation, i.e., no CUDA-Q dependencies pre-installed.
-          image: nvidia/cuda:${{ matrix.cuda_version }}.0-devel-ubuntu24.04
+          image: nvidia/cuda:${{ matrix.cuda_version == '13.0' && '13.3' || matrix.cuda_version }}.0-devel-ubuntu${{ matrix.cuda_version == '12.6' && '24.04' || '26.04' }}
           volume: ${{ github.workspace }}:/workspace
           shell: bash
           env: |
@@ -200,10 +201,10 @@ jobs:
             # this a failing dependency install would be ignored and the job
             # would go green having silently built without DOCA/Holoscan/HSB.
             set -eo pipefail
-            # TODO: use official apt repo once upgraded to Ubuntu 26.04.
+            # Kitware repo is needed on 24.04.
             apt update && apt install -y --no-install-recommends ca-certificates gpg wget
             wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
-            echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ noble main' | tee /etc/apt/sources.list.d/kitware.list >/dev/null
+            echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ '"$(. /etc/os-release && echo $VERSION_CODENAME)"' main' | tee /etc/apt/sources.list.d/kitware.list >/dev/null
             apt update && apt install -y kitware-archive-keyring
             # Build 
             apt update && apt install -y --no-install-recommends cmake git ninja-build nvcomp pkg-config
@@ -251,7 +252,7 @@ jobs:
 
     container:
       # Use a base CUDA runtime image for testing
-      image: nvidia/cuda:${{ matrix.cuda_version }}.0-runtime-ubuntu24.04
+      image: nvidia/cuda:${{ matrix.cuda_version == '13.0' && '13.3' || matrix.cuda_version }}.0-runtime-ubuntu${{ matrix.cuda_version == '12.6' && '24.04' || '26.04' }}
 
     steps:
 
@@ -267,11 +268,11 @@ jobs:
       - name: Test CUDA Quantum Realtime
         shell: bash
         run: |
-          # TODO: use official apt repo once upgraded to Ubuntu 26.04.
+          # Kitware repo is needed on 24.04.
           apt update && apt install -y --no-install-recommends ca-certificates gpg wget
           wget -qO - https://apt.kitware.com/keys/kitware-archive-latest.asc | gpg --dearmor - \
             | tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
-          echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ noble main' \
+          echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ '"$(. /etc/os-release && echo $VERSION_CODENAME)"' main' \
             | tee /etc/apt/sources.list.d/kitware.list >/dev/null
           apt update && apt install -y --no-install-recommends kitware-archive-keyring cmake libibverbs1
           cd /workspace/realtime/build
@@ -301,15 +302,15 @@ jobs:
       - name: Build CUDA Quantum Realtime
         uses: ./.github/actions/run-in-docker
         with:
-          image: nvidia/cuda:${{ matrix.cuda_version }}.0-devel-ubuntu24.04
+          image: nvidia/cuda:${{ matrix.cuda_version == '13.0' && '13.3' || matrix.cuda_version }}.0-devel-ubuntu${{ matrix.cuda_version == '12.6' && '24.04' || '26.04' }}
           volume: ${{ github.workspace }}:/workspace
           shell: bash
           run: |
             set -eo pipefail
-            # TODO: use official apt repo once upgraded to Ubuntu 26.04.
+            # Kitware repo is needed on 24.04.
             apt update && apt install -y --no-install-recommends ca-certificates gpg wget
             wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
-            echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ noble main' | tee /etc/apt/sources.list.d/kitware.list >/dev/null
+            echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ '"$(. /etc/os-release && echo $VERSION_CODENAME)"' main' | tee /etc/apt/sources.list.d/kitware.list >/dev/null
             apt update && apt install -y kitware-archive-keyring
             apt update && apt install -y --no-install-recommends cmake git ninja-build
             cd /workspace/realtime
@@ -351,7 +352,7 @@ jobs:
       packages: read
 
     container:
-      image: nvidia/cuda:${{ matrix.cuda_version }}.0-runtime-ubuntu24.04
+      image: nvidia/cuda:${{ matrix.cuda_version == '13.0' && '13.3' || matrix.cuda_version }}.0-runtime-ubuntu${{ matrix.cuda_version == '12.6' && '24.04' || '26.04' }}
 
     steps:
       - name: Download binary artifact
@@ -366,11 +367,11 @@ jobs:
       - name: Test CUDA Quantum Realtime
         shell: bash
         run: |
-          # TODO: use official apt repo once upgraded to Ubuntu 26.04.
+          # Kitware repo is needed on 24.04.
           apt update && apt install -y --no-install-recommends ca-certificates gpg wget
           wget -qO - https://apt.kitware.com/keys/kitware-archive-latest.asc | gpg --dearmor - \
             | tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null
-          echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ noble main' \
+          echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ '"$(. /etc/os-release && echo $VERSION_CODENAME)"' main' \
             | tee /etc/apt/sources.list.d/kitware.list >/dev/null
           apt update && apt install -y --no-install-recommends kitware-archive-keyring cmake
           cd /workspace/realtime/build
