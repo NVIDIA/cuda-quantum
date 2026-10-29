@@ -141,17 +141,6 @@ public:
     return {};
   }
 
-  /// @brief Does this backend route the kernel onto a physical qubit layout?
-  ///
-  /// A routed backend reports the global register sorted by physical qubit, so
-  /// the compiler has to hand back the permutation that restores qubit
-  /// allocation order. Backends that do not route need no permutation.
-  virtual bool needsReorderIdx() const { return false; }
-
-  /// @brief Does this backend still rely on the compiler synthesizing
-  /// measurements for a kernel that does not measure for itself?
-  virtual bool needsImplicitMeasurements() const { return true; }
-
   /// @brief Set the runtime target information
   void setRuntimeTarget(const RuntimeTarget &target) { runtimeTarget = target; }
 };

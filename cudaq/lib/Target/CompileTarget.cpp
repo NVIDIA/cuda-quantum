@@ -117,6 +117,8 @@ cudaq::CompileTarget cudaq::CompileTarget::createFromConfig(
   target.codegen.emissionFormat = targetConfig.getCodeGenSpec(runtimeConfig);
 
   target.supportResourceCounts = backendConfig.SupportResourceCounts;
+  target.needsReorderIdx = backendConfig.NeedsReorderIdx;
+  target.needsImplicitMeasurements = backendConfig.NeedsImplicitMeasurements;
 
   return target;
 }

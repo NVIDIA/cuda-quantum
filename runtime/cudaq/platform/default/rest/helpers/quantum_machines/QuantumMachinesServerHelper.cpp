@@ -63,10 +63,6 @@ public:
   /// @brief Returns the name of the server helper.
   const std::string name() const override { return "quantum_machines"; }
 
-  /// This backend routes the kernel onto its coupling graph, so the register
-  /// comes back in physical qubit order.
-  bool needsReorderIdx() const override { return true; }
-
   /// @brief Returns the headers for the server requests.
   RestHeaders getHeaders() override {
     RestHeaders headers;

@@ -227,9 +227,6 @@ public:
     target.supportExplicitMeasurements = false;
     target.supportObservableMeasurements = false;
     target.supportSampleWithoutMeasurements = false;
-    target.needsReorderIdx = serverHelper->needsReorderIdx();
-    target.needsImplicitMeasurements =
-        serverHelper->needsImplicitMeasurements();
     return target;
   }
 

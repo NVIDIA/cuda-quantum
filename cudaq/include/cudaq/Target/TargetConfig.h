@@ -110,6 +110,12 @@ struct BackendEndConfigEntry {
   /// Whether the target supports pre-computing resource counts for faster
   /// resource estimation.
   bool SupportResourceCounts = true;
+  /// Whether the backend reports its register sorted by physical qubit, so
+  /// that `sample` needs the permutation back to qubit allocation order.
+  bool NeedsReorderIdx = false;
+  /// Whether the compiler should synthesize measurements for a `sample` kernel
+  /// that does not measure for itself.
+  bool NeedsImplicitMeasurements = true;
   /// Compilation target, including the ordered target IR profiles and the
   /// selected final code generation format.
   cudaq::CompileTarget CompileTarget;

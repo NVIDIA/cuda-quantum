@@ -40,6 +40,14 @@ struct BackendEndConfigEntryV2 {
   rfl::DefaultVal<bool> libraryMode;
   // Default preserves the existing runtime default (true).
   rfl::DefaultVal<bool> supportResourceCounts = true;
+  // Does the backend report its register sorted by physical qubit, so that
+  // `sample` needs the permutation back to allocation order? True for targets
+  // whose pipeline routes onto a coupling graph.
+  rfl::DefaultVal<bool> needsReorderIdx = false;
+  // Should the compiler synthesize measurements for a `sample` kernel that
+  // does not measure for itself? False once the backend expects the kernel to
+  // carry its own measurements.
+  rfl::DefaultVal<bool> needsImplicitMeasurements = true;
   rfl::DefaultVal<std::string> platformLibrary;
   rfl::DefaultVal<std::string> libraryModeExecutionManager;
   rfl::DefaultVal<std::string> platformQpu;

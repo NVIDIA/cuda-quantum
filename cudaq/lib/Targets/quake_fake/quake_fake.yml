@@ -22,6 +22,9 @@ config:
   # nvq++ links it in; on the JIT/Python path nothing links it, so it must
   # be dlopen'd before `platform-qpu` can be found in the QPU registry.
   plugin-libraries: ["libcudaq-rest-qpu"]
+  # This target routes onto a coupling graph, so the backend reports its
+  # register sorted by physical qubit.
+  needs-reorder-idx: true
   # Define the JIT lowering pipeline
   # Keep the remote pipeline aligned with quantum_machines.
   # FakeQuakeServerHelper replaces %QUAKE_EMULATE_SUFFIX% with "" for remote
