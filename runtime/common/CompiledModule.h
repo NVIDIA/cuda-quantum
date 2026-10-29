@@ -239,11 +239,12 @@ public:
   const Resources *getResources() const;
   const Resources *getResources(std::string_view resourcesName) const;
 
-  /// Get the target code artifact with the given name.
+  /// Get the target code artifact with the given name, or `nullptr` if it does
+  /// not exist.
   ///
   /// If no name is provided, defaults to the kernel name.
-  std::optional<CodegenArtifact> getTargetCode() const;
-  std::optional<CodegenArtifact> getTargetCode(std::string_view codeName) const;
+  const CodegenArtifact *getTargetCode() const;
+  const CodegenArtifact *getTargetCode(std::string_view codeName) const;
 
   /// Get all compiled artifacts in insertion order.
   const ArtifactsStore &getArtifacts() const { return artifacts; }
