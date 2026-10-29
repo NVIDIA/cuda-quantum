@@ -165,12 +165,11 @@ void cudaq_internal::compiler::Compiler::applyPipeline(
   llvm::raw_string_ostream os(errMsg);
   CUDAQ_INFO("Pass pipeline for {} = {}", kernelName, pipeline);
   if (failed(parsePassPipeline(pipeline, pm, os)))
-    throw std::runtime_error(
-        "Remote rest platform failed to add passes to pipeline (" + errMsg +
-        ").");
+    throw std::runtime_error("Failed to add passes to the pipeline (" + errMsg +
+                             ").");
   if (failed(cudaq_internal::compiler::runPassManager(pm,
                                                       moduleOp.getOperation())))
-    throw std::runtime_error("Remote rest platform Quake lowering failed.");
+    throw std::runtime_error("Quake lowering failed.");
 }
 
 std::tuple<mlir::ModuleOp, mlir::func::FuncOp, bool>

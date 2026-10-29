@@ -10,12 +10,14 @@
 // RUN: cudaq-opt --clifford-t-synthesis='epsilon=1e-3' \
 // RUN:   -verify-diagnostics %s
 
-// With the default --on-dynamic-angle=error, a non-constant rotation angle
-// must produce a diagnostic naming the option that controls this behaviour.
+// With the default --on-dynamic-angle=error, a non-constant rotation angle is
+// an error. A compile target runs this pass after argument values are
+// substituted, so the diagnostic explains which angles stay dynamic and does
+// not suggest a pass option that a target user cannot set.
 
 func.func @dyn(%a: f64) {
   %q = quake.alloca !quake.ref
-  // expected-error @+1 {{rotation angle is not a compile-time constant}}
+  // expected-error @+1 {{rotation angle is not a compile-time constant. Synthesis needs the value of every angle at compile time, so it cannot synthesize an angle computed at run time, such as one in a loop too long to unroll.}}
   quake.rz (%a) %q : (f64, !quake.ref) -> ()
   return
 }
