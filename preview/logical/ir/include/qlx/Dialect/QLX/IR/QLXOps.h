@@ -28,5 +28,3 @@ namespace qlx {
 /// Logical action body; the registered mnemonic is retained for saved IR.
 using ActionBodyOp = ObjectiveBodyOp;
 } // namespace qlx
-
-#endif // QLX_DIALECT_QLX_QLXOPS_H
