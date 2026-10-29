@@ -218,13 +218,27 @@ RUN echo -e "CUDAQX pip omitted packages:\n$(cat ${SOURCES_ROOT}/cudaqx/pip/pip_
 RUN echo -e "CUDAQ-DECODING pip omitted packages:\n$(cat ${SOURCES_ROOT}/cudaq-decoding/pip/pip_omitted_packages.txt)"
 RUN echo -e "MACOS pip omitted packages:\n$(cat ${SOURCES_ROOT}/macos/pip/macos_pip_omitted_packages.txt)"
 
-# For omitted apt packages (no source available), extract license/copyright/EULA from the .deb
+# For omitted apt packages (no source available), extract license/copyright/EULA from the .deb.
+# Packages in no configured repo (doca-sdk-gpunetio) are fetched from the DOCA repo by
+# URL; it is not added to apt sources because it would shadow Ubuntu's rdma-core.
+COPY realtime/scripts/deps_common.sh /tmp/deps_common.sh
 RUN echo "Retrieving EULA/copyright for omitted apt packages..." && \
+    DOCA_VERSION=$(sed -n 's/^DOCA_VERSION=\${DOCA_VERSION:-\(.*\)}/\1/p' /tmp/deps_common.sh) && rm -f /tmp/deps_common.sh && \
+    DOCA_REPO="https://linux.mellanox.com/public/repo/doca/${DOCA_VERSION}/ubuntu24.04/x86_64" && \
+    echo "DOCA fallback repo: $DOCA_REPO" && \
     mkdir -p "${SOURCES_ROOT}/omitted_licenses/apt/" /tmp/deb_extract && \
     while IFS= read -r pkg || [ -n "$pkg" ]; do \
       [ -z "$pkg" ] && continue; \
       ( cd /tmp/deb_extract && apt-get download "$pkg" 2>/dev/null ) || true; \
       deb=$(ls /tmp/deb_extract/*.deb 2>/dev/null | head -1); \
+      if [ -z "$deb" ] && [ -n "$DOCA_VERSION" ]; then \
+        file=$(curl -fsSL "$DOCA_REPO/Packages" 2>/dev/null | awk -v p="$pkg" '$1=="Package:"{m=($2==p)} m&&$1=="Filename:"{print $2; exit}'); \
+        if [ -n "$file" ]; then \
+          echo "$pkg: not in apt sources, fetching $DOCA_REPO/$file"; \
+          curl -fsSL -o "/tmp/deb_extract/$(basename "$file")" "$DOCA_REPO/$file" || true; \
+          deb=$(ls /tmp/deb_extract/*.deb 2>/dev/null | head -1); \
+        fi; \
+      fi; \
       if [ -n "$deb" ]; then \
         dpkg-deb -R "$deb" "/tmp/deb_extract/${pkg}_pkg" 2>/dev/null || true; \
         dest="${SOURCES_ROOT}/omitted_licenses/apt/${pkg}"; \
