@@ -410,10 +410,12 @@ resolveOptimizationLevel(mlir::ModuleOp moduleOp,
   return options.optimizationLevel;
 }
 
-/// Mark the module and each function so that passes and codegen that never
-/// see `CompileOptions` also skip quantum optimization. Codegen and
-/// `cudaq-translate` check the module. Passes such as `quake-simplify`,
-/// `phase-folding`, and `dqe` check the function they run on.
+/// Mark the module and each function so that passes and codegen also skip
+/// quantum optimization.
+///
+/// The JIT, target codegen and `cudaq-translate` check for the attribute on
+/// the module. Passes such as `quake-simplify`, `phase-folding`, and `dqe`
+/// check it on the function they run on.
 static void disableQuantumOptimization(mlir::ModuleOp moduleOp) {
   auto unitAttr = mlir::UnitAttr::get(moduleOp.getContext());
   moduleOp->setAttr(cudaq::runtime::disableQuantumOpts, unitAttr);
