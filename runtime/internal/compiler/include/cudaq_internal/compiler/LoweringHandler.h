@@ -78,10 +78,15 @@ public:
                  const cudaq::config::Profile &output,
                  const cudaq::CompileOptions &options) const = 0;
 
-  /// Whether the stage lowering \p input into \p output needs the values of
-  /// the kernel's arguments, which the compiler must then substitute first.
-  /// Python packs the arguments before a launch's
-  /// `CompileOptions` exist, so the answer depends on the profiles alone.
+  /// Whether this stage needs the values of the kernel's arguments. If it
+  /// does, the compiler replaces each argument with its value before the
+  /// stage runs. For example, Clifford+T synthesis has to know every rotation
+  /// angle, and an angle often comes from an argument, such as a QFT's width.
+  ///
+  /// Answer from the profiles alone, not the compile options. Python asks
+  /// this same question to decide how to pack the arguments, and it does that
+  /// before the launch's options exist. An answer that depended on the
+  /// options could disagree with what the compiler does.
   virtual bool
   requiresArgumentValues(const cudaq::config::Profile &input,
                          const cudaq::config::Profile &output) const {
