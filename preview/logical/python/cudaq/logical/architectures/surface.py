@@ -26,6 +26,7 @@ from dataclasses import dataclass
 from functools import lru_cache
 from inspect import Parameter, Signature
 from itertools import product as cartesian_product
+from typing import TYPE_CHECKING
 import cudaq.logical.architecture as _architecture
 import cudaq.logical.codes as codes
 import cudaq.logical.devices as devices
@@ -36,15 +37,22 @@ import cudaq.logical.qec as qec
 import cudaq.logical.std as standard
 import cudaq.logical.types as types
 from ._surface_profiles import clifford_profile, passthrough_profile
+from ._surface_interleaved import SurfaceInterleavedNZDefinitions
 from cudaq.logical.programs.decorators import action as _action
 
 from . import _wsc
 
-__all__ = ("SurfaceDefinitions", "definitions", "architecture", "wsc",
-           "gadget_contract")
+if TYPE_CHECKING:
+    from cudaq.logical.compiler import CliffordProjection, Depolarize1Placement
+
+__all__ = ("SurfaceDefinitions", "SurfaceInterleavedNZDefinitions",
+           "definitions", "interleaved_nz_definitions", "architecture", "wsc",
+           "gadget_contract", "data_depol")
 
 # Gadget identities and the recipe data needed to construct their contracts.
 _profile_specs = {}
+# Exact projections and physical sites declared by the concrete realizations.
+_data_depol_sites = {}
 
 
 @lru_cache(maxsize=None)
@@ -60,10 +68,15 @@ def gadget_contract(gadget: gadgets.GadgetDefinition) -> gadgets.GadgetContract:
         raise ValueError(
             "gadget does not belong to the surface recipe") from None
     match spec:
+        case ("contract", contract):
+            return contract
         case ("prepare", builder, basis, prefix):
-            return builder._preparation_profile(gadget, basis, prefix)
+            contract = builder._preparation_profile(gadget, basis, prefix)
+            first = builder._check_records(gadget, prefix)[0]
         case ("memory", builder, rounds):
-            return builder._memory_profile(gadget, rounds)
+            contract = builder._memory_profile(gadget, rounds)
+            first = builder._check_records(gadget,
+                                           "" if rounds == 1 else "round0_")[0]
         case ("clifford",):
             return clifford_profile(gadget)
         case ("readout",):
@@ -73,6 +86,54 @@ def gadget_contract(gadget: gadgets.GadgetDefinition) -> gadgets.GadgetContract:
         case ("wsc", plan):
             return _wsc.measurement_profile(plan,
                                             name=f"{gadget.name}_analysis")
+    from cudaq.logical.compiler import compile, project_clifford
+
+    projection = project_clifford(compile(gadget), gadget=gadget.name)
+    measurement = projection.record_indices[first.name]
+    entry = next(op for op in projection.instructions
+                 if op.measurement_start == measurement)
+    port, = projection.interface.inputs or projection.interface.outputs
+    _data_depol_sites[gadget] = (projection, entry.site_id, port.data_carriers)
+    return contract
+
+
+def data_depol(
+    contract: gadgets.GadgetContract,
+    projection: CliffordProjection,
+    probability: float,
+    *,
+    site: str = "before_syndrome",
+) -> tuple[Depolarize1Placement, ...]:
+    """Place a depolarizing channel on each data qubit at a declared site.
+
+    ``contract`` is obtained from ``gadget_contract`` for a Surface gadget.
+    ``projection`` must match that gadget's registered realization, including
+    its physical operations, records and carrier bindings. This function does
+    not compile or change the realization.
+
+    ``before_syndrome`` precedes the first syndrome operation, after any
+    preparation resets and basis changes. It is available on the ideal-MPP
+    preparations and SEC, and on all three interleaved N/Z gadgets. A direct
+    logical readout has no such site and is rejected.
+
+    The result uses the ordinary explicit placements accepted by circuit
+    emission and standard fault construction. ``probability`` is the total
+    nonidentity probability per data qubit: X, Y and Z are exclusive
+    alternatives with probability ``probability / 3`` each. Callers choose
+    which gadget occurrences receive these placements.
+    """
+    from cudaq.logical.compiler import CliffordProjection, Depolarize1Placement
+
+    if not isinstance(contract, gadgets.GadgetContract):
+        raise TypeError("data_depol requires a Surface gadget contract")
+    if not isinstance(projection, CliffordProjection):
+        raise TypeError("data_depol requires a CliffordProjection")
+    if site != "before_syndrome" or contract.gadget not in _data_depol_sites:
+        raise ValueError(f"gadget has no data-noise site {site!r}")
+    expected, before, carriers = _data_depol_sites[contract.gadget]
+    if projection != expected:
+        raise ValueError("projection does not match the gadget realization")
+    return (Depolarize1Placement(before, carriers, probability),)
 
 
 @dataclass(frozen=True, slots=True)
@@ -1330,6 +1391,13 @@ class SurfaceDefinitions:
     wsc_lowering: qec.QECLowering
     lattice_surgery_zz_lowering: qec.QECLowering
 
+    @property
+    def coordinates(self) -> tuple[tuple[float, float], ...]:
+        """Data-qubit coordinates of the ideal-MPP realization."""
+        from cudaq.logical.architecture.geometry import rotated_surface_lattice
+
+        return rotated_surface_lattice(self.distance).coordinates
+
     def wsc(self, *, max_product_weight: int = 2) -> devices.QECArchitecture:
         """Return the selectable QEC architecture for these definitions."""
 
@@ -1441,9 +1509,31 @@ _family = SurfaceFamily()
 
 
 def definitions(distance: int) -> SurfaceDefinitions:
-    """Return the reusable definitions and physical footprint for ``distance``."""
-
+    """Return the cached Surface definitions with ideal-MPP syndrome rounds."""
     return _family[distance]
+
+
+@lru_cache(maxsize=None)
+def interleaved_nz_definitions(
+        distance: int) -> SurfaceInterleavedNZDefinitions:
+    """Return preparation, SEC and SEC-plus-Z-readout with the N/Z schedule.
+
+    All three include a round of interleaved N/Z extraction. Their contracts
+    are available through ``gadget_contract``. ``syndrome_extraction`` resets
+    the check ancillas and measures the checks. ``measure_z_with_syndrome``
+    performs that SEC before destructively measuring all data qubits, then
+    closes the Z-check detectors and returns the logical-Z parity. Its
+    terminal ancilla resets preserve the standard physical schedule's reset
+    fault sites, including faults with zero response.
+    """
+    from ._surface_interleaved import build_definitions
+
+    result, contracts, sites = build_definitions(distance)
+    for contract in contracts:
+        _profile_specs[contract.gadget] = ("contract", contract)
+    for gadget, projection, before, carriers in sites:
+        _data_depol_sites[gadget] = (projection, before, carriers)
+    return result
 
 
 def architecture(distance: int = 3) -> devices.QECArchitecture:

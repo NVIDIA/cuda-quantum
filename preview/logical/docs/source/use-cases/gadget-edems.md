@@ -81,6 +81,11 @@ can be projected to a DEM.
 
 ## Derive a surface-memory model
 
+This tutorial uses ideal MPP stabilizer measurements and explicit data noise.
+The [circuit-level memory example](examples/surface-memory-circuit.md) additionally
+derives models for physical ancilla extraction and compares them with Stim's
+generated rotated-memory circuit.
+
 The [memory experiment](../../../examples/standalone/07_memory_edem.py)
 derives the model for the surface-memory experiment in the Stim tutorial:
 prepare logical zero, measure the stabilizers for several rounds, and read out
@@ -127,9 +132,11 @@ The parameter cell controls the experiment size and where noise occurs:
 - `rounds` counts stabilizer rounds, including preparation's. For
   `rounds = 3`, the sequence is preparation, two memory rounds, and logical-Z
   readout.
-- `data_pauli_probabilities` sets one Pauli channel per noisy data qubit and
-  round. The channel applies X, Y, or Z with the given probabilities and
-  otherwise leaves the qubit unchanged.
+- `data_noise_kind` chooses `"pauli_channel"` (the default) or
+  `"independent_pauli"`.
+- `data_pauli_probabilities` supplies the X, Y and Z probabilities per noisy
+  data qubit and round. In channel mode they are mutually exclusive
+  alternatives; in independent mode each is a separate binary event.
 - `noisy_rounds` selects which rounds receive the channel. Round 0 is
   preparation.
 - `noisy_data_qubits` restricts the channel to some data qubits; `None` means
@@ -144,9 +151,9 @@ channels. Useful changes include:
   round.
 - Set `noisy_data_qubits = (0, 1)` to restrict noise to two data qubits.
 - Change `data_pauli_probabilities` to compare symmetric and Z-biased noise.
-  The model and saved file represent biased channels exactly, but the Stim
-  sampling step supports only symmetric channels, so keep `shots = 0` for
-  biased noise.
+  The model and saved file represent biased channels exactly. Keep `shots = 0`
+  for categorical laws that lack a supported exact factorization. Biased
+  independent errors can be sampled directly.
 - Increase `distance` or `rounds` to change the experiment size.
 
 ### Select the gadget contracts
@@ -199,6 +206,17 @@ noise just before it:
 are mutually exclusive, and each one becomes a **fault indicator**, a column
 of the model that is 1 when that fault occurs. With the defaults, there are
 9 data qubits × 3 alternatives × 3 noisy rounds = 81 fault indicators.
+
+With `data_noise_kind="independent_pauli"`, the factory instead uses
+`pauli_error` for each supplied X, Y and Z rate. Several events can fire on
+the same qubit. The same numeric rates therefore describe a different noise
+model from mutually exclusive channel alternatives.
+
+For example, the default channel has total depolarizing probability `p`:
+its X, Y and Z alternatives each have probability `p / 3`. To represent
+that same channel with independent mechanisms, use `factorize_dem`, which
+transforms the probabilities. Merely choosing independent mode with three
+rates of `p / 3` does not perform that conversion.
 
 For the standard noise policy, you can skip the factory. Pass
 `noise=StandardDepolarizingNoise(...)` and per-occurrence `depolarizations=` to
@@ -303,7 +321,8 @@ python3 -m pip install 'stim>=1.16,<2'
 
 Stim samples independent errors, so the conversion takes three steps:
 
-1. `factorize_dem` replaces each Pauli channel with independent errors that
+1. `factorize_dem` preserves independent groups and replaces supported Pauli
+   channels with independent errors that
    have exactly the same distribution.
 2. `coalesce_dem_columns` merges errors that flip the same detectors and
    observables.

@@ -36,9 +36,9 @@ def test_examples_execute(capsys, monkeypatch, tmp_path):
     import cudaq
 
     assert len(KERNEL_EXAMPLES) == 7
-    assert len(STANDALONE_EXAMPLES) == 10
+    assert len(STANDALONE_EXAMPLES) == 11
     monkeypatch.syspath_prepend(str(EXAMPLE_ROOT))
-    # 07_memory_edem.py exports its artifact relative to the working directory.
+    # Memory examples export their artifacts relative to the working directory.
     monkeypatch.chdir(tmp_path)
     output = {}
     for example in (*KERNEL_EXAMPLES, *STANDALONE_EXAMPLES):

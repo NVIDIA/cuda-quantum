@@ -21,6 +21,10 @@ This page covers two ways to export:
 
 ## Export a surface-code memory with detector contracts
 
+This tutorial uses ideal MPP stabilizer measurements and explicit data noise.
+For physical ancilla extraction with circuit-level gate, reset and measurement
+noise, see [Circuit-level surface memory](examples/surface-memory-circuit.md).
+
 With CUDA-Q Logical installed, run the
 [surface-memory example](../../../examples/standalone/06_stim_emission.py)
 from the repository root:
@@ -190,14 +194,10 @@ detectors and virtual-syndrome bindings, together with the code at each
 boundary. `GadgetContract` holds these declarations together with observables
 and success conditions.
 
-### Add data errors and assemble the experiment
+### Assemble the experiment and add data errors
 
-The script's `data_noise_placements` helper places an independent depolarizing
-channel on every data qubit immediately before each round's first stabilizer
-measurement. In preparation, this is after the reset, so the reset does not
-erase the injected errors. The final readout receives no additional noise.
-
-Select the contracts in execution order and apply the helper:
+The example assembles preparation, repeated SEC occurrences and direct logical
+readout explicitly:
 
 ```{eval-rst}
 .. literalinclude:: ../../../examples/standalone/06_stim_emission.py
@@ -208,6 +208,24 @@ Select the contracts in execution order and apply the helper:
 
 Preparation contributes the first round, so `rounds = 3` adds two memory rounds
 before the readout.
+
+The example then chooses which occurrences receive data depolarization.
+`surface.data_depol(contract, projection, probability)` resolves the gadget's
+declared `before_syndrome` site into ordinary `Depolarize1Placement` objects.
+The supplied projection must match the concrete realization. The helper does
+not compile it again or choose an experiment sequence.
+
+At this site each data qubit receives one categorical X/Y/Z channel of total
+probability `data_depolarization`. Preparation's site follows reset, so reset
+does not erase the errors. The direct logical readout has no such site and
+receives no additional noise in this example.
+
+```{eval-rst}
+.. literalinclude:: ../../../examples/standalone/06_stim_emission.py
+   :language: python
+   :start-at: projections = {
+   :end-before: # %%
+```
 
 ### Save the Stim circuit
 

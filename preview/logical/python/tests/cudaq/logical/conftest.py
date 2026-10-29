@@ -10,6 +10,7 @@
 from pathlib import Path
 from types import SimpleNamespace
 from cudaq.logical.architecture.geometry import rotated_surface_lattice
+from cudaq.logical.architectures import surface
 
 import pytest
 
@@ -23,7 +24,7 @@ def run_memory_example(tmp_path_factory):
 
     def run(name, **parameters):
         parameters.setdefault("shots", 0)
-        if name == "07_memory_edem.py":
+        if name in ("07_memory_edem.py", "08_surface_memory_circuit.py"):
             parameters.setdefault("output",
                                   tmp_path_factory.mktemp("memory-edem"))
         path = EXAMPLES / name
@@ -47,7 +48,13 @@ def memory_result():
         profiles = namespace["profiles"]
 
         def depolarizations(probability):
-            return namespace["data_noise_placements"](profiles, probability)
+            return {
+                index:
+                    surface.data_depol(
+                        contract, namespace["projections"][contract.gadget],
+                        probability)
+                for index, contract in enumerate(profiles[:-1])
+            }
 
         def to_stim(noise=None, *, data_depolarization=0.0):
             return namespace["coordinates"] + "\n" + cql.compiler.emit_stim(
@@ -55,13 +62,13 @@ def memory_result():
                 noise=noise,
                 depolarizations=depolarizations(data_depolarization))
 
-        return SimpleNamespace(profiles=profiles,
-                               coordinates=namespace["lattice"].coordinates,
-                               extraction_entries=tuple(
-                                   (p[0].before, p[0].carriers)
-                                   for p in namespace["placements"].values()),
-                               depolarizations=depolarizations,
-                               to_stim=to_stim)
+        return SimpleNamespace(
+            profiles=profiles,
+            coordinates=namespace["implementation"].coordinates,
+            extraction_entries=tuple((p[0].before, p[0].carriers)
+                                     for p in namespace["placements"].values()),
+            depolarizations=depolarizations,
+            to_stim=to_stim)
 
     return result
 
