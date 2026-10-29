@@ -6,13 +6,12 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# Shared by install_prerequisites.sh and bootstrap_prerequisites.sh: library
-# version/source definitions, command line argument parsing, lock-file
-# generation, and common helper functions (retry, download_first,
-# temp_install_if_command_unknown, remove_temp_installs, prepare_exit).
+# Shared by install_prerequisites.sh: library version/source definitions,
+# command line argument parsing, lock-file generation, and common helper
+# functions (retry, download_first, temp_install_if_command_unknown,
+# remove_temp_installs, prepare_exit).
 #
-# Not meant to be run directly -- sourced from one of the two scripts above,
-# which set up the per-toolchain installation steps that follow.
+# Not meant to be run directly -- sourced from install_prerequisites.sh.
 
 # Centralized version / source definitions used by both installation and lockfile
 # generation. Keeping these here avoids duplication between code paths.
@@ -57,7 +56,7 @@ AWS_SDK_CPP_REF="1.11.454"
 
 # QRMI pre-built C artifacts for Pasqal QRMI connector
 QRMI_RELEASE_REPO=${QRMI_RELEASE_REPO:-qiskit-community/qrmi}
-QRMI_RELEASE_TAG=${QRMI_RELEASE_TAG:-v0.12.0}
+QRMI_RELEASE_TAG=${QRMI_RELEASE_TAG:-0.26.4}
 QRMI_RELEASE_VERSION=${QRMI_RELEASE_TAG#v}
 QRMI_RELEASE_BASE="https://github.com/${QRMI_RELEASE_REPO}/releases/download/${QRMI_RELEASE_TAG}"
 QRMI_ARCHIVE="libqrmi-${QRMI_RELEASE_VERSION}-el8-x86_64.tar.gz"
@@ -65,23 +64,26 @@ QRMI_UNPACK_DIR="libqrmi-${QRMI_RELEASE_VERSION}"
 # NOTE: This needs to be updated whenever the pre-built artifacts are updated. The SHA-256 can be computed with:
 #   wget -O qrmi.tar.gz "${QRMI_RELEASE_BASE}/${QRMI_ARCHIVE}"
 #   sha256sum qrmi.tar.gz | awk '{print $1}'
-QRMI_ARCHIVE_SHA256=${QRMI_ARCHIVE_SHA256:-2986150d4f55e1f6566bef16d9fb3897ca04dd7eaa681865f7ef244f298a6746}
+QRMI_ARCHIVE_SHA256=${QRMI_ARCHIVE_SHA256:-0e4d2e841832454dba1b7802768b250943f10ebfdb2c2b3b89dc71655a730ddb}
 
 # Process command line arguments
 toolchain=''
 exclude_prereq=''
 install_all=true
+bootstrap=false
 lock_mode=false
 prereqs_lock_mode_done=false
 __optind__=$OPTIND
 OPTIND=1
-while getopts ":e:t:ml-:" opt; do
+while getopts ":e:t:mbl-:" opt; do
   case $opt in
     e) exclude_prereq="$(echo "$OPTARG" | tr '[:upper:]' '[:lower:]')"
     ;;
     t) toolchain="$OPTARG"
     ;;
     m) install_all=false
+    ;;
+    b) bootstrap=true
     ;;
     l) lock_mode=true
     ;;

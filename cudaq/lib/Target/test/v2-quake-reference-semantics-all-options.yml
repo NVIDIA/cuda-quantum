@@ -10,7 +10,7 @@
 
 # Test YAML parsing of `quake-reference-semantics`.
 
-version: 2
+version: 2-alpha
 name: v2-quake-reference-semantics-all-options
 description: "All quake reference-semantics profile options parsed"
 config:

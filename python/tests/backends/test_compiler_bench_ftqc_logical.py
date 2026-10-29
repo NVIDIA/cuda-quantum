@@ -237,3 +237,20 @@ def test_dynamic_controlled_axis_callable_remains_phase_strict():
     ops = cudaq.estimate_resources(kernel, 3).to_dict()
     # The guarded rotation retains all three controls instead of becoming `T`.
     assert ops == {'cccrz': 1}
+
+
+def test_fuses_constant_one_qubit_rotations():
+    cudaq.set_target(FTQC_LOGICAL_TARGET)
+
+    kernel = cudaq.make_kernel()
+    q = kernel.qalloc(1)
+    # Any one-qubit unitary needs at most three Euler rotations, so the four
+    # arbitrary rotations below fuse into three.
+    kernel.rz(0.3, q[0])
+    kernel.rx(0.5, q[0])
+    kernel.rz(0.7, q[0])
+    kernel.rx(0.2, q[0])
+
+    ops = cudaq.estimate_resources(kernel).to_dict()
+    assert_logical_basis_only(ops)
+    assert sum(ops.get(gate, 0) for gate in ('rx', 'ry', 'rz')) == 3, ops

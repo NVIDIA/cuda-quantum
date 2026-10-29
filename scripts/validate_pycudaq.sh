@@ -39,7 +39,7 @@
 #
 # TODO: Unify wheel validation around this script. Currently:
 #   - ci_macos.yml uses this script (auto-detects from repo, runs everything)
-#   - publishing.yml uses this script (selective dir copy to /tmp, no targets/)
+#   - validation.yml uses this script (selective dir copy to /tmp, no targets/)
 #   - python_wheels.yml does NOT use this script; it runs pytest, snippets,
 #     and examples directly with explicit `find` exclusions in Docker containers.
 # The goal is to have all wheel validation run through this script, replacing the

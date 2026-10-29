@@ -55,7 +55,6 @@ declare_mlir_python_extension(CUDAQCorePythonSources.Backends
   ADD_TO_PARENT CUDAQCorePythonSources
   SOURCES
     py_core_backends.cpp
-    ../../python/runtime/cudaq/target/py_compile_target.cpp
     ../../python/runtime/common/py_Resources.cpp
     ../../python/runtime/common/py_EstimateResult.cpp
     ../../python/runtime/cudaq/trace/py_trace.cpp
@@ -183,6 +182,9 @@ if(CUDAQ_BUILD_SPLIT_WHEELS)
   set_property(TARGET MLIRPythonSources.Core.Python PROPERTY
     INTERFACE_SOURCES "${_mlir_sources}")
 endif()
+
+add_dependencies(CUDAQCorePythonModules CUDAQTargetPython)
+add_dependencies(CUDAQCorePythonModules.extension._backends.dso CUDAQTargetPython)
 
 # Shared backend values are available without the frontend package.
 cudaq_stage_python_sources(CUDAQCorePythonPackageStaging

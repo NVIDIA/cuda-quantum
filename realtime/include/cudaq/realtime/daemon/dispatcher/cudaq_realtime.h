@@ -130,8 +130,12 @@ typedef struct {
 // Dispatcher configuration
 typedef struct {
   int device_id;              // GPU device ID (>=0)
-  uint32_t num_blocks;        // grid size
-  uint32_t threads_per_block; // block size
+  uint32_t num_blocks;        // grid size; must be 1: a request reaches the
+                              // handler threads through shared memory and
+                              // block barriers, so a wider grid would need a
+                              // cooperative launch
+  uint32_t threads_per_block; // block size: the block every DEVICE_CALL
+                              // handler runs on (>= 1)
   uint32_t num_slots;         // ring buffer slots
   // Bytes per slot: the stride, matching cudaq_ringbuffer_t's rx/tx_stride_sz.
   // Every dispatch shape reads it the same way, CUDAQ_KERNEL_UNIFIED included.
@@ -260,11 +264,14 @@ CUDAQ_REALTIME_DISPATCH_API void cudaq_launch_dispatch_kernel_regular(
 // The unified kernel combines RDMA RX, RPC dispatch, and RDMA TX into a single
 // kernel, eliminating inter-kernel flag handoff overhead.  Transport-specific
 // details are passed via an opaque context pointer so the dispatcher API
-// remains transport-agnostic.
+// remains transport-agnostic.  `threads_per_block` is the one block the
+// kernel runs as: thread 0 drives the transport and every thread calls each
+// DEVICE_CALL handler (see DeviceRPCFunction in dispatch_kernel_launch.h).
 typedef void (*cudaq_unified_launch_fn_t)(
     void *transport_ctx, size_t tx_stride_sz,
     cudaq_function_entry_t *function_table, size_t func_count,
-    volatile int *shutdown_flag, uint64_t *stats, cudaStream_t stream);
+    volatile int *shutdown_flag, uint64_t *stats, uint32_t threads_per_block,
+    cudaStream_t stream);
 
 // Transport-agnostic unified dispatch kernel launcher (from
 // libcudaq-realtime-dispatch.a).  The kernel it launches reaches
@@ -281,6 +288,10 @@ typedef void (*cudaq_unified_launch_fn_t)(
 // above, which pass ring pointers as kernel arguments, the hooks dereference
 // it on the GPU.
 //
+// The kernel is launched as one block of `threads_per_block` threads.  Thread
+// 0 alone calls the transport hooks; every thread calls each DEVICE_CALL
+// handler between two block barriers, exactly as the ring kernels do.
+//
 // Because CUDA resolves __device__ calls at device-link time and never across
 // modules, and a device-function pointer is only valid inside the module that
 // defines it, the kernel must share one module with both the transport's hook
@@ -295,7 +306,8 @@ typedef void (*cudaq_unified_launch_fn_t)(
 CUDAQ_REALTIME_DISPATCH_API void cudaq_launch_unified_dispatch_device(
     void *transport_ctx, size_t tx_stride_sz,
     cudaq_function_entry_t *function_table, size_t func_count,
-    volatile int *shutdown_flag, uint64_t *stats, cudaStream_t stream);
+    volatile int *shutdown_flag, uint64_t *stats, uint32_t threads_per_block,
+    cudaStream_t stream);
 
 // Graph-enabled dispatch kernels (requires compute capability 9.0+, sm_90+)
 // These functions are only available when compiled for sm_90 or higher.
@@ -478,7 +490,9 @@ typedef struct {
 //
 // `unified_launch_fn` may be NULL, and normally is: start() then runs the
 // unified kernel from libcudaq-realtime-dispatch.a, which the consumer must
-// link.  Pass a function only to override the whole dispatch loop.
+// link.  Pass a function only to override the whole dispatch loop; it
+// receives config.threads_per_block and must keep the one-block threading
+// contract (see DeviceRPCFunction in dispatch_kernel_launch.h).
 // Whichever kernel runs must be device-linked into the same module as the
 // DEVICE_CALL handlers in the function table.  `transport_ctx` is required
 // either way, and

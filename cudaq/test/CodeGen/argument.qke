@@ -263,7 +263,9 @@ func.func @test_3(%0: !cc.ptr<i8>, %1: !cc.ptr<!cc.struct<{!cc.struct<{!cc.ptr<i
 // CHECK:         %[[VAL_2:.*]] = getelementptr i8, ptr %[[VAL_0]], i64 8
 // CHECK:         %[[VAL_3:.*]] = load i64, ptr %[[VAL_0]], align 4
 // CHECK:         %[[VAL_4:.*]] = sdiv i64 %[[VAL_3]], 16
-// CHECK:         tail call void @anchor(ptr %[[VAL_2]], i64 %[[VAL_4]])
+// CHECK:         %[[VAL_5:.*]] = insertvalue { ptr, i64 } undef, ptr %[[VAL_2]], 0
+// CHECK:         %[[VAL_6:.*]] = insertvalue { ptr, i64 } %[[VAL_5]], i64 %[[VAL_4]], 1
+// CHECK:         tail call void @__nvqpp__mlirgen__test_0({ ptr, i64 } %[[VAL_6]])
 // CHECK:         ret { ptr, i64 } zeroinitializer
 // CHECK:       }
 
@@ -290,12 +292,17 @@ func.func @test_3(%0: !cc.ptr<i8>, %1: !cc.ptr<!cc.struct<{!cc.struct<{!cc.ptr<i
 // CHECK:         %[[VAL_2:.*]] = getelementptr i8, ptr %[[VAL_0]], i64 16
 // CHECK:         %[[VAL_3:.*]] = load i64, ptr %[[VAL_0]], align 4
 // CHECK:         %[[VAL_4:.*]] = sdiv i64 %[[VAL_3]], 2
-// CHECK:         %[[VAL_5:.*]] = getelementptr i8, ptr %[[VAL_2]], i64 %[[VAL_3]]
-// CHECK:         %[[VAL_6:.*]] = getelementptr i8, ptr %[[VAL_0]], i64 8
-// CHECK:         %[[VAL_7:.*]] = load i64, ptr %[[VAL_6]], align 4
-// CHECK:         %[[VAL_8:.*]] = sdiv i64 %[[VAL_7]], 4
-// CHECK:         tail call void @anchor(ptr %[[VAL_2]], i64 %[[VAL_4]])
-// CHECK:         tail call void @anchor(ptr %[[VAL_5]], i64 %[[VAL_8]])
+// CHECK:         %[[VAL_5:.*]] = insertvalue { ptr, i64 } undef, ptr %[[VAL_2]], 0
+// CHECK:         %[[VAL_6:.*]] = insertvalue { ptr, i64 } %[[VAL_5]], i64 %[[VAL_4]], 1
+// CHECK:         %[[VAL_7:.*]] = getelementptr i8, ptr %[[VAL_2]], i64 %[[VAL_3]]
+// CHECK:         %[[VAL_8:.*]] = insertvalue { { ptr, i64 }, { ptr, i64 } } undef, { ptr, i64 } %[[VAL_6]], 0
+// CHECK:         %[[VAL_9:.*]] = getelementptr i8, ptr %[[VAL_0]], i64 8
+// CHECK:         %[[VAL_10:.*]] = load i64, ptr %[[VAL_9]], align 4
+// CHECK:         %[[VAL_11:.*]] = sdiv i64 %[[VAL_10]], 4
+// CHECK:         %[[VAL_12:.*]] = insertvalue { ptr, i64 } undef, ptr %[[VAL_7]], 0
+// CHECK:         %[[VAL_13:.*]] = insertvalue { ptr, i64 } %[[VAL_12]], i64 %[[VAL_11]], 1
+// CHECK:         %[[VAL_14:.*]] = insertvalue { { ptr, i64 }, { ptr, i64 } } %[[VAL_8]], { ptr, i64 } %[[VAL_13]], 1
+// CHECK:         tail call void @__nvqpp__mlirgen__test_1({ { ptr, i64 }, { ptr, i64 } } %[[VAL_14]])
 // CHECK:         ret { ptr, i64 } zeroinitializer
 // CHECK:       }
 
@@ -335,7 +342,9 @@ func.func @test_3(%0: !cc.ptr<i8>, %1: !cc.ptr<!cc.struct<{!cc.struct<{!cc.ptr<i
 // CHECK:         %[[VAL_2:.*]] = getelementptr i8, ptr %[[VAL_0]], i64 8
 // CHECK:         %[[VAL_3:.*]] = load i64, ptr %[[VAL_0]], align 4
 // CHECK:         %[[VAL_4:.*]] = sdiv i64 %[[VAL_3]], 16
-// CHECK:         tail call void @anchor(ptr %[[VAL_2]], i64 %[[VAL_4]])
+// CHECK:         %[[VAL_5:.*]] = insertvalue { ptr, i64 } undef, ptr %[[VAL_2]], 0
+// CHECK:         %[[VAL_6:.*]] = insertvalue { ptr, i64 } %[[VAL_5]], i64 %[[VAL_4]], 1
+// CHECK:         tail call void @__nvqpp__mlirgen__test_2({ ptr, i64 } %[[VAL_6]])
 // CHECK:         ret { ptr, i64 } zeroinitializer
 // CHECK:       }
 
@@ -362,12 +371,17 @@ func.func @test_3(%0: !cc.ptr<i8>, %1: !cc.ptr<!cc.struct<{!cc.struct<{!cc.ptr<i
 // CHECK:         %[[VAL_2:.*]] = getelementptr i8, ptr %[[VAL_0]], i64 16
 // CHECK:         %[[VAL_3:.*]] = load i64, ptr %[[VAL_0]], align 4
 // CHECK:         %[[VAL_4:.*]] = sdiv i64 %[[VAL_3]], 2
-// CHECK:         %[[VAL_5:.*]] = getelementptr i8, ptr %[[VAL_2]], i64 %[[VAL_3]]
-// CHECK:         %[[VAL_6:.*]] = getelementptr i8, ptr %[[VAL_0]], i64 8
-// CHECK:         %[[VAL_7:.*]] = load i64, ptr %[[VAL_6]], align 4
-// CHECK:         %[[VAL_8:.*]] = sdiv i64 %[[VAL_7]], 4
-// CHECK:         tail call void @anchor(ptr %[[VAL_2]], i64 %[[VAL_4]])
-// CHECK:         tail call void @anchor(ptr %[[VAL_5]], i64 %[[VAL_8]])
+// CHECK:         %[[VAL_5:.*]] = insertvalue { ptr, i64 } undef, ptr %[[VAL_2]], 0
+// CHECK:         %[[VAL_6:.*]] = insertvalue { ptr, i64 } %[[VAL_5]], i64 %[[VAL_4]], 1
+// CHECK:         %[[VAL_7:.*]] = getelementptr i8, ptr %[[VAL_2]], i64 %[[VAL_3]]
+// CHECK:         %[[VAL_8:.*]] = insertvalue { { ptr, i64 }, { ptr, i64 } } undef, { ptr, i64 } %[[VAL_6]], 0
+// CHECK:         %[[VAL_9:.*]] = getelementptr i8, ptr %[[VAL_0]], i64 8
+// CHECK:         %[[VAL_10:.*]] = load i64, ptr %[[VAL_9]], align 4
+// CHECK:         %[[VAL_11:.*]] = sdiv i64 %[[VAL_10]], 4
+// CHECK:         %[[VAL_12:.*]] = insertvalue { ptr, i64 } undef, ptr %[[VAL_7]], 0
+// CHECK:         %[[VAL_13:.*]] = insertvalue { ptr, i64 } %[[VAL_12]], i64 %[[VAL_11]], 1
+// CHECK:         %[[VAL_14:.*]] = insertvalue { { ptr, i64 }, { ptr, i64 } } %[[VAL_8]], { ptr, i64 } %[[VAL_13]], 1
+// CHECK:         tail call void @__nvqpp__mlirgen__test_3({ { ptr, i64 }, { ptr, i64 } } %[[VAL_14]])
 // CHECK:         ret { ptr, i64 } zeroinitializer
 // CHECK:       }
 

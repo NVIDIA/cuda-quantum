@@ -1,10 +1,12 @@
-/*******************************************************************************
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                  *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
+
+#pragma once
 
 #include "common/ExecutionContext.h"
 #include "common/FmtCore.h"
@@ -54,22 +56,22 @@ protected:
   /// @brief Stim Frame/Flip simulator (used to generate multiple shots)
   std::unique_ptr<stim::FrameSimulator<W>> sampleSim;
 
-  /// @brief Error counter for MSM generation. This is only used for "msm" and
-  /// "msm_size" policies.
+  /// @brief Error counter for MSM generation. This is only used for `msm` and
+  /// `msm_size` policies.
   std::size_t msm_err_count = 0;
 
-  /// @brief Error ID counter for MSM generation. This is only used for "msm"
-  /// and "msm_size" execution contexts.
+  /// @brief Error ID counter for MSM generation. This is only used for `msm`
+  /// and `msm_size` execution contexts.
   std::size_t msm_id_counter = 0;
 
-  /// @brief Whether or not the execution context name is "msm" (value is cached
+  /// @brief Whether or not the execution context name is `msm` (value is cached
   /// for speed)
   bool is_msm_mode = false;
 
   std::optional<cudaq::msm_dimensions> activeMsmDimensions;
 
   /// @brief Probabilities of each error mechanism, accumulated during MSM
-  /// execution. Only used for "msm" policy.
+  /// execution. Only used for `msm` policy.
   std::vector<double> msmProbabilities;
 
   /// @brief Error IDs corresponding to each entry in @c msmProbabilities.
@@ -440,8 +442,8 @@ protected:
 
   /// @brief Apply operation to all Stim simulators and append it to the
   /// persistent `recordedCircuit` log.
-  void applyOpToSims(const std::string &gate_name,
-                     const std::vector<uint32_t> &targets) {
+  virtual void applyOpToSims(const std::string &gate_name,
+                             const std::vector<uint32_t> &targets) {
     if (targets.empty())
       return;
     stim::Circuit tempCircuit;
@@ -506,8 +508,8 @@ protected:
     applyNoise(channel, stimTargets);
   }
 
-  void applyNoise(const cudaq::kraus_channel &channel,
-                  const std::vector<std::uint32_t> &qubits) {
+  virtual void applyNoise(const cudaq::kraus_channel &channel,
+                          const std::vector<std::uint32_t> &qubits) {
     CUDAQ_INFO("[stim] apply kraus channel {}, is_msm_mode = {}",
                channel.get_type_name(), is_msm_mode);
 
@@ -919,8 +921,3 @@ public:
 };
 
 } // namespace nvqir
-
-#ifndef __NVQIR_QPP_TOGGLE_CREATE
-/// Register this Simulator with NVQIR.
-NVQIR_REGISTER_SIMULATOR(nvqir::StimCircuitSimulator, stim)
-#endif

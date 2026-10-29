@@ -1657,7 +1657,7 @@ public:
   /// Return true if \p call can be converted to a quake.apply.
   static bool convertibleCallOpInterface(CallOpInterface call) {
     return isa<func::CallOp, cudaq::quake::ApplyOp, cudaq::quake::CallByRefOp,
-               cudaq::cc::CallCallableOp, cudaq::cc::NoInlineCallOp>(call);
+               cudaq::cc::CallCallableOp>(call);
   }
 
   /// The adjoint variant of the function is the "reverse" computation. We want

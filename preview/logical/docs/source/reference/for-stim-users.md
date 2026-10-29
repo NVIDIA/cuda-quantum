@@ -4,11 +4,11 @@ You know Stim: circuits as text, `REPEAT` blocks, fast stabilizer simulation.
 This page maps that world onto CUDA-Q Logical, whose scope is deliberately
 narrower in one direction and much wider in another.
 
-The one-sentence version: **Stim is the assembly language of QEC experiments;
-CUDA-Q Logical is the resource-estimation compiler stack above it** — and Stim
-text is its emission target. CUDA-Q Logical does not simulate, sample, or
-decode: no detector annotations, no detector error models, no samplers. Those
-studies start from the emitted circuit and belong to the Stim ecosystem.
+CUDA-Q Logical compiles logical programs into selected realizations and
+estimates their resources. It can emit a verified P2 gadget as Stim text or
+translate a supported P3 physical build to Quake for execution with `cudaq.run`.
+These are separate paths. Logical does not supply detector annotations,
+detector error models, or decoding for either path.
 
 ## The translation table
 
@@ -20,7 +20,22 @@ studies start from the emitted circuit and belong to the Stim ecosystem.
 | Hand-maintain a circuit template per code                      | One portable program; swap `code=`/`Surface[d]` and recompile — the program is untouched                                                        |
 | Read the circuit to guess its cost                             | `cudaq.logical.estimate(build, tier=...)`: logical counts at P0, static and analytical counts at P2, schedule-backed counts at P3                          |
 | Ship circuit text                                              | `qlx-translate <module>.mlir --fabric-to-stim` projects a selected P2 entry gadget to Stim text                                                  |
+| Execute a Clifford circuit                                    | Select CUDA-Q's `stim` target and call `cudaq.run` on a supported P3 physical `Build` with explicit Boolean results                              |
 | (no equivalent)                                                | Placement onto logical machines, verified gadget objectives, magic-state protocols, replayable builds with evidence                             |
+
+## Execute a physical build
+
+`cudaq.run(physical_build, shots_count=...)` calls `Build.to_quake()` and uses
+CUDA-Q's selected target. This path does not emit or load Stim text and does
+not require the Python `stim` package. It returns one Boolean or Boolean list
+per shot, containing only the entry's explicit results. CUDA-Q's `stim` target
+supports Clifford circuits and supported Pauli channels supplied through
+`noise_model`; it cannot execute T gates or arbitrary rotations.
+
+The [Steane Bernstein–Vazirani example](../use-cases/examples/steane-bernstein-vazirani.md)
+checks encoded preparation before execution. It does not run a decoder.
+See [execution boundaries](capabilities.md#execution-and-documented-boundaries)
+for omitted timing operations, target memory limits, and noise-model scope.
 
 ## Worked emission
 

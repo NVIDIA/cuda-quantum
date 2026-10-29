@@ -58,6 +58,7 @@ Emission refuses rather than approximates:
   code (`n=1, k=1, r=0`); encoded preparation is rejected;
 - recursive Fabric call graphs are rejected.
 
-Stim cannot express noise models, detectors, sampling, or decoding. The
-trimmed product does not include them, so no DEM or shot-level target exists to
-emit toward.
+This P2 emitter does not emit noise or detector annotations and does not launch
+sampling or decoding. Executing a supported P3 build on CUDA-Q's Stim target is
+a separate path through `cudaq.run`; see
+[CUDA-Q Logical for Stim users](../reference/for-stim-users.md).
