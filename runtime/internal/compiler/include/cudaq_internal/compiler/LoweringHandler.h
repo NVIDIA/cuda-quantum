@@ -59,17 +59,16 @@ class LoweringHandler {
 public:
   virtual ~LoweringHandler() = default;
 
-  /// Whether this handler can lower \p input into \p output.
+  /// Whether this handler lowers \p input into \p output. The compiler uses
+  /// the first handler that says yes for a stage.
   ///
-  /// Defaults to calling `getStagePasses` and checking for a non-`nullopt`
-  /// result. Override for handlers that can answer this more efficiently.
-  /// The answer must not depend on \p options, because
-  /// `specializesArguments` selects handlers without a launch's options.
+  /// This takes no compile options, so the same stage always gets the same
+  /// handler. `specializesArguments` looks handlers up before a launch's
+  /// options exist, and it must find the same handler that the compiler
+  /// uses. A handler can still choose its passes from the options in
+  /// `getStagePasses`.
   virtual bool supports(const cudaq::config::Profile &input,
-                        const cudaq::config::Profile &output,
-                        const cudaq::CompileOptions &options) const {
-    return getStagePasses(input, output, options).has_value();
-  }
+                        const cudaq::config::Profile &output) const = 0;
 
   /// Return the passes this handler adds to lower \p input into \p output, or
   /// `nullopt` if this handler cannot perform that lowering.
@@ -98,8 +97,7 @@ public:
 /// \p input -> \p output, or nullptr if none does.
 const LoweringHandler *selectLoweringHandler(
     const std::vector<std::unique_ptr<LoweringHandler>> &handlers,
-    const cudaq::config::Profile &input, const cudaq::config::Profile &output,
-    const cudaq::CompileOptions &options);
+    const cudaq::config::Profile &input, const cudaq::config::Profile &output);
 
 /// The compiler's built-in lowering handlers, in selection order.
 std::vector<std::unique_ptr<LoweringHandler>> makeBuiltinLoweringHandlers();

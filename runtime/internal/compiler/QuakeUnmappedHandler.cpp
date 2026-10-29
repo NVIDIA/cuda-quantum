@@ -98,8 +98,7 @@ namespace {
 class QuakeUnmappedHandler : public cudaq_internal::compiler::LoweringHandler {
 public:
   bool supports(const cudaq::config::Profile &input,
-                const cudaq::config::Profile &output,
-                const cudaq::CompileOptions &) const override {
+                const cudaq::config::Profile &output) const override {
     return std::holds_alternative<cudaq::config::UncheckedProfile>(input) &&
            std::holds_alternative<cudaq::config::QuakeUnmappedProfile>(output);
   }
@@ -108,7 +107,7 @@ public:
   getStagePasses(const cudaq::config::Profile &input,
                  const cudaq::config::Profile &output,
                  const cudaq::CompileOptions &options) const override {
-    if (!supports(input, output, options))
+    if (!supports(input, output))
       return std::nullopt;
     const auto &profile = std::get<cudaq::config::QuakeUnmappedProfile>(output);
     const auto &basis = profile.basisGates;

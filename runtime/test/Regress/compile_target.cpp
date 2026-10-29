@@ -267,6 +267,12 @@ void test_resource_count_disabled_by_target(mlir::MLIRContext *ctx) {
 /// before deploy.
 class FakeQuakeReferenceSemanticsHandler : public LoweringHandler {
 public:
+  bool supports(const cudaq::config::Profile &,
+                const cudaq::config::Profile &output) const override {
+    return std::holds_alternative<
+        cudaq::config::QuakeReferenceSemanticsProfile>(output);
+  }
+
   std::optional<StagePasses>
   getStagePasses(const cudaq::config::Profile &,
                  const cudaq::config::Profile &output,

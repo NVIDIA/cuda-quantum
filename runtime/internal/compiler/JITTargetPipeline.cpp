@@ -58,8 +58,8 @@ getInferredStagePasses(
         std::unique_ptr<cudaq_internal::compiler::LoweringHandler>> &handlers,
     const cudaq::config::Profile &input, const cudaq::config::Profile &output,
     const cudaq::CompileOptions &options, std::string &diagnostic) {
-  const auto *handler = cudaq_internal::compiler::selectLoweringHandler(
-      handlers, input, output, options);
+  const auto *handler =
+      cudaq_internal::compiler::selectLoweringHandler(handlers, input, output);
   std::optional<cudaq_internal::compiler::StagePasses> passes;
   if (handler)
     passes = handler->getStagePasses(input, output, options);
@@ -183,17 +183,12 @@ bool cudaq_internal::compiler::specializesArguments(
     const std::vector<std::unique_ptr<LoweringHandler>> &handlers) {
   if (target.fullySpecialize)
     return true;
-  // The answer cannot read a launch's options, so select handlers with the
-  // default ones. This picks the same handler as `getPassPipeline` as long as
-  // a handler's `supports` depends only on the profiles, which holds for the
-  // built-in handlers.
-  const cudaq::CompileOptions options;
   cudaq::config::Profile inputProfile = cudaq::config::UncheckedProfile{};
   for (const auto &stage : target.stages) {
     if (std::holds_alternative<cudaq::config::InferredLowering>(
             stage.lowering)) {
-      const auto *handler = selectLoweringHandler(
-          handlers, inputProfile, stage.irOutputProfile, options);
+      const auto *handler =
+          selectLoweringHandler(handlers, inputProfile, stage.irOutputProfile);
       if (handler &&
           handler->requiresArgumentValues(inputProfile, stage.irOutputProfile))
         return true;
