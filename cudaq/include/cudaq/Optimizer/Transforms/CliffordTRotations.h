@@ -11,7 +11,9 @@
 // This header depends on no LLVM or MLIR header, so lowering handlers that
 // plan pass pipelines as text can include it.
 
+#include <string>
 #include <string_view>
+#include <vector>
 
 namespace cudaq::opt {
 
@@ -21,5 +23,13 @@ namespace cudaq::opt {
 /// pipelines keeps these rotations in the basis until synthesis.
 inline constexpr std::string_view cliffordTRotations[] = {"r1", "rx", "ry",
                                                           "rz"};
+
+/// Whether `clifford-t-synthesis-pipeline` approximates rotations for a target
+/// with \p basis. It does unless decomposition can lower one of
+/// `cliffordTRotations` to the basis exactly. An empty basis always
+/// synthesizes. Lowering handlers use this to tell whether a stage will need
+/// constant angles. It is defined in `OptTransforms`, because the answer comes
+/// from the decomposition-pattern graph, so a caller links that library.
+bool needsCliffordTSynthesis(const std::vector<std::string> &basis);
 
 } // namespace cudaq::opt

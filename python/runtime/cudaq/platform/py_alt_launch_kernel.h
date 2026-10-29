@@ -62,12 +62,18 @@ KernelThunkResultType clean_launch_module(
     const std::string &kernelName, mlir::ModuleOp mod, OpaqueArguments &args,
     std::shared_ptr<detail::CompiledModuleCache> cache = nullptr);
 
-/// Marshal python arguments into an OpaqueArguments for kernel launch.
-/// Encodes arguments in the runtime ABI layout for direct local simulation,
-/// and the synthesis-pass layout for all other targets.
-OpaqueArguments
-marshal_arguments_for_module_launch(mlir::ModuleOp mod,
-                                    nanobind::args runtimeArgs,
-                                    mlir::func::FuncOp kernelFunc);
+/// Whether a launch on QPU \p qpuId compiles a kernel with its argument values
+/// substituted. See `cudaq_internal::compiler::specializesArguments`.
+bool launchSpecializesArguments(std::size_t qpuId);
+
+/// Marshal Python arguments into an OpaqueArguments for kernel launch. Pass
+/// \p specializeArguments as true when the compile will substitute the
+/// argument values. The arguments then use the layout that argument synthesis
+/// reads. Otherwise they use the runtime ABI layout, unless the kernel is
+/// already fully synthesized. The flag must match the compile, because the two
+/// layouts differ for some types, such as `list[bool]`.
+OpaqueArguments marshal_arguments_for_module_launch(
+    mlir::ModuleOp mod, nanobind::args runtimeArgs,
+    mlir::func::FuncOp kernelFunc, bool specializeArguments);
 
 } // namespace cudaq

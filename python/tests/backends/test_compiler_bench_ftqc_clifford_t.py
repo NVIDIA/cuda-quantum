@@ -186,3 +186,58 @@ def test_synthesis_preserves_unitary_within_tolerance():
     overlap = np.trace(exact.conj().T @ synthesized)
     phase = overlap / abs(overlap)
     assert np.linalg.norm(synthesized - phase * exact, 2) <= 6 * tolerance
+
+
+@cudaq.kernel
+def qft(qubits: cudaq.qview):
+    for target in range(len(qubits)):
+        h(qubits[target])
+        for control in range(target + 1, len(qubits)):
+            cr1(math.pi / (2**(control - target)), qubits[control],
+                qubits[target])
+
+
+@cudaq.kernel
+def qft_of_width(width: int):
+    qubits = cudaq.qvector(width)
+    qft(qubits)
+
+
+@cudaq.kernel
+def qft_of_width_3():
+    qubits = cudaq.qvector(3)
+    qft(qubits)
+
+
+def _operations(kernel, *args):
+    cudaq.set_random_seed(42)
+    return cudaq.estimate_resources(kernel, *args).to_dict()
+
+
+def test_argument_width_is_substituted_for_synthesis():
+    # The QFT's angles depend on its width, so the target substitutes the width
+    # and counts the same operations as the QFT of that constant width.
+    set_target_with_tolerance(1e-3)
+
+    operations = _operations(qft_of_width, 3)
+    assert set(operations).issubset(ALLOWED_CLIFFORD_T_OPS)
+    assert operations == _operations(qft_of_width_3)
+
+
+@cudaq.kernel
+def flip(bits: list[bool]):
+    qubits = cudaq.qvector(len(bits))
+    for i in range(len(bits)):
+        if bits[i]:
+            x(qubits[i])
+    mz(qubits)
+
+
+def test_specialized_arguments_are_packed_for_synthesis():
+    # This target substitutes argument values because its stage synthesizes,
+    # so a `list[bool]` must be packed in the synthesis layout, which differs
+    # from the run-time layout.
+    cudaq.set_target(FTQC_CLIFFORD_T_TARGET)
+    bits = [True, False, True]
+    assert cudaq.sample(flip, bits).most_probable() == '101'
+    assert cudaq.sample_async(flip, bits).get().most_probable() == '101'

@@ -217,7 +217,7 @@ cudaq_internal::compiler::Compiler::prepareModule(const std::string &kernelName,
       if (cudaq::opt::factory::isFullySynthesized(epFunc)) {
         // Already fully specialized, nothing to do.
         isFullySpecialized = true;
-      } else if (isEntryPoint && !target.fullySpecialize) {
+      } else if (isEntryPoint && !specializesArguments(target, handlers)) {
         // We disable specialization by erasing args that should not be inlined
         isFullySpecialized = cudaq_internal::compiler::retainCallableArguments(
             *rawArgs, closureArgs, epFunc);

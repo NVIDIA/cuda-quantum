@@ -177,3 +177,34 @@ std::optional<std::string> cudaq_internal::compiler::getPassPipeline(
   return applyDisableQubitMapping(
       buildPassPipeline(targetPasses, target, options), target);
 }
+
+bool cudaq_internal::compiler::specializesArguments(
+    const cudaq::CompileTarget &target,
+    const std::vector<std::unique_ptr<LoweringHandler>> &handlers) {
+  if (target.fullySpecialize)
+    return true;
+  // The answer cannot read a launch's options, so select handlers with the
+  // default ones. This picks the same handler as `getPassPipeline` as long as
+  // a handler's `supports` depends only on the profiles, which holds for the
+  // built-in handlers.
+  const cudaq::CompileOptions options;
+  cudaq::config::Profile inputProfile = cudaq::config::UncheckedProfile{};
+  for (const auto &stage : target.stages) {
+    if (std::holds_alternative<cudaq::config::InferredLowering>(
+            stage.lowering)) {
+      const auto *handler = selectLoweringHandler(
+          handlers, inputProfile, stage.irOutputProfile, options);
+      if (handler &&
+          handler->requiresArgumentValues(inputProfile, stage.irOutputProfile))
+        return true;
+    }
+    inputProfile = stage.irOutputProfile;
+  }
+  return false;
+}
+
+bool cudaq_internal::compiler::specializesArguments(
+    const cudaq::CompileTarget &target) {
+  static const auto builtinHandlers = makeBuiltinLoweringHandlers();
+  return specializesArguments(target, builtinHandlers);
+}

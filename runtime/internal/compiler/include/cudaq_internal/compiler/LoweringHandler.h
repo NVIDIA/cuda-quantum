@@ -63,6 +63,8 @@ public:
   ///
   /// Defaults to calling `getStagePasses` and checking for a non-`nullopt`
   /// result. Override for handlers that can answer this more efficiently.
+  /// The answer must not depend on \p options, because
+  /// `specializesArguments` selects handlers without a launch's options.
   virtual bool supports(const cudaq::config::Profile &input,
                         const cudaq::config::Profile &output,
                         const cudaq::CompileOptions &options) const {
@@ -75,6 +77,16 @@ public:
   getStagePasses(const cudaq::config::Profile &input,
                  const cudaq::config::Profile &output,
                  const cudaq::CompileOptions &options) const = 0;
+
+  /// Whether the stage lowering \p input into \p output needs the values of
+  /// the kernel's arguments, which the compiler must then substitute first.
+  /// Python packs the arguments before a launch's
+  /// `CompileOptions` exist, so the answer depends on the profiles alone.
+  virtual bool
+  requiresArgumentValues(const cudaq::config::Profile &input,
+                         const cudaq::config::Profile &output) const {
+    return false;
+  }
 };
 
 /// Return the first handler in \p handlers supporting the conversion

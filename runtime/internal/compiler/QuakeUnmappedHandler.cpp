@@ -43,6 +43,16 @@ static std::string formatTolerance(double tolerance) {
   return text.str();
 }
 
+/// Whether a stage lowering to \p profile schedules
+/// `clifford-t-synthesis-pipeline`. The pipeline itself then decides, through
+/// `needsCliffordTSynthesis`, whether the basis needs any rotation
+/// approximated.
+static bool schedulesCliffordTSynthesis(
+    const cudaq::config::QuakeUnmappedProfile &profile) {
+  return profile.costModel == cudaq::config::CostModel::t_count &&
+         !profile.basisGates.empty();
+}
+
 /// The passes that optimize for, and synthesize to, a `t-count` cost model. A
 /// non-empty basis first gains the rotations the optimizer keeps, so that it
 /// can merge and snap them before synthesis or basis conversion.
@@ -69,7 +79,7 @@ cliffordTPasses(const cudaq::config::QuakeUnmappedProfile &profile,
   }
   // The synthesis pipeline adds no passes when the basis expresses any of
   // these rotations exactly.
-  if (!profile.basisGates.empty()) {
+  if (schedulesCliffordTSynthesis(profile)) {
     const std::string seed =
         options.seed ? " seed=" + std::to_string(*options.seed) : "";
     passes.push_back(
@@ -110,6 +120,19 @@ public:
     cudaq_internal::compiler::StagePasses stagePasses;
     stagePasses.postDeployPasses = join(passes);
     return stagePasses;
+  }
+
+  /// Synthesis needs the value of every rotation angle, and angles often
+  /// depend on an argument, as in a QFT whose width is an argument. This asks
+  /// the synthesis pipeline's own question, for the stages where
+  /// `cliffordTPasses` schedules it.
+  bool
+  requiresArgumentValues(const cudaq::config::Profile &input,
+                         const cudaq::config::Profile &output) const override {
+    const auto *profile =
+        std::get_if<cudaq::config::QuakeUnmappedProfile>(&output);
+    return profile && schedulesCliffordTSynthesis(*profile) &&
+           cudaq::opt::needsCliffordTSynthesis(profile->basisGates);
   }
 };
 

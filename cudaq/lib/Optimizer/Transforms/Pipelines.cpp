@@ -11,6 +11,8 @@
 #include "cudaq/Optimizer/Transforms/CliffordTRotations.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/Transforms/Passes.h"
+#include <map>
+#include <mutex>
 
 using namespace mlir;
 
@@ -261,6 +263,24 @@ static void addCliffordTCleanup(OpPassManager &funcPM, double epsilon) {
   funcPM.addPass(cudaq::opt::createDeadQuantumElimination());
 }
 
+bool cudaq::opt::needsCliffordTSynthesis(
+    const std::vector<std::string> &basis) {
+  // Python asks this on every launch on a Clifford+T target, and each
+  // `canDecomposeTo` searches the whole pattern graph, so remember the answer
+  // for each basis. A process uses only a few target bases.
+  static std::mutex mutex;
+  static std::map<std::vector<std::string>, bool> answers;
+  std::lock_guard lock(mutex);
+  auto [answer, inserted] = answers.try_emplace(basis);
+  if (inserted)
+    answer->second =
+        basis.empty() ||
+        llvm::none_of(cliffordTRotations, [&](std::string_view rotation) {
+          return cudaq::canDecomposeTo(rotation, basis);
+        });
+  return answer->second;
+}
+
 /// Rewrite every uncontrolled `rx`, `ry`, `r1`, and `rz` with a constant angle
 /// as Clifford+T gates within `epsilon`, on references or wires. From level 2,
 /// also simplify and normalize the emitted Clifford+T words.
@@ -272,14 +292,9 @@ addCliffordTSynthesis(OpPassManager &pm,
   // without `rz` stays exact, although synthesis would lower it to `rz` first.
   // Another rotation that such a basis cannot take fails in `basis-conversion`
   // either way.
-  if (!options.basis.empty()) {
-    std::vector<std::string> basis(options.basis.begin(), options.basis.end());
-    if (llvm::any_of(cudaq::opt::cliffordTRotations,
-                     [&](std::string_view rotation) {
-                       return cudaq::canDecomposeTo(rotation, basis);
-                     }))
-      return;
-  }
+  if (!cudaq::opt::needsCliffordTSynthesis(
+          {options.basis.begin(), options.basis.end()}))
+    return;
   cudaq::opt::addDecomposition(pm, {"RxToRz", "RyToRz", "R1ToRz"});
   cudaq::opt::CliffordTSynthesisOptions synthesisOpts;
   synthesisOpts.epsilon = options.epsilon;

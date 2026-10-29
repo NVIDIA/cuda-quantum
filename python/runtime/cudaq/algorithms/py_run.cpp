@@ -129,7 +129,8 @@ run_impl(const std::string &shortName, MlirModule module,
     throw std::runtime_error(
         "Noise model is not supported on remote platforms.");
   auto fnOp = getFuncOpAndCheckResult(mod, shortName);
-  auto opaques = marshal_arguments_for_module_launch(mod, runtimeArgs, fnOp);
+  auto opaques = marshal_arguments_for_module_launch(
+      mod, runtimeArgs, fnOp, launchSpecializesArguments(qpu_id));
 
   detail::RunResultSpan span;
   {
@@ -197,7 +198,8 @@ run_async_impl(const std::string &shortName, MlirModule module,
   auto spanFuture = spanPromise.get_future();
 
   auto fnOp = getFuncOpAndCheckResult(mod, shortName);
-  auto opaques = marshal_arguments_for_module_launch(mod, runtimeArgs, fnOp);
+  auto opaques = marshal_arguments_for_module_launch(
+      mod, runtimeArgs, fnOp, launchSpecializesArguments(qpu_id));
   // Run the kernel and compute results span.
   {
     // Release GIL to allow c++ threads, all code inside the scope is c++, so

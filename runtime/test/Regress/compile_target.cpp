@@ -456,6 +456,50 @@ void test_quake_unmapped_levels(mlir::MLIRContext *ctx) {
 // CHECK-LABEL: Clifford+T exact angle resource counts:
 // CHECK: total: 1{{$}}
 
+/// A rotation whose angle is the kernel's argument.
+static const char *argumentAngleKernel = R"#(
+func.func @__nvqpp__mlirgen__argumentAngle(%angle: f64) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %q = quake.alloca !quake.ref
+  quake.rz (%angle) %q : (f64, !quake.ref) -> ()
+  return
+}
+)#";
+
+/// A target that can take arguments at run time, as a simulator can, still
+/// substitutes the argument values when its stage synthesizes. A stage that
+/// keeps `rz` leaves the argument for run time.
+void test_quake_unmapped_specialization(mlir::MLIRContext *ctx) {
+  const auto compile = [&](std::vector<std::string> basis,
+                           cudaq::OptimizationLevel level) {
+    cudaq::CompileTarget target;
+    target.fullySpecialize = false;
+    target.stages.push_back(
+        {.irOutputProfile =
+             cudaq::config::QuakeUnmappedProfile{
+                 .basisGates = std::move(basis),
+                 .approximationTolerance = 1e-3,
+                 .costModel = cudaq::config::CostModel::t_count},
+         .lowering = cudaq::config::InferredLowering{}});
+    cudaq::CompileOptions options;
+    options.optimizationLevel = level;
+    options.seed = 42;
+    double angle = 0.3;
+    std::vector<void *> v = {static_cast<void *>(&angle)};
+    cudaq::KernelArgs args(std::span<void *const>(v.data(), v.size()));
+    compileAndDump(ctx, "argumentAngle", argumentAngleKernel, std::move(target),
+                   std::move(options), args);
+  };
+  compile({"h", "s", "t", "x"}, cudaq::OptimizationLevel::O2);
+  compile({"h", "s", "t", "x", "rz"}, cudaq::OptimizationLevel::O2);
+}
+
+// CHECK-LABEL: Compiled module:
+// CHECK:         func.func @__nvqpp__mlirgen__argumentAngle() attributes
+// CHECK:           quake.t
+// CHECK-LABEL: Compiled module:
+// CHECK:         func.func @__nvqpp__mlirgen__argumentAngle(%[[ANGLE:.*]]: f64)
+// CHECK:           quake.rz (%[[ANGLE]])
+
 /// Kernel that the base QIR profile accepts.
 static const char *measureKernel = R"#(
 func.func @__nvqpp__mlirgen__measure() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
@@ -513,6 +557,7 @@ int main() {
   test_staged_inferred(context.get());
   test_staged_skip(context.get());
   test_quake_unmapped_levels(context.get());
+  test_quake_unmapped_specialization(context.get());
   test_optimization_level_0(context.get());
   return 0;
 }
