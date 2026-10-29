@@ -3275,6 +3275,18 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
                                      block.getOperations(), op->getIterator());
     }
 
+    // The result of a `cudaq::run` kernel is published by `quake.evince`. It
+    // reads the measurement results through memory, so it is not a user of
+    // the measurements and was not moved with them above. It must stay behind
+    // the stores that it reads.
+    SmallVector<Operation *> evinces;
+    for (Operation &op : block)
+      if (isa<cudaq::quake::EvinceOp>(op))
+        evinces.push_back(&op);
+    for (Operation *op : evinces)
+      block.getOperations().splice(std::prev(block.end()),
+                                   block.getOperations(), op->getIterator());
+
     // Remove any unused BorrowWireOps and add ReturnWireOp's where needed. Each
     // source starts on physical qubit `initialLayout[i]`, so its final wire is
     // the one threaded onto that track.
