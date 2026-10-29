@@ -8,6 +8,7 @@
 
 #include "common/CompileOptions.h"
 #include "cudaq_internal/compiler/LoweringHandler.h"
+#include "cudaq/Optimizer/Transforms/CliffordTRotations.h"
 #include <algorithm>
 #include <iomanip>
 #include <iterator>
@@ -31,26 +32,49 @@ static std::string join(const std::vector<std::string> &items) {
   return joined;
 }
 
-/// Whether reaching \p profile's basis requires Clifford+T synthesis, which is
-/// when the cost model is `t-count` and a non-empty basis cannot express an
-/// uncontrolled rotation.
-static bool
-requiresSynthesis(const cudaq::config::QuakeUnmappedProfile &profile) {
-  // A basis with any of these continuous rotations, uncontrolled or with any
-  // number of controls, can express every rotation without approximating it.
-  static constexpr std::string_view rotations[] = {"r1", "rx",        "ry",
-                                                   "rz", "phased_rx", "u3"};
-  const auto isRotation = [](std::string_view gate) {
-    const auto controls = gate.find('(');
-    if (controls != std::string_view::npos && gate.substr(controls) != "(n)")
-      return false;
-    gate = gate.substr(0, controls);
-    return std::find(std::begin(rotations), std::end(rotations), gate) !=
-           std::end(rotations);
-  };
-  const auto &basis = profile.basisGates;
-  return profile.costModel == cudaq::config::CostModel::t_count &&
-         !basis.empty() && std::none_of(basis.begin(), basis.end(), isRotation);
+/// Print \p tolerance with every digit the passes need to read it back,
+/// independent of the locale. This avoids floating-point `std::to_chars`, which
+/// macOS provides only from 13.3.
+static std::string formatTolerance(double tolerance) {
+  std::ostringstream text;
+  text.imbue(std::locale::classic());
+  text << std::setprecision(std::numeric_limits<double>::max_digits10)
+       << tolerance;
+  return text.str();
+}
+
+/// The passes that optimize for, and synthesize to, a `t-count` cost model. A
+/// non-empty basis first gains the rotations the optimizer keeps, so that it
+/// can merge and snap them before synthesis or basis conversion.
+static std::vector<std::string>
+cliffordTPasses(const cudaq::config::QuakeUnmappedProfile &profile,
+                const cudaq::CompileOptions &options) {
+  const std::string tolerance = formatTolerance(profile.approximationTolerance);
+  const auto level = static_cast<unsigned>(options.optimizationLevel);
+  std::vector<std::string> passes;
+  if (!profile.basisGates.empty()) {
+    auto basisWithRotations = profile.basisGates;
+    for (std::string_view rotation : cudaq::opt::cliffordTRotations)
+      if (std::find(basisWithRotations.begin(), basisWithRotations.end(),
+                    rotation) == basisWithRotations.end())
+        basisWithRotations.emplace_back(rotation);
+    passes.push_back("decomposition{basis=" + join(basisWithRotations) + "}");
+  }
+  if (level >= 1) {
+    // Without `add-wireset`, this converts to wires but adds no wire set.
+    passes.push_back("prepare-for-wireset{maximum-iterations=" +
+                     std::to_string(maxUnrollIterations) + "}");
+    passes.push_back("clifford-t-optimization-pipeline{level=" +
+                     std::to_string(level) + " epsilon=" + tolerance + "}");
+  }
+  // The synthesis pipeline adds no passes when the basis expresses any of
+  // these rotations exactly.
+  if (!profile.basisGates.empty())
+    passes.push_back(
+        "clifford-t-synthesis-pipeline{basis=" + join(profile.basisGates) +
+        " level=" + std::to_string(level) + " epsilon=" + tolerance +
+        " seed=" + std::to_string(options.seed) + "}");
+  return passes;
 }
 
 namespace {
@@ -75,46 +99,9 @@ public:
       return std::nullopt;
     const auto &profile = std::get<cudaq::config::QuakeUnmappedProfile>(output);
     const auto &basis = profile.basisGates;
-
     std::vector<std::string> passes;
-    if (profile.costModel == cudaq::config::CostModel::t_count) {
-      // Print every digit the passes need to read back the same tolerance.
-      std::ostringstream toleranceText;
-      toleranceText.imbue(std::locale::classic());
-      toleranceText << std::setprecision(
-                           std::numeric_limits<double>::max_digits10)
-                    << profile.approximationTolerance;
-      const std::string tolerance = toleranceText.str();
-      const auto level = static_cast<unsigned>(options.optimizationLevel);
-
-      // Keep rotations so that the optimizer can merge and snap them.
-      if (!basis.empty()) {
-        auto basisWithRotations = basis;
-        for (const char *rotation : {"r1", "rx", "ry", "rz"})
-          if (std::find(basis.begin(), basis.end(), rotation) == basis.end())
-            basisWithRotations.push_back(rotation);
-        passes.push_back("decomposition{basis=" + join(basisWithRotations) +
-                         "}");
-      }
-      if (level >= 1) {
-        // Without `add-wireset`, this converts to wires but adds no wire set.
-        passes.push_back("prepare-for-wireset{maximum-iterations=" +
-                         std::to_string(maxUnrollIterations) + "}");
-        passes.push_back("clifford-t-optimization-pipeline{level=" +
-                         std::to_string(level) + " epsilon=" + tolerance + "}");
-      }
-      if (requiresSynthesis(profile)) {
-        passes.push_back("clifford-t-synthesis-pipeline{epsilon=" + tolerance +
-                         " seed=" + std::to_string(options.seed) + "}");
-        // Clifford+T normalization emits a global phase, so lower it again.
-        if (level >= 2)
-          passes.push_back("func.func(quake-simplify{threshold=" + tolerance +
-                           "},normalize-1q-clifford-t,phase-folding,"
-                           "normalize-phase-placement,lower-phase,canonicalize,"
-                           "dqe)");
-      }
-    }
-
+    if (profile.costModel == cudaq::config::CostModel::t_count)
+      passes = cliffordTPasses(profile, options);
     if (!basis.empty())
       passes.push_back("basis-conversion{basis=" + join(basis) + "}");
     cudaq_internal::compiler::StagePasses stagePasses;

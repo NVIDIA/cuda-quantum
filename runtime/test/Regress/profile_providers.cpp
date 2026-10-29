@@ -76,8 +76,7 @@
 // CHECK-NEXT:  decomposition{basis=h,s,t,x,y,z,swap,x(1),y(1),z(1),r1,rx,ry,rz}
 // CHECK-NEXT:  prepare-for-wireset{maximum-iterations=1024}
 // CHECK-NEXT:  clifford-t-optimization-pipeline{level=2 epsilon=1e-10}
-// CHECK-NEXT:  clifford-t-synthesis-pipeline{epsilon=1e-10 seed=0}
-// CHECK-NEXT:  func.func(quake-simplify{threshold=1e-10},normalize-1q-clifford-t,phase-folding,normalize-phase-placement,lower-phase,canonicalize,dqe)
+// CHECK-NEXT:  clifford-t-synthesis-pipeline{basis=h,s,t,x,y,z,swap,x(1),y(1),z(1) level=2 epsilon=1e-10 seed=0}
 // CHECK-NEXT:  basis-conversion{basis=h,s,t,x,y,z,swap,x(1),y(1),z(1)}
 // CHECK-NEXT:  jit-finalize-pipeline
 

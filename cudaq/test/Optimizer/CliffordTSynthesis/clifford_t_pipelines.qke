@@ -19,8 +19,16 @@
 // RUN: cudaq-opt --pass-pipeline='builtin.module(convert-to-linear-values, \
 // RUN:   clifford-t-optimization-pipeline{level=2 epsilon=1e-13})' %s | \
 // RUN:   FileCheck %s --check-prefix=BOUND
-// RUN: cudaq-opt --clifford-t-synthesis-pipeline='epsilon=1e-3' %s | \
+// RUN: cudaq-opt --clifford-t-synthesis-pipeline='level=1 epsilon=1e-3' %s | \
 // RUN:   FileCheck %s --check-prefix=SYNTH \
+// RUN:   --implicit-check-not='quake.r{{[xyz1]}}' \
+// RUN:   --implicit-check-not='@__cliffordt_' --implicit-check-not='quake.phase'
+// RUN: cudaq-opt --clifford-t-synthesis-pipeline='basis=rz,x epsilon=1e-3' \
+// RUN:   %s | FileCheck %s --check-prefix=EXACT
+// RUN: cudaq-opt --clifford-t-synthesis-pipeline='basis=r1,h epsilon=1e-3' \
+// RUN:   %s | FileCheck %s --check-prefix=EXACT
+// RUN: cudaq-opt --clifford-t-synthesis-pipeline='basis=h,s,t epsilon=1e-3' \
+// RUN:   %s | FileCheck %s --check-prefix=SYNTH \
 // RUN:   --implicit-check-not='quake.r{{[xyz1]}}' \
 // RUN:   --implicit-check-not='@__cliffordt_' --implicit-check-not='quake.phase'
 
@@ -47,6 +55,12 @@ func.func @near_t() -> !quake.measure attributes {"cudaq-entrypoint"} {
 // SYNTH-NEXT:     quake.alloca
 // SYNTH-NEXT:     quake.t
 // SYNTH-NEXT:     quake.mz
+
+// A basis that expresses any Clifford+T rotation exactly, such as one with `rz`
+// or one with `r1`, makes the synthesis pipeline add no passes, while a basis of
+// `h`, `s`, and `t` still synthesizes.
+// EXACT-LABEL:  func.func @near_t()
+// EXACT:          quake.rz
 
 // Level 1 erases a rotation below the tolerance.
 func.func @below_tolerance() -> !quake.measure attributes {"cudaq-entrypoint"} {
