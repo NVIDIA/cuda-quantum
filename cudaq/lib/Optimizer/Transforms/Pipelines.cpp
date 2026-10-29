@@ -11,8 +11,6 @@
 #include "cudaq/Optimizer/Transforms/CliffordTRotations.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/Transforms/Passes.h"
-#include <map>
-#include <mutex>
 
 using namespace mlir;
 
@@ -265,20 +263,10 @@ static void addCliffordTCleanup(OpPassManager &funcPM, double epsilon) {
 
 bool cudaq::opt::needsCliffordTSynthesis(
     const std::vector<std::string> &basis) {
-  // Python asks this on every launch on a Clifford+T target, and each
-  // `canDecomposeTo` searches the whole pattern graph, so remember the answer
-  // for each basis. A process uses only a few target bases.
-  static std::mutex mutex;
-  static std::map<std::vector<std::string>, bool> answers;
-  std::lock_guard lock(mutex);
-  auto [answer, inserted] = answers.try_emplace(basis);
-  if (inserted)
-    answer->second =
-        basis.empty() ||
-        llvm::none_of(cliffordTRotations, [&](std::string_view rotation) {
-          return cudaq::canDecomposeTo(rotation, basis);
-        });
-  return answer->second;
+  return basis.empty() ||
+         llvm::none_of(cliffordTRotations, [&](std::string_view rotation) {
+           return cudaq::canDecomposeTo(rotation, basis);
+         });
 }
 
 /// Rewrite every uncontrolled `rx`, `ry`, `r1`, and `rz` with a constant angle
