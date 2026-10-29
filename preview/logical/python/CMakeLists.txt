@@ -271,14 +271,6 @@ target_link_libraries(QLXPythonCAPI PRIVATE
   cudaq::cudaqMLIRCAPI
   cudaq::MLIRPythonSupport)
 
-if(APPLE)
-  # Prefer the common runtime before resolving transitive LLVM archives. A
-  # private copy of LLVM's command-line support can populate pass-option maps
-  # that the shared MLIR parser cannot read. The SDK already does this on ELF.
-  target_link_options(QLXPythonCAPI PRIVATE
-    "LINKER:-needed_library,$<TARGET_FILE:cudaq::cudaqMLIR>")
-endif()
-
 # CUDA-Q's aggregate helper exports the standard MLIR/CUDA-Q C APIs. Extend
 # that export set with every retained CUDA-Q Logical P0-P3 C API so the Python
 # extensions and the Quake plugin share one symbol/type universe.
