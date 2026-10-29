@@ -209,21 +209,6 @@ def qft_of_width_3():
     qft(qubits)
 
 
-def _operations(kernel, *args):
-    cudaq.set_random_seed(42)
-    return cudaq.estimate_resources(kernel, *args).to_dict()
-
-
-def test_argument_width_is_substituted_for_synthesis():
-    # The QFT's angles depend on its width, so the target substitutes the width
-    # and counts the same operations as the QFT of that constant width.
-    set_target_with_tolerance(1e-3)
-
-    operations = _operations(qft_of_width, 3)
-    assert set(operations).issubset(ALLOWED_CLIFFORD_T_OPS)
-    assert operations == _operations(qft_of_width_3)
-
-
 @cudaq.kernel
 def flip(bits: list[bool]):
     qubits = cudaq.qvector(len(bits))
@@ -233,11 +218,19 @@ def flip(bits: list[bool]):
     mz(qubits)
 
 
-def test_specialized_arguments_are_packed_for_synthesis():
-    # This target substitutes argument values because its stage synthesizes,
-    # so a `list[bool]` must be packed in the synthesis layout, which differs
-    # from the run-time layout.
-    cudaq.set_target(FTQC_CLIFFORD_T_TARGET)
+def test_arguments_are_substituted_for_synthesis():
+    # This target's stage synthesizes, so it substitutes argument values: the
+    # QFT's angles depend on its width, and a `list[bool]` must be packed in
+    # the layout that substitution reads.
+    set_target_with_tolerance(1e-3)
+
+    cudaq.set_random_seed(42)
+    operations = cudaq.estimate_resources(qft_of_width, 3).to_dict()
+    cudaq.set_random_seed(42)
+    assert operations == cudaq.estimate_resources(qft_of_width_3).to_dict()
+    assert set(operations).issubset(ALLOWED_CLIFFORD_T_OPS)
+    assert operations.get('t', 0) + operations.get('tdg', 0) > 0
+
     bits = [True, False, True]
     assert cudaq.sample(flip, bits).most_probable() == '101'
     assert cudaq.sample_async(flip, bits).get().most_probable() == '101'
