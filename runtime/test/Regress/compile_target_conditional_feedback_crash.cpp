@@ -48,7 +48,7 @@ int main() {
   target.supportConditionalsOnMeasureResults = false;
 
   Compiler compiler(std::move(target), cudaq::CompileOptions{});
-  compiler.compile("feedback", mod.release().getAsOpaquePointer(),
-                   cudaq::KernelArgs{}, /*isEntryPoint=*/true);
+  compiler.runPassPipeline("feedback", mod.release().getAsOpaquePointer(),
+                           cudaq::KernelArgs{}, /*isEntryPoint=*/true);
   return 0;
 }

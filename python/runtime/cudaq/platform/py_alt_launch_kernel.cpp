@@ -705,12 +705,11 @@ static std::size_t digestLogValue(const std::array<uint8_t, 32> &digest) {
 static std::pair<cudaq::CompileTarget, cudaq::CompileOptions>
 getCompileConfig(std::optional<cudaq::CompileTarget> target = std::nullopt) {
   auto *ctx = cudaq::getExecutionContext();
-  auto &platform = cudaq::get_platform();
   cudaq::CompileOptions options;
   if (!target)
     target = cudaq::get_compile_target();
   if (!ctx) {
-    options = platform.getCompileOptions(cudaq::other_policies{});
+    options = cudaq::get_compile_options(cudaq::other_policies{});
   } else {
     cudaq::policies::withPolicy(ctx->name, [&](auto policy) {
       using Policy = std::decay_t<decltype(policy)>;
@@ -718,9 +717,17 @@ getCompileConfig(std::optional<cudaq::CompileTarget> target = std::nullopt) {
         policy.spin = ctx->spin.value();
       }
 
-      options = platform.getCompileOptions(policy, ctx->qpuId);
+      options = cudaq::get_compile_options(policy);
     });
   }
+
+  const bool isEmulated = cudaq::is_emulated_platform();
+  const bool isRemote = cudaq::is_remote_platform();
+  options.emulate = isEmulated;
+  options.emitJit |= !isRemote;
+  if (!cudaq::platform_supports_jit())
+    options.emitJit = false;
+  options.boolVecBitPacked = !isRemote && !isEmulated;
 
   return {*std::move(target), std::move(options)};
 }
@@ -728,11 +735,8 @@ getCompileConfig(std::optional<cudaq::CompileTarget> target = std::nullopt) {
 static cudaq::CompiledModule
 compileModuleImpl(const std::string &name, ModuleOp mod,
                   const std::vector<void *> &rawArgs, bool isEntryPoint,
-                  std::optional<cudaq::CompileTarget> target = std::nullopt,
-                  bool inhibitCodegen = false) {
+                  std::optional<cudaq::CompileTarget> target = std::nullopt) {
   auto [compileTarget, options] = getCompileConfig(std::move(target));
-  if (inhibitCodegen)
-    options.emitTargetCode = false;
   cudaq::SourceModule src{name, mod.getAsOpaquePointer()};
   return cudaq_internal::compiler::compileModule(std::move(compileTarget),
                                                  std::move(options), src,
@@ -1112,8 +1116,7 @@ nanobind::object cudaq::marshal_and_launch_module(
                               reinterpret_cast<char *>(args.getArgs().back()));
 }
 
-/// Compile (specialize + JIT) the kernel module and return a CompiledModule.
-/// Never runs `codegen`.
+// Compile (specialize + JIT) the kernel module and return a CompiledModule.
 static cudaq::CompiledModule
 marshal_and_retain_module(const std::string &name, MlirModule module,
                           bool isEntryPoint, nanobind::args runtimeArgs) {
@@ -1127,8 +1130,8 @@ marshal_and_retain_module(const std::string &name, MlirModule module,
   // Append space for a result, as needed, to the vector of arguments.
   auto rawArgs = appendResultToArgsVector(args, retTy, mod, name);
   mlir::OwningOpRef<ModuleOp> clone = mod.clone();
-  return compileModuleImpl(name, clone.get(), rawArgs, isEntryPoint,
-                           std::nullopt, /*inhibitCodegen=*/true);
+  auto compiled = compileModuleImpl(name, clone.get(), rawArgs, isEntryPoint);
+  return compiled;
 }
 
 static MlirModule synthesizeKernel(nanobind::object kernel,

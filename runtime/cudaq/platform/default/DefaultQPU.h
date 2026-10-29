@@ -25,10 +25,8 @@ public:
   // This is the legacy fallback for launch policies that do not support
   // policy-based overloads yet. To be removed once all policies have been
   // migrated.
-  KernelThunkResultType
-  compileAndLaunchKernel(const cudaq::AnyModule &module, cudaq::KernelArgs args,
-                         const CompileTarget &target,
-                         const CompileOptions &options) override;
+  KernelThunkResultType unifiedLaunchModule(const cudaq::AnyModule &module,
+                                            cudaq::KernelArgs args) override;
 
   using QPU::launchKernel;
   sample_result launchKernel(const sample_policy &policy,

@@ -155,7 +155,7 @@ cudaq_internal::compiler::Compiler::Compiler(
 cudaq_internal::compiler::Compiler::~Compiler() = default;
 
 // =============================================================================
-// Common helpers for policy-specific compile overloads
+// Common helpers for policy-specific runPassPipeline overloads
 // =============================================================================
 
 void cudaq_internal::compiler::Compiler::applyPipeline(
@@ -374,15 +374,7 @@ cudaq_internal::compiler::Compiler::assembleCompiledModule(
     for (auto &[name, module] : modules)
       applyPipeline("func.func(combine-measurements)", module, kernelName);
 
-  const bool emitCode =
-      options.emitTargetCode && !target.codegen.emissionFormat.empty();
   for (auto &[name, module] : modules) {
-    if (emitCode) {
-      auto [code, outputNames] = emitTargetCode(module);
-      artifacts.push_back(
-          cudaq_internal::compiler::CompiledModuleHelper::createCodegenArtifact(
-              name, std::move(code), std::move(outputNames)));
-    }
     artifacts.push_back(
         cudaq_internal::compiler::CompiledModuleHelper::createMlirArtifact(
             name, module, context));
@@ -404,11 +396,11 @@ static bool hasConditionalsOnMeasureResults(mlir::ModuleOp moduleOp) {
   });
 }
 
-cudaq::CompiledModule cudaq_internal::compiler::Compiler::compile(
+cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
     const std::string &kernelName, const void *modulePtr,
     cudaq::KernelArgs args, bool isEntryPoint,
     std::shared_ptr<mlir::MLIRContext> context) {
-  ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "Compiler::compile");
+  ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "Compiler::runPassPipeline");
   mlir::ModuleOp m_module = mlir::ModuleOp::getFromOpaquePointer(modulePtr);
   assert(!context || context.get() == m_module.getContext());
   auto [moduleOp, epFunc, isFullySpecialized] =
@@ -540,37 +532,66 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::compile(
       context);
 }
 
-std::pair<std::string, std::string>
-cudaq_internal::compiler::Compiler::emitTargetCode(mlir::ModuleOp module) {
+std::vector<cudaq::KernelExecution>
+cudaq_internal::compiler::Compiler::emitKernelExecutions(
+    const cudaq::CompiledModule &compiled) {
   const auto &codegenTranslation = target.codegen.emissionFormat;
-  const auto &postCodegenPasses = target.codegen.postCodegenPasses;
-  mlir::OwningOpRef<ModuleOp> compiled_module = module.clone();
+  const std::string postCodegenPasses = target.codegen.postCodegenPasses;
 
-  std::string codeStr;
-  auto translation =
-      cudaq_internal::compiler::getTranslation(codegenTranslation);
-  llvm::raw_string_ostream outStr(codeStr);
-  if (disableMLIRthreading)
-    compiled_module->getContext()->disableMultithreading();
-  if (codegenTranslation.starts_with("qir")) {
-    if (failed(translation(*compiled_module, codegenTranslation, outStr,
-                           postCodegenPasses, printIR,
-                           printEachPass == cudaq::PrintEachPassMode::All,
-                           enablePassStatistics, options.disableQuantumOpts)))
-      throw std::runtime_error("Could not successfully translate to " +
-                               codegenTranslation + ".");
-  } else {
-    if (failed(translation(*compiled_module, outStr, postCodegenPasses, printIR,
-                           printEachPass == cudaq::PrintEachPassMode::All,
-                           enablePassStatistics)))
-      throw std::runtime_error("Could not successfully translate to " +
-                               codegenTranslation + ".");
+  // Apply user-specified codegen
+  std::vector<cudaq::KernelExecution> codes;
+  for (const auto &[name, mlirArtifact] : compiled.getMlirArtifacts()) {
+    mlir::OwningOpRef<ModuleOp> compiled_module =
+        cudaq_internal::compiler::CompiledModuleHelper::getMlirModuleOp(
+            mlirArtifact)
+            .clone();
+
+    std::string codeStr;
+    nlohmann::json j;
+    if (options.emitTargetCode) {
+      // Get the code gen translation
+      auto translation =
+          cudaq_internal::compiler::getTranslation(codegenTranslation);
+      llvm::raw_string_ostream outStr(codeStr);
+      if (disableMLIRthreading)
+        compiled_module->getContext()->disableMultithreading();
+      if (codegenTranslation.starts_with("qir")) {
+        if (failed(translation(
+                *compiled_module, codegenTranslation, outStr, postCodegenPasses,
+                printIR, printEachPass == cudaq::PrintEachPassMode::All,
+                enablePassStatistics, options.disableQuantumOpts)))
+          throw std::runtime_error("Could not successfully translate to " +
+                                   codegenTranslation + ".");
+      } else {
+        if (failed(translation(*compiled_module, outStr, postCodegenPasses,
+                               printIR,
+                               printEachPass == cudaq::PrintEachPassMode::All,
+                               enablePassStatistics)))
+          throw std::runtime_error("Could not successfully translate to " +
+                                   codegenTranslation + ".");
+      }
+
+      // Form an output_names mapping from codeStr
+      j = formOutputNames(codegenTranslation, *compiled_module, codeStr);
+    }
+
+    // Retrieve pre-computed JIT engine and resource counts (if any).
+    std::optional<cudaq::JitEngine> optionalJit;
+    std::optional<cudaq::Resources> optionalResourceCounts;
+    auto jit = compiled.getJit(name);
+    if (jit)
+      optionalJit = jit->getEngine();
+    auto resourceCounts = compiled.getResources(name);
+    if (resourceCounts)
+      optionalResourceCounts = *resourceCounts;
+
+    auto mapping_reorder_idx = compiled.getMetadata().reorderIdx;
+    codes.emplace_back(name, codeStr, optionalJit, optionalResourceCounts, j,
+                       mapping_reorder_idx,
+                       compiled.getMetadata().hasConditionalsOnMeasureResults);
   }
-  outStr.flush();
 
-  auto outputNames =
-      formOutputNames(codegenTranslation, *compiled_module, codeStr).dump();
-  return {std::move(codeStr), std::move(outputNames)};
+  return codes;
 }
 
 mlir::ModuleOp cudaq_internal::compiler::Compiler::lowerQuakeCodeBuildModule(
@@ -724,8 +745,9 @@ cudaq::CompiledModule cudaq_internal::compiler::compileModule(
          "Compiler::compileModule requires an MLIR artifact");
 
   Compiler compiler(std::move(target), std::move(options));
-  auto compiled = compiler.compile(kernelName, mlirArt->getOpaqueModulePtr(),
-                                   args, isEntryPoint, mlirArt->getContext());
+  auto compiled =
+      compiler.runPassPipeline(kernelName, mlirArt->getOpaqueModulePtr(), args,
+                               isEntryPoint, mlirArt->getContext());
 
   return compiled;
 }

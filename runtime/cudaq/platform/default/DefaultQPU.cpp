@@ -47,10 +47,10 @@ void cudaq::DefaultQPU::onRandomSeedSet(std::size_t seed) {
   completed.get();
 }
 
-cudaq::KernelThunkResultType cudaq::DefaultQPU::compileAndLaunchKernel(
-    const cudaq::AnyModule &module, cudaq::KernelArgs args,
-    const CompileTarget &target, const CompileOptions &options) {
-  ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "QPU::compileAndLaunchKernel");
+cudaq::KernelThunkResultType
+cudaq::DefaultQPU::unifiedLaunchModule(const cudaq::AnyModule &module,
+                                       cudaq::KernelArgs args) {
+  ScopedTraceWithContext(cudaq::TIMING_LAUNCH, "QPU::unifiedLaunchModule");
 
   if (std::holds_alternative<SourceModule>(module)) {
     auto rawFn = std::get<SourceModule>(module).getFunctionPtr();

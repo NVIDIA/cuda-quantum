@@ -31,10 +31,9 @@ static void attachFermioniqObservable(cudaq::KernelExecution &code,
 }
 
 static std::vector<cudaq::KernelExecution>
-getKernelExecutions(const cudaq::CompiledModule &module) {
-  auto codes =
-      cudaq_internal::compiler::CompiledModuleHelper::toKernelExecutions(
-          module);
+emitCodegen(const cudaq::CompiledModule &module, cudaq::CompileTarget target) {
+  cudaq_internal::compiler::Compiler compiler(std::move(target), {});
+  auto codes = compiler.emitKernelExecutions(module);
 
   if (codes.size() != 1)
     throw std::runtime_error("Provider only allows 1 circuit at a time.");
@@ -55,7 +54,7 @@ cudaq::FermioniqQPU::launchKernel(const cudaq::sample_policy &policy,
     throw std::runtime_error("QPU does not support launching a "
                              "CompiledModule without MLIR artifacts.");
 
-  auto codes = getKernelExecutions(module);
+  auto codes = emitCodegen(module, getCompileTarget());
   return completeLaunchKernel(policy, module.getName(), std::move(codes));
 }
 
@@ -70,7 +69,7 @@ cudaq::FermioniqQPU::launchKernel(const cudaq::async_sample_policy &policy,
     throw std::runtime_error("QPU does not support launching a "
                              "CompiledModule without MLIR artifacts.");
 
-  auto codes = getKernelExecutions(module);
+  auto codes = emitCodegen(module, getCompileTarget());
   return completeLaunchKernel(policy, module.getName(), std::move(codes));
 }
 
@@ -85,7 +84,7 @@ cudaq::FermioniqQPU::launchKernel(const cudaq::observe_policy &policy,
     throw std::runtime_error("QPU does not support launching a "
                              "CompiledModule without MLIR artifacts.");
 
-  auto codes = getKernelExecutions(module);
+  auto codes = emitCodegen(module, getCompileTarget());
   attachFermioniqObservable(codes[0], policy.spin);
   auto result =
       completeLaunchKernel(policy, module.getName(), std::move(codes));
@@ -105,7 +104,7 @@ cudaq::FermioniqQPU::launchKernel(const cudaq::async_observe_policy &policy,
     throw std::runtime_error("QPU does not support launching a "
                              "CompiledModule without MLIR artifacts.");
 
-  auto codes = getKernelExecutions(module);
+  auto codes = emitCodegen(module, getCompileTarget());
   attachFermioniqObservable(codes[0], policy.inner.spin);
   return completeLaunchKernel(policy, module.getName(), std::move(codes));
 }

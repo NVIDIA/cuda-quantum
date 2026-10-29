@@ -15,14 +15,6 @@
 
 namespace cudaq {
 
-CompileOptions get_compile_options_impl(const other_policies &) {
-  CompileOptions opts;
-  // No codegen required: Tracing, state extraction and direct invocation do not
-  // submit programs to remote backends.
-  opts.emitTargetCode = false;
-  return opts;
-}
-
 CompileOptions get_compile_options_impl(const sample_policy &policy) {
   CompileOptions opts;
   opts.storeReorderIdx = true;
@@ -50,7 +42,6 @@ CompileOptions get_compile_options_impl(const estimate_policy &policy) {
   CompileOptions opts;
   opts.emitResourceCounts = true;
   opts.emitJit = true;
-  opts.emitTargetCode = false;
   return opts;
 }
 

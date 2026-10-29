@@ -9,11 +9,6 @@
 
 #include "common/CompiledModule.h"
 #include <memory>
-#include <vector>
-
-namespace cudaq {
-struct KernelExecution;
-} // namespace cudaq
 
 namespace mlir {
 class Type;
@@ -65,14 +60,6 @@ public:
   static NamedCompiledArtifact createResourcesArtifact(std::string name,
                                                        cudaq::Resources rc);
 
-  // --- CodegenArtifact construction ---
-
-  /// Construct a named `CodegenArtifact` from emitted target code and its
-  /// JSON-serialized output names.
-  static NamedCompiledArtifact createCodegenArtifact(std::string name,
-                                                     std::string code,
-                                                     std::string outputNames);
-
   // --- MlirArtifact construction and access ---
 
   /// Construct a named `MlirArtifact` from a `ModuleOp`.
@@ -96,17 +83,6 @@ public:
   /// return it.
   static cudaq::FatQuakeModule::MlirArtifact
   loadMlirArtifact(const cudaq::SourceModule &module);
-
-  // --- KernelExecution construction ---
-
-  /// Produce one `KernelExecution` per `MlirArtifact` of \p compiled, from the
-  /// target code, JIT and resource artifacts emitted at compile time.
-  ///
-  /// If \p requireTargetCode is true, each MLIR artifact must have a
-  /// `CodegenArtifact` with the same name, or an exception is thrown.
-  static std::vector<cudaq::KernelExecution>
-  toKernelExecutions(const cudaq::CompiledModule &compiled,
-                     bool requireTargetCode = true);
 };
 
 } // namespace cudaq_internal::compiler

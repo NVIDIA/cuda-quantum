@@ -63,9 +63,8 @@ public:
   }
 
   void enqueue(QuantumTask &) override {}
-  KernelThunkResultType
-  compileAndLaunchKernel(const AnyModule &, KernelArgs, const CompileTarget &,
-                         const CompileOptions &) override {
+  KernelThunkResultType unifiedLaunchModule(const AnyModule &,
+                                            KernelArgs) override {
     return {};
   }
 };
@@ -218,18 +217,6 @@ void expectUnsupported(Fn &&fn, const std::string &what) {
 }
 
 } // namespace
-
-TEST(QuantumPlatformCompileTargetTester, legacyEmulationNeedsJitNotTargetCode) {
-  TestPlatform platform;
-  platform.setEndpoint(makePlatformCompileTarget(),
-                       RuntimeEndpoint{.isEmulated = true});
-
-  auto options = platform.getCompileOptions(other_policies{});
-  EXPECT_TRUE(options.emulate);
-  EXPECT_TRUE(options.emitJit);
-  EXPECT_FALSE(options.emitTargetCode);
-  EXPECT_TRUE(platform.getCompileOptions(sample_policy{}).emitTargetCode);
-}
 
 TEST(QuantumPlatformCompileTargetTester, fallsBackToQpuWhenUnset) {
   TestPlatform platform;

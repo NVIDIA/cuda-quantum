@@ -30,10 +30,8 @@ public:
   /// representation required by the targeted backend. Handle all pertinent
   /// modifications for the execution context as well as asynchronous or
   /// synchronous invocation.
-  KernelThunkResultType
-  compileAndLaunchKernel(const AnyModule &module, KernelArgs args,
-                         const CompileTarget &target,
-                         const CompileOptions &options) override;
+  KernelThunkResultType unifiedLaunchModule(const AnyModule &module,
+                                            KernelArgs args) override;
 
   using QPU::launchKernel;
   sample_result launchKernel(const sample_policy &policy,
