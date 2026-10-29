@@ -74,6 +74,36 @@ def test_list_pauli_str():
     assert '1010' in counts
 
 
+def test_list_subclass():
+    # A `list` subclass is accepted wherever a `list` is, on both the path that
+    # converts pauli strings and the path that skips the conversion.
+
+    class MyList(list):
+        pass
+
+    @cudaq.kernel
+    def kernel8(myList: list[float]):
+        q = cudaq.qvector(len(myList))
+        for i in myList:
+            j = int(i)
+            x(q[j])
+
+    counts = cudaq.sample(kernel8, MyList([0., 1., 2., 3.]))
+    assert len(counts) == 1
+    assert '1111' in counts
+
+    @cudaq.kernel
+    def kernel9(n: int, words: list[cudaq.pauli_word], theta: float):
+        qubits = cudaq.qvector(n)
+        for term in words:
+            exp_pauli(theta, qubits, term)
+
+    counts = cudaq.sample(kernel9, 4, MyList(['YZXI', 'XZYI']), 0.5)
+    assert len(counts) == 2
+    assert '0000' in counts
+    assert '1010' in counts
+
+
 def test_nested_list_bool():
 
     @cudaq.kernel
@@ -166,6 +196,32 @@ def test_nested_list_pauli_str():
     assert '0101' in counts
     assert '1010' in counts
     assert '1111' in counts
+
+
+def test_nested_list_subclass():
+    # The subclass may be the outer list or an inner one.
+
+    class MyList(list):
+        pass
+
+    @cudaq.kernel
+    def kernel10(n: int, myList: list[list[float]]):
+        q = cudaq.qvector(n)
+        for inner in myList:
+            for i in inner:
+                j = int(i)
+                x(q[j])
+
+    counts = cudaq.sample(kernel10, 8,
+                          MyList([[0., 1., 2., 3.], [4., 5., 6., 7.]]))
+    assert len(counts) == 1
+    assert '11111111' in counts
+
+    counts = cudaq.sample(kernel10, 8,
+                          [MyList([0., 1., 2., 3.]),
+                           MyList([4., 5., 6., 7.])])
+    assert len(counts) == 1
+    assert '11111111' in counts
 
 
 @skip_arm64_nested_list

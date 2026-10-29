@@ -496,15 +496,6 @@ class PyKernelDecorator(object):
             return cudaq_runtime.pauli_word(arg)
 
         if issubclass(type(arg), list):
-            # Returned as it came unless it actually holds something to convert.
-            # A list of numbers holds no strings and no nested lists, so
-            # unnecessary to rebuild. Only an exact list, because the rebuild
-            # also turns a subclass into a plain list.
-            if type(arg) is list and not any(
-                    isinstance(element, str) or issubclass(type(element), list)
-                    for element in arg):
-                return arg
-
             return [self.convertStringsToPauli(a) for a in arg]
 
         return arg
@@ -665,7 +656,9 @@ class PyKernelDecorator(object):
             _validate_kernel_callable_arg(arg, arg_type)
             return DecoratorCapture(arg)
 
-        arg = self.convertStringsToPauli(arg)
+        if _may_hold_pauli_string(arg, arg_type):
+            arg = self.convertStringsToPauli(arg)
+
         mlirType = mlirTypeFromPyType(type(arg),
                                       getMLIRContext(),
                                       argInstance=arg,
@@ -1004,6 +997,30 @@ def _parse_ast(funcSrc: str, verbose: bool = False):
         except ImportError:
             pass
     return astModule
+
+
+def _may_hold_pauli_string(arg, argType):
+    """
+    Return whether `arg`, declared as `argType`, can hold a string that
+    `convertStringsToPauli` would have to convert.
+    """
+    eleTy = argType
+    while cc.SequenceType.isinstance(eleTy):
+        eleTy = cc.SequenceType.getElementType(eleTy)
+
+    if (IntegerType.isinstance(eleTy) or F64Type.isinstance(eleTy) or
+            F32Type.isinstance(eleTy) or ComplexType.isinstance(eleTy)):
+        return False
+
+    if isinstance(arg, str):
+        return True
+
+    if issubclass(type(arg), list):
+        return any(
+            isinstance(element, str) or issubclass(type(element), list)
+            for element in arg)
+
+    return False
 
 
 def _validate_kernel_callable_arg(kernel, arg_type):

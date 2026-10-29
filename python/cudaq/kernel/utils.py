@@ -653,6 +653,11 @@ def mlirTypeFromAnnotation(annotation,
 
 
 def mlirTypeFromPyType(argType, ctx, **kwargs):
+    # A `list` subclass carries no type information so assign as list here
+    if type(argType) is type and argType is not list and issubclass(
+            argType, list):
+        argType = list
+
     if argType in [int, np.int64]:
         return IntegerType.get_signless(64, ctx)
     if argType == np.int32:
