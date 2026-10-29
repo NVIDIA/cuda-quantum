@@ -95,9 +95,8 @@ The T gate is the expensive resource on fault-tolerant hardware, so the T count
 of a circuit is the number usually worth measuring. The
 ``compiler-bench-ftqc-clifford-t`` target runs synthesis over a whole kernel so
 that count can be read off directly. It reduces ``rx``, ``ry`` and ``r1``
-rotations to ``rz`` and synthesizes each one. Its ``epsilon`` argument sets the
-per-rotation tolerance and defaults to ``1e-10``. ``cudaq.set_random_seed``
-makes the synthesized gates reproducible.
+rotations to ``rz`` and synthesizes each one within a tolerance of ``1e-10``.
+``cudaq.set_random_seed`` makes the synthesized gates reproducible.
 
 .. literalinclude:: ../../snippets/python/using/examples/synthesis/rotation_synthesis.py
      :language: python

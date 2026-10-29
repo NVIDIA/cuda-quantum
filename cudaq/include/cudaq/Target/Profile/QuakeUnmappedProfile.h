@@ -49,9 +49,12 @@ struct QuakeUnmappedProfile {
   /// empty list imposes no gate-basis restriction.
   std::vector<std::string> basisGates = {};
 
-  /// Operator-norm tolerance for erasing, snapping, and synthesizing
-  /// rotations. Zero accepts only exact rewrites, so synthesis needs a positive
-  /// tolerance.
+  /// Largest operator-norm error the stage may introduce per rotation. From
+  /// optimization level 1, rotations smaller than this are dropped. From level
+  /// 2, rotations this close to a Clifford+T angle become Clifford+T gates.
+  /// Synthesis approximates each remaining rotation within it, so a smaller
+  /// tolerance costs more T gates and compile time. Zero accepts only exact
+  /// rewrites, so synthesis needs a positive tolerance.
   double approximationTolerance = 0;
 
   /// Without a cost model, the stage runs no optimization.

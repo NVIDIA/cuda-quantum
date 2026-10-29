@@ -13,6 +13,7 @@ from pathlib import Path
 
 import cudaq
 import pytest
+from cudaq._experimental import get_compile_target
 
 cudaq._register_target_config(
     str(
@@ -37,6 +38,17 @@ def reset():
     cudaq.reset_target()
     yield
     cudaq.reset_target()
+
+
+def set_target_with_tolerance(tolerance):
+    cudaq.set_target(FTQC_LOGICAL_TARGET)
+    target = get_compile_target()
+    stage = target.stages[0]
+    profile = stage.ir_output_profile
+    profile.approximation_tolerance = tolerance
+    stage.ir_output_profile = profile
+    target.stages = [stage]
+    cudaq.set_target(FTQC_LOGICAL_TARGET, compile_target=target)
 
 
 def assert_logical_basis_only(ops):
@@ -208,7 +220,7 @@ def test_exact_clifford_t_angles_avoid_rotation_resources():
 
 
 @needs_level_2
-def test_epsilon_controls_thresholded_canonicalization():
+def test_tolerance_controls_thresholded_canonicalization():
     kernel = cudaq.make_kernel()
     q = kernel.qalloc()
     # pi/4 + 9e-4 fails exact matching but is inside the 1e-3 threshold.
@@ -220,7 +232,7 @@ def test_epsilon_controls_thresholded_canonicalization():
     assert exact_ops.get('t', 0) + exact_ops.get('tdg', 0) == 0
 
     cudaq.reset_target()
-    cudaq.set_target(FTQC_LOGICAL_TARGET, epsilon='1e-3')
+    set_target_with_tolerance(1e-3)
     threshold_ops = cudaq.estimate_resources(kernel).to_dict()
     assert threshold_ops.get('rz', 0) == 0
     assert threshold_ops.get('t', 0) + threshold_ops.get('tdg', 0) == 1

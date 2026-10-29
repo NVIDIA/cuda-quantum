@@ -53,8 +53,8 @@ rejected so that using the experimental API is an explicit opt-in.
 A compile target owns the MLIR pass pipelines, the code generation settings and
 the capabilities that kernels are compiled against. Build one with
 `cudaq._experimental.CompileTarget` and pass it together with a runtime target
-name to `set_target`. `QuakeReferenceSemanticsProfile` is currently the only
-supported IR profile:
+name to `set_target`. `QuakeReferenceSemanticsProfile` and
+`QuakeUnmappedProfile` are the supported IR profiles:
 
 ```python
 from cudaq._experimental import CompileTarget, QuakeReferenceSemanticsProfile
@@ -67,6 +67,23 @@ cudaq.set_target("qpp-cpu", compile_target=target)
 The target string name passed to `set_target` specifies the target that kernels
 run on at runtime. Kernels are compiled against `compile_target` if it is given,
 and against the named target's default compile target otherwise.
+
+To change one setting of a named target, derive from the compile target that
+`get_compile_target` returns while that target is set. For example, this
+tightens the rotation tolerance of a target with a `quake-unmapped` stage:
+
+```python
+from cudaq._experimental import get_compile_target
+
+cudaq.set_target("compiler-bench-ftqc-clifford-t")
+target = get_compile_target()
+stage = target.stages[0]
+profile = stage.ir_output_profile
+profile.approximation_tolerance = 1e-12
+stage.ir_output_profile = profile
+target.stages = [stage]
+cudaq.set_target("compiler-bench-ftqc-clifford-t", compile_target=target)
+```
 
 Alternatively, a `cudaq._experimental.CustomTarget` can also be passed to
 `set_target`. Passing `ir_output_profile=` builds a single stage whose lowering

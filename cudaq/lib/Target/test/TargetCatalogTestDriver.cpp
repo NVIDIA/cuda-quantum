@@ -174,11 +174,8 @@ void printConfig(const TargetConfig &config) {
               << " type=" << rfl::Reflector<ArgumentType>::from(arg.Type)
               << " required=" << (arg.IsRequired ? "true" : "false")
               << " platform-arg="
-              << (arg.PlatformArgKey.empty() ? "-" : arg.PlatformArgKey);
-    if (arg.ProfileOption)
-      std::cout << " profile-option="
-                << rfl::Reflector<ProfileOption>::from(*arg.ProfileOption);
-    std::cout << "\n";
+              << (arg.PlatformArgKey.empty() ? "-" : arg.PlatformArgKey)
+              << "\n";
     if (!arg.HelpString.empty())
       std::cout << "  help-string: " << escaped(arg.HelpString) << "\n";
     for (const auto &arch : arg.MachineConfigs)

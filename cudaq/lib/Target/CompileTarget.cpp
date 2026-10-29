@@ -11,9 +11,6 @@
 #include "cudaq/Target/TargetConfig.h"
 #include <algorithm>
 #include <cctype>
-#include <locale>
-#include <sstream>
-#include <stdexcept>
 
 const std::string *cudaq::CompileTarget::getOverridePassPipeline() const {
   if (stages.size() != 1)
@@ -63,31 +60,6 @@ static bool substitutePipelinePlaceholders(
   return usesSeed;
 }
 
-/// Set \p profile's options from the target arguments that name them. The
-/// passes that read an option check its value.
-static void
-applyProfileArguments(cudaq::config::QuakeUnmappedProfile &profile,
-                      const std::vector<cudaq::config::TargetArgument> &args,
-                      const std::map<std::string, std::string> &runtimeConfig) {
-  for (const auto &arg : args) {
-    if (arg.ProfileOption !=
-        cudaq::config::ProfileOption::approximation_tolerance)
-      continue;
-    auto value = runtimeConfig.find(arg.KeyName);
-    if (value == runtimeConfig.end())
-      continue;
-    // `std::from_chars` for `double` is unavailable on older macOS deployment
-    // targets, so parse with the classic locale and require the whole string.
-    std::istringstream stream(value->second);
-    stream.imbue(std::locale::classic());
-    stream >> profile.approximationTolerance;
-    if (stream.fail() || stream.peek() != std::char_traits<char>::eof())
-      throw std::runtime_error("target argument '" + arg.KeyName +
-                               "' must be a number, got '" + value->second +
-                               "'");
-  }
-}
-
 /// Replace literal placeholder keys in a pipeline stage string.
 static void applyPipelineSubstitutions(
     std::string &pipeline,
@@ -134,15 +106,10 @@ cudaq::CompileTarget cudaq::CompileTarget::createFromConfig(
   auto disableQM = runtimeConfig.find("disable_qubit_mapping");
   target.disableQubitMapping =
       disableQM != runtimeConfig.end() && disableQM->second == "true";
-  for (auto &stage : target.stages) {
+  for (auto &stage : target.stages)
     if (auto *lowering =
             std::get_if<config::CustomPipelineLowering>(&stage.lowering))
       resolvePipeline(*lowering);
-    if (auto *profile =
-            std::get_if<config::QuakeUnmappedProfile>(&stage.irOutputProfile))
-      applyProfileArguments(*profile, targetConfig.TargetArguments,
-                            runtimeConfig);
-  }
 
   target.codegen.emissionFormat = targetConfig.getCodeGenSpec(runtimeConfig);
 

@@ -24,10 +24,3 @@ compile-target:
           basis-gates: [h, s, t, x, y, z, swap, "x(1)", "y(1)", "z(1)"]
           approximation-tolerance: 1e-10
           cost-model: t-count
-
-target-arguments:
-  - key: epsilon
-    required: false
-    type: string
-    profile-option: approximation-tolerance
-    help-string: "Largest operator-norm error allowed when synthesizing each rotation into Clifford+T gates. Smaller values cost more T gates and compile time. From optimization level 1, rotations smaller than this are dropped instead. Defaults to 1e-10."

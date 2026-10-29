@@ -24,10 +24,3 @@ compile-target:
           basis-gates: [h, s, t, rx, ry, rz, x, y, z, swap, "x(1)", "y(1)", "z(1)", "x(2)", "z(2)"]
           approximation-tolerance: 0
           cost-model: t-count
-
-target-arguments:
-  - key: epsilon
-    required: false
-    type: string
-    profile-option: approximation-tolerance
-    help-string: "How far the compiler may move each rotation. From optimization level 1, rotations smaller than this are dropped. From level 2, rotations this close to a Clifford+T angle become Clifford+T gates. Defaults to 0, which keeps every rotation exact."

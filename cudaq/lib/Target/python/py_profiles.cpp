@@ -91,6 +91,31 @@ void cudaq::bindTargetProfiles(nb::module_ &m) {
                ", reset_after_measure=" +
                (p.resetAfterMeasure ? "True" : "False") + ")";
       });
+  nb::enum_<CostModel>(m, "CostModel").value("t_count", CostModel::t_count);
+  valueClass<QuakeUnmappedProfile>(m, "QuakeUnmappedProfile")
+      .def(
+          "__init__",
+          [](QuakeUnmappedProfile *self, std::vector<std::string> basis,
+             double tolerance, std::optional<CostModel> costModel) {
+            new (self)
+                QuakeUnmappedProfile{std::move(basis), tolerance, costModel};
+          },
+          nb::kw_only(), "basis_gates"_a = std::vector<std::string>{},
+          "approximation_tolerance"_a = 0.0, "cost_model"_a = nb::none())
+      .def_prop_rw(
+          "basis_gates",
+          [](const QuakeUnmappedProfile &p) { return p.basisGates; },
+          [](QuakeUnmappedProfile &p, std::vector<std::string> gates) {
+            p.basisGates = std::move(gates);
+          })
+      .def_rw("approximation_tolerance",
+              &QuakeUnmappedProfile::approximationTolerance)
+      .def_rw("cost_model", &QuakeUnmappedProfile::costModel)
+      .def("__repr__", [](const QuakeUnmappedProfile &p) {
+        return "QuakeUnmappedProfile(basis_gates=" + repr(p.basisGates) +
+               ", approximation_tolerance=" + repr(p.approximationTolerance) +
+               ", cost_model=" + repr(p.costModel) + ")";
+      });
   valueClass<CustomPipelineLowering>(m, "CustomPipelineLowering")
       .def(
           "__init__",

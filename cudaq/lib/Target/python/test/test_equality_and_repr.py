@@ -8,14 +8,18 @@
 
 import pytest
 
-from cudaq._target import (Codegen, CompilationStage, CompileTarget,
+from cudaq._target import (Codegen, CompilationStage, CompileTarget, CostModel,
                            CustomPipelineLowering,
-                           QuakeReferenceSemanticsProfile, UncheckedProfile)
+                           QuakeReferenceSemanticsProfile, QuakeUnmappedProfile,
+                           UncheckedProfile)
 
 
 @pytest.mark.parametrize("make", [
     UncheckedProfile,
     lambda: QuakeReferenceSemanticsProfile(basis_gates=["z(1)"]),
+    lambda: QuakeUnmappedProfile(basis_gates=["t"],
+                                 approximation_tolerance=1e-3,
+                                 cost_model=CostModel.t_count),
     lambda: CustomPipelineLowering("canonicalize"),
     lambda: Codegen("qir-base"),
     lambda: CompilationStage(QuakeReferenceSemanticsProfile()),

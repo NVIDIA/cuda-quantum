@@ -94,7 +94,6 @@ void appendCanonicalArguments(const std::vector<TargetArgumentV> &args,
     outArg.KeyName = arg.key;
     outArg.IsRequired = arg.required.value();
     outArg.PlatformArgKey = arg.platformArg.value();
-    outArg.ProfileOption = arg.profileOption;
     outArg.HelpString = arg.helpString.value();
     outArg.Type = arg.type.value();
     for (const auto &machineConfig : arg.machineConfig.value())

@@ -198,7 +198,6 @@ cxxTargetArguments(const std::vector<cudaq::config::TargetArgument> &args) {
        << ".KeyName = " << cxxStringLiteral(a.KeyName) << ", "
        << ".IsRequired = " << (a.IsRequired ? "true" : "false") << ", "
        << ".PlatformArgKey = " << cxxStringLiteral(a.PlatformArgKey) << ", "
-       << ".ProfileOption = " << cxxValue(a.ProfileOption) << ", "
        << ".HelpString = " << cxxStringLiteral(a.HelpString) << ", "
        << ".Type = " << cxxValue(a.Type) << ", "
        << ".MachineConfigs = " << cxxMachineConfigs(a.MachineConfigs) << "}, ";

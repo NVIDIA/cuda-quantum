@@ -108,22 +108,6 @@ struct Reflector<cudaq::config::ArgumentType> {
 };
 
 template <>
-struct Reflector<cudaq::config::ProfileOption> {
-  using ReflType = std::string;
-  static cudaq::config::ProfileOption to(const std::string &name) {
-    return cudaq::config::detail::enumFromYamlName<
-        cudaq::config::ProfileOption>(name);
-  }
-  static std::string from(const cudaq::config::ProfileOption &value) {
-    switch (value) {
-    case cudaq::config::ProfileOption::approximation_tolerance:
-      return "approximation-tolerance";
-    }
-    cudaq::config::detail::unknownEnumerator();
-  }
-};
-
-template <>
 struct Reflector<cudaq::config::MeasurementForm> {
   using ReflType = std::string;
   static cudaq::config::MeasurementForm to(const std::string &name) {
