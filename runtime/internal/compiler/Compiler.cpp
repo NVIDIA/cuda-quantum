@@ -124,9 +124,7 @@ cudaq_internal::compiler::Compiler::loadQuakeCodeByName(
 
 cudaq_internal::compiler::Compiler::Compiler(
     const cudaq::CompileTarget &target_, const cudaq::CompileOptions &options_)
-    : Compiler(target_, options_,
-               makeBuiltinLoweringHandlers(options_.emulate,
-                                           target_.codegen.emissionFormat)) {}
+    : Compiler(target_, options_, makeBuiltinLoweringHandlers()) {}
 
 cudaq_internal::compiler::Compiler::Compiler(
     const cudaq::CompileTarget &target_, const cudaq::CompileOptions &options_,
@@ -387,10 +385,14 @@ cudaq_internal::compiler::Compiler::assembleCompiledModule(
       std::move(metadata));
 }
 
-/// Resolve the quantum optimization level for one compile. A kernel that
-/// disables optimization forces level 0 over the requested level. Every
-/// frontend that disables optimization marks the module, so the module
-/// attribute is the only IR signal needed.
+/// Resolve the quantum optimization level for one compile. Disabling
+/// optimization in the options, or a marker on the module, forces level 0
+/// over the requested level. A frontend marks the module only when the kernel
+/// in it disables optimization. nvq++ also marks a kernel that calls a marked
+/// kernel from the same source file, because it inlines the callee before
+/// registering the caller. A marked callee from another C++ source file, or
+/// any marked Python callee, does not mark its caller, so the JIT optimizes
+/// the callee's gates along with the caller's.
 static cudaq::OptimizationLevel
 resolveOptimizationLevel(mlir::ModuleOp moduleOp,
                          const cudaq::CompileOptions &options) {
@@ -402,8 +404,8 @@ resolveOptimizationLevel(mlir::ModuleOp moduleOp,
 
 /// Mark the module and each function so that passes and codegen that never
 /// see `CompileOptions` also skip quantum optimization. Codegen and
-/// `cudaq-translate` check the module. `quake-simplify` and `phase-folding`
-/// check the function they run on.
+/// `cudaq-translate` check the module. Passes such as `quake-simplify`,
+/// `phase-folding`, and `dqe` check the function they run on.
 static void disableQuantumOptimization(mlir::ModuleOp moduleOp) {
   auto unitAttr = mlir::UnitAttr::get(moduleOp.getContext());
   moduleOp->setAttr(cudaq::runtime::disableQuantumOpts, unitAttr);

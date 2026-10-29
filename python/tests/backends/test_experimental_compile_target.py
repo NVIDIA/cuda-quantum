@@ -388,9 +388,11 @@ def test_profile_target_switching_uses_the_same_kernel_cache_safely():
     assert compile_profile_target(kernel, "z(1)") == z_ir
 
 
-def test_multiple_stages_are_rejected():
+def test_later_stage_cannot_add_passes_before_deploy():
     from cudaq._experimental import QuakeReferenceSemanticsProfile
 
+    # Single-qubit measurements add `expand-measurements` before deploy, and
+    # only the first stage may add passes there.
     stages = [
         CompilationStage(
             QuakeReferenceSemanticsProfile(basis_gates=["h", "t", gate],
@@ -399,7 +401,7 @@ def test_multiple_stages_are_rejected():
     ]
     set_custom_target(CompileTarget(stages=stages, codegen="qir-base"))
     with pytest.raises(RuntimeError,
-                       match="Multi-stage compilation is currently not"):
+                       match="stage 2: only the first stage may add passes"):
         cudaq.sample(make_static_bell_kernel(), shots_count=1)
 
 
