@@ -406,9 +406,7 @@ RUN if ! gpus=$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null) |
         source /cuda-quantum/scripts/configure_build.sh install-cudart; \
     fi && cd /cuda-quantum && \
     # Exclude lit test suites from ctest. They are run individually above/below.
-    # FIXME: exceptions lose their type across the library boundary here.
-    # Issue: https://github.com/NVIDIA/cuda-quantum/issues/2321
-    excludes+=" --exclude-regex ctest-cudaq|ctest-targettests|ctest-runtime|ctest-target-catalog|pycudaq-mlir|Tensor.*Error|DrawTester\.ownsControlValues" && \
+    excludes+=" --exclude-regex ctest-cudaq|ctest-targettests|ctest-runtime|ctest-target-catalog|pycudaq-mlir" && \
     ctest --output-on-failure --test-dir build $excludes
 
 ENV PATH="${PATH}:/usr/local/cuda/bin" 
