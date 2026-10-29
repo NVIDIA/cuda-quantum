@@ -261,18 +261,18 @@ void test_resource_count_disabled_by_target(mlir::MLIRContext *ctx) {
 
 // CHECK-LABEL: NO RESOURCE ARTIFACT
 
-/// Handler lowering into quake-reference-semantics with a fixed marker
-/// pipeline.
+/// Handler lowering into quake-reference-semantics with a fixed marker pass
+/// before deploy.
 class FakeQuakeReferenceSemanticsHandler : public LoweringHandler {
 public:
-  std::optional<std::string>
-  getPipeline(const cudaq::config::Profile &,
-              const cudaq::config::Profile &output,
-              const cudaq::CompileOptions &options) const override {
+  std::optional<StagePasses>
+  getStagePasses(const cudaq::config::Profile &,
+                 const cudaq::config::Profile &output,
+                 const cudaq::CompileOptions &options) const override {
     if (!std::holds_alternative<cudaq::config::QuakeReferenceSemanticsProfile>(
             output))
       return std::nullopt;
-    return "func.func(add-measurements)";
+    return StagePasses{.preDeployPasses = "func.func(add-measurements)"};
   }
 };
 

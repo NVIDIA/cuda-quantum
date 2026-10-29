@@ -161,6 +161,34 @@ static bool containsHandleInSignature(FunctionType funcTy) {
   return false;
 }
 
+// Mark every function that refers to a function that disables quantum
+// optimization, directly or through other functions. nvq++ inlines a kernel
+// into its callers before it registers them for the JIT, so only a marker on
+// the caller keeps the callee's gates as written.
+static void markCallersOfUnoptimizedFunctions(ModuleOp module) {
+  auto unitAttr = UnitAttr::get(module.getContext());
+  SymbolTable symbolTable(module);
+  auto refersToUnoptimizedFunction = [&](func::FuncOp func) {
+    auto uses = SymbolTable::getSymbolUses(func);
+    return uses && llvm::any_of(*uses, [&](const SymbolTable::SymbolUse &use) {
+             auto *callee =
+                 symbolTable.lookup(use.getSymbolRef().getRootReference());
+             return callee &&
+                    callee->hasAttr(cudaq::runtime::disableQuantumOpts);
+           });
+  };
+  bool changed = true;
+  while (changed) {
+    changed = false;
+    for (auto func : module.getOps<func::FuncOp>())
+      if (!func->hasAttr(cudaq::runtime::disableQuantumOpts) &&
+          refersToUnoptimizedFunction(func)) {
+        func->setAttr(cudaq::runtime::disableQuantumOpts, unitAttr);
+        changed = true;
+      }
+  }
+}
+
 // Remove the Itanium mangling "_ZTS" prefix. This is to match the name returned
 // by `typeid(TYPE).name()`.
 static std::string
@@ -967,6 +995,8 @@ void ASTBridgeAction::ASTBridgeConsumer::HandleTranslationUnit(
       }
     }
   }
+
+  markCallersOfUnoptimizedFunctions(*module);
 }
 
 bool ASTBridgeAction::ASTBridgeConsumer::HandleTopLevelDecl(
