@@ -798,6 +798,8 @@ jobs:
     needs: [wheel_info, build_wheel, build_devel_wheel]
     if:
       ${{ !cancelled() && inputs.build_logical_wheel &&
+      (needs.build_wheel.result == 'success' ||
+      inputs.runtime_artifact_name != '') &&
       (needs.build_devel_wheel.result == 'success' ||
       inputs.devel_artifact_name != '') }}
     uses: ./.github/workflows/cudaq_logical_build.yml

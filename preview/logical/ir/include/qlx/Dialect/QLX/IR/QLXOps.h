@@ -6,8 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  *******************************************************************************/
 
-#ifndef QLX_DIALECT_QLX_QLXOPS_H
-#define QLX_DIALECT_QLX_QLXOPS_H
+#pragma once
 
 #include "mlir/Bytecode/BytecodeOpInterface.h"
 #include "mlir/IR/Builders.h"

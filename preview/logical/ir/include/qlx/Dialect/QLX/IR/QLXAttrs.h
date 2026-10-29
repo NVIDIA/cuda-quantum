@@ -6,8 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  *******************************************************************************/
 
-#ifndef QLX_DIALECT_QLX_QLXATTRS_H
-#define QLX_DIALECT_QLX_QLXATTRS_H
+#pragma once
 
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/BuiltinAttributes.h"
@@ -16,5 +15,3 @@
 
 #define GET_ATTRDEF_CLASSES
 #include "qlx/Dialect/QLX/IR/QLXAttrs.h.inc"
-
-#endif // QLX_DIALECT_QLX_QLXATTRS_H

@@ -34,9 +34,10 @@ compile-target:
 # PARSE:   stage: ir-output-profile=unchecked lowering=custom-pipeline
 # PARSE:     target-pass-pipeline: func.func(canonicalize)
 # PARSE:   stage: ir-output-profile=quake-reference-semantics lowering=inferred
-# PARSE:     basis-gates: ["h", "s", "rz"]
-# PARSE:     measurement-type: any
-# PARSE:     reset-after-measure: false
+# PARSE-NEXT:     options:
+# PARSE-NEXT:       basis-gates: ["h", "s", "rz"]
+# PARSE-NEXT:       measurement-type: any
+# PARSE-NEXT:       reset-after-measure: false
 # PARSE:   codegen-emission: qir-base
 
 # EMIT: GEN_TARGET_BACKEND=true

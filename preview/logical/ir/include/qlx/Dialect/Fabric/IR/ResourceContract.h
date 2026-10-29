@@ -6,8 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  *******************************************************************************/
 
-#ifndef QLX_DIALECT_FABRIC_IR_RESOURCECONTRACT_H
-#define QLX_DIALECT_FABRIC_IR_RESOURCECONTRACT_H
+#pragma once
 
 #include "llvm/ADT/StringRef.h"
 #include "mlir/Support/LogicalResult.h"
@@ -32,5 +31,3 @@ mlir::LogicalResult verifyRegisteredResourcePack(PackResourceOp pack);
 mlir::LogicalResult verifyRegisteredResourceUnpack(UnpackResourceOp unpack);
 
 } // namespace qlx::fabric
-
-#endif // QLX_DIALECT_FABRIC_IR_RESOURCECONTRACT_H

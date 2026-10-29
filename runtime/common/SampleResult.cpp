@@ -83,17 +83,23 @@ static std::string extractNameFromData(std::vector<std::size_t> &data,
 
 namespace cudaq {
 
-ExecutionResult::ExecutionResult(CountsDictionary c) : counts(c) {}
-ExecutionResult::ExecutionResult(std::string name) : registerName(name) {}
+// The dictionary and name parameters are by value, so a caller that has no
+// further use for its argument has already paid for one copy. Taking a second
+// by initializing the members from the parameter rather than moving out of it
+// is what these signatures were written to avoid.
+ExecutionResult::ExecutionResult(CountsDictionary c) : counts(std::move(c)) {}
+ExecutionResult::ExecutionResult(std::string name)
+    : registerName(std::move(name)) {}
 ExecutionResult::ExecutionResult(double e) : expectationValue(e) {}
 
 ExecutionResult::ExecutionResult(CountsDictionary c, std::string name)
-    : counts(c), registerName(name) {}
+    : counts(std::move(c)), registerName(std::move(name)) {}
 ExecutionResult::ExecutionResult(CountsDictionary c, std::string name, double e)
-    : counts(c), expectationValue(e), registerName(name) {}
+    : counts(std::move(c)), expectationValue(e), registerName(std::move(name)) {
+}
 
 ExecutionResult::ExecutionResult(CountsDictionary c, double e)
-    : counts(c), expectationValue(e) {}
+    : counts(std::move(c)), expectationValue(e) {}
 ExecutionResult::ExecutionResult(const ExecutionResult &other)
     : counts(other.counts), expectationValue(other.expectationValue),
       registerName(other.registerName), sequentialData(other.sequentialData) {}
@@ -251,6 +257,23 @@ void sample_result::append(const ExecutionResult &result, bool concatenate) {
   if (!totalShots)
     for (auto &[bits, count] : result.counts)
       totalShots += count;
+}
+
+void sample_result::append(ExecutionResult &&result, bool concatenate) {
+  // Concatenation stitches the incoming bitstrings into an entry that is
+  // already here and takes ownership of nothing, so there is nothing to move.
+  // With no such entry it inserts instead, and that can move.
+  if (concatenate && sampleResults.contains(result.registerName))
+    return append(static_cast<const ExecutionResult &>(result), true);
+
+  if (!totalShots)
+    for (auto &[bits, count] : result.counts)
+      totalShots += count;
+
+  // Naming the key and moving the value in one call is safe because a pair
+  // builds `first` before `second`, so the name is copied before `result` is
+  // emptied.
+  sampleResults.insert_or_assign(result.registerName, std::move(result));
 }
 
 bool sample_result::operator==(const sample_result &counts) const {

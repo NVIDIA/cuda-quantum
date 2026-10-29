@@ -15,8 +15,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef QLX_C_TRANSLATE_TRANSLATIONS_H
-#define QLX_C_TRANSLATE_TRANSLATIONS_H
+#pragma once
 
 #include "cudaq/gf2/memory.h"
 #include "mlir-c/IR.h"
@@ -63,5 +62,3 @@ MLIR_CAPI_EXPORTED MlirLogicalResult qlxVerifyGadgetContract(
 #ifdef __cplusplus
 }
 #endif
-
-#endif // QLX_C_TRANSLATE_TRANSLATIONS_H

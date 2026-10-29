@@ -89,7 +89,8 @@ KernelThunkResultType
 RemoteRESTQPU::unifiedLaunchModule(const AnyModule &module, KernelArgs args) {
   CompiledModule compiled;
   auto target = getCompileTarget();
-  CompileOptions options = cudaq::get_compile_options(other_policies{});
+  CompileOptions options =
+      cudaq::get_compile_options(other_policies{}, cudaq::get_random_seed());
   // A launch without a policy (e.g. `draw`) does not go through `launch.h`,
   // which sets this for the policy-based launches. Without it, an emulated
   // target gets neither the emulation pipeline nor a JIT artifact.

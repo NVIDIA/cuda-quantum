@@ -20,10 +20,9 @@ cudaq_internal::compiler::selectLoweringHandler(
 }
 
 std::vector<std::unique_ptr<cudaq_internal::compiler::LoweringHandler>>
-cudaq_internal::compiler::makeBuiltinLoweringHandlers(
-    bool emulate, std::string emissionFormat) {
+cudaq_internal::compiler::makeBuiltinLoweringHandlers() {
   std::vector<std::unique_ptr<LoweringHandler>> handlers;
-  handlers.push_back(
-      makeQuakeReferenceSemanticsHandler(emulate, std::move(emissionFormat)));
+  handlers.push_back(makeQuakeReferenceSemanticsHandler());
+  handlers.push_back(makeQuakeUnmappedHandler());
   return handlers;
 }

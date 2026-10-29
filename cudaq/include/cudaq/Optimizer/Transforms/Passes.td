@@ -37,8 +37,13 @@ def AddMeasurements : Pass<"add-measurements", "mlir::func::FuncOp"> {
     the kernel.
 
   }];
-  
-  let dependentDialects = ["cudaq::quake::QuakeDialect",
+
+  let options = [
+    Option<"useEvince", "use-evince", "bool", /*default=*/"false",
+           "Add the measurements in front of the quake.evince ops.">
+  ];
+
+  let dependentDialects = ["cudaq::cc::CCDialect", "cudaq::quake::QuakeDialect",
     "mlir::cf::ControlFlowDialect"];
 }
 
@@ -304,7 +309,7 @@ def CliffordTSynthesis : Pass<"clifford-t-synthesis", "mlir::ModuleOp"> {
 
     Only `quake.rz` is handled. `quake.rx`, `quake.ry`, and `quake.r1` must be
     reduced to Rz first via the `RxToRz`, `RyToRz`, and `R1ToRz` decomposition
-    patterns; the `cudaq-fault-tolerant-target` pipeline runs that reduction
+    patterns; `clifford-t-synthesis-pipeline` runs that reduction
     ahead of this pass. Any other rotation left in the IR is passed through
     untouched.
 
@@ -328,7 +333,7 @@ def CliffordTSynthesis : Pass<"clifford-t-synthesis", "mlir::ModuleOp"> {
     The omega global phase of each synthesized word is emitted as an
     uncontrolled `quake.phase` in the helper body, so the helper is exactly
     equal to the rotation it replaces. Run `lower-phase` afterwards to
-    complete the phase lifecycle; the `cudaq-fault-tolerant-target` pipeline
+    complete the phase lifecycle; `clifford-t-synthesis-pipeline`
     does.
 
     Gridsynth is probabilistic. Unseeded, it may return a different (equally
@@ -336,8 +341,8 @@ def CliffordTSynthesis : Pass<"clifford-t-synthesis", "mlir::ModuleOp"> {
     the pass reproducible. Its cost grows sharply as `epsilon` tightens.
     Roughly 2 ms per distinct rotation at the default 1e-10, but orders of
     magnitude more below 1e-30. Repeated angles are cached, so the cost is per
-    distinct angle rather than per operation. This pass is opt-in via the
-    `cudaq-fault-tolerant-target` pipeline only. It is not added to the default
+    distinct angle rather than per operation. This pass is opt-in, and
+    `clifford-t-synthesis-pipeline` runs it. It is not added to the default
     target-prep pipeline.
 
     The work-budget options below cap the search work gridsynth may spend on
@@ -2449,6 +2454,22 @@ def VerifyProfileQuakeReferenceSemantics : Pass<"verify-profile-quake-reference-
     Option<"resetAfterMeasure", "reset-after-measure", "bool",
            /*default=*/"false",
            "Require reset after measurement before quantum reuse">,
+  ];
+}
+
+def VerifyProfileQuakeUnmapped : Pass<"verify-profile-quake-unmapped", "mlir::ModuleOp"> {
+  let summary = "Verify quake-unmapped profile conformance (read-only)";
+  let description = [{
+    Fails if a qubit is borrowed from a `quake.wire_set`, or if a Quake
+    operation is not in `basis` in a function that `basis-conversion` converts:
+    an entry point or a function that takes qubits. The profile describes Quake
+    before qubit mapping, and only mapping introduces a wire set. References and
+    wires are both accepted. `basis` uses the `basis-conversion` grammar, and an
+    empty basis imposes no gate restriction.
+  }];
+  let options = [
+    ListOption<"basis", "basis", "std::string",
+               "Set of allowed basis operations (empty = unrestricted)">,
   ];
 }
 

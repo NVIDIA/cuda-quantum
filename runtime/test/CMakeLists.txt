@@ -45,12 +45,13 @@ add_cudaq_hybrid_test(resource_count_phase)
 add_cudaq_hybrid_test(resource_count_qubit_indices)
 add_cudaq_hybrid_test(resource_count_wireset)
 
-# profile_stages exercises pure C++ inferred-stage planning; no MLIR/runtime
-# closure.
+# profile_stages tests how getPassPipeline builds a pipeline from a compile
+# target's stages, in pure C++ without the MLIR runtime.
 add_executable(profile_stages Regress/profile_stages.cpp
                ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/JITTargetPipeline.cpp
                ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/LoweringHandler.cpp
-               ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/QuakeReferenceSemanticsHandler.cpp)
+               ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/QuakeReferenceSemanticsHandler.cpp
+               ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/QuakeUnmappedHandler.cpp)
 target_include_directories(profile_stages PRIVATE
                            ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/include
                            ${CMAKE_SOURCE_DIR}/runtime
@@ -61,13 +62,14 @@ target_link_libraries(profile_stages PRIVATE CUDAQTargetConfig cudaq-logger)
 set_target_properties(profile_stages PROPERTIES
                       RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-# profile_providers checks that the pipelines planned from the actual IonQ,
-# Fermioniq, and Quantinuum catalog entries (through the production lowering
-# handlers) are exactly the expected inferred lowerings.
+# profile_providers checks that the pipelines planned from actual catalog
+# entries, through the production lowering handlers, are exactly the expected
+# pipelines.
 add_executable(profile_providers Regress/profile_providers.cpp
                ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/JITTargetPipeline.cpp
                ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/LoweringHandler.cpp
-               ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/QuakeReferenceSemanticsHandler.cpp)
+               ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/QuakeReferenceSemanticsHandler.cpp
+               ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/QuakeUnmappedHandler.cpp)
 target_include_directories(profile_providers PRIVATE
                            ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/include
                            ${CMAKE_SOURCE_DIR}/runtime
