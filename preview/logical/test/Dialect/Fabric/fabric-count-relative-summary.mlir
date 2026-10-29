@@ -7,7 +7,9 @@
 // ========================================================================== //
 
 // REQUIRES: qlx-opt
-// RUN: env QLX_PROFILE_SCHEDULE_ESTIMATE=1 qlx-opt %s --fabric-count 2>&1 | FileCheck %s
+// RUN: qlx-opt %s --fabric-count --mlir-pass-statistics -o %t 2>&1 \
+// RUN:   | FileCheck %s --check-prefix=STATS
+// RUN: FileCheck %s < %t
 
 // Reuse one summary at entry counts 1, 2, then 1, and with multiplicities 1,
 // 3, then 1. Peaks include caller reservations but are never multiplied.
@@ -72,7 +74,8 @@ fabric.gadget @entry {entry} on @dev() {
   fabric.return
 }
 
-// CHECK: callable-summary-probes=1 callable-summary-hits=3
+// STATS: (S) {{ *}}3 callable-summary-hits
+// STATS: (S) {{ *}}1 callable-summary-probes
 // CHECK: fabric.counts = {
 // CHECK-SAME: gadget_calls = {scratch = 5 : i64}
 // CHECK-SAME: logical_qubits_peak = 11 : i64

@@ -7,7 +7,9 @@
 // ========================================================================== //
 
 // REQUIRES: qlx-opt
-// RUN: env QLX_PROFILE_SCHEDULE_ESTIMATE=1 qlx-opt %s --fabric-count 2>&1 | FileCheck %s
+// RUN: qlx-opt %s --fabric-count --mlir-pass-statistics -o %t 2>&1 \
+// RUN:   | FileCheck %s --check-prefix=STATS
+// RUN: FileCheck %s < %t
 
 // A newly live caller region needs a different tick summary; changing only
 // its patch count must reuse it. Freeing that region restores the first key.
@@ -39,7 +41,8 @@ fabric.gadget @entry {entry} on @dev() {
   fabric.dealloc %p : !fabric.patch<@one>
   fabric.return
 }
-// CHECK: callable-summary-probes=2 callable-summary-hits=4
+// STATS: (S) {{ *}}4 callable-summary-hits
+// STATS: (S) {{ *}}2 callable-summary-probes
 // CHECK: fabric.counts = {
 // CHECK-SAME: logical_qubits_peak = 3 : i64
 // CHECK-SAME: patches_peak = 3 : i64

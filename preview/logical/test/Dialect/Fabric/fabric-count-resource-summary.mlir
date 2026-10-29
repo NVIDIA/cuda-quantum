@@ -7,7 +7,9 @@
 // ========================================================================== //
 
 // REQUIRES: qlx-opt
-// RUN: env QLX_PROFILE_SCHEDULE_ESTIMATE=1 qlx-opt %s --fabric-count='root=entry' 2>&1 | FileCheck %s
+// RUN: qlx-opt %s --fabric-count='root=entry' --mlir-pass-statistics -o %t 2>&1 \
+// RUN:   | FileCheck %s --check-prefix=STATS
+// RUN: FileCheck %s < %t
 
 // Resource payloads temporarily increase live ownership. Reuse their summary
 // with different caller reservations without scaling or losing the peak.
@@ -47,7 +49,8 @@ fabric.protocol @entry :
   fabric.protocol_return %p1, %s1
       : !fabric.patch<@bare, @enc, @epoch>, !fabric.resource<@t_state>
 }
-// CHECK: callable-summary-probes=1 callable-summary-hits=2
+// STATS: (S) {{ *}}2 callable-summary-hits
+// STATS: (S) {{ *}}1 callable-summary-probes
 // CHECK: fabric.counts = {
 // CHECK-SAME: logical_qubits_peak = 4 : i64
 // CHECK-SAME: operation_counts = {alloc = 2 : i64, call = 2 : i64, dealloc = 2 : i64, pack_resource = 2 : i64, unpack_resource = 2 : i64}

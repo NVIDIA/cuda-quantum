@@ -7,7 +7,9 @@
 // ========================================================================== //
 
 // REQUIRES: qlx-opt
-// RUN: env QLX_PROFILE_SCHEDULE_ESTIMATE=1 qlx-opt %s --fabric-count 2>&1 | FileCheck %s
+// RUN: qlx-opt %s --fabric-count --mlir-pass-statistics -o %t 2>&1 \
+// RUN:   | FileCheck %s --check-prefix=STATS
+// RUN: FileCheck %s < %t
 
 fabric.code @two {
   distance = 2 : i64,
@@ -76,7 +78,8 @@ fabric.gadget @entry {entry} on @dev() {
   fabric.dealloc %c : !fabric.patch<@two>
   fabric.return
 }
-// CHECK: callable-summary-probes=3 callable-summary-hits=6
+// STATS: (S) {{ *}}6 callable-summary-hits
+// STATS: (S) {{ *}}3 callable-summary-probes
 // CHECK: fabric.counts = {
 // CHECK-SAME: gadget_calls = {left = 2 : i64, right = 1 : i64, scratch = 7 : i64}
 // CHECK-SAME: logical_qubits_peak = 11 : i64

@@ -60,8 +60,6 @@
 #include "mlir/Pass/Pass.h"
 
 #include <algorithm>
-#include <chrono>
-#include <cstdlib>
 #include <functional>
 #include <limits>
 #include <map>
@@ -245,18 +243,16 @@ public:
   bool sawSelectedDeviceGadget = false;
   bool sawSelectedDeviceRegionUse = false;
 
-  void printProfile(llvm::raw_ostream &stream) const {
-    stream << "fabric-count: operations=" << visitedOperations
-           << " delegations=" << delegations << " retry-probes=" << retryProbes
-           << " retry-probe-cache-hits=" << retryProbeCacheHits
-           << " retry-probe-operations=" << retryProbeOperations
-           << " retry-probe-seconds=" << retryProbeSeconds
-           << "s callable-summary-probes=" << callableSummaryProbes
-           << " callable-summary-hits=" << callableSummaryHits
-           << " callable-summary-negative-hits=" << callableSummaryNegativeHits
-           << " callable-summary-saved-operations="
-           << callableSummarySavedOperations << "\n";
-  }
+  // Work counters, reported through the pass statistics.
+  uint64_t visitedOperations = 0;
+  uint64_t delegations = 0;
+  uint64_t retryProbes = 0;
+  uint64_t retryProbeCacheHits = 0;
+  uint64_t retryProbeOperations = 0;
+  uint64_t callableSummaryProbes = 0;
+  uint64_t callableSummaryHits = 0;
+  uint64_t callableSummaryNegativeHits = 0;
+  uint64_t callableSummarySavedOperations = 0;
 
   void recordRegionDecl(RegionOp r);
   void recordCodeDecl(CodeOp c);
@@ -273,20 +269,10 @@ private:
   llvm::SmallSet<StringRef, 8> activeCalls;
   bool suppressInlineAnalysis = false;
   FlatSymbolRefAttr selectedQec;
-  uint64_t visitedOperations = 0;
-  uint64_t delegations = 0;
-  uint64_t retryProbes = 0;
-  uint64_t retryProbeCacheHits = 0;
-  uint64_t retryProbeOperations = 0;
-  double retryProbeSeconds = 0.0;
   DenseMap<Operation *, RetryAttemptFacts> retryAttemptCache;
   llvm::SmallSet<StringRef, 8> tickContextRegions;
   // Caller-mapped regions; ticks count only while they are live.
   llvm::SmallSet<StringRef, 8> mappedContextRegions;
-  uint64_t callableSummaryProbes = 0;
-  uint64_t callableSummaryHits = 0;
-  uint64_t callableSummaryNegativeHits = 0;
-  uint64_t callableSummarySavedOperations = 0;
   // A probe records the entry-count bounds under which its liveness evolution
   // and tick attribution remain identical after translating the starting
   // counts.
@@ -478,7 +464,6 @@ void Walker::recordRetry(RetryOp retry, int64_t mult) {
   // so cache this exact, selected-QEC-specific callable summary by operation.
   auto cached = retryAttemptCache.find(attempt);
   if (cached == retryAttemptCache.end()) {
-    const auto probeStarted = std::chrono::steady_clock::now();
     Walker probe(ctx, symTab, selectedQec);
     ModuleOp module = retry->getParentOfType<ModuleOp>();
     for (auto code : module.getOps<CodeOp>())
@@ -500,9 +485,6 @@ void Walker::recordRetry(RetryOp retry, int64_t mult) {
     probe.walkEntry(attempt);
     ++retryProbes;
     retryProbeOperations += probe.visitedOperations;
-    retryProbeSeconds += std::chrono::duration<double>(
-                             std::chrono::steady_clock::now() - probeStarted)
-                             .count();
     if (probe.hadError) {
       hadError = true;
       return;
@@ -1385,7 +1367,6 @@ Walker::buildCallableSummary(Operation *callee, Operation *wrapper,
   retryProbes += probe.retryProbes;
   retryProbeCacheHits += probe.retryProbeCacheHits;
   retryProbeOperations += probe.retryProbeOperations;
-  retryProbeSeconds += probe.retryProbeSeconds;
   retryAttemptCache = std::move(probe.retryAttemptCache);
   if (probe.hadError) {
     hadError = true;
@@ -2117,8 +2098,15 @@ struct FabricCountPass
       signalPassFailure();
       return;
     }
-    if (std::getenv("QLX_PROFILE_SCHEDULE_ESTIMATE"))
-      w.printProfile(llvm::errs());
+    numVisitedOperations = w.visitedOperations;
+    numDelegations = w.delegations;
+    numRetryProbes = w.retryProbes;
+    numRetryProbeCacheHits = w.retryProbeCacheHits;
+    numRetryProbeOperations = w.retryProbeOperations;
+    numCallableSummaryProbes = w.callableSummaryProbes;
+    numCallableSummaryHits = w.callableSummaryHits;
+    numCallableSummaryNegativeHits = w.callableSummaryNegativeHits;
+    numCallableSummarySavedOperations = w.callableSummarySavedOperations;
     auto protocolEntry = dyn_cast<ProtocolOp>(entry);
     bool selectedP2Protocol = false;
     if (device && protocolEntry) {
