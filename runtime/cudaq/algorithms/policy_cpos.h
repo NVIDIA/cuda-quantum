@@ -80,15 +80,18 @@ concept has_custom_compile_options =
 ///
 /// Dispatches to a policy-specific @c get_compile_options_impl if one exists,
 /// otherwise starts from default-constructed @c CompileOptions. Either way the
-/// options carry the seed set by @c cudaq::set_random_seed, which also seeds
-/// randomized compiler passes.
+/// options carry @p randomSeed, the value of @c cudaq::get_random_seed, which
+/// also seeds randomized compiler passes. A random seed of 0 means unseeded,
+/// as it does for @c cudaq::set_random_seed.
 struct get_compile_options_fn {
   template <class Policy>
-  CompileOptions operator()(const Policy &policy) const {
+  CompileOptions operator()(const Policy &policy,
+                            std::size_t randomSeed) const {
     CompileOptions options;
     if constexpr (has_custom_compile_options<Policy>)
       options = get_compile_options_impl(policy);
-    options.seed = get_random_seed();
+    if (randomSeed != 0)
+      options.seed = randomSeed;
     return options;
   }
 };

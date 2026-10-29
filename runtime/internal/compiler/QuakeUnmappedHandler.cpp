@@ -69,11 +69,14 @@ cliffordTPasses(const cudaq::config::QuakeUnmappedProfile &profile,
   }
   // The synthesis pipeline adds no passes when the basis expresses any of
   // these rotations exactly.
-  if (!profile.basisGates.empty())
+  if (!profile.basisGates.empty()) {
+    const std::string seed =
+        options.seed ? " seed=" + std::to_string(*options.seed) : "";
     passes.push_back(
         "clifford-t-synthesis-pipeline{basis=" + join(profile.basisGates) +
-        " level=" + std::to_string(level) + " epsilon=" + tolerance +
-        " seed=" + std::to_string(options.seed) + "}");
+        " level=" + std::to_string(level) + " epsilon=" + tolerance + seed +
+        "}");
+  }
   return passes;
 }
 

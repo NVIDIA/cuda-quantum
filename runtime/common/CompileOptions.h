@@ -86,9 +86,9 @@ struct CompileOptions {
   /// The optimization level to use for the compilation.
   OptimizationLevel optimizationLevel = OptimizationLevel::O1;
 
-  /// Seed for randomized compiler passes, such as Clifford+T synthesis. 0
-  /// leaves them unseeded, so their output can differ from run to run.
-  std::uint64_t seed = 0;
+  /// Seed for randomized compiler passes, such as Clifford+T synthesis.
+  /// Without one, their output can differ from run to run.
+  std::optional<std::uint64_t> seed;
 };
 
 } // namespace cudaq
