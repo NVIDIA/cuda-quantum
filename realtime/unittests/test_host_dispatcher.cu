@@ -86,6 +86,30 @@ void free_ring_buffer(volatile uint64_t* host_flags, std::uint8_t* host_data) {
     cudaFreeHost(host_data);
 }
 
+// Plain host memory for the host-only fixtures: the host loops and the ring
+// helpers use only the _host views of a cudaq_ringbuffer_t, so the ring needs
+// to be CUDA-mapped only when a GPU consumer touches it
+// (SharedRingDispatcherTest below).  Zero-initialized.
+bool allocate_host_ring_buffer(std::size_t num_slots, std::size_t slot_size,
+                               volatile uint64_t** flags_out,
+                               std::uint8_t** data_out) {
+  auto* flags = new (std::nothrow) uint64_t[num_slots]();
+  auto* data = new (std::nothrow) std::uint8_t[num_slots * slot_size]();
+  if (!flags || !data) {
+    delete[] flags;
+    delete[] data;
+    return false;
+  }
+  *flags_out = flags;
+  *data_out = data;
+  return true;
+}
+
+void free_host_ring_buffer(volatile uint64_t* flags, std::uint8_t* data) {
+  delete[] const_cast<uint64_t*>(flags);
+  delete[] data;
+}
+
 //==============================================================================
 // HOST_CALL handler (two-pointer ABI): increments the rx payload into tx.
 //==============================================================================
@@ -128,12 +152,10 @@ class HostDispatcherLoopTest : public ::testing::Test {
 protected:
   void SetUp() override {
     std::memset(&config_, 0, sizeof(config_));
-    ASSERT_TRUE(allocate_ring_buffer(num_slots_, slot_size_, &rx_flags_host_,
-                                     &rx_flags_dev_, &rx_data_host_,
-                                     &rx_data_dev_));
-    ASSERT_TRUE(allocate_ring_buffer(num_slots_, slot_size_, &tx_flags_host_,
-                                     &tx_flags_dev_, &tx_data_host_,
-                                     &tx_data_dev_));
+    ASSERT_TRUE(allocate_host_ring_buffer(num_slots_, slot_size_,
+                                          &rx_flags_host_, &rx_data_host_));
+    ASSERT_TRUE(allocate_host_ring_buffer(num_slots_, slot_size_,
+                                          &tx_flags_host_, &tx_data_host_));
 
     stats_counter_ = 0;
 
@@ -141,11 +163,8 @@ protected:
     std::memset(function_table_, 0,
                 kMaxFunctionEntries * sizeof(cudaq_function_entry_t));
 
+    // Host views only; the device views stay null (no GPU consumer).
     std::memset(&ringbuffer_, 0, sizeof(ringbuffer_));
-    ringbuffer_.rx_flags = rx_flags_dev_;
-    ringbuffer_.tx_flags = tx_flags_dev_;
-    ringbuffer_.rx_data = rx_data_dev_;
-    ringbuffer_.tx_data = tx_data_dev_;
     ringbuffer_.rx_stride_sz = slot_size_;
     ringbuffer_.tx_stride_sz = slot_size_;
     ringbuffer_.rx_flags_host = rx_flags_host_;
@@ -165,8 +184,8 @@ protected:
         loop_thread_.join();
     }
 
-    free_ring_buffer(rx_flags_host_, rx_data_host_);
-    free_ring_buffer(tx_flags_host_, tx_data_host_);
+    free_host_ring_buffer(rx_flags_host_, rx_data_host_);
+    free_host_ring_buffer(tx_flags_host_, tx_data_host_);
     delete[] function_table_;
   }
 
@@ -254,12 +273,8 @@ protected:
 
   volatile uint64_t* rx_flags_host_ = nullptr;
   volatile uint64_t* tx_flags_host_ = nullptr;
-  volatile uint64_t* rx_flags_dev_ = nullptr;
-  volatile uint64_t* tx_flags_dev_ = nullptr;
   std::uint8_t* rx_data_host_ = nullptr;
   std::uint8_t* tx_data_host_ = nullptr;
-  std::uint8_t* rx_data_dev_ = nullptr;
-  std::uint8_t* tx_data_dev_ = nullptr;
 
   volatile int shutdown_flag_ = 0;
   uint64_t stats_counter_ = 0;
@@ -285,10 +300,10 @@ constexpr std::uint32_t UNKNOWN_FUNCTION_ID = 0xdeadbeefu;
 class HostDispatcherSmokeTest : public ::testing::Test {
 protected:
   void SetUp() override {
-    ASSERT_TRUE(allocate_ring_buffer(num_slots_, slot_size_, &rx_flags_host_,
-                                     &rx_flags_, &rx_data_host_, &rx_data_));
-    ASSERT_TRUE(allocate_ring_buffer(num_slots_, slot_size_, &tx_flags_host_,
-                                     &tx_flags_, &tx_data_host_, &tx_data_));
+    ASSERT_TRUE(allocate_host_ring_buffer(num_slots_, slot_size_,
+                                          &rx_flags_host_, &rx_data_host_));
+    ASSERT_TRUE(allocate_host_ring_buffer(num_slots_, slot_size_,
+                                          &tx_flags_host_, &tx_data_host_));
 
     shutdown_flag_ = new (std::nothrow) int(0);
     stats_ = new (std::nothrow) uint64_t(0);
@@ -310,11 +325,8 @@ protected:
     ASSERT_EQ(cudaq_dispatcher_create(manager_, &config, &dispatcher_),
               CUDAQ_OK);
 
+    // Host views only; the device views stay null (no GPU consumer).
     std::memset(&ringbuffer_, 0, sizeof(ringbuffer_));
-    ringbuffer_.rx_flags = rx_flags_;
-    ringbuffer_.tx_flags = tx_flags_;
-    ringbuffer_.rx_data = rx_data_;
-    ringbuffer_.tx_data = tx_data_;
     ringbuffer_.rx_stride_sz = slot_size_;
     ringbuffer_.tx_stride_sz = slot_size_;
     ringbuffer_.rx_flags_host = rx_flags_host_;
@@ -350,8 +362,8 @@ protected:
       cudaq_dispatch_manager_destroy(manager_);
       manager_ = nullptr;
     }
-    free_ring_buffer(rx_flags_host_, rx_data_host_);
-    free_ring_buffer(tx_flags_host_, tx_data_host_);
+    free_host_ring_buffer(rx_flags_host_, rx_data_host_);
+    free_host_ring_buffer(tx_flags_host_, tx_data_host_);
     if (shutdown_flag_)
       delete shutdown_flag_;
     if (stats_)
@@ -373,12 +385,8 @@ protected:
 
   volatile uint64_t* rx_flags_host_ = nullptr;
   volatile uint64_t* tx_flags_host_ = nullptr;
-  volatile uint64_t* rx_flags_ = nullptr;
-  volatile uint64_t* tx_flags_ = nullptr;
   std::uint8_t* rx_data_host_ = nullptr;
   std::uint8_t* tx_data_host_ = nullptr;
-  std::uint8_t* rx_data_ = nullptr;
-  std::uint8_t* tx_data_ = nullptr;
 
   int* shutdown_flag_ = nullptr;
   uint64_t* stats_ = nullptr;
@@ -405,6 +413,100 @@ TEST_F(HostDispatcherSmokeTest, DropsSlotWithUnknownFunctionId) {
       cudaq_host_ringbuffer_poll_tx_flag(&ringbuffer_, 0, nullptr);
   EXPECT_EQ(final_st, CUDAQ_TX_EMPTY)
       << "Host loop should drop slot with unknown function_id (no response)";
+}
+
+//==============================================================================
+// start() refuses a host-path table carrying an entry the host loop cannot
+// serve (DEVICE_CALL or GRAPH_LAUNCH) unless shared_ring_mode says a peer
+// dispatcher on the same ring serves it.
+//==============================================================================
+
+class HostDispatcherTableTest : public ::testing::Test {
+protected:
+  void SetUp() override {
+    ASSERT_TRUE(allocate_host_ring_buffer(num_slots_, slot_size_,
+                                          &rx_flags_host_, &rx_data_host_));
+    ASSERT_TRUE(allocate_host_ring_buffer(num_slots_, slot_size_,
+                                          &tx_flags_host_, &tx_data_host_));
+    std::memset(&ringbuffer_, 0, sizeof(ringbuffer_));
+    ringbuffer_.rx_stride_sz = slot_size_;
+    ringbuffer_.tx_stride_sz = slot_size_;
+    ringbuffer_.rx_flags_host = rx_flags_host_;
+    ringbuffer_.tx_flags_host = tx_flags_host_;
+    ringbuffer_.rx_data_host = rx_data_host_;
+    ringbuffer_.tx_data_host = tx_data_host_;
+
+    std::memset(entries_, 0, sizeof(entries_));
+    entries_[0].handler.host_fn = &host_increment;
+    entries_[0].function_id = HOST_INCREMENT_FUNCTION_ID;
+    entries_[0].dispatch_mode = CUDAQ_DISPATCH_HOST_CALL;
+    entries_[1].function_id = HOST_INCREMENT_FUNCTION_ID + 1;
+
+    ASSERT_EQ(cudaq_dispatch_manager_create(&manager_), CUDAQ_OK);
+  }
+
+  void TearDown() override {
+    shutdown_flag_ = 1;
+    __sync_synchronize();
+    if (dispatcher_) {
+      cudaq_dispatcher_stop(dispatcher_);
+      cudaq_dispatcher_destroy(dispatcher_);
+    }
+    if (manager_)
+      cudaq_dispatch_manager_destroy(manager_);
+    free_host_ring_buffer(rx_flags_host_, rx_data_host_);
+    free_host_ring_buffer(tx_flags_host_, tx_data_host_);
+  }
+
+  // Create a host-path dispatcher over entries_ (a HOST_CALL entry plus one
+  // of `peer_mode`) and return what start() says about it.
+  cudaq_status_t StartWith(cudaq_dispatch_mode_t peer_mode,
+                           uint32_t shared_ring_mode) {
+    entries_[1].dispatch_mode = peer_mode;
+    cudaq_dispatcher_config_t config{};
+    config.num_slots = static_cast<uint32_t>(num_slots_);
+    config.slot_size = static_cast<uint32_t>(slot_size_);
+    config.dispatch_path = CUDAQ_DISPATCH_PATH_HOST;
+    config.shared_ring_mode = shared_ring_mode;
+    EXPECT_EQ(cudaq_dispatcher_create(manager_, &config, &dispatcher_),
+              CUDAQ_OK);
+    cudaq_function_table_t table{};
+    table.entries = entries_;
+    table.count = 2;
+    EXPECT_EQ(cudaq_dispatcher_set_ringbuffer(dispatcher_, &ringbuffer_),
+              CUDAQ_OK);
+    EXPECT_EQ(cudaq_dispatcher_set_function_table(dispatcher_, &table),
+              CUDAQ_OK);
+    EXPECT_EQ(cudaq_dispatcher_set_control(dispatcher_, &shutdown_flag_,
+                                           &stats_),
+              CUDAQ_OK);
+    return cudaq_dispatcher_start(dispatcher_);
+  }
+
+  static constexpr std::size_t num_slots_ = 2;
+  std::size_t slot_size_ = 256;
+  volatile uint64_t* rx_flags_host_ = nullptr;
+  volatile uint64_t* tx_flags_host_ = nullptr;
+  std::uint8_t* rx_data_host_ = nullptr;
+  std::uint8_t* tx_data_host_ = nullptr;
+  volatile int shutdown_flag_ = 0;
+  uint64_t stats_ = 0;
+  cudaq_function_entry_t entries_[2];
+  cudaq_ringbuffer_t ringbuffer_{};
+  cudaq_dispatch_manager_t* manager_ = nullptr;
+  cudaq_dispatcher_t* dispatcher_ = nullptr;
+};
+
+TEST_F(HostDispatcherTableTest, RefusesGraphLaunchEntry) {
+  EXPECT_EQ(StartWith(CUDAQ_DISPATCH_GRAPH_LAUNCH, 0), CUDAQ_ERR_UNSUPPORTED);
+}
+
+TEST_F(HostDispatcherTableTest, RefusesDeviceCallEntry) {
+  EXPECT_EQ(StartWith(CUDAQ_DISPATCH_DEVICE_CALL, 0), CUDAQ_ERR_UNSUPPORTED);
+}
+
+TEST_F(HostDispatcherTableTest, SharedRingLeavesPeerEntriesToThePeer) {
+  EXPECT_EQ(StartWith(CUDAQ_DISPATCH_GRAPH_LAUNCH, 1), CUDAQ_OK);
 }
 
 //==============================================================================
@@ -828,19 +930,16 @@ class FakeRing {
 public:
   FakeRing(std::size_t num_slots, std::size_t slot_size, bool in_place)
       : num_slots_(num_slots), slot_size_(slot_size) {
-    ok_ = allocate_ring_buffer(num_slots, slot_size, &rx_flags_host_,
-                               &rx_flags_dev_, &rx_data_host_, &rx_data_dev_) &&
-          allocate_ring_buffer(num_slots, slot_size, &tx_flags_host_,
-                               &tx_flags_dev_, &tx_data_host_, &tx_data_dev_);
+    ok_ = allocate_host_ring_buffer(num_slots, slot_size, &rx_flags_host_,
+                                    &rx_data_host_) &&
+          allocate_host_ring_buffer(num_slots, slot_size, &tx_flags_host_,
+                                    &tx_data_host_);
     // std::atomic<int> is neither copyable nor movable, so size the vector via
     // default-insertion (not assign) and zero each element explicitly.
     published_ = std::vector<std::atomic<int>>(num_slots);
     for (auto& p : published_)
       p.store(0, std::memory_order_relaxed);
-    rb_.rx_flags = rx_flags_dev_;
-    rb_.tx_flags = tx_flags_dev_;
-    rb_.rx_data = rx_data_dev_;
-    rb_.tx_data = in_place ? rx_data_dev_ : tx_data_dev_;
+    // Host views only; the device views stay null (no GPU consumer).
     rb_.rx_stride_sz = slot_size_;
     rb_.tx_stride_sz = slot_size_;
     rb_.rx_flags_host = rx_flags_host_;
@@ -849,8 +948,8 @@ public:
     rb_.tx_data_host = in_place ? rx_data_host_ : tx_data_host_;
   }
   ~FakeRing() {
-    free_ring_buffer(rx_flags_host_, rx_data_host_);
-    free_ring_buffer(tx_flags_host_, tx_data_host_);
+    free_host_ring_buffer(rx_flags_host_, rx_data_host_);
+    free_host_ring_buffer(tx_flags_host_, tx_data_host_);
   }
 
   bool ok() const { return ok_; }
@@ -903,13 +1002,9 @@ private:
   bool ok_ = false;
   cudaq_ringbuffer_t rb_{};
   volatile uint64_t* rx_flags_host_ = nullptr;
-  volatile uint64_t* rx_flags_dev_ = nullptr;
   volatile uint64_t* tx_flags_host_ = nullptr;
-  volatile uint64_t* tx_flags_dev_ = nullptr;
   std::uint8_t* rx_data_host_ = nullptr;
-  std::uint8_t* rx_data_dev_ = nullptr;
   std::uint8_t* tx_data_host_ = nullptr;
-  std::uint8_t* tx_data_dev_ = nullptr;
   std::atomic<std::uint32_t> head_{0};
   std::atomic<std::uint32_t> tail_{0};
   std::uint32_t pending_[kCap]{};

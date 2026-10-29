@@ -222,7 +222,7 @@ without any transport-specific knowledge.
 ```cpp
 typedef enum {
   CUDAQ_KERNEL_REGULAR = 0,
-  CUDAQ_KERNEL_UNIFIED = 2
+  CUDAQ_KERNEL_UNIFIED = 1
 } cudaq_kernel_type_t;
 
 typedef void (*cudaq_unified_launch_fn_t)(

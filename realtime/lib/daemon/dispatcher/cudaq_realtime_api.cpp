@@ -114,6 +114,15 @@ static cudaq_status_t validate_dispatcher(cudaq_dispatcher_t *dispatcher) {
     return CUDAQ_ERR_INVALID_ARG;
 
   if (dispatcher->config.dispatch_path == CUDAQ_DISPATCH_PATH_HOST) {
+    // The host loops serve HOST_CALL entries only.  Under shared_ring_mode a
+    // DEVICE_CALL or GRAPH_LAUNCH entry may belong to a peer dispatcher on the
+    // same ring; otherwise nothing could serve it and its requests would be
+    // dropped unanswered, so refuse the table.
+    if (!dispatcher->config.shared_ring_mode)
+      for (uint32_t i = 0; i < dispatcher->table.count; ++i)
+        if (dispatcher->table.entries[i].dispatch_mode !=
+            CUDAQ_DISPATCH_HOST_CALL)
+          return CUDAQ_ERR_UNSUPPORTED;
     if (dispatcher->config.kernel_type == CUDAQ_KERNEL_UNIFIED) {
       if (!dispatcher->cpu_dataplane.rx_poll ||
           !dispatcher->cpu_dataplane.tx_publish)

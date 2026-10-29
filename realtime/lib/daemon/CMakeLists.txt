@@ -117,8 +117,9 @@ if(CUDA_FOUND)
   # Host dispatch loops (CUDAQ_DISPATCH_PATH_HOST)
   # ============================================================================
   # Plain C++: the loops run HOST_CALL handlers and never call the CUDA
-  # runtime, so the library links no cudart.  The CUDA include directories are
-  # needed only because cudaq_realtime.h names CUDA types.
+  # runtime, so the library links no cudart.  cudaq_realtime.h includes
+  # <cuda_runtime.h>, so consumers need the toolkit headers: CUDA::toolkit is
+  # the headers-only interface target, linked PUBLIC to say so.
   add_library(cudaq-realtime-host-dispatch STATIC
     dispatcher/host_dispatcher.cpp
   )
@@ -130,8 +131,11 @@ if(CUDA_FOUND)
     PUBLIC
       $<BUILD_INTERFACE:${CUDAQ_REALTIME_INCLUDE_DIR}>
       $<INSTALL_INTERFACE:include>
-    PRIVATE
-      ${CUDAToolkit_INCLUDE_DIRS}
+  )
+
+  target_link_libraries(cudaq-realtime-host-dispatch
+    PUBLIC
+      CUDA::toolkit
   )
 
   set_target_properties(cudaq-realtime-host-dispatch PROPERTIES

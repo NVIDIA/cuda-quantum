@@ -54,16 +54,13 @@ typedef enum {
   CUDAQ_DISPATCH_PATH_HOST = 1
 } cudaq_dispatch_path_t;
 
-// TX flag status returned by cudaq_host_ringbuffer_poll_tx_flag.  Values 1
-// and 2 are retired and must not be reused; CUDAQ_TX_READY keeps its ABI
-// value of 3.
-typedef enum { CUDAQ_TX_EMPTY = 0, CUDAQ_TX_READY = 3 } cudaq_tx_status_t;
+// TX flag status returned by cudaq_host_ringbuffer_poll_tx_flag.
+typedef enum { CUDAQ_TX_EMPTY = 0, CUDAQ_TX_READY = 1 } cudaq_tx_status_t;
 
-// Kernel synchronization type.  Value 1 is retired and must not be reused;
-// CUDAQ_KERNEL_UNIFIED keeps its ABI value of 2.
+// Kernel synchronization type.
 typedef enum {
   CUDAQ_KERNEL_REGULAR = 0,
-  CUDAQ_KERNEL_UNIFIED = 2
+  CUDAQ_KERNEL_UNIFIED = 1
 } cudaq_kernel_type_t;
 
 // Dispatch invocation mode.
@@ -75,9 +72,11 @@ typedef enum {
 //                   transport in lib/cpu_transport/) or for handlers whose
 //                   work fits on a single CPU thread.  Work the handler
 //                   starts elsewhere has to be finished before it returns.
-//   - DEVICE_CALL and GRAPH_LAUNCH belong on the GPU dispatch path.  A request
-//                   for such an entry is left for a peer dispatcher under
-//                   shared_ring_mode and dropped otherwise.
+//   - DEVICE_CALL and GRAPH_LAUNCH belong on the GPU dispatch path.  Under
+//                   shared_ring_mode a request for such an entry is left for
+//                   a peer dispatcher; otherwise nothing could serve it, so
+//                   cudaq_dispatcher_start refuses a host-path table that
+//                   carries one (CUDAQ_ERR_UNSUPPORTED).
 typedef enum {
   CUDAQ_DISPATCH_DEVICE_CALL = 0,
   CUDAQ_DISPATCH_GRAPH_LAUNCH = 1,

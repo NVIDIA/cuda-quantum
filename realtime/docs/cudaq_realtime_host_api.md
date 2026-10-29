@@ -216,7 +216,7 @@ without any transport-specific knowledge.
 ```cpp
 typedef enum {
   CUDAQ_KERNEL_REGULAR = 0,
-  CUDAQ_KERNEL_UNIFIED = 2
+  CUDAQ_KERNEL_UNIFIED = 1
 } cudaq_kernel_type_t;
 
 typedef void (*cudaq_unified_launch_fn_t)(
@@ -498,9 +498,11 @@ no intermediate copy), and publishes the TX flag as soon as `host_fn` returns
 (see [host-path-architecture](#host-path-architecture)).  A handler that
 offloads work to the GPU launches it itself and synchronizes before returning;
 the dispatcher thread has no CUDA device selected, so the handler selects its
-own.  The host path serves HOST_CALL entries only: `GRAPH_LAUNCH` and
-`DEVICE_CALL` entries are left for a device dispatcher sharing the ring when
-`shared_ring_mode` is set and dropped otherwise.
+own.  The host path serves HOST_CALL entries only: with `shared_ring_mode`
+set, requests for `GRAPH_LAUNCH` and `DEVICE_CALL` entries are left for a
+device dispatcher sharing the ring; without it nothing could serve them, so
+`cudaq_dispatcher_start()` refuses a host-path table that carries such an
+entry with `CUDAQ_ERR_UNSUPPORTED`.
 The **device dispatch path does not process HOST_CALL entries** -- a host
 callback has no meaning inside a GPU persistent kernel, so such entries are
 ignored there.  Because dispatch is inline, a long-running handler blocks the
@@ -1131,7 +1133,7 @@ two states:
 ```cpp
 typedef enum {
   CUDAQ_TX_EMPTY = 0,  // tx_flags[slot] == 0: no response yet
-  CUDAQ_TX_READY = 3   // any nonzero value (the TX slot address): ready
+  CUDAQ_TX_READY = 1   // any nonzero value (the TX slot address): ready
 } cudaq_tx_status_t;
 ```
 
