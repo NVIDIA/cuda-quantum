@@ -76,21 +76,8 @@ auto launch(const Policy &policy, std::size_t qpu_id, ExecutionContext &ctx,
       compiled = CompiledModule{*source};
 #else
       CUDAQ_INFO("No compiled module found. Compiling.");
-      cudaq::CompileTarget target;
-      cudaq::CompileOptions options;
-      if constexpr (requires { policy.inner; }) {
-        options = cudaq::get_compile_options(policy.inner);
-      } else {
-        options = cudaq::get_compile_options(policy);
-      }
-      target = platform.getCompileTarget(qpu_id);
-      const bool isEmulated = platform.is_emulated(qpu_id);
-      const bool isRemote = platform.is_remote(qpu_id);
-      options.emulate = isEmulated;
-      options.emitJit |= !isRemote;
-      if (!platform.supports_jit(qpu_id))
-        options.emitJit = false;
-      options.boolVecBitPacked = !isRemote && !isEmulated;
+      auto options = platform.getCompileOptions(policy, qpu_id);
+      auto target = platform.getCompileTarget(qpu_id);
       compiled = cudaq_internal::compiler::compileModule(target, options,
                                                          *source, args,
                                                          /*isEntryPoint=*/true);

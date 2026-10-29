@@ -75,7 +75,7 @@ class Compiler {
                                            mlir::MLIRContext *,
                                            mlir::func::FuncOp);
 
-  // ---- Common helpers used by runPassPipeline ----
+  // ---- Common helpers used by `compile` ----
 
   /// Run an arbitrary MLIR pass pipeline string on a module.
   void applyPipeline(const std::string &pipeline, mlir::ModuleOp moduleOp,
@@ -103,6 +103,10 @@ class Compiler {
       cudaq::CompiledModule::CompilationMetadata metadata,
       std::shared_ptr<mlir::MLIRContext> context);
 
+  /// Translate \p module according to the target's `codegen` emission format.
+  /// Returns the target code and its JSON-serialized output names mapping.
+  std::pair<std::string, std::string> emitTargetCode(mlir::ModuleOp module);
+
 public:
   const cudaq::CompileTarget &getTarget() const { return target; }
   const cudaq::CompileOptions &getOptions() const { return options; }
@@ -122,22 +126,17 @@ public:
 
   /// @brief Compile the given module and return a `CompiledModule`.
   ///
-  /// Performs argument synthesis, the full pass pipeline, and observation
-  /// splitting (for observe mode).
+  /// Performs argument synthesis, the full pass pipeline, observation
+  /// splitting (for observe mode) and `codegen`.
   ///
   /// If \p context is provided, `module.getContext() == context.get()` must
   /// be true. In that case, the MLIR artifacts will keep a `shared_ptr` to
   /// the context, guaranteeing it outlives the artifacts. Otherwise the
   /// context lifetime must be managed by the caller.
   cudaq::CompiledModule
-  runPassPipeline(const std::string &kernelName, const void *modulePtr,
-                  cudaq::KernelArgs args, bool isEntryPoint,
-                  std::shared_ptr<mlir::MLIRContext> context = nullptr);
-
-  /// @brief Emit target-specific code for each `MlirArtifact` in the
-  /// `CompiledModule` and produce `KernelExecution` objects.
-  std::vector<cudaq::KernelExecution>
-  emitKernelExecutions(const cudaq::CompiledModule &compiled);
+  compile(const std::string &kernelName, const void *modulePtr,
+          cudaq::KernelArgs args, bool isEntryPoint,
+          std::shared_ptr<mlir::MLIRContext> context = nullptr);
 };
 
 /// Get the pass pipeline for the given compile target, resolving default

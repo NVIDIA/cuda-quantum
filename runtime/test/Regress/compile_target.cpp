@@ -40,7 +40,7 @@ static void compileAndDump(mlir::MLIRContext *ctx,
   }
 
   Compiler compiler(std::move(target), std::move(options));
-  auto compiled = compiler.runPassPipeline(
+  auto compiled = compiler.compile(
       kernelName, mod.release().getAsOpaquePointer(), args, /*isEntryPoint=*/
       true);
 
@@ -66,7 +66,7 @@ static void compileAndDumpResources(mlir::MLIRContext *ctx,
   }
 
   Compiler compiler(std::move(target), std::move(options));
-  auto compiled = compiler.runPassPipeline(
+  auto compiled = compiler.compile(
       kernelName, mod.release().getAsOpaquePointer(), cudaq::KernelArgs{},
       /*isEntryPoint=*/true);
 
@@ -301,7 +301,7 @@ void test_staged_inferred(mlir::MLIRContext *ctx) {
 
   Compiler compiler(inferredTarget(), {}, std::move(handlers));
   auto mod = mlir::parseSourceString<mlir::ModuleOp>(phaseResourceKernel, ctx);
-  auto compiled = compiler.runPassPipeline(
+  auto compiled = compiler.compile(
       "phaseResources", mod.release().getAsOpaquePointer(), cudaq::KernelArgs{},
       /*isEntryPoint=*/true);
 
@@ -326,7 +326,7 @@ void test_staged_skip(mlir::MLIRContext *ctx) {
   options.skipTargetLoweringPipeline = true;
   Compiler compiler(inferredTarget(), std::move(options), {});
   auto mod = mlir::parseSourceString<mlir::ModuleOp>(phaseResourceKernel, ctx);
-  auto compiled = compiler.runPassPipeline(
+  auto compiled = compiler.compile(
       "phaseResources", mod.release().getAsOpaquePointer(), cudaq::KernelArgs{},
       /*isEntryPoint=*/true);
 
