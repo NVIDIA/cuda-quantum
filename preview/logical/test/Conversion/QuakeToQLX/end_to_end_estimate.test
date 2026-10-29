@@ -7,7 +7,7 @@
 # ============================================================================ #
 
 # REQUIRES: qlx-opt, cudaq-quake
-# RUN: qlx-opt %S/end-to-end-estimate.qke --pass-pipeline='builtin.module(convert-quake-to-qlx,qlx-estimate-logical{root=bell result=logical},qlx-to-lvm{root=bell domain=qlx_device result=bell_placed})' | FileCheck %S/end-to-end-estimate.qke --implicit-check-not=quake.
+# RUN: qlx-opt %S/end_to_end_estimate.qke --pass-pipeline='builtin.module(convert-quake-to-qlx,qlx-estimate-logical{root=bell result=logical},qlx-to-lvm{root=bell domain=qlx_device result=bell_placed})' | FileCheck %S/end_to_end_estimate.qke --implicit-check-not=quake.
 
 # Keep the Quake module in its native .qke fixture while making the end-to-end
 # pipeline discoverable by Lit's .test suffix.
