@@ -25,6 +25,9 @@ namespace {
 /// `reset-after-measure`, and last when it requests `reset-after-measure`.
 /// The handler is generic over the profile options and never inspects
 /// provider names.
+///
+/// `QuakeUnmappedHandler` supersedes this handler, which goes away with its
+/// profile.
 class QuakeReferenceSemanticsHandler
     : public cudaq_internal::compiler::LoweringHandler {
 public:

@@ -42,11 +42,11 @@ namespace cudaq_internal::compiler {
 /// stage order.
 struct StagePasses {
   /// Passes that run after prep and before deploy.
-  std::string preDeployPasses;
+  std::string preDeployPasses{};
   /// Passes that run after deploy and before finalize.
-  std::string postDeployPasses;
+  std::string postDeployPasses{};
   /// Passes that run after finalize.
-  std::string postFinalizePasses;
+  std::string postFinalizePasses{};
 };
 
 /// Interface for lowering between IR profiles.
@@ -90,5 +90,8 @@ std::vector<std::unique_ptr<LoweringHandler>> makeBuiltinLoweringHandlers();
 /// The built-in generic handler lowering to the quake-reference-semantics
 /// profile.
 std::unique_ptr<LoweringHandler> makeQuakeReferenceSemanticsHandler();
+
+/// The built-in handler lowering to the `quake-unmapped` profile.
+std::unique_ptr<LoweringHandler> makeQuakeUnmappedHandler();
 
 } // namespace cudaq_internal::compiler

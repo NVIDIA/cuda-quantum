@@ -169,6 +169,12 @@ void bindRuntimeTarget(nanobind::module_ &mod, LinkedLibraryHolder &holder) {
       "Return the `cudaq.Target` with the given name. Will raise an exception "
       "if the name is not valid.");
   mod.def(
+      "get_compile_target",
+      [](std::size_t qpuId) { return cudaq::get_compile_target(qpuId); },
+      nanobind::arg("qpu_id") = 0,
+      "Return the `CompileTarget` that kernels for QPU `qpu_id` of the "
+      "current target are compiled against.");
+  mod.def(
       "get_targets",
       [&](bool includeUnavailable) {
         return holder.getTargets(includeUnavailable);
