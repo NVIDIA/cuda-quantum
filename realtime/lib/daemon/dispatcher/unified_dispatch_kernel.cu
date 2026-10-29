@@ -16,12 +16,12 @@
 /// three `__device__` hooks declared in unified_device_transport.cuh, which a
 /// transport implements in its own TU (see the LINKAGE note there).
 ///
-/// Compiled into libcudaq-realtime-dispatch.a, together with whichever TU
-/// defines the hooks: bridge/gpu_roce/gpu_roce_unified_transport.cu when that
-/// transport is configured, otherwise dispatcher/unified_transport_none.cu.
-/// The consumer device-links the archive with its DEVICE_CALL handlers, so the
-/// kernel, the hooks and the handlers the function table points at share one
-/// CUDA module.
+/// Compiled on its own to relocatable LTO-IR and embedded in
+/// libcudaq-realtime.so (unified_dispatch_kernel_image.cpp).  The dispatcher
+/// links it at run time with the bridge's hooks and the application's
+/// DEVICE_CALL handlers (cudaq_dispatcher_get_device_handler), so the kernel, the
+/// hooks and the handlers the function table points at share one CUDA module.
+/// The kernel is `extern "C"` so that it can be found in that module by name.
 
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
@@ -90,7 +90,7 @@ write_response_header(RPCResponse *response, int status,
 
 } // namespace
 
-__global__ void
+extern "C" __global__ void
 cudaq_unified_dispatch_kernel(void *transport_ctx, std::size_t tx_stride_sz,
                               volatile int *shutdown_flag,
                               cudaq_function_entry_t *function_table,
@@ -105,8 +105,8 @@ cudaq_unified_dispatch_kernel(void *transport_ctx, std::size_t tx_stride_sz,
   void *session = nullptr;
   std::uint64_t packet_count = 0;
   if (threadIdx.x == 0)
-    session = cudaq_dev_transport_attach(session_storage, transport_ctx,
-                                         shutdown_flag);
+    session =
+        cudaq_dev_enter_kernel(session_storage, transport_ctx, shutdown_flag);
   // A refused attach (nullptr) makes the first turn publish "leave" below, so
   // the whole block exits without a separate broadcast.
 
@@ -178,20 +178,4 @@ cudaq_unified_dispatch_kernel(void *transport_ctx, std::size_t tx_stride_sz,
 
   if (threadIdx.x == 0)
     atomicAdd(reinterpret_cast<unsigned long long *>(stats), packet_count);
-}
-
-//==============================================================================
-// Host launch wrapper -- matches cudaq_unified_launch_fn_t signature.
-//==============================================================================
-
-extern "C" void cudaq_launch_unified_dispatch_device(
-    void *transport_ctx, size_t tx_stride_sz,
-    cudaq_function_entry_t *function_table, size_t func_count,
-    volatile int *shutdown_flag, uint64_t *stats, uint32_t threads_per_block,
-    cudaStream_t stream) {
-  // One block: the block is what every DEVICE_CALL handler runs on.
-  // cudaq_dispatcher_start validates threads_per_block >= 1.
-  cudaq_unified_dispatch_kernel<<<1, threads_per_block, 0, stream>>>(
-      transport_ctx, tx_stride_sz, shutdown_flag, function_table, func_count,
-      stats);
 }

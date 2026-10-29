@@ -8,11 +8,16 @@
 
 #include "runtime/common/py_EstimateResult.h"
 #include "runtime/common/py_Resources.h"
-#include "runtime/cudaq/target/py_compile_target.h"
 #include "runtime/cudaq/trace/py_trace.h"
 
 NB_MODULE(_backends, m) {
-  cudaq::bindCompileTarget(m);
+  // Re-expose types bound in `cudaq._target` for convenience.
+  auto target = nanobind::module_::import_("cudaq._target");
+  for (const char *name :
+       {"Codegen", "CompilationStage", "CompileTarget",
+        "CustomPipelineLowering", "QuakeReferenceSemanticsProfile",
+        "UncheckedProfile"})
+    m.attr(name) = target.attr(name);
   cudaq::bindResources(m);
   cudaq::bindEstimateResult(m);
   // Tracing uses the shared logger, not the execution runtime.

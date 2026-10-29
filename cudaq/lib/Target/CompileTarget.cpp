@@ -23,9 +23,11 @@ const std::string *cudaq::CompileTarget::getOverridePassPipeline() const {
 }
 
 /// Replace `%KEY%` and `%KEY:default%` placeholders from runtime options.
-static void substitutePipelinePlaceholders(
+/// Returns whether the pipeline contains a `%SEED%` placeholder.
+static bool substitutePipelinePlaceholders(
     std::string &pipeline,
     const std::map<std::string, std::string> &runtimeConfig) {
+  bool usesSeed = false;
   std::string::size_type pos = 0;
   while (pos < pipeline.size()) {
     auto start = pipeline.find('%', pos);
@@ -41,6 +43,7 @@ static void substitutePipelinePlaceholders(
     std::string lower;
     for (char c : key)
       lower += static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    usesSeed |= lower == "seed";
     auto it = runtimeConfig.find(lower);
 
     if (it != runtimeConfig.end()) {
@@ -54,6 +57,7 @@ static void substitutePipelinePlaceholders(
       pos = end + 1;
     }
   }
+  return usesSeed;
 }
 
 /// Replace literal placeholder keys in a pipeline stage string.
@@ -81,7 +85,8 @@ cudaq::CompileTarget cudaq::CompileTarget::createFromConfig(
   auto prepPipeline = [&](const std::string &stage) {
     std::string pipeline = stage;
     if (!pipeline.empty()) {
-      substitutePipelinePlaceholders(pipeline, runtimeConfig);
+      bool usesSeed = substitutePipelinePlaceholders(pipeline, runtimeConfig);
+      target.resetOnRandomSeedSet |= usesSeed;
       applyPipelineSubstitutions(pipeline, pipelineSubstitutions);
     }
     return pipeline;

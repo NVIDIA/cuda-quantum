@@ -62,9 +62,11 @@
 /// places, each a branch of a numbered step below: the dispatcher config [3],
 /// the function table [5], and the control variables [6], which the GPU must
 /// be able to read.  All device function-table construction is in
-/// build_device_table().  The dispatch kernels come from
+/// build_device_table().  The 3-kernel dispatch kernel comes from
 /// libcudaq-realtime-dispatch.a, device-linked into this binary with the
-/// handler, and the dispatcher finds their launchers there by itself.
+/// handler, and the dispatcher finds its launcher there by itself.  The
+/// unified kernel is linked at run time from libcudaq-realtime's own image,
+/// the bridge's hooks and this binary's device code.
 ///
 /// ORDERING RULE: the READY line is printed BEFORE cudaq_bridge_connect().
 /// A rendezvous transport blocks in connect() until the caller dials in, while
@@ -107,6 +109,10 @@ setup_rpc_increment_function_table_host(cudaq_function_entry_t *h_entries);
 // entry, which must be taken on the device.
 extern "C" void
 setup_rpc_increment_function_table(cudaq_function_entry_t *d_entries);
+// The same entry, holding a handler address from a run-time linked module.
+extern "C" cudaq_status_t
+setup_rpc_increment_function_table_linked(cudaq_function_entry_t *d_entries,
+                                          cudaq_dispatcher_t *dispatcher);
 #endif
 
 namespace {
@@ -286,14 +292,21 @@ struct ServerResources {
 // Fill the device function table `d_entries` (one entry) for `dispatcher`.
 // Every DEVICE_CALL entry holds a device-function address, which is only valid
 // inside the CUDA module the dispatch kernel runs in, so how the table is
-// built depends on where that kernel comes from.  Both shapes currently
-// device-link it into this binary, together with the handler, so both take
-// the address from an init kernel in that same module.
+// built depends on where that kernel comes from.  The 3-kernel shape
+// device-links it into this binary, together with the handler, so it takes
+// the address from an init kernel in that same module.  The unified kernel is
+// linked at run time with the bridge's hooks and this binary's device code
+// (rpc_increment_handler.cu exports the handler), so the address comes
+// from that module.
 bool build_device_table(cudaq_dispatcher_t *dispatcher, bool unified,
                         cudaq_function_entry_t *d_entries) {
-  (void)dispatcher;
-  (void)unified;
-  setup_rpc_increment_function_table(d_entries);
+  if (unified) {
+    if (setup_rpc_increment_function_table_linked(d_entries, dispatcher) !=
+        CUDAQ_OK)
+      return false;
+  } else {
+    setup_rpc_increment_function_table(d_entries);
+  }
   const cudaError_t err = cudaGetLastError();
   if (err != cudaSuccess) {
     std::cerr << "ERROR: building the device function table: "

@@ -17,41 +17,13 @@
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_modes.h"
+#include "rpc_increment_handler.cuh"
 
 #include <cstdint>
+#include <cstring> // std::memset
 #include <cuda_runtime.h>
 
 namespace {
-
-//==============================================================================
-// Increment RPC Handler
-//==============================================================================
-
-/// @brief Simple RPC handler that increments each byte of the payload by 1.
-///
-/// Matches the DeviceRPCFunction signature (same two-pointer form as the
-/// host-call handler): reads the RPCHeader + payload from rx_slot, writes the
-/// incremented payload after the RPCResponse in tx_slot (no overlap) and sets
-/// result_len.  The dispatch kernel fills the other response header fields.
-__device__ int rpc_increment_handler(const void *rx_slot, void *tx_slot,
-                                     std::size_t slot_size) {
-  const auto *header = static_cast<const cudaq::realtime::RPCHeader *>(rx_slot);
-  const std::uint8_t *in_data =
-      reinterpret_cast<const std::uint8_t *>(header + 1);
-  auto *response = static_cast<cudaq::realtime::RPCResponse *>(tx_slot);
-  std::uint8_t *out_data = reinterpret_cast<std::uint8_t *>(response + 1);
-  const std::uint32_t arg_len = header->arg_len;
-  const std::uint32_t max_result_len =
-      slot_size - sizeof(cudaq::realtime::RPCResponse);
-  std::uint32_t len = (arg_len < max_result_len) ? arg_len : max_result_len;
-  // Every thread of the dispatch block runs this; each increments its own
-  // bytes.
-  for (std::uint32_t i = threadIdx.x; i < len; i += blockDim.x)
-    out_data[i] = static_cast<std::uint8_t>(in_data[i] + 1);
-  if (threadIdx.x == 0)
-    response->result_len = len;
-  return 0;
-}
 
 constexpr std::uint32_t RPC_INCREMENT_FUNCTION_ID =
     cudaq::realtime::fnv1a_hash("rpc_increment");
@@ -97,4 +69,30 @@ extern "C" void
 setup_rpc_increment_function_table(cudaq_function_entry_t *d_entries) {
   init_function_table_kernel<<<1, 1>>>(d_entries);
   cudaDeviceSynchronize();
+}
+
+/// Same entry as setup_rpc_increment_function_table, with the handler address
+/// the run-time linked `dispatcher` hands out
+/// (cudaq_dispatcher_get_device_handler); filled on the host, since no kernel
+/// of this binary runs in that dispatcher's module.
+extern "C" cudaq_status_t
+setup_rpc_increment_function_table_linked(cudaq_function_entry_t *d_entries,
+                                          cudaq_dispatcher_t *dispatcher) {
+  void *fn = nullptr;
+  const cudaq_status_t status = cudaq_dispatcher_get_device_handler(
+      dispatcher, "rpc_increment_handler", &fn);
+  if (status != CUDAQ_OK)
+    return status;
+  cudaq_function_entry_t entry;
+  std::memset(&entry, 0, sizeof(entry));
+  entry.handler.device_fn_ptr = fn;
+  entry.function_id = RPC_INCREMENT_FUNCTION_ID;
+  entry.dispatch_mode = CUDAQ_DISPATCH_DEVICE_CALL;
+  // Schema: 1 array argument (uint8), 1 array result (uint8)
+  entry.schema.num_args = 1;
+  entry.schema.num_results = 1;
+  entry.schema.args[0].type_id = CUDAQ_TYPE_ARRAY_UINT8;
+  entry.schema.results[0].type_id = CUDAQ_TYPE_ARRAY_UINT8;
+  cudaMemcpy(d_entries, &entry, sizeof(entry), cudaMemcpyHostToDevice);
+  return CUDAQ_OK;
 }

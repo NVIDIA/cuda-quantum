@@ -123,7 +123,7 @@ behavior on encoded patches, with `implements=` identifying the objective:
 
 ```{literalinclude} ../../../examples/steane_bell_e2e_workflow.py
 :language: python
-:start-at: @cql.gadget(implements=cql.standard.h)
+:start-at: "@cql.gadget(implements=cql.standard.h)"
 :end-at:     return cql.h(block.data)
 ```
 
@@ -222,6 +222,14 @@ CUDA-Q kernel through the configured stages. The result's **annotations**
 contain per-tier resource estimates. Typed views such as `LogicalEstimate`
 and `FabricCounts` expose logical and static fields; the walkthrough reads
 physical schedule results from the `SCHEDULE` annotation.
+
+Physical builds also run on CUDA-Q simulators. When the program returns
+Booleans, `cudaq.run(build)` executes its P3 build on a simulator target, such
+as `stim` or `nvidia`. Each shot returns a `bool` for one result or a
+`list[bool]` for several, the same types `cudaq.run` returns for a kernel.
+Unsupported P3 forms raise an error.
+[Execution boundaries](../reference/capabilities.md#execution-and-documented-boundaries)
+lists the main ones.
 
 Use kernels with CUDA-Q's libraries and infrastructure, or author directly
 with `cudaq.logical` when integrating another frontend. Both routes use the

@@ -157,7 +157,7 @@ jobs:
 
       # Pin Python to the newest supported version.
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: '3.14'
 
@@ -246,9 +246,9 @@ jobs:
 
       - name: Install Cosign
         if: steps.cache_check.outputs.cache_hit != 'true' && steps.push_image.outputs.digest != ''
-        uses: sigstore/cosign-installer@v3.3.0
+        uses: sigstore/cosign-installer@v4.1.2
         with:
-          cosign-release: 'v2.2.2'
+          cosign-release: 'v2.6.5'
 
       - name: Sign image with GitHub OIDC Token
         if: steps.cache_check.outputs.cache_hit != 'true' && steps.push_image.outputs.digest != ''

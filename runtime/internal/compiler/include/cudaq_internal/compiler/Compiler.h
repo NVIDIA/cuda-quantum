@@ -87,11 +87,13 @@ class Compiler {
                 cudaq::KernelArgs args, bool isEntryPoint);
 
   /// Delay combine-measurements for emulation, then run the main pass
-  /// pipeline.  Returns
+  /// pipeline built from \p resolvedOptions, the options resolved for this
+  /// compile.  Returns
   ///  - whether combine-measurements was delayed,
   ///  - the pass pipeline that was executed.
   std::pair<bool, std::string>
-  executeMainPipeline(mlir::ModuleOp moduleOp, const std::string &kernelName);
+  executeMainPipeline(mlir::ModuleOp moduleOp, const std::string &kernelName,
+                      const cudaq::CompileOptions &resolvedOptions);
 
   /// Create JIT and MLIR artifacts and assemble a CompiledModule.
   cudaq::CompiledModule assembleCompiledModule(
@@ -140,16 +142,28 @@ public:
   emitKernelExecutions(const cudaq::CompiledModule &compiled);
 };
 
-/// Get the pass pipeline for the given compile target, resolving default
-/// (inferred) stages through \p handlers.
+/// Build the JIT pass pipeline for \p target. On failure, set \p diagnostic to
+/// say which stage failed and why, and return `nullopt`.
 ///
-/// Supports the following lowering strategies:
-///  - `CustomPipelineLowering`: appends the override pipeline, or its
-///  high/mid/low pipelines interleaved with the standard prep/deploy/finalize
-///  stages.
-///  - `InferredLowering`: infers the pipeline using the registered lowering
-///  handlers, based on the stage's input and output profiles. Fills \p
-///  diagnostic when an inferred stage cannot be lowered.
+/// Each stage can add passes before deploy, after deploy, and after finalize
+/// (see `StagePasses`). Passes that different stages add at the same place run
+/// in stage order. For example, if the first stage adds `A` before deploy and
+/// `B` after deploy, and the second stage adds `C` after deploy and `D` after
+/// finalize, the pipeline is
+/// `canonicalize, prep, A, deploy, B, C, finalize, D`.
+///
+/// A stage's lowering decides its passes:
+///  - An inferred lowering uses the first handler in \p handlers that can
+///    lower the previous stage's output profile (`unchecked` for the first
+///    stage) to this stage's output profile.
+///  - A custom lowering puts its high-, mid-, and low-level pipelines before
+///    deploy, after deploy, and after finalize.
+///  - An override pipeline replaces the whole pipeline, so it must be the
+///    target's only stage.
+///
+/// The emission format and `CompileOptions::emulate` set the options of prep,
+/// deploy, and finalize. If the target sets `disable_qubit_mapping`, every
+/// `qubit-mapping` in the result gets `device=bypass`.
 std::optional<std::string>
 getPassPipeline(const cudaq::CompileTarget &target,
                 const cudaq::CompileOptions &options,

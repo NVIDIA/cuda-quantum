@@ -213,6 +213,36 @@ CUDAQ_TEST(NVQIRTester, checkArrayTrackingIsThreadLocal) {
   __quantum__rt__array_release(array);
 }
 
+CUDAQ_TEST(NVQIRTester, checkArrayTrackingPastScanLimit) {
+  // Enough live arrays to switch the tracker to its set.
+  for (int round = 0; round < 2; ++round) {
+    std::vector<Array *> arrays;
+    for (std::size_t i = 0; i < 600; ++i) {
+      auto *array = __quantum__rt__array_create_1d(sizeof(std::int64_t), 1);
+      *reinterpret_cast<std::int64_t *>(__quantum__rt__array_get_element_ptr_1d(
+          array, 0)) = static_cast<std::int64_t>(i);
+      arrays.push_back(array);
+    }
+
+    // Release two thirds in mixed order; the rest must be intact.
+    for (std::size_t i = 0; i < arrays.size(); i += 3)
+      __quantum__rt__array_release(arrays[i]);
+    for (int i = 0; i < 64; ++i)
+      __quantum__rt__array_release(
+          __quantum__rt__array_create_1d(sizeof(std::int64_t), 1));
+    for (std::size_t i = arrays.size(); i-- > 0;)
+      if (i % 3 == 2)
+        __quantum__rt__array_release(arrays[i]);
+    for (std::size_t i = 1; i < arrays.size(); i += 3)
+      EXPECT_EQ(*reinterpret_cast<std::int64_t *>(
+                    __quantum__rt__array_get_element_ptr_1d(arrays[i], 0)),
+                static_cast<std::int64_t>(i));
+
+    // Cleanup resets the tracker for the next round.
+    __nvqpp_cleanup_arrays();
+  }
+}
+
 CUDAQ_TEST(NVQIRTester, checkSimple) {
   __quantum__rt__initialize(0, nullptr);
   auto qubits = __quantum__rt__qubit_allocate_array(2);

@@ -902,6 +902,62 @@ def FactorQuantumAllocations :
   ];
 }
 
+def FuseSingleQubitChainsForCliffordT
+    : Pass<"fuse-1q-chains-for-clifford-t", "mlir::func::FuncOp"> {
+  let summary = "Fuse constant one-qubit gate sequences into a form that "
+                "heuristically minimizes the rotations needing approximate "
+                "Clifford+T synthesis.";
+  let description = [{
+    Consumes and produces the linear SSA `!quake.wire` form created by
+    `convert-to-linear-values`.
+
+    Clifford+T synthesis approximates each rotation separately unless its
+    angle is within `epsilon` of a multiple of pi/4, and every approximation
+    adds T gates. Any one-qubit unitary can be written with three rotations,
+    but a sequence of one-qubit gates often has more than three rotations that
+    need approximation. Two decomposed `U3` gates in a row can have six, for
+    example. This pass replaces such a sequence with at most three rotations,
+    so the unitary is approximated fewer times.
+
+    The pass looks at each longest sequence of uncontrolled `h`, `s`, `t`, `x`,
+    `y`, `z`, `phase`, `r1`, `rx`, `ry`, and `rz` gates on one wire whose
+    angles are constants. Any other operation, including a controlled or
+    multi-qubit gate or a gate whose angle is not a constant, ends the
+    sequence. A sequence continues through a single-block `cc.scope` that is
+    not an atomic quantum region, so gates inside and outside the scope fuse.
+    Any other operation with regions, such as `cc.if` or `cc.loop`, ends the
+    sequence, and the pass handles each block inside it on its own.
+
+    The pass combines the sequence into a single unitary and rewrites that
+    unitary in two ways, as `rz`-`rx`-`rz` and as `rx`-`rz`-`rx`. It keeps
+    whichever form needs the fewest approximations, using the total number
+    of rotations to break ties, but only if that form is strictly better
+    than the original sequence. A `quake.phase` gate keeps the global phase
+    exact. Sequences that need no approximation, or that have only one
+    rotation, are left alone. Angles that come out within rounding error of
+    a multiple of pi/4 are snapped to that value, so they need no
+    approximation even when `epsilon` is zero.
+
+    The pass does not try forms with `ry` on the outside, such as
+    `ry`-`rx`-`ry`. They sometimes save one rotation in the sequence, but
+    `ry` commutes with neither the control nor the target of a controlled
+    `quake.x`, so `quake-simplify` can no longer merge those rotations with
+    their neighbors.
+
+    The pass creates a new constant for each angle it emits, so run
+    `canonicalize` after it. Functions marked `quake.noOptimization` are
+    skipped.
+  }];
+  let options = [
+    Option<"epsilon", "epsilon", "double", /*default=*/"0.0",
+      "Operator-norm distance within which a rotation counts as a quarter "
+      "turn. Use the epsilon of the downstream Clifford+T legalization. Zero "
+      "counts only exact quarter turns.">,
+  ];
+  let dependentDialects = ["mlir::arith::ArithDialect",
+                           "cudaq::quake::QuakeDialect"];
+}
+
 def GenerateDeviceCodeLoader : Pass<"device-code-loader", "mlir::ModuleOp"> {
   let summary = "Generate device code loader stubs.";
   let description = [{
@@ -1594,28 +1650,15 @@ def NormalizePhasePlacement :
                            "cudaq::quake::QuakeDialect"];
 }
 
-def ObserveAnsatz : Pass<"observe-ansatz", "mlir::func::FuncOp"> {
- let summary = "Given spin_op input, append measures to the FuncOp";
-  let description = [{
-    Given an unmeasured Quake representation (i.e. a state prep ansatz), append
-    measures based on the given spin_op specified in binary symplectic form.
-  }];
-  let options = [
-    ListOption<"termBSF", "term-bsf", "unsigned",
-      "The measurement bases as a Pauli tensor product represented in binary "
-      "symplectic form.">
-  ];
-}
-
-def OptimizeSingleQubitCliffordT
-    : Pass<"optimize-1q-clifford-t", "mlir::ModuleOp"> {
+def NormalizeSingleQubitCliffordT
+    : Pass<"normalize-1q-clifford-t", "mlir::func::FuncOp"> {
   let summary =
     "Rewrite exact one-qubit Clifford+T chains to Matsumoto-Amano normal form.";
   let description = [{
-    Consumes and produces the scalar linear SSA `!quake.wire` form created by
+    Consumes and produces the linear SSA `!quake.wire` form created by
     `convert-to-linear-values`.
 
-    Rewrites exact one-qubit Clifford+T chains on scalar `!quake.wire` values
+    Rewrites exact one-qubit Clifford+T chains on `!quake.wire` values
     into Matsumoto-Amano normal form while preserving the exact unitary.
     Controlled chains are supported when their controls and polarities remain
     unchanged, including through single-block `cc.scope` operations. The pass
@@ -1629,6 +1672,19 @@ def OptimizeSingleQubitCliffordT
   }];
   let dependentDialects = ["mlir::arith::ArithDialect",
                            "quake::QuakeDialect"];
+}
+
+def ObserveAnsatz : Pass<"observe-ansatz", "mlir::func::FuncOp"> {
+ let summary = "Given spin_op input, append measures to the FuncOp";
+  let description = [{
+    Given an unmeasured Quake representation (i.e. a state prep ansatz), append
+    measures based on the given spin_op specified in binary symplectic form.
+  }];
+  let options = [
+    ListOption<"termBSF", "term-bsf", "unsigned",
+      "The measurement bases as a Pauli tensor product represented in binary "
+      "symplectic form.">
+  ];
 }
 
 def PhaseFolding: Pass<"phase-folding", "mlir::func::FuncOp"> {
@@ -1829,6 +1885,9 @@ def QuakeSimplify : Pass<"quake-simplify"> {
     A rotation is erased when its folded angle has magnitude at or below
     `threshold`.
 
+    When two constant rotations merge, a sum within floating-point roundoff of
+    a multiple of `pi/4`, zero included, is replaced by that exact multiple.
+
     The optional `rotations-to-clifford-t` pattern family recognizes constant
     `r1`, `rx`, `ry`, and `rz` angles at multiples of `pi/4` and replaces them
     with named-gate sequences instead of leaving them for approximate synthesis.
@@ -1959,24 +2018,6 @@ def RegToMem : Pass<"regtomem", "mlir::func::FuncOp"> {
   }];
   let dependentDialects = ["cudaq::cc::CCDialect",
     "cudaq::quake::QuakeDialect"];
-}
-
-def RepairLinearType : Pass<"repair-linear-type", "mlir::func::FuncOp"> {
-  let summary = "Repair linear type constraints.";
-  let description = [{
-    The desired linear type constraint is that a value of linear type must be
-    used exactly once. That is \e not SSA. Unfortunately, MLIR assumes SSA
-    semantics at a very deep level and can and will destroy the linear type
-    constraints in its own default optimizations.
-
-    Running this pass will repair the damage in such a way that the linear type
-    value is lifted to a reference type, which is a valid SSA value.
-  }];
-  let dependentDialects = ["cudaq::quake::QuakeDialect"];
-  let statistics = [
-    Statistic<"numRepairs", "repairs",
-              "Number of linear type violations repaired with wrap/unwrap">,
-  ];
 }
 
 def ReplaceStateWithKernel : Pass<"replace-state-with-kernel",

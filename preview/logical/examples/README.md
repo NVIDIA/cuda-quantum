@@ -34,6 +34,9 @@ points report the same resources. Its excerpts supply the
 
 The `standalone/` examples use `cudaq.logical` directly and expose each
 compiler step. They do not define CUDA-Q kernels or call `cudaq.estimate`.
+Standalone examples 06 and 07 compile protocols to physical builds and execute
+them with `cudaq.run`: ideal encoded computation and T-state distillation with
+noise. See the [standalone sequence](standalone/README.md).
 
 The `mlir/` examples use `qlx-opt` and `qlx-translate` directly.
 

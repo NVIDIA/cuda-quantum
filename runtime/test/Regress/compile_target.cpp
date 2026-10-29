@@ -12,6 +12,7 @@
 // RUN: compile_target | FileCheck %s
 
 #include "common/KernelArgs.h"
+#include "common/KernelExecution.h"
 #include "cudaq_internal/compiler/CompiledModuleHelper.h"
 #include "cudaq_internal/compiler/Compiler.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
@@ -260,17 +261,18 @@ void test_resource_count_disabled_by_target(mlir::MLIRContext *ctx) {
 
 // CHECK-LABEL: NO RESOURCE ARTIFACT
 
-/// Handler lowering into quake-reference-semantics with a fixed marker
-/// pipeline.
+/// Handler lowering into quake-reference-semantics with a fixed marker pass
+/// before deploy.
 class FakeQuakeReferenceSemanticsHandler : public LoweringHandler {
 public:
-  std::optional<std::string>
-  getPipeline(const cudaq::config::Profile &,
-              const cudaq::config::Profile &output) const override {
+  std::optional<StagePasses>
+  getStagePasses(const cudaq::config::Profile &,
+                 const cudaq::config::Profile &output,
+                 const cudaq::CompileOptions &options) const override {
     if (!std::holds_alternative<cudaq::config::QuakeReferenceSemanticsProfile>(
             output))
       return std::nullopt;
-    return "func.func(add-measurements)";
+    return StagePasses{.preDeployPasses = "func.func(add-measurements)"};
   }
 };
 
@@ -339,6 +341,50 @@ void test_staged_skip(mlir::MLIRContext *ctx) {
 // CHECK: quake.r1
 // CHECK-NOT: quake.mz
 
+/// Kernel that the base QIR profile accepts.
+static const char *measureKernel = R"#(
+func.func @__nvqpp__mlirgen__measure() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %q = quake.alloca !quake.ref
+  quake.h %q : (!quake.ref) -> ()
+  %m = quake.mz %q : (!quake.ref) -> !quake.measure
+  return
+}
+)#";
+
+static mlir::LogicalResult printPipeline(mlir::PassManager &pm,
+                                         mlir::Operation *op) {
+  pm.printAsTextualPipeline(llvm::outs());
+  llvm::outs() << "\n";
+  return pm.run(op);
+}
+
+/// Level 0 must reach codegen that runs in a second `Compiler` with default
+/// options, as the REST QPU does. Only the compiled IR can carry the level
+/// there.
+void test_optimization_level_0(mlir::MLIRContext *ctx) {
+  cudaq::CompileTarget target;
+  target.codegen.emissionFormat = "qir-base";
+  cudaq::CompileOptions options;
+  options.optimizationLevel = cudaq::OptimizationLevel::O0;
+  auto mod = mlir::parseSourceString<mlir::ModuleOp>(measureKernel, ctx);
+  Compiler compiler(target, std::move(options));
+  auto compiled = compiler.runPassPipeline(
+      "measure", mod.release().getAsOpaquePointer(), cudaq::KernelArgs{},
+      /*isEntryPoint=*/true);
+
+  llvm::outs() << "Optimization level 0 codegen:\n";
+  Compiler codegen(target, {});
+  cudaq_internal::compiler::setRunPassManagerHook(&printPipeline);
+  codegen.emitKernelExecutions(compiled);
+  cudaq_internal::compiler::setRunPassManagerHook(nullptr);
+}
+
+// CHECK-LABEL: Optimization level 0 codegen:
+// CHECK:         combine-quantum-alloc
+// CHECK-NOT:     quake-simplify
+// CHECK-NOT:     {{[(,]}}dqe{{[,)]}}
+// CHECK:         cc-to-llvm
+
 int main() {
   auto context = cudaq_internal::compiler::getOwningMLIRContext();
 
@@ -351,5 +397,6 @@ int main() {
   test_resource_count_disabled_by_target(context.get());
   test_staged_inferred(context.get());
   test_staged_skip(context.get());
+  test_optimization_level_0(context.get());
   return 0;
 }
