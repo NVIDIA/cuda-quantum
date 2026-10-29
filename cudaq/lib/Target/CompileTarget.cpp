@@ -141,7 +141,7 @@ std::size_t std::hash<cudaq::CompileTarget>::operator()(
       t.supportResourceCounts, t.supportExplicitMeasurements,
       t.supportObservableMeasurements, t.supportSampleWithoutMeasurements,
       t.fullySpecialize, t.argumentSynthChangeSemantics, t.disableQubitMapping,
-      t.needsReorderIdx, t.replaceStateWithKernel);
+      t.needsReorderIdx, t.needsImplicitMeasurements, t.replaceStateWithKernel);
 }
 
 std::size_t std::hash<cudaq::config::UncheckedProfile>::operator()(

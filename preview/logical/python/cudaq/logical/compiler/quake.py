@@ -59,6 +59,7 @@ CUDAQ_TARGET_PREPARATION_PIPELINE = ",".join((
     "func.func(multicontrol-decomposition)",
     "canonicalize",
     "prepare-for-wireset{unroll-only-index-use-loops=true maximum-iterations=2048000}",
+    "func.func(erase-implicit-output)",
     "decomposition{basis=h,s,t,x,y,z,x(1),z(1),x(2),z(2),swap,rx,ry,rz,r1}",
     "canonicalize",
     "func.func(normalize-phase-placement)",

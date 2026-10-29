@@ -531,7 +531,8 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
   // so that ancillas introduced along the way -- which carry no evince -- stay
   // out of the global register.
   if (options.addSampleMeasurements &&
-      !target.supportSampleWithoutMeasurements) {
+      !target.supportSampleWithoutMeasurements &&
+      target.needsImplicitMeasurements) {
     // No need to add measurements only to remove them eventually
     if (target.codegen.postCodegenPasses.find("remove-measurements") ==
         std::string::npos)

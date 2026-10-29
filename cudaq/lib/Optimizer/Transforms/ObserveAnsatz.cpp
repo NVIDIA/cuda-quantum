@@ -75,7 +75,8 @@ void collectEvincedQubits(func::FuncOp funcOp,
   SmallPtrSet<Value, 16> seen;
   funcOp.walk([&](cudaq::quake::EvinceOp evince) {
     for (auto [index, opnd] : llvm::enumerate(evince->getOperands()))
-      if (cudaq::quake::isQuantumType(opnd.getType()) && seen.insert(opnd).second)
+      if (cudaq::quake::isQuantumType(opnd.getType()) &&
+          seen.insert(opnd).second)
         qubits.emplace_back(evince.getOperation(), index);
   });
 }
