@@ -120,10 +120,40 @@ public:
       return;
     m_engine->flush(*m_state, m_pendingRandomNumbers);
     m_pendingRandomNumbers.clear();
+    if (m_deferHostWait)
+      return;
     m_state->synchronize();
   }
 
 protected:
+  /// @brief Suppress the host-side wait in synchronize() for the duration of a
+  /// scope. Used to flush ExpPauli without unnecessary host-side wait.
+  /// Implemented as guard object, so m_deferHostWait is reset to false on
+  /// an exception.
+  class DeferredHostWait {
+  public:
+    explicit DeferredHostWait(CuStateVecCircuitSimulator &simulator)
+        : m_simulator(simulator) {
+      m_simulator.m_deferHostWait = true;
+    }
+    ~DeferredHostWait() { m_simulator.m_deferHostWait = false; }
+    DeferredHostWait(const DeferredHostWait &) = delete;
+    DeferredHostWait &operator=(const DeferredHostWait &) = delete;
+
+  private:
+    CuStateVecCircuitSimulator &m_simulator;
+  };
+
+  /// @brief Hand the queued gates to the engine without the host-side wait,
+  /// leaving the engine flush in place.
+  ///
+  /// flushGateQueue() ends in synchronize() and this bypasses the final
+  /// host synchronization in cases where it is unnecessary to read the state.
+  void flushGateQueueNoWait() {
+    const DeferredHostWait defer(*this);
+    flushGateQueue();
+  }
+
   void addQubitToState() override { addQubitsToState(1, nullptr); }
 
   void addQubitsToState(std::size_t count, const void *stateData) override {
@@ -408,7 +438,7 @@ protected:
       Base::applyExpPauli(theta, controls, qubits, term, controlValues);
       return;
     }
-    flushGateQueue();
+    flushGateQueueNoWait();
     if (term.num_ops() != qubits.size())
       throw std::runtime_error(
           "incorrect number of qubits in exp_pauli - expecting " +
@@ -1388,6 +1418,8 @@ protected:
   bool m_measurementRecorded = false;
   bool m_replayingTrajectory = false;
   bool m_hasCustomInitialState = false;
+  // Set by DeferredHostWait; read by synchronize().
+  bool m_deferHostWait = false;
 };
 
 } // namespace cudaq::cusv
