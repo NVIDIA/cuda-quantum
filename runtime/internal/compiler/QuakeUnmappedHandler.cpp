@@ -8,14 +8,12 @@
 
 #include "common/CompileOptions.h"
 #include "cudaq_internal/compiler/LoweringHandler.h"
-#include "cudaq/Optimizer/Transforms/CliffordTRotations.h"
-#include <algorithm>
+#include "cudaq/Optimizer/Transforms/Passes.h"
 #include <iomanip>
 #include <iterator>
 #include <limits>
 #include <locale>
 #include <sstream>
-#include <string_view>
 
 /// Loops up to this length are unrolled so that their qubits become wires, as
 /// in `classical-optimization-pipeline`. Longer loops stay on references.
@@ -62,14 +60,11 @@ cliffordTPasses(const cudaq::config::QuakeUnmappedProfile &profile,
   const std::string tolerance = formatTolerance(profile.approximationTolerance);
   const auto level = static_cast<unsigned>(options.optimizationLevel);
   std::vector<std::string> passes;
-  if (!profile.basisGates.empty()) {
-    auto basisWithRotations = profile.basisGates;
-    for (std::string_view rotation : cudaq::opt::cliffordTRotations)
-      if (std::find(basisWithRotations.begin(), basisWithRotations.end(),
-                    rotation) == basisWithRotations.end())
-        basisWithRotations.emplace_back(rotation);
-    passes.push_back("decomposition{basis=" + join(basisWithRotations) + "}");
-  }
+  if (!profile.basisGates.empty())
+    passes.push_back(
+        "decomposition{basis=" +
+        join(cudaq::opt::cliffordTDecompositionBasis(profile.basisGates)) +
+        "}");
   if (level >= 1) {
     // Without `add-wireset`, this converts to wires but adds no wire set.
     passes.push_back("prepare-for-wireset{maximum-iterations=" +

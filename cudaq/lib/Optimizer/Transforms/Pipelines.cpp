@@ -8,7 +8,6 @@
 
 #include "DecompositionPatterns.h"
 #include "PassDetails.h"
-#include "cudaq/Optimizer/Transforms/CliffordTRotations.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "mlir/Transforms/Passes.h"
 
@@ -261,10 +260,24 @@ static void addCliffordTCleanup(OpPassManager &funcPM, double epsilon) {
   funcPM.addPass(cudaq::opt::createDeadQuantumElimination());
 }
 
-bool cudaq::opt::needsCliffordTSynthesis(
-    const std::vector<std::string> &basis) {
+/// The rotations that `clifford-t-optimization-pipeline` merges and snaps and
+/// `clifford-t-synthesis-pipeline` replaces with Clifford+T gates, when they
+/// are uncontrolled and have constant angles.
+static constexpr llvm::StringLiteral cliffordTRotations[] = {"r1", "rx", "ry",
+                                                             "rz"};
+
+std::vector<std::string>
+cudaq::opt::cliffordTDecompositionBasis(ArrayRef<std::string> basis) {
+  std::vector<std::string> withRotations(basis.begin(), basis.end());
+  for (StringRef rotation : cliffordTRotations)
+    if (!llvm::is_contained(withRotations, rotation))
+      withRotations.emplace_back(rotation);
+  return withRotations;
+}
+
+bool cudaq::opt::needsCliffordTSynthesis(ArrayRef<std::string> basis) {
   return basis.empty() ||
-         llvm::none_of(cliffordTRotations, [&](std::string_view rotation) {
+         llvm::none_of(cliffordTRotations, [&](StringRef rotation) {
            return cudaq::canDecomposeTo(rotation, basis);
          });
 }
@@ -280,8 +293,7 @@ addCliffordTSynthesis(OpPassManager &pm,
   // without `rz` stays exact, although synthesis would lower it to `rz` first.
   // Another rotation that such a basis cannot take fails in `basis-conversion`
   // either way.
-  if (!cudaq::opt::needsCliffordTSynthesis(
-          {options.basis.begin(), options.basis.end()}))
+  if (!cudaq::opt::needsCliffordTSynthesis(options.basis))
     return;
   cudaq::opt::addDecomposition(pm, {"RxToRz", "RyToRz", "R1ToRz"});
   cudaq::opt::CliffordTSynthesisOptions synthesisOpts;

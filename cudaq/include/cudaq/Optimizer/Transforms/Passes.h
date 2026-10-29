@@ -38,6 +38,18 @@ void registerToCFGPipeline();
 /// `clifford-t-synthesis-pipeline`.
 void registerCliffordTPipelines();
 
+/// The basis to decompose to before the Clifford+T pipelines: \p basis plus
+/// the rotations those pipelines merge, snap, and synthesize, so that
+/// decomposition keeps them for the pipelines to read.
+std::vector<std::string>
+cliffordTDecompositionBasis(llvm::ArrayRef<std::string> basis);
+
+/// Whether `clifford-t-synthesis-pipeline` approximates rotations for a target
+/// with \p basis. It does unless decomposition can lower one of the rotations
+/// it reads to the basis exactly, and an empty basis always synthesizes.
+/// Lowering handlers use this to tell whether a stage needs constant angles.
+bool needsCliffordTSynthesis(llvm::ArrayRef<std::string> basis);
+
 /// Convert supported Quake IR to explicit linear values. This splits
 /// fixed-size allocations, expands vector controls, and threads reusable
 /// controls through their uses.

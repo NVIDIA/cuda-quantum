@@ -47,8 +47,8 @@ add_cudaq_hybrid_test(resource_count_wireset)
 
 # profile_stages tests how getPassPipeline builds a pipeline from a compile
 # target's stages, without the MLIR runtime. It links OptTransforms only because
-# the quake-unmapped handler asks `needsCliffordTSynthesis` whether a stage
-# needs argument values.
+# the quake-unmapped handler asks the Clifford+T pipelines which basis to
+# decompose to and whether a stage needs argument values.
 add_executable(profile_stages Regress/profile_stages.cpp
                ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/JITTargetPipeline.cpp
                ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/LoweringHandler.cpp
