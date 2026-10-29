@@ -37,17 +37,22 @@ cudaq.sample(my_kernel)      # compiled with that pipeline, launched to endpoint
    diagnose compilation or execution errors.
 """
 
-from cudaq._target import (Codegen, CompilationStage, CompileTarget,
+from cudaq._target import (Codegen, CompilationStage, CompileTarget, CostModel,
                            CustomPipelineLowering,
-                           QuakeReferenceSemanticsProfile, UncheckedProfile)
-from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime import CompiledModule
+                           QuakeReferenceSemanticsProfile, QuakeUnmappedProfile,
+                           UncheckedProfile)
+from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime import (
+    CompiledModule, get_compile_target)
 
 __all__ = [
     "Codegen",
     "CompilationStage",
     "CompileTarget",
     "CompiledModule",
+    "CostModel",
     "CustomPipelineLowering",
     "QuakeReferenceSemanticsProfile",
+    "QuakeUnmappedProfile",
     "UncheckedProfile",
+    "get_compile_target",
 ]

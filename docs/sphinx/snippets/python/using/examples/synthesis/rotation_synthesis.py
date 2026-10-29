@@ -9,9 +9,9 @@
 # [Begin Target]
 import cudaq
 
-# Rewrite every rotation in the kernel into Clifford+T. `epsilon` is the
-# per-rotation approximation tolerance.
-cudaq.set_target("compiler-bench-ftqc-clifford-t", epsilon="1e-10")
+# Rewrite every rotation in the kernel into Clifford+T, each within an
+# operator-norm error of 1e-10.
+cudaq.set_target("compiler-bench-ftqc-clifford-t")
 
 
 @cudaq.kernel

@@ -106,13 +106,10 @@ cudaq::CompileTarget cudaq::CompileTarget::createFromConfig(
   auto disableQM = runtimeConfig.find("disable_qubit_mapping");
   target.disableQubitMapping =
       disableQM != runtimeConfig.end() && disableQM->second == "true";
-  for (auto &stage : target.stages) {
-    auto *lowering =
-        std::get_if<config::CustomPipelineLowering>(&stage.lowering);
-    if (!lowering)
-      continue;
-    resolvePipeline(*lowering);
-  }
+  for (auto &stage : target.stages)
+    if (auto *lowering =
+            std::get_if<config::CustomPipelineLowering>(&stage.lowering))
+      resolvePipeline(*lowering);
 
   target.codegen.emissionFormat = targetConfig.getCodeGenSpec(runtimeConfig);
 
@@ -142,23 +139,6 @@ std::size_t std::hash<cudaq::CompileTarget>::operator()(
       t.supportObservableMeasurements, t.supportSampleWithoutMeasurements,
       t.fullySpecialize, t.argumentSynthChangeSemantics, t.disableQubitMapping,
       t.replaceStateWithKernel);
-}
-
-std::size_t std::hash<cudaq::config::UncheckedProfile>::operator()(
-    const cudaq::config::UncheckedProfile &) const noexcept {
-  return 0;
-}
-
-std::size_t
-std::hash<cudaq::config::QuakeReferenceSemanticsProfile>::operator()(
-    const cudaq::config::QuakeReferenceSemanticsProfile &profile)
-    const noexcept {
-  std::size_t seed = 0;
-  for (const auto &gate : profile.basisGates)
-    cudaq::detail::hashCombine(seed, gate);
-  cudaq::detail::hashCombine(seed, profile.measurementType);
-  cudaq::detail::hashCombine(seed, profile.resetAfterMeasure);
-  return seed;
 }
 
 std::size_t std::hash<cudaq::config::CustomPipelineLowering>::operator()(
