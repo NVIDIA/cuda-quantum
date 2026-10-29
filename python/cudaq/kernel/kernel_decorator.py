@@ -501,8 +501,8 @@ class PyKernelDecorator(object):
             # unnecessary to rebuild. Only an exact list, because the rebuild
             # also turns a subclass into a plain list.
             if type(arg) is list and not any(
-                    isinstance(element, str) or
-                    issubclass(type(element), list) for element in arg):
+                    isinstance(element, str) or issubclass(type(element), list)
+                    for element in arg):
                 return arg
 
             return [self.convertStringsToPauli(a) for a in arg]
