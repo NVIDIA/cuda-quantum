@@ -763,6 +763,9 @@ latest
                 Matrix](sims/noisy.html#density-matrix){.reference
                 .internal}
             -   [Stim](sims/noisy.html#stim){.reference .internal}
+            -   [[`cuStabilizer`{.docutils .literal
+                .notranslate}]{.pre}](sims/noisy.html#custabilizer){.reference
+                .internal}
         -   [Photonics Simulators](sims/photonics.html){.reference
             .internal}
             -   [orca-photonics](sims/photonics.html#orca-photonics){.reference
@@ -1251,6 +1254,18 @@ latest
                 .internal}
             -   [Load and test the
                 plugin](../extending/compiler/pass_plugins.html#load-and-test-the-plugin){.reference
+                .internal}
+        -   [Using compile targets to customize
+            compilation](../extending/compiler/compile_targets.html){.reference
+            .internal}
+            -   [Constructing single-stage compile
+                targets](../extending/compiler/compile_targets.html#constructing-single-stage-compile-targets){.reference
+                .internal}
+            -   [Setting compile targets with [`set_target`{.docutils
+                .literal
+                .notranslate}]{.pre}](../extending/compiler/compile_targets.html#setting-compile-targets-with-set-target){.reference
+                .internal}
+            -   [Example](../extending/compiler/compile_targets.html#example){.reference
                 .internal}
     -   [Add a hardware backend](../extending/backend.html){.reference
         .internal}
@@ -2094,6 +2109,13 @@ alt="../../_images/circuitsimulators.png" /></a>
 | .notransl   |             |                 |      |      |          |
 | ate}]{.pre} |             |                 |      |      |          |
 +-------------+-------------+-----------------+------+------+----------+
+| [`custabil  | Stabilizer  | QEC simulation  | Si   | N/A  | T        |
+| izer`{.code |             |                 | ngle |      | housands |
+| .docutils   |             |                 | GPU  |      | +        |
+| .literal    |             |                 |      |      |          |
+| .notransl   |             |                 |      |      |          |
+| ate}]{.pre} |             |                 |      |      |          |
++-------------+-------------+-----------------+------+------+----------+
 | [           | State       | Photonics       | CPU  | do   | Varies   |
 | `orca-photo | Vector      |                 |      | uble | on qudit |
 | nics`{.code |             |                 |      |      | level    |
@@ -2135,6 +2157,9 @@ CUDA-Q]{.caption-text}[¶](#id1 "Permalink to this table"){.headerlink}
     -   [Density Matrix](sims/noisy.html#density-matrix){.reference
         .internal}
     -   [Stim](sims/noisy.html#stim){.reference .internal}
+    -   [[`cuStabilizer`{.docutils .literal
+        .notranslate}]{.pre}](sims/noisy.html#custabilizer){.reference
+        .internal}
 -   [Photonics Simulators](sims/photonics.html){.reference .internal}
     -   [orca-photonics](sims/photonics.html#orca-photonics){.reference
         .internal}

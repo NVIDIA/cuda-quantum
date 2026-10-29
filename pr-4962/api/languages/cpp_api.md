@@ -783,6 +783,9 @@ latest
                 .internal}
             -   [Stim](../../using/backends/sims/noisy.html#stim){.reference
                 .internal}
+            -   [[`cuStabilizer`{.docutils .literal
+                .notranslate}]{.pre}](../../using/backends/sims/noisy.html#custabilizer){.reference
+                .internal}
         -   [Photonics
             Simulators](../../using/backends/sims/photonics.html){.reference
             .internal}
@@ -1299,6 +1302,18 @@ latest
                 .internal}
             -   [Load and test the
                 plugin](../../using/extending/compiler/pass_plugins.html#load-and-test-the-plugin){.reference
+                .internal}
+        -   [Using compile targets to customize
+            compilation](../../using/extending/compiler/compile_targets.html){.reference
+            .internal}
+            -   [Constructing single-stage compile
+                targets](../../using/extending/compiler/compile_targets.html#constructing-single-stage-compile-targets){.reference
+                .internal}
+            -   [Setting compile targets with [`set_target`{.docutils
+                .literal
+                .notranslate}]{.pre}](../../using/extending/compiler/compile_targets.html#setting-compile-targets-with-set-target){.reference
+                .internal}
+            -   [Example](../../using/extending/compiler/compile_targets.html#example){.reference
                 .internal}
     -   [Add a hardware
         backend](../../using/extending/backend.html){.reference
@@ -9281,6 +9296,28 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
+    []{#classcudaq_1_1sample__result_1a6c76a4dd8f5d283bf6e165e148b09d88 .target}[[void]{.pre}]{.kt}[ ]{.w}[[[append]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[ExecutionResult]{.pre}]{.n}](#_CPPv4N5cudaq15ExecutionResultE "cudaq::ExecutionResult"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[result]{.pre}]{.n .sig-param}, [[bool]{.pre}]{.kt}[ ]{.w}[[concatenate]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[false]{.pre}]{.k}[)]{.sig-paren}[¶](#_CPPv4N5cudaq13sample_result6appendERR15ExecutionResultb "Permalink to this definition"){.headerlink}\
+
+    :   Add another [[[`ExecutionResult`{.docutils .literal
+        .notranslate}]{.pre}]{.std
+        .std-ref}](#structcudaq_1_1ExecutionResult){.reference
+        .internal} to this [[[`sample_result`{.docutils .literal
+        .notranslate}]{.pre}]{.std
+        .std-ref}](#classcudaq_1_1sample__result){.reference .internal},
+        taking over its storage. Same semantics as the copying overload
+        otherwise.
+
+        Parameters[:]{.colon}
+
+        :   -   **result** -- Result to append; left empty
+
+            -   **concatenate** -- If prior results are found, this
+                concatenates the bitstrings.
+
+    ```{=html}
+    <!-- -->
+    ```
+
     []{#classcudaq_1_1sample__result_1acf4d522001068f239b866577b2f66cb6 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[[\>]{.pre}]{.p}[ ]{.w}[[[register_names]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq13sample_result14register_namesEv "Permalink to this definition"){.headerlink}\
 
     :   Return all register names. Can be used in tandem with
@@ -13434,6 +13471,17 @@ them they are erased before execution.
     []{#classcudaq_1_1quantum__platform_1a8734ea5c892ee287bd5a8d3af451c5c0 .target}[[void]{.pre}]{.kt}[ ]{.w}[[[configureExecutionContext]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[ExecutionContext]{.pre}]{.n}](#_CPPv4N5cudaq16ExecutionContextE "cudaq::ExecutionContext"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[ctx]{.pre}]{.n .sig-param}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq16quantum_platform25configureExecutionContextER16ExecutionContext "Permalink to this definition"){.headerlink}\
 
     :   Specify the execution context for this platform.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1quantum__platform_1a0b83797a8e44b05b50bae5aa42f457a7 .target}[[inline]{.pre}]{.k}[ ]{.w}[[virtual]{.pre}]{.k}[ ]{.w}[[void]{.pre}]{.kt}[ ]{.w}[[[prepareExecution]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[qpu_id]{.pre}]{.n .sig-param}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq16quantum_platform16prepareExecutionENSt6size_tE "Permalink to this definition"){.headerlink}\
+
+    :   Bind the calling thread to [[QPU]{.std
+        .std-ref}](#classcudaq_1_1QPU){.reference .internal}
+        [`qpu_id`{.docutils .literal .notranslate}]{.pre} (e.g. its CUDA
+        device) before its simulator is initialized.
 
     ```{=html}
     <!-- -->

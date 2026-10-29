@@ -31,7 +31,7 @@
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" />
-    <link rel="next" title="Extending CUDA-Q with a new Hardware Backend" href="../backend.html" />
+    <link rel="next" title="Using compile targets to customize compilation" href="compile_targets.html" />
     <link rel="prev" title="Value-semantics IR change log" href="ir_changelog.html" /> 
 </head>
 
@@ -494,6 +494,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../backends/sims/noisy.html#trajectory-noisy-simulation">Trajectory Noisy Simulation</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../backends/sims/noisy.html#density-matrix">Density Matrix</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../backends/sims/noisy.html#stim">Stim</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../backends/sims/noisy.html#custabilizer"><code class="docutils literal notranslate"><span class="pre">cuStabilizer</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../backends/sims/photonics.html">     Photonics Simulators</a><ul>
@@ -776,6 +777,12 @@
 <li class="toctree-l4"><a class="reference internal" href="#implement-and-register-the-pass">Implement and register the pass</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#build-the-plugin">Build the plugin</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#load-and-test-the-plugin">Load and test the plugin</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="compile_targets.html">Using compile targets to customize compilation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="compile_targets.html#constructing-single-stage-compile-targets">Constructing single-stage compile targets</a></li>
+<li class="toctree-l4"><a class="reference internal" href="compile_targets.html#setting-compile-targets-with-set-target">Setting compile targets with <code class="docutils literal notranslate"><span class="pre">set_target</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="compile_targets.html#example">Example</a></li>
 </ul>
 </li>
 </ul>
@@ -1121,7 +1128,7 @@
       </li>
   </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
         <a href="ir_changelog.html" class="btn btn-neutral float-left" title="Value-semantics IR change log" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="../backend.html" class="btn btn-neutral float-right" title="Extending CUDA-Q with a new Hardware Backend" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="compile_targets.html" class="btn btn-neutral float-right" title="Using compile targets to customize compilation" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
   </div>
   <hr/>
 </div>
@@ -1252,7 +1259,7 @@ added to a CUDA-Q compilation pipeline.</p>
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="ir_changelog.html" class="btn btn-neutral float-left" title="Value-semantics IR change log" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="../backend.html" class="btn btn-neutral float-right" title="Extending CUDA-Q with a new Hardware Backend" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="compile_targets.html" class="btn btn-neutral float-right" title="Using compile targets to customize compilation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>

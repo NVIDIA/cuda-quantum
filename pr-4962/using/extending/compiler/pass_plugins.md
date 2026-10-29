@@ -776,6 +776,9 @@ latest
                 .internal}
             -   [Stim](../../backends/sims/noisy.html#stim){.reference
                 .internal}
+            -   [[`cuStabilizer`{.docutils .literal
+                .notranslate}]{.pre}](../../backends/sims/noisy.html#custabilizer){.reference
+                .internal}
         -   [Photonics
             Simulators](../../backends/sims/photonics.html){.reference
             .internal}
@@ -1274,6 +1277,17 @@ latest
                 .internal}
             -   [Load and test the
                 plugin](#load-and-test-the-plugin){.reference .internal}
+        -   [Using compile targets to customize
+            compilation](compile_targets.html){.reference .internal}
+            -   [Constructing single-stage compile
+                targets](compile_targets.html#constructing-single-stage-compile-targets){.reference
+                .internal}
+            -   [Setting compile targets with [`set_target`{.docutils
+                .literal
+                .notranslate}]{.pre}](compile_targets.html#setting-compile-targets-with-set-target){.reference
+                .internal}
+            -   [Example](compile_targets.html#example){.reference
+                .internal}
     -   [Add a hardware backend](../backend.html){.reference .internal}
         -   [Plugin Directory
             Structure](../backend.html#plugin-directory-structure){.reference
@@ -1986,7 +2000,7 @@ latest
 Previous](ir_changelog.html "Value-semantics IR change log"){.btn
 .btn-neutral .float-left accesskey="p"} [Next []{.fa
 .fa-arrow-circle-right
-aria-hidden="true"}](../backend.html "Extending CUDA-Q with a new Hardware Backend"){.btn
+aria-hidden="true"}](compile_targets.html "Using compile targets to customize compilation"){.btn
 .btn-neutral .float-right accesskey="n"}
 :::
 
@@ -2153,7 +2167,7 @@ not added to a CUDA-Q compilation pipeline.
 Previous](ir_changelog.html "Value-semantics IR change log"){.btn
 .btn-neutral .float-left accesskey="p" rel="prev"} [Next []{.fa
 .fa-arrow-circle-right
-aria-hidden="true"}](../backend.html "Extending CUDA-Q with a new Hardware Backend"){.btn
+aria-hidden="true"}](compile_targets.html "Using compile targets to customize compilation"){.btn
 .btn-neutral .float-right accesskey="n" rel="next"}
 :::
 

@@ -770,6 +770,9 @@ latest
                 .internal}
             -   [Stim](../backends/sims/noisy.html#stim){.reference
                 .internal}
+            -   [[`cuStabilizer`{.docutils .literal
+                .notranslate}]{.pre}](../backends/sims/noisy.html#custabilizer){.reference
+                .internal}
         -   [Photonics
             Simulators](../backends/sims/photonics.html){.reference
             .internal}
@@ -1266,6 +1269,18 @@ latest
                 .internal}
             -   [Load and test the
                 plugin](compiler/pass_plugins.html#load-and-test-the-plugin){.reference
+                .internal}
+        -   [Using compile targets to customize
+            compilation](compiler/compile_targets.html){.reference
+            .internal}
+            -   [Constructing single-stage compile
+                targets](compiler/compile_targets.html#constructing-single-stage-compile-targets){.reference
+                .internal}
+            -   [Setting compile targets with [`set_target`{.docutils
+                .literal
+                .notranslate}]{.pre}](compiler/compile_targets.html#setting-compile-targets-with-set-target){.reference
+                .internal}
+            -   [Example](compiler/compile_targets.html#example){.reference
                 .internal}
     -   [Add a hardware backend](#){.current .reference .internal}
         -   [Plugin Directory
@@ -1970,7 +1985,7 @@ latest
 
 ::: {.rst-breadcrumbs-buttons role="navigation" aria-label="Sequential page navigation"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
-Previous](compiler/pass_plugins.html "External compiler pass plugins"){.btn
+Previous](compiler/compile_targets.html "Using compile targets to customize compilation"){.btn
 .btn-neutral .float-left accesskey="p"} [Next []{.fa
 .fa-arrow-circle-right
 aria-hidden="true"}](packaging.html "Package & Distribute a Backend Plugin"){.btn
@@ -2412,7 +2427,7 @@ architectures required by your users.
 
 ::: {.rst-footer-buttons role="navigation" aria-label="Footer"}
 [[]{.fa .fa-arrow-circle-left aria-hidden="true"}
-Previous](compiler/pass_plugins.html "External compiler pass plugins"){.btn
+Previous](compiler/compile_targets.html "Using compile targets to customize compilation"){.btn
 .btn-neutral .float-left accesskey="p" rel="prev"} [Next []{.fa
 .fa-arrow-circle-right
 aria-hidden="true"}](packaging.html "Package & Distribute a Backend Plugin"){.btn

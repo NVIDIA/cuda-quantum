@@ -757,6 +757,9 @@ latest
                 .internal}
             -   [Stim](../../using/backends/sims/noisy.html#stim){.reference
                 .internal}
+            -   [[`cuStabilizer`{.docutils .literal
+                .notranslate}]{.pre}](../../using/backends/sims/noisy.html#custabilizer){.reference
+                .internal}
         -   [Photonics
             Simulators](../../using/backends/sims/photonics.html){.reference
             .internal}
@@ -1273,6 +1276,18 @@ latest
                 .internal}
             -   [Load and test the
                 plugin](../../using/extending/compiler/pass_plugins.html#load-and-test-the-plugin){.reference
+                .internal}
+        -   [Using compile targets to customize
+            compilation](../../using/extending/compiler/compile_targets.html){.reference
+            .internal}
+            -   [Constructing single-stage compile
+                targets](../../using/extending/compiler/compile_targets.html#constructing-single-stage-compile-targets){.reference
+                .internal}
+            -   [Setting compile targets with [`set_target`{.docutils
+                .literal
+                .notranslate}]{.pre}](../../using/extending/compiler/compile_targets.html#setting-compile-targets-with-set-target){.reference
+                .internal}
+            -   [Example](../../using/extending/compiler/compile_targets.html#example){.reference
                 .internal}
     -   [Add a hardware
         backend](../../using/extending/backend.html){.reference
@@ -2558,7 +2573,7 @@ scales exponentially with k. For higher k values, GPU acceleration
 transforms previously intractable postprocessing into feasible
 computation times.
 
-![5112a0954b5a4720ad267aac0f252913](../../_images/speedup.png){.no-scaled-link
+![d3014d2878cb4a4883c065c703c032c2](../../_images/speedup.png){.no-scaled-link
 style="width: 500px;"}
 :::
 
@@ -2572,9 +2587,9 @@ behavior on a problem with a much larger computational subspace than the
 22-qubit demo above.
 
 ::: {style="display: flex; gap: 10px;"}
-![76250f6d16654373b2e2a929175a195c](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
+![4d594950a1ad475bbf7884685c6f2849](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
 style="width: 450px;"}
-![905174ce929c4a74a04efdbed89afcb3](../../_images/efficiency.jpeg){.no-scaled-link
+![a6f0f421fb9d4b76928338b7e3e1a235](../../_images/efficiency.jpeg){.no-scaled-link
 style="width: 450px;"}
 :::
 

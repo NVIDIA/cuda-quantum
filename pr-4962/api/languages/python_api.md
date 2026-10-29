@@ -783,6 +783,9 @@ latest
                 .internal}
             -   [Stim](../../using/backends/sims/noisy.html#stim){.reference
                 .internal}
+            -   [[`cuStabilizer`{.docutils .literal
+                .notranslate}]{.pre}](../../using/backends/sims/noisy.html#custabilizer){.reference
+                .internal}
         -   [Photonics
             Simulators](../../using/backends/sims/photonics.html){.reference
             .internal}
@@ -1299,6 +1302,18 @@ latest
                 .internal}
             -   [Load and test the
                 plugin](../../using/extending/compiler/pass_plugins.html#load-and-test-the-plugin){.reference
+                .internal}
+        -   [Using compile targets to customize
+            compilation](../../using/extending/compiler/compile_targets.html){.reference
+            .internal}
+            -   [Constructing single-stage compile
+                targets](../../using/extending/compiler/compile_targets.html#constructing-single-stage-compile-targets){.reference
+                .internal}
+            -   [Setting compile targets with [`set_target`{.docutils
+                .literal
+                .notranslate}]{.pre}](../../using/extending/compiler/compile_targets.html#setting-compile-targets-with-set-target){.reference
+                .internal}
+            -   [Example](../../using/extending/compiler/compile_targets.html#example){.reference
                 .internal}
     -   [Add a hardware
         backend](../../using/extending/backend.html){.reference
@@ -2191,6 +2206,16 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
         These arguments get resolved in the scope of the kernel
         definition (lexical scoping).
+
+    [[scalarCaster]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[toTy]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.scalarCaster "Permalink to this definition"){.headerlink}
+
+    :   Return a one-argument callable converting a scalar to
+        [`toTy`{.code .docutils .literal .notranslate}]{.pre}.
+
+        Which conversion applies depends only on the target type, so a
+        list can resolve it once instead of once per element. None means
+        [`toTy`{.code .docutils .literal .notranslate}]{.pre} is not a
+        scalar this can convert
 
     [[signatureWithCallables]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.signatureWithCallables "Permalink to this definition"){.headerlink}
 
@@ -3394,7 +3419,7 @@ discriminated bits into an integer.)
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[set_target]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[extra_config]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.set_target "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[set_target]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}*, *[[\*]{.pre}]{.o}*, *[[compile_target]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[\*\*]{.pre}]{.o}[[extra_config]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.set_target "Permalink to this definition"){.headerlink}
 
 :   Set the backend used for CUDA-Q kernel execution.
 
@@ -3403,13 +3428,25 @@ discriminated bits into an integer.)
 
     Parameters[:]{.colon}
 
-    :   -   **target** -- The CUDA-Q target, specified as a recognized
-            target name ([`str`{.docutils .literal .notranslate}]{.pre})
-            or a [[`cudaq.Target`{.xref .py .py-class .docutils .literal
+    :   -   **target** -- The CUDA-Q target that kernels run on at
+            runtime, specified as a recognized target name
+            ([`str`{.docutils .literal .notranslate}]{.pre}) or a
+            [[`cudaq.Target`{.xref .py .py-class .docutils .literal
             .notranslate}]{.pre}](#cudaq.Target "cudaq.Target"){.reference
             .internal} instance. Support for instances of
             [`cudaq._experimental.CustomTarget`{.docutils .literal
             .notranslate}]{.pre} is experimental.
+
+        -   **compile_target** -- The
+            [`cudaq._experimental.CompileTarget`{.docutils .literal
+            .notranslate}]{.pre} that kernels are compiled against
+            before running on [`target`{.docutils .literal
+            .notranslate}]{.pre}. If omitted, the target's default
+            compile target is used. Not supported when
+            [`target`{.docutils .literal .notranslate}]{.pre} is a
+            [`CustomTarget`{.docutils .literal .notranslate}]{.pre},
+            which carries its own compile target. This argument is
+            experimental.
 
         -   **\*\*extra_config** -- Target-specific configuration for
             the named-target overload.
@@ -6112,7 +6149,7 @@ discriminated bits into an integer.)
 
     :   Print the state to the console.
 
-    [[from_data]{.pre}]{.sig-name .descname}*[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[\<nanobind.nb_func]{.pre} [object]{.pre} [at]{.pre} [0x3736080\>]{.pre}*[¶](#cudaq.State.from_data "Permalink to this definition"){.headerlink}
+    [[from_data]{.pre}]{.sig-name .descname}*[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[\<nanobind.nb_func]{.pre} [object\>]{.pre}*[¶](#cudaq.State.from_data "Permalink to this definition"){.headerlink}
 
     :   
 

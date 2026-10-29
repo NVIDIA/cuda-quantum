@@ -496,6 +496,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/sims/noisy.html#trajectory-noisy-simulation">Trajectory Noisy Simulation</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/sims/noisy.html#density-matrix">Density Matrix</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/sims/noisy.html#stim">Stim</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/sims/noisy.html#custabilizer"><code class="docutils literal notranslate"><span class="pre">cuStabilizer</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/backends/sims/photonics.html">     Photonics Simulators</a><ul>
@@ -778,6 +779,12 @@
 <li class="toctree-l4"><a class="reference internal" href="../../using/extending/compiler/pass_plugins.html#implement-and-register-the-pass">Implement and register the pass</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/extending/compiler/pass_plugins.html#build-the-plugin">Build the plugin</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/extending/compiler/pass_plugins.html#load-and-test-the-plugin">Load and test the plugin</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/compiler/compile_targets.html">Using compile targets to customize compilation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/compiler/compile_targets.html#constructing-single-stage-compile-targets">Constructing single-stage compile targets</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/compiler/compile_targets.html#setting-compile-targets-with-set-target">Setting compile targets with <code class="docutils literal notranslate"><span class="pre">set_target</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/compiler/compile_targets.html#example">Example</a></li>
 </ul>
 </li>
 </ul>
@@ -1333,6 +1340,15 @@ arguments.</p>
 <dd><p>Resolve the captured arguments of the decorator.</p>
 <p>These arguments get resolved in the scope of the kernel definition
 (lexical scoping).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.PyKernelDecorator.scalarCaster">
+<span class="sig-name descname"><span class="pre">scalarCaster</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">toTy</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.PyKernelDecorator.scalarCaster" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a one-argument callable converting a scalar to <code class="code docutils literal notranslate"><span class="pre">toTy</span></code>.</p>
+<p>Which conversion applies depends only on the target type, so a list can
+resolve it once instead of once per element.
+None means <code class="code docutils literal notranslate"><span class="pre">toTy</span></code> is not a scalar this can convert</p>
 </dd></dl>
 
 <dl class="py method">
@@ -2026,15 +2042,21 @@ inspect or parse command-line arguments.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="cudaq.set_target">
-<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">set_target</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">extra_config</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.set_target" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">set_target</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compile_target</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">extra_config</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.set_target" title="Permalink to this definition">¶</a></dt>
 <dd><p>Set the backend used for CUDA-Q kernel execution.</p>
 <p>Can provide optional, target-specific configuration data via Python <code class="code docutils literal notranslate"><span class="pre">kwargs</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>target</strong> – The CUDA-Q target, specified as a recognized target name (<code class="docutils literal notranslate"><span class="pre">str</span></code>)
-or a <a class="reference internal" href="#cudaq.Target" title="cudaq.Target"><code class="xref py py-class docutils literal notranslate"><span class="pre">cudaq.Target</span></code></a> instance. Support for
-instances of <code class="docutils literal notranslate"><span class="pre">cudaq._experimental.CustomTarget</span></code> is experimental.</p></li>
+<li><p><strong>target</strong> – The CUDA-Q target that kernels run on at runtime, specified as a
+recognized target name (<code class="docutils literal notranslate"><span class="pre">str</span></code>) or a <a class="reference internal" href="#cudaq.Target" title="cudaq.Target"><code class="xref py py-class docutils literal notranslate"><span class="pre">cudaq.Target</span></code></a> instance.
+Support for instances of <code class="docutils literal notranslate"><span class="pre">cudaq._experimental.CustomTarget</span></code> is
+experimental.</p></li>
+<li><p><strong>compile_target</strong> – The <code class="docutils literal notranslate"><span class="pre">cudaq._experimental.CompileTarget</span></code> that kernels
+are compiled against before running on <code class="docutils literal notranslate"><span class="pre">target</span></code>. If omitted, the
+target’s default compile target is used. Not supported when
+<code class="docutils literal notranslate"><span class="pre">target</span></code> is a <code class="docutils literal notranslate"><span class="pre">CustomTarget</span></code>, which carries its own compile
+target. This argument is experimental.</p></li>
 <li><p><strong>**extra_config</strong> – Target-specific configuration for the named-target
 overload.</p></li>
 </ul>
@@ -3745,7 +3767,7 @@ on multiple degrees of freedom.</p></li>
 
 <dl class="py attribute">
 <dt class="sig sig-object py" id="cudaq.State.from_data">
-<span class="sig-name descname"><span class="pre">from_data</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;nanobind.nb_func</span> <span class="pre">object</span> <span class="pre">at</span> <span class="pre">0x3736080&gt;</span></em><a class="headerlink" href="#cudaq.State.from_data" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">from_data</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;nanobind.nb_func</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#cudaq.State.from_data" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">

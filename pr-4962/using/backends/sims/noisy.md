@@ -763,6 +763,9 @@ latest
                 .internal}
             -   [Density Matrix](#density-matrix){.reference .internal}
             -   [Stim](#stim){.reference .internal}
+            -   [[`cuStabilizer`{.docutils .literal
+                .notranslate}]{.pre}](#custabilizer){.reference
+                .internal}
         -   [Photonics Simulators](photonics.html){.reference .internal}
             -   [orca-photonics](photonics.html#orca-photonics){.reference
                 .internal}
@@ -1259,6 +1262,18 @@ latest
                 .internal}
             -   [Load and test the
                 plugin](../../extending/compiler/pass_plugins.html#load-and-test-the-plugin){.reference
+                .internal}
+        -   [Using compile targets to customize
+            compilation](../../extending/compiler/compile_targets.html){.reference
+            .internal}
+            -   [Constructing single-stage compile
+                targets](../../extending/compiler/compile_targets.html#constructing-single-stage-compile-targets){.reference
+                .internal}
+            -   [Setting compile targets with [`set_target`{.docutils
+                .literal
+                .notranslate}]{.pre}](../../extending/compiler/compile_targets.html#setting-compile-targets-with-set-target){.reference
+                .internal}
+            -   [Example](../../extending/compiler/compile_targets.html#example){.reference
                 .internal}
     -   [Add a hardware
         backend](../../extending/backend.html){.reference .internal}
@@ -2179,7 +2194,7 @@ for more efficient simulation.
 +-------------+--------------------+-----------------------------------+
 
 : [**Noise Channel
-Support**]{.caption-text}[¶](#id2 "Permalink to this table"){.headerlink}
+Support**]{.caption-text}[¶](#id3 "Permalink to this table"){.headerlink}
 :::
 
 ::: {#trajectory-expectation-value-calculation .section}
@@ -2397,7 +2412,7 @@ set prior to setting the target or running "[`import`{.code .docutils
 +-------------+--------------------+-----------------------------------+
 
 : [**Additional environment variable options for trajectory
-simulation**]{.caption-text}[¶](#id3 "Permalink to this table"){.headerlink}
+simulation**]{.caption-text}[¶](#id4 "Permalink to this table"){.headerlink}
 
 ::: {.admonition .note}
 Note
@@ -2653,6 +2668,62 @@ generating all the shots from that single execution. Set the
 [`explicit_measurements`{.code .docutils .literal .notranslate}]{.pre}
 flag with [`sample`{.code .docutils .literal .notranslate}]{.pre} API
 for efficient execution.
+:::
+:::
+
+::: {#custabilizer .section}
+[]{#custabilizer-backend}
+
+## [`cuStabilizer`{.docutils .literal .notranslate}]{.pre}[¶](#custabilizer "Permalink to this heading"){.headerlink}
+
+The [`custabilizer`{.code .docutils .literal .notranslate}]{.pre}
+backend provides GPU-accelerated stabilizer simulation using NVIDIA's
+[cuStabilizer](https://docs.nvidia.com/cuda/cuquantum/latest/custabilizer/index.html){.reference
+.external} library. It is compatible with the Clifford sampling kernels
+and Pauli noise models supported by [[Stim]{.std
+.std-ref}](#stim-backend){.reference .internal}. To use an existing Stim
+sampling program, change its target to [`custabilizer`{.code .docutils
+.literal .notranslate}]{.pre}. This backend requires an NVIDIA GPU and a
+CUDA-Q installation with the [`custabilizer`{.code .docutils .literal
+.notranslate}]{.pre} backend enabled.
+
+::: {.admonition .note}
+Note
+
+GPU acceleration is intended for batched [`cudaq.sample`{.code .docutils
+.literal .notranslate}]{.pre} execution. Mid-circuit measurements can be
+sampled in a batch when their results do not control subsequent
+operations; use [`explicit_measurements=True`{.code .docutils .literal
+.notranslate}]{.pre} to retain all measurements in chronological order.
+Use [`cudaq.run`{.code .docutils .literal .notranslate}]{.pre} for
+kernels with conditional operations based on measurement results.
+Single-shot execution is not a suitable workload for cuStabilizer's
+batched GPU acceleration, so the backend uses the CPU Stim frame
+simulator for these kernels and other single-shot contexts. MSM mode is
+not supported by this backend.
+:::
+
+::: {.tab-set .docutils}
+Python
+
+::: {.tab-content .docutils}
+::: {.highlight-python .notranslate}
+::: highlight
+    cudaq.set_target('custabilizer')
+:::
+:::
+:::
+
+C++
+
+::: {.tab-content .docutils}
+::: {.highlight-bash .notranslate}
+::: highlight
+    nvq++ --target custabilizer program.cpp -o program.x
+    ./program.x
+:::
+:::
+:::
 :::
 :::
 :::

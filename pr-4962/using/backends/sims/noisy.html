@@ -496,6 +496,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#trajectory-noisy-simulation">Trajectory Noisy Simulation</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#density-matrix">Density Matrix</a></li>
 <li class="toctree-l4"><a class="reference internal" href="#stim">Stim</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#custabilizer"><code class="docutils literal notranslate"><span class="pre">cuStabilizer</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="photonics.html">     Photonics Simulators</a><ul>
@@ -778,6 +779,12 @@
 <li class="toctree-l4"><a class="reference internal" href="../../extending/compiler/pass_plugins.html#implement-and-register-the-pass">Implement and register the pass</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../extending/compiler/pass_plugins.html#build-the-plugin">Build the plugin</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../extending/compiler/pass_plugins.html#load-and-test-the-plugin">Load and test the plugin</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../extending/compiler/compile_targets.html">Using compile targets to customize compilation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../extending/compiler/compile_targets.html#constructing-single-stage-compile-targets">Constructing single-stage compile targets</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../extending/compiler/compile_targets.html#setting-compile-targets-with-set-target">Setting compile targets with <code class="docutils literal notranslate"><span class="pre">set_target</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../extending/compiler/compile_targets.html#example">Example</a></li>
 </ul>
 </li>
 </ul>
@@ -1259,8 +1266,8 @@ on the immediate quantum state.</p>
 <p>CUDA-Q noise channel utility automatically detects whether a list of Kraus matrices can be converted to
 the unitary mixture representation for more efficient simulation.</p>
 </div>
-<table class="docutils align-default" id="id2">
-<caption><span class="caption-text"><strong>Noise Channel Support</strong></span><a class="headerlink" href="#id2" title="Permalink to this table">¶</a></caption>
+<table class="docutils align-default" id="id3">
+<caption><span class="caption-text"><strong>Noise Channel Support</strong></span><a class="headerlink" href="#id3" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col style="width: 20%" />
 <col style="width: 30%" />
@@ -1418,8 +1425,8 @@ the required number of trajectories will be executed sequentially.</p>
 </div>
 <p>The following environment variable options are applicable to the <code class="code docutils literal notranslate"><span class="pre">nvidia</span></code> target for batched trajectory noisy simulation.
 Any environment variables must be set prior to setting the target or running “<code class="code docutils literal notranslate"><span class="pre">import</span> <span class="pre">cudaq</span></code>”.</p>
-<table class="docutils align-default" id="id3">
-<caption><span class="caption-text"><strong>Additional environment variable options for trajectory simulation</strong></span><a class="headerlink" href="#id3" title="Permalink to this table">¶</a></caption>
+<table class="docutils align-default" id="id4">
+<caption><span class="caption-text"><strong>Additional environment variable options for trajectory simulation</strong></span><a class="headerlink" href="#id4" title="Permalink to this table">¶</a></caption>
 <colgroup>
 <col style="width: 20%" />
 <col style="width: 30%" />
@@ -1615,6 +1622,41 @@ This allows for conditional gate execution (i.e. full control flow), but it
 can be slower than executing Stim a single time and generating all the shots
 from that single execution.
 Set the <code class="code docutils literal notranslate"><span class="pre">explicit_measurements</span></code> flag with <code class="code docutils literal notranslate"><span class="pre">sample</span></code> API for efficient execution.</p>
+</div>
+</section>
+<section id="custabilizer">
+<span id="custabilizer-backend"></span><h2><code class="docutils literal notranslate"><span class="pre">cuStabilizer</span></code><a class="headerlink" href="#custabilizer" title="Permalink to this heading">¶</a></h2>
+<p>The <code class="code docutils literal notranslate"><span class="pre">custabilizer</span></code> backend provides GPU-accelerated stabilizer simulation
+using NVIDIA’s <a class="reference external" href="https://docs.nvidia.com/cuda/cuquantum/latest/custabilizer/index.html">cuStabilizer</a> library.
+It is compatible with the Clifford sampling kernels and Pauli noise models
+supported by <a class="reference internal" href="#stim-backend"><span class="std std-ref">Stim</span></a>.
+To use an existing Stim sampling program, change its target to <code class="code docutils literal notranslate"><span class="pre">custabilizer</span></code>.
+This backend requires an NVIDIA GPU and a CUDA-Q installation with the
+<code class="code docutils literal notranslate"><span class="pre">custabilizer</span></code> backend enabled.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>GPU acceleration is intended for batched <code class="code docutils literal notranslate"><span class="pre">cudaq.sample</span></code> execution.
+Mid-circuit measurements can be sampled in a batch when their results do
+not control subsequent operations; use <code class="code docutils literal notranslate"><span class="pre">explicit_measurements=True</span></code>
+to retain all measurements in chronological order. Use <code class="code docutils literal notranslate"><span class="pre">cudaq.run</span></code>
+for kernels with conditional operations based on measurement results.
+Single-shot execution is not a suitable workload for cuStabilizer’s
+batched GPU acceleration, so the backend uses the CPU Stim frame simulator
+for these kernels and other single-shot contexts.
+MSM mode is not supported by this backend.</p>
+</div>
+<div class="tab-set docutils">
+<input checked="True" class="tab-input" id="tab-set--5-input--1" name="tab-set--5" type="radio"><label class="tab-label" for="tab-set--5-input--1">Python</label><div class="tab-content docutils">
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s1">'custabilizer'</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<input class="tab-input" id="tab-set--5-input--2" name="tab-set--5" type="radio"><label class="tab-label" for="tab-set--5-input--2">C++</label><div class="tab-content docutils">
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>nvq++<span class="w"> </span>--target<span class="w"> </span>custabilizer<span class="w"> </span>program.cpp<span class="w"> </span>-o<span class="w"> </span>program.x
+./program.x
+</pre></div>
+</div>
+</div>
 </div>
 </section>
 </section>
