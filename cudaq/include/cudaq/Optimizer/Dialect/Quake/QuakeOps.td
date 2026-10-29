@@ -1325,6 +1325,27 @@ def quake_DiscriminateOp : QuakeOp<"discriminate",
 // Quantum gates
 //===----------------------------------------------------------------------===//
 
+def quake_BarrierOp : QuakeOp<"barrier",
+    [DeclareOpInterfaceMethods<MemoryEffectsOpInterface>]> {
+  let summary = "Synchronize the specified qubits without applying a gate.";
+  let description = [{
+    All operations on the targets preceding this operation must complete before
+    any subsequent operation on these targets starts. Independent operations
+    within each interval retain their parallelism. This is a scheduling boundary,
+    not a unitary operation, and requires explicit backend support.
+
+    Targets are distinct scalar references or wires. Every wire target has one
+    corresponding wire result, in target order. The operation has read/write
+    effects even in value form so that an unused synchronization is not erased.
+  }];
+  let arguments = (ins Variadic<AnyTypeOf<[RefType, WireType]>>:$targets);
+  let results = (outs Variadic<WireType>:$wires);
+  let assemblyFormat = [{
+    $targets `:` functional-type(operands, results) attr-dict
+  }];
+  let hasVerifier = 1;
+}
+
 class QuakeOperator<string mnemonic, int numParameters = -1,
                     int numTargets = -1, list<Trait> traits = [],
                     dag extraArgs = (ins)>

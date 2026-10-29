@@ -1,0 +1,236 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: split-file %s %t
+// RUN: cudaq-opt --pass-pipeline='builtin.module(hw-jit-prep-pipeline,jit-deploy-pipeline,lqcloud-gate-set-mapping)' %t/circuit.qke | cudaq-translate --convert-to=lqcloud -o %t/circuit.json
+// RUN: diff -u %t/circuit.expected.json %t/circuit.json
+// RUN: cudaq-opt --pass-pipeline='builtin.module(hw-jit-prep-pipeline,lqcloud-gate-set-mapping,func.func(add-dealloc,combine-quantum-alloc,canonicalize,factor-quantum-alloc,memtoreg),add-wireset,func.func(assign-wire-indices),qubit-mapping{device=path(3)},func.func(memtoreg,regtomem),lqcloud-gate-set-mapping,jit-deploy-pipeline,symbol-dce)' %t/barrier.qke | cudaq-translate --convert-to=lqcloud -o %t/barrier.json
+// RUN: FileCheck %s --check-prefix=BARRIER < %t/barrier.json
+// RUN: FileCheck %s --check-prefix=BOUNDARIES < %t/barrier.json
+// RUN: cudaq-opt --canonicalize %t/unused-barrier.qke | FileCheck %s --check-prefix=UNUSED-BARRIER
+// RUN: not cudaq-opt --convert-to-qir-api %t/barrier.qke 2>&1 | FileCheck %s --check-prefix=UNSUPPORTED-BARRIER
+
+//--- barrier.qke
+module {
+  func.func @__nvqpp__mlirgen__barrier() attributes {"cudaq-entrypoint", quake.cudaq_run = [!cc.sequence<i1>]} {
+    %angle = arith.constant 0.25 : f64
+    %qubits = quake.alloca !quake.veq<3>
+    %q0 = quake.extract_ref %qubits[0] : (!quake.veq<3>) -> !quake.ref
+    %q1 = quake.extract_ref %qubits[1] : (!quake.veq<3>) -> !quake.ref
+    %q2 = quake.extract_ref %qubits[2] : (!quake.veq<3>) -> !quake.ref
+    quake.barrier %q0, %q1, %q2 : (!quake.ref, !quake.ref, !quake.ref) -> ()
+    quake.h %q0 : (!quake.ref) -> ()
+    quake.rz (%angle) %q2 : (f64, !quake.ref) -> ()
+    quake.barrier %q0, %q1, %q2 : (!quake.ref, !quake.ref, !quake.ref) -> ()
+    quake.z [%q0] %q2 : (!quake.ref, !quake.ref) -> ()
+    quake.barrier %q0, %q1, %q2 : (!quake.ref, !quake.ref, !quake.ref) -> ()
+    quake.h %q1 : (!quake.ref) -> ()
+    quake.barrier %q0, %q1, %q2 : (!quake.ref, !quake.ref, !quake.ref) -> ()
+    %m0 = quake.mz %q0 : (!quake.ref) -> !quake.measure
+    %m1 = quake.mz %q1 : (!quake.ref) -> !quake.measure
+    %m2 = quake.mz %q2 : (!quake.ref) -> !quake.measure
+    quake.h %q0 : (!quake.ref) -> ()
+    quake.reset %q0 : (!quake.ref) -> ()
+    %m3 = quake.mz %q0 : (!quake.ref) -> !quake.measure
+    %m4 = quake.mz %q0 : (!quake.ref) -> !quake.measure
+    %size = arith.constant 5 : i64
+    %storage = cc.alloca i8[%size : i64]
+    %b0 = quake.discriminate %m0 : (!quake.measure) -> i1
+    %byte0 = arith.extui %b0 : i1 to i8
+    %p0 = cc.compute_ptr %storage[0] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
+    cc.store %byte0, %p0 : !cc.ptr<i8>
+    %b1 = quake.discriminate %m1 : (!quake.measure) -> i1
+    %byte1 = arith.extui %b1 : i1 to i8
+    %p1 = cc.compute_ptr %storage[1] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
+    cc.store %byte1, %p1 : !cc.ptr<i8>
+    %b2 = quake.discriminate %m2 : (!quake.measure) -> i1
+    %byte2 = arith.extui %b2 : i1 to i8
+    %p2 = cc.compute_ptr %storage[2] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
+    cc.store %byte2, %p2 : !cc.ptr<i8>
+    %b3 = quake.discriminate %m3 : (!quake.measure) -> i1
+    %byte3 = arith.extui %b3 : i1 to i8
+    %p3 = cc.compute_ptr %storage[3] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
+    cc.store %byte3, %p3 : !cc.ptr<i8>
+    %b4 = quake.discriminate %m4 : (!quake.measure) -> i1
+    %byte4 = arith.extui %b4 : i1 to i8
+    %p4 = cc.compute_ptr %storage[4] : (!cc.ptr<!cc.array<i8 x ?>>) -> !cc.ptr<i8>
+    cc.store %byte4, %p4 : !cc.ptr<i8>
+    %record = cc.sequence_init %storage, %size : (!cc.ptr<!cc.array<i8 x ?>>, i64) -> !cc.sequence<i1>
+    quake.evince %record : (!cc.sequence<i1>) -> ()
+    return
+  }
+}
+// BARRIER: "name": "barrier"
+// BARRIER-DAG: "name": "h"
+// BARRIER-DAG: "name": "rz"
+// BARRIER: "name": "barrier"
+// BARRIER: "qubits": [
+// BARRIER-NEXT: 0,
+// BARRIER-NEXT: 1,
+// BARRIER-NEXT: 2
+// BARRIER-NEXT: ]
+// BARRIER: "name": "cz"
+// BARRIER: "name": "barrier"
+// BARRIER: "name": "h"
+// BARRIER: "name": "barrier"
+// BARRIER: "clbits": [
+// BARRIER-NEXT: 0
+// BARRIER-NEXT: ],
+// BARRIER-NEXT: "name": "measure"
+// BARRIER: "qubits": [
+// BARRIER-NEXT: [[RESET_Q:[0-2]]]
+// BARRIER: "name": "h"
+// BARRIER: "name": "reset"
+// BARRIER: "qubits": [
+// BARRIER-NEXT: [[RESET_Q]]
+// BARRIER: "name": "barrier"
+// BARRIER: "clbits": [
+// BARRIER-NEXT: 3
+// BARRIER-NEXT: ],
+// BARRIER-NEXT: "name": "measure"
+// BARRIER: "qubits": [
+// BARRIER-NEXT: [[RESET_Q]]
+// BARRIER: "name": "barrier"
+// BARRIER: "clbits": [
+// BARRIER-NEXT: 4
+// BARRIER-NEXT: ],
+// BARRIER-NEXT: "name": "measure"
+// BOUNDARIES-COUNT-6: "name": "barrier"
+// BOUNDARIES-NOT: "name": "barrier"
+// BOUNDARIES: "n_clbits": 5
+// BOUNDARIES: "n_qubits": 3
+// UNSUPPORTED-BARRIER: failed to legalize operation 'quake.barrier'
+
+//--- unused-barrier.qke
+func.func @unused_barrier() {
+  %q = quake.null_wire
+  %unused = quake.barrier %q : (!quake.wire) -> !quake.wire
+  return
+}
+// UNUSED-BARRIER: quake.barrier
+
+//--- circuit.qke
+module {
+  func.func private @__nvqpp__mlirgen__rotate(%qubit: !quake.ref) {
+    %angle = arith.constant -2.500000e-01 : f64
+    quake.rz<adj> (%angle) %qubit : (f64, !quake.ref) -> ()
+    return
+  }
+
+  func.func @__nvqpp__mlirgen__partial() attributes {"cudaq-entrypoint"} {
+    %qubits = quake.alloca !quake.veq<3>
+    %q0 = quake.extract_ref %qubits[0] : (!quake.veq<3>) -> !quake.ref
+    %q1 = quake.extract_ref %qubits[1] : (!quake.veq<3>) -> !quake.ref
+    %q2 = quake.extract_ref %qubits[2] : (!quake.veq<3>) -> !quake.ref
+    quake.h %q0 : (!quake.ref) -> ()
+    quake.apply @__nvqpp__mlirgen__rotate (%q1) : (!quake.ref) -> ()
+    quake.z [%q0] %q2 : (!quake.ref, !quake.ref) -> ()
+    %m2 = quake.mz %q2 : (!quake.ref) -> !quake.measure
+    %m0 = quake.mz %q0 : (!quake.ref) -> !quake.measure
+    return
+  }
+}
+
+//--- circuit.expected.json
+{
+  "instructions": [
+    {
+      "clbits": [],
+      "name": "reset",
+      "params": [],
+      "qubits": [
+        0
+      ]
+    },
+    {
+      "clbits": [],
+      "name": "reset",
+      "params": [],
+      "qubits": [
+        1
+      ]
+    },
+    {
+      "clbits": [],
+      "name": "reset",
+      "params": [],
+      "qubits": [
+        2
+      ]
+    },
+    {
+      "clbits": [],
+      "name": "barrier",
+      "params": [],
+      "qubits": [
+        0,
+        1,
+        2
+      ]
+    },
+    {
+      "clbits": [],
+      "name": "h",
+      "params": [],
+      "qubits": [
+        0
+      ]
+    },
+    {
+      "clbits": [],
+      "name": "rz",
+      "params": [
+        0.25
+      ],
+      "qubits": [
+        1
+      ]
+    },
+    {
+      "clbits": [],
+      "name": "cz",
+      "params": [],
+      "qubits": [
+        0,
+        2
+      ]
+    },
+    {
+      "clbits": [],
+      "name": "barrier",
+      "params": [],
+      "qubits": [
+        0,
+        1,
+        2
+      ]
+    },
+    {
+      "clbits": [
+        1
+      ],
+      "name": "measure",
+      "params": [],
+      "qubits": [
+        2
+      ]
+    },
+    {
+      "clbits": [
+        0
+      ],
+      "name": "measure",
+      "params": [],
+      "qubits": [
+        0
+      ]
+    }
+  ],
+  "n_clbits": 2,
+  "n_qubits": 3
+}

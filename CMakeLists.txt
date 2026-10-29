@@ -160,6 +160,11 @@ if (NOT DEFINED CUDAQ_ENABLE_IQM_BACKEND)
   set(CUDAQ_ENABLE_IQM_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the IQM target.")
 endif()
 
+# Enable LQCloud target by default.
+if (NOT DEFINED CUDAQ_ENABLE_LQCLOUD_BACKEND)
+  set(CUDAQ_ENABLE_LQCLOUD_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the LQCloud target.")
+endif()
+
 # Enable OQC target by default.
 if (NOT DEFINED CUDAQ_ENABLE_OQC_BACKEND)
   set(CUDAQ_ENABLE_OQC_BACKEND ${_cudaq_backend_default} CACHE BOOL "Enable building the OQC target.")

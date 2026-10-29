@@ -3248,6 +3248,36 @@ class PyASTBridge(ast.NodeVisitor):
                                  numTargets=2)
                 return
 
+            if node.func.id == 'barrier':
+                if len(node.args) != 1 or node.keywords:
+                    self.emitFatalError(
+                        'barrier requires one static qvector and no keywords',
+                        node)
+                target = self.__groupValues(node.args, [1])
+                size = None
+                if quake.VeqType.isinstance(target.type):
+                    if quake.VeqType.hasSpecifiedSize(target.type):
+                        size = quake.VeqType.getSize(target.type)
+                    elif (hasattr(target.owner, 'opview') and
+                          isinstance(target.owner.opview, quake.AllocaOp)):
+                        # qvector(3) initially has an unsized type and a
+                        # constant allocation operand, before canonicalization.
+                        extent = target.owner.opview.size
+                        if (extent is not None and
+                                hasattr(extent.owner, 'opview') and isinstance(
+                                    extent.owner.opview, arith.ConstantOp)):
+                            size = IntegerAttr(
+                                extent.owner.attributes['value']).value
+                if size is None or size <= 0:
+                    self.emitFatalError(
+                        'barrier requires a non-empty static qvector', node)
+                targets = [
+                    quake.ExtractRefOp(self.getRefType(), target, i).result
+                    for i in range(size)
+                ]
+                quake.BarrierOp([], targets)
+                return
+
             if node.func.id == 'reset':
                 targets = self.__groupValues(node.args, [(1, -1)])
                 processQuantumOperation(node.func.id.title(), [],

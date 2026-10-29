@@ -32,6 +32,8 @@ add_cudaq_library(OptCodeGen
   Registration.cpp
   RemoveMeasurements.cpp
   ReturnToOutputLog.cpp
+  LQCloudGateSetMapping.cpp
+  TranslateToLQCloudJson.cpp
   TranslateToIQMJson.cpp
   TranslateToOpenQASM.cpp
   WireSetsToProfileQIR.cpp

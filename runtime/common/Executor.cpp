@@ -18,6 +18,7 @@ detail::future Executor::execute(std::vector<KernelExecution> &codesToExecute,
                                  cudaq::detail::ExecutionContextType execType,
                                  std::vector<char> *rawOutput) {
 
+  client->setCredentialProtection(serverHelper->name() == "lqcloud");
   serverHelper->setShots(shots);
 
   CUDAQ_INFO("Executor creating {} jobs to execute with the {} helper.",
@@ -35,7 +36,9 @@ detail::future Executor::execute(std::vector<KernelExecution> &codesToExecute,
                jobPostPath);
 
     // Post it, get the response
-    auto response = client->post(jobPostPath, "", job, headers, true, false,
+    auto response = client->post(jobPostPath, "", job, headers, true,
+                                 serverHelper->name() == "lqcloud" &&
+                                     jobPostPath.starts_with("https://"),
                                  serverHelper->getCookies());
     CUDAQ_INFO("Job (name={}) posted, response was {}", codesToExecute[i].name,
                response.dump());

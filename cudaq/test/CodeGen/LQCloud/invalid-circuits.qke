@@ -1,0 +1,51 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: split-file %s %t
+// RUN: not cudaq-translate --convert-to=lqcloud %t/dynamic-control.qke 2>&1 | FileCheck %s --check-prefix=DYNAMIC-CONTROL
+// RUN: not cudaq-translate --convert-to=lqcloud %t/mid-circuit-measurement.qke 2>&1 | FileCheck %s --check-prefix=MID-CIRCUIT
+// RUN: not cudaq-translate --convert-to=lqcloud %t/named.qke 2>&1 | FileCheck %s --check-prefix=NAMED
+
+//--- dynamic-control.qke
+module {
+  func.func @__nvqpp__mlirgen__dynamic_control(%condition: i1) attributes {"cudaq-entrypoint"} {
+    %qubits = quake.alloca !quake.veq<1>
+    %q0 = quake.extract_ref %qubits[0] : (!quake.veq<1>) -> !quake.ref
+    cf.cond_br %condition, ^then, ^measure
+  ^then:
+    quake.h %q0 : (!quake.ref) -> ()
+    cf.br ^measure
+  ^measure:
+    %m0 = quake.mz %q0 : (!quake.ref) -> !quake.measure
+    return
+  }
+}
+// DYNAMIC-CONTROL: LQCloud requires a single straight-line block
+
+//--- mid-circuit-measurement.qke
+module {
+  func.func @__nvqpp__mlirgen__mid_circuit() attributes {"cudaq-entrypoint"} {
+    %qubits = quake.alloca !quake.veq<1>
+    %q0 = quake.extract_ref %qubits[0] : (!quake.veq<1>) -> !quake.ref
+    %m0 = quake.mz %q0 : (!quake.ref) -> !quake.measure
+    quake.h %q0 : (!quake.ref) -> ()
+    return
+  }
+}
+// MID-CIRCUIT: LQCloud does not support mid-circuit measurement or quantum operations after measurement
+
+//--- named.qke
+module {
+  func.func @named() attributes {"cudaq-entrypoint"} {
+    %q = quake.alloca !quake.veq<1>
+    %q0 = quake.extract_ref %q[0] : (!quake.veq<1>) -> !quake.ref
+    %m0 = quake.mz %q0 name "named" : (!quake.ref) -> !quake.measure
+    return
+  }
+}
+// NAMED: LQCloud does not support named measurement registers

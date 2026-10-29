@@ -15,6 +15,7 @@
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
 #include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Optimizer/CodeGen/IQMJsonEmitter.h"
+#include "cudaq/Optimizer/CodeGen/LQCloudJsonEmitter.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/OptUtils.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
@@ -733,6 +734,37 @@ static void registerToIQMJsonTranslation() {
       });
 }
 
+static void registerToLQCloudJsonTranslation() {
+  cudaq_internal::compiler::TranslateFromMLIRRegistration reg(
+      "lqcloud", "translate from quake to LQCloud's json format",
+      [](Operation *op, llvm::raw_string_ostream &output,
+         const std::string &additionalPasses, bool printIR,
+         bool printIntermediateMLIR, bool printStats) {
+        ScopedTraceWithContext(cudaq::TIMING_JIT, "lqcloud translation");
+        PassManager pm(op->getContext());
+        if (printIntermediateMLIR)
+          pm.enableIRPrinting();
+        if (printStats)
+          pm.enableStatistics();
+        cudaq::opt::addPipelineTranslateToLQCloudJson(pm);
+        DefaultTimingManager tm;
+        tm.setEnabled(cudaq::isTimingTagEnabled(cudaq::TIMING_JIT_PASSES));
+        auto timingScope = tm.getRootScope(); // starts the timer
+        pm.enableTiming(timingScope);         // do this right before pm.run
+        if (failed(cudaq_internal::compiler::runPassManager(pm, op)))
+          throw std::runtime_error("code generation failed.");
+        timingScope.stop();
+        auto passed = cudaq::translateToLQCloudJson(op, output);
+        if (printIR) {
+          if (succeeded(passed))
+            llvm::errs() << output.str();
+          else
+            llvm::errs() << "failed to create LQCloud json file.";
+        }
+        return passed;
+      });
+}
+
 static std::once_flag mlir_init_flag;
 static MLIRContext *mlirContext;
 static std::unique_ptr<MLIRContext> createMLIRContext() {
@@ -756,6 +788,7 @@ void cudaq_internal::compiler::initializeMLIR() {
     registerToQIRTranslation();
     registerToOpenQASMTranslation();
     registerToIQMJsonTranslation();
+    registerToLQCloudJsonTranslation();
     registerToQuakeTranslation();
 
     mlirContext = createMLIRContext().release();

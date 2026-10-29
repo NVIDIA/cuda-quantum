@@ -21,6 +21,7 @@ on:
           - infleqtion
           - ionq
           - iqm
+          - lqcloud
           - oqc
           - orca
           - pasqal
@@ -183,7 +184,7 @@ jobs:
         run: |
           # Determine which providers to test based on inputs and event type
           if [[ "${{ github.event_name }}" == "schedule" || "${{ inputs.target }}" == "nightly" ]]; then
-            providers='["anyon", "fermioniq", "infleqtion", "ionq", "iqm", "oqc", "orca", "pasqal", "qbraid", "quantinuum", "scaleway", "tii"]'
+            providers='["anyon", "fermioniq", "infleqtion", "ionq", "iqm", "lqcloud", "oqc", "orca", "pasqal", "qbraid", "quantinuum", "scaleway", "tii"]'
           else
             # Just run the specified target provider
             providers="[\"${{ inputs.target }}\"]"
@@ -243,6 +244,9 @@ jobs:
                 ;;
               iqm)
                 filelist="targettests/iqm/*.cpp"
+                ;;
+              lqcloud)
+                filelist="targettests/lqcloud/*.cpp docs/sphinx/targets/cpp/lqcloud.cpp docs/sphinx/targets/python/lqcloud.py"
                 ;;
               oqc)
                 filelist="targettests/oqc/*.cpp"
@@ -323,6 +327,15 @@ jobs:
               chmod 600 "$IQM_TOKEN_FILE"
               echo "IQM_TOKENS_FILE=$IQM_TOKEN_FILE" >> "$GITHUB_ENV"
               echo "IQM_SERVER_URL=https://cocos.resonance.meetiqm.com/pyrite:test" >> $GITHUB_ENV
+              ;;
+            lqcloud)
+              echo "### Setting up LQCloud account" >> $GITHUB_STEP_SUMMARY
+              echo "::add-mask::${{ secrets.LQCLOUD_API_KEY }}"
+              echo "::add-mask::${{ secrets.LQCLOUD_URL }}"
+              echo "::add-mask::${{ secrets.LQCLOUD_QPU }}"
+              echo "LQCLOUD_API_KEY=${{ secrets.LQCLOUD_API_KEY }}" >> $GITHUB_ENV
+              echo "LQCLOUD_URL=${{ secrets.LQCLOUD_URL }}" >> $GITHUB_ENV
+              echo "LQCLOUD_QPU=${{ secrets.LQCLOUD_QPU }}" >> $GITHUB_ENV
               ;;
             oqc)
               echo "### Setting up OQC account" >> $GITHUB_STEP_SUMMARY
@@ -461,6 +474,10 @@ jobs:
           for filename in ${{ steps.gettests.outputs.testlist }}; do
             # Check if file exists
             if [ ! -e "$filename" ]; then
+              if [[ "${{ matrix.provider }}" == "lqcloud" ]]; then
+                echo "::error::LQCloud test file not found: $filename"
+                exit 1
+              fi
               echo "::warning::File not found: $filename"
               echo ":warning: Test skipped (file not found): $filename" >> $GITHUB_STEP_SUMMARY
               test_skip_sum=$((test_skip_sum+1))
@@ -585,6 +602,39 @@ jobs:
                 else
                   echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
                   test_err_sum=$((test_err_sum+1))
+                fi
+                ;;
+
+              lqcloud)
+                if [[ "$filename" == *.cpp ]]; then
+                  nvq++ $filename --target lqcloud --lqcloud-url $LQCLOUD_URL --lqcloud-qpu $LQCLOUD_QPU
+                  test_status=$?
+                  if [ $test_status -eq 0 ]; then
+                    ./a.out 1> /dev/null
+                    test_status=$?
+                    if [ $test_status -eq 0 ]; then
+                      echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                    else
+                      echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                      test_err_sum=$((test_err_sum+1))
+                    fi
+                  else
+                    echo ":x: Test failed (failed to compile): $filename" >> $GITHUB_STEP_SUMMARY
+                    test_err_sum=$((test_err_sum+1))
+                  fi
+                elif [[ "$filename" == *.py ]]; then
+                  python3 $filename 1> /dev/null
+                  test_status=$?
+                  if [ $test_status -eq 0 ]; then
+                    echo ":white_check_mark: Successfully ran test: $filename" >> $GITHUB_STEP_SUMMARY
+                  else
+                    echo ":x: Test failed (failed to execute): $filename" >> $GITHUB_STEP_SUMMARY
+                    test_err_sum=$((test_err_sum+1))
+                  fi
+                else
+                  echo "::warning::Unsupported file type: $filename"
+                  echo ":warning: Test skipped (unsupported file type): $filename" >> $GITHUB_STEP_SUMMARY
+                  test_skip_sum=$((test_skip_sum+1))
                 fi
                 ;;
 

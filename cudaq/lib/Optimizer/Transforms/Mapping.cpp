@@ -1262,8 +1262,8 @@ LogicalResult SabreRouter::mapOperation(NodeRef nodeRef) {
 
   // An operation cannot be mapped if it is not a measurement and uses two
   // virtual qubits that are not adjacently placed.
-  if (!node.isMeasure && !isStructuredRoutingOperation(node.op) &&
-      deviceQubits.size() == 2 &&
+  if (!node.isMeasure && !isa<cudaq::quake::BarrierOp>(node.op) &&
+      !isStructuredRoutingOperation(node.op) && deviceQubits.size() == 2 &&
       !device.areConnected(deviceQubits[0], deviceQubits[1]))
     return failure();
 

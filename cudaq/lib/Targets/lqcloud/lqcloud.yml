@@ -1,0 +1,48 @@
+# ============================================================================ #
+# Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                   #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+version: 1
+name: lqcloud
+description: "CUDA-Q target for LQCloud."
+config:
+  # Tell DefaultQuantumPlatform what QPU subtype to use
+  platform-qpu: remote_rest
+  # Tell NVQ++ to generate glue code to set the target backend name
+  gen-target-backend: true
+  # Add preprocessor defines to compilation
+  preprocessor-defines: ["-D CUDAQ_QUANTUM_DEVICE"]
+  # Add the rest-qpu library to the link list
+  link-libs: ["-lcudaq-rest-qpu"]
+  plugin-libraries: ["libcudaq-rest-qpu"]
+  # Expand vector measurements before the mid-level pipeline so the
+  # qubit-mapping pass sees scalar measurements (single-block functions).
+  jit-high-level-pipeline: "expand-measurements"
+  # Decompose to the native gate set, route onto the QPU coupling map
+  # (the helper replaces %QPU_ARCH% with a file generated from the
+  # platform's QPU listing), then decompose any SWAPs inserted by routing.
+  jit-mid-level-pipeline: "func.func(erase-implicit-output),lqcloud-gate-set-mapping,func.func(add-dealloc,combine-quantum-alloc,canonicalize,factor-quantum-alloc,memtoreg),add-wireset,func.func(assign-wire-indices),qubit-mapping{device=file(%QPU_ARCH%)},func.func(cse,normalize-phase-placement,lower-phase,canonicalize),lqcloud-gate-set-mapping,func.func(regtomem)"
+  # Tell the rest-qpu that we are generating LQCloud circuit JSON.
+  codegen-emission: lqcloud
+  # Library mode is only for simulators, physical backends must turn this off
+  library-mode: false
+target-arguments:
+  - key: url
+    required: true
+    type: string
+    platform-arg: url
+    help-string: "Specify the LQCloud API server URL."
+  - key: qpu
+    required: true
+    type: string
+    platform-arg: qpu
+    help-string: "Specify the LQCloud QPU."
+  - key: measurement-type
+    required: false
+    type: string
+    platform-arg: measurement_type
+    help-string: "Override the measurement type: measure or measure2. By default the type is selected automatically from the QPU's supported measurement types."

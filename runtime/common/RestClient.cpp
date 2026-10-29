@@ -19,6 +19,33 @@
 namespace cudaq {
 constexpr long validHttpCode = 205;
 
+namespace {
+std::runtime_error requestError(std::string_view method,
+                                const cpr::Response &response,
+                                bool protectCredentials) {
+  auto message = "HTTP " + std::string(method) + " Error - status code " +
+                 std::to_string(response.status_code);
+  if (protectCredentials)
+    return std::runtime_error(
+        message + ": CPR error " +
+        std::to_string(static_cast<int>(response.error.code)));
+  return std::runtime_error(message + ": " + response.error.message + ": " +
+                            response.text);
+}
+
+nlohmann::json parseResponse(const std::string &text, std::string_view method,
+                             bool protectCredentials) {
+  try {
+    return nlohmann::json::parse(text);
+  } catch (const nlohmann::json::parse_error &) {
+    if (!protectCredentials)
+      throw;
+    throw std::runtime_error("HTTP " + std::string(method) +
+                             " Error - invalid JSON response");
+  }
+}
+} // namespace
+
 RestClient::RestClient() : sslOptions(std::make_unique<cpr::SslOptions>()) {
   auto caInfo = [&]() -> std::string {
     if (auto *curlCABundleStr = getenv("CURL_CA_BUNDLE")) {
@@ -71,19 +98,19 @@ RestClient::post(const std::string_view remoteUrl, const std::string_view path,
     CUDAQ_INFO("Posting to {}/{} with data = {}", remoteUrl, path, post.dump());
 
   auto actualPath = std::string(remoteUrl) + std::string(path);
-  auto r = cpr::Post(cpr::Url{actualPath}, cpr::Body(post.dump()), cprHeaders,
-                     cpr::VerifySsl(enableSsl), *sslOptions, cprCookies);
+  auto r =
+      cpr::Post(cpr::Url{actualPath}, cpr::Body(post.dump()), cprHeaders,
+                cpr::VerifySsl(enableSsl), *sslOptions, cprCookies,
+                protectCredentials ? cpr::Redirect{false} : cpr::Redirect{});
 
   if (r.status_code > validHttpCode || r.status_code == 0)
-    throw std::runtime_error("HTTP POST Error - status code " +
-                             std::to_string(r.status_code) + ": " +
-                             r.error.message + ": " + r.text);
+    throw requestError("POST", r, protectCredentials);
 
   if (cookiesOut)
     for (const auto &cookie : r.cookies)
       (*cookiesOut)[cookie.GetName()] = cookie.GetValue();
 
-  return nlohmann::json::parse(r.text);
+  return parseResponse(r.text, "POST", protectCredentials);
 }
 
 void RestClient::put(const std::string_view remoteUrl,
@@ -129,13 +156,13 @@ std::string RestClient::getRawText(
     cprCookies.emplace_back({kv.first, kv.second});
   cpr::Parameters cprParams;
   auto actualPath = std::string(remoteUrl) + std::string(path);
-  auto r = cpr::Get(cpr::Url{actualPath}, cprHeaders, cprParams,
-                    cpr::VerifySsl(enableSsl), *sslOptions, cprCookies);
+  auto r =
+      cpr::Get(cpr::Url{actualPath}, cprHeaders, cprParams,
+               cpr::VerifySsl(enableSsl), *sslOptions, cprCookies,
+               protectCredentials ? cpr::Redirect{false} : cpr::Redirect{});
 
   if (r.status_code > validHttpCode || r.status_code == 0)
-    throw std::runtime_error("HTTP GET Error - status code " +
-                             std::to_string(r.status_code) + ": " +
-                             r.error.message + ": " + r.text);
+    throw requestError("GET", r, protectCredentials);
   return r.text;
 }
 
@@ -143,8 +170,8 @@ nlohmann::json
 RestClient::get(const std::string_view remoteUrl, const std::string_view path,
                 std::map<std::string, std::string> &headers, bool enableSsl,
                 const std::map<std::string, std::string> &cookies) {
-  return nlohmann::json::parse(
-      getRawText(remoteUrl, path, headers, enableSsl, cookies));
+  return parseResponse(getRawText(remoteUrl, path, headers, enableSsl, cookies),
+                       "GET", protectCredentials);
 }
 
 void RestClient::del(const std::string_view remoteUrl,

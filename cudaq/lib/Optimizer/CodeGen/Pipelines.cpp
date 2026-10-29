@@ -367,3 +367,25 @@ void cudaq::opt::addPipelineTranslateToIQMJson(PassManager &pm) {
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
   cudaq::opt::addDecomposition(pm, {"R1ToPhasedRx", "RzToPhasedRx"});
 }
+
+void cudaq::opt::addPipelineTranslateToLQCloudJson(PassManager &pm) {
+  pm.addNestedPass<func::FuncOp>(
+      cudaq::opt::createEraseCompilerGeneratedEvince());
+  pm.addNestedPass<func::FuncOp>(createExpandMeasurementsPass());
+  pm.addNestedPass<func::FuncOp>(createCSEPass());
+  pm.addNestedPass<func::FuncOp>(createLoopNormalize());
+  LoopUnrollOptions luo;
+  pm.addNestedPass<func::FuncOp>(createLoopUnroll(luo));
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  cudaq::opt::addPhaseLifecycle(pm);
+  addLowerToCFG(pm);
+  pm.addNestedPass<func::FuncOp>(createStackFramePrealloc());
+  pm.addNestedPass<func::FuncOp>(createCombineQuantumAllocations());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createSROA());
+  pm.addNestedPass<func::FuncOp>(createClassicalMemToReg());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addNestedPass<func::FuncOp>(createDeadStoreRemoval());
+  pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
+  pm.addPass(createSymbolDCEPass());
+}
