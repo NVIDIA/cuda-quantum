@@ -96,7 +96,8 @@ CUDAQ_TEST(ParserTester, checkOwningResultVectors) {
     EXPECT_EQ(std::vector<bool>({false, true}), results[1]);
   }
 
-  EXPECT_ANY_THROW(parseResults("START\nOUTPUT\tARRAY\t2\tarray<i1 x 2>\n"
+  // A shot cannot carry more results than its array declares.
+  EXPECT_ANY_THROW(parseResults("START\nOUTPUT\tARRAY\t1\tarray<i1 x 1>\n"
                                 "OUTPUT\tRESULT\t1\tr00000\n"
                                 "OUTPUT\tRESULT\t0\tr00000\nEND\t0\n"));
 }
@@ -901,111 +902,28 @@ CUDAQ_TEST(ParserTester, checkFailedResultShotIsDiscarded) {
   origBuffer = nullptr;
 }
 
-CUDAQ_TEST(ParserTester, checkOrder) {
-  const std::string log =
-      "HEADER\tschema_id\tlabeled\n"
-      "HEADER\tschema_version\t1.0\n"
-      "START\n"
-      "METADATA\tentry_point\n"
-      "METADATA\toutput_labeling_schema\tschema_id\n"
-      "METADATA\toutput_names\t[[[0,[0,\"r00000\"]],[1,[1,\"r00001\"]],[2,[2,"
-      "\"r00002\"]],[3,[3,\"r00003\"]],[4,[4,\"r00004\"]],[5,[5,\"r00005\"]],["
-      "6,[6,\"r00006\"]],[7,[7,\"r00007\"]]]]\n"
-      "METADATA\tqir_profiles\tbase_profile\n"
-      "METADATA\trequiredQubits\t8\n"
-      "METADATA\trequiredResults\t8\n"
-      "OUTPUT\tARRAY\t8\tarray<i1 x 8>\n"
-      "OUTPUT\tRESULT\t1\tr00003\n"
-      "OUTPUT\tRESULT\t0\tr00002\n"
-      "OUTPUT\tRESULT\t0\tr00000\n"
-      "OUTPUT\tRESULT\t1\tr00004\n"
-      "OUTPUT\tRESULT\t1\tr00006\n"
-      "OUTPUT\tRESULT\t1\tr00001\n"
-      "OUTPUT\tRESULT\t0\tr00007\n"
-      "OUTPUT\tRESULT\t0\tr00005\n"
-      "END\t0";
-
-  cudaq::RecordLogParser parser;
-  parser.parse(log);
-  auto *origBuffer = parser.getBufferPtr();
-  std::size_t bufferSize = parser.getBufferSize();
-  char *buffer = static_cast<char *>(malloc(bufferSize));
-  std::memcpy(buffer, origBuffer, bufferSize);
-  cudaq::detail::RunResultSpan span = {buffer, bufferSize};
-  // This is parsed as a vector of bool vectors
-  std::vector<std::vector<bool>> results = {
-      reinterpret_cast<std::vector<bool> *>(span.data),
-      reinterpret_cast<std::vector<bool> *>(span.data + span.lengthInBytes)};
-  // 1 shot
-  EXPECT_EQ(1, results.size());
-  for (const auto &result : results) {
-    // 8 measured bits each
-    EXPECT_EQ(8, result.size());
-    EXPECT_EQ(false, result[0]); // r00000
-    EXPECT_EQ(true, result[1]);  // r00001
-    EXPECT_EQ(false, result[2]); // r00002
-    EXPECT_EQ(true, result[3]);  // r00003
-    EXPECT_EQ(true, result[4]);  // r00004
-    EXPECT_EQ(false, result[5]); // r00005
-    EXPECT_EQ(true, result[6]);  // r00006
-    EXPECT_EQ(false, result[7]); // r00007
-  }
-
-  free(buffer);
-  buffer = nullptr;
-  origBuffer = nullptr;
-}
-
 CUDAQ_TEST(ParserTester, checkNamedResults) {
-  const std::string log =
-      "HEADER\tschema_id\tlabeled\n"
-      "HEADER\tschema_version\t1.0\n"
-      "START\n"
-      "METADATA\tentry_point\n"
-      "METADATA\toutput_labeling_schema\tschema_id\n"
-      "METADATA\toutput_names\t[[[0,[1,\"result%0\"]],[1,[2,\"result%1\"]],[2,["
-      "3,\"result%2\"]],[3,[4,\"result%3\"]]]]\n"
-      "METADATA\tqir_profiles\tadaptive_profile\n"
-      "METADATA\trequired_num_qubits\t5\n"
-      "METADATA\trequired_num_results\t4\n"
-      "OUTPUT\tARRAY\t4\tarray<i1 x 4>\n"
-      "OUTPUT\tRESULT\t1\tresult%0\n"
-      "OUTPUT\tRESULT\t1\tresult%1\n"
-      "OUTPUT\tRESULT\t1\tresult%2\n"
-      "OUTPUT\tRESULT\t0\tresult%3\n"
-      "END\t0\n"
-      "START\n"
-      "OUTPUT\tARRAY\t4\tarray<i1 x 4>\n"
-      "OUTPUT\tRESULT\t1\tresult%0\n"
-      "OUTPUT\tRESULT\t1\tresult%1\n"
-      "OUTPUT\tRESULT\t0\tresult%3\n"
-      "OUTPUT\tRESULT\t1\tresult%2\n"
-      "END\t0\n";
-
-  cudaq::RecordLogParser parser;
-  parser.parse(log);
-  auto *origBuffer = parser.getBufferPtr();
-  std::size_t bufferSize = parser.getBufferSize();
-  char *buffer = static_cast<char *>(malloc(bufferSize));
-  std::memcpy(buffer, origBuffer, bufferSize);
-  cudaq::detail::RunResultSpan span = {buffer, bufferSize};
-  // This is parsed as a vector of bool vectors
-  std::vector<std::vector<bool>> results = {
-      reinterpret_cast<std::vector<bool> *>(span.data),
-      reinterpret_cast<std::vector<bool> *>(span.data + span.lengthInBytes)};
-  // 2 shots
-  EXPECT_EQ(2, results.size());
-  for (const auto &result : results) {
-    // 4 measured bits each
-    EXPECT_EQ(4, result.size());
-    EXPECT_EQ(true, result[0]);  // result%0
-    EXPECT_EQ(true, result[1]);  // result%1
-    EXPECT_EQ(true, result[2]);  // result%2
-    EXPECT_EQ(false, result[3]); // result%3
-  }
-  free(buffer);
-  buffer = nullptr;
-  origBuffer = nullptr;
+  // Quantinuum logs for `sample` on kernels with named measurements. A label
+  // is a register name, so each result takes its index from its position.
+  const auto parseResults = [](const std::string &log) {
+    cudaq::RecordLogParser parser;
+    return parser.parseResults(log);
+  };
+  const std::string header =
+      "HEADER\tschema_id\tlabeled\nHEADER\tschema_version\t2.1\nSTART\n";
+  // `x(q[0])`, `r1 = mz(q[0])`, then an unnamed `mz(q[1])`.
+  EXPECT_EQ(std::vector<std::vector<bool>>({{true, false}}),
+            parseResults(header + "OUTPUT\tARRAY\t2\tarray<i1 x 2>\n"
+                                  "OUTPUT\tRESULT\t1\tr1\n"
+                                  "OUTPUT\tRESULT\t0\tr00000\nEND\t0\n"));
+  // `x(a[0])`, `x(b[1])`, `ra = mz(a)`, and `rb = mz(b)` on two 2-qubit
+  // vectors. Each register's `%` suffix starts at 0.
+  EXPECT_EQ(std::vector<std::vector<bool>>({{true, false, false, true}}),
+            parseResults(header + "OUTPUT\tARRAY\t4\tarray<i1 x 4>\n"
+                                  "OUTPUT\tRESULT\t1\tra%0\n"
+                                  "OUTPUT\tRESULT\t0\tra%1\n"
+                                  "OUTPUT\tRESULT\t0\trb%0\n"
+                                  "OUTPUT\tRESULT\t1\trb%1\nEND\t0\n"));
 }
 
 CUDAQ_TEST(ParserTester, checkResultTypeWithArray) {

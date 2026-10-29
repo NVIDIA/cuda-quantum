@@ -178,7 +178,8 @@ void cudaq::RecordLogParser::handleOutput(
   cudaq::trim(recLabel);
   if (recType == "RESULT") {
     // Sample-type QIR output, where we have an array of `RESULT` per shot. The
-    // `qir-insert-array-record` pass emits the array record. For example,
+    // `qir-insert-array-record` pass inserts the call that records the array.
+    // For example,
     //  START
     //  OUTPUT    ARRAY   10      array<i1 x 10>
     //  OUTPUT    RESULT  1       r00000
@@ -200,54 +201,16 @@ void cudaq::RecordLogParser::handleOutput(
       }
     }
 
-    // Note: For ordered schema, we expect the results are sequential in the
-    // same order that mz operations are called. This may include results in
-    // named registers (specified in kernel code) and other auto-generated
-    // register names. If index cannot be extracted from the label, we fall back
-    // to using this mechanism.
-    auto idxLabel = std::to_string(containerMeta.processedElements);
-
-    // Get the index from the label, if feasible.
-    /// TODO: The `sample` API should be updated to not allow explicit
-    /// measurement operations in the kernel when targeting hardware backends.
-    // Until then, we handle both cases here - auto-generated labels like
-    // r00000, r00001, ... and named results like result%0, result%1, ...
-    if (!recLabel.empty()) {
-      std::size_t percentPos = recLabel.find('%');
-      if (percentPos != std::string::npos) {
-        idxLabel = recLabel.substr(percentPos + 1);
-      }
-      // This logic is fragile; for example user may have only one mz assigned
-      // to variable like r00001 and it will be interpreted as index 1, and
-      // cause `Array index out of bounds` error. The proper fix is to disallow
-      // explicit mz operations in sampled kernels. Also, `run` is appropriate
-      // for getting sub-register results.
-      else if (recLabel.size() == 6 && recLabel[0] == 'r') {
-        // check that the last 5 characters are all digits
-        bool allDigits = true;
-        for (std::size_t i = 1; i < 6; ++i) {
-          if (recLabel[i] < '0' || recLabel[i] > '9') {
-            allDigits = false;
-            break;
-          }
-        }
-        if (allDigits) {
-          idxLabel = recLabel.substr(1);
-        }
-      }
-    }
-
+    // A label is a register name, not an index: `UpdateRegisterNames` restarts
+    // the `%` suffix for each register. Results arrive in the order the kernel
+    // measured them, so a result's index is its position in the array.
+    const std::size_t index = containerMeta.processedElements;
     if (parsedResults) {
-      const auto index =
-          containerMeta.extractIndex(fmt::format("[{}]", idxLabel));
-      if (index >= containerMeta.elementCount)
-        throw std::runtime_error("Array index out of bounds");
-      containerMeta.requireUnprocessed(index);
       parsedResults->back()[index] =
           detail::BooleanConverter().convert(recValue);
       containerMeta.markProcessed(index);
     } else {
-      processArrayEntry(recValue, fmt::format("[{}]", idxLabel));
+      processArrayEntry(recValue, fmt::format("[{}]", index));
     }
     countAndResetContainerIfComplete();
     return;
