@@ -4,7 +4,7 @@
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 //
 // Translates fabric.* IR to Stim circuit text format. Mirrors the fabric
 // emitter (ir/lib/Translate/QLX/EmitStim.cpp) but walks the richer Fabric

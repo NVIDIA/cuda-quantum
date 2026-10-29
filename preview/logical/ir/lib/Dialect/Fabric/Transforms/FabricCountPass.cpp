@@ -4,7 +4,7 @@
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 //
 // Tier 1 of the resource-estimation stack
 // (design/resource-estimation-proposal.md §4.1).
