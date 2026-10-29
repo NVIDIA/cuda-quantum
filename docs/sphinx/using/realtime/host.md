@@ -213,9 +213,9 @@ place of its own kernel.
 - Lowest latency for simple RPC handlers
 - Transport-agnostic API -- the transport provides device hooks and an opaque
   context through its bridge, linked with the kernel at run time
+- Thread 0 drives the transport and every thread of the block calls each
   `CUDAQ_DISPATCH_DEVICE_CALL` handler between two block barriers -- no
-  inter-kernel synchronization overhead
-- Single-thread, single-block kernel -- no inter-kernel synchronization overhead
+  inter-kernel synchronization overhead  
 - Not compatible with `CUDAQ_DISPATCH_GRAPH_LAUNCH`
 
 ### Host API Extensions
@@ -889,7 +889,7 @@ from graph optimization and can reduce kernel launch overhead for sophisticated 
 ### Requirements
 
 - **GPU Architecture**: Compute capability 9.0 or higher (Hopper H100 or later)
-- **CUDA Version**: CUDA 12.0+ with device-side graph launch support
+- **CUDA Version**: CUDA 12.6+ with device-side graph launch support
 - **Graph Setup**: Handler graphs must be captured and instantiated with `cudaGraphInstantiateFlagDeviceLaunch`
 
 ### Graph-Based Dispatch API

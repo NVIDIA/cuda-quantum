@@ -241,7 +241,6 @@ cudaq_status_t cudaq_dispatcher_set_unified_launch(
     cudaq_dispatcher_t *dispatcher,
     cudaq_unified_launch_fn_t unified_launch_fn,
     void *transport_ctx);
-    cudaStream_t stream);
 ```
 
 When `kernel_type == CUDAQ_KERNEL_UNIFIED` on the DEVICE path:
@@ -1008,7 +1007,7 @@ for sophisticated decoders.
 ### Requirements
 
 - **GPU Architecture**: Compute capability 9.0 or higher (Hopper H100 or later)
-- **CUDA Version**: CUDA 12.0+ with device-side graph launch support
+- **CUDA Version**: CUDA 12.6+ with device-side graph launch support
 - **Graph Setup**: Handler graphs must be captured and instantiated with `cudaGraphInstantiateFlagDeviceLaunch`
 
 ### Graph-Based Dispatch API

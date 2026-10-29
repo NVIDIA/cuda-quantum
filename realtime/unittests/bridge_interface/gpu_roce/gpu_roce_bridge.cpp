@@ -284,6 +284,7 @@ int main(int argc, char *argv[]) {
     // Launch GpuRoceTransceiver kernels and run
     std::cout << "\n[5/5] Launching GpuRoceTransceiver kernels...\n";
     HANDLE_CUDAQ_REALTIME_ERROR(cudaq_bridge_launch(bridge_handle));
+    std::cout << "\n=== App Ready ===" << std::endl;
     //============================================================================
     // Main run loop
     //============================================================================

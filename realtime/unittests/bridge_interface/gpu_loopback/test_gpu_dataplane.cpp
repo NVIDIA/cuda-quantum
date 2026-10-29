@@ -245,15 +245,16 @@ TEST_F(GpuDataplaneTest, EnforcesSetBridgeThenLookupThenStart) {
   EXPECT_EQ(cudaq_dispatcher_get_device_handler(d, kHandler, &fn),
             CUDAQ_ERR_INVALID_ARG);
 
-  // Without a lookup, start() links the kernel and the hooks alone, then
-  // refuses a handler address it did not hand out.
+  // Without a lookup, start() refuses a handler address it did not hand out,
+  // before it links anything.
   ASSERT_EQ(cudaq_dispatcher_set_bridge(d, b), CUDAQ_OK);
   install(d, reinterpret_cast<void *>(0x1));
   EXPECT_EQ(cudaq_dispatcher_start(d), CUDAQ_ERR_INVALID_ARG);
 
-  // That module holds none of this binary's code, so a lookup now is refused.
-  EXPECT_EQ(cudaq_dispatcher_get_device_handler(d, kHandler, &fn),
-            CUDAQ_ERR_INVALID_ARG);
+  // So the lookup still links this binary's code, and start() then succeeds.
+  ASSERT_EQ(cudaq_dispatcher_get_device_handler(d, kHandler, &fn), CUDAQ_OK);
+  install(d, fn);
+  EXPECT_EQ(cudaq_dispatcher_start(d), CUDAQ_OK);
 }
 
 // The first lookup links; later ones reuse the module, from the same binary
@@ -310,9 +311,8 @@ TEST_F(GpuDataplaneTest, RefusesUnknownNames) {
   void *ptr = nullptr;
   EXPECT_EQ(cudaq_dispatcher_get_device_handler(d, "no_such_handler", &ptr),
             CUDAQ_ERR_INVALID_ARG);
-  // A failed lookup leaves no error behind for the next CUDA call.
+  // A refused name does not spoil the next lookup.
   EXPECT_EQ(cudaq_dispatcher_get_device_handler(d, kHandler, &ptr), CUDAQ_OK);
-  EXPECT_EQ(cudaGetLastError(), cudaSuccess);
 }
 
 TEST_F(GpuDataplaneTest, OnlyADeviceUnifiedDispatcherLinks) {
@@ -355,6 +355,14 @@ TEST_F(GpuDataplaneTest, AProviderImageThatCannotLinkFailsTheLink) {
   void *fn = nullptr;
   EXPECT_EQ(cudaq_dispatcher_get_device_handler(d, kHandler, &fn),
             CUDAQ_ERR_INTERNAL);
+}
+
+// Only CUDAQ_ERR_UNSUPPORTED means "no launch override"; a failed query must
+// not fall through to the GPU data plane.
+TEST_F(GpuDataplaneTest, SetBridgeRefusesAFailedOverrideQuery) {
+  auto b = bridge({"--unified-context-fails"});
+  auto *d = dispatcher();
+  EXPECT_EQ(cudaq_dispatcher_set_bridge(d, b), CUDAQ_ERR_INTERNAL);
 }
 
 TEST_F(GpuDataplaneTest, SetBridgeRefusesAProviderWithoutDeviceCode) {

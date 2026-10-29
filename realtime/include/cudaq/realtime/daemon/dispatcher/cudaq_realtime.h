@@ -419,6 +419,9 @@ cudaq_status_t cudaq_dispatcher_set_mailbox(cudaq_dispatcher_t *dispatcher,
 //                                   provider's GPU data plane, linked
 //                                   on the first handler lookup
 //                                   (cudaq_dispatcher_get_device_handler).
+//                                   A provider without an override answers
+//                                   CUDAQ_ERR_UNSUPPORTED (or names no
+//                                   launch_fn); any other error fails.
 //                                   A provider with neither is refused.
 // A `num_slots` / `slot_size` left at 0 in the config is filled from the
 // bridge's ring geometry; a non-zero value that disagrees with it is an error.

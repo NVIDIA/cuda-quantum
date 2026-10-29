@@ -405,11 +405,11 @@ do_run() {
     # linked at run time from the bridge's device code, which only the bridge
     # interface hands over, so --unified runs gpu_roce_app instead.  That one
     # prints "Bridge Ready" from connect(), before the dispatcher starts, so
-    # wait for its last step instead.
+    # wait for the line it prints after cudaq_bridge_launch instead.
     local ready_marker="Bridge Ready"
     if $UNIFIED; then
         bridge_bin="$app_bin"
-        ready_marker="\[5/5\]"
+        ready_marker="=== App Ready ==="
     fi
 
     # Verify binaries exist

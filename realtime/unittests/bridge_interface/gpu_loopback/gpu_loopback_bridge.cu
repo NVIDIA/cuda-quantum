@@ -19,6 +19,7 @@
 /// Bridge options:
 ///   --explicit-garbage   hand over an image that cannot link
 ///   --no-device-code     hand over no device code at all
+///   --unified-context-fails  fail the UNIFIED context query (INTERNAL)
 ///
 /// Like any provider, this library links no realtime library: it uses the
 /// realtime headers only.
@@ -61,6 +62,7 @@ static_assert(sizeof(loopback_session) <= CUDAQ_DEV_TRANSPORT_SESSION_BYTES &&
 struct LoopbackBridge {
   bool explicit_garbage = false;
   bool no_device_code = false;
+  bool unified_context_fails = false;
   // Mapped pinned allocations: host views here, device views in `ring`.
   std::uint8_t *rx_data_host = nullptr;
   std::uint8_t *tx_data_host = nullptr;
@@ -164,6 +166,8 @@ static cudaq_status_t loopback_create(cudaq_realtime_bridge_handle_t *handle,
       b->explicit_garbage = true;
     else if (arg == "--no-device-code")
       b->no_device_code = true;
+    else if (arg == "--unified-context-fails")
+      b->unified_context_fails = true;
   }
   const std::size_t data_bytes = std::size_t{kNumSlots} * kSlotSize;
   const std::size_t flag_bytes = kNumSlots * sizeof(std::uint64_t);
@@ -214,6 +218,9 @@ loopback_get_transport_context(cudaq_realtime_bridge_handle_t handle,
                                void *out_context) {
   if (!handle || !out_context)
     return CUDAQ_ERR_INVALID_ARG;
+  if (context_type == UNIFIED &&
+      static_cast<LoopbackBridge *>(handle)->unified_context_fails)
+    return CUDAQ_ERR_INTERNAL;
   if (context_type != RING_BUFFER)
     return CUDAQ_ERR_UNSUPPORTED;
   *static_cast<cudaq_ringbuffer_t *>(out_context) =
