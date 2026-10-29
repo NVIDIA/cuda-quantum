@@ -43,7 +43,7 @@ def reset():
 def set_target_with_tolerance(tolerance):
     cudaq.set_target(FTQC_LOGICAL_TARGET)
     target = get_compile_target()
-    stage = target.stages[0]
+    [stage] = target.stages
     profile = stage.ir_output_profile
     profile.approximation_tolerance = tolerance
     stage.ir_output_profile = profile

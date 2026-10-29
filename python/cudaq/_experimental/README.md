@@ -69,19 +69,23 @@ run on at runtime. Kernels are compiled against `compile_target` if it is given,
 and against the named target's default compile target otherwise.
 
 To change one setting of a named target, derive from the compile target that
-`get_compile_target` returns while that target is set. For example, this
-tightens the rotation tolerance of a target with a `quake-unmapped` stage:
+`get_compile_target` returns while that target is set. Reading `stages` or a
+stage's profile returns a copy, so assign each changed value back. For example,
+this tightens the rotation tolerance of the `quake-unmapped` stages of a
+target:
 
 ```python
-from cudaq._experimental import get_compile_target
+from cudaq._experimental import QuakeUnmappedProfile, get_compile_target
 
 cudaq.set_target("compiler-bench-ftqc-clifford-t")
 target = get_compile_target()
-stage = target.stages[0]
-profile = stage.ir_output_profile
-profile.approximation_tolerance = 1e-12
-stage.ir_output_profile = profile
-target.stages = [stage]
+stages = target.stages
+for stage in stages:
+    profile = stage.ir_output_profile
+    if isinstance(profile, QuakeUnmappedProfile):
+        profile.approximation_tolerance = 1e-12
+        stage.ir_output_profile = profile
+target.stages = stages
 cudaq.set_target("compiler-bench-ftqc-clifford-t", compile_target=target)
 ```
 
