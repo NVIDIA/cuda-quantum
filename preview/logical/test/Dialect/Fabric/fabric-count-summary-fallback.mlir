@@ -7,9 +7,7 @@
 // ========================================================================== //
 
 // REQUIRES: qlx-opt
-// RUN: qlx-opt %s --fabric-count --mlir-pass-statistics -o %t 2>&1 \
-// RUN:   | FileCheck %s --check-prefix=STATS
-// RUN: FileCheck %s < %t
+// RUN: qlx-opt %s --fabric-count --mlir-pass-statistics 2>&1 | FileCheck %s
 
 // A balanced callable can consume and replace entry reservations. A callee
 // that changes exit ownership still falls back, including a negative cache
@@ -39,9 +37,9 @@ fabric.gadget @entry {entry} on @dev() {
   fabric.call @consume(%b) : (!fabric.patch<@one>) -> ()
   fabric.return
 }
-// STATS: (S) {{ *}}2 callable-summary-hits
-// STATS: (S) {{ *}}1 callable-summary-negative-hits
-// STATS: (S) {{ *}}2 callable-summary-probes
+// CHECK: {{ }}2 callable-summary-hits
+// CHECK: {{ }}1 callable-summary-negative-hits
+// CHECK: {{ }}2 callable-summary-probes
 // CHECK: fabric.counts = {
 // CHECK-SAME: gadget_calls = {consume = 2 : i64, replace = 2 : i64}
 // CHECK-SAME: logical_qubits_peak = 2 : i64

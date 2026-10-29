@@ -7,9 +7,7 @@
 // ========================================================================== //
 
 // REQUIRES: qlx-opt
-// RUN: qlx-opt %s --fabric-count --mlir-pass-statistics -o %t 2>&1 \
-// RUN:   | FileCheck %s --check-prefix=STATS
-// RUN: FileCheck %s < %t
+// RUN: qlx-opt %s --fabric-count --mlir-pass-statistics 2>&1 | FileCheck %s
 
 // C1 belongs to the enclosing callable. A nested summary must observe its
 // temporary release; only the tick after replacement counts for C1. The
@@ -49,8 +47,8 @@ fabric.gadget @entry {entry} on @dev() {
   fabric.dealloc %p : !fabric.patch<@one>
   fabric.return
 }
-// STATS: (S) {{ *}}4 callable-summary-hits
-// STATS: (S) {{ *}}2 callable-summary-probes
+// CHECK: {{ }}4 callable-summary-hits
+// CHECK: {{ }}2 callable-summary-probes
 // CHECK: fabric.counts = {
 // CHECK-SAME: gadget_calls = {outer = 2 : i64, replace = 4 : i64}
 // CHECK-SAME: logical_qubits_peak = 3 : i64
