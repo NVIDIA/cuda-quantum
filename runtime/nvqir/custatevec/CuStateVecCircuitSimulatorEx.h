@@ -568,6 +568,8 @@ protected:
         /*abs2Sums=*/nullptr));
 
     cudaq::ExecutionResult result;
+    if (includeSequentialData)
+      result.sequentialData.reserve(shots);
     // cuStateVecEx returns ascending bit strings. Run-length encoding avoids a
     // string conversion for every shot and instead performs one per unique
     // sampled bit string.
@@ -579,9 +581,9 @@ protected:
         ++runLength;
       std::string bitString = formatBitString(value, measuredBits.size());
       if (includeSequentialData)
-        result.appendResult(bitString, runLength);
+        result.appendResult(std::move(bitString), runLength);
       else
-        result.counts[bitString] += runLength;
+        result.counts[std::move(bitString)] += runLength;
       index += runLength;
     }
     result.expectationValue = detail::parityExpectation(result, shots);
