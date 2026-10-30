@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq_internal/compiler/JIT.h"
+#include "common/CodeGenConfig.h"
 #include "common/CompiledModule.h"
 #include "common/Environment.h"
 #include "common/Timing.h"
@@ -189,6 +190,13 @@ cudaq::JitEngine cudaq_internal::compiler::createJITEngine(
 
     auto *context = module->getContext();
     PassManager pm(context);
+
+    // Only profile QIR lowers borrowed wires. Simulators run full QIR, so
+    // convert them to null wires first.
+    const auto codegen = cudaq::parseCodeGenTranslation(convertTo);
+    if (!codegen.isBaseProfile && !codegen.isAdaptiveProfile)
+      cudaq_internal::compiler::convertBorrowedWiresToNullWires(
+          cast<ModuleOp>(module));
 
     bool containsWireSet =
         module

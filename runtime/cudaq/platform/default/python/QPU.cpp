@@ -63,6 +63,10 @@ std::string cudaq::detail::lower_to_qir_llvm(const std::string &name,
       cudaq_internal::compiler::CompiledModuleHelper::getMlirModuleOp(
           *compiled.getMlir());
 
+  // This path lowers every format with the full-QIR pipeline, which cannot
+  // lower borrowed wires.
+  cudaq_internal::compiler::convertBorrowedWiresToNullWires(compiled_module);
+
   // TODO: can the following be merged with qirProfileTranslationFunction in
   // RuntimeMLIR.cpp?
   PassManager pm(compiled_module.getContext());
@@ -118,6 +122,9 @@ std::string cudaq::detail::lower_to_openqasm(const std::string &name,
           *compiled.getMlir());
   auto *ctx = compiled_module.getContext();
   PassManager pm(ctx);
+  // OpenQASM takes qubit references, so convert a kernel that a stage left on
+  // wires, including wires borrowed from a device's wire set, back to them.
+  pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createRegToMem());
   const auto &t = compiler.getTarget();
   if (!t.hasPassPipeline()) {
     cudaq::opt::addAggressiveInlining(pm);

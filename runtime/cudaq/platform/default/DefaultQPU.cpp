@@ -67,6 +67,11 @@ cudaq::DefaultQPU::launchKernel(const cudaq::sample_policy &policy,
                                 const cudaq::CompiledModule &module,
                                 cudaq::KernelArgs args) {
   CUDAQ_INFO("DefaultQPU::launchKernel {}", policy.name);
+  // Put routed results back in the kernel's qubit order, as
+  // `BaseRemoteRESTQPU` does. Explicit measurements are already in execution
+  // order.
+  if (!policy.options.explicit_measurements)
+    policy.reorderIdx = module.getMetadata().reorderIdx;
   return cudaq::ExecutionManager::with_default_em(policy, [&module, &args]() {
     [[maybe_unused]] auto res = executeCompiledModule(module, args);
   });

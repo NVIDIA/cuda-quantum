@@ -129,4 +129,9 @@ void setRunPassManagerHook(RunPassManagerHook hook);
 /// Configure the pass manager according to environment variables
 void configurePassManagerFromEnv(mlir::PassManager &pm);
 
+/// Replace the wires \p module borrows from wire sets with null wires, for
+/// full-QIR code generation. Unlike `regtomem`, this handles wires a `cc.loop`
+/// carries. Entry-block borrows become null wires in device-qubit order.
+void convertBorrowedWiresToNullWires(mlir::ModuleOp module);
+
 } // namespace cudaq_internal::compiler
