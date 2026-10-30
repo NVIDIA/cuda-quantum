@@ -469,6 +469,30 @@ void test_quake_unmapped_levels(mlir::MLIRContext *ctx) {
 // CHECK-LABEL: Clifford+T exact angle resource counts:
 // CHECK: total: 1{{$}}
 
+/// A loop over the qubits of a register, which only unrolling puts on wires.
+static const char *indexLoopKernel = R"#(
+func.func @__nvqpp__mlirgen__indexLoop() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %c0 = arith.constant 0 : i64
+  %c1 = arith.constant 1 : i64
+  %c3 = arith.constant 3 : i64
+  %q = quake.alloca !quake.veq<3>
+  %0 = cc.loop while ((%i = %c0) -> (i64)) {
+    %1 = arith.cmpi slt, %i, %c3 : i64
+    cc.condition %1(%i : i64)
+  } do {
+  ^bb0(%i: i64):
+    %1 = quake.extract_ref %q[%i] : (!quake.veq<3>, i64) -> !quake.ref
+    quake.h %1 : (!quake.ref) -> ()
+    cc.continue %i : i64
+  } step {
+  ^bb0(%i: i64):
+    %1 = arith.addi %i, %c1 : i64
+    cc.continue %1 : i64
+  } {invariant}
+  return
+}
+)#";
+
 /// CUDA-Q Logical's stage, as `cudaq.logical.targets` builds it. It allows the
 /// gates that Logical's import accepts and only wires, and it unrolls only the
 /// loops whose body uses the induction variable.
@@ -511,6 +535,36 @@ compileQuake(mlir::MLIRContext *ctx, const std::string &kernelName,
 static const std::array<cudaq::OptimizationLevel, 4> allLevels = {
     cudaq::OptimizationLevel::O0, cudaq::OptimizationLevel::O1,
     cudaq::OptimizationLevel::O2, cudaq::OptimizationLevel::O3};
+
+/// The level never changes the representation. At level 0 a `quake-unmapped`
+/// stage with a cost model or value semantics unrolls the loop and converts to
+/// wires, while a stage with neither keeps the kernel on references.
+void test_level_0_representation(mlir::MLIRContext *ctx) {
+  const cudaq::config::QuakeUnmappedProfile neither{
+      .basisGates = {"h", "s", "t", "rx", "ry", "rz", "x", "x(1)"}};
+  auto costModel = neither;
+  costModel.costModel = cudaq::config::CostModel::t_count;
+  auto valueSemantics = neither;
+  valueSemantics.semantics = cudaq::config::Semantics::value;
+  for (const auto &[name, profile] :
+       std::vector<std::pair<std::string, cudaq::config::QuakeUnmappedProfile>>{
+           {"a cost model", costModel},
+           {"value semantics", valueSemantics},
+           {"neither", neither}}) {
+    auto compiled =
+        compileQuake(ctx, "indexLoop", indexLoopKernel, inferredTarget(profile),
+                     cudaq::OptimizationLevel::O0);
+    bool onReferences = false;
+    CompiledModuleHelper::getMlirModuleOp(*compiled->getMlir())
+        .walk([&](cudaq::quake::AllocaOp) { onReferences = true; });
+    llvm::outs() << "Level 0 with " << name << ": "
+                 << (onReferences ? "references" : "wires") << "\n";
+  }
+}
+
+// CHECK: Level 0 with a cost model: wires
+// CHECK: Level 0 with value semantics: wires
+// CHECK: Level 0 with neither: references
 
 /// Controlled rotations, which decomposition rewrites with a global phase.
 static const char *controlledRotationsKernel = R"#(
@@ -571,6 +625,37 @@ void test_quake_unmapped_lowers_phase(mlir::MLIRContext *ctx) {
 }
 
 // CHECK-COUNT-12: level {{[0-3]}}: 0 phases, in the basis
+
+/// A qubit picked by a measurement result, which is known only at run time.
+static const char *runtimeIndexKernel = R"#(
+func.func @__nvqpp__mlirgen__runtimeIndex() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %q = quake.alloca !quake.veq<2>
+  %f = quake.alloca !quake.ref
+  quake.h %f : (!quake.ref) -> ()
+  %m = quake.mz %f : (!quake.ref) -> !quake.measure
+  %b = quake.discriminate %m : (!quake.measure) -> i1
+  %i = cc.cast unsigned %b : (i1) -> i64
+  %r = quake.extract_ref %q[%i] : (!quake.veq<2>, i64) -> !quake.ref
+  quake.h %r : (!quake.ref) -> ()
+  return
+}
+)#";
+
+/// Under value semantics, a register that the stage leaves on references is a
+/// compile error at every level, with a diagnostic from the stage rather than
+/// from the consumer. A limit of 2 leaves the 3-iteration loop rolled.
+void test_value_semantics_errors(mlir::MLIRContext *ctx) {
+  auto profile = logicalProfile();
+  profile.maxUnrollIterations = 2;
+  for (auto level : allLevels) {
+    compileQuake(ctx, "indexLoop", indexLoopKernel, inferredTarget(profile),
+                 level);
+    compileQuake(ctx, "runtimeIndex", runtimeIndexKernel,
+                 inferredTarget(profile), level);
+  }
+}
+
+// CHECK-COUNT-8: but the index is not a compile-time constant
 
 /// A rotation whose angle is the kernel's argument.
 static const char *argumentAngleKernel = R"#(
@@ -739,7 +824,9 @@ int main() {
   test_staged_inferred(context.get());
   test_staged_skip(context.get());
   test_quake_unmapped_levels(context.get());
+  test_level_0_representation(context.get());
   test_quake_unmapped_lowers_phase(context.get());
+  test_value_semantics_errors(context.get());
   test_quake_unmapped_specialization(context.get());
   test_quake_mapped_levels(context.get());
   test_optimization_level_0(context.get());
