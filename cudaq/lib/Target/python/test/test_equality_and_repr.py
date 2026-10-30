@@ -9,9 +9,9 @@
 import pytest
 
 from cudaq._target import (Codegen, CompilationStage, CompileTarget, CostModel,
-                           CustomPipelineLowering, QuakeMappedProfile,
-                           QuakeReferenceSemanticsProfile, QuakeUnmappedProfile,
-                           UncheckedProfile)
+                           CustomPipelineLowering, LoopUnrolling,
+                           QuakeMappedProfile, QuakeReferenceSemanticsProfile,
+                           QuakeUnmappedProfile, UncheckedProfile)
 
 
 @pytest.mark.parametrize("make", [
@@ -67,16 +67,16 @@ def test_quake_unmapped_profile_repr():
     profile = QuakeUnmappedProfile(basis_gates=["h", "t"],
                                    approximation_tolerance=1e-10,
                                    cost_model=CostModel.t_count,
-                                   unroll_loops="index_use",
+                                   unroll_loops=LoopUnrolling.index_use,
                                    max_unroll_iterations=2048000)
     assert repr(profile) == (
         "QuakeUnmappedProfile(basis_gates=['h', 't'], "
         "approximation_tolerance=1e-10, cost_model=CostModel.t_count, "
-        "unroll_loops='index_use', "
+        "unroll_loops=LoopUnrolling.index_use, "
         "max_unroll_iterations=2048000)")
     assert eval(repr(profile)) == profile
     assert repr(QuakeUnmappedProfile()).endswith(
-        "cost_model=None, unroll_loops='all', "
+        "cost_model=None, unroll_loops=LoopUnrolling.all, "
         "max_unroll_iterations=1024)")
 
 

@@ -11,7 +11,8 @@ import pytest
 
 import cudaq
 import cudaq.logical
-from cudaq._experimental import CostModel, CustomTarget, QuakeUnmappedProfile
+from cudaq._experimental import (CostModel, CustomTarget, LoopUnrolling,
+                                 QuakeUnmappedProfile)
 
 
 @cudaq.logical.program
@@ -121,7 +122,7 @@ def test_target_eagerly_exposes_the_cudaq_target_configuration():
         ],
         approximation_tolerance=0.0,
         cost_model=CostModel.t_count,
-        unroll_loops="index_use",
+        unroll_loops=LoopUnrolling.index_use,
         max_unroll_iterations=2_048_000)
     assert not compile_target.erase_noise
     assert not compile_target.erase_qec
