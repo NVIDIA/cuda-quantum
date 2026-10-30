@@ -14,7 +14,8 @@ from dataclasses import dataclass
 from types import MappingProxyType
 
 from cudaq.core.backends import (CompilationStage, CompileTarget, CostModel,
-                                 CustomTarget, QuakeUnmappedProfile)
+                                 CustomTarget, LoopUnrolling,
+                                 QuakeUnmappedProfile)
 from cudaq.util import trace
 
 from ..lower import (
@@ -550,7 +551,7 @@ class Target(CustomTarget):
         profile = QuakeUnmappedProfile(basis_gates=basis,
                                        approximation_tolerance=0.0,
                                        cost_model=CostModel.t_count,
-                                       unroll_loops="index_use",
+                                       unroll_loops=LoopUnrolling.index_use,
                                        max_unroll_iterations=2_048_000)
         stage = CompilationStage(profile)
         target = CompileTarget(stages=[stage])
