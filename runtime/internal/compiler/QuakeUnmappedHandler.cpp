@@ -9,26 +9,12 @@
 #include "common/CompileOptions.h"
 #include "cudaq_internal/compiler/LoweringHandler.h"
 #include "cudaq/Optimizer/Transforms/CliffordTPipelines.h"
+#include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/StringExtras.h"
 #include <iomanip>
-#include <iterator>
 #include <limits>
 #include <locale>
 #include <sstream>
-
-/// Loops up to this length are unrolled so that their qubits become wires, as
-/// in `classical-optimization-pipeline`. Longer loops stay on references.
-static constexpr unsigned maxUnrollIterations = 1024;
-
-/// Join \p items with commas, as pass pipelines and list options expect.
-static std::string join(const std::vector<std::string> &items) {
-  std::string joined;
-  for (const auto &item : items) {
-    if (!joined.empty())
-      joined += ',';
-    joined += item;
-  }
-  return joined;
-}
 
 /// Print \p tolerance with every digit the passes need to read it back,
 /// independent of the locale. This avoids floating-point `std::to_chars`, which
@@ -51,36 +37,42 @@ static bool schedulesCliffordTSynthesis(
          !profile.basisGates.empty();
 }
 
-/// The passes that optimize for, and synthesize to, a `t-count` cost model. A
-/// non-empty basis first gains the rotations the optimizer keeps, so that it
-/// can merge and snap them before synthesis or basis conversion.
+/// The passes that optimize for the profile's cost model. A non-empty basis
+/// first gains the gates the optimizer works with: for `t-count`, the
+/// rotations it merges and snaps before synthesis; for `two-qubit-gate-count`,
+/// the controlled `x` across which `phase-folding` folds rotations. The
+/// handler's closing `basis-conversion` removes them again.
 static std::vector<std::string>
-cliffordTPasses(const cudaq::config::QuakeUnmappedProfile &profile,
+costModelPasses(const cudaq::config::QuakeUnmappedProfile &profile,
                 const cudaq::CompileOptions &options) {
+  const bool tCount = profile.costModel == cudaq::config::CostModel::t_count;
   const std::string tolerance = formatTolerance(profile.approximationTolerance);
   const auto level = static_cast<unsigned>(options.optimizationLevel);
   std::vector<std::string> passes;
-  if (!profile.basisGates.empty())
-    passes.push_back(
-        "decomposition{basis=" +
-        join(cudaq::opt::cliffordTDecompositionBasis(profile.basisGates)) +
-        "}");
+  if (!profile.basisGates.empty()) {
+    auto basis =
+        tCount ? cudaq::opt::cliffordTDecompositionBasis(profile.basisGates)
+               : profile.basisGates;
+    if (!tCount && !llvm::is_contained(basis, "x(1)"))
+      basis.emplace_back("x(1)");
+    passes.push_back("decomposition{basis=" + llvm::join(basis, ",") + "}");
+  }
   if (level >= 1) {
-    // Without `add-wireset`, this converts to wires but adds no wire set.
-    passes.push_back("prepare-for-wireset{maximum-iterations=" +
-                     std::to_string(maxUnrollIterations) + "}");
-    passes.push_back("clifford-t-optimization-pipeline{level=" +
-                     std::to_string(level) + " epsilon=" + tolerance + "}");
+    passes.push_back(cudaq_internal::compiler::convertToWires());
+    passes.push_back(
+        std::string(tCount ? "clifford-t" : "two-qubit-gate-count") +
+        "-optimization-pipeline{level=" + std::to_string(level) +
+        (tCount ? " approximation-tolerance=" + tolerance : "") + "}");
   }
   // The synthesis pipeline adds no passes when the basis can express one of
   // the rotations it synthesizes exactly.
   if (schedulesCliffordTSynthesis(profile)) {
     const std::string seed =
         options.seed ? " seed=" + std::to_string(*options.seed) : "";
-    passes.push_back(
-        "clifford-t-synthesis-pipeline{basis=" + join(profile.basisGates) +
-        " level=" + std::to_string(level) + " epsilon=" + tolerance + seed +
-        "}");
+    passes.push_back("clifford-t-synthesis-pipeline{basis=" +
+                     llvm::join(profile.basisGates, ",") +
+                     " level=" + std::to_string(level) +
+                     " approximation-tolerance=" + tolerance + seed + "}");
   }
   return passes;
 }
@@ -107,19 +99,20 @@ public:
     const auto &profile = std::get<cudaq::config::QuakeUnmappedProfile>(output);
     const auto &basis = profile.basisGates;
     std::vector<std::string> passes;
-    if (profile.costModel == cudaq::config::CostModel::t_count)
-      passes = cliffordTPasses(profile, options);
+    if (profile.costModel)
+      passes = costModelPasses(profile, options);
     if (!basis.empty())
-      passes.push_back("basis-conversion{basis=" + join(basis) + "}");
+      passes.push_back("basis-conversion{basis=" + llvm::join(basis, ",") +
+                       "}");
     cudaq_internal::compiler::StagePasses stagePasses;
-    stagePasses.postDeployPasses = join(passes);
+    stagePasses.postDeployPasses = llvm::join(passes, ",");
     return stagePasses;
   }
 
   /// Synthesis needs the value of every rotation angle, and angles often
   /// depend on an argument, as in a QFT whose width is an argument. This asks
   /// the synthesis pipeline's own question, for the stages where
-  /// `cliffordTPasses` schedules it.
+  /// `costModelPasses` schedules it.
   bool
   requiresArgumentValues(const cudaq::config::Profile &input,
                          const cudaq::config::Profile &output) const override {

@@ -506,6 +506,96 @@ void test_quake_unmapped_specialization(mlir::MLIRContext *ctx) {
 // CHECK:         func.func @__nvqpp__mlirgen__argumentAngle(%[[ANGLE:.*]]: f64)
 // CHECK:           quake.rz (%[[ANGLE]])
 
+/// On a path 0 - 1 - 2, each controlled `quake.x` between qubits 0 and 2 needs
+/// a swap. The two of them are adjacent and cancel. Rotations on the parities
+/// of qubits 0 and 1, of qubits 1 and 2, and of all three each appear twice, so
+/// phase folding merges each pair. Phase folding skips a circuit shorter than
+/// 20 gates, so the parities repeat rather than appear once.
+static const char *nisqKernel = R"#(
+func.func @__nvqpp__mlirgen__nisq() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %a = arith.constant 3.000000e-01 : f64
+  %q = quake.alloca !quake.veq<3>
+  %q0 = quake.extract_ref %q[0] : (!quake.veq<3>) -> !quake.ref
+  %q1 = quake.extract_ref %q[1] : (!quake.veq<3>) -> !quake.ref
+  %q2 = quake.extract_ref %q[2] : (!quake.veq<3>) -> !quake.ref
+  quake.h %q0 : (!quake.ref) -> ()
+  quake.h %q1 : (!quake.ref) -> ()
+  quake.h %q2 : (!quake.ref) -> ()
+  quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  quake.rz (%a) %q1 : (f64, !quake.ref) -> ()
+  quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%q1] %q2 : (!quake.ref, !quake.ref) -> ()
+  quake.rz (%a) %q2 : (f64, !quake.ref) -> ()
+  quake.x [%q1] %q2 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%q1] %q2 : (!quake.ref, !quake.ref) -> ()
+  quake.rz (%a) %q2 : (f64, !quake.ref) -> ()
+  quake.x [%q1] %q2 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%q0] %q2 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%q0] %q2 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  quake.rz (%a) %q1 : (f64, !quake.ref) -> ()
+  quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%q1] %q2 : (!quake.ref, !quake.ref) -> ()
+  quake.rz (%a) %q2 : (f64, !quake.ref) -> ()
+  quake.x [%q1] %q2 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%q1] %q2 : (!quake.ref, !quake.ref) -> ()
+  quake.rz (%a) %q2 : (f64, !quake.ref) -> ()
+  quake.x [%q1] %q2 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  return
+}
+)#";
+
+/// The NISQ target's two stages, decomposing and optimizing for two-qubit
+/// gates and then routing onto a path of three qubits. At each level, print
+/// the counts.
+/// Level 1 cancels the two controlled `quake.x` on qubits 0 and 2 before
+/// routing, so it adds no swaps for them, and the controlled `quake.x` on
+/// qubits 0 and 1 around them then cancel too. Level 2 also folds the
+/// rotations, which lets more controlled gates cancel. Level 3 runs level 2.
+void test_quake_mapped_levels(mlir::MLIRContext *ctx) {
+  const std::vector<std::string> basis = {"h", "rx", "ry", "rz", "x", "z(1)"};
+  const cudaq::config::CompilationStage unmapped = {
+      .irOutputProfile =
+          cudaq::config::QuakeUnmappedProfile{
+              .basisGates = basis,
+              .costModel = cudaq::config::CostModel::two_qubit_gate_count},
+      .lowering = cudaq::config::InferredLowering{}};
+  const cudaq::config::CompilationStage mapped = {
+      .irOutputProfile = cudaq::config::QuakeMappedProfile{.basisGates = basis,
+                                                           .device = "path(3)"},
+      .lowering = cudaq::config::InferredLowering{}};
+  for (auto level :
+       {cudaq::OptimizationLevel::O0, cudaq::OptimizationLevel::O1,
+        cudaq::OptimizationLevel::O2, cudaq::OptimizationLevel::O3}) {
+    const std::string heading =
+        "Mapped level " + std::to_string(static_cast<int>(level));
+    cudaq::CompileOptions options;
+    options.emitResourceCounts = true;
+    options.emitTargetCode = false;
+    options.optimizationLevel = level;
+    cudaq::CompileTarget target;
+    target.stages = {unmapped, mapped};
+    compileAndDumpResources(ctx, heading, "nisq", nisqKernel, target, options);
+  }
+}
+
+// CHECK-LABEL: Mapped level 0 resource counts:
+// CHECK:       rz: 6{{$}}
+// CHECK:       2Q gates: 24{{$}}
+// CHECK-LABEL: Mapped level 1 resource counts:
+// CHECK:       rz: 6{{$}}
+// CHECK:       2Q gates: 14{{$}}
+// CHECK-LABEL: Mapped level 2 resource counts:
+// CHECK:       rz: 3{{$}}
+// CHECK:       2Q gates: 8{{$}}
+// CHECK-LABEL: Mapped level 3 resource counts:
+// CHECK:       rz: 3{{$}}
+// CHECK:       2Q gates: 8{{$}}
+
 /// Kernel that the base QIR profile accepts.
 static const char *measureKernel = R"#(
 func.func @__nvqpp__mlirgen__measure() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
@@ -559,6 +649,7 @@ int main() {
   test_staged_skip(context.get());
   test_quake_unmapped_levels(context.get());
   test_quake_unmapped_specialization(context.get());
+  test_quake_mapped_levels(context.get());
   test_optimization_level_0(context.get());
   return 0;
 }

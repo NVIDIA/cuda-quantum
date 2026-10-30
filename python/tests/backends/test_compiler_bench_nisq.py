@@ -6,14 +6,15 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-# Tests for the compiler-bench-nisq target: CX-basis decomposition with
-# optional SABRE routing on a specified device topology.
+# Tests for the compiler-bench-nisq target: decomposition to a CZ and rotation
+# basis, with optional routing onto a device.
 
 from pathlib import Path
 
 import cudaq
 import numpy as np
 import pytest
+from test_helpers import derive_compile_target
 
 cudaq._register_target_config(
     str(
@@ -22,7 +23,7 @@ cudaq._register_target_config(
 
 NISQ_TARGET = 'compiler-bench-nisq'
 
-ALLOWED_NISQ_OPS = {'h', 'rx', 'ry', 'rz', 'x', 'cz', 'mz'}
+ALLOWED_NISQ_OPS = {'h', 'rx', 'ry', 'rz', 'x', 'cz', 'mx', 'my', 'mz'}
 
 
 @pytest.fixture(scope="function", autouse=True)
@@ -30,6 +31,13 @@ def reset():
     cudaq.reset_target()
     yield
     cudaq.reset_target()
+
+
+def set_target_on_device(device):
+    """Route onto `device` by deriving the target's compile target."""
+    cudaq.set_target(NISQ_TARGET,
+                     compile_target=derive_compile_target(NISQ_TARGET,
+                                                          device=device))
 
 
 def test_swap_decomposition():
@@ -114,12 +122,16 @@ def test_axis_measurements_normalize_to_nisq_basis():
     q = kernel.qalloc(3)
     kernel.mx(q[0])
     kernel.my(q[1])
+    kernel.rz(0.7853981633974483, q[2])
     kernel.mz(q[2])
 
     ops = cudaq.estimate_resources(kernel).to_dict()
-    assert ops.get('mz', 0) == 3
-    assert 's' not in ops, (
-        f"NISQ target should normalize S into the rotation basis: {ops}")
+    assert ops.get('mx', 0) == 1
+    assert ops.get('my', 0) == 1
+    assert ops.get('mz', 0) == 1
+    assert ops.get('rz', 0) == 1
+    assert 's' not in ops and 't' not in ops, (
+        f"NISQ target should keep a native rotation, not S or T: {ops}")
     assert set(ops).issubset(ALLOWED_NISQ_OPS), (
         f"Unexpected NISQ operations after normalization: {ops}")
 
@@ -142,74 +154,113 @@ def test_negated_control_lowers_to_cz_basis():
     assert resources.gate_count_for_arity(2) == 2
 
 
-def _make_nonlocal_cx_kernel():
-    """Build a 5-qubit kernel with CX between non-adjacent qubits (q0, q4).
-    On a path topology, q0 and q4 are 4 hops apart, forcing SWAP insertion."""
-    kernel = cudaq.make_kernel()
-    q = kernel.qalloc(5)
-    kernel.h(q)
-    kernel.cx(q[0], q[4])
-    return kernel
+# On path(4), `x.ctrl(q[0], q[3])` needs swaps, so these kernels prepare 1101
+# on device qubits in another order.
 
 
-def test_routing_inserts_swaps_on_path():
-    """Non-adjacent CX on path(5) requires SWAPs, increasing 2Q count."""
-    kernel = _make_nonlocal_cx_kernel()
+@cudaq.kernel
+def entangle(a: cudaq.qubit, b: cudaq.qubit):
+    x.ctrl(a, b)
 
+
+@cudaq.kernel
+def prepare_1101():
+    q = cudaq.qvector(4)
+    x(q[0])
+    entangle(q[0], q[3])
+    x(q[1])
+
+
+@cudaq.kernel
+def prepare_1101_measure_each():
+    q = cudaq.qvector(4)
+    x(q[0])
+    x.ctrl(q[0], q[3])
+    x(q[1])
+    mz(q[0])
+    mz(q[1])
+    mz(q[2])
+    mz(q[3])
+
+
+@cudaq.kernel
+def rolled_loop():
+    q = cudaq.qvector(4)
+    x(q[0])
+    for i in range(2000):
+        x.ctrl(q[0], q[3])
+        h(q[1])
+        h(q[2])
+
+
+def test_routed_sample_in_kernel_order():
+    """`sample` applies the mapper's reorder index, except with
+    `explicit_measurements`, whose results are in execution order. `q[2]` is
+    idle, so the level-1 `dqe` would remove it unless `sample` measured first.
+    A loop longer than the unroll limit carries device qubits into the
+    simulator; it runs an even number of times."""
+    set_target_on_device('path(4)')
+    counts = cudaq.sample(prepare_1101, shots_count=10)
+    assert counts.most_probable() == '1101'
+    assert len(counts) == 1
+    counts = cudaq.sample(prepare_1101_measure_each,
+                          shots_count=10,
+                          explicit_measurements=True)
+    assert counts.get_sequential_data() == ['1101'] * 10
+    assert cudaq.sample(rolled_loop, shots_count=10).most_probable() == '1000'
+
+
+@cudaq.kernel
+def entangle_ends_4():
+    q = cudaq.qvector(4)
+    h(q)
+    x.ctrl(q[0], q[3])
+
+
+def test_translate_from_wire_set():
+    """The mapped stage ends on wires borrowed from a wire set, which
+    `translate` converts for full QIR and for OpenQASM. `translate` compiles
+    against the target's own stages, so it does not route onto a device set
+    through `compile_target`."""
+    set_target_on_device('path(4)')
+    qir = cudaq.translate(entangle_ends_4, format='qir')
+    assert '__quantum__qis__z__ctl' in qir
+    qasm = cudaq.translate(entangle_ends_4, format='openqasm2')
+    assert 'cx var0[0], var0[3];' in qasm
+
+
+@cudaq.kernel
+def entangle_ends(n: int):
+    q = cudaq.qvector(n)
+    h(q)
+    x.ctrl(q[0], q[n - 1])
+
+
+@cudaq.kernel
+def entangled_end() -> bool:
+    q = cudaq.qvector(4)
+    x(q[0])
+    x.ctrl(q[0], q[3])
+    return mz(q[3])
+
+
+def test_routed_kernel_forms(capfd):
+    """Without a device nothing is routed. On one, an argument-sized register,
+    a callee with qubit arguments, and a kernel that returns a value compile
+    and route, and a kernel with more qubits than the device fails."""
     cudaq.set_target(NISQ_TARGET)
-    unrouted = cudaq.estimate_resources(kernel)
-    cudaq.reset_target()
+    assert cudaq.estimate_resources(entangle_ends,
+                                    5).gate_count_for_arity(2) == 1
 
-    cudaq.set_target(NISQ_TARGET, device='path(5)')
-    routed = cudaq.estimate_resources(kernel)
-
-    assert unrouted.gate_count_for_arity(2) == 1
-    assert routed.gate_count_for_arity(2) > unrouted.gate_count_for_arity(2)
+    set_target_on_device('path(5)')
+    routed = cudaq.estimate_resources(entangle_ends, 5)
+    assert routed.gate_count_for_arity(2) > 1
     assert routed.num_qubits == 5
     assert routed.num_used_qubits == 5
 
-
-def test_routing_star_no_swaps():
-    """Star(5) connects center to all qubits, so no SWAPs are needed."""
-    kernel = _make_nonlocal_cx_kernel()
-
-    cudaq.set_target(NISQ_TARGET, device='star(5)')
-    resources = cudaq.estimate_resources(kernel)
-
-    assert resources.gate_count_for_arity(2) == 1
-
-
-def test_routing_grid():
-    """Grid(3,3) routes non-adjacent q0-q4 CX, inserting SWAPs."""
-    kernel = _make_nonlocal_cx_kernel()
-
-    cudaq.set_target(NISQ_TARGET, device='grid(3,3)')
-    resources = cudaq.estimate_resources(kernel)
-
-    # q0 and q4 are 2 hops apart on a 3x3 grid (0->1->4), requiring SWAPs.
-    assert resources.gate_count_for_arity(2) >= 1
-
-
-def test_routing_ring():
-    """Ring(5) connects q0-q4 directly, so no SWAPs needed."""
-    kernel = _make_nonlocal_cx_kernel()
-
-    cudaq.set_target(NISQ_TARGET, device='ring(5)')
-    resources = cudaq.estimate_resources(kernel)
-
-    # On ring 0-1-2-3-4-0, q0 and q4 are adjacent.
-    assert resources.gate_count_for_arity(2) == 1
-
-
-def test_exact_clifford_t_angle_remains_native_rotation():
-    """NISQ keeps native rotations instead of opting into Clifford+T."""
-    cudaq.set_target(NISQ_TARGET)
-
-    kernel = cudaq.make_kernel()
-    q = kernel.qalloc()
-    kernel.rz(0.7853981633974483, q)
-
-    ops = cudaq.estimate_resources(kernel).to_dict()
-    assert ops.get('rz', 0) == 1
-    assert ops.get('s', 0) == 0
-    assert ops.get('t', 0) == 0
+    set_target_on_device('path(4)')
+    assert cudaq.estimate_resources(prepare_1101).gate_count_for_arity(2) > 1
+    assert cudaq.run(entangled_end, shots_count=3) == [True] * 3
+    with pytest.raises(RuntimeError, match='lowering failed'):
+        cudaq.estimate_resources(entangle_ends, 5)
+    assert 'Too many qubits' in capfd.readouterr().err

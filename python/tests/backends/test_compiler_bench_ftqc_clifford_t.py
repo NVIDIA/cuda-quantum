@@ -13,6 +13,7 @@ import numpy as np
 import pytest
 from cudaq._experimental import (CostModel, QuakeUnmappedProfile,
                                  get_compile_target)
+from test_helpers import derive_compile_target
 
 FTQC_CLIFFORD_T_TARGET = 'compiler-bench-ftqc-clifford-t'
 
@@ -30,14 +31,10 @@ def reset():
 
 
 def set_target_with_tolerance(tolerance):
-    cudaq.set_target(FTQC_CLIFFORD_T_TARGET)
-    target = get_compile_target()
-    [stage] = target.stages
-    profile = stage.ir_output_profile
-    profile.approximation_tolerance = tolerance
-    stage.ir_output_profile = profile
-    target.stages = [stage]
-    cudaq.set_target(FTQC_CLIFFORD_T_TARGET, compile_target=target)
+    cudaq.set_target(FTQC_CLIFFORD_T_TARGET,
+                     compile_target=derive_compile_target(
+                         FTQC_CLIFFORD_T_TARGET,
+                         approximation_tolerance=tolerance))
 
 
 def test_compile_target_has_the_target_profile():

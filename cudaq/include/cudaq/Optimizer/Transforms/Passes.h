@@ -38,6 +38,9 @@ void registerToCFGPipeline();
 /// `clifford-t-synthesis-pipeline`.
 void registerCliffordTPipelines();
 
+/// Register `two-qubit-gate-count-optimization-pipeline`.
+void registerTwoQubitGateCountOptimizationPipeline();
+
 /// Convert supported Quake IR to explicit linear values. This splits
 /// fixed-size allocations, expands vector controls, and threads reusable
 /// controls through their uses.

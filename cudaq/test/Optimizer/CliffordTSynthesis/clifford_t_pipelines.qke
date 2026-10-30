@@ -7,27 +7,27 @@
 // ========================================================================== //
 
 // RUN: cudaq-opt --pass-pipeline='builtin.module(convert-to-linear-values, \
-// RUN:   clifford-t-optimization-pipeline{level=1 epsilon=1e-3})' %s | \
+// RUN:   clifford-t-optimization-pipeline{level=1 approximation-tolerance=1e-3})' %s | \
 // RUN:   FileCheck %s --check-prefix=LEVEL1
 // RUN: cudaq-opt --pass-pipeline='builtin.module(convert-to-linear-values, \
-// RUN:   clifford-t-optimization-pipeline{level=2 epsilon=1e-3})' %s \
+// RUN:   clifford-t-optimization-pipeline{level=2 approximation-tolerance=1e-3})' %s \
 // RUN:   -o %t.level2
 // RUN: FileCheck %s --check-prefix=LEVEL2 --input-file=%t.level2
 // RUN: cudaq-opt --pass-pipeline='builtin.module(convert-to-linear-values, \
-// RUN:   clifford-t-optimization-pipeline{level=3 epsilon=1e-3})' %s | \
+// RUN:   clifford-t-optimization-pipeline{level=3 approximation-tolerance=1e-3})' %s | \
 // RUN:   diff %t.level2 -
 // RUN: cudaq-opt --pass-pipeline='builtin.module(convert-to-linear-values, \
-// RUN:   clifford-t-optimization-pipeline{level=2 epsilon=1e-13})' %s | \
+// RUN:   clifford-t-optimization-pipeline{level=2 approximation-tolerance=1e-13})' %s | \
 // RUN:   FileCheck %s --check-prefix=BOUND
-// RUN: cudaq-opt --clifford-t-synthesis-pipeline='level=1 epsilon=1e-3' %s | \
+// RUN: cudaq-opt --clifford-t-synthesis-pipeline='level=1 approximation-tolerance=1e-3' %s | \
 // RUN:   FileCheck %s --check-prefix=SYNTH \
 // RUN:   --implicit-check-not='quake.r{{[xyz1]}}' \
 // RUN:   --implicit-check-not='@__cliffordt_' --implicit-check-not='quake.phase'
-// RUN: cudaq-opt --clifford-t-synthesis-pipeline='basis=rz,x epsilon=1e-3' \
+// RUN: cudaq-opt --clifford-t-synthesis-pipeline='basis=rz,x approximation-tolerance=1e-3' \
 // RUN:   %s | FileCheck %s --check-prefix=EXACT
-// RUN: cudaq-opt --clifford-t-synthesis-pipeline='basis=r1,h epsilon=1e-3' \
+// RUN: cudaq-opt --clifford-t-synthesis-pipeline='basis=r1,h approximation-tolerance=1e-3' \
 // RUN:   %s | FileCheck %s --check-prefix=EXACT
-// RUN: cudaq-opt --clifford-t-synthesis-pipeline='basis=h,s,t epsilon=1e-3' \
+// RUN: cudaq-opt --clifford-t-synthesis-pipeline='basis=h,s,t approximation-tolerance=1e-3' \
 // RUN:   %s | FileCheck %s --check-prefix=SYNTH \
 // RUN:   --implicit-check-not='quake.r{{[xyz1]}}' \
 // RUN:   --implicit-check-not='@__cliffordt_' --implicit-check-not='quake.phase'
