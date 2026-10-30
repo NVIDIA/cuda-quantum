@@ -643,19 +643,26 @@ func.func @__nvqpp__mlirgen__runtimeIndex() attributes {"cudaq-entrypoint", "cud
 
 /// Under value semantics, a register that the stage leaves on references is a
 /// compile error at every level, with a diagnostic from the stage rather than
-/// from the consumer. A limit of 2 leaves the 3-iteration loop rolled.
+/// from the consumer. With a limit of 2, the 3-iteration loop stays rolled
+/// whether the stage unrolls `index_use` loops or all loops. In the second
+/// case, prep and deploy must also leave the loop alone, because their limit
+/// of 1024 iterations would unroll it before the stage runs.
 void test_value_semantics_errors(mlir::MLIRContext *ctx) {
   auto profile = logicalProfile();
   profile.maxUnrollIterations = 2;
+  auto unrollAll = profile;
+  unrollAll.unrollLoops = cudaq::config::LoopUnrolling::all;
   for (auto level : allLevels) {
     compileQuake(ctx, "indexLoop", indexLoopKernel, inferredTarget(profile),
+                 level);
+    compileQuake(ctx, "indexLoop", indexLoopKernel, inferredTarget(unrollAll),
                  level);
     compileQuake(ctx, "runtimeIndex", runtimeIndexKernel,
                  inferredTarget(profile), level);
   }
 }
 
-// CHECK-COUNT-8: but the index is not a compile-time constant
+// CHECK-COUNT-12: but the index is not a compile-time constant
 
 /// A rotation whose angle is the kernel's argument.
 static const char *argumentAngleKernel = R"#(

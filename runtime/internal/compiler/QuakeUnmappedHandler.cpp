@@ -155,9 +155,11 @@ public:
             cudaq::opt::needsCliffordTSynthesis(profile->basisGates));
   }
 
-  /// The stage keeps the loops it does not select, so prep and deploy must
-  /// not unroll them first, and it keeps the operations its profile does not
-  /// erase.
+  /// Prep and deploy unroll every loop of up to 1024 iterations, the profile's
+  /// default limit. When the stage keeps some loops rolled, because it unrolls
+  /// only `index_use` loops or has a lower limit, prep and deploy must not
+  /// unroll those loops first. Prep also keeps the noise and QEC operations
+  /// that the profile does not erase.
   cudaq_internal::compiler::BookendOptions
   getBookendOptions(const cudaq::config::Profile &input,
                     const cudaq::config::Profile &output) const override {
@@ -166,7 +168,9 @@ public:
     if (!profile)
       return {};
     return {.unrollLoops =
-                profile->unrollLoops == cudaq::config::LoopUnrolling::all,
+                profile->unrollLoops == cudaq::config::LoopUnrolling::all &&
+                profile->maxUnrollIterations >=
+                    cudaq::config::QuakeUnmappedProfile{}.maxUnrollIterations,
             .eraseNoise = profile->eraseNoise,
             .eraseQEC = profile->eraseQEC};
   }
