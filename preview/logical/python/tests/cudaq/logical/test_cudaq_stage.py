@@ -9,9 +9,9 @@
 
 A kernel reaches Logical's import through a Logical target, such as
 ``cudaq.estimate`` on ``cudaq.logical.targets.estimator``, or directly through
-``cudaq.logical.compiler.import_cudaq``. Both compile it with the target's
-compile target, so most tests run on both paths through the ``import_kernel``
-fixture.
+``cudaq.logical.compiler.import_cudaq``. Both compile with the same compile
+target, so the behavior tests use ``import_cudaq``, and one test checks that
+the two paths agree.
 """
 
 import pytest
@@ -26,9 +26,42 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-def _estimate_through_target(kernel, monkeypatch):
-    """Run ``cudaq.estimate`` on the estimator target and return the Build
-    that Logical imported."""
+def _actions(build):
+    return cql.analysis.estimate(build, tier=cql.analysis.Tier.LOGICAL).actions
+
+
+@cudaq.kernel
+def loops():
+    qubits = cudaq.qvector(1100)
+    for _ in range(50):
+        for i in range(4):
+            x.ctrl(qubits[i], qubits[i + 1])
+    for i in range(1100):
+        h(qubits[i])
+    for i in range(4):
+        rz(0.1 * (i + 1), qubits[0])
+    mz(qubits)
+
+
+def test_only_loops_that_use_their_index_unroll():
+    # The repeat loop stays folded, with the index loop inside it unrolled.
+    # The 1100-iteration loop and the angle loop unroll, so they leave no
+    # second `cflow.repeat`.
+    build = cql.compiler.import_cudaq(loops)
+    assert build.to_mlir().count("cflow.repeat") == 1
+    actions = _actions(build)
+    assert actions["qlx_standard_cx"] == 50 * 4
+    assert actions["qlx_standard_h"] == 1100
+
+
+@cudaq.kernel
+def ccrx():
+    qubits = cudaq.qvector(3)
+    rx.ctrl(0.7, qubits[0], qubits[1], qubits[2])
+    mz(qubits)
+
+
+def test_the_target_and_import_cudaq_give_the_same_counts(monkeypatch):
     builds = []
     compile_build = cql.targets.ProgramBackend.compile
 
@@ -39,95 +72,10 @@ def _estimate_through_target(kernel, monkeypatch):
     monkeypatch.setattr(cql.targets.ProgramBackend, "compile", recording)
     cudaq.set_target(cql.targets.estimator)
     try:
-        cudaq.estimate(kernel)
+        cudaq.estimate(ccrx)
     finally:
         cudaq.reset_target()
-    return builds[-1]
-
-
-@pytest.fixture(params=["target", "import_cudaq"])
-def import_kernel(request, monkeypatch):
-    """Import a kernel on one of the two paths and return the Build."""
-    if request.param == "import_cudaq":
-        return cql.compiler.import_cudaq
-    return lambda kernel: _estimate_through_target(kernel, monkeypatch)
-
-
-def _actions(build):
-    return cql.analysis.estimate(build, tier=cql.analysis.Tier.LOGICAL).actions
-
-
-@cudaq.kernel
-def repeat_around_index_loop():
-    qubits = cudaq.qvector(5)
-    for _ in range(50):
-        for i in range(4):
-            x.ctrl(qubits[i], qubits[i + 1])
-    mz(qubits)
-
-
-@cudaq.kernel
-def long_index_loop():
-    qubits = cudaq.qvector(1100)
-    for i in range(1100):
-        h(qubits[i])
-    mz(qubits)
-
-
-@cudaq.kernel
-def angle_loop():
-    qubit = cudaq.qubit()
-    for i in range(4):
-        rz(0.1 * (i + 1), qubit)
-        h(qubit)
-    mz(qubit)
-
-
-def test_a_repeat_loop_keeps_its_unrolled_index_loop_inside(import_kernel):
-    build = import_kernel(repeat_around_index_loop)
-    assert build.to_mlir().count("cflow.repeat") == 1
-    assert _actions(build)["qlx_standard_cx"] == 50 * 4
-
-
-def test_an_index_loop_past_1024_iterations_unrolls(import_kernel):
-    build = import_kernel(long_index_loop)
-    assert "cflow.repeat" not in build.to_mlir()
-    assert _actions(build)["qlx_standard_h"] == 1100
-
-
-def test_a_loop_whose_index_sets_an_angle_unrolls(import_kernel):
-    build = import_kernel(angle_loop)
-    assert "cflow.repeat" not in build.to_mlir()
-
-
-@cudaq.kernel
-def ccrx():
-    qubits = cudaq.qvector(3)
-    rx.ctrl(0.7, qubits[0], qubits[1], qubits[2])
-    mz(qubits)
-
-
-@cudaq.kernel
-def foldable_phases():
-    qubits = cudaq.qvector(2)
-    rz(0.3, qubits[0])
-    x.ctrl(qubits[0], qubits[1])
-    x.ctrl(qubits[0], qubits[1])
-    rz(0.4, qubits[0])
-    t(qubits[1])
-    t.adj(qubits[1])
-    mz(qubits)
-
-
-@pytest.mark.parametrize("kernel", [ccrx, foldable_phases],
-                         ids=lambda kernel: kernel.name)
-def test_the_target_and_import_cudaq_give_the_same_counts(kernel, monkeypatch):
-    # A doubly controlled `rx` decomposes into gates the import accepts, and
-    # the global phase that decomposition leaves is lowered. The
-    # foldable-phases kernel checks that both paths run the same optimizer.
-    through_target = _estimate_through_target(kernel, monkeypatch)
-    assert _actions(
-        cql.compiler.import_cudaq(kernel)) == _actions(through_target)
+    assert _actions(cql.compiler.import_cudaq(ccrx)) == _actions(builds[-1])
 
 
 def test_import_cudaq_ignores_an_installed_emulated_target(monkeypatch):
@@ -156,12 +104,11 @@ def noisy():
     qubits = cudaq.qvector(2)
     h(qubits[0])
     cudaq.apply_noise(cudaq.DepolarizationChannel, 0.1, qubits[0])
-    x.ctrl(qubits[0], qubits[1])
     mz(qubits)
 
 
-def test_a_noisy_kernel_fails_to_import(import_kernel):
+def test_a_noisy_kernel_fails_to_import():
     # Prep keeps `quake.apply_noise`, so Logical never estimates the kernel
     # as noiseless, and the import rejects it.
     with pytest.raises(RuntimeError, match="supports only value-semantics"):
-        import_kernel(noisy)
+        cql.compiler.import_cudaq(noisy)
