@@ -51,12 +51,16 @@ includes the realtime headers and uses only their header-only code
 
 ## `nvJitLink`
 
-Building `libcudaq-realtime` needs the `nvJitLink` header and library, from the
-`nvJitLink-dev` package (`libnvjitlink-dev`, part of a full CUDA toolkit).  No
-public header includes `nvJitLink.h`, so applications and bridges build
-without it.  At run time `libcudaq-realtime.so` loads `libnvJitLink.so.<major>`,
-which every CUDA runtime install provides.  That `nvJitLink` must be at least as
-new as every toolkit that produced the linked code: the one that built
+Building `libcudaq-realtime` requires a CUDA toolkit.  Of the `nvJitLink`
+components, the build needs only `nvJitLink.h`, not the `nvJitLink` library.
+Piecemeal toolkit installations provide that header in the `nvJitLink-dev`
+package (`libnvjitlink-dev`).  No public header includes `nvJitLink.h`, so
+applications and bridges build without it.  Loading `libcudaq-realtime.so` does
+not load `nvJitLink`; the first DEVICE + UNIFIED device link loads
+`libnvJitLink.so.<major>` from the build toolkit's CUDA major version.  A
+missing library or generic API symbol is reported by that operation, without
+affecting host-only use.  The loaded `nvJitLink` must be at least as new as
+every toolkit that produced the linked code: the one that built
 `libcudaq-realtime`, the bridge's and the application's.
 
 ## Exporting handlers
