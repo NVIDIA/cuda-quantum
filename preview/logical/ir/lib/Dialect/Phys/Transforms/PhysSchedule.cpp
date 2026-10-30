@@ -1023,7 +1023,7 @@ private:
     if (result) {
       auto state = operationResultStates.find(result.getOwner());
       if (state != operationResultStates.end())
-        return {state->second.ready, state->second.producer};
+        return {state->second.ready, state->second.producer, {}, {}};
       return {};
     }
     ScheduledResourceState state;

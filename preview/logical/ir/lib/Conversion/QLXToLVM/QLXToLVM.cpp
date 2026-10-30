@@ -108,7 +108,8 @@ private:
 
   LogicalResult indexSpaces() {
     for (auto space : domain.getBody().getOps<qlx::lvm::SpaceOp>()) {
-      SpaceState state{space};
+      SpaceState state;
+      state.op = space;
       if (auto capacity = space.getCapacityAttr())
         state.capacity = capacity.getInt();
       spaces.push_back(state);

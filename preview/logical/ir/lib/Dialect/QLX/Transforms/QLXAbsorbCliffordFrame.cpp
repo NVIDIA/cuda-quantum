@@ -588,7 +588,6 @@ static LogicalResult normalizeBlock(Block &block, InverseFrame &frame,
     }
 
     if (auto discard = dyn_cast<DiscardOp>(operation)) {
-      unsigned position = 0;
       for (unsigned operand = 0; operand < discard.getNumOperands();
            ++operand) {
         Value value = discard.getOperand(operand);
@@ -599,7 +598,6 @@ static LogicalResult normalizeBlock(Block &block, InverseFrame &frame,
           return discard.emitOpError("discard has no tracked owner index");
         discard->setOperand(operand, current[found->second]);
         discarded.push_back(found->second);
-        ++position;
       }
       continue;
     }

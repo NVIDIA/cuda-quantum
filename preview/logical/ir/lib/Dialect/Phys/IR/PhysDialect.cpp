@@ -9695,7 +9695,9 @@ LogicalResult ScheduleClaimVerifier::verify(ArrayRef<ScheduleClaim> entries,
                         ResourcePoint{
                             entry.start +
                                 model.getOutputIntervalNs().convertToDouble(),
-                            entry.id});
+                            entry.id,
+                            {},
+                            {}});
         if (graphEvent != graphEvents.end())
           if (auto transport =
                   dyn_cast<TransportResourceOp>(graphEvent->second.first)) {
@@ -9708,7 +9710,9 @@ LogicalResult ScheduleClaimVerifier::verify(ArrayRef<ScheduleClaim> entries,
                     ResourcePoint{
                         entry.start +
                             model.getInitiationIntervalNs().convertToDouble(),
-                        entry.id});
+                        entry.id,
+                        {},
+                        {}});
             if (!transport.getModelAttr())
               if (auto route = transport.getRouteAttr()) {
                 Operation *architecture = SymbolTable::lookupSymbolIn(
@@ -9728,7 +9732,7 @@ LogicalResult ScheduleClaimVerifier::verify(ArrayRef<ScheduleClaim> entries,
                       interval = *value;
                   state.set(
                       ("control:transport-init:" + binding.getSymName()).str(),
-                      ResourcePoint{entry.start + interval, entry.id});
+                      ResourcePoint{entry.start + interval, entry.id, {}, {}});
                 }
               }
           }
@@ -9835,7 +9839,8 @@ LogicalResult ScheduleClaimVerifier::verify(ArrayRef<ScheduleClaim> entries,
         for (const auto &change : pipelineChanges)
           if (change.after)
             pipelineInitiations.set(
-                change.key, ResourcePoint{change.after->available, entry.id});
+                change.key,
+                ResourcePoint{change.after->available, entry.id, {}, {}});
         callResourceEffects[entry.id] = std::move(effect);
       } else if (entry.kind == "call_template") {
         auto operation = graphEvents.find(entry.id);
@@ -9907,14 +9912,16 @@ LogicalResult ScheduleClaimVerifier::verify(ArrayRef<ScheduleClaim> entries,
             pipelineInitiations.set(
                 transition.plan,
                 ResourcePoint{entry.start + transition.availabilityOffset,
-                              entry.id});
+                              entry.id,
+                              {},
+                              {}});
           if (effect->second.globalBarrierAvailabilityOffset) {
             double replayed =
                 entry.start + *effect->second.globalBarrierAvailabilityOffset;
             for (const std::string &resource : concreteResourceKeys) {
               auto prior = state.find(resource);
               if (prior == state.end() || replayed >= prior->second.available)
-                state.set(resource, ResourcePoint{replayed, entry.id});
+                state.set(resource, ResourcePoint{replayed, entry.id, {}, {}});
             }
           }
         } else
@@ -9966,7 +9973,9 @@ LogicalResult ScheduleClaimVerifier::verify(ArrayRef<ScheduleClaim> entries,
               ResourcePoint{
                   entry.start +
                       plan.getInitiationIntervalNsAttr().getValueAsDouble(),
-                  entry.id});
+                  entry.id,
+                  {},
+                  {}});
       } else if (entry.kind == "repeat") {
         for (StringRef resource : graphFacts[index].resources) {
           if (!StringRef(resource).starts_with("factory:"))
@@ -10001,7 +10010,7 @@ LogicalResult ScheduleClaimVerifier::verify(ArrayRef<ScheduleClaim> entries,
                     entry.start +
                     (entry.repeatCount.value_or(1) - 1) * *entry.repeatPeriod +
                     (change.after->available - entry.start);
-              state.set(change.key, ResourcePoint{available, entry.id});
+              state.set(change.key, ResourcePoint{available, entry.id, {}, {}});
             }
       } else if (entry.kind == "while") {
         ResourceState::Scope loopScope(state);
@@ -10015,7 +10024,8 @@ LogicalResult ScheduleClaimVerifier::verify(ArrayRef<ScheduleClaim> entries,
             auto previous = state.get(change.key);
             if (previous && *change.after == *previous)
               continue;
-            state.set(change.key, ResourcePoint{entry.finish(), entry.id});
+            state.set(change.key,
+                      ResourcePoint{entry.finish(), entry.id, {}, {}});
           }
       } else {
         SmallVector<StringRef, 3> branches =
@@ -10051,11 +10061,13 @@ LogicalResult ScheduleClaimVerifier::verify(ArrayRef<ScheduleClaim> entries,
             merged =
                 std::max(merged, branchAvailability(branch, resource.getKey()));
           if (merged != previous)
-            state.set(resource.getKey(), ResourcePoint{merged, entry.id});
+            state.set(resource.getKey(),
+                      ResourcePoint{merged, entry.id, {}, {}});
         }
         for (StringRef resource : graphFacts[index].resources)
           if (!resource.starts_with("control:"))
-            state.set(resource, ResourcePoint{entry.finish(), entry.id});
+            state.set(resource,
+                      ResourcePoint{entry.finish(), entry.id, {}, {}});
       }
       auto allocationOrder = allocationAfterDependencies.find(entry.id);
       if (allocationOrder != allocationAfterDependencies.end())
