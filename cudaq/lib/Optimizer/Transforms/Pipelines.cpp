@@ -77,11 +77,11 @@ struct CliffordTOptimizationPipelineOptions
     : public PassPipelineOptions<CliffordTOptimizationPipelineOptions> {
   PassOptions::Option<unsigned> level{
       *this, "level",
-      llvm::cl::desc("Optimization level. Level 0 does nothing, level 1 runs "
-                     "quick local cleanup, and level 2 also runs slower "
-                     "rewrites that reduce the T count. Higher levels "
-                     "currently run level 2 and are reserved for more "
-                     "expensive optimization."),
+      llvm::cl::desc("Optimization level. Level 0 does nothing, level 1 "
+                     "rewrites adjacent and commuting gates, and level 2 "
+                     "adds analyses across the kernel that reduce the T "
+                     "count. Level 3 is reserved for search, and higher "
+                     "levels currently run level 2."),
       llvm::cl::init(2)};
   PassOptions::Option<double> approximationTolerance{
       *this, "approximation-tolerance",
@@ -94,11 +94,10 @@ struct TwoQubitGateCountOptimizationPipelineOptions
     : public PassPipelineOptions<TwoQubitGateCountOptimizationPipelineOptions> {
   PassOptions::Option<unsigned> level{
       *this, "level",
-      llvm::cl::desc("Optimization level. Level 0 does nothing, level 1 runs "
-                     "quick local cleanup, and level 2 also runs slower "
-                     "rewrites across the circuit. Higher levels currently "
-                     "run level 2 and are reserved for more expensive "
-                     "optimization."),
+      llvm::cl::desc("Optimization level. Level 0 does nothing, level 1 "
+                     "rewrites adjacent and commuting gates, and level 2 "
+                     "adds analyses across the kernel. Level 3 is reserved "
+                     "for search, and higher levels currently run level 2."),
       llvm::cl::init(2)};
 };
 
