@@ -23,6 +23,11 @@ from .context import CompilationContext
 from .linearity import verify_linearity
 from .pipeline import pipelines
 
+# The gates `import_quake` maps to Logical actions, in the `basis-conversion`
+# grammar: `x(2)` is an `x` with two controls.
+IMPORT_BASIS_GATES = ("h", "s", "t", "x", "y", "z", "x(1)", "z(1)", "x(2)",
+                      "z(2)", "swap", "rx", "ry", "rz", "r1")
+
 
 def _text(source) -> tuple[str, str]:
     if isinstance(source, Path):

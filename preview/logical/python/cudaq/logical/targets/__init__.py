@@ -530,29 +530,29 @@ class Target(CustomTarget):
 
     @staticmethod
     def _new_compile_target():
-        """Create the CUDA-Q compile configuration owned by one target.
+        """Create the CUDA-Q compile target owned by one Logical target.
 
-        One inferred ``quake-unmapped`` stage lowers a kernel to the Quake that
-        ``import_quake`` accepts: only wires, the gates the import maps to
-        Logical actions, and constant rotation angles. The import folds a loop
-        on wires that repeats the same body, so the stage unrolls only the
-        loops whose body uses the induction variable, up to 2,048,000
-        iterations. A limit of 4096 would leave registers of the RSA-4096
-        resource kernel in example 05 on references, which the import rejects.
-        Logical synthesizes rotations itself, so the stage approximates
-        nothing. Prep keeps noise and QEC operations, so that the import
-        rejects them rather than Logical estimating the kernel without them.
+        CUDA-Q compiles each kernel through one inferred ``quake-unmapped``
+        stage to the Quake that :func:`import_quake` accepts. The stage unrolls
+        only loops whose index is used, because the import folds the rest, and
+        leaves rotation synthesis to Logical. Prep keeps noise and QEC
+        operations, so the import rejects them instead of Logical estimating
+        the kernel without them.
+
+        TODO: Expose the settings a user may want to change, such as the unroll
+        limit and the approximation tolerance, which would let CUDA-Q
+        synthesize rotations before import.
         """
 
-        basis = [
-            "h", "s", "t", "x", "y", "z", "x(1)", "z(1)", "x(2)", "z(2)",
-            "swap", "rx", "ry", "rz", "r1"
-        ]
-        profile = QuakeUnmappedProfile(basis_gates=basis,
-                                       approximation_tolerance=0.0,
-                                       cost_model=CostModel.t_count,
-                                       unroll_loops=LoopUnrolling.index_use,
-                                       max_unroll_iterations=2_048_000)
+        from ..compiler.quake import IMPORT_BASIS_GATES
+
+        profile = QuakeUnmappedProfile(
+            basis_gates=list(IMPORT_BASIS_GATES),
+            approximation_tolerance=0.0,
+            cost_model=CostModel.t_count,
+            unroll_loops=LoopUnrolling.index_use,
+            # RSA-4096 in example 05 needs more than 4096.
+            max_unroll_iterations=2_048_000)
         stage = CompilationStage(profile)
         target = CompileTarget(stages=[stage])
         target.fully_specialize = True
