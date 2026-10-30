@@ -224,6 +224,40 @@ def test_nested_list_subclass():
     assert '11111111' in counts
 
 
+def test_list_subclass_iteration_order():
+    # A subclass that redefines iteration is read in iteration order, at any
+    # level, because argument processing rebuilds the list by iterating it.
+
+    class ReverseList(list):
+
+        def __iter__(self):
+            return reversed(self)
+
+    @cudaq.kernel
+    def kernel11(myList: list[float]):
+        q = cudaq.qubit()
+        if myList[0] > 0.5:
+            x(q)
+
+    counts = cudaq.sample(kernel11, ReverseList([0., 1.]))
+    assert len(counts) == 1
+    assert '1' in counts
+
+    @cudaq.kernel
+    def kernel12(myList: list[list[float]]):
+        q = cudaq.qubit()
+        if myList[0][0] > 0.5:
+            x(q)
+
+    counts = cudaq.sample(kernel12, [ReverseList([0., 1.])])
+    assert len(counts) == 1
+    assert '1' in counts
+
+    counts = cudaq.sample(kernel12, ReverseList([[0., 1.], [1., 0.]]))
+    assert len(counts) == 1
+    assert '1' in counts
+
+
 @skip_arm64_nested_list
 def test_nested_list3_bool():
 

@@ -656,7 +656,13 @@ class PyKernelDecorator(object):
             _validate_kernel_callable_arg(arg, arg_type)
             return DecoratorCapture(arg)
 
-        if _may_hold_pauli_string(arg, arg_type):
+        depth, eleType = _sequence_depth_and_element(arg_type)
+
+        # Rebuild `list` subclasses as plain lists.
+        if isinstance(arg, list):
+            arg = _normalize_list_subclasses(arg, depth)
+
+        if _may_hold_pauli_string(arg, eleType):
             arg = self.convertStringsToPauli(arg)
 
         mlirType = mlirTypeFromPyType(type(arg),
@@ -999,26 +1005,54 @@ def _parse_ast(funcSrc: str, verbose: bool = False):
     return astModule
 
 
-def _may_hold_pauli_string(arg, argType):
+def _sequence_depth_and_element(argType):
     """
-    Return whether `arg`, declared as `argType`, can hold a string that
-    `convertStringsToPauli` would have to convert.
+    Return the number of declared `list` levels in `argType` and the element
+    type beneath them.
     """
-    eleTy = argType
-    while cc.SequenceType.isinstance(eleTy):
-        eleTy = cc.SequenceType.getElementType(eleTy)
+    depth = 0
+    while cc.SequenceType.isinstance(argType):
+        depth += 1
+        argType = cc.SequenceType.getElementType(argType)
+    return depth, argType
 
-    if (IntegerType.isinstance(eleTy) or F64Type.isinstance(eleTy) or
-            F32Type.isinstance(eleTy) or ComplexType.isinstance(eleTy)):
+
+def _normalize_list_subclasses(arg, depth):
+    """
+    Rebuild `list` subclasses as plain lists to preserve iteration order, even
+    in the case of a subclass that redefines `__iter__`.
+    """
+    if not isinstance(arg, list):
+        return arg
+
+    if depth > 1:
+        return [_normalize_list_subclasses(a, depth - 1) for a in arg]
+
+    return arg if type(arg) is list else list(arg)
+
+
+def _may_hold_pauli_string(arg, eleType):
+    """
+    Return whether `arg`, whose declared element type is `eleType`, can hold a
+    string that `convertStringsToPauli` would have to convert.
+    """
+    if (IntegerType.isinstance(eleType) or F64Type.isinstance(eleType) or
+            F32Type.isinstance(eleType) or ComplexType.isinstance(eleType)):
         return False
 
+    return _holds_string(arg)
+
+
+def _holds_string(arg):
+    """
+    Return whether `arg` is a string or holds one at any depth. A nested list
+    is no evidence on its own, so look inside rather than assume.
+    """
     if isinstance(arg, str):
         return True
 
-    if issubclass(type(arg), list):
-        return any(
-            isinstance(element, str) or issubclass(type(element), list)
-            for element in arg)
+    if type(arg) is list:
+        return any(_holds_string(element) for element in arg)
 
     return False
 
