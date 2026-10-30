@@ -75,8 +75,8 @@ typedef enum {
 /// thread 0 (see THREADING), at kernel entry before any other hook.
 ///
 /// The implementation materialises whatever state it needs (derived handles,
-/// cursors) from `ctx` into `storage` and returns the handle passed back to
-/// the other two hooks.
+/// cursors) from `ctx` into `storage`.  The other two hooks receive `storage`
+/// itself as their session.
 ///
 ///   - `storage`       : CUDAQ_DEV_TRANSPORT_SESSION_BYTES of kernel-local
 ///                       memory, aligned to CUDAQ_DEV_TRANSPORT_SESSION_ALIGN,
@@ -92,8 +92,10 @@ typedef enum {
 ///                       The transport retains it, because `rx_poll` blocks
 ///                       and is therefore the only place it can be observed.
 ///
-/// Returns the session handle, or `nullptr` if the transport cannot run (the
-/// kernel then exits immediately).
+/// Returns `storage`, or `nullptr` if the transport cannot run (the kernel
+/// then exits immediately).  Any other non-null value is treated as `storage`:
+/// the kernel passes the storage, not the returned pointer, so that the
+/// session can stay in registers.
 extern __device__ void *cudaq_dev_enter_kernel(void *storage, void *ctx,
                                                volatile int *shutdown_flag);
 
@@ -112,7 +114,10 @@ extern __device__ void *cudaq_dev_enter_kernel(void *storage, void *ctx,
 /// slot indices, are the handles: they are what the loop must dereference,
 /// and handing them over directly keeps the transport's slot addressing --
 /// bases, strides, count -- private inside `ctx`.  Pass the response back
-/// verbatim to `tx_publish`.
+/// verbatim to `tx_publish`.  Both frames MUST be global memory (device
+/// memory, or mapped host memory through its device pointer); the kernel
+/// tells the compiler so, which lets the transport's send issue the frame
+/// loads without ordering them after its own shared-memory stores.
 ///
 /// Contract: MUST observe the shutdown flag while it waits, since the dispatch
 /// loop cannot check it meanwhile.  Blocking here is intentional and is the
