@@ -58,7 +58,7 @@ print("Verified prep, SEC, readout: "
       "ideal logical actions and detector contracts")
 
 # %%
-# Compile each reusable gadget once for circuit emission and fault analysis.
+# Compile and project each reusable gadget to choose physical fault sites.
 builds = {
     contract.gadget: cql.compile(contract) for contract in (prep, sec, readout)
 }
@@ -98,11 +98,12 @@ text = coordinates + "\n" + cql.compiler.emit_stim(
     contracts, noise=noise, depolarizations=placements)
 models = {}
 for contract in (prep, sec, readout):
-    build = builds[contract.gadget]
     projection = projections[contract.gadget]
     faults = cql.analysis.standard_depolarizing_faults(
         projection, noise, depolarizations=data_sites[contract.gadget])
-    models[contract.gadget] = cql.analysis.gadget_to_edem(build, faults=faults)
+    models[contract.gadget] = cql.analysis.edem_from_gadget(contract.gadget,
+                                                            contract=contract,
+                                                            faults=faults)
 occurrences = tuple(models[contract.gadget] for contract in contracts)
 composed = edem.compose_chain(occurrences)
 projected = edem.project_DEM(composed)

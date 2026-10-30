@@ -123,18 +123,20 @@ acceptance mismatch parities; retry and selection policy stay in the protocol.
 
 ## Recipe-provided contracts
 
-Recipes expose `gadget_contract(gadget)` functions. For example:
+Surface-library gadgets expose their declared default contract through
+`.contract`. Recipes also expose `gadget_contract(gadget)` functions:
 
 ```python
 from cudaq.logical.architectures import surface
 
 recipe = surface.definitions(3)
-contract = surface.gadget_contract(recipe.memory_round)
+contract = recipe.memory_round.contract
+assert contract is surface.gadget_contract(recipe.memory_round)
 ```
 
 The Surface recipe returns cached contracts for the gadget objects it creates.
-A gadget it did not create raises `ValueError`. For
-custom gadgets, declare a `GadgetContract` explicitly.
+A gadget it did not create raises `ValueError`. For custom gadgets, declare a
+`GadgetContract` explicitly or supply a default contract factory, as below.
 
 The surface recipe supplies preparation and memory detectors, Clifford syndrome
 transfers, and readout observables. Clifford transfers are derived from
@@ -196,18 +198,62 @@ build = cql.compile(contract)
 assert build.module.operation.verify()
 ```
 
-Python construction and MLIR verification check row structure, record ownership,
+Compilation materializes the authored contract declarations. Python
+construction and MLIR verification check row structure, record ownership,
 syndrome bounds, observable indices, and agreement with the outcome map.
-[`analysis.gadget_to_edem`](../use-cases/gadget-edems.md#contract-checks-during-derivation)
+[`analysis.edem_from_gadget`](../use-cases/gadget-edems.md#contract-checks-during-derivation)
 additionally checks ideal determinism and completeness before constructing an
-EDEM.
+EDEM. It does not prove the declared logical action; use `verify_gadget` for
+both checks.
 
 Pass the explicit contract as an occurrence in a closed, compatible contract
 sequence for
 [`compiler.emit_stim`](../use-cases/stim-emission.md#save-the-stim-circuit). For
-EDEM construction, pass its compiled Build and an explicit fault set to
-[`analysis.gadget_to_edem`](../use-cases/gadget-edems.md#specify-faults). The contract
-is authored here; it is not inferred automatically from the gadget definition.
+EDEM construction, pass the gadget and `contract=contract` to
+[`analysis.edem_from_gadget`](../use-cases/gadget-edems.md#specify-faults):
+
+```python
+model = cql.analysis.edem_from_gadget(memory_round, contract=contract)
+```
+
+No separate compile step is required. Add `faults=` for an explicit fault set,
+or `noise=` and optional `depolarizations=` for the standard noise policy.
+An explicit fault set cannot be combined with the standard-noise arguments.
+The contract is authored here; it is not inferred from the gadget definition.
+
+### Declare a default contract
+
+Use `@cql.gadget(contract=factory)` to attach a reusable contract declaration
+to a custom gadget. The factory receives the gadget definition and returns
+its `GadgetContract`:
+
+```python
+def memory_contract(gadget):
+    incoming = gadget.inputs.only().syndrome
+    outgoing = gadget.outputs.only().syndrome
+    records = tuple(gadget.record(f"round.s{i}") for i in range(incoming.width))
+    builder = cql.gadgets.GadgetContractBuilder(gadget.interface)
+    for i, record in enumerate(records):
+        builder.detector(incoming[i] ^ record)
+    builder.bind(outgoing, records)
+    return builder.freeze()
+
+
+@cql.gadget(implements=cql.logical.idle, contract=memory_contract)
+def declared_memory_round(
+    block: cql.patch[cql.codes.Steane],
+) -> cql.patch[cql.codes.Steane]:
+    block, _ = cql.extract_syndrome(block, record="round")
+    return block
+
+
+model = cql.analysis.edem_from_gadget(declared_memory_round)
+```
+
+`declared_memory_round.contract` exposes the default declaration. An explicit
+`contract=` argument selects a contract for that call. A gadget without a
+declared default requires `contract=`; missing declarations raise an error
+rather than triggering detector inference.
 
 ## Verify a contract and the logical action
 

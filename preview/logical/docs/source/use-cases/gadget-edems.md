@@ -40,7 +40,7 @@ and derives its EDEM:
 
 ```python
 import cudaq.logical as cql
-from cudaq.logical.analysis import FaultSet, gadget_to_edem
+from cudaq.logical.analysis import FaultSet, edem_from_gadget
 
 
 @cql.gadget(implements=cql.logical.h)
@@ -48,13 +48,18 @@ def bare_h(block: cql.patch[cql.codes.BareQubit]) -> cql.patch[cql.codes.BareQub
     return cql.h(block.data)
 
 
-build = cql.compile(cql.gadgets.GadgetContract(bare_h))
-
 # An empty insertion site denotes the input boundary.
 faults = FaultSet().pauli_error("", 0, "x", 0.01)
-model = gadget_to_edem(build, faults=faults)
+model = edem_from_gadget(
+    bare_h, contract=cql.gadgets.GadgetContract(bare_h), faults=faults)
 assert model.apply([1, 0, 0]) == [0, 1]
 ```
+
+`edem_from_gadget` accepts the gadget directly and compiles its declared
+contract internally. This bare gadget has no measurements or stabilizers,
+so its explicit contract has no detector or syndrome declarations. For a
+custom gadget with measurements, declare those relations as described in
+[Declare a contract](../reference/detector-contracts.md#declare-a-contract).
 
 `model.apply` maps the bits entering the gadget to the bits leaving it, over
 GF(2):
@@ -93,6 +98,24 @@ standard gate, reset and measurement noise. The advanced
 [reference comparison](examples/surface-memory-circuit.md) additionally exports
 individual gadget models and compares them with Stim's generated
 rotated-memory circuit.
+
+Surface-library gadgets carry their declared contracts, so deriving one model
+with standard noise needs only the gadget and noise policy:
+
+```python
+from cudaq.logical.architectures import surface
+
+implementation = surface.interleaved_nz_definitions(3)
+noise = cql.compiler.StandardDepolarizingNoise(
+    after_clifford_depolarization=0.001)
+memory_model = edem_from_gadget(implementation.syndrome_extraction, noise=noise)
+```
+
+For other gadgets, pass `contract=` explicitly or declare a default with
+`@cql.gadget(contract=factory)`. Missing contracts raise an error; detector
+relations are never inferred. `faults=` supplies an explicit fault set, while
+`noise=` and `depolarizations=` generate standard faults. An explicit fault
+set cannot be combined with either standard-noise argument.
 
 The [memory experiment](../../../examples/gadgets/03_custom_noise.py)
 derives the model for the surface-memory experiment in the Stim tutorial:
@@ -375,7 +398,8 @@ last_check_site = round_projection.instructions[-1].site_id
 data_carrier = round_projection.interface.inputs[0].data_carriers[0]
 faults = FaultSet().record_flip(round_projection.interface.measurements[0].record, 0.01)
 faults = faults.pauli_error(last_check_site, data_carrier, "x", 0.02)
-model = gadget_to_edem(round_build, faults=faults)
+model = edem_from_gadget(
+    round_profile.gadget, contract=round_profile, faults=faults)
 ```
 
 The two faults affect the output boundary differently. The record flip changes
@@ -406,8 +430,8 @@ unsupported.
 ### Derive models stage by stage
 
 `derive_edem_chain` packages a sequence of steps you can also run yourself:
-compile each contract, project it, choose its faults, derive its EDEM, and
-compose the results:
+derive each gadget's EDEM with its contract and noise policy, then compose the
+results:
 
 ```python
 import cudaq_edem as edem
@@ -417,11 +441,8 @@ noise = cql.compiler.StandardDepolarizingNoise()
 
 
 def gadget_model(profile):
-    build = cql.compile(profile)
-    projection = cql.compiler.project_clifford(build,
-                                               gadget=profile.gadget.name)
-    faults = cql.analysis.standard_depolarizing_faults(projection, noise)
-    return cql.analysis.gadget_to_edem(build, faults=faults)
+    return cql.analysis.edem_from_gadget(
+        profile.gadget, contract=profile, noise=noise)
 
 
 round_model = gadget_model(round_profile)
@@ -432,16 +453,23 @@ chain = edem.compose_chain([
 assert sum(edem.project_DEM(chain).detectors) == 20
 ```
 
-`standard_depolarizing_faults` applies the same noise policy as
-`compiler.emit_stim`. Replace it with your own `FaultSet` to model other faults.
+The `noise=` argument applies the same noise policy as `compiler.emit_stim`.
+Use `faults=` with your own `FaultSet` to model other faults, obtaining a
+Clifford projection first when you need instruction sites or record indices.
 `compose_chain` supports serial chains in which adjacent boundaries use the
 same code presentation, meaning the same code and stabilizer ordering. Call
 `project_DEM` only once every encoded boundary is closed.
 
 ### Contract checks during derivation
 
-`gadget_to_edem` checks the contract against the realization before deriving a
+`edem_from_gadget` checks the contract against the realization before deriving a
 model. Declared detectors must be zero without faults, and outgoing virtual
 syndromes must match the measured stabilizers. The contract must also account
 for every deterministic measurement relation. An inconsistent or incomplete
 contract is rejected.
+
+Compilation materializes the authored declarations; it does not establish
+their correctness. EDEM derivation checks the detector contract, but does not
+prove the gadget's intended logical action. Use
+[`cql.gadgets.verify_gadget`](../reference/detector-contracts.md#verify-a-contract-and-the-logical-action)
+to check both the contract and supported logical behavior.

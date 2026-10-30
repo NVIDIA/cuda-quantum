@@ -221,7 +221,7 @@ def test_verify_gadget_rejects_a_bare_gadget():
 def test_verified_contract_derives_an_edem():
     pytest.importorskip("cudaq_edem")
     ql.gadgets.verify_gadget(_contract())
-    ql.analysis.gadget_to_edem(ql.compile(_contract()))
+    ql.analysis.edem_from_gadget(syndrome_round, contract=_contract())
 
 
 def test_destructive_readout_verifies_its_declared_action():

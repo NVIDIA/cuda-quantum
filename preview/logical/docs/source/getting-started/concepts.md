@@ -140,8 +140,10 @@ and destructive or preserving X/Z measurements. A default call returns only
 when both checks pass; unsupported objectives raise with an inspection receipt. See
 [Gadgets and verification](../use-cases/gadgets-and-verification.md).
 
-`cql.analysis.gadget_to_edem` derives an extended detector error model from a
-gadget and explicit faults. EDEMs retain encoded boundaries for composition;
+`cql.analysis.edem_from_gadget` derives an extended detector error model from a
+gadget, its declared contract, and explicit faults or a standard noise policy.
+Library gadgets provide default contracts; custom gadgets can declare a
+default or pass `contract=`. EDEMs retain encoded boundaries for composition;
 a closed chain can be projected to a DEM. See
 [Derive an error model from gadgets](../use-cases/gadget-edems.md).
 

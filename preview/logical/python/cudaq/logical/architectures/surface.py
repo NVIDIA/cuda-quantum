@@ -55,6 +55,11 @@ _profile_specs = {}
 _data_depol_sites = {}
 
 
+def _register_contract(gadget, spec):
+    _profile_specs[gadget] = spec
+    gadget._attach_contract_factory(gadget_contract)
+
+
 @lru_cache(maxsize=None)
 def gadget_contract(gadget: gadgets.GadgetDefinition) -> gadgets.GadgetContract:
     """Return a contract for a gadget created by this Surface recipe.
@@ -1018,7 +1023,7 @@ class _SurfaceBuilder:
             auxiliary_code=auxiliary,
             gadget=definition,
         )
-        _profile_specs[definition] = ("wsc", plan)
+        _register_contract(definition, ("wsc", plan))
         return plan
 
 
@@ -1366,8 +1371,9 @@ class SurfaceDefinitions:
     Preparation resets the data and measures its stabilizers; ``memory_round``
     measures them again. Their records are ``x_check{i}.outcome`` and
     ``z_check{i}.outcome``, in ``code.hx`` then ``code.hz`` order. Detector
-    contracts are available through ``surface.gadget_contract(gadget)`` for every fixed
-    gadget. Preparations and memory rounds bind their recorded syndromes;
+    contracts are available as ``gadget.contract`` for every fixed gadget
+    and through ``surface.gadget_contract(gadget)``. Preparations and memory
+    rounds bind their recorded syndromes;
     Clifford layers transfer incoming syndromes through their physical action.
     Readout's contract carries its logical observable. Generated WSC gadgets
     expose the same contract as their measurement bundle's ``analysis`` field.
@@ -1477,19 +1483,20 @@ def _definitions(distance: int) -> SurfaceDefinitions:
             ),),
     )
 
-    _profile_specs.update({
-        result.prepare_zero: ("prepare", builder, "Z", ""),
-        result.prepare_one: ("prepare", builder, "Z", "__qlx_call0."),
-        result.prepare_plus: ("prepare", builder, "X", ""),
-        result.prepare_minus: ("prepare", builder, "X", "__qlx_call0."),
-        result.memory_round: ("memory", builder, 1),
-        result.measure_z: ("readout",),
-        result.measure_x: ("readout",),
-        result.h: ("clifford",),
-        result.fold_s: ("clifford",),
-        result.transversal_cx: ("clifford",),
-        result.cz: ("clifford",),
-    })
+    for gadget, spec in {
+            result.prepare_zero: ("prepare", builder, "Z", ""),
+            result.prepare_one: ("prepare", builder, "Z", "__qlx_call0."),
+            result.prepare_plus: ("prepare", builder, "X", ""),
+            result.prepare_minus: ("prepare", builder, "X", "__qlx_call0."),
+            result.memory_round: ("memory", builder, 1),
+            result.measure_z: ("readout",),
+            result.measure_x: ("readout",),
+            result.h: ("clifford",),
+            result.fold_s: ("clifford",),
+            result.transversal_cx: ("clifford",),
+            result.cz: ("clifford",),
+    }.items():
+        _register_contract(gadget, spec)
     return result
 
 
@@ -1530,7 +1537,7 @@ def interleaved_nz_definitions(
 
     result, contracts, sites = build_definitions(distance)
     for contract in contracts:
-        _profile_specs[contract.gadget] = ("contract", contract)
+        _register_contract(contract.gadget, ("contract", contract))
     for gadget, projection, before, carriers in sites:
         _data_depol_sites[gadget] = (projection, before, carriers)
     return result
@@ -1545,7 +1552,8 @@ def architecture(distance: int = 3) -> devices.QECArchitecture:
     selected = definitions(distance)
     logical_x = gadgets.logical_pauli(selected.code, basis="x")
     logical_z = gadgets.logical_pauli(selected.code, basis="z")
-    _profile_specs.update({logical_x: ("pauli",), logical_z: ("pauli",)})
+    for gadget in (logical_x, logical_z):
+        _register_contract(gadget, ("pauli",))
     return devices.QECArchitecture(
         f"Surface{distance}Architecture",
         selected.code.default_encoding,

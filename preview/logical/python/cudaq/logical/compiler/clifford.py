@@ -71,8 +71,9 @@ def project_clifford(source: Build,
     """Project one selected Fabric gadget through the native circuit traversal.
 
     ``source`` must contain a linked GadgetSpec, with stable record names on
-    every measurement. The root gadget is selected by default; other roots
-    require an explicit gadget symbol. Calls and static repeats are expanded.
+    every measurement. A gadget root, or the gadget referenced by a contract
+    root, is selected by default; other roots require an explicit gadget
+    symbol. Calls and static repeats are expanded.
     Unsupported operations, dynamic control, and non-Clifford gates fail with
     diagnostics. This operation does not modify the Build, insert noise, or
     prove detector-contract correctness.
@@ -81,19 +82,25 @@ def project_clifford(source: Build,
     if not isinstance(source, Build):
         raise TypeError(
             "project_clifford expects a cudaq.logical.compiler.Build")
+    # Resolve the selected symbol from the authenticated snapshot. Contract
+    # roots can reference a symbol that differs from the authored gadget name.
+    module = source._fresh_module()
     if gadget is None:
-        if source.root.kind != "gadget":
+        if source.root.kind == "gadget":
+            gadget = source.root.symbol
+        elif source.root.kind == "gadget_contract":
+            from cudaq.mlir.ir import FlatSymbolRefAttr, SymbolTable
+
+            contract = SymbolTable(module.operation)[source.root.symbol]
+            gadget = FlatSymbolRefAttr(contract.attributes["gadget"]).value
+        else:
             raise ValueError(
-                "project_clifford requires gadget= for a non-gadget root")
-        gadget = source.root.symbol
+                "project_clifford requires gadget= for a root without a gadget")
     if not isinstance(gadget, str) or not gadget:
         raise TypeError("gadget must be a nonempty Fabric gadget symbol")
 
     from cudaq.mlir._mlir_libs import _qlxRuntime
 
-    # Use the authenticated snapshot, not the externally mutable inspection
-    # clone exposed by Build.module.
-    module = source._fresh_module()
     native = json.loads(_qlxRuntime.project_clifford_json(module, gadget))
     if native.get("schema") != "cudaq.logical.clifford-projection/v1":
         raise RuntimeError("unsupported native Clifford projection schema")

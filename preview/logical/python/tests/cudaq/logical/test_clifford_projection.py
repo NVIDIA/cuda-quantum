@@ -113,6 +113,21 @@ def test_projection_uses_the_authenticated_build_snapshot():
     assert cql.compiler.project_clifford(build) == expected
 
 
+@pytest.mark.parametrize("gadget", [bare_h, two_calls])
+def test_contract_root_projects_its_linked_gadget_from_the_authenticated_snapshot(
+        gadget):
+    build = cql.compile(cql.gadgets.GadgetContract(gadget))
+    before = build.to_mlir(), build.content_sha256
+    expected = cql.compiler.project_clifford(cql.compile(gadget))
+    assert cql.compiler.project_clifford(build) == expected
+    inspection = build.module
+    contract = ir.SymbolTable(inspection.operation)[build.root.symbol]
+    contract.attributes["gadget"] = ir.FlatSymbolRefAttr.get(
+        "missing", context=inspection.context)
+    assert cql.compiler.project_clifford(build) == expected
+    assert (build.to_mlir(), build.content_sha256) == before
+
+
 def test_cross_patch_gate_operands_follow_the_encoded_port_order():
 
     @cql.gadget(implements=cql.logical.cx)

@@ -54,7 +54,9 @@ def compare_memory(make_memory):
                     projection,
                     noise,
                     depolarizations=placements.get(index, ()))
-                cache[key] = cql.analysis.gadget_to_edem(build, faults=faults)
+                cache[key] = cql.analysis.edem_from_gadget(profile.gadget,
+                                                           contract=profile,
+                                                           faults=faults)
             values.append(cache[key])
         composed = cql.analysis.derive_edem_chain(memory.profiles,
                                                   noise=noise,

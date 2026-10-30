@@ -30,7 +30,11 @@ def test_recipe_gadget_contracts_are_stable_and_semantically_valid(
     profile = surface.gadget_contract(gadget)
     assert profile is surface.gadget_contract(gadget)
     assert profile.gadget is gadget
-    cql.analysis.gadget_to_edem(cql.compile(profile))
+    assert gadget.contract is profile
+    explicit = cql.analysis.edem_from_gadget(gadget, contract=profile)
+    if distance == 3:
+        assert cql.analysis.edem_from_gadget(
+            gadget).to_bytes() == explicit.to_bytes()
 
 
 def test_generated_surface_measurement_exposes_its_existing_profile():
@@ -39,6 +43,7 @@ def test_generated_surface_measurement_exposes_its_existing_profile():
                                          rounds=1)
     assert surface.gadget_contract(
         measurement.realization) is measurement.analysis
+    assert measurement.realization.contract is measurement.analysis
     assert cql.compile(measurement.analysis).module.operation.verify()
 
 
@@ -49,6 +54,9 @@ def test_custom_profile_overrides_default():
                      boundary=None,
                      detectors=profile.detectors + profile.detectors[:1])
     # Redundant detectors are valid and must not be replaced by the default.
+    direct = cql.analysis.edem_from_gadget(gadget, contract=custom)
+    default = cql.analysis.edem_from_gadget(gadget)
+    assert sum(direct.detectors) == sum(default.detectors) + 1
     model = cql.analysis.derive_edem_chain(
         (surface.gadget_contract(surface.definitions(3).prepare_zero), custom,
          surface.gadget_contract(surface.definitions(3).measure_z)))
@@ -63,7 +71,7 @@ def test_chain_reuses_equal_faults_but_distinguishes_occurrence_noise(
         surface.gadget_contract(g)
         for g in (recipe.prepare_zero, recipe.memory_round, recipe.memory_round,
                   recipe.memory_round, recipe.measure_z))
-    original = chain.gadget_to_edem
+    original = chain._edem_from_build
     derived = []
 
     def record(build, *, faults):
@@ -78,7 +86,7 @@ def test_chain_reuses_equal_faults_but_distinguishes_occurrence_noise(
                 .02 if index == 3 else .01)
         return result
 
-    monkeypatch.setattr(chain, "gadget_to_edem", record)
+    monkeypatch.setattr(chain, "_edem_from_build", record)
     model = chain.derive_edem_chain(profiles, fault_factory=faults)
     assert len(derived) == 4  # preparation, two noise settings, readout
     assert [f.groups[0].probabilities for f in model.faults] == [[.01], [.01],

@@ -97,9 +97,9 @@ ideal stabilizer checks; noisy circuit distance is checked separately. See
 [Verify a contract and the logical action](../../reference/detector-contracts.md#verify-a-contract-and-the-logical-action)
 for the supported claims and failure receipts.
 
-## Compile once and choose physical noise
+## Project the realization and choose physical noise
 
-Compile and project each reusable gadget once:
+Compile and project each reusable gadget to choose physical fault sites:
 
 ```{eval-rst}
 .. literalinclude:: ../../../../examples/gadgets/04_surface_memory_reference.py
@@ -143,6 +143,10 @@ EDEM derivation:
    :end-before: # %%
    :caption: Derive each gadget EDEM once and compose its occurrences.
 ```
+
+`edem_from_gadget` accepts each gadget and its explicit contract directly. The
+projections above are used to choose faults; callers do not need a compiled
+Build for EDEM derivation.
 
 An EDEM retains fault effects on an open gadget's code boundaries, allowing a
 fault to influence later gadgets' detectors. The example derives preparation,

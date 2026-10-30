@@ -61,6 +61,9 @@ class GadgetDefinition(ImmutableValue):
         "interface",
         "spec",
         "_inferred_outcome_map",
+        "_contract_factory",
+        "_default_contract",
+        "_resolving_contract",
         "device",
         "__dict__",
     )
@@ -71,6 +74,7 @@ class GadgetDefinition(ImmutableValue):
         *,
         implements=None,
         spec: GadgetSpec | None = None,
+        contract: Callable[[GadgetDefinition], GadgetContract] | None = None,
         name: str | None = None,
         logical_ports: Mapping[ActionOperandRef | str, LogicalPortRef | str] |
         None = None,
@@ -116,6 +120,11 @@ class GadgetDefinition(ImmutableValue):
         self.implements = implements
         self.spec = spec
         self._inferred_outcome_map = None
+        self._contract_factory = None
+        self._default_contract = None
+        self._resolving_contract = False
+        if contract is not None:
+            self._attach_contract_factory(contract)
         if device is not None:
             from cudaq.logical.devices.definition import Device
 
@@ -168,6 +177,47 @@ class GadgetDefinition(ImmutableValue):
         self.__module__ = provider.__module__
         self.__annotations__ = dict(getattr(provider, "__annotations__", {}))
         self._seal()
+
+    def _attach_contract_factory(self, factory) -> None:
+        """Associate a library contract before publishing this definition."""
+
+        if not callable(factory):
+            raise TypeError(
+                "gadget contract must be a callable accepting its gadget")
+        if self._contract_factory is factory:
+            return
+        if self._contract_factory is not None:
+            raise ValueError("gadget already has a declared default contract")
+        object.__setattr__(self, "_contract_factory", factory)
+
+    @property
+    def contract(self) -> GadgetContract | None:
+        """Return the declared default detector contract, if any.
+
+        A ``contract=`` factory on ``@gadget`` receives the completed gadget
+        definition and returns its ``GadgetContract``. The result is built
+        once on first access, without inferring detector relations.
+        """
+
+        if self._contract_factory is None:
+            return None
+        if self._default_contract is not None:
+            return self._default_contract
+        if self._resolving_contract:
+            raise RuntimeError("recursive default contract construction")
+        object.__setattr__(self, "_resolving_contract", True)
+        try:
+            contract = self._contract_factory(self)
+            if not isinstance(contract, GadgetContract):
+                raise TypeError(
+                    "gadget contract factory must return a GadgetContract")
+            if contract.gadget is not self:
+                raise ValueError(
+                    "default contract must describe the same gadget")
+            object.__setattr__(self, "_default_contract", contract)
+            return contract
+        finally:
+            object.__setattr__(self, "_resolving_contract", False)
 
     @property
     def kernel(self):
@@ -264,6 +314,7 @@ def gadget(
     *,
     implements=None,
     spec: GadgetSpec | None = None,
+    contract: Callable[[GadgetDefinition], GadgetContract] | None = None,
     name: str | None = None,
     logical_ports: Mapping[ActionOperandRef | str, LogicalPortRef | str] |
     None = None,
@@ -290,6 +341,7 @@ def gadget(
             provider,
             implements=implements,
             spec=spec,
+            contract=contract,
             name=name,
             logical_ports=logical_ports,
             transform=transform,

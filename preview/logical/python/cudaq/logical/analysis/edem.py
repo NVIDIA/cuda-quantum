@@ -12,12 +12,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 import json
 from math import isfinite
-from typing import TYPE_CHECKING, Mapping
+from typing import TYPE_CHECKING, Mapping, Sequence
 
 from cudaq_edem import EDEM
 
 if TYPE_CHECKING:
     from cudaq.logical.compiler.build import Build
+    from cudaq.logical.compiler.noise import Depolarize1Placement, StandardDepolarizingNoise
+    from cudaq.logical.gadgets import GadgetContract, GadgetDefinition
 
 
 @dataclass(frozen=True, slots=True)
@@ -262,10 +264,72 @@ def standard_depolarizing_faults(projection, noise, *,
     return FaultSet(tuple(faults), tuple(groups))
 
 
-def gadget_to_edem(source: Build,
-                   *,
-                   faults: FaultSet = FaultSet(),
-                   profile: str | None = None) -> EDEM:
+def edem_from_gadget(
+        gadget: GadgetDefinition,
+        *,
+        contract: GadgetContract | None = None,
+        faults: FaultSet | None = None,
+        noise: StandardDepolarizingNoise | None = None,
+        depolarizations: Sequence[Depolarize1Placement] = (),
+) -> EDEM:
+    """Derive an open EDEM from a gadget and its declared detector contract.
+
+    Use ``gadget.contract`` by default, or select an explicit ``contract`` for
+    that same gadget. Surface library gadgets declare defaults; custom gadgets
+    may declare a ``contract=`` factory on ``@gadget`` or pass a contract here.
+    Missing contracts are rejected, without inferring detector relations.
+
+    Supply ``noise`` for the standard gate, reset and measurement noise policy,
+    optionally with explicit ``depolarizations``. Alternatively, supply a
+    complete ``FaultSet`` through ``faults``. These two choices cannot be
+    combined. With neither, derive the model without faults.
+
+    Compilation is handled internally. Derivation proves ideal determinism
+    and completeness of the detector contract; use ``gadgets.verify_gadget``
+    to also verify the declared logical action. Encoded boundaries remain
+    open for composition. The returned value owns its native packed buffer.
+    """
+    from cudaq.logical.compiler import compile, project_clifford
+    from cudaq.logical.compiler.noise import StandardDepolarizingNoise
+    from cudaq.logical.gadgets import GadgetContract, GadgetDefinition
+
+    if not isinstance(gadget, GadgetDefinition):
+        raise TypeError("edem_from_gadget expects a GadgetDefinition")
+    if faults is not None and not isinstance(faults, FaultSet):
+        raise TypeError("faults must be a FaultSet")
+    depolarizations = tuple(depolarizations)
+    if faults is not None and (noise is not None or depolarizations):
+        raise ValueError("choose faults or standard noise placements")
+    if noise is not None and not isinstance(noise, StandardDepolarizingNoise):
+        raise TypeError("noise must be StandardDepolarizingNoise")
+    if contract is None:
+        contract = gadget.contract
+    if contract is None:
+        raise ValueError(
+            f"gadget {gadget.name!r} has no declared default detector contract; "
+            "supply contract= or declare a contract factory on @gadget")
+    if not isinstance(contract, GadgetContract):
+        raise TypeError("contract must be a GadgetContract")
+    if contract.gadget is not gadget:
+        raise ValueError("contract must describe the same gadget")
+
+    build = compile(contract)
+    if faults is None:
+        if noise is not None or depolarizations:
+            projection = project_clifford(build)
+            faults = standard_depolarizing_faults(
+                projection,
+                noise if noise is not None else StandardDepolarizingNoise(),
+                depolarizations=depolarizations)
+        else:
+            faults = FaultSet()
+    return _edem_from_build(build, faults=faults)
+
+
+def _edem_from_build(source: Build,
+                     *,
+                     faults: FaultSet = FaultSet(),
+                     profile: str | None = None) -> EDEM:
     """Prove a gadget detector contract and return a ``cudaq_edem.EDEM``.
 
     The source is an authenticated compiler Build containing a linked
@@ -288,7 +352,8 @@ def gadget_to_edem(source: Build,
     from cudaq.mlir._mlir_libs import _qlxRuntime
 
     if not isinstance(source, Build):
-        raise TypeError("gadget_to_edem expects a cudaq.logical.compiler.Build")
+        raise TypeError(
+            "_edem_from_build expects a cudaq.logical.compiler.Build")
     if not isinstance(faults, FaultSet):
         raise TypeError("faults must be a FaultSet")
     if profile is None:
@@ -301,6 +366,6 @@ def gadget_to_edem(source: Build,
 
 
 __all__ = [
-    "PauliInsertion", "ElementaryFault", "FaultSet", "gadget_to_edem",
+    "PauliInsertion", "ElementaryFault", "FaultSet", "edem_from_gadget",
     "standard_depolarizing_faults"
 ]
