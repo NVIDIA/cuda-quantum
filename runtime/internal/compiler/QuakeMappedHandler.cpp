@@ -31,11 +31,9 @@ public:
       return std::nullopt;
     const auto &profile = std::get<cudaq::config::QuakeMappedProfile>(output);
     const auto level = static_cast<unsigned>(options.optimizationLevel);
-    // Accepts the references or wires that `quake-unmapped` allows, and
-    // unrolls the loops that the input profile selects.
+    // Accepts the references or wires that `quake-unmapped` allows.
     std::vector<std::string> passes = {cudaq_internal::compiler::convertToWires(
-        std::get<cudaq::config::QuakeUnmappedProfile>(input),
-        /*addWireSet=*/true)};
+        cudaq::config::QuakeUnmappedProfile{}, /*addWireSet=*/true)};
     // `raise-fatal-errors` makes a kernel that cannot be routed a compile
     // error instead of leaving it unrouted.
     // TODO: Search for a better layout with `placement=auto search=sabre` once
