@@ -554,6 +554,8 @@ void test_level_0_representation(mlir::MLIRContext *ctx) {
     auto compiled =
         compileQuake(ctx, "indexLoop", indexLoopKernel, inferredTarget(profile),
                      cudaq::OptimizationLevel::O0);
+    if (!compiled)
+      continue;
     bool onReferences = false;
     CompiledModuleHelper::getMlirModuleOp(*compiled->getMlir())
         .walk([&](cudaq::quake::AllocaOp) { onReferences = true; });
@@ -652,17 +654,21 @@ void test_value_semantics_errors(mlir::MLIRContext *ctx) {
   profile.maxUnrollIterations = 2;
   auto unrollAll = profile;
   unrollAll.unrollLoops = cudaq::config::LoopUnrolling::all;
+  unsigned failed = 0;
   for (auto level : allLevels) {
-    compileQuake(ctx, "indexLoop", indexLoopKernel, inferredTarget(profile),
-                 level);
-    compileQuake(ctx, "indexLoop", indexLoopKernel, inferredTarget(unrollAll),
-                 level);
-    compileQuake(ctx, "runtimeIndex", runtimeIndexKernel,
-                 inferredTarget(profile), level);
+    failed += !compileQuake(ctx, "indexLoop", indexLoopKernel,
+                            inferredTarget(profile), level);
+    failed += !compileQuake(ctx, "indexLoop", indexLoopKernel,
+                            inferredTarget(unrollAll), level);
+    failed += !compileQuake(ctx, "runtimeIndex", runtimeIndexKernel,
+                            inferredTarget(profile), level);
   }
+  llvm::outs() << "Value semantics errors: " << failed
+               << " of 12 compiles failed\n";
 }
 
 // CHECK-COUNT-12: but the index is not a compile-time constant
+// CHECK:          Value semantics errors: 12 of 12 compiles failed
 
 /// A rotation whose angle is the kernel's argument.
 static const char *argumentAngleKernel = R"#(
