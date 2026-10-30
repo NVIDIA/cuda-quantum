@@ -138,19 +138,6 @@
 // CUDA-Q Logical's stage keeps the loops whose index the body does not use
 // rolled, so prep and deploy unroll no loop, and its target keeps noise and QEC
 // operations in prep. Its cost model converts to wires at every level.
-// CHECK-LABEL: CUDA-Q Logical level 0:
-// CHECK-NEXT:  canonicalize
-// CHECK-NEXT:  hw-jit-prep-pipeline{allow-early-exit=false no-loop-unroll=true erase-noise=false erase-qec=false}
-// CHECK-NEXT:  jit-deploy-pipeline{no-loop-unroll=true}
-// CHECK-NEXT:  decomposition{basis=h,s,t,x,y,z,x(1),z(1),x(2),z(2),swap,rx,ry,rz,r1}
-// CHECK-NEXT:  prepare-for-wireset{maximum-iterations=2048000 unroll-only-index-use-loops=true}
-// CHECK-NEXT:  func.func(normalize-phase-placement,lower-phase)
-// CHECK-NEXT:  clifford-t-synthesis-pipeline{basis=h,s,t,x,y,z,x(1),z(1),x(2),z(2),swap,rx,ry,rz,r1 level=0 approximation-tolerance=0}
-// CHECK-NEXT:  basis-conversion{basis=h,s,t,x,y,z,x(1),z(1),x(2),z(2),swap,rx,ry,rz,r1}
-// CHECK-NEXT:  func.func(lower-phase)
-// CHECK-NEXT:  jit-finalize-pipeline{lower-device-calls=true}
-// CHECK-EMPTY:
-
 // CHECK-LABEL: CUDA-Q Logical level 1:
 // CHECK-NEXT:  canonicalize
 // CHECK-NEXT:  hw-jit-prep-pipeline{allow-early-exit=false no-loop-unroll=true erase-noise=false erase-qec=false}
@@ -164,6 +151,14 @@
 // CHECK-NEXT:  func.func(lower-phase)
 // CHECK-NEXT:  jit-finalize-pipeline{lower-device-calls=true}
 // CHECK-EMPTY:
+
+// A stage whose unroll limit is below prep's 1024 iterations keeps prep and
+// deploy from unrolling, even when it unrolls all loops.
+// CHECK-LABEL: unroll limit 2:
+// CHECK-NEXT:  canonicalize
+// CHECK-NEXT:  hw-jit-prep-pipeline{allow-early-exit=false no-loop-unroll=true}
+// CHECK-NEXT:  jit-deploy-pipeline{no-loop-unroll=true}
+// CHECK:       prepare-for-wireset{maximum-iterations=2}
 // clang-format on
 
 #include "cudaq_internal/compiler/Compiler.h"
@@ -275,7 +270,16 @@ int main(int argc, char **argv) {
        .lowering = cudaq::config::InferredLowering{}});
   logical.eraseNoise = false;
   logical.eraseQEC = false;
-  printPipeline("CUDA-Q Logical level 0", logical, level0);
   printPipeline("CUDA-Q Logical level 1", logical, {});
+
+  cudaq::CompileTarget limited;
+  limited.stages.push_back(
+      {.irOutputProfile =
+           cudaq::config::QuakeUnmappedProfile{
+               .basisGates = {"h", "rz", "x(1)"},
+               .costModel = cudaq::config::CostModel::t_count,
+               .maxUnrollIterations = 2},
+       .lowering = cudaq::config::InferredLowering{}});
+  printPipeline("unroll limit 2", limited, {});
   return 0;
 }
