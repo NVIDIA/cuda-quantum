@@ -30,6 +30,43 @@ static bool isKernel(func::FuncOp func) {
          });
 }
 
+/// With `wires-only`, report why the entry point \p func holds a qubit as
+/// a reference. Report each operation that is a known cause: an index that is
+/// not a compile-time constant, and `quake.apply_noise`, which takes qubits
+/// only as references. Without a known cause, report only the first operation
+/// that yields a reference, so that a large register does not repeat the
+/// diagnostic for each of its qubits.
+static bool verifyWiresOnly(func::FuncOp func) {
+  static constexpr llvm::StringLiteral violation =
+      "profile violation: quake-unmapped with value semantics requires every "
+      "qubit to be a wire";
+  bool ok = true;
+  const auto report = [&](Operation *op, llvm::StringRef reason) {
+    op->emitOpError(violation) << ", but " << reason;
+    ok = false;
+  };
+  if (llvm::any_of(func.getArgumentTypes(),
+                   cudaq::quake::isQuantumReferenceType))
+    report(func, "the entry point takes a reference");
+  Operation *firstReference = nullptr;
+  func.walk([&](Operation *op) {
+    auto extract = dyn_cast<cudaq::quake::ExtractRefOp>(op);
+    if (isa<cudaq::quake::ApplyNoiseOp>(op))
+      report(op, "noise applies only to references");
+    else if (extract && !extract.hasConstantIndex())
+      report(op, "the index is not a compile-time constant, because it is "
+                 "known only at run time or comes from a loop that was not "
+                 "unrolled");
+    else if (!firstReference &&
+             llvm::any_of(op->getResultTypes(),
+                          cudaq::quake::isQuantumReferenceType))
+      firstReference = op;
+  });
+  if (ok && firstReference)
+    report(firstReference, "this operation yields a reference");
+  return ok;
+}
+
 namespace {
 
 struct VerifyQuakeUnmappedProfile
@@ -61,6 +98,10 @@ struct VerifyQuakeUnmappedProfile
         });
       }
     }
+    if (wiresOnly)
+      for (auto func : module.getOps<func::FuncOp>())
+        if (func->hasAttr(cudaq::entryPointAttrName))
+          ok &= verifyWiresOnly(func);
     if (!ok)
       signalPassFailure();
   }
