@@ -308,11 +308,8 @@ def import_cudaq(
     if not isa_kernel_decorator(kernel):
         raise TypeError("kernel must be a standard @cudaq.kernel object")
     # Compile exactly as a launch on a Logical target does, so both paths give
-    # the same counts. That includes the stage's unroll limit, which has no
-    # budget on the operations unrolling generates: this path used to cap
-    # loops at 4096 iterations and 1,000,000 operations, but the target path
-    # never did, and its large workloads need longer loops. Logical's endpoint
-    # is local, never emulated, and reads the MLIR, so no JIT engine is built.
+    # the same counts. Logical's endpoint is local, never emulated, and reads
+    # the MLIR, so no JIT engine is built.
     processed, module = kernel.prepare_call(*arguments)
     compiled = cudaq_runtime.compile_module(
         kernel.uniqName,
