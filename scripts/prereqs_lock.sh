@@ -96,7 +96,7 @@ add_lock_line "aws-sdk-cpp" \
   "ref=${AWS_SDK_CPP_REF}"
 
 # [QRMI] Pre-built C artifacts for Pasqal QRMI connector
-# Keep this in sync with the QRMI section in the installation path below.
+# Keep this in sync with the QRMI section in install_prerequisites.sh.
 add_lock_line "qrmi" \
   "type=tar" \
   "url=${QRMI_RELEASE_BASE}/${QRMI_ARCHIVE}" \
