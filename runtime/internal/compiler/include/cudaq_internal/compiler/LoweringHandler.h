@@ -49,6 +49,22 @@ struct StagePasses {
   std::string postFinalizePasses{};
 };
 
+/// What prep and deploy do for a target. Prep, deploy, and finalize are the
+/// bookends: the pipelines that every target runs once each, around the passes
+/// of its stages. When a stage needs prep or deploy to leave something in
+/// place, such as rolled loops or `quake.apply_noise`, the compiler turns that
+/// step off for the whole target. The defaults are what prep and deploy do for
+/// a target without stages.
+struct BookendOptions {
+  /// Whether prep and deploy unroll loops. A stage that keeps some loops
+  /// rolled turns this off, or prep and deploy would unroll those loops first.
+  bool unrollLoops = true;
+  /// Whether prep erases `quake.apply_noise`.
+  bool eraseNoise = true;
+  /// Whether prep erases the QEC detector and observable operations.
+  bool eraseQEC = true;
+};
+
 /// Interface for lowering between IR profiles.
 ///
 /// Registering lowering handlers with the compiler is what enables the JIT
@@ -91,18 +107,37 @@ public:
                          const cudaq::config::Profile &output) const {
     return false;
   }
+
+  /// What this stage needs prep and deploy to leave in place. The compiler
+  /// turns off each step that any stage turns off. Answer from \p input and
+  /// \p output alone, as `requiresArgumentValues` does, so that the
+  /// optimization level never changes the IR that a stage receives.
+  virtual BookendOptions
+  getBookendOptions(const cudaq::config::Profile &input,
+                    const cudaq::config::Profile &output) const {
+    return {};
+  }
 };
 
-/// Pipeline text for `prepare-for-wireset`, which unrolls loops and moves the
-/// kernel's qubits onto wires. Stages run it at every optimization level, since
-/// the level only changes how much we optimize, not the representation. We ask
-/// for loops of up to 1024 iterations to match
-/// `classical-optimization-pipeline`. Left alone, `prepare-for-wireset` would
-/// stop at 50, the `loop-unroll` default. With \p addWireSet, it also borrows
-/// every qubit from a new wire set, which `qubit-mapping` needs.
-inline std::string convertToWires(bool addWireSet = false) {
+/// Pipeline text for `prepare-for-wireset`, which unrolls the loops that
+/// \p profile selects and moves the kernel's qubits onto wires. A qubit picked
+/// by a loop longer than the profile's limit, or by a run-time index, stays a
+/// reference. Stages run it at every optimization level, since the level only
+/// changes how much we optimize, not the representation. The profile's default
+/// limit of 1024 iterations matches `classical-optimization-pipeline`. Left
+/// alone, `prepare-for-wireset` would stop at 50, the `loop-unroll` default.
+/// With \p addWireSet, it also borrows every qubit from a new wire set, which
+/// `qubit-mapping` needs.
+inline std::string
+convertToWires(const cudaq::config::QuakeUnmappedProfile &profile,
+               bool addWireSet = false) {
   return std::string("prepare-for-wireset{") +
-         (addWireSet ? "add-wireset=true " : "") + "maximum-iterations=1024}";
+         (addWireSet ? "add-wireset=true " : "") +
+         "maximum-iterations=" + std::to_string(profile.maxUnrollIterations) +
+         (profile.unrollLoops == cudaq::config::LoopUnrolling::index_use
+              ? " unroll-only-index-use-loops=true"
+              : "") +
+         "}";
 }
 
 /// Return the first handler in \p handlers supporting the conversion

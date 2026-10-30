@@ -134,6 +134,39 @@
 // CHECK-NEXT:  two-qubit-gate-count-optimization-pipeline{level=1}
 // CHECK-NEXT:  basis-conversion{basis=h,rx,ry,rz,x,z(1)}
 // CHECK-NEXT:  jit-finalize-pipeline
+
+// CUDA-Q Logical's stage keeps the loops whose index the body does not use
+// rolled, so prep and deploy unroll no loop, and prep keeps noise and QEC
+// operations. Under value semantics the stage converts to wires at every level
+// and ends with the verifier, which rejects a register left on references.
+// CHECK-LABEL: CUDA-Q Logical level 0:
+// CHECK-NEXT:  canonicalize
+// CHECK-NEXT:  hw-jit-prep-pipeline{allow-early-exit=false no-loop-unroll=true erase-noise=false erase-qec=false}
+// CHECK-NEXT:  jit-deploy-pipeline{no-loop-unroll=true}
+// CHECK-NEXT:  decomposition{basis=h,s,t,x,y,z,x(1),z(1),x(2),z(2),swap,rx,ry,rz,r1}
+// CHECK-NEXT:  prepare-for-wireset{maximum-iterations=2048000 unroll-only-index-use-loops=true}
+// CHECK-NEXT:  func.func(normalize-phase-placement,lower-phase)
+// CHECK-NEXT:  clifford-t-synthesis-pipeline{basis=h,s,t,x,y,z,x(1),z(1),x(2),z(2),swap,rx,ry,rz,r1 level=0 approximation-tolerance=0}
+// CHECK-NEXT:  basis-conversion{basis=h,s,t,x,y,z,x(1),z(1),x(2),z(2),swap,rx,ry,rz,r1}
+// CHECK-NEXT:  func.func(lower-phase)
+// CHECK-NEXT:  verify-quake-unmapped-profile{wires-only=true}
+// CHECK-NEXT:  jit-finalize-pipeline{lower-device-calls=true}
+// CHECK-EMPTY:
+
+// CHECK-LABEL: CUDA-Q Logical level 1:
+// CHECK-NEXT:  canonicalize
+// CHECK-NEXT:  hw-jit-prep-pipeline{allow-early-exit=false no-loop-unroll=true erase-noise=false erase-qec=false}
+// CHECK-NEXT:  jit-deploy-pipeline{no-loop-unroll=true}
+// CHECK-NEXT:  decomposition{basis=h,s,t,x,y,z,x(1),z(1),x(2),z(2),swap,rx,ry,rz,r1}
+// CHECK-NEXT:  prepare-for-wireset{maximum-iterations=2048000 unroll-only-index-use-loops=true}
+// CHECK-NEXT:  func.func(normalize-phase-placement,lower-phase)
+// CHECK-NEXT:  clifford-t-optimization-pipeline{level=1 approximation-tolerance=0}
+// CHECK-NEXT:  clifford-t-synthesis-pipeline{basis=h,s,t,x,y,z,x(1),z(1),x(2),z(2),swap,rx,ry,rz,r1 level=1 approximation-tolerance=0}
+// CHECK-NEXT:  basis-conversion{basis=h,s,t,x,y,z,x(1),z(1),x(2),z(2),swap,rx,ry,rz,r1}
+// CHECK-NEXT:  func.func(lower-phase)
+// CHECK-NEXT:  verify-quake-unmapped-profile{wires-only=true}
+// CHECK-NEXT:  jit-finalize-pipeline{lower-device-calls=true}
+// CHECK-EMPTY:
 // clang-format on
 
 #include "cudaq_internal/compiler/Compiler.h"
@@ -232,5 +265,21 @@ int main(int argc, char **argv) {
     printPipeline("compiler-bench-nisq on path(4) level 0", onPath, level0);
     printPipeline("compiler-bench-nisq on path(4) level 1", onPath, {});
   }
+
+  cudaq::CompileTarget logical;
+  logical.stages.push_back(
+      {.irOutputProfile =
+           cudaq::config::QuakeUnmappedProfile{
+               .basisGates = {"h", "s", "t", "x", "y", "z", "x(1)", "z(1)",
+                              "x(2)", "z(2)", "swap", "rx", "ry", "rz", "r1"},
+               .costModel = cudaq::config::CostModel::t_count,
+               .semantics = cudaq::config::Semantics::value,
+               .unrollLoops = cudaq::config::LoopUnrolling::index_use,
+               .maxUnrollIterations = 2048000,
+               .eraseNoise = false,
+               .eraseQEC = false},
+       .lowering = cudaq::config::InferredLowering{}});
+  printPipeline("CUDA-Q Logical level 0", logical, level0);
+  printPipeline("CUDA-Q Logical level 1", logical, {});
   return 0;
 }

@@ -58,7 +58,7 @@ costModelPasses(const cudaq::config::QuakeUnmappedProfile &profile,
       basis.emplace_back("x(1)");
     passes.push_back("decomposition{basis=" + llvm::join(basis, ",") + "}");
   }
-  passes.push_back(cudaq_internal::compiler::convertToWires());
+  passes.push_back(cudaq_internal::compiler::convertToWires(profile));
   // In a `t-count` stage, decomposition leaves a `quake.phase` beside some of
   // the gates it rewrites, such as a controlled rotation, and only the level-2
   // optimizer would lower it. Lower the phase here, at every level and before
@@ -115,6 +115,8 @@ public:
     std::vector<std::string> passes;
     if (profile.costModel)
       passes = costModelPasses(profile, options);
+    else if (profile.semantics == cudaq::config::Semantics::value)
+      passes.push_back(cudaq_internal::compiler::convertToWires(profile));
     if (!basis.empty()) {
       passes.push_back("basis-conversion{basis=" + llvm::join(basis, ",") +
                        "}");
@@ -126,6 +128,10 @@ public:
       if (profile.costModel == cudaq::config::CostModel::t_count)
         passes.push_back("func.func(lower-phase)");
     }
+    // Lowering handlers run no verifier, except here: no later pass rejects a
+    // register that the conversion left on references.
+    if (profile.semantics == cudaq::config::Semantics::value)
+      passes.push_back("verify-quake-unmapped-profile{wires-only=true}");
     cudaq_internal::compiler::StagePasses stagePasses;
     stagePasses.postDeployPasses = llvm::join(passes, ",");
     return stagePasses;
@@ -134,14 +140,35 @@ public:
   /// Synthesis needs the value of every rotation angle, and angles often
   /// depend on an argument, as in a QFT whose width is an argument. This asks
   /// the synthesis pipeline's own question, for the stages where
-  /// `costModelPasses` schedules it.
+  /// `costModelPasses` schedules it. Value semantics needs every register
+  /// size and every loop bound that picks a qubit, which also often come from
+  /// arguments.
   bool
   requiresArgumentValues(const cudaq::config::Profile &input,
                          const cudaq::config::Profile &output) const override {
     const auto *profile =
         std::get_if<cudaq::config::QuakeUnmappedProfile>(&output);
-    return profile && schedulesCliffordTSynthesis(*profile) &&
-           cudaq::opt::needsCliffordTSynthesis(profile->basisGates);
+    if (!profile)
+      return false;
+    return profile->semantics == cudaq::config::Semantics::value ||
+           (schedulesCliffordTSynthesis(*profile) &&
+            cudaq::opt::needsCliffordTSynthesis(profile->basisGates));
+  }
+
+  /// The stage keeps the loops it does not select, so prep and deploy must
+  /// not unroll them first, and it keeps the operations its profile does not
+  /// erase.
+  cudaq_internal::compiler::BookendOptions
+  getBookendOptions(const cudaq::config::Profile &input,
+                    const cudaq::config::Profile &output) const override {
+    const auto *profile =
+        std::get_if<cudaq::config::QuakeUnmappedProfile>(&output);
+    if (!profile)
+      return {};
+    return {.unrollLoops =
+                profile->unrollLoops == cudaq::config::LoopUnrolling::all,
+            .eraseNoise = profile->eraseNoise,
+            .eraseQEC = profile->eraseQEC};
   }
 };
 
