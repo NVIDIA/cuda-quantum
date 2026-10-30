@@ -34,6 +34,7 @@ def set_target_with_tolerance(tolerance):
     cudaq.set_target(FTQC_CLIFFORD_T_TARGET,
                      compile_target=derive_compile_target(
                          FTQC_CLIFFORD_T_TARGET,
+                         QuakeUnmappedProfile,
                          approximation_tolerance=tolerance))
 
 

@@ -13,6 +13,7 @@ from pathlib import Path
 
 import cudaq
 import pytest
+from cudaq._experimental import QuakeUnmappedProfile
 from test_helpers import derive_compile_target
 
 cudaq._register_target_config(
@@ -41,10 +42,11 @@ def reset():
 
 
 def set_target_with_tolerance(tolerance):
-    cudaq.set_target(
-        FTQC_LOGICAL_TARGET,
-        compile_target=derive_compile_target(FTQC_LOGICAL_TARGET,
-                                             approximation_tolerance=tolerance))
+    cudaq.set_target(FTQC_LOGICAL_TARGET,
+                     compile_target=derive_compile_target(
+                         FTQC_LOGICAL_TARGET,
+                         QuakeUnmappedProfile,
+                         approximation_tolerance=tolerance))
 
 
 def assert_logical_basis_only(ops):

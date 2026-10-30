@@ -15,6 +15,7 @@ from pathlib import Path
 import cudaq
 import numpy as np
 import pytest
+from cudaq._experimental import QuakeMappedProfile
 from test_helpers import derive_compile_target
 
 cudaq._register_target_config(
@@ -38,6 +39,7 @@ def set_target_on_device(device):
     """Route onto `device` by deriving the target's compile target."""
     cudaq.set_target(NISQ_TARGET,
                      compile_target=derive_compile_target(NISQ_TARGET,
+                                                          QuakeMappedProfile,
                                                           device=device))
 
 
