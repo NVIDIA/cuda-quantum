@@ -7,14 +7,15 @@
 # ============================================================================ #
 
 # RUN: %target-catalog-driver parse %s | FileCheck %s --check-prefix=PARSE
-# RUN: %cudaq-target-db-gen -o %t.db.cpp v2-quake-unmapped=%s
+# RUN: %cudaq-target-db-gen -o %t.db.cpp v2-quake-unmapped-and-mapped=%s
 # RUN: FileCheck %s --check-prefix=DB --input-file=%t.db.cpp
 
-# Test that `quake-unmapped` options parse, that the test driver prints the
-# profile's YAML form, and that the database generator prints them.
+# Test that `quake-unmapped` and `quake-mapped` options parse, that the test
+# driver prints the profiles' YAML form, and that the database generator prints
+# them.
 
 version: 2-alpha
-name: v2-quake-unmapped
+name: v2-quake-unmapped-and-mapped
 description: "Quake unmapped profile options"
 config:
   library-mode: false
@@ -27,11 +28,21 @@ compile-target:
           basis-gates: [h, s, t, "x(1)"]
           approximation-tolerance: 1e-10
           cost-model: t-count
+    - ir-output-profile:
+        name: quake-mapped
+        options:
+          basis-gates: [h, rz, "z(1)"]
+          device: grid(3,3)
 
 # PARSE:      ir-output-profile=quake-unmapped lowering=inferred
 # PARSE-NEXT:   options:
 # PARSE-NEXT:     basis-gates: ["h", "s", "t", "x(1)"]
 # PARSE-NEXT:     approximation-tolerance: 1e-10
 # PARSE-NEXT:     cost-model: t-count
+# PARSE:      ir-output-profile=quake-mapped lowering=inferred
+# PARSE-NEXT:   options:
+# PARSE-NEXT:     basis-gates: ["h", "rz", "z(1)"]
+# PARSE-NEXT:     device: grid(3,3)
 
 # DB: cudaq::config::QuakeUnmappedProfile{.basisGates = {"h", "s", "t", "x(1)", }, .approximationTolerance = 1e-10, .costModel = cudaq::config::CostModel::t_count, }
+# DB: cudaq::config::QuakeMappedProfile{.basisGates = {"h", "rz", "z(1)", }, .device = "grid(3,3)", }

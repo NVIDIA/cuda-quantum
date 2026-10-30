@@ -18,6 +18,7 @@
 ///  - it should always be possible to construct an IR profile from a given IR
 ///  that passes validation.
 
+#include "QuakeMappedProfile.h"
 #include "QuakeReferenceSemanticsProfile.h"
 #include "QuakeUnmappedProfile.h"
 #include "UncheckedProfile.h"
@@ -27,6 +28,6 @@ namespace cudaq::config {
 
 /// All supported IR profiles.
 using Profile = std::variant<UncheckedProfile, QuakeReferenceSemanticsProfile,
-                             QuakeUnmappedProfile>;
+                             QuakeUnmappedProfile, QuakeMappedProfile>;
 
 } // namespace cudaq::config

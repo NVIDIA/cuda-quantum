@@ -16,6 +16,7 @@
 #include "cudaq_internal/compiler/CompiledModuleHelper.h"
 #include "cudaq_internal/compiler/Compiler.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
+#include "cudaq/Optimizer/Builder/OptimizationLevel.h"
 #include "cudaq/Target/CompileTarget.h"
 #include "cudaq/Target/TargetConfig.h"
 #include "mlir/IR/BuiltinOps.h"
@@ -506,6 +507,54 @@ void test_quake_unmapped_specialization(mlir::MLIRContext *ctx) {
 // CHECK:         func.func @__nvqpp__mlirgen__argumentAngle(%[[ANGLE:.*]]: f64)
 // CHECK:           quake.rz (%[[ANGLE]])
 
+/// On a path 0 - 1 - 2, each controlled `quake.x` between qubits 0 and 2 needs
+/// a swap, but level 1 cancels the pair before routing.
+static const char *nisqKernel = R"#(
+func.func @__nvqpp__mlirgen__nisq() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %q = quake.alloca !quake.veq<3>
+  %q0 = quake.extract_ref %q[0] : (!quake.veq<3>) -> !quake.ref
+  %q1 = quake.extract_ref %q[1] : (!quake.veq<3>) -> !quake.ref
+  %q2 = quake.extract_ref %q[2] : (!quake.veq<3>) -> !quake.ref
+  quake.h %q0 : (!quake.ref) -> ()
+  quake.h %q1 : (!quake.ref) -> ()
+  quake.h %q2 : (!quake.ref) -> ()
+  quake.x [%q0] %q2 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%q0] %q2 : (!quake.ref, !quake.ref) -> ()
+  return
+}
+)#";
+
+/// The NISQ target's two stages on `path(3)`, at levels 0 and 1.
+void test_quake_mapped_levels(mlir::MLIRContext *ctx) {
+  const std::vector<std::string> basis = {"h", "rx", "ry", "rz", "x", "z(1)"};
+  cudaq::CompileTarget target;
+  target.stages = {
+      {.irOutputProfile =
+           cudaq::config::QuakeUnmappedProfile{
+               .basisGates = basis,
+               .costModel = cudaq::config::CostModel::two_qubit_gate_count},
+       .lowering = cudaq::config::InferredLowering{}},
+      {.irOutputProfile =
+           cudaq::config::QuakeMappedProfile{.basisGates = basis,
+                                             .device = "path(3)"},
+       .lowering = cudaq::config::InferredLowering{}}};
+  for (auto level :
+       {cudaq::OptimizationLevel::O0, cudaq::OptimizationLevel::O1}) {
+    cudaq::CompileOptions options;
+    options.emitResourceCounts = true;
+    options.emitTargetCode = false;
+    options.optimizationLevel = level;
+    compileAndDumpResources(
+        ctx, "Mapped level " + std::to_string(static_cast<int>(level)), "nisq",
+        nisqKernel, target, options);
+  }
+}
+
+// CHECK-LABEL: Mapped level 0 resource counts:
+// CHECK:       2Q gates: {{[1-9][0-9]*$}}
+// CHECK-LABEL: Mapped level 1 resource counts:
+// CHECK:       2Q gates: 0{{$}}
+
 /// Kernel that the base QIR profile accepts.
 static const char *measureKernel = R"#(
 func.func @__nvqpp__mlirgen__measure() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
@@ -545,6 +594,29 @@ void test_optimization_level_0(mlir::MLIRContext *ctx) {
 // CHECK-NOT:     {{[(,]}}dqe{{[,)]}}
 // CHECK:         cc-to-llvm
 
+/// An optimization level specified as MLIR attribute overrides the level in the
+/// compile options, through codegen
+void test_optimization_level_attr(mlir::MLIRContext *ctx) {
+  cudaq::CompileTarget target;
+  target.codegen.emissionFormat = "qir-base";
+  auto mod = mlir::parseSourceString<mlir::ModuleOp>(measureKernel, ctx);
+  cudaq::runtime::setOptimizationLevel(
+      mod->lookupSymbol("__nvqpp__mlirgen__measure"), 0);
+  llvm::outs() << "Kernel optimization level 0 codegen:\n";
+  Compiler compiler(target, cudaq::CompileOptions{});
+  cudaq_internal::compiler::setRunPassManagerHook(&printPipeline);
+  auto compiled = compiler.compile(
+      "measure", mod.release().getAsOpaquePointer(), cudaq::KernelArgs{},
+      /*isEntryPoint=*/true);
+  cudaq_internal::compiler::setRunPassManagerHook(nullptr);
+}
+
+// CHECK-LABEL: Kernel optimization level 0 codegen:
+// CHECK:         combine-quantum-alloc
+// CHECK-NOT:     quake-simplify
+// CHECK-NOT:     {{[(,]}}dqe{{[,)]}}
+// CHECK:         cc-to-llvm
+
 int main() {
   auto context = cudaq_internal::compiler::getOwningMLIRContext();
 
@@ -559,6 +631,8 @@ int main() {
   test_staged_skip(context.get());
   test_quake_unmapped_levels(context.get());
   test_quake_unmapped_specialization(context.get());
+  test_quake_mapped_levels(context.get());
   test_optimization_level_0(context.get());
+  test_optimization_level_attr(context.get());
   return 0;
 }

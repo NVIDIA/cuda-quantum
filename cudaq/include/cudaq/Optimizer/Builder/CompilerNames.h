@@ -18,7 +18,8 @@ static constexpr const char enableCudaqRun[] = "quake.cudaq_run";
 
 static constexpr const char pythonUniqueAttrName[] = "quake.python_uniqued";
 
-static constexpr const char disableQuantumOpts[] = "quake.noOptimization";
+static constexpr const char optimizationLevelAttrName[] =
+    "quake.optimizationLevel";
 
 static constexpr const char operandSegmentSizes[] = "operandSegmentSizes";
 

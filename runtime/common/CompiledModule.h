@@ -7,6 +7,7 @@
  ******************************************************************************/
 #pragma once
 
+#include "common/CompileOptions.h"
 #include "common/KernelArgs.h"
 #include "common/NamedVariantStore.h"
 #include "common/Resources.h"
@@ -210,6 +211,8 @@ public:
     std::vector<std::size_t> reorderIdx;
     /// Whether the kernel has conditional feedback on measure results.
     bool hasConditionalsOnMeasureResults = false;
+    /// The quantum optimization level at which the kernel was compiled.
+    OptimizationLevel optimizationLevel = OptimizationLevel::O1;
   };
 
   // --- Queries ---

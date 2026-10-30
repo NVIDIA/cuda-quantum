@@ -52,6 +52,7 @@ add_cudaq_hybrid_test(resource_count_wireset)
 add_executable(profile_stages Regress/profile_stages.cpp
                ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/JITTargetPipeline.cpp
                ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/LoweringHandler.cpp
+               ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/QuakeMappedHandler.cpp
                ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/QuakeReferenceSemanticsHandler.cpp
                ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/QuakeUnmappedHandler.cpp)
 target_include_directories(profile_stages PRIVATE
@@ -71,6 +72,7 @@ set_target_properties(profile_stages PROPERTIES
 add_executable(profile_providers Regress/profile_providers.cpp
                ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/JITTargetPipeline.cpp
                ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/LoweringHandler.cpp
+               ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/QuakeMappedHandler.cpp
                ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/QuakeReferenceSemanticsHandler.cpp
                ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/QuakeUnmappedHandler.cpp)
 target_include_directories(profile_providers PRIVATE

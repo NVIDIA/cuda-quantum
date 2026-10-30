@@ -27,3 +27,11 @@ add_test(NAME cudaq_realtime_public_headers_without_nvjitlink
     -P ${CMAKE_CURRENT_BINARY_DIR}/check_no_nvjitlink.cmake)
 set_tests_properties(cudaq_realtime_public_headers_without_nvjitlink
   PROPERTIES SKIP_REGULAR_EXPRESSION "Skipped: no realtime headers")
+
+configure_file(check_no_cuda_dynamic_dependencies.cmake
+  check_no_cuda_dynamic_dependencies.cmake COPYONLY)
+add_test(NAME cudaq_realtime_without_dynamic_cuda_dependencies
+  COMMAND ${CMAKE_COMMAND}
+    -DLIBRARY=$<TARGET_FILE:cudaq-realtime>
+    -DREADELF=${CMAKE_READELF}
+    -P ${CMAKE_CURRENT_BINARY_DIR}/check_no_cuda_dynamic_dependencies.cmake)

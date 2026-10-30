@@ -16,7 +16,7 @@
 // RUN:   %s | FileCheck %s --check-prefix=EPSILON
 // RUN: cudaq-opt --pass-pipeline='builtin.module( \
 // RUN:   decomposition{enable-patterns=U3ToRotations},convert-to-linear-values, \
-// RUN:   clifford-t-optimization-pipeline{epsilon=1e-3})' %s | \
+// RUN:   clifford-t-optimization-pipeline{approximation-tolerance=1e-3})' %s | \
 // RUN:   FileCheck %s --check-prefix=LEVEL2
 // RUN: not cudaq-opt --pass-pipeline='builtin.module( \
 // RUN:   func.func(fuse-1q-chains-for-clifford-t{epsilon=-1}))' %s 2>&1 | \
@@ -141,7 +141,7 @@ func.func @epsilon(%target: !quake.ref) {
 
 // The function-level opt-out keeps the chain intact.
 func.func @no_optimization(%target: !quake.ref)
-    attributes {"quake.noOptimization"} {
+    attributes {quake.optimizationLevel = 0 : i32} {
   %a = arith.constant 0.3 : f64
   %b = arith.constant 0.5 : f64
   quake.rz (%a) %target : (f64, !quake.ref) -> ()
