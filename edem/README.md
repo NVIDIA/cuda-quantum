@@ -57,7 +57,7 @@ GF2's standalone build does not create another distribution or install package.
 Python bindings use nanobind and require Python 3.11 or newer. Enable them in a
 native build with `CUDAQ_EDEM_BUILD_PYTHON=ON` after
 installing `nanobind>=2.12,<3` into the chosen Python environment. Set
-`Python_EXECUTABLE` to select an interpreter. Native builds default to
+`Python_EXECUTABLE` to select an interpreter. Standalone native builds default to
 `CUDAQ_EDEM_BUILD_PYTHON=OFF`.
 
 The `cudaq-edem` wheel includes the `cudaq_edem` Python package, both native
@@ -110,6 +110,11 @@ cmake -S . -B build -DCUDAQ_ENABLE_PROJECTS="cudaq;runtime;edem"
 The top-level CUDA-Q configuration retains its usual toolchain and dependency
 requirements. cudaq-edem tests default to off in a parent build; enable them with
 `CUDAQ_EDEM_BUILD_TESTS=ON`.
+
+When `CUDAQ_ENABLE_PROJECTS` also includes `python`, cudaq-edem Python bindings
+default to on. Set `CUDAQ_EDEM_BUILD_PYTHON=OFF` to omit them, or set it to `ON`
+to build them independently of the parent's Python selection. Explicit
+component options take precedence over these defaults.
 
 ## Installed package
 

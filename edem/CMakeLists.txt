@@ -31,7 +31,14 @@ enable_language(CXX)
 
 option(CUDAQ_EDEM_BUILD_TESTS "Build cudaq-edem component and packaging tests"
   ${CUDAQ_EDEM_STANDALONE_BUILD})
-option(CUDAQ_EDEM_BUILD_PYTHON "Build cudaq-edem Python bindings" OFF)
+# Follow the enclosing CUDA-Q build's Python selection by default, while
+# preserving standalone defaults and explicit component overrides.
+set(_cudaq_edem_build_python_default OFF)
+if(NOT CUDAQ_EDEM_STANDALONE_BUILD AND "python" IN_LIST CUDAQ_ENABLE_PROJECTS)
+  set(_cudaq_edem_build_python_default ON)
+endif()
+option(CUDAQ_EDEM_BUILD_PYTHON "Build cudaq-edem Python bindings"
+  ${_cudaq_edem_build_python_default})
 
 if(NOT TARGET cudaq-gf2)
   add_subdirectory(../math/gf2 "${CMAKE_CURRENT_BINARY_DIR}/gf2")
