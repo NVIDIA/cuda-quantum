@@ -73,11 +73,10 @@ getInferredStagePasses(const cudaq_internal::compiler::LoweringHandler *handler,
 
 /// Build the JIT pipeline from `canonicalize`, prep, deploy, and finalize,
 /// with the stages' passes around them. The emission format, `emulate`, and
-/// what the stages need from prep and deploy in \p bookends set the options
-/// of prep, deploy, and finalize. An option from \p bookends is spelled out
-/// only when it differs from its default, except the `erase-noise` that
-/// emulation's prep always spells out, so the text of a target whose stages
-/// need nothing from prep and deploy does not depend on \p bookends.
+/// \p bookends set the options of prep, deploy, and finalize. An option from
+/// \p bookends appears in the text only when it differs from its default, so
+/// existing targets keep their pipeline text. Emulation's prep is the
+/// exception: it has always spelled out `erase-noise`.
 static std::string
 buildPassPipeline(const cudaq_internal::compiler::StagePasses &targetPasses,
                   const cudaq_internal::compiler::BookendOptions &bookends,

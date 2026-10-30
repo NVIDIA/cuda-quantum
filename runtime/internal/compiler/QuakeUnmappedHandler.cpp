@@ -138,10 +138,11 @@ public:
   }
 
   /// Synthesis needs the value of every rotation angle, and angles often
-  /// depend on an argument, as in a QFT whose width is an argument. This asks
-  /// the synthesis pipeline's own question, for the stages where
-  /// `costModelPasses` schedules it. Value semantics needs every register
-  /// size and every loop bound that picks a qubit, which also often come from
+  /// depend on an argument, as in a QFT whose width is an argument. A stage
+  /// synthesizes when `costModelPasses` schedules synthesis and
+  /// `needsCliffordTSynthesis` holds for its basis, the same test the
+  /// synthesis pipeline makes. Value semantics needs every register size and
+  /// every loop bound that picks a qubit, which also often come from
   /// arguments.
   bool
   requiresArgumentValues(const cudaq::config::Profile &input,
@@ -155,10 +156,11 @@ public:
             cudaq::opt::needsCliffordTSynthesis(profile->basisGates));
   }
 
-  /// Prep and deploy unroll every loop of up to 1024 iterations, the profile's
-  /// default limit. When the stage keeps some loops rolled, because it unrolls
-  /// only `index_use` loops or has a lower limit, prep and deploy must not
-  /// unroll those loops first. Prep also keeps the noise and QEC operations
+  /// Prep and deploy unroll every loop of up to 1024 iterations, the default
+  /// threshold of `createClassicalOptimizationPipeline`, which the profile's
+  /// default limit matches. When the stage keeps some loops rolled, because it
+  /// unrolls only `index_use` loops or has a lower limit, prep and deploy must
+  /// not unroll those loops first. Prep also keeps the noise and QEC operations
   /// that the profile does not erase.
   cudaq_internal::compiler::BookendOptions
   getBookendOptions(const cudaq::config::Profile &input,

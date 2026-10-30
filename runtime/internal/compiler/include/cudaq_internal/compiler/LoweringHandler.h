@@ -50,11 +50,11 @@ struct StagePasses {
 };
 
 /// What prep and deploy do for a target. Prep, deploy, and finalize are the
-/// bookends: the pipelines that every target runs once each, around the passes
-/// of its stages. When a stage needs prep or deploy to leave something in
-/// place, such as rolled loops or `quake.apply_noise`, the compiler turns that
-/// step off for the whole target. The defaults are what prep and deploy do for
-/// a target without stages.
+/// bookends: the pipelines that a target with stages runs once each, around
+/// the passes of its stages. When a stage needs prep or deploy to leave
+/// something in place, such as rolled loops or `quake.apply_noise`, the
+/// compiler turns that step off for the whole target. The defaults leave prep
+/// and deploy as they are for a target whose stages need nothing from them.
 struct BookendOptions {
   /// Whether prep and deploy unroll loops. A stage that keeps some loops
   /// rolled turns this off, or prep and deploy would unroll those loops first.
@@ -110,8 +110,8 @@ public:
 
   /// What this stage needs prep and deploy to leave in place. The compiler
   /// turns off each step that any stage turns off. Answer from \p input and
-  /// \p output alone, as `requiresArgumentValues` does, so that the
-  /// optimization level never changes the IR that a stage receives.
+  /// \p output alone, as `requiresArgumentValues` does, so that prep and
+  /// deploy run the same steps at every optimization level.
   virtual BookendOptions
   getBookendOptions(const cudaq::config::Profile &input,
                     const cudaq::config::Profile &output) const {
