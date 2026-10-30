@@ -49,22 +49,6 @@ struct StagePasses {
   std::string postFinalizePasses{};
 };
 
-/// What prep and deploy do for a target. Prep, deploy, and finalize are the
-/// bookends: the pipelines that a target with stages runs once each, around
-/// the passes of its stages. When a stage needs prep or deploy to leave
-/// something in place, such as rolled loops or `quake.apply_noise`, the
-/// compiler turns that step off for the whole target. The defaults leave prep
-/// and deploy as they are for a target whose stages need nothing from them.
-struct BookendOptions {
-  /// Whether prep and deploy unroll loops. A stage that keeps some loops
-  /// rolled turns this off, or prep and deploy would unroll those loops first.
-  bool unrollLoops = true;
-  /// Whether prep erases `quake.apply_noise`.
-  bool eraseNoise = true;
-  /// Whether prep erases the QEC detector and observable operations.
-  bool eraseQEC = true;
-};
-
 /// Interface for lowering between IR profiles.
 ///
 /// Registering lowering handlers with the compiler is what enables the JIT
@@ -108,14 +92,13 @@ public:
     return false;
   }
 
-  /// What this stage needs prep and deploy to leave in place. The compiler
-  /// turns off each step that any stage turns off. Answer from \p input and
+  /// Whether this stage keeps some loops rolled, so that prep and deploy,
+  /// which run before it, must not unroll any loop. Answer from \p input and
   /// \p output alone, as `requiresArgumentValues` does, so that prep and
   /// deploy run the same steps at every optimization level.
-  virtual BookendOptions
-  getBookendOptions(const cudaq::config::Profile &input,
-                    const cudaq::config::Profile &output) const {
-    return {};
+  virtual bool requiresRolledLoops(const cudaq::config::Profile &input,
+                                   const cudaq::config::Profile &output) const {
+    return false;
   }
 };
 

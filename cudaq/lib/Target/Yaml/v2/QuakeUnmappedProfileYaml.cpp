@@ -18,9 +18,7 @@ v2::ProfileYaml<QuakeUnmappedProfile>::to(const Yaml &yaml) {
           .costModel = options.costModel,
           .semantics = options.semantics.value(),
           .unrollLoops = options.unrollLoops.value(),
-          .maxUnrollIterations = options.maxUnrollIterations.value(),
-          .eraseNoise = options.eraseNoise.value(),
-          .eraseQEC = options.eraseQec.value()};
+          .maxUnrollIterations = options.maxUnrollIterations.value()};
 }
 
 v2::ProfileYaml<QuakeUnmappedProfile>::Yaml
@@ -32,7 +30,5 @@ v2::ProfileYaml<QuakeUnmappedProfile>::from(
               .costModel = profile.costModel,
               .semantics = profile.semantics,
               .unrollLoops = profile.unrollLoops,
-              .maxUnrollIterations = profile.maxUnrollIterations,
-              .eraseNoise = profile.eraseNoise,
-              .eraseQec = profile.eraseQEC}};
+              .maxUnrollIterations = profile.maxUnrollIterations}};
 }

@@ -123,9 +123,9 @@ def test_target_eagerly_exposes_the_cudaq_target_configuration():
         cost_model=CostModel.t_count,
         semantics="value",
         unroll_loops="index_use",
-        max_unroll_iterations=2_048_000,
-        erase_noise=False,
-        erase_qec=False)
+        max_unroll_iterations=2_048_000)
+    assert not compile_target.erase_noise
+    assert not compile_target.erase_qec
 
 
 @cudaq.kernel
