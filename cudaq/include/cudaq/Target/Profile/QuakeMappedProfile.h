@@ -17,9 +17,8 @@ namespace cudaq::config {
 
 /// IR profile for Quake after qubit mapping. Every qubit is a wire borrowed
 /// from a `quake.wire_set` whose identities are device qubits, and each
-/// two-qubit gate acts on a pair the wire set's coupling map connects. It
-/// follows a `quake-unmapped` stage whose basis has no gate on more than two
-/// qubits. For example:
+/// two-qubit gate acts on a pair the wire set's coupling map connects. For
+/// example:
 ///
 /// \code{.yaml}
 ///   ir-output-profile:

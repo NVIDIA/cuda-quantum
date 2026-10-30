@@ -21,7 +21,7 @@ enum class CostModel {
   /// fault-tolerant hardware.
   t_count,
   /// Minimize two-qubit gates, which dominate the error and routing cost on
-  /// near-term hardware.
+  /// noisy hardware.
   two_qubit_gate_count,
 };
 

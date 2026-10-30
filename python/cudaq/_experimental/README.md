@@ -54,8 +54,7 @@ A compile target owns the MLIR pass pipelines, the code generation settings and
 the capabilities that kernels are compiled against. Build one with
 `cudaq._experimental.CompileTarget` and pass it together with a runtime target
 name to `set_target`. `QuakeReferenceSemanticsProfile`, `QuakeUnmappedProfile`,
-and `QuakeMappedProfile` are the supported IR profiles. A `QuakeMappedProfile`
-stage must follow a `QuakeUnmappedProfile` stage. For example:
+and `QuakeMappedProfile` are the supported IR profiles. For example:
 
 ```python
 from cudaq._experimental import CompileTarget, QuakeReferenceSemanticsProfile

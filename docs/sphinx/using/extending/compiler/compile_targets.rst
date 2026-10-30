@@ -25,9 +25,8 @@ using one of the following constructors:
 
 More complex multi-stage compile targets can be constructed using the
 ``CompileTarget(stages=[])`` constructor, although support for this is currently
-limited. A ``QuakeMappedProfile`` stage, which routes the kernel onto its ``device``
-when one is set, must follow a ``QuakeUnmappedProfile`` stage whose basis holds
-gates on at most two qubits.
+limited. A ``QuakeMappedProfile`` stage routes the kernel onto its ``device``
+when one is set.
 ``stages``, ``ir_output_profile`` and ``custom_pipeline`` are mutually
 exclusive.
 
