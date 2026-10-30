@@ -303,6 +303,7 @@ class CompilationContext:
                                                  context=self.context)
         with self.context:
             function_type_attr = mlir_ir.TypeAttr.get(function_type)
+        operand_names = standard_action_operand_names(kind, len(inputs))
         attrs: dict[str, Any] = {
             "sym_name":
                 mlir_ir.StringAttr.get(symbol, context=self.context),
@@ -313,8 +314,7 @@ class CompilationContext:
             "operand_names":
                 mlir_ir.ArrayAttr.get([
                     mlir_ir.StringAttr.get(name, context=self.context)
-                    for name in standard_action_operand_names(
-                        kind, len(inputs))
+                    for name in operand_names
                 ],
                                       context=self.context),
         }
@@ -328,7 +328,7 @@ class CompilationContext:
                 action = CliffordAction.standard(
                     kind,
                     len(inputs),
-                    ports=tuple(f"q{index}" for index in range(len(inputs))),
+                    ports=operand_names,
                 )
             except NonCliffordAction:
                 pass

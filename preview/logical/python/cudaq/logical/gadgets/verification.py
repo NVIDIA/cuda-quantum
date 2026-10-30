@@ -110,14 +110,11 @@ def _action_label(implements) -> str | None:
 
 _ROW_FAILURES = {
     "not_stabilized": ("action_mismatch", "action mismatch",
-                       "is not stabilized by the realization's Choi state"),
-    "sign_mismatch":
-        ("sign_mismatch", "sign mismatch",
-         "stabilizes the realization's Choi state with the opposite sign"),
-    "random_sign":
-        ("random_sign", "nondeterministic sign",
-         "stabilizes the realization's Choi state only up to a random "
-         "outcome"),
+                       "does not hold in the realization's logical state"),
+    "sign_mismatch": ("sign_mismatch", "sign mismatch",
+                      "holds with the opposite deterministic sign"),
+    "random_sign": ("random_sign", "nondeterministic sign",
+                    "has a sign with unmatched ideal randomness"),
 }
 
 

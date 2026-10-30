@@ -1153,6 +1153,36 @@ LogicalResult ObjectiveBodyOp::verify() {
   return legality;
 }
 
+namespace {
+
+LogicalResult verifyOperandNames(Operation *operation, FunctionType type,
+                                 ArrayAttr names) {
+  if (!names)
+    return success();
+  if (names.size() != type.getNumInputs())
+    return operation->emitOpError(
+        "operand_names must cover every signature input");
+  llvm::StringSet<> seen;
+  for (Attribute item : names) {
+    StringRef name = cast<StringAttr>(item).getValue();
+    if (name.empty())
+      return operation->emitOpError("operand_names entries must be nonempty");
+    if (!seen.insert(name).second)
+      return operation->emitOpError("operand_names entries must be unique");
+  }
+  return success();
+}
+
+} // namespace
+
+LogicalResult ActionOp::verify() {
+  return verifyOperandNames(*this, getFunctionType(), getOperandNamesAttr());
+}
+
+LogicalResult InstrumentDeclOp::verify() {
+  return verifyOperandNames(*this, getFunctionType(), getOperandNamesAttr());
+}
+
 LogicalResult ApplyOp::verify() {
   if (auto reference = dyn_cast<FlatSymbolRefAttr>(getActionAttr())) {
     auto objective = lookupVisibleSymbol<ActionOp>(getOperation(), reference);

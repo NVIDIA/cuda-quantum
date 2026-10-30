@@ -287,6 +287,10 @@ reset outcomes.
 
 Non-Clifford objectives (for example `cql.logical.t`), general instruments,
 dynamic feed-forward and subsystem-code verification remain unsupported.
+Measurement objectives contain one signed single-logical X/Z measurement,
+with optional affine result processing and either full preservation or full
+discard of the input logicals. Gates surrounding that ideal measurement,
+multiple ideal measurements and partial quantum discard remain unsupported.
 Classical-only objectives cannot pass through an empty set of quantum checks.
 Inspection receipts report `logical_action.status == "unsupported"`, a
 `reason`, and `receipt.verified == False`. The checks establish ideal

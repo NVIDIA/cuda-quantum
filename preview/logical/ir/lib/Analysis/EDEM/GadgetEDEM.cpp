@@ -1685,6 +1685,10 @@ FailureOr<ObjectiveResolution> resolveGadgetObjective(
   StringRef kind = kindAttr ? kindAttr.getValue() : StringRef{};
   auto semantics = logical->getAttrOfType<SymbolRefAttr>("semantics");
   std::vector<std::string> names;
+  auto operands = logical->getAttrOfType<ArrayAttr>("operand_names");
+  if (operands)
+    for (Attribute item : operands)
+      names.push_back(cast<StringAttr>(item).str());
   if (semantics) {
     Operation *body = SymbolTable::lookupNearestSymbolFrom(logical, semantics);
     if (!body || !isa<::qlx::ObjectiveBodyOp>(body)) {
@@ -1702,24 +1706,11 @@ FailureOr<ObjectiveResolution> resolveGadgetObjective(
     if (failed(parsed))
       return failure();
     result = std::move(*parsed);
-    if (auto operands = logical->getAttrOfType<ArrayAttr>("operand_names")) {
-      if (operands.size() != type.getNumInputs()) {
-        logical->emitError("operand_names must cover the logical signature");
-        return failure();
-      }
-      for (Attribute item : operands) {
-        auto name = dyn_cast<StringAttr>(item);
-        if (!name) {
-          logical->emitError("logical operand names must be strings");
-          return failure();
-        }
-        names.push_back(name.str());
-      }
-    } else if (auto cached = logical->getAttrOfType<::qlx::CliffordActionAttr>(
-                   "clifford_action")) {
-      for (Attribute item : cached.getPorts())
-        names.push_back(cast<StringAttr>(item).str());
-    }
+    if (!operands)
+      if (auto cached = logical->getAttrOfType<::qlx::CliffordActionAttr>(
+              "clifford_action"))
+        for (Attribute item : cached.getPorts())
+          names.push_back(cast<StringAttr>(item).str());
   } else {
     IdealLogicalAction action = identityAction(signature.inputs);
     if (kind == "t" || kind == "tdg" || kind == "ccx" || kind == "ccz" ||
@@ -1756,10 +1747,12 @@ FailureOr<ObjectiveResolution> resolveGadgetObjective(
       return result;
     }
     result.action = std::move(action);
-    if (kind == "cx")
-      names = {"control", "target"};
-    else if (kind == "cz")
-      names = {"left", "right"};
+    if (!operands) {
+      if (kind == "cx")
+        names = {"control", "target"};
+      else if (kind == "cz")
+        names = {"left", "right"};
+    }
   }
   result.label = semantics
                      ? cast<StringAttr>(logical->getAttr("sym_name")).str()
@@ -2142,9 +2135,8 @@ FailureOr<std::string> verifyGadgetContract(ModuleOp module,
     logical["status"] = objective.mismatch ? "failed" : "unsupported";
     logical["reason"] = objective.reason;
     if (objective.mismatch) {
-      logical["rows"] = llvm::json::Array{"not_stabilized"};
-      logical["labels"] =
-          llvm::json::Array{"typed quantum/classical signature"};
+      logical["rows"] = llvm::json::Array{};
+      logical["labels"] = llvm::json::Array{};
       logical["logical_rank"] = 0;
     }
   } else {

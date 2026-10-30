@@ -274,6 +274,10 @@ def test_action_with_more_operands_than_the_boundary_fails():
     receipt = ql.gadgets.verify_gadget(contract, raise_on_failure=False)
     assert receipt.detector_contract.ok
     assert receipt.logical_action.status == "failed"
+    assert receipt.logical_action.verified_checks == 0
+    failure, = receipt.logical_action.failures
+    assert failure.kind == "action_mismatch"
+    assert "signature" in failure.message
     assert not receipt.verified
 
 
