@@ -1,0 +1,30 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+# RUN: not %target-catalog-driver parse %s 2>&1 | FileCheck %s
+
+# A `semantics` or `unroll-loops` value outside the declared names is
+# rejected, and the error lists the names that are allowed.
+
+version: 2-alpha
+name: v2-quake-unmapped-unknown-values
+description: "Unknown quake-unmapped option values rejected"
+config:
+  library-mode: false
+
+compile-target:
+  stages:
+    - ir-output-profile:
+        name: quake-unmapped
+        options:
+          semantics: wires
+          unroll-loops: index
+
+# CHECK: error: Failed to parse target configuration YAML
+# CHECK-DAG: unknown value 'wires' (allowed: any, value)
+# CHECK-DAG: unknown value 'index' (allowed: all, index-use)

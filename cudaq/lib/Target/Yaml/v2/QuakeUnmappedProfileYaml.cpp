@@ -15,14 +15,24 @@ v2::ProfileYaml<QuakeUnmappedProfile>::to(const Yaml &yaml) {
   const auto &options = yaml.options.value();
   return {.basisGates = options.basisGates.value(),
           .approximationTolerance = options.approximationTolerance.value(),
-          .costModel = options.costModel};
+          .costModel = options.costModel,
+          .semantics = options.semantics.value(),
+          .unrollLoops = options.unrollLoops.value(),
+          .maxUnrollIterations = options.maxUnrollIterations.value(),
+          .eraseNoise = options.eraseNoise.value(),
+          .eraseQEC = options.eraseQec.value()};
 }
 
 v2::ProfileYaml<QuakeUnmappedProfile>::Yaml
 v2::ProfileYaml<QuakeUnmappedProfile>::from(
     const QuakeUnmappedProfile &profile) {
-  return {.options = Yaml::Options{.basisGates = profile.basisGates,
-                                   .approximationTolerance =
-                                       profile.approximationTolerance,
-                                   .costModel = profile.costModel}};
+  return {.options = Yaml::Options{
+              .basisGates = profile.basisGates,
+              .approximationTolerance = profile.approximationTolerance,
+              .costModel = profile.costModel,
+              .semantics = profile.semantics,
+              .unrollLoops = profile.unrollLoops,
+              .maxUnrollIterations = profile.maxUnrollIterations,
+              .eraseNoise = profile.eraseNoise,
+              .eraseQec = profile.eraseQEC}};
 }

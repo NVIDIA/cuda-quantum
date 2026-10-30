@@ -66,11 +66,47 @@ def test_profile_repr():
 def test_quake_unmapped_profile_repr():
     profile = QuakeUnmappedProfile(basis_gates=["h", "t"],
                                    approximation_tolerance=1e-10,
-                                   cost_model=CostModel.t_count)
+                                   cost_model=CostModel.t_count,
+                                   semantics="value",
+                                   unroll_loops="index_use",
+                                   max_unroll_iterations=2048000,
+                                   erase_noise=False,
+                                   erase_qec=False)
     assert repr(profile) == (
         "QuakeUnmappedProfile(basis_gates=['h', 't'], "
-        "approximation_tolerance=1e-10, cost_model=CostModel.t_count)")
-    assert repr(QuakeUnmappedProfile()).endswith("cost_model=None)")
+        "approximation_tolerance=1e-10, cost_model=CostModel.t_count, "
+        "semantics='value', unroll_loops='index_use', "
+        "max_unroll_iterations=2048000, erase_noise=False, erase_qec=False)")
+    assert eval(repr(profile)) == profile
+    assert repr(QuakeUnmappedProfile()).endswith(
+        "cost_model=None, semantics='any', unroll_loops='all', "
+        "max_unroll_iterations=1024, erase_noise=True, erase_qec=True)")
+
+
+@pytest.mark.parametrize("option, value", [
+    ("semantics", "value"),
+    ("unroll_loops", "index_use"),
+    ("max_unroll_iterations", 2048000),
+    ("erase_noise", False),
+    ("erase_qec", False),
+])
+def test_quake_unmapped_option_changes_identity(option, value):
+    baseline = QuakeUnmappedProfile()
+    changed = QuakeUnmappedProfile(**{option: value})
+    assert getattr(changed, option) == value
+    assert changed != baseline
+    assert hash(changed) != hash(baseline)
+    setattr(changed, option, getattr(baseline, option))
+    assert changed == baseline
+
+
+@pytest.mark.parametrize("option, value", [("semantics", "wires"),
+                                           ("unroll_loops", "index-use")])
+def test_quake_unmapped_option_rejects_unknown_value(option, value):
+    with pytest.raises(ValueError):
+        QuakeUnmappedProfile(**{option: value})
+    with pytest.raises(ValueError):
+        setattr(QuakeUnmappedProfile(), option, value)
 
 
 def test_quake_unmapped_cost_model_accepts_name():
