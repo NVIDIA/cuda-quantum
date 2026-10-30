@@ -124,10 +124,8 @@ def convert_quake_to_p0(module, *, root: str | None = None):
 def _run_quake_to_p0_pass(module, *, root: str | None = None):
     """Convert a live module, deferring linearity to the owning caller.
 
-    This private seam exists so the closed ``import_quake`` path can run one
-    authoritative linearity check while constructing its immutable
-    :class:`Build`. The public low-level conversion API above remains
-    independently checked.
+    ``import_quake`` checks linearity once, while it builds the immutable
+    :class:`Build`. :func:`convert_quake_to_p0` checks linearity itself.
     """
 
     if not hasattr(module, "operation"):
