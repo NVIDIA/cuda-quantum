@@ -21,6 +21,7 @@ struct LLVMVerifierOptions {
   bool isBaseProfile : 1;
   bool isAdaptiveProfile : 1;
   bool allowAllInstructions : 1;
+  bool irProfile : 1;
   bool integerComputations : 1;
   bool floatComputations : 1;
 };

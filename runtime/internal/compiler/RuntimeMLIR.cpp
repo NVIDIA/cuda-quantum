@@ -542,7 +542,7 @@ qirProfileTranslationFunction(const std::string &qirProfile, Operation *op,
           cudaq::opt::qir0_1::ClassicalFixedPointsFlagName, falseValue);
       llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
                                 cudaq::opt::qir0_1::UserFunctionsFlagName,
-                                falseValue);
+                                config.irProfile ? trueValue : falseValue);
       llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
                                 cudaq::opt::qir0_1::DynamicFloatArgsFlagName,
                                 falseValue);
@@ -569,6 +569,10 @@ qirProfileTranslationFunction(const std::string &qirProfile, Operation *op,
                                   cudaq::opt::qir1_0::FloatComputationsFlagName,
                                   floatPrecisionValue);
       }
+      if (config.irProfile)
+        llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
+                                  cudaq::opt::qir1_0::IrFunctionsFlagName,
+                                  trueValue);
       auto backwardsBranchingValue = llvm::ConstantInt::getIntegerValue(
           llvm::Type::getIntNTy(*llvmContext, 2), llvm::APInt(2, 0, false));
       llvmModule->addModuleFlag(llvm::Module::ModFlagBehavior::Error,
@@ -617,6 +621,7 @@ qirProfileTranslationFunction(const std::string &qirProfile, Operation *op,
       .isBaseProfile = config.isBaseProfile,
       .isAdaptiveProfile = config.isAdaptiveProfile,
       .allowAllInstructions = config.allowAllInstructions,
+      .irProfile = config.irProfile,
       .integerComputations = config.integerComputations,
       .floatComputations = config.floatComputations};
   if (failed(

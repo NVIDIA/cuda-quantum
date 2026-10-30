@@ -92,7 +92,13 @@ static bool isValidOutputCallInstruction(llvm::Instruction &inst) {
 LogicalResult cudaq::verifier::verifyLLVMInstructions(
     llvm::Module *llvmModule, cudaq::verifier::LLVMVerifierOptions options) {
 
-  for (llvm::Function &func : *llvmModule)
+  for (llvm::Function &func : *llvmModule) {
+    // With the `ir_profile` property, the module may define functions other
+    // than the entry point, and any function may be called. The body of such a
+    // function is not subject to the instruction restrictions of the profile.
+    if (options.isAdaptiveProfile && options.irProfile &&
+        !func.hasFnAttribute("entry_point"))
+      continue;
     for (llvm::BasicBlock &block : func)
       for (llvm::Instruction &inst : block) {
         bool isValidBaseProfileInstruction =
@@ -126,7 +132,10 @@ LogicalResult cudaq::verifier::verifyLLVMInstructions(
           }
         }
         auto call = llvm::dyn_cast_or_null<llvm::CallBase>(&inst);
-        if (call)
+        // Calls are unrestricted with the `ir_profile` property.
+        const bool callsAreFree =
+            options.isAdaptiveProfile && options.irProfile;
+        if (call && !callsAreFree)
           for (auto &arg : call->args()) {
             auto constExpr = llvm::dyn_cast_or_null<llvm::ConstantExpr>(arg);
             if (constExpr &&
@@ -141,5 +150,6 @@ LogicalResult cudaq::verifier::verifyLLVMInstructions(
             }
           }
       }
+  }
   return success();
 }
