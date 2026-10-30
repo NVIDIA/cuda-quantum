@@ -273,6 +273,29 @@ def test_memory_edem_example_rejects_stim_sampling_for_biased_noise(
     assert (tmp_path / "memory.edemb").is_file()
 
 
+def test_memory_edem_example_samples_explicit_independent_pauli_noise(
+        run_memory_example, tmp_path):
+    rates = {"x": .002, "y": .003, "z": .007}
+    result = run_memory_example("07_memory_edem.py",
+                                output=tmp_path,
+                                shots=32,
+                                data_noise_kind="independent_pauli",
+                                data_pauli_probabilities=rates)
+    model = edem.DEM.from_bytes((tmp_path / "memory.edemb").read_bytes())
+    groups = [group for fault in model.faults for group in fault.groups]
+    assert all(group.kind == edem.GroupKind.INDEPENDENT for group in groups)
+    probabilities = [p for group in groups for p in group.probabilities]
+    assert sorted(probabilities) == sorted(list(rates.values()) * 9 * 3)
+    assert _laws([result["independent"]]) == _laws([model])
+    assert result["detectors"].shape == (32, 20)
+    assert result["observables"].shape == (32, 1)
+
+
+def test_memory_edem_example_rejects_unknown_noise_kind(run_memory_example):
+    with pytest.raises(ValueError, match="data_noise_kind"):
+        run_memory_example("07_memory_edem.py", data_noise_kind="unknown")
+
+
 def test_native_projection_retains_successes_but_stim_adapter_rejects_them(
         example):
     model = edem.EDEM(successes=[1])

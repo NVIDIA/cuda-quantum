@@ -8,30 +8,11 @@
 """Export and optionally sample a profiled rotated-surface Z-memory circuit."""
 
 # %%
-# Import the compiler, surface definitions, and lattice geometry.
+# Import the compiler and surface definitions.
 import sys
 
 import cudaq.logical as cql
 from cudaq.logical.architectures import surface
-from cudaq.logical.architecture.geometry import rotated_surface_lattice
-
-
-# %%
-# Put independent data depolarization immediately before each stabilizer round.
-# MPPs are ideal here; no ancilla gate noise or measurement-flip noise is inferred.
-def data_noise_placements(profiles, probability):
-    placements = {}
-    for index, profile in enumerate(profiles):
-        if not profile.gadget.interface.outputs.blocks:
-            continue
-        projection = cql.compiler.project_clifford(cql.compile(profile),
-                                                   gadget=profile.gadget.name)
-        port, = projection.interface.inputs or projection.interface.outputs
-        entry = next(op for op in projection.instructions if op.kind == "MPP")
-        placements[index] = (cql.compiler.Depolarize1Placement(
-            entry.site_id, port.data_carriers, probability),)
-    return placements
-
 
 # %%
 # Configure the memory experiment.
@@ -47,10 +28,9 @@ shots = 0
 seed = 7
 
 # %%
-# Select the built-in surface recipe and its data-qubit geometry.
+# Select the built-in ideal-MPP surface recipe.
 implementation = surface.definitions(distance)
 code = implementation.code
-lattice = rotated_surface_lattice(distance)
 
 # %%
 # Assemble preparation, repeated stabilizer rounds, and logical readout.
@@ -59,15 +39,35 @@ lattice = rotated_surface_lattice(distance)
 prep = surface.gadget_contract(implementation.prepare_zero)
 sec = surface.gadget_contract(implementation.memory_round)
 readout = surface.gadget_contract(implementation.measure_z)
-# Preparation contributes one round; repeat the memory round for the rest.
+# Preparation contributes one round; this ideal-MPP readout contributes none.
+if not isinstance(rounds, int) or isinstance(rounds, bool) or rounds < 1:
+    raise ValueError("rounds must be an integer of at least one")
 profiles = (prep, *((sec,) * (rounds - 1)), readout)
-placements = data_noise_placements(profiles, data_depolarization)
+
+# %%
+# The example chooses the noisy occurrences. The per-gadget helper resolves
+# the declared before_syndrome site, after preparation resets. Each data qubit
+# receives a categorical X/Y/Z channel of total probability data_depolarization.
+projections = {
+    contract.gadget:
+        cql.compiler.project_clifford(cql.compile(contract),
+                                      gadget=contract.gadget.name)
+    for contract in (prep, sec)
+}
+data_sites = {
+    contract.gadget:
+        surface.data_depol(contract, projections[contract.gadget],
+                           data_depolarization) for contract in (prep, sec)
+}
+placements = {
+    index: data_sites[contract.gadget]
+    for index, contract in enumerate(profiles[:-1])
+}
 
 # %%
 # Emit the circuit with coordinates, detectors, an observable, and data noise.
-coordinates = "\n".join(
-    f"QUBIT_COORDS({x}, {y}) {q}" for q, (x,
-                                          y) in enumerate(lattice.coordinates))
+coordinates = "\n".join(f"QUBIT_COORDS({x}, {y}) {q}"
+                        for q, (x, y) in enumerate(implementation.coordinates))
 text = coordinates + "\n" + cql.compiler.emit_stim(
     profiles, noise=noise, depolarizations=placements)
 assert sum(line.startswith("DETECTOR") for line in text.splitlines()) == (

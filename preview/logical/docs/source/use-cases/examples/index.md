@@ -34,4 +34,5 @@ physical-schedule
 lookup-addition
 steane-bernstein-vazirani
 t-factory-evaluation
+surface-memory-circuit
 ```
