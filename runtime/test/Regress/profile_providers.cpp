@@ -131,13 +131,13 @@
 // CHECK-NEXT:  basis-conversion{basis=h,rx,ry,rz,x,z(1)}
 // CHECK-NEXT:  jit-finalize-pipeline
 
-// CUDA-Q Logical's stage keeps loops whose index is unused, so prep and deploy
-// unroll nothing, and its target keeps noise and QEC operations through prep.
-// CHECK-LABEL: CUDA-Q Logical:
+// A stage that unrolls only index-use loops keeps prep and deploy from
+// unrolling, and a target with erasure off keeps noise and QEC through prep.
+// CHECK-LABEL: index-use, erasure off:
 // CHECK-NEXT:  canonicalize
 // CHECK-NEXT:  hw-jit-prep-pipeline{allow-early-exit=false no-loop-unroll=true erase-noise=false erase-qec=false}
 // CHECK-NEXT:  jit-deploy-pipeline{no-loop-unroll=true}
-// CHECK:       prepare-for-wireset{maximum-iterations=2048000 unroll-only-index-use-loops=true}
+// CHECK:       prepare-for-wireset{maximum-iterations=1024 unroll-only-index-use-loops=true}
 
 // A stage whose unroll limit is below prep's 1024 iterations keeps prep and
 // deploy from unrolling, even when it unrolls all loops.
@@ -251,15 +251,13 @@ int main(int argc, char **argv) {
                              .lowering = cudaq::config::InferredLowering{}});
     return target;
   };
-  auto logical = unmappedTarget(
-      {.basisGates = {"h", "s", "t", "x", "y", "z", "x(1)", "z(1)", "x(2)",
-                      "z(2)", "swap", "rx", "ry", "rz", "r1"},
-       .costModel = cudaq::config::CostModel::t_count,
-       .unrollLoops = cudaq::config::LoopUnrolling::index_use,
-       .maxUnrollIterations = 2048000});
-  logical.eraseNoise = false;
-  logical.eraseQEC = false;
-  printPipeline("CUDA-Q Logical", logical, {});
+  auto indexUse =
+      unmappedTarget({.basisGates = {"h", "rz", "x(1)"},
+                      .costModel = cudaq::config::CostModel::t_count,
+                      .unrollLoops = cudaq::config::LoopUnrolling::index_use});
+  indexUse.eraseNoise = false;
+  indexUse.eraseQEC = false;
+  printPipeline("index-use, erasure off", indexUse, {});
   printPipeline("unroll limit 2",
                 unmappedTarget({.basisGates = {"h", "rz", "x(1)"},
                                 .costModel = cudaq::config::CostModel::t_count,

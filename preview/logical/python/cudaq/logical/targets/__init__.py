@@ -551,7 +551,7 @@ class Target(CustomTarget):
             approximation_tolerance=0.0,
             cost_model=CostModel.t_count,
             unroll_loops=LoopUnrolling.index_use,
-            # RSA-4096 in example 05 needs more than 4096.
+            # Example 05's RSA-4096 kernel needs more than 4096 iterations.
             max_unroll_iterations=2_048_000)
         stage = CompilationStage(profile)
         target = CompileTarget(stages=[stage])
