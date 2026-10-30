@@ -103,14 +103,12 @@ public:
 };
 
 /// Pipeline text for `prepare-for-wireset`, which unrolls the loops that
-/// \p profile selects and moves the kernel's qubits onto wires. A qubit picked
-/// by a loop longer than the profile's limit, or by a run-time index, stays a
+/// \p profile selects, up to its limit, and moves the kernel's qubits onto
+/// wires. A qubit picked by a longer loop or a run-time index stays a
 /// reference. Stages run it at every optimization level, since the level only
-/// changes how much we optimize, not the representation. The profile's default
-/// limit of 1024 iterations matches `classical-optimization-pipeline`. Left
-/// alone, `prepare-for-wireset` would stop at 50, the `loop-unroll` default.
-/// With \p addWireSet, it also borrows every qubit from a new wire set, which
-/// `qubit-mapping` needs.
+/// changes how much we optimize, not the representation. With \p addWireSet,
+/// it also borrows every qubit from a new wire set, which `qubit-mapping`
+/// needs.
 inline std::string
 convertToWires(const cudaq::config::QuakeUnmappedProfile &profile,
                bool addWireSet = false) {
