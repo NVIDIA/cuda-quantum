@@ -450,6 +450,7 @@ dsurface
 dt
 durations
 dylib
+edem
 eigenbasis
 eigensolver
 eigensolvers

@@ -1,0 +1,122 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+name: EDEM CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "pull-request/[0-9]+"
+  merge_group:
+    types: [checks_requested]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    name: Check for EDEM changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      edem: ${{ steps.filter.outputs.matched }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Check changed paths
+        id: filter
+        uses: ./.github/actions/check-changed-paths
+        with:
+          paths: |
+            CMakeLists.txt
+            edem/
+            math/gf2/
+            pyproject.toml.edem
+            LICENSES/LICENSE.nanobind
+            LICENSES/LICENSE.robin-map
+            .github/workflows/edem_ci.yml
+            .github/actions/check-changed-paths/
+
+  build:
+    name: EDEM (${{ matrix.os }}, shared=${{ matrix.shared }})
+    needs: changes
+    if: needs.changes.outputs.edem == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        shared: ["ON", "OFF"]
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        if: matrix.shared == 'ON'
+        with:
+          python-version: "3.11"
+      - name: Install native Python test dependency
+        if: matrix.shared == 'ON'
+        run: python -m pip install "nanobind>=2.12.0,<3"
+      - name: Configure GF2 independently
+        run: >-
+          cmake -S math/gf2 -B build-gf2
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
+          -DBUILD_SHARED_LIBS=${{ matrix.shared }}
+      - name: Build GF2 independently
+        run: cmake --build build-gf2 --parallel 2
+      - name: Check GF2 independently
+        run: ctest --test-dir build-gf2 --output-on-failure
+      - name: Configure
+        run: >-
+          cmake -S edem -B build-edem
+          -DCMAKE_BUILD_TYPE=Release
+          -DCMAKE_COMPILE_WARNING_AS_ERROR=ON
+          -DBUILD_SHARED_LIBS=${{ matrix.shared }}
+          -DCUDAQ_EDEM_BUILD_TESTS=ON
+          -DCUDAQ_EDEM_BUILD_PYTHON=${{ matrix.shared }}
+      - name: Build
+        run: cmake --build build-edem --parallel 2
+      - name: Check build-tree and installed packages
+        run: ctest --test-dir build-edem --output-on-failure
+
+  wheel:
+    name: EDEM wheel (${{ matrix.os }}, Python ${{ matrix.python }})
+    needs: changes
+    if: needs.changes.outputs.edem == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python: ["3.11", "3.14"]
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    env:
+      CMAKE_BUILD_PARALLEL_LEVEL: "2"
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install build frontend
+        run: python -m pip install "build[virtualenv]"
+      - name: Build and check source distribution and wheel
+        run: python edem/test/check_sdist.py --outdir dist/edem
+      - name: Check installed wheel
+        shell: bash
+        run: python edem/test/check_wheel.py dist/edem/*.whl
+      - uses: actions/upload-artifact@v7
+        with:
+          name: cudaq-edem-${{ matrix.os }}-py${{ matrix.python }}
+          path: dist/edem/*
+          if-no-files-found: error
