@@ -8,11 +8,12 @@
 #pragma once
 
 #include "common/CompileOptions.h"
-#include "common/CompileTarget.h"
 #include "common/CompiledModule.h"
 #include "common/Environment.h"
 #include "common/KernelArgs.h"
 #include "cudaq_internal/compiler/CompiledModuleHelper.h"
+#include "cudaq_internal/compiler/LoweringHandler.h"
+#include "cudaq/Target/CompileTarget.h"
 #include "cudaq/algorithms/sample/policy.h"
 #include "cudaq/runtime/logger/logger.h"
 #include <memory>
@@ -62,6 +63,10 @@ class Compiler {
   /// @brief The compile options to compile with.
   cudaq::CompileOptions options;
 
+  /// @brief The lowering handlers, consulted in order to infer compilation
+  /// pipelines.
+  std::vector<std::unique_ptr<LoweringHandler>> handlers;
+
   /// @brief Flag indicating whether we should print the IR.
   bool printIR = false;
 
@@ -82,11 +87,13 @@ class Compiler {
                 cudaq::KernelArgs args, bool isEntryPoint);
 
   /// Delay combine-measurements for emulation, then run the main pass
-  /// pipeline.  Returns
+  /// pipeline built from \p resolvedOptions, the options resolved for this
+  /// compile.  Returns
   ///  - whether combine-measurements was delayed,
   ///  - the pass pipeline that was executed.
   std::pair<bool, std::string>
-  executeMainPipeline(mlir::ModuleOp moduleOp, const std::string &kernelName);
+  executeMainPipeline(mlir::ModuleOp moduleOp, const std::string &kernelName,
+                      const cudaq::CompileOptions &resolvedOptions);
 
   /// Create JIT and MLIR artifacts and assemble a CompiledModule.
   cudaq::CompiledModule assembleCompiledModule(
@@ -105,8 +112,14 @@ public:
   static std::pair<const void *, std::shared_ptr<mlir::MLIRContext>>
   loadQuakeCodeByName(const std::string &kernelName);
 
+  /// @brief Construct with the default set of lowering handlers.
   Compiler(const cudaq::CompileTarget &target,
            const cudaq::CompileOptions &options);
+
+  /// @brief Construct with an explicit, complete set of lowering handlers.
+  Compiler(const cudaq::CompileTarget &target,
+           const cudaq::CompileOptions &options,
+           std::vector<std::unique_ptr<LoweringHandler>> handlers);
   ~Compiler();
 
   /// @brief Compile the given module and return a `CompiledModule`.
@@ -129,15 +142,33 @@ public:
   emitKernelExecutions(const cudaq::CompiledModule &compiled);
 };
 
-/// Get the pass pipeline string for the given compile target.
+/// Build the JIT pass pipeline for \p target. On failure, set \p diagnostic to
+/// say which stage failed and why, and return `nullopt`.
 ///
-/// If `target.pipelineConfig.overridePassPipeline` is set, returns it directly
-/// (full override, interleave stages are ignored). Otherwise builds: [high]
-/// [,deployStage] [,mid] [,finalizeStage] [,low] where deployStage and
-/// finalizeStage are fixed stages interleaved between the config-provided
-/// stages. Pass empty strings to skip them.
-std::string getPassPipeline(const cudaq::CompileTarget &target,
-                            const cudaq::CompileOptions &options);
+/// Each stage can add passes before deploy, after deploy, and after finalize
+/// (see `StagePasses`). Passes that different stages add at the same place run
+/// in stage order. For example, if the first stage adds `A` before deploy and
+/// `B` after deploy, and the second stage adds `C` after deploy and `D` after
+/// finalize, the pipeline is
+/// `canonicalize, prep, A, deploy, B, C, finalize, D`.
+///
+/// A stage's lowering decides its passes:
+///  - An inferred lowering uses the first handler in \p handlers that can
+///    lower the previous stage's output profile (`unchecked` for the first
+///    stage) to this stage's output profile.
+///  - A custom lowering puts its high-, mid-, and low-level pipelines before
+///    deploy, after deploy, and after finalize.
+///  - An override pipeline replaces the whole pipeline, so it must be the
+///    target's only stage.
+///
+/// The emission format and `CompileOptions::emulate` set the options of prep,
+/// deploy, and finalize. If the target sets `disable_qubit_mapping`, every
+/// `qubit-mapping` in the result gets `device=bypass`.
+std::optional<std::string>
+getPassPipeline(const cudaq::CompileTarget &target,
+                const cudaq::CompileOptions &options,
+                const std::vector<std::unique_ptr<LoweringHandler>> &handlers,
+                std::string &diagnostic);
 
 /// Compile a source module for the given policy, compile target and
 /// arguments.

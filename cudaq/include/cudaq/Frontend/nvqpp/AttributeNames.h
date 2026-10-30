@@ -19,6 +19,18 @@ static constexpr const char entryPointAttrName[] = "cudaq-entrypoint";
 /// Name of the attribute attached to CUDA-Q kernels.
 static constexpr const char kernelAttrName[] = "cudaq-kernel";
 
+/// Name of the attribute attached to the entry point of a kernel class that has
+/// data members. Its value is the number of leading arguments of the kernel
+/// that are the values of the data members, in declaration order. The host
+/// side reads these values from the object, as the `this` pointer does not
+/// exist on the device.
+static constexpr const char kernelMemberArgsAttrName[] = "cudaq-member-args";
+
+/// Name of the attribute that goes with `cudaq-member-args`. It is an array
+/// with the byte offset of each data member in the host object.
+static constexpr const char kernelMemberOffsetsAttrName[] =
+    "cudaq-member-offsets";
+
 /// Name of the attribute attached to device call functions.
 static constexpr const char deviceCallAttrName[] = "cudaq-devicecall";
 

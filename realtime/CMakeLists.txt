@@ -78,10 +78,6 @@ option(CUDAQ_REALTIME_ENABLE_HSB_TOOLS
 option(CUDAQ_REALTIME_ENABLE_SANITIZERS
        "Enable Address Sanitizer (ASan) and Undefined Behavior Sanitizer (UBSan)."
        OFF)
-option(CUDAQ_REALTIME_CPU_ROCE_USE_HOLOLINK
-       "Link CPU RoCE against Hololink's CpuRoceTransceiver (default: CUDA-Q's legacy ibverbs backend)."
-       OFF)
-
 option(CUDAQ_REALTIME_REQUIRE_ROCE_TESTS
        "Treat an unavailable RoCE transport as a failure of the cpu_roce RDMA tests instead of a skip (for hosts that must have one). When OFF, CUDAQ_REALTIME_REQUIRE_ROCE=1 raises it for one run; when ON, CUDAQ_REALTIME_REQUIRE_ROCE=0 is an error."
        OFF)

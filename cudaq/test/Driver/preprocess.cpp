@@ -26,7 +26,7 @@
 // RUN: cat %t/orca.ii | FileCheck %s --check-prefix=ORCA
 
 #include "dep_header.h"
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 
 int plain_old_function() { return cudaq_test_dep_value(); }
 

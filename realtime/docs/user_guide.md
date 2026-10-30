@@ -20,9 +20,9 @@ may not have all the required capabilities.
 
 - CUDA-Q Realtime installer.
 
-- CUDA Runtime (12+)
+- CUDA Runtime (12.6+ and 13.0+)
 
-- [`DOCA` 3.3.0 installation](https://developer.nvidia.com/doca-downloads)
+- [`DOCA` 3.4.0 installation](https://developer.nvidia.com/doca-downloads)
 with `gpunetio` support.
 
 > **_NOTE:_** `DOCA` is required to run the end-to-end validation with FPGA
@@ -97,6 +97,8 @@ Please refer to this [section](#using-docker) for instructions.
     > - `--bridge-ip` is the IP address of the NIC on the host machine.
     > - `--page-size` is the ring buffer slot size in bytes.
     > - `--unified` is the flag to enable the unified dispatch mode.
+    > - `--threads N` is the block size (threads per block) that every
+    >   DEVICE_CALL handler runs on, in both dispatch modes (default: 32).
     The other option is `--forward`, which skips the RPC callback.
     Without either of these flags, we will run the test in
     the three-kernel mode with the RPC handler.

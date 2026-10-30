@@ -8,7 +8,7 @@
 
 // RUN: cudaq-quake %s | cudaq-opt | FileCheck %s
 
-#include "cudaq.h"
+#include "cudaq/qis/qubit_qis.h"
 
 namespace cudaq::solvers {
 __qpu__ void callMe(int i) {}

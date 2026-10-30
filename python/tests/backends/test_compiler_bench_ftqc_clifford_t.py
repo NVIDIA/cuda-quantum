@@ -9,7 +9,10 @@
 import math
 
 import cudaq
+import numpy as np
 import pytest
+from cudaq._experimental import (CostModel, QuakeUnmappedProfile,
+                                 get_compile_target)
 
 FTQC_CLIFFORD_T_TARGET = 'compiler-bench-ftqc-clifford-t'
 
@@ -26,8 +29,30 @@ def reset():
     cudaq.reset_target()
 
 
+def set_target_with_tolerance(tolerance):
+    cudaq.set_target(FTQC_CLIFFORD_T_TARGET)
+    target = get_compile_target()
+    [stage] = target.stages
+    profile = stage.ir_output_profile
+    profile.approximation_tolerance = tolerance
+    stage.ir_output_profile = profile
+    target.stages = [stage]
+    cudaq.set_target(FTQC_CLIFFORD_T_TARGET, compile_target=target)
+
+
+def test_compile_target_has_the_target_profile():
+    cudaq.set_target(FTQC_CLIFFORD_T_TARGET)
+    [stage] = get_compile_target().stages
+    assert stage.ir_output_profile == QuakeUnmappedProfile(
+        basis_gates=[
+            'h', 's', 't', 'x', 'y', 'z', 'swap', 'x(1)', 'y(1)', 'z(1)'
+        ],
+        approximation_tolerance=1e-10,
+        cost_model=CostModel.t_count)
+
+
 def test_compiles_full_pipeline_to_flat_clifford_t_boundary():
-    cudaq.set_target(FTQC_CLIFFORD_T_TARGET, epsilon='0.001')
+    set_target_with_tolerance(1e-3)
 
     candidate = cudaq.make_kernel()
     q = candidate.qalloc(21)
@@ -89,9 +114,9 @@ def test_compiles_full_pipeline_to_flat_clifford_t_boundary():
     assert t_count > 0
     assert candidate_resources.depth > 0
 
-    # The target epsilon preserves rotations above its pruning boundary.
+    # The tolerance preserves rotations above its pruning boundary.
     cudaq.reset_target()
-    cudaq.set_target(FTQC_CLIFFORD_T_TARGET, epsilon='1e-13')
+    set_target_with_tolerance(1e-13)
     precision_boundary = cudaq.make_kernel()
     q = precision_boundary.qalloc()
     precision_boundary.rz(5e-13, q)
@@ -124,7 +149,7 @@ def _synthesize_pi_over_eight():
 
 
 def test_random_seed_makes_synthesis_reproducible():
-    cudaq.set_target(FTQC_CLIFFORD_T_TARGET, epsilon='0.001')
+    set_target_with_tolerance(1e-3)
 
     results = set()
     for _ in range(8):
@@ -137,14 +162,27 @@ def test_random_seed_makes_synthesis_reproducible():
     assert depth > 0
 
 
-def test_target_seed_overrides_random_seed():
-    cudaq.set_target(FTQC_CLIFFORD_T_TARGET, epsilon='0.001', seed='7')
+@cudaq.kernel
+def rotations():
+    q = cudaq.qvector(2)
+    h(q[0])
+    rz(0.3, q[0])
+    x.ctrl(q[0], q[1])
+    ry(0.7, q[1])
+    rx(0.2, q[0])
 
-    results = set()
-    for seed in (1, 2, 3, 4):
-        cudaq.set_random_seed(seed)
-        results.add(_synthesize_pi_over_eight())
 
-    # The seed given to set_target wins, so the global seed does not perturb
-    # the result.
-    assert len(results) == 1
+def test_synthesis_preserves_unitary_within_tolerance():
+    tolerance = 1e-6
+    cudaq.set_target('qpp-cpu')
+    exact = np.array(cudaq.get_unitary(rotations))
+    cudaq.reset_target()
+    set_target_with_tolerance(tolerance)
+    synthesized = np.array(cudaq.get_unitary(rotations))
+
+    # Each of the three rotations is synthesized within the tolerance in
+    # operator norm. Taking the global phase from the trace at most doubles the
+    # bound for a two-qubit unitary.
+    overlap = np.trace(exact.conj().T @ synthesized)
+    phase = overlap / abs(overlap)
+    assert np.linalg.norm(synthesized - phase * exact, 2) <= 6 * tolerance

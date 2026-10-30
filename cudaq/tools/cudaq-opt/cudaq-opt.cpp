@@ -87,7 +87,7 @@ static void registerTargetPassPipeline(const std::string &pipelineName,
 /// Registers a named pipeline for every
 ///  - in-tree target (and, within it, every configuration-matrix entry)
 ///  - extra YAML or compiled plugin-library files passed in @p configPaths
-/// that configures a `TargetPassPipeline`.
+/// that configures an override pass pipeline in its compilation profile.
 ///
 /// A target's name and a configuration-matrix entry's name are joined with
 /// '.' (not '-') to form the registered pipeline name: target and entry
@@ -98,6 +98,11 @@ static void registerTargetPassPipeline(const std::string &pipelineName,
 /// stops a future target/entry name from containing '.' either, so
 /// registration also checks for and rejects any resulting collision
 /// outright rather than relying solely on the separator choice.
+// TODO: it seems inconsistent that we only register named pipelines (and nvq++
+// executes them) when the YAML uses 'target-pass-pipeline' to specify them.
+// Alternatives pipeline declarations such as 'jit-*-level-pipeline' options are
+// currently ignored. When this gets resolved, also add support for multi-stage
+// compilation sequences.
 static void
 registerAllTargetPassPipelines(llvm::ArrayRef<std::string> configPaths = {}) {
   cudaq::config::TargetCatalog registry;
@@ -116,17 +121,25 @@ registerAllTargetPassPipelines(llvm::ArrayRef<std::string> configPaths = {}) {
     }
     registerTargetPassPipeline(pipelineName, targetName, pipelineText);
   };
+  const auto overridePipeline =
+      [](const cudaq::config::BackendEndConfigEntry &backend) -> std::string {
+    if (backend.CompileTarget.stages.size() != 1)
+      return std::string{};
+    const auto *overridePassPipeline =
+        backend.CompileTarget.getOverridePassPipeline();
+    return overridePassPipeline ? *overridePassPipeline : std::string{};
+  };
   for (const auto *entry : registry.list()) {
     const auto &config = *entry->config;
     const std::string targetName = entry->name;
     if (config.BackendConfig.has_value() &&
-        !config.BackendConfig->TargetPassPipeline.empty())
+        !overridePipeline(*config.BackendConfig).empty())
       registerUnique("target-pass-pipeline-" + targetName, targetName,
-                     config.BackendConfig->TargetPassPipeline);
+                     overridePipeline(*config.BackendConfig));
     for (const auto &entry : config.ConfigMap)
-      if (!entry.Config.TargetPassPipeline.empty())
+      if (!overridePipeline(entry.Config).empty())
         registerUnique("target-pass-pipeline-" + targetName + "." + entry.Name,
-                       targetName, entry.Config.TargetPassPipeline);
+                       targetName, overridePipeline(entry.Config));
   }
 }
 

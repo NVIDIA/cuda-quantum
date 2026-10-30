@@ -17,6 +17,7 @@
 #include "llvm/Support/FileSystem.h"
 #include "llvm/Support/ToolOutputFile.h"
 #include "mlir/IR/Diagnostics.h"
+#include "mlir/IR/SymbolTable.h"
 #include "mlir/Interfaces/CallInterfaces.h"
 #include "mlir/Transforms/Passes.h"
 
@@ -30,7 +31,7 @@ namespace cudaq::opt {
 using namespace mlir;
 
 namespace {
-/// Collect all functions defined in \p module that `root` transitively
+/// Collect all functions in \p symbols that `root` transitively
 /// depends on (including `root` itself), in depth-first pre-order over call
 /// sites as they appear in each function's body (matching the traversal
 /// order `mlir::CallGraph`'s `df_iterator` used to produce, which some tests
@@ -46,7 +47,7 @@ namespace {
 /// fails to parse (`must refer to a valid function`) when reloaded
 /// standalone.
 static void
-collectDependentFunctions(mlir::ModuleOp module, mlir::func::FuncOp f,
+collectDependentFunctions(mlir::SymbolTable &symbols, mlir::func::FuncOp f,
                           llvm::SetVector<mlir::func::FuncOp> &deps) {
   if (f.isExternal() || !deps.insert(f))
     return;
@@ -61,8 +62,8 @@ collectDependentFunctions(mlir::ModuleOp module, mlir::func::FuncOp f,
     }
     if (calleeAttr)
       if (auto callee =
-              module.lookupSymbol<mlir::func::FuncOp>(calleeAttr.getValue()))
-        collectDependentFunctions(module, callee, deps);
+              symbols.lookup<mlir::func::FuncOp>(calleeAttr.getValue()))
+        collectDependentFunctions(symbols, callee, deps);
   });
 }
 
@@ -129,6 +130,9 @@ public:
       }
     }
 
+    // Build the symbol table once, before the registration stubs are added.
+    SymbolTable dependencySymbols(module);
+
     for (auto &op : *module.getBody()) {
       auto funcOp = dyn_cast<func::FuncOp>(op);
       if (!funcOp)
@@ -147,16 +151,28 @@ public:
       std::string funcCode;
       llvm::raw_string_ostream strOut(funcCode);
       OpPrintingFlags opf;
+      // Print each function on its own rather than re-processing the module.
+      opf.useLocalScope();
       opf.enableDebugInfo(/*enable=*/true,
                           /*pretty=*/false);
-      strOut << "module attributes " << module->getAttrDictionary() << " { ";
-
       // We'll also need any non-inlined functions that are
       // called by our cudaq kernel
       // Set of dependent kernels that we've included.
       // Note: `deps` does include 'this' function.
       llvm::SetVector<mlir::func::FuncOp> deps;
-      collectDependentFunctions(module, funcOp, deps);
+      collectDependentFunctions(dependencySymbols, funcOp, deps);
+
+      // The bridge marks the module when any kernel in the source file
+      // disables quantum optimization, but the JIT reads the marker from the
+      // module it compiles. Keep it only for a kernel whose module includes a
+      // marked function, so the other kernels in the file are still optimized.
+      NamedAttrList moduleAttrs(module->getAttrDictionary());
+      if (llvm::none_of(deps, [](func::FuncOp dep) {
+            return dep->hasAttr(cudaq::runtime::disableQuantumOpts);
+          }))
+        moduleAttrs.erase(cudaq::runtime::disableQuantumOpts);
+      strOut << "module attributes " << moduleAttrs.getDictionary(ctx) << " { ";
+
       for (mlir::func::FuncOp parentFuncOp : deps) {
         LLVM_DEBUG(llvm::dbgs() << "  Adding dependent function "
                                 << parentFuncOp->getName() << '\n');

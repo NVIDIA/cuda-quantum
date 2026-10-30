@@ -52,7 +52,8 @@ static std::string translate_impl(const std::string &shortName,
   auto opaques =
       cudaq::marshal_arguments_for_module_launch(mod, runtimeArguments, fn);
 
-  auto options = cudaq::get_compile_options(cudaq::other_policies{});
+  auto options = cudaq::get_compile_options(cudaq::other_policies{},
+                                            cudaq::get_random_seed());
   return StringSwitch<std::function<std::string()>>(formatPair.first)
       .Cases({"qir", "qir-full", "qir-adaptive", "qir-base"},
              [&]() {

@@ -50,7 +50,18 @@ find_package(CUDAToolkit)
 if(CMAKE_CUDA_COMPILER)
   enable_language(CUDA)
   
-  add_executable(test_dispatch_kernel test_dispatch_kernel.cu)
+  # The dispatch kernel sources are compiled into this test directly instead
+  # of linking cudaq-realtime-dispatch: the unified kernel ships in no archive
+  # (libcudaq-realtime links it at run time over a bridge), and the
+  # unified-kernel tests define the three cudaq_dev_* transport hooks over a
+  # fake pinned-memory ring and device-link them with it here.
+  # libcudaq-realtime.so's weak references to the ring launchers bind to this
+  # executable's copies.
+  add_executable(test_dispatch_kernel
+    test_dispatch_kernel.cu
+    ${CUDAQ_REALTIME_SOURCE_DIR}/lib/daemon/dispatcher/dispatch_kernel.cu
+    ${CUDAQ_REALTIME_SOURCE_DIR}/lib/daemon/dispatcher/unified_dispatch_kernel.cu
+  )
   
   set_target_properties(test_dispatch_kernel PROPERTIES
     CUDA_SEPARABLE_COMPILATION ON
@@ -71,7 +82,6 @@ if(CMAKE_CUDA_COMPILER)
     GTest::gtest_main 
     CUDA::cudart
     cudaq-realtime
-    cudaq-realtime-dispatch
     ${CUDADEVRT_LIBRARY}
   )
   
@@ -110,9 +120,10 @@ endif()
 # HSB bridge/emulator/playback tools (optional, not CI)
 # ==============================================================================
 
+# utils defines rpc_increment_ft, which the test server links for its device
+# path, so it is configured before test_server.
 if (CUDAQ_REALTIME_ENABLE_HSB_TOOLS)
   add_subdirectory(utils)
-  add_subdirectory(bridge_interface/gpu_roce)
 endif()
 
 # Transport-agnostic two-process test server.  Links cudaq-realtime, which
@@ -121,6 +132,17 @@ endif()
 if (TARGET cudaq-realtime)
   add_subdirectory(test_server)
 endif()
+
+if (CUDAQ_REALTIME_ENABLE_HSB_TOOLS)
+  add_subdirectory(bridge_interface/gpu_roce)
+endif()
+
+# Run-time linked GPU data plane over a test-only loopback provider: self-gated
+# on CUDA; skips at run time without a GPU.
+add_subdirectory(bridge_interface/gpu_loopback)
+
+# The public headers must compile as C.
+add_subdirectory(c_api)
 
 # UDP bridge provider tests: self-gated on the always-built udp provider
 # target, so they run in CI without any HSB/RDMA setup.
@@ -132,7 +154,7 @@ add_subdirectory(bridge_interface/cpu_roce)
 
 # CPU RoCE transport (Phase 1 of cpu_transport umbrella).
 # Self-gates on TARGET cudaq-realtime-cpu-roce-transport so this is harmless when
-# libibverbs is not available.
+# HololinkRoce is not available.
 add_subdirectory(cpu_transport)
 
 # A host that must run the RoCE tests must also build them: otherwise a

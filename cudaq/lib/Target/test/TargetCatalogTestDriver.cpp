@@ -10,14 +10,20 @@
 // deterministically for FileCheck.
 
 #include "TargetConfigHelper.h"
+#include "Yaml/v2/TargetConfigV2.h"
 #include "cudaq/Target/TargetCatalog.h"
 #include "cudaq/Target/TargetConfig.h"
 #include "cudaq/Target/TargetConfigYaml.h"
 #include <filesystem>
+#include <iomanip>
 #include <iostream>
+#include <limits>
 #include <map>
 #include <optional>
+#include <sstream>
 #include <string>
+#include <type_traits>
+#include <variant>
 #include <vector>
 
 using namespace cudaq::config;
@@ -42,15 +48,6 @@ std::string escaped(const std::string &value) {
 
 std::string boolStr(bool value) { return value ? "true" : "false"; }
 
-std::string argTypeName(ArgumentType type) {
-  static const char *names[] = {"string", "integer", "uuid", "option-flags",
-                                "machine-config"};
-  const auto index = static_cast<unsigned>(type);
-  return index <= static_cast<unsigned>(ArgumentType::machine_config)
-             ? names[index]
-             : "unknown";
-}
-
 void printField(const char *indent, const char *key, const std::string &value) {
   if (!value.empty())
     std::cout << indent << key << ": " << escaped(value) << "\n";
@@ -70,6 +67,88 @@ void printList(const char *indent, const char *key,
     std::cout << indent << key << ": " << listStr(values) << "\n";
 }
 
+void printLowering(const char *, const InferredLowering &) {}
+void printLowering(const char *indent, const CustomPipelineLowering &lowering) {
+  printField(indent, "jit-high-level-pipeline", lowering.highLevelPipeline);
+  printField(indent, "jit-mid-level-pipeline", lowering.midLevelPipeline);
+  printField(indent, "jit-low-level-pipeline", lowering.lowLevelPipeline);
+  printField(indent, "target-pass-pipeline", lowering.overridePassPipeline);
+}
+
+/// The flow-style YAML spelling of a value. Strings are quoted, as in
+/// `listStr`.
+std::string flowValue(const rfl::Generic &value) {
+  return std::visit(
+      [](const auto &v) -> std::string {
+        using T = std::decay_t<decltype(v)>;
+        if constexpr (std::is_same_v<T, std::string>) {
+          return '"' + escaped(v) + '"';
+        } else if constexpr (std::is_same_v<T, bool>) {
+          return boolStr(v);
+        } else if constexpr (std::is_same_v<T, rfl::Generic::Array>) {
+          std::string out = "[";
+          for (std::size_t i = 0; i < v.size(); ++i)
+            out += (i ? ", " : "") + flowValue(v[i]);
+          return out + "]";
+        } else if constexpr (std::is_same_v<T, rfl::Generic::Object>) {
+          std::string out = "{";
+          for (const auto &[key, field] : v)
+            out += (out.size() > 1 ? ", " : "") + key + ": " + flowValue(field);
+          return out + "}";
+        } else if constexpr (std::is_same_v<T, std::nullopt_t>) {
+          return "null";
+        } else {
+          std::ostringstream os;
+          os << std::setprecision(std::numeric_limits<double>::max_digits10)
+             << v;
+          return os.str();
+        }
+      },
+      value.variant());
+}
+
+/// Prints a mapping in block style, one key per line. Scalar strings are left
+/// unquoted to match the rest of the output.
+void printYaml(const std::string &indent, const rfl::Generic::Object &object) {
+  for (const auto &[key, value] : object) {
+    std::cout << indent << key << ":";
+    if (const auto *nested =
+            std::get_if<rfl::Generic::Object>(&value.variant())) {
+      std::cout << "\n";
+      printYaml(indent + "  ", *nested);
+    } else if (const auto *str = std::get_if<std::string>(&value.variant())) {
+      std::cout << " " << escaped(*str) << "\n";
+    } else {
+      std::cout << " " << flowValue(value) << "\n";
+    }
+  }
+}
+
+void printStage(const CompilationStage &stage, const char *indent) {
+  /// Get `::name` from a variant by delegating to inner variant `::name` field.
+  const auto name = [](const auto &variant) {
+    auto inner = [](const auto &v) -> const char * { return v.name; };
+    return std::visit(inner, variant);
+  };
+  std::cout << indent
+            << "stage: ir-output-profile=" << name(stage.irOutputProfile)
+            << " lowering=" << name(stage.lowering) << "\n";
+  const std::string nested = std::string(indent) + "  ";
+  // Each profile prints as its YAML form. The profile name is already on the
+  // stage line.
+  std::visit(
+      [&](const auto &p) {
+        using P = std::decay_t<decltype(p)>;
+        printYaml(nested,
+                  rfl::to_generic<YamlProcessors>(v2::ProfileYaml<P>::from(p))
+                      .to_object()
+                      .value());
+      },
+      stage.irOutputProfile);
+  std::visit([&](const auto &l) { printLowering(nested.c_str(), l); },
+             stage.lowering);
+}
+
 void printBackend(const BackendEndConfigEntry &backend, const char *indent) {
   std::cout << indent
             << "gen-target-backend: " << boolStr(backend.GenTargetBackend)
@@ -78,12 +157,12 @@ void printBackend(const BackendEndConfigEntry &backend, const char *indent) {
             << "\n"
             << indent << "support-resource-counts: "
             << boolStr(backend.SupportResourceCounts) << "\n";
-  printField(indent, "jit-high-level-pipeline", backend.JITHighLevelPipeline);
-  printField(indent, "jit-mid-level-pipeline", backend.JITMidLevelPipeline);
-  printField(indent, "jit-low-level-pipeline", backend.JITLowLevelPipeline);
-  printField(indent, "target-pass-pipeline", backend.TargetPassPipeline);
-  printField(indent, "codegen-emission", backend.CodegenEmission);
-  printField(indent, "post-codegen-passes", backend.PostCodeGenPasses);
+  for (const auto &stage : backend.CompileTarget.stages)
+    printStage(stage, indent);
+  printField(indent, "codegen-emission",
+             backend.CompileTarget.codegen.emissionFormat);
+  printField(indent, "post-codegen-passes",
+             backend.CompileTarget.codegen.postCodegenPasses);
   printField(indent, "platform-library", backend.PlatformLibrary);
   printField(indent, "library-mode-execution-manager",
              backend.LibraryModeExecutionManager);
@@ -110,7 +189,7 @@ void printConfig(const TargetConfig &config) {
             << "\n";
   for (const auto &arg : config.TargetArguments) {
     std::cout << "argument: " << arg.KeyName
-              << " type=" << argTypeName(arg.Type)
+              << " type=" << rfl::Reflector<ArgumentType>::from(arg.Type)
               << " required=" << (arg.IsRequired ? "true" : "false")
               << " platform-arg="
               << (arg.PlatformArgKey.empty() ? "-" : arg.PlatformArgKey)

@@ -120,7 +120,7 @@ cudaq::CompileTarget createDefaultCompileTarget(const RuntimeTarget *rt) {
 
   ct.supportDeviceCalls = true;
   ct.argumentSynthChangeSemantics = false;
-  ct.pipelineConfig.codegenTranslation = "qir:";
+  ct.codegen.emissionFormat = "qir:";
   ct.overrideAOTCompilation = false;
   return ct;
 }
@@ -198,6 +198,7 @@ void quantum_platform::reset_exec_ctx() {
 void quantum_platform::configureExecutionContext(ExecutionContext &ctx) const {
   std::size_t qid = ctx.qpuId;
   validateQpuId(qid);
+  prepareExecution(qid);
   auto platformQPU = runtimeEndpoints[qid].getQPU();
   if (platformQPU == nullptr)
     throw std::runtime_error(
@@ -306,10 +307,8 @@ void quantum_platform::onRandomSeedSet(std::size_t seed) {
     if (!qpu)
       continue;
     qpu->onRandomSeedSet(seed);
-    // Some targets use the seed to randomize the compilation pipeline, so
-    // rebuild the compile target
-    // TODO: clean this up
-    compileTargets[qpuId] = qpu->getCompileTarget(runtimeTarget.get());
+    if (compileTargets[qpuId].resetOnRandomSeedSet)
+      compileTargets[qpuId] = qpu->getCompileTarget(runtimeTarget.get());
   }
 }
 

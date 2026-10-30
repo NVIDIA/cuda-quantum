@@ -6,8 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  *******************************************************************************/
 
-#ifndef QLX_DIALECT_PHYS_PHYSTYPES_H
-#define QLX_DIALECT_PHYS_PHYSTYPES_H
+#pragma once
+
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/Types.h"
 
@@ -15,4 +15,3 @@
 
 #define GET_TYPEDEF_CLASSES
 #include "qlx/Dialect/Phys/IR/PhysTypes.h.inc"
-#endif

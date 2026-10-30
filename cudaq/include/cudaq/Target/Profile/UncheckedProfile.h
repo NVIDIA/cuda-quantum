@@ -1,0 +1,35 @@
+/****************************************************************-*- C++ -*-****
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
+
+#pragma once
+
+#include <functional>
+
+namespace cudaq::config {
+
+/// IR profile that accepts any IR.
+///
+/// This is a transitional profile type: it puts no constraints on the IR and
+/// validation always passes. It is used until declarative IR profiles are
+/// introduced.
+struct UncheckedProfile {
+  /// Name identifying this profile in target configurations.
+  static constexpr char name[] = "unchecked";
+
+  bool operator==(const UncheckedProfile &other) const = default;
+};
+
+} // namespace cudaq::config
+
+template <>
+struct std::hash<cudaq::config::UncheckedProfile> {
+  std::size_t
+  operator()(const cudaq::config::UncheckedProfile &) const noexcept {
+    return 0;
+  }
+};

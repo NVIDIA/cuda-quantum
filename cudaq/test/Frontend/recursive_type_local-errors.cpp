@@ -9,7 +9,7 @@
 // RUN: cudaq-quake -verify %s
 // clang-format off
 
-#include "cudaq.h"
+#include "cudaq/qis/qubit_qis.h"
 
 // expected-error@+1{{recursive types are not allowed in kernels}}
 struct Node {

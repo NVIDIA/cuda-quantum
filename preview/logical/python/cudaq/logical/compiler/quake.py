@@ -39,7 +39,7 @@ CUDAQ_LINEAR_VALUES_PIPELINE = (
     "builtin.module(func.func(expand-control-veqs,factor-quantum-alloc,"
     "cable-rough-in,canonicalize,"
     "memtoreg{classical=false quantum=true},canonicalize,"
-    "repair-linear-type,linear-ctrl-form),canonicalize)")
+    "linear-ctrl-form),canonicalize)")
 
 # This is the CUDA-Q compile-target override advertised by Target. Keep the
 # import path and the public compile-target configuration identical: splitting

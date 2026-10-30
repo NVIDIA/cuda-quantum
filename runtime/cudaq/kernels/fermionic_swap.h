@@ -8,7 +8,7 @@
 
 #pragma once
 #include "cudaq/builder/kernel_builder.h"
-#include <cudaq.h>
+#include "cudaq/qis/qubit_qis.h"
 namespace cudaq_internal {
 /// @brief Apply global phase (e^(i * theta)).
 /// Note: since this is a global phase, the qubit operand can be selected

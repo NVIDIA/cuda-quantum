@@ -266,3 +266,16 @@ cudaq_bridge_set_function_table(cudaq_realtime_bridge_handle_t bridge,
     return CUDAQ_OK;
   return bridge_interface->set_function_table(bridge, table);
 }
+
+cudaq_status_t
+cudaq_bridge_get_gpu_dataplane(cudaq_realtime_bridge_handle_t bridge,
+                               cudaq_gpu_dataplane_t *out_dataplane) {
+  if (!out_dataplane)
+    return CUDAQ_ERR_INVALID_ARG;
+  auto *bridge_interface = find_interface(bridge, "get_gpu_dataplane");
+  if (!bridge_interface)
+    return CUDAQ_ERR_INVALID_ARG;
+  if (!bridge_interface->get_gpu_dataplane)
+    return CUDAQ_ERR_UNSUPPORTED;
+  return bridge_interface->get_gpu_dataplane(bridge, out_dataplane);
+}

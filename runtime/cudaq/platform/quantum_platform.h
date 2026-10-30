@@ -9,7 +9,6 @@
 #pragma once
 
 #include "common/CodeGenConfig.h"
-#include "common/CompileTarget.h"
 #include "common/CompiledModule.h"
 #include "common/ExecutionContext.h"
 #include "common/KernelArgs.h"
@@ -19,6 +18,7 @@
 #include "common/SampleResult.h"
 #include "common/ThunkInterface.h"
 #include "nvqpp_interface.h"
+#include "cudaq/Target/CompileTarget.h"
 #include "cudaq/platform/RuntimeEndpoint.h"
 #include "cudaq/platform/qpu.h"
 #include "cudaq/utils/cudaq_utils.h"
@@ -173,6 +173,10 @@ public:
 
   /// Specify the execution context for this platform.
   void configureExecutionContext(ExecutionContext &ctx) const;
+
+  /// Bind the calling thread to QPU @p qpu_id (e.g. its CUDA device) before
+  /// its simulator is initialized.
+  virtual void prepareExecution(std::size_t qpu_id) const {}
 
   /// @brief Post-process the results stored in @p ctx after execution on this
   /// platform.

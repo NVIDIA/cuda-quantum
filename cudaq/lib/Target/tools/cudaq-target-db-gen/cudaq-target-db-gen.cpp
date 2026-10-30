@@ -23,10 +23,15 @@
 #include <cerrno>
 #include <filesystem>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
+#include <limits>
+#include <optional>
+#include <rfl.hpp>
 #include <sstream>
 #include <string>
 #include <string_view>
+#include <variant>
 #include <vector>
 
 // Freezes this tool's own CUDAQ_TARGET_DB_ABI_SYMBOL_NAME (from whichever
@@ -133,21 +138,31 @@ std::string cxxStringVector(const std::vector<std::string> &values) {
 
 std::string cxxBool(bool value) { return value ? "true" : "false"; }
 
-std::string cxxArgumentType(cudaq::config::ArgumentType type) {
-  using cudaq::config::ArgumentType;
-  switch (type) {
-  case ArgumentType::string:
-    return "cudaq::config::ArgumentType::string";
-  case ArgumentType::integer:
-    return "cudaq::config::ArgumentType::integer";
-  case ArgumentType::uuid:
-    return "cudaq::config::ArgumentType::uuid";
-  case ArgumentType::option_flags:
-    return "cudaq::config::ArgumentType::option_flags";
-  case ArgumentType::machine_config:
-    return "cudaq::config::ArgumentType::machine_config";
-  }
-  return "cudaq::config::ArgumentType::string";
+template <typename T>
+std::string cxxTypeName() {
+  return rfl::type_name_t<T>().str();
+}
+
+std::string cxxValue(bool value) { return cxxBool(value); }
+std::string cxxValue(const std::string &value) {
+  return cxxStringLiteral(value);
+}
+std::string cxxValue(const std::vector<std::string> &values) {
+  return cxxStringVector(values);
+}
+std::string cxxValue(double value) {
+  std::ostringstream os;
+  os << std::setprecision(std::numeric_limits<double>::max_digits10) << value;
+  return os.str();
+}
+template <typename E>
+  requires std::is_enum_v<E>
+std::string cxxValue(E value) {
+  return cxxTypeName<E>() + "::" + rfl::enum_to_string(value);
+}
+template <typename T>
+std::string cxxValue(const std::optional<T> &value) {
+  return value ? cxxValue(*value) : "std::nullopt";
 }
 
 std::string
@@ -184,7 +199,7 @@ cxxTargetArguments(const std::vector<cudaq::config::TargetArgument> &args) {
        << ".IsRequired = " << (a.IsRequired ? "true" : "false") << ", "
        << ".PlatformArgKey = " << cxxStringLiteral(a.PlatformArgKey) << ", "
        << ".HelpString = " << cxxStringLiteral(a.HelpString) << ", "
-       << ".Type = " << cxxArgumentType(a.Type) << ", "
+       << ".Type = " << cxxValue(a.Type) << ", "
        << ".MachineConfigs = " << cxxMachineConfigs(a.MachineConfigs) << "}, ";
   }
   os << "}";
@@ -211,6 +226,84 @@ cxxSimulationBackend(const cudaq::config::SimulationBackendSetting &s) {
          cxxStringVector(s.values) + "}";
 }
 
+/// Print a profile or lowering as a designated initializer of every field, so
+/// that a new field needs no change here.
+template <typename T>
+std::string cxxAggregate(const T &value) {
+  std::string out = cxxTypeName<T>() + "{";
+  rfl::to_view(value).apply([&](const auto &field) {
+    out += "." + std::string(field.name()) + " = " + cxxValue(*field.value()) +
+           ", ";
+  });
+  return out + "}";
+}
+
+std::string cxxStage(const cudaq::config::CompilationStage &stage) {
+  std::ostringstream os;
+  os << "cudaq::config::CompilationStage{"
+     << ".irOutputProfile = cudaq::config::Profile{";
+  std::visit(
+      [&](const auto &p) {
+        using T = std::decay_t<decltype(p)>;
+        os << "std::in_place_type<" << cxxTypeName<T>() << ">, "
+           << cxxAggregate(p) << "}";
+      },
+      stage.irOutputProfile);
+  os << ", .lowering = "
+     << std::visit([](const auto &l) { return cxxAggregate(l); },
+                   stage.lowering)
+     << "}";
+  return os.str();
+}
+
+std::string
+cxxStages(const std::vector<cudaq::config::CompilationStage> &stages) {
+  std::ostringstream os;
+  os << "{";
+  for (const auto &stage : stages)
+    os << cxxStage(stage) << ", ";
+  os << "}";
+  return os.str();
+}
+
+std::string cxxCodegen(const cudaq::config::Codegen &codegen) {
+  std::ostringstream os;
+  os << "cudaq::config::Codegen{"
+     << ".emissionFormat = " << cxxStringLiteral(codegen.emissionFormat) << ", "
+     << ".postCodegenPasses = " << cxxStringLiteral(codegen.postCodegenPasses)
+     << "}";
+  return os.str();
+}
+
+std::string cxxCompileTarget(const cudaq::CompileTarget &compileTarget) {
+  std::ostringstream os;
+  os << "cudaq::CompileTarget{"
+     << ".overrideAOTCompilation = "
+     << cxxBool(compileTarget.overrideAOTCompilation) << ", "
+     << ".stages = " << cxxStages(compileTarget.stages) << ", "
+     << ".codegen = " << cxxCodegen(compileTarget.codegen) << ", "
+     << ".supportConditionalsOnMeasureResults = "
+     << cxxBool(compileTarget.supportConditionalsOnMeasureResults) << ", "
+     << ".supportDeviceCalls = " << cxxBool(compileTarget.supportDeviceCalls)
+     << ", "
+     << ".supportResourceCounts = "
+     << cxxBool(compileTarget.supportResourceCounts) << ", "
+     << ".supportExplicitMeasurements = "
+     << cxxBool(compileTarget.supportExplicitMeasurements) << ", "
+     << ".supportObservableMeasurements = "
+     << cxxBool(compileTarget.supportObservableMeasurements) << ", "
+     << ".supportSampleWithoutMeasurements = "
+     << cxxBool(compileTarget.supportSampleWithoutMeasurements) << ", "
+     << ".fullySpecialize = " << cxxBool(compileTarget.fullySpecialize) << ", "
+     << ".argumentSynthChangeSemantics = "
+     << cxxBool(compileTarget.argumentSynthChangeSemantics) << ", "
+     << ".disableQubitMapping = " << cxxBool(compileTarget.disableQubitMapping)
+     << ", "
+     << ".replaceStateWithKernel = "
+     << cxxBool(compileTarget.replaceStateWithKernel) << "}";
+  return os.str();
+}
+
 std::string
 cxxBackendConfigEntry(const cudaq::config::BackendEndConfigEntry &c) {
   std::ostringstream os;
@@ -218,16 +311,7 @@ cxxBackendConfigEntry(const cudaq::config::BackendEndConfigEntry &c) {
      << ".GenTargetBackend = " << cxxBool(c.GenTargetBackend) << ", "
      << ".LibraryMode = " << cxxBool(c.LibraryMode) << ", "
      << ".SupportResourceCounts = " << cxxBool(c.SupportResourceCounts) << ", "
-     << ".JITHighLevelPipeline = " << cxxStringLiteral(c.JITHighLevelPipeline)
-     << ", "
-     << ".JITMidLevelPipeline = " << cxxStringLiteral(c.JITMidLevelPipeline)
-     << ", "
-     << ".JITLowLevelPipeline = " << cxxStringLiteral(c.JITLowLevelPipeline)
-     << ", "
-     << ".TargetPassPipeline = " << cxxStringLiteral(c.TargetPassPipeline)
-     << ", "
-     << ".CodegenEmission = " << cxxStringLiteral(c.CodegenEmission) << ", "
-     << ".PostCodeGenPasses = " << cxxStringLiteral(c.PostCodeGenPasses) << ", "
+     << ".CompileTarget = " << cxxCompileTarget(c.CompileTarget) << ", "
      << ".PlatformLibrary = " << cxxStringLiteral(c.PlatformLibrary) << ", "
      << ".LibraryModeExecutionManager = "
      << cxxStringLiteral(c.LibraryModeExecutionManager) << ", "

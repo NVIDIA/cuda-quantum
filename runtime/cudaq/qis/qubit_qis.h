@@ -11,7 +11,6 @@
 #include "common/SampleResult.h"
 #include "cudaq/host_config.h"
 #include "cudaq/operators.h"
-#include "cudaq/platform.h"
 #include "cudaq/qis/measure_handle.h"
 #include "cudaq/qis/modifiers.h"
 #include "cudaq/qis/pauli_word.h"

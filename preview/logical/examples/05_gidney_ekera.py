@@ -253,6 +253,9 @@ def estimate_using_kernel_profile(modulus_bits: int = 2048) -> AnalyticalResult:
     point = factory.OPERATING_POINTS[modulus_bits]
     cudaq.set_target(cql.targets.estimator)
     estimate = cudaq.estimate(build_resource_kernel(point))
+    # The closed-form model consumes the full logical profile (for example its
+    # action-depth bound and synthesis demand), which `estimate.resources` only
+    # partly carries, so rehydrate the LOGICAL annotation.
     logical = cql.estimate.LogicalEstimate.from_annotations(
         estimate.annotations)
     result = calculate_analytical_metrics(logical, point)
@@ -278,7 +281,6 @@ def build_physical_target(point: factory.OperatingPoint = factory.RSA_2048):
     target = cql.targets.Target.from_device(
         "gidney_ekera_physical",
         device,
-        runtime_backend=cql.targets.estimator,
         estimate_options={
             "failure_budget": APPLICATION_FAILURE_BUDGET,
             "tier": "SCHEDULE",

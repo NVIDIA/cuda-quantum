@@ -48,6 +48,17 @@ jobs:
       arch: ${{ steps.container.outputs.arch }}
       image: ${{ steps.container.outputs.image }}
     steps:
+      # An empty name makes download-artifact fetch every artifact of the run.
+      - name: Check wheel artifact names
+        env:
+          RUNTIME_NAME: ${{ inputs.runtime_artifact_name }}
+          DEVEL_NAME: ${{ inputs.devel_artifact_name }}
+        run: |
+          if [ -z "$RUNTIME_NAME" ] || [ -z "$DEVEL_NAME" ]; then
+            echo "::error::Missing wheel artifact name (runtime='$RUNTIME_NAME', devel='$DEVEL_NAME')."
+            exit 1
+          fi
+
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
@@ -177,7 +188,7 @@ jobs:
           gcc --version | sed -n 1p
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v10.3.2
 
       - name: Create the build environment
         run: |
@@ -356,7 +367,7 @@ jobs:
           path: dist
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v10.3.2
         with:
           python-version: ${{ needs.resolve.outputs.python_version }}
           activate-environment: true
@@ -421,6 +432,9 @@ jobs:
       - name: Run cudaq.logical Python tests
         shell: bash
         timeout-minutes: 30
+        env:
+          # Lets a failing factory-characterization check keep its schedule.
+          QLX_SCHEDULE_DUMP_DIR: ${{ runner.temp }}/qlx-schedule-dumps
         run: |
           set -euo pipefail
           uv pip install "pytest>=7.0"
@@ -439,3 +453,11 @@ jobs:
           esac
 
           python -m pytest preview/logical/python/tests/cudaq/logical -v
+
+      - name: Upload schedule dumps from failed tests
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: qlx-schedule-dumps-${{ inputs.runtime_artifact_name }}
+          path: ${{ runner.temp }}/qlx-schedule-dumps
+          if-no-files-found: ignore

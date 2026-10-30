@@ -5,6 +5,11 @@
 // ```
 // Assumes credentials are configured either with environment variables
 // (`PASQAL_AUTH_TOKEN`, `PASQAL_PROJECT_ID`).
+// To run the same Rydberg program locally through CUDA-Q's simulator stack:
+// ```
+// nvq++ --target pasqal --emulate pasqal.cpp -o out.x
+// ./out.x
+// ```
 // For QRMI-routed execution, see the `pasqal` notes
 // in the CUDA-Q docs or the QRMI project for QRMI specific setup.
 
