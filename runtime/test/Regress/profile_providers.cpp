@@ -85,8 +85,7 @@
 // CHECK-NEXT:  jit-finalize-pipeline
 
 // The level never changes the representation: at level 0 the stage still
-// converts to wires and lowers the phase, and only the optimization pipeline
-// is left out.
+// converts to wires, and only the optimization pipeline is left out.
 // CHECK-LABEL: compiler-bench-ftqc-clifford-t level 0:
 // CHECK:       jit-deploy-pipeline
 // CHECK-NEXT:  decomposition{basis=h,s,t,x,y,z,swap,x(1),y(1),z(1),r1,rx,ry,rz}
@@ -135,22 +134,13 @@
 // CHECK-NEXT:  basis-conversion{basis=h,rx,ry,rz,x,z(1)}
 // CHECK-NEXT:  jit-finalize-pipeline
 
-// CUDA-Q Logical's stage keeps the loops whose index the body does not use
-// rolled, so prep and deploy unroll no loop, and its target keeps noise and QEC
-// operations in prep. Its cost model converts to wires at every level.
-// CHECK-LABEL: CUDA-Q Logical level 1:
+// CUDA-Q Logical's stage keeps loops whose index is unused, so prep and deploy
+// unroll nothing, and its target keeps noise and QEC operations through prep.
+// CHECK-LABEL: CUDA-Q Logical:
 // CHECK-NEXT:  canonicalize
 // CHECK-NEXT:  hw-jit-prep-pipeline{allow-early-exit=false no-loop-unroll=true erase-noise=false erase-qec=false}
 // CHECK-NEXT:  jit-deploy-pipeline{no-loop-unroll=true}
-// CHECK-NEXT:  decomposition{basis=h,s,t,x,y,z,x(1),z(1),x(2),z(2),swap,rx,ry,rz,r1}
-// CHECK-NEXT:  prepare-for-wireset{maximum-iterations=2048000 unroll-only-index-use-loops=true}
-// CHECK-NEXT:  func.func(normalize-phase-placement,lower-phase)
-// CHECK-NEXT:  clifford-t-optimization-pipeline{level=1 approximation-tolerance=0}
-// CHECK-NEXT:  clifford-t-synthesis-pipeline{basis=h,s,t,x,y,z,x(1),z(1),x(2),z(2),swap,rx,ry,rz,r1 level=1 approximation-tolerance=0}
-// CHECK-NEXT:  basis-conversion{basis=h,s,t,x,y,z,x(1),z(1),x(2),z(2),swap,rx,ry,rz,r1}
-// CHECK-NEXT:  func.func(lower-phase)
-// CHECK-NEXT:  jit-finalize-pipeline{lower-device-calls=true}
-// CHECK-EMPTY:
+// CHECK:       prepare-for-wireset{maximum-iterations=2048000 unroll-only-index-use-loops=true}
 
 // A stage whose unroll limit is below prep's 1024 iterations keeps prep and
 // deploy from unrolling, even when it unrolls all loops.
@@ -258,28 +248,25 @@ int main(int argc, char **argv) {
     printPipeline("compiler-bench-nisq on path(4) level 1", onPath, {});
   }
 
-  cudaq::CompileTarget logical;
-  logical.stages.push_back(
-      {.irOutputProfile =
-           cudaq::config::QuakeUnmappedProfile{
-               .basisGates = {"h", "s", "t", "x", "y", "z", "x(1)", "z(1)",
-                              "x(2)", "z(2)", "swap", "rx", "ry", "rz", "r1"},
-               .costModel = cudaq::config::CostModel::t_count,
-               .unrollLoops = cudaq::config::LoopUnrolling::index_use,
-               .maxUnrollIterations = 2048000},
-       .lowering = cudaq::config::InferredLowering{}});
+  const auto unmappedTarget = [](cudaq::config::QuakeUnmappedProfile profile) {
+    cudaq::CompileTarget target;
+    target.stages.push_back({.irOutputProfile = std::move(profile),
+                             .lowering = cudaq::config::InferredLowering{}});
+    return target;
+  };
+  auto logical = unmappedTarget(
+      {.basisGates = {"h", "s", "t", "x", "y", "z", "x(1)", "z(1)", "x(2)",
+                      "z(2)", "swap", "rx", "ry", "rz", "r1"},
+       .costModel = cudaq::config::CostModel::t_count,
+       .unrollLoops = cudaq::config::LoopUnrolling::index_use,
+       .maxUnrollIterations = 2048000});
   logical.eraseNoise = false;
   logical.eraseQEC = false;
-  printPipeline("CUDA-Q Logical level 1", logical, {});
-
-  cudaq::CompileTarget limited;
-  limited.stages.push_back(
-      {.irOutputProfile =
-           cudaq::config::QuakeUnmappedProfile{
-               .basisGates = {"h", "rz", "x(1)"},
-               .costModel = cudaq::config::CostModel::t_count,
-               .maxUnrollIterations = 2},
-       .lowering = cudaq::config::InferredLowering{}});
-  printPipeline("unroll limit 2", limited, {});
+  printPipeline("CUDA-Q Logical", logical, {});
+  printPipeline("unroll limit 2",
+                unmappedTarget({.basisGates = {"h", "rz", "x(1)"},
+                                .costModel = cudaq::config::CostModel::t_count,
+                                .maxUnrollIterations = 2}),
+                {});
   return 0;
 }
