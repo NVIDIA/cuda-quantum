@@ -402,14 +402,8 @@ cudaq_internal::compiler::Compiler::assembleCompiledModule(
 static cudaq::OptimizationLevel
 resolveOptimizationLevel(mlir::func::FuncOp epFunc,
                          const cudaq::CompileOptions &options) {
-  if (auto level = cudaq::runtime::getOptimizationLevel(epFunc)) {
-    if (*level > 3)
-      throw std::runtime_error(fmt::format(
-          "Invalid `quake.optimizationLevel` {} on kernel `{}`; expected 0 to "
-          "3.",
-          *level, epFunc.getName().str()));
+  if (auto level = cudaq::runtime::getOptimizationLevel(epFunc))
     return static_cast<cudaq::OptimizationLevel>(*level);
-  }
   return options.optimizationLevel;
 }
 
