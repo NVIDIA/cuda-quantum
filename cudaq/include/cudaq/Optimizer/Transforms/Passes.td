@@ -950,8 +950,8 @@ def FuseSingleQubitChainsForCliffordT
     their neighbors.
 
     The pass creates a new constant for each angle it emits, so run
-    `canonicalize` after it. Functions marked `quake.noOptimization` are
-    skipped.
+    `canonicalize` after it. Functions marked `quake.optimizationLevel = 0`
+    are skipped.
   }];
   let options = [
     Option<"epsilon", "epsilon", "double", /*default=*/"0.0",

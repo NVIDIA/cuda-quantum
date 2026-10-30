@@ -145,7 +145,7 @@ run_impl(const std::string &shortName, MlirModule module,
     nanobind::gil_scoped_release release;
     if (noise_model.has_value())
       // Launch the kernel in the appropriate context.
-      platform.set_noise(&noise_model.value());
+      platform.set_noise(&noise_model.value(), qpu_id);
     parser = detail::try_finally(
         [&] {
           return pyRunTheKernel(shortName, platform, mod, std::move(cache),
@@ -153,7 +153,7 @@ run_impl(const std::string &shortName, MlirModule module,
         },
         [&] {
           if (noise_model.has_value())
-            platform.reset_noise();
+            platform.reset_noise(qpu_id);
         });
   }
   return pyReadResults(*parser, mod, shortName);
@@ -225,7 +225,7 @@ run_async_impl(const std::string &shortName, MlirModule module,
           try {
             // Launch the kernel in the appropriate context.
             if (noise_model.has_value())
-              platform.set_noise(&noise_model.value());
+              platform.set_noise(&noise_model.value(), qpu_id);
             parser = pyRunTheKernel(name, platform, *clonedMod, cache,
                                     shots_count, qpu_id, opaques);
           } catch (...) {
@@ -233,7 +233,7 @@ run_async_impl(const std::string &shortName, MlirModule module,
           }
 
           if (noise_model.has_value())
-            detail::invoke_no_throw([&]() { platform.reset_noise(); });
+            detail::invoke_no_throw([&]() { platform.reset_noise(qpu_id); });
 
           // Erase the clone before signaling, so that it is gone by the time
           // `get()` returns. Otherwise whichever thread drops the last copy of

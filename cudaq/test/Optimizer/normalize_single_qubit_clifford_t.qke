@@ -38,7 +38,7 @@ func.func @unchanged(%arg0: !quake.wire) -> !quake.wire {
 
 // The function-level opt-out keeps a chain that would otherwise normalize.
 func.func @no_optimization(%arg0: !quake.wire) -> !quake.wire
-    attributes {"quake.noOptimization"} {
+    attributes {quake.optimizationLevel = 0 : i32} {
   %0 = quake.t %arg0 : (!quake.wire) -> !quake.wire
   %1 = quake.t %0 : (!quake.wire) -> !quake.wire
   return %1 : !quake.wire

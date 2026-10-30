@@ -36,7 +36,8 @@ from .utils import (Color, boundaryDiagnostic, containsMeasureHandle,
                     nvqppPrefix, mlirTypeFromAnnotation, mlirTypeFromPyType,
                     getMLIRContext, is_recovered_value_ok,
                     recover_annotation_of_or_none, recover_value_of_or_none,
-                    cudaq__unique_attr_name, mlirTryCreateStructType)
+                    cudaq__unique_attr_name, mlirTryCreateStructType,
+                    set_optimization_level_attr)
 
 State = cudaq_runtime.State
 
@@ -6218,8 +6219,7 @@ def compile_to_mlir(uniqueId, astModule, signature: KernelSignature, defFrame,
         cudaq__unique_attr_name, StringAttr.get(bridge.name,
                                                 context=bridge.ctx))
     if disable_quantum_optimization:
-        bridge.module.operation.attributes.__setitem__(
-            'quake.noOptimization', UnitAttr.get(context=bridge.ctx))
+        set_optimization_level_attr(bridge.module, bridge.name, level=0)
     if verbose:
         print(bridge.module)
     # Clear the live operations cache. This avoids python crashing with

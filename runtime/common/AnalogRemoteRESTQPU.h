@@ -23,6 +23,9 @@ protected:
   /// emulating.
   std::unique_ptr<analog::Engine> engine;
 
+  /// @brief Why the engine failed to load, reported at launch.
+  std::string engineLoadError;
+
   /// @brief Targets that implement `emulateJob` return true.
   virtual bool supportsEmulation() const { return false; }
 
@@ -84,13 +87,19 @@ public:
   }
 
   /// @brief Set the target backend, loading the local emulation engine when
-  /// `emulate` is requested. A missing engine is reported at launch, after the
-  /// kernel checks, as before emulation existed.
+  /// `emulate` is requested. A missing or `un-loadable` engine is reported at
+  /// launch, after the kernel checks, as before emulation existed.
   void setTargetBackend(const std::string &backend) override {
     BaseRemoteRESTQPU::setTargetBackend(backend);
     engine.reset();
-    if (emulate && supportsEmulation())
-      engine = analog::loadEngine("dynamics");
+    engineLoadError.clear();
+    if (emulate && supportsEmulation()) {
+      try {
+        engine = analog::loadEngine("dynamics");
+      } catch (const std::exception &e) {
+        engineLoadError = e.what();
+      }
+    }
   }
 
   /// @brief Remote only: emulated targets run asynchronous launches on the
@@ -114,7 +123,8 @@ public:
     if (!emulate)
       return launchRemote(policy, module, payload).get();
     if (!engine)
-      throw emulationUnavailable();
+      throw engineLoadError.empty() ? emulationUnavailable()
+                                    : std::runtime_error(engineLoadError);
     // Use the thread-specific seed, as digital emulation does; 0 is unset.
     return emulateJob(payload, policy.options.shots, cudaq::get_random_seed(),
                       *engine);

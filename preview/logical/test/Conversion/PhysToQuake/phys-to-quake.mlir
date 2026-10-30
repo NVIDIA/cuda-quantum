@@ -42,7 +42,7 @@ phys.graph @entry on @machine : () -> () {
   phys.return
 }
 
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__entry() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__entry() attributes {"cudaq-entrypoint", "cudaq-kernel", quake.optimizationLevel = 0 : i32} {
 // CHECK:           %[[NULL_WIRE_0:.*]] = quake.null_wire
 // CHECK:           %[[RESET_0:.*]] = quake.reset %[[NULL_WIRE_0]] : (!quake.wire) -> !quake.wire
 // CHECK:           %[[RESET_1:.*]] = quake.reset %[[RESET_0]] : (!quake.wire) -> !quake.wire
@@ -112,7 +112,7 @@ phys.graph @entry on @machine : () -> () {
   phys.return
 }
 
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__entry() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__entry() attributes {"cudaq-entrypoint", "cudaq-kernel", quake.optimizationLevel = 0 : i32} {
 // CHECK:           %[[NULL_WIRE_0:.*]] = quake.null_wire
 // CHECK:           %[[NULL_WIRE_1:.*]] = quake.null_wire
 // CHECK:           %[[NULL_WIRE_2:.*]] = quake.null_wire
@@ -184,7 +184,7 @@ phys.graph @entry on @machine : (index, f64, i1, i8, i16, i32, i64, f32) -> (!ph
 // CHECK-SAME:      %[[ARG4:[^:]*]]: i16,
 // CHECK-SAME:      %[[ARG5:[^:]*]]: i32,
 // CHECK-SAME:      %[[ARG6:[^:]*]]: i64,
-// CHECK-SAME:      %[[ARG7:[^:]*]]: f32) -> !cc.sequence<i1> attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK-SAME:      %[[ARG7:[^:]*]]: f32) -> !cc.sequence<i1> attributes {"cudaq-entrypoint", "cudaq-kernel", quake.optimizationLevel = 0 : i32} {
 // CHECK:           %[[INDEX_CAST_0:.*]] = arith.index_cast %[[ARG0]] : i64 to index
 // CHECK:           %[[NULL_WIRE_0:.*]] = quake.null_wire
 // CHECK:           %[[VAL_0:.*]], %[[MZ_0:.*]] = quake.mz %[[NULL_WIRE_0]] : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
@@ -297,7 +297,7 @@ module attributes {qlx.profiles = ["p3"]} {
   }
 }
 
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__entry() -> !cc.sequence<i1> attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__entry() -> !cc.sequence<i1> attributes {"cudaq-entrypoint", "cudaq-kernel", quake.optimizationLevel = 0 : i32} {
 // CHECK:           %[[NULL_WIRE_0:.*]] = quake.null_wire
 // CHECK:           %[[NULL_WIRE_1:.*]] = quake.null_wire
 // CHECK:           %[[X_0:.*]] = quake.x %[[NULL_WIRE_0]] : (!quake.wire) -> !quake.wire
@@ -341,7 +341,7 @@ phys.graph @entry on @m : () -> (!phys.record<@bit>, !phys.record<@bit>) {
   phys.return %1#2, %2#2 : !phys.record<@bit>, !phys.record<@bit>
 }
 
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__entry() -> !cc.sequence<i1> attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__entry() -> !cc.sequence<i1> attributes {"cudaq-entrypoint", "cudaq-kernel", quake.optimizationLevel = 0 : i32} {
 // CHECK:           %[[NULL_WIRE_0:.*]] = quake.null_wire
 // CHECK:           %[[NULL_WIRE_1:.*]] = quake.null_wire
 // CHECK:           %[[NULL_WIRE_2:.*]] = quake.null_wire
@@ -460,7 +460,7 @@ phys.graph @entry on @m : () -> (!phys.record<@bit>, !phys.record<@bit>, i1) {
   phys.return %4#1, %8#1, %13#1 : !phys.record<@bit>, !phys.record<@bit>, i1
 }
 
-// CHECK-LABEL:   func.func @__nvqpp__mlirgen__entry() -> !cc.sequence<i1> attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__entry() -> !cc.sequence<i1> attributes {"cudaq-entrypoint", "cudaq-kernel", quake.optimizationLevel = 0 : i32} {
 // CHECK:           %[[NULL_WIRE_0:.*]] = quake.null_wire
 // CHECK:           %[[H_0:.*]] = quake.h %[[NULL_WIRE_0]] : (!quake.wire) -> !quake.wire
 // CHECK:           %[[VAL_0:.*]], %[[MZ_0:.*]] = quake.mz %[[H_0]] : (!quake.wire) -> (!cc.measure_handle, !quake.wire)
@@ -555,7 +555,7 @@ phys.graph @entry on @m : (i1) -> !phys.record<@bit> {
 }
 
 // CHECK-LABEL:   func.func @__nvqpp__mlirgen__entry(
-// CHECK-SAME:      %[[ARG0:.*]]: i1) -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK-SAME:      %[[ARG0:.*]]: i1) -> i1 attributes {"cudaq-entrypoint", "cudaq-kernel", quake.optimizationLevel = 0 : i32} {
 // CHECK:           %[[NULL_WIRE_0:.*]] = quake.null_wire
 // CHECK:           %[[NULL_WIRE_1:.*]] = quake.null_wire
 // CHECK:           %[[X_0:.*]]:2 = quake.x {{\[}}%[[NULL_WIRE_0]]] %[[NULL_WIRE_1]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
@@ -575,8 +575,8 @@ phys.graph @entry on @m : (i1) -> !phys.record<@bit> {
 
 // `entry` names the second graph. The pass erases the other graphs
 // untranslated, so @unsupported, whose state result it would reject, raises
-// no error. The pass removes Logical's `qlx.*` module attributes and adds
-// `quake.noOptimization`.
+// no error. The pass removes Logical's `qlx.*` module attributes, and adds
+// `quake.optimizationLevel = 0`.
 module attributes {qlx.profiles = ["p3"], qlx.stages = ["p3"]} {
   phys.machine @m {
     phys.resource_class @q {count = 2 : i64, kind = "qubit", native_actions = [], native_instruments = []}
@@ -594,8 +594,8 @@ module attributes {qlx.profiles = ["p3"], qlx.stages = ["p3"]} {
   }
 }
 
-// CHECK-LABEL: module attributes {quake.noOptimization} {
-// CHECK:         func.func @__nvqpp__mlirgen__entry() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+// CHECK-LABEL: module {
+// CHECK:         func.func @__nvqpp__mlirgen__entry() attributes {"cudaq-entrypoint", "cudaq-kernel", quake.optimizationLevel = 0 : i32} {
 // CHECK:           %[[NULL_WIRE_0:.*]] = quake.null_wire
 // CHECK:           quake.sink %[[NULL_WIRE_0]] : !quake.wire
 // CHECK:           return

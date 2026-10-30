@@ -408,7 +408,7 @@ run_async(std::size_t qpu_id, std::size_t shots,
         }
 #ifdef CUDAQ_LIBRARY_MODE
         // Direct kernel invocation loop for library mode
-        platform.set_noise(&noise_model);
+        platform.set_noise(&noise_model, qpu_id);
         cudaq::ExecutionContext ctx("run", 1, qpu_id);
         run_policy policy;
         policy.kernelName = detail::getKernelName(kernel);
@@ -423,10 +423,10 @@ run_async(std::size_t qpu_id, std::size_t shots,
           });
           res.emplace_back(std::move(*result));
         }
-        platform.reset_noise();
+        platform.reset_noise(qpu_id);
         p.set_value(std::move(res));
 #else
-        platform.set_noise(&noise_model);
+        platform.set_noise(&noise_model, qpu_id);
         const std::string kernelName{detail::getKernelName(kernel)};
         cudaq_internal::compiler::LayoutInfoType layoutInfo =
             cudaq_internal::compiler::getLayoutInfo(kernelName, nullptr);
@@ -437,7 +437,7 @@ run_async(std::size_t qpu_id, std::size_t shots,
               (*runKernel)(std::forward<ARGS>(args)...);
             },
             platform, kernelName, shots, qpu_id);
-        platform.reset_noise();
+        platform.reset_noise(qpu_id);
         detail::RunResultSpan span = detail::convertToRunResultSpan(
             runResult.outputLog, layoutInfo, sizeof(ResultTy));
         std::vector<ResultTy> results;

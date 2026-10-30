@@ -27,7 +27,12 @@ class AsyncRunResult:
 
 
 @trace.traced
-def run(decorator, *args, shots_count=100, noise_model=None, qpu_id=0):
+def run(decorator,
+        *args,
+        shots_count=100,
+        noise_model=None,
+        qpu_id=0,
+        optimization_level=None):
     to_quake = getattr(decorator, "to_quake", None)
     if to_quake is not None and not isa_kernel_decorator(decorator):
         decorator = _kernel_from_quake(to_quake())
@@ -45,14 +50,20 @@ def run(decorator, *args, shots_count=100, noise_model=None, qpu_id=0):
         raise RuntimeError(
             "Invalid `shots_count`. Must be a non-negative number.")
 
-    processedArgs, module = decorator.prepare_call(*args)
+    processedArgs, module = decorator.prepare_call(
+        *args, optimization_level=optimization_level)
     return cudaq_runtime.run_impl(decorator.uniqName + ".run", module,
                                   decorator.compiledModuleCache(), shots_count,
                                   noise_model, qpu_id, *processedArgs)
 
 
 @trace.traced
-def run_async(decorator, *args, shots_count=100, noise_model=None, qpu_id=0):
+def run_async(decorator,
+              *args,
+              shots_count=100,
+              noise_model=None,
+              qpu_id=0,
+              optimization_level=None):
     """
 Run the provided `kernel` with the given kernel `arguments` over the specified
 number of circuit executions (`shots_count`) asynchronously on the specified
@@ -71,6 +82,8 @@ Args:
     noise to the kernel execution on the simulator. Defaults to an empty noise
     model.
   `qpu_id` (Optional[int]): The id of the QPU. Defaults to 0. Key-word only.
+  optimization_level (Optional[int]): The quantum optimization level to compile
+    the kernel with, an integer between 0 and 3.
 
 Returns:
   `AsyncRunResult`:
@@ -101,7 +114,8 @@ Returns:
         if target.is_remote():
             raise ValueError("Noise model is not supported on hardware QPU.")
 
-    processedArgs, module = decorator.prepare_call(*args)
+    processedArgs, module = decorator.prepare_call(
+        *args, optimization_level=optimization_level)
     async_results = cudaq_runtime.run_async_impl(
         decorator.uniqName + ".run", module, decorator.compiledModuleCache(),
         shots_count, noise_model, qpu_id, *processedArgs)
