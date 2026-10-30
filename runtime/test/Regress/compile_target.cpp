@@ -674,11 +674,13 @@ func.func @__nvqpp__mlirgen__argumentAngle(%angle: f64) attributes {"cudaq-entry
 )#";
 
 /// A target that can take arguments at run time, as a simulator can, still
-/// substitutes the argument values when its stage synthesizes. A stage that
-/// keeps `rz` leaves the argument for run time.
+/// substitutes the argument values when its stage synthesizes or has value
+/// semantics. A stage that keeps `rz` and has `any` semantics leaves the
+/// argument for run time.
 void test_quake_unmapped_specialization(mlir::MLIRContext *ctx) {
   const auto compile = [&](std::vector<std::string> basis,
-                           cudaq::OptimizationLevel level) {
+                           cudaq::OptimizationLevel level,
+                           cudaq::config::Semantics semantics) {
     cudaq::CompileTarget target;
     target.fullySpecialize = false;
     target.stages.push_back(
@@ -686,7 +688,8 @@ void test_quake_unmapped_specialization(mlir::MLIRContext *ctx) {
              cudaq::config::QuakeUnmappedProfile{
                  .basisGates = std::move(basis),
                  .approximationTolerance = 1e-3,
-                 .costModel = cudaq::config::CostModel::t_count},
+                 .costModel = cudaq::config::CostModel::t_count,
+                 .semantics = semantics},
          .lowering = cudaq::config::InferredLowering{}});
     cudaq::CompileOptions options;
     options.optimizationLevel = level;
@@ -697,8 +700,12 @@ void test_quake_unmapped_specialization(mlir::MLIRContext *ctx) {
     compileAndDump(ctx, "argumentAngle", argumentAngleKernel, std::move(target),
                    std::move(options), args);
   };
-  compile({"h", "s", "t", "x"}, cudaq::OptimizationLevel::O2);
-  compile({"h", "s", "t", "x", "rz"}, cudaq::OptimizationLevel::O2);
+  compile({"h", "s", "t", "x"}, cudaq::OptimizationLevel::O2,
+          cudaq::config::Semantics::any);
+  compile({"h", "s", "t", "x", "rz"}, cudaq::OptimizationLevel::O2,
+          cudaq::config::Semantics::any);
+  compile({"h", "s", "t", "x", "rz"}, cudaq::OptimizationLevel::O2,
+          cudaq::config::Semantics::value);
 }
 
 // CHECK-LABEL: Compiled module:
@@ -707,6 +714,9 @@ void test_quake_unmapped_specialization(mlir::MLIRContext *ctx) {
 // CHECK-LABEL: Compiled module:
 // CHECK:         func.func @__nvqpp__mlirgen__argumentAngle(%[[ANGLE:.*]]: f64)
 // CHECK:           quake.rz (%[[ANGLE]])
+// CHECK-LABEL: Compiled module:
+// CHECK:         func.func @__nvqpp__mlirgen__argumentAngle() attributes
+// CHECK:           quake.rz
 
 /// On a path 0 - 1 - 2, each controlled `quake.x` between qubits 0 and 2 needs
 /// a swap, but level 1 cancels the pair before routing.
