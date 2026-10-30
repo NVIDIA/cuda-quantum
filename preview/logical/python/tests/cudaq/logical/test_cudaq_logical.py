@@ -237,6 +237,76 @@ def test_import_cudaq_accepts_a_multicontrolled_gate():
     assert p0.count("qlx.measure <Z>") == 3
 
 
+def test_import_cudaq_unrolls_only_loops_that_use_their_index():
+    import cudaq
+    import cudaq.logical as cql
+
+    @cudaq.kernel
+    def loops():
+        q = cudaq.qvector(1100)
+        for _ in range(50):
+            for i in range(4):
+                x.ctrl(q[i], q[i + 1])
+        for i in range(1100):
+            h(q[i])
+        for i in range(4):
+            rz(0.1 * (i + 1), q[0])
+        mz(q)
+
+    # The repeat loop stays folded, with the index loop inside it unrolled.
+    # The 1100-iteration loop and the angle loop unroll, so they leave no
+    # second `cflow.repeat`.
+    build = cql.compiler.import_cudaq(loops)
+    assert build.to_mlir().count("cflow.repeat") == 1
+    actions = cql.analysis.estimate(build,
+                                    tier=cql.analysis.Tier.LOGICAL).actions
+    assert actions["qlx_standard_cx"] == 50 * 4
+    assert actions["qlx_standard_h"] == 1100
+
+
+def test_import_cudaq_matches_the_target_whatever_target_is_installed():
+    import cudaq
+    import cudaq.logical as cql
+
+    @cudaq.kernel
+    def ccrx():
+        q = cudaq.qvector(3)
+        rx.ctrl(0.7, q[0], q[1], q[2])
+        mz(q)
+
+    cudaq.set_target(cql.targets.estimator)
+    try:
+        through_target = cudaq.estimate(ccrx).annotations["LOGICAL"]
+    finally:
+        cudaq.reset_target()
+    # `import_cudaq` compiles with a Logical target's compile target, never
+    # with the installed one, even when that target is emulated.
+    cudaq.set_target("quantinuum", emulate=True)
+    try:
+        direct = cql.compiler.import_cudaq(ccrx)
+    finally:
+        cudaq.reset_target()
+    assert cql.analysis.estimate(
+        direct, tier=cql.analysis.Tier.LOGICAL).to_dict() == through_target
+
+
+def test_import_cudaq_rejects_a_noisy_kernel():
+    import cudaq
+    import cudaq.logical as cql
+
+    @cudaq.kernel
+    def noisy():
+        q = cudaq.qvector(2)
+        h(q[0])
+        cudaq.apply_noise(cudaq.DepolarizationChannel, 0.1, q[0])
+        mz(q)
+
+    # Prep keeps `quake.apply_noise`, so Logical never estimates the kernel
+    # as noiseless, and the import rejects it.
+    with pytest.raises(RuntimeError, match="supports only value-semantics"):
+        cql.compiler.import_cudaq(noisy)
+
+
 def test_logical_estimate_is_invariant_under_cached_view_mutation():
     import cudaq.logical as cql
     import cudaq.mlir.ir as mlir_ir
