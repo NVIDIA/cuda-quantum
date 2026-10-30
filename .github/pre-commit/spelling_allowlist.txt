@@ -155,6 +155,7 @@ NVLink
 NVQIR
 NVQLink
 Nielsen
+Numba
 OPX
 OQC
 ORCA
