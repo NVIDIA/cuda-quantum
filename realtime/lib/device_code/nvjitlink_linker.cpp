@@ -11,11 +11,82 @@
 #include <cstdio>
 #include <cstring>
 #include <cuda_runtime.h>
+#include <dlfcn.h>
 #include <nvJitLink.h>
 #include <string>
 #include <vector>
 
 namespace {
+
+// __nvJitLink<name>_<CUDAQ_REALTIME_NVJITLINK_ABI>, the versioned entry point
+// the header's inline nvJitLink<name> wrapper calls.
+#define CUDAQ_NVJITLINK_CONCAT_(a, b) a##b
+#define CUDAQ_NVJITLINK_CONCAT(a, b) CUDAQ_NVJITLINK_CONCAT_(a, b)
+#define CUDAQ_NVJITLINK_STRING_(x) #x
+#define CUDAQ_NVJITLINK_STRING(x) CUDAQ_NVJITLINK_STRING_(x)
+#define CUDAQ_NVJITLINK_ENTRY(name)                                            \
+  CUDAQ_NVJITLINK_CONCAT(__nvJitLink##name##_, CUDAQ_REALTIME_NVJITLINK_ABI)
+
+/// The nvJitLink functions the link uses.  libcudaq-realtime.so must load on
+/// hosts without nvJitLink (pure host dispatch needs no device link), so the
+/// library is opened, and these looked up, only when a link first needs them.
+struct nvjitlink_api {
+  decltype(&CUDAQ_NVJITLINK_ENTRY(Create)) create;
+  decltype(&CUDAQ_NVJITLINK_ENTRY(Destroy)) destroy;
+  decltype(&CUDAQ_NVJITLINK_ENTRY(AddData)) add_data;
+  decltype(&CUDAQ_NVJITLINK_ENTRY(Complete)) complete;
+  decltype(&CUDAQ_NVJITLINK_ENTRY(GetLinkedCubinSize)) get_linked_cubin_size;
+  decltype(&CUDAQ_NVJITLINK_ENTRY(GetLinkedCubin)) get_linked_cubin;
+  decltype(&CUDAQ_NVJITLINK_ENTRY(GetErrorLogSize)) get_error_log_size;
+  decltype(&CUDAQ_NVJITLINK_ENTRY(GetErrorLog)) get_error_log;
+  decltype(&nvJitLinkVersion) version;
+};
+
+/// nvJitLink, opened and looked up on the first call.  Null, after printing
+/// what is missing, if the library cannot be opened or lacks a function.
+const nvjitlink_api *nvjitlink_library() {
+  static const nvjitlink_api *const api = []() -> const nvjitlink_api * {
+    void *library = dlopen(CUDAQ_REALTIME_NVJITLINK_SONAME, RTLD_NOW);
+    if (!library) {
+      std::fprintf(stderr, "ERROR: device link: cannot load %s: %s\n",
+                   CUDAQ_REALTIME_NVJITLINK_SONAME, dlerror());
+      return nullptr;
+    }
+    static nvjitlink_api table{};
+    const struct {
+      const char *name;
+      void **fn;
+    } entries[] = {
+#define CUDAQ_NVJITLINK_LOOKUP(name, field)                                    \
+  {CUDAQ_NVJITLINK_STRING(CUDAQ_NVJITLINK_ENTRY(name)),                        \
+   reinterpret_cast<void **>(&table.field)}
+        CUDAQ_NVJITLINK_LOOKUP(Create, create),
+        CUDAQ_NVJITLINK_LOOKUP(Destroy, destroy),
+        CUDAQ_NVJITLINK_LOOKUP(AddData, add_data),
+        CUDAQ_NVJITLINK_LOOKUP(Complete, complete),
+        CUDAQ_NVJITLINK_LOOKUP(GetLinkedCubinSize, get_linked_cubin_size),
+        CUDAQ_NVJITLINK_LOOKUP(GetLinkedCubin, get_linked_cubin),
+        CUDAQ_NVJITLINK_LOOKUP(GetErrorLogSize, get_error_log_size),
+        CUDAQ_NVJITLINK_LOOKUP(GetErrorLog, get_error_log),
+#undef CUDAQ_NVJITLINK_LOOKUP
+        {"nvJitLinkVersion", reinterpret_cast<void **>(&table.version)},
+    };
+    for (const auto &entry : entries) {
+      *entry.fn = dlsym(library, entry.name);
+      if (!*entry.fn) {
+        std::fprintf(stderr,
+                     "ERROR: device link: %s does not provide %s; it must "
+                     "be nvJitLink %s or newer\n",
+                     CUDAQ_REALTIME_NVJITLINK_SONAME, entry.name,
+                     CUDAQ_REALTIME_NVJITLINK_VERSION);
+        dlclose(library);
+        return nullptr;
+      }
+    }
+    return &table;
+  }();
+  return api;
+}
 
 struct fatbin_header {
   std::uint32_t magic;
@@ -53,21 +124,22 @@ bool split_fatbins(const cudaq_device_image_t &image,
   return out.size() > first;
 }
 
-void print_link_failure(nvJitLinkHandle handle, const std::string &what,
-                        nvJitLinkResult result, bool adding_input,
-                        const std::string &arch = {}) {
+void print_link_failure(const nvjitlink_api &nvjitlink, nvJitLinkHandle handle,
+                        const std::string &what, nvJitLinkResult result,
+                        bool adding_input, const std::string &arch = {}) {
   unsigned major = 0;
   unsigned minor = 0;
-  nvJitLinkVersion(&major, &minor);
+  nvjitlink.version(&major, &minor);
   std::fprintf(stderr,
                "ERROR: device link: %s failed (nvJitLinkResult %d, nvJitLink "
                "%u.%u)\n",
                what.c_str(), static_cast<int>(result), major, minor);
   std::size_t size = 0;
-  if (handle && nvJitLinkGetErrorLogSize(handle, &size) == NVJITLINK_SUCCESS &&
+  if (handle &&
+      nvjitlink.get_error_log_size(handle, &size) == NVJITLINK_SUCCESS &&
       size > 1) {
     std::string log(size, '\0');
-    if (nvJitLinkGetErrorLog(handle, log.data()) == NVJITLINK_SUCCESS)
+    if (nvjitlink.get_error_log(handle, log.data()) == NVJITLINK_SUCCESS)
       std::fprintf(stderr, "%s\n", log.c_str());
   }
   if (adding_input)
@@ -123,6 +195,9 @@ cudaq::realtime::detail::link_device_code(const device_code_input *inputs,
   const driver_library_api *driver = driver_library();
   if (!driver)
     return CUDAQ_ERR_CUDA;
+  const nvjitlink_api *nvjitlink = nvjitlink_library();
+  if (!nvjitlink)
+    return CUDAQ_ERR_CUDA;
 
   int device = 0;
   int major = 0;
@@ -142,10 +217,10 @@ cudaq::realtime::detail::link_device_code(const device_code_input *inputs,
   const char *options[] = {arch.c_str(), "-lto"};
 
   nvJitLinkHandle handle = nullptr;
-  nvJitLinkResult result = nvJitLinkCreate(&handle, 2, options);
+  nvJitLinkResult result = nvjitlink->create(&handle, 2, options);
   if (result != NVJITLINK_SUCCESS) {
-    print_link_failure(handle, "creating the linker for " + arch, result,
-                       false);
+    print_link_failure(*nvjitlink, handle, "creating the linker for " + arch,
+                       result, false);
     return CUDAQ_ERR_INTERNAL;
   }
 
@@ -160,43 +235,46 @@ cudaq::realtime::detail::link_device_code(const device_code_input *inputs,
                      "ERROR: device link: the %s is not relocatable device "
                      "code\n",
                      image_name.c_str());
-        nvJitLinkDestroy(&handle);
+        nvjitlink->destroy(&handle);
         return CUDAQ_ERR_INTERNAL;
       }
       for (std::size_t k = 0; k < fatbins.size(); ++k) {
         const std::string name = image_name + " fatbin " + std::to_string(k);
         result =
-            nvJitLinkAddData(handle, NVJITLINK_INPUT_FATBIN, fatbins[k].data,
-                             fatbins[k].size, name.c_str());
+            nvjitlink->add_data(handle, NVJITLINK_INPUT_FATBIN, fatbins[k].data,
+                                fatbins[k].size, name.c_str());
         if (result != NVJITLINK_SUCCESS) {
-          print_link_failure(handle, "adding the " + name, result, true, arch);
-          nvJitLinkDestroy(&handle);
+          print_link_failure(*nvjitlink, handle, "adding the " + name, result,
+                             true, arch);
+          nvjitlink->destroy(&handle);
           return CUDAQ_ERR_INTERNAL;
         }
       }
     }
   }
 
-  result = nvJitLinkComplete(handle);
+  result = nvjitlink->complete(handle);
   if (result != NVJITLINK_SUCCESS) {
-    print_link_failure(handle, "linking for " + arch, result, false);
-    nvJitLinkDestroy(&handle);
+    print_link_failure(*nvjitlink, handle, "linking for " + arch, result,
+                       false);
+    nvjitlink->destroy(&handle);
     return CUDAQ_ERR_INTERNAL;
   }
 
   std::size_t cubin_size = 0;
   std::vector<char> cubin;
-  result = nvJitLinkGetLinkedCubinSize(handle, &cubin_size);
+  result = nvjitlink->get_linked_cubin_size(handle, &cubin_size);
   if (result == NVJITLINK_SUCCESS) {
     cubin.resize(cubin_size);
-    result = nvJitLinkGetLinkedCubin(handle, cubin.data());
+    result = nvjitlink->get_linked_cubin(handle, cubin.data());
   }
   if (result != NVJITLINK_SUCCESS) {
-    print_link_failure(handle, "retrieving the linked cubin", result, false);
-    nvJitLinkDestroy(&handle);
+    print_link_failure(*nvjitlink, handle, "retrieving the linked cubin",
+                       result, false);
+    nvjitlink->destroy(&handle);
     return CUDAQ_ERR_INTERNAL;
   }
-  nvJitLinkDestroy(&handle);
+  nvjitlink->destroy(&handle);
 
   CUlibrary library = nullptr;
   const CUresult err = driver->load_data(&library, cubin.data(), nullptr,
