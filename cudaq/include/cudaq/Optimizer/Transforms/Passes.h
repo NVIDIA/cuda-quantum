@@ -41,6 +41,12 @@ void registerCliffordTPipelines();
 /// Register `two-qubit-gate-count-optimization-pipeline`.
 void registerTwoQubitGateCountOptimizationPipeline();
 
+/// Whether a stage with output basis \p basis can run
+/// `two-qubit-gate-count-optimization-pipeline`. The pipeline works on
+/// controlled `x` gates, so the basis has to be able to express one. An empty
+/// basis allows any gate.
+bool canOptimizeTwoQubitGateCount(mlir::ArrayRef<std::string> basis);
+
 /// Convert supported Quake IR to explicit linear values. This splits
 /// fixed-size allocations, expands vector controls, and threads reusable
 /// controls through their uses.

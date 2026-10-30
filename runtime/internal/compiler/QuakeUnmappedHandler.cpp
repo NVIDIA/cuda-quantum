@@ -9,6 +9,7 @@
 #include "common/CompileOptions.h"
 #include "cudaq_internal/compiler/LoweringHandler.h"
 #include "cudaq/Optimizer/Transforms/CliffordTPipelines.h"
+#include "cudaq/Optimizer/Transforms/Passes.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/StringExtras.h"
 #include <iomanip>
@@ -97,6 +98,12 @@ public:
       return std::nullopt;
     const auto &profile = std::get<cudaq::config::QuakeUnmappedProfile>(output);
     const auto &basis = profile.basisGates;
+    // The two-qubit-gate-count optimization works on controlled `x` gates, so
+    // fail here rather than in the closing `basis-conversion` when the basis
+    // can't express one.
+    if (profile.costModel == cudaq::config::CostModel::two_qubit_gate_count &&
+        !cudaq::opt::canOptimizeTwoQubitGateCount(basis))
+      return std::nullopt;
     std::vector<std::string> passes;
     if (profile.costModel)
       passes = costModelPasses(profile, options);

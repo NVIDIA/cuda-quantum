@@ -96,6 +96,12 @@
 // CHECK-NEXT:  basis-conversion{basis=h,x(1)}
 // CHECK-NEXT:  jit-finalize-pipeline
 
+// A `two-qubit-gate-count` stage whose basis can't express a controlled `x`
+// fails when its handler builds the pipeline.
+// CHECK-LABEL: no two-qubit gate:
+// CHECK-NEXT:  FAILED: compile target stage 1: the selected lowering handler
+// CHECK-SAME:  failed to construct a pipeline from unchecked to quake-unmapped
+
 // The NISQ target decomposes and optimizes in its `quake-unmapped` stage,
 // keeping controlled `x` for phase folding until its basis conversion, and
 // maps in its `quake-mapped` stage. Both stages convert to wires at every
@@ -202,6 +208,14 @@ int main(int argc, char **argv) {
            cudaq::config::QuakeUnmappedProfile{.basisGates = {"h", "x(1)"}},
        .lowering = cudaq::config::InferredLowering{}});
   printPipeline("no cost model", noCostModel, level2);
+  cudaq::CompileTarget noTwoQubitGate;
+  noTwoQubitGate.stages.push_back(
+      {.irOutputProfile =
+           cudaq::config::QuakeUnmappedProfile{
+               .basisGates = {"h", "rz"},
+               .costModel = cudaq::config::CostModel::two_qubit_gate_count},
+       .lowering = cudaq::config::InferredLowering{}});
+  printPipeline("no two-qubit gate", noTwoQubitGate, {});
 
   if (const auto *nisq = catalog.lookup("compiler-bench-nisq")) {
     auto onPath = cudaq::CompileTarget::createFromConfig(*nisq->config, {});
