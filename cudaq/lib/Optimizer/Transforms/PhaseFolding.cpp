@@ -428,8 +428,15 @@ static bool isSubCircuitTerminationPoint(Operation *op) {
   if (auto negations = opi.getNegatedControls())
     if (llvm::is_contained(*negations, true) && !isControlledOp(op))
       return true;
-  // Only allow single control (for CNOT/NOT); Z-rotations must be uncontrolled
-  if (opi.getControls().size() > 0 && !isa<cudaq::quake::XOp>(op))
+  // Allow only an uncontrolled or singly controlled `quake.x`, and only
+  // uncontrolled Z-axis rotations. A `quake.x` with more controls leaves its
+  // target in a state that is not a parity of the inputs, so it ends the
+  // subcircuit.
+  // TODO: Fold through a Toffoli by keeping its controls' phases and giving its
+  // target a fresh phase variable. The walk would then have to follow all three
+  // of its wires.
+  if (opi.getControls().size() > 1 ||
+      (!opi.getControls().empty() && !isa<cudaq::quake::XOp>(op)))
     return true;
   if (isa<RAW_Z_AXIS_ROTATIONS>(op) && !opi.getControls().empty())
     return true;
