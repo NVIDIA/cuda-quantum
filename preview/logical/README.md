@@ -92,11 +92,11 @@ Or install the `cudaq-logical` wheel and run the example files directly.
 
 ### Test dependencies
 
-The tests and reference examples need pytest, pytest-xdist, lit, and Stim, which
-[`requirements-test.txt`](requirements-test.txt) supplies (both Docker test
-stages use it too). These are not build requirements, but install them from the
-repository root *before* configuring: CMake registers the FileCheck tests only
-if lit is already available.
+The tests and reference examples need `pytest`, `pytest-xdist`, `lit`, and
+`Stim`, which [`requirements-test.txt`](requirements-test.txt) supplies (both
+Docker test stages use it too). These are not build requirements, but install
+them from the repository root *before* configuring: CMake registers the
+`FileCheck` tests only if lit is already available.
 
 ```bash
 python3 -m pip install -r preview/logical/requirements-test.txt
