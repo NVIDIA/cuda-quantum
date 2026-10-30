@@ -7,7 +7,7 @@
 # ============================================================================ #
 
 # RUN: %target-catalog-driver parse %s | FileCheck %s --check-prefix=PARSE
-# RUN: %cudaq-target-db-gen -o %t.db.cpp v2-quake-unmapped=%s
+# RUN: %cudaq-target-db-gen -o %t.db.cpp v2-quake-unmapped-and-mapped=%s
 # RUN: FileCheck %s --check-prefix=DB --input-file=%t.db.cpp
 
 # Test that `quake-unmapped` and `quake-mapped` options parse, that the test
@@ -15,7 +15,7 @@
 # them.
 
 version: 2-alpha
-name: v2-quake-unmapped
+name: v2-quake-unmapped-and-mapped
 description: "Quake unmapped profile options"
 config:
   library-mode: false
