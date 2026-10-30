@@ -251,7 +251,17 @@ CUDAQ_REALTIME_DISPATCH_API void cudaq_launch_dispatch_kernel_regular(
 // Only a transport that replaces the whole dispatch loop supplies one; the
 // dispatcher's own unified kernel is linked at run time
 // (cudaq_dispatcher_get_device_handler).
-typedef void (*cudaq_unified_launch_fn_t)(
+// An application that runs its own dispatch kernel over a bridge's GPU data
+// plane supplies one too (cudaq_dispatcher_set_unified_launch); it may launch
+// any grid, and must launch on `stream`, which cudaq_dispatcher_stop waits on.
+// Returns CUDAQ_OK once the kernel is launched; any other status fails
+// cudaq_dispatcher_start with it.  Before returning that status, start()
+// raises the shutdown flag and waits on `stream`, as cudaq_dispatcher_stop
+// does, so anything the launcher enqueued before failing must stop on that
+// flag; the flag is left set.  (A bridge's launch override returns a
+// status too, which a provider written against the earlier void form must
+// add.)
+typedef cudaq_status_t (*cudaq_unified_launch_fn_t)(
     void *transport_ctx, size_t tx_stride_sz,
     cudaq_function_entry_t *function_table, size_t func_count,
     volatile int *shutdown_flag, uint64_t *stats, uint32_t threads_per_block,
@@ -427,9 +437,6 @@ typedef struct {
   void *transport_ctx; ///< Bridge-owned opaque transport state
 } cudaq_unified_dispatch_ctx_t;
 
-// DEPRECATED for bridge-backed dispatchers: use cudaq_dispatcher_set_bridge,
-// which makes this call itself.
-//
 // Unified dispatch wiring -- pass a transport-specific launch function and
 // an opaque context holding transport handles (e.g. DOCA QP, rkey).
 // When set, cudaq_dispatcher_start() will invoke unified_launch_fn instead of
@@ -443,6 +450,17 @@ typedef struct {
 // `transport_ctx` is required too, and
 // config.slot_size must give the slot stride, which reaches the kernel as
 // its tx_stride_sz.
+//
+// Over a bridge's GPU data plane (after cudaq_dispatcher_set_bridge, before
+// cudaq_dispatcher_start) the call installs the application's own dispatch
+// loop instead, and `transport_ctx` must be NULL: the bridge's is kept.  The
+// dispatcher still links its module, and start() calls `unified_launch_fn`
+// with the bridge's context in place of launching its own kernel.  The
+// launcher starts a kernel of that module (cudaq_dispatcher_get_device_kernel)
+// any way it likes, on the stream it is given, so config.num_blocks is not
+// checked.  start() still refuses handler addresses that are not from the
+// linked module, and fails with the launcher's status.  A bridge with its own
+// launch override refuses it.
 cudaq_status_t
 cudaq_dispatcher_set_unified_launch(cudaq_dispatcher_t *dispatcher,
                                     cudaq_unified_launch_fn_t unified_launch_fn,
@@ -569,6 +587,42 @@ cudaq_dispatcher_get_device_handler(cudaq_dispatcher_t *dispatcher,
     return status;
   return cudaq_dispatcher_get_device_handler_in(dispatcher, &image, 1, name,
                                                 out_fn);
+}
+
+// What cudaq_dispatcher_get_device_kernel calls, with `images` the
+// relocatable device code of the binary that holds the kernel.  Call that
+// wrapper rather than this.
+cudaq_status_t cudaq_dispatcher_get_device_kernel_in(
+    cudaq_dispatcher_t *dispatcher, const cudaq_device_image_t *images,
+    size_t count, const char *name, cudaKernel_t *out_kernel);
+
+// The kernel `name`, in the dispatcher's linked module, for the application's
+// launcher (cudaq_dispatcher_set_unified_launch) to start.  The kernel is
+// `extern "C" __global__`, calls the hooks of unified_device_transport.cuh,
+// and reaches the module as LTO-IR embedded in the caller's __nv_relfatbin
+// section, out of its own device link; see
+// realtime/docs/device_code_contract.md.  Like
+// cudaq_dispatcher_get_device_handler, the first lookup links the module,
+// and the handlers and kernels of one dispatcher come from one binary.  The
+// dispatcher's own cudaq_unified_dispatch_kernel is not handed out.
+//
+// Unlike cudaq_dispatcher_get_device_handler, what it returns is a host-side
+// handle, not a device address.  A handler's address goes into the function
+// table and is called from device code; it is read from the pointer global
+// CUDAQ_REALTIME_EXPORT_DEVICE_FUNCTION defines, because CUDA looks up device
+// functions by no other means, and start() accepts no other.  A kernel is found
+// by its own name, with no export, and its cudaKernel_t (the driver's
+// CUkernel) only serves the host to launch it.  It never belongs in the
+// function table, and start() does not check it.
+static inline cudaq_status_t
+cudaq_dispatcher_get_device_kernel(cudaq_dispatcher_t *dispatcher,
+                                   const char *name, cudaKernel_t *out_kernel) {
+  cudaq_device_image_t image;
+  const cudaq_status_t status = cudaq_device_code_of_this_binary(&image);
+  if (status != CUDAQ_OK)
+    return status;
+  return cudaq_dispatcher_get_device_kernel_in(dispatcher, &image, 1, name,
+                                               out_kernel);
 }
 
 #ifdef __cplusplus
