@@ -422,6 +422,18 @@ static void disableQuantumOptimization(mlir::ModuleOp moduleOp) {
     func->setAttr(cudaq::runtime::disableQuantumOpts, unitAttr);
 }
 
+/// Whether a stage of \p target may drop or move qubits (mapping, or `dqe` in
+/// a cost model's optimization), so that `sample` must measure them first.
+static bool mayMoveQubits(const cudaq::CompileTarget &target) {
+  return llvm::any_of(target.stages, [](const auto &stage) {
+    const auto &profile = stage.irOutputProfile;
+    const auto *unmapped =
+        std::get_if<cudaq::config::QuakeUnmappedProfile>(&profile);
+    return std::holds_alternative<cudaq::config::QuakeMappedProfile>(profile) ||
+           (unmapped && unmapped->costModel);
+  });
+}
+
 static bool hasConditionalsOnMeasureResults(mlir::ModuleOp moduleOp) {
   return std::any_of(moduleOp.begin(), moduleOp.end(), [](auto &innerOp) {
     cudaq::quake::detail::QuakeFunctionAnalysis analysis{&innerOp};
@@ -472,7 +484,7 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::compile(
   }
 
   if (options.addSampleMeasurements &&
-      !target.supportSampleWithoutMeasurements) {
+      (!target.supportSampleWithoutMeasurements || mayMoveQubits(target))) {
     // No need to add measurements only to remove them eventually
     if (target.codegen.postCodegenPasses.find("remove-measurements") ==
         std::string::npos)

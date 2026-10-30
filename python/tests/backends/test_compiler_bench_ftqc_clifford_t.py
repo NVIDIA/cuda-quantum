@@ -234,3 +234,18 @@ def test_arguments_are_substituted_for_synthesis():
     bits = [True, False, True]
     assert cudaq.sample(flip, bits).most_probable() == '101'
     assert cudaq.sample_async(flip, bits).get().most_probable() == '101'
+
+
+def test_sample_keeps_an_idle_qubit():
+    """From level 1 `dqe` removes a qubit that no operation uses, so `sample`
+    measures every qubit before the pipeline and reports all three."""
+    cudaq.set_target(FTQC_CLIFFORD_T_TARGET)
+
+    kernel = cudaq.make_kernel()
+    q = kernel.qalloc(3)
+    kernel.x(q[0])
+    kernel.x(q[2])
+
+    counts = cudaq.sample(kernel, shots_count=10)
+    assert counts.most_probable() == '101'
+    assert len(counts) == 1
