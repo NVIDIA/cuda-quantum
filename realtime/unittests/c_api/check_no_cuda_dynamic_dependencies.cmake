@@ -31,16 +31,17 @@ foreach(dependency IN ITEMS libnvJitLink.so libcuda.so libcudart.so)
 endforeach()
 
 execute_process(
-  COMMAND "${READELF}" -Ws "${LIBRARY}"
+  COMMAND "${READELF}" --dyn-syms -W "${LIBRARY}"
   RESULT_VARIABLE result
   OUTPUT_VARIABLE symbols
   ERROR_VARIABLE error)
 if(result)
-  message(FATAL_ERROR "readelf -Ws failed for ${LIBRARY}: ${error}")
+  message(FATAL_ERROR
+    "readelf --dyn-syms -W failed for ${LIBRARY}: ${error}")
 endif()
 if(symbols MATCHES "UND[^\n]*nvJitLink")
   message(FATAL_ERROR
-    "libcudaq-realtime has an undefined nvJitLink symbol:\n${symbols}")
+    "libcudaq-realtime has an undefined nvJitLink symbol:\n${CMAKE_MATCH_0}")
 endif()
 
 message(STATUS

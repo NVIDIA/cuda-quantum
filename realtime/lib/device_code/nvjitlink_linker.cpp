@@ -15,6 +15,7 @@
 // Suppress the toolkit-minor wrappers; CUDA 12.6 and 13.0 do not declare the
 // generic entry points in this mode, so the function table spells their types.
 #define NVJITLINK_NO_INLINE
+#include <mutex>
 #include <nvJitLink.h>
 #include <string>
 #include <vector>
@@ -56,39 +57,47 @@ bool load_nvjitlink_symbol(void *library, const char *name,
 }
 
 const nvjitlink_api *nvjitlink_library() {
-  static const nvjitlink_api *const api = []() -> const nvjitlink_api * {
-    static nvjitlink_api table{};
-    const std::string soname =
-        "libnvJitLink.so." + std::to_string(CUDART_VERSION / 1000);
-    table.library = dlopen(soname.c_str(), RTLD_NOW | RTLD_LOCAL);
-    if (!table.library) {
-      const char *error = dlerror();
-      std::fprintf(stderr, "ERROR: device link: cannot load %s: %s\n",
-                   soname.c_str(), error ? error : "unknown error");
-      return nullptr;
-    }
-    if (!load_nvjitlink_symbol(table.library, "nvJitLinkVersion",
-                               table.version) ||
-        !load_nvjitlink_symbol(table.library, "nvJitLinkCreate",
-                               table.create) ||
-        !load_nvjitlink_symbol(table.library, "nvJitLinkDestroy",
-                               table.destroy) ||
-        !load_nvjitlink_symbol(table.library, "nvJitLinkAddData",
-                               table.add_data) ||
-        !load_nvjitlink_symbol(table.library, "nvJitLinkComplete",
-                               table.complete) ||
-        !load_nvjitlink_symbol(table.library, "nvJitLinkGetLinkedCubinSize",
-                               table.get_linked_cubin_size) ||
-        !load_nvjitlink_symbol(table.library, "nvJitLinkGetLinkedCubin",
-                               table.get_linked_cubin) ||
-        !load_nvjitlink_symbol(table.library, "nvJitLinkGetErrorLogSize",
-                               table.get_error_log_size) ||
-        !load_nvjitlink_symbol(table.library, "nvJitLinkGetErrorLog",
-                               table.get_error_log))
-      return nullptr;
+  // A failed load is retried, so several dispatchers may reach this while the
+  // table is still empty.  Serialize loading and publishing the complete table.
+  static std::mutex mutex;
+  static nvjitlink_api table{};
+  const std::lock_guard<std::mutex> lock(mutex);
+  if (table.library)
     return &table;
-  }();
-  return api;
+
+  nvjitlink_api candidate{};
+  const std::string soname =
+      "libnvJitLink.so." + std::to_string(CUDART_VERSION / 1000);
+  candidate.library = dlopen(soname.c_str(), RTLD_NOW | RTLD_LOCAL);
+  if (!candidate.library) {
+    const char *error = dlerror();
+    std::fprintf(stderr, "ERROR: device link: cannot load %s: %s\n",
+                 soname.c_str(), error ? error : "unknown error");
+    return nullptr;
+  }
+  if (!load_nvjitlink_symbol(candidate.library, "nvJitLinkVersion",
+                             candidate.version) ||
+      !load_nvjitlink_symbol(candidate.library, "nvJitLinkCreate",
+                             candidate.create) ||
+      !load_nvjitlink_symbol(candidate.library, "nvJitLinkDestroy",
+                             candidate.destroy) ||
+      !load_nvjitlink_symbol(candidate.library, "nvJitLinkAddData",
+                             candidate.add_data) ||
+      !load_nvjitlink_symbol(candidate.library, "nvJitLinkComplete",
+                             candidate.complete) ||
+      !load_nvjitlink_symbol(candidate.library, "nvJitLinkGetLinkedCubinSize",
+                             candidate.get_linked_cubin_size) ||
+      !load_nvjitlink_symbol(candidate.library, "nvJitLinkGetLinkedCubin",
+                             candidate.get_linked_cubin) ||
+      !load_nvjitlink_symbol(candidate.library, "nvJitLinkGetErrorLogSize",
+                             candidate.get_error_log_size) ||
+      !load_nvjitlink_symbol(candidate.library, "nvJitLinkGetErrorLog",
+                             candidate.get_error_log)) {
+    dlclose(candidate.library);
+    return nullptr;
+  }
+  table = candidate;
+  return &table;
 }
 
 struct fatbin_header {
