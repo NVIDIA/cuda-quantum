@@ -2457,15 +2457,16 @@ def VerifyProfileQuakeReferenceSemantics : Pass<"verify-profile-quake-reference-
   ];
 }
 
-def VerifyProfileQuakeUnmapped : Pass<"verify-profile-quake-unmapped", "mlir::ModuleOp"> {
+def VerifyQuakeUnmappedProfile : Pass<"verify-quake-unmapped-profile", "mlir::ModuleOp"> {
   let summary = "Verify quake-unmapped profile conformance (read-only)";
   let description = [{
     Fails if a qubit is borrowed from a `quake.wire_set`, or if a Quake
-    operation is not in `basis` in a function that `basis-conversion` converts:
-    an entry point or a function that takes qubits. The profile describes Quake
-    before qubit mapping, and only mapping introduces a wire set. References and
-    wires are both accepted. `basis` uses the `basis-conversion` grammar, and an
-    empty basis imposes no gate restriction.
+    operation in a kernel is not in `basis`. A kernel is an entry point or a
+    function that takes qubits, which are the functions `basis-conversion`
+    converts. The profile describes Quake before qubit mapping, and only
+    mapping introduces a wire set. References and wires are both accepted.
+    `basis` uses the `basis-conversion` grammar, and an empty basis imposes no
+    gate restriction.
   }];
   let options = [
     ListOption<"basis", "basis", "std::string",

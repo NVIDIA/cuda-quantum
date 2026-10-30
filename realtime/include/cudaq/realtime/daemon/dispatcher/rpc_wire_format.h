@@ -20,7 +20,3 @@
 
 // sizeof(RPCHeader): 4 x uint32_t + 1 x uint64_t = 24 bytes.
 #define CUDAQ_RPC_HEADER_SIZE 24u
-
-// TX flag sentinel values used by the host dispatcher and ring buffer helpers.
-#define CUDAQ_TX_FLAG_IN_FLIGHT 0xEEEEEEEEEEEEEEEEULL
-#define CUDAQ_TX_FLAG_ERROR_TAG 0xDEADULL

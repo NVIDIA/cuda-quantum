@@ -14,15 +14,16 @@
 #include "mlir/Transforms/DialectConversion.h"
 
 namespace cudaq::opt {
-#define GEN_PASS_DEF_VERIFYPROFILEQUAKEUNMAPPED
+#define GEN_PASS_DEF_VERIFYQUAKEUNMAPPEDPROFILE
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
 using namespace mlir;
 
-/// Whether `basis-conversion` converts \p func: an entry point or a function
-/// that takes qubits.
-static bool isConvertedKernel(func::FuncOp func) {
+/// Whether \p func is a kernel: an entry point or a function that takes
+/// qubits. These are the functions `basis-conversion` converts, so only their
+/// gates must be in the basis.
+static bool isKernel(func::FuncOp func) {
   return func->hasAttr(cudaq::entryPointAttrName) ||
          llvm::any_of(func.getArgumentTypes(), [](Type type) {
            return isa<cudaq::quake::RefType, cudaq::quake::VeqType>(type);
@@ -31,10 +32,10 @@ static bool isConvertedKernel(func::FuncOp func) {
 
 namespace {
 
-struct VerifyProfileQuakeUnmapped
-    : public cudaq::opt::impl::VerifyProfileQuakeUnmappedBase<
-          VerifyProfileQuakeUnmapped> {
-  using VerifyProfileQuakeUnmappedBase::VerifyProfileQuakeUnmappedBase;
+struct VerifyQuakeUnmappedProfile
+    : public cudaq::opt::impl::VerifyQuakeUnmappedProfileBase<
+          VerifyQuakeUnmappedProfile> {
+  using VerifyQuakeUnmappedProfileBase::VerifyQuakeUnmappedProfileBase;
 
   void runOnOperation() override {
     auto module = getOperation();
@@ -48,7 +49,7 @@ struct VerifyProfileQuakeUnmapped
     if (!basis.empty()) {
       auto basisTarget = cudaq::createBasisTarget(*module.getContext(), basis);
       for (auto func : module.getOps<func::FuncOp>()) {
-        if (!isConvertedKernel(func))
+        if (!isKernel(func))
           continue;
         func.walk([&](Operation *op) {
           if (isa_and_nonnull<cudaq::quake::QuakeDialect>(op->getDialect()) &&

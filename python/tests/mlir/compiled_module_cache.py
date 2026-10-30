@@ -11,6 +11,9 @@
 # RUN: CUDAQ_LOG_LEVEL=info PYTHONPATH=../../ python3 %s sample 2>&1 | grep 'py_alt_launch_kernel.cpp' | FileCheck --check-prefix=SAMPLE %s
 # RUN: CUDAQ_LOG_LEVEL=info PYTHONPATH=../../ python3 %s fully_specialized > %t.fully_specialized 2>&1 || (cat %t.fully_specialized && false)
 # RUN: grep 'py_alt_launch_kernel.cpp' %t.fully_specialized | FileCheck --check-prefix=FULLY-SPECIALIZED --implicit-check-not='Caching module' --implicit-check-not='Reusing cached module' --implicit-check-not='Joined existing compilation' %s
+# RUN: CUDAQ_LOG_LEVEL=info PYTHONPATH=../../ python3 %s stage_specialized > %t.stage_specialized 2>&1 || (cat %t.stage_specialized && false)
+# RUN: grep 'py_alt_launch_kernel.cpp' %t.stage_specialized | FileCheck --check-prefix=STAGE-SPECIALIZED %s
+# RUN: CUDAQ_LOG_LEVEL=info PYTHONPATH=../../ python3 %s stage_runtime_arguments 2>&1 | grep 'py_alt_launch_kernel.cpp' | FileCheck --check-prefix=STAGE-RUNTIME-ARGUMENTS %s
 # RUN: CUDAQ_LOG_LEVEL=info PYTHONPATH=../../ python3 %s captured 2>&1 | grep 'py_alt_launch_kernel.cpp' | FileCheck --check-prefix=CAPTURED %s
 # RUN: CUDAQ_LOG_LEVEL=info PYTHONPATH=../../ python3 %s dependencies 2>&1 | grep 'py_alt_launch_kernel.cpp' | FileCheck --check-prefix=DEPENDENCIES %s
 # RUN: CUDAQ_LOG_LEVEL=info PYTHONPATH=../../ python3 %s runtime_inputs 2>&1 | grep 'py_alt_launch_kernel.cpp' | FileCheck --check-prefix=RUNTIME-INPUTS %s
@@ -32,6 +35,7 @@ import gc
 import math
 import sys
 import threading
+from pathlib import Path
 from typing import Callable
 
 import cudaq
@@ -103,6 +107,70 @@ def scenario_fully_specialized():
 # Both launches compile independently and neither artifact enters the cache.
 # FULLY-SPECIALIZED-COUNT-2: Compiling module
 # FULLY-SPECIALIZED-NOT: Compiling module
+
+
+def scenario_stage_specialized():
+    """A target whose stage needs argument values caches only kernels without
+    live arguments."""
+    cudaq.set_target("compiler-bench-ftqc-clifford-t")
+    try:
+
+        @cudaq.kernel
+        def two_ones():
+            qubits = cudaq.qvector(2)
+            for qubit in qubits:
+                x(qubit)
+
+        for _ in range(2):
+            assert cudaq.sample(two_ones, shots_count=10).count("11") == 10
+
+        @cudaq.kernel
+        def all_ones(n: int):
+            qubits = cudaq.qvector(n)
+            for qubit in qubits:
+                x(qubit)
+
+        for _ in range(2):
+            assert cudaq.sample(all_ones, 2, shots_count=10).count("11") == 10
+    finally:
+        cudaq.reset_target()
+
+
+# The kernel without arguments compiles once. The other compiles on every
+# call, even with the same value, and is never cached.
+# STAGE-SPECIALIZED: Compiling module
+# STAGE-SPECIALIZED-NEXT: Caching module
+# STAGE-SPECIALIZED-NEXT: Reusing cached module
+# STAGE-SPECIALIZED-NEXT: Compiling module
+# STAGE-SPECIALIZED-NEXT: Compiling module
+# STAGE-SPECIALIZED-NOT: {{Compiling|Caching|Reusing|Joined}}
+
+
+def scenario_stage_runtime_arguments():
+    """A staged target that needs no argument values reuses one compile."""
+    cudaq._register_target_config(
+        str(
+            Path(__file__).resolve().parents[1] / "targets" /
+            "compiler-bench-ftqc-logical.yml"))
+    cudaq.set_target("compiler-bench-ftqc-logical")
+    try:
+
+        @cudaq.kernel
+        def all_ones(n: int):
+            qubits = cudaq.qvector(n)
+            for qubit in qubits:
+                x(qubit)
+
+        assert cudaq.sample(all_ones, 1, shots_count=10).count("1") == 10
+        assert cudaq.sample(all_ones, 3, shots_count=10).count("111") == 10
+    finally:
+        cudaq.reset_target()
+
+
+# STAGE-RUNTIME-ARGUMENTS: Compiling module
+# STAGE-RUNTIME-ARGUMENTS-NEXT: Caching module
+# STAGE-RUNTIME-ARGUMENTS-NEXT: Reusing cached module
+# STAGE-RUNTIME-ARGUMENTS-NOT: Compiling module
 
 
 def scenario_captured():
@@ -644,6 +712,8 @@ SCENARIOS = {
     "run": scenario_run,
     "sample": scenario_sample,
     "fully_specialized": scenario_fully_specialized,
+    "stage_specialized": scenario_stage_specialized,
+    "stage_runtime_arguments": scenario_stage_runtime_arguments,
     "captured": scenario_captured,
     "dependencies": scenario_dependencies,
     "runtime_inputs": scenario_runtime_inputs,

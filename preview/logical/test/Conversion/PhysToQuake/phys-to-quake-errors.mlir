@@ -285,16 +285,17 @@ module attributes {qlx.profiles = ["p3"]} {
 // -----
 
 // A template after a region cannot replay a call whose body reads a value
-// from inside that region: the value no longer exists.
+// from inside that region: the value no longer exists. Here the value comes
+// from an `arith` op, which the pass clones, so the case also covers cloned
+// values.
 module attributes {qlx.profiles = ["p3"]} {
   fabric.gadget_spec @gate_spec for @objective : () -> () {encodings = []}
   fabric.gadget @gate() {
     fabric.return
   } {realization_boundary = {}, spec = @gate_spec}
   phys.machine @m {
-    phys.resource_class @q {count = 2 : i64, kind = "qubit", native_actions = [], native_instruments = [@mz]}
+    phys.resource_class @q {count = 2 : i64, kind = "qubit", native_actions = [], native_instruments = []}
   }
-  phys.instrument @mz {arity = 1 : i64, kind = "measure", preserves_inputs, process = "{\"kind\":\"builtin\",\"name\":\"measure_z\",\"parameters\":{}}", record_schema = "bit"}
   phys.resource @a {index = 0 : i64, kind = "qubit", resource_class = @q}
   phys.resource @b {index = 1 : i64, kind = "qubit", resource_class = @q}
   phys.graph @entry on @m : (i1) -> i1 {
@@ -302,10 +303,10 @@ module attributes {qlx.profiles = ["p3"]} {
     %0 = phys.acquire [@a] {event_id = "acquire_a"} : !phys.state<@a>
     %1 = phys.acquire [@b] {event_id = "acquire_b"} : !phys.state<@b>
     %2 = cflow.if %c event_id = "if" -> !phys.state<@a> {
-      %3, %r = phys.measure @mz(%0) {event_id = "m", record_id = "m"} : (!phys.state<@a>) -> (!phys.state<@a>, !phys.record<@bit>)
-      %4:2 = "phys.call"(%3) <{callee = @gate, event_id = "canon", instance = "gate.0"}> ({
+      %n = arith.xori %c, %c : i1
+      %4:2 = "phys.call"(%0) <{callee = @gate, event_id = "canon", instance = "gate.0"}> ({
       ^bb0(%s: !phys.state<@a>):
-        %p = phys.condition %r {event_id = "p"} : !phys.record<@bit> -> i1
+        %p = arith.andi %n, %n : i1
         phys.yield %s, %p : !phys.state<@a>, i1
       }) : (!phys.state<@a>) -> (!phys.state<@a>, i1)
       cflow.yield %4#0 : !phys.state<@a>
@@ -400,12 +401,11 @@ phys.graph @entry on @m : (i1) -> () {
 
 // -----
 
-phys.machine @m {
-  phys.resource_class @q {count = 1 : i64, kind = "qubit", native_actions = [], native_instruments = []}
-}
-phys.graph @entry on @m : (i1) -> () {
-^bb0(%arg0: i1):
-  // expected-error@+1 {{'cf.assert' op has no lowering to Quake}}
-  cf.assert %arg0, "unsupported"
-  phys.return
+// `entry` must name a phys.graph, and here it names the phys.machine. The
+// pass reports this on the module, so the module is explicit.
+// expected-error@+1 {{`phys-to-quake` needs the entry option to name a phys.graph, but 'entry' names none}}
+module {
+  phys.machine @entry {
+    phys.resource_class @q {count = 1 : i64, kind = "qubit", native_actions = [], native_instruments = []}
+  }
 }

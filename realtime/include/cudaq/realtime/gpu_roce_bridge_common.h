@@ -133,24 +133,6 @@ struct BridgeConfig {
   /// Default (nullptr): the dispatcher's own, for `kernel_type`.
   cudaq_dispatch_launch_fn_t launch_fn = nullptr;
 
-  // Set this to CUDAQ_DISPATCH_PATH_HOST for the HOST_LOOP graph launch mode --
-  // CPU-side dispatcher that polls GpuRoceTransceiver ring flags and launches
-  // CUDA graphs.  Requires a Grace-based system (Grace-Hopper / DGX Spark,
-  // Grace-Blackwell / GB200) where GPU memory is CPU-accessible via NVLink-C2C,
-  // since the HOST_LOOP thread reads DOCA GPU ring flags directly from the CPU.
-  cudaq_dispatch_path_t dispatch_path = CUDAQ_DISPATCH_PATH_DEVICE;
-
-  /// Host-side function table for GRAPH_LAUNCH entries (HOST_LOOP only).
-  /// Each entry must have dispatch_mode == CUDAQ_DISPATCH_GRAPH_LAUNCH
-  /// and handler.graph_exec set to a valid cudaGraphExec_t.
-  cudaq_function_entry_t *h_function_entries = nullptr;
-  size_t h_func_count = 0;
-
-  /// Pinned mailbox for HOST_LOOP graph dispatch (from graph_resources).
-  /// h_mailbox is the host pointer, d_mailbox is the device-mapped view.
-  void **h_mailbox = nullptr;
-  void **d_mailbox = nullptr;
-
   /// @brief Optional cleanup callback invoked during shutdown.
   std::function<void()> cleanup_fn;
 };
@@ -203,8 +185,6 @@ inline void parse_bridge_args(int argc, char *argv[], BridgeConfig &config) {
       config.unified = true;
     else if (arg.find("--threads=") == 0)
       config.threads_per_block = std::stoul(arg.substr(10));
-    else if (arg == "--cpu")
-      config.dispatch_path = CUDAQ_DISPATCH_PATH_HOST;
   }
 
   config.frame_size = sizeof(cudaq::realtime::RPCHeader) + config.payload_size;
@@ -271,9 +251,8 @@ inline int bridge_run(BridgeConfig &config) {
   std::cout << "  Page size: " << config.page_size << " bytes" << std::endl;
   std::cout << "  Num pages: " << config.num_pages << std::endl;
 
-  bool is_host_loop = (config.dispatch_path == CUDAQ_DISPATCH_PATH_HOST);
   bool use_forward = config.forward;
-  bool use_3kernel = is_host_loop || !config.forward;
+  bool use_3kernel = !config.forward;
 
   gpu_roce_transceiver_t transceiver = gpu_roce_create_transceiver(
       config.device.c_str(), 1, // ib_port
@@ -290,10 +269,6 @@ inline int bridge_run(BridgeConfig &config) {
     std::cerr << "ERROR: Failed to create GpuRoceTransceiver" << std::endl;
     return 1;
   }
-
-  // HOST_LOOP needs CPU-readable ring flags and data; allocate as CPU_GPU.
-  if (is_host_loop)
-    gpu_roce_set_cpu_ring_buffers(transceiver, 1);
 
   std::cout << "  Connecting to remote QP 0x" << std::hex << config.remote_qp
             << std::dec << " at " << config.peer_ip << "..." << std::endl;
@@ -350,25 +325,21 @@ inline int bridge_run(BridgeConfig &config) {
   cudaq_dispatcher_t *dispatcher = nullptr;
 
   if (!config.forward) {
-    if (!is_host_loop) {
-      int dispatch_blocks = 0;
-      cudaError_t occ_err = cudaq_dispatch_kernel_query_occupancy(
-          &dispatch_blocks, config.threads_per_block);
-      if (occ_err != cudaSuccess) {
-        std::cerr << "ERROR: Dispatch kernel occupancy query failed: "
-                  << cudaGetErrorString(occ_err) << std::endl;
-        return 1;
-      }
-      std::cout << "  Dispatch kernel occupancy: " << dispatch_blocks
-                << " blocks/SM" << std::endl;
+    int dispatch_blocks = 0;
+    cudaError_t occ_err = cudaq_dispatch_kernel_query_occupancy(
+        &dispatch_blocks, config.threads_per_block);
+    if (occ_err != cudaSuccess) {
+      std::cerr << "ERROR: Dispatch kernel occupancy query failed: "
+                << cudaGetErrorString(occ_err) << std::endl;
+      return 1;
     }
+    std::cout << "  Dispatch kernel occupancy: " << dispatch_blocks
+              << " blocks/SM" << std::endl;
 
     //==========================================================================
     // [4] Wire dispatch kernel
     //==========================================================================
-    std::cout << "\n[4/5] Wiring dispatch kernel ("
-              << (is_host_loop ? "host-loop" : "3-kernel") << ")..."
-              << std::endl;
+    std::cout << "\n[4/5] Wiring dispatch kernel (3-kernel)..." << std::endl;
 
     void *tmp_shutdown = nullptr;
     BRIDGE_CUDA_CHECK(
@@ -383,14 +354,7 @@ inline int bridge_run(BridgeConfig &config) {
     BRIDGE_CUDA_CHECK(cudaMemcpy(const_cast<int *>(d_shutdown_flag), &zero,
                                  sizeof(int), cudaMemcpyHostToDevice));
 
-    if (is_host_loop) {
-      void *tmp_stats = nullptr;
-      BRIDGE_CUDA_CHECK(
-          cudaHostAlloc(&tmp_stats, sizeof(uint64_t), cudaHostAllocMapped));
-      d_stats = static_cast<uint64_t *>(tmp_stats);
-    } else {
-      BRIDGE_CUDA_CHECK(cudaMalloc(&d_stats, sizeof(uint64_t)));
-    }
+    BRIDGE_CUDA_CHECK(cudaMalloc(&d_stats, sizeof(uint64_t)));
     BRIDGE_CUDA_CHECK(cudaMemset(d_stats, 0, sizeof(uint64_t)));
 
     if (cudaq_dispatch_manager_create(&manager) != CUDAQ_OK) {
@@ -402,98 +366,43 @@ inline int bridge_run(BridgeConfig &config) {
     dconfig.device_id = config.gpu_id;
     dconfig.vp_id = 0;
 
-    if (is_host_loop) {
-      dconfig.dispatch_path = CUDAQ_DISPATCH_PATH_HOST;
-      dconfig.dispatch_mode = CUDAQ_DISPATCH_GRAPH_LAUNCH;
-      dconfig.num_slots = static_cast<uint32_t>(config.num_pages);
-      dconfig.slot_size = static_cast<uint32_t>(config.page_size);
-      // GpuRoceTransceiver TX kernel polls tx_flags for ready data; writing
-      // sentinel markers (0xEEEE) would be misinterpreted as a valid TX buffer
-      // address.
-      dconfig.skip_tx_markers = 1;
-    } else {
-      dconfig.dispatch_mode = CUDAQ_DISPATCH_DEVICE_CALL;
-      dconfig.kernel_type = config.kernel_type;
-      dconfig.num_blocks = config.num_blocks;
-      dconfig.threads_per_block = config.threads_per_block;
-      dconfig.num_slots = static_cast<uint32_t>(config.num_pages);
-      dconfig.slot_size = static_cast<uint32_t>(config.page_size);
-    }
+    dconfig.dispatch_mode = CUDAQ_DISPATCH_DEVICE_CALL;
+    dconfig.kernel_type = config.kernel_type;
+    dconfig.num_blocks = config.num_blocks;
+    dconfig.threads_per_block = config.threads_per_block;
+    dconfig.num_slots = static_cast<uint32_t>(config.num_pages);
+    dconfig.slot_size = static_cast<uint32_t>(config.page_size);
 
     if (cudaq_dispatcher_create(manager, &dconfig, &dispatcher) != CUDAQ_OK) {
       std::cerr << "ERROR: Failed to create dispatcher" << std::endl;
       return 1;
     }
 
-    if (is_host_loop) {
-      // HOST_LOOP: wire ringbuffer with GpuRoceTransceiver GPU pointers as both
-      // device and host views.  On Grace-based systems (Grace-Hopper,
-      // Grace-Blackwell), GPU memory is CPU-accessible via NVLink-C2C.
-      cudaq_ringbuffer_t ringbuffer{};
-      ringbuffer.rx_flags = reinterpret_cast<volatile uint64_t *>(rx_ring_flag);
-      ringbuffer.tx_flags = reinterpret_cast<volatile uint64_t *>(tx_ring_flag);
-      ringbuffer.rx_data = rx_ring_data;
-      ringbuffer.tx_data = tx_ring_data;
-      ringbuffer.rx_stride_sz = config.page_size;
-      ringbuffer.tx_stride_sz = config.page_size;
-      ringbuffer.rx_flags_host =
-          reinterpret_cast<volatile uint64_t *>(rx_ring_flag);
-      ringbuffer.tx_flags_host =
-          reinterpret_cast<volatile uint64_t *>(tx_ring_flag);
-      ringbuffer.rx_data_host = rx_ring_data;
-      ringbuffer.tx_data_host = tx_ring_data;
+    cudaq_ringbuffer_t ringbuffer{};
+    ringbuffer.rx_flags = reinterpret_cast<volatile uint64_t *>(rx_ring_flag);
+    ringbuffer.tx_flags = reinterpret_cast<volatile uint64_t *>(tx_ring_flag);
+    ringbuffer.rx_data = rx_ring_data;
+    ringbuffer.tx_data = tx_ring_data;
+    ringbuffer.rx_stride_sz = config.page_size;
+    ringbuffer.tx_stride_sz = config.page_size;
 
-      if (cudaq_dispatcher_set_ringbuffer(dispatcher, &ringbuffer) !=
-          CUDAQ_OK) {
-        std::cerr << "ERROR: Failed to set ringbuffer" << std::endl;
-        return 1;
-      }
-
-      cudaq_function_table_t table{};
-      table.entries = config.h_function_entries;
-      table.count = static_cast<uint32_t>(config.h_func_count);
-      if (cudaq_dispatcher_set_function_table(dispatcher, &table) != CUDAQ_OK) {
-        std::cerr << "ERROR: Failed to set function table" << std::endl;
-        return 1;
-      }
-
-      if (config.h_mailbox) {
-        if (cudaq_dispatcher_set_mailbox(dispatcher, config.h_mailbox) !=
-            CUDAQ_OK) {
-          std::cerr << "ERROR: Failed to set mailbox" << std::endl;
-          return 1;
-        }
-      }
-    } else {
-      cudaq_ringbuffer_t ringbuffer{};
-      ringbuffer.rx_flags = reinterpret_cast<volatile uint64_t *>(rx_ring_flag);
-      ringbuffer.tx_flags = reinterpret_cast<volatile uint64_t *>(tx_ring_flag);
-      ringbuffer.rx_data = rx_ring_data;
-      ringbuffer.tx_data = tx_ring_data;
-      ringbuffer.rx_stride_sz = config.page_size;
-      ringbuffer.tx_stride_sz = config.page_size;
-
-      if (cudaq_dispatcher_set_ringbuffer(dispatcher, &ringbuffer) !=
-          CUDAQ_OK) {
-        std::cerr << "ERROR: Failed to set ringbuffer" << std::endl;
-        return 1;
-      }
-
-      if (config.launch_fn && cudaq_dispatcher_set_launch_fn(
-                                  dispatcher, config.launch_fn) != CUDAQ_OK) {
-        std::cerr << "ERROR: Failed to set launch function" << std::endl;
-        return 1;
-      }
+    if (cudaq_dispatcher_set_ringbuffer(dispatcher, &ringbuffer) != CUDAQ_OK) {
+      std::cerr << "ERROR: Failed to set ringbuffer" << std::endl;
+      return 1;
     }
 
-    if (!is_host_loop) {
-      cudaq_function_table_t table{};
-      table.entries = config.d_function_entries;
-      table.count = config.func_count;
-      if (cudaq_dispatcher_set_function_table(dispatcher, &table) != CUDAQ_OK) {
-        std::cerr << "ERROR: Failed to set function table" << std::endl;
-        return 1;
-      }
+    if (config.launch_fn && cudaq_dispatcher_set_launch_fn(
+                                dispatcher, config.launch_fn) != CUDAQ_OK) {
+      std::cerr << "ERROR: Failed to set launch function" << std::endl;
+      return 1;
+    }
+
+    cudaq_function_table_t table{};
+    table.entries = config.d_function_entries;
+    table.count = config.func_count;
+    if (cudaq_dispatcher_set_function_table(dispatcher, &table) != CUDAQ_OK) {
+      std::cerr << "ERROR: Failed to set function table" << std::endl;
+      return 1;
     }
 
     if (cudaq_dispatcher_set_control(dispatcher, d_shutdown_flag, d_stats) !=
@@ -602,12 +511,8 @@ inline int bridge_run(BridgeConfig &config) {
 
   if (shutdown_flag)
     cudaFreeHost(const_cast<int *>(shutdown_flag));
-  if (d_stats) {
-    if (is_host_loop)
-      cudaFreeHost(d_stats);
-    else
-      cudaFree(d_stats);
-  }
+  if (d_stats)
+    cudaFree(d_stats);
 
   // Call tool-specific cleanup
   if (config.cleanup_fn)

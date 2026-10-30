@@ -10,6 +10,13 @@
 # build a source image containing source code for all added packages.
 # Optionally diff pip packages added by the macOS wheel (provide artifact_url).
 #
+# Three image legs are diffed, each against the image it is built FROM:
+#   cudaq          nvcr.io/nvidia/cuda runtime      -> nightly cuda-quantum
+#   cudaqx         nightly cuda-quantum             -> ghcr.io/nvidia/cudaqx
+#   cudaq-decoding nvcr.io/nvidia/cuda base         -> ghcr.io/nvidia/private/cudaq-decoding
+# cudaqx and cudaq-decoding lists are trimmed against cudaq before fetching so
+# shared packages are only downloaded once.
+#
 # Inputs:
 #   push_to_NGC: boolean, default false
 #     Push the built source image to NGC, otherwise push to GHCR.
@@ -47,9 +54,10 @@ jobs:
       fail-fast: false
       matrix:
         cuda: ['12.6', '13.0']
-        release: ['cudaq', 'cudaqx']
+        release: ['cudaq', 'cudaqx', 'cudaq-decoding']
     permissions:
       contents: read
+      packages: read
 
     steps:
       - name: Checkout repository
@@ -61,15 +69,23 @@ jobs:
         id: images
         run: |
           cuda_major=$(echo "${{ matrix.cuda }}" | cut -d. -f1)
-          if [ "${{ matrix.release }}" = "cudaq" ]; then
-            echo "base_image=nvcr.io/nvidia/cuda:${{ matrix.cuda }}.0-runtime-ubuntu24.04" | tee -a $GITHUB_OUTPUT
-            echo "target_image=nvcr.io/nvidia/nightly/cuda-quantum:cu${cuda_major}-latest" | tee -a $GITHUB_OUTPUT
-          else
-            # cudaqx: devcontainer base, cudaqx target
-            cu_tag=$(echo "${{ matrix.cuda }}" | tr -d .)
-            echo "base_image=ghcr.io/nvidia/cuda-quantum-devcontainer:amd64-cu${{ matrix.cuda }}-llvm-main" | tee -a $GITHUB_OUTPUT
-            echo "target_image=ghcr.io/nvidia/cudaqx:cu${cuda_major}-latest" | tee -a $GITHUB_OUTPUT
-          fi
+          case "${{ matrix.release }}" in
+            cudaq)
+              echo "base_image=nvcr.io/nvidia/cuda:${{ matrix.cuda }}.0-runtime-ubuntu24.04" | tee -a $GITHUB_OUTPUT
+              echo "target_image=nvcr.io/nvidia/nightly/cuda-quantum:cu${cuda_major}-latest" | tee -a $GITHUB_OUTPUT
+              ;;
+            cudaqx)
+              # cudaqx: docker/release/Dockerfile overlays onto the nightly cuda-quantum image.
+              echo "base_image=nvcr.io/nvidia/nightly/cuda-quantum:cu${cuda_major}-latest" | tee -a $GITHUB_OUTPUT
+              echo "target_image=ghcr.io/nvidia/cudaqx:cu${cuda_major}-latest" | tee -a $GITHUB_OUTPUT
+              ;;
+            cudaq-decoding)
+              # Runtime stage of docker/release/Dockerfile.decoding-server in cudaqx starts
+              # from the CUDA base image (cuda_base_image_tag in build_decoding_server_docker.yaml).
+              echo "base_image=nvcr.io/nvidia/cuda:${{ matrix.cuda }}.3-base-ubuntu24.04" | tee -a $GITHUB_OUTPUT
+              echo "target_image=ghcr.io/nvidia/private/cudaq-decoding:cu${cuda_major}-latest" | tee -a $GITHUB_OUTPUT
+              ;;
+          esac
 
       - name: Log in to container registries
         run: |
@@ -260,10 +276,16 @@ jobs:
           name: package-source-diff-cu${{ matrix.cuda }}-cudaqx.zip
           path: package-source-diff-cudaqx
 
+      - name: Download package lists (cudaq-decoding)
+        uses: actions/download-artifact@v8
+        with:
+          name: package-source-diff-cu${{ matrix.cuda }}-cudaq-decoding.zip
+          path: package-source-diff-cudaq-decoding
+
       - name: Restore package-source-diff directory layout
         run: |
           mkdir -p package-source-diff
-          for variant in cudaq cudaqx; do
+          for variant in cudaq cudaqx cudaq-decoding; do
             dir="package-source-diff-${variant}"
             apt_src="$dir/apt_packages.txt"; [ -f "$dir/package-source-diff/apt_packages.txt" ] && apt_src="$dir/package-source-diff/apt_packages.txt"
             pip_src="$dir/pip_packages.txt"; [ -f "$dir/package-source-diff/pip_packages.txt" ] && pip_src="$dir/package-source-diff/pip_packages.txt"
@@ -284,29 +306,31 @@ jobs:
         if: github.event.inputs.artifact_url != ''
         run: cp macos-pip-diff/pip_added.txt package-source-diff/pip_packages_macos.txt
 
-      - name: Generate trimmed package lists (cudaqx minus cudaq, macos minus cudaq/cudaqx)
+      - name: Generate trimmed package lists (cudaqx/cudaq-decoding minus cudaq, macos minus cudaq/cudaqx)
         run: |
           d=package-source-diff
-          # apt: cudaqx trimmed = packages in cudaqx not in cudaq
-          if [ -f "$d/apt_packages_cudaqx.txt" ]; then
-            if [ -f "$d/apt_packages_cudaq.txt" ]; then
-              comm -23 <(sort -u "$d/apt_packages_cudaqx.txt") <(sort -u "$d/apt_packages_cudaq.txt") | grep -v '^$' > "$d/apt_packages_cudaqx_trimmed.txt" || true
-            else
-              cp "$d/apt_packages_cudaqx.txt" "$d/apt_packages_cudaqx_trimmed.txt"
-            fi
-          else
-            : > "$d/apt_packages_cudaqx_trimmed.txt"
-          fi
-          # pip: cudaqx trimmed = packages in cudaqx (by name) not in cudaq
           awk -F'==' '{print $1}' "$d/pip_packages_cudaq.txt" 2>/dev/null | sort -u > /tmp/pip_cudaq_names.txt || true
-          : > "$d/pip_packages_cudaqx_trimmed.txt"
-          if [ -f "$d/pip_packages_cudaqx.txt" ]; then
-            while IFS= read -r line; do
-              [ -z "$line" ] && continue
-              pkg="${line%%==*}"
-              grep -qxF "$pkg" /tmp/pip_cudaq_names.txt 2>/dev/null || echo "$line" >> "$d/pip_packages_cudaqx_trimmed.txt"
-            done < "$d/pip_packages_cudaqx.txt"
-          fi
+          for variant in cudaqx cudaq-decoding; do
+            # apt: trimmed = packages in variant not in cudaq
+            if [ -f "$d/apt_packages_${variant}.txt" ]; then
+              if [ -f "$d/apt_packages_cudaq.txt" ]; then
+                comm -23 <(sort -u "$d/apt_packages_${variant}.txt") <(sort -u "$d/apt_packages_cudaq.txt") | grep -v '^$' > "$d/apt_packages_${variant}_trimmed.txt" || true
+              else
+                cp "$d/apt_packages_${variant}.txt" "$d/apt_packages_${variant}_trimmed.txt"
+              fi
+            else
+              : > "$d/apt_packages_${variant}_trimmed.txt"
+            fi
+            # pip: trimmed = packages in variant (by name) not in cudaq
+            : > "$d/pip_packages_${variant}_trimmed.txt"
+            if [ -f "$d/pip_packages_${variant}.txt" ]; then
+              while IFS= read -r line; do
+                [ -z "$line" ] && continue
+                pkg="${line%%==*}"
+                grep -qxF "$pkg" /tmp/pip_cudaq_names.txt 2>/dev/null || echo "$line" >> "$d/pip_packages_${variant}_trimmed.txt"
+              done < "$d/pip_packages_${variant}.txt"
+            fi
+          done
           # macOS pip: trimmed = packages in macos not in cudaq and not in cudaqx
           { awk -F'==' '{print $1}' "$d/pip_packages_cudaq.txt" 2>/dev/null; awk -F'==' '{print $1}' "$d/pip_packages_cudaqx.txt" 2>/dev/null; } | sort -u > /tmp/pip_union_names.txt
           : > "$d/pip_packages_macos_trimmed.txt"
@@ -331,6 +355,11 @@ jobs:
             package-source-diff/pip_packages_cudaqx.txt \
             -o "NOTICE_PIP_cudaqx${suffix}"
 
+          # The decoding-server image ships no Python; this list is normally empty.
+          python3 scripts/generate_pip_attribution.py \
+            package-source-diff/pip_packages_cudaq-decoding.txt \
+            -o "NOTICE_PIP_cudaq-decoding${suffix}"
+
           python3 scripts/generate_pip_attribution.py \
             package-source-diff/pip_packages_macos.txt \
             -o "NOTICE_PIP_macos${suffix}"
@@ -348,6 +377,10 @@ jobs:
           python3 scripts/generate_apt_attribution.py \
             package-source-diff/apt_packages_cudaqx.txt \
             -o "NOTICE_APT_cudaqx${suffix}"
+
+          python3 scripts/generate_apt_attribution.py \
+            package-source-diff/apt_packages_cudaq-decoding.txt \
+            -o "NOTICE_APT_cudaq-decoding${suffix}"
           ls -la NOTICE_APT_*
           head -50 "NOTICE_APT_cudaq${suffix}"
 
@@ -362,6 +395,17 @@ jobs:
         run: |
           set -euo pipefail
           retry() { for n in 1 2 3; do "$@" && return 0; [ $n -lt 3 ] && sleep $((15*n*n)); done; return 1; }
+          # Try the primary url, then each comma-separated mirror. A dead host
+          # (ftp.gnu.org has been one) should fail in seconds, not minutes.
+          fetch() { # <dest> <url> [mirrors]
+            local dest=$1 url=$2 mirrors=${3:-} candidate
+            for candidate in "$url" ${mirrors//,/ }; do
+              echo "Downloading $candidate -> $dest"
+              retry curl -fL --connect-timeout 20 "$candidate" -o "$dest" && return 0
+              echo "Failed: $candidate" >&2
+            done
+            return 1
+          }
           # Generate cudaq_prereqs.lock for the current configuration
           bash scripts/install_prerequisites.sh -l
           cat cudaq_prereqs.lock
@@ -377,6 +421,7 @@ jobs:
             name=""
             type=""
             url=""
+            mirrors=""
             ref=""
 
             for kv in $line; do
@@ -386,6 +431,7 @@ jobs:
                 name) name="$val" ;;
                 type) type="$val" ;;
                 url)  url="$val" ;;
+                mirrors) mirrors="$val" ;;
                 ref)  ref="$val" ;;
               esac
             done
@@ -400,22 +446,15 @@ jobs:
 
             case "$type" in
               tar)
-                fname="$(basename "$url")"
-                dest="prereqs/${name}/${fname}"
-                echo "Downloading tar archive for $name from $url -> $dest"
-                retry curl -L "$url" -o "$dest"
+                fetch "prereqs/${name}/$(basename "$url")" "$url" "$mirrors"
                 ;;
               sh)
-                fname="$(basename "$url")"
-                dest="prereqs/${name}/${fname}"
-                echo "Downloading shell installer for $name from $url -> $dest"
-                retry curl -L "$url" -o "$dest"
+                dest="prereqs/${name}/$(basename "$url")"
+                fetch "$dest" "$url" "$mirrors"
                 chmod +x "$dest"
                 ;;
               pem)
-                dest="prereqs/${name}/${name}.pem"
-                echo "Downloading PEM bundle for $name from $url -> $dest"
-                retry curl -L "$url" -o "$dest"
+                fetch "prereqs/${name}/${name}.pem" "$url" "$mirrors"
                 ;;
               git)
                 dest_dir="prereqs/${name}"
