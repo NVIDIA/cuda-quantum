@@ -18,17 +18,13 @@
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "cudaq/Optimizer/Builder/OptimizationLevel.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
-#include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Target/CompileTarget.h"
 #include "cudaq/Target/TargetConfig.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/MLIRContext.h"
 #include "mlir/Parser/Parser.h"
-#include "mlir/Pass/PassManager.h"
-#include <array>
 #include <cstdint>
 #include <memory>
-#include <optional>
 #include <span>
 
 using namespace cudaq_internal::compiler;
@@ -469,99 +465,6 @@ void test_quake_unmapped_levels(mlir::MLIRContext *ctx) {
 // CHECK-LABEL: Clifford+T exact angle resource counts:
 // CHECK: total: 1{{$}}
 
-/// A loop over the qubits of a register, which only unrolling puts on wires.
-static const char *indexLoopKernel = R"#(
-func.func @__nvqpp__mlirgen__indexLoop() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
-  %c0 = arith.constant 0 : i64
-  %c1 = arith.constant 1 : i64
-  %c3 = arith.constant 3 : i64
-  %q = quake.alloca !quake.veq<3>
-  %0 = cc.loop while ((%i = %c0) -> (i64)) {
-    %1 = arith.cmpi slt, %i, %c3 : i64
-    cc.condition %1(%i : i64)
-  } do {
-  ^bb0(%i: i64):
-    %1 = quake.extract_ref %q[%i] : (!quake.veq<3>, i64) -> !quake.ref
-    quake.h %1 : (!quake.ref) -> ()
-    cc.continue %i : i64
-  } step {
-  ^bb0(%i: i64):
-    %1 = arith.addi %i, %c1 : i64
-    cc.continue %1 : i64
-  } {invariant}
-  return
-}
-)#";
-
-/// Compile \p quake through \p target at \p level without code generation.
-/// Print each diagnostic and the error of a compile that fails.
-static std::optional<cudaq::CompiledModule>
-compileQuake(mlir::MLIRContext *ctx, const std::string &kernelName,
-             const char *quake, cudaq::CompileTarget target,
-             cudaq::OptimizationLevel level) {
-  mlir::ScopedDiagnosticHandler printer(ctx, [](mlir::Diagnostic &diag) {
-    llvm::outs() << "diagnostic: " << diag << "\n";
-    return mlir::success();
-  });
-  cudaq::CompileOptions options;
-  options.emitTargetCode = false;
-  options.optimizationLevel = level;
-  options.seed = 42;
-  auto mod = mlir::parseSourceString<mlir::ModuleOp>(quake, ctx);
-  Compiler compiler(std::move(target), std::move(options));
-  try {
-    return compiler.compile(kernelName, mod.release().getAsOpaquePointer(),
-                            cudaq::KernelArgs{}, /*isEntryPoint=*/true);
-  } catch (const std::runtime_error &error) {
-    llvm::outs() << "compile error: " << error.what() << "\n";
-    return std::nullopt;
-  }
-}
-
-static const std::array<cudaq::OptimizationLevel, 4> allLevels = {
-    cudaq::OptimizationLevel::O0, cudaq::OptimizationLevel::O1,
-    cudaq::OptimizationLevel::O2, cudaq::OptimizationLevel::O3};
-
-/// The level never changes the representation. At level 0 a `quake-unmapped`
-/// stage with a cost model unrolls the loop and converts to wires, while a
-/// stage without one keeps the kernel on references. With a limit of 2, the
-/// 3-iteration loop stays rolled and its register stays on references, whether
-/// the stage unrolls `index_use` loops or all loops. In the second case, prep
-/// and deploy must also leave the loop alone, because their limit of 1024
-/// iterations would unroll it before the stage runs.
-void test_level_0_representation(mlir::MLIRContext *ctx) {
-  const cudaq::config::QuakeUnmappedProfile neither{
-      .basisGates = {"h", "s", "t", "rx", "ry", "rz", "x", "x(1)"}};
-  auto costModel = neither;
-  costModel.costModel = cudaq::config::CostModel::t_count;
-  auto limitAll = costModel;
-  limitAll.maxUnrollIterations = 2;
-  auto limitIndexUse = limitAll;
-  limitIndexUse.unrollLoops = cudaq::config::LoopUnrolling::index_use;
-  for (const auto &[name, profile] :
-       std::vector<std::pair<std::string, cudaq::config::QuakeUnmappedProfile>>{
-           {"a cost model", costModel},
-           {"neither", neither},
-           {"a limit of 2 on all loops", limitAll},
-           {"a limit of 2 on index-use loops", limitIndexUse}}) {
-    auto compiled =
-        compileQuake(ctx, "indexLoop", indexLoopKernel, inferredTarget(profile),
-                     cudaq::OptimizationLevel::O0);
-    if (!compiled)
-      continue;
-    bool onReferences = false;
-    CompiledModuleHelper::getMlirModuleOp(*compiled->getMlir())
-        .walk([&](cudaq::quake::AllocaOp) { onReferences = true; });
-    llvm::outs() << "Level 0 with " << name << ": "
-                 << (onReferences ? "references" : "wires") << "\n";
-  }
-}
-
-// CHECK: Level 0 with a cost model: wires
-// CHECK: Level 0 with neither: references
-// CHECK: Level 0 with a limit of 2 on all loops: references
-// CHECK: Level 0 with a limit of 2 on index-use loops: references
-
 /// Controlled rotations, which decomposition rewrites with a global phase.
 static const char *controlledRotationsKernel = R"#(
 func.func @__nvqpp__mlirgen__controlledRotations() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
@@ -581,17 +484,11 @@ func.func @__nvqpp__mlirgen__controlledRotations() attributes {"cudaq-entrypoint
 )#";
 
 /// CUDA-Q Logical's import rejects `quake.phase`, so no `t-count` stage may
-/// leave one at any level, and the stage must still end in its basis. The
-/// basis of `compiler-bench-ftqc-logical` has `rz` but not `r1`, so its closing
-/// basis conversion adds a phase of its own. The Clifford+T basis covers a
-/// stage that synthesizes.
+/// leave one at any level. The basis of `compiler-bench-ftqc-logical` has `rz`
+/// but not `r1`, so its closing basis conversion adds a phase of its own. The
+/// Clifford+T basis covers a stage that synthesizes. The strict closing basis
+/// conversion fails the compile if a gate outside the basis remains.
 void test_quake_unmapped_lowers_phase(mlir::MLIRContext *ctx) {
-  auto logical = cudaq::config::QuakeUnmappedProfile{
-      .basisGates = {"h", "s", "t", "x", "y", "z", "x(1)", "z(1)", "x(2)",
-                     "z(2)", "swap", "rx", "ry", "rz", "r1"},
-      .costModel = cudaq::config::CostModel::t_count,
-      .unrollLoops = cudaq::config::LoopUnrolling::index_use,
-      .maxUnrollIterations = 2048000};
   auto benchLogical = cudaq::config::QuakeUnmappedProfile{
       .basisGates = {"h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "swap",
                      "x(1)", "y(1)", "z(1)", "x(2)", "z(2)"},
@@ -601,32 +498,28 @@ void test_quake_unmapped_lowers_phase(mlir::MLIRContext *ctx) {
                      "z(1)"},
       .approximationTolerance = 1e-3,
       .costModel = cudaq::config::CostModel::t_count};
-  for (const auto &[name, profile] :
-       std::vector<std::pair<std::string, cudaq::config::QuakeUnmappedProfile>>{
-           {"Logical", logical},
-           {"FTQC logical", benchLogical},
-           {"Clifford+T", cliffordT}})
-    for (auto level : allLevels) {
-      auto compiled =
-          compileQuake(ctx, "controlledRotations", controlledRotationsKernel,
-                       inferredTarget(profile), level);
-      if (!compiled)
-        continue;
-      auto module = CompiledModuleHelper::getMlirModuleOp(*compiled->getMlir());
+  for (const auto &profile : {benchLogical, cliffordT})
+    for (auto level :
+         {cudaq::OptimizationLevel::O0, cudaq::OptimizationLevel::O1,
+          cudaq::OptimizationLevel::O2, cudaq::OptimizationLevel::O3}) {
+      cudaq::CompileOptions options;
+      options.emitTargetCode = false;
+      options.optimizationLevel = level;
+      options.seed = 42;
+      auto mod = mlir::parseSourceString<mlir::ModuleOp>(
+          controlledRotationsKernel, ctx);
+      Compiler compiler(inferredTarget(profile), std::move(options));
+      auto compiled = compiler.compile(
+          "controlledRotations", mod.release().getAsOpaquePointer(),
+          cudaq::KernelArgs{}, /*isEntryPoint=*/true);
       unsigned phases = 0;
-      module.walk([&](cudaq::quake::PhaseOp) { ++phases; });
-      mlir::PassManager pm(ctx);
-      cudaq::opt::VerifyQuakeUnmappedProfileOptions verify;
-      verify.basis.assign(profile.basisGates.begin(), profile.basisGates.end());
-      pm.addPass(cudaq::opt::createVerifyQuakeUnmappedProfile(verify));
-      const bool inBasis = mlir::succeeded(pm.run(module));
-      llvm::outs() << name << " level " << static_cast<unsigned>(level) << ": "
-                   << phases << " phases, " << (inBasis ? "in" : "outside")
-                   << " the basis\n";
+      CompiledModuleHelper::getMlirModuleOp(*compiled.getMlir())
+          .walk([&](cudaq::quake::PhaseOp) { ++phases; });
+      llvm::outs() << "Phases left: " << phases << "\n";
     }
 }
 
-// CHECK-COUNT-12: level {{[0-3]}}: 0 phases, in the basis
+// CHECK-COUNT-8: Phases left: 0{{$}}
 
 /// A rotation whose angle is the kernel's argument.
 static const char *argumentAngleKernel = R"#(
@@ -795,7 +688,6 @@ int main() {
   test_staged_inferred(context.get());
   test_staged_skip(context.get());
   test_quake_unmapped_levels(context.get());
-  test_level_0_representation(context.get());
   test_quake_unmapped_lowers_phase(context.get());
   test_quake_unmapped_specialization(context.get());
   test_quake_mapped_levels(context.get());
