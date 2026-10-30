@@ -87,7 +87,7 @@ public:
   }
 
   /// @brief Set the target backend, loading the local emulation engine when
-  /// `emulate` is requested. A missing or unloadable engine is reported at
+  /// `emulate` is requested. A missing or `unloadable` engine is reported at
   /// launch, after the kernel checks, as before emulation existed.
   void setTargetBackend(const std::string &backend) override {
     BaseRemoteRESTQPU::setTargetBackend(backend);
