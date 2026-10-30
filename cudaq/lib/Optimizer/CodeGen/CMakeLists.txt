@@ -34,6 +34,7 @@ add_cudaq_library(OptCodeGen
   ReturnToOutputLog.cpp
   TranslateToIQMJson.cpp
   TranslateToOpenQASM.cpp
+  WireSetsToNullWires.cpp
   WireSetsToProfileQIR.cpp
 
   DEPENDS

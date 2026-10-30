@@ -260,6 +260,27 @@ def ReturnToOutputLog : Pass<"return-to-output-log", "mlir::ModuleOp"> {
   ];
 }
 
+def WireSetToNullWires : Pass<"wireset-to-null-wires", "mlir::ModuleOp"> {
+  let summary = "Replace wires borrowed from wire sets with null wires";
+  let description = [{
+    Full QIR gives each `quake.null_wire` a new qubit, but it can't lower
+    `quake.borrow_wire`, which is what a kernel mapped onto a device ends on.
+    This pass turns each borrowed wire into a null wire and each
+    `quake.return_wire` into a `quake.sink`, then erases the wire sets. Profile
+    QIR doesn't need it, because `wireset-to-profile-qir` lowers wire sets
+    directly.
+
+    Borrows in a function's entry block become null wires at the start of the
+    block, sorted by identity, so the qubits are allocated in device order.
+    That matches the device's numbering as long as the mapped qubits run
+    contiguously from 0, which holds for the mapper's identity layout. A borrow
+    inside control flow stays where it is. Each borrow gets its own fresh
+    qubit, even one that borrows an identity again. Because the wires stay
+    values, a wire carried through a `cc.loop` works too, which `regtomem`
+    can't handle.
+  }];
+}
+
 def WireSetToProfileQIR : Pass<"wireset-to-profile-qir", "mlir::func::FuncOp"> {
   let summary = "Convert quake using wire sets to a profile of QIR";
   let description = [{

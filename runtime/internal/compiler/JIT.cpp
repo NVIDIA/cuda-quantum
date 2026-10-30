@@ -191,14 +191,11 @@ cudaq::JitEngine cudaq_internal::compiler::createJITEngine(
     auto *context = module->getContext();
     PassManager pm(context);
 
-    // Only profile QIR lowers borrowed wires. Simulators run full QIR, so
-    // convert them to null wires first.
+    // Profile QIR lowers wire sets with its own pipeline. Full QIR, which
+    // simulators run, turns borrowed wires into null wires in its pipeline.
     const auto codegen = cudaq::parseCodeGenTranslation(convertTo);
-    if (!codegen.isBaseProfile && !codegen.isAdaptiveProfile)
-      cudaq_internal::compiler::convertBorrowedWiresToNullWires(
-          cast<ModuleOp>(module));
-
-    bool containsWireSet =
+    bool useWireSetPipeline =
+        (codegen.isBaseProfile || codegen.isAdaptiveProfile) &&
         module
             ->walk<WalkOrder::PreOrder>([](cudaq::quake::WireSetOp wireSetOp) {
               return WalkResult::interrupt();
@@ -212,7 +209,7 @@ cudaq::JitEngine cudaq_internal::compiler::createJITEngine(
     // this emulated path, we need to pass in `convertTo` to mimic the
     // non-emulated path.
     std::string profileName;
-    if (containsWireSet) {
+    if (useWireSetPipeline) {
       profileName = convertTo;
       cudaq::opt::addWiresetToProfileQIRPipeline(pm, profileName);
     } else {
@@ -253,7 +250,7 @@ cudaq::JitEngine cudaq_internal::compiler::createJITEngine(
     // Insert necessary calls to qubit allocations and qubit releases if the
     // original module contained WireSetOp's.
     const auto entryPointFuncs = collectEntryPointFunctions(module);
-    if (containsWireSet)
+    if (useWireSetPipeline)
       insertWireSetSetupAndCleanupOperations(module, entryPointFuncs);
     // Direct-callable JIT modules also carry `cudaq-entrypoint` because the
     // lowering pipeline needs a code-generation root. They can nevertheless
