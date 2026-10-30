@@ -11,7 +11,7 @@ import pytest
 
 import cudaq
 import cudaq.logical
-from cudaq._experimental import CustomTarget
+from cudaq._experimental import CostModel, CustomTarget, QuakeUnmappedProfile
 
 
 @cudaq.logical.program
@@ -110,14 +110,22 @@ def test_target_eagerly_exposes_the_cudaq_target_configuration():
     assert isinstance(target, CustomTarget)
     assert target.compile_target is compile_target
     assert compile_target.fully_specialize
-    pipeline = compile_target.stages[0].lowering.override_pass_pipeline
-    assert "prepare-for-wireset" in pipeline
-    # Multi-control reduction needs reference semantics, so it must precede
-    # the wire conversion inside `prepare-for-wireset`.
-    assert pipeline.index("multicontrol-decomposition") < pipeline.index(
-        "prepare-for-wireset")
-    assert "prepare-quake-for-qlx" not in pipeline
-    assert "convert-quake-to-qlx" not in pipeline
+    # The compile target has one stage, whose lowering CUDA-Q infers from the
+    # profile. Logical adds no passes of its own.
+    [stage] = compile_target.stages
+    assert stage.lowering is None
+    assert stage.ir_output_profile == QuakeUnmappedProfile(
+        basis_gates=[
+            "h", "s", "t", "x", "y", "z", "x(1)", "z(1)", "x(2)", "z(2)",
+            "swap", "rx", "ry", "rz", "r1"
+        ],
+        approximation_tolerance=0.0,
+        cost_model=CostModel.t_count,
+        semantics="value",
+        unroll_loops="index_use",
+        max_unroll_iterations=2_048_000,
+        erase_noise=False,
+        erase_qec=False)
 
 
 @cudaq.kernel
