@@ -2475,13 +2475,9 @@ def VerifyQuakeUnmappedProfile : Pass<"verify-quake-unmapped-profile", "mlir::Mo
     mapping introduces a wire set. `basis` uses the `basis-conversion`
     grammar, and an empty basis imposes no gate restriction.
 
-    References and wires are both accepted, unless `wires-only` is set, as a
-    stage with value semantics requires. Then an entry point that takes or
-    creates a reference fails. Only entry points are checked, which relies on
-    prep inlining the kernels that an entry point calls. An inlined callee is
-    checked as part of its entry point, and a call that remains can receive
-    references only from the entry point, which this check rejects. A callee
-    that remains and allocates its own qubits is not checked.
+    References and wires are both accepted. With `wires-only`, which a stage
+    with value semantics sets, every qubit in an entry point must be a wire.
+    Only entry points are checked, because prep inlines the kernels they call.
   }];
   let options = [
     ListOption<"basis", "basis", "std::string",

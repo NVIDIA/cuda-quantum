@@ -47,7 +47,7 @@ enum class LoopUnrolling {
 
 /// IR profile for Quake before qubit mapping. Qubits come from allocations
 /// rather than a device's wire set, and any two may interact. Wires and
-/// references are both allowed, unless `semantics` requires wires.
+/// references are both allowed.
 ///
 /// Use it for a target that needs a fixed gate set but not a placement of
 /// qubits on a device, such as a fault-tolerant target that counts logical
@@ -97,10 +97,9 @@ struct QuakeUnmappedProfile {
   LoopUnrolling unrollLoops = LoopUnrolling::all;
 
   /// The most iterations of a loop that the stage unrolls. A selected loop
-  /// with more iterations stays rolled, and the qubits it picks stay
-  /// references. The default, 1024, is the limit to which prep and deploy
-  /// unroll in `classical-optimization-pipeline`. A lower limit keeps prep and
-  /// deploy from unrolling, as `LoopUnrolling::index_use` does.
+  /// with more iterations stays rolled, and a register it indexes stays on
+  /// references. The default, 1024, matches how far prep and deploy unroll,
+  /// and a lower limit stops them from unrolling first.
   unsigned maxUnrollIterations = 1024;
 
   /// Whether prep erases `quake.apply_noise`. A consumer that has to see noise,
