@@ -31,9 +31,9 @@ public:
       return std::nullopt;
     const auto &profile = std::get<cudaq::config::QuakeMappedProfile>(output);
     const auto level = static_cast<unsigned>(options.optimizationLevel);
-    // An input with value semantics is already on wires, so this stage only
-    // adds a wire set and assigns wire indices. `prepare-for-wireset` gives
-    // the same IR on such input (`prepare_for_wireset_on_wires.qke`) but takes
+    // An input with value semantics is already on wires, so before mapping it
+    // needs only a wire set and wire indices. `prepare-for-wireset` gives the
+    // same IR on such input (`prepare_for_wireset_on_wires.qke`) but takes
     // longer than the rest of the stage on a large kernel. Any other input may
     // hold references, so the stage converts it to wires, unrolling the loops
     // that the input profile selects.
