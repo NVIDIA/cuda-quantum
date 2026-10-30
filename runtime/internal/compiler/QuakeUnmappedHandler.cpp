@@ -115,17 +115,9 @@ public:
     std::vector<std::string> passes;
     if (profile.costModel)
       passes = costModelPasses(profile, options);
-    if (!basis.empty()) {
+    if (!basis.empty())
       passes.push_back("basis-conversion{basis=" + llvm::join(basis, ",") +
                        "}");
-      // When the basis lacks a rotation, the conversion rewrites it with an
-      // uncontrolled `quake.phase`, as when it rewrites `r1` as `rz`, and
-      // `lower-phase` erases that phase. After a `t-count` stage's opening
-      // decomposition, every gate left to rewrite is uncontrolled, so no
-      // controlled phase, which would lower to new gates, reaches this point.
-      if (profile.costModel == cudaq::config::CostModel::t_count)
-        passes.push_back("func.func(lower-phase)");
-    }
     cudaq_internal::compiler::StagePasses stagePasses;
     stagePasses.postDeployPasses = llvm::join(passes, ",");
     return stagePasses;
