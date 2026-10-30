@@ -187,13 +187,6 @@ bool specializesArguments(
 /// `specializesArguments` with the built-in lowering handlers.
 bool specializesArguments(const cudaq::CompileTarget &target);
 
-/// Whether the handler of any inferred stage of \p target may erase or move
-/// the kernel's qubits, so that `sample` has to measure them first. Custom
-/// and override stages are opaque here, as for `specializesArguments`.
-bool changesQubitIndices(
-    const cudaq::CompileTarget &target,
-    const std::vector<std::unique_ptr<LoweringHandler>> &handlers);
-
 /// Compile a source module for the given policy, compile target and
 /// arguments.
 cudaq::CompiledModule compileModule(cudaq::CompileTarget target,

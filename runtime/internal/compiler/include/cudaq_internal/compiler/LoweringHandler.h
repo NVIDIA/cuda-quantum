@@ -91,24 +91,6 @@ public:
                          const cudaq::config::Profile &output) const {
     return false;
   }
-
-  /// Whether this stage may erase a qubit or move it to another index, as
-  /// `dqe` and qubit mapping do. If it may, `sample` measures every qubit
-  /// before the pipeline instead of letting the simulator read out whatever
-  /// qubits are left at the end. A measured qubit can't be erased, and the
-  /// mapper uses the measurements to record how to put results back in the
-  /// kernel's qubit order.
-  ///
-  /// Answer from the profiles alone, as for `requiresArgumentValues`. It's
-  /// fine to say yes at every level, because measuring first doesn't change
-  /// the results of a stage that leaves the qubits alone.
-  // TODO: NVIDIA/cuda-quantum#5777 adds `sample`'s measurements after the
-  // pipeline and keeps idle qubits through `dqe` with `quake.evince`. When it
-  // lands, this query can go, and the reorder index can come from the compiler.
-  virtual bool changesQubitIndices(const cudaq::config::Profile &input,
-                                   const cudaq::config::Profile &output) const {
-    return false;
-  }
 };
 
 /// Pipeline text for `prepare-for-wireset`, which unrolls loops and moves the
