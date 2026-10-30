@@ -1,5 +1,3 @@
-Feedback and contributions welcome.
-
 # cudaq-edem
 
 > [!NOTE]
@@ -33,10 +31,10 @@ compiler. C applications can consume the installed package without enabling C++.
 From the CUDA-Q repository root:
 
 ```sh
-cmake -S edem -B build-edem -DBUILD_SHARED_LIBS=ON
-cmake --build build-edem
-ctest --test-dir build-edem --output-on-failure
-cmake --install build-edem --prefix /path/to/install
+cmake -S edem -B build/edem -DBUILD_SHARED_LIBS=ON
+cmake --build build/edem
+ctest --test-dir build/edem --output-on-failure
+cmake --install build/edem --prefix /path/to/install
 ```
 
 Set `BUILD_SHARED_LIBS=OFF` for static libraries and
@@ -45,9 +43,9 @@ from the sibling source directory.
 GF2 can also build and test independently, without configuring cudaq-edem:
 
 ```sh
-cmake -S math/gf2 -B build-gf2 -DBUILD_SHARED_LIBS=ON
-cmake --build build-gf2
-ctest --test-dir build-gf2 --output-on-failure
+cmake -S math/gf2 -B build/gf2 -DBUILD_SHARED_LIBS=ON
+cmake --build build/gf2
+ctest --test-dir build/gf2 --output-on-failure
 ```
 
 Use `CUDAQ_GF2_BUILD_TESTS=OFF` to omit its sparse-matrix and typed-map tests.
@@ -59,7 +57,7 @@ GF2's standalone build does not create another distribution or install package.
 Python bindings use nanobind and require Python 3.11 or newer. Enable them in a
 native build with `CUDAQ_EDEM_BUILD_PYTHON=ON` after
 installing `nanobind>=2.12,<3` into the chosen Python environment. Set
-`Python_EXECUTABLE` to select an interpreter. Native builds default to
+`Python_EXECUTABLE` to select an interpreter. Standalone native builds default to
 `CUDAQ_EDEM_BUILD_PYTHON=OFF`.
 
 Native Python bindings install under
@@ -119,6 +117,11 @@ cmake -S . -B build -DCUDAQ_ENABLE_PROJECTS="cudaq;runtime;edem"
 The top-level CUDA-Q configuration retains its usual toolchain and dependency
 requirements. cudaq-edem tests default to off in a parent build; enable them with
 `CUDAQ_EDEM_BUILD_TESTS=ON`.
+
+When `CUDAQ_ENABLE_PROJECTS` also includes `python`, cudaq-edem Python bindings
+default to on. Set `CUDAQ_EDEM_BUILD_PYTHON=OFF` to omit them, or set it to `ON`
+to build them independently of the parent's Python selection. Explicit
+component options take precedence over these defaults.
 
 ## Installed package
 

@@ -1,11 +1,13 @@
-/*
- * Copyright (c) 2026 NVIDIA Corporation & Affiliates.
- * All rights reserved.
- * This source code and the accompanying materials are made available under
- * the terms of the Apache License 2.0 which accompanies this distribution.
- */
-#ifndef CUDAQ_GF2_BUMP_ALLOCATOR_H
-#define CUDAQ_GF2_BUMP_ALLOCATOR_H
+/******************************************************************************
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        *
+ * All rights reserved.                                                       *
+ *                                                                            *
+ * This source code and the accompanying materials are made available under   *
+ * the terms of the Apache License 2.0 which accompanies this distribution.   *
+ *****************************************************************************/
+
+#pragma once
+
 #include "cudaq/gf2/memory.h"
 #include <stddef.h>
 
@@ -58,4 +60,3 @@ static inline void cudaq_gf2_bump_reset(cudaq_gf2_bump_allocator *arena) {
   if (arena)
     arena->used = 0;
 }
-#endif

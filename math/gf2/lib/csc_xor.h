@@ -1,13 +1,12 @@
-/*
- * Copyright (c) 2026 NVIDIA Corporation & Affiliates.
- * All rights reserved.
- *
- * This source code and the accompanying materials are made available under
- * the terms of the Apache License 2.0 which accompanies this distribution.
- */
+/******************************************************************************
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        *
+ * All rights reserved.                                                       *
+ *                                                                            *
+ * This source code and the accompanying materials are made available under   *
+ * the terms of the Apache License 2.0 which accompanies this distribution.   *
+ *****************************************************************************/
 
-#ifndef CUDAQ_GF2_CSC_XOR_H
-#define CUDAQ_GF2_CSC_XOR_H
+#pragma once
 
 #include <stdint.h>
 
@@ -23,5 +22,3 @@ static inline void cudaq_gf2_csc_xor_kernel(uint32_t columns,
            ++p)
         output[row_indices[p]] ^= 1;
 }
-
-#endif

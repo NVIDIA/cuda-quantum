@@ -1,10 +1,10 @@
-/*
- * Copyright (c) 2026 NVIDIA Corporation & Affiliates.
- * All rights reserved.
- *
- * This source code and the accompanying materials are made available under
- * the terms of the Apache License 2.0 which accompanies this distribution.
- */
+/****************************************************************-*- C++ -*-****
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
 #pragma GCC visibility push(default)
 #include "cudaq/edem/noise.h"
 #pragma GCC visibility pop
@@ -133,6 +133,8 @@ struct responses {
           ids[start + i] = i;
       }
     }
+    // Loaded maps may interleave output kinds. Build response rows in semantic
+    // D/O/Success order so column comparisons do not depend on packed layout.
     for (uint32_t p = 0; p < output_count; ++p) {
       cudaq_edem_endpoint endpoint;
       uint32_t width;
@@ -150,6 +152,8 @@ struct responses {
       output.offset = start;
       start += output.size;
     }
+    // Assemble complete sparse response columns: count each column's entries,
+    // prefix-sum their offsets, then fill and sort the global response rows.
     for (uint64_t b = 0; b < block_count; ++b) {
       cudaq_gf2_map_matrix_block block;
       EDEM_TRY(cudaq_gf2_map_get_matrix_block(&value->edem.map, b, &block));
@@ -299,6 +303,8 @@ cudaq_edem_status probabilities(const cudaq_edem_dem_view &value,
       const double limit = double(group.size) / (group.size + 1);
       if (total > limit || !pauli_image(data, start, group))
         return CUDAQ_EDEM_UNSUPPORTED_DISTRIBUTION;
+      // Invert the uniform Pauli-channel parity probability. log1p/expm1 keep
+      // small probabilities accurate; the endpoints avoid log(0) and -0.
       double q = total == 0 ? 0
                  : total == limit
                      ? 0.5

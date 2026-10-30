@@ -1,13 +1,13 @@
-/*
- * Copyright (c) 2026 NVIDIA Corporation & Affiliates.
- * All rights reserved.
- *
- * This source code and the accompanying materials are made available under
- * the terms of the Apache License 2.0 which accompanies this distribution.
- */
+/******************************************************************************
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        *
+ * All rights reserved.                                                       *
+ *                                                                            *
+ * This source code and the accompanying materials are made available under   *
+ * the terms of the Apache License 2.0 which accompanies this distribution.   *
+ *****************************************************************************/
 
-#ifndef CUDAQ_GF2_FORMAT_H
-#define CUDAQ_GF2_FORMAT_H
+#pragma once
+
 #include <stdint.h>
 
 /* Concrete v0.x development revision. All multibyte fields are little-endian.
@@ -65,4 +65,3 @@ typedef struct cudaq_gf2_packed_matrix {
   uint32_t rows, columns;
   uint64_t nonzeros, column_offsets, row_indices;
 } cudaq_gf2_packed_matrix;
-#endif

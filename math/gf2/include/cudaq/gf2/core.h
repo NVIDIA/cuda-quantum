@@ -1,13 +1,12 @@
-/*
- * Copyright (c) 2026 NVIDIA Corporation & Affiliates.
- * All rights reserved.
- *
- * This source code and the accompanying materials are made available under
- * the terms of the Apache License 2.0 which accompanies this distribution.
- */
+/******************************************************************************
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        *
+ * All rights reserved.                                                       *
+ *                                                                            *
+ * This source code and the accompanying materials are made available under   *
+ * the terms of the Apache License 2.0 which accompanies this distribution.   *
+ *****************************************************************************/
 
-#ifndef CUDAQ_GF2_CORE_H
-#define CUDAQ_GF2_CORE_H
+#pragma once
 
 #include <stdint.h>
 
@@ -74,6 +73,4 @@ cudaq_gf2_status cudaq_gf2_csc_apply(const cudaq_gf2_csc_view *matrix,
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif

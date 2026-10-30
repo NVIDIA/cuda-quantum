@@ -1,13 +1,13 @@
-/*
- * Copyright (c) 2026 NVIDIA Corporation & Affiliates.
- * All rights reserved.
- *
- * This source code and the accompanying materials are made available under
- * the terms of the Apache License 2.0 which accompanies this distribution.
- */
+/******************************************************************************
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        *
+ * All rights reserved.                                                       *
+ *                                                                            *
+ * This source code and the accompanying materials are made available under   *
+ * the terms of the Apache License 2.0 which accompanies this distribution.   *
+ *****************************************************************************/
 
-#ifndef CUDAQ_EDEM_VOCABULARY_H
-#define CUDAQ_EDEM_VOCABULARY_H
+#pragma once
+
 #include "cudaq/edem/core.h"
 #include <cstdint>
 #include <iterator>
@@ -33,4 +33,3 @@ constexpr uint32_t free_type(cudaq_edem_port_kind kind) {
   return i;
 }
 } // namespace cudaq_edem_private
-#endif

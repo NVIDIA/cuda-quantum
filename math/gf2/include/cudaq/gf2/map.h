@@ -1,13 +1,13 @@
-/*
- * Copyright (c) 2026 NVIDIA Corporation & Affiliates.
- * All rights reserved.
- *
- * This source code and the accompanying materials are made available under
- * the terms of the Apache License 2.0 which accompanies this distribution.
- */
+/******************************************************************************
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        *
+ * All rights reserved.                                                       *
+ *                                                                            *
+ * This source code and the accompanying materials are made available under   *
+ * the terms of the Apache License 2.0 which accompanies this distribution.   *
+ *****************************************************************************/
 
-#ifndef CUDAQ_GF2_MAP_H
-#define CUDAQ_GF2_MAP_H
+#pragma once
+
 #include "cudaq/gf2/core.h"
 #include "cudaq/gf2/format.h"
 #include "cudaq/gf2/memory.h"
@@ -138,5 +138,4 @@ cudaq_gf2_status cudaq_gf2_map_apply(const cudaq_gf2_map_view *value,
                                      uint8_t *output, uint64_t output_size);
 #ifdef __cplusplus
 }
-#endif
 #endif
