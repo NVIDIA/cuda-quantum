@@ -19,8 +19,8 @@ def PhysToQuake : Pass<"phys-to-quake", "mlir::ModuleOp"> {
     named `__nvqpp__mlirgen__<entry>`, as the CUDA-Q front-ends name kernels.
     The module then holds only that function and the intrinsics it calls.
     The pass removes the `qlx.*` module attributes, keeps the others, and
-    adds `quake.noOptimization`. Other graphs in the module are erased
-    without being translated.
+    adds `quake.optimizationLevel=0` to the function. Other graphs in the
+    module are erased without being translated.
 
     Each P3 operation becomes the Quake below, in program order:
       - `phys.acquire` and `phys.release` of a carrier become
