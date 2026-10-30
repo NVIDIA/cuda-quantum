@@ -11,6 +11,7 @@
 #include "common/CompiledModule.h"
 #include "common/Environment.h"
 #include "common/Timing.h"
+#include "cudaq_internal/compiler/ExecutionEngine.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/Builder/CompilerNames.h"
@@ -23,6 +24,7 @@
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Verifier/QIRLLVMIRDialect.h"
 #include "cudaq/runtime/logger/logger.h"
+#include "cudaq/utils/cudaq_utils.h"
 #include "llvm/ExecutionEngine/Orc/ExecutionUtils.h"
 #include "llvm/ExecutionEngine/Orc/LLJIT.h"
 #include "llvm/ExecutionEngine/Orc/RTDyldObjectLinkingLayer.h"
@@ -44,6 +46,8 @@
 #include "mlir/Target/LLVMIR/Export.h"
 #include <cassert>
 #include <cxxabi.h>
+#include <dlfcn.h>
+#include <filesystem>
 #include <iterator>
 #include <memory>
 #include <stdexcept>
@@ -52,6 +56,56 @@
 #define DEBUG_TYPE "cudaq-qpud"
 
 using namespace mlir;
+
+llvm::Expected<std::unique_ptr<mlir::ExecutionEngine>>
+cudaq_internal::compiler::createExecutionEngine(
+    mlir::ModuleOp module, mlir::ExecutionEngineOptions options) {
+  // Resolve runtime symbols through a local handle. sharedLibPaths would load
+  // the library RTLD_GLOBAL and expose its LLVM/MLIR dependencies.
+  static void *runtimeHandle = [] {
+    auto directory =
+        std::filesystem::path(cudaq::getCUDAQLibraryPath()).parent_path();
+#ifdef __APPLE__
+    auto path = directory / "libcudaq-em-default.dylib";
+#else
+    auto path = directory / "libcudaq-em-default.so";
+#endif
+    auto *handle = dlopen(path.c_str(), RTLD_NOW | RTLD_LOCAL);
+    if (!handle)
+      throw std::runtime_error("Could not load CUDA-Q JIT runtime: " +
+                               std::string(dlerror()));
+    return handle;
+  }();
+
+  llvm::StringMap<void *> runtimeSymbols;
+  auto originalTransformer = options.transformer;
+  auto transformer = [&](llvm::Module *llvmModule) -> llvm::Error {
+    if (originalTransformer)
+      if (auto error = originalTransformer(llvmModule))
+        return error;
+    for (auto &symbol : llvmModule->global_values()) {
+      if (!symbol.isDeclaration())
+        continue;
+      auto name = symbol.getName().str();
+      if (auto *address = dlsym(runtimeHandle, name.c_str()))
+        runtimeSymbols[name] = address;
+    }
+    return llvm::Error::success();
+  };
+  options.transformer = transformer;
+  auto engine = mlir::ExecutionEngine::create(module, options);
+  if (!engine)
+    return engine.takeError();
+  (*engine)->registerSymbols([&](llvm::orc::MangleAndInterner interner) {
+    llvm::orc::SymbolMap symbols;
+    for (auto &symbol : runtimeSymbols)
+      symbols[interner(symbol.getKey())] = {
+          llvm::orc::ExecutorAddr::fromPtr(symbol.getValue()),
+          llvm::JITSymbolFlags::Exported};
+    return symbols;
+  });
+  return engine;
+}
 
 static SmallVector<LLVM::LLVMFuncOp>
 collectEntryPointFunctions(Operation *module) {
@@ -274,7 +328,7 @@ cudaq::JitEngine cudaq_internal::compiler::createJITEngine(
   };
   opts.llvmModuleBuilder = std::move(llvmModuleBuilderTemp);
 
-  auto jitOrError = ExecutionEngine::create(moduleOp, opts);
+  auto jitOrError = createExecutionEngine(moduleOp, opts);
   assert(!!jitOrError && "ExecutionEngine creation failed.");
   return cudaq::JitEngine(std::move(jitOrError.get()));
 }
