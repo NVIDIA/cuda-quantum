@@ -38,10 +38,7 @@ def PhysToQuake : Pass<"phys-to-quake", "mlir::ModuleOp"> {
         ancilla, and the ancilla is measured and freed. With `invert`, the
         bit is complemented where it is read.
       - `phys.rotate_product` is `exp(-i angle P / 2)`: basis changes and a
-        CX ladder around `rz`. A multiple of pi/2 up to floating-point
-        rounding, at most 128 full turns, uses `s`, `z`, `sdg`, or no gate
-        instead, because Stim runs no `rz`. An angle whose magnitude is at
-        most 1e-12 rad uses no gate. Every other angle keeps `rz`.
+        CX ladder around `rz`, at every angle.
       - `phys.call` is inlined. `phys.call_template` replays the body of the
         call that `template_event` names, on the carriers that
         `state_aliases` maps the body's resources to. A template with

@@ -1713,7 +1713,8 @@ using WideSSAUsers =
     llvm::DenseMap<Operation *, llvm::SmallPtrSet<Operation *, 16>>;
 
 static bool hasSSAPath(Operation *producer, Operation *consumer,
-                       WideSSAUsers &wideUsers) {
+                       WideSSAUsers &wideUsers,
+                       llvm::function_ref<bool(Operation *)> pastConsumer) {
   SmallVector<Operation *, 16> worklist;
   llvm::SmallPtrSet<Operation *, 32> visited;
   auto appendUsers = [&](Operation *operation) {
@@ -1741,29 +1742,52 @@ static bool hasSSAPath(Operation *producer, Operation *consumer,
       return true;
     if (!visited.insert(operation).second)
       continue;
+    if (pastConsumer(operation))
+      continue;
     if (appendUsers(operation))
       return true;
-    // A captured state can reach the conditional's results through a branch
-    // yield. Follow result users, not the parent operation: reaching the parent
-    // would also claim causality into the opposite branch.
+    // The conditional completes after the producer only when the yield of
+    // every branch is reached, so follow its result users only then. Do not
+    // follow the conditional itself: an ancestor match on it would order the
+    // producer before every operation nested in it.
+    // Note: phys.allocation_mapping is verified before the graph's nested
+    // operations, so a branch region can still be empty here, or its block
+    // can lack a terminator.
     if (isa<qlx::cflow::YieldOp>(operation))
       if (auto conditional =
               dyn_cast<qlx::cflow::IfOp>(operation->getParentOp()))
-        if (appendUsers(conditional))
+        if (llvm::all_of(conditional->getRegions(),
+                         [&](Region &branch) {
+                           return branch.empty() ||
+                                  !branch.front().mightHaveTerminator() ||
+                                  visited.contains(
+                                      branch.front().getTerminator());
+                         }) &&
+            appendUsers(conditional))
           return true;
   }
   return false;
 }
 
-static bool causallyPrecedes(Operation *producer, Operation *consumer,
-                             GraphOp graph, WideSSAUsers &wideUsers) {
+static bool
+causallyPrecedes(Operation *producer, Operation *consumer, GraphOp graph,
+                 WideSSAUsers &wideUsers,
+                 const llvm::DenseMap<Operation *, unsigned> &graphPosition) {
   Operation *producerAnchor = directGraphChild(producer, graph);
   Operation *consumerAnchor = directGraphChild(consumer, graph);
   if (!producerAnchor || !consumerAnchor)
     return false;
+  // SSA users never precede their definition's graph-level operation, so a
+  // walk that reaches a graph-level operation after the consumer's cannot
+  // come back to it.
+  unsigned bound = graphPosition.lookup(consumerAnchor);
+  auto pastConsumer = [&](Operation *operation) {
+    Operation *anchor = directGraphChild(operation, graph);
+    return anchor && graphPosition.lookup(anchor) > bound;
+  };
   if (producerAnchor == consumerAnchor)
-    return hasSSAPath(producer, consumer, wideUsers);
-  return hasSSAPath(producerAnchor, consumerAnchor, wideUsers);
+    return hasSSAPath(producer, consumer, wideUsers, pastConsumer);
+  return hasSSAPath(producerAnchor, consumerAnchor, wideUsers, pastConsumer);
 }
 
 static Operation *unsupportedLifetimeControl(Operation *operation,
@@ -1986,12 +2010,16 @@ LogicalResult AllocationMappingOp::verify() {
       physicalLifetimes;
   llvm::DenseMap<std::pair<Operation *, Operation *>, bool> causalOrder;
   WideSSAUsers wideUsers;
+  llvm::DenseMap<Operation *, unsigned> graphPosition;
+  for (auto [position, operation] : llvm::enumerate(graph.getBody().getOps()))
+    graphPosition.try_emplace(&operation, position);
   auto causallyOrdered = [&](Operation *producer, Operation *consumer) {
     auto key = std::make_pair(producer, consumer);
     auto found = causalOrder.find(key);
     if (found != causalOrder.end())
       return found->second;
-    bool result = causallyPrecedes(producer, consumer, graph, wideUsers);
+    bool result =
+        causallyPrecedes(producer, consumer, graph, wideUsers, graphPosition);
     causalOrder.try_emplace(key, result);
     return result;
   };
