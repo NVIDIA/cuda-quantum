@@ -22,7 +22,6 @@ compile-target:
         options:
           basis-gates: [h, rx, ry, rz, x, "z(1)"]
           cost-model: two-qubit-gate-count
-          semantics: value
     - ir-output-profile:
         name: quake-mapped
         options:

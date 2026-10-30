@@ -111,18 +111,14 @@
 
 // The NISQ target decomposes and optimizes in its `quake-unmapped` stage,
 // keeping controlled `x` for phase folding until its basis conversion, and
-// maps in its `quake-mapped` stage. Its first stage has value semantics, so it
-// ends with the wires-only verifier, and the second stage adds a wire set
-// instead of converting to wires again. Level 1 adds only the two optimization
-// pipelines.
+// maps in its `quake-mapped` stage. Both stages convert to wires at every
+// level, and level 1 adds only the two optimization pipelines.
 // CHECK-LABEL: compiler-bench-nisq on path(4) level 0:
 // CHECK:       jit-deploy-pipeline
 // CHECK-NEXT:  decomposition{basis=h,rx,ry,rz,x,z(1),x(1)}
 // CHECK-NEXT:  prepare-for-wireset{maximum-iterations=1024}
 // CHECK-NEXT:  basis-conversion{basis=h,rx,ry,rz,x,z(1)}
-// CHECK-NEXT:  verify-quake-unmapped-profile{wires-only=true}
-// CHECK-NEXT:  add-wireset
-// CHECK-NEXT:  func.func(assign-wire-indices)
+// CHECK-NEXT:  prepare-for-wireset{add-wireset=true maximum-iterations=1024}
 // CHECK-NEXT:  qubit-mapping{device=path(4) raise-fatal-errors=true}
 // CHECK-NEXT:  basis-conversion{basis=h,rx,ry,rz,x,z(1)}
 // CHECK-NEXT:  jit-finalize-pipeline
@@ -133,9 +129,7 @@
 // CHECK-NEXT:  prepare-for-wireset{maximum-iterations=1024}
 // CHECK-NEXT:  two-qubit-gate-count-optimization-pipeline{level=1}
 // CHECK-NEXT:  basis-conversion{basis=h,rx,ry,rz,x,z(1)}
-// CHECK-NEXT:  verify-quake-unmapped-profile{wires-only=true}
-// CHECK-NEXT:  add-wireset
-// CHECK-NEXT:  func.func(assign-wire-indices)
+// CHECK-NEXT:  prepare-for-wireset{add-wireset=true maximum-iterations=1024}
 // CHECK-NEXT:  qubit-mapping{device=path(4) raise-fatal-errors=true}
 // CHECK-NEXT:  two-qubit-gate-count-optimization-pipeline{level=1}
 // CHECK-NEXT:  basis-conversion{basis=h,rx,ry,rz,x,z(1)}
@@ -143,8 +137,8 @@
 
 // CUDA-Q Logical's stage keeps the loops whose index the body does not use
 // rolled, so prep and deploy unroll no loop, and its target keeps noise and QEC
-// operations in prep. Under value semantics the stage converts to wires at every level
-// and ends with the verifier, which rejects a register left on references.
+// operations in prep. Under value semantics the stage converts to wires at
+// every level.
 // CHECK-LABEL: CUDA-Q Logical level 0:
 // CHECK-NEXT:  canonicalize
 // CHECK-NEXT:  hw-jit-prep-pipeline{allow-early-exit=false no-loop-unroll=true erase-noise=false erase-qec=false}
@@ -155,7 +149,6 @@
 // CHECK-NEXT:  clifford-t-synthesis-pipeline{basis=h,s,t,x,y,z,x(1),z(1),x(2),z(2),swap,rx,ry,rz,r1 level=0 approximation-tolerance=0}
 // CHECK-NEXT:  basis-conversion{basis=h,s,t,x,y,z,x(1),z(1),x(2),z(2),swap,rx,ry,rz,r1}
 // CHECK-NEXT:  func.func(lower-phase)
-// CHECK-NEXT:  verify-quake-unmapped-profile{wires-only=true}
 // CHECK-NEXT:  jit-finalize-pipeline{lower-device-calls=true}
 // CHECK-EMPTY:
 
@@ -170,7 +163,6 @@
 // CHECK-NEXT:  clifford-t-synthesis-pipeline{basis=h,s,t,x,y,z,x(1),z(1),x(2),z(2),swap,rx,ry,rz,r1 level=1 approximation-tolerance=0}
 // CHECK-NEXT:  basis-conversion{basis=h,s,t,x,y,z,x(1),z(1),x(2),z(2),swap,rx,ry,rz,r1}
 // CHECK-NEXT:  func.func(lower-phase)
-// CHECK-NEXT:  verify-quake-unmapped-profile{wires-only=true}
 // CHECK-NEXT:  jit-finalize-pipeline{lower-device-calls=true}
 // CHECK-EMPTY:
 // clang-format on

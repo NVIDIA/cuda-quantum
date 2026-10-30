@@ -128,10 +128,6 @@ public:
       if (profile.costModel == cudaq::config::CostModel::t_count)
         passes.push_back("func.func(lower-phase)");
     }
-    // Lowering handlers run no verifier, except here: no later pass rejects a
-    // register that the conversion left on references.
-    if (profile.semantics == cudaq::config::Semantics::value)
-      passes.push_back("verify-quake-unmapped-profile{wires-only=true}");
     cudaq_internal::compiler::StagePasses stagePasses;
     stagePasses.postDeployPasses = llvm::join(passes, ",");
     return stagePasses;

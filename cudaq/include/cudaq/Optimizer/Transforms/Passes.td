@@ -2472,18 +2472,13 @@ def VerifyQuakeUnmappedProfile : Pass<"verify-quake-unmapped-profile", "mlir::Mo
     operation in a kernel is not in `basis`. A kernel is an entry point or a
     function that takes qubits, which are the functions `basis-conversion`
     converts. The profile describes Quake before qubit mapping, and only
-    mapping introduces a wire set. `basis` uses the `basis-conversion`
-    grammar, and an empty basis imposes no gate restriction.
-
-    References and wires are both accepted. With `wires-only`, which a stage
-    with value semantics sets, every qubit in an entry point must be a wire.
-    Only entry points are checked, because prep inlines the kernels they call.
+    mapping introduces a wire set. References and wires are both accepted.
+    `basis` uses the `basis-conversion` grammar, and an empty basis imposes no
+    gate restriction.
   }];
   let options = [
     ListOption<"basis", "basis", "std::string",
                "Set of allowed basis operations (empty = unrestricted)">,
-    Option<"wiresOnly", "wires-only", "bool", /*default=*/"false",
-           "Require every qubit in an entry point to be a wire">,
   ];
 }
 
