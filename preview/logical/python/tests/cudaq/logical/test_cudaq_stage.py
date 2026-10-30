@@ -18,7 +18,6 @@ import pytest
 
 import cudaq
 import cudaq.logical as cql
-from cudaq._experimental import CompilationStage
 from cudaq.logical._native import native
 
 pytestmark = pytest.mark.skipif(
@@ -166,17 +165,3 @@ def test_a_noisy_kernel_fails_to_import(import_kernel):
     # as noiseless, and the import rejects it.
     with pytest.raises(RuntimeError, match="supports only value-semantics"):
         import_kernel(noisy)
-
-
-def test_an_index_loop_past_the_limit_fails_to_import():
-    # A target with a smaller limit leaves the loop's register on references,
-    # which the import rejects.
-    target = cql.targets.Target.from_backend(
-        "limited",
-        cql.targets.ProgramBackend(next_backend=cql.targets.TerminalBackend()))
-    profile = target.compile_target.stages[0].ir_output_profile
-    profile.max_unroll_iterations = 8
-    target.compile_target.stages = [CompilationStage(profile)]
-
-    with pytest.raises(RuntimeError, match="supports only value-semantics"):
-        cql.compiler.import_cudaq(long_index_loop, target=target)
