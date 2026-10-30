@@ -192,6 +192,12 @@ for a worked example of authoring and verifying a custom memory gadget's
 contract. Use `GadgetContractBuilder` to declare the detector parities and outgoing
 syndrome values for a gadget you author.
 
+For a runnable introduction, [Verify an authored gadget](examples/gadget-verification.md)
+declares an explicit contract for a Repetition-code syndrome round and inspects
+the receipt for an incorrect logical claim. Then
+[Physical surface-code memory](examples/gadget-surface-memory.md) verifies and
+composes three recipe-provided gadgets.
+
 Construction and MLIR verification establish local shape, ownership, symbol, and
 algebra invariants; semantic checks establish that a realization does what it
 claims. Do not conflate the levels:

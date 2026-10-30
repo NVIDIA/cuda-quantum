@@ -23,14 +23,16 @@ This page covers two ways to export:
 
 This tutorial uses ideal MPP stabilizer measurements and explicit data noise.
 For physical ancilla extraction with circuit-level gate, reset and measurement
-noise, see [Circuit-level surface memory](examples/surface-memory-circuit.md).
+noise, start with [Physical surface-code memory](examples/gadget-surface-memory.md).
+The advanced [reference comparison](examples/surface-memory-circuit.md) adds
+individual gadget-model exports and checks against Stim's generated circuit.
 
 With CUDA-Q Logical installed, run the
-[surface-memory example](../../../examples/standalone/06_stim_emission.py)
+[surface-memory example](../../../examples/gadgets/02_stim_emission.py)
 from the repository root:
 
 ```bash
-python3 preview/logical/examples/standalone/06_stim_emission.py > surface-memory.stim
+python3 preview/logical/examples/gadgets/02_stim_emission.py > surface-memory.stim
 ```
 
 The default experiment uses a distance-three code and three rounds of
@@ -105,7 +107,7 @@ cells interactively.
 Start with the parameter cell:
 
 ```{eval-rst}
-.. literalinclude:: ../../../examples/standalone/06_stim_emission.py
+.. literalinclude:: ../../../examples/gadgets/02_stim_emission.py
    :language: python
    :start-at: distance = 3
    :end-before: # %%
@@ -129,7 +131,7 @@ example's explicit data errors are the only noise in the circuit.
 Select the surface code at your chosen distance and its qubit coordinates:
 
 ```{eval-rst}
-.. literalinclude:: ../../../examples/standalone/06_stim_emission.py
+.. literalinclude:: ../../../examples/gadgets/02_stim_emission.py
    :language: python
    :start-at: implementation = surface.definitions(distance)
    :end-before: # %%
@@ -200,7 +202,7 @@ The example assembles preparation, repeated SEC occurrences and direct logical
 readout explicitly:
 
 ```{eval-rst}
-.. literalinclude:: ../../../examples/standalone/06_stim_emission.py
+.. literalinclude:: ../../../examples/gadgets/02_stim_emission.py
    :language: python
    :start-at: prep = surface.gadget_contract(implementation.prepare_zero)
    :end-before: # %%
@@ -221,7 +223,7 @@ does not erase the errors. The direct logical readout has no such site and
 receives no additional noise in this example.
 
 ```{eval-rst}
-.. literalinclude:: ../../../examples/standalone/06_stim_emission.py
+.. literalinclude:: ../../../examples/gadgets/02_stim_emission.py
    :language: python
    :start-at: projections = {
    :end-before: # %%
@@ -252,7 +254,7 @@ The example passes the contracts and noise placements to `emit_stim` and adds
 qubit coordinates for visualization:
 
 ```{eval-rst}
-.. literalinclude:: ../../../examples/standalone/06_stim_emission.py
+.. literalinclude:: ../../../examples/gadgets/02_stim_emission.py
    :language: python
    :start-at: coordinates =
    :end-before: assert sum(
@@ -279,7 +281,7 @@ With `shots = 100`, their shapes are `(100, 20)` and `(100, 1)`. The sampling
 step is:
 
 ```{eval-rst}
-.. literalinclude:: ../../../examples/standalone/06_stim_emission.py
+.. literalinclude:: ../../../examples/gadgets/02_stim_emission.py
    :language: python
    :start-at: if shots:
 ```

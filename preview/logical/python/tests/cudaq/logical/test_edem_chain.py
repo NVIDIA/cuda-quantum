@@ -111,7 +111,7 @@ def test_experiment_exports_biased_noise_without_simulators(
         return original(name, *args, **kwargs)
 
     monkeypatch.setattr(builtins, "__import__", without_samplers)
-    result = run_memory_example("07_memory_edem.py",
+    result = run_memory_example("03_custom_noise.py",
                                 rounds=4,
                                 noisy_rounds=(1, 3),
                                 noisy_data_qubits=(0, 1),

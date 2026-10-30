@@ -211,6 +211,11 @@ is authored here; it is not inferred automatically from the gadget definition.
 
 ## Verify a contract and the logical action
 
+The [authored-gadget example](../use-cases/examples/gadget-verification.md)
+runs this workflow and demonstrates a failed logical-action receipt. The
+[physical-memory example](../use-cases/examples/gadget-surface-memory.md)
+applies it to recipe-provided preparation, extraction and readout contracts.
+
 `verify_gadget` checks a `GadgetContract` against its gadget's realization:
 
 ```python

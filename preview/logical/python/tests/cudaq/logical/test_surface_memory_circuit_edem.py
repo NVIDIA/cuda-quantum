@@ -276,7 +276,7 @@ def test_composed_edem_matches_circuit_and_reference(make_circuit_memory,
 
 
 def test_example_exports_compares_and_samples(run_memory_example, capsys):
-    result = run_memory_example("08_surface_memory_circuit.py",
+    result = run_memory_example("04_surface_memory_reference.py",
                                 compare_with_stim=True,
                                 shots=32,
                                 seed=7)
@@ -294,7 +294,7 @@ def test_example_exports_compares_and_samples(run_memory_example, capsys):
 
 
 def test_example_uses_independent_standard_noise_parameters(run_memory_example):
-    result = run_memory_example("08_surface_memory_circuit.py",
+    result = run_memory_example("04_surface_memory_reference.py",
                                 after_clifford_depolarization=.002,
                                 before_measure_flip_probability=.003,
                                 after_reset_flip_probability=.004,
@@ -309,7 +309,7 @@ def test_example_uses_independent_standard_noise_parameters(run_memory_example):
 @pytest.mark.parametrize("sampling_mode", ["circuit", "dem"])
 def test_example_samples_selected_representation_and_keeps_original_laws(
         run_memory_example, sampling_mode, capsys):
-    result = run_memory_example("08_surface_memory_circuit.py",
+    result = run_memory_example("04_surface_memory_reference.py",
                                 compare_with_stim=False,
                                 shots=32,
                                 sampling_mode=sampling_mode)
@@ -333,5 +333,5 @@ def test_example_samples_selected_representation_and_keeps_original_laws(
 
 def test_example_rejects_unknown_sampling_mode(run_memory_example):
     with pytest.raises(ValueError, match="sampling_mode"):
-        run_memory_example("08_surface_memory_circuit.py",
+        run_memory_example("04_surface_memory_reference.py",
                            sampling_mode="unknown")

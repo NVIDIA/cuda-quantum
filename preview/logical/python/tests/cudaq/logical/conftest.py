@@ -16,7 +16,7 @@ import pytest
 
 import cudaq.logical as cql
 
-EXAMPLES = Path(__file__).resolve().parents[4] / "examples/standalone"
+EXAMPLES = Path(__file__).resolve().parents[4] / "examples/gadgets"
 
 
 @pytest.fixture(scope="module")
@@ -24,7 +24,8 @@ def run_memory_example(tmp_path_factory):
 
     def run(name, **parameters):
         parameters.setdefault("shots", 0)
-        if name in ("07_memory_edem.py", "08_surface_memory_circuit.py"):
+        if name in ("01_surface_memory.py", "03_custom_noise.py",
+                    "04_surface_memory_reference.py"):
             parameters.setdefault("output",
                                   tmp_path_factory.mktemp("memory-edem"))
         path = EXAMPLES / name
@@ -78,7 +79,7 @@ def make_memory(run_memory_example, memory_result):
 
     def make(distance=3, rounds=3):
         return memory_result(
-            run_memory_example("06_stim_emission.py",
+            run_memory_example("02_stim_emission.py",
                                distance=distance,
                                rounds=rounds))
 

@@ -34,7 +34,7 @@ sampling_mode = "circuit"  # Or "dem": sample the exactly factorized DEM.
 
 # %%
 # Select concrete gadgets with the interleaved N/Z gate schedule. Examples
-# 06 and 07 use the ideal-MPP gadgets from surface.definitions(distance).
+# 02 and 03 use the ideal-MPP gadgets from surface.definitions(distance).
 implementation = surface.interleaved_nz_definitions(distance)
 prep = surface.gadget_contract(implementation.prepare_zero)
 sec = surface.gadget_contract(implementation.syndrome_extraction)

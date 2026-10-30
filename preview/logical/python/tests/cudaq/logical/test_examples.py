@@ -23,6 +23,9 @@ KERNEL_EXAMPLES = (
 STANDALONE_EXAMPLES = tuple(
     sorted((EXAMPLE_ROOT / "standalone").glob("[0-9][0-9]_*.py")))
 
+GADGET_EXAMPLES = tuple(
+    sorted((EXAMPLE_ROOT / "gadgets").glob("[0-9][0-9]_*.py")))
+
 
 @pytest.fixture(autouse=True)
 def reset_cudaq_target_after_test():
@@ -36,12 +39,13 @@ def test_examples_execute(capsys, monkeypatch, tmp_path):
     import cudaq
 
     assert len(KERNEL_EXAMPLES) == 7
-    assert len(STANDALONE_EXAMPLES) == 11
+    assert len(STANDALONE_EXAMPLES) == 8
+    assert len(GADGET_EXAMPLES) == 5
     monkeypatch.syspath_prepend(str(EXAMPLE_ROOT))
     # Memory examples export their artifacts relative to the working directory.
     monkeypatch.chdir(tmp_path)
     output = {}
-    for example in (*KERNEL_EXAMPLES, *STANDALONE_EXAMPLES):
+    for example in (*KERNEL_EXAMPLES, *STANDALONE_EXAMPLES, *GADGET_EXAMPLES):
         cudaq.reset_target()
         monkeypatch.setattr(sys, "argv", [str(example)])
         runpy.run_path(str(example), run_name="__main__")

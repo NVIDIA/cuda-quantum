@@ -36,13 +36,17 @@ def test_recipe_is_cached_and_distinct_from_ideal_mpp():
 
 
 @pytest.mark.parametrize("example, rounds", [
-    ("06_stim_emission.py", 0),
-    ("06_stim_emission.py", True),
-    ("06_stim_emission.py", 2.5),
-    ("07_memory_edem.py", 0),
-    ("08_surface_memory_circuit.py", 0),
-    ("08_surface_memory_circuit.py", 1),
-    ("08_surface_memory_circuit.py", "3"),
+    ("01_surface_memory.py", 0),
+    ("01_surface_memory.py", 1),
+    ("01_surface_memory.py", True),
+    ("01_surface_memory.py", 2.5),
+    ("02_stim_emission.py", 0),
+    ("02_stim_emission.py", True),
+    ("02_stim_emission.py", 2.5),
+    ("03_custom_noise.py", 0),
+    ("04_surface_memory_reference.py", 0),
+    ("04_surface_memory_reference.py", 1),
+    ("04_surface_memory_reference.py", "3"),
 ])
 def test_examples_reject_invalid_round_counts(run_memory_example, example,
                                               rounds):
@@ -221,7 +225,7 @@ def test_example_exports_original_models_without_stim(run_memory_example,
         return original_import(name, *args, **kwargs)
 
     monkeypatch.setattr(builtins, "__import__", without_stim)
-    result = run_memory_example("08_surface_memory_circuit.py",
+    result = run_memory_example("04_surface_memory_reference.py",
                                 compare_with_stim=False,
                                 rounds=5)
     assert {path.name for path in result["output"].iterdir()} == {
@@ -244,4 +248,4 @@ def test_example_exports_original_models_without_stim(run_memory_example,
 
 def test_example_requires_both_endcap_extractions(run_memory_example):
     with pytest.raises(ValueError, match="at least two"):
-        run_memory_example("08_surface_memory_circuit.py", rounds=1)
+        run_memory_example("04_surface_memory_reference.py", rounds=1)

@@ -38,13 +38,19 @@ The standalone execution examples compile protocols to physical builds and
 execute them with `cudaq.run`: ideal encoded computation and T-state
 distillation with noise. See the [standalone sequence](standalone/README.md).
 
-The [`mlir/`](mlir/README.md) examples run pipelines with `qlx-opt` and
-`qlx-translate`. The standalone sequence also includes annotated Stim export
-and gadget-by-gadget detector error models.
+The [`gadgets/`](gadgets/README.md) sequence is a separate introduction to
+gadget verification and detector error models. Start with `00_verify_gadget.py`
+to author and check one gadget, then `01_surface_memory.py` to verify, export,
+and analyze a physical surface-code memory experiment. Examples 02 and 03
+explore ideal MPP measurements and custom noise; example 04 adds explicit
+gadget-model reuse and a Stim reference comparison.
 
-Every numbered example is organized into `# %%` cells with editable
-parameters, so you can run it as a script or step through it interactively.
-Run the commands from the repository root.
+The [`mlir/`](mlir/README.md) examples run pipelines with `qlx-opt` and
+`qlx-translate`.
+
+Every numbered example is organized into `# %%` cells, so you can run it as a
+script or step through it interactively. Experiments expose editable
+parameters in a configuration cell. Run the commands from the repository root.
 
 ## Gidney--Ekerå physical compilation
 
