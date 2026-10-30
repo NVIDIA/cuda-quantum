@@ -105,7 +105,7 @@ print(f"Model: {artifact}")
 
 # %%
 # Optionally sample detector events and uncorrected observable flips with Stim.
-# Stim samples independent errors. factorize_dem preserves independent groups
+# Stim samples independent errors. `factorize_dem` preserves independent groups
 # and converts supported categorical channels exactly, transforming the rates.
 # Unsupported categorical laws raise an error; they are never approximated.
 if shots:

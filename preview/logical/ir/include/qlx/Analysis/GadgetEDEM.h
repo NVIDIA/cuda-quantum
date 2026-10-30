@@ -39,11 +39,10 @@ mlir::FailureOr<PackedGadgetEDEM> deriveGadgetEDEM(mlir::ModuleOp module,
 /// Alternatively, `actionJson` is {arity, matrix, phases} (a signed symplectic
 /// Clifford action), or empty/null to skip the action check.
 /// This explicit matrix form checks supplied rows only; it does not establish
-/// equivalence to the module's declared objective. Zero-arity and nonsymplectic
-/// matrices are invalid. Semantic violations are reported in the returned
-/// cudaq.logical.gadget-verification/v2
-/// JSON; structural problems fail with diagnostics. Reads the module without
-/// mutation.
+/// equivalence to the module's declared objective. Zero-arity and
+/// non-symplectic matrices are invalid. Semantic violations are reported in the
+/// returned cudaq.logical.gadget-verification/v2 JSON; structural problems fail
+/// with diagnostics. Reads the module without mutation.
 mlir::FailureOr<std::string> verifyGadgetContract(mlir::ModuleOp module,
                                                   llvm::StringRef profile,
                                                   llvm::StringRef actionJson);

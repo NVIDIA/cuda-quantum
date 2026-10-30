@@ -43,7 +43,7 @@ def signed_clifford_realization(
     return left, right
 
 
-# Independently conjugating X0, X1, Z0, Z1 through H0 S0 CX01 SDag1 CZ01 H1
+# Independently conjugating X0, X1, Z0, Z1 through `H0 S0 CX01 SDag1 CZ01 H1`
 # gives +Z0, +Z0Y1, -X0Z1, +Z0X1. These fixed images were also checked with
 # Stim, which is not needed to run this test. Columns are X0, X1, Z0, Z1.
 _SIGNED_IMAGES = ((0, 0, 1, 0), (0, 1, 1, 1), (1, 0, 0, 1), (0, 1, 1, 0))

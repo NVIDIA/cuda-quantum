@@ -227,7 +227,7 @@ def verify_gadget(contract: GadgetContract,
     Supported logical forms are signed Clifford unitaries, single-logical
     signed X/Z eigenstate preparation, and destructive or preserving X/Z measurements.
     Other instruments, dynamic feed-forward, subsystem codes and non-Clifford
-    realizations are outside this verifier's supported scope. A normal return
+    realizations are outside the supported scope of this verifier. A normal return
     in the default mode always has ``receipt.verified == True``.
 
     The checks establish ideal determinism and the ideal logical action. They

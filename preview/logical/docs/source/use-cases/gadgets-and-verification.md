@@ -219,15 +219,15 @@ naming the action it failed to implement.
 
 For other realization classes the claim is recorded, not derived, until you ask
 for it: `cudaq.logical.gadgets.verify_gadget` checks the realization's supported
-logical behavior, and the gadget's detector contract, from one Choi-state probe. A
-syndrome round that declares the wrong action compiles, and is rejected by
+logical behavior, and the gadget's detector contract, from one Choi-state probe.
+A syndrome round that declares the wrong action compiles, and is rejected by
 `verify_gadget` with a sign or basis mismatch on the named Choi stabilizer.
 See [Detector contracts](../reference/detector-contracts.md#verify-a-contract-and-the-logical-action).
 Supported forms are signed Clifford unitaries, single-logical signed X/Z
-preparations and destructive or preserving X/Z measurements. The check follows compiled logical
-port bindings and the full affine outcome map. Unsupported claims raise by
-default; use `raise_on_failure=False` to inspect their receipts. A default call
-returns only when `receipt.verified` is true.
+preparations and destructive or preserving X/Z measurements. The check follows
+compiled logical port bindings and the full affine outcome map. Unsupported
+claims raise by default; use `raise_on_failure=False` to inspect their receipts.
+A default call returns only when `receipt.verified` is true.
 
 ## Design rules that keep the model crisp
 

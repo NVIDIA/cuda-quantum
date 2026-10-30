@@ -30,7 +30,7 @@ output = Path("surface-memory-circuit")
 compare_with_stim = True  # Requires pip install 'stim>=1.16,<2'.
 shots = 0
 seed = 7
-sampling_mode = "circuit"  # Or "dem": sample the exactly factorized DEM.
+sampling_mode = "circuit"  # Or `dem`: sample the exactly factorized DEM.
 
 # %%
 # Select concrete gadgets with the interleaved N/Z gate schedule. Examples

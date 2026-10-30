@@ -57,8 +57,8 @@ input and output boundaries:
    :caption: Declare the virtual detectors and outgoing virtual syndrome.
 ```
 
-Each detector XORs an incoming virtual syndrome with the newly measured
-check. In an ideal round the two agree, so the detector parity is zero.
+Each detector computes the XOR of an incoming virtual syndrome and the newly
+measured check. In an ideal round the two agree, so the detector parity is zero.
 The output binding carries the measured checks forward as the next gadget's
 expected stabilizer values. These declarations describe the realization's
 measurement relations; they do not add physical operations.
