@@ -119,9 +119,7 @@ def test_complete_contracts_and_physical_endcaps(distance):
         contract = surface.gadget_contract(gadget)
         assert contract.boundary_complete
         receipt = cql.gadgets.verify_gadget(contract)
-        assert receipt.detector_contract.ok
-        if gadget is recipe.syndrome_extraction:
-            assert receipt.logical_action.status == "verified"
+        assert receipt.verified
         model = cql.analysis.derive_edem(cql.compile(contract),
                                          faults=cql.analysis.FaultSet())
         assert (len(model.inputs), len(model.outputs)) == expected

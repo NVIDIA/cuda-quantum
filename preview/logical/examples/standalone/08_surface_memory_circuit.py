@@ -45,6 +45,20 @@ if not isinstance(rounds, int) or isinstance(rounds, bool) or rounds < 2:
 if sampling_mode not in ("circuit", "dem"):
     raise ValueError("sampling_mode must be circuit or dem")
 contracts = (prep, *((sec,) * (rounds - 2)), readout)
+
+# %%
+# Verify the ideal +Z preparation, identity SEC and destructive Z readout,
+# together with each complete detector contract. Fault distance is separate.
+verification = {
+    name: cql.gadgets.verify_gadget(contract)
+    for name, contract in (("prep", prep), ("SEC", sec), ("readout", readout))
+}
+assert all(receipt.verified for receipt in verification.values())
+print("Verified prep, SEC, readout: "
+      "ideal logical actions and detector contracts")
+
+# %%
+# Compile each reusable gadget once for circuit emission and fault analysis.
 builds = {
     contract.gadget: cql.compile(contract) for contract in (prep, sec, readout)
 }

@@ -3,9 +3,10 @@
 [`standalone/08_surface_memory_circuit.py`](../../../../examples/standalone/08_surface_memory_circuit.py)
 constructs a rotated surface-code Z-memory experiment from three reusable
 gadgets: preparation, syndrome extraction (SEC), and destructive Z readout.
-It emits a noisy physical circuit and independently derives and composes the
-gadgets' EDEMs. The resulting DEM is compared with both the emitted circuit's
-DEM and Stim's generated rotated-memory reference.
+It verifies their ideal logical actions and detector contracts, emits a noisy
+physical circuit, and independently derives and composes the gadgets' EDEMs.
+The resulting DEM is compared with both the emitted circuit's DEM and Stim's
+generated rotated-memory reference.
 
 This recipe uses physical ancillas, four interleaved N/Z CNOT layers, and
 ancilla measurements. The final two interactions put X hooks horizontally
@@ -32,6 +33,7 @@ python3 preview/logical/examples/standalone/08_surface_memory_circuit.py
 The default output is:
 
 ```text
+Verified prep, SEC, readout: ideal logical actions and detector contracts
 d=3, rounds=3: 24 detectors, 1 observable, 1307 original fault indicators
 Artifacts: surface-memory-circuit
 219 DEM error terms match the circuit and Stim reference (atol=1e-12)
@@ -42,6 +44,25 @@ Edit the parameter cell or run the cells interactively to change `distance`,
 `output`, `shots`, `seed`, and `sampling_mode`. Set
 `compare_with_stim=False` and `shots=0` to export the circuit and packed models
 without importing Stim. The recipe itself has no Stim dependency.
+
+## Verify the ideal behavior
+
+Before adding noise, the example verifies each reusable gadget once:
+
+```python
+verification = {
+    name: cql.gadgets.verify_gadget(contract)
+    for name, contract in (("prep", prep), ("SEC", sec), ("readout", readout))
+}
+assert all(receipt.verified for receipt in verification.values())
+```
+
+The receipts prove logical +Z preparation, an identity syndrome round, and
+destructive logical Z readout, including its returned measurement parity.
+They also prove that each detector contract is deterministic and complete.
+These are ideal stabilizer checks; the circuit's fault distance is tested
+separately. See [Verify a contract and the logical action](../../reference/detector-contracts.md#verify-a-contract-and-the-logical-action)
+for the supported claims and failure receipts.
 
 ## Reuse the concrete gadgets
 

@@ -31,8 +31,9 @@ T-state distillation.
    [Derive an error model from gadgets](../../docs/source/use-cases/gadget-edems.md).
 9. `08_surface_memory_circuit.py` selects `surface.interleaved_nz_definitions`
    for gadgets with the ancilla-based interleaved N/Z gate schedule
-   with circuit-level noise. It exports the circuit and reusable gadget EDEMs,
-   then compares their DEM with Stim's generated rotated-memory reference. See
+   with circuit-level noise. It verifies the ideal logical actions and
+   detector contracts, exports the circuit and reusable gadget EDEMs, then
+   compares their DEM with Stim's generated rotated-memory reference. See
    [Circuit-level surface memory](../../docs/source/use-cases/examples/surface-memory-circuit.md).
 
 Run any example from the repository root:
