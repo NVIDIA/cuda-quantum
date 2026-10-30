@@ -13,39 +13,17 @@ from cudaq.kernel.kernel_decorator import (mk_decorator, isa_kernel_decorator,
 from cudaq.util import trace
 import numpy as np
 
-# Maintain a dictionary of queued `async` run kernels. This dictionary is used
-# to keep the `mlir::ModuleOp` alive so the interpreter doesn't garbage collect
-# them before they can be launched properly.
-cudaq_async_run_module_cache = {}
-cudaq_async_run_cache_counter = 0
-
 
 class AsyncRunResult:
 
     def __init__(self, impl, mod):
-        global cudaq_async_run_module_cache
-        global cudaq_async_run_cache_counter
         self.impl = impl
-        self.getCalled = False
-        self.counter = cudaq_async_run_cache_counter
-        cudaq_async_run_cache_counter = self.counter + 1
-        cudaq_async_run_module_cache[self.counter] = mod
+        # `get` converts the results through `mod`. The queued run uses its own
+        # clone, so `mod` only has to outlive this handle.
+        self.mod = mod
 
     def get(self):
-        try:
-            return self.impl.get()
-        finally:
-            self.getCalled = True
-
-    def __del__(self):
-        # FIXME: This potentially leaks memory intentionally. It is possible
-        # that the AsyncRunResult object gets deleted *before* the `async` run
-        # call occurs or finishes. In that case, we leave the module in the
-        # dictionary to prevent the interpreter from crashing.
-        # We ought to have a way to inform the C++ code that the result is no
-        # longer being sought and the module and `py::handle` should be freed.
-        if self.getCalled:
-            del (cudaq_async_run_module_cache[self.counter])
+        return self.impl.get()
 
 
 @trace.traced

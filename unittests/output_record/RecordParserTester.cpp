@@ -96,6 +96,12 @@ CUDAQ_TEST(ParserTester, checkOwningResultVectors) {
     EXPECT_EQ(std::vector<bool>({false, true}), results[1]);
   }
 
+  // A shot with an empty array still gets its row.
+  EXPECT_EQ((std::vector<std::vector<bool>>{{}, {true}}),
+            parseResults("START\nOUTPUT\tARRAY\t0\tarray<i1 x 0>\nEND\t0\n"
+                         "START\nOUTPUT\tARRAY\t1\tarray<i1 x 1>\n"
+                         "OUTPUT\tRESULT\t1\tr00000\nEND\t0\n"));
+
   // A shot cannot carry more results than its array declares.
   EXPECT_ANY_THROW(parseResults("START\nOUTPUT\tARRAY\t1\tarray<i1 x 1>\n"
                                 "OUTPUT\tRESULT\t1\tr00000\n"
@@ -1082,4 +1088,74 @@ CUDAQ_TEST(ParserTester, checkFailedScalarShotsAndResultCount) {
   EXPECT_EQ(8, results[2]);
   EXPECT_EQ(10, results[3]);
   free(buffer);
+}
+
+//===----------------------------------------------------------------------===//
+// Ownership of the result storage
+//===----------------------------------------------------------------------===//
+
+/// `shots` shots that each return an `array<type x size>`, then a failed shot.
+static std::string arrayResultLog(const std::string &type,
+                                  const std::string &record, int size,
+                                  int shots) {
+  std::string log;
+  for (int shot = 0; shot < shots; ++shot) {
+    log += "START\nOUTPUT\tARRAY\t" + std::to_string(size) + "\tarray<" + type +
+           " x " + std::to_string(size) + ">\n";
+    for (int i = 0; i < size; ++i)
+      log += "OUTPUT\t" + record + "\t" + std::to_string((shot + i) % 2) +
+             "\t[" + std::to_string(i) + "]\n";
+    log += "END\t0\n";
+  }
+  return log + "START\nOUTPUT\tINT\t7\ti32\nEND\t1\n";
+}
+
+CUDAQ_TEST(ParserTester, checkRunResultsAdoptParserStorage) {
+  constexpr int shots = 64;
+  const cudaq_internal::compiler::LayoutInfoType layout{0, {}};
+  // The storage of each array becomes the storage of the result vectors, which
+  // outlive the parser. The vector of results holds exactly the results, and
+  // the failed shot adds none.
+  auto span = cudaq::detail::convertToRunResultSpan(
+      arrayResultLog("i32", "INT", 2, shots), layout,
+      sizeof(std::vector<std::int32_t>));
+  std::int32_t *firstArray = nullptr;
+  std::memcpy(&firstArray, span.data, sizeof(firstArray));
+  std::vector<std::vector<std::int32_t>> ints;
+  cudaq::detail::resultSpanToVectorViaOwnership(ints, span);
+  ASSERT_EQ(shots, ints.size());
+  EXPECT_EQ(ints.size(), ints.capacity());
+  EXPECT_EQ(firstArray, ints[0].data());
+  for (int shot = 0; shot < shots; ++shot)
+    EXPECT_EQ(std::vector<std::int32_t>({shot % 2, (shot + 1) % 2}),
+              ints[shot]);
+
+  // The `std::vector<bool>` results survive the buffer's growth and the copy.
+  auto boolSpan = cudaq::detail::convertToRunResultSpan(
+      arrayResultLog("i1", "BOOL", 3, shots), layout,
+      sizeof(std::vector<bool>));
+  std::vector<std::vector<bool>> bools;
+  cudaq::detail::resultSpanToVectorViaOwnership(bools, boolSpan);
+  ASSERT_EQ(shots, bools.size());
+  for (int shot = 0; shot < shots; ++shot) {
+    const bool odd = shot % 2 == 1;
+    EXPECT_EQ(std::vector<bool>({odd, !odd, odd}), bools[shot]);
+  }
+
+  // Packed `bool` results hold only the successful shots.
+  auto bitSpan = cudaq::detail::convertToRunResultSpan(
+      "START\nOUTPUT\tBOOL\ttrue\ti1\nEND\t0\n"
+      "START\nOUTPUT\tBOOL\ttrue\ti1\nEND\t1\n",
+      layout, sizeof(bool));
+  std::vector<bool> bits;
+  cudaq::detail::resultSpanToVectorViaOwnership(bits, bitSpan);
+  EXPECT_EQ(std::vector<bool>({true}), bits);
+
+  // A log whose results are not `sizeof(std::int32_t)` bytes each is rejected,
+  // whether its bytes hold too many results or not a whole number of them.
+  EXPECT_ANY_THROW(cudaq::detail::convertToRunResultSpan(
+      "OUTPUT\tINT\t1\ti64\n", layout, sizeof(std::int32_t)));
+  EXPECT_ANY_THROW(cudaq::detail::convertToRunResultSpan(
+      "OUTPUT\tINT\t1\ti64\nOUTPUT\tINT\t2\ti8\n", layout,
+      sizeof(std::int32_t)));
 }

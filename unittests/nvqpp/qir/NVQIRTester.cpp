@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "CUDAQTestUtils.h"
+#include "common/CompiledModule.h"
 #include "common/ExecutionContext.h"
 #include "nvqir/Gates.h"
 #include "cudaq/algorithms/sample/policy.h"
@@ -65,6 +66,9 @@ void __quantum__qis__rz(double x, Qubit *q);
 void __quantum__qis__rz__ctl(double x, Array *ctrls, Qubit *q);
 void __quantum__qis__u3(double theta, double phi, double lambda, Qubit *q);
 Result *__quantum__qis__mz(Qubit *q);
+std::int64_t __quantum__qis__mz_handle__to__register(Qubit *q,
+                                                     const char *name);
+void __quantum__rt__clear_result_maps();
 Result *__quantum__rt__result_get_one();
 Result *__quantum__rt__result_get_zero();
 void __quantum__qis__exp__body(Array *paulis, double angle, Array *qubits);
@@ -258,6 +262,45 @@ CUDAQ_TEST(NVQIRTester, checkSimple) {
   EXPECT_EQ(*r, *s);
 
   __quantum__rt__qubit_release_array(qubits);
+  __quantum__rt__finalize();
+}
+
+CUDAQ_TEST(NVQIRTester, checkAotLaunchClearsResultMaps) {
+  // Measures a fresh qubit in handle form. The handle is the number of handles
+  // already in NVQIR's result maps.
+  static auto measure = [] {
+    Qubit *q = __quantum__rt__qubit_allocate();
+    auto handle = __quantum__qis__mz_handle__to__register(q, "r");
+    __quantum__rt__qubit_release(q);
+    return handle;
+  };
+  // Stands in for an AOT-compiled kernel: one handle-form measurement.
+  static std::int64_t launchHandle;
+  cudaq::FatQuakeModule::FunctionPtrArtifact kernel(
+      [](void *, bool) -> cudaq::KernelThunkResultType {
+        launchHandle = measure();
+        return {nullptr, 0};
+      });
+  __quantum__rt__initialize(0, nullptr);
+  // A handle from before the launch must not reach it, and the launch's own
+  // handle must not outlive it.
+  measure();
+  [[maybe_unused]] auto unused =
+      cudaq::executeFunctionPtrBinary(kernel, cudaq::KernelArgs{});
+  EXPECT_EQ(launchHandle, 0);
+  EXPECT_EQ(measure(), 0);
+  // A launch that throws still clears its handles on the way out.
+  cudaq::FatQuakeModule::FunctionPtrArtifact throwing(
+      [](void *, bool) -> cudaq::KernelThunkResultType {
+        measure();
+        throw std::runtime_error("kernel failed");
+      });
+  EXPECT_ANY_THROW({
+    [[maybe_unused]] auto result =
+        cudaq::executeFunctionPtrBinary(throwing, cudaq::KernelArgs{});
+  });
+  EXPECT_EQ(measure(), 0);
+  __quantum__rt__clear_result_maps();
   __quantum__rt__finalize();
 }
 

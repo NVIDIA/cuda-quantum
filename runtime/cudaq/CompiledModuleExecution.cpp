@@ -14,6 +14,8 @@
 #include "cudaq/runtime/logger/logger.h"
 #include <cstring>
 
+extern "C" void __quantum__rt__clear_result_maps();
+
 namespace {
 
 /// RAII marker for the window in which a JIT/AOT-compiled kernel frame is
@@ -108,7 +110,15 @@ KernelThunkResultType cudaq::executeFunctionPtrBinary(
   // exceptions while the AOT kernel runs; rethrowDeferredKernelException()
   // below surfaces any such error from this C++ frame.
   InKernelLaunchScope kernelFrame;
-  auto result = artifact.getFn()(argData, /*isRemote=*/false);
+  // A function-pointer artifact (an nvq++ AOT thunk or a C++ `kernel_builder`
+  // thunk) carries no result-map cleanup. This launch clears NVQIR's result
+  // maps before and after the kernel runs, as the JIT does for its entry points
+  // (`insertResultMapCleanupOperations`), even when the kernel throws. Nested
+  // kernel calls run inside the launch and keep their measurement handles.
+  __quantum__rt__clear_result_maps();
+  auto result = detail::try_finally(
+      [&] { return artifact.getFn()(argData, /*isRemote=*/false); },
+      [] { __quantum__rt__clear_result_maps(); });
   rethrowDeferredKernelException();
   return result;
 }
