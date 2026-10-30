@@ -52,33 +52,6 @@
 // library)
 #include "cudaq/realtime/daemon/bridge/gpu_roce/gpu_roce_wrapper.h"
 
-// Weak declarations of the GpuRoceTransceiver unified dispatch entry points
-// (defined in libcudaq-realtime-bridge-gpu-roce.so).  Weak so that bridge
-// tools that only use the 3-kernel architecture don't need to link the
-// bridge-gpu_roce library.
-//
-// There is no launch function among them: this transport implements the
-// device data plane in dispatcher/unified_device_transport.cuh, and the
-// dispatcher runs the unified kernel from libcudaq-realtime-dispatch.a over it.
-
-// Copy a host-filled context into device memory.  The unified kernel's
-// transport hooks dereference the context on the GPU -- it is no longer
-// unpacked into kernel arguments -- so the pointer handed to
-// cudaq_dispatcher_set_unified_launch must be device-resident.
-//
-// Returns cudaSuccess (0) on success, otherwise the failing cudaError_t as an
-// int, leaving *out_device_ctx untouched.  On success the caller owns
-// *out_device_ctx and releases it with gpu_roce_unified_ctx_free once the
-// dispatcher has stopped.
-extern "C" __attribute__((weak)) int
-gpu_roce_unified_ctx_to_device(const gpu_roce_doca_transport_ctx *host_ctx,
-                               void **out_device_ctx);
-
-// Release a context allocated by gpu_roce_unified_ctx_to_device.  Safe to
-// call with NULL.
-extern "C" __attribute__((weak)) void
-gpu_roce_unified_ctx_free(void *device_ctx);
-
 namespace cudaq::realtime {
 
 //==============================================================================
@@ -160,24 +133,6 @@ struct BridgeConfig {
   /// Default (nullptr): the dispatcher's own, for `kernel_type`.
   cudaq_dispatch_launch_fn_t launch_fn = nullptr;
 
-  // Set this to CUDAQ_DISPATCH_PATH_HOST for the HOST_LOOP graph launch mode --
-  // CPU-side dispatcher that polls GpuRoceTransceiver ring flags and launches
-  // CUDA graphs.  Requires a Grace-based system (Grace-Hopper / DGX Spark,
-  // Grace-Blackwell / GB200) where GPU memory is CPU-accessible via NVLink-C2C,
-  // since the HOST_LOOP thread reads DOCA GPU ring flags directly from the CPU.
-  cudaq_dispatch_path_t dispatch_path = CUDAQ_DISPATCH_PATH_DEVICE;
-
-  /// Host-side function table for GRAPH_LAUNCH entries (HOST_LOOP only).
-  /// Each entry must have dispatch_mode == CUDAQ_DISPATCH_GRAPH_LAUNCH
-  /// and handler.graph_exec set to a valid cudaGraphExec_t.
-  cudaq_function_entry_t *h_function_entries = nullptr;
-  size_t h_func_count = 0;
-
-  /// Pinned mailbox for HOST_LOOP graph dispatch (from graph_resources).
-  /// h_mailbox is the host pointer, d_mailbox is the device-mapped view.
-  void **h_mailbox = nullptr;
-  void **d_mailbox = nullptr;
-
   /// @brief Optional cleanup callback invoked during shutdown.
   std::function<void()> cleanup_fn;
 };
@@ -230,8 +185,6 @@ inline void parse_bridge_args(int argc, char *argv[], BridgeConfig &config) {
       config.unified = true;
     else if (arg.find("--threads=") == 0)
       config.threads_per_block = std::stoul(arg.substr(10));
-    else if (arg == "--cpu")
-      config.dispatch_path = CUDAQ_DISPATCH_PATH_HOST;
   }
 
   config.frame_size = sizeof(cudaq::realtime::RPCHeader) + config.payload_size;
@@ -263,6 +216,15 @@ inline int bridge_run(BridgeConfig &config) {
 
   auto &g_shutdown = detail::bridge_shutdown_flag();
 
+  // The unified kernel is linked at run time from the bridge's device code,
+  // which only the bridge interface hands over.
+  if (config.unified) {
+    std::cerr << "ERROR: bridge_run does not drive the unified kernel; use "
+                 "gpu_roce_app --unified"
+              << std::endl;
+    return 1;
+  }
+
   //============================================================================
   // [1] Initialize CUDA
   //============================================================================
@@ -289,19 +251,8 @@ inline int bridge_run(BridgeConfig &config) {
   std::cout << "  Page size: " << config.page_size << " bytes" << std::endl;
   std::cout << "  Num pages: " << config.num_pages << std::endl;
 
-  // On iGPU (e.g. DGX Spark GB10), DOCA NIC doorbells require a CPU proxy
-  // thread.  GpuRoceTransceiver's blocking_monitor() starts this thread
-  // alongside its kernels.  For unified mode on iGPU we need the CPU proxy but
-  // NOT the gpu_roce kernels, so we pass (false, false, false) --
-  // blocking_monitor will start only the CPU proxy thread.  On dGPU, no CPU
-  // proxy is needed and we use forward=true to get 64-deep receive pre-posting
-  // from start().
-  bool is_igpu = (prop.integrated != 0);
-  bool unified_igpu = config.unified && is_igpu;
-
-  bool is_host_loop = (config.dispatch_path == CUDAQ_DISPATCH_PATH_HOST);
-  bool use_forward = config.forward || (config.unified && !is_igpu);
-  bool use_3kernel = is_host_loop || (!config.forward && !config.unified);
+  bool use_forward = config.forward;
+  bool use_3kernel = !config.forward;
 
   gpu_roce_transceiver_t transceiver = gpu_roce_create_transceiver(
       config.device.c_str(), 1, // ib_port
@@ -319,10 +270,6 @@ inline int bridge_run(BridgeConfig &config) {
     return 1;
   }
 
-  // HOST_LOOP needs CPU-readable ring flags and data; allocate as CPU_GPU.
-  if (is_host_loop)
-    gpu_roce_set_cpu_ring_buffers(transceiver, 1);
-
   std::cout << "  Connecting to remote QP 0x" << std::hex << config.remote_qp
             << std::dec << " at " << config.peer_ip << "..." << std::endl;
 
@@ -335,19 +282,6 @@ inline int bridge_run(BridgeConfig &config) {
   // GpuRoceTransceiver start() pops the CUDA context via cuCtxPopCurrent;
   // restore it.
   BRIDGE_CUDA_CHECK(cudaSetDevice(config.gpu_id));
-
-  // On iGPU unified mode, start() didn't pre-post receive WQEs (transceiver
-  // was created with forward=false, rx_only=false, tx_only=false).  Call the
-  // prepare kernel here so the NIC has receive buffers before any packets
-  // arrive.
-  if (unified_igpu) {
-    if (!gpu_roce_prepare_receive_send(transceiver, config.frame_size)) {
-      std::cerr << "ERROR: Failed to pre-post receive WQEs" << std::endl;
-      gpu_roce_destroy_transceiver(transceiver);
-      return 1;
-    }
-    std::cout << "  Pre-posted receive WQEs (iGPU unified mode)" << std::endl;
-  }
 
   std::cout << "  QP connected to remote peer" << std::endl;
 
@@ -390,34 +324,22 @@ inline int bridge_run(BridgeConfig &config) {
   cudaq_dispatch_manager_t *manager = nullptr;
   cudaq_dispatcher_t *dispatcher = nullptr;
 
-  // Transport context for unified mode.  The kernel's hooks read it on the
-  // GPU, so the dispatcher is handed the device copy; the host struct is only
-  // the staging buffer.  The device copy must outlive the dispatcher.
-  gpu_roce_doca_transport_ctx unified_ctx{};
-  void *d_unified_ctx = nullptr;
-
   if (!config.forward) {
-    if (!config.unified && !is_host_loop) {
-      int dispatch_blocks = 0;
-      cudaError_t occ_err = cudaq_dispatch_kernel_query_occupancy(
-          &dispatch_blocks, config.threads_per_block);
-      if (occ_err != cudaSuccess) {
-        std::cerr << "ERROR: Dispatch kernel occupancy query failed: "
-                  << cudaGetErrorString(occ_err) << std::endl;
-        return 1;
-      }
-      std::cout << "  Dispatch kernel occupancy: " << dispatch_blocks
-                << " blocks/SM" << std::endl;
+    int dispatch_blocks = 0;
+    cudaError_t occ_err = cudaq_dispatch_kernel_query_occupancy(
+        &dispatch_blocks, config.threads_per_block);
+    if (occ_err != cudaSuccess) {
+      std::cerr << "ERROR: Dispatch kernel occupancy query failed: "
+                << cudaGetErrorString(occ_err) << std::endl;
+      return 1;
     }
+    std::cout << "  Dispatch kernel occupancy: " << dispatch_blocks
+              << " blocks/SM" << std::endl;
 
     //==========================================================================
     // [4] Wire dispatch kernel
     //==========================================================================
-    std::cout << "\n[4/5] Wiring dispatch kernel ("
-              << (is_host_loop     ? "host-loop"
-                  : config.unified ? "unified"
-                                   : "3-kernel")
-              << ")..." << std::endl;
+    std::cout << "\n[4/5] Wiring dispatch kernel (3-kernel)..." << std::endl;
 
     void *tmp_shutdown = nullptr;
     BRIDGE_CUDA_CHECK(
@@ -432,14 +354,7 @@ inline int bridge_run(BridgeConfig &config) {
     BRIDGE_CUDA_CHECK(cudaMemcpy(const_cast<int *>(d_shutdown_flag), &zero,
                                  sizeof(int), cudaMemcpyHostToDevice));
 
-    if (is_host_loop) {
-      void *tmp_stats = nullptr;
-      BRIDGE_CUDA_CHECK(
-          cudaHostAlloc(&tmp_stats, sizeof(uint64_t), cudaHostAllocMapped));
-      d_stats = static_cast<uint64_t *>(tmp_stats);
-    } else {
-      BRIDGE_CUDA_CHECK(cudaMalloc(&d_stats, sizeof(uint64_t)));
-    }
+    BRIDGE_CUDA_CHECK(cudaMalloc(&d_stats, sizeof(uint64_t)));
     BRIDGE_CUDA_CHECK(cudaMemset(d_stats, 0, sizeof(uint64_t)));
 
     if (cudaq_dispatch_manager_create(&manager) != CUDAQ_OK) {
@@ -451,129 +366,43 @@ inline int bridge_run(BridgeConfig &config) {
     dconfig.device_id = config.gpu_id;
     dconfig.vp_id = 0;
 
-    if (is_host_loop) {
-      dconfig.dispatch_path = CUDAQ_DISPATCH_PATH_HOST;
-      dconfig.dispatch_mode = CUDAQ_DISPATCH_GRAPH_LAUNCH;
-      dconfig.num_slots = static_cast<uint32_t>(config.num_pages);
-      dconfig.slot_size = static_cast<uint32_t>(config.page_size);
-      // GpuRoceTransceiver TX kernel polls tx_flags for ready data; writing
-      // sentinel markers (0xEEEE) would be misinterpreted as a valid TX buffer
-      // address.
-      dconfig.skip_tx_markers = 1;
-    } else {
-      dconfig.dispatch_mode = CUDAQ_DISPATCH_DEVICE_CALL;
-      dconfig.kernel_type =
-          config.unified ? CUDAQ_KERNEL_UNIFIED : config.kernel_type;
-      dconfig.num_blocks = config.num_blocks;
-      dconfig.threads_per_block = config.threads_per_block;
-      dconfig.num_slots = static_cast<uint32_t>(config.num_pages);
-      dconfig.slot_size = static_cast<uint32_t>(config.page_size);
-    }
+    dconfig.dispatch_mode = CUDAQ_DISPATCH_DEVICE_CALL;
+    dconfig.kernel_type = config.kernel_type;
+    dconfig.num_blocks = config.num_blocks;
+    dconfig.threads_per_block = config.threads_per_block;
+    dconfig.num_slots = static_cast<uint32_t>(config.num_pages);
+    dconfig.slot_size = static_cast<uint32_t>(config.page_size);
 
     if (cudaq_dispatcher_create(manager, &dconfig, &dispatcher) != CUDAQ_OK) {
       std::cerr << "ERROR: Failed to create dispatcher" << std::endl;
       return 1;
     }
 
-    if (is_host_loop) {
-      // HOST_LOOP: wire ringbuffer with GpuRoceTransceiver GPU pointers as both
-      // device and host views.  On Grace-based systems (Grace-Hopper,
-      // Grace-Blackwell), GPU memory is CPU-accessible via NVLink-C2C.
-      cudaq_ringbuffer_t ringbuffer{};
-      ringbuffer.rx_flags = reinterpret_cast<volatile uint64_t *>(rx_ring_flag);
-      ringbuffer.tx_flags = reinterpret_cast<volatile uint64_t *>(tx_ring_flag);
-      ringbuffer.rx_data = rx_ring_data;
-      ringbuffer.tx_data = tx_ring_data;
-      ringbuffer.rx_stride_sz = config.page_size;
-      ringbuffer.tx_stride_sz = config.page_size;
-      ringbuffer.rx_flags_host =
-          reinterpret_cast<volatile uint64_t *>(rx_ring_flag);
-      ringbuffer.tx_flags_host =
-          reinterpret_cast<volatile uint64_t *>(tx_ring_flag);
-      ringbuffer.rx_data_host = rx_ring_data;
-      ringbuffer.tx_data_host = tx_ring_data;
+    cudaq_ringbuffer_t ringbuffer{};
+    ringbuffer.rx_flags = reinterpret_cast<volatile uint64_t *>(rx_ring_flag);
+    ringbuffer.tx_flags = reinterpret_cast<volatile uint64_t *>(tx_ring_flag);
+    ringbuffer.rx_data = rx_ring_data;
+    ringbuffer.tx_data = tx_ring_data;
+    ringbuffer.rx_stride_sz = config.page_size;
+    ringbuffer.tx_stride_sz = config.page_size;
 
-      if (cudaq_dispatcher_set_ringbuffer(dispatcher, &ringbuffer) !=
-          CUDAQ_OK) {
-        std::cerr << "ERROR: Failed to set ringbuffer" << std::endl;
-        return 1;
-      }
-
-      cudaq_function_table_t table{};
-      table.entries = config.h_function_entries;
-      table.count = static_cast<uint32_t>(config.h_func_count);
-      if (cudaq_dispatcher_set_function_table(dispatcher, &table) != CUDAQ_OK) {
-        std::cerr << "ERROR: Failed to set function table" << std::endl;
-        return 1;
-      }
-
-      if (config.h_mailbox) {
-        if (cudaq_dispatcher_set_mailbox(dispatcher, config.h_mailbox) !=
-            CUDAQ_OK) {
-          std::cerr << "ERROR: Failed to set mailbox" << std::endl;
-          return 1;
-        }
-      }
-    } else if (config.unified) {
-      // Pack DOCA transport handles into the opaque context
-      unified_ctx.gpu_dev_qp = gpu_roce_get_gpu_dev_qp(transceiver);
-      unified_ctx.rx_ring_data = rx_ring_data;
-      unified_ctx.rx_ring_stride_sz = gpu_roce_get_page_size(transceiver);
-      unified_ctx.rx_ring_stride_num = gpu_roce_get_num_pages(transceiver);
-      unified_ctx.tx_ring_data = tx_ring_data;
-      unified_ctx.tx_ring_stride_sz = gpu_roce_get_page_size(transceiver);
-      unified_ctx.tx_ring_mkey = htonl(gpu_roce_get_tx_ring_lkey(transceiver));
-      unified_ctx.frame_size = config.frame_size;
-      unified_ctx.use_bf = is_igpu ? 0 : 1;
-
-      const int stage_err =
-          gpu_roce_unified_ctx_to_device(&unified_ctx, &d_unified_ctx);
-      if (stage_err != cudaSuccess) {
-        std::cerr << "ERROR: Failed to stage the unified transport context "
-                     "on the device: "
-                  << cudaGetErrorString(static_cast<cudaError_t>(stage_err))
-                  << std::endl;
-        return 1;
-      }
-
-      // NULL: no loop override, so the dispatcher runs its own unified
-      // kernel over the device hooks this build linked in.
-      if (cudaq_dispatcher_set_unified_launch(dispatcher, nullptr,
-                                              d_unified_ctx) != CUDAQ_OK) {
-        std::cerr << "ERROR: Failed to set unified launch function"
-                  << std::endl;
-        return 1;
-      }
-    } else {
-      cudaq_ringbuffer_t ringbuffer{};
-      ringbuffer.rx_flags = reinterpret_cast<volatile uint64_t *>(rx_ring_flag);
-      ringbuffer.tx_flags = reinterpret_cast<volatile uint64_t *>(tx_ring_flag);
-      ringbuffer.rx_data = rx_ring_data;
-      ringbuffer.tx_data = tx_ring_data;
-      ringbuffer.rx_stride_sz = config.page_size;
-      ringbuffer.tx_stride_sz = config.page_size;
-
-      if (cudaq_dispatcher_set_ringbuffer(dispatcher, &ringbuffer) !=
-          CUDAQ_OK) {
-        std::cerr << "ERROR: Failed to set ringbuffer" << std::endl;
-        return 1;
-      }
-
-      if (config.launch_fn && cudaq_dispatcher_set_launch_fn(
-                                  dispatcher, config.launch_fn) != CUDAQ_OK) {
-        std::cerr << "ERROR: Failed to set launch function" << std::endl;
-        return 1;
-      }
+    if (cudaq_dispatcher_set_ringbuffer(dispatcher, &ringbuffer) != CUDAQ_OK) {
+      std::cerr << "ERROR: Failed to set ringbuffer" << std::endl;
+      return 1;
     }
 
-    if (!is_host_loop) {
-      cudaq_function_table_t table{};
-      table.entries = config.d_function_entries;
-      table.count = config.func_count;
-      if (cudaq_dispatcher_set_function_table(dispatcher, &table) != CUDAQ_OK) {
-        std::cerr << "ERROR: Failed to set function table" << std::endl;
-        return 1;
-      }
+    if (config.launch_fn && cudaq_dispatcher_set_launch_fn(
+                                dispatcher, config.launch_fn) != CUDAQ_OK) {
+      std::cerr << "ERROR: Failed to set launch function" << std::endl;
+      return 1;
+    }
+
+    cudaq_function_table_t table{};
+    table.entries = config.d_function_entries;
+    table.count = config.func_count;
+    if (cudaq_dispatcher_set_function_table(dispatcher, &table) != CUDAQ_OK) {
+      std::cerr << "ERROR: Failed to set function table" << std::endl;
+      return 1;
     }
 
     if (cudaq_dispatcher_set_control(dispatcher, d_shutdown_flag, d_stats) !=
@@ -597,25 +426,12 @@ inline int bridge_run(BridgeConfig &config) {
   //============================================================================
   std::thread gpu_roce_thread;
 
-  if (config.unified && !unified_igpu) {
-    std::cout << "\n[5/5] Unified mode (dGPU) -- GpuRoceTransceiver kernels "
-                 "not needed"
-              << std::endl;
-  } else if (unified_igpu) {
-    std::cout
-        << "\n[5/5] Unified mode (iGPU) -- starting GpuRoceTransceiver monitor "
-        << "(CPU proxy only, no gpu_roce kernels)" << std::endl;
-    gpu_roce_thread = std::thread(
-        [transceiver]() { gpu_roce_blocking_monitor(transceiver); });
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
-  } else {
-    std::cout << "\n[5/5] Launching GpuRoceTransceiver kernels..." << std::endl;
-    std::cout.flush();
-    gpu_roce_thread = std::thread(
-        [transceiver]() { gpu_roce_blocking_monitor(transceiver); });
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
-    std::cout << "  GpuRoceTransceiver RX+TX kernels started" << std::endl;
-  }
+  std::cout << "\n[5/5] Launching GpuRoceTransceiver kernels..." << std::endl;
+  std::cout.flush();
+  gpu_roce_thread =
+      std::thread([transceiver]() { gpu_roce_blocking_monitor(transceiver); });
+  std::this_thread::sleep_for(std::chrono::milliseconds(500));
+  std::cout << "  GpuRoceTransceiver RX+TX kernels started" << std::endl;
 
   // Print QP info for FPGA stimulus tool
   std::cout << "\n=== Bridge Ready ===" << std::endl;
@@ -691,18 +507,12 @@ inline int bridge_run(BridgeConfig &config) {
     cudaq_dispatcher_destroy(dispatcher);
   if (manager)
     cudaq_dispatch_manager_destroy(manager);
-  if (d_unified_ctx)
-    gpu_roce_unified_ctx_free(d_unified_ctx);
   gpu_roce_destroy_transceiver(transceiver);
 
   if (shutdown_flag)
     cudaFreeHost(const_cast<int *>(shutdown_flag));
-  if (d_stats) {
-    if (is_host_loop)
-      cudaFreeHost(d_stats);
-    else
-      cudaFree(d_stats);
-  }
+  if (d_stats)
+    cudaFree(d_stats);
 
   // Call tool-specific cleanup
   if (config.cleanup_fn)

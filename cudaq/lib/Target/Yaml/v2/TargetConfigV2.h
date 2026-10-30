@@ -18,7 +18,10 @@
 // IR profiles.
 
 #include "Yaml/v1/TargetConfigV1.h"
-#include "cudaq/Target/Profile/QuakeReferenceSemanticsProfile.h"
+#include "Yaml/v2/QuakeReferenceSemanticsProfileYaml.h"
+#include "Yaml/v2/QuakeUnmappedProfileYaml.h"
+#include "Yaml/v2/UncheckedProfileYaml.h"
+#include "cudaq/Target/Profile/AllProfiles.h"
 #include <optional>
 #include <string>
 #include <vector>
@@ -60,28 +63,9 @@ struct BackendFeatureMapV2 {
   BackendEndConfigEntryV2 config;
 };
 
-/// (Dummy) IR profile that accepts any IR.
-struct UncheckedProfileV2 {
-  using Tag = rfl::Literal<UncheckedProfile::name>;
-};
-
-/// IR profile for reference-semantics Quake IR.
-struct QuakeReferenceSemanticsProfileV2 {
-  using Tag = rfl::Literal<QuakeReferenceSemanticsProfile::name>;
-
-  /// Valid options.
-  struct QuakeReferenceSemanticsProfileOptionsV2 {
-    rfl::DefaultVal<std::vector<std::string>> basisGates;
-    rfl::DefaultVal<MeasurementForm> measurementType = MeasurementForm::any;
-    rfl::DefaultVal<bool> resetAfterMeasure = false;
-  };
-
-  rfl::DefaultVal<QuakeReferenceSemanticsProfileOptionsV2> options;
-};
-
-/// Union of all supported IR profiles, selected by its `name`.
-using IrOutputProfileV2 = rfl::TaggedUnion<"name", UncheckedProfileV2,
-                                           QuakeReferenceSemanticsProfileV2>;
+/// Union of the YAML forms of all IR profiles, following the `Profile`
+/// variant. Each profile's YAML form lives in its own file, included above.
+using IrOutputProfileV2 = TaggedProfiles<Profile>::type;
 
 /// Staged pipelines inserted at the appropriate compilation stages.
 struct StagedPipelinesV2 {

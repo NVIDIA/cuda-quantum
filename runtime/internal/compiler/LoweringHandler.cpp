@@ -11,19 +11,17 @@
 const cudaq_internal::compiler::LoweringHandler *
 cudaq_internal::compiler::selectLoweringHandler(
     const std::vector<std::unique_ptr<LoweringHandler>> &handlers,
-    const cudaq::config::Profile &input, const cudaq::config::Profile &output,
-    const cudaq::CompileOptions &options) {
+    const cudaq::config::Profile &input, const cudaq::config::Profile &output) {
   for (const auto &handler : handlers)
-    if (handler->supports(input, output, options))
+    if (handler->supports(input, output))
       return handler.get();
   return nullptr;
 }
 
 std::vector<std::unique_ptr<cudaq_internal::compiler::LoweringHandler>>
-cudaq_internal::compiler::makeBuiltinLoweringHandlers(
-    bool emulate, std::string emissionFormat) {
+cudaq_internal::compiler::makeBuiltinLoweringHandlers() {
   std::vector<std::unique_ptr<LoweringHandler>> handlers;
-  handlers.push_back(
-      makeQuakeReferenceSemanticsHandler(emulate, std::move(emissionFormat)));
+  handlers.push_back(makeQuakeReferenceSemanticsHandler());
+  handlers.push_back(makeQuakeUnmappedHandler());
   return handlers;
 }

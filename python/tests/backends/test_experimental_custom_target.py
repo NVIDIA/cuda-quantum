@@ -56,7 +56,7 @@ class DemoCustomTarget(CustomTarget):
 
 
 def swap_pipeline_target():
-    return CompileTarget(lowering=SWAP_TO_CX_PIPELINE)
+    return CompileTarget(custom_pipeline=SWAP_TO_CX_PIPELINE)
 
 
 def compiled_quake_ops(kernel, target):
@@ -132,6 +132,8 @@ def test_set_target_rejects_kwargs_for_custom_target():
             "cudaq._experimental.CustomTarget",
     ):
         cudaq.set_target(target, option="fp64")
+    with pytest.raises(TypeError, match="does not accept keyword arguments"):
+        cudaq.set_target(target, compile_target=CompileTarget())
 
 
 def test_named_set_target_still_works_after_wrapper():

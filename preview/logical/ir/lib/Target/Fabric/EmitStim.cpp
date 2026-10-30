@@ -4,7 +4,7 @@
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 //
 // Translates fabric.* IR to Stim circuit text format. Mirrors the fabric
 // emitter (ir/lib/Translate/QLX/EmitStim.cpp) but walks the richer Fabric
@@ -40,6 +40,7 @@
 #include <cmath>
 #include <optional>
 #include <string>
+#include <utility>
 
 using namespace mlir;
 using namespace qlx::fabric;
@@ -117,7 +118,7 @@ static bool hasUnexpectedCanonicalBasis(Operation *operation, StringRef name,
     return false;
   auto elements = dyn_cast<DenseIntElementsAttr>(value);
   if (!elements || elements.getType().getShape() != expectedShape ||
-      elements.getNumElements() != expectedValues.size())
+      std::cmp_not_equal(elements.getNumElements(), expectedValues.size()))
     return true;
   return !std::equal(elements.value_begin<bool>(), elements.value_end<bool>(),
                      expectedValues.begin(), expectedValues.end());
@@ -225,28 +226,6 @@ static BasisFrame composeFrame(const BasisFrame &outer,
     return basis;
   };
   return {lookup(outer, inner.xTo), lookup(outer, inner.zTo)};
-}
-
-static BasisFrame deltaFrame(const BasisFrame &prev, const BasisFrame &cur) {
-  BasisFrame prevInv;
-  auto inverseImage = [&](StringRef out) -> std::string {
-    if (prev.xTo == out)
-      return "x";
-    if (prev.zTo == out)
-      return "z";
-    return out.str();
-  };
-  prevInv.xTo = inverseImage("x");
-  prevInv.zTo = inverseImage("z");
-  return composeFrame(prevInv, cur);
-}
-
-static StringRef framePreimage(const BasisFrame &frame, StringRef out) {
-  if (frame.xTo == out)
-    return "x";
-  if (frame.zTo == out)
-    return "z";
-  return {};
 }
 
 //===----------------------------------------------------------------------===//
@@ -1270,7 +1249,7 @@ private:
       llvm::SmallDenseSet<int64_t, 16> seen;
       for (unsigned i = 0; i < n; ++i) {
         int64_t raw = permArr[i];
-        if (raw < 0 || raw >= static_cast<int64_t>(n) ||
+        if (raw < 0 || std::cmp_greater_equal(raw, n) ||
             !seen.insert(raw).second) {
           op.emitError("fabric-to-stim: transversal_cx perm must be a "
                        "permutation of target data indices");

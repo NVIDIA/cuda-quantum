@@ -1,11 +1,13 @@
-/*
- * Copyright (c) 2026 NVIDIA Corporation & Affiliates.
- * All rights reserved.
- * This source code and the accompanying materials are made available under
- * the terms of the Apache License 2.0 which accompanies this distribution.
- */
-#ifndef CUDAQ_GF2_MEMORY_H
-#define CUDAQ_GF2_MEMORY_H
+/******************************************************************************
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        *
+ * All rights reserved.                                                       *
+ *                                                                            *
+ * This source code and the accompanying materials are made available under   *
+ * the terms of the Apache License 2.0 which accompanies this distribution.   *
+ *****************************************************************************/
+
+#pragma once
+
 #include <stdint.h>
 #ifdef __cplusplus
 extern "C" {
@@ -62,5 +64,4 @@ cudaq_gf2_allocator cudaq_gf2_default_allocator(void);
 void cudaq_gf2_owned_buffer_release(cudaq_gf2_owned_buffer *buffer);
 #ifdef __cplusplus
 }
-#endif
 #endif

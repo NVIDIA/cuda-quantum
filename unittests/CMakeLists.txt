@@ -86,10 +86,9 @@ if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME)
       device_call/cpu_roce_test_daemon.cpp)
     target_include_directories(cpu_roce_test_daemon
       PRIVATE ${CUDAToolkit_INCLUDE_DIRS})
-    # host-dispatch.a contains relocatable device code (host_dispatcher.cu); the
-    # final link must run the CUDA device-link step even though this target has
-    # no .cu sources. Same "bridge as .cpp with CUDA device linking" pattern as
-    # the realtime gpu_roce/hsb bridge tools.
+    # This target has no .cu sources and the host-dispatch library is plain
+    # C++ without device code; it keeps the "bridge as .cpp with CUDA device
+    # linking" link setup of the realtime gpu_roce/hsb bridge tools.
     set_target_properties(cpu_roce_test_daemon PROPERTIES
       LINKER_LANGUAGE CUDA
       CUDA_SEPARABLE_COMPILATION ON
@@ -253,6 +252,23 @@ target_link_libraries(test_quantum_platform
   nvqir
   gtest_main)
 cudaq_gtest_discover_tests(test_quantum_platform DISCOVERY_TIMEOUT 120)
+
+# MQPU platform with stubbed CUDA device helpers, runs without GPUs.
+add_executable(test_mqpu_device_selection main.cpp
+  common/MQPUDeviceSelectionTester.cpp
+  ${CMAKE_SOURCE_DIR}/runtime/cudaq/platform/mqpu/MultiQPUPlatform.cpp)
+set_target_properties(test_mqpu_device_selection PROPERTIES ENABLE_EXPORTS TRUE)
+target_compile_definitions(test_mqpu_device_selection PRIVATE CUDAQ_DISABLE_JIT_COMPILER)
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND NOT APPLE)
+  target_link_options(test_mqpu_device_selection PRIVATE ${CUDAQ_FORCE_LINK_FLAG})
+endif()
+target_link_libraries(test_mqpu_device_selection PRIVATE
+  cudaq cudaq-qpu-default cudaq-em-default cudaq-common cudaq-logger
+  cudaq-operator nvqir nvqir-qpp fmt::fmt-header-only gtest_main)
+cudaq_gtest_discover_tests(test_mqpu_device_selection
+  PROPERTIES PROCESSORS ${CUDAQ_TEST_OMP_SLOTS}
+             ENVIRONMENT "CUDAQ_MQPU_NGPUS=4"
+  DISCOVERY_TIMEOUT 120)
 
 add_executable(test_qpu_state main.cpp common/QPUStateTester.cpp)
 target_include_directories(test_qpu_state PRIVATE .)

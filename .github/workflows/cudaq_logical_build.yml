@@ -51,6 +51,17 @@ jobs:
       arch: ${{ steps.container.outputs.arch }}
       image: ${{ steps.container.outputs.image }}
     steps:
+      # An empty name makes download-artifact fetch every artifact of the run.
+      - name: Check wheel artifact names
+        env:
+          RUNTIME_NAME: ${{ inputs.runtime_artifact_name }}
+          DEVEL_NAME: ${{ inputs.devel_artifact_name }}
+        run: |
+          if [ -z "$RUNTIME_NAME" ] || [ -z "$DEVEL_NAME" ]; then
+            echo "::error::Missing wheel artifact name (runtime='$RUNTIME_NAME', devel='$DEVEL_NAME')."
+            exit 1
+          fi
+
       - name: Checkout repository
         uses: actions/checkout@v6
         with:

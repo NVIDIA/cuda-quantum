@@ -402,9 +402,9 @@ TEST_F(UdpUnifiedServiceTest, HooksRoundTripToCaller) {
 }
 
 TEST_F(UdpUnifiedServiceTest, RxPollBackPressuresOnPendingTxFlag) {
-  // tx_flags is the only occupancy marker in this shape: non-zero means a
-  // response is still in flight for that slot (in production, a running
-  // GRAPH_LAUNCH graph), so its RX half must not be handed out again.
+  // tx_flags is the only occupancy marker in this shape: non-zero means the
+  // consumer still holds that slot (its response has not been collected), so
+  // its RX half must not be handed out again.
   store_flag(serviceTxFlags, 0, 1);
   publishFromCaller(0, "blocked");
   ASSERT_TRUE(wait_for_flag_clear(callerTxFlags, 0));

@@ -66,11 +66,11 @@ the carriers and what they can natively do, bind the encoded region onto them,
 and state an operating point:
 
 ```{eval-rst}
-.. literalinclude:: ../../../examples/standalone/04_physical_schedule.py
+.. literalinclude:: ../../../examples/standalone/03_physical_schedule.py
    :language: python
    :start-at: carriers = builder.physical.add_qubits
    :end-before: device = builder.build()
-   :caption: Binding an encoded region onto carriers (examples/standalone/04_physical_schedule.py).
+   :caption: Binding an encoded region onto carriers (examples/standalone/03_physical_schedule.py).
 ```
 
 `physical.bind(encoded, to=carriers)` is the vertical ownership boundary: the

@@ -18,4 +18,5 @@ install(DIRECTORY ${CUDAQ_REALTIME_INCLUDE_DIR}/cudaq
 # bridge/cpu_roce) link the transport targets defined there and probe them
 # with if(TARGET ...).
 add_subdirectory(cpu_transport)
+add_subdirectory(device_code)
 add_subdirectory(daemon)

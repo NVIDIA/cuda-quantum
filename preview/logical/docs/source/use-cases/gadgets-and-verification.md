@@ -157,11 +157,11 @@ states it. Acceptance is explicit with `cudaq.logical.postselect` — the shippe
 measure +X:
 
 ```{eval-rst}
-.. literalinclude:: ../../../examples/standalone/03_magic_state_distillation.py
+.. literalinclude:: ../../../examples/standalone/07_magic_state_distillation.py
    :language: python
    :start-at: @cql.protocol
    :end-before: # Estimate the protocol directly
-   :caption: Postselection in examples/standalone/03_magic_state_distillation.py.
+   :caption: Postselection in examples/standalone/07_magic_state_distillation.py.
 ```
 
 Bounded retry is the same shape. It acts on a success predicate derived from

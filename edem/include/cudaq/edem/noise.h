@@ -1,12 +1,12 @@
-/*
- * Copyright (c) 2026 NVIDIA Corporation & Affiliates.
- * All rights reserved.
- *
- * This source code and the accompanying materials are made available under
- * the terms of the Apache License 2.0 which accompanies this distribution.
- */
-#ifndef CUDAQ_EDEM_NOISE_H
-#define CUDAQ_EDEM_NOISE_H
+/******************************************************************************
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        *
+ * All rights reserved.                                                       *
+ *                                                                            *
+ * This source code and the accompanying materials are made available under   *
+ * the terms of the Apache License 2.0 which accompanies this distribution.   *
+ *****************************************************************************/
+
+#pragma once
 
 #include "cudaq/edem/composition.h"
 
@@ -58,5 +58,4 @@ cudaq_edem_status cudaq_edem_coalesce_dem_columns(
 
 #ifdef __cplusplus
 }
-#endif
 #endif

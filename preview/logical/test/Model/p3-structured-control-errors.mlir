@@ -39,6 +39,22 @@ module {
   }
 }
 
+// A negative i64 must not wrap to a huge unsigned count and pass the check.
+module {
+  func.func @negative_retry(%ok: i1, %q: !phys.state<@q>) {
+    // expected-error @+1 {{max_attempts must be positive}}
+    %0 = phys.retry %ok carries (%q) {
+      attempt = @attempt,
+      attempt_event = "attempt0",
+      decision_event = "decision0",
+      max_attempts = -1 : i64,
+      profile = @profile
+    }
+      : (!phys.state<@q>) -> !phys.state<@q>
+    return
+  }
+}
+
 // -----
 
 module {

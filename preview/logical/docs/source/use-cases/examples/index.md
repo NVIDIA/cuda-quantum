@@ -25,17 +25,23 @@ gidney-ekera
 
 ## Standalone compiler examples
 
+Examples 00–03 introduce authoring, placement, code and gadget definitions,
+and physical scheduling. Continue with encoded execution (06), or factory
+protocols and evaluation (07–08).
+Example 09 combines synthesis, factory provisioning, estimation, and scheduling
+in a lookup-addition capstone.
+
 ```{toctree}
 :maxdepth: 1
 
 p0-bell
 p1-placement
 code-and-gadget
-distillation
 physical-schedule
-lookup-addition
 steane-bernstein-vazirani
+distillation
 t-factory-evaluation
+lookup-addition
 ```
 
 ## Gadget verification and error models
@@ -52,5 +58,7 @@ and two sampling paths to the physical-memory workflow.
 
 gadget-verification
 gadget-surface-memory
+stim-emission
+memory-edem
 surface-memory-circuit
 ```

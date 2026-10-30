@@ -401,14 +401,16 @@ RUN gcc_packages=$(dnf list installed "gcc*" | sed '/Installed Packages/d' | cut
 
 RUN if ! gpus=$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null) || [ -z "$gpus" ]; then \
         excludes="--label-exclude gpu_required"; \
+        # Removing gcc removed the toolkit's nvJitLink, which
+        # libcudaq-realtime.so needs to load even without a GPU.
+        dnf install -y --nobest --setopt=install_weak_deps=False \
+            libnvjitlink-$(echo ${CUDA_VERSION} | tr . -); \
     else \
         # Removing gcc packages remove the CUDA toolkit since it depends on them
         source /cuda-quantum/scripts/configure_build.sh install-cudart; \
     fi && cd /cuda-quantum && \
     # Exclude lit test suites from ctest. They are run individually above/below.
-    # FIXME: exceptions lose their type across the library boundary here.
-    # Issue: https://github.com/NVIDIA/cuda-quantum/issues/2321
-    excludes+=" --exclude-regex ctest-cudaq|ctest-targettests|ctest-runtime|ctest-target-catalog|pycudaq-mlir|Tensor.*Error|DrawTester\.ownsControlValues" && \
+    excludes+=" --exclude-regex ctest-cudaq|ctest-targettests|ctest-runtime|ctest-target-catalog|pycudaq-mlir" && \
     ctest --output-on-failure --test-dir build $excludes
 
 ENV PATH="${PATH}:/usr/local/cuda/bin" 

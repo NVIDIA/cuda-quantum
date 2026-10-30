@@ -1,10 +1,10 @@
-/*******************************************************************************
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 //
 // C interface for QLX-side MLIR translations:
 //   - fabric-to-stim  (fabric circuit -> Stim text)
@@ -15,8 +15,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef QLX_C_TRANSLATE_TRANSLATIONS_H
-#define QLX_C_TRANSLATE_TRANSLATIONS_H
+#pragma once
 
 #include "cudaq/gf2/memory.h"
 #include "mlir-c/IR.h"
@@ -65,5 +64,3 @@ MLIR_CAPI_EXPORTED MlirLogicalResult qlxVerifyGadgetContract(
 #ifdef __cplusplus
 }
 #endif
-
-#endif // QLX_C_TRANSLATE_TRANSLATIONS_H

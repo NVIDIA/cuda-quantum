@@ -46,6 +46,10 @@ def test_examples_execute(capsys, monkeypatch, tmp_path):
     monkeypatch.chdir(tmp_path)
     output = {}
     for example in (*KERNEL_EXAMPLES, *STANDALONE_EXAMPLES, *GADGET_EXAMPLES):
+        # Without a GPU, example 08 runs on `density-matrix-cpu`, which is slow.
+        if (example.name == "08_t_factory_evaluation.py" and
+                cudaq.num_available_gpus() == 0):
+            continue
         cudaq.reset_target()
         monkeypatch.setattr(sys, "argv", [str(example)])
         runpy.run_path(str(example), run_name="__main__")

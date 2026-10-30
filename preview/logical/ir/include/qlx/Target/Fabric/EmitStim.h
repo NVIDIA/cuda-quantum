@@ -1,13 +1,12 @@
-/*******************************************************************************
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
-#ifndef QLX_TRANSLATE_FABRIC_EMITSTIM_H
-#define QLX_TRANSLATE_FABRIC_EMITSTIM_H
+#pragma once
 
 #include "llvm/ADT/StringRef.h"
 #include "mlir/IR/BuiltinOps.h"
@@ -129,5 +128,3 @@ mlir::LogicalResult emitStim(mlir::ModuleOp module, llvm::raw_ostream &os);
 void registerFabricToStimTranslation();
 
 } // namespace qlx::fabric
-
-#endif // QLX_TRANSLATE_FABRIC_EMITSTIM_H

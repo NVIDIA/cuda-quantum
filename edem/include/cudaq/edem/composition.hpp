@@ -1,12 +1,12 @@
-/*
- * Copyright (c) 2026 NVIDIA Corporation & Affiliates.
- * All rights reserved.
- *
- * This source code and the accompanying materials are made available under
- * the terms of the Apache License 2.0 which accompanies this distribution.
- */
-#ifndef CUDAQ_EDEM_COMPOSITION_HPP
-#define CUDAQ_EDEM_COMPOSITION_HPP
+/****************************************************************-*- C++ -*-****
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
+
+#pragma once
 
 #include "cudaq/edem/composition.h"
 #include "cudaq/edem/owned.hpp"
@@ -58,4 +58,3 @@ project_DEM(const PackedEDEM &value, PackedEDEM &result,
 } // namespace cudaq::edem
 
 #undef CUDAQ_EDEM_COMPOSITION_CPP_LOCAL
-#endif

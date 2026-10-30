@@ -5,9 +5,10 @@ These examples use `cudaq.logical` directly. They do not define
 the logical authoring, placement, QEC selection, physical lowering, scheduling,
 direct estimation, and `cudaq.run` APIs visible.
 
-Examples 00–05 progress from a portable logical program to a complete physical
-schedule. Examples 06 and 07 demonstrate ideal encoded computation and noisy
-T-state distillation.
+Examples 00–03 introduce the compiler from a portable logical program to a
+complete physical schedule. Continue with encoded execution (06), or factory
+protocols and evaluation (07–08). Example 09 is an optional capstone combining
+synthesis, factories, estimation, and scheduling.
 
 1. `00_logical_program.py` authors a portable Bell program without a CUDA-Q
    kernel and counts its logical resources.
@@ -15,18 +16,23 @@ T-state distillation.
    machine.
 3. `02_code_and_gadget.py` defines the Steane code and a syndrome-extraction
    gadget, then inspects the gadget's static operations.
-4. `03_magic_state_distillation.py` defines a 15-to-1 T-state distillation
-   protocol and estimates its static resources.
-5. `04_physical_schedule.py` compiles a logical memory experiment onto a
+4. `03_physical_schedule.py` compiles a logical memory experiment onto a
    surface-code device and lowers it to physical events.
-6. `05_gidney_ekera_lookup_addition.py` combines these steps on one four-bit
-   Gidney--Ekerå lookup-addition circuit, from logical program to physical
-   schedule.
-7. `06_steane_bernstein_vazirani.py` recovers a hidden bit string with Steane
-   encoded qubits on Stim.
-8. `07_t_factory_evaluation.py` evaluates T-state distillation with
+5. `06_steane_bernstein_vazirani.py` recovers a hidden bit string with Steane
+   encoded qubits using `cudaq.run` on Stim. Its explicit Clifford encoder
+   prepares ideal encoded states; it does not perform noisy error correction
+   or decoding.
+6. `07_magic_state_distillation.py` defines a 15-to-1 T-state distillation
+   protocol with resource requests and postselection, then estimates its
+   static resources.
+7. `08_t_factory_evaluation.py` evaluates T-state distillation with
    non-Clifford gates, measurement feedback, and raw-state noise on `BareQubit`
-   patches.
+   patches. It supplies explicit preparation and gate teleportation, selecting
+   accepted shots in Python, rather than executing example 07 unchanged.
+8. `09_gidney_ekera_lookup_addition.py` compiles a four-bit Gidney--Ekerå
+   lookup-addition circuit through synthesis, PBC normalization, placement,
+   QEC selection, and physical scheduling, including factory provisioning
+   and analytical estimates.
 
 Run any example from the repository root:
 

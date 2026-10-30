@@ -1,10 +1,10 @@
-/*
- * Copyright (c) 2026 NVIDIA Corporation & Affiliates.
- * All rights reserved.
- *
- * This source code and the accompanying materials are made available under
- * the terms of the Apache License 2.0 which accompanies this distribution.
- */
+/****************************************************************-*- C++ -*-****
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
 
 #pragma GCC visibility push(default)
 #include "cudaq/edem/core.h"
@@ -271,6 +271,8 @@ cudaq_edem_status lower(const cudaq_edem_description *d,
     codes[i] = {i, c.syndrome_count, c.virtual_outcome_count,
                 c.logical_qubit_count};
   }
+  // Original code-table indices map into the compact, name-sorted set used by
+  // this value. Repeated code bundles share one presentation and GF2 type.
   auto local = [&](uint32_t index) {
     return static_cast<uint32_t>(std::lower_bound(used.begin(),
                                                   used.begin() + code_count,
@@ -280,6 +282,8 @@ cudaq_edem_status lower(const cudaq_edem_description *d,
   for (uint32_t i = 0; i < free_type_count; ++i)
     types[code_count + i] = {free_names[i], strlen(free_names[i]),
                              CUDAQ_GF2_FREE, free_wire_count};
+  // Construction emits free ports first (F on input, D/O/Success on output),
+  // then each code bundle's V/S/L wires. Width arrays follow the same walk.
   uint64_t wi = 0;
   for (cudaq_edem_endpoint_direction direction = CUDAQ_EDEM_INPUT;
        direction <= CUDAQ_EDEM_OUTPUT; ++direction) {

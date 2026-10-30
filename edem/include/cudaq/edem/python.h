@@ -1,11 +1,13 @@
-/*
- * Copyright (c) 2026 NVIDIA Corporation & Affiliates.
- * All rights reserved.
- * This source code and the accompanying materials are made available under
- * the terms of the Apache License 2.0 which accompanies this distribution.
- */
-#ifndef CUDAQ_EDEM_PYTHON_H
-#define CUDAQ_EDEM_PYTHON_H
+/******************************************************************************
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        *
+ * All rights reserved.                                                       *
+ *                                                                            *
+ * This source code and the accompanying materials are made available under   *
+ * the terms of the Apache License 2.0 which accompanies this distribution.   *
+ *****************************************************************************/
+
+#pragma once
+
 #include "cudaq/gf2/memory.h"
 
 /* Unstable v0.x native-to-Python adoption protocol (no Python headers
@@ -20,4 +22,3 @@
  */
 #define CUDAQ_EDEM_OWNED_BUFFER_CAPSULE "cudaq_edem.owned_buffer.v0"
 #define CUDAQ_EDEM_USED_BUFFER_CAPSULE "cudaq_edem.owned_buffer.v0.used"
-#endif

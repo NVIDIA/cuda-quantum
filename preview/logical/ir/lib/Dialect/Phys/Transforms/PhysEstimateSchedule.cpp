@@ -4,7 +4,7 @@
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "qlx/Dialect/Phys/Transforms/Passes.h"
 
@@ -5094,7 +5094,6 @@ private:
             return schedule.emitOpError(
                 "missing evidence: abort retry occurrence lacks an "
                 "authenticated replay slice");
-          const ReplaySlice &slice = retrySlices[retained->second];
           const RetryMetricResult &metrics =
               retryMetricResults[retained->second];
           RetryStatistics statistics =

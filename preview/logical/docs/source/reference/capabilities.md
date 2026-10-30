@@ -31,12 +31,12 @@ Every row cites its exercising evidence in this repository.
 | P1 placement — `@machine`, regions/capabilities, constraints, and witnesses                                                                             | shipped, exercised | `examples/standalone/01_logical_placement.py`; placement tests                                                          |
 | P2 codes and gadgets — `@code` validation, catalog, `@gadget` with `implements=`, typed records                                                         | shipped, exercised | `examples/standalone/02_code_and_gadget.py`, `examples/04_carbon_code.py`; record-boundary tests                        |
 | Gadget verification — code-automorphism and kernel-backed action matching, fail-closed claims                                                       | shipped, exercised | `examples/04_carbon_code.py`; verifier-error lit suites                                                                |
-| Protocols — `@protocol`, typed resources, postselection, bounded retry, 15-to-1 distillation                                                            | shipped, exercised | `examples/standalone/03_magic_state_distillation.py`, `examples/standalone/05_gidney_ekera_lookup_addition.py`; tests   |
+| Protocols — `@protocol`, typed resources, postselection, bounded retry, 15-to-1 distillation                                                            | shipped, exercised | `examples/standalone/07_magic_state_distillation.py`, `examples/standalone/09_gidney_ekera_lookup_addition.py`; tests   |
 | Clifford+T synthesis — rotation lowering with provenance                                                                                                | shipped, exercised | `examples/01_clifford_t_resource_estimate.py`, `examples/03_fermi_hubbard.py`                                           |
 | CUDA-Q ingress — `@cudaq.kernel` programs through CUDA-Q Logical targets                                                                                | shipped, exercised | all top-level numbered examples                                                                                        |
-| Static P2 estimation — gadget/operation counts with folding                                                                                             | shipped, exercised | `examples/02_surface_code_resource_estimate.py`, `examples/standalone/03_magic_state_distillation.py`                   |
-| P3 physical lowering, routing, native legalization, and scheduling                                                                                      | shipped, exercised | `examples/04_carbon_code.py`, `examples/standalone/04_physical_schedule.py`, `examples/standalone/05_gidney_ekera_lookup_addition.py` |
-| Analytical and schedule estimation                                                                                                                      | shipped, exercised | `examples/02_surface_code_resource_estimate.py`, `examples/standalone/04_physical_schedule.py`, `examples/standalone/05_gidney_ekera_lookup_addition.py` |
+| Static P2 estimation — gadget/operation counts with folding                                                                                             | shipped, exercised | `examples/02_surface_code_resource_estimate.py`, `examples/standalone/07_magic_state_distillation.py`                   |
+| P3 physical lowering, routing, native legalization, and scheduling                                                                                      | shipped, exercised | `examples/04_carbon_code.py`, `examples/standalone/03_physical_schedule.py`, `examples/standalone/09_gidney_ekera_lookup_addition.py` |
+| Analytical and schedule estimation                                                                                                                      | shipped, exercised | `examples/02_surface_code_resource_estimate.py`, `examples/standalone/03_physical_schedule.py`, `examples/standalone/09_gidney_ekera_lookup_addition.py` |
 | Paper-specific Gidney–Ekerå RSA-2048/3072/4096 projection                                                                                               | shipped, exercised | `examples/05_gidney_ekera.py`                                                                                          |
 | Stim text emission — the `--fabric-to-stim` translation                                                                                                 | shipped, exercised | `examples/mlir/stim_memory.mlir` via `qlx-translate`; Stim-emission tests                                               |
 | P3 execution — `Build.to_quake()` and `cudaq.run`                                                                                                        | shipped, exercised | `python/tests/cudaq/logical/test_run_physical.py`; standalone examples 06 and 07                                        |
@@ -55,20 +55,22 @@ your own risk until exercised evidence lands.
 
 **Execution uses ordinary CUDA-Q targets.** `cudaq.run(physical_build, ...)`
 translates a supported P3 `Build` through `Build.to_quake()` and executes the
-resulting circuit on the selected target. Each shot returns the entry's explicit
-Boolean results: one result becomes a `bool`, and multiple results become a
-`list[bool]` in physical return order. No implicit final measurements or decoding
-are added. See the [Steane Bernstein–Vazirani](../use-cases/examples/steane-bernstein-vazirani.md)
+resulting circuit on the selected target. A program can return a `bool`, a list
+of `bool`, or a tuple of `bool`. Each shot returns a `bool` for a single entry,
+and a `list[bool]` in return order for several. No implicit final measurements
+or decoding are added. See the
+[Steane Bernstein–Vazirani](../use-cases/examples/steane-bernstein-vazirani.md)
 and [T-factory](../use-cases/examples/t-factory-evaluation.md) execution examples.
 
-**Execution covers a subset of P3.** Resource and factory flows, in-graph
-postselection, code epoch changes, and patch-granularity resources produce
-diagnostics instead of executable Quake. Support for compiling or estimating
-these forms does not imply execution support.
+**Execution covers a subset of P3.** Forms such as resource and factory flows,
+in-graph postselection, bounded retry, code epoch changes, and patch-granularity
+resources produce diagnostics instead of executable Quake. Support for compiling
+or estimating these forms does not imply execution support.
 
 **Target capabilities and memory limits still apply.** CUDA-Q's `stim` target
-executes Clifford circuits with supported Pauli noise. Non-Clifford examples
-require a compatible target, such as `nvidia` or `density-matrix-cpu`.
+executes Clifford circuits with supported Pauli noise. Non-Clifford examples,
+and any Pauli-product rotation, require a compatible target, such as `nvidia`
+or `density-matrix-cpu`.
 Successful compilation does not guarantee that a simulator has enough memory
 for the physical carriers, including ancillas. The ordinary `noise_model`
 argument applies supported channels to emitted gates. P3 operating-point error

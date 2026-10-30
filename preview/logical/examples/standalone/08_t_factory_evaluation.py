@@ -9,11 +9,11 @@
 
 Each shot runs one distillation attempt on BareQubit patches (one physical
 qubit per patch). The attempt uses the rotation supports, final S, and X checks
-of the library's 15-to-1 protocol (example 03). It returns its four check bits
+of the library's 15-to-1 protocol (example 07). It returns its four check bits
 and a check of its output, and the caller accepts an attempt when all four
 checks are False.
 
-Example 03's protocol requests 15 raw T states from an external stream. It
+Example 07's protocol requests 15 raw T states from an external stream. It
 unpacks four as check rows and consumes eleven with resource-backed rotations.
 Logical specifies the ideal operation of such a rotation, but it has no
 concrete preparation for an external raw T state and no execution lowering for
@@ -155,6 +155,8 @@ raw_check = physical(raw_state_check, device)
 # Run on the GPU simulator when a GPU is present, and otherwise on the
 # density-matrix simulator. Both apply the noise model below. Without noise,
 # every attempt passes its checks and produces |T>.
+# Note: Without a GPU, there will be a noticeable decrease in simulation
+# performance.
 target = "nvidia" if cudaq.num_available_gpus() > 0 else "density-matrix-cpu"
 cudaq.set_target(target)
 assert cudaq.run(attempt, shots_count=100) == [[False] * 5] * 100

@@ -1139,9 +1139,8 @@ static_assert(alignof(FakeSession) <= CUDAQ_DEV_TRANSPORT_SESSION_ALIGN,
 
 } // namespace
 
-extern "C" __device__ void *
-cudaq_dev_transport_attach(void *storage, void *ctx,
-                           volatile int *shutdown_flag) {
+extern "C" __device__ void *cudaq_dev_enter_kernel(void *storage, void *ctx,
+                                                   volatile int *shutdown_flag) {
   if (ctx == nullptr)
     return nullptr;
   auto *session = static_cast<FakeSession *>(storage);
@@ -1183,7 +1182,30 @@ extern "C" __device__ void cudaq_dev_tx_publish(void *session, void *response) {
   s->cursor = (slot + 1) % s->c.num_slots;
 }
 
+// The kernel this executable compiles from unified_dispatch_kernel.cu.
+extern "C" __global__ void
+cudaq_unified_dispatch_kernel(void *transport_ctx, std::size_t tx_stride_sz,
+                              volatile int *shutdown_flag,
+                              cudaq_function_entry_t *function_table,
+                              std::size_t func_count, std::uint64_t *stats);
+
 namespace {
+
+/// Launches that kernel the way libcudaq-realtime launches its linked copy:
+/// one block of `threads_per_block` threads.  Has the signature of
+/// cudaq_unified_launch_fn_t, so the dispatcher test hands it over as a launch
+/// override.
+cudaq_status_t
+launch_unified_dispatch_kernel(void *transport_ctx, size_t tx_stride_sz,
+                               cudaq_function_entry_t *function_table,
+                               size_t func_count, volatile int *shutdown_flag,
+                               uint64_t *stats, uint32_t threads_per_block,
+                               cudaStream_t stream) {
+  cudaq_unified_dispatch_kernel<<<1, threads_per_block, 0, stream>>>(
+      transport_ctx, tx_stride_sz, shutdown_flag, function_table, func_count,
+      stats);
+  return cudaPeekAtLastError() == cudaSuccess ? CUDAQ_OK : CUDAQ_ERR_CUDA;
+}
 
 using cudaq::realtime::RPC_MAGIC_REQUEST;
 using cudaq::realtime::RPC_MAGIC_RESPONSE;
@@ -1338,9 +1360,9 @@ protected:
   /// Launch the unified kernel as one block of kThreadsPerBlock threads over
   /// `transport_ctx` (nullptr makes attach refuse).
   bool launch(void *transport_ctx) {
-    cudaq_launch_unified_dispatch_device(
-        transport_ctx, kSlotSize, d_entries_, kRpcFuncCount, d_shutdown_flag_,
-        d_stats_, kThreadsPerBlock, stream_);
+    launch_unified_dispatch_kernel(transport_ctx, kSlotSize, d_entries_,
+                                   kRpcFuncCount, d_shutdown_flag_, d_stats_,
+                                   kThreadsPerBlock, stream_);
     const cudaError_t err = cudaGetLastError();
     EXPECT_EQ(err, cudaSuccess) << cudaGetErrorString(err);
     kernel_live_ = (err == cudaSuccess);
@@ -1564,8 +1586,9 @@ TEST_F(UnifiedDispatchKernelTest, DispatcherApi) {
   table.entries = d_entries_;
   table.count = static_cast<std::uint32_t>(kRpcFuncCount);
 
-  // A fully wired dispatcher for `cfg`, running the archive's unified kernel
-  // (no launch override).
+  // A fully wired dispatcher for `cfg`, running this executable's unified
+  // kernel through a launch override: the dispatcher's own kernel is linked
+  // at run time over a bridge, which this test has none of.
   auto make_dispatcher =
       [&](const cudaq_dispatcher_config_t &cfg) -> cudaq_dispatcher_t * {
     cudaq_dispatcher_t *d = nullptr;
@@ -1574,7 +1597,8 @@ TEST_F(UnifiedDispatchKernelTest, DispatcherApi) {
     if (cudaq_dispatcher_set_function_table(d, &table) != CUDAQ_OK ||
         cudaq_dispatcher_set_control(d, d_shutdown_flag_, d_stats_) !=
             CUDAQ_OK ||
-        cudaq_dispatcher_set_unified_launch(d, nullptr, d_ctx_) != CUDAQ_OK) {
+        cudaq_dispatcher_set_unified_launch(d, launch_unified_dispatch_kernel,
+                                            d_ctx_) != CUDAQ_OK) {
       cudaq_dispatcher_destroy(d);
       return nullptr;
     }
