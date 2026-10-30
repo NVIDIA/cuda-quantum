@@ -131,7 +131,7 @@ cudaq_unified_dispatch_kernel(void *transport_ctx, std::size_t tx_stride_sz,
     if (work.func == nullptr)
       break; // uniform: every thread read the same descriptor
 
-    // Same two-pointer call as the host path (host_dispatcher.cu): the handler
+    // Same two-pointer call as the host path (host_dispatcher.cpp): the handler
     // reads the request from `request`, writes its result after the
     // RPCResponse in `response` and sets response->result_len.  Every thread
     // of the block makes the call; thread 0's return value is the one

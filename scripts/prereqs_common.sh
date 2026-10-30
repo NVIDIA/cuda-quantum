@@ -150,13 +150,16 @@ if $lock_mode; then
     "version=${BLAS_VERSION}"
 
   # [GMP / MPFR]
+  # url is the primary; mirrors lists the same fallbacks download_first uses.
   add_lock_line "gmp" \
     "type=tar" \
     "url=${GMP_TARBALL_URLS%% *}" \
+    "mirrors=$(echo ${GMP_TARBALL_URLS#* } | tr ' ' ',')" \
     "version=${GMP_VERSION}"
   add_lock_line "mpfr" \
     "type=tar" \
     "url=${MPFR_TARBALL_URLS%% *}" \
+    "mirrors=$(echo ${MPFR_TARBALL_URLS#* } | tr ' ' ',')" \
     "version=${MPFR_VERSION}"
 
   # [OpenSSL] (and its private Perl used only for the build)

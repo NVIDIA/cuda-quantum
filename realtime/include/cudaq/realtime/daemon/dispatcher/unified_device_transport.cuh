@@ -117,10 +117,10 @@ extern __device__ void *cudaq_dev_enter_kernel(void *storage, void *ctx,
 /// Contract: MUST observe the shutdown flag while it waits, since the dispatch
 /// loop cannot check it meanwhile.  Blocking here is intentional and is the
 /// one divergence from `cudaq_cpu_rx_poll_fn_t`, which must not block: the
-/// host loop has to return every turn to service graph-launch completions,
-/// whereas this path runs device calls only and has no other work to
-/// interleave.  Returning on every empty poll would also put a cross-TU call
-/// in the spin, so the wait stays inside the implementation.
+/// host loop checks the shutdown flag between polls, whereas this path runs
+/// device calls only and has no other work to interleave.  Returning on every
+/// empty poll would also put a cross-TU call in the spin, so the wait stays
+/// inside the implementation.
 extern __device__ cudaq_rx_dev_status_t cudaq_dev_rx_poll(void *session,
                                                           void **out_request,
                                                           void **out_response);

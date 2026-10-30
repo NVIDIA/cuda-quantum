@@ -27,7 +27,7 @@
 #include "cudaq/realtime/cpu_transport/roce_wrapper.h"
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
 #include "cudaq/realtime/daemon/dispatcher/dispatch_kernel_launch.h"
-#include "cudaq/realtime/daemon/dispatcher/graph_launch_engine.h"
+#include "cudaq/realtime/daemon/dispatcher/host_dispatch_loop.h"
 
 #include <atomic>
 #include <chrono>
@@ -251,35 +251,29 @@ int main(int argc, char **argv) {
     // bytes-on-wire.
   } else if (cfg.unified) {
     // Unified: cudaq_host_unified_loop drives the transceiver through its
-    // hooks on this one thread.  A HOST_CALL-only table needs no GRAPH_LAUNCH
-    // engine, so engine == NULL.
+    // hooks on this one thread.
     dataplane.ctx = xcvr;
     dataplane.ring = ring;
     dataplane.rx_poll = dp_rx_poll;
     dataplane.tx_publish = dp_tx_publish;
 
     dispatcher_thread = std::thread([&]() {
-      cudaq_host_unified_loop(&dataplane, &table, /*engine=*/nullptr,
-                              &dispatcher_shutdown, &packets_dispatched);
+      cudaq_host_unified_loop(&dataplane, &table, &dispatcher_shutdown,
+                              &packets_dispatched);
     });
   } else {
     // 3-thread layout: spawn cudaq_host_ring_dispatch_loop on a dedicated
     // thread.  It busy-polls rx_flags_host (the transceiver's RX thread
     // publishes them), invokes our HOST_CALL handler synchronously, and
     // publishes tx_flags_host (the transceiver's TX thread consumes them).
-    // A HOST_CALL-only table needs no GRAPH_LAUNCH engine, so engine == NULL
-    // (the loop touches no graph workers).
     dcfg.num_slots = cfg.num_pages;
     dcfg.slot_size = static_cast<uint32_t>(cfg.page_size);
     dcfg.dispatch_path = CUDAQ_DISPATCH_PATH_HOST;
     dcfg.dispatch_mode = CUDAQ_DISPATCH_HOST_CALL;
-    dcfg.skip_tx_markers = 1; // we own the TX path; sentinel pattern
-                              // (used to avoid GpuRoceTransceiver TX kernel
-                              // confusion) is irrelevant here.
 
     dispatcher_thread = std::thread([&]() {
-      cudaq_host_ring_dispatch_loop(&ring, &table, &dcfg, /*engine=*/nullptr,
-                                    &dispatcher_shutdown, &packets_dispatched);
+      cudaq_host_ring_dispatch_loop(&ring, &table, &dcfg, &dispatcher_shutdown,
+                                    &packets_dispatched);
     });
   }
 

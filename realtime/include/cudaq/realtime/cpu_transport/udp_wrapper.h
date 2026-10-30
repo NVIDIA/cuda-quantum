@@ -135,7 +135,7 @@ void cpu_udp_close(cpu_udp_transceiver_t handle);
 /// Non-blocking RX. Returns 1 and sets *out_slot when a datagram has been
 /// placed in that RX slot (at rx_data + slot * page_size, zero-filled past the
 /// received bytes). Returns 0 when nothing was ready, when the in-order slot is
-/// still occupied (tx_flags[slot] != 0, i.e. a response still in flight), or
+/// still occupied (tx_flags[slot] != 0, i.e. the consumer still holds it), or
 /// when the datagram exceeded this end's page_size (dropped, warned once).
 /// Never touches rx_flags.
 int cpu_udp_rx_poll(cpu_udp_transceiver_t handle, uint32_t *out_slot);

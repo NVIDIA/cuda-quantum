@@ -6,9 +6,9 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --cudaq-fault-tolerant-target='epsilon=1e-3 seed=42' %s -o %t.1
-// RUN: cudaq-opt --cudaq-fault-tolerant-target='epsilon=1e-3 seed=42' %s -o %t.2
-// RUN: cudaq-opt --cudaq-fault-tolerant-target='epsilon=1e-3 seed=42' %s -o %t.3
+// RUN: cudaq-opt --clifford-t-synthesis-pipeline='epsilon=1e-3 seed=42' %s -o %t.1
+// RUN: cudaq-opt --clifford-t-synthesis-pipeline='epsilon=1e-3 seed=42' %s -o %t.2
+// RUN: cudaq-opt --clifford-t-synthesis-pipeline='epsilon=1e-3 seed=42' %s -o %t.3
 // RUN: diff %t.1 %t.2
 // RUN: diff %t.1 %t.3
 // RUN: FileCheck --input-file=%t.1 %s
@@ -26,4 +26,4 @@ func.func @seeded() {
 
 // CHECK-LABEL: func.func @seeded()
 // CHECK-NOT:     quake.rz
-// CHECK:         call @__cliffordt_rz_
+// CHECK:         quake.t
