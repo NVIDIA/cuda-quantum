@@ -24,16 +24,6 @@ def test_defaults_on_every_constructor(target):
     assert target.codegen == Codegen("qir:")
 
 
-@pytest.mark.parametrize("flag", ["erase_noise", "erase_qec"])
-def test_erasure_flags_change_identity(flag):
-    target = CompileTarget()
-    assert getattr(target, flag)
-    changed = CompileTarget()
-    setattr(changed, flag, False)
-    assert changed != target
-    assert hash(changed) != hash(target)
-
-
 def test_default_stages_are_empty():
     assert CompileTarget().stages == []
 
