@@ -9,6 +9,7 @@
 # Tests for the compiler-bench-nisq target: decomposition to a CZ and rotation
 # basis, with optional routing onto a device.
 
+import re
 from pathlib import Path
 
 import cudaq
@@ -218,15 +219,17 @@ def entangle_ends_4():
 
 
 def test_translate_from_wire_set():
-    """The mapped stage ends on wires borrowed from a wire set, which
-    `translate` converts for full QIR and for OpenQASM. `translate` compiles
-    against the target's own stages, so it does not route onto a device set
-    through `compile_target`."""
+    """`translate` compiles against the installed compile target, so it
+    routes, and it converts the wires borrowed from the device's wire set for
+    full QIR and for OpenQASM. On path(4), every two-qubit gate acts on
+    neighboring device qubits."""
     set_target_on_device('path(4)')
     qir = cudaq.translate(entangle_ends_4, format='qir')
     assert '__quantum__qis__z__ctl' in qir
     qasm = cudaq.translate(entangle_ends_4, format='openqasm2')
-    assert 'cx var0[0], var0[3];' in qasm
+    pairs = re.findall(r'cx var0\[(\d)\], var0\[(\d)\];', qasm)
+    assert len(pairs) > 1
+    assert all(abs(int(a) - int(b)) == 1 for a, b in pairs)
 
 
 @cudaq.kernel
