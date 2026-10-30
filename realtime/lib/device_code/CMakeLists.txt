@@ -18,41 +18,16 @@ if(NOT CUDA_FOUND)
 endif()
 
 # A DEVICE + UNIFIED dispatcher links its kernel, the bridge's hooks and the
-# application's handlers at run time with nvJitLink.  libcudaq-realtime.so opens
-# libnvJitLink.so.<major> only when such a dispatcher first links, so a host
-# that never does (pure host dispatch, no GPU) loads without it.  Building
-# needs just the nvJitLink header, which a default CUDA toolkit install may
-# lack; the dev images install libnvjitlink-dev.
-find_path(CUDAQ_REALTIME_NVJITLINK_INCLUDE_DIR nvJitLink.h
-  HINTS ${CUDAToolkit_INCLUDE_DIRS})
-if (NOT CUDAQ_REALTIME_NVJITLINK_INCLUDE_DIR)
+# application's handlers at run time.  Building it needs the nvJitLink header
+# and unversioned .so, which a default CUDA toolkit install may lack; the dev images
+# install libnvjitlink-dev.  Users of the built library need only the runtime
+# libnvJitLink.so.<major>, which every CUDA runtime install provides.
+if (NOT TARGET CUDA::nvJitLink)
   message(FATAL_ERROR
-    "cudaq-realtime needs the nvJitLink header; "
+    "cudaq-realtime needs nvJitLink (header and unversioned library); "
     "install libnvjitlink-dev-${CUDAToolkit_VERSION_MAJOR}-"
     "${CUDAToolkit_VERSION_MINOR}")
 endif()
-
-# The header's inline wrappers call the versioned entry points of the release
-# it ships with, __nvJitLink<Name>_<major>_<minor>; the run-time lookup asks
-# the library for that same version.
-file(STRINGS "${CUDAQ_REALTIME_NVJITLINK_INCLUDE_DIR}/nvJitLink.h"
-  _nvjitlink_create REGEX "__nvJitLinkCreate_[0-9]+_[0-9]+")
-string(REGEX MATCH "__nvJitLinkCreate_([0-9]+)_([0-9]+)" _nvjitlink_create
-  "${_nvjitlink_create}")
-if (NOT _nvjitlink_create)
-  message(FATAL_ERROR
-    "cannot find the nvJitLink ABI version in "
-    "${CUDAQ_REALTIME_NVJITLINK_INCLUDE_DIR}/nvJitLink.h")
-endif()
-set(_nvjitlink_major ${CMAKE_MATCH_1})
-set(_nvjitlink_minor ${CMAKE_MATCH_2})
-set_property(SOURCE nvjitlink_linker.cpp APPEND PROPERTY COMPILE_DEFINITIONS
-  "CUDAQ_REALTIME_NVJITLINK_ABI=${_nvjitlink_major}_${_nvjitlink_minor}"
-  "CUDAQ_REALTIME_NVJITLINK_VERSION=\"${_nvjitlink_major}.${_nvjitlink_minor}\""
-  "CUDAQ_REALTIME_NVJITLINK_SONAME=\"libnvJitLink.so.${_nvjitlink_major}\"")
-unset(_nvjitlink_create)
-unset(_nvjitlink_major)
-unset(_nvjitlink_minor)
 
 set(CUDAQ_REALTIME_DEVICE_CODE_SOURCES
   nvjitlink_linker.cpp
@@ -113,15 +88,13 @@ target_include_directories(cudaq-realtime-device-code
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<BUILD_INTERFACE:${CUDAQ_REALTIME_INCLUDE_DIR}>
-  PRIVATE
-    ${CUDAQ_REALTIME_NVJITLINK_INCLUDE_DIR}
 )
 
 target_link_libraries(cudaq-realtime-device-code
   PUBLIC
     CUDA::cudart_static
   PRIVATE
-    ${CMAKE_DL_LIBS}
+    CUDA::nvJitLink
 )
 
 set_target_properties(cudaq-realtime-device-code PROPERTIES
