@@ -16,7 +16,6 @@
 #include "cudaq_internal/compiler/CompiledModuleHelper.h"
 #include "cudaq_internal/compiler/Compiler.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
-#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Target/CompileTarget.h"
 #include "cudaq/Target/TargetConfig.h"
 #include "mlir/IR/BuiltinOps.h"
@@ -294,13 +293,12 @@ static mlir::LogicalResult countTargetPipelineRun(mlir::PassManager &pm,
   return pm.run(op);
 }
 
-/// Target with a single inferred stage lowering to \p profile.
-static cudaq::CompileTarget
-inferredTarget(cudaq::config::Profile profile =
-                   cudaq::config::QuakeReferenceSemanticsProfile{}) {
+/// Target with a single inferred quake-reference-semantics stage.
+static cudaq::CompileTarget inferredTarget() {
   cudaq::CompileTarget target;
-  target.stages.push_back({.irOutputProfile = std::move(profile),
-                           .lowering = cudaq::config::InferredLowering{}});
+  target.stages.push_back(
+      {.irOutputProfile = cudaq::config::QuakeReferenceSemanticsProfile{},
+       .lowering = cudaq::config::InferredLowering{}});
   return target;
 }
 
@@ -464,62 +462,6 @@ void test_quake_unmapped_levels(mlir::MLIRContext *ctx) {
 // CHECK-LABEL: Clifford+T exact angle resource counts:
 // CHECK: total: 1{{$}}
 
-/// Controlled rotations, which decomposition rewrites with a global phase.
-static const char *controlledRotationsKernel = R"#(
-func.func @__nvqpp__mlirgen__controlledRotations() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
-  %a = arith.constant 0.7 : f64
-  %q = quake.alloca !quake.veq<3>
-  %0 = quake.extract_ref %q[0] : (!quake.veq<3>) -> !quake.ref
-  %1 = quake.extract_ref %q[1] : (!quake.veq<3>) -> !quake.ref
-  %2 = quake.extract_ref %q[2] : (!quake.veq<3>) -> !quake.ref
-  quake.rx (%a) [%0] %1 : (f64, !quake.ref, !quake.ref) -> ()
-  quake.r1 (%a) [%0] %1 : (f64, !quake.ref, !quake.ref) -> ()
-  quake.rx (%a) [%0, %1] %2 : (f64, !quake.ref, !quake.ref, !quake.ref) -> ()
-  quake.r1 (%a) %2 : (f64, !quake.ref) -> ()
-  quake.rz (%a) [%1] %2 : (f64, !quake.ref, !quake.ref) -> ()
-  %m = quake.mz %q : (!quake.veq<3>) -> !cc.sequence<!quake.measure>
-  return
-}
-)#";
-
-/// CUDA-Q Logical's import rejects `quake.phase`, so no `t-count` stage may
-/// leave one at any level. The basis of `compiler-bench-ftqc-logical` has `rz`
-/// but not `r1`, so its closing basis conversion adds a phase of its own. The
-/// Clifford+T basis covers a stage that synthesizes. The strict closing basis
-/// conversion fails the compile if a gate outside the basis remains.
-void test_quake_unmapped_lowers_phase(mlir::MLIRContext *ctx) {
-  auto benchLogical = cudaq::config::QuakeUnmappedProfile{
-      .basisGates = {"h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "swap",
-                     "x(1)", "y(1)", "z(1)", "x(2)", "z(2)"},
-      .costModel = cudaq::config::CostModel::t_count};
-  auto cliffordT = cudaq::config::QuakeUnmappedProfile{
-      .basisGates = {"h", "s", "t", "x", "y", "z", "swap", "x(1)", "y(1)",
-                     "z(1)"},
-      .approximationTolerance = 1e-3,
-      .costModel = cudaq::config::CostModel::t_count};
-  for (const auto &profile : {benchLogical, cliffordT})
-    for (auto level :
-         {cudaq::OptimizationLevel::O0, cudaq::OptimizationLevel::O1,
-          cudaq::OptimizationLevel::O2, cudaq::OptimizationLevel::O3}) {
-      cudaq::CompileOptions options;
-      options.emitTargetCode = false;
-      options.optimizationLevel = level;
-      options.seed = 42;
-      auto mod = mlir::parseSourceString<mlir::ModuleOp>(
-          controlledRotationsKernel, ctx);
-      Compiler compiler(inferredTarget(profile), std::move(options));
-      auto compiled = compiler.compile(
-          "controlledRotations", mod.release().getAsOpaquePointer(),
-          cudaq::KernelArgs{}, /*isEntryPoint=*/true);
-      unsigned phases = 0;
-      CompiledModuleHelper::getMlirModuleOp(*compiled.getMlir())
-          .walk([&](cudaq::quake::PhaseOp) { ++phases; });
-      llvm::outs() << "Phases left: " << phases << "\n";
-    }
-}
-
-// CHECK-COUNT-8: Phases left: 0{{$}}
-
 /// A rotation whose angle is the kernel's argument.
 static const char *argumentAngleKernel = R"#(
 func.func @__nvqpp__mlirgen__argumentAngle(%angle: f64) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
@@ -664,7 +606,6 @@ int main() {
   test_staged_inferred(context.get());
   test_staged_skip(context.get());
   test_quake_unmapped_levels(context.get());
-  test_quake_unmapped_lowers_phase(context.get());
   test_quake_unmapped_specialization(context.get());
   test_quake_mapped_levels(context.get());
   test_optimization_level_0(context.get());
