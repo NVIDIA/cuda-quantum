@@ -188,6 +188,11 @@ std::size_t std::hash<cudaq::config::QuakeUnmappedProfile>::operator()(
     cudaq::detail::hashCombine(seed, gate);
   cudaq::detail::hashCombine(seed, profile.approximationTolerance);
   cudaq::detail::hashCombine(seed, profile.costModel);
+  cudaq::detail::hashCombine(seed, profile.semantics);
+  cudaq::detail::hashCombine(seed, profile.unrollLoops);
+  cudaq::detail::hashCombine(seed, profile.maxUnrollIterations);
+  cudaq::detail::hashCombine(seed, profile.eraseNoise);
+  cudaq::detail::hashCombine(seed, profile.eraseQEC);
   return seed;
 }
 

@@ -50,6 +50,42 @@ std::optional<CostModel> costModel(nb::handle value) {
   }
 }
 
+Semantics semantics(const std::string &value) {
+  if (value == "any")
+    return Semantics::any;
+  if (value == "value")
+    return Semantics::value;
+  throw std::invalid_argument("semantics must be 'any' or 'value'");
+}
+
+std::string semanticsName(Semantics semantics) {
+  switch (semantics) {
+  case Semantics::any:
+    return "any";
+  case Semantics::value:
+    return "value";
+  }
+  throw std::invalid_argument("unknown semantics");
+}
+
+LoopUnrolling loopUnrolling(const std::string &value) {
+  if (value == "all")
+    return LoopUnrolling::all;
+  if (value == "index_use")
+    return LoopUnrolling::index_use;
+  throw std::invalid_argument("unroll_loops must be 'all' or 'index_use'");
+}
+
+std::string loopUnrollingName(LoopUnrolling unrolling) {
+  switch (unrolling) {
+  case LoopUnrolling::all:
+    return "all";
+  case LoopUnrolling::index_use:
+    return "index_use";
+  }
+  throw std::invalid_argument("unknown unroll_loops value");
+}
+
 template <typename T>
 std::string repr(const T &value) {
   return nb::repr(nb::cast(value)).c_str();
@@ -114,12 +150,25 @@ void cudaq::bindTargetProfiles(nb::module_ &m) {
       .def(
           "__init__",
           [](QuakeUnmappedProfile *self, std::vector<std::string> basis,
-             double tolerance, nb::handle model) {
-            new (self) QuakeUnmappedProfile{std::move(basis), tolerance,
-                                            costModel(model)};
+             double tolerance, nb::handle model,
+             const std::string &semanticsValue, const std::string &unrollLoops,
+             unsigned maxUnrollIterations, bool eraseNoise, bool eraseQEC) {
+            new (self)
+                QuakeUnmappedProfile{.basisGates = std::move(basis),
+                                     .approximationTolerance = tolerance,
+                                     .costModel = costModel(model),
+                                     .semantics = semantics(semanticsValue),
+                                     .unrollLoops = loopUnrolling(unrollLoops),
+                                     .maxUnrollIterations = maxUnrollIterations,
+                                     .eraseNoise = eraseNoise,
+                                     .eraseQEC = eraseQEC};
           },
           nb::kw_only(), "basis_gates"_a = std::vector<std::string>{},
-          "approximation_tolerance"_a = 0.0, "cost_model"_a = nb::none())
+          "approximation_tolerance"_a = 0.0, "cost_model"_a = nb::none(),
+          "semantics"_a = "any", "unroll_loops"_a = "all",
+          "max_unroll_iterations"_a =
+              QuakeUnmappedProfile{}.maxUnrollIterations,
+          "erase_noise"_a = true, "erase_qec"_a = true)
       .def_rw("basis_gates", &QuakeUnmappedProfile::basisGates)
       .def_rw("approximation_tolerance",
               &QuakeUnmappedProfile::approximationTolerance)
@@ -130,10 +179,35 @@ void cudaq::bindTargetProfiles(nb::module_ &m) {
             p.costModel = costModel(model);
           },
           nb::for_setter(nb::arg("value").none()))
+      .def_prop_rw(
+          "semantics",
+          [](const QuakeUnmappedProfile &p) {
+            return semanticsName(p.semantics);
+          },
+          [](QuakeUnmappedProfile &p, const std::string &value) {
+            p.semantics = semantics(value);
+          })
+      .def_prop_rw(
+          "unroll_loops",
+          [](const QuakeUnmappedProfile &p) {
+            return loopUnrollingName(p.unrollLoops);
+          },
+          [](QuakeUnmappedProfile &p, const std::string &value) {
+            p.unrollLoops = loopUnrolling(value);
+          })
+      .def_rw("max_unroll_iterations",
+              &QuakeUnmappedProfile::maxUnrollIterations)
+      .def_rw("erase_noise", &QuakeUnmappedProfile::eraseNoise)
+      .def_rw("erase_qec", &QuakeUnmappedProfile::eraseQEC)
       .def("__repr__", [](const QuakeUnmappedProfile &p) {
         return "QuakeUnmappedProfile(basis_gates=" + repr(p.basisGates) +
                ", approximation_tolerance=" + repr(p.approximationTolerance) +
-               ", cost_model=" + costModelRepr(p.costModel) + ")";
+               ", cost_model=" + costModelRepr(p.costModel) +
+               ", semantics=" + repr(semanticsName(p.semantics)) +
+               ", unroll_loops=" + repr(loopUnrollingName(p.unrollLoops)) +
+               ", max_unroll_iterations=" + repr(p.maxUnrollIterations) +
+               ", erase_noise=" + (p.eraseNoise ? "True" : "False") +
+               ", erase_qec=" + (p.eraseQEC ? "True" : "False") + ")";
       });
   valueClass<QuakeMappedProfile>(m, "QuakeMappedProfile")
       .def(

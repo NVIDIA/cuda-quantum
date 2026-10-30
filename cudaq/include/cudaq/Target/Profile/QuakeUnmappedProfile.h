@@ -25,9 +25,29 @@ enum class CostModel {
   two_qubit_gate_count,
 };
 
+/// How the consumer of a `quake-unmapped` stage requires qubits to be
+/// represented.
+enum class Semantics {
+  /// References or wires, as the stage chooses.
+  any,
+  /// Only wires.
+  value,
+};
+
+/// Which loops a `quake-unmapped` stage unrolls when it converts to wires.
+enum class LoopUnrolling {
+  /// Every loop with a constant trip count.
+  all,
+  /// Only loops whose induction variable is used in the body, such as a loop
+  /// that indexes a register or sets a rotation angle. A loop that repeats the
+  /// same body stays rolled, so that a consumer can count it once and multiply
+  /// by its trip count.
+  index_use,
+};
+
 /// IR profile for Quake before qubit mapping. Qubits come from allocations
 /// rather than a device's wire set, and any two may interact. Wires and
-/// references are both allowed.
+/// references are both allowed, unless `semantics` requires wires.
 ///
 /// Use it for a target that needs a fixed gate set but not a placement of
 /// qubits on a device, such as a fault-tolerant target that counts logical
@@ -63,6 +83,29 @@ struct QuakeUnmappedProfile {
 
   /// Without a cost model, the stage runs no optimization.
   std::optional<CostModel> costModel = std::nullopt;
+
+  /// With `Semantics::value`, the stage converts to wires at every level and
+  /// fails to compile a kernel that keeps a reference, such as a register
+  /// indexed by a loop longer than `maxUnrollIterations` or by a value known
+  /// only when the kernel runs.
+  Semantics semantics = Semantics::any;
+
+  /// Which loops the stage unrolls when it converts to wires. Unless this is
+  /// `all`, prep and deploy unroll no loop before the stage runs, so that the
+  /// loops the stage keeps reach its output rolled.
+  LoopUnrolling unrollLoops = LoopUnrolling::all;
+
+  /// The most iterations of a loop that the stage unrolls. The qubits of a
+  /// longer loop that it selects stay on references. The default is the limit
+  /// that prep and deploy unroll to, in `classical-optimization-pipeline`.
+  unsigned maxUnrollIterations = 1024;
+
+  /// Whether prep erases `quake.apply_noise`. A consumer that has to see noise,
+  /// for example to reject it, sets this to false.
+  bool eraseNoise = true;
+
+  /// Whether prep erases the QEC detector and observable operations.
+  bool eraseQEC = true;
 
   bool operator==(const QuakeUnmappedProfile &other) const = default;
 };
