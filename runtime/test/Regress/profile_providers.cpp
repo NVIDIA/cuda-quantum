@@ -111,14 +111,18 @@
 
 // The NISQ target decomposes and optimizes in its `quake-unmapped` stage,
 // keeping controlled `x` for phase folding until its basis conversion, and
-// maps in its `quake-mapped` stage. Both stages convert to wires at every
-// level, and level 1 adds only the two optimization pipelines.
+// maps in its `quake-mapped` stage. Its first stage has value semantics, so it
+// ends with the wires-only verifier, and the second stage adds a wire set
+// instead of converting to wires again. Level 1 adds only the two optimization
+// pipelines.
 // CHECK-LABEL: compiler-bench-nisq on path(4) level 0:
 // CHECK:       jit-deploy-pipeline
 // CHECK-NEXT:  decomposition{basis=h,rx,ry,rz,x,z(1),x(1)}
 // CHECK-NEXT:  prepare-for-wireset{maximum-iterations=1024}
 // CHECK-NEXT:  basis-conversion{basis=h,rx,ry,rz,x,z(1)}
-// CHECK-NEXT:  prepare-for-wireset{add-wireset=true maximum-iterations=1024}
+// CHECK-NEXT:  verify-quake-unmapped-profile{wires-only=true}
+// CHECK-NEXT:  add-wireset
+// CHECK-NEXT:  func.func(assign-wire-indices)
 // CHECK-NEXT:  qubit-mapping{device=path(4) raise-fatal-errors=true}
 // CHECK-NEXT:  basis-conversion{basis=h,rx,ry,rz,x,z(1)}
 // CHECK-NEXT:  jit-finalize-pipeline
@@ -129,7 +133,9 @@
 // CHECK-NEXT:  prepare-for-wireset{maximum-iterations=1024}
 // CHECK-NEXT:  two-qubit-gate-count-optimization-pipeline{level=1}
 // CHECK-NEXT:  basis-conversion{basis=h,rx,ry,rz,x,z(1)}
-// CHECK-NEXT:  prepare-for-wireset{add-wireset=true maximum-iterations=1024}
+// CHECK-NEXT:  verify-quake-unmapped-profile{wires-only=true}
+// CHECK-NEXT:  add-wireset
+// CHECK-NEXT:  func.func(assign-wire-indices)
 // CHECK-NEXT:  qubit-mapping{device=path(4) raise-fatal-errors=true}
 // CHECK-NEXT:  two-qubit-gate-count-optimization-pipeline{level=1}
 // CHECK-NEXT:  basis-conversion{basis=h,rx,ry,rz,x,z(1)}
