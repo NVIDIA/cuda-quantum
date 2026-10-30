@@ -30,39 +30,34 @@ public:
     auto wireSets = llvm::to_vector(module.getOps<cudaq::quake::WireSetOp>());
     if (wireSets.empty())
       return;
-    auto wireTy = cudaq::quake::WireType::get(module.getContext());
+    auto wireTy = cudaq::quake::WireType::get(&getContext());
+    IRRewriter rewriter(&getContext());
     for (auto func : module.getOps<func::FuncOp>()) {
       if (func.empty())
         continue;
-      SmallVector<cudaq::quake::BorrowWireOp> borrows;
-      func.walk([&](cudaq::quake::BorrowWireOp borrow) {
-        borrows.push_back(borrow);
-      });
-      llvm::stable_sort(borrows, [](auto a, auto b) {
+      // Move the entry block's borrows to its start in identity order. A
+      // borrow inside control flow stays where it is, so it gets a fresh qubit
+      // each time it runs.
+      Block &entry = func.getBody().front();
+      auto entryBorrows =
+          llvm::to_vector(entry.getOps<cudaq::quake::BorrowWireOp>());
+      llvm::stable_sort(entryBorrows, [](auto a, auto b) {
         return std::make_pair(a.getSetName(), a.getIdentity()) <
                std::make_pair(b.getSetName(), b.getIdentity());
       });
-      // Prepending the entry-block null wires in reverse leaves them in
-      // identity order.
-      Block &entry = func.getBody().front();
-      for (auto borrow : llvm::reverse(borrows)) {
-        OpBuilder builder(borrow);
-        if (borrow->getBlock() == &entry)
-          builder.setInsertionPointToStart(&entry);
-        Value nullWire =
-            cudaq::quake::NullWireOp::create(builder, borrow.getLoc(), wireTy);
-        borrow.replaceAllUsesWith(nullWire);
-        borrow.erase();
-      }
-      func.walk([](cudaq::quake::ReturnWireOp ret) {
-        OpBuilder builder(ret);
-        cudaq::quake::SinkOp::create(builder, ret.getLoc(), TypeRange{},
-                                     ret.getTarget());
-        ret.erase();
+      for (auto borrow : llvm::reverse(entryBorrows))
+        borrow->moveBefore(&entry, entry.begin());
+      func.walk([&](Operation *op) {
+        rewriter.setInsertionPoint(op);
+        if (auto borrow = dyn_cast<cudaq::quake::BorrowWireOp>(op))
+          rewriter.replaceOpWithNewOp<cudaq::quake::NullWireOp>(borrow, wireTy);
+        else if (auto ret = dyn_cast<cudaq::quake::ReturnWireOp>(op))
+          rewriter.replaceOpWithNewOp<cudaq::quake::SinkOp>(ret, TypeRange{},
+                                                            ret.getTarget());
       });
     }
     for (auto wireSet : wireSets)
-      wireSet.erase();
+      rewriter.eraseOp(wireSet);
   }
 };
 } // namespace

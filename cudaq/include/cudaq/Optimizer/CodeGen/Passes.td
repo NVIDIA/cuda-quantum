@@ -263,21 +263,17 @@ def ReturnToOutputLog : Pass<"return-to-output-log", "mlir::ModuleOp"> {
 def WireSetToNullWires : Pass<"wireset-to-null-wires", "mlir::ModuleOp"> {
   let summary = "Replace wires borrowed from wire sets with null wires";
   let description = [{
-    Full QIR gives each `quake.null_wire` a new qubit, but it can't lower
-    `quake.borrow_wire`, which is what a kernel mapped onto a device ends on.
-    This pass turns each borrowed wire into a null wire and each
-    `quake.return_wire` into a `quake.sink`, then erases the wire sets. Profile
-    QIR doesn't need it, because `wireset-to-profile-qir` lowers wire sets
-    directly.
+    Replaces each wire borrowed from a `quake.wire_set` with a
+    `quake.null_wire`, turns each `quake.return_wire` into a `quake.sink`, and
+    removes the wire sets.
 
-    Borrows in a function's entry block become null wires at the start of the
-    block, sorted by identity, so the qubits are allocated in device order.
-    That matches the device's numbering as long as the mapped qubits run
-    contiguously from 0, which holds for the mapper's identity layout. A borrow
-    inside control flow stays where it is. Each borrow gets its own fresh
-    qubit, even one that borrows an identity again. Because the wires stay
-    values, a wire carried through a `cc.loop` works too, which `regtomem`
-    can't handle.
+    Simulators run QIR without a profile, which gives each null wire a new
+    qubit but has no way to lower `quake.borrow_wire`. A kernel ends up on
+    borrowed wires when it is mapped onto a device, for example:
+    `assign-wire-indices` borrows every qubit from a new wire set before
+    mapping, and `qubit-mapping` borrows the device's qubits from one it
+    creates. The entry block's null wires are created in identity order, so
+    the qubits are allocated in the wire set's order.
   }];
 }
 

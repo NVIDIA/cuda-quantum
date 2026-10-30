@@ -187,9 +187,9 @@ createTargetCodegenPipeline(OpPassManager &pm,
                             bool useValueSemantics) {
   auto tgt = StringRef(options.target).split(':').first;
   bool fullQIR = tgt == "qir" || tgt == "qir-full";
-  // Full QIR can't lower borrowed wires, so a mapped kernel gets null wires
-  // instead. Profile QIR keeps rejecting them, since it should go through
-  // `wireset-to-profile-qir`.
+  // QIR without a profile can't lower borrowed wires, so swap them for null
+  // wires first. Profile QIR lowers wire sets with `wireset-to-profile-qir`
+  // instead, so it still rejects borrowed wires here.
   if (fullQIR)
     pm.addPass(cudaq::opt::createWireSetToNullWires());
   createCommonTargetCodegenPipeline(pm, options);
