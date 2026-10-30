@@ -107,16 +107,16 @@ raw inputs, `cudaq.logical.unpack_resource` opens a resource into a patch, and
 
 ## 15-to-1: a concrete factory
 
-`examples/standalone/03_magic_state_distillation.py` authors the real five-row
+`examples/standalone/07_magic_state_distillation.py` authors the real five-row
 triorthogonal circuit with the root authoring facade — not an analytical
 placeholder:
 
 ```{eval-rst}
-.. literalinclude:: ../../../examples/standalone/03_magic_state_distillation.py
+.. literalinclude:: ../../../examples/standalone/07_magic_state_distillation.py
    :language: python
    :start-at: import cudaq.logical as cql
    :end-before: # %%
-   :caption: The 15-to-1 T-state protocol (examples/standalone/03_magic_state_distillation.py).
+   :caption: The 15-to-1 T-state protocol (examples/standalone/07_magic_state_distillation.py).
 ```
 
 The protocol requests fifteen linear raw-state inputs and unpacks four onto bare
@@ -131,7 +131,7 @@ Because the protocol is an ordinary compiled definition, the static estimation
 tier counts it directly:
 
 ```{eval-rst}
-.. literalinclude:: ../../../examples/standalone/03_magic_state_distillation.py
+.. literalinclude:: ../../../examples/standalone/07_magic_state_distillation.py
    :language: python
    :start-at: # Estimate the protocol directly
    :end-at: peak live patches

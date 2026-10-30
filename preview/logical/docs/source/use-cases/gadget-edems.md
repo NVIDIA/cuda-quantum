@@ -81,13 +81,13 @@ can be projected to a DEM.
 
 ## Derive a surface-memory model
 
-The [memory experiment](../../../examples/standalone/07_memory_edem.py)
+The [memory experiment](../../../examples/standalone/05_memory_edem.py)
 derives the model for the surface-memory experiment in the Stim tutorial:
 prepare logical zero, measure the stabilizers for several rounds, and read out
 logical Z. Run it from the repository root:
 
 ```bash
-python3 preview/logical/examples/standalone/07_memory_edem.py
+python3 preview/logical/examples/standalone/05_memory_edem.py
 ```
 
 ```text
@@ -106,7 +106,7 @@ Import CUDA-Q Logical, the surface recipe, and `cudaq_edem`, which provides
 composition and DEM operations. It is installed with CUDA-Q Logical:
 
 ```{eval-rst}
-.. literalinclude:: ../../../examples/standalone/07_memory_edem.py
+.. literalinclude:: ../../../examples/standalone/05_memory_edem.py
    :language: python
    :start-at: from pathlib import Path
    :end-before: # %%
@@ -117,7 +117,7 @@ composition and DEM operations. It is installed with CUDA-Q Logical:
 The parameter cell controls the experiment size and where noise occurs:
 
 ```{eval-rst}
-.. literalinclude:: ../../../examples/standalone/07_memory_edem.py
+.. literalinclude:: ../../../examples/standalone/05_memory_edem.py
    :language: python
    :start-at: distance = 3
    :end-before: # %%
@@ -154,7 +154,7 @@ channels. Useful changes include:
 The model uses the same three recipe gadgets and contracts as the Stim tutorial:
 
 ```{eval-rst}
-.. literalinclude:: ../../../examples/standalone/07_memory_edem.py
+.. literalinclude:: ../../../examples/standalone/05_memory_edem.py
    :language: python
    :start-at: implementation = surface.definitions(distance)
    :end-before: # %%
@@ -180,7 +180,7 @@ occurrence index, the contract, and the projection, and returns that
 occurrence's complete fault set:
 
 ```{eval-rst}
-.. literalinclude:: ../../../examples/standalone/07_memory_edem.py
+.. literalinclude:: ../../../examples/standalone/05_memory_edem.py
    :language: python
    :start-at: def memory_faults(
    :end-before: # %%
@@ -212,7 +212,7 @@ Pass the contracts and the factory to `derive_edem_chain`, then project the
 result:
 
 ```{eval-rst}
-.. literalinclude:: ../../../examples/standalone/07_memory_edem.py
+.. literalinclude:: ../../../examples/standalone/05_memory_edem.py
    :language: python
    :start-at: composed = cql.analysis.derive_edem_chain(
    :end-before: # %%
@@ -231,7 +231,7 @@ starts with a preparation and ends with a readout, it is closed, and
 % invisible-code-block: python
 %
 % profiles, projected = load_ql_example(
-%     "preview/logical/examples/standalone/07_memory_edem.py", "profiles",
+%     "preview/logical/examples/standalone/05_memory_edem.py", "profiles",
 %     "projected")
 -->
 
@@ -268,7 +268,7 @@ nothing, because the X-type checks only set a baseline in the first round.
 Save the projected model to `memory-edem/memory.edemb`:
 
 ```{eval-rst}
-.. literalinclude:: ../../../examples/standalone/07_memory_edem.py
+.. literalinclude:: ../../../examples/standalone/05_memory_edem.py
    :language: python
    :start-at: output = Path(output)
    :end-before: # %%
@@ -296,7 +296,7 @@ python3 -m pip install 'stim>=1.16,<2'
 ```
 
 ```{eval-rst}
-.. literalinclude:: ../../../examples/standalone/07_memory_edem.py
+.. literalinclude:: ../../../examples/standalone/05_memory_edem.py
    :language: python
    :start-at: if shots:
 ```

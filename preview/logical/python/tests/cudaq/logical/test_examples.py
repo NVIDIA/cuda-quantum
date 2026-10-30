@@ -38,7 +38,7 @@ def test_examples_execute(capsys, monkeypatch, tmp_path):
     assert len(KERNEL_EXAMPLES) == 7
     assert len(STANDALONE_EXAMPLES) == 10
     monkeypatch.syspath_prepend(str(EXAMPLE_ROOT))
-    # 07_memory_edem.py exports its artifact relative to the working directory.
+    # 05_memory_edem.py exports its artifact relative to the working directory.
     monkeypatch.chdir(tmp_path)
     output = {}
     for example in (*KERNEL_EXAMPLES, *STANDALONE_EXAMPLES):

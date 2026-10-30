@@ -87,7 +87,7 @@ def test_surface_memory_emits_text_without_stim(run_memory_example, monkeypatch,
         return original_import(name, *args, **kwargs)
 
     monkeypatch.setattr(builtins, "__import__", without_stim)
-    result = run_memory_example("06_stim_emission.py")
+    result = run_memory_example("04_stim_emission.py")
     implementation = result["implementation"]
     assert result["prep"].gadget is implementation.prepare_zero
     assert result["sec"].gadget is implementation.memory_round
@@ -97,7 +97,7 @@ def test_surface_memory_emits_text_without_stim(run_memory_example, monkeypatch,
 
 
 def test_surface_memory_samples_detectors(run_memory_example, stim):
-    result = run_memory_example("06_stim_emission.py", shots=100, seed=7)
+    result = run_memory_example("04_stim_emission.py", shots=100, seed=7)
     assert result["detectors"].shape == (100, 20)
     assert result["observables"].shape == (100, 1)
 

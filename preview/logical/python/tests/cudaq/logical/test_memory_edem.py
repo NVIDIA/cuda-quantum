@@ -240,7 +240,7 @@ def test_stim_formatter_preserves_duplicate_mechanisms_without_math(example):
 
 def test_memory_edem_example_writes_exchange_artifacts(run_memory_example,
                                                        tmp_path, capsys):
-    result = run_memory_example("07_memory_edem.py", output=tmp_path)
+    result = run_memory_example("05_memory_edem.py", output=tmp_path)
     assert "20 detectors, 1 observable, 81 fault indicators" in capsys.readouterr(
     ).out
     packed = edem.DEM.from_bytes((tmp_path / "memory.edemb").read_bytes())
@@ -252,7 +252,7 @@ def test_memory_edem_example_writes_exchange_artifacts(run_memory_example,
 
 def test_memory_edem_example_samples_uniform_noise_with_stim(
         run_memory_example, tmp_path, capsys):
-    run_memory_example("07_memory_edem.py", output=tmp_path, shots=20)
+    run_memory_example("05_memory_edem.py", output=tmp_path, shots=20)
     out = capsys.readouterr().out
     assert "Sampled 20 shots" in out
     assert "Shots with uncorrected observable flips: " in out
@@ -262,7 +262,7 @@ def test_memory_edem_example_rejects_stim_sampling_for_biased_noise(
         run_memory_example, tmp_path):
     p = 0.001
     with pytest.raises(ValueError, match="unsupported fault distribution"):
-        run_memory_example("07_memory_edem.py",
+        run_memory_example("05_memory_edem.py",
                            output=tmp_path,
                            shots=20,
                            data_pauli_probabilities={

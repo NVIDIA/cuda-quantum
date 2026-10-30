@@ -23,7 +23,7 @@ def run_memory_example(tmp_path_factory):
 
     def run(name, **parameters):
         parameters.setdefault("shots", 0)
-        if name == "07_memory_edem.py":
+        if name == "05_memory_edem.py":
             parameters.setdefault("output",
                                   tmp_path_factory.mktemp("memory-edem"))
         path = EXAMPLES / name
@@ -71,7 +71,7 @@ def make_memory(run_memory_example, memory_result):
 
     def make(distance=3, rounds=3):
         return memory_result(
-            run_memory_example("06_stim_emission.py",
+            run_memory_example("04_stim_emission.py",
                                distance=distance,
                                rounds=rounds))
 

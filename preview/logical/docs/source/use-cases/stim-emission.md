@@ -22,11 +22,11 @@ This page covers two ways to export:
 ## Export a surface-code memory with detector contracts
 
 With CUDA-Q Logical installed, run the
-[surface-memory example](../../../examples/standalone/06_stim_emission.py)
+[surface-memory example](../../../examples/standalone/04_stim_emission.py)
 from the repository root:
 
 ```bash
-python3 preview/logical/examples/standalone/06_stim_emission.py > surface-memory.stim
+python3 preview/logical/examples/standalone/04_stim_emission.py > surface-memory.stim
 ```
 
 The default experiment uses a distance-three code and three rounds of
@@ -101,7 +101,7 @@ cells interactively.
 Start with the parameter cell:
 
 ```{eval-rst}
-.. literalinclude:: ../../../examples/standalone/06_stim_emission.py
+.. literalinclude:: ../../../examples/standalone/04_stim_emission.py
    :language: python
    :start-at: distance = 3
    :end-before: # %%
@@ -125,7 +125,7 @@ example's explicit data errors are the only noise in the circuit.
 Select the surface code at your chosen distance and its qubit coordinates:
 
 ```{eval-rst}
-.. literalinclude:: ../../../examples/standalone/06_stim_emission.py
+.. literalinclude:: ../../../examples/standalone/04_stim_emission.py
    :language: python
    :start-at: implementation = surface.definitions(distance)
    :end-before: # %%
@@ -200,7 +200,7 @@ erase the injected errors. The final readout receives no additional noise.
 Select the contracts in execution order and apply the helper:
 
 ```{eval-rst}
-.. literalinclude:: ../../../examples/standalone/06_stim_emission.py
+.. literalinclude:: ../../../examples/standalone/04_stim_emission.py
    :language: python
    :start-at: prep = surface.gadget_contract(implementation.prepare_zero)
    :end-before: # %%
@@ -234,7 +234,7 @@ The example passes the contracts and noise placements to `emit_stim` and adds
 qubit coordinates for visualization:
 
 ```{eval-rst}
-.. literalinclude:: ../../../examples/standalone/06_stim_emission.py
+.. literalinclude:: ../../../examples/standalone/04_stim_emission.py
    :language: python
    :start-at: coordinates =
    :end-before: assert sum(
@@ -261,7 +261,7 @@ With `shots = 100`, their shapes are `(100, 20)` and `(100, 1)`. The sampling
 step is:
 
 ```{eval-rst}
-.. literalinclude:: ../../../examples/standalone/06_stim_emission.py
+.. literalinclude:: ../../../examples/standalone/04_stim_emission.py
    :language: python
    :start-at: if shots:
 ```
