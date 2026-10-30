@@ -35,21 +35,19 @@ if [ ! -x "$(command -v apt-get)" ]; then
   exit 1
 fi
 
-# Fail early if the CUDA toolkit is missing; the exact version is needed below.
-CUDA_FULL_VERSION=$(cudaq_realtime_cuda_version)
+# Fail early if the CUDA toolkit is missing.
+cudaq_realtime_cuda_version > /dev/null
 
 retry apt-get update
 retry apt-get install -y --no-install-recommends \
   git ninja-build curl pkg-config
 
 # [DOCA Host]
-# Only the GPUNetIO dev package, not doca-all.
 cudaq_realtime_add_doca_repo
-retry apt-get -y install --no-install-recommends libdoca-sdk-gpunetio-dev
 
-# hololink_core links CUDA::nvrtc -- must match the exact toolkit version
-CUDA_VER_DASH=$(echo $CUDA_FULL_VERSION | sed 's/\./-/')
-retry apt-get install -y cuda-nvrtc-dev-$CUDA_VER_DASH 2>/dev/null || true
+# [Build packages]
+# Only the GPUNetIO dev package, not doca-all.
+cudaq_realtime_install_build_packages
 
 # cudaq-realtime links nvJitLink, whose header and unversioned library only the
 # dev package ships.  A no-op over a full apt toolkit; over a runfile install it
