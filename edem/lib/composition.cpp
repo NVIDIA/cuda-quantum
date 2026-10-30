@@ -1,10 +1,10 @@
-/*
- * Copyright (c) 2026 NVIDIA Corporation & Affiliates.
- * All rights reserved.
- *
- * This source code and the accompanying materials are made available under
- * the terms of the Apache License 2.0 which accompanies this distribution.
- */
+/****************************************************************-*- C++ -*-****
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
 #pragma GCC visibility push(default)
 #include "cudaq/edem/composition.h"
 #pragma GCC visibility pop
@@ -130,6 +130,9 @@ cudaq_edem_status evaluate_column(const cudaq_edem_view *values,
                                   std::span<uint8_t> input,
                                   std::span<uint8_t> output,
                                   std::span<uint8_t> response) {
+  // Inject one basis bit at its source occurrence, then carry only connected
+  // code-boundary outputs forward. Free responses are collected at the
+  // occurrence that produces them; earlier occurrences cannot contribute.
   std::fill(response.begin(), response.end(), uint8_t{0});
   for (uint64_t t = source.occurrence; t < info.size(); ++t) {
     const auto &current = info[t];
@@ -323,6 +326,8 @@ cudaq_edem_status cudaq_edem_compose_chain(const cudaq_edem_view *values,
   auto output = a.take<uint8_t>(max_output);
   auto response = a.take<uint8_t>(response_size);
 
+  // Resolve boundary compatibility and record fault laws per occurrence.
+  // Reusing a definition still creates distinct fault coordinates and laws.
   uint32_t code_count = 0;
   uint64_t fault_index = 0, group_index = 0, transfer_index = 0;
   for (uint32_t t = 0; t < count; ++t) {

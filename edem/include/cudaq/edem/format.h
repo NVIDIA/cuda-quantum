@@ -1,14 +1,14 @@
-/*
- * Copyright (c) 2026 NVIDIA Corporation & Affiliates.
- * All rights reserved.
- *
- * This source code and the accompanying materials are made available under
- * the terms of the Apache License 2.0 which accompanies this distribution.
- */
+/******************************************************************************
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        *
+ * All rights reserved.                                                       *
+ *                                                                            *
+ * This source code and the accompanying materials are made available under   *
+ * the terms of the Apache License 2.0 which accompanies this distribution.   *
+ *****************************************************************************/
 
-#ifndef CUDAQ_EDEM_FORMAT_H
-#define CUDAQ_EDEM_FORMAT_H
-#include "cudaq/gf2/format.h"
+#pragma once
+
+#include <stdint.h>
 /* EDEM is a GF2 linear map with these two required sections. All references
  * inside a section are relative to that section. Probabilities are IEEE
  * binary64. These schemas belong to EDEM; GF2 does not interpret them. */
@@ -25,4 +25,3 @@ typedef struct cudaq_edem_packed_group {
   uint32_t kind, size;
   uint64_t fault_ids, probabilities;
 } cudaq_edem_packed_group;
-#endif

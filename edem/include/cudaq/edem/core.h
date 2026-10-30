@@ -1,13 +1,12 @@
-/*
- * Copyright (c) 2026 NVIDIA Corporation & Affiliates.
- * All rights reserved.
- *
- * This source code and the accompanying materials are made available under
- * the terms of the Apache License 2.0 which accompanies this distribution.
- */
+/******************************************************************************
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        *
+ * All rights reserved.                                                       *
+ *                                                                            *
+ * This source code and the accompanying materials are made available under   *
+ * the terms of the Apache License 2.0 which accompanies this distribution.   *
+ *****************************************************************************/
 
-#ifndef CUDAQ_EDEM_CORE_H
-#define CUDAQ_EDEM_CORE_H
+#pragma once
 
 #include "cudaq/gf2/map.h"
 
@@ -214,5 +213,4 @@ cudaq_edem_status cudaq_edem_get_group(const cudaq_edem_view *value,
                                        cudaq_edem_fault_group *result);
 #ifdef __cplusplus
 }
-#endif
 #endif

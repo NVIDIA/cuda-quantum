@@ -1,13 +1,13 @@
-/*
- * Copyright (c) 2026 NVIDIA Corporation & Affiliates.
- * All rights reserved.
- *
- * This source code and the accompanying materials are made available under
- * the terms of the Apache License 2.0 which accompanies this distribution.
- */
+/******************************************************************************
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        *
+ * All rights reserved.                                                       *
+ *                                                                            *
+ * This source code and the accompanying materials are made available under   *
+ * the terms of the Apache License 2.0 which accompanies this distribution.   *
+ *****************************************************************************/
 
-#ifndef CUDAQ_GF2_STORAGE_H
-#define CUDAQ_GF2_STORAGE_H
+#pragma once
+
 #include "cudaq/gf2/format.h"
 #include <algorithm>
 #include <cstddef>
@@ -161,4 +161,3 @@ void sort_indices(std::span<uint32_t> indices, Less less) {
     std::sort(indices.begin(), indices.end(), less);
 }
 } // namespace cudaq_gf2_private
-#endif

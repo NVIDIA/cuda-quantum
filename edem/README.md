@@ -1,5 +1,3 @@
-Feedback and contributions welcome.
-
 # cudaq-edem
 
 > [!NOTE]
@@ -33,10 +31,10 @@ compiler. C applications can consume the installed package without enabling C++.
 From the CUDA-Q repository root:
 
 ```sh
-cmake -S edem -B build-edem -DBUILD_SHARED_LIBS=ON
-cmake --build build-edem
-ctest --test-dir build-edem --output-on-failure
-cmake --install build-edem --prefix /path/to/install
+cmake -S edem -B build/edem -DBUILD_SHARED_LIBS=ON
+cmake --build build/edem
+ctest --test-dir build/edem --output-on-failure
+cmake --install build/edem --prefix /path/to/install
 ```
 
 Set `BUILD_SHARED_LIBS=OFF` for static libraries and
@@ -45,9 +43,9 @@ from the sibling source directory.
 GF2 can also build and test independently, without configuring cudaq-edem:
 
 ```sh
-cmake -S math/gf2 -B build-gf2 -DBUILD_SHARED_LIBS=ON
-cmake --build build-gf2
-ctest --test-dir build-gf2 --output-on-failure
+cmake -S math/gf2 -B build/gf2 -DBUILD_SHARED_LIBS=ON
+cmake --build build/gf2
+ctest --test-dir build/gf2 --output-on-failure
 ```
 
 Use `CUDAQ_GF2_BUILD_TESTS=OFF` to omit its sparse-matrix and typed-map tests.

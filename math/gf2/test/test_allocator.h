@@ -1,14 +1,15 @@
-/*
- * Copyright (c) 2026 NVIDIA Corporation & Affiliates.
- * All rights reserved.
- *
- * This source code and the accompanying materials are made available under
- * the terms of the Apache License 2.0 which accompanies this distribution.
- */
+/******************************************************************************
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        *
+ * All rights reserved.                                                       *
+ *                                                                            *
+ * This source code and the accompanying materials are made available under   *
+ * the terms of the Apache License 2.0 which accompanies this distribution.   *
+ *****************************************************************************/
 
 /* Test-only resources. Production headers do not depend on this file. */
-#ifndef CUDAQ_TEST_ALLOCATOR_H
-#define CUDAQ_TEST_ALLOCATOR_H
+
+#pragma once
+
 #include "cudaq/gf2/bump_allocator.h"
 #include <stddef.h>
 #include <stdio.h>
@@ -129,4 +130,3 @@ static inline void test_release_sentinel(void *context, void *pointer,
   (void)alignment;
   TA_CHECK(0);
 }
-#endif

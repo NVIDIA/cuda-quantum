@@ -1,10 +1,10 @@
-/*
- * Copyright (c) 2026 NVIDIA Corporation & Affiliates.
- * All rights reserved.
- *
- * This source code and the accompanying materials are made available under
- * the terms of the Apache License 2.0 which accompanies this distribution.
- */
+/****************************************************************-*- C++ -*-****
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
 
 #pragma GCC visibility push(default)
 #include "cudaq/gf2/map.h"
@@ -41,6 +41,9 @@ constexpr uint64_t record_sizes[core_section_count] = {
     sizeof(cudaq_gf2_packed_type), sizeof(cudaq_gf2_packed_bundle),
     sizeof(cudaq_gf2_packed_bundle), sizeof(cudaq_gf2_packed_matrix_block),
     sizeof(cudaq_gf2_packed_matrix)};
+// Both construction and loading use the same semantic checks. A description
+// borrows caller arrays; a packed source borrows section-relative byte ranges
+// whose bounds have already been checked by parse.
 struct source {
   cudaq_gf2_map_description d{};
   const uint8_t *data = nullptr;
@@ -97,6 +100,8 @@ struct matrix_record {
   uint32_t index, ordinal;
 };
 struct workspace {
+  // Sorted indices leave the caller's arrays untouched. ID arrays map original
+  // type and block indices to packed type and matrix IDs, respectively.
   std::span<uint32_t> types, type_ids, blocks, matrix_ids, owners, extensions;
   std::span<matrix_record> matrices;
   uint32_t unique = 0;
@@ -167,6 +172,8 @@ bool wire_width(const source &s, uint32_t side, cudaq_gf2_wire wire,
   return true;
 }
 cudaq_gf2_status validate(const source &s, workspace &w) {
+  // Descriptions may need canonicalization, but loaded bytes must already have
+  // canonical ordering and offsets. Checks guarded by s.data enforce this.
   if (!s.data &&
       (!array_ok(s.d.types, s.d.type_count, sizeof(*s.d.types)) ||
        !array_ok(s.d.inputs, s.d.input_bundle_count, sizeof(*s.d.inputs)) ||
@@ -183,6 +190,8 @@ cudaq_gf2_status validate(const source &s, workspace &w) {
     if (s.data && i && type_compare(s.type(i - 1), t) >= 0)
       return CUDAQ_GF2_INVALID_CONTENT;
   }
+  // Type names define canonical IDs. Bundles retain their original order so
+  // their vector coordinates stay stable when type IDs are remapped.
   sort_indices(w.types, [&](uint32_t a, uint32_t b) {
     return type_compare(s.type(a), s.type(b)) < 0;
   });
@@ -191,6 +200,8 @@ cudaq_gf2_status validate(const source &s, workspace &w) {
       return CUDAQ_GF2_INVALID_CONTENT;
     w.type_ids[w.types[i]] = i;
   }
+  // Each side is one contiguous vector, including zero-width wires. Verify
+  // every stored offset and each bundle's final sentinel against that layout.
   for (uint32_t side = 0; side < 2; ++side) {
     uint64_t offset = 0;
     uint32_t count = side ? s.d.output_bundle_count : s.d.input_bundle_count;
@@ -273,6 +284,8 @@ int matrix_compare(cudaq_gf2_csc_view a, cudaq_gf2_csc_view b) {
              : memcmp(a.row_indices, b.row_indices, a.nonzeros * 4);
 }
 void prepare_matrices(const source &s, workspace &w) {
+  // Hashes group candidates cheaply; exact comparison distinguishes collisions.
+  // Empty blocks are omitted from both the block and matrix sections.
   uint64_t count = 0;
   for (uint32_t i = 0; i < s.d.block_count; ++i)
     if (s.block(i).matrix.nonzeros)
@@ -285,6 +298,8 @@ void prepare_matrices(const source &s, workspace &w) {
                         matrix_compare(s.block(a.index).matrix,
                                        s.block(b.index).matrix) < 0);
               });
+  // Equal matrices share the owner with the earliest canonical block key.
+  // This choice is independent of the caller's block ordering.
   for (uint64_t begin = 0; begin < count;) {
     uint64_t end = begin + 1;
     uint32_t owner = w.matrices[begin].index;
@@ -299,6 +314,7 @@ void prepare_matrices(const source &s, workspace &w) {
       w.matrix_ids[w.matrices[i].index] = owner;
     begin = end;
   }
+  // Assign dense matrix IDs in owner-block order, then remap every reference.
   for (uint32_t i : w.blocks)
     if (s.block(i).matrix.nonzeros && w.matrix_ids[i] == i) {
       w.owners[w.unique] = i;
@@ -313,6 +329,8 @@ struct layout {
   cudaq_gf2_packed_section sections[core_section_count]{};
 };
 bool measure(const source &s, const workspace &w, layout &out) {
+  // Walk exactly the layout that write emits: fixed records precede each
+  // section's variable arrays, and the sorted directory follows all payloads.
   auto &h = out.h;
   memcpy(h.magic, magic, sizeof(h.magic));
   h.version = CUDAQ_GF2_FORMAT_VERSION;
@@ -473,6 +491,8 @@ cudaq_gf2_status parse(const void *buffer, uint64_t bytes,
           h.directory_count * sizeof(cudaq_gf2_packed_section) ||
       h.directory_bytes != bytes - h.directory_offset)
     return CUDAQ_GF2_INVALID_CONTENT;
+  // Establish the directory and outer payload ranges before following any
+  // section-relative references. reader also checks canonical zero padding.
   auto *dir = reinterpret_cast<const cudaq_gf2_packed_section *>(
       data + h.directory_offset);
   reader outer{data, h.directory_offset, sizeof(h)};
@@ -514,6 +534,8 @@ cudaq_gf2_status parse(const void *buffer, uint64_t bytes,
   s.d.block_count = dir[blocks_part].count;
   s.d.section_count =
       static_cast<uint32_t>(h.directory_count - core_section_count);
+  // Fixed record arrays must fit before counts or offsets inside them are
+  // dereferenced. Semantic validation runs only after this structural pass.
   for (uint32_t part = 0; part < core_section_count; ++part) {
     auto *p = s.payload(part);
     const auto &e = dir[part];
@@ -551,6 +573,8 @@ cudaq_gf2_status parse(const void *buffer, uint64_t bytes,
   return CUDAQ_GF2_OK;
 }
 bool view_source(const cudaq_gf2_map_view *view, source &s) {
+  // Runtime getters accept a trusted view produced by construct/read. Rebuild
+  // its borrowed accessors without allocating or repeating full validation.
   if (!view || !view->data ||
       reinterpret_cast<uintptr_t>(view->data) % CUDAQ_GF2_PACKED_ALIGNMENT ||
       view->size < sizeof(cudaq_gf2_packed_header))

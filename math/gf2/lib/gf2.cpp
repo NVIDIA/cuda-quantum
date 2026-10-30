@@ -1,10 +1,10 @@
-/*
- * Copyright (c) 2026 NVIDIA Corporation & Affiliates.
- * All rights reserved.
- *
- * This source code and the accompanying materials are made available under
- * the terms of the Apache License 2.0 which accompanies this distribution.
- */
+/****************************************************************-*- C++ -*-****
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
 
 #pragma GCC visibility push(default)
 #include "cudaq/gf2/core.h"
@@ -66,6 +66,8 @@ cudaq_gf2_status cudaq_gf2_csc_construct(
     std::span entries_to_sort(ordered, static_cast<size_t>(count));
     std::sort(entries_to_sort.begin(), entries_to_sort.end(), entry_less);
   }
+  // Sorting makes equal coordinates adjacent. In GF(2), repeated entries
+  // cancel in pairs, so only runs with odd multiplicity produce a nonzero.
   uint64_t p = 0, nonzeros = 0;
   for (uint64_t c = 0; c < columns; ++c) {
     offsets[c] = nonzeros;
