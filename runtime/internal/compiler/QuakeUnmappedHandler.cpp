@@ -115,8 +115,6 @@ public:
     std::vector<std::string> passes;
     if (profile.costModel)
       passes = costModelPasses(profile, options);
-    else if (profile.semantics == cudaq::config::Semantics::value)
-      passes.push_back(cudaq_internal::compiler::convertToWires(profile));
     if (!basis.empty()) {
       passes.push_back("basis-conversion{basis=" + llvm::join(basis, ",") +
                        "}");
@@ -134,22 +132,16 @@ public:
   }
 
   /// Synthesis needs the value of every rotation angle, and angles often
-  /// depend on an argument, as in a QFT whose width is an argument. A stage
-  /// synthesizes when `costModelPasses` schedules synthesis and
-  /// `needsCliffordTSynthesis` holds for its basis, the same test the
-  /// synthesis pipeline makes. Value semantics needs every register size and
-  /// every loop bound that picks a qubit, which also often come from
-  /// arguments.
+  /// depend on an argument, as in a QFT whose width is an argument. This asks
+  /// the synthesis pipeline's own question, for the stages where
+  /// `costModelPasses` schedules it.
   bool
   requiresArgumentValues(const cudaq::config::Profile &input,
                          const cudaq::config::Profile &output) const override {
     const auto *profile =
         std::get_if<cudaq::config::QuakeUnmappedProfile>(&output);
-    if (!profile)
-      return false;
-    return profile->semantics == cudaq::config::Semantics::value ||
-           (schedulesCliffordTSynthesis(*profile) &&
-            cudaq::opt::needsCliffordTSynthesis(profile->basisGates));
+    return profile && schedulesCliffordTSynthesis(*profile) &&
+           cudaq::opt::needsCliffordTSynthesis(profile->basisGates);
   }
 
   /// Prep and deploy unroll every loop of up to 1024 iterations, the default

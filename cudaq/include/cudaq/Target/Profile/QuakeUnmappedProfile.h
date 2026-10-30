@@ -25,14 +25,6 @@ enum class CostModel {
   two_qubit_gate_count,
 };
 
-/// How a `quake-unmapped` stage represents qubits.
-enum class Semantics {
-  /// References or wires, as the stage chooses.
-  any,
-  /// Wires, at every optimization level.
-  value,
-};
-
 /// Which loops a `quake-unmapped` stage unrolls when it converts to wires.
 enum class LoopUnrolling {
   /// Every loop with a constant trip count.
@@ -82,11 +74,6 @@ struct QuakeUnmappedProfile {
 
   /// Without a cost model, the stage runs no optimization.
   std::optional<CostModel> costModel = std::nullopt;
-
-  /// With `Semantics::value`, the stage converts to wires at every level. A
-  /// register indexed by a loop the stage does not unroll, or by a value known
-  /// only at run time, stays on references.
-  Semantics semantics = Semantics::any;
 
   /// Which loops the stage unrolls when it converts to wires. Unless this is
   /// `all`, prep and deploy unroll no loop before the stage runs, so that the

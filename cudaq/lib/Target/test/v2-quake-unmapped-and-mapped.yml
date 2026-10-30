@@ -28,7 +28,6 @@ compile-target:
           basis-gates: [h, s, t, "x(1)"]
           approximation-tolerance: 1e-10
           cost-model: t-count
-          semantics: value
           unroll-loops: index-use
           max-unroll-iterations: 2048000
     - ir-output-profile:
@@ -42,7 +41,6 @@ compile-target:
 # PARSE-NEXT:     basis-gates: ["h", "s", "t", "x(1)"]
 # PARSE-NEXT:     approximation-tolerance: 1e-10
 # PARSE-NEXT:     cost-model: t-count
-# PARSE-NEXT:     semantics: value
 # PARSE-NEXT:     unroll-loops: index-use
 # PARSE-NEXT:     max-unroll-iterations: 2048000
 # PARSE:      ir-output-profile=quake-mapped lowering=inferred
@@ -50,5 +48,5 @@ compile-target:
 # PARSE-NEXT:     basis-gates: ["h", "rz", "z(1)"]
 # PARSE-NEXT:     device: grid(3,3)
 
-# DB: cudaq::config::QuakeUnmappedProfile{.basisGates = {"h", "s", "t", "x(1)", }, .approximationTolerance = 1e-10, .costModel = cudaq::config::CostModel::t_count, .semantics = cudaq::config::Semantics::value, .unrollLoops = cudaq::config::LoopUnrolling::index_use, .maxUnrollIterations = 2048000, }
+# DB: cudaq::config::QuakeUnmappedProfile{.basisGates = {"h", "s", "t", "x(1)", }, .approximationTolerance = 1e-10, .costModel = cudaq::config::CostModel::t_count, .unrollLoops = cudaq::config::LoopUnrolling::index_use, .maxUnrollIterations = 2048000, }
 # DB: cudaq::config::QuakeMappedProfile{.basisGates = {"h", "rz", "z(1)", }, .device = "grid(3,3)", }

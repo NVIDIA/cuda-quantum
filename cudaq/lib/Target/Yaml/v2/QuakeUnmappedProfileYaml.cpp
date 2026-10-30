@@ -16,7 +16,6 @@ v2::ProfileYaml<QuakeUnmappedProfile>::to(const Yaml &yaml) {
   return {.basisGates = options.basisGates.value(),
           .approximationTolerance = options.approximationTolerance.value(),
           .costModel = options.costModel,
-          .semantics = options.semantics.value(),
           .unrollLoops = options.unrollLoops.value(),
           .maxUnrollIterations = options.maxUnrollIterations.value()};
 }
@@ -28,7 +27,6 @@ v2::ProfileYaml<QuakeUnmappedProfile>::from(
               .basisGates = profile.basisGates,
               .approximationTolerance = profile.approximationTolerance,
               .costModel = profile.costModel,
-              .semantics = profile.semantics,
               .unrollLoops = profile.unrollLoops,
               .maxUnrollIterations = profile.maxUnrollIterations}};
 }

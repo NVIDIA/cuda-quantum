@@ -550,7 +550,6 @@ class Target(CustomTarget):
         profile = QuakeUnmappedProfile(basis_gates=basis,
                                        approximation_tolerance=0.0,
                                        cost_model=CostModel.t_count,
-                                       semantics="value",
                                        unroll_loops="index_use",
                                        max_unroll_iterations=2_048_000)
         stage = CompilationStage(profile)
