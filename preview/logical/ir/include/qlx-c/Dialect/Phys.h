@@ -6,8 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#ifndef QLX_C_DIALECT_PHYS_H
-#define QLX_C_DIALECT_PHYS_H
+#pragma once
+
 #include "mlir-c/IR.h"
 #ifdef __cplusplus
 extern "C" {
@@ -15,5 +15,4 @@ extern "C" {
 MLIR_DECLARE_CAPI_DIALECT_REGISTRATION(Phys, phys);
 #ifdef __cplusplus
 }
-#endif
 #endif

@@ -6,8 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#ifndef QLX_DIALECT_EVENT_EVENTDIALECT_H
-#define QLX_DIALECT_EVENT_EVENTDIALECT_H
+#pragma once
 
 #include "mlir/IR/Dialect.h"
 
@@ -16,5 +15,3 @@
 //===----------------------------------------------------------------------===//
 
 #include "qlx/Dialect/Event/IR/EventDialect.h.inc"
-
-#endif

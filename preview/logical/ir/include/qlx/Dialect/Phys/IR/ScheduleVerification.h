@@ -6,8 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#ifndef QLX_DIALECT_PHYS_IR_SCHEDULEVERIFICATION_H
-#define QLX_DIALECT_PHYS_IR_SCHEDULEVERIFICATION_H
+#pragma once
 
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/SmallVector.h"
@@ -79,5 +78,3 @@ verifyScheduleClaims(ScheduleOp schedule, llvm::ArrayRef<ScheduleClaim> claims,
                      ScheduleVerificationStats *stats = nullptr);
 
 } // namespace qlx::phys
-
-#endif // QLX_DIALECT_PHYS_IR_SCHEDULEVERIFICATION_H

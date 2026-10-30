@@ -8,8 +8,7 @@
 
 //===- Passes.h - Phys transform passes ------------------------*- C++ -*-===//
 
-#ifndef QLX_DIALECT_PHYS_TRANSFORMS_PASSES_H
-#define QLX_DIALECT_PHYS_TRANSFORMS_PASSES_H
+#pragma once
 
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/Pass/Pass.h"
@@ -68,5 +67,3 @@ mlir::FailureOr<std::string> scheduleVerifiedAndEstimateJSON(
 #include "qlx/Dialect/Phys/Transforms/Passes.h.inc"
 
 } // namespace qlx::phys
-
-#endif // QLX_DIALECT_PHYS_TRANSFORMS_PASSES_H

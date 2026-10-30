@@ -6,8 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#ifndef QLX_INITALLPASSES_H
-#define QLX_INITALLPASSES_H
+#pragma once
 
 #include "qlx/Conversion/Passes.h"
 #ifdef QLX_HAS_CUDAQ_QUAKE
@@ -36,5 +35,3 @@ inline void registerAllQLXPasses() {
 }
 
 } // namespace qlx
-
-#endif // QLX_INITALLPASSES_H

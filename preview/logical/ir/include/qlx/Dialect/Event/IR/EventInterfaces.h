@@ -6,12 +6,9 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#ifndef QLX_DIALECT_EVENT_EVENTINTERFACES_H
-#define QLX_DIALECT_EVENT_EVENTINTERFACES_H
+#pragma once
 
 #include "mlir/IR/Attributes.h"
 #include "mlir/IR/Types.h"
 
 #include "qlx/Dialect/Event/IR/EventInterfaces.h.inc"
-
-#endif // QLX_DIALECT_EVENT_EVENTINTERFACES_H

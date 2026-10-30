@@ -11,8 +11,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef QLX_BINDINGS_POPULATE_SUBMODULES_H
-#define QLX_BINDINGS_POPULATE_SUBMODULES_H
+#pragma once
 
 #include <nanobind/nanobind.h>
 
@@ -31,5 +30,3 @@ void populateFabricSubmodule(nanobind::module_ &m);
 void populateEventSubmodule(nanobind::module_ &m);
 
 } // namespace qlx::python
-
-#endif // QLX_BINDINGS_POPULATE_SUBMODULES_H

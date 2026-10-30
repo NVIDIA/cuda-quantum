@@ -6,8 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#ifndef QLX_DIALECT_FABRIC_TRANSFORMS_PASSES_H
-#define QLX_DIALECT_FABRIC_TRANSFORMS_PASSES_H
+#pragma once
 
 #include "mlir/Pass/Pass.h"
 
@@ -31,5 +30,3 @@ std::unique_ptr<mlir::Pass> createFabricEstimateAnalyticalForFreshCounts(
 
 } // namespace fabric
 } // namespace qlx
-
-#endif // QLX_DIALECT_FABRIC_TRANSFORMS_PASSES_H

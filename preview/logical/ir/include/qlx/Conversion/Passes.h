@@ -18,8 +18,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef QLX_CONVERSION_PASSES_H
-#define QLX_CONVERSION_PASSES_H
+#pragma once
 
 #include "mlir/Pass/Pass.h"
 
@@ -32,5 +31,3 @@ namespace qlx {
 #include "qlx/Conversion/Passes.h.inc"
 
 } // namespace qlx
-
-#endif // QLX_CONVERSION_PASSES_H

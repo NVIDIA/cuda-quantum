@@ -6,8 +6,7 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#ifndef QLX_C_PASSES_H
-#define QLX_C_PASSES_H
+#pragma once
 
 #include "mlir-c/IR.h"
 #include "mlir-c/Support.h"
@@ -86,5 +85,3 @@ qlxScheduleVerifiedAndEstimateJSONWithTermination(
 #ifdef __cplusplus
 }
 #endif
-
-#endif // QLX_C_PASSES_H

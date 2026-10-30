@@ -14,8 +14,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef QLX_C_TRANSLATE_TRANSLATIONS_H
-#define QLX_C_TRANSLATE_TRANSLATIONS_H
+#pragma once
 
 #include "mlir-c/IR.h"
 #include "mlir-c/Support.h"
@@ -32,5 +31,3 @@ MLIR_CAPI_EXPORTED MlirLogicalResult qlxTranslateFabricToStim(
 #ifdef __cplusplus
 }
 #endif
-
-#endif // QLX_C_TRANSLATE_TRANSLATIONS_H

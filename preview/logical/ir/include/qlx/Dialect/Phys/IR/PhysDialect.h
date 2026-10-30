@@ -6,8 +6,8 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#ifndef QLX_DIALECT_PHYS_PHYSDIALECT_H
-#define QLX_DIALECT_PHYS_PHYSDIALECT_H
+#pragma once
+
 #include "llvm/ADT/ArrayRef.h"
 #include "llvm/ADT/SmallVector.h"
 #include "mlir/IR/BuiltinOps.h"
@@ -44,4 +44,3 @@ mlir::Operation *lookupModuleSymbol(mlir::ModuleOp module,
 llvm::SmallVector<FactoryModelOp, 0> moduleFactoryModels(mlir::ModuleOp module);
 
 } // namespace qlx::phys
-#endif
