@@ -198,6 +198,10 @@ jobs:
   build:
     name: Caching
     needs: metadata
+    # One cache-writing build per image at a time, so a later one finds its cache.
+    concurrency:
+      group: ${{ inputs.update_registry_cache != '' && format('dev-env-cache-{0}-{1}-{2}-{3}-{4}-{5}', inputs.dockerfile, inputs.build_target, inputs.build_config_id, inputs.platforms, inputs.update_registry_cache, inputs.pull_request_number != '') || format('dev-env-{0}-{1}-{2}-{3}-{4}-{5}-{6}', github.run_id, github.run_attempt, inputs.dockerfile, inputs.build_target, inputs.build_config_id, inputs.platforms, inputs.matrix_key) }}
+      cancel-in-progress: false
     runs-on: ${{ needs.metadata.outputs.runner }}
     timeout-minutes: 600
     permissions:
