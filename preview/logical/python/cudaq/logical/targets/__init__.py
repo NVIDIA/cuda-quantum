@@ -537,11 +537,10 @@ class Target(CustomTarget):
         on wires that repeats the same body, so the stage unrolls only the
         loops whose body uses the induction variable, up to 2,048,000
         iterations. A limit of 4096 would leave registers of the RSA-4096
-        resource kernel in example 05 on references, which the stage rejects.
+        resource kernel in example 05 on references, which the import rejects.
         Logical synthesizes rotations itself, so the stage approximates
-        nothing. Prep keeps noise and QEC operations, so that Logical sees
-        them rather than estimating the kernel without them, and the stage
-        rejects noise, which applies only to references.
+        nothing. Prep keeps noise and QEC operations, so that the import
+        rejects them rather than Logical estimating the kernel without them.
         """
 
         basis = [

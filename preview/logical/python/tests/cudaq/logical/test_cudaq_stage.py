@@ -161,17 +161,16 @@ def noisy():
     mz(qubits)
 
 
-def test_a_noisy_kernel_fails_to_compile(import_kernel, capfd):
+def test_a_noisy_kernel_fails_to_import(import_kernel):
     # Prep keeps `quake.apply_noise`, so Logical never estimates the kernel
-    # as noiseless, and the stage rejects it because noise applies only to
-    # references.
-    with pytest.raises(RuntimeError):
+    # as noiseless, and the import rejects it.
+    with pytest.raises(RuntimeError, match="supports only value-semantics"):
         import_kernel(noisy)
-    assert "noise applies only to references" in capfd.readouterr().err
 
 
-def test_an_index_loop_past_the_limit_fails_to_compile(capfd):
-    # A target with a smaller limit leaves the loop's register on references.
+def test_an_index_loop_past_the_limit_fails_to_import():
+    # A target with a smaller limit leaves the loop's register on references,
+    # which the import rejects.
     target = cql.targets.Target.from_backend(
         "limited",
         cql.targets.ProgramBackend(next_backend=cql.targets.TerminalBackend()))
@@ -179,6 +178,5 @@ def test_an_index_loop_past_the_limit_fails_to_compile(capfd):
     profile.max_unroll_iterations = 8
     target.compile_target.stages = [CompilationStage(profile)]
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(RuntimeError, match="supports only value-semantics"):
         cql.compiler.import_cudaq(long_index_loop, target=target)
-    assert "the index is not a compile-time constant" in capfd.readouterr().err

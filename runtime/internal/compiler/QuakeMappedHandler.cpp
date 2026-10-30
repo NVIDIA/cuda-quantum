@@ -31,18 +31,11 @@ public:
       return std::nullopt;
     const auto &profile = std::get<cudaq::config::QuakeMappedProfile>(output);
     const auto level = static_cast<unsigned>(options.optimizationLevel);
-    // An input with value semantics is already on wires, so before mapping it
-    // needs only a wire set and wire indices. `prepare-for-wireset` gives the
-    // same IR on such input (`prepare_for_wireset_on_wires.qke`) but takes
-    // longer than the rest of the stage on a large kernel. Any other input may
-    // hold references, so the stage converts it to wires, unrolling the loops
-    // that the input profile selects.
-    const auto &unmapped = std::get<cudaq::config::QuakeUnmappedProfile>(input);
-    std::vector<std::string> passes = {
-        unmapped.semantics == cudaq::config::Semantics::value
-            ? "add-wireset,func.func(assign-wire-indices)"
-            : cudaq_internal::compiler::convertToWires(unmapped,
-                                                       /*addWireSet=*/true)};
+    // Accepts the references or wires that `quake-unmapped` allows, and
+    // unrolls the loops that the input profile selects.
+    std::vector<std::string> passes = {cudaq_internal::compiler::convertToWires(
+        std::get<cudaq::config::QuakeUnmappedProfile>(input),
+        /*addWireSet=*/true)};
     // `raise-fatal-errors` makes a kernel that cannot be routed a compile
     // error instead of leaving it unrouted.
     // TODO: Search for a better layout with `placement=auto search=sabre` once
