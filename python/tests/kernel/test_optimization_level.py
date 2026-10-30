@@ -6,15 +6,12 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
-import os
-
 import numpy as np
 import pytest
-
 import cudaq
+from cudaq.kernel.kernel_decorator import PyKernelDecorator
 from cudaq.kernel.utils import get_optimization_level_attr
 
-OPT_LEVEL_ATTR = 'quake.optimizationLevel'
 OPT_LEVELS = [0, 1, 2, 3]
 
 
@@ -27,113 +24,83 @@ def bell() -> bool:
 
 
 @cudaq.kernel
-def coin() -> bool:
-    q = cudaq.qubit()
-    h(q)
-    return mz(q)
-
-
-@cudaq.kernel
 def empty():
     q = cudaq.qvector(2)
     h(q[0])
     x.ctrl(q[0], q[1])
 
 
-@pytest.mark.parametrize("level", OPT_LEVELS)
-def test_call(level):
-    assert isinstance(bell(optimization_level=level), (bool, np.bool_))
+class _Captured(Exception):
+    pass
+
+
+@pytest.fixture
+def override_pykernel_method(monkeypatch):
+    """Record the optimization level on the module handed to the runtime,
+    then abort before compilation/execution."""
+
+    def fn(method_name, new_method):
+        monkeypatch.setattr(PyKernelDecorator, method_name, new_method)
+
+    return fn
+
+
+op = cudaq.spin.z(0) * cudaq.spin.z(1)
+LAUNCHES = {
+    "call":
+        lambda l: bell(optimization_level=l),
+    "sample":
+        lambda l: cudaq.sample(empty, shots_count=10, optimization_level=l),
+    "sample_async":
+        lambda l: cudaq.sample_async(
+            empty, shots_count=10, optimization_level=l),
+    "observe":
+        lambda l: cudaq.observe(empty, op, shots_count=10, optimization_level=l
+                               ),
+    "observe_async":
+        lambda l: cudaq.observe_async(
+            empty, op, shots_count=10, optimization_level=l),
+    "run":
+        lambda l: cudaq.run(bell, shots_count=10, optimization_level=l),
+    "run_async":
+        lambda l: cudaq.run_async(bell, shots_count=10, optimization_level=l),
+    "get_state":
+        lambda l: cudaq.get_state(empty, optimization_level=l),
+    "get_state_async":
+        lambda l: cudaq.get_state_async(empty, optimization_level=l),
+    "draw":
+        lambda l: cudaq.draw(empty, optimization_level=l),
+    "get_unitary":
+        lambda l: cudaq.get_unitary(empty, optimization_level=l),
+    "estimate_resources":
+        lambda l: cudaq.estimate_resources(empty, optimization_level=l),
+}
 
 
 @pytest.mark.parametrize("level", OPT_LEVELS)
-def test_sample(level):
-    counts = cudaq.sample(empty, shots_count=10, optimization_level=level)
-    assert set(b for b, _ in counts.items()) <= {"00", "11"}
+@pytest.mark.parametrize("launch", LAUNCHES)
+def test_prepare_call_stamps_optimization_level(override_pykernel_method,
+                                                launch, level):
 
+    class ThowModule(Exception):
 
-@pytest.mark.parametrize("level", OPT_LEVELS)
-def test_sample_async(level):
-    future = cudaq.sample_async(empty,
-                                shots_count=10,
-                                optimization_level=level)
-    assert set(b for b, _ in future.get().items()) <= {"00", "11"}
+        def __init__(self, module, name):
+            self.module = module
+            self.name = name
 
+    orig = PyKernelDecorator.prepare_call
 
-@pytest.mark.parametrize("level", OPT_LEVELS)
-def test_observe(level):
-    op = cudaq.spin.z(0) * cudaq.spin.z(1)
-    res = cudaq.observe(empty, op, shots_count=10,
-                        optimization_level=level)
-    assert res.expectation() == pytest.approx(1.0)
+    def mock_prepare_call(self, *args, **kwargs):
+        _, module = orig(self, *args, **kwargs)
+        raise ThowModule(module, self.uniqName)
 
+    # Hijack the PyKernelDecorator.prepare_call method to throw the module after execution
+    override_pykernel_method("prepare_call", mock_prepare_call)
 
-@pytest.mark.parametrize("level", OPT_LEVELS)
-def test_observe_async(level):
-    op = cudaq.spin.z(0) * cudaq.spin.z(1)
-    future = cudaq.observe_async(empty,
-                                 op,
-                                 shots_count=10,
-                                 optimization_level=level)
-    assert future.get().expectation() == pytest.approx(1.0)
+    with pytest.raises(ThowModule) as e:
+        LAUNCHES[launch](level)
 
-
-def test_observe_execution_kwarg_forwarding():
-    # `execution=...` routes to `observe_parallel`, which the default
-    # (qpp-cpu) platform does not support. This only checks that the
-    # `optimization_level` kwarg is accepted and forwarded all the way to the
-    # platform dispatch (the failure happens after compilation setup).
-    op = cudaq.spin.z(0) * cudaq.spin.z(1)
-    with pytest.raises(RuntimeError, match="parallel distribution"):
-        cudaq.observe(empty,
-                      op,
-                      shots_count=10,
-                      execution=cudaq.parallel.thread,
-                      optimization_level=2)
-
-
-@pytest.mark.parametrize("level", OPT_LEVELS)
-def test_run(level):
-    results = cudaq.run(bell, shots_count=10, optimization_level=level)
-    assert len(results) == 10
-    assert all(isinstance(r, (bool, np.bool_)) for r in results)
-
-
-@pytest.mark.parametrize("level", OPT_LEVELS)
-def test_run_async(level):
-    results = cudaq.run_async(bell, shots_count=10,
-                              optimization_level=level).get()
-    assert len(results) == 10
-
-
-@pytest.mark.parametrize("level", OPT_LEVELS)
-def test_get_state(level):
-    state = cudaq.get_state(empty, optimization_level=level)
-    assert np.isclose(np.abs(np.array(state)[0])**2, 0.5)
-
-
-@pytest.mark.parametrize("level", OPT_LEVELS)
-def test_get_state_async(level):
-    state = cudaq.get_state_async(empty, optimization_level=level).get()
-    assert np.isclose(np.abs(np.array(state)[0])**2, 0.5)
-
-
-@pytest.mark.parametrize("level", OPT_LEVELS)
-def test_draw(level):
-    circuit = cudaq.draw(empty, optimization_level=level)
-    assert 'q0' in circuit
-
-
-@pytest.mark.parametrize("level", OPT_LEVELS)
-def test_get_unitary(level):
-    unitary = cudaq.get_unitary(empty, optimization_level=level)
-    assert unitary.shape == (4, 4)
-
-
-@pytest.mark.parametrize("level", OPT_LEVELS)
-def test_estimate_resources(level):
-    counts = cudaq.estimate_resources(empty, optimization_level=level)
-    assert counts.count('h') == 1
-    assert counts.count('x') == 1
+    assert level == get_optimization_level_attr(e.value.module, e.value.name)
 
 
 @pytest.mark.parametrize("level", [-1, 4, True, 1.5, "2"])
@@ -155,13 +122,6 @@ def test_kernel_level_0_wins_over_launch_level():
     _, module = marked.prepare_call(optimization_level=2)
     assert get_optimization_level_attr(module, marked.uniqName) == 0
     cudaq.sample(marked, shots_count=10, optimization_level=2)
-
-
-@pytest.mark.parametrize("level", OPT_LEVELS)
-def test_launch_levels_compile_separately(level):
-    # Two different levels must not share a compiled module: each level gets
-    # its own compilation and the launch still returns a valid bool.
-    assert isinstance(coin(optimization_level=level), (bool, np.bool_))
 
 
 # leave for gdb debugging

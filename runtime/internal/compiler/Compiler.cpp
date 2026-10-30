@@ -399,16 +399,18 @@ cudaq_internal::compiler::Compiler::assembleCompiledModule(
 ///
 /// An explicit optimization level attribute on the kernel entry point takes
 /// precedence over the level in \p options.
-static void resolveOptimizationLevel(cudaq::CompileOptions &options,
-                                     mlir::func::FuncOp epFunc) {
+static cudaq::OptimizationLevel
+resolveOptimizationLevel(mlir::func::FuncOp epFunc,
+                         const cudaq::CompileOptions &options) {
   if (auto level = cudaq::runtime::getOptimizationLevel(epFunc)) {
     if (*level > 3)
       throw std::runtime_error(fmt::format(
           "Invalid `quake.optimizationLevel` {} on kernel `{}`; expected 0 to "
           "3.",
           *level, epFunc.getName().str()));
-    options.optimizationLevel = static_cast<cudaq::OptimizationLevel>(*level);
+    return static_cast<cudaq::OptimizationLevel>(*level);
   }
+  return options.optimizationLevel;
 }
 
 /// Mark each function so that passes also skip quantum optimization.
@@ -444,7 +446,7 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::compile(
   // `options` holds what the caller requested. The compile path below reads
   // `resolvedOptions`, which carries the values resolved for this kernel.
   auto resolvedOptions = options;
-  resolveOptimizationLevel(resolvedOptions, epFunc);
+  resolvedOptions.optimizationLevel = resolveOptimizationLevel(epFunc, options);
   // If compiling with -O0, propagate optimization level to callees
   if (resolvedOptions.optimizationLevel == cudaq::OptimizationLevel::O0)
     disableQuantumOptimization(moduleOp);

@@ -15,4 +15,9 @@
 
 // CHECK: cudaq-quake {{.*}}--quantum-opt-level=0
 
-#include "quantum_opt_level.cpp"
+#include "cudaq.h"
+
+__qpu__ void kernel() {
+  cudaq::qubit q;
+  h(q);
+}

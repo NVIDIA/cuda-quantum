@@ -49,7 +49,8 @@ def __broadcastObserve(kernel,
         ctx.batchIteration = i
         results.append(
             cudaq_runtime.launch_observe(
-                policy, ctx,
+                policy,
+                ctx,
                 lambda a=a: kernel(*a, optimization_level=optimization_level)))
     return results
 
@@ -187,7 +188,8 @@ def observe(kernel,
         kernel_name = kernel.name if hasattr(kernel, 'name') else ''
         policy = cudaq_runtime.ObservePolicy(ctx, kernel_name, localOp)
         observeResult = cudaq_runtime.launch_observe(
-            policy, ctx,
+            policy,
+            ctx,
             lambda args=args: kernel(*args,
                                      optimization_level=optimization_level))
         if not isinstance(spin_operator, list):

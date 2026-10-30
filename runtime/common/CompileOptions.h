@@ -16,12 +16,7 @@
 
 namespace cudaq {
 
-enum class OptimizationLevel : unsigned {
-  O0 = 0,
-  O1 = 1,
-  O2 = 2,
-  O3 = 3,
-};
+enum class OptimizationLevel : unsigned { O0 = 0, O1 = 1, O2 = 2, O3 = 3 };
 
 struct CompileOptions {
   /// Issue a warning if named measurements are contained in the kernel.
