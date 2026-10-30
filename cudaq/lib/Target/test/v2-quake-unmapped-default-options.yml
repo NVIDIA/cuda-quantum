@@ -33,8 +33,6 @@ compile-target:
 # CHECK-NEXT:     semantics: any
 # CHECK-NEXT:     unroll-loops: all
 # CHECK-NEXT:     max-unroll-iterations: 1024
-# CHECK-NEXT:     erase-noise: true
-# CHECK-NEXT:     erase-qec: true
 # CHECK-NEXT: stage: ir-output-profile=quake-unmapped lowering=inferred
 # CHECK-NEXT:   options:
 # CHECK-NEXT:     basis-gates: []

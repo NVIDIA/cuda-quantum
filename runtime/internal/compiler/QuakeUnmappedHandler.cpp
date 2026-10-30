@@ -160,21 +160,16 @@ public:
   /// threshold of `createClassicalOptimizationPipeline`, which the profile's
   /// default limit matches. When the stage keeps some loops rolled, because it
   /// unrolls only `index_use` loops or has a lower limit, prep and deploy must
-  /// not unroll those loops first. Prep also keeps the noise and QEC operations
-  /// that the profile does not erase.
-  cudaq_internal::compiler::BookendOptions
-  getBookendOptions(const cudaq::config::Profile &input,
-                    const cudaq::config::Profile &output) const override {
+  /// not unroll those loops first.
+  bool
+  requiresRolledLoops(const cudaq::config::Profile &input,
+                      const cudaq::config::Profile &output) const override {
     const auto *profile =
         std::get_if<cudaq::config::QuakeUnmappedProfile>(&output);
-    if (!profile)
-      return {};
-    return {.unrollLoops =
-                profile->unrollLoops == cudaq::config::LoopUnrolling::all &&
-                profile->maxUnrollIterations >=
-                    cudaq::config::QuakeUnmappedProfile{}.maxUnrollIterations,
-            .eraseNoise = profile->eraseNoise,
-            .eraseQEC = profile->eraseQEC};
+    return profile &&
+           (profile->unrollLoops != cudaq::config::LoopUnrolling::all ||
+            profile->maxUnrollIterations <
+                cudaq::config::QuakeUnmappedProfile{}.maxUnrollIterations);
   }
 };
 

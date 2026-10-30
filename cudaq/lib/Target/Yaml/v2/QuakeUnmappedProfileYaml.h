@@ -85,9 +85,6 @@ struct cudaq::config::v2::ProfileYaml<cudaq::config::QuakeUnmappedProfile> {
           QuakeUnmappedProfile{}.unrollLoops;
       rfl::DefaultVal<unsigned> maxUnrollIterations =
           QuakeUnmappedProfile{}.maxUnrollIterations;
-      rfl::DefaultVal<bool> eraseNoise = QuakeUnmappedProfile{}.eraseNoise;
-      // Spelled so that the YAML key is `erase-qec`.
-      rfl::DefaultVal<bool> eraseQec = QuakeUnmappedProfile{}.eraseQEC;
     };
     rfl::DefaultVal<Options> options;
   };

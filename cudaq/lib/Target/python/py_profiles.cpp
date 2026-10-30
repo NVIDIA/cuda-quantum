@@ -152,23 +152,20 @@ void cudaq::bindTargetProfiles(nb::module_ &m) {
           [](QuakeUnmappedProfile *self, std::vector<std::string> basis,
              double tolerance, nb::handle model,
              const std::string &semanticsValue, const std::string &unrollLoops,
-             unsigned maxUnrollIterations, bool eraseNoise, bool eraseQEC) {
-            new (self)
-                QuakeUnmappedProfile{.basisGates = std::move(basis),
-                                     .approximationTolerance = tolerance,
-                                     .costModel = costModel(model),
-                                     .semantics = semantics(semanticsValue),
-                                     .unrollLoops = loopUnrolling(unrollLoops),
-                                     .maxUnrollIterations = maxUnrollIterations,
-                                     .eraseNoise = eraseNoise,
-                                     .eraseQEC = eraseQEC};
+             unsigned maxUnrollIterations) {
+            new (self) QuakeUnmappedProfile{
+                .basisGates = std::move(basis),
+                .approximationTolerance = tolerance,
+                .costModel = costModel(model),
+                .semantics = semantics(semanticsValue),
+                .unrollLoops = loopUnrolling(unrollLoops),
+                .maxUnrollIterations = maxUnrollIterations};
           },
           nb::kw_only(), "basis_gates"_a = std::vector<std::string>{},
           "approximation_tolerance"_a = 0.0, "cost_model"_a = nb::none(),
           "semantics"_a = "any", "unroll_loops"_a = "all",
           "max_unroll_iterations"_a =
-              QuakeUnmappedProfile{}.maxUnrollIterations,
-          "erase_noise"_a = true, "erase_qec"_a = true)
+              QuakeUnmappedProfile{}.maxUnrollIterations)
       .def_rw("basis_gates", &QuakeUnmappedProfile::basisGates)
       .def_rw("approximation_tolerance",
               &QuakeUnmappedProfile::approximationTolerance)
@@ -197,17 +194,13 @@ void cudaq::bindTargetProfiles(nb::module_ &m) {
           })
       .def_rw("max_unroll_iterations",
               &QuakeUnmappedProfile::maxUnrollIterations)
-      .def_rw("erase_noise", &QuakeUnmappedProfile::eraseNoise)
-      .def_rw("erase_qec", &QuakeUnmappedProfile::eraseQEC)
       .def("__repr__", [](const QuakeUnmappedProfile &p) {
         return "QuakeUnmappedProfile(basis_gates=" + repr(p.basisGates) +
                ", approximation_tolerance=" + repr(p.approximationTolerance) +
                ", cost_model=" + costModelRepr(p.costModel) +
                ", semantics=" + repr(semanticsName(p.semantics)) +
                ", unroll_loops=" + repr(loopUnrollingName(p.unrollLoops)) +
-               ", max_unroll_iterations=" + repr(p.maxUnrollIterations) +
-               ", erase_noise=" + (p.eraseNoise ? "True" : "False") +
-               ", erase_qec=" + (p.eraseQEC ? "True" : "False") + ")";
+               ", max_unroll_iterations=" + repr(p.maxUnrollIterations) + ")";
       });
   valueClass<QuakeMappedProfile>(m, "QuakeMappedProfile")
       .def(

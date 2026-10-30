@@ -501,9 +501,7 @@ static cudaq::config::QuakeUnmappedProfile logicalProfile() {
           .costModel = cudaq::config::CostModel::t_count,
           .semantics = cudaq::config::Semantics::value,
           .unrollLoops = cudaq::config::LoopUnrolling::index_use,
-          .maxUnrollIterations = 2048000,
-          .eraseNoise = false,
-          .eraseQEC = false};
+          .maxUnrollIterations = 2048000};
 }
 
 /// Compile \p quake through \p target at \p level without code generation.

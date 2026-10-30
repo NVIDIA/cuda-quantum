@@ -72,6 +72,13 @@ struct CompileTarget {
   /// Whether to fully specialize the kernel.
   bool fullySpecialize = true;
 
+  /// Whether prep erases `quake.apply_noise`. A target whose consumer has to
+  /// see noise, for example to reject it, sets this to false.
+  bool eraseNoise = true;
+
+  /// Whether prep erases the QEC detector and observable operations.
+  bool eraseQEC = true;
+
   /// Set the `changeSemantics` flag for the argument synthesis pass.
   bool argumentSynthChangeSemantics = true;
 

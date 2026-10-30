@@ -553,12 +553,12 @@ class Target(CustomTarget):
                                        cost_model=CostModel.t_count,
                                        semantics="value",
                                        unroll_loops="index_use",
-                                       max_unroll_iterations=2_048_000,
-                                       erase_noise=False,
-                                       erase_qec=False)
+                                       max_unroll_iterations=2_048_000)
         stage = CompilationStage(profile)
         target = CompileTarget(stages=[stage])
         target.fully_specialize = True
+        target.erase_noise = False
+        target.erase_qec = False
         target.support_resource_counts = False
         target.support_conditionals_on_measure_results = False
         return target

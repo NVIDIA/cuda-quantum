@@ -102,13 +102,6 @@ struct QuakeUnmappedProfile {
   /// and a lower limit stops them from unrolling first.
   unsigned maxUnrollIterations = 1024;
 
-  /// Whether prep erases `quake.apply_noise`. A consumer that has to see noise,
-  /// for example to reject it, sets this to false.
-  bool eraseNoise = true;
-
-  /// Whether prep erases the QEC detector and observable operations.
-  bool eraseQEC = true;
-
   bool operator==(const QuakeUnmappedProfile &other) const = default;
 };
 

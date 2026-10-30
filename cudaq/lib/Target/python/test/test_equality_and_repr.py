@@ -69,26 +69,22 @@ def test_quake_unmapped_profile_repr():
                                    cost_model=CostModel.t_count,
                                    semantics="value",
                                    unroll_loops="index_use",
-                                   max_unroll_iterations=2048000,
-                                   erase_noise=False,
-                                   erase_qec=False)
+                                   max_unroll_iterations=2048000)
     assert repr(profile) == (
         "QuakeUnmappedProfile(basis_gates=['h', 't'], "
         "approximation_tolerance=1e-10, cost_model=CostModel.t_count, "
         "semantics='value', unroll_loops='index_use', "
-        "max_unroll_iterations=2048000, erase_noise=False, erase_qec=False)")
+        "max_unroll_iterations=2048000)")
     assert eval(repr(profile)) == profile
     assert repr(QuakeUnmappedProfile()).endswith(
         "cost_model=None, semantics='any', unroll_loops='all', "
-        "max_unroll_iterations=1024, erase_noise=True, erase_qec=True)")
+        "max_unroll_iterations=1024)")
 
 
 @pytest.mark.parametrize("option, value", [
     ("semantics", "value"),
     ("unroll_loops", "index_use"),
     ("max_unroll_iterations", 2048000),
-    ("erase_noise", False),
-    ("erase_qec", False),
 ])
 def test_quake_unmapped_option_changes_identity(option, value):
     baseline = QuakeUnmappedProfile()

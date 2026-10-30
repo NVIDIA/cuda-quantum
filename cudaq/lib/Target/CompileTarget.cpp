@@ -137,7 +137,8 @@ std::size_t std::hash<cudaq::CompileTarget>::operator()(
       t.supportConditionalsOnMeasureResults, t.supportDeviceCalls,
       t.supportResourceCounts, t.supportExplicitMeasurements,
       t.supportObservableMeasurements, t.supportSampleWithoutMeasurements,
-      t.fullySpecialize, t.argumentSynthChangeSemantics, t.disableQubitMapping,
+      t.fullySpecialize, t.eraseNoise, t.eraseQEC,
+      t.argumentSynthChangeSemantics, t.disableQubitMapping,
       t.replaceStateWithKernel);
 }
 
@@ -191,8 +192,6 @@ std::size_t std::hash<cudaq::config::QuakeUnmappedProfile>::operator()(
   cudaq::detail::hashCombine(seed, profile.semantics);
   cudaq::detail::hashCombine(seed, profile.unrollLoops);
   cudaq::detail::hashCombine(seed, profile.maxUnrollIterations);
-  cudaq::detail::hashCombine(seed, profile.eraseNoise);
-  cudaq::detail::hashCombine(seed, profile.eraseQEC);
   return seed;
 }
 
