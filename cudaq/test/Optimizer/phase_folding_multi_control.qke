@@ -9,9 +9,10 @@
 // RUN: cudaq-opt --verify-each --phase-folding="min-length=0 min-rz-weight=0" %s | FileCheck %s
 
 // A `quake.x` with two controls leaves its target in a state that is not a
-// parity of its inputs, so it ends the subcircuit. Its second control and its
-// target hold different values, so phase folding must not merge the angles of
-// the rotations on them.
+// parity of its inputs, so it ends the subcircuit. With inputs x0, x1, x2 on
+// the three null wires, its second control carries x0 and its target carries
+// x0 ^ x2 ^ (x0 & x1). The rotations on them act on different functions of the
+// inputs, so phase folding must not merge their angles.
 func.func @control_and_target(%a: f64, %b: f64) {
   %0 = quake.null_wire
   %1 = quake.null_wire
