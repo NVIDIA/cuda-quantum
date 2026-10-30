@@ -96,6 +96,8 @@ public:
 /// The `prepare-for-wireset` pass text, which converts to wires and unrolls
 /// loops of up to 1024 iterations as `classical-optimization-pipeline` does.
 /// With \p addWireSet it also borrows every qubit from a new wire set.
+/// Stages run it at every level, because the level never changes the
+/// representation.
 inline std::string convertToWires(bool addWireSet = false) {
   return std::string("prepare-for-wireset{") +
          (addWireSet ? "add-wireset=true " : "") + "maximum-iterations=1024}";

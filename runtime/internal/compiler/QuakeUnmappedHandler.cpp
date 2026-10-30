@@ -57,13 +57,12 @@ costModelPasses(const cudaq::config::QuakeUnmappedProfile &profile,
       basis.emplace_back("x(1)");
     passes.push_back("decomposition{basis=" + llvm::join(basis, ",") + "}");
   }
-  if (level >= 1) {
-    passes.push_back(cudaq_internal::compiler::convertToWires());
+  passes.push_back(cudaq_internal::compiler::convertToWires());
+  if (level >= 1)
     passes.push_back(
         std::string(tCount ? "clifford-t" : "two-qubit-gate-count") +
         "-optimization-pipeline{level=" + std::to_string(level) +
         (tCount ? " approximation-tolerance=" + tolerance : "") + "}");
-  }
   // The synthesis pipeline adds no passes when the basis can express one of
   // the rotations it synthesizes exactly.
   if (schedulesCliffordTSynthesis(profile)) {

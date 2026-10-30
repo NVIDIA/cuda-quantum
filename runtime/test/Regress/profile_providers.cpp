@@ -80,6 +80,16 @@
 // CHECK-NEXT:  basis-conversion{basis=h,s,t,x,y,z,swap,x(1),y(1),z(1)}
 // CHECK-NEXT:  jit-finalize-pipeline
 
+// The level never changes the representation: at level 0 the stage still
+// converts to wires, and only the optimization pipeline is left out.
+// CHECK-LABEL: compiler-bench-ftqc-clifford-t level 0:
+// CHECK:       jit-deploy-pipeline
+// CHECK-NEXT:  decomposition{basis=h,s,t,x,y,z,swap,x(1),y(1),z(1),r1,rx,ry,rz}
+// CHECK-NEXT:  prepare-for-wireset{maximum-iterations=1024}
+// CHECK-NEXT:  clifford-t-synthesis-pipeline{basis=h,s,t,x,y,z,swap,x(1),y(1),z(1) level=0 approximation-tolerance=1e-10}
+// CHECK-NEXT:  basis-conversion{basis=h,s,t,x,y,z,swap,x(1),y(1),z(1)}
+// CHECK-NEXT:  jit-finalize-pipeline
+
 // Without a cost model, a `quake-unmapped` stage runs no optimization.
 // CHECK-LABEL: no cost model:
 // CHECK:       jit-deploy-pipeline
@@ -88,12 +98,12 @@
 
 // The NISQ target decomposes and optimizes in its `quake-unmapped` stage,
 // keeping controlled `x` for phase folding until its basis conversion, and
-// maps in its `quake-mapped` stage. At level 0 the first stage stays on
-// references, and from level 1 it hands over wires. The second stage converts
-// either to borrowed wires, and from level 1 cleans up after mapping.
+// maps in its `quake-mapped` stage. Both stages convert to wires at every
+// level, and level 1 adds only the two optimization pipelines.
 // CHECK-LABEL: compiler-bench-nisq on path(4) level 0:
 // CHECK:       jit-deploy-pipeline
 // CHECK-NEXT:  decomposition{basis=h,rx,ry,rz,x,z(1),x(1)}
+// CHECK-NEXT:  prepare-for-wireset{maximum-iterations=1024}
 // CHECK-NEXT:  basis-conversion{basis=h,rx,ry,rz,x,z(1)}
 // CHECK-NEXT:  prepare-for-wireset{add-wireset=true maximum-iterations=1024}
 // CHECK-NEXT:  qubit-mapping{device=path(4) raise-fatal-errors=true}
@@ -183,6 +193,9 @@ int main(int argc, char **argv) {
   cudaq::CompileOptions level2;
   level2.optimizationLevel = cudaq::OptimizationLevel::O2;
   printPipeline(catalog, "compiler-bench-ftqc-clifford-t", level2);
+  cudaq::CompileOptions level0;
+  level0.optimizationLevel = cudaq::OptimizationLevel::O0;
+  printPipeline(catalog, "compiler-bench-ftqc-clifford-t", level0, " level 0");
   cudaq::CompileTarget noCostModel;
   noCostModel.stages.push_back(
       {.irOutputProfile =
@@ -195,8 +208,6 @@ int main(int argc, char **argv) {
     std::get<cudaq::config::QuakeMappedProfile>(
         onPath.stages.back().irOutputProfile)
         .device = "path(4)";
-    cudaq::CompileOptions level0;
-    level0.optimizationLevel = cudaq::OptimizationLevel::O0;
     printPipeline("compiler-bench-nisq on path(4) level 0", onPath, level0);
     printPipeline("compiler-bench-nisq on path(4) level 1", onPath, {});
   }
