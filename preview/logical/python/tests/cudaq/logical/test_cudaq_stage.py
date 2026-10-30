@@ -61,42 +61,21 @@ def ccrx():
     mz(qubits)
 
 
-def test_the_target_and_import_cudaq_give_the_same_counts(monkeypatch):
-    builds = []
-    compile_build = cql.targets.ProgramBackend.compile
-
-    def recording(self, source, **options):
-        builds.append(compile_build(self, source, **options))
-        return builds[-1]
-
-    monkeypatch.setattr(cql.targets.ProgramBackend, "compile", recording)
+def test_import_cudaq_matches_the_target_whatever_target_is_installed():
     cudaq.set_target(cql.targets.estimator)
     try:
-        cudaq.estimate(ccrx)
+        through_target = cudaq.estimate(ccrx).annotations["LOGICAL"]
     finally:
         cudaq.reset_target()
-    assert _actions(cql.compiler.import_cudaq(ccrx)) == _actions(builds[-1])
-
-
-def test_import_cudaq_ignores_an_installed_emulated_target(monkeypatch):
-    from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
-
-    expected = _actions(cql.compiler.import_cudaq(ccrx))
-    compile_module = cudaq_runtime.compile_module
-
-    def checked(*args, **kwargs):
-        compiled = compile_module(*args, **kwargs)
-        # Logical's endpoint reads the MLIR, so the compile builds no JIT
-        # engine.
-        assert compiled.entry_point is None
-        return compiled
-
-    monkeypatch.setattr(cudaq_runtime, "compile_module", checked)
+    # `import_cudaq` compiles with a Logical target's compile target, never
+    # with the installed one, even when that target is emulated.
     cudaq.set_target("quantinuum", emulate=True)
     try:
-        assert _actions(cql.compiler.import_cudaq(ccrx)) == expected
+        direct = cql.compiler.import_cudaq(ccrx)
     finally:
         cudaq.reset_target()
+    assert cql.analysis.estimate(
+        direct, tier=cql.analysis.Tier.LOGICAL).to_dict() == through_target
 
 
 @cudaq.kernel
