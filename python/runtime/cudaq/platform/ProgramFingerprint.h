@@ -36,6 +36,14 @@ namespace cudaq::detail {
 ///
 /// On return, \p resolvedModule holds the merged clone. On a cache miss the
 /// caller can compile it directly.
+///
+/// Setting `CUDAQ_FINGERPRINT_STRUCTURE` summarizes the module's structure
+/// instead of printing it, which skips the clone, the merge and the printing
+/// but leaves \p resolvedModule empty, so a caller that misses the cache must
+/// clone \p mod itself. Both modes answer the same question, but their digests
+/// are not interchangeable, and the structural digest is valid only within the
+/// process that computed it, since it mixes in the identity of
+/// context-uniqued attributes and types.
 std::optional<std::array<std::uint8_t, 32>>
 createProgramFingerprint(const std::string &name, mlir::ModuleOp mod,
                          const std::vector<void *> &rawArgs,
