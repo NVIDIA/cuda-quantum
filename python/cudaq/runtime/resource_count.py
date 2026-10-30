@@ -39,7 +39,7 @@ def estimate(kernel, *args, **kwargs):
           only return either `True` or `False`. Invoking the kernel within
           the choice function is forbidden. Default: returns `True` or `False`
           with 50% probability.
-      save_temps (Optional[str | os.PathLike]): A directory in which to save
+      save_temps (Optional[`str` | `os.PathLike]`): A directory in which to save
           the compilation artifacts the target produces for this estimate,
           like `nvq++ -save-temps`. Only targets that produce such artifacts
           honor it; they report where they saved them in the result.

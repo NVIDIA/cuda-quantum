@@ -39,19 +39,6 @@ def compile(kernel, *args, target=None):
 
     Returns:
       :class:`CompiledModule`: The compiled kernel.
-
-    # Example:
-    import cudaq
-
-    @cudaq.kernel
-    def bell_pair():
-        q = cudaq.qvector(2)
-        h(q[0])
-        x.ctrl(q[0], q[1])
-        mz(q)
-
-    module = cudaq.compile(bell_pair)
-    print(module.mlir_module)
     """
     if isa_kernel_decorator(kernel):
         decorator = kernel
