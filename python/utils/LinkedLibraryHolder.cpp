@@ -257,10 +257,10 @@ LinkedLibraryHolder::~LinkedLibraryHolder() {
 }
 
 /// @brief Ensure a library is loaded, dlopen'ing it on demand if needed.
-void LinkedLibraryHolder::ensureLibLoaded(const std::filesystem::path &path) {
+void *LinkedLibraryHolder::ensureLibLoaded(const std::filesystem::path &path) {
   auto pathStr = path.string();
-  if (libHandles.count(pathStr))
-    return;
+  if (auto it = libHandles.find(pathStr); it != libHandles.end())
+    return it->second;
   void *handle = dlopen(pathStr.c_str(), RTLD_GLOBAL | RTLD_NOW);
   if (!handle) {
     char *error_msg = dlerror();
@@ -283,6 +283,7 @@ void LinkedLibraryHolder::ensureLibLoaded(const std::filesystem::path &path) {
       info.RegisterCallbacks();
     }
   }
+  return handle;
 }
 
 nvqir::CircuitSimulator *
@@ -292,15 +293,13 @@ LinkedLibraryHolder::getSimulator(const std::string &simName) {
   if (iter == end)
     throw std::runtime_error("Invalid simulator requested: " + simName);
 
-  // Ensure the simulator library is loaded on demand. Since ensureLibLoaded
-  // uses RTLD_GLOBAL, the symbols are globally visible and
-  // getUniquePluginInstance can find them via dlopen(nullptr).
-  auto pathIter = simulatorLibPaths.find(simName);
-  if (pathIter != simulatorLibPaths.end())
-    ensureLibLoaded(pathIter->second);
-
-  return getUniquePluginInstance<nvqir::CircuitSimulator>(
-      std::string("getCircuitSimulator_") + simName);
+  auto *handle = ensureLibLoaded(simulatorLibPaths.at(simName));
+  auto symbol = "getCircuitSimulator_" + simName;
+  auto factory = reinterpret_cast<nvqir::CircuitSimulator *(*)()>(
+      dlsym(handle, symbol.c_str()));
+  if (!factory)
+    throw std::runtime_error("Could not load simulator factory: " + symbol);
+  return factory();
 }
 
 quantum_platform *
@@ -310,12 +309,20 @@ LinkedLibraryHolder::getPlatform(const std::string &platformName) {
   if (iter == end)
     throw std::runtime_error("Invalid platform requested: " + platformName);
 
+  // The default platform is linked into the extension, but still needs a
+  // library handle (a process-wide lookup cannot see locally loaded libraries).
   auto pathIter = platformLibPaths.find(platformName);
-  if (pathIter != platformLibPaths.end())
-    ensureLibLoaded(pathIter->second);
-
-  return getUniquePluginInstance<quantum_platform>(
-      std::string("getQuantumPlatform_") + platformName);
+  auto path = pathIter != platformLibPaths.end()
+                  ? pathIter->second
+                  : cudaqLibPath / fmt::format("libcudaq-platform-{}.{}",
+                                               platformName, libSuffix);
+  auto *handle = ensureLibLoaded(path);
+  auto symbol = "getQuantumPlatform_" + platformName;
+  auto factory =
+      reinterpret_cast<quantum_platform *(*)()>(dlsym(handle, symbol.c_str()));
+  if (!factory)
+    throw std::runtime_error("Could not load platform factory: " + symbol);
+  return factory();
 }
 
 /// @brief Determine the best default target based on GPU availability and
