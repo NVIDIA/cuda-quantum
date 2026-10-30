@@ -191,8 +191,7 @@ int main(int argc, char **argv) {
                      return cudaq::runtime::isQuantumOptimizationDisabled(f);
                    });
                bool useValueSemantics =
-                   !disableQuantumOptimization && !anyFuncAtLevel0 &&
-                   !cudaq::runtime::isQuantumOptimizationDisabled(modOp);
+                   !disableQuantumOptimization && !anyFuncAtLevel0;
                cudaq::opt::addAggressiveInlining(pm);
                cudaq::opt::createTargetFinalizePipeline(pm);
                cudaq::opt::addAOTPipelineConvertToQIR(pm, convertValue,

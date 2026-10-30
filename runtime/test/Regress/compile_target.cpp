@@ -552,8 +552,9 @@ void test_optimization_level_attr(mlir::MLIRContext *ctx) {
   cudaq::CompileTarget target;
   target.codegen.emissionFormat = "qir-base";
   auto mod = mlir::parseSourceString<mlir::ModuleOp>(measureKernel, ctx);
-  cudaq::runtime::setOptimizationLevel(*mod, 0);
-  llvm::outs() << "Module optimization level 0 codegen:\n";
+  cudaq::runtime::setOptimizationLevel(
+      mod->lookupSymbol("__nvqpp__mlirgen__measure"), 0);
+  llvm::outs() << "Kernel optimization level 0 codegen:\n";
   Compiler compiler(target, cudaq::CompileOptions{});
   cudaq_internal::compiler::setRunPassManagerHook(&printPipeline);
   auto compiled = compiler.compile(
@@ -562,7 +563,7 @@ void test_optimization_level_attr(mlir::MLIRContext *ctx) {
   cudaq_internal::compiler::setRunPassManagerHook(nullptr);
 }
 
-// CHECK-LABEL: Module optimization level 0 codegen:
+// CHECK-LABEL: Kernel optimization level 0 codegen:
 // CHECK:         combine-quantum-alloc
 // CHECK-NOT:     quake-simplify
 // CHECK-NOT:     {{[(,]}}dqe{{[,)]}}

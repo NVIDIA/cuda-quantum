@@ -754,10 +754,10 @@ pyLaunchModule(const std::string &name, ModuleOp mod,
                const std::vector<void *> &rawArgs) {
   auto config = getCompileConfig();
   auto &target = config.first;
-  const int moduleOptLevel =
-      static_cast<int>(cudaq::runtime::getOptimizationLevel(mod).value_or(~0u));
+  auto func = cudaq::getKernelFuncOp(mod, name);
+  auto kernelOptLevel = cudaq::runtime::getOptimizationLevel(func).value_or(1);
   auto targetHash =
-      cudaq::detail::hashVal(config.first, config.second, moduleOptLevel);
+      cudaq::detail::hashVal(config.first, config.second, kernelOptLevel);
 
   // We don't cache kernels that inline all arguments, as any change to the
   // runtime arguments would invalidate the cache. Currently, synthesis is
@@ -765,7 +765,6 @@ pyLaunchModule(const std::string &name, ModuleOp mod,
   // need to be detected. A kernel without live arguments compiles the same way
   // for any argument values, so it stays cacheable when only a stage asks for
   // the values. Platforms that set `fullySpecialize` have never cached.
-  auto func = cudaq::getKernelFuncOp(mod, name);
   const bool hasLiveArguments = llvm::any_of(
       func.getArguments(), [](Value arg) { return !arg.use_empty(); });
   bool cacheable = cache && targetHash != 0 &&

@@ -33,6 +33,7 @@
 #include "llvm/Support/Program.h"
 #include "llvm/Support/ToolOutputFile.h"
 #include "llvm/Support/raw_ostream.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/Pass/Pass.h"
@@ -93,10 +94,10 @@ static cl::opt<bool> noSimplify(
 
 static cl::opt<int> quantumOptLevel(
     "quantum-opt-level",
-    cl::desc("Set the quantum optimization level (0 to 3) for all kernels in "
-             "the translation unit. Level 0 disables quantum optimization. "
-             "When unset, no level is recorded in the IR and the level is "
-             "resolved when the kernel is compiled."),
+    cl::desc(
+        "Mark all kernels in the translation unit with a "
+        "`quake.optimization_level` attribute (0 to 3). This attribute "
+        "overrides any optimization level option specified at compile time."),
     cl::init(-1));
 
 static cl::opt<bool> astDump("ast-dump", cl::desc("Dump the ast."),
@@ -543,8 +544,10 @@ int main(int argc, char **argv) {
   }
   if (!moduleOp.getBody()->empty()) {
     if (quantumOptLevel >= 0)
-      cudaq::runtime::setOptimizationLevel(
-          moduleOp, static_cast<unsigned>(quantumOptLevel));
+      for (auto func : moduleOp.getOps<mlir::func::FuncOp>())
+        if (!cudaq::runtime::getOptimizationLevel(func))
+          cudaq::runtime::setOptimizationLevel(
+              func, static_cast<unsigned>(quantumOptLevel));
     if (!mangledKernelNameMap.empty()) {
       SmallVector<mlir::NamedAttribute> names;
       for (auto [key, value] : mangledKernelNameMap)

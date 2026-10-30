@@ -16,26 +16,22 @@
 
 namespace cudaq::runtime {
 
-/// Read the quantum optimization level attribute, if any, from an operation
-/// (module or function).
-inline std::optional<unsigned>
-getOptimizationLevel(mlir::Operation *op) {
+/// Read the quantum optimization level attribute, if any, from a function.
+inline std::optional<unsigned> getOptimizationLevel(mlir::Operation *op) {
   auto attr = op->getAttrOfType<mlir::IntegerAttr>(optimizationLevelAttrName);
-  if (!attr)
+  if (!attr || attr.getInt() < 0 || attr.getInt() > 3)
     return std::nullopt;
   return static_cast<unsigned>(attr.getInt());
 }
 
-/// Set the quantum optimization level attribute (an `i32` from 0 to 3) on an
-/// operation (module or function).
+/// Set the quantum optimization level attribute on a function.
 inline void setOptimizationLevel(mlir::Operation *op, unsigned level) {
   op->setAttr(optimizationLevelAttrName,
               mlir::IntegerAttr::get(
                   mlir::IntegerType::get(op->getContext(), 32), level));
 }
 
-/// Whether the operation is marked for quantum optimization level 0, i.e.
-/// quantum optimization passes must skip it.
+/// Whether the function is marked with quantum optimization level 0.
 inline bool isQuantumOptimizationDisabled(mlir::Operation *op) {
   auto level = getOptimizationLevel(op);
   return level && *level == 0;

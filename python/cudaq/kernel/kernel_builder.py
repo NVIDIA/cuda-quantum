@@ -1753,7 +1753,7 @@ class PyKernel(object):
         Mark this kernel so that quantum optimization passes (e.g. value
         semantics lowering) are skipped during code generation.
         """
-        set_optimization_level_attr(self.module, level=0)
+        set_optimization_level_attr(self.module, self.name, level=0)
 
     def atomic_quantum_region(self):
         """
@@ -1897,9 +1897,12 @@ class PyKernel(object):
 
         self.compile()
         specialized = cudaq_runtime.cloneModule(self.qkeModule)
+        # An optimization level declared on the kernel (e.g. `disable_quantum_optimization`)
+        # overrides launch options.
         if (optimization_level is not None and
-                get_optimization_level_attr(self.qkeModule) is None):
-            set_optimization_level_attr(specialized, optimization_level)
+                get_optimization_level_attr(self.qkeModule, self.name) is None):
+            set_optimization_level_attr(specialized, self.name,
+                                        optimization_level)
         cudaq_runtime.marshal_and_launch_module(
             self.name,
             specialized,

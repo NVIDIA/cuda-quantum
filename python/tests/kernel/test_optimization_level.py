@@ -12,6 +12,7 @@ import numpy as np
 import pytest
 
 import cudaq
+from cudaq.kernel.utils import get_optimization_level_attr
 
 OPT_LEVEL_ATTR = 'quake.optimizationLevel'
 OPT_LEVELS = [0, 1, 2, 3]
@@ -143,14 +144,6 @@ def test_invalid_levels(level):
         cudaq.sample(empty, shots_count=10, optimization_level=level)
 
 
-def test_level_only_on_launch_clone():
-    # The level is set on the cloned module only; the kernel's own module
-    # keeps no level.
-    _, module = bell.prepare_call(optimization_level=2)
-    assert module.operation.attributes[OPT_LEVEL_ATTR].value == 2
-    assert OPT_LEVEL_ATTR not in bell.qkeModule.operation.attributes
-
-
 def test_kernel_level_0_wins_over_launch_level():
     # A kernel marked with `disable_quantum_optimization` stays at level 0,
     # whatever the launch asks for (the annotation wins, like in C++).
@@ -160,7 +153,7 @@ def test_kernel_level_0_wins_over_launch_level():
         h(q)
 
     _, module = marked.prepare_call(optimization_level=2)
-    assert module.operation.attributes[OPT_LEVEL_ATTR].value == 0
+    assert get_optimization_level_attr(module, marked.uniqName) == 0
     cudaq.sample(marked, shots_count=10, optimization_level=2)
 
 

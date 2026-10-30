@@ -565,8 +565,7 @@ class PyKernelDecorator(object):
         return args
 
     @trace.traced
-    def prepare_call(self, *args, allow_no_args=False,
-                     optimization_level=None):
+    def prepare_call(self, *args, allow_no_args=False, optimization_level=None):
         """
         Process call site arguments, capture lifted arguments and retrieve
         compiled module for kernel execution.
@@ -587,11 +586,12 @@ class PyKernelDecorator(object):
         with trace.span("kernel.clone_module"):
             module = cudaq_runtime.cloneModule(self.qkeModule)
 
-        # A level requested at launch overrides the default, but never a level
-        # the kernel declared itself (e.g. `disable_quantum_optimization`).
-        if (optimization_level is not None and
-                get_optimization_level_attr(self.qkeModule) is None):
-            set_optimization_level_attr(module, optimization_level)
+        # An optimization level declared on the kernel (e.g. `disable_quantum_optimization`)
+        # overrides launch options.
+        if (optimization_level is not None and get_optimization_level_attr(
+                self.qkeModule, self.uniqName) is None):
+            set_optimization_level_attr(module, self.uniqName,
+                                        optimization_level)
 
         return processed_args, module
 

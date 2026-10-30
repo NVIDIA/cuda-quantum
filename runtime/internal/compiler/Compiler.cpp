@@ -395,28 +395,20 @@ cudaq_internal::compiler::Compiler::assembleCompiledModule(
       std::move(metadata));
 }
 
-/// Resolve the quantum optimization level for one compile. Disabling
-/// optimization in the options forces level 0 over everything else. Next, a
-/// level on the module wins over the requested level. nvq++ also sets level 0
-/// on a kernel that calls a level-0 kernel from the same source file, because
-/// it inlines the callee before registering the caller, and the device-code
-/// loader then registers the caller's module at level 0. A level-0 callee
-/// from another C++ source file does not mark its caller, so the JIT
-/// optimizes the callee's gates along with the caller's.
-static cudaq::OptimizationLevel
-resolveOptimizationLevel(mlir::ModuleOp moduleOp,
-                         const cudaq::CompileOptions &options) {
-  if (options.disableQuantumOpts)
-    return cudaq::OptimizationLevel::O0;
-  if (auto level = cudaq::runtime::getOptimizationLevel(moduleOp)) {
-    if (*level > static_cast<unsigned>(cudaq::OptimizationLevel::O3))
+/// Resolve the quantum optimization level for a given kernel entry point.
+///
+/// An explicit optimization level attribute on the kernel entry point takes
+/// precedence over the level in \p options.
+static void resolveOptimizationLevel(cudaq::CompileOptions &options,
+                                     mlir::func::FuncOp epFunc) {
+  if (auto level = cudaq::runtime::getOptimizationLevel(epFunc)) {
+    if (*level > 3)
       throw std::runtime_error(fmt::format(
-          "Invalid `quake.optimizationLevel` {} on the module; expected 0 to "
+          "Invalid `quake.optimizationLevel` {} on kernel `{}`; expected 0 to "
           "3.",
-          *level));
-    return static_cast<cudaq::OptimizationLevel>(*level);
+          *level, epFunc.getName().str()));
+    options.optimizationLevel = static_cast<cudaq::OptimizationLevel>(*level);
   }
-  return options.optimizationLevel;
 }
 
 /// Mark each function so that passes also skip quantum optimization.
@@ -452,8 +444,8 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::compile(
   // `options` holds what the caller requested. The compile path below reads
   // `resolvedOptions`, which carries the values resolved for this kernel.
   auto resolvedOptions = options;
-  resolvedOptions.optimizationLevel =
-      resolveOptimizationLevel(moduleOp, options);
+  resolveOptimizationLevel(resolvedOptions, epFunc);
+  // If compiling with -O0, propagate optimization level to callees
   if (resolvedOptions.optimizationLevel == cudaq::OptimizationLevel::O0)
     disableQuantumOptimization(moduleOp);
 

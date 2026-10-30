@@ -6219,7 +6219,7 @@ def compile_to_mlir(uniqueId, astModule, signature: KernelSignature, defFrame,
         cudaq__unique_attr_name, StringAttr.get(bridge.name,
                                                 context=bridge.ctx))
     if disable_quantum_optimization:
-        set_optimization_level_attr(bridge.module, level=0)
+        set_optimization_level_attr(bridge.module, bridge.name, level=0)
     if verbose:
         print(bridge.module)
     # Clear the live operations cache. This avoids python crashing with

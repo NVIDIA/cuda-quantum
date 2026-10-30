@@ -306,32 +306,32 @@ def set_tracebacklimit(limit=None):
         del sys.tracebacklimit
 
 
-# The MLIR module/function attribute carrying the quantum optimization level.
+# The MLIR function attribute carrying the quantum optimization level.
 optimization_level_attr_name = 'quake.optimizationLevel'
 
 
-def get_optimization_level_attr(op):
+def get_optimization_level_attr(module, kernelName):
     """
-    Return the `quake.optimizationLevel` set on an MLIR module or function, or
-    `None` when the operation carries no explicit level.
+    Return the `quake.optimizationLevel` set on the kernel `kernelName` in
+    `module`, or `None` when it carries no explicit level.
     """
-    attr = op.operation.attributes.get(optimization_level_attr_name)
+    funcOp = recover_func_op(module, nvqppPrefix + kernelName)
+    attr = funcOp.attributes.get(optimization_level_attr_name)
     return None if attr is None else attr.value
 
 
-def set_optimization_level_attr(module, level):
+def set_optimization_level_attr(module, kernelName, level):
     """
-    Set the `quake.optimizationLevel` attribute on an MLIR module. `level`
-    must be an integer between 0 and 3. This is a plain setter; precedence
-    between a kernel's declared level and a launch-time override is decided by
-    the caller (see `prepare_call`).
+    Set the `quake.optimizationLevel` attribute on the kernel `kernelName` in
+     `module`. `level` must be an integer between 0 and 3.
     """
-    if isinstance(level, bool) or not isinstance(level,
-                                                 int) or level < 0 or level > 3:
+    if isinstance(level,
+                  bool) or not isinstance(level, int) or level < 0 or level > 3:
         raise ValueError(
             f"`optimization_level` must be an integer between 0 and 3, got "
             f"{level!r}.")
-    module.operation.attributes.__setitem__(
+    funcOp = recover_func_op(module, nvqppPrefix + kernelName)
+    funcOp.attributes.__setitem__(
         optimization_level_attr_name,
         IntegerAttr.get(IntegerType.get_signless(32, context=module.context),
                         level))

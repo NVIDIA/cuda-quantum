@@ -9,7 +9,6 @@
 #include "PassDetails.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
-#include "cudaq/Optimizer/Builder/OptimizationLevel.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
@@ -163,20 +162,7 @@ public:
       llvm::SetVector<mlir::func::FuncOp> deps;
       collectDependentFunctions(dependencySymbols, funcOp, deps);
 
-      // The bridge sets the optimization level on functions, not the module,
-      // but the JIT reads the level from the module it compiles. A kernel
-      // whose module includes a function at level 0 runs at level 0, while
-      // the other kernels in the file keep the module's level (if any).
-      NamedAttrList moduleAttrs(module->getAttrDictionary());
-      if (llvm::any_of(deps,
-                       [](func::FuncOp dep) {
-                         return cudaq::runtime::isQuantumOptimizationDisabled(
-                             dep);
-                       }))
-        moduleAttrs.set(cudaq::runtime::optimizationLevelAttrName,
-                        mlir::IntegerAttr::get(
-                            mlir::IntegerType::get(ctx, 32), 0));
-      strOut << "module attributes " << moduleAttrs.getDictionary(ctx) << " { ";
+      strOut << "module attributes " << module->getAttrDictionary() << " { ";
 
       for (mlir::func::FuncOp parentFuncOp : deps) {
         LLVM_DEBUG(llvm::dbgs() << "  Adding dependent function "
