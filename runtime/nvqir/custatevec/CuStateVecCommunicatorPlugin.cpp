@@ -339,7 +339,7 @@ cudaqCustatevecExSetCommunicator(void *communicator,
   return CUSTATEVEC_STATUS_SUCCESS;
 }
 
-// ABI symbol resolved by `CuStateVecCommunicator::setCommunicator`
+// ABI symbol for `CuStateVecCommunicator::setCommunicator`
 extern "C" custatevecStatus_t
 cudaqCustatevecExGetCommunicator(void **communicator,
                                  std::size_t *communicatorSize) {
