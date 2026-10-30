@@ -31,10 +31,19 @@
 // RUN:   %s | FileCheck %s --check-prefix=SYNTH \
 // RUN:   --implicit-check-not='quake.r{{[xyz1]}}' \
 // RUN:   --implicit-check-not='@__cliffordt_' --implicit-check-not='quake.phase'
+// RUN: cudaq-opt --two-qubit-gate-count-optimization-pipeline=level=1 \
+// RUN:   --dump-pass-pipeline -o /dev/null %s 2>&1 | FileCheck %s --check-prefix=TWOQ1
+// RUN: cudaq-opt --two-qubit-gate-count-optimization-pipeline=level=2 \
+// RUN:   --dump-pass-pipeline -o /dev/null %s 2>&1 | FileCheck %s --check-prefix=TWOQ2
 
-// Level 1 of the optimization pipeline only cleans up, and level 3 runs level
-// 2. No level erases a rotation larger than the tolerance. The synthesis
-// pipeline leaves no rotation, helper, or phase behind.
+// The two-qubit-gate-count optimization pipeline adds phase folding at level 2.
+// TWOQ1:     dqe
+// TWOQ1-NOT: phase-folding
+// TWOQ2:     phase-folding
+
+// Level 1 of the Clifford+T optimization pipeline only cleans up, and level 3
+// runs level 2. No level erases a rotation larger than the tolerance. The
+// synthesis pipeline leaves no rotation, helper, or phase behind.
 
 // The angle is within the tolerance of pi/4, so level 2 snaps it to a T gate
 // and level 1 keeps the rotation.
