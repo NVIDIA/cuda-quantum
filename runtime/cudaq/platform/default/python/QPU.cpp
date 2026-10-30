@@ -8,6 +8,7 @@
 
 #include "QPU.h"
 #include "common/ArgumentWrapper.h"
+#include "common/CodeGenConfig.h"
 #include "common/CompileOptions.h"
 #include "common/CompiledModule.h"
 #include "common/Environment.h"
@@ -23,6 +24,7 @@
 #include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/Passes.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Target/CompileTarget.h"
 #include "cudaq/Verifier/QIRLLVMIRDialect.h"
@@ -47,7 +49,7 @@ std::string cudaq::detail::lower_to_qir_llvm(const std::string &name,
                                              const CompileOptions &options) {
   ScopedTraceWithContext(cudaq::TIMING_JIT, "getQIR", name);
 
-  auto target = createDefaultCompileTarget(getQuantumPlatformInternal());
+  auto target = getQuantumPlatformInternal()->getCompileTarget();
   target.fullySpecialize = true;
   // Translation consumes only the compiled MLIR artifact.
   CompileOptions compileOpts = options;
@@ -66,17 +68,27 @@ std::string cudaq::detail::lower_to_qir_llvm(const std::string &name,
   // TODO: can the following be merged with qirProfileTranslationFunction in
   // RuntimeMLIR.cpp?
   PassManager pm(compiled_module.getContext());
-  const auto &t = compiler.getTarget();
-  if (!t.hasPassPipeline()) {
-    cudaq::opt::addAggressiveInlining(pm);
-    cudaq::opt::createTargetFinalizePipeline(pm);
+  // Profile QIR lowers a mapped kernel's wire sets with its own pipeline, as
+  // the JIT does. Full QIR handles them in its pipeline.
+  const auto codegen = cudaq::parseCodeGenTranslation(format);
+  bool useWireSetPipeline =
+      (codegen.isBaseProfile || codegen.isAdaptiveProfile) &&
+      !compiled_module.getOps<cudaq::quake::WireSetOp>().empty();
+  if (useWireSetPipeline) {
+    cudaq::opt::addWiresetToProfileQIRPipeline(pm, codegen.profile);
+  } else {
+    const auto &t = compiler.getTarget();
+    if (!t.hasPassPipeline()) {
+      cudaq::opt::addAggressiveInlining(pm);
+      cudaq::opt::createTargetFinalizePipeline(pm);
+    }
+    bool disableQuantumOpt =
+        options.disableQuantumOpts ||
+        compiled_module->hasAttr(cudaq::runtime::disableQuantumOpts);
+    cudaq::opt::addAOTPipelineConvertToQIR(pm, format,
+                                           /*useValueSemantics=*/
+                                           !disableQuantumOpt);
   }
-  bool disableQuantumOpt =
-      options.disableQuantumOpts ||
-      compiled_module->hasAttr(cudaq::runtime::disableQuantumOpts);
-  cudaq::opt::addAOTPipelineConvertToQIR(pm, format,
-                                         /*useValueSemantics=*/
-                                         !disableQuantumOpt);
   if (failed(cudaq_internal::compiler::runPassManager(pm, compiled_module)))
     throw std::runtime_error("Pass pipeline failed.");
   if (failed(cudaq::verifier::checkQIRLLVMIRDialect(compiled_module, format)))
@@ -101,7 +113,7 @@ std::string cudaq::detail::lower_to_openqasm(const std::string &name,
                                              OpaqueArguments &args) {
   ScopedTraceWithContext(cudaq::TIMING_JIT, "getASM", name);
 
-  auto target = createDefaultCompileTarget(getQuantumPlatformInternal());
+  auto target = getQuantumPlatformInternal()->getCompileTarget();
   target.fullySpecialize = true;
   // Translation consumes only the compiled MLIR artifact.
   CompileOptions options;
@@ -118,6 +130,9 @@ std::string cudaq::detail::lower_to_openqasm(const std::string &name,
           *compiled.getMlir());
   auto *ctx = compiled_module.getContext();
   PassManager pm(ctx);
+  // OpenQASM takes qubit references, so convert a kernel that a stage left on
+  // wires, including wires borrowed from a device's wire set, back to them.
+  pm.addNestedPass<mlir::func::FuncOp>(cudaq::opt::createRegToMem());
   const auto &t = compiler.getTarget();
   if (!t.hasPassPipeline()) {
     cudaq::opt::addAggressiveInlining(pm);

@@ -191,6 +191,15 @@ std::size_t std::hash<cudaq::config::QuakeUnmappedProfile>::operator()(
   return seed;
 }
 
+std::size_t std::hash<cudaq::config::QuakeMappedProfile>::operator()(
+    const cudaq::config::QuakeMappedProfile &profile) const noexcept {
+  std::size_t seed = 0;
+  for (const auto &gate : profile.basisGates)
+    cudaq::detail::hashCombine(seed, gate);
+  cudaq::detail::hashCombine(seed, profile.device);
+  return seed;
+}
+
 std::size_t std::hash<cudaq::config::CompilationStage>::operator()(
     const cudaq::config::CompilationStage &stage) const noexcept {
   std::size_t seed = 0;
