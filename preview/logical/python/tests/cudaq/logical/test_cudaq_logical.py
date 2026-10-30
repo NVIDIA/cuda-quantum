@@ -18,6 +18,15 @@ import pytest
 ROOT = Path(__file__).resolve().parents[4]
 
 
+def _import_kernel(kernel):
+    """Compile a CUDA-Q kernel for the estimation target and import it as P0."""
+    import cudaq
+    import cudaq.logical as cql
+
+    compiled = cudaq.compile(kernel, target=cql.targets.estimator)
+    return cql.compiler.import_quake(str(compiled.mlir_module))
+
+
 def test_device_timing_units_and_operating_point():
     import cudaq.logical as cql
 
@@ -134,7 +143,7 @@ def test_cudaq_kernel_can_define_a_gadget_objective_and_declaration():
         right = cudaq.qubit()
         declaration(left, right)
 
-    imported = cql.compiler.import_cudaq(paired_h_caller)
+    imported = _import_kernel(paired_h_caller)
     assert "qlx.action @paired_h" in imported.to_mlir()
     assert "qlx.apply @paired_h" in imported.to_mlir()
 
@@ -166,11 +175,11 @@ def test_native_logical_objective_exports_a_kernel_through_its_gadget():
         right = cudaq.qubit()
         paired_x_call(left, right)
 
-    imported = cql.compiler.import_cudaq(paired_x_caller)
+    imported = _import_kernel(paired_x_caller)
     assert "qlx.apply @paired_x" in imported.to_mlir()
 
 
-def test_import_cudaq_accepts_a_qvector_kernel():
+def test_kernel_import_accepts_a_qvector_kernel():
     import cudaq
     import cudaq.logical as cql
 
@@ -181,13 +190,13 @@ def test_import_cudaq_accepts_a_qvector_kernel():
         x.ctrl(q[0], q[1])
         mz(q)
 
-    p0 = cql.compiler.import_cudaq(bell_qvector).to_mlir()
+    p0 = _import_kernel(bell_qvector).to_mlir()
     assert p0.count("#qlx.action<h>") == 1
     assert p0.count("#qlx.action<cx>") == 1
     assert p0.count("qlx.measure <Z>") == 2
 
 
-def test_import_cudaq_accepts_a_scalar_qubit_kernel():
+def test_kernel_import_accepts_a_scalar_qubit_kernel():
     import cudaq
     import cudaq.logical as cql
 
@@ -200,13 +209,13 @@ def test_import_cudaq_accepts_a_scalar_qubit_kernel():
         mz(left)
         mz(right)
 
-    p0 = cql.compiler.import_cudaq(bell_qubits).to_mlir()
+    p0 = _import_kernel(bell_qubits).to_mlir()
     assert p0.count("#qlx.action<h>") == 1
     assert p0.count("#qlx.action<cx>") == 1
     assert p0.count("qlx.measure <Z>") == 2
 
 
-def test_import_cudaq_accepts_an_unmeasured_qvector_kernel():
+def test_kernel_import_accepts_an_unmeasured_qvector_kernel():
     import cudaq
     import cudaq.logical as cql
 
@@ -216,13 +225,13 @@ def test_import_cudaq_accepts_an_unmeasured_qvector_kernel():
         h(q[0])
         x.ctrl(q[0], q[1])
 
-    p0 = cql.compiler.import_cudaq(unmeasured).to_mlir()
+    p0 = _import_kernel(unmeasured).to_mlir()
     assert p0.count("#qlx.action<h>") == 1
     assert p0.count("#qlx.action<cx>") == 1
     assert "qlx.measure" not in p0
 
 
-def test_import_cudaq_accepts_a_multicontrolled_gate():
+def test_kernel_import_accepts_a_multicontrolled_gate():
     import cudaq
     import cudaq.logical as cql
 
@@ -232,7 +241,7 @@ def test_import_cudaq_accepts_a_multicontrolled_gate():
         x.ctrl(q[0], q[1], q[2])
         mz(q)
 
-    p0 = cql.compiler.import_cudaq(toffoli).to_mlir()
+    p0 = _import_kernel(toffoli).to_mlir()
     assert p0.count("#qlx.action<ccx>") == 1
     assert p0.count("qlx.measure <Z>") == 3
 

@@ -215,12 +215,14 @@ def _objective_wrapper(kernel, arity: int):
 def materialize_kernel_objective(definition: ProgramDefinition):
     """Lower a retained CUDA-Q kernel body and expose it as a P0 action."""
 
+    import cudaq
     from cudaq.mlir import ir as mlir_ir
     from ..algebra.clifford import CliffordAction, NonCliffordAction
     from ..compiler.build import Build, EvidenceRecord
     from ..compiler.context import CompilationContext
     from ..compiler.pipeline import pipelines
-    from ..compiler.quake import import_cudaq
+    from ..compiler.quake import import_quake
+    from ..targets import estimator
     from cudaq.mlir.dialects.qlx import ObjectiveBodyOp, ReturnOp
     from .definition import DefinitionHandle
 
@@ -228,7 +230,11 @@ def materialize_kernel_objective(definition: ProgramDefinition):
     if kernel is None:
         raise TypeError("definition is not backed by a CUDA-Q objective kernel")
     arity = len(definition.signature.parameters)
-    imported = import_cudaq(_objective_wrapper(kernel, arity), _objective=True)
+    # An objective is portable P0 that holds no machine, so lower it for the
+    # canonical estimation-only target.
+    compiled = cudaq.compile(_objective_wrapper(kernel, arity),
+                             target=estimator)
+    imported = import_quake(str(compiled.mlir_module))
     module = imported._fresh_module()
     transaction = CompilationContext(module=module)
     program = transaction.find_symbol(imported.root.symbol, "qlx.program")

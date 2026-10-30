@@ -16,6 +16,7 @@ from types import MappingProxyType
 from cudaq.core.backends import CompileTarget, CustomTarget
 from cudaq.util import trace
 
+from ..compiler.saved_builds import BUILDS_ANNOTATION, BuildSaver
 from ..lower import (
     LoweringSpec,
     emit_mlir,
@@ -95,13 +96,44 @@ class Backend:
         module, context = lower(self.spec, prepared)
         return self.spec.finalize(module, context, **kwargs)
 
-    def estimate(self, build, args=(), *, tier=None, **estimate_options):
-        """Return this backend stack's estimates as CUDA-Q annotations."""
+    def estimate(self,
+                 build,
+                 args=(),
+                 *,
+                 tier=None,
+                 save_temps=None,
+                 **estimate_options):
+        """Return this backend stack's estimates as CUDA-Q annotations.
 
+        With ``save_temps``, the directory to save every build of the stack to,
+        the ``BUILDS`` annotation locates the files; see
+        :func:`cudaq.logical.load_build`.
+        """
+
+        saver = None if save_temps is None else BuildSaver(save_temps)
+        estimates = self._estimate(build,
+                                   args,
+                                   tier=tier,
+                                   _saver=saver,
+                                   **estimate_options)
         return _cudaq_estimate_result(
-            self._estimate(build, args, tier=tier, **estimate_options))
+            estimates, builds=None if saver is None else saver.manifest())
 
-    def _estimate(self, build, args=(), *, tier=None, **estimate_options):
+    def _compile_stage(self, build, saver, **options):
+        """Compile ``build`` in this layer, saving the result if requested."""
+
+        prepared = self._traced_compile(build, **options)
+        if saver is not None and self._trace_tag is not None:
+            saver.save(self._trace_tag, prepared)
+        return prepared
+
+    def _estimate(self,
+                  build,
+                  args=(),
+                  *,
+                  tier=None,
+                  _saver=None,
+                  **estimate_options):
         """Estimate each available stage, or lower only to one requested tier."""
 
         compile_options = dict(estimate_options)
@@ -111,12 +143,15 @@ class Backend:
             # Fail before counting a large program we cannot compile.
             self._preflight(build)
             own = _stage_estimate(build, **estimate_options)
-            prepared = self._traced_compile(build,
-                                            _preflight_checked=True,
-                                            **compile_options)
+            prepared = self._compile_stage(build,
+                                           _saver,
+                                           _preflight_checked=True,
+                                           **compile_options)
             if self.next_backend is None:
                 return own
-            downstream = self.next_backend._estimate(prepared, args,
+            downstream = self.next_backend._estimate(prepared,
+                                                     args,
+                                                     _saver=_saver,
                                                      **estimate_options)
             return _merge_estimates(own, downstream)
 
@@ -128,10 +163,11 @@ class Backend:
             raise ValueError(
                 f"Tier.{tier.name} is unavailable from a backend accepting "
                 f"{getattr(build, 'profile', type(build).__name__)}")
-        prepared = self._traced_compile(build, **compile_options)
+        prepared = self._compile_stage(build, _saver, **compile_options)
         return self.next_backend._estimate(prepared,
                                            args,
                                            tier=tier,
+                                           _saver=_saver,
                                            **estimate_options)
 
     def emit(self, build, **kwargs):
@@ -231,14 +267,22 @@ class ProgramBackend(Backend):
             **options,
         )
 
-    def compile(self, source, *, arguments=(), **_options):
-        from ..compiler import Build, import_cudaq
+    def compile(self, source, **_options):
+        from ..compiler import Build
         from ..compiler.quake import import_quake
         if isinstance(source, Build):
             return source
-        if hasattr(source, "mlir_module"):
-            return import_quake(str(source.mlir_module))
-        return import_cudaq(source, *tuple(arguments or ()))
+        if not hasattr(source, "mlir_module"):
+            raise TypeError(
+                "ProgramBackend compiles a Build or a CompiledModule, not "
+                f"{type(source).__name__}; compile a CUDA-Q kernel for this "
+                "target first with cudaq.compile(kernel, target=target)")
+        module = source.mlir_module
+        if module is None:
+            raise ValueError("the CompiledModule carries no MLIR module; "
+                             "compile it for a target whose endpoint does not "
+                             "consume JIT-compiled code")
+        return import_quake(str(module))
 
     def stack_metadata(self):
         entries = [("source", "CUDA-Q / Quake")]
@@ -390,11 +434,12 @@ def _merge_estimates(own, downstream):
     return {**own, **downstream}
 
 
-def _cudaq_estimate_result(estimates):
+def _cudaq_estimate_result(estimates, builds=None):
     """Wrap estimates as an ``EstimateResult``.
 
     ``resources`` reports the logical program (only when a LOGICAL estimate is
     available); every tier, including LOGICAL, is also kept in ``annotations``.
+    ``builds`` locates the saved builds.
     """
 
     from cudaq.core.backends import EstimateResult
@@ -402,6 +447,8 @@ def _cudaq_estimate_result(estimates):
     from ..estimate.logical import logical_instruction_counts
 
     annotations = {name: value.to_dict() for name, value in estimates.items()}
+    if builds:
+        annotations[BUILDS_ANNOTATION] = builds
     logical = estimates.get(estimate.Tier.LOGICAL.name)
     if logical is None:
         return EstimateResult(annotations=annotations)

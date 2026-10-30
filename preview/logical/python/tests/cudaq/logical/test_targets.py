@@ -61,6 +61,22 @@ def test_target_define_exposes_a_one_level_backend_endpoint():
     assert cudaq.logical.emit(bell_pair, target=target).startswith("module")
 
 
+def test_program_backend_compiles_a_compiled_module():
+    compiled = cudaq.compile(logical_zero_readout,
+                             target=cudaq.logical.targets.estimator)
+
+    build = cudaq.logical.targets.estimator.runtime_endpoint.compile(compiled)
+
+    assert build.profile == "p0"
+
+
+def test_program_backend_rejects_a_kernel():
+    endpoint = cudaq.logical.targets.estimator.runtime_endpoint
+
+    with pytest.raises(TypeError, match=r"cudaq\.compile"):
+        endpoint.compile(logical_zero_readout)
+
+
 def test_target_print_stack_reports_its_runtime_backends(capsys):
     assert cudaq.logical.targets.mlir.print_stack() is None
 

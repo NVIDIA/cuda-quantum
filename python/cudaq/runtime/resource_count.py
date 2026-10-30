@@ -6,6 +6,8 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+import os
+
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.kernel.kernel_decorator import (mk_decorator, isa_kernel_decorator)
 from cudaq.util import trace
@@ -37,6 +39,11 @@ def estimate(kernel, *args, **kwargs):
           only return either `True` or `False`. Invoking the kernel within
           the choice function is forbidden. Default: returns `True` or `False`
           with 50% probability.
+      save_temps (Optional[`str` | `os.PathLike]`): A directory in which to save
+          the compilation artifacts the target produces for this estimate,
+          like `nvq++ -save-temps`. Only targets that produce such artifacts
+          honor it; they report where they saved them in the result.
+          Default: nothing is saved.
       kernel (:class:`Kernel`): The :class:`Kernel` to count resources on
       *arguments (Optional[Any]): The concrete values to evaluate the kernel
           function at. Leave empty if the kernel doesn't accept any arguments.
@@ -51,8 +58,14 @@ def estimate(kernel, *args, **kwargs):
         decorator = mk_decorator(kernel)
     processedArgs, module = decorator.prepare_call(*args)
     choice = kwargs.get("choice", None)
-    return cudaq_runtime.estimate_impl(decorator.uniqName, module, choice,
-                                       *processedArgs)
+    save_temps = kwargs.get("save_temps", None)
+    if save_temps is not None:
+        save_temps = os.fspath(save_temps)
+    return cudaq_runtime.estimate_impl(decorator.uniqName,
+                                       module,
+                                       choice,
+                                       *processedArgs,
+                                       save_temps=save_temps)
 
 
 @trace.traced

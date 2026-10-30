@@ -15,6 +15,7 @@ assigns illustrative native-operation timing; it is not a hardware claim.
 
 # %%
 # Import CUDA-Q and the CUDA-Q Logical code, gadget, and target APIs.
+
 import cudaq
 import cudaq.logical as cql
 

@@ -40,6 +40,16 @@ variable. For any CUDA-Q executable, just prepend as follows:
       # or
       CUDAQ_DUMP_JIT_IR=<output_filename> ./a.out
 
+To keep the compilation artifacts a target produces for an estimate, pass a
+directory as :code:`save_temps` to :func:`cudaq.estimate`, as with
+:code:`nvq++ -save-temps`. Targets that produce such artifacts, such as the
+:code:`cudaq.logical` targets, save them there and report their location in the
+result.
+
+.. code-block:: python
+
+    result = cudaq.estimate(kernel, save_temps="./builds")
+
 Python Stack-Traces
 ++++++++++++++++++++++++
 
