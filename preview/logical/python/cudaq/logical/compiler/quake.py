@@ -291,36 +291,33 @@ def import_quake(
 def import_cudaq(
         kernel,
         *arguments,
-        target=None,
         source_modules: tuple[str, ...] = (),
 ) -> Build:
-    """Compile a ``@cudaq.kernel`` for a Logical target and import it as P0.
+    """Compile a ``@cudaq.kernel`` for Logical and import it as P0.
 
-    CUDA-Q compiles the kernel with ``target``'s compile target and
-    substitutes ``arguments``, as a launch on that target would.
-    :func:`import_quake` then imports the result. ``target`` is the Logical
-    target that consumes the build. It defaults to
-    ``cudaq.logical.targets.estimator``, never to the target installed with
-    ``cudaq.set_target``.
+    CUDA-Q compiles the kernel with the compile target of
+    ``cudaq.logical.targets.estimator``, never of the target installed with
+    ``cudaq.set_target``, and substitutes ``arguments``.
+    :func:`import_quake` then imports the result.
     """
 
     from cudaq.kernel.kernel_decorator import isa_kernel_decorator
     from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 
+    from ..targets import estimator
+
     if not isa_kernel_decorator(kernel):
         raise TypeError("kernel must be a standard @cudaq.kernel object")
-    if target is None:
-        from ..targets import estimator as target
-    # Take the endpoint's traits from ``target``, never from the installed
+    # Take the endpoint's traits from the estimator, never from the installed
     # target, so the compile is never emulated. Logical's endpoint reads the
     # MLIR, so it declares no JIT support and the compile builds no JIT engine.
-    endpoint = target.runtime_endpoint
+    endpoint = estimator.runtime_endpoint
     processed, module = kernel.prepare_call(*arguments)
     compiled = cudaq_runtime.compile_module(
         kernel.uniqName,
         module,
         is_entry_point=True,
-        compile_target=target.compile_target,
+        compile_target=estimator.compile_target,
         is_remote=getattr(endpoint, "is_remote", False),
         is_emulated=getattr(endpoint, "is_emulated", False),
         supports_jit=getattr(endpoint, "supports_jit", True),
