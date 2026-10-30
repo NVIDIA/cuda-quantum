@@ -582,6 +582,22 @@ function(cudaq_use_static_mlir target)
   set_target_properties(${target} PROPERTIES CUDAQ_MLIR_STATIC ON)
 endfunction()
 
+# Make every consumer prefer the shared MLIR runtime to static LLVM/MLIR
+# archives. These usage requirements are also carried by the exported target.
+function(_cudaq_set_shared_mlir_link_options target)
+  if(APPLE)
+    set(_cudaq_prefer_shared_mlir
+      "LINKER:-needed_library,$<TARGET_FILE:cudaq::cudaqMLIR>")
+  else()
+    set(_cudaq_prefer_shared_mlir
+      "LINKER:--push-state,--no-as-needed"
+      "$<TARGET_FILE:cudaq::cudaqMLIR>"
+      "LINKER:--pop-state")
+  endif()
+  set_property(TARGET ${target} APPEND PROPERTY
+    INTERFACE_LINK_OPTIONS ${_cudaq_prefer_shared_mlir})
+endfunction()
+
 # Define the CUDAQ dev targets for downstream projects when they exist.
 if(NOT TARGET QuakeDialect
     AND EXISTS "${CMAKE_CURRENT_LIST_DIR}/CUDAQDevTargets.cmake")
