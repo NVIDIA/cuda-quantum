@@ -124,8 +124,8 @@ def test_complete_contracts_and_physical_endcaps(distance):
         assert contract.boundary_complete
         receipt = cql.gadgets.verify_gadget(contract)
         assert receipt.verified
-        model = cql.analysis.derive_edem(cql.compile(contract),
-                                         faults=cql.analysis.FaultSet())
+        model = cql.analysis.gadget_to_edem(cql.compile(contract),
+                                            faults=cql.analysis.FaultSet())
         assert (len(model.inputs), len(model.outputs)) == expected
     assert len(recipe.coordinates) == 2 * distance**2 - 1
 

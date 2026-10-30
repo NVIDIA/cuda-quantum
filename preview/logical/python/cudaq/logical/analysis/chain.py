@@ -21,7 +21,7 @@ from cudaq.logical.compiler import (
     project_clifford,
 )
 from cudaq.logical.compiler.clifford import CliffordProjection
-from .edem import FaultSet, derive_edem, standard_depolarizing_faults
+from .edem import FaultSet, gadget_to_edem, standard_depolarizing_faults
 
 
 def derive_edem_chain(
@@ -69,7 +69,7 @@ def derive_edem_chain(
                 projection, noise, depolarizations=placements.get(index, ())))
         key = identity, faults
         if key not in models:
-            models[key] = derive_edem(build, faults=faults)
+            models[key] = gadget_to_edem(build, faults=faults)
         occurrences.append(models[key])
     return compose_chain(occurrences)
 

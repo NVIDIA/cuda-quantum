@@ -198,7 +198,7 @@ assert build.module.operation.verify()
 
 Python construction and MLIR verification check row structure, record ownership,
 syndrome bounds, observable indices, and agreement with the outcome map.
-[`analysis.derive_edem`](../use-cases/gadget-edems.md#contract-checks-during-derivation)
+[`analysis.gadget_to_edem`](../use-cases/gadget-edems.md#contract-checks-during-derivation)
 additionally checks ideal determinism and completeness before constructing an
 EDEM.
 
@@ -206,7 +206,7 @@ Pass the explicit contract as an occurrence in a closed, compatible contract
 sequence for
 [`compiler.emit_stim`](../use-cases/stim-emission.md#save-the-stim-circuit). For
 EDEM construction, pass its compiled Build and an explicit fault set to
-[`analysis.derive_edem`](../use-cases/gadget-edems.md#specify-faults). The contract
+[`analysis.gadget_to_edem`](../use-cases/gadget-edems.md#specify-faults). The contract
 is authored here; it is not inferred automatically from the gadget definition.
 
 ## Verify a contract and the logical action

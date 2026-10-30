@@ -40,7 +40,7 @@ and derives its EDEM:
 
 ```python
 import cudaq.logical as cql
-from cudaq.logical.analysis import FaultSet, derive_edem
+from cudaq.logical.analysis import FaultSet, gadget_to_edem
 
 
 @cql.gadget(implements=cql.logical.h)
@@ -52,7 +52,7 @@ build = cql.compile(cql.gadgets.GadgetContract(bare_h))
 
 # An empty insertion site denotes the input boundary.
 faults = FaultSet().pauli_error("", 0, "x", 0.01)
-model = derive_edem(build, faults=faults)
+model = gadget_to_edem(build, faults=faults)
 assert model.apply([1, 0, 0]) == [0, 1]
 ```
 
@@ -375,7 +375,7 @@ last_check_site = round_projection.instructions[-1].site_id
 data_carrier = round_projection.interface.inputs[0].data_carriers[0]
 faults = FaultSet().record_flip(round_projection.interface.measurements[0].record, 0.01)
 faults = faults.pauli_error(last_check_site, data_carrier, "x", 0.02)
-model = derive_edem(round_build, faults=faults)
+model = gadget_to_edem(round_build, faults=faults)
 ```
 
 The two faults affect the output boundary differently. The record flip changes
@@ -421,7 +421,7 @@ def gadget_model(profile):
     projection = cql.compiler.project_clifford(build,
                                                gadget=profile.gadget.name)
     faults = cql.analysis.standard_depolarizing_faults(projection, noise)
-    return cql.analysis.derive_edem(build, faults=faults)
+    return cql.analysis.gadget_to_edem(build, faults=faults)
 
 
 round_model = gadget_model(round_profile)
@@ -440,7 +440,7 @@ same code presentation, meaning the same code and stabilizer ordering. Call
 
 ### Contract checks during derivation
 
-`derive_edem` checks the contract against the realization before deriving a
+`gadget_to_edem` checks the contract against the realization before deriving a
 model. Declared detectors must be zero without faults, and outgoing virtual
 syndromes must match the measured stabilizers. The contract must also account
 for every deterministic measurement relation. An inconsistent or incomplete

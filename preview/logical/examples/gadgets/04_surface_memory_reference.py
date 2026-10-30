@@ -102,7 +102,7 @@ for contract in (prep, sec, readout):
     projection = projections[contract.gadget]
     faults = cql.analysis.standard_depolarizing_faults(
         projection, noise, depolarizations=data_sites[contract.gadget])
-    models[contract.gadget] = cql.analysis.derive_edem(build, faults=faults)
+    models[contract.gadget] = cql.analysis.gadget_to_edem(build, faults=faults)
 occurrences = tuple(models[contract.gadget] for contract in contracts)
 composed = edem.compose_chain(occurrences)
 projected = edem.project_DEM(composed)

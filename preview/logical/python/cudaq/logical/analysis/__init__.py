@@ -12,7 +12,7 @@ from importlib import import_module
 from .chain import derive_edem_chain
 from .stim import to_stim_dem
 from .evidence import Provenance, citation, computation, report, user_assertion
-from .edem import (ElementaryFault, FaultSet, PauliInsertion, derive_edem,
+from .edem import (ElementaryFault, FaultSet, PauliInsertion, gadget_to_edem,
                    standard_depolarizing_faults)
 from ..estimate import (
     EvidencePolicy,
@@ -50,7 +50,7 @@ __all__ = [
     "ElementaryFault",
     "FaultSet",
     "PauliInsertion",
-    "derive_edem",
+    "gadget_to_edem",
     "derive_edem_chain",
     "to_stim_dem",
     "standard_depolarizing_faults",

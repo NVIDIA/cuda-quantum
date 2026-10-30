@@ -262,10 +262,10 @@ def standard_depolarizing_faults(projection, noise, *,
     return FaultSet(tuple(faults), tuple(groups))
 
 
-def derive_edem(source: Build,
-                *,
-                faults: FaultSet = FaultSet(),
-                profile: str | None = None) -> EDEM:
+def gadget_to_edem(source: Build,
+                   *,
+                   faults: FaultSet = FaultSet(),
+                   profile: str | None = None) -> EDEM:
     """Prove a gadget detector contract and return a ``cudaq_edem.EDEM``.
 
     The source is an authenticated compiler Build containing a linked
@@ -288,7 +288,7 @@ def derive_edem(source: Build,
     from cudaq.mlir._mlir_libs import _qlxRuntime
 
     if not isinstance(source, Build):
-        raise TypeError("derive_edem expects a cudaq.logical.compiler.Build")
+        raise TypeError("gadget_to_edem expects a cudaq.logical.compiler.Build")
     if not isinstance(faults, FaultSet):
         raise TypeError("faults must be a FaultSet")
     if profile is None:
@@ -301,6 +301,6 @@ def derive_edem(source: Build,
 
 
 __all__ = [
-    "PauliInsertion", "ElementaryFault", "FaultSet", "derive_edem",
+    "PauliInsertion", "ElementaryFault", "FaultSet", "gadget_to_edem",
     "standard_depolarizing_faults"
 ]

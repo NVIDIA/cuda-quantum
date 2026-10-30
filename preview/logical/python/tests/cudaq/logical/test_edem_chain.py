@@ -30,7 +30,7 @@ def test_recipe_gadget_contracts_are_stable_and_semantically_valid(
     profile = surface.gadget_contract(gadget)
     assert profile is surface.gadget_contract(gadget)
     assert profile.gadget is gadget
-    cql.analysis.derive_edem(cql.compile(profile))
+    cql.analysis.gadget_to_edem(cql.compile(profile))
 
 
 def test_generated_surface_measurement_exposes_its_existing_profile():
@@ -63,7 +63,7 @@ def test_chain_reuses_equal_faults_but_distinguishes_occurrence_noise(
         surface.gadget_contract(g)
         for g in (recipe.prepare_zero, recipe.memory_round, recipe.memory_round,
                   recipe.memory_round, recipe.measure_z))
-    original = chain.derive_edem
+    original = chain.gadget_to_edem
     derived = []
 
     def record(build, *, faults):
@@ -78,7 +78,7 @@ def test_chain_reuses_equal_faults_but_distinguishes_occurrence_noise(
                 .02 if index == 3 else .01)
         return result
 
-    monkeypatch.setattr(chain, "derive_edem", record)
+    monkeypatch.setattr(chain, "gadget_to_edem", record)
     model = chain.derive_edem_chain(profiles, fault_factory=faults)
     assert len(derived) == 4  # preparation, two noise settings, readout
     assert [f.groups[0].probabilities for f in model.faults] == [[.01], [.01],

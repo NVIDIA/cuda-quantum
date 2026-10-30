@@ -71,8 +71,8 @@ def test_builtin_surface_preparations_project_and_validate(
                tuple(records.values()))
     # Derivation proves the ideal detector parities, output syndrome bindings,
     # and completeness, including the random check outcomes after preparation.
-    model = cql.analysis.derive_edem(cql.compile(graph.freeze()),
-                                     faults=cql.analysis.FaultSet())
+    model = cql.analysis.gadget_to_edem(cql.compile(graph.freeze()),
+                                        faults=cql.analysis.FaultSet())
     assert len(model.inputs) == 0
     assert len(model.outputs) == 1
 
