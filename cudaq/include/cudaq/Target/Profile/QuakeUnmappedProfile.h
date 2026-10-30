@@ -85,9 +85,10 @@ struct QuakeUnmappedProfile {
   std::optional<CostModel> costModel = std::nullopt;
 
   /// With `Semantics::value`, the stage converts to wires at every level and
-  /// fails to compile a kernel that keeps a reference, such as a register
-  /// indexed by a loop longer than `maxUnrollIterations` or by a value known
-  /// only when the kernel runs.
+  /// fails to compile a kernel whose entry point keeps a reference, such as a
+  /// register indexed by a loop longer than `maxUnrollIterations` or by a value
+  /// known only when the kernel runs. `verify-quake-unmapped-profile` describes
+  /// which kernels the check covers.
   Semantics semantics = Semantics::any;
 
   /// Which loops the stage unrolls when it converts to wires. Unless this is
