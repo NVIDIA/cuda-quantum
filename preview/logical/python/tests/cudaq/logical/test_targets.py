@@ -116,10 +116,7 @@ def test_target_eagerly_exposes_the_cudaq_target_configuration():
     [stage] = compile_target.stages
     assert stage.lowering is None
     assert stage.ir_output_profile == QuakeUnmappedProfile(
-        basis_gates=[
-            "h", "s", "t", "x", "y", "z", "x(1)", "z(1)", "x(2)", "z(2)",
-            "swap", "rx", "ry", "rz", "r1"
-        ],
+        basis_gates=list(cudaq.logical.compiler.quake.IMPORT_BASIS_GATES),
         approximation_tolerance=0.0,
         cost_model=CostModel.t_count,
         unroll_loops=LoopUnrolling.index_use,
