@@ -323,18 +323,23 @@ def get_optimization_level_attr(module, kernelName):
 def set_optimization_level_attr(module, kernelName, level):
     """
     Set the `quake.optimizationLevel` attribute on the kernel `kernelName` in
-     `module`. `level` must be an integer between 0 and 3.
+     `module`, and on its `.run` entry point if it has one. `level` must be an
+     integer between 0 and 3.
     """
     if isinstance(level,
                   bool) or not isinstance(level, int) or level < 0 or level > 3:
         raise ValueError(
             f"`optimization_level` must be an integer between 0 and 3, got "
             f"{level!r}.")
-    funcOp = recover_func_op(module, nvqppPrefix + kernelName)
-    funcOp.attributes.__setitem__(
-        optimization_level_attr_name,
-        IntegerAttr.get(IntegerType.get_signless(32, context=module.context),
-                        level))
+    levelAttr = IntegerAttr.get(
+        IntegerType.get_signless(32, context=module.context), level)
+    recover_func_op(module, nvqppPrefix + kernelName).attributes.__setitem__(
+        optimization_level_attr_name, levelAttr)
+    # `cudaq.run` launches the `.run` entry point instead of the kernel.
+    runFuncOp = recover_func_op(module, nvqppPrefix + kernelName + ".run")
+    if runFuncOp is not None:
+        runFuncOp.attributes.__setitem__(optimization_level_attr_name,
+                                         levelAttr)
 
 
 def emitFatalError(msg):

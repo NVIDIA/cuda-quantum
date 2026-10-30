@@ -30,10 +30,6 @@ def empty():
     x.ctrl(q[0], q[1])
 
 
-class _Captured(Exception):
-    pass
-
-
 @pytest.fixture
 def override_pykernel_method(monkeypatch):
     """Record the optimization level on the module handed to the runtime,
@@ -81,7 +77,9 @@ LAUNCHES = {
 @pytest.mark.parametrize("launch", LAUNCHES)
 def test_prepare_call_stamps_optimization_level(override_pykernel_method,
                                                 launch, level):
-
+    # For all launch types, test that the `optimization_level` option gets
+    # stamped onto the IR module and that the call gets routed to `prepare_call`
+    # before execution.
     class ThowModule(Exception):
 
         def __init__(self, module, name):
@@ -122,6 +120,28 @@ def test_kernel_level_0_wins_over_launch_level():
     _, module = marked.prepare_call(optimization_level=2)
     assert get_optimization_level_attr(module, marked.uniqName) == 0
     cudaq.sample(marked, shots_count=10, optimization_level=2)
+
+
+@pytest.mark.parametrize("level", OPT_LEVELS)
+def test_run_entry_point_has_launch_level(level):
+    # `cudaq.run` launches the `.run` entry point, not the kernel itself.
+    _, module = bell.prepare_call(optimization_level=level)
+    assert get_optimization_level_attr(module, bell.uniqName + ".run") == level
+    assert len(cudaq.run(bell, shots_count=2, optimization_level=level)) == 2
+
+
+def test_run_entry_point_has_kernel_level_0():
+
+    @cudaq.kernel(disable_quantum_optimization=True)
+    def marked() -> bool:
+        q = cudaq.qubit()
+        h(q)
+        h(q)
+        return mz(q)
+
+    _, module = marked.prepare_call(optimization_level=2)
+    assert get_optimization_level_attr(module, marked.uniqName + ".run") == 0
+    assert cudaq.run(marked, shots_count=2) == [False, False]
 
 
 # leave for gdb debugging
