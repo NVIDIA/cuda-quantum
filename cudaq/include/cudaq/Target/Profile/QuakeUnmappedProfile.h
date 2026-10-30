@@ -25,6 +25,17 @@ enum class CostModel {
   two_qubit_gate_count,
 };
 
+/// Which loops a `quake-unmapped` stage unrolls when it converts to wires.
+enum class LoopUnrolling {
+  /// Every loop with a constant trip count.
+  all,
+  /// Only loops whose induction variable is used in the body, such as a loop
+  /// that indexes a register or sets a rotation angle. A loop that repeats the
+  /// same body stays rolled, so that a consumer can count it once and multiply
+  /// by its trip count.
+  index_use,
+};
+
 /// IR profile for Quake before qubit mapping. Qubits come from allocations
 /// rather than a device's wire set, and any two may interact. Wires and
 /// references are both allowed.
@@ -63,6 +74,17 @@ struct QuakeUnmappedProfile {
 
   /// Without a cost model, the stage runs no optimization.
   std::optional<CostModel> costModel = std::nullopt;
+
+  /// Which loops the stage unrolls when it converts to wires. Unless this is
+  /// `all`, prep and deploy unroll no loop before the stage runs, so that the
+  /// loops the stage keeps reach its output rolled.
+  LoopUnrolling unrollLoops = LoopUnrolling::all;
+
+  /// The most iterations of a loop that the stage unrolls. A selected loop
+  /// with more iterations stays rolled, and a register it indexes stays on
+  /// references. The default, 1024, matches how far prep and deploy unroll,
+  /// and a lower limit stops them from unrolling first.
+  unsigned maxUnrollIterations = 1024;
 
   bool operator==(const QuakeUnmappedProfile &other) const = default;
 };

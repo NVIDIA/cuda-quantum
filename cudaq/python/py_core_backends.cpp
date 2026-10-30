@@ -13,10 +13,10 @@
 NB_MODULE(_backends, m) {
   // Re-expose types bound in `cudaq._target` for convenience.
   auto target = nanobind::module_::import_("cudaq._target");
-  for (const char *name :
-       {"Codegen", "CompilationStage", "CompileTarget",
-        "CustomPipelineLowering", "QuakeReferenceSemanticsProfile",
-        "UncheckedProfile"})
+  for (const char *name : {"Codegen", "CompilationStage", "CompileTarget",
+                           "CostModel", "CustomPipelineLowering",
+                           "LoopUnrolling", "QuakeReferenceSemanticsProfile",
+                           "QuakeUnmappedProfile", "UncheckedProfile"})
     m.attr(name) = target.attr(name);
   cudaq::bindResources(m);
   cudaq::bindEstimateResult(m);
