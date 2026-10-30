@@ -6,15 +6,15 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/Target/Profile/QuakeUnmappedProfile.h"
-#include "cudaq/Support/Hash.h"
+/// @file cudaq_realtime_dispatch_kernel_image.cpp.in
+/// @brief Configured by cudaq_realtime_add_dispatch_kernel: places a dispatch
+/// kernel's LTO-IR fatbin in this binary's __nv_relfatbin section, next to
+/// nvcc's own -rdc fatbins, so that cudaq_device_code_of_this_binary hands it
+/// over with the handlers.  No host object registers it, so the binary's own
+/// device link never sees it.
 
-std::size_t std::hash<cudaq::config::QuakeUnmappedProfile>::operator()(
-    const cudaq::config::QuakeUnmappedProfile &profile) const noexcept {
-  std::size_t seed = 0;
-  for (const auto &gate : profile.basisGates)
-    cudaq::detail::hashCombine(seed, gate);
-  cudaq::detail::hashCombine(seed, profile.approximationTolerance);
-  cudaq::detail::hashCombine(seed, profile.costModel);
-  return seed;
-}
+// nvJitLink reads the fatbin's 8-byte header fields in place.
+asm(".section __nv_relfatbin,\"a\"\n"
+    ".balign 16\n"
+    ".incbin \"@_fatbin@\"\n"
+    ".previous\n");

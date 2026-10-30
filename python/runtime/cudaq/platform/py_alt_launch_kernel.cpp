@@ -715,20 +715,31 @@ struct EndpointTraits {
 };
 
 /// Construct the compiler config (`CompileTarget` and `CompileOptions`) from
-/// the current execution context. By default, the target and the endpoint
-/// traits are those of the current platform.
+/// the current execution context. By default, use the current QPU's compile
+/// target and endpoint traits.
 static std::pair<cudaq::CompileTarget, cudaq::CompileOptions>
 getCompileConfig(std::optional<cudaq::CompileTarget> target = std::nullopt,
                  std::optional<EndpointTraits> traits = std::nullopt) {
   auto *ctx = cudaq::getExecutionContext();
+  auto &platform = cudaq::get_platform();
   cudaq::CompileOptions options;
   if (!target)
-    target = cudaq::get_compile_target();
-  if (!traits)
-    traits = EndpointTraits::ofCurrentPlatform();
+    target = cudaq::get_compile_target(cudaq::getCurrentQpuId());
+
+  // Explicit endpoint traits must be applied to policy options before any
+  // defaults from the installed endpoint can disable JIT or target codegen.
+  auto getOptions = [&](auto policy, std::size_t qpuId) {
+    if (traits) {
+      if constexpr (requires { policy.inner; })
+        return cudaq::get_compile_options(policy.inner,
+                                          cudaq::get_random_seed());
+      else
+        return cudaq::get_compile_options(policy, cudaq::get_random_seed());
+    }
+    return platform.getCompileOptions(policy, cudaq::get_random_seed(), qpuId);
+  };
   if (!ctx) {
-    options = cudaq::get_compile_options(cudaq::other_policies{},
-                                         cudaq::get_random_seed());
+    options = getOptions(cudaq::other_policies{}, cudaq::getCurrentQpuId());
   } else {
     cudaq::policies::withPolicy(ctx->name, [&](auto policy) {
       using Policy = std::decay_t<decltype(policy)>;
@@ -736,15 +747,18 @@ getCompileConfig(std::optional<cudaq::CompileTarget> target = std::nullopt,
         policy.spin = ctx->spin.value();
       }
 
-      options = cudaq::get_compile_options(policy, cudaq::get_random_seed());
+      options = getOptions(policy, ctx->qpuId);
     });
   }
 
-  options.emulate = traits->isEmulated;
-  options.emitJit |= !traits->isRemote;
-  if (!traits->supportsJit)
-    options.emitJit = false;
-  options.boolVecBitPacked = !traits->isRemote && !traits->isEmulated;
+  if (traits) {
+    options.emulate = traits->isEmulated;
+    options.emitJit |= !traits->isRemote;
+    if (!traits->supportsJit)
+      options.emitJit = false;
+    options.emitTargetCode &= traits->isRemote || traits->isEmulated;
+    options.boolVecBitPacked = !traits->isRemote && !traits->isEmulated;
+  }
 
   return {*std::move(target), std::move(options)};
 }
@@ -753,9 +767,12 @@ static cudaq::CompiledModule
 compileModuleImpl(const std::string &name, ModuleOp mod,
                   const std::vector<void *> &rawArgs, bool isEntryPoint,
                   std::optional<cudaq::CompileTarget> target = std::nullopt,
-                  std::optional<EndpointTraits> traits = std::nullopt) {
+                  std::optional<EndpointTraits> traits = std::nullopt,
+                  bool inhibitCodegen = false) {
   auto [compileTarget, options] =
       getCompileConfig(std::move(target), std::move(traits));
+  if (inhibitCodegen)
+    options.emitTargetCode = false;
   cudaq::SourceModule src{name, mod.getAsOpaquePointer()};
   return cudaq_internal::compiler::compileModule(std::move(compileTarget),
                                                  std::move(options), src,
@@ -778,8 +795,15 @@ pyLaunchModule(const std::string &name, ModuleOp mod,
   // We don't cache kernels that inline all arguments, as any change to the
   // runtime arguments would invalidate the cache. Currently, synthesis is
   // all-or-nothing, but if arg-by-arg synthesis is supported, then that will
-  // need to be detected.
-  bool cacheable = cache && !target.fullySpecialize && targetHash != 0;
+  // need to be detected. A kernel without live arguments compiles the same way
+  // for any argument values, so it stays cacheable when only a stage asks for
+  // the values. Platforms that set `fullySpecialize` have never cached.
+  auto func = cudaq::getKernelFuncOp(mod, name);
+  const bool hasLiveArguments = llvm::any_of(
+      func.getArguments(), [](Value arg) { return !arg.use_empty(); });
+  bool cacheable = cache && targetHash != 0 &&
+                   (!cudaq_internal::compiler::specializesArguments(target) ||
+                    (!target.fullySpecialize && !hasLiveArguments));
 
   // Normally, we assume that the module IR is constant given the uniqued name.
   // However, kernels with compile-time dependencies — captured kernels or
@@ -787,7 +811,6 @@ pyLaunchModule(const std::string &name, ModuleOp mod,
   // the program presented to compilation can change between calls that share
   // the same cache.
   bool hasCompileTimeDependencies = [&]() {
-    auto func = cudaq::getKernelFuncOp(mod, name);
     for (unsigned i = 0; i < func.getNumArguments(); ++i)
       if (func.getArgAttr(i, "quake.pylifted") ||
           isa<cudaq::cc::CallableType>(func.getArgument(i).getType()))
@@ -1069,30 +1092,36 @@ cudaq::clean_launch_module(const std::string &name, ModuleOp mod,
   return pyLaunchModule(name, mod, std::move(cache), rawArgs);
 }
 
+bool cudaq::launchSpecializesArguments(std::size_t qpuId) {
+  return cudaq_internal::compiler::specializesArguments(
+      cudaq::get_compile_target(qpuId));
+}
+
 cudaq::OpaqueArguments cudaq::marshal_arguments_for_module_launch(
-    ModuleOp mod, nanobind::args runtimeArgs, func::FuncOp kernelFunc) {
+    ModuleOp mod, nanobind::args runtimeArgs, func::FuncOp kernelFunc,
+    bool specializeArguments) {
   // Convert python arguments to opaque form.
   cudaq::OpaqueArguments args;
-  bool isLocalSimulator =
-      !(cudaq::is_remote_platform() || cudaq::is_emulated_platform());
   auto handler = [&](cudaq::OpaqueArguments &args, nanobind::object &pyArg,
                      unsigned pos) {
     return linkResolvedCallable(mod, kernelFunc, pos, pyArg);
   };
-  // Two encodings, one per execution mode (see PackingStyle):
-  //   - Direct launch (argsCreator): the kernel keeps live argument uses that
-  //     are supplied at runtime through the generated `.argsCreator`/thunk,
-  //     whose "C++ side magic" understands a host `std::vector<bool>` for an
-  //     `i1` vector. Used only for local simulators with un-synthesized args.
-  //   - Argument synthesis (the default): the arguments are folded into the
-  //     kernel as constants by `ArgumentConverter`, which reads every vector as
-  //     the universal `{begin, end, capacity}` triple and therefore must be
-  //     given the triple-compatible `std::vector<char>` for an `i1` vector
-  //     (never the bit-packed `std::vector<bool>` specialization).
-  // A kernel whose formal arguments are all unused is synthesized
-  // (`isFullySynthesized`); otherwise a local simulator direct-launches it.
+  // Everything that reads a list on the device side expects three pointers:
+  // start, end, and capacity. C++'s `std::vector<bool>` breaks that, because
+  // it stores bits instead of elements, so Python should pack a `list[bool]`
+  // as a `std::vector<char>` (see the discussion in #4716).
+  //
+  // The one exception is when the compiler keeps the arguments and the kernel
+  // reads them while it runs. The generated launch code still expects a
+  // `std::vector<bool>` from Python and unpacks it, so we pack that here.
+  //
+  // Nothing checks which layout was used, so packing the wrong one gives
+  // wrong values instead of an error. That is why the caller passes the
+  // compiler's own decision rather than guessing from the platform type. A
+  // kernel that never uses its arguments takes the three-pointer layout.
   const bool directLaunch =
-      isLocalSimulator && !cudaq::opt::factory::isFullySynthesized(kernelFunc);
+      !specializeArguments &&
+      !cudaq::opt::factory::isFullySynthesized(kernelFunc);
   if (directLaunch)
     cudaq::packArgs<cudaq::PackingStyle::argsCreator>(args, runtimeArgs,
                                                       kernelFunc, handler);
@@ -1124,7 +1153,9 @@ nanobind::object cudaq::marshal_and_launch_module(
   auto kernelFunc = getKernelFuncOp(module, name);
   auto mod = unwrap(module);
   Type retTy = cudaq::runtime::getReturnType(kernelFunc);
-  auto args = marshal_arguments_for_module_launch(mod, runtimeArgs, kernelFunc);
+  auto args = marshal_arguments_for_module_launch(
+      mod, runtimeArgs, kernelFunc,
+      launchSpecializesArguments(getCurrentQpuId()));
 
   [[maybe_unused]] auto resultPtr =
       clean_launch_module(name, mod, args, std::move(cache));
@@ -1135,7 +1166,8 @@ nanobind::object cudaq::marshal_and_launch_module(
                               reinterpret_cast<char *>(args.getArgs().back()));
 }
 
-// Compile (specialize + JIT) the kernel module and return a CompiledModule.
+/// Compile (specialize + JIT) the kernel module and return a CompiledModule.
+/// Never runs `codegen`.
 static cudaq::CompiledModule
 marshal_and_retain_module(const std::string &name, MlirModule module,
                           bool isEntryPoint, nanobind::args runtimeArgs) {
@@ -1144,13 +1176,17 @@ marshal_and_retain_module(const std::string &name, MlirModule module,
   auto kernelFunc = cudaq::getKernelFuncOp(module, name);
   auto mod = unwrap(module);
   Type retTy = cudaq::runtime::getReturnType(kernelFunc);
-  auto args =
-      cudaq::marshal_arguments_for_module_launch(mod, runtimeArgs, kernelFunc);
+  // A compile for a kernel that is not an entry point substitutes every
+  // argument.
+  auto args = cudaq::marshal_arguments_for_module_launch(
+      mod, runtimeArgs, kernelFunc,
+      !isEntryPoint ||
+          cudaq::launchSpecializesArguments(cudaq::getCurrentQpuId()));
   // Append space for a result, as needed, to the vector of arguments.
   auto rawArgs = appendResultToArgsVector(args, retTy, mod, name);
   mlir::OwningOpRef<ModuleOp> clone = mod.clone();
-  auto compiled = compileModuleImpl(name, clone.get(), rawArgs, isEntryPoint);
-  return compiled;
+  return compileModuleImpl(name, clone.get(), rawArgs, isEntryPoint,
+                           std::nullopt, std::nullopt, /*inhibitCodegen=*/true);
 }
 
 // Compile a kernel module for a target without launching it. A null `target`
@@ -1168,7 +1204,11 @@ compile_module(const std::string &name, MlirModule module, bool isEntryPoint,
   auto mod = unwrap(module);
   Type retTy = cudaq::runtime::getReturnType(kernelFunc);
   auto args = cudaq::marshal_arguments_for_module_launch(
-      mod, nanobind::borrow<nanobind::args>(runtimeArgs), kernelFunc);
+      mod, nanobind::borrow<nanobind::args>(runtimeArgs), kernelFunc,
+      !isEntryPoint ||
+          (target
+               ? cudaq_internal::compiler::specializesArguments(*target)
+               : cudaq::launchSpecializesArguments(cudaq::getCurrentQpuId())));
   auto rawArgs = appendResultToArgsVector(args, retTy, mod, name);
   mlir::OwningOpRef<ModuleOp> clone = mod.clone();
 

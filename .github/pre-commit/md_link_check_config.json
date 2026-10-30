@@ -37,6 +37,10 @@
         "pattern": "^https://www\\.quantum-machines\\.co/"
       },
       {
+        "_comment": "Returns 403 to GitHub runners (checked 2026-10-28) although the pages are live.",
+        "pattern": "^https://www\\.scaleway\\.com/"
+      },
+      {
         "pattern": "^https://epubs.siam.org/doi/10.1137/S0097539796300921"
       },
       {

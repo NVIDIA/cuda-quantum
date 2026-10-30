@@ -38,7 +38,7 @@ cudaq.sample(my_kernel)      # compiled with that pipeline, launched to endpoint
 """
 
 from cudaq._target import (Codegen, CompilationStage, CompileTarget, CostModel,
-                           CustomPipelineLowering,
+                           CustomPipelineLowering, QuakeMappedProfile,
                            QuakeReferenceSemanticsProfile, QuakeUnmappedProfile,
                            UncheckedProfile)
 from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime import (
@@ -51,6 +51,7 @@ __all__ = [
     "CompiledModule",
     "CostModel",
     "CustomPipelineLowering",
+    "QuakeMappedProfile",
     "QuakeReferenceSemanticsProfile",
     "QuakeUnmappedProfile",
     "UncheckedProfile",

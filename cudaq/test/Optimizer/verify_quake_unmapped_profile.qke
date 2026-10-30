@@ -9,7 +9,7 @@
 // The quake-unmapped profile rejects a gate outside the basis, on references or
 // wires, and a qubit borrowed from a wire set.
 
-// RUN: cudaq-opt --verify-profile-quake-unmapped='basis=h,x(1)' --split-input-file --verify-diagnostics %s
+// RUN: cudaq-opt --verify-quake-unmapped-profile='basis=h,x(1)' --split-input-file --verify-diagnostics %s
 
 func.func @references(%q0: !quake.ref, %q1: !quake.ref) {
   quake.h %q0 : (!quake.ref) -> ()

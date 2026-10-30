@@ -18,6 +18,7 @@
 // IR profiles.
 
 #include "Yaml/v1/TargetConfigV1.h"
+#include "Yaml/v2/QuakeMappedProfileYaml.h"
 #include "Yaml/v2/QuakeReferenceSemanticsProfileYaml.h"
 #include "Yaml/v2/QuakeUnmappedProfileYaml.h"
 #include "Yaml/v2/UncheckedProfileYaml.h"

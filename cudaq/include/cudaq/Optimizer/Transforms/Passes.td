@@ -1488,6 +1488,14 @@ def MappingFunc: Pass<"qubit-mapping-func", "mlir::func::FuncOp"> {
     - multi-block scopes, or scopes containing quantum allocations, borrows, or
       terminal wire operations.
     - more than one block at the function's top level.
+
+    Only functions that borrow wires are mapped. An entry point that applies a
+    gate or measures but borrows no wires still holds qubits that were never
+    put in the wire set, for example on `!quake.ref` because a loop was too
+    long to unroll. Under `raise-fatal-errors` that is an error; otherwise the
+    entry point is left unmapped. Any other function without borrows is
+    skipped, such as a callee kernel that takes its qubits as arguments, which
+    is mapped through the entry point it is inlined into.
   }];
 
   let options = [
@@ -2457,15 +2465,16 @@ def VerifyProfileQuakeReferenceSemantics : Pass<"verify-profile-quake-reference-
   ];
 }
 
-def VerifyProfileQuakeUnmapped : Pass<"verify-profile-quake-unmapped", "mlir::ModuleOp"> {
+def VerifyQuakeUnmappedProfile : Pass<"verify-quake-unmapped-profile", "mlir::ModuleOp"> {
   let summary = "Verify quake-unmapped profile conformance (read-only)";
   let description = [{
     Fails if a qubit is borrowed from a `quake.wire_set`, or if a Quake
-    operation is not in `basis` in a function that `basis-conversion` converts:
-    an entry point or a function that takes qubits. The profile describes Quake
-    before qubit mapping, and only mapping introduces a wire set. References and
-    wires are both accepted. `basis` uses the `basis-conversion` grammar, and an
-    empty basis imposes no gate restriction.
+    operation in a kernel is not in `basis`. A kernel is an entry point or a
+    function that takes qubits, which are the functions `basis-conversion`
+    converts. The profile describes Quake before qubit mapping, and only
+    mapping introduces a wire set. References and wires are both accepted.
+    `basis` uses the `basis-conversion` grammar, and an empty basis imposes no
+    gate restriction.
   }];
   let options = [
     ListOption<"basis", "basis", "std::string",

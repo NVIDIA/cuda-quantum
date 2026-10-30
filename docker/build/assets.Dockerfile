@@ -401,6 +401,10 @@ RUN gcc_packages=$(dnf list installed "gcc*" | sed '/Installed Packages/d' | cut
 
 RUN if ! gpus=$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null) || [ -z "$gpus" ]; then \
         excludes="--label-exclude gpu_required"; \
+        # Removing gcc removed the toolkit's nvJitLink, which
+        # libcudaq-realtime.so needs to load even without a GPU.
+        dnf install -y --nobest --setopt=install_weak_deps=False \
+            libnvjitlink-$(echo ${CUDA_VERSION} | tr . -); \
     else \
         # Removing gcc packages remove the CUDA toolkit since it depends on them
         source /cuda-quantum/scripts/configure_build.sh install-cudart; \

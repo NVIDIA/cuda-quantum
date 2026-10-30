@@ -41,7 +41,7 @@ static void compileAndDump(mlir::MLIRContext *ctx,
   }
 
   Compiler compiler(std::move(target), std::move(options));
-  auto compiled = compiler.runPassPipeline(
+  auto compiled = compiler.compile(
       kernelName, mod.release().getAsOpaquePointer(), args, /*isEntryPoint=*/
       true);
 
@@ -69,7 +69,7 @@ static void compileAndDumpResources(mlir::MLIRContext *ctx,
   }
 
   Compiler compiler(std::move(target), std::move(options));
-  auto compiled = compiler.runPassPipeline(
+  auto compiled = compiler.compile(
       kernelName, mod.release().getAsOpaquePointer(), cudaq::KernelArgs{},
       /*isEntryPoint=*/true);
 
@@ -267,6 +267,12 @@ void test_resource_count_disabled_by_target(mlir::MLIRContext *ctx) {
 /// before deploy.
 class FakeQuakeReferenceSemanticsHandler : public LoweringHandler {
 public:
+  bool supports(const cudaq::config::Profile &,
+                const cudaq::config::Profile &output) const override {
+    return std::holds_alternative<
+        cudaq::config::QuakeReferenceSemanticsProfile>(output);
+  }
+
   std::optional<StagePasses>
   getStagePasses(const cudaq::config::Profile &,
                  const cudaq::config::Profile &output,
@@ -305,7 +311,7 @@ void test_staged_inferred(mlir::MLIRContext *ctx) {
 
   Compiler compiler(inferredTarget(), {}, std::move(handlers));
   auto mod = mlir::parseSourceString<mlir::ModuleOp>(phaseResourceKernel, ctx);
-  auto compiled = compiler.runPassPipeline(
+  auto compiled = compiler.compile(
       "phaseResources", mod.release().getAsOpaquePointer(), cudaq::KernelArgs{},
       /*isEntryPoint=*/true);
 
@@ -330,7 +336,7 @@ void test_staged_skip(mlir::MLIRContext *ctx) {
   options.skipTargetLoweringPipeline = true;
   Compiler compiler(inferredTarget(), std::move(options), {});
   auto mod = mlir::parseSourceString<mlir::ModuleOp>(phaseResourceKernel, ctx);
-  auto compiled = compiler.runPassPipeline(
+  auto compiled = compiler.compile(
       "phaseResources", mod.release().getAsOpaquePointer(), cudaq::KernelArgs{},
       /*isEntryPoint=*/true);
 
@@ -456,6 +462,98 @@ void test_quake_unmapped_levels(mlir::MLIRContext *ctx) {
 // CHECK-LABEL: Clifford+T exact angle resource counts:
 // CHECK: total: 1{{$}}
 
+/// A rotation whose angle is the kernel's argument.
+static const char *argumentAngleKernel = R"#(
+func.func @__nvqpp__mlirgen__argumentAngle(%angle: f64) attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %q = quake.alloca !quake.ref
+  quake.rz (%angle) %q : (f64, !quake.ref) -> ()
+  return
+}
+)#";
+
+/// A target that can take arguments at run time, as a simulator can, still
+/// substitutes the argument values when its stage synthesizes. A stage that
+/// keeps `rz` leaves the argument for run time.
+void test_quake_unmapped_specialization(mlir::MLIRContext *ctx) {
+  const auto compile = [&](std::vector<std::string> basis,
+                           cudaq::OptimizationLevel level) {
+    cudaq::CompileTarget target;
+    target.fullySpecialize = false;
+    target.stages.push_back(
+        {.irOutputProfile =
+             cudaq::config::QuakeUnmappedProfile{
+                 .basisGates = std::move(basis),
+                 .approximationTolerance = 1e-3,
+                 .costModel = cudaq::config::CostModel::t_count},
+         .lowering = cudaq::config::InferredLowering{}});
+    cudaq::CompileOptions options;
+    options.optimizationLevel = level;
+    options.seed = 42;
+    double angle = 0.3;
+    std::vector<void *> v = {static_cast<void *>(&angle)};
+    cudaq::KernelArgs args(std::span<void *const>(v.data(), v.size()));
+    compileAndDump(ctx, "argumentAngle", argumentAngleKernel, std::move(target),
+                   std::move(options), args);
+  };
+  compile({"h", "s", "t", "x"}, cudaq::OptimizationLevel::O2);
+  compile({"h", "s", "t", "x", "rz"}, cudaq::OptimizationLevel::O2);
+}
+
+// CHECK-LABEL: Compiled module:
+// CHECK:         func.func @__nvqpp__mlirgen__argumentAngle() attributes
+// CHECK:           quake.t
+// CHECK-LABEL: Compiled module:
+// CHECK:         func.func @__nvqpp__mlirgen__argumentAngle(%[[ANGLE:.*]]: f64)
+// CHECK:           quake.rz (%[[ANGLE]])
+
+/// On a path 0 - 1 - 2, each controlled `quake.x` between qubits 0 and 2 needs
+/// a swap, but level 1 cancels the pair before routing.
+static const char *nisqKernel = R"#(
+func.func @__nvqpp__mlirgen__nisq() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %q = quake.alloca !quake.veq<3>
+  %q0 = quake.extract_ref %q[0] : (!quake.veq<3>) -> !quake.ref
+  %q1 = quake.extract_ref %q[1] : (!quake.veq<3>) -> !quake.ref
+  %q2 = quake.extract_ref %q[2] : (!quake.veq<3>) -> !quake.ref
+  quake.h %q0 : (!quake.ref) -> ()
+  quake.h %q1 : (!quake.ref) -> ()
+  quake.h %q2 : (!quake.ref) -> ()
+  quake.x [%q0] %q2 : (!quake.ref, !quake.ref) -> ()
+  quake.x [%q0] %q2 : (!quake.ref, !quake.ref) -> ()
+  return
+}
+)#";
+
+/// The NISQ target's two stages on `path(3)`, at levels 0 and 1.
+void test_quake_mapped_levels(mlir::MLIRContext *ctx) {
+  const std::vector<std::string> basis = {"h", "rx", "ry", "rz", "x", "z(1)"};
+  cudaq::CompileTarget target;
+  target.stages = {
+      {.irOutputProfile =
+           cudaq::config::QuakeUnmappedProfile{
+               .basisGates = basis,
+               .costModel = cudaq::config::CostModel::two_qubit_gate_count},
+       .lowering = cudaq::config::InferredLowering{}},
+      {.irOutputProfile =
+           cudaq::config::QuakeMappedProfile{.basisGates = basis,
+                                             .device = "path(3)"},
+       .lowering = cudaq::config::InferredLowering{}}};
+  for (auto level :
+       {cudaq::OptimizationLevel::O0, cudaq::OptimizationLevel::O1}) {
+    cudaq::CompileOptions options;
+    options.emitResourceCounts = true;
+    options.emitTargetCode = false;
+    options.optimizationLevel = level;
+    compileAndDumpResources(
+        ctx, "Mapped level " + std::to_string(static_cast<int>(level)), "nisq",
+        nisqKernel, target, options);
+  }
+}
+
+// CHECK-LABEL: Mapped level 0 resource counts:
+// CHECK:       2Q gates: {{[1-9][0-9]*$}}
+// CHECK-LABEL: Mapped level 1 resource counts:
+// CHECK:       2Q gates: 0{{$}}
+
 /// Kernel that the base QIR profile accepts.
 static const char *measureKernel = R"#(
 func.func @__nvqpp__mlirgen__measure() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
@@ -473,24 +571,19 @@ static mlir::LogicalResult printPipeline(mlir::PassManager &pm,
   return pm.run(op);
 }
 
-/// Level 0 must reach codegen that runs in a second `Compiler` with default
-/// options, as the REST QPU does. Only the compiled IR can carry the level
-/// there.
+/// Level 0 must be honored all the way through codegen
 void test_optimization_level_0(mlir::MLIRContext *ctx) {
   cudaq::CompileTarget target;
   target.codegen.emissionFormat = "qir-base";
   cudaq::CompileOptions options;
   options.optimizationLevel = cudaq::OptimizationLevel::O0;
   auto mod = mlir::parseSourceString<mlir::ModuleOp>(measureKernel, ctx);
+  llvm::outs() << "Optimization level 0 codegen:\n";
   Compiler compiler(target, std::move(options));
-  auto compiled = compiler.runPassPipeline(
+  cudaq_internal::compiler::setRunPassManagerHook(&printPipeline);
+  auto compiled = compiler.compile(
       "measure", mod.release().getAsOpaquePointer(), cudaq::KernelArgs{},
       /*isEntryPoint=*/true);
-
-  llvm::outs() << "Optimization level 0 codegen:\n";
-  Compiler codegen(target, {});
-  cudaq_internal::compiler::setRunPassManagerHook(&printPipeline);
-  codegen.emitKernelExecutions(compiled);
   cudaq_internal::compiler::setRunPassManagerHook(nullptr);
 }
 
@@ -513,6 +606,8 @@ int main() {
   test_staged_inferred(context.get());
   test_staged_skip(context.get());
   test_quake_unmapped_levels(context.get());
+  test_quake_unmapped_specialization(context.get());
+  test_quake_mapped_levels(context.get());
   test_optimization_level_0(context.get());
   return 0;
 }

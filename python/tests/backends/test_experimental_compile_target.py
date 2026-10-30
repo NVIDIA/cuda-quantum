@@ -405,6 +405,46 @@ def test_later_stage_cannot_add_passes_before_deploy():
         cudaq.sample(make_static_bell_kernel(), shots_count=1)
 
 
+def remote_profile_target(post_codegen_passes=""):
+    from cudaq._experimental import QuakeReferenceSemanticsProfile
+
+    target = CompileTarget(ir_output_profile=QuakeReferenceSemanticsProfile(
+        basis_gates=["h", "x(1)"], measurement_type="single_qubit"),
+                           codegen=Codegen(
+                               "qir-adaptive:0.1:int_computations",
+                               post_codegen_passes=post_codegen_passes))
+    target.fully_specialize = True
+    return target
+
+
+def test_remote_target_codegen_uses_given_compile_target():
+    cudaq.set_target("quantinuum",
+                     emulate=True,
+                     compile_target=remote_profile_target())
+    assert len(cudaq.sample(make_static_bell_kernel(), shots_count=10)) > 0
+
+    cudaq.set_target(
+        "quantinuum",
+        emulate=True,
+        compile_target=remote_profile_target("not-a-registered-pass"))
+    with pytest.raises(RuntimeError, match="Could not successfully translate"):
+        cudaq.sample(make_static_bell_kernel(), shots_count=10)
+
+
+def test_remote_tracing_does_not_emit_target_code():
+    cudaq.set_target(
+        "quantinuum",
+        emulate=True,
+        compile_target=remote_profile_target("not-a-registered-pass"))
+    kernel = make_static_bell_kernel()
+
+    # Drawing executes the JIT artifact and must not run transport codegen.
+    assert "h" in cudaq.draw(kernel)
+    # Sampling the same kernel still requires transport codegen.
+    with pytest.raises(RuntimeError, match="Could not successfully translate"):
+        cudaq.sample(kernel, shots_count=1)
+
+
 if __name__ == "__main__":
     loc = os.path.abspath(__file__)
     pytest.main([loc, "-rP"])

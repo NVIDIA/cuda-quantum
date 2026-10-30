@@ -6,17 +6,17 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-#include "cudaq/Target/Profile/QuakeReferenceSemanticsProfile.h"
-#include "cudaq/Support/Hash.h"
+#include "Yaml/v2/QuakeMappedProfileYaml.h"
 
-std::size_t
-std::hash<cudaq::config::QuakeReferenceSemanticsProfile>::operator()(
-    const cudaq::config::QuakeReferenceSemanticsProfile &profile)
-    const noexcept {
-  std::size_t seed = 0;
-  for (const auto &gate : profile.basisGates)
-    cudaq::detail::hashCombine(seed, gate);
-  cudaq::detail::hashCombine(seed, profile.measurementType);
-  cudaq::detail::hashCombine(seed, profile.resetAfterMeasure);
-  return seed;
+using namespace cudaq::config;
+
+QuakeMappedProfile v2::ProfileYaml<QuakeMappedProfile>::to(const Yaml &yaml) {
+  const auto &options = yaml.options.value();
+  return {.basisGates = options.basisGates.value(), .device = options.device};
+}
+
+v2::ProfileYaml<QuakeMappedProfile>::Yaml
+v2::ProfileYaml<QuakeMappedProfile>::from(const QuakeMappedProfile &profile) {
+  return {.options = Yaml::Options{.basisGates = profile.basisGates,
+                                   .device = profile.device}};
 }

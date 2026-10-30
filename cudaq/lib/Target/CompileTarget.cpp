@@ -161,6 +161,45 @@ std::size_t std::hash<cudaq::config::Codegen>::operator()(
                                 codegen.postCodegenPasses);
 }
 
+// Each profile type is hashed because a stage's profile is part of the
+// compile target's hash, which keys the compiled-module cache.
+
+std::size_t std::hash<cudaq::config::UncheckedProfile>::operator()(
+    const cudaq::config::UncheckedProfile &) const noexcept {
+  return 0;
+}
+
+std::size_t
+std::hash<cudaq::config::QuakeReferenceSemanticsProfile>::operator()(
+    const cudaq::config::QuakeReferenceSemanticsProfile &profile)
+    const noexcept {
+  std::size_t seed = 0;
+  for (const auto &gate : profile.basisGates)
+    cudaq::detail::hashCombine(seed, gate);
+  cudaq::detail::hashCombine(seed, profile.measurementType);
+  cudaq::detail::hashCombine(seed, profile.resetAfterMeasure);
+  return seed;
+}
+
+std::size_t std::hash<cudaq::config::QuakeUnmappedProfile>::operator()(
+    const cudaq::config::QuakeUnmappedProfile &profile) const noexcept {
+  std::size_t seed = 0;
+  for (const auto &gate : profile.basisGates)
+    cudaq::detail::hashCombine(seed, gate);
+  cudaq::detail::hashCombine(seed, profile.approximationTolerance);
+  cudaq::detail::hashCombine(seed, profile.costModel);
+  return seed;
+}
+
+std::size_t std::hash<cudaq::config::QuakeMappedProfile>::operator()(
+    const cudaq::config::QuakeMappedProfile &profile) const noexcept {
+  std::size_t seed = 0;
+  for (const auto &gate : profile.basisGates)
+    cudaq::detail::hashCombine(seed, gate);
+  cudaq::detail::hashCombine(seed, profile.device);
+  return seed;
+}
+
 std::size_t std::hash<cudaq::config::CompilationStage>::operator()(
     const cudaq::config::CompilationStage &stage) const noexcept {
   std::size_t seed = 0;
