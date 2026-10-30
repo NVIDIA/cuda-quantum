@@ -8,7 +8,7 @@
 from typing import Union
 
 import base64
-import ctypes
+import ctypes, os
 import uuid
 import cudaq
 from fastapi import FastAPI, HTTPException, Header
@@ -55,6 +55,8 @@ target = llvm.Target.from_default_triple()
 targetMachine = target.create_target_machine()
 backing_mod = llvm.parse_assembly("")
 engine = llvm.create_mcjit_compiler(backing_mod, targetMachine)
+# CUDA-Q loads libnvqir RTLD_LOCAL; expose its QIR runtime to the JIT.
+ctypes.CDLL("libnvqir.so", mode=os.RTLD_GLOBAL | os.RTLD_NOLOAD)
 
 
 def getNumRequiredQubits(function):

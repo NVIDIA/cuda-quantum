@@ -154,8 +154,8 @@ LinkedLibraryHolder::LinkedLibraryHolder() : availablePlatforms{"default"} {
   CUDAQ_INFO("Init: Library Path is {}.", cudaqLibPath.string());
 
   // Load nvqir, cudaq, and the default execution manager. The em cannot
-  // be a needed dep of libcudaq.so (circular dependency), but downstream
-  // libraries like cuda-qx reference its symbols at dlopen time.
+  // be a needed dep of libcudaq.so (circular dependency). Keep these local:
+  // promoting their dependencies would expose LLVM to unrelated extensions.
   std::vector<std::filesystem::path> libPaths{
       // NVQIR may already be loaded from a separate core installation.
       fmt::format("libnvqir.{}", libSuffix),
@@ -176,7 +176,7 @@ LinkedLibraryHolder::LinkedLibraryHolder() : availablePlatforms{"default"} {
   {
     ScopedTraceWithContext("dlopen_core_and_dynlibs");
     for (auto &p : libPaths) {
-      void *libHandle = dlopen(p.string().c_str(), RTLD_GLOBAL | RTLD_NOW);
+      void *libHandle = dlopen(p.string().c_str(), RTLD_LOCAL | RTLD_NOW);
       if (libHandle) {
         libHandles.emplace(p.string(), libHandle);
       } else {
@@ -261,7 +261,7 @@ void *LinkedLibraryHolder::ensureLibLoaded(const std::filesystem::path &path) {
   auto pathStr = path.string();
   if (auto it = libHandles.find(pathStr); it != libHandles.end())
     return it->second;
-  void *handle = dlopen(pathStr.c_str(), RTLD_GLOBAL | RTLD_NOW);
+  void *handle = dlopen(pathStr.c_str(), RTLD_LOCAL | RTLD_NOW);
   if (!handle) {
     char *error_msg = dlerror();
     throw std::runtime_error(

@@ -32,7 +32,7 @@ if _core_lib.is_dir():
     _ctypes.CDLL(
         str(_core_lib /
             ("libnvqir.dylib" if sys.platform == "darwin" else "libnvqir.so")),
-        mode=_ctypes.RTLD_GLOBAL)
+        mode=_ctypes.RTLD_LOCAL)
 
 # ============================================================================ #
 # Enable logging to match the CUDAQ_LOG_LEVEL environment variable.

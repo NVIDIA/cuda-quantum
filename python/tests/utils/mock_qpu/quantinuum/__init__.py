@@ -10,7 +10,7 @@ import cudaq
 from fastapi import FastAPI, HTTPException, Header, Query
 from fastapi.responses import JSONResponse
 from typing import Union
-import uuid, base64, ctypes
+import uuid, base64, ctypes, os
 from pydantic import BaseModel
 from llvmlite import binding as llvm
 
@@ -46,6 +46,8 @@ target = llvm.Target.from_default_triple()
 targetMachine = target.create_target_machine()
 backing_mod = llvm.parse_assembly("")
 engine = llvm.create_mcjit_compiler(backing_mod, targetMachine)
+# CUDA-Q loads libnvqir RTLD_LOCAL; expose its QIR runtime to the JIT.
+ctypes.CDLL("libnvqir.so", mode=os.RTLD_GLOBAL | os.RTLD_NOLOAD)
 # Verbose logging for debugging
 verbose = False
 
