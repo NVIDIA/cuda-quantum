@@ -10,16 +10,12 @@
 #include "cudaq_internal/compiler/LayoutInfo.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "utils/OpaqueArguments.h"
-#include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/algorithms/run.h"
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include <exception>
 #include <future>
 #include <memory>
 #include <nanobind/nanobind.h>
-#include <nanobind/ndarray.h>
-#include <nanobind/stl/complex.h>
-#include <nanobind/stl/function.h>
 #include <nanobind/stl/optional.h>
 #include <nanobind/stl/shared_ptr.h>
 #include <nanobind/stl/string.h>

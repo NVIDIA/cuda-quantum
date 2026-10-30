@@ -237,14 +237,6 @@ public:
     }
   }
 
-  /// NOTE: This is used only if data layout (alignment) is missing
-  template <typename T>
-  std::size_t allocateTupleRecord() {
-    std::size_t position = buffer.size();
-    resizeBuffer(sizeof(T));
-    return position;
-  }
-
   template <typename T>
   void insertIntoTuple(std::size_t offset, T value) {
     if (offset > buffer.size() || sizeof(T) > buffer.size() - offset)
@@ -375,7 +367,6 @@ public:
   virtual std::size_t allocateArray(BufferHandler &bh, std::size_t arrSize) = 0;
   virtual void insertIntoArray(BufferHandler &bh, std::size_t offset,
                                std::size_t index, const std::string &value) = 0;
-  virtual std::size_t allocateTuple(BufferHandler &bh) = 0;
   virtual void insertIntoTuple(BufferHandler &bh, std::size_t offset,
                                const std::string &value) = 0;
 };
@@ -397,9 +388,6 @@ public:
   void insertIntoArray(BufferHandler &bh, std::size_t offset, std::size_t index,
                        const std::string &value) override {
     bh.insertIntoArray<T>(offset, index, converter->convert(value));
-  }
-  std::size_t allocateTuple(BufferHandler &bh) override {
-    return bh.allocateTupleRecord<T>();
   }
   void insertIntoTuple(BufferHandler &bh, std::size_t offset,
                        const std::string &value) override {

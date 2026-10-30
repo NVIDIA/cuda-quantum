@@ -8,10 +8,6 @@
 
 #include "run.h"
 #include "common/RecordLogParser.h"
-#include "common/Timing.h"
-#include "cudaq/algorithms/launch.h"
-#include "cudaq/runtime/logger/logger.h"
-#include "cudaq/simulators.h"
 
 cudaq::detail::RunResultSpan cudaq::detail::convertToRunResultSpan(
     const std::string &outputLog,
