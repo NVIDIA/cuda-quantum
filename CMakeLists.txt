@@ -598,8 +598,8 @@ if (CUDAQ_STATIC_CXX_RUNTIME)
   # each other. If we were to link everything statically, it is probably advisable to
   # set CMAKE_<LANG>_VISIBILITY_PRESET to hidden and CMAKE_VISIBILITY_INLINES_HIDDEN
   # to 1, to avoid some of these issues.
-  # We don't set these configurations here, since the LLVM runtime libraries that we
-  # build from source are already configured to hide symbols and include dependencies.
+  # We don't set these configurations here, since the C++ runtime must export its
+  # symbols for exceptions to work across libraries (see cmake/caches/LLVM.cmake).
   set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
   set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -static-libstdc++ -static-libgcc")
   message(STATUS "Static C++ runtime linking enabled.")

@@ -1,13 +1,12 @@
-/*******************************************************************************
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
-#ifndef FABRIC_FABRICOPS_H
-#define FABRIC_FABRICOPS_H
+#pragma once
 
 #include "mlir/Bytecode/BytecodeOpInterface.h"
 #include "mlir/IR/Builders.h"
@@ -38,5 +37,3 @@ bool arePhysicallyTemplateEquivalent(mlir::Operation *lhs,
                                      mlir::Operation *rhs);
 
 } // namespace qlx::fabric
-
-#endif // FABRIC_FABRICOPS_H

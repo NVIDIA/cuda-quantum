@@ -20,7 +20,7 @@ may not have all the required capabilities.
 
 - CUDA-Q Realtime installer.
 
-- CUDA Runtime (12+)
+- CUDA Runtime (12.6+ and 13.0+)
 
 - [`DOCA` 3.4.0 installation](https://developer.nvidia.com/doca-downloads)
 with `gpunetio` support.

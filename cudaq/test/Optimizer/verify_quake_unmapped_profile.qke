@@ -1,0 +1,41 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// The quake-unmapped profile rejects a gate outside the basis, on references or
+// wires, and a qubit borrowed from a wire set.
+
+// RUN: cudaq-opt --verify-quake-unmapped-profile='basis=h,x(1)' --split-input-file --verify-diagnostics %s
+
+func.func @references(%q0: !quake.ref, %q1: !quake.ref) {
+  quake.h %q0 : (!quake.ref) -> ()
+  quake.x [%q0] %q1 : (!quake.ref, !quake.ref) -> ()
+  // expected-error@+1 {{profile violation: operation is not in the target basis}}
+  quake.t %q0 : (!quake.ref) -> ()
+  return
+}
+
+// -----
+
+func.func @wires() attributes {"cudaq-entrypoint"} {
+  %0 = quake.null_wire
+  // expected-error@+1 {{profile violation: operation is not in the target basis}}
+  %1 = quake.t %0 : (!quake.wire) -> !quake.wire
+  quake.sink %1 : !quake.wire
+  return
+}
+
+// -----
+
+quake.wire_set @wires[2147483647] attributes {sym_visibility = "private"}
+
+func.func @borrowed_wire() {
+  // expected-error@+1 {{profile violation: quake-unmapped forbids qubits borrowed from a wire set}}
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
+  quake.return_wire %0 : !quake.wire
+  return
+}

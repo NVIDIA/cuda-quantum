@@ -155,14 +155,15 @@ public:
       opf.useLocalScope();
       opf.enableDebugInfo(/*enable=*/true,
                           /*pretty=*/false);
-      strOut << "module attributes " << module->getAttrDictionary() << " { ";
-
       // We'll also need any non-inlined functions that are
       // called by our cudaq kernel
       // Set of dependent kernels that we've included.
       // Note: `deps` does include 'this' function.
       llvm::SetVector<mlir::func::FuncOp> deps;
       collectDependentFunctions(dependencySymbols, funcOp, deps);
+
+      strOut << "module attributes " << module->getAttrDictionary() << " { ";
+
       for (mlir::func::FuncOp parentFuncOp : deps) {
         LLVM_DEBUG(llvm::dbgs() << "  Adding dependent function "
                                 << parentFuncOp->getName() << '\n');

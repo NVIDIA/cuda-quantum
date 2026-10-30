@@ -129,14 +129,15 @@ run_impl(const std::string &shortName, MlirModule module,
     throw std::runtime_error(
         "Noise model is not supported on remote platforms.");
   auto fnOp = getFuncOpAndCheckResult(mod, shortName);
-  auto opaques = marshal_arguments_for_module_launch(mod, runtimeArgs, fnOp);
+  auto opaques = marshal_arguments_for_module_launch(
+      mod, runtimeArgs, fnOp, launchSpecializesArguments(qpu_id));
 
   detail::RunResultSpan span;
   {
     nanobind::gil_scoped_release release;
     if (noise_model.has_value())
       // Launch the kernel in the appropriate context.
-      platform.set_noise(&noise_model.value());
+      platform.set_noise(&noise_model.value(), qpu_id);
     span = detail::try_finally(
         [&] {
           return pyRunTheKernel(shortName, platform, mod, std::move(cache),
@@ -144,7 +145,7 @@ run_impl(const std::string &shortName, MlirModule module,
         },
         [&] {
           if (noise_model.has_value())
-            platform.reset_noise();
+            platform.reset_noise(qpu_id);
         });
   }
   return pyReadResults(span, mod, shortName);
@@ -197,7 +198,8 @@ run_async_impl(const std::string &shortName, MlirModule module,
   auto spanFuture = spanPromise.get_future();
 
   auto fnOp = getFuncOpAndCheckResult(mod, shortName);
-  auto opaques = marshal_arguments_for_module_launch(mod, runtimeArgs, fnOp);
+  auto opaques = marshal_arguments_for_module_launch(
+      mod, runtimeArgs, fnOp, launchSpecializesArguments(qpu_id));
   // Run the kernel and compute results span.
   {
     // Release GIL to allow c++ threads, all code inside the scope is c++, so
@@ -214,7 +216,7 @@ run_async_impl(const std::string &shortName, MlirModule module,
           try {
             // Launch the kernel in the appropriate context.
             if (noise_model.has_value())
-              platform.set_noise(&noise_model.value());
+              platform.set_noise(&noise_model.value(), qpu_id);
             span = pyRunTheKernel(name, platform, mod, cache, shots_count,
                                   qpu_id, opaques);
           } catch (...) {
@@ -222,7 +224,7 @@ run_async_impl(const std::string &shortName, MlirModule module,
           }
 
           if (noise_model.has_value())
-            detail::invoke_no_throw([&]() { platform.reset_noise(); });
+            detail::invoke_no_throw([&]() { platform.reset_noise(qpu_id); });
 
           if (error)
             sp.set_exception(std::move(error));

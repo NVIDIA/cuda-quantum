@@ -51,6 +51,11 @@ retry apt-get -y install --no-install-recommends libdoca-sdk-gpunetio-dev
 CUDA_VER_DASH=$(echo $CUDA_FULL_VERSION | sed 's/\./-/')
 retry apt-get install -y cuda-nvrtc-dev-$CUDA_VER_DASH 2>/dev/null || true
 
+# cudaq-realtime compiles against the nvJitLink header, which the dev package
+# ships.  A no-op over a full apt toolkit; over a runfile install it re-adds
+# identical files.
+retry apt-get install -y --no-install-recommends libnvjitlink-dev-$CUDA_VER_DASH
+
 # [Holoscan SDK]
 cudaq_realtime_install_holoscan
 
