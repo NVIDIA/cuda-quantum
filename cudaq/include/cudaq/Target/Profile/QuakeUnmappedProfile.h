@@ -95,9 +95,11 @@ struct QuakeUnmappedProfile {
   /// loops the stage keeps reach its output rolled.
   LoopUnrolling unrollLoops = LoopUnrolling::all;
 
-  /// The most iterations of a loop that the stage unrolls. The qubits of a
-  /// longer loop that it selects stay on references. The default is the limit
-  /// that prep and deploy unroll to, in `classical-optimization-pipeline`.
+  /// The most iterations of a loop that the stage unrolls. A selected loop
+  /// with more iterations stays rolled, and the qubits it picks stay
+  /// references. The default, 1024, is the limit to which prep and deploy
+  /// unroll in `classical-optimization-pipeline`. A lower limit keeps prep and
+  /// deploy from unrolling, as `LoopUnrolling::index_use` does.
   unsigned maxUnrollIterations = 1024;
 
   /// Whether prep erases `quake.apply_noise`. A consumer that has to see noise,
