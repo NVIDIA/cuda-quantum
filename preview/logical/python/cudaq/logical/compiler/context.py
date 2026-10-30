@@ -295,6 +295,8 @@ class CompilationContext:
         results: tuple[Any, ...],
         semantics: Any = None,
     ) -> str:
+        from cudaq.logical.programs.binding import standard_action_operand_names
+
         symbol = self.unique_symbol(requested_symbol)
         function_type = mlir_ir.FunctionType.get(inputs,
                                                  results,
@@ -302,9 +304,19 @@ class CompilationContext:
         with self.context:
             function_type_attr = mlir_ir.TypeAttr.get(function_type)
         attrs: dict[str, Any] = {
-            "sym_name": mlir_ir.StringAttr.get(symbol, context=self.context),
-            "function_type": function_type_attr,
-            "kind": mlir_ir.StringAttr.get(kind, context=self.context),
+            "sym_name":
+                mlir_ir.StringAttr.get(symbol, context=self.context),
+            "function_type":
+                function_type_attr,
+            "kind":
+                mlir_ir.StringAttr.get(kind, context=self.context),
+            "operand_names":
+                mlir_ir.ArrayAttr.get([
+                    mlir_ir.StringAttr.get(name, context=self.context)
+                    for name in standard_action_operand_names(
+                        kind, len(inputs))
+                ],
+                                      context=self.context),
         }
         if family == "action":
             from cudaq.logical.algebra.clifford import (
@@ -566,6 +578,15 @@ class CompilationContext:
                     semantics=mlir_ir.FlatSymbolRefAttr.get(
                         builder.symbol, context=self.context),
                 )
+                objective = self.find_symbol(
+                    objective_symbol, "qlx.action"
+                    if family == "action" else "qlx.instrument_decl")
+                objective.attributes["operand_names"] = mlir_ir.ArrayAttr.get(
+                    [
+                        mlir_ir.StringAttr.get(name, context=self.context)
+                        for name in definition.signature.parameters
+                    ],
+                    context=self.context)
                 if family == "action":
                     from cudaq.logical.algebra.clifford import (
                         CliffordAction,

@@ -174,10 +174,12 @@ Three independent layers enforce correctness:
   fails closed. A Python linear-use analysis (`compiler/linearity.py`) and
   strict link completeness (`compiler/link_check.py`) back them on the
   authoring side.
-- **Semantic verification**: the analysis derives a gadget's Clifford action
-  from its body and compares it against the claimed action
-  (`cudaq.logical.gadgets.analysis.clifford_action`); names never select
-  semantics.
+- **Semantic verification**: `cudaq.logical.gadgets.verify_gadget` compares the
+  realization with the selected compiled objective, logical-port bindings and
+  affine outcome map. It proves detector-contract relations and supported
+  signed Clifford, preparation and measurement behavior. The separate
+  `clifford_action` analysis derives unitary intent from an ideal declaration;
+  it does not prove that a physical realization implements that intent.
 
 ## Typed inspection
 

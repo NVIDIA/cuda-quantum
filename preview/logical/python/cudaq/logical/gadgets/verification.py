@@ -11,13 +11,13 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import json
+from typing import Literal
 
 from cudaq.logical.errors import GadgetVerificationError
 
-from .definition import GadgetDefinition
 from .contracts import GadgetContract
 
-_SCHEMA = "cudaq.logical.gadget-verification/v1"
+_SCHEMA = "cudaq.logical.gadget-verification/v2"
 
 
 @dataclass(frozen=True, slots=True)
@@ -57,21 +57,28 @@ class LogicalActionVerification:
     """Result of comparing the realization with the declared logical action.
 
     ``status`` is ``"verified"``, ``"failed"``, or ``"unsupported"`` (the
-    action is not a Clifford action over the gadget's logical qubits, so it
-    was not checked; ``reason`` says why). ``logical_rank`` is the number of
-    Choi stabilizers reproduced, with matching signs, by the realization.
+    declared behavior is outside the supported stabilizer forms, so it was
+    not checked; ``reason`` says why). ``verified_checks`` counts the signed
+    logical relations proved by the realization. ``logical_rank`` retains
+    the historical spelling of that count; it is not a general matrix rank.
     """
 
-    status: str
+    status: Literal["verified", "failed", "unsupported"]
     action: str | None = None
     logical_rank: int = 0
     reason: str | None = None
     failures: tuple[VerificationFailure, ...] = ()
 
+    @property
+    def verified_checks(self) -> int:
+        """Number of signed logical relations proved by the realization."""
+
+        return self.logical_rank
+
 
 @dataclass(frozen=True, slots=True)
 class GadgetVerificationReceipt:
-    """Evidence that a gadget and its contract passed :func:`verify_gadget`.
+    """Results of checking a gadget's contract and declared logical behavior.
 
     Neither check proves fault tolerance: they establish ideal determinism and
     completeness of the contract, and the ideal logical action.
@@ -101,38 +108,6 @@ def _action_label(implements) -> str | None:
     return str(name)
 
 
-def _declared_action(gadget: GadgetDefinition):
-    """The declared Clifford action, or ``(None, reason)`` if there is none."""
-
-    from cudaq.logical.algebra.clifford import NonCliffordAction
-
-    from .analysis import clifford_action
-
-    try:
-        return clifford_action(gadget), None
-    except NonCliffordAction as exc:
-        return None, str(exc)
-    except (TypeError, ValueError) as exc:
-        return None, ("the declared logical action is not a Clifford action "
-                      f"that can be compared with the realization: {exc}")
-
-
-def _pauli_label(action, row: int) -> str:
-    arity = action.arity
-    generator = ("X" if row < arity else "Z")
-    qubit = row % arity
-    reference = f"{generator}_ref" if arity == 1 else f"{generator}_ref[{qubit}]"
-    x_bits, z_bits = action.matrix[row][:arity], action.matrix[row][arity:]
-    factors = []
-    for index, (x, z) in enumerate(zip(x_bits, z_bits)):
-        if x or z:
-            letter = "Y" if x and z else "X" if x else "Z"
-            factors.append(f"{letter}̄" if arity ==
-                           1 else f"{letter}̄[{index}]")
-    sign = "-" if action.phases[row] else ""
-    return f"{reference} {sign}{' '.join(factors)}"
-
-
 _ROW_FAILURES = {
     "not_stabilized": ("action_mismatch", "action mismatch",
                        "is not stabilized by the realization's Choi state"),
@@ -146,23 +121,40 @@ _ROW_FAILURES = {
 }
 
 
-def _action_verification(native, action, label) -> LogicalActionVerification:
+def _action_verification(native, label) -> LogicalActionVerification:
     status = native["status"]
     if status == "unsupported":
         return LogicalActionVerification("unsupported", label, 0,
                                          native.get("reason"))
+    if status not in ("verified", "failed"):
+        raise RuntimeError(
+            f"invalid native logical verification status: {status!r}")
+    rows = native.get("rows", ())
+    labels = native.get("labels", ())
+    if len(rows) != len(labels):
+        raise RuntimeError(
+            "native logical verification labels disagree with checks")
     failures = []
-    for row, row_status in enumerate(native["rows"]):
+    for label_text, row_status in zip(labels, rows):
         if row_status == "verified":
             continue
+        if row_status not in _ROW_FAILURES:
+            raise RuntimeError(
+                f"invalid native logical check status: {row_status!r}")
         kind, name, condition = _ROW_FAILURES[row_status]
         failures.append(
             VerificationFailure(
-                kind, f"{name} on {_pauli_label(action, row)}: the expected "
-                f"Choi stabilizer {condition}"))
-    reproduced = sum(1 for value in native["rows"] if value == "verified")
-    return LogicalActionVerification(status, label, reproduced, None,
-                                     tuple(failures))
+                kind, f"{name} on {label_text}: the expected logical relation "
+                f"{condition}"))
+    if native.get("reason") and status == "failed":
+        failures.append(VerificationFailure("action_mismatch",
+                                            native["reason"]))
+    if (status == "verified" and
+        (failures or not rows)) or (status == "failed" and not failures):
+        raise RuntimeError("inconsistent native logical verification result")
+    reproduced = sum(1 for value in rows if value == "verified")
+    return LogicalActionVerification(status, label, reproduced,
+                                     native.get("reason"), tuple(failures))
 
 
 def _contract_verification(native) -> ContractVerification:
@@ -208,7 +200,7 @@ def _contract_verification(native) -> ContractVerification:
 def verify_gadget(contract: GadgetContract,
                   *,
                   raise_on_failure: bool = True) -> GadgetVerificationReceipt:
-    """Check a gadget and its detector contract from one Choi probe.
+    """Prove a gadget's detector contract and supported logical behavior.
 
     Every logical input of the gadget's realization is Bell-paired with a
     reference qubit, the encoded input is placed in an arbitrary stabilizer
@@ -221,17 +213,25 @@ def verify_gadget(contract: GadgetContract,
       realization, and together with the deterministic combinations of its
       observables they must generate all of its deterministic parities (the
       rank condition).
-    * **Logical action.** The post-realization Choi state must be stabilized,
-      stabilizer by stabilizer and sign by sign, by the Choi stabilizers of
-      the ``implements=`` action on the encoded logical qubits (input logical
-      qubit ``i`` maps to output logical qubit ``i``).
+    * **Logical behavior.** The realization must reproduce the signed Choi
+      relations, preparation stabilizers, or measurement correlations of its
+      declared objective. Logical operands follow the selected compiled
+      specification's bindings. Measurement results use the complete affine
+      outcome map, including its constant.
 
     Failures name the condition. With ``raise_on_failure`` (the default) they
     raise :class:`GadgetVerificationError`, whose ``receipt`` holds the full
-    result; otherwise the receipt is returned for inspection. A declared
-    action that is not Clifford, or does not act on the gadget's logical
-    qubits, is reported as ``"unsupported"`` and does not raise; check
-    :attr:`GadgetVerificationReceipt.verified`.
+    result. An unsupported claim also raises, with its status and reason in
+    the receipt. With ``raise_on_failure=False``, failed and unsupported
+    results are returned for inspection. Invalid declarations, compilation
+    errors and unsupported realization projections still raise diagnostics;
+    inspection receipts require a realization that can be analyzed.
+
+    Supported logical forms are signed Clifford unitaries, single-logical
+    signed X/Z eigenstate preparation, and destructive or preserving X/Z measurements.
+    Other instruments, dynamic feed-forward, subsystem codes and non-Clifford
+    realizations are outside this verifier's supported scope. A normal return
+    in the default mode always has ``receipt.verified == True``.
 
     The checks establish ideal determinism and the ideal logical action. They
     do not prove fault tolerance.
@@ -240,18 +240,17 @@ def verify_gadget(contract: GadgetContract,
     if not isinstance(contract, GadgetContract):
         raise TypeError("verify_gadget expects a GadgetContract, the detector "
                         "contract declared for a gadget")
+    if type(raise_on_failure) is not bool:
+        raise TypeError("raise_on_failure must be a bool")
     from cudaq.mlir._mlir_libs import _qlxRuntime
 
     from ..compiler import compile
 
     gadget = contract.gadget
     build = compile(contract)
-    action, reason = _declared_action(gadget)
-    action_json = "" if action is None else json.dumps({
-        "arity": action.arity,
-        "matrix": [list(row) for row in action.matrix],
-        "phases": list(action.phases),
-    })
+    # Resolve intent, bindings and affine results from this same authenticated
+    # snapshot. Re-analyzing the Python action would bypass compiled bindings.
+    action_json = json.dumps({"source": "gadget_spec"})
     native = json.loads(
         _qlxRuntime.verify_gadget_json(build._fresh_module(), build.root.symbol,
                                        action_json))
@@ -259,19 +258,19 @@ def verify_gadget(contract: GadgetContract,
         raise RuntimeError("unsupported native gadget verification schema")
 
     label = _action_label(gadget.implements)
-    if action is None:
-        logical = LogicalActionVerification("unsupported", label, 0, reason)
-    else:
-        logical = _action_verification(native["logical_action"], action, label)
+    logical = _action_verification(native["logical_action"], label)
     receipt = GadgetVerificationReceipt(gadget.name, native["contract"],
                                         _contract_verification(native), logical)
     failures = (*receipt.detector_contract.failures,
                 *receipt.logical_action.failures)
-    if failures and raise_on_failure:
+    if not receipt.verified and raise_on_failure:
+        messages = [failure.message for failure in failures]
+        if logical.status == "unsupported":
+            messages.append("logical verification is unsupported: " + (
+                logical.reason or "no supported declared objective"))
         raise GadgetVerificationError(
-            f"gadget {gadget.name!r} failed verification:\n" +
-            "\n".join(f"  - {failure.message}" for failure in failures),
-            receipt)
+            f"gadget {gadget.name!r} did not pass verification:\n" +
+            "\n".join(f"  - {message}" for message in messages), receipt)
     return receipt
 
 

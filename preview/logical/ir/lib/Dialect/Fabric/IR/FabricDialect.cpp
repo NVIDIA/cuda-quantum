@@ -3252,6 +3252,21 @@ resolveTypedRecordExpression(Value value) {
       return result;
     }
 
+    if (auto allZero = current.getDefiningOp<AllZeroOp>()) {
+      auto tensor = dyn_cast<RankedTensorType>(allZero.getBits().getType());
+      // For one bit, all_zero(b) = 1 XOR b. Wider bundles
+      // require a nonlinear conjunction and have no affine record expression.
+      if (!tensor || tensor.getRank() != 1 || tensor.isDynamicDim(0) ||
+          tensor.getDimSize(0) != 1)
+        return failure();
+      auto bundle = resolveTypedRecordBundle(allZero.getBits());
+      if (failed(bundle) || bundle->size() != 1)
+        return failure();
+      RecordAffineExpression result = bundle->front();
+      result.constant = !result.constant;
+      return result;
+    }
+
     return failure();
   };
   return resolve(value);

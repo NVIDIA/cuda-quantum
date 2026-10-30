@@ -350,10 +350,35 @@ def _encoding_for_patch(annotation):
     return None
 
 
+def _is_preparation_action(action) -> bool:
+    """Distinguish physical output anchors from encoded quantum inputs."""
+
+    from cudaq.logical.programs.definition import ProgramDefinition
+    from cudaq.logical.types.values import logical_qubit
+    from ..std import LogicalInstrumentRef
+
+    if isinstance(action, LogicalInstrumentRef):
+        # Built-in resource/preparation declarations retain their existing ABI.
+        return action.arity == 0 and action.name.startswith("prepare_")
+    if not isinstance(action, ProgramDefinition) or action.kind != "action":
+        return False
+
+    def quantum_count(annotation):
+        if annotation is logical_qubit:
+            return 1
+        if get_origin(annotation) in (tuple, list):
+            return sum(quantum_count(item) for item in get_args(annotation))
+        return 0
+
+    inputs = sum(
+        quantum_count(action.type_hints.get(name, parameter.annotation))
+        for name, parameter in action.signature.parameters.items())
+    result = action.type_hints.get("return", action.signature.return_annotation)
+    return inputs == 0 and quantum_count(result) > 0
+
+
 def _build_gadget_interface(gadget: "GadgetDefinition") -> GadgetInterface:
     """Infer a typed block hypergraph from the realization signature."""
-
-    from ..std import LogicalInstrumentRef
 
     parameters = []
     for name, parameter in gadget.signature.parameters.items():
@@ -363,8 +388,7 @@ def _build_gadget_interface(gadget: "GadgetDefinition") -> GadgetInterface:
         if encoding is not None and profile is not None:
             parameters.append((name, encoding, profile))
 
-    preparing = isinstance(gadget.implements, LogicalInstrumentRef) and (
-        gadget.implements.name.startswith("prepare_"))
+    preparing = _is_preparation_action(gadget.implements)
     input_specs = () if preparing else tuple(parameters)
 
     annotation = gadget.type_hints.get("return",

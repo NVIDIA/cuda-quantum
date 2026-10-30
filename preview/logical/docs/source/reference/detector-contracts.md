@@ -27,8 +27,10 @@ Use `@cudaq.logical.action` to author a reusable ideal circuit. Its default
 preparation, measurement, and changed quantum boundaries. `CliffordAction`
 remains the narrower signed symplectic description of a Clifford unitary.
 The verification receipt's `logical_action` reports the check of the declared
-action; the current verifier supports Clifford unitaries and explicitly
-reports other action classes as unsupported.
+action. The verifier supports signed Clifford unitaries, single-logical
+signed X/Z eigenstate preparation, and destructive or preserving X/Z
+measurement.
+Other objective forms are explicitly unsupported.
 
 ### Compatibility spellings
 
@@ -250,28 +252,46 @@ through an outcome-complete symbolic stabilizer simulation over F2:
   For the round above the Choi probe yields a 6 × 2 affine outcome relation
   with a four-dimensional left kernel, spanned by the two detectors and the
   two output relations: `4 = 4 + 0`.
-- **Logical action.** The post-realization Choi state must be stabilized,
-  stabilizer by stabilizer and sign by sign, by the Choi stabilizers of the
-  `implements=` action on the encoded logical qubits (input logical qubit `i`
-  maps to output logical qubit `i`). `logical_action.logical_rank` counts the
-  stabilizers reproduced with matching signs.
+- **Logical behavior.** The selected compiled gadget specification supplies
+  the objective and its logical-operand bindings. Unitaries must reproduce
+  every signed Choi relation. Preparations must have the declared logical
+  eigenvalue. Measurements must correlate their mapped result with the
+  corresponding reference Pauli and, for preserving measurements, with the
+  surviving output Pauli. Untouched logical qubits must retain their identity
+  Choi relations. `logical_action.verified_checks` counts the proved signed
+  relations; `logical_rank` is its historical spelling, not a general rank.
+
+A unitary may act on selected logical ports within a larger encoded boundary.
+The remaining logical qubits must retain their identity action. Explicit
+bindings select the operands; omitted bindings use canonical boundary order.
 
 Failures raise `cudaq.logical.errors.GadgetVerificationError` and name the
-condition; its `receipt` holds the full result, and
-`verify_gadget(..., raise_on_failure=False)` returns the receipt instead.
+condition; its `receipt` holds the full result. Unsupported claims also raise
+by default. `verify_gadget(..., raise_on_failure=False)` returns failed or
+unsupported receipts for inspection. Invalid declarations, compilation errors
+and unsupported realization projections still raise diagnostics; inspection
+receipts require a realization that can be analyzed. A normal return in the default
+mode always has `receipt.verified == True`.
 Omitting a detector fails the rank condition (`4 ≠ 3 + 0`). Declaring the same
 round as `implements=cql.logical.x` passes the contract check, which is blind
 to the logical action, and fails the action check with a sign mismatch on
 `Z_ref -Z̄`; declaring `cql.logical.h` fails because `X_ref Z̄` does not
 stabilize the Choi state.
 
-The action check applies to Clifford actions over the gadget's logical qubits,
-with as many output logical qubits as inputs. An action that is not Clifford
-(for example `cql.logical.t`), or that the gadget's boundary does not
-realize one-to-one, is reported as `logical_action.status == "unsupported"`
-with a `reason`; it does not raise, and `receipt.verified` is `False`. The
-checks establish ideal determinism and the ideal logical action. They do not
-prove fault tolerance.
+The affine outcome map is part of the measurement meaning. Its constant is
+checked along with its record terms: a uniformly random bit from an unrelated
+ancilla is not an implementation of logical Z readout. Constants do not change
+the separate rank/completeness calculation. Every supported check holds for
+all input syndrome sectors and all ideal random outcomes, including hidden
+reset outcomes.
+
+Non-Clifford objectives (for example `cql.logical.t`), general instruments,
+dynamic feed-forward and subsystem-code verification remain unsupported.
+Classical-only objectives cannot pass through an empty set of quantum checks.
+Inspection receipts report `logical_action.status == "unsupported"`, a
+`reason`, and `receipt.verified == False`. The checks establish ideal
+determinism and the declared supported logical behavior. They do not prove
+fault tolerance or noisy circuit distance.
 
 ## Project the realization
 

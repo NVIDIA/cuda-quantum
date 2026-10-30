@@ -52,8 +52,10 @@ qlxDeriveGadgetEDEM(MlirModule module, MlirStringRef profile,
 
 /// Checks a selected gadget detector contract and, when `action` is nonempty,
 /// the declared logical action against one Choi-state probe of the
-/// realization. `action` is JSON {arity, matrix, phases}; empty skips the
-/// action check. The callback receives one cudaq.logical.gadget-verification/v1
+/// realization. `action` is {"source":"gadget_spec"} to resolve authoritative
+/// intent and bindings, or legacy JSON {arity, matrix, phases} for a supplied
+/// Clifford relation check; empty skips the action check. The callback receives
+/// one cudaq.logical.gadget-verification/v2
 /// JSON document. Semantic violations are reported inside it; structural
 /// problems fail with diagnostics. Does not mutate the module.
 MLIR_CAPI_EXPORTED MlirLogicalResult qlxVerifyGadgetContract(

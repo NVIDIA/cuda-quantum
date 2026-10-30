@@ -750,8 +750,9 @@ NB_MODULE(_qlxRuntime, m) {
       nb::arg("module"), nb::arg("profile") = "", nb::arg("action") = "",
       nb::call_guard<nb::gil_scoped_release>(),
       "Check a selected gadget detector contract and, optionally, the "
-      "declared Clifford logical action against one Choi-state probe of its "
-      "realization. Returns cudaq.logical.gadget-verification/v1 JSON.");
+      "declared stabilizer logical behavior against one Choi-state probe of "
+      "its "
+      "realization. Returns cudaq.logical.gadget-verification/v2 JSON.");
 
   m.def(
       "derive_edem_owned",

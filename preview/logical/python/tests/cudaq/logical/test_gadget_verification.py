@@ -203,10 +203,13 @@ def test_non_clifford_action_is_reported_as_unsupported():
         block, _ = ql.extract_syndrome(block)
         return block
 
-    receipt = ql.gadgets.verify_gadget(_contract(t_round))
+    with pytest.raises(GadgetVerificationError):
+        ql.gadgets.verify_gadget(_contract(t_round))
+    receipt = ql.gadgets.verify_gadget(_contract(t_round),
+                                       raise_on_failure=False)
     assert receipt.detector_contract.ok
     assert receipt.logical_action.status == "unsupported"
-    assert "non-Clifford" in receipt.logical_action.reason
+    assert "Clifford" in receipt.logical_action.reason
     assert not receipt.verified
 
 
@@ -221,7 +224,7 @@ def test_verified_contract_derives_an_edem():
     ql.analysis.derive_edem(ql.compile(_contract()))
 
 
-def test_destructive_readout_reports_its_action_as_unsupported():
+def test_destructive_readout_verifies_its_declared_action():
 
     @ql.gadget(implements=ql.logical.measure_z)
     def readout(block: RepetitionPatch) -> bool:
@@ -232,12 +235,12 @@ def test_destructive_readout_reports_its_action_as_unsupported():
     receipt = ql.gadgets.verify_gadget(ql.gadgets.GadgetContract(readout))
     assert receipt.detector_contract.ok
     assert receipt.detector_contract.observable_count == 1
-    assert receipt.logical_action.status == "unsupported"
+    assert receipt.logical_action.status == "verified"
     assert receipt.logical_action.action == "ql.logical.measure_z"
-    assert not receipt.verified
+    assert receipt.verified
 
 
-def test_action_over_a_different_number_of_logical_qubits_is_unsupported():
+def test_clifford_action_embeds_identity_on_an_unmentioned_spectator():
 
     @ql.gadget(implements=ql.logical.idle)
     def two_blocks(
@@ -254,13 +257,24 @@ def test_action_over_a_different_number_of_logical_qubits_is_unsupported():
         new_checks = two_blocks.records.syndrome(index).checks
         rows.extend(_rows(incoming, new_checks))
         boundary[outgoing.syndrome] = new_checks
-    receipt = ql.gadgets.verify_gadget(
-        ql.gadgets.GadgetContract(two_blocks,
-                                  detectors=tuple(rows),
-                                  boundary=boundary))
+    contract = ql.gadgets.GadgetContract(two_blocks,
+                                         detectors=tuple(rows),
+                                         boundary=boundary)
+    receipt = ql.gadgets.verify_gadget(contract)
     assert receipt.detector_contract.ok
-    assert receipt.logical_action.status == "unsupported"
-    assert "1 logical qubit(s)" in receipt.logical_action.reason
+    assert receipt.logical_action.status == "verified"
+    assert receipt.verified
+
+
+def test_action_with_more_operands_than_the_boundary_fails():
+    wrong = _repetition_round(ql.logical.cx)
+    contract = _contract(wrong)
+    with pytest.raises(GadgetVerificationError):
+        ql.gadgets.verify_gadget(contract)
+    receipt = ql.gadgets.verify_gadget(contract, raise_on_failure=False)
+    assert receipt.detector_contract.ok
+    assert receipt.logical_action.status == "failed"
+    assert not receipt.verified
 
 
 def test_logical_stabilizer_fixed_only_up_to_a_random_outcome():

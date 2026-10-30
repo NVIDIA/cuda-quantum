@@ -10,7 +10,10 @@
 #include "qlx/Analysis/CodePresentation.h"
 #include "qlx/Analysis/EdemFaults.h"
 #include "qlx/Analysis/IdealOutcomes.h"
+#include "qlx/Dialect/QLX/IR/QLXOps.h"
 
+#include "llvm/ADT/DenseMap.h"
+#include "llvm/ADT/DenseSet.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallBitVector.h"
 #include "llvm/Support/JSON.h"
@@ -23,8 +26,10 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <limits>
 #include <map>
+#include <numeric>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -1022,6 +1027,914 @@ selectContract(ModuleOp module, StringRef contractName) {
   return selected;
 }
 
+/// Expected intent is resolved from the selected, verified module. An unknown
+/// objective is not the empty Clifford action: absence of support stays
+/// explicit.
+struct ObjectiveResolution {
+  std::optional<IdealLogicalAction> action;
+  std::string reason;
+  std::string label;
+  bool mismatch = false;
+};
+
+IdealLogicalAction identityAction(unsigned arity) {
+  IdealLogicalAction action;
+  action.arity = arity;
+  for (unsigned row = 0; row < 2 * arity; ++row) {
+    Bits image(2 * arity);
+    image.set(row);
+    action.images.push_back(std::move(image));
+    action.phases.push_back(false);
+  }
+  return action;
+}
+
+bool conjugateIntent(IdealLogicalAction &action, StringRef name,
+                     llvm::ArrayRef<unsigned> wires) {
+  if (name == "idle")
+    return true;
+  const bool single = name == "x" || name == "y" || name == "z" ||
+                      name == "h" || name == "s" || name == "sdg";
+  if ((!single && name != "cx" && name != "cz") ||
+      wires.size() != (single ? 1u : 2u) ||
+      llvm::any_of(wires, [&](unsigned q) { return q >= action.arity; }) ||
+      (!single && wires[0] == wires[1]))
+    return false;
+  if (name == "cz") {
+    unsigned target = wires[1];
+    return conjugateIntent(action, "h", {target}) &&
+           conjugateIntent(action, "cx", wires) &&
+           conjugateIntent(action, "h", {target});
+  }
+  const unsigned k = action.arity, q = wires[0];
+  for (unsigned row = 0; row < action.images.size(); ++row) {
+    Bits &image = action.images[row];
+    bool x = image[q], z = image[k + q], phase = action.phases[row];
+    if (name == "h") {
+      phase ^= x && z;
+      image[q] = z;
+      image[k + q] = x;
+    } else if (name == "s" || name == "sdg") {
+      phase ^= x && (name == "s" ? z : !z);
+      if (x)
+        image.flip(k + q);
+    } else if (name == "x")
+      phase ^= z;
+    else if (name == "z")
+      phase ^= x;
+    else if (name == "y")
+      phase ^= x != z;
+    else {
+      unsigned target = wires[1];
+      bool xt = image[target], zt = image[k + target];
+      phase ^= x && zt && (xt ^ z ^ true);
+      if (x)
+        image.flip(target);
+      if (zt)
+        image.flip(k + q);
+    }
+    action.phases[row] = phase;
+  }
+  return true;
+}
+
+bool isQuantum(Type type) { return isa<::qlx::LogicalQubitType>(type); }
+
+struct IntentSignature {
+  unsigned inputs = 0, outputs = 0, bits = 0;
+  bool supported = true;
+};
+
+IntentSignature intentSignature(FunctionType type) {
+  IntentSignature result;
+  for (Type input : type.getInputs()) {
+    if (isQuantum(input))
+      ++result.inputs;
+    else
+      result.supported = false;
+  }
+  for (Type output : type.getResults()) {
+    if (isQuantum(output))
+      ++result.outputs;
+    else if (output.isInteger(1))
+      ++result.bits;
+    else
+      result.supported = false;
+  }
+  return result;
+}
+
+bool preparationIntent(StringRef state, IdealLogicalAction &action) {
+  using Basis = IdealLogicalAction::Basis;
+  if (state == "zero" || state == "0" || state == "prepare_zero") {
+    action.basis = Basis::Z;
+    action.negative = false;
+  } else if (state == "one" || state == "1" || state == "prepare_one") {
+    action.basis = Basis::Z;
+    action.negative = true;
+  } else if (state == "plus" || state == "+" || state == "prepare_plus") {
+    action.basis = Basis::X;
+    action.negative = false;
+  } else if (state == "minus" || state == "-" || state == "prepare_minus") {
+    action.basis = Basis::X;
+    action.negative = true;
+  } else
+    return false;
+  action.kind = IdealLogicalAction::Kind::Preparation;
+  return true;
+}
+
+/// Interpret only the supported straight-line ideal vocabulary. This follows
+/// linked semantics instead of trusting a cached Clifford attribute or a name.
+FailureOr<ObjectiveResolution> resolveIntentBody(Operation *declaration,
+                                                 Operation *body,
+                                                 IntentSignature signature) {
+  ObjectiveResolution result;
+  IdealLogicalAction action = identityAction(signature.inputs);
+  IdealLogicalAction preparedState = identityAction(1);
+  llvm::DenseMap<Value, unsigned> wires;
+  llvm::DenseSet<Value> liveQuantum;
+  struct AffineResult {
+    bool measured = false, constant = false;
+  };
+  llvm::DenseMap<Value, AffineResult> bits;
+  llvm::DenseSet<Operation *> active;
+  bool prepared = false, measured = false, sawGate = false, discarded = false;
+  bool invalid = false;
+  std::vector<unsigned> returnedWires;
+  std::optional<AffineResult> returnedBit;
+  auto unsupported = [&](const Twine &message) {
+    result.reason = message.str();
+    return failure();
+  };
+  auto malformed = [&](Operation *owner, const Twine &message) {
+    owner->emitError(message);
+    invalid = true;
+    return failure();
+  };
+  std::function<LogicalResult(Operation *, ValueRange,
+                              SmallVectorImpl<Value> &)>
+      walk;
+  walk = [&](Operation *current, ValueRange actuals,
+             SmallVectorImpl<Value> &returned) -> LogicalResult {
+    if (!active.insert(current).second)
+      return malformed(current, "recursive ideal objective semantics");
+    if (current->getNumRegions() != 1 ||
+        !llvm::hasSingleElement(current->getRegion(0)))
+      return malformed(current, "ideal objective requires one signature block");
+    Block &block = current->getRegion(0).front();
+    if (actuals.empty() && current == body) {
+      unsigned index = 0;
+      for (BlockArgument argument : block.getArguments()) {
+        if (!isQuantum(argument.getType()))
+          return unsupported("classical or resource inputs to the ideal "
+                             "objective are unsupported");
+        wires[argument] = index++;
+        liveQuantum.insert(argument);
+      }
+    } else {
+      if (actuals.size() != block.getNumArguments())
+        return malformed(current,
+                         "ideal objective call arity differs from its body");
+      for (auto [formal, actual] : llvm::zip(block.getArguments(), actuals)) {
+        if (auto wire = wires.find(actual); wire != wires.end()) {
+          if (!liveQuantum.erase(actual))
+            return malformed(
+                current,
+                "ideal objective call reuses a consumed logical operand");
+          wires[formal] = wire->second;
+          liveQuantum.insert(formal);
+        } else if (auto bit = bits.find(actual); bit != bits.end())
+          bits[formal] = bit->second;
+        else
+          return malformed(current,
+                           "ideal objective call uses an unresolved SSA value");
+      }
+    }
+    for (Operation &operation : block) {
+      StringRef name = operation.getName().getStringRef();
+      if (name == "qlx.return") {
+        llvm::DenseSet<Value> returnedQuantum;
+        for (Value value : operation.getOperands())
+          if (isQuantum(value.getType()) &&
+              (!liveQuantum.contains(value) ||
+               !returnedQuantum.insert(value).second))
+            return malformed(
+                &operation,
+                "ideal objective returns a consumed or repeated logical qubit");
+        for (Value value : liveQuantum)
+          if (value.getParentBlock() == &block &&
+              !returnedQuantum.contains(value))
+            return malformed(&operation,
+                             "ideal objective leaks a live logical qubit");
+        returned.append(operation.getOperands().begin(),
+                        operation.getOperands().end());
+        active.erase(current);
+        return success();
+      }
+      if (name == "arith.constant") {
+        auto value = operation.getAttrOfType<IntegerAttr>("value");
+        if (!value || !value.getType().isInteger(1) ||
+            operation.getNumResults() != 1)
+          return unsupported(
+              "only Boolean constants are supported in ideal objectives");
+        bits[operation.getResult(0)] = {false, !value.getValue().isZero()};
+        continue;
+      }
+      if (name == "qlx.xor" || name == "arith.xori") {
+        if (operation.getNumOperands() != 2 || operation.getNumResults() != 1 ||
+            !bits.contains(operation.getOperand(0)) ||
+            !bits.contains(operation.getOperand(1)))
+          return malformed(&operation,
+                           "ideal affine outcome has unresolved operands");
+        auto a = bits[operation.getOperand(0)],
+             b = bits[operation.getOperand(1)];
+        bits[operation.getResult(0)] = {a.measured != b.measured,
+                                        a.constant != b.constant};
+        continue;
+      }
+      if (name == "qlx.discard") {
+        for (Value value : operation.getOperands())
+          if (!wires.contains(value) || !liveQuantum.erase(value))
+            return malformed(
+                &operation,
+                "ideal discard has an unresolved or consumed logical operand");
+        // Untouched operands may be traced out by a destructive instrument.
+        discarded = true;
+        continue;
+      }
+      if (name == "qlx.prepare") {
+        if (signature.inputs || prepared || measured ||
+            operation.getNumResults() != 1)
+          return unsupported(
+              "only a single logical X/Z preparation is supported");
+        auto state = operation.getAttrOfType<StringAttr>("state");
+        if (!state || !preparationIntent(state.getValue(), action))
+          return unsupported(
+              "the ideal prepared state is not a signed X/Z eigenstate");
+        prepared = true;
+        preparedState.images[0].reset();
+        preparedState.images[0].set(
+            action.basis == IdealLogicalAction::Basis::X ? 0 : 1);
+        preparedState.phases[0] = action.negative;
+        wires[operation.getResult(0)] = 0;
+        liveQuantum.insert(operation.getResult(0));
+        continue;
+      }
+      if (name == "qlx.apply" || name == "qlx.instrument" ||
+          name == "qlx.call") {
+        Attribute calleeAttr =
+            name == "qlx.call"
+                ? operation.getAttr("callee")
+                : operation.getAttr(name == "qlx.apply" ? "action"
+                                                        : "instrument");
+        if (auto symbol = dyn_cast_or_null<SymbolRefAttr>(calleeAttr)) {
+          Operation *callee =
+              SymbolTable::lookupNearestSymbolFrom(&operation, symbol);
+          // Objective bodies are symbol tables, while the compiler retains
+          // their linked logical declarations in the enclosing module.
+          if (!callee)
+            if (auto module = declaration->getParentOfType<ModuleOp>())
+              callee = SymbolTable::lookupSymbolIn(module, symbol);
+          if (!callee)
+            return malformed(&operation,
+                             "ideal objective references an unresolved callee");
+          auto calleeTypeAttr =
+              callee->getAttrOfType<TypeAttr>("function_type");
+          auto calleeType =
+              calleeTypeAttr ? dyn_cast<FunctionType>(calleeTypeAttr.getValue())
+                             : FunctionType{};
+          if (!calleeType ||
+              !llvm::equal(calleeType.getInputs(),
+                           operation.getOperandTypes()) ||
+              !llvm::equal(calleeType.getResults(),
+                           operation.getResultTypes()) ||
+              (name == "qlx.apply" && !isa<::qlx::ActionOp>(callee)) ||
+              (name == "qlx.instrument" &&
+               !isa<::qlx::InstrumentDeclOp>(callee)))
+            return malformed(
+                &operation,
+                "ideal objective call disagrees with its typed declaration");
+          if (auto semantics =
+                  callee->getAttrOfType<SymbolRefAttr>("semantics")) {
+            auto *nested =
+                SymbolTable::lookupNearestSymbolFrom(callee, semantics);
+            auto nestedType =
+                nested ? nested->getAttrOfType<TypeAttr>("function_type")
+                       : TypeAttr{};
+            if (!nested || !isa<::qlx::ObjectiveBodyOp>(nested) ||
+                !nestedType || nestedType.getValue() != calleeType)
+              return malformed(callee,
+                               "ideal objective semantics body is unresolved "
+                               "or has an incompatible type");
+            SmallVector<Value> yielded;
+            if (failed(walk(nested, operation.getOperands(), yielded)))
+              return failure();
+            if (yielded.size() != operation.getNumResults())
+              return malformed(
+                  &operation,
+                  "ideal objective result arity differs from its body");
+            for (auto [output, value] :
+                 llvm::zip(operation.getResults(), yielded)) {
+              if (wires.contains(value)) {
+                if (!liveQuantum.erase(value))
+                  return malformed(
+                      &operation,
+                      "ideal objective call returns a consumed logical qubit");
+                wires[output] = wires[value];
+                liveQuantum.insert(output);
+              } else if (bits.contains(value))
+                bits[output] = bits[value];
+              else
+                return malformed(
+                    &operation,
+                    "ideal objective returned an unresolved SSA value");
+            }
+            continue;
+          }
+          auto kind = callee->getAttrOfType<StringAttr>("kind");
+          if (name != "qlx.apply" || !kind)
+            return unsupported(
+                "the linked ideal instrument has no supported semantics body");
+          calleeAttr = ::qlx::BuiltinActionAttr::get(
+              operation.getContext(),
+              ::qlx::symbolizeBuiltinAction(kind.getValue())
+                  .value_or(::qlx::BuiltinAction::t));
+        }
+        if (auto gate =
+                dyn_cast_or_null<::qlx::BuiltinActionAttr>(calleeAttr)) {
+          if (measured)
+            return unsupported("Clifford gates after ideal measurement require "
+                               "general instrument analysis");
+          std::vector<unsigned> targets;
+          for (Value operand : operation.getOperands()) {
+            auto wire = wires.find(operand);
+            if (wire == wires.end() || !liveQuantum.erase(operand))
+              return malformed(&operation,
+                               "ideal Clifford action uses an unresolved or "
+                               "consumed logical operand");
+            targets.push_back(wire->second);
+          }
+          if (operation.getNumResults() != targets.size() ||
+              !conjugateIntent(prepared ? preparedState : action,
+                               ::qlx::stringifyBuiltinAction(gate.getValue()),
+                               targets))
+            return unsupported("the ideal action contains a non-Clifford or "
+                               "unsupported operation");
+          for (auto [output, target] :
+               llvm::zip(operation.getResults(), targets)) {
+            wires[output] = target;
+            liveQuantum.insert(output);
+          }
+          sawGate = true;
+          continue;
+        }
+        auto instrument =
+            dyn_cast_or_null<::qlx::BuiltinInstrumentAttr>(calleeAttr);
+        if (!instrument ||
+            instrument.getValue() != ::qlx::BuiltinInstrument::mpp ||
+            prepared || measured || sawGate)
+          return unsupported("the ideal instrument is outside signed "
+                             "single-logical X/Z measurement");
+        auto parameters = operation.getAttrOfType<DictionaryAttr>("parameters");
+        auto x = parameters ? parameters.getAs<IntegerAttr>("x_mask")
+                            : IntegerAttr{};
+        auto z = parameters ? parameters.getAs<IntegerAttr>("z_mask")
+                            : IntegerAttr{};
+        auto sign =
+            parameters ? parameters.getAs<IntegerAttr>("sign") : IntegerAttr{};
+        if (!x || !z || !sign || (sign.getInt() != 1 && sign.getInt() != -1))
+          return malformed(&operation,
+                           "ideal MPP requires canonical Pauli masks and sign");
+        bool xBasis = !x.getValue().isZero();
+        const APInt &mask = xBasis ? x.getValue() : z.getValue();
+        if ((xBasis && !z.getValue().isZero()) || !mask.isPowerOf2() ||
+            mask.logBase2() >= operation.getNumOperands() ||
+            operation.getNumResults() != operation.getNumOperands() + 1)
+          return unsupported("only one nonidentity X or Z factor is supported "
+                             "in the ideal MPP");
+        Value target = operation.getOperand(mask.logBase2());
+        if (!wires.contains(target))
+          return malformed(&operation,
+                           "ideal MPP has an unresolved logical target");
+        action.kind = IdealLogicalAction::Kind::Measurement;
+        action.basis = xBasis ? IdealLogicalAction::Basis::X
+                              : IdealLogicalAction::Basis::Z;
+        action.target = wires[target];
+        for (auto [operand, output] : llvm::zip(
+                 operation.getOperands(), operation.getResults().drop_back())) {
+          if (!wires.contains(operand) || !liveQuantum.erase(operand))
+            return malformed(
+                &operation,
+                "ideal MPP has an unresolved or consumed logical operand");
+          wires[output] = wires[operand];
+          liveQuantum.insert(output);
+        }
+        bits[operation.getResult(operation.getNumResults() - 1)] = {
+            true, sign.getInt() == -1};
+        measured = true;
+        continue;
+      }
+      if (auto measurement = dyn_cast<::qlx::MeasureOp>(operation)) {
+        if (prepared || measured || sawGate)
+          return unsupported("only one ideal X/Z measurement without preceding "
+                             "gates is supported");
+        if (measurement.getBasis() != ::qlx::Pauli::X &&
+            measurement.getBasis() != ::qlx::Pauli::Z)
+          return unsupported("ideal Y measurement is unsupported");
+        if (!wires.contains(measurement.getInput()) ||
+            !liveQuantum.erase(measurement.getInput()))
+          return malformed(&operation, "ideal measurement has an unresolved or "
+                                       "consumed logical operand");
+        action.kind = IdealLogicalAction::Kind::Measurement;
+        action.basis = measurement.getBasis() == ::qlx::Pauli::X
+                           ? IdealLogicalAction::Basis::X
+                           : IdealLogicalAction::Basis::Z;
+        action.target = wires[measurement.getInput()];
+        bits[measurement.getResult()] = {true, false};
+        measured = true;
+        continue;
+      }
+      return unsupported("unsupported ideal objective operation '" + name +
+                         "'");
+    }
+    return malformed(current, "ideal objective is missing its return");
+  };
+  SmallVector<Value> returned;
+  if (failed(walk(body, {}, returned))) {
+    if (invalid)
+      return failure();
+    return result;
+  }
+  auto unsupportedResult = [&](const Twine &message) {
+    result.reason = message.str();
+    return result;
+  };
+  for (Value value : returned) {
+    if (isQuantum(value.getType())) {
+      if (!wires.contains(value))
+        return declaration->emitError(
+                   "ideal objective returns an unresolved logical qubit"),
+               failure();
+      returnedWires.push_back(wires[value]);
+    } else if (value.getType().isInteger(1)) {
+      if (returnedBit || !bits.contains(value))
+        return unsupportedResult(
+            "ideal objective must return exactly one affine "
+            "measurement result");
+      returnedBit = bits[value];
+    } else
+      return unsupportedResult("ideal objective returns an unsupported "
+                               "classical/resource type");
+  }
+  auto permutation = returnedWires;
+  llvm::sort(permutation);
+  if (prepared) {
+    if (signature.inputs || returnedWires != std::vector<unsigned>{0} ||
+        returnedBit)
+      return unsupportedResult("the ideal preparation must produce exactly one "
+                               "logical qubit");
+    const Bits &stabilizer = preparedState.images[0];
+    if (stabilizer[0] == stabilizer[1])
+      return unsupportedResult(
+          "the ideal prepared state is not a signed X/Z eigenstate");
+    action.basis = stabilizer[0] ? IdealLogicalAction::Basis::X
+                                 : IdealLogicalAction::Basis::Z;
+    action.negative = preparedState.phases[0];
+  } else if (measured) {
+    if (!returnedBit || !returnedBit->measured || signature.bits != 1)
+      return unsupportedResult(
+          "ideal measurement result must retain its measured "
+          "bit under an affine map");
+    action.outcomeConstant = returnedBit->constant;
+    action.destructive = returnedWires.empty();
+    if (!action.destructive) {
+      if (discarded || permutation.size() != signature.inputs ||
+          llvm::any_of(llvm::enumerate(permutation),
+                       [](auto item) { return item.index() != item.value(); }))
+        return unsupportedResult(
+            "preserving ideal measurement must return every "
+            "logical operand exactly once");
+      // Stored temporarily: original input wire -> quantum result position.
+      action.outputBindings.resize(signature.inputs);
+      for (auto [output, input] : llvm::enumerate(returnedWires))
+        action.outputBindings[input] = output;
+    }
+  } else {
+    if (discarded || !signature.inputs || signature.bits ||
+        permutation.size() != signature.inputs ||
+        llvm::any_of(llvm::enumerate(permutation),
+                     [](auto item) { return item.index() != item.value(); }))
+      return unsupportedResult("the ideal Clifford objective must preserve a "
+                               "nonempty quantum signature");
+    for (Bits &row : action.images) {
+      Bits remapped(row.size());
+      for (auto [output, input] : llvm::enumerate(returnedWires)) {
+        remapped[output] = row[input];
+        remapped[action.arity + output] = row[action.arity + input];
+      }
+      row = std::move(remapped);
+    }
+  }
+  result.action = std::move(action);
+  return result;
+}
+
+FailureOr<std::vector<unsigned>>
+bindLogicalSide(qlx::fabric::GadgetSpecOp spec,
+                llvm::ArrayRef<ProjectionPort> projected,
+                const std::vector<BoundaryPort> &ports,
+                llvm::ArrayRef<std::string> formalNames) {
+  std::map<std::string, std::vector<unsigned>> aliases;
+  std::map<std::string, std::string> requested;
+  if (auto binding = spec->getAttrOfType<DictionaryAttr>("logical_ports"))
+    for (NamedAttribute item : binding) {
+      auto target = dyn_cast<StringAttr>(item.getValue());
+      if (!target || !llvm::is_contained(formalNames, item.getName().str())) {
+        spec.emitOpError("logical_ports must bind declared quantum operand "
+                         "names to logical ports");
+        return failure();
+      }
+      requested[item.getName().str()] = target.str();
+    }
+  auto specPorts = spec.getPorts();
+  unsigned offset = 0;
+  if (projected.size() != ports.size()) {
+    spec.emitOpError("projected encoded port manifest is incomplete");
+    return failure();
+  }
+  for (auto [index, port] : llvm::enumerate(projected)) {
+    auto rawPort = specPorts && port.ordinal < specPorts->size()
+                       ? dyn_cast<DictionaryAttr>((*specPorts)[port.ordinal])
+                       : DictionaryAttr{};
+    auto encodingRef = rawPort ? rawPort.getAs<FlatSymbolRefAttr>("encoding")
+                               : FlatSymbolRefAttr{};
+    auto encoding =
+        encodingRef
+            ? dyn_cast_or_null<qlx::fabric::EncodingOp>(
+                  SymbolTable::lookupNearestSymbolFrom(spec, encodingRef))
+            : qlx::fabric::EncodingOp{};
+    unsigned count = ports[index].boundary.logicalQubits();
+    if (!encoding || encoding.getLogicalPorts().size() != count) {
+      spec.emitOpError("logical binding requires the selected encoding's "
+                       "complete logical port table");
+      return failure();
+    }
+    for (auto [logical, rawName] :
+         llvm::enumerate(encoding.getLogicalPorts())) {
+      auto name = dyn_cast<StringAttr>(rawName);
+      if (!name) {
+        spec.emitOpError("encoding logical port names must be strings");
+        return failure();
+      }
+      aliases[name.str()].push_back(offset + logical);
+      aliases[port.name + "." + name.str()].push_back(offset + logical);
+    }
+    if (auto local = rawPort.getAs<DictionaryAttr>("logical_port_map"))
+      for (NamedAttribute item : local) {
+        auto target = dyn_cast<StringAttr>(item.getValue());
+        if (!target || !llvm::is_contained(formalNames, item.getName().str())) {
+          spec.emitOpError(
+              "port logical_port_map names an invalid action operand");
+          return failure();
+        }
+        std::string qualified = port.name + "." + target.str();
+        auto [it, inserted] =
+            requested.emplace(item.getName().str(), qualified);
+        if (!inserted && it->second != qualified &&
+            it->second != target.str()) {
+          spec.emitOpError(
+              "global and endpoint logical-port bindings disagree");
+          return failure();
+        }
+      }
+    offset += count;
+  }
+  std::vector<unsigned> result;
+  llvm::DenseSet<unsigned> used;
+  for (auto [index, formal] : llvm::enumerate(formalNames)) {
+    unsigned target = index;
+    if (auto requestedTarget = requested.find(formal);
+        requestedTarget != requested.end()) {
+      auto found = aliases.find(requestedTarget->second);
+      if (found == aliases.end() || found->second.size() != 1) {
+        spec.emitOpError(
+            "logical-port binding is absent or ambiguous on this boundary: ")
+            << requestedTarget->second;
+        return failure();
+      }
+      target = found->second.front();
+    }
+    if (target >= offset || !used.insert(target).second) {
+      spec.emitOpError(
+          "logical-port bindings must cover distinct boundary logical qubits");
+      return failure();
+    }
+    result.push_back(target);
+  }
+  return result;
+}
+
+FailureOr<ObjectiveResolution> resolveGadgetObjective(
+    ModuleOp module, qlx::fabric::GadgetContractOp profile,
+    const Projection &projection, const std::vector<BoundaryPort> &inputs,
+    const std::vector<BoundaryPort> &outputs,
+    const std::unordered_map<std::string, unsigned> &recordMap) {
+  ObjectiveResolution result;
+  auto gadget = module.lookupSymbol<qlx::fabric::GadgetOp>(profile.getGadget());
+  auto spec = gadget && gadget.getSpecAttr()
+                  ? dyn_cast_or_null<qlx::fabric::GadgetSpecOp>(
+                        SymbolTable::lookupNearestSymbolFrom(
+                            gadget, gadget.getSpecAttr()))
+                  : qlx::fabric::GadgetSpecOp{};
+  auto objective = spec ? dyn_cast_or_null<qlx::fabric::ObjectiveOp>(
+                              SymbolTable::lookupNearestSymbolFrom(
+                                  spec, spec.getObjectiveAttr()))
+                        : qlx::fabric::ObjectiveOp{};
+  if (!spec || !objective) {
+    profile.emitOpError("verification requires a linked selected GadgetSpec "
+                        "and typed objective");
+    return failure();
+  }
+  if (!objective.getLogicalAttr() || spec.getEntrypoint()) {
+    result.reason = "the selected gadget has no declared logical action";
+    return result;
+  }
+  Operation *logical = SymbolTable::lookupNearestSymbolFrom(
+      objective, objective.getLogicalAttr());
+  if (!logical || (!isa<::qlx::ActionOp, ::qlx::InstrumentDeclOp>(logical))) {
+    objective.emitOpError("logical objective must resolve to a typed action or "
+                          "instrument declaration");
+    return failure();
+  }
+  auto typeAttr = logical->getAttrOfType<TypeAttr>("function_type");
+  auto type =
+      typeAttr ? dyn_cast<FunctionType>(typeAttr.getValue()) : FunctionType{};
+  if (!type || type != objective.getFunctionType()) {
+    objective.emitOpError(
+        "logical objective type disagrees with its declaration");
+    return failure();
+  }
+  auto signature = intentSignature(type);
+  if (!signature.supported) {
+    result.reason = "the ideal objective contains unsupported classical inputs "
+                    "or resource types";
+    return result;
+  }
+  auto kindAttr = logical->getAttrOfType<StringAttr>("kind");
+  StringRef kind = kindAttr ? kindAttr.getValue() : StringRef{};
+  auto semantics = logical->getAttrOfType<SymbolRefAttr>("semantics");
+  std::vector<std::string> names;
+  if (semantics) {
+    Operation *body = SymbolTable::lookupNearestSymbolFrom(logical, semantics);
+    if (!body || !isa<::qlx::ObjectiveBodyOp>(body)) {
+      logical->emitError(
+          "logical objective semantics must resolve to a typed objective body");
+      return failure();
+    }
+    auto bodyTypeAttr = body->getAttrOfType<TypeAttr>("function_type");
+    if (!bodyTypeAttr || bodyTypeAttr.getValue() != type) {
+      logical->emitError(
+          "logical objective declaration and semantics signatures disagree");
+      return failure();
+    }
+    auto parsed = resolveIntentBody(logical, body, signature);
+    if (failed(parsed))
+      return failure();
+    result = std::move(*parsed);
+    if (auto operands = logical->getAttrOfType<ArrayAttr>("operand_names")) {
+      if (operands.size() != type.getNumInputs()) {
+        logical->emitError("operand_names must cover the logical signature");
+        return failure();
+      }
+      for (Attribute item : operands) {
+        auto name = dyn_cast<StringAttr>(item);
+        if (!name) {
+          logical->emitError("logical operand names must be strings");
+          return failure();
+        }
+        names.push_back(name.str());
+      }
+    } else if (auto cached = logical->getAttrOfType<::qlx::CliffordActionAttr>(
+                   "clifford_action")) {
+      for (Attribute item : cached.getPorts())
+        names.push_back(cast<StringAttr>(item).str());
+    }
+  } else {
+    IdealLogicalAction action = identityAction(signature.inputs);
+    if (kind == "t" || kind == "tdg" || kind == "ccx" || kind == "ccz" ||
+        kind == "prepare_t") {
+      result.reason =
+          ("the declared logical objective contains non-Clifford action '" +
+           kind + "'")
+              .str();
+      return result;
+    }
+    if (kind.starts_with("prepare_") && preparationIntent(kind, action)) {
+      if (signature.inputs || signature.outputs != 1 || signature.bits)
+        result.mismatch = true;
+    } else if (kind == "measure_x" || kind == "measure_z") {
+      action.kind = IdealLogicalAction::Kind::Measurement;
+      action.basis = kind == "measure_x" ? IdealLogicalAction::Basis::X
+                                         : IdealLogicalAction::Basis::Z;
+      action.destructive = true;
+      if (signature.inputs != 1 || signature.outputs || signature.bits != 1)
+        result.mismatch = true;
+    } else {
+      std::vector<unsigned> targets(signature.inputs);
+      std::iota(targets.begin(), targets.end(), 0);
+      if (!signature.inputs || signature.inputs != signature.outputs ||
+          signature.bits || !conjugateIntent(action, kind, targets)) {
+        result.reason = "the declared logical objective has no supported "
+                        "Clifford or signed X/Z instrument semantics";
+        return result;
+      }
+    }
+    if (result.mismatch) {
+      result.reason = "the standard objective has an incompatible typed "
+                      "quantum/classical signature";
+      return result;
+    }
+    result.action = std::move(action);
+    if (kind == "cx")
+      names = {"control", "target"};
+    else if (kind == "cz")
+      names = {"left", "right"};
+  }
+  result.label = semantics
+                     ? cast<StringAttr>(logical->getAttr("sym_name")).str()
+                     : ("ql.logical." + kind).str();
+  if (!result.action)
+    return result;
+  unsigned inputCount = 0, outputCount = 0, actualBits = 0;
+  for (const auto &port : inputs)
+    inputCount += port.boundary.logicalQubits();
+  for (const auto &port : outputs)
+    outputCount += port.boundary.logicalQubits();
+  for (Type output : spec.getFunctionType().getResults())
+    actualBits += output.isInteger(1);
+  bool partialClifford =
+      result.action->kind == IdealLogicalAction::Kind::Clifford &&
+      inputCount == outputCount && signature.inputs == signature.outputs &&
+      signature.inputs < inputCount;
+  if ((!partialClifford &&
+       (signature.inputs != inputCount || signature.outputs != outputCount)) ||
+      signature.bits != actualBits) {
+    result.action.reset();
+    result.mismatch = true;
+    result.reason = "the declared objective quantum/classical signature "
+                    "differs from the gadget boundary";
+    return result;
+  }
+  unsigned formalCount = std::max(signature.inputs, signature.outputs);
+  if (names.empty())
+    for (unsigned index = 0; index < formalCount; ++index)
+      names.push_back("q" + std::to_string(index));
+  if (names.size() != formalCount) {
+    logical->emitError(
+        "logical operand names do not cover the supported quantum objective");
+    return failure();
+  }
+  llvm::DenseSet<llvm::StringRef> seenNames;
+  for (const std::string &name : names)
+    if (name.empty() || !seenNames.insert(name).second) {
+      logical->emitError("logical operand names must be nonempty and unique");
+      return failure();
+    }
+  auto &action = *result.action;
+  if (signature.inputs) {
+    auto binding = bindLogicalSide(spec, projection.inputPorts, inputs, names);
+    if (failed(binding))
+      return failure();
+    action.inputBindings = std::move(*binding);
+  }
+  if (signature.outputs) {
+    auto binding =
+        bindLogicalSide(spec, projection.outputPorts, outputs, names);
+    if (failed(binding))
+      return failure();
+    if (action.kind == IdealLogicalAction::Kind::Measurement &&
+        !action.outputBindings.empty()) {
+      auto returned = action.outputBindings;
+      for (unsigned input = 0; input < returned.size(); ++input)
+        action.outputBindings[input] = (*binding)[returned[input]];
+    } else
+      action.outputBindings = std::move(*binding);
+  }
+  if (partialClifford) {
+    auto selectedInputs = action.inputBindings;
+    auto selectedOutputs = action.outputBindings;
+    llvm::sort(selectedInputs);
+    llvm::sort(selectedOutputs);
+    if (selectedInputs != selectedOutputs) {
+      result.action.reset();
+      result.reason = "a partial Clifford objective must preserve the selected "
+                      "boundary logical subset";
+      return result;
+    }
+    // The declared operation acts on selected logicals; every spectator must
+    // realize identity. Lift to a full boundary action before the Choi check.
+    IdealLogicalAction embedded = identityAction(inputCount);
+    for (unsigned row = 0; row < 2 * action.arity; ++row) {
+      unsigned input = action.inputBindings[row % action.arity];
+      unsigned target = input + (row < action.arity ? 0 : inputCount);
+      Bits image(2 * inputCount);
+      for (unsigned column = 0; column < action.arity; ++column) {
+        image[action.outputBindings[column]] = action.images[row][column];
+        image[inputCount + action.outputBindings[column]] =
+            action.images[row][action.arity + column];
+      }
+      embedded.images[target] = std::move(image);
+      embedded.phases[target] = action.phases[row];
+    }
+    action = std::move(embedded);
+    action.inputBindings.resize(inputCount);
+    action.outputBindings.resize(outputCount);
+    std::iota(action.inputBindings.begin(), action.inputBindings.end(), 0);
+    std::iota(action.outputBindings.begin(), action.outputBindings.end(), 0);
+  }
+  if (action.kind == IdealLogicalAction::Kind::Measurement) {
+    auto outcome = spec.getOutcomeMap();
+    auto records = outcome ? outcome->getAs<ArrayAttr>("records") : ArrayAttr{};
+    auto rows = outcome ? outcome->getAs<DenseIntElementsAttr>("rows")
+                        : DenseIntElementsAttr{};
+    auto constants = outcome ? outcome->getAs<DenseI64ArrayAttr>("constants")
+                             : DenseI64ArrayAttr{};
+    if (!records || !rows || !constants || rows.getType().getRank() != 2 ||
+        rows.getType().getShape()[0] != 1 || constants.size() != 1 ||
+        rows.getType().getShape()[1] != static_cast<int64_t>(records.size())) {
+      spec.emitOpError("measurement verification requires one complete affine "
+                       "outcome-map row");
+      return failure();
+    }
+    action.outcomeConstant ^= constants[0] != 0;
+    auto coefficients = rows.getValues<APInt>();
+    unsigned column = 0;
+    Bits selected(projection.measurementCount);
+    for (const APInt &coefficient : coefficients) {
+      if (!coefficient.isZero()) {
+        auto name = dyn_cast<StringAttr>(records[column]);
+        auto found = name ? recordMap.find(name.str()) : recordMap.end();
+        if (found == recordMap.end() && name)
+          found = recordMap.find(
+              (profile.getGadget() + "." + name.getValue()).str());
+        if (found == recordMap.end()) {
+          spec.emitOpError("measurement outcome map references an unknown "
+                           "realization record");
+          return failure();
+        }
+        selected.flip(found->second);
+      }
+      ++column;
+    }
+    for (int record : selected.set_bits())
+      action.outcomeRecords.push_back(record);
+    if (auto syndromeRows = outcome->getAs<ArrayAttr>("input_syndromes")) {
+      if (syndromeRows.size() != 1) {
+        spec.emitOpError("measurement input-syndrome map must contain one row");
+        return failure();
+      }
+      auto terms = dyn_cast<ArrayAttr>(syndromeRows[0]);
+      if (!terms)
+        return spec.emitOpError("measurement syndrome row must be an array"),
+               failure();
+      Bits kept;
+      unsigned keptCount = 0;
+      for (const auto &port : inputs)
+        keptCount += port.boundary.keptSyndromes();
+      kept.resize(keptCount);
+      for (Attribute rawTerm : terms) {
+        auto term = dyn_cast<DictionaryAttr>(rawTerm);
+        auto portAttr = term ? term.getAs<IntegerAttr>("port") : IntegerAttr{};
+        auto indexAttr =
+            term ? term.getAs<IntegerAttr>("index") : IntegerAttr{};
+        if (!portAttr || !indexAttr || portAttr.getInt() < 0 ||
+            indexAttr.getInt() < 0 ||
+            static_cast<uint64_t>(portAttr.getInt()) >= inputs.size())
+          return spec.emitOpError(
+                     "measurement syndrome term has an invalid endpoint"),
+                 failure();
+        unsigned port = portAttr.getInt(), index = indexAttr.getInt();
+        if (index >= inputs[port].boundary.effectiveSyndromes())
+          return spec.emitOpError(
+                     "measurement syndrome term has an invalid index"),
+                 failure();
+        unsigned offset = 0;
+        for (unsigned previous = 0; previous < port; ++previous)
+          offset += inputs[previous].boundary.keptSyndromes();
+        for (int bit : inputs[port]
+                           .boundary.effectiveToKeptDecomposition()[index]
+                           .set_bits())
+          kept.flip(offset + bit);
+        action.outcomeConstant ^= inputs[port].boundary.effectiveSigns()[index];
+      }
+      for (int bit : kept.set_bits())
+        action.outcomeInputSyndromes.push_back(bit);
+    }
+  }
+  return result;
+}
+
 /// Parses the optional declared logical action (a JSON object with `arity`,
 /// `matrix` rows of 0/1, and `phases`); null or empty means none.
 FailureOr<std::optional<IdealLogicalAction>> parseAction(ModuleOp module,
@@ -1040,7 +1953,10 @@ FailureOr<std::optional<IdealLogicalAction>> parseAction(ModuleOp module,
   auto arity = object ? object->getInteger("arity") : std::nullopt;
   auto *matrix = object ? object->getArray("matrix") : nullptr;
   auto *phases = object ? object->getArray("phases") : nullptr;
-  if (!arity || *arity < 0 || !matrix || !phases) {
+  if (!arity || *arity <= 0 ||
+      static_cast<uint64_t>(*arity) >
+          std::numeric_limits<unsigned>::max() / 2 ||
+      !matrix || !phases) {
     module.emitError("logical action requires arity, matrix, and phases");
     return failure();
   }
@@ -1077,6 +1993,21 @@ FailureOr<std::optional<IdealLogicalAction>> parseAction(ModuleOp module,
     }
     action.phases.push_back(*value);
   }
+  for (unsigned left = 0; left < width; ++left)
+    for (unsigned right = 0; right < width; ++right) {
+      bool parity = false;
+      for (unsigned qubit = 0; qubit < action.arity; ++qubit)
+        parity ^= (action.images[left][qubit] &&
+                   action.images[right][action.arity + qubit]) !=
+                  (action.images[left][action.arity + qubit] &&
+                   action.images[right][qubit]);
+      bool expected = (left < action.arity && right == action.arity + left) ||
+                      (right < action.arity && left == action.arity + right);
+      if (parity != expected) {
+        module.emitError("logical action matrix must be symplectic");
+        return failure();
+      }
+    }
   return std::optional<IdealLogicalAction>(std::move(action));
 }
 
@@ -1120,7 +2051,24 @@ FailureOr<std::string> verifyGadgetContract(ModuleOp module,
                                             StringRef actionJson) {
   if (failed(verify(module)))
     return failure();
-  auto action = parseAction(module, actionJson);
+  bool fromSpec = false;
+  if (!actionJson.trim().empty()) {
+    auto request = llvm::json::parse(actionJson);
+    if (request) {
+      if (auto *object = request->getAsObject();
+          object && object->get("source")) {
+        if (object->getString("source") != "gadget_spec" ||
+            object->size() != 1) {
+          module.emitError(
+              "logical objective request requires only source=gadget_spec");
+          return failure();
+        }
+        fromSpec = true;
+      }
+    } else
+      llvm::consumeError(request.takeError());
+  }
+  auto action = parseAction(module, fromSpec ? StringRef{} : actionJson);
   if (failed(action))
     return failure();
   auto selected = selectContract(module, contractName);
@@ -1148,6 +2096,15 @@ FailureOr<std::string> verifyGadgetContract(ModuleOp module,
       readProfileRows(profile, *projection, *records, *inputs, *outputs);
   if (failed(rows))
     return failure();
+  ObjectiveResolution objective;
+  if (fromSpec) {
+    auto resolved = resolveGadgetObjective(module, profile, *projection,
+                                           *inputs, *outputs, *records);
+    if (failed(resolved))
+      return failure();
+    objective = std::move(*resolved);
+    *action = objective.action;
+  }
   auto report = evaluateIdealProfile(profile, *projection, *inputs, *outputs,
                                      *rows, *action ? &**action : nullptr);
   if (failed(report))
@@ -1178,27 +2135,46 @@ FailureOr<std::string> verifyGadgetContract(ModuleOp module,
   contract["failures"] = std::move(failures);
 
   llvm::json::Object logical;
-  switch (report->action.status) {
-  case IdealActionReport::Status::Unchecked:
-    logical["status"] = "unchecked";
-    break;
-  case IdealActionReport::Status::Unsupported:
-    logical["status"] = "unsupported";
-    logical["reason"] = report->action.reason;
-    break;
-  case IdealActionReport::Status::Checked: {
-    logical["status"] = report->action.verified() ? "verified" : "failed";
-    logical["logical_rank"] = static_cast<int64_t>(report->action.rows.size());
-    llvm::json::Array statuses;
-    for (IdealActionRowStatus row : report->action.rows)
-      statuses.push_back(actionRowStatusName(row));
-    logical["rows"] = std::move(statuses);
-    break;
-  }
+  logical["source"] = fromSpec ? "gadget_spec" : "explicit_action";
+  if (!objective.label.empty())
+    logical["action"] = objective.label;
+  if (fromSpec && !objective.action) {
+    logical["status"] = objective.mismatch ? "failed" : "unsupported";
+    logical["reason"] = objective.reason;
+    if (objective.mismatch) {
+      logical["rows"] = llvm::json::Array{"not_stabilized"};
+      logical["labels"] =
+          llvm::json::Array{"typed quantum/classical signature"};
+      logical["logical_rank"] = 0;
+    }
+  } else {
+    switch (report->action.status) {
+    case IdealActionReport::Status::Unchecked:
+      logical["status"] = "unchecked";
+      break;
+    case IdealActionReport::Status::Unsupported:
+      logical["status"] = "unsupported";
+      logical["reason"] = report->action.reason;
+      break;
+    case IdealActionReport::Status::Checked: {
+      logical["status"] = report->action.verified() ? "verified" : "failed";
+      logical["logical_rank"] = static_cast<int64_t>(
+          llvm::count(report->action.rows, IdealActionRowStatus::Verified));
+      llvm::json::Array statuses;
+      for (IdealActionRowStatus row : report->action.rows)
+        statuses.push_back(actionRowStatusName(row));
+      logical["rows"] = std::move(statuses);
+      llvm::json::Array labels;
+      for (const auto &label : report->action.labels)
+        labels.push_back(label);
+      logical["labels"] = std::move(labels);
+      break;
+    }
+    }
   }
 
   llvm::json::Object result;
-  result["schema"] = "cudaq.logical.gadget-verification/v1";
+  result["schema"] = "cudaq.logical.gadget-verification/v2";
   result["contract"] = profile.getSymName().str();
   result["gadget"] = profile.getGadget().str();
   result["detector_contract"] = std::move(contract);

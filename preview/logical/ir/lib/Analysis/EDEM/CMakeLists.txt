@@ -12,9 +12,10 @@ add_mlir_library(MLIRGadgetEDEM
   IdealOutcomes.cpp
   EdemFaults.cpp
   GadgetEDEM.cpp
-  DEPENDS MLIRFabricIncGen
+  DEPENDS MLIRFabricIncGen MLIRQLXIncGen
   LINK_LIBS PUBLIC
     MLIRFabricTranslate
+    MLIRQLXDialect
     cudaq::edem
     ${_qlx_edem_mlir_libraries}
 )

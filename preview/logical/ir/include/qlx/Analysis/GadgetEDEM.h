@@ -33,9 +33,15 @@ mlir::FailureOr<PackedGadgetEDEM> deriveGadgetEDEM(mlir::ModuleOp module,
 
 /// Checks a selected gadget detector contract, and optionally the gadget's
 /// declared logical action, against one Choi-state probe of its realization.
-/// `actionJson` is a JSON object {arity, matrix, phases} (a signed symplectic
-/// Clifford action) or empty/null to skip the action check. Semantic
-/// violations are reported in the returned cudaq.logical.gadget-verification/v1
+/// `actionJson` = {"source":"gadget_spec"} resolves supported signed Clifford,
+/// preparation and measurement intent, operand bindings and affine outcome maps
+/// from the selected compiled GadgetSpec's typed objective closure.
+/// Alternatively, `actionJson` is {arity, matrix, phases} (a signed symplectic
+/// Clifford action), or empty/null to skip the action check.
+/// This explicit matrix form checks supplied rows only; it does not establish
+/// equivalence to the module's declared objective. Zero-arity and nonsymplectic
+/// matrices are invalid. Semantic violations are reported in the returned
+/// cudaq.logical.gadget-verification/v2
 /// JSON; structural problems fail with diagnostics. Reads the module without
 /// mutation.
 mlir::FailureOr<std::string> verifyGadgetContract(mlir::ModuleOp module,

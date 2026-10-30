@@ -201,7 +201,7 @@ claims. Do not conflate the levels:
 | Python construction   | typed fields, linear ownership, boundary liveness                               |
 | MLIR verification     | canonical cross-object and stage invariants (`build.module.operation.verify()`) |
 | code algebra checks   | symplectic rank, commutation, canonical pairing                                 |
-| action equivalence | the realization's induced action matches its `implements=` claim (automatic for code automorphisms; `verify_gadget` for supported Clifford unitary actions) |
+| action equivalence | the realization's induced behavior matches its `implements=` claim (automatic for code automorphisms; `verify_gadget` for supported stabilizer actions and instruments) |
 
 Action equivalence is automatic at construction for **code-automorphism
 realizations** — gadgets whose realization is a single typed permutation of the
@@ -212,12 +212,16 @@ verifies, and one claiming to be a logical `H` is rejected with a `ValueError`
 naming the action it failed to implement.
 
 For other realization classes the claim is recorded, not derived, until you ask
-for it: `cudaq.logical.gadgets.verify_gadget` checks the realization's Clifford
-action, and the gadget's detector contract, from one Choi-state probe. A
+for it: `cudaq.logical.gadgets.verify_gadget` checks the realization's supported
+logical behavior, and the gadget's detector contract, from one Choi-state probe. A
 syndrome round that declares the wrong action compiles, and is rejected by
 `verify_gadget` with a sign or basis mismatch on the named Choi stabilizer.
 See [Detector contracts](../reference/detector-contracts.md#verify-a-contract-and-the-logical-action).
-Actions that are not Clifford are reported as unsupported rather than trusted.
+Supported forms are signed Clifford unitaries, single-logical signed X/Z
+preparations and destructive or preserving X/Z measurements. The check follows compiled logical
+port bindings and the full affine outcome map. Unsupported claims raise by
+default; use `raise_on_failure=False` to inspect their receipts. A default call
+returns only when `receipt.verified` is true.
 
 ## Design rules that keep the model crisp
 

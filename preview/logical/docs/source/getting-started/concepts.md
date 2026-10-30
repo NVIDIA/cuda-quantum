@@ -135,8 +135,9 @@ verification depends on the supported realization class.
 A **gadget contract** declares detector relations, logical observables, and
 output-syndrome assignments using the realization's measurement records and
 encoded boundaries. `cql.gadgets.verify_gadget` checks detector contracts and
-supported Clifford unitary actions. Logical measurement instruments are
-reported as unsupported by the action comparison. See
+supported Clifford unitary actions, single-logical signed X/Z preparations,
+and destructive or preserving X/Z measurements. A default call returns only
+when both checks pass; unsupported objectives raise with an inspection receipt. See
 [Gadgets and verification](../use-cases/gadgets-and-verification.md).
 
 `cql.analysis.derive_edem` derives an extended detector error model from a

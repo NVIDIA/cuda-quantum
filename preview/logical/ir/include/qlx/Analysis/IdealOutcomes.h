@@ -42,16 +42,36 @@ struct IdealBoundaryPort {
   std::vector<llvm::SmallBitVector> logicalZ;
 };
 
-/// A declared logical Clifford action over the gadget's flattened logical
-/// qubits: input logical qubit i is Choi-paired with reference i and is
-/// expected to map to output logical qubit i. Row r < arity is the image of
-/// X_r, row arity + r the image of Z_r; each row has 2 * arity bits in
-/// (x_0..x_{k-1} | z_0..z_{k-1}) order and `phases[r]` is its sign (Hermitian
-/// Pauli convention, so Y carries no implicit phase).
+/// A bounded, exact logical objective, independent of its realization.
+/// Bindings map expected quantum formal indices to the flattened input/output
+/// logical boundary indices and must cover each boundary exactly once. Empty
+/// bindings retain the legacy identity convention only for Clifford actions.
+///
+/// For a Clifford action, row r < arity is the image of X_r, row arity + r
+/// the image of Z_r; every row has 2 * arity bits in (X | Z) order and its
+/// phase is the sign in the Hermitian Pauli convention.
+///
+/// Preparation describes one signed X/Z eigenstate. Measurement describes a
+/// signed X/Z measurement of formal `target`, either discarding every input
+/// or preserving all logical inputs. Its mapped classical result is the XOR
+/// of the selected realization records, kept input syndrome bits, and the
+/// affine constant. No outcome or hidden randomness is postselected.
 struct IdealLogicalAction {
   unsigned arity = 0;
   std::vector<llvm::SmallBitVector> images;
   std::vector<bool> phases;
+  enum class Kind { Clifford, Preparation, Measurement };
+  enum class Basis { X, Z };
+  Kind kind = Kind::Clifford;
+  Basis basis = Basis::Z;
+  bool negative = false;
+  std::vector<unsigned> inputBindings;
+  std::vector<unsigned> outputBindings;
+  unsigned target = 0;
+  std::vector<unsigned> outcomeRecords;
+  std::vector<unsigned> outcomeInputSyndromes;
+  bool outcomeConstant = false;
+  bool destructive = true;
 };
 
 /// Outcome of comparing one expected Choi stabilizer with the realization's
@@ -75,11 +95,13 @@ struct IdealActionReport {
   Status status = Status::Unchecked;
   /// Why the declared action could not be compared (Unsupported only).
   std::string reason;
-  /// One entry per row of the declared action (Checked only).
+  /// One entry per checked signed quantum/classical relation (Checked only).
   std::vector<IdealActionRowStatus> rows;
+  /// Descriptive relation labels, in the same order as rows.
+  std::vector<std::string> labels;
 
   bool verified() const {
-    if (status != Status::Checked)
+    if (status != Status::Checked || rows.empty())
       return false;
     for (IdealActionRowStatus row : rows)
       if (row != IdealActionRowStatus::Verified)

@@ -512,6 +512,15 @@ private:
         // Affine outcome processing has no carrier action. GadgetSpec records
         // its exact parity; dynamic uses still fail at their controlling op.
         .Case<ParityOp, XorOp>([](auto) {})
+        .Case<AllZeroOp>([&](auto op) {
+          auto tensor = dyn_cast<RankedTensorType>(op.getBits().getType());
+          if (!tensor || tensor.getRank() != 1 || tensor.isDynamicDim(0) ||
+              tensor.getDimSize(0) != 1) {
+            op.emitError("fabric-to-stim: only singleton all_zero is an "
+                         "affine outcome operation");
+            hadError = true;
+          }
+        })
         // Resource preparation/injection has no faithful Stim text form.
         .Case<ProduceResourceOp, InjectOp, DiscardResourceOp>([&](auto op) {
           op.emitError("fabric-to-stim: unsupported operation '")

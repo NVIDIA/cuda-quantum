@@ -52,7 +52,7 @@ ObjectiveMismatch = ActionMismatch
 
 
 class GadgetVerificationError(QLXError, ValueError):
-    """A gadget's detector contract or logical action failed verification.
+    """A gadget's contract or logical behavior failed or was unsupported.
 
     ``receipt`` carries the full :class:`GadgetVerificationReceipt`, including
     the conditions that passed.

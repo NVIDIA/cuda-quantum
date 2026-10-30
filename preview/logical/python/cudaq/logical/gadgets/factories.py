@@ -15,6 +15,7 @@ module linker alongside research-local realizations.
 from __future__ import annotations
 
 import hashlib
+from inspect import Parameter, Signature
 
 from cudaq.logical.programs.decorators import action as _action
 from cudaq.logical.ops._impl import (
@@ -71,6 +72,42 @@ def _measure_x_intent(q: logical_qubit) -> bool:
     return logical_measure_x(q)
 
 
+def _measurement_intent(*, basis, width, logical, preserve_block):
+    """Declare selection and ownership for every logical in a measured block."""
+
+    if width == 1 and not preserve_block:
+        return _measure_z_intent if basis == "z" else _measure_x_intent
+    pauli = Z if basis == "z" else X
+    measure = logical_measure_z if basis == "z" else logical_measure_x
+
+    def intent(*qubits):
+        qubits = list(qubits)
+        if preserve_block:
+            qubits[logical], outcome = mpp(pauli(qubits[logical]))
+            return (*qubits, outcome)
+        outcome = measure(qubits[logical])
+        for index, qubit in enumerate(qubits):
+            if index != logical:
+                discard(qubit)
+        return outcome
+
+    suffix = "_preserve_block" if preserve_block else ""
+    intent.__name__ = intent.__qualname__ = (
+        f"qlx_measure_{basis}_{width}_logical{logical}{suffix}")
+    result = bool
+    if preserve_block:
+        result = tuple[tuple([logical_qubit] * width + [bool])]
+    annotations = {f"q{index}": logical_qubit for index in range(width)}
+    annotations["return"] = result
+    intent.__annotations__ = annotations
+    parameters = tuple(
+        Parameter(f"q{index}",
+                  Parameter.POSITIONAL_OR_KEYWORD,
+                  annotation=logical_qubit) for index in range(width))
+    intent.__signature__ = Signature(parameters, return_annotation=result)
+    return _action(intent, kind="instrument")
+
+
 def _encoding(value):
     if isinstance(value, Encoding):
         return value
@@ -94,7 +131,10 @@ def _measurement(
         raise TypeError("logical measurement port must be an int")
     if not 0 <= logical < code.k:
         raise ValueError(f"code {code.name} has no protected logical {logical}")
-    action = _measure_z_intent if basis == "z" else _measure_x_intent
+    action = _measurement_intent(basis=basis,
+                                 width=code.k,
+                                 logical=logical,
+                                 preserve_block=preserve_block)
     pauli = Z if basis == "z" else X
 
     def realization(block):
@@ -112,7 +152,13 @@ def _measurement(
         "block": patch[encoding],
         "return": tuple[patch[encoding], bool] if preserve_block else bool,
     }
-    return gadget(realization, implements=action, name=realization.__name__)
+    return gadget(realization,
+                  implements=action,
+                  logical_ports={
+                      name: encoding.logical_ports[index]
+                      for index, name in enumerate(action.signature.parameters)
+                  },
+                  name=realization.__name__)
 
 
 def measure_z(
@@ -122,7 +168,7 @@ def measure_z(
     preserve_block: bool = False,
     name: str | None = None,
 ):
-    """Return a destructive logical-Z measurement realization."""
+    """Measure logical Z, retaining the encoded block when requested."""
     return _measurement(
         value,
         basis="z",
@@ -139,7 +185,7 @@ def measure_x(
     preserve_block: bool = False,
     name: str | None = None,
 ):
-    """Return a destructive logical-X measurement realization."""
+    """Measure logical X, retaining the encoded block when requested."""
     return _measurement(
         value,
         basis="x",
@@ -157,7 +203,7 @@ def logical_measure(
     preserve_block: bool = False,
     name: str | None = None,
 ):
-    """Return a destructive logical measurement realization for one basis.
+    """Return a logical measurement realization for one basis.
 
     ``basis`` accepts ``"x"``/``"z"`` (or any object whose ``value``/``name``
     normalizes to one of those). This is the single-call spelling of the
@@ -214,6 +260,7 @@ def logical_pauli(
     return gadget(
         realization,
         implements=x_action if basis == "x" else z_action,
+        logical_ports={"q0": encoding.logical_ports[logical]},
         name=realization.__name__,
         metadata={
             "logical": logical,

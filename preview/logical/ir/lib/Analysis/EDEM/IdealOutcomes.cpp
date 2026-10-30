@@ -629,59 +629,234 @@ analyzeIdealOutcomes(const Projection &projection,
   for (PauliRow &check : outputChecks)
     result.outcomes_.push_back(tableau.measure(std::move(check)));
   if (action) {
-    const unsigned arity = action->arity;
     result.action_.status = IdealActionReport::Status::Unsupported;
-    if (action->images.size() != 2 * std::size_t{arity} ||
-        action->phases.size() != 2 * std::size_t{arity} ||
-        llvm::any_of(action->images, [&](const llvm::SmallBitVector &row) {
-          return row.size() != 2 * std::size_t{arity};
-        }))
-      return invalid("declared logical action has an inconsistent shape");
-    if (arity != references || outputLogicalX.size() != references) {
-      result.action_.reason =
-          "the declared action acts on " + std::to_string(arity) +
-          " logical qubit(s), but the gadget's input boundary carries " +
-          std::to_string(references) + " and its output boundary carries " +
-          std::to_string(outputLogicalX.size());
-    } else {
-      result.action_.status = IdealActionReport::Status::Checked;
-      for (unsigned row = 0; row < 2 * arity; ++row) {
-        // Choi stabilizer of the ideal action: the reference Pauli paired with
-        // the input logical Pauli, times that Pauli's declared image on the
-        // output logical qubits. Hermitian Y_j = i X_j Z_j.
-        PauliRow expected(tableau.words());
-        for (unsigned qubit = 0; qubit < arity; ++qubit) {
-          const bool x = action->images[row][qubit];
-          const bool z = action->images[row][arity + qubit];
-          if (x)
-            expected.multiply(outputLogicalX[qubit]);
-          if (z)
-            expected.multiply(outputLogicalZ[qubit]);
-          if (x && z)
-            expected.phase = (expected.phase + 1) & 3u;
+    auto compareAction = [&]() -> llvm::Error {
+      auto identityBindings = [](unsigned count) {
+        std::vector<unsigned> bindings;
+        bindings.reserve(count);
+        for (unsigned index = 0; index < count; ++index)
+          bindings.push_back(index);
+        return bindings;
+      };
+      auto validateBindings = [&](llvm::ArrayRef<unsigned> bindings,
+                                  std::size_t count,
+                                  llvm::StringRef side) -> llvm::Error {
+        if (bindings.size() != count)
+          return invalid("declared action " + side.str() +
+                         " bindings do not cover the logical boundary");
+        std::vector<bool> seen(count);
+        for (unsigned index : bindings) {
+          if (index >= count || seen[index])
+            return invalid("declared action " + side.str() +
+                           " binding is out of range or repeated");
+          seen[index] = true;
         }
-        if (row < arity)
-          set(expected.x, tableau.referenceCarrier(row));
-        else
-          set(expected.z, tableau.referenceCarrier(row - arity));
+        return llvm::Error::success();
+      };
+      auto referenceLabel = [&](bool xBasis, unsigned index) {
+        std::string label = xBasis ? "X_ref" : "Z_ref";
+        if (references != 1)
+          label += "[" + std::to_string(index) + "]";
+        return label;
+      };
+      auto outputLabel = [&](char basis, unsigned index) {
+        std::string label(1, basis);
+        label += "\u0304";
+        if (outputLogicalX.size() != 1)
+          label += "[" + std::to_string(index) + "]";
+        return label;
+      };
+      auto check = [&](PauliRow expected, IdealAffineBit expectedSign,
+                       std::string label) -> llvm::Error {
+        result.action_.labels.push_back(std::move(label));
         auto value = tableau.eigenvalue(std::move(expected));
         if (!value)
           return value.takeError();
         if (!*value) {
           result.action_.rows.push_back(IdealActionRowStatus::NotStabilized);
-          continue;
+          return llvm::Error::success();
         }
-        const IdealAffineBit &bit = **value;
-        const bool random =
-            llvm::any_of(bit.randomWords, [](std::uint64_t w) { return w; });
-        if (random)
+        IdealAffineBit difference = std::move(**value);
+        xorAffine(difference, expectedSign);
+        if (llvm::any_of(difference.randomWords,
+                         [](std::uint64_t word) { return word; }))
           result.action_.rows.push_back(IdealActionRowStatus::RandomSign);
-        else if (bit.constant != action->phases[row])
+        else if (difference.constant)
           result.action_.rows.push_back(IdealActionRowStatus::SignMismatch);
         else
           result.action_.rows.push_back(IdealActionRowStatus::Verified);
+        return llvm::Error::success();
+      };
+
+      using ActionKind = IdealLogicalAction::Kind;
+      using ActionBasis = IdealLogicalAction::Basis;
+      if (action->kind == ActionKind::Clifford) {
+        const unsigned arity = action->arity;
+        if (!arity) {
+          result.action_.reason =
+              "an empty quantum objective requires classical outcome analysis";
+          return llvm::Error::success();
+        }
+        if (action->images.size() != 2 * std::size_t{arity} ||
+            action->phases.size() != 2 * std::size_t{arity} ||
+            llvm::any_of(action->images, [&](const llvm::SmallBitVector &row) {
+              return row.size() != 2 * std::size_t{arity};
+            }))
+          return invalid("declared logical action has an inconsistent shape");
+        if (arity != references || outputLogicalX.size() != references) {
+          result.action_.reason =
+              "the declared action acts on " + std::to_string(arity) +
+              " logical qubit(s), but the gadget's input boundary carries " +
+              std::to_string(references) + " and its output boundary carries " +
+              std::to_string(outputLogicalX.size());
+          return llvm::Error::success();
+        }
+        const auto inputBindings = action->inputBindings.empty()
+                                       ? identityBindings(arity)
+                                       : action->inputBindings;
+        const auto outputBindings = action->outputBindings.empty()
+                                        ? identityBindings(arity)
+                                        : action->outputBindings;
+        if (auto error = validateBindings(inputBindings, references, "input"))
+          return error;
+        if (auto error = validateBindings(outputBindings, outputLogicalX.size(),
+                                          "output"))
+          return error;
+        result.action_.status = IdealActionReport::Status::Checked;
+        for (unsigned row = 0; row < 2 * arity; ++row) {
+          // Hermitian Y_j = i X_j Z_j. Explicit bindings are applied to
+          // both the reference and each declared output Pauli factor.
+          PauliRow expected(tableau.words());
+          std::string output;
+          for (unsigned qubit = 0; qubit < arity; ++qubit) {
+            const bool x = action->images[row][qubit];
+            const bool z = action->images[row][arity + qubit];
+            const unsigned bound = outputBindings[qubit];
+            if (x)
+              expected.multiply(outputLogicalX[bound]);
+            if (z)
+              expected.multiply(outputLogicalZ[bound]);
+            if (x && z)
+              expected.phase = (expected.phase + 1) & 3u;
+            if (x || z) {
+              if (!output.empty())
+                output += " ";
+              output += outputLabel(x && z ? 'Y' : x ? 'X' : 'Z', bound);
+            }
+          }
+          const bool xBasis = row < arity;
+          const unsigned input = inputBindings[row % arity];
+          set(xBasis ? expected.x : expected.z,
+              tableau.referenceCarrier(input));
+          IdealAffineBit sign;
+          sign.constant = action->phases[row];
+          std::string label = referenceLabel(xBasis, input) + " " +
+                              (sign.constant ? "-" : "") + output;
+          if (auto error =
+                  check(std::move(expected), std::move(sign), std::move(label)))
+            return error;
+        }
+        return llvm::Error::success();
       }
-    }
+
+      if (action->basis != ActionBasis::X && action->basis != ActionBasis::Z)
+        return invalid("declared instrument has an unsupported Pauli basis");
+      const bool xBasis = action->basis == ActionBasis::X;
+      const char basis = xBasis ? 'X' : 'Z';
+      const auto &outputBasis = xBasis ? outputLogicalX : outputLogicalZ;
+      if (action->kind == ActionKind::Preparation) {
+        if (references != 0 || outputLogicalX.size() != 1 ||
+            !action->inputBindings.empty() ||
+            action->outputBindings.size() != 1) {
+          result.action_.reason =
+              "signed X/Z preparation requires no logical input and exactly "
+              "one bound logical output";
+          return llvm::Error::success();
+        }
+        if (auto error = validateBindings(action->outputBindings, 1, "output"))
+          return error;
+        result.action_.status = IdealActionReport::Status::Checked;
+        IdealAffineBit sign;
+        sign.constant = action->negative;
+        return check(outputBasis[action->outputBindings[0]], std::move(sign),
+                     (action->negative ? "-" : "") +
+                         outputLabel(basis, action->outputBindings[0]));
+      }
+      if (action->kind != ActionKind::Measurement)
+        return invalid("declared instrument has an unsupported kind");
+      if (!references || action->inputBindings.size() != references ||
+          (action->destructive
+               ? !outputLogicalX.empty() || !action->outputBindings.empty()
+               : outputLogicalX.size() != references ||
+                     action->outputBindings.size() != references)) {
+        result.action_.reason =
+            "X/Z measurement bindings must cover every logical input and "
+            "either discard every input or preserve every logical output";
+        return llvm::Error::success();
+      }
+      if (auto error =
+              validateBindings(action->inputBindings, references, "input"))
+        return error;
+      if (!action->destructive)
+        if (auto error = validateBindings(action->outputBindings,
+                                          outputLogicalX.size(), "output"))
+          return error;
+      if (action->target >= action->inputBindings.size())
+        return invalid("declared measurement target is out of range");
+      IdealAffineBit measuredSign;
+      measuredSign.constant = action->outcomeConstant ^ action->negative;
+      for (unsigned record : action->outcomeRecords) {
+        if (record >= result.recordCount_)
+          return invalid("declared measurement outcome references an invalid "
+                         "realization record");
+        xorAffine(measuredSign, result.outcomes_[result.inputCount_ + record]);
+      }
+      for (unsigned syndrome : action->outcomeInputSyndromes) {
+        if (syndrome >= result.inputCount_)
+          return invalid("declared measurement outcome references an invalid "
+                         "input syndrome");
+        xorAffine(measuredSign, result.outcomes_[syndrome]);
+      }
+
+      result.action_.status = IdealActionReport::Status::Checked;
+      PauliRow measuredReference(tableau.words());
+      const unsigned input = action->inputBindings[action->target];
+      set(xBasis ? measuredReference.x : measuredReference.z,
+          tableau.referenceCarrier(input));
+      const std::string signLabel = action->negative ? "-" : "";
+      if (auto error =
+              check(std::move(measuredReference), measuredSign,
+                    signLabel + referenceLabel(xBasis, input) + " = result[0]"))
+        return error;
+      if (!action->destructive) {
+        const unsigned output = action->outputBindings[action->target];
+        if (auto error =
+                check(outputBasis[output], measuredSign,
+                      signLabel + outputLabel(basis, output) + " = result[0]"))
+          return error;
+        for (unsigned formal = 0; formal < action->inputBindings.size();
+             ++formal) {
+          if (formal == action->target)
+            continue;
+          const unsigned boundInput = action->inputBindings[formal];
+          const unsigned boundOutput = action->outputBindings[formal];
+          for (bool untouchedX : {true, false}) {
+            PauliRow preserved = untouchedX ? outputLogicalX[boundOutput]
+                                            : outputLogicalZ[boundOutput];
+            set(untouchedX ? preserved.x : preserved.z,
+                tableau.referenceCarrier(boundInput));
+            if (auto error =
+                    check(std::move(preserved), IdealAffineBit{},
+                          referenceLabel(untouchedX, boundInput) + " " +
+                              outputLabel(untouchedX ? 'X' : 'Z', boundOutput)))
+              return error;
+          }
+        }
+      }
+      return llvm::Error::success();
+    };
+    if (auto error = compareAction())
+      return error;
   }
   result.randomBits_ = tableau.randomBits();
   const std::size_t randomWords = (std::size_t{result.randomBits_} + 63) / 64;
