@@ -217,13 +217,24 @@ public:
   [[nodiscard]] cudaq::CompileOptions
   getCompileOptions(const Policy &policy, std::uint64_t randomSeed = 0,
                     std::size_t qpuId = 0) const {
+    validateQpuId(qpuId);
+    return getCompileOptions(policy, randomSeed, runtimeEndpoints[qpuId]);
+  }
+
+  /// Get the compile options for launching under \p policy on \p endpoint.
+  /// The endpoint need not belong to a platform, so that a caller can compile
+  /// for an endpoint other than the installed one.
+  template <typename Policy>
+  [[nodiscard]] static cudaq::CompileOptions
+  getCompileOptions(const Policy &policy, std::uint64_t randomSeed,
+                    const RuntimeEndpoint &endpoint) {
     cudaq::CompileOptions options;
     if constexpr (requires { policy.inner; }) {
       options = cudaq::get_compile_options(policy.inner, randomSeed);
     } else {
       options = cudaq::get_compile_options(policy, randomSeed);
     }
-    resolveCompileOptions(options, qpuId);
+    resolveCompileOptions(options, endpoint);
     return options;
   }
   /// \endcond
@@ -277,9 +288,9 @@ private:
   // Helper to validate QPU Id
   void validateQpuId(std::size_t qpuId) const;
 
-  /// Amend \p options based on the properties of the runtime endpoint.
-  void resolveCompileOptions(cudaq::CompileOptions &options,
-                             std::size_t qpu_id) const;
+  /// Amend \p options based on the properties of \p endpoint.
+  static void resolveCompileOptions(cudaq::CompileOptions &options,
+                                    const RuntimeEndpoint &endpoint);
 
   /// The compilation targets for each QPU on the platform.
   std::vector<CompileTarget> compileTargets;
