@@ -1488,6 +1488,14 @@ def MappingFunc: Pass<"qubit-mapping-func", "mlir::func::FuncOp"> {
     - multi-block scopes, or scopes containing quantum allocations, borrows, or
       terminal wire operations.
     - more than one block at the function's top level.
+
+    Only functions that borrow wires are mapped. An entry point that applies a
+    gate or measures but borrows no wires still holds qubits that were never
+    put in the wire set, for example on `!quake.ref` because a loop was too
+    long to unroll. Under `raise-fatal-errors` that is an error; otherwise the
+    entry point is left unmapped. Any other function without borrows is
+    skipped, such as a callee kernel that takes its qubits as arguments, which
+    is mapped through the entry point it is inlined into.
   }];
 
   let options = [

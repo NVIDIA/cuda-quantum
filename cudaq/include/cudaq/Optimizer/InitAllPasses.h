@@ -31,6 +31,7 @@ inline void registerCudaqPassesAndPipelines() {
   opt::registerMappingPipeline();
   opt::registerToCFGPipeline();
   opt::registerCliffordTPipelines();
+  opt::registerTwoQubitGateCountOptimizationPipeline();
   opt::registerCodegenForQIRPipeline();
   opt::registerConvertToLinearValuesPipeline();
   opt::registerPrepareForWiresetPipeline();

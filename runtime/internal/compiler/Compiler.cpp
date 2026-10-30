@@ -416,6 +416,25 @@ static void disableQuantumOptimization(mlir::ModuleOp moduleOp) {
     cudaq::runtime::setOptimizationLevel(func, 0);
 }
 
+/// Whether a stage of \p target may erase or move qubits, so that `sample` has
+/// to measure every qubit before the pipeline instead of letting the simulator
+/// read out whatever qubits are left at the end. A cost model's optimization
+/// runs `dqe` from level 1, which erases a qubit that no gate uses, and mapping
+/// moves qubits to device positions. The mapper uses the measurements to
+/// record how to put results back in the kernel's qubit order.
+// TODO: NVIDIA/cuda-quantum#5777 adds `sample`'s measurements after the
+// pipeline and keeps idle qubits through `dqe` with `quake.evince`. When it
+// lands, this check can go, and the reorder index can come from the compiler.
+static bool mayMoveQubits(const cudaq::CompileTarget &target) {
+  return llvm::any_of(target.stages, [](const auto &stage) {
+    const auto &profile = stage.irOutputProfile;
+    const auto *unmapped =
+        std::get_if<cudaq::config::QuakeUnmappedProfile>(&profile);
+    return std::holds_alternative<cudaq::config::QuakeMappedProfile>(profile) ||
+           (unmapped && unmapped->costModel);
+  });
+}
+
 static bool hasConditionalsOnMeasureResults(mlir::ModuleOp moduleOp) {
   return std::any_of(moduleOp.begin(), moduleOp.end(), [](auto &innerOp) {
     cudaq::quake::detail::QuakeFunctionAnalysis analysis{&innerOp};
@@ -466,7 +485,7 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::compile(
   }
 
   if (options.addSampleMeasurements &&
-      !target.supportSampleWithoutMeasurements) {
+      (!target.supportSampleWithoutMeasurements || mayMoveQubits(target))) {
     // No need to add measurements only to remove them eventually
     if (target.codegen.postCodegenPasses.find("remove-measurements") ==
         std::string::npos)

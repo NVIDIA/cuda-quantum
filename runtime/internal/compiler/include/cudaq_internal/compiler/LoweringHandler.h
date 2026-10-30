@@ -93,6 +93,18 @@ public:
   }
 };
 
+/// Pipeline text for `prepare-for-wireset`, which unrolls loops and moves the
+/// kernel's qubits onto wires. Stages run it at every optimization level, since
+/// the level only changes how much we optimize, not the representation. We ask
+/// for loops of up to 1024 iterations to match
+/// `classical-optimization-pipeline`. Left alone, `prepare-for-wireset` would
+/// stop at 50, the `loop-unroll` default. With \p addWireSet, it also borrows
+/// every qubit from a new wire set, which `qubit-mapping` needs.
+inline std::string convertToWires(bool addWireSet = false) {
+  return std::string("prepare-for-wireset{") +
+         (addWireSet ? "add-wireset=true " : "") + "maximum-iterations=1024}";
+}
+
 /// Return the first handler in \p handlers supporting the conversion
 /// \p input -> \p output, or nullptr if none does.
 const LoweringHandler *selectLoweringHandler(
@@ -108,5 +120,8 @@ std::unique_ptr<LoweringHandler> makeQuakeReferenceSemanticsHandler();
 
 /// The built-in handler lowering to the `quake-unmapped` profile.
 std::unique_ptr<LoweringHandler> makeQuakeUnmappedHandler();
+
+/// The built-in handler lowering from `quake-unmapped` to `quake-mapped`.
+std::unique_ptr<LoweringHandler> makeQuakeMappedHandler();
 
 } // namespace cudaq_internal::compiler

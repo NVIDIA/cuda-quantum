@@ -6,15 +6,15 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --clifford-t-synthesis-pipeline='epsilon=1e-3 seed=42' %s -o %t.1
-// RUN: cudaq-opt --clifford-t-synthesis-pipeline='epsilon=1e-3 seed=42' %s -o %t.2
-// RUN: cudaq-opt --clifford-t-synthesis-pipeline='epsilon=1e-3 seed=42' %s -o %t.3
+// RUN: cudaq-opt --clifford-t-synthesis-pipeline='approximation-tolerance=1e-3 seed=42' %s -o %t.1
+// RUN: cudaq-opt --clifford-t-synthesis-pipeline='approximation-tolerance=1e-3 seed=42' %s -o %t.2
+// RUN: cudaq-opt --clifford-t-synthesis-pipeline='approximation-tolerance=1e-3 seed=42' %s -o %t.3
 // RUN: diff %t.1 %t.2
 // RUN: diff %t.1 %t.3
 // RUN: FileCheck --input-file=%t.1 %s
 
 // The registered pipeline must forward its seed to CliffordTSynthesis. pi/8 at
-// epsilon=1e-3 is an angle whose synthesized word varies from run to run when
+// a tolerance of 1e-3 is an angle whose synthesized word varies from run to run when
 // the seed does not reach the pass, so the diffs above catch a dropped seed.
 
 func.func @seeded() {
