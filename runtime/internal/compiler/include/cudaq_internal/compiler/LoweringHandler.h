@@ -93,11 +93,13 @@ public:
   }
 };
 
-/// The `prepare-for-wireset` pass text, which converts to wires and unrolls
-/// loops of up to 1024 iterations as `classical-optimization-pipeline` does.
-/// With \p addWireSet it also borrows every qubit from a new wire set.
-/// Stages run it at every level, because the level never changes the
-/// representation.
+/// Pipeline text for `prepare-for-wireset`, which unrolls loops and moves the
+/// kernel's qubits onto wires. Stages run it at every optimization level, since
+/// the level only changes how much we optimize, not the representation. We ask
+/// for loops of up to 1024 iterations to match
+/// `classical-optimization-pipeline`. Left alone, `prepare-for-wireset` would
+/// stop at 50, the `loop-unroll` default. With \p addWireSet, it also borrows
+/// every qubit from a new wire set, which `qubit-mapping` needs.
 inline std::string convertToWires(bool addWireSet = false) {
   return std::string("prepare-for-wireset{") +
          (addWireSet ? "add-wireset=true " : "") + "maximum-iterations=1024}";
