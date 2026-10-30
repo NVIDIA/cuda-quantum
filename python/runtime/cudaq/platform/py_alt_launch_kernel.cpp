@@ -24,6 +24,7 @@
 #include "utils/LinkedLibraryHolder.h"
 #include "utils/OpaqueArguments.h"
 #include "utils/PyTypes.h"
+#include "cudaq/Optimizer/Builder/OptimizationLevel.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CAPI/Dialects.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
@@ -753,7 +754,10 @@ pyLaunchModule(const std::string &name, ModuleOp mod,
                const std::vector<void *> &rawArgs) {
   auto config = getCompileConfig();
   auto &target = config.first;
-  auto targetHash = cudaq::detail::hashVal(config.first, config.second);
+  const int moduleOptLevel =
+      static_cast<int>(cudaq::runtime::getOptimizationLevel(mod).value_or(~0u));
+  auto targetHash =
+      cudaq::detail::hashVal(config.first, config.second, moduleOptLevel);
 
   // We don't cache kernels that inline all arguments, as any change to the
   // runtime arguments would invalidate the cache. Currently, synthesis is

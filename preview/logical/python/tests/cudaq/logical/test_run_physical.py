@@ -901,7 +901,7 @@ def test_to_quake_inspection_and_lifetime(target):
     module = build.to_quake()
     text = str(module)
     assert "func.func @__nvqpp__mlirgen__x_then_mz() -> i1" in text
-    assert "quake.noOptimization" in text
+    assert "quake.optimizationLevel = 0" in text
     assert "phys." not in text and "qlx." not in text
     assert build.to_quake() is not module and build.to_mlir() == source
 

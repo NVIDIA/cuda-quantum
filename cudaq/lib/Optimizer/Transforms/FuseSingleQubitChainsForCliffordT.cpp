@@ -12,6 +12,7 @@
 #include "SingleQubitChain.h"
 #include "common/EigenDense.h"
 #include "cudaq/Optimizer/Builder/CompilerNames.h"
+#include "cudaq/Optimizer/Builder/OptimizationLevel.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
@@ -342,7 +343,7 @@ public:
 
   void runOnOperation() override {
     func::FuncOp function = getOperation();
-    if (function->hasAttr(cudaq::runtime::disableQuantumOpts))
+    if (cudaq::runtime::isQuantumOptimizationDisabled(function))
       return;
     cudaq::opt::forEachNestedBlock(
         function.getBody(), [&](Block &block) { fuseBlock(block, epsilon); });

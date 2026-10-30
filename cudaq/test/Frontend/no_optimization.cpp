@@ -10,6 +10,8 @@
 // RUN:   cudaq-translate --convert-to=qir-base | FileCheck %s
 // RUN: cudaq-quake %s | cudaq-opt --inline --device-code-loader | \
 // RUN:   FileCheck --check-prefix=LOADER %s
+// RUN: cudaq-quake --quantum-opt-level=2 %s | cudaq-opt --inline \
+// RUN:   --device-code-loader | FileCheck --check-prefix=LEVEL2 %s
 
 #include "cudaq/qis/qubit_qis.h"
 
@@ -53,8 +55,17 @@ struct Bystander {
 // CHECK:         ret void
 
 // LOADER:      @CallerCodeHolder.extract_device_code("module attributes
-// LOADER-SAME:   quake.noOptimization
-// LOADER-SAME:   func.func @__nvqpp__mlirgen__Caller() attributes {{.*}}quake.noOptimization
+// LOADER-SAME:   quake.optimizationLevel = 0 : i32
+// LOADER-SAME:   func.func @__nvqpp__mlirgen__Caller() attributes {{.*}}quake.optimizationLevel = 0 : i32
 // LOADER:      @BystanderCodeHolder.extract_device_code("module attributes
-// LOADER-NOT:    quake.noOptimization
+// LOADER-NOT:    quake.optimizationLevel
 // LOADER-SAME:   func.func @__nvqpp__mlirgen__Bystander()
+
+// With `-fquantum-opt-level=2`, the translation unit's module carries level 2.
+// A kernel that (transitively) calls a marked kernel is registered at level 0,
+// while the other kernels keep the flag's level.
+// LEVEL2:      @CallerCodeHolder.extract_device_code("module attributes
+// LEVEL2-SAME:   quake.optimizationLevel = 0 : i32
+// LEVEL2:      @BystanderCodeHolder.extract_device_code("module attributes
+// LEVEL2-SAME:   quake.optimizationLevel = 2 : i32
+// LEVEL2-SAME:   func.func @__nvqpp__mlirgen__Bystander()

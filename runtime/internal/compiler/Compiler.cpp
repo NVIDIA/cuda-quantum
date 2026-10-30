@@ -19,6 +19,7 @@
 #include "cudaq_internal/compiler/ResourceCount.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "nlohmann/json.hpp"
+#include "cudaq/Optimizer/Builder/OptimizationLevel.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeInterfaces.h"
@@ -338,6 +339,8 @@ cudaq_internal::compiler::Compiler::assembleCompiledModule(
       cudaq_internal::compiler::CompiledModuleHelper::NamedCompiledArtifact>
       artifacts;
   cudaq::ResultInfo resultInfo;
+  const bool disableQuantumOpts =
+      metadata.optimizationLevel == cudaq::OptimizationLevel::O0;
   if (needJit) {
     for (auto &[name, module] : modules) {
       auto clonedModule = module.clone();
@@ -352,7 +355,7 @@ cudaq_internal::compiler::Compiler::assembleCompiledModule(
               kernelName,
               cudaq_internal::compiler::createJITEngine(
                   clonedModule, target.codegen.emissionFormat, isEntryPoint,
-                  options.disableQuantumOpts),
+                  disableQuantumOpts),
               resultInfo, isFullySpecialized);
       // The first artifact is the kernel entry point; rename it to the
       // per-module name (relevant for the multi-module observe path where the
@@ -377,7 +380,7 @@ cudaq_internal::compiler::Compiler::assembleCompiledModule(
       options.emitTargetCode && !target.codegen.emissionFormat.empty();
   for (auto &[name, module] : modules) {
     if (emitCode) {
-      auto [code, outputNames] = emitTargetCode(module);
+      auto [code, outputNames] = emitTargetCode(module, disableQuantumOpts);
       artifacts.push_back(
           cudaq_internal::compiler::CompiledModuleHelper::createCodegenArtifact(
               name, std::move(code), std::move(outputNames)));
@@ -393,33 +396,36 @@ cudaq_internal::compiler::Compiler::assembleCompiledModule(
 }
 
 /// Resolve the quantum optimization level for one compile. Disabling
-/// optimization in the options, or a marker on the module, forces level 0
-/// over the requested level. A frontend marks the module only when the kernel
-/// in it disables optimization. nvq++ also marks a kernel that calls a marked
-/// kernel from the same source file, because it inlines the callee before
-/// registering the caller. A marked callee from another C++ source file, or
-/// any marked Python callee, does not mark its caller, so the JIT optimizes
-/// the callee's gates along with the caller's.
+/// optimization in the options forces level 0 over everything else. Next, a
+/// level on the module wins over the requested level. nvq++ also sets level 0
+/// on a kernel that calls a level-0 kernel from the same source file, because
+/// it inlines the callee before registering the caller, and the device-code
+/// loader then registers the caller's module at level 0. A level-0 callee
+/// from another C++ source file does not mark its caller, so the JIT
+/// optimizes the callee's gates along with the caller's.
 static cudaq::OptimizationLevel
 resolveOptimizationLevel(mlir::ModuleOp moduleOp,
                          const cudaq::CompileOptions &options) {
-  if (options.disableQuantumOpts ||
-      moduleOp->hasAttr(cudaq::runtime::disableQuantumOpts))
+  if (options.disableQuantumOpts)
     return cudaq::OptimizationLevel::O0;
+  if (auto level = cudaq::runtime::getOptimizationLevel(moduleOp)) {
+    if (*level > static_cast<unsigned>(cudaq::OptimizationLevel::O3))
+      throw std::runtime_error(fmt::format(
+          "Invalid `quake.optimizationLevel` {} on the module; expected 0 to "
+          "3.",
+          *level));
+    return static_cast<cudaq::OptimizationLevel>(*level);
+  }
   return options.optimizationLevel;
 }
 
-/// Mark the module and each function so that passes and codegen also skip
-/// quantum optimization.
+/// Mark each function so that passes also skip quantum optimization.
 ///
-/// The JIT, target codegen and `cudaq-translate` check for the attribute on
-/// the module. Passes such as `quake-simplify`, `phase-folding`, and `dqe`
-/// check it on the function they run on.
+/// Passes such as `quake-simplify`, `phase-folding`, and `dqe` check the
+/// attribute on the function they run on.
 static void disableQuantumOptimization(mlir::ModuleOp moduleOp) {
-  auto unitAttr = mlir::UnitAttr::get(moduleOp.getContext());
-  moduleOp->setAttr(cudaq::runtime::disableQuantumOpts, unitAttr);
   for (auto func : moduleOp.getOps<mlir::func::FuncOp>())
-    func->setAttr(cudaq::runtime::disableQuantumOpts, unitAttr);
+    cudaq::runtime::setOptimizationLevel(func, 0);
 }
 
 static bool hasConditionalsOnMeasureResults(mlir::ModuleOp moduleOp) {
@@ -574,12 +580,14 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::compile(
       kernelName, modules, needJit, isFullySpecialized, isEntryPoint,
       emulate && combineMeasurements, std::move(resourceCounts),
       {.reorderIdx = mapping_reorder_idx,
-       .hasConditionalsOnMeasureResults = hasConditionalsOnMeasRes},
+       .hasConditionalsOnMeasureResults = hasConditionalsOnMeasRes,
+       .optimizationLevel = resolvedOptions.optimizationLevel},
       context);
 }
 
 std::pair<std::string, std::string>
-cudaq_internal::compiler::Compiler::emitTargetCode(mlir::ModuleOp module) {
+cudaq_internal::compiler::Compiler::emitTargetCode(mlir::ModuleOp module,
+                                                   bool disableQuantumOpts) {
   const auto &codegenTranslation = target.codegen.emissionFormat;
   const auto &postCodegenPasses = target.codegen.postCodegenPasses;
   mlir::OwningOpRef<ModuleOp> compiled_module = module.clone();
@@ -594,7 +602,7 @@ cudaq_internal::compiler::Compiler::emitTargetCode(mlir::ModuleOp module) {
     if (failed(translation(*compiled_module, codegenTranslation, outStr,
                            postCodegenPasses, printIR,
                            printEachPass == cudaq::PrintEachPassMode::All,
-                           enablePassStatistics, options.disableQuantumOpts)))
+                           enablePassStatistics, disableQuantumOpts)))
       throw std::runtime_error("Could not successfully translate to " +
                                codegenTranslation + ".");
   } else {

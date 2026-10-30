@@ -22,7 +22,7 @@ from cudaq.mlir.dialects import func
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.mlir.dialects import quake, cc
 from cudaq.mlir.ir import (ComplexType, F32Type, F64Type, FunctionType,
-                           IntegerType, Context, Module)
+                           IntegerAttr, IntegerType, Context, Module)
 from cudaq.mlir._mlir_libs._quakeDialects import register_all_dialects
 from cudaq.kernel_types import measure_handle, qubit, qvector, qview
 
@@ -306,11 +306,42 @@ def set_tracebacklimit(limit=None):
         del sys.tracebacklimit
 
 
+# The MLIR module/function attribute carrying the quantum optimization level.
+optimization_level_attr_name = 'quake.optimizationLevel'
+
+
+def get_optimization_level_attr(op):
+    """
+    Return the `quake.optimizationLevel` set on an MLIR module or function, or
+    `None` when the operation carries no explicit level.
+    """
+    attr = op.operation.attributes.get(optimization_level_attr_name)
+    return None if attr is None else attr.value
+
+
+def set_optimization_level_attr(module, level):
+    """
+    Set the `quake.optimizationLevel` attribute on an MLIR module. `level`
+    must be an integer between 0 and 3. This is a plain setter; precedence
+    between a kernel's declared level and a launch-time override is decided by
+    the caller (see `prepare_call`).
+    """
+    if isinstance(level, bool) or not isinstance(level,
+                                                 int) or level < 0 or level > 3:
+        raise ValueError(
+            f"`optimization_level` must be an integer between 0 and 3, got "
+            f"{level!r}.")
+    module.operation.attributes.__setitem__(
+        optimization_level_attr_name,
+        IntegerAttr.get(IntegerType.get_signless(32, context=module.context),
+                        level))
+
+
 def emitFatalError(msg):
     """
-    Emit a fatal error diagnostic. The goal here is to 
-    retain the input message, but also provide the offending 
-    source location by inspecting the stack trace. 
+    Emit a fatal error diagnostic. The goal here is to
+    retain the input message, but also provide the offending
+    source location by inspecting the stack trace.
     """
     print(Color.BOLD, end='')
     try:

@@ -32,7 +32,8 @@ from .utils import (cudaqModuleName, emitFatalError, emitErrorIfInvalidPauli,
                     globalRegisteredTypes, isQuantumReferenceType,
                     mlirTypeFromPyType, mlirTypeToPyType, nvqppPrefix,
                     getMLIRContext, recover_func_op, recover_value_of,
-                    cudaq__unique_attr_name)
+                    cudaq__unique_attr_name, set_optimization_level_attr,
+                    get_optimization_level_attr)
 
 # This file implements the decorator mechanism needed to JIT compile CUDA-Q
 # kernels. It exposes the cudaq.kernel() decorator which hooks us into the JIT
@@ -564,7 +565,8 @@ class PyKernelDecorator(object):
         return args
 
     @trace.traced
-    def prepare_call(self, *args, allow_no_args=False):
+    def prepare_call(self, *args, allow_no_args=False,
+                     optimization_level=None):
         """
         Process call site arguments, capture lifted arguments and retrieve
         compiled module for kernel execution.
@@ -584,6 +586,12 @@ class PyKernelDecorator(object):
 
         with trace.span("kernel.clone_module"):
             module = cudaq_runtime.cloneModule(self.qkeModule)
+
+        # A level requested at launch overrides the default, but never a level
+        # the kernel declared itself (e.g. `disable_quantum_optimization`).
+        if (optimization_level is not None and
+                get_optimization_level_attr(self.qkeModule) is None):
+            set_optimization_level_attr(module, optimization_level)
 
         return processed_args, module
 
@@ -621,7 +629,7 @@ class PyKernelDecorator(object):
         shortName = self.uniqName
         return cudaq_runtime.get_launch_args_required(self.qkeModule, shortName)
 
-    def __call__(self, *args):
+    def __call__(self, *args, optimization_level=None):
         """
         Invoke the CUDA-Q kernel. JIT compilation of the kernel AOT Quake module
         to machine code will occur here.
@@ -636,7 +644,8 @@ class PyKernelDecorator(object):
         if args and self.formal_arity() != len(args):
             emitFatalError("wrong number of arguments provided")
 
-        processed_args, module = self.prepare_call(*args)
+        processed_args, module = self.prepare_call(
+            *args, optimization_level=optimization_level)
         return cudaq_runtime.marshal_and_launch_module(
             self.uniqName,
             module,

@@ -10,6 +10,7 @@
 #include "PhaseUtilities.h"
 #include "SingleQubitChain.h"
 #include "cudaq/Optimizer/Builder/CompilerNames.h"
+#include "cudaq/Optimizer/Builder/OptimizationLevel.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
@@ -227,7 +228,7 @@ static void normalizeBlock(Block &block) {
 
 void NormalizeSingleQubitCliffordTPass::runOnOperation() {
   func::FuncOp function = getOperation();
-  if (function->hasAttr(cudaq::runtime::disableQuantumOpts))
+  if (cudaq::runtime::isQuantumOptimizationDisabled(function))
     return;
   cudaq::opt::forEachNestedBlock(function.getBody(), normalizeBlock);
 }

@@ -9,6 +9,7 @@
 #include "PassDetails.h"
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
+#include "cudaq/Optimizer/Builder/OptimizationLevel.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
@@ -162,15 +163,19 @@ public:
       llvm::SetVector<mlir::func::FuncOp> deps;
       collectDependentFunctions(dependencySymbols, funcOp, deps);
 
-      // The bridge marks the module when any kernel in the source file
-      // disables quantum optimization, but the JIT reads the marker from the
-      // module it compiles. Keep it only for a kernel whose module includes a
-      // marked function, so the other kernels in the file are still optimized.
+      // The bridge sets the optimization level on functions, not the module,
+      // but the JIT reads the level from the module it compiles. A kernel
+      // whose module includes a function at level 0 runs at level 0, while
+      // the other kernels in the file keep the module's level (if any).
       NamedAttrList moduleAttrs(module->getAttrDictionary());
-      if (llvm::none_of(deps, [](func::FuncOp dep) {
-            return dep->hasAttr(cudaq::runtime::disableQuantumOpts);
-          }))
-        moduleAttrs.erase(cudaq::runtime::disableQuantumOpts);
+      if (llvm::any_of(deps,
+                       [](func::FuncOp dep) {
+                         return cudaq::runtime::isQuantumOptimizationDisabled(
+                             dep);
+                       }))
+        moduleAttrs.set(cudaq::runtime::optimizationLevelAttrName,
+                        mlir::IntegerAttr::get(
+                            mlir::IntegerType::get(ctx, 32), 0));
       strOut << "module attributes " << moduleAttrs.getDictionary(ctx) << " { ";
 
       for (mlir::func::FuncOp parentFuncOp : deps) {

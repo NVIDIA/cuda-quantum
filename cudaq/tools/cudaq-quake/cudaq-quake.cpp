@@ -14,6 +14,7 @@
 
 #include "nvqpp_config.h"
 #include "cudaq/Frontend/nvqpp/ASTBridge.h"
+#include "cudaq/Optimizer/Builder/OptimizationLevel.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
@@ -89,6 +90,14 @@ static cl::opt<bool> noSimplify(
     "no-simplify",
     cl::desc("Disable passes to simplify the code after the bridge."),
     cl::init(false));
+
+static cl::opt<int> quantumOptLevel(
+    "quantum-opt-level",
+    cl::desc("Set the quantum optimization level (0 to 3) for all kernels in "
+             "the translation unit. Level 0 disables quantum optimization. "
+             "When unset, no level is recorded in the IR and the level is "
+             "resolved when the kernel is compiled."),
+    cl::init(-1));
 
 static cl::opt<bool> astDump("ast-dump", cl::desc("Dump the ast."),
                              cl::init(false));
@@ -503,6 +512,12 @@ int main(int argc, char **argv) {
       clArgs.push_back(part);
   }
 
+  if (quantumOptLevel < -1 || quantumOptLevel > 3) {
+    llvm::errs() << "Invalid --quantum-opt-level " << quantumOptLevel
+                 << "; expected an integer between 0 and 3.\n";
+    return 1;
+  }
+
   // Set the mangled kernel names map.
   CudaQAction::MangledKernelNamesMap mangledKernelNameMap;
 
@@ -527,6 +542,9 @@ int main(int argc, char **argv) {
     return ec.value();
   }
   if (!moduleOp.getBody()->empty()) {
+    if (quantumOptLevel >= 0)
+      cudaq::runtime::setOptimizationLevel(
+          moduleOp, static_cast<unsigned>(quantumOptLevel));
     if (!mangledKernelNameMap.empty()) {
       SmallVector<mlir::NamedAttribute> names;
       for (auto [key, value] : mangledKernelNameMap)

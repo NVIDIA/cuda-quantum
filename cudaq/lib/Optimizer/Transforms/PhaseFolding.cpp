@@ -9,6 +9,7 @@
 #include "PassDetails.h"
 #include "PhaseUtilities.h"
 #include "cudaq/Optimizer/Builder/CompilerNames.h"
+#include "cudaq/Optimizer/Builder/OptimizationLevel.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
@@ -762,7 +763,7 @@ public:
     auto func = dyn_cast<func::FuncOp>(getOperation());
     if (!func)
       return;
-    if (func->hasAttr(cudaq::runtime::disableQuantumOpts))
+    if (cudaq::runtime::isQuantumOptimizationDisabled(func))
       return;
 
     DominanceInfo domInfo(func);

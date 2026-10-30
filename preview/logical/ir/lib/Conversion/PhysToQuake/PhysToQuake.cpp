@@ -16,6 +16,7 @@
 #include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/Builder/CompilerNames.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
+#include "cudaq/Optimizer/Builder/OptimizationLevel.h"
 #include "cudaq/Optimizer/Builder/Marshal.h"
 #include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
@@ -1192,14 +1193,13 @@ public:
       module->removeAttr(name);
     // Step 7: Keep core's quantum optimizations from rewriting the scheduled
     // gates.
-    // Rationale: With `quake.noOptimization` on the module, the JIT and AOT
-    // drivers build the QIR pipeline without value-semantics optimization, so
-    // `quake-simplify` and `dqe` do not run (see
+    // Rationale: With `quake.optimizationLevel` 0 on the module, the JIT and
+    // AOT drivers build the QIR pipeline without value-semantics
+    // optimization, so `quake-simplify` and `dqe` do not run (see
     // `createTargetCodegenPipeline`). Without it, core could cancel or merge
     // scheduled gates, erase the `quake.reset` that follows a
     // `quake.null_wire`, or remove a qubit that nothing acts on.
-    module->setAttr(cudaq::runtime::disableQuantumOpts,
-                    UnitAttr::get(module.getContext()));
+    cudaq::runtime::setOptimizationLevel(module, 0);
   }
 };
 

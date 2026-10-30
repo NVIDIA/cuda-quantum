@@ -37,7 +37,8 @@ from .utils import (boundaryDiagnostic, containsMeasureHandle, emitFatalError,
                     emitWarning, nvqppPrefix, getMLIRContext, recover_func_op,
                     mlirTypeToPyType, cudaq__unique_attr_name,
                     mlirTypeFromPyType, emitErrorIfInvalidPauli,
-                    globalRegisteredOperations)
+                    globalRegisteredOperations, set_optimization_level_attr,
+                    get_optimization_level_attr)
 
 kDynamicPtrIndex: int = -2147483648
 
@@ -1752,8 +1753,7 @@ class PyKernel(object):
         Mark this kernel so that quantum optimization passes (e.g. value
         semantics lowering) are skipped during code generation.
         """
-        self.module.operation.attributes.__setitem__(
-            'quake.noOptimization', UnitAttr.get(context=self.ctx))
+        set_optimization_level_attr(self.module, level=0)
 
     def atomic_quantum_region(self):
         """
@@ -1788,7 +1788,7 @@ class PyKernel(object):
                 cudaq__unique_attr_name,
                 StringAttr.get(self.uniqName, context=ctx))
 
-    def __call__(self, *args):
+    def __call__(self, *args, optimization_level=None):
         """
         Just-In-Time (JIT) compile `self` (:class:`Kernel`), and call the kernel
         function at the provided concrete arguments.
@@ -1897,6 +1897,9 @@ class PyKernel(object):
 
         self.compile()
         specialized = cudaq_runtime.cloneModule(self.qkeModule)
+        if (optimization_level is not None and
+                get_optimization_level_attr(self.qkeModule) is None):
+            set_optimization_level_attr(specialized, optimization_level)
         cudaq_runtime.marshal_and_launch_module(
             self.name,
             specialized,

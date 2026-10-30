@@ -7,6 +7,7 @@
  ******************************************************************************/
 
 #include "cudaq/Optimizer/Builder/CompilerNames.h"
+#include "cudaq/Optimizer/Builder/OptimizationLevel.h"
 #include "cudaq/Optimizer/CodeGen/IQMJsonEmitter.h"
 #include "cudaq/Optimizer/CodeGen/OpenQASMEmitter.h"
 #include "cudaq/Optimizer/CodeGen/OptUtils.h"
@@ -183,9 +184,15 @@ int main(int argc, char **argv) {
   llvm::StringSwitch<std::function<void()>>(convertPair.first)
       .Cases({"qir", "qir-full", "qir-adaptive", "qir-base"},
              [&]() {
+               // Skip value semantics if any function is at optimization level
+               // 0.
+               bool anyFuncAtLevel0 = llvm::any_of(
+                   module->getOps<mlir::func::FuncOp>(), [](auto f) {
+                     return cudaq::runtime::isQuantumOptimizationDisabled(f);
+                   });
                bool useValueSemantics =
-                   !disableQuantumOptimization &&
-                   !modOp->hasAttr(cudaq::runtime::disableQuantumOpts);
+                   !disableQuantumOptimization && !anyFuncAtLevel0 &&
+                   !cudaq::runtime::isQuantumOptimizationDisabled(modOp);
                cudaq::opt::addAggressiveInlining(pm);
                cudaq::opt::createTargetFinalizePipeline(pm);
                cudaq::opt::addAOTPipelineConvertToQIR(pm, convertValue,

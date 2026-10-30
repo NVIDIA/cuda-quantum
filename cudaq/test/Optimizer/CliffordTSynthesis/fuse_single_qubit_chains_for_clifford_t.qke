@@ -141,7 +141,7 @@ func.func @epsilon(%target: !quake.ref) {
 
 // The function-level opt-out keeps the chain intact.
 func.func @no_optimization(%target: !quake.ref)
-    attributes {"quake.noOptimization"} {
+    attributes {quake.optimizationLevel = 0 : i32} {
   %a = arith.constant 0.3 : f64
   %b = arith.constant 0.5 : f64
   quake.rz (%a) %target : (f64, !quake.ref) -> ()

@@ -72,8 +72,7 @@ std::string cudaq::detail::lower_to_qir_llvm(const std::string &name,
     cudaq::opt::createTargetFinalizePipeline(pm);
   }
   bool disableQuantumOpt =
-      options.disableQuantumOpts ||
-      compiled_module->hasAttr(cudaq::runtime::disableQuantumOpts);
+      compiled.getMetadata().optimizationLevel == cudaq::OptimizationLevel::O0;
   cudaq::opt::addAOTPipelineConvertToQIR(pm, format,
                                          /*useValueSemantics=*/
                                          !disableQuantumOpt);
