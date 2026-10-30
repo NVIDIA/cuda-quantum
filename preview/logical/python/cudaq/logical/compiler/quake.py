@@ -290,34 +290,6 @@ def import_quake(
     )
 
 
-def _compile_kernel(kernel, arguments, target):
-    """Compile ``kernel`` as launching it on ``target`` would.
-
-    The compile target and the endpoint's traits come from ``target``, never
-    from the target installed with ``cudaq.set_target``. The compile is
-    therefore never emulated, and it builds no JIT engine, because Logical's
-    endpoint takes no JIT artifact.
-    """
-
-    from cudaq.kernel.kernel_decorator import isa_kernel_decorator
-    from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
-
-    if not isa_kernel_decorator(kernel):
-        raise TypeError("kernel must be a standard @cudaq.kernel object")
-    endpoint = target.runtime_endpoint
-    processed, module = kernel.prepare_call(*arguments)
-    return cudaq_runtime.compile_module(
-        kernel.uniqName,
-        module,
-        True,
-        compile_target=target.compile_target,
-        is_remote=getattr(endpoint, "is_remote", False),
-        is_emulated=getattr(endpoint, "is_emulated", False),
-        supports_jit=getattr(endpoint, "supports_jit", True),
-        args=tuple(processed),
-    )
-
-
 def import_cudaq(
         kernel,
         *arguments,
@@ -334,9 +306,28 @@ def import_cudaq(
     ``cudaq.set_target``.
     """
 
+    from cudaq.kernel.kernel_decorator import isa_kernel_decorator
+    from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
+
+    if not isa_kernel_decorator(kernel):
+        raise TypeError("kernel must be a standard @cudaq.kernel object")
     if target is None:
         from ..targets import estimator as target
-    compiled = _compile_kernel(kernel, arguments, target)
+    # Take the endpoint's traits from ``target``, never from the installed
+    # target, so the compile is never emulated. Logical's endpoint reads the
+    # MLIR, so it declares no JIT support and the compile builds no JIT engine.
+    endpoint = target.runtime_endpoint
+    processed, module = kernel.prepare_call(*arguments)
+    compiled = cudaq_runtime.compile_module(
+        kernel.uniqName,
+        module,
+        is_entry_point=True,
+        compile_target=target.compile_target,
+        is_remote=getattr(endpoint, "is_remote", False),
+        is_emulated=getattr(endpoint, "is_emulated", False),
+        supports_jit=getattr(endpoint, "supports_jit", True),
+        args=tuple(processed),
+    )
     return import_quake(str(compiled.mlir_module),
                         root=kernel.name,
                         source_modules=source_modules)
