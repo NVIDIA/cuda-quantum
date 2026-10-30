@@ -14,6 +14,7 @@
 #include "cudaq/qis/execution_manager.h"
 #include <cmath>
 #include <cstdint>
+#include <limits>
 #include <thread>
 #include <vector>
 
@@ -146,6 +147,40 @@ Array *__quantum__rt__array_slice_1d(Array *array, int64_t range_start,
 Array *__quantum__rt__array_copy(Array *array, bool forceNewInstance);
 Array *__quantum__rt__array_concatenate(Array *head, Array *tail);
 void __nvqpp_cleanup_arrays();
+}
+
+CUDAQ_TEST(NVQIRTester, checkArrayIndexBoundsBeforeByteOffset) {
+  const std::vector<std::uint64_t> invalidIndices = {
+      2,
+      (std::uint64_t{1} << 61) - 1,
+      std::uint64_t{1} << 61,
+      (std::uint64_t{1} << 61) + 1,
+      std::uint64_t{1} << 62,
+      (std::uint64_t{1} << 62) + 1,
+      std::uint64_t{1} << 63,
+      std::numeric_limits<std::uint64_t>::max()};
+  for (int elementSize : {1, 2, 3, 4, 8, 16}) {
+    SCOPED_TRACE(elementSize);
+    auto *array = __quantum__rt__array_create_1d(elementSize, 2);
+    auto *first = __quantum__rt__array_get_element_ptr_1d(array, 0);
+    auto *last = __quantum__rt__array_get_element_ptr_1d(array, 1);
+    EXPECT_EQ(last - first, elementSize);
+    *first = 42;
+    *last = 43;
+    for (auto index : invalidIndices) {
+      SCOPED_TRACE(index);
+      EXPECT_THROW(__quantum__rt__array_get_element_ptr_1d(array, index),
+                   std::runtime_error);
+    }
+    EXPECT_EQ(*__quantum__rt__array_get_element_ptr_1d(array, 0), 42);
+    EXPECT_EQ(*__quantum__rt__array_get_element_ptr_1d(array, 1), 43);
+    __quantum__rt__array_release(array);
+
+    auto *empty = __quantum__rt__array_create_1d(elementSize, 0);
+    EXPECT_THROW(__quantum__rt__array_get_element_ptr_1d(empty, 0),
+                 std::runtime_error);
+    __quantum__rt__array_release(empty);
+  }
 }
 
 CUDAQ_TEST(NVQIRTester, checkArrayTrackingAcrossReleaseAndCleanup) {
