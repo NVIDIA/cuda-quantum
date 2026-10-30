@@ -1,0 +1,22 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// Level 1 runs the shared cleanup, and level 2 adds phase folding.
+
+// RUN: cudaq-opt --dump-pass-pipeline \
+// RUN:   "--two-qubit-gate-count-optimization-pipeline=level=1" %s \
+// RUN:   -o /dev/null 2>&1 | FileCheck --check-prefix=LEVEL1 %s
+// RUN: cudaq-opt --dump-pass-pipeline \
+// RUN:   "--two-qubit-gate-count-optimization-pipeline=level=2" %s \
+// RUN:   -o /dev/null 2>&1 | FileCheck --check-prefix=LEVEL2 %s
+
+// LEVEL1:     dqe
+// LEVEL1-NOT: phase-folding
+
+// LEVEL2:     dqe
+// LEVEL2:     phase-folding
