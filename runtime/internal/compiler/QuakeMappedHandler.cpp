@@ -62,6 +62,13 @@ public:
                          const cudaq::config::Profile &output) const override {
     return supports(input, output);
   }
+
+  /// Mapping moves qubits to device positions.
+  bool
+  changesQubitIndices(const cudaq::config::Profile &input,
+                      const cudaq::config::Profile &output) const override {
+    return supports(input, output);
+  }
 };
 
 } // namespace

@@ -120,6 +120,16 @@ public:
     return profile && schedulesCliffordTSynthesis(*profile) &&
            cudaq::opt::needsCliffordTSynthesis(profile->basisGates);
   }
+
+  /// Every cost model's optimization runs `dqe` from level 1, which erases a
+  /// qubit that no gate uses.
+  bool
+  changesQubitIndices(const cudaq::config::Profile &input,
+                      const cudaq::config::Profile &output) const override {
+    const auto *profile =
+        std::get_if<cudaq::config::QuakeUnmappedProfile>(&output);
+    return profile && profile->costModel;
+  }
 };
 
 } // namespace

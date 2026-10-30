@@ -9,6 +9,7 @@
 #include "cudaq_internal/compiler/Compiler.h"
 #include "cudaq/Target/CompilationStage.h"
 #include "cudaq/runtime/logger/logger.h"
+#include "llvm/ADT/STLFunctionalExtras.h"
 #include <regex>
 #include <variant>
 
@@ -178,19 +179,23 @@ std::optional<std::string> cudaq_internal::compiler::getPassPipeline(
       buildPassPipeline(targetPasses, target, options), target);
 }
 
-bool cudaq_internal::compiler::specializesArguments(
+/// Whether \p test holds for the handler of any inferred stage of \p target,
+/// given that stage's input and output profiles.
+static bool anyInferredStage(
     const cudaq::CompileTarget &target,
-    const std::vector<std::unique_ptr<LoweringHandler>> &handlers) {
-  if (target.fullySpecialize)
-    return true;
+    const std::vector<
+        std::unique_ptr<cudaq_internal::compiler::LoweringHandler>> &handlers,
+    llvm::function_ref<bool(const cudaq_internal::compiler::LoweringHandler &,
+                            const cudaq::config::Profile &,
+                            const cudaq::config::Profile &)>
+        test) {
   cudaq::config::Profile inputProfile = cudaq::config::UncheckedProfile{};
   for (const auto &stage : target.stages) {
     if (std::holds_alternative<cudaq::config::InferredLowering>(
             stage.lowering)) {
-      const auto *handler =
-          selectLoweringHandler(handlers, inputProfile, stage.irOutputProfile);
-      if (handler &&
-          handler->requiresArgumentValues(inputProfile, stage.irOutputProfile))
+      const auto *handler = cudaq_internal::compiler::selectLoweringHandler(
+          handlers, inputProfile, stage.irOutputProfile);
+      if (handler && test(*handler, inputProfile, stage.irOutputProfile))
         return true;
     }
     inputProfile = stage.irOutputProfile;
@@ -199,7 +204,31 @@ bool cudaq_internal::compiler::specializesArguments(
 }
 
 bool cudaq_internal::compiler::specializesArguments(
+    const cudaq::CompileTarget &target,
+    const std::vector<std::unique_ptr<LoweringHandler>> &handlers) {
+  return target.fullySpecialize ||
+         anyInferredStage(target, handlers,
+                          [](const LoweringHandler &handler,
+                             const cudaq::config::Profile &input,
+                             const cudaq::config::Profile &output) {
+                            return handler.requiresArgumentValues(input,
+                                                                  output);
+                          });
+}
+
+bool cudaq_internal::compiler::specializesArguments(
     const cudaq::CompileTarget &target) {
   static const auto builtinHandlers = makeBuiltinLoweringHandlers();
   return specializesArguments(target, builtinHandlers);
+}
+
+bool cudaq_internal::compiler::changesQubitIndices(
+    const cudaq::CompileTarget &target,
+    const std::vector<std::unique_ptr<LoweringHandler>> &handlers) {
+  return anyInferredStage(target, handlers,
+                          [](const LoweringHandler &handler,
+                             const cudaq::config::Profile &input,
+                             const cudaq::config::Profile &output) {
+                            return handler.changesQubitIndices(input, output);
+                          });
 }
