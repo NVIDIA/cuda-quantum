@@ -70,24 +70,31 @@
 
 // The Clifford+T target lists one `quake-unmapped` stage with the `t-count`
 // cost model, whose passes run between deploy and finalize. Its basis has no
-// rotation gate, so the stage synthesizes.
+// rotation gate, so the stage synthesizes. The stage lowers `quake.phase`
+// twice: after decomposition, before the optimizer, and after the closing basis
+// conversion, which can add a phase of its own.
 // CHECK-LABEL: compiler-bench-ftqc-clifford-t:
 // CHECK:       jit-deploy-pipeline
 // CHECK-NEXT:  decomposition{basis=h,s,t,x,y,z,swap,x(1),y(1),z(1),r1,rx,ry,rz}
 // CHECK-NEXT:  prepare-for-wireset{maximum-iterations=1024}
+// CHECK-NEXT:  func.func(normalize-phase-placement,lower-phase)
 // CHECK-NEXT:  clifford-t-optimization-pipeline{level=2 approximation-tolerance=1e-10}
 // CHECK-NEXT:  clifford-t-synthesis-pipeline{basis=h,s,t,x,y,z,swap,x(1),y(1),z(1) level=2 approximation-tolerance=1e-10}
 // CHECK-NEXT:  basis-conversion{basis=h,s,t,x,y,z,swap,x(1),y(1),z(1)}
+// CHECK-NEXT:  func.func(lower-phase)
 // CHECK-NEXT:  jit-finalize-pipeline
 
 // The level never changes the representation: at level 0 the stage still
-// converts to wires, and only the optimization pipeline is left out.
+// converts to wires and lowers the phase, and only the optimization pipeline
+// is left out.
 // CHECK-LABEL: compiler-bench-ftqc-clifford-t level 0:
 // CHECK:       jit-deploy-pipeline
 // CHECK-NEXT:  decomposition{basis=h,s,t,x,y,z,swap,x(1),y(1),z(1),r1,rx,ry,rz}
 // CHECK-NEXT:  prepare-for-wireset{maximum-iterations=1024}
+// CHECK-NEXT:  func.func(normalize-phase-placement,lower-phase)
 // CHECK-NEXT:  clifford-t-synthesis-pipeline{basis=h,s,t,x,y,z,swap,x(1),y(1),z(1) level=0 approximation-tolerance=1e-10}
 // CHECK-NEXT:  basis-conversion{basis=h,s,t,x,y,z,swap,x(1),y(1),z(1)}
+// CHECK-NEXT:  func.func(lower-phase)
 // CHECK-NEXT:  jit-finalize-pipeline
 
 // Without a cost model, a `quake-unmapped` stage runs no optimization.

@@ -59,6 +59,14 @@ costModelPasses(const cudaq::config::QuakeUnmappedProfile &profile,
     passes.push_back("decomposition{basis=" + llvm::join(basis, ",") + "}");
   }
   passes.push_back(cudaq_internal::compiler::convertToWires());
+  // In a `t-count` stage, decomposition leaves a `quake.phase` beside some of
+  // the gates it rewrites, such as a controlled rotation, and only the level-2
+  // optimizer would lower it. Lower the phase here, at every level and before
+  // the optimizer and synthesis. Left in place, the phase keeps the level-1
+  // cleanup from merging the rotations on either side of it, and a controlled
+  // phase lowers to an `r1` that synthesis has to see.
+  if (tCount)
+    passes.push_back("func.func(normalize-phase-placement,lower-phase)");
   if (level >= 1)
     passes.push_back(
         std::string(tCount ? "clifford-t" : "two-qubit-gate-count") +
@@ -107,9 +115,17 @@ public:
     std::vector<std::string> passes;
     if (profile.costModel)
       passes = costModelPasses(profile, options);
-    if (!basis.empty())
+    if (!basis.empty()) {
       passes.push_back("basis-conversion{basis=" + llvm::join(basis, ",") +
                        "}");
+      // When the basis lacks a rotation, the conversion rewrites it with an
+      // uncontrolled `quake.phase`, as when it rewrites `r1` as `rz`, and
+      // `lower-phase` erases that phase. After a `t-count` stage's opening
+      // decomposition, every gate left to rewrite is uncontrolled, so no
+      // controlled phase, which would lower to new gates, reaches this point.
+      if (profile.costModel == cudaq::config::CostModel::t_count)
+        passes.push_back("func.func(lower-phase)");
+    }
     cudaq_internal::compiler::StagePasses stagePasses;
     stagePasses.postDeployPasses = llvm::join(passes, ",");
     return stagePasses;
