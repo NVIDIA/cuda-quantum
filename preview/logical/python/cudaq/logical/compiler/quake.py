@@ -295,32 +295,33 @@ def import_cudaq(
 ) -> Build:
     """Compile a ``@cudaq.kernel`` for Logical and import it as P0.
 
-    CUDA-Q compiles the kernel with the compile target of
-    ``cudaq.logical.targets.estimator``, never of the target installed with
-    ``cudaq.set_target``, and substitutes ``arguments``.
-    :func:`import_quake` then imports the result.
+    CUDA-Q compiles the kernel with a Logical target's compile target, never
+    with the target installed with ``cudaq.set_target``, and substitutes
+    ``arguments``. :func:`import_quake` then imports the result.
     """
 
     from cudaq.kernel.kernel_decorator import isa_kernel_decorator
     from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 
-    from ..targets import estimator
+    from ..targets import Target
 
     if not isa_kernel_decorator(kernel):
         raise TypeError("kernel must be a standard @cudaq.kernel object")
-    # Take the endpoint's traits from the estimator, never from the installed
-    # target, so the compile is never emulated. Logical's endpoint reads the
-    # MLIR, so it declares no JIT support and the compile builds no JIT engine.
-    endpoint = estimator.runtime_endpoint
+    # Compile exactly as a launch on a Logical target does, so both paths give
+    # the same counts. That includes the stage's unroll limit, which has no
+    # budget on the operations unrolling generates: this path used to cap
+    # loops at 4096 iterations and 1,000,000 operations, but the target path
+    # never did, and its large workloads need longer loops. Logical's endpoint
+    # is local, never emulated, and reads the MLIR, so no JIT engine is built.
     processed, module = kernel.prepare_call(*arguments)
     compiled = cudaq_runtime.compile_module(
         kernel.uniqName,
         module,
         is_entry_point=True,
-        compile_target=estimator.compile_target,
-        is_remote=getattr(endpoint, "is_remote", False),
-        is_emulated=getattr(endpoint, "is_emulated", False),
-        supports_jit=getattr(endpoint, "supports_jit", True),
+        compile_target=Target._new_compile_target(),
+        is_remote=False,
+        is_emulated=False,
+        supports_jit=False,
         args=tuple(processed),
     )
     return import_quake(str(compiled.mlir_module),
