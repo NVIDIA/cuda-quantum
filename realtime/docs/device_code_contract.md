@@ -237,7 +237,10 @@ the bridge's hooks and the handlers.
 
   Launch on the stream the launcher is given, which `cudaq_dispatcher_stop`
   waits on, and return `CUDAQ_OK` once the kernel is launched.  Any other
-  status fails `start` with it.
+  status fails `start` with it.  Before returning that status, `start`
+  raises the shutdown flag and waits on the stream, as
+  `cudaq_dispatcher_stop` does, so anything the launcher enqueued before
+  failing must stop on that flag.  The flag is left set.
 - **`config.num_blocks` is not checked** with a launcher, since the launcher
   picks the grid.  `start` still refuses handler addresses that are not from
   the linked module.

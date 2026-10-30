@@ -8,7 +8,26 @@
 
 # An application's own unified dispatch kernel
 # ==============================================================================
-# cudaq_realtime_add_dispatch_kernel(<target> <source> [ARCH <N>])
+# Supported forms:
+#
+#   cudaq_realtime_add_dispatch_kernel(<target> <source>)
+#   cudaq_realtime_add_dispatch_kernel(<target> <source> ARCH <N>)
+#
+# For example:
+#
+#   find_package(cudaq-realtime CONFIG REQUIRED)
+#   add_executable(my_app main.cpp handlers.cu)
+#   set_target_properties(my_app PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+#   target_link_libraries(my_app PRIVATE cudaq::cudaq-realtime)
+#   cudaq_realtime_add_dispatch_kernel(my_app my_dispatcher.cu)
+#
+# Or choose the LTO-IR architecture explicitly:
+#
+#   cudaq_realtime_add_dispatch_kernel(my_app my_dispatcher.cu ARCH 90)
+#
+# <target> must already exist in the calling directory.  <source> may be
+# relative to that directory or absolute, and must not be one of <target>'s
+# ordinary sources.  <N> is a numeric CUDA architecture such as 80, 90 or 100.
 #
 # Adds the dispatch kernels of the CUDA file <source> to <target>, the binary
 # that also holds the DEVICE_CALL handlers.  A kernel there is
@@ -44,6 +63,12 @@ function(cudaq_realtime_add_dispatch_kernel target source)
     message(FATAL_ERROR
       "cudaq_realtime_add_dispatch_kernel: no target '${target}'")
   endif()
+  get_target_property(_target_binary_dir ${target} BINARY_DIR)
+  if (NOT "${_target_binary_dir}" STREQUAL "${CMAKE_CURRENT_BINARY_DIR}")
+    message(FATAL_ERROR
+      "cudaq_realtime_add_dispatch_kernel(${target}): call the function from "
+      "the directory that defines the target (${_target_binary_dir})")
+  endif()
   set(_arch ${_arg_ARCH})
   if (NOT _arch)
     set(_arch ${CUDAQ_REALTIME_DEVICE_CODE_MIN_ARCH})
@@ -69,17 +94,33 @@ function(cudaq_realtime_add_dispatch_kernel target source)
   set(_includes "$<TARGET_PROPERTY:${target},INCLUDE_DIRECTORIES>")
   set(_defines "$<TARGET_PROPERTY:${target},COMPILE_DEFINITIONS>")
   set(_standard "$<TARGET_PROPERTY:${target},CUDA_STANDARD>")
+  # Evaluate language-guarded target properties once per target language, then
+  # give nvcc the CUDA result.
+  set(_response
+    ${CMAKE_CURRENT_BINARY_DIR}/${target}_${_name}_$<CONFIG>_$<COMPILE_LANGUAGE>.rsp)
+  set(_cuda_response
+    ${CMAKE_CURRENT_BINARY_DIR}/${target}_${_name}_$<CONFIG>_CUDA.rsp)
+  set(_quote "\"")
+  set(_escaped_quote "\\\\\"")
+  set(_escaped_defines
+    "$<LIST:TRANSFORM,${_defines},REPLACE,${_quote},${_escaped_quote}>")
+  string(CONCAT _response_content
+    "$<$<BOOL:${_includes}>:-I\"$<JOIN:${_includes},\"\n-I\">\">\n"
+    "$<$<BOOL:${_defines}>:-D$<JOIN:${_escaped_defines},\n-D>>\n")
+  file(GENERATE
+    OUTPUT ${_response}
+    CONTENT "${_response_content}"
+    TARGET ${target})
   add_custom_command(
     OUTPUT ${_fatbin}
     COMMAND ${CMAKE_CUDA_COMPILER} ${_nvcc_flags}
       -fatbin -rdc=true
       "-std=c++$<IF:$<BOOL:${_standard}>,${_standard},17>"
       --generate-code=arch=compute_${_arch},code=lto_${_arch}
-      "$<$<BOOL:${_includes}>:-I$<JOIN:${_includes},;-I>>"
-      "$<$<BOOL:${_defines}>:-D$<JOIN:${_defines},;-D>>"
+      --options-file ${_cuda_response}
       -MD -MF ${_fatbin}.d -MT ${_fatbin}
       ${_source} -o ${_fatbin}
-    DEPENDS ${_source}
+    DEPENDS ${_source} ${_cuda_response}
     DEPFILE ${_fatbin}.d
     COMMENT "Building the LTO-IR image of ${_name} for ${target}"
     COMMAND_EXPAND_LISTS

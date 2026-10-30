@@ -22,6 +22,11 @@
 #include <cstddef>
 #include <cstdint>
 
+#if defined(CUDAQ_REALTIME_TEST_EXPECT_CUDA_DEFINITION) &&                     \
+    !defined(CUDAQ_REALTIME_TEST_CUDA_DEFINITION)
+#error "the custom dispatch kernel did not receive CUDA compile definitions"
+#endif
+
 using namespace cudaq::realtime;
 
 /// The parameters of the dispatcher's own kernel, which the launchers pass

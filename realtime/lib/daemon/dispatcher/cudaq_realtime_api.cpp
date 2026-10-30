@@ -774,8 +774,9 @@ cudaq_status_t cudaq_dispatcher_get_device_kernel_in(
   if (status != CUDAQ_OK)
     return status;
   CUkernel kernel = nullptr;
-  if (cudaq::realtime::detail::driver_library()->get_kernel(
-          &kernel, dispatcher->jit_device_lib.library, name) != CUDA_SUCCESS) {
+  const CUresult found = cudaq::realtime::detail::driver_library()->get_kernel(
+      &kernel, dispatcher->jit_device_lib.library, name);
+  if (found == CUDA_ERROR_NOT_FOUND) {
     fprintf(stderr,
             "ERROR: cudaq_dispatcher_get_device_kernel: the linked module has "
             "no kernel '%s'; define it extern \"C\" __global__ and embed its "
@@ -784,7 +785,28 @@ cudaq_status_t cudaq_dispatcher_get_device_kernel_in(
             name);
     return CUDAQ_ERR_INVALID_ARG;
   }
+  if (found != CUDA_SUCCESS) {
+    fprintf(stderr,
+            "ERROR: cudaq_dispatcher_get_device_kernel: looking up '%s' in "
+            "the linked module failed: CUresult %d\n",
+            name, static_cast<int>(found));
+    return CUDAQ_ERR_CUDA;
+  }
   *out_kernel = kernel;
+  return CUDAQ_OK;
+}
+
+// Raise the shutdown flag, wait for the DEVICE dispatcher's stream and destroy
+// it.  If the flag cannot be written, the stream is kept, so destroy() leaves
+// the linked module loaded under whatever may still run from it.
+static cudaq_status_t stop_device_kernel(cudaq_dispatcher_t *dispatcher) {
+  int shutdown = 1;
+  if (cudaMemcpy(const_cast<int *>(dispatcher->shutdown_flag), &shutdown,
+                 sizeof(int), cudaMemcpyHostToDevice) != cudaSuccess)
+    return CUDAQ_ERR_CUDA;
+  cudaStreamSynchronize(dispatcher->stream);
+  cudaStreamDestroy(dispatcher->stream);
+  dispatcher->stream = nullptr;
   return CUDAQ_OK;
 }
 
@@ -978,8 +1000,8 @@ cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher) {
                 "ERROR: cudaq_dispatcher_start: the unified launcher failed "
                 "(status %d)\n",
                 launched);
-        cudaStreamDestroy(dispatcher->stream);
-        dispatcher->stream = nullptr;
+        // The launcher may have enqueued its kernel before failing.
+        stop_device_kernel(dispatcher);
         return launched;
       }
     } else {
@@ -1011,8 +1033,8 @@ cudaq_status_t cudaq_dispatcher_start(cudaq_dispatcher_t *dispatcher) {
   if (err != cudaSuccess) {
     fprintf(stderr, "CUDA error in dispatcher launch: %s (%d)\n",
             cudaGetErrorString(err), err);
-    cudaStreamDestroy(dispatcher->stream);
-    dispatcher->stream = nullptr;
+    // The launch itself may have succeeded.
+    stop_device_kernel(dispatcher);
     return CUDAQ_ERR_CUDA;
   }
 
@@ -1042,13 +1064,9 @@ cudaq_status_t cudaq_dispatcher_stop(cudaq_dispatcher_t *dispatcher) {
     return CUDAQ_OK;
   }
 
-  int shutdown = 1;
-  if (cudaMemcpy(const_cast<int *>(dispatcher->shutdown_flag), &shutdown,
-                 sizeof(int), cudaMemcpyHostToDevice) != cudaSuccess)
-    return CUDAQ_ERR_CUDA;
-  cudaStreamSynchronize(dispatcher->stream);
-  cudaStreamDestroy(dispatcher->stream);
-  dispatcher->stream = nullptr;
+  const cudaq_status_t stopped = stop_device_kernel(dispatcher);
+  if (stopped != CUDAQ_OK)
+    return stopped;
   dispatcher->running = false;
   return CUDAQ_OK;
 }

@@ -305,8 +305,8 @@ cudaq_bridge_launch(bridge);
 `cudaq_dispatcher_set_unified_launch` remains for a launch override on a
 dispatcher that is not backed by a bridge; it requires a function.  Over a
 bridge's GPU data plane, it installs the application's own dispatch kernel
-instead, with a NULL transport context: see "Providing your own dispatch
-kernel" in `device_code_contract.md`.
+instead, with a NULL transport context: see
+[Providing your own dispatch kernel](device_code_contract.md#providing-your-own-dispatch-kernel).
 
 ## What This API Does (In One Paragraph)
 

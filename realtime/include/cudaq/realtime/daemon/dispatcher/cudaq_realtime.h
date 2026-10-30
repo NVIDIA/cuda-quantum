@@ -266,7 +266,10 @@ CUDAQ_REALTIME_DISPATCH_API void cudaq_launch_dispatch_kernel_regular(
 // plane supplies one too (cudaq_dispatcher_set_unified_launch); it may launch
 // any grid, and must launch on `stream`, which cudaq_dispatcher_stop waits on.
 // Returns CUDAQ_OK once the kernel is launched; any other status fails
-// cudaq_dispatcher_start with it.  (A bridge's launch override returns a
+// cudaq_dispatcher_start with it.  Before returning that status, start()
+// raises the shutdown flag and waits on `stream`, as cudaq_dispatcher_stop
+// does, so anything the launcher enqueued before failing must stop on that
+// flag; the flag is left set.  (A bridge's launch override returns a
 // status too, which a provider written against the earlier void form must
 // add.)
 typedef cudaq_status_t (*cudaq_unified_launch_fn_t)(
@@ -454,10 +457,6 @@ typedef struct {
   void *transport_ctx; ///< Bridge-owned opaque transport state
 } cudaq_unified_dispatch_ctx_t;
 
-// DEPRECATED for bridge-backed dispatchers: use cudaq_dispatcher_set_bridge,
-// which makes this call itself.  The exception is the application's own
-// dispatch loop over a GPU data plane, described last.
-//
 // Unified dispatch wiring -- pass a transport-specific launch function and
 // an opaque context holding transport handles (e.g. DOCA QP, rkey).
 // When set, cudaq_dispatcher_start() will invoke unified_launch_fn instead of

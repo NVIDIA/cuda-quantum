@@ -50,7 +50,9 @@ target_include_directories(test_gpu_dataplane PRIVATE
   ${CUDAQ_REALTIME_INCLUDE_DIR}
   ${CUDAToolkit_INCLUDE_DIRS})
 target_compile_definitions(test_gpu_dataplane PRIVATE
-  GPU_LOOPBACK_BRIDGE_PATH="$<TARGET_FILE:cudaq-realtime-bridge-gpu-loopback>")
+  GPU_LOOPBACK_BRIDGE_PATH="$<TARGET_FILE:cudaq-realtime-bridge-gpu-loopback>"
+  CUDAQ_REALTIME_TEST_EXPECT_CUDA_DEFINITION
+  $<$<COMPILE_LANGUAGE:CUDA>:CUDAQ_REALTIME_TEST_CUDA_DEFINITION>)
 target_link_libraries(test_gpu_dataplane PRIVATE
   GTest::gtest_main
   cudaq-realtime

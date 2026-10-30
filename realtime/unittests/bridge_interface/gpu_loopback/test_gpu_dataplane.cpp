@@ -96,6 +96,23 @@ cudaq_status_t launch_own_dispatcher(void *transport_ctx, size_t tx_stride_sz,
       &config, own_dispatcher_kernel, args);
 }
 
+// Recorded on the launcher's stream after the kernel by launch_then_fail.
+cudaEvent_t own_dispatcher_done = nullptr;
+
+// Enqueues the application's kernel, then fails anyway.
+cudaq_status_t launch_then_fail(void *transport_ctx, size_t tx_stride_sz,
+                                cudaq_function_entry_t *function_table,
+                                size_t func_count, volatile int *shutdown_flag,
+                                uint64_t *stats, uint32_t threads_per_block,
+                                cudaStream_t stream) {
+  if (launch_own_dispatcher(transport_ctx, tx_stride_sz, function_table,
+                            func_count, shutdown_flag, stats, threads_per_block,
+                            stream) != CUDAQ_OK ||
+      cudaEventRecord(own_dispatcher_done, stream) != cudaSuccess)
+    return CUDAQ_ERR_CUDA;
+  return CUDAQ_ERR_INTERNAL;
+}
+
 class GpuDataplaneTest : public ::testing::Test {
 protected:
   void SetUp() override {
@@ -324,6 +341,25 @@ TEST_F(GpuDataplaneTest, StartFailsWhenTheApplicationLaunchFails) {
   // Far more cooperative blocks than can be resident at once.
   use_own_dispatcher(b, d, 1u << 20, true);
   EXPECT_EQ(cudaq_dispatcher_start(d), CUDAQ_ERR_CUDA);
+}
+
+// A launcher that fails after enqueueing its kernel: start stops the kernel
+// before returning, so destroy() never unloads the module under it.
+TEST_F(GpuDataplaneTest, StartStopsAKernelItsLauncherEnqueuedBeforeFailing) {
+  auto b = bridge();
+  auto *d = dispatcher();
+  use_own_dispatcher(b, d, 1, false);
+  ASSERT_EQ(
+      cudaEventCreateWithFlags(&own_dispatcher_done, cudaEventDisableTiming),
+      cudaSuccess);
+  ASSERT_EQ(cudaq_dispatcher_set_unified_launch(d, launch_then_fail, nullptr),
+            CUDAQ_OK);
+  EXPECT_EQ(cudaq_dispatcher_start(d), CUDAQ_ERR_INTERNAL);
+  EXPECT_EQ(static_cast<int>(*h_shutdown), 1);
+  // The kernel, and the marker behind it, finished before start returned.
+  EXPECT_EQ(cudaEventQuery(own_dispatcher_done), cudaSuccess);
+  cudaEventDestroy(own_dispatcher_done);
+  own_dispatcher_done = nullptr;
 }
 
 // The application's launcher does not lift the guard on handler addresses.
