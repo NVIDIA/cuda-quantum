@@ -96,7 +96,7 @@ def verifyExpectedMapping(decoded_payload, entry_func_name):
     if "mapping" not in entry_func_name:
         return
 
-    required_tokens = ["@mapped_wireset", "mapping_v2p", "mapping_reorder_idx"]
+    required_tokens = ["@mapped_wireset", "mapping_v2p"]
     for token in required_tokens:
         if token not in decoded_payload:
             raise RuntimeError(

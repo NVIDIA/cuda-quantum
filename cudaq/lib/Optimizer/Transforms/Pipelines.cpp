@@ -132,6 +132,11 @@ void cudaq::opt::registerConvertToLinearValuesPipeline() {
 static void createTargetPrepPipeline(OpPassManager &pm,
                                      const TargetPrepPipelineOptions &options) {
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createInjectImplicitOutput());
+  // Split a veq evince into one operand per qubit straight away. Left whole it
+  // would survive factor-quantum-alloc, which then has to rebuild the veq with
+  // a concat just to feed it, and that concat keeps memtoreg from reaching
+  // wire form.
+  pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandVeqUses());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createAddDeallocs());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddMetadata());
   pm.addPass(cudaq::opt::createQuakePropagateMetadata());

@@ -62,7 +62,6 @@ static void createPrepareForWiresetPipeline(
   auto &funcPM = pm.nest<func::FuncOp>();
   funcPM.addPass(cudaq::opt::createExpandMeasurementsPass());
   funcPM.addPass(cudaq::opt::createAddDeallocs());
-  funcPM.addPass(cudaq::opt::createEraseCompilerGeneratedEvince());
   funcPM.addPass(cudaq::opt::createExpandControlVeqs());
   funcPM.addPass(cudaq::opt::createCombineQuantumAllocations());
   funcPM.addPass(createCanonicalizerPass());

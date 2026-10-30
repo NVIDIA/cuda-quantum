@@ -6,30 +6,28 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_noncontiguous_line.txt) placement=auto     search=none'  %s | FileCheck --implicit-check-not=quake.swap %s
-// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_noncontiguous_line.txt) placement=auto     search=sabre' %s | FileCheck --implicit-check-not=quake.swap %s
-// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_noncontiguous_line.txt) placement=greedy   search=none'  %s | FileCheck --implicit-check-not=quake.swap %s
-// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_noncontiguous_line.txt) placement=greedy   search=sabre' %s | FileCheck --implicit-check-not=quake.swap %s
+// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_noncontiguous_line.txt) placement=auto     search=none' --add-measurements=use-evince=1  %s | FileCheck --implicit-check-not=quake.swap %s
+// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_noncontiguous_line.txt) placement=auto     search=sabre' --add-measurements=use-evince=1 %s | FileCheck --implicit-check-not=quake.swap %s
+// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_noncontiguous_line.txt) placement=greedy   search=none' --add-measurements=use-evince=1  %s | FileCheck --implicit-check-not=quake.swap %s
+// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_noncontiguous_line.txt) placement=greedy   search=sabre' --add-measurements=use-evince=1 %s | FileCheck --implicit-check-not=quake.swap %s
 // RUN: not cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_noncontiguous_line.txt) placement=identity'  %s 2>&1 | FileCheck --check-prefix=IDENTITY %s
 
 quake.wire_set @wires[2147483647]
 
-func.func @noncontiguous_ghz() {
+func.func @noncontiguous_ghz() attributes {"cudaq-entrypoint"} {
   %q0 = quake.borrow_wire @wires[0] : !quake.wire
   %q1 = quake.borrow_wire @wires[1] : !quake.wire
   %q2 = quake.borrow_wire @wires[2] : !quake.wire
   %a:2 = quake.x [%q0] %q1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %b:2 = quake.x [%a#1] %q2 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-  %m0, %w0 = quake.mz %a#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
-  %m1, %w1 = quake.mz %b#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
-  %m2, %w2 = quake.mz %b#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
-  quake.return_wire %w0 : !quake.wire
-  quake.return_wire %w1 : !quake.wire
-  quake.return_wire %w2 : !quake.wire
+  %ev:3 = quake.evince %a#0, %b#0, %b#1 : (!quake.wire, !quake.wire, !quake.wire) -> (!quake.wire, !quake.wire, !quake.wire) {compilerGenerated}
+  quake.return_wire %ev#0 : !quake.wire
+  quake.return_wire %ev#1 : !quake.wire
+  quake.return_wire %ev#2 : !quake.wire
   return
 }
 
-// CHECK-LABEL:   func.func @noncontiguous_ghz() attributes {mapping_reorder_idx = [0, 1, 2], mapping_v2p = [1, 5, 9]} {
+// CHECK-LABEL:   func.func @noncontiguous_ghz() attributes {"cudaq-entrypoint", mapping_reorder_idx = [0, 1, 2], mapping_v2p = [1, 5, 9]} {
 // CHECK:           %[[BORROW_WIRE_0:.*]] = quake.borrow_wire @mapped_wireset[1] : !quake.wire
 // CHECK:           %[[BORROW_WIRE_1:.*]] = quake.borrow_wire @mapped_wireset[5] : !quake.wire
 // CHECK:           %[[BORROW_WIRE_2:.*]] = quake.borrow_wire @mapped_wireset[9] : !quake.wire

@@ -22,9 +22,12 @@ config:
   # nvq++ links it in; on the JIT/Python path nothing links it, so it must
   # be dlopen'd before `platform-qpu` can be found in the QPU registry.
   plugin-libraries: ["libcudaq-rest-qpu"]
+  # This target routes onto a coupling graph, so the backend reports its
+  # register sorted by physical qubit.
+  needs-reorder-idx: true
   # Define the JIT lowering pipeline
   jit-high-level-pipeline: "expand-measurements"
-  jit-mid-level-pipeline: "func.func(erase-implicit-output),anyon-%Q_GATE%-set-mapping,func.func(add-dealloc,combine-quantum-alloc,canonicalize,factor-quantum-alloc,dqe,cse,memtoreg),add-wireset,func.func(assign-wire-indices),qubit-mapping{device=file(%QPU_ARCH%)},func.func(regtomem)"
+  jit-mid-level-pipeline: "anyon-%Q_GATE%-set-mapping,func.func(add-dealloc,combine-quantum-alloc,canonicalize,factor-quantum-alloc,dqe,cse,memtoreg),add-wireset,func.func(assign-wire-indices),qubit-mapping{device=file(%QPU_ARCH%)},func.func(regtomem)"
   # Tell the rest-qpu that we are generating Adaptive QIR.
   codegen-emission: qir-adaptive
 

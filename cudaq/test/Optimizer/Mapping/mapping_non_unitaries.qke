@@ -22,6 +22,14 @@
 // RUN: cudaq-opt --qubit-mapping=device=grid\(5,1\) %s | FileCheck %s
 // RUN: cudaq-opt --qubit-mapping=device=path\(5\) --qubit-mapping=device=path\(5\) %s | FileCheck --check-prefix=IDEMPOTENT %s
 
+// This kernel measures explicitly, which `sample` and `observe` no longer
+// support: they add their own measurements after mapping, keyed off the
+// `quake.evince` ops. It is kept in explicit-measurement form on purpose, to
+// cover mapping a measurement for `cudaq::run`, which does support them. That
+// is also why no `mapping_reorder_idx` is expected below -- the attribute is
+// emitted by `add-measurements`, which bails out when the kernel already has
+// measurements of its own.
+
 quake.wire_set @wires[2147483647]
 
 func.func @test_measurement() {
@@ -38,7 +46,7 @@ func.func @test_measurement() {
   return
 }
 
-// CHECK-LABEL:   func.func @test_measurement() attributes {mapping_reorder_idx = [0, 2, 1], mapping_v2p = [0, 2, 1]} {
+// CHECK-LABEL:   func.func @test_measurement() attributes {mapping_v2p = [0, 2, 1]} {
 // CHECK:           %[[VAL_0:.*]] = quake.borrow_wire @mapped_wireset
 // CHECK:           %[[VAL_1:.*]] = quake.borrow_wire @mapped_wireset
 // CHECK:           %[[VAL_2:.*]] = quake.borrow_wire @mapped_wireset
@@ -53,6 +61,6 @@ func.func @test_measurement() {
 // CHECK:           return
 // CHECK:         }
 
-// STAR52-LABEL:   func.func @test_measurement() attributes {mapping_reorder_idx = [0, 1, 2], mapping_v2p = [0, 1, 2]} {
-// STAR50-LABEL:   func.func @test_measurement() attributes {mapping_reorder_idx = [2, 1, 0], mapping_v2p = [2, 1, 0]} {
-// IDEMPOTENT-LABEL: func.func @test_measurement() attributes {mapping_reorder_idx = [0, 2, 1], mapping_v2p = [0, 2, 1]} {
+// STAR52-LABEL:   func.func @test_measurement() attributes {mapping_v2p = [0, 1, 2]} {
+// STAR50-LABEL:   func.func @test_measurement() attributes {mapping_v2p = [2, 1, 0]} {
+// IDEMPOTENT-LABEL: func.func @test_measurement() attributes {mapping_v2p = [0, 2, 1]} {

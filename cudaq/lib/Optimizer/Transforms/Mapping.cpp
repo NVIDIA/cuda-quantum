@@ -2599,7 +2599,6 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
                SmallVectorImpl<cudaq::quake::BorrowWireOp> &sources,
                SmallVectorImpl<cudaq::quake::ReturnWireOp> &returnsToRemove,
                DenseMap<Value, cudaq::Placement::VirtualQ> &wireToVirtualQ,
-               SmallVectorImpl<std::size_t> &userQubitsMeasured,
                DenseMap<std::size_t, Value> &finalQubitWire,
                Operation *&lastSource, VirtualInteractionGraph &interactions,
                SmallVectorImpl<bool> &userVirtualQubits) {
@@ -2664,8 +2663,8 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
             wireToVirtualQ.insert({regionArg, wireToVirtualQ[linArg]});
           analyzeBlock(region->front(), /*doCollectInteractions=*/false, &op,
                        analysisOk, sources, returnsToRemove, wireToVirtualQ,
-                       userQubitsMeasured, finalQubitWire, lastSource,
-                       interactions, userVirtualQubits);
+                       finalQubitWire, lastSource, interactions,
+                       userVirtualQubits);
           if (!analysisOk)
             return;
         }
@@ -2675,8 +2674,8 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
       } else if (auto scope = dyn_cast<cudaq::cc::ScopeOp>(op)) {
         analyzeBlock(scope.getInitRegion().front(), doCollectInteractions, &op,
                      analysisOk, sources, returnsToRemove, wireToVirtualQ,
-                     userQubitsMeasured, finalQubitWire, lastSource,
-                     interactions, userVirtualQubits);
+                     finalQubitWire, lastSource, interactions,
+                     userVirtualQubits);
         if (!analysisOk)
           return;
         llvm::SmallSet<unsigned, 16> returnedVQs;
@@ -2730,8 +2729,8 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
         // not a loop exit, so we don't map it to the loop results.
         analyzeBlock(*bodyBlock, /*doCollectInteractions=*/false, nullptr,
                      analysisOk, sources, returnsToRemove, wireToVirtualQ,
-                     userQubitsMeasured, finalQubitWire, lastSource,
-                     interactions, userVirtualQubits);
+                     finalQubitWire, lastSource, interactions,
+                     userVirtualQubits);
         if (!analysisOk)
           return;
         // Overwrite finalQubitWire with the loop results; the body
@@ -2783,9 +2782,6 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
           analysisOk = false;
           return;
         }
-        if (isa<cudaq::quake::MeasurementInterface>(op))
-          for (auto virtualQ : virtualOperands)
-            userQubitsMeasured.push_back(virtualQ.index);
         if (doCollectInteractions && isa<cudaq::quake::OperatorInterface>(op) &&
             wireOperands.size() == 2) {
           interactions.addInteraction(virtualOperands[0].index,
@@ -3029,7 +3025,6 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
     SmallVector<cudaq::quake::BorrowWireOp> sources(deviceNumQubits);
     SmallVector<cudaq::quake::ReturnWireOp> returnsToRemove;
     DenseMap<Value, cudaq::Placement::VirtualQ> wireToVirtualQ;
-    SmallVector<std::size_t> userQubitsMeasured;
     DenseMap<std::size_t, Value> finalQubitWire;
     Operation *lastSource = nullptr;
 
@@ -3155,8 +3150,8 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
 
     bool analysisOk = true;
     analyzeBlock(block, /*doCollectInteractions=*/true, nullptr, analysisOk,
-                 sources, returnsToRemove, wireToVirtualQ, userQubitsMeasured,
-                 finalQubitWire, lastSource, interactions, userVirtualQubits);
+                 sources, returnsToRemove, wireToVirtualQ, finalQubitWire,
+                 lastSource, interactions, userVirtualQubits);
     if (!analysisOk)
       return;
 
@@ -3304,43 +3299,10 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
 
     func->setAttr("mapping_v2p", builder.getArrayAttr(attrs));
 
-    // Now populate mapping_reorder_idx attribute. This attribute will be used
-    // by downstream processing to reconstruct a global register as if mapping
-    // had not occurred. This is important because the global register is
-    // required to be sorted by qubit allocation order, and mapping can change
-    // that apparent order AND introduce ancilla qubits that we don't want to
-    // appear in the final global register.
-
-    // pair is <first=virtual, second=physical>
-    using VirtPhyPairType = std::pair<std::size_t, std::size_t>;
-    llvm::SmallVector<VirtPhyPairType> measuredQubits;
-    measuredQubits.reserve(userQubitsMeasured.size());
-    for (auto mq : userQubitsMeasured) {
-      measuredQubits.emplace_back(
-          mq, bestLayout.getPhy(cudaq::Placement::VirtualQ(mq)).index);
-    }
-    // First sort the pairs according to the physical qubits.
-    llvm::sort(measuredQubits,
-               [&](const VirtPhyPairType &a, const VirtPhyPairType &b) {
-                 return a.second < b.second;
-               });
-    // Now find out how to reorder `measuredQubits` such that the elements are
-    // ordered based on the *virtual* qubits (i.e. measuredQubits[].first).
-    llvm::SmallVector<std::size_t> reorder_idx(measuredQubits.size());
-    for (std::size_t ix = 0; auto &element : reorder_idx)
-      element = ix++;
-    llvm::sort(reorder_idx, [&](const std::size_t &i1, const std::size_t &i2) {
-      return measuredQubits[i1].first < measuredQubits[i2].first;
-    });
-    // After kernel execution is complete, you can pass reorder_idx[] into
-    // sample_result::reorder() in order to undo the ordering change to the
-    // global register that the mapping pass induced.
-    llvm::SmallVector<Attribute> mapping_reorder_idx(reorder_idx.size());
-    for (std::size_t ix = 0; auto &element : mapping_reorder_idx)
-      element = IntegerAttr::get(builder.getIntegerType(64), reorder_idx[ix++]);
-
-    func->setAttr("mapping_reorder_idx",
-                  builder.getArrayAttr(mapping_reorder_idx));
+    // NB: `mapping_reorder_idx` is *not* populated here. Measurements are
+    // added after this pass now, so there is nothing to collect at this point.
+    // The pass that adds them derives the attribute from `mapping_v2p` and the
+    // set of qubits it measured. See AddMeasurements.cpp.
   }
 };
 

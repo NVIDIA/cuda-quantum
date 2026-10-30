@@ -22,6 +22,7 @@
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeInterfaces.h"
+#include "cudaq/Optimizer/Dialect/Quake/QuakeOps.h"
 #include "cudaq/Optimizer/Transforms/AddMetadata.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/runtime/logger/logger.h"
@@ -89,21 +90,65 @@ nlohmann::json formOutputNames(const std::string &codegenTranslation,
   }
   return output_names;
 }
-/// Extract qubit-mapping reorder indices from the entry-point attributes.
-std::vector<std::size_t> extractMappingReorderIdx(mlir::ModuleOp moduleOp,
+/// Compute the permutation that restores the global register to qubit
+/// allocation order, by walking the lowered entry point.
+///
+/// A routed backend reports the register sorted by physical qubit, while the
+/// measurements sit in allocation order, so pairing the two gives the
+/// permutation. The physical qubit is read straight off the IR: `regtomem`
+/// leaves the allocas in physical order, and in value semantics a wire carries
+/// its own index and threads through the gates. Ancillas introduced by routing
+/// are never measured, so they stay out of the register.
+std::vector<std::size_t> computeMappingReorderIdx(mlir::ModuleOp moduleOp,
                                                   mlir::func::FuncOp epFunc) {
   assert(moduleOp.template lookupSymbol<mlir::func::FuncOp>(epFunc.getName()) &&
          "Entry point function must survive the lowering pipeline.");
-  std::vector<std::size_t> mapping_reorder_idx;
-  if (auto mappingAttr = dyn_cast_if_present<mlir::ArrayAttr>(
-          epFunc->getAttr("mapping_reorder_idx"))) {
-    mapping_reorder_idx.resize(mappingAttr.size());
-    std::transform(mappingAttr.begin(), mappingAttr.end(),
-                   mapping_reorder_idx.begin(), [](mlir::Attribute attr) {
-                     return mlir::cast<mlir::IntegerAttr>(attr).getInt();
-                   });
-  }
-  return mapping_reorder_idx;
+  auto linearOnly = [](auto &&values) {
+    return llvm::to_vector(llvm::make_filter_range(values, [](mlir::Value v) {
+      return cudaq::quake::isLinearType(v.getType());
+    }));
+  };
+
+  llvm::DenseMap<mlir::Value, std::size_t> physical;
+  std::size_t numAllocated = 0;
+  // pair is <first=allocation order, second=physical>
+  llvm::SmallVector<std::pair<std::size_t, std::size_t>> measured;
+  epFunc.walk([&](mlir::Operation *op) {
+    if (auto alloc = mlir::dyn_cast<cudaq::quake::AllocaOp>(op)) {
+      physical[alloc.getResult()] = numAllocated++;
+      return;
+    }
+    if (auto borrow = mlir::dyn_cast<cudaq::quake::BorrowWireOp>(op)) {
+      physical[borrow.getResult()] = borrow.getIdentity();
+      return;
+    }
+    if (op->hasTrait<cudaq::QuantumMeasure>())
+      for (mlir::Value opnd : op->getOperands()) {
+        auto iter = physical.find(opnd);
+        if (iter != physical.end())
+          measured.emplace_back(measured.size(), iter->second);
+      }
+    // Thread the qubit onwards: a linear result continues the operand of the
+    // same rank among them.
+    for (auto [in, out] :
+         llvm::zip(linearOnly(op->getOperands()), linearOnly(op->getResults())))
+      if (auto iter = physical.find(in); iter != physical.end())
+        physical[out] = iter->second;
+  });
+  if (measured.empty())
+    return {};
+
+  // Sort by physical qubit, which is the order the backend reports, then find
+  // the permutation that restores allocation order.
+  llvm::sort(measured,
+             [](const auto &a, const auto &b) { return a.second < b.second; });
+  std::vector<std::size_t> reorderIdx(measured.size());
+  for (std::size_t ix = 0; auto &element : reorderIdx)
+    element = ix++;
+  llvm::sort(reorderIdx, [&](const std::size_t &i1, const std::size_t &i2) {
+    return measured[i1].first < measured[i2].first;
+  });
+  return reorderIdx;
 }
 } // namespace
 
@@ -471,15 +516,6 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::compile(
     }
   }
 
-  if (options.addSampleMeasurements &&
-      !target.supportSampleWithoutMeasurements) {
-    // No need to add measurements only to remove them eventually
-    if (target.codegen.postCodegenPasses.find("remove-measurements") ==
-        std::string::npos)
-      applyPipeline("func.func(add-measurements{use-evince=1})", moduleOp,
-                    kernelName);
-  }
-
   auto [combineMeasurements, passPipeline] =
       executeMainPipeline(moduleOp, kernelName, resolvedOptions);
 
@@ -498,9 +534,27 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::compile(
         "Skipping counting resources from IR as target does not support it.");
   }
 
+  // Add the measurements for `sample` in front of the `quake.evince` ops that
+  // mark the qubits the user declared, then erase those ops. This runs after
+  // the main pipeline so that the measurements land on the mapped qubits and
+  // so that ancillas introduced along the way -- which carry no evince -- stay
+  // out of the global register.
+  if (options.addSampleMeasurements &&
+      !target.supportSampleWithoutMeasurements &&
+      target.needsImplicitMeasurements) {
+    // No need to add measurements only to remove them eventually
+    if (target.codegen.postCodegenPasses.find("remove-measurements") ==
+        std::string::npos)
+      applyPipeline(
+          "func.func(add-measurements{use-evince=1},erase-implicit-output)",
+          moduleOp, kernelName);
+  }
+
+  // NB: this must follow the pass above, which is what adds the measurements
+  // the permutation is derived from.
   std::vector<std::size_t> mapping_reorder_idx;
-  if (options.storeReorderIdx)
-    mapping_reorder_idx = extractMappingReorderIdx(moduleOp, epFunc);
+  if (options.storeReorderIdx && target.needsReorderIdx)
+    mapping_reorder_idx = computeMappingReorderIdx(moduleOp, epFunc);
 
   // Warn if kernel has named measurement registers (sub-registers).
   if (options.warnNamedMeasurements) {
@@ -552,6 +606,10 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::compile(
       if (failed(cudaq_internal::compiler::runPassManager(
               pm, tmpModuleOp.getOperation())))
         throw std::runtime_error("Could not apply measurements to ansatz.");
+      // The ansatz carries its own measurements now, so the evince ops marking
+      // the declared qubits have served their purpose.
+      applyPipeline("func.func(erase-implicit-output)", tmpModuleOp,
+                    kernelName);
       // The full pass pipeline was run above, but the ansatz pass can
       // introduce gates that aren't supported by the backend, so we need to
       // re-run the gate set mapping if that existed in the original pass

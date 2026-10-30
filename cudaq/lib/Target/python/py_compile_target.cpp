@@ -83,6 +83,9 @@ void cudaq::bindCompileTarget(nb::module_ &m) {
       .def_rw("fully_specialize", &cudaq::CompileTarget::fullySpecialize)
       .def_rw("argument_synth_change_semantics",
               &cudaq::CompileTarget::argumentSynthChangeSemantics)
+      .def_rw("needs_reorder_idx", &cudaq::CompileTarget::needsReorderIdx)
+      .def_rw("needs_implicit_measurements",
+              &cudaq::CompileTarget::needsImplicitMeasurements)
       .def_rw("disable_qubit_mapping",
               &cudaq::CompileTarget::disableQubitMapping)
       .def_rw("replace_state_with_kernel",

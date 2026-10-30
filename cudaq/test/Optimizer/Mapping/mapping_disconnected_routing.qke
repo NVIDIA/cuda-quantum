@@ -6,22 +6,21 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_line.txt) placement=identity search=none' %s | FileCheck --implicit-check-not=quake.swap %s
+// RUN: cudaq-opt '--qubit-mapping=device=file(%S/mapping_disconnected_line.txt) placement=identity search=none' --add-measurements=use-evince=1 %s | FileCheck --implicit-check-not=quake.swap %s
 
 quake.wire_set @wires[2147483647]
 
-func.func @route_line_endpoints() {
+func.func @route_line_endpoints() attributes {"cudaq-entrypoint"} {
   %q5 = quake.borrow_wire @wires[5] : !quake.wire
   %q7 = quake.borrow_wire @wires[7] : !quake.wire
   %0:2 = quake.x [%q5] %q7 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-  %m0, %w0 = quake.mz %0#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
-  %m1, %w1 = quake.mz %0#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
-  quake.return_wire %w0 : !quake.wire
-  quake.return_wire %w1 : !quake.wire
+  %ev:2 = quake.evince %0#0, %0#1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire) {compilerGenerated}
+  quake.return_wire %ev#0 : !quake.wire
+  quake.return_wire %ev#1 : !quake.wire
   return
 }
 
-// CHECK-LABEL:   func.func @route_line_endpoints() attributes {mapping_reorder_idx = [0, 1], mapping_v2p = [0, 1, 2, 3, 4, 6, 5, 7]} {
+// CHECK-LABEL:   func.func @route_line_endpoints() attributes {"cudaq-entrypoint", mapping_reorder_idx = [0, 1], mapping_v2p = [0, 1, 2, 3, 4, 6, 5, 7]} {
 // CHECK:           %[[BORROW_WIRE_0:.*]] = quake.borrow_wire @mapped_wireset[5] : !quake.wire
 // CHECK:           %[[BORROW_WIRE_1:.*]] = quake.borrow_wire @mapped_wireset[7] : !quake.wire
 // CHECK:           %[[BORROW_WIRE_2:.*]] = quake.borrow_wire @mapped_wireset[6] : !quake.wire
