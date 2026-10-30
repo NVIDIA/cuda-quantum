@@ -16,6 +16,7 @@
 #include "cudaq_internal/compiler/CompiledModuleHelper.h"
 #include "cudaq_internal/compiler/Compiler.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
+#include "cudaq/Optimizer/Builder/OptimizationLevel.h"
 #include "cudaq/Target/CompileTarget.h"
 #include "cudaq/Target/TargetConfig.h"
 #include "mlir/IR/BuiltinOps.h"
@@ -593,6 +594,29 @@ void test_optimization_level_0(mlir::MLIRContext *ctx) {
 // CHECK-NOT:     {{[(,]}}dqe{{[,)]}}
 // CHECK:         cc-to-llvm
 
+/// An optimization level specified as MLIR attribute overrides the level in the
+/// compile options, through codegen
+void test_optimization_level_attr(mlir::MLIRContext *ctx) {
+  cudaq::CompileTarget target;
+  target.codegen.emissionFormat = "qir-base";
+  auto mod = mlir::parseSourceString<mlir::ModuleOp>(measureKernel, ctx);
+  cudaq::runtime::setOptimizationLevel(
+      mod->lookupSymbol("__nvqpp__mlirgen__measure"), 0);
+  llvm::outs() << "Kernel optimization level 0 codegen:\n";
+  Compiler compiler(target, cudaq::CompileOptions{});
+  cudaq_internal::compiler::setRunPassManagerHook(&printPipeline);
+  auto compiled = compiler.compile(
+      "measure", mod.release().getAsOpaquePointer(), cudaq::KernelArgs{},
+      /*isEntryPoint=*/true);
+  cudaq_internal::compiler::setRunPassManagerHook(nullptr);
+}
+
+// CHECK-LABEL: Kernel optimization level 0 codegen:
+// CHECK:         combine-quantum-alloc
+// CHECK-NOT:     quake-simplify
+// CHECK-NOT:     {{[(,]}}dqe{{[,)]}}
+// CHECK:         cc-to-llvm
+
 int main() {
   auto context = cudaq_internal::compiler::getOwningMLIRContext();
 
@@ -609,5 +633,6 @@ int main() {
   test_quake_unmapped_specialization(context.get());
   test_quake_mapped_levels(context.get());
   test_optimization_level_0(context.get());
+  test_optimization_level_attr(context.get());
   return 0;
 }

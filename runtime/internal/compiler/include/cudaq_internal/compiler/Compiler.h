@@ -107,7 +107,8 @@ class Compiler {
 
   /// Translate \p module according to the target's `codegen` emission format.
   /// Returns the target code and its JSON-serialized output names mapping.
-  std::pair<std::string, std::string> emitTargetCode(mlir::ModuleOp module);
+  std::pair<std::string, std::string> emitTargetCode(mlir::ModuleOp module,
+                                                     bool disableQuantumOpts);
 
 public:
   const cudaq::CompileTarget &getTarget() const { return target; }

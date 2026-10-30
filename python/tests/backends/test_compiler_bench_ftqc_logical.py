@@ -23,11 +23,6 @@ cudaq._register_target_config(
 
 FTQC_LOGICAL_TARGET = 'compiler-bench-ftqc-logical'
 
-# The target snaps angles and fuses rotations from optimization level 2. Python
-# compiles at the default level 1 until it can select a level.
-needs_level_2 = pytest.mark.skip(
-    reason="needs optimization level 2, which Python cannot select yet")
-
 ALLOWED_LOGICAL_OPS = {
     'h', 's', 'sdg', 't', 'tdg', 'rx', 'ry', 'rz', 'x', 'y', 'z', 'swap', 'cx',
     'cy', 'cz', 'ccx', 'ccz', 'mx', 'my', 'mz'
@@ -179,7 +174,6 @@ def test_exp_pauli_lowers_to_logical_basis():
     assert ops.get('cx', 0) >= 1
 
 
-@needs_level_2
 def test_exact_exp_pauli_avoids_rotation_resources():
     cudaq.set_target(FTQC_LOGICAL_TARGET)
 
@@ -189,14 +183,13 @@ def test_exact_exp_pauli_avoids_rotation_resources():
     # `-pi/4` before exact-angle simplification instead of reaching `gridsynth`.
     kernel.exp_pauli(0.39269908169872414, q, "Z")
 
-    ops = cudaq.estimate_resources(kernel).to_dict()
+    ops = cudaq.estimate_resources(kernel, optimization_level=2).to_dict()
     assert_logical_basis_only(ops)
     assert 'exp_pauli' not in ops, f"exp_pauli did not lower: {ops}"
     assert not {'rx', 'ry', 'rz'}.intersection(ops)
     assert ops.get('t', 0) + ops.get('tdg', 0) == 1
 
 
-@needs_level_2
 def test_exact_clifford_t_angles_avoid_rotation_resources():
     cudaq.set_target(FTQC_LOGICAL_TARGET)
 
@@ -208,7 +201,7 @@ def test_exact_clifford_t_angles_avoid_rotation_resources():
     kernel.rx(quarter_turn, q[2])
     kernel.ry(quarter_turn, q[3])
 
-    ops = cudaq.estimate_resources(kernel).to_dict()
+    ops = cudaq.estimate_resources(kernel, optimization_level=2).to_dict()
     assert_logical_basis_only(ops)
     assert not {'r1', 'rx', 'ry', 'rz'}.intersection(ops), (
         f"Exact Clifford+T rotations survived target lowering: {ops}")
@@ -217,7 +210,6 @@ def test_exact_clifford_t_angles_avoid_rotation_resources():
     assert ops.get('s', 0) + ops.get('sdg', 0) == 2
 
 
-@needs_level_2
 def test_tolerance_controls_thresholded_canonicalization():
     kernel = cudaq.make_kernel()
     q = kernel.qalloc()
@@ -225,13 +217,14 @@ def test_tolerance_controls_thresholded_canonicalization():
     kernel.r1(0.7862981633974483, q)
 
     cudaq.set_target(FTQC_LOGICAL_TARGET)
-    exact_ops = cudaq.estimate_resources(kernel).to_dict()
+    exact_ops = cudaq.estimate_resources(kernel, optimization_level=2).to_dict()
     assert exact_ops.get('rz', 0) == 1
     assert exact_ops.get('t', 0) + exact_ops.get('tdg', 0) == 0
 
     cudaq.reset_target()
     set_target_with_tolerance(1e-3)
-    threshold_ops = cudaq.estimate_resources(kernel).to_dict()
+    threshold_ops = cudaq.estimate_resources(kernel,
+                                             optimization_level=2).to_dict()
     assert threshold_ops.get('rz', 0) == 0
     assert threshold_ops.get('t', 0) + threshold_ops.get('tdg', 0) == 1
 
@@ -258,7 +251,6 @@ def test_dynamic_controlled_axis_callable_is_rejected(capfd):
     assert "failed to legalize operation 'quake.rz'" in capfd.readouterr().err
 
 
-@needs_level_2
 def test_fuses_constant_one_qubit_rotations():
     cudaq.set_target(FTQC_LOGICAL_TARGET)
 
@@ -271,6 +263,6 @@ def test_fuses_constant_one_qubit_rotations():
     kernel.rz(0.7, q[0])
     kernel.rx(0.2, q[0])
 
-    ops = cudaq.estimate_resources(kernel).to_dict()
+    ops = cudaq.estimate_resources(kernel, optimization_level=2).to_dict()
     assert_logical_basis_only(ops)
     assert sum(ops.get(gate, 0) for gate in ('rx', 'ry', 'rz')) == 3, ops

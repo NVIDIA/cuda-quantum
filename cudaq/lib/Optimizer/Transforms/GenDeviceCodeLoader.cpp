@@ -162,16 +162,7 @@ public:
       llvm::SetVector<mlir::func::FuncOp> deps;
       collectDependentFunctions(dependencySymbols, funcOp, deps);
 
-      // The bridge marks the module when any kernel in the source file
-      // disables quantum optimization, but the JIT reads the marker from the
-      // module it compiles. Keep it only for a kernel whose module includes a
-      // marked function, so the other kernels in the file are still optimized.
-      NamedAttrList moduleAttrs(module->getAttrDictionary());
-      if (llvm::none_of(deps, [](func::FuncOp dep) {
-            return dep->hasAttr(cudaq::runtime::disableQuantumOpts);
-          }))
-        moduleAttrs.erase(cudaq::runtime::disableQuantumOpts);
-      strOut << "module attributes " << moduleAttrs.getDictionary(ctx) << " { ";
+      strOut << "module attributes " << module->getAttrDictionary() << " { ";
 
       for (mlir::func::FuncOp parentFuncOp : deps) {
         LLVM_DEBUG(llvm::dbgs() << "  Adding dependent function "
