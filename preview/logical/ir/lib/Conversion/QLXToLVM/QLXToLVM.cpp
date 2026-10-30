@@ -4,7 +4,7 @@
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "qlx/Conversion/Passes.h"
 #include "qlx/Dialect/Cflow/IR/CflowOps.h"
@@ -108,7 +108,8 @@ private:
 
   LogicalResult indexSpaces() {
     for (auto space : domain.getBody().getOps<qlx::lvm::SpaceOp>()) {
-      SpaceState state{space};
+      SpaceState state;
+      state.op = space;
       if (auto capacity = space.getCapacityAttr())
         state.capacity = capacity.getInt();
       spaces.push_back(state);

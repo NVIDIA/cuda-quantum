@@ -13,7 +13,8 @@ quake.wire_set @wires[2147483647]
 func.func @test_reset() {
   %0 = quake.borrow_wire @wires[0] : !quake.wire
   %1 = quake.reset %0 : (!quake.wire) -> !quake.wire
-  quake.return_wire %1 : !quake.wire
+  %m, %w = quake.mz %1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  quake.return_wire %w : !quake.wire
   return
 }
 

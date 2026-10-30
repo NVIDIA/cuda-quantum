@@ -68,7 +68,6 @@ CONTROL_PORT=8193
 FORWARD=false
 UNIFIED=false
 THREADS=32
-HOST_DISPATCH=false
 # Build parallelism
 JOBS=$(nproc 2>/dev/null || echo 8)
 
@@ -139,7 +138,6 @@ while [[ $# -gt 0 ]]; do
         --forward)          FORWARD=true ;;
         --unified)          UNIFIED=true ;;
         --threads)          THREADS="$2"; shift ;;
-        --cpu)              HOST_DISPATCH=true ;;
         --timeout)          TIMEOUT="$2"; shift ;;
         --num-messages)     NUM_MESSAGES="$2"; shift ;;
         --payload-size)     PAYLOAD_SIZE="$2"; shift ;;
@@ -479,9 +477,6 @@ do_run() {
         bridge_args+=(--unified)
     fi
     bridge_args+=(--threads="$THREADS")
-    if $HOST_DISPATCH; then
-        bridge_args+=(--cpu)
-    fi
     CUDA_MODULE_LOADING=EAGER "$bridge_bin" "${bridge_args[@]}" > /tmp/bridge.log 2>&1 &
     BRIDGE_PID=$!
     PIDS+=($BRIDGE_PID)

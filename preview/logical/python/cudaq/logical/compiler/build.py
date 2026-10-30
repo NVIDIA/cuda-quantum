@@ -39,7 +39,7 @@ from .build_bundle import (
     _validate_v2_bundle,
     _validate_v2_nested_metadata,
 )
-from .context import _walk_operation
+from .context import _symbol_re, _walk_operation
 
 _logger = logging.getLogger("cudaq.logical")
 
@@ -2514,6 +2514,13 @@ class Build:
             raise ValueError(
                 "`to_quake()` requires a `Build` of a physical graph, "
                 f"not of a {self.root.kind}")
+        # The symbol is spliced into pass-pipeline text, where braces and
+        # quotes are syntax that quoting does not escape. Logical's symbols
+        # (`_symbol`) contain neither.
+        if not self.root.symbol or _symbol_re.search(self.root.symbol):
+            raise ValueError(
+                "`to_quake()` requires a root symbol of letters, digits, `_`, "
+                f"`.`, `$`, and `-`, not {self.root.symbol!r}")
 
         from cudaq.mlir._mlir_libs import _qlxRuntime
 

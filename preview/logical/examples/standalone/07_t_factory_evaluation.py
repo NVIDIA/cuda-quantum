@@ -155,6 +155,8 @@ raw_check = physical(raw_state_check, device)
 # Run on the GPU simulator when a GPU is present, and otherwise on the
 # density-matrix simulator. Both apply the noise model below. Without noise,
 # every attempt passes its checks and produces |T>.
+# Note: Without a GPU, there will be a noticeable decrease in simulation
+# performance.
 target = "nvidia" if cudaq.num_available_gpus() > 0 else "density-matrix-cpu"
 cudaq.set_target(target)
 assert cudaq.run(attempt, shots_count=100) == [[False] * 5] * 100

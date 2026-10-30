@@ -47,19 +47,6 @@ struct DeviceCallChannelCreateArgs {
   cudaq_dispatch_launch_fn_t launchFn = nullptr;
   // Optional service-provided synchronization hook for dispatch shutdown.
   cudaq::realtime::DeviceCallDispatchSynchronizeFn synchronizeFn = nullptr;
-  // Pinned host mailbox used by realtime host-dispatch graph launch. The host
-  // dispatcher fills `mailbox[worker_id]` with a GraphIOContext device pointer
-  // before launching the corresponding graph handler; the graph kernel reads
-  // it via the mailbox's device alias. Required for host_dispatch channels that
-  // contain GRAPH_LAUNCH entries (allocate with
-  // `cudaHostAlloc(..., cudaHostAllocMapped)` and size for the GRAPH_LAUNCH
-  // worker count). Unused by GPU-dispatch and HOST_CALL-only channels.
-  //
-  // Each graph_exec attached to a host-dispatch entry must signal completion
-  // with `__threadfence_system(); *io_ctx->tx_flag = io_ctx->tx_flag_value;`
-  // because CUDA-Q polls the realtime tx_flag and only returns to the caller
-  // once CUDAQ_TX_READY is observed.
-  void **mailbox = nullptr;
   // Registry/plugin channel name selected by the runtime configuration.
   std::string channelName;
   // Raw device_call command-line arguments for channel-specific parsing.

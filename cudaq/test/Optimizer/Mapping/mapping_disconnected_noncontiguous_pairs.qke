@@ -21,10 +21,14 @@ func.func @noncontiguous_pairs() {
   %q3 = quake.borrow_wire @wires[3] : !quake.wire
   %a:2 = quake.x [%q0] %q1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %b:2 = quake.x [%q2] %q3 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-  quake.return_wire %a#0 : !quake.wire
-  quake.return_wire %a#1 : !quake.wire
-  quake.return_wire %b#0 : !quake.wire
-  quake.return_wire %b#1 : !quake.wire
+  %m0, %w0 = quake.mz %a#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %m1, %w1 = quake.mz %a#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %m2, %w2 = quake.mz %b#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %m3, %w3 = quake.mz %b#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  quake.return_wire %w0 : !quake.wire
+  quake.return_wire %w1 : !quake.wire
+  quake.return_wire %w2 : !quake.wire
+  quake.return_wire %w3 : !quake.wire
   return
 }
 

@@ -108,16 +108,6 @@ struct CompileTarget {
 } // namespace cudaq
 
 template <>
-struct std::hash<cudaq::config::UncheckedProfile> {
-  std::size_t
-  operator()(const cudaq::config::UncheckedProfile &profile) const noexcept;
-};
-template <>
-struct std::hash<cudaq::config::QuakeReferenceSemanticsProfile> {
-  std::size_t operator()(const cudaq::config::QuakeReferenceSemanticsProfile
-                             &profile) const noexcept;
-};
-template <>
 struct std::hash<cudaq::config::CustomPipelineLowering> {
   std::size_t operator()(
       const cudaq::config::CustomPipelineLowering &lowering) const noexcept;

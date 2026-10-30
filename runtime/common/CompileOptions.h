@@ -11,6 +11,7 @@
 #include "cudaq/Support/Hash.h"
 #include "cudaq/operators.h"
 #include <cstddef>
+#include <cstdint>
 #include <optional>
 
 namespace cudaq {
@@ -84,6 +85,10 @@ struct CompileOptions {
 
   /// The optimization level to use for the compilation.
   OptimizationLevel optimizationLevel = OptimizationLevel::O1;
+
+  /// Seed for randomized compiler passes, such as Clifford+T synthesis.
+  /// Without one, their output can differ from run to run.
+  std::optional<std::uint64_t> seed;
 };
 
 } // namespace cudaq
@@ -100,6 +105,6 @@ struct std::hash<cudaq::CompileOptions> {
         o.emitJit, o.emitTargetCode, o.skipTargetLoweringPipeline,
         o.addSampleMeasurements, o.failOnConditionalsOnMeasureResults,
         o.emulate, o.disableQuantumOpts, o.boolVecBitPacked, pauliStr,
-        o.optimizationLevel);
+        o.optimizationLevel, o.seed);
   }
 };

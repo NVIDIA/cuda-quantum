@@ -1,0 +1,20 @@
+/*******************************************************************************
+ * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
+ * All rights reserved.                                                        *
+ *                                                                             *
+ * This source code and the accompanying materials are made available under    *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
+ ******************************************************************************/
+
+/// @file cudaq_realtime_dispatch_kernel_image.cpp.in
+/// @brief Configured by cudaq_realtime_add_dispatch_kernel: places a dispatch
+/// kernel's LTO-IR fatbin in this binary's __nv_relfatbin section, next to
+/// nvcc's own -rdc fatbins, so that cudaq_device_code_of_this_binary hands it
+/// over with the handlers.  No host object registers it, so the binary's own
+/// device link never sees it.
+
+// nvJitLink reads the fatbin's 8-byte header fields in place.
+asm(".section __nv_relfatbin,\"a\"\n"
+    ".balign 16\n"
+    ".incbin \"@_fatbin@\"\n"
+    ".previous\n");

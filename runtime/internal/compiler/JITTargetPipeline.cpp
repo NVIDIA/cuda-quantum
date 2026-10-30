@@ -58,8 +58,8 @@ getInferredStagePasses(
         std::unique_ptr<cudaq_internal::compiler::LoweringHandler>> &handlers,
     const cudaq::config::Profile &input, const cudaq::config::Profile &output,
     const cudaq::CompileOptions &options, std::string &diagnostic) {
-  const auto *handler = cudaq_internal::compiler::selectLoweringHandler(
-      handlers, input, output, options);
+  const auto *handler =
+      cudaq_internal::compiler::selectLoweringHandler(handlers, input, output);
   std::optional<cudaq_internal::compiler::StagePasses> passes;
   if (handler)
     passes = handler->getStagePasses(input, output, options);
@@ -176,4 +176,30 @@ std::optional<std::string> cudaq_internal::compiler::getPassPipeline(
 
   return applyDisableQubitMapping(
       buildPassPipeline(targetPasses, target, options), target);
+}
+
+bool cudaq_internal::compiler::specializesArguments(
+    const cudaq::CompileTarget &target,
+    const std::vector<std::unique_ptr<LoweringHandler>> &handlers) {
+  if (target.fullySpecialize)
+    return true;
+  cudaq::config::Profile inputProfile = cudaq::config::UncheckedProfile{};
+  for (const auto &stage : target.stages) {
+    if (std::holds_alternative<cudaq::config::InferredLowering>(
+            stage.lowering)) {
+      const auto *handler =
+          selectLoweringHandler(handlers, inputProfile, stage.irOutputProfile);
+      if (handler &&
+          handler->requiresArgumentValues(inputProfile, stage.irOutputProfile))
+        return true;
+    }
+    inputProfile = stage.irOutputProfile;
+  }
+  return false;
+}
+
+bool cudaq_internal::compiler::specializesArguments(
+    const cudaq::CompileTarget &target) {
+  static const auto builtinHandlers = makeBuiltinLoweringHandlers();
+  return specializesArguments(target, builtinHandlers);
 }

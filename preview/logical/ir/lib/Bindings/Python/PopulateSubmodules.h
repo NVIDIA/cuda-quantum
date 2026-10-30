@@ -1,18 +1,17 @@
-/*******************************************************************************
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 //
 // Internal header: declares the per-dialect "populate" functions used by
 // the single-module `_qlx_ext` extension.
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef QLX_BINDINGS_POPULATE_SUBMODULES_H
-#define QLX_BINDINGS_POPULATE_SUBMODULES_H
+#pragma once
 
 #include <nanobind/nanobind.h>
 
@@ -31,5 +30,3 @@ void populateFabricSubmodule(nanobind::module_ &m);
 void populateEventSubmodule(nanobind::module_ &m);
 
 } // namespace qlx::python
-
-#endif // QLX_BINDINGS_POPULATE_SUBMODULES_H
