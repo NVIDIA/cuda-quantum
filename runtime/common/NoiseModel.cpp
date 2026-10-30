@@ -99,30 +99,7 @@ bool validateCPTP(const std::vector<EigenMatTy> &mats,
   return isIdentity(cptp, threshold);
 }
 
-void validateCompletenessRelation_fp32(const std::vector<kraus_op> &ops) {
-  // First check that all the kraus_ops have the same size.
-  auto size = ops[0].nRows;
-  for (std::size_t i = 1; i < ops.size(); ++i)
-    if (ops[i].nRows != size)
-      throw std::runtime_error(
-          "Kraus ops passed to this channel do not all have the same size.");
-  typedef Eigen::Matrix<std::complex<float>, Eigen::Dynamic, Eigen::Dynamic,
-                        Eigen::RowMajor>
-      RowMajorMatTy;
-  std::vector<RowMajorMatTy> matrices;
-  for (auto &op : ops) {
-    auto *nonConstPtr = const_cast<complex *>(op.data.data());
-    Eigen::Map<RowMajorMatTy> map(
-        reinterpret_cast<std::complex<float> *>(nonConstPtr), op.nRows,
-        op.nCols);
-    matrices.push_back(map);
-  }
-  if (!validateCPTP(matrices, 1e-4))
-    throw std::runtime_error(
-        "Provided kraus_ops are not completely positive and trace preserving.");
-}
-
-void validateCompletenessRelation_fp64(const std::vector<kraus_op> &ops) {
+void validateCompletenessRelation(const std::vector<kraus_op> &ops) {
   // First check that all the kraus_ops have the same size.
   auto size = ops[0].nRows;
   for (std::size_t i = 1; i < ops.size(); ++i)
@@ -134,10 +111,7 @@ void validateCompletenessRelation_fp64(const std::vector<kraus_op> &ops) {
       RowMajorMatTy;
   std::vector<RowMajorMatTy> matrices;
   for (auto &op : ops) {
-    auto *nonConstPtr = const_cast<complex *>(op.data.data());
-    Eigen::Map<RowMajorMatTy> map(
-        reinterpret_cast<std::complex<double> *>(nonConstPtr), op.nRows,
-        op.nCols);
+    Eigen::Map<const RowMajorMatTy> map(op.data.data(), op.nRows, op.nCols);
     matrices.push_back(map);
   }
   if (!validateCPTP(matrices))
@@ -180,41 +154,14 @@ void computeIdentityFlags(
 }
 } // namespace
 
-void generateUnitaryParameters_fp32(
-    const std::vector<kraus_op> &ops,
-    std::vector<std::vector<std::complex<double>>> &unitary_ops,
-    std::vector<double> &probabilities, std::vector<bool> &identity_flags) {
-  std::vector<std::vector<std::complex<double>>> double_kraus_ops;
-  double_kraus_ops.reserve(ops.size());
-  for (auto &op : ops) {
-    // WARNING: danger here. We are intentially treating the incoming op as fp32
-    // type instead of what the compiler thinks it is (fp64). We have to do this
-    // because this file is compiled with cudaq::real = fp64, but the incoming
-    // data for this specific routine is actually fp32.
-    const std::complex<float> *ptr =
-        reinterpret_cast<const std::complex<float> *>(op.data.data());
-    // Use 2 * size because pointer arithmetic is on fp32 instead of fp64
-    double_kraus_ops.emplace_back(
-        std::vector<std::complex<double>>(ptr, ptr + 2 * op.data.size()));
-  }
-
-  auto asUnitaryMixture = computeUnitaryMixture(double_kraus_ops);
-  if (asUnitaryMixture.has_value()) {
-    probabilities = std::move(asUnitaryMixture.value().first);
-    unitary_ops = std::move(asUnitaryMixture.value().second);
-    computeIdentityFlags(unitary_ops, identity_flags);
-  }
-}
-
-void generateUnitaryParameters_fp64(
+void generateUnitaryParameters(
     const std::vector<kraus_op> &ops,
     std::vector<std::vector<std::complex<double>>> &unitary_ops,
     std::vector<double> &probabilities, std::vector<bool> &identity_flags) {
   std::vector<std::vector<std::complex<double>>> double_kraus_ops;
   double_kraus_ops.reserve(ops.size());
   for (auto &op : ops)
-    double_kraus_ops.emplace_back(
-        std::vector<std::complex<double>>(op.data.begin(), op.data.end()));
+    double_kraus_ops.emplace_back(op.data);
 
   auto asUnitaryMixture = computeUnitaryMixture(double_kraus_ops);
   if (asUnitaryMixture.has_value()) {
