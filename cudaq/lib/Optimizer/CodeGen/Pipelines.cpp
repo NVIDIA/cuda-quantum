@@ -150,7 +150,6 @@ static void addQIRConversionPipeline(OpPassManager &pm, StringRef convertTo) {
 static void
 createCommonTargetCodegenPipeline(OpPassManager &pm,
                                   const TargetCodegenPipelineOptions &options) {
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
   cudaq::opt::addAggressiveInlining(pm);
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createUnwindLowering());
@@ -185,6 +184,12 @@ static void
 createTargetCodegenPipeline(OpPassManager &pm,
                             const TargetCodegenPipelineOptions &options,
                             bool useValueSemantics) {
+  const auto tgt = StringRef(options.target).split(':').first;
+  const bool isFullQIR = tgt == "qir" || tgt == "qir-full";
+  // Full QIR passes negated controls to NVQIR. Other targets expand them
+  // before simplification, which can then cancel the X pairs.
+  if (!isFullQIR)
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
   createCommonTargetCodegenPipeline(pm, options);
   if (useValueSemantics) {
     cudaq::opt::addConvertToLinearValues(pm);
@@ -195,9 +200,11 @@ createTargetCodegenPipeline(OpPassManager &pm,
       cudaq::opt::createEraseCompilerGeneratedEvince());
 
   cudaq::opt::addPhaseLifecycle(pm);
-  // LowerPhase can leave negative controls on the R1/Rz it creates, so we need
-  // to run this pass again to expand those negations.
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
+  // `LowerPhase` can leave negative controls on the R1/Rz it creates, so we
+  // need to run this pass again to expand those negations on non-full-QIR
+  // targets.
+  if (!isFullQIR)
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
 
   cudaq::opt::addLowerToCFG(pm);
   // Merge the trivial blocks left behind by lowering.
@@ -207,8 +214,7 @@ createTargetCodegenPipeline(OpPassManager &pm,
   cudaq::opt::addLowerToCFG(pm);
   cudaq::opt::ReturnToOutputLogOptions opts;
   // Only allow dynamic results with full QIR (local simulator targets).
-  auto tgt = StringRef(options.target).split(':').first;
-  opts.allowDynamicResult = tgt == "qir" || tgt == "qir-full";
+  opts.allowDynamicResult = isFullQIR;
   pm.addPass(cudaq::opt::createReturnToOutputLog(opts));
   pm.addPass(createConvertMathToFuncs());
   pm.addPass(createSymbolDCEPass());

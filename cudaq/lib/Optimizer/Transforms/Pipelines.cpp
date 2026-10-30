@@ -344,7 +344,6 @@ createTargetDeployPipeline(OpPassManager &pm,
   pm.addNestedPass<func::FuncOp>(createCanonicalizerPass());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createMultiControlDecomposition());
   cudaq::opt::addPhaseLifecycle(pm);
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
 }
 
 /// Register the standard deployment pipeline run for ALL target machines. This
@@ -369,7 +368,6 @@ static void createJITTargetFinalizePipeline(
   if (options.lowerDeviceCalls)
     pm.addPass(cudaq::opt::createQIRDeviceCall());
   cudaq::opt::addAggressiveInlining(pm);
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createExpandControlNegations());
   cudaq::opt::createTargetFinalizePipeline(pm);
 }
 
