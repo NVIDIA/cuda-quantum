@@ -136,11 +136,8 @@ public:
            cudaq::opt::needsCliffordTSynthesis(profile->basisGates);
   }
 
-  /// Prep and deploy unroll every loop of up to 1024 iterations, the default
-  /// threshold of `createClassicalOptimizationPipeline`, which the profile's
-  /// default limit matches. When the stage keeps some loops rolled, because it
-  /// unrolls only `index_use` loops or has a lower limit, prep and deploy must
-  /// not unroll those loops first.
+  /// Prep and deploy unroll loops of up to the profile's default limit, so a
+  /// stage that unrolls fewer loops needs them to unroll none.
   bool
   requiresRolledLoops(const cudaq::config::Profile &input,
                       const cudaq::config::Profile &output) const override {

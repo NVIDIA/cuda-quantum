@@ -142,8 +142,8 @@ func.func @control_and_target(%a: f64, %b: f64) {
 // CHECK:         quake.rz (%[[A]])
 // CHECK:         quake.rz (%[[B]])
 
-// The singly controlled `quake.x` after the Toffoli must not fold the rotations
-// before it a second time, which crashed once the first fold erased them.
+// The rotations before the Toffoli fold exactly once, although a singly
+// controlled `quake.x` follows the Toffoli.
 func.func @rotations_before_toffoli(%a: f64, %b: f64) {
   %0 = quake.null_wire
   %1 = quake.null_wire

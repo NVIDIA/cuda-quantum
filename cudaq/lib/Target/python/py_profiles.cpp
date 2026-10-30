@@ -37,8 +37,10 @@ std::string measurementFormName(MeasurementForm form) {
 }
 
 /// Accepts a bound enum value or its name as a string, such as `"t_count"`.
+/// \p alternatives names any other value the caller accepts, for the error.
 template <typename E>
-E enumValue(nb::handle value, const char *option) {
+E enumValue(nb::handle value, const char *option,
+            const char *alternatives = "") {
   if (!nb::isinstance<nb::str>(value))
     return nb::cast<E>(value);
   try {
@@ -47,7 +49,7 @@ E enumValue(nb::handle value, const char *option) {
     throw std::invalid_argument(
         std::string(option) + " must be a " +
         nb::cast<std::string>(nb::type<E>().attr("__name__")) +
-        " or the name of one");
+        " or the name of one" + alternatives);
   }
 }
 
@@ -55,7 +57,7 @@ E enumValue(nb::handle value, const char *option) {
 std::optional<CostModel> costModel(nb::handle value) {
   if (value.is_none())
     return std::nullopt;
-  return enumValue<CostModel>(value, "cost_model");
+  return enumValue<CostModel>(value, "cost_model", ", or None");
 }
 
 template <typename T>
@@ -136,7 +138,7 @@ void cudaq::bindTargetProfiles(nb::module_ &m) {
           },
           nb::kw_only(), "basis_gates"_a = std::vector<std::string>{},
           "approximation_tolerance"_a = 0.0, "cost_model"_a = nb::none(),
-          "unroll_loops"_a = LoopUnrolling::all,
+          "unroll_loops"_a = QuakeUnmappedProfile{}.unrollLoops,
           "max_unroll_iterations"_a =
               QuakeUnmappedProfile{}.maxUnrollIterations)
       .def_rw("basis_gates", &QuakeUnmappedProfile::basisGates)
