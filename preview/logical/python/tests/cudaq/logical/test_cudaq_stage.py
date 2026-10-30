@@ -148,19 +148,25 @@ def test_the_target_and_import_cudaq_give_the_same_counts(kernel, monkeypatch):
         cql.compiler.import_cudaq(kernel)) == _actions(through_target)
 
 
-def test_import_cudaq_ignores_an_installed_emulated_target():
+def test_import_cudaq_ignores_an_installed_emulated_target(monkeypatch):
+    from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
+
     expected = _actions(cql.compiler.import_cudaq(ccrx))
+    compile_module = cudaq_runtime.compile_module
+
+    def checked(*args, **kwargs):
+        compiled = compile_module(*args, **kwargs)
+        # Logical's endpoint reads the MLIR, so the compile builds no JIT
+        # engine.
+        assert compiled.entry_point is None
+        return compiled
+
+    monkeypatch.setattr(cudaq_runtime, "compile_module", checked)
     cudaq.set_target("quantinuum", emulate=True)
     try:
-        compiled = cql.compiler.quake._compile_kernel(ccrx, (),
-                                                      cql.targets.estimator)
-        actions = _actions(cql.compiler.import_cudaq(ccrx))
+        assert _actions(cql.compiler.import_cudaq(ccrx)) == expected
     finally:
         cudaq.reset_target()
-
-    # Logical's endpoint reads the MLIR, so the compile builds no JIT engine.
-    assert compiled.entry_point is None
-    assert actions == expected
 
 
 @cudaq.kernel
