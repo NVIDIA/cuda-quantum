@@ -226,7 +226,8 @@ typedef enum {
   CUDAQ_KERNEL_UNIFIED = 1
 } cudaq_kernel_type_t;
 
-typedef void (*cudaq_unified_launch_fn_t)(
+// Returns CUDAQ_OK once launched; any other status fails start().
+typedef cudaq_status_t (*cudaq_unified_launch_fn_t)(
     void *transport_ctx, size_t tx_stride_sz,
     cudaq_function_entry_t *function_table, size_t func_count,
     volatile int *shutdown_flag, uint64_t *stats,
@@ -254,6 +255,12 @@ When `kernel_type == CUDAQ_KERNEL_UNIFIED` on the device path:
     supplies them
 - `num_blocks` must be 1 and `threads_per_block >= 1` (the block every
     `CUDAQ_DISPATCH_DEVICE_CALL` handler runs on)
+- An application may run its own dispatch kernel instead: it passes a
+    launcher to `cudaq_dispatcher_set_unified_launch()` with a NULL transport
+    context, finds its kernel with `cudaq_dispatcher_get_device_kernel()`
+    and launches it any way it likes, for example with the driver's
+    `cuLaunchKernelEx`; see
+    `realtime/docs/device_code_contract.md`
 - All other wiring (`set_function_table`, `set_control`) remains the same
 
 ### Wiring Example (Unified Mode with GpuRoceTransceiver)

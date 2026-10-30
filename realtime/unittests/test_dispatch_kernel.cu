@@ -1195,16 +1195,16 @@ namespace {
 /// one block of `threads_per_block` threads.  Has the signature of
 /// cudaq_unified_launch_fn_t, so the dispatcher test hands it over as a launch
 /// override.
-void launch_unified_dispatch_kernel(void *transport_ctx, size_t tx_stride_sz,
-                                    cudaq_function_entry_t *function_table,
-                                    size_t func_count,
-                                    volatile int *shutdown_flag,
-                                    uint64_t *stats,
-                                    uint32_t threads_per_block,
-                                    cudaStream_t stream) {
+cudaq_status_t
+launch_unified_dispatch_kernel(void *transport_ctx, size_t tx_stride_sz,
+                               cudaq_function_entry_t *function_table,
+                               size_t func_count, volatile int *shutdown_flag,
+                               uint64_t *stats, uint32_t threads_per_block,
+                               cudaStream_t stream) {
   cudaq_unified_dispatch_kernel<<<1, threads_per_block, 0, stream>>>(
       transport_ctx, tx_stride_sz, shutdown_flag, function_table, func_count,
       stats);
+  return cudaPeekAtLastError() == cudaSuccess ? CUDAQ_OK : CUDAQ_ERR_CUDA;
 }
 
 using cudaq::realtime::RPC_MAGIC_REQUEST;

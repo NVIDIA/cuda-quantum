@@ -230,8 +230,10 @@ typedef enum {
 cudaq_status_t cudaq_dispatcher_get_device_handler(
     cudaq_dispatcher_t *dispatcher, const char *name, void **out_fn);
 
-// A transport that replaces the whole dispatch loop.
-typedef void (*cudaq_unified_launch_fn_t)(
+// A transport that replaces the whole dispatch loop, or an application's own
+// dispatch kernel over a GPU data plane.  Returns CUDAQ_OK once launched; any
+// other status fails start().
+typedef cudaq_status_t (*cudaq_unified_launch_fn_t)(
     void *transport_ctx, size_t tx_stride_sz,
     cudaq_function_entry_t *function_table, size_t func_count,
     volatile int *shutdown_flag, uint64_t *stats,
@@ -301,7 +303,10 @@ cudaq_bridge_launch(bridge);
 ```
 
 `cudaq_dispatcher_set_unified_launch` remains for a launch override on a
-dispatcher that is not backed by a bridge; it requires a function.
+dispatcher that is not backed by a bridge; it requires a function.  Over a
+bridge's GPU data plane, it installs the application's own dispatch kernel
+instead, with a NULL transport context: see
+[Providing your own dispatch kernel](device_code_contract.md#providing-your-own-dispatch-kernel).
 
 ## What This API Does (In One Paragraph)
 
@@ -576,7 +581,9 @@ drives exactly one dispatcher.  When a bridge is attached,
 
 A bridge-backed dispatcher needs none of `cudaq_dispatcher_set_ringbuffer`,
 `cudaq_dispatcher_set_unified_launch` or `cudaq_dispatcher_set_cpu_dataplane`;
-those remain for dispatchers over in-process rings.
+those remain for dispatchers over in-process rings.  The exception is an
+application that runs its own dispatch kernel over the GPU data plane, which
+passes its launcher to `cudaq_dispatcher_set_unified_launch`.
 
 **`cudaq_dispatcher_get_device_handler`** (`cudaq_realtime.h`) returns the
 address, in a DEVICE + UNIFIED dispatcher's linked module, of a `DEVICE_CALL`

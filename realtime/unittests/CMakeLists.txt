@@ -38,6 +38,10 @@ include(GoogleTest)
 # Explicit path: standalone realtime builds do not have cmake/modules on
 # CMAKE_MODULE_PATH.
 include(${CMAKE_CURRENT_LIST_DIR}/../../cmake/modules/CUDAQGtestDiscovery.cmake)
+# The application dispatch kernel the test server and gpu_loopback embed with
+# cudaq_realtime_add_dispatch_kernel, and the driver_launch.h they launch it
+# with.
+set(CUDAQ_REALTIME_TEST_DISPATCHERS_DIR ${CMAKE_CURRENT_LIST_DIR}/dispatchers)
 
 
 add_compile_options(-Wno-attributes)
