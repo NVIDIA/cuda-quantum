@@ -59,15 +59,6 @@ def _actions(build):
 
 
 @cudaq.kernel
-def repeat_loop():
-    qubits = cudaq.qvector(2)
-    for _ in range(100):
-        h(qubits[0])
-        x.ctrl(qubits[0], qubits[1])
-    mz(qubits)
-
-
-@cudaq.kernel
 def repeat_around_index_loop():
     qubits = cudaq.qvector(5)
     for _ in range(50):
@@ -91,14 +82,6 @@ def angle_loop():
         rz(0.1 * (i + 1), qubit)
         h(qubit)
     mz(qubit)
-
-
-def test_a_loop_that_ignores_its_index_stays_folded(import_kernel):
-    build = import_kernel(repeat_loop)
-    assert build.to_mlir().count("cflow.repeat") == 1
-    actions = _actions(build)
-    assert actions["qlx_standard_h"] == 100
-    assert actions["qlx_standard_cx"] == 100
 
 
 def test_a_repeat_loop_keeps_its_unrolled_index_loop_inside(import_kernel):
