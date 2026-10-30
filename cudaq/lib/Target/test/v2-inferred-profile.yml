@@ -28,7 +28,8 @@ compile-target:
 
 # PARSE: name: lit-v2-inferred
 # PARSE:   stage: ir-output-profile=quake-reference-semantics lowering=inferred
-# PARSE:     basis-gates: ["h", "rz", "x(1)"]
-# PARSE:     measurement-type: single-qubit
-# PARSE:     reset-after-measure: true
+# PARSE-NEXT:     options:
+# PARSE-NEXT:       basis-gates: ["h", "rz", "x(1)"]
+# PARSE-NEXT:       measurement-type: single-qubit
+# PARSE-NEXT:       reset-after-measure: true
 # PARSE:   codegen-emission: qir-adaptive

@@ -222,7 +222,8 @@ get_state_async_impl(const std::string &shortName, MlirModule module,
   std::string kernelName = shortName;
   auto &platform = get_platform();
   auto fnOp = getKernelFuncOp(mod, shortName);
-  auto opaques = marshal_arguments_for_module_launch(mod, args, fnOp);
+  auto opaques = marshal_arguments_for_module_launch(
+      mod, args, fnOp, launchSpecializesArguments(qpu_id));
 
   nanobind::gil_scoped_release release;
   auto clonedMod = std::shared_ptr<mlir::ModuleOp>(

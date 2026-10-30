@@ -36,8 +36,8 @@ ARG PYTHON=python3.11
 RUN dnf install -y --nobest --setopt=install_weak_deps=False ${PYTHON}
 
 # [Build Dependencies]
-# ninja-build comes from powertools, enabled above; the HSB build needs it.
-RUN dnf install -y --nobest --setopt=install_weak_deps=False wget git unzip ninja-build
+# make builds Ninja below; the HSB build needs Ninja.
+RUN dnf install -y --nobest --setopt=install_weak_deps=False wget git unzip make
 
 ## [CUDA]
 RUN source /cuda-quantum/scripts/configure_build.sh install-cuda
@@ -62,6 +62,18 @@ ENV PATH="${PATH}:/usr/local/cuda/bin"
 ARG CMAKE_VERSION=4.0.7
 RUN wget https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-linux-$(uname -m).sh -O cmake-install.sh && \
     bash cmake-install.sh --skip-license --exclude-subdir --prefix=/usr/local
+
+# [Ninja]
+# Same Ninja version as CUDA-Q (scripts/prereqs_common.sh).
+ADD scripts/prereqs_common.sh /cuda-quantum/scripts/prereqs_common.sh
+RUN NINJA_VERSION=$(sed -n 's/^NINJA_VERSION=//p' /cuda-quantum/scripts/prereqs_common.sh) && \
+    eval NINJA_TARBALL_URL=$(sed -n 's/^NINJA_TARBALL_URL=//p' /cuda-quantum/scripts/prereqs_common.sh) && \
+    wget "${NINJA_TARBALL_URL}" -O ninja.tar.gz && \
+    tar -xzf ninja.tar.gz && cd "ninja-${NINJA_VERSION}" && \
+    LDFLAGS="-static-libstdc++" cmake -B build && cmake --build build && \
+    mv build/ninja /usr/local/bin/ && \
+    cd .. && rm -rf ninja.tar.gz "ninja-${NINJA_VERSION}" && \
+    ninja --version
 
 # [Holoscan SDK]
 # Installed by the code the dev containers use, so the two cannot drift. Copied on its own

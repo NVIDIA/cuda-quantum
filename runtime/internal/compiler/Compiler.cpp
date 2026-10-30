@@ -165,12 +165,11 @@ void cudaq_internal::compiler::Compiler::applyPipeline(
   llvm::raw_string_ostream os(errMsg);
   CUDAQ_INFO("Pass pipeline for {} = {}", kernelName, pipeline);
   if (failed(parsePassPipeline(pipeline, pm, os)))
-    throw std::runtime_error(
-        "Remote rest platform failed to add passes to pipeline (" + errMsg +
-        ").");
+    throw std::runtime_error("Failed to add passes to the pipeline (" + errMsg +
+                             ").");
   if (failed(cudaq_internal::compiler::runPassManager(pm,
                                                       moduleOp.getOperation())))
-    throw std::runtime_error("Remote rest platform Quake lowering failed.");
+    throw std::runtime_error("Quake lowering failed.");
 }
 
 std::tuple<mlir::ModuleOp, mlir::func::FuncOp, bool>
@@ -217,7 +216,7 @@ cudaq_internal::compiler::Compiler::prepareModule(const std::string &kernelName,
       if (cudaq::opt::factory::isFullySynthesized(epFunc)) {
         // Already fully specialized, nothing to do.
         isFullySpecialized = true;
-      } else if (isEntryPoint && !target.fullySpecialize) {
+      } else if (isEntryPoint && !specializesArguments(target, handlers)) {
         // We disable specialization by erasing args that should not be inlined
         isFullySpecialized = cudaq_internal::compiler::retainCallableArguments(
             *rawArgs, closureArgs, epFunc);
@@ -472,6 +471,15 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::compile(
     }
   }
 
+  if (options.addSampleMeasurements &&
+      !target.supportSampleWithoutMeasurements) {
+    // No need to add measurements only to remove them eventually
+    if (target.codegen.postCodegenPasses.find("remove-measurements") ==
+        std::string::npos)
+      applyPipeline("func.func(add-measurements{use-evince=1})", moduleOp,
+                    kernelName);
+  }
+
   auto [combineMeasurements, passPipeline] =
       executeMainPipeline(moduleOp, kernelName, resolvedOptions);
 
@@ -516,14 +524,6 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::compile(
                   << "individual measurement results." << std::endl;
       }
     }
-  }
-
-  if (options.addSampleMeasurements &&
-      !target.supportSampleWithoutMeasurements) {
-    // No need to add measurements only to remove them eventually
-    if (target.codegen.postCodegenPasses.find("remove-measurements") ==
-        std::string::npos)
-      applyPipeline("func.func(add-measurements)", moduleOp, kernelName);
   }
 
   // Apply observations if necessary

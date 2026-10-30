@@ -169,6 +169,24 @@ getPassPipeline(const cudaq::CompileTarget &target,
                 const std::vector<std::unique_ptr<LoweringHandler>> &handlers,
                 std::string &diagnostic);
 
+/// Whether compiles for \p target substitute the values of an entry point's
+/// arguments instead of taking them at run time. That holds when the platform
+/// cannot take arguments at run time (`fullySpecialize`) or when the handler
+/// that `getPassPipeline` selects for an inferred stage requires argument
+/// values. Custom and override stages are opaque, so a target whose custom
+/// pipeline needs values sets `fullySpecialize`.
+///
+/// The compiler, the Python compiled-module cache, and Python argument packing
+/// all read this answer, and they must agree, because the arguments are laid
+/// out differently for the two cases. It depends only on the target so that
+/// Python can pack arguments before a launch's `CompileOptions` exist.
+bool specializesArguments(
+    const cudaq::CompileTarget &target,
+    const std::vector<std::unique_ptr<LoweringHandler>> &handlers);
+
+/// `specializesArguments` with the built-in lowering handlers.
+bool specializesArguments(const cudaq::CompileTarget &target);
+
 /// Compile a source module for the given policy, compile target and
 /// arguments.
 cudaq::CompiledModule compileModule(cudaq::CompileTarget target,

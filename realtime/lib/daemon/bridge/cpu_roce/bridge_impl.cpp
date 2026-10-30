@@ -612,6 +612,7 @@ cudaq_realtime_bridge_interface_t *cudaq_realtime_get_bridge_interface() {
       cpu_roce_bridge_get_endpoint_info,
       cpu_roce_bridge_get_ring_geometry,
       /*set_function_table=*/nullptr, // no function table needed
+      /*get_gpu_dataplane=*/nullptr,  // host rings only
   };
   return &cudaq_cpu_roce_bridge_interface;
 }

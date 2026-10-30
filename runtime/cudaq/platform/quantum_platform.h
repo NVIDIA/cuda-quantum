@@ -215,14 +215,15 @@ public:
   /// current runtime endpoint.
   template <typename Policy>
   [[nodiscard]] cudaq::CompileOptions
-  getCompileOptions(const Policy &policy, std::size_t qpu_id = 0) const {
+  getCompileOptions(const Policy &policy, std::uint64_t randomSeed = 0,
+                    std::size_t qpuId = 0) const {
     cudaq::CompileOptions options;
     if constexpr (requires { policy.inner; }) {
-      options = cudaq::get_compile_options(policy.inner);
+      options = cudaq::get_compile_options(policy.inner, randomSeed);
     } else {
-      options = cudaq::get_compile_options(policy);
+      options = cudaq::get_compile_options(policy, randomSeed);
     }
-    resolveCompileOptions(options, qpu_id);
+    resolveCompileOptions(options, qpuId);
     return options;
   }
   /// \endcond

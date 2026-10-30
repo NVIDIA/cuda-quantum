@@ -12,7 +12,10 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include "cudaq/realtime/daemon/dispatcher/cudaq_status.h"
 #include "cudaq/realtime/daemon/dispatcher/rpc_wire_format.h"
+#include "cudaq/realtime/device_code/device_code.h"
+#include "cudaq/realtime/device_code/device_code_reader.h"
 
 // Visibility marker for entry points that consumers reach via
 // dlsym(RTLD_DEFAULT, ...) at runtime.  libcudaq-realtime-dispatch.a is built
@@ -37,17 +40,6 @@ typedef struct cudaq_dispatcher_t cudaq_dispatcher_t;
 /// connection (see bridge_interface.h).
 typedef void *cudaq_realtime_bridge_handle_t;
 
-// Error codes
-typedef enum {
-  CUDAQ_OK = 0,
-  CUDAQ_ERR_INVALID_ARG = 1,
-  CUDAQ_ERR_INTERNAL = 2,
-  CUDAQ_ERR_CUDA = 3,
-  // The component does not implement the requested optional capability
-  // (e.g. a version-1 bridge provider asked for a version-2 interface field).
-  CUDAQ_ERR_UNSUPPORTED = 4
-} cudaq_status_t;
-
 // Dispatch control path: GPU-resident persistent kernel vs CPU host loop.
 typedef enum {
   CUDAQ_DISPATCH_PATH_DEVICE = 0,
@@ -55,31 +47,28 @@ typedef enum {
 } cudaq_dispatch_path_t;
 
 // TX flag status returned by cudaq_host_ringbuffer_poll_tx_flag.
-typedef enum {
-  CUDAQ_TX_EMPTY = 0,
-  CUDAQ_TX_IN_FLIGHT = 1,
-  CUDAQ_TX_ERROR = 2,
-  CUDAQ_TX_READY = 3
-} cudaq_tx_status_t;
+typedef enum { CUDAQ_TX_EMPTY = 0, CUDAQ_TX_READY = 1 } cudaq_tx_status_t;
 
-// Kernel synchronization type.  Value 1 is retired and must not be reused;
-// CUDAQ_KERNEL_UNIFIED keeps its ABI value of 2.
+// Kernel synchronization type.
 typedef enum {
   CUDAQ_KERNEL_REGULAR = 0,
-  CUDAQ_KERNEL_UNIFIED = 2
+  CUDAQ_KERNEL_UNIFIED = 1
 } cudaq_kernel_type_t;
 
 // Dispatch invocation mode.
 //
 // On CUDAQ_DISPATCH_PATH_HOST:
-//   - GRAPH_LAUNCH: launched on a graph worker (worker pool, cudaGraphLaunch).
 //   - HOST_CALL:    invoked synchronously inline as a plain C++ function via
-//                   entry->handler.host_fn.  Bypasses the worker pool.  No
-//                   CUDA graph required.  Use for GPU-less bridges (e.g. the
-//                   CPU RoCE transport in lib/cpu_transport/) or for
-//                   handlers whose work fits on a single CPU thread.
-//   - DEVICE_CALL:  table entries are dropped (DEVICE_CALL belongs on the
-//                   GPU dispatch path).
+//                   entry->handler.host_fn; the response is published when it
+//                   returns.  Use for GPU-less bridges (e.g. the CPU RoCE
+//                   transport in lib/cpu_transport/) or for handlers whose
+//                   work fits on a single CPU thread.  Work the handler
+//                   starts elsewhere has to be finished before it returns.
+//   - DEVICE_CALL and GRAPH_LAUNCH belong on the GPU dispatch path.  Under
+//                   shared_ring_mode a request for such an entry is left for
+//                   a peer dispatcher; otherwise nothing could serve it, so
+//                   cudaq_dispatcher_start refuses a host-path table that
+//                   carries one (CUDAQ_ERR_UNSUPPORTED).
 typedef enum {
   CUDAQ_DISPATCH_DEVICE_CALL = 0,
   CUDAQ_DISPATCH_GRAPH_LAUNCH = 1,
@@ -129,7 +118,8 @@ typedef struct {
 
 // Dispatcher configuration
 typedef struct {
-  int device_id;              // GPU device ID (>=0)
+  int device_id;              // GPU device ID (>=0); DEVICE path only, the
+                              // HOST path selects no device
   uint32_t num_blocks;        // grid size; must be 1: a request reaches the
                               // handler threads through shared memory and
                               // block barriers, so a wider grid would need a
@@ -155,12 +145,6 @@ typedef struct {
   cudaq_kernel_type_t kernel_type;     // regular or unified kernel
   cudaq_dispatch_mode_t dispatch_mode; // device call/graph launch
   cudaq_dispatch_path_t dispatch_path; // GPU kernel or CPU host loop
-  int skip_tx_markers; // when non-zero, the host dispatcher will NOT write
-                       // sentinel markers (CUDAQ_TX_FLAG_IN_FLIGHT) to
-                       // tx_flags before graph launch.  Set this when an
-                       // external GPU kernel (e.g. GpuRoceTransceiver TX) polls
-                       // the same tx_flags array; the sentinel would be
-                       // misinterpreted as a valid address.
   uint32_t shared_ring_mode; // when non-zero, the dispatcher cooperates with
                              // OTHER dispatchers on the SAME ring buffer.
                              // Slots whose function_id is not in this
@@ -178,9 +162,10 @@ typedef struct {
                              // dispatcher's function table.
 } cudaq_dispatcher_config_t;
 
-// GPU ring buffer pointers. For device backend use device pointers only.
-// For CUDAQ_DISPATCH_PATH_HOST, also set the _host pointers (same pinned
-// mapped allocation); the host loop polls rx_flags_host and uses host data.
+// Ring buffer pointers. For the device backend use device pointers only.
+// For CUDAQ_DISPATCH_PATH_HOST the _host pointers are required: the host loop
+// polls rx_flags_host and uses the host data views.  The memory has to be
+// CUDA-mapped only when a GPU consumer (a GPU transport kernel) touches it.
 typedef struct {
   volatile uint64_t *rx_flags; // device pointer
   volatile uint64_t *tx_flags; // device pointer
@@ -204,6 +189,11 @@ typedef struct {
 // ptp_timestamp) from rx_slot into tx_slot explicitly.  `slot_size` is the
 // usable byte size of each slot (RX and TX strides are equal by configuration;
 // the smaller of the two is passed defensively).
+//
+// The dispatcher publishes the response as soon as the handler returns; there
+// is no deferred completion, so any work the handler starts elsewhere has to
+// be finished before it returns.  The dispatcher thread has no CUDA device
+// selected; a handler that uses CUDA selects its own.
 typedef void (*cudaq_host_rpc_fn_t)(const void *rx_slot, void *tx_slot,
                                     size_t slot_size);
 
@@ -218,15 +208,6 @@ typedef struct {
   uint8_t dispatch_mode;         // cudaq_dispatch_mode_t value
   uint8_t reserved[3];           // padding
   cudaq_handler_schema_t schema; // function signature schema
-  // Optional sub-routing key for CUDAQ_DISPATCH_GRAPH_LAUNCH entries.  When
-  // multiple GRAPH_LAUNCH entries share the same `function_id` (the multi-
-  // instance pattern used by e.g. the QEC realtime decoder suite, where
-  // the same `enqueue_syndromes` function name fronts N distinct captured
-  // graphs -- one per decoder), the host monitor disambiguates them by
-  // `routing_key`, matching it against the request payload's first 8
-  // bytes (arg0).  Ignored when dispatch_mode != CUDAQ_DISPATCH_GRAPH_LAUNCH.
-  // See proposals/cudaq_realtime_host_api.bs#host-path-graph-routing-key.
-  uint64_t routing_key;
 } cudaq_function_entry_t;
 
 // Function table for device-side dispatch
@@ -267,43 +248,20 @@ CUDAQ_REALTIME_DISPATCH_API void cudaq_launch_dispatch_kernel_regular(
 // remains transport-agnostic.  `threads_per_block` is the one block the
 // kernel runs as: thread 0 drives the transport and every thread calls each
 // DEVICE_CALL handler (see DeviceRPCFunction in dispatch_kernel_launch.h).
-typedef void (*cudaq_unified_launch_fn_t)(
-    void *transport_ctx, size_t tx_stride_sz,
-    cudaq_function_entry_t *function_table, size_t func_count,
-    volatile int *shutdown_flag, uint64_t *stats, uint32_t threads_per_block,
-    cudaStream_t stream);
-
-// Transport-agnostic unified dispatch kernel launcher (from
-// libcudaq-realtime-dispatch.a).  The kernel it launches reaches
-// its transport through the three __device__ hooks in
-// unified_device_transport.cuh, so a transport wires itself up by
-// implementing those rather than by writing a kernel.
-//
-// `tx_stride_sz` means what it does in the launch functions above: the slot
-// stride, which the kernel hands to DEVICE_CALL handlers as `slot_size`.  See
-// the KNOWN ISSUE on cudaq_dispatcher_config_t::slot_size for the caveat that
-// bound carries, which this path shares with the ring path.
-//
-// `transport_ctx` must be device-accessible: unlike the launch functions
-// above, which pass ring pointers as kernel arguments, the hooks dereference
-// it on the GPU.
-//
-// The kernel is launched as one block of `threads_per_block` threads.  Thread
-// 0 alone calls the transport hooks; every thread calls each DEVICE_CALL
-// handler between two block barriers, exactly as the ring kernels do.
-//
-// Because CUDA resolves __device__ calls at device-link time and never across
-// modules, and a device-function pointer is only valid inside the module that
-// defines it, the kernel must share one module with both the transport's hook
-// implementations and the consumer's DEVICE_CALL handlers.  The hooks ship in
-// this archive next to the kernel; a unified consumer links the archive and
-// device-links it together with its handlers, as the 3-kernel path does.
-//
-// cudaq_dispatcher_start calls it directly whenever no unified_launch_fn
-// override was set, through a weak reference that binds at load time to the
-// copy linked into the consumer binary; start() fails with
-// CUDAQ_ERR_INVALID_ARG if the archive was not linked.
-CUDAQ_REALTIME_DISPATCH_API void cudaq_launch_unified_dispatch_device(
+// Only a transport that replaces the whole dispatch loop supplies one; the
+// dispatcher's own unified kernel is linked at run time
+// (cudaq_dispatcher_get_device_handler).
+// An application that runs its own dispatch kernel over a bridge's GPU data
+// plane supplies one too (cudaq_dispatcher_set_unified_launch); it may launch
+// any grid, and must launch on `stream`, which cudaq_dispatcher_stop waits on.
+// Returns CUDAQ_OK once the kernel is launched; any other status fails
+// cudaq_dispatcher_start with it.  Before returning that status, start()
+// raises the shutdown flag and waits on `stream`, as cudaq_dispatcher_stop
+// does, so anything the launcher enqueued before failing must stop on that
+// flag; the flag is left set.  (A bridge's launch override returns a
+// status too, which a provider written against the earlier void form must
+// add.)
+typedef cudaq_status_t (*cudaq_unified_launch_fn_t)(
     void *transport_ctx, size_t tx_stride_sz,
     cudaq_function_entry_t *function_table, size_t func_count,
     volatile int *shutdown_flag, uint64_t *stats, uint32_t threads_per_block,
@@ -435,27 +393,26 @@ cudaq_status_t
 cudaq_dispatcher_set_launch_fn(cudaq_dispatcher_t *dispatcher,
                                cudaq_dispatch_launch_fn_t launch_fn);
 
-// Optional: provide a caller-managed pinned mailbox for GRAPH_LAUNCH workers.
-// h_mailbox_bank must be allocated with cudaHostAlloc(..., cudaHostAllocMapped)
-// and sized to at least (num_graph_launch_entries * sizeof(void*)).
-// If set, the dispatcher uses this mailbox instead of allocating its own.
-// The caller retains ownership and must free it after cudaq_dispatcher_destroy.
-cudaq_status_t cudaq_dispatcher_set_mailbox(cudaq_dispatcher_t *dispatcher,
-                                            void **h_mailbox_bank);
-
 // Wire a transport bridge (bridge_interface.h) to this dispatcher.  This is
 // the entry point for every bridge-backed dispatcher: the configured
 // `dispatch_path` + `kernel_type` name the shape, and the dispatcher asks the
 // bridge for the matching data plane:
-//   - HOST + REGULAR:               the RING_BUFFER context; skip_tx_markers is
-//                                   forced to 1 (the provider's TX pump owns
-//                                   the wire).
+//   - HOST + REGULAR:               the RING_BUFFER context (the provider's TX
+//                                   pump owns the wire).
 //   - HOST + UNIFIED:               the provider's CPU data plane.
 //   - DEVICE + REGULAR:             the RING_BUFFER context.  start() then
 //                                   launches the 3-kernel dispatch kernel
 //                                   from libcudaq-realtime-dispatch.a; see
 //                                   cudaq_dispatcher_set_launch_fn.
-//   - DEVICE + UNIFIED:             the provider's unified transport context.
+//   - DEVICE + UNIFIED:             the UNIFIED context's launch override, if
+//                                   the provider names one; otherwise the
+//                                   provider's GPU data plane, linked
+//                                   on the first handler lookup
+//                                   (cudaq_dispatcher_get_device_handler).
+//                                   A provider without an override answers
+//                                   CUDAQ_ERR_UNSUPPORTED (or names no
+//                                   launch_fn); any other error fails.
+//                                   A provider with neither is refused.
 // A `num_slots` / `slot_size` left at 0 in the config is filled from the
 // bridge's ring geometry; a non-zero value that disagrees with it is an error.
 //
@@ -480,24 +437,30 @@ typedef struct {
   void *transport_ctx; ///< Bridge-owned opaque transport state
 } cudaq_unified_dispatch_ctx_t;
 
-// DEPRECATED for bridge-backed dispatchers: use cudaq_dispatcher_set_bridge,
-// which makes this call itself.
-//
 // Unified dispatch wiring -- pass a transport-specific launch function and
 // an opaque context holding transport handles (e.g. DOCA QP, rkey).
 // When set, cudaq_dispatcher_start() will invoke unified_launch_fn instead of
 // the 3-kernel launch_fn.  Ringbuffer setup is not required for unified mode.
 //
-// `unified_launch_fn` may be NULL, and normally is: start() then runs the
-// unified kernel from libcudaq-realtime-dispatch.a, which the consumer must
-// link.  Pass a function only to override the whole dispatch loop; it
-// receives config.threads_per_block and must keep the one-block threading
-// contract (see DeviceRPCFunction in dispatch_kernel_launch.h).
-// Whichever kernel runs must be device-linked into the same module as the
-// DEVICE_CALL handlers in the function table.  `transport_ctx` is required
-// either way, and
+// `unified_launch_fn` is required: the dispatcher's own unified kernel runs
+// only over a bridge's GPU data plane.  It receives config.threads_per_block
+// and must keep the one-block threading contract (see DeviceRPCFunction in
+// dispatch_kernel_launch.h).  Whichever kernel runs must be device-linked
+// into the same module as the DEVICE_CALL handlers in the function table.
+// `transport_ctx` is required too, and
 // config.slot_size must give the slot stride, which reaches the kernel as
 // its tx_stride_sz.
+//
+// Over a bridge's GPU data plane (after cudaq_dispatcher_set_bridge, before
+// cudaq_dispatcher_start) the call installs the application's own dispatch
+// loop instead, and `transport_ctx` must be NULL: the bridge's is kept.  The
+// dispatcher still links its module, and start() calls `unified_launch_fn`
+// with the bridge's context in place of launching its own kernel.  The
+// launcher starts a kernel of that module (cudaq_dispatcher_get_device_kernel)
+// any way it likes, on the stream it is given, so config.num_blocks is not
+// checked.  start() still refuses handler addresses that are not from the
+// linked module, and fails with the launcher's status.  A bridge with its own
+// launch override refuses it.
 cudaq_status_t
 cudaq_dispatcher_set_unified_launch(cudaq_dispatcher_t *dispatcher,
                                     cudaq_unified_launch_fn_t unified_launch_fn,
@@ -542,9 +505,10 @@ cudaq_status_t cudaq_host_ringbuffer_write_rpc_request(
 void cudaq_host_ringbuffer_signal_slot(const cudaq_ringbuffer_t *rb,
                                        uint32_t slot_idx);
 
-// Poll tx_flags_host[slot_idx] and classify the result.
-// If status == CUDAQ_TX_ERROR and out_cuda_error is non-NULL, the CUDA error
-// code is written there.
+// Poll tx_flags_host[slot_idx]: CUDAQ_TX_EMPTY while the flag is 0 (no
+// response yet), CUDAQ_TX_READY once the dispatcher has stored the TX slot's
+// address into it.  `out_cuda_error` is never written; a handler reports its
+// errors in-band through the RPCResponse status.
 cudaq_tx_status_t
 cudaq_host_ringbuffer_poll_tx_flag(const cudaq_ringbuffer_t *rb,
                                    uint32_t slot_idx, int *out_cuda_error);
@@ -556,12 +520,6 @@ int cudaq_host_ringbuffer_slot_available(const cudaq_ringbuffer_t *rb,
 // Clear tx_flags_host[slot_idx] after consuming the response.
 void cudaq_host_ringbuffer_clear_slot(const cudaq_ringbuffer_t *rb,
                                       uint32_t slot_idx);
-
-// Release a worker back to the idle pool after the graph has completed.
-// This is the consumer-side counterpart to the dispatcher's internal
-// idle_mask acquisition — without this call the worker stays "busy" forever.
-cudaq_status_t cudaq_host_release_worker(cudaq_dispatcher_t *dispatcher,
-                                         int worker_id);
 
 // Force eager CUDA module loading for dispatch kernels (occupancy query).
 // Call before cudaq_dispatcher_start() to avoid lazy-loading deadlocks.
@@ -586,6 +544,86 @@ cudaError_t cudaq_dispatch_kernel_query_occupancy(int *out_blocks,
 // resolve this entry point via dlsym(RTLD_DEFAULT, ...) at runtime.
 CUDAQ_REALTIME_DISPATCH_API cudaError_t
 cudaq_dispatch_kernel_set_shared_ring_mode(uint32_t enabled);
+
+// Run-time device link of a DEVICE + UNIFIED dispatcher.
+//
+// The unified dispatch kernel, the bridge's device hooks and the
+// application's DEVICE_CALL handlers come from three binaries, and must share
+// one CUDA module.  After cudaq_dispatcher_set_bridge, the application asks
+// for each handler's address with cudaq_dispatcher_get_device_handler; the
+// first call links the module.  See realtime/docs/device_code_contract.md.
+
+// What cudaq_dispatcher_get_device_handler calls, with `images` the
+// relocatable device code of the binary that holds the handler.  Call that
+// wrapper rather than this.
+//
+// The first call on a DEVICE + UNIFIED dispatcher, after
+// cudaq_dispatcher_set_bridge, links the unified dispatch kernel, the bridge's
+// device hooks and `images` into one CUDA module with nvJitLink and loads it;
+// a failed link leaves the dispatcher unlinked, so a later call retries.
+// Later calls reuse the module and must pass the same images: all handlers of
+// one dispatcher come from one binary.  Refused for a bridge that supplies a
+// launch override.
+cudaq_status_t cudaq_dispatcher_get_device_handler_in(
+    cudaq_dispatcher_t *dispatcher, const cudaq_device_image_t *images,
+    size_t count, const char *name, void **out_fn);
+
+// Address, in the dispatcher's linked module, of the DEVICE_CALL handler
+// `name`, exported with CUDAQ_REALTIME_EXPORT_DEVICE_FUNCTION(name).  Call it
+// from the binary that holds the handler: it hands the dispatcher that
+// binary's device code, and the first call links the module.  Every
+// DEVICE_CALL entry of the function table must hold an address returned here:
+// start() refuses any other, since an address taken in the application's own
+// module is not valid in the linked one.
+//
+// `static` on purpose: each binary must run its own copy, which reads its own
+// device code.
+static inline cudaq_status_t
+cudaq_dispatcher_get_device_handler(cudaq_dispatcher_t *dispatcher,
+                                    const char *name, void **out_fn) {
+  cudaq_device_image_t image;
+  const cudaq_status_t status = cudaq_device_code_of_this_binary(&image);
+  if (status != CUDAQ_OK)
+    return status;
+  return cudaq_dispatcher_get_device_handler_in(dispatcher, &image, 1, name,
+                                                out_fn);
+}
+
+// What cudaq_dispatcher_get_device_kernel calls, with `images` the
+// relocatable device code of the binary that holds the kernel.  Call that
+// wrapper rather than this.
+cudaq_status_t cudaq_dispatcher_get_device_kernel_in(
+    cudaq_dispatcher_t *dispatcher, const cudaq_device_image_t *images,
+    size_t count, const char *name, cudaKernel_t *out_kernel);
+
+// The kernel `name`, in the dispatcher's linked module, for the application's
+// launcher (cudaq_dispatcher_set_unified_launch) to start.  The kernel is
+// `extern "C" __global__`, calls the hooks of unified_device_transport.cuh,
+// and reaches the module as LTO-IR embedded in the caller's __nv_relfatbin
+// section, out of its own device link; see
+// realtime/docs/device_code_contract.md.  Like
+// cudaq_dispatcher_get_device_handler, the first lookup links the module,
+// and the handlers and kernels of one dispatcher come from one binary.  The
+// dispatcher's own cudaq_unified_dispatch_kernel is not handed out.
+//
+// Unlike cudaq_dispatcher_get_device_handler, what it returns is a host-side
+// handle, not a device address.  A handler's address goes into the function
+// table and is called from device code; it is read from the pointer global
+// CUDAQ_REALTIME_EXPORT_DEVICE_FUNCTION defines, because CUDA looks up device
+// functions by no other means, and start() accepts no other.  A kernel is found
+// by its own name, with no export, and its cudaKernel_t (the driver's
+// CUkernel) only serves the host to launch it.  It never belongs in the
+// function table, and start() does not check it.
+static inline cudaq_status_t
+cudaq_dispatcher_get_device_kernel(cudaq_dispatcher_t *dispatcher,
+                                   const char *name, cudaKernel_t *out_kernel) {
+  cudaq_device_image_t image;
+  const cudaq_status_t status = cudaq_device_code_of_this_binary(&image);
+  if (status != CUDAQ_OK)
+    return status;
+  return cudaq_dispatcher_get_device_kernel_in(dispatcher, &image, 1, name,
+                                               out_kernel);
+}
 
 #ifdef __cplusplus
 }

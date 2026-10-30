@@ -106,13 +106,10 @@ cudaq::CompileTarget cudaq::CompileTarget::createFromConfig(
   auto disableQM = runtimeConfig.find("disable_qubit_mapping");
   target.disableQubitMapping =
       disableQM != runtimeConfig.end() && disableQM->second == "true";
-  for (auto &stage : target.stages) {
-    auto *lowering =
-        std::get_if<config::CustomPipelineLowering>(&stage.lowering);
-    if (!lowering)
-      continue;
-    resolvePipeline(*lowering);
-  }
+  for (auto &stage : target.stages)
+    if (auto *lowering =
+            std::get_if<config::CustomPipelineLowering>(&stage.lowering))
+      resolvePipeline(*lowering);
 
   target.codegen.emissionFormat = targetConfig.getCodeGenSpec(runtimeConfig);
 
@@ -144,23 +141,6 @@ std::size_t std::hash<cudaq::CompileTarget>::operator()(
       t.replaceStateWithKernel);
 }
 
-std::size_t std::hash<cudaq::config::UncheckedProfile>::operator()(
-    const cudaq::config::UncheckedProfile &) const noexcept {
-  return 0;
-}
-
-std::size_t
-std::hash<cudaq::config::QuakeReferenceSemanticsProfile>::operator()(
-    const cudaq::config::QuakeReferenceSemanticsProfile &profile)
-    const noexcept {
-  std::size_t seed = 0;
-  for (const auto &gate : profile.basisGates)
-    cudaq::detail::hashCombine(seed, gate);
-  cudaq::detail::hashCombine(seed, profile.measurementType);
-  cudaq::detail::hashCombine(seed, profile.resetAfterMeasure);
-  return seed;
-}
-
 std::size_t std::hash<cudaq::config::CustomPipelineLowering>::operator()(
     const cudaq::config::CustomPipelineLowering &lowering) const noexcept {
   return cudaq::detail::hashVal(
@@ -179,6 +159,36 @@ std::size_t std::hash<cudaq::config::Codegen>::operator()(
     const cudaq::config::Codegen &codegen) const noexcept {
   return cudaq::detail::hashVal(codegen.emissionFormat,
                                 codegen.postCodegenPasses);
+}
+
+// Each profile type is hashed because a stage's profile is part of the
+// compile target's hash, which keys the compiled-module cache.
+
+std::size_t std::hash<cudaq::config::UncheckedProfile>::operator()(
+    const cudaq::config::UncheckedProfile &) const noexcept {
+  return 0;
+}
+
+std::size_t
+std::hash<cudaq::config::QuakeReferenceSemanticsProfile>::operator()(
+    const cudaq::config::QuakeReferenceSemanticsProfile &profile)
+    const noexcept {
+  std::size_t seed = 0;
+  for (const auto &gate : profile.basisGates)
+    cudaq::detail::hashCombine(seed, gate);
+  cudaq::detail::hashCombine(seed, profile.measurementType);
+  cudaq::detail::hashCombine(seed, profile.resetAfterMeasure);
+  return seed;
+}
+
+std::size_t std::hash<cudaq::config::QuakeUnmappedProfile>::operator()(
+    const cudaq::config::QuakeUnmappedProfile &profile) const noexcept {
+  std::size_t seed = 0;
+  for (const auto &gate : profile.basisGates)
+    cudaq::detail::hashCombine(seed, gate);
+  cudaq::detail::hashCombine(seed, profile.approximationTolerance);
+  cudaq::detail::hashCombine(seed, profile.costModel);
+  return seed;
 }
 
 std::size_t std::hash<cudaq::config::CompilationStage>::operator()(

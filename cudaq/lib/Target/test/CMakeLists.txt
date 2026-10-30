@@ -42,6 +42,10 @@ endif()
 add_executable(TargetCatalogTestDriver TargetCatalogTestDriver.cpp)
 target_include_directories(TargetCatalogTestDriver PRIVATE
   ${CUDAQ_TARGET_REPO_ROOT}/cudaq/lib/Target)
+# The catalog already contains reflect-cpp's objects, so take only its headers,
+# as system headers like linking it would.
+target_include_directories(TargetCatalogTestDriver SYSTEM PRIVATE
+  $<TARGET_PROPERTY:reflectcpp,INTERFACE_INCLUDE_DIRECTORIES>)
 target_link_libraries(TargetCatalogTestDriver
   PRIVATE CUDAQTargetCatalog)
 target_compile_options(TargetCatalogTestDriver PRIVATE "-fexceptions" "-frtti")

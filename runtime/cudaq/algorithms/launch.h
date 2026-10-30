@@ -10,6 +10,7 @@
 #pragma once
 
 #include "common/AnalysisScope.h"
+#include "common/BaseRemoteRESTQPU.h"
 #include "common/CompileOptions.h"
 #include "common/CompiledModule.h"
 #include "common/ExecutionContext.h"
@@ -79,7 +80,8 @@ auto launch(const Policy &policy, std::size_t qpu_id, ExecutionContext &ctx,
       compiled = CompiledModule{*source};
 #else
       CUDAQ_INFO("No compiled module found. Compiling.");
-      auto options = platform.getCompileOptions(policy, qpu_id);
+      auto options =
+          platform.getCompileOptions(policy, cudaq::get_random_seed(), qpu_id);
       auto target = platform.getCompileTarget(qpu_id);
       compiled = cudaq_internal::compiler::compileModule(target, options,
                                                          *source, args,

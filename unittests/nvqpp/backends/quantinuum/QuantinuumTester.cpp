@@ -158,7 +158,7 @@ CUDAQ_TEST(QuantinuumTester, checkControlledRotations) {
     counts.dump();
 
     // Target qubit should've been rotated to |1>.
-    EXPECT_EQ(counts.count("0000111111"), 1000);
+    EXPECT_EQ(counts.count("111111"), 1000);
   }
 
   // rx: 0.0
@@ -180,7 +180,7 @@ CUDAQ_TEST(QuantinuumTester, checkControlledRotations) {
     counts.dump();
 
     // Target qubit should've stayed in |0>
-    EXPECT_EQ(counts.count("0000111110"), 1000);
+    EXPECT_EQ(counts.count("111110"), 1000);
   }
 
   // ry: pi
@@ -202,7 +202,7 @@ CUDAQ_TEST(QuantinuumTester, checkControlledRotations) {
     counts.dump();
 
     // Target qubit should've been rotated to |1>
-    EXPECT_EQ(counts.count("0000111111"), 1000);
+    EXPECT_EQ(counts.count("111111"), 1000);
   }
 
   // ry: pi / 2
@@ -226,8 +226,8 @@ CUDAQ_TEST(QuantinuumTester, checkControlledRotations) {
     counts.dump();
 
     // Target qubit should have a 50/50 mix between |0> and |1>
-    EXPECT_TRUE(counts.count("0000111111") < 550);
-    EXPECT_TRUE(counts.count("0000111110") > 450);
+    EXPECT_TRUE(counts.count("111111") < 550);
+    EXPECT_TRUE(counts.count("111110") > 450);
   }
 
   {
@@ -247,7 +247,7 @@ CUDAQ_TEST(QuantinuumTester, checkControlledRotations) {
 
     auto counts = cudaq::sample(kernel);
     counts.dump();
-    EXPECT_EQ(counts.count("00000011111111"), 1000);
+    EXPECT_EQ(counts.count("11111111"), 1000);
   }
 }
 

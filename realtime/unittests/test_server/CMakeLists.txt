@@ -60,6 +60,13 @@ if (TARGET rpc_increment_ft)
     CUDAQ_REALTIME_TEST_SERVER_DEVICE_PATH ON
   )
   target_link_libraries(cudaq-realtime-test-server PRIVATE rpc_increment_ft)
+  # --dispatcher=single_thread_dispatcher: the application's own dispatch
+  # kernel, embedded in this binary's device code next to the handler, and
+  # launched through driver_launch.h.
+  cudaq_realtime_add_dispatch_kernel(cudaq-realtime-test-server
+    ${CUDAQ_REALTIME_TEST_DISPATCHERS_DIR}/single_thread_dispatcher.cu)
+  target_include_directories(cudaq-realtime-test-server PRIVATE
+    ${CUDAQ_REALTIME_TEST_DISPATCHERS_DIR})
   message(STATUS "  - cudaq-realtime-test-server: --path=device enabled")
 endif()
 
