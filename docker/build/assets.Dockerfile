@@ -99,15 +99,34 @@ RUN source /cuda-quantum/scripts/configure_build.sh && \
         exit 1; \
     fi
 
+# The LLVM toolchain with the MLIR Python bindings does not depend on the CUDA-Q
+# sources, so it is built here to be cached independently of the Python build.
+FROM prereqs AS prereqs_python
+ARG PYTHON=python3.11
+RUN dnf install -y --nobest --setopt=install_weak_deps=False ${PYTHON}-devel && \
+    ${PYTHON} -m ensurepip --upgrade && \
+    CCACHE_DISABLE=1 ${PYTHON} -m pip install numpy build auditwheel patchelf
+
+RUN cd /cuda-quantum && \
+    . scripts/configure_build.sh && \
+    # Needed to retrigger the LLVM build, since the MLIR Python bindings
+    # are not built in the prereqs stage.
+    rm -rf "${LLVM_INSTALL_PREFIX}" && \
+    # IMPORTANT:
+    # Make sure that the invocation of the install_prerequisites.sh script here matches
+    # the ones in the install_prerequisites.sh invocation in the prereqs stage
+    # and in the python_build stage!
+    LLVM_PROJECTS='clang;flang;lld;mlir;python-bindings;openmp;runtimes' \
+    bash scripts/install_prerequisites.sh -t llvm -e qrmi
+
+## [C++ support]
+FROM prereqs AS cpp_build
 # Checking out a CUDA-Q commit is suboptimal, since the source code
 # version must match this file. At the same time, adding the entire current
 # directory will always rebuild CUDA-Q, so we instead just add only
 # the necessary files for the build to each build stage.
 ADD .git/index /cuda-quantum/.git/index
 ADD .git/modules/ /cuda-quantum/.git/modules/
-
-## [C++ support]
-FROM prereqs AS cpp_build
 ADD "cmake" /cuda-quantum/cmake
 ADD "docs/CMakeLists.txt" /cuda-quantum/docs/CMakeLists.txt
 ADD "docs/sphinx/examples" /cuda-quantum/docs/sphinx/examples
@@ -118,6 +137,7 @@ ADD "cudaq" /cuda-quantum/cudaq
 ADD "realtime" /cuda-quantum/realtime
 ADD "runtime" /cuda-quantum/runtime
 ADD "scripts/build_cudaq.sh" /cuda-quantum/scripts/build_cudaq.sh
+ADD "scripts/update_submodules.sh" /cuda-quantum/scripts/update_submodules.sh
 ADD "scripts/migrate_assets.sh" /cuda-quantum/scripts/migrate_assets.sh
 ADD "scripts/cudaq_set_env.sh" /cuda-quantum/scripts/cudaq_set_env.sh
 ADD "scripts/build_installer.sh" /cuda-quantum/scripts/build_installer.sh
@@ -194,7 +214,7 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
 
 # Validate that the nvidia backend was built.
 RUN source /cuda-quantum/scripts/configure_build.sh && \
-    for lib in libnvqir-custatevec-fp32.so libnvqir-custatevec-fp64.so; do \
+    for lib in libnvqir-custatevec-fp32.so libnvqir-custatevec-fp64.so libnvqir-custabilizer.so; do \
         if [ ! -f "$CUDAQ_INSTALL_PREFIX/lib/$lib" ]; then \
             echo -e "\e[01;31mError: Missing nvidia backend ($lib).\e[0m" >&2; \
             exit 1; \
@@ -240,7 +260,7 @@ RUN source /cuda-quantum/scripts/configure_build.sh && \
         libname="$(basename "$binary")" && \
         # Linking cublas dynamically necessarily adds a libgcc_s dependency to the GPU-based simulators.
         # The same holds for a range of CUDA libraries, whereas libcudart.so does not have any GCC dependencies.
-        if [ "${libname#libnvqir-custatevec}" != "$libname" ] || [ "${libname#libnvqir-nvidia-mgpu}" != "$libname" ] || [ "${libname#libnvqir-tensornet}" != "$libname" ] || [ "${libname#libnvqir-dynamics}" != "$libname" ]; then \
+        if [ "${libname#libnvqir-custatevec}" != "$libname" ] || [ "${libname#libnvqir-custabilizer}" != "$libname" ] || [ "${libname#libnvqir-nvidia-mgpu}" != "$libname" ] || [ "${libname#libnvqir-tensornet}" != "$libname" ] || [ "${libname#libnvqir-dynamics}" != "$libname" ]; then \
             echo "Skipping validation of $libname."; \
         elif [ -n "$(ldd "${binary}" 2>/dev/null | grep gcc)" ]; then \
             has_gcc_dependencies=true && \
@@ -253,7 +273,9 @@ RUN source /cuda-quantum/scripts/configure_build.sh && \
     fi
 
 ## [Python support]
-FROM prereqs AS python_build
+FROM prereqs_python AS python_build
+ADD .git/index /cuda-quantum/.git/index
+ADD .git/modules/ /cuda-quantum/.git/modules/
 # Bring all possible templates into the image, then pick the exact one
 ADD pyproject.toml.cu* /cuda-quantum/
 ADD "python" /cuda-quantum/python
@@ -264,6 +286,7 @@ ADD "tpls/customizations" /cuda-quantum/tpls/customizations
 ADD "tpls/json" /cuda-quantum/tpls/json
 ADD "utils" /cuda-quantum/utils
 ADD "scripts/check_mlir_symbols.sh" /cuda-quantum/scripts/check_mlir_symbols.sh
+ADD "scripts/update_submodules.sh" /cuda-quantum/scripts/update_submodules.sh
 ADD "CMakeLists.txt" /cuda-quantum/CMakeLists.txt
 ADD "LICENSE" /cuda-quantum/LICENSE
 ADD "LICENSES" /cuda-quantum/LICENSES
@@ -288,11 +311,6 @@ RUN --mount=from=ccache-data,target=/tmp/ccache-import,rw \
         mkdir -p /root/.ccache; \
     fi
 
-ARG PYTHON=python3.11
-RUN dnf install -y --nobest --setopt=install_weak_deps=False ${PYTHON}-devel && \
-    ${PYTHON} -m ensurepip --upgrade && \
-    CCACHE_DISABLE=1 ${PYTHON} -m pip install numpy build auditwheel patchelf
-
 RUN cd /cuda-quantum && \
     . scripts/configure_build.sh && \
     case "${CUDA_VERSION%%.*}" in \
@@ -300,12 +318,7 @@ RUN cd /cuda-quantum && \
       13) cp pyproject.toml.cu13 pyproject.toml || true ;; \
       *)  echo "Unsupported CUDA_VERSION=${CUDA_VERSION}"; exit 1 ;; \
     esac && \
-    # Needed to retrigger the LLVM build, since the MLIR Python bindings
-    # are not built in the prereqs stage.
-    rm -rf "${LLVM_INSTALL_PREFIX}" && \
-    # IMPORTANT:
-    # Make sure that the invocation of the install_prerequisites.sh script here matches
-    # the ones in the install_prerequisites.sh invocation in the prereqs stage!
+    # The LLVM build is a no-op here, since the prereqs_python stage already did it.
     ## [>CUDAQuantumPythonBuild]
     LLVM_PROJECTS='clang;flang;lld;mlir;python-bindings;openmp;runtimes' \
     bash scripts/install_prerequisites.sh -t llvm -e qrmi && \
@@ -336,6 +349,7 @@ RUN echo "Patching up wheel using auditwheel..." && \
         --exclude libcutensor.so.2 \
         --exclude libcutensornet.so.2 \
         --exclude libcustatevec.so.1 \
+        --exclude libcustabilizer.so.0 \
         --exclude libcudensitymat.so.0 \
         --exclude libcudart.so.11.0 \
         --exclude libnvToolsExt.so.1 \
@@ -344,7 +358,7 @@ RUN echo "Patching up wheel using auditwheel..." && \
     ## [<CUDAQuantumWheel]
 
 # Validate that the nvidia backend was built.
-RUN for lib in libnvqir-custatevec-fp32.so libnvqir-custatevec-fp64.so; do \
+RUN for lib in libnvqir-custatevec-fp32.so libnvqir-custatevec-fp64.so libnvqir-custabilizer.so; do \
         if [ ! -f "/cuda-quantum/_skbuild/lib/$lib" ]; then \
             echo -e "\e[01;31mError: Missing nvidia backend ($lib).\e[0m" >&2; \
             exit 1; \
@@ -392,9 +406,7 @@ RUN if ! gpus=$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null) |
         source /cuda-quantum/scripts/configure_build.sh install-cudart; \
     fi && cd /cuda-quantum && \
     # Exclude lit test suites from ctest. They are run individually above/below.
-    # FIXME: exceptions lose their type across the library boundary here.
-    # Issue: https://github.com/NVIDIA/cuda-quantum/issues/2321
-    excludes+=" --exclude-regex ctest-cudaq|ctest-targettests|ctest-runtime|ctest-target-catalog|pycudaq-mlir|Tensor.*Error|DrawTester\.ownsControlValues" && \
+    excludes+=" --exclude-regex ctest-cudaq|ctest-targettests|ctest-runtime|ctest-target-catalog|pycudaq-mlir" && \
     ctest --output-on-failure --test-dir build $excludes
 
 ENV PATH="${PATH}:/usr/local/cuda/bin" 

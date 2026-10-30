@@ -26,6 +26,9 @@ add_library(cudaq-mlir-runtime
     CompiledModuleHelper.cpp
     JITTargetPipeline.cpp
     JIT.cpp
+    LoweringHandler.cpp
+    QuakeReferenceSemanticsHandler.cpp
+    QuakeUnmappedHandler.cpp
     ResourceCount.cpp
     RuntimeMLIR.cpp
     LayoutInfo.cpp

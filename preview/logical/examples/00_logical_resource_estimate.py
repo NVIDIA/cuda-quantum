@@ -28,17 +28,28 @@ def bell_pair():
 cudaq.set_target(cql.targets.estimator)
 
 # %%
-# Estimate the kernel and recover the typed logical-resource annotation.
+# Estimate the kernel. For logical targets, `estimate.resources` reports the
+# logical program: gate counts, qubits, and depth. Measurements appear as `mz`
+# and qubit preparations as `reset`.
 estimate = cudaq.estimate(bell_pair)
-resources = cql.estimate.LogicalEstimate.from_annotations(estimate.annotations)
+resources = estimate.resources
 
-assert resources.logical_qubits_peak == 2
-assert resources.actions == {
-    "qlx_standard_h": 1,
-    "qlx_standard_cx": 1,
-}
+assert resources.num_qubits == 2
+assert resources.count("h") == 1
+assert resources.count_controls("x", 1) == 1
+assert resources.count("mz") == 2
 
 print("Logical Bell-pair resources:")
-print(f"  peak logical qubits: {resources.logical_qubits_peak}")
-print(f"  Hadamard actions: {resources.actions['qlx_standard_h']}")
-print(f"  controlled-X actions: {resources.actions['qlx_standard_cx']}")
+print(f"  peak logical qubits: {resources.num_qubits}")
+print(f"  logical operations: {resources.count()}")
+print(f"  logical depth (serial upper bound): {resources.depth}")
+print(f"  logical gate counts: {resources.to_dict()}")
+
+# %%
+# Going deeper: `resources` is a summary of the full logical estimate stored in
+# `estimate.annotations["LOGICAL"]`. That annotation also carries details that
+# `Resources` cannot express, such as idle sites, discards, synthesis demand,
+# and resource requests. Rehydrate it as a typed object when you need them.
+logical = cql.estimate.LogicalEstimate.from_annotations(estimate.annotations)
+assert logical.logical_qubits_peak == resources.num_qubits
+print(f"  logical estimate: {logical}")

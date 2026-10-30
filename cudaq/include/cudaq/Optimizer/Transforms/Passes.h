@@ -33,7 +33,10 @@ void registerUnrollingPipeline();
 void registerClassicalOptimizationPipeline();
 void registerMappingPipeline();
 void registerToCFGPipeline();
-void registerFaultTolerantTargetPipeline();
+
+/// Register `clifford-t-optimization-pipeline` and
+/// `clifford-t-synthesis-pipeline`.
+void registerCliffordTPipelines();
 
 /// Convert supported Quake IR to explicit linear values. This splits
 /// fixed-size allocations, expands vector controls, and threads reusable
@@ -60,36 +63,6 @@ void addDecomposition(mlir::OpPassManager &pm,
                       mlir::ArrayRef<std::string> enabledPats,
                       mlir::ArrayRef<std::string> disabledPats = {});
 
-/// Clifford+T fault-tolerant synthesis sub-pipeline
-/// UnitarySynthesis
-/// ApplyOpSpecialization
-/// constant propagation
-/// `exp-pauli` and U3 decomposition
-/// quantum deallocation insertion and linear-value conversion
-/// `thresholded` exact-angle simplification
-/// register-to-memory conversion
-/// rotation-to-`Rz` decomposition
-/// CliffordTSynthesis
-/// Decomposition to the {H, S, T, X, Z, CNOT} basis
-///
-/// Intent: this is the production entry point for fault-tolerant lowering. It
-/// is the exact sub-pipeline registered as `cudaq-fault-tolerant-target` (see
-/// registerFaultTolerantTargetPipeline), not a test-only helper. The prelude
-/// passes (UnitarySynthesis, ApplyOpSpecialization, constant propagation) are
-/// included on purpose so the sub-pipeline is self-contained and establishes
-/// CliffordTSynthesis's preconditions (materialized controls/`adjoints`, folded
-/// constant angles) regardless of what ran before it. That means these passes
-/// may re-run if an enclosing pipeline already scheduled them; the passes are
-/// idempotent on already-lowered IR, so the duplication is safe.
-///
-/// Opt-in only. This helper is not added to default target pipelines.
-///
-/// `seed` seeds the randomized factoring in CliffordTSynthesis. 0 leaves it
-/// unseeded, so the synthesized circuit may differ from run to run. Targets
-/// set it through their config.
-void addCliffordTSynthesis(mlir::OpPassManager &pm, double epsilon = 1e-10,
-                           bool failOnControlledRotation = false,
-                           uint64_t seed = 0);
 /// Append the common pipeline that expands, normalizes, and lowers
 /// `quake.phase` operations before final code generation.
 void addPhaseLifecycle(mlir::OpPassManager &pm);

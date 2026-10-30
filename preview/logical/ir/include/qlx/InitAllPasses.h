@@ -6,11 +6,11 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  *******************************************************************************/
 
-#ifndef QLX_INITALLPASSES_H
-#define QLX_INITALLPASSES_H
+#pragma once
 
 #include "qlx/Conversion/Passes.h"
 #ifdef QLX_HAS_CUDAQ_QUAKE
+#include "qlx/Conversion/PhysToQuakePasses.h"
 #include "qlx/Conversion/QuakeToQLXPasses.h"
 #endif
 #include "qlx/Compiler/SpacetimeProviders.h"
@@ -27,6 +27,7 @@ inline void registerAllQLXPasses() {
 #ifdef QLX_HAS_CUDAQ_QUAKE
   registerQuakeToQLXPasses();
   registerPrepareQuakeForQLXPipeline();
+  registerPhysToQuakePasses();
 #endif
   fabric::registerFabricTransformPasses();
   phys::registerPhysTransformPasses();
@@ -34,5 +35,3 @@ inline void registerAllQLXPasses() {
 }
 
 } // namespace qlx
-
-#endif // QLX_INITALLPASSES_H

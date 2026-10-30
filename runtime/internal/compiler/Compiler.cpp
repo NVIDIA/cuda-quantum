@@ -124,7 +124,12 @@ cudaq_internal::compiler::Compiler::loadQuakeCodeByName(
 
 cudaq_internal::compiler::Compiler::Compiler(
     const cudaq::CompileTarget &target_, const cudaq::CompileOptions &options_)
-    : target(target_), options(options_) {
+    : Compiler(target_, options_, makeBuiltinLoweringHandlers()) {}
+
+cudaq_internal::compiler::Compiler::Compiler(
+    const cudaq::CompileTarget &target_, const cudaq::CompileOptions &options_,
+    std::vector<std::unique_ptr<LoweringHandler>> handlers_)
+    : target(target_), options(options_), handlers(std::move(handlers_)) {
   emulate = options.emulate;
 
   cudaq_internal::compiler::initializeMLIR();
@@ -296,12 +301,17 @@ cudaq_internal::compiler::Compiler::prepareModule(const std::string &kernelName,
 
 std::pair<bool, std::string>
 cudaq_internal::compiler::Compiler::executeMainPipeline(
-    mlir::ModuleOp moduleOp, const std::string &kernelName) {
-  if (options.skipTargetLoweringPipeline || target.stages.empty() ||
-      target.getCustomPipelineLowering().empty()) {
+    mlir::ModuleOp moduleOp, const std::string &kernelName,
+    const cudaq::CompileOptions &resolvedOptions) {
+  if (resolvedOptions.skipTargetLoweringPipeline || !target.hasPassPipeline()) {
     return {false, ""};
   }
-  auto passPipelineConfig = getPassPipeline(target, options);
+  std::string diagnostic;
+  auto stagedPipeline =
+      getPassPipeline(target, resolvedOptions, handlers, diagnostic);
+  if (!stagedPipeline)
+    throw std::runtime_error(diagnostic);
+  auto passPipelineConfig = std::move(*stagedPipeline);
   auto combineMeasurements =
       passPipelineConfig.find("combine-measurements") != std::string::npos;
   if (emulate && combineMeasurements) {
@@ -375,6 +385,34 @@ cudaq_internal::compiler::Compiler::assembleCompiledModule(
       std::move(metadata));
 }
 
+/// Resolve the quantum optimization level for one compile. Disabling
+/// optimization in the options, or a marker on the module, forces level 0
+/// over the requested level. A frontend marks the module only when the kernel
+/// in it disables optimization. nvq++ also marks a kernel that calls a marked
+/// kernel from the same source file, because it inlines the callee before
+/// registering the caller. A marked callee from another C++ source file, or
+/// any marked Python callee, does not mark its caller, so the JIT optimizes
+/// the callee's gates along with the caller's.
+static cudaq::OptimizationLevel
+resolveOptimizationLevel(mlir::ModuleOp moduleOp,
+                         const cudaq::CompileOptions &options) {
+  if (options.disableQuantumOpts ||
+      moduleOp->hasAttr(cudaq::runtime::disableQuantumOpts))
+    return cudaq::OptimizationLevel::O0;
+  return options.optimizationLevel;
+}
+
+/// Mark the module and each function so that passes and codegen that never
+/// see `CompileOptions` also skip quantum optimization. Codegen and
+/// `cudaq-translate` check the module. Passes such as `quake-simplify`,
+/// `phase-folding`, and `dqe` check the function they run on.
+static void disableQuantumOptimization(mlir::ModuleOp moduleOp) {
+  auto unitAttr = mlir::UnitAttr::get(moduleOp.getContext());
+  moduleOp->setAttr(cudaq::runtime::disableQuantumOpts, unitAttr);
+  for (auto func : moduleOp.getOps<mlir::func::FuncOp>())
+    func->setAttr(cudaq::runtime::disableQuantumOpts, unitAttr);
+}
+
 static bool hasConditionalsOnMeasureResults(mlir::ModuleOp moduleOp) {
   return std::any_of(moduleOp.begin(), moduleOp.end(), [](auto &innerOp) {
     cudaq::quake::detail::QuakeFunctionAnalysis analysis{&innerOp};
@@ -396,6 +434,14 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
   auto [moduleOp, epFunc, isFullySpecialized] =
       prepareModule(kernelName, m_module, args, isEntryPoint);
 
+  // `options` holds what the caller requested. The compile path below reads
+  // `resolvedOptions`, which carries the values resolved for this kernel.
+  auto resolvedOptions = options;
+  resolvedOptions.optimizationLevel =
+      resolveOptimizationLevel(moduleOp, options);
+  if (resolvedOptions.optimizationLevel == cudaq::OptimizationLevel::O0)
+    disableQuantumOptimization(moduleOp);
+
   bool hasConditionalsOnMeasRes = hasConditionalsOnMeasureResults(moduleOp);
 
   // Throw an error if unsupported conditionals have been detected.
@@ -416,8 +462,17 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
     }
   }
 
+  if (options.addSampleMeasurements &&
+      !target.supportSampleWithoutMeasurements) {
+    // No need to add measurements only to remove them eventually
+    if (target.codegen.postCodegenPasses.find("remove-measurements") ==
+        std::string::npos)
+      applyPipeline("func.func(add-measurements{use-evince=1})", moduleOp,
+                    kernelName);
+  }
+
   auto [combineMeasurements, passPipeline] =
-      executeMainPipeline(moduleOp, kernelName);
+      executeMainPipeline(moduleOp, kernelName, resolvedOptions);
 
   // We need to run resource counting preprocessing after the pass pipeline as
   // the pre-processing might change the IR structure (may interfere with
@@ -460,14 +515,6 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
                   << "individual measurement results." << std::endl;
       }
     }
-  }
-
-  if (options.addSampleMeasurements &&
-      !target.supportSampleWithoutMeasurements) {
-    // No need to add measurements only to remove them eventually
-    if (target.codegen.postCodegenPasses.find("remove-measurements") ==
-        std::string::npos)
-      applyPipeline("func.func(add-measurements)", moduleOp, kernelName);
   }
 
   // Apply observations if necessary

@@ -75,6 +75,39 @@ module attributes {qlx.profiles = ["p3"]} {
       resources = [@left, @right], indices = array<i64: 1, 2>,
       acquire = "acquire2", release = "release2"}]
   }
+
+  // A `cflow.if` takes no state operands, so its branches yield the states
+  // that they capture, as the native projector emits for
+  // `cond(..., carries=...)`. The state's only path to its release then runs
+  // through the conditionals' results, here across two nested branches.
+  phys.resource @captured {kind = "qubit", resource_class = @q, index = 0 : i64}
+  phys.graph @captured_by_branch on @arch : (i1) -> () {
+  ^bb0(%flag: i1):
+    %0 = phys.acquire [@captured] {event_id = "acquire3"}
+      : !phys.state<@captured>
+    %1 = cflow.if %flag event_id = "outer" -> !phys.state<@captured> {
+      %2 = cflow.if %flag event_id = "inner" -> !phys.state<@captured> {
+        cflow.yield %0 : !phys.state<@captured>
+      } else {
+        cflow.yield %0 : !phys.state<@captured>
+      }
+      cflow.yield %2 : !phys.state<@captured>
+    } else {
+      %3 = cflow.if %flag event_id = "inner_else" -> !phys.state<@captured> {
+        cflow.yield %0 : !phys.state<@captured>
+      } else {
+        cflow.yield %0 : !phys.state<@captured>
+      }
+      cflow.yield %3 : !phys.state<@captured>
+    }
+    phys.release %1 {event_id = "release3"} : !phys.state<@captured>
+    phys.return
+  }
+  phys.allocation_mapping @captured_by_branch_allocations for @captured_by_branch {
+    entries = [{allocation = "captured", resource_class = @q,
+      resources = [@captured], indices = array<i64: 0>,
+      acquire = "acquire3", release = "release3"}]
+  }
 }
 
 // CHECK: phys.resource @first
@@ -87,3 +120,4 @@ module attributes {qlx.profiles = ["p3"]} {
 // CHECK: allocation = "call0.scratch"
 // CHECK: allocation = "call1.scratch"
 // CHECK: phys.allocation_mapping @permuted_release_allocations for @permuted_release
+// CHECK: phys.allocation_mapping @captured_by_branch_allocations for @captured_by_branch

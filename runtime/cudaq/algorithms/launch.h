@@ -43,6 +43,9 @@ auto launch(const Policy &policy, std::size_t qpu_id, ExecutionContext &ctx,
             quantum_platform &platform, Callable &&f, Args &&...args)
     -> Policy::result_type {
 
+  // Bind the worker's device before the simulator is initialized.
+  platform.prepareExecution(qpu_id);
+
   // Python builds without CUDAQ_LIBRARY_MODE defined, so we need to check for
   // it at runtime
   bool library_mode = platform.is_library_mode();
@@ -79,9 +82,10 @@ auto launch(const Policy &policy, std::size_t qpu_id, ExecutionContext &ctx,
       cudaq::CompileTarget target;
       cudaq::CompileOptions options;
       if constexpr (requires { policy.inner; }) {
-        options = cudaq::get_compile_options(policy.inner);
+        options =
+            cudaq::get_compile_options(policy.inner, cudaq::get_random_seed());
       } else {
-        options = cudaq::get_compile_options(policy);
+        options = cudaq::get_compile_options(policy, cudaq::get_random_seed());
       }
       target = platform.getCompileTarget(qpu_id);
       const bool isEmulated = platform.is_emulated(qpu_id);

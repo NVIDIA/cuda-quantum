@@ -727,7 +727,8 @@ getCompileConfig(std::optional<cudaq::CompileTarget> target = std::nullopt,
   if (!traits)
     traits = EndpointTraits::ofCurrentPlatform();
   if (!ctx) {
-    options = cudaq::get_compile_options(cudaq::other_policies{});
+    options = cudaq::get_compile_options(cudaq::other_policies{},
+                                         cudaq::get_random_seed());
   } else {
     cudaq::policies::withPolicy(ctx->name, [&](auto policy) {
       using Policy = std::decay_t<decltype(policy)>;
@@ -735,7 +736,7 @@ getCompileConfig(std::optional<cudaq::CompileTarget> target = std::nullopt,
         policy.spin = ctx->spin.value();
       }
 
-      options = cudaq::get_compile_options(policy);
+      options = cudaq::get_compile_options(policy, cudaq::get_random_seed());
     });
   }
 

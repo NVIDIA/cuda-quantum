@@ -13,25 +13,34 @@
 /// dispatch kernel.
 ///
 /// The unified kernel (`unified_dispatch_kernel.cu`) does RDMA RX, RPC dispatch
-/// and RDMA TX in one persistent single-thread kernel.  Everything
-/// transport-specific reaches it through the three `__device__` hooks below
-/// plus an opaque `void *ctx`, so the loop itself compiles with no transport
-/// headers -- no DOCA, no verbs, no mlx5.
+/// and RDMA TX in one persistent kernel, a single block of `threads_per_block`
+/// threads.  Everything transport-specific reaches it through the three
+/// `__device__` hooks below plus an opaque `void *ctx`, so the loop itself
+/// compiles with no transport headers -- no DOCA, no verbs, no mlx5.
 ///
 /// `rx_poll` and `tx_publish` deliberately mirror `cudaq_cpu_rx_poll_fn_t` and
 /// `cudaq_cpu_tx_publish_fn_t` in `bridge/bridge_interface.h`, which serve the
 /// equivalent host-side loop.  The one behavioural difference is documented on
 /// `cudaq_dev_rx_poll`.
 ///
-/// LINKAGE.  These are `extern __device__` functions resolved by `nvcc -dlink`,
-/// NOT function pointers: a device function pointer is only valid inside the
-/// module that defines it, so the implementations must be device-linked into
-/// the same CUDA module as the kernel.  The same holds for the DEVICE_CALL
-/// handlers the kernel reaches through the function table.  In practice the
-/// transport's implementation TU and the core TU both ship in
-/// libcudaq-realtime-dispatch.a, which the consumer device-links together
-/// with its handlers.  Runtime (`dlopen`) selection of a device data plane is
-/// not expressible in CUDA.
+/// THREADING.  Exactly one thread calls the hooks: thread 0 of the single
+/// block.  The other threads only run DEVICE_CALL handlers; while thread 0 is
+/// inside a hook they are parked in the kernel's own __syncthreads().  A hook
+/// must therefore not use block- or warp-wide barriers (__syncthreads,
+/// __syncwarp, the DOCA *_warp helpers): a warp barrier would never complete
+/// and a block barrier would collide with the one the block is waiting in.
+/// `__shared__` state a transport declares is touched by thread 0 only.
+///
+/// LINKAGE.  These are `extern __device__` functions with fixed names, NOT
+/// function pointers: a device function pointer is only valid inside the
+/// module that defines it, so the implementations must be linked into the
+/// same CUDA module as the kernel.  The same holds for the DEVICE_CALL
+/// handlers the kernel reaches through the function table.  The dispatcher
+/// does that link at run time, with nvJitLink: the transport builds its hooks
+/// with -rdc into its bridge library and hands that relocatable code over
+/// through `cudaq_gpu_dataplane_t`, so a device data plane is selected at run
+/// time like any other bridge.  Built as LTO-IR, the hooks are inlined into
+/// the kernel; see realtime/docs/device_code_contract.md.
 
 #include <cstddef>
 #include <cstdint>
@@ -52,17 +61,18 @@ typedef enum {
   CUDAQ_RX_DEV_SHUTDOWN = 1, ///< Shutdown signalled; leave the loop
 } cudaq_rx_dev_status_t;
 
-/// Size and alignment of the session storage the kernel hands to `attach`.  A
-/// transport's session must fit; check it with a static_assert.
+/// Size and alignment of the session storage the kernel hands to
+/// `cudaq_dev_enter_kernel`.  A transport's session must fit; check it with a
+/// static_assert.
 #define CUDAQ_DEV_TRANSPORT_SESSION_BYTES 256
 #define CUDAQ_DEV_TRANSPORT_SESSION_ALIGN 16
 
-/// Open the transport's device-side session.  Called once per block at kernel
-/// entry, before any other hook.
+/// Open the transport's device-side session.  Called once per launch, by
+/// thread 0 (see THREADING), at kernel entry before any other hook.
 ///
-/// The implementation materialises whatever per-block state it needs (derived
-/// handles, cursors) from `ctx` into `storage` and returns the handle passed
-/// back to the other two hooks.
+/// The implementation materialises whatever state it needs (derived handles,
+/// cursors) from `ctx` into `storage` and returns the handle passed back to
+/// the other two hooks.
 ///
 ///   - `storage`       : CUDAQ_DEV_TRANSPORT_SESSION_BYTES of kernel-local
 ///                       memory, aligned to CUDAQ_DEV_TRANSPORT_SESSION_ALIGN,
@@ -80,15 +90,16 @@ typedef enum {
 ///
 /// Returns the session handle, or `nullptr` if the transport cannot run (the
 /// kernel then exits immediately).
-extern __device__ void *cudaq_dev_transport_attach(void *storage, void *ctx,
-                                                   volatile int *shutdown_flag);
+extern __device__ void *cudaq_dev_enter_kernel(void *storage, void *ctx,
+                                               volatile int *shutdown_flag);
 
 /// Claim the next inbound request, and the frame its response goes in.
 ///
 /// Behavior: block until a request is ready, then point `*out_request` at its
 /// RPC header and `*out_response` at the TX frame paired with it, and return
 /// CUDAQ_RX_DEV_READY.  Return CUDAQ_RX_DEV_SHUTDOWN instead, leaving both
-/// outputs unchanged, once the shutdown flag handed to `attach` is set.
+/// outputs unchanged, once the shutdown flag handed to
+/// `cudaq_dev_enter_kernel` is set.
 /// Frames the transport itself cannot dispatch (bad descriptors, out-of-range
 /// slots) are recycled internally and never surface.
 ///
@@ -102,10 +113,10 @@ extern __device__ void *cudaq_dev_transport_attach(void *storage, void *ctx,
 /// Contract: MUST observe the shutdown flag while it waits, since the dispatch
 /// loop cannot check it meanwhile.  Blocking here is intentional and is the
 /// one divergence from `cudaq_cpu_rx_poll_fn_t`, which must not block: the
-/// host loop has to return every turn to service graph-launch completions,
-/// whereas this path runs device calls only and has no other work to
-/// interleave.  Returning on every empty poll would also put a cross-TU call
-/// in the spin, so the wait stays inside the implementation.
+/// host loop checks the shutdown flag between polls, whereas this path runs
+/// device calls only and has no other work to interleave.  Returning on every
+/// empty poll would also put a cross-TU call in the spin, so the wait stays
+/// inside the implementation.
 extern __device__ cudaq_rx_dev_status_t cudaq_dev_rx_poll(void *session,
                                                           void **out_request,
                                                           void **out_response);

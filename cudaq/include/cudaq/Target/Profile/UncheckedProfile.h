@@ -8,6 +8,8 @@
 
 #pragma once
 
+#include <functional>
+
 namespace cudaq::config {
 
 /// IR profile that accepts any IR.
@@ -16,7 +18,18 @@ namespace cudaq::config {
 /// validation always passes. It is used until declarative IR profiles are
 /// introduced.
 struct UncheckedProfile {
+  /// Name identifying this profile in target configurations.
+  static constexpr char name[] = "unchecked";
+
   bool operator==(const UncheckedProfile &other) const = default;
 };
 
 } // namespace cudaq::config
+
+template <>
+struct std::hash<cudaq::config::UncheckedProfile> {
+  std::size_t
+  operator()(const cudaq::config::UncheckedProfile &) const noexcept {
+    return 0;
+  }
+};

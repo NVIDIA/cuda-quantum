@@ -9,38 +9,8 @@
 #include "cudaq/Target/CompileTarget.h"
 #include "cudaq/Support/Hash.h"
 #include "cudaq/Target/TargetConfig.h"
+#include <algorithm>
 #include <cctype>
-#include <cstdlib>
-#include <iostream>
-
-/// Report an unsupported compilation stage and terminate.
-[[noreturn]] static void reportUnsupportedStage() {
-  std::cerr << "Unsupported compilation stage: only a single stage with a "
-               "custom-pipeline lowering is currently supported\n";
-  std::abort();
-}
-
-const cudaq::config::CustomPipelineLowering &
-cudaq::CompileTarget::getCustomPipelineLowering() const {
-  if (stages.size() != 1)
-    reportUnsupportedStage();
-  const auto *lowering =
-      std::get_if<config::CustomPipelineLowering>(&stages[0].lowering);
-  if (!lowering)
-    reportUnsupportedStage();
-  return *lowering;
-}
-
-cudaq::config::CustomPipelineLowering &
-cudaq::CompileTarget::getCustomPipelineLowering() {
-  if (stages.size() != 1)
-    reportUnsupportedStage();
-  auto *lowering =
-      std::get_if<config::CustomPipelineLowering>(&stages[0].lowering);
-  if (!lowering)
-    reportUnsupportedStage();
-  return *lowering;
-}
 
 const std::string *cudaq::CompileTarget::getOverridePassPipeline() const {
   if (stages.size() != 1)
@@ -53,9 +23,11 @@ const std::string *cudaq::CompileTarget::getOverridePassPipeline() const {
 }
 
 /// Replace `%KEY%` and `%KEY:default%` placeholders from runtime options.
-static void substitutePipelinePlaceholders(
+/// Returns whether the pipeline contains a `%SEED%` placeholder.
+static bool substitutePipelinePlaceholders(
     std::string &pipeline,
     const std::map<std::string, std::string> &runtimeConfig) {
+  bool usesSeed = false;
   std::string::size_type pos = 0;
   while (pos < pipeline.size()) {
     auto start = pipeline.find('%', pos);
@@ -71,6 +43,7 @@ static void substitutePipelinePlaceholders(
     std::string lower;
     for (char c : key)
       lower += static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    usesSeed |= lower == "seed";
     auto it = runtimeConfig.find(lower);
 
     if (it != runtimeConfig.end()) {
@@ -84,6 +57,7 @@ static void substitutePipelinePlaceholders(
       pos = end + 1;
     }
   }
+  return usesSeed;
 }
 
 /// Replace literal placeholder keys in a pipeline stage string.
@@ -111,7 +85,8 @@ cudaq::CompileTarget cudaq::CompileTarget::createFromConfig(
   auto prepPipeline = [&](const std::string &stage) {
     std::string pipeline = stage;
     if (!pipeline.empty()) {
-      substitutePipelinePlaceholders(pipeline, runtimeConfig);
+      bool usesSeed = substitutePipelinePlaceholders(pipeline, runtimeConfig);
+      target.resetOnRandomSeedSet |= usesSeed;
       applyPipelineSubstitutions(pipeline, pipelineSubstitutions);
     }
     return pipeline;
@@ -131,19 +106,28 @@ cudaq::CompileTarget cudaq::CompileTarget::createFromConfig(
   auto disableQM = runtimeConfig.find("disable_qubit_mapping");
   target.disableQubitMapping =
       disableQM != runtimeConfig.end() && disableQM->second == "true";
-  for (auto &stage : target.stages) {
-    auto *lowering =
-        std::get_if<config::CustomPipelineLowering>(&stage.lowering);
-    if (!lowering)
-      continue;
-    resolvePipeline(*lowering);
-  }
+  for (auto &stage : target.stages)
+    if (auto *lowering =
+            std::get_if<config::CustomPipelineLowering>(&stage.lowering))
+      resolvePipeline(*lowering);
 
   target.codegen.emissionFormat = targetConfig.getCodeGenSpec(runtimeConfig);
 
   target.supportResourceCounts = backendConfig.SupportResourceCounts;
 
   return target;
+}
+
+/// Whether lowering should be skipped altogether in this compilation stage
+/// (true when an empty custom pipeline is specified).
+static bool skipLoweringPipeline(const cudaq::config::CompilationStage &stage) {
+  const auto *custom =
+      std::get_if<cudaq::config::CustomPipelineLowering>(&stage.lowering);
+  return custom && custom->empty();
+}
+
+bool cudaq::CompileTarget::hasPassPipeline() const {
+  return !std::all_of(stages.begin(), stages.end(), skipLoweringPipeline);
 }
 
 std::size_t std::hash<cudaq::CompileTarget>::operator()(
@@ -157,16 +141,18 @@ std::size_t std::hash<cudaq::CompileTarget>::operator()(
       t.replaceStateWithKernel);
 }
 
-std::size_t std::hash<cudaq::config::UncheckedProfile>::operator()(
-    const cudaq::config::UncheckedProfile &) const noexcept {
-  return 0;
-}
-
 std::size_t std::hash<cudaq::config::CustomPipelineLowering>::operator()(
     const cudaq::config::CustomPipelineLowering &lowering) const noexcept {
   return cudaq::detail::hashVal(
       lowering.overridePassPipeline, lowering.highLevelPipeline,
       lowering.midLevelPipeline, lowering.lowLevelPipeline);
+}
+
+std::size_t std::hash<cudaq::config::InferredLowering>::operator()(
+    const cudaq::config::InferredLowering &) const noexcept {
+  // Fixed tag: the lowering kind contributes to stage hashes, keeping an
+  // inferred lowering distinct from any custom pipeline (even an empty one).
+  return 0x5e1f9a3b;
 }
 
 std::size_t std::hash<cudaq::config::Codegen>::operator()(

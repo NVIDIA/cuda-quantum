@@ -322,9 +322,9 @@ func.func @sequenceI32OutputKernel(%arg0 : !cc.sequence<i32>, %arg1 : !cc.sequen
 // CHECK:         func.func private @__cudaq_device_call_dispatch_realtime_frame(!cc.ptr<i8>, !cc.ptr<i64>) -> i32
 // CHECK:         func.func private @__cudaq_device_call_safely_release_realtime_frame(!cc.ptr<i8>)
 // CHECK:         func.func private @llvm.memcpy.p0.p0.i64(!cc.ptr<i8>, !cc.ptr<i8>, i64, i1)
-// CHECK:         func.func private @__nvqpp_RealtimePackBits(%{{.*}}: !cc.ptr<!cc.array<i8 x ?>>, %{{.*}}: !cc.ptr<!cc.array<i1 x ?>>, %{{.*}}: i64) {
-// CHECK:         func.func private @__nvqpp_RealtimePackMeasurements(%{{.*}}: !cc.ptr<!cc.array<i8 x ?>>, %{{.*}}: !cc.ptr<!cc.array<!cc.measure_handle x ?>>, %{{.*}}: i64) {
-// CHECK:         func.func private @__nvqpp_RealtimeUnpackBits(%{{.*}}: !cc.ptr<!cc.array<i1 x ?>>, %{{.*}}: !cc.ptr<!cc.array<i8 x ?>>, %{{.*}}: i64) {
+// CHECK:         func.func private @__nvqpp_RealtimePackBits(%{{.*}}: !cc.ptr<!cc.array<i8 x ?>>, %{{.*}}: !cc.ptr<!cc.array<i1 x ?>>, %{{.*}}: i64) attributes {llvm.linkage = #llvm.linkage<linkonce_odr>} {
+// CHECK:         func.func private @__nvqpp_RealtimePackMeasurements(%{{.*}}: !cc.ptr<!cc.array<i8 x ?>>, %{{.*}}: !cc.ptr<!cc.array<!cc.measure_handle x ?>>, %{{.*}}: i64) attributes {llvm.linkage = #llvm.linkage<linkonce_odr>} {
+// CHECK:         func.func private @__nvqpp_RealtimeUnpackBits(%{{.*}}: !cc.ptr<!cc.array<i1 x ?>>, %{{.*}}: !cc.ptr<!cc.array<i8 x ?>>, %{{.*}}: i64) attributes {llvm.linkage = #llvm.linkage<linkonce_odr>} {
 // CHECK:         func.func private @__quantum__qis__trap(i64)
 
 func.func private @sumIntVector(!cc.sequence<i32>, i32) -> i32 attributes {"cudaq-devicecall"}

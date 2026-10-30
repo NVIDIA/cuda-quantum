@@ -93,6 +93,9 @@ Logical Bell-pair resources:
 
 Both examples estimate the logical resources needed to prepare and measure a
 Bell pair. The output reports resource counts, not sampled measurement results.
+To get measurement results for each shot, compile a logical program that
+returns Booleans to a physical build and run it with `cudaq.run`, as in the
+[Steane Bernstein–Vazirani example][bv-example].
 
 ## Build from source
 
@@ -128,3 +131,5 @@ https://github.com/NVIDIA/cuda-quantum/blob/main/preview/logical/examples/00_log
 
 [standalone-example]:
 https://github.com/NVIDIA/cuda-quantum/blob/main/preview/logical/examples/standalone/00_logical_program.py
+
+[bv-example]: ../use-cases/examples/steane-bernstein-vazirani.md

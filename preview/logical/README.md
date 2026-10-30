@@ -3,8 +3,9 @@
 `cudaq.logical` is the CUDA-Q toolkit for estimating the resources required by
 fault-tolerant quantum computations. It connects ordinary CUDA-Q kernels and
 portable logical programs to logical placement, codes, gadgets, distillation
-protocols, and inspectable resource estimates. As a secondary interchange path,
-a selected P2 program can be emitted as standards-compatible Stim circuit text.
+protocols, and inspectable resource estimates.
+Supported P3 physical builds can also execute through `cudaq.run` on CUDA-Q
+simulators, returning the program's explicit Boolean results per shot.
 
 `cudaq.logical` organizes compilation into explicit semantic stages:
 
@@ -18,6 +19,9 @@ Python is the main authoring interface. The same compiler and estimation
 workflows are also available from `qlx-opt` through ordinary MLIR pass-pipeline
 strings, and Stim circuits can be emitted from `qlx-translate`.
 
+As a secondary interchange path, a selected P2 program can be emitted as
+standards-compatible Stim circuit text.
+
 ## Start with the examples
 
 The executable walkthroughs in [`examples/`](examples/README.md) cover:
@@ -28,7 +32,9 @@ The executable walkthroughs in [`examples/`](examples/README.md) cover:
 - complete custom target construction with the Carbon code, kernel-backed
   gadgets, and an explicit physical machine;
 - Fermi--Hubbard and Gidney--Ekerå application studies;
-- standalone Python authoring with each compiler step exposed; and
+- standalone Python authoring with each compiler step exposed;
+- encoded circuit execution and T-state distillation through `cudaq.run`
+  (standalone examples 06 and 07); and
 - standalone MLIR workflows through `qlx-opt` and `qlx-translate`.
 
 The full documentation (quick start, concepts, workflow guides, and the example
@@ -107,3 +113,17 @@ Or install the `cudaq-logical` wheel and run the example files directly.
 
 Run the test suites with `ctest` in the Logical build directory
 (`build/external/logical` for an in-tree build).
+
+Python tests exclude the `slow` group by default, including in PR CI. This
+keeps the RSA-2048 Gidney–Ekerå checks in routine runs while the RSA-3072/4096
+factory-characterization and resource-kernel checks are opt-in. With the
+package installed, run just the slow group or the full Python suite with:
+
+```bash
+python3 -m pytest preview/logical/python/tests/cudaq/logical -m slow
+python3 -m pytest preview/logical/python/tests/cudaq/logical -m ""
+```
+
+For a build-tree CTest run, use `PYTEST_ADDOPTS='-m slow' ctest -R
+qlx-python-tests` from the Logical build directory, or `PYTEST_ADDOPTS='-m ""'`
+to include all Python tests.

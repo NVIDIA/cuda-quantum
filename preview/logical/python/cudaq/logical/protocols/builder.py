@@ -73,6 +73,9 @@ class ProtocolBuilder:
         self.definition = definition
         self.context = transaction.context
         self.location = transaction.location
+        # Keep reuse within this definition's materialization so its dependency
+        # trace still records every encoding and epoch used by the protocol.
+        self._patch_types = {}
         self._patches: list[PatchValue] = []
         self._bundles: list[PatchBundleValue] = []
         self._resources: list[ResourceValue] = []
@@ -171,14 +174,20 @@ class ProtocolBuilder:
         return (("patch", self._encoding_from_annotation(annotation)),)
 
     def _patch_type(self, encoding, *, epoch=None):
+        epoch_definition = encoding.initial_epoch if epoch is None else epoch
+        key = (id(encoding), id(epoch_definition))
+        cached = self._patch_types.get(key)
+        if cached is not None:
+            return cached
         code = self.transaction.materialize(encoding.code)
         encoded = self.transaction.materialize(encoding)
-        epoch = self.transaction.materialize(encoding.initial_epoch if epoch is
-                                             None else epoch)
-        return mlir_ir.Type.parse(
+        epoch = self.transaction.materialize(epoch_definition)
+        result = mlir_ir.Type.parse(
             f"!fabric.patch<@{code.symbol}, @{encoded.symbol}, @{epoch.symbol}>",
             context=self.context,
         )
+        self._patch_types[key] = result
+        return result
 
     def _boundary_type(self, kind, value):
         if kind == "patch":

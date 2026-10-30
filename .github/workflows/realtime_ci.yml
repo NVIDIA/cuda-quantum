@@ -26,11 +26,6 @@ on:
         type: string
         default: ''
         description: 'Holoscan Sensor Bridge branch or tag. Blank uses the deps_common.sh default.'
-      cpu_roce_use_hololink:
-        required: false
-        type: boolean
-        default: false
-        description: 'Link CPU RoCE against Hololink. Needs an HSB ref that exports HololinkRoce 2.7.'
   # No `paths:` filter: copy-pr-bot rebases make push diffs unreliable, and
   # merge_group does not support them. The `changes` job gates instead.
   push:
@@ -57,7 +52,7 @@ jobs:
       realtime: ${{ steps.filter.outputs.matched }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Check changed paths
         id: filter
@@ -190,7 +185,6 @@ jobs:
           HOLOSCAN_SDK_VERSION: ${{ inputs.holoscan_version || '' }}
           CUDAQ_REALTIME_HSB_REPO: ${{ inputs.hsb_repo || '' }}
           CUDAQ_REALTIME_HSB_REF: ${{ inputs.hsb_ref || '' }}
-          CUDAQ_REALTIME_CPU_ROCE_USE_HOLOLINK: ${{ (inputs.cpu_roce_use_hololink && 'ON') || 'OFF' }}
         with:
           # Use a base CUDA development image for compilation, i.e., no CUDA-Q dependencies pre-installed.
           image: nvidia/cuda:${{ matrix.cuda_version }}.0-devel-ubuntu24.04
@@ -201,7 +195,6 @@ jobs:
             HOLOSCAN_SDK_VERSION
             CUDAQ_REALTIME_HSB_REPO
             CUDAQ_REALTIME_HSB_REF
-            CUDAQ_REALTIME_CPU_ROCE_USE_HOLOLINK
           run: |
             # run-in-docker executes this block with a bare `bash`, so without
             # this a failing dependency install would be ignored and the job
@@ -218,7 +211,7 @@ jobs:
             # Installs DOCA/Holoscan and builds HSB into $HSB_ROOT/build.
             export HSB_ROOT=/workspace/holoscan-sensor-bridge
             # deps_common.sh logs the ref it builds but not the repository.
-            echo "HSB source: ${CUDAQ_REALTIME_HSB_REPO:-(deps_common.sh default)} @ ${CUDAQ_REALTIME_HSB_REF:-(deps_common.sh default)}, hololink CPU RoCE ${CUDAQ_REALTIME_CPU_ROCE_USE_HOLOLINK:-OFF}"
+            echo "HSB source: ${CUDAQ_REALTIME_HSB_REPO:-(deps_common.sh default)} @ ${CUDAQ_REALTIME_HSB_REF:-(deps_common.sh default)}"
             bash scripts/install_dev_prerequisites.sh
             # Build CUDA-Q Realtime
             cd /workspace/realtime

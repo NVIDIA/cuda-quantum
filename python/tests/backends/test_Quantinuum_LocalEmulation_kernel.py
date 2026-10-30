@@ -408,6 +408,34 @@ def test_run():
         assert res[1] is False
 
 
+def test_run_consecutive_conditions():
+    # O3 folds the two `if`s into a `switch`, which the adaptive profile
+    # rejects unless it is lowered back to compares and branches.
+    cudaq.set_target('quantinuum', machine='Helios-1SC', emulate='true')
+
+    @cudaq.kernel
+    def bits_to_int(bits: list[bool]) -> int:
+        val = 0
+        for i in range(len(bits)):
+            val |= bits[i] << i
+        return val
+
+    @cudaq.kernel
+    def lookup() -> bool:
+        q = cudaq.qvector(4)
+        x(q[0])
+        x(q[2])
+        code = bits_to_int(mz(q[0:3]))
+        if code == 5:
+            x(q[3])
+        if code == 3:
+            z(q[3])
+        return mz(q[3])
+
+    results = cudaq.run(lookup, shots_count=2)
+    assert results == [True, True]
+
+
 def test_quantinuum_state_preparation():
 
     @cudaq.kernel
@@ -431,6 +459,30 @@ def test_quantinuum_state_preparation():
     assert not '101' in counts
     assert not '110' in counts
     assert not '111' in counts
+
+
+@pytest.mark.parametrize('n_qubits', [3, 5])
+def test_state_preparation_complex_amplitudes(n_qubits):
+
+    @cudaq.kernel
+    def prepare(amplitudes: List[complex]):
+        q = cudaq.qvector(amplitudes)
+
+    rng = np.random.default_rng(41 + n_qubits)
+    amplitudes = (rng.normal(size=2**n_qubits) +
+                  1j * rng.normal(size=2**n_qubits))
+    amplitudes /= np.linalg.norm(amplitudes)
+    # X and Y expectations check relative phases as well as magnitudes after
+    # state preparation has been synthesized into gates for the target.
+    for prefix in ['XYZ', 'YZX', 'ZXY']:
+        op = cudaq.SpinOperator.from_word(prefix + 'I' * (n_qubits - 3))
+        expected = np.vdot(amplitudes, op.to_matrix() @ amplitudes).real
+        cudaq.set_random_seed(23)
+        actual = cudaq.observe(prepare,
+                               op,
+                               amplitudes.tolist(),
+                               shots_count=100000).expectation()
+        assert abs(actual - expected) < 0.015
 
 
 def test_named_reg_in_sample(capfd):

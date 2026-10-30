@@ -85,16 +85,16 @@ func.func @marked_scope(%q: !quake.ref) {
 
 // -----
 
-// `cc.noinline_call` survives the inliner, so the check walks the call graph
+// A `no_inline` call survives the inliner, so the check walks the call graph
 // itself. This pair is mutually recursive and must still terminate.
 func.func private @noinline_cycle_helper(%q: !quake.ref) {
   // expected-error@+1 {{measurement operations are not supported inside an atomic quantum region; measure outside the region}}
   %m = quake.mz %q : (!quake.ref) -> !quake.measure
-  cc.noinline_call @marked_noinline_cycle(%q) : (!quake.ref) -> ()
+  func.call @marked_noinline_cycle(%q) {no_inline} : (!quake.ref) -> ()
   return
 }
 
 func.func @marked_noinline_cycle(%q: !quake.ref) attributes {atomic_quantum_region} {
-  cc.noinline_call @noinline_cycle_helper(%q) : (!quake.ref) -> ()
+  func.call @noinline_cycle_helper(%q) {no_inline} : (!quake.ref) -> ()
   return
 }

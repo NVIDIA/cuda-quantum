@@ -32,4 +32,6 @@ code-and-gadget
 distillation
 physical-schedule
 lookup-addition
+steane-bernstein-vazirani
+t-factory-evaluation
 ```

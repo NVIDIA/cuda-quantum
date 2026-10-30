@@ -22,6 +22,7 @@
 /// by the CUDAQ_REALTIME_BRIDGE_LIB environment variable).
 
 #include "cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"
+#include "cudaq/realtime/device_code/device_code.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -97,31 +98,49 @@ typedef cudaq_rx_status_t (*cudaq_cpu_rx_poll_fn_t)(void *ctx,
 /// order their requests arrived.
 typedef cudaq_status_t (*cudaq_cpu_tx_publish_fn_t)(void *ctx, uint32_t slot);
 
-/// The CPU/host-driven unified data-plane: a device-visible ringbuffer plus the
-/// two host-callable ops that drive it, which a transport provider exposes for
-/// the CPU dispatch loop.
+/// The CPU/host-driven unified data-plane: a host-addressable RX/TX ring plus
+/// the two host-callable ops that drive it, which a transport provider exposes
+/// for the CPU dispatch loop.
 ///
 /// The library's single-thread unified dispatch loop
 /// (`cudaq_host_unified_loop`, used for CUDAQ_DISPATCH_PATH_HOST +
 /// CUDAQ_KERNEL_UNIFIED) owns one of these and, on its own thread, repeatedly
-/// calls `rx_poll` to pull the next request out of `ring`, dispatches it
-/// (HOST_CALL inline, GRAPH_LAUNCH via the graph engine), and calls
-/// `tx_publish` to send each response back out `ring`.  A provider that
-/// supports this shape returns a fully populated instance from its
-/// `get_cpu_dataplane` callback; providers that do not leave that callback
-/// NULL.
+/// calls `rx_poll` to pull the next request out of `ring`, runs its HOST_CALL
+/// handler inline, and calls `tx_publish` to send each response back out
+/// `ring`.  A provider that supports this shape returns a fully populated
+/// instance from its `get_cpu_dataplane` callback; providers that do not leave
+/// that callback NULL.
 typedef struct {
   void *ctx; ///< Transport-resident ring state.  Passed verbatim as the first
              ///< argument to `rx_poll` and `tx_publish`; opaque to the library.
-  cudaq_ringbuffer_t ring; ///< Device-visible RX/TX data + tx flags together
-                           ///< with their host-mapped views.  The unified loop
-                           ///< reads `rx_data_host` / `tx_data_host` (and
-                           ///< `tx_flags_host` to detect GRAPH_LAUNCH graph
-                           ///< completion), so the host-view pointers and slot
-                           ///< strides MUST be populated.
+  cudaq_ringbuffer_t ring; ///< RX/TX data rings.  The unified loop reads
+                           ///< `rx_data_host` / `tx_data_host`, so the
+                           ///< host-view pointers and slot strides MUST be
+                           ///< populated; the memory needs to be CUDA-mapped
+                           ///< only when a GPU consumer touches it.
   cudaq_cpu_rx_poll_fn_t rx_poll; ///< Non-blocking inbound poll; required.
   cudaq_cpu_tx_publish_fn_t tx_publish; ///< Outbound publish; required.
 } cudaq_cpu_dataplane_t;
+
+/// The GPU-driven unified data plane: the device hooks the unified dispatch
+/// kernel calls (unified_device_transport.cuh) plus the context they read.
+///
+/// A DEVICE + UNIFIED dispatcher links the hooks into one CUDA module with its
+/// kernel and the application's handlers at run time, with nvJitLink, so the
+/// provider hands them over as relocatable device code rather than linking
+/// them into anything.  Build the hooks with `-rdc` and fill one image with
+/// `cudaq_device_code_of_this_binary` (device_code_reader.h).  A provider that
+/// supports this shape returns a fully populated instance from its
+/// `get_gpu_dataplane` callback; providers that do not leave that callback
+/// NULL.
+typedef struct {
+  void *ctx; ///< Device-accessible transport state, handed to
+             ///< `cudaq_dev_enter_kernel`; required.
+  const cudaq_device_image_t
+      *device_code;         ///< The hooks' relocatable code; required.  Must
+                            ///< stay valid for the bridge's lifetime.
+  size_t device_code_count; ///< Number of images in `device_code`.
+} cudaq_gpu_dataplane_t;
 
 /// @brief Create and initialize a transport bridge from an explicit provider
 /// library.  `library` is any string `dlopen` accepts: a bare `soname` resolved
@@ -206,13 +225,23 @@ cudaq_status_t
 cudaq_bridge_set_function_table(cudaq_realtime_bridge_handle_t bridge,
                                 const cudaq_function_table_t *table);
 
+/// @brief Retrieve the GPU data plane for the unified dispatch kernel.
+/// Returns CUDAQ_ERR_UNSUPPORTED when the provider does not implement it, or
+/// was not started in its unified mode.
+///
+/// Applications wiring a dispatcher should call `cudaq_dispatcher_set_bridge`,
+/// which makes this call itself.
+cudaq_status_t
+cudaq_bridge_get_gpu_dataplane(cudaq_realtime_bridge_handle_t bridge,
+                               cudaq_gpu_dataplane_t *out_dataplane);
+
 /// A provider must be built against this header: the loader reads the whole
 /// struct and does not adapt to older layouts.  A provider reporting a
 /// different value is rejected at load with a message naming both versions,
 /// so a stale plug-in is identified instead of failing in obscure ways.  A
 /// provider sets entries it does not implement to NULL; the corresponding API
 /// calls then return CUDAQ_ERR_UNSUPPORTED.
-#define CUDAQ_REALTIME_BRIDGE_INTERFACE_VERSION 3
+#define CUDAQ_REALTIME_BRIDGE_INTERFACE_VERSION 4
 
 /// @brief Interface struct for transport layer providers.  Each provider must
 /// implement this interface and provide a `getter` function
@@ -261,6 +290,15 @@ typedef struct {
   /// cudaq_bridge_set_function_table.
   cudaq_status_t (*set_function_table)(cudaq_realtime_bridge_handle_t,
                                        const cudaq_function_table_t *table);
+
+  //--------------------------------------------------------------------------
+  // Added in version 4.  NULL when the provider has no GPU data plane (the
+  // API wrapper then returns CUDAQ_ERR_UNSUPPORTED).
+  //--------------------------------------------------------------------------
+
+  /// Fills *out with the GPU data plane; see cudaq_bridge_get_gpu_dataplane.
+  cudaq_status_t (*get_gpu_dataplane)(cudaq_realtime_bridge_handle_t,
+                                      cudaq_gpu_dataplane_t *out);
 
 } cudaq_realtime_bridge_interface_t;
 

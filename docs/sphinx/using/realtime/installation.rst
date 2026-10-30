@@ -18,7 +18,7 @@ Users may also implement their own transport layer and make it accessible to `cu
 .. tab:: Using Holoscan Sensor Bridge
 
   - CUDA Runtime with version 12.6+ or 13.x
-  - `DOCA 3.3.0 installation <https://developer.nvidia.com/doca-downloads>`__ with `gpunetio` support.
+  - `DOCA 3.4.0 installation <https://developer.nvidia.com/doca-downloads>`__ with `gpunetio` support.
 
   .. note:: 
 
@@ -96,7 +96,7 @@ The validation includes checking the data correctness and measuring the round-tr
 .. tab:: Using Holoscan Sensor Bridge
   
   The validation script has three defined kernel modes, one for a unified kernel (enabled with `--unified`), one for a forward kernel
-  (enabled with `--forward`), one for host-dispatch (enabled with `--cpu`), and a 3-kernel setup (used by default).
+  (enabled with `--forward`), and a 3-kernel setup (used by default).
   The forward kernel skips the RPC callback to measure the raw latency without any compute performed on the GPU.
 
   .. code-block:: console
@@ -111,7 +111,7 @@ The validation includes checking the data correctness and measuring the round-tr
     - `--fpga-ip` is the IP address of the `HSB` FPGA.
     - `--bridge-ip` is the IP address of the NIC on the host machine.
     - `--page-size` is the ring buffer slot size in bytes.
-    - `--unified`, `--forward`, or `--cpu` are the mutually exclusive flags to enable the unified, forward, or host-dispatch mode.
+    - `--unified` or `--forward` are the mutually exclusive flags to enable the unified or forward mode.
   
   Upon successful completion, the above validation script should
   print out something similar to the following:

@@ -126,7 +126,7 @@ def test_target_eagerly_exposes_the_cudaq_target_configuration():
     assert isinstance(target, CustomTarget)
     assert target.compile_target is compile_target
     assert compile_target.fully_specialize
-    pipeline = compile_target.lowering.override_pass_pipeline
+    pipeline = compile_target.stages[0].lowering.override_pass_pipeline
     assert "prepare-for-wireset" in pipeline
     # Multi-control reduction needs reference semantics, so it must precede
     # the wire conversion inside `prepare-for-wireset`.
@@ -254,6 +254,43 @@ def test_cudaq_selects_a_qlx_custom_target_for_estimation():
     resources = cudaq.logical.estimate.FabricCounts.from_annotations(
         estimates.annotations)
     assert resources.patches_peak == 1
+
+
+@pytest.mark.parametrize("backend_options", [
+    {},
+    {
+        "runtime_backend": None
+    },
+    {
+        "runtime_backend": cudaq.logical.targets.estimator
+    },
+],
+                         ids=["omitted", "none", "explicit_estimator"])
+def test_target_from_device_defaults_to_kernel_resource_estimation(
+        backend_options):
+    device = cudaq.logical.targets.surface_physical_target(
+        logical_capacity=1)._device
+    target = cudaq.logical.targets.Target.from_device(
+        "device_estimator",
+        device,
+        estimate_options={"failure_budget": 0.1},
+        **backend_options,
+    )
+
+    try:
+        cudaq.set_target(target)
+        result = cudaq.estimate(logical_zero_readout)
+    finally:
+        cudaq.reset_target()
+
+    logical = cudaq.logical.estimate.LogicalEstimate.from_annotations(
+        result.annotations)
+    assert logical.logical_qubits_peak == 1
+    schedule = result.annotations["SCHEDULE"]
+    assert schedule["physical_qubits"] == (
+        cudaq.logical.codes.Surface[3].block.size)
+    assert schedule["event_count"] > 0
+    assert schedule["source_stage"] == "p3"
 
 
 def test_cudaq_target_estimation_lowers_a_kernel_through_p3():
@@ -587,3 +624,123 @@ def test_target_emission_preserves_frozen_snapshot_and_cached_inspection():
     assert "qlx.program @bell_pair" in emitted
     assert build.to_mlir() == before
     assert build.module is build.module
+
+
+@cudaq.kernel
+def estimate_bell_pair():
+    qubits = cudaq.qvector(2)
+    h(qubits[0])
+    x.ctrl(qubits[0], qubits[1])
+    mz(qubits)
+
+
+def test_estimate_resources_report_the_logical_profile():
+    try:
+        cudaq.set_target(cudaq.logical.targets.estimator)
+        result = cudaq.estimate(estimate_bell_pair)
+    finally:
+        cudaq.reset_target()
+
+    profile = cudaq.logical.estimate.LogicalEstimate.from_annotations(
+        result.annotations)
+    resources = result.resources
+    assert resources.num_qubits == profile.logical_qubits_peak == 2
+    assert resources.count("h") == 1
+    assert resources.count_controls("x", 1) == 1
+    assert resources.count("mz") == 2
+    assert resources.count("reset") == 2
+    # Depth is the serial sum of everything counted in the profile's bound.
+    assert resources.depth == profile.action_depth_upper_bound
+    assert resources.count() == resources.depth
+
+
+def test_estimate_resources_stay_logical_on_a_full_stack():
+    target = cudaq.logical.targets.surface_physical_target(logical_capacity=1)
+    try:
+        cudaq.set_target(target)
+        result = cudaq.estimate(logical_zero_readout)
+    finally:
+        cudaq.reset_target()
+
+    profile = cudaq.logical.estimate.LogicalEstimate.from_annotations(
+        result.annotations)
+    assert set(result.annotations) >= {"LOGICAL", "SCHEDULE"}
+    assert result.resources.depth == profile.action_depth_upper_bound
+    assert result.resources.num_qubits == profile.logical_qubits_peak
+
+
+def test_estimate_resources_are_empty_without_a_logical_estimate(monkeypatch):
+    target = cudaq.logical.targets.surface_physical_target(logical_capacity=1)
+    endpoint = target.runtime_endpoint
+    monkeypatch.setattr(endpoint, "estimate_options", {
+        **endpoint.estimate_options, "tier": "SCHEDULE"
+    })
+    try:
+        cudaq.set_target(target)
+        result = cudaq.estimate(logical_zero_readout)
+    finally:
+        cudaq.reset_target()
+
+    assert set(result.annotations) == {"SCHEDULE"}
+    assert result.resources.count() == 0
+    assert result.resources.num_qubits == 0
+
+
+@pytest.mark.parametrize("backend_options", [
+    {},
+    {
+        "runtime_backend": None
+    },
+    {
+        "runtime_backend": cudaq.logical.targets.estimator
+    },
+],
+                         ids=["omitted", "none", "explicit_estimator"])
+def test_target_from_architecture_defaults_to_kernel_resource_estimation(
+        backend_options):
+    device = cudaq.logical.targets.surface_physical_target(
+        logical_capacity=1)._device
+    target = cudaq.logical.targets.Target.from_architecture(
+        "architecture_estimator",
+        device.logical,
+        estimate_options={"failure_budget": 0.1},
+        **backend_options,
+    )
+
+    assert target.capabilities() == (
+        cudaq.logical.targets.estimator.capabilities())
+    try:
+        cudaq.set_target(target)
+        result = cudaq.estimate(logical_zero_readout)
+    finally:
+        cudaq.reset_target()
+
+    logical = cudaq.logical.estimate.LogicalEstimate.from_annotations(
+        result.annotations)
+    assert logical.logical_qubits_peak == 1
+
+
+def test_target_from_architecture_uses_the_given_runtime_backend():
+    device = cudaq.logical.targets.surface_physical_target(
+        logical_capacity=1)._device
+    runtime = cudaq.logical.targets.Target.define(
+        "arch_ir_only",
+        emit_circuit=cudaq.logical.targets.LoweringSpec(
+            (), cudaq.logical.targets.emit_mlir()),
+    )
+
+    target = cudaq.logical.targets.Target.from_architecture(
+        "architecture_custom_runtime", device.logical, runtime_backend=runtime)
+
+    assert target.capabilities() == runtime.capabilities()
+    assert "sample" not in target.capabilities()
+
+
+def test_target_from_architecture_rejects_non_target_runtime_backend():
+    device = cudaq.logical.targets.surface_physical_target(
+        logical_capacity=1)._device
+
+    with pytest.raises(TypeError, match="runtime_backend must be a Target"):
+        cudaq.logical.targets.Target.from_architecture("bad_runtime",
+                                                       device.logical,
+                                                       runtime_backend=object())

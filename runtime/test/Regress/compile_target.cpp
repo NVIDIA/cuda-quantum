@@ -12,6 +12,7 @@
 // RUN: compile_target | FileCheck %s
 
 #include "common/KernelArgs.h"
+#include "common/KernelExecution.h"
 #include "cudaq_internal/compiler/CompiledModuleHelper.h"
 #include "cudaq_internal/compiler/Compiler.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
@@ -53,8 +54,10 @@ static void compileAndDump(mlir::MLIRContext *ctx,
   llvm::outs() << "Compiled module:\n" << moduleOp << "\n";
 }
 
-/// Compile \p quake and print selected resource metrics in a stable order.
+/// Compile \p quake and print selected resource metrics in a stable order
+/// under \p heading.
 static void compileAndDumpResources(mlir::MLIRContext *ctx,
+                                    const std::string &heading,
                                     const std::string &kernelName,
                                     const std::string &quake,
                                     cudaq::CompileTarget target,
@@ -76,7 +79,7 @@ static void compileAndDumpResources(mlir::MLIRContext *ctx,
     return;
   }
 
-  llvm::outs() << "Phase resource counts:\n"
+  llvm::outs() << heading << " resource counts:\n"
                << "phase: " << resources->count("phase") << "\n"
                << "rz: " << resources->count("rz") << "\n"
                << "rz(0): " << resources->count_controls("rz", 0) << "\n"
@@ -229,7 +232,7 @@ void test_resource_count_completes_phase_lifecycle(mlir::MLIRContext *ctx) {
   cudaq::CompileOptions options;
   options.emitResourceCounts = true;
   options.emitTargetCode = false;
-  compileAndDumpResources(ctx, "phaseResources", phaseResourceKernel,
+  compileAndDumpResources(ctx, "Phase", "phaseResources", phaseResourceKernel,
                           std::move(target), std::move(options));
 }
 
@@ -254,11 +257,248 @@ void test_resource_count_disabled_by_target(mlir::MLIRContext *ctx) {
   cudaq::CompileOptions options;
   options.emitResourceCounts = true;
   options.emitTargetCode = false;
-  compileAndDumpResources(ctx, "phaseResources", phaseResourceKernel,
+  compileAndDumpResources(ctx, "Phase", "phaseResources", phaseResourceKernel,
                           std::move(target), std::move(options));
 }
 
 // CHECK-LABEL: NO RESOURCE ARTIFACT
+
+/// Handler lowering into quake-reference-semantics with a fixed marker pass
+/// before deploy.
+class FakeQuakeReferenceSemanticsHandler : public LoweringHandler {
+public:
+  std::optional<StagePasses>
+  getStagePasses(const cudaq::config::Profile &,
+                 const cudaq::config::Profile &output,
+                 const cudaq::CompileOptions &options) const override {
+    if (!std::holds_alternative<cudaq::config::QuakeReferenceSemanticsProfile>(
+            output))
+      return std::nullopt;
+    return StagePasses{.preDeployPasses = "func.func(add-measurements)"};
+  }
+};
+
+/// Count of runPassManager invocations while the counting hook is installed.
+static int targetPipelineRuns = 0;
+
+static mlir::LogicalResult countTargetPipelineRun(mlir::PassManager &pm,
+                                                  mlir::Operation *op) {
+  ++targetPipelineRuns;
+  return pm.run(op);
+}
+
+/// Target with a single inferred quake-reference-semantics stage.
+static cudaq::CompileTarget inferredTarget() {
+  cudaq::CompileTarget target;
+  target.stages.push_back(
+      {.irOutputProfile = cudaq::config::QuakeReferenceSemanticsProfile{},
+       .lowering = cudaq::config::InferredLowering{}});
+  return target;
+}
+
+void test_staged_inferred(mlir::MLIRContext *ctx) {
+  std::vector<std::unique_ptr<LoweringHandler>> handlers;
+  handlers.push_back(std::make_unique<FakeQuakeReferenceSemanticsHandler>());
+
+  targetPipelineRuns = 0;
+  cudaq_internal::compiler::setRunPassManagerHook(&countTargetPipelineRun);
+
+  Compiler compiler(inferredTarget(), {}, std::move(handlers));
+  auto mod = mlir::parseSourceString<mlir::ModuleOp>(phaseResourceKernel, ctx);
+  auto compiled = compiler.runPassPipeline(
+      "phaseResources", mod.release().getAsOpaquePointer(), cudaq::KernelArgs{},
+      /*isEntryPoint=*/true);
+
+  cudaq_internal::compiler::setRunPassManagerHook(nullptr);
+
+  auto mlirArtifact = compiled.getMlir();
+  auto moduleOp = CompiledModuleHelper::getMlirModuleOp(*mlirArtifact);
+  llvm::outs() << "Staged module:\n" << moduleOp << "\n";
+  llvm::outs() << "target pipeline runs: " << targetPipelineRuns << "\n";
+}
+
+// CHECK-LABEL: Staged module:
+// CHECK: func.func @__nvqpp__mlirgen__phaseResources()
+// CHECK: quake.r1
+// CHECK: quake.mz
+// CHECK: target pipeline runs: 1
+
+/// A staged target with skipTargetLoweringPipeline neither runs nor plans any
+/// target lowering.
+void test_staged_skip(mlir::MLIRContext *ctx) {
+  cudaq::CompileOptions options;
+  options.skipTargetLoweringPipeline = true;
+  Compiler compiler(inferredTarget(), std::move(options), {});
+  auto mod = mlir::parseSourceString<mlir::ModuleOp>(phaseResourceKernel, ctx);
+  auto compiled = compiler.runPassPipeline(
+      "phaseResources", mod.release().getAsOpaquePointer(), cudaq::KernelArgs{},
+      /*isEntryPoint=*/true);
+
+  auto mlirArtifact = compiled.getMlir();
+  auto moduleOp = CompiledModuleHelper::getMlirModuleOp(*mlirArtifact);
+  llvm::outs() << "Skipped staged module:\n" << moduleOp << "\n";
+}
+
+// CHECK-LABEL: Skipped staged module:
+// CHECK: quake.r1
+// CHECK-NOT: quake.mz
+
+/// Four one-qubit rotations that `fuse-1q-chains-for-clifford-t` rewrites as
+/// three.
+static const char *fusableRotationsKernel = R"#(
+func.func @__nvqpp__mlirgen__fusable() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %a = arith.constant 3.000000e-01 : f64
+  %b = arith.constant 5.000000e-01 : f64
+  %c = arith.constant 7.000000e-01 : f64
+  %d = arith.constant 2.000000e-01 : f64
+  %q = quake.alloca !quake.ref
+  quake.rz (%a) %q : (f64, !quake.ref) -> ()
+  quake.rx (%b) %q : (f64, !quake.ref) -> ()
+  quake.rz (%c) %q : (f64, !quake.ref) -> ()
+  quake.rx (%d) %q : (f64, !quake.ref) -> ()
+  return
+}
+)#";
+
+/// `exp_pauli(pi/8, Z)` lowers to `rz(-pi/4)`, an exact angle that synthesis
+/// rewrites as one `t<adj>` rather than a gridsynth sequence.
+static const char *expPauliKernel = R"#(
+func.func @__nvqpp__mlirgen__expPauli() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %angle = arith.constant 0.39269908169872414 : f64
+  %q = quake.alloca !quake.veq<1>
+  quake.exp_pauli (%angle) %q to "Z" : (f64, !quake.veq<1>) -> ()
+  return
+}
+)#";
+
+/// A loop longer than any unroll limit in the quake-unmapped stage.
+static const char *longLoopKernel = R"#(
+func.func @__nvqpp__mlirgen__longLoop() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %c0 = arith.constant 0 : i64
+  %c1 = arith.constant 1 : i64
+  %c4096 = arith.constant 4096 : i64
+  %q = quake.alloca !quake.ref
+  %0 = cc.loop while ((%i = %c0) -> (i64)) {
+    %1 = arith.cmpi slt, %i, %c4096 : i64
+    cc.condition %1(%i : i64)
+  } do {
+  ^bb0(%i: i64):
+    quake.h %q : (!quake.ref) -> ()
+    cc.continue %i : i64
+  } step {
+  ^bb0(%i: i64):
+    %2 = arith.addi %i, %c1 : i64
+    cc.continue %2 : i64
+  }
+  return
+}
+)#";
+
+/// A `quake-unmapped` stage fuses the rotations only from level 2, and a loop
+/// it cannot unroll stays rolled and is still counted. Without a rotation in
+/// the basis, every level synthesizes, and the strict basis conversion rejects
+/// any rotation left over.
+void test_quake_unmapped_levels(mlir::MLIRContext *ctx) {
+  using cudaq::OptimizationLevel;
+  const auto count = [&](const std::string &heading, const char *kernelName,
+                         const char *kernel, std::vector<std::string> basis,
+                         OptimizationLevel level) {
+    cudaq::CompileTarget target;
+    target.stages.push_back(
+        {.irOutputProfile =
+             cudaq::config::QuakeUnmappedProfile{
+                 .basisGates = std::move(basis),
+                 .approximationTolerance = 1e-3,
+                 .costModel = cudaq::config::CostModel::t_count},
+         .lowering = cudaq::config::InferredLowering{}});
+    cudaq::CompileOptions options;
+    options.emitResourceCounts = true;
+    options.emitTargetCode = false;
+    options.optimizationLevel = level;
+    options.seed = 42;
+    compileAndDumpResources(ctx, heading, kernelName, kernel, target,
+                            std::move(options));
+  };
+  const std::vector<std::string> rotations = {"h",  "s",  "t", "rx",
+                                              "ry", "rz", "x", "x(1)"};
+  const std::vector<std::string> cliffordT = {
+      "h", "s", "t", "x", "y", "z", "swap", "x(1)", "y(1)", "z(1)"};
+  count("Rotations level 0", "fusable", fusableRotationsKernel, rotations,
+        OptimizationLevel::O0);
+  count("Rotations level 1", "fusable", fusableRotationsKernel, rotations,
+        OptimizationLevel::O1);
+  count("Rotations level 2", "fusable", fusableRotationsKernel, rotations,
+        OptimizationLevel::O2);
+  count("Long loop", "longLoop", longLoopKernel, rotations,
+        OptimizationLevel::O1);
+  count("Clifford+T level 0", "fusable", fusableRotationsKernel, cliffordT,
+        OptimizationLevel::O0);
+  count("Clifford+T level 2", "fusable", fusableRotationsKernel, cliffordT,
+        OptimizationLevel::O2);
+  count("Clifford+T exact angle", "expPauli", expPauliKernel, cliffordT,
+        OptimizationLevel::O0);
+}
+
+// CHECK-LABEL: Rotations level 0 resource counts:
+// CHECK: total: 4{{$}}
+// CHECK-LABEL: Rotations level 1 resource counts:
+// CHECK: total: 4{{$}}
+// CHECK-LABEL: Rotations level 2 resource counts:
+// CHECK: total: 3{{$}}
+// CHECK-LABEL: Long loop resource counts:
+// CHECK: total: 4096{{$}}
+// CHECK-LABEL: Clifford+T level 0 resource counts:
+// CHECK: rz: 0{{$}}
+// CHECK: r1: 0{{$}}
+// CHECK-LABEL: Clifford+T level 2 resource counts:
+// CHECK: rz: 0{{$}}
+// CHECK: r1: 0{{$}}
+// CHECK-LABEL: Clifford+T exact angle resource counts:
+// CHECK: total: 1{{$}}
+
+/// Kernel that the base QIR profile accepts.
+static const char *measureKernel = R"#(
+func.func @__nvqpp__mlirgen__measure() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
+  %q = quake.alloca !quake.ref
+  quake.h %q : (!quake.ref) -> ()
+  %m = quake.mz %q : (!quake.ref) -> !quake.measure
+  return
+}
+)#";
+
+static mlir::LogicalResult printPipeline(mlir::PassManager &pm,
+                                         mlir::Operation *op) {
+  pm.printAsTextualPipeline(llvm::outs());
+  llvm::outs() << "\n";
+  return pm.run(op);
+}
+
+/// Level 0 must reach codegen that runs in a second `Compiler` with default
+/// options, as the REST QPU does. Only the compiled IR can carry the level
+/// there.
+void test_optimization_level_0(mlir::MLIRContext *ctx) {
+  cudaq::CompileTarget target;
+  target.codegen.emissionFormat = "qir-base";
+  cudaq::CompileOptions options;
+  options.optimizationLevel = cudaq::OptimizationLevel::O0;
+  auto mod = mlir::parseSourceString<mlir::ModuleOp>(measureKernel, ctx);
+  Compiler compiler(target, std::move(options));
+  auto compiled = compiler.runPassPipeline(
+      "measure", mod.release().getAsOpaquePointer(), cudaq::KernelArgs{},
+      /*isEntryPoint=*/true);
+
+  llvm::outs() << "Optimization level 0 codegen:\n";
+  Compiler codegen(target, {});
+  cudaq_internal::compiler::setRunPassManagerHook(&printPipeline);
+  codegen.emitKernelExecutions(compiled);
+  cudaq_internal::compiler::setRunPassManagerHook(nullptr);
+}
+
+// CHECK-LABEL: Optimization level 0 codegen:
+// CHECK:         combine-quantum-alloc
+// CHECK-NOT:     quake-simplify
+// CHECK-NOT:     {{[(,]}}dqe{{[,)]}}
+// CHECK:         cc-to-llvm
 
 int main() {
   auto context = cudaq_internal::compiler::getOwningMLIRContext();
@@ -270,5 +510,9 @@ int main() {
   test_non_empty_pipeline(context.get());
   test_resource_count_completes_phase_lifecycle(context.get());
   test_resource_count_disabled_by_target(context.get());
+  test_staged_inferred(context.get());
+  test_staged_skip(context.get());
+  test_quake_unmapped_levels(context.get());
+  test_optimization_level_0(context.get());
   return 0;
 }

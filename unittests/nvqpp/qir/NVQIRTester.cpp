@@ -14,6 +14,7 @@
 #include "cudaq/qis/execution_manager.h"
 #include <cmath>
 #include <cstdint>
+#include <thread>
 #include <vector>
 
 extern "C" {
@@ -142,6 +143,104 @@ Array *__quantum__rt__array_slice(Array *array, int32_t dim,
                                   int64_t range_end);
 Array *__quantum__rt__array_slice_1d(Array *array, int64_t range_start,
                                      int64_t range_step, int64_t range_end);
+Array *__quantum__rt__array_copy(Array *array, bool forceNewInstance);
+Array *__quantum__rt__array_concatenate(Array *head, Array *tail);
+void __nvqpp_cleanup_arrays();
+}
+
+CUDAQ_TEST(NVQIRTester, checkArrayTrackingAcrossReleaseAndCleanup) {
+  std::vector<Array *> arrays;
+  for (std::int64_t i = 0; i < 64; ++i) {
+    auto *array = __quantum__rt__array_create_1d(sizeof(Qubit *), 1);
+    // Unique fake qubit pointer; never dereferenced.
+    *reinterpret_cast<Qubit **>(__quantum__rt__array_get_element_ptr_1d(
+        array, 0)) = reinterpret_cast<Qubit *>(array);
+    arrays.push_back(array);
+  }
+
+  // Release every other array, then churn allocations to reuse addresses.
+  for (std::size_t i = 0; i < arrays.size(); i += 2)
+    __quantum__rt__array_release(arrays[i]);
+  for (int i = 0; i < 128; ++i) {
+    auto *array = __quantum__rt__array_create_1d(sizeof(std::int64_t), 1);
+    __quantum__rt__array_release(array);
+  }
+  for (std::size_t i = 1; i < arrays.size(); i += 2)
+    EXPECT_EQ(*reinterpret_cast<Qubit **>(
+                  __quantum__rt__array_get_element_ptr_1d(arrays[i], 0)),
+              reinterpret_cast<Qubit *>(arrays[i]));
+
+  auto *copy = __quantum__rt__array_copy(arrays[1], true);
+  EXPECT_NE(copy, arrays[1]);
+  EXPECT_EQ(__quantum__rt__array_copy(copy, false), copy);
+  auto *concat = __quantum__rt__array_concatenate(copy, arrays[3]);
+  auto *slice = __quantum__rt__array_slice_1d(concat, 1, -1, 0);
+  EXPECT_EQ(__quantum__rt__array_get_size_1d(slice), 2);
+  EXPECT_EQ(*reinterpret_cast<Qubit **>(
+                __quantum__rt__array_get_element_ptr_1d(slice, 0)),
+            reinterpret_cast<Qubit *>(arrays[3]));
+  EXPECT_EQ(*reinterpret_cast<Qubit **>(
+                __quantum__rt__array_get_element_ptr_1d(slice, 1)),
+            reinterpret_cast<Qubit *>(arrays[1]));
+  __quantum__rt__array_release(concat);
+  __quantum__rt__array_release(copy);
+  __quantum__rt__array_release(nullptr);
+
+  // Cleanup frees the rest and is safe to repeat.
+  __nvqpp_cleanup_arrays();
+  __nvqpp_cleanup_arrays();
+  auto *fresh = __quantum__rt__array_create_1d(1, 4);
+  EXPECT_EQ(__quantum__rt__array_get_size_1d(fresh), 4);
+  __quantum__rt__array_release(fresh);
+  __nvqpp_cleanup_arrays();
+}
+
+CUDAQ_TEST(NVQIRTester, checkArrayTrackingIsThreadLocal) {
+  auto *array = __quantum__rt__array_create_1d(sizeof(std::int64_t), 1);
+  *reinterpret_cast<std::int64_t *>(
+      __quantum__rt__array_get_element_ptr_1d(array, 0)) = 42;
+  std::thread worker([] {
+    auto *released = __quantum__rt__array_create_1d(1, 8);
+    __quantum__rt__array_create_1d(1, 16);
+    __quantum__rt__array_release(released);
+    __nvqpp_cleanup_arrays();
+    __nvqpp_cleanup_arrays();
+  });
+  worker.join();
+  EXPECT_EQ(*reinterpret_cast<std::int64_t *>(
+                __quantum__rt__array_get_element_ptr_1d(array, 0)),
+            42);
+  __quantum__rt__array_release(array);
+}
+
+CUDAQ_TEST(NVQIRTester, checkArrayTrackingPastScanLimit) {
+  // Enough live arrays to switch the tracker to its set.
+  for (int round = 0; round < 2; ++round) {
+    std::vector<Array *> arrays;
+    for (std::size_t i = 0; i < 600; ++i) {
+      auto *array = __quantum__rt__array_create_1d(sizeof(std::int64_t), 1);
+      *reinterpret_cast<std::int64_t *>(__quantum__rt__array_get_element_ptr_1d(
+          array, 0)) = static_cast<std::int64_t>(i);
+      arrays.push_back(array);
+    }
+
+    // Release two thirds in mixed order; the rest must be intact.
+    for (std::size_t i = 0; i < arrays.size(); i += 3)
+      __quantum__rt__array_release(arrays[i]);
+    for (int i = 0; i < 64; ++i)
+      __quantum__rt__array_release(
+          __quantum__rt__array_create_1d(sizeof(std::int64_t), 1));
+    for (std::size_t i = arrays.size(); i-- > 0;)
+      if (i % 3 == 2)
+        __quantum__rt__array_release(arrays[i]);
+    for (std::size_t i = 1; i < arrays.size(); i += 3)
+      EXPECT_EQ(*reinterpret_cast<std::int64_t *>(
+                    __quantum__rt__array_get_element_ptr_1d(arrays[i], 0)),
+                static_cast<std::int64_t>(i));
+
+    // Cleanup resets the tracker for the next round.
+    __nvqpp_cleanup_arrays();
+  }
 }
 
 CUDAQ_TEST(NVQIRTester, checkSimple) {

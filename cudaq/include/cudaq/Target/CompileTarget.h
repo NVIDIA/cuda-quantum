@@ -84,18 +84,17 @@ struct CompileTarget {
   /// to emulate its behavior by inserting the corresponding kernel calls.
   bool replaceStateWithKernel = false;
 
-  /// Access the custom pipeline lowering of the single compilation stage.
-  ///
-  /// Prints an error and aborts the process if there isn't exactly one
-  /// stage or its lowering is not a custom pipeline.
-  // TODO: Temporary utility function used while there is only one
-  // custom-pipeline stage, to be replaced with more general stage handling
-  const config::CustomPipelineLowering &getCustomPipelineLowering() const;
-  config::CustomPipelineLowering &getCustomPipelineLowering();
+  /// Whether this compile target must be rebuilt from the QPU instance when
+  /// the random seed changes.
+  // TODO: ideally compile targets would be fixed and this could be removed.
+  bool resetOnRandomSeedSet = false;
 
   /// If the entire compilation is given by a single custom pipeline, return a
   /// pointer to it. Otherwise return `nullptr`.
   const std::string *getOverridePassPipeline() const;
+
+  /// Whether any of the compilation stages have a non-empty lowering pipeline.
+  bool hasPassPipeline() const;
 
   /// Construct a CompileTarget from static and runtime backend configurations.
   static CompileTarget createFromConfig(
@@ -109,14 +108,14 @@ struct CompileTarget {
 } // namespace cudaq
 
 template <>
-struct std::hash<cudaq::config::UncheckedProfile> {
-  std::size_t
-  operator()(const cudaq::config::UncheckedProfile &profile) const noexcept;
-};
-template <>
 struct std::hash<cudaq::config::CustomPipelineLowering> {
   std::size_t operator()(
       const cudaq::config::CustomPipelineLowering &lowering) const noexcept;
+};
+template <>
+struct std::hash<cudaq::config::InferredLowering> {
+  std::size_t
+  operator()(const cudaq::config::InferredLowering &lowering) const noexcept;
 };
 template <>
 struct std::hash<cudaq::config::Codegen> {

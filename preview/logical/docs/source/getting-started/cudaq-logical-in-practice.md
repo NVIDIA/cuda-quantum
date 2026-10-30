@@ -142,7 +142,7 @@ results describe these assumptions. See
 [Devices and placement](../use-cases/devices-and-placement.md) for other device
 configurations.
 
-## 4. Place and realize the Bell program
+## 4. Place and realize the program
 
 Use [`cql.compiler.place`](concepts.md#devices-and-placement) to assign the P0
 program's logical values to the device's logical machine. The constraint keeps
@@ -258,45 +258,14 @@ Both entry points estimate the same Bell-pair workload on the same device. An
 application can reuse the target for compatible kernels without repeating the
 individual compiler calls.
 
-## 7. Inspect what the target compiled
-
-`cudaq.estimate` returns numbers, but the target compiled the kernel through
-every stage to get them. Two calls expose that compilation.
-
-`cudaq.compile` compiles a kernel with the target's pipeline, as a launch would,
-without launching or estimating it. Import the result with
-`cql.compiler.import_quake` to get the P0 build that the direct workflow
-started from. You can place and compile it exactly as in sections 4 and 5:
-
-```{literalinclude} ../../../examples/steane_bell_e2e_workflow.py
-:language: python
-:start-after: START_KERNEL_IMPORT
-:end-before: END_KERNEL_IMPORT
-```
-
-To keep the builds the estimate itself produced, pass `save_temps` with a
-directory. Every stage the target compiled is saved twice: as
-`<kernel>.<stage>.<digest>.mlir` to read, and as `<kernel>.<stage>.<digest>.build`,
-which `cql.load_build` reads back into an identical build. The digest is the
-first 12 hexadecimal digits of the build's `content_sha256`. The `BUILDS`
-annotation of the result locates the files:
-
-```{literalinclude} ../../../examples/steane_bell_e2e_workflow.py
-:language: python
-:start-after: START_SAVE_TEMPS
-:end-before: END_SAVE_TEMPS
-```
-
-```text
-Saved builds: p0, p1, p2, p3
-```
-
-`load_build` returns the last stage by default; pass `stage=` to choose another.
-A loaded build does not retain its device, so give the calibration
-(`p_phys`, `failure_budget`, `cycle_time`) when estimating a loaded schedule.
-
 ## Where to go next
 
+- Execute an encoded program with `cudaq.run` in the
+  [Steane Bernstein–Vazirani example](../use-cases/examples/steane-bernstein-vazirani.md).
+  It supplies an encoding circuit and returns measurement bits per shot.
+  The [T-state distillation example](../use-cases/examples/t-factory-evaluation.md)
+  runs on distance-1 `BareQubit` patches and adds non-Clifford gates,
+  measurement feedback, and noise.
 - Read [Core concepts](concepts.md) for definitions of programs, machines,
   codes, gadgets, devices, and targets.
 - Work through the guides for [defining a code](../use-cases/define-a-code.md),

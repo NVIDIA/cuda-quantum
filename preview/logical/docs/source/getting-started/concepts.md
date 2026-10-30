@@ -54,7 +54,7 @@ Compilation adds information through four **stages**:
 | Stage | Information added |
 | --- | --- |
 | **P0: logical program** | Logical operations, values, and measurement results. |
-| **P1: placement** | Assignments of logical values to machine regions and slots. |
+| **P1: logical placement** | Assignments of logical values to logical machine regions and slots. |
 | **P2: QEC realization** | Selected codes, encodings, and operation implementations. |
 | **P3: physical events** | Physical allocations, native operations, and dependencies; scheduling adds event times. |
 
@@ -123,7 +123,7 @@ behavior on encoded patches, with `implements=` identifying the objective:
 
 ```{literalinclude} ../../../examples/steane_bell_e2e_workflow.py
 :language: python
-:start-at: @cql.gadget(implements=cql.standard.h)
+:start-at: "@cql.gadget(implements=cql.standard.h)"
 :end-at:     return cql.h(block.data)
 ```
 
@@ -146,7 +146,7 @@ interfaces and verification details.
 A **logical machine** describes where logical state can reside and which
 operations are supported. A **region** is a pool of logical capacity with
 capabilities such as computation or measurement. A **slot** holds one logical
-qubit; the Bell device's compute region has two slots.
+qubit. For example, the Bell device's compute region has two slots.
 
 A **physical machine** describes resources, connectivity, native operations,
 and timing assumptions. A **carrier** is a physical qubit resource. Native
@@ -191,7 +191,7 @@ quantities to report and which inputs are required:
 
 | Tier | Required input | Reports |
 | --- | --- | --- |
-| **LOGICAL** | P0 program | Logical-qubit peak and action/instrument counts. |
+| LOGICAL | P0 program | Logical-qubit peak and action/instrument counts. |
 | **STATIC** | Selected P2 realization | Encoded-patch peak and gadget/operation counts. |
 | **ANALYTICAL** | Selected P2 realization and physical-model assumptions | Modeled physical cost, error, acceptance, and runtime. |
 | **SCHEDULE** | Scheduled P3 graph | Physical resources, events, runtime, and utilization. |
@@ -222,6 +222,14 @@ CUDA-Q kernel through the configured stages. The result's **annotations**
 contain per-tier resource estimates. Typed views such as `LogicalEstimate`
 and `FabricCounts` expose logical and static fields; the walkthrough reads
 physical schedule results from the `SCHEDULE` annotation.
+
+Physical builds also run on CUDA-Q simulators. When the program returns
+Booleans, `cudaq.run(build)` executes its P3 build on a simulator target, such
+as `stim` or `nvidia`. Each shot returns a `bool` for one result or a
+`list[bool]` for several, the same types `cudaq.run` returns for a kernel.
+Unsupported P3 forms raise an error.
+[Execution boundaries](../reference/capabilities.md#execution-and-documented-boundaries)
+lists the main ones.
 
 Use kernels with CUDA-Q's libraries and infrastructure, or author directly
 with `cudaq.logical` when integrating another frontend. Both routes use the

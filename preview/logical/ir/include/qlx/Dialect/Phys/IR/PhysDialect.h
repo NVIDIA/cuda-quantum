@@ -6,15 +6,18 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  *******************************************************************************/
 
-#ifndef QLX_DIALECT_PHYS_PHYSDIALECT_H
-#define QLX_DIALECT_PHYS_PHYSDIALECT_H
+#pragma once
+
 #include "llvm/ADT/ArrayRef.h"
+#include "llvm/ADT/SmallVector.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/Dialect.h"
 
 #include "qlx/Dialect/Phys/IR/PhysDialect.h.inc"
 
 namespace qlx::phys {
+
+class FactoryModelOp;
 
 /// Close every deferred graph/profile/projection link carried by a detached
 /// QEC sidecar for `graphSymbol`.  Generic dialect verification intentionally
@@ -29,7 +32,7 @@ mlir::LogicalResult verifyClosedSidecarLinks(mlir::ModuleOp module,
 mlir::LogicalResult
 verifySidecarBatch(llvm::ArrayRef<mlir::Operation *> sidecars);
 
-/// Verify spacetime plans of one module with a shared symbol table.
+/// Verify spacetime plans with shared symbol and factory-model indexes.
 mlir::LogicalResult
 verifySpacetimePlanBatch(llvm::ArrayRef<mlir::Operation *> plans);
 
@@ -37,5 +40,7 @@ verifySpacetimePlanBatch(llvm::ArrayRef<mlir::Operation *> plans);
 mlir::Operation *lookupModuleSymbol(mlir::ModuleOp module,
                                     llvm::StringRef name);
 
+/// Collect factory models, reusing the immutable snapshot during a plan batch.
+llvm::SmallVector<FactoryModelOp, 0> moduleFactoryModels(mlir::ModuleOp module);
+
 } // namespace qlx::phys
-#endif

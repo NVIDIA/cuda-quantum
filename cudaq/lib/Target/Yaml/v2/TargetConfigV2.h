@@ -10,11 +10,18 @@
 
 // YAML v2 schema for target configuration.
 //
+// This schema is a pre-release: it is selected with `version: 2-alpha` and
+// has no compatibility guarantees until it stabilizes as `version: 2`.
+//
 // v2 moves the compilation options out of `config` into a dedicated
 // top-level `compile-target` block and introduces support for declarative
 // IR profiles.
 
 #include "Yaml/v1/TargetConfigV1.h"
+#include "Yaml/v2/QuakeReferenceSemanticsProfileYaml.h"
+#include "Yaml/v2/QuakeUnmappedProfileYaml.h"
+#include "Yaml/v2/UncheckedProfileYaml.h"
+#include "cudaq/Target/Profile/AllProfiles.h"
 #include <optional>
 #include <string>
 #include <vector>
@@ -56,13 +63,9 @@ struct BackendFeatureMapV2 {
   BackendEndConfigEntryV2 config;
 };
 
-/// (Dummy) IR profile that accepts any IR.
-struct UncheckedProfileV2 {
-  using Tag = rfl::Literal<"unchecked">;
-};
-
-/// Union of all supported IR profiles, selected by its `name`.
-using IrOutputProfileV2 = rfl::TaggedUnion<"name", UncheckedProfileV2>;
+/// Union of the YAML forms of all IR profiles, following the `Profile`
+/// variant. Each profile's YAML form lives in its own file, included above.
+using IrOutputProfileV2 = TaggedProfiles<Profile>::type;
 
 /// Staged pipelines inserted at the appropriate compilation stages.
 struct StagedPipelinesV2 {
@@ -79,9 +82,11 @@ struct CustomPipelineLoweringV2 {
 
 /// One compilation stage: the IR output profile to lower to and the lowering
 /// to get there.
+///
+/// An omitted `lowering` defaults to `InferredLowering`.
 struct CompilationStageV2 {
   IrOutputProfileV2 irOutputProfile;
-  CustomPipelineLoweringV2 lowering;
+  std::optional<CustomPipelineLoweringV2> lowering;
 };
 
 /// Code generation: emission format and optional `post-codegen-passes`
@@ -98,7 +103,7 @@ struct CompileTargetV2 {
 };
 
 struct TargetConfigV2 {
-  using Tag = rfl::Literal<"2">;
+  using Tag = rfl::Literal<"2-alpha">;
   std::string name;
   std::string description;
   rfl::DefaultVal<std::string> cudaqVersion;

@@ -45,6 +45,8 @@ include(${CMAKE_CURRENT_SOURCE_DIR}/cmake/TargetDatabase.cmake)
 add_library(CUDAQTargetConfig STATIC
   TargetConfig.cpp
   CompileTarget.cpp
+  Profile/QuakeReferenceSemanticsProfile.cpp
+  Profile/QuakeUnmappedProfile.cpp
 )
 target_include_directories(CUDAQTargetConfig PUBLIC
   $<BUILD_INTERFACE:${CUDAQ_TARGET_REPO_ROOT}/cudaq/include>
@@ -60,6 +62,8 @@ add_library(CUDAQTargetYamlObjects OBJECT
   Yaml/CanonicalConversion.cpp
   Yaml/TargetConfigSchema.cpp
   Yaml/v1/TargetConfigV1.cpp
+  Yaml/v2/QuakeReferenceSemanticsProfileYaml.cpp
+  Yaml/v2/QuakeUnmappedProfileYaml.cpp
   Yaml/v2/TargetConfigV2.cpp
 )
 target_include_directories(CUDAQTargetYamlObjects PUBLIC
@@ -166,6 +170,10 @@ if(CUDAQ_TARGET_STANDALONE_BUILD)
     DESTINATION include/cudaq/Target
     COMPONENT Development
     FILES_MATCHING PATTERN "*.h")
+endif()
+
+if(CUDAQ_ENABLE_PYTHON_BINDINGS)
+  add_subdirectory(python)
 endif()
 
 # Component-local LIT suite.
