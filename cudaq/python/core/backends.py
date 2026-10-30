@@ -21,17 +21,20 @@ from cudaq.mlir._mlir_libs._backends import (
     Codegen,
     CompilationStage,
     CompileTarget,
+    CostModel,
     CustomPipelineLowering,
     EstimateResult,
     QuakeReferenceSemanticsProfile,
+    QuakeUnmappedProfile,
     Resources,
     UncheckedProfile,
 )
 
 __all__ = [
-    "Codegen", "CompilationStage", "CompileTarget", "CustomPipelineLowering",
-    "CustomTarget", "EstimateResult", "QuakeReferenceSemanticsProfile",
-    "Resources", "RuntimeEndpoint", "UncheckedProfile"
+    "Codegen", "CompilationStage", "CompileTarget", "CostModel",
+    "CustomPipelineLowering", "CustomTarget", "EstimateResult",
+    "QuakeReferenceSemanticsProfile", "QuakeUnmappedProfile", "Resources",
+    "RuntimeEndpoint", "UncheckedProfile"
 ]
 
 

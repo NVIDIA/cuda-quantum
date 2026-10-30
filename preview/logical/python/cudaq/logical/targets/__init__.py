@@ -13,7 +13,8 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from types import MappingProxyType
 
-from cudaq.core.backends import CompileTarget, CustomTarget
+from cudaq.core.backends import (CompilationStage, CompileTarget, CostModel,
+                                 CustomTarget, QuakeUnmappedProfile)
 from cudaq.util import trace
 
 from ..lower import (
@@ -528,12 +529,35 @@ class Target(CustomTarget):
 
     @staticmethod
     def _new_compile_target():
-        """Create the CUDA-Q compile configuration owned by one target."""
+        """Create the CUDA-Q compile configuration owned by one target.
 
-        from ..compiler.quake import CUDAQ_TARGET_PREPARATION_PIPELINE
+        One inferred ``quake-unmapped`` stage lowers a kernel to the Quake that
+        ``import_quake`` accepts: only wires, the gates the import maps to
+        Logical actions, and constant rotation angles. The import folds a loop
+        on wires that repeats the same body, so the stage unrolls only the
+        loops whose body uses the induction variable, up to 2,048,000
+        iterations. A limit of 4096 would leave registers of the RSA-4096
+        resource kernel in example 05 on references, which the stage rejects.
+        Logical synthesizes rotations itself, so the stage approximates
+        nothing. Prep keeps noise and QEC operations, so that Logical sees
+        them rather than estimating the kernel without them, and the stage
+        rejects noise, which applies only to references.
+        """
 
-        target = CompileTarget(
-            custom_pipeline=CUDAQ_TARGET_PREPARATION_PIPELINE)
+        basis = [
+            "h", "s", "t", "x", "y", "z", "x(1)", "z(1)", "x(2)", "z(2)",
+            "swap", "rx", "ry", "rz", "r1"
+        ]
+        profile = QuakeUnmappedProfile(basis_gates=basis,
+                                       approximation_tolerance=0.0,
+                                       cost_model=CostModel.t_count,
+                                       semantics="value",
+                                       unroll_loops="index_use",
+                                       max_unroll_iterations=2_048_000,
+                                       erase_noise=False,
+                                       erase_qec=False)
+        stage = CompilationStage(profile)
+        target = CompileTarget(stages=[stage])
         target.fully_specialize = True
         target.support_resource_counts = False
         target.support_conditionals_on_measure_results = False
