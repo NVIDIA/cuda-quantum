@@ -137,8 +137,7 @@
 
 // CUDA-Q Logical's stage keeps the loops whose index the body does not use
 // rolled, so prep and deploy unroll no loop, and its target keeps noise and QEC
-// operations in prep. Under value semantics the stage converts to wires at
-// every level.
+// operations in prep. Its cost model converts to wires at every level.
 // CHECK-LABEL: CUDA-Q Logical level 0:
 // CHECK-NEXT:  canonicalize
 // CHECK-NEXT:  hw-jit-prep-pipeline{allow-early-exit=false no-loop-unroll=true erase-noise=false erase-qec=false}
@@ -271,7 +270,6 @@ int main(int argc, char **argv) {
                .basisGates = {"h", "s", "t", "x", "y", "z", "x(1)", "z(1)",
                               "x(2)", "z(2)", "swap", "rx", "ry", "rz", "r1"},
                .costModel = cudaq::config::CostModel::t_count,
-               .semantics = cudaq::config::Semantics::value,
                .unrollLoops = cudaq::config::LoopUnrolling::index_use,
                .maxUnrollIterations = 2048000},
        .lowering = cudaq::config::InferredLowering{}});

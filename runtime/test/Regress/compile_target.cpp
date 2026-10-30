@@ -522,19 +522,17 @@ static const std::array<cudaq::OptimizationLevel, 4> allLevels = {
     cudaq::OptimizationLevel::O2, cudaq::OptimizationLevel::O3};
 
 /// The level never changes the representation. At level 0 a `quake-unmapped`
-/// stage with a cost model or value semantics unrolls the loop and converts to
-/// wires, while a stage with neither keeps the kernel on references. With a
-/// limit of 2, the 3-iteration loop stays rolled and its register stays on
-/// references, whether the stage unrolls `index_use` loops or all loops. In the
-/// second case, prep and deploy must also leave the loop alone, because their
-/// limit of 1024 iterations would unroll it before the stage runs.
+/// stage with a cost model unrolls the loop and converts to wires, while a
+/// stage without one keeps the kernel on references. With a limit of 2, the
+/// 3-iteration loop stays rolled and its register stays on references, whether
+/// the stage unrolls `index_use` loops or all loops. In the second case, prep
+/// and deploy must also leave the loop alone, because their limit of 1024
+/// iterations would unroll it before the stage runs.
 void test_level_0_representation(mlir::MLIRContext *ctx) {
   const cudaq::config::QuakeUnmappedProfile neither{
       .basisGates = {"h", "s", "t", "rx", "ry", "rz", "x", "x(1)"}};
   auto costModel = neither;
   costModel.costModel = cudaq::config::CostModel::t_count;
-  auto valueSemantics = neither;
-  valueSemantics.semantics = cudaq::config::Semantics::value;
   auto limitAll = costModel;
   limitAll.maxUnrollIterations = 2;
   auto limitIndexUse = limitAll;
@@ -542,7 +540,6 @@ void test_level_0_representation(mlir::MLIRContext *ctx) {
   for (const auto &[name, profile] :
        std::vector<std::pair<std::string, cudaq::config::QuakeUnmappedProfile>>{
            {"a cost model", costModel},
-           {"value semantics", valueSemantics},
            {"neither", neither},
            {"a limit of 2 on all loops", limitAll},
            {"a limit of 2 on index-use loops", limitIndexUse}}) {
@@ -560,7 +557,6 @@ void test_level_0_representation(mlir::MLIRContext *ctx) {
 }
 
 // CHECK: Level 0 with a cost model: wires
-// CHECK: Level 0 with value semantics: wires
 // CHECK: Level 0 with neither: references
 // CHECK: Level 0 with a limit of 2 on all loops: references
 // CHECK: Level 0 with a limit of 2 on index-use loops: references
@@ -593,7 +589,6 @@ void test_quake_unmapped_lowers_phase(mlir::MLIRContext *ctx) {
       .basisGates = {"h", "s", "t", "x", "y", "z", "x(1)", "z(1)", "x(2)",
                      "z(2)", "swap", "rx", "ry", "rz", "r1"},
       .costModel = cudaq::config::CostModel::t_count,
-      .semantics = cudaq::config::Semantics::value,
       .unrollLoops = cudaq::config::LoopUnrolling::index_use,
       .maxUnrollIterations = 2048000};
   auto benchLogical = cudaq::config::QuakeUnmappedProfile{
@@ -642,13 +637,11 @@ func.func @__nvqpp__mlirgen__argumentAngle(%angle: f64) attributes {"cudaq-entry
 )#";
 
 /// A target that can take arguments at run time, as a simulator can, still
-/// substitutes the argument values when its stage synthesizes or has value
-/// semantics. A stage that keeps `rz` and has `any` semantics leaves the
-/// argument for run time.
+/// substitutes the argument values when its stage synthesizes. A stage that
+/// keeps `rz` leaves the argument for run time.
 void test_quake_unmapped_specialization(mlir::MLIRContext *ctx) {
   const auto compile = [&](std::vector<std::string> basis,
-                           cudaq::OptimizationLevel level,
-                           cudaq::config::Semantics semantics) {
+                           cudaq::OptimizationLevel level) {
     cudaq::CompileTarget target;
     target.fullySpecialize = false;
     target.stages.push_back(
@@ -656,8 +649,7 @@ void test_quake_unmapped_specialization(mlir::MLIRContext *ctx) {
              cudaq::config::QuakeUnmappedProfile{
                  .basisGates = std::move(basis),
                  .approximationTolerance = 1e-3,
-                 .costModel = cudaq::config::CostModel::t_count,
-                 .semantics = semantics},
+                 .costModel = cudaq::config::CostModel::t_count},
          .lowering = cudaq::config::InferredLowering{}});
     cudaq::CompileOptions options;
     options.optimizationLevel = level;
@@ -668,12 +660,8 @@ void test_quake_unmapped_specialization(mlir::MLIRContext *ctx) {
     compileAndDump(ctx, "argumentAngle", argumentAngleKernel, std::move(target),
                    std::move(options), args);
   };
-  compile({"h", "s", "t", "x"}, cudaq::OptimizationLevel::O2,
-          cudaq::config::Semantics::any);
-  compile({"h", "s", "t", "x", "rz"}, cudaq::OptimizationLevel::O2,
-          cudaq::config::Semantics::any);
-  compile({"h", "s", "t", "x", "rz"}, cudaq::OptimizationLevel::O2,
-          cudaq::config::Semantics::value);
+  compile({"h", "s", "t", "x"}, cudaq::OptimizationLevel::O2);
+  compile({"h", "s", "t", "x", "rz"}, cudaq::OptimizationLevel::O2);
 }
 
 // CHECK-LABEL: Compiled module:
@@ -682,9 +670,6 @@ void test_quake_unmapped_specialization(mlir::MLIRContext *ctx) {
 // CHECK-LABEL: Compiled module:
 // CHECK:         func.func @__nvqpp__mlirgen__argumentAngle(%[[ANGLE:.*]]: f64)
 // CHECK:           quake.rz (%[[ANGLE]])
-// CHECK-LABEL: Compiled module:
-// CHECK:         func.func @__nvqpp__mlirgen__argumentAngle() attributes
-// CHECK:           quake.rz
 
 /// On a path 0 - 1 - 2, each controlled `quake.x` between qubits 0 and 2 needs
 /// a swap, but level 1 cancels the pair before routing.

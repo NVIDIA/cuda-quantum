@@ -50,24 +50,6 @@ std::optional<CostModel> costModel(nb::handle value) {
   }
 }
 
-Semantics semantics(const std::string &value) {
-  if (value == "any")
-    return Semantics::any;
-  if (value == "value")
-    return Semantics::value;
-  throw std::invalid_argument("semantics must be 'any' or 'value'");
-}
-
-std::string semanticsName(Semantics semantics) {
-  switch (semantics) {
-  case Semantics::any:
-    return "any";
-  case Semantics::value:
-    return "value";
-  }
-  throw std::invalid_argument("unknown semantics");
-}
-
 LoopUnrolling loopUnrolling(const std::string &value) {
   if (value == "all")
     return LoopUnrolling::all;
@@ -150,20 +132,18 @@ void cudaq::bindTargetProfiles(nb::module_ &m) {
       .def(
           "__init__",
           [](QuakeUnmappedProfile *self, std::vector<std::string> basis,
-             double tolerance, nb::handle model,
-             const std::string &semanticsValue, const std::string &unrollLoops,
+             double tolerance, nb::handle model, const std::string &unrollLoops,
              unsigned maxUnrollIterations) {
             new (self) QuakeUnmappedProfile{
                 .basisGates = std::move(basis),
                 .approximationTolerance = tolerance,
                 .costModel = costModel(model),
-                .semantics = semantics(semanticsValue),
                 .unrollLoops = loopUnrolling(unrollLoops),
                 .maxUnrollIterations = maxUnrollIterations};
           },
           nb::kw_only(), "basis_gates"_a = std::vector<std::string>{},
           "approximation_tolerance"_a = 0.0, "cost_model"_a = nb::none(),
-          "semantics"_a = "any", "unroll_loops"_a = "all",
+          "unroll_loops"_a = "all",
           "max_unroll_iterations"_a =
               QuakeUnmappedProfile{}.maxUnrollIterations)
       .def_rw("basis_gates", &QuakeUnmappedProfile::basisGates)
@@ -176,14 +156,6 @@ void cudaq::bindTargetProfiles(nb::module_ &m) {
             p.costModel = costModel(model);
           },
           nb::for_setter(nb::arg("value").none()))
-      .def_prop_rw(
-          "semantics",
-          [](const QuakeUnmappedProfile &p) {
-            return semanticsName(p.semantics);
-          },
-          [](QuakeUnmappedProfile &p, const std::string &value) {
-            p.semantics = semantics(value);
-          })
       .def_prop_rw(
           "unroll_loops",
           [](const QuakeUnmappedProfile &p) {
@@ -198,7 +170,6 @@ void cudaq::bindTargetProfiles(nb::module_ &m) {
         return "QuakeUnmappedProfile(basis_gates=" + repr(p.basisGates) +
                ", approximation_tolerance=" + repr(p.approximationTolerance) +
                ", cost_model=" + costModelRepr(p.costModel) +
-               ", semantics=" + repr(semanticsName(p.semantics)) +
                ", unroll_loops=" + repr(loopUnrollingName(p.unrollLoops)) +
                ", max_unroll_iterations=" + repr(p.maxUnrollIterations) + ")";
       });

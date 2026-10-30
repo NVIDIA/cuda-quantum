@@ -8,8 +8,8 @@
 
 # RUN: not %target-catalog-driver parse %s 2>&1 | FileCheck %s
 
-# A `semantics` or `unroll-loops` value outside the declared names is
-# rejected, and the error lists the names that are allowed.
+# An `unroll-loops` value outside the declared names is rejected, and the
+# error lists the names that are allowed.
 
 version: 2-alpha
 name: v2-quake-unmapped-unknown-values
@@ -22,9 +22,7 @@ compile-target:
     - ir-output-profile:
         name: quake-unmapped
         options:
-          semantics: wires
           unroll-loops: index
 
 # CHECK: error: Failed to parse target configuration YAML
-# CHECK-DAG: unknown value 'wires' (allowed: any, value)
-# CHECK-DAG: unknown value 'index' (allowed: all, index-use)
+# CHECK: unknown value 'index' (allowed: all, index-use)

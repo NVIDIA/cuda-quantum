@@ -67,22 +67,20 @@ def test_quake_unmapped_profile_repr():
     profile = QuakeUnmappedProfile(basis_gates=["h", "t"],
                                    approximation_tolerance=1e-10,
                                    cost_model=CostModel.t_count,
-                                   semantics="value",
                                    unroll_loops="index_use",
                                    max_unroll_iterations=2048000)
     assert repr(profile) == (
         "QuakeUnmappedProfile(basis_gates=['h', 't'], "
         "approximation_tolerance=1e-10, cost_model=CostModel.t_count, "
-        "semantics='value', unroll_loops='index_use', "
+        "unroll_loops='index_use', "
         "max_unroll_iterations=2048000)")
     assert eval(repr(profile)) == profile
     assert repr(QuakeUnmappedProfile()).endswith(
-        "cost_model=None, semantics='any', unroll_loops='all', "
+        "cost_model=None, unroll_loops='all', "
         "max_unroll_iterations=1024)")
 
 
 @pytest.mark.parametrize("option, value", [
-    ("semantics", "value"),
     ("unroll_loops", "index_use"),
     ("max_unroll_iterations", 2048000),
 ])
@@ -96,13 +94,11 @@ def test_quake_unmapped_option_changes_identity(option, value):
     assert changed == baseline
 
 
-@pytest.mark.parametrize("option, value", [("semantics", "wires"),
-                                           ("unroll_loops", "index-use")])
-def test_quake_unmapped_option_rejects_unknown_value(option, value):
+def test_quake_unmapped_unroll_loops_rejects_unknown_value():
     with pytest.raises(ValueError):
-        QuakeUnmappedProfile(**{option: value})
+        QuakeUnmappedProfile(unroll_loops="index-use")
     with pytest.raises(ValueError):
-        setattr(QuakeUnmappedProfile(), option, value)
+        QuakeUnmappedProfile().unroll_loops = "index-use"
 
 
 def test_quake_unmapped_cost_model_accepts_name():

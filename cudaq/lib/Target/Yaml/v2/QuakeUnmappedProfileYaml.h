@@ -33,24 +33,6 @@ struct rfl::Reflector<cudaq::config::CostModel> {
 };
 
 template <>
-struct rfl::Reflector<cudaq::config::Semantics> {
-  using ReflType = std::string;
-  static cudaq::config::Semantics to(const std::string &name) {
-    return cudaq::config::detail::enumFromYamlName<cudaq::config::Semantics>(
-        name);
-  }
-  static std::string from(const cudaq::config::Semantics &value) {
-    switch (value) {
-    case cudaq::config::Semantics::any:
-      return "any";
-    case cudaq::config::Semantics::value:
-      return "value";
-    }
-    cudaq::config::detail::unknownEnumerator();
-  }
-};
-
-template <>
 struct rfl::Reflector<cudaq::config::LoopUnrolling> {
   using ReflType = std::string;
   static cudaq::config::LoopUnrolling to(const std::string &name) {
@@ -80,7 +62,6 @@ struct cudaq::config::v2::ProfileYaml<cudaq::config::QuakeUnmappedProfile> {
       rfl::DefaultVal<double> approximationTolerance =
           QuakeUnmappedProfile{}.approximationTolerance;
       std::optional<CostModel> costModel;
-      rfl::DefaultVal<Semantics> semantics = QuakeUnmappedProfile{}.semantics;
       rfl::DefaultVal<LoopUnrolling> unrollLoops =
           QuakeUnmappedProfile{}.unrollLoops;
       rfl::DefaultVal<unsigned> maxUnrollIterations =
