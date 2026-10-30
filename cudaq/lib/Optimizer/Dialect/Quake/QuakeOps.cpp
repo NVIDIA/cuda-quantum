@@ -131,6 +131,8 @@ LogicalResult cudaq::quake::verifyWireArityAndCoarity(Operation *op) {
     getCounts(gate);
   } else if (auto meas = dyn_cast<MeasurementInterface>(op)) {
     getCounts(meas);
+  } else if (auto barrier = dyn_cast<BarrierOp>(op)) {
+    getCounts(barrier);
   }
   if (arity == coarity)
     return success();
@@ -138,8 +140,8 @@ LogicalResult cudaq::quake::verifyWireArityAndCoarity(Operation *op) {
 }
 
 bool cudaq::quake::isSupportedMappingOperation(Operation *op) {
-  return isa<OperatorInterface, MeasurementInterface, ResetOp, SinkOp,
-             ReturnWireOp, EvinceOp>(op);
+  return isa<OperatorInterface, MeasurementInterface, BarrierOp, ResetOp,
+             SinkOp, ReturnWireOp, EvinceOp>(op);
 }
 
 ValueRange cudaq::quake::getQuantumTypesFromRange(ValueRange range) {
@@ -185,6 +187,9 @@ getWireFlowOperands(Operation *operation) {
                  dyn_cast<cudaq::quake::MeasurementInterface>(operation)) {
     llvm::append_range(flow.inputs, measurement.getTargets());
     llvm::append_range(flow.results, measurement.getWires());
+  } else if (auto barrier = dyn_cast<cudaq::quake::BarrierOp>(operation)) {
+    llvm::append_range(flow.inputs, barrier.getTargets());
+    llvm::append_range(flow.results, barrier.getWires());
   } else if (auto reset = dyn_cast<cudaq::quake::ResetOp>(operation)) {
     flow.inputs.push_back(reset.getTargets());
     llvm::append_range(flow.results, reset.getWires());
@@ -1622,6 +1627,22 @@ getModelessEffectsImpl(EffectsVectorImpl &effects,
     effects.emplace_back(MemoryEffects::Write::get(), &v,
                          SideEffects::DefaultResource::get());
   }
+}
+
+void cudaq::quake::BarrierOp::getEffects(EffectsVectorImpl &effects) {
+  getModelessEffectsImpl(effects, {}, getTargetsMutable());
+}
+
+LogicalResult cudaq::quake::BarrierOp::verify() {
+  if (getTargets().empty())
+    return emitOpError("requires at least one target");
+  llvm::SmallPtrSet<void *, 8> targets;
+  for (Value target : getTargets())
+    if (!targets.insert(target.getAsOpaquePointer()).second)
+      return emitOpError("requires distinct targets");
+  if (failed(verifyWireArityAndCoarity(*this)))
+    return failure();
+  return verifyWireResultsAreLinear(*this);
 }
 
 /// For an operation with moded effects, the operation conditionally has

@@ -64,6 +64,11 @@ cudaq::parseCodeGenTranslation(const std::string &codegenTranslation) {
     return config;
   }
 
+  // LQCloud submits JSON, but adapts genuine per-shot measurement memory to
+  // the existing run output log. No other non-QIR profile gains this ability.
+  if (codeGenName == "lqcloud")
+    return {.profile = codeGenName, .outputLog = true};
+
   if (codeGenName.find("qir") == codeGenName.npos)
     return {.profile = codeGenName};
 

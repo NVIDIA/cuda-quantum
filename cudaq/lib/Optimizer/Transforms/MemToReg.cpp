@@ -1222,7 +1222,8 @@ public:
     // Scan the control and target positions. Any that were not Wires will be
     // promoted to Wires via an unwrap operation. These unwrap ops become the
     // arguments to the quantum value form of the new quantum operation.
-    if constexpr (!cudaq::quake::isMeasure<OP>) {
+    if constexpr (!cudaq::quake::isMeasure<OP> &&
+                  !std::is_same_v<OP, cudaq::quake::BarrierOp>) {
       for (auto opnd : op.getControls()) {
         auto opndTy = opnd.getType();
         if (opndTy == qrefTy) {
@@ -1272,6 +1273,11 @@ public:
       SmallVector<Value> wireOperands = op.getTargets();
       op.getResult(0).replaceAllUsesWith(newOp.getResult(0));
       threadWires(wireOperands, newOp, 1);
+    } else if constexpr (std::is_same_v<OP, cudaq::quake::BarrierOp>) {
+      SmallVector<Type> wireTys(unwrapTargs.size(), wireTy);
+      auto newOp = OP::create(rewriter, loc, wireTys, unwrapTargs);
+      SmallVector<Value> wireOperands = op.getTargets();
+      threadWires(wireOperands, newOp, 0);
     } else {
       // Scan the control and target positions. Any that were not wires
       // originally are now placed in the result vector. Those new results are
@@ -1972,15 +1978,13 @@ public:
     auto func = getOperation();
     auto *ctx = &getContext();
     RewritePatternSet patterns(ctx);
-    patterns.insert<WRAPPER_QUANTUM_OPS, ResetOpPattern, DeallocOpPattern,
-                    EvinceOpPattern>(ctx);
+    patterns.insert<WRAPPER_QUANTUM_OPS, Wrapper<cudaq::quake::BarrierOp>,
+                    ResetOpPattern, DeallocOpPattern, EvinceOpPattern>(ctx);
     ConversionTarget target(*ctx);
-    target
-        .addDynamicallyLegalOp<RAW_QUANTUM_OPS, cudaq::quake::ResetOp,
-                               cudaq::quake::DeallocOp, cudaq::quake::EvinceOp>(
-            [](Operation *op) {
-              return !cudaq::quake::hasNonVectorReference(op);
-            });
+    target.addDynamicallyLegalOp<RAW_QUANTUM_OPS, cudaq::quake::BarrierOp,
+                                 cudaq::quake::ResetOp, cudaq::quake::DeallocOp,
+                                 cudaq::quake::EvinceOp>(
+        [](Operation *op) { return !cudaq::quake::hasNonVectorReference(op); });
     target.addLegalOp<cudaq::quake::UnwrapOp, cudaq::quake::WrapOp,
                       cudaq::quake::NullWireOp, cudaq::quake::SinkOp>();
     if (failed(applyPartialConversion(func, target, std::move(patterns)))) {

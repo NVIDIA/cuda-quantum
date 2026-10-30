@@ -24,6 +24,7 @@ class RestClient {
 protected:
   // Use verbose printout
   bool verbose = false;
+  bool protectCredentials = false;
 
   /// SSL options to use for transfers
   std::unique_ptr<cpr::SslOptions> sslOptions;
@@ -32,6 +33,9 @@ public:
   /// @brief set verbose printout
   /// @param v
   void setVerbose(bool v) { verbose = v; }
+
+  /// Refuse redirects and omit untrusted response text from request errors.
+  void setCredentialProtection(bool enabled) { protectCredentials = enabled; }
 
   /// @brief Constructor
   RestClient();

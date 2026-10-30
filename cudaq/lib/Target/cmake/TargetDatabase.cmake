@@ -32,6 +32,11 @@ function(cudaq_finalize_target_database)
     if (NOT EXISTS ${_yml})
       continue()
     endif()
+    if (_name STREQUAL "lqcloud" AND
+        DEFINED CUDAQ_ENABLE_LQCLOUD_BACKEND AND
+        NOT CUDAQ_ENABLE_LQCLOUD_BACKEND)
+      continue()
+    endif()
     list(APPEND _gen_args "${_name}=${_yml}")
     list(APPEND _deps ${_yml})
     list(APPEND _seen_names ${_name})

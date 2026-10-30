@@ -117,6 +117,9 @@ void addPipelineTranslateToOpenQASM(mlir::PassManager &pm);
 /// Pipeline builder to convert Quake to IQM `Json`.
 void addPipelineTranslateToIQMJson(mlir::PassManager &pm);
 
+/// Pipeline builder to convert Quake to LQCloud `Json`.
+void addPipelineTranslateToLQCloudJson(mlir::PassManager &pm);
+
 /// This pipeline specifies some extra bonus passes that are needed to lower
 /// Python kernel decorators to `Open QASM` format. While this pipeline is
 /// almost exclusively Quake transformations, there is one pass

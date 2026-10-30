@@ -1129,6 +1129,28 @@ class PyKernel(object):
         with self.insertPoint, self.loc:
             quake.SwapOp([], [], [], [qubitA.mlirValue, qubitB.mlirValue])
 
+    def barrier(self, target):
+        """Synchronize a non-empty, statically sized qvector on LQCloud.
+
+        This operation preserves the ordering of layers while
+        allowing independent gates within a layer to execute in parallel.
+        Other backends, including local simulators, do not support it.
+        """
+        with self.ctx, self.insertPoint, self.loc:
+            if (not isinstance(target, QuakeValue) or
+                    not quake.VeqType.isinstance(target.mlirValue.type) or
+                    not quake.VeqType.hasSpecifiedSize(target.mlirValue.type) or
+                    quake.VeqType.getSize(target.mlirValue.type) == 0):
+                raise ValueError("barrier requires a non-empty static qvector")
+            if hasattr(self, 'qkeModule'):
+                del self.qkeModule
+            targets = [
+                quake.ExtractRefOp(quake.RefType.get(), target.mlirValue,
+                                   i).result
+                for i in range(quake.VeqType.getSize(target.mlirValue.type))
+            ]
+            quake.BarrierOp([], targets)
+
     def reset(self, target):
         """
         Reset the provided qubit or qubits.
