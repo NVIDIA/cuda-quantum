@@ -41,7 +41,7 @@ static void compileAndDump(mlir::MLIRContext *ctx,
   }
 
   Compiler compiler(std::move(target), std::move(options));
-  auto compiled = compiler.runPassPipeline(
+  auto compiled = compiler.compile(
       kernelName, mod.release().getAsOpaquePointer(), args, /*isEntryPoint=*/
       true);
 
@@ -69,7 +69,7 @@ static void compileAndDumpResources(mlir::MLIRContext *ctx,
   }
 
   Compiler compiler(std::move(target), std::move(options));
-  auto compiled = compiler.runPassPipeline(
+  auto compiled = compiler.compile(
       kernelName, mod.release().getAsOpaquePointer(), cudaq::KernelArgs{},
       /*isEntryPoint=*/true);
 
@@ -311,7 +311,7 @@ void test_staged_inferred(mlir::MLIRContext *ctx) {
 
   Compiler compiler(inferredTarget(), {}, std::move(handlers));
   auto mod = mlir::parseSourceString<mlir::ModuleOp>(phaseResourceKernel, ctx);
-  auto compiled = compiler.runPassPipeline(
+  auto compiled = compiler.compile(
       "phaseResources", mod.release().getAsOpaquePointer(), cudaq::KernelArgs{},
       /*isEntryPoint=*/true);
 
@@ -336,7 +336,7 @@ void test_staged_skip(mlir::MLIRContext *ctx) {
   options.skipTargetLoweringPipeline = true;
   Compiler compiler(inferredTarget(), std::move(options), {});
   auto mod = mlir::parseSourceString<mlir::ModuleOp>(phaseResourceKernel, ctx);
-  auto compiled = compiler.runPassPipeline(
+  auto compiled = compiler.compile(
       "phaseResources", mod.release().getAsOpaquePointer(), cudaq::KernelArgs{},
       /*isEntryPoint=*/true);
 
@@ -523,24 +523,19 @@ static mlir::LogicalResult printPipeline(mlir::PassManager &pm,
   return pm.run(op);
 }
 
-/// Level 0 must reach codegen that runs in a second `Compiler` with default
-/// options, as the REST QPU does. Only the compiled IR can carry the level
-/// there.
+/// Level 0 must be honored all the way through codegen
 void test_optimization_level_0(mlir::MLIRContext *ctx) {
   cudaq::CompileTarget target;
   target.codegen.emissionFormat = "qir-base";
   cudaq::CompileOptions options;
   options.optimizationLevel = cudaq::OptimizationLevel::O0;
   auto mod = mlir::parseSourceString<mlir::ModuleOp>(measureKernel, ctx);
+  llvm::outs() << "Optimization level 0 codegen:\n";
   Compiler compiler(target, std::move(options));
-  auto compiled = compiler.runPassPipeline(
+  cudaq_internal::compiler::setRunPassManagerHook(&printPipeline);
+  auto compiled = compiler.compile(
       "measure", mod.release().getAsOpaquePointer(), cudaq::KernelArgs{},
       /*isEntryPoint=*/true);
-
-  llvm::outs() << "Optimization level 0 codegen:\n";
-  Compiler codegen(target, {});
-  cudaq_internal::compiler::setRunPassManagerHook(&printPipeline);
-  codegen.emitKernelExecutions(compiled);
   cudaq_internal::compiler::setRunPassManagerHook(nullptr);
 }
 

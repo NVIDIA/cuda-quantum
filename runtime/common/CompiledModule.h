@@ -177,11 +177,29 @@ public:
     const Resources &getResources() const { return resources; }
   };
 
+  /// Custom target code produced by `codegen` (e.g. QIR or OpenQASM) stored as
+  /// a string.
+  class CodegenArtifact {
+    std::string code;
+    /// JSON-serialized mapping from results to the program's qubits.
+    std::string outputNames;
+
+    CodegenArtifact(std::string code, std::string outputNames)
+        : code(std::move(code)), outputNames(std::move(outputNames)) {}
+
+    friend class FatQuakeModule;
+    friend class cudaq_internal::compiler::CompiledModuleHelper;
+
+  public:
+    const std::string &getCode() const { return code; }
+    const std::string &getOutputNames() const { return outputNames; }
+  };
+
   /// A compiled artifact is a JIT binary, an MLIR module, a raw kernel entry
-  /// point, or resource metrics.
+  /// point, resource metrics, or target code.
   using ArtifactsStore =
       detail::NamedVariantStore<JitArtifact, MlirArtifact, ResourcesArtifact,
-                                FunctionPtrArtifact>;
+                                FunctionPtrArtifact, CodegenArtifact>;
   using CompiledArtifact = ArtifactsStore::Value;
 
   // --- Compilation metadata ---
@@ -220,6 +238,13 @@ public:
   /// If no name is provided, defaults to the kernel name.
   const Resources *getResources() const;
   const Resources *getResources(std::string_view resourcesName) const;
+
+  /// Get the target code artifact with the given name, or `nullptr` if it does
+  /// not exist.
+  ///
+  /// If no name is provided, defaults to the kernel name.
+  const CodegenArtifact *getTargetCode() const;
+  const CodegenArtifact *getTargetCode(std::string_view codeName) const;
 
   /// Get all compiled artifacts in insertion order.
   const ArtifactsStore &getArtifacts() const { return artifacts; }
