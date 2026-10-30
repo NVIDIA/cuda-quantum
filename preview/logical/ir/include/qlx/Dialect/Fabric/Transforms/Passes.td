@@ -1,10 +1,10 @@
-/*******************************************************************************
+/***********************************************************-*- tablegen -*-****
  * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #ifndef QLX_DIALECT_FABRIC_TRANSFORMS_PASSES_TD
 #define QLX_DIALECT_FABRIC_TRANSFORMS_PASSES_TD
@@ -169,6 +169,28 @@ def FabricCount : Pass<"fabric-count", "::mlir::ModuleOp"> {
     Option<"resultSymbol", "result", "std::string",
            /*default=*/"\"static_estimate\"",
            "Symbol name for the emitted qlx.estimate_result">
+  ];
+  let statistics = [
+    Statistic<"numVisitedOperations", "visited-operations",
+              "Number of operations visited by the counting walk">,
+    Statistic<"numDelegations", "delegations",
+              "Number of callable bodies walked through delegation">,
+    Statistic<"numRetryProbes", "retry-probes",
+              "Number of retry attempts counted in an isolated walk">,
+    Statistic<"numRetryProbeCacheHits", "retry-probe-cache-hits",
+              "Number of retry attempts reused from the attempt cache">,
+    Statistic<"numRetryProbeOperations", "retry-probe-operations",
+              "Number of operations visited by retry-attempt walks">,
+    Statistic<"numCallableSummaryProbes", "callable-summary-probes",
+              "Number of callable summaries computed">,
+    Statistic<"numCallableSummaryHits", "callable-summary-hits",
+              "Number of calls answered by a cached callable summary">,
+    Statistic<"numCallableSummaryNegativeHits",
+              "callable-summary-negative-hits",
+              "Number of calls whose cached summary was inapplicable">,
+    Statistic<"numCallableSummarySavedOperations",
+              "callable-summary-saved-operations",
+              "Number of operation visits avoided by callable summaries">,
   ];
 }
 

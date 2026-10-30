@@ -4,7 +4,7 @@
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "qlx/Dialect/Fabric/Transforms/Passes.h"
 
@@ -1053,7 +1053,7 @@ struct FabricEstimateAnalyticalPass
     bool allDistancesEstablished = true;
     for (StringRef name : codeNames) {
       auto code = symbols.lookup<CodeOp>(name);
-      if (!code || code.getDistance() <= 0) {
+      if (!code || code.getDistanceAttr().getInt() <= 0) {
         module.emitError("fabric-estimate-analytical missing usable code @")
             << name;
         return signalPassFailure();
