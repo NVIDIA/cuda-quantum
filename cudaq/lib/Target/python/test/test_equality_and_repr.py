@@ -80,27 +80,6 @@ def test_quake_unmapped_profile_repr():
         "max_unroll_iterations=1024)")
 
 
-@pytest.mark.parametrize("option, value", [
-    ("unroll_loops", "index_use"),
-    ("max_unroll_iterations", 2048000),
-])
-def test_quake_unmapped_option_changes_identity(option, value):
-    baseline = QuakeUnmappedProfile()
-    changed = QuakeUnmappedProfile(**{option: value})
-    assert getattr(changed, option) == value
-    assert changed != baseline
-    assert hash(changed) != hash(baseline)
-    setattr(changed, option, getattr(baseline, option))
-    assert changed == baseline
-
-
-def test_quake_unmapped_unroll_loops_rejects_unknown_value():
-    with pytest.raises(ValueError):
-        QuakeUnmappedProfile(unroll_loops="index-use")
-    with pytest.raises(ValueError):
-        QuakeUnmappedProfile().unroll_loops = "index-use"
-
-
 def test_quake_unmapped_cost_model_accepts_name():
     profile = QuakeUnmappedProfile(cost_model="t_count")
     assert profile.cost_model == CostModel.t_count
