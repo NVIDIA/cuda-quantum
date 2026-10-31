@@ -24,8 +24,12 @@ add_library(nvqir-custatevec-components STATIC
   CuStateVecRandom.cpp
   CuStateVecSimulationState.cpp
   CuStateVecState.cpp)
+# Hidden so each simulator library binds to its own copy instead of one loaded
+# earlier, which may lack the communicator bridge.
 set_target_properties(nvqir-custatevec-components PROPERTIES
-  POSITION_INDEPENDENT_CODE ON)
+  POSITION_INDEPENDENT_CODE ON
+  CXX_VISIBILITY_PRESET hidden
+  VISIBILITY_INLINES_HIDDEN ON)
 target_include_directories(nvqir-custatevec-components
   PUBLIC
     .
@@ -78,6 +82,7 @@ macro (nvqir_create_cusv_plugin LIBRARY_NAME SOURCE_FILENAME)
                         PRIVATE
                           cudaq-logger
                           cudaq-common
+                          cudaq
                           nvqir-custatevec-components
                           cuStateVec::cuStateVec
                           CUDA::cudart_static
@@ -136,8 +141,7 @@ nvqir_create_configured_cusv_plugin(
   CuStateVecMpiCircuitSimulator.h CuStateVecMpiCircuitSimulator float
   nvidia_mgpu_fp32)
 # The multi-GPU multi-node simulators run distributed, so they need MPI plugin
-# support. Only these libraries embed the communicator bridge and link cudaq;
-# the single-GPU simulators above are non-distributed and require neither.
+# support. Only these libraries embed the communicator bridge.
 
 # Embed the communicator bridge (CuStateVecCommunicatorPlugin.cpp), which adapts
 # the cuStateVecEx communicator ABI to the CUDA-Q distributed MPI plugin.
@@ -145,7 +149,3 @@ target_sources(nvqir-nvidia-mgpu PRIVATE
   $<TARGET_OBJECTS:nvqir-custatevec-communicator-obj>)
 target_sources(nvqir-nvidia-mgpu-fp32 PRIVATE
   $<TARGET_OBJECTS:nvqir-custatevec-communicator-obj>)
-# Link cudaq for the distributed MPI runtime (cudaq::mpi::getMpiPlugin, rank,
-# etc.) used by the communicator bridge and the MPI simulator.
-target_link_libraries(nvqir-nvidia-mgpu PRIVATE cudaq)
-target_link_libraries(nvqir-nvidia-mgpu-fp32 PRIVATE cudaq)

@@ -124,7 +124,7 @@ void loadTargetPluginLibrary(const std::filesystem::path &path,
 
   CUDAQ_INFO("Loading plugin library '{}' for target '{}'.", pathString,
              targetName);
-  void *handle = dlopen(pathString.c_str(), RTLD_GLOBAL | RTLD_NOW);
+  void *handle = dlopen(pathString.c_str(), RTLD_LOCAL | RTLD_NOW);
   if (!handle) {
     const char *error = dlerror();
     throw std::runtime_error("Unable to load plugin library '" + pathString +

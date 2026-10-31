@@ -29,3 +29,10 @@ def get_backend_port(backend: str) -> int:
 
 def all_backend_names() -> list[str]:
     return list(MOCK_QPU_PORTS.keys())
+
+
+def expose_nvqir_to_jit():
+    """CUDA-Q loads libnvqir RTLD_LOCAL; expose its QIR runtime to the JIT."""
+    import ctypes, os, sys
+    name = "libnvqir.dylib" if sys.platform == "darwin" else "libnvqir.so"
+    ctypes.CDLL(name, mode=os.RTLD_GLOBAL | os.RTLD_NOLOAD)

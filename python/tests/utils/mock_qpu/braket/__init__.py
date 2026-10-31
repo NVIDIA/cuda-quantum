@@ -12,6 +12,7 @@ import uuid, base64, ctypes
 import cudaq
 from pydantic import BaseModel
 from llvmlite import binding as llvm
+from .. import expose_nvqir_to_jit
 
 # Define the REST Server App
 app = FastAPI()
@@ -36,6 +37,7 @@ target = llvm.Target.from_default_triple()
 targetMachine = target.create_target_machine()
 backing_mod = llvm.parse_assembly("")
 engine = llvm.create_mcjit_compiler(backing_mod, targetMachine)
+expose_nvqir_to_jit()
 
 
 def getKernelFunction(module):

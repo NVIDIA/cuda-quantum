@@ -159,6 +159,7 @@ NVQIR
 NVQLink
 Nielsen
 NumPy
+Numba
 OPX
 OQC
 ORCA

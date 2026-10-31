@@ -9,6 +9,7 @@
 #include "kernel_builder.h"
 #include "common/Environment.h"
 #include "common/FmtCore.h"
+#include "cudaq_internal/compiler/ExecutionEngine.h"
 #include "cudaq_internal/compiler/RuntimeMLIR.h"
 #include "cudaq_internal/compiler/TracePassInstrumentation.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
@@ -1054,7 +1055,8 @@ jitCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   opts.llvmModuleBuilder = std::move(llvmModuleBuilderTemp);
 
   CUDAQ_INFO(" - Creating the MLIR ExecutionEngine");
-  auto jitOrError = ExecutionEngine::create(module, opts);
+  auto jitOrError =
+      cudaq_internal::compiler::createExecutionEngine(module, opts);
   assert(!!jitOrError);
 
   auto uniqueJit = std::move(jitOrError.get());

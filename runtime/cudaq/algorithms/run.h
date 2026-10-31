@@ -22,11 +22,6 @@
 #include "cudaq/utils/cudaq_utils.h"
 #include <cstdint>
 
-extern "C" {
-void __nvqpp_initializer_list_to_vector_bool(std::vector<bool> &, char *,
-                                             std::size_t);
-}
-
 namespace cudaq_internal::compiler {
 
 using LayoutInfoType = std::pair<std::size_t, std::vector<std::size_t>>;
@@ -49,22 +44,21 @@ struct RunResultSpan {
   std::uint64_t resultCount = 0;
 };
 
-// The main entry point to launching a kernel, \p kernel, in a `cudaq::run`
-// context and getting back a span containing the results. (The kernel is
-// logically executed \p shots times, which can result in up to \p shots
-// distinct result values. The results are returned in a span, which is a
-// pointer to a buffer and the size of that buffer in bytes. Backend
-// executions with nonzero END status are omitted, so the returned span may
-// contain fewer than \p shots results and reports its actual count.
-
 // Parse a `cudaq::run` output log into a RunResultSpan. The parsing step is
 // kept out of line (in libcudaq) so the RecordLogParser is not instantiated at
 // every call site. The kernel launch that produces \p outputLog happens in the
 // caller's scope (see `launchRun`) so that the JIT compiler dependency is only
-// linked when the user compiles with nvq++.
+// linked when the user compiles with nvq++. \p resultSize is the size of the
+// kernel's result type. A shot with a nonzero END status yields no result, so
+// the span may hold fewer results than there were shots.
+// The returned span owns its buffer, an `::operator new` block, and the
+// storage of each array in it. `resultSpanToVectorViaOwnership` passes both to
+// a `std::vector`, or, for `bool` and empty result types, fills one and frees
+// the buffer.
 RunResultSpan convertToRunResultSpan(
     const std::string &outputLog,
-    const cudaq_internal::compiler::LayoutInfoType &layoutInfo);
+    const cudaq_internal::compiler::LayoutInfoType &layoutInfo,
+    std::size_t resultSize);
 
 // Launch a runnable \p kernel \p shots times and return the raw output log.
 //
@@ -131,12 +125,19 @@ void resultSpanToVectorViaOwnership(std::vector<T> &result,
   std::vector<T> deadEnder;
   std::swap(deadEnder, result);
 
-  // Initialize the vector `result` in place and without any data copies.
-  if constexpr (std::is_same_v<T, bool>) {
-    // std::vector<bool> is a specialization, so we have to call the
-    // vector<bool> constructor in this case to pack the bools.
-    __nvqpp_initializer_list_to_vector_bool(result, spanIn.data,
-                                            spanIn.lengthInBytes);
+  // Initialize the vector `result` in place and, except for `bool`, without
+  // any data copies.
+  if constexpr (std::is_empty_v<T>) {
+    // An empty result type decodes to no bytes: make one result per decoded
+    // result, and free the buffer.
+    try_finally([&] { result.resize(spanIn.resultCount); },
+                [&] { ::operator delete(spanIn.data); });
+  } else if constexpr (std::is_same_v<T, bool>) {
+    // std::vector<bool> is a specialization, so we have to pack the bools, one
+    // per byte, and then free the buffer.
+    try_finally(
+        [&] { result.assign(spanIn.data, spanIn.data + spanIn.lengthInBytes); },
+        [&] { ::operator delete(spanIn.data); });
   } else {
     using raw_vector = struct {
       T *start;
@@ -145,6 +146,10 @@ void resultSpanToVectorViaOwnership(std::vector<T> &result,
     };
     static_assert(sizeof(std::vector<T>) == sizeof(raw_vector) &&
                   "std::vector must use the nominal 3 pointer implementation");
+    // `std::allocator<T>` pairs `::operator new(std::size_t)` with its
+    // `::operator delete` only for default-aligned types.
+    static_assert(alignof(T) <= __STDCPP_DEFAULT_NEW_ALIGNMENT__,
+                  "over-aligned result types are not supported");
     raw_vector *rawVec = reinterpret_cast<raw_vector *>(&result);
     rawVec->start = reinterpret_cast<T *>(spanIn.data);
     rawVec->end0 = rawVec->end1 =
@@ -152,7 +157,8 @@ void resultSpanToVectorViaOwnership(std::vector<T> &result,
   }
 
   // Destroy the contents of the span. The caller no longer owns the `data`
-  // buffer, the vector `result` does.
+  // buffer, the vector `result` does, or, for `bool` and empty result types,
+  // the buffer was freed.
   spanIn.data = nullptr;
   spanIn.lengthInBytes = 0;
 }
@@ -216,8 +222,8 @@ run(std::size_t shots, QuantumKernel &&kernel, ARGS &&...args) {
         (*runKernel)(std::forward<ARGS>(args)...);
       },
       platform, kernelName, shots, /*qpu_id=*/0);
-  detail::RunResultSpan span =
-      detail::convertToRunResultSpan(runResult.outputLog, layoutInfo);
+  detail::RunResultSpan span = detail::convertToRunResultSpan(
+      runResult.outputLog, layoutInfo, sizeof(ResultTy));
   detail::resultSpanToVectorViaOwnership<ResultTy>(results, span);
 #endif
   return results;
@@ -282,8 +288,8 @@ run(std::size_t shots, cudaq::noise_model &noise_model, QuantumKernel &&kernel,
             platform, kernelName, shots, /*qpu_id=*/0);
       },
       [&] { platform.reset_noise(); });
-  detail::RunResultSpan span =
-      detail::convertToRunResultSpan(runResult.outputLog, layoutInfo);
+  detail::RunResultSpan span = detail::convertToRunResultSpan(
+      runResult.outputLog, layoutInfo, sizeof(ResultTy));
   detail::resultSpanToVectorViaOwnership<ResultTy>(results, span);
 #endif
   return results;
@@ -351,8 +357,8 @@ run_async(std::size_t qpu_id, std::size_t shots, QuantumKernel &&kernel,
               (*runKernel)(std::forward<ARGS>(args)...);
             },
             platform, kernelName, shots, qpu_id);
-        detail::RunResultSpan span =
-            detail::convertToRunResultSpan(runResult.outputLog, layoutInfo);
+        detail::RunResultSpan span = detail::convertToRunResultSpan(
+            runResult.outputLog, layoutInfo, sizeof(ResultTy));
         std::vector<ResultTy> results;
         detail::resultSpanToVectorViaOwnership<ResultTy>(results, span);
         p.set_value(std::move(results));
@@ -432,8 +438,8 @@ run_async(std::size_t qpu_id, std::size_t shots,
             },
             platform, kernelName, shots, qpu_id);
         platform.reset_noise(qpu_id);
-        detail::RunResultSpan span =
-            detail::convertToRunResultSpan(runResult.outputLog, layoutInfo);
+        detail::RunResultSpan span = detail::convertToRunResultSpan(
+            runResult.outputLog, layoutInfo, sizeof(ResultTy));
         std::vector<ResultTy> results;
         detail::resultSpanToVectorViaOwnership<ResultTy>(results, span);
         p.set_value(std::move(results));

@@ -79,10 +79,11 @@ void nvqir::ArrayTracker::clear() {
 }
 
 int8_t *Array::operator[](std::size_t index) {
-  if (static_cast<uint64_t>(index * element_size_bytes) >= storage.size())
+  // Check the element index before computing a potentially overflowing byte
+  // offset.
+  if (index >= size())
     throw std::runtime_error(
-        fmt::format("Provided index [{}] >= array size [{}]", index,
-                    storage.size() / element_size_bytes));
+        fmt::format("Provided index [{}] >= array size [{}]", index, size()));
   return &storage.at(index * element_size_bytes);
 }
 // Ctors
