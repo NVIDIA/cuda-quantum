@@ -231,6 +231,9 @@ void cudaq::RecordLogParser::handleOutput(
       if (!parsedResults)
         preallocateArray();
     }
+    // An empty array completes here, with no RESULT record to add its row.
+    if (parsedResults && containerMeta.elementCount == 0)
+      parsedResults->emplace_back();
     countAndResetContainerIfComplete();
     return;
   }

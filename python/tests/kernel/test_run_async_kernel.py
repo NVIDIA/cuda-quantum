@@ -58,6 +58,7 @@ def test_run_async():
 
     for i in range(len(qubitCounts)):
         results = resultHandles[i].get()
+        assert resultHandles[i].get() == results
         qubitCount = qubitCounts[i]
         print(f"({time.time()}) Result for {qubitCount} qubits: {results}")
         assert len(results) == shots
@@ -955,6 +956,42 @@ def test_run_errors():
         cudaq.run_async(simple_no_args, 2, shots_count=100)
     assert ('Invalid number of arguments passed to run_async. 1 given and 0 '
             'expected.' in repr(e))
+
+    # The queued run fails, and every `get()` raises its error. A nested `list`
+    # result fails inside the queued run until #3889 lands. Then replace the
+    # trigger, not the case.
+    @cudaq.kernel
+    def nested(numQubits: int) -> list[list[int]]:
+        qubits = cudaq.qvector(numQubits)
+        x(qubits)
+        return [[1, 0], [0, 1]]
+
+    handle = cudaq.run_async(nested, 2, shots_count=2)
+    for _ in range(2):
+        with pytest.raises(RuntimeError) as e:
+            handle.get()
+        assert 'does not yet support returning nested `list`' in repr(e)
+
+    # A Python error raised while converting the results is raised again by
+    # a second `get()`.
+    @dataclass(slots=True)
+    class Checked:
+        value: int
+
+        def __post_init__(self):
+            if self.value < 0:
+                raise ValueError('negative')
+
+    @cudaq.kernel
+    def checked() -> Checked:
+        qubit = cudaq.qubit()
+        x(qubit)
+        return Checked(-1)
+
+    handle = cudaq.run_async(checked, shots_count=1)
+    for _ in range(2):
+        with pytest.raises(ValueError, match='negative'):
+            handle.get()
 
 
 def test_modify_struct():

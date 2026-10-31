@@ -11,7 +11,8 @@
 
 cudaq::detail::RunResultSpan cudaq::detail::convertToRunResultSpan(
     const std::string &outputLog,
-    const cudaq_internal::compiler::LayoutInfoType &layoutInfo) {
+    const cudaq_internal::compiler::LayoutInfoType &layoutInfo,
+    std::size_t resultSize) {
 
   // 1. Pass the outputLog to the parser (target-specific?)
   cudaq::RecordLogParser parser(layoutInfo);
@@ -23,20 +24,24 @@ cudaq::detail::RunResultSpan cudaq::detail::convertToRunResultSpan(
   std::size_t resultCount = parser.getResultCount();
 
   // Validate that the buffer size is consistent with the successful shot count.
-  if (resultCount > 0 && bufferSize % resultCount != 0)
-    throw std::runtime_error(
-        "run: the number of result bytes (" + std::to_string(bufferSize) +
-        ") is not evenly divisible by the number of decoded results (" +
-        std::to_string(resultCount) + ").");
+  // A result type without data, such as an empty struct, decodes to no bytes.
+  if (bufferSize != 0 &&
+      (bufferSize / resultSize != resultCount || bufferSize % resultSize != 0))
+    throw std::runtime_error("run: " + std::to_string(resultCount) +
+                             " decoded results occupy " +
+                             std::to_string(bufferSize) +
+                             " bytes, but the kernel's result type takes " +
+                             std::to_string(resultSize) + " bytes.");
   char *buffer = nullptr;
   if (bufferSize != 0) {
-    buffer = static_cast<char *>(malloc(bufferSize));
-    if (!buffer)
-      throw std::runtime_error("run: result buffer allocation failed.");
+    buffer = static_cast<char *>(::operator new(bufferSize));
     std::memcpy(buffer, origBuffer, bufferSize);
   }
+  // The copy refers to the storage of each array, so it takes that storage
+  // over from the parser.
+  parser.releaseArrayStorage();
 
   // 3. Pass the span back as a RunResultSpan. NB: it is the responsibility of
-  // the caller to free the buffer.
+  // the caller to free the buffer and the storage of each array it refers to.
   return {buffer, bufferSize, resultCount};
 }
