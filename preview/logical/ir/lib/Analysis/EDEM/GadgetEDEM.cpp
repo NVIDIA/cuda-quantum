@@ -246,8 +246,7 @@ readProfileRows(qlx::fabric::GadgetContractOp profile,
       result.detectors.push_back(std::move(*parity));
     else if (auto observable =
                  dyn_cast<qlx::fabric::ObservableOp>(&operation)) {
-      if (observable.getIdx() !=
-          static_cast<int64_t>(result.observables.size())) {
+      if (!std::cmp_equal(observable.getIdx(), result.observables.size())) {
         observable.emitOpError("EDEM observable indices must be ordered");
         return failure();
       }
@@ -256,11 +255,12 @@ readProfileRows(qlx::fabric::GadgetContractOp profile,
       result.success.push_back(std::move(*parity));
     else if (auto assignment =
                  dyn_cast<qlx::fabric::OutputSyndromeOp>(&operation)) {
-      auto port = assignment.getPortIndex();
-      auto index = assignment.getIndex();
+      auto port = assignment.getPortIndexAttr().getInt();
+      auto index = assignment.getIndexAttr().getInt();
       if (port < 0 || index < 0 ||
-          static_cast<std::size_t>(port) + 1 >= outputOffsets.size() ||
-          outputOffsets[port] + index >= outputOffsets[port + 1] ||
+          std::cmp_greater_equal(port, outputs.size()) ||
+          std::cmp_greater_equal(index, outputOffsets[port + 1] -
+                                            outputOffsets[port]) ||
           assignments[outputOffsets[port] + index]) {
         assignment.emitOpError(
             "EDEM output syndrome target is invalid or repeated");

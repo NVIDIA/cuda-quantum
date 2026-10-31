@@ -33,7 +33,10 @@ target_sources(cudaq-gf2 PUBLIC
 target_compile_features(cudaq-gf2 PUBLIC c_std_11)
 target_compile_features(cudaq-gf2 PRIVATE cxx_std_20)
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-  target_compile_options(cudaq-gf2 PRIVATE -fno-exceptions -fno-rtti)
+  # Parent builds may enable libstdc++ assertions. Their failure handler would
+  # introduce a C++ runtime dependency into the native core.
+  target_compile_options(cudaq-gf2 PRIVATE
+    -fno-exceptions -fno-rtti -U_GLIBCXX_ASSERTIONS)
 endif()
 set_target_properties(cudaq-gf2 PROPERTIES
   EXPORT_NAME gf2

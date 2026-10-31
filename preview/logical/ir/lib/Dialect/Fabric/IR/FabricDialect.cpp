@@ -8658,7 +8658,7 @@ LogicalResult GadgetContractOp::verify() {
   int64_t expectedObservableIndex = 0;
   for (Operation &declaration : getBody().front())
     if (auto observable = dyn_cast<ObservableOp>(&declaration)) {
-      if (observable.getIdx() != expectedObservableIndex)
+      if (!std::cmp_equal(observable.getIdx(), expectedObservableIndex))
         return observable.emitOpError(
             "observable indices must be contiguous in profile order from zero");
       ++expectedObservableIndex;

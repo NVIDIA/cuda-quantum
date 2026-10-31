@@ -64,7 +64,10 @@ target_include_directories(cudaq-edem PRIVATE "${CUDAQ_EDEM_GF2_SOURCE_DIR}/lib"
 target_compile_features(cudaq-edem PUBLIC c_std_11)
 target_compile_features(cudaq-edem PRIVATE cxx_std_20)
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-  target_compile_options(cudaq-edem PRIVATE -fno-exceptions -fno-rtti)
+  # Parent builds may enable libstdc++ assertions. Their failure handler would
+  # introduce a C++ runtime dependency into the native core.
+  target_compile_options(cudaq-edem PRIVATE
+    -fno-exceptions -fno-rtti -U_GLIBCXX_ASSERTIONS)
 endif()
 set_target_properties(cudaq-edem PROPERTIES
   EXPORT_NAME edem
