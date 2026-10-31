@@ -4820,13 +4820,13 @@ private:
               if (owner)
                 return schedule.emitOpError(
                     "missing evidence: abort parallel retry occurrence has "
-                    "multiple summarized owners");
+                    "multiple summarized units");
               owner = unitIndex;
             }
             if (!owner)
               return schedule.emitOpError(
                   "missing evidence: abort parallel retry occurrence lacks "
-                  "a summarized owner");
+                  "a summarized unit");
             if (std::abs(units[*owner].finish -
                          retrySlices[sliceIndex].retryStart) > tolerance)
               return schedule.emitOpError(

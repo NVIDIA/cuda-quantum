@@ -149,7 +149,7 @@ private:
         return failure();
       if (live != before)
         return repeat.emitOpError("logical estimation requires each folded "
-                                  "iteration to preserve live ownership");
+                                  "iteration to preserve live logical qubits");
       return success();
     }
 
@@ -176,8 +176,8 @@ private:
                            elseLive)))
         return failure();
       if (thenLive != elseLive)
-        return conditional.emitOpError(
-            "logical estimation requires branches to agree on live ownership");
+        return conditional.emitOpError("logical estimation requires branches "
+                                       "to agree on live logical qubits");
       live = thenLive;
       peak = std::max({peak, thenLive, elseLive});
       return success();
@@ -287,8 +287,8 @@ private:
       delta += isLogicalQubit(result.getType());
     live += delta;
     if (live < 0)
-      return operation->emitOpError(
-          "logical ownership accounting became negative during estimation");
+      return operation->emitOpError("logical-qubit valueship accounting became "
+                                    "negative during estimation");
     peak = std::max(peak, live);
     return success();
   }

@@ -108,7 +108,7 @@ module {
   ^bb0(%q: !phys.state<@q>):
     %event = phys.resource_request "t_state" from @magic
       : !event.handle<!phys.resource_payload<@t_state>, "linear">
-    // expected-error @+1 {{cannot carry more than one owner for resource @q}}
+    // expected-error @+1 {{cannot carry more than one live value for resource @q}}
     %out:2 = "event.try_take"(%event, %q, %q) ({
     ^bb0(%resource: !phys.resource_payload<@t_state>,
          %carry0: !phys.state<@q>, %carry1: !phys.state<@q>):

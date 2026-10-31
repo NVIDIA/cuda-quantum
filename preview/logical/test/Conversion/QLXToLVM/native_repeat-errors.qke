@@ -31,4 +31,4 @@ module attributes {qlx.profiles = ["p0", "p1"]} {
   }
 }
 
-// CHECK: native placement requires each repeat yield to preserve its carried owner's exact logical slot
+// CHECK: native placement requires each repeat yield to preserve its carried qubit's exact logical slot
