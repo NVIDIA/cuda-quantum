@@ -102,7 +102,11 @@ jobs:
             # More than one metadata artifact would repeat the values.
             pr_number=`cat metadata.txt | grep -o 'pr-number: \S*' | cut -d ' ' -f 2 | head -n 1`
             pr_base=`cat metadata.txt | grep -o 'pr-base: \S*' | cut -d ' ' -f 2 | head -n 1`
-            rm metadata.txt && echo "pr_number=$pr_number" >> $GITHUB_OUTPUT
+            rm metadata.txt
+            # A manual dispatch names its target folder, so the run's PR
+            # metadata must not redirect it to a preview folder.
+            if ${{ github.event_name == 'workflow_dispatch' }}; then pr_number=; fi
+            echo "pr_number=$pr_number" >> $GITHUB_OUTPUT
           fi
 
           if ${{ github.event_name == 'workflow_dispatch' }}; then
