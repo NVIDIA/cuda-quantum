@@ -45,6 +45,9 @@ pr-5659
         -   [Python
             Stack-Traces](basics/troubleshooting.html#python-stack-traces){.reference
             .internal}
+        -   [LLVM-based Python
+            packages](basics/troubleshooting.html#llvm-based-python-packages){.reference
+            .internal}
 -   [Examples](examples/examples.html){.reference .internal}
     -   [Introduction](examples/introduction.html){.reference .internal}
     -   [Building Kernels](examples/building_kernels.html){.reference

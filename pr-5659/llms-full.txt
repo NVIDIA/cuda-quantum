@@ -46,6 +46,9 @@ pr-5659
         -   [Python
             Stack-Traces](basics/troubleshooting.html#python-stack-traces){.reference
             .internal}
+        -   [LLVM-based Python
+            packages](basics/troubleshooting.html#llvm-based-python-packages){.reference
+            .internal}
 -   [Examples](examples/examples.html){.reference .internal}
     -   [Introduction](examples/introduction.html){.reference .internal}
     -   [Building Kernels](examples/building_kernels.html){.reference
@@ -2529,6 +2532,9 @@ pr-5659
         -   [Python
             Stack-Traces](../using/basics/troubleshooting.html#python-stack-traces){.reference
             .internal}
+        -   [LLVM-based Python
+            packages](../using/basics/troubleshooting.html#llvm-based-python-packages){.reference
+            .internal}
 -   [Examples](../using/examples/examples.html){.reference .internal}
     -   [Introduction](../using/examples/introduction.html){.reference
         .internal}
@@ -4623,6 +4629,9 @@ pr-5659
         -   [Python
             Stack-Traces](troubleshooting.html#python-stack-traces){.reference
             .internal}
+        -   [LLVM-based Python
+            packages](troubleshooting.html#llvm-based-python-packages){.reference
+            .internal}
 -   [Examples](../examples/examples.html){.reference .internal}
     -   [Introduction](../examples/introduction.html){.reference
         .internal}
@@ -6641,6 +6650,9 @@ aria-hidden="true"}](kernel_intro.html "What is a CUDA-Q kernel?"){.btn
     -   [Python
         Stack-Traces](troubleshooting.html#python-stack-traces){.reference
         .internal}
+    -   [LLVM-based Python
+        packages](troubleshooting.html#llvm-based-python-packages){.reference
+        .internal}
 :::
 :::
 :::
@@ -6719,6 +6731,9 @@ pr-5659
             .internal}
         -   [Python
             Stack-Traces](../basics/troubleshooting.html#python-stack-traces){.reference
+            .internal}
+        -   [LLVM-based Python
+            packages](../basics/troubleshooting.html#llvm-based-python-packages){.reference
             .internal}
 -   [Examples](#){.current .reference .internal}
     -   [Introduction](introduction.html){.reference .internal}
@@ -8810,6 +8825,9 @@ pr-5659
             .internal}
         -   [Python
             Stack-Traces](basics/troubleshooting.html#python-stack-traces){.reference
+            .internal}
+        -   [LLVM-based Python
+            packages](basics/troubleshooting.html#llvm-based-python-packages){.reference
             .internal}
 -   [Examples](examples/examples.html){.reference .internal}
     -   [Introduction](examples/introduction.html){.reference .internal}
@@ -11095,6 +11113,9 @@ pr-5659
         -   [Python
             Stack-Traces](../basics/troubleshooting.html#python-stack-traces){.reference
             .internal}
+        -   [LLVM-based Python
+            packages](../basics/troubleshooting.html#llvm-based-python-packages){.reference
+            .internal}
 -   [Examples](../examples/examples.html){.reference .internal}
     -   [Introduction](../examples/introduction.html){.reference
         .internal}
@@ -13261,6 +13282,9 @@ pr-5659
             .internal}
         -   [Python
             Stack-Traces](basics/troubleshooting.html#python-stack-traces){.reference
+            .internal}
+        -   [LLVM-based Python
+            packages](basics/troubleshooting.html#llvm-based-python-packages){.reference
             .internal}
 -   [Examples](examples/examples.html){.reference .internal}
     -   [Introduction](examples/introduction.html){.reference .internal}
@@ -17009,6 +17033,9 @@ pr-5659
         -   [Python
             Stack-Traces](../basics/troubleshooting.html#python-stack-traces){.reference
             .internal}
+        -   [LLVM-based Python
+            packages](../basics/troubleshooting.html#llvm-based-python-packages){.reference
+            .internal}
 -   [Examples](../examples/examples.html){.reference .internal}
     -   [Introduction](../examples/introduction.html){.reference
         .internal}
@@ -19108,6 +19135,9 @@ pr-5659
         -   [Python
             Stack-Traces](../basics/troubleshooting.html#python-stack-traces){.reference
             .internal}
+        -   [LLVM-based Python
+            packages](../basics/troubleshooting.html#llvm-based-python-packages){.reference
+            .internal}
 -   [Examples](../examples/examples.html){.reference .internal}
     -   [Introduction](../examples/introduction.html){.reference
         .internal}
@@ -21199,6 +21229,9 @@ pr-5659
             .internal}
         -   [Python
             Stack-Traces](using/basics/troubleshooting.html#python-stack-traces){.reference
+            .internal}
+        -   [LLVM-based Python
+            packages](using/basics/troubleshooting.html#llvm-based-python-packages){.reference
             .internal}
 -   [Examples](using/examples/examples.html){.reference .internal}
     -   [Introduction](using/examples/introduction.html){.reference
@@ -23870,6 +23903,9 @@ pr-5659
         -   [Python
             Stack-Traces](../basics/troubleshooting.html#python-stack-traces){.reference
             .internal}
+        -   [LLVM-based Python
+            packages](../basics/troubleshooting.html#llvm-based-python-packages){.reference
+            .internal}
 -   [Examples](../examples/examples.html){.reference .internal}
     -   [Introduction](../examples/introduction.html){.reference
         .internal}
@@ -25948,6 +25984,9 @@ pr-5659
             .internal}
         -   [Python
             Stack-Traces](../basics/troubleshooting.html#python-stack-traces){.reference
+            .internal}
+        -   [LLVM-based Python
+            packages](../basics/troubleshooting.html#llvm-based-python-packages){.reference
             .internal}
 -   [Examples](../examples/examples.html){.reference .internal}
     -   [Introduction](../examples/introduction.html){.reference
@@ -28034,6 +28073,9 @@ pr-5659
         -   [Python
             Stack-Traces](../basics/troubleshooting.html#python-stack-traces){.reference
             .internal}
+        -   [LLVM-based Python
+            packages](../basics/troubleshooting.html#llvm-based-python-packages){.reference
+            .internal}
 -   [Examples](../examples/examples.html){.reference .internal}
     -   [Introduction](../examples/introduction.html){.reference
         .internal}
@@ -30115,6 +30157,9 @@ pr-5659
             .internal}
         -   [Python
             Stack-Traces](../using/basics/troubleshooting.html#python-stack-traces){.reference
+            .internal}
+        -   [LLVM-based Python
+            packages](../using/basics/troubleshooting.html#llvm-based-python-packages){.reference
             .internal}
 -   [Examples](../using/examples/examples.html){.reference .internal}
     -   [Introduction](../using/examples/introduction.html){.reference

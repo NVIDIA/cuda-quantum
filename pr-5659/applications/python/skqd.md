@@ -51,6 +51,9 @@ pr-5659
         -   [Python
             Stack-Traces](../../using/basics/troubleshooting.html#python-stack-traces){.reference
             .internal}
+        -   [LLVM-based Python
+            packages](../../using/basics/troubleshooting.html#llvm-based-python-packages){.reference
+            .internal}
 -   [Examples](../../using/examples/examples.html){.reference .internal}
     -   [Introduction](../../using/examples/introduction.html){.reference
         .internal}
@@ -2611,7 +2614,7 @@ scales exponentially with k. For higher k values, GPU acceleration
 transforms previously intractable postprocessing into feasible
 computation times.
 
-![c55968dac53843119621a201c2288e5e](../../_images/speedup.png){.no-scaled-link
+![b9e3a88eb7d04c00889f5d08e95df9c5](../../_images/speedup.png){.no-scaled-link
 style="width: 500px;"}
 :::
 
@@ -2625,9 +2628,9 @@ behavior on a problem with a much larger computational subspace than the
 22-qubit demo above.
 
 ::: {style="display: flex; gap: 10px;"}
-![06fcf6a9061f46f4954e92596cac11a5](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
+![60f90d23cd424e4b945b44dedcbfa309](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
 style="width: 450px;"}
-![42741e7e8c854925aaabf0fbcc01d0fc](../../_images/efficiency.jpeg){.no-scaled-link
+![9497f3f38ee544b88254bd9d49e650e7](../../_images/efficiency.jpeg){.no-scaled-link
 style="width: 450px;"}
 :::
 

@@ -42,6 +42,9 @@ pr-5659
         -   [Python
             Stack-Traces](troubleshooting.html#python-stack-traces){.reference
             .internal}
+        -   [LLVM-based Python
+            packages](troubleshooting.html#llvm-based-python-packages){.reference
+            .internal}
 -   [Examples](../examples/examples.html){.reference .internal}
     -   [Introduction](../examples/introduction.html){.reference
         .internal}
@@ -2059,6 +2062,9 @@ aria-hidden="true"}](kernel_intro.html "What is a CUDA-Q kernel?"){.btn
         .internal}
     -   [Python
         Stack-Traces](troubleshooting.html#python-stack-traces){.reference
+        .internal}
+    -   [LLVM-based Python
+        packages](troubleshooting.html#llvm-based-python-packages){.reference
         .internal}
 :::
 :::

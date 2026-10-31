@@ -51,6 +51,9 @@ pr-5659
         -   [Python
             Stack-Traces](../../using/basics/troubleshooting.html#python-stack-traces){.reference
             .internal}
+        -   [LLVM-based Python
+            packages](../../using/basics/troubleshooting.html#llvm-based-python-packages){.reference
+            .internal}
 -   [Examples](../../using/examples/examples.html){.reference .internal}
     -   [Introduction](../../using/examples/introduction.html){.reference
         .internal}
@@ -6235,7 +6238,7 @@ discriminated bits into an integer.)
 
     :   Print the state to the console.
 
-    [[from_data]{.pre}]{.sig-name .descname}*[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[\<nanobind.nb_func]{.pre} [object\>]{.pre}*[¶](#cudaq.State.from_data "Permalink to this definition"){.headerlink}
+    [[from_data]{.pre}]{.sig-name .descname}*[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[\<nanobind.nb_func]{.pre} [object]{.pre} [at]{.pre} [0xd4f5590\>]{.pre}*[¶](#cudaq.State.from_data "Permalink to this definition"){.headerlink}
 
     :   
 

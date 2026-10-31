@@ -119,6 +119,7 @@
 <li class="toctree-l2 current"><a class="current reference internal" href="#">   Troubleshooting</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#debugging-and-verbose-simulation-output">Debugging and Verbose Simulation Output</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#python-stack-traces">Python Stack-Traces</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#llvm-based-python-packages">LLVM-based Python packages</a></li>
 </ul>
 </li>
 </ul>
@@ -1211,6 +1212,19 @@ the full stack-trace for debugging, pass
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>program.py<span class="w"> </span>--target<span class="w"> </span>nvidia<span class="w"> </span>--target-option<span class="w"> </span>fp64<span class="w"> </span>--cudaq-full-stack-trace
 </pre></div>
 </div>
+</section>
+<section id="llvm-based-python-packages">
+<h2>LLVM-based Python packages<a class="headerlink" href="#llvm-based-python-packages" title="Permalink to this heading">¶</a></h2>
+<p>Older CUDA-Q releases can expose their bundled LLVM symbols to other Python
+extensions. On Linux, importing Numba or Triton after CUDA-Q can then abort the
+process during JIT compilation or report duplicate LLVM command-line options.
+For affected releases, import Numba or Triton before importing CUDA-Q. If the
+application cannot control import order, run CUDA-Q in a separate process.</p>
+<p>CUDA-Q loads its runtime and backend libraries with local symbol visibility.
+External native extensions must link to the CUDA-Q libraries they use, including
+<code class="docutils literal notranslate"><span class="pre">cudaq::cudaq-em-default</span></code> when using the default execution manager. Compiler
+plugins should link to <code class="docutils literal notranslate"><span class="pre">cudaq::MLIR</span></code>. They must not rely on <code class="docutils literal notranslate"><span class="pre">import</span> <span class="pre">cudaq</span></code>
+placing those dependencies in the process-wide symbol scope.</p>
 </section>
 </section>
 

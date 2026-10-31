@@ -41,6 +41,8 @@ pr-5659
             .internal}
         -   [Python Stack-Traces](#python-stack-traces){.reference
             .internal}
+        -   [LLVM-based Python
+            packages](#llvm-based-python-packages){.reference .internal}
 -   [Examples](../examples/examples.html){.reference .internal}
     -   [Introduction](../examples/introduction.html){.reference
         .internal}
@@ -2144,6 +2146,27 @@ as [`--target`{.code .docutils .literal .notranslate}]{.pre},
     python3 program.py --target nvidia --target-option fp64 --cudaq-full-stack-trace
 :::
 :::
+:::
+
+::: {#llvm-based-python-packages .section}
+## LLVM-based Python packages[¶](#llvm-based-python-packages "Permalink to this heading"){.headerlink}
+
+Older CUDA-Q releases can expose their bundled LLVM symbols to other
+Python extensions. On Linux, importing Numba or Triton after CUDA-Q can
+then abort the process during JIT compilation or report duplicate LLVM
+command-line options. For affected releases, import Numba or Triton
+before importing CUDA-Q. If the application cannot control import order,
+run CUDA-Q in a separate process.
+
+CUDA-Q loads its runtime and backend libraries with local symbol
+visibility. External native extensions must link to the CUDA-Q libraries
+they use, including [`cudaq::cudaq-em-default`{.docutils .literal
+.notranslate}]{.pre} when using the default execution manager. Compiler
+plugins should link to [`cudaq::MLIR`{.docutils .literal
+.notranslate}]{.pre}. They must not rely on [`import`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`cudaq`{.docutils .literal .notranslate}]{.pre} placing
+those dependencies in the process-wide symbol scope.
 :::
 :::
 :::
