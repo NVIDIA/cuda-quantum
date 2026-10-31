@@ -1,2 +1,0 @@
-```{include} ../../../edem/README.md
-```
