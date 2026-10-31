@@ -10,16 +10,12 @@
 #include "cudaq_internal/compiler/LayoutInfo.h"
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "utils/OpaqueArguments.h"
-#include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/algorithms/run.h"
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include <exception>
 #include <future>
 #include <memory>
 #include <nanobind/nanobind.h>
-#include <nanobind/ndarray.h>
-#include <nanobind/stl/complex.h>
-#include <nanobind/stl/function.h>
 #include <nanobind/stl/optional.h>
 #include <nanobind/stl/shared_ptr.h>
 #include <nanobind/stl/string.h>
@@ -137,7 +133,7 @@ run_impl(const std::string &shortName, MlirModule module,
     nanobind::gil_scoped_release release;
     if (noise_model.has_value())
       // Launch the kernel in the appropriate context.
-      platform.set_noise(&noise_model.value());
+      platform.set_noise(&noise_model.value(), qpu_id);
     span = detail::try_finally(
         [&] {
           return pyRunTheKernel(shortName, platform, mod, std::move(cache),
@@ -145,7 +141,7 @@ run_impl(const std::string &shortName, MlirModule module,
         },
         [&] {
           if (noise_model.has_value())
-            platform.reset_noise();
+            platform.reset_noise(qpu_id);
         });
   }
   return pyReadResults(span, mod, shortName);
@@ -216,7 +212,7 @@ run_async_impl(const std::string &shortName, MlirModule module,
           try {
             // Launch the kernel in the appropriate context.
             if (noise_model.has_value())
-              platform.set_noise(&noise_model.value());
+              platform.set_noise(&noise_model.value(), qpu_id);
             span = pyRunTheKernel(name, platform, mod, cache, shots_count,
                                   qpu_id, opaques);
           } catch (...) {
@@ -224,7 +220,7 @@ run_async_impl(const std::string &shortName, MlirModule module,
           }
 
           if (noise_model.has_value())
-            detail::invoke_no_throw([&]() { platform.reset_noise(); });
+            detail::invoke_no_throw([&]() { platform.reset_noise(qpu_id); });
 
           if (error)
             sp.set_exception(std::move(error));
