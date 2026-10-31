@@ -14,7 +14,10 @@ import lit.util
 config.name = "QLX"
 config.test_format = lit.formats.ShTest(True)
 
-config.suffixes = [".mlir", ".test"]
+config.suffixes = [".qke", ".test"]
+
+# Files under Inputs/ are fixtures read by other tests, not tests themselves.
+config.excludes = ["Inputs"]
 
 config.test_source_root = os.path.dirname(__file__)
 

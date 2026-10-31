@@ -6,6 +6,9 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
+// REQUIRES: qlx-opt, cudaq-quake
+// RUN: qlx-opt %s --pass-pipeline='builtin.module(convert-quake-to-qlx,qlx-estimate-logical{root=bell result=logical},qlx-to-lvm{root=bell domain=qlx_device result=bell_placed})' | FileCheck %s --implicit-check-not=quake.
+
 module attributes {qlx.profiles = ["p1"]} {
   lvm.domain @qlx_device {
     lvm.space @compute {

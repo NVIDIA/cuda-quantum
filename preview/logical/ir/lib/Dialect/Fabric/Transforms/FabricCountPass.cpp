@@ -1812,7 +1812,7 @@ void Walker::walkIf(qlx::cflow::IfOp ifop, int64_t mult) {
   if (thenTotal != elseTotal || thenLogical != elseLogical ||
       thenLive != elseLive) {
     ifop.emitOpError(
-        "fabric-count requires branches to agree on live patch ownership");
+        "fabric-count requires branches to agree on live patch valueship");
     hadError = true;
     return;
   }

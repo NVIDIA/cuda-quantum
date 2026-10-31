@@ -8,7 +8,7 @@
 //
 // Type definitions for the Fabric dialect.
 //
-//   !fabric.patch<@code, @encoding, @epoch> - encoded QEC block owner
+//   !fabric.patch<@code, @encoding, @epoch> - linear encoded QEC block value
 //   !fabric.syndrome<@code, @encoding, @epoch> - epoch-qualified syndrome
 //   builtin i1                - scalar measurement, branch, and parity bit
 //   !fabric.frame             - Pauli frame tracker
@@ -31,7 +31,7 @@ include "mlir/IR/AttrTypeBase.td"
 
 def Fabric_PatchType : TypeDef<Fabric_Dialect, "Patch"> {
   let mnemonic = "patch";
-  let summary = "QEC block owner parameterized by code and optional encoding";
+  let summary = "linear QEC block value parameterized by code and optional encoding";
   let description = [{
     A handle to a QEC code block (patch) containing named qubit partitions:
     `data`, `sx` (X-syndrome ancillas), and `sz` (Z-syndrome ancillas).

@@ -7,9 +7,9 @@
 // ========================================================================== //
 
 // REQUIRES: qlx-opt
-// RUN: qlx-opt %S/../../Model/p3-physical-schedule.mlir --pass-pipeline='builtin.module(fabric-count{root=p2 device=device result=static},fabric-estimate-analytical{root=p2 counts=static device=device result=analytical p-phys=0.001 failure-budget=0.2},phys-estimate-schedule{schedule=events_schedule lower-tier=analytical result=scheduled})' | FileCheck %s
-// RUN: not qlx-opt %S/../../Model/p3-physical-schedule.mlir --pass-pipeline='builtin.module(fabric-count{root=p2 device=device result=static},fabric-estimate-analytical{root=p2 counts=static device=device result=analytical p-phys=0.001 failure-budget=0.2},phys-estimate-schedule{schedule=missing lower-tier=analytical result=scheduled})' 2>&1 | FileCheck %s --check-prefix=ERR
-// RUN: not qlx-opt %S/../../Model/p3-physical-schedule.mlir --phys-estimate-schedule='schedule=events_schedule result=scheduled' 2>&1 | FileCheck %s --check-prefix=NOLOWER
+// RUN: qlx-opt %S/../../Model/p3_physical_schedule.qke --pass-pipeline='builtin.module(fabric-count{root=p2 device=device result=static},fabric-estimate-analytical{root=p2 counts=static device=device result=analytical p-phys=0.001 failure-budget=0.2},phys-estimate-schedule{schedule=events_schedule lower-tier=analytical result=scheduled})' | FileCheck %s
+// RUN: not qlx-opt %S/../../Model/p3_physical_schedule.qke --pass-pipeline='builtin.module(fabric-count{root=p2 device=device result=static},fabric-estimate-analytical{root=p2 counts=static device=device result=analytical p-phys=0.001 failure-budget=0.2},phys-estimate-schedule{schedule=missing lower-tier=analytical result=scheduled})' 2>&1 | FileCheck %s --check-prefix=ERR
+// RUN: not qlx-opt %S/../../Model/p3_physical_schedule.qke --phys-estimate-schedule='schedule=events_schedule result=scheduled' 2>&1 | FileCheck %s --check-prefix=NOLOWER
 
 // CHECK: qlx.estimate_result @scheduled
 // CHECK-SAME: data = {

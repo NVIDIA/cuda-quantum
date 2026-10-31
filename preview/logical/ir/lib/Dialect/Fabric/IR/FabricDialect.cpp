@@ -3739,7 +3739,7 @@ static LogicalResult verifyDerivedCZCallComposition(GadgetOp gadget,
       returnOp.getOperand(0) != cx.getResult(0) ||
       returnOp.getOperand(1) != secondH.getResult(0))
     return gadget.emitOpError(
-        "derived logical CZ H-CX-H calls have incorrect owner wiring");
+        "derived logical CZ H-CX-H calls have incorrect qubit wiring");
   return success();
 }
 
@@ -5241,7 +5241,7 @@ LogicalResult MeasureGaugesOp::verify() {
   auto output = cast<PatchType>(getPatchOut().getType());
   auto records = cast<GaugeRecordsType>(getRecords().getType());
   if (patch != output)
-    return emitOpError("must preserve patch ownership type");
+    return emitOpError("must preserve patch valueship type");
   if (!patch.getEncoding() || !patch.getEpoch())
     return emitOpError("requires an encoding- and epoch-qualified patch");
   if (patch.getCodeType() != records.getCodeType() ||
@@ -5649,7 +5649,7 @@ static LogicalResult verifyCommunicationObligation(CallOp op) {
   for (Type type : op.getOperandTypes()) {
     if (!isa<PatchType>(type))
       return op.emitOpError(
-          "remote-observable call operands must all be patch owners");
+          "remote-observable call operands must all be patch values");
     inputOwners.push_back(type);
   }
   for (Type type : op.getResultTypes())
@@ -5657,16 +5657,16 @@ static LogicalResult verifyCommunicationObligation(CallOp op) {
       resultOwners.push_back(type);
   if (inputOwners.size() != 2)
     return op.emitOpError(
-        "remote-observable call requires exactly two patch owners");
+        "remote-observable call requires exactly two patch values");
   if (inputOwners != resultOwners)
     return op.emitOpError(
-        "remote-observable call must preserve owner types and order");
+        "remote-observable call must preserve operand types and order");
   auto leftOwner = cast<PatchType>(inputOwners[0]);
   auto rightOwner = cast<PatchType>(inputOwners[1]);
   if (leftOwner.getCodeType() != rightOwner.getCodeType() ||
       leftOwner.getEncoding() != rightOwner.getEncoding())
     return op.emitOpError(
-        "remote-observable owners must use the same code and encoding");
+        "remote-observable patches must use the same code and encoding");
   auto acceptedCodes = lowering->getAttrOfType<ArrayAttr>("codes");
   for (Type type : inputOwners) {
     auto patch = cast<PatchType>(type);
@@ -5676,19 +5676,19 @@ static LogicalResult verifyCommunicationObligation(CallOp op) {
                       llvm::is_contained(acceptedCodes, patch.getEncoding())));
     if (!accepted)
       return op.emitOpError(
-          "remote-observable owner code is not accepted by generated_by");
+          "remote-observable patch code is not accepted by generated_by");
   }
   OwnerLineageAnalysis ownerLineage;
   for (unsigned owner = 0; owner < 2; ++owner) {
     OwnerOrigin origin = ownerLineage.traceCallableResult(protocol, owner);
     if (origin.kind != OwnerOriginKind::boundary || origin.boundary != owner)
       return op.emitOpError(
-          "remote-observable protocol must preserve ordered boundary owner "
+          "remote-observable protocol must preserve ordered boundary patch "
           "identity");
   }
   if (op.getNumResults() == resultOwners.size())
     return op.emitOpError(
-        "remote-observable call requires at least one non-owner outcome");
+        "remote-observable call requires at least one classical outcome");
   return success();
 }
 
@@ -6401,7 +6401,7 @@ LogicalResult UnpackResourceOp::verify() {
     return emitOpError("payload logical maps must cover every payload block");
   if (blockIDs && indexByBlockID.size() != coveredBlocks.size())
     return emitOpError("payload logical block identities must exactly name "
-                       "the action-bearing payload owners");
+                       "the action-bearing payload values");
   return verifyRegisteredResourceUnpack(*this);
 }
 
@@ -7113,7 +7113,7 @@ LogicalResult RotateProductOp::verify() {
 LogicalResult ResourceRotateProductOp::verify() {
   auto resource = dyn_cast<ResourceStateType>(getResource().getType());
   if (!resource)
-    return emitOpError("requires one typed resource owner");
+    return emitOpError("requires one typed resource value");
   return verifyProductTermEncoding(*this, getPatches(), getPatchResults(),
                                    getPatchIndices(), getLogicalIndices(),
                                    getPauliProduct());

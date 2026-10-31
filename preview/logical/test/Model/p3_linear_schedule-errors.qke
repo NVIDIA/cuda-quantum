@@ -17,7 +17,7 @@ module {
   phys.resource @q {
     index = 0 : i64, kind = "qubit", resource_class = @qubits
   }
-  // expected-error @+1 {{graph inputs cannot contain more than one physical-state owner for resource @q}}
+  // expected-error @+1 {{graph inputs cannot contain more than one physical-state value for resource @q}}
   phys.graph @duplicate_inputs on @arch :
       (!phys.state<@q>, !phys.state<@q>) -> () {
   ^bb0(%first: !phys.state<@q>, %second: !phys.state<@q>):
@@ -251,7 +251,7 @@ module {
   phys.resource @q {
     index = 0 : i64, kind = "qubit", resource_class = @qubits
   }
-  // expected-error @+1 {{graph results cannot contain more than one physical-state owner for resource @q}}
+  // expected-error @+1 {{graph results cannot contain more than one physical-state value for resource @q}}
   phys.graph @duplicate_results on @arch :
       () -> (!phys.state<@q>, !phys.state<@q>) {
     %state = phys.acquire [@q] : !phys.state<@q>
@@ -669,7 +669,7 @@ module {
   phys.graph @shared_event_not_linear on @arch :
       (!event.handle<i8, "shared">, !phys.state<@q>) -> !phys.state<@q> {
   ^bb0(%event: !event.handle<i8, "shared">, %state: !phys.state<@q>):
-    // expected-error @+1 {{cancellation requires a linear event owner, but got 'shared'}}
+    // expected-error @+1 {{cancellation requires a linear event handle, but got 'shared'}}
     %first = event.cancel %event {event_id = "cancel.first"}
       : !event.handle<i8, "shared"> -> i8
     phys.return %state : !phys.state<@q>

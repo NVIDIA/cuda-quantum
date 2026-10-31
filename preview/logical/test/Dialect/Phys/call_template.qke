@@ -151,7 +151,7 @@ module attributes {qlx.profiles = ["p2n", "p3"]} {
 // ESTIMATE-SAME: physical_resources = 0 : i64
 
 // The compact invocation retains the canonical physical resource effect while
-// avoiding a second SSA owner boundary.
+// avoiding a second SSI value boundary.
 // ELIDED: phys.schedule @elided_s
 // ELIDED: qlx.estimate_result @elided_e
 // ELIDED-SAME: physical_qubits = 2 : i64
