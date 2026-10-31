@@ -8,12 +8,13 @@
 from typing import Union
 
 import base64
-import ctypes, os
+import ctypes
 import uuid
 import cudaq
 from fastapi import FastAPI, HTTPException, Header
 from fastapi.responses import JSONResponse
 from llvmlite import binding as llvm
+from mock_qpu import expose_nvqir_to_jit
 from pydantic import BaseModel
 from typing import Any, Dict
 
@@ -55,8 +56,7 @@ target = llvm.Target.from_default_triple()
 targetMachine = target.create_target_machine()
 backing_mod = llvm.parse_assembly("")
 engine = llvm.create_mcjit_compiler(backing_mod, targetMachine)
-# CUDA-Q loads libnvqir RTLD_LOCAL; expose its QIR runtime to the JIT.
-ctypes.CDLL("libnvqir.so", mode=os.RTLD_GLOBAL | os.RTLD_NOLOAD)
+expose_nvqir_to_jit()
 
 
 def getNumRequiredQubits(function):

@@ -26,7 +26,8 @@ targetMachine = target.create_target_machine()
 backing_mod = llvm.parse_assembly("")
 engine = llvm.create_mcjit_compiler(backing_mod, targetMachine)
 # CUDA-Q loads `libnvqir` RTLD_LOCAL. Expose its QIR runtime to the JIT.
-ctypes.CDLL("libnvqir.so", mode=os.RTLD_GLOBAL | os.RTLD_NOLOAD)
+ctypes.CDLL("libnvqir.dylib" if sys.platform == "darwin" else "libnvqir.so",
+            mode=os.RTLD_GLOBAL | os.RTLD_NOLOAD)
 
 # Keep track of Job Ids to their Names
 createdJobs = {}

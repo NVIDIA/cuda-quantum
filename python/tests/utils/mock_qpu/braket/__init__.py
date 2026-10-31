@@ -8,10 +8,11 @@
 
 from fastapi import FastAPI, HTTPException, Header
 from typing import Union
-import uuid, base64, ctypes, os
+import uuid, base64, ctypes
 import cudaq
 from pydantic import BaseModel
 from llvmlite import binding as llvm
+from mock_qpu import expose_nvqir_to_jit
 
 # Define the REST Server App
 app = FastAPI()
@@ -36,8 +37,7 @@ target = llvm.Target.from_default_triple()
 targetMachine = target.create_target_machine()
 backing_mod = llvm.parse_assembly("")
 engine = llvm.create_mcjit_compiler(backing_mod, targetMachine)
-# CUDA-Q loads libnvqir RTLD_LOCAL; expose its QIR runtime to the JIT.
-ctypes.CDLL("libnvqir.so", mode=os.RTLD_GLOBAL | os.RTLD_NOLOAD)
+expose_nvqir_to_jit()
 
 
 def getKernelFunction(module):
