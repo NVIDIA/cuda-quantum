@@ -233,17 +233,19 @@ def test_invalid_ctrl():
 
 
 def test_bug_2452():
+    # A single-target custom operation broadcasts over a `qvector` (#5646), so
+    # `custom_i(qubits)` applies the identity to each qubit rather than giving
+    # the silently wrong result #2452 reported.
     cudaq.register_operation("custom_i", np.array([1, 0, 0, 1]))
 
-    with pytest.raises(RuntimeError) as error:
+    @cudaq.kernel
+    def kernel1():
+        qubits = cudaq.qvector(2)
+        x(qubits)
+        custom_i(qubits)
 
-        @cudaq.kernel
-        def kernel1():
-            qubits = cudaq.qvector(2)
-            custom_i(qubits)
-
-        kernel1.compile()
-    assert 'broadcasting is not supported on custom operations' in repr(error)
+    counts = cudaq.sample(kernel1)
+    assert len(counts) == 1 and '11' in counts
 
     cudaq.register_operation("custom_x", np.array([0, 1, 1, 0]))
 
@@ -270,6 +272,18 @@ def test_bug_2452():
 
         cudaq.sample(kernel3)
     assert 'missing value' in repr(error)
+
+    # A `qvector` in a multi-target operation's target list is not a qubit.
+    with pytest.raises(RuntimeError) as error:
+
+        @cudaq.kernel
+        def kernel4():
+            qubits = cudaq.qvector(1)
+            r = cudaq.qubit()
+            custom_cz(qubits, r)
+
+        kernel4.compile()
+    assert 'broadcasting is not supported on custom operations' in repr(error)
 
 
 def test_nested_kernel_single_qubit():
@@ -305,6 +319,89 @@ def test_nested_kernel_qview():
 
     counts = cudaq.sample(outer, shots_count=100)
     assert counts["11"] == 100
+
+
+# Regression tests for #5646. A single-target custom operation's one argument
+# may be a `qvector`, which broadcasts the base or adjoint form over its qubits,
+# as the C++ bridge does for a lone `veq` operand. Targets are otherwise
+# positional, and the controlled form never broadcasts.
+
+
+def test_single_target_broadcast_over_static_qvector():
+    """custom_x(q), q a qvector with a compile-time-known size"""
+    cudaq.register_operation("custom_x_broadcast_static", np.array([0, 1, 1,
+                                                                    0]))
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(3)
+        custom_x_broadcast_static(q)
+
+    counts = cudaq.sample(kernel, shots_count=1000)
+    assert counts["111"] == 1000
+
+
+def test_single_target_broadcast_over_dynamic_qvector():
+    """custom_x(q), q a qvector whose size is a runtime kernel argument"""
+    cudaq.register_operation("custom_x_broadcast_dynamic",
+                             np.array([0, 1, 1, 0]))
+
+    @cudaq.kernel
+    def kernel(n: int):
+        q = cudaq.qvector(n)
+        custom_x_broadcast_dynamic(q)
+
+    counts = cudaq.sample(kernel, 3, shots_count=1000)
+    assert counts["111"] == 1000
+
+
+def test_single_target_adjoint_broadcast_over_qvector():
+    """custom_s.adj(q), q a qvector, applies the adjoint to every qubit"""
+    cudaq.register_operation("custom_s_adj_broadcast", np.array([1, 0, 0, 1j]))
+
+    @cudaq.kernel
+    def kernel():
+        q = cudaq.qvector(3)
+        h(q)
+        custom_s_adj_broadcast.adj(q)
+        s(q)
+        h(q)
+
+    # H S^dag S H = I reads 000. A dropped adjoint gives H S S H = X, so 111.
+    counts = cudaq.sample(kernel, shots_count=1000)
+    assert counts["000"] == 1000
+
+
+def test_single_target_rejects_multiple_qubits():
+    """custom_x(a, b): one target, two positional arguments"""
+    cudaq.register_operation("custom_x_two_refs", np.array([0, 1, 1, 0]))
+
+    with pytest.raises(RuntimeError) as error:
+
+        @cudaq.kernel
+        def kernel():
+            a = cudaq.qubit()
+            b = cudaq.qubit()
+            custom_x_two_refs(a, b)
+
+        kernel.compile()
+    assert 'too many values' in repr(error)
+
+
+def test_single_target_ctrl_rejects_qvector_target():
+    """custom_x.ctrl(c, q): the controlled form never broadcasts"""
+    cudaq.register_operation("custom_x_ctrl_veq", np.array([0, 1, 1, 0]))
+
+    with pytest.raises(RuntimeError) as error:
+
+        @cudaq.kernel
+        def kernel():
+            c = cudaq.qubit()
+            q = cudaq.qvector(2)
+            custom_x_ctrl_veq.ctrl(c, q)
+
+        kernel.compile()
+    assert 'target must not be a qvector' in repr(error)
 
 
 # leave for gdb debugging
