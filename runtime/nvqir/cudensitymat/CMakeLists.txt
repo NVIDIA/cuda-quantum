@@ -64,6 +64,7 @@ if (${cuDensityMat_VERSION} VERSION_GREATER_EQUAL "0.4")
                           fmt::fmt-header-only 
                           cudaq-logger
                           cudaq-common
+                          cudaq
                           cuDensityMat::cuDensityMat
                           cuTensor::cuTensor
                           cuTensorNet::cuTensorNet
