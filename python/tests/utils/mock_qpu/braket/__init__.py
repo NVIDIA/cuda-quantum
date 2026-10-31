@@ -12,7 +12,7 @@ import uuid, base64, ctypes
 import cudaq
 from pydantic import BaseModel
 from llvmlite import binding as llvm
-from mock_qpu import expose_nvqir_to_jit
+from .. import expose_nvqir_to_jit
 
 # Define the REST Server App
 app = FastAPI()

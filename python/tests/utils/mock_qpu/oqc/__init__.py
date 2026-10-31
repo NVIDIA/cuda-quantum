@@ -14,7 +14,7 @@ import cudaq
 from fastapi import FastAPI, HTTPException, Header
 from fastapi.responses import JSONResponse
 from llvmlite import binding as llvm
-from mock_qpu import expose_nvqir_to_jit
+from .. import expose_nvqir_to_jit
 from pydantic import BaseModel
 from typing import Any, Dict
 
