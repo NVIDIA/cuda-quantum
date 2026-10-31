@@ -1,0 +1,123 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+cmake_minimum_required(VERSION 3.23)
+
+foreach(component IN ITEMS EDEM GF2)
+  set(library "${${component}_LIBRARY}")
+  if(NOT library)
+    continue()
+  endif()
+  execute_process(COMMAND "${NM}" -u "${library}"
+    RESULT_VARIABLE status OUTPUT_VARIABLE symbols ERROR_VARIABLE errors)
+  if(NOT status EQUAL 0)
+    message(FATAL_ERROR "Cannot inspect ${library}: ${errors}")
+  endif()
+  # The post-build invocation passes both libraries through the
+  # EDEM slot. Use the export-map identity as well as the named GF2 slot.
+  set(malloc_pattern "malloc[a-z_]*|free")
+  if(component STREQUAL "GF2" OR "${${component}_EXPORT_MAP}" MATCHES "cudaq-gf2[.]map$")
+    # Only GF2's default resource may import the two ordinary heap functions.
+    # Variants and every other allocation API remain forbidden.
+    set(malloc_pattern "malloc[a-z_]+|free[a-z_]+")
+  endif()
+  # Apple nm -u emits bare names at the beginning of a line for archives.
+  if(symbols MATCHES "(^|[ \t\r\n])_?(${malloc_pattern}|calloc|realloc[a-z_]*|aligned_alloc|posix_memalign|memalign|valloc|pvalloc|strdup|strndup|qsort[a-z_]*)([@ \t\r\n]|$)"
+      OR symbols MATCHES "(^|[ \t\r\n])_?_Z[^ \t\r\n]*"
+      OR symbols MATCHES "(^|[ \t\r\n])_?__cxa_(atexit|throw|guard_|bad_)")
+    message(FATAL_ERROR "Native core imports an allocator or C++ runtime symbol: ${library}\n${symbols}")
+  endif()
+  if(NOT SHARED AND (component STREQUAL "GF2" OR "${${component}_EXPORT_MAP}" MATCHES "cudaq-gf2[.]map$"))
+    string(REPLACE "\n" ";" import_lines "${symbols}")
+    set(import_object "")
+    foreach(line IN LISTS import_lines)
+      if(line MATCHES "[.](o|obj)[:)]*:?[ \t\r]*$")
+        set(import_object "${line}")
+      elseif(line MATCHES "(^|[ \t])_?(malloc|free)([@ \t\r]|$)"
+          AND NOT import_object MATCHES "(^|[/:( ])memory[.]cpp[.](o|obj)[:)]*:?[ \t\r]*$")
+        message(FATAL_ERROR "Default heap import outside memory.cpp: ${library}\n${import_object}\n${line}")
+      endif()
+    endforeach()
+  endif()
+  if(SHARED)
+    file(STRINGS "${${component}_EXPORT_MAP}" public_symbols
+      REGEX "^[ \t]+cudaq_[a-z0-9_]+;")
+    set(expected)
+    foreach(symbol IN LISTS public_symbols)
+      string(STRIP "${symbol}" symbol)
+      string(REPLACE ";" "" symbol "${symbol}")
+      list(APPEND expected "${symbol}")
+    endforeach()
+    file(STRINGS "${${component}_EXPORT_MAP}" version_line
+      REGEX "^[A-Z][A-Z0-9_.]+[ \t]*\\{")
+    string(REGEX REPLACE "[ \t]*\\{.*$" "" version_node "${version_line}")
+    if(NOT expected OR NOT version_node)
+      message(FATAL_ERROR "Invalid native export map: ${${component}_EXPORT_MAP}")
+    endif()
+    if(APPLE)
+      set(export_args -gU)
+    else()
+      set(export_args -D --defined-only)
+    endif()
+    execute_process(COMMAND "${NM}" ${export_args} "${library}"
+      RESULT_VARIABLE status OUTPUT_VARIABLE exports ERROR_VARIABLE errors)
+    if(NOT status EQUAL 0)
+      message(FATAL_ERROR "Cannot inspect exports of ${library}: ${errors}")
+    endif()
+    string(REPLACE "\n" ";" lines "${exports}")
+    set(found)
+    foreach(line IN LISTS lines)
+      if(line MATCHES "[ \t][ATWDBRVS][ \t]+([^ \t]+)$")
+        set(symbol "${CMAKE_MATCH_1}")
+        if(APPLE)
+          string(REGEX REPLACE "^_" "" api_symbol "${symbol}")
+        else()
+          if(symbol STREQUAL version_node)
+            continue()
+          endif()
+          string(REPLACE "@@${version_node}" "" api_symbol "${symbol}")
+          if(api_symbol STREQUAL symbol)
+            message(FATAL_ERROR "Native C symbol lacks ABI version ${version_node}: ${symbol}")
+          endif()
+        endif()
+        if(NOT api_symbol IN_LIST expected)
+          message(FATAL_ERROR "Native core exports a symbol outside its API: ${symbol}")
+        endif()
+        list(APPEND found "${api_symbol}")
+      endif()
+    endforeach()
+    foreach(symbol IN LISTS expected)
+      if(NOT symbol IN_LIST found)
+        message(FATAL_ERROR "Native core does not export ${symbol}: ${library}")
+      endif()
+    endforeach()
+    if(APPLE)
+      if(NOT OTOOL)
+        unset(OTOOL)
+        unset(OTOOL CACHE)
+        find_program(OTOOL NAMES otool REQUIRED)
+      endif()
+      execute_process(COMMAND "${OTOOL}" -L "${library}"
+        RESULT_VARIABLE status OUTPUT_VARIABLE dependencies ERROR_VARIABLE errors)
+    else()
+      if(NOT READELF)
+        unset(READELF)
+        unset(READELF CACHE)
+        find_program(READELF NAMES readelf llvm-readelf REQUIRED)
+      endif()
+      execute_process(COMMAND "${READELF}" -d "${library}"
+        RESULT_VARIABLE status OUTPUT_VARIABLE dependencies ERROR_VARIABLE errors)
+    endif()
+    if(NOT status EQUAL 0)
+      message(FATAL_ERROR "Cannot inspect dependencies of ${library}: ${errors}")
+    endif()
+    if(dependencies MATCHES "lib(std)?c\\+\\+")
+      message(FATAL_ERROR "Native core depends on a C++ runtime: ${library}\n${dependencies}")
+    endif()
+  endif()
+endforeach()
