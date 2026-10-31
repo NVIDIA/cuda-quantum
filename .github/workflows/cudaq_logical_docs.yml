@@ -39,11 +39,15 @@ on:
         type: string
         description: Python version
         default: "3.11"
-      # Artifact inputs: set all five together to reuse a pre-built wheel
+      # Artifact inputs: set all six together to reuse pre-built wheels
       # (matching platform/python_version); leave empty to build it first.
       wheel_name:
         type: string
         description: Artifact name of a pre-built cudaq-logical wheel to reuse.
+        default: ""
+      edem_wheel_name:
+        type: string
+        description: Artifact name of the matching cudaq-edem wheel.
         default: ""
       runtime_artifact_name:
         type: string
@@ -101,6 +105,7 @@ jobs:
         ${{ inputs.cudaq_logical_version || needs.build.outputs.logical_version
         }}
       WHEEL_NAME: ${{ inputs.wheel_name || needs.build.outputs.wheel_name }}
+      EDEM_WHEEL_NAME: ${{ inputs.edem_wheel_name || needs.build.outputs.edem_wheel_name }}
       RUNTIME_ARTIFACT_NAME:
         ${{ inputs.runtime_artifact_name ||
         needs.build.outputs.runtime_artifact_name }}
@@ -118,9 +123,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for v in CUDAQ_VERSION CUDAQ_LOGICAL_VERSION WHEEL_NAME RUNTIME_ARTIFACT_NAME METAPACKAGE_ARTIFACT_NAME; do
+          for v in CUDAQ_VERSION CUDAQ_LOGICAL_VERSION WHEEL_NAME EDEM_WHEEL_NAME RUNTIME_ARTIFACT_NAME METAPACKAGE_ARTIFACT_NAME; do
             if [ -z "${!v}" ]; then
-              echo "::error::$v is empty: pass all five artifact inputs together or none."
+              echo "::error::$v is empty: pass all six artifact inputs together or none."
               exit 1
             fi
           done
@@ -151,6 +156,12 @@ jobs:
           name: ${{ env.RUNTIME_ARTIFACT_NAME }}
           path: dist
 
+      - name: Download cudaq-edem wheel
+        uses: actions/download-artifact@v8
+        with:
+          name: ${{ env.EDEM_WHEEL_NAME }}
+          path: dist
+
       - name: Download CUDA-Q metapackage
         uses: actions/download-artifact@v8
         with:
@@ -163,7 +174,8 @@ jobs:
           set -euo pipefail
           uv pip install -f dist \
             "cudaq==$CUDAQ_VERSION" \
-            "cudaq-logical==$CUDAQ_LOGICAL_VERSION"
+            "cudaq-logical==$CUDAQ_LOGICAL_VERSION" \
+            "dist/$EDEM_WHEEL_NAME"
 
       - name: Test inline docs snippets
         shell: bash

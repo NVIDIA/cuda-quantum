@@ -18,6 +18,9 @@ from ._fabric_walk import (
 from .types import FabricCounts
 
 _DECLARATIONS = {
+    "fabric.detector",
+    "fabric.observable",
+    "fabric.output_syndrome",
     "fabric.code",
     "fabric.code_profile",
     "fabric.encoding",
@@ -29,7 +32,7 @@ _DECLARATIONS = {
 _TERMINATORS = {
     "fabric.return",
     "fabric.protocol_return",
-    "fabric.profile_end",
+    "fabric.contract_end",
     "fabric.model_return",
     "event.yield",
 }
@@ -133,7 +136,7 @@ def count(build) -> FabricCounts:
             counts["syndrome", ""] += multiplier
         if (name.startswith("fabric.") and name not in _DECLARATIONS and
                 name not in _TERMINATORS and name not in {
-                    "fabric.gadget", "fabric.protocol", "fabric.gadget_profile"
+                    "fabric.gadget", "fabric.protocol", "fabric.gadget_contract"
                 }):
             counts["operation", name.removeprefix("fabric.")] += multiplier
         elif name in _CFLOW_OP_COUNT_NAMES:
@@ -176,7 +179,7 @@ def count(build) -> FabricCounts:
 
     # A profile is analysis attached to a realization, so count both its
     # declarative body and the referenced executable gadget exactly once.
-    if root.name == "fabric.gadget_profile":
+    if root.name == "fabric.gadget_contract":
         counts = consume_walk(_children(root))
         gadget = _attr_text(root.attributes["gadget"])
         realization = symbols.get(gadget)

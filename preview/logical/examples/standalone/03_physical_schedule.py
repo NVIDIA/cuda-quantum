@@ -10,7 +10,7 @@
 # %%
 # Import the standalone compiler and surface-code recipe APIs.
 import cudaq.logical as cql
-from cudaq.logical.targets import recipes
+from cudaq.logical.architectures import surface
 
 
 # %%
@@ -24,7 +24,7 @@ def three_round_memory() -> bool:
 
 # %%
 # Build a complete encoded and physical surface-code device.
-surface_architecture = recipes.surface_architecture(3)
+surface_architecture = surface.architecture(3)
 surface_code = surface_architecture.code
 
 builder = cql.devices.DeviceBuilder("StandaloneSurfaceCodeDevice")

@@ -143,6 +143,26 @@ qlx_configure_python_env(REQUIRED)
 include(SetupCUDAQ)
 include(QLXTargetSetup)
 
+# EDEM supplies Logical's model values and native producer interface. Prefer
+# the enclosing build or an explicit CMake package; wheels expose that package
+# through the Python interpreter selected above.
+if(NOT TARGET cudaq::edem)
+  find_package(cudaq-edem 0.1 CONFIG QUIET)
+  if(NOT cudaq-edem_FOUND)
+    execute_process(
+      COMMAND "${Python_EXECUTABLE}" -c
+        "import cudaq_edem; print(cudaq_edem.get_cmake_dir())"
+      OUTPUT_VARIABLE _qlx_edem_cmake_dir
+      OUTPUT_STRIP_TRAILING_WHITESPACE
+      ERROR_QUIET
+      RESULT_VARIABLE _qlx_edem_python_result)
+    if(_qlx_edem_python_result EQUAL 0)
+      list(APPEND CMAKE_PREFIX_PATH "${_qlx_edem_cmake_dir}")
+    endif()
+    find_package(cudaq-edem 0.1 CONFIG REQUIRED)
+  endif()
+endif()
+
 # --------------------------------------------------------------------------- #
 # Project include directories
 # --------------------------------------------------------------------------- #

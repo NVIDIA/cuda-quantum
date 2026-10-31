@@ -57,6 +57,23 @@ def test_base_dependencies_exclude_the_cudaq_runtime():
     assert "cudaq-core" in dependencies
 
 
+def test_edem_is_a_required_build_and_runtime_dependency():
+    from packaging.requirements import Requirement
+
+    configuration = _load_pyproject()
+    runtime = {
+        requirement.name: requirement for requirement in map(
+            Requirement, configuration["project"]["dependencies"])
+    }
+    build = {
+        requirement.name: requirement for requirement in map(
+            Requirement, configuration["build-system"]["requires"])
+    }
+    assert runtime["cudaq-edem"].specifier == build["cudaq-edem"].specifier
+    assert "0.1.0" in runtime["cudaq-edem"].specifier
+    assert "0.2.0" not in runtime["cudaq-edem"].specifier
+
+
 def test_runtime_extras_map_to_the_cudaq_runtime_wheels():
     extras = _load_pyproject()["project"]["optional-dependencies"]
     assert extras["cu12"] == ["cuda-quantum-cu12"]

@@ -10,26 +10,26 @@ from __future__ import annotations
 import cudaq.mlir.ir as mlir_ir
 
 from cudaq.logical.programs.definition import DefinitionHandle
-from cudaq.logical.gadgets.profiles import GadgetProfile
+from cudaq.logical.gadgets.contracts import GadgetContract
 from cudaq.logical.gadgets.records import (
     ProfileParity,
     RecordVectorParity,
 )
 
 
-class GadgetProfileBuilder:
-    """Lower immutable success and boundary analysis to declarative Fabric IR."""
+class GadgetContractLowerer:
+    """Lower immutable gadget analysis declarations to Fabric IR."""
 
-    def __init__(self, transaction, profile: GadgetProfile) -> None:
+    def __init__(self, transaction, contract: GadgetContract) -> None:
         self.transaction = transaction
-        self.profile = profile
+        self.contract = contract
         self.context = transaction.context
         self.location = transaction.location
-        self.gadget = transaction.materialize(profile.gadget)
-        self.symbol = transaction.unique_symbol(profile.name)
-        self._create_profile()
+        self.gadget = transaction.materialize(contract.gadget)
+        self.symbol = transaction.unique_symbol(contract.name)
+        self._create_contract()
 
-    def _create_profile(self) -> None:
+    def _create_contract(self) -> None:
         attrs = {
             "sym_name":
                 mlir_ir.StringAttr.get(self.symbol, context=self.context),
@@ -62,23 +62,23 @@ class GadgetProfileBuilder:
                     ))
             return mlir_ir.ArrayAttr.get(entries, context=self.context)
 
-        attrs["inputs"] = profiles(self.profile.input_profiles)
-        attrs["outputs"] = profiles(self.profile.output_profiles)
-        if self.profile.boundary_complete:
+        attrs["inputs"] = profiles(self.contract.input_profiles)
+        attrs["outputs"] = profiles(self.contract.output_profiles)
+        if self.contract.boundary_complete:
             attrs["boundary_complete"] = mlir_ir.UnitAttr.get(
                 context=self.context)
-        if self.profile.metadata:
+        if self.contract.metadata:
             attrs["metadata"] = mlir_ir.DictAttr.get(
                 {
                     key:
                         mlir_ir.StringAttr.get(str(value), context=self.context)
-                    for key, value in self.profile.metadata.items()
+                    for key, value in self.contract.metadata.items()
                 },
                 context=self.context,
             )
         with self.location:
             self.operation = mlir_ir.Operation.create(
-                "fabric.gadget_profile",
+                "fabric.gadget_contract",
                 attributes=attrs,
                 regions=1,
                 loc=self.location,
@@ -149,10 +149,19 @@ class GadgetProfileBuilder:
             self.insertion_point.insert(operation)
 
     def trace(self):
-        for success in self.profile.success:
+        for detector in self.contract.detectors:
+            self._emit("fabric.detector", self._common(detector))
+        for observable in self.contract.observables:
+            attrs = self._common(observable)
+            attrs["idx"] = mlir_ir.IntegerAttr.get(
+                mlir_ir.IntegerType.get_signless(64, context=self.context),
+                observable.index,
+            )
+            self._emit("fabric.observable", attrs)
+        for success in self.contract.success:
             attrs = self._common(success)
             self._emit("fabric.success", attrs)
-        for assignment in self.profile.output_syndromes:
+        for assignment in self.contract.output_syndromes:
             attrs = self._parity_attrs(assignment.parity)
             attrs["port_index"] = mlir_ir.IntegerAttr.get(
                 mlir_ir.IntegerType.get_signless(64, context=self.context),
@@ -163,9 +172,9 @@ class GadgetProfileBuilder:
                 assignment.index,
             )
             self._emit("fabric.output_syndrome", attrs)
-        self._emit("fabric.profile_end", {})
+        self._emit("fabric.contract_end", {})
 
     def handle(self):
         return DefinitionHandle(symbol=self.symbol,
-                                kind="gadget_profile",
+                                kind="gadget_contract",
                                 profile="p2a")

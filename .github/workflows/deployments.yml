@@ -1102,6 +1102,13 @@ jobs:
           path: logical-wheels
           merge-multiple: true
 
+      - name: Download matching EDEM wheels
+        uses: actions/download-artifact@v8
+        with:
+          pattern: 'cudaq_edem-*'
+          path: edem-wheels
+          merge-multiple: true
+
       - name: Attach wheels to draft release
         env:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
@@ -1116,7 +1123,7 @@ jobs:
             mv -vf "${dir}"* wheelhouse-${arch}/
           done
 
-          for kind in logical devel; do
+          for kind in logical edem devel; do
             if ! compgen -G "${kind}-wheels/cudaq_${kind}-*${arch}.whl" > /dev/null; then
               echo "::error::No cudaq-${kind} wheel found for ${arch}."
               exit 1

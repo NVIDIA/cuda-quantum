@@ -381,6 +381,7 @@ jobs:
       cuda_versions: "['', '12.6', '13.0']"
       wheel_artifacts: 'pycudaq-*-manylinux-*'
       logical_wheel_artifacts: 'cudaq_logical-*'
+      edem_wheel_artifacts: 'cudaq_edem-*'
       github_commit: ${{ inputs.github_commit || needs.metadata.outputs.github_commit }}
       build_packages: false
       artifacts_run_id: ${{ needs.metadata.outputs.deployment_id }}
@@ -687,6 +688,13 @@ jobs:
           github-token: ${{ github.token }}
           merge-multiple: true
 
+      - name: Load matching EDEM wheels
+        uses: actions/download-artifact@v8
+        with:
+          pattern: 'cudaq_edem-*'
+          path: /tmp/wheels
+          merge-multiple: true
+
       - name: Load metapackage
         if: ${{ matrix.cuda_major == '' }}
         uses: actions/download-artifact@v8
@@ -710,6 +718,18 @@ jobs:
           # Create and activate virtual environment
           python3 -m venv /opt/cudaq-venv
           source /opt/cudaq-venv/bin/activate
+
+          # Keep the native dependency paired with this run's Logical wheel.
+          python_tag="$(python3 -c 'import sys; print(f"{sys.version_info.major}{sys.version_info.minor}")')"
+          shopt -s nullglob
+          edem_wheels=(/tmp/packages/cudaq_edem-*-cp${python_tag}-*_"$(uname -m)".whl)
+          if [ "${#edem_wheels[@]}" -ne 1 ]; then
+            echo "::error::Expected one matching EDEM wheel, found ${#edem_wheels[@]}."
+            exit 1
+          fi
+          printf 'cudaq-edem @ file://%s\n' "${edem_wheels[0]}" > /tmp/edem-constraints.txt
+          export PIP_CONSTRAINT=/tmp/edem-constraints.txt
+          pip install --no-index --no-deps --ignore-installed --find-links /tmp/packages cudaq-edem
 
           if [ -n "${{ matrix.cuda_major }}" ]; then
             retry pip install cuda-quantum-cu${{ matrix.cuda_major }}==${{ needs.metadata.outputs.cudaq_version }} -v \
@@ -807,6 +827,13 @@ jobs:
           github-token: ${{ github.token }}
           merge-multiple: true
 
+      - name: Load matching EDEM wheels
+        uses: actions/download-artifact@v8
+        with:
+          pattern: 'cudaq_edem-*'
+          path: /tmp/wheels
+          merge-multiple: true
+
       - name: Load metapackage
         uses: actions/download-artifact@v8
         with:
@@ -823,6 +850,17 @@ jobs:
           retry apt-get install -y --no-install-recommends \
             ca-certificates vim wget unzip openssh-client binutils
           mv /tmp/wheels/* /tmp/packages && rmdir /tmp/wheels
+
+          # The validator creates a Python 3.12 conda environment. Its pip
+          # subprocesses inherit this exact local native dependency constraint.
+          shopt -s nullglob
+          edem_wheels=(/tmp/packages/cudaq_edem-*-cp312-*_"$(uname -m)".whl)
+          if [ "${#edem_wheels[@]}" -ne 1 ]; then
+            echo "::error::Expected one matching EDEM wheel, found ${#edem_wheels[@]}."
+            exit 1
+          fi
+          printf 'cudaq-edem @ file://%s\n' "${edem_wheels[0]}" > /tmp/edem-constraints.txt
+          export PIP_CONSTRAINT=/tmp/edem-constraints.txt
 
           # Extract README from metapackage
           cudaq_metapackage=cudaq-${{ needs.metadata.outputs.cudaq_version }}

@@ -65,7 +65,7 @@ class Definition(Generic[T]):
 
 
 class ProgramDefinition:
-    """Lazy executable-program or ideal-objective provider."""
+    """Lazy executable-program or ideal-action provider."""
 
     __slots__ = (
         "provider",
@@ -80,7 +80,7 @@ class ProgramDefinition:
         "metadata",
         "specialization",
         "base",
-        "objective_kind",
+        "action_kind",
         "estimate_only",
         "_cudaq_kernel",
         "_kernel_declaration",
@@ -101,6 +101,7 @@ class ProgramDefinition:
         "metadata",
         "specialization",
         "base",
+        "action_kind",
         "objective_kind",
         "estimate_only",
         "_cudaq_kernel",
@@ -120,7 +121,8 @@ class ProgramDefinition:
         machine: Any = None,
         selection: Any = None,
         kind: str = "program",
-        objective_kind: str = "auto",
+        action_kind: str | None = None,
+        objective_kind: str | None = None,
         estimate_only: bool = False,
         name: str | None = None,
         metadata: Mapping[str, Any] | None = None,
@@ -142,23 +144,29 @@ class ProgramDefinition:
                     "cudaq.logical.condition_results(...), or "
                     "cudaq.logical.abort_on(...)")
         self.selection = selection
+        kind = "action" if kind == "objective" else kind
+        if kind not in {"program", "action"}:
+            raise ValueError("definition kind must be program or action")
         self.kind = kind
-        if kind not in {"program", "objective"}:
-            raise ValueError("definition kind must be program or objective")
-        if objective_kind not in {"auto", "action", "instrument"}:
-            raise ValueError(
-                "objective_kind must be auto, action, or instrument")
-        if kind == "program" and objective_kind != "auto":
-            raise ValueError("program definitions cannot set objective_kind")
+        if action_kind is not None and objective_kind is not None:
+            raise TypeError(
+                "pass action_kind= or legacy objective_kind=, not both")
+        action_kind = (action_kind if action_kind is not None else
+                       objective_kind if objective_kind is not None else "auto")
+        action_kind = "unitary" if action_kind == "action" else action_kind
+        if action_kind not in {"auto", "unitary", "instrument"}:
+            raise ValueError("action_kind must be auto, unitary, or instrument")
+        if kind == "program" and action_kind != "auto":
+            raise ValueError("program definitions cannot set action_kind")
         if cudaq_kernel is not None:
             from cudaq.kernel.kernel_decorator import isa_kernel_decorator
 
             if not isa_kernel_decorator(cudaq_kernel):
                 raise TypeError("cudaq_kernel must be an @cudaq.kernel")
-            if kind != "objective" or objective_kind == "instrument":
+            if kind != "action" or action_kind == "instrument":
                 raise ValueError(
-                    "cudaq_kernel is supported only by action objectives")
-        self.objective_kind = objective_kind
+                    "cudaq_kernel is supported only by unitary actions")
+        self.action_kind = action_kind
         self._cudaq_kernel = cudaq_kernel
         self._kernel_declaration = None
         if type(estimate_only) is not bool:
@@ -197,6 +205,12 @@ class ProgramDefinition:
         return self
 
     @property
+    def objective_kind(self) -> str:
+        """Compatibility view using the former unitary-kind spelling."""
+
+        return "action" if self.action_kind == "unitary" else self.action_kind
+
+    @property
     def cudaq_kernel(self):
         """Original CUDA-Q kernel retained for lazy objective lowering."""
 
@@ -206,25 +220,25 @@ class ProgramDefinition:
     def kernel_declaration(self):
         """Body-less CUDA-Q declaration for an ownership-preserving objective."""
 
-        if self.kind != "objective" or self.objective_kind == "instrument":
+        if self.kind != "action" or self.action_kind == "instrument":
             return None
         if self._kernel_declaration is None:
-            from .kernel_objective import kernel_declaration_from_objective
+            from .kernel_action import kernel_declaration_from_action
 
             object.__setattr__(self, "_kernel_declaration",
-                               kernel_declaration_from_objective(self))
+                               kernel_declaration_from_action(self))
         return self._kernel_declaration
 
     @property
     def operands(self):
-        """Typed objective-operand references for semantic port bindings."""
+        """Typed action-operand references for semantic port bindings."""
 
-        if self.kind != "objective":
+        if self.kind != "action":
             raise AttributeError(
-                "only @cudaq.logical.objective definitions expose operands")
-        from cudaq.logical.programs.binding import ObjectiveOperands
+                "only @cudaq.logical.action definitions expose operands")
+        from cudaq.logical.programs.binding import ActionOperands
 
-        return ObjectiveOperands(self, self.signature.parameters)
+        return ActionOperands(self, self.signature.parameters)
 
     @staticmethod
     def _specialization_value(value):
@@ -313,7 +327,7 @@ class ProgramDefinition:
             machine=self.machine,
             selection=self.selection,
             kind=self.kind,
-            objective_kind=self.objective_kind,
+            action_kind=self.action_kind,
             estimate_only=self.estimate_only,
             name=f"{(self.base or self).name}__{suffix}",
             metadata=self.metadata,

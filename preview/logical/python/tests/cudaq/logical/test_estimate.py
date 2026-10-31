@@ -157,7 +157,7 @@ def test_static_estimate_expands_folded_call_multiplicity_analytically():
 
 
 def test_static_profile_counts_analysis_and_realization_separately():
-    profile = cql.gadgets.GadgetProfile(
+    profile = cql.gadgets.GadgetContract(
         memory,
         success=(cql.gadgets.SuccessPredicate(memory.record("r1.s0")),),
         name="memory_analysis",
@@ -221,7 +221,7 @@ def test_selected_fabric_walk_preserves_invocation_provenance(attach_profile):
         if attach_profile:
             with mlir_ir.InsertionPoint(module.body):
                 profile = mlir_ir.Operation.create(
-                    "fabric.gadget_profile",
+                    "fabric.gadget_contract",
                     attributes={
                         "sym_name": mlir_ir.StringAttr.get("selected_profile"),
                         "gadget": mlir_ir.FlatSymbolRefAttr.get("encoded_h"),

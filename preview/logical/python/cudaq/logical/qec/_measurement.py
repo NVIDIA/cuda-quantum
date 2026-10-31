@@ -15,7 +15,7 @@ from typing import Any
 from cudaq.logical.codes import Code
 from cudaq.logical.gadgets import (
     GadgetDefinition,
-    GadgetProfile,
+    GadgetContract,
 )
 from cudaq.logical.algebra.pauli import PauliProduct
 
@@ -34,7 +34,7 @@ class JointMeasurement:
 
     product: PauliProduct
     realization: GadgetDefinition
-    analysis: GadgetProfile
+    analysis: GadgetContract
     evidence: Any
     rounds: int
     data_code: Code
@@ -54,10 +54,10 @@ class JointMeasurement:
         return len(self._diagnostics.chi_checks)
 
 
-def _measurement_profile(diagnostics, *, name: str) -> GadgetProfile:
+def _measurement_profile(diagnostics, *, name: str) -> GadgetContract:
     """Return the measurement gadget's detached P2 analysis profile."""
 
-    return GadgetProfile(diagnostics.gadget, name=name)
+    return GadgetContract(diagnostics.gadget, name=name)
 
 
 __all__ = ["JointMeasurement"]

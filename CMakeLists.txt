@@ -325,7 +325,7 @@ option(CUDAQ_ENABLE_SANITIZERS "Enable Address Sanitizer (ASan) and Undefined Be
 
 # Sub-projects that can be enabled independently, in the style of
 # LLVM_ENABLE_PROJECTS. Accepts a semicolon-separated list.
-set(CUDAQ_ALL_PROJECTS "cudaq;runtime;python;realtime")
+set(CUDAQ_ALL_PROJECTS "cudaq;runtime;python;realtime;edem")
 set(CUDAQ_ENABLE_PROJECTS "" CACHE STRING
     "Semicolon-separated list of CUDA-Q sub-projects to build. Valid values: ${CUDAQ_ALL_PROJECTS}. Defaults to 'cudaq;runtime' (plus 'python' if CUDAQ_ENABLE_PYTHON is set). Include 'realtime' to build source-tree realtime; set CUDAQ_REALTIME_DIR to use an installed realtime package.")
 
@@ -360,6 +360,15 @@ foreach(_proj IN LISTS CUDAQ_ENABLE_PROJECTS)
       "Valid: ${CUDAQ_ALL_PROJECTS}.")
   endif()
 endforeach()
+
+# Logical always consumes EDEM, including its Python value package.
+if("logical" IN_LIST CUDAQ_EXTERNAL_PROJECTS)
+  if(NOT "edem" IN_LIST CUDAQ_ENABLE_PROJECTS)
+    list(APPEND CUDAQ_ENABLE_PROJECTS edem)
+  endif()
+  set(CUDAQ_EDEM_BUILD_PYTHON ON)
+  set(CUDAQ_EDEM_PYTHON_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/python")
+endif()
 
 # python depends on the MLIR dialects in cudaq/ and on runtime symbols.
 if("python" IN_LIST CUDAQ_ENABLE_PROJECTS)
@@ -1079,8 +1088,13 @@ endif(CUDAQ_ENABLE_CC)
 
 add_subdirectory(cmake)
 
-if(CUDAQ_BUILD_TESTS)
+if(CUDAQ_BUILD_TESTS OR
+    ("edem" IN_LIST CUDAQ_ENABLE_PROJECTS AND CUDAQ_EDEM_BUILD_TESTS))
   enable_testing()
+endif()
+
+if("edem" IN_LIST CUDAQ_ENABLE_PROJECTS)
+  add_subdirectory(edem)
 endif()
 
 if("cudaq" IN_LIST CUDAQ_ENABLE_PROJECTS)

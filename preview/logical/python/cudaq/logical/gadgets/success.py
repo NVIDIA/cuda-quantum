@@ -5,13 +5,13 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-"""Success-predicate constructors for ``GadgetProfile(success=...)`` rows.
+"""Success-predicate constructors for ``GadgetContract(success=...)`` rows.
 
 ``cudaq.logical.gadgets.all_zero(records)`` and
 ``cudaq.logical.gadgets.all_false(records)``
 normalize record selections into the tuple of :class:`SuccessPredicate` rows
-that the ``success=`` parameter of :class:`cudaq.logical.GadgetProfile` (and
-the gadget profile builder accepts.
+that the ``success=`` parameter of :class:`cudaq.logical.GadgetContract` (and
+the gadget contract builder accepts.
 ``cudaq.logical.gadgets.accept_all`` is the empty
 selection: every shot is accepted.
 """

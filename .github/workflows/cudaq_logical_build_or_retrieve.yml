@@ -24,6 +24,9 @@ on:
       logical_version:
         description: "Version of the built cudaq-logical wheel."
         value: ${{ jobs.build.outputs.logical_version }}
+      edem_wheel_name:
+        description: "Artifact name of the required cudaq-edem wheel."
+        value: ${{ jobs.build.outputs.edem_wheel_name }}
       runtime_artifact_name:
         description: "Artifact name of the CUDA-Q runtime wheel."
         value: ${{ jobs.retrieve_cudaq.outputs.runtime_artifact_name }}

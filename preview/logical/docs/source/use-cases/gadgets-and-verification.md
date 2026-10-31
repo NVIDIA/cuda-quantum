@@ -1,7 +1,7 @@
 # Gadgets and verification
 
 A gadget in CUDA-Q Logical is a bounded, typed realization of a logical
-objective. Three artifacts travel together through compilation: the
+action. Three artifacts travel together through compilation: the
 `implements=` clause states the ideal logical claim, the
 `cudaq.logical.patch[...]` signature states the encoded boundary (code,
 encoding, ownership), and the body states the executable realization. The
@@ -18,17 +18,17 @@ claim is rejected with a `TypeError`.
 There are two ways to write the claim, and the choice is about where the ideal
 operation already lives.
 
-### Author the objective in CUDA-Q Logical
+### Author the action in CUDA-Q Logical
 
 When the ideal operation has no existing definition, declare it with
-`@cudaq.logical.objective` and implement it in a gadget:
+`@cudaq.logical.action` and implement it in a gadget:
 
 ```{eval-rst}
 .. literalinclude:: ../../../examples/standalone/02_code_and_gadget.py
    :language: python
-   :start-at: @cql.objective
+   :start-at: @cql.action
    :end-before: # Materialize both definitions
-   :caption: An authored objective and the gadget that realizes it (examples/standalone/02_code_and_gadget.py).
+   :caption: An authored action and the gadget that realizes it (examples/standalone/02_code_and_gadget.py).
 ```
 
 `terminal_memory` says what the operation means at P0 — a logical qubit is
@@ -103,7 +103,7 @@ gadget signatures may take and return records directly:
 import cudaq.logical as cql
 
 
-@cql.objective
+@cql.action
 def memory_round(qubit: cql.types.logical_qubit) -> cql.types.logical_qubit:
     return qubit
 
@@ -135,15 +135,15 @@ Two boundary patterns cover most library gadgets:
   boundary look symmetric.
 
 The shipped Steane example pairs both halves of the pattern — a terminal
-objective and the gadget that realizes it by one syndrome-extraction pass
+action and the gadget that realizes it by one syndrome-extraction pass
 followed by data-qubit readout:
 
 ```{eval-rst}
 .. literalinclude:: ../../../examples/standalone/02_code_and_gadget.py
    :language: python
-   :start-at: @cql.objective
+   :start-at: @cql.action
    :end-before: code = cql.materialize
-   :caption: A terminal-memory objective and its gadget (examples/standalone/02_code_and_gadget.py).
+   :caption: A terminal-memory action and its gadget (examples/standalone/02_code_and_gadget.py).
 ```
 
 Ownership is linear throughout: consuming a patch twice, or dropping one that is
@@ -157,11 +157,11 @@ states it. Acceptance is explicit with `cudaq.logical.postselect` — the shippe
 measure +X:
 
 ```{eval-rst}
-.. literalinclude:: ../../../examples/standalone/03_magic_state_distillation.py
+.. literalinclude:: ../../../examples/standalone/07_magic_state_distillation.py
    :language: python
    :start-at: @cql.protocol
    :end-before: # Estimate the protocol directly
-   :caption: Postselection in examples/standalone/03_magic_state_distillation.py.
+   :caption: Postselection in examples/standalone/07_magic_state_distillation.py.
 ```
 
 Bounded retry is the same shape. It acts on a success predicate derived from
@@ -185,6 +185,19 @@ fails closed. Exhaustion is explicit (`RetryExhaustion.REPORT_FAILURE` / `ABORT`
 
 ## Verification: claims are checked, not trusted
 
+Gadget contracts can declare virtual detectors, action-outcome observables,
+and output virtual-syndrome relations without changing a gadget's realization.
+See [Declare a contract](../reference/detector-contracts.md#declare-a-contract)
+for a worked example of authoring and verifying a custom memory gadget's
+contract. Use `GadgetContractBuilder` to declare the detector parities and outgoing
+syndrome values for a gadget you author.
+
+For a runnable introduction, [Verify an authored gadget](examples/gadget-verification.md)
+declares an explicit contract for a Repetition-code syndrome round and inspects
+the receipt for an incorrect logical claim. Then
+[Physical surface-code memory](examples/gadget-surface-memory.md) verifies and
+composes three recipe-provided gadgets.
+
 Construction and MLIR verification establish local shape, ownership, symbol, and
 algebra invariants; semantic checks establish that a realization does what it
 claims. Do not conflate the levels:
@@ -194,24 +207,33 @@ claims. Do not conflate the levels:
 | Python construction   | typed fields, linear ownership, boundary liveness                               |
 | MLIR verification     | canonical cross-object and stage invariants (`build.module.operation.verify()`) |
 | code algebra checks   | symplectic rank, commutation, canonical pairing                                 |
-| objective equivalence | the realization's induced action matches its `implements=` claim                |
+| action equivalence | the realization's induced behavior matches its `implements=` claim (automatic for code automorphisms; `verify_gadget` for supported stabilizer actions and instruments) |
 
-Objective equivalence is automatic for **code-automorphism realizations** —
-gadgets whose realization is a single typed permutation of the code's carriers.
-The compiler derives the induced logical action from the code algebra and
-compares it with the `implements=` claim, failing closed on mismatch: a
-permutation that is genuinely the identity on the logical qubit verifies, and
-one claiming to be a logical `H` is rejected with a `ValueError` naming the
-objective it failed to implement.
+Action equivalence is automatic at construction for **code-automorphism
+realizations** — gadgets whose realization is a single typed permutation of the
+code's carriers. The compiler derives the induced logical action from the code
+algebra and compares it with the `implements=` claim, failing closed on
+mismatch: a permutation that is genuinely the identity on the logical qubit
+verifies, and one claiming to be a logical `H` is rejected with a `ValueError`
+naming the action it failed to implement.
 
-For realization classes outside that set the claim is recorded rather than
-derived, and the boundary is stated on the build instead of assumed.
+For other realization classes the claim is recorded, not derived, until you ask
+for it: `cudaq.logical.gadgets.verify_gadget` checks the realization's supported
+logical behavior, and the gadget's detector contract, from one Choi-state probe.
+A syndrome round that declares the wrong action compiles, and is rejected by
+`verify_gadget` with a sign or basis mismatch on the named Choi stabilizer.
+See [Detector contracts](../reference/detector-contracts.md#verify-a-contract-and-the-logical-action).
+Supported forms are signed Clifford unitaries, single-logical signed X/Z
+preparations and destructive or preserving X/Z measurements. The check follows
+compiled logical port bindings and the full affine outcome map. Unsupported
+claims raise by default; use `raise_on_failure=False` to inspect their receipts.
+A default call returns only when `receipt.verified` is true.
 
 ## Design rules that keep the model crisp
 
 1. Derive canonical facts from the code algebra instead of asking users to
    repeat them.
-2. Keep the logical objective, the realization, and the execution policy in
+2. Keep the logical action, the realization, and the execution policy in
    their owning objects — no hidden retry or acceptance inside a gadget.
 3. Use typed endpoints, records, and logical ports instead of raw strings where
    typed identities exist.

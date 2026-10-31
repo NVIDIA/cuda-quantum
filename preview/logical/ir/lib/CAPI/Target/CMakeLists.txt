@@ -14,4 +14,5 @@ add_mlir_public_c_api_library(QLXCAPITranslate
   LINK_LIBS PUBLIC
   MLIRCAPIIR
   MLIRFabricTranslate
+  MLIRGadgetEDEM
 )

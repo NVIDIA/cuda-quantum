@@ -27,7 +27,7 @@ from typing import (
 
 from cudaq.logical.programs.binding import (
     LogicalPortRef,
-    ObjectiveOperandRef,
+    ActionOperandRef,
 )
 from cudaq.logical._core.immutable import ImmutableValue
 

@@ -117,6 +117,12 @@ placement, QEC, and physical estimates, continue with
 [The logical programming stack](cudaq-logical-in-practice.md) or browse the
 [examples](../use-cases/examples/index.md).
 
+To author and verify gadgets, see
+[Gadgets and verification](../use-cases/gadgets-and-verification.md). For
+annotated Stim export and detector error models, continue with
+[Stim emission](../use-cases/stim-emission.md) and
+[Derive an error model from gadgets](../use-cases/gadget-edems.md).
+
 [cudaq-install]:
 https://nvidia.github.io/cuda-quantum/latest/using/quick_start.html#install-cuda-q
 

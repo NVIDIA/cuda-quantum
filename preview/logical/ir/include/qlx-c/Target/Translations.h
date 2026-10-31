@@ -9,13 +9,15 @@
 // C interface for QLX-side MLIR translations:
 //   - fabric-to-stim  (fabric circuit -> Stim text)
 //
-// Each translation streams its result through an `MlirStringCallback` to
-// avoid allocating a single contiguous buffer in the C ABI.
+// Text translations and projections stream through an MlirStringCallback.
+// EDEM derivation returns an owned packed buffer through the C ownership
+// record.
 //
 //===----------------------------------------------------------------------===//
 
 #pragma once
 
+#include "cudaq/gf2/memory.h"
 #include "mlir-c/IR.h"
 #include "mlir-c/Support.h"
 
@@ -27,6 +29,37 @@ extern "C" {
 /// Unsupported operations fail closed.
 MLIR_CAPI_EXPORTED MlirLogicalResult qlxTranslateFabricToStim(
     MlirModule module, MlirStringCallback callback, void *userData);
+
+/// Project a selected gadget without modifying the module. On success, emits
+/// a cudaq.logical.clifford-projection/v1 JSON value snapshot through callback.
+/// The shared CAPI library owns the Fabric traversal and dialect identities.
+/// An empty gadget name selects the unique entry gadget.
+MLIR_CAPI_EXPORTED MlirLogicalResult
+qlxProjectCliffordJson(MlirModule module, MlirStringRef gadget,
+                       MlirStringCallback callback, void *userData);
+
+/// Returns one owned, checked packed EDEM without copying its payload.
+/// An empty profile selects the unique fabric.gadget_contract. Faults use the
+/// external cudaq.logical.edem-faults/v1 JSON schema. Does not mutate the
+/// module. Output must point to a zero-initialized record. Failure leaves it
+/// unchanged; release the returned record with
+/// cudaq_gf2_owned_buffer_release. Checked view tokens do not cross this
+/// boundary.
+MLIR_CAPI_EXPORTED MlirLogicalResult
+qlxDeriveGadgetEDEM(MlirModule module, MlirStringRef profile,
+                    MlirStringRef faults, cudaq_gf2_owned_buffer *output);
+
+/// Checks a selected gadget detector contract and, when `action` is nonempty,
+/// the declared logical action against one Choi-state probe of the
+/// realization. `action` is {"source":"gadget_spec"} to resolve authoritative
+/// intent and bindings, or legacy JSON {arity, matrix, phases} for a supplied
+/// Clifford relation check; empty skips the action check. The callback receives
+/// one cudaq.logical.gadget-verification/v2
+/// JSON document. Semantic violations are reported inside it; structural
+/// problems fail with diagnostics. Does not mutate the module.
+MLIR_CAPI_EXPORTED MlirLogicalResult qlxVerifyGadgetContract(
+    MlirModule module, MlirStringRef profile, MlirStringRef action,
+    MlirStringCallback callback, void *userData);
 
 #ifdef __cplusplus
 }

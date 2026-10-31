@@ -29,7 +29,7 @@ import cudaq.logical.gadgets as gadgets
 import cudaq.logical.ops as ops
 import cudaq.logical.types as types
 from cudaq.logical.algebra.gf2 import _row_bits
-from cudaq.logical.programs.decorators import objective as _objective
+from cudaq.logical.programs.decorators import action as _action
 
 __all__ = ()
 
@@ -561,7 +561,7 @@ def _row_from_symplectic(bits, width: int, *, label: str) -> _LabeledPauli:
     return _LabeledPauli.from_masks(x_mask, z_mask, 0, label)
 
 
-def _measurement_objective(code, terms, name, *, sign: int = 1):
+def _measurement_action(code, terms, name, *, sign: int = 1):
     parameter_names = tuple(f"q{logical}" for logical, _ in terms)
 
     def intent(*values):
@@ -571,7 +571,7 @@ def _measurement_objective(code, terms, name, *, sign: int = 1):
             product = factor if product is None else product @ factor
         return ops.mpp(product if sign > 0 else -product)
 
-    intent.__name__ = intent.__qualname__ = f"{name}_objective"
+    intent.__name__ = intent.__qualname__ = f"{name}_action"
     intent.__signature__ = Signature(
         tuple(
             Parameter(
@@ -588,7 +588,7 @@ def _measurement_objective(code, terms, name, *, sign: int = 1):
         },
         "return": tuple[tuple([types.logical_qubit] * len(terms) + [bool])],
     }
-    return _objective(intent, name=f"{name}_objective")
+    return _action(intent, name=f"{name}_action")
 
 
 def _measurement_gadget(
@@ -625,7 +625,7 @@ def _measurement_gadget(
         evidence=
         "arXiv:2511.15989v1 WSC deformation; exact rank/span certificate",
     )
-    intent = _measurement_objective(code, terms, name, sign=sign)
+    intent = _measurement_action(code, terms, name, sign=sign)
     frame_recovery = _logical_frame_recovery(
         code,
         requested,
@@ -741,7 +741,7 @@ class WSCMeasurementBundle:
 
     product: types.PauliProduct
     realization: gadgets.GadgetDefinition
-    analysis: gadgets.GadgetProfile
+    analysis: gadgets.GadgetContract
     evidence: WSCMeasurementEvidence
     rounds: int
     data_code: codes.Code
@@ -761,13 +761,13 @@ class WSCMeasurementBundle:
         return len(self.diagnostics.chi_checks)
 
 
-def measurement_profile(diagnostics, *, name: str) -> gadgets.GadgetProfile:
+def measurement_profile(diagnostics, *, name: str) -> gadgets.GadgetContract:
     """Derive the complete output-syndrome boundary for a WSC gadget."""
 
     gadget = diagnostics.gadget
     boundary = {output.syndrome: False for output in gadget.outputs.blocks}
     evidence = diagnostics.evidence
-    return gadgets.GadgetProfile(
+    return gadgets.GadgetContract(
         gadget,
         boundary=boundary,
         boundary_complete=True,

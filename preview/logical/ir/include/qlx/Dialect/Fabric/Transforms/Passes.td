@@ -35,7 +35,7 @@ def FabricToPhys : Pass<"fabric-to-phys", "::mlir::ModuleOp"> {
            "Selected fabric.protocol or fabric.gadget root">,
     Option<"rootProfileSymbol", "root-profile-symbol", "std::string",
            /*default=*/"\"\"",
-           "Optional selected gadget profile attached to the root">,
+           "Optional selected gadget contract attached to the root">,
     Option<"deviceSymbol", "device-symbol", "std::string", /*default=*/"\"\"",
            "Selected qlx.device owning the physical machine">,
     Option<"graphSymbol", "graph-symbol", "std::string", /*default=*/"\"\"",

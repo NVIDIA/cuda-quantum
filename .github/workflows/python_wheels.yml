@@ -94,6 +94,9 @@ on:
       logical_version:
         description: "Version of the cudaq-logical wheel, if requested."
         value: ${{ jobs.build_logical_wheel.outputs.logical_version }}
+      edem_artifact_name:
+        description: "Artifact name of the matching cudaq-edem wheel, if Logical is requested."
+        value: ${{ jobs.build_logical_wheel.outputs.edem_wheel_name }}
     secrets:
       DOCKERHUB_USERNAME:
         required: true

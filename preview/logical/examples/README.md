@@ -34,11 +34,23 @@ points report the same resources. Its excerpts supply the
 
 The `standalone/` examples use `cudaq.logical` directly and expose each
 compiler step. They do not define CUDA-Q kernels or call `cudaq.estimate`.
-Standalone examples 06 and 07 compile protocols to physical builds and execute
-them with `cudaq.run`: ideal encoded computation and T-state distillation with
-noise. See the [standalone sequence](standalone/README.md).
+The standalone execution examples compile protocols to physical builds and
+execute them with `cudaq.run`: ideal encoded computation and T-state
+distillation with noise. See the [standalone sequence](standalone/README.md).
 
-The `mlir/` examples use `qlx-opt` and `qlx-translate` directly.
+The [`gadgets/`](gadgets/README.md) sequence is a separate introduction to
+gadget verification and detector error models. Start with `00_verify_gadget.py`
+to author and check one gadget, then `01_surface_memory.py` to verify, export,
+and analyze a physical surface-code memory experiment. Examples 02 and 03
+explore ideal MPP measurements and custom noise; example 04 adds explicit
+gadget-model reuse and a Stim reference comparison.
+
+The [`mlir/`](mlir/README.md) examples run pipelines with `qlx-opt` and
+`qlx-translate`.
+
+Every numbered example is organized into `# %%` cells, so you can run it as a
+script or step through it interactively. Experiments expose editable
+parameters in a configuration cell. Run the commands from the repository root.
 
 ## Gidney--Ekerå physical compilation
 
@@ -61,11 +73,11 @@ the file from the command line to select the paper-scale compilation, and
 `--bits` to select the modulus size:
 
 ```bash
-python 05_gidney_ekera.py
+python3 preview/logical/examples/05_gidney_ekera.py
 
-python 05_gidney_ekera.py --physical
+python3 preview/logical/examples/05_gidney_ekera.py --physical
 
-python 05_gidney_ekera.py --bits 4096 --physical
+python3 preview/logical/examples/05_gidney_ekera.py --bits 4096 --physical
 ```
 
 Each size is one row of Table 3 in arXiv:1905.09749. The factory module derives
