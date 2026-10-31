@@ -186,7 +186,7 @@ phys.graph @entry on @m : (i1, index) -> (i1, index) {
 // -----
 
 // A selection sidecar post-selects the graph's shots. The graph and sidecar
-// follow test/Model/p3-qec-sidecars.mlir.
+// follow test/Model/p3_qec_sidecars.qke.
 module attributes {qlx.profiles = ["p3"]} {
   fabric.code @source_code {distance = 1 : i64, n = 1 : i64, k = 1 : i64, r = 0 : i64, partitions = {data = 1 : i64, sx = 0 : i64, sz = 0 : i64}}
   fabric.gadget @source(%patch: !fabric.patch<@source_code>) -> (!fabric.patch<@source_code>, i1) {
@@ -239,7 +239,7 @@ phys.graph @entry on @m : () -> () {
 
 // -----
 
-// The transition follows test/Model/p3-epoch-transition.mlir.
+// The transition follows test/Model/p3_epoch_transition.qke.
 phys.machine @m {
   phys.resource_class @q {count = 1 : i64, kind = "qubit", native_actions = []}
 }
@@ -255,7 +255,7 @@ phys.graph @entry on @m : () -> () {
 // -----
 
 // Retry replays an attempt until it succeeds. The attempt's call lowers, and
-// the retry stops the pass. It follows test/Model/p3-structured-control.mlir.
+// the retry stops the pass. It follows test/Model/p3_structured_control.qke.
 module attributes {qlx.profiles = ["p3"]} {
   fabric.gadget_spec @attempt_spec for @objective : () -> () {encodings = []}
   fabric.gadget @attempt() {
@@ -379,7 +379,7 @@ phys.graph @entry on @m : () -> !phys.record<@bit> {
 // -----
 
 // Logical does not define what happens when a dynamic loop reaches
-// max_iterations. The loop follows test/Model/p3-structured-control.mlir.
+// max_iterations. The loop follows test/Model/p3_structured_control.qke.
 phys.machine @m {
   phys.resource_class @q {count = 1 : i64, kind = "qubit", native_actions = [], native_instruments = []}
 }
