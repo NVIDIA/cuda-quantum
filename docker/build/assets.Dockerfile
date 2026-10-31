@@ -136,6 +136,7 @@ ADD "docs/sphinx/snippets" /cuda-quantum/docs/sphinx/snippets
 ADD "cudaq" /cuda-quantum/cudaq
 ADD "realtime" /cuda-quantum/realtime
 ADD "runtime" /cuda-quantum/runtime
+ADD "python/tests/targets" /cuda-quantum/python/tests/targets
 ADD "scripts/build_cudaq.sh" /cuda-quantum/scripts/build_cudaq.sh
 ADD "scripts/update_submodules.sh" /cuda-quantum/scripts/update_submodules.sh
 ADD "scripts/migrate_assets.sh" /cuda-quantum/scripts/migrate_assets.sh
