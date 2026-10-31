@@ -781,6 +781,12 @@
 <li class="toctree-l4"><a class="reference internal" href="../../using/extending/compiler/pass_plugins.html#load-and-test-the-plugin">Load and test the plugin</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/compiler/compile_targets.html">Using compile targets to customize compilation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/compiler/compile_targets.html#constructing-single-stage-compile-targets">Constructing single-stage compile targets</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/compiler/compile_targets.html#setting-compile-targets-with-set-target">Setting compile targets with <code class="docutils literal notranslate"><span class="pre">set_target</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/compiler/compile_targets.html#example">Example</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../../using/extending/backend.html">Add a hardware backend</a><ul>
@@ -1232,7 +1238,7 @@ If <code class="code docutils literal notranslate"><span class="pre">defer_compi
 declaration time instead.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="cudaq.PyKernelDecorator.__call__">
-<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.PyKernelDecorator.__call__" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">__call__</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimization_level</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.PyKernelDecorator.__call__" title="Permalink to this definition">¶</a></dt>
 <dd><p>Invoke the CUDA-Q kernel. JIT compilation of the kernel AOT Quake module
 to machine code will occur here.</p>
 </dd></dl>
@@ -1319,7 +1325,7 @@ provided ModuleOp.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="cudaq.PyKernelDecorator.prepare_call">
-<span class="sig-name descname"><span class="pre">prepare_call</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_no_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.PyKernelDecorator.prepare_call" title="Permalink to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">prepare_call</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">allow_no_args</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimization_level</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.PyKernelDecorator.prepare_call" title="Permalink to this definition">¶</a></dt>
 <dd><p>Process call site arguments, capture lifted arguments and retrieve
 compiled module for kernel execution.</p>
 <p># Returns:</p>
@@ -1350,6 +1356,15 @@ arguments.</p>
 <dd><p>Resolve the captured arguments of the decorator.</p>
 <p>These arguments get resolved in the scope of the kernel definition
 (lexical scoping).</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="cudaq.PyKernelDecorator.scalarCaster">
+<span class="sig-name descname"><span class="pre">scalarCaster</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">toTy</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.PyKernelDecorator.scalarCaster" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a one-argument callable converting a scalar to <code class="code docutils literal notranslate"><span class="pre">toTy</span></code>.</p>
+<p>Which conversion applies depends only on the target type, so a list can
+resolve it once instead of once per element.
+None means <code class="code docutils literal notranslate"><span class="pre">toTy</span></code> is not a scalar this can convert</p>
 </dd></dl>
 
 <dl class="py method">
@@ -1399,7 +1414,7 @@ default).</p>
 <h2>Kernel Execution<a class="headerlink" href="#kernel-execution" title="Permalink to this heading">¶</a></h2>
 <dl class="py function">
 <dt class="sig sig-object py" id="cudaq.sample">
-<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kernel</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shots_count</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">explicit_measurements</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.sample" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">sample</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kernel</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shots_count</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">explicit_measurements</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimization_level</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.sample" title="Permalink to this definition">¶</a></dt>
 <dd><p>Sample the state generated by the provided <code class="code docutils literal notranslate"><span class="pre">kernel</span></code> at the given kernel
 <code class="code docutils literal notranslate"><span class="pre">arguments</span></code> over the specified number of circuit executions (<code class="code docutils literal notranslate"><span class="pre">shots_count</span></code>).
 Each argument in <code class="code docutils literal notranslate"><span class="pre">arguments</span></code> provided can be a list or <code class="code docutils literal notranslate"><span class="pre">ndarray</span></code> of
@@ -1425,6 +1440,8 @@ to add noise to the kernel execution on the simulator. Defaults to
 an empty noise model.</p></li>
 <li><p><strong>explicit_measurements</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#bool" title="(in Python v3.15)"><em>bool</em></a><em>]</em>) – Whether or not to concatenate
 measurements in execution order for the returned sample result.</p></li>
+<li><p><strong>optimization_level</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><em>int</em></a><em>]</em>) – The quantum optimization level to
+compile the kernel with, an integer between 0 and 3.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -1443,7 +1460,7 @@ such results in the case of <code class="code docutils literal notranslate"><spa
 
 <dl class="py function">
 <dt class="sig sig-object py" id="cudaq.sample_async">
-<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">sample_async</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">decorator</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shots_count</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">explicit_measurements</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qpu_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.sample_async" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">sample_async</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">decorator</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shots_count</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">explicit_measurements</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qpu_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimization_level</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.sample_async" title="Permalink to this definition">¶</a></dt>
 <dd><p>Asynchronously sample the state of the provided kernel <code class="code docutils literal notranslate"><span class="pre">decorator</span></code> at the
 specified number of circuit executions (<code class="code docutils literal notranslate"><span class="pre">shots_count</span></code>). When targeting a
 quantum platform with more than one QPU, the optional <code class="code docutils literal notranslate"><span class="pre">qpu_id</span></code> allows for
@@ -1466,6 +1483,8 @@ to add noise to the kernel execution on the simulator. Defaults to
 an empty noise model.</p></li>
 <li><p><strong>qpu_id</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><em>int</em></a><em>]</em>) – The optional identification for which QPU
 on the platform to target. Defaults to zero. Key-word only.</p></li>
+<li><p><strong>optimization_level</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><em>int</em></a><em>]</em>) – The quantum optimization level to
+compile the kernel with, an integer between 0 and 3.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -1483,12 +1502,12 @@ on the platform to target. Defaults to zero. Key-word only.</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="cudaq.run">
-<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">decorator</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shots_count</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qpu_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.run" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">run</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">decorator</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shots_count</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qpu_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimization_level</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.run" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="cudaq.run_async">
-<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">run_async</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">decorator</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shots_count</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qpu_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.run_async" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">run_async</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">decorator</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shots_count</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qpu_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimization_level</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.run_async" title="Permalink to this definition">¶</a></dt>
 <dd><p>Run the provided <code class="code docutils literal notranslate"><span class="pre">kernel</span></code> with the given kernel <code class="code docutils literal notranslate"><span class="pre">arguments</span></code> over the specified
 number of circuit executions (<code class="code docutils literal notranslate"><span class="pre">shots_count</span></code>) asynchronously on the specified
 <code class="code docutils literal notranslate"><span class="pre">qpu_id</span></code>.</p>
@@ -1507,6 +1526,8 @@ Defaults to 100. Key-word only.</p></li>
 noise to the kernel execution on the simulator. Defaults to an empty noise
 model.</p></li>
 <li><p><strong>qpu_id</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><em>int</em></a><em>]</em>) – The id of the QPU. Defaults to 0. Key-word only.</p></li>
+<li><p><strong>optimization_level</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><em>int</em></a><em>]</em>) – The quantum optimization level to compile
+the kernel with, an integer between 0 and 3.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -1521,7 +1542,7 @@ of <code class="code docutils literal notranslate"><span class="pre">kernel</spa
 
 <dl class="py function">
 <dt class="sig sig-object py" id="cudaq.observe">
-<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">observe</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kernel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spin_operator</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shots_count</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_trajectories</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">execution</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qpu_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.observe" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">observe</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kernel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spin_operator</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shots_count</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">noise_model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_trajectories</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">execution</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qpu_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimization_level</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.observe" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compute the expected value of the <code class="code docutils literal notranslate"><span class="pre">spin_operator</span></code> with respect to the
 <code class="code docutils literal notranslate"><span class="pre">kernel</span></code>. If the input <code class="code docutils literal notranslate"><span class="pre">spin_operator</span></code> is a list of <code class="code docutils literal notranslate"><span class="pre">SpinOperator</span></code> then
 compute the expected value of every operator in the list and return a list
@@ -1552,6 +1573,8 @@ noise model.</p></li>
 for noisy simulation. Only valid if a noise model is provided.
 <code class="code docutils literal notranslate"><span class="pre">Keyword</span></code> only.</p></li>
 <li><p><strong>qpu_id</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><em>int</em></a><em>]</em>) – The id of the QPU. Defaults to 0. Key-word only.</p></li>
+<li><p><strong>optimization_level</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><em>int</em></a><em>]</em>) – The quantum optimization level to
+compile the kernel with, an integer between 0 and 3.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -1569,7 +1592,7 @@ a <a class="reference internal" href="#cudaq.SampleResult" title="cudaq.SampleRe
 
 <dl class="py function">
 <dt class="sig sig-object py" id="cudaq.observe_async">
-<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">observe_async</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kernel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spin_operator</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qpu_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shots_count</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.observe_async" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">observe_async</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kernel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">spin_operator</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qpu_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shots_count</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimization_level</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.observe_async" title="Permalink to this definition">¶</a></dt>
 <dd><p>Compute the expected value of the <code class="code docutils literal notranslate"><span class="pre">spin_operator</span></code> with respect to the
 <code class="code docutils literal notranslate"><span class="pre">kernel</span></code> asynchronously. If the kernel accepts arguments, it will be
 evaluated with respect to <code class="code docutils literal notranslate"><span class="pre">kernel(*arguments)</span></code>. When targeting a quantum
@@ -1589,6 +1612,8 @@ function at. Leave empty if the kernel doesn’t accept any arguments.</p></li>
 platform to target. Defaults to zero. Key-word only.</p></li>
 <li><p><strong>shots_count</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><em>int</em></a><em>]</em>) – The number of shots to use for QPU execution.
 Defaults to -1 implying no shots-based sampling. Key-word only.</p></li>
+<li><p><strong>optimization_level</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><em>int</em></a><em>]</em>) – The quantum optimization level to
+compile the kernel with, an integer between 0 and 3.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -1606,7 +1631,7 @@ Defaults to -1 implying no shots-based sampling. Key-word only.</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="cudaq.get_state">
-<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">get_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kernel</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.get_state" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">get_state</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kernel</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimization_level</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.get_state" title="Permalink to this definition">¶</a></dt>
 <dd><p>Return the <a class="reference internal" href="#cudaq.State" title="cudaq.State"><code class="xref py py-class docutils literal notranslate"><span class="pre">State</span></code></a> of the system after execution of the provided
 <code class="code docutils literal notranslate"><span class="pre">kernel</span></code>.</p>
 <dl class="field-list simple">
@@ -1615,6 +1640,8 @@ Defaults to -1 implying no shots-based sampling. Key-word only.</p></li>
 <li><p><strong>kernel</strong> (<a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><code class="xref py py-class docutils literal notranslate"><span class="pre">Kernel</span></code></a>) – The <a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><code class="xref py py-class docutils literal notranslate"><span class="pre">Kernel</span></code></a> to execute on the QPU.</p></li>
 <li><p><strong>*arguments</strong> (<em>Optional</em><em>[</em><em>Any</em><em>]</em>) – The concrete values to evaluate the kernel
 function at. Leave empty if the kernel doesn’t accept any arguments.</p></li>
+<li><p><strong>optimization_level</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><em>int</em></a><em>]</em>) – The quantum optimization level to
+compile the kernel with, an integer between 0 and 3.</p></li>
 </ul>
 </dd>
 </dl>
@@ -1633,7 +1660,7 @@ print(state)</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="cudaq.get_state_async">
-<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">get_state_async</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kernel</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qpu_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.get_state_async" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">get_state_async</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">kernel</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">qpu_id</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimization_level</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.get_state_async" title="Permalink to this definition">¶</a></dt>
 <dd><p>Asynchronously retrieve the state generated by the given quantum kernel.
 When targeting a quantum platform with more than one QPU, the optional
 <code class="code docutils literal notranslate"><span class="pre">qpu_id</span></code> allows for control over which QPU to enable. Will return a future
@@ -1646,6 +1673,8 @@ whose results can be retrieved via <code class="code docutils literal notranslat
 function at. Leave empty if the kernel doesn’t accept any arguments.</p></li>
 <li><p><strong>qpu_id</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><em>int</em></a><em>]</em>) – The optional identification for which QPU
 on the platform to target. Defaults to zero. Key-word only.</p></li>
+<li><p><strong>optimization_level</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><em>int</em></a><em>]</em>) – The quantum optimization level to
+compile the kernel with, an integer between 0 and 3.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -1668,7 +1697,7 @@ on the platform to target. Defaults to zero. Key-word only.</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="cudaq.draw">
-<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">draw</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">decoratorOrFormat</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.draw" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">draw</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">decoratorOrFormat</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">optimization_level</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.draw" title="Permalink to this definition">¶</a></dt>
 <dd><p>The CUDA-Q specification overloads draw. To meet that, this function uses
 parameter type checking. The two overloads for <code class="code docutils literal notranslate"><span class="pre">cudaq.draw</span></code> are:
 <code class="docutils literal notranslate"><span class="pre">`</span>
@@ -1676,7 +1705,9 @@ parameter type checking. The two overloads for <code class="code docutils litera
 <span class="pre">cudaq.draw(&quot;&lt;format&gt;&quot;,</span> <span class="pre">kernel,</span> <span class="pre">opt_args...)</span>
 <span class="pre">cudaq.draw(kernel,</span> <span class="pre">opt_args...)</span>
 <span class="pre">`</span></code>
-The second overload is equivalent to using a format string of <code class="code docutils literal notranslate"><span class="pre">&quot;ascii&quot;</span></code>.</p>
+The second overload is equivalent to using a format string of <code class="code docutils literal notranslate"><span class="pre">&quot;ascii&quot;</span></code>.
+The optional key-word only <code class="code docutils literal notranslate"><span class="pre">optimization_level</span></code> (an integer between 0 and
+3) selects the quantum optimization level to compile the kernel with.</p>
 </dd></dl>
 
 <dl class="py function">
@@ -1747,6 +1778,8 @@ with 50% probability.</p></li>
 <li><p><strong>kernel</strong> (<a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><code class="xref py py-class docutils literal notranslate"><span class="pre">Kernel</span></code></a>) – The <a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><code class="xref py py-class docutils literal notranslate"><span class="pre">Kernel</span></code></a> to count resources on</p></li>
 <li><p><strong>*arguments</strong> (<em>Optional</em><em>[</em><em>Any</em><em>]</em>) – The concrete values to evaluate the kernel
 function at. Leave empty if the kernel doesn’t accept any arguments.</p></li>
+<li><p><strong>optimization_level</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><em>int</em></a><em>]</em>) – The quantum optimization level to
+compile the kernel with, an integer between 0 and 3.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -1779,6 +1812,8 @@ with 50% probability.</p></li>
 <li><p><strong>kernel</strong> (<a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><code class="xref py py-class docutils literal notranslate"><span class="pre">Kernel</span></code></a>) – The <a class="reference internal" href="#cudaq.Kernel" title="cudaq.Kernel"><code class="xref py py-class docutils literal notranslate"><span class="pre">Kernel</span></code></a> to count resources on</p></li>
 <li><p><strong>*arguments</strong> (<em>Optional</em><em>[</em><em>Any</em><em>]</em>) – The concrete values to evaluate the kernel
 function at. Leave empty if the kernel doesn’t accept any arguments.</p></li>
+<li><p><strong>optimization_level</strong> (<em>Optional</em><em>[</em><a class="reference external" href="https://docs.python.org/3/builtins/functions.html#int" title="(in Python v3.15)"><em>int</em></a><em>]</em>) – The quantum optimization level to
+compile the kernel with, an integer between 0 and 3.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -2043,15 +2078,21 @@ inspect or parse command-line arguments.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="cudaq.set_target">
-<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">set_target</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">extra_config</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.set_target" title="Permalink to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">cudaq.</span></span><span class="sig-name descname"><span class="pre">set_target</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">target</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compile_target</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">extra_config</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#cudaq.set_target" title="Permalink to this definition">¶</a></dt>
 <dd><p>Set the backend used for CUDA-Q kernel execution.</p>
 <p>Can provide optional, target-specific configuration data via Python <code class="code docutils literal notranslate"><span class="pre">kwargs</span></code>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>target</strong> – The CUDA-Q target, specified as a recognized target name (<code class="docutils literal notranslate"><span class="pre">str</span></code>)
-or a <a class="reference internal" href="#cudaq.Target" title="cudaq.Target"><code class="xref py py-class docutils literal notranslate"><span class="pre">cudaq.Target</span></code></a> instance. Support for
-instances of <code class="docutils literal notranslate"><span class="pre">cudaq._experimental.CustomTarget</span></code> is experimental.</p></li>
+<li><p><strong>target</strong> – The CUDA-Q target that kernels run on at runtime, specified as a
+recognized target name (<code class="docutils literal notranslate"><span class="pre">str</span></code>) or a <a class="reference internal" href="#cudaq.Target" title="cudaq.Target"><code class="xref py py-class docutils literal notranslate"><span class="pre">cudaq.Target</span></code></a> instance.
+Support for instances of <code class="docutils literal notranslate"><span class="pre">cudaq._experimental.CustomTarget</span></code> is
+experimental.</p></li>
+<li><p><strong>compile_target</strong> – The <code class="docutils literal notranslate"><span class="pre">cudaq._experimental.CompileTarget</span></code> that kernels
+are compiled against before running on <code class="docutils literal notranslate"><span class="pre">target</span></code>. If omitted, the
+target’s default compile target is used. Not supported when
+<code class="docutils literal notranslate"><span class="pre">target</span></code> is a <code class="docutils literal notranslate"><span class="pre">CustomTarget</span></code>, which carries its own compile
+target. This argument is experimental.</p></li>
 <li><p><strong>**extra_config</strong> – Target-specific configuration for the named-target
 overload.</p></li>
 </ul>

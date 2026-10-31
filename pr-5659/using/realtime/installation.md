@@ -1257,6 +1257,18 @@ pr-5659
             -   [Load and test the
                 plugin](../extending/compiler/pass_plugins.html#load-and-test-the-plugin){.reference
                 .internal}
+        -   [Using compile targets to customize
+            compilation](../extending/compiler/compile_targets.html){.reference
+            .internal}
+            -   [Constructing single-stage compile
+                targets](../extending/compiler/compile_targets.html#constructing-single-stage-compile-targets){.reference
+                .internal}
+            -   [Setting compile targets with [`set_target`{.docutils
+                .literal
+                .notranslate}]{.pre}](../extending/compiler/compile_targets.html#setting-compile-targets-with-set-target){.reference
+                .internal}
+            -   [Example](../extending/compiler/compile_targets.html#example){.reference
+                .internal}
     -   [Add a hardware backend](../extending/backend.html){.reference
         .internal}
         -   [Plugin Directory
@@ -2202,11 +2214,10 @@ Using Holoscan Sensor Bridge
 The validation script has three defined kernel modes, one for a unified
 kernel (enabled with [`--unified`{.code .docutils .literal
 .notranslate}]{.pre}), one for a forward kernel (enabled with
-[`--forward`{.code .docutils .literal .notranslate}]{.pre}), one for
-host-dispatch (enabled with [`--cpu`{.code .docutils .literal
-.notranslate}]{.pre}), and a 3-kernel setup (used by default). The
-forward kernel skips the RPC callback to measure the raw latency without
-any compute performed on the GPU.
+[`--forward`{.code .docutils .literal .notranslate}]{.pre}), and a
+3-kernel setup (used by default). The forward kernel skips the RPC
+callback to measure the raw latency without any compute performed on the
+GPU.
 
 ::: {.highlight-console .notranslate}
 ::: highlight
@@ -2228,10 +2239,9 @@ callback on. - [`--fpga-ip`{.code .docutils .literal
 .literal .notranslate}]{.pre} is the IP address of the NIC on the host
 machine. - [`--page-size`{.code .docutils .literal .notranslate}]{.pre}
 is the ring buffer slot size in bytes. - [`--unified`{.code .docutils
-.literal .notranslate}]{.pre}, [`--forward`{.code .docutils .literal
-.notranslate}]{.pre}, or [`--cpu`{.code .docutils .literal
+.literal .notranslate}]{.pre} or [`--forward`{.code .docutils .literal
 .notranslate}]{.pre} are the mutually exclusive flags to enable the
-unified, forward, or host-dispatch mode.
+unified or forward mode.
 :::
 
 Upon successful completion, the above validation script should print out

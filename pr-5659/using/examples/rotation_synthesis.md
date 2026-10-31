@@ -1249,6 +1249,18 @@ pr-5659
             -   [Load and test the
                 plugin](../extending/compiler/pass_plugins.html#load-and-test-the-plugin){.reference
                 .internal}
+        -   [Using compile targets to customize
+            compilation](../extending/compiler/compile_targets.html){.reference
+            .internal}
+            -   [Constructing single-stage compile
+                targets](../extending/compiler/compile_targets.html#constructing-single-stage-compile-targets){.reference
+                .internal}
+            -   [Setting compile targets with [`set_target`{.docutils
+                .literal
+                .notranslate}]{.pre}](../extending/compiler/compile_targets.html#setting-compile-targets-with-set-target){.reference
+                .internal}
+            -   [Example](../extending/compiler/compile_targets.html#example){.reference
+                .internal}
     -   [Add a hardware backend](../extending/backend.html){.reference
         .internal}
         -   [Plugin Directory
@@ -2186,18 +2198,18 @@ T count of a circuit is the number usually worth measuring. The
 count can be read off directly. It reduces [`rx`{.docutils .literal
 .notranslate}]{.pre}, [`ry`{.docutils .literal .notranslate}]{.pre} and
 [`r1`{.docutils .literal .notranslate}]{.pre} rotations to
-[`rz`{.docutils .literal .notranslate}]{.pre}, synthesizes each one, and
-optimizes the result. Its [`epsilon`{.docutils .literal
-.notranslate}]{.pre} argument sets the per-rotation tolerance and
-defaults to [`1e-10`{.docutils .literal .notranslate}]{.pre}.
+[`rz`{.docutils .literal .notranslate}]{.pre} and synthesizes each one
+within a tolerance of [`1e-10`{.docutils .literal .notranslate}]{.pre}.
+[`cudaq.set_random_seed`{.docutils .literal .notranslate}]{.pre} makes
+the synthesized gates reproducible.
 
 ::: {.highlight-python .notranslate}
 ::: highlight
     import cudaq
 
-    # Rewrite every rotation in the kernel into Clifford+T. `epsilon` is the
-    # per-rotation approximation tolerance.
-    cudaq.set_target("compiler-bench-ftqc-clifford-t", epsilon="1e-10")
+    # Rewrite every rotation in the kernel into Clifford+T, each within an
+    # operator-norm error of 1e-10.
+    cudaq.set_target("compiler-bench-ftqc-clifford-t")
 
 
     @cudaq.kernel

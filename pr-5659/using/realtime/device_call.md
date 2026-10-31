@@ -1253,6 +1253,18 @@ pr-5659
             -   [Load and test the
                 plugin](../extending/compiler/pass_plugins.html#load-and-test-the-plugin){.reference
                 .internal}
+        -   [Using compile targets to customize
+            compilation](../extending/compiler/compile_targets.html){.reference
+            .internal}
+            -   [Constructing single-stage compile
+                targets](../extending/compiler/compile_targets.html#constructing-single-stage-compile-targets){.reference
+                .internal}
+            -   [Setting compile targets with [`set_target`{.docutils
+                .literal
+                .notranslate}]{.pre}](../extending/compiler/compile_targets.html#setting-compile-targets-with-set-target){.reference
+                .internal}
+            -   [Example](../extending/compiler/compile_targets.html#example){.reference
+                .internal}
     -   [Add a hardware backend](../extending/backend.html){.reference
         .internal}
         -   [Plugin Directory
@@ -2094,11 +2106,10 @@ The built-in channels ([`shared-memory`{.docutils .literal
 .notranslate}]{.pre}) run an in-process service and are not covered in
 depth here. [`host-dispatch`{.docutils .literal .notranslate}]{.pre}
 uses the [`libcudaq-realtime`{.docutils .literal .notranslate}]{.pre}
-host path and can dispatch service entries as either
+host path and dispatches service entries as
 [`CUDAQ_DISPATCH_HOST_CALL`{.docutils .literal .notranslate}]{.pre}
-handlers or [`CUDAQ_DISPATCH_GRAPH_LAUNCH`{.docutils .literal
-.notranslate}]{.pre} workers. The remainder of this page documents the
-[`cpu_roce`{.docutils .literal .notranslate}]{.pre} channel.
+handlers. The remainder of this page documents the [`cpu_roce`{.docutils
+.literal .notranslate}]{.pre} channel.
 :::
 
 ::: {#extending-an-in-process-service .section}
@@ -2112,14 +2123,13 @@ and returns one owned [`DeviceCallServiceSession`{.docutils .literal
 .notranslate}]{.pre} for the requested host or GPU dispatch mode.
 Returning null rejects an unsupported mode.
 
-The session owns its function table and any associated graphs, streams,
-or mapped mailbox. Its [`dispatchTable()`{.docutils .literal
-.notranslate}]{.pre} result must remain valid until CUDA-Q calls
-[`stop()`{.docutils .literal .notranslate}]{.pre} and destroys the
-session. CUDA-Q constructs the selected [`DeviceCallChannel`{.docutils
-.literal .notranslate}]{.pre} from that table, starts the service
-session after the channel is ready, and stops and destroys the channel
-before stopping the service session.
+The session owns its function table and any associated graphs or
+streams. Its [`dispatchTable()`{.docutils .literal .notranslate}]{.pre}
+result must remain valid until CUDA-Q calls [`stop()`{.docutils .literal
+.notranslate}]{.pre} and destroys the session. CUDA-Q constructs the
+selected [`DeviceCallChannel`{.docutils .literal .notranslate}]{.pre}
+from that table, starts the service session after the channel is ready,
+and stops and destroys the channel before stopping the service session.
 
 The service interface does not own or replace the transport. Ring
 allocation, frame leasing, request publication, response completion, and

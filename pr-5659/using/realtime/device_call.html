@@ -779,6 +779,12 @@
 <li class="toctree-l4"><a class="reference internal" href="../extending/compiler/pass_plugins.html#load-and-test-the-plugin">Load and test the plugin</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/compiler/compile_targets.html">Using compile targets to customize compilation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../extending/compiler/compile_targets.html#constructing-single-stage-compile-targets">Constructing single-stage compile targets</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../extending/compiler/compile_targets.html#setting-compile-targets-with-set-target">Setting compile targets with <code class="docutils literal notranslate"><span class="pre">set_target</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../extending/compiler/compile_targets.html#example">Example</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../extending/backend.html">Add a hardware backend</a><ul>
@@ -1192,8 +1198,8 @@ launch flag.</p>
 </ul>
 <p>The built-in channels (<code class="docutils literal notranslate"><span class="pre">shared-memory</span></code>, <code class="docutils literal notranslate"><span class="pre">host-dispatch</span></code>, <code class="docutils literal notranslate"><span class="pre">gpu-dispatch</span></code>) run an
 in-process service and are not covered in depth here. <code class="docutils literal notranslate"><span class="pre">host-dispatch</span></code> uses the
-<code class="docutils literal notranslate"><span class="pre">libcudaq-realtime</span></code> host path and can dispatch service entries as either
-<code class="docutils literal notranslate"><span class="pre">CUDAQ_DISPATCH_HOST_CALL</span></code> handlers or <code class="docutils literal notranslate"><span class="pre">CUDAQ_DISPATCH_GRAPH_LAUNCH</span></code> workers.
+<code class="docutils literal notranslate"><span class="pre">libcudaq-realtime</span></code> host path and dispatches service entries as
+<code class="docutils literal notranslate"><span class="pre">CUDAQ_DISPATCH_HOST_CALL</span></code> handlers.
 The remainder of this page documents the <code class="docutils literal notranslate"><span class="pre">cpu_roce</span></code> channel.</p>
 </section>
 <section id="extending-an-in-process-service">
@@ -1203,8 +1209,8 @@ in <code class="docutils literal notranslate"><span class="pre">&lt;cudaq/realti
 <code class="docutils literal notranslate"><span class="pre">DeviceCallService</span></code> provider and returns one owned <code class="docutils literal notranslate"><span class="pre">DeviceCallServiceSession</span></code>
 for the requested host or GPU dispatch mode. Returning null rejects an
 unsupported mode.</p>
-<p>The session owns its function table and any associated graphs, streams, or
-mapped mailbox. Its <code class="docutils literal notranslate"><span class="pre">dispatchTable()</span></code> result must remain valid until CUDA-Q
+<p>The session owns its function table and any associated graphs or streams.
+Its <code class="docutils literal notranslate"><span class="pre">dispatchTable()</span></code> result must remain valid until CUDA-Q
 calls <code class="docutils literal notranslate"><span class="pre">stop()</span></code> and destroys the session. CUDA-Q constructs the selected
 <code class="docutils literal notranslate"><span class="pre">DeviceCallChannel</span></code> from that table, starts the service session after the
 channel is ready, and stops and destroys the channel before stopping the

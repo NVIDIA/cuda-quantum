@@ -779,6 +779,12 @@
 <li class="toctree-l4"><a class="reference internal" href="../extending/compiler/pass_plugins.html#load-and-test-the-plugin">Load and test the plugin</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/compiler/compile_targets.html">Using compile targets to customize compilation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../extending/compiler/compile_targets.html#constructing-single-stage-compile-targets">Constructing single-stage compile targets</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../extending/compiler/compile_targets.html#setting-compile-targets-with-set-target">Setting compile targets with <code class="docutils literal notranslate"><span class="pre">set_target</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../extending/compiler/compile_targets.html#example">Example</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../extending/backend.html">Add a hardware backend</a><ul>
@@ -1280,8 +1286,8 @@ The protocol works with the GpuRoceTransceiver, <code class="docutils literal no
 </ol>
 <p>For use cases where lowest possible latency is needed, see
 <a class="reference internal" href="#unified-dispatch-mode"><span class="std std-ref">Unified Dispatch Mode</span></a> which combines all three kernels
-into one while retaining transport independence through a pluggable launch
-function.</p>
+into one while retaining transport independence through device hooks linked
+at run time.</p>
 </section>
 </section>
 <section id="unified-dispatch-mode">
@@ -1319,23 +1325,22 @@ implementations would substitute their own receive and send primitives.</p>
 <h3>Transport-Agnostic Design<a class="headerlink" href="#transport-agnostic-design" title="Permalink to this heading">¶</a></h3>
 <p>The unified dispatch mode is fully transport-agnostic, just like the 3-kernel
 mode.  The core dispatcher library (<code class="docutils literal notranslate"><span class="pre">libcudaq-realtime.so</span></code>) has no dependency
-on any specific transport (no <code class="docutils literal notranslate"><span class="pre">DOCA</span></code>, no <code class="docutils literal notranslate"><span class="pre">GpuRoceTransceiver</span></code>).  Unified mode introduces:</p>
-<ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">CUDAQ_KERNEL_UNIFIED</span></code> – a new <code class="docutils literal notranslate"><span class="pre">cudaq_kernel_type_t</span></code> enum value</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">cudaq_unified_launch_fn_t</span></code> – a launch function type that receives an opaque
-<code class="docutils literal notranslate"><span class="pre">void*</span> <span class="pre">transport_ctx</span></code> instead of ring-buffer pointers</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">cudaq_dispatcher_set_unified_launch()</span></code> – wires the launch function and
-transport context to the dispatcher</p></li>
-</ul>
-<p>Transport-specific details are packed into an opaque struct and passed through
-the <code class="docutils literal notranslate"><span class="pre">void*</span> <span class="pre">transport_ctx</span></code> pointer.  The transport provider supplies both the
-context struct and the launch function implementation.  For example, the
-<code class="docutils literal notranslate"><span class="pre">GpuRoceTransceiver</span></code>/<code class="docutils literal notranslate"><span class="pre">DOCA</span></code> transport packs <code class="docutils literal notranslate"><span class="pre">DOCA</span></code> <code class="docutils literal notranslate"><span class="pre">QP</span></code> handles, memory keys,
-and ring buffer addresses into a <code class="docutils literal notranslate"><span class="pre">doca_transport_ctx</span></code> and provides
-<code class="docutils literal notranslate"><span class="pre">gpu_roce_launch_unified_dispatch</span></code> as the launch function (compiled into
-<code class="docutils literal notranslate"><span class="pre">libcudaq-realtime-bridge-gpu-roce.so</span></code>). A different transport would define its
-own context struct and launch function; the dispatcher manages them identically
-without any transport-specific knowledge.</p>
+on any specific transport (no <code class="docutils literal notranslate"><span class="pre">DOCA</span></code>, no <code class="docutils literal notranslate"><span class="pre">GpuRoceTransceiver</span></code>).  The kernel
+reaches its transport through three <code class="docutils literal notranslate"><span class="pre">__device__</span></code> hooks with fixed names
+(<code class="docutils literal notranslate"><span class="pre">cudaq_dev_enter_kernel</span></code>, <code class="docutils literal notranslate"><span class="pre">cudaq_dev_rx_poll</span></code>, <code class="docutils literal notranslate"><span class="pre">cudaq_dev_tx_publish</span></code>) and an
+opaque, device-accessible <code class="docutils literal notranslate"><span class="pre">void*</span> <span class="pre">transport_ctx</span></code>.</p>
+<p>The transport is chosen at run time, like any bridge.  A bridge provider
+builds its hooks with <code class="docutils literal notranslate"><span class="pre">-rdc</span></code> and returns them, with the context, from
+<code class="docutils literal notranslate"><span class="pre">get_gpu_dataplane</span></code>.  The kernel itself is embedded in <code class="docutils literal notranslate"><span class="pre">libcudaq-realtime.so</span></code>
+as <code class="docutils literal notranslate"><span class="pre">LTO-IR</span></code>.  The application’s first <code class="docutils literal notranslate"><span class="pre">cudaq_dispatcher_get_device_handler</span></code>
+links the kernel, the bridge’s hooks and the application’s <code class="docutils literal notranslate"><span class="pre">DEVICE_CALL</span></code>
+handlers into one CUDA module with <code class="docutils literal notranslate"><span class="pre">nvJitLink</span></code>, for the GPU at hand.  For
+example, the <code class="docutils literal notranslate"><span class="pre">GpuRoceTransceiver</span></code>/<code class="docutils literal notranslate"><span class="pre">DOCA</span></code> bridge packs <code class="docutils literal notranslate"><span class="pre">DOCA</span></code> <code class="docutils literal notranslate"><span class="pre">QP</span></code> handles,
+memory keys and ring buffer addresses into its context, and its hooks poll the
+<code class="docutils literal notranslate"><span class="pre">DOCA</span></code> completion queue and send with <code class="docutils literal notranslate"><span class="pre">BlueFlame</span></code>.</p>
+<p>A transport may instead replace the whole dispatch loop: its unified transport
+context then names a <code class="docutils literal notranslate"><span class="pre">cudaq_unified_launch_fn_t</span></code>, which the dispatcher calls in
+place of its own kernel.</p>
 </section>
 <section id="when-to-use-which-mode">
 <h3>When to Use Which Mode<a class="headerlink" href="#when-to-use-which-mode" title="Permalink to this heading">¶</a></h3>
@@ -1348,8 +1353,8 @@ flag protocol</p></li>
 <p><strong>Unified mode</strong> (<code class="docutils literal notranslate"><span class="pre">CUDAQ_KERNEL_UNIFIED</span></code>):</p>
 <ul class="simple">
 <li><p>Lowest latency for simple RPC handlers</p></li>
-<li><p>Transport-agnostic API – the transport provides a pluggable launch function
-and opaque context (e.g., <code class="docutils literal notranslate"><span class="pre">GpuRoceTransceiver</span></code>/<code class="docutils literal notranslate"><span class="pre">DOCA</span></code> supplies <code class="docutils literal notranslate"><span class="pre">gpu_roce_launch_unified_dispatch</span></code>)</p></li>
+<li><p>Transport-agnostic API – the transport provides device hooks and an opaque
+context through its bridge, linked with the kernel at run time</p></li>
 <li><p>Thread 0 drives the transport and every thread of the block calls each
 <code class="docutils literal notranslate"><span class="pre">CUDAQ_DISPATCH_DEVICE_CALL</span></code> handler between two block barriers – no
 inter-kernel synchronization overhead</p></li>
@@ -1360,10 +1365,11 @@ inter-kernel synchronization overhead</p></li>
 <h3>Host API Extensions<a class="headerlink" href="#host-api-extensions" title="Permalink to this heading">¶</a></h3>
 <div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="k">typedef</span><span class="w"> </span><span class="k">enum</span><span class="w"> </span><span class="p">{</span>
 <span class="w">  </span><span class="n">CUDAQ_KERNEL_REGULAR</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span>
-<span class="w">  </span><span class="n">CUDAQ_KERNEL_UNIFIED</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">2</span>
+<span class="w">  </span><span class="n">CUDAQ_KERNEL_UNIFIED</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span>
 <span class="p">}</span><span class="w"> </span><span class="n">cudaq_kernel_type_t</span><span class="p">;</span>
 
-<span class="k">typedef</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="n">cudaq_unified_launch_fn_t</span><span class="p">)(</span>
+<span class="c1">// Returns CUDAQ_OK once launched; any other status fails start().</span>
+<span class="k">typedef</span><span class="w"> </span><span class="n">cudaq_status_t</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="n">cudaq_unified_launch_fn_t</span><span class="p">)(</span>
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="n">transport_ctx</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">tx_stride_sz</span><span class="p">,</span>
 <span class="w">    </span><span class="n">cudaq_function_entry_t</span><span class="w"> </span><span class="o">*</span><span class="n">function_table</span><span class="p">,</span><span class="w"> </span><span class="kt">size_t</span><span class="w"> </span><span class="n">func_count</span><span class="p">,</span>
 <span class="w">    </span><span class="k">volatile</span><span class="w"> </span><span class="kt">int</span><span class="w"> </span><span class="o">*</span><span class="n">shutdown_flag</span><span class="p">,</span><span class="w"> </span><span class="kt">uint64_t</span><span class="w"> </span><span class="o">*</span><span class="n">stats</span><span class="p">,</span>
@@ -1373,48 +1379,63 @@ inter-kernel synchronization overhead</p></li>
 <span class="w">    </span><span class="n">cudaq_dispatcher_t</span><span class="w"> </span><span class="o">*</span><span class="n">dispatcher</span><span class="p">,</span>
 <span class="w">    </span><span class="n">cudaq_unified_launch_fn_t</span><span class="w"> </span><span class="n">unified_launch_fn</span><span class="p">,</span>
 <span class="w">    </span><span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="n">transport_ctx</span><span class="p">);</span>
+<span class="c1">// cudaq/realtime/daemon/dispatcher/cudaq_realtime.h: look up an exported handler in</span>
+<span class="c1">// the linked module; the first call links it.</span>
+<span class="n">cudaq_status_t</span><span class="w"> </span><span class="nf">cudaq_dispatcher_get_device_handler</span><span class="p">(</span>
+<span class="w">    </span><span class="n">cudaq_dispatcher_t</span><span class="w"> </span><span class="o">*</span><span class="n">dispatcher</span><span class="p">,</span><span class="w"> </span><span class="k">const</span><span class="w"> </span><span class="kt">char</span><span class="w"> </span><span class="o">*</span><span class="n">name</span><span class="p">,</span><span class="w"> </span><span class="kt">void</span><span class="w"> </span><span class="o">**</span><span class="n">out_fn</span><span class="p">);</span>
 </pre></div>
 </div>
-<p>When <code class="docutils literal notranslate"><span class="pre">kernel_type</span> <span class="pre">==</span> <span class="pre">CUDAQ_KERNEL_UNIFIED</span></code>:</p>
+<p>When <code class="docutils literal notranslate"><span class="pre">kernel_type</span> <span class="pre">==</span> <span class="pre">CUDAQ_KERNEL_UNIFIED</span></code> on the device path:</p>
 <ul class="simple">
-<li><p><code class="docutils literal notranslate"><span class="pre">cudaq_dispatcher_set_ringbuffer()</span></code> and <code class="docutils literal notranslate"><span class="pre">cudaq_dispatcher_set_launch_fn()</span></code>
-are <strong>not required</strong> (the unified kernel handles transport internally)</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">cudaq_dispatcher_set_unified_launch()</span></code> <strong>must</strong> be called instead</p></li>
-<li><p><code class="docutils literal notranslate"><span class="pre">slot_size</span></code> must give the slot stride; <code class="docutils literal notranslate"><span class="pre">cudaq_dispatcher_set_bridge()</span></code>
-fills it from the bridge when the <code class="docutils literal notranslate"><span class="pre">config</span></code> leaves it 0</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">cudaq_dispatcher_set_bridge()</span></code> takes the bridge’s GPU data plane, then
+the first <code class="docutils literal notranslate"><span class="pre">cudaq_dispatcher_get_device_handler()</span></code> links the module</p></li>
+<li><p>All handlers of one dispatcher come from one binary, looked up before
+<code class="docutils literal notranslate"><span class="pre">start()</span></code></p></li>
+<li><p>Every <code class="docutils literal notranslate"><span class="pre">DEVICE_CALL</span></code> entry of the function table must hold an address
+from <code class="docutils literal notranslate"><span class="pre">cudaq_dispatcher_get_device_handler()</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">num_slots</span></code> and <code class="docutils literal notranslate"><span class="pre">slot_size</span></code> in the configuration may be zero; the bridge
+supplies them</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">num_blocks</span></code> must be 1 and <code class="docutils literal notranslate"><span class="pre">threads_per_block</span> <span class="pre">&gt;=</span> <span class="pre">1</span></code> (the block every
 <code class="docutils literal notranslate"><span class="pre">CUDAQ_DISPATCH_DEVICE_CALL</span></code> handler runs on)</p></li>
+<li><p>An application may run its own dispatch kernel instead: it passes a
+launcher to <code class="docutils literal notranslate"><span class="pre">cudaq_dispatcher_set_unified_launch()</span></code> with a NULL transport
+context, finds its kernel with <code class="docutils literal notranslate"><span class="pre">cudaq_dispatcher_get_device_kernel()</span></code>
+and launches it any way it likes, for example with the driver’s
+<code class="docutils literal notranslate"><span class="pre">cuLaunchKernelEx</span></code>; see
+<code class="docutils literal notranslate"><span class="pre">realtime/docs/device_code_contract.md</span></code></p></li>
 <li><p>All other wiring (<code class="docutils literal notranslate"><span class="pre">set_function_table</span></code>, <code class="docutils literal notranslate"><span class="pre">set_control</span></code>) remains the same</p></li>
 </ul>
 </section>
 <section id="wiring-example-unified-mode-with-gpurocetransceiver">
 <h3>Wiring Example (Unified Mode with GpuRoceTransceiver)<a class="headerlink" href="#wiring-example-unified-mode-with-gpurocetransceiver" title="Permalink to this heading">¶</a></h3>
-<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="c1">// Pack DOCA transport handles</span>
-<span class="n">gpu_roce_doca_transport_ctx</span><span class="w"> </span><span class="n">ctx</span><span class="p">;</span>
-<span class="n">ctx</span><span class="p">.</span><span class="n">gpu_dev_qp</span><span class="w">     </span><span class="o">=</span><span class="w"> </span><span class="n">gpu_roce_get_gpu_dev_qp</span><span class="p">(</span><span class="n">transceiver</span><span class="p">);</span>
-<span class="n">ctx</span><span class="p">.</span><span class="n">rx_ring_data</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="n">gpu_roce_get_rx_ring_data_addr</span><span class="p">(</span><span class="n">transceiver</span><span class="p">);</span>
-<span class="n">ctx</span><span class="p">.</span><span class="n">rx_ring_stride_sz</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">gpu_roce_get_page_size</span><span class="p">(</span><span class="n">transceiver</span><span class="p">);</span>
-<span class="n">ctx</span><span class="p">.</span><span class="n">rx_ring_stride_num</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">gpu_roce_get_num_pages</span><span class="p">(</span><span class="n">transceiver</span><span class="p">);</span>
-<span class="c1">// Responses go out of the TX ring, slot for slot with the RX ring</span>
-<span class="n">ctx</span><span class="p">.</span><span class="n">tx_ring_data</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="n">gpu_roce_get_tx_ring_data_addr</span><span class="p">(</span><span class="n">transceiver</span><span class="p">);</span>
-<span class="n">ctx</span><span class="p">.</span><span class="n">tx_ring_stride_sz</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="n">gpu_roce_get_page_size</span><span class="p">(</span><span class="n">transceiver</span><span class="p">);</span>
-<span class="n">ctx</span><span class="p">.</span><span class="n">tx_ring_mkey</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="n">htonl</span><span class="p">(</span><span class="n">gpu_roce_get_tx_ring_lkey</span><span class="p">(</span><span class="n">transceiver</span><span class="p">));</span>
-<span class="n">ctx</span><span class="p">.</span><span class="n">frame_size</span><span class="w">     </span><span class="o">=</span><span class="w"> </span><span class="n">frame_size</span><span class="p">;</span>
+<p>The application is built with <code class="docutils literal notranslate"><span class="pre">-rdc</span></code> and exports its handler with
+<code class="docutils literal notranslate"><span class="pre">CUDAQ_REALTIME_EXPORT_DEVICE_FUNCTION(my_handler)</span></code>:</p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="cp">#include</span><span class="w"> </span><span class="cpf">"cudaq/realtime/daemon/dispatcher/cudaq_realtime.h"</span>
+
+<span class="c1">// The provider parses its own options, including --unified</span>
+<span class="n">cudaq_bridge_create</span><span class="p">(</span><span class="o">&amp;</span><span class="n">bridge</span><span class="p">,</span><span class="w"> </span><span class="n">CUDAQ_PROVIDER_GPU_ROCE</span><span class="p">,</span><span class="w"> </span><span class="n">argc</span><span class="p">,</span><span class="w"> </span><span class="n">argv</span><span class="p">);</span>
+<span class="n">cudaq_bridge_connect</span><span class="p">(</span><span class="n">bridge</span><span class="p">);</span>
 
 <span class="c1">// Configure dispatcher for unified mode</span>
 <span class="n">cudaq_dispatcher_config_t</span><span class="w"> </span><span class="n">config</span><span class="p">{};</span>
 <span class="n">config</span><span class="p">.</span><span class="n">device_id</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="n">gpu_id</span><span class="p">;</span>
 <span class="n">config</span><span class="p">.</span><span class="n">num_blocks</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
 <span class="n">config</span><span class="p">.</span><span class="n">threads_per_block</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">32</span><span class="p">;</span>
+<span class="n">config</span><span class="p">.</span><span class="n">dispatch_path</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="n">CUDAQ_DISPATCH_PATH_DEVICE</span><span class="p">;</span>
 <span class="n">config</span><span class="p">.</span><span class="n">kernel_type</span><span class="w">     </span><span class="o">=</span><span class="w"> </span><span class="n">CUDAQ_KERNEL_UNIFIED</span><span class="p">;</span>
 <span class="n">config</span><span class="p">.</span><span class="n">dispatch_mode</span><span class="w">   </span><span class="o">=</span><span class="w"> </span><span class="n">CUDAQ_DISPATCH_DEVICE_CALL</span><span class="p">;</span>
 
 <span class="n">cudaq_dispatcher_create</span><span class="p">(</span><span class="n">manager</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">config</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">dispatcher</span><span class="p">);</span>
-<span class="n">cudaq_dispatcher_set_unified_launch</span><span class="p">(</span>
-<span class="w">    </span><span class="n">dispatcher</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">gpu_roce_launch_unified_dispatch</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">ctx</span><span class="p">);</span>
+<span class="n">cudaq_dispatcher_set_bridge</span><span class="p">(</span><span class="n">dispatcher</span><span class="p">,</span><span class="w"> </span><span class="n">bridge</span><span class="p">);</span>
+
+<span class="kt">void</span><span class="w"> </span><span class="o">*</span><span class="n">handler</span><span class="p">;</span>
+<span class="n">cudaq_dispatcher_get_device_handler</span><span class="p">(</span><span class="n">dispatcher</span><span class="p">,</span><span class="w"> </span><span class="s">"my_handler"</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">handler</span><span class="p">);</span>
+<span class="c1">// ... fill the DEVICE_CALL entry with `handler`, copy the table to the device</span>
+
 <span class="n">cudaq_dispatcher_set_function_table</span><span class="p">(</span><span class="n">dispatcher</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="n">table</span><span class="p">);</span>
 <span class="n">cudaq_dispatcher_set_control</span><span class="p">(</span><span class="n">dispatcher</span><span class="p">,</span><span class="w"> </span><span class="n">d_shutdown_flag</span><span class="p">,</span><span class="w"> </span><span class="n">d_stats</span><span class="p">);</span>
 <span class="n">cudaq_dispatcher_start</span><span class="p">(</span><span class="n">dispatcher</span><span class="p">);</span>
+<span class="n">cudaq_bridge_launch</span><span class="p">(</span><span class="n">bridge</span><span class="p">);</span>
 </pre></div>
 </div>
 </section>
@@ -1598,7 +1619,8 @@ dispatcher instance and validates the configuration.</p>
 <li><p><code class="docutils literal notranslate"><span class="pre">mgr</span></code>: owning manager.</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">config</span></code>: filled <code class="docutils literal notranslate"><span class="pre">cudaq_dispatcher_config_t</span></code> with:</p>
 <ul>
-<li><p><code class="docutils literal notranslate"><span class="pre">device_id</span></code> (default 0): selects the CUDA device for the dispatcher</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">device_id</span></code> (default 0): selects the CUDA device for the dispatcher
+(<code class="docutils literal notranslate"><span class="pre">CUDAQ_DISPATCH_PATH_DEVICE</span></code> only; the host path selects no device)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">num_blocks</span></code> (default 1; must be 1 on the device path)</p></li>
 <li><p><code class="docutils literal notranslate"><span class="pre">threads_per_block</span></code> (default 32; the block every
 <code class="docutils literal notranslate"><span class="pre">CUDAQ_DISPATCH_DEVICE_CALL</span></code> handler runs on)</p></li>
@@ -1992,7 +2014,7 @@ from graph optimization and can reduce kernel launch overhead for sophisticated 
 <h3>Requirements<a class="headerlink" href="#requirements" title="Permalink to this heading">¶</a></h3>
 <ul class="simple">
 <li><p><strong>GPU Architecture</strong>: Compute capability 9.0 or higher (Hopper H100 or later)</p></li>
-<li><p><strong>CUDA Version</strong>: CUDA 12.0+ with device-side graph launch support</p></li>
+<li><p><strong>CUDA Version</strong>: CUDA 12.6+ with device-side graph launch support</p></li>
 <li><p><strong>Graph Setup</strong>: Handler graphs must be captured and instantiated with <code class="docutils literal notranslate"><span class="pre">cudaGraphInstantiateFlagDeviceLaunch</span></code></p></li>
 </ul>
 </section>

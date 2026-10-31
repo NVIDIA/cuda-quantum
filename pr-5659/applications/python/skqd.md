@@ -1277,6 +1277,18 @@ pr-5659
             -   [Load and test the
                 plugin](../../using/extending/compiler/pass_plugins.html#load-and-test-the-plugin){.reference
                 .internal}
+        -   [Using compile targets to customize
+            compilation](../../using/extending/compiler/compile_targets.html){.reference
+            .internal}
+            -   [Constructing single-stage compile
+                targets](../../using/extending/compiler/compile_targets.html#constructing-single-stage-compile-targets){.reference
+                .internal}
+            -   [Setting compile targets with [`set_target`{.docutils
+                .literal
+                .notranslate}]{.pre}](../../using/extending/compiler/compile_targets.html#setting-compile-targets-with-set-target){.reference
+                .internal}
+            -   [Example](../../using/extending/compiler/compile_targets.html#example){.reference
+                .internal}
     -   [Add a hardware
         backend](../../using/extending/backend.html){.reference
         .internal}
@@ -2599,7 +2611,7 @@ scales exponentially with k. For higher k values, GPU acceleration
 transforms previously intractable postprocessing into feasible
 computation times.
 
-![24d41c1a2c1e4db496a32bc030a53c2e](../../_images/speedup.png){.no-scaled-link
+![c55968dac53843119621a201c2288e5e](../../_images/speedup.png){.no-scaled-link
 style="width: 500px;"}
 :::
 
@@ -2613,9 +2625,9 @@ behavior on a problem with a much larger computational subspace than the
 22-qubit demo above.
 
 ::: {style="display: flex; gap: 10px;"}
-![81fd821469274c2eb7d591a482bab288](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
+![06fcf6a9061f46f4954e92596cac11a5](../../_images/strong_scaling_timing.jpeg){.no-scaled-link
 style="width: 450px;"}
-![6e241fc579684252bd86c3c652b2c429](../../_images/efficiency.jpeg){.no-scaled-link
+![42741e7e8c854925aaabf0fbcc01d0fc](../../_images/efficiency.jpeg){.no-scaled-link
 style="width: 450px;"}
 :::
 

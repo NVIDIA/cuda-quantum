@@ -401,6 +401,8 @@ and without noise on its raw T states.</p>
 <span class="c1"># Run on the GPU simulator when a GPU is present, and otherwise on the</span>
 <span class="c1"># density-matrix simulator. Both apply the noise model below. Without noise,</span>
 <span class="c1"># every attempt passes its checks and produces |T&gt;.</span>
+<span class="c1"># Note: Without a GPU, there will be a noticeable decrease in simulation</span>
+<span class="c1"># performance.</span>
 <span class="n">target</span> <span class="o">=</span> <span class="s2">"nvidia"</span> <span class="k">if</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">num_available_gpus</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="s2">"density-matrix-cpu"</span>
 <span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
 <span class="k">assert</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">attempt</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span> <span class="o">==</span> <span class="p">[[</span><span class="kc">False</span><span class="p">]</span> <span class="o">*</span> <span class="mi">5</span><span class="p">]</span> <span class="o">*</span> <span class="mi">100</span>

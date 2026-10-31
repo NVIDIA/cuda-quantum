@@ -781,6 +781,12 @@
 <li class="toctree-l4"><a class="reference internal" href="../extending/compiler/pass_plugins.html#load-and-test-the-plugin">Load and test the plugin</a></li>
 </ul>
 </li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/compiler/compile_targets.html">Using compile targets to customize compilation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../extending/compiler/compile_targets.html#constructing-single-stage-compile-targets">Constructing single-stage compile targets</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../extending/compiler/compile_targets.html#setting-compile-targets-with-set-target">Setting compile targets with <code class="docutils literal notranslate"><span class="pre">set_target</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../extending/compiler/compile_targets.html#example">Example</a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="../extending/backend.html">Add a hardware backend</a><ul>
@@ -1265,13 +1271,13 @@ original.</p>
 of a circuit is the number usually worth measuring. The
 <code class="docutils literal notranslate"><span class="pre">compiler-bench-ftqc-clifford-t</span></code> target runs synthesis over a whole kernel so
 that count can be read off directly. It reduces <code class="docutils literal notranslate"><span class="pre">rx</span></code>, <code class="docutils literal notranslate"><span class="pre">ry</span></code> and <code class="docutils literal notranslate"><span class="pre">r1</span></code>
-rotations to <code class="docutils literal notranslate"><span class="pre">rz</span></code>, synthesizes each one, and optimizes the result. Its
-<code class="docutils literal notranslate"><span class="pre">epsilon</span></code> argument sets the per-rotation tolerance and defaults to <code class="docutils literal notranslate"><span class="pre">1e-10</span></code>.</p>
+rotations to <code class="docutils literal notranslate"><span class="pre">rz</span></code> and synthesizes each one within a tolerance of <code class="docutils literal notranslate"><span class="pre">1e-10</span></code>.
+<code class="docutils literal notranslate"><span class="pre">cudaq.set_random_seed</span></code> makes the synthesized gates reproducible.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
 
-<span class="c1"># Rewrite every rotation in the kernel into Clifford+T. `epsilon` is the</span>
-<span class="c1"># per-rotation approximation tolerance.</span>
-<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"compiler-bench-ftqc-clifford-t"</span><span class="p">,</span> <span class="n">epsilon</span><span class="o">=</span><span class="s2">"1e-10"</span><span class="p">)</span>
+<span class="c1"># Rewrite every rotation in the kernel into Clifford+T, each within an</span>
+<span class="c1"># operator-norm error of 1e-10.</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="s2">"compiler-bench-ftqc-clifford-t"</span><span class="p">)</span>
 
 
 <span class="nd">@cudaq</span><span class="o">.</span><span class="n">kernel</span>

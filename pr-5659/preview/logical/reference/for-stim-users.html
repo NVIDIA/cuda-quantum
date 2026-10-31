@@ -291,7 +291,7 @@ CUDA-Q’s selected target. This path does not emit or load Stim text and does
 not require the Python <code class="docutils literal notranslate"><span class="pre">stim</span></code> package. It returns one Boolean or Boolean list
 per shot, containing only the entry’s explicit results. CUDA-Q’s <code class="docutils literal notranslate"><span class="pre">stim</span></code> target
 supports Clifford circuits and supported Pauli channels supplied through
-<code class="docutils literal notranslate"><span class="pre">noise_model</span></code>; it cannot execute T gates or arbitrary rotations.</p>
+<code class="docutils literal notranslate"><span class="pre">noise_model</span></code>; it cannot execute T gates or <code class="docutils literal notranslate"><span class="pre">rx</span></code>, <code class="docutils literal notranslate"><span class="pre">ry</span></code>, or <code class="docutils literal notranslate"><span class="pre">rz</span></code> at any angle.</p>
 <p>The <a class="reference internal" href="../use-cases/examples/steane-bernstein-vazirani.html"><span class="std std-doc">Steane Bernstein–Vazirani example</span></a>
 checks encoded preparation before execution. It does not run a decoder.
 See <a class="reference internal" href="capabilities.html#execution-and-documented-boundaries"><span class="std std-ref">execution boundaries</span></a>

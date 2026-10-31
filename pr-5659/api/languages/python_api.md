@@ -1303,6 +1303,18 @@ pr-5659
             -   [Load and test the
                 plugin](../../using/extending/compiler/pass_plugins.html#load-and-test-the-plugin){.reference
                 .internal}
+        -   [Using compile targets to customize
+            compilation](../../using/extending/compiler/compile_targets.html){.reference
+            .internal}
+            -   [Constructing single-stage compile
+                targets](../../using/extending/compiler/compile_targets.html#constructing-single-stage-compile-targets){.reference
+                .internal}
+            -   [Setting compile targets with [`set_target`{.docutils
+                .literal
+                .notranslate}]{.pre}](../../using/extending/compiler/compile_targets.html#setting-compile-targets-with-set-target){.reference
+                .internal}
+            -   [Example](../../using/extending/compiler/compile_targets.html#example){.reference
+                .internal}
     -   [Add a hardware
         backend](../../using/extending/backend.html){.reference
         .internal}
@@ -2132,7 +2144,7 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
     .notranslate}]{.pre}, the kernel will be compiled at declaration
     time instead.
 
-    [[\_\_call\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.__call__ "Permalink to this definition"){.headerlink}
+    [[\_\_call\_\_]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[optimization_level]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.__call__ "Permalink to this definition"){.headerlink}
 
     :   Invoke the CUDA-Q kernel. JIT compilation of the kernel AOT
         Quake module to machine code will occur here.
@@ -2202,7 +2214,7 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
         decorator's [`qkeModule`{.code .docutils .literal
         .notranslate}]{.pre} attribute.
 
-    [[prepare_call]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[allow_no_args]{.pre}]{.n}[[=]{.pre}]{.o}[[False]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.prepare_call "Permalink to this definition"){.headerlink}
+    [[prepare_call]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[allow_no_args]{.pre}]{.n}[[=]{.pre}]{.o}[[False]{.pre}]{.default_value}*, *[[optimization_level]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.prepare_call "Permalink to this definition"){.headerlink}
 
     :   Process call site arguments, capture lifted arguments and
         retrieve compiled module for kernel execution.
@@ -2232,6 +2244,16 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 
         These arguments get resolved in the scope of the kernel
         definition (lexical scoping).
+
+    [[scalarCaster]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[toTy]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.scalarCaster "Permalink to this definition"){.headerlink}
+
+    :   Return a one-argument callable converting a scalar to
+        [`toTy`{.code .docutils .literal .notranslate}]{.pre}.
+
+        Which conversion applies depends only on the target type, so a
+        list can resolve it once instead of once per element. None means
+        [`toTy`{.code .docutils .literal .notranslate}]{.pre} is not a
+        scalar this can convert
 
     [[signatureWithCallables]{.pre}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[¶](#cudaq.PyKernelDecorator.signatureWithCallables "Permalink to this definition"){.headerlink}
 
@@ -2284,7 +2306,7 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 ::: {#kernel-execution .section}
 ## Kernel Execution[¶](#kernel-execution "Permalink to this heading"){.headerlink}
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[sample]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel]{.pre}]{.n}*, *[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[shots_count]{.pre}]{.n}[[=]{.pre}]{.o}[[1000]{.pre}]{.default_value}*, *[[noise_model]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[explicit_measurements]{.pre}]{.n}[[=]{.pre}]{.o}[[False]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.sample "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[sample]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel]{.pre}]{.n}*, *[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[shots_count]{.pre}]{.n}[[=]{.pre}]{.o}[[1000]{.pre}]{.default_value}*, *[[noise_model]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[explicit_measurements]{.pre}]{.n}[[=]{.pre}]{.o}[[False]{.pre}]{.default_value}*, *[[optimization_level]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.sample "Permalink to this definition"){.headerlink}
 
 :   Sample the state generated by the provided [`kernel`{.code .docutils
     .literal .notranslate}]{.pre} at the given kernel [`arguments`{.code
@@ -2346,6 +2368,11 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
             measurements in execution order for the returned sample
             result.
 
+        -   **optimization_level**
+            (*Optional\[*[*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference
+            .external}*\]*) -- The quantum optimization level to compile
+            the kernel with, an integer between 0 and 3.
+
     Returns[:]{.colon}
 
     :   
@@ -2370,7 +2397,7 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[sample_async]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[decorator]{.pre}]{.n}*, *[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[shots_count]{.pre}]{.n}[[=]{.pre}]{.o}[[1000]{.pre}]{.default_value}*, *[[explicit_measurements]{.pre}]{.n}[[=]{.pre}]{.o}[[False]{.pre}]{.default_value}*, *[[noise_model]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[qpu_id]{.pre}]{.n}[[=]{.pre}]{.o}[[0]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.sample_async "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[sample_async]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[decorator]{.pre}]{.n}*, *[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[shots_count]{.pre}]{.n}[[=]{.pre}]{.o}[[1000]{.pre}]{.default_value}*, *[[explicit_measurements]{.pre}]{.n}[[=]{.pre}]{.o}[[False]{.pre}]{.default_value}*, *[[noise_model]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[qpu_id]{.pre}]{.n}[[=]{.pre}]{.o}[[0]{.pre}]{.default_value}*, *[[optimization_level]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.sample_async "Permalink to this definition"){.headerlink}
 
 :   Asynchronously sample the state of the provided kernel
     [`decorator`{.code .docutils .literal .notranslate}]{.pre} at the
@@ -2420,6 +2447,11 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
             .external}*\]*) -- The optional identification for which QPU
             on the platform to target. Defaults to zero. Key-word only.
 
+        -   **optimization_level**
+            (*Optional\[*[*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference
+            .external}*\]*) -- The quantum optimization level to compile
+            the kernel with, an integer between 0 and 3.
+
     Returns[:]{.colon}
 
     :   
@@ -2441,7 +2473,7 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[run]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[decorator]{.pre}]{.n}*, *[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[shots_count]{.pre}]{.n}[[=]{.pre}]{.o}[[100]{.pre}]{.default_value}*, *[[noise_model]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[qpu_id]{.pre}]{.n}[[=]{.pre}]{.o}[[0]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.run "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[run]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[decorator]{.pre}]{.n}*, *[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[shots_count]{.pre}]{.n}[[=]{.pre}]{.o}[[100]{.pre}]{.default_value}*, *[[noise_model]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[qpu_id]{.pre}]{.n}[[=]{.pre}]{.o}[[0]{.pre}]{.default_value}*, *[[optimization_level]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.run "Permalink to this definition"){.headerlink}
 
 :   
 
@@ -2449,7 +2481,7 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[run_async]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[decorator]{.pre}]{.n}*, *[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[shots_count]{.pre}]{.n}[[=]{.pre}]{.o}[[100]{.pre}]{.default_value}*, *[[noise_model]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[qpu_id]{.pre}]{.n}[[=]{.pre}]{.o}[[0]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.run_async "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[run_async]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[decorator]{.pre}]{.n}*, *[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[shots_count]{.pre}]{.n}[[=]{.pre}]{.o}[[100]{.pre}]{.default_value}*, *[[noise_model]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[qpu_id]{.pre}]{.n}[[=]{.pre}]{.o}[[0]{.pre}]{.default_value}*, *[[optimization_level]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.run_async "Permalink to this definition"){.headerlink}
 
 :   Run the provided [`kernel`{.code .docutils .literal
     .notranslate}]{.pre} with the given kernel [`arguments`{.code
@@ -2499,6 +2531,11 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
             .external}*\]*) -- The id of the QPU. Defaults to 0.
             Key-word only.
 
+        -   **optimization_level**
+            (*Optional\[*[*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference
+            .external}*\]*) -- The quantum optimization level to compile
+            the kernel with, an integer between 0 and 3.
+
     Returns[:]{.colon}
 
     :   A handle, which can be waited on via a [`get()`{.code .docutils
@@ -2515,7 +2552,7 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[observe]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel]{.pre}]{.n}*, *[[spin_operator]{.pre}]{.n}*, *[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[shots_count]{.pre}]{.n}[[=]{.pre}]{.o}[[-1]{.pre}]{.default_value}*, *[[noise_model]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[num_trajectories]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[execution]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[qpu_id]{.pre}]{.n}[[=]{.pre}]{.o}[[0]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.observe "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[observe]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel]{.pre}]{.n}*, *[[spin_operator]{.pre}]{.n}*, *[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[shots_count]{.pre}]{.n}[[=]{.pre}]{.o}[[-1]{.pre}]{.default_value}*, *[[noise_model]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[num_trajectories]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[execution]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[qpu_id]{.pre}]{.n}[[=]{.pre}]{.o}[[0]{.pre}]{.default_value}*, *[[optimization_level]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.observe "Permalink to this definition"){.headerlink}
 
 :   Compute the expected value of the [`spin_operator`{.code .docutils
     .literal .notranslate}]{.pre} with respect to the [`kernel`{.code
@@ -2586,6 +2623,11 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
             .external}*\]*) -- The id of the QPU. Defaults to 0.
             Key-word only.
 
+        -   **optimization_level**
+            (*Optional\[*[*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference
+            .external}*\]*) -- The quantum optimization level to compile
+            the kernel with, an integer between 0 and 3.
+
     Returns[:]{.colon}
 
     :   A data-type containing the expectation value of the
@@ -2612,7 +2654,7 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[observe_async]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel]{.pre}]{.n}*, *[[spin_operator]{.pre}]{.n}*, *[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[qpu_id]{.pre}]{.n}[[=]{.pre}]{.o}[[0]{.pre}]{.default_value}*, *[[shots_count]{.pre}]{.n}[[=]{.pre}]{.o}[[-1]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.observe_async "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[observe_async]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel]{.pre}]{.n}*, *[[spin_operator]{.pre}]{.n}*, *[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[qpu_id]{.pre}]{.n}[[=]{.pre}]{.o}[[0]{.pre}]{.default_value}*, *[[shots_count]{.pre}]{.n}[[=]{.pre}]{.o}[[-1]{.pre}]{.default_value}*, *[[optimization_level]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.observe_async "Permalink to this definition"){.headerlink}
 
 :   Compute the expected value of the [`spin_operator`{.code .docutils
     .literal .notranslate}]{.pre} with respect to the [`kernel`{.code
@@ -2655,6 +2697,11 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
             execution. Defaults to -1 implying no shots-based sampling.
             Key-word only.
 
+        -   **optimization_level**
+            (*Optional\[*[*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference
+            .external}*\]*) -- The quantum optimization level to compile
+            the kernel with, an integer between 0 and 3.
+
     Returns[:]{.colon}
 
     :   
@@ -2673,7 +2720,7 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[get_state]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel]{.pre}]{.n}*, *[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.get_state "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[get_state]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel]{.pre}]{.n}*, *[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[optimization_level]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.get_state "Permalink to this definition"){.headerlink}
 
 :   Return the [[`State`{.xref .py .py-class .docutils .literal
     .notranslate}]{.pre}](#cudaq.State "cudaq.State"){.reference
@@ -2693,6 +2740,11 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
         -   **\*arguments** (*Optional\[Any\]*) -- The concrete values
             to evaluate the kernel function at. Leave empty if the
             kernel doesn't accept any arguments.
+
+        -   **optimization_level**
+            (*Optional\[*[*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference
+            .external}*\]*) -- The quantum optimization level to compile
+            the kernel with, an integer between 0 and 3.
 
     \# Example: [`import`{.code .docutils .literal
     .notranslate}]{.pre}` `{.code .docutils .literal
@@ -2719,7 +2771,7 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[get_state_async]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel]{.pre}]{.n}*, *[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[qpu_id]{.pre}]{.n}[[=]{.pre}]{.o}[[0]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.get_state_async "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[get_state_async]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[kernel]{.pre}]{.n}*, *[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[qpu_id]{.pre}]{.n}[[=]{.pre}]{.o}[[0]{.pre}]{.default_value}*, *[[optimization_level]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.get_state_async "Permalink to this definition"){.headerlink}
 
 :   Asynchronously retrieve the state generated by the given quantum
     kernel. When targeting a quantum platform with more than one QPU,
@@ -2747,6 +2799,11 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
             .external}*\]*) -- The optional identification for which QPU
             on the platform to target. Defaults to zero. Key-word only.
 
+        -   **optimization_level**
+            (*Optional\[*[*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference
+            .external}*\]*) -- The quantum optimization level to compile
+            the kernel with, an integer between 0 and 3.
+
     Returns[:]{.colon}
 
     :   
@@ -2773,7 +2830,7 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[draw]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[decoratorOrFormat]{.pre}]{.n}*, *[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.draw "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[draw]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[decoratorOrFormat]{.pre}]{.n}*, *[[\*]{.pre}]{.o}[[args]{.pre}]{.n}*, *[[optimization_level]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*[)]{.sig-paren}[¶](#cudaq.draw "Permalink to this definition"){.headerlink}
 
 :   The CUDA-Q specification overloads draw. To meet that, this function
     uses parameter type checking. The two overloads for
@@ -2793,7 +2850,10 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
     .notranslate}]{.pre}` `{.docutils .literal
     .notranslate}[`` ` ``{.docutils .literal .notranslate}]{.pre} The
     second overload is equivalent to using a format string of
-    [`"ascii"`{.code .docutils .literal .notranslate}]{.pre}.
+    [`"ascii"`{.code .docutils .literal .notranslate}]{.pre}. The
+    optional key-word only [`optimization_level`{.code .docutils
+    .literal .notranslate}]{.pre} (an integer between 0 and 3) selects
+    the quantum optimization level to compile the kernel with.
 
 ```{=html}
 <!-- -->
@@ -2919,6 +2979,11 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
             to evaluate the kernel function at. Leave empty if the
             kernel doesn't accept any arguments.
 
+        -   **optimization_level**
+            (*Optional\[*[*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference
+            .external}*\]*) -- The quantum optimization level to compile
+            the kernel with, an integer between 0 and 3.
+
     Returns[:]{.colon}
 
     :   
@@ -2969,6 +3034,11 @@ aria-hidden="true"}](../default_ops.html "Quantum Operations"){.btn
         -   **\*arguments** (*Optional\[Any\]*) -- The concrete values
             to evaluate the kernel function at. Leave empty if the
             kernel doesn't accept any arguments.
+
+        -   **optimization_level**
+            (*Optional\[*[*int*](https://docs.python.org/3/builtins/functions.html#int "(in Python v3.15)"){.reference
+            .external}*\]*) -- The quantum optimization level to compile
+            the kernel with, an integer between 0 and 3.
 
     Returns[:]{.colon}
 
@@ -3435,7 +3505,7 @@ discriminated bits into an integer.)
 <!-- -->
 ```
 
-[[cudaq.]{.pre}]{.sig-prename .descclassname}[[set_target]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}*, *[[\*\*]{.pre}]{.o}[[extra_config]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.set_target "Permalink to this definition"){.headerlink}
+[[cudaq.]{.pre}]{.sig-prename .descclassname}[[set_target]{.pre}]{.sig-name .descname}[(]{.sig-paren}*[[target]{.pre}]{.n}*, *[[\*]{.pre}]{.o}*, *[[compile_target]{.pre}]{.n}[[=]{.pre}]{.o}[[None]{.pre}]{.default_value}*, *[[\*\*]{.pre}]{.o}[[extra_config]{.pre}]{.n}*[)]{.sig-paren}[¶](#cudaq.set_target "Permalink to this definition"){.headerlink}
 
 :   Set the backend used for CUDA-Q kernel execution.
 
@@ -3444,13 +3514,25 @@ discriminated bits into an integer.)
 
     Parameters[:]{.colon}
 
-    :   -   **target** -- The CUDA-Q target, specified as a recognized
-            target name ([`str`{.docutils .literal .notranslate}]{.pre})
-            or a [[`cudaq.Target`{.xref .py .py-class .docutils .literal
+    :   -   **target** -- The CUDA-Q target that kernels run on at
+            runtime, specified as a recognized target name
+            ([`str`{.docutils .literal .notranslate}]{.pre}) or a
+            [[`cudaq.Target`{.xref .py .py-class .docutils .literal
             .notranslate}]{.pre}](#cudaq.Target "cudaq.Target"){.reference
             .internal} instance. Support for instances of
             [`cudaq._experimental.CustomTarget`{.docutils .literal
             .notranslate}]{.pre} is experimental.
+
+        -   **compile_target** -- The
+            [`cudaq._experimental.CompileTarget`{.docutils .literal
+            .notranslate}]{.pre} that kernels are compiled against
+            before running on [`target`{.docutils .literal
+            .notranslate}]{.pre}. If omitted, the target's default
+            compile target is used. Not supported when
+            [`target`{.docutils .literal .notranslate}]{.pre} is a
+            [`CustomTarget`{.docutils .literal .notranslate}]{.pre},
+            which carries its own compile target. This argument is
+            experimental.
 
         -   **\*\*extra_config** -- Target-specific configuration for
             the named-target overload.

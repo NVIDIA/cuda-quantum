@@ -343,18 +343,20 @@ your own risk until exercised evidence lands.</p>
 <h2>Execution and documented boundaries<a class="headerlink" href="#execution-and-documented-boundaries" title="Link to this heading"></a></h2>
 <p><strong>Execution uses ordinary CUDA-Q targets.</strong> <code class="docutils literal notranslate"><span class="pre">cudaq.run(physical_build,</span> <span class="pre">...)</span></code>
 translates a supported P3 <code class="docutils literal notranslate"><span class="pre">Build</span></code> through <code class="docutils literal notranslate"><span class="pre">Build.to_quake()</span></code> and executes the
-resulting circuit on the selected target. Each shot returns the entry’s explicit
-Boolean results: one result becomes a <code class="docutils literal notranslate"><span class="pre">bool</span></code>, and multiple results become a
-<code class="docutils literal notranslate"><span class="pre">list[bool]</span></code> in physical return order. No implicit final measurements or decoding
-are added. See the <a class="reference internal" href="../use-cases/examples/steane-bernstein-vazirani.html"><span class="std std-doc">Steane Bernstein–Vazirani</span></a>
+resulting circuit on the selected target. A program can return a <code class="docutils literal notranslate"><span class="pre">bool</span></code>, a list
+of <code class="docutils literal notranslate"><span class="pre">bool</span></code>, or a tuple of <code class="docutils literal notranslate"><span class="pre">bool</span></code>. Each shot returns a <code class="docutils literal notranslate"><span class="pre">bool</span></code> for a single entry,
+and a <code class="docutils literal notranslate"><span class="pre">list[bool]</span></code> in return order for several. No implicit final measurements
+or decoding are added. See the
+<a class="reference internal" href="../use-cases/examples/steane-bernstein-vazirani.html"><span class="std std-doc">Steane Bernstein–Vazirani</span></a>
 and <a class="reference internal" href="../use-cases/examples/t-factory-evaluation.html"><span class="std std-doc">T-factory</span></a> execution examples.</p>
-<p><strong>Execution covers a subset of P3.</strong> Resource and factory flows, in-graph
-postselection, code epoch changes, and patch-granularity resources produce
-diagnostics instead of executable Quake. Support for compiling or estimating
-these forms does not imply execution support.</p>
+<p><strong>Execution covers a subset of P3.</strong> Forms such as resource and factory flows,
+in-graph postselection, bounded retry, code epoch changes, and patch-granularity
+resources produce diagnostics instead of executable Quake. Support for compiling
+or estimating these forms does not imply execution support.</p>
 <p><strong>Target capabilities and memory limits still apply.</strong> CUDA-Q’s <code class="docutils literal notranslate"><span class="pre">stim</span></code> target
-executes Clifford circuits with supported Pauli noise. Non-Clifford examples
-require a compatible target, such as <code class="docutils literal notranslate"><span class="pre">nvidia</span></code> or <code class="docutils literal notranslate"><span class="pre">density-matrix-cpu</span></code>.
+executes Clifford circuits with supported Pauli noise. Non-Clifford examples,
+and any Pauli-product rotation, require a compatible target, such as <code class="docutils literal notranslate"><span class="pre">nvidia</span></code>
+or <code class="docutils literal notranslate"><span class="pre">density-matrix-cpu</span></code>.
 Successful compilation does not guarantee that a simulator has enough memory
 for the physical carriers, including ancillas. The ordinary <code class="docutils literal notranslate"><span class="pre">noise_model</span></code>
 argument applies supported channels to emitted gates. P3 operating-point error
