@@ -39,14 +39,25 @@ namespace cudaq::detail {
 ///
 /// Setting `CUDAQ_FINGERPRINT_STRUCTURE` summarizes the module's structure
 /// instead of printing it, which skips the clone, the merge and the printing
-/// but leaves \p resolvedModule empty, so a caller that misses the cache must
-/// clone \p mod itself. Both modes answer the same question, but their digests
-/// are not interchangeable, and the structural digest is valid only within the
-/// process that computed it, since it mixes in the identity of
+/// and leaves \p resolvedModule empty, so a caller that compiles must build
+/// the program with `resolveProgram`. Both modes answer the same question, but
+/// their digests are not interchangeable, and the structural digest is valid
+/// only within the process that computed it, since it mixes in the identity of
 /// context-uniqued attributes and types.
 std::optional<std::array<std::uint8_t, 32>>
 createProgramFingerprint(const std::string &name, mlir::ModuleOp mod,
                          const std::vector<void *> &rawArgs,
                          mlir::OwningOpRef<mlir::ModuleOp> &resolvedModule);
+
+/// Clone \p mod and merge in every callable closure that \p rawArgs binds:
+/// the program that `createProgramFingerprint` describes.
+///
+/// Compile this rather than a plain clone of \p mod.
+/// `Compiler::prepareModule` fills in registry definitions before it merges
+/// closures, so a registry declaration that only a closure brings in would
+/// otherwise never be defined.
+mlir::OwningOpRef<mlir::ModuleOp>
+resolveProgram(const std::string &name, mlir::ModuleOp mod,
+               const std::vector<void *> &rawArgs);
 
 } // namespace cudaq::detail

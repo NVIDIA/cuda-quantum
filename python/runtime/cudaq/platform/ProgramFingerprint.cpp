@@ -95,9 +95,7 @@ cudaq::detail::createProgramFingerprint(
   if (useStructuralFingerprint())
     return fingerprintByStructure(name, mod, rawArgs);
 
-  resolvedModule = mod.clone();
-  cudaq_internal::compiler::mergeAllCallableClosures(resolvedModule.get(), name,
-                                                     rawArgs);
+  resolvedModule = resolveProgram(name, mod, rawArgs);
 
   // Refuse to fingerprint programs with unowned dependencies.
   bool hasUnownedDependency = false;
@@ -157,6 +155,15 @@ cudaq::detail::createProgramFingerprint(
   return hasher.final();
 }
 
+mlir::OwningOpRef<mlir::ModuleOp>
+cudaq::detail::resolveProgram(const std::string &name, mlir::ModuleOp mod,
+                              const std::vector<void *> &rawArgs) {
+  mlir::OwningOpRef<mlir::ModuleOp> resolvedModule = mod.clone();
+  cudaq_internal::compiler::mergeAllCallableClosures(resolvedModule.get(), name,
+                                                     rawArgs);
+  return resolvedModule;
+}
+
 namespace {
 /// Summarize a program's structure for the fingerprint as opposed to printing
 /// the module to text with a pre-order walk over every operation under the
@@ -183,10 +190,10 @@ public:
       mix(op->getNumResults());
       for (auto type : op->getResultTypes())
         mixPointer(type.getAsOpaquePointer());
-      // Number results before operands are mixed in, so a value used by a
-      // later operation is already numbered when that use is hashed.
+      // Mix each result's number at its definition too. Block order is free in
+      // a CFG region, so a use can be visited before its definition.
       for (auto result : op->getResults())
-        number(result.getAsOpaquePointer());
+        mix(number(result.getAsOpaquePointer()));
       mix(op->getNumOperands());
       for (auto operand : op->getOperands())
         mix(number(operand.getAsOpaquePointer()));
@@ -195,6 +202,9 @@ public:
         mix(region.getBlocks().size());
         for (auto &block : region) {
           mix(number(&block));
+          // The walk visits nested regions inline and not every block ends in
+          // a terminator, so the length marks where a block's operations end.
+          mix(block.getOperations().size());
           mix(block.getNumArguments());
           for (auto argument : block.getArguments()) {
             mixPointer(argument.getType().getAsOpaquePointer());
@@ -317,7 +327,8 @@ private:
 };
 
 /// Fingerprint by describing the resolved program rather than building it.
-/// \p mod is left untouched, so the caller gets no clone to compile.
+/// \p mod is left untouched, so a caller that compiles builds the program with
+/// `resolveProgram`.
 std::optional<std::array<std::uint8_t, 32>>
 fingerprintByStructure(const std::string &name, mlir::ModuleOp mod,
                        const std::vector<void *> &rawArgs) {

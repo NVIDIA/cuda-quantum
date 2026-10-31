@@ -783,7 +783,8 @@ pyLaunchModule(const std::string &name, ModuleOp mod,
   // dependencies), fall back to compiling every call.
   std::array<uint8_t, 32> programDigest = {};
   mlir::OwningOpRef<ModuleOp> resolvedModule;
-  if (cacheable && hasCompileTimeDependencies) {
+  const bool fingerprinted = cacheable && hasCompileTimeDependencies;
+  if (fingerprinted) {
     if (auto digest = cudaq::detail::createProgramFingerprint(
             name, mod, rawArgs, resolvedModule))
       programDigest = *digest;
@@ -791,13 +792,22 @@ pyLaunchModule(const std::string &name, ModuleOp mod,
       cacheable = false;
   }
 
+  // Launch preparation modifies the module, so compile a disposable clone and
+  // leave `mod` pristine for later calls. Reuse the fingerprint's resolved
+  // clone when it made one. Otherwise, a fingerprinted program compiles as it
+  // was fingerprinted, with its closures merged.
+  auto prepareResolvedModule = [&]() {
+    if (resolvedModule)
+      return;
+    resolvedModule = fingerprinted
+                         ? cudaq::detail::resolveProgram(name, mod, rawArgs)
+                         : mod.clone();
+  };
+
   // Targets that cannot form a stable key deliberately bypass the cache.
   if (!cacheable) {
     CUDAQ_INFO("Compiling module {}", name);
-    // Launch preparation modifies the module, so compile a disposable clone
-    // and leave `mod` pristine for later calls.
-    if (!resolvedModule)
-      resolvedModule = mod.clone();
+    prepareResolvedModule();
     auto compiled = compileModuleImpl(name, resolvedModule.get(), rawArgs, true,
                                       std::move(target));
     return cudaq::streamlinedLaunchModule(compiled, rawArgs);
@@ -809,12 +819,7 @@ pyLaunchModule(const std::string &name, ModuleOp mod,
         // This callback runs for exactly one caller of this key. Followers
         // wait for its result instead of repeating the compilation.
         CUDAQ_INFO("Compiling module {}", name);
-
-        // Reuse the fingerprint's resolved clone when we have one. Otherwise
-        // clone here — compilation modifies the module and `mod` must remain
-        // pristine for future calls.
-        if (!resolvedModule)
-          resolvedModule = mod.clone();
+        prepareResolvedModule();
         return std::make_shared<cudaq::CompiledModule>(compileModuleImpl(
             name, resolvedModule.get(), rawArgs, true, std::move(target)));
       });
