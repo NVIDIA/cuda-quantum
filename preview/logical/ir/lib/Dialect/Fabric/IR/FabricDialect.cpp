@@ -5241,7 +5241,7 @@ LogicalResult MeasureGaugesOp::verify() {
   auto output = cast<PatchType>(getPatchOut().getType());
   auto records = cast<GaugeRecordsType>(getRecords().getType());
   if (patch != output)
-    return emitOpError("must preserve patch valueship type");
+    return emitOpError("must preserve patch value type");
   if (!patch.getEncoding() || !patch.getEpoch())
     return emitOpError("requires an encoding- and epoch-qualified patch");
   if (patch.getCodeType() != records.getCodeType() ||
