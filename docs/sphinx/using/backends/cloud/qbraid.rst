@@ -30,6 +30,18 @@ and export it as an environment variable:
 Alternatively, the API key can be passed directly to ``cudaq.set_target`` via
 the ``api_key`` argument (see below).
 
+A qBraid access token can be used instead of an API key. It is sent as an
+``Authorization: Bearer`` header and is read from the ``QBRAID_ACCESS_TOKEN``
+environment variable, which qBraid Lab sets automatically, or from the
+``access_token`` argument:
+
+.. code:: bash
+
+    export QBRAID_ACCESS_TOKEN="qbraid_access_token"
+
+Explicit arguments take precedence over environment variables, and an API key
+takes precedence over an access token.
+
 Submitting
 ``````````
 
@@ -58,6 +70,12 @@ Submitting
     .. code:: python
 
         cudaq.set_target("qbraid", api_key="qbraid_generated_api_key")
+
+    or, with an access token:
+
+    .. code:: python
+
+        cudaq.set_target("qbraid", access_token="qbraid_access_token")
 
     qBraid devices are cloud-hosted, so local emulation via the ``emulate``
     flag is not supported — all jobs are executed on the qBraid service.
@@ -97,6 +115,9 @@ Submitting
     .. code:: bash
 
         nvq++ --target qbraid --qbraid-api_key "qbraid_generated_api_key" src.cpp
+
+    An access token can likewise be passed with ``--qbraid-access_token``
+    instead of being read from ``QBRAID_ACCESS_TOKEN``.
 
     qBraid devices are cloud-hosted, so the ``--emulate`` flag is not
     supported for this target — all jobs are executed on the qBraid
