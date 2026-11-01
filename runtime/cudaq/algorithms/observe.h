@@ -17,6 +17,7 @@
 #include "cudaq/host_config.h"
 #include "cudaq/operators.h"
 #include "cudaq/platform.h"
+#include <algorithm>
 #include <functional>
 #include <ranges>
 #include <type_traits>
@@ -190,6 +191,33 @@ inline auto distributeComputations(
   return observe_result(result, op, data);
 }
 
+/// @brief Combine the per-term expectation values computed on each MPI rank,
+/// so that `expectation(term)` is available for every term of `H` on every
+/// rank (as it is for `parallel::thread`). Each rank contributes the terms of
+/// its `localH` and zero elsewhere; one element-wise sum completes the vector.
+inline sample_result allReduceTermData(observe_result &localResult,
+                                       const spin_op &localH,
+                                       const spin_op &H) {
+  std::vector<std::string> ids, localIds;
+  for (const auto &term : H)
+    ids.push_back(spin_op_term::canonicalize(term).get_term_id());
+  for (const auto &term : localH)
+    localIds.push_back(spin_op_term::canonicalize(term).get_term_id());
+  std::sort(ids.begin(), ids.end());
+  ids.erase(std::unique(ids.begin(), ids.end()), ids.end());
+  std::sort(localIds.begin(), localIds.end());
+  auto localData = localResult.raw_data();
+  std::vector<double> local(ids.size(), 0.0);
+  for (std::size_t i = 0; i < ids.size(); ++i)
+    if (std::binary_search(localIds.begin(), localIds.end(), ids[i]))
+      local[i] = localData.expectation(ids[i]);
+  auto global = mpi::all_reduce(local, std::plus<double>());
+  std::vector<ExecutionResult> results;
+  for (std::size_t i = 0; i < ids.size(); ++i)
+    results.emplace_back(CountsDictionary{}, ids[i], global[i]);
+  return sample_result(results);
+}
+
 } // namespace detail
 
 /// \overload
@@ -318,7 +346,9 @@ observe_result observe(std::size_t shots, QuantumKernel &&kernel,
     cudaq::spin_op canonH;
     for (auto &&terms : spins)
       canonH += std::move(terms);
-    return observe_result(globalExpVal, canonH);
+    return observe_result(
+        globalExpVal, canonH,
+        detail::allReduceTermData(localRankResult, localH, canonH));
 
   } else
     throw std::runtime_error("Invalid cudaq::par execution type.");

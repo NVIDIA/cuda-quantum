@@ -170,7 +170,9 @@ static observe_result pyObservePar(
   // combine all the data via an all_reduce
   auto exp_val = localRankResult.expectation();
   auto globalExpVal = mpi::all_reduce(exp_val, std::plus<double>());
-  return observe_result{globalExpVal, spin_operator};
+  return observe_result{
+      globalExpVal, spin_operator,
+      detail::allReduceTermData(localRankResult, localH, spin_operator)};
 }
 
 /// Observe can be a single observe call, a parallel observe call, or a observe
