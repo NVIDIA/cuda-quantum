@@ -171,7 +171,7 @@ public:
   void set(size_t index, Value value) {
     ensureUniqueStorage();
     assert((*storage)[index].getType() == value.getType() &&
-           "owner-threading operation changed physical layout");
+           "linear-value-threading operation changed physical layout");
     (*storage)[index] = value;
   }
 
@@ -3710,7 +3710,7 @@ private:
             currentByResource.try_emplace(state.getResource(), value);
         if (!inserted && entry->second != value)
           return emitError(location)
-                 << "fabric.tick has multiple live physical SSA owners for "
+                 << "fabric.tick has multiple live physical SSI values for "
                  << state.getResource();
       }
     }
@@ -6027,7 +6027,7 @@ private:
                 resultTypes))
           return call.emitOpError(
               "surface spacetime call must preserve its complete physical "
-              "owner boundary");
+              "value boundary");
         Operation *physicalCall =
             createGeneric(builder, call.getLoc(), "phys.spacetime_call",
                           flattenedInputs, resultTypes,

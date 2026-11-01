@@ -11,7 +11,7 @@
 
 // The child needs two live reservations to avoid a saturating release. That
 // requirement must propagate into the enclosing summary. Splitting a patch
-// changes SSA ownership but does not increment FabricCount's live count: the
+// changes which SSI values hold the patch but does not increment FabricCount's live count: the
 // second call must walk rather than replay the summary built at count two.
 fabric.code @one {distance = 1 : i64, partitions = {data = 1 : i64}}
 fabric.machine @dev {

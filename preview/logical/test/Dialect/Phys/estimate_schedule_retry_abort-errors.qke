@@ -9,7 +9,7 @@
 // RUN: not qlx-opt %s --phys-schedule='graph=conditional result=conditional_schedule' \
 // RUN:   --phys-estimate-schedule='schedule=conditional_schedule lower-tier=analytical result=estimate' \
 // RUN:   2>&1 | FileCheck %s --check-prefix=CONDITIONAL
-// RUN: sed '0,/max_attempts = 2 : i64/s//max_attempts = 2 : i64, exhaustion = "abort"/' %S/estimate-schedule-retry-max-plus.mlir | \
+// RUN: sed '0,/max_attempts = 2 : i64/s//max_attempts = 2 : i64, exhaustion = "abort"/' %S/estimate_schedule_retry_max_plus.qke | \
 // RUN:   not qlx-opt --phys-schedule='graph=slack result=slack_schedule' \
 // RUN:   --phys-estimate-schedule='schedule=slack_schedule lower-tier=analytical result=estimate' \
 // RUN:   2>&1 | FileCheck %s --check-prefix=CROSSING

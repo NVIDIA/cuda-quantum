@@ -230,7 +230,7 @@ module {
       (!phys.state<@q0>) -> !phys.state<@q0> {
   ^bb0(%unrelated: !phys.state<@q0>):
     %0 = phys.acquire [@q0] : !phys.state<@q0>
-    // expected-error @+1 {{cannot carry more than one physical-state owner for resource @q0}}
+    // expected-error @+1 {{cannot carry more than one physical-state value for resource @q0}}
     %1:2 = "cflow.repeat"(%0, %unrelated) <{count = 1 : i64}> ({
     ^bb0(%acquired: !phys.state<@q0>, %other: !phys.state<@q0>):
       cflow.yield %other, %acquired

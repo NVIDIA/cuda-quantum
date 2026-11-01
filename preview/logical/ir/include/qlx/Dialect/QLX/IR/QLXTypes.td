@@ -30,8 +30,9 @@ def QLX_LogicalQubitType : QLX_Type<"LogicalQubit", "logical_qubit"> {
   let description = [{
     The canonical QLX P0 quantum value.  It carries no machine, region,
     code, encoding, placement, timing, or cost information.  The type is
-    linear: every transforming operation consumes one SSA owner and produces
-    exactly one successor owner on every reachable path.
+    linear, and its values are in SSI form: every value has exactly one use.
+    Every transforming operation consumes one value and produces exactly one
+    successor value on every reachable path.
   }];
 }
 

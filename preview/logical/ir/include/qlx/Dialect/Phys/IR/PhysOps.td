@@ -845,7 +845,7 @@ def Phys_CallTemplateOp : Phys_Op<"call_template", []> {
     only when the canonical call has an all-state, type-identical input/output
     boundary. The invocation either uses those exact physical resources or
     supplies a complete nonidentity `state_aliases` bijection. The canonical
-    resource-effect summary then advances the resolved owners without
+    resource-effect summary then advances the resolved values without
     repeating a potentially wide SSA boundary at every invocation.
   }];
   let arguments = (ins
