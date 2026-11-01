@@ -217,6 +217,27 @@ jobs:
             cd /workspace/realtime
             CUDAQ_REALTIME_INSTALL_PREFIX=/workspace/installer bash scripts/build_realtime.sh 
 
+      # Downstream integration build with HSB_ROOT and HololinkRoCE enabled.
+      - name: Build CUDA Quantum against Realtime
+        if: matrix.platform == 'amd64' && matrix.cuda_version == '13.0'
+        uses: ./.github/actions/run-in-docker
+        with:
+          image: ghcr.io/nvidia/cuda-quantum-devcontainer:${{ matrix.platform }}-cu${{ matrix.cuda_version }}-gcc12-main
+          volume: ${{ github.workspace }}:/workspace
+          shell: bash
+          run: |
+            set -eo pipefail
+            cd /workspace
+            git config --global --add safe.directory /workspace
+            export HSB_ROOT=/workspace/holoscan-sensor-bridge
+            test -f /workspace/installer/lib/libcudaq-realtime-cpu-roce-transport.a
+            CUDAQ_BUILD_TESTS=FALSE \
+            CUDAQ_PYTHON_SUPPORT=FALSE \
+            CUDAQ_INSTALL_PREFIX=/workspace/cudaq-installer-with-realtime \
+              bash scripts/build_cudaq.sh -c Release -B build/cudaq-with-realtime -- \
+                -DCUDAQ_REALTIME_DIR=/workspace/installer
+            test -f /workspace/cudaq-installer-with-realtime/lib/libcudaq-device-call-runtime.so
+
       - name: 'Tar files'
         run: cd ${{ github.workspace }}/realtime/build && tar czf ${{ github.workspace }}/build_artifacts.tgz *
       
@@ -323,6 +344,27 @@ jobs:
               ls /workspace/installer/lib/*roce* >&2
               exit 1
             fi
+
+      # Downstream integration build without HSB_ROOT or transport dependencies.
+      - name: Build CUDA Quantum against Realtime
+        if: matrix.platform == 'amd64' && matrix.cuda_version == '13.0'
+        uses: ./.github/actions/run-in-docker
+        with:
+          image: ghcr.io/nvidia/cuda-quantum-devcontainer:${{ matrix.platform }}-cu${{ matrix.cuda_version }}-gcc12-main
+          volume: ${{ github.workspace }}:/workspace
+          shell: bash
+          run: |
+            set -eo pipefail
+            cd /workspace
+            git config --global --add safe.directory /workspace
+            export HSB_ROOT=
+            test ! -f /workspace/installer/lib/libcudaq-realtime-cpu-roce-transport.a
+            CUDAQ_BUILD_TESTS=FALSE \
+            CUDAQ_PYTHON_SUPPORT=FALSE \
+            CUDAQ_INSTALL_PREFIX=/workspace/cudaq-installer-without-transport-deps \
+              bash scripts/build_cudaq.sh -c Release -B build/cudaq-without-transport-deps -- \
+                -DCUDAQ_REALTIME_DIR=/workspace/installer
+            test -f /workspace/cudaq-installer-without-transport-deps/lib/libcudaq-device-call-runtime.so
 
       - name: 'Tar files'
         run: cd ${{ github.workspace }}/realtime/build && tar czf ${{ github.workspace }}/build_artifacts.tgz *
