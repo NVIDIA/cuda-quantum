@@ -41,3 +41,8 @@ target-arguments:
     type: string
     platform-arg: api_key
     help-string: "Specify the qBraid API key."
+  - key: access_token
+    required: false
+    type: string
+    platform-arg: access_token
+    help-string: "Specify a qBraid access token (sent as a Bearer token)."

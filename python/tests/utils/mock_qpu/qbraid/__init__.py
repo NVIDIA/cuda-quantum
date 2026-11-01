@@ -50,6 +50,22 @@ DELAY_RESULTS_COUNT = {"remaining": 0}
 # helper's 401/403/404/5xx handling paths.
 FORCE_NEXT_RESULT_STATUS = {"code": None}
 
+# Test hook: the auth scheme of the most recent authenticated request
+# ("api_key" or "bearer"), so tests can check which header the helper sent.
+LAST_AUTH = {"scheme": None}
+
+
+def _require_auth(x_api_key: Optional[str], authorization: Optional[str]):
+    """Accept either an X-API-KEY header or an `Authorization: Bearer` token."""
+    if authorization is not None and authorization.startswith("Bearer ") \
+            and authorization[len("Bearer "):]:
+        LAST_AUTH["scheme"] = "bearer"
+    elif x_api_key is not None:
+        LAST_AUTH["scheme"] = "api_key"
+    else:
+        raise HTTPException(status_code=401,
+                            detail="API key or access token is required")
+
 
 def count_qubits(qasm: str) -> int:
     """Extracts the number of qubits from an OpenQASM string."""
@@ -169,10 +185,10 @@ def poll_job_status(job_id: str) -> dict[str, Any]:
 # v2 API: POST /jobs
 @app.post("/jobs")
 async def postJob(job: Job,
-                  x_api_key: Optional[str] = Header(None, alias="X-API-KEY")):
+                  x_api_key: Optional[str] = Header(None, alias="X-API-KEY"),
+                  authorization: Optional[str] = Header(None)):
     """Submit a quantum job for execution (v2 API)."""
-    if x_api_key is None:
-        raise HTTPException(status_code=401, detail="API key is required")
+    _require_auth(x_api_key, authorization)
 
     newId = str(uuid.uuid4())
 
@@ -233,7 +249,14 @@ async def resetTestState():
     FAIL_NEXT_JOB["enabled"] = False
     DELAY_RESULTS_COUNT["remaining"] = 0
     FORCE_NEXT_RESULT_STATUS["code"] = None
+    LAST_AUTH["scheme"] = None
     return {"reset": True}
+
+
+# Test-only: report the auth scheme of the most recent authenticated request.
+@app.get("/test/last_auth")
+async def lastAuth():
+    return {"scheme": LAST_AUTH["scheme"]}
 
 
 def _paradigm_for_device(device_qrn: str) -> str:
@@ -254,14 +277,14 @@ def _paradigm_for_device(device_qrn: str) -> str:
 async def getDevice(
         device_qrn: str = Path(...),
         x_api_key: Optional[str] = Header(None, alias="X-API-KEY"),
+        authorization: Optional[str] = Header(None),
 ):
     """Retrieve device metadata (v2 API).
 
     The helper queries this at target-initialization time to confirm the
     selected device can run gate-based programs before submitting any job.
     """
-    if x_api_key is None:
-        raise HTTPException(status_code=401, detail="API key is required")
+    _require_auth(x_api_key, authorization)
 
     paradigm = _paradigm_for_device(device_qrn)
     return {
@@ -284,10 +307,10 @@ async def getDevice(
 async def getJob(
         job_id: str = Path(...),
         x_api_key: Optional[str] = Header(None, alias="X-API-KEY"),
+        authorization: Optional[str] = Header(None),
 ):
     """Retrieve the status of a quantum job (v2 API)."""
-    if x_api_key is None:
-        raise HTTPException(status_code=401, detail="API key is required")
+    _require_auth(x_api_key, authorization)
 
     job_data = poll_job_status(job_id)
 
@@ -300,10 +323,10 @@ async def getJob(
 async def getJobProgram(
         job_id: str = Path(...),
         x_api_key: Optional[str] = Header(None, alias="X-API-KEY"),
+        authorization: Optional[str] = Header(None),
 ):
     """Retrieve the program of a quantum job (v2 API)."""
-    if x_api_key is None:
-        raise HTTPException(status_code=401, detail="API key is required")
+    _require_auth(x_api_key, authorization)
 
     if job_id not in JOBS_MOCK_DB:
         raise HTTPException(status_code=404, detail="Job not found")
@@ -325,6 +348,7 @@ async def getJobProgram(
 async def getJobResult(
         job_id: str = Path(...),
         x_api_key: Optional[str] = Header(None, alias="X-API-KEY"),
+        authorization: Optional[str] = Header(None),
 ):
     """Retrieve the results of a quantum job (v2 API)."""
     # Test hook: if armed, raise the requested status. Checked first so tests
@@ -335,8 +359,7 @@ async def getJobResult(
         raise HTTPException(status_code=forced,
                             detail=f"Forced HTTP {forced} for test")
 
-    if x_api_key is None:
-        raise HTTPException(status_code=401, detail="API key is required")
+    _require_auth(x_api_key, authorization)
 
     if job_id not in JOBS_MOCK_DB:
         raise HTTPException(status_code=404, detail="Job not found")
