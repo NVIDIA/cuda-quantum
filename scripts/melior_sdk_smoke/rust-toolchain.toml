@@ -1,0 +1,14 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+# Pinned toolchain for the SDK smoke fixture. Record the toolchain that
+# produced a successful locked build; do not float on stable.
+
+[toolchain]
+channel = "1.99.1"
+profile = "minimal"

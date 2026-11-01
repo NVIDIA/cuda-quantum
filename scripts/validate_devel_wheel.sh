@@ -17,11 +17,17 @@
 # Options:
 #   -i <dir>: Directory containing cudaq_devel*.whl (required)
 #   -r <dir>: Directory containing frontend and core wheels for co-install (optional;
-#             core provides libcudaqMLIR that the extension links and loads). If
-#             omitted, pip will attempt to resolve the cudaq dependency from the index.
+#             core provides the shared LLVM/MLIR providers and libcudaqMLIR that
+#             the extension links and loads; the full CUDAQConfig.cmake still
+#             requires the frontend runtime libraries - see the §1 fallback note
+#             in pyproject.toml.devel). If omitted, pip will attempt to resolve
+#             the cudaq dependency from the index.
 #   -q: Skip the out-of-tree Python-extension smoke build (contents check only)
 
 set -euo pipefail
+# Installed-wheel validation must not inherit producer-library buckets
+# nor Python/preload overrides from the ambient environment.
+unset LD_LIBRARY_PATH LIBRARY_PATH CPATH CPLUS_INCLUDE_PATH PYTHONPATH LD_PRELOAD || true
 
 devel_dir=""
 runtime_dir=""
@@ -50,8 +56,15 @@ echo "Validating devel wheel: $devel_wheel"
 
 devel_listing=$(unzip -l "$devel_wheel")
 
-# Contents: expect dev artifacts, not runtime-only paths stripped from runtime wheel.
-for pattern in 'include/cudaq/' 'lib/cmake/cudaq/CUDAQConfig.cmake' 'bin/mlir-tblgen'; do
+# Contents: expect CUDA-Q's own dev artifacts at the native (flat) location
+# and the bundled LLVM/MLIR toolchain under the shared private prefix, not
+# runtime-only paths stripped from runtime wheel.
+for pattern in \
+  'include/cudaq/' \
+  'lib/cmake/cudaq/CUDAQConfig.cmake' \
+  'cudaq_core/cudaq/core/bin/mlir-tblgen' \
+  'cudaq_core/cudaq/core/bin/llvm-config' \
+  'cudaq_core/cudaq/core/lib/cmake/mlir/MLIRConfig.cmake'; do
   if ! grep -q "$pattern" <<< "$devel_listing"; then
     echo "Error: expected path matching '$pattern' in devel wheel" >&2
     exit 1
@@ -65,7 +78,16 @@ if grep -q 'lib/libcudaq\.so' <<< "$devel_listing"; then
 fi
 echo "  OK: libcudaq.so not bundled in devel wheel"
 
+# The shared runtime providers are core-owned; devel must never recopy them.
+if grep -qE 'lib(LLVM|MLIR|MLIR-C|MLIRExecutionEngineShared)\.(so|dylib)' <<< "$devel_listing"; then
+  echo "Error: devel wheel ships core-owned LLVM/MLIR providers:" >&2
+  grep -E 'lib(LLVM|MLIR|MLIR-C|MLIRExecutionEngineShared)\.(so|dylib)' <<< "$devel_listing" | head -5 >&2
+  exit 1
+fi
+echo "  OK: no core-owned LLVM/MLIR providers in devel wheel"
+
 # Reject build-machine absolute paths that break out-of-tree consumers.
+# Covers both the flat config surface and the nested private-prefix content.
 scratch=$(mktemp -d)
 venv_dir=""
 smoke_dir=""
@@ -73,7 +95,11 @@ trap 'rm -rf "$venv_dir" "$smoke_dir" "$scratch"' EXIT
 unzip -q -d "$scratch" "$devel_wheel" \
   'lib/cmake/*Targets*.cmake' 'lib/cmake/*/*Targets*.cmake' \
   'bin/clang.cfg' 'bin/clang++.cfg' \
-  'lib/cmake/llvm/LLVMConfig.cmake' 2>/dev/null || true
+  'lib/cmake/llvm/LLVMConfig.cmake' \
+  'cudaq_core/cudaq/core/lib/cmake/*/*Config.cmake' \
+  'cudaq_core/cudaq/core/lib/cmake/*/*Targets*.cmake' \
+  'cudaq_core/cudaq/core/lib/cmake/*/*/*Config.cmake' \
+  'cudaq_core/cudaq/core/bin/*.cfg' 2>/dev/null || true
 if [ -z "$(find "$scratch" -type f -print -quit)" ]; then
   echo "Error: no files extracted from devel wheel" >&2
   exit 1
@@ -126,7 +152,7 @@ if [ -n "$runtime_wheel" ]; then
   pip install -q --no-deps "$devel_wheel"
 else
   echo "Warning: no runtime wheel provided (-r); letting pip resolve the cudaq" >&2
-  echo "         dependencies (including core's libcudaqMLIR) from the index." >&2
+  echo "         dependencies (providers, libcudaqMLIR, frontend) from the index." >&2
   echo "Installing devel wheel (resolving dependencies)"
   pip install -q "$devel_wheel"
 fi

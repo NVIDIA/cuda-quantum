@@ -208,17 +208,37 @@ else()
   message(STATUS "Using LLVM ${LLVM_PACKAGE_VERSION} from ${LLVM_DIR}")
   message(STATUS "Using MLIR from ${MLIR_DIR}")
 
-  # Opt-in audit of the toolchain: libcudaqMLIR embeds the "LLVM version X.Y.Z"
-  # string of the LLVM it was built with. The binary also holds truncated
-  # fragments (e.g. "LLVM version 22."), so collect every match and trust only
-  # complete X.Y.Z versions; anything less skips the check with a warning.
+  # Opt-in audit of the toolchain. With shared upstream providers, the
+  # slimmed libcudaqMLIR no longer embeds LLVM, so inspect the real provider:
+  # libLLVM from the same CUDA-Q core package. Older monolithic libcudaqMLIR
+  # installs still carry the string themselves. The binary also holds
+  # truncated fragments (e.g. "LLVM version 22."), so collect every match and
+  # trust only complete X.Y.Z versions; anything less skips the check with a
+  # warning.
   if(QLX_VERIFY_TOOLCHAIN)
     set(_cudaq_logical_llvm_built "")
     find_program(_cudaq_logical_grep grep)
-    if(_cudaq_logical_grep AND EXISTS "${CUDAQ_LIBRARY_DIR}/libcudaqMLIR${CMAKE_SHARED_LIBRARY_SUFFIX}")
+    set(_cudaq_logical_probe
+      "${CUDAQ_LIBRARY_DIR}/libcudaqMLIR${CMAKE_SHARED_LIBRARY_SUFFIX}")
+    if(CUDAQ_CORE_LIBRARY_DIR)
+      file(GLOB _cudaq_logical_llvm_provider
+        "${CUDAQ_CORE_LIBRARY_DIR}/libLLVM.so.*"
+        "${CUDAQ_CORE_LIBRARY_DIR}/libLLVM.dylib")
+      if(_cudaq_logical_llvm_provider)
+        list(SORT _cudaq_logical_llvm_provider)
+        list(REVERSE _cudaq_logical_llvm_provider)
+        list(GET _cudaq_logical_llvm_provider 0 _cudaq_logical_provider_real)
+        if(EXISTS "${_cudaq_logical_provider_real}")
+          set(_cudaq_logical_probe "${_cudaq_logical_provider_real}")
+        endif()
+      endif()
+      # Static/monolithic installs have no libLLVM dylib: fall back to
+      # probing libcudaqMLIR itself, the pre-split documented behavior.
+    endif()
+    if(_cudaq_logical_grep AND EXISTS "${_cudaq_logical_probe}")
       execute_process(
         COMMAND "${_cudaq_logical_grep}" -a -o "LLVM version [0-9][0-9.]*"
-          "${CUDAQ_LIBRARY_DIR}/libcudaqMLIR${CMAKE_SHARED_LIBRARY_SUFFIX}"
+          "${_cudaq_logical_probe}"
         OUTPUT_VARIABLE _cudaq_logical_llvm_probe
         OUTPUT_STRIP_TRAILING_WHITESPACE
         ERROR_QUIET)
@@ -242,7 +262,7 @@ else()
     else()
       message(WARNING
         "QLX_VERIFY_TOOLCHAIN: could not find a complete LLVM X.Y.Z version string "
-        "in libcudaqMLIR; skipping the LLVM version check.")
+        "in ${_cudaq_logical_probe}; skipping the LLVM version check.")
     endif()
     # The C++ compiler must match the one CUDA-Q was built with. MLIR derives some
     # TypeIDs (e.g. op traits like SymbolTable) from compiler-specific type-name

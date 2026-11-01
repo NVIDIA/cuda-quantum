@@ -1,0 +1,20 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+# Standalone, unmodified-Melior smoke crate for the CUDA-Q SDK. Kept
+# independent of Onsen on purpose: a failure here means the SDK (not Onsen)
+# is at fault. See scripts/validate_melior_sdk.sh.
+
+[package]
+name = "cudaq-sdk-melior-smoke"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+melior = "=0.27.8"

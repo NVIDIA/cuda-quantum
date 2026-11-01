@@ -267,7 +267,8 @@ jobs:
           python -m auditwheel show "$RAW_WHEEL"
 
           # CUDA-Q MLIR and gmp/mpfr ship in core; do not
-          # vendor them into cudaq-logical.
+          # vendor them into cudaq-logical. The shared upstream
+          # LLVM/MLIR providers are likewise core-owned.
           python -m auditwheel repair \
             --plat "$PLAT" \
             --exclude libcudaqMLIR.so \
@@ -276,6 +277,10 @@ jobs:
             --exclude libMLIRPythonSupport-cudaq.so \
             --exclude libgmp.so.10 \
             --exclude libmpfr.so.6 \
+            --exclude "libLLVM.so*" \
+            --exclude "libMLIR.so*" \
+            --exclude "libMLIR-C.so*" \
+            --exclude "libMLIRExecutionEngineShared.so*" \
             --wheel-dir dist "$RAW_WHEEL"
 
           wheel="$(find dist -name "cudaq_logical-*-cp${PY_TAG}-*${PLAT}.whl" -print -quit)"
