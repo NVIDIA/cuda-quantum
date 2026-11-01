@@ -104,7 +104,7 @@ gadgetLogicalAction(qlx::fabric::GadgetOp gadget) {
   auto spec = resolvedGadgetSpec(gadget);
   if (!spec)
     return std::nullopt;
-  auto objective = dyn_cast_or_null<qlx::fabric::ObjectiveOp>(
+  auto objective = dyn_cast_or_null<qlx::fabric::ActionOp>(
       SymbolTable::lookupNearestSymbolFrom(spec, spec.getObjectiveAttr()));
   if (!objective || !objective.getLogicalAttr())
     return std::nullopt;
@@ -119,7 +119,7 @@ gadgetLogicalInstrument(qlx::fabric::GadgetOp gadget) {
   auto spec = resolvedGadgetSpec(gadget);
   if (!spec)
     return {};
-  auto objective = dyn_cast_or_null<qlx::fabric::ObjectiveOp>(
+  auto objective = dyn_cast_or_null<qlx::fabric::ActionOp>(
       SymbolTable::lookupNearestSymbolFrom(spec, spec.getObjectiveAttr()));
   if (!objective || !objective.getLogicalAttr())
     return {};
@@ -136,9 +136,9 @@ logicalMeasurementBasis(qlx::InstrumentDeclOp instrument) {
       dyn_cast_or_null<FlatSymbolRefAttr>(instrument.getSemanticsAttr());
   auto body =
       semantics
-          ? dyn_cast_or_null<qlx::ObjectiveBodyOp>(
+          ? dyn_cast_or_null<qlx::ActionBodyOp>(
                 SymbolTable::lookupNearestSymbolFrom(instrument, semantics))
-          : qlx::ObjectiveBodyOp{};
+          : qlx::ActionBodyOp{};
   if (!body || body.getBody().empty())
     return std::nullopt;
   Block &block = body.getBody().front();
@@ -1502,7 +1502,7 @@ static LogicalResult verifyComponentPlan(SpacetimePlanOp plan) {
       source->getAttrOfType<StringAttr>("component_boundary_sha256") !=
           boundaryDigest)
     return plan.emitOpError(
-        "component plan source/objective/boundary commitment differs from "
+        "component plan source/action/boundary commitment differs from "
         "its exact retained protocol");
   bool characterized = plan.getDerivation() == "characterized";
   bool hasBuild = static_cast<bool>(plan.getSourceBuildSha256Attr());
@@ -1711,7 +1711,7 @@ static LogicalResult verifyComponentInvocation(SpacetimeCallOp call,
       source->getAttrOfType<StringAttr>("component_boundary_sha256") !=
           plan.getSourceBoundarySha256Attr())
     return call.emitOpError(
-        "component invocation source/objective/boundary differs from its plan");
+        "component invocation source/action/boundary differs from its plan");
   return success();
 }
 

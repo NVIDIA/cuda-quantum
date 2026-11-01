@@ -361,6 +361,15 @@ foreach(_proj IN LISTS CUDAQ_ENABLE_PROJECTS)
   endif()
 endforeach()
 
+# Logical always consumes EDEM, including its Python value package.
+if("logical" IN_LIST CUDAQ_EXTERNAL_PROJECTS)
+  if(NOT "edem" IN_LIST CUDAQ_ENABLE_PROJECTS)
+    list(APPEND CUDAQ_ENABLE_PROJECTS edem)
+  endif()
+  set(CUDAQ_EDEM_BUILD_PYTHON ON)
+  set(CUDAQ_EDEM_PYTHON_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/python")
+endif()
+
 # python depends on the MLIR dialects in cudaq/ and on runtime symbols.
 if("python" IN_LIST CUDAQ_ENABLE_PROJECTS)
   foreach(_dep cudaq runtime)

@@ -436,24 +436,27 @@ def Fabric_GadgetSpecOp : Fabric_Op<"gadget_spec", [Symbol]> {
   let hasVerifier = 1;
 }
 
-def Fabric_ProfileEndOp : Fabric_Op<"profile_end", [
-    Terminator, HasParent<"GadgetProfileOp">
+def Fabric_ContractEndOp : Fabric_Op<"contract_end", [
+    Terminator, HasParent<"GadgetContractOp">
   ]> {
-  let summary = "terminate a declarative gadget-analysis profile";
+  let summary = "terminate a declarative gadget contract";
   let assemblyFormat = "attr-dict";
 }
 
-def Fabric_GadgetProfileOp : Fabric_Op<"gadget_profile", [
+def Fabric_GadgetContractOp : Fabric_Op<"gadget_contract", [
     Symbol, IsolatedFromAbove,
-    SingleBlockImplicitTerminator<"ProfileEndOp">
+    SingleBlockImplicitTerminator<"ContractEndOp">
   ]> {
-  let summary = "success and boundary analysis overlay for one gadget";
+  let summary = "detector, observable, success, and boundary analysis for one gadget";
   let description = [{
-    References one executable gadget realization while separately declaring a
-    success and boundary interpretation. More than one profile may reference
-    the same gadget. Profile bodies are declarative: success and output
-    syndrome operations refer to stable measurement records through `records`
-    attributes rather than capturing SSA values from the gadget body.
+    References one executable gadget realization while separately declaring
+    its detector map, endpoint code presentations, observable rows, and success
+    conditions. The detector map and code presentations form the gadget
+    detector contract; the outcome map belongs to the gadget. More than one
+    contract may reference the same gadget. Contract rows refer to stable
+    measurement records through `records` attributes rather than capturing SSA
+    values from the gadget body. Local verification does not prove ideal
+    determinism or contract completeness.
   }];
   let arguments = (ins
     SymbolNameAttr:$sym_name,
@@ -473,11 +476,46 @@ def Fabric_GadgetProfileOp : Fabric_Op<"gadget_profile", [
 // Gadget analysis declarations
 //===----------------------------------------------------------------------===//
 
+def Fabric_DetectorOp : Fabric_Op<"detector", []> {
+  let summary = "declare one virtual-detector row of the affine detector map";
+  let description = [{
+    An affine parity over stable measurement records and input virtual
+    syndromes, intended to vanish on ideal outcomes. Rows may be redundant.
+    Local verification checks references; it does not prove determinism or
+    detector-contract completeness.
+  }];
+  let arguments = (ins
+    OptionalAttr<ArrayAttr>:$records,
+    OptionalAttr<ArrayAttr>:$input_syndromes,
+    OptionalAttr<BoolAttr>:$constant
+  );
+  let hasVerifier = 1;
+  let assemblyFormat = "attr-dict";
+}
+
+def Fabric_ObservableOp : Fabric_Op<"observable", []> {
+  let summary = "declare one indexed action-outcome row of the outcome map";
+  let description = [{
+    An affine parity of realization measurement records, with no incoming
+    virtual-syndrome dependence. Random outcomes are valid observables too.
+    When the GadgetSpec declares result rows, these rows must agree with that
+    outcome map in order, support, and constant.
+  }];
+  let arguments = (ins
+    I64Attr:$idx,
+    OptionalAttr<ArrayAttr>:$records,
+    OptionalAttr<ArrayAttr>:$input_syndromes,
+    OptionalAttr<BoolAttr>:$constant
+  );
+  let hasVerifier = 1;
+  let assemblyFormat = "attr-dict";
+}
+
 def Fabric_SuccessOp : Fabric_Op<"success", []> {
   let summary = "declare a success or postselection predicate over records";
   let description = [{
     Declares a mismatch parity over stable measurement records in a
-    `fabric.gadget_profile`: zero means accepted. It is analysis semantics, not
+    `fabric.gadget_contract`: zero means accepted. It is analysis semantics, not
     executable branch control. Retry, discard, and abort behavior belong to
     the enclosing protocol's explicit selection or retry operation.
   }];
@@ -491,12 +529,14 @@ def Fabric_SuccessOp : Fabric_Op<"success", []> {
 }
 
 def Fabric_OutputSyndromeOp : Fabric_Op<"output_syndrome", []> {
-  let summary = "assign one effective syndrome bit at an output profile port";
+  let summary = "assign one output virtual-syndrome bit of the detector map";
   let description = [{
-    Compiler-normalized scalar row defining one output effective-syndrome
-    component as an affine parity over incoming syndrome bits and stable
+    Compiler-normalized scalar row defining one output virtual-syndrome
+    component as an affine parity over incoming virtual syndromes and stable
     realization records. Source frontends bind whole typed syndrome bundles;
     ``port_index`` is the output endpoint ordinal in the gadget interface.
+    These expected stabilizer signs are distinct from the syndrome
+    coordinates of a residual boundary Pauli error.
   }];
   let arguments = (ins
     I64Attr:$port_index,

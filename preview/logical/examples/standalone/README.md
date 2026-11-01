@@ -5,15 +5,45 @@ These examples use `cudaq.logical` directly. They do not define
 the logical authoring, placement, QEC selection, physical lowering, scheduling,
 direct estimation, and `cudaq.run` APIs visible.
 
-The sequence progresses from portable logical programs through a complete
-physical schedule and Gidney--Ekerå lookup-addition resource estimates.
-The execution examples then progress from ideal computation to noise and
-measurement-controlled execution:
+Examples 00–03 introduce the compiler from a portable logical program to a
+complete physical schedule. Continue with encoded execution (06), or factory
+protocols and evaluation (07–08). Example 09 is an optional capstone combining
+synthesis, factories, estimation, and scheduling.
 
-- `06_steane_bernstein_vazirani.py` recovers a hidden bit string with Steane
-  encoded qubits on Stim.
-- `07_t_factory_evaluation.py` evaluates T-state distillation with non-Clifford
-  gates, measurement feedback, and raw-state noise on `BareQubit` patches.
+1. `00_logical_program.py` authors a portable Bell program without a CUDA-Q
+   kernel and counts its logical resources.
+2. `01_logical_placement.py` places a Bell program on a two-slot logical
+   machine.
+3. `02_code_and_gadget.py` defines the Steane code and a syndrome-extraction
+   gadget, then inspects the gadget's static operations.
+4. `03_physical_schedule.py` compiles a logical memory experiment onto a
+   surface-code device and lowers it to physical events.
+5. `06_steane_bernstein_vazirani.py` recovers a hidden bit string with Steane
+   encoded qubits using `cudaq.run` on Stim. Its explicit Clifford encoder
+   prepares ideal encoded states; it does not perform noisy error correction
+   or decoding.
+6. `07_magic_state_distillation.py` defines a 15-to-1 T-state distillation
+   protocol with resource requests and postselection, then estimates its
+   static resources.
+7. `08_t_factory_evaluation.py` evaluates T-state distillation with
+   non-Clifford gates, measurement feedback, and raw-state noise on `BareQubit`
+   patches. It supplies explicit preparation and gate teleportation, selecting
+   accepted shots in Python, rather than executing example 07 unchanged.
+8. `09_gidney_ekera_lookup_addition.py` compiles a four-bit Gidney--Ekerå
+   lookup-addition circuit through synthesis, PBC normalization, placement,
+   QEC selection, and physical scheduling, including factory provisioning
+   and analytical estimates.
+
+Run any example from the repository root:
+
+```bash
+python3 preview/logical/examples/standalone/00_logical_program.py
+```
 
 The encoded example uses an explicit Clifford preparation circuit. It does not
 claim fault-tolerant preparation or decoded error correction.
+
+For gadget verification, annotated Stim export, and gadget-by-gadget detector
+error models, follow the separate [gadget sequence](../gadgets/README.md).
+Its `00_verify_gadget.py` introduces verification of one authored gadget;
+`01_surface_memory.py` applies the workflow to physical surface-code memory.

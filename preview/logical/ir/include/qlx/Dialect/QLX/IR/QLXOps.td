@@ -274,9 +274,11 @@ def QLX_ActionOp : QLX_Op<"action", [Symbol]> {
     StrAttr:$kind,
     OptionalAttr<AnyAttr>:$semantics,
     OptionalAttr<QLX_CliffordActionAttr>:$clifford_action,
-    OptionalAttr<DictionaryAttr>:$effects
+    OptionalAttr<DictionaryAttr>:$effects,
+    OptionalAttr<StrArrayAttr>:$operand_names
   );
   let assemblyFormat = "$sym_name `:` $function_type attr-dict";
+  let hasVerifier = 1;
 }
 
 def QLX_InstrumentDeclOp : QLX_Op<"instrument_decl", [Symbol]> {
@@ -287,9 +289,11 @@ def QLX_InstrumentDeclOp : QLX_Op<"instrument_decl", [Symbol]> {
     StrAttr:$kind,
     OptionalAttr<AnyAttr>:$semantics,
     OptionalAttr<DictionaryAttr>:$ownership,
-    OptionalAttr<DictionaryAttr>:$effects
+    OptionalAttr<DictionaryAttr>:$effects,
+    OptionalAttr<StrArrayAttr>:$operand_names
   );
   let assemblyFormat = "$sym_name `:` $function_type attr-dict";
+  let hasVerifier = 1;
 }
 
 def QLX_ApplyOp : QLX_Op<"apply", []> {

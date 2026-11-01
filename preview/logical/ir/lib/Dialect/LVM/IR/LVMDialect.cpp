@@ -177,7 +177,7 @@ LogicalResult DomainOp::verify() {
           "an lvm.apply source_site requires kind = action");
     if (site.getObjectiveAttr() != source.getActionAttr())
       return site.emitOpError(
-          "objective does not match the source_site lvm.apply action");
+          "action does not match the source_site lvm.apply action");
     if (site.getPlacements() != source.getPlacements())
       return site.emitOpError(
           "placements do not match the source_site lvm.apply placements");
@@ -832,7 +832,7 @@ static LogicalResult verifyPlacedCall(Operation *op, ArrayAttr placements,
   if (!declaration ||
       (expectInstrument && !isa<qlx::InstrumentDeclOp>(declaration)) ||
       (!expectInstrument && !isa<qlx::ActionOp>(declaration)))
-    return op->emitOpError("references missing or wrong-kind objective ")
+    return op->emitOpError("references missing or wrong-kind action ")
            << reference;
   auto functionType =
       expectInstrument
@@ -846,16 +846,14 @@ static LogicalResult verifyPlacedCall(Operation *op, ArrayAttr placements,
     // compare non-quantum types and arity while accepting that refinement.
     if (inputs.size() != functionType.getNumInputs() ||
         results.size() != functionType.getNumResults())
-      return op->emitOpError("objective arity does not match placed call");
+      return op->emitOpError("action arity does not match placed call");
     for (auto [actual, ideal] :
          llvm::zip(inputs.getTypes(), functionType.getInputs()))
       if (!isa<LogicalQubitType>(actual) && actual != ideal)
-        return op->emitOpError(
-            "non-quantum input type does not match objective");
+        return op->emitOpError("non-quantum input type does not match action");
     for (auto [actual, ideal] : llvm::zip(results, functionType.getResults()))
       if (!isa<LogicalQubitType>(actual) && actual != ideal)
-        return op->emitOpError(
-            "non-quantum result type does not match objective");
+        return op->emitOpError("non-quantum result type does not match action");
   }
   return success();
 }
@@ -1102,7 +1100,7 @@ LogicalResult ActionSiteOp::verify() {
       dyn_cast_or_null<qlx::BuiltinInstrumentAttr>(getObjectiveAttr());
   if (!builtin || builtin.getValue() != qlx::BuiltinInstrument::mpp)
     return emitOpError(
-        "communication action site objective must be the built-in MPP");
+        "communication action site must declare the built-in MPP");
   if (getChannelCapabilityAttr().getKey() != "qlx.machine/observable_remote")
     return emitOpError("communication action site requires observable_remote "
                        "channel capability");

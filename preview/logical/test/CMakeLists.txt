@@ -6,6 +6,12 @@
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
 
+add_executable(qlx-ideal-outcomes-test Analysis/IdealOutcomesTest.cpp)
+target_link_libraries(qlx-ideal-outcomes-test PRIVATE MLIRGadgetEDEM)
+qlx_propagate_llvm_rtti_eh(qlx-ideal-outcomes-test)
+add_test(NAME qlx-ideal-outcomes COMMAND qlx-ideal-outcomes-test)
+set_tests_properties(qlx-ideal-outcomes PROPERTIES LABELS "qlx;analysis")
+
 # Generate lit.site.cfg.py from the template.
 configure_lit_site_cfg(
   ${CMAKE_CURRENT_SOURCE_DIR}/lit.site.cfg.py.in
@@ -31,6 +37,7 @@ if(LIT_PATH AND FILECHECK_PATH)
   set(QLX_LIT_DEPENDS
     qlx-opt
     qlx-translate
+    qlx-ideal-outcomes-test
   )
   foreach(_t IN LISTS QLX_FILECHECK_TARGET QLX_NOT_TARGET QLX_COUNT_TARGET)
     if(_t)
@@ -88,6 +95,9 @@ if(LIT_PATH AND FILECHECK_PATH)
     FIXTURES_REQUIRED qlx-lit-tools
     LABELS "qlx;conformance"
   )
+  set_tests_properties(qlx-ideal-outcomes PROPERTIES
+    FIXTURES_REQUIRED qlx-lit-tools
+  )
 
   # ctest's FIXTURES_REQUIRED automatically runs qlx-lit-build-tools
   # (the fixture setup) before the FileCheck tests when either test is
@@ -97,10 +107,10 @@ if(LIT_PATH AND FILECHECK_PATH)
       # Avoid a trailing `$` here: Ninja treats it as a line-continuation
       # escape in the generated custom command and concatenates `DESC` onto
       # the ctest regular expression.
-      -R "^qlx-filecheck-tests"
+      -R "^qlx-(filecheck-tests|ideal-outcomes)"
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     USES_TERMINAL
-    COMMENT "Running QLX FileCheck tests")
+    COMMENT "Running QLX FileCheck and ideal-outcome tests")
 else()
   if(NOT LIT_PATH)
     message(WARNING

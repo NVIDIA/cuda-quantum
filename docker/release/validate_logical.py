@@ -13,12 +13,18 @@ from pathlib import Path
 import subprocess
 
 import cudaq.logical as ql
+import cudaq_edem
 
 prefix = Path(os.environ["CUDA_QUANTUM_PATH"]).resolve()
 metadata = distribution("cudaq-logical")
 assert Path(ql.__file__).resolve().is_relative_to(prefix / "cudaq/logical")
 assert Path(metadata.locate_file("")).resolve() == prefix
 assert ql.__version__ == metadata.version
+edem_metadata = distribution("cudaq-edem")
+assert Path(cudaq_edem.__file__).resolve().is_relative_to(prefix / "cudaq_edem")
+assert Path(edem_metadata.locate_file("")).resolve() == prefix
+assert cudaq_edem.__version__ == edem_metadata.version
+assert cudaq_edem.project_DEM(cudaq_edem.EDEM()).is_dem
 
 # Simple program to exercise the `cudaq.logical` installation.
 # TODO: Use `examples` directory once location is finalized.

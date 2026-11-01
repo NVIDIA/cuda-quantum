@@ -525,6 +525,7 @@ jobs:
       cuda_versions: "['', '12.6', '13.0']"
       wheel_artifacts: "pycudaq-*"
       logical_wheel_artifacts: "cudaq_logical-*"
+      edem_wheel_artifacts: "cudaq_edem-*"
       cudaq_logical_version: ${{ needs.python_wheels_cu13.outputs.logical_version }}
 
   # Installer builds are packaging, not correctness — only built on merge_group/dispatch.

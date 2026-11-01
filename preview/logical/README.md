@@ -43,13 +43,28 @@ gallery) lives in [`docs/`](docs/README.md) and builds with
 
 ## Build
 
-There are two ways to build `cudaq.logical`. Both use CUDA-Q's single shared
-LLVM/MLIR image (`libcudaqMLIR`), so the CUDA-Q you build against must come from
-the same sources as this directory.
+Follow the repository's [development environment setup](../../Dev_Setup.md)
+and [CUDA-Q build instructions](../../Building.md) first. The commands below
+run from the repository root and assume those native prerequisites are available.
 
-### In-tree (recommended for development)
+### Build and install with the CUDA-Q script
 
-Enable it in the CUDA-Q build, together with the Python bindings:
+Add `-L` to the usual CUDA-Q build command:
+
+```bash
+bash scripts/build_cudaq.sh -L
+ctest --test-dir build/preview/logical --output-on-failure
+```
+
+The script builds and installs CUDA-Q, then EDEM and Logical against that
+installation. It reuses CUDA-Q's configured compilers, Python interpreter, and
+nanobind. Logical's build tree is `build/preview/logical` with the default
+build directory; use `-i -L` for subsequent incremental builds.
+
+### Manual build with CMake
+
+To drive CMake yourself instead of using the script, enable Logical in the
+CUDA-Q build, together with the Python bindings:
 
 ```bash
 cmake -S . -B build -DCUDAQ_ENABLE_LOGICAL=ON -DCUDAQ_ENABLE_PROJECTS="cudaq;runtime;python"  # plus your usual CUDA-Q options
@@ -63,56 +78,33 @@ the deprecated `-DCUDAQ_ENABLE_PYTHON=ON` is equivalent). `scripts/build_cudaq.s
 enables Python by default. `CUDAQ_ENABLE_LOGICAL` is shorthand for
 `-DCUDAQ_EXTERNAL_PROJECTS=logical -DCUDAQ_EXTERNAL_LOGICAL_SOURCE_DIR=$PWD/preview/logical`.
 The tools (`qlx-opt`, `qlx-translate`) land in the build's `bin/` next to the
-CUDA-Q tools.
+CUDA-Q tools. Enabling Logical also builds EDEM and its Python bindings,
+placing `cudaq_edem` alongside `cudaq` in `build/python`.
 
-### Out-of-tree
-
-Build against an *installation* of CUDA-Q, i.e. the prefix given to
-`cmake --install` on a CUDA-Q build of the same sources (configure CUDA-Q with
-`-DCUDAQ_BUNDLE_MLIR_INSTALL=ON` to co-locate LLVM/MLIR there, or point
-`LLVM_DIR`/`MLIR_DIR` at the LLVM it was built with):
-
-```bash
-cmake -S preview/logical -B build/preview/logical -G Ninja \
-  -DCUDAQ_INSTALL_PREFIX=/path/to/cudaq/install
-cmake --build build/preview/logical
-```
-
-`CUDAQ_DIR` or `CMAKE_PREFIX_PATH` work in place of `CUDAQ_INSTALL_PREFIX`.
-You also need `nanobind` (`-Dnanobind_DIR=...` or `NANOBIND_INSTALL_PREFIX`),
-GMP/MPFR headers and `lit`. The build engineer is trusted to supply a matching
-installation; to have CMake audit that the LLVM version and the compiler family
-agree with those CUDA-Q was built with, add `-DQLX_VERIFY_TOOLCHAIN=ON`.
-
-Build with the **same compiler family** (clang or GCC) as CUDA-Q itself, e.g.
-`CC=clang CXX=clang++`: CMake otherwise silently picks the system default, and a
-mismatch compiles fine but fails at runtime with verifier errors
-(`parent must have the SymbolTable trait`). `QLX_VERIFY_TOOLCHAIN` checks this
-too. See [`docs/source/reference/building-against-cudaq.md`](docs/source/reference/building-against-cudaq.md).
-
-If no prefix is given, CMake falls back to the `cudaq-devel` wheel in the active
-Python environment. That is how the `cudaq-logical` wheel is built in CI, and
-it is not the way to build from a source checkout.
-
-Run an example against the build tree. In-tree, Logical's package lives in
-CUDA-Q's own build-tree Python package, so no shim is needed:
+Run an example against the build tree. Logical's package lives in CUDA-Q's own
+build-tree Python package, so no shim is needed:
 
 ```bash
 PYTHONPATH=build/python python3 preview/logical/examples/00_logical_resource_estimate.py
 ```
 
-Out-of-tree, the build writes a `_cudaq_logical_devpath` shim that puts the
-build tree and the CUDA-Q installation on the import path:
-
-```bash
-PYTHONPATH=build/preview/logical/python \
-  python3 -c "import _cudaq_logical_devpath, runpy; runpy.run_path('preview/logical/examples/00_logical_resource_estimate.py', run_name='__main__')"
-```
-
 Or install the `cudaq-logical` wheel and run the example files directly.
 
-Run the test suites with `ctest` in the Logical build directory
-(`build/external/logical` for an in-tree build).
+### Test dependencies
+
+The tests and reference examples need `pytest`, `pytest-xdist`, `lit`, and
+`Stim`, which [`requirements-test.txt`](requirements-test.txt) supplies (both
+Docker test stages use it too). These are not build requirements, but install
+them from the repository root *before* configuring: CMake registers the
+`FileCheck` tests only if lit is already available.
+
+```bash
+python3 -m pip install -r preview/logical/requirements-test.txt
+```
+
+Run the test suites with `ctest` in the Logical build directory:
+`build/preview/logical` for the script build, or `build/external/logical` for
+the manual CMake build.
 
 Python tests exclude the `slow` group by default, including in PR CI. This
 keeps the RSA-2048 Gidney–Ekerå checks in routine runs while the RSA-3072/4096

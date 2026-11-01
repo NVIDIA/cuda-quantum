@@ -1047,11 +1047,11 @@ def surface_target(*,
                    next_backend=None):
     """Build a surface-code target, optionally legalizing to Clifford+T."""
 
-    from . import recipes
+    from ..architectures import surface
 
     return qec_target(
         "surface",
-        architecture=recipes.surface_architecture(distance),
+        architecture=surface.architecture(distance),
         logical_capacity=logical_capacity,
         next_backend=next_backend,
         clifford_t_precision=clifford_t_precision,
@@ -1076,9 +1076,9 @@ def surface_physical_target(*,
 
     from .. import devices
     from ..architecture import physical_actions, physical_instruments
-    from . import recipes
+    from ..architectures import surface
 
-    architecture = recipes.surface_architecture(distance)
+    architecture = surface.architecture(distance)
     builder = devices.DeviceBuilder("surfacePhysicalDevice", source_module=None)
     compute = builder.logical.add_compute(capacity=logical_capacity)
     encoded = builder.qec.bind(compute, architecture=architecture)
@@ -1107,11 +1107,11 @@ def surface_physical_target(*,
 def steane_target(*, logical_capacity=3, next_backend=None):
     """Build a Steane-code QEC target with an estimation-only terminal."""
 
-    from . import recipes
+    from ..architectures import steane
 
     return qec_target(
         "steane",
-        architecture=recipes.steane_architecture(),
+        architecture=steane.architecture(),
         logical_capacity=logical_capacity,
         next_backend=next_backend,
     )
