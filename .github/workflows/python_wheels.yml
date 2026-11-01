@@ -790,6 +790,31 @@ jobs:
           PYTHON="${{ steps.setup.outputs.python_executable }}" \
             bash scripts/validate_devel_wheel.sh -i dist -r dist
 
+      - name: Install Rust (pinned toolchain resolved via rust-toolchain.toml)
+        run: |
+          curl -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain none --profile minimal
+          echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+
+      - name: Validate SDK for Melior consumers
+        env:
+          PY: ${{ steps.setup.outputs.python_executable }}
+        run: |
+          uv venv /tmp/sdk-venv --python "$PY" --seed
+          # Select the sole devel wheel this job downloaded, without fixing a
+          # platform tag: validation runs on amd64 and arm64, and repair
+          # does not promise one specific manylinux tag.
+          mapfile -t devel_wheels < <(find dist -maxdepth 1 -name 'cudaq_devel-*.whl' -print | sort)
+          if [ "${#devel_wheels[@]}" -ne 1 ]; then
+            echo "expected exactly one cudaq_devel wheel in dist, found: ${devel_wheels[*]:-none}" >&2
+            exit 1
+          fi
+          devel_wheel=${devel_wheels[0]}
+          /tmp/sdk-venv/bin/pip install --quiet --find-links dist "$devel_wheel"
+          sdk_prefix=$(/tmp/sdk-venv/bin/python -c \
+            'from importlib.metadata import distribution; \
+             print(distribution("cudaq-core").locate_file("cudaq_core/cudaq/core"))')
+          bash scripts/validate_melior_sdk.sh --prefix "$sdk_prefix" --wheelhouse dist
+
   build_logical_wheel:
     name: Build and test cudaq.logical
     needs: [wheel_info, build_wheel, build_devel_wheel]
