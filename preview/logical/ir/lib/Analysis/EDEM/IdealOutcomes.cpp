@@ -531,8 +531,6 @@ analyzeIdealOutcomes(const Projection &projection,
         case ProjectionInstruction::Pauli::Z:
           set(pauli.z, factor.carrier);
           break;
-        default:
-          return fail("invalid MPP Pauli factor");
         }
       }
       IdealAffineBit outcome = tableau.measure(std::move(pauli));
