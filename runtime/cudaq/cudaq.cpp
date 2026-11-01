@@ -151,6 +151,13 @@ CUDAQ_ALL_REDUCE_IMPL(float, std::multiplies, PROD)
 CUDAQ_ALL_REDUCE_IMPL(double, std::plus, SUM)
 CUDAQ_ALL_REDUCE_IMPL(double, std::multiplies, PROD)
 
+std::vector<double> allReduce(const std::vector<double> &local,
+                              const std::plus<double> &) {
+  std::vector<double> result(local.size());
+  getMpiPlugin()->all_reduce(result, local, SUM);
+  return result;
+}
+
 } // namespace detail
 
 #define CUDAQ_ALL_GATHER_IMPL(TYPE)                                            \
