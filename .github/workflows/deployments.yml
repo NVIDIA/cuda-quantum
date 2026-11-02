@@ -577,7 +577,7 @@ jobs:
 
   docker_images:
     name: Create Docker images
-    # `cudaq.logical` and cudaq-edem wheels must finish building and testing before images are published.
+    # cudaq-logical and cudaq-edem wheels must finish building and testing before images are published.
     needs: [metadata, config, ext_config, python_wheels, edem_wheels]
     if: ${{ ! inputs.devcontainer_only }}
     strategy:
