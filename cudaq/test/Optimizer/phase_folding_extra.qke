@@ -6,7 +6,7 @@
 // the terms of the Apache License 2.0 which accompanies this distribution.   //
 // ========================================================================== //
 
-// RUN: cudaq-opt --phase-folding="min-length=0 min-rz-weight=0" %s | FileCheck %s
+// RUN: cudaq-opt --split-input-file --phase-folding="min-length=0 min-rz-weight=0" %s | FileCheck %s
 
 // A NOT gate (uncontrolled x) inverts the phase of its wire. Two rz ops on
 // wires whose phases are equal (after the inversion algebra) are merged even
@@ -65,6 +65,8 @@ func.func private @not_inversion() {
 // CHECK:         return
 // CHECK:       }
 
+// -----
+
 // An `h` gate breaks the circuit. The two rz ops appear on different wires'
 // phase-chains (one before h, one after h via a swap), so they are not merged.
 
@@ -95,6 +97,8 @@ func.func @h_circuit_breaker(%cst: f64) {
 // CHECK:         return
 // CHECK:       }
 
+// -----
+
 // A controlled swap is a termination point; Rz ops on either side must not
 // be merged even if they would otherwise share a phase.
 func.func @controlled_swap_terminates(%angle: f64) {
@@ -119,6 +123,8 @@ func.func @controlled_swap_terminates(%angle: f64) {
 // CHECK:         return
 // CHECK:       }
 
+// -----
+
 // A `quake.x` with two controls leaves its target outside the parity model, so
 // it ends the subcircuit, and the rotations on its control and target stay
 // separate.
@@ -141,6 +147,8 @@ func.func @control_and_target(%a: f64, %b: f64) {
 // CHECK-NOT:     arith.addf
 // CHECK:         quake.rz (%[[A]])
 // CHECK:         quake.rz (%[[B]])
+
+// -----
 
 // The rotations before the Toffoli fold exactly once, although a singly
 // controlled `quake.x` follows the Toffoli.

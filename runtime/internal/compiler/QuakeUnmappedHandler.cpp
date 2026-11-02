@@ -59,12 +59,7 @@ costModelPasses(const cudaq::config::QuakeUnmappedProfile &profile,
     passes.push_back("decomposition{basis=" + llvm::join(basis, ",") + "}");
   }
   passes.push_back(cudaq_internal::compiler::convertToWires(profile));
-  // In a `t-count` stage, decomposition leaves a `quake.phase` beside some of
-  // the gates it rewrites, such as a controlled rotation, and only the level-2
-  // optimizer would lower it. Lower the phase here, at every level and before
-  // the optimizer and synthesis. Left in place, the phase keeps the level-1
-  // cleanup from merging the rotations on either side of it, and a controlled
-  // phase lowers to an `r1` that synthesis has to see.
+  // Handle any new phases the t-count decomposition may have introduced.
   if (tCount)
     passes.push_back("func.func(normalize-phase-placement,lower-phase)");
   if (level >= 1)

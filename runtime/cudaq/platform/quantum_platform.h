@@ -222,8 +222,7 @@ public:
   }
 
   /// Get the compile options for launching under \p policy on \p endpoint.
-  /// The endpoint need not belong to a platform, so that a caller can compile
-  /// for an endpoint other than the installed one.
+  /// The endpoint need not belong to a platform.
   template <typename Policy>
   [[nodiscard]] static cudaq::CompileOptions
   getCompileOptions(const Policy &policy, std::uint64_t randomSeed,

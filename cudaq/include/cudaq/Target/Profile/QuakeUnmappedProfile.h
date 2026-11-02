@@ -31,8 +31,7 @@ enum class LoopUnrolling {
   all,
   /// Only loops whose induction variable is used in the body, such as a loop
   /// that indexes a register or sets a rotation angle. A loop that repeats the
-  /// same body stays rolled, so that a consumer can count it once and multiply
-  /// by its trip count.
+  /// same body stays rolled.
   index_use,
 };
 
