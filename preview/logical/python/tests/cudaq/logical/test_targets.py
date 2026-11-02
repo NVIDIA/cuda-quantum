@@ -7,11 +7,14 @@
 # ============================================================================ #
 """CUDA-Q target and backend-stack coverage for the P0-through-P3 preview."""
 
+import math
+
 import pytest
 
 import cudaq
 import cudaq.logical
-from cudaq._experimental import CustomTarget
+from cudaq._experimental import (CostModel, CustomTarget, LoopUnrolling,
+                                 QuakeUnmappedProfile)
 
 
 @cudaq.logical.program
@@ -110,14 +113,18 @@ def test_target_eagerly_exposes_the_cudaq_target_configuration():
     assert isinstance(target, CustomTarget)
     assert target.compile_target is compile_target
     assert compile_target.fully_specialize
-    pipeline = compile_target.stages[0].lowering.override_pass_pipeline
-    assert "prepare-for-wireset" in pipeline
-    # Multi-control reduction needs reference semantics, so it must precede
-    # the wire conversion inside `prepare-for-wireset`.
-    assert pipeline.index("multicontrol-decomposition") < pipeline.index(
-        "prepare-for-wireset")
-    assert "prepare-quake-for-qlx" not in pipeline
-    assert "convert-quake-to-qlx" not in pipeline
+    # The compile target has one stage, whose lowering CUDA-Q infers from the
+    # profile. Logical adds no passes of its own.
+    [stage] = compile_target.stages
+    assert stage.lowering is None
+    assert stage.ir_output_profile == QuakeUnmappedProfile(
+        basis_gates=list(cudaq.logical.compiler.quake.IMPORT_BASIS_GATES),
+        approximation_tolerance=0.0,
+        cost_model=CostModel.t_count,
+        unroll_loops=LoopUnrolling.index_use,
+        max_unroll_iterations=2_048_000)
+    assert not compile_target.erase_noise
+    assert not compile_target.erase_qec
 
 
 @cudaq.kernel
@@ -224,6 +231,62 @@ def test_estimator_target_estimates_a_doubly_controlled_ry():
         cudaq.reset_target()
 
     assert result.annotations
+
+
+@cudaq.kernel
+def multi_controlled_x_on_two_targets():
+    q = cudaq.qvector(5)
+    x.ctrl([q[0], q[1], q[2]], q[3])
+    x.ctrl([q[0], q[1], q[2]], q[4])
+    mz(q)
+
+
+@cudaq.kernel
+def ising_trotter_steps():
+    q = cudaq.qvector(4)
+    for step in range(2):
+        scale = step + 1
+        for i in range(4):
+            rz(math.pi / (8 * scale), q[i])
+        for left in range(0, 3, 2):
+            x.ctrl(q[left], q[left + 1])
+            rz(math.pi / (16 * scale), q[left + 1])
+            x.ctrl(q[left], q[left + 1])
+        for left in range(1, 3, 2):
+            x.ctrl(q[left], q[left + 1])
+            rz(math.pi / (12 * scale), q[left + 1])
+            x.ctrl(q[left], q[left + 1])
+    mz(q)
+
+
+def logical_resources(kernel, level):
+    """Return the resources that the Logical estimator counts at an
+    optimization level, before synthesis."""
+    try:
+        cudaq.set_target(cudaq.logical.targets.estimator)
+        return cudaq.estimate(kernel, optimization_level=level).resources
+    finally:
+        cudaq.reset_target()
+
+
+# Level 3 is reserved for search and currently runs the same passes as level 2,
+# so these tests stop at level 2.
+@pytest.mark.parametrize("level, toffolis", [(0, 6), (1, 4), (2, 4)])
+def test_optimization_levels_cancel_repeated_toffolis(level, toffolis):
+    # CUDA-Q builds each three-controlled `x` from three Toffolis and an
+    # ancilla: the first computes the ancilla, the second flips the target, and
+    # the third undoes the first. The third Toffoli of one gate and the first
+    # Toffoli of the next are the same, and level 1 removes both.
+    resources = logical_resources(multi_controlled_x_on_two_targets, level)
+    assert resources.count_controls("x", 2) == toffolis
+
+
+@pytest.mark.parametrize("level, rotations", [(0, 14), (1, 13), (2, 7)])
+def test_optimization_levels_merge_rotations(level, rotations):
+    # Each Trotter step rotates every qubit and every neighboring pair. Level 2's
+    # phase folding merges the rotations that act on the same parity of qubits.
+    resources = logical_resources(ising_trotter_steps, level)
+    assert resources.count("pauli_rotation") == rotations
 
 
 def test_cudaq_selects_a_qlx_custom_target_for_estimation():

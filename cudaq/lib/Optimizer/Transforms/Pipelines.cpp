@@ -20,6 +20,10 @@ struct TargetPrepPipelineOptions
   PassOptions::Option<bool> eraseNoise{
       *this, "erase-noise", llvm::cl::desc("Erase apply noise calls."),
       llvm::cl::init(true)};
+  PassOptions::Option<bool> eraseQEC{
+      *this, "erase-qec",
+      llvm::cl::desc("Erase QEC detector and observable operations."),
+      llvm::cl::init(true)};
   PassOptions::Option<bool> applyConstProp{
       *this, "apply-const-prop",
       llvm::cl::desc("Enable constant propagation in apply specialization."),
@@ -144,8 +148,15 @@ void cudaq::opt::registerConvertToLinearValuesPipeline() {
       addConvertToLinearValues);
 }
 
+/// Build the prep pipeline that every target runs. A target sets `erase-noise`
+/// or `erase-qec` to false when its consumer has to see those operations, for
+/// example to reject a noisy kernel rather than count the noiseless one.
 static void createTargetPrepPipeline(OpPassManager &pm,
                                      const TargetPrepPipelineOptions &options) {
+  if (options.eraseNoise)
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createEraseNoise());
+  if (options.eraseQEC)
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createEraseQEC());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createInjectImplicitOutput());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createAddDeallocs());
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createQuakeAddMetadata());
@@ -167,47 +178,21 @@ static void createTargetPrepPipeline(OpPassManager &pm,
   pm.addPass(cudaq::opt::createApplySpecialization(
       {.constantPropagation = options.applyConstProp}));
   cudaq::opt::addAggressiveInlining(pm);
-}
-
-static void
-createHardwareTargetPrepPipeline(OpPassManager &pm,
-                                 const TargetPrepPipelineOptions &options) {
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createEraseNoise());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createEraseQEC());
-  createTargetPrepPipeline(pm, options);
   pm.addNestedPass<func::FuncOp>(cudaq::opt::createStatePreparation());
 }
 
-/// Register the standard initial pipeline run for ALL target machines when
-/// lowering to hardware. Either this preparation pipeline or the emulation
-/// target preparation pipeline is always run between the JIT high-level and JIT
-/// mid-level target-specific pipelines from the `.yml` file.
-static void registerHardwareTargetPrepPipeline() {
+/// Register the standard initial pipeline run for ALL target machines, as
+/// `hw-jit-prep-pipeline` when lowering to hardware and as
+/// `emul-jit-prep-pipeline` when emulation is enabled. One of them always runs
+/// between the JIT high-level and JIT mid-level target-specific pipelines from
+/// the `.yml` file. The two differ only in the options the compiler passes.
+static void registerTargetPrepPipelines() {
   PassPipelineRegistration<TargetPrepPipelineOptions>(
       "hw-jit-prep-pipeline", "Prep for any hardware target.",
-      [](OpPassManager &pm, const TargetPrepPipelineOptions &options) {
-        createHardwareTargetPrepPipeline(pm, options);
-      });
-}
-
-static void
-createEmulationTargetPrepPipeline(OpPassManager &pm,
-                                  const TargetPrepPipelineOptions &options) {
-  if (options.eraseNoise)
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createEraseNoise());
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createEraseQEC());
-  createTargetPrepPipeline(pm, options);
-  pm.addNestedPass<func::FuncOp>(cudaq::opt::createStatePreparation());
-}
-
-/// Register the standard initial pipeline run for ALL target machines when
-/// emulation is enabled.
-static void registerEmulationTargetPrepPipeline() {
+      createTargetPrepPipeline);
   PassPipelineRegistration<TargetPrepPipelineOptions>(
       "emul-jit-prep-pipeline", "Prep for any emulation target.",
-      [](OpPassManager &pm, const TargetPrepPipelineOptions &options) {
-        createEmulationTargetPrepPipeline(pm, options);
-      });
+      createTargetPrepPipeline);
 }
 
 void cudaq::opt::addDecomposition(OpPassManager &pm,
@@ -437,8 +422,7 @@ static void registerTargetFinalizePipeline() {
 }
 
 void cudaq::opt::registerJITPipelines() {
-  registerHardwareTargetPrepPipeline();
-  registerEmulationTargetPrepPipeline();
+  registerTargetPrepPipelines();
   registerTargetDeployPipeline();
   registerTargetFinalizePipeline();
 }

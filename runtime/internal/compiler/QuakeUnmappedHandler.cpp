@@ -58,7 +58,15 @@ costModelPasses(const cudaq::config::QuakeUnmappedProfile &profile,
       basis.emplace_back("x(1)");
     passes.push_back("decomposition{basis=" + llvm::join(basis, ",") + "}");
   }
-  passes.push_back(cudaq_internal::compiler::convertToWires());
+  passes.push_back(cudaq_internal::compiler::convertToWires(profile));
+  // In a `t-count` stage, decomposition leaves a `quake.phase` beside some of
+  // the gates it rewrites, such as a controlled rotation, and only the level-2
+  // optimizer would lower it. Lower the phase here, at every level and before
+  // the optimizer and synthesis. Left in place, the phase keeps the level-1
+  // cleanup from merging the rotations on either side of it, and a controlled
+  // phase lowers to an `r1` that synthesis has to see.
+  if (tCount)
+    passes.push_back("func.func(normalize-phase-placement,lower-phase)");
   if (level >= 1)
     passes.push_back(
         std::string(tCount ? "clifford-t" : "two-qubit-gate-count") +
@@ -126,6 +134,19 @@ public:
         std::get_if<cudaq::config::QuakeUnmappedProfile>(&output);
     return profile && schedulesCliffordTSynthesis(*profile) &&
            cudaq::opt::needsCliffordTSynthesis(profile->basisGates);
+  }
+
+  /// Prep and deploy unroll loops of up to the profile's default limit, so a
+  /// stage that unrolls fewer loops needs them to unroll none.
+  bool
+  requiresRolledLoops(const cudaq::config::Profile &input,
+                      const cudaq::config::Profile &output) const override {
+    const auto *profile =
+        std::get_if<cudaq::config::QuakeUnmappedProfile>(&output);
+    return profile &&
+           (profile->unrollLoops != cudaq::config::LoopUnrolling::all ||
+            profile->maxUnrollIterations <
+                cudaq::config::QuakeUnmappedProfile{}.maxUnrollIterations);
   }
 };
 

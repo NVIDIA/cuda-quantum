@@ -91,18 +91,34 @@ public:
                          const cudaq::config::Profile &output) const {
     return false;
   }
+
+  /// Whether this stage keeps some loops rolled, so that prep and deploy,
+  /// which run before it, must not unroll any loop. Answer from \p input and
+  /// \p output alone, as `requiresArgumentValues` does, so that prep and
+  /// deploy run the same steps at every optimization level.
+  virtual bool requiresRolledLoops(const cudaq::config::Profile &input,
+                                   const cudaq::config::Profile &output) const {
+    return false;
+  }
 };
 
-/// Pipeline text for `prepare-for-wireset`, which unrolls loops and moves the
-/// kernel's qubits onto wires. Stages run it at every optimization level, since
-/// the level only changes how much we optimize, not the representation. We ask
-/// for loops of up to 1024 iterations to match
-/// `classical-optimization-pipeline`. Left alone, `prepare-for-wireset` would
-/// stop at 50, the `loop-unroll` default. With \p addWireSet, it also borrows
-/// every qubit from a new wire set, which `qubit-mapping` needs.
-inline std::string convertToWires(bool addWireSet = false) {
+/// Pipeline text for `prepare-for-wireset`, which unrolls the loops that
+/// \p profile selects, up to its limit, and moves the kernel's qubits onto
+/// wires. A qubit picked by a longer loop or a run-time index stays a
+/// reference. Stages run it at every optimization level, since the level only
+/// changes how much we optimize, not the representation. With \p addWireSet,
+/// it also borrows every qubit from a new wire set, which `qubit-mapping`
+/// needs.
+inline std::string
+convertToWires(const cudaq::config::QuakeUnmappedProfile &profile,
+               bool addWireSet = false) {
   return std::string("prepare-for-wireset{") +
-         (addWireSet ? "add-wireset=true " : "") + "maximum-iterations=1024}";
+         (addWireSet ? "add-wireset=true " : "") +
+         "maximum-iterations=" + std::to_string(profile.maxUnrollIterations) +
+         (profile.unrollLoops == cudaq::config::LoopUnrolling::index_use
+              ? " unroll-only-index-use-loops=true"
+              : "") +
+         "}";
 }
 
 /// Return the first handler in \p handlers supporting the conversion

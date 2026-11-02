@@ -32,6 +32,24 @@ struct rfl::Reflector<cudaq::config::CostModel> {
   }
 };
 
+template <>
+struct rfl::Reflector<cudaq::config::LoopUnrolling> {
+  using ReflType = std::string;
+  static cudaq::config::LoopUnrolling to(const std::string &name) {
+    return cudaq::config::detail::enumFromYamlName<
+        cudaq::config::LoopUnrolling>(name);
+  }
+  static std::string from(const cudaq::config::LoopUnrolling &value) {
+    switch (value) {
+    case cudaq::config::LoopUnrolling::all:
+      return "all";
+    case cudaq::config::LoopUnrolling::index_use:
+      return "index-use";
+    }
+    cudaq::config::detail::unknownEnumerator();
+  }
+};
+
 /// YAML form of `QuakeUnmappedProfile`. Every option may be omitted and then
 /// takes the profile's default.
 template <>
@@ -44,6 +62,10 @@ struct cudaq::config::v2::ProfileYaml<cudaq::config::QuakeUnmappedProfile> {
       rfl::DefaultVal<double> approximationTolerance =
           QuakeUnmappedProfile{}.approximationTolerance;
       std::optional<CostModel> costModel;
+      rfl::DefaultVal<LoopUnrolling> unrollLoops =
+          QuakeUnmappedProfile{}.unrollLoops;
+      rfl::DefaultVal<unsigned> maxUnrollIterations =
+          QuakeUnmappedProfile{}.maxUnrollIterations;
     };
     rfl::DefaultVal<Options> options;
   };
