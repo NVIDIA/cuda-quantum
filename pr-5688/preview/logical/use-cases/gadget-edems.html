@@ -1,0 +1,851 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Derive an error model from gadgets &mdash; CUDA-Q Logical  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Detector contracts and Clifford projection" href="../reference/detector-contracts.html" />
+    <link rel="prev" title="Stim emission" href="stim-emission.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #76b900" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            CUDA-Q Logical
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting-started/quickstart.html">Quick start</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/quickstart.html#use-a-cuda-q-kernel">Use a CUDA-Q kernel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/quickstart.html#write-a-standalone-logical-program">Write a standalone logical program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/quickstart.html#build-from-source">Build from source</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/quickstart.html#where-to-go-next">Where to go next</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html">The logical programming stack</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#compile-and-estimate-the-logical-program">1. Compile and estimate the logical program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#choose-the-code-and-its-implementations">2. Choose the code and its implementations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#describe-the-device">3. Describe the device</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#place-and-realize-the-program">4. Place and realize the program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#schedule-and-estimate-the-physical-resources">5. Schedule and estimate the physical resources</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#expose-the-device-as-a-cuda-q-target">6. Expose the device as a CUDA-Q target</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#where-to-go-next">Where to go next</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-started/concepts.html">Core concepts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#logical-programs-and-quantum-values">Logical programs and quantum values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#definitions-builds-and-compilation">Definitions, builds, and compilation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#clifford-t-decomposition">Clifford+T decomposition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#codes-and-operation-implementations">Codes and operation implementations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#devices-and-placement">Devices and placement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#schedules-and-resource-estimates">Schedules and resource estimates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#cuda-q-integration">CUDA-Q integration</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="examples/index.html">CUDA-Q Logical by Example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="examples/index.html#cuda-q-kernel-examples">CUDA-Q kernel examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="examples/logical-resource-estimate.html">Logical Resource Estimate</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/clifford-t.html">Clifford+T Synthesis</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/cudaq-resource-estimate.html">CUDA-Q Logical Resource Estimate</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/fermi-hubbard.html">Fermi–Hubbard Estimation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/carbon-code.html">Carbon Code Target</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/gidney-ekera.html">Gidney–Ekerå RSA</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="examples/index.html#standalone-compiler-examples">Standalone compiler examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="examples/p0-bell.html">Portable P0 Bell Program</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/p1-placement.html">P1 Placement</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/code-and-gadget.html">Code and Gadget</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/physical-schedule.html">Standalone Physical Schedule</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/steane-bernstein-vazirani.html">Steane-Encoded Bernstein–Vazirani on Stim</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/distillation.html">T-State Distillation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/t-factory-evaluation.html">T-State Distillation with <code class="docutils literal notranslate"><span class="pre">cudaq.run</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/lookup-addition.html">Gidney–Ekerå Lookup Addition</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="examples/index.html#gadget-verification-and-error-models">Gadget verification and error models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="examples/gadget-verification.html">Verify an Authored Gadget</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="examples/gadget-verification.html#author-the-realization-and-its-claim">Author the realization and its claim</a></li>
+<li class="toctree-l4"><a class="reference internal" href="examples/gadget-verification.html#declare-the-detector-contract">Declare the detector contract</a></li>
+<li class="toctree-l4"><a class="reference internal" href="examples/gadget-verification.html#inspect-a-successful-receipt">Inspect a successful receipt</a></li>
+<li class="toctree-l4"><a class="reference internal" href="examples/gadget-verification.html#inspect-an-incorrect-logical-claim">Inspect an incorrect logical claim</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="examples/gadget-surface-memory.html">Physical Surface-Code Memory</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="examples/gadget-surface-memory.html#select-preparation-extraction-and-readout">Select preparation, extraction, and readout</a></li>
+<li class="toctree-l4"><a class="reference internal" href="examples/gadget-surface-memory.html#verify-the-ideal-behavior">Verify the ideal behavior</a></li>
+<li class="toctree-l4"><a class="reference internal" href="examples/gadget-surface-memory.html#emit-a-circuit-and-derive-its-model">Emit a circuit and derive its model</a></li>
+<li class="toctree-l4"><a class="reference internal" href="examples/gadget-surface-memory.html#save-and-optionally-sample">Save and optionally sample</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="examples/stim-emission.html">Surface-Memory Stim Export</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/memory-edem.html">Surface-Memory Error Model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples/surface-memory-circuit.html">Surface-Memory Reference Comparison</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="examples/surface-memory-circuit.html#run-the-example">Run the example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="examples/surface-memory-circuit.html#select-the-concrete-gadgets">Select the concrete gadgets</a></li>
+<li class="toctree-l4"><a class="reference internal" href="examples/surface-memory-circuit.html#verify-the-ideal-behavior">Verify the ideal behavior</a></li>
+<li class="toctree-l4"><a class="reference internal" href="examples/surface-memory-circuit.html#project-the-realization-and-choose-physical-noise">Project the realization and choose physical noise</a></li>
+<li class="toctree-l4"><a class="reference internal" href="examples/surface-memory-circuit.html#emit-the-circuit-and-reuse-gadget-models">Emit the circuit and reuse gadget models</a></li>
+<li class="toctree-l4"><a class="reference internal" href="examples/surface-memory-circuit.html#export-the-original-models">Export the original models</a></li>
+<li class="toctree-l4"><a class="reference internal" href="examples/surface-memory-circuit.html#compare-with-stim-and-choose-a-sampler">Compare with Stim and choose a sampler</a></li>
+<li class="toctree-l4"><a class="reference internal" href="examples/surface-memory-circuit.html#physical-schedule-and-reference-equivalence">Physical schedule and reference equivalence</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Use cases</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="define-a-code.html">Defining codes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="define-a-code.html#css-codes-state-the-checks-once">CSS codes: state the checks once</a></li>
+<li class="toctree-l2"><a class="reference internal" href="define-a-code.html#distance-is-evidence-not-an-integer">Distance is evidence, not an integer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="define-a-code.html#the-catalog-and-parameterized-families">The catalog and parameterized families</a></li>
+<li class="toctree-l2"><a class="reference internal" href="define-a-code.html#what-you-get-for-free">What you get for free</a></li>
+<li class="toctree-l2"><a class="reference internal" href="define-a-code.html#where-to-go-next">Where to go next</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="gadgets-and-verification.html">Gadgets and verification</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="gadgets-and-verification.html#what-implements-takes">What <code class="docutils literal notranslate"><span class="pre">implements=</span></code> takes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="gadgets-and-verification.html#author-the-action-in-cuda-q-logical">Author the action in CUDA-Q Logical</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gadgets-and-verification.html#reuse-a-cuda-q-kernel-as-the-claim">Reuse a CUDA-Q kernel as the claim</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gadgets-and-verification.html#what-the-signature-and-body-add">What the signature and body add</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="gadgets-and-verification.html#typed-records-at-the-boundary">Typed records at the boundary</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gadgets-and-verification.html#preparation-and-destructive-measurement">Preparation and destructive measurement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gadgets-and-verification.html#selection-retry-and-postselection-belong-to-the-protocol">Selection: retry and postselection belong to the protocol</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gadgets-and-verification.html#verification-claims-are-checked-not-trusted">Verification: claims are checked, not trusted</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gadgets-and-verification.html#design-rules-that-keep-the-model-crisp">Design rules that keep the model crisp</a></li>
+<li class="toctree-l2"><a class="reference internal" href="gadgets-and-verification.html#where-to-go-next">Where to go next</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="devices-and-placement.html">Devices and placement</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="devices-and-placement.html#machines-devices-architectures">Machines, devices, architectures</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="devices-and-placement.html#stop-at-the-layer-your-study-needs">Stop at the layer your study needs</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="devices-and-placement.html#automatic-placement-constraints-preferences-witnesses">Automatic placement: constraints, preferences, witnesses</a></li>
+<li class="toctree-l2"><a class="reference internal" href="devices-and-placement.html#code-agnostic-p1">Code-agnostic P1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="devices-and-placement.html#where-the-firewall-pays-off">Where the firewall pays off</a></li>
+<li class="toctree-l2"><a class="reference internal" href="devices-and-placement.html#continue-from-here">Continue from here</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="magic-states-and-protocols.html">Magic states and protocols</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="magic-states-and-protocols.html#phase-convention">Phase convention</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="magic-states-and-protocols.html#authoring-exact-angles-with-cudaq-logical-algebra-pi">Authoring exact angles with <code class="docutils literal notranslate"><span class="pre">cudaq.logical.algebra.pi</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="magic-states-and-protocols.html#typed-resource-kinds">Typed resource kinds</a></li>
+<li class="toctree-l2"><a class="reference internal" href="magic-states-and-protocols.html#to-1-a-concrete-factory">15-to-1: a concrete factory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="magic-states-and-protocols.html#compact-factory-models-at-p3">Compact factory models at P3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="magic-states-and-protocols.html#continue-from-here">Continue from here</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="logical-synthesis.html">Logical Clifford+T synthesis</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="logical-synthesis.html#synthesize-a-program">Synthesize a program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="logical-synthesis.html#precision">Precision</a></li>
+<li class="toctree-l2"><a class="reference internal" href="logical-synthesis.html#inspect-and-replay-the-result">Inspect and replay the result</a></li>
+<li class="toctree-l2"><a class="reference internal" href="logical-synthesis.html#use-the-pipeline-form">Use the pipeline form</a></li>
+<li class="toctree-l2"><a class="reference internal" href="logical-synthesis.html#pauli-based-computation-still-at-p0">Pauli-based computation, still at P0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="logical-synthesis.html#when-not-to-synthesize">When not to synthesize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="logical-synthesis.html#continue-from-here">Continue from here</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="estimation.html">Resource estimation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="estimation.html#tier-logical-cost-the-algorithm-before-any-qec-choice"><code class="docutils literal notranslate"><span class="pre">Tier.LOGICAL</span></code> — cost the algorithm before any QEC choice</a></li>
+<li class="toctree-l2"><a class="reference internal" href="estimation.html#tier-static-count-one-selected-p2-realization"><code class="docutils literal notranslate"><span class="pre">Tier.STATIC</span></code> — count one selected P2 realization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="estimation.html#tier-analytical-apply-an-explicit-physical-model"><code class="docutils literal notranslate"><span class="pre">Tier.ANALYTICAL</span></code> — apply an explicit physical model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="estimation.html#tier-schedule-cost-the-physical-event-graph"><code class="docutils literal notranslate"><span class="pre">Tier.SCHEDULE</span></code> — cost the physical event graph</a></li>
+<li class="toctree-l2"><a class="reference internal" href="estimation.html#the-rules-that-keep-estimates-honest">The rules that keep estimates honest</a></li>
+<li class="toctree-l2"><a class="reference internal" href="estimation.html#direct-spellings">Direct spellings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="estimation.html#sweeps-and-reproducibility">Sweeps and reproducibility</a></li>
+<li class="toctree-l2"><a class="reference internal" href="estimation.html#paper-specific-projections-live-in-the-open">Paper-specific projections live in the open</a></li>
+<li class="toctree-l2"><a class="reference internal" href="estimation.html#estimating-ordinary-cuda-q-kernels">Estimating ordinary CUDA-Q kernels</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="stim-emission.html">Stim emission</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="stim-emission.html#export-a-surface-code-memory-with-detector-contracts">Export a surface-code memory with detector contracts</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="stim-emission.html#read-the-exported-circuit">Read the exported circuit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stim-emission.html#choose-the-experiment-size-and-noise">Choose the experiment size and noise</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stim-emission.html#build-preparation-storage-and-readout">Build preparation, storage, and readout</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stim-emission.html#describe-which-results-signal-errors">Describe which results signal errors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stim-emission.html#assemble-the-experiment-and-add-data-errors">Assemble the experiment and add data errors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stim-emission.html#save-the-stim-circuit">Save the Stim circuit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stim-emission.html#sample-and-interpret-the-results">Sample and interpret the results</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stim-emission.html#customize-the-experiment">Customize the experiment</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="stim-emission.html#native-mlir-emission">Native MLIR emission</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="stim-emission.html#emit-from-the-command-line">Emit from the command line</a></li>
+<li class="toctree-l3"><a class="reference internal" href="stim-emission.html#fail-closed-boundaries">Fail-closed boundaries</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="stim-emission.html#where-to-go-next">Where to go next</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Derive an error model from gadgets</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#what-an-edem-records">What an EDEM records</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#derive-a-surface-memory-model">Derive a surface-memory model</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#import-the-libraries">Import the libraries</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#configure-the-experiment">Configure the experiment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#select-the-gadget-contracts">Select the gadget contracts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#choose-where-faults-occur">Choose where faults occur</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#derive-and-compose-the-model">Derive and compose the model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#inspect-the-model">Inspect the model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#save-and-reload-the-model">Save and reload the model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#sample-the-model">Sample the model</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#going-further">Going further</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#specify-faults">Specify faults</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#derive-models-stage-by-stage">Derive models stage by stage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#contract-checks-during-derivation">Contract checks during derivation</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../reference/detector-contracts.html">Detector contracts and Clifford projection</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../reference/detector-contracts.html#gadget-terminology">Gadget terminology</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../reference/detector-contracts.html#compatibility-spellings">Compatibility spellings</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/detector-contracts.html#virtual-syndromes-and-boundary-errors">Virtual syndromes and boundary errors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/detector-contracts.html#detector-map-and-outcome-map">Detector map and outcome map</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/detector-contracts.html#recipe-provided-contracts">Recipe-provided contracts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/detector-contracts.html#declare-a-contract">Declare a contract</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../reference/detector-contracts.html#declare-a-default-contract">Declare a default contract</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/detector-contracts.html#verify-a-contract-and-the-logical-action">Verify a contract and the logical action</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/detector-contracts.html#project-the-realization">Project the realization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/detector-contracts.html#boundary-for-edem-producers">Boundary for EDEM producers</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/for-stim-users.html">CUDA-Q Logical for Stim users</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../reference/for-stim-users.html#the-translation-table">The translation table</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/for-stim-users.html#execute-a-physical-build">Execute a physical build</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/for-stim-users.html#worked-emission">Worked emission</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/for-stim-users.html#what-has-no-stim-equivalent">What has no Stim equivalent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/for-stim-users.html#when-to-just-use-stim">When to just use Stim</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/capabilities.html">Capabilities and status</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../reference/capabilities.html#what-the-product-is">What the product is</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/capabilities.html#subsystem-status">Subsystem status</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/capabilities.html#present-but-not-yet-exercised">Present but not yet exercised</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/capabilities.html#execution-and-documented-boundaries">Execution and documented boundaries</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/architecture.html">Architecture</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../reference/architecture.html#the-dialect-stack">The dialect stack</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/architecture.html#the-semantic-spine-and-its-facets">The semantic spine and its facets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/architecture.html#definitions-versus-builds">Definitions versus builds</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/architecture.html#the-artifact-model">The artifact model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/architecture.html#data-ownership">Data ownership</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/architecture.html#the-compile-pipeline">The compile pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/architecture.html#the-p2-patch-graph">The P2 patch graph</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/architecture.html#verification-layers">Verification layers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/architecture.html#typed-inspection">Typed inspection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/architecture.html#package-map">Package map</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/architecture.html#extensibility">Extensibility</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../reference/architecture.html#where-to-go-next">Where to go next</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/building-against-cudaq.html">Building against CUDA-Q</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../reference/building-against-cudaq.html#build-edem-and-logical-separately">Build EDEM and Logical separately</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">CUDA-Q</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest/">Main CUDA-Q documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #76b900" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">CUDA-Q Logical</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Derive an error model from gadgets</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/use-cases/gadget-edems.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
+        <a href="stim-emission.html" class="btn btn-neutral float-left" title="Stim emission" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../reference/detector-contracts.html" class="btn btn-neutral float-right" title="Detector contracts and Clifford projection" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+  </div>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="derive-an-error-model-from-gadgets">
+<h1>Derive an error model from gadgets<a class="headerlink" href="#derive-an-error-model-from-gadgets" title="Link to this heading"></a></h1>
+<p>A <strong>detector error model (DEM)</strong> lists an experiment’s possible faults. For
+each fault it gives the detectors and logical observables the fault flips and
+the fault’s probability. Samplers and decoders take a DEM as input. Stim
+derives one by analyzing a complete circuit, such as the one exported in
+<a class="reference internal" href="stim-emission.html"><span class="std std-doc">Stim emission</span></a>.</p>
+<p>CUDA-Q Logical can instead build the model gadget by gadget. An <strong>extended
+detector error model (EDEM)</strong> describes the faults of a single gadget while its
+encoded input and output remain open. Besides detectors and observables, it
+records how each fault changes the error carried into the next gadget. This
+lets you:</p>
+<ul class="simple">
+<li><p>derive each gadget’s model once and reuse it wherever the gadget repeats;</p></li>
+<li><p>compose the models in execution order;</p></li>
+<li><p><strong>project</strong> the result to an ordinary DEM once preparation and readout close
+both ends.</p></li>
+</ul>
+<p>No circuit simulation is involved. For the surface-memory experiment from the
+Stim tutorial, the projected model is the DEM that Stim derives from the
+exported circuit; the test suite checks that the two agree.</p>
+<p>This page first shows what an EDEM records for one gadget. It then derives,
+inspects, saves, and samples the surface-memory model. The final section covers
+custom faults, derivation one stage at a time, and the checks that run during
+derivation.</p>
+<p>For a shorter first example with the standard noise policy and physical
+ancilla extraction, start with
+<a class="reference internal" href="examples/gadget-surface-memory.html"><span class="std std-doc">Physical surface-code memory</span></a>. The
+custom-noise example on this page uses ideal MPP measurements so the fault
+factory can focus on data errors.</p>
+<section id="what-an-edem-records">
+<h2>What an EDEM records<a class="headerlink" href="#what-an-edem-records" title="Link to this heading"></a></h2>
+<p>Consider a one-qubit H gadget on a bare qubit with no error correction. H turns
+an X error into a Z error. The example inserts an X fault at the gadget’s input
+and derives its EDEM:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq.logical</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cql</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cudaq.logical.analysis</span><span class="w"> </span><span class="kn">import</span> <span class="n">FaultSet</span><span class="p">,</span> <span class="n">edem_from_gadget</span>
+
+
+<span class="nd">@cql</span><span class="o">.</span><span class="n">gadget</span><span class="p">(</span><span class="n">implements</span><span class="o">=</span><span class="n">cql</span><span class="o">.</span><span class="n">logical</span><span class="o">.</span><span class="n">h</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">bare_h</span><span class="p">(</span><span class="n">block</span><span class="p">:</span> <span class="n">cql</span><span class="o">.</span><span class="n">patch</span><span class="p">[</span><span class="n">cql</span><span class="o">.</span><span class="n">codes</span><span class="o">.</span><span class="n">BareQubit</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">cql</span><span class="o">.</span><span class="n">patch</span><span class="p">[</span><span class="n">cql</span><span class="o">.</span><span class="n">codes</span><span class="o">.</span><span class="n">BareQubit</span><span class="p">]:</span>
+    <span class="k">return</span> <span class="n">cql</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">block</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+
+
+<span class="c1"># An empty insertion site denotes the input boundary.</span>
+<span class="n">faults</span> <span class="o">=</span> <span class="n">FaultSet</span><span class="p">()</span><span class="o">.</span><span class="n">pauli_error</span><span class="p">(</span><span class="s2">""</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">"x"</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">)</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">edem_from_gadget</span><span class="p">(</span>
+    <span class="n">bare_h</span><span class="p">,</span> <span class="n">contract</span><span class="o">=</span><span class="n">cql</span><span class="o">.</span><span class="n">gadgets</span><span class="o">.</span><span class="n">GadgetContract</span><span class="p">(</span><span class="n">bare_h</span><span class="p">),</span> <span class="n">faults</span><span class="o">=</span><span class="n">faults</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">model</span><span class="o">.</span><span class="n">apply</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">])</span> <span class="o">==</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">edem_from_gadget</span></code> accepts the gadget directly and compiles its declared
+contract internally. This bare gadget has no measurements or stabilizers,
+so its explicit contract has no detector or syndrome declarations. For a
+custom gadget with measurements, declare those relations as described in
+<a class="reference internal" href="../reference/detector-contracts.html#declare-a-contract"><span class="std std-ref">Declare a contract</span></a>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">model.apply</span></code> maps the bits entering the gadget to the bits leaving it, over
+GF(2):</p>
+<ul class="simple">
+<li><p><strong>Input <code class="docutils literal notranslate"><span class="pre">[1,</span> <span class="pre">0,</span> <span class="pre">0]</span></code>.</strong> The first bit is the fault indicator: the X fault
+occurred. The remaining bits describe the error already on the incoming
+encoded block. Here the incoming block carries no error.</p></li>
+<li><p><strong>Output <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">1]</span></code>.</strong> The gadget has no detectors, observables, or success
+rows, so the output is only the error on the outgoing block. <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">1]</span></code> is a
+logical Z error.</p></li>
+</ul>
+<p>In general, each encoded block on either side contributes three coordinates:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ΔV</span></code> is the change in the expected stabilizer values, the virtual syndrome.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">S</span></code> is the syndrome of the residual error.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">L</span></code> is the residual error’s logical effect, with X and Z coordinates
+interleaved.</p></li>
+</ul>
+<p>The bare code has no stabilizers, so <code class="docutils literal notranslate"><span class="pre">ΔV</span></code> and <code class="docutils literal notranslate"><span class="pre">S</span></code> have width zero and only
+<code class="docutils literal notranslate"><span class="pre">L</span> <span class="pre">=</span> <span class="pre">(x,</span> <span class="pre">z)</span></code> remains. The input <code class="docutils literal notranslate"><span class="pre">L</span></code> is <code class="docutils literal notranslate"><span class="pre">(0,</span> <span class="pre">0)</span></code> and the output <code class="docutils literal notranslate"><span class="pre">L</span></code> is <code class="docutils literal notranslate"><span class="pre">(0,</span> <span class="pre">1)</span></code>.
+<a class="reference internal" href="../reference/detector-contracts.html#virtual-syndromes-and-boundary-errors"><span class="std std-ref">Virtual syndromes and boundary errors</span></a>
+defines these coordinates precisely.</p>
+<p>Composition connects these coordinates. One gadget’s output error becomes the
+next gadget’s input error, which is how a fault in one gadget can flip a later
+gadget’s detectors. A preparation has no encoded input and a destructive
+readout has no encoded output. A chain that starts with one and ends with the
+other is therefore <strong>closed</strong>: no boundary coordinates remain, and its model
+can be projected to a DEM.</p>
+</section>
+<section id="derive-a-surface-memory-model">
+<h2>Derive a surface-memory model<a class="headerlink" href="#derive-a-surface-memory-model" title="Link to this heading"></a></h2>
+<p>This tutorial uses ideal MPP stabilizer measurements and explicit data noise.
+The <a class="reference internal" href="examples/gadget-surface-memory.html"><span class="std std-doc">physical-memory introduction</span></a> uses
+standard gate, reset and measurement noise. The advanced
+<a class="reference internal" href="examples/surface-memory-circuit.html"><span class="std std-doc">reference comparison</span></a> additionally exports
+individual gadget models and compares them with Stim’s generated
+rotated-memory circuit.</p>
+<p>Surface-library gadgets carry their declared contracts, so deriving one model
+with standard noise needs only the gadget and noise policy:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">cudaq.logical.architectures</span><span class="w"> </span><span class="kn">import</span> <span class="n">surface</span>
+
+<span class="n">implementation</span> <span class="o">=</span> <span class="n">surface</span><span class="o">.</span><span class="n">interleaved_nz_definitions</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">noise</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">compiler</span><span class="o">.</span><span class="n">StandardDepolarizingNoise</span><span class="p">(</span>
+    <span class="n">after_clifford_depolarization</span><span class="o">=</span><span class="mf">0.001</span><span class="p">)</span>
+<span class="n">memory_model</span> <span class="o">=</span> <span class="n">edem_from_gadget</span><span class="p">(</span><span class="n">implementation</span><span class="o">.</span><span class="n">syndrome_extraction</span><span class="p">,</span> <span class="n">noise</span><span class="o">=</span><span class="n">noise</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>For other gadgets, pass <code class="docutils literal notranslate"><span class="pre">contract=</span></code> explicitly or declare a default with
+<code class="docutils literal notranslate"><span class="pre">&#64;cql.gadget(contract=factory)</span></code>. Missing contracts raise an error; detector
+relations are never inferred. <code class="docutils literal notranslate"><span class="pre">faults=</span></code> supplies an explicit fault set, while
+<code class="docutils literal notranslate"><span class="pre">noise=</span></code> and <code class="docutils literal notranslate"><span class="pre">depolarizations=</span></code> generate standard faults. An explicit fault
+set cannot be combined with either standard-noise argument.</p>
+<p>The <a class="reference download internal" download="" href="../_downloads/a9bd948df90ef36c3e6bbe3a5eede288/03_custom_noise.py"><span class="xref download myst">memory experiment</span></a>
+derives the model for the surface-memory experiment in the Stim tutorial:
+prepare logical zero, measure the stabilizers for several rounds, and read out
+logical Z. Run it from the repository root:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>preview/logical/examples/gadgets/03_custom_noise.py
+</pre></div>
+</div>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>Exported d=3, rounds=3: 20 detectors, 1 observable, 81 fault indicators
+Model: memory-edem/memory.edemb
+</pre></div>
+</div>
+<p>To also sample the model with Stim, see <a class="reference internal" href="#sample-the-model">Sample the model</a>.
+The following
+steps explain the example’s <code class="docutils literal notranslate"><span class="pre">#</span> <span class="pre">%%</span></code> cells so you can modify the experiment. Run
+the full script, or work through its cells interactively.</p>
+<section id="import-the-libraries">
+<h3>Import the libraries<a class="headerlink" href="#import-the-libraries" title="Link to this heading"></a></h3>
+<p>Import CUDA-Q Logical, the surface recipe, and <code class="docutils literal notranslate"><span class="pre">cudaq_edem</span></code>, which provides
+composition and DEM operations. It is installed with CUDA-Q Logical:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+
+<span class="kn">import</span><span class="w"> </span><span class="nn">cudaq.logical</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cql</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cudaq.logical.architectures</span><span class="w"> </span><span class="kn">import</span> <span class="n">surface</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">cudaq_edem</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">edem</span>
+
+</pre></div>
+</div>
+</section>
+<section id="configure-the-experiment">
+<h3>Configure the experiment<a class="headerlink" href="#configure-the-experiment" title="Link to this heading"></a></h3>
+<p>The parameter cell controls the experiment size and where noise occurs:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">distance</span> <span class="o">=</span> <span class="mi">3</span>
+<span class="n">rounds</span> <span class="o">=</span> <span class="mi">3</span>  <span class="c1"># Includes preparation's first stabilizer round; must be &gt;= 1.</span>
+<span class="n">p</span> <span class="o">=</span> <span class="mf">0.001</span>
+<span class="c1"># Choose a categorical channel or independently occurring Pauli errors.</span>
+<span class="c1"># In pauli_channel mode, the probabilities are exclusive alternatives and</span>
+<span class="c1"># their sum is the total channel probability. In independent_pauli mode,</span>
+<span class="c1"># each supplied probability is the rate of a separate binary mechanism.</span>
+<span class="c1"># The same numeric probabilities therefore describe different noise models.</span>
+<span class="n">data_noise_kind</span> <span class="o">=</span> <span class="s2">"pauli_channel"</span>  <span class="c1"># Or "independent_pauli".</span>
+<span class="c1"># For Z-biased noise, try {"x": p / 20, "y": p / 20, "z": 9 * p / 10}</span>
+<span class="c1"># with shots = 0 in pauli_channel mode; independent errors can be sampled</span>
+<span class="c1"># directly, while categorical channels require supported exact factorization.</span>
+<span class="n">data_pauli_probabilities</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"x"</span><span class="p">:</span> <span class="n">p</span> <span class="o">/</span> <span class="mi">3</span><span class="p">,</span> <span class="s2">"y"</span><span class="p">:</span> <span class="n">p</span> <span class="o">/</span> <span class="mi">3</span><span class="p">,</span> <span class="s2">"z"</span><span class="p">:</span> <span class="n">p</span> <span class="o">/</span> <span class="mi">3</span><span class="p">}</span>
+<span class="c1"># Round 0 is preparation; omit a round here to leave its data noiseless.</span>
+<span class="n">noisy_rounds</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">rounds</span><span class="p">))</span>
+<span class="c1"># None means every data qubit; a tuple such as (0, 1) limits the noisy sites.</span>
+<span class="n">noisy_data_qubits</span> <span class="o">=</span> <span class="kc">None</span>
+<span class="n">output</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="s2">"memory-edem"</span><span class="p">)</span>
+<span class="c1"># Set shots &gt; 0 to sample with Stim (pip install 'stim&gt;=1.16,&lt;2'); exporting</span>
+<span class="c1"># the model does not require Stim.</span>
+<span class="n">shots</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">seed</span> <span class="o">=</span> <span class="mi">7</span>
+
+</pre></div>
+</div>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">distance</span></code> sets the code size; distance three uses nine data qubits.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">rounds</span></code> counts stabilizer rounds, including preparation’s. For
+<code class="docutils literal notranslate"><span class="pre">rounds</span> <span class="pre">=</span> <span class="pre">3</span></code>, the sequence is preparation, two memory rounds, and logical-Z
+readout.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">data_noise_kind</span></code> chooses <code class="docutils literal notranslate"><span class="pre">&quot;pauli_channel&quot;</span></code> (the default) or
+<code class="docutils literal notranslate"><span class="pre">&quot;independent_pauli&quot;</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">data_pauli_probabilities</span></code> supplies the X, Y and Z probabilities per noisy
+data qubit and round. In channel mode they are mutually exclusive
+alternatives; in independent mode each is a separate binary event.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">noisy_rounds</span></code> selects which rounds receive the channel. Round 0 is
+preparation.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">noisy_data_qubits</span></code> restricts the channel to some data qubits; <code class="docutils literal notranslate"><span class="pre">None</span></code> means
+all of them.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">shots</span></code> and <code class="docutils literal notranslate"><span class="pre">seed</span></code> control the optional Stim sampling step. The default
+<code class="docutils literal notranslate"><span class="pre">shots</span> <span class="pre">=</span> <span class="pre">0</span></code> skips it.</p></li>
+</ul>
+<p>Stabilizer measurements and readout are ideal; all noise comes from the data
+channels. Useful changes include:</p>
+<ul class="simple">
+<li><p>Set <code class="docutils literal notranslate"><span class="pre">noisy_rounds</span> <span class="pre">=</span> <span class="pre">(1,)</span></code> to apply data noise only before the first memory
+round.</p></li>
+<li><p>Set <code class="docutils literal notranslate"><span class="pre">noisy_data_qubits</span> <span class="pre">=</span> <span class="pre">(0,</span> <span class="pre">1)</span></code> to restrict noise to two data qubits.</p></li>
+<li><p>Change <code class="docutils literal notranslate"><span class="pre">data_pauli_probabilities</span></code> to compare symmetric and Z-biased noise.
+The model and saved file represent biased channels exactly. Keep <code class="docutils literal notranslate"><span class="pre">shots</span> <span class="pre">=</span> <span class="pre">0</span></code>
+for categorical laws that lack a supported exact factorization. Biased
+independent errors can be sampled directly.</p></li>
+<li><p>Increase <code class="docutils literal notranslate"><span class="pre">distance</span></code> or <code class="docutils literal notranslate"><span class="pre">rounds</span></code> to change the experiment size.</p></li>
+</ul>
+</section>
+<section id="select-the-gadget-contracts">
+<h3>Select the gadget contracts<a class="headerlink" href="#select-the-gadget-contracts" title="Link to this heading"></a></h3>
+<p>The model uses the same three recipe gadgets and contracts as the Stim tutorial:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">implementation</span> <span class="o">=</span> <span class="n">surface</span><span class="o">.</span><span class="n">definitions</span><span class="p">(</span><span class="n">distance</span><span class="p">)</span>
+<span class="n">prep</span> <span class="o">=</span> <span class="n">surface</span><span class="o">.</span><span class="n">gadget_contract</span><span class="p">(</span><span class="n">implementation</span><span class="o">.</span><span class="n">prepare_zero</span><span class="p">)</span>
+<span class="n">sec</span> <span class="o">=</span> <span class="n">surface</span><span class="o">.</span><span class="n">gadget_contract</span><span class="p">(</span><span class="n">implementation</span><span class="o">.</span><span class="n">memory_round</span><span class="p">)</span>
+<span class="n">readout</span> <span class="o">=</span> <span class="n">surface</span><span class="o">.</span><span class="n">gadget_contract</span><span class="p">(</span><span class="n">implementation</span><span class="o">.</span><span class="n">measure_z</span><span class="p">)</span>
+<span class="c1"># Preparation supplies one syndrome round; direct logical readout supplies none.</span>
+<span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rounds</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rounds</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span> <span class="ow">or</span> <span class="n">rounds</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">:</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"rounds must be an integer of at least one"</span><span class="p">)</span>
+<span class="n">profiles</span> <span class="o">=</span> <span class="p">(</span><span class="n">prep</span><span class="p">,</span> <span class="o">*</span><span class="p">((</span><span class="n">sec</span><span class="p">,)</span> <span class="o">*</span> <span class="p">(</span><span class="n">rounds</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)),</span> <span class="n">readout</span><span class="p">)</span>
+<span class="k">if</span> <span class="n">data_noise_kind</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"pauli_channel"</span><span class="p">,</span> <span class="s2">"independent_pauli"</span><span class="p">):</span>
+    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+        <span class="s2">"data_noise_kind must be pauli_channel or independent_pauli"</span><span class="p">)</span>
+
+
+</pre></div>
+</div>
+<p>Each contract declares a gadget’s detectors, its incoming and outgoing virtual
+syndromes, and, for readout, the logical observable. The Stim tutorial explains
+these rules for the surface gadgets in
+<a class="reference internal" href="stim-emission.html#describe-which-results-signal-errors"><span class="std std-ref">Describe which results signal errors</span></a>.
+To use a gadget of your own, put its contract in the sequence; see
+<a class="reference internal" href="../reference/detector-contracts.html#declare-a-contract"><span class="std std-ref">Declare a contract</span></a>.</p>
+</section>
+<section id="choose-where-faults-occur">
+<h3>Choose where faults occur<a class="headerlink" href="#choose-where-faults-occur" title="Link to this heading"></a></h3>
+<p>Faults are inserted at <strong>sites</strong> of each gadget’s Clifford projection, the
+list of physical instructions in its realization. A fault takes effect
+immediately <em>after</em> the instruction with the given <code class="docutils literal notranslate"><span class="pre">site_id</span></code>. The empty site
+<code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code> means the gadget’s input boundary, before its first instruction.</p>
+<p><code class="docutils literal notranslate"><span class="pre">derive_edem_chain</span></code> calls a <strong>fault factory</strong> once for each occurrence, that
+is, each position in the contract sequence. The factory receives the
+occurrence index, the contract, and the projection, and returns that
+occurrence’s complete fault set:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">memory_faults</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">profile</span><span class="p">,</span> <span class="n">projection</span><span class="p">):</span>
+    <span class="n">faults</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">FaultSet</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">index</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">noisy_rounds</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">faults</span>
+    <span class="c1"># Insert before the first stabilizer check, after reset in preparation.</span>
+    <span class="n">entry</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span>
+        <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">op</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">projection</span><span class="o">.</span><span class="n">instructions</span><span class="p">)</span> <span class="k">if</span> <span class="n">op</span><span class="o">.</span><span class="n">kind</span> <span class="o">==</span> <span class="s2">"MPP"</span><span class="p">)</span>
+    <span class="n">after</span> <span class="o">=</span> <span class="n">projection</span><span class="o">.</span><span class="n">instructions</span><span class="p">[</span><span class="n">entry</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">site_id</span> <span class="k">if</span> <span class="n">entry</span> <span class="k">else</span> <span class="s2">""</span>
+    <span class="n">port</span><span class="p">,</span> <span class="o">=</span> <span class="n">projection</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">inputs</span> <span class="ow">or</span> <span class="n">projection</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">outputs</span>
+    <span class="n">carriers</span> <span class="o">=</span> <span class="n">port</span><span class="o">.</span><span class="n">data_carriers</span>
+    <span class="n">selected</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span>
+        <span class="nb">len</span><span class="p">(</span><span class="n">carriers</span><span class="p">))</span> <span class="k">if</span> <span class="n">noisy_data_qubits</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">noisy_data_qubits</span>
+    <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">selected</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">data_noise_kind</span> <span class="o">==</span> <span class="s2">"pauli_channel"</span><span class="p">:</span>
+            <span class="n">faults</span> <span class="o">=</span> <span class="n">faults</span><span class="o">.</span><span class="n">pauli_channel</span><span class="p">(</span><span class="n">after</span><span class="p">,</span> <span class="n">data_pauli_probabilities</span><span class="p">,</span>
+                                          <span class="p">(</span><span class="n">carriers</span><span class="p">[</span><span class="n">q</span><span class="p">],))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">basis</span><span class="p">,</span> <span class="n">probability</span> <span class="ow">in</span> <span class="n">data_pauli_probabilities</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">faults</span> <span class="o">=</span> <span class="n">faults</span><span class="o">.</span><span class="n">pauli_error</span><span class="p">(</span><span class="n">after</span><span class="p">,</span> <span class="n">carriers</span><span class="p">[</span><span class="n">q</span><span class="p">],</span> <span class="n">basis</span><span class="p">,</span>
+                                            <span class="n">probability</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">faults</span>
+
+
+</pre></div>
+</div>
+<p>The factory finds each gadget’s first stabilizer check (<code class="docutils literal notranslate"><span class="pre">MPP</span></code>) and inserts the
+noise just before it:</p>
+<ul class="simple">
+<li><p>In preparation, the noise goes after the reset, so the reset does not erase
+it.</p></li>
+<li><p>In a memory round, the check is the first instruction, so the noise goes at
+the input boundary.</p></li>
+<li><p>Readout receives no faults.</p></li>
+</ul>
+<p><code class="docutils literal notranslate"><span class="pre">pauli_channel</span></code> adds one channel per data qubit. Its X, Y, and Z alternatives
+are mutually exclusive, and each one becomes a <strong>fault indicator</strong>, a column
+of the model that is 1 when that fault occurs. With the defaults, there are
+9 data qubits × 3 alternatives × 3 noisy rounds = 81 fault indicators.</p>
+<p>With <code class="docutils literal notranslate"><span class="pre">data_noise_kind=&quot;independent_pauli&quot;</span></code>, the factory instead uses
+<code class="docutils literal notranslate"><span class="pre">pauli_error</span></code> for each supplied X, Y and Z rate. Several events can fire on
+the same qubit. The same numeric rates therefore describe a different noise
+model from mutually exclusive channel alternatives.</p>
+<p>For example, the default channel has total depolarizing probability <code class="docutils literal notranslate"><span class="pre">p</span></code>:
+its X, Y and Z alternatives each have probability <code class="docutils literal notranslate"><span class="pre">p</span> <span class="pre">/</span> <span class="pre">3</span></code>. To represent
+that same channel with independent mechanisms, use <code class="docutils literal notranslate"><span class="pre">factorize_dem</span></code>, which
+transforms the probabilities. Merely choosing independent mode with three
+rates of <code class="docutils literal notranslate"><span class="pre">p</span> <span class="pre">/</span> <span class="pre">3</span></code> does not perform that conversion.</p>
+<p>For the standard noise policy, you can skip the factory. Pass
+<code class="docutils literal notranslate"><span class="pre">noise=StandardDepolarizingNoise(...)</span></code> and per-occurrence <code class="docutils literal notranslate"><span class="pre">depolarizations=</span></code> to
+<code class="docutils literal notranslate"><span class="pre">derive_edem_chain</span></code> instead, using the same placements as <code class="docutils literal notranslate"><span class="pre">compiler.emit_stim</span></code>.
+The two styles can’t be combined. To insert other faults, such as measurement
+flips or correlated errors, see <a class="reference internal" href="#specify-faults">Specify faults</a>.</p>
+</section>
+<section id="derive-and-compose-the-model">
+<h3>Derive and compose the model<a class="headerlink" href="#derive-and-compose-the-model" title="Link to this heading"></a></h3>
+<p>Pass the contracts and the factory to <code class="docutils literal notranslate"><span class="pre">derive_edem_chain</span></code>, then project the
+result:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">composed</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">derive_edem_chain</span><span class="p">(</span><span class="n">profiles</span><span class="p">,</span> <span class="n">fault_factory</span><span class="o">=</span><span class="n">memory_faults</span><span class="p">)</span>
+<span class="n">projected</span> <span class="o">=</span> <span class="n">edem</span><span class="o">.</span><span class="n">project_DEM</span><span class="p">(</span><span class="n">composed</span><span class="p">)</span>
+
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">derive_edem_chain</span></code> derives one EDEM for each distinct pair of gadget and
+fault set. Here the two memory rounds receive identical faults, so they share
+one derived model. Composition then gives every occurrence its own fault
+indicators, so faults in different rounds stay independent. Because the chain
+starts with a preparation and ends with a readout, it is closed, and
+<code class="docutils literal notranslate"><span class="pre">edem.project_DEM</span></code> turns it into a DEM.</p>
+</section>
+<section id="inspect-the-model">
+<h3>Inspect the model<a class="headerlink" href="#inspect-the-model" title="Link to this heading"></a></h3>
+<!--
+% invisible-code-block: python
+%
+% profiles, projected = load_ql_example(
+%     "preview/logical/examples/gadgets/03_custom_noise.py", "profiles",
+%     "projected")
+-->
+<p>The projected model groups its detectors and fault indicators by occurrence:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">assert</span> <span class="n">projected</span><span class="o">.</span><span class="n">inputs</span> <span class="o">==</span> <span class="n">projected</span><span class="o">.</span><span class="n">outputs</span> <span class="o">==</span> <span class="p">[]</span>
+<span class="k">assert</span> <span class="n">projected</span><span class="o">.</span><span class="n">detectors</span> <span class="o">==</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span> <span class="mi">8</span><span class="p">,</span> <span class="mi">8</span><span class="p">]</span>
+<span class="k">assert</span> <span class="n">projected</span><span class="o">.</span><span class="n">observables</span> <span class="o">==</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+<span class="k">assert</span> <span class="p">[</span><span class="n">fault</span><span class="o">.</span><span class="n">size</span> <span class="k">for</span> <span class="n">fault</span> <span class="ow">in</span> <span class="n">projected</span><span class="o">.</span><span class="n">faults</span><span class="p">]</span> <span class="o">==</span> <span class="p">[</span><span class="mi">27</span><span class="p">,</span> <span class="mi">27</span><span class="p">,</span> <span class="mi">27</span><span class="p">]</span>
+</pre></div>
+</div>
+<ul class="simple">
+<li><p>Empty <code class="docutils literal notranslate"><span class="pre">inputs</span></code> and <code class="docutils literal notranslate"><span class="pre">outputs</span></code> mean the model is closed.</p></li>
+<li><p>The 4 + 8 + 8 detectors are the same 20 described in the Stim tutorial’s
+<a class="reference internal" href="stim-emission.html#read-the-exported-circuit"><span class="std std-ref">Read the exported circuit</span></a>.</p></li>
+<li><p>Each noisy occurrence contributes 27 fault indicators. Readout has none.</p></li>
+</ul>
+<p><code class="docutils literal notranslate"><span class="pre">apply</span></code> shows the effect of any combination of faults. Indicator 0 is the X
+alternative on data qubit 0 before the first round:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">x_error_on_qubit_0</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="mi">80</span>
+<span class="n">flips</span> <span class="o">=</span> <span class="n">projected</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">x_error_on_qubit_0</span><span class="p">)</span>
+<span class="k">assert</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">bit</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">flips</span><span class="p">[:</span><span class="mi">20</span><span class="p">])</span> <span class="k">if</span> <span class="n">bit</span><span class="p">]</span> <span class="o">==</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="k">assert</span> <span class="n">flips</span><span class="p">[</span><span class="mi">20</span><span class="p">:]</span> <span class="o">==</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>This fault fires detector 0, the first-round check <code class="docutils literal notranslate"><span class="pre">Z0*Z1*Z3*Z4</span></code>, and flips the
+logical-Z observable. Indicator 2, the Z alternative on the same qubit, flips
+nothing, because the X-type checks only set a baseline in the first round.</p>
+</section>
+<section id="save-and-reload-the-model">
+<h3>Save and reload the model<a class="headerlink" href="#save-and-reload-the-model" title="Link to this heading"></a></h3>
+<p>Save the projected model to <code class="docutils literal notranslate"><span class="pre">memory-edem/memory.edemb</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">output</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">output</span><span class="p">)</span>
+<span class="n">output</span><span class="o">.</span><span class="n">mkdir</span><span class="p">(</span><span class="n">parents</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">artifact</span> <span class="o">=</span> <span class="n">output</span> <span class="o">/</span> <span class="s2">"memory.edemb"</span>
+<span class="n">artifact</span><span class="o">.</span><span class="n">write_bytes</span><span class="p">(</span><span class="n">projected</span><span class="o">.</span><span class="n">to_bytes</span><span class="p">())</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Exported d=</span><span class="si">{</span><span class="n">distance</span><span class="si">}</span><span class="s2">, rounds=</span><span class="si">{</span><span class="n">rounds</span><span class="si">}</span><span class="s2">: "</span>
+      <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">sum</span><span class="p">(</span><span class="n">projected</span><span class="o">.</span><span class="n">detectors</span><span class="p">)</span><span class="si">}</span><span class="s2"> detectors, "</span>
+      <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">sum</span><span class="p">(</span><span class="n">projected</span><span class="o">.</span><span class="n">observables</span><span class="p">)</span><span class="si">}</span><span class="s2"> observable, "</span>
+      <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="nb">sum</span><span class="p">(</span><span class="n">f</span><span class="o">.</span><span class="n">size</span><span class="w"> </span><span class="k">for</span><span class="w"> </span><span class="n">f</span><span class="w"> </span><span class="ow">in</span><span class="w"> </span><span class="n">projected</span><span class="o">.</span><span class="n">faults</span><span class="p">)</span><span class="si">}</span><span class="s2"> fault indicators"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Model: </span><span class="si">{</span><span class="n">artifact</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+
+</pre></div>
+</div>
+<p>The file keeps each Pauli channel exactly as specified, without approximating it
+as independent errors. Loading it requires only <code class="docutils literal notranslate"><span class="pre">cudaq_edem</span></code>, with no gadget
+definitions or CUDA-Q Logical installation:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">cudaq_edem</span><span class="w"> </span><span class="kn">import</span> <span class="n">DEM</span>
+
+<span class="n">model</span> <span class="o">=</span> <span class="n">DEM</span><span class="o">.</span><span class="n">from_bytes</span><span class="p">(</span><span class="n">Path</span><span class="p">(</span><span class="s2">"memory-edem/memory.edemb"</span><span class="p">)</span><span class="o">.</span><span class="n">read_bytes</span><span class="p">())</span>
+<span class="k">assert</span> <span class="n">model</span><span class="o">.</span><span class="n">to_bytes</span><span class="p">()</span> <span class="o">==</span> <span class="n">projected</span><span class="o">.</span><span class="n">to_bytes</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+<section id="sample-the-model">
+<h3>Sample the model<a class="headerlink" href="#sample-the-model" title="Link to this heading"></a></h3>
+<p>The script’s last cell converts the model to a Stim DEM and samples it. To
+enable it, install Stim and set <code class="docutils literal notranslate"><span class="pre">shots</span></code> to a positive number, such as <code class="docutils literal notranslate"><span class="pre">100</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s1">'stim&gt;=1.16,&lt;2'</span>
+</pre></div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">if</span> <span class="n">shots</span><span class="p">:</span>
+    <span class="n">independent</span> <span class="o">=</span> <span class="n">edem</span><span class="o">.</span><span class="n">factorize_dem</span><span class="p">(</span><span class="n">projected</span><span class="p">)</span>
+    <span class="n">reduced</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">edem</span><span class="o">.</span><span class="n">coalesce_dem_columns</span><span class="p">(</span><span class="n">independent</span><span class="p">)</span>
+    <span class="n">stim_dem</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">to_stim_dem</span><span class="p">(</span><span class="n">reduced</span><span class="p">)</span>
+    <span class="n">sampler</span> <span class="o">=</span> <span class="n">stim_dem</span><span class="o">.</span><span class="n">compile_sampler</span><span class="p">(</span><span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
+    <span class="n">detectors</span><span class="p">,</span> <span class="n">observables</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">sampler</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">shots</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Sampled </span><span class="si">{</span><span class="n">shots</span><span class="si">}</span><span class="s2"> shots"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Shots with detection events: </span><span class="si">{</span><span class="n">detectors</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">shots</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">"Shots with uncorrected observable flips: "</span>
+          <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">observables</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">shots</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Stim samples independent errors, so the conversion takes three steps:</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">factorize_dem</span></code> preserves independent groups and replaces supported Pauli
+channels with independent errors that
+have exactly the same distribution.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">coalesce_dem_columns</span></code> merges errors that flip the same detectors and
+observables.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">to_stim_dem</span></code> formats the result as a <code class="docutils literal notranslate"><span class="pre">stim.DetectorErrorModel</span></code>.</p></li>
+</ol>
+<p>The exact factorization exists for uniform one- and two-qubit Pauli channels,
+with total error probability up to <code class="docutils literal notranslate"><span class="pre">3/4</span></code> and <code class="docutils literal notranslate"><span class="pre">15/16</span></code>, respectively. Other
+channels, such as the Z-biased example, make <code class="docutils literal notranslate"><span class="pre">factorize_dem</span></code> raise
+<code class="docutils literal notranslate"><span class="pre">ValueError</span></code>. Models with postselection can’t be converted.</p>
+<p>Each shot reports which detectors fired and whether the logical-Z observable
+flipped. These counts are uncorrected; to estimate a logical error rate after
+correction, pass the Stim DEM to a decoder.</p>
+<p>You can also load the saved file directly in CUDA-Q QEC and evaluate it there.
+Support for EDEM files is being added in
+<a class="reference external" href="https://github.com/NVIDIA/cudaq-qec/pull/868">NVIDIA/cudaq-qec#868</a>.</p>
+<!-- TODO: Replace the pull-request link with the CUDA-Q QEC documentation URL
+once NVIDIA/cudaq-qec#868 is merged. -->
+</section>
+</section>
+<section id="going-further">
+<h2>Going further<a class="headerlink" href="#going-further" title="Link to this heading"></a></h2>
+<section id="specify-faults">
+<h3>Specify faults<a class="headerlink" href="#specify-faults" title="Link to this heading"></a></h3>
+<p>A <code class="docutils literal notranslate"><span class="pre">FaultSet</span></code> lists faults explicitly. Each fault is placed at a site from
+<code class="docutils literal notranslate"><span class="pre">projection.instructions[i].site_id</span></code> and takes effect immediately after that
+instruction. It must target a carrier that is live at that point. Site IDs
+belong to a fixed realization, so obtain a new projection after rewriting the
+circuit.</p>
+<p>Besides Pauli errors, a <strong>record flip</strong> inverts a recorded measurement bit
+without adding a physical error. This example flips a memory round’s first
+check result and adds an X error after its last check:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">round_profile</span> <span class="o">=</span> <span class="n">profiles</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+<span class="n">round_build</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">round_profile</span><span class="p">)</span>
+<span class="n">round_projection</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">compiler</span><span class="o">.</span><span class="n">project_clifford</span><span class="p">(</span>
+    <span class="n">round_build</span><span class="p">,</span> <span class="n">gadget</span><span class="o">=</span><span class="n">round_profile</span><span class="o">.</span><span class="n">gadget</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+<span class="n">last_check_site</span> <span class="o">=</span> <span class="n">round_projection</span><span class="o">.</span><span class="n">instructions</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">site_id</span>
+<span class="n">data_carrier</span> <span class="o">=</span> <span class="n">round_projection</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">inputs</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">data_carriers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<span class="n">faults</span> <span class="o">=</span> <span class="n">FaultSet</span><span class="p">()</span><span class="o">.</span><span class="n">record_flip</span><span class="p">(</span><span class="n">round_projection</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">measurements</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">record</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">)</span>
+<span class="n">faults</span> <span class="o">=</span> <span class="n">faults</span><span class="o">.</span><span class="n">pauli_error</span><span class="p">(</span><span class="n">last_check_site</span><span class="p">,</span> <span class="n">data_carrier</span><span class="p">,</span> <span class="s2">"x"</span><span class="p">,</span> <span class="mf">0.02</span><span class="p">)</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">edem_from_gadget</span><span class="p">(</span>
+    <span class="n">round_profile</span><span class="o">.</span><span class="n">gadget</span><span class="p">,</span> <span class="n">contract</span><span class="o">=</span><span class="n">round_profile</span><span class="p">,</span> <span class="n">faults</span><span class="o">=</span><span class="n">faults</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The two faults affect the output boundary differently. The record flip changes
+the outgoing virtual syndrome <code class="docutils literal notranslate"><span class="pre">ΔV</span></code> without leaving a physical error, so <code class="docutils literal notranslate"><span class="pre">S</span></code>
+does not change. The late X error changes <code class="docutils literal notranslate"><span class="pre">S</span></code> without changing <code class="docutils literal notranslate"><span class="pre">ΔV</span></code>, because no
+later check in this gadget measures it.</p>
+<p>Faults can be combined in several ways:</p>
+<ul class="simple">
+<li><p><strong>Independent faults.</strong> Faults outside a group are independent. Each has
+its own indicator, even when two faults have identical effects.</p></li>
+<li><p><strong>Mutually exclusive alternatives.</strong> <code class="docutils literal notranslate"><span class="pre">FaultSet.pauli_channel</span></code>, <code class="docutils literal notranslate"><span class="pre">depolarize1</span></code>,
+and <code class="docutils literal notranslate"><span class="pre">depolarize2</span></code> keep each alternative as a separate indicator, and at most
+one alternative occurs.</p></li>
+<li><p><strong>Correlated events.</strong> An <code class="docutils literal notranslate"><span class="pre">ElementaryFault</span></code> can group several
+<code class="docutils literal notranslate"><span class="pre">PauliInsertion</span></code> values and record flips into one indicator.</p></li>
+</ul>
+<p>Probabilities must be finite and in <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">1]</span></code>, and mutually exclusive
+alternatives must sum to at most one. Fault column <code class="docutils literal notranslate"><span class="pre">i</span></code> corresponds to
+<code class="docutils literal notranslate"><span class="pre">faults.faults[i]</span></code>. The packed EDEM doesn’t store fault sources, so keep the
+ordered fault set if you need to map columns back to faults.</p>
+<p>The workflow supports stabilizer codes with <code class="docutils literal notranslate"><span class="pre">r</span> <span class="pre">=</span> <span class="pre">0</span></code> (no gauge qubits), Clifford
+operations, static calls and repeats, Pauli errors, and record flips. Erasures,
+subsystem codes, dynamic feedback, and non-Clifford operations are
+unsupported.</p>
+</section>
+<section id="derive-models-stage-by-stage">
+<h3>Derive models stage by stage<a class="headerlink" href="#derive-models-stage-by-stage" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">derive_edem_chain</span></code> packages a sequence of steps you can also run yourself:
+derive each gadget’s EDEM with its contract and noise policy, then compose the
+results:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq_edem</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">edem</span>
+
+<span class="n">prep_profile</span><span class="p">,</span> <span class="n">round_profile</span><span class="p">,</span> <span class="o">*</span><span class="n">_</span><span class="p">,</span> <span class="n">readout_profile</span> <span class="o">=</span> <span class="n">profiles</span>
+<span class="n">noise</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">compiler</span><span class="o">.</span><span class="n">StandardDepolarizingNoise</span><span class="p">()</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">gadget_model</span><span class="p">(</span><span class="n">profile</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">cql</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">edem_from_gadget</span><span class="p">(</span>
+        <span class="n">profile</span><span class="o">.</span><span class="n">gadget</span><span class="p">,</span> <span class="n">contract</span><span class="o">=</span><span class="n">profile</span><span class="p">,</span> <span class="n">noise</span><span class="o">=</span><span class="n">noise</span><span class="p">)</span>
+
+
+<span class="n">round_model</span> <span class="o">=</span> <span class="n">gadget_model</span><span class="p">(</span><span class="n">round_profile</span><span class="p">)</span>
+<span class="n">chain</span> <span class="o">=</span> <span class="n">edem</span><span class="o">.</span><span class="n">compose_chain</span><span class="p">([</span>
+    <span class="n">gadget_model</span><span class="p">(</span><span class="n">prep_profile</span><span class="p">),</span> <span class="n">round_model</span><span class="p">,</span> <span class="n">round_model</span><span class="p">,</span>
+    <span class="n">gadget_model</span><span class="p">(</span><span class="n">readout_profile</span><span class="p">)</span>
+<span class="p">])</span>
+<span class="k">assert</span> <span class="nb">sum</span><span class="p">(</span><span class="n">edem</span><span class="o">.</span><span class="n">project_DEM</span><span class="p">(</span><span class="n">chain</span><span class="p">)</span><span class="o">.</span><span class="n">detectors</span><span class="p">)</span> <span class="o">==</span> <span class="mi">20</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">noise=</span></code> argument applies the same noise policy as <code class="docutils literal notranslate"><span class="pre">compiler.emit_stim</span></code>.
+Use <code class="docutils literal notranslate"><span class="pre">faults=</span></code> with your own <code class="docutils literal notranslate"><span class="pre">FaultSet</span></code> to model other faults, obtaining a
+Clifford projection first when you need instruction sites or record indices.
+<code class="docutils literal notranslate"><span class="pre">compose_chain</span></code> supports serial chains in which adjacent boundaries use the
+same code presentation, meaning the same code and stabilizer ordering. Call
+<code class="docutils literal notranslate"><span class="pre">project_DEM</span></code> only once every encoded boundary is closed.</p>
+</section>
+<section id="contract-checks-during-derivation">
+<h3>Contract checks during derivation<a class="headerlink" href="#contract-checks-during-derivation" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">edem_from_gadget</span></code> checks the contract against the realization before deriving a
+model. Declared detectors must be zero without faults, and outgoing virtual
+syndromes must match the measured stabilizers. The contract must also account
+for every deterministic measurement relation. An inconsistent or incomplete
+contract is rejected.</p>
+<p>Compilation materializes the authored declarations; it does not establish
+their correctness. EDEM derivation checks the detector contract, but does not
+prove the gadget’s intended logical action. Use
+<a class="reference internal" href="../reference/detector-contracts.html#verify-a-contract-and-the-logical-action"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">cql.gadgets.verify_gadget</span></code></span></a>
+to check both the contract and supported logical behavior.</p>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="stim-emission.html" class="btn btn-neutral float-left" title="Stim emission" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../reference/detector-contracts.html" class="btn btn-neutral float-right" title="Detector contracts and Clifford projection" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright © 2026, NVIDIA Corporation &amp; affiliates. All rights reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

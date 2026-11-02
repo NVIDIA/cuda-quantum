@@ -1,0 +1,766 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Detector contracts and Clifford projection &mdash; CUDA-Q Logical  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../_static/design-tabs.js?v=f930bc37"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="CUDA-Q Logical for Stim users" href="for-stim-users.html" />
+    <link rel="prev" title="Derive an error model from gadgets" href="../use-cases/gadget-edems.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #76b900" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            CUDA-Q Logical
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../getting-started/quickstart.html">Quick start</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/quickstart.html#use-a-cuda-q-kernel">Use a CUDA-Q kernel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/quickstart.html#write-a-standalone-logical-program">Write a standalone logical program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/quickstart.html#build-from-source">Build from source</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/quickstart.html#where-to-go-next">Where to go next</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html">The logical programming stack</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#compile-and-estimate-the-logical-program">1. Compile and estimate the logical program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#choose-the-code-and-its-implementations">2. Choose the code and its implementations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#describe-the-device">3. Describe the device</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#place-and-realize-the-program">4. Place and realize the program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#schedule-and-estimate-the-physical-resources">5. Schedule and estimate the physical resources</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#expose-the-device-as-a-cuda-q-target">6. Expose the device as a CUDA-Q target</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/cudaq-logical-in-practice.html#where-to-go-next">Where to go next</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../getting-started/concepts.html">Core concepts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#logical-programs-and-quantum-values">Logical programs and quantum values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#definitions-builds-and-compilation">Definitions, builds, and compilation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#clifford-t-decomposition">Clifford+T decomposition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#codes-and-operation-implementations">Codes and operation implementations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#devices-and-placement">Devices and placement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#schedules-and-resource-estimates">Schedules and resource estimates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../getting-started/concepts.html#cuda-q-integration">CUDA-Q integration</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../use-cases/examples/index.html">CUDA-Q Logical by Example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/examples/index.html#cuda-q-kernel-examples">CUDA-Q kernel examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/logical-resource-estimate.html">Logical Resource Estimate</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/clifford-t.html">Clifford+T Synthesis</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/cudaq-resource-estimate.html">CUDA-Q Logical Resource Estimate</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/fermi-hubbard.html">Fermi–Hubbard Estimation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/carbon-code.html">Carbon Code Target</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/gidney-ekera.html">Gidney–Ekerå RSA</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/examples/index.html#standalone-compiler-examples">Standalone compiler examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/p0-bell.html">Portable P0 Bell Program</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/p1-placement.html">P1 Placement</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/code-and-gadget.html">Code and Gadget</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/physical-schedule.html">Standalone Physical Schedule</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/steane-bernstein-vazirani.html">Steane-Encoded Bernstein–Vazirani on Stim</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/distillation.html">T-State Distillation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/t-factory-evaluation.html">T-State Distillation with <code class="docutils literal notranslate"><span class="pre">cudaq.run</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/lookup-addition.html">Gidney–Ekerå Lookup Addition</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/examples/index.html#gadget-verification-and-error-models">Gadget verification and error models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/gadget-verification.html">Verify an Authored Gadget</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../use-cases/examples/gadget-verification.html#author-the-realization-and-its-claim">Author the realization and its claim</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../use-cases/examples/gadget-verification.html#declare-the-detector-contract">Declare the detector contract</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../use-cases/examples/gadget-verification.html#inspect-a-successful-receipt">Inspect a successful receipt</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../use-cases/examples/gadget-verification.html#inspect-an-incorrect-logical-claim">Inspect an incorrect logical claim</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/gadget-surface-memory.html">Physical Surface-Code Memory</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../use-cases/examples/gadget-surface-memory.html#select-preparation-extraction-and-readout">Select preparation, extraction, and readout</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../use-cases/examples/gadget-surface-memory.html#verify-the-ideal-behavior">Verify the ideal behavior</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../use-cases/examples/gadget-surface-memory.html#emit-a-circuit-and-derive-its-model">Emit a circuit and derive its model</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../use-cases/examples/gadget-surface-memory.html#save-and-optionally-sample">Save and optionally sample</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/stim-emission.html">Surface-Memory Stim Export</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/memory-edem.html">Surface-Memory Error Model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/examples/surface-memory-circuit.html">Surface-Memory Reference Comparison</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../use-cases/examples/surface-memory-circuit.html#run-the-example">Run the example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../use-cases/examples/surface-memory-circuit.html#select-the-concrete-gadgets">Select the concrete gadgets</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../use-cases/examples/surface-memory-circuit.html#verify-the-ideal-behavior">Verify the ideal behavior</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../use-cases/examples/surface-memory-circuit.html#project-the-realization-and-choose-physical-noise">Project the realization and choose physical noise</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../use-cases/examples/surface-memory-circuit.html#emit-the-circuit-and-reuse-gadget-models">Emit the circuit and reuse gadget models</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../use-cases/examples/surface-memory-circuit.html#export-the-original-models">Export the original models</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../use-cases/examples/surface-memory-circuit.html#compare-with-stim-and-choose-a-sampler">Compare with Stim and choose a sampler</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../use-cases/examples/surface-memory-circuit.html#physical-schedule-and-reference-equivalence">Physical schedule and reference equivalence</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Use cases</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../use-cases/define-a-code.html">Defining codes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/define-a-code.html#css-codes-state-the-checks-once">CSS codes: state the checks once</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/define-a-code.html#distance-is-evidence-not-an-integer">Distance is evidence, not an integer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/define-a-code.html#the-catalog-and-parameterized-families">The catalog and parameterized families</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/define-a-code.html#what-you-get-for-free">What you get for free</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/define-a-code.html#where-to-go-next">Where to go next</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../use-cases/gadgets-and-verification.html">Gadgets and verification</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/gadgets-and-verification.html#what-implements-takes">What <code class="docutils literal notranslate"><span class="pre">implements=</span></code> takes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/gadgets-and-verification.html#author-the-action-in-cuda-q-logical">Author the action in CUDA-Q Logical</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/gadgets-and-verification.html#reuse-a-cuda-q-kernel-as-the-claim">Reuse a CUDA-Q kernel as the claim</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/gadgets-and-verification.html#what-the-signature-and-body-add">What the signature and body add</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/gadgets-and-verification.html#typed-records-at-the-boundary">Typed records at the boundary</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/gadgets-and-verification.html#preparation-and-destructive-measurement">Preparation and destructive measurement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/gadgets-and-verification.html#selection-retry-and-postselection-belong-to-the-protocol">Selection: retry and postselection belong to the protocol</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/gadgets-and-verification.html#verification-claims-are-checked-not-trusted">Verification: claims are checked, not trusted</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/gadgets-and-verification.html#design-rules-that-keep-the-model-crisp">Design rules that keep the model crisp</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/gadgets-and-verification.html#where-to-go-next">Where to go next</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../use-cases/devices-and-placement.html">Devices and placement</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/devices-and-placement.html#machines-devices-architectures">Machines, devices, architectures</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/devices-and-placement.html#stop-at-the-layer-your-study-needs">Stop at the layer your study needs</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/devices-and-placement.html#automatic-placement-constraints-preferences-witnesses">Automatic placement: constraints, preferences, witnesses</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/devices-and-placement.html#code-agnostic-p1">Code-agnostic P1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/devices-and-placement.html#where-the-firewall-pays-off">Where the firewall pays off</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/devices-and-placement.html#continue-from-here">Continue from here</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../use-cases/magic-states-and-protocols.html">Magic states and protocols</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/magic-states-and-protocols.html#phase-convention">Phase convention</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/magic-states-and-protocols.html#authoring-exact-angles-with-cudaq-logical-algebra-pi">Authoring exact angles with <code class="docutils literal notranslate"><span class="pre">cudaq.logical.algebra.pi</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/magic-states-and-protocols.html#typed-resource-kinds">Typed resource kinds</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/magic-states-and-protocols.html#to-1-a-concrete-factory">15-to-1: a concrete factory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/magic-states-and-protocols.html#compact-factory-models-at-p3">Compact factory models at P3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/magic-states-and-protocols.html#continue-from-here">Continue from here</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../use-cases/logical-synthesis.html">Logical Clifford+T synthesis</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/logical-synthesis.html#synthesize-a-program">Synthesize a program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/logical-synthesis.html#precision">Precision</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/logical-synthesis.html#inspect-and-replay-the-result">Inspect and replay the result</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/logical-synthesis.html#use-the-pipeline-form">Use the pipeline form</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/logical-synthesis.html#pauli-based-computation-still-at-p0">Pauli-based computation, still at P0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/logical-synthesis.html#when-not-to-synthesize">When not to synthesize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/logical-synthesis.html#continue-from-here">Continue from here</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../use-cases/estimation.html">Resource estimation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/estimation.html#tier-logical-cost-the-algorithm-before-any-qec-choice"><code class="docutils literal notranslate"><span class="pre">Tier.LOGICAL</span></code> — cost the algorithm before any QEC choice</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/estimation.html#tier-static-count-one-selected-p2-realization"><code class="docutils literal notranslate"><span class="pre">Tier.STATIC</span></code> — count one selected P2 realization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/estimation.html#tier-analytical-apply-an-explicit-physical-model"><code class="docutils literal notranslate"><span class="pre">Tier.ANALYTICAL</span></code> — apply an explicit physical model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/estimation.html#tier-schedule-cost-the-physical-event-graph"><code class="docutils literal notranslate"><span class="pre">Tier.SCHEDULE</span></code> — cost the physical event graph</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/estimation.html#the-rules-that-keep-estimates-honest">The rules that keep estimates honest</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/estimation.html#direct-spellings">Direct spellings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/estimation.html#sweeps-and-reproducibility">Sweeps and reproducibility</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/estimation.html#paper-specific-projections-live-in-the-open">Paper-specific projections live in the open</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/estimation.html#estimating-ordinary-cuda-q-kernels">Estimating ordinary CUDA-Q kernels</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../use-cases/stim-emission.html">Stim emission</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/stim-emission.html#export-a-surface-code-memory-with-detector-contracts">Export a surface-code memory with detector contracts</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/stim-emission.html#read-the-exported-circuit">Read the exported circuit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/stim-emission.html#choose-the-experiment-size-and-noise">Choose the experiment size and noise</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/stim-emission.html#build-preparation-storage-and-readout">Build preparation, storage, and readout</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/stim-emission.html#describe-which-results-signal-errors">Describe which results signal errors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/stim-emission.html#assemble-the-experiment-and-add-data-errors">Assemble the experiment and add data errors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/stim-emission.html#save-the-stim-circuit">Save the Stim circuit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/stim-emission.html#sample-and-interpret-the-results">Sample and interpret the results</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/stim-emission.html#customize-the-experiment">Customize the experiment</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/stim-emission.html#native-mlir-emission">Native MLIR emission</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/stim-emission.html#emit-from-the-command-line">Emit from the command line</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/stim-emission.html#fail-closed-boundaries">Fail-closed boundaries</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/stim-emission.html#where-to-go-next">Where to go next</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../use-cases/gadget-edems.html">Derive an error model from gadgets</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/gadget-edems.html#what-an-edem-records">What an EDEM records</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/gadget-edems.html#derive-a-surface-memory-model">Derive a surface-memory model</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/gadget-edems.html#import-the-libraries">Import the libraries</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/gadget-edems.html#configure-the-experiment">Configure the experiment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/gadget-edems.html#select-the-gadget-contracts">Select the gadget contracts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/gadget-edems.html#choose-where-faults-occur">Choose where faults occur</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/gadget-edems.html#derive-and-compose-the-model">Derive and compose the model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/gadget-edems.html#inspect-the-model">Inspect the model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/gadget-edems.html#save-and-reload-the-model">Save and reload the model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/gadget-edems.html#sample-the-model">Sample the model</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../use-cases/gadget-edems.html#going-further">Going further</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/gadget-edems.html#specify-faults">Specify faults</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/gadget-edems.html#derive-models-stage-by-stage">Derive models stage by stage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../use-cases/gadget-edems.html#contract-checks-during-derivation">Contract checks during derivation</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Detector contracts and Clifford projection</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#gadget-terminology">Gadget terminology</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#compatibility-spellings">Compatibility spellings</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#virtual-syndromes-and-boundary-errors">Virtual syndromes and boundary errors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#detector-map-and-outcome-map">Detector map and outcome map</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#recipe-provided-contracts">Recipe-provided contracts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#declare-a-contract">Declare a contract</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#declare-a-default-contract">Declare a default contract</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#verify-a-contract-and-the-logical-action">Verify a contract and the logical action</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#project-the-realization">Project the realization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#boundary-for-edem-producers">Boundary for EDEM producers</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="for-stim-users.html">CUDA-Q Logical for Stim users</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="for-stim-users.html#the-translation-table">The translation table</a></li>
+<li class="toctree-l2"><a class="reference internal" href="for-stim-users.html#execute-a-physical-build">Execute a physical build</a></li>
+<li class="toctree-l2"><a class="reference internal" href="for-stim-users.html#worked-emission">Worked emission</a></li>
+<li class="toctree-l2"><a class="reference internal" href="for-stim-users.html#what-has-no-stim-equivalent">What has no Stim equivalent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="for-stim-users.html#when-to-just-use-stim">When to just use Stim</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="capabilities.html">Capabilities and status</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="capabilities.html#what-the-product-is">What the product is</a></li>
+<li class="toctree-l2"><a class="reference internal" href="capabilities.html#subsystem-status">Subsystem status</a></li>
+<li class="toctree-l2"><a class="reference internal" href="capabilities.html#present-but-not-yet-exercised">Present but not yet exercised</a></li>
+<li class="toctree-l2"><a class="reference internal" href="capabilities.html#execution-and-documented-boundaries">Execution and documented boundaries</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="architecture.html">Architecture</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#the-dialect-stack">The dialect stack</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#the-semantic-spine-and-its-facets">The semantic spine and its facets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#definitions-versus-builds">Definitions versus builds</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#the-artifact-model">The artifact model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#data-ownership">Data ownership</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#the-compile-pipeline">The compile pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#the-p2-patch-graph">The P2 patch graph</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#verification-layers">Verification layers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#typed-inspection">Typed inspection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#package-map">Package map</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#extensibility">Extensibility</a></li>
+<li class="toctree-l2"><a class="reference internal" href="architecture.html#where-to-go-next">Where to go next</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="building-against-cudaq.html">Building against CUDA-Q</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="building-against-cudaq.html#build-edem-and-logical-separately">Build EDEM and Logical separately</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">CUDA-Q</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest/">Main CUDA-Q documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #76b900" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">CUDA-Q Logical</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Detector contracts and Clifford projection</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/reference/detector-contracts.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
+        <a href="../use-cases/gadget-edems.html" class="btn btn-neutral float-left" title="Derive an error model from gadgets" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="for-stim-users.html" class="btn btn-neutral float-right" title="CUDA-Q Logical for Stim users" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+  </div>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="detector-contracts-and-clifford-projection">
+<h1>Detector contracts and Clifford projection<a class="headerlink" href="#detector-contracts-and-clifford-projection" title="Link to this heading"></a></h1>
+<p>A gadget has a logical action, a realization, encoded input and output
+boundaries, and an affine outcome map. <code class="docutils literal notranslate"><span class="pre">implements=</span></code> names the action, while
+the gadget body describes its realization. A detector contract describes how realization
+measurements and virtual boundary syndromes determine detector parities and
+output virtual syndromes.</p>
+<section id="gadget-terminology">
+<h2>Gadget terminology<a class="headerlink" href="#gadget-terminology" title="Link to this heading"></a></h2>
+<p>An <strong>action</strong> is the ideal logical circuit a gadget claims to implement. It can
+prepare or discard qubits and return measurement outcomes; it need not be a
+unitary operation. A <strong>realization</strong> is the circuit over the gadget’s physical
+code blocks. The affine <strong>outcome map</strong> converts realization outcomes into
+action outcomes, which are the gadget’s logical observables.</p>
+<p>These concepts are separate from the <strong>gadget detector contract</strong>, which fixes
+the virtual detectors, output virtual-syndrome relations, and input/output
+<strong>code presentations</strong>. A code presentation selects stabilizer generators and
+boundary-error coordinates. <code class="docutils literal notranslate"><span class="pre">GadgetContract</span></code> and <code class="docutils literal notranslate"><span class="pre">CodeProfile</span></code> are compiler
+containers supplying those mathematical objects; their other fields do not
+change the definitions.</p>
+<p>Use <code class="docutils literal notranslate"><span class="pre">&#64;cudaq.logical.action</span></code> to author a reusable ideal circuit. Its default
+<code class="docutils literal notranslate"><span class="pre">kind=&quot;auto&quot;</span></code> infers whether the circuit is unitary or an instrument.
+<code class="docutils literal notranslate"><span class="pre">kind=&quot;unitary&quot;</span></code> requires a body of unitary actions, and <code class="docutils literal notranslate"><span class="pre">kind=&quot;instrument&quot;</span></code> permits
+preparation, measurement, and changed quantum boundaries. <code class="docutils literal notranslate"><span class="pre">CliffordAction</span></code>
+remains the narrower signed symplectic description of a Clifford unitary.
+The verification receipt’s <code class="docutils literal notranslate"><span class="pre">logical_action</span></code> reports the check of the declared
+action. The verifier supports signed Clifford unitaries, single-logical
+signed X/Z eigenstate preparation, and destructive or preserving X/Z
+measurement.
+Other objective forms are explicitly unsupported.</p>
+<section id="compatibility-spellings">
+<h3>Compatibility spellings<a class="headerlink" href="#compatibility-spellings" title="Link to this heading"></a></h3>
+<p>The former <code class="docutils literal notranslate"><span class="pre">objective</span></code> vocabulary remains accepted at compatibility boundaries:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Canonical authoring name</p></th>
+<th class="head"><p>Accepted compatibility name</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">&#64;cudaq.logical.action</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&#64;cudaq.logical.objective</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">kind=&quot;unitary&quot;</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">kind=&quot;action&quot;</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ProgramDefinition.action_kind</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ProgramDefinition.objective_kind</span></code> (the explicit unitary kind uses the legacy value <code class="docutils literal notranslate"><span class="pre">&quot;action&quot;</span></code>)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ActionOperandRef</span></code>, <code class="docutils literal notranslate"><span class="pre">ActionOperands</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ObjectiveOperandRef</span></code>, <code class="docutils literal notranslate"><span class="pre">ObjectiveOperands</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ActionMismatch</span></code>, <code class="docutils literal notranslate"><span class="pre">MissingAction</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ObjectiveMismatch</span></code>, <code class="docutils literal notranslate"><span class="pre">MissingObjective</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">logical.ActionFamily</span></code>, <code class="docutils literal notranslate"><span class="pre">logical.SyndromeExtractionAction</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">logical.ObjectiveFamily</span></code>, <code class="docutils literal notranslate"><span class="pre">logical.SyndromeExtractionObjective</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">CompilationContext.action</span></code>, <code class="docutils literal notranslate"><span class="pre">declare_action</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">objective</span></code>, <code class="docutils literal notranslate"><span class="pre">declare_objective</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>QEC lowering <code class="docutils literal notranslate"><span class="pre">action=</span></code>, <code class="docutils literal notranslate"><span class="pre">action_family=</span></code> and corresponding read-only views</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">objective=</span></code>, <code class="docutils literal notranslate"><span class="pre">objective_family=</span></code> and the stored fields</p></td>
+</tr>
+</tbody>
+</table>
+<p>These are alternate spellings of the same values, rather than separately
+registered actions. Passing both keyword spellings is an error. The public
+definition kind is <code class="docutils literal notranslate"><span class="pre">&quot;action&quot;</span></code>; constructing a definition with the legacy
+<code class="docutils literal notranslate"><span class="pre">kind=&quot;objective&quot;</span></code> normalizes it to that kind.</p>
+<p>Saved MLIR and build bundles keep their existing <code class="docutils literal notranslate"><span class="pre">qlx.objective_body</span></code>,
+<code class="docutils literal notranslate"><span class="pre">fabric.objective</span></code>, <code class="docutils literal notranslate"><span class="pre">objective_kind</span></code>, <code class="docutils literal notranslate"><span class="pre">objective_family</span></code>, and logical-link
+<code class="docutils literal notranslate"><span class="pre">objective</span></code> spellings. Python and C++ expose <code class="docutils literal notranslate"><span class="pre">ActionBodyOp</span></code> and Fabric
+<code class="docutils literal notranslate"><span class="pre">ActionOp</span></code> aliases for these operations. Provider manifest identities also
+retain their existing wire names. These format choices preserve replay and
+linkage without requiring a serialized-schema migration.</p>
+<p>Placement and scheduling <strong>optimization objectives</strong> describe costs or solver
+policies. Their <code class="docutils literal notranslate"><span class="pre">objective</span></code> names have that separate meaning and are unchanged.</p>
+</section>
+</section>
+<section id="virtual-syndromes-and-boundary-errors">
+<h2>Virtual syndromes and boundary errors<a class="headerlink" href="#virtual-syndromes-and-boundary-errors" title="Link to this heading"></a></h2>
+<p>These quantities describe different information at an encoded boundary:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Quantity</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Measurement outcomes <code class="docutils literal notranslate"><span class="pre">M</span></code></p></td>
+<td><p>Physical realization measurement bits, in execution order.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Virtual syndrome <code class="docutils literal notranslate"><span class="pre">V</span></code></p></td>
+<td><p>Stabilizer signs expected from the available classical information.</p></td>
+</tr>
+<tr class="row-even"><td><p>Boundary error <code class="docutils literal notranslate"><span class="pre">E</span></code></p></td>
+<td><p>Residual phase-free Pauli error relative to the ideal output on the same outcome branch.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Syndrome coordinate <code class="docutils literal notranslate"><span class="pre">S</span></code></p></td>
+<td><p>Commutation of the boundary error with the code presentation’s listed stabilizer generators.</p></td>
+</tr>
+<tr class="row-even"><td><p>Logical-effect coordinate <code class="docutils literal notranslate"><span class="pre">L</span></code></p></td>
+<td><p>Logical Pauli effect of that boundary error in the chosen coordinates.</p></td>
+</tr>
+</tbody>
+</table>
+<p><code class="docutils literal notranslate"><span class="pre">V</span></code> is a classical expectation; <code class="docutils literal notranslate"><span class="pre">S</span></code> is a coordinate of a residual Pauli error.
+A change in an inferred stabilizer sign is written <code class="docutils literal notranslate"><span class="pre">ΔV</span></code>, not <code class="docutils literal notranslate"><span class="pre">S</span></code>. The
+code-presentation map sends <code class="docutils literal notranslate"><span class="pre">E</span></code> to <code class="docutils literal notranslate"><span class="pre">(S,</span> <span class="pre">L)</span></code>. A code presentation may list
+redundant generators, so its attainable coordinates need not fill the whole
+declared bit space.</p>
+<p>The contract spellings <code class="docutils literal notranslate"><span class="pre">endpoint.syndrome</span></code>, <code class="docutils literal notranslate"><span class="pre">InputSyndromeRef</span></code>, and
+<code class="docutils literal notranslate"><span class="pre">OutputSyndromeAssignment</span></code> describe <strong>virtual syndromes</strong>. They do not declare
+residual-error coordinates. <code class="docutils literal notranslate"><span class="pre">CodeProfile</span></code> remains the compiler’s larger code
+algebra container; its selected generators and boundary coordinates supply a
+code presentation. Contract syndrome bundles currently use the endpoint’s
+effective stabilizer basis.</p>
+</section>
+<section id="detector-map-and-outcome-map">
+<h2>Detector map and outcome map<a class="headerlink" href="#detector-map-and-outcome-map" title="Link to this heading"></a></h2>
+<p>The affine detector map has the form</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>DM: (M, V_in) -&gt; (D, V_out)
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">Detector</span></code> declares one virtual-detector parity. Output syndrome bindings
+declare the <code class="docutils literal notranslate"><span class="pre">V_out</span></code> rows. Both may use realization records, incoming virtual
+syndromes, and constants. Detector rows are intended to vanish on ideal
+outcomes; the declared family may be redundant and is not assumed to be a
+basis.</p>
+<p>The gadget’s affine outcome map has the separate form</p>
+<div class="highlight-text notranslate"><div class="highlight"><pre><span></span>OM: M -&gt; O
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">LogicalObservable</span></code> declares one indexed action-outcome parity. Observable rows
+use measurement records and constants, with no <code class="docutils literal notranslate"><span class="pre">V_in</span></code> terms. Random action
+outcomes are valid observables too; they need not be deterministic detectors.
+When a gadget has an <code class="docutils literal notranslate"><span class="pre">OutcomeMap</span></code> with <code class="docutils literal notranslate"><span class="pre">RESULT</span></code> rows, a <code class="docutils literal notranslate"><span class="pre">GadgetContract</span></code> derives
+its observables from those rows. Explicit declarations must reproduce that
+ordered affine table. The broader existing <code class="docutils literal notranslate"><span class="pre">OutcomeMap.input_syndromes</span></code> API
+cannot be used in these observable rows.</p>
+<p>A <strong>gadget detector contract</strong> consists of the detector map and the input and
+output code presentations. <code class="docutils literal notranslate"><span class="pre">GadgetContract</span></code> is a compiler container that also
+holds observable and success declarations; those additional fields do not
+change the mathematical definition of a detector contract. Success rows are
+acceptance mismatch parities; retry and selection policy stay in the protocol.</p>
+</section>
+<section id="recipe-provided-contracts">
+<h2>Recipe-provided contracts<a class="headerlink" href="#recipe-provided-contracts" title="Link to this heading"></a></h2>
+<p>Surface-library gadgets expose their declared default contract through
+<code class="docutils literal notranslate"><span class="pre">.contract</span></code>. Recipes also expose <code class="docutils literal notranslate"><span class="pre">gadget_contract(gadget)</span></code> functions:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">cudaq.logical.architectures</span><span class="w"> </span><span class="kn">import</span> <span class="n">surface</span>
+
+<span class="n">recipe</span> <span class="o">=</span> <span class="n">surface</span><span class="o">.</span><span class="n">definitions</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+<span class="n">contract</span> <span class="o">=</span> <span class="n">recipe</span><span class="o">.</span><span class="n">memory_round</span><span class="o">.</span><span class="n">contract</span>
+<span class="k">assert</span> <span class="n">contract</span> <span class="ow">is</span> <span class="n">surface</span><span class="o">.</span><span class="n">gadget_contract</span><span class="p">(</span><span class="n">recipe</span><span class="o">.</span><span class="n">memory_round</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The Surface recipe returns cached contracts for the gadget objects it creates.
+A gadget it did not create raises <code class="docutils literal notranslate"><span class="pre">ValueError</span></code>. For custom gadgets, declare a
+<code class="docutils literal notranslate"><span class="pre">GadgetContract</span></code> explicitly or supply a default contract factory, as below.</p>
+<p>The surface recipe supplies preparation and memory detectors, Clifford syndrome
+transfers, and readout observables. Clifford transfers are derived from
+physical gates, while measurement comparisons are selected by the recipe.</p>
+</section>
+<section id="declare-a-contract">
+<h2>Declare a contract<a class="headerlink" href="#declare-a-contract" title="Link to this heading"></a></h2>
+<p>For a custom gadget, use <code class="docutils literal notranslate"><span class="pre">GadgetContractBuilder</span></code> to declare how recorded measurements
+relate to its virtual boundary. This Steane memory round names its extracted
+syndrome <code class="docutils literal notranslate"><span class="pre">round</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cudaq.logical</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cql</span>
+
+
+<span class="nd">@cql</span><span class="o">.</span><span class="n">gadget</span><span class="p">(</span><span class="n">implements</span><span class="o">=</span><span class="n">cql</span><span class="o">.</span><span class="n">logical</span><span class="o">.</span><span class="n">idle</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">memory_round</span><span class="p">(</span>
+    <span class="n">block</span><span class="p">:</span> <span class="n">cql</span><span class="o">.</span><span class="n">patch</span><span class="p">[</span><span class="n">cql</span><span class="o">.</span><span class="n">codes</span><span class="o">.</span><span class="n">Steane</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">cql</span><span class="o">.</span><span class="n">patch</span><span class="p">[</span><span class="n">cql</span><span class="o">.</span><span class="n">codes</span><span class="o">.</span><span class="n">Steane</span><span class="p">]:</span>
+    <span class="n">block</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">extract_syndrome</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="n">record</span><span class="o">=</span><span class="s2">"round"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">block</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">memory_round.record(&quot;round.s0&quot;)</span></code> refers symbolically to the first check result;
+constructing the reference does not run the gadget. The check indices follow
+the endpoint code profile’s effective stabilizer ordering.</p>
+<p>The incoming virtual syndrome contains the expected stabilizer signs inferred
+from earlier results. In an ideal round, each current measurement agrees with
+its incoming expectation, so their XOR forms a detector. The current results
+then become the outgoing baseline:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">builder</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">gadgets</span><span class="o">.</span><span class="n">GadgetContractBuilder</span><span class="p">(</span><span class="n">memory_round</span><span class="o">.</span><span class="n">interface</span><span class="p">)</span>
+<span class="n">incoming</span> <span class="o">=</span> <span class="n">memory_round</span><span class="o">.</span><span class="n">inputs</span><span class="o">.</span><span class="n">only</span><span class="p">()</span><span class="o">.</span><span class="n">syndrome</span>
+<span class="n">outgoing</span> <span class="o">=</span> <span class="n">memory_round</span><span class="o">.</span><span class="n">outputs</span><span class="o">.</span><span class="n">only</span><span class="p">()</span><span class="o">.</span><span class="n">syndrome</span>
+<span class="n">records</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">memory_round</span><span class="o">.</span><span class="n">record</span><span class="p">(</span><span class="sa">f</span><span class="s2">"round.s</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">incoming</span><span class="o">.</span><span class="n">width</span><span class="p">))</span>
+
+<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">record</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">records</span><span class="p">):</span>
+    <span class="n">builder</span><span class="o">.</span><span class="n">detector</span><span class="p">(</span><span class="n">incoming</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">^</span> <span class="n">record</span><span class="p">)</span>
+<span class="n">builder</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">outgoing</span><span class="p">,</span> <span class="n">records</span><span class="p">)</span>
+<span class="n">contract</span> <span class="o">=</span> <span class="n">builder</span><span class="o">.</span><span class="n">freeze</span><span class="p">()</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">detector</span></code> declares a parity expected to vanish without errors. <code class="docutils literal notranslate"><span class="pre">bind</span></code> supplies
+the complete outgoing virtual syndrome that a subsequent gadget can reference.
+<code class="docutils literal notranslate"><span class="pre">freeze()</span></code> produces an immutable <code class="docutils literal notranslate"><span class="pre">GadgetContract</span></code>; these declarations add no
+quantum operations or noise probabilities to the realization.</p>
+<p>This memory round returns no logical measurement outcome, so it has no
+observable rows. For a readout gadget, observables come from its declared
+outcome map. Explicit observable declarations must agree with that map, as
+explained in <a class="reference internal" href="#detector-map-and-outcome-map">Detector map and outcome map</a>.</p>
+<p>Compile the contract and verify the module:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">build</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">contract</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">build</span><span class="o">.</span><span class="n">module</span><span class="o">.</span><span class="n">operation</span><span class="o">.</span><span class="n">verify</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Compilation materializes the authored contract declarations. Python
+construction and MLIR verification check row structure, record ownership,
+syndrome bounds, observable indices, and agreement with the outcome map.
+<a class="reference internal" href="../use-cases/gadget-edems.html#contract-checks-during-derivation"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">analysis.edem_from_gadget</span></code></span></a>
+additionally checks ideal determinism and completeness before constructing an
+EDEM. It does not prove the declared logical action; use <code class="docutils literal notranslate"><span class="pre">verify_gadget</span></code> for
+both checks.</p>
+<p>Pass the explicit contract as an occurrence in a closed, compatible contract
+sequence for
+<a class="reference internal" href="../use-cases/stim-emission.html#save-the-stim-circuit"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">compiler.emit_stim</span></code></span></a>. For
+EDEM construction, pass the gadget and <code class="docutils literal notranslate"><span class="pre">contract=contract</span></code> to
+<a class="reference internal" href="../use-cases/gadget-edems.html#specify-faults"><span class="std std-ref"><code class="docutils literal notranslate"><span class="pre">analysis.edem_from_gadget</span></code></span></a>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">edem_from_gadget</span><span class="p">(</span><span class="n">memory_round</span><span class="p">,</span> <span class="n">contract</span><span class="o">=</span><span class="n">contract</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>No separate compile step is required. Add <code class="docutils literal notranslate"><span class="pre">faults=</span></code> for an explicit fault set,
+or <code class="docutils literal notranslate"><span class="pre">noise=</span></code> and optional <code class="docutils literal notranslate"><span class="pre">depolarizations=</span></code> for the standard noise policy.
+An explicit fault set cannot be combined with the standard-noise arguments.
+The contract is authored here; it is not inferred from the gadget definition.</p>
+<section id="declare-a-default-contract">
+<h3>Declare a default contract<a class="headerlink" href="#declare-a-default-contract" title="Link to this heading"></a></h3>
+<p>Use <code class="docutils literal notranslate"><span class="pre">&#64;cql.gadget(contract=factory)</span></code> to attach a reusable contract declaration
+to a custom gadget. The factory receives the gadget definition and returns
+its <code class="docutils literal notranslate"><span class="pre">GadgetContract</span></code>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">memory_contract</span><span class="p">(</span><span class="n">gadget</span><span class="p">):</span>
+    <span class="n">incoming</span> <span class="o">=</span> <span class="n">gadget</span><span class="o">.</span><span class="n">inputs</span><span class="o">.</span><span class="n">only</span><span class="p">()</span><span class="o">.</span><span class="n">syndrome</span>
+    <span class="n">outgoing</span> <span class="o">=</span> <span class="n">gadget</span><span class="o">.</span><span class="n">outputs</span><span class="o">.</span><span class="n">only</span><span class="p">()</span><span class="o">.</span><span class="n">syndrome</span>
+    <span class="n">records</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">gadget</span><span class="o">.</span><span class="n">record</span><span class="p">(</span><span class="sa">f</span><span class="s2">"round.s</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">incoming</span><span class="o">.</span><span class="n">width</span><span class="p">))</span>
+    <span class="n">builder</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">gadgets</span><span class="o">.</span><span class="n">GadgetContractBuilder</span><span class="p">(</span><span class="n">gadget</span><span class="o">.</span><span class="n">interface</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">record</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">records</span><span class="p">):</span>
+        <span class="n">builder</span><span class="o">.</span><span class="n">detector</span><span class="p">(</span><span class="n">incoming</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">^</span> <span class="n">record</span><span class="p">)</span>
+    <span class="n">builder</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">outgoing</span><span class="p">,</span> <span class="n">records</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">builder</span><span class="o">.</span><span class="n">freeze</span><span class="p">()</span>
+
+
+<span class="nd">@cql</span><span class="o">.</span><span class="n">gadget</span><span class="p">(</span><span class="n">implements</span><span class="o">=</span><span class="n">cql</span><span class="o">.</span><span class="n">logical</span><span class="o">.</span><span class="n">idle</span><span class="p">,</span> <span class="n">contract</span><span class="o">=</span><span class="n">memory_contract</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">declared_memory_round</span><span class="p">(</span>
+    <span class="n">block</span><span class="p">:</span> <span class="n">cql</span><span class="o">.</span><span class="n">patch</span><span class="p">[</span><span class="n">cql</span><span class="o">.</span><span class="n">codes</span><span class="o">.</span><span class="n">Steane</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">cql</span><span class="o">.</span><span class="n">patch</span><span class="p">[</span><span class="n">cql</span><span class="o">.</span><span class="n">codes</span><span class="o">.</span><span class="n">Steane</span><span class="p">]:</span>
+    <span class="n">block</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">extract_syndrome</span><span class="p">(</span><span class="n">block</span><span class="p">,</span> <span class="n">record</span><span class="o">=</span><span class="s2">"round"</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">block</span>
+
+
+<span class="n">model</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">analysis</span><span class="o">.</span><span class="n">edem_from_gadget</span><span class="p">(</span><span class="n">declared_memory_round</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">declared_memory_round.contract</span></code> exposes the default declaration. An explicit
+<code class="docutils literal notranslate"><span class="pre">contract=</span></code> argument selects a contract for that call. A gadget without a
+declared default requires <code class="docutils literal notranslate"><span class="pre">contract=</span></code>; missing declarations raise an error
+rather than triggering detector inference.</p>
+</section>
+</section>
+<section id="verify-a-contract-and-the-logical-action">
+<h2>Verify a contract and the logical action<a class="headerlink" href="#verify-a-contract-and-the-logical-action" title="Link to this heading"></a></h2>
+<p>The <a class="reference internal" href="../use-cases/examples/gadget-verification.html"><span class="std std-doc">authored-gadget example</span></a>
+runs this workflow and demonstrates a failed logical-action receipt. The
+<a class="reference internal" href="../use-cases/examples/gadget-surface-memory.html"><span class="std std-doc">physical-memory example</span></a>
+applies it to recipe-provided preparation, extraction and readout contracts.</p>
+<p><code class="docutils literal notranslate"><span class="pre">verify_gadget</span></code> checks a <code class="docutils literal notranslate"><span class="pre">GadgetContract</span></code> against its gadget’s realization:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">RepetitionPatch</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">patch</span><span class="p">[</span><span class="n">cql</span><span class="o">.</span><span class="n">codes</span><span class="o">.</span><span class="n">Repetition</span><span class="p">]</span>
+
+
+<span class="nd">@cql</span><span class="o">.</span><span class="n">gadget</span><span class="p">(</span><span class="n">implements</span><span class="o">=</span><span class="n">cql</span><span class="o">.</span><span class="n">logical</span><span class="o">.</span><span class="n">idle</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">syndrome_round</span><span class="p">(</span><span class="n">block</span><span class="p">:</span> <span class="n">RepetitionPatch</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RepetitionPatch</span><span class="p">:</span>
+    <span class="n">block</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">extract_syndrome</span><span class="p">(</span><span class="n">block</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">block</span>
+
+
+<span class="n">block_in</span> <span class="o">=</span> <span class="n">syndrome_round</span><span class="o">.</span><span class="n">inputs</span><span class="o">.</span><span class="n">only</span><span class="p">()</span>
+<span class="n">block_out</span> <span class="o">=</span> <span class="n">syndrome_round</span><span class="o">.</span><span class="n">outputs</span><span class="o">.</span><span class="n">only</span><span class="p">()</span>
+<span class="n">checks</span> <span class="o">=</span> <span class="n">syndrome_round</span><span class="o">.</span><span class="n">records</span><span class="o">.</span><span class="n">syndrome</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">checks</span>
+
+<span class="n">contract</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">gadgets</span><span class="o">.</span><span class="n">GadgetContract</span><span class="p">(</span>
+    <span class="n">syndrome_round</span><span class="p">,</span>
+    <span class="n">detectors</span><span class="o">=</span><span class="nb">tuple</span><span class="p">(</span>
+        <span class="n">cql</span><span class="o">.</span><span class="n">gadgets</span><span class="o">.</span><span class="n">Detector</span><span class="p">(</span><span class="n">block_in</span><span class="o">.</span><span class="n">syndrome</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">^</span> <span class="n">checks</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">block_in</span><span class="o">.</span><span class="n">syndrome</span><span class="o">.</span><span class="n">width</span><span class="p">)),</span>
+    <span class="n">boundary</span><span class="o">=</span><span class="p">{</span><span class="n">block_out</span><span class="o">.</span><span class="n">syndrome</span><span class="p">:</span> <span class="n">checks</span><span class="p">},</span>
+<span class="p">)</span>
+<span class="n">receipt</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">gadgets</span><span class="o">.</span><span class="n">verify_gadget</span><span class="p">(</span><span class="n">contract</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">receipt</span><span class="o">.</span><span class="n">detector_contract</span><span class="o">.</span><span class="n">outcome_code_rank</span> <span class="o">==</span> <span class="mi">4</span>
+<span class="k">assert</span> <span class="n">receipt</span><span class="o">.</span><span class="n">logical_action</span><span class="o">.</span><span class="n">action</span> <span class="o">==</span> <span class="s2">"ql.logical.idle"</span>
+</pre></div>
+</div>
+<p>Both checks read one Choi probe of the realization. Every logical input is
+Bell-paired with a reference qubit, the encoded input is placed in an
+arbitrary stabilizer coset, and the realization’s Clifford projection runs
+through an outcome-complete symbolic stabilizer simulation over F2:</p>
+<ul class="simple">
+<li><p><strong>Detector contract.</strong> Every declared detector and output virtual-syndrome
+relation must be a deterministic parity of the probed realization, and
+together with the deterministic combinations of the observables they must
+generate all of them (the rank condition). The receipt reports
+<code class="docutils literal notranslate"><span class="pre">outcome_code_rank</span> <span class="pre">==</span> <span class="pre">detector_rank</span> <span class="pre">+</span> <span class="pre">deterministic_logical_outcome_rank</span></code>.
+For the round above the Choi probe yields a 6 × 2 affine outcome relation
+with a four-dimensional left kernel, spanned by the two detectors and the
+two output relations: <code class="docutils literal notranslate"><span class="pre">4</span> <span class="pre">=</span> <span class="pre">4</span> <span class="pre">+</span> <span class="pre">0</span></code>.</p></li>
+<li><p><strong>Logical behavior.</strong> The selected compiled gadget specification supplies
+the objective and its logical-operand bindings. Unitaries must reproduce
+every signed Choi relation. Preparations must have the declared logical
+eigenvalue. Measurements must correlate their mapped result with the
+corresponding reference Pauli and, for preserving measurements, with the
+surviving output Pauli. Untouched logical qubits must retain their identity
+Choi relations. <code class="docutils literal notranslate"><span class="pre">logical_action.verified_checks</span></code> counts the proved signed
+relations; <code class="docutils literal notranslate"><span class="pre">logical_rank</span></code> is its historical spelling, not a general rank.</p></li>
+</ul>
+<p>A unitary may act on selected logical ports within a larger encoded boundary.
+The remaining logical qubits must retain their identity action. Explicit
+bindings select the operands; omitted bindings use canonical boundary order.</p>
+<p>Failures raise <code class="docutils literal notranslate"><span class="pre">cudaq.logical.errors.GadgetVerificationError</span></code> and name the
+condition; its <code class="docutils literal notranslate"><span class="pre">receipt</span></code> holds the full result. Unsupported claims also raise
+by default. <code class="docutils literal notranslate"><span class="pre">verify_gadget(...,</span> <span class="pre">raise_on_failure=False)</span></code> returns failed or
+unsupported receipts for inspection. Invalid declarations, compilation errors
+and unsupported realization projections still raise diagnostics; inspection
+receipts require a realization that can be analyzed. A normal return in the default
+mode always has <code class="docutils literal notranslate"><span class="pre">receipt.verified</span> <span class="pre">==</span> <span class="pre">True</span></code>.
+Omitting a detector fails the rank condition (<code class="docutils literal notranslate"><span class="pre">4</span> <span class="pre">≠</span> <span class="pre">3</span> <span class="pre">+</span> <span class="pre">0</span></code>). Declaring the same
+round as <code class="docutils literal notranslate"><span class="pre">implements=cql.logical.x</span></code> passes the contract check, which is blind
+to the logical action, and fails the action check with a sign mismatch on
+<code class="docutils literal notranslate"><span class="pre">Z_ref</span> <span class="pre">-Z̄</span></code>; declaring <code class="docutils literal notranslate"><span class="pre">cql.logical.h</span></code> fails because <code class="docutils literal notranslate"><span class="pre">X_ref</span> <span class="pre">Z̄</span></code> does not
+stabilize the Choi state.</p>
+<p>The affine outcome map is part of the measurement meaning. Its constant is
+checked along with its record terms: a uniformly random bit from an unrelated
+ancilla is not an implementation of logical Z readout. Constants do not change
+the separate rank/completeness calculation. Every supported check holds for
+all input syndrome sectors and all ideal random outcomes, including hidden
+reset outcomes.</p>
+<p>Non-Clifford objectives (for example <code class="docutils literal notranslate"><span class="pre">cql.logical.t</span></code>), general instruments,
+dynamic feed-forward and subsystem-code verification remain unsupported.
+Measurement objectives contain one signed single-logical X/Z measurement,
+with optional affine result processing and either full preservation or full
+discard of the input logicals. Gates surrounding that ideal measurement,
+multiple ideal measurements and partial quantum discard remain unsupported.
+Classical-only objectives cannot pass through an empty set of quantum checks.
+Inspection receipts report <code class="docutils literal notranslate"><span class="pre">logical_action.status</span> <span class="pre">==</span> <span class="pre">&quot;unsupported&quot;</span></code>, a
+<code class="docutils literal notranslate"><span class="pre">reason</span></code>, and <code class="docutils literal notranslate"><span class="pre">receipt.verified</span> <span class="pre">==</span> <span class="pre">False</span></code>. The checks establish ideal
+determinism and the declared supported logical behavior. They do not prove
+fault tolerance or noisy circuit distance.</p>
+</section>
+<section id="project-the-realization">
+<h2>Project the realization<a class="headerlink" href="#project-the-realization" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">cudaq.logical.compiler.project_clifford</span></code> returns typed carrier instructions
+and the existing <code class="docutils literal notranslate"><span class="pre">CompiledInterfaceManifest</span></code>, without parsing Stim text:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">projection</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">compiler</span><span class="o">.</span><span class="n">project_clifford</span><span class="p">(</span><span class="n">build</span><span class="p">,</span> <span class="n">gadget</span><span class="o">=</span><span class="s2">"memory_round"</span><span class="p">)</span>
+<span class="n">instructions</span> <span class="o">=</span> <span class="n">projection</span><span class="o">.</span><span class="n">instructions</span>
+<span class="n">measurements</span> <span class="o">=</span> <span class="n">projection</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">measurements</span>
+<span class="n">record_index</span> <span class="o">=</span> <span class="n">projection</span><span class="o">.</span><span class="n">record_indices</span><span class="p">[</span><span class="s2">"round.s0"</span><span class="p">]</span>
+<span class="k">assert</span> <span class="n">measurements</span><span class="p">[</span><span class="n">record_index</span><span class="p">]</span><span class="o">.</span><span class="n">index</span> <span class="o">==</span> <span class="n">record_index</span>
+</pre></div>
+</div>
+<p>For a gadget-root Build, <code class="docutils literal notranslate"><span class="pre">gadget=</span></code> defaults to its root symbol. Other roots
+require an explicit gadget symbol. The selected gadget must have a linked
+<code class="docutils literal notranslate"><span class="pre">GadgetSpec</span></code>, and every measurement needs a stable record name.</p>
+<p>Each instruction has a kind, carrier operands or Pauli factors, a qualified
+site ID, and a measurement start index when applicable. Calls and static
+repeats are expanded with distinct invocation paths. Site IDs are stable for
+a fixed realization; compiler rewrites may change them. Record aliases, such
+as assembled syndrome rows, refer to existing measurement indices and do not
+add measurements. Ambiguous aliases and record names beginning with the
+reserved <code class="docutils literal notranslate"><span class="pre">__qlx_</span></code> prefix are rejected. Input and output encoded ports are
+listed separately in <code class="docutils literal notranslate"><span class="pre">GadgetSpec</span></code> order, including their carrier partitions
+and patch identities.
+Preparation and destructive readout therefore retain their asymmetric
+boundaries.</p>
+<p>Currently, <code class="docutils literal notranslate"><span class="pre">fabric.permute</span></code> projects to ordinary <code class="docutils literal notranslate"><span class="pre">SWAP</span></code> instructions without
+retaining that they represent a noiseless relabeling. This limits downstream
+noise policies; see the
+<a class="reference internal" href="../use-cases/stim-emission.html#customize-the-experiment"><span class="std std-ref">permutation limitation</span></a>.</p>
+<p>Projection verifies the module and rejects unsupported operations, recursive
+calls, non-Clifford gates, and dynamic control. It preserves the source Build
+and shares the native traversal used for Stim emission. The result describes
+the ideal realization; projection does not insert noise, propagate faults,
+produce an EDEM, or prove detector-contract correctness.</p>
+</section>
+<section id="boundary-for-edem-producers">
+<h2>Boundary for EDEM producers<a class="headerlink" href="#boundary-for-edem-producers" title="Link to this heading"></a></h2>
+<p>Projection stays independent of EDEM storage and ownership. A subsequent
+Logical analysis owns code algebra, contract verification and fault propagation,
+then submits coefficients through EDEM’s semantic construction API. Producers
+name endpoints such as output syndrome of code block 2; they do not assemble
+GF(2) type tables or packed offsets. EDEM validates the model and returns an
+owned packed buffer. GF(2) supplies the checked map view and allocation-free
+apply operation.</p>
+<p>The producer integration uses the standalone <code class="docutils literal notranslate"><span class="pre">cudaq-edem</span></code> distribution as its
+build and runtime dependency. That wheel supplies <code class="docutils literal notranslate"><span class="pre">cudaq_edem</span></code>, the native
+libraries, headers and CMake exports; Logical uses that shared copy rather than
+bundling another. cudaq-qec can depend on the same distribution.</p>
+<p>The native producer hands its caller-held ownership record to Python through
+the capsule protocol in <code class="docutils literal notranslate"><span class="pre">cudaq/edem/python.h</span></code>. <code class="docutils literal notranslate"><span class="pre">cudaq_edem.EDEM.adopt</span></code> validates
+the packed bytes before consuming ownership, keeps the producer’s lifetime
+dependency alive, and retains the original payload address. Serialized input
+can still use <code class="docutils literal notranslate"><span class="pre">EDEM.from_bytes</span></code>, which copies into aligned storage. Native
+checked views and C++ objects do not cross this boundary.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../use-cases/gadget-edems.html" class="btn btn-neutral float-left" title="Derive an error model from gadgets" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="for-stim-users.html" class="btn btn-neutral float-right" title="CUDA-Q Logical for Stim users" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright © 2026, NVIDIA Corporation &amp; affiliates. All rights reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

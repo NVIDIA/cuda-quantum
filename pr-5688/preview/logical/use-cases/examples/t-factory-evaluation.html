@@ -1,0 +1,550 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>T-State Distillation with cudaq.run &mdash; CUDA-Q Logical  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Gidney–Ekerå Lookup Addition" href="lookup-addition.html" />
+    <link rel="prev" title="T-State Distillation" href="distillation.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #76b900" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            CUDA-Q Logical
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../getting-started/quickstart.html">Quick start</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/quickstart.html#use-a-cuda-q-kernel">Use a CUDA-Q kernel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/quickstart.html#write-a-standalone-logical-program">Write a standalone logical program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/quickstart.html#build-from-source">Build from source</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/quickstart.html#where-to-go-next">Where to go next</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-started/cudaq-logical-in-practice.html">The logical programming stack</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/cudaq-logical-in-practice.html#compile-and-estimate-the-logical-program">1. Compile and estimate the logical program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/cudaq-logical-in-practice.html#choose-the-code-and-its-implementations">2. Choose the code and its implementations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/cudaq-logical-in-practice.html#describe-the-device">3. Describe the device</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/cudaq-logical-in-practice.html#place-and-realize-the-program">4. Place and realize the program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/cudaq-logical-in-practice.html#schedule-and-estimate-the-physical-resources">5. Schedule and estimate the physical resources</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/cudaq-logical-in-practice.html#expose-the-device-as-a-cuda-q-target">6. Expose the device as a CUDA-Q target</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/cudaq-logical-in-practice.html#where-to-go-next">Where to go next</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-started/concepts.html">Core concepts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/concepts.html#logical-programs-and-quantum-values">Logical programs and quantum values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/concepts.html#definitions-builds-and-compilation">Definitions, builds, and compilation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/concepts.html#clifford-t-decomposition">Clifford+T decomposition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/concepts.html#codes-and-operation-implementations">Codes and operation implementations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/concepts.html#devices-and-placement">Devices and placement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/concepts.html#schedules-and-resource-estimates">Schedules and resource estimates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/concepts.html#cuda-q-integration">CUDA-Q integration</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">CUDA-Q Logical by Example</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="index.html#cuda-q-kernel-examples">CUDA-Q kernel examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="logical-resource-estimate.html">Logical Resource Estimate</a></li>
+<li class="toctree-l3"><a class="reference internal" href="clifford-t.html">Clifford+T Synthesis</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cudaq-resource-estimate.html">CUDA-Q Logical Resource Estimate</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fermi-hubbard.html">Fermi–Hubbard Estimation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="carbon-code.html">Carbon Code Target</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gidney-ekera.html">Gidney–Ekerå RSA</a></li>
+</ul>
+</li>
+<li class="toctree-l2 current"><a class="reference internal" href="index.html#standalone-compiler-examples">Standalone compiler examples</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="p0-bell.html">Portable P0 Bell Program</a></li>
+<li class="toctree-l3"><a class="reference internal" href="p1-placement.html">P1 Placement</a></li>
+<li class="toctree-l3"><a class="reference internal" href="code-and-gadget.html">Code and Gadget</a></li>
+<li class="toctree-l3"><a class="reference internal" href="physical-schedule.html">Standalone Physical Schedule</a></li>
+<li class="toctree-l3"><a class="reference internal" href="steane-bernstein-vazirani.html">Steane-Encoded Bernstein–Vazirani on Stim</a></li>
+<li class="toctree-l3"><a class="reference internal" href="distillation.html">T-State Distillation</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">T-State Distillation with <code class="docutils literal notranslate"><span class="pre">cudaq.run</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lookup-addition.html">Gidney–Ekerå Lookup Addition</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#gadget-verification-and-error-models">Gadget verification and error models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="gadget-verification.html">Verify an Authored Gadget</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="gadget-verification.html#author-the-realization-and-its-claim">Author the realization and its claim</a></li>
+<li class="toctree-l4"><a class="reference internal" href="gadget-verification.html#declare-the-detector-contract">Declare the detector contract</a></li>
+<li class="toctree-l4"><a class="reference internal" href="gadget-verification.html#inspect-a-successful-receipt">Inspect a successful receipt</a></li>
+<li class="toctree-l4"><a class="reference internal" href="gadget-verification.html#inspect-an-incorrect-logical-claim">Inspect an incorrect logical claim</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="gadget-surface-memory.html">Physical Surface-Code Memory</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="gadget-surface-memory.html#select-preparation-extraction-and-readout">Select preparation, extraction, and readout</a></li>
+<li class="toctree-l4"><a class="reference internal" href="gadget-surface-memory.html#verify-the-ideal-behavior">Verify the ideal behavior</a></li>
+<li class="toctree-l4"><a class="reference internal" href="gadget-surface-memory.html#emit-a-circuit-and-derive-its-model">Emit a circuit and derive its model</a></li>
+<li class="toctree-l4"><a class="reference internal" href="gadget-surface-memory.html#save-and-optionally-sample">Save and optionally sample</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="stim-emission.html">Surface-Memory Stim Export</a></li>
+<li class="toctree-l3"><a class="reference internal" href="memory-edem.html">Surface-Memory Error Model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="surface-memory-circuit.html">Surface-Memory Reference Comparison</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="surface-memory-circuit.html#run-the-example">Run the example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="surface-memory-circuit.html#select-the-concrete-gadgets">Select the concrete gadgets</a></li>
+<li class="toctree-l4"><a class="reference internal" href="surface-memory-circuit.html#verify-the-ideal-behavior">Verify the ideal behavior</a></li>
+<li class="toctree-l4"><a class="reference internal" href="surface-memory-circuit.html#project-the-realization-and-choose-physical-noise">Project the realization and choose physical noise</a></li>
+<li class="toctree-l4"><a class="reference internal" href="surface-memory-circuit.html#emit-the-circuit-and-reuse-gadget-models">Emit the circuit and reuse gadget models</a></li>
+<li class="toctree-l4"><a class="reference internal" href="surface-memory-circuit.html#export-the-original-models">Export the original models</a></li>
+<li class="toctree-l4"><a class="reference internal" href="surface-memory-circuit.html#compare-with-stim-and-choose-a-sampler">Compare with Stim and choose a sampler</a></li>
+<li class="toctree-l4"><a class="reference internal" href="surface-memory-circuit.html#physical-schedule-and-reference-equivalence">Physical schedule and reference equivalence</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Use cases</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../define-a-code.html">Defining codes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../define-a-code.html#css-codes-state-the-checks-once">CSS codes: state the checks once</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../define-a-code.html#distance-is-evidence-not-an-integer">Distance is evidence, not an integer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../define-a-code.html#the-catalog-and-parameterized-families">The catalog and parameterized families</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../define-a-code.html#what-you-get-for-free">What you get for free</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../define-a-code.html#where-to-go-next">Where to go next</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../gadgets-and-verification.html">Gadgets and verification</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../gadgets-and-verification.html#what-implements-takes">What <code class="docutils literal notranslate"><span class="pre">implements=</span></code> takes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../gadgets-and-verification.html#author-the-action-in-cuda-q-logical">Author the action in CUDA-Q Logical</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../gadgets-and-verification.html#reuse-a-cuda-q-kernel-as-the-claim">Reuse a CUDA-Q kernel as the claim</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../gadgets-and-verification.html#what-the-signature-and-body-add">What the signature and body add</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../gadgets-and-verification.html#typed-records-at-the-boundary">Typed records at the boundary</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../gadgets-and-verification.html#preparation-and-destructive-measurement">Preparation and destructive measurement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../gadgets-and-verification.html#selection-retry-and-postselection-belong-to-the-protocol">Selection: retry and postselection belong to the protocol</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../gadgets-and-verification.html#verification-claims-are-checked-not-trusted">Verification: claims are checked, not trusted</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../gadgets-and-verification.html#design-rules-that-keep-the-model-crisp">Design rules that keep the model crisp</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../gadgets-and-verification.html#where-to-go-next">Where to go next</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../devices-and-placement.html">Devices and placement</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../devices-and-placement.html#machines-devices-architectures">Machines, devices, architectures</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../devices-and-placement.html#stop-at-the-layer-your-study-needs">Stop at the layer your study needs</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../devices-and-placement.html#automatic-placement-constraints-preferences-witnesses">Automatic placement: constraints, preferences, witnesses</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../devices-and-placement.html#code-agnostic-p1">Code-agnostic P1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../devices-and-placement.html#where-the-firewall-pays-off">Where the firewall pays off</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../devices-and-placement.html#continue-from-here">Continue from here</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../magic-states-and-protocols.html">Magic states and protocols</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../magic-states-and-protocols.html#phase-convention">Phase convention</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../magic-states-and-protocols.html#authoring-exact-angles-with-cudaq-logical-algebra-pi">Authoring exact angles with <code class="docutils literal notranslate"><span class="pre">cudaq.logical.algebra.pi</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../magic-states-and-protocols.html#typed-resource-kinds">Typed resource kinds</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../magic-states-and-protocols.html#to-1-a-concrete-factory">15-to-1: a concrete factory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../magic-states-and-protocols.html#compact-factory-models-at-p3">Compact factory models at P3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../magic-states-and-protocols.html#continue-from-here">Continue from here</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../logical-synthesis.html">Logical Clifford+T synthesis</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../logical-synthesis.html#synthesize-a-program">Synthesize a program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../logical-synthesis.html#precision">Precision</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../logical-synthesis.html#inspect-and-replay-the-result">Inspect and replay the result</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../logical-synthesis.html#use-the-pipeline-form">Use the pipeline form</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../logical-synthesis.html#pauli-based-computation-still-at-p0">Pauli-based computation, still at P0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../logical-synthesis.html#when-not-to-synthesize">When not to synthesize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../logical-synthesis.html#continue-from-here">Continue from here</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../estimation.html">Resource estimation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../estimation.html#tier-logical-cost-the-algorithm-before-any-qec-choice"><code class="docutils literal notranslate"><span class="pre">Tier.LOGICAL</span></code> — cost the algorithm before any QEC choice</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../estimation.html#tier-static-count-one-selected-p2-realization"><code class="docutils literal notranslate"><span class="pre">Tier.STATIC</span></code> — count one selected P2 realization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../estimation.html#tier-analytical-apply-an-explicit-physical-model"><code class="docutils literal notranslate"><span class="pre">Tier.ANALYTICAL</span></code> — apply an explicit physical model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../estimation.html#tier-schedule-cost-the-physical-event-graph"><code class="docutils literal notranslate"><span class="pre">Tier.SCHEDULE</span></code> — cost the physical event graph</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../estimation.html#the-rules-that-keep-estimates-honest">The rules that keep estimates honest</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../estimation.html#direct-spellings">Direct spellings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../estimation.html#sweeps-and-reproducibility">Sweeps and reproducibility</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../estimation.html#paper-specific-projections-live-in-the-open">Paper-specific projections live in the open</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../estimation.html#estimating-ordinary-cuda-q-kernels">Estimating ordinary CUDA-Q kernels</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../stim-emission.html">Stim emission</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../stim-emission.html#export-a-surface-code-memory-with-detector-contracts">Export a surface-code memory with detector contracts</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../stim-emission.html#read-the-exported-circuit">Read the exported circuit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stim-emission.html#choose-the-experiment-size-and-noise">Choose the experiment size and noise</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stim-emission.html#build-preparation-storage-and-readout">Build preparation, storage, and readout</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stim-emission.html#describe-which-results-signal-errors">Describe which results signal errors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stim-emission.html#assemble-the-experiment-and-add-data-errors">Assemble the experiment and add data errors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stim-emission.html#save-the-stim-circuit">Save the Stim circuit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stim-emission.html#sample-and-interpret-the-results">Sample and interpret the results</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stim-emission.html#customize-the-experiment">Customize the experiment</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../stim-emission.html#native-mlir-emission">Native MLIR emission</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../stim-emission.html#emit-from-the-command-line">Emit from the command line</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stim-emission.html#fail-closed-boundaries">Fail-closed boundaries</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../stim-emission.html#where-to-go-next">Where to go next</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../gadget-edems.html">Derive an error model from gadgets</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../gadget-edems.html#what-an-edem-records">What an EDEM records</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../gadget-edems.html#derive-a-surface-memory-model">Derive a surface-memory model</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../gadget-edems.html#import-the-libraries">Import the libraries</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../gadget-edems.html#configure-the-experiment">Configure the experiment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../gadget-edems.html#select-the-gadget-contracts">Select the gadget contracts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../gadget-edems.html#choose-where-faults-occur">Choose where faults occur</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../gadget-edems.html#derive-and-compose-the-model">Derive and compose the model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../gadget-edems.html#inspect-the-model">Inspect the model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../gadget-edems.html#save-and-reload-the-model">Save and reload the model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../gadget-edems.html#sample-the-model">Sample the model</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../gadget-edems.html#going-further">Going further</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../gadget-edems.html#specify-faults">Specify faults</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../gadget-edems.html#derive-models-stage-by-stage">Derive models stage by stage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../gadget-edems.html#contract-checks-during-derivation">Contract checks during derivation</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../reference/detector-contracts.html">Detector contracts and Clifford projection</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/detector-contracts.html#gadget-terminology">Gadget terminology</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../reference/detector-contracts.html#compatibility-spellings">Compatibility spellings</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/detector-contracts.html#virtual-syndromes-and-boundary-errors">Virtual syndromes and boundary errors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/detector-contracts.html#detector-map-and-outcome-map">Detector map and outcome map</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/detector-contracts.html#recipe-provided-contracts">Recipe-provided contracts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/detector-contracts.html#declare-a-contract">Declare a contract</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../reference/detector-contracts.html#declare-a-default-contract">Declare a default contract</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/detector-contracts.html#verify-a-contract-and-the-logical-action">Verify a contract and the logical action</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/detector-contracts.html#project-the-realization">Project the realization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/detector-contracts.html#boundary-for-edem-producers">Boundary for EDEM producers</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference/for-stim-users.html">CUDA-Q Logical for Stim users</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/for-stim-users.html#the-translation-table">The translation table</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/for-stim-users.html#execute-a-physical-build">Execute a physical build</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/for-stim-users.html#worked-emission">Worked emission</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/for-stim-users.html#what-has-no-stim-equivalent">What has no Stim equivalent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/for-stim-users.html#when-to-just-use-stim">When to just use Stim</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference/capabilities.html">Capabilities and status</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/capabilities.html#what-the-product-is">What the product is</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/capabilities.html#subsystem-status">Subsystem status</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/capabilities.html#present-but-not-yet-exercised">Present but not yet exercised</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/capabilities.html#execution-and-documented-boundaries">Execution and documented boundaries</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference/architecture.html">Architecture</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/architecture.html#the-dialect-stack">The dialect stack</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/architecture.html#the-semantic-spine-and-its-facets">The semantic spine and its facets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/architecture.html#definitions-versus-builds">Definitions versus builds</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/architecture.html#the-artifact-model">The artifact model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/architecture.html#data-ownership">Data ownership</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/architecture.html#the-compile-pipeline">The compile pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/architecture.html#the-p2-patch-graph">The P2 patch graph</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/architecture.html#verification-layers">Verification layers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/architecture.html#typed-inspection">Typed inspection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/architecture.html#package-map">Package map</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/architecture.html#extensibility">Extensibility</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/architecture.html#where-to-go-next">Where to go next</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference/building-against-cudaq.html">Building against CUDA-Q</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/building-against-cudaq.html#build-edem-and-logical-separately">Build EDEM and Logical separately</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">CUDA-Q</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest/">Main CUDA-Q documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #76b900" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">CUDA-Q Logical</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">CUDA-Q Logical by Example</a></li>
+      <li class="breadcrumb-item active">T-State Distillation with <code class="docutils literal notranslate"><span class="pre">cudaq.run</span></code></li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/use-cases/examples/t-factory-evaluation.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
+        <a href="distillation.html" class="btn btn-neutral float-left" title="T-State Distillation" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="lookup-addition.html" class="btn btn-neutral float-right" title="Gidney–Ekerå Lookup Addition" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+  </div>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="t-state-distillation-with-cudaq-run">
+<h1>T-State Distillation with <code class="docutils literal notranslate"><span class="pre">cudaq.run</span></code><a class="headerlink" href="#t-state-distillation-with-cudaq-run" title="Link to this heading"></a></h1>
+<p><a class="reference download internal" download="" href="../../_downloads/0a1c6ca37e4a3d5f5bc0433eb2b90fd4/08_t_factory_evaluation.py"><span class="xref download myst"><code class="docutils literal notranslate"><span class="pre">standalone/08_t_factory_evaluation.py</span></code></span></a>
+runs a 15-to-1 T-state distillation attempt per shot with <code class="docutils literal notranslate"><span class="pre">cudaq.run</span></code>, with
+and without noise on its raw T states.
+It complements the <a class="reference internal" href="distillation.html"><span class="std std-doc">static protocol example</span></a>: execution uses
+explicit raw-state preparation and gate teleportation, with accepted shots
+selected in Python, rather than running the resource-backed protocol unchanged.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># ============================================================================ #</span>
+<span class="c1"># Copyright (c) 2026 NVIDIA Corporation &amp; Affiliates.                          #</span>
+<span class="c1"># All rights reserved.                                                         #</span>
+<span class="c1">#                                                                              #</span>
+<span class="c1"># This source code and the accompanying materials are made available under     #</span>
+<span class="c1"># the terms of the Apache License 2.0 which accompanies this distribution.     #</span>
+<span class="c1"># ============================================================================ #</span>
+<span class="sd">"""Evaluate 15-to-1 T-state distillation with `cudaq.run`.</span>
+
+<span class="sd">Each shot runs one distillation attempt on BareQubit patches (one physical</span>
+<span class="sd">qubit per patch). The attempt uses the rotation supports, final S, and X checks</span>
+<span class="sd">of the library's 15-to-1 protocol (example 07). It returns its four check bits</span>
+<span class="sd">and a check of its output, and the caller accepts an attempt when all four</span>
+<span class="sd">checks are False.</span>
+
+<span class="sd">Example 07's protocol requests 15 raw T states from an external stream. It</span>
+<span class="sd">unpacks four as check rows and consumes eleven with resource-backed rotations.</span>
+<span class="sd">Logical specifies the ideal operation of such a rotation, but it has no</span>
+<span class="sd">concrete preparation for an external raw T state and no execution lowering for</span>
+<span class="sd">the rotation, so that protocol estimates resources but does not run. This</span>
+<span class="sd">example supplies both explicitly: a raw T state is T|+&gt;, and each rotation is</span>
+<span class="sd">gate teleportation that consumes one raw T state, the way `steane_t_injection`</span>
+<span class="sd">consumes a T state. `cudaq.run` also rejects resource flows and</span>
+<span class="sd">`cql.postselect`, so the caller post-selects in Python after the run.</span>
+
+<span class="sd">The noisy run puts a Z error on each raw T state with probability p, and</span>
+<span class="sd">nothing else. Distillation then rejects about half the attempts, and the</span>
+<span class="sd">accepted outputs fail far less often than the raw states.</span>
+<span class="sd">"""</span>
+
+<span class="c1"># %%</span>
+<span class="c1"># Gadgets on BareQubit patches, and a device with six of them: five rows of the</span>
+<span class="c1"># circuit and one raw T state at a time.</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">cudaq</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">cudaq.logical</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">cql</span>
+
+<span class="n">CODE</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">codes</span><span class="o">.</span><span class="n">BareQubit</span>
+
+
+<span class="nd">@cql</span><span class="o">.</span><span class="n">gadget</span><span class="p">(</span><span class="n">implements</span><span class="o">=</span><span class="n">cql</span><span class="o">.</span><span class="n">std</span><span class="o">.</span><span class="n">t</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">bare_t</span><span class="p">(</span><span class="n">q</span><span class="p">:</span> <span class="n">cql</span><span class="o">.</span><span class="n">patch</span><span class="p">[</span><span class="n">CODE</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">cql</span><span class="o">.</span><span class="n">patch</span><span class="p">[</span><span class="n">CODE</span><span class="p">]:</span>
+    <span class="k">return</span> <span class="n">cql</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">t</span><span class="p">(</span><span class="n">q</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+
+
+<span class="nd">@cql</span><span class="o">.</span><span class="n">gadget</span><span class="p">(</span><span class="n">implements</span><span class="o">=</span><span class="n">cql</span><span class="o">.</span><span class="n">std</span><span class="o">.</span><span class="n">tdg</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">bare_tdg</span><span class="p">(</span><span class="n">q</span><span class="p">:</span> <span class="n">cql</span><span class="o">.</span><span class="n">patch</span><span class="p">[</span><span class="n">CODE</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">cql</span><span class="o">.</span><span class="n">patch</span><span class="p">[</span><span class="n">CODE</span><span class="p">]:</span>
+    <span class="k">return</span> <span class="n">cql</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">tdg</span><span class="p">(</span><span class="n">q</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+
+
+<span class="nd">@cql</span><span class="o">.</span><span class="n">gadget</span><span class="p">(</span><span class="n">implements</span><span class="o">=</span><span class="n">cql</span><span class="o">.</span><span class="n">std</span><span class="o">.</span><span class="n">h</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">bare_h</span><span class="p">(</span><span class="n">q</span><span class="p">:</span> <span class="n">cql</span><span class="o">.</span><span class="n">patch</span><span class="p">[</span><span class="n">CODE</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">cql</span><span class="o">.</span><span class="n">patch</span><span class="p">[</span><span class="n">CODE</span><span class="p">]:</span>
+    <span class="k">return</span> <span class="n">cql</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">h</span><span class="p">(</span><span class="n">q</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+
+
+<span class="nd">@cql</span><span class="o">.</span><span class="n">gadget</span><span class="p">(</span><span class="n">implements</span><span class="o">=</span><span class="n">cql</span><span class="o">.</span><span class="n">std</span><span class="o">.</span><span class="n">cx</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">bare_cx</span><span class="p">(</span><span class="n">a</span><span class="p">:</span> <span class="n">cql</span><span class="o">.</span><span class="n">patch</span><span class="p">[</span><span class="n">CODE</span><span class="p">],</span>
+            <span class="n">b</span><span class="p">:</span> <span class="n">cql</span><span class="o">.</span><span class="n">patch</span><span class="p">[</span><span class="n">CODE</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">cql</span><span class="o">.</span><span class="n">patch</span><span class="p">[</span><span class="n">CODE</span><span class="p">],</span> <span class="n">cql</span><span class="o">.</span><span class="n">patch</span><span class="p">[</span><span class="n">CODE</span><span class="p">]]:</span>
+    <span class="k">return</span> <span class="n">cql</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">cx</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">b</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+
+
+<span class="n">measure_z</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">gadgets</span><span class="o">.</span><span class="n">measure_z</span><span class="p">(</span><span class="n">CODE</span><span class="p">)</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">make_device</span><span class="p">():</span>
+    <span class="n">actions</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">architecture</span><span class="o">.</span><span class="n">physical_actions</span>
+    <span class="n">instruments</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">architecture</span><span class="o">.</span><span class="n">physical_instruments</span>
+    <span class="n">architecture</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">devices</span><span class="o">.</span><span class="n">QECArchitecture</span><span class="p">(</span>
+        <span class="s2">"t_factory_architecture"</span><span class="p">,</span>
+        <span class="n">CODE</span><span class="o">.</span><span class="n">default_encoding</span><span class="p">,</span>
+        <span class="n">link_roots</span><span class="o">=</span><span class="p">(</span><span class="n">cql</span><span class="o">.</span><span class="n">gadgets</span><span class="o">.</span><span class="n">prepare_plus</span><span class="p">(</span><span class="n">CODE</span><span class="p">),</span> <span class="n">measure_z</span><span class="p">,</span>
+                    <span class="n">cql</span><span class="o">.</span><span class="n">protocols</span><span class="o">.</span><span class="n">bare_measure_x</span><span class="p">,</span> <span class="n">cql</span><span class="o">.</span><span class="n">protocols</span><span class="o">.</span><span class="n">bare_s</span><span class="p">,</span> <span class="n">bare_t</span><span class="p">,</span>
+                    <span class="n">bare_tdg</span><span class="p">,</span> <span class="n">bare_h</span><span class="p">,</span> <span class="n">bare_cx</span><span class="p">),</span>
+    <span class="p">)</span>
+    <span class="n">builder</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">devices</span><span class="o">.</span><span class="n">DeviceBuilder</span><span class="p">(</span><span class="s2">"t_factory_device"</span><span class="p">,</span> <span class="n">source_module</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+    <span class="n">compute</span> <span class="o">=</span> <span class="n">builder</span><span class="o">.</span><span class="n">qec</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">builder</span><span class="o">.</span><span class="n">logical</span><span class="o">.</span><span class="n">add_compute</span><span class="p">(</span><span class="n">capacity</span><span class="o">=</span><span class="mi">6</span><span class="p">),</span>
+                               <span class="n">architecture</span><span class="o">=</span><span class="n">architecture</span><span class="p">)</span>
+    <span class="n">builder</span><span class="o">.</span><span class="n">physical</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span><span class="n">compute</span><span class="p">,</span>
+                          <span class="n">to</span><span class="o">=</span><span class="n">builder</span><span class="o">.</span><span class="n">physical</span><span class="o">.</span><span class="n">add_qubits</span><span class="p">(</span>
+                              <span class="mi">6</span><span class="p">,</span>
+                              <span class="n">native_actions</span><span class="o">=</span><span class="p">(</span><span class="o">*</span><span class="n">actions</span><span class="o">.</span><span class="n">clifford_set</span><span class="p">(),</span>
+                                              <span class="n">actions</span><span class="o">.</span><span class="n">T</span><span class="p">,</span> <span class="n">actions</span><span class="o">.</span><span class="n">TDG</span><span class="p">),</span>
+                              <span class="n">native_instruments</span><span class="o">=</span><span class="p">(</span><span class="n">instruments</span><span class="o">.</span><span class="n">MZ</span><span class="p">,</span>
+                                                  <span class="n">instruments</span><span class="o">.</span><span class="n">MX</span><span class="p">)))</span>
+    <span class="n">builder</span><span class="o">.</span><span class="n">physical</span><span class="o">.</span><span class="n">set_operating_point</span><span class="p">(</span><span class="n">timing</span><span class="o">=</span><span class="p">{</span><span class="s2">"cycle_ns"</span><span class="p">:</span> <span class="mf">1.0</span><span class="p">})</span>
+    <span class="k">return</span> <span class="n">builder</span><span class="o">.</span><span class="n">build</span><span class="p">()</span>
+
+
+<span class="c1"># %%</span>
+<span class="c1"># The distillation attempt.</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">raw_t_state</span><span class="p">():</span>
+<span class="w">    </span><span class="sd">"""T|+&gt; on a fresh patch: the input of the factory."""</span>
+    <span class="k">return</span> <span class="n">bare_t</span><span class="p">(</span>
+        <span class="n">cql</span><span class="o">.</span><span class="n">prepare_plus</span><span class="p">(</span><span class="n">cql</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">allocate_patch</span><span class="p">(</span><span class="n">CODE</span><span class="p">,</span> <span class="n">region</span><span class="o">=</span><span class="s2">"compute"</span><span class="p">)))</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">rotate</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">support</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""Applies exp(-i pi/8 Z...Z) on `support` by gate teleportation.</span>
+
+<span class="sd">    This is the library's rotation by the angle pi/4. A CX ladder collects the</span>
+<span class="sd">    parity of `support` on its last qubit. A CX from that qubit onto a raw T</span>
+<span class="sd">    state and a Z measurement of the raw state leave T on the parity, or</span>
+<span class="sd">    T-dagger on outcome 1, which S corrects. The ladder is then undone.</span>
+<span class="sd">    """</span>
+    <span class="o">*</span><span class="n">rest</span><span class="p">,</span> <span class="n">last</span> <span class="o">=</span> <span class="n">support</span>
+    <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">rest</span><span class="p">:</span>
+        <span class="n">rows</span><span class="p">[</span><span class="n">q</span><span class="p">],</span> <span class="n">rows</span><span class="p">[</span><span class="n">last</span><span class="p">]</span> <span class="o">=</span> <span class="n">bare_cx</span><span class="p">(</span><span class="n">rows</span><span class="p">[</span><span class="n">q</span><span class="p">],</span> <span class="n">rows</span><span class="p">[</span><span class="n">last</span><span class="p">])</span>
+    <span class="n">rows</span><span class="p">[</span><span class="n">last</span><span class="p">],</span> <span class="n">raw</span> <span class="o">=</span> <span class="n">bare_cx</span><span class="p">(</span><span class="n">rows</span><span class="p">[</span><span class="n">last</span><span class="p">],</span> <span class="n">raw_t_state</span><span class="p">())</span>
+    <span class="n">rows</span><span class="p">[</span><span class="n">last</span><span class="p">],</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">cond</span><span class="p">(</span><span class="n">measure_z</span><span class="p">(</span><span class="n">raw</span><span class="p">),</span>
+                               <span class="n">carries</span><span class="o">=</span><span class="p">(</span><span class="n">rows</span><span class="p">[</span><span class="n">last</span><span class="p">],),</span>
+                               <span class="n">then</span><span class="o">=</span><span class="k">lambda</span> <span class="n">q</span><span class="p">:</span> <span class="p">(</span><span class="n">cql</span><span class="o">.</span><span class="n">protocols</span><span class="o">.</span><span class="n">bare_s</span><span class="p">(</span><span class="n">q</span><span class="p">),),</span>
+                               <span class="n">else_</span><span class="o">=</span><span class="k">lambda</span> <span class="n">q</span><span class="p">:</span> <span class="p">(</span><span class="n">q</span><span class="p">,))</span>
+    <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="n">rest</span><span class="p">):</span>
+        <span class="n">rows</span><span class="p">[</span><span class="n">q</span><span class="p">],</span> <span class="n">rows</span><span class="p">[</span><span class="n">last</span><span class="p">]</span> <span class="o">=</span> <span class="n">bare_cx</span><span class="p">(</span><span class="n">rows</span><span class="p">[</span><span class="n">q</span><span class="p">],</span> <span class="n">rows</span><span class="p">[</span><span class="n">last</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">rows</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">is_not_t</span><span class="p">(</span><span class="n">q</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">"""False when `q` holds |T&gt;: T-dagger, then H, then a Z measurement."""</span>
+    <span class="k">return</span> <span class="n">measure_z</span><span class="p">(</span><span class="n">bare_h</span><span class="p">(</span><span class="n">bare_tdg</span><span class="p">(</span><span class="n">q</span><span class="p">)))</span>
+
+
+<span class="nd">@cql</span><span class="o">.</span><span class="n">protocol</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">distillation_attempt</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="nb">bool</span><span class="p">,</span> <span class="nb">bool</span><span class="p">]:</span>
+    <span class="c1"># Rows 0 to 3 are the check qubits, each a raw T state. Row 4 is the output.</span>
+    <span class="n">rows</span> <span class="o">=</span> <span class="p">[</span><span class="n">raw_t_state</span><span class="p">()</span> <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">)]</span>
+    <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cql</span><span class="o">.</span><span class="n">prepare_plus</span><span class="p">(</span><span class="n">cql</span><span class="o">.</span><span class="n">ops</span><span class="o">.</span><span class="n">allocate_patch</span><span class="p">(</span><span class="n">CODE</span><span class="p">,</span>
+                                                        <span class="n">region</span><span class="o">=</span><span class="s2">"compute"</span><span class="p">)))</span>
+    <span class="k">for</span> <span class="n">support</span> <span class="ow">in</span> <span class="n">cql</span><span class="o">.</span><span class="n">protocols</span><span class="o">.</span><span class="n">FIFTEEN_TO_ONE_ROTATION_SUPPORTS</span><span class="p">:</span>
+        <span class="n">rows</span> <span class="o">=</span> <span class="n">rotate</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">support</span><span class="p">)</span>
+    <span class="c1"># The rotations leave T-dagger|+&gt; on the output row, and S turns it into</span>
+    <span class="c1"># |T&gt;, as in the library protocol.</span>
+    <span class="n">rows</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">protocols</span><span class="o">.</span><span class="n">bare_s</span><span class="p">(</span><span class="n">rows</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
+    <span class="n">checks</span> <span class="o">=</span> <span class="p">[</span><span class="n">cql</span><span class="o">.</span><span class="n">protocols</span><span class="o">.</span><span class="n">bare_measure_x</span><span class="p">(</span><span class="n">q</span><span class="p">)</span> <span class="k">for</span> <span class="n">q</span> <span class="ow">in</span> <span class="n">rows</span><span class="p">[:</span><span class="mi">4</span><span class="p">]]</span>
+    <span class="k">return</span> <span class="p">(</span><span class="o">*</span><span class="n">checks</span><span class="p">,</span> <span class="n">is_not_t</span><span class="p">(</span><span class="n">rows</span><span class="p">[</span><span class="mi">4</span><span class="p">]))</span>
+
+
+<span class="nd">@cql</span><span class="o">.</span><span class="n">protocol</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">raw_state_check</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+    <span class="k">return</span> <span class="n">is_not_t</span><span class="p">(</span><span class="n">raw_t_state</span><span class="p">())</span>
+
+
+<span class="c1"># %%</span>
+<span class="c1"># Compile both protocols to physical P3 for the device.</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">physical</span><span class="p">(</span><span class="n">protocol</span><span class="p">,</span> <span class="n">device</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">cql</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">cql</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">protocol</span><span class="p">),</span>
+                       <span class="n">pipeline</span><span class="o">=</span><span class="n">cql</span><span class="o">.</span><span class="n">compiler</span><span class="o">.</span><span class="n">pipelines</span><span class="o">.</span><span class="n">physical</span><span class="p">(),</span>
+                       <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span>
+
+
+<span class="n">device</span> <span class="o">=</span> <span class="n">make_device</span><span class="p">()</span>
+<span class="n">attempt</span> <span class="o">=</span> <span class="n">physical</span><span class="p">(</span><span class="n">distillation_attempt</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+<span class="n">raw_check</span> <span class="o">=</span> <span class="n">physical</span><span class="p">(</span><span class="n">raw_state_check</span><span class="p">,</span> <span class="n">device</span><span class="p">)</span>
+
+<span class="c1"># %%</span>
+<span class="c1"># Run on the GPU simulator when a GPU is present, and otherwise on the</span>
+<span class="c1"># density-matrix simulator. Both apply the noise model below. Without noise,</span>
+<span class="c1"># every attempt passes its checks and produces |T&gt;.</span>
+<span class="c1"># Note: Without a GPU, there will be a noticeable decrease in simulation</span>
+<span class="c1"># performance.</span>
+<span class="n">target</span> <span class="o">=</span> <span class="s2">"nvidia"</span> <span class="k">if</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">num_available_gpus</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="s2">"density-matrix-cpu"</span>
+<span class="n">cudaq</span><span class="o">.</span><span class="n">set_target</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">attempt</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span> <span class="o">==</span> <span class="p">[[</span><span class="kc">False</span><span class="p">]</span> <span class="o">*</span> <span class="mi">5</span><span class="p">]</span> <span class="o">*</span> <span class="mi">100</span>
+
+<span class="c1"># %%</span>
+<span class="c1"># With a Z error on each raw T state with probability p, distillation rejects</span>
+<span class="c1"># about half the attempts, and the accepted outputs fail less often.</span>
+<span class="n">p</span><span class="p">,</span> <span class="n">shots</span> <span class="o">=</span> <span class="mf">0.05</span><span class="p">,</span> <span class="mi">1000</span>
+<span class="n">noise</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">NoiseModel</span><span class="p">()</span>
+<span class="n">noise</span><span class="o">.</span><span class="n">add_all_qubit_channel</span><span class="p">(</span><span class="s2">"t"</span><span class="p">,</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">PhaseFlipChannel</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
+<span class="n">raw_failures</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">cudaq</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">raw_check</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="n">shots</span><span class="p">,</span> <span class="n">noise_model</span><span class="o">=</span><span class="n">noise</span><span class="p">))</span>
+<span class="n">results</span> <span class="o">=</span> <span class="n">cudaq</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">attempt</span><span class="p">,</span> <span class="n">shots_count</span><span class="o">=</span><span class="n">shots</span><span class="p">,</span> <span class="n">noise_model</span><span class="o">=</span><span class="n">noise</span><span class="p">)</span>
+<span class="n">accepted</span> <span class="o">=</span> <span class="p">[</span><span class="n">result</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="k">for</span> <span class="n">result</span> <span class="ow">in</span> <span class="n">results</span> <span class="k">if</span> <span class="ow">not</span> <span class="nb">any</span><span class="p">(</span><span class="n">result</span><span class="p">[:</span><span class="mi">4</span><span class="p">])]</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">cql</span><span class="o">.</span><span class="n">protocols</span><span class="o">.</span><span class="n">DISTILL_15TO1_T</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"wrong raw T states: </span><span class="si">{</span><span class="n">raw_failures</span><span class="si">}</span><span class="s2"> of </span><span class="si">{</span><span class="n">shots</span><span class="si">}</span><span class="s2"> (model rate </span><span class="si">{</span><span class="n">p</span><span class="si">}</span><span class="s2">)"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"accepted attempts:  </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">accepted</span><span class="p">)</span><span class="si">}</span><span class="s2"> of </span><span class="si">{</span><span class="n">shots</span><span class="si">}</span><span class="s2"> "</span>
+      <span class="sa">f</span><span class="s2">"(model rate </span><span class="si">{</span><span class="n">model</span><span class="o">.</span><span class="n">acceptance_probability</span><span class="p">(</span><span class="n">p</span><span class="p">)</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">)"</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"wrong outputs:      </span><span class="si">{</span><span class="nb">sum</span><span class="p">(</span><span class="n">accepted</span><span class="p">)</span><span class="si">}</span><span class="s2"> of </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">accepted</span><span class="p">)</span><span class="si">}</span><span class="s2"> accepted "</span>
+      <span class="sa">f</span><span class="s2">"(model rate </span><span class="si">{</span><span class="n">model</span><span class="o">.</span><span class="n">output_error</span><span class="p">(</span><span class="n">p</span><span class="p">)</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">)"</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><a class="reference internal" href="index.html"><span class="std std-doc">Back to examples</span></a></p>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="distillation.html" class="btn btn-neutral float-left" title="T-State Distillation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="lookup-addition.html" class="btn btn-neutral float-right" title="Gidney–Ekerå Lookup Addition" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright © 2026, NVIDIA Corporation &amp; affiliates. All rights reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
