@@ -228,10 +228,23 @@ def _prepare_cudaq_module(module, pass_manager_type) -> None:
     linear.run(module.operation)
 
 
+def _json_default(obj):
+    if hasattr(obj, "name"):
+        return f"@cudaq.kernel:{obj.name}"
+    if hasattr(obj, "decorator") and hasattr(obj.decorator, "name"):
+        return f"@cudaq.kernel:{obj.decorator.name}"
+    if callable(obj):
+        name = getattr(obj, "__name__", None) or getattr(obj, "name", str(obj))
+        return f"callable:{name}"
+    raise TypeError(
+        f"Object of type {type(obj).__name__} is not JSON serializable")
+
+
 def _commitment(value) -> str:
     try:
         payload = json.dumps(
             value,
+            default=_json_default,
             sort_keys=True,
             separators=(",", ":"),
         ).encode("utf-8")
@@ -247,7 +260,7 @@ def _stable_cudaq_source(text: str) -> str:
     return re.sub(r"\.\.0x[0-9a-fA-F]+", "..<unique>", text)
 
 
-def _close_cudaq_decorator_helpers(kernel, module):
+def _close_cudaq_decorator_helpers(kernel, module, *arguments):
     """Merge and synthesize captured ``@cudaq.kernel`` helper definitions.
 
     CUDA-Q 0.15's public ``synthesize`` specializes ordinary arguments but
@@ -259,35 +272,48 @@ def _close_cudaq_decorator_helpers(kernel, module):
     optimizer-form ingress.
     """
 
-    from cudaq.kernel.kernel_decorator import DecoratorCapture
+    from cudaq.kernel.kernel_decorator import (
+        DecoratorCapture,
+        isa_kernel_decorator,
+    )
     from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
     from cudaq.mlir.ir import StringAttr
+
+    def _extract_decorator(obj):
+        if isinstance(obj, DecoratorCapture):
+            return obj.decorator
+        if isa_kernel_decorator(obj) or hasattr(obj, "qkeModule"):
+            return getattr(obj, "decorator", obj)
+        return None
 
     def close_helper(decorator):
         helper_module = cudaq_runtime.cloneModule(decorator.qkeModule)
         captures = decorator.resolve_captured_arguments()
         callable_names = []
         for capture in captures:
-            if not isinstance(capture, DecoratorCapture):
+            dec = _extract_decorator(capture)
+            if dec is None:
                 continue
             helper_module = cudaq_runtime.mergeExternalMLIR(
                 helper_module,
-                close_helper(capture.decorator),
+                close_helper(dec),
             )
-            callable_names.append(capture.decorator.uniqName)
+            callable_names.append(dec.uniqName)
         if callable_names:
             cudaq_runtime.synthPyCallable(helper_module, callable_names)
         return helper_module
 
     callable_names = []
-    for capture in kernel.resolve_captured_arguments():
-        if not isinstance(capture, DecoratorCapture):
+    candidates = list(kernel.resolve_captured_arguments()) + list(arguments)
+    for capture in candidates:
+        dec = _extract_decorator(capture)
+        if dec is None:
             continue
         module = cudaq_runtime.mergeExternalMLIR(
             module,
-            close_helper(capture.decorator),
+            close_helper(dec),
         )
-        callable_names.append(capture.decorator.uniqName)
+        callable_names.append(dec.uniqName)
     if callable_names:
         cudaq_runtime.synthPyCallable(module, callable_names)
 
@@ -473,7 +499,8 @@ def import_cudaq(
 
     try:
         specialized = cudaq.synthesize(kernel, *arguments)
-        module = _close_cudaq_decorator_helpers(kernel, specialized.qkeModule)
+        module = _close_cudaq_decorator_helpers(kernel, specialized.qkeModule,
+                                               *arguments)
     except Exception as error:
         raise ValueError(
             f"CUDA-Q could not specialize kernel {name!r} for QLX import"
@@ -503,6 +530,7 @@ def import_cudaq(
     source_sha256 = hashlib.sha256(source.encode("utf-8")).hexdigest()
     argument_commitment = _commitment(arguments)
     arguments_json = json.dumps(arguments,
+                                default=_json_default,
                                 sort_keys=True,
                                 separators=(",", ":"))
     try:
