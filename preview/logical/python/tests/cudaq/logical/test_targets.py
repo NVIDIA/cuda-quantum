@@ -7,6 +7,8 @@
 # ============================================================================ #
 """CUDA-Q target and backend-stack coverage for the P0-through-P3 preview."""
 
+import math
+
 import pytest
 
 import cudaq
@@ -229,6 +231,66 @@ def test_estimator_target_estimates_a_doubly_controlled_ry():
         cudaq.reset_target()
 
     assert result.annotations
+
+
+@cudaq.kernel
+def copy_and(a: cudaq.qubit, b: cudaq.qubit, ancilla: cudaq.qubit,
+             out: cudaq.qubit):
+    x.ctrl([a, b], ancilla)
+    x.ctrl(ancilla, out)
+    x.ctrl([a, b], ancilla)
+
+
+@cudaq.kernel
+def copy_and_twice():
+    q = cudaq.qvector(5)
+    copy_and(q[0], q[1], q[2], q[3])
+    copy_and(q[0], q[1], q[2], q[4])
+    mz(q)
+
+
+@cudaq.kernel
+def trotter():
+    q = cudaq.qvector(4)
+    for step in range(2):
+        scale = step + 1
+        for i in range(4):
+            rz(math.pi / (8 * scale), q[i])
+        for left in range(0, 3, 2):
+            x.ctrl(q[left], q[left + 1])
+            rz(math.pi / (16 * scale), q[left + 1])
+            x.ctrl(q[left], q[left + 1])
+        for left in range(1, 3, 2):
+            x.ctrl(q[left], q[left + 1])
+            rz(math.pi / (12 * scale), q[left + 1])
+            x.ctrl(q[left], q[left + 1])
+    mz(q)
+
+
+# Between the two `copy_and` calls, the first uncompute and the second compute
+# are the same Toffoli, and level 1 cancels the pair. In `trotter`, level 2's
+# phase folding merges the rotations that act on the same parity of qubits.
+# Level 3 is reserved for search and currently runs level 2's passes, so the
+# test stops at level 2.
+@pytest.mark.parametrize("kernel, count, by_level", [
+    pytest.param(copy_and_twice,
+                 lambda r: r.count_controls("x", 2), (4, 2, 2),
+                 id="toffolis"),
+    pytest.param(trotter,
+                 lambda r: r.count("pauli_rotation"), (14, 13, 7),
+                 id="rotations"),
+])
+def test_optimization_level_reduces_the_logical_estimate(
+        kernel, count, by_level):
+    try:
+        cudaq.set_target(cudaq.logical.targets.estimator)
+        counts = tuple(
+            count(cudaq.estimate(kernel, optimization_level=level).resources)
+            for level in range(3))
+    finally:
+        cudaq.reset_target()
+
+    assert counts == by_level
 
 
 def test_cudaq_selects_a_qlx_custom_target_for_estimation():
