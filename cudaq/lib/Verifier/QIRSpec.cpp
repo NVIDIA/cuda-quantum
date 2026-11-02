@@ -8,6 +8,7 @@
 
 #include "cudaq/Verifier/QIRSpec.h"
 #include "cudaq/Optimizer/Builder/Intrinsics.h"
+#include "cudaq/Optimizer/CodeGen/QIRAttributeNames.h"
 #include "cudaq/Optimizer/CodeGen/QIRFunctionNames.h"
 #include "llvm/IR/Constants.h"
 #include "llvm/IR/Instructions.h"
@@ -92,12 +93,14 @@ static bool isValidOutputCallInstruction(llvm::Instruction &inst) {
 LogicalResult cudaq::verifier::verifyLLVMInstructions(
     llvm::Module *llvmModule, cudaq::verifier::LLVMVerifierOptions options) {
 
+  // Calls are unrestricted with the `ir_profile` property.
+  const bool irProfileActive = options.isAdaptiveProfile && options.irProfile;
   for (llvm::Function &func : *llvmModule) {
     // With the `ir_profile` property, the module may define functions other
     // than the entry point, and any function may be called. The body of such a
     // function is not subject to the instruction restrictions of the profile.
-    if (options.isAdaptiveProfile && options.irProfile &&
-        !func.hasFnAttribute("entry_point"))
+    if (irProfileActive &&
+        !func.hasFnAttribute(cudaq::opt::QIREntryPointAttrName))
       continue;
     for (llvm::BasicBlock &block : func)
       for (llvm::Instruction &inst : block) {
@@ -132,10 +135,7 @@ LogicalResult cudaq::verifier::verifyLLVMInstructions(
           }
         }
         auto call = llvm::dyn_cast_or_null<llvm::CallBase>(&inst);
-        // Calls are unrestricted with the `ir_profile` property.
-        const bool callsAreFree =
-            options.isAdaptiveProfile && options.irProfile;
-        if (call && !callsAreFree)
+        if (call && !irProfileActive)
           for (auto &arg : call->args()) {
             auto constExpr = llvm::dyn_cast_or_null<llvm::ConstantExpr>(arg);
             if (constExpr &&

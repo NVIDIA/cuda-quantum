@@ -262,11 +262,8 @@ private:
     if (!isa<func::CallIndirectOp, cudaq::cc::CallCallableOp,
              cudaq::cc::CallIndirectCallableOp>(op))
       return;
-    if (!reportedOperations.insert(op).second)
+    if (!shouldReport(op, reportedIndirectCallLocations))
       return;
-    if (auto sourceLoc = op->getLoc()->findInstanceOf<FileLineColLoc>())
-      if (!reportedIndirectCallLocations.insert(sourceLoc).second)
-        return;
     op->emitWarning(
         "cannot verify this call inside an atomic quantum region: the callee "
         "is not known, so it may measure or allocate qubits");
