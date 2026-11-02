@@ -211,12 +211,13 @@ def ccry_adjoint():
     "kernel",
     [ccry_front_slice, cccry, ccrx, ccrz, ccr1, cch, cccx, ccry_adjoint],
     ids=lambda kernel: kernel.name)
-def test_clifford_t_target_estimates_multi_controlled_gates(kernel):
+@pytest.mark.parametrize("level", range(4))
+def test_clifford_t_target_estimates_multi_controlled_gates(kernel, level):
     target = cudaq.logical.targets.clifford_t_target(precision=1.0e-4)
 
     try:
         cudaq.set_target(target)
-        result = cudaq.estimate(kernel)
+        result = cudaq.estimate(kernel, optimization_level=level)
     finally:
         cudaq.reset_target()
 
