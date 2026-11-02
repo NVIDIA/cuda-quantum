@@ -186,11 +186,15 @@ def prepare_1101_measure_each():
     mz(q[3])
 
 
+# The `quake-mapped` stage unrolls loops shorter than 1024 iterations whatever
+# the target's `max_unroll_iterations`, so the loop must be at least that long
+# to reach `qubit-mapping` rolled. Simulating each routed iteration is slow, so
+# it is only just longer.
 @cudaq.kernel
 def rolled_loop():
     q = cudaq.qvector(4)
     x(q[0])
-    for i in range(2000):
+    for i in range(1026):
         x.ctrl(q[0], q[3])
         h(q[1])
         h(q[2])
