@@ -75,15 +75,14 @@ struct QuakeUnmappedProfile {
   /// Without a cost model, the stage runs no optimization.
   std::optional<CostModel> costModel = std::nullopt;
 
-  /// Which loops the stage unrolls when it converts to wires. Unless this is
-  /// `all`, prep and deploy unroll no loop before the stage runs, so that the
-  /// loops the stage keeps reach its output rolled.
+  /// Which loops the stage unrolls when it converts to wires. Unless the
+  /// target sets `preserveLoops`, prep and deploy first unroll the loops
+  /// within their own limit, so this and `maxUnrollIterations` decide only the
+  /// longer loops.
   LoopUnrolling unrollLoops = LoopUnrolling::all;
 
   /// The most iterations of a loop that the stage unrolls. A selected loop
-  /// with more iterations stays rolled, and a register it indexes stays on
-  /// references. The default, 1024, matches how far prep and deploy unroll,
-  /// and a lower limit stops them from unrolling first.
+  /// with more iterations stays rolled.
   unsigned maxUnrollIterations = 1024;
 
   bool operator==(const QuakeUnmappedProfile &other) const = default;

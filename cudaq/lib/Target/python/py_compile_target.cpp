@@ -85,6 +85,7 @@ void cudaq::bindCompileTarget(nb::module_ &m) {
       .def_rw("support_sample_without_measurements",
               &cudaq::CompileTarget::supportSampleWithoutMeasurements)
       .def_rw("fully_specialize", &cudaq::CompileTarget::fullySpecialize)
+      .def_rw("preserve_loops", &cudaq::CompileTarget::preserveLoops)
       .def_rw("noise_support", &cudaq::CompileTarget::noiseSupport)
       .def_rw("erase_qec", &cudaq::CompileTarget::eraseQEC)
       .def_rw("argument_synth_change_semantics",

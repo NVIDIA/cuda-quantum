@@ -113,6 +113,7 @@ def test_target_eagerly_exposes_the_cudaq_target_configuration():
     assert isinstance(target, CustomTarget)
     assert target.compile_target is compile_target
     assert compile_target.fully_specialize
+    assert compile_target.preserve_loops
     # The compile target has one stage, whose lowering CUDA-Q infers from the
     # profile. Logical adds no passes of its own.
     [stage] = compile_target.stages

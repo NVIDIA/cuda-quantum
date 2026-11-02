@@ -131,22 +131,14 @@
 // CHECK-NEXT:  basis-conversion{basis=h,rx,ry,rz,x,z(1)}
 // CHECK-NEXT:  jit-finalize-pipeline
 
-// A stage that unrolls only index-use loops keeps prep and deploy from
-// unrolling. A target that does not support noise rejects it in prep, and one
-// with QEC erasure off keeps QEC through prep.
-// CHECK-LABEL: index-use, noise unsupported, QEC kept:
+// A target that preserves loops keeps prep and deploy from unrolling, so its
+// stage decides which loops to unroll. A target that does not support noise
+// rejects it in prep, and one with QEC erasure off keeps QEC through prep.
+// CHECK-LABEL: loops preserved, noise unsupported, QEC kept:
 // CHECK-NEXT:  canonicalize
 // CHECK-NEXT:  hw-jit-prep-pipeline{allow-early-exit=false no-loop-unroll=true erase-noise=false reject-noise=true erase-qec=false}
 // CHECK-NEXT:  jit-deploy-pipeline{no-loop-unroll=true}
 // CHECK:       prepare-for-wireset{maximum-iterations=1024 unroll-only-index-use-loops=true}
-
-// A stage whose unroll limit is below prep's 1024 iterations keeps prep and
-// deploy from unrolling, even when it unrolls all loops.
-// CHECK-LABEL: unroll limit 2:
-// CHECK-NEXT:  canonicalize
-// CHECK-NEXT:  hw-jit-prep-pipeline{allow-early-exit=false no-loop-unroll=true}
-// CHECK-NEXT:  jit-deploy-pipeline{no-loop-unroll=true}
-// CHECK:       prepare-for-wireset{maximum-iterations=2}
 
 // clang-format on
 
@@ -247,23 +239,17 @@ int main(int argc, char **argv) {
     printPipeline("compiler-bench-nisq on path(4) level 1", onPath, {});
   }
 
-  const auto unmappedTarget = [](cudaq::config::QuakeUnmappedProfile profile) {
-    cudaq::CompileTarget target;
-    target.stages.push_back({.irOutputProfile = std::move(profile),
-                             .lowering = cudaq::config::InferredLowering{}});
-    return target;
-  };
-  auto indexUse =
-      unmappedTarget({.basisGates = {"h", "rz", "x(1)"},
-                      .costModel = cudaq::config::CostModel::t_count,
-                      .unrollLoops = cudaq::config::LoopUnrolling::index_use});
-  indexUse.noiseSupport = cudaq::NoiseSupport::unsupported;
-  indexUse.eraseQEC = false;
-  printPipeline("index-use, noise unsupported, QEC kept", indexUse, {});
-  printPipeline("unroll limit 2",
-                unmappedTarget({.basisGates = {"h", "rz", "x(1)"},
-                                .costModel = cudaq::config::CostModel::t_count,
-                                .maxUnrollIterations = 2}),
-                {});
+  cudaq::CompileTarget target;
+  target.stages.push_back(
+      {.irOutputProfile =
+           cudaq::config::QuakeUnmappedProfile{
+               .basisGates = {"h", "rz", "x(1)"},
+               .costModel = cudaq::config::CostModel::t_count,
+               .unrollLoops = cudaq::config::LoopUnrolling::index_use},
+       .lowering = cudaq::config::InferredLowering{}});
+  target.preserveLoops = true;
+  target.noiseSupport = cudaq::NoiseSupport::unsupported;
+  target.eraseQEC = false;
+  printPipeline("loops preserved, noise unsupported, QEC kept", target, {});
   return 0;
 }

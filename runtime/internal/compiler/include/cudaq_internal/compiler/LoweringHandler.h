@@ -91,15 +91,6 @@ public:
                          const cudaq::config::Profile &output) const {
     return false;
   }
-
-  /// Whether this stage keeps some loops rolled, so that prep and deploy,
-  /// which run before it, must not unroll any loop. Answer from \p input and
-  /// \p output alone, as `requiresArgumentValues` does, so that prep and
-  /// deploy run the same steps at every optimization level.
-  virtual bool requiresRolledLoops(const cudaq::config::Profile &input,
-                                   const cudaq::config::Profile &output) const {
-    return false;
-  }
 };
 
 /// Pipeline text for `prepare-for-wireset`, which unrolls the loops that

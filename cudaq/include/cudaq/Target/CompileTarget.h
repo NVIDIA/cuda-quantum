@@ -82,6 +82,10 @@ struct CompileTarget {
   /// Whether to fully specialize the kernel.
   bool fullySpecialize = true;
 
+  /// Whether prep and deploy leave every loop rolled, so that the stages decide
+  /// which loops to unroll.
+  bool preserveLoops = false;
+
   /// What prep does with `quake.apply_noise`.
   NoiseSupport noiseSupport = NoiseSupport::erase;
 

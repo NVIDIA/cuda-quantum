@@ -135,19 +135,6 @@ public:
     return profile && schedulesCliffordTSynthesis(*profile) &&
            cudaq::opt::needsCliffordTSynthesis(profile->basisGates);
   }
-
-  /// Prep and deploy unroll loops of up to the profile's default limit, so a
-  /// stage that unrolls fewer loops needs them to unroll none.
-  bool
-  requiresRolledLoops(const cudaq::config::Profile &input,
-                      const cudaq::config::Profile &output) const override {
-    const auto *profile =
-        std::get_if<cudaq::config::QuakeUnmappedProfile>(&output);
-    return profile &&
-           (profile->unrollLoops != cudaq::config::LoopUnrolling::all ||
-            profile->maxUnrollIterations <
-                cudaq::config::QuakeUnmappedProfile{}.maxUnrollIterations);
-  }
 };
 
 } // namespace

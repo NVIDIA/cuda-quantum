@@ -533,9 +533,10 @@ class Target(CustomTarget):
         """Create the CUDA-Q compile target owned by one Logical target.
 
         CUDA-Q compiles each kernel through one inferred ``quake-unmapped``
-        stage to the Quake that :func:`import_quake` accepts. The stage unrolls
-        only loops whose index is used, because the import folds the rest, and
-        leaves rotation synthesis to Logical. A kernel that applies noise fails
+        stage to the Quake that :func:`import_quake` accepts. The target
+        preserves loops through prep, and the stage unrolls only loops whose
+        index is used, because the import folds the rest. The stage leaves
+        rotation synthesis to Logical. A kernel that applies noise fails
         to compile, and prep keeps QEC operations so that the import rejects
         them, instead of Logical estimating the kernel without either.
 
@@ -556,6 +557,7 @@ class Target(CustomTarget):
         stage = CompilationStage(profile)
         target = CompileTarget(stages=[stage])
         target.fully_specialize = True
+        target.preserve_loops = True
         target.noise_support = NoiseSupport.unsupported
         target.erase_qec = False
         target.support_resource_counts = False
