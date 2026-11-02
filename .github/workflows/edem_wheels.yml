@@ -26,6 +26,14 @@ on:
         description: >-
           Also upload the source distribution as cudaq-edem-sdist-<platform>.
           It is created by the first Python version in python_versions.
+      pypi_version_check:
+        type: string
+        default: none
+        description: >-
+          Check the source distribution of the first Python version against
+          the same cudaq-edem version on PyPI. A published version with
+          different sources fails the job. none skips the check, lenient only
+          warns if PyPI is unreachable, and strict fails.
 
 jobs:
   wheel:
@@ -101,6 +109,27 @@ jobs:
           fi
           echo "raw_wheel=$raw_wheel" >> "$GITHUB_OUTPUT"
           echo "sdist=$sdist" >> "$GITHUB_OUTPUT"
+
+      # PyPI never accepts a second upload of a version, so a changed version
+      # that is already published must be bumped before it can ship.
+      - name: Check the version against PyPI
+        if: >-
+          ${{ inputs.pypi_version_check != 'none'
+          && matrix.python_version == fromJSON(inputs.python_versions)[0] }}
+        env:
+          SDIST: ${{ steps.build.outputs.sdist }}
+          PYPI_VERSION_CHECK: ${{ inputs.pypi_version_check }}
+        run: |
+          flags=()
+          case "$PYPI_VERSION_CHECK" in
+            strict) ;;
+            lenient) flags+=(--allow-offline) ;;
+            *)
+              echo "::error::pypi_version_check must be none, lenient or strict, got '$PYPI_VERSION_CHECK'."
+              exit 1
+              ;;
+          esac
+          python edem/scripts/check_pypi_version.py ${flags[@]+"${flags[@]}"} "$SDIST"
 
       - name: Repair the wheel for manylinux_2_28
         id: repair

@@ -530,6 +530,8 @@ jobs:
     with:
       platform: ${{ matrix.platform }}
       python_versions: "['3.11', '3.13', '3.14']"
+      # Catch changed sources under an already published version early.
+      pypi_version_check: lenient
 
   python_metapackages:
     name: Create Python metapackages

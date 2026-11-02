@@ -102,8 +102,12 @@ builds Linux wheels for CPython 3.11 through 3.14 in a `manylinux_2_28` containe
 `check_wheel.py` on the repaired wheel. It attaches the wheels and the source
 distribution to the draft release. The `cudaq` package depends on the exact
 `cudaq-edem` version from `CUDAQ_EDEM_VERSION` on Linux, so `pip install cudaq`
-installs it. The Deployments release images also install the Python 3.12 wheel
-into the system Python. Publish `cudaq-edem` to PyPI before `cudaq`.
+installs it. PyPI never accepts a second upload of a version, so a Deployments
+run that creates a release fails if `CUDAQ_EDEM_VERSION` is already on PyPI with
+different sources (see `edem/scripts/check_pypi_version.py`). Bump the version
+before publishing changes. The Deployments release images also install the
+Python 3.12 wheel into the system Python. Publish `cudaq-edem` to PyPI before
+`cudaq`.
 
 ## CUDA-Q build
 
