@@ -8,8 +8,10 @@
 
 // RUN: cudaq-opt --wireset-to-null-wires %s | FileCheck %s
 
-// A `return_wire` of an unwrapped reference remains after `symbol-dce` erases
-// the wire set that no `borrow_wire` references. It still becomes a sink.
+// `memtoreg` turns a dealloc into `quake.unwrap` and `quake.sink`, and
+// `assign-wire-indices` turns that sink into `quake.return_wire`. When every
+// qubit stays a `!quake.ref`, no `borrow_wire` uses the wire set, so
+// `symbol-dce` erases it. The `return_wire` must still become a sink.
 
 func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
   %0 = quake.alloca !quake.ref
