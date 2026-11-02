@@ -55,7 +55,7 @@ quick example, build instructions, and the current scope and limitations.
    :caption: Preview
    :maxdepth: 1
 
-   cudaq-logical </preview/logical/#http://>
+   cudaq-logical <./preview/logical/index.html#http://>
    cudaq-edem <using/edem.md>
 
 .. |---|   unicode:: U+2014 .. EM DASH

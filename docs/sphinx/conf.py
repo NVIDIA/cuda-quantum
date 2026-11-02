@@ -191,9 +191,28 @@ html_static_path = ['_static']
 htmlhelp_basename = 'cudaqDoc'
 
 
+# Sphinx emits external toctree links verbatim on every page.
+# Resolve the separately built Logical docs relative to each page (#5471).
+_LOGICAL_TOCTREE_HREF = 'href="./preview/logical/index.html#http://"'
+
+
+def _fix_logical_sidebar_link(app, pagename, templatename, context, doctree):
+    toctree = context.get('toctree')
+    if toctree is None:
+        return
+    href = 'href="{}"'.format(context['pathto']('preview/logical/index.html',
+                                                1))
+
+    def fixed_toctree(*args, **kwargs):
+        return toctree(*args, **kwargs).replace(_LOGICAL_TOCTREE_HREF, href)
+
+    context['toctree'] = fixed_toctree
+
+
 def setup(app):
     app.add_lexer('mlir', TextLexer)
     app.add_css_file('cudaq_override.css')
+    app.connect('html-page-context', _fix_logical_sidebar_link)
 
 
 # -- Options for BREATHE -------------------------------------------------
