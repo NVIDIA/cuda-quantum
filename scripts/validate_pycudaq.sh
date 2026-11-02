@@ -306,7 +306,10 @@ else
     # outside the repo (conda validation), so fall back to the CI checkout.
     backend_requirements="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../requirements-tests-backend.txt"
     [ ! -f "$backend_requirements" ] && backend_requirements="$GITHUB_WORKSPACE/requirements-tests-backend.txt"
-    pip install pytest pytest-xdist -r "$backend_requirements"
+    # pytest 9.2.0 stops honoring xdist_group under --dist=loadgroup, so mock
+    # server backend tests spread across workers and collide on their port.
+    # Drop the pin once https://github.com/pytest-dev/pytest/issues/15303 is fixed.
+    pip install "pytest<9.2" pytest-xdist -r "$backend_requirements"
 fi
 
 # Run OpenMPI setup (Linux only)
