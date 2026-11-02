@@ -13,6 +13,8 @@
 # Install it together with a runtime endpoint as a `CustomTarget`.
 
 import os
+import subprocess
+import sys
 
 import pytest
 
@@ -91,6 +93,27 @@ def test_target_values_have_one_registration():
     # The compile-target types are experimental; they must not leak into the
     # stable-looking results module.
     assert not hasattr(results, "CompileTarget")
+
+
+def test_get_compile_target_registers_its_return_type():
+    code = """
+import sys
+
+from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
+
+target = cudaq_runtime.get_compile_target()
+assert type(target).__name__ == "CompileTarget", type(target)
+assert type(target).__module__ == "cudaq.core._target"
+
+# The extension registered the type itself; nothing pulled in the frontend's
+# experimental facade.
+assert "cudaq.core._target" in sys.modules
+assert "cudaq._experimental" not in sys.modules
+"""
+    result = subprocess.run([sys.executable, "-c", code],
+                            capture_output=True,
+                            text=True)
+    assert result.returncode == 0, result.stderr
 
 
 def test_custom_target_runtime_annotations():
