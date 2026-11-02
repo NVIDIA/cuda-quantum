@@ -234,23 +234,15 @@ def test_estimator_target_estimates_a_doubly_controlled_ry():
 
 
 @cudaq.kernel
-def copy_and(a: cudaq.qubit, b: cudaq.qubit, ancilla: cudaq.qubit,
-             out: cudaq.qubit):
-    x.ctrl([a, b], ancilla)
-    x.ctrl(ancilla, out)
-    x.ctrl([a, b], ancilla)
-
-
-@cudaq.kernel
-def copy_and_twice():
+def multi_controlled_x_on_two_targets():
     q = cudaq.qvector(5)
-    copy_and(q[0], q[1], q[2], q[3])
-    copy_and(q[0], q[1], q[2], q[4])
+    x.ctrl([q[0], q[1], q[2]], q[3])
+    x.ctrl([q[0], q[1], q[2]], q[4])
     mz(q)
 
 
 @cudaq.kernel
-def trotter():
+def ising_trotter_steps():
     q = cudaq.qvector(4)
     for step in range(2):
         scale = step + 1
@@ -267,30 +259,34 @@ def trotter():
     mz(q)
 
 
-# Between the two `copy_and` calls, the first uncompute and the second compute
-# are the same Toffoli, and level 1 cancels the pair. In `trotter`, level 2's
-# phase folding merges the rotations that act on the same parity of qubits.
-# Level 3 is reserved for search and currently runs level 2's passes, so the
-# test stops at level 2.
-@pytest.mark.parametrize("kernel, count, by_level", [
-    pytest.param(copy_and_twice,
-                 lambda r: r.count_controls("x", 2), (4, 2, 2),
-                 id="toffolis"),
-    pytest.param(trotter,
-                 lambda r: r.count("pauli_rotation"), (14, 13, 7),
-                 id="rotations"),
-])
-def test_optimization_level_reduces_the_logical_estimate(
-        kernel, count, by_level):
+def logical_resources(kernel, level):
+    """Return the resources that the Logical estimator counts at an
+    optimization level, before synthesis."""
     try:
         cudaq.set_target(cudaq.logical.targets.estimator)
-        counts = tuple(
-            count(cudaq.estimate(kernel, optimization_level=level).resources)
-            for level in range(3))
+        return cudaq.estimate(kernel, optimization_level=level).resources
     finally:
         cudaq.reset_target()
 
-    assert counts == by_level
+
+# Level 3 is reserved for search and currently runs the same passes as level 2,
+# so these tests stop at level 2.
+@pytest.mark.parametrize("level, toffolis", [(0, 6), (1, 4), (2, 4)])
+def test_optimization_levels_cancel_repeated_toffolis(level, toffolis):
+    # CUDA-Q builds each three-controlled `x` from three Toffolis and an
+    # ancilla: the first computes the ancilla, the second flips the target, and
+    # the third undoes the first. The third Toffoli of one gate and the first
+    # Toffoli of the next are the same, and level 1 removes both.
+    resources = logical_resources(multi_controlled_x_on_two_targets, level)
+    assert resources.count_controls("x", 2) == toffolis
+
+
+@pytest.mark.parametrize("level, rotations", [(0, 14), (1, 13), (2, 7)])
+def test_optimization_levels_merge_rotations(level, rotations):
+    # Each Trotter step rotates every qubit and every neighboring pair. Level 2's
+    # phase folding merges the rotations that act on the same parity of qubits.
+    resources = logical_resources(ising_trotter_steps, level)
+    assert resources.count("pauli_rotation") == rotations
 
 
 def test_cudaq_selects_a_qlx_custom_target_for_estimation():
