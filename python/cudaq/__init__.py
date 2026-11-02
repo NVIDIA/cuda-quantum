@@ -567,6 +567,10 @@ _DEFERRED_STAR_MODULES = [
 
 
 def __getattr__(name):
+    # Fail fast for dunder attributes, which get probed by tools such as pytest
+    if name.startswith('__') and name.endswith('__'):
+        raise AttributeError(f"module 'cudaq' has no attribute {name!r}")
+
     import importlib
 
     if name in _LAZY_ATTRS:
