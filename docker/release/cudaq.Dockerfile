@@ -104,6 +104,18 @@ RUN --mount=type=bind,source=docker/release,target=/tmp/cudaq-release \
             --prefix "$CUDA_QUANTUM_PATH"; \
     fi
 
+# Deployments supplies one Python 3.12 cudaq-edem wheel for this architecture in
+# docker/release/edem-wheels/. cudaq-edem is an independent distribution, so it
+# is installed with pip into the system Python.
+ARG include_edem=false
+RUN --mount=type=bind,source=docker/release,target=/tmp/cudaq-release \
+    if [ "$include_edem" = true ]; then \
+        set -- /tmp/cudaq-release/edem-wheels/cudaq_edem-*.whl \
+        && [ "$#" -eq 1 ] && [ -f "$1" ] \
+        && python3 -m pip install --disable-pip-version-check --no-cache-dir \
+            --no-index --no-deps --break-system-packages "$1"; \
+    fi
+
 # Some tools related to shell handling.
 
 ARG COPYRIGHT_NOTICE="=========================\n\
@@ -151,6 +163,10 @@ RUN sudo apt-get update
 RUN --mount=type=bind,source=docker/release,target=/tmp/cudaq-release \
     if [ "$include_logical" = true ]; then \
         python3 /tmp/cudaq-release/validate_logical.py; \
+    fi
+RUN --mount=type=bind,source=docker/release,target=/tmp/cudaq-release \
+    if [ "$include_edem" = true ]; then \
+        python3 /tmp/cudaq-release/validate_edem.py; \
     fi
 
 ENTRYPOINT ["bash", "-l"]

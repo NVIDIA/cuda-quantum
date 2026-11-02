@@ -33,6 +33,11 @@ on:
         type: boolean
         default: false
         description: Include the matching Python 3.12 CUDA-Q Logical wheel from this run. The caller must wait for wheel production.
+      include_edem:
+        required: false
+        type: boolean
+        default: false
+        description: Include the matching Python 3.12 cudaq-edem wheel from this run. The caller must wait for wheel production.
       environment:
         required: false
         type: string
@@ -781,6 +786,44 @@ jobs:
             exit 1
           fi
 
+      # cudaq-edem wheels are CUDA version-independent, like `cudaq.logical`.
+      - name: Select cudaq-edem wheel
+        if: inputs.include_edem
+        id: edem_wheel
+        shell: bash
+        env:
+          PLATFORM: ${{ inputs.platforms }}
+        run: |
+          case "$PLATFORM" in
+            linux/amd64) arch=x86_64 ;;
+            linux/arm64) arch=aarch64 ;;
+            *)
+              echo "::error::cudaq-edem image packaging requires linux/amd64 or linux/arm64."
+              exit 1
+              ;;
+          esac
+          echo "arch=$arch" >> "$GITHUB_OUTPUT"
+
+      - name: Download cudaq-edem wheel
+        if: inputs.include_edem
+        uses: actions/download-artifact@v8
+        with:
+          pattern: cudaq_edem-*-cp312-*manylinux_2_28_${{ steps.edem_wheel.outputs.arch }}.whl
+          path: docker/release/edem-wheels
+          merge-multiple: true
+          skip-decompress: true
+
+      - name: Check cudaq-edem wheel download
+        if: inputs.include_edem
+        shell: bash
+        run: |
+          shopt -s nullglob
+          wheels=(docker/release/edem-wheels/cudaq_edem-*.whl)
+          if [ "${#wheels[@]}" -ne 1 ]; then
+            echo "::error::Expected exactly one cudaq-edem wheel, found ${#wheels[@]}."
+            exit 1
+          fi
+
       - name: Build cuda-quantum image
         id: cudaq_build
         if: success() && !cancelled()
@@ -796,6 +839,7 @@ jobs:
             release_version=${{ steps.prereqs.outputs.image_tag }}
             deprecation_notice=${{ steps.prereqs.outputs.deprecation_notice }}
             include_logical=${{ inputs.include_logical }}
+            include_edem=${{ inputs.include_edem }}
           tags: ${{ steps.cudaq_metadata.outputs.tags }}
           labels: ${{ steps.cudaq_metadata.outputs.labels }}
           platforms: ${{ inputs.platforms }}
