@@ -40,9 +40,12 @@ jobs:
             edem/
             math/gf2/
             pyproject.toml.edem
+            LICENSE
+            NOTICE
             LICENSES/LICENSE.nanobind
             LICENSES/LICENSE.robin-map
             .github/workflows/edem_ci.yml
+            .github/workflows/edem_wheels.yml
             .github/actions/check-changed-paths/
 
   build:

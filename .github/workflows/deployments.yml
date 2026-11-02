@@ -946,6 +946,24 @@ jobs:
       build_logical_wheel: ${{ matrix.cuda_version == '13.0' }}
       release_version: ${{ needs.metadata.outputs.cudaq_version }}
 
+  # cudaq-edem does not depend on CUDA-Q, so it builds in parallel with
+  # everything else. `pip install cudaq` depends on these wheels.
+  edem_wheels:
+    name: Create cudaq-edem wheels (${{ matrix.platform }})
+    needs: metadata
+    if: ${{ ! inputs.devcontainer_only }}
+    strategy:
+      matrix:
+        platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
+      fail-fast: false
+    permissions:
+      contents: read
+      packages: read
+    uses: ./.github/workflows/edem_wheels.yml
+    with:
+      platform: ${{ matrix.platform }}
+      upload_sdist: true
+
   binaries:
     name: Create CUDA Quantum installer
     # source_build_python fills the cache that the installer build restores; it may be skipped or fail.
@@ -1069,11 +1087,12 @@ jobs:
   # One zip per platform; a single zip of all wheels is too big.
   release_wheels:
     name: Attach ${{ matrix.platform }} wheels to draft release
-    needs: [metadata, release_draft, python_devel_wheel, python_wheels]
+    needs: [metadata, release_draft, python_devel_wheel, python_wheels, edem_wheels]
     if: >-
       ${{ !cancelled() && needs.release_draft.result == 'success'
       && needs.python_devel_wheel.result == 'success'
-      && needs.python_wheels.result == 'success' }}
+      && needs.python_wheels.result == 'success'
+      && needs.edem_wheels.result == 'success' }}
     strategy:
       matrix:
         platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
@@ -1102,6 +1121,19 @@ jobs:
           path: logical-wheels
           merge-multiple: true
 
+      - name: Download cudaq-edem wheels
+        uses: actions/download-artifact@v8
+        with:
+          pattern: 'cudaq_edem-*'
+          path: edem-wheels
+          merge-multiple: true
+
+      - name: Download cudaq-edem source distribution
+        uses: actions/download-artifact@v8
+        with:
+          name: cudaq-edem-sdist-${{ matrix.platform }}
+          path: edem-sdist
+
       - name: Attach wheels to draft release
         env:
           GH_TOKEN: ${{ secrets.REPO_BOT_ACCESS_TOKEN }}
@@ -1116,13 +1148,26 @@ jobs:
             mv -vf "${dir}"* wheelhouse-${arch}/
           done
 
-          for kind in logical devel; do
+          for kind in logical edem devel; do
             if ! compgen -G "${kind}-wheels/cudaq_${kind}-*${arch}.whl" > /dev/null; then
               echo "::error::No cudaq-${kind} wheel found for ${arch}."
               exit 1
             fi
             mv -v ${kind}-wheels/cudaq_${kind}-*${arch}.whl wheelhouse-${arch}/
           done
+
+          # cudaq-edem wheels exist for each supported Python version.
+          for py in cp311 cp312 cp313 cp314; do
+            if ! compgen -G "wheelhouse-${arch}/cudaq_edem-*-${py}-*.whl" > /dev/null; then
+              echo "::error::No cudaq-edem wheel found for ${py} on ${arch}."
+              exit 1
+            fi
+          done
+          if ! compgen -G "edem-sdist/cudaq_edem-*.tar.gz" > /dev/null; then
+            echo "::error::No cudaq-edem source distribution found."
+            exit 1
+          fi
+          mv -v edem-sdist/cudaq_edem-*.tar.gz wheelhouse-${arch}/
 
           zip -r wheelhouse-${arch}.zip wheelhouse-${arch}
           gh release upload "$RELEASE_TAG" -R ${{ github.repository }} wheelhouse-${arch}.zip --clobber
@@ -1276,12 +1321,13 @@ jobs:
   trigger_validation:
     name: Trigger Validation
     # macOS and realtime assets are not needed to start Validation.
-    needs: [summary, python_wheels, binaries, metapackages]
+    needs: [summary, python_wheels, edem_wheels, binaries, metapackages]
     # Explicit: a skipped ancestor (release_draft) would skip this under the default success().
     if: >-
       ${{ !cancelled() && inputs.run_validation_after
       && needs.summary.result == 'success'
       && needs.python_wheels.result == 'success'
+      && needs.edem_wheels.result == 'success'
       && needs.binaries.result == 'success'
       && needs.metapackages.result == 'success' }}
     runs-on: ubuntu-latest
