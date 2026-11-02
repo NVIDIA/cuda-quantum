@@ -1,0 +1,69 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --verify-atomic-quantum-regions --split-input-file --verify-diagnostics %s
+
+// A call through a value has a callee that is not known. That callee may
+// measure or allocate qubits, which cannot be allowed in an atomic quantum
+// region, so the region cannot be verified. Until this is an error, it is a
+// warning.
+
+func.func @marked_call_indirect(%f: (!quake.ref) -> (), %q: !quake.ref) attributes {atomic_quantum_region} {
+  // expected-warning@+1 {{cannot verify this call inside an atomic quantum region: the callee is not known, so it may measure or allocate qubits}}
+  func.call_indirect %f(%q) : (!quake.ref) -> ()
+  return
+}
+
+// -----
+
+func.func @marked_call_callable(%c: !cc.callable<(!quake.ref) -> ()>, %q: !quake.ref) attributes {atomic_quantum_region} {
+  // expected-warning@+1 {{cannot verify this call inside an atomic quantum region: the callee is not known, so it may measure or allocate qubits}}
+  cc.call_callable %c, %q : (!cc.callable<(!quake.ref) -> ()>, !quake.ref) -> ()
+  return
+}
+
+// -----
+
+func.func @marked_call_indirect_callable(%c: !cc.indirect_callable<(!quake.ref) -> ()>, %q: !quake.ref) attributes {atomic_quantum_region} {
+  // expected-warning@+1 {{cannot verify this call inside an atomic quantum region: the callee is not known, so it may measure or allocate qubits}}
+  cc.call_indirect_callable %c, %q : (!cc.indirect_callable<(!quake.ref) -> ()>, !quake.ref) -> ()
+  return
+}
+
+// -----
+
+// The warning is reported for an ordinary helper that a marked function calls.
+func.func private @ordinary_helper(%f: (!quake.ref) -> (), %q: !quake.ref) {
+  // expected-warning@+1 {{cannot verify this call inside an atomic quantum region: the callee is not known, so it may measure or allocate qubits}}
+  func.call_indirect %f(%q) : (!quake.ref) -> ()
+  return
+}
+
+func.func @marked_calls_helper(%f: (!quake.ref) -> (), %q: !quake.ref) attributes {atomic_quantum_region} {
+  call @ordinary_helper(%f, %q) : ((!quake.ref) -> (), !quake.ref) -> ()
+  return
+}
+
+// -----
+
+// An indirect call outside of any atomic quantum region is not a concern.
+func.func @unmarked_call_indirect(%f: (!quake.ref) -> (), %q: !quake.ref) {
+  func.call_indirect %f(%q) : (!quake.ref) -> ()
+  return
+}
+
+// -----
+
+// A violation that is known is still an error, next to the warning.
+func.func @marked_measures_and_calls_indirect(%f: (!quake.ref) -> (), %q: !quake.ref) attributes {atomic_quantum_region} {
+  // expected-warning@+1 {{cannot verify this call inside an atomic quantum region: the callee is not known, so it may measure or allocate qubits}}
+  func.call_indirect %f(%q) : (!quake.ref) -> ()
+  // expected-error@+1 {{measurement operations are not supported inside an atomic quantum region; measure outside the region}}
+  %m = quake.mz %q : (!quake.ref) -> !quake.measure
+  return
+}
