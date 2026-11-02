@@ -10,15 +10,15 @@
 #include "cudaq/Optimizer/Transforms/Passes.h"
 
 namespace cudaq::opt {
-#define GEN_PASS_DEF_REJECTNOISE
+#define GEN_PASS_DEF_VERIFYNONOISE
 #include "cudaq/Optimizer/Transforms/Passes.h.inc"
 } // namespace cudaq::opt
 
 namespace {
-class RejectNoisePass
-    : public cudaq::opt::impl::RejectNoiseBase<RejectNoisePass> {
+class VerifyNoNoisePass
+    : public cudaq::opt::impl::VerifyNoNoiseBase<VerifyNoNoisePass> {
 public:
-  using RejectNoiseBase::RejectNoiseBase;
+  using VerifyNoNoiseBase::VerifyNoNoiseBase;
 
   void runOnOperation() override {
     bool hasNoise = false;

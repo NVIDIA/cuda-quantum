@@ -2033,14 +2033,6 @@ def RegToMem : Pass<"regtomem", "mlir::func::FuncOp"> {
     "cudaq::quake::QuakeDialect"];
 }
 
-def RejectNoise : Pass<"reject-noise"> {
-  let summary = "Fail on any `quake.apply_noise`.";
-  let description = [{
-    A target that cannot apply noise runs this pass so that a kernel that
-    applies noise fails to compile instead of running without it.
-  }];
-}
-
 def ReplaceStateWithKernel : Pass<"replace-state-with-kernel",
     "mlir::func::FuncOp"> {
   let summary = "Replace `init_state` operations with calls to a kernel.";
@@ -2436,6 +2428,14 @@ def VerifyAtomicQuantumRegions :
 
     Run the pass before the conversion to value semantics, where a qubit
     allocation stops being a `quake.alloca`.
+  }];
+}
+
+def VerifyNoNoise : Pass<"verify-no-noise"> {
+  let summary = "Fail on any `quake.apply_noise`.";
+  let description = [{
+    A target that cannot apply noise runs this pass so that a kernel that
+    applies noise fails to compile instead of running without it.
   }];
 }
 

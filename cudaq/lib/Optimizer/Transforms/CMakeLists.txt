@@ -84,7 +84,6 @@ add_cudaq_library(OptTransforms
   RealtimeDeviceCall.cpp
   RefToVeqAlloc.cpp
   RegToMem.cpp
-  RejectNoise.cpp
   ReplaceStateWithKernel.cpp
   ResetBeforeReuse.cpp
   ResourceCountPreprocess.cpp
@@ -99,6 +98,7 @@ add_cudaq_library(OptTransforms
   UnwindByDataFlow.cpp
   UpdateRegisterNames.cpp
   VariableCoalesce.cpp
+  VerifyNoNoise.cpp
   VerifyProfileQuakeReferenceSemantics.cpp
   VerifyQuakeUnmappedProfile.cpp
   WiresToWiresets.cpp

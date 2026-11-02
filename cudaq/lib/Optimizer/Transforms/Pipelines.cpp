@@ -157,7 +157,7 @@ void cudaq::opt::registerConvertToLinearValuesPipeline() {
 static void createTargetPrepPipeline(OpPassManager &pm,
                                      const TargetPrepPipelineOptions &options) {
   if (options.rejectNoise)
-    pm.addNestedPass<func::FuncOp>(cudaq::opt::createRejectNoise());
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createVerifyNoNoise());
   if (options.eraseNoise)
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createEraseNoise());
   if (options.eraseQEC)
