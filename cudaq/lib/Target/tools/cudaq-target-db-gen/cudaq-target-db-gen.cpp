@@ -150,6 +150,7 @@ std::string cxxValue(const std::string &value) {
 std::string cxxValue(const std::vector<std::string> &values) {
   return cxxStringVector(values);
 }
+std::string cxxValue(unsigned value) { return std::to_string(value); }
 std::string cxxValue(double value) {
   std::ostringstream os;
   os << std::setprecision(std::numeric_limits<double>::max_digits10) << value;

@@ -514,9 +514,28 @@ jobs:
       build_runtime_wheel: false
       validate_prebuilt_wheel: true
 
+  # The cudaq metapackage depends on these wheels. They do not depend on CUDA-Q.
+  edem_wheels:
+    name: Create cudaq-edem wheels (${{ matrix.platform }})
+    needs: metadata
+    if: github.event_name != 'push' && needs.metadata.outputs.merge_queue_fast != 'true'
+    strategy:
+      matrix:
+        platform: [amd64, arm64]
+      fail-fast: ${{ github.event_name == 'merge_group' }}
+    permissions:
+      contents: read
+      packages: read
+    uses: ./.github/workflows/edem_wheels.yml
+    with:
+      platform: ${{ matrix.platform }}
+      python_versions: "['3.11', '3.13', '3.14']"
+      # Catch changed sources under an already published version early.
+      pypi_version_check: lenient
+
   python_metapackages:
     name: Create Python metapackages
-    needs: [metadata, python_wheels, python_wheels_cu13, python_wheels_cu12_validation]
+    needs: [metadata, python_wheels, python_wheels_cu13, python_wheels_cu12_validation, edem_wheels]
     if: github.event_name != 'push' && needs.metadata.outputs.merge_queue_fast != 'true'
     uses: ./.github/workflows/python_metapackages.yml
     with:
@@ -578,6 +597,7 @@ jobs:
       - python_wheels_cu13
       - python_wheels_cu12_validation
       - python_devel_wheel
+      - edem_wheels
       - python_metapackages
       - binaries
     # Run on success, failure, or per-job cancellation — but NOT when the

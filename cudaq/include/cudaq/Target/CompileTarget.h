@@ -19,6 +19,16 @@ class TargetConfig;
 
 namespace cudaq {
 
+/// What a target does with the noise a kernel applies with `apply_noise`.
+enum class NoiseSupport {
+  /// Prep erases the noise, and the kernel runs without it.
+  erase,
+  /// Prep keeps the noise for the target to apply.
+  supported,
+  /// Prep fails on a kernel that applies noise.
+  unsupported,
+};
+
 /// Target properties used to define the compilation pipeline.
 struct CompileTarget {
   /// Whether to recompile the kernel in the presence of an AOT-compiled module.
@@ -71,6 +81,16 @@ struct CompileTarget {
 
   /// Whether to fully specialize the kernel.
   bool fullySpecialize = true;
+
+  /// Whether prep and deploy leave every loop rolled, so that the stages decide
+  /// which loops to unroll.
+  bool preserveLoops = false;
+
+  /// What prep does with `quake.apply_noise`.
+  NoiseSupport noiseSupport = NoiseSupport::erase;
+
+  /// Whether prep erases the QEC detector and observable operations.
+  bool eraseQEC = true;
 
   /// Set the `changeSemantics` flag for the argument synthesis pass.
   bool argumentSynthChangeSemantics = true;
