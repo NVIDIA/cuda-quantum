@@ -243,6 +243,12 @@ target_link_libraries(test_exec_ctx_thread
   gtest_main)
 cudaq_gtest_discover_tests(test_exec_ctx_thread DISCOVERY_TIMEOUT 120)
 
+# Exercise the LLVM-free facade without linking the full runtime.
+add_executable(test_kernel_runtime common/KernelRuntimeTester.cpp)
+target_include_directories(test_kernel_runtime PRIVATE ${CMAKE_SOURCE_DIR}/runtime)
+target_link_libraries(test_kernel_runtime PRIVATE cudaq-kernel-runtime gtest_main)
+cudaq_gtest_discover_tests(test_kernel_runtime DISCOVERY_TIMEOUT 120)
+
 add_executable(test_quantum_platform main.cpp common/QuantumPlatformTester.cpp)
 target_include_directories(test_quantum_platform PRIVATE .)
 target_link_libraries(test_quantum_platform
