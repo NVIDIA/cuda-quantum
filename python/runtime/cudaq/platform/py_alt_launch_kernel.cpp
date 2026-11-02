@@ -1188,8 +1188,8 @@ marshal_and_retain_module(const std::string &name, MlirModule module,
 /// platform.
 // TODO: Only `cudaq-logical` uses this; CUDA-Q's own launches do not.
 static cudaq::CompiledModule compile_module(
-    const std::string &name, MlirModule module, bool isEntryPoint,
-    nanobind::args runtimeArgs, std::optional<cudaq::CompileTarget> target,
+    const std::string &name, MlirModule module, nanobind::args runtimeArgs,
+    bool isEntryPoint, std::optional<cudaq::CompileTarget> target,
     std::optional<bool> isRemote, std::optional<bool> isEmulated,
     std::optional<bool> supportsJit, std::optional<int> optimizationLevel) {
   ScopedTraceWithContext("compile_module", name);
@@ -1482,8 +1482,8 @@ void cudaq::bindAltLaunchKernel(nanobind::module_ &mod,
           "CompiledModule object that owns the JIT engine.");
 
   mod.def("compile_module", compile_module, nanobind::arg("kernel_name"),
-          nanobind::arg("module"), nanobind::arg("is_entry_point"),
-          nanobind::arg("args"),
+          nanobind::arg("module"), nanobind::arg("args"),
+          nanobind::arg("is_entry_point") = true,
           nanobind::arg("compile_target").none() = nanobind::none(),
           nanobind::arg("is_remote").none() = nanobind::none(),
           nanobind::arg("is_emulated").none() = nanobind::none(),

@@ -321,7 +321,6 @@ def import_cudaq(
     compiled = cudaq_runtime.compile_module(
         kernel.uniqName,
         module,
-        True,
         *processed,
         compile_target=Target._new_compile_target(),
         is_remote=False,
