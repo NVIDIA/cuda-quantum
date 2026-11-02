@@ -24,7 +24,7 @@ from typing import Protocol, runtime_checkable
 
 from cudaq.core._target import (Codegen, CompilationStage, CompileTarget,
                                 CostModel, CustomPipelineLowering,
-                                QuakeMappedProfile,
+                                LoopUnrolling, NoiseSupport, QuakeMappedProfile,
                                 QuakeReferenceSemanticsProfile,
                                 QuakeUnmappedProfile, UncheckedProfile)
 
@@ -35,6 +35,8 @@ __all__ = [
     "CostModel",
     "CustomPipelineLowering",
     "CustomTarget",
+    "LoopUnrolling",
+    "NoiseSupport",
     "QuakeMappedProfile",
     "QuakeReferenceSemanticsProfile",
     "QuakeUnmappedProfile",

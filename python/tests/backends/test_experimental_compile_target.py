@@ -83,9 +83,9 @@ def test_target_values_have_one_registration():
     from cudaq.core import _target, results
 
     for name in ("Codegen", "CompilationStage", "CompileTarget", "CostModel",
-                 "CustomPipelineLowering", "QuakeMappedProfile",
-                 "QuakeReferenceSemanticsProfile", "QuakeUnmappedProfile",
-                 "UncheckedProfile"):
+                 "CustomPipelineLowering", "LoopUnrolling", "NoiseSupport",
+                 "QuakeMappedProfile", "QuakeReferenceSemanticsProfile",
+                 "QuakeUnmappedProfile", "UncheckedProfile"):
         value = getattr(_target, name)
         for module in (_experimental, core_experimental):
             assert getattr(module, name) is value

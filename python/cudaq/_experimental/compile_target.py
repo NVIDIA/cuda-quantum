@@ -39,6 +39,7 @@ cudaq.sample(my_kernel)      # compiled with that pipeline, launched to endpoint
 
 from cudaq.core._experimental import (Codegen, CompilationStage, CompileTarget,
                                       CostModel, CustomPipelineLowering,
+                                      LoopUnrolling, NoiseSupport,
                                       QuakeMappedProfile,
                                       QuakeReferenceSemanticsProfile,
                                       QuakeUnmappedProfile, UncheckedProfile)
@@ -52,6 +53,8 @@ __all__ = [
     "CompiledModule",
     "CostModel",
     "CustomPipelineLowering",
+    "LoopUnrolling",
+    "NoiseSupport",
     "QuakeMappedProfile",
     "QuakeReferenceSemanticsProfile",
     "QuakeUnmappedProfile",

@@ -1,0 +1,44 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --cc-loop-unroll=maximum-iterations=4 %s | FileCheck %s
+// RUN: cudaq-opt --cc-loop-unroll=maximum-iterations=3 %s | FileCheck --check-prefix=ROLLED %s
+
+// The unroll threshold is an inclusive bound on the trip count.
+
+func.func @four_iterations() {
+  %c0_i32 = arith.constant 0 : i32
+  %c1_i32 = arith.constant 1 : i32
+  %c4_i32 = arith.constant 4 : i32
+  %0 = quake.alloca !quake.ref
+  %1 = cc.loop while ((%arg0 = %c0_i32) -> (i32)) {
+    %2 = arith.cmpi slt, %arg0, %c4_i32 : i32
+    cc.condition %2(%arg0 : i32)
+  } do {
+  ^bb0(%arg0: i32):
+    quake.x %0 : (!quake.ref) -> ()
+    cc.continue %arg0 : i32
+  } step {
+  ^bb0(%arg0: i32):
+    %2 = arith.addi %arg0, %c1_i32 : i32
+    cc.continue %2 : i32
+  }
+  return
+}
+
+// CHECK-LABEL: func.func @four_iterations() {
+// CHECK-NOT:     cc.loop
+// CHECK-COUNT-4: quake.x
+// CHECK-NOT:     quake.x
+// CHECK:         return
+
+// ROLLED-LABEL: func.func @four_iterations() {
+// ROLLED:         cc.loop
+// ROLLED-COUNT-1: quake.x
+// ROLLED-NOT:     quake.x
+// ROLLED:         return
