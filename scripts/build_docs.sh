@@ -29,7 +29,8 @@
 # DOCS_INSTALL_PREFIX=/path/to/put/docs/ CUDAQ_INSTALL_PREFIX=/cudaq/installation/path bash scripts/build_docs.sh
 #
 # The -i option selects an incremental build, as in build_cudaq.sh.
-# It reuses the configured build directory and installed Python package.
+# It reuses the existing CMake configuration and installed Python package.
+# Doxygen and Sphinx output is still rebuilt from scratch.
 # It never calls build_cudaq.sh or changes the configured build type.
 # Missing prerequisites cause an error instead of an automatic rebuild.
 # Use -B /absolute/build/path to select an existing build directory.
@@ -104,10 +105,16 @@ compiler_pass_reference_names=(Transforms CodeGenPasses)
 # Check if the cudaq Python package is installed and if not, build and install it
 build_include_dir="$build_dir/cudaq/include"
 python3 -c "import cudaq" 2>/dev/null
-if [ ! "$?" -eq "0" ] || [ ! -d "$build_include_dir" ] || [ "${force_update,,}" = "python" ] || [ "${force_update,,}" = "py" ]; then
+cudaq_import_exit_code=$?
+if [ ! "$cudaq_import_exit_code" -eq "0" ] || [ ! -d "$build_include_dir" ] || [ "${force_update,,}" = "python" ] || [ "${force_update,,}" = "py" ]; then
     if $incremental_build; then
-        echo "The -i option requires an importable cudaq package and $build_include_dir." >&2
-        echo "Set CUDAQ_INSTALL_PREFIX to the existing installation. No rebuild was started." >&2
+        if [ ! "$cudaq_import_exit_code" -eq "0" ]; then
+            echo "Cannot import cudaq. Set CUDAQ_INSTALL_PREFIX to the existing installation." >&2
+        fi
+        if [ ! -d "$build_include_dir" ]; then
+            echo "Generated headers are missing: $build_include_dir." >&2
+        fi
+        echo "No rebuild was started." >&2
         (return 0 2>/dev/null) && return 2 || exit 2
     fi
     echo "Building cudaq package."

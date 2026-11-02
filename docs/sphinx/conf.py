@@ -21,6 +21,7 @@
 import os
 from pygments.lexers.special import TextLexer
 import sphinx_rtd_theme
+from sphinx.util import logging
 
 # -- Project information -----------------------------------------------------
 
@@ -204,7 +205,13 @@ def _fix_logical_sidebar_link(app, pagename, templatename, context, doctree):
                                                 1))
 
     def fixed_toctree(*args, **kwargs):
-        return toctree(*args, **kwargs).replace(_LOGICAL_TOCTREE_HREF, href)
+        tree = toctree(*args, **kwargs)
+        if pagename == app.config.root_doc and _LOGICAL_TOCTREE_HREF not in tree:
+            logging.getLogger(__name__).warning(
+                'CUDA-Q Logical toctree link does not match '
+                '_LOGICAL_TOCTREE_HREF in conf.py.',
+                location=(pagename, None))
+        return tree.replace(_LOGICAL_TOCTREE_HREF, href)
 
     context['toctree'] = fixed_toctree
 
