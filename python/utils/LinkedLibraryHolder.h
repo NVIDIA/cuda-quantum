@@ -75,7 +75,7 @@ protected:
   std::string cachedDefaultSimulatorEnv;
 
   /// @brief Load a library on demand if not already loaded.
-  void ensureLibLoaded(const std::filesystem::path &path);
+  void *ensureLibLoaded(const std::filesystem::path &path);
 
   /// @brief Determine the default target based on available GPUs and
   /// simulators.

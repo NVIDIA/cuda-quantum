@@ -1,9 +1,9 @@
-/******************************************************************************
+/*******************************************************************************
  * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
- * the terms of the Apache License 2.0 which accompanies this distribution.  *
+ * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
 #include "qlx/Dialect/QLX/Transforms/QLXAbsorbCliffordFrame.h"
@@ -588,7 +588,6 @@ static LogicalResult normalizeBlock(Block &block, InverseFrame &frame,
     }
 
     if (auto discard = dyn_cast<DiscardOp>(operation)) {
-      unsigned position = 0;
       for (unsigned operand = 0; operand < discard.getNumOperands();
            ++operand) {
         Value value = discard.getOperand(operand);
@@ -599,7 +598,6 @@ static LogicalResult normalizeBlock(Block &block, InverseFrame &frame,
           return discard.emitOpError("discard has no tracked owner index");
         discard->setOperand(operand, current[found->second]);
         discarded.push_back(found->second);
-        ++position;
       }
       continue;
     }

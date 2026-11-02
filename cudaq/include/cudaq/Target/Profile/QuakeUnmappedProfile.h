@@ -20,6 +20,9 @@ enum class CostModel {
   /// Minimize T gates and non-Clifford rotations, which dominate the cost on
   /// fault-tolerant hardware.
   t_count,
+  /// Minimize two-qubit gates, which dominate the error and routing cost on
+  /// noisy hardware.
+  two_qubit_gate_count,
 };
 
 /// IR profile for Quake before qubit mapping. Qubits come from allocations
@@ -28,11 +31,11 @@ enum class CostModel {
 ///
 /// Use it for a target that needs a fixed gate set but not a placement of
 /// qubits on a device, such as a fault-tolerant target that counts logical
-/// resources or hardware where any two qubits can interact. With a cost model,
-/// the stage optimizes for that cost, and when the basis has no rotation gate
-/// it synthesizes each rotation within the tolerance. Without a cost model,
-/// the stage only converts to the basis. For example, a Clifford+T target
-/// lists:
+/// resources or hardware where any two qubits can interact, or before a
+/// `quake-mapped` stage. With a cost model, the stage optimizes for that cost,
+/// and with `t-count` and a basis that has no rotation gate it synthesizes
+/// each rotation within the tolerance. Without a cost model, the stage only
+/// converts to the basis. For example, a Clifford+T target lists:
 ///
 /// \code{.yaml}
 ///   ir-output-profile:

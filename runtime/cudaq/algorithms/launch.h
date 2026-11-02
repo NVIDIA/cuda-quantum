@@ -10,6 +10,7 @@
 #pragma once
 
 #include "common/AnalysisScope.h"
+#include "common/BaseRemoteRESTQPU.h"
 #include "common/CompileOptions.h"
 #include "common/CompiledModule.h"
 #include "common/ExecutionContext.h"
@@ -79,22 +80,9 @@ auto launch(const Policy &policy, std::size_t qpu_id, ExecutionContext &ctx,
       compiled = CompiledModule{*source};
 #else
       CUDAQ_INFO("No compiled module found. Compiling.");
-      cudaq::CompileTarget target;
-      cudaq::CompileOptions options;
-      if constexpr (requires { policy.inner; }) {
-        options =
-            cudaq::get_compile_options(policy.inner, cudaq::get_random_seed());
-      } else {
-        options = cudaq::get_compile_options(policy, cudaq::get_random_seed());
-      }
-      target = platform.getCompileTarget(qpu_id);
-      const bool isEmulated = platform.is_emulated(qpu_id);
-      const bool isRemote = platform.is_remote(qpu_id);
-      options.emulate = isEmulated;
-      options.emitJit |= !isRemote;
-      if (!platform.supports_jit(qpu_id))
-        options.emitJit = false;
-      options.boolVecBitPacked = !isRemote && !isEmulated;
+      auto options =
+          platform.getCompileOptions(policy, cudaq::get_random_seed(), qpu_id);
+      auto target = platform.getCompileTarget(qpu_id);
       compiled = cudaq_internal::compiler::compileModule(target, options,
                                                          *source, args,
                                                          /*isEntryPoint=*/true);

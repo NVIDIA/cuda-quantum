@@ -65,7 +65,8 @@ on:
 name: Deployments # do not change name without updating workflow_run triggers
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.workflow_run.head_branch || github.ref_name }}
+  # The nightly cache refresh must not queue behind (or be replaced by) deployments.
+  group: ${{ github.workflow }}-${{ github.event_name == 'schedule' && 'schedule-' || '' }}${{ github.event.workflow_run.head_branch || github.ref_name }}
   cancel-in-progress: false
 
 jobs:

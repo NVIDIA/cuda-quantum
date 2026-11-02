@@ -476,17 +476,14 @@ qirProfileTranslationFunction(const std::string &qirProfile, Operation *op,
           return WalkResult::interrupt();
         }).wasInterrupted();
 
-  bool noValueSemantics =
-      disableQuantumOpts || op->hasAttr(cudaq::runtime::disableQuantumOpts);
   std::string profileName;
   if (containsWireSet) {
     profileName = config.profile;
     cudaq::opt::addWiresetToProfileQIRPipeline(pm, profileName);
   } else {
     profileName = qirProfile;
-    cudaq::opt::addAOTPipelineConvertToQIR(pm, profileName,
-                                           /*useValueSemantics=*/
-                                           !noValueSemantics);
+    cudaq::opt::addAOTPipelineConvertToQIR(
+        pm, profileName, /*useValueSemantics=*/!disableQuantumOpts);
   }
 
   if (!additionalPasses.empty() &&

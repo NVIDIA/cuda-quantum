@@ -19,7 +19,27 @@
 #include <mutex>
 #include <stdexcept>
 
+// Communicator bridge (CuStateVecCommunicatorPlugin.cpp). Weak because only the
+// multi-GPU simulators embed it; null when it is not loaded.
+extern "C" __attribute__((weak, visibility("default"))) custatevecStatus_t
+cudaqCustatevecExSetCommunicator(void *communicator,
+                                 std::size_t communicatorSize);
+extern "C" __attribute__((weak, visibility("default"))) custatevecStatus_t
+cudaqCustatevecExGetCommunicator(void **communicator,
+                                 std::size_t *communicatorSize);
+
 namespace {
+
+/// Path of the library that defines the communicator bridge.
+std::string cudaqCommunicatorLibrary() {
+  Dl_info info{};
+  if (!cudaqCustatevecExGetCommunicator ||
+      !dladdr(reinterpret_cast<void *>(&cudaqCustatevecExGetCommunicator),
+              &info))
+    throw std::runtime_error(
+        "The CUDA-Q cuStateVecEx communicator bridge is not loaded.");
+  return info.dli_fname;
+}
 
 custatevecCommunicatorType_t
 communicatorType(cudaq::cusv::CommunicatorProvider provider) {
@@ -45,8 +65,9 @@ public:
   CuStateVecCommunicatorProvider(CommunicatorProvider provider,
                                  const std::string &mpiLibrary)
       : m_type(communicatorType(provider)),
-        m_libraryPath(provider == CommunicatorProvider::Cudaq ? ""
-                                                              : mpiLibrary) {
+        m_libraryPath(provider == CommunicatorProvider::Cudaq
+                          ? cudaqCommunicatorLibrary()
+                          : mpiLibrary) {
     custatevecExCommunicatorStatus_t communicatorStatus =
         CUSTATEVEC_EX_COMMUNICATOR_STATUS_SUCCESS;
     const custatevecStatus_t status = custatevecExCommunicatorInitialize(
@@ -76,8 +97,9 @@ public:
 
   bool matches(CommunicatorProvider provider,
                const std::string &mpiLibrary) const {
-    const std::string libraryPath =
-        provider == CommunicatorProvider::Cudaq ? "" : mpiLibrary;
+    const std::string libraryPath = provider == CommunicatorProvider::Cudaq
+                                        ? cudaqCommunicatorLibrary()
+                                        : mpiLibrary;
     return m_type == communicatorType(provider) && m_libraryPath == libraryPath;
   }
 
@@ -269,34 +291,25 @@ void CuStateVecCommunicator::setCommunicator(void *communicator,
         "A custom CUDA-Q communicator requires the CUDA-Q cuStateVecEx "
         "provider selected by AUTO or SELF; the active provider is " +
         std::string(communicatorProviderName(m_providerType)) + ".");
-  // Resolve the communicator bridge's exported ABI symbols by name (defined in
-  // CuStateVecCommunicatorPlugin.cpp).
-  using SetCommunicator = custatevecStatus_t (*)(void *, std::size_t);
-  using GetCommunicator = custatevecStatus_t (*)(void **, std::size_t *);
-  auto *const setSymbol =
-      dlsym(RTLD_DEFAULT, "cudaqCustatevecExSetCommunicator");
-  auto *const getSymbol =
-      dlsym(RTLD_DEFAULT, "cudaqCustatevecExGetCommunicator");
-  if (!setSymbol || !getSymbol)
+  if (!cudaqCustatevecExSetCommunicator || !cudaqCustatevecExGetCommunicator)
     throw std::runtime_error(
         "The CUDA-Q cuStateVecEx communicator bridge is not loaded.");
-  const auto setCommunicator = reinterpret_cast<SetCommunicator>(setSymbol);
-  const auto getCommunicator = reinterpret_cast<GetCommunicator>(getSymbol);
 
   void *previousCommunicator = nullptr;
   std::size_t previousCommunicatorSize = 0;
-  HANDLE_CUSTATEVEC_ERROR(
-      getCommunicator(&previousCommunicator, &previousCommunicatorSize));
+  HANDLE_CUSTATEVEC_ERROR(cudaqCustatevecExGetCommunicator(
+      &previousCommunicator, &previousCommunicatorSize));
   destroy();
   try {
-    HANDLE_CUSTATEVEC_ERROR(setCommunicator(communicator, communicatorSize));
+    HANDLE_CUSTATEVEC_ERROR(
+        cudaqCustatevecExSetCommunicator(communicator, communicatorSize));
     create();
   } catch (...) {
     const std::exception_ptr error = std::current_exception();
     destroy();
     try {
-      HANDLE_CUSTATEVEC_ERROR(
-          setCommunicator(previousCommunicator, previousCommunicatorSize));
+      HANDLE_CUSTATEVEC_ERROR(cudaqCustatevecExSetCommunicator(
+          previousCommunicator, previousCommunicatorSize));
       create();
     } catch (...) {
       // If rollback also fails, release this provider reference and leave the

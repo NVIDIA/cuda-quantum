@@ -451,7 +451,9 @@ private:
 };
 } // namespace
 
-/// The decomposition graph of the registered patterns, built on first use.
+/// The decomposition graph, built once on first use from every pattern in the
+/// decomposition-pattern registry. `selectDecompositionPatterns` and
+/// `canDecomposeTo` both read it.
 static DecompositionGraph &getRegisteredGraph() {
   static DecompositionGraph graph = DecompositionGraph::fromRegistry();
   return graph;

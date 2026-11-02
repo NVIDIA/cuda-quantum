@@ -10,6 +10,8 @@
 // RUN:   cudaq-translate --convert-to=qir-base | FileCheck %s
 // RUN: cudaq-quake %s | cudaq-opt --inline --device-code-loader | \
 // RUN:   FileCheck --check-prefix=LOADER %s
+// RUN: cudaq-quake --quantum-opt-level=2 %s | cudaq-opt --inline \
+// RUN:   --device-code-loader | FileCheck --check-prefix=LEVEL2 %s
 
 #include "cudaq/qis/qubit_qis.h"
 
@@ -35,8 +37,7 @@ struct Caller {
   }
 };
 
-// A kernel that calls no marked kernel is registered without the marker, even
-// though the source file's module has it.
+// A kernel that calls no marked kernel is registered without the marker.
 struct Bystander {
   void operator()() __qpu__ {
     cudaq::qubit q;
@@ -53,8 +54,13 @@ struct Bystander {
 // CHECK:         ret void
 
 // LOADER:      @CallerCodeHolder.extract_device_code("module attributes
-// LOADER-SAME:   quake.noOptimization
-// LOADER-SAME:   func.func @__nvqpp__mlirgen__Caller() attributes {{.*}}quake.noOptimization
+// LOADER-SAME:   func.func @__nvqpp__mlirgen__Caller() attributes {{\{[^}]*}}quake.optimizationLevel = 0 : i32}
 // LOADER:      @BystanderCodeHolder.extract_device_code("module attributes
-// LOADER-NOT:    quake.noOptimization
-// LOADER-SAME:   func.func @__nvqpp__mlirgen__Bystander()
+// LOADER-SAME:   func.func @__nvqpp__mlirgen__Bystander() attributes {\22cudaq-entrypoint\22, \22cudaq-kernel\22}
+
+// With `-fquantum-opt-level=2`, every kernel without a level gets level 2. A
+// kernel that (transitively) calls a marked kernel keeps level 0.
+// LEVEL2:      @CallerCodeHolder.extract_device_code("module attributes
+// LEVEL2-SAME:   func.func @__nvqpp__mlirgen__Caller() attributes {{\{[^}]*}}quake.optimizationLevel = 0 : i32}
+// LEVEL2:      @BystanderCodeHolder.extract_device_code("module attributes
+// LEVEL2-SAME:   func.func @__nvqpp__mlirgen__Bystander() attributes {{\{[^}]*}}quake.optimizationLevel = 2 : i32}

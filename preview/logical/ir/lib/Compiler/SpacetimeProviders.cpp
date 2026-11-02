@@ -4,7 +4,7 @@
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "qlx/Compiler/SpacetimeProviders.h"
 #include "qlx/Dialect/Cflow/IR/CflowOps.h"
@@ -41,6 +41,7 @@
 #include <optional>
 #include <string>
 #include <tuple>
+#include <utility>
 
 using namespace mlir;
 
@@ -438,10 +439,10 @@ expectedSpacetimeCodeDistance(SpacetimePlanOp plan,
       return success();
     auto code = dyn_cast_or_null<qlx::fabric::CodeOp>(
         lookupModuleSymbol(module, patch.getCodeType().getValue()));
-    if (!code || code.getDistance() <= 0)
+    if (!code || code.getDistanceAttr().getInt() <= 0)
       return owner->emitOpError(
           "surface spacelike callable uses a non-positive-distance code");
-    if (selected && *selected != code.getDistance())
+    if (selected && *selected != code.getDistanceAttr().getInt())
       return owner->emitOpError(
           "surface spacelike callable mixes code distances");
     selected = code.getDistance();
@@ -969,7 +970,8 @@ expectedSurfaceFactoryRecurrenceLayout(SpacetimePlanOp plan,
         if (binding.getQecRegionAttr().getLeafReference().getValue() ==
             allocation.getRegion())
           bindings.push_back(binding);
-      if (!code || code.getDistance() <= 0 || bindings.size() != 1) {
+      if (!code || code.getDistanceAttr().getInt() <= 0 ||
+          bindings.size() != 1) {
         plan.emitOpError(
             "surface factory recurrence allocation lacks one exact "
             "positive-distance physical binding");
@@ -1021,17 +1023,18 @@ expectedSurfaceFactoryRecurrenceLayout(SpacetimePlanOp plan,
                               .lookup<qlx::fabric::RegionOp>(
                                   qecReference.getLeafReference().getValue())
                         : qlx::fabric::RegionOp{};
-      auto capacity = region ? region.getBlockCapacity() : std::nullopt;
-      if (!region || !capacity || *capacity <= 0) {
+      IntegerAttr capacity =
+          region ? region.getBlockCapacityAttr() : IntegerAttr{};
+      if (!region || !capacity || capacity.getInt() <= 0) {
         plan.emitOpError(
             "surface factory recurrence requires positive QEC-region block "
             "capacities for every selected code distance");
         invalid = true;
         return WalkResult::interrupt();
       }
-      auto [capacityEntry, capacityInserted] =
-          capacityByDistance.try_emplace(code.getDistance(), *capacity);
-      if (!capacityInserted && capacityEntry->second != *capacity) {
+      auto [capacityEntry, capacityInserted] = capacityByDistance.try_emplace(
+          code.getDistanceAttr().getInt(), capacity.getInt());
+      if (!capacityInserted && capacityEntry->second != capacity.getInt()) {
         plan.emitOpError(
             "surface factory recurrence has inconsistent QEC-region capacity "
             "for one code distance");
@@ -1052,7 +1055,8 @@ expectedSurfaceFactoryRecurrenceLayout(SpacetimePlanOp plan,
   auto second = std::next(first);
   auto level1 = architectureSymbols.lookup<ResourceClassOp>(first->second);
   auto level2 = architectureSymbols.lookup<ResourceClassOp>(second->second);
-  if (!level1 || !level2 || level1.getCount() <= 0 || level2.getCount() <= 0)
+  if (!level1 || !level2 || level1.getCountAttr().getInt() <= 0 ||
+      level2.getCountAttr().getInt() <= 0)
     return plan.emitOpError(
         "surface factory recurrence physical patch bindings must have positive "
         "capacity");
@@ -1233,7 +1237,7 @@ static LogicalResult verifySurfaceFactoryRecurrencePlan(SpacetimePlanOp plan) {
     auto model = event.getFactoryModelAttr();
     auto output = event.getOutputResourceKindAttr();
     if (event.getSymName() != name || event.getKind() != kind ||
-        event.getIteration() != iteration ||
+        event.getIterationAttr().getInt() != iteration ||
         !equalTime(event.getStartNs().convertToDouble(), start) ||
         !equalTime(event.getDurationNs().convertToDouble(), duration) ||
         !resource || resource.getLeafReference().getValue() != resourceClass ||
@@ -1602,7 +1606,8 @@ static LogicalResult verifyComponentPlan(SpacetimePlanOp plan) {
       interval != *committedInterval * *cycle ||
       plan.getIntervalSemantics() != *committedSemantics ||
       plan.getPolicy() != *committedPolicy ||
-      committedDistances->size() != plan.getSourceCodeDistancesAttr().size() ||
+      std::cmp_not_equal(committedDistances->size(),
+                         plan.getSourceCodeDistancesAttr().size()) ||
       committedPhases->size() != phases.size())
     return plan.emitOpError(
         "component plan facts differ from model_commitment");
@@ -1907,7 +1912,7 @@ static bool exactFactoryProduct(ValueRange actual, ValueRange results,
     return false;
   for (auto [index, terms] :
        llvm::enumerate(llvm::zip(patchIndices, logicalIndices, pauliProduct)))
-    if (std::get<0>(terms) != static_cast<int64_t>(index) ||
+    if (std::cmp_not_equal(std::get<0>(terms), index) ||
         std::get<1>(terms) != 0 || std::get<2>(terms) != pauli)
       return false;
   return true;

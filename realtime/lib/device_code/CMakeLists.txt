@@ -18,13 +18,16 @@ if(NOT CUDA_FOUND)
 endif()
 
 # A DEVICE + UNIFIED dispatcher links its kernel, the bridge's hooks and the
-# application's handlers at run time.  Building it needs the nvJitLink header
-# and unversioned .so, which a default CUDA toolkit install may lack; the dev images
-# install libnvjitlink-dev.  Users of the built library need only the runtime
-# libnvJitLink.so.<major>, which every CUDA runtime install provides.
-if (NOT TARGET CUDA::nvJitLink)
+# application's handlers at run time.  Building it needs only the nvJitLink
+# header, which a default CUDA runtime install may lack; the dev images install
+# libnvjitlink-dev.  DEVICE + UNIFIED loads libnvJitLink.so.<major> on first use.
+find_path(CUDAQ_REALTIME_NVJITLINK_INCLUDE_DIR
+  NAMES nvJitLink.h
+  HINTS ${CUDAToolkit_INCLUDE_DIRS}
+  NO_DEFAULT_PATH)
+if (NOT CUDAQ_REALTIME_NVJITLINK_INCLUDE_DIR)
   message(FATAL_ERROR
-    "cudaq-realtime needs nvJitLink (header and unversioned library); "
+    "cudaq-realtime needs the nvJitLink header; "
     "install libnvjitlink-dev-${CUDAToolkit_VERSION_MAJOR}-"
     "${CUDAToolkit_VERSION_MINOR}")
 endif()
@@ -88,13 +91,15 @@ target_include_directories(cudaq-realtime-device-code
   PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
     $<BUILD_INTERFACE:${CUDAQ_REALTIME_INCLUDE_DIR}>
+  PRIVATE
+    ${CUDAQ_REALTIME_NVJITLINK_INCLUDE_DIR}
 )
 
 target_link_libraries(cudaq-realtime-device-code
   PUBLIC
     CUDA::cudart_static
   PRIVATE
-    CUDA::nvJitLink
+    ${CMAKE_DL_LIBS}
 )
 
 set_target_properties(cudaq-realtime-device-code PROPERTIES

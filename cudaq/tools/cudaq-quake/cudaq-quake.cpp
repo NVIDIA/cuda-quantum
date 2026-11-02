@@ -14,6 +14,7 @@
 
 #include "nvqpp_config.h"
 #include "cudaq/Frontend/nvqpp/ASTBridge.h"
+#include "cudaq/Optimizer/Builder/OptimizationLevel.h"
 #include "cudaq/Optimizer/Builder/Runtime.h"
 #include "cudaq/Optimizer/Dialect/CC/CCDialect.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeDialect.h"
@@ -32,6 +33,7 @@
 #include "llvm/Support/Program.h"
 #include "llvm/Support/ToolOutputFile.h"
 #include "llvm/Support/raw_ostream.h"
+#include "mlir/Dialect/Func/IR/FuncOps.h"
 #include "mlir/IR/BuiltinOps.h"
 #include "mlir/IR/Diagnostics.h"
 #include "mlir/Pass/Pass.h"
@@ -89,6 +91,14 @@ static cl::opt<bool> noSimplify(
     "no-simplify",
     cl::desc("Disable passes to simplify the code after the bridge."),
     cl::init(false));
+
+static cl::opt<int> quantumOptLevel(
+    "quantum-opt-level",
+    cl::desc(
+        "Mark all kernels in the translation unit with a "
+        "`quake.optimization_level` attribute (0 to 3). This attribute "
+        "overrides any optimization level option specified at compile time."),
+    cl::init(-1));
 
 static cl::opt<bool> astDump("ast-dump", cl::desc("Dump the ast."),
                              cl::init(false));
@@ -503,6 +513,12 @@ int main(int argc, char **argv) {
       clArgs.push_back(part);
   }
 
+  if (quantumOptLevel < -1 || quantumOptLevel > 3) {
+    llvm::errs() << "Invalid --quantum-opt-level " << quantumOptLevel
+                 << "; expected an integer between 0 and 3.\n";
+    return 1;
+  }
+
   // Set the mangled kernel names map.
   CudaQAction::MangledKernelNamesMap mangledKernelNameMap;
 
@@ -527,6 +543,11 @@ int main(int argc, char **argv) {
     return ec.value();
   }
   if (!moduleOp.getBody()->empty()) {
+    if (quantumOptLevel >= 0)
+      for (auto func : moduleOp.getOps<mlir::func::FuncOp>())
+        if (!cudaq::runtime::getOptimizationLevel(func))
+          cudaq::runtime::setOptimizationLevel(
+              func, static_cast<unsigned>(quantumOptLevel));
     if (!mangledKernelNameMap.empty()) {
       SmallVector<mlir::NamedAttribute> names;
       for (auto [key, value] : mangledKernelNameMap)

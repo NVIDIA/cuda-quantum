@@ -155,11 +155,14 @@ jobs:
 
           # Fallback: workflow_dispatch on a feature branch — look up the
           # open PR whose head matches the current branch. Lets manual
-          # re-runs post the CI Summary comment too.
+          # re-runs post the CI Summary comment too. Fork PRs are skipped:
+          # --head matches by branch name only, so a fork's `main` would
+          # claim every manual run on main.
           if [ -z "$pr_number" ] && [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             pr_number=$(gh pr list --repo "${{ github.repository }}" \
               --head "${{ github.ref_name }}" --state open \
-              --json number --jq '.[0].number // empty')
+              --json number,isCrossRepository \
+              --jq '[.[] | select(.isCrossRepository | not)][0].number // empty')
           fi
 
           if [ -n "$pr_number" ]; then

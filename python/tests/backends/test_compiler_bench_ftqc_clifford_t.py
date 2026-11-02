@@ -13,6 +13,7 @@ import numpy as np
 import pytest
 from cudaq._experimental import (CostModel, QuakeUnmappedProfile,
                                  get_compile_target)
+from test_helpers import derive_compile_target
 
 FTQC_CLIFFORD_T_TARGET = 'compiler-bench-ftqc-clifford-t'
 
@@ -30,14 +31,11 @@ def reset():
 
 
 def set_target_with_tolerance(tolerance):
-    cudaq.set_target(FTQC_CLIFFORD_T_TARGET)
-    target = get_compile_target()
-    [stage] = target.stages
-    profile = stage.ir_output_profile
-    profile.approximation_tolerance = tolerance
-    stage.ir_output_profile = profile
-    target.stages = [stage]
-    cudaq.set_target(FTQC_CLIFFORD_T_TARGET, compile_target=target)
+    cudaq.set_target(FTQC_CLIFFORD_T_TARGET,
+                     compile_target=derive_compile_target(
+                         FTQC_CLIFFORD_T_TARGET,
+                         QuakeUnmappedProfile,
+                         approximation_tolerance=tolerance))
 
 
 def test_compile_target_has_the_target_profile():
@@ -186,3 +184,66 @@ def test_synthesis_preserves_unitary_within_tolerance():
     overlap = np.trace(exact.conj().T @ synthesized)
     phase = overlap / abs(overlap)
     assert np.linalg.norm(synthesized - phase * exact, 2) <= 6 * tolerance
+
+
+@cudaq.kernel
+def qft(qubits: cudaq.qview):
+    for target in range(len(qubits)):
+        h(qubits[target])
+        for control in range(target + 1, len(qubits)):
+            cr1(math.pi / (2**(control - target)), qubits[control],
+                qubits[target])
+
+
+@cudaq.kernel
+def qft_of_width(width: int):
+    qubits = cudaq.qvector(width)
+    qft(qubits)
+
+
+@cudaq.kernel
+def qft_of_width_3():
+    qubits = cudaq.qvector(3)
+    qft(qubits)
+
+
+@cudaq.kernel
+def flip(bits: list[bool]):
+    qubits = cudaq.qvector(len(bits))
+    for i in range(len(bits)):
+        if bits[i]:
+            x(qubits[i])
+    mz(qubits)
+
+
+def test_arguments_are_substituted_for_synthesis():
+    # This target's stage synthesizes, so it substitutes argument values: the
+    # QFT's angles depend on its width, and a `list[bool]` must be packed in
+    # the layout that substitution reads.
+    set_target_with_tolerance(1e-3)
+
+    cudaq.set_random_seed(42)
+    operations = cudaq.estimate_resources(qft_of_width, 3).to_dict()
+    cudaq.set_random_seed(42)
+    assert operations == cudaq.estimate_resources(qft_of_width_3).to_dict()
+    assert set(operations).issubset(ALLOWED_CLIFFORD_T_OPS)
+    assert operations.get('t', 0) + operations.get('tdg', 0) > 0
+
+    bits = [True, False, True]
+    assert cudaq.sample(flip, bits).most_probable() == '101'
+    assert cudaq.sample_async(flip, bits).get().most_probable() == '101'
+
+
+def test_sample_keeps_an_idle_qubit():
+    """From level 1 `dqe` removes a qubit that no operation uses, so `sample`
+    measures every qubit before the pipeline and reports all three."""
+    cudaq.set_target(FTQC_CLIFFORD_T_TARGET)
+
+    kernel = cudaq.make_kernel()
+    q = kernel.qalloc(3)
+    kernel.x(q[0])
+    kernel.x(q[2])
+
+    counts = cudaq.sample(kernel, shots_count=10)
+    assert counts.most_probable() == '101'
+    assert len(counts) == 1

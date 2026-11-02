@@ -4,8 +4,6 @@
 fault-tolerant quantum computations. It connects ordinary CUDA-Q kernels and
 portable logical programs to logical placement, codes, gadgets, distillation
 protocols, and inspectable resource estimates.
-Supported P3 physical builds can also execute through `cudaq.run` on CUDA-Q
-simulators, returning the program's explicit Boolean results per shot.
 
 `cudaq.logical` organizes compilation into explicit semantic stages:
 
@@ -20,7 +18,9 @@ workflows are also available from `qlx-opt` through ordinary MLIR pass-pipeline
 strings, and Stim circuits can be emitted from `qlx-translate`.
 
 As a secondary interchange path, a selected P2 program can be emitted as
-standards-compatible Stim circuit text.
+standards-compatible Stim circuit text. Supported P3 physical builds can also
+execute through `cudaq.run` on CUDA-Q simulators, returning the program's
+explicit Boolean results per shot.
 
 ## Start with the examples
 

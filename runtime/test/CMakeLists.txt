@@ -46,10 +46,13 @@ add_cudaq_hybrid_test(resource_count_qubit_indices)
 add_cudaq_hybrid_test(resource_count_wireset)
 
 # profile_stages tests how getPassPipeline builds a pipeline from a compile
-# target's stages, in pure C++ without the MLIR runtime.
+# target's stages, without the MLIR runtime. It links OptTransforms only because
+# the quake-unmapped handler asks the Clifford+T pipelines which basis to
+# decompose to and whether a stage needs argument values.
 add_executable(profile_stages Regress/profile_stages.cpp
                ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/JITTargetPipeline.cpp
                ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/LoweringHandler.cpp
+               ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/QuakeMappedHandler.cpp
                ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/QuakeReferenceSemanticsHandler.cpp
                ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/QuakeUnmappedHandler.cpp)
 target_include_directories(profile_stages PRIVATE
@@ -58,16 +61,18 @@ target_include_directories(profile_stages PRIVATE
                            ${CMAKE_SOURCE_DIR}/runtime/include
                            ${CMAKE_SOURCE_DIR}/runtime/cudaq
                            ${CMAKE_SOURCE_DIR}/cudaq/include)
-target_link_libraries(profile_stages PRIVATE CUDAQTargetConfig cudaq-logger)
+target_link_libraries(profile_stages PRIVATE CUDAQTargetConfig cudaq-logger
+                      OptTransforms)
 set_target_properties(profile_stages PROPERTIES
                       RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
 # profile_providers checks that the pipelines planned from actual catalog
 # entries, through the production lowering handlers, are exactly the expected
-# pipelines.
+# pipelines. It links OptTransforms for the same reason as profile_stages.
 add_executable(profile_providers Regress/profile_providers.cpp
                ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/JITTargetPipeline.cpp
                ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/LoweringHandler.cpp
+               ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/QuakeMappedHandler.cpp
                ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/QuakeReferenceSemanticsHandler.cpp
                ${CMAKE_SOURCE_DIR}/runtime/internal/compiler/QuakeUnmappedHandler.cpp)
 target_include_directories(profile_providers PRIVATE
@@ -76,7 +81,8 @@ target_include_directories(profile_providers PRIVATE
                            ${CMAKE_SOURCE_DIR}/runtime/include
                            ${CMAKE_SOURCE_DIR}/runtime/cudaq
                            ${CMAKE_SOURCE_DIR}/cudaq/include)
-target_link_libraries(profile_providers PRIVATE CUDAQTargetCatalog cudaq-logger)
+target_link_libraries(profile_providers PRIVATE CUDAQTargetCatalog cudaq-logger
+                      OptTransforms)
 set_target_properties(profile_providers PROPERTIES
                       RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 

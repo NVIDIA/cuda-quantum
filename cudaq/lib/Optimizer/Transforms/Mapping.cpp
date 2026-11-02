@@ -7,9 +7,11 @@
  ******************************************************************************/
 
 #include "PassDetails.h"
+#include "cudaq/Frontend/nvqpp/AttributeNames.h"
 #include "cudaq/Optimizer/Builder/CompilerNames.h"
 #include "cudaq/Optimizer/Builder/RuntimeNames.h"
 #include "cudaq/Optimizer/Dialect/CC/CCOps.h"
+#include "cudaq/Optimizer/Dialect/Characteristics.h"
 #include "cudaq/Optimizer/Transforms/AddMetadata.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "cudaq/Support/Device.h"
@@ -2875,7 +2877,11 @@ struct MappingFunc : public cudaq::opt::impl::MappingFuncBase<MappingFunc> {
       return;
     }
     if (!highestIdentity) {
-      if (nonComposable) {
+      // Only an entry point that applies a gate or measures has to be mapped.
+      // A callee kernel whose qubits are its arguments is mapped through the
+      // entry point it is inlined into, so it is left alone.
+      if (nonComposable && func->hasAttr(cudaq::entryPointAttrName) &&
+          (cudaq::opt::hasQuantum(*func) || cudaq::opt::hasMeasureOp(*func))) {
         func.emitOpError("no borrow_wire ops found in " + func.getName());
         signalPassFailure();
       }

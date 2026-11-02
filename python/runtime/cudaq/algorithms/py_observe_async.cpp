@@ -72,7 +72,8 @@ pyObserveAsync(const std::string &shortName, mlir::ModuleOp mod,
   auto &platform = get_platform();
   args = simplifiedValidateInputArguments(args);
   auto fnOp = getKernelFuncOp(mod, shortName);
-  auto opaques = marshal_arguments_for_module_launch(mod, args, fnOp);
+  auto opaques = marshal_arguments_for_module_launch(
+      mod, args, fnOp, launchSpecializesArguments(qpu_id));
 
   // Launch the asynchronous execution.
   nanobind::gil_scoped_release release;

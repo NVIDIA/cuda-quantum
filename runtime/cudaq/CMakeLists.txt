@@ -13,6 +13,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-ctad-maybe-unsupported")
 add_library(${LIBRARY_NAME}
   SHARED
     cudaq.cpp
+    ../common/CompilerSupport.cpp
     CompiledModuleExecution.cpp
     realtime.cpp
     target_control.cpp
@@ -140,3 +141,16 @@ install(
   COMPONENT Runtime
   PERMISSIONS OWNER_WRITE OWNER_READ GROUP_READ WORLD_READ
 )
+
+# A global-safe facade for nvq++-compiled libraries loaded from Python. It must
+# never link libcudaq or an execution manager. Either would pull in LLVM.
+# It is initialized by the Python loader, not a standalone C++ link target.
+add_library(cudaq-kernel-runtime SHARED
+  platform/KernelRuntime.cpp
+  ../common/CompilerSupport.cpp)
+target_include_directories(cudaq-kernel-runtime PRIVATE
+  ${CMAKE_SOURCE_DIR}/runtime)
+set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS cudaq-kernel-runtime)
+install(TARGETS cudaq-kernel-runtime
+  DESTINATION lib
+  COMPONENT Runtime)

@@ -1,0 +1,68 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt -aggressive-inlining -canonicalize %s | FileCheck %s --check-prefix=SCOPE
+// RUN: cudaq-opt -aggressive-inlining -lower-to-cfg -globalize-array-values -canonicalize %s | FileCheck %s --check-prefix=CFG
+// RUN: cudaq-opt -aggressive-inlining -globalize-array-values -lower-to-cfg -canonicalize %s | FileCheck %s --check-prefix=CFG
+// RUN: cudaq-opt -aggressive-inlining -lower-to-cfg -stack-frame-prealloc -globalize-array-values -canonicalize %s | FileCheck %s --check-prefix=CFG
+// RUN: cudaq-opt -aggressive-inlining -stack-frame-prealloc -lower-to-cfg -globalize-array-values -canonicalize %s | FileCheck %s --check-prefix=CFG
+
+// Captured lists become reify_span operations. Their backing storage must be
+// allocated in the function entry block, not in the loop body.
+func.func private @consume(!cc.sequence<i64>, !cc.sequence<!cc.sequence<i64>>)
+
+func.func private @captured_lists() {
+  %flat = cc.const_array [0, 1, 2, 3] : !cc.array<i64 x 4>
+  %span = cc.reify_span %flat : (!cc.array<i64 x 4>) -> !cc.sequence<i64>
+  %nested = cc.const_array [[1, 2], [3, 4]] : !cc.array<!cc.array<i64 x 2> x 2>
+  %tree = cc.reify_span %nested : (!cc.array<!cc.array<i64 x 2> x 2>) -> !cc.sequence<!cc.sequence<i64>>
+  call @consume(%span, %tree) {no_inline} : (!cc.sequence<i64>, !cc.sequence<!cc.sequence<i64>>) -> ()
+  return
+}
+
+func.func @loop(%n: i64) {
+  %zero = arith.constant 0 : i64
+  %one = arith.constant 1 : i64
+  %result = cc.loop while ((%i = %zero) -> i64) {
+    %cond = arith.cmpi slt, %i, %n : i64
+    cc.condition %cond (%i : i64)
+  } do {
+  ^body(%i: i64):
+    func.call @captured_lists() : () -> ()
+    cc.continue %i : i64
+  } step {
+  ^step(%i: i64):
+    %next = arith.addi %i, %one : i64
+    cc.continue %next : i64
+  }
+  return
+}
+
+// SCOPE-LABEL: func.func @loop
+// SCOPE-NOT:   cc.scope
+// SCOPE:       cc.loop while
+// SCOPE:       } do {
+// SCOPE-NOT:     cc.scope
+// SCOPE:         cc.reify_span
+// SCOPE:         cc.reify_span
+// SCOPE:         call @consume
+// SCOPE:       } step {
+
+// CFG-LABEL:   func.func @loop
+// CFG-COUNT-4:   cc.alloca
+// CFG-NOT:       cc.alloca
+// CFG:           cf.cond_br {{.*}}, ^[[BODY:bb[0-9]+]](
+// CFG-NOT:       llvm.stacksave
+// CFG:         ^[[BODY]](
+// CFG-NOT:       cc.alloca
+// CFG-NOT:       llvm.stacksave
+// CFG:           cc.store
+// CFG:           call @consume
+// CFG-NOT:       llvm.stackrestore
+// CFG:           arith.addi
+// CFG:           cf.br

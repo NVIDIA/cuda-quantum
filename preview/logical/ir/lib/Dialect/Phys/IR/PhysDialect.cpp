@@ -4,7 +4,7 @@
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #include "qlx/Dialect/Phys/IR/PhysDialect.h"
 #include "qlx/Dialect/Cflow/IR/CflowOps.h"
@@ -52,6 +52,7 @@
 #include <optional>
 #include <set>
 #include <string>
+#include <utility>
 
 using namespace mlir;
 using namespace qlx::phys;
@@ -114,7 +115,8 @@ qlx::phys::verifyRegisteredSpacetimeDerivation(SpacetimePlanOp plan) {
       if (candidate.provider == plan.getProvider() &&
           candidate.providerVersion == plan.getProviderVersion() &&
           candidate.derivation == plan.getDerivation() &&
-          candidate.derivationVersion == plan.getDerivationVersion()) {
+          candidate.derivationVersion ==
+              plan.getDerivationVersionAttr().getInt()) {
         verifier = candidate.verifier;
         break;
       }
@@ -137,7 +139,8 @@ qlx::phys::verifyRegisteredSpacetimeInvocation(SpacetimeCallOp call,
       if (candidate.provider == plan.getProvider() &&
           candidate.providerVersion == plan.getProviderVersion() &&
           candidate.derivation == plan.getDerivation() &&
-          candidate.derivationVersion == plan.getDerivationVersion()) {
+          candidate.derivationVersion ==
+              plan.getDerivationVersionAttr().getInt()) {
         verifier = candidate.callVerifier;
         break;
       }
@@ -266,7 +269,7 @@ LogicalResult ActionOp::verify() {
         "and their native_actions");
   if ((*this)->hasAttr("noise_sites"))
     return emitOpError("noise_sites was removed");
-  if (getArity() <= 0)
+  if (getArityAttr().getInt() <= 0)
     return emitOpError("arity must be positive");
   if (getBroadcast() && getArity() != 1)
     return emitOpError("broadcast actions must have arity one");
@@ -464,7 +467,7 @@ LogicalResult OperatingPointOp::verify() {
 LogicalResult SpacetimePlanOp::verify() {
   if (getProvider().empty() || getProviderVersion().empty())
     return emitOpError("provider and provider_version must be nonempty");
-  if (getDerivation().empty() || getDerivationVersion() <= 0)
+  if (getDerivation().empty() || getDerivationVersionAttr().getInt() <= 0)
     return emitOpError(
         "derivation must be nonempty with a positive derivation_version");
   if (getEvidence().empty())
@@ -547,7 +550,7 @@ LogicalResult SpacetimePhaseOp::verify() {
   auto plan = (*this)->getParentOfType<SpacetimePlanOp>();
   if (!plan)
     return emitOpError("must be nested in phys.spacetime_plan");
-  if (getSteps() <= 0)
+  if (getStepsAttr().getInt() <= 0)
     return emitOpError("steps must be positive");
   double stepDuration = getStepDurationNs().convertToDouble();
   if (!std::isfinite(stepDuration) || stepDuration <= 0.0)
@@ -605,8 +608,9 @@ LogicalResult SpacetimePhaseOp::verify() {
               .lookup<ResourceClassOp>(reference.getLeafReference().getValue());
       int64_t begin = offset.getInt();
       int64_t width = count.getInt();
-      if (!resource || begin < 0 || width <= 0 || begin > resource.getCount() ||
-          width > resource.getCount() - begin)
+      if (!resource || begin < 0 || width <= 0 ||
+          begin > resource.getCountAttr().getInt() ||
+          width > resource.getCountAttr().getInt() - begin)
         return emitOpError(
             "resource claim slice must fit inside its physical class");
       if (units.getInt() != width)
@@ -664,7 +668,7 @@ LogicalResult SpacetimeEventOp::verify() {
     return emitOpError("must be nested in a recurrence phys.spacetime_plan");
   if (getKind().empty())
     return emitOpError("kind must be nonempty");
-  if (getIteration() < 0)
+  if (getIterationAttr().getInt() < 0)
     return emitOpError("iteration must be nonnegative");
   double start = getStartNs().convertToDouble();
   double duration = getDurationNs().convertToDouble();
@@ -707,8 +711,9 @@ LogicalResult SpacetimeEventOp::verify() {
             .lookup<ResourceClassOp>(reference.getLeafReference().getValue());
     int64_t offset = getResourceOffsetAttr().getInt();
     int64_t count = getResourceCountAttr().getInt();
-    if (!resource || offset < 0 || count <= 0 || offset > resource.getCount() ||
-        count > resource.getCount() - offset)
+    if (!resource || offset < 0 || count <= 0 ||
+        offset > resource.getCountAttr().getInt() ||
+        count > resource.getCountAttr().getInt() - offset)
       return emitOpError(
           "resource slice must resolve and fit inside its physical class");
   }
@@ -867,10 +872,10 @@ LogicalResult TopologyOp::verify() {
   if (getKind().empty())
     return emitOpError("kind must be nonempty");
   std::optional<int64_t> numNodes;
-  if (auto value = getNumNodes()) {
-    if (*value < 0)
+  if (auto value = getNumNodesAttr()) {
+    if (value.getInt() < 0)
       return emitOpError("num_nodes must be nonnegative");
-    numNodes = *value;
+    numNodes = value.getInt();
   }
   if (getStrict() && !numNodes)
     return emitOpError("strict topology requires num_nodes");
@@ -892,7 +897,7 @@ LogicalResult TopologyOp::verify() {
   if (auto coordinates = getCoordinates()) {
     if (!numNodes)
       return emitOpError("topology coordinates require num_nodes");
-    if (static_cast<int64_t>(coordinates->size()) != *numNodes)
+    if (std::cmp_not_equal(coordinates->size(), *numNodes))
       return emitOpError(
           "coordinates must contain one entry per topology node");
     llvm::DenseSet<std::pair<int64_t, int64_t>> occupied;
@@ -911,8 +916,8 @@ LogicalResult PatchTopologyOp::verify() {
   int64_t capacity = getCapacity();
   if (capacity <= 0)
     return emitOpError("capacity must be positive");
-  if (static_cast<int64_t>(getCarrierGroups().size()) != capacity ||
-      static_cast<int64_t>(getCategories().size()) != capacity)
+  if (std::cmp_not_equal(getCarrierGroups().size(), capacity) ||
+      std::cmp_not_equal(getCategories().size(), capacity))
     return emitOpError(
         "carrier_groups and categories must have one entry per implicit slot");
 
@@ -927,7 +932,7 @@ LogicalResult PatchTopologyOp::verify() {
     return emitOpError("carrier_topology must resolve to phys.topology");
   if (!resourceClass)
     return emitOpError("resource_class must resolve to phys.resource_class");
-  auto carrierNodeCount = carrierTopology.getNumNodes();
+  auto carrierNodeCount = carrierTopology.getNumNodesAttr();
   if (!carrierTopology.getStrict() || !carrierNodeCount)
     return emitOpError("carrier_topology must be strict with num_nodes");
   llvm::DenseMap<int64_t, int64_t> owner;
@@ -938,8 +943,8 @@ LogicalResult PatchTopologyOp::verify() {
       return emitOpError("carrier_groups entries must be nonempty i64 arrays");
     llvm::SmallVector<int64_t> members;
     for (int64_t carrier : group.asArrayRef()) {
-      if (carrier < 0 || carrier >= resourceClass.getCount() ||
-          carrier >= *carrierNodeCount)
+      if (carrier < 0 || carrier >= resourceClass.getCountAttr().getInt() ||
+          carrier >= carrierNodeCount.getInt())
         return emitOpError("carrier group references an unavailable carrier");
       if (!owner.try_emplace(carrier, slot).second)
         return emitOpError("carrier groups must be pairwise disjoint");
@@ -1063,7 +1068,7 @@ LogicalResult QECBindingOp::verify() {
           SymbolTable::lookupNearestSymbolFrom(*this, getQecRegionAttr())) {
     if (region->getName().getStringRef() == "fabric.region")
       if (auto capacity = region->getAttrOfType<IntegerAttr>("block_capacity"))
-        if (capacity.getInt() != patch.getCapacity())
+        if (capacity.getInt() != patch.getCapacityAttr().getInt())
           return emitOpError(
               "patch_topology capacity must equal QEC block capacity");
   }
@@ -1146,8 +1151,8 @@ LogicalResult QECChannelBindingOp::verify() {
     int64_t width = count.getInt();
     int64_t acquired = units.getInt();
     if (!resource || begin < 0 || width <= 0 || acquired <= 0 ||
-        acquired > width || begin > resource.getCount() ||
-        width > resource.getCount() - begin)
+        acquired > width || begin > resource.getCountAttr().getInt() ||
+        width > resource.getCountAttr().getInt() - begin)
       return emitOpError(
           "transport claim slice/acquisition must fit its physical class");
     int64_t end = begin + width;
@@ -1186,7 +1191,7 @@ verifyResourceAgainstClasses(ResourceOp resource,
 LogicalResult ResourceOp::verify() {
   if (getKind().empty())
     return emitOpError("kind must be nonempty");
-  if (getIndex() < 0)
+  if (getIndexAttr().getInt() < 0)
     return emitOpError("index must be nonnegative");
   if (auto distance = getCodeDistanceAttr()) {
     if (distance.getInt() <= 0)
@@ -1213,7 +1218,7 @@ LogicalResult ResourceOp::verify() {
     if (!code)
       return emitOpError(
           "code_distance requires qec_region to resolve a fabric.code");
-    if (distance.getInt() != code.getDistance())
+    if (distance.getInt() != code.getDistanceAttr().getInt())
       return emitOpError(
           "code_distance must equal the selected QEC region code distance");
   }
@@ -1259,8 +1264,8 @@ static LogicalResult verifyApplyActionShape(ApplyOp apply, ActionOp action) {
   if (action.getBroadcast() && apply.getBatchLanesAttr())
     return apply.emitOpError("broadcast actions cannot also carry batch_lanes");
   if (!action.getBroadcast() &&
-      static_cast<int64_t>(apply.getInputs().size()) !=
-          action.getArity() * batchLanes)
+      std::cmp_not_equal(apply.getInputs().size(),
+                         action.getArityAttr().getInt() * batchLanes))
     return apply.emitOpError("operand count does not match action @")
            << action.getSymName() << " arity " << action.getArity()
            << " across " << batchLanes << " lane(s)";
@@ -1405,7 +1410,7 @@ static bool qualifiedRecordMatchesProducer(
        ancestor = ancestor->getParentOp()) {
     if (auto repeat = dyn_cast<qlx::cflow::RepeatOp>(ancestor)) {
       auto event = repeat.getEventIdAttr();
-      if (!event || event.empty() || repeat.getCount() <= 0)
+      if (!event || event.empty() || repeat.getCountAttr().getInt() <= 0)
         return false;
       expected.emplace_back(event.getValue(), repeat.getCount());
     }
@@ -1449,7 +1454,8 @@ LogicalResult RecordProjectionOp::verify() {
         instance.empty() || !source || source.empty() || !physical ||
         physical.empty() ||
         static_cast<bool>(repeatEvents) != static_cast<bool>(repeatCounts) ||
-        (repeatEvents && repeatEvents.size() != repeatCounts.size()))
+        (repeatEvents &&
+         std::cmp_not_equal(repeatEvents.size(), repeatCounts.size())))
       return emitOpError(
           "entries require nonempty instance, source_record, and "
           "physical_record strings plus an optional aligned repeat_events/"
@@ -1494,7 +1500,7 @@ LogicalResult RecordProjectionOp::verify() {
           candidate.getAttrOfType<DenseI64ArrayAttr>("projection_indices");
       if (!instance || !sourceRecords || !physicalRecords || !indices ||
           sourceRecords.size() != physicalRecords.size() ||
-          sourceRecords.size() != indices.size())
+          std::cmp_not_equal(sourceRecords.size(), indices.size()))
         continue;
       for (auto [lane, rawIndex] : llvm::enumerate(indices.asArrayRef())) {
         if (rawIndex < 0 || static_cast<uint64_t>(rawIndex) >= entries.size())
@@ -1581,7 +1587,7 @@ LogicalResult RecordProjectionOp::verify() {
     for (auto repeat = producer->getParentOfType<qlx::cflow::RepeatOp>();
          repeat; repeat = repeat->getParentOfType<qlx::cflow::RepeatOp>()) {
       auto event = repeat.getEventIdAttr();
-      if (!event || event.empty() || repeat.getCount() <= 0)
+      if (!event || event.empty() || repeat.getCountAttr().getInt() <= 0)
         return false;
       expected.emplace_back(event.getValue(), repeat.getCount());
     }
@@ -1713,7 +1719,8 @@ using WideSSAUsers =
     llvm::DenseMap<Operation *, llvm::SmallPtrSet<Operation *, 16>>;
 
 static bool hasSSAPath(Operation *producer, Operation *consumer,
-                       WideSSAUsers &wideUsers) {
+                       WideSSAUsers &wideUsers,
+                       llvm::function_ref<bool(Operation *)> pastConsumer) {
   SmallVector<Operation *, 16> worklist;
   llvm::SmallPtrSet<Operation *, 32> visited;
   auto appendUsers = [&](Operation *operation) {
@@ -1741,29 +1748,52 @@ static bool hasSSAPath(Operation *producer, Operation *consumer,
       return true;
     if (!visited.insert(operation).second)
       continue;
+    if (pastConsumer(operation))
+      continue;
     if (appendUsers(operation))
       return true;
-    // A captured state can reach the conditional's results through a branch
-    // yield. Follow result users, not the parent operation: reaching the parent
-    // would also claim causality into the opposite branch.
+    // The conditional completes after the producer only when the yield of
+    // every branch is reached, so follow its result users only then. Do not
+    // follow the conditional itself: an ancestor match on it would order the
+    // producer before every operation nested in it.
+    // Note: phys.allocation_mapping is verified before the graph's nested
+    // operations, so a branch region can still be empty here, or its block
+    // can lack a terminator.
     if (isa<qlx::cflow::YieldOp>(operation))
       if (auto conditional =
               dyn_cast<qlx::cflow::IfOp>(operation->getParentOp()))
-        if (appendUsers(conditional))
+        if (llvm::all_of(conditional->getRegions(),
+                         [&](Region &branch) {
+                           return branch.empty() ||
+                                  !branch.front().mightHaveTerminator() ||
+                                  visited.contains(
+                                      branch.front().getTerminator());
+                         }) &&
+            appendUsers(conditional))
           return true;
   }
   return false;
 }
 
-static bool causallyPrecedes(Operation *producer, Operation *consumer,
-                             GraphOp graph, WideSSAUsers &wideUsers) {
+static bool
+causallyPrecedes(Operation *producer, Operation *consumer, GraphOp graph,
+                 WideSSAUsers &wideUsers,
+                 const llvm::DenseMap<Operation *, unsigned> &graphPosition) {
   Operation *producerAnchor = directGraphChild(producer, graph);
   Operation *consumerAnchor = directGraphChild(consumer, graph);
   if (!producerAnchor || !consumerAnchor)
     return false;
+  // SSA users never precede their definition's graph-level operation, so a
+  // walk that reaches a graph-level operation after the consumer's cannot
+  // come back to it.
+  unsigned bound = graphPosition.lookup(consumerAnchor);
+  auto pastConsumer = [&](Operation *operation) {
+    Operation *anchor = directGraphChild(operation, graph);
+    return anchor && graphPosition.lookup(anchor) > bound;
+  };
   if (producerAnchor == consumerAnchor)
-    return hasSSAPath(producer, consumer, wideUsers);
-  return hasSSAPath(producerAnchor, consumerAnchor, wideUsers);
+    return hasSSAPath(producer, consumer, wideUsers, pastConsumer);
+  return hasSSAPath(producerAnchor, consumerAnchor, wideUsers, pastConsumer);
 }
 
 static Operation *unsupportedLifetimeControl(Operation *operation,
@@ -1986,12 +2016,16 @@ LogicalResult AllocationMappingOp::verify() {
       physicalLifetimes;
   llvm::DenseMap<std::pair<Operation *, Operation *>, bool> causalOrder;
   WideSSAUsers wideUsers;
+  llvm::DenseMap<Operation *, unsigned> graphPosition;
+  for (auto [position, operation] : llvm::enumerate(graph.getBody().getOps()))
+    graphPosition.try_emplace(&operation, position);
   auto causallyOrdered = [&](Operation *producer, Operation *consumer) {
     auto key = std::make_pair(producer, consumer);
     auto found = causalOrder.find(key);
     if (found != causalOrder.end())
       return found->second;
-    bool result = causallyPrecedes(producer, consumer, graph, wideUsers);
+    bool result =
+        causallyPrecedes(producer, consumer, graph, wideUsers, graphPosition);
     causalOrder.try_emplace(key, result);
     return result;
   };
@@ -2023,7 +2057,8 @@ LogicalResult AllocationMappingOp::verify() {
         record ? record.getAs<StringAttr>("physical_binding") : nullptr;
     if (!record || !allocation || allocation.getValue().empty() ||
         !resourceClass || !resources || resources.empty() || !indices ||
-        indices.empty() || resources.size() != indices.size() || !acquire ||
+        indices.empty() ||
+        std::cmp_not_equal(resources.size(), indices.size()) || !acquire ||
         acquire.getValue().empty())
       return emitOpError(
           "entries require a nonempty allocation, resource_class, equally "
@@ -2096,10 +2131,10 @@ LogicalResult AllocationMappingOp::verify() {
       if (resource.getResourceClassAttr() != resourceClass)
         return emitOpError("resource ")
                << reference << " does not belong to " << resourceClass;
-      if (resource.getIndex() != indices[ordinal])
+      if (resource.getIndexAttr().getInt() != indices[ordinal])
         return emitOpError("resource ")
                << reference << " index does not match allocation binding";
-      if (resource.getIndex() < 0 ||
+      if (resource.getIndexAttr().getInt() < 0 ||
           resource.getIndex() >= resourceClassOp.getCount())
         return emitOpError("resource ")
                << reference << " index is outside resource-class capacity";
@@ -2112,7 +2147,7 @@ LogicalResult AllocationMappingOp::verify() {
                  << " QEC region does not match its allocation binding";
       }
       auto identity = std::make_pair(resourceClassOp.getOperation(),
-                                     static_cast<int64_t>(resource.getIndex()));
+                                     resource.getIndexAttr().getInt());
       if (llvm::is_contained(physicalIdentities, identity))
         return emitOpError("physical resource identity @")
                << resourceClassOp.getSymName() << "[" << resource.getIndex()
@@ -2904,7 +2939,7 @@ static LogicalResult verifyGraphStateResource(GraphOp graph, StateType state,
     return graph.emitOpError("physical-state resource ")
            << state.getResource()
            << " class must resolve in the graph architecture";
-  if (resource.getIndex() < 0 ||
+  if (resource.getIndexAttr().getInt() < 0 ||
       resource.getIndex() >= resourceClass.getCount())
     return graph.emitOpError("physical-state resource ")
            << state.getResource() << " index is outside resource class @"
@@ -4415,8 +4450,8 @@ LogicalResult TransportModelOp::verify() {
     int64_t width = count.getInt();
     int64_t acquired = units.getInt();
     if (!resource || begin < 0 || width <= 0 || acquired <= 0 ||
-        acquired > width || begin > resource.getCount() ||
-        width > resource.getCount() - begin)
+        acquired > width || begin > resource.getCountAttr().getInt() ||
+        width > resource.getCountAttr().getInt() - begin)
       return emitOpError(
           "transport resource slice/acquisition must fit its physical class");
     int64_t end = begin + width;
@@ -4743,7 +4778,7 @@ static LogicalResult verifyPhysicalPayloadRoles(Operation *owner,
                                                 int64_t payloadCount) {
   if (!roles)
     return success();
-  if (static_cast<int64_t>(roles.size()) != payloadCount)
+  if (std::cmp_not_equal(roles.size(), payloadCount))
     return owner->emitOpError(
         "payload_roles must exactly cover the ordered payloads");
   llvm::StringSet<> unique;
@@ -4766,8 +4801,7 @@ LogicalResult UnpackResourceOp::verify() {
   qlx::fabric::EncodingOp encoding;
   if (segments) {
     if (segments.size() < 2 || segments.asArrayRef().front() != 0 ||
-        segments.asArrayRef().back() !=
-            static_cast<int64_t>(getInputs().size()))
+        std::cmp_not_equal(segments.asArrayRef().back(), getInputs().size()))
       return emitOpError(
           "payload carrier segments must start at zero and cover all carriers");
     for (auto pair : llvm::zip(segments.asArrayRef().drop_back(),
@@ -4887,7 +4921,8 @@ LogicalResult UnpackResourceOp::verify() {
       return emitOpError(
           "selected CCZ payload handoff requires exact QEC block identities");
   }
-  if (blockIDs && (!blocks || blockIDs.size() != blocks.size()))
+  if (blockIDs &&
+      (!blocks || std::cmp_not_equal(blockIDs.size(), blocks.size())))
     return emitOpError(
         "payload logical block identities must exactly cover the logical map");
   if (blocks && segments) {
@@ -4935,7 +4970,7 @@ LogicalResult UnpackResourceOp::verify() {
       }
     }
     if (!getPayloadRolesAttr() &&
-        static_cast<int64_t>(coveredBlocks.size()) != payloadCount)
+        std::cmp_not_equal(coveredBlocks.size(), payloadCount))
       return emitOpError(
           "payload logical maps must cover every required payload block");
     if (blockIDs && indexByBlockID.size() != coveredBlocks.size())
@@ -4953,8 +4988,7 @@ LogicalResult PackResourceOp::verify() {
   int64_t payloadCount = 1;
   if (auto segments = getPayloadCarrierSegmentsAttr()) {
     if (segments.size() < 2 || segments.asArrayRef().front() != 0 ||
-        segments.asArrayRef().back() !=
-            static_cast<int64_t>(getInputs().size()))
+        std::cmp_not_equal(segments.asArrayRef().back(), getInputs().size()))
       return emitOpError(
           "payload carrier segments must start at zero and cover all carriers");
     for (auto pair : llvm::zip(segments.asArrayRef().drop_back(),
@@ -5018,8 +5052,8 @@ static MemberOp lookupLogicalDomainMember(Operation *from,
 }
 
 LogicalResult FactoryModelOp::verify() {
-  if (getLaneCount() <= 0 || getBufferCapacity() != 1 ||
-      getPhysicalUnits() <= 0)
+  if (getLaneCountAttr().getInt() <= 0 || getBufferCapacity() != 1 ||
+      getPhysicalUnitsAttr().getInt() <= 0)
     return emitOpError("requires positive lanes/physical_units and "
                        "buffer_capacity exactly one");
   double startup = getStartupNs().convertToDouble();
@@ -5050,7 +5084,7 @@ LogicalResult FactoryModelOp::verify() {
       stream.getBackingRegionAttr().getValue() !=
           getRegionAttr().getLeafReference().getValue() ||
       !stream.getCapacityAttr() ||
-      stream.getCapacityAttr().getInt() != getBufferCapacity())
+      stream.getCapacityAttr().getInt() != getBufferCapacityAttr().getInt())
     return emitOpError(
         "stream/provider/region/buffer must exactly match the retained backed "
         "P1 stream");
@@ -5065,7 +5099,7 @@ LogicalResult FactoryModelOp::verify() {
   auto region = dyn_cast_or_null<qlx::lvm::SpaceOp>(
       SymbolTable::lookupNearestSymbolFrom(*this, getRegionAttr()));
   if (!region || !region.getCapacityAttr() ||
-      region.getCapacityAttr().getInt() != getLaneCount())
+      region.getCapacityAttr().getInt() != getLaneCountAttr().getInt())
     return emitOpError(
         "lane_count must equal the retained factory-region capacity");
 
@@ -5099,11 +5133,12 @@ LogicalResult FactoryModelOp::verify() {
     memberWeight = footprint.getInt();
   }
   if (resourceClass.getCount() != 0 &&
-      memberWeight >
-          std::numeric_limits<int64_t>::max() / resourceClass.getCount())
+      memberWeight > std::numeric_limits<int64_t>::max() /
+                         resourceClass.getCountAttr().getInt())
     return emitOpError("factory physical footprint overflows i64");
-  int64_t expectedPhysicalUnits = resourceClass.getCount() * memberWeight;
-  if (expectedPhysicalUnits != getPhysicalUnits())
+  int64_t expectedPhysicalUnits =
+      resourceClass.getCountAttr().getInt() * memberWeight;
+  if (expectedPhysicalUnits != getPhysicalUnitsAttr().getInt())
     return emitOpError(
         "physical_units must equal the dedicated factory resource-class "
         "base-unit footprint");
@@ -5315,9 +5350,10 @@ LogicalResult FactoryModelOp::verify() {
           "compiled factory source producer must match the retained P1 "
           "factory semantics commitment");
     if (sourceUnits.getInt() >
-        std::numeric_limits<int64_t>::max() / getLaneCount())
+        std::numeric_limits<int64_t>::max() / getLaneCountAttr().getInt())
       return emitOpError("compiled factory source footprint overflows i64");
-    if (sourceUnits.getInt() * getLaneCount() > expectedPhysicalUnits)
+    if (sourceUnits.getInt() * getLaneCountAttr().getInt() >
+        expectedPhysicalUnits)
       return emitOpError(
           "selected factory binding is smaller than the compiled per-lane "
           "source footprint");
@@ -5852,8 +5888,9 @@ LogicalResult MeasureProductOp::verify() {
     return emitOpError("instrument must implement measure_product");
   if (!instrument.getPreservesInputs())
     return emitOpError("measure_product instrument must preserve input states");
-  if (instrument.getArityAttr() && instrument.getArityAttr().getInt() !=
-                                       static_cast<int64_t>(getInputs().size()))
+  if (instrument.getArityAttr() &&
+      std::cmp_not_equal(instrument.getArityAttr().getInt(),
+                         getInputs().size()))
     return emitOpError("operand count does not match fixed instrument arity");
   if (instrument.getRecordSchema() !=
       getRecord().getType().getSchema().getValue())
@@ -6503,7 +6540,7 @@ LogicalResult SpacetimeCallOp::verify() {
 }
 LogicalResult RetryOp::verify() {
   // Retry replay is meaningful only with an exact projected attempt boundary.
-  if (getMaxAttempts() <= 0)
+  if (getMaxAttemptsAttr().getInt() <= 0)
     return emitOpError("max_attempts must be positive");
   auto attemptAttr = getAttemptAttr();
   if (!attemptAttr)
@@ -6976,49 +7013,6 @@ scheduleEntriesAreExclusive(unsigned left, unsigned right,
   StringRef rightBranch = entries[rightPath[common]].branch;
   return !leftBranch.empty() && !rightBranch.empty() &&
          leftBranch != rightBranch;
-}
-
-static std::pair<double, double>
-scheduleDynamicInterval(unsigned index, unsigned other,
-                        ArrayRef<ScheduleClaim> entries,
-                        const llvm::StringMap<unsigned> &entryById) {
-  auto lineage = [&](unsigned current) {
-    SmallVector<unsigned, 8> path;
-    llvm::SmallDenseSet<unsigned, 8> visited;
-    while (visited.insert(current).second) {
-      path.push_back(current);
-      StringRef parent = entries[current].parent;
-      if (parent.empty())
-        break;
-      auto found = entryById.find(parent);
-      if (found == entryById.end())
-        break;
-      current = found->second;
-    }
-    std::reverse(path.begin(), path.end());
-    return path;
-  };
-
-  SmallVector<unsigned, 8> path = lineage(index);
-  SmallVector<unsigned, 8> otherPath = lineage(other);
-  unsigned common = 0;
-  while (common < path.size() && common < otherPath.size() &&
-         path[common] == otherPath[common])
-    ++common;
-
-  // Rows nested under a folded loop describe one template occurrence.  When
-  // the other row is outside that same loop lineage, the loop's finite
-  // envelope is the compact exact exclusion boundary for all dynamic
-  // occurrences.  This catches later-iteration collisions without expanding
-  // even very large repeat counts.
-  for (unsigned ancestor : ArrayRef(path).drop_front(common)) {
-    const ScheduleClaim &candidate = entries[ancestor];
-    if ((candidate.kind == "repeat" && candidate.repeatCount &&
-         *candidate.repeatCount > 1) ||
-        candidate.kind == "while")
-      return {candidate.start, candidate.finish()};
-  }
-  return {entries[index].start, entries[index].finish()};
 }
 
 static Operation *scheduleDataProducerImpl(Value value, GraphOp graph,
@@ -9041,7 +9035,8 @@ LogicalResult ScheduleClaimVerifier::verify(ArrayRef<ScheduleClaim> entries,
       auto probability = retry.getSuccessProbabilityAttr();
       auto source = retry.getSuccessProbabilitySourceAttr();
       auto evidence = retry.getSuccessProbabilityEvidenceAttr();
-      if (!entry.maxAttempts || *entry.maxAttempts != retry.getMaxAttempts() ||
+      if (!entry.maxAttempts ||
+          *entry.maxAttempts != retry.getMaxAttemptsAttr().getInt() ||
           entry.exhaustion != retry.getExhaustion() ||
           entry.profile != retry.getProfile() ||
           entry.attempt != retry.getAttempt() ||
@@ -9728,7 +9723,9 @@ LogicalResult ScheduleClaimVerifier::verify(ArrayRef<ScheduleClaim> entries,
                         ResourcePoint{
                             entry.start +
                                 model.getOutputIntervalNs().convertToDouble(),
-                            entry.id});
+                            entry.id,
+                            {},
+                            {}});
         if (graphEvent != graphEvents.end())
           if (auto transport =
                   dyn_cast<TransportResourceOp>(graphEvent->second.first)) {
@@ -9741,7 +9738,9 @@ LogicalResult ScheduleClaimVerifier::verify(ArrayRef<ScheduleClaim> entries,
                     ResourcePoint{
                         entry.start +
                             model.getInitiationIntervalNs().convertToDouble(),
-                        entry.id});
+                        entry.id,
+                        {},
+                        {}});
             if (!transport.getModelAttr())
               if (auto route = transport.getRouteAttr()) {
                 Operation *architecture = SymbolTable::lookupSymbolIn(
@@ -9761,7 +9760,7 @@ LogicalResult ScheduleClaimVerifier::verify(ArrayRef<ScheduleClaim> entries,
                       interval = *value;
                   state.set(
                       ("control:transport-init:" + binding.getSymName()).str(),
-                      ResourcePoint{entry.start + interval, entry.id});
+                      ResourcePoint{entry.start + interval, entry.id, {}, {}});
                 }
               }
           }
@@ -9868,7 +9867,8 @@ LogicalResult ScheduleClaimVerifier::verify(ArrayRef<ScheduleClaim> entries,
         for (const auto &change : pipelineChanges)
           if (change.after)
             pipelineInitiations.set(
-                change.key, ResourcePoint{change.after->available, entry.id});
+                change.key,
+                ResourcePoint{change.after->available, entry.id, {}, {}});
         callResourceEffects[entry.id] = std::move(effect);
       } else if (entry.kind == "call_template") {
         auto operation = graphEvents.find(entry.id);
@@ -9940,14 +9940,16 @@ LogicalResult ScheduleClaimVerifier::verify(ArrayRef<ScheduleClaim> entries,
             pipelineInitiations.set(
                 transition.plan,
                 ResourcePoint{entry.start + transition.availabilityOffset,
-                              entry.id});
+                              entry.id,
+                              {},
+                              {}});
           if (effect->second.globalBarrierAvailabilityOffset) {
             double replayed =
                 entry.start + *effect->second.globalBarrierAvailabilityOffset;
             for (const std::string &resource : concreteResourceKeys) {
               auto prior = state.find(resource);
               if (prior == state.end() || replayed >= prior->second.available)
-                state.set(resource, ResourcePoint{replayed, entry.id});
+                state.set(resource, ResourcePoint{replayed, entry.id, {}, {}});
             }
           }
         } else
@@ -9999,7 +10001,9 @@ LogicalResult ScheduleClaimVerifier::verify(ArrayRef<ScheduleClaim> entries,
               ResourcePoint{
                   entry.start +
                       plan.getInitiationIntervalNsAttr().getValueAsDouble(),
-                  entry.id});
+                  entry.id,
+                  {},
+                  {}});
       } else if (entry.kind == "repeat") {
         for (StringRef resource : graphFacts[index].resources) {
           if (!StringRef(resource).starts_with("factory:"))
@@ -10034,7 +10038,7 @@ LogicalResult ScheduleClaimVerifier::verify(ArrayRef<ScheduleClaim> entries,
                     entry.start +
                     (entry.repeatCount.value_or(1) - 1) * *entry.repeatPeriod +
                     (change.after->available - entry.start);
-              state.set(change.key, ResourcePoint{available, entry.id});
+              state.set(change.key, ResourcePoint{available, entry.id, {}, {}});
             }
       } else if (entry.kind == "while") {
         ResourceState::Scope loopScope(state);
@@ -10048,7 +10052,8 @@ LogicalResult ScheduleClaimVerifier::verify(ArrayRef<ScheduleClaim> entries,
             auto previous = state.get(change.key);
             if (previous && *change.after == *previous)
               continue;
-            state.set(change.key, ResourcePoint{entry.finish(), entry.id});
+            state.set(change.key,
+                      ResourcePoint{entry.finish(), entry.id, {}, {}});
           }
       } else {
         SmallVector<StringRef, 3> branches =
@@ -10084,11 +10089,13 @@ LogicalResult ScheduleClaimVerifier::verify(ArrayRef<ScheduleClaim> entries,
             merged =
                 std::max(merged, branchAvailability(branch, resource.getKey()));
           if (merged != previous)
-            state.set(resource.getKey(), ResourcePoint{merged, entry.id});
+            state.set(resource.getKey(),
+                      ResourcePoint{merged, entry.id, {}, {}});
         }
         for (StringRef resource : graphFacts[index].resources)
           if (!resource.starts_with("control:"))
-            state.set(resource, ResourcePoint{entry.finish(), entry.id});
+            state.set(resource,
+                      ResourcePoint{entry.finish(), entry.id, {}, {}});
       }
       auto allocationOrder = allocationAfterDependencies.find(entry.id);
       if (allocationOrder != allocationAfterDependencies.end())
@@ -10571,8 +10578,7 @@ static FailureOr<AffineSourceRow> findOutcomeRow(Operation *sidecar,
     return failure();
   auto type = dyn_cast<ShapedType>(matrix.getType());
   if (!type || type.getRank() != 2 || sourceRow < 0 ||
-      sourceRow >= type.getShape()[0] ||
-      constants.size() != static_cast<size_t>(type.getShape()[0]))
+      sourceRow >= type.getShape()[0] || constants.size() != type.getShape()[0])
     return failure();
 
   auto roles = outcome.getAs<ArrayAttr>("roles");
@@ -10748,8 +10754,9 @@ static LogicalResult verifyRecordProjection(Operation *sidecar,
   if (!projectionRef || !projectionIndices)
     return sidecar->emitOpError(
         "source_profile requires record_projection and projection_indices");
-  if (!sourceRecords || projectionIndices.size() != sourceRecords.size() ||
-      projectionIndices.size() != records.size())
+  if (!sourceRecords ||
+      std::cmp_not_equal(projectionIndices.size(), sourceRecords.size()) ||
+      std::cmp_not_equal(projectionIndices.size(), records.size()))
     return sidecar->emitOpError(
         "projection_indices must align one-to-one with source_records and "
         "records");

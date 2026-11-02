@@ -34,12 +34,11 @@ public:
   TestHandler(bool supported_ = true, bool forceSupports_ = false)
       : supported(supported_), forceSupports(forceSupports_) {}
 
-  /// `forceSupports` is the explicit override knob; otherwise the
-  /// interface-default probe of `getStagePasses` applies.
-  bool supports(const cudaq::config::Profile &input,
-                const cudaq::config::Profile &output,
-                const cudaq::CompileOptions &options) const override {
-    return forceSupports || getStagePasses(input, output, options).has_value();
+  /// `forceSupports` claims the lowering even when `getStagePasses` will fail.
+  bool supports(const cudaq::config::Profile &,
+                const cudaq::config::Profile &) const override {
+    ++calls;
+    return forceSupports || supported;
   }
 
   std::optional<StagePasses>

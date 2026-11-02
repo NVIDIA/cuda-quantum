@@ -49,8 +49,10 @@ static std::string translate_impl(const std::string &shortName,
   if (!fn)
     throw std::runtime_error(
         "Module is malformed for python. Unique entry point cannot be found.");
-  auto opaques =
-      cudaq::marshal_arguments_for_module_launch(mod, runtimeArguments, fn);
+  // Translation compiles with `fullySpecialize` set, so it always substitutes
+  // the argument values.
+  auto opaques = cudaq::marshal_arguments_for_module_launch(
+      mod, runtimeArguments, fn, /*specializeArguments=*/true);
 
   auto options = cudaq::get_compile_options(cudaq::other_policies{},
                                             cudaq::get_random_seed());

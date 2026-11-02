@@ -91,16 +91,14 @@ public:
                         std::uint64_t txClearBytes);
 
   // Poll the slot's TX flag until the dispatcher publishes a response, then
-  // validate it and return the response payload size in bytes.
+  // validate it and return the response payload size in bytes. Handler
+  // failures arrive in-band through `RPCResponse::status`.
   //   - state:             frame state returned by `claimSlot`.
   //   - frame:             frame whose response.capacity bounds the validated
   //   payload.
-  //   - captureCudaError:  when true, surface the dispatcher's cudaError_t
-  //                        (host-graph path); otherwise ignore it.
   std::uint64_t
   waitForResponseAndValidate(const FrameState &state,
-                             DeviceCallChannel::DeviceCallFrame &frame,
-                             bool captureCudaError = false);
+                             DeviceCallChannel::DeviceCallFrame &frame);
 
   void clearSlot(std::uint32_t slot);
   void clearDeviceSlot(std::uint32_t slot);

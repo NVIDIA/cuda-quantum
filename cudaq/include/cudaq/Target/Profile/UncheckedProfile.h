@@ -29,7 +29,5 @@ struct UncheckedProfile {
 template <>
 struct std::hash<cudaq::config::UncheckedProfile> {
   std::size_t
-  operator()(const cudaq::config::UncheckedProfile &) const noexcept {
-    return 0;
-  }
+  operator()(const cudaq::config::UncheckedProfile &) const noexcept;
 };

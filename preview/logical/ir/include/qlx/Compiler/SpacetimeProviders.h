@@ -1,13 +1,12 @@
-/*******************************************************************************
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
-#ifndef QLX_COMPILER_SPACETIMEPROVIDERS_H
-#define QLX_COMPILER_SPACETIMEPROVIDERS_H
+#pragma once
 
 #include <optional>
 
@@ -54,5 +53,3 @@ std::optional<BuiltinProviderKind> providerFor(fabric::ProtocolOp protocol);
 void registerBuiltinProviders();
 
 } // namespace qlx::spacetime
-
-#endif // QLX_COMPILER_SPACETIMEPROVIDERS_H

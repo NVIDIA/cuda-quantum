@@ -86,10 +86,9 @@ if (CUDA_FOUND AND CUDAQ_ENABLE_REALTIME)
       device_call/cpu_roce_test_daemon.cpp)
     target_include_directories(cpu_roce_test_daemon
       PRIVATE ${CUDAToolkit_INCLUDE_DIRS})
-    # host-dispatch.a contains relocatable device code (host_dispatcher.cu); the
-    # final link must run the CUDA device-link step even though this target has
-    # no .cu sources. Same "bridge as .cpp with CUDA device linking" pattern as
-    # the realtime gpu_roce/hsb bridge tools.
+    # This target has no .cu sources and the host-dispatch library is plain
+    # C++ without device code; it keeps the "bridge as .cpp with CUDA device
+    # linking" link setup of the realtime gpu_roce/hsb bridge tools.
     set_target_properties(cpu_roce_test_daemon PROPERTIES
       LINKER_LANGUAGE CUDA
       CUDA_SEPARABLE_COMPILATION ON
@@ -243,6 +242,12 @@ target_link_libraries(test_exec_ctx_thread
   cudaq-platform-default
   gtest_main)
 cudaq_gtest_discover_tests(test_exec_ctx_thread DISCOVERY_TIMEOUT 120)
+
+# Exercise the LLVM-free facade without linking the full runtime.
+add_executable(test_kernel_runtime common/KernelRuntimeTester.cpp)
+target_include_directories(test_kernel_runtime PRIVATE ${CMAKE_SOURCE_DIR}/runtime)
+target_link_libraries(test_kernel_runtime PRIVATE cudaq-kernel-runtime gtest_main)
+cudaq_gtest_discover_tests(test_kernel_runtime DISCOVERY_TIMEOUT 120)
 
 add_executable(test_quantum_platform main.cpp common/QuantumPlatformTester.cpp)
 target_include_directories(test_quantum_platform PRIVATE .)

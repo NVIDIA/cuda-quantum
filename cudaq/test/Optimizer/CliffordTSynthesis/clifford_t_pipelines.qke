@@ -7,34 +7,43 @@
 // ========================================================================== //
 
 // RUN: cudaq-opt --pass-pipeline='builtin.module(convert-to-linear-values, \
-// RUN:   clifford-t-optimization-pipeline{level=1 epsilon=1e-3})' %s | \
+// RUN:   clifford-t-optimization-pipeline{level=1 approximation-tolerance=1e-3})' %s | \
 // RUN:   FileCheck %s --check-prefix=LEVEL1
 // RUN: cudaq-opt --pass-pipeline='builtin.module(convert-to-linear-values, \
-// RUN:   clifford-t-optimization-pipeline{level=2 epsilon=1e-3})' %s \
+// RUN:   clifford-t-optimization-pipeline{level=2 approximation-tolerance=1e-3})' %s \
 // RUN:   -o %t.level2
 // RUN: FileCheck %s --check-prefix=LEVEL2 --input-file=%t.level2
 // RUN: cudaq-opt --pass-pipeline='builtin.module(convert-to-linear-values, \
-// RUN:   clifford-t-optimization-pipeline{level=3 epsilon=1e-3})' %s | \
+// RUN:   clifford-t-optimization-pipeline{level=3 approximation-tolerance=1e-3})' %s | \
 // RUN:   diff %t.level2 -
 // RUN: cudaq-opt --pass-pipeline='builtin.module(convert-to-linear-values, \
-// RUN:   clifford-t-optimization-pipeline{level=2 epsilon=1e-13})' %s | \
+// RUN:   clifford-t-optimization-pipeline{level=2 approximation-tolerance=1e-13})' %s | \
 // RUN:   FileCheck %s --check-prefix=BOUND
-// RUN: cudaq-opt --clifford-t-synthesis-pipeline='level=1 epsilon=1e-3' %s | \
+// RUN: cudaq-opt --clifford-t-synthesis-pipeline='level=1 approximation-tolerance=1e-3' %s | \
 // RUN:   FileCheck %s --check-prefix=SYNTH \
 // RUN:   --implicit-check-not='quake.r{{[xyz1]}}' \
 // RUN:   --implicit-check-not='@__cliffordt_' --implicit-check-not='quake.phase'
-// RUN: cudaq-opt --clifford-t-synthesis-pipeline='basis=rz,x epsilon=1e-3' \
+// RUN: cudaq-opt --clifford-t-synthesis-pipeline='basis=rz,x approximation-tolerance=1e-3' \
 // RUN:   %s | FileCheck %s --check-prefix=EXACT
-// RUN: cudaq-opt --clifford-t-synthesis-pipeline='basis=r1,h epsilon=1e-3' \
+// RUN: cudaq-opt --clifford-t-synthesis-pipeline='basis=r1,h approximation-tolerance=1e-3' \
 // RUN:   %s | FileCheck %s --check-prefix=EXACT
-// RUN: cudaq-opt --clifford-t-synthesis-pipeline='basis=h,s,t epsilon=1e-3' \
+// RUN: cudaq-opt --clifford-t-synthesis-pipeline='basis=h,s,t approximation-tolerance=1e-3' \
 // RUN:   %s | FileCheck %s --check-prefix=SYNTH \
 // RUN:   --implicit-check-not='quake.r{{[xyz1]}}' \
 // RUN:   --implicit-check-not='@__cliffordt_' --implicit-check-not='quake.phase'
+// RUN: cudaq-opt --two-qubit-gate-count-optimization-pipeline=level=1 \
+// RUN:   --dump-pass-pipeline -o /dev/null %s 2>&1 | FileCheck %s --check-prefix=TWOQ1
+// RUN: cudaq-opt --two-qubit-gate-count-optimization-pipeline=level=2 \
+// RUN:   --dump-pass-pipeline -o /dev/null %s 2>&1 | FileCheck %s --check-prefix=TWOQ2
 
-// Level 1 of the optimization pipeline only cleans up, and level 3 runs level
-// 2. No level erases a rotation larger than the tolerance. The synthesis
-// pipeline leaves no rotation, helper, or phase behind.
+// The two-qubit-gate-count optimization pipeline adds phase folding at level 2.
+// TWOQ1:     dqe
+// TWOQ1-NOT: phase-folding
+// TWOQ2:     phase-folding
+
+// Level 1 of the Clifford+T optimization pipeline only cleans up, and level 3
+// runs level 2. No level erases a rotation larger than the tolerance. The
+// synthesis pipeline leaves no rotation, helper, or phase behind.
 
 // The angle is within the tolerance of pi/4, so level 2 snaps it to a T gate
 // and level 1 keeps the rotation.

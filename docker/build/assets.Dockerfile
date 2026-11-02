@@ -136,6 +136,7 @@ ADD "docs/sphinx/snippets" /cuda-quantum/docs/sphinx/snippets
 ADD "cudaq" /cuda-quantum/cudaq
 ADD "realtime" /cuda-quantum/realtime
 ADD "runtime" /cuda-quantum/runtime
+ADD "python/tests/targets" /cuda-quantum/python/tests/targets
 ADD "scripts/build_cudaq.sh" /cuda-quantum/scripts/build_cudaq.sh
 ADD "scripts/update_submodules.sh" /cuda-quantum/scripts/update_submodules.sh
 ADD "scripts/migrate_assets.sh" /cuda-quantum/scripts/migrate_assets.sh
@@ -421,6 +422,8 @@ RUN if gpus=$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null) && 
 # lit 23+ rejects the external shell our lit configs use. Pin to LLVM 22.x.
 RUN python3 -m ensurepip --upgrade && python3 -m pip install 'lit<23' && \
     dnf install -y --nobest --setopt=install_weak_deps=False file which
+# Runtime regression tests load the compiler-bench target YAML fixtures.
+ADD "python/tests/targets" /cuda-quantum/python/tests/targets
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     if [ ! -x "$(command -v nvcc)" ]; then \
         # The tests is marked correctly as requiring nvcc, but since nvcc
