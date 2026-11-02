@@ -51,6 +51,9 @@ latest
         -   [Python
             Stack-Traces](../../using/basics/troubleshooting.html#python-stack-traces){.reference
             .internal}
+        -   [LLVM-based Python
+            packages](../../using/basics/troubleshooting.html#llvm-based-python-packages){.reference
+            .internal}
 -   [Examples](../../using/examples/examples.html){.reference .internal}
     -   [Introduction](../../using/examples/introduction.html){.reference
         .internal}
@@ -2001,7 +2004,45 @@ latest
 
 [Preview]{.caption-text}
 
--   [CUDA-Q Logical](/preview/logical/#http://){.reference .external}
+-   [cudaq-logical](/preview/logical/#http://){.reference .external}
+-   [cudaq-edem](../../using/edem.html){.reference .internal}
+    -   [Standalone
+        build](../../using/edem.html#standalone-build){.reference
+        .internal}
+    -   [Python bindings and
+        wheel](../../using/edem.html#python-bindings-and-wheel){.reference
+        .internal}
+    -   [CUDA-Q build](../../using/edem.html#cuda-q-build){.reference
+        .internal}
+    -   [Installed
+        package](../../using/edem.html#installed-package){.reference
+        .internal}
+    -   [Packaging
+        checks](../../using/edem.html#packaging-checks){.reference
+        .internal}
+    -   [Native interface and
+        memory](../../using/edem.html#native-interface-and-memory){.reference
+        .internal}
+    -   [C++ ownership
+        helper](../../using/edem.html#c-ownership-helper){.reference
+        .internal}
+    -   [Component
+        boundary](../../using/edem.html#component-boundary){.reference
+        .internal}
+    -   [Fault
+        distributions](../../using/edem.html#fault-distributions){.reference
+        .internal}
+    -   [Python
+        construction](../../using/edem.html#python-construction){.reference
+        .internal}
+    -   [Packed format](../../using/edem.html#packed-format){.reference
+        .internal}
+    -   [Serial composition and DEM
+        projection](../../using/edem.html#serial-composition-and-dem-projection){.reference
+        .internal}
+    -   [Exact noise conversion and column
+        coalescing](../../using/edem.html#exact-noise-conversion-and-column-coalescing){.reference
+        .internal}
 :::
 :::
 
@@ -2060,14 +2101,14 @@ command line example would look like [`CUDAQ_MGPU_FUSE=4`{.docutils
 .notranslate}]{.pre}` `{.docutils .literal
 .notranslate}[`fp64,mgpu`{.docutils .literal .notranslate}]{.pre}
 
-![e49fba1ac4984aa288a00384d427fa01](../../_images/gate-fuse.png)
+![f6d8fa72eff0433b9aae6331f6e59001](../../_images/gate-fuse.png)
 
 The importance of gate fusion is system dependent, but can have a large
 influence on the performance of the simulation. See the example below
 for a 24 qubit VQE experiment where changing the fusion level resulted
 in significant performance boosts.
 
-![b6cdfabc61f54550b974fd2bbfb48530](../../_images/gatefusion.png)
+![4c18a614ddf245ec99e2a32044b31ad4](../../_images/gatefusion.png)
 :::
 :::
 :::

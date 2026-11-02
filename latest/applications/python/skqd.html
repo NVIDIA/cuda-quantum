@@ -122,6 +122,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../using/basics/troubleshooting.html">   Troubleshooting</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../using/basics/troubleshooting.html#debugging-and-verbose-simulation-output">Debugging and Verbose Simulation Output</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/basics/troubleshooting.html#python-stack-traces">Python Stack-Traces</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/basics/troubleshooting.html#llvm-based-python-packages">LLVM-based Python packages</a></li>
 </ul>
 </li>
 </ul>
@@ -1107,7 +1108,23 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Preview</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference external" href="/preview/logical/#http://">CUDA-Q Logical</a></li>
+<li class="toctree-l1"><a class="reference external" href="/preview/logical/#http://">cudaq-logical</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../using/edem.html">cudaq-edem</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../using/edem.html#standalone-build">Standalone build</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/edem.html#python-bindings-and-wheel">Python bindings and wheel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/edem.html#cuda-q-build">CUDA-Q build</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/edem.html#installed-package">Installed package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/edem.html#packaging-checks">Packaging checks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/edem.html#native-interface-and-memory">Native interface and memory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/edem.html#c-ownership-helper">C++ ownership helper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/edem.html#component-boundary">Component boundary</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/edem.html#fault-distributions">Fault distributions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/edem.html#python-construction">Python construction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/edem.html#packed-format">Packed format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/edem.html#serial-composition-and-dem-projection">Serial composition and DEM projection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/edem.html#exact-noise-conversion-and-column-coalescing">Exact noise conversion and column coalescing</a></li>
+</ul>
+</li>
 </ul>
 
         </div>
@@ -1495,12 +1512,12 @@ Generating Krylov state U^11...
 <p>The data in the plot below was gathered by averaging over 5 runs on a NVIDIA H100 GPU and an Intel Xeon Platinum 8480CL CPU with 224 threads. The only thing that changed between the 2 data points was <code class="docutils literal notranslate"><span class="pre">vectorized_pj_on_gpu</span> <span class="pre">=</span> <span class="pre">True</span></code> and <code class="docutils literal notranslate"><span class="pre">vectorized_pj_on_gpu</span> <span class="pre">=</span> <span class="pre">False</span></code></p>
 <p>This substantial acceleration comes from: - <strong>Parallel Pauli string evaluation</strong> across thousands of basis states simultaneously - <strong>Vectorized matrix element computation</strong> leveraging CUDA cores - <strong>GPU-optimized sparse linear algebra</strong> via cuSPARSE library for eigenvalue solving</p>
 <p>The speedup becomes increasingly critical as the Krylov dimension grows, since the computational subspace dimension (and thus the matrix size) scales exponentially with k. For higher k values, GPU acceleration transforms previously intractable postprocessing into feasible computation times.</p>
-<p><img alt="9f73374ad78945e19cd75acfbf4f51d7" class="no-scaled-link" src="../../_images/speedup.png" style="width: 500px;" /></p>
+<p><img alt="b83859d8fb944874935c1d7948beecfb" class="no-scaled-link" src="../../_images/speedup.png" style="width: 500px;" /></p>
 </section>
 <section id="Postprocessing-Scale-Up-and-Scale-Out:-Linear-Operator-Approach,-Multi-GPU-Multi-Node">
 <h2>Postprocessing Scale-Up and Scale-Out: Linear Operator Approach, Multi-GPU Multi-Node<a class="headerlink" href="#Postprocessing-Scale-Up-and-Scale-Out:-Linear-Operator-Approach,-Multi-GPU-Multi-Node" title="Permalink to this heading">¶</a></h2>
 <p>The plots below were generated using <code class="docutils literal notranslate"><span class="pre">distributed_eigsh()</span></code> with the Hamiltonian of an active site of a GPCR (G protein-coupled receptor) molecule. This demonstrates scaling behavior on a problem with a much larger computational subspace than the 22-qubit demo above.</p>
-<div style="display: flex; gap: 10px;"><p><img alt="58c932ff0be444c5ab228ba4f3d4c340" class="no-scaled-link" src="../../_images/strong_scaling_timing.jpeg" style="width: 450px;" /> <img alt="9a732542101840c4b1ce6504aa5d21a1" class="no-scaled-link" src="../../_images/efficiency.jpeg" style="width: 450px;" /></p>
+<div style="display: flex; gap: 10px;"><p><img alt="c7cf40bcc6a84bd291ce85d42b33ba3f" class="no-scaled-link" src="../../_images/strong_scaling_timing.jpeg" style="width: 450px;" /> <img alt="88101d56c2f44dbbab1f3e486bf845c9" class="no-scaled-link" src="../../_images/efficiency.jpeg" style="width: 450px;" /></p>
 </div><section id="Saving-Hamiltonian-Data">
 <h3>Saving Hamiltonian Data<a class="headerlink" href="#Saving-Hamiltonian-Data" title="Permalink to this heading">¶</a></h3>
 <p>To run the multi-GPU solver, we first save the Hamiltonian data (pauli words, coefficients) and the sampled basis states so they can be loaded by each MPI rank.</p>

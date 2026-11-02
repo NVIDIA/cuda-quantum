@@ -30,7 +30,7 @@ CUDA-Q's selected target. This path does not emit or load Stim text and does
 not require the Python `stim` package. It returns one Boolean or Boolean list
 per shot, containing only the entry's explicit results. CUDA-Q's `stim` target
 supports Clifford circuits and supported Pauli channels supplied through
-`noise_model`; it cannot execute T gates or arbitrary rotations.
+`noise_model`; it cannot execute T gates or `rx`, `ry`, or `rz` at any angle.
 
 The [Steane Bernstein–Vazirani example](../use-cases/examples/steane-bernstein-vazirani.md)
 checks encoded preparation before execution. It does not run a decoder.

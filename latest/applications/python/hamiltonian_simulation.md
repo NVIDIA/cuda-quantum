@@ -51,6 +51,9 @@ latest
         -   [Python
             Stack-Traces](../../using/basics/troubleshooting.html#python-stack-traces){.reference
             .internal}
+        -   [LLVM-based Python
+            packages](../../using/basics/troubleshooting.html#llvm-based-python-packages){.reference
+            .internal}
 -   [Examples](../../using/examples/examples.html){.reference .internal}
     -   [Introduction](../../using/examples/introduction.html){.reference
         .internal}
@@ -1980,7 +1983,45 @@ latest
 
 [Preview]{.caption-text}
 
--   [CUDA-Q Logical](/preview/logical/#http://){.reference .external}
+-   [cudaq-logical](/preview/logical/#http://){.reference .external}
+-   [cudaq-edem](../../using/edem.html){.reference .internal}
+    -   [Standalone
+        build](../../using/edem.html#standalone-build){.reference
+        .internal}
+    -   [Python bindings and
+        wheel](../../using/edem.html#python-bindings-and-wheel){.reference
+        .internal}
+    -   [CUDA-Q build](../../using/edem.html#cuda-q-build){.reference
+        .internal}
+    -   [Installed
+        package](../../using/edem.html#installed-package){.reference
+        .internal}
+    -   [Packaging
+        checks](../../using/edem.html#packaging-checks){.reference
+        .internal}
+    -   [Native interface and
+        memory](../../using/edem.html#native-interface-and-memory){.reference
+        .internal}
+    -   [C++ ownership
+        helper](../../using/edem.html#c-ownership-helper){.reference
+        .internal}
+    -   [Component
+        boundary](../../using/edem.html#component-boundary){.reference
+        .internal}
+    -   [Fault
+        distributions](../../using/edem.html#fault-distributions){.reference
+        .internal}
+    -   [Python
+        construction](../../using/edem.html#python-construction){.reference
+        .internal}
+    -   [Packed format](../../using/edem.html#packed-format){.reference
+        .internal}
+    -   [Serial composition and DEM
+        projection](../../using/edem.html#serial-composition-and-dem-projection){.reference
+        .internal}
+    -   [Exact noise conversion and column
+        coalescing](../../using/edem.html#exact-noise-conversion-and-column-coalescing){.reference
+        .internal}
 :::
 :::
 

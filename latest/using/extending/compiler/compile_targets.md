@@ -48,6 +48,9 @@ latest
         -   [Python
             Stack-Traces](../../basics/troubleshooting.html#python-stack-traces){.reference
             .internal}
+        -   [LLVM-based Python
+            packages](../../basics/troubleshooting.html#llvm-based-python-packages){.reference
+            .internal}
 -   [Examples](../../examples/examples.html){.reference .internal}
     -   [Introduction](../../examples/introduction.html){.reference
         .internal}
@@ -1980,7 +1983,43 @@ latest
 
 [Preview]{.caption-text}
 
--   [CUDA-Q Logical](/preview/logical/#http://){.reference .external}
+-   [cudaq-logical](/preview/logical/#http://){.reference .external}
+-   [cudaq-edem](../../edem.html){.reference .internal}
+    -   [Standalone build](../../edem.html#standalone-build){.reference
+        .internal}
+    -   [Python bindings and
+        wheel](../../edem.html#python-bindings-and-wheel){.reference
+        .internal}
+    -   [CUDA-Q build](../../edem.html#cuda-q-build){.reference
+        .internal}
+    -   [Installed
+        package](../../edem.html#installed-package){.reference
+        .internal}
+    -   [Packaging checks](../../edem.html#packaging-checks){.reference
+        .internal}
+    -   [Native interface and
+        memory](../../edem.html#native-interface-and-memory){.reference
+        .internal}
+    -   [C++ ownership
+        helper](../../edem.html#c-ownership-helper){.reference
+        .internal}
+    -   [Component
+        boundary](../../edem.html#component-boundary){.reference
+        .internal}
+    -   [Fault
+        distributions](../../edem.html#fault-distributions){.reference
+        .internal}
+    -   [Python
+        construction](../../edem.html#python-construction){.reference
+        .internal}
+    -   [Packed format](../../edem.html#packed-format){.reference
+        .internal}
+    -   [Serial composition and DEM
+        projection](../../edem.html#serial-composition-and-dem-projection){.reference
+        .internal}
+    -   [Exact noise conversion and column
+        coalescing](../../edem.html#exact-noise-conversion-and-column-coalescing){.reference
+        .internal}
 :::
 :::
 
@@ -2031,9 +2070,9 @@ constructed using one of the following constructors:
 -   [`CompileTarget(ir_output_profile=profile)`{.docutils .literal
     .notranslate}]{.pre} defines a target made of a single compilation
     stage that lowers the input kernel to the specified IR profile. The
-    only currently supported profile is
-    [`QuakeReferenceSemanticsProfile`{.docutils .literal
-    .notranslate}]{.pre}.
+    supported profiles are [`QuakeReferenceSemanticsProfile`{.docutils
+    .literal .notranslate}]{.pre} and [`QuakeUnmappedProfile`{.docutils
+    .literal .notranslate}]{.pre}.
 
 -   [`CompileTarget(custom_pipeline=lowering)`{.docutils .literal
     .notranslate}]{.pre} defines a target made of a single compilation
@@ -2045,11 +2084,13 @@ constructed using one of the following constructors:
 
 More complex multi-stage compile targets can be constructed using the
 [`CompileTarget(stages=[])`{.docutils .literal .notranslate}]{.pre}
-constructor, although support for this is currently limited.
-[`stages`{.docutils .literal .notranslate}]{.pre},
-[`ir_output_profile`{.docutils .literal .notranslate}]{.pre} and
-[`custom_pipeline`{.docutils .literal .notranslate}]{.pre} are mutually
-exclusive.
+constructor, although support for this is currently limited. A
+[`QuakeMappedProfile`{.docutils .literal .notranslate}]{.pre} stage
+routes the kernel onto its [`device`{.docutils .literal
+.notranslate}]{.pre} when one is set. [`stages`{.docutils .literal
+.notranslate}]{.pre}, [`ir_output_profile`{.docutils .literal
+.notranslate}]{.pre} and [`custom_pipeline`{.docutils .literal
+.notranslate}]{.pre} are mutually exclusive.
 :::
 
 ::: {#setting-compile-targets-with-set-target .section}

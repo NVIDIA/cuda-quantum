@@ -46,6 +46,9 @@ latest
         -   [Python
             Stack-Traces](../basics/troubleshooting.html#python-stack-traces){.reference
             .internal}
+        -   [LLVM-based Python
+            packages](../basics/troubleshooting.html#llvm-based-python-packages){.reference
+            .internal}
 -   [Examples](examples.html){.reference .internal}
     -   [Introduction](introduction.html){.reference .internal}
     -   [Building Kernels](building_kernels.html){.reference .internal}
@@ -1956,7 +1959,39 @@ latest
 
 [Preview]{.caption-text}
 
--   [CUDA-Q Logical](/preview/logical/#http://){.reference .external}
+-   [cudaq-logical](/preview/logical/#http://){.reference .external}
+-   [cudaq-edem](../edem.html){.reference .internal}
+    -   [Standalone build](../edem.html#standalone-build){.reference
+        .internal}
+    -   [Python bindings and
+        wheel](../edem.html#python-bindings-and-wheel){.reference
+        .internal}
+    -   [CUDA-Q build](../edem.html#cuda-q-build){.reference .internal}
+    -   [Installed package](../edem.html#installed-package){.reference
+        .internal}
+    -   [Packaging checks](../edem.html#packaging-checks){.reference
+        .internal}
+    -   [Native interface and
+        memory](../edem.html#native-interface-and-memory){.reference
+        .internal}
+    -   [C++ ownership
+        helper](../edem.html#c-ownership-helper){.reference .internal}
+    -   [Component boundary](../edem.html#component-boundary){.reference
+        .internal}
+    -   [Fault
+        distributions](../edem.html#fault-distributions){.reference
+        .internal}
+    -   [Python
+        construction](../edem.html#python-construction){.reference
+        .internal}
+    -   [Packed format](../edem.html#packed-format){.reference
+        .internal}
+    -   [Serial composition and DEM
+        projection](../edem.html#serial-composition-and-dem-projection){.reference
+        .internal}
+    -   [Exact noise conversion and column
+        coalescing](../edem.html#exact-noise-conversion-and-column-coalescing){.reference
+        .internal}
 :::
 :::
 
@@ -2166,18 +2201,18 @@ T count of a circuit is the number usually worth measuring. The
 count can be read off directly. It reduces [`rx`{.docutils .literal
 .notranslate}]{.pre}, [`ry`{.docutils .literal .notranslate}]{.pre} and
 [`r1`{.docutils .literal .notranslate}]{.pre} rotations to
-[`rz`{.docutils .literal .notranslate}]{.pre}, synthesizes each one, and
-optimizes the result. Its [`epsilon`{.docutils .literal
-.notranslate}]{.pre} argument sets the per-rotation tolerance and
-defaults to [`1e-10`{.docutils .literal .notranslate}]{.pre}.
+[`rz`{.docutils .literal .notranslate}]{.pre} and synthesizes each one
+within a tolerance of [`1e-10`{.docutils .literal .notranslate}]{.pre}.
+[`cudaq.set_random_seed`{.docutils .literal .notranslate}]{.pre} makes
+the synthesized gates reproducible.
 
 ::: {.highlight-python .notranslate}
 ::: highlight
     import cudaq
 
-    # Rewrite every rotation in the kernel into Clifford+T. `epsilon` is the
-    # per-rotation approximation tolerance.
-    cudaq.set_target("compiler-bench-ftqc-clifford-t", epsilon="1e-10")
+    # Rewrite every rotation in the kernel into Clifford+T, each within an
+    # operator-norm error of 1e-10.
+    cudaq.set_target("compiler-bench-ftqc-clifford-t")
 
 
     @cudaq.kernel

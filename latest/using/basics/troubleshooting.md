@@ -41,6 +41,8 @@ latest
             .internal}
         -   [Python Stack-Traces](#python-stack-traces){.reference
             .internal}
+        -   [LLVM-based Python
+            packages](#llvm-based-python-packages){.reference .internal}
 -   [Examples](../examples/examples.html){.reference .internal}
     -   [Introduction](../examples/introduction.html){.reference
         .internal}
@@ -1977,7 +1979,39 @@ latest
 
 [Preview]{.caption-text}
 
--   [CUDA-Q Logical](/preview/logical/#http://){.reference .external}
+-   [cudaq-logical](/preview/logical/#http://){.reference .external}
+-   [cudaq-edem](../edem.html){.reference .internal}
+    -   [Standalone build](../edem.html#standalone-build){.reference
+        .internal}
+    -   [Python bindings and
+        wheel](../edem.html#python-bindings-and-wheel){.reference
+        .internal}
+    -   [CUDA-Q build](../edem.html#cuda-q-build){.reference .internal}
+    -   [Installed package](../edem.html#installed-package){.reference
+        .internal}
+    -   [Packaging checks](../edem.html#packaging-checks){.reference
+        .internal}
+    -   [Native interface and
+        memory](../edem.html#native-interface-and-memory){.reference
+        .internal}
+    -   [C++ ownership
+        helper](../edem.html#c-ownership-helper){.reference .internal}
+    -   [Component boundary](../edem.html#component-boundary){.reference
+        .internal}
+    -   [Fault
+        distributions](../edem.html#fault-distributions){.reference
+        .internal}
+    -   [Python
+        construction](../edem.html#python-construction){.reference
+        .internal}
+    -   [Packed format](../edem.html#packed-format){.reference
+        .internal}
+    -   [Serial composition and DEM
+        projection](../edem.html#serial-composition-and-dem-projection){.reference
+        .internal}
+    -   [Exact noise conversion and column
+        coalescing](../edem.html#exact-noise-conversion-and-column-coalescing){.reference
+        .internal}
 :::
 :::
 
@@ -2112,6 +2146,43 @@ as [`--target`{.code .docutils .literal .notranslate}]{.pre},
     python3 program.py --target nvidia --target-option fp64 --cudaq-full-stack-trace
 :::
 :::
+:::
+
+::: {#llvm-based-python-packages .section}
+## LLVM-based Python packages[¶](#llvm-based-python-packages "Permalink to this heading"){.headerlink}
+
+Older CUDA-Q releases can expose their bundled LLVM symbols to other
+Python extensions. On Linux, importing Numba or Triton after CUDA-Q can
+then abort the process during JIT compilation or report duplicate LLVM
+command-line options. For affected releases, import Numba or Triton
+before importing CUDA-Q. If the application cannot control import order,
+run CUDA-Q in a separate process.
+
+CUDA-Q keeps its LLVM-dependent runtime and backend libraries local.
+Importing [`cudaq`{.docutils .literal .notranslate}]{.pre} exposes only
+the LLVM-free kernel runtime ([`libnvqir`{.docutils .literal
+.notranslate}]{.pre}, [`libcudaq-common`{.docutils .literal
+.notranslate}]{.pre}, [`libcudaq-kernel-runtime`{.docutils .literal
+.notranslate}]{.pre}, and their dependencies) globally. This allows
+shared libraries containing [`nvq++`{.docutils .literal
+.notranslate}]{.pre}-compiled kernels to be loaded with
+[`dlopen`{.docutils .literal .notranslate}]{.pre} or
+[`ctypes.CDLL`{.docutils .literal .notranslate}]{.pre} after importing
+CUDA-Q, even when compiled with [`nvq++`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal .notranslate}[`-c`{.docutils
+.literal .notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`-fPIC`{.docutils .literal .notranslate}]{.pre} and linked
+without explicit CUDA-Q dependencies. Kernel launches use the active
+CUDA-Q target without exposing the compiler's LLVM symbols globally.
+
+External native extensions using C++ runtime APIs must still link to the
+CUDA-Q libraries they use, including
+[`cudaq::cudaq-em-default`{.docutils .literal .notranslate}]{.pre} when
+using the default execution manager. Compiler plugins should link to
+[`cudaq::MLIR`{.docutils .literal .notranslate}]{.pre}. They must not
+rely on [`import`{.docutils .literal .notranslate}]{.pre}` `{.docutils
+.literal .notranslate}[`cudaq`{.docutils .literal .notranslate}]{.pre}
+placing those dependencies in the process-wide symbol scope.
 :::
 :::
 :::

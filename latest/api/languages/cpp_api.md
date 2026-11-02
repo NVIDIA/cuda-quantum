@@ -51,6 +51,9 @@ latest
         -   [Python
             Stack-Traces](../../using/basics/troubleshooting.html#python-stack-traces){.reference
             .internal}
+        -   [LLVM-based Python
+            packages](../../using/basics/troubleshooting.html#llvm-based-python-packages){.reference
+            .internal}
 -   [Examples](../../using/examples/examples.html){.reference .internal}
     -   [Introduction](../../using/examples/introduction.html){.reference
         .internal}
@@ -1984,7 +1987,45 @@ latest
 
 [Preview]{.caption-text}
 
--   [CUDA-Q Logical](/preview/logical/#http://){.reference .external}
+-   [cudaq-logical](/preview/logical/#http://){.reference .external}
+-   [cudaq-edem](../../using/edem.html){.reference .internal}
+    -   [Standalone
+        build](../../using/edem.html#standalone-build){.reference
+        .internal}
+    -   [Python bindings and
+        wheel](../../using/edem.html#python-bindings-and-wheel){.reference
+        .internal}
+    -   [CUDA-Q build](../../using/edem.html#cuda-q-build){.reference
+        .internal}
+    -   [Installed
+        package](../../using/edem.html#installed-package){.reference
+        .internal}
+    -   [Packaging
+        checks](../../using/edem.html#packaging-checks){.reference
+        .internal}
+    -   [Native interface and
+        memory](../../using/edem.html#native-interface-and-memory){.reference
+        .internal}
+    -   [C++ ownership
+        helper](../../using/edem.html#c-ownership-helper){.reference
+        .internal}
+    -   [Component
+        boundary](../../using/edem.html#component-boundary){.reference
+        .internal}
+    -   [Fault
+        distributions](../../using/edem.html#fault-distributions){.reference
+        .internal}
+    -   [Python
+        construction](../../using/edem.html#python-construction){.reference
+        .internal}
+    -   [Packed format](../../using/edem.html#packed-format){.reference
+        .internal}
+    -   [Serial composition and DEM
+        projection](../../using/edem.html#serial-composition-and-dem-projection){.reference
+        .internal}
+    -   [Exact noise conversion and column
+        coalescing](../../using/edem.html#exact-noise-conversion-and-column-coalescing){.reference
+        .internal}
 :::
 :::
 
@@ -9296,6 +9337,28 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
+    []{#classcudaq_1_1sample__result_1a6c76a4dd8f5d283bf6e165e148b09d88 .target}[[void]{.pre}]{.kt}[ ]{.w}[[[append]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[ExecutionResult]{.pre}]{.n}](#_CPPv4N5cudaq15ExecutionResultE "cudaq::ExecutionResult"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[result]{.pre}]{.n .sig-param}, [[bool]{.pre}]{.kt}[ ]{.w}[[concatenate]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[false]{.pre}]{.k}[)]{.sig-paren}[¶](#_CPPv4N5cudaq13sample_result6appendERR15ExecutionResultb "Permalink to this definition"){.headerlink}\
+
+    :   Add another [[[`ExecutionResult`{.docutils .literal
+        .notranslate}]{.pre}]{.std
+        .std-ref}](#structcudaq_1_1ExecutionResult){.reference
+        .internal} to this [[[`sample_result`{.docutils .literal
+        .notranslate}]{.pre}]{.std
+        .std-ref}](#classcudaq_1_1sample__result){.reference .internal},
+        taking over its storage. Same semantics as the copying overload
+        otherwise.
+
+        Parameters[:]{.colon}
+
+        :   -   **result** -- Result to append; left empty
+
+            -   **concatenate** -- If prior results are found, this
+                concatenates the bitstrings.
+
+    ```{=html}
+    <!-- -->
+    ```
+
     []{#classcudaq_1_1sample__result_1acf4d522001068f239b866577b2f66cb6 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[[\>]{.pre}]{.p}[ ]{.w}[[[register_names]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq13sample_result14register_namesEv "Permalink to this definition"){.headerlink}\
 
     :   Return all register names. Can be used in tandem with
@@ -13128,6 +13191,15 @@ them they are erased before execution.
 
         This is called after the execution context has been finalized
         and before the execution context is reset.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1QPU_1aed2b80091b8effbfc02022c18e145b24 .target}[[virtual]{.pre}]{.k}[ ]{.w}[[CompileTarget]{.pre}]{.n}[ ]{.w}[[[getCompileTarget]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[[RuntimeTarget]{.pre}]{.n}](#_CPPv4N5cudaq13RuntimeTargetE "cudaq::RuntimeTarget"){.reference .internal}[ ]{.w}[[\*]{.pre}]{.p}[[rt]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[nullptr]{.pre}]{.k}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3QPU16getCompileTargetEPK13RuntimeTarget "Permalink to this definition"){.headerlink}\
+
+    :   Create the default compile target of this [[QPU]{.std
+        .std-ref}](#classcudaq_1_1QPU){.reference .internal}.
 
     ```{=html}
     <!-- -->

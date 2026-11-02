@@ -116,6 +116,7 @@
 <li class="toctree-l2"><a class="reference internal" href="using/basics/troubleshooting.html">   Troubleshooting</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="using/basics/troubleshooting.html#debugging-and-verbose-simulation-output">Debugging and Verbose Simulation Output</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/basics/troubleshooting.html#python-stack-traces">Python Stack-Traces</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/basics/troubleshooting.html#llvm-based-python-packages">LLVM-based Python packages</a></li>
 </ul>
 </li>
 </ul>
@@ -1101,7 +1102,23 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Preview</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference external" href="/preview/logical/#http://">CUDA-Q Logical</a></li>
+<li class="toctree-l1"><a class="reference external" href="/preview/logical/#http://">cudaq-logical</a></li>
+<li class="toctree-l1"><a class="reference internal" href="using/edem.html">cudaq-edem</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="using/edem.html#standalone-build">Standalone build</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/edem.html#python-bindings-and-wheel">Python bindings and wheel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/edem.html#cuda-q-build">CUDA-Q build</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/edem.html#installed-package">Installed package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/edem.html#packaging-checks">Packaging checks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/edem.html#native-interface-and-memory">Native interface and memory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/edem.html#c-ownership-helper">C++ ownership helper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/edem.html#component-boundary">Component boundary</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/edem.html#fault-distributions">Fault distributions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/edem.html#python-construction">Python construction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/edem.html#packed-format">Packed format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/edem.html#serial-composition-and-dem-projection">Serial composition and DEM projection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/edem.html#exact-noise-conversion-and-column-coalescing">Exact noise conversion and column coalescing</a></li>
+</ul>
+</li>
 </ul>
 
         </div>
@@ -2283,6 +2300,8 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq3QPU24finalizeExecutionContextER16ExecutionContext">cudaq::QPU::finalizeExecutionContext (C++ function)</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU16getCompileTargetEPK13RuntimeTarget">cudaq::QPU::getCompileTarget (C++ function)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq3QPU20getExecutionThreadIdEv">cudaq::QPU::getExecutionThreadId (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU10isEmulatedEv">cudaq::QPU::isEmulated (C++ function)</a>
@@ -2487,7 +2506,7 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_resultE">cudaq::sample_result (C++ class)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result6appendERK15ExecutionResultb">cudaq::sample_result::append (C++ function)</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result6appendERK15ExecutionResultb">cudaq::sample_result::append (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result6appendERR15ExecutionResultb">[1]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result5beginEv">cudaq::sample_result::begin (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4NK5cudaq13sample_result5beginEv">[1]</a>
 </li>
@@ -3547,6 +3566,8 @@
 </li>
       </ul></li>
       <li><a href="api/languages/python_api.html#cudaq.SampleResult">SampleResult (class in cudaq)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.scalarCaster">scalarCaster() (cudaq.PyKernelDecorator method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.operators.ScalarOperator">ScalarOperator (class in cudaq.operators)</a>
 </li>
