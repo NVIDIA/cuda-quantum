@@ -348,6 +348,8 @@ static void dedupQuantumRefs(func::FuncOp func) {
 ///     element of this view", not an aliasing event);
 ///   - a dynamic-index `quake.extract_ref`, or any view whose offset or
 ///     extent is not statically known, spans the whole root;
+///   - a `quake.concat` result spans its whole extent, and each `!quake.ref`
+///     operand of a concat spans its own location;
 ///   - a constant-index `quake.extract_ref` spans nothing: it names one
 ///     location, which is what we are trying to promote.
 ///
@@ -497,6 +499,18 @@ private:
       SmallPtrSet<Operation *, 8> visited;
       scanVeqUses(veq, veq, 0, visited);
     }
+
+    // A `quake.concat` result names the same qubits as its operands for as
+    // long as it lives, so promoting either side would give one qubit two
+    // independent states. Keep both sides in memory form. The scan above
+    // already covers veq operands, since it treats concat as a memory-form use.
+    f.walk([&](cudaq::quake::ConcatOp concat) {
+      markOpaque(concat.getResult(), 0, std::nullopt);
+      for (Value target : concat.getTargets())
+        if (isa<cudaq::quake::RefType>(target.getType()))
+          if (auto loc = resolveRefLocation(target))
+            markOpaque(loc->first, loc->second, 1);
+    });
 
     // 3. classify each ref. An unresolvable location, or a location covered by
     // a memory-form access, means the ref stays in memory form.

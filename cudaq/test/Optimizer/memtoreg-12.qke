@@ -1,0 +1,72 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --convert-to-linear-values %s | FileCheck %s
+
+// Because of the dynamic-index extract_ref, factor-quantum-alloc splits %0
+// into two !quake.ref allocations and rebuilds the veq with quake.concat. The
+// second loop reads both qubits through that concat, so the controlled quake.x
+// in the first loop must store its wires back to the allocations rather than
+// carry them across the loops.
+func.func @concat_operands_stay_in_memory() {
+  %c0 = arith.constant 0 : i64
+  %c1 = arith.constant 1 : i64
+  %c2 = arith.constant 2 : i64
+  %0 = quake.alloca !quake.veq<2>
+  %1 = quake.extract_ref %0[0] : (!quake.veq<2>) -> !quake.ref
+  %2 = quake.extract_ref %0[1] : (!quake.veq<2>) -> !quake.ref
+  %3 = cc.loop while ((%i = %c0) -> (i64)) {
+    %4 = arith.cmpi slt, %i, %c2 : i64
+    cc.condition %4(%i : i64)
+  } do {
+  ^bb0(%i: i64):
+    quake.x [%1] %2 : (!quake.ref, !quake.ref) -> ()
+    cc.continue %i : i64
+  } step {
+  ^bb0(%i: i64):
+    %5 = arith.addi %i, %c1 : i64
+    cc.continue %5 : i64
+  }
+  %6 = cc.loop while ((%i = %c0) -> (i64)) {
+    %7 = arith.cmpi slt, %i, %c2 : i64
+    cc.condition %7(%i : i64)
+  } do {
+  ^bb0(%i: i64):
+    %8 = quake.extract_ref %0[%i] : (!quake.veq<2>, i64) -> !quake.ref
+    %9 = quake.mz %8 : (!quake.ref) -> !quake.measure
+    cc.continue %i : i64
+  } step {
+  ^bb0(%i: i64):
+    %10 = arith.addi %i, %c1 : i64
+    cc.continue %10 : i64
+  }
+  quake.dealloc %0 : !quake.veq<2>
+  return
+}
+
+// CHECK-LABEL:   func.func @concat_operands_stay_in_memory() {
+// CHECK:           %[[ALLOCA_0:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[ALLOCA_1:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[CONCAT_0:.*]] = quake.concat %[[ALLOCA_0]], %[[ALLOCA_1]] : (!quake.ref, !quake.ref) -> !quake.veq<2>
+// CHECK:           cc.loop while ((%{{.*}} = %{{.*}}) -> (i64)) {
+// CHECK:           } do {
+// CHECK:             %[[UNWRAP_0:.*]] = quake.unwrap %[[ALLOCA_0]] : (!quake.ref) -> !quake.wire
+// CHECK:             %[[UNWRAP_1:.*]] = quake.unwrap %[[ALLOCA_1]] : (!quake.ref) -> !quake.wire
+// CHECK:             %[[X_0:.*]]:2 = quake.x {{\[}}%[[UNWRAP_0]]] %[[UNWRAP_1]] : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+// CHECK:             quake.wrap %[[X_0]]#0 to %[[ALLOCA_0]] : !quake.wire, !quake.ref
+// CHECK:             quake.wrap %[[X_0]]#1 to %[[ALLOCA_1]] : !quake.wire, !quake.ref
+// CHECK:           cc.loop while ((%{{.*}} = %{{.*}}) -> (i64)) {
+// CHECK:           } do {
+// CHECK:           ^bb0(%[[VAL_0:.*]]: i64):
+// CHECK:             %[[EXTRACT_REF_0:.*]] = quake.extract_ref %[[CONCAT_0]]{{\[}}%[[VAL_0]]] : (!quake.veq<2>, i64) -> !quake.ref
+// CHECK:             quake.mz
+// CHECK:           %[[UNWRAP_2:.*]] = quake.unwrap %[[ALLOCA_0]] : (!quake.ref) -> !quake.wire
+// CHECK:           quake.sink %[[UNWRAP_2]] : !quake.wire
+// CHECK:           %[[UNWRAP_3:.*]] = quake.unwrap %[[ALLOCA_1]] : (!quake.ref) -> !quake.wire
+// CHECK:           quake.sink %[[UNWRAP_3]] : !quake.wire
+// CHECK:           return
