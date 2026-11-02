@@ -45,6 +45,19 @@ nanobind - BSD 3-Clause license
 Copyright (c) 2022 Wenzel Jakob.
 The source code is based on the work originally developed by Wenzel Jakob
 License at <https://github.com/wjakob/nanobind/blob/master/LICENSE>
+The full license text is distributed with CUDA-Q in the file
+LICENSES/LICENSE.nanobind.
+
+----------------------------------------------------------------
+
+robin-map - MIT License
+<https://github.com/Tessil/robin-map>
+
+Copyright (c) 2017 Thibaut Goetghebuer-Planchon <tessil@gmx.com>.
+Header-only dependency bundled by nanobind and compiled into its runtime.
+License at <https://github.com/Tessil/robin-map/blob/master/LICENSE>
+The full license text is distributed with CUDA-Q in the file
+LICENSES/LICENSE.robin-map.
 
 ----------------------------------------------------------------
 

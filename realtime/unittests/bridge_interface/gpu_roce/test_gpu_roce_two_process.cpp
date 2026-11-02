@@ -15,7 +15,10 @@
 /// same cases, same shape parameter.  `ring` is the 3-kernel arrangement (the
 /// provider's RX and TX kernels around the dispatch kernel), `unified` the
 /// single kernel that drives the provider's device hooks.  The caller plays
-/// the FPGA's part on the wire: it Writes-with-Imm each request into the
+/// the FPGA's part on the wire.  `own_dispatcher` is the unified shape with the
+/// server's own dispatch kernel in place of the dispatcher's
+/// (--dispatcher=single_thread_dispatcher): what an application that brings
+/// its own dispatcher wires.  The caller Writes-with-Imm each request into the
 /// service's rx ring (registered at IOVA 0, so slot N is at N * stride, with N
 /// in the immediate) and receives the service's Sends into its own.
 ///
@@ -39,7 +42,7 @@
 ///     provider's TX kernel walks slots in strict order and parks on the one
 ///     never answered, so such a request must be the LAST one a test sends.
 ///   - unified: the kernel answers every frame, with status -1 and no result,
-///     and counts it.
+///     and counts it.  The server's own kernel (own_dispatcher) does the same.
 ///
 /// KNOWN ISSUE, ring shape only: the server reports its count but never exits
 /// on its own, because HSB's GpuRoceTransceiver destructor waits on an RX
@@ -91,6 +94,8 @@ namespace {
 constexpr const char *kReadyPrefix = "CUDAQ_REALTIME_SERVER_READY";
 constexpr const char *kProcessedPrefix = "CUDAQ_REALTIME_SERVER_PROCESSED";
 constexpr std::uint32_t kIncrementId = fnv1a_hash("rpc_increment");
+// The server's own dispatch kernel, unittests/dispatchers/.
+constexpr const char *kOwnDispatcher = "single_thread_dispatcher";
 
 // gpu_roce's --page-size; the caller's slot size must match it, because the
 // caller addresses the service's slots by its own stride.
@@ -147,7 +152,10 @@ protected:
       GTEST_SKIP() << "no CUDA device; the gpu_roce service runs on the GPU";
     const char *caller_dev = topology.caller.device.c_str();
     const char *caller_ip = topology.caller.ip.c_str();
-    unified = std::string(GetParam()) == "unified";
+    const std::string param = GetParam();
+    const bool own_dispatcher = param == "own_dispatcher";
+    unified = param != "ring";
+    const std::string shape = unified ? "unified" : "ring";
 
     // [1] The caller's QP first: the service needs its number at creation.
     caller = cpu_roce_create_transceiver(
@@ -158,17 +166,20 @@ protected:
     ASSERT_EQ(1, cpu_roce_setup(caller));
 
     // [2] The service, peered with that QP.
-    std::vector<std::string> argv = {
-        CUDAQ_REALTIME_TEST_SERVER_PATH, "--transport=gpu_roce",
-        "--path=device", std::string("--dispatch=") + GetParam(),
-        "--timeout=120",
-        // Bridge options from here on, forwarded verbatim by the server.
-        "--", "--device=" + topology.service.device,
-        "--peer-ip=" + topology.caller.ip,
-        "--remote-qp=" + std::to_string(cpu_roce_get_qp_number(caller)),
-        "--gpu=0", "--num-pages=" + std::to_string(numSlots),
-        "--page-size=" + std::to_string(kSlotSize),
-        "--payload-size=" + std::to_string(kPayloadSize)};
+    std::vector<std::string> argv = {CUDAQ_REALTIME_TEST_SERVER_PATH,
+                                     "--transport=gpu_roce", "--path=device",
+                                     "--dispatch=" + shape, "--timeout=120"};
+    if (own_dispatcher)
+      argv.push_back(std::string("--dispatcher=") + kOwnDispatcher);
+    // Bridge options from here on, forwarded verbatim by the server.
+    argv.insert(
+        argv.end(),
+        {"--", "--device=" + topology.service.device,
+         "--peer-ip=" + topology.caller.ip,
+         "--remote-qp=" + std::to_string(cpu_roce_get_qp_number(caller)),
+         "--gpu=0", "--num-pages=" + std::to_string(numSlots),
+         "--page-size=" + std::to_string(kSlotSize),
+         "--payload-size=" + std::to_string(kPayloadSize)});
     if (unified)
       argv.push_back("--unified");
     ASSERT_TRUE(server.start(argv, kReadyPrefix, kServerReadyTimeout))
@@ -176,7 +187,9 @@ protected:
         << server.output();
     ASSERT_EQ("gpu_roce", field("transport")) << server.output();
     ASSERT_EQ("device", field("path")) << server.output();
-    EXPECT_EQ(std::string(GetParam()), field("dispatch")) << server.output();
+    EXPECT_EQ(shape, field("dispatch")) << server.output();
+    EXPECT_EQ(own_dispatcher ? kOwnDispatcher : "", field("dispatcher"))
+        << server.output();
     ASSERT_EQ(std::to_string(numSlots), field("slots"));
     ASSERT_EQ(std::to_string(kSlotSize), field("slot_size"));
     ASSERT_EQ(topology.caller.ip, field("peer_ip")) << server.output();
@@ -397,7 +410,8 @@ TEST_P(GpuRoceTwoProcess, ReportsProcessedCount) {
 }
 
 INSTANTIATE_TEST_SUITE_P(
-    Shapes, GpuRoceTwoProcess, ::testing::Values("ring", "unified"),
+    Shapes, GpuRoceTwoProcess,
+    ::testing::Values("ring", "unified", "own_dispatcher"),
     [](const ::testing::TestParamInfo<const char *> &info) {
       return std::string(info.param);
     });

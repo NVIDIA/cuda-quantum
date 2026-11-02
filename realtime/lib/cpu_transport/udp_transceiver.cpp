@@ -177,10 +177,10 @@ public:
     if (!unified || !out_slot || fd < 0)
       return false;
 
-    // Back-pressure: a response is still in flight for this slot (a running
-    // GRAPH_LAUNCH graph), so its RX half cannot be reused yet. Checked before
-    // the recv so the datagram stays queued in the socket rather than being
-    // consumed with nowhere to put it.
+    // Back-pressure: the consumer still holds this slot (its tx flag is set),
+    // so its RX half cannot be reused yet. Checked before the recv so the
+    // datagram stays queued in the socket rather than being consumed with
+    // nowhere to put it.
     if (load_flag(&tx_flags[next_rx_slot]) != 0)
       return false;
 
@@ -217,8 +217,8 @@ public:
   // datagram. Slot-addressed rather than FIFO, so responses may be published in
   // any order -- unlike txLoop, whose cursor imposes publish order.
   //
-  // Does NOT touch tx_flags: in this shape the consumer (dispatcher and graph
-  // engine) owns them, and txLoop's clear-after-send has no counterpart here.
+  // Does NOT touch tx_flags: in this shape the consumer owns them, and
+  // txLoop's clear-after-send has no counterpart here.
   bool txPublish(std::uint32_t slot) {
     if (!unified || fd < 0 || slot >= num_pages || !have_peer)
       return false;
@@ -342,8 +342,8 @@ private:
                    reinterpret_cast<const sockaddr *>(&peer_addr),
                    sizeof(peer_addr));
       }
-      // Non-address values (in-flight/error sentinels) are recycled too;
-      // this transport has no side channel to report them.
+      // Any other non-zero value is recycled too; this transport has no side
+      // channel to report it.
       store_flag(&tx_flags[cursor], 0);
       cursor = (cursor + 1) % num_pages;
     }

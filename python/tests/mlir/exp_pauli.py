@@ -75,8 +75,8 @@ def test_exp_pauli():
 
 
 # CHECK-LABEL: define void @__nvqpp__mlirgen__kernel_ancilla_exp_pauli..0x
-# CHECK:         %[[VAL_0:.*]] = alloca [1 x { ptr, i64 }], align 8
-# CHECK:         %[[VAL_1:.*]] = alloca [3 x double], align 8
+# CHECK-DAG:     %[[VAL_0:.*]] = alloca [1 x { ptr, i64 }], align 8
+# CHECK-DAG:     %[[VAL_1:.*]] = alloca [3 x double], align 8
 # CHECK:         store double 3.400000e-01, ptr %[[VAL_1]], align 8
 # CHECK:         %[[VAL_2:.*]] = getelementptr [3 x double], ptr %[[VAL_1]], i32 0, i32 1
 # CHECK:         store double 1.200000e+00, ptr %[[VAL_2]], align 8
@@ -147,7 +147,9 @@ def test_exp_pauli_loop_controlled():
 
 
 # CTRL-LABEL: define void @__nvqpp__mlirgen__kernel_controlled_exp_pauli_loop..0x
-# CTRL:         %[[VAL_0:.*]] = alloca [1 x { ptr, i64 }], align 8
+# CTRL-DAG:     %[[VAL_12:.*]] = alloca [2 x { ptr, i64 }], align 8
+# CTRL-DAG:     %[[VAL_14:.*]] = alloca [2 x double], align 8
+# CTRL-DAG:     %[[VAL_0:.*]] = alloca [1 x { ptr, i64 }], align 8
 # CTRL:         %[[VAL_1:.*]] = call ptr @__quantum__rt__qubit_allocate()
 # CTRL:         %[[VAL_2:.*]] = call ptr @__quantum__rt__qubit_allocate()
 # CTRL:         %[[VAL_3:.*]] = call ptr @__quantum__rt__qubit_allocate()
@@ -162,11 +164,9 @@ def test_exp_pauli_loop_controlled():
 # CTRL:         %[[VAL_10:.*]] = call ptr @__quantum__rt__array_get_element_ptr_1d(ptr %[[VAL_9]], i64 0)
 # CTRL:         store ptr %[[VAL_3]], ptr %[[VAL_10]], align 8
 # CTRL:         %[[VAL_11:.*]] = call ptr @__quantum__rt__array_concatenate(ptr %[[VAL_8]], ptr %[[VAL_9]])
-# CTRL:         %[[VAL_12:.*]] = alloca [2 x { ptr, i64 }], align 8
 # CTRL:         store { ptr, i64 } { ptr @cstr.5A5A00, i64 3 }, ptr %[[VAL_12]], align 8
 # CTRL:         %[[VAL_13:.*]] = getelementptr [2 x { ptr, i64 }], ptr %[[VAL_12]], i32 0, i32 1
 # CTRL:         store { ptr, i64 } { ptr @cstr.585800, i64 3 }, ptr %[[VAL_13]], align 8
-# CTRL:         %[[VAL_14:.*]] = alloca [2 x double], align 8
 # CTRL:         store double 1.000000e+00, ptr %[[VAL_14]], align 8
 # CTRL:         %[[VAL_15:.*]] = getelementptr [2 x double], ptr %[[VAL_14]], i32 0, i32 1
 # CTRL:         store double 5.000000e-01, ptr %[[VAL_15]], align 8

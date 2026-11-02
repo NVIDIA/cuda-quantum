@@ -95,6 +95,9 @@ void runRefFile(std::string ref_filename) {
   bool status = configureMockServer(ref_filename);
   ASSERT_TRUE(status) << "Configuring the mock server failed";
 
+  // Reset the target to reload the platform's compile target.
+  cudaq::detail::TargetSetter resetTarget(NVQPP_TARGET_BACKEND_CONFIG);
+
   auto kernel = cudaq::make_kernel();
   auto qubit = kernel.qalloc(2);
   kernel.h(qubit[0]);

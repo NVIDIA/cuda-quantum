@@ -42,11 +42,11 @@ namespace cudaq_internal::compiler {
 /// stage order.
 struct StagePasses {
   /// Passes that run after prep and before deploy.
-  std::string preDeployPasses;
+  std::string preDeployPasses{};
   /// Passes that run after deploy and before finalize.
-  std::string postDeployPasses;
+  std::string postDeployPasses{};
   /// Passes that run after finalize.
-  std::string postFinalizePasses;
+  std::string postFinalizePasses{};
 };
 
 /// Interface for lowering between IR profiles.
@@ -59,15 +59,16 @@ class LoweringHandler {
 public:
   virtual ~LoweringHandler() = default;
 
-  /// Whether this handler can lower \p input into \p output.
+  /// Whether this handler lowers \p input into \p output. The compiler uses
+  /// the first handler that says yes for a stage.
   ///
-  /// Defaults to calling `getStagePasses` and checking for a non-`nullopt`
-  /// result. Override for handlers that can answer this more efficiently.
+  /// This takes no compile options, so the same stage always gets the same
+  /// handler. `specializesArguments` looks handlers up before a launch's
+  /// options exist, and it must find the same handler that the compiler
+  /// uses. A handler can still choose its passes from the options in
+  /// `getStagePasses`.
   virtual bool supports(const cudaq::config::Profile &input,
-                        const cudaq::config::Profile &output,
-                        const cudaq::CompileOptions &options) const {
-    return getStagePasses(input, output, options).has_value();
-  }
+                        const cudaq::config::Profile &output) const = 0;
 
   /// Return the passes this handler adds to lower \p input into \p output, or
   /// `nullopt` if this handler cannot perform that lowering.
@@ -75,14 +76,40 @@ public:
   getStagePasses(const cudaq::config::Profile &input,
                  const cudaq::config::Profile &output,
                  const cudaq::CompileOptions &options) const = 0;
+
+  /// Whether this stage needs the values of the kernel's arguments. If it
+  /// does, the compiler replaces each argument with its value before the
+  /// stage runs. For example, Clifford+T synthesis has to know every rotation
+  /// angle, and an angle often comes from an argument, such as a QFT's width.
+  ///
+  /// Answer from the profiles alone, not the compile options. Python asks
+  /// this same question to decide how to pack the arguments, and it does that
+  /// before the launch's options exist. An answer that depended on the
+  /// options could disagree with what the compiler does.
+  virtual bool
+  requiresArgumentValues(const cudaq::config::Profile &input,
+                         const cudaq::config::Profile &output) const {
+    return false;
+  }
 };
+
+/// Pipeline text for `prepare-for-wireset`, which unrolls loops and moves the
+/// kernel's qubits onto wires. Stages run it at every optimization level, since
+/// the level only changes how much we optimize, not the representation. We ask
+/// for loops of up to 1024 iterations to match
+/// `classical-optimization-pipeline`. Left alone, `prepare-for-wireset` would
+/// stop at 50, the `loop-unroll` default. With \p addWireSet, it also borrows
+/// every qubit from a new wire set, which `qubit-mapping` needs.
+inline std::string convertToWires(bool addWireSet = false) {
+  return std::string("prepare-for-wireset{") +
+         (addWireSet ? "add-wireset=true " : "") + "maximum-iterations=1024}";
+}
 
 /// Return the first handler in \p handlers supporting the conversion
 /// \p input -> \p output, or nullptr if none does.
 const LoweringHandler *selectLoweringHandler(
     const std::vector<std::unique_ptr<LoweringHandler>> &handlers,
-    const cudaq::config::Profile &input, const cudaq::config::Profile &output,
-    const cudaq::CompileOptions &options);
+    const cudaq::config::Profile &input, const cudaq::config::Profile &output);
 
 /// The compiler's built-in lowering handlers, in selection order.
 std::vector<std::unique_ptr<LoweringHandler>> makeBuiltinLoweringHandlers();
@@ -90,5 +117,11 @@ std::vector<std::unique_ptr<LoweringHandler>> makeBuiltinLoweringHandlers();
 /// The built-in generic handler lowering to the quake-reference-semantics
 /// profile.
 std::unique_ptr<LoweringHandler> makeQuakeReferenceSemanticsHandler();
+
+/// The built-in handler lowering to the `quake-unmapped` profile.
+std::unique_ptr<LoweringHandler> makeQuakeUnmappedHandler();
+
+/// The built-in handler lowering from `quake-unmapped` to `quake-mapped`.
+std::unique_ptr<LoweringHandler> makeQuakeMappedHandler();
 
 } // namespace cudaq_internal::compiler

@@ -53,8 +53,8 @@ rejected so that using the experimental API is an explicit opt-in.
 A compile target owns the MLIR pass pipelines, the code generation settings and
 the capabilities that kernels are compiled against. Build one with
 `cudaq._experimental.CompileTarget` and pass it together with a runtime target
-name to `set_target`. `QuakeReferenceSemanticsProfile` is currently the only
-supported IR profile:
+name to `set_target`. `QuakeReferenceSemanticsProfile`, `QuakeUnmappedProfile`,
+and `QuakeMappedProfile` are the supported IR profiles. For example:
 
 ```python
 from cudaq._experimental import CompileTarget, QuakeReferenceSemanticsProfile
@@ -67,6 +67,31 @@ cudaq.set_target("qpp-cpu", compile_target=target)
 The target string name passed to `set_target` specifies the target that kernels
 run on at runtime. Kernels are compiled against `compile_target` if it is given,
 and against the named target's default compile target otherwise.
+
+To change one setting of a named target, derive from the compile target that
+`get_compile_target` returns while that target is set. Reading `stages` or a
+stage's profile returns a copy, so assign each changed value back. For example,
+this tightens the rotation tolerance of the `quake-unmapped` stages of a
+target:
+
+```python
+from cudaq._experimental import QuakeUnmappedProfile, get_compile_target
+
+cudaq.set_target("compiler-bench-ftqc-clifford-t")
+target = get_compile_target()
+stages = target.stages
+for stage in stages:
+    profile = stage.ir_output_profile
+    if isinstance(profile, QuakeUnmappedProfile):
+        profile.approximation_tolerance = 1e-12
+        stage.ir_output_profile = profile
+target.stages = stages
+cudaq.set_target("compiler-bench-ftqc-clifford-t", compile_target=target)
+```
+
+The same pattern sets `device` on the `QuakeMappedProfile` stage of
+`compiler-bench-nisq`, such as `path(5)`, `grid(3,3)`, or `file(<path>)`, or
+`None` to let any two qubits interact.
 
 Alternatively, a `cudaq._experimental.CustomTarget` can also be passed to
 `set_target`. Passing `ir_output_profile=` builds a single stage whose lowering

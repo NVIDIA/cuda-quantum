@@ -1,13 +1,12 @@
-/*******************************************************************************
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
-#ifndef QLX_DIALECT_QLX_QLXDIALECT_H
-#define QLX_DIALECT_QLX_QLXDIALECT_H
+#pragma once
 
 #include "mlir/IR/Dialect.h"
 #include "mlir/IR/DialectInterface.h"
@@ -42,5 +41,3 @@ public:
 MLIR_DECLARE_EXPLICIT_TYPE_ID(qlx::DeviceBindingDialectInterface)
 
 #include "qlx/Dialect/QLX/IR/QLXDialect.h.inc"
-
-#endif // QLX_DIALECT_QLX_QLXDIALECT_H

@@ -27,7 +27,12 @@ def isValidObserveKernel(kernel):
                                                    decorator.qkeModule)
 
 
-def __broadcastObserve(kernel, spin_operator, *args, shots_count=-1, qpu_id=0):
+def __broadcastObserve(kernel,
+                       spin_operator,
+                       *args,
+                       shots_count=-1,
+                       qpu_id=0,
+                       optimization_level=None):
     argSet = __createArgumentSet(*args)
     N = len(argSet)
     results = []
@@ -43,7 +48,10 @@ def __broadcastObserve(kernel, spin_operator, *args, shots_count=-1, qpu_id=0):
     for i, a in enumerate(argSet):
         ctx.batchIteration = i
         results.append(
-            cudaq_runtime.launch_observe(policy, ctx, lambda a=a: kernel(*a)))
+            cudaq_runtime.launch_observe(
+                policy,
+                ctx,
+                lambda a=a: kernel(*a, optimization_level=optimization_level)))
     return results
 
 
@@ -55,7 +63,8 @@ def observe(kernel,
             noise_model=None,
             num_trajectories=None,
             execution=None,
-            qpu_id=0):
+            qpu_id=0,
+            optimization_level=None):
     """
     Compute the expected value of the `spin_operator` with respect to the
     `kernel`. If the input `spin_operator` is a list of `SpinOperator` then
@@ -86,6 +95,8 @@ def observe(kernel,
         for noisy simulation. Only valid if a noise model is provided.
         `Keyword` only.
       `qpu_id` (Optional[int]): The id of the QPU. Defaults to 0. Key-word only.
+      optimization_level (Optional[int]): The quantum optimization level to
+        compile the kernel with, an integer between 0 and 3.
 
     Returns:
       :class:`ObserveResult`: A data-type containing the expectation value of
@@ -114,7 +125,8 @@ def observe(kernel,
                                 execution,
                                 *args,
                                 shots_count=shots_count,
-                                noise_model=noise_model)
+                                noise_model=noise_model,
+                                optimization_level=optimization_level)
 
     def __computeTermExpectation(term, observe_result):
         if term.is_identity():
@@ -153,7 +165,8 @@ def observe(kernel,
                                      localOp,
                                      *args,
                                      shots_count=shots_count,
-                                     qpu_id=qpu_id)
+                                     qpu_id=qpu_id,
+                                     optimization_level=optimization_level)
 
         if isinstance(spin_operator, list):
             results = [[
@@ -175,7 +188,10 @@ def observe(kernel,
         kernel_name = kernel.name if hasattr(kernel, 'name') else ''
         policy = cudaq_runtime.ObservePolicy(ctx, kernel_name, localOp)
         observeResult = cudaq_runtime.launch_observe(
-            policy, ctx, lambda args=args: kernel(*args))
+            policy,
+            ctx,
+            lambda args=args: kernel(*args,
+                                     optimization_level=optimization_level))
         if not isinstance(spin_operator, list):
             if noise_model != None:
                 cudaq_runtime.unset_noise()
@@ -205,7 +221,12 @@ def observe(kernel,
 
 
 @trace.traced
-def observe_async(kernel, spin_operator, *args, qpu_id=0, shots_count=-1):
+def observe_async(kernel,
+                  spin_operator,
+                  *args,
+                  qpu_id=0,
+                  shots_count=-1,
+                  optimization_level=None):
     """
     Compute the expected value of the `spin_operator` with respect to the
     `kernel` asynchronously. If the kernel accepts arguments, it will be
@@ -225,6 +246,8 @@ def observe_async(kernel, spin_operator, *args, qpu_id=0, shots_count=-1):
           platform to target. Defaults to zero. Key-word only.
       shots_count (Optional[int]): The number of shots to use for QPU execution.
           Defaults to -1 implying no shots-based sampling. Key-word only.
+      optimization_level (Optional[int]): The quantum optimization level to
+          compile the kernel with, an integer between 0 and 3.
 
     Returns:
       :class:`AsyncObserveResult`: A future containing the result of the call
@@ -249,7 +272,8 @@ def observe_async(kernel, spin_operator, *args, qpu_id=0, shots_count=-1):
             str(len(args)) + " given and " + str(decorator.formal_arity()) +
             " expected.")
     shortName = decorator.uniqName
-    processedArgs, module = decorator.prepare_call(*args)
+    processedArgs, module = decorator.prepare_call(
+        *args, optimization_level=optimization_level)
     return cudaq_runtime.observe_async_impl(shortName, module,
                                             decorator.compiledModuleCache(),
                                             spin_operator, qpu_id, shots_count,
@@ -261,7 +285,8 @@ def observe_parallel(kernel,
                      execution,
                      *args,
                      shots_count=-1,
-                     noise_model=None):
+                     noise_model=None,
+                     optimization_level=None):
     """
     Compute the expected value of the `spin_operator` with respect to the
     `kernel`. If the input `spin_operator` is a list of `SpinOperator` then
@@ -287,6 +312,8 @@ def observe_parallel(kernel,
       noise_model (Optional[`NoiseModel`]): The optional :class:`NoiseModel` to
           add noise to the kernel execution on the simulator. Defaults to an
           empty noise model.
+      optimization_level (Optional[int]): The quantum optimization level to
+          compile the kernel with, an integer between 0 and 3.
 
     Returns:
       :class:`ObserveResult`: A data-type containing the expectation value of
@@ -314,7 +341,8 @@ def observe_parallel(kernel,
         raise RuntimeError(
             "unrecognized kernel - did you forget the @kernel attribute?")
     shortName = decorator.uniqName
-    processedArgs, module = decorator.prepare_call(*args)
+    processedArgs, module = decorator.prepare_call(
+        *args, optimization_level=optimization_level)
     return cudaq_runtime.observe_parallel_impl(shortName, module,
                                                decorator.compiledModuleCache(),
                                                execution, spin_operator,

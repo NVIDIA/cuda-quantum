@@ -153,10 +153,13 @@ function f_option_handling {
 		ENABLE_APPLY_SPECIALIZATION=true
 		;;
 	-fno-quantum-optimization)
-		ENABLE_QUANTUM_OPTIMIZATION=false
+		QUANTUM_OPT_LEVEL=0
 		;;
 	-fquantum-optimization)
-		ENABLE_QUANTUM_OPTIMIZATION=true
+		QUANTUM_OPT_LEVEL=
+		;;
+	-fquantum-opt-level=*)
+		QUANTUM_OPT_LEVEL="${1#*=}"
 		;;
 	-fno-lambda-lifting)
 		ENABLE_LAMBDA_LIFTING=false
@@ -290,6 +293,11 @@ function show_help {
 
 -g
 	Enable debugging output.
+
+-fquantum-opt-level=<N>
+	Set the optimization level (0 to 3) for quantum kernel compilation.
+	Level 0 disables quantum optimization and is equivalent to
+	-fno-quantum-optimization.
 
 -static-libstdc++
 	Statically link the CUDA-Q C++ standard library to create a CUDA-Q binary that can be linked with another standard library.
@@ -540,7 +548,7 @@ ENABLE_LOWER_TO_CFG=false
 ENABLE_APPLY_SPECIALIZATION=true
 ENABLE_INJECT_IMPLICIT_OUTPUT=true
 ENABLE_LAMBDA_LIFTING=true
-ENABLE_QUANTUM_OPTIMIZATION=true
+QUANTUM_OPT_LEVEL=
 ENABLE_MLIR_LIB_LINKING=true
 DELETE_TEMPS=true
 TARGET_CONFIG=
@@ -941,8 +949,12 @@ if [ -n "${TARGET_CONFIG}" ]; then
 	fi
 fi
 
-if ! ${ENABLE_QUANTUM_OPTIMIZATION}; then
-    CUDAQ_TRANSLATE_ARGS="${CUDAQ_TRANSLATE_ARGS} -fdisable-quantum-optimization"
+if [ -n "${QUANTUM_OPT_LEVEL}" ]; then
+    case "${QUANTUM_OPT_LEVEL}" in
+        0|1|2|3) ;;
+        *) error_exit "invalid -fquantum-opt-level=${QUANTUM_OPT_LEVEL}; expected an integer between 0 and 3" ;;
+    esac
+    CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} --quantum-opt-level=${QUANTUM_OPT_LEVEL}"
 fi
 
 # Configure the NVQIR link line if this is in refactored mode

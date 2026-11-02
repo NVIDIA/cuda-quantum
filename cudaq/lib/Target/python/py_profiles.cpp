@@ -36,9 +36,31 @@ std::string measurementFormName(MeasurementForm form) {
   return form == MeasurementForm::any ? "any" : "single_qubit";
 }
 
+/// Accepts a `CostModel`, its name as a string such as `"t_count"`, or None.
+std::optional<CostModel> costModel(nb::handle value) {
+  if (value.is_none())
+    return std::nullopt;
+  if (!nb::isinstance<nb::str>(value))
+    return nb::cast<CostModel>(value);
+  try {
+    return nb::cast<CostModel>(nb::type<CostModel>().attr(value));
+  } catch (const std::exception &) {
+    throw std::invalid_argument(
+        "cost_model must be a CostModel, the name of one, or None");
+  }
+}
+
 template <typename T>
 std::string repr(const T &value) {
   return nb::repr(nb::cast(value)).c_str();
+}
+
+/// The cost model as Python reads it back, such as `CostModel.t_count`.
+std::string costModelRepr(const std::optional<CostModel> &costModel) {
+  if (!costModel)
+    return "None";
+  return "CostModel." +
+         std::string(nb::str(nb::cast(*costModel).attr("name")).c_str());
 }
 
 template <typename T>
@@ -67,13 +89,7 @@ void cudaq::bindTargetProfiles(nb::module_ &m) {
           },
           nb::kw_only(), "basis_gates"_a = std::vector<std::string>{},
           "measurement_type"_a = "any", "reset_after_measure"_a = false)
-      .def_prop_rw(
-          "basis_gates",
-          [](const QuakeReferenceSemanticsProfile &p) { return p.basisGates; },
-          [](QuakeReferenceSemanticsProfile &p,
-             std::vector<std::string> gates) {
-            p.basisGates = std::move(gates);
-          })
+      .def_rw("basis_gates", &QuakeReferenceSemanticsProfile::basisGates)
       .def_prop_rw(
           "measurement_type",
           [](const QuakeReferenceSemanticsProfile &p) {
@@ -90,6 +106,50 @@ void cudaq::bindTargetProfiles(nb::module_ &m) {
                repr(measurementFormName(p.measurementType)) +
                ", reset_after_measure=" +
                (p.resetAfterMeasure ? "True" : "False") + ")";
+      });
+  nb::enum_<CostModel>(m, "CostModel")
+      .value("t_count", CostModel::t_count)
+      .value("two_qubit_gate_count", CostModel::two_qubit_gate_count);
+  valueClass<QuakeUnmappedProfile>(m, "QuakeUnmappedProfile")
+      .def(
+          "__init__",
+          [](QuakeUnmappedProfile *self, std::vector<std::string> basis,
+             double tolerance, nb::handle model) {
+            new (self) QuakeUnmappedProfile{std::move(basis), tolerance,
+                                            costModel(model)};
+          },
+          nb::kw_only(), "basis_gates"_a = std::vector<std::string>{},
+          "approximation_tolerance"_a = 0.0, "cost_model"_a = nb::none())
+      .def_rw("basis_gates", &QuakeUnmappedProfile::basisGates)
+      .def_rw("approximation_tolerance",
+              &QuakeUnmappedProfile::approximationTolerance)
+      .def_prop_rw(
+          "cost_model",
+          [](const QuakeUnmappedProfile &p) { return p.costModel; },
+          [](QuakeUnmappedProfile &p, nb::handle model) {
+            p.costModel = costModel(model);
+          },
+          nb::for_setter(nb::arg("value").none()))
+      .def("__repr__", [](const QuakeUnmappedProfile &p) {
+        return "QuakeUnmappedProfile(basis_gates=" + repr(p.basisGates) +
+               ", approximation_tolerance=" + repr(p.approximationTolerance) +
+               ", cost_model=" + costModelRepr(p.costModel) + ")";
+      });
+  valueClass<QuakeMappedProfile>(m, "QuakeMappedProfile")
+      .def(
+          "__init__",
+          [](QuakeMappedProfile *self, std::vector<std::string> basis,
+             std::optional<std::string> device) {
+            new (self) QuakeMappedProfile{std::move(basis), std::move(device)};
+          },
+          nb::kw_only(), "basis_gates"_a = std::vector<std::string>{},
+          "device"_a = nb::none())
+      .def_rw("basis_gates", &QuakeMappedProfile::basisGates)
+      .def_rw("device", &QuakeMappedProfile::device,
+              nb::for_setter(nb::arg("value").none()))
+      .def("__repr__", [](const QuakeMappedProfile &p) {
+        return "QuakeMappedProfile(basis_gates=" + repr(p.basisGates) +
+               ", device=" + repr(p.device) + ")";
       });
   valueClass<CustomPipelineLowering>(m, "CustomPipelineLowering")
       .def(

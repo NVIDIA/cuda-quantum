@@ -4,7 +4,7 @@
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 //
 // This is the single translation unit for the QLX dialect. It includes all
 // generated .cpp.inc files for types, attributes, enums, and ops (logical

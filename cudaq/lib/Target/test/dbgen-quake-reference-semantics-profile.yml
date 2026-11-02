@@ -30,5 +30,5 @@ compile-target:
   codegen: nop
 
 # CHECK: kBuiltinTarget_v2_quake_reference_semantics
-# CHECK: .irOutputProfile = cudaq::config::Profile{std::in_place_type<cudaq::config::QuakeReferenceSemanticsProfile>, cudaq::config::QuakeReferenceSemanticsProfile{.basisGates = {"h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)", }, .measurementType = cudaq::config::MeasurementForm::single_qubit, .resetAfterMeasure = true}
+# CHECK: .irOutputProfile = cudaq::config::Profile{std::in_place_type<cudaq::config::QuakeReferenceSemanticsProfile>, cudaq::config::QuakeReferenceSemanticsProfile{.basisGates = {"h", "s", "t", "rx", "ry", "rz", "x", "y", "z", "x(1)", }, .measurementType = cudaq::config::MeasurementForm::single_qubit, .resetAfterMeasure = true, }
 # CHECK: .lowering = cudaq::config::CustomPipelineLowering{.overridePassPipeline = "canonicalize"

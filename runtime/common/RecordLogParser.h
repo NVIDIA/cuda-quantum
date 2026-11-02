@@ -13,9 +13,9 @@
 #include <charconv>
 #include <cstddef>
 #include <cstdint>
-#include <cstdlib>
 #include <cstring>
 #include <limits>
+#include <new>
 #include <optional>
 #include <stdexcept>
 #include <string_view>
@@ -139,24 +139,44 @@ public:
 
 /// A helper class to manage the underlying memory buffer used by
 /// 'RecordLogParser'. For container types, i.e. composite records, the buffer
-/// acts as outer vector with pointers to inner buffers.
+/// acts as outer vector with pointers to inner buffers. The storage of each
+/// numeric array comes from `::operator new`, as `std::allocator` allocates,
+/// so that a `std::vector` can adopt it. The handler frees that storage, and
+/// each `std::vector<bool>` built in the buffer, unless `releaseArrayStorage`
+/// hands them to a caller.
 class BufferHandler {
 public:
   BufferHandler() = default;
-  ~BufferHandler() = default;
-  /// Copying and assignment not permitted
+  ~BufferHandler() {
+    for (void *block : arrayBlocks)
+      ::operator delete(block);
+    for (std::size_t offset : boolVectorOffsets)
+      std::launder(
+          reinterpret_cast<std::vector<bool> *>(buffer.data() + offset))
+          ->~vector();
+  }
+  /// Copying, moving, and assignment not permitted: the handler owns the inner
+  /// buffers its buffer refers to.
   BufferHandler(BufferHandler &other) = delete;
   BufferHandler &operator=(BufferHandler &other) = delete;
   BufferHandler(const BufferHandler &) = delete;
   BufferHandler &operator=(const BufferHandler &) = delete;
-  BufferHandler(BufferHandler &&) = default;
-  BufferHandler &operator=(BufferHandler &&) = default;
+  BufferHandler(BufferHandler &&) = delete;
+  BufferHandler &operator=(BufferHandler &&) = delete;
 
   void *getBufferPtr() const {
     return reinterpret_cast<void *>(const_cast<char *>(buffer.data()));
   }
 
   std::size_t getBufferSize() const { return buffer.size(); }
+
+  /// Hand the storage of each array, including each `std::vector<bool>` built
+  /// in the buffer, to the caller. Call it after copying the buffer, because
+  /// the copy refers to that storage and takes it over.
+  void releaseArrayStorage() {
+    arrayBlocks.clear();
+    boolVectorOffsets.clear();
+  }
 
   /// Set the per-parse limit for logical array-payload and container-tracking
   /// charges. This does not measure the result buffer, allocation overhead, or
@@ -195,10 +215,16 @@ public:
     std::size_t vectorOffset = buffer.size();
     if constexpr (std::is_same_v<T, bool>) {
       chargeDynamicAllocation(arrSize);
-      auto *allocation = new std::vector<bool>(arrSize);
-      auto byteLength = sizeof(*allocation);
-      resizeBuffer(byteLength);
-      std::memcpy(buffer.data() + vectorOffset, allocation, byteLength);
+      resizeBuffer(sizeof(std::vector<bool>));
+      // Note: all roots of a log share one container shape (see
+      // `RecordLogParser::validateRootContainer`), so the slots before this one
+      // hold vectors or pointer triples and this slot is pointer-aligned.
+      // Construct the vector outside the buffer and record its offset first.
+      // Both steps can throw and the move into the slot cannot, so the slot
+      // never holds an unrecorded vector or the record an unconstructed one.
+      std::vector<bool> bits(arrSize);
+      boolVectorOffsets.push_back(vectorOffset);
+      new (buffer.data() + vectorOffset) std::vector<bool>(std::move(bits));
       return vectorOffset;
     }
 
@@ -209,9 +235,11 @@ public:
     resizeBuffer(3 * sizeof(T *));
     T *innerBuffer = nullptr;
     if (byteLength != 0) {
-      innerBuffer = static_cast<T *>(malloc(byteLength));
-      if (!innerBuffer)
-        throw std::runtime_error("Memory allocation failed");
+      // Record the block before allocating it, so that a failed `push_back`
+      // cannot leak it.
+      arrayBlocks.push_back(nullptr);
+      arrayBlocks.back() = ::operator new(byteLength);
+      innerBuffer = static_cast<T *>(arrayBlocks.back());
       std::memset(innerBuffer, 0, byteLength);
     }
     /// Initialize the three pointers of the inner vector
@@ -228,21 +256,14 @@ public:
   template <typename T>
   void insertIntoArray(std::size_t offset, std::size_t index, T value) {
     if constexpr (std::is_same_v<T, bool>) {
-      auto *v = reinterpret_cast<std::vector<bool> *>(buffer.data() + offset);
+      auto *v = std::launder(
+          reinterpret_cast<std::vector<bool> *>(buffer.data() + offset));
       (*v)[index] = value;
     } else {
       T *innerBuffer = nullptr;
       std::memcpy(&innerBuffer, buffer.data() + offset, sizeof(innerBuffer));
       innerBuffer[index] = value;
     }
-  }
-
-  /// NOTE: This is used only if data layout (alignment) is missing
-  template <typename T>
-  std::size_t allocateTupleRecord() {
-    std::size_t position = buffer.size();
-    resizeBuffer(sizeof(T));
-    return position;
   }
 
   template <typename T>
@@ -264,6 +285,13 @@ private:
   }
 
   std::vector<char> buffer;
+  /// Inner buffers owned until `releaseArrayStorage`: the storage of numeric
+  /// arrays, and the offsets of the vectors constructed in `buffer`.
+  /// Note: those vectors move as bytes, when `buffer` grows and when a caller
+  /// copies it, as their byte copies did before. `std::vector<bool>` holds no
+  /// pointer into itself, so the moved bytes stay valid.
+  std::vector<void *> arrayBlocks;
+  std::vector<std::size_t> boolVectorOffsets;
   std::size_t dynamicAllocationBudget = std::numeric_limits<std::size_t>::max();
   std::size_t chargedDynamicAllocationBytes = 0;
 };
@@ -375,7 +403,6 @@ public:
   virtual std::size_t allocateArray(BufferHandler &bh, std::size_t arrSize) = 0;
   virtual void insertIntoArray(BufferHandler &bh, std::size_t offset,
                                std::size_t index, const std::string &value) = 0;
-  virtual std::size_t allocateTuple(BufferHandler &bh) = 0;
   virtual void insertIntoTuple(BufferHandler &bh, std::size_t offset,
                                const std::string &value) = 0;
 };
@@ -398,9 +425,6 @@ public:
                        const std::string &value) override {
     bh.insertIntoArray<T>(offset, index, converter->convert(value));
   }
-  std::size_t allocateTuple(BufferHandler &bh) override {
-    return bh.allocateTupleRecord<T>();
-  }
   void insertIntoTuple(BufferHandler &bh, std::size_t offset,
                        const std::string &value) override {
     bh.insertIntoTuple<T>(offset, converter->convert(value));
@@ -408,12 +432,6 @@ public:
 };
 
 } // namespace detail
-
-namespace {
-// Simplify look up of the required number of results by using a common
-// identifier instead of different QIR versions (0.1 and 1.0)
-constexpr char ResultCountMetadataName[] = "required_results";
-} // namespace
 
 //===----------------------------------------------------------------------===//
 // Main record log parser and decoder class
@@ -441,8 +459,15 @@ public:
   std::vector<std::vector<bool>> parseResults(const std::string &outputLog);
 
   /// Get a pointer to the data buffer. Note that the data buffer will be
-  /// deallocated as soon as the RecordLogParser object is deconstructed.
+  /// deallocated as soon as the RecordLogParser object is deconstructed, and
+  /// so will each array's storage, unless `releaseArrayStorage` was called.
   void *getBufferPtr() const { return bufferHandler.getBufferPtr(); }
+
+  /// Hand the storage of each array, including each `std::vector<bool>`, to
+  /// the caller. Call it after copying the data buffer, because the copy
+  /// refers to that storage and takes it over. The numeric arrays come from
+  /// `::operator new`, so a `std::vector` can adopt them.
+  void releaseArrayStorage() { bufferHandler.releaseArrayStorage(); }
 
   /// Get the size of the data buffer (in bytes).
   std::size_t getBufferSize() const { return bufferHandler.getBufferSize(); }
@@ -453,10 +478,7 @@ public:
 
 private:
   /// Result-buffer storage for aggregate roots. FLAT appends element bytes;
-  /// PREALLOCATED reserves the host layout before indexed insertion. This is
-  /// separate from `RecordSchemaType` for implicit `RESULT` arrays which are
-  /// materialized as a pre-allocated `vector<bool>` even when no labeled schema
-  /// was declared.
+  /// PREALLOCATED reserves the host layout before indexed insertion.
   enum struct ContainerStorage { FLAT, PREALLOCATED };
 
   /// Process different types of records
@@ -503,9 +525,6 @@ private:
   /// Data layout information
   std::pair<std::optional<std::size_t>, std::vector<std::size_t>>
       dataLayoutInfo = {std::nullopt, {}};
-  /// Metadata information extracted from the log
-  std::unordered_map<std::string, std::string> metadata = {
-      {ResultCountMetadataName, "1"}};
   std::size_t completedResultCount = 0;
 };
 } // namespace cudaq

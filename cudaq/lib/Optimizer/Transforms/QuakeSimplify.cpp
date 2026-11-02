@@ -12,6 +12,7 @@
 #include "QuakeOperatorCreator.h"
 #include "cudaq/Optimizer/Builder/CompilerNames.h"
 #include "cudaq/Optimizer/Builder/Factory.h"
+#include "cudaq/Optimizer/Builder/OptimizationLevel.h"
 #include "cudaq/Optimizer/Transforms/CommutationAwareRewrite.h"
 #include "cudaq/Optimizer/Transforms/Passes.h"
 #include "llvm/ADT/APFloat.h"
@@ -845,7 +846,7 @@ public:
   using QuakeSimplifyBase::QuakeSimplifyBase;
 
   void runOnOperation() override {
-    if (getOperation()->hasAttr(cudaq::runtime::disableQuantumOpts))
+    if (cudaq::runtime::isQuantumOptimizationDisabled(getOperation()))
       return;
 
     if (!std::isfinite(threshold) || threshold < 0.0 ||

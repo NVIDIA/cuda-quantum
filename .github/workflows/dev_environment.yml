@@ -100,6 +100,7 @@ jobs:
       dockerfile: ${{ steps.build_info.outputs.dockerfile }}
       owner: ${{ steps.build_info.outputs.owner }}
       pr_number: ${{ steps.build_info.outputs.pr_number }}
+      concurrency_id: ${{ steps.build_info.outputs.concurrency_id }}
       image_name: ${{ steps.build_info.outputs.image_name }}
       image_title: ${{ steps.build_info.outputs.image_title }}
       image_id: ${{ steps.build_info.outputs.image_id }}
@@ -121,6 +122,9 @@ jobs:
       - name: Determine build arguments
         id: build_info
         run: |
+          # Unique per call, so builds that don't write a cache never share a group.
+          echo "concurrency_id=$(cat /proc/sys/kernel/random/uuid)" >> $GITHUB_OUTPUT
+
           if [ -n "$(echo ${{ inputs.platforms }} | grep ',')" ]; then
             # multi-platform builds get no platform tag
             echo "runner=linux-amd64-cpu8" >> $GITHUB_OUTPUT
@@ -198,6 +202,10 @@ jobs:
   build:
     name: Caching
     needs: metadata
+    # One cache-writing build per image at a time, so a later one finds its cache.
+    concurrency:
+      group: ${{ inputs.update_registry_cache != '' && format('dev-env-cache-{0}-{1}-{2}-{3}-{4}-{5}', inputs.dockerfile, inputs.build_target, inputs.build_config_id, inputs.platforms, inputs.update_registry_cache, inputs.pull_request_number != '') || format('dev-env-{0}', needs.metadata.outputs.concurrency_id) }}
+      cancel-in-progress: false
     runs-on: ${{ needs.metadata.outputs.runner }}
     timeout-minutes: 600
     permissions:
@@ -333,6 +341,10 @@ jobs:
                 echo "type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:merge-group-$registry_cache_base"
               fi
               echo "type=registry,ref=${registry_cache}-${cache_id}-${platform_id}:${registry_cache_base}"
+              # Merge runs refresh the -ci caches; deployments would otherwise miss them.
+              if ${{ needs.metadata.outputs.pr_number == '' && github.event_name != 'merge_group' }}; then
+                echo "type=registry,ref=${registry_cache}-ci-${cache_id}-${platform_id}:${registry_cache_base}"
+              fi
               echo "type=registry,ref=${nvidia_registry_cache}-${cache_id}-${platform_id}:${registry_cache_base}"
             done
             echo multiline

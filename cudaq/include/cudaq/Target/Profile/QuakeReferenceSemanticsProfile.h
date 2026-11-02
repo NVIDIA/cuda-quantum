@@ -8,6 +8,7 @@
 
 #pragma once
 
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -26,6 +27,10 @@ enum class MeasurementForm {
 /// represented qubits are logical, physical, or anything in between.
 ///
 /// Value semantics Quake is currently not supported.
+///
+/// `quake-unmapped` supersedes this profile. This profile will be deprecated
+/// when the targets that use it move to `quake-unmapped` with its
+/// `two-qubit-gate-count` cost model.
 struct QuakeReferenceSemanticsProfile {
   /// Name identifying this profile in target configurations.
   static constexpr char name[] = "quake-reference-semantics";
@@ -45,3 +50,9 @@ struct QuakeReferenceSemanticsProfile {
 };
 
 } // namespace cudaq::config
+
+template <>
+struct std::hash<cudaq::config::QuakeReferenceSemanticsProfile> {
+  std::size_t operator()(const cudaq::config::QuakeReferenceSemanticsProfile
+                             &profile) const noexcept;
+};

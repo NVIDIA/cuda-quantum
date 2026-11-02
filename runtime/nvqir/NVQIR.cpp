@@ -249,19 +249,6 @@ std::unique_ptr<std::complex<To>[]> convertToComplex(From *data,
         std::complex<To>{static_cast<To>(data[i]), static_cast<To>(0.0)};
   return convertData;
 }
-
-// Util function to access the current QIR output.
-// Note: as the QIR output is attached to a specific simulator backend instance,
-// the QIR output must be retrieved from the same thread as each thread will
-// have a different simulator instance, e.g., async. execution.
-std::string_view getQirOutputLog() {
-  auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();
-  return circuitSimulator->outputLog;
-}
-void clearQirOutputLog() {
-  auto *circuitSimulator = nvqir::getCircuitSimulatorInternal();
-  return circuitSimulator->outputLog.clear();
-}
 } // namespace nvqir
 
 using namespace nvqir;
