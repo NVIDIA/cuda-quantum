@@ -73,10 +73,10 @@ getInferredStagePasses(const cudaq_internal::compiler::LoweringHandler *handler,
 
 /// Build the JIT pipeline from `canonicalize`, prep, deploy, and finalize,
 /// with the stages' passes around them. The emission format, `emulate`,
-/// \p unrollLoops, and the target's erasure flags set the options of prep,
-/// deploy, and finalize. An option appears in the text only when it differs
-/// from its default, so existing targets keep their pipeline text. Emulation's
-/// prep is the exception: it has always spelled out `erase-noise`.
+/// \p unrollLoops, and the target's noise and QEC settings set the options of
+/// prep, deploy, and finalize. An option appears in the text only when it
+/// differs from its default, so existing targets keep their pipeline text.
+/// Emulation's prep is the exception: it has always spelled out `erase-noise`.
 static std::string
 buildPassPipeline(const cudaq_internal::compiler::StagePasses &targetPasses,
                   bool unrollLoops, const cudaq::CompileTarget &target,
@@ -89,21 +89,26 @@ buildPassPipeline(const cudaq_internal::compiler::StagePasses &targetPasses,
                                                                 : "false";
   unrollLoops &= target.codegen.emissionFormat != "nop";
   const std::string noLoopUnroll = unrollLoops ? "" : " no-loop-unroll=true";
+  const bool eraseNoise = target.noiseSupport == cudaq::NoiseSupport::erase;
+  const std::string rejectNoise =
+      target.noiseSupport == cudaq::NoiseSupport::unsupported
+          ? " reject-noise=true"
+          : "";
   const std::string eraseQEC = target.eraseQEC ? "" : " erase-qec=false";
 
   std::string passPipeline = "canonicalize";
   if (options.emulate)
-    appendPipelineStage(passPipeline,
-                        "emul-jit-prep-pipeline{erase-noise=" +
-                            std::string(target.eraseNoise ? "true" : "false") +
-                            " allow-early-exit=" + allowEarlyExit +
-                            noLoopUnroll + eraseQEC + "}");
+    appendPipelineStage(
+        passPipeline, "emul-jit-prep-pipeline{erase-noise=" +
+                          std::string(eraseNoise ? "true" : "false") +
+                          rejectNoise + " allow-early-exit=" + allowEarlyExit +
+                          noLoopUnroll + eraseQEC + "}");
   else
     appendPipelineStage(
         passPipeline,
         "hw-jit-prep-pipeline{allow-early-exit=" + allowEarlyExit +
-            noLoopUnroll + (target.eraseNoise ? "" : " erase-noise=false") +
-            eraseQEC + "}");
+            noLoopUnroll + (eraseNoise ? "" : " erase-noise=false") +
+            rejectNoise + eraseQEC + "}");
 
   const std::string deployStage =
       unrollLoops ? "jit-deploy-pipeline"

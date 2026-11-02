@@ -9,6 +9,7 @@
 // RUN: cudaq-opt --pass-pipeline="builtin.module(hw-jit-prep-pipeline{no-loop-unroll=true},jit-deploy-pipeline{no-loop-unroll=true})" %s | FileCheck --check-prefix=PRESERVE %s
 // RUN: cudaq-opt --pass-pipeline="builtin.module(hw-jit-prep-pipeline,jit-deploy-pipeline)" %s | FileCheck --check-prefixes=UNROLL,ERASE %s
 // RUN: cudaq-opt --pass-pipeline="builtin.module(hw-jit-prep-pipeline{erase-noise=false erase-qec=false})" %s | FileCheck --check-prefix=KEEP %s
+// RUN: not cudaq-opt --pass-pipeline="builtin.module(hw-jit-prep-pipeline{reject-noise=true})" %s 2>&1 | FileCheck --check-prefix=REJECT %s
 
 func.func @__nvqpp__mlirgen__function_loop_payload_stress() -> i64 attributes {"cudaq-entrypoint", "cudaq-kernel", no_this} {
   %c0_i64 = arith.constant 0 : i64
@@ -74,8 +75,9 @@ func.func private @__nvqpp_cudaqConvertToInteger(!cc.sequence<i1>) -> i64
 // UNROLL-NOT:     cc.loop
 // UNROLL:         quake.mz
 
-// Prep erases `quake.apply_noise` and the QEC operations by default, and keeps
-// both when their options turn erasure off.
+// Prep erases `quake.apply_noise` and the QEC operations by default, keeps
+// both when their options turn erasure off, and fails on noise with
+// `reject-noise`.
 func.func @noisy_detector(%p: !cc.ptr<f64>, %h: !cc.measure_handle) {
   %q = quake.alloca !quake.ref
   quake.h %q : (!quake.ref) -> ()
@@ -94,3 +96,5 @@ func.func private @channel(!cc.ptr<f64>, !quake.ref)
 // KEEP-LABEL: func.func @noisy_detector(
 // KEEP:         quake.apply_noise @channel
 // KEEP:         qec.detector
+
+// REJECT: error: the target does not support noise

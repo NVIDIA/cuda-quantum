@@ -20,6 +20,9 @@ struct TargetPrepPipelineOptions
   PassOptions::Option<bool> eraseNoise{
       *this, "erase-noise", llvm::cl::desc("Erase apply noise calls."),
       llvm::cl::init(true)};
+  PassOptions::Option<bool> rejectNoise{
+      *this, "reject-noise", llvm::cl::desc("Fail on any apply noise call."),
+      llvm::cl::init(false)};
   PassOptions::Option<bool> eraseQEC{
       *this, "erase-qec",
       llvm::cl::desc("Erase QEC detector and observable operations."),
@@ -149,10 +152,12 @@ void cudaq::opt::registerConvertToLinearValuesPipeline() {
 }
 
 /// Build the prep pipeline that every target runs. A target sets `erase-noise`
-/// or `erase-qec` to false when its consumer has to see those operations, for
-/// example to reject a noisy kernel rather than count the noiseless one.
+/// or `erase-qec` to false when its consumer has to see those operations, and
+/// sets `reject-noise` when a kernel that applies noise must fail to compile.
 static void createTargetPrepPipeline(OpPassManager &pm,
                                      const TargetPrepPipelineOptions &options) {
+  if (options.rejectNoise)
+    pm.addNestedPass<func::FuncOp>(cudaq::opt::createRejectNoise());
   if (options.eraseNoise)
     pm.addNestedPass<func::FuncOp>(cudaq::opt::createEraseNoise());
   if (options.eraseQEC)

@@ -290,7 +290,7 @@ def test_import_cudaq_matches_the_target_whatever_target_is_installed():
         direct, tier=cql.analysis.Tier.LOGICAL).to_dict() == through_target
 
 
-def test_import_cudaq_rejects_a_noisy_kernel():
+def test_import_cudaq_rejects_a_noisy_kernel(capfd):
     import cudaq
     import cudaq.logical as cql
 
@@ -301,10 +301,10 @@ def test_import_cudaq_rejects_a_noisy_kernel():
         cudaq.apply_noise(cudaq.DepolarizationChannel, 0.1, q[0])
         mz(q)
 
-    # Prep keeps `quake.apply_noise`, so Logical never estimates the kernel
-    # as noiseless, and the import rejects it.
-    with pytest.raises(RuntimeError, match="supports only value-semantics"):
+    # The compiler reports the reason on `stderr`, not in the exception.
+    with pytest.raises(RuntimeError, match="Quake lowering failed"):
         cql.compiler.import_cudaq(noisy)
+    assert "the target does not support noise" in capfd.readouterr().err
 
 
 def test_logical_estimate_is_invariant_under_cached_view_mutation():

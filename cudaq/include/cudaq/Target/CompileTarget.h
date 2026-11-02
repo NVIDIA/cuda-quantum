@@ -19,6 +19,16 @@ class TargetConfig;
 
 namespace cudaq {
 
+/// What a target does with the noise a kernel applies with `apply_noise`.
+enum class NoiseSupport {
+  /// Prep erases the noise, and the kernel runs without it.
+  erase,
+  /// Prep keeps the noise for the target to apply.
+  supported,
+  /// Prep fails on a kernel that applies noise.
+  unsupported,
+};
+
 /// Target properties used to define the compilation pipeline.
 struct CompileTarget {
   /// Whether to recompile the kernel in the presence of an AOT-compiled module.
@@ -72,9 +82,8 @@ struct CompileTarget {
   /// Whether to fully specialize the kernel.
   bool fullySpecialize = true;
 
-  /// Whether prep erases `quake.apply_noise`. A target whose consumer has to
-  /// see noise, for example to reject it, sets this to false.
-  bool eraseNoise = true;
+  /// What prep does with `quake.apply_noise`.
+  NoiseSupport noiseSupport = NoiseSupport::erase;
 
   /// Whether prep erases the QEC detector and observable operations.
   bool eraseQEC = true;

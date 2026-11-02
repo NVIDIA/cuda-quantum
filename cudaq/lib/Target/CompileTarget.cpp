@@ -137,7 +137,7 @@ std::size_t std::hash<cudaq::CompileTarget>::operator()(
       t.supportConditionalsOnMeasureResults, t.supportDeviceCalls,
       t.supportResourceCounts, t.supportExplicitMeasurements,
       t.supportObservableMeasurements, t.supportSampleWithoutMeasurements,
-      t.fullySpecialize, t.eraseNoise, t.eraseQEC,
+      t.fullySpecialize, t.noiseSupport, t.eraseQEC,
       t.argumentSynthChangeSemantics, t.disableQubitMapping,
       t.replaceStateWithKernel);
 }

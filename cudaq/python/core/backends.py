@@ -25,6 +25,7 @@ from cudaq.mlir._mlir_libs._backends import (
     CustomPipelineLowering,
     EstimateResult,
     LoopUnrolling,
+    NoiseSupport,
     QuakeReferenceSemanticsProfile,
     QuakeUnmappedProfile,
     Resources,
@@ -34,8 +35,8 @@ from cudaq.mlir._mlir_libs._backends import (
 __all__ = [
     "Codegen", "CompilationStage", "CompileTarget", "CostModel",
     "CustomPipelineLowering", "CustomTarget", "EstimateResult", "LoopUnrolling",
-    "QuakeReferenceSemanticsProfile", "QuakeUnmappedProfile", "Resources",
-    "RuntimeEndpoint", "UncheckedProfile"
+    "NoiseSupport", "QuakeReferenceSemanticsProfile", "QuakeUnmappedProfile",
+    "Resources", "RuntimeEndpoint", "UncheckedProfile"
 ]
 
 

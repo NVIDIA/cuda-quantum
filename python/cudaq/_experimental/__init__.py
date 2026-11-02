@@ -14,7 +14,8 @@ may involve undocumented foot guns.
 from .runtime_endpoint import RuntimeEndpoint
 from .compile_target import (Codegen, CompilationStage, CompileTarget,
                              CostModel, CustomPipelineLowering, LoopUnrolling,
-                             QuakeMappedProfile, QuakeReferenceSemanticsProfile,
+                             NoiseSupport, QuakeMappedProfile,
+                             QuakeReferenceSemanticsProfile,
                              QuakeUnmappedProfile, UncheckedProfile,
                              get_compile_target)
 from .custom_target import CustomTarget
@@ -27,6 +28,7 @@ __all__ = [
     "CustomPipelineLowering",
     "CustomTarget",
     "LoopUnrolling",
+    "NoiseSupport",
     "RuntimeEndpoint",
     "QuakeMappedProfile",
     "QuakeReferenceSemanticsProfile",

@@ -132,10 +132,11 @@
 // CHECK-NEXT:  jit-finalize-pipeline
 
 // A stage that unrolls only index-use loops keeps prep and deploy from
-// unrolling, and a target with erasure off keeps noise and QEC through prep.
-// CHECK-LABEL: index-use, erasure off:
+// unrolling. A target that does not support noise rejects it in prep, and one
+// with QEC erasure off keeps QEC through prep.
+// CHECK-LABEL: index-use, noise unsupported, QEC kept:
 // CHECK-NEXT:  canonicalize
-// CHECK-NEXT:  hw-jit-prep-pipeline{allow-early-exit=false no-loop-unroll=true erase-noise=false erase-qec=false}
+// CHECK-NEXT:  hw-jit-prep-pipeline{allow-early-exit=false no-loop-unroll=true erase-noise=false reject-noise=true erase-qec=false}
 // CHECK-NEXT:  jit-deploy-pipeline{no-loop-unroll=true}
 // CHECK:       prepare-for-wireset{maximum-iterations=1024 unroll-only-index-use-loops=true}
 
@@ -146,6 +147,7 @@
 // CHECK-NEXT:  hw-jit-prep-pipeline{allow-early-exit=false no-loop-unroll=true}
 // CHECK-NEXT:  jit-deploy-pipeline{no-loop-unroll=true}
 // CHECK:       prepare-for-wireset{maximum-iterations=2}
+
 // clang-format on
 
 #include "cudaq_internal/compiler/Compiler.h"
@@ -255,9 +257,9 @@ int main(int argc, char **argv) {
       unmappedTarget({.basisGates = {"h", "rz", "x(1)"},
                       .costModel = cudaq::config::CostModel::t_count,
                       .unrollLoops = cudaq::config::LoopUnrolling::index_use});
-  indexUse.eraseNoise = false;
+  indexUse.noiseSupport = cudaq::NoiseSupport::unsupported;
   indexUse.eraseQEC = false;
-  printPipeline("index-use, erasure off", indexUse, {});
+  printPipeline("index-use, noise unsupported, QEC kept", indexUse, {});
   printPipeline("unroll limit 2",
                 unmappedTarget({.basisGates = {"h", "rz", "x(1)"},
                                 .costModel = cudaq::config::CostModel::t_count,
