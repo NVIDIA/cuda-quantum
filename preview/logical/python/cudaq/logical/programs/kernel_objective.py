@@ -228,7 +228,7 @@ def materialize_kernel_objective(definition: ProgramDefinition):
     if kernel is None:
         raise TypeError("definition is not backed by a CUDA-Q objective kernel")
     arity = len(definition.signature.parameters)
-    imported = import_cudaq(_objective_wrapper(kernel, arity), _objective=True)
+    imported = import_cudaq(_objective_wrapper(kernel, arity))
     module = imported._fresh_module()
     transaction = CompilationContext(module=module)
     program = transaction.find_symbol(imported.root.symbol, "qlx.program")

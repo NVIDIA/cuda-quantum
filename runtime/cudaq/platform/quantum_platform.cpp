@@ -265,9 +265,7 @@ bool quantum_platform::supports_explicit_measurements(
 }
 
 void quantum_platform::resolveCompileOptions(cudaq::CompileOptions &options,
-                                             std::size_t qpu_id) const {
-  validateQpuId(qpu_id);
-  const auto &endpoint = runtimeEndpoints[qpu_id];
+                                             const RuntimeEndpoint &endpoint) {
   options.emulate = endpoint.isEmulated;
   options.emitJit |= !endpoint.isRemote;
   if (!endpoint.supportsJit)

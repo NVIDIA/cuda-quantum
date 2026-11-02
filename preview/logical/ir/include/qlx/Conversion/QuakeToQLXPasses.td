@@ -11,38 +11,6 @@
 
 include "mlir/Pass/PassBase.td"
 
-def ExpandQuakeRegisterTraversals :
-    Pass<"expand-quake-register-traversals", "mlir::ModuleOp"> {
-  let summary = "Expand Quake register traversals that block wire conversion";
-  let description = [{
-    Directly expands normalized, statically bounded `cc.loop` register
-    traversals whose dynamic `quake.extract_ref` or `quake.subveq` operations
-    prevent conversion to linear `!quake.wire` values. This pass runs before
-    CUDA-Q's linear-values preparation; it is separate from QLX's post-linear
-    `prepare-quake-for-qlx` boundary-cleanup pipeline.
-
-    The fast path accepts only single-block precondition/body/step loops with a
-    pure integer comparison, an unchanged body induction, a positive constant
-    step proven not to wrap, no break, and no Python else. It clones the body
-    and step as straight-line SSA, eagerly folds induction arithmetic, and
-    materializes static accesses without a temporary CFG or global rewrite
-    worklist.
-
-    Loops that do not block wire conversion remain structured. A remaining
-    wire-blocking loop fails closed with a diagnostic identifying an unsupported
-    shape or exceeded expansion limit. Rewriting is transactional: failure
-    leaves the input module unchanged. The pass creates no QLX operations and
-    derives no P0 or machine facts.
-  }];
-  let options = [
-    Option<"maximumIterations", "maximum-iterations", "unsigned",
-           /*default=*/"4096", "Maximum iterations in one expanded loop">,
-    Option<"maximumGeneratedOperations", "maximum-generated-operations",
-           "uint64_t", /*default=*/"1000000",
-           "Maximum estimated operations generated across the module">
-  ];
-}
-
 def PruneDeadCCLoopCarries :
     Pass<"prune-dead-cc-loop-carries", "mlir::ModuleOp"> {
   let summary = "Remove dead classical carries from supported CUDA-Q CC loops";

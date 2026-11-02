@@ -2431,6 +2431,14 @@ def VerifyAtomicQuantumRegions :
   }];
 }
 
+def VerifyNoNoise : Pass<"verify-no-noise"> {
+  let summary = "Fail on any `quake.apply_noise`.";
+  let description = [{
+    A target that cannot apply noise runs this pass so that a kernel that
+    applies noise fails to compile instead of running without it.
+  }];
+}
+
 def VerifyProfileQuakeReferenceSemantics : Pass<"verify-profile-quake-reference-semantics", "mlir::ModuleOp"> {
   let summary = "Verify quake-reference-semantics profile conformance (read-only)";
   let description = [{
