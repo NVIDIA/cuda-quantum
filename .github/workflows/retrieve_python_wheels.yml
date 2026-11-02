@@ -418,12 +418,25 @@ jobs:
       run_validation: false
       build_logical_wheel: false
 
+  # The cudaq metapackage depends on the matching cudaq-edem wheel.
+  edem:
+    name: Build cudaq-edem wheel
+    if: ${{ inputs.metapackage_sdist }}
+    permissions:
+      contents: read
+      packages: read
+    uses: ./.github/workflows/edem_wheels.yml
+    with:
+      platform: ${{ (endsWith(inputs.platform, 'arm64') && 'arm64') || 'amd64' }}
+      python_versions: "['${{ inputs.python_version }}']"
+
   metapackage:
     name: Build cudaq metapackage
-    needs: [resolve, restore_runtime, build, restore_core, build_core]
+    needs: [resolve, restore_runtime, build, restore_core, build_core, edem]
     if: >-
       ${{ !cancelled()
           && inputs.metapackage_sdist
+          && needs.edem.result == 'success'
           && (needs.build.result == 'success' || needs.build.result == 'skipped')
           && (!startsWith(inputs.cuda_version, '12') || needs.restore_core.result == 'success' || needs.build_core.result == 'success')
           && needs.restore_runtime.result != 'failure' }}
@@ -446,6 +459,7 @@ jobs:
       - restore_devel
       - build
       - metapackage
+      - edem
       - restore_core
       - build_core
     if: >-
@@ -504,6 +518,15 @@ jobs:
         with:
           name: ${{ needs.metapackage.outputs.artifact_name }}
           path: all-wheels
+
+      # The cudaq metapackage depends on the matching cudaq-edem wheel.
+      - name: Download cudaq-edem wheel
+        if: ${{ inputs.metapackage_sdist && needs.edem.result == 'success' }}
+        uses: actions/download-artifact@v8
+        with:
+          pattern: 'cudaq_edem-*'
+          path: all-wheels
+          merge-multiple: true
 
       - name: Upload all-wheels bundle
         uses: actions/upload-artifact@v7
