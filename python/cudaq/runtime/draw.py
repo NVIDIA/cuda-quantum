@@ -42,7 +42,7 @@ def draw(decoratorOrFormat, *args, optimization_level=None):
     """
     if isinstance(decoratorOrFormat, str):
         # User specified output format.
-        assert (len(args) == 1) and "must have a kernel"
+        assert len(args) >= 1, "must have a kernel"
         vargs = args[1:]
         return _detail_draw(decoratorOrFormat,
                             args[0],
