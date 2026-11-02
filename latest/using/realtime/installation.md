@@ -46,6 +46,9 @@ latest
         -   [Python
             Stack-Traces](../basics/troubleshooting.html#python-stack-traces){.reference
             .internal}
+        -   [LLVM-based Python
+            packages](../basics/troubleshooting.html#llvm-based-python-packages){.reference
+            .internal}
 -   [Examples](../examples/examples.html){.reference .internal}
     -   [Introduction](../examples/introduction.html){.reference
         .internal}
@@ -770,6 +773,9 @@ latest
                 .internal}
             -   [Stim](../backends/sims/noisy.html#stim){.reference
                 .internal}
+            -   [[`cuStabilizer`{.docutils .literal
+                .notranslate}]{.pre}](../backends/sims/noisy.html#custabilizer){.reference
+                .internal}
         -   [Photonics
             Simulators](../backends/sims/photonics.html){.reference
             .internal}
@@ -1253,6 +1259,18 @@ latest
                 .internal}
             -   [Load and test the
                 plugin](../extending/compiler/pass_plugins.html#load-and-test-the-plugin){.reference
+                .internal}
+        -   [Using compile targets to customize
+            compilation](../extending/compiler/compile_targets.html){.reference
+            .internal}
+            -   [Constructing single-stage compile
+                targets](../extending/compiler/compile_targets.html#constructing-single-stage-compile-targets){.reference
+                .internal}
+            -   [Setting compile targets with [`set_target`{.docutils
+                .literal
+                .notranslate}]{.pre}](../extending/compiler/compile_targets.html#setting-compile-targets-with-set-target){.reference
+                .internal}
+            -   [Example](../extending/compiler/compile_targets.html#example){.reference
                 .internal}
     -   [Add a hardware backend](../extending/backend.html){.reference
         .internal}
@@ -1949,7 +1967,39 @@ latest
 
 [Preview]{.caption-text}
 
--   [CUDA-Q Logical](/preview/logical/#http://){.reference .external}
+-   [cudaq-logical](/preview/logical/#http://){.reference .external}
+-   [cudaq-edem](../edem.html){.reference .internal}
+    -   [Standalone build](../edem.html#standalone-build){.reference
+        .internal}
+    -   [Python bindings and
+        wheel](../edem.html#python-bindings-and-wheel){.reference
+        .internal}
+    -   [CUDA-Q build](../edem.html#cuda-q-build){.reference .internal}
+    -   [Installed package](../edem.html#installed-package){.reference
+        .internal}
+    -   [Packaging checks](../edem.html#packaging-checks){.reference
+        .internal}
+    -   [Native interface and
+        memory](../edem.html#native-interface-and-memory){.reference
+        .internal}
+    -   [C++ ownership
+        helper](../edem.html#c-ownership-helper){.reference .internal}
+    -   [Component boundary](../edem.html#component-boundary){.reference
+        .internal}
+    -   [Fault
+        distributions](../edem.html#fault-distributions){.reference
+        .internal}
+    -   [Python
+        construction](../edem.html#python-construction){.reference
+        .internal}
+    -   [Packed format](../edem.html#packed-format){.reference
+        .internal}
+    -   [Serial composition and DEM
+        projection](../edem.html#serial-composition-and-dem-projection){.reference
+        .internal}
+    -   [Exact noise conversion and column
+        coalescing](../edem.html#exact-noise-conversion-and-column-coalescing){.reference
+        .internal}
 :::
 :::
 
@@ -2167,11 +2217,10 @@ Using Holoscan Sensor Bridge
 The validation script has three defined kernel modes, one for a unified
 kernel (enabled with [`--unified`{.code .docutils .literal
 .notranslate}]{.pre}), one for a forward kernel (enabled with
-[`--forward`{.code .docutils .literal .notranslate}]{.pre}), one for
-host-dispatch (enabled with [`--cpu`{.code .docutils .literal
-.notranslate}]{.pre}), and a 3-kernel setup (used by default). The
-forward kernel skips the RPC callback to measure the raw latency without
-any compute performed on the GPU.
+[`--forward`{.code .docutils .literal .notranslate}]{.pre}), and a
+3-kernel setup (used by default). The forward kernel skips the RPC
+callback to measure the raw latency without any compute performed on the
+GPU.
 
 ::: {.highlight-console .notranslate}
 ::: highlight
@@ -2193,10 +2242,9 @@ callback on. - [`--fpga-ip`{.code .docutils .literal
 .literal .notranslate}]{.pre} is the IP address of the NIC on the host
 machine. - [`--page-size`{.code .docutils .literal .notranslate}]{.pre}
 is the ring buffer slot size in bytes. - [`--unified`{.code .docutils
-.literal .notranslate}]{.pre}, [`--forward`{.code .docutils .literal
-.notranslate}]{.pre}, or [`--cpu`{.code .docutils .literal
+.literal .notranslate}]{.pre} or [`--forward`{.code .docutils .literal
 .notranslate}]{.pre} are the mutually exclusive flags to enable the
-unified, forward, or host-dispatch mode.
+unified or forward mode.
 :::
 
 Upon successful completion, the above validation script should print out

@@ -116,6 +116,7 @@
 <li class="toctree-l2"><a class="reference internal" href="using/basics/troubleshooting.html">   Troubleshooting</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="using/basics/troubleshooting.html#debugging-and-verbose-simulation-output">Debugging and Verbose Simulation Output</a></li>
 <li class="toctree-l3"><a class="reference internal" href="using/basics/troubleshooting.html#python-stack-traces">Python Stack-Traces</a></li>
+<li class="toctree-l3"><a class="reference internal" href="using/basics/troubleshooting.html#llvm-based-python-packages">LLVM-based Python packages</a></li>
 </ul>
 </li>
 </ul>
@@ -491,6 +492,7 @@
 <li class="toctree-l4"><a class="reference internal" href="using/backends/sims/noisy.html#trajectory-noisy-simulation">Trajectory Noisy Simulation</a></li>
 <li class="toctree-l4"><a class="reference internal" href="using/backends/sims/noisy.html#density-matrix">Density Matrix</a></li>
 <li class="toctree-l4"><a class="reference internal" href="using/backends/sims/noisy.html#stim">Stim</a></li>
+<li class="toctree-l4"><a class="reference internal" href="using/backends/sims/noisy.html#custabilizer"><code class="docutils literal notranslate"><span class="pre">cuStabilizer</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="using/backends/sims/photonics.html">     Photonics Simulators</a><ul>
@@ -773,6 +775,12 @@
 <li class="toctree-l4"><a class="reference internal" href="using/extending/compiler/pass_plugins.html#implement-and-register-the-pass">Implement and register the pass</a></li>
 <li class="toctree-l4"><a class="reference internal" href="using/extending/compiler/pass_plugins.html#build-the-plugin">Build the plugin</a></li>
 <li class="toctree-l4"><a class="reference internal" href="using/extending/compiler/pass_plugins.html#load-and-test-the-plugin">Load and test the plugin</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="using/extending/compiler/compile_targets.html">Using compile targets to customize compilation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="using/extending/compiler/compile_targets.html#constructing-single-stage-compile-targets">Constructing single-stage compile targets</a></li>
+<li class="toctree-l4"><a class="reference internal" href="using/extending/compiler/compile_targets.html#setting-compile-targets-with-set-target">Setting compile targets with <code class="docutils literal notranslate"><span class="pre">set_target</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="using/extending/compiler/compile_targets.html#example">Example</a></li>
 </ul>
 </li>
 </ul>
@@ -1094,7 +1102,23 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Preview</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference external" href="/preview/logical/#http://">CUDA-Q Logical</a></li>
+<li class="toctree-l1"><a class="reference external" href="/preview/logical/#http://">cudaq-logical</a></li>
+<li class="toctree-l1"><a class="reference internal" href="using/edem.html">cudaq-edem</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="using/edem.html#standalone-build">Standalone build</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/edem.html#python-bindings-and-wheel">Python bindings and wheel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/edem.html#cuda-q-build">CUDA-Q build</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/edem.html#installed-package">Installed package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/edem.html#packaging-checks">Packaging checks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/edem.html#native-interface-and-memory">Native interface and memory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/edem.html#c-ownership-helper">C++ ownership helper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/edem.html#component-boundary">Component boundary</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/edem.html#fault-distributions">Fault distributions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/edem.html#python-construction">Python construction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/edem.html#packed-format">Packed format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/edem.html#serial-composition-and-dem-projection">Serial composition and DEM projection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="using/edem.html#exact-noise-conversion-and-column-coalescing">Exact noise conversion and column coalescing</a></li>
+</ul>
+</li>
 </ul>
 
         </div>
@@ -1782,15 +1806,13 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq8kraus_op4dataE">cudaq::kraus_op::data (C++ member)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4I0EN5cudaq8kraus_op8kraus_opERRNSt16initializer_listI1TEE">cudaq::kraus_op::kraus_op (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq8kraus_op8kraus_opENSt6vectorIN5cudaq7complexEEE">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq8kraus_op8kraus_opERK8kraus_op">[2]</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4I0EN5cudaq8kraus_op8kraus_opERKNSt6vectorINSt7complexI1TEEEE">cudaq::kraus_op::kraus_op (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4I0EN5cudaq8kraus_op8kraus_opERRNSt16initializer_listI1TEE">[1]</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq8kraus_op8kraus_opENSt6vectorI10value_typeEE">[2]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq8kraus_op5nColsE">cudaq::kraus_op::nCols (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq8kraus_op5nRowsE">cudaq::kraus_op::nRows (C++ member)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq8kraus_opaSERK8kraus_op">cudaq::kraus_op::operator= (C++ function)</a>
-</li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq8kraus_op9precisionE">cudaq::kraus_op::precision (C++ member)</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq8kraus_op10value_typeE">cudaq::kraus_op::value_type (C++ type)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq14KrausSelectionE">cudaq::KrausSelection (C++ struct)</a>
 </li>
@@ -2032,12 +2054,12 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq6pauli211num_targetsE">cudaq::pauli2::num_targets (C++ member)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq6pauli26pauli2ERKNSt6vectorIN5cudaq4realEEE">cudaq::pauli2::pauli2 (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13phase_dampingE">cudaq::phase_damping (C++ class)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13phase_damping14num_parametersE">cudaq::phase_damping::num_parameters (C++ member)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13phase_damping11num_targetsE">cudaq::phase_damping::num_targets (C++ member)</a>
@@ -2276,6 +2298,8 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq3QPU24finalizeExecutionContextER16ExecutionContext">cudaq::QPU::finalizeExecutionContext (C++ function)</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU16getCompileTargetEPK13RuntimeTarget">cudaq::QPU::getCompileTarget (C++ function)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq3QPU20getExecutionThreadIdEv">cudaq::QPU::getExecutionThreadId (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq3QPU10isEmulatedEv">cudaq::QPU::isEmulated (C++ function)</a>
@@ -2384,6 +2408,8 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform15onRandomSeedSetENSt6size_tE">cudaq::quantum_platform::onRandomSeedSet (C++ function)</a>
 </li>
+      <li><a href="api/languages/cpp_api.html#_CPPv4NK5cudaq16quantum_platform16prepareExecutionENSt6size_tE">cudaq::quantum_platform::prepareExecution (C++ function)</a>
+</li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform14reset_exec_ctxEv">cudaq::quantum_platform::reset_exec_ctx (C++ function)</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq16quantum_platform11reset_noiseENSt6size_tE">cudaq::quantum_platform::reset_noise (C++ function)</a>
@@ -2478,7 +2504,7 @@
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_resultE">cudaq::sample_result (C++ class)</a>
 </li>
-      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result6appendERK15ExecutionResultb">cudaq::sample_result::append (C++ function)</a>
+      <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result6appendERK15ExecutionResultb">cudaq::sample_result::append (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result6appendERR15ExecutionResultb">[1]</a>
 </li>
       <li><a href="api/languages/cpp_api.html#_CPPv4N5cudaq13sample_result5beginEv">cudaq::sample_result::begin (C++ function)</a>, <a href="api/languages/cpp_api.html#_CPPv4NK5cudaq13sample_result5beginEv">[1]</a>
 </li>
@@ -3538,6 +3564,8 @@
 </li>
       </ul></li>
       <li><a href="api/languages/python_api.html#cudaq.SampleResult">SampleResult (class in cudaq)</a>
+</li>
+      <li><a href="api/languages/python_api.html#cudaq.PyKernelDecorator.scalarCaster">scalarCaster() (cudaq.PyKernelDecorator method)</a>
 </li>
       <li><a href="api/languages/python_api.html#cudaq.operators.ScalarOperator">ScalarOperator (class in cudaq.operators)</a>
 </li>

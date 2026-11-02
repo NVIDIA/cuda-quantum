@@ -119,6 +119,7 @@
 <li class="toctree-l2 current"><a class="current reference internal" href="#">   Troubleshooting</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#debugging-and-verbose-simulation-output">Debugging and Verbose Simulation Output</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#python-stack-traces">Python Stack-Traces</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#llvm-based-python-packages">LLVM-based Python packages</a></li>
 </ul>
 </li>
 </ul>
@@ -494,6 +495,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../backends/sims/noisy.html#trajectory-noisy-simulation">Trajectory Noisy Simulation</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/sims/noisy.html#density-matrix">Density Matrix</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../backends/sims/noisy.html#stim">Stim</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../backends/sims/noisy.html#custabilizer"><code class="docutils literal notranslate"><span class="pre">cuStabilizer</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../backends/sims/photonics.html">     Photonics Simulators</a><ul>
@@ -776,6 +778,12 @@
 <li class="toctree-l4"><a class="reference internal" href="../extending/compiler/pass_plugins.html#implement-and-register-the-pass">Implement and register the pass</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../extending/compiler/pass_plugins.html#build-the-plugin">Build the plugin</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../extending/compiler/pass_plugins.html#load-and-test-the-plugin">Load and test the plugin</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../extending/compiler/compile_targets.html">Using compile targets to customize compilation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../extending/compiler/compile_targets.html#constructing-single-stage-compile-targets">Constructing single-stage compile targets</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../extending/compiler/compile_targets.html#setting-compile-targets-with-set-target">Setting compile targets with <code class="docutils literal notranslate"><span class="pre">set_target</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../extending/compiler/compile_targets.html#example">Example</a></li>
 </ul>
 </li>
 </ul>
@@ -1097,7 +1105,23 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Preview</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference external" href="/preview/logical/#http://">CUDA-Q Logical</a></li>
+<li class="toctree-l1"><a class="reference external" href="/preview/logical/#http://">cudaq-logical</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../edem.html">cudaq-edem</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../edem.html#standalone-build">Standalone build</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../edem.html#python-bindings-and-wheel">Python bindings and wheel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../edem.html#cuda-q-build">CUDA-Q build</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../edem.html#installed-package">Installed package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../edem.html#packaging-checks">Packaging checks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../edem.html#native-interface-and-memory">Native interface and memory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../edem.html#c-ownership-helper">C++ ownership helper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../edem.html#component-boundary">Component boundary</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../edem.html#fault-distributions">Fault distributions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../edem.html#python-construction">Python construction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../edem.html#packed-format">Packed format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../edem.html#serial-composition-and-dem-projection">Serial composition and DEM projection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../edem.html#exact-noise-conversion-and-column-coalescing">Exact noise conversion and column coalescing</a></li>
+</ul>
+</li>
 </ul>
 
         </div>
@@ -1188,6 +1212,27 @@ the full stack-trace for debugging, pass
 <div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>program.py<span class="w"> </span>--target<span class="w"> </span>nvidia<span class="w"> </span>--target-option<span class="w"> </span>fp64<span class="w"> </span>--cudaq-full-stack-trace
 </pre></div>
 </div>
+</section>
+<section id="llvm-based-python-packages">
+<h2>LLVM-based Python packages<a class="headerlink" href="#llvm-based-python-packages" title="Permalink to this heading">¶</a></h2>
+<p>Older CUDA-Q releases can expose their bundled LLVM symbols to other Python
+extensions. On Linux, importing Numba or Triton after CUDA-Q can then abort the
+process during JIT compilation or report duplicate LLVM command-line options.
+For affected releases, import Numba or Triton before importing CUDA-Q. If the
+application cannot control import order, run CUDA-Q in a separate process.</p>
+<p>CUDA-Q keeps its LLVM-dependent runtime and backend libraries local. Importing
+<code class="docutils literal notranslate"><span class="pre">cudaq</span></code> exposes only the LLVM-free kernel runtime (<code class="docutils literal notranslate"><span class="pre">libnvqir</span></code>,
+<code class="docutils literal notranslate"><span class="pre">libcudaq-common</span></code>, <code class="docutils literal notranslate"><span class="pre">libcudaq-kernel-runtime</span></code>, and their dependencies) globally.
+This allows shared libraries containing <code class="docutils literal notranslate"><span class="pre">nvq++</span></code>-compiled kernels to be loaded
+with <code class="docutils literal notranslate"><span class="pre">dlopen</span></code> or <code class="docutils literal notranslate"><span class="pre">ctypes.CDLL</span></code> after importing CUDA-Q, even when compiled with
+<code class="docutils literal notranslate"><span class="pre">nvq++</span> <span class="pre">-c</span> <span class="pre">-fPIC</span></code> and linked without explicit CUDA-Q dependencies. Kernel launches
+use the active CUDA-Q target without exposing the compiler’s LLVM symbols
+globally.</p>
+<p>External native extensions using C++ runtime APIs must still link to the CUDA-Q
+libraries they use, including <code class="docutils literal notranslate"><span class="pre">cudaq::cudaq-em-default</span></code> when using the default
+execution manager. Compiler plugins should link to <code class="docutils literal notranslate"><span class="pre">cudaq::MLIR</span></code>. They must not
+rely on <code class="docutils literal notranslate"><span class="pre">import</span> <span class="pre">cudaq</span></code> placing those dependencies in the process-wide symbol
+scope.</p>
 </section>
 </section>
 

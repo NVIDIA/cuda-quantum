@@ -121,6 +121,7 @@
 <li class="toctree-l2"><a class="reference internal" href="../../using/basics/troubleshooting.html">   Troubleshooting</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="../../using/basics/troubleshooting.html#debugging-and-verbose-simulation-output">Debugging and Verbose Simulation Output</a></li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/basics/troubleshooting.html#python-stack-traces">Python Stack-Traces</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/basics/troubleshooting.html#llvm-based-python-packages">LLVM-based Python packages</a></li>
 </ul>
 </li>
 </ul>
@@ -496,6 +497,7 @@
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/sims/noisy.html#trajectory-noisy-simulation">Trajectory Noisy Simulation</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/sims/noisy.html#density-matrix">Density Matrix</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/backends/sims/noisy.html#stim">Stim</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/backends/sims/noisy.html#custabilizer"><code class="docutils literal notranslate"><span class="pre">cuStabilizer</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="../../using/backends/sims/photonics.html">     Photonics Simulators</a><ul>
@@ -778,6 +780,12 @@
 <li class="toctree-l4"><a class="reference internal" href="../../using/extending/compiler/pass_plugins.html#implement-and-register-the-pass">Implement and register the pass</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/extending/compiler/pass_plugins.html#build-the-plugin">Build the plugin</a></li>
 <li class="toctree-l4"><a class="reference internal" href="../../using/extending/compiler/pass_plugins.html#load-and-test-the-plugin">Load and test the plugin</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../../using/extending/compiler/compile_targets.html">Using compile targets to customize compilation</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/compiler/compile_targets.html#constructing-single-stage-compile-targets">Constructing single-stage compile targets</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/compiler/compile_targets.html#setting-compile-targets-with-set-target">Setting compile targets with <code class="docutils literal notranslate"><span class="pre">set_target</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="../../using/extending/compiler/compile_targets.html#example">Example</a></li>
 </ul>
 </li>
 </ul>
@@ -1099,7 +1107,23 @@
 </ul>
 <p class="caption" role="heading"><span class="caption-text">Preview</span></p>
 <ul>
-<li class="toctree-l1"><a class="reference external" href="/preview/logical/#http://">CUDA-Q Logical</a></li>
+<li class="toctree-l1"><a class="reference external" href="/preview/logical/#http://">cudaq-logical</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../using/edem.html">cudaq-edem</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../using/edem.html#standalone-build">Standalone build</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/edem.html#python-bindings-and-wheel">Python bindings and wheel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/edem.html#cuda-q-build">CUDA-Q build</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/edem.html#installed-package">Installed package</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/edem.html#packaging-checks">Packaging checks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/edem.html#native-interface-and-memory">Native interface and memory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/edem.html#c-ownership-helper">C++ ownership helper</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/edem.html#component-boundary">Component boundary</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/edem.html#fault-distributions">Fault distributions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/edem.html#python-construction">Python construction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/edem.html#packed-format">Packed format</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/edem.html#serial-composition-and-dem-projection">Serial composition and DEM projection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../using/edem.html#exact-noise-conversion-and-column-coalescing">Exact noise conversion and column coalescing</a></li>
+</ul>
+</li>
 </ul>
 
         </div>
@@ -5922,6 +5946,20 @@
 </dd></dl>
 
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq13sample_result6appendERR15ExecutionResultb">
+<span class="target" id="classcudaq_1_1sample__result_1a6c76a4dd8f5d283bf6e165e148b09d88"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">append</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5cudaq15ExecutionResultE" title="cudaq::ExecutionResult"><span class="n"><span class="pre">ExecutionResult</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">result</span></span>, <span class="kt"><span class="pre">bool</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">concatenate</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">false</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq13sample_result6appendERR15ExecutionResultb" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Add another <code class="docutils literal notranslate"><a class="reference internal" href="#structcudaq_1_1ExecutionResult"><span class="std std-ref"><span class="pre">ExecutionResult</span></span></a></code> to this <code class="docutils literal notranslate"><a class="reference internal" href="#classcudaq_1_1sample__result"><span class="std std-ref"><span class="pre">sample_result</span></span></a></code>, taking over its storage. Same semantics as the copying overload otherwise. </p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>result</strong> – Result to append; left empty </p></li>
+<li><p><strong>concatenate</strong> – If prior results are found, this concatenates the bitstrings. </p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4NK5cudaq13sample_result14register_namesEv">
 <span class="target" id="classcudaq_1_1sample__result_1acf4d522001068f239b866577b2f66cb6"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">string</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">register_names</span></span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq13sample_result14register_namesEv" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Return all register names. Can be used in tandem with sample_result::to_map(regName : string) to retrieve the counts for each register. </p>
@@ -6777,34 +6815,47 @@ like this:</p>
 </dl>
 </dd></dl>
 
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>The matrix data of a <a class="reference internal" href="#_CPPv4N5cudaq8kraus_opE" title="cudaq::kraus_op"><code class="xref cpp cpp-struct docutils literal notranslate"><span class="pre">cudaq::kraus_op</span></code></a> (its <code class="docutils literal notranslate"><span class="pre">data</span></code> member) is
+always stored in double precision (<code class="docutils literal notranslate"><span class="pre">std::complex&lt;double&gt;</span></code>), regardless of
+the simulation precision of the target. Single-precision data (e.g.,
+<code class="docutils literal notranslate"><span class="pre">std::vector&lt;cudaq::complex&gt;</span></code> on <code class="docutils literal notranslate"><span class="pre">fp32</span></code> targets) is still accepted when
+constructing a <code class="docutils literal notranslate"><span class="pre">kraus_op</span></code> and is converted to double precision; use
+<code class="docutils literal notranslate"><span class="pre">cudaq::kraus_op::value_type</span></code> to refer to the element type in generic code.
+<code class="docutils literal notranslate"><span class="pre">fp32</span></code> backends continue to simulate in single precision.</p>
+</div>
 <dl class="cpp struct">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq8kraus_opE">
 <span class="target" id="structcudaq_1_1kraus__op"></span><span class="k"><span class="pre">struct</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">kraus_op</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq8kraus_opE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>A <a class="reference internal" href="#structcudaq_1_1kraus__op"><span class="std std-ref">kraus_op</span></a> represents a single Kraus operation, described as a complex matrix of specific size. The matrix is represented here as a 1d array (specifically a std::vector). </p>
 <div class="breathe-sectiondef docutils container">
+<p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-types">Public Types</p>
+<dl class="cpp type">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq8kraus_op10value_typeE">
+<span class="target" id="structcudaq_1_1kraus__op_1a24da9455774cdb4dcbc40554a81de81a"></span><span class="k"><span class="pre">using</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">value_type</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><a class="headerlink" href="#_CPPv4N5cudaq8kraus_op10value_typeE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>The element type of the Kraus matrix data. Always double precision regardless of the simulation precision (see <code class="docutils literal notranslate"><span class="pre">data</span></code> below). </p>
+</dd></dl>
+
+</div>
+<div class="breathe-sectiondef docutils container">
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-functions">Public Functions</p>
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq8kraus_op8kraus_opERK8kraus_op">
-<span class="target" id="structcudaq_1_1kraus__op_1a2f5c2b8930af146a4dbd3fadd7938fbc"></span><span class="sig-name descname"><span class="n"><span class="pre">kraus_op</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq8kraus_op8kraus_opERK8kraus_op" title="cudaq::kraus_op::kraus_op"><span class="n"><span class="pre">kraus_op</span></span></a><span class="p"><span class="pre">&amp;</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">default</span></span><a class="headerlink" href="#_CPPv4N5cudaq8kraus_op8kraus_opERK8kraus_op" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Copy constructor. </p>
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq8kraus_op8kraus_opENSt6vectorI10value_typeEE">
+<span class="target" id="structcudaq_1_1kraus__op_1a7e3af6d1eb0d81b59d2d95afd56584f3"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">kraus_op</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N5cudaq8kraus_op10value_typeE" title="cudaq::kraus_op::value_type"><span class="n"><span class="pre">value_type</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">d</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq8kraus_op8kraus_opENSt6vectorI10value_typeEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Constructor, initialize from vector data. </p>
 </dd></dl>
 
 <dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq8kraus_op8kraus_opENSt6vectorIN5cudaq7complexEEE">
-<span class="target" id="structcudaq_1_1kraus__op_1a14137e8fb637563b68c2353d2d6834cd"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">kraus_op</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq7complexE" title="cudaq::complex"><span class="n"><span class="pre">complex</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">d</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq8kraus_op8kraus_opENSt6vectorIN5cudaq7complexEEE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Constructor, initialize from vector data. </p>
+<dt class="sig sig-object cpp" id="_CPPv4I0EN5cudaq8kraus_op8kraus_opERKNSt6vectorINSt7complexI1TEEEE">
+<span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structcudaq_1_1kraus__op_1a45e44b4776cbee874c74aedc008b8b3d"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">kraus_op</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN5cudaq8kraus_op8kraus_opERKNSt6vectorINSt7complexI1TEEEE" title="cudaq::kraus_op::kraus_op::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">d</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN5cudaq8kraus_op8kraus_opERKNSt6vectorINSt7complexI1TEEEE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Constructor, initialize from single-precision vector data. The values are converted to double precision for storage. </p>
 </dd></dl>
 
 <dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4I0EN5cudaq8kraus_op8kraus_opERRNSt16initializer_listI1TEE">
 <span class="k"><span class="pre">template</span></span><span class="p"><span class="pre">&lt;</span></span><span class="k"><span class="pre">typename</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">T</span></span></span><span class="p"><span class="pre">&gt;</span></span><br /><span class="target" id="structcudaq_1_1kraus__op_1ae05531f8a2507a0397e13250c622d512"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">kraus_op</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">initializer_list</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4I0EN5cudaq8kraus_op8kraus_opERRNSt16initializer_listI1TEE" title="cudaq::kraus_op::kraus_op::T"><span class="n"><span class="pre">T</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">initList</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4I0EN5cudaq8kraus_op8kraus_opERRNSt16initializer_listI1TEE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Constructor, initialize from initializer_list. </p>
-</dd></dl>
-
-<dl class="cpp function">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq8kraus_opaSERK8kraus_op">
-<span class="target" id="structcudaq_1_1kraus__op_1ac7cdeb5fa87ffea343ea695710abb7a2"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq8kraus_opE" title="cudaq::kraus_op"><span class="n"><span class="pre">kraus_op</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="sig-name descname"><span class="k"><span class="pre">operator</span></span><span class="o"><span class="pre">=</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq8kraus_opE" title="cudaq::kraus_op"><span class="n"><span class="pre">kraus_op</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">other</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq8kraus_opaSERK8kraus_op" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>Set this <a class="reference internal" href="#structcudaq_1_1kraus__op"><span class="std std-ref">kraus_op</span></a> equal to the other. </p>
 </dd></dl>
 
 <dl class="cpp function">
@@ -6818,7 +6869,7 @@ like this:</p>
 <p class="breathe-sectiondef-title rubric" id="breathe-section-title-public-members">Public Members</p>
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq8kraus_op4dataE">
-<span class="target" id="structcudaq_1_1kraus__op_1a9ad38665040cf71ea3ce73d76ad4989a"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq7complexE" title="cudaq::complex"><span class="n"><span class="pre">complex</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">data</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq8kraus_op4dataE" title="Permalink to this definition">¶</a><br /></dt>
+<span class="target" id="structcudaq_1_1kraus__op_1a14d27d1449d1c5f2d6d53e818eb8da18"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N5cudaq8kraus_op10value_typeE" title="cudaq::kraus_op::value_type"><span class="n"><span class="pre">value_type</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">data</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq8kraus_op4dataE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Matrix data, represented as a 1d flattened. </p>
 </dd></dl>
 
@@ -6832,12 +6883,6 @@ like this:</p>
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq8kraus_op5nColsE">
 <span class="target" id="structcudaq_1_1kraus__op_1a037b5b46c6f29c3b93c70ce35c899709"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">nCols</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="m"><span class="pre">0</span></span><a class="headerlink" href="#_CPPv4N5cudaq8kraus_op5nColsE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>The number of columns in the matrix NOTE we currently assume nRows == nCols. </p>
-</dd></dl>
-
-<dl class="cpp var">
-<dt class="sig sig-object cpp" id="_CPPv4N5cudaq8kraus_op9precisionE">
-<span class="target" id="structcudaq_1_1kraus__op_1a9139408e0100255c6445c9c18bf645e2"></span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq20simulation_precisionE" title="cudaq::simulation_precision"><span class="n"><span class="pre">simulation_precision</span></span></a><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">precision</span></span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">is_same_v</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq4realE" title="cudaq::real"><span class="n"><span class="pre">real</span></span></a><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="kt"><span class="pre">float</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="o"><span class="pre">?</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq20simulation_precisionE" title="cudaq::simulation_precision"><span class="n"><span class="pre">simulation_precision</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq20simulation_precision4fp32E" title="cudaq::simulation_precision::fp32"><span class="n"><span class="pre">fp32</span></span></a><span class="w"> </span><span class="o"><span class="pre">:</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv45cudaq" title="cudaq"><span class="n"><span class="pre">cudaq</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq20simulation_precisionE" title="cudaq::simulation_precision"><span class="n"><span class="pre">simulation_precision</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq20simulation_precision4fp64E" title="cudaq::simulation_precision::fp64"><span class="n"><span class="pre">fp64</span></span></a><a class="headerlink" href="#_CPPv4N5cudaq8kraus_op9precisionE" title="Permalink to this definition">¶</a><br /></dt>
-<dd><p>The precision of the underlying data. </p>
 </dd></dl>
 
 </div>
@@ -6962,7 +7007,7 @@ like this:</p>
 
 <dl class="cpp var">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq13kraus_channel11unitary_opsE">
-<span class="target" id="classcudaq_1_1kraus__channel_1a96c9b610069e9ff86ef5597bff834c28"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">complex</span></span><span class="p"><span class="pre">&lt;</span></span><span class="kt"><span class="pre">double</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">unitary_ops</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq13kraus_channel11unitary_opsE" title="Permalink to this definition">¶</a><br /></dt>
+<span class="target" id="classcudaq_1_1kraus__channel_1a4779b31a318680460fcff785dbe6b707"></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">vector</span></span><span class="p"><span class="pre">&lt;</span></span><a class="reference internal" href="#_CPPv4N5cudaq8kraus_opE" title="cudaq::kraus_op"><span class="n"><span class="pre">kraus_op</span></span></a><span class="p"><span class="pre">::</span></span><a class="reference internal" href="#_CPPv4N5cudaq8kraus_op10value_typeE" title="cudaq::kraus_op::value_type"><span class="n"><span class="pre">value_type</span></span></a><span class="p"><span class="pre">&gt;</span></span><span class="p"><span class="pre">&gt;</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">unitary_ops</span></span></span><a class="headerlink" href="#_CPPv4N5cudaq13kraus_channel11unitary_opsE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>If all Kraus ops are - when scaled - unitary, this holds the unitary versions of those ops. These values are always “double” regardless of whether cudaq::real is float or double. </p>
 </dd></dl>
 
@@ -8450,6 +8495,12 @@ declare observables <code class="docutils literal notranslate"><span class="pre"
 </dd></dl>
 
 <dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4N5cudaq3QPU16getCompileTargetEPK13RuntimeTarget">
+<span class="target" id="classcudaq_1_1QPU_1aed2b80091b8effbfc02022c18e145b24"></span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="n"><span class="pre">CompileTarget</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">getCompileTarget</span></span></span><span class="sig-paren">(</span><span class="k"><span class="pre">const</span></span><span class="w"> </span><a class="reference internal" href="#_CPPv4N5cudaq13RuntimeTargetE" title="cudaq::RuntimeTarget"><span class="n"><span class="pre">RuntimeTarget</span></span></a><span class="w"> </span><span class="p"><span class="pre">*</span></span><span class="n sig-param"><span class="pre">rt</span></span><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="k"><span class="pre">nullptr</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq3QPU16getCompileTargetEPK13RuntimeTarget" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Create the default compile target of this <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a>. </p>
+</dd></dl>
+
+<dl class="cpp function">
 <dt class="sig sig-object cpp" id="_CPPv4N5cudaq3QPU15onRandomSeedSetENSt6size_tE">
 <span class="target" id="classcudaq_1_1QPU_1ab4915615be5d425122d93d59ac1a22cd"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">onRandomSeedSet</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">seed</span></span><span class="sig-paren">)</span><a class="headerlink" href="#_CPPv4N5cudaq3QPU15onRandomSeedSetENSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Notify the <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> that a new random seed value is set. By default do nothing, let subclasses override. </p>
@@ -8637,6 +8688,12 @@ declare observables <code class="docutils literal notranslate"><span class="pre"
 <dt class="sig sig-object cpp" id="_CPPv4NK5cudaq16quantum_platform25configureExecutionContextER16ExecutionContext">
 <span class="target" id="classcudaq_1_1quantum__platform_1a8734ea5c892ee287bd5a8d3af451c5c0"></span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">configureExecutionContext</span></span></span><span class="sig-paren">(</span><a class="reference internal" href="#_CPPv4N5cudaq16ExecutionContextE" title="cudaq::ExecutionContext"><span class="n"><span class="pre">ExecutionContext</span></span></a><span class="w"> </span><span class="p"><span class="pre">&amp;</span></span><span class="n sig-param"><span class="pre">ctx</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq16quantum_platform25configureExecutionContextER16ExecutionContext" title="Permalink to this definition">¶</a><br /></dt>
 <dd><p>Specify the execution context for this platform. </p>
+</dd></dl>
+
+<dl class="cpp function">
+<dt class="sig sig-object cpp" id="_CPPv4NK5cudaq16quantum_platform16prepareExecutionENSt6size_tE">
+<span class="target" id="classcudaq_1_1quantum__platform_1a0b83797a8e44b05b50bae5aa42f457a7"></span><span class="k"><span class="pre">inline</span></span><span class="w"> </span><span class="k"><span class="pre">virtual</span></span><span class="w"> </span><span class="kt"><span class="pre">void</span></span><span class="w"> </span><span class="sig-name descname"><span class="n"><span class="pre">prepareExecution</span></span></span><span class="sig-paren">(</span><span class="n"><span class="pre">std</span></span><span class="p"><span class="pre">::</span></span><span class="n"><span class="pre">size_t</span></span><span class="w"> </span><span class="n sig-param"><span class="pre">qpu_id</span></span><span class="sig-paren">)</span><span class="w"> </span><span class="k"><span class="pre">const</span></span><a class="headerlink" href="#_CPPv4NK5cudaq16quantum_platform16prepareExecutionENSt6size_tE" title="Permalink to this definition">¶</a><br /></dt>
+<dd><p>Bind the calling thread to <a class="reference internal" href="#classcudaq_1_1QPU"><span class="std std-ref">QPU</span></a> <code class="docutils literal notranslate"><span class="pre">qpu_id</span></code> (e.g. its CUDA device) before its simulator is initialized. </p>
 </dd></dl>
 
 <dl class="cpp function">

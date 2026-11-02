@@ -196,6 +196,8 @@ if (CUDAQ_ENABLE_PYTHON)
   endfunction()
 
   add_pycudaq_test(Intro intro.py)
+  add_pycudaq_test(CompileTargets using/examples/compile_targets.py
+    SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python)
 
   set(PTSBE_PY_SNIPPET_DIR ${CMAKE_CURRENT_SOURCE_DIR}/sphinx/snippets/python/using/examples/ptsbe)
   add_pycudaq_test(PTSBE_BellDepol bell_circuit_under_depol_noise.py SOURCE_DIR ${PTSBE_PY_SNIPPET_DIR})

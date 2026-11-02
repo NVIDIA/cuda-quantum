@@ -48,6 +48,9 @@ latest
         -   [Python
             Stack-Traces](../../basics/troubleshooting.html#python-stack-traces){.reference
             .internal}
+        -   [LLVM-based Python
+            packages](../../basics/troubleshooting.html#llvm-based-python-packages){.reference
+            .internal}
 -   [Examples](../../examples/examples.html){.reference .internal}
     -   [Introduction](../../examples/introduction.html){.reference
         .internal}
@@ -764,6 +767,9 @@ latest
             -   [Density Matrix](noisy.html#density-matrix){.reference
                 .internal}
             -   [Stim](noisy.html#stim){.reference .internal}
+            -   [[`cuStabilizer`{.docutils .literal
+                .notranslate}]{.pre}](noisy.html#custabilizer){.reference
+                .internal}
         -   [Photonics Simulators](#){.current .reference .internal}
             -   [orca-photonics](#orca-photonics){.reference .internal}
     -   [Quantum Hardware (QPUs)](../hardware.html){.reference
@@ -1259,6 +1265,18 @@ latest
                 .internal}
             -   [Load and test the
                 plugin](../../extending/compiler/pass_plugins.html#load-and-test-the-plugin){.reference
+                .internal}
+        -   [Using compile targets to customize
+            compilation](../../extending/compiler/compile_targets.html){.reference
+            .internal}
+            -   [Constructing single-stage compile
+                targets](../../extending/compiler/compile_targets.html#constructing-single-stage-compile-targets){.reference
+                .internal}
+            -   [Setting compile targets with [`set_target`{.docutils
+                .literal
+                .notranslate}]{.pre}](../../extending/compiler/compile_targets.html#setting-compile-targets-with-set-target){.reference
+                .internal}
+            -   [Example](../../extending/compiler/compile_targets.html#example){.reference
                 .internal}
     -   [Add a hardware
         backend](../../extending/backend.html){.reference .internal}
@@ -1955,7 +1973,43 @@ latest
 
 [Preview]{.caption-text}
 
--   [CUDA-Q Logical](/preview/logical/#http://){.reference .external}
+-   [cudaq-logical](/preview/logical/#http://){.reference .external}
+-   [cudaq-edem](../../edem.html){.reference .internal}
+    -   [Standalone build](../../edem.html#standalone-build){.reference
+        .internal}
+    -   [Python bindings and
+        wheel](../../edem.html#python-bindings-and-wheel){.reference
+        .internal}
+    -   [CUDA-Q build](../../edem.html#cuda-q-build){.reference
+        .internal}
+    -   [Installed
+        package](../../edem.html#installed-package){.reference
+        .internal}
+    -   [Packaging checks](../../edem.html#packaging-checks){.reference
+        .internal}
+    -   [Native interface and
+        memory](../../edem.html#native-interface-and-memory){.reference
+        .internal}
+    -   [C++ ownership
+        helper](../../edem.html#c-ownership-helper){.reference
+        .internal}
+    -   [Component
+        boundary](../../edem.html#component-boundary){.reference
+        .internal}
+    -   [Fault
+        distributions](../../edem.html#fault-distributions){.reference
+        .internal}
+    -   [Python
+        construction](../../edem.html#python-construction){.reference
+        .internal}
+    -   [Packed format](../../edem.html#packed-format){.reference
+        .internal}
+    -   [Serial composition and DEM
+        projection](../../edem.html#serial-composition-and-dem-projection){.reference
+        .internal}
+    -   [Exact noise conversion and column
+        coalescing](../../edem.html#exact-noise-conversion-and-column-coalescing){.reference
+        .internal}
 :::
 :::
 

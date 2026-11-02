@@ -55,20 +55,22 @@ your own risk until exercised evidence lands.
 
 **Execution uses ordinary CUDA-Q targets.** `cudaq.run(physical_build, ...)`
 translates a supported P3 `Build` through `Build.to_quake()` and executes the
-resulting circuit on the selected target. Each shot returns the entry's explicit
-Boolean results: one result becomes a `bool`, and multiple results become a
-`list[bool]` in physical return order. No implicit final measurements or decoding
-are added. See the [Steane Bernstein–Vazirani](../use-cases/examples/steane-bernstein-vazirani.md)
+resulting circuit on the selected target. A program can return a `bool`, a list
+of `bool`, or a tuple of `bool`. Each shot returns a `bool` for a single entry,
+and a `list[bool]` in return order for several. No implicit final measurements
+or decoding are added. See the
+[Steane Bernstein–Vazirani](../use-cases/examples/steane-bernstein-vazirani.md)
 and [T-factory](../use-cases/examples/t-factory-evaluation.md) execution examples.
 
-**Execution covers a subset of P3.** Resource and factory flows, in-graph
-postselection, code epoch changes, and patch-granularity resources produce
-diagnostics instead of executable Quake. Support for compiling or estimating
-these forms does not imply execution support.
+**Execution covers a subset of P3.** Forms such as resource and factory flows,
+in-graph postselection, bounded retry, code epoch changes, and patch-granularity
+resources produce diagnostics instead of executable Quake. Support for compiling
+or estimating these forms does not imply execution support.
 
 **Target capabilities and memory limits still apply.** CUDA-Q's `stim` target
-executes Clifford circuits with supported Pauli noise. Non-Clifford examples
-require a compatible target, such as `nvidia` or `density-matrix-cpu`.
+executes Clifford circuits with supported Pauli noise. Non-Clifford examples,
+and any Pauli-product rotation, require a compatible target, such as `nvidia`
+or `density-matrix-cpu`.
 Successful compilation does not guarantee that a simulator has enough memory
 for the physical carriers, including ancillas. The ordinary `noise_model`
 argument applies supported channels to emitted gates. P3 operating-point error

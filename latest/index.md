@@ -48,6 +48,9 @@ latest
         -   [Python
             Stack-Traces](using/basics/troubleshooting.html#python-stack-traces){.reference
             .internal}
+        -   [LLVM-based Python
+            packages](using/basics/troubleshooting.html#llvm-based-python-packages){.reference
+            .internal}
 -   [Examples](using/examples/examples.html){.reference .internal}
     -   [Introduction](using/examples/introduction.html){.reference
         .internal}
@@ -770,6 +773,9 @@ latest
                 .internal}
             -   [Stim](using/backends/sims/noisy.html#stim){.reference
                 .internal}
+            -   [[`cuStabilizer`{.docutils .literal
+                .notranslate}]{.pre}](using/backends/sims/noisy.html#custabilizer){.reference
+                .internal}
         -   [Photonics
             Simulators](using/backends/sims/photonics.html){.reference
             .internal}
@@ -1276,6 +1282,18 @@ latest
                 .internal}
             -   [Load and test the
                 plugin](using/extending/compiler/pass_plugins.html#load-and-test-the-plugin){.reference
+                .internal}
+        -   [Using compile targets to customize
+            compilation](using/extending/compiler/compile_targets.html){.reference
+            .internal}
+            -   [Constructing single-stage compile
+                targets](using/extending/compiler/compile_targets.html#constructing-single-stage-compile-targets){.reference
+                .internal}
+            -   [Setting compile targets with [`set_target`{.docutils
+                .literal
+                .notranslate}]{.pre}](using/extending/compiler/compile_targets.html#setting-compile-targets-with-set-target){.reference
+                .internal}
+            -   [Example](using/extending/compiler/compile_targets.html#example){.reference
                 .internal}
     -   [Add a hardware
         backend](using/extending/backend.html){.reference .internal}
@@ -1966,7 +1984,43 @@ latest
 
 [Preview]{.caption-text}
 
--   [CUDA-Q Logical](/preview/logical/#http://){.reference .external}
+-   [cudaq-logical](/preview/logical/#http://){.reference .external}
+-   [cudaq-edem](using/edem.html){.reference .internal}
+    -   [Standalone build](using/edem.html#standalone-build){.reference
+        .internal}
+    -   [Python bindings and
+        wheel](using/edem.html#python-bindings-and-wheel){.reference
+        .internal}
+    -   [CUDA-Q build](using/edem.html#cuda-q-build){.reference
+        .internal}
+    -   [Installed
+        package](using/edem.html#installed-package){.reference
+        .internal}
+    -   [Packaging checks](using/edem.html#packaging-checks){.reference
+        .internal}
+    -   [Native interface and
+        memory](using/edem.html#native-interface-and-memory){.reference
+        .internal}
+    -   [C++ ownership
+        helper](using/edem.html#c-ownership-helper){.reference
+        .internal}
+    -   [Component
+        boundary](using/edem.html#component-boundary){.reference
+        .internal}
+    -   [Fault
+        distributions](using/edem.html#fault-distributions){.reference
+        .internal}
+    -   [Python
+        construction](using/edem.html#python-construction){.reference
+        .internal}
+    -   [Packed format](using/edem.html#packed-format){.reference
+        .internal}
+    -   [Serial composition and DEM
+        projection](using/edem.html#serial-composition-and-dem-projection){.reference
+        .internal}
+    -   [Exact noise conversion and column
+        coalescing](using/edem.html#exact-noise-conversion-and-column-coalescing){.reference
+        .internal}
 :::
 :::
 
@@ -2010,9 +2064,9 @@ quantum programming, compiler toolchains for optimization and hardware
 support and low-level QPU runtimes for detailed hardware control. CUDA-Q
 also provides an open, extensible logical layer for fault-tolerant
 fault-tolerant workloads, Quantum Error Correction (QEC) codes and QPU
-architecture co-design, currently in preview. See [CUDA-Q
-Logical](./preview/logical/index.html#http://){.reference .external} for
-more information.
+architecture co-design, currently in preview. See
+[cudaq-logical](./preview/logical/index.html#http://){.reference
+.external} for more information.
 
 You are browsing the documentation for latest version of CUDA-Q. You can
 find documentation for all released versions
@@ -2196,7 +2250,8 @@ scope and limitations.
 ::: {.toctree-wrapper .compound}
 [Preview]{.caption-text}
 
--   [CUDA-Q Logical](/preview/logical/#http://){.reference .external}
+-   [cudaq-logical](/preview/logical/#http://){.reference .external}
+-   [cudaq-edem](using/edem.html){.reference .internal}
 :::
 :::
 :::

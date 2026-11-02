@@ -51,6 +51,9 @@ latest
         -   [Python
             Stack-Traces](../../using/basics/troubleshooting.html#python-stack-traces){.reference
             .internal}
+        -   [LLVM-based Python
+            packages](../../using/basics/troubleshooting.html#llvm-based-python-packages){.reference
+            .internal}
 -   [Examples](../../using/examples/examples.html){.reference .internal}
     -   [Introduction](../../using/examples/introduction.html){.reference
         .internal}
@@ -783,6 +786,9 @@ latest
                 .internal}
             -   [Stim](../../using/backends/sims/noisy.html#stim){.reference
                 .internal}
+            -   [[`cuStabilizer`{.docutils .literal
+                .notranslate}]{.pre}](../../using/backends/sims/noisy.html#custabilizer){.reference
+                .internal}
         -   [Photonics
             Simulators](../../using/backends/sims/photonics.html){.reference
             .internal}
@@ -1299,6 +1305,18 @@ latest
                 .internal}
             -   [Load and test the
                 plugin](../../using/extending/compiler/pass_plugins.html#load-and-test-the-plugin){.reference
+                .internal}
+        -   [Using compile targets to customize
+            compilation](../../using/extending/compiler/compile_targets.html){.reference
+            .internal}
+            -   [Constructing single-stage compile
+                targets](../../using/extending/compiler/compile_targets.html#constructing-single-stage-compile-targets){.reference
+                .internal}
+            -   [Setting compile targets with [`set_target`{.docutils
+                .literal
+                .notranslate}]{.pre}](../../using/extending/compiler/compile_targets.html#setting-compile-targets-with-set-target){.reference
+                .internal}
+            -   [Example](../../using/extending/compiler/compile_targets.html#example){.reference
                 .internal}
     -   [Add a hardware
         backend](../../using/extending/backend.html){.reference
@@ -1969,7 +1987,45 @@ latest
 
 [Preview]{.caption-text}
 
--   [CUDA-Q Logical](/preview/logical/#http://){.reference .external}
+-   [cudaq-logical](/preview/logical/#http://){.reference .external}
+-   [cudaq-edem](../../using/edem.html){.reference .internal}
+    -   [Standalone
+        build](../../using/edem.html#standalone-build){.reference
+        .internal}
+    -   [Python bindings and
+        wheel](../../using/edem.html#python-bindings-and-wheel){.reference
+        .internal}
+    -   [CUDA-Q build](../../using/edem.html#cuda-q-build){.reference
+        .internal}
+    -   [Installed
+        package](../../using/edem.html#installed-package){.reference
+        .internal}
+    -   [Packaging
+        checks](../../using/edem.html#packaging-checks){.reference
+        .internal}
+    -   [Native interface and
+        memory](../../using/edem.html#native-interface-and-memory){.reference
+        .internal}
+    -   [C++ ownership
+        helper](../../using/edem.html#c-ownership-helper){.reference
+        .internal}
+    -   [Component
+        boundary](../../using/edem.html#component-boundary){.reference
+        .internal}
+    -   [Fault
+        distributions](../../using/edem.html#fault-distributions){.reference
+        .internal}
+    -   [Python
+        construction](../../using/edem.html#python-construction){.reference
+        .internal}
+    -   [Packed format](../../using/edem.html#packed-format){.reference
+        .internal}
+    -   [Serial composition and DEM
+        projection](../../using/edem.html#serial-composition-and-dem-projection){.reference
+        .internal}
+    -   [Exact noise conversion and column
+        coalescing](../../using/edem.html#exact-noise-conversion-and-column-coalescing){.reference
+        .internal}
 :::
 :::
 
@@ -9281,6 +9337,28 @@ aria-hidden="true"}](python_api.html "CUDA-Q Python API"){.btn
     <!-- -->
     ```
 
+    []{#classcudaq_1_1sample__result_1a6c76a4dd8f5d283bf6e165e148b09d88 .target}[[void]{.pre}]{.kt}[ ]{.w}[[[append]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[ExecutionResult]{.pre}]{.n}](#_CPPv4N5cudaq15ExecutionResultE "cudaq::ExecutionResult"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[&]{.pre}]{.p}[[result]{.pre}]{.n .sig-param}, [[bool]{.pre}]{.kt}[ ]{.w}[[concatenate]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[false]{.pre}]{.k}[)]{.sig-paren}[¶](#_CPPv4N5cudaq13sample_result6appendERR15ExecutionResultb "Permalink to this definition"){.headerlink}\
+
+    :   Add another [[[`ExecutionResult`{.docutils .literal
+        .notranslate}]{.pre}]{.std
+        .std-ref}](#structcudaq_1_1ExecutionResult){.reference
+        .internal} to this [[[`sample_result`{.docutils .literal
+        .notranslate}]{.pre}]{.std
+        .std-ref}](#classcudaq_1_1sample__result){.reference .internal},
+        taking over its storage. Same semantics as the copying overload
+        otherwise.
+
+        Parameters[:]{.colon}
+
+        :   -   **result** -- Result to append; left empty
+
+            -   **concatenate** -- If prior results are found, this
+                concatenates the bitstrings.
+
+    ```{=html}
+    <!-- -->
+    ```
+
     []{#classcudaq_1_1sample__result_1acf4d522001068f239b866577b2f66cb6 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[string]{.pre}]{.n}[[\>]{.pre}]{.p}[ ]{.w}[[[register_names]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq13sample_result14register_namesEv "Permalink to this definition"){.headerlink}\
 
     :   Return all register names. Can be used in tandem with
@@ -10474,9 +10552,24 @@ discriminate a vector of handles.
         :::
         :::
 
-```{=html}
-<!-- -->
-```
+::: {.admonition .note}
+Note
+
+The matrix data of a [[`cudaq::kraus_op`{.xref .cpp .cpp-struct
+.docutils .literal
+.notranslate}]{.pre}](#_CPPv4N5cudaq8kraus_opE "cudaq::kraus_op"){.reference
+.internal} (its [`data`{.docutils .literal .notranslate}]{.pre} member)
+is always stored in double precision ([`std::complex<double>`{.docutils
+.literal .notranslate}]{.pre}), regardless of the simulation precision
+of the target. Single-precision data (e.g.,
+[`std::vector<cudaq::complex>`{.docutils .literal .notranslate}]{.pre}
+on [`fp32`{.docutils .literal .notranslate}]{.pre} targets) is still
+accepted when constructing a [`kraus_op`{.docutils .literal
+.notranslate}]{.pre} and is converted to double precision; use
+[`cudaq::kraus_op::value_type`{.docutils .literal .notranslate}]{.pre}
+to refer to the element type in generic code. [`fp32`{.docutils .literal
+.notranslate}]{.pre} backends continue to simulate in single precision.
+:::
 
 []{#structcudaq_1_1kraus__op .target}[[struct]{.pre}]{.k}[ ]{.w}[[[kraus_op]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq8kraus_opE "Permalink to this definition"){.headerlink}\
 
@@ -10486,19 +10579,31 @@ discriminate a vector of handles.
     1d array (specifically a std::vector).
 
     ::: {.breathe-sectiondef .docutils .container}
+    Public Types
+
+    []{#structcudaq_1_1kraus__op_1a24da9455774cdb4dcbc40554a81de81a .target}[[using]{.pre}]{.k}[ ]{.w}[[[value_type]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[complex]{.pre}]{.n}[[\<]{.pre}]{.p}[[double]{.pre}]{.kt}[[\>]{.pre}]{.p}[¶](#_CPPv4N5cudaq8kraus_op10value_typeE "Permalink to this definition"){.headerlink}\
+
+    :   The element type of the Kraus matrix data. Always double
+        precision regardless of the simulation precision (see
+        [`data`{.docutils .literal .notranslate}]{.pre} below).
+    :::
+
+    ::: {.breathe-sectiondef .docutils .container}
     Public Functions
 
-    []{#structcudaq_1_1kraus__op_1a2f5c2b8930af146a4dbd3fadd7938fbc .target}[[[kraus_op]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[[kraus_op]{.pre}]{.n}](#_CPPv4N5cudaq8kraus_op8kraus_opERK8kraus_op "cudaq::kraus_op::kraus_op"){.reference .internal}[[&]{.pre}]{.p}[)]{.sig-paren}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[default]{.pre}]{.k}[¶](#_CPPv4N5cudaq8kraus_op8kraus_opERK8kraus_op "Permalink to this definition"){.headerlink}\
+    []{#structcudaq_1_1kraus__op_1a7e3af6d1eb0d81b59d2d95afd56584f3 .target}[[inline]{.pre}]{.k}[ ]{.w}[[[kraus_op]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[[value_type]{.pre}]{.n}](#_CPPv4N5cudaq8kraus_op10value_typeE "cudaq::kraus_op::value_type"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[d]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq8kraus_op8kraus_opENSt6vectorI10value_typeEE "Permalink to this definition"){.headerlink}\
 
-    :   Copy constructor.
+    :   Constructor, initialize from vector data.
 
     ```{=html}
     <!-- -->
     ```
 
-    []{#structcudaq_1_1kraus__op_1a14137e8fb637563b68c2353d2d6834cd .target}[[inline]{.pre}]{.k}[ ]{.w}[[[kraus_op]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[complex]{.pre}]{.n}](#_CPPv4N5cudaq7complexE "cudaq::complex"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[d]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq8kraus_op8kraus_opENSt6vectorIN5cudaq7complexEEE "Permalink to this definition"){.headerlink}\
+    [[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[T]{.pre}]{.n}]{.sig-name .descname}[[\>]{.pre}]{.p}\
+    []{#structcudaq_1_1kraus__op_1a45e44b4776cbee874c74aedc008b8b3d .target}[[inline]{.pre}]{.k}[ ]{.w}[[[kraus_op]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[complex]{.pre}]{.n}[[\<]{.pre}]{.p}[[[T]{.pre}]{.n}](#_CPPv4I0EN5cudaq8kraus_op8kraus_opERKNSt6vectorINSt7complexI1TEEEE "cudaq::kraus_op::kraus_op::T"){.reference .internal}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[d]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0EN5cudaq8kraus_op8kraus_opERKNSt6vectorINSt7complexI1TEEEE "Permalink to this definition"){.headerlink}\
 
-    :   Constructor, initialize from vector data.
+    :   Constructor, initialize from single-precision vector data. The
+        values are converted to double precision for storage.
 
     ```{=html}
     <!-- -->
@@ -10513,16 +10618,6 @@ discriminate a vector of handles.
     <!-- -->
     ```
 
-    []{#structcudaq_1_1kraus__op_1ac7cdeb5fa87ffea343ea695710abb7a2 .target}[[inline]{.pre}]{.k}[ ]{.w}[[[kraus_op]{.pre}]{.n}](#_CPPv4N5cudaq8kraus_opE "cudaq::kraus_op"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[[operator]{.pre}]{.k}[[=]{.pre}]{.o}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[[kraus_op]{.pre}]{.n}](#_CPPv4N5cudaq8kraus_opE "cudaq::kraus_op"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[other]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq8kraus_opaSERK8kraus_op "Permalink to this definition"){.headerlink}\
-
-    :   Set this [[kraus_op]{.std
-        .std-ref}](#structcudaq_1_1kraus__op){.reference .internal}
-        equal to the other.
-
-    ```{=html}
-    <!-- -->
-    ```
-
     []{#structcudaq_1_1kraus__op_1a515b1d2dcfc3b07156eeee9ce394e706 .target}[[inline]{.pre}]{.k}[ ]{.w}[[[kraus_op]{.pre}]{.n}](#_CPPv4N5cudaq8kraus_opE "cudaq::kraus_op"){.reference .internal}[ ]{.w}[[[adjoint]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq8kraus_op7adjointEv "Permalink to this definition"){.headerlink}\
 
     :   Return the adjoint of this [[kraus_op]{.std
@@ -10532,7 +10627,7 @@ discriminate a vector of handles.
     ::: {.breathe-sectiondef .docutils .container}
     Public Members
 
-    []{#structcudaq_1_1kraus__op_1a9ad38665040cf71ea3ce73d76ad4989a .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[complex]{.pre}]{.n}](#_CPPv4N5cudaq7complexE "cudaq::complex"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[[data]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq8kraus_op4dataE "Permalink to this definition"){.headerlink}\
+    []{#structcudaq_1_1kraus__op_1a14d27d1449d1c5f2d6d53e818eb8da18 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[[value_type]{.pre}]{.n}](#_CPPv4N5cudaq8kraus_op10value_typeE "cudaq::kraus_op::value_type"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[[data]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq8kraus_op4dataE "Permalink to this definition"){.headerlink}\
 
     :   Matrix data, represented as a 1d flattened.
 
@@ -10552,14 +10647,6 @@ discriminate a vector of handles.
 
     :   The number of columns in the matrix NOTE we currently assume
         nRows == nCols.
-
-    ```{=html}
-    <!-- -->
-    ```
-
-    []{#structcudaq_1_1kraus__op_1a9139408e0100255c6445c9c18bf645e2 .target}[[const]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[simulation_precision]{.pre}]{.n}](#_CPPv4N5cudaq20simulation_precisionE "cudaq::simulation_precision"){.reference .internal}[ ]{.w}[[[precision]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[is_same_v]{.pre}]{.n}[[\<]{.pre}]{.p}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[real]{.pre}]{.n}](#_CPPv4N5cudaq4realE "cudaq::real"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[float]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[?]{.pre}]{.o}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[simulation_precision]{.pre}]{.n}](#_CPPv4N5cudaq20simulation_precisionE "cudaq::simulation_precision"){.reference .internal}[[::]{.pre}]{.p}[[[fp32]{.pre}]{.n}](#_CPPv4N5cudaq20simulation_precision4fp32E "cudaq::simulation_precision::fp32"){.reference .internal}[ ]{.w}[[:]{.pre}]{.o}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[simulation_precision]{.pre}]{.n}](#_CPPv4N5cudaq20simulation_precisionE "cudaq::simulation_precision"){.reference .internal}[[::]{.pre}]{.p}[[[fp64]{.pre}]{.n}](#_CPPv4N5cudaq20simulation_precision4fp64E "cudaq::simulation_precision::fp64"){.reference .internal}[¶](#_CPPv4N5cudaq8kraus_op9precisionE "Permalink to this definition"){.headerlink}\
-
-    :   The precision of the underlying data.
     :::
 
 ```{=html}
@@ -10755,7 +10842,7 @@ discriminate a vector of handles.
     <!-- -->
     ```
 
-    []{#classcudaq_1_1kraus__channel_1a96c9b610069e9ff86ef5597bff834c28 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[complex]{.pre}]{.n}[[\<]{.pre}]{.p}[[double]{.pre}]{.kt}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[ ]{.w}[[[unitary_ops]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq13kraus_channel11unitary_opsE "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1kraus__channel_1a4779b31a318680460fcff785dbe6b707 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[[kraus_op]{.pre}]{.n}](#_CPPv4N5cudaq8kraus_opE "cudaq::kraus_op"){.reference .internal}[[::]{.pre}]{.p}[[[value_type]{.pre}]{.n}](#_CPPv4N5cudaq8kraus_op10value_typeE "cudaq::kraus_op::value_type"){.reference .internal}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[ ]{.w}[[[unitary_ops]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq13kraus_channel11unitary_opsE "Permalink to this definition"){.headerlink}\
 
     :   If all Kraus ops are - when scaled - unitary, this holds the
         unitary versions of those ops. These values are always "double"
@@ -13118,6 +13205,15 @@ them they are erased before execution.
     <!-- -->
     ```
 
+    []{#classcudaq_1_1QPU_1aed2b80091b8effbfc02022c18e145b24 .target}[[virtual]{.pre}]{.k}[ ]{.w}[[CompileTarget]{.pre}]{.n}[ ]{.w}[[[getCompileTarget]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[[RuntimeTarget]{.pre}]{.n}](#_CPPv4N5cudaq13RuntimeTargetE "cudaq::RuntimeTarget"){.reference .internal}[ ]{.w}[[\*]{.pre}]{.p}[[rt]{.pre}]{.n .sig-param}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[nullptr]{.pre}]{.k}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3QPU16getCompileTargetEPK13RuntimeTarget "Permalink to this definition"){.headerlink}\
+
+    :   Create the default compile target of this [[QPU]{.std
+        .std-ref}](#classcudaq_1_1QPU){.reference .internal}.
+
+    ```{=html}
+    <!-- -->
+    ```
+
     []{#classcudaq_1_1QPU_1ab4915615be5d425122d93d59ac1a22cd .target}[[inline]{.pre}]{.k}[ ]{.w}[[virtual]{.pre}]{.k}[ ]{.w}[[void]{.pre}]{.kt}[ ]{.w}[[[onRandomSeedSet]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[seed]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq3QPU15onRandomSeedSetENSt6size_tE "Permalink to this definition"){.headerlink}\
 
     :   Notify the [[QPU]{.std .std-ref}](#classcudaq_1_1QPU){.reference
@@ -13434,6 +13530,17 @@ them they are erased before execution.
     []{#classcudaq_1_1quantum__platform_1a8734ea5c892ee287bd5a8d3af451c5c0 .target}[[void]{.pre}]{.kt}[ ]{.w}[[[configureExecutionContext]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[[ExecutionContext]{.pre}]{.n}](#_CPPv4N5cudaq16ExecutionContextE "cudaq::ExecutionContext"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[ctx]{.pre}]{.n .sig-param}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq16quantum_platform25configureExecutionContextER16ExecutionContext "Permalink to this definition"){.headerlink}\
 
     :   Specify the execution context for this platform.
+
+    ```{=html}
+    <!-- -->
+    ```
+
+    []{#classcudaq_1_1quantum__platform_1a0b83797a8e44b05b50bae5aa42f457a7 .target}[[inline]{.pre}]{.k}[ ]{.w}[[virtual]{.pre}]{.k}[ ]{.w}[[void]{.pre}]{.kt}[ ]{.w}[[[prepareExecution]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[size_t]{.pre}]{.n}[ ]{.w}[[qpu_id]{.pre}]{.n .sig-param}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq16quantum_platform16prepareExecutionENSt6size_tE "Permalink to this definition"){.headerlink}\
+
+    :   Bind the calling thread to [[QPU]{.std
+        .std-ref}](#classcudaq_1_1QPU){.reference .internal}
+        [`qpu_id`{.docutils .literal .notranslate}]{.pre} (e.g. its CUDA
+        device) before its simulator is initialized.
 
     ```{=html}
     <!-- -->
