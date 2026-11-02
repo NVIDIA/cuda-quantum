@@ -126,11 +126,12 @@ installed_backends=`\
     echo "default"
     "$target_resolve" --list-targets --include-unavailable "${target_resolve_args[@]}"`
 
-# Run on all simulators except Clifford-only ones and benchmark targets
+# Run on all simulators except benchmark targets. The Clifford-only simulators
+# in clifford_backends run only the examples in clifford_examples below.
 available_backends=`\
     echo "default"
     "$target_resolve" --list-simulators "${target_resolve_args[@]}" \
-        | grep -vxE "stim|custabilizer|compiler-bench-ftqc-clifford-t"`
+        | grep -vxE "compiler-bench-ftqc-clifford-t"`
 
 missing_backend=false
 if [ $# -eq 0 ]
@@ -208,14 +209,44 @@ tensornet_backend_skipped_tests=(\
     examples/cpp/other/builder/builder.cpp \
     applications/cpp/amplitude_estimation.cpp)
 
+# Examples the Clifford-only simulators can run: main() executes only Clifford
+# kernels and calls neither get_state nor observe.
+clifford_backends="stim custabilizer"
+clifford_examples=(\
+    examples/cpp/basics/bernstein_vazirani.cpp \
+    examples/cpp/basics/mid_circuit_measurement.cpp \
+    examples/cpp/basics/static_kernel.cpp \
+    examples/cpp/building_kernels.cpp \
+    examples/cpp/executing_kernels_run.cpp \
+    examples/cpp/executing_kernels_run_custom.cpp \
+    examples/cpp/executing_kernels_sample.cpp \
+    examples/cpp/executing_kernels_sample_async.cpp \
+    examples/cpp/measuring_kernels.cpp \
+    examples/cpp/sample_to_run_migration.cpp)
+
 echo "============================="
 echo "==        C++ Tests        =="
 echo "============================="
 
+tmpFile=$(mktemp)
+
+# A renamed or deleted entry must fail rather than silently test less.
+for t in $clifford_backends; do
+    echo $requested_backends | grep -w -q $t || continue
+    for ex in "${clifford_examples[@]}"; do
+        if [ ! -f "$ex" ]; then
+            echo -e "\e[01;31mError: Clifford example $ex not found.\e[0m" >&2
+            echo ":x: $ex: Listed in clifford_examples but not found." >> "${tmpFile}_$(echo $t | tr - _)"
+            let "samples+=1"
+            let "failed+=1"
+        fi
+    done
+    break
+done
+
 # Plugin sources are libraries or test infrastructure rather than standalone
 # examples; each plugin validates them through its dedicated test target.
 # Note: piping the `find` results through `sort` guarantees repeatable ordering.
-tmpFile=$(mktemp)
 for ex in `find examples/ applications/ targets/ -name '*.cpp' \
     -not -path '*/mpi/*' -not -path '*/plugins/*' | sort`;
 do
@@ -259,6 +290,11 @@ do
             let "skipped+=1"
             echo "Skipping $t target."
             echo ":white_flag: $filename: Not executed for performance reasons. Test skipped." >> "${tmpFile}_$(echo $t | tr - _)"
+            continue
+        elif [[ " $clifford_backends " == *" $t "* ]] && [[ ! " ${clifford_examples[*]} " =~ " $ex " ]]; then
+            let "skipped+=1"
+            echo "Skipping $t target."
+            echo ":white_flag: $filename: Not in clifford_examples. Test skipped." >> "${tmpFile}_$(echo $t | tr - _)"
             continue
         # Skip long-running tests, not suitable for cutensornet-based backends.
         elif [[ "$t" == "tensornet" || "$t" == "tensornet-mps" || "$t" == "nvidia-mqpu-mps" ]] && [[ " ${tensornet_backend_skipped_tests[*]} " =~ " $ex " ]]; then
