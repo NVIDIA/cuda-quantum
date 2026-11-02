@@ -246,6 +246,36 @@ jobs:
       # needed only for the matrix-outputs action
       matrix_key: ${{ matrix.platform }}-${{ matrix.toolchain }}
 
+  # CUDA 12 has no 26.04 images, so it stays on 24.04.
+  devdeps_ubuntu2404:
+    name: Build dev dependencies (Ubuntu 24.04)
+    needs: metadata
+    if: needs.metadata.outputs.build_dependencies == 'true'
+    strategy:
+      matrix:
+        platform: ${{ fromJson(needs.metadata.outputs.platforms).ids }}
+      fail-fast: false
+    uses: ./.github/workflows/dev_environment.yml
+    secrets:
+      DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+      DOCKERHUB_READONLY_TOKEN: ${{ secrets.DOCKERHUB_READONLY_TOKEN }}
+    with:
+      platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
+      dockerfile: build/devdeps.Dockerfile
+      build_config_id: gcc12-ubuntu24.04
+      build_args: |
+        toolchain=gcc12
+        base_image=ubuntu:24.04
+        libstdcxx_version=13
+      registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
+      update_registry_cache: ${{ needs.metadata.outputs.cache_target }}
+      pull_request_number: ${{ needs.metadata.outputs.pull_request_number }}
+      pull_request_commit: ${{ needs.metadata.outputs.pull_request_commit }}
+      checkout_submodules: true
+      environment: ${{ needs.metadata.outputs.environment }}
+      # needed only for the matrix-outputs action
+      matrix_key: ${{ matrix.platform }}-gcc12-ubuntu24.04
+
   wheeldeps:
     name: Build wheel dependencies
     needs: metadata
@@ -360,8 +390,10 @@ jobs:
       platforms: ${{ fromJson(needs.metadata.outputs.platforms)[format('{0}', matrix.platform)].docker_flag }}
       dockerfile: build/devdeps.ompi.Dockerfile
       build_config_id: cu${{ matrix.cuda_version }}
+      # 26.04 needs CUDA 13.3+; the 13.0 label is kept for tags and keys.
       build_args: |
-        cuda_version=${{ matrix.cuda_version }}
+        cuda_version=${{ matrix.cuda_version == '13.0' && '13.3' || matrix.cuda_version }}
+        ubuntu_version=${{ startsWith(matrix.cuda_version, '12.') && '24.04' || '26.04' }}
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
       update_registry_cache: ${{ needs.metadata.outputs.cache_target }}
       environment: ${{ needs.metadata.outputs.environment }}
@@ -370,7 +402,7 @@ jobs:
 
   dispatch:
     name: Dispatch deployments
-    needs: [metadata, devdeps, wheeldeps, source_build, openmpi]
+    needs: [metadata, devdeps, devdeps_ubuntu2404, wheeldeps, source_build, openmpi]
     if: github.event_name != 'workflow_dispatch'
     runs-on: ubuntu-latest
 
@@ -412,7 +444,7 @@ jobs:
   # https://github.com/actions/runner/pull/2477
   config:
     name: Configure build
-    needs: [metadata, devdeps, wheeldeps, source_build, openmpi]
+    needs: [metadata, devdeps, devdeps_ubuntu2404, wheeldeps, source_build, openmpi]
     if: needs.metadata.outputs.create_packages == 'true'
     runs-on: ubuntu-latest
 
@@ -451,8 +483,9 @@ jobs:
       dockerfile: build/devcontainer.Dockerfile
       build_config_id: cu${{ matrix.cuda_version }}-gcc12
       build_args: |
-        cuda_version=${{ matrix.cuda_version }}
-        base_image=${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-gcc12', matrix.platform)] }}
+        cuda_version=${{ matrix.cuda_version == '13.0' && '13.3' || matrix.cuda_version }}
+        python_version=${{ startsWith(matrix.cuda_version, '12.') && '3.12' || '3.14' }}
+        base_image=${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-gcc12{1}', matrix.platform, startsWith(matrix.cuda_version, '12.') && '-ubuntu24.04' || '')] }}
         ompidev_image=${{ fromJson(needs.config.outputs.json).image_hash[format('{0}-cu{1}-ompi', matrix.platform, matrix.cuda_version)] }}
       registry_cache_from: ${{ needs.metadata.outputs.cache_base }}
       update_registry_cache: ${{ needs.metadata.outputs.cache_target }}
