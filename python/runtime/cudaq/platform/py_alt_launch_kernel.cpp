@@ -741,9 +741,12 @@ compileModuleImpl(const std::string &name, ModuleOp mod,
                   const std::vector<void *> &rawArgs, bool isEntryPoint,
                   std::optional<cudaq::CompileTarget> target = std::nullopt,
                   std::optional<cudaq::RuntimeEndpoint> endpoint = std::nullopt,
+                  std::optional<cudaq::OptimizationLevel> level = std::nullopt,
                   bool inhibitCodegen = false) {
   auto [compileTarget, options] =
       getCompileConfig(std::move(target), std::move(endpoint));
+  if (level)
+    options.optimizationLevel = *level;
   if (inhibitCodegen)
     options.emitTargetCode = false;
   cudaq::SourceModule src{name, mod.getAsOpaquePointer()};
@@ -1142,13 +1145,15 @@ nanobind::object cudaq::marshal_and_launch_module(
 }
 
 /// Specialize and compile the kernel module without launching it. A missing
-/// \p target or \p endpoint comes from the current platform. \p target
-/// decides whether the arguments are substituted, except that a kernel that is
-/// not an entry point always has every argument substituted.
+/// \p target, \p endpoint, or \p level comes from the current platform.
+/// \p target decides whether the arguments are substituted, except that a
+/// kernel that is not an entry point always has every argument substituted.
 static cudaq::CompiledModule compileWithoutLaunch(
     const std::string &name, MlirModule module, bool isEntryPoint,
     nanobind::args runtimeArgs, std::optional<cudaq::CompileTarget> target,
-    std::optional<cudaq::RuntimeEndpoint> endpoint, bool inhibitCodegen) {
+    std::optional<cudaq::RuntimeEndpoint> endpoint,
+    std::optional<cudaq::OptimizationLevel> level = std::nullopt,
+    bool inhibitCodegen = false) {
   auto kernelFunc = cudaq::getKernelFuncOp(module, name);
   auto mod = unwrap(module);
   Type retTy = cudaq::runtime::getReturnType(kernelFunc);
@@ -1162,7 +1167,7 @@ static cudaq::CompiledModule compileWithoutLaunch(
   auto rawArgs = appendResultToArgsVector(args, retTy, mod, name);
   mlir::OwningOpRef<ModuleOp> clone = mod.clone();
   return compileModuleImpl(name, clone.get(), rawArgs, isEntryPoint,
-                           std::move(target), std::move(endpoint),
+                           std::move(target), std::move(endpoint), level,
                            inhibitCodegen);
 }
 
@@ -1173,27 +1178,34 @@ marshal_and_retain_module(const std::string &name, MlirModule module,
                           bool isEntryPoint, nanobind::args runtimeArgs) {
   ScopedTraceWithContext("marshal_and_retain_module", name);
   return compileWithoutLaunch(name, module, isEntryPoint, runtimeArgs,
-                              std::nullopt, std::nullopt,
+                              std::nullopt, std::nullopt, std::nullopt,
                               /*inhibitCodegen=*/true);
 }
 
 /// Compile a kernel module with \p target, or the current platform's compile
-/// target when it is not given, for an endpoint with the given traits. A trait
-/// that is not given comes from the current platform.
-static cudaq::CompiledModule
-compile_module(const std::string &name, MlirModule module, bool isEntryPoint,
-               std::optional<cudaq::CompileTarget> target,
-               std::optional<bool> isRemote, std::optional<bool> isEmulated,
-               std::optional<bool> supportsJit, nanobind::tuple runtimeArgs) {
+/// target when it is not given, for an endpoint with the given traits, at
+/// \p optimizationLevel. Whatever is not given comes from the current
+/// platform.
+// TODO: Only `cudaq-logical` uses this; CUDA-Q's own launches do not.
+static cudaq::CompiledModule compile_module(
+    const std::string &name, MlirModule module, bool isEntryPoint,
+    nanobind::args runtimeArgs, std::optional<cudaq::CompileTarget> target,
+    std::optional<bool> isRemote, std::optional<bool> isEmulated,
+    std::optional<bool> supportsJit, std::optional<int> optimizationLevel) {
   ScopedTraceWithContext("compile_module", name);
+  if (optimizationLevel && (*optimizationLevel < 0 || *optimizationLevel > 3))
+    throw std::invalid_argument(
+        "`optimization_level` must be an integer between 0 and 3, got " +
+        std::to_string(*optimizationLevel) + ".");
   cudaq::RuntimeEndpoint endpoint;
   endpoint.isRemote = isRemote.value_or(cudaq::is_remote_platform());
   endpoint.isEmulated = isEmulated.value_or(cudaq::is_emulated_platform());
   endpoint.supportsJit = supportsJit.value_or(cudaq::platform_supports_jit());
-  return compileWithoutLaunch(name, module, isEntryPoint,
-                              nanobind::borrow<nanobind::args>(runtimeArgs),
-                              std::move(target), std::move(endpoint),
-                              /*inhibitCodegen=*/false);
+  std::optional<cudaq::OptimizationLevel> level;
+  if (optimizationLevel)
+    level = static_cast<cudaq::OptimizationLevel>(*optimizationLevel);
+  return compileWithoutLaunch(name, module, isEntryPoint, runtimeArgs,
+                              std::move(target), std::move(endpoint), level);
 }
 
 static MlirModule synthesizeKernel(nanobind::object kernel,
@@ -1471,14 +1483,16 @@ void cudaq::bindAltLaunchKernel(nanobind::module_ &mod,
 
   mod.def("compile_module", compile_module, nanobind::arg("kernel_name"),
           nanobind::arg("module"), nanobind::arg("is_entry_point"),
+          nanobind::arg("args"),
           nanobind::arg("compile_target").none() = nanobind::none(),
           nanobind::arg("is_remote").none() = nanobind::none(),
           nanobind::arg("is_emulated").none() = nanobind::none(),
           nanobind::arg("supports_jit").none() = nanobind::none(),
-          nanobind::arg("args") = nanobind::tuple(),
+          nanobind::arg("optimization_level").none() = nanobind::none(),
           "Compile a kernel module for a target without launching it. "
-          "Returns a CompiledModule. Unless given, the compile target and the "
-          "endpoint traits are those of the current platform.");
+          "Returns a CompiledModule. Unless given, the compile target, the "
+          "endpoint traits, and the optimization level are those of the "
+          "current platform.");
 
   mod.def("synthesize", synthesizeKernel, "FIXME: document!");
 

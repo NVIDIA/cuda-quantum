@@ -294,15 +294,17 @@ def import_quake(
 
 
 def import_cudaq(
-        kernel,
-        *arguments,
-        source_modules: tuple[str, ...] = (),
+    kernel,
+    *arguments,
+    source_modules: tuple[str, ...] = (),
+    optimization_level: int | None = None,
 ) -> Build:
     """Compile a ``@cudaq.kernel`` for Logical and import it as P0.
 
     CUDA-Q compiles the kernel with a Logical target's compile target, never
     with the target installed with ``cudaq.set_target``, and substitutes
     ``arguments``. :func:`import_quake` then imports the result.
+    ``optimization_level`` defaults to CUDA-Q's default level.
     """
 
     from cudaq.kernel.kernel_decorator import isa_kernel_decorator
@@ -319,12 +321,13 @@ def import_cudaq(
     compiled = cudaq_runtime.compile_module(
         kernel.uniqName,
         module,
-        is_entry_point=True,
+        True,
+        *processed,
         compile_target=Target._new_compile_target(),
         is_remote=False,
         is_emulated=False,
         supports_jit=False,
-        args=tuple(processed),
+        optimization_level=optimization_level,
     )
     return import_quake(str(compiled.mlir_module),
                         root=kernel.name,

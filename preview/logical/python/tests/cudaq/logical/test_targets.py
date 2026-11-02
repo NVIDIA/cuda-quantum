@@ -290,6 +290,35 @@ def test_optimization_levels_merge_rotations(level, rotations):
     assert resources.count("pauli_rotation") == rotations
 
 
+def test_import_cudaq_compiles_at_the_given_level():
+    # The build hash covers the module text, whose symbol names vary between
+    # compiles, so compare everything else.
+    def without_hash(estimate):
+        return {k: v for k, v in estimate.items() if k != "build_sha256"}
+
+    def imported(level):
+        build = cudaq.logical.compiler.import_cudaq(ising_trotter_steps,
+                                                    optimization_level=level)
+        return without_hash(
+            cudaq.logical.analysis.estimate(
+                build, tier=cudaq.logical.analysis.Tier.LOGICAL).to_dict())
+
+    def through_target(level):
+        try:
+            cudaq.set_target(cudaq.logical.targets.estimator)
+            return without_hash(
+                cudaq.estimate(ising_trotter_steps,
+                               optimization_level=level).annotations["LOGICAL"])
+        finally:
+            cudaq.reset_target()
+
+    assert imported(0) == through_target(0)
+    assert imported(2) == through_target(2)
+    assert imported(0) != imported(2)
+    with pytest.raises(ValueError, match="between 0 and 3"):
+        imported(4)
+
+
 def test_cudaq_selects_a_qlx_custom_target_for_estimation():
     target = cudaq.logical.targets.surface_target(logical_capacity=1)
 
