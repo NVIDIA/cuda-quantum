@@ -17,7 +17,7 @@ from .compile_target import (Codegen, CompilationStage, CompileTarget,
                              QuakeMappedProfile, QuakeReferenceSemanticsProfile,
                              QuakeUnmappedProfile, UncheckedProfile,
                              get_compile_target)
-from .custom_target import CustomTarget
+from cudaq.core._experimental import CustomTarget
 
 __all__ = [
     "Codegen",

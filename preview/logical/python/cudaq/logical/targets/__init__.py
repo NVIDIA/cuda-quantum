@@ -13,7 +13,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from types import MappingProxyType
 
-from cudaq.core.backends import CompileTarget, CustomTarget
+from cudaq.core._experimental import CompileTarget, CustomTarget
 from cudaq.util import trace
 
 from ..lower import (
@@ -397,7 +397,7 @@ def _cudaq_estimate_result(estimates):
     available); every tier, including LOGICAL, is also kept in ``annotations``.
     """
 
-    from cudaq.core.backends import EstimateResult
+    from cudaq.core.results import EstimateResult
     from .. import estimate
     from ..estimate.logical import logical_instruction_counts
 
