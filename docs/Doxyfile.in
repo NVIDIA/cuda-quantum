@@ -2259,11 +2259,11 @@ SEARCH_INCLUDES        = YES
 # RECURSIVE has no effect here.
 # This tag requires that the tag SEARCH_INCLUDES is set to YES.
 
-INCLUDE_PATH           = "${CUDAQ_REPO_ROOT}/build/include" \
-                         "${CUDAQ_REPO_ROOT}/build/include/cudaq/Optimizer/CodeGen" \
-                         "${CUDAQ_REPO_ROOT}/build/include/cudaq/Optimizer/Transforms" \
-                         "${CUDAQ_REPO_ROOT}/build/include/cudaq/Optimizer/Dialect/CC" \
-                         "${CUDAQ_REPO_ROOT}/build/include/cudaq/Optimizer/Dialect/Quake"
+INCLUDE_PATH           = "${CUDAQ_BUILD_INCLUDE_DIR}" \
+                         "${CUDAQ_BUILD_INCLUDE_DIR}/cudaq/Optimizer/CodeGen" \
+                         "${CUDAQ_BUILD_INCLUDE_DIR}/cudaq/Optimizer/Transforms" \
+                         "${CUDAQ_BUILD_INCLUDE_DIR}/cudaq/Optimizer/Dialect/CC" \
+                         "${CUDAQ_BUILD_INCLUDE_DIR}/cudaq/Optimizer/Dialect/Quake"
 
 # You can use the INCLUDE_FILE_PATTERNS tag to specify one or more wildcard
 # patterns (like *.h and *.hpp) to filter out the header-files in the

@@ -102,7 +102,7 @@ build_compiler_developer_docs="${CUDAQ_BUILD_COMPILER_DEVELOPER_DOCS:-0}"
 compiler_pass_reference_names=(Transforms CodeGenPasses)
 
 # Check if the cudaq Python package is installed and if not, build and install it
-build_include_dir="$build_dir/include"
+build_include_dir="$build_dir/cudaq/include"
 python3 -c "import cudaq" 2>/dev/null
 if [ ! "$?" -eq "0" ] || [ ! -d "$build_include_dir" ] || [ "${force_update,,}" = "python" ] || [ "${force_update,,}" = "py" ]; then
     if $incremental_build; then
@@ -193,6 +193,7 @@ fi
 echo "Generating XML documentation using Doxygen..."
 mkdir -p "${doxygen_output_dir}"
 sed 's@${DOXYGEN_OUTPUT_PREFIX}@'"${doxygen_output_dir}"'@' "$repo_root/docs/Doxyfile.in" | \
+sed 's@${CUDAQ_BUILD_INCLUDE_DIR}@'"${build_include_dir}"'@' | \
 sed 's@${CUDAQ_REPO_ROOT}@'"${repo_root}"'@' > "${doxygen_output_dir}/Doxyfile"
 echo "Running doxygen in $PWD"
 set -x
