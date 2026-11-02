@@ -249,11 +249,36 @@ struct AddMeasurementsPass
     if (analysis.hasMeasurement || !analysis.hasQubitAlloca())
       return;
 
+    // When asked, act only on a kernel that named its qubits with
+    // `cudaq::record`. `inject-implicit-output` does not inject when a record
+    // is present, so such a kernel's evinces are exactly its record.
+    if (userRecordOnly &&
+        llvm::none_of(analysis.evinces, [](mlir::Operation *op) {
+          return cast<cudaq::quake::EvinceOp>(op).getUserRecord();
+        }))
+      return;
+
     LLVM_DEBUG(llvm::dbgs() << "Before adding measurements:\n" << *func);
     if (useEvince && analysis.hasEvinces()) {
       if (failed(addMeasurementsBefore(func, analysis.evinces)))
         signalPassFailure();
-      else
+      else if (userRecordOnly) {
+        // Consume the record here. Left in place it keeps using the measured
+        // qubit, which makes the measurement look mid-circuit to the passes
+        // that follow and gets it lowered to measure/reset/restore. Record the
+        // fact on the function so later stages still know the kernel used
+        // `cudaq::record`.
+        func->setAttr("cudaq.user_record",
+                      mlir::UnitAttr::get(func.getContext()));
+        for (Operation *op : analysis.evinces) {
+          auto evince = cast<cudaq::quake::EvinceOp>(op);
+          unsigned resultIdx = 0;
+          for (Value arg : evince.getArgs())
+            if (cudaq::quake::isLinearType(arg.getType()))
+              evince.getOuts()[resultIdx++].replaceAllUsesWith(arg);
+          op->erase();
+        }
+      } else
         setMappingReorderIdx(func, analysis.evinces);
     } else if (analysis.hasQubitDeallocs()) {
       if (failed(addMeasurementsBefore(func, analysis.deallocations)))

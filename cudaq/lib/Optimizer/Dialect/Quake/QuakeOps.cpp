@@ -1743,6 +1743,49 @@ LogicalResult cudaq::quake::EvinceOp::verify() {
   if (SmallVector<Type>(actual) != expected)
     return emitOpError("result types must mirror wire/cable operand types "
                        "in left-to-right order");
+
+  // A user-written evince comes from `cudaq::record`, which states what the
+  // sampling histogram contains. Those constraints are checked here so the
+  // user sees them rather than a confused register downstream. A
+  // compiler-generated evince is exempt: `inject-implicit-output` emits one
+  // per declared allocation and may emit several.
+  if (!getUserRecord())
+    return success();
+
+  auto funcOp = (*this)->getParentOfType<mlir::func::FuncOp>();
+  if (!funcOp)
+    return success();
+
+  if ((*this)->getParentOp() != funcOp.getOperation())
+    return emitOpError("`cudaq::record` must appear at the top level of the "
+                       "kernel, not nested in a loop, conditional, or scope");
+
+  // Name each operand by the qubit it denotes rather than by its SSA value:
+  // the frontend emits a separate `extract_ref` per mention, so `record(q[1],
+  // q[1])` arrives as two distinct values for one qubit, and CSE has not run
+  // yet. A whole veq is named by itself, so recording a veq and one of its
+  // elements is caught too.
+  llvm::SmallVector<std::pair<Value, std::int64_t>> seen;
+  for (Value v : getArgs()) {
+    if (!isQuantumType(v.getType()))
+      continue;
+    std::pair<Value, std::int64_t> key{v, -1};
+    if (auto extract = v.getDefiningOp<cudaq::quake::ExtractRefOp>())
+      if (extract.hasConstantIndex())
+        key = {extract.getVeq(), extract.getConstantIndex()};
+    for (auto &prior : seen)
+      if (prior.first == key.first &&
+          (prior.second == key.second || prior.second == -1 || key.second == -1))
+        return emitOpError("`cudaq::record` records the same qubit twice");
+    seen.push_back(key);
+  }
+
+  for (auto &op : funcOp.getOps())
+    if (auto other = dyn_cast<cudaq::quake::EvinceOp>(&op))
+      if (other.getUserRecord() && other != *this)
+        return emitOpError("a kernel may contain only one `cudaq::record` "
+                           "statement");
+
   return success();
 }
 

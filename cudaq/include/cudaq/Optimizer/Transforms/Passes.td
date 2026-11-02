@@ -40,7 +40,9 @@ def AddMeasurements : Pass<"add-measurements", "mlir::func::FuncOp"> {
 
   let options = [
     Option<"useEvince", "use-evince", "bool", /*default=*/"false",
-           "Add the measurements in front of the quake.evince ops.">
+           "Add the measurements in front of the quake.evince ops.">,
+    Option<"userRecordOnly", "user-record-only", "bool", /*default=*/"false",
+           "Only act on a kernel that named its qubits with `cudaq::record`.">
   ];
 
   let dependentDialects = ["cudaq::cc::CCDialect", "cudaq::quake::QuakeDialect",

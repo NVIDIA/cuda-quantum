@@ -632,6 +632,36 @@ concept any_measure_result_or_vec =
     std::is_same_v<std::remove_cvref_t<T>, std::vector<measure_result>>;
 } // namespace detail
 
+namespace detail {
+/// A `record` argument is an individual qudit or a container of them.
+template <typename>
+struct is_recordable : std::false_type {};
+template <std::size_t Levels>
+struct is_recordable<qudit<Levels>> : std::true_type {};
+template <std::size_t Levels>
+struct is_recordable<qvector<Levels>> : std::true_type {};
+template <std::size_t Levels>
+struct is_recordable<qview<Levels>> : std::true_type {};
+
+template <typename T>
+concept recordable = is_recordable<std::remove_cvref_t<T>>::value;
+} // namespace detail
+
+/// @brief Record the given qubits in the sampling histogram.
+///
+/// The arguments, in order, define the bits of each bitstring reported by
+/// `cudaq::sample`; a container contributes its qubits in order. A sampled
+/// kernel shall contain exactly one `record` statement, at the top level of
+/// the kernel, and shall not record the same qubit twice. Kernels that need
+/// their own measurements should use `cudaq::run` instead.
+template <typename... QubitArgs>
+  requires(sizeof...(QubitArgs) >= 1) &&
+          (detail::recordable<QubitArgs> && ...)
+void record(QubitArgs &&...qs) {
+  ((void)qs, ...);
+  throw std::runtime_error(detail::kQpuOnlyHostScopeError);
+}
+
 /// @brief Define a detector over one or more measurement results.
 ///
 /// A detector is a parity constraint: under noise-free execution the XOR of

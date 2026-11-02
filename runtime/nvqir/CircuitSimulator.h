@@ -909,11 +909,24 @@ protected:
       return;
 
     // Sort the qubit indices (unless we're in the optimized sampling mode that
-    // simply concatenates sequential measurements)
+    // simply concatenates sequential measurements, or the kernel fixed the
+    // order itself with `cudaq::record`, which forbids repeats)
     if (!executionContext->explicitMeasurements) {
-      std::sort(sampleQubits.begin(), sampleQubits.end());
-      auto last = std::unique(sampleQubits.begin(), sampleQubits.end());
-      sampleQubits.erase(last, sampleQubits.end());
+      if (executionContext->sortMeasuredQubits) {
+        std::sort(sampleQubits.begin(), sampleQubits.end());
+        auto last = std::unique(sampleQubits.begin(), sampleQubits.end());
+        sampleQubits.erase(last, sampleQubits.end());
+      } else {
+        // Keep the order the kernel measured in. `cudaq::record` fixes that
+        // order and forbids repeats; the dedup only guards a kernel that
+        // measured a qubit more than once.
+        std::vector<std::size_t> inOrder;
+        inOrder.reserve(sampleQubits.size());
+        for (auto q : sampleQubits)
+          if (std::find(inOrder.begin(), inOrder.end(), q) == inOrder.end())
+            inOrder.push_back(q);
+        sampleQubits = std::move(inOrder);
+      }
     }
 
     CUDAQ_INFO("Sampling the current state, with measure qubits = {}",
@@ -944,10 +957,13 @@ protected:
     } else {
 
       for (auto &[regName, qubits] : registerNameToMeasuredQubit) {
-        // Measurements are sorted according to qubit allocation order
-        std::sort(qubits.begin(), qubits.end());
-        auto last = std::unique(qubits.begin(), qubits.end());
-        qubits.erase(last, qubits.end());
+        // Measurements are sorted according to qubit allocation order, unless
+        // `cudaq::record` already fixed the order.
+        if (executionContext->sortMeasuredQubits) {
+          std::sort(qubits.begin(), qubits.end());
+          auto last = std::unique(qubits.begin(), qubits.end());
+          qubits.erase(last, qubits.end());
+        }
 
         // Find the position of the qubits we have in the result bit string
         // Create a map of qubit to bit string location

@@ -458,6 +458,37 @@ static void disableQuantumOptimization(mlir::ModuleOp moduleOp) {
     func->setAttr(cudaq::runtime::disableQuantumOpts, unitAttr);
 }
 
+/// Does the entry point measure for itself?
+static bool hasUserMeasurements(mlir::func::FuncOp epFunc) {
+  bool found = false;
+  epFunc.walk([&](mlir::Operation *op) {
+    if (op->hasTrait<cudaq::QuantumMeasure>()) {
+      found = true;
+      return mlir::WalkResult::interrupt();
+    }
+    return mlir::WalkResult::advance();
+  });
+  return found;
+}
+
+/// Did the kernel say what belongs in the histogram, with `cudaq::record`?
+/// A compiler-generated evince marks a declared allocation, not a request.
+static bool hasUserRecord(mlir::func::FuncOp epFunc) {
+  // `add-measurements` marks the function when it materializes a record, since
+  // it consumes the evince in the same step.
+  if (epFunc->hasAttr("cudaq.user_record"))
+    return true;
+  bool found = false;
+  epFunc.walk([&](cudaq::quake::EvinceOp evince) {
+    if (evince.getUserRecord()) {
+      found = true;
+      return mlir::WalkResult::interrupt();
+    }
+    return mlir::WalkResult::advance();
+  });
+  return found;
+}
+
 static bool hasConditionalsOnMeasureResults(mlir::ModuleOp moduleOp) {
   return std::any_of(moduleOp.begin(), moduleOp.end(), [](auto &innerOp) {
     cudaq::quake::detail::QuakeFunctionAnalysis analysis{&innerOp};
@@ -530,9 +561,31 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
   // the main pipeline so that the measurements land on the mapped qubits and
   // so that ancillas introduced along the way -- which carry no evince -- stay
   // out of the global register.
+  // On a target that has moved to the explicit-record contract, the kernel
+  // states what the histogram holds with `cudaq::record` and does not measure
+  // for itself.
+  const bool userRecord = hasUserRecord(epFunc);
+
+  if (options.addSampleMeasurements && !target.needsImplicitMeasurements) {
+    if (hasUserMeasurements(epFunc) && !userRecord)
+      CUDAQ_ERROR("Kernel '" + kernelName +
+                  "' measures for itself, which `cudaq::sample` does not "
+                  "support on this target. Mark the qubits to report with "
+                  "`cudaq::record(...)`, or use `cudaq::run` to retrieve "
+                  "individual measurement results.");
+    if (!userRecord)
+      CUDAQ_ERROR("Kernel '" + kernelName +
+                  "' records nothing, so `cudaq::sample` has no histogram to "
+                  "report. Add a `cudaq::record(...)` naming the qubits to "
+                  "report.");
+  }
+
+  // A kernel that used `cudaq::record` gets its measurements materialized even
+  // on a target that could sample without them: the record names the qubits
+  // and fixes their order, and emitting the measurements is how every backend
+  // is told. Without a record this stays as it was.
   if (options.addSampleMeasurements &&
-      !target.supportSampleWithoutMeasurements &&
-      target.needsImplicitMeasurements) {
+      (!target.supportSampleWithoutMeasurements || userRecord)) {
     // No need to add measurements only to remove them eventually
     if (target.codegen.postCodegenPasses.find("remove-measurements") ==
         std::string::npos)
@@ -623,7 +676,8 @@ cudaq::CompiledModule cudaq_internal::compiler::Compiler::runPassPipeline(
       kernelName, modules, needJit, isFullySpecialized, isEntryPoint,
       emulate && combineMeasurements, std::move(resourceCounts),
       {.reorderIdx = mapping_reorder_idx,
-       .hasConditionalsOnMeasureResults = hasConditionalsOnMeasRes},
+       .hasConditionalsOnMeasureResults = hasConditionalsOnMeasRes,
+       .hasUserRecord = userRecord},
       context);
 }
 
@@ -683,7 +737,8 @@ cudaq_internal::compiler::Compiler::emitKernelExecutions(
     auto mapping_reorder_idx = compiled.getMetadata().reorderIdx;
     codes.emplace_back(name, codeStr, optionalJit, optionalResourceCounts, j,
                        mapping_reorder_idx,
-                       compiled.getMetadata().hasConditionalsOnMeasureResults);
+                       compiled.getMetadata().hasConditionalsOnMeasureResults,
+                       compiled.getMetadata().hasUserRecord);
   }
 
   return codes;

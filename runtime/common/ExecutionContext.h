@@ -114,6 +114,13 @@ public:
   /// order.
   bool explicitMeasurements = false;
 
+  /// @brief Report the sampled bits sorted by qubit index rather than in the
+  /// order the kernel measured. Only a routed target needs this: its
+  /// `mapping_reorder_idx` undoes a physical-order readout, so the simulator
+  /// has to produce one. Everywhere else the measurement order is the order
+  /// `cudaq::record` asked for.
+  bool sortMeasuredQubits = false;
+
   /// @cond HIDDEN_MEMBERS
   /// @brief Pointer to the execution manager for the current execution context,
   /// if it exists.

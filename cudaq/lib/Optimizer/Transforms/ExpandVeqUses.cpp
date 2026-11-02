@@ -102,8 +102,14 @@ public:
             cudaq::quake::ExtractRefOp::create(rewriter, loc, vector, i));
     }
 
-    rewriter.replaceOpWithNewOp<cudaq::quake::EvinceOp>(
+    // Carry every attribute across, as `memtoreg` and `regtomem` do when they
+    // rebuild this op. Forwarding them one by one silently drops the marks
+    // that say what the evince is for, such as `userRecord`.
+    SmallVector<NamedAttribute> attrs(evin->getAttrs());
+    auto newOp = rewriter.replaceOpWithNewOp<cudaq::quake::EvinceOp>(
         evin, newArgs, evin.getCompilerGenerated());
+    for (auto namedAttr : attrs)
+      newOp->setAttr(namedAttr.getName(), namedAttr.getValue());
     return success();
   }
 };

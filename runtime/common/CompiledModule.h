@@ -192,6 +192,9 @@ public:
     std::vector<std::size_t> reorderIdx;
     /// Whether the kernel has conditional feedback on measure results.
     bool hasConditionalsOnMeasureResults = false;
+    /// Whether the kernel named the qubits to report with `cudaq::record`.
+    /// Their order is the histogram's bit order.
+    bool hasUserRecord = false;
   };
 
   // --- Queries ---

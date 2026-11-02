@@ -2797,6 +2797,21 @@ bool QuakeBridgeVisitor::lowerCall(clang::CallExpr *x, OperandStack &stack) {
 
     const bool inCudaqDirect = isInDirectNamespace(func, "cudaq");
 
+    // `cudaq::record(...)` marks the qubits whose measurements form the
+    // sampling histogram, in the order given. It lowers to a user-written
+    // `quake.evince`; the backend-specific lowering (adding measurements, or
+    // mapping an implicit readout back onto these qubits) happens later.
+    if (funcName == "record" && inCudaqDirect) {
+      SmallVector<Value> qubits;
+      qubits.reserve(args.size());
+      for (auto arg : args)
+        qubits.push_back(arg);
+      auto evince = cudaq::quake::EvinceOp::create(builder, loc, qubits,
+                                                  /*compilerGenerated=*/false);
+      evince.setUserRecord(true);
+      return true;
+    }
+
     // QEC operations
     if (funcName == "detector" && inCudaqDirect) {
       SmallVector<Value> measurements;

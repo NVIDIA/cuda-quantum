@@ -389,6 +389,9 @@ public:
       cudaq::ExecutionContext context("sample", localShots);
       context.hasConditionalsOnMeasureResults =
           codes[i].hasConditionalsOnMeasureResults;
+      // A routed target's `mapping_reorder_idx` undoes a physical-order
+      // readout, so under emulation the simulator has to produce one.
+      context.sortMeasuredQubits = !codes[i].mapping_reorder_idx.empty();
       sample_policy localPolicy;
       localPolicy.options.shots = localShots;
       localPolicy.reorderIdx = std::move(codes[i].mapping_reorder_idx);
@@ -446,6 +449,9 @@ public:
       cudaq::ExecutionContext context("sample", localShots);
       context.hasConditionalsOnMeasureResults =
           codes[i].hasConditionalsOnMeasureResults;
+      // A routed target's `mapping_reorder_idx` undoes a physical-order
+      // readout, so under emulation the simulator has to produce one.
+      context.sortMeasuredQubits = !codes[i].mapping_reorder_idx.empty();
       sample_policy localPolicy;
       localPolicy.options.shots = localShots;
       localPolicy.reorderIdx = std::move(codes[i].mapping_reorder_idx);

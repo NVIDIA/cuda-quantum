@@ -29,7 +29,11 @@ public:
   void runOnOperation() override {
     func::FuncOp funcOp = getOperation();
     funcOp.walk([&](cudaq::quake::EvinceOp evince) {
-      if (!evince.getCompilerGenerated())
+      // A `cudaq::record` marker is consumed by the sampling lowering; any
+      // that reach code generation have served their purpose and are dropped
+      // alongside the compiler-generated ones. A `run` return-value evince
+      // carries neither mark and is left for `return-to-output-log`.
+      if (!evince.getCompilerGenerated() && !evince.getUserRecord())
         return;
       // For each wire/cable result, replace uses with the corresponding arg.
       unsigned resultIdx = 0;
