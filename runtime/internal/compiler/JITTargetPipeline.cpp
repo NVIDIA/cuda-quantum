@@ -49,17 +49,14 @@ static std::string_view getProfileName(const cudaq::config::Profile &profile) {
       profile);
 }
 
-/// The passes of the first handler in \p handlers that lowers \p input to
-/// \p output. Sets \p diagnostic and returns `nullopt` when no handler supports
-/// the lowering or the selected handler fails.
+/// The passes \p handler adds to lower \p input to \p output. Sets
+/// \p diagnostic and returns `nullopt` when \p handler is null or fails.
 static std::optional<cudaq_internal::compiler::StagePasses>
-getInferredStagePasses(
-    const std::vector<
-        std::unique_ptr<cudaq_internal::compiler::LoweringHandler>> &handlers,
-    const cudaq::config::Profile &input, const cudaq::config::Profile &output,
-    const cudaq::CompileOptions &options, std::string &diagnostic) {
-  const auto *handler =
-      cudaq_internal::compiler::selectLoweringHandler(handlers, input, output);
+getInferredStagePasses(const cudaq_internal::compiler::LoweringHandler *handler,
+                       const cudaq::config::Profile &input,
+                       const cudaq::config::Profile &output,
+                       const cudaq::CompileOptions &options,
+                       std::string &diagnostic) {
   std::optional<cudaq_internal::compiler::StagePasses> passes;
   if (handler)
     passes = handler->getStagePasses(input, output, options);
@@ -75,11 +72,14 @@ getInferredStagePasses(
 }
 
 /// Build the JIT pipeline from `canonicalize`, prep, deploy, and finalize,
-/// with the stages' passes around them. The emission format and `emulate`
-/// set the options of prep, deploy, and finalize.
+/// with the stages' passes around them. The emission format, `emulate`,
+/// \p unrollLoops, and the target's erasure flags set the options of prep,
+/// deploy, and finalize. An option appears in the text only when it differs
+/// from its default, so existing targets keep their pipeline text. Emulation's
+/// prep is the exception: it has always spelled out `erase-noise`.
 static std::string
 buildPassPipeline(const cudaq_internal::compiler::StagePasses &targetPasses,
-                  const cudaq::CompileTarget &target,
+                  bool unrollLoops, const cudaq::CompileTarget &target,
                   const cudaq::CompileOptions &options) {
   const std::string lowerDeviceCalls =
       (target.codegen.emissionFormat == "nop" && !options.emulate) ? "false"
@@ -87,22 +87,27 @@ buildPassPipeline(const cudaq_internal::compiler::StagePasses &targetPasses,
   const std::string allowEarlyExit =
       target.codegen.emissionFormat.starts_with("qir-adaptive") ? "true"
                                                                 : "false";
-  const std::string noLoopUnroll =
-      target.codegen.emissionFormat == "nop" ? " no-loop-unroll=true" : "";
+  unrollLoops &= target.codegen.emissionFormat != "nop";
+  const std::string noLoopUnroll = unrollLoops ? "" : " no-loop-unroll=true";
+  const std::string eraseQEC = target.eraseQEC ? "" : " erase-qec=false";
 
   std::string passPipeline = "canonicalize";
   if (options.emulate)
-    appendPipelineStage(passPipeline, "emul-jit-prep-pipeline{erase-noise=true "
-                                      "allow-early-exit=" +
-                                          allowEarlyExit + noLoopUnroll + "}");
+    appendPipelineStage(passPipeline,
+                        "emul-jit-prep-pipeline{erase-noise=" +
+                            std::string(target.eraseNoise ? "true" : "false") +
+                            " allow-early-exit=" + allowEarlyExit +
+                            noLoopUnroll + eraseQEC + "}");
   else
-    appendPipelineStage(passPipeline, "hw-jit-prep-pipeline{allow-early-exit=" +
-                                          allowEarlyExit + noLoopUnroll + "}");
+    appendPipelineStage(
+        passPipeline,
+        "hw-jit-prep-pipeline{allow-early-exit=" + allowEarlyExit +
+            noLoopUnroll + (target.eraseNoise ? "" : " erase-noise=false") +
+            eraseQEC + "}");
 
   const std::string deployStage =
-      target.codegen.emissionFormat == "nop"
-          ? "jit-deploy-pipeline{no-loop-unroll=true}"
-          : "jit-deploy-pipeline";
+      unrollLoops ? "jit-deploy-pipeline"
+                  : "jit-deploy-pipeline{no-loop-unroll=true}";
   const std::string finalizeStage =
       "jit-finalize-pipeline{lower-device-calls=" + lowerDeviceCalls + "}";
 
@@ -122,6 +127,7 @@ std::optional<std::string> cudaq_internal::compiler::getPassPipeline(
     return std::string{};
 
   StagePasses targetPasses;
+  bool unrollLoops = true;
   cudaq::config::Profile inputProfile = cudaq::config::UncheckedProfile{};
   for (std::size_t i = 0; i < target.stages.size(); ++i) {
     const auto &stage = target.stages[i];
@@ -149,8 +155,13 @@ std::optional<std::string> cudaq_internal::compiler::getPassPipeline(
                                 .postDeployPasses = custom->midLevelPipeline,
                                 .postFinalizePasses = custom->lowLevelPipeline};
     } else {
+      const auto *handler =
+          selectLoweringHandler(handlers, inputProfile, stage.irOutputProfile);
       stagePasses = getInferredStagePasses(
-          handlers, inputProfile, stage.irOutputProfile, options, reason);
+          handler, inputProfile, stage.irOutputProfile, options, reason);
+      if (handler &&
+          handler->requiresRolledLoops(inputProfile, stage.irOutputProfile))
+        unrollLoops = false;
     }
     if (!stagePasses)
       return failStage(reason);
@@ -175,7 +186,7 @@ std::optional<std::string> cudaq_internal::compiler::getPassPipeline(
   }
 
   return applyDisableQubitMapping(
-      buildPassPipeline(targetPasses, target, options), target);
+      buildPassPipeline(targetPasses, unrollLoops, target, options), target);
 }
 
 bool cudaq_internal::compiler::specializesArguments(

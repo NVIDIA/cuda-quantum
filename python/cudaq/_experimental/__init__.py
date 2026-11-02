@@ -13,7 +13,7 @@ may involve undocumented foot guns.
 
 from .runtime_endpoint import RuntimeEndpoint
 from .compile_target import (Codegen, CompilationStage, CompileTarget,
-                             CostModel, CustomPipelineLowering,
+                             CostModel, CustomPipelineLowering, LoopUnrolling,
                              QuakeMappedProfile, QuakeReferenceSemanticsProfile,
                              QuakeUnmappedProfile, UncheckedProfile,
                              get_compile_target)
@@ -26,6 +26,7 @@ __all__ = [
     "CostModel",
     "CustomPipelineLowering",
     "CustomTarget",
+    "LoopUnrolling",
     "RuntimeEndpoint",
     "QuakeMappedProfile",
     "QuakeReferenceSemanticsProfile",

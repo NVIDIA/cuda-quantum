@@ -703,17 +703,25 @@ static std::size_t digestLogValue(const std::array<uint8_t, 32> &digest) {
 
 /// Construct the compiler config (`CompileTarget` and `CompileOptions`) from
 /// the current execution context. When \p target is not given, use the
-/// compile target of the current QPU.
-static std::pair<cudaq::CompileTarget, cudaq::CompileOptions>
-getCompileConfig(std::optional<cudaq::CompileTarget> target = std::nullopt) {
+/// compile target of the current QPU, and when \p endpoint is not given, the
+/// runtime endpoint of the QPU that the context names, or of QPU 0 without a
+/// context.
+static std::pair<cudaq::CompileTarget, cudaq::CompileOptions> getCompileConfig(
+    std::optional<cudaq::CompileTarget> target = std::nullopt,
+    std::optional<cudaq::RuntimeEndpoint> endpoint = std::nullopt) {
   auto *ctx = cudaq::getExecutionContext();
   auto &platform = cudaq::get_platform();
-  cudaq::CompileOptions options;
   if (!target)
     target = cudaq::get_compile_target(cudaq::getCurrentQpuId());
+  const auto getOptions = [&](const auto &policy, std::size_t qpuId) {
+    return endpoint ? cudaq::quantum_platform::getCompileOptions(
+                          policy, cudaq::get_random_seed(), *endpoint)
+                    : platform.getCompileOptions(
+                          policy, cudaq::get_random_seed(), qpuId);
+  };
+  cudaq::CompileOptions options;
   if (!ctx) {
-    options = platform.getCompileOptions(cudaq::other_policies{},
-                                         cudaq::get_random_seed());
+    options = getOptions(cudaq::other_policies{}, /*qpuId=*/0);
   } else {
     cudaq::policies::withPolicy(ctx->name, [&](auto policy) {
       using Policy = std::decay_t<decltype(policy)>;
@@ -721,8 +729,7 @@ getCompileConfig(std::optional<cudaq::CompileTarget> target = std::nullopt) {
         policy.spin = ctx->spin.value();
       }
 
-      options = platform.getCompileOptions(policy, cudaq::get_random_seed(),
-                                           ctx->qpuId);
+      options = getOptions(policy, ctx->qpuId);
     });
   }
 
@@ -733,8 +740,10 @@ static cudaq::CompiledModule
 compileModuleImpl(const std::string &name, ModuleOp mod,
                   const std::vector<void *> &rawArgs, bool isEntryPoint,
                   std::optional<cudaq::CompileTarget> target = std::nullopt,
+                  std::optional<cudaq::RuntimeEndpoint> endpoint = std::nullopt,
                   bool inhibitCodegen = false) {
-  auto [compileTarget, options] = getCompileConfig(std::move(target));
+  auto [compileTarget, options] =
+      getCompileConfig(std::move(target), std::move(endpoint));
   if (inhibitCodegen)
     options.emitTargetCode = false;
   cudaq::SourceModule src{name, mod.getAsOpaquePointer()};
@@ -1132,27 +1141,59 @@ nanobind::object cudaq::marshal_and_launch_module(
                               reinterpret_cast<char *>(args.getArgs().back()));
 }
 
+/// Specialize and compile the kernel module without launching it. A missing
+/// \p target or \p endpoint comes from the current platform. \p target
+/// decides whether the arguments are substituted, except that a kernel that is
+/// not an entry point always has every argument substituted.
+static cudaq::CompiledModule compileWithoutLaunch(
+    const std::string &name, MlirModule module, bool isEntryPoint,
+    nanobind::args runtimeArgs, std::optional<cudaq::CompileTarget> target,
+    std::optional<cudaq::RuntimeEndpoint> endpoint, bool inhibitCodegen) {
+  auto kernelFunc = cudaq::getKernelFuncOp(module, name);
+  auto mod = unwrap(module);
+  Type retTy = cudaq::runtime::getReturnType(kernelFunc);
+  const bool specializeArguments =
+      !isEntryPoint ||
+      (target ? cudaq_internal::compiler::specializesArguments(*target)
+              : cudaq::launchSpecializesArguments(cudaq::getCurrentQpuId()));
+  auto args = cudaq::marshal_arguments_for_module_launch(
+      mod, runtimeArgs, kernelFunc, specializeArguments);
+  // Append space for a result, as needed, to the vector of arguments.
+  auto rawArgs = appendResultToArgsVector(args, retTy, mod, name);
+  mlir::OwningOpRef<ModuleOp> clone = mod.clone();
+  return compileModuleImpl(name, clone.get(), rawArgs, isEntryPoint,
+                           std::move(target), std::move(endpoint),
+                           inhibitCodegen);
+}
+
 /// Compile (specialize + JIT) the kernel module and return a CompiledModule.
 /// Never runs `codegen`.
 static cudaq::CompiledModule
 marshal_and_retain_module(const std::string &name, MlirModule module,
                           bool isEntryPoint, nanobind::args runtimeArgs) {
   ScopedTraceWithContext("marshal_and_retain_module", name);
+  return compileWithoutLaunch(name, module, isEntryPoint, runtimeArgs,
+                              std::nullopt, std::nullopt,
+                              /*inhibitCodegen=*/true);
+}
 
-  auto kernelFunc = cudaq::getKernelFuncOp(module, name);
-  auto mod = unwrap(module);
-  Type retTy = cudaq::runtime::getReturnType(kernelFunc);
-  // A compile for a kernel that is not an entry point substitutes every
-  // argument.
-  auto args = cudaq::marshal_arguments_for_module_launch(
-      mod, runtimeArgs, kernelFunc,
-      !isEntryPoint ||
-          cudaq::launchSpecializesArguments(cudaq::getCurrentQpuId()));
-  // Append space for a result, as needed, to the vector of arguments.
-  auto rawArgs = appendResultToArgsVector(args, retTy, mod, name);
-  mlir::OwningOpRef<ModuleOp> clone = mod.clone();
-  return compileModuleImpl(name, clone.get(), rawArgs, isEntryPoint,
-                           std::nullopt, /*inhibitCodegen=*/true);
+/// Compile a kernel module with \p target, or the current platform's compile
+/// target when it is not given, for an endpoint with the given traits. A trait
+/// that is not given comes from the current platform.
+static cudaq::CompiledModule
+compile_module(const std::string &name, MlirModule module, bool isEntryPoint,
+               std::optional<cudaq::CompileTarget> target,
+               std::optional<bool> isRemote, std::optional<bool> isEmulated,
+               std::optional<bool> supportsJit, nanobind::tuple runtimeArgs) {
+  ScopedTraceWithContext("compile_module", name);
+  cudaq::RuntimeEndpoint endpoint;
+  endpoint.isRemote = isRemote.value_or(cudaq::is_remote_platform());
+  endpoint.isEmulated = isEmulated.value_or(cudaq::is_emulated_platform());
+  endpoint.supportsJit = supportsJit.value_or(cudaq::platform_supports_jit());
+  return compileWithoutLaunch(name, module, isEntryPoint,
+                              nanobind::borrow<nanobind::args>(runtimeArgs),
+                              std::move(target), std::move(endpoint),
+                              /*inhibitCodegen=*/false);
 }
 
 static MlirModule synthesizeKernel(nanobind::object kernel,
@@ -1375,10 +1416,14 @@ void cudaq::bindAltLaunchKernel(nanobind::module_ &mod,
   nanobind::class_<cudaq::CompiledModule>(mod, "CompiledModule")
       .def_prop_ro(
           "entry_point",
-          [](const cudaq::CompiledModule &ck) {
-            return reinterpret_cast<std::uintptr_t>(ck.getJit()->getFn());
+          [](const cudaq::CompiledModule &ck) -> std::optional<std::uintptr_t> {
+            auto jit = ck.getJit();
+            if (!jit)
+              return std::nullopt;
+            return reinterpret_cast<std::uintptr_t>(jit->getFn());
           },
-          "The address of the JIT-compiled entry point.")
+          "The address of the JIT-compiled entry point, or None if this "
+          "module carries no JIT artifact.")
       .def_prop_ro("name", &cudaq::CompiledModule::getName,
                    "The kernel name this module was compiled for.")
       .def_prop_ro("is_fully_specialized",
@@ -1423,6 +1468,17 @@ void cudaq::bindAltLaunchKernel(nanobind::module_ &mod,
   mod.def("marshal_and_retain_module", marshal_and_retain_module,
           "Compile (specialize + JIT) a kernel module. Returns a "
           "CompiledModule object that owns the JIT engine.");
+
+  mod.def("compile_module", compile_module, nanobind::arg("kernel_name"),
+          nanobind::arg("module"), nanobind::arg("is_entry_point"),
+          nanobind::arg("compile_target").none() = nanobind::none(),
+          nanobind::arg("is_remote").none() = nanobind::none(),
+          nanobind::arg("is_emulated").none() = nanobind::none(),
+          nanobind::arg("supports_jit").none() = nanobind::none(),
+          nanobind::arg("args") = nanobind::tuple(),
+          "Compile a kernel module for a target without launching it. "
+          "Returns a CompiledModule. Unless given, the compile target and the "
+          "endpoint traits are those of the current platform.");
 
   mod.def("synthesize", synthesizeKernel, "FIXME: document!");
 

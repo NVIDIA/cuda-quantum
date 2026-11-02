@@ -36,18 +36,28 @@ std::string measurementFormName(MeasurementForm form) {
   return form == MeasurementForm::any ? "any" : "single_qubit";
 }
 
-/// Accepts a `CostModel`, its name as a string such as `"t_count"`, or None.
+/// Accepts a bound enum value or its name as a string, such as `"t_count"`.
+/// \p alternatives names any other value the caller accepts, for the error.
+template <typename E>
+E enumValue(nb::handle value, const char *option,
+            const char *alternatives = "") {
+  if (!nb::isinstance<nb::str>(value))
+    return nb::cast<E>(value);
+  try {
+    return nb::cast<E>(nb::type<E>().attr(value));
+  } catch (const std::exception &) {
+    throw std::invalid_argument(
+        std::string(option) + " must be a " +
+        nb::cast<std::string>(nb::type<E>().attr("__name__")) +
+        " or the name of one" + alternatives);
+  }
+}
+
+/// Accepts what `enumValue` accepts, or None.
 std::optional<CostModel> costModel(nb::handle value) {
   if (value.is_none())
     return std::nullopt;
-  if (!nb::isinstance<nb::str>(value))
-    return nb::cast<CostModel>(value);
-  try {
-    return nb::cast<CostModel>(nb::type<CostModel>().attr(value));
-  } catch (const std::exception &) {
-    throw std::invalid_argument(
-        "cost_model must be a CostModel, the name of one, or None");
-  }
+  return enumValue<CostModel>(value, "cost_model", ", or None");
 }
 
 template <typename T>
@@ -55,12 +65,11 @@ std::string repr(const T &value) {
   return nb::repr(nb::cast(value)).c_str();
 }
 
-/// The cost model as Python reads it back, such as `CostModel.t_count`.
-std::string costModelRepr(const std::optional<CostModel> &costModel) {
-  if (!costModel)
-    return "None";
-  return "CostModel." +
-         std::string(nb::str(nb::cast(*costModel).attr("name")).c_str());
+/// A bound enum value as Python reads it back, such as `CostModel.t_count`.
+template <typename E>
+std::string enumRepr(E value) {
+  return nb::cast<std::string>(nb::type<E>().attr("__name__")) + "." +
+         nb::cast<std::string>(nb::cast(value).attr("name"));
 }
 
 template <typename T>
@@ -110,16 +119,28 @@ void cudaq::bindTargetProfiles(nb::module_ &m) {
   nb::enum_<CostModel>(m, "CostModel")
       .value("t_count", CostModel::t_count)
       .value("two_qubit_gate_count", CostModel::two_qubit_gate_count);
+  nb::enum_<LoopUnrolling>(m, "LoopUnrolling")
+      .value("all", LoopUnrolling::all)
+      .value("index_use", LoopUnrolling::index_use);
   valueClass<QuakeUnmappedProfile>(m, "QuakeUnmappedProfile")
       .def(
           "__init__",
           [](QuakeUnmappedProfile *self, std::vector<std::string> basis,
-             double tolerance, nb::handle model) {
-            new (self) QuakeUnmappedProfile{std::move(basis), tolerance,
-                                            costModel(model)};
+             double tolerance, nb::handle model, nb::handle unrollLoops,
+             unsigned maxUnrollIterations) {
+            new (self) QuakeUnmappedProfile{
+                .basisGates = std::move(basis),
+                .approximationTolerance = tolerance,
+                .costModel = costModel(model),
+                .unrollLoops =
+                    enumValue<LoopUnrolling>(unrollLoops, "unroll_loops"),
+                .maxUnrollIterations = maxUnrollIterations};
           },
           nb::kw_only(), "basis_gates"_a = std::vector<std::string>{},
-          "approximation_tolerance"_a = 0.0, "cost_model"_a = nb::none())
+          "approximation_tolerance"_a = 0.0, "cost_model"_a = nb::none(),
+          "unroll_loops"_a = QuakeUnmappedProfile{}.unrollLoops,
+          "max_unroll_iterations"_a =
+              QuakeUnmappedProfile{}.maxUnrollIterations)
       .def_rw("basis_gates", &QuakeUnmappedProfile::basisGates)
       .def_rw("approximation_tolerance",
               &QuakeUnmappedProfile::approximationTolerance)
@@ -130,10 +151,21 @@ void cudaq::bindTargetProfiles(nb::module_ &m) {
             p.costModel = costModel(model);
           },
           nb::for_setter(nb::arg("value").none()))
+      .def_prop_rw(
+          "unroll_loops",
+          [](const QuakeUnmappedProfile &p) { return p.unrollLoops; },
+          [](QuakeUnmappedProfile &p, nb::handle value) {
+            p.unrollLoops = enumValue<LoopUnrolling>(value, "unroll_loops");
+          })
+      .def_rw("max_unroll_iterations",
+              &QuakeUnmappedProfile::maxUnrollIterations)
       .def("__repr__", [](const QuakeUnmappedProfile &p) {
         return "QuakeUnmappedProfile(basis_gates=" + repr(p.basisGates) +
                ", approximation_tolerance=" + repr(p.approximationTolerance) +
-               ", cost_model=" + costModelRepr(p.costModel) + ")";
+               ", cost_model=" +
+               (p.costModel ? enumRepr(*p.costModel) : "None") +
+               ", unroll_loops=" + enumRepr(p.unrollLoops) +
+               ", max_unroll_iterations=" + repr(p.maxUnrollIterations) + ")";
       });
   valueClass<QuakeMappedProfile>(m, "QuakeMappedProfile")
       .def(
