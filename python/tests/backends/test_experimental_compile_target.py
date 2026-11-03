@@ -13,13 +13,15 @@
 # Install it together with a runtime endpoint as a `CustomTarget`.
 
 import os
+import subprocess
+import sys
 
 import pytest
 
 import cudaq
 from cudaq._experimental import (Codegen, CompileTarget, CustomPipelineLowering,
                                  CustomTarget)
-from cudaq._target import CompilationStage
+from cudaq._experimental import CompilationStage
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.mlir.ir import WalkResult
 
@@ -53,15 +55,16 @@ def make_swap_kernel():
 def test_frontend_reexports_shared_bindings():
     from importlib import import_module
     from types import ModuleType
-    from cudaq.core import backends
+    from cudaq.core import _experimental as core_experimental
+    from cudaq.core import results
     from cudaq.mlir._mlir_libs import _backends, _quakeDialects, _quakeDialectsCore
 
-    assert Codegen is backends.Codegen
-    assert CompileTarget is backends.CompileTarget
-    assert CustomPipelineLowering is backends.CustomPipelineLowering
-    assert CustomTarget is backends.CustomTarget
-    assert cudaq.Resources is backends.Resources
-    assert cudaq.EstimateResult is backends.EstimateResult
+    assert Codegen is core_experimental.Codegen
+    assert CompileTarget is core_experimental.CompileTarget
+    assert CustomPipelineLowering is core_experimental.CustomPipelineLowering
+    assert CustomTarget is core_experimental.CustomTarget
+    assert cudaq.Resources is results.Resources
+    assert cudaq.EstimateResult is results.EstimateResult
     # Every public native export must retain object identity through the
     # frontend, including imports using its original submodule paths.
     for source, destination in ((_quakeDialectsCore, _quakeDialects),
@@ -75,23 +78,49 @@ def test_frontend_reexports_shared_bindings():
 
 
 def test_target_values_have_one_registration():
-    from cudaq import _experimental, _target
-    from cudaq.core import backends
-    from cudaq.mlir._mlir_libs import _backends
+    from cudaq import _experimental
+    from cudaq.core import _experimental as core_experimental
+    from cudaq.core import _target, results
 
-    for name in ("Codegen", "CompilationStage", "CompileTarget",
-                 "CustomPipelineLowering", "QuakeReferenceSemanticsProfile",
-                 "UncheckedProfile"):
+    for name in ("Codegen", "CompilationStage", "CompileTarget", "CostModel",
+                 "CustomPipelineLowering", "LoopUnrolling", "NoiseSupport",
+                 "QuakeMappedProfile", "QuakeReferenceSemanticsProfile",
+                 "QuakeUnmappedProfile", "UncheckedProfile"):
         value = getattr(_target, name)
-        for module in (_experimental, backends, _backends, cudaq_runtime):
+        for module in (_experimental, core_experimental):
             assert getattr(module, name) is value
+
+    # The compile-target types are experimental; they must not leak into the
+    # stable-looking results module.
+    assert not hasattr(results, "CompileTarget")
+
+
+def test_get_compile_target_registers_its_return_type():
+    code = """
+import sys
+
+from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
+
+target = cudaq_runtime.get_compile_target()
+assert type(target).__name__ == "CompileTarget", type(target)
+assert type(target).__module__ == "cudaq.core._target"
+
+# The extension registered the type itself; nothing pulled in the frontend's
+# experimental facade.
+assert "cudaq.core._target" in sys.modules
+assert "cudaq._experimental" not in sys.modules
+"""
+    result = subprocess.run([sys.executable, "-c", code],
+                            capture_output=True,
+                            text=True)
+    assert result.returncode == 0, result.stderr
 
 
 def test_custom_target_runtime_annotations():
     from dataclasses import fields
     from typing import get_type_hints
     from cudaq._experimental import RuntimeEndpoint
-    from cudaq.core import backends
+    from cudaq.core import _experimental as core_experimental
 
     expected = {
         "runtime_endpoint": RuntimeEndpoint,
@@ -101,7 +130,7 @@ def test_custom_target_runtime_annotations():
     assert {
         field.name: field.type for field in fields(CustomTarget)
     } == expected
-    assert RuntimeEndpoint is backends.RuntimeEndpoint
+    assert RuntimeEndpoint is core_experimental.RuntimeEndpoint
 
 
 def swap_pipeline_target():

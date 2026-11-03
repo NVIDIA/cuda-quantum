@@ -88,7 +88,7 @@ def check_core(frontend):
 
 def check_logical():
     import cudaq.logical as logical
-    from cudaq.core.backends import EstimateResult
+    from cudaq.core.results import EstimateResult
     from cudaq.util import trace
 
     @logical.program
@@ -127,12 +127,12 @@ def check_edem():
 
 def check_frontend():
     import cudaq
-    from cudaq.core import backends
+    from cudaq.core import _experimental as core_experimental
     from cudaq._experimental import CompileTarget, CustomTarget
     from cudaq.mlir._mlir_libs import _backends, _quakeDialects
 
-    assert CompileTarget is backends.CompileTarget
-    assert CustomTarget is backends.CustomTarget
+    assert CompileTarget is core_experimental.CompileTarget
+    assert CustomTarget is core_experimental.CustomTarget
     assert _quakeDialects.cudaq_runtime.trace is _backends.trace
     cudaq.set_target("qpp-cpu")
     kernel = cudaq.make_kernel()
