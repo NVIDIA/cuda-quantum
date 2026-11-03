@@ -1687,6 +1687,16 @@ class _P0ToP1:
         raise NotImplementedError(f"qlx-to-lvm does not yet convert {name}")
 
 
+def _verify_placement_actions(program):
+    # This read-only guard uses the sealed authority, avoiding a module clone
+    # or serialization on every ordinary placement request.
+    if any(operation.name == "qlx.apply" and
+           str(operation.attributes["action"]) == "#qlx.action<u3>"
+           for operation in _walk(program._module.operation)):
+        raise ValueError("u3 must be legalized before placement; run "
+                         "cudaq.logical.compiler.synthesize first.")
+
+
 def _place_build(
     program,
     *,
@@ -1704,6 +1714,7 @@ def _place_build(
     if program.profile != "p0":
         raise ValueError(
             "cudaq.logical.place requires a P0 Build or portable definition")
+    _verify_placement_actions(program)
     if constraints is not None:
         if placement:
             raise TypeError("specify placement= or constraints=, not both")

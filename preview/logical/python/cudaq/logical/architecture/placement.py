@@ -1479,6 +1479,8 @@ def problem(
     """Analyze one portable program against a logical device contract."""
 
     program = _as_p0(program)
+    from ..compiler.place import _verify_placement_actions
+    _verify_placement_actions(program)
     if constraints is not None:
         if placement:
             raise TypeError("specify placement= or constraints=, not both")

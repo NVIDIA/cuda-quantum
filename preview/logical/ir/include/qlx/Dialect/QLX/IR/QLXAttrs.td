@@ -39,6 +39,7 @@ def QLX_BuiltinAction_CCZ           : I32EnumAttrCase<"ccz", 10>;
 def QLX_BuiltinAction_Idle          : I32EnumAttrCase<"idle", 11>;
 def QLX_BuiltinAction_PauliRotation : I32EnumAttrCase<"pauli_rotation", 12>;
 def QLX_BuiltinAction_CCX           : I32EnumAttrCase<"ccx", 13>;
+def QLX_BuiltinAction_U3            : I32EnumAttrCase<"u3", 14>;
 
 def QLX_BuiltinActionEnum : I32EnumAttr<"BuiltinAction",
     "Canonical built-in unplaced logical action",
@@ -46,7 +47,8 @@ def QLX_BuiltinActionEnum : I32EnumAttr<"BuiltinAction",
      QLX_BuiltinAction_X, QLX_BuiltinAction_Y, QLX_BuiltinAction_Z,
      QLX_BuiltinAction_T, QLX_BuiltinAction_Tdg, QLX_BuiltinAction_CX,
      QLX_BuiltinAction_CZ, QLX_BuiltinAction_CCZ, QLX_BuiltinAction_Idle,
-     QLX_BuiltinAction_PauliRotation, QLX_BuiltinAction_CCX]> {
+     QLX_BuiltinAction_PauliRotation, QLX_BuiltinAction_CCX,
+     QLX_BuiltinAction_U3]> {
   let cppNamespace = "qlx";
   let genSpecializedAttr = 0;
 }

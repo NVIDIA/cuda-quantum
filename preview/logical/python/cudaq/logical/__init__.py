@@ -47,6 +47,7 @@ from . import (  # noqa: E402
     stages, targets, types,
 )
 from .compiler import compile, materialize  # noqa: E402
+from .algebra import pi  # noqa: E402
 from .programs import (
     abort_on,
     condition_results,
@@ -63,7 +64,7 @@ from .ops import (  # noqa: E402
     extract_syndrome, h, idle, measure, measure_x, measure_z, mpp, mz,
     pack_resource, postselect, prepare, prepare_plus, prepare_zero, produce,
     request, request_many, reset, resource_rotate, rx, ry, rz, s, sdg, t, tdg,
-    unpack_resource, x, xor, y, z,
+    u3, unpack_resource, x, xor, y, z,
 )
 from .algorithms.reversible import MCXPolicy, ccx, cswap, mcx  # noqa: E402
 
@@ -104,6 +105,7 @@ __all__ = [
     "abort_on",
     "compile",
     "materialize",
+    "pi",
     "estimate",
     "emit",
     "allocate",
@@ -132,6 +134,7 @@ __all__ = [
     "rx",
     "ry",
     "rz",
+    "u3",
     "cx",
     "cz",
     "ccz",

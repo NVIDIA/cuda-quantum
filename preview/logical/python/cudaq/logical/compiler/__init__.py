@@ -15,6 +15,7 @@ from .link_check import (
 )
 from .compile import compile, materialize
 from .synthesize import synthesize
+from .synthesizers import CliffordTWord, RotationSynthesizer, PyGridSynth
 from .pbc import to_pbc
 from .frame import absorb_clifford_frame
 from .context import CompilationContext
@@ -117,6 +118,9 @@ __all__ = [
     "Pipeline",
     "compile",
     "synthesize",
+    "CliffordTWord",
+    "RotationSynthesizer",
+    "PyGridSynth",
     "to_pbc",
     "absorb_clifford_frame",
     "materialize",

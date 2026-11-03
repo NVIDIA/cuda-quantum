@@ -208,7 +208,8 @@ LogicalResult qlx::lowerToPBC(ModuleOp module) {
           result = apply.emitOpError("qlx-to-pbc expects builtin actions");
           return;
         }
-        if (builtin.getValue() == BuiltinAction::pauli_rotation) {
+        if (builtin.getValue() == BuiltinAction::pauli_rotation ||
+            builtin.getValue() == BuiltinAction::u3) {
           result = apply.emitOpError("qlx-to-pbc requires synthesized gates; "
                                      "run qlx-synthesize first");
           return;
