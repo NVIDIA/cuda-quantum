@@ -10552,9 +10552,24 @@ discriminate a vector of handles.
         :::
         :::
 
-```{=html}
-<!-- -->
-```
+::: {.admonition .note}
+Note
+
+The matrix data of a [[`cudaq::kraus_op`{.xref .cpp .cpp-struct
+.docutils .literal
+.notranslate}]{.pre}](#_CPPv4N5cudaq8kraus_opE "cudaq::kraus_op"){.reference
+.internal} (its [`data`{.docutils .literal .notranslate}]{.pre} member)
+is always stored in double precision ([`std::complex<double>`{.docutils
+.literal .notranslate}]{.pre}), regardless of the simulation precision
+of the target. Single-precision data (e.g.,
+[`std::vector<cudaq::complex>`{.docutils .literal .notranslate}]{.pre}
+on [`fp32`{.docutils .literal .notranslate}]{.pre} targets) is still
+accepted when constructing a [`kraus_op`{.docutils .literal
+.notranslate}]{.pre} and is converted to double precision; use
+[`cudaq::kraus_op::value_type`{.docutils .literal .notranslate}]{.pre}
+to refer to the element type in generic code. [`fp32`{.docutils .literal
+.notranslate}]{.pre} backends continue to simulate in single precision.
+:::
 
 []{#structcudaq_1_1kraus__op .target}[[struct]{.pre}]{.k}[ ]{.w}[[[kraus_op]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq8kraus_opE "Permalink to this definition"){.headerlink}\
 
@@ -10564,19 +10579,31 @@ discriminate a vector of handles.
     1d array (specifically a std::vector).
 
     ::: {.breathe-sectiondef .docutils .container}
+    Public Types
+
+    []{#structcudaq_1_1kraus__op_1a24da9455774cdb4dcbc40554a81de81a .target}[[using]{.pre}]{.k}[ ]{.w}[[[value_type]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[complex]{.pre}]{.n}[[\<]{.pre}]{.p}[[double]{.pre}]{.kt}[[\>]{.pre}]{.p}[¶](#_CPPv4N5cudaq8kraus_op10value_typeE "Permalink to this definition"){.headerlink}\
+
+    :   The element type of the Kraus matrix data. Always double
+        precision regardless of the simulation precision (see
+        [`data`{.docutils .literal .notranslate}]{.pre} below).
+    :::
+
+    ::: {.breathe-sectiondef .docutils .container}
     Public Functions
 
-    []{#structcudaq_1_1kraus__op_1a2f5c2b8930af146a4dbd3fadd7938fbc .target}[[[kraus_op]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[[kraus_op]{.pre}]{.n}](#_CPPv4N5cudaq8kraus_op8kraus_opERK8kraus_op "cudaq::kraus_op::kraus_op"){.reference .internal}[[&]{.pre}]{.p}[)]{.sig-paren}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[default]{.pre}]{.k}[¶](#_CPPv4N5cudaq8kraus_op8kraus_opERK8kraus_op "Permalink to this definition"){.headerlink}\
+    []{#structcudaq_1_1kraus__op_1a7e3af6d1eb0d81b59d2d95afd56584f3 .target}[[inline]{.pre}]{.k}[ ]{.w}[[[kraus_op]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[[value_type]{.pre}]{.n}](#_CPPv4N5cudaq8kraus_op10value_typeE "cudaq::kraus_op::value_type"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[d]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq8kraus_op8kraus_opENSt6vectorI10value_typeEE "Permalink to this definition"){.headerlink}\
 
-    :   Copy constructor.
+    :   Constructor, initialize from vector data.
 
     ```{=html}
     <!-- -->
     ```
 
-    []{#structcudaq_1_1kraus__op_1a14137e8fb637563b68c2353d2d6834cd .target}[[inline]{.pre}]{.k}[ ]{.w}[[[kraus_op]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[complex]{.pre}]{.n}](#_CPPv4N5cudaq7complexE "cudaq::complex"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[d]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq8kraus_op8kraus_opENSt6vectorIN5cudaq7complexEEE "Permalink to this definition"){.headerlink}\
+    [[template]{.pre}]{.k}[[\<]{.pre}]{.p}[[typename]{.pre}]{.k}[ ]{.w}[[[T]{.pre}]{.n}]{.sig-name .descname}[[\>]{.pre}]{.p}\
+    []{#structcudaq_1_1kraus__op_1a45e44b4776cbee874c74aedc008b8b3d .target}[[inline]{.pre}]{.k}[ ]{.w}[[[kraus_op]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[complex]{.pre}]{.n}[[\<]{.pre}]{.p}[[[T]{.pre}]{.n}](#_CPPv4I0EN5cudaq8kraus_op8kraus_opERKNSt6vectorINSt7complexI1TEEEE "cudaq::kraus_op::kraus_op::T"){.reference .internal}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[ ]{.w}[[&]{.pre}]{.p}[[d]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4I0EN5cudaq8kraus_op8kraus_opERKNSt6vectorINSt7complexI1TEEEE "Permalink to this definition"){.headerlink}\
 
-    :   Constructor, initialize from vector data.
+    :   Constructor, initialize from single-precision vector data. The
+        values are converted to double precision for storage.
 
     ```{=html}
     <!-- -->
@@ -10591,16 +10618,6 @@ discriminate a vector of handles.
     <!-- -->
     ```
 
-    []{#structcudaq_1_1kraus__op_1ac7cdeb5fa87ffea343ea695710abb7a2 .target}[[inline]{.pre}]{.k}[ ]{.w}[[[kraus_op]{.pre}]{.n}](#_CPPv4N5cudaq8kraus_opE "cudaq::kraus_op"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[[operator]{.pre}]{.k}[[=]{.pre}]{.o}]{.sig-name .descname}[(]{.sig-paren}[[const]{.pre}]{.k}[ ]{.w}[[[kraus_op]{.pre}]{.n}](#_CPPv4N5cudaq8kraus_opE "cudaq::kraus_op"){.reference .internal}[ ]{.w}[[&]{.pre}]{.p}[[other]{.pre}]{.n .sig-param}[)]{.sig-paren}[¶](#_CPPv4N5cudaq8kraus_opaSERK8kraus_op "Permalink to this definition"){.headerlink}\
-
-    :   Set this [[kraus_op]{.std
-        .std-ref}](#structcudaq_1_1kraus__op){.reference .internal}
-        equal to the other.
-
-    ```{=html}
-    <!-- -->
-    ```
-
     []{#structcudaq_1_1kraus__op_1a515b1d2dcfc3b07156eeee9ce394e706 .target}[[inline]{.pre}]{.k}[ ]{.w}[[[kraus_op]{.pre}]{.n}](#_CPPv4N5cudaq8kraus_opE "cudaq::kraus_op"){.reference .internal}[ ]{.w}[[[adjoint]{.pre}]{.n}]{.sig-name .descname}[(]{.sig-paren}[)]{.sig-paren}[ ]{.w}[[const]{.pre}]{.k}[¶](#_CPPv4NK5cudaq8kraus_op7adjointEv "Permalink to this definition"){.headerlink}\
 
     :   Return the adjoint of this [[kraus_op]{.std
@@ -10610,7 +10627,7 @@ discriminate a vector of handles.
     ::: {.breathe-sectiondef .docutils .container}
     Public Members
 
-    []{#structcudaq_1_1kraus__op_1a9ad38665040cf71ea3ce73d76ad4989a .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[complex]{.pre}]{.n}](#_CPPv4N5cudaq7complexE "cudaq::complex"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[[data]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq8kraus_op4dataE "Permalink to this definition"){.headerlink}\
+    []{#structcudaq_1_1kraus__op_1a14d27d1449d1c5f2d6d53e818eb8da18 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[[value_type]{.pre}]{.n}](#_CPPv4N5cudaq8kraus_op10value_typeE "cudaq::kraus_op::value_type"){.reference .internal}[[\>]{.pre}]{.p}[ ]{.w}[[[data]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq8kraus_op4dataE "Permalink to this definition"){.headerlink}\
 
     :   Matrix data, represented as a 1d flattened.
 
@@ -10630,14 +10647,6 @@ discriminate a vector of handles.
 
     :   The number of columns in the matrix NOTE we currently assume
         nRows == nCols.
-
-    ```{=html}
-    <!-- -->
-    ```
-
-    []{#structcudaq_1_1kraus__op_1a9139408e0100255c6445c9c18bf645e2 .target}[[const]{.pre}]{.k}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[simulation_precision]{.pre}]{.n}](#_CPPv4N5cudaq20simulation_precisionE "cudaq::simulation_precision"){.reference .internal}[ ]{.w}[[[precision]{.pre}]{.n}]{.sig-name .descname}[ ]{.w}[[=]{.pre}]{.p}[ ]{.w}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[is_same_v]{.pre}]{.n}[[\<]{.pre}]{.p}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[real]{.pre}]{.n}](#_CPPv4N5cudaq4realE "cudaq::real"){.reference .internal}[[,]{.pre}]{.p}[ ]{.w}[[float]{.pre}]{.kt}[[\>]{.pre}]{.p}[ ]{.w}[[?]{.pre}]{.o}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[simulation_precision]{.pre}]{.n}](#_CPPv4N5cudaq20simulation_precisionE "cudaq::simulation_precision"){.reference .internal}[[::]{.pre}]{.p}[[[fp32]{.pre}]{.n}](#_CPPv4N5cudaq20simulation_precision4fp32E "cudaq::simulation_precision::fp32"){.reference .internal}[ ]{.w}[[:]{.pre}]{.o}[ ]{.w}[[[cudaq]{.pre}]{.n}](#_CPPv45cudaq "cudaq"){.reference .internal}[[::]{.pre}]{.p}[[[simulation_precision]{.pre}]{.n}](#_CPPv4N5cudaq20simulation_precisionE "cudaq::simulation_precision"){.reference .internal}[[::]{.pre}]{.p}[[[fp64]{.pre}]{.n}](#_CPPv4N5cudaq20simulation_precision4fp64E "cudaq::simulation_precision::fp64"){.reference .internal}[¶](#_CPPv4N5cudaq8kraus_op9precisionE "Permalink to this definition"){.headerlink}\
-
-    :   The precision of the underlying data.
     :::
 
 ```{=html}
@@ -10833,7 +10842,7 @@ discriminate a vector of handles.
     <!-- -->
     ```
 
-    []{#classcudaq_1_1kraus__channel_1a96c9b610069e9ff86ef5597bff834c28 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[complex]{.pre}]{.n}[[\<]{.pre}]{.p}[[double]{.pre}]{.kt}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[ ]{.w}[[[unitary_ops]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq13kraus_channel11unitary_opsE "Permalink to this definition"){.headerlink}\
+    []{#classcudaq_1_1kraus__channel_1a4779b31a318680460fcff785dbe6b707 .target}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[std]{.pre}]{.n}[[::]{.pre}]{.p}[[vector]{.pre}]{.n}[[\<]{.pre}]{.p}[[[kraus_op]{.pre}]{.n}](#_CPPv4N5cudaq8kraus_opE "cudaq::kraus_op"){.reference .internal}[[::]{.pre}]{.p}[[[value_type]{.pre}]{.n}](#_CPPv4N5cudaq8kraus_op10value_typeE "cudaq::kraus_op::value_type"){.reference .internal}[[\>]{.pre}]{.p}[[\>]{.pre}]{.p}[ ]{.w}[[[unitary_ops]{.pre}]{.n}]{.sig-name .descname}[¶](#_CPPv4N5cudaq13kraus_channel11unitary_opsE "Permalink to this definition"){.headerlink}\
 
     :   If all Kraus ops are - when scaled - unitary, this holds the
         unitary versions of those ops. These values are always "double"

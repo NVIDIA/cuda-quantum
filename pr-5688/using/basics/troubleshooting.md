@@ -2158,15 +2158,31 @@ command-line options. For affected releases, import Numba or Triton
 before importing CUDA-Q. If the application cannot control import order,
 run CUDA-Q in a separate process.
 
-CUDA-Q loads its runtime and backend libraries with local symbol
-visibility. External native extensions must link to the CUDA-Q libraries
-they use, including [`cudaq::cudaq-em-default`{.docutils .literal
-.notranslate}]{.pre} when using the default execution manager. Compiler
-plugins should link to [`cudaq::MLIR`{.docutils .literal
-.notranslate}]{.pre}. They must not rely on [`import`{.docutils .literal
-.notranslate}]{.pre}` `{.docutils .literal
-.notranslate}[`cudaq`{.docutils .literal .notranslate}]{.pre} placing
-those dependencies in the process-wide symbol scope.
+CUDA-Q keeps its LLVM-dependent runtime and backend libraries local.
+Importing [`cudaq`{.docutils .literal .notranslate}]{.pre} exposes only
+the LLVM-free kernel runtime ([`libnvqir`{.docutils .literal
+.notranslate}]{.pre}, [`libcudaq-common`{.docutils .literal
+.notranslate}]{.pre}, [`libcudaq-kernel-runtime`{.docutils .literal
+.notranslate}]{.pre}, and their dependencies) globally. This allows
+shared libraries containing [`nvq++`{.docutils .literal
+.notranslate}]{.pre}-compiled kernels to be loaded with
+[`dlopen`{.docutils .literal .notranslate}]{.pre} or
+[`ctypes.CDLL`{.docutils .literal .notranslate}]{.pre} after importing
+CUDA-Q, even when compiled with [`nvq++`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal .notranslate}[`-c`{.docutils
+.literal .notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`-fPIC`{.docutils .literal .notranslate}]{.pre} and linked
+without explicit CUDA-Q dependencies. Kernel launches use the active
+CUDA-Q target without exposing the compiler's LLVM symbols globally.
+
+External native extensions using C++ runtime APIs must still link to the
+CUDA-Q libraries they use, including
+[`cudaq::cudaq-em-default`{.docutils .literal .notranslate}]{.pre} when
+using the default execution manager. Compiler plugins should link to
+[`cudaq::MLIR`{.docutils .literal .notranslate}]{.pre}. They must not
+rely on [`import`{.docutils .literal .notranslate}]{.pre}` `{.docutils
+.literal .notranslate}[`cudaq`{.docutils .literal .notranslate}]{.pre}
+placing those dependencies in the process-wide symbol scope.
 :::
 :::
 :::

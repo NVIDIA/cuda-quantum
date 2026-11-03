@@ -1220,11 +1220,19 @@ extensions. On Linux, importing Numba or Triton after CUDA-Q can then abort the
 process during JIT compilation or report duplicate LLVM command-line options.
 For affected releases, import Numba or Triton before importing CUDA-Q. If the
 application cannot control import order, run CUDA-Q in a separate process.</p>
-<p>CUDA-Q loads its runtime and backend libraries with local symbol visibility.
-External native extensions must link to the CUDA-Q libraries they use, including
-<code class="docutils literal notranslate"><span class="pre">cudaq::cudaq-em-default</span></code> when using the default execution manager. Compiler
-plugins should link to <code class="docutils literal notranslate"><span class="pre">cudaq::MLIR</span></code>. They must not rely on <code class="docutils literal notranslate"><span class="pre">import</span> <span class="pre">cudaq</span></code>
-placing those dependencies in the process-wide symbol scope.</p>
+<p>CUDA-Q keeps its LLVM-dependent runtime and backend libraries local. Importing
+<code class="docutils literal notranslate"><span class="pre">cudaq</span></code> exposes only the LLVM-free kernel runtime (<code class="docutils literal notranslate"><span class="pre">libnvqir</span></code>,
+<code class="docutils literal notranslate"><span class="pre">libcudaq-common</span></code>, <code class="docutils literal notranslate"><span class="pre">libcudaq-kernel-runtime</span></code>, and their dependencies) globally.
+This allows shared libraries containing <code class="docutils literal notranslate"><span class="pre">nvq++</span></code>-compiled kernels to be loaded
+with <code class="docutils literal notranslate"><span class="pre">dlopen</span></code> or <code class="docutils literal notranslate"><span class="pre">ctypes.CDLL</span></code> after importing CUDA-Q, even when compiled with
+<code class="docutils literal notranslate"><span class="pre">nvq++</span> <span class="pre">-c</span> <span class="pre">-fPIC</span></code> and linked without explicit CUDA-Q dependencies. Kernel launches
+use the active CUDA-Q target without exposing the compiler’s LLVM symbols
+globally.</p>
+<p>External native extensions using C++ runtime APIs must still link to the CUDA-Q
+libraries they use, including <code class="docutils literal notranslate"><span class="pre">cudaq::cudaq-em-default</span></code> when using the default
+execution manager. Compiler plugins should link to <code class="docutils literal notranslate"><span class="pre">cudaq::MLIR</span></code>. They must not
+rely on <code class="docutils literal notranslate"><span class="pre">import</span> <span class="pre">cudaq</span></code> placing those dependencies in the process-wide symbol
+scope.</p>
 </section>
 </section>
 
