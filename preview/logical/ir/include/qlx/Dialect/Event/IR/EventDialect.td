@@ -1,10 +1,10 @@
-/*******************************************************************************
+/***********************************************************-*- tablegen -*-****
  * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
 #ifndef EVENT_DIALECT_TD
 #define EVENT_DIALECT_TD
@@ -47,7 +47,7 @@ def Event_Dialect : Dialect {
       usable.
     * `await`, `try_take` and `cancel` consume. Each takes the handle's
       ownership, and at most one of them runs for a given handle, so a
-      payload declared linear cannot acquire a second owner however often
+      payload declared linear cannot acquire a second use however often
       the program branched on readiness first. SSA permits a value to
       have several uses, so that last part is a contract this dialect
       states and does not check; the linear-use analysis enforcing it

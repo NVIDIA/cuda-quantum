@@ -119,9 +119,11 @@ disable_error_code = ["name-defined", "misc", "type-arg", "valid-type"]
 testpaths = ["tests/cudaq/logical"]
 # Use importlib mode so pytest doesn't insert the source tree into sys.path,
 # which would shadow the build dir's cudaq.logical package (with compiled extensions).
-addopts = "--import-mode=importlib"
+# Keep larger resource-estimation cases out of routine runs, including PR CI.
+# Override with `-m slow` for those cases or `-m ''` for the full suite.
+addopts = "--import-mode=importlib -m 'not slow'"
 # The packaging tests import the repo's `scripts/` helpers, so the repo root
 # (rootdir/..) must be importable regardless of the invocation directory. It
 # holds no top-level cudaq package, so this cannot shadow the built one.
 pythonpath = [".."]
-markers = ["slow: marks tests as slow (deselect with '-m \"not slow\"')"]
+markers = ["slow: expensive tests excluded by default (select with '-m slow')"]

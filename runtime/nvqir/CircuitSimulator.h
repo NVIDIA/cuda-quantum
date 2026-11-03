@@ -898,7 +898,7 @@ protected:
       // OK, now we're ready to grab the buffered sample results for the entire
       // execution context.
       auto execResult = sample(sampleQubits, nShots);
-      internalResult.append(execResult);
+      internalResult.append(std::move(execResult));
       return;
     }
 
@@ -935,7 +935,12 @@ protected:
     }
 
     if (registerNameToMeasuredQubit.empty()) {
-      internalResult.append(execResult, executionContext->explicitMeasurements);
+      // The whole sampled result goes into internalResult and execResult is not
+      // read again on this path, so hand over its dictionary and its per-shot
+      // bitstrings instead of duplicating both. The else branch below does read
+      // execResult, but the two are mutually exclusive.
+      internalResult.append(std::move(execResult),
+                            executionContext->explicitMeasurements);
     } else {
 
       for (auto &[regName, qubits] : registerNameToMeasuredQubit) {
@@ -960,10 +965,10 @@ protected:
           b.reserve(qubits.size());
           for (auto &qb : qubits)
             b += bits[qubitLocMap[qb]];
-          tmp.appendResult(b, count);
+          tmp.appendResult(std::move(b), count);
         }
 
-        internalResult.append(tmp);
+        internalResult.append(std::move(tmp));
       }
     }
 
@@ -1307,7 +1312,7 @@ protected:
           counts.appendResult(bitResults[j], 1);
         }
       }
-      internalResult.append(counts);
+      internalResult.append(std::move(counts));
     }
 
     // Reorder the global register (if necessary). This might be necessary if
@@ -1324,7 +1329,15 @@ protected:
     lastMidCircuitRegisterName = "";
     currentCircuitName = "";
 
-    return internalResult;
+    // internalResult is a member, so returning it is a copy: there is no NRVO
+    // for a member, and the counts dictionary and the per-shot bitstrings both
+    // get duplicated on the way out. endExecution() assigns a fresh one
+    // immediately after this returns, so the storage is handed over instead.
+    // Reset here as well rather than relying on that, so totalShots cannot be
+    // left describing a dictionary that has been moved away.
+    auto result = std::move(internalResult);
+    internalResult = {};
+    return result;
   }
 
   void finalizeExecutionContext(const cudaq::other_policies &policy,

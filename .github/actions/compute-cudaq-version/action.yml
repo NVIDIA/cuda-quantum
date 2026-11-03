@@ -4,6 +4,8 @@ description: |
   Unversioned refs use 0.0.0 with the short git SHA appended.
   An explicit release_version takes precedence over both.
   Infer cudaq_logical_version from cudaq-logical/v* tags using setuptools-scm.
+  Read cudaq_edem_version from edem/CMakeLists.txt, which also versions the
+  cudaq-edem wheels.
 inputs:
   ref_name:
     description: Git ref name to extract the version from.
@@ -24,6 +26,9 @@ outputs:
   cudaq_logical_version:
     description: The setuptools-scm-derived CUDA-Q Logical version.
     value: ${{ steps.compute-logical.outputs.cudaq_logical_version }}
+  cudaq_edem_version:
+    description: The cudaq-edem version, as set in edem/CMakeLists.txt.
+    value: ${{ steps.compute-edem.outputs.cudaq_edem_version }}
 runs:
   using: composite
   steps:
@@ -73,3 +78,17 @@ runs:
         cudaq_logical_version=$(echo ${cudaq_logical_scmversion} | egrep -o "([0-9]{1,}\.)+[0-9]{1,}")
         echo "cudaq_logical_version=$cudaq_logical_version" >> "$GITHUB_OUTPUT"
         echo "CUDA-Q Logical version: $cudaq_logical_version"
+
+    - name: Compute CUDA-Q EDEM version
+      id: compute-edem
+      shell: bash
+      run: |
+        set -euo pipefail
+        # Same pattern that pyproject.toml.edem uses to version the wheels.
+        cudaq_edem_version="$(sed -nE 's/^set\(CUDAQ_EDEM_VERSION ([0-9]+\.[0-9]+\.[0-9]+)\)$/\1/p' edem/CMakeLists.txt)"
+        if [[ ! "$cudaq_edem_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          echo "::error::Could not read CUDAQ_EDEM_VERSION from edem/CMakeLists.txt."
+          exit 1
+        fi
+        echo "cudaq_edem_version=$cudaq_edem_version" >> "$GITHUB_OUTPUT"
+        echo "CUDA-Q EDEM version: $cudaq_edem_version"

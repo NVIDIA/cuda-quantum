@@ -1,0 +1,42 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt -kernel-execution %s | FileCheck %s
+// RUN: cudaq-opt -kernel-execution=codegen=1 %s | FileCheck --check-prefix=ALT %s
+
+// The data members of a kernel class are the leading arguments of the kernel.
+// The host function does not have them. They are read from the `this` pointer
+// at the byte offsets recorded on the kernel, and passed before the explicit
+// arguments.
+
+module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__K = "_ZN1KclEi"}} {
+  func.func @__nvqpp__mlirgen__K(%arg0: i32, %arg1: f64, %arg2: i32) attributes {"cudaq-entrypoint", "cudaq-kernel", "cudaq-member-args" = 2 : i64, "cudaq-member-offsets" = array<i64: 4, 16>} {
+    return
+  }
+  func.func @_ZN1KclEi(%this: !cc.ptr<i8>, %n: i32) {
+    return
+  }
+}
+
+// CHECK-LABEL: func.func @_ZN1KclEi(
+// CHECK-SAME: %[[THIS:.*]]: !cc.ptr<i8>, %[[N:.*]]: i32) {
+// CHECK: %[[B0:.*]] = cc.cast %[[THIS]] : (!cc.ptr<i8>) -> !cc.ptr<!cc.array<i8 x ?>>
+// CHECK: %[[P0:.*]] = cc.compute_ptr %[[B0]][4]
+// CHECK: %[[C0:.*]] = cc.cast %[[P0]] : (!cc.ptr<i8>) -> !cc.ptr<i32>
+// CHECK: %[[V0:.*]] = cc.load %[[C0]] : !cc.ptr<i32>
+// CHECK: %[[B1:.*]] = cc.cast %[[THIS]]
+// CHECK: %[[P1:.*]] = cc.compute_ptr %[[B1]][16]
+// CHECK: %[[C1:.*]] = cc.cast %[[P1]] : (!cc.ptr<i8>) -> !cc.ptr<f64>
+// CHECK: %[[V1:.*]] = cc.load %[[C1]] : !cc.ptr<f64>
+// CHECK: cc.store %[[V0]], %{{.*}} : !cc.ptr<i32>
+// CHECK: cc.store %[[V1]], %{{.*}} : !cc.ptr<f64>
+// CHECK: cc.store %[[N]], %{{.*}} : !cc.ptr<i32>
+
+// ALT-LABEL: func.func @_ZN1KclEi(
+// ALT: cc.compute_ptr %{{.*}}[4]
+// ALT: cc.compute_ptr %{{.*}}[16]

@@ -104,6 +104,21 @@ static bool useDataToInitState(cudaq::cc::ReifySpanOp reify) {
   return false;
 }
 
+/// Allocate the buffer for \p reify in the function entry block so a
+/// reify_span in a loop does not grow the stack on every iteration.
+static Value createSpanBuffer(Location loc, PatternRewriter &rewriter,
+                              Operation *reify, Type eleTy,
+                              std::int64_t numEle) {
+  OpBuilder::InsertionGuard guard(rewriter);
+  for (Operation *op = reify->getParentOp(); op; op = op->getParentOp())
+    if (isa<func::FuncOp, cudaq::cc::CreateLambdaOp>(op)) {
+      rewriter.setInsertionPointToStart(&op->getRegion(0).front());
+      break;
+    }
+  auto size = arith::ConstantIntOp::create(rewriter, loc, numEle, 64);
+  return cudaq::cc::AllocaOp::create(rewriter, loc, eleTy, size);
+}
+
 namespace {
 
 // This pattern replaces a cc.const_array with a global constant. It can
@@ -228,9 +243,9 @@ struct ReifySpanPattern : public OpRewritePattern<cudaq::cc::ReifySpanOp> {
         auto loc = reify.getLoc();
         auto eleTy =
             cast<cudaq::cc::SequenceType>(reify.getType()).getElementType();
-        auto numEle = arith::ConstantIntOp::create(
-            rewriter, loc, conArr.getConstantValues().size(), 64);
-        Value buff = cudaq::cc::AllocaOp::create(rewriter, loc, eleTy, numEle);
+        std::int64_t len = conArr.getConstantValues().size();
+        Value buff = createSpanBuffer(loc, rewriter, reify, eleTy, len);
+        auto numEle = arith::ConstantIntOp::create(rewriter, loc, len, 64);
         cudaq::cc::StoreOp::create(rewriter, loc, conArr, buff);
         rewriter.replaceOpWithNewOp<cudaq::cc::SequenceInitOp>(
             reify, reify.getType(), buff, numEle);
@@ -240,20 +255,21 @@ struct ReifySpanPattern : public OpRewritePattern<cudaq::cc::ReifySpanOp> {
 
     Value replacementSpan = buildSpans(
         reify.getLoc(), cast<cudaq::cc::SpanLikeType>(reify.getType()),
-        rewriter, conArr.getConstantValues());
+        rewriter, reify, conArr.getConstantValues());
     rewriter.replaceOp(reify, replacementSpan);
     return success();
   }
 
   Value buildSpans(Location loc, cudaq::cc::SpanLikeType ty,
-                   PatternRewriter &rewriter, ArrayAttr arrAttr) const {
+                   PatternRewriter &rewriter, Operation *reify,
+                   ArrayAttr arrAttr) const {
     SmallVector<Value> members;
     auto eleTy = ty.getElementType();
     for (auto attr : arrAttr) {
       if (auto a = dyn_cast<ArrayAttr>(attr)) {
         // Recursive case.
-        members.push_back(
-            buildSpans(loc, cast<cudaq::cc::SpanLikeType>(eleTy), rewriter, a));
+        members.push_back(buildSpans(loc, cast<cudaq::cc::SpanLikeType>(eleTy),
+                                     rewriter, reify, a));
       } else if (auto stringAttr = dyn_cast<StringAttr>(attr)) {
         // Strings require some special handling to build a proper span.
         auto *ctx = rewriter.getContext();
@@ -293,8 +309,8 @@ struct ReifySpanPattern : public OpRewritePattern<cudaq::cc::ReifySpanOp> {
       }
     }
 
+    auto buff = createSpanBuffer(loc, rewriter, reify, eleTy, members.size());
     auto size = arith::ConstantIntOp::create(rewriter, loc, members.size(), 64);
-    auto buff = cudaq::cc::AllocaOp::create(rewriter, loc, eleTy, size);
     for (auto iter : llvm::enumerate(members)) {
       std::int32_t idx = iter.index();
       auto m = iter.value();

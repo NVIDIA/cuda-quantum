@@ -66,18 +66,17 @@ CUDAQ_TEST(ParserTester, checkOwningResultVectors) {
 
   EXPECT_TRUE(parseResults("").empty());
   {
-    const std::string log = "METADATA\trequired_num_results\t1\n"
-                            "START\nOUTPUT\tRESULT\t1\tr00000\nEND\t0\n";
+    const std::string log = "START\nOUTPUT\tARRAY\t1\tarray<i1 x 1>\n"
+                            "OUTPUT\tRESULT\t1\tr00000\nEND\t0\n";
     const auto results = parseResults(log);
     ASSERT_EQ(1, results.size());
     EXPECT_EQ(std::vector<bool>({true}), results[0]);
   }
   {
     const std::string log =
-        "METADATA\trequired_num_results\t3\n"
-        "START\nOUTPUT\tRESULT\t1\tr00000\n"
+        "START\nOUTPUT\tARRAY\t3\tarray<i1 x 3>\nOUTPUT\tRESULT\t1\tr00000\n"
         "OUTPUT\tRESULT\t0\tr00001\nOUTPUT\tRESULT\t1\tr00002\nEND\t0\n"
-        "START\nOUTPUT\tRESULT\t0\tr00000\n"
+        "START\nOUTPUT\tARRAY\t3\tarray<i1 x 3>\nOUTPUT\tRESULT\t0\tr00000\n"
         "OUTPUT\tRESULT\t1\tr00001\nOUTPUT\tRESULT\t0\tr00002\nEND\t0\n";
     const auto results = parseResults(log);
     ASSERT_EQ(2, results.size());
@@ -97,16 +96,21 @@ CUDAQ_TEST(ParserTester, checkOwningResultVectors) {
     EXPECT_EQ(std::vector<bool>({false, true}), results[1]);
   }
 
-  EXPECT_ANY_THROW(parseResults("METADATA\trequired_num_results\t2\n"
-                                "START\nOUTPUT\tRESULT\t1\tr00000\n"
+  // A shot with an empty array still gets its row.
+  EXPECT_EQ((std::vector<std::vector<bool>>{{}, {true}}),
+            parseResults("START\nOUTPUT\tARRAY\t0\tarray<i1 x 0>\nEND\t0\n"
+                         "START\nOUTPUT\tARRAY\t1\tarray<i1 x 1>\n"
+                         "OUTPUT\tRESULT\t1\tr00000\nEND\t0\n"));
+
+  // A shot cannot carry more results than its array declares.
+  EXPECT_ANY_THROW(parseResults("START\nOUTPUT\tARRAY\t1\tarray<i1 x 1>\n"
+                                "OUTPUT\tRESULT\t1\tr00000\n"
                                 "OUTPUT\tRESULT\t0\tr00000\nEND\t0\n"));
-  EXPECT_ANY_THROW(parseResults("METADATA\trequired_num_results\t8000000000\n"
-                                "OUTPUT\tRESULT\t1\tr00000\n"));
 }
 
 CUDAQ_TEST(ParserTester, checkParseAfterParsingResults) {
-  const std::string log = "METADATA\trequired_num_results\t1\n"
-                          "START\nOUTPUT\tRESULT\t1\tr00000\nEND\t0\n";
+  const std::string log = "START\nOUTPUT\tARRAY\t1\tarray<i1 x 1>\n"
+                          "OUTPUT\tRESULT\t1\tr00000\nEND\t0\n";
   cudaq::RecordLogParser parser;
   parser.parseResults(log);
   parser.parse(log);
@@ -589,9 +593,7 @@ CUDAQ_TEST(ParserTester, checkStrictValueValidation) {
       "OUTPUT\tARRAY\t1junk\tarray<i32 x 1>\n",
       "OUTPUT\tARRAY\t1\tarray<i32 x 1junk>\n",
       "OUTPUT\tARRAY\t" + sizeOverflow + "\tarray<i32 x 1>\n",
-      "START\nOUTPUT\tINT\t7\ti32\nEND\t1junk\n",
-      "METADATA\trequired_num_results\t1junk\n"
-      "OUTPUT\tRESULT\t0\n"};
+      "START\nOUTPUT\tINT\t7\ti32\nEND\t1junk\n"};
   for (const auto &log : invalidLogs) {
     cudaq::RecordLogParser parser;
     EXPECT_ANY_THROW(parser.parse(log));
@@ -637,9 +639,8 @@ CUDAQ_TEST(ParserTester, checkRecordGrammarValidation) {
 
 CUDAQ_TEST(ParserTester, checkContainerValidation) {
   const std::vector<std::string> invalidLogs = {
-      // A scalar root cannot be followed by an implicit RESULT array.
-      "OUTPUT\tINT\t1\n"
-      "OUTPUT\tRESULT\t0\n",
+      // A RESULT record cannot appear outside an array.
+      "START\nOUTPUT\tRESULT\t0\tr00000\nEND\t0\n",
       // A scalar root cannot be followed by an explicit array.
       "OUTPUT\tINT\t1\n"
       "OUTPUT\tARRAY\t1\tarray<i32 x 1>\n"
@@ -674,49 +675,69 @@ CUDAQ_TEST(ParserTester, checkTupleLayoutValidation) {
 
 CUDAQ_TEST(ParserTester, checkResultType) {
   const std::string log =
-      "HEADER\tschema_id\tlabeled\nHEADER\tschema_version\t1."
-      "0\nSTART\nMETADATA\tentry_point\nMETADATA\tqir_profiles\tadaptive_"
-      "profile\nMETADATA\trequired_num_qubits\t10\nMETADATA\trequired_num_"
-      "results\t10\nOUTPUT\tRESULT\t0\tr00000\nOUTPUT\tRESULT\t0\tr00001\nOUTPU"
-      "T\tRESULT\t0\tr00002\nOUTPUT\tRESULT\t0\tr00003\nOUTPUT\tRESULT\t0\tr000"
-      "04\nOUTPUT\tRESULT\t0\tr00005\nOUTPUT\tRESULT\t0\tr00006\nOUTPUT\tRESULT"
-      "\t0\tr00007\nOUTPUT\tRESULT\t0\tr00008\nOUTPUT\tRESULT\t0\tr00009\nEND\t"
-      "0\nSTART\nOUTPUT\tRESULT\t1\tr00000\nOUTPUT\tRESULT\t1\tr00001\nOUTPUT\t"
-      "RESULT\t1\tr00002\nOUTPUT\tRESULT\t1\tr00003\nOUTPUT\tRESULT\t1\tr00004"
-      "\nOUTPUT\tRESULT\t1\tr00005\nOUTPUT\tRESULT\t1\tr00006\nOUTPUT\tRESULT\t"
-      "1\tr00007\nOUTPUT\tRESULT\t1\tr00008\nOUTPUT\tRESULT\t1\tr00009\nEND\t0"
-      "\nSTART\nOUTPUT\tRESULT\t1\tr00000\nOUTPUT\tRESULT\t1\tr00001\nOUTPUT\tR"
-      "ESULT\t1\tr00002\nOUTPUT\tRESULT\t1\tr00003\nOUTPUT\tRESULT\t1\tr00004\n"
-      "OUTPUT\tRESULT\t1\tr00005\nOUTPUT\tRESULT\t1\tr00006\nOUTPUT\tRESULT\t1"
-      "\tr00007\nOUTPUT\tRESULT\t1\tr00008\nOUTPUT\tRESULT\t1\tr00009\nEND\t0\n"
-      "START\nOUTPUT\tRESULT\t1\tr00000\nOUTPUT\tRESULT\t1\tr00001\nOUTPUT\tRES"
-      "ULT\t1\tr00002\nOUTPUT\tRESULT\t1\tr00003\nOUTPUT\tRESULT\t1\tr00004\nOU"
-      "TPUT\tRESULT\t1\tr00005\nOUTPUT\tRESULT\t1\tr00006\nOUTPUT\tRESULT\t1\tr"
-      "00007\nOUTPUT\tRESULT\t1\tr00008\nOUTPUT\tRESULT\t1\tr00009\nEND\t0\nSTA"
-      "RT\nOUTPUT\tRESULT\t0\tr00000\nOUTPUT\tRESULT\t0\tr00001\nOUTPUT\tRESULT"
-      "\t0\tr00002\nOUTPUT\tRESULT\t0\tr00003\nOUTPUT\tRESULT\t0\tr00004\nOUTPU"
-      "T\tRESULT\t0\tr00005\nOUTPUT\tRESULT\t0\tr00006\nOUTPUT\tRESULT\t0\tr000"
-      "07\nOUTPUT\tRESULT\t0\tr00008\nOUTPUT\tRESULT\t0\tr00009\nEND\t0\nSTART"
-      "\nOUTPUT\tRESULT\t1\tr00000\nOUTPUT\tRESULT\t1\tr00001\nOUTPUT\tRESULT\t"
-      "1\tr00002\nOUTPUT\tRESULT\t1\tr00003\nOUTPUT\tRESULT\t1\tr00004\nOUTPUT"
-      "\tRESULT\t1\tr00005\nOUTPUT\tRESULT\t1\tr00006\nOUTPUT\tRESULT\t1\tr0000"
-      "7\nOUTPUT\tRESULT\t1\tr00008\nOUTPUT\tRESULT\t1\tr00009\nEND\t0\nSTART\n"
-      "OUTPUT\tRESULT\t0\tr00000\nOUTPUT\tRESULT\t0\tr00001\nOUTPUT\tRESULT\t0"
-      "\tr00002\nOUTPUT\tRESULT\t0\tr00003\nOUTPUT\tRESULT\t0\tr00004\nOUTPUT\t"
-      "RESULT\t0\tr00005\nOUTPUT\tRESULT\t0\tr00006\nOUTPUT\tRESULT\t0\tr00007"
-      "\nOUTPUT\tRESULT\t0\tr00008\nOUTPUT\tRESULT\t0\tr00009\nEND\t0\nSTART\nO"
-      "UTPUT\tRESULT\t1\tr00000\nOUTPUT\tRESULT\t1\tr00001\nOUTPUT\tRESULT\t1\t"
-      "r00002\nOUTPUT\tRESULT\t1\tr00003\nOUTPUT\tRESULT\t1\tr00004\nOUTPUT\tRE"
-      "SULT\t1\tr00005\nOUTPUT\tRESULT\t1\tr00006\nOUTPUT\tRESULT\t1\tr00007\nO"
-      "UTPUT\tRESULT\t1\tr00008\nOUTPUT\tRESULT\t1\tr00009\nEND\t0\nSTART\nOUTP"
-      "UT\tRESULT\t0\tr00000\nOUTPUT\tRESULT\t0\tr00001\nOUTPUT\tRESULT\t0\tr00"
-      "002\nOUTPUT\tRESULT\t0\tr00003\nOUTPUT\tRESULT\t0\tr00004\nOUTPUT\tRESUL"
-      "T\t0\tr00005\nOUTPUT\tRESULT\t0\tr00006\nOUTPUT\tRESULT\t0\tr00007\nOUTP"
-      "UT\tRESULT\t0\tr00008\nOUTPUT\tRESULT\t0\tr00009\nEND\t0\nSTART\nOUTPUT"
-      "\tRESULT\t1\tr00000\nOUTPUT\tRESULT\t1\tr00001\nOUTPUT\tRESULT\t1\tr0000"
-      "2\nOUTPUT\tRESULT\t1\tr00003\nOUTPUT\tRESULT\t1\tr00004\nOUTPUT\tRESULT"
-      "\t1\tr00005\nOUTPUT\tRESULT\t1\tr00006\nOUTPUT\tRESULT\t1\tr00007\nOUTPU"
-      "T\tRESULT\t1\tr00008\nOUTPUT\tRESULT\t1\tr00009\nEND\t0\n";
+      "HEADER\tschema_id\tlabeled\nHEADER\tschema_version\t1.0\nSTART\n"
+      "METADATA\tentry_point\nMETADATA\tqir_profiles\tadaptive_profile\n"
+      "METADATA\trequired_num_qubits\t10\nMETADATA\trequired_num_results\t10\n"
+      "OUTPUT\tARRAY\t10\tarray<i1 x 10>\nOUTPUT\tRESULT\t0\tr00000\n"
+      "OUTPUT\tRESULT\t0\tr00001\nOUTPUT\tRESULT\t0\tr00002\n"
+      "OUTPUT\tRESULT\t0\tr00003\nOUTPUT\tRESULT\t0\tr00004\n"
+      "OUTPUT\tRESULT\t0\tr00005\nOUTPUT\tRESULT\t0\tr00006\n"
+      "OUTPUT\tRESULT\t0\tr00007\nOUTPUT\tRESULT\t0\tr00008\n"
+      "OUTPUT\tRESULT\t0\tr00009\nEND\t0\nSTART\n"
+      "OUTPUT\tARRAY\t10\tarray<i1 x 10>\nOUTPUT\tRESULT\t1\tr00000\n"
+      "OUTPUT\tRESULT\t1\tr00001\nOUTPUT\tRESULT\t1\tr00002\n"
+      "OUTPUT\tRESULT\t1\tr00003\nOUTPUT\tRESULT\t1\tr00004\n"
+      "OUTPUT\tRESULT\t1\tr00005\nOUTPUT\tRESULT\t1\tr00006\n"
+      "OUTPUT\tRESULT\t1\tr00007\nOUTPUT\tRESULT\t1\tr00008\n"
+      "OUTPUT\tRESULT\t1\tr00009\nEND\t0\nSTART\n"
+      "OUTPUT\tARRAY\t10\tarray<i1 x 10>\nOUTPUT\tRESULT\t1\tr00000\n"
+      "OUTPUT\tRESULT\t1\tr00001\nOUTPUT\tRESULT\t1\tr00002\n"
+      "OUTPUT\tRESULT\t1\tr00003\nOUTPUT\tRESULT\t1\tr00004\n"
+      "OUTPUT\tRESULT\t1\tr00005\nOUTPUT\tRESULT\t1\tr00006\n"
+      "OUTPUT\tRESULT\t1\tr00007\nOUTPUT\tRESULT\t1\tr00008\n"
+      "OUTPUT\tRESULT\t1\tr00009\nEND\t0\nSTART\n"
+      "OUTPUT\tARRAY\t10\tarray<i1 x 10>\nOUTPUT\tRESULT\t1\tr00000\n"
+      "OUTPUT\tRESULT\t1\tr00001\nOUTPUT\tRESULT\t1\tr00002\n"
+      "OUTPUT\tRESULT\t1\tr00003\nOUTPUT\tRESULT\t1\tr00004\n"
+      "OUTPUT\tRESULT\t1\tr00005\nOUTPUT\tRESULT\t1\tr00006\n"
+      "OUTPUT\tRESULT\t1\tr00007\nOUTPUT\tRESULT\t1\tr00008\n"
+      "OUTPUT\tRESULT\t1\tr00009\nEND\t0\nSTART\n"
+      "OUTPUT\tARRAY\t10\tarray<i1 x 10>\nOUTPUT\tRESULT\t0\tr00000\n"
+      "OUTPUT\tRESULT\t0\tr00001\nOUTPUT\tRESULT\t0\tr00002\n"
+      "OUTPUT\tRESULT\t0\tr00003\nOUTPUT\tRESULT\t0\tr00004\n"
+      "OUTPUT\tRESULT\t0\tr00005\nOUTPUT\tRESULT\t0\tr00006\n"
+      "OUTPUT\tRESULT\t0\tr00007\nOUTPUT\tRESULT\t0\tr00008\n"
+      "OUTPUT\tRESULT\t0\tr00009\nEND\t0\nSTART\n"
+      "OUTPUT\tARRAY\t10\tarray<i1 x 10>\nOUTPUT\tRESULT\t1\tr00000\n"
+      "OUTPUT\tRESULT\t1\tr00001\nOUTPUT\tRESULT\t1\tr00002\n"
+      "OUTPUT\tRESULT\t1\tr00003\nOUTPUT\tRESULT\t1\tr00004\n"
+      "OUTPUT\tRESULT\t1\tr00005\nOUTPUT\tRESULT\t1\tr00006\n"
+      "OUTPUT\tRESULT\t1\tr00007\nOUTPUT\tRESULT\t1\tr00008\n"
+      "OUTPUT\tRESULT\t1\tr00009\nEND\t0\nSTART\n"
+      "OUTPUT\tARRAY\t10\tarray<i1 x 10>\nOUTPUT\tRESULT\t0\tr00000\n"
+      "OUTPUT\tRESULT\t0\tr00001\nOUTPUT\tRESULT\t0\tr00002\n"
+      "OUTPUT\tRESULT\t0\tr00003\nOUTPUT\tRESULT\t0\tr00004\n"
+      "OUTPUT\tRESULT\t0\tr00005\nOUTPUT\tRESULT\t0\tr00006\n"
+      "OUTPUT\tRESULT\t0\tr00007\nOUTPUT\tRESULT\t0\tr00008\n"
+      "OUTPUT\tRESULT\t0\tr00009\nEND\t0\nSTART\n"
+      "OUTPUT\tARRAY\t10\tarray<i1 x 10>\nOUTPUT\tRESULT\t1\tr00000\n"
+      "OUTPUT\tRESULT\t1\tr00001\nOUTPUT\tRESULT\t1\tr00002\n"
+      "OUTPUT\tRESULT\t1\tr00003\nOUTPUT\tRESULT\t1\tr00004\n"
+      "OUTPUT\tRESULT\t1\tr00005\nOUTPUT\tRESULT\t1\tr00006\n"
+      "OUTPUT\tRESULT\t1\tr00007\nOUTPUT\tRESULT\t1\tr00008\n"
+      "OUTPUT\tRESULT\t1\tr00009\nEND\t0\nSTART\n"
+      "OUTPUT\tARRAY\t10\tarray<i1 x 10>\nOUTPUT\tRESULT\t0\tr00000\n"
+      "OUTPUT\tRESULT\t0\tr00001\nOUTPUT\tRESULT\t0\tr00002\n"
+      "OUTPUT\tRESULT\t0\tr00003\nOUTPUT\tRESULT\t0\tr00004\n"
+      "OUTPUT\tRESULT\t0\tr00005\nOUTPUT\tRESULT\t0\tr00006\n"
+      "OUTPUT\tRESULT\t0\tr00007\nOUTPUT\tRESULT\t0\tr00008\n"
+      "OUTPUT\tRESULT\t0\tr00009\nEND\t0\nSTART\n"
+      "OUTPUT\tARRAY\t10\tarray<i1 x 10>\nOUTPUT\tRESULT\t1\tr00000\n"
+      "OUTPUT\tRESULT\t1\tr00001\nOUTPUT\tRESULT\t1\tr00002\n"
+      "OUTPUT\tRESULT\t1\tr00003\nOUTPUT\tRESULT\t1\tr00004\n"
+      "OUTPUT\tRESULT\t1\tr00005\nOUTPUT\tRESULT\t1\tr00006\n"
+      "OUTPUT\tRESULT\t1\tr00007\nOUTPUT\tRESULT\t1\tr00008\n"
+      "OUTPUT\tRESULT\t1\tr00009\nEND\t0\n";
 
   cudaq::RecordLogParser parser;
   parser.parse(log);
@@ -745,15 +766,22 @@ CUDAQ_TEST(ParserTester, checkResultType) {
 
 CUDAQ_TEST(ParserTester, checkResultTypeWithRegisterName) {
   const std::string log =
-      "HEADER\tschema_id\tlabeled\nHEADER\tschema_version\t1."
-      "0\nSTART\nMETADATA\tentry_point\nMETADATA\tqir_profiles\tadaptive_"
-      "profile\nMETADATA\trequired_num_qubits\t1\nMETADATA\trequired_num_"
-      "results\t1\nOUTPUT\tRESULT\t1\tresult\nEND\t0\nSTART\nOUTPUT\tRESULT\t1"
-      "\tresult\nEND\t0\nSTART\nOUTPUT\tRESULT\t1\tresult\nEND\t0\nSTART\nOUTPU"
-      "T\tRESULT\t1\tresult\nEND\t0\nSTART\nOUTPUT\tRESULT\t1\tresult\nEND\t0\n"
-      "START\nOUTPUT\tRESULT\t1\tresult\nEND\t0\nSTART\nOUTPUT\tRESULT\t1\tresu"
-      "lt\nEND\t0\nSTART\nOUTPUT\tRESULT\t1\tresult\nEND\t0\nSTART\nOUTPUT\tRES"
-      "ULT\t1\tresult\nEND\t0\nSTART\nOUTPUT\tRESULT\t1\tresult\nEND\t0\n";
+      "HEADER\tschema_id\tlabeled\nHEADER\tschema_version\t1.0\nSTART\n"
+      "METADATA\tentry_point\nMETADATA\tqir_profiles\tadaptive_profile\n"
+      "METADATA\trequired_num_qubits\t1\nMETADATA\trequired_num_results\t1\n"
+      "OUTPUT\tARRAY\t1\tarray<i1 x 1>\nOUTPUT\tRESULT\t1\tresult\nEND\t0\n"
+      "START\nOUTPUT\tARRAY\t1\tarray<i1 x 1>\nOUTPUT\tRESULT\t1\tresult\n"
+      "END\t0\nSTART\nOUTPUT\tARRAY\t1\tarray<i1 x 1>\n"
+      "OUTPUT\tRESULT\t1\tresult\nEND\t0\nSTART\n"
+      "OUTPUT\tARRAY\t1\tarray<i1 x 1>\nOUTPUT\tRESULT\t1\tresult\nEND\t0\n"
+      "START\nOUTPUT\tARRAY\t1\tarray<i1 x 1>\nOUTPUT\tRESULT\t1\tresult\n"
+      "END\t0\nSTART\nOUTPUT\tARRAY\t1\tarray<i1 x 1>\n"
+      "OUTPUT\tRESULT\t1\tresult\nEND\t0\nSTART\n"
+      "OUTPUT\tARRAY\t1\tarray<i1 x 1>\nOUTPUT\tRESULT\t1\tresult\nEND\t0\n"
+      "START\nOUTPUT\tARRAY\t1\tarray<i1 x 1>\nOUTPUT\tRESULT\t1\tresult\n"
+      "END\t0\nSTART\nOUTPUT\tARRAY\t1\tarray<i1 x 1>\n"
+      "OUTPUT\tRESULT\t1\tresult\nEND\t0\nSTART\n"
+      "OUTPUT\tARRAY\t1\tarray<i1 x 1>\nOUTPUT\tRESULT\t1\tresult\nEND\t0\n";
   cudaq::RecordLogParser parser;
   parser.parse(log);
   auto *origBuffer = parser.getBufferPtr();
@@ -833,20 +861,30 @@ CUDAQ_TEST(ParserTester, checkFailedArrayShotIsDiscarded) {
 
 CUDAQ_TEST(ParserTester, checkFailedResultShotIsDiscarded) {
   std::string log =
-      "HEADER\tschema_id\tlabeled\nHEADER\tschema_version\t1."
-      "0\nSTART\nMETADATA\tentry_point\nMETADATA\toutput_labeling_"
-      "schema\tschema_id\nMETADATA\tqir_profiles\tadaptive_"
-      "profile\nMETADATA\trequired_num_qubits\t2\nMETADATA\trequired_num_"
-      "results\t2\nOUTPUT\tRESULT\t1\tr00000\nOUTPUT\tRESULT\t1\tr00001\nEND\t0"
-      "\nSTART\nOUTPUT\tRESULT\t1\tr00000\nOUTPUT\tRESULT\t1\tr00001\nEND\t2\nS"
-      "TART\nOUTPUT\tRESULT\t0\tr00000\nOUTPUT\tRESULT\t0\tr00001\nEND\t3\nSTAR"
-      "T\nOUTPUT\tRESULT\t0\tr00000\nOUTPUT\tRESULT\t0\tr00001\nEND\t0\nSTART\n"
-      "OUTPUT\tRESULT\t0\tr00000\nOUTPUT\tRESULT\t0\tr00001\nEND\t0\nSTART\nOUT"
-      "PUT\tRESULT\t0\tr00000\nOUTPUT\tRESULT\t0\tr00001\nEND\t0\nSTART\nOUTPUT"
-      "\tRESULT\t0\tr00000\nOUTPUT\tRESULT\t0\tr00001\nEND\t127\nSTART\nOUTPUT"
-      "\tRESULT\t1\tr00000\nOUTPUT\tRESULT\t1\tr00001\nEND\t0\nSTART\nOUTPUT\tR"
-      "ESULT\t1\tr00000\nOUTPUT\tRESULT\t1\tr00001\nEND\t0\nSTART\nOUTPUT\tRESU"
-      "LT\t1\tr00000\nOUTPUT\tRESULT\t1\tr00001\nEND\t64";
+      "HEADER\tschema_id\tlabeled\nHEADER\tschema_version\t1.0\nSTART\n"
+      "METADATA\tentry_point\nMETADATA\toutput_labeling_schema\tschema_id\n"
+      "METADATA\tqir_profiles\tadaptive_profile\n"
+      "METADATA\trequired_num_qubits\t2\nMETADATA\trequired_num_results\t2\n"
+      "OUTPUT\tARRAY\t2\tarray<i1 x 2>\nOUTPUT\tRESULT\t1\tr00000\n"
+      "OUTPUT\tRESULT\t1\tr00001\nEND\t0\nSTART\n"
+      "OUTPUT\tARRAY\t2\tarray<i1 x 2>\nOUTPUT\tRESULT\t1\tr00000\n"
+      "OUTPUT\tRESULT\t1\tr00001\nEND\t2\nSTART\n"
+      "OUTPUT\tARRAY\t2\tarray<i1 x 2>\nOUTPUT\tRESULT\t0\tr00000\n"
+      "OUTPUT\tRESULT\t0\tr00001\nEND\t3\nSTART\n"
+      "OUTPUT\tARRAY\t2\tarray<i1 x 2>\nOUTPUT\tRESULT\t0\tr00000\n"
+      "OUTPUT\tRESULT\t0\tr00001\nEND\t0\nSTART\n"
+      "OUTPUT\tARRAY\t2\tarray<i1 x 2>\nOUTPUT\tRESULT\t0\tr00000\n"
+      "OUTPUT\tRESULT\t0\tr00001\nEND\t0\nSTART\n"
+      "OUTPUT\tARRAY\t2\tarray<i1 x 2>\nOUTPUT\tRESULT\t0\tr00000\n"
+      "OUTPUT\tRESULT\t0\tr00001\nEND\t0\nSTART\n"
+      "OUTPUT\tARRAY\t2\tarray<i1 x 2>\nOUTPUT\tRESULT\t0\tr00000\n"
+      "OUTPUT\tRESULT\t0\tr00001\nEND\t127\nSTART\n"
+      "OUTPUT\tARRAY\t2\tarray<i1 x 2>\nOUTPUT\tRESULT\t1\tr00000\n"
+      "OUTPUT\tRESULT\t1\tr00001\nEND\t0\nSTART\n"
+      "OUTPUT\tARRAY\t2\tarray<i1 x 2>\nOUTPUT\tRESULT\t1\tr00000\n"
+      "OUTPUT\tRESULT\t1\tr00001\nEND\t0\nSTART\n"
+      "OUTPUT\tARRAY\t2\tarray<i1 x 2>\nOUTPUT\tRESULT\t1\tr00000\n"
+      "OUTPUT\tRESULT\t1\tr00001\nEND\t64";
 
   cudaq::RecordLogParser parser;
   parser.parse(log);
@@ -870,108 +908,28 @@ CUDAQ_TEST(ParserTester, checkFailedResultShotIsDiscarded) {
   origBuffer = nullptr;
 }
 
-CUDAQ_TEST(ParserTester, checkOrder) {
-  const std::string log =
-      "HEADER\tschema_id\tlabeled\n"
-      "HEADER\tschema_version\t1.0\n"
-      "START\n"
-      "METADATA\tentry_point\n"
-      "METADATA\toutput_labeling_schema\tschema_id\n"
-      "METADATA\toutput_names\t[[[0,[0,\"r00000\"]],[1,[1,\"r00001\"]],[2,[2,"
-      "\"r00002\"]],[3,[3,\"r00003\"]],[4,[4,\"r00004\"]],[5,[5,\"r00005\"]],["
-      "6,[6,\"r00006\"]],[7,[7,\"r00007\"]]]]\n"
-      "METADATA\tqir_profiles\tbase_profile\n"
-      "METADATA\trequiredQubits\t8\n"
-      "METADATA\trequiredResults\t8\n"
-      "OUTPUT\tRESULT\t1\tr00003\n"
-      "OUTPUT\tRESULT\t0\tr00002\n"
-      "OUTPUT\tRESULT\t0\tr00000\n"
-      "OUTPUT\tRESULT\t1\tr00004\n"
-      "OUTPUT\tRESULT\t1\tr00006\n"
-      "OUTPUT\tRESULT\t1\tr00001\n"
-      "OUTPUT\tRESULT\t0\tr00007\n"
-      "OUTPUT\tRESULT\t0\tr00005\n"
-      "END\t0";
-
-  cudaq::RecordLogParser parser;
-  parser.parse(log);
-  auto *origBuffer = parser.getBufferPtr();
-  std::size_t bufferSize = parser.getBufferSize();
-  char *buffer = static_cast<char *>(malloc(bufferSize));
-  std::memcpy(buffer, origBuffer, bufferSize);
-  cudaq::detail::RunResultSpan span = {buffer, bufferSize};
-  // This is parsed as a vector of bool vectors
-  std::vector<std::vector<bool>> results = {
-      reinterpret_cast<std::vector<bool> *>(span.data),
-      reinterpret_cast<std::vector<bool> *>(span.data + span.lengthInBytes)};
-  // 1 shot
-  EXPECT_EQ(1, results.size());
-  for (const auto &result : results) {
-    // 8 measured bits each
-    EXPECT_EQ(8, result.size());
-    EXPECT_EQ(false, result[0]); // r00000
-    EXPECT_EQ(true, result[1]);  // r00001
-    EXPECT_EQ(false, result[2]); // r00002
-    EXPECT_EQ(true, result[3]);  // r00003
-    EXPECT_EQ(true, result[4]);  // r00004
-    EXPECT_EQ(false, result[5]); // r00005
-    EXPECT_EQ(true, result[6]);  // r00006
-    EXPECT_EQ(false, result[7]); // r00007
-  }
-
-  free(buffer);
-  buffer = nullptr;
-  origBuffer = nullptr;
-}
-
 CUDAQ_TEST(ParserTester, checkNamedResults) {
-  const std::string log =
-      "HEADER\tschema_id\tlabeled\n"
-      "HEADER\tschema_version\t1.0\n"
-      "START\n"
-      "METADATA\tentry_point\n"
-      "METADATA\toutput_labeling_schema\tschema_id\n"
-      "METADATA\toutput_names\t[[[0,[1,\"result%0\"]],[1,[2,\"result%1\"]],[2,["
-      "3,\"result%2\"]],[3,[4,\"result%3\"]]]]\n"
-      "METADATA\tqir_profiles\tadaptive_profile\n"
-      "METADATA\trequired_num_qubits\t5\n"
-      "METADATA\trequired_num_results\t4\n"
-      "OUTPUT\tRESULT\t1\tresult%0\n"
-      "OUTPUT\tRESULT\t1\tresult%1\n"
-      "OUTPUT\tRESULT\t1\tresult%2\n"
-      "OUTPUT\tRESULT\t0\tresult%3\n"
-      "END\t0\n"
-      "START\n"
-      "OUTPUT\tRESULT\t1\tresult%0\n"
-      "OUTPUT\tRESULT\t1\tresult%1\n"
-      "OUTPUT\tRESULT\t0\tresult%3\n"
-      "OUTPUT\tRESULT\t1\tresult%2\n"
-      "END\t0\n";
-
-  cudaq::RecordLogParser parser;
-  parser.parse(log);
-  auto *origBuffer = parser.getBufferPtr();
-  std::size_t bufferSize = parser.getBufferSize();
-  char *buffer = static_cast<char *>(malloc(bufferSize));
-  std::memcpy(buffer, origBuffer, bufferSize);
-  cudaq::detail::RunResultSpan span = {buffer, bufferSize};
-  // This is parsed as a vector of bool vectors
-  std::vector<std::vector<bool>> results = {
-      reinterpret_cast<std::vector<bool> *>(span.data),
-      reinterpret_cast<std::vector<bool> *>(span.data + span.lengthInBytes)};
-  // 2 shots
-  EXPECT_EQ(2, results.size());
-  for (const auto &result : results) {
-    // 4 measured bits each
-    EXPECT_EQ(4, result.size());
-    EXPECT_EQ(true, result[0]);  // result%0
-    EXPECT_EQ(true, result[1]);  // result%1
-    EXPECT_EQ(true, result[2]);  // result%2
-    EXPECT_EQ(false, result[3]); // result%3
-  }
-  free(buffer);
-  buffer = nullptr;
-  origBuffer = nullptr;
+  // Quantinuum logs for `sample` on kernels with named measurements. A label
+  // is a register name, so each result takes its index from its position.
+  const auto parseResults = [](const std::string &log) {
+    cudaq::RecordLogParser parser;
+    return parser.parseResults(log);
+  };
+  const std::string header =
+      "HEADER\tschema_id\tlabeled\nHEADER\tschema_version\t2.1\nSTART\n";
+  // `x(q[0])`, `r1 = mz(q[0])`, then an unnamed `mz(q[1])`.
+  EXPECT_EQ(std::vector<std::vector<bool>>({{true, false}}),
+            parseResults(header + "OUTPUT\tARRAY\t2\tarray<i1 x 2>\n"
+                                  "OUTPUT\tRESULT\t1\tr1\n"
+                                  "OUTPUT\tRESULT\t0\tr00000\nEND\t0\n"));
+  // `x(a[0])`, `x(b[1])`, `ra = mz(a)`, and `rb = mz(b)` on two 2-qubit
+  // vectors. Each register's `%` suffix starts at 0.
+  EXPECT_EQ(std::vector<std::vector<bool>>({{true, false, false, true}}),
+            parseResults(header + "OUTPUT\tARRAY\t4\tarray<i1 x 4>\n"
+                                  "OUTPUT\tRESULT\t1\tra%0\n"
+                                  "OUTPUT\tRESULT\t0\tra%1\n"
+                                  "OUTPUT\tRESULT\t0\trb%0\n"
+                                  "OUTPUT\tRESULT\t1\trb%1\nEND\t0\n"));
 }
 
 CUDAQ_TEST(ParserTester, checkResultTypeWithArray) {
@@ -1088,10 +1046,7 @@ CUDAQ_TEST(ParserTester, checkAggregateAllocationBounds) {
       // A small log must not request a disproportionately large array payload.
       "OUTPUT\tARRAY\t1000000\tarray<i8 x 1000000>\n",
       // Reject an oversized tracking vector before allocating it.
-      "OUTPUT\tARRAY\t8000000000\tarray<i8 x 8000000000>\n",
-      // Reject oversized RESULT tracking declared through metadata.
-      "METADATA\trequired_results\t8000000000\n"
-      "OUTPUT\tRESULT\t1\tr00000\n"};
+      "OUTPUT\tARRAY\t8000000000\tarray<i8 x 8000000000>\n"};
 
   for (const auto &log : invalidLogs) {
     cudaq::RecordLogParser parser;
@@ -1133,4 +1088,74 @@ CUDAQ_TEST(ParserTester, checkFailedScalarShotsAndResultCount) {
   EXPECT_EQ(8, results[2]);
   EXPECT_EQ(10, results[3]);
   free(buffer);
+}
+
+//===----------------------------------------------------------------------===//
+// Ownership of the result storage
+//===----------------------------------------------------------------------===//
+
+/// `shots` shots that each return an `array<type x size>`, then a failed shot.
+static std::string arrayResultLog(const std::string &type,
+                                  const std::string &record, int size,
+                                  int shots) {
+  std::string log;
+  for (int shot = 0; shot < shots; ++shot) {
+    log += "START\nOUTPUT\tARRAY\t" + std::to_string(size) + "\tarray<" + type +
+           " x " + std::to_string(size) + ">\n";
+    for (int i = 0; i < size; ++i)
+      log += "OUTPUT\t" + record + "\t" + std::to_string((shot + i) % 2) +
+             "\t[" + std::to_string(i) + "]\n";
+    log += "END\t0\n";
+  }
+  return log + "START\nOUTPUT\tINT\t7\ti32\nEND\t1\n";
+}
+
+CUDAQ_TEST(ParserTester, checkRunResultsAdoptParserStorage) {
+  constexpr int shots = 64;
+  const cudaq_internal::compiler::LayoutInfoType layout{0, {}};
+  // The storage of each array becomes the storage of the result vectors, which
+  // outlive the parser. The vector of results holds exactly the results, and
+  // the failed shot adds none.
+  auto span = cudaq::detail::convertToRunResultSpan(
+      arrayResultLog("i32", "INT", 2, shots), layout,
+      sizeof(std::vector<std::int32_t>));
+  std::int32_t *firstArray = nullptr;
+  std::memcpy(&firstArray, span.data, sizeof(firstArray));
+  std::vector<std::vector<std::int32_t>> ints;
+  cudaq::detail::resultSpanToVectorViaOwnership(ints, span);
+  ASSERT_EQ(shots, ints.size());
+  EXPECT_EQ(ints.size(), ints.capacity());
+  EXPECT_EQ(firstArray, ints[0].data());
+  for (int shot = 0; shot < shots; ++shot)
+    EXPECT_EQ(std::vector<std::int32_t>({shot % 2, (shot + 1) % 2}),
+              ints[shot]);
+
+  // The `std::vector<bool>` results survive the buffer's growth and the copy.
+  auto boolSpan = cudaq::detail::convertToRunResultSpan(
+      arrayResultLog("i1", "BOOL", 3, shots), layout,
+      sizeof(std::vector<bool>));
+  std::vector<std::vector<bool>> bools;
+  cudaq::detail::resultSpanToVectorViaOwnership(bools, boolSpan);
+  ASSERT_EQ(shots, bools.size());
+  for (int shot = 0; shot < shots; ++shot) {
+    const bool odd = shot % 2 == 1;
+    EXPECT_EQ(std::vector<bool>({odd, !odd, odd}), bools[shot]);
+  }
+
+  // Packed `bool` results hold only the successful shots.
+  auto bitSpan = cudaq::detail::convertToRunResultSpan(
+      "START\nOUTPUT\tBOOL\ttrue\ti1\nEND\t0\n"
+      "START\nOUTPUT\tBOOL\ttrue\ti1\nEND\t1\n",
+      layout, sizeof(bool));
+  std::vector<bool> bits;
+  cudaq::detail::resultSpanToVectorViaOwnership(bits, bitSpan);
+  EXPECT_EQ(std::vector<bool>({true}), bits);
+
+  // A log whose results are not `sizeof(std::int32_t)` bytes each is rejected,
+  // whether its bytes hold too many results or not a whole number of them.
+  EXPECT_ANY_THROW(cudaq::detail::convertToRunResultSpan(
+      "OUTPUT\tINT\t1\ti64\n", layout, sizeof(std::int32_t)));
+  EXPECT_ANY_THROW(cudaq::detail::convertToRunResultSpan(
+      "OUTPUT\tINT\t1\ti64\nOUTPUT\tINT\t2\ti8\n", layout,
+      sizeof(std::int32_t)));
 }

@@ -136,6 +136,7 @@ ADD "docs/sphinx/snippets" /cuda-quantum/docs/sphinx/snippets
 ADD "cudaq" /cuda-quantum/cudaq
 ADD "realtime" /cuda-quantum/realtime
 ADD "runtime" /cuda-quantum/runtime
+ADD "python/tests/targets" /cuda-quantum/python/tests/targets
 ADD "scripts/build_cudaq.sh" /cuda-quantum/scripts/build_cudaq.sh
 ADD "scripts/update_submodules.sh" /cuda-quantum/scripts/update_submodules.sh
 ADD "scripts/migrate_assets.sh" /cuda-quantum/scripts/migrate_assets.sh
@@ -214,7 +215,7 @@ RUN cd /cuda-quantum && source scripts/configure_build.sh && \
 
 # Validate that the nvidia backend was built.
 RUN source /cuda-quantum/scripts/configure_build.sh && \
-    for lib in libnvqir-custatevec-fp32.so libnvqir-custatevec-fp64.so; do \
+    for lib in libnvqir-custatevec-fp32.so libnvqir-custatevec-fp64.so libnvqir-custabilizer.so; do \
         if [ ! -f "$CUDAQ_INSTALL_PREFIX/lib/$lib" ]; then \
             echo -e "\e[01;31mError: Missing nvidia backend ($lib).\e[0m" >&2; \
             exit 1; \
@@ -260,7 +261,7 @@ RUN source /cuda-quantum/scripts/configure_build.sh && \
         libname="$(basename "$binary")" && \
         # Linking cublas dynamically necessarily adds a libgcc_s dependency to the GPU-based simulators.
         # The same holds for a range of CUDA libraries, whereas libcudart.so does not have any GCC dependencies.
-        if [ "${libname#libnvqir-custatevec}" != "$libname" ] || [ "${libname#libnvqir-nvidia-mgpu}" != "$libname" ] || [ "${libname#libnvqir-tensornet}" != "$libname" ] || [ "${libname#libnvqir-dynamics}" != "$libname" ]; then \
+        if [ "${libname#libnvqir-custatevec}" != "$libname" ] || [ "${libname#libnvqir-custabilizer}" != "$libname" ] || [ "${libname#libnvqir-nvidia-mgpu}" != "$libname" ] || [ "${libname#libnvqir-tensornet}" != "$libname" ] || [ "${libname#libnvqir-dynamics}" != "$libname" ]; then \
             echo "Skipping validation of $libname."; \
         elif [ -n "$(ldd "${binary}" 2>/dev/null | grep gcc)" ]; then \
             has_gcc_dependencies=true && \
@@ -349,6 +350,7 @@ RUN echo "Patching up wheel using auditwheel..." && \
         --exclude libcutensor.so.2 \
         --exclude libcutensornet.so.2 \
         --exclude libcustatevec.so.1 \
+        --exclude libcustabilizer.so.0 \
         --exclude libcudensitymat.so.0 \
         --exclude libcudart.so.11.0 \
         --exclude libnvToolsExt.so.1 \
@@ -357,7 +359,7 @@ RUN echo "Patching up wheel using auditwheel..." && \
     ## [<CUDAQuantumWheel]
 
 # Validate that the nvidia backend was built.
-RUN for lib in libnvqir-custatevec-fp32.so libnvqir-custatevec-fp64.so; do \
+RUN for lib in libnvqir-custatevec-fp32.so libnvqir-custatevec-fp64.so libnvqir-custabilizer.so; do \
         if [ ! -f "/cuda-quantum/_skbuild/lib/$lib" ]; then \
             echo -e "\e[01;31mError: Missing nvidia backend ($lib).\e[0m" >&2; \
             exit 1; \
@@ -405,9 +407,7 @@ RUN if ! gpus=$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null) |
         source /cuda-quantum/scripts/configure_build.sh install-cudart; \
     fi && cd /cuda-quantum && \
     # Exclude lit test suites from ctest. They are run individually above/below.
-    # FIXME: exceptions lose their type across the library boundary here.
-    # Issue: https://github.com/NVIDIA/cuda-quantum/issues/2321
-    excludes+=" --exclude-regex ctest-cudaq|ctest-targettests|ctest-runtime|ctest-target-catalog|pycudaq-mlir|Tensor.*Error|DrawTester\.ownsControlValues" && \
+    excludes+=" --exclude-regex ctest-cudaq|ctest-targettests|ctest-runtime|ctest-target-catalog|pycudaq-mlir" && \
     ctest --output-on-failure --test-dir build $excludes
 
 ENV PATH="${PATH}:/usr/local/cuda/bin" 
@@ -422,6 +422,8 @@ RUN if gpus=$(nvidia-smi --query-gpu=name --format=csv,noheader 2>/dev/null) && 
 # lit 23+ rejects the external shell our lit configs use. Pin to LLVM 22.x.
 RUN python3 -m ensurepip --upgrade && python3 -m pip install 'lit<23' && \
     dnf install -y --nobest --setopt=install_weak_deps=False file which
+# Runtime regression tests load the compiler-bench target YAML fixtures.
+ADD "python/tests/targets" /cuda-quantum/python/tests/targets
 RUN cd /cuda-quantum && source scripts/configure_build.sh && \
     if [ ! -x "$(command -v nvcc)" ]; then \
         # The tests is marked correctly as requiring nvcc, but since nvcc

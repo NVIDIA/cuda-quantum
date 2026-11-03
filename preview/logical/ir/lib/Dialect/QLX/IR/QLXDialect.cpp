@@ -4,7 +4,7 @@
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 //
 // This is the single translation unit for the QLX dialect. It includes all
 // generated .cpp.inc files for types, attributes, enums, and ops (logical
@@ -1204,7 +1204,7 @@ LogicalResult ApplyOp::verify() {
       getResultTypes(), [](Type type) { return isa<LogicalQubitType>(type); });
   if (quantumInputs == 0 || quantumInputs != quantumResults)
     return emitOpError(
-        "built-in actions must preserve at least one logical-qubit owner");
+        "built-in actions must preserve at least one logical-qubit value");
   if (getInputs().size() != quantumInputs + 1 ||
       !getInputs().back().getType().isF64())
     return emitOpError(
@@ -1237,7 +1237,7 @@ LogicalResult InstrumentOp::verify() {
        classicalResults != 1 ||
        !getResult(getNumResults() - 1).getType().isInteger(1)))
     return emitOpError(
-        "MPP must preserve its logical owners and return one i1 outcome");
+        "MPP must preserve its logical-qubit values and return one i1 outcome");
   return success();
 }
 

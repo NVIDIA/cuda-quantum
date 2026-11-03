@@ -40,6 +40,8 @@ def estimate(kernel, *args, **kwargs):
       kernel (:class:`Kernel`): The :class:`Kernel` to count resources on
       *arguments (Optional[Any]): The concrete values to evaluate the kernel
           function at. Leave empty if the kernel doesn't accept any arguments.
+      optimization_level (Optional[int]): The quantum optimization level to
+          compile the kernel with, an integer between 0 and 3.
 
     Returns:
       :class:`cudaq.EstimateResult`: A data-type containing the resource count
@@ -49,7 +51,8 @@ def estimate(kernel, *args, **kwargs):
         decorator = kernel
     else:
         decorator = mk_decorator(kernel)
-    processedArgs, module = decorator.prepare_call(*args)
+    processedArgs, module = decorator.prepare_call(
+        *args, optimization_level=kwargs.get("optimization_level", None))
     choice = kwargs.get("choice", None)
     return cudaq_runtime.estimate_impl(decorator.uniqName, module, choice,
                                        *processedArgs)
@@ -71,6 +74,8 @@ def estimate_resources(kernel, *args, **kwargs):
       kernel (:class:`Kernel`): The :class:`Kernel` to count resources on
       *arguments (Optional[Any]): The concrete values to evaluate the kernel
           function at. Leave empty if the kernel doesn't accept any arguments.
+      optimization_level (Optional[int]): The quantum optimization level to
+          compile the kernel with, an integer between 0 and 3.
 
     Returns:
       :class:`Resources`:  A dictionary containing the resource count results

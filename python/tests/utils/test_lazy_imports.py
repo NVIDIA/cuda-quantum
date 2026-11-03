@@ -128,3 +128,15 @@ try:
 except AttributeError:
     pass
 """)
+
+
+def test_dunder_probe_does_not_trigger_lazy_imports():
+    """Verify that probing `__test__` (as pytest collection does) does not
+    import the deferred modules."""
+    _run_in_subprocess("""
+import cudaq
+import sys
+
+assert not hasattr(cudaq, '__test__')
+assert 'cudaq.dynamics.integrators' not in sys.modules
+""")

@@ -312,6 +312,8 @@ class TestFromQiskit:
         qc.append(Gate("ctdg", 2, []), [1, 2])
 
         kernel = cudaq.contrib.from_qiskit(qc)
+        # Count the gates as converted. Optimization would remove the reset.
+        kernel.disable_quantum_optimization()
         resources = _resource_counts(kernel)
 
         assert resources.get("r1", 0) == 1

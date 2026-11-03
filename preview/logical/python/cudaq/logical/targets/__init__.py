@@ -13,7 +13,9 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from types import MappingProxyType
 
-from cudaq.core.backends import CompileTarget, CustomTarget
+from cudaq.core._experimental import (CompilationStage, CompileTarget,
+                                      CostModel, CustomTarget, LoopUnrolling,
+                                      NoiseSupport, QuakeUnmappedProfile)
 from cudaq.util import trace
 
 from ..lower import (
@@ -75,10 +77,17 @@ class Backend:
     def compile(self, build, **_options):
         return build
 
-    def _traced_compile(self, build, **options):
+    def _preflight(self, build):
+        """Reject builds that later stages cannot handle."""
+
+    def _traced_compile(self, build, *, _preflight_checked=False, **options):
         if self._trace_tag is None:
+            if not _preflight_checked:
+                self._preflight(build)
             return self.compile(build, **options)
         with trace.span(f"cudaq.logical.target.{self._trace_tag}"):
+            if not _preflight_checked:
+                self._preflight(build)
             return self.compile(build, **options)
 
     def _launch(self, build, operation, **kwargs):
@@ -101,8 +110,12 @@ class Backend:
         compile_options.setdefault("arguments", args)
 
         if tier is None:
+            # Fail before counting a large program we cannot compile.
+            self._preflight(build)
             own = _stage_estimate(build, **estimate_options)
-            prepared = self._traced_compile(build, **compile_options)
+            prepared = self._traced_compile(build,
+                                            _preflight_checked=True,
+                                            **compile_options)
             if self.next_backend is None:
                 return own
             downstream = self.next_backend._estimate(prepared, args,
@@ -386,7 +399,7 @@ def _cudaq_estimate_result(estimates):
     available); every tier, including LOGICAL, is also kept in ``annotations``.
     """
 
-    from cudaq.core.backends import EstimateResult
+    from cudaq.core.results import EstimateResult
     from .. import estimate
     from ..estimate.logical import logical_instruction_counts
 
@@ -409,6 +422,15 @@ class LogicalMachineBackend(Backend):
                                       produced_stage="p1"),
                          next_backend=next_backend)
         self.architecture = architecture
+
+    def _preflight(self, build):
+        # Only when continuing to QEC, check for missing gadgets early.
+        if (_profile_rank(build) == 0 and
+                isinstance(self.next_backend, QECMachineBackend)):
+            from ..compiler.qec_lower import _check_p0_qec_coverage
+
+            with trace.span("cudaq.logical.preflight.p2"):
+                _check_p0_qec_coverage(build, self.next_backend.machine)
 
     def compile(self, build, **options):
         if _profile_rank(build) >= 1:
@@ -508,15 +530,38 @@ class Target(CustomTarget):
 
     @staticmethod
     def _new_compile_target():
-        """Create the CUDA-Q compile configuration owned by one target."""
+        """Create the CUDA-Q compile target owned by one Logical target.
 
-        from ..compiler.quake import CUDAQ_TARGET_PREPARATION_PIPELINE
+        CUDA-Q compiles each kernel through one inferred ``quake-unmapped``
+        stage to the Quake that :func:`import_quake` accepts. The target
+        preserves loops through prep, and the stage unrolls only loops whose
+        index is used, because the import folds the rest. The stage leaves
+        rotation synthesis to Logical. A kernel that applies noise fails
+        to compile, and prep keeps QEC operations so that the import rejects
+        them, instead of Logical estimating the kernel without either.
 
-        target = CompileTarget()
+        TODO: Expose the settings a user may want to change, such as the unroll
+        limit and the approximation tolerance, which would let CUDA-Q
+        synthesize rotations before import.
+        """
+
+        from ..compiler.quake import IMPORT_BASIS_GATES
+
+        profile = QuakeUnmappedProfile(
+            basis_gates=list(IMPORT_BASIS_GATES),
+            approximation_tolerance=0.0,
+            cost_model=CostModel.t_count,
+            unroll_loops=LoopUnrolling.index_use,
+            # Example 05's RSA-4096 kernel needs more than 4096 iterations.
+            max_unroll_iterations=2_048_000)
+        stage = CompilationStage(profile)
+        target = CompileTarget(stages=[stage])
         target.fully_specialize = True
+        target.preserve_loops = True
+        target.noise_support = NoiseSupport.unsupported
+        target.erase_qec = False
         target.support_resource_counts = False
         target.support_conditionals_on_measure_results = False
-        target.lowering = CUDAQ_TARGET_PREPARATION_PIPELINE
         return target
 
     @classmethod

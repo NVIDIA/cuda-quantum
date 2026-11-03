@@ -39,7 +39,8 @@ static async_sample_result sample_async_impl(
         "Noise model is not supported on remote platforms.");
 
   auto fnOp = getKernelFuncOp(mod, shortName);
-  auto opaques = marshal_arguments_for_module_launch(mod, runtimeArgs, fnOp);
+  auto opaques = marshal_arguments_for_module_launch(
+      mod, runtimeArgs, fnOp, launchSpecializesArguments(qpu_id));
 
   // Should only have C++ going on here, safe to release the GIL
   nanobind::gil_scoped_release release;

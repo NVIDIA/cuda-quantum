@@ -20,7 +20,7 @@ endif()
 # are desired (like the command-line tool), remove EXCLUDE_FROM_ALL below.
 add_subdirectory(${STIM_SOURCE_DIR} ${STIM_BINARY_DIR} EXCLUDE_FROM_ALL)
 
-add_library(${LIBRARY_NAME} SHARED StimCircuitSimulator.cpp)
+add_library(${LIBRARY_NAME} SHARED StimSimulatorRegistration.cpp)
 set_property(GLOBAL APPEND PROPERTY CUDAQ_RUNTIME_LIBS ${LIBRARY_NAME})
 
 set (STIM_DEPENDENCIES libstim fmt::fmt-header-only cudaq-logger cudaq-common)

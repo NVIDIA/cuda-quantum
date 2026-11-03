@@ -232,22 +232,116 @@ def _candidate_code(candidate) -> tuple[Code, Encoding]:
 
 
 def _matches_objective(lowering: QECLowering, site: ActionSiteHandle) -> bool:
+    return _matches_objective_name(lowering, site.kind, site.objective_family,
+                                   site.objective)
+
+
+def _matches_objective_name(lowering, kind, family, objective) -> bool:
     if lowering.objective_family not in {
-            site.objective_family,
-            site.kind,
+            family,
+            kind,
             "any",
     }:
         return False
-    objective = lowering.objective
-    if objective is None:
+    declared = lowering.objective
+    if declared is None:
         return True
-    if isinstance(objective, (LogicalActionRef, LogicalInstrumentRef)):
-        expected = objective.name
-    elif isinstance(objective, ProgramDefinition):
-        expected = objective.name.removeprefix("qlx_standard_")
+    if isinstance(declared, (LogicalActionRef, LogicalInstrumentRef)):
+        expected = declared.name
+    elif isinstance(declared, ProgramDefinition):
+        expected = declared.name.removeprefix("qlx_standard_")
     else:
-        expected = getattr(objective, "name", str(objective))
-    return site.objective == expected
+        expected = getattr(declared, "name", str(declared))
+    return objective == expected
+
+
+class _ObjectiveCoverage:
+    """Which objectives the linked QEC definitions can implement."""
+
+    def __init__(self, definitions):
+        self.fixed_objectives = set()
+        self.lowerings = []
+        self.covered = {}
+        for candidate in definitions:
+            if isinstance(candidate, QECLowering):
+                self.lowerings.append(candidate)
+            elif isinstance(candidate, (GadgetDefinition, ProtocolDefinition)):
+                objective = candidate.implements
+                if isinstance(objective,
+                              (LogicalActionRef, LogicalInstrumentRef)):
+                    self.fixed_objectives.add(objective.name)
+                elif isinstance(objective, ProgramDefinition):
+                    self.fixed_objectives.add(
+                        objective.name.removeprefix("qlx_standard_"))
+
+    def covers(self, kind, objective):
+        key = (kind, objective)
+        covered = self.covered.get(key)
+        if covered is None:
+            covered = self.covered[key] = (
+                objective in self.fixed_objectives or
+                (kind == "action" and objective in {"x", "z"}) or objective
+                in {"prepare_zero", "prepare_plus", "measure_x", "measure_z"} or
+                any(
+                    _matches_objective_name(lowering, kind,
+                                            _objective_family(kind, objective),
+                                            objective)
+                    for lowering in self.lowerings))
+        return covered
+
+    def require(self, root, site):
+        """Raise for the first site under `root` whose objective is missing.
+
+        `site(operation)` returns `(kind, objective)` or None.
+        """
+        missing = None
+
+        def visit(operation):
+            nonlocal missing
+            found = site(operation)
+            if found is not None and not self.covers(*found):
+                missing = found[1]
+                return mlir_ir.WalkResult.INTERRUPT
+            return mlir_ir.WalkResult.ADVANCE
+
+        root.walk(visit, mlir_ir.WalkOrder.PRE_ORDER)
+        if missing is not None:
+            raise ValueError(f"no feasible P2 implementation for {missing}")
+
+
+def _check_p0_qec_coverage(source, device):
+    """Reject P0 actions with no QEC implementation, before placement."""
+
+    linked = discover_linked_definitions(source.source_modules, device)
+    coverage = _ObjectiveCoverage(linked.definitions)
+    # Read the Build's own module. Cloning it would be too slow.
+    programs = {
+        _text(view.operation.attributes["sym_name"]): view.operation
+        for view in source._module.body.operations
+        if view.operation.name == "qlx.program"
+    }
+    objectives = {}
+    # Follow qlx.call into helpers, as estimate/logical.py does.
+    pending = [source.root.symbol]
+    seen = set(pending)
+
+    def site(operation):
+        if operation.name == "qlx.call":
+            callee = _symbol(operation.attributes["callee"])
+            if callee not in seen:
+                seen.add(callee)
+                pending.append(callee)
+            return None
+        if operation.name != "qlx.apply":
+            return None
+        attribute = operation.attributes["action"]
+        objective = objectives.get(attribute)
+        if objective is None:
+            objective = objectives[attribute] = _objective(attribute)
+        return "action", objective
+
+    while pending:
+        coverage.require(programs[pending.pop()], site)
 
 
 def _flatten_annotation(annotation):
@@ -1025,6 +1119,7 @@ class _P1ToP2:
     def _prepare_selection(self):
         if self._selection_prepared:
             return
+        self._check_objective_coverage()
         unsupported_bindings = tuple(
             binding for binding in self.source.placement.bindings
             if binding.binding_kind not in
@@ -1122,6 +1217,25 @@ class _P1ToP2:
         else:
             self.device_handle = self.transaction.materialize(self.device)
         self._selection_prepared = True
+
+    def _check_objective_coverage(self):
+        """Fail fast on objectives with no QEC implementation."""
+
+        sites = {
+            "lvm.apply": ("action", "action"),
+            "lvm.consume_resource": ("resource_action", "action"),
+            "lvm.instrument": ("instrument", "instrument"),
+        }
+
+        def site(operation):
+            found = sites.get(operation.name)
+            if found is None:
+                return None
+            kind, attribute = found
+            return kind, self._objective_name(operation.attributes[attribute])
+
+        _ObjectiveCoverage(
+            (*self.fixed, *self.lowerings)).require(self.kernel.operation, site)
 
     def _finalize_qec_selection(self, *, action_filter=None):
         self._prepare_selection()
@@ -2314,7 +2428,13 @@ class _P1ToP2:
             # cost/evidence uniformly after dynamic specialization.
             feasible = (*fixed, *generated)
             if not feasible:
-                continue
+                # These can still get an encoding-derived fallback later.
+                if (operation.name in {"lvm.prepare", "lvm.measure"} or
+                    (operation.name == "lvm.apply" and
+                     handle.objective in {"x", "z"})):
+                    continue
+                raise ValueError(
+                    f"no feasible P2 implementation for {handle.objective}")
             selected = feasible[0]
             self.selected_sites[handle.symbol] = _SelectedSite(
                 operation, handle, feasible, selected)

@@ -1,10 +1,10 @@
-/*******************************************************************************
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 //
 // Mirrors upstream MLIR's `mlir/Conversion/Passes.h`.  Every cross-dialect
 // QLX conversion pass declared in `qlx/Conversion/Passes.td` becomes
@@ -18,8 +18,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef QLX_CONVERSION_PASSES_H
-#define QLX_CONVERSION_PASSES_H
+#pragma once
 
 #include "mlir/Pass/Pass.h"
 
@@ -32,5 +31,3 @@ namespace qlx {
 #include "qlx/Conversion/Passes.h.inc"
 
 } // namespace qlx
-
-#endif // QLX_CONVERSION_PASSES_H

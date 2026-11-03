@@ -141,7 +141,8 @@ sys.meta_path.insert(0, CoreOnly())
 import cudaq.logical as logical
 from dataclasses import fields
 from typing import get_type_hints
-from cudaq.core.backends import CompileTarget, CustomTarget, EstimateResult, RuntimeEndpoint
+from cudaq.core._experimental import CompileTarget, CustomTarget, RuntimeEndpoint
+from cudaq.core.results import EstimateResult
 from cudaq.util import trace
 
 expected = {"runtime_endpoint": RuntimeEndpoint, "compile_target": CompileTarget}

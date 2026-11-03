@@ -763,7 +763,16 @@ SmallVector<Value> QuakeBridgeVisitor::convertKernelArgs(
     Location loc, std::size_t dropFrontNum, const SmallVector<Value> &args,
     ArrayRef<Type> kernelArgTys, clang::CallExpr *x) {
   SmallVector<Value> result;
-  assert(args.size() - dropFrontNum == kernelArgTys.size());
+  if (args.size() - dropFrontNum != kernelArgTys.size()) {
+    // The values of the data members of a kernel class are leading arguments
+    // of its call operator that a call from another kernel cannot supply.
+    reportClangError(x, mangler,
+                     "the call does not match the arguments of the kernel; a "
+                     "kernel class with data members cannot be called from a "
+                     "kernel");
+    fail();
+    return result;
+  }
   for (auto i = dropFrontNum, end = args.size(); i < end; ++i) {
     auto v = args[i];
     auto vTy = v.getType();
@@ -1389,6 +1398,17 @@ QuakeBridgeVisitor::Result QuakeBridgeVisitor::visit(clang::LambdaExpr *x) {
 }
 
 QuakeBridgeVisitor::Result QuakeBridgeVisitor::visit(clang::MemberExpr *x) {
+  // A data member of the kernel class is a stack slot. There is no object.
+  if (auto *member = dyn_cast<clang::FieldDecl>(x->getMemberDecl()))
+    if (isa<clang::CXXThisExpr>(x->getBase()->IgnoreParenImpCasts())) {
+      auto iter = memberSlots.find(member);
+      if (iter == memberSlots.end()) {
+        reportClangError(x, mangler,
+                         "data member is not available in this function");
+        return fail();
+      }
+      return value(iter->second);
+    }
   // Converting the type of a method diagnoses the types of its signature that
   // a kernel cannot have.
   if (auto *methodDecl = dyn_cast<clang::CXXMethodDecl>(x->getMemberDecl()))
@@ -3390,6 +3410,14 @@ bool QuakeBridgeVisitor::lowerInitList(clang::InitListExpr *x,
 
 QuakeBridgeVisitor::Result
 QuakeBridgeVisitor::visit(clang::CXXConstructExpr *x) {
+  // The object of a kernel class that has data members does not exist on the
+  // device. Another one cannot be made there either.
+  if (memberClass && x->getType()->getAsCXXRecordDecl() == memberClass) {
+    reportClangError(x, mangler,
+                     "cannot create an object of a kernel class that has data "
+                     "members inside the kernel");
+    return fail();
+  }
   if (x->isElidable())
     return std::nullopt;
   bool saveInitializerIsGlobal = initializerIsGlobal;

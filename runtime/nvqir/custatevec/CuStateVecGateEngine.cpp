@@ -10,6 +10,10 @@
 
 #include "CuStateVecError.h"
 
+#include <cuda_runtime_api.h>
+
+#include <complex>
+#include <cstring>
 #include <stdexcept>
 #include <type_traits>
 #include <vector>
@@ -17,6 +21,61 @@
 namespace {
 
 using cudaq::cusv::dataOrNull;
+
+/// Bytes of page-locked scratch reserved for staging gate matrices, enough for
+/// a dense matrix on five targets in double precision. Larger matrices are
+/// passed as they are.
+constexpr std::size_t matrixStagingBytes = 32 * 1024;
+
+/// @brief One page-locked staging buffer, owned for the lifetime of the thread
+/// that first stages a matrix on it. Here, instead of gate engine since
+/// a new engine is built on every qubit allocation.
+class MatrixStagingBuffer {
+public:
+  MatrixStagingBuffer() {
+    // Not fatal: stageMatrix falls back to the task's own storage.
+    if (cudaMallocHost(&m_buffer, matrixStagingBytes) != cudaSuccess)
+      m_buffer = nullptr;
+  }
+
+  /// Releases the buffer when the owning thread ends
+  ~MatrixStagingBuffer() {
+    if (m_buffer == nullptr)
+      return;
+    void *released = m_buffer;
+    m_buffer = nullptr;
+    // Return value deliberately ignored for silent failure to handle any
+    // teardown ordering.
+    static_cast<void>(cudaFreeHost(released));
+  }
+
+  MatrixStagingBuffer(const MatrixStagingBuffer &) = delete;
+  MatrixStagingBuffer &operator=(const MatrixStagingBuffer &) = delete;
+
+  void *get() const { return m_buffer; }
+
+private:
+  void *m_buffer = nullptr;
+};
+
+void *matrixStagingBuffer() {
+  static thread_local MatrixStagingBuffer buffer;
+  return buffer.get();
+}
+
+/// @brief Copy a gate matrix into page-locked memory so that cuStateVec's
+/// host-pointer check is answered cheaply. Returns the original pointer when
+/// there is no buffer or the matrix does not fit, which is correct in every
+/// case and merely slower.
+template <typename Scalar>
+const void *stageMatrix(const std::vector<std::complex<Scalar>> &matrix) {
+  const std::size_t bytes = matrix.size() * sizeof(std::complex<Scalar>);
+  void *staging = matrixStagingBuffer();
+  if (staging == nullptr || bytes > matrixStagingBytes)
+    return matrix.data();
+  std::memcpy(staging, matrix.data(), bytes);
+  return staging;
+}
 
 template <typename Scalar>
 void enqueueNoise(custatevecExSVUpdaterDescriptor_t updater,
@@ -67,7 +126,8 @@ void enqueueTask(custatevecExSVUpdaterDescriptor_t updater,
         if constexpr (std::is_same_v<Operation,
                                      cudaq::cusv::MatrixTask<Scalar>>) {
           HANDLE_CUSTATEVEC_ERROR(custatevecExSVUpdaterEnqueueMatrix(
-              /*svUpdater=*/updater, /*matrix=*/operation.matrix.data(),
+              /*svUpdater=*/updater,
+              /*matrix=*/stageMatrix(operation.matrix),
               /*matrixDataType=*/cudaq::cusv::complexDataType<Scalar>(),
               /*exMatrixType=*/operation.matrixType,
               /*layout=*/operation.layout, /*adjoint=*/operation.adjoint,

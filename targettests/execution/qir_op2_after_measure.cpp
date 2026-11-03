@@ -17,7 +17,7 @@ __qpu__ void init_state() {
   cudaq::qubit q;
   x(q);
   auto result = mz(q);
-  x(q); // base profile does not allow operations after measurements
+  x(q); // the target does not allow operations after measurements
 };
 
 int main() {
@@ -29,5 +29,5 @@ int main() {
 }
 
 // clang-format off
-// CHECK: reversible function __quantum__qis__x__body came after irreversible function
+// CHECK: error: 'quake.mz' op unsupported mid-circuit measurement: a measured wire is used by a later operation
 // clang-format on

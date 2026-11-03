@@ -185,6 +185,13 @@ static void
 createTargetCodegenPipeline(OpPassManager &pm,
                             const TargetCodegenPipelineOptions &options,
                             bool useValueSemantics) {
+  auto tgt = StringRef(options.target).split(':').first;
+  bool fullQIR = tgt == "qir" || tgt == "qir-full";
+  // QIR without a profile can't lower borrowed wires, so swap them for null
+  // wires first. Profile QIR lowers wire sets with `wireset-to-profile-qir`
+  // instead, so it still rejects borrowed wires here.
+  if (fullQIR)
+    pm.addPass(cudaq::opt::createWireSetToNullWires());
   createCommonTargetCodegenPipeline(pm, options);
   if (useValueSemantics) {
     cudaq::opt::addConvertToLinearValues(pm);
@@ -207,8 +214,7 @@ createTargetCodegenPipeline(OpPassManager &pm,
   cudaq::opt::addLowerToCFG(pm);
   cudaq::opt::ReturnToOutputLogOptions opts;
   // Only allow dynamic results with full QIR (local simulator targets).
-  auto tgt = StringRef(options.target).split(':').first;
-  opts.allowDynamicResult = tgt == "qir" || tgt == "qir-full";
+  opts.allowDynamicResult = fullQIR;
   pm.addPass(cudaq::opt::createReturnToOutputLog(opts));
   pm.addPass(createConvertMathToFuncs());
   pm.addPass(createSymbolDCEPass());

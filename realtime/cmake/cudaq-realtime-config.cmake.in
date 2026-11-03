@@ -24,3 +24,10 @@ include("${CMAKE_CURRENT_LIST_DIR}/cudaq-realtime-targets.cmake")
 
 set(CUDAQ_REALTIME_INCLUDE_DIR "${PACKAGE_PREFIX_DIR}/include")
 set(CUDAQ_REALTIME_INCLUDE_DIRS "${CUDAQ_REALTIME_INCLUDE_DIR}")
+
+# cudaq_realtime_add_dispatch_kernel: an application's own dispatch kernel,
+# built for the architecture libcudaq-realtime's kernel targets.
+if(@CUDA_FOUND@)
+  set(CUDAQ_REALTIME_DEVICE_CODE_MIN_ARCH @CUDAQ_REALTIME_DEVICE_CODE_MIN_ARCH@)
+  include("${CMAKE_CURRENT_LIST_DIR}/CudaqRealtimeDispatchKernel.cmake")
+endif()

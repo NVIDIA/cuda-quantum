@@ -1,13 +1,12 @@
-/*******************************************************************************
+/****************************************************************-*- C++ -*-****
  * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 
-#ifndef QLX_COMPILER_SPACETIMEPROVIDERS_H
-#define QLX_COMPILER_SPACETIMEPROVIDERS_H
+#pragma once
 
 #include <optional>
 
@@ -25,8 +24,8 @@ enum class BuiltinProviderKind {
 
 /// Structural summary of one boundary-preserving surface-code callable whose
 /// exact P2 body contains authenticated AutoCCZ applications and exact CX
-/// connections. An access layer connects an owner outside one reaction box;
-/// reaction depth and peak width are derived from shared SSA owners. This
+/// connections. An access layer connects a patch value outside one reaction
+/// box; reaction depth and peak width are derived from shared SSI values. This
 /// description is deliberately independent of helper names and algorithm
 /// roles.
 struct SurfaceSpacelikeShape {
@@ -54,5 +53,3 @@ std::optional<BuiltinProviderKind> providerFor(fabric::ProtocolOp protocol);
 void registerBuiltinProviders();
 
 } // namespace qlx::spacetime
-
-#endif // QLX_COMPILER_SPACETIMEPROVIDERS_H

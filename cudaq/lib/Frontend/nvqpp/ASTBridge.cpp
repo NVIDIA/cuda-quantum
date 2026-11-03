@@ -8,8 +8,10 @@
 
 #include "cudaq/Frontend/nvqpp/ASTBridge.h"
 #include "cudaq/Frontend/nvqpp/QisBuilder.h"
+#include "cudaq/Optimizer/Builder/OptimizationLevel.h"
 #include "cudaq/Optimizer/Dialect/Quake/QuakeTypes.h"
 #include "clang/AST/ParentMapContext.h"
+#include "clang/AST/RecordLayout.h"
 #include "clang/Basic/TargetCXXABI.h"
 #include "clang/Basic/TargetInfo.h"
 #include "clang/Frontend/CompilerInstance.h"
@@ -158,6 +160,33 @@ static bool containsHandleInSignature(FunctionType funcTy) {
     if (cudaq::cc::containsMeasureHandle(ty))
       return true;
   return false;
+}
+
+// Mark every function that refers to a function that disables quantum
+// optimization, directly or through other functions. nvq++ inlines a kernel
+// into its callers before it registers them for the JIT, so only a marker on
+// the caller keeps the callee's gates as written.
+static void markCallersOfUnoptimizedFunctions(ModuleOp module) {
+  SymbolTable symbolTable(module);
+  auto refersToUnoptimizedFunction = [&](func::FuncOp func) {
+    auto uses = SymbolTable::getSymbolUses(func);
+    return uses && llvm::any_of(*uses, [&](const SymbolTable::SymbolUse &use) {
+             auto *callee =
+                 symbolTable.lookup(use.getSymbolRef().getRootReference());
+             return callee &&
+                    cudaq::runtime::isQuantumOptimizationDisabled(callee);
+           });
+  };
+  bool changed = true;
+  while (changed) {
+    changed = false;
+    for (auto func : module.getOps<func::FuncOp>())
+      if (!cudaq::runtime::isQuantumOptimizationDisabled(func) &&
+          refersToUnoptimizedFunction(func)) {
+        cudaq::runtime::setOptimizationLevel(func, 0);
+        changed = true;
+      }
+  }
 }
 
 // Remove the Itanium mangling "_ZTS" prefix. This is to match the name returned
@@ -391,6 +420,54 @@ public:
     }
   }
 
+  // Check the data members of a kernel class. The values of the members are
+  // passed to the kernel as arguments, so only scalars are allowed. This runs
+  // once for each class, whichever way the class is reached: an instantiated
+  // template and a call operator that is defined outside the class are not
+  // visited with the class.
+  void checkMembers(const clang::CXXRecordDecl *x) {
+    if (!x || !membersChecked.insert(x).second)
+      return;
+    auto &de = mangler->getASTContext().getDiagnostics();
+    if (!x->isLambda() && !x->field_empty()) {
+      // The values of the data members are passed to the kernel as arguments.
+      // Only scalars can be.
+      for (auto *field : x->fields()) {
+        auto ty = field->getType();
+        if (isQuantumType(ty)) {
+          auto id = de.getCustomDiagID(
+              clang::DiagnosticsEngine::Error,
+              "CUDA-Q kernel class data member may not have a quantum type");
+          de.Report(field->getLocation(), id);
+        } else if (field->isBitField() ||
+                   !(ty->isArithmeticType() || ty->isEnumeralType())) {
+          auto id = de.getCustomDiagID(
+              clang::DiagnosticsEngine::Error,
+              "CUDA-Q kernel class data member must be of an arithmetic or "
+              "enumeration type, and not a bit-field");
+          de.Report(field->getLocation(), id);
+        }
+      }
+      // A kernel class with data members has the call operator and the
+      // functions that create and manage the object, which exist on the host
+      // only. Any other member function is not supported.
+      for (auto *method : x->methods()) {
+        if (method->isImplicit() || method->isStatic() ||
+            isa<clang::CXXConstructorDecl>(method) ||
+            isa<clang::CXXDestructorDecl>(method) ||
+            method->isCopyAssignmentOperator() ||
+            method->isMoveAssignmentOperator() ||
+            cudaq::ASTBridgeAction::ASTBridgeConsumer::isQuantum(method))
+          continue;
+        auto id = de.getCustomDiagID(
+            clang::DiagnosticsEngine::Error,
+            "CUDA-Q kernel class with data members may not have other member "
+            "functions");
+        de.Report(method->getLocation(), id);
+      }
+    }
+  }
+
   // Check some of the restrictions and limitations on kernel classes. These
   // restrictions are noted in the CUDA-Q language specification.
   void check(const clang::CXXRecordDecl *x) {
@@ -402,12 +479,6 @@ public:
       auto id = de.getCustomDiagID(
           clang::DiagnosticsEngine::Error,
           "class inheritance is not allowed for CUDA-Q kernel");
-      de.Report(x->getBeginLoc(), id);
-    }
-    if (!x->fields().empty()) {
-      auto id = de.getCustomDiagID(
-          clang::DiagnosticsEngine::Error,
-          "CUDA-Q kernel class with data members is not yet supported");
       de.Report(x->getBeginLoc(), id);
     }
     unsigned quantumCount = 0;
@@ -461,6 +532,7 @@ public:
           if (isa<clang::CXXMethodDecl>(func)) {
             auto *cxxClass = cast<clang::CXXRecordDecl>(func->getParent());
             check(cxxClass);
+            checkMembers(cxxClass);
           }
           processQpu(cudaq::detail::getTagNameOfFunctionDecl(func, mangler),
                      func);
@@ -598,6 +670,7 @@ private:
   // A class that is being visited. Need to run semantics checks on it if and
   // only if it has a quantum kernel.
   const clang::CXXRecordDecl *checkedClass = nullptr;
+  llvm::SmallPtrSet<const clang::CXXRecordDecl *, 8> membersChecked;
   bool ignoreTemplate = false;
   // The traversal is in a non-kernel function, where a quantum type cannot be
   // used by a variable.
@@ -623,6 +696,13 @@ bool QuakeBridgeVisitor::generateFunctionDeclaration(
   auto funcTy = cast<FunctionType>(*kernelTy);
   if (!doSyntaxChecks(x, funcTy))
     return false;
+  // The data members of a kernel class are the leading arguments.
+  funcTy = addMemberArguments(x, funcTy);
+  if (!funcTy) {
+    clearFailure();
+    reportClangError(x, mangler, "failed to generate type for kernel function");
+    return false;
+  }
   auto loc = toLocation(x);
   [[maybe_unused]] auto fnPair = getOrAddFunc(loc, funcName, funcTy);
   assert(fnPair.first && "expected FuncOp to be created");
@@ -687,8 +767,13 @@ void ASTBridgeAction::ASTBridgeConsumer::addFunctionDecl(
     return;
   auto loc = toSourceLocation(module->getContext(), &astContext,
                               funcDecl->getSourceRange());
-  auto devFuncTy =
-      module->lookupSymbol<func::FuncOp>(devFuncName).getFunctionType();
+  // The values of the data members of a kernel class are not arguments on the
+  // host. They are read from the object. Record where they are.
+  auto members = detail::QuakeBridgeVisitor::getKernelClassMembers(funcDecl);
+  const auto numMembers = members.size();
+  funcTy = FunctionType::get(funcTy.getContext(),
+                             funcTy.getInputs().drop_front(numMembers),
+                             funcTy.getResults());
   OpBuilder build(module->getBodyRegion());
   OpBuilder::InsertionGuard guard(build);
   build.setInsertionPointToEnd(module->getBody());
@@ -700,6 +785,23 @@ void ASTBridgeAction::ASTBridgeConsumer::addFunctionDecl(
                                    ArrayRef<NamedAttribute>{});
   if (!addThisPtr)
     func->setAttr("no_this", build.getUnitAttr());
+  if (numMembers) {
+    auto &layout = astContext.getASTRecordLayout(
+        cast<clang::CXXMethodDecl>(funcDecl)->getParent());
+    SmallVector<std::int64_t> offsets;
+    for (auto *field : members)
+      offsets.push_back(astContext
+                            .toCharUnitsFromBits(
+                                layout.getFieldOffset(field->getFieldIndex()))
+                            .getQuantity());
+    // The attributes are on the kernel, as that is what the code generation
+    // of the host side starts from.
+    auto devFunc = module->lookupSymbol<func::FuncOp>(devFuncName);
+    devFunc->setAttr(kernelMemberArgsAttrName,
+                     build.getI64IntegerAttr(numMembers));
+    devFunc->setAttr(kernelMemberOffsetsAttrName,
+                     build.getDenseI64ArrayAttr(offsets));
+  }
 
   if (isDecl) {
     func.setPrivate();
@@ -718,7 +820,7 @@ void ASTBridgeAction::ASTBridgeConsumer::addFunctionDecl(
 
   // Walk the arguments and add byval attributes where needed.
   assert(visitor.isItaniumCXXABI() && "Microsoft ABI not implemented");
-  auto hiddenSRet = opt::factory::hasHiddenSRet(devFuncTy);
+  auto hiddenSRet = opt::factory::hasHiddenSRet(funcTy);
   auto delta = cc::numberOfHiddenArgs(addThisPtr, hiddenSRet);
   if (hiddenSRet) {
     // The first argument should be a pointer type if this function has a hidden
@@ -831,13 +933,11 @@ void ASTBridgeAction::ASTBridgeConsumer::HandleTranslationUnit(
       auto unitAttr = UnitAttr::get(ctx);
       // Flag func as a quantum kernel.
       func->setAttr(kernelAttrName, unitAttr);
-      // If the kernel is annotated with disable_quantum_optimization, set the
-      // quake.noOptimization attribute on the module so that value semantics
-      // lowering and related quantum optimization passes are skipped.
+      // Record the optimization level at the kernel level, as a `func`
+      // attribute.
       for (auto *a : fdPair.second->specific_attrs<clang::AnnotateAttr>())
         if (a->getAnnotation().str() == cudaq::disableQuantumOptAnnotation) {
-          (*module)->setAttr(cudaq::runtime::disableQuantumOpts, unitAttr);
-          func->setAttr(cudaq::runtime::disableQuantumOpts, unitAttr);
+          cudaq::runtime::setOptimizationLevel(func, 0);
           break;
         }
       for (auto *a : fdPair.second->specific_attrs<clang::AnnotateAttr>())
@@ -893,6 +993,8 @@ void ASTBridgeAction::ASTBridgeConsumer::HandleTranslationUnit(
       }
     }
   }
+
+  markCallersOfUnoptimizedFunctions(*module);
 }
 
 bool ASTBridgeAction::ASTBridgeConsumer::HandleTopLevelDecl(

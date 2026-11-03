@@ -8,6 +8,7 @@ CUDA-Q compiler development
    Compiler IR <cudaq_ir>
    Value-semantics IR change log <ir_changelog>
    External compiler pass plugins <pass_plugins>
+   Using compile targets to customize compilation <compile_targets>
 
 CUDA-Q compiles C++ and Python quantum kernels using the
 `MLIR compiler infrastructure <https://mlir.llvm.org/>`_. The language frontends

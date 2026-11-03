@@ -60,6 +60,9 @@ add_library(CUDAQTargetYamlObjects OBJECT
   Yaml/CanonicalConversion.cpp
   Yaml/TargetConfigSchema.cpp
   Yaml/v1/TargetConfigV1.cpp
+  Yaml/v2/QuakeMappedProfileYaml.cpp
+  Yaml/v2/QuakeReferenceSemanticsProfileYaml.cpp
+  Yaml/v2/QuakeUnmappedProfileYaml.cpp
   Yaml/v2/TargetConfigV2.cpp
 )
 target_include_directories(CUDAQTargetYamlObjects PUBLIC
@@ -166,6 +169,10 @@ if(CUDAQ_TARGET_STANDALONE_BUILD)
     DESTINATION include/cudaq/Target
     COMPONENT Development
     FILES_MATCHING PATTERN "*.h")
+endif()
+
+if(CUDAQ_ENABLE_PYTHON_BINDINGS)
+  add_subdirectory(python)
 endif()
 
 # Component-local LIT suite.

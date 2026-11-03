@@ -19,11 +19,16 @@ func.func @two_qubit_gate() {
   %q4 = quake.borrow_wire @wires[4] : !quake.wire
   %x01:2 = quake.x [%q0] %q1 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
   %x23:2 = quake.x [%q2] %q3 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
-  quake.return_wire %x01#0 : !quake.wire
-  quake.return_wire %x01#1 : !quake.wire
-  quake.return_wire %x23#0 : !quake.wire
-  quake.return_wire %x23#1 : !quake.wire
-  quake.return_wire %q4 : !quake.wire
+  %m0, %w0 = quake.mz %x01#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %m1, %w1 = quake.mz %x01#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %m2, %w2 = quake.mz %x23#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %m3, %w3 = quake.mz %x23#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %m4, %w4 = quake.mz %q4 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  quake.return_wire %w0 : !quake.wire
+  quake.return_wire %w1 : !quake.wire
+  quake.return_wire %w2 : !quake.wire
+  quake.return_wire %w3 : !quake.wire
+  quake.return_wire %w4 : !quake.wire
   return
 }
 
