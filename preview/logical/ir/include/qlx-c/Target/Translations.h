@@ -41,8 +41,9 @@ qlxProjectCliffordJson(MlirModule module, MlirStringRef gadget,
 /// Returns one owned, checked packed EDEM without copying its payload.
 /// An empty profile selects the unique fabric.gadget_contract. Faults use the
 /// external cudaq.logical.edem-faults/v1 JSON schema. Does not mutate the
-/// module. Output must point to a zero-initialized record. Failure leaves it
-/// unchanged; release the returned record with
+/// module. Output must point to a zero-initialized record. Allocation and
+/// container-size exceptions return failure without an allocating diagnostic.
+/// Failure leaves output unchanged; release the returned record with
 /// cudaq_gf2_owned_buffer_release. Checked view tokens do not cross this
 /// boundary.
 MLIR_CAPI_EXPORTED MlirLogicalResult

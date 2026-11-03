@@ -489,16 +489,27 @@ struct SourceLayout {
   std::size_t sourceCount;
 };
 
-SourceLayout sourceLayout(const std::vector<BoundaryPort> &inputs,
-                          const edem_analysis::FaultInput &faults) {
+std::optional<SourceLayout>
+sourceLayout(const std::vector<BoundaryPort> &inputs,
+             const edem_analysis::FaultInput &faults) {
+  const std::size_t limit = std::numeric_limits<int>::max();
   std::size_t syndromeCount = 0;
-  std::size_t logicalCount = 0;
+  std::size_t faultStart = 0;
   for (const auto &port : inputs) {
-    syndromeCount += port.boundary.effectiveSyndromes();
-    logicalCount += 2 * port.boundary.logicalQubits();
+    const auto syndromes = port.boundary.effectiveSyndromes();
+    const auto logicals = port.boundary.logicalQubits();
+    if (syndromes > (limit - faultStart) / 2)
+      return std::nullopt;
+    faultStart += 2 * std::size_t{syndromes};
+    syndromeCount += syndromes;
+    if (logicals > (limit - faultStart) / 2)
+      return std::nullopt;
+    faultStart += 2 * std::size_t{logicals};
   }
-  auto faultStart = 2 * syndromeCount + logicalCount;
-  return {syndromeCount, faultStart, faultStart + faults.faults.size()};
+  if (faults.faults.size() > limit - faultStart)
+    return std::nullopt;
+  return SourceLayout{syndromeCount, faultStart,
+                      faultStart + faults.faults.size()};
 }
 
 struct Injection {
@@ -982,6 +993,23 @@ buildGadgetEDEM(qlx::fabric::GadgetContractOp profile,
                            projection.outputDataCarriersByPort, "outputs");
   if (failed(inputs) || failed(outputs))
     return failure();
+  auto layout = sourceLayout(*inputs, faults);
+  if (!layout) {
+    profile.emitOpError("EDEM source count exceeds the analysis index width");
+    return failure();
+  }
+  // Check the minimum dense propagation storage before ideal verification.
+  // There are two carrier frames and one response per measurement. This is
+  // an addressability check, not a fixed memory budget; actual allocation
+  // failures are handled at the C boundary.
+  const auto propagationRows =
+      2 * uint64_t{projection.carrierCount} + projection.measurementCount;
+  const auto rowBytes = std::max(sizeof(Bits), (layout->sourceCount + 7) / 8);
+  if (propagationRows > std::numeric_limits<std::size_t>::max() / rowBytes) {
+    profile.emitOpError(
+        "EDEM propagation storage exceeds the addressable size");
+    return failure();
+  }
   auto records = readRecordMap(profile, projection);
   if (failed(records))
     return failure();
@@ -990,18 +1018,13 @@ buildGadgetEDEM(qlx::fabric::GadgetContractOp profile,
     return failure();
   if (failed(verifyIdealProfile(profile, projection, *inputs, *outputs, *rows)))
     return failure();
-  auto layout = sourceLayout(*inputs, faults);
-  if (layout.sourceCount > unsigned(std::numeric_limits<int>::max())) {
-    profile.emitOpError("EDEM source count exceeds the analysis index width");
-    return failure();
-  }
-  auto prepared = prepareFaults(profile, projection, *records, faults, layout);
+  auto prepared = prepareFaults(profile, projection, *records, faults, *layout);
   if (failed(prepared))
     return failure();
-  auto propagated = propagate(profile, projection, *inputs, layout, *prepared);
+  auto propagated = propagate(profile, projection, *inputs, *layout, *prepared);
   if (failed(propagated))
     return failure();
-  return assemble(profile, *inputs, *outputs, *rows, faults, layout,
+  return assemble(profile, *inputs, *outputs, *rows, faults, *layout,
                   *propagated);
 }
 

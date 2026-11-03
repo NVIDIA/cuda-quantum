@@ -7,6 +7,7 @@
 # ============================================================================ #
 
 add_mlir_public_c_api_library(QLXCAPITranslate
+  GadgetEDEM.cpp
   Translations.cpp
   DISABLE_INSTALL
 
@@ -16,3 +17,4 @@ add_mlir_public_c_api_library(QLXCAPITranslate
   MLIRFabricTranslate
   MLIRGadgetEDEM
 )
+qlx_propagate_llvm_rtti_eh(QLXCAPITranslate EXCEPTIONS)

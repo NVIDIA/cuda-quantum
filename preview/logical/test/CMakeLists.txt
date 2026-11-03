@@ -24,6 +24,15 @@ qlx_propagate_llvm_rtti_eh(qlx-analysis-diagnostics-test)
 add_test(NAME qlx-analysis-diagnostics COMMAND qlx-analysis-diagnostics-test)
 set_tests_properties(qlx-analysis-diagnostics PROPERTIES LABELS "qlx;analysis")
 
+add_executable(qlx-edem-capi-resources-test
+  Analysis/EDEMCAPIResourcesTest.cpp
+  ../ir/lib/CAPI/Target/GadgetEDEM.cpp)
+target_link_libraries(qlx-edem-capi-resources-test PRIVATE
+  ${_qlx_diagnostics_libraries} cudaq::edem)
+qlx_propagate_llvm_rtti_eh(qlx-edem-capi-resources-test EXCEPTIONS)
+add_test(NAME qlx-edem-capi-resources COMMAND qlx-edem-capi-resources-test)
+set_tests_properties(qlx-edem-capi-resources PROPERTIES LABELS "qlx;analysis")
+
 # Generate lit.site.cfg.py from the template.
 configure_lit_site_cfg(
   ${CMAKE_CURRENT_SOURCE_DIR}/lit.site.cfg.py.in
@@ -51,6 +60,7 @@ if(LIT_PATH AND FILECHECK_PATH)
     qlx-translate
     qlx-ideal-outcomes-test
     qlx-analysis-diagnostics-test
+    qlx-edem-capi-resources-test
   )
   foreach(_t IN LISTS QLX_FILECHECK_TARGET QLX_NOT_TARGET QLX_COUNT_TARGET)
     if(_t)
@@ -108,7 +118,8 @@ if(LIT_PATH AND FILECHECK_PATH)
     FIXTURES_REQUIRED qlx-lit-tools
     LABELS "qlx;conformance"
   )
-  set_tests_properties(qlx-ideal-outcomes qlx-analysis-diagnostics PROPERTIES
+  set_tests_properties(qlx-ideal-outcomes qlx-analysis-diagnostics
+    qlx-edem-capi-resources PROPERTIES
     FIXTURES_REQUIRED qlx-lit-tools
   )
 
@@ -120,10 +131,10 @@ if(LIT_PATH AND FILECHECK_PATH)
       # Avoid a trailing `$` here: Ninja treats it as a line-continuation
       # escape in the generated custom command and concatenates `DESC` onto
       # the ctest regular expression.
-      -R "^qlx-(filecheck-tests|ideal-outcomes|analysis-diagnostics)"
+      -R "^qlx-(filecheck-tests|ideal-outcomes|analysis-diagnostics|edem-capi-resources)"
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     USES_TERMINAL
-    COMMENT "Running QLX FileCheck and ideal-outcome tests")
+    COMMENT "Running QLX FileCheck and native analysis tests")
 else()
   if(NOT LIT_PATH)
     message(WARNING

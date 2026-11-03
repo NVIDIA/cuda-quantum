@@ -19,4 +19,4 @@ add_mlir_library(MLIRGadgetEDEM
     cudaq::edem
     ${_qlx_edem_mlir_libraries}
 )
-qlx_propagate_llvm_rtti_eh(MLIRGadgetEDEM)
+qlx_propagate_llvm_rtti_eh(MLIRGadgetEDEM EXCEPTIONS)
