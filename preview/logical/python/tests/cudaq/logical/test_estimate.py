@@ -368,6 +368,66 @@ def test_analytical_probability_aggregation_is_stable_at_small_error():
             cql.analysis.Scaling(prefactor=invalid)
 
 
+@pytest.mark.parametrize("probability", [0.0078, 0.0308, 0.5])
+def test_analytical_single_attempt_retry_executes_once(probability):
+    # The first two probabilities round the old expectation above and
+    # below one, respectively; 0.5 gives exactly one as a control.
+    from cudaq.logical.algebra import GF2Matrix
+    from cudaq.logical.gadgets import GadgetSpec, OutcomeMap, OutcomeRole, Port
+
+    Code = cql.codes.BareQubit
+
+    @cql.objective
+    def check(
+            q: cql.types.logical_qubit) -> tuple[cql.types.logical_qubit, bool]:
+        q, bit = cql.mpp(cql.types.Z(q))
+        return q, bit
+
+    spec = GadgetSpec(
+        implements=check,
+        ports=(Port.inout("block", encoding=Code),),
+        record_schema=("mpp0.outcome",),
+        outcome_map=OutcomeMap(
+            records=("mpp0.outcome",),
+            matrix=GF2Matrix([[1]]),
+            roles=((OutcomeRole.SUCCESS,),),
+        ),
+    )
+
+    @cql.gadget(spec=spec)
+    def attempt(block: cql.patch[Code]) -> tuple[cql.patch[Code], bool]:
+        block, bit = cql.mpp(cql.types.Z(block[0]))
+        return block, bit
+
+    evidence = "analysis:declared-probability-model"
+    profile = cql.gadgets.GadgetProfile(
+        attempt,
+        success=(cql.gadgets.SuccessPredicate(attempt.record("mpp0.outcome")),),
+        metadata={
+            "success_probability": probability,
+            "success_probability_evidence": evidence,
+        },
+    )
+
+    @cql.protocol
+    def retry_once(block: cql.patch[Code]) -> cql.patch[Code]:
+        block, mismatch = attempt(block, analysis=profile)
+        return cql.ops.retry(block,
+                             until=cql.ops.all_false(mismatch),
+                             max_attempts=1)
+
+    build = cql.compile(retry_once)
+    estimate = cql.estimate(
+        build,
+        tier=Tier.ANALYTICAL,
+        p_phys=1e-3,
+        failure_budget=0.1,
+    )
+    demand, = estimate.retry_demands
+    assert demand.expected_attempts == 1.0
+    assert demand.exhaustion_probability == 1.0 - probability
+
+
 @cql.machine
 class EstimateMachine:
     compute = cql.architecture.Space(capacity=1)

@@ -639,7 +639,12 @@ def analytical(
                     f"retry @{attempt_name} uses unsupported probability evidence"
                 )
 
-            if probability == 1.0:
+            if maximum == 1:
+                # One attempt always executes once. Avoid a log/exp round trip
+                # that can put the expectation outside the singleton [1, 1].
+                completion = probability
+                exhaustion = 1.0 - probability
+            elif probability == 1.0:
                 completion = 1.0
                 exhaustion = 0.0
             else:
