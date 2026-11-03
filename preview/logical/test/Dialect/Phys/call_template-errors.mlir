@@ -44,7 +44,7 @@ module attributes {qlx.profiles = ["p2n", "p3"]} {
       phys.yield %arg0, %arg1 : !phys.state<@q0>, !phys.state<@q1>
     }) : (!phys.state<@q0>, !phys.state<@q1>) ->
          (!phys.state<@q0>, !phys.state<@q1>)
-    // expected-error@+1 {{elided state aliases must preserve unique physical owners}}
+    // expected-error@+1 {{elided state aliases must preserve unique physical values}}
     "phys.call_template"() <{callee = @work, event_id = "call1",
       instance = "root.work.call1", state_boundary_elided,
       state_aliases = [{alias = @q1, template = @q0}],
