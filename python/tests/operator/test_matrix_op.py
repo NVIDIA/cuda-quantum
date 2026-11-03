@@ -9,6 +9,7 @@
 import cmath, numpy as np, pytest, random
 from cudaq import operators, boson
 from cudaq.operators import *
+from cudaq.mlir._mlir_libs._quakeDialects.cudaq_runtime import ComplexMatrix
 from op_utils import *  # test helpers
 
 
@@ -520,6 +521,40 @@ def define_ops():
     define("custom_parity1", [0],
            lambda dim: np.diag([(-1. + 0j)**i for i in range(dim)]))
     operators.define("custom_parity2", [0], op_definition)
+
+
+@pytest.mark.parametrize("dtype",
+                         [np.float64, np.int64, np.complex64, np.complex128])
+@pytest.mark.parametrize("layout", ["C", "F", "transpose", "slice", "reverse"])
+def test_custom_operator_array_types(dtype, layout):
+    matrix = np.array([[1, 2], [3, 4]], dtype=dtype)
+    if np.issubdtype(dtype, np.complexfloating):
+        matrix += 1j * matrix
+    if layout == "F":
+        matrix = np.asfortranarray(matrix)
+    elif layout == "transpose":
+        matrix = matrix.T
+    elif layout == "slice":
+        matrix = np.repeat(np.repeat(matrix, 2, axis=0), 2, axis=1)[::2, ::2]
+    elif layout == "reverse":
+        matrix = matrix[::-1, ::-1]
+
+    def create(dim):
+        return matrix
+
+    op_id = f"array_types_{np.dtype(dtype).name}_{layout}"
+    operators.define(op_id, [2], create)
+    op = operators.instantiate(op_id, [0])
+    np.testing.assert_array_equal(op.to_matrix({0: 2}), matrix)
+    # Check the native constructor separately from the callback conversion.
+    if dtype == np.complex128:
+        np.testing.assert_array_equal(ComplexMatrix(matrix).to_numpy(), matrix)
+
+
+@pytest.mark.parametrize("dtype", [np.float64, np.int64, np.complex64])
+def test_complex_matrix_rejects_incompatible_dtype(dtype):
+    with pytest.raises(TypeError, match="complex128 dtype"):
+        ComplexMatrix(np.eye(2, dtype=dtype))
 
 
 def test_custom_operators():
