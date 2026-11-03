@@ -225,7 +225,7 @@ declare_mlir_python_extension(QLXPythonSources.Runtime
   MODULE_NAME _qlxRuntime
   ADD_TO_PARENT QLXPythonSources
   ROOT_DIR "${QLX_PYTHON_BINDINGS_DIR}"
-  SOURCES QLXRuntime.cpp
+  SOURCES QLXRuntime.cpp AnalysisDiagnosticCapture.h
   EMBED_CAPI_LINK_LIBS
     QLXCAPIDialectQLX
     QLXCAPIDialectFabric

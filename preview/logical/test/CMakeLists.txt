@@ -12,6 +12,18 @@ qlx_propagate_llvm_rtti_eh(qlx-ideal-outcomes-test)
 add_test(NAME qlx-ideal-outcomes COMMAND qlx-ideal-outcomes-test)
 set_tests_properties(qlx-ideal-outcomes PROPERTIES LABELS "qlx;analysis")
 
+find_package(Threads REQUIRED)
+add_executable(qlx-analysis-diagnostics-test
+  Bindings/AnalysisDiagnosticCaptureTest.cpp)
+target_include_directories(qlx-analysis-diagnostics-test PRIVATE
+  "${CMAKE_CURRENT_SOURCE_DIR}/../ir/lib/Bindings/Python")
+qlx_select_mlir_link_libraries(_qlx_diagnostics_libraries MLIRIR MLIRSupport)
+target_link_libraries(qlx-analysis-diagnostics-test PRIVATE
+  ${_qlx_diagnostics_libraries} Threads::Threads)
+qlx_propagate_llvm_rtti_eh(qlx-analysis-diagnostics-test)
+add_test(NAME qlx-analysis-diagnostics COMMAND qlx-analysis-diagnostics-test)
+set_tests_properties(qlx-analysis-diagnostics PROPERTIES LABELS "qlx;analysis")
+
 # Generate lit.site.cfg.py from the template.
 configure_lit_site_cfg(
   ${CMAKE_CURRENT_SOURCE_DIR}/lit.site.cfg.py.in
@@ -38,6 +50,7 @@ if(LIT_PATH AND FILECHECK_PATH)
     qlx-opt
     qlx-translate
     qlx-ideal-outcomes-test
+    qlx-analysis-diagnostics-test
   )
   foreach(_t IN LISTS QLX_FILECHECK_TARGET QLX_NOT_TARGET QLX_COUNT_TARGET)
     if(_t)
@@ -95,7 +108,7 @@ if(LIT_PATH AND FILECHECK_PATH)
     FIXTURES_REQUIRED qlx-lit-tools
     LABELS "qlx;conformance"
   )
-  set_tests_properties(qlx-ideal-outcomes PROPERTIES
+  set_tests_properties(qlx-ideal-outcomes qlx-analysis-diagnostics PROPERTIES
     FIXTURES_REQUIRED qlx-lit-tools
   )
 
@@ -107,7 +120,7 @@ if(LIT_PATH AND FILECHECK_PATH)
       # Avoid a trailing `$` here: Ninja treats it as a line-continuation
       # escape in the generated custom command and concatenates `DESC` onto
       # the ctest regular expression.
-      -R "^qlx-(filecheck-tests|ideal-outcomes)"
+      -R "^qlx-(filecheck-tests|ideal-outcomes|analysis-diagnostics)"
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     USES_TERMINAL
     COMMENT "Running QLX FileCheck and ideal-outcome tests")

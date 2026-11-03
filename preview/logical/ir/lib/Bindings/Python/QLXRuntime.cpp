@@ -55,6 +55,7 @@
 #include "qlx/Dialect/QLX/Transforms/QLXVerifyPBC.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 
+#include "AnalysisDiagnosticCapture.h"
 #include "PassDebug.h"
 
 #include "llvm/Support/MemoryBuffer.h"
@@ -698,20 +699,12 @@ NB_MODULE(_qlxRuntime, m) {
         mlir::ModuleOp module = unwrap(pyModule);
         auto diagnosticMutex = contextDiagnosticMutex(module.getContext());
         std::unique_lock<std::mutex> diagnosticLock(*diagnosticMutex);
-        std::string diagnostics;
-        mlir::ScopedDiagnosticHandler handler(
-            module.getContext(), [&](mlir::Diagnostic &diag) {
-              if (diag.getSeverity() != mlir::DiagnosticSeverity::Error)
-                return mlir::failure();
-              llvm::raw_string_ostream stream(diagnostics);
-              stream << diag.getLocation() << ": ";
-              diag.print(stream);
-              stream << "\n";
-              return mlir::success();
-            });
+        qlx::python::AnalysisDiagnosticCapture capture(module.getContext());
         std::string result;
-        if (mlirLogicalResultIsFailure(qlxProjectCliffordJson(
-                pyModule, toRef(gadget), appendToString, &result)))
+        auto status = qlxProjectCliffordJson(pyModule, toRef(gadget),
+                                             appendToString, &result);
+        auto diagnostics = capture.takeDiagnostics();
+        if (mlirLogicalResultIsFailure(status))
           throw std::runtime_error("Clifford projection failed:\n" +
                                    diagnostics);
         return result;
@@ -728,21 +721,12 @@ NB_MODULE(_qlxRuntime, m) {
         mlir::ModuleOp module = unwrap(pyModule);
         auto diagnosticMutex = contextDiagnosticMutex(module.getContext());
         std::unique_lock<std::mutex> diagnosticLock(*diagnosticMutex);
-        std::string diagnostics;
-        mlir::ScopedDiagnosticHandler handler(
-            module.getContext(), [&](mlir::Diagnostic &diag) {
-              if (diag.getSeverity() != mlir::DiagnosticSeverity::Error)
-                return mlir::failure();
-              llvm::raw_string_ostream stream(diagnostics);
-              stream << diag.getLocation() << ": ";
-              diag.print(stream);
-              stream << "\n";
-              return mlir::success();
-            });
+        qlx::python::AnalysisDiagnosticCapture capture(module.getContext());
         std::string result;
-        if (mlirLogicalResultIsFailure(
-                qlxVerifyGadgetContract(pyModule, toRef(profile), toRef(action),
-                                        appendToString, &result)))
+        auto status = qlxVerifyGadgetContract(
+            pyModule, toRef(profile), toRef(action), appendToString, &result);
+        auto diagnostics = capture.takeDiagnostics();
+        if (mlirLogicalResultIsFailure(status))
           throw std::runtime_error("Gadget verification failed:\n" +
                                    diagnostics);
         return result;
@@ -766,19 +750,11 @@ NB_MODULE(_qlxRuntime, m) {
           mlir::ModuleOp module = unwrap(pyModule);
           auto diagnosticMutex = contextDiagnosticMutex(module.getContext());
           std::unique_lock<std::mutex> diagnosticLock(*diagnosticMutex);
-          std::string diagnostics;
-          mlir::ScopedDiagnosticHandler handler(
-              module.getContext(), [&](mlir::Diagnostic &diag) {
-                if (diag.getSeverity() != mlir::DiagnosticSeverity::Error)
-                  return mlir::failure();
-                llvm::raw_string_ostream stream(diagnostics);
-                stream << diag.getLocation() << ": ";
-                diag.print(stream);
-                stream << "\n";
-                return mlir::success();
-              });
-          if (mlirLogicalResultIsFailure(qlxDeriveGadgetEDEM(
-                  pyModule, toRef(profile), toRef(faults), &result->buffer)))
+          qlx::python::AnalysisDiagnosticCapture capture(module.getContext());
+          auto status = qlxDeriveGadgetEDEM(pyModule, toRef(profile),
+                                            toRef(faults), &result->buffer);
+          auto diagnostics = capture.takeDiagnostics();
+          if (mlirLogicalResultIsFailure(status))
             throw std::runtime_error("Gadget EDEM derivation failed:\n" +
                                      diagnostics);
         }
