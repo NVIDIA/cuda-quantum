@@ -35,8 +35,6 @@ implementation = surface.interleaved_nz_definitions(distance)
 prep = surface.gadget_contract(implementation.prepare_zero)
 sec = surface.gadget_contract(implementation.syndrome_extraction)
 readout = surface.gadget_contract(implementation.measure_z_with_syndrome)
-if not isinstance(rounds, int) or isinstance(rounds, bool) or rounds < 2:
-    raise ValueError("rounds must be an integer of at least two")
 contracts = (prep, *((sec,) * (rounds - 2)), readout)
 
 # %%

@@ -40,8 +40,6 @@ prep = surface.gadget_contract(implementation.prepare_zero)
 sec = surface.gadget_contract(implementation.memory_round)
 readout = surface.gadget_contract(implementation.measure_z)
 # Preparation contributes one round; this ideal-MPP readout contributes none.
-if not isinstance(rounds, int) or isinstance(rounds, bool) or rounds < 1:
-    raise ValueError("rounds must be an integer of at least one")
 profiles = (prep, *((sec,) * (rounds - 1)), readout)
 
 # %%

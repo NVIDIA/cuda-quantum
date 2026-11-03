@@ -51,12 +51,7 @@ prep = surface.gadget_contract(implementation.prepare_zero)
 sec = surface.gadget_contract(implementation.memory_round)
 readout = surface.gadget_contract(implementation.measure_z)
 # Preparation supplies one syndrome round; direct logical readout supplies none.
-if not isinstance(rounds, int) or isinstance(rounds, bool) or rounds < 1:
-    raise ValueError("rounds must be an integer of at least one")
 profiles = (prep, *((sec,) * (rounds - 1)), readout)
-if data_noise_kind not in ("pauli_channel", "independent_pauli"):
-    raise ValueError(
-        "data_noise_kind must be pauli_channel or independent_pauli")
 
 
 # %%

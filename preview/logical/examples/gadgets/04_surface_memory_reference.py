@@ -7,16 +7,30 @@
 """Compare circuit-level surface memory with its composed gadget EDEMs.
 
 Stim is an optional example dependency for the reference comparison and
-sampling. Set compare_with_stim=False and shots=0 to export without Stim.
+sampling. Without it the comparison is skipped and the artifacts are still
+exported; requesting shots requires Stim.
 """
 
 # %%
+from importlib.util import find_spec
 from math import isclose
 from pathlib import Path
 
 import cudaq.logical as cql
 from cudaq.logical.architectures import surface
 import cudaq_edem as edem
+
+
+def is_stim_installed():
+    return find_spec("stim") is not None
+
+
+def to_independent_stim_dem(model):
+    """Exact conversion and coalescing belong to cudaq-edem; Stim only formats."""
+    independent = edem.factorize_dem(model)
+    reduced, _ = edem.coalesce_dem_columns(independent)
+    return cql.analysis.to_stim_dem(reduced)
+
 
 # %%
 # Configure the memory experiment.
@@ -27,7 +41,7 @@ before_measure_flip_probability = 0.001
 after_reset_flip_probability = 0.001
 data_depolarization = 0.001
 output = Path("surface-memory-circuit")
-compare_with_stim = True  # Requires pip install 'stim>=1.16,<2'.
+compare_with_stim = is_stim_installed()  # pip install 'stim>=1.16,<2'.
 shots = 0
 seed = 7
 sampling_mode = "circuit"  # Or `dem`: sample the exactly factorized DEM.
@@ -40,10 +54,6 @@ prep = surface.gadget_contract(implementation.prepare_zero)
 sec = surface.gadget_contract(implementation.syndrome_extraction)
 readout = surface.gadget_contract(implementation.measure_z_with_syndrome)
 # Both endpoints include an SEC. The example supplies the remaining rounds.
-if not isinstance(rounds, int) or isinstance(rounds, bool) or rounds < 2:
-    raise ValueError("rounds must be an integer of at least two")
-if sampling_mode not in ("circuit", "dem"):
-    raise ValueError("sampling_mode must be circuit or dem")
 contracts = (prep, *((sec,) * (rounds - 2)), readout)
 
 # %%
@@ -124,17 +134,12 @@ print(f"d={distance}, rounds={rounds}: "
 print(f"Artifacts: {output}")
 
 # %%
-# Exact conversion and coalescing belong to cudaq-edem. The optional Stim
-# adapter only formats the independent model produced by these operations.
-if compare_with_stim or (shots and sampling_mode == "circuit"):
+# Compare the composed EDEM with the circuit and with Stim's generated memory.
+if compare_with_stim:
     import stim
 
     circuit = stim.Circuit(text)
-if compare_with_stim or (shots and sampling_mode == "dem"):
-    independent = edem.factorize_dem(projected)
-    reduced, column_map = edem.coalesce_dem_columns(independent)
-    formatted = cql.analysis.to_stim_dem(reduced)
-if compare_with_stim:
+    formatted = to_independent_stim_dem(projected)
     circuit_dem = circuit.detector_error_model()
     reference = stim.Circuit.generated(
         "surface_code:rotated_memory_z",
@@ -177,12 +182,14 @@ if compare_with_stim:
 # Sampling reports raw detector events and uncorrected logical flips. It does
 # not run a decoder or estimate a logical failure rate after correction.
 if shots:
+    import stim
+
     if sampling_mode == "circuit":
-        detectors, observables = circuit.compile_detector_sampler(
+        detectors, observables = stim.Circuit(text).compile_detector_sampler(
             seed=seed).sample(shots, separate_observables=True)
     else:
-        detectors, observables, _ = formatted.compile_sampler(
-            seed=seed).sample(shots)
+        dem = to_independent_stim_dem(projected)
+        detectors, observables, _ = dem.compile_sampler(seed=seed).sample(shots)
     print(f"Sampled {shots} shots from the {sampling_mode} model")
     print(f"Shots with detection events: {detectors.any(axis=1).sum()}/{shots}")
     print("Shots with uncorrected observable flips: "
