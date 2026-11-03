@@ -9,6 +9,10 @@
 #include "mpi_plugin.h"
 #include "common/PluginUtils.h"
 #include <cassert>
+#include <cstdint>
+#include <limits>
+#include <stdexcept>
+#include <string>
 
 namespace {
 #define HANDLE_MPI_ERROR(x)                                                    \
@@ -20,6 +24,55 @@ namespace {
       std::abort();                                                            \
     }                                                                          \
   };
+
+/// Compute the 32-bit counts and displacements that `AllgatherV` takes from
+/// the element count of every rank, and return the total. All ranks pass the
+/// same sizes, so they all throw together when a value does not fit.
+std::uint64_t gatherLayout(const std::vector<std::uint64_t> &sizes,
+                           std::vector<std::int32_t> &counts,
+                           std::vector<std::int32_t> &displs) {
+  constexpr std::uint64_t maxCount = std::numeric_limits<std::int32_t>::max();
+  counts.resize(sizes.size());
+  displs.resize(sizes.size());
+  std::uint64_t total = 0;
+  for (std::size_t i = 0; i < sizes.size(); ++i) {
+    if (sizes[i] > maxCount || total > maxCount)
+      throw std::runtime_error("all_gather: the element counts exceed the "
+                               "32-bit range of the distributed interface");
+    counts[i] = static_cast<std::int32_t>(sizes[i]);
+    displs[i] = static_cast<std::int32_t>(total);
+    total += sizes[i];
+  }
+  return total;
+}
+
+/// Gather the local vectors of all ranks, which may differ in size, into
+/// `global`, ordered by rank.
+template <typename T>
+void allGatherV(cudaqDistributedInterface_t *iface,
+                const cudaqDistributedCommunicator_t *comm,
+                std::vector<T> &global, const std::vector<T> &local,
+                DataType dataType) {
+  int numRanks{0};
+  HANDLE_MPI_ERROR(iface->getNumRanks(comm, &numRanks));
+  // First exchange the per-rank element counts as 64-bit values, then check
+  // them on every rank and gather the data.
+  const std::uint64_t localSize = local.size();
+  std::vector<std::uint64_t> sizes(numRanks);
+  HANDLE_MPI_ERROR(
+      iface->Allgather(comm, &localSize, sizes.data(), 1, UINT_64));
+  std::vector<std::int32_t> counts, displs;
+  const std::uint64_t total = gatherLayout(sizes, counts, displs);
+  // All ranks see the same counts, so they throw together when they pass the
+  // same global size.
+  if (global.size() < total)
+    throw std::runtime_error(
+        "all_gather: the global vector has " + std::to_string(global.size()) +
+        " elements, but the ranks hold " + std::to_string(total) + " in total");
+  HANDLE_MPI_ERROR(iface->AllgatherV(
+      comm, local.data(), static_cast<std::int32_t>(localSize), global.data(),
+      counts.data(), displs.data(), dataType));
+}
 } // namespace
 
 namespace cudaq {
@@ -91,15 +144,13 @@ bool MPIPlugin::is_finalized() {
 
 void MPIPlugin::all_gather(std::vector<double> &global,
                            const std::vector<double> &local) {
-  HANDLE_MPI_ERROR(m_distributedInterface->Allgather(
-      m_comm, local.data(), global.data(), local.size(), FLOAT_64));
+  allGatherV(m_distributedInterface, m_comm, global, local, FLOAT_64);
 }
 
 void MPIPlugin::all_gather(std::vector<int> &global,
                            const std::vector<int> &local) {
   const auto dataType = (sizeof(int) == sizeof(int64_t)) ? INT_64 : INT_32;
-  HANDLE_MPI_ERROR(m_distributedInterface->Allgather(
-      m_comm, local.data(), global.data(), local.size(), dataType));
+  allGatherV(m_distributedInterface, m_comm, global, local, dataType);
 }
 
 void MPIPlugin::broadcast(std::vector<double> &data, int rootRank) {

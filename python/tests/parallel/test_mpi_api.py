@@ -41,6 +41,17 @@ def testMPI():
     for idx, x in enumerate(gatherData):
         assert abs(gatherData[idx] - float(idx)) < 1e-12
 
+    # all_gather with a different number of elements on each rank: rank `r`
+    # contributes `r + 1` elements
+    numRanks = cudaq.mpi.num_ranks()
+    rank = cudaq.mpi.rank()
+    expected = [r * 10 + i for r in range(numRanks) for i in range(r + 1)]
+    localData = [rank * 10 + i for i in range(rank + 1)]
+    assert cudaq.mpi.all_gather(len(expected), localData) == expected
+    gatherData = cudaq.mpi.all_gather(len(expected),
+                                      [float(x) for x in localData])
+    assert gatherData == [float(x) for x in expected]
+
     # Broadcast
     ref_data = [1.0, 2.0, 3.0]
     if cudaq.mpi.rank() == 0:
