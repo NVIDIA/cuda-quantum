@@ -176,6 +176,15 @@ jobs:
           test -f "$CUDAQ_INSTALL_PREFIX/lib/libcudaq-realtime-udp-transport.a"
           test -f "$CUDAQ_INSTALL_PREFIX/lib/libcudaq-device-call-runtime.so"
 
+      - name: Run custabilizer tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd /workspaces/cuda-quantum
+
+          (cd build/unittests/backends && ./custabilizer_tester --gtest_brief=1)
+          (cd build/unittests/nvqpp && ./test_runtime_custabilizer --gtest_brief=1)
+
   logical_release_image_validation:
     name: CUDA-Q Logical image validation (${{ matrix.arch }})
     needs: metadata
@@ -756,6 +765,16 @@ jobs:
           python3 -m pytest python/tests/dynamics -q
           if [ $? -ne 0 ]; then
               echo -e "\e[01;31mPython trivial test for dynamics failed.\e[0m" >&2
+              status_sum=$((status_sum+1))
+          fi
+
+          # The custabilizer tests are skipped when the target is
+          # unavailable, so check the target first.
+          echo "Running with target custabilizer"
+          python3 -c "import cudaq; cudaq.set_target('custabilizer')" \
+            && python3 -m pytest python/tests/backends/test_custabilizer.py -q
+          if [ $? -ne 0 ]; then
+              echo -e "\e[01;31mPython tests for custabilizer failed.\e[0m" >&2
               status_sum=$((status_sum+1))
           fi
 

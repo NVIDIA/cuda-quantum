@@ -419,6 +419,22 @@ else
     fi
 fi
 
+# Run one docs script. Its output is printed only if it fails, so parallel
+# runs do not interleave it. The Finished line identifies a script that hangs.
+run_python_script() {
+    echo "Executing $1"
+    local out rc
+    out=$(python3 "$1" 2>&1)
+    rc=$?
+    if [ $rc -ne 0 ]; then
+        printf '%s\n' "$out" >&2
+        echo -e "\e[01;31mFailed to execute $1 (exit code $rc).\e[0m" >&2
+        return 1
+    fi
+    echo "Finished $1"
+}
+export -f run_python_script
+
 # Run snippets in docs
 snippet_list=$(mktemp)
 for ex in $(find "$root_folder/snippets" -name '*.py'); do
@@ -427,8 +443,7 @@ for ex in $(find "$root_folder/snippets" -name '*.py'); do
     fi
 done > "$snippet_list"
 if [ -s "$snippet_list" ]; then
-    xargs -0 -P "$parallel_jobs" -n 1 bash -c \
-        'echo "Executing $1"; python3 "$1" || { echo -e "\e[01;31mFailed to execute $1.\e[0m" >&2; exit 1; }' _ \
+    xargs -0 -P "$parallel_jobs" -n 1 bash -c 'run_python_script "$1"' _ \
         < "$snippet_list"
     if [ $? -ne 0 ]; then
         status_sum=$((status_sum + 1))
@@ -458,8 +473,7 @@ for ex in $(find "$root_folder/examples" -name '*.py'); do
     fi
 done > "$example_list"
 if [ -s "$example_list" ]; then
-    xargs -0 -P "$parallel_jobs" -n 1 bash -c \
-        'echo "Executing $1"; python3 "$1" || { echo -e "\e[01;31mFailed to execute $1.\e[0m" >&2; exit 1; }' _ \
+    xargs -0 -P "$parallel_jobs" -n 1 bash -c 'run_python_script "$1"' _ \
         < "$example_list"
     if [ $? -ne 0 ]; then
         status_sum=$((status_sum + 1))
@@ -544,8 +558,7 @@ if [ -d "$root_folder/targets" ]; then
         fi
     done > "$target_list"
     if [ -s "$target_list" ]; then
-        xargs -0 -P "$parallel_jobs" -n 1 bash -c \
-            'echo "Executing $1"; python3 "$1" || { echo -e "\e[01;31mFailed to execute $1.\e[0m" >&2; exit 1; }' _ \
+        xargs -0 -P "$parallel_jobs" -n 1 bash -c 'run_python_script "$1"' _ \
             < "$target_list"
         if [ $? -ne 0 ]; then
             status_sum=$((status_sum + 1))
