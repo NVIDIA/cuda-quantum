@@ -371,7 +371,7 @@ def test_analytical_probability_aggregation_is_stable_at_small_error():
 @pytest.mark.parametrize("probability", [0.0078, 0.0308, 0.5])
 def test_analytical_single_attempt_retry_executes_once(probability):
     # The first two probabilities round the old expectation above and
-    # below one, respectively; 0.5 is an exactly representable control.
+    # below one, respectively; 0.5 gives exactly one as a control.
     from cudaq.logical.algebra import GF2Matrix
     from cudaq.logical.gadgets import GadgetSpec, OutcomeMap, OutcomeRole, Port
 
