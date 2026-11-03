@@ -112,10 +112,9 @@ def qrom_access_step(
 
 
 # %%
-# Compile the kernel at level 1 so its counts match the paper's model, which
-# charges `2 * piece_length - 1` Toffolis per carry piece. At level 2 the
-# compiler cancels the Toffoli pair where the last `maj` meets the first `uma`
-# on each piece's top bit, two fewer per piece than the model.
+# Compile at level 1 so the Toffoli count matches the paper's model of
+# `2 * piece_length - 1` per carry piece. Level 2 also works and saves a few
+# gates.
 PAPER_OPTIMIZATION_LEVEL = 1
 
 
