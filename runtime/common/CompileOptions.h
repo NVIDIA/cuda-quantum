@@ -18,6 +18,12 @@ namespace cudaq {
 
 enum class OptimizationLevel : unsigned { O0 = 0, O1 = 1, O2 = 2, O3 = 3 };
 
+/// The level a kernel compiles at when neither the kernel nor the caller sets
+/// one. Above level 1, only stages that declare a `cost-model` optimize more,
+/// so targets without one do the same work at levels 1 to 3.
+inline constexpr OptimizationLevel defaultOptimizationLevel =
+    OptimizationLevel::O2;
+
 struct CompileOptions {
   /// Issue a warning if named measurements are contained in the kernel.
   bool warnNamedMeasurements = false;
@@ -77,7 +83,7 @@ struct CompileOptions {
   /// The optimization level to use for the compilation.
   ///
   /// Use `OptimizationLevel::O0` to disable quantum optimization.
-  OptimizationLevel optimizationLevel = OptimizationLevel::O1;
+  OptimizationLevel optimizationLevel = defaultOptimizationLevel;
 
   /// Seed for randomized compiler passes, such as Clifford+T synthesis.
   /// Without one, their output can differ from run to run.
