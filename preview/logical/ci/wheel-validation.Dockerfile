@@ -69,7 +69,7 @@ RUN if [ -n "$preinstalled_modules" ]; then \
     fi
 
 # wheel-validation/ holds the cudaq-logical wheel under test plus the
-# matching CUDA-Q runtime wheel, cudaq-edem wheel and cudaq metapackage.
+# matching CUDA-Q runtime wheel and cudaq metapackage it depends on.
 COPY wheel-validation/ /tmp/dist/
 # The test suite reads files across the cudaq-logical source tree
 # (python/tests/cudaq/logical/test_*.py resolve the tree root via parents[4]),
@@ -84,13 +84,7 @@ RUN for i in 1 2 3; do \
         && gzip -t /tmp/tools.tar.gz && tar -xzf /tmp/tools.tar.gz -C /usr/local/bin && break \
         || { echo "gha-tools download attempt $i failed; retrying..."; sleep 5; }; \
     done && rm -f /tmp/tools.tar.gz && \
-    set -- /tmp/dist/cudaq_edem-*.whl && \
-    if [ "$#" -ne 1 ] || [ ! -f "$1" ]; then \
-        echo "Expected exactly one cudaq-edem wheel in /tmp/dist." >&2; \
-        exit 1; \
-    fi && \
     RAPIDS_PIP_EXE="python${python_version} -m pip" \
     /usr/local/bin/rapids-pip-retry install ${pip_install_flags} --find-links /tmp/dist \
-        "$1" \
         "cudaq==$cudaq_version" \
         "cudaq-logical==$cudaq_logical_version"

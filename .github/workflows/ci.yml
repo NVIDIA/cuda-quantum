@@ -416,7 +416,7 @@ jobs:
   # released with both the CUDA 12 and the CUDA 13 frontend wheels.
   python_wheels_cu13:
     name: Create CUDA 13 Python wheels
-    needs: [metadata, config_wheeldeps, python_devel_wheel]
+    needs: [metadata, config_wheeldeps, python_devel_wheel, edem_wheels]
     if:
       github.event_name != 'push' && needs.metadata.outputs.merge_queue_fast !=
       'true'
@@ -544,7 +544,6 @@ jobs:
       cuda_versions: "['', '12.6', '13.0']"
       wheel_artifacts: "pycudaq-*"
       logical_wheel_artifacts: "cudaq_logical-*"
-      edem_wheel_artifacts: "cudaq_edem-*"
       cudaq_logical_version: ${{ needs.python_wheels_cu13.outputs.logical_version }}
 
   # Installer builds are packaging, not correctness — only built on merge_group/dispatch.
