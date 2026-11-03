@@ -329,11 +329,12 @@ private:
     auto allocation = allocationOf(value);
     if (failed(allocation))
       return emitError(value.getLoc(),
-                       "native placement cannot release logical owner");
+                       "native placement cannot release logical-qubit value");
     SpaceState &space = spaces[allocation->space];
     if (!space.occupied.erase(allocation->slot))
-      return emitError(value.getLoc(),
-                       "native placement detected a non-live logical owner");
+      return emitError(
+          value.getLoc(),
+          "native placement detected a non-live logical-qubit value");
     if (!space.recycled.insert(allocation->slot).second)
       return emitError(value.getLoc(),
                        "native placement recycled a logical slot twice");
@@ -752,7 +753,7 @@ private:
               initial->slot != loopBack->slot)
             return repeat.emitOpError(
                 "native placement requires each repeat yield to preserve "
-                "its carried owner's exact logical slot");
+                "its carried qubit's exact logical slot");
           resultAllocations[quantumIndex++] = *loopBack;
         }
       }

@@ -34,7 +34,7 @@ def Event_HandleType : TypeDef<Event_Dialect, "Handle"> {
     tier instantiates it with its own resource type.
 
     `ownership` states how the delivered payload may be used. `"linear"`
-    means it has exactly one owner and must be consumed exactly once;
+    means it is an SSI value: it has exactly one use and is consumed once;
     `"shared"` means it may be copied once ready. The parameter is an open
     string, checked only for non-emptiness, because which disciplines
     exist is a tier's decision rather than this dialect's. `event.await`,

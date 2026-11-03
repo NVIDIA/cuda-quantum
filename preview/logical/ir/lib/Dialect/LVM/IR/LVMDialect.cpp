@@ -825,7 +825,7 @@ static LogicalResult verifyPlacedCall(Operation *op, ArrayAttr placements,
         results, [](Type type) { return isa<LogicalQubitType>(type); });
     if (!expectInstrument && quantumInputs.size() != quantumResults)
       return op->emitOpError(
-          "built-in logical actions must preserve logical owner arity");
+          "built-in logical actions must preserve logical-qubit value arity");
     return success();
   }
   Operation *declaration = lookupObjective(op, reference);
@@ -871,7 +871,7 @@ static FailureOr<FlatSymbolRefAttr>
 resolveOwnerSpace(Operation *op, DomainOp domain, SymbolRefAttr placement) {
   if (!placement || placement.getNestedReferences().size() != 1 ||
       placement.getRootReference() != domain.getSymNameAttr()) {
-    op->emitOpError("owner placements must be rooted in the kernel domain");
+    op->emitOpError("qubit placements must be rooted in the kernel domain");
     return failure();
   }
   Operation *target =
@@ -880,7 +880,7 @@ resolveOwnerSpace(Operation *op, DomainOp domain, SymbolRefAttr placement) {
     return FlatSymbolRefAttr::get(op->getContext(), space.getSymName());
   if (auto binding = dyn_cast_or_null<PlacementOp>(target))
     return binding.getSpaceAttr();
-  op->emitOpError("owner placement does not resolve to lvm.space or "
+  op->emitOpError("qubit placement does not resolve to lvm.space or "
                   "lvm.placement");
   return failure();
 }
@@ -1049,13 +1049,13 @@ static LogicalResult verifyCommunicationObligation(InstrumentOp op) {
       resultOwners.push_back(type);
   if (inputOwners.size() != 2)
     return op.emitOpError(
-        "remote observable requires exactly two logical owners");
+        "remote observable requires exactly two logical-qubit values");
   if (inputOwners != resultOwners)
     return op.emitOpError(
-        "remote observable must preserve owner types and order");
+        "remote observable must preserve operand types and order");
   if (op.getNumResults() == resultOwners.size())
     return op.emitOpError(
-        "remote observable requires at least one non-owner outcome");
+        "remote observable requires at least one classical outcome");
 
   for (auto [index, placementAttr] : llvm::enumerate(op.getPlacements())) {
     auto placement = dyn_cast<SymbolRefAttr>(placementAttr);
@@ -1064,7 +1064,7 @@ static LogicalResult verifyCommunicationObligation(InstrumentOp op) {
       return failure();
     if (*ownerSpace != endpointSpaces[index])
       return op.emitOpError(
-          "owner placement does not match its ordered endpoint");
+          "qubit placement does not match its ordered endpoint");
   }
   return success();
 }
@@ -1173,7 +1173,7 @@ LogicalResult ActionSiteOp::verify() {
     if (failed(ownerSpace))
       return failure();
     if (*ownerSpace != endpoint)
-      return emitOpError("owner placement does not match its ordered endpoint");
+      return emitOpError("qubit placement does not match its ordered endpoint");
   }
   return success();
 }

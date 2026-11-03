@@ -668,7 +668,7 @@ private:
       for (Value wire : wires) {
         auto found = values.find(wire);
         if (found == values.end())
-          return gate.emitOpError("uses a wire with no live P0 owner");
+          return gate.emitOpError("uses a wire with no live P0 qubit value");
         inputs.push_back(found->second);
         values.erase(found);
       }
@@ -738,7 +738,7 @@ private:
     Value target = measurement.getTargets().front();
     auto input = values.find(target);
     if (input == values.end())
-      return measurement.emitOpError("uses a wire with no live P0 owner");
+      return measurement.emitOpError("uses a wire with no live P0 qubit value");
 
     auto measured =
         qlx::MeasureOp::create(builder, measurement.getLoc(),
@@ -767,7 +767,7 @@ private:
     for (Value wire : swap.getTargets()) {
       auto found = values.find(wire);
       if (found == values.end())
-        return swap.emitOpError("uses a wire with no live P0 owner");
+        return swap.emitOpError("uses a wire with no live P0 qubit value");
       inputs.push_back(found->second);
       values.erase(found);
     }
@@ -840,7 +840,7 @@ private:
 
     auto found = values.find(gate.getTargets()[0]);
     if (found == values.end())
-      return gate.emitOpError("uses a wire with no live P0 owner");
+      return gate.emitOpError("uses a wire with no live P0 qubit value");
 
     Value input = found->second;
     values.erase(found);
@@ -870,7 +870,7 @@ private:
         continue;
       auto input = state.wireOwners.find(wire);
       if (input == state.wireOwners.end())
-        return owner->emitOpError("uses a wire with no live P0 owner");
+        return owner->emitOpError("uses a wire with no live P0 qubit value");
       inputs.push_back(input->second);
       liveWires.push_back(wire);
     }
@@ -885,7 +885,7 @@ private:
                                    OpBuilder &builder, ImportState &state) {
     if (state.wireReferenceSlots.contains(wire))
       return owner->emitOpError(
-          "cannot discard a borrowed reference-helper owner");
+          "cannot discard a borrowed reference-helper value");
     return discardWires(owner, ValueRange{wire}, builder, state);
   }
 
@@ -899,7 +899,7 @@ private:
       if (slot->second >= state.referenceResults.size() ||
           !state.referenceResults[slot->second])
         return owner->emitOpError(
-            "reference-helper wire resolves to no current P0 owner");
+            "reference-helper wire resolves to no current P0 qubit value");
       if (!seen.insert(slot->second).second)
         return owner->emitOpError(
             "uses two aliases of the same reference slot in one operation");
@@ -917,7 +917,7 @@ private:
     if (owners == state.cableOwners.end() ||
         owners->second.size() != slots->second.size())
       return owner->emitOpError(
-          "reference-helper cable has inconsistent owner provenance");
+          "reference-helper cable has inconsistent qubit provenance");
     DenseSet<unsigned> seen;
     for (auto [index, slot] : llvm::enumerate(slots->second)) {
       if (slot < 0)
@@ -926,7 +926,7 @@ private:
       if (unsignedSlot >= state.referenceResults.size() ||
           !state.referenceResults[unsignedSlot])
         return owner->emitOpError(
-            "reference-helper cable resolves to no current P0 owner");
+            "reference-helper cable resolves to no current P0 qubit value");
       if (!seen.insert(unsignedSlot).second)
         return owner->emitOpError(
             "contains two aliases of the same reference slot");
@@ -957,7 +957,7 @@ private:
                                                   ImportState &state) {
     if (inputs.size() != results.size())
       return owner->emitOpError(
-          "does not preserve reference-helper owner arity");
+          "does not preserve reference-helper qubit arity");
     for (auto [input, result] : llvm::zip(inputs, results)) {
       auto slot = state.wireReferenceSlots.find(input);
       if (slot == state.wireReferenceSlots.end())
@@ -965,7 +965,7 @@ private:
       auto mapped = state.wireOwners.find(result);
       if (mapped == state.wireOwners.end())
         return owner->emitOpError(
-            "reference-helper result has no live P0 owner");
+            "reference-helper result has no live P0 qubit value");
       // Copy before inserting: the insert may invalidate `slot`.
       unsigned slotIndex = slot->second;
       state.wireReferenceSlots[result] = slotIndex;
@@ -1038,7 +1038,7 @@ private:
           return failure();
         auto found = state.wireOwners.find(argument);
         if (found == state.wireOwners.end())
-          return call.emitOpError("uses a wire with no live P0 owner");
+          return call.emitOpError("uses a wire with no live P0 qubit value");
         inputs.push_back(found->second);
         auto slot = state.wireReferenceSlots.find(argument);
         inputSlots.push_back(slot == state.wireReferenceSlots.end()
@@ -1052,7 +1052,7 @@ private:
           return failure();
         auto found = state.cableOwners.find(argument);
         if (found == state.cableOwners.end())
-          return call.emitOpError("uses a cable with no live P0 owners");
+          return call.emitOpError("uses a cable with no live P0 qubit values");
         inputs.append(found->second.begin(), found->second.end());
         auto slots = state.cableReferenceSlots.find(argument);
         if (slots == state.cableReferenceSlots.end())
@@ -1082,7 +1082,7 @@ private:
     }
     if (flattenedResults != inputs.size())
       return call.emitOpError(
-          "helper must return one flattened successor per input owner");
+          "helper must return one flattened successor per input value");
 
     auto callee = qlxSymbolFor(call.getCalleeAttr().getLeafReference(),
                                call.getOperation());
@@ -1180,7 +1180,8 @@ private:
           for (Value wire : bundle.getWires()) {
             auto found = state.wireOwners.find(wire);
             if (found == state.wireOwners.end())
-              return bundle.emitOpError("bundles a wire with no live P0 owner");
+              return bundle.emitOpError(
+                  "bundles a wire with no live P0 qubit value");
             owners.push_back(found->second);
             auto slot = state.wireReferenceSlots.find(wire);
             slots.push_back(slot == state.wireReferenceSlots.end()
@@ -1192,7 +1193,7 @@ private:
               cast<cudaq::quake::CableType>(bundle.getResult().getType());
           if (type.getSize() != owners.size())
             return bundle.emitOpError(
-                "cable width does not match its flattened owners");
+                "cable width does not match its flattened wires");
           state.cableOwners[bundle.getResult()] = std::move(owners);
           state.cableReferenceSlots[bundle.getResult()] = std::move(slots);
           return success();
@@ -1200,7 +1201,8 @@ private:
         .Case<cudaq::quake::SplitCableOp>([&](auto split) -> LogicalResult {
           auto found = state.cableOwners.find(split.getCable());
           if (found == state.cableOwners.end())
-            return split.emitOpError("splits a cable with no live P0 owners");
+            return split.emitOpError(
+                "splits a cable with no live P0 qubit values");
           if (found->second.size() != split.getNumResults())
             return split.emitOpError(
                 "split result count does not match the cable width");
@@ -1233,7 +1235,7 @@ private:
           unsigned flattened = slice->second.first + index;
           if (!state.referenceResults[flattened])
             return extract.emitOpError(
-                "extracts a vector element with no current owner");
+                "extracts a vector element with no current qubit value");
           state.referenceIndices[extract.getRef()] = flattened;
           return success();
         })
@@ -1248,7 +1250,7 @@ private:
                 "reference is not a specialized helper input slot");
           if (!state.referenceResults[index->second])
             return unwrap.emitOpError(
-                "reference-helper slot has no current P0 owner");
+                "reference-helper slot has no current P0 qubit value");
           state.wireReferenceSlots[unwrap.getResult()] = index->second;
           state.wireOwners[unwrap.getResult()] =
               state.referenceResults[index->second];
@@ -1264,7 +1266,7 @@ private:
             return wrap.emitOpError("target is not a helper input reference");
           auto owner = state.wireOwners.find(wrap.getWireValue());
           if (owner == state.wireOwners.end())
-            return wrap.emitOpError("uses a wire with no live P0 owner");
+            return wrap.emitOpError("uses a wire with no live P0 qubit value");
           auto slot = state.wireReferenceSlots.find(wrap.getWireValue());
           if (slot == state.wireReferenceSlots.end() ||
               slot->second != index->second)
@@ -1272,7 +1274,7 @@ private:
                 "wire provenance does not match the wrapped reference slot");
           if (state.referenceResults[index->second] != owner->second)
             return wrap.emitOpError(
-                "wrapped wire is not the current reference-slot owner");
+                "wrapped wire is not the current reference-slot wire");
           return success();
         })
         .Case<cudaq::quake::R1Op>([&](auto g) -> LogicalResult {
@@ -1385,7 +1387,7 @@ private:
             for (auto [wire, owner] : state.wireOwners)
               if (!state.wireReferenceSlots.contains(wire))
                 return sourceReturn.emitOpError(
-                    "helper leaves a live non-reference quantum owner");
+                    "helper leaves a live non-reference quantum value");
             if (llvm::any_of(state.referenceResults,
                              [](Value value) { return !value; }))
               return sourceReturn.emitOpError(
@@ -1424,7 +1426,7 @@ private:
             auto owner = state.wireOwners.find(unsupported->getOperand(0));
             if (owner == state.wireOwners.end())
               return unsupported->emitOpError(
-                  "logs a wire with no live P0 owner");
+                  "logs a wire with no live P0 qubit value");
             Value logicalOwner = owner->second;
             state.wireOwners.erase(owner);
             state.wireOwners[unsupported->getResult(0)] = logicalOwner;
@@ -1456,7 +1458,7 @@ private:
       auto found = state.wireOwners.find(val);
       if (found == state.wireOwners.end())
         return scope.emitOpError(
-            "cc.scope yields a wire with no live P0 owner");
+            "cc.scope yields a wire with no live P0 qubit value");
       Value owner = found->second;
       state.wireOwners.erase(found);
       state.wireOwners[res] = owner;
@@ -1477,7 +1479,7 @@ private:
     for (unsigned i : m.wireCarries) {
       auto found = state.wireOwners.find(loop.getInitialArgs()[i]);
       if (found == state.wireOwners.end())
-        return loop.emitOpError("loop carry has no live P0 owner");
+        return loop.emitOpError("loop carry has no live P0 qubit value");
       inits.push_back(found->second);
       state.wireOwners.erase(found);
     }
@@ -1513,12 +1515,13 @@ private:
       for (unsigned i : m.wireCarries) {
         auto found = bodyState.wireOwners.find(doCont.getOperands()[i]);
         if (found == bodyState.wireOwners.end())
-          return doCont.emitOpError("yields a wire with no live P0 owner");
+          return doCont.emitOpError(
+              "yields a wire with no live P0 qubit value");
         yields.push_back(found->second);
       }
       if (bodyState.wireOwners.size() != yields.size())
         return doCont.emitOpError(
-            "folded loop leaks an iteration-local quantum owner; measure or "
+            "folded loop leaks an iteration-local quantum value; measure or "
             "discard every body-local allocation before yielding");
       state.nextAllocation = bodyState.nextAllocation;
       qlx::cflow::YieldOp::create(builder, loc, yields);
@@ -1547,7 +1550,7 @@ private:
     for (unsigned i = 0; i < linearArgs.size(); ++i) {
       auto found = state.wireOwners.find(linearArgs[i]);
       if (found == state.wireOwners.end())
-        return ifop.emitOpError("conditional carry has no live P0 owner");
+        return ifop.emitOpError("conditional carry has no live P0 qubit value");
       // Copy before mutating: inserting may rehash and invalidate `found`.
       Value owner = found->second;
       state.wireOwners.erase(found);
@@ -1560,7 +1563,7 @@ private:
     for (auto [res, val] : llvm::zip(ifop.getResults(), cont.getOperands())) {
       auto found = state.wireOwners.find(val);
       if (found == state.wireOwners.end())
-        return cont.emitOpError("yields a wire with no live P0 owner");
+        return cont.emitOpError("yields a wire with no live P0 qubit value");
       Value owner = found->second;
       state.wireOwners.erase(found);
       state.wireOwners[res] = owner;
@@ -1596,7 +1599,7 @@ private:
     for (Value w : linearArgs) {
       auto found = state.wireOwners.find(w);
       if (found == state.wireOwners.end())
-        return ifop.emitOpError("conditional carry has no live P0 owner");
+        return ifop.emitOpError("conditional carry has no live P0 qubit value");
       incoming.push_back(found->second);
       state.wireOwners.erase(found);
     }
@@ -1631,7 +1634,8 @@ private:
         for (Value v : cont.getOperands()) {
           auto found = bs.wireOwners.find(v);
           if (found == bs.wireOwners.end())
-            return cont.emitOpError("yields a wire with no live P0 owner");
+            return cont.emitOpError(
+                "yields a wire with no live P0 qubit value");
           yields.push_back(found->second);
         }
       }
@@ -1732,7 +1736,7 @@ private:
     if (!state.wireOwners.empty())
       return function.emitOpError()
              << "leaves " << state.wireOwners.size()
-             << " live quantum owner(s); measure, sink, or return every wire";
+             << " live quantum value(s); measure, sink, or return every wire";
 
     if (body->empty() || !isa<qlx::ReturnOp>(body->back()))
       qlx::ReturnOp::create(builder, function.getLoc());

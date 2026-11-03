@@ -22,11 +22,12 @@ def QLXEstimateLogical
     Resolves one verified P0 `qlx.program`, follows its executable call graph,
     composes folded `cflow.repeat` multiplicities without unrolling, and emits a
     symbol-addressable `qlx.estimate_result`.  The result contains logical
-    action/instrument/resource counts, peak live logical owners, and the
+    action/instrument/resource counts, peak live logical qubits, and the
     serial action-depth upper bound used by the stable Python LogicalProfile.
 
     The pass never selects a code or device. Missing or ambiguous roots,
-    unresolved/recursive calls, inconsistent structured ownership, and count
+    unresolved/recursive calls, linear values threaded inconsistently through
+    structured control, and count
     overflow fail the pass.
   }];
   let options = [
@@ -156,8 +157,8 @@ def QLXVerifyCliffordFrame
     Pauli-product rotation whose angle is an integer multiple of pi/2.
     Arbitrary and T-like Pauli rotations remain ordinary P0 objectives for
     downstream QEC selection. The accepted structural slice contains only
-    preparations, retained rotations, folded repeats, constants, discard and
-    return ownership effects.
+    preparations, retained rotations, folded repeats, constants, discard, and
+    the return of linear values.
   }];
 }
 

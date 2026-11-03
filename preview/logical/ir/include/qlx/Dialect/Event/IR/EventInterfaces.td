@@ -16,7 +16,7 @@ def Event_UniqueCarryOwnerInterface
   let cppNamespace = "::qlx::event";
   let description = [{
     Identifies a carry type whose values `event.try_take` must not carry
-    more than once by owner: two carries of an interface-implementing type
+    more than once by identity: two carries of an interface-implementing type
     that report an equal, non-null `getUniqueOwnerKey()` are rejected. The
     key is typically a property of the type itself rather than of the
     value -- e.g. a type parameterized by a resource symbol would key on

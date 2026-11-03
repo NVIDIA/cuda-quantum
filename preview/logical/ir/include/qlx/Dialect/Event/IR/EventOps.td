@@ -99,7 +99,7 @@ def Event_SelectReadyOp : Event_Op<"select_ready", [SameTypeOperands]> {
     operand index of a handle that is ready, or the number of operands when
     none of them is. That count is how "nothing is ready" is reported, and
     it is why the result is an index rather than a handle -- returning a
-    handle would hand back an owner the caller already holds.
+    handle would hand back a value the caller already holds.
 
     `policy` is part of what the program means rather than an
     implementation detail, because with several requests outstanding the
@@ -142,7 +142,7 @@ def Event_TryTakeOp : Event_Op<"try_take", [
       the region's to own.
     * `pending` receives a handle of the same type: a successor of the one
       consumed, still outstanding, so a caller can retry later. Nothing is
-      lost by the attempt, but the retry goes through the new owner rather
+      lost by the attempt, but the retry goes through the new handle rather
       than the operand staying live alongside it.
     * `failed` receives the `i8` status, read with `event.is`, for the
       states no retry resolves.
@@ -155,13 +155,13 @@ def Event_TryTakeOp : Event_Op<"try_take", [
     linear payload at all. The obvious alternative shape, one operation
     returning a readiness bit beside an optional payload, would produce a
     payload that is valid on one path while the handle stays live on the
-    other, which is two candidate owners of one delivery. Handling `failed`
+    other, which is two live values for one delivery. Handling `failed`
     explicitly, rather than as another flavour of "not ready", falls out of
     the same shape.
 
     `event`'s ownership must be `"linear"`. A carry type implementing
     `UniqueCarryOwnerInterface` is rejected when another carry reports an
-    equal owner key; a carry type that does not implement it is not
+    equal unique key; a carry type that does not implement it is not
     checked.
   }];
   let arguments = (ins

@@ -3033,7 +3033,7 @@ static LogicalResult verifyLinearPhysicalValue(GraphOp graph, Value value,
   if (uses.empty())
     return graph.emitOpError()
            << ownerName
-           << " has no consuming owner; it must be transferred, returned, "
+           << " has no consuming use; it must be transferred, returned, "
               "awaited, cancelled, taken, or explicitly discarded";
 
   llvm::DenseMap<Operation *, llvm::SmallDenseSet<unsigned, 4>> coveredBranches;
@@ -3184,7 +3184,7 @@ static LogicalResult verifyPhysicalStateLinearity(GraphOp graph,
       uses.push_back(physicalStateUse(state, use));
     if (uses.empty())
       return graph.emitOpError(
-          "physical state is never consumed; every state owner must be "
+          "physical state is never consumed; every state value must be "
           "returned, yielded, transformed, or released");
 
     llvm::DenseMap<Operation *, llvm::SmallDenseSet<unsigned, 4>>
@@ -3230,7 +3230,7 @@ static LogicalResult verifyPhysicalStateLinearity(GraphOp graph,
   }
 
   if (unsupportedEndpoint)
-    return graph.emitOpError("physical ownership endpoint ")
+    return graph.emitOpError("physical linear-value endpoint ")
            << unsupportedEndpoint->getName()
            << " is nested in unsupported region control "
            << unsupportedControl->getName();
@@ -3273,7 +3273,7 @@ static LogicalResult verifyUniqueCarriedStateResources(Operation *owner,
     if (auto state = dyn_cast<StateType>(type);
         state && !resources.insert(state.getResource()).second)
       return owner->emitOpError("cannot carry more than one physical-state "
-                                "owner for resource ")
+                                "value for resource ")
              << state.getResource();
   return success();
 }
@@ -3374,7 +3374,7 @@ LogicalResult GraphOp::verify() {
           state && !resources.insert(state.getResource()).second)
         return emitOpError()
                << boundary
-               << " cannot contain more than one physical-state owner for "
+               << " cannot contain more than one physical-state value for "
                   "resource "
                << state.getResource();
     return success();
@@ -6374,7 +6374,7 @@ static LogicalResult verifyCallTemplateAgainstCanonical(
           alias == expectedStateAliases.end() ? source : alias->second;
       if (!invocationResources.insert(target).second)
         return invocation.emitOpError(
-            "elided state aliases must preserve unique physical owners");
+            "elided state aliases must preserve unique physical values");
     }
   } else if (!stateBoundaryElided &&
              (failed(alignTypes(canonical.getInputs().getTypes(),

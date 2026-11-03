@@ -525,7 +525,7 @@ private:
     const PatchInfo *info = lookupPatch(patch);
     if (!info) {
       op->emitError("fabric-to-stim: ")
-          << action << " has an unresolved patch owner";
+          << action << " has an unresolved patch value";
       hadError = true;
     }
     return info;
@@ -714,7 +714,7 @@ private:
     const PatchInfo *piB = lookupPatch(patchB);
     if (!piA || !piB) {
       op.emitError("fabric-to-stim: ")
-          << stimName << " has unresolved cross-patch owners";
+          << stimName << " has unresolved cross-patch values";
       hadError = true;
       return;
     }
