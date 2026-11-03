@@ -126,11 +126,11 @@ installed_backends=`\
     echo "default"
     "$target_resolve" --list-targets --include-unavailable "${target_resolve_args[@]}"`
 
-# Run the notebooks on all available simulators other than stim and benchmark targets
+# Run on all simulators except Clifford-only ones and benchmark targets
 available_backends=`\
     echo "default"
     "$target_resolve" --list-simulators "${target_resolve_args[@]}" \
-        | grep -vxE "stim|compiler-bench-ftqc-clifford-t"`
+        | grep -vxE "stim|custabilizer|compiler-bench-ftqc-clifford-t"`
 
 missing_backend=false
 if [ $# -eq 0 ]

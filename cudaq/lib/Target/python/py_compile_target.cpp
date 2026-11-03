@@ -31,6 +31,10 @@ void initCompileTarget(cudaq::CompileTarget *self,
 } // namespace
 
 void cudaq::bindCompileTarget(nb::module_ &m) {
+  nb::enum_<cudaq::NoiseSupport>(m, "NoiseSupport")
+      .value("erase", cudaq::NoiseSupport::erase)
+      .value("supported", cudaq::NoiseSupport::supported)
+      .value("unsupported", cudaq::NoiseSupport::unsupported);
   nb::class_<cudaq::CompileTarget>(m, "CompileTarget")
       .def("__init__", &initCompileTarget,
            "stages"_a = std::vector<CompilationStage>{}, nb::kw_only(),
@@ -81,6 +85,9 @@ void cudaq::bindCompileTarget(nb::module_ &m) {
       .def_rw("support_sample_without_measurements",
               &cudaq::CompileTarget::supportSampleWithoutMeasurements)
       .def_rw("fully_specialize", &cudaq::CompileTarget::fullySpecialize)
+      .def_rw("preserve_loops", &cudaq::CompileTarget::preserveLoops)
+      .def_rw("noise_support", &cudaq::CompileTarget::noiseSupport)
+      .def_rw("erase_qec", &cudaq::CompileTarget::eraseQEC)
       .def_rw("argument_synth_change_semantics",
               &cudaq::CompileTarget::argumentSynthChangeSemantics)
       .def_rw("disable_qubit_mapping",

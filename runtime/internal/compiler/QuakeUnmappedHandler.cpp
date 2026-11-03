@@ -58,7 +58,10 @@ costModelPasses(const cudaq::config::QuakeUnmappedProfile &profile,
       basis.emplace_back("x(1)");
     passes.push_back("decomposition{basis=" + llvm::join(basis, ",") + "}");
   }
-  passes.push_back(cudaq_internal::compiler::convertToWires());
+  passes.push_back(cudaq_internal::compiler::convertToWires(profile));
+  // Handle any new phases the t-count decomposition may have introduced.
+  if (tCount)
+    passes.push_back("func.func(normalize-phase-placement,lower-phase)");
   if (level >= 1)
     passes.push_back(
         std::string(tCount ? "clifford-t" : "two-qubit-gate-count") +

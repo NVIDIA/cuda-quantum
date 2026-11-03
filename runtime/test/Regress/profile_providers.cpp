@@ -70,11 +70,13 @@
 
 // The Clifford+T target lists one `quake-unmapped` stage with the `t-count`
 // cost model, whose passes run between deploy and finalize. Its basis has no
-// rotation gate, so the stage synthesizes.
+// rotation gate, so the stage synthesizes. The stage lowers the `quake.phase`
+// that decomposition leaves before the optimizer runs.
 // CHECK-LABEL: compiler-bench-ftqc-clifford-t:
 // CHECK:       jit-deploy-pipeline
 // CHECK-NEXT:  decomposition{basis=h,s,t,x,y,z,swap,x(1),y(1),z(1),r1,rx,ry,rz}
 // CHECK-NEXT:  prepare-for-wireset{maximum-iterations=1024}
+// CHECK-NEXT:  func.func(normalize-phase-placement,lower-phase)
 // CHECK-NEXT:  clifford-t-optimization-pipeline{level=2 approximation-tolerance=1e-10}
 // CHECK-NEXT:  clifford-t-synthesis-pipeline{basis=h,s,t,x,y,z,swap,x(1),y(1),z(1) level=2 approximation-tolerance=1e-10}
 // CHECK-NEXT:  basis-conversion{basis=h,s,t,x,y,z,swap,x(1),y(1),z(1)}
@@ -86,6 +88,7 @@
 // CHECK:       jit-deploy-pipeline
 // CHECK-NEXT:  decomposition{basis=h,s,t,x,y,z,swap,x(1),y(1),z(1),r1,rx,ry,rz}
 // CHECK-NEXT:  prepare-for-wireset{maximum-iterations=1024}
+// CHECK-NEXT:  func.func(normalize-phase-placement,lower-phase)
 // CHECK-NEXT:  clifford-t-synthesis-pipeline{basis=h,s,t,x,y,z,swap,x(1),y(1),z(1) level=0 approximation-tolerance=1e-10}
 // CHECK-NEXT:  basis-conversion{basis=h,s,t,x,y,z,swap,x(1),y(1),z(1)}
 // CHECK-NEXT:  jit-finalize-pipeline
@@ -127,6 +130,16 @@
 // CHECK-NEXT:  two-qubit-gate-count-optimization-pipeline{level=1}
 // CHECK-NEXT:  basis-conversion{basis=h,rx,ry,rz,x,z(1)}
 // CHECK-NEXT:  jit-finalize-pipeline
+
+// A target that preserves loops keeps prep and deploy from unrolling, so its
+// stage decides which loops to unroll. A target that does not support noise
+// rejects it in prep, and one with QEC erasure off keeps QEC through prep.
+// CHECK-LABEL: loops preserved, noise unsupported, QEC kept:
+// CHECK-NEXT:  canonicalize
+// CHECK-NEXT:  hw-jit-prep-pipeline{allow-early-exit=false no-loop-unroll=true erase-noise=false reject-noise=true erase-qec=false}
+// CHECK-NEXT:  jit-deploy-pipeline{no-loop-unroll=true}
+// CHECK:       prepare-for-wireset{maximum-iterations=1024 unroll-only-index-use-loops=true}
+
 // clang-format on
 
 #include "cudaq_internal/compiler/Compiler.h"
@@ -225,5 +238,18 @@ int main(int argc, char **argv) {
     printPipeline("compiler-bench-nisq on path(4) level 0", onPath, level0);
     printPipeline("compiler-bench-nisq on path(4) level 1", onPath, {});
   }
+
+  cudaq::CompileTarget target;
+  target.stages.push_back(
+      {.irOutputProfile =
+           cudaq::config::QuakeUnmappedProfile{
+               .basisGates = {"h", "rz", "x(1)"},
+               .costModel = cudaq::config::CostModel::t_count,
+               .unrollLoops = cudaq::config::LoopUnrolling::index_use},
+       .lowering = cudaq::config::InferredLowering{}});
+  target.preserveLoops = true;
+  target.noiseSupport = cudaq::NoiseSupport::unsupported;
+  target.eraseQEC = false;
+  printPipeline("loops preserved, noise unsupported, QEC kept", target, {});
   return 0;
 }

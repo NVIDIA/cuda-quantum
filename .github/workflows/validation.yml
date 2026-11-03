@@ -381,6 +381,7 @@ jobs:
       cuda_versions: "['', '12.6', '13.0']"
       wheel_artifacts: 'pycudaq-*-manylinux-*'
       logical_wheel_artifacts: 'cudaq_logical-*'
+      edem_wheel_artifacts: 'cudaq_edem-*'
       github_commit: ${{ inputs.github_commit || needs.metadata.outputs.github_commit }}
       build_packages: false
       artifacts_run_id: ${{ needs.metadata.outputs.deployment_id }}
@@ -687,6 +688,15 @@ jobs:
           github-token: ${{ github.token }}
           merge-multiple: true
 
+      - name: Load cudaq-edem wheels
+        uses: actions/download-artifact@v8
+        with:
+          pattern: 'cudaq_edem-*'
+          path: /tmp/wheels
+          run-id: ${{ needs.metadata.outputs.deployment_id }}
+          github-token: ${{ github.token }}
+          merge-multiple: true
+
       - name: Load metapackage
         if: ${{ matrix.cuda_major == '' }}
         uses: actions/download-artifact@v8
@@ -802,6 +812,15 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           pattern: 'cudaq_logical-*'
+          path: /tmp/wheels
+          run-id: ${{ needs.metadata.outputs.deployment_id }}
+          github-token: ${{ github.token }}
+          merge-multiple: true
+
+      - name: Load cudaq-edem wheels
+        uses: actions/download-artifact@v8
+        with:
+          pattern: 'cudaq_edem-*'
           path: /tmp/wheels
           run-id: ${{ needs.metadata.outputs.deployment_id }}
           github-token: ${{ github.token }}
