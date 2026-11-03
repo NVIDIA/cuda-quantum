@@ -23,6 +23,9 @@ KERNEL_EXAMPLES = (
 STANDALONE_EXAMPLES = tuple(
     sorted((EXAMPLE_ROOT / "standalone").glob("[0-9][0-9]_*.py")))
 
+GADGET_EXAMPLES = tuple(
+    sorted((EXAMPLE_ROOT / "gadgets").glob("[0-9][0-9]_*.py")))
+
 
 @pytest.fixture(autouse=True)
 def reset_cudaq_target_after_test():
@@ -32,19 +35,41 @@ def reset_cudaq_target_after_test():
     cudaq.reset_target()
 
 
-def test_examples_execute(capsys, monkeypatch):
+ALL_EXAMPLES = (*KERNEL_EXAMPLES, *STANDALONE_EXAMPLES, *GADGET_EXAMPLES)
+
+# Bump these when adding or removing an example so it gets a test (and a
+# timing entry in `pytest --durations`).
+EXPECTED_EXAMPLE_COUNTS = {
+    "kernel": 7,
+    "standalone": 8,
+    "gadgets": 5,
+}
+
+
+def test_expected_example_count():
+    assert {
+        "kernel": len(KERNEL_EXAMPLES),
+        "standalone": len(STANDALONE_EXAMPLES),
+        "gadgets": len(GADGET_EXAMPLES),
+    } == EXPECTED_EXAMPLE_COUNTS, (
+        "Example count changed; update EXPECTED_EXAMPLE_COUNTS.")
+
+
+@pytest.mark.parametrize(
+    "example",
+    ALL_EXAMPLES,
+    ids=[str(e.relative_to(EXAMPLE_ROOT)) for e in ALL_EXAMPLES],
+)
+def test_example_executes(example, monkeypatch, tmp_path):
     import cudaq
 
-    assert len(KERNEL_EXAMPLES) == 7
-    assert len(STANDALONE_EXAMPLES) == 8
+    # Without a GPU, example 08 runs on `density-matrix-cpu`, which is slow.
+    if (example.name == "08_t_factory_evaluation.py" and
+            cudaq.num_available_gpus() == 0):
+        pytest.skip("requires a GPU; the CPU density-matrix fallback is slow")
     monkeypatch.syspath_prepend(str(EXAMPLE_ROOT))
-    output = {}
-    for example in (*KERNEL_EXAMPLES, *STANDALONE_EXAMPLES):
-        # Without a GPU, example 07 runs on `density-matrix-cpu`, which is slow.
-        if (example.name == "07_t_factory_evaluation.py" and
-                cudaq.num_available_gpus() == 0):
-            continue
-        cudaq.reset_target()
-        monkeypatch.setattr(sys, "argv", [str(example)])
-        runpy.run_path(str(example), run_name="__main__")
-        output[example.name] = capsys.readouterr().out
+    # Memory examples export their artifacts relative to the working directory.
+    monkeypatch.chdir(tmp_path)
+    cudaq.reset_target()
+    monkeypatch.setattr(sys, "argv", [str(example)])
+    runpy.run_path(str(example), run_name="__main__")

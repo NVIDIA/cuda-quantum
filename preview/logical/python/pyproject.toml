@@ -20,6 +20,7 @@ dependencies = [
   # Core supplies the IR bindings without frontend execution or CUDA dependencies.
   # Release builds pin it to the tested CUDA-Q version; devel is build-time only.
   "cudaq-core",
+  "cudaq-edem>=0.1,<0.2",
 ]
 classifiers = [
   'Intended Audience :: Science/Research',
@@ -58,6 +59,7 @@ requires = [
   "scikit-build-core==0.12.2",
   "setuptools-scm>=8,<9",
   "cudaq-devel",
+  "cudaq-edem>=0.1,<0.2",
 ]
 build-backend = "scikit_build_core.build"
 

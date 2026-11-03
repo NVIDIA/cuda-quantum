@@ -25,7 +25,7 @@ from inspect import Parameter, Signature
 from typing import Any
 
 from ..codes import Surface
-from cudaq.logical.programs.decorators import objective
+from cudaq.logical.programs.decorators import action as _action
 from cudaq.logical.ops._impl import (
     cx,
     cz,
@@ -72,7 +72,7 @@ from ._wsc import (
     PauliRow,
     _base_stabilizers,
     _build_wsc,
-    _global_preparation_objective,
+    _global_preparation_action,
     _in_span,
     _permute_bits,
 )
@@ -213,10 +213,7 @@ def _surface_auxiliary_code(kappa_count: int) -> CSSCode:
     )
 
 
-def _surface_measurement_objective(terms: tuple[str, ...],
-                                   name: str,
-                                   *,
-                                   sign=1):
+def _surface_measurement_action(terms: tuple[str, ...], name: str, *, sign=1):
     names = tuple(f"block{index}" for index in range(len(terms)))
 
     def intent(*values):
@@ -241,7 +238,7 @@ def _surface_measurement_objective(terms: tuple[str, ...],
         },
         "return": result,
     }
-    return objective(intent, name=intent.__name__)
+    return _action(intent, name=intent.__name__)
 
 
 def _distributed_measurement(
@@ -333,7 +330,7 @@ def _surface_measurement_artifacts(
     auxiliary_code = _surface_auxiliary_code(kappa_count)
     auxiliary_encoding = auxiliary_code.default_encoding
     name = f"surface_{distance}_wsc_{''.join(terms).lower()}"
-    intent = _surface_measurement_objective(terms, name, sign=sign)
+    intent = _surface_measurement_action(terms, name, sign=sign)
     block_names = tuple(f"block{index}" for index in range(len(terms)))
     result_annotation = tuple[tuple([patch[encoding]] * len(terms) + [bool])]
 
@@ -458,7 +455,7 @@ class _SurfaceBuilder:
         support = self.code.lz[0] if plus_basis else self.code.lx[0]
         operation = z if plus_basis else x
         suffix = "minus" if plus_basis else "one"
-        intent = _global_preparation_objective(
+        intent = _global_preparation_action(
             self.code,
             plus if plus_basis else zero,
             operation,

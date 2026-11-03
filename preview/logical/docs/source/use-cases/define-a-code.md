@@ -14,7 +14,7 @@ CSS check rows once:
 .. literalinclude:: ../../../examples/standalone/02_code_and_gadget.py
    :language: python
    :start-at: @cql.code
-   :end-before: @cql.objective
+   :end-before: @cql.action
    :caption: The Steane code, from examples/standalone/02_code_and_gadget.py.
 ```
 
@@ -155,7 +155,7 @@ subject of [gadgets and verification](gadgets-and-verification.md).
 
 ## Where to go next
 
-- [Gadgets and verification](gadgets-and-verification.md) — realize objectives
+- [Gadgets and verification](gadgets-and-verification.md) — realize actions
   on your code and check the claims.
 - The [quick start](../getting-started/quickstart.md) runs the Steane code and
   gadget of this page end to end.

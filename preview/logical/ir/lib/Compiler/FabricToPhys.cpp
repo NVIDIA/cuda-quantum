@@ -1100,7 +1100,7 @@ private:
               qlx::fabric::ResourceRequestOp, qlx::event::AwaitOp,
               qlx::fabric::UnpackResourceOp, qlx::fabric::PackResourceOp,
               qlx::fabric::DiscardResourceOp, qlx::fabric::MeasureProductOp,
-              qlx::fabric::RotateProductOp,
+              qlx::fabric::MppOp, qlx::fabric::RotateProductOp,
               qlx::fabric::ResourceRotateProductOp, qlx::fabric::RetryOp,
               qlx::fabric::SuccessOp>(operation))
         continue;
@@ -1943,9 +1943,9 @@ private:
       auto spec = dyn_cast_or_null<qlx::fabric::GadgetSpecOp>(
           symbols.lookup(candidate.getSpecAttr().getValue()));
       auto objective =
-          spec ? dyn_cast_or_null<qlx::fabric::ObjectiveOp>(
+          spec ? dyn_cast_or_null<qlx::fabric::ActionOp>(
                      symbols.lookup(spec.getObjectiveAttr().getValue()))
-               : qlx::fabric::ObjectiveOp{};
+               : qlx::fabric::ActionOp{};
       auto logical = objective && objective.getLogicalAttr()
                          ? dyn_cast_or_null<qlx::ActionOp>(symbols.lookup(
                                objective.getLogicalAttr().getValue()))
@@ -3034,7 +3034,7 @@ private:
                                                recordBase, lanePrefix, ordinal)
                                      .str();
       // Stable-record projection is consumed only by a selected detached
-      // gadget profile. Retaining every unprofiled helper invocation here
+      // gadget contract. Retaining every unprofiled helper invocation here
       // creates millions of unreachable provenance strings without adding
       // P3 evidence.
       if (currentProfile)
@@ -3591,6 +3591,67 @@ private:
     return success();
   }
 
+  LogicalResult measurePhysicalProduct(qlx::fabric::MppOp measurement,
+                                       ProjectedValues &projected,
+                                       OpBuilder &builder) {
+    PhysicalGroup patch =
+        takeProjected(projected, measurement.getPatch(), measurement);
+    auto positions =
+        selectedPositions(measurement, measurement.getPatch().getType());
+    if (failed(positions) || positions->empty())
+      return failure();
+    StringRef labels = measurement.getPaulis();
+    bool invert = labels.consume_front("-");
+    if (labels.size() != positions->size())
+      return failure();
+    SmallVector<Value> inputs;
+    SmallVector<Type> resultTypes;
+    SmallVector<Attribute> paulis;
+    DenseSet<int64_t> selected;
+    for (auto [position, label] : llvm::zip(*positions, labels)) {
+      if (position < 0 || size_t(position) >= patch.size() ||
+          !selected.insert(position).second)
+        return failure();
+      inputs.push_back(patch[position]);
+      resultTypes.push_back(patch[position].getType());
+      paulis.push_back(stringAttr(context, StringRef(&label, 1)));
+    }
+    auto instrument = sharedNativeInstrument(inputs, "measure_product");
+    if (failed(instrument))
+      return failure();
+    resultTypes.push_back(qlx::phys::RecordType::get(
+        context, symbolAttr(context, instrument->getRecordSchema())));
+    std::string record = measurement.getRecord().value_or("mpp").str();
+    std::string recordId = llvm::formatv("{0}.{1}.{2}", currentInstance, record,
+                                         measurementRecord++)
+                               .str();
+    SmallVector<NamedAttribute> attrs{
+        builder.getNamedAttr("instrument",
+                             symbolAttr(context, instrument->getSymName())),
+        builder.getNamedAttr("paulis", builder.getArrayAttr(paulis)),
+        builder.getNamedAttr("record_id", stringAttr(context, recordId)),
+        builder.getNamedAttr("event_id", nextEvent("mpp")),
+    };
+    if (invert)
+      attrs.push_back(builder.getNamedAttr("invert", UnitAttr::get(context)));
+    Operation *physical =
+        createGeneric(builder, measurement.getLoc(), "phys.measure_product",
+                      inputs, resultTypes, attrs);
+    for (auto [position, replacement] :
+         llvm::zip(*positions, physical->getResults().drop_back()))
+      patch.set(position, replacement);
+    projected[measurement.getPatchOut()] = std::move(patch);
+    projected[measurement.getBits()] =
+        PhysicalGroup{physical->getResults().back()};
+    if (currentProfile) {
+      std::string qualified = currentCallable + "." + record;
+      mutateRecordProjection({currentInstance, qualified}).push_back(recordId);
+      mutateRecordProjection({currentInstance, qualified + ".outcome"})
+          .push_back(recordId);
+    }
+    return success();
+  }
+
   LogicalResult measureProduct(qlx::fabric::MeasureProductOp measurement,
                                ProjectedValues &projected, OpBuilder &builder) {
     actionFailure.clear();
@@ -3783,9 +3844,9 @@ private:
                           symbols.lookup(gadget.getSpecAttr().getValue()))
                     : qlx::fabric::GadgetSpecOp{};
     auto objective =
-        spec ? dyn_cast_or_null<qlx::fabric::ObjectiveOp>(
+        spec ? dyn_cast_or_null<qlx::fabric::ActionOp>(
                    symbols.lookup(spec.getObjectiveAttr().getValue()))
-             : qlx::fabric::ObjectiveOp{};
+             : qlx::fabric::ActionOp{};
     Operation *logical =
         objective && objective.getLogicalAttr()
             ? symbols.lookup(objective.getLogicalAttr().getValue())
@@ -3813,7 +3874,7 @@ private:
       return failure();
     auto semanticsRef =
         dyn_cast<FlatSymbolRefAttr>(instrument.getSemanticsAttr());
-    auto semantics = dyn_cast_or_null<qlx::ObjectiveBodyOp>(
+    auto semantics = dyn_cast_or_null<qlx::ActionBodyOp>(
         semanticsRef ? symbols.lookup(semanticsRef.getValue()) : nullptr);
     if (!semantics || semantics.getBody().empty())
       return failure();
@@ -3953,7 +4014,7 @@ private:
     auto cached = profileSidecarDeclarationCache.find(profileRef);
     if (cached != profileSidecarDeclarationCache.end())
       return &cached->second;
-    auto profile = dyn_cast_or_null<qlx::fabric::GadgetProfileOp>(
+    auto profile = dyn_cast_or_null<qlx::fabric::GadgetContractOp>(
         symbols.lookup(profileRef.getValue()));
     if (!profile)
       return failure();
@@ -3972,7 +4033,7 @@ private:
     auto declarations = profileSidecarDeclarations(profileRef);
     if (failed(declarations))
       return emitError(UnknownLoc::get(context))
-             << "physical call references missing gadget profile @"
+             << "physical call references missing gadget contract @"
              << profileRef.getValue();
     std::map<std::string, int64_t> rowOrdinals;
     for (Operation *declarationPointer : **declarations) {
@@ -4039,9 +4100,9 @@ private:
       return true;
     if (!left || !right)
       return false;
-    auto leftProfile = dyn_cast_or_null<qlx::fabric::GadgetProfileOp>(
+    auto leftProfile = dyn_cast_or_null<qlx::fabric::GadgetContractOp>(
         symbols.lookup(left.getValue()));
-    auto rightProfile = dyn_cast_or_null<qlx::fabric::GadgetProfileOp>(
+    auto rightProfile = dyn_cast_or_null<qlx::fabric::GadgetContractOp>(
         symbols.lookup(right.getValue()));
     if (!leftProfile || !rightProfile ||
         leftProfile.getGadgetAttr() != leftCallee ||
@@ -4263,7 +4324,7 @@ private:
       std::set<std::string> selectedRecordSources;
       auto declarations = profileSidecarDeclarations(profileRef);
       if (failed(declarations)) {
-        emitError(location) << "references an unresolved gadget profile";
+        emitError(location) << "references an unresolved gadget contract";
         return failure();
       }
       for (Operation *declaration : **declarations) {
@@ -5232,6 +5293,13 @@ private:
             {builder.getNamedAttr("event_id", nextEvent("discard_resource"))});
         continue;
       }
+      if (auto measurement = dyn_cast<qlx::fabric::MppOp>(operation)) {
+        if (failed(measurePhysicalProduct(measurement, projected, builder)))
+          return measurement.emitOpError(
+              "requires distinct physical carriers and a native "
+              "measure_product instrument");
+        continue;
+      }
       if (auto measurement =
               dyn_cast<qlx::fabric::MeasureProductOp>(operation)) {
         if (failed(measureProduct(measurement, projected, builder)))
@@ -5587,7 +5655,7 @@ private:
         // enumerating the repeat's dynamic extent.
         std::set<std::string> selectedProfileRecords;
         if (currentProfile) {
-          auto profile = dyn_cast_or_null<qlx::fabric::GadgetProfileOp>(
+          auto profile = dyn_cast_or_null<qlx::fabric::GadgetContractOp>(
               symbols.lookup(currentProfile.getValue()));
           if (!profile)
             return repeat.emitOpError(

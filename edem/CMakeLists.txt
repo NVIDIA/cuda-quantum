@@ -64,7 +64,11 @@ target_include_directories(cudaq-edem PRIVATE "${CUDAQ_EDEM_GF2_SOURCE_DIR}/lib"
 target_compile_features(cudaq-edem PUBLIC c_std_11)
 target_compile_features(cudaq-edem PRIVATE cxx_std_20)
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-  target_compile_options(cudaq-edem PRIVATE -fno-exceptions -fno-rtti)
+  # libstdc++ assertion handlers introduce a C++ runtime dependency. Undefine
+  # inherited assertions and prevent GCC 15+ from enabling them at -O0.
+  target_compile_definitions(cudaq-edem PRIVATE _GLIBCXX_NO_ASSERTIONS)
+  target_compile_options(cudaq-edem PRIVATE
+    -fno-exceptions -fno-rtti -U_GLIBCXX_ASSERTIONS)
 endif()
 set_target_properties(cudaq-edem PROPERTIES
   EXPORT_NAME edem

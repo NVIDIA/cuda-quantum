@@ -26,6 +26,8 @@ from cudaq.logical.algebra.angle import (
 from cudaq.logical.programs.binding import (
     LogicalPortRef,
     LogicalPorts,
+    ActionOperandRef,
+    ActionOperands,
     ObjectiveOperandRef,
     ObjectiveOperands,
 )
@@ -77,6 +79,8 @@ __all__ = [
     "EventState",
     "EventStatusValue",
     "CliffordAction",
+    "ActionOperandRef",
+    "ActionOperands",
     "ObjectiveOperandRef",
     "ObjectiveOperands",
     "LogicalState",

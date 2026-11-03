@@ -1204,16 +1204,15 @@ LogicalResult ResourceOp::verify() {
         module ? SymbolTable::lookupSymbolIn(module,
                                              qecReference.getRootReference())
                : nullptr;
-    auto qecRegion =
-        qecMachine
-            ? dyn_cast_or_null<qlx::fabric::RegionOp>(
-                  SymbolTable(qecMachine)
-                      .lookup(qecReference.getLeafReference().getValue()))
-            : qlx::fabric::RegionOp{};
+    auto qecRegion = qecMachine
+                         ? dyn_cast_or_null<qlx::fabric::RegionOp>(
+                               SymbolTable::lookupSymbolIn(
+                                   qecMachine, qecReference.getLeafReference()))
+                         : qlx::fabric::RegionOp{};
     auto code =
         qecRegion
-            ? dyn_cast_or_null<qlx::fabric::CodeOp>(SymbolTable(module).lookup(
-                  qecRegion.getCodeAttr().getValue()))
+            ? dyn_cast_or_null<qlx::fabric::CodeOp>(
+                  SymbolTable::lookupSymbolIn(module, qecRegion.getCodeAttr()))
             : qlx::fabric::CodeOp{};
     if (!code)
       return emitOpError(
@@ -3969,7 +3968,7 @@ LogicalResult GraphOp::verifyRegions() {
                 retained->second->getAttr("objective") != objective)
               return emitOpError(
                   "selected Fabric resource call must resolve one exact "
-                  "resource action site and objective");
+                  "resource action site and action");
             selectedFabricCalls.emplace_back(site, objective, callee,
                                              instanceAttr);
           }
@@ -5739,7 +5738,7 @@ LogicalResult ResourceRequestOp::verify() {
                             static_cast<unsigned>(!!rawConsumerObjective);
   if (consumerFields != 0 && consumerFields != 3)
     return emitOpError(
-        "consumer action site, callee, and objective must appear together");
+        "consumer action site, callee, and action must appear together");
   if (!rawConsumerSite)
     return success();
   auto consumerSite = dyn_cast<SymbolRefAttr>(rawConsumerSite);
@@ -5761,8 +5760,7 @@ LogicalResult ResourceRequestOp::verify() {
         "consumer_callee must resolve to a Fabric gadget or protocol");
   if (!site->getAttr("objective") ||
       site->getAttr("objective") != rawConsumerObjective)
-    return emitOpError(
-        "consumer action objective must match the selected callee");
+    return emitOpError("consumer action must match the selected callee");
   unsigned matchingCalls = 0;
   auto module = (*this)->getParentOfType<ModuleOp>();
   if (module)
@@ -6027,10 +6025,10 @@ verifiedPatchMacro(qlx::fabric::GadgetOp gadget) {
                         SymbolTable::lookupNearestSymbolFrom(
                             gadget, gadget.getSpecAttr()))
                   : qlx::fabric::GadgetSpecOp{};
-  auto objective = spec ? dyn_cast_or_null<qlx::fabric::ObjectiveOp>(
+  auto objective = spec ? dyn_cast_or_null<qlx::fabric::ActionOp>(
                               SymbolTable::lookupNearestSymbolFrom(
                                   spec, spec.getObjectiveAttr()))
-                        : qlx::fabric::ObjectiveOp{};
+                        : qlx::fabric::ActionOp{};
   Operation *logical = objective && objective.getLogicalAttr()
                            ? SymbolTable::lookupNearestSymbolFrom(
                                  objective, objective.getLogicalAttr())
@@ -6056,9 +6054,9 @@ verifiedPatchMacro(qlx::fabric::GadgetOp gadget) {
       dyn_cast_or_null<FlatSymbolRefAttr>(instrument.getSemanticsAttr());
   auto semantics =
       instrument.getKind() == "composite" && semanticsRef
-          ? dyn_cast_or_null<qlx::ObjectiveBodyOp>(
+          ? dyn_cast_or_null<qlx::ActionBodyOp>(
                 SymbolTable::lookupNearestSymbolFrom(instrument, semanticsRef))
-          : qlx::ObjectiveBodyOp{};
+          : qlx::ActionBodyOp{};
   if (!semantics || semantics.getBody().empty())
     return failure();
   Block &body = semantics.getBody().front();
@@ -6120,7 +6118,7 @@ static LogicalResult verifyPatchMacroCall(CallOp call,
     if (!apply || !action || action.getSymName() != macro->physicalOperation ||
         yield.getOperands() != apply.getOutputs())
       return call.emitOpError(
-          "patch-macro action body contradicts the retained gadget objective");
+          "patch-macro action body contradicts the retained gadget action");
     return success();
   }
   if (macro->kind == VerifiedPatchMacroKind::Prepare) {
@@ -6128,7 +6126,7 @@ static LogicalResult verifyPatchMacroCall(CallOp call,
     if (!prepare || prepare.getState() != macro->physicalOperation ||
         yield.getOperands() != prepare.getOutputs())
       return call.emitOpError("patch-macro preparation body contradicts the "
-                              "retained gadget objective");
+                              "retained gadget action");
     return success();
   }
   auto measure = dyn_cast<MeasureOp>(event);
@@ -6141,7 +6139,7 @@ static LogicalResult verifyPatchMacroCall(CallOp call,
       instrument.getKind() != macro->physicalOperation ||
       yield.getNumOperands() != 1 || yield.getOperand(0) != measure.getRecord())
     return call.emitOpError("patch-macro measurement body contradicts the "
-                            "retained gadget objective");
+                            "retained gadget action");
   return success();
 }
 
@@ -6171,15 +6169,14 @@ LogicalResult CallOp::verify() {
       return failure();
   if (auto profile = getProfileAttr()) {
     Operation *target = SymbolTable::lookupNearestSymbolFrom(*this, profile);
-    if (target && target->getName().getStringRef() != "fabric.gadget_profile")
-      return emitOpError("profile must resolve to fabric.gadget_profile");
+    if (target && target->getName().getStringRef() != "fabric.gadget_contract")
+      return emitOpError("profile must resolve to fabric.gadget_contract");
   }
   Attribute rawResourceSite = (*this)->getAttr("resource_action_site");
   Attribute rawResourceObjective = (*this)->getAttr("resource_objective");
   if (static_cast<bool>(rawResourceSite) !=
       static_cast<bool>(rawResourceObjective))
-    return emitOpError(
-        "resource action site and objective must appear together");
+    return emitOpError("resource action site and action must appear together");
   if (rawResourceSite) {
     auto resourceSite = dyn_cast<SymbolRefAttr>(rawResourceSite);
     if (!resourceSite)
@@ -6195,8 +6192,7 @@ LogicalResult CallOp::verify() {
             "resource_action_site must resolve to a resource action site");
       if (!site->getAttr("objective") ||
           site->getAttr("objective") != rawResourceObjective)
-        return emitOpError(
-            "resource action objective must match the selected callee");
+        return emitOpError("resource action must match the selected callee");
     }
     if (!llvm::any_of(getInputs().getTypes(),
                       [](Type type) { return isa<ResourcePayloadType>(type); }))
@@ -6265,11 +6261,11 @@ static LogicalResult verifyCallTemplateAgainstCanonical(
         "per-site callees");
   }
   if (canonical.getProfileAttr() != invocation.getProfileAttr()) {
-    auto canonicalProfile = dyn_cast_or_null<qlx::fabric::GadgetProfileOp>(
+    auto canonicalProfile = dyn_cast_or_null<qlx::fabric::GadgetContractOp>(
         canonical.getProfileAttr() ? SymbolTable::lookupNearestSymbolFrom(
                                          invocation, canonical.getProfileAttr())
                                    : nullptr);
-    auto invocationProfile = dyn_cast_or_null<qlx::fabric::GadgetProfileOp>(
+    auto invocationProfile = dyn_cast_or_null<qlx::fabric::GadgetContractOp>(
         invocation.getProfileAttr()
             ? SymbolTable::lookupNearestSymbolFrom(invocation,
                                                    invocation.getProfileAttr())
@@ -6557,9 +6553,9 @@ LogicalResult RetryOp::verify() {
   if (!profileAttr)
     return emitOpError("requires the selected projected-attempt profile");
   Operation *profile = SymbolTable::lookupNearestSymbolFrom(*this, profileAttr);
-  if (!profile || profile->getName().getStringRef() != "fabric.gadget_profile")
+  if (!profile || profile->getName().getStringRef() != "fabric.gadget_contract")
     return emitOpError(
-        "profile must resolve to a retained fabric.gadget_profile");
+        "profile must resolve to a retained fabric.gadget_contract");
   auto profileGadget = profile->getAttrOfType<FlatSymbolRefAttr>("gadget");
   if (attemptProtocol) {
     if (!attemptProtocol.getPredicateGadgetAttr() ||
@@ -10660,9 +10656,9 @@ static LogicalResult verifySourceRow(Operation *sidecar, StringRef profileOp,
       SymbolTable::lookupNearestSymbolFrom(sidecar, sourceProfile);
   if (!profile)
     return success(); // Partial linked modules resolve at link time.
-  if (profile->getName().getStringRef() != "fabric.gadget_profile")
+  if (profile->getName().getStringRef() != "fabric.gadget_contract")
     return sidecar->emitOpError(
-        "source_profile must resolve to fabric.gadget_profile");
+        "source_profile must resolve to fabric.gadget_contract");
 
   FailureOr<AffineSourceRow> expected = failure();
   if (sourceKind.getValue() == "profile")
@@ -10943,10 +10939,10 @@ LogicalResult qlx::phys::verifyClosedSidecarLinks(ModuleOp module,
     Operation *profileTarget =
         SymbolTable::lookupNearestSymbolFrom(&operation, profile);
     if (!profileTarget ||
-        profileTarget->getName().getStringRef() != "fabric.gadget_profile")
+        profileTarget->getName().getStringRef() != "fabric.gadget_contract")
       return operation.emitOpError(
           "terminal sidecar source_profile must resolve to "
-          "fabric.gadget_profile");
+          "fabric.gadget_contract");
     auto projection =
         operation.getAttrOfType<FlatSymbolRefAttr>("record_projection");
     Operation *projectionTarget =
