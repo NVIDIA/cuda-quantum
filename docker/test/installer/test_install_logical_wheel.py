@@ -20,7 +20,7 @@ import zipfile
 
 import pytest
 
-ROOT = Path(__file__).resolve().parents[6]
+ROOT = Path(__file__).resolve().parents[3]
 INSTALLER = ROOT / "docker/release/install_logical_wheel.py"
 
 
@@ -63,7 +63,10 @@ def _edem(directory, version="0.1.0", marker="candidate", **kwargs):
 @pytest.fixture(scope="module")
 def python(tmp_path_factory):
     environment = tmp_path_factory.mktemp("installer-python") / "venv"
-    subprocess.run([sys.executable, "-m", "venv", str(environment)], check=True)
+    subprocess.run(
+        [sys.executable, "-m", "virtualenv", "--no-download",
+         str(environment)],
+        check=True)
     return environment / "bin/python"
 
 

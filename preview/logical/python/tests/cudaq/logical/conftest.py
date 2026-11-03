@@ -5,7 +5,7 @@
 # This source code and the accompanying materials are made available under     #
 # the terms of the Apache License 2.0 which accompanies this distribution.     #
 # ============================================================================ #
-"""Execute the memory tutorials cell by cell with test-specific parameters."""
+"""Shared surface-memory fixtures and helpers for tutorial integration tests."""
 
 from pathlib import Path
 from types import SimpleNamespace
@@ -43,45 +43,45 @@ def run_memory_example(tmp_path_factory):
 
 
 @pytest.fixture(scope="module")
-def memory_result():
-    # A test adapter for varying export noise without rebuilding the gadgets.
-    def result(namespace):
-        profiles = namespace["profiles"]
+def make_memory():
+    """Build ideal-MPP memory directly through the public library APIs."""
+
+    def make(distance=3, rounds=3):
+        recipe = surface.definitions(distance)
+        prep, sec, readout = map(
+            surface.gadget_contract,
+            (recipe.prepare_zero, recipe.memory_round, recipe.measure_z))
+        profiles = (prep, *((sec,) * (rounds - 1)), readout)
+        projections = {
+            contract.gadget:
+                cql.compiler.project_clifford(cql.compile(contract),
+                                              gadget=contract.gadget.name)
+            for contract in (prep, sec)
+        }
+        coordinates = "\n".join(f"QUBIT_COORDS({x}, {y}) {q}"
+                                for q, (x, y) in enumerate(recipe.coordinates))
 
         def depolarizations(probability):
             return {
                 index:
-                    surface.data_depol(
-                        contract, namespace["projections"][contract.gadget],
-                        probability)
+                    surface.data_depol(contract, projections[contract.gadget],
+                                       probability)
                 for index, contract in enumerate(profiles[:-1])
             }
 
         def to_stim(noise=None, *, data_depolarization=0.0):
-            return namespace["coordinates"] + "\n" + cql.compiler.emit_stim(
+            return coordinates + "\n" + cql.compiler.emit_stim(
                 profiles,
                 noise=noise,
                 depolarizations=depolarizations(data_depolarization))
 
-        return SimpleNamespace(
-            profiles=profiles,
-            coordinates=namespace["implementation"].coordinates,
-            extraction_entries=tuple((p[0].before, p[0].carriers)
-                                     for p in namespace["placements"].values()),
-            depolarizations=depolarizations,
-            to_stim=to_stim)
-
-    return result
-
-
-@pytest.fixture(scope="module")
-def make_memory(run_memory_example, memory_result):
-
-    def make(distance=3, rounds=3):
-        return memory_result(
-            run_memory_example("02_stim_emission.py",
-                               distance=distance,
-                               rounds=rounds))
+        return SimpleNamespace(profiles=profiles,
+                               coordinates=recipe.coordinates,
+                               extraction_entries=tuple(
+                                   (p[0].before, p[0].carriers)
+                                   for p in depolarizations(0).values()),
+                               depolarizations=depolarizations,
+                               to_stim=to_stim)
 
     return make
 

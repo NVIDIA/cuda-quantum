@@ -447,6 +447,13 @@ jobs:
           python -c "from cudaq import logical; print(logical.std.idle)"
           python -c "from cudaq.logical import program; print(program)"
           python /tmp/test_installation.py --logical --frontend
+      - name: Test Logical release installer
+        shell: bash
+        run: |
+          set -euo pipefail
+          uv pip install "pytest>=7.0" "virtualenv>=20"
+          python -m pytest docker/test/installer/test_install_logical_wheel.py -v
+
       - name: Run cudaq.logical Python tests
         shell: bash
         timeout-minutes: 30
@@ -455,7 +462,7 @@ jobs:
           QLX_SCHEDULE_DUMP_DIR: ${{ runner.temp }}/qlx-schedule-dumps
         run: |
           set -euo pipefail
-          uv pip install "pytest>=7.0" "stim>=1.16,<2"
+          uv pip install -r preview/logical/requirements-test.txt
 
           # Run from the workspace root: `python -m pytest` puts the working
           # directory on sys.path, and preview/logical/python holds a source-only

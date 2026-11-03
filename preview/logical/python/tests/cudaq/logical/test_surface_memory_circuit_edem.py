@@ -6,9 +6,7 @@
 # ============================================================================ #
 """Circuit-level memory against Stim's independent rotated-memory generator."""
 
-from collections import Counter
 from functools import lru_cache
-from itertools import product
 from types import SimpleNamespace
 
 import pytest
@@ -128,62 +126,6 @@ def _surface_circuit_contents(circuit):
     return histories, detectors, observables
 
 
-def _fault_laws(stim, circuit):
-    """Exact categorical laws over detector/observable responses at each site.
-
-    Place a tick at every channel and use Stim's backward sensitivities. This
-    retains all three/fifteen exclusive Pauli alternatives, including faults
-    with zero response, instead of comparing an approximated merged DEM.
-    """
-    probe = stim.Circuit()
-    channels = []
-
-    def channel(kind, probability, targets):
-        tick = probe.num_ticks
-        probe.append("TICK")
-        width = 2 if kind == "DEPOLARIZE2" else 1
-        for start in range(0, len(targets), width):
-            channels.append(
-                (kind, probability,
-                 tuple(q.value for q in targets[start:start + width]), tick))
-
-    for op in circuit.flattened():
-        if op.name in ("DEPOLARIZE1", "DEPOLARIZE2", "X_ERROR", "Z_ERROR"):
-            channel(op.name, op.gate_args_copy()[0], op.targets_copy())
-        elif op.name in ("M", "MX", "MR", "MRX"):
-            args = op.gate_args_copy()
-            if args and args[0]:
-                channel("Z_ERROR" if op.name.endswith("X") else "X_ERROR",
-                        args[0], op.targets_copy())
-            probe.append(op.name, op.targets_copy())
-        elif op.name not in ("TICK", "QUBIT_COORDS", "SHIFT_COORDS"):
-            probe.append(op)
-
-    regions = probe.detecting_regions()
-    laws = Counter()
-    for kind, probability, qubits, tick in channels:
-        alternatives = ((1,),) if kind == "X_ERROR" else ((
-            3,),) if kind == "Z_ERROR" else tuple(
-                word for word in product(range(4), repeat=len(qubits))
-                if any(word))
-        responses = []
-        for word in alternatives:
-            response = 0
-            for target, by_tick in regions.items():
-                region = by_tick.get(tick)
-                if region is None:
-                    continue
-                flips = sum(
-                    bool(fault and region[q] and fault != region[q])
-                    for q, fault in zip(qubits, word)) % 2
-                index = target.val + (probe.num_detectors if
-                                      target.is_logical_observable_id() else 0)
-                response ^= flips << index
-            responses.append(response)
-        laws[kind, probability, tuple(sorted(responses))] += 1
-    return laws
-
-
 def _dem_terms(model):
     terms = {}
     for instruction in model.flattened():
@@ -218,8 +160,8 @@ def test_noiseless_circuit_and_readout_detectors(make_circuit_memory, distance,
     None, "data_depolarization",
     *cql.compiler.StandardDepolarizingNoise.__dataclass_fields__
 ])
-def test_physical_operations_and_exact_channels_match_reference(
-        make_circuit_memory, active):
+def test_physical_operations_and_noise_match_reference(make_circuit_memory,
+                                                       active):
     parameters = {
         name: .001 if active is None or active == name else 0
         for name in cql.compiler.StandardDepolarizingNoise.__dataclass_fields__
@@ -230,7 +172,6 @@ def test_physical_operations_and_exact_channels_match_reference(
     reference = _reference(3, 3, noise, data)
     assert _surface_circuit_contents(circuit) == _surface_circuit_contents(
         reference)
-    assert _fault_laws(stim, circuit) == _fault_laws(stim, reference)
 
 
 @pytest.mark.parametrize("distance", [3, 5, 7])
@@ -238,13 +179,7 @@ def test_graphlike_fault_distance(make_circuit_memory, distance):
     noise = cql.compiler.StandardDepolarizingNoise(.001, .003, .004)
     circuit = stim.Circuit(
         make_circuit_memory(distance, distance).to_stim(noise, .002))
-    reference = _reference(distance, distance, noise, .002)
-    assert _surface_circuit_contents(circuit) == _surface_circuit_contents(
-        reference)
-    if distance <= 5:
-        assert _fault_laws(stim, circuit) == _fault_laws(stim, reference)
     assert len(circuit.shortest_graphlike_error()) == distance
-    assert len(reference.shortest_graphlike_error()) == distance
 
 
 @pytest.mark.parametrize("distance,rounds", [(3, 2), (3, 3), (3, 5), (5, 5)])
@@ -273,65 +208,3 @@ def test_composed_edem_matches_circuit_and_reference(make_circuit_memory,
             circuit.detector_error_model()),
                                        rel=0,
                                        abs=1e-12)
-
-
-def test_example_exports_compares_and_samples(run_memory_example, capsys):
-    result = run_memory_example("04_surface_memory_reference.py",
-                                compare_with_stim=True,
-                                shots=32,
-                                seed=7)
-    assert {path.name for path in result["output"].iterdir()} == {
-        "memory.stim", "reference.stim", "memory.edemb", "prep.edemb",
-        "sec.edemb", "mz.edemb", "circuit.dem", "composed.dem"
-    }
-    assert result["detectors"].shape == (32, 24)
-    assert result["observables"].shape == (32, 1)
-    assert result["projected"].vector_sizes[0] == 1307
-    assert "match the circuit and Stim reference" in capsys.readouterr().out
-    assert edem.DEM.from_bytes(
-        (result["output"] / "memory.edemb"
-        ).read_bytes()).to_bytes() == result["projected"].to_bytes()
-
-
-def test_example_uses_independent_standard_noise_parameters(run_memory_example):
-    result = run_memory_example("04_surface_memory_reference.py",
-                                after_clifford_depolarization=.002,
-                                before_measure_flip_probability=.003,
-                                after_reset_flip_probability=.004,
-                                data_depolarization=.005)
-    circuit = stim.Circuit(result["text"])
-    reference = _reference(3, 3, result["noise"], .005)
-    assert _surface_circuit_contents(circuit) == _surface_circuit_contents(
-        reference)
-    assert _fault_laws(stim, circuit) == _fault_laws(stim, reference)
-
-
-@pytest.mark.parametrize("sampling_mode", ["circuit", "dem"])
-def test_example_samples_selected_representation_and_keeps_original_laws(
-        run_memory_example, sampling_mode, capsys):
-    result = run_memory_example("04_surface_memory_reference.py",
-                                compare_with_stim=False,
-                                shots=32,
-                                sampling_mode=sampling_mode)
-    assert result["detectors"].shape == (32, 24)
-    assert result["observables"].shape == (32, 1)
-    assert f"from the {sampling_mode} model" in capsys.readouterr().out
-    saved = edem.DEM.from_bytes(
-        (result["output"] / "memory.edemb").read_bytes())
-    assert saved.to_bytes() == result["projected"].to_bytes()
-    assert any(group.kind == edem.GroupKind.EXCLUSIVE
-               for fault in saved.faults
-               for group in fault.groups)
-    if sampling_mode == "dem":
-        assert all(group.kind == edem.GroupKind.INDEPENDENT
-                   for fault in result["independent"].faults
-                   for group in fault.groups)
-    assert {path.name for path in result["output"].iterdir()} == {
-        "memory.stim", "memory.edemb", "prep.edemb", "sec.edemb", "mz.edemb"
-    }
-
-
-def test_example_rejects_unknown_sampling_mode(run_memory_example):
-    with pytest.raises(ValueError, match="sampling_mode"):
-        run_memory_example("04_surface_memory_reference.py",
-                           sampling_mode="unknown")

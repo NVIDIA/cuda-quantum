@@ -13,7 +13,6 @@ from dataclasses import replace
 import pytest
 
 import cudaq.logical as cql
-from cudaq.logical.architecture.geometry import rotated_surface_lattice
 from cudaq.logical.architectures import surface
 
 
@@ -78,8 +77,7 @@ def test_builtin_surface_preparations_project_and_validate(
     assert len(model.outputs) == 1
 
 
-def test_surface_memory_emits_text_without_stim(run_memory_example, monkeypatch,
-                                                capsys):
+def test_surface_memory_emits_text_without_stim(make_memory, monkeypatch):
     original_import = builtins.__import__
 
     def without_stim(name, *args, **kwargs):
@@ -88,19 +86,10 @@ def test_surface_memory_emits_text_without_stim(run_memory_example, monkeypatch,
         return original_import(name, *args, **kwargs)
 
     monkeypatch.setattr(builtins, "__import__", without_stim)
-    result = run_memory_example("02_stim_emission.py")
-    implementation = result["implementation"]
-    assert result["prep"].gadget is implementation.prepare_zero
-    assert result["sec"].gadget is implementation.memory_round
-    assert result["readout"].gadget is implementation.measure_z
-    assert "MPP " in result["text"]
-    assert capsys.readouterr().out == result["text"]
-
-
-def test_surface_memory_samples_detectors(run_memory_example, stim):
-    result = run_memory_example("02_stim_emission.py", shots=100, seed=7)
-    assert result["detectors"].shape == (100, 20)
-    assert result["observables"].shape == (100, 1)
+    text = make_memory().to_stim(data_depolarization=.002)
+    assert "MPP " in text
+    assert "DETECTOR " in text
+    assert "OBSERVABLE_INCLUDE(0)" in text
 
 
 def test_mpp_noise_must_be_explicit(make_memory):

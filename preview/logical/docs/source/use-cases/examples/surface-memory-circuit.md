@@ -198,7 +198,7 @@ result for Stim:
 ```{eval-rst}
 .. literalinclude:: ../../../../examples/gadgets/04_surface_memory_reference.py
    :language: python
-   :start-at: if compare_with_stim or
+   :start-at: if compare_with_stim:
    :end-before: # %%
 ```
 

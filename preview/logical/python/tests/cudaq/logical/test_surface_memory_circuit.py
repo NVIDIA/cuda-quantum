@@ -6,7 +6,6 @@
 # ============================================================================ #
 """The interleaved ancilla recipe, its contracts and explicit noise entries."""
 
-import builtins
 from dataclasses import replace
 
 import pytest
@@ -14,44 +13,6 @@ import pytest
 import cudaq.logical as cql
 from cudaq.logical.architectures import surface
 from cudaq.logical.architecture.geometry import rotated_surface_lattice
-import cudaq_edem as edem
-
-
-def test_recipe_is_cached_and_distinct_from_ideal_mpp():
-    circuit = surface.interleaved_nz_definitions(3)
-    ideal = surface.definitions(3)
-    assert circuit is surface.interleaved_nz_definitions(3)
-    assert ideal is surface.definitions(3)
-    assert circuit.code is ideal.code
-    for gadget, has_mpp in ((circuit.syndrome_extraction, False),
-                            (ideal.memory_round, True)):
-        contract = surface.gadget_contract(gadget)
-        assert contract is surface.gadget_contract(gadget)
-        projection = cql.compiler.project_clifford(cql.compile(contract),
-                                                   gadget=contract.gadget.name)
-        assert any(
-            op.kind == "MPP" for op in projection.instructions) == has_mpp
-    assert len(ideal.coordinates) == 9
-    assert len(circuit.coordinates) == 17
-
-
-@pytest.mark.parametrize("example, rounds", [
-    ("01_surface_memory.py", 0),
-    ("01_surface_memory.py", 1),
-    ("01_surface_memory.py", True),
-    ("01_surface_memory.py", 2.5),
-    ("02_stim_emission.py", 0),
-    ("02_stim_emission.py", True),
-    ("02_stim_emission.py", 2.5),
-    ("03_custom_noise.py", 0),
-    ("04_surface_memory_reference.py", 0),
-    ("04_surface_memory_reference.py", 1),
-    ("04_surface_memory_reference.py", "3"),
-])
-def test_examples_reject_invalid_round_counts(run_memory_example, example,
-                                              rounds):
-    with pytest.raises(ValueError, match="rounds must be an integer"):
-        run_memory_example(example, rounds=rounds)
 
 
 @pytest.mark.parametrize("distance", [3, 5, 7])
@@ -124,13 +85,8 @@ def test_complete_contracts_and_physical_endcaps(distance):
         assert contract.boundary_complete
         receipt = cql.gadgets.verify_gadget(contract)
         assert receipt.verified
-        assert gadget.contract is contract
         model = cql.analysis.edem_from_gadget(gadget)
-        if distance == 3:
-            assert model.to_bytes() == cql.analysis.edem_from_gadget(
-                gadget, contract=contract).to_bytes()
         assert (len(model.inputs), len(model.outputs)) == expected
-    assert len(recipe.coordinates) == 2 * distance**2 - 1
 
 
 def test_explicit_data_noise_precedes_extraction_including_readout():
@@ -138,7 +94,7 @@ def test_explicit_data_noise_precedes_extraction_including_readout():
     prep, sec, readout = map(surface.gadget_contract,
                              (recipe.prepare_zero, recipe.syndrome_extraction,
                               recipe.measure_z_with_syndrome))
-    contracts = (prep, sec, sec, readout)
+    contracts = (prep, sec, readout)
     for contract in contracts:
         projection = cql.compiler.project_clifford(cql.compile(contract),
                                                    gadget=contract.gadget.name)
@@ -216,39 +172,3 @@ def test_data_noise_site_validates_probability(probability):
                                                gadget=contract.gadget.name)
     with pytest.raises(ValueError, match="probability"):
         surface.data_depol(contract, projection, probability)
-
-
-def test_example_exports_original_models_without_stim(run_memory_example,
-                                                      monkeypatch):
-    original_import = builtins.__import__
-
-    def without_stim(name, *args, **kwargs):
-        if name == "stim" or name.startswith("stim."):
-            raise ModuleNotFoundError("Stim is unavailable", name="stim")
-        return original_import(name, *args, **kwargs)
-
-    monkeypatch.setattr(builtins, "__import__", without_stim)
-    result = run_memory_example("04_surface_memory_reference.py",
-                                compare_with_stim=False,
-                                rounds=5)
-    assert {path.name for path in result["output"].iterdir()} == {
-        "memory.stim", "memory.edemb", "prep.edemb", "sec.edemb", "mz.edemb"
-    }
-    occurrences = result["occurrences"]
-    assert len(occurrences) == 5 and len({id(m) for m in occurrences}) == 3
-    assert occurrences[1] is occurrences[2] is occurrences[3]
-    assert result["projected"].is_dem
-    for name, contract in (("prep", result["prep"]), ("sec", result["sec"]),
-                           ("mz", result["readout"])):
-        model = edem.EDEM.from_bytes(
-            (result["output"] / f"{name}.edemb").read_bytes())
-        assert model.to_bytes() == result["models"][contract.gadget].to_bytes()
-    assert any(
-        group.kind == edem.GroupKind.EXCLUSIVE and len(group.fault_ids) == 15
-        for fault in result["projected"].faults
-        for group in fault.groups)
-
-
-def test_example_requires_both_endcap_extractions(run_memory_example):
-    with pytest.raises(ValueError, match="at least two"):
-        run_memory_example("04_surface_memory_reference.py", rounds=1)

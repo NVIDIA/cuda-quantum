@@ -293,11 +293,6 @@ def test_memory_edem_example_samples_explicit_independent_pauli_noise(
     assert result["observables"].shape == (32, 1)
 
 
-def test_memory_edem_example_rejects_unknown_noise_kind(run_memory_example):
-    with pytest.raises(ValueError, match="data_noise_kind"):
-        run_memory_example("03_custom_noise.py", data_noise_kind="unknown")
-
-
 def test_native_projection_retains_successes_but_stim_adapter_rejects_them(
         example):
     model = edem.EDEM(successes=[1])
