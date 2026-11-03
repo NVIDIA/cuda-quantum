@@ -15,6 +15,19 @@
 
 namespace cudaq::opt {
 
+struct PartitionToOutline {
+  llvm::SmallVector<mlir::Operation *> ops;
+  /// Optional operation before which the generated lambda and call must be
+  /// inserted. Must belong to the partition's block and be outside ops.
+  /// An earlier external consumer takes precedence as the insertion point.
+  /// Outlining fails if captured inputs are unavailable at the chosen point.
+  /// With nullptr, placement follows external consumers or falls back to just
+  /// after the physically last selected operation.
+  /// This pointer is non-owning and must remain valid until this partition is
+  /// processed; earlier partitions in a batch must not erase the operation.
+  mlir::Operation *mustPrecede = nullptr;
+};
+
 /// Outline supported operations from one block into a lambda and a call.
 /// By default, duplicate operations are ignored and operations are cloned in
 /// block order. If acceptOrderedPartition is true, operations are cloned in the
@@ -25,14 +38,14 @@ namespace cudaq::opt {
 /// order of their corresponding incoming wires. Returns failure without
 /// modifying the IR if the selection cannot be outlined.
 mlir::FailureOr<cudaq::cc::CreateLambdaOp>
-outlinePartition(llvm::ArrayRef<mlir::Operation *> partition,
+outlinePartition(const PartitionToOutline &partition,
                  const bool acceptOrderedPartition = false);
 
 /// Outline each supplied partition using outlinePartition's ordering policy,
 /// returning failure if any is rejected.
 /// Successful rewrites are retained even if another partition is rejected.
-mlir::LogicalResult outlinePartitions(
-    llvm::ArrayRef<llvm::SmallVector<mlir::Operation *>> partitions,
-    const bool acceptOrderedPartition = false);
+mlir::LogicalResult
+outlinePartitions(llvm::ArrayRef<PartitionToOutline> partitions,
+                  const bool acceptOrderedPartition = false);
 
 } // namespace cudaq::opt

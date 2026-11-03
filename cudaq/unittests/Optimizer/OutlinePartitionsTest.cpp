@@ -68,7 +68,7 @@ TEST(OutlinePartitions, ContiguousRun) {
   // once in block order.
   partition = {partition[1], partition[0], partition[1]};
 
-  auto lambda = cudaq::opt::outlinePartition(partition);
+  auto lambda = cudaq::opt::outlinePartition({partition});
   ASSERT_TRUE(succeeded(lambda));
   EXPECT_TRUE(succeeded(verify(*mod)));
 
@@ -141,7 +141,7 @@ TEST(OutlinePartitions, SuppliedOrderPreserved) {
 
   SmallVector<Operation *> partition{rotation.getOperation(),
                                      measurement.getOperation()};
-  auto lambda = cudaq::opt::outlinePartition(partition, true);
+  auto lambda = cudaq::opt::outlinePartition({partition}, true);
   ASSERT_TRUE(succeeded(lambda));
   EXPECT_TRUE(succeeded(verify(*mod)));
   EXPECT_TRUE(angle->isBeforeInBlock(lambda->getOperation()));
@@ -194,7 +194,7 @@ TEST(OutlinePartitions, SuppliedConsumerBeforeProducerRejected) {
   SmallVector<Operation *> partition{consumer.getOperation(),
                                      producer.getOperation()};
   std::string before = printModule(*mod);
-  EXPECT_TRUE(failed(cudaq::opt::outlinePartition(partition, true)));
+  EXPECT_TRUE(failed(cudaq::opt::outlinePartition({partition}, true)));
   EXPECT_EQ(printModule(*mod), before);
   EXPECT_TRUE(succeeded(verify(*mod)));
 }
@@ -235,7 +235,7 @@ TEST(OutlinePartitions, WireOutputsFollowInputOrder) {
   ASSERT_TRUE(outsideT);
   ASSERT_TRUE(outsideY);
 
-  auto lambda = cudaq::opt::outlinePartition(partition);
+  auto lambda = cudaq::opt::outlinePartition({partition});
   ASSERT_TRUE(succeeded(lambda));
   ASSERT_TRUE(succeeded(verify(*mod)));
 
@@ -304,7 +304,7 @@ TEST(OutlinePartitions, EarlyConsumerReordered) {
       partition.push_back(op);
   });
   ASSERT_EQ(partition.size(), 2u);
-  auto lambda = cudaq::opt::outlinePartition(partition);
+  auto lambda = cudaq::opt::outlinePartition({partition});
   ASSERT_TRUE(succeeded(lambda));
   EXPECT_TRUE(succeeded(verify(*mod)));
 }
@@ -333,7 +333,7 @@ TEST(OutlinePartitions, NonContiguousRejected) {
       partition.push_back(op);
   });
   ASSERT_EQ(partition.size(), 2u);
-  EXPECT_TRUE(failed(cudaq::opt::outlinePartition(partition)));
+  EXPECT_TRUE(failed(cudaq::opt::outlinePartition({partition})));
 }
 
 // Supply a partition from a hardcoded analysis to the outlining utility.
@@ -360,14 +360,14 @@ TEST(OutlinePartitions, HardcodedAnalysis) {
           partition.push_back(inner);
       });
       if (!partition.empty())
-        partitions.push_back(std::move(partition));
+        partitions.push_back({std::move(partition)});
     }
-    ArrayRef<SmallVector<Operation *>> getPartitions() const {
+    ArrayRef<cudaq::opt::PartitionToOutline> getPartitions() const {
       return partitions;
     }
 
   private:
-    SmallVector<SmallVector<Operation *>> partitions;
+    SmallVector<cudaq::opt::PartitionToOutline> partitions;
   };
   func::FuncOp funcOp;
   mod->walk([&](func::FuncOp f) { funcOp = f; });
@@ -423,18 +423,18 @@ TEST(OutlinePartitions, ThreePartitionsWithCrossFlow) {
           p3.push_back(inner);
       });
       if (!p1.empty())
-        partitions.push_back(std::move(p1));
+        partitions.push_back({std::move(p1)});
       if (!p2.empty())
-        partitions.push_back(std::move(p2));
+        partitions.push_back({std::move(p2)});
       if (!p3.empty())
-        partitions.push_back(std::move(p3));
+        partitions.push_back({std::move(p3)});
     }
-    ArrayRef<SmallVector<Operation *>> getPartitions() const {
+    ArrayRef<cudaq::opt::PartitionToOutline> getPartitions() const {
       return partitions;
     }
 
   private:
-    SmallVector<SmallVector<Operation *>> partitions;
+    SmallVector<cudaq::opt::PartitionToOutline> partitions;
   };
 
   func::FuncOp funcOp;
@@ -531,7 +531,7 @@ TEST(OutlinePartitions, ClassicalInputsAndOutputs) {
   Value wireIn =
       cast<cudaq::quake::RxOp>(partition.front()).getTargets().front();
 
-  auto lambda = cudaq::opt::outlinePartition(partition);
+  auto lambda = cudaq::opt::outlinePartition({partition});
   ASSERT_TRUE(succeeded(lambda));
   ASSERT_TRUE(succeeded(verify(*mod)));
 
@@ -616,7 +616,7 @@ TEST(OutlinePartitions, MeasurementHandleReturned) {
   ASSERT_TRUE(outsideZ);
   Value wireIn = partition.front()->getOperand(0);
 
-  auto lambda = cudaq::opt::outlinePartition(partition);
+  auto lambda = cudaq::opt::outlinePartition({partition});
   ASSERT_TRUE(succeeded(lambda));
   ASSERT_TRUE(succeeded(verify(*mod)));
 
@@ -672,7 +672,7 @@ TEST(OutlinePartitions, UnusedBitNotReturned) {
   ASSERT_TRUE(outsideZ);
   Value wireIn = partition.front()->getOperand(0);
 
-  auto lambda = cudaq::opt::outlinePartition(partition);
+  auto lambda = cudaq::opt::outlinePartition({partition});
   ASSERT_TRUE(succeeded(lambda));
   ASSERT_TRUE(succeeded(verify(*mod)));
 
@@ -706,6 +706,195 @@ TEST(OutlinePartitions, UnusedBitNotReturned) {
   EXPECT_EQ(ret->getOperand(0), clonedMz->getResult(1));
 }
 
+// Preserve supplied gate order and optionally move the partition before an
+// independent measurement. With no outside consumers, default placement is
+// after T, which is physically after the measurement.
+TEST(OutlinePartitions, SpecifyPartitionOrder) {
+  const char *ir = R"(
+    func.func @usethisorder() {
+      %a = quake.null_wire
+      %b = quake.null_wire
+      %c = quake.null_wire
+      %d = quake.null_wire
+      %h = quake.h %a : (!quake.wire) -> !quake.wire
+      %x = quake.x %h : (!quake.wire) -> !quake.wire
+      %cx:2 = quake.x [%x] %b : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+      %m, %d1 = quake.mz %d : (!quake.wire) -> (!quake.measure, !quake.wire)
+      %t = quake.t %c : (!quake.wire) -> !quake.wire
+      return
+    }
+  )";
+
+  for (bool specifyBoundary : {false, true}) {
+    SCOPED_TRACE(specifyBoundary ? "with mustPrecede" : "without mustPrecede");
+    MLIRContext ctx;
+    auto mod = parse(ctx, ir);
+    ASSERT_TRUE(mod);
+    ASSERT_TRUE(succeeded(verify(*mod)));
+
+    SmallVector<Operation *> partition;
+    cudaq::quake::TOp t;
+    cudaq::quake::MzOp boundary;
+    mod->walk([&](Operation *op) {
+      if (isa<cudaq::quake::HOp, cudaq::quake::XOp>(op))
+        partition.push_back(op);
+      else if (auto gate = dyn_cast<cudaq::quake::TOp>(op))
+        t = gate;
+      else if (auto measurement = dyn_cast<cudaq::quake::MzOp>(op))
+        boundary = measurement;
+    });
+    ASSERT_EQ(partition.size(), 3u);
+    ASSERT_TRUE(t);
+    ASSERT_TRUE(boundary);
+    Value tInput = t.getTargets().front();
+    Value measuredWire = boundary.getTargets().front();
+
+    // T is independent of H/X/CNOT. Move it first while preserving the
+    // producer-before-consumer order of the other three gates.
+    partition.insert(partition.begin(), t.getOperation());
+    auto lambda = cudaq::opt::outlinePartition(
+        {partition, specifyBoundary ? boundary.getOperation() : nullptr}, true);
+    ASSERT_TRUE(succeeded(lambda));
+    ASSERT_TRUE(succeeded(verify(*mod)));
+
+    Block &body = lambda->getBody().front();
+    ASSERT_EQ(body.getOperations().size(), 5u);
+    auto it = body.begin();
+    EXPECT_TRUE(isa<cudaq::quake::TOp>(*it));
+    EXPECT_EQ(it->getOperand(0), tInput);
+    EXPECT_TRUE(isa<cudaq::quake::HOp>(*++it));
+    EXPECT_TRUE(isa<cudaq::quake::XOp>(*++it));
+    EXPECT_TRUE(isa<cudaq::quake::XOp>(*++it));
+    EXPECT_TRUE(isa<cudaq::cc::ReturnOp>(*++it));
+
+    SmallVector<cudaq::cc::CallCallableOp> calls;
+    mod->walk([&](cudaq::cc::CallCallableOp call) { calls.push_back(call); });
+    ASSERT_EQ(calls.size(), 1u);
+    auto call = calls.front();
+    EXPECT_EQ(call->getOperand(0), lambda->getResult());
+    EXPECT_TRUE(lambda->getOperation()->isBeforeInBlock(call.getOperation()));
+    EXPECT_EQ(call->getNumResults(), 3u);
+    EXPECT_EQ(boundary.getTargets().front(), measuredWire);
+    if (specifyBoundary) {
+      EXPECT_TRUE(call->isBeforeInBlock(boundary.getOperation()));
+      EXPECT_EQ(call->getNextNode(), boundary.getOperation());
+    } else {
+      EXPECT_TRUE(boundary->isBeforeInBlock(lambda->getOperation()));
+    }
+  }
+}
+
+// An upper placement bound cannot delay a call past an outside consumer.
+TEST(OutlinePartitions, ConsumerBeforeBoundaryTakesPrecedence) {
+  const char *ir = R"(
+    func.func @k() {
+      %w0 = quake.null_wire
+      %w1 = quake.null_wire
+      %h = quake.h %w0 : (!quake.wire) -> !quake.wire
+      %x = quake.x %h : (!quake.wire) -> !quake.wire
+      %z = quake.z %w1 : (!quake.wire) -> !quake.wire
+      return
+    }
+  )";
+  MLIRContext ctx;
+  auto mod = parse(ctx, ir);
+  ASSERT_TRUE(mod);
+  ASSERT_TRUE(succeeded(verify(*mod)));
+
+  cudaq::quake::HOp selected;
+  cudaq::quake::XOp consumer;
+  cudaq::quake::ZOp boundary;
+  mod->walk([&](cudaq::quake::HOp op) { selected = op; });
+  mod->walk([&](cudaq::quake::XOp op) { consumer = op; });
+  mod->walk([&](cudaq::quake::ZOp op) { boundary = op; });
+  ASSERT_TRUE(selected);
+  ASSERT_TRUE(consumer);
+  ASSERT_TRUE(boundary);
+
+  auto lambda = cudaq::opt::outlinePartition(
+      {{selected.getOperation()}, boundary.getOperation()});
+  ASSERT_TRUE(succeeded(lambda));
+  EXPECT_TRUE(succeeded(verify(*mod)));
+
+  auto *callOp = lambda->getOperation()->getNextNode();
+  ASSERT_TRUE(callOp);
+  ASSERT_TRUE(isa<cudaq::cc::CallCallableOp>(callOp));
+  EXPECT_EQ(callOp->getNextNode(), consumer.getOperation());
+  EXPECT_TRUE(callOp->isBeforeInBlock(boundary.getOperation()));
+  EXPECT_EQ(consumer.getTargets().front(), callOp->getResult(0));
+}
+
+// Reject a boundary that would place the lambda before a captured angle exists.
+// Here, the boundary is placed before the measure, but the angle is required
+// for `rx`
+TEST(OutlinePartitions, CaptureAfterBoundaryRejected) {
+  const char *ir = R"(
+    func.func @k() {
+      %w0 = quake.null_wire
+      %w1 = quake.null_wire
+      %m, %measured = quake.mz %w0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+      %angle = arith.constant 0.5 : f64
+      %rotated = quake.rx (%angle) %w1 : (f64, !quake.wire) -> !quake.wire
+      return
+    }
+  )";
+  MLIRContext ctx;
+  auto mod = parse(ctx, ir);
+  ASSERT_TRUE(mod);
+  ASSERT_TRUE(succeeded(verify(*mod)));
+
+  cudaq::quake::RxOp selected;
+  cudaq::quake::MzOp boundary;
+  mod->walk([&](cudaq::quake::RxOp op) { selected = op; });
+  mod->walk([&](cudaq::quake::MzOp op) { boundary = op; });
+  ASSERT_TRUE(selected);
+  ASSERT_TRUE(boundary);
+
+  const std::string before = printModule(*mod);
+  EXPECT_TRUE(failed(cudaq::opt::outlinePartition(
+      {{selected.getOperation()}, boundary.getOperation()})));
+  EXPECT_EQ(printModule(*mod), before);
+  EXPECT_TRUE(succeeded(verify(*mod)));
+}
+
+// Reject a boundary inside the partition or in another block before rewriting.
+TEST(OutlinePartitions, InvalidBoundaryRejected) {
+  const char *ir = R"(
+    func.func @k() {
+      %w0 = quake.null_wire
+      %h = quake.h %w0 : (!quake.wire) -> !quake.wire
+      return
+    }
+    func.func @other() {
+      %w0 = quake.null_wire
+      %z = quake.z %w0 : (!quake.wire) -> !quake.wire
+      return
+    }
+  )";
+  for (bool boundaryInPartition : {false, true}) {
+    SCOPED_TRACE(boundaryInPartition ? "inside partition" : "different block");
+    MLIRContext ctx;
+    auto mod = parse(ctx, ir);
+    ASSERT_TRUE(mod);
+    ASSERT_TRUE(succeeded(verify(*mod)));
+
+    cudaq::quake::HOp selected;
+    cudaq::quake::ZOp otherBlockOp;
+    mod->walk([&](cudaq::quake::HOp op) { selected = op; });
+    mod->walk([&](cudaq::quake::ZOp op) { otherBlockOp = op; });
+    ASSERT_TRUE(selected);
+    ASSERT_TRUE(otherBlockOp);
+    Operation *boundary = boundaryInPartition ? selected.getOperation()
+                                              : otherBlockOp.getOperation();
+
+    const std::string before = printModule(*mod);
+    EXPECT_TRUE(failed(
+        cudaq::opt::outlinePartition({{selected.getOperation()}, boundary})));
+    EXPECT_EQ(printModule(*mod), before);
+    EXPECT_TRUE(succeeded(verify(*mod)));
+  }
+}
+
 // The two selected gates have independent wire paths, but the rotation's angle
 // is defined too late to insert a single call before the outside Z consumer.
 TEST(OutlinePartitions, LateInputRejected) {
@@ -733,7 +922,7 @@ TEST(OutlinePartitions, LateInputRejected) {
   ASSERT_EQ(partition.size(), 2u);
   const std::string before = printModule(*mod);
 
-  EXPECT_TRUE(failed(cudaq::opt::outlinePartition(partition)));
+  EXPECT_TRUE(failed(cudaq::opt::outlinePartition({partition})));
   EXPECT_EQ(printModule(*mod), before);
   EXPECT_TRUE(succeeded(verify(*mod)));
 }
@@ -765,7 +954,7 @@ TEST(OutlinePartitions, ConsumerDefinesInputRejected) {
   ASSERT_EQ(partition.size(), 3u);
   const std::string before = printModule(*mod);
 
-  EXPECT_TRUE(failed(cudaq::opt::outlinePartition(partition)));
+  EXPECT_TRUE(failed(cudaq::opt::outlinePartition({partition})));
   EXPECT_EQ(printModule(*mod), before);
   EXPECT_TRUE(succeeded(verify(*mod)));
 }
@@ -796,7 +985,7 @@ TEST(OutlinePartitions, RejectRegionOwningOps) {
   ASSERT_EQ(partition.size(), 1u);
   const std::string before = printModule(*mod);
 
-  EXPECT_TRUE(failed(cudaq::opt::outlinePartition(partition)));
+  EXPECT_TRUE(failed(cudaq::opt::outlinePartition({partition})));
   EXPECT_EQ(printModule(*mod), before);
   EXPECT_TRUE(succeeded(verify(*mod)));
 }
@@ -827,7 +1016,7 @@ TEST(OutlinePartitions, RejectPartitionContainingLoad) {
   ASSERT_EQ(partition.size(), 2u);
   const std::string before = printModule(*mod);
 
-  EXPECT_TRUE(failed(cudaq::opt::outlinePartition(partition)));
+  EXPECT_TRUE(failed(cudaq::opt::outlinePartition({partition})));
   EXPECT_EQ(printModule(*mod), before);
   EXPECT_TRUE(succeeded(verify(*mod)));
 }

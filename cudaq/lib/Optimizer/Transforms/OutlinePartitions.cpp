@@ -31,24 +31,25 @@ static bool isSupportedOutlineOp(Operation *op) {
 }
 
 static FailureOr<cudaq::cc::CreateLambdaOp>
-outlinePartitionImpl(ArrayRef<Operation *> partition,
+outlinePartitionImpl(const cudaq::opt::PartitionToOutline &partition,
                      const DominanceInfo &dominance,
                      const bool acceptOrderedPartition) {
-  if (partition.empty())
+  llvm::ArrayRef<Operation *> partitionOps = partition.ops;
+  if (partitionOps.empty())
     return failure();
 
-  DenseSet<Operation *> inPartition(partition.begin(), partition.end());
+  DenseSet<Operation *> inPartition(partitionOps.begin(), partitionOps.end());
 
   // All operations must be supported and live in one block.
-  Block *block = partition.front()->getBlock();
-  for (Operation *op : partition) {
+  Block *block = partitionOps.front()->getBlock();
+  for (Operation *op : partitionOps) {
     if (op->getBlock() != block)
       return failure();
     if (!isSupportedOutlineOp(op))
       return failure();
   }
 
-  SmallVector<Operation *> orderedOps(partition.begin(), partition.end());
+  SmallVector<Operation *> orderedOps(partitionOps.begin(), partitionOps.end());
   if (!acceptOrderedPartition) {
     // Sort the unique selected operations in block (topological) order.
     orderedOps.assign(inPartition.begin(), inPartition.end());
@@ -172,17 +173,24 @@ outlinePartitionImpl(ArrayRef<Operation *> partition,
   auto callableTy =
       cudaq::cc::CallableType::get(ctx, FunctionType::get(ctx, {}, outTys));
 
-  // Insert before the earliest external consumer, or after the last selected
-  // operation if there are no consumers. Reject placements where an input is
-  // unavailable.
+  // Insert before mustPrecede or an earlier external consumer. With neither,
+  // insert after the physically last selected operation. Reject placements
+  // where a captured input is unavailable.
   OpBuilder builder(ctx);
-  Operation *insertBefore = nullptr;
+
+  Operation *insertBefore = partition.mustPrecede;
+  // A supplied boundary must be in the same block and outside the partition.
+  if (partition.mustPrecede && (partition.mustPrecede->getBlock() != block ||
+                                inPartition.contains(partition.mustPrecede)))
+    return failure();
+
   for (Value out : llvm::concat<Value>(nonWireOutputList, orderedWireOutputs))
     for (Operation *user : out.getUsers())
       if (!inPartition.contains(user))
         if (!insertBefore || user->isBeforeInBlock(insertBefore))
           insertBefore = user;
   for (Value in : llvm::concat<Value>(nonWireInputList, inputList)) {
+    // make sure that input is available at insertion point
     bool available = insertBefore
                          ? dominance.properlyDominates(in, insertBefore)
                          : dominance.dominates(in, anchor);
@@ -230,14 +238,14 @@ outlinePartitionImpl(ArrayRef<Operation *> partition,
 }
 
 FailureOr<cudaq::cc::CreateLambdaOp>
-cudaq::opt::outlinePartition(ArrayRef<Operation *> partition,
+cudaq::opt::outlinePartition(const PartitionToOutline &partition,
                              const bool acceptOrderedPartition) {
   DominanceInfo dominance;
   return outlinePartitionImpl(partition, dominance, acceptOrderedPartition);
 }
 
 LogicalResult
-cudaq::opt::outlinePartitions(ArrayRef<SmallVector<Operation *>> partitions,
+cudaq::opt::outlinePartitions(ArrayRef<PartitionToOutline> partitions,
                               const bool acceptOrderedPartition) {
   // The CFG of existing regions is unchanged, so cached dominance information
   // remains valid across these rewrites.
