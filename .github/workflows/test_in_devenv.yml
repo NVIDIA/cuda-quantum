@@ -340,7 +340,7 @@ jobs:
               exit 1
             fi
 
-            retry python -m pip install pytest pytest-xdist
+            retry python -m pip install -r requirements-tests.txt
             # Uncapped, 16 workers x 16 OMP threads on a cpu16 runner starve 
             # memory and surface as `std::bad_alloc`. See PR#4530.
             export OMP_NUM_THREADS="${OMP_NUM_THREADS:-1}"
