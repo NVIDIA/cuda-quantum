@@ -28,6 +28,9 @@
 
 namespace qlx::fabric {
 
+/// Ideal action of a realization; fabric.objective is the legacy IR spelling.
+using ActionOp = ObjectiveOp;
+
 /// Return whether two compiler-generated Fabric callables have the same
 /// physical implementation modulo their symbol, P1 action-site witness, and
 /// selected logical-block provenance.  Those omitted facts are rebound by an

@@ -73,9 +73,13 @@ def test_product_stage_estimation_and_target_surface():
     )
     assert hasattr(fabric_dialect, "ResourceRequestOp")
     assert {name for name in vars(_qlx_ops_gen) if name.endswith("Op")
-           } == {name for name in vars(qlx_dialect) if name.endswith("Op")}
+           } | {"ActionBodyOp"} == {
+               name for name in vars(qlx_dialect) if name.endswith("Op")
+           }
     assert {name for name in vars(_fabric_ops_gen) if name.endswith("Op")
-           } == {name for name in vars(fabric_dialect) if name.endswith("Op")}
+           } | {"ActionOp"} == {
+               name for name in vars(fabric_dialect) if name.endswith("Op")
+           }
     assert "resource" in cql.types.__all__
     authoring_verbs = {
         "allocate_patch",

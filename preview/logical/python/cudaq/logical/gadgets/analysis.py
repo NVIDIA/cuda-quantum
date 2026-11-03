@@ -19,7 +19,7 @@ def clifford_action(value) -> CliffordAction:
     """Derive the exact signed symplectic action of logical intent.
 
     Analysis consumes a logical action definition, or a gadget whose
-    ``implements=`` objective is such a definition. It never infers intent
+    ``implements=`` action is such a definition. It never infers intent
     from the physical body: realization equivalence remains an independent
     verifier obligation.
     """
@@ -41,7 +41,7 @@ def clifford_action(value) -> CliffordAction:
         )
     raise TypeError(
         "cudaq.logical.analysis.clifford_action expects an action-like "
-        "@cudaq.logical.objective, a gadget implementing one, a qlx.program operation, "
+        "@cudaq.logical.action, a gadget implementing one, a qlx.program operation, "
         "or CliffordAction")
 
 

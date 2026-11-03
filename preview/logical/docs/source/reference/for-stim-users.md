@@ -5,23 +5,25 @@ This page maps that world onto CUDA-Q Logical, whose scope is deliberately
 narrower in one direction and much wider in another.
 
 CUDA-Q Logical compiles logical programs into selected realizations and
-estimates their resources. It can emit a verified P2 gadget as Stim text or
+estimates their resources. It can export a selected P2 gadget as Stim text or
 translate a supported P3 physical build to Quake for execution with `cudaq.run`.
-These are separate paths. Logical does not supply detector annotations,
-detector error models, or decoding for either path.
+Closed gadget-contract chains can export detector and observable annotations
+with an explicit physical noise policy, or derive and compose EDEMs directly.
+Sampling and decoding use downstream tools; these analysis paths are separate
+from P3 execution.
 
 ## The translation table
 
 | You do this in Stim                                            | You do this in CUDA-Q Logical                                                                                                                   |
 | -------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
 | Write a circuit qubit-by-qubit                                 | Write a _logical program_; the compiler selects code-specific realizations                                                                      |
-| `stim.Circuit.generated("surface_code:rotated_memory_z", ...)` | `cudaq.logical.codes.Surface[d]` + the gadget factories (`cudaq.logical.gadgets.prepare_zero`, `css_memory_round`, `logical_measure`) selected for a memory objective |
+| `stim.Circuit.generated("surface_code:rotated_memory_z", ...)` | The [profiled surface-memory example](../use-cases/stim-emission.md#export-a-surface-code-memory-with-detector-contracts), using explicit preparation, SEC, and transversal readout gadgets |
 | `REPEAT 1000 { ... }`                                          | `cudaq.logical.idle(q, rounds=1000)` — stays **folded** through compilation and estimation, never unrolled                                                 |
 | Hand-maintain a circuit template per code                      | One portable program; swap `code=`/`Surface[d]` and recompile — the program is untouched                                                        |
 | Read the circuit to guess its cost                             | `cudaq.logical.estimate(build, tier=...)`: logical counts at P0, static and analytical counts at P2, schedule-backed counts at P3                          |
 | Ship circuit text                                              | `qlx-translate <module>.mlir --fabric-to-stim` projects a selected P2 entry gadget to Stim text                                                  |
 | Execute a Clifford circuit                                    | Select CUDA-Q's `stim` target and call `cudaq.run` on a supported P3 physical `Build` with explicit Boolean results                              |
-| (no equivalent)                                                | Placement onto logical machines, verified gadget objectives, magic-state protocols, replayable builds with evidence                             |
+| (no equivalent)                                                | Placement onto logical machines, verified gadget actions, magic-state protocols, replayable builds with evidence                             |
 
 ## Execute a physical build
 
@@ -61,7 +63,7 @@ boundaries it fails closed on.
 
 ## What has no Stim equivalent
 
-- **Verified gadget objectives.** A gadget _claims_ a logical action with
+- **Verified gadget actions.** A gadget _claims_ a logical action with
   `implements=`; for code-automorphism realizations the compiler derives the
   induced action from the code algebra and rejects mismatches.
 - **Linear ownership.** A measured-out or double-consumed patch is a typed error

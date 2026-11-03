@@ -41,6 +41,7 @@ CX
 Cartesian
 CentOS
 Cheeger
+Choi
 Chuang
 Cliffords
 CompileMetrics
@@ -310,6 +311,7 @@ anharmonicity
 ansatz
 ansatzes
 anticommute
+anticommuting
 antiferromagnet
 api
 arXiv
@@ -322,6 +324,7 @@ aspirational
 attr
 attrs
 automorphism
+automorphisms
 auxillary
 backend
 backends
@@ -510,6 +513,7 @@ frac
 frontend
 frontends
 func
+functionals
 functors
 gaussian
 getter
@@ -785,6 +789,8 @@ splitters
 sqale
 sqrt
 statevector
+stderr
+stdout
 stim
 str
 struct
@@ -836,6 +842,7 @@ toolset
 topologies
 toric
 traceback
+tracebacks
 transactional
 transactionally
 transmon

@@ -73,6 +73,23 @@ def install(wheel_dir: Path, prefix: Path):
         # Change only the extracted copy; the original wheel stays untouched.
         metadata_file.write_text(str(metadata), encoding="utf-8")
 
+        # Keep EDEM beside Logical for its native RPATH; pip owns EDEM's
+        # files and metadata. Resolve it only from this run's wheel directory.
+        edem_requirements = [
+            requirement for requirement in requirements_to_install
+            if re.match(r"\s*cudaq[-_.]+edem(?![-_.a-z0-9])", requirement,
+                        re.IGNORECASE)
+        ]
+        if edem_requirements:
+            pip_install("--isolated", "--no-index", "--no-deps",
+                        "--ignore-installed", "--no-compile", "--target",
+                        str(prefix), "--find-links", str(wheel_dir.resolve()),
+                        *edem_requirements)
+        requirements_to_install = [
+            requirement for requirement in requirements_to_install
+            if requirement not in edem_requirements
+        ]
+
         # Install external dependencies without frontend extras.
         if requirements_to_install:
             requirements = Path(temporary) / "requirements.txt"
