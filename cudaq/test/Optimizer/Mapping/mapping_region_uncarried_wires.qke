@@ -1,0 +1,157 @@
+// ========================================================================== //
+// Copyright (c) 2022 - 2026 NVIDIA Corporation & Affiliates.                 //
+// All rights reserved.                                                        //
+//                                                                             //
+// This source code and the accompanying materials are made available under    //
+// the terms of the Apache License 2.0 which accompanies this distribution.    //
+// ========================================================================== //
+
+// Routing inside a cc.loop body or a cc.if branch may swap through physical
+// qubits whose wires the region does not carry. The mapper must thread those
+// wires through the region instead of reusing the outer wires inside it.
+//
+// Identity placement keeps virtual qubits 0 and 3 on the ends of path(4), so
+// the CNOT between them can only be routed by swapping through qubits 1 and 2.
+
+// RUN: cudaq-opt --verify-each '--qubit-mapping=device=path(4) placement=identity search=none' %s | FileCheck %s
+
+quake.wire_set @wires[2147483647]
+
+// A rolled loop whose body routes q0 and q3 through q1 and q2. The loop only
+// received the wires of q0 and q3, so q1 and q2 become additional loop-carried
+// wires.
+//
+// CHECK-LABEL: func.func @test_loop_routes_through_uncarried()
+// CHECK:         %[[LOOP:.*]]:4 = cc.loop while (
+// CHECK:         } do {
+// CHECK-NEXT:    ^bb0(%{{.*}}: !quake.wire, %{{.*}}: !quake.wire, %{{.*}}: !quake.wire, %{{.*}}: !quake.wire):
+// CHECK:           quake.swap
+// CHECK:           cc.continue {{.*}} : !quake.wire, !quake.wire, !quake.wire, !quake.wire
+// CHECK:         }
+// CHECK:         quake.mz %[[LOOP]]#0
+func.func @test_loop_routes_through_uncarried() attributes {"cudaq-kernel"} {
+  %cond = cc.undef i1
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
+  %1 = quake.borrow_wire @wires[1] : !quake.wire
+  %2 = quake.borrow_wire @wires[2] : !quake.wire
+  %3 = quake.borrow_wire @wires[3] : !quake.wire
+  %loop:2 = cc.loop while ((%w0 = %0, %w3 = %3) -> (!quake.wire, !quake.wire)) {
+    cc.condition %cond (%w0, %w3 : !quake.wire, !quake.wire)
+  } do {
+  ^bb0(%bw0 : !quake.wire, %bw3 : !quake.wire):
+    %g:2 = quake.x [%bw0] %bw3 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    cc.continue %g#0, %g#1 : !quake.wire, !quake.wire
+  }
+  %m0, %r0 = quake.mz %loop#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %m3, %r3 = quake.mz %loop#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  quake.return_wire %r0 : !quake.wire
+  quake.return_wire %1 : !quake.wire
+  quake.return_wire %2 : !quake.wire
+  quake.return_wire %r3 : !quake.wire
+  return
+}
+
+// The same loop with a step region. The step block must also receive and
+// forward the extra wires.
+//
+// CHECK-LABEL: func.func @test_loop_with_step_routes_through_uncarried()
+// CHECK:         cc.loop while (
+// CHECK:         } do {
+// CHECK:           quake.swap
+// CHECK:         } step {
+// CHECK-NEXT:    ^bb0(%{{.*}}: !quake.wire, %{{.*}}: !quake.wire, %{{.*}}: !quake.wire, %{{.*}}: !quake.wire):
+// CHECK:           cc.continue {{.*}} : !quake.wire, !quake.wire, !quake.wire, !quake.wire
+func.func @test_loop_with_step_routes_through_uncarried() attributes {"cudaq-kernel"} {
+  %cond = cc.undef i1
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
+  %1 = quake.borrow_wire @wires[1] : !quake.wire
+  %2 = quake.borrow_wire @wires[2] : !quake.wire
+  %3 = quake.borrow_wire @wires[3] : !quake.wire
+  %loop:2 = cc.loop while ((%w0 = %0, %w3 = %3) -> (!quake.wire, !quake.wire)) {
+    cc.condition %cond (%w0, %w3 : !quake.wire, !quake.wire)
+  } do {
+  ^bb0(%bw0 : !quake.wire, %bw3 : !quake.wire):
+    %g:2 = quake.x [%bw0] %bw3 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    cc.continue %g#0, %g#1 : !quake.wire, !quake.wire
+  } step {
+  ^bb0(%sw0 : !quake.wire, %sw3 : !quake.wire):
+    cc.continue %sw0, %sw3 : !quake.wire, !quake.wire
+  }
+  %m0, %r0 = quake.mz %loop#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %m3, %r3 = quake.mz %loop#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  quake.return_wire %r0 : !quake.wire
+  quake.return_wire %1 : !quake.wire
+  quake.return_wire %2 : !quake.wire
+  quake.return_wire %r3 : !quake.wire
+  return
+}
+
+// Only the then-branch needs routing, but both branches must return the same
+// wires, so the else-branch passes the extra wires straight through.
+//
+// CHECK-LABEL: func.func @test_if_routes_through_uncarried()
+// CHECK:         %[[IF:.*]]:4 = cc.if({{.*}}) (
+// CHECK:           quake.swap
+// CHECK:           cc.continue {{.*}} : !quake.wire, !quake.wire, !quake.wire, !quake.wire
+// CHECK:         } else {
+// CHECK-NOT:       quake.swap
+// CHECK:           cc.continue {{.*}} : !quake.wire, !quake.wire, !quake.wire, !quake.wire
+// CHECK:         }
+// CHECK:         quake.mz %[[IF]]#0
+func.func @test_if_routes_through_uncarried() attributes {"cudaq-kernel"} {
+  %cond = cc.undef i1
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
+  %1 = quake.borrow_wire @wires[1] : !quake.wire
+  %2 = quake.borrow_wire @wires[2] : !quake.wire
+  %3 = quake.borrow_wire @wires[3] : !quake.wire
+  %if:2 = cc.if (%cond) ((%a0 = %0, %a3 = %3)) -> (!quake.wire, !quake.wire) {
+    %g:2 = quake.x [%a0] %a3 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+    cc.continue %g#0, %g#1 : !quake.wire, !quake.wire
+  } else {
+    %h = quake.h %a0 : (!quake.wire) -> !quake.wire
+    %t = quake.t %a3 : (!quake.wire) -> !quake.wire
+    cc.continue %h, %t : !quake.wire, !quake.wire
+  }
+  %m0, %r0 = quake.mz %if#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %m3, %r3 = quake.mz %if#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  quake.return_wire %r0 : !quake.wire
+  quake.return_wire %1 : !quake.wire
+  quake.return_wire %2 : !quake.wire
+  quake.return_wire %r3 : !quake.wire
+  return
+}
+
+// A wire that is only touched by a nested region must be threaded through the
+// enclosing loop as well: q1 and q2 are used only by the swaps inside the inner
+// if, which sits inside the outer loop.
+//
+// CHECK-LABEL: func.func @test_nested_if_in_loop_routes_through_uncarried()
+// CHECK:         %[[OUTER:.*]]:4 = cc.loop while (
+// CHECK:           cc.if(
+// CHECK:             quake.swap
+func.func @test_nested_if_in_loop_routes_through_uncarried() attributes {"cudaq-kernel"} {
+  %cond = cc.undef i1
+  %0 = quake.borrow_wire @wires[0] : !quake.wire
+  %1 = quake.borrow_wire @wires[1] : !quake.wire
+  %2 = quake.borrow_wire @wires[2] : !quake.wire
+  %3 = quake.borrow_wire @wires[3] : !quake.wire
+  %loop:2 = cc.loop while ((%w0 = %0, %w3 = %3) -> (!quake.wire, !quake.wire)) {
+    cc.condition %cond (%w0, %w3 : !quake.wire, !quake.wire)
+  } do {
+  ^bb0(%bw0 : !quake.wire, %bw3 : !quake.wire):
+    %if:2 = cc.if (%cond) ((%a0 = %bw0, %a3 = %bw3)) -> (!quake.wire, !quake.wire) {
+      %g:2 = quake.x [%a0] %a3 : (!quake.wire, !quake.wire) -> (!quake.wire, !quake.wire)
+      cc.continue %g#0, %g#1 : !quake.wire, !quake.wire
+    } else {
+      cc.continue %a0, %a3 : !quake.wire, !quake.wire
+    }
+    cc.continue %if#0, %if#1 : !quake.wire, !quake.wire
+  }
+  %m0, %r0 = quake.mz %loop#0 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  %m3, %r3 = quake.mz %loop#1 : (!quake.wire) -> (!quake.measure, !quake.wire)
+  quake.return_wire %r0 : !quake.wire
+  quake.return_wire %1 : !quake.wire
+  quake.return_wire %2 : !quake.wire
+  quake.return_wire %r3 : !quake.wire
+  return
+}
