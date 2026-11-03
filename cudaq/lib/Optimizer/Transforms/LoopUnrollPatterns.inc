@@ -39,7 +39,7 @@ static bool exceedsThresholdValue(cudaq::cc::LoopOp loop, std::size_t threshold,
     return true;
   }
   auto upperBound = unrollLoopByValue(loop, *components);
-  return upperBound >= threshold;
+  return upperBound > threshold;
 }
 
 static bool loopCanBeUnrolled(cudaq::cc::LoopOp loop, bool allowBreak,
@@ -181,7 +181,7 @@ static bool loopMustUnrollForWireConversion(cudaq::cc::LoopOp loop) {
 namespace {
 
 /// We fully unroll a counted loop (so marked with the counted attribute) as
-/// long as the number of iterations is constant and that constant is less than
+/// long as the number of iterations is constant and that constant is at most
 /// the threshold value.
 ///
 /// Assumptions are made that the counted loop has a particular structural

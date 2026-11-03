@@ -33,6 +33,11 @@ on:
         type: boolean
         default: false
         description: Include the matching Python 3.12 CUDA-Q Logical wheel from this run. The caller must wait for wheel production.
+      include_edem:
+        required: false
+        type: boolean
+        default: false
+        description: Include the matching Python 3.12 cudaq-edem wheel from this run. The caller must wait for wheel production.
       environment:
         required: false
         type: string
@@ -743,41 +748,67 @@ jobs:
         run: |
           docker run --privileged multiarch/qemu-user-static:latest --reset -p yes --credential yes
 
-      # Ubuntu 24.04 release images use Python 3.12. `cudaq.logical` is CUDA version-independent.
-      - name: Select CUDA-Q Logical wheel
-        if: inputs.include_logical
-        id: logical_wheel
+      # Ubuntu 24.04 release images use Python 3.12. The `cudaq.logical` and
+      # cudaq-edem wheels are CUDA version-independent.
+      - name: Select Python wheels
+        if: inputs.include_logical || inputs.include_edem
+        id: wheels
         shell: bash
         env:
           PLATFORM: ${{ inputs.platforms }}
+          INCLUDE_LOGICAL: ${{ inputs.include_logical }}
+          INCLUDE_EDEM: ${{ inputs.include_edem }}
         run: |
           case "$PLATFORM" in
             linux/amd64) arch=x86_64 ;;
             linux/arm64) arch=aarch64 ;;
             *)
-              echo "::error::Logical image packaging requires linux/amd64 or linux/arm64."
+              echo "::error::Python wheel image packaging requires linux/amd64 or linux/arm64."
               exit 1
               ;;
           esac
-          echo "arch=$arch" >> "$GITHUB_OUTPUT"
 
-      - name: Download CUDA-Q Logical wheel
-        if: inputs.include_logical
+          kinds=()
+          if [ "$INCLUDE_LOGICAL" = true ]; then kinds+=(logical); fi
+          if [ "$INCLUDE_EDEM" = true ]; then kinds+=(edem); fi
+
+          # Artifacts are named after their wheel files.
+          names="${kinds[0]}"
+          if [ "${#kinds[@]}" -gt 1 ]; then
+            names="{$(IFS=,; echo "${kinds[*]}")}"
+          fi
+          {
+            echo "kinds=${kinds[*]}"
+            echo "pattern=cudaq_${names}-*-cp312-*manylinux_2_28_${arch}.whl"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Download Python wheels
+        if: inputs.include_logical || inputs.include_edem
         uses: actions/download-artifact@v8
         with:
-          pattern: cudaq_logical-*-cp312-*manylinux_2_28_${{ steps.logical_wheel.outputs.arch }}.whl
-          path: docker/release/logical-wheels
+          pattern: ${{ steps.wheels.outputs.pattern }}
+          path: docker/release/wheels
           merge-multiple: true
           skip-decompress: true
 
-      - name: Check CUDA-Q Logical wheel download
-        if: inputs.include_logical
+      - name: Check Python wheel download
+        if: inputs.include_logical || inputs.include_edem
         shell: bash
+        env:
+          KINDS: ${{ steps.wheels.outputs.kinds }}
         run: |
           shopt -s nullglob
-          wheels=(docker/release/logical-wheels/cudaq_logical-*.whl)
-          if [ "${#wheels[@]}" -ne 1 ]; then
-            echo "::error::Expected exactly one cudaq.logical wheel, found ${#wheels[@]}."
+          for kind in $KINDS; do
+            wheels=(docker/release/wheels/cudaq_${kind}-*.whl)
+            if [ "${#wheels[@]}" -ne 1 ]; then
+              echo "::error::Expected exactly one cudaq-${kind} wheel, found ${#wheels[@]}."
+              exit 1
+            fi
+          done
+          # Nothing else may have matched the pattern.
+          wheels=(docker/release/wheels/*)
+          if [ "${#wheels[@]}" -ne "$(wc -w <<< "$KINDS")" ]; then
+            echo "::error::Unexpected files in docker/release/wheels: ${wheels[*]}"
             exit 1
           fi
 
@@ -816,6 +847,7 @@ jobs:
             release_version=${{ steps.prereqs.outputs.image_tag }}
             deprecation_notice=${{ steps.prereqs.outputs.deprecation_notice }}
             include_logical=${{ inputs.include_logical }}
+            include_edem=${{ inputs.include_edem }}
           tags: ${{ steps.cudaq_metadata.outputs.tags }}
           labels: ${{ steps.cudaq_metadata.outputs.labels }}
           platforms: ${{ inputs.platforms }}

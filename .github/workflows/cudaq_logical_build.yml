@@ -399,6 +399,16 @@ jobs:
           name: ${{ env.METAPACKAGE_ARTIFACT_NAME }}
           path: dist
 
+      # The cudaq metapackage depends on the matching cudaq-edem wheel, which
+      # the workflow that provides the metapackage builds in the same run.
+      - name: Download cudaq-edem wheels
+        if: ${{ env.METAPACKAGE_ARTIFACT_NAME != '' }}
+        uses: actions/download-artifact@v8
+        with:
+          pattern: cudaq_edem-*
+          path: dist
+          merge-multiple: true
+
       - name: Install uv
         uses: astral-sh/setup-uv@v10.3.2
         with:

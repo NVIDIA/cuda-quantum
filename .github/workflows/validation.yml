@@ -688,11 +688,13 @@ jobs:
           github-token: ${{ github.token }}
           merge-multiple: true
 
-      - name: Load matching EDEM wheels
+      - name: Load cudaq-edem wheels
         uses: actions/download-artifact@v8
         with:
           pattern: 'cudaq_edem-*'
           path: /tmp/wheels
+          run-id: ${{ needs.metadata.outputs.deployment_id }}
+          github-token: ${{ github.token }}
           merge-multiple: true
 
       - name: Load metapackage
@@ -827,11 +829,13 @@ jobs:
           github-token: ${{ github.token }}
           merge-multiple: true
 
-      - name: Load matching EDEM wheels
+      - name: Load cudaq-edem wheels
         uses: actions/download-artifact@v8
         with:
           pattern: 'cudaq_edem-*'
           path: /tmp/wheels
+          run-id: ${{ needs.metadata.outputs.deployment_id }}
+          github-token: ${{ github.token }}
           merge-multiple: true
 
       - name: Load metapackage

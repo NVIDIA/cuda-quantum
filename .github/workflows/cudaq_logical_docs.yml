@@ -168,6 +168,14 @@ jobs:
           name: ${{ env.METAPACKAGE_ARTIFACT_NAME }}
           path: dist
 
+      # The cudaq metapackage depends on the matching cudaq-edem wheel.
+      - name: Download cudaq-edem wheels
+        uses: actions/download-artifact@v8
+        with:
+          pattern: cudaq_edem-*
+          path: dist
+          merge-multiple: true
+
       - name: Install cudaq.logical
         shell: bash
         run: |
