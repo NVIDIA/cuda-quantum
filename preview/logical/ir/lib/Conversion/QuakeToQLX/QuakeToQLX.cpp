@@ -1747,7 +1747,7 @@ private:
     if (!state.wireOwners.empty())
       return function.emitOpError()
              << "leaves " << state.wireOwners.size()
-             << " live quantum owner(s); measure, sink, or return every wire";
+             << " live quantum value(s); measure, sink, or return every wire";
 
     if (body->empty() || !isa<qlx::ReturnOp>(body->back()))
       qlx::ReturnOp::create(builder, function.getLoc());
