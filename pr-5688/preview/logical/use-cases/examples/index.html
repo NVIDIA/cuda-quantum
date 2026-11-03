@@ -1,0 +1,421 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CUDA-Q Logical by Example &mdash; CUDA-Q Logical  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/sphinx-design.min.css?v=95c83b7e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/design-tabs.js?v=f930bc37"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Logical Resource Estimate" href="logical-resource-estimate.html" />
+    <link rel="prev" title="Core concepts" href="../../getting-started/concepts.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #76b900" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            CUDA-Q Logical
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Getting started</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../getting-started/quickstart.html">Quick start</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/quickstart.html#use-a-cuda-q-kernel">Use a CUDA-Q kernel</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/quickstart.html#write-a-standalone-logical-program">Write a standalone logical program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/quickstart.html#build-from-source">Build from source</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/quickstart.html#where-to-go-next">Where to go next</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-started/cudaq-logical-in-practice.html">The logical programming stack</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/cudaq-logical-in-practice.html#compile-and-estimate-the-logical-program">1. Compile and estimate the logical program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/cudaq-logical-in-practice.html#choose-the-code-and-its-implementations">2. Choose the code and its implementations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/cudaq-logical-in-practice.html#describe-the-device">3. Describe the device</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/cudaq-logical-in-practice.html#place-and-realize-the-program">4. Place and realize the program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/cudaq-logical-in-practice.html#schedule-and-estimate-the-physical-resources">5. Schedule and estimate the physical resources</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/cudaq-logical-in-practice.html#expose-the-device-as-a-cuda-q-target">6. Expose the device as a CUDA-Q target</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/cudaq-logical-in-practice.html#where-to-go-next">Where to go next</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../getting-started/concepts.html">Core concepts</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/concepts.html#logical-programs-and-quantum-values">Logical programs and quantum values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/concepts.html#definitions-builds-and-compilation">Definitions, builds, and compilation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/concepts.html#clifford-t-decomposition">Clifford+T decomposition</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/concepts.html#codes-and-operation-implementations">Codes and operation implementations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/concepts.html#devices-and-placement">Devices and placement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/concepts.html#schedules-and-resource-estimates">Schedules and resource estimates</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../getting-started/concepts.html#cuda-q-integration">CUDA-Q integration</a></li>
+</ul>
+</li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">CUDA-Q Logical by Example</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#cuda-q-kernel-examples">CUDA-Q kernel examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="logical-resource-estimate.html">Logical Resource Estimate</a></li>
+<li class="toctree-l3"><a class="reference internal" href="clifford-t.html">Clifford+T Synthesis</a></li>
+<li class="toctree-l3"><a class="reference internal" href="cudaq-resource-estimate.html">CUDA-Q Logical Resource Estimate</a></li>
+<li class="toctree-l3"><a class="reference internal" href="fermi-hubbard.html">Fermi–Hubbard Estimation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="carbon-code.html">Carbon Code Target</a></li>
+<li class="toctree-l3"><a class="reference internal" href="gidney-ekera.html">Gidney–Ekerå RSA</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#standalone-compiler-examples">Standalone compiler examples</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="p0-bell.html">Portable P0 Bell Program</a></li>
+<li class="toctree-l3"><a class="reference internal" href="p1-placement.html">P1 Placement</a></li>
+<li class="toctree-l3"><a class="reference internal" href="code-and-gadget.html">Code and Gadget</a></li>
+<li class="toctree-l3"><a class="reference internal" href="physical-schedule.html">Standalone Physical Schedule</a></li>
+<li class="toctree-l3"><a class="reference internal" href="steane-bernstein-vazirani.html">Steane-Encoded Bernstein–Vazirani on Stim</a></li>
+<li class="toctree-l3"><a class="reference internal" href="distillation.html">T-State Distillation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="t-factory-evaluation.html">T-State Distillation with <code class="docutils literal notranslate"><span class="pre">cudaq.run</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="lookup-addition.html">Gidney–Ekerå Lookup Addition</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#gadget-verification-and-error-models">Gadget verification and error models</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="gadget-verification.html">Verify an Authored Gadget</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="gadget-verification.html#author-the-realization-and-its-claim">Author the realization and its claim</a></li>
+<li class="toctree-l4"><a class="reference internal" href="gadget-verification.html#declare-the-detector-contract">Declare the detector contract</a></li>
+<li class="toctree-l4"><a class="reference internal" href="gadget-verification.html#inspect-a-successful-receipt">Inspect a successful receipt</a></li>
+<li class="toctree-l4"><a class="reference internal" href="gadget-verification.html#inspect-an-incorrect-logical-claim">Inspect an incorrect logical claim</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="gadget-surface-memory.html">Physical Surface-Code Memory</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="gadget-surface-memory.html#select-preparation-extraction-and-readout">Select preparation, extraction, and readout</a></li>
+<li class="toctree-l4"><a class="reference internal" href="gadget-surface-memory.html#verify-the-ideal-behavior">Verify the ideal behavior</a></li>
+<li class="toctree-l4"><a class="reference internal" href="gadget-surface-memory.html#emit-a-circuit-and-derive-its-model">Emit a circuit and derive its model</a></li>
+<li class="toctree-l4"><a class="reference internal" href="gadget-surface-memory.html#save-and-optionally-sample">Save and optionally sample</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="stim-emission.html">Surface-Memory Stim Export</a></li>
+<li class="toctree-l3"><a class="reference internal" href="memory-edem.html">Surface-Memory Error Model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="surface-memory-circuit.html">Surface-Memory Reference Comparison</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="surface-memory-circuit.html#run-the-example">Run the example</a></li>
+<li class="toctree-l4"><a class="reference internal" href="surface-memory-circuit.html#select-the-concrete-gadgets">Select the concrete gadgets</a></li>
+<li class="toctree-l4"><a class="reference internal" href="surface-memory-circuit.html#verify-the-ideal-behavior">Verify the ideal behavior</a></li>
+<li class="toctree-l4"><a class="reference internal" href="surface-memory-circuit.html#project-the-realization-and-choose-physical-noise">Project the realization and choose physical noise</a></li>
+<li class="toctree-l4"><a class="reference internal" href="surface-memory-circuit.html#emit-the-circuit-and-reuse-gadget-models">Emit the circuit and reuse gadget models</a></li>
+<li class="toctree-l4"><a class="reference internal" href="surface-memory-circuit.html#export-the-original-models">Export the original models</a></li>
+<li class="toctree-l4"><a class="reference internal" href="surface-memory-circuit.html#compare-with-stim-and-choose-a-sampler">Compare with Stim and choose a sampler</a></li>
+<li class="toctree-l4"><a class="reference internal" href="surface-memory-circuit.html#physical-schedule-and-reference-equivalence">Physical schedule and reference equivalence</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Use cases</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../define-a-code.html">Defining codes</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../define-a-code.html#css-codes-state-the-checks-once">CSS codes: state the checks once</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../define-a-code.html#distance-is-evidence-not-an-integer">Distance is evidence, not an integer</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../define-a-code.html#the-catalog-and-parameterized-families">The catalog and parameterized families</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../define-a-code.html#what-you-get-for-free">What you get for free</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../define-a-code.html#where-to-go-next">Where to go next</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../gadgets-and-verification.html">Gadgets and verification</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../gadgets-and-verification.html#what-implements-takes">What <code class="docutils literal notranslate"><span class="pre">implements=</span></code> takes</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../gadgets-and-verification.html#author-the-action-in-cuda-q-logical">Author the action in CUDA-Q Logical</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../gadgets-and-verification.html#reuse-a-cuda-q-kernel-as-the-claim">Reuse a CUDA-Q kernel as the claim</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../gadgets-and-verification.html#what-the-signature-and-body-add">What the signature and body add</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../gadgets-and-verification.html#typed-records-at-the-boundary">Typed records at the boundary</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../gadgets-and-verification.html#preparation-and-destructive-measurement">Preparation and destructive measurement</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../gadgets-and-verification.html#selection-retry-and-postselection-belong-to-the-protocol">Selection: retry and postselection belong to the protocol</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../gadgets-and-verification.html#verification-claims-are-checked-not-trusted">Verification: claims are checked, not trusted</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../gadgets-and-verification.html#design-rules-that-keep-the-model-crisp">Design rules that keep the model crisp</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../gadgets-and-verification.html#where-to-go-next">Where to go next</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../devices-and-placement.html">Devices and placement</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../devices-and-placement.html#machines-devices-architectures">Machines, devices, architectures</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../devices-and-placement.html#stop-at-the-layer-your-study-needs">Stop at the layer your study needs</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../devices-and-placement.html#automatic-placement-constraints-preferences-witnesses">Automatic placement: constraints, preferences, witnesses</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../devices-and-placement.html#code-agnostic-p1">Code-agnostic P1</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../devices-and-placement.html#where-the-firewall-pays-off">Where the firewall pays off</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../devices-and-placement.html#continue-from-here">Continue from here</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../magic-states-and-protocols.html">Magic states and protocols</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../magic-states-and-protocols.html#phase-convention">Phase convention</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../magic-states-and-protocols.html#authoring-exact-angles-with-cudaq-logical-algebra-pi">Authoring exact angles with <code class="docutils literal notranslate"><span class="pre">cudaq.logical.algebra.pi</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../magic-states-and-protocols.html#typed-resource-kinds">Typed resource kinds</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../magic-states-and-protocols.html#to-1-a-concrete-factory">15-to-1: a concrete factory</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../magic-states-and-protocols.html#compact-factory-models-at-p3">Compact factory models at P3</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../magic-states-and-protocols.html#continue-from-here">Continue from here</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../logical-synthesis.html">Logical Clifford+T synthesis</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../logical-synthesis.html#synthesize-a-program">Synthesize a program</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../logical-synthesis.html#precision">Precision</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../logical-synthesis.html#inspect-and-replay-the-result">Inspect and replay the result</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../logical-synthesis.html#use-the-pipeline-form">Use the pipeline form</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../logical-synthesis.html#pauli-based-computation-still-at-p0">Pauli-based computation, still at P0</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../logical-synthesis.html#when-not-to-synthesize">When not to synthesize</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../logical-synthesis.html#continue-from-here">Continue from here</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../estimation.html">Resource estimation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../estimation.html#tier-logical-cost-the-algorithm-before-any-qec-choice"><code class="docutils literal notranslate"><span class="pre">Tier.LOGICAL</span></code> — cost the algorithm before any QEC choice</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../estimation.html#tier-static-count-one-selected-p2-realization"><code class="docutils literal notranslate"><span class="pre">Tier.STATIC</span></code> — count one selected P2 realization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../estimation.html#tier-analytical-apply-an-explicit-physical-model"><code class="docutils literal notranslate"><span class="pre">Tier.ANALYTICAL</span></code> — apply an explicit physical model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../estimation.html#tier-schedule-cost-the-physical-event-graph"><code class="docutils literal notranslate"><span class="pre">Tier.SCHEDULE</span></code> — cost the physical event graph</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../estimation.html#the-rules-that-keep-estimates-honest">The rules that keep estimates honest</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../estimation.html#direct-spellings">Direct spellings</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../estimation.html#sweeps-and-reproducibility">Sweeps and reproducibility</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../estimation.html#paper-specific-projections-live-in-the-open">Paper-specific projections live in the open</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../estimation.html#estimating-ordinary-cuda-q-kernels">Estimating ordinary CUDA-Q kernels</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../stim-emission.html">Stim emission</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../stim-emission.html#export-a-surface-code-memory-with-detector-contracts">Export a surface-code memory with detector contracts</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../stim-emission.html#read-the-exported-circuit">Read the exported circuit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stim-emission.html#choose-the-experiment-size-and-noise">Choose the experiment size and noise</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stim-emission.html#build-preparation-storage-and-readout">Build preparation, storage, and readout</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stim-emission.html#describe-which-results-signal-errors">Describe which results signal errors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stim-emission.html#assemble-the-experiment-and-add-data-errors">Assemble the experiment and add data errors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stim-emission.html#save-the-stim-circuit">Save the Stim circuit</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stim-emission.html#sample-and-interpret-the-results">Sample and interpret the results</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stim-emission.html#customize-the-experiment">Customize the experiment</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../stim-emission.html#native-mlir-emission">Native MLIR emission</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../stim-emission.html#emit-from-the-command-line">Emit from the command line</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../stim-emission.html#fail-closed-boundaries">Fail-closed boundaries</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../stim-emission.html#where-to-go-next">Where to go next</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../gadget-edems.html">Derive an error model from gadgets</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../gadget-edems.html#what-an-edem-records">What an EDEM records</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../gadget-edems.html#derive-a-surface-memory-model">Derive a surface-memory model</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../gadget-edems.html#import-the-libraries">Import the libraries</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../gadget-edems.html#configure-the-experiment">Configure the experiment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../gadget-edems.html#select-the-gadget-contracts">Select the gadget contracts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../gadget-edems.html#choose-where-faults-occur">Choose where faults occur</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../gadget-edems.html#derive-and-compose-the-model">Derive and compose the model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../gadget-edems.html#inspect-the-model">Inspect the model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../gadget-edems.html#save-and-reload-the-model">Save and reload the model</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../gadget-edems.html#sample-the-model">Sample the model</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../gadget-edems.html#going-further">Going further</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../gadget-edems.html#specify-faults">Specify faults</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../gadget-edems.html#derive-models-stage-by-stage">Derive models stage by stage</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../gadget-edems.html#contract-checks-during-derivation">Contract checks during derivation</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../reference/detector-contracts.html">Detector contracts and Clifford projection</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/detector-contracts.html#gadget-terminology">Gadget terminology</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../reference/detector-contracts.html#compatibility-spellings">Compatibility spellings</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/detector-contracts.html#virtual-syndromes-and-boundary-errors">Virtual syndromes and boundary errors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/detector-contracts.html#detector-map-and-outcome-map">Detector map and outcome map</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/detector-contracts.html#recipe-provided-contracts">Recipe-provided contracts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/detector-contracts.html#declare-a-contract">Declare a contract</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="../../reference/detector-contracts.html#declare-a-default-contract">Declare a default contract</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/detector-contracts.html#verify-a-contract-and-the-logical-action">Verify a contract and the logical action</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/detector-contracts.html#project-the-realization">Project the realization</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/detector-contracts.html#boundary-for-edem-producers">Boundary for EDEM producers</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference/for-stim-users.html">CUDA-Q Logical for Stim users</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/for-stim-users.html#the-translation-table">The translation table</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/for-stim-users.html#execute-a-physical-build">Execute a physical build</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/for-stim-users.html#worked-emission">Worked emission</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/for-stim-users.html#what-has-no-stim-equivalent">What has no Stim equivalent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/for-stim-users.html#when-to-just-use-stim">When to just use Stim</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference/capabilities.html">Capabilities and status</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/capabilities.html#what-the-product-is">What the product is</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/capabilities.html#subsystem-status">Subsystem status</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/capabilities.html#present-but-not-yet-exercised">Present but not yet exercised</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/capabilities.html#execution-and-documented-boundaries">Execution and documented boundaries</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference/architecture.html">Architecture</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/architecture.html#the-dialect-stack">The dialect stack</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/architecture.html#the-semantic-spine-and-its-facets">The semantic spine and its facets</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/architecture.html#definitions-versus-builds">Definitions versus builds</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/architecture.html#the-artifact-model">The artifact model</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/architecture.html#data-ownership">Data ownership</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/architecture.html#the-compile-pipeline">The compile pipeline</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/architecture.html#the-p2-patch-graph">The P2 patch graph</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/architecture.html#verification-layers">Verification layers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/architecture.html#typed-inspection">Typed inspection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/architecture.html#package-map">Package map</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/architecture.html#extensibility">Extensibility</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/architecture.html#where-to-go-next">Where to go next</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference/building-against-cudaq.html">Building against CUDA-Q</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="../../reference/building-against-cudaq.html#build-edem-and-logical-separately">Build EDEM and Logical separately</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">CUDA-Q</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference external" href="https://nvidia.github.io/cuda-quantum/latest/">Main CUDA-Q documentation</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #76b900" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">CUDA-Q Logical</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">CUDA-Q Logical by Example</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/use-cases/examples/index.md.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul><div class="rst-breadcrumbs-buttons" role="navigation" aria-label="Sequential page navigation">
+        <a href="../../getting-started/concepts.html" class="btn btn-neutral float-left" title="Core concepts" accesskey="p"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="logical-resource-estimate.html" class="btn btn-neutral float-right" title="Logical Resource Estimate" accesskey="n">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+  </div>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section class="tex2jax_ignore mathjax_ignore" id="cuda-q-logical-by-example">
+<h1>CUDA-Q Logical by Example<a class="headerlink" href="#cuda-q-logical-by-example" title="Link to this heading"></a></h1>
+<p>The numbered Python programs and <code class="docutils literal notranslate"><span class="pre">steane_bell_e2e_workflow.py</span></code> under
+<code class="docutils literal notranslate"><span class="pre">preview/logical/examples/</span></code> run in the test suite. The top-level sequence uses
+ordinary CUDA-Q kernels and target stacks; the standalone sequence exposes
+each CUDA-Q Logical compiler stage directly. The gadget sequence introduces
+verification and detector error models separately: start with one authored
+gadget, then build a physical surface-code memory experiment.</p>
+<p>For one computation across both routes, follow the
+<a class="reference internal" href="../../getting-started/cudaq-logical-in-practice.html"><span class="std std-doc">Steane Bell-pair walkthrough</span></a>.</p>
+<section id="cuda-q-kernel-examples">
+<h2>CUDA-Q kernel examples<a class="headerlink" href="#cuda-q-kernel-examples" title="Link to this heading"></a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="logical-resource-estimate.html">Logical Resource Estimate</a></li>
+<li class="toctree-l1"><a class="reference internal" href="clifford-t.html">Clifford+T Synthesis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cudaq-resource-estimate.html">CUDA-Q Logical Resource Estimate</a></li>
+<li class="toctree-l1"><a class="reference internal" href="fermi-hubbard.html">Fermi–Hubbard Estimation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="carbon-code.html">Carbon Code Target</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gidney-ekera.html">Gidney–Ekerå RSA</a></li>
+</ul>
+</div>
+</section>
+<section id="standalone-compiler-examples">
+<h2>Standalone compiler examples<a class="headerlink" href="#standalone-compiler-examples" title="Link to this heading"></a></h2>
+<p>Examples 00–03 introduce authoring, placement, code and gadget definitions,
+and physical scheduling. Continue with encoded execution (06), or factory
+protocols and evaluation (07–08).
+Example 09 combines synthesis, factory provisioning, estimation, and scheduling
+in a lookup-addition capstone.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="p0-bell.html">Portable P0 Bell Program</a></li>
+<li class="toctree-l1"><a class="reference internal" href="p1-placement.html">P1 Placement</a></li>
+<li class="toctree-l1"><a class="reference internal" href="code-and-gadget.html">Code and Gadget</a></li>
+<li class="toctree-l1"><a class="reference internal" href="physical-schedule.html">Standalone Physical Schedule</a></li>
+<li class="toctree-l1"><a class="reference internal" href="steane-bernstein-vazirani.html">Steane-Encoded Bernstein–Vazirani on Stim</a></li>
+<li class="toctree-l1"><a class="reference internal" href="distillation.html">T-State Distillation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="t-factory-evaluation.html">T-State Distillation with <code class="docutils literal notranslate"><span class="pre">cudaq.run</span></code></a></li>
+<li class="toctree-l1"><a class="reference internal" href="lookup-addition.html">Gidney–Ekerå Lookup Addition</a></li>
+</ul>
+</div>
+</section>
+<section id="gadget-verification-and-error-models">
+<h2>Gadget verification and error models<a class="headerlink" href="#gadget-verification-and-error-models" title="Link to this heading"></a></h2>
+<p>Start with <a class="reference internal" href="gadget-verification.html"><span class="std std-doc">Verify an authored gadget</span></a> and
+<a class="reference internal" href="gadget-surface-memory.html"><span class="std std-doc">Physical surface-code memory</span></a>. The optional
+<a class="reference internal" href="../stim-emission.html"><span class="std std-doc">Stim-emission tutorial</span></a> uses ideal MPP measurements, and
+the <a class="reference internal" href="../gadget-edems.html"><span class="std std-doc">custom-noise tutorial</span></a> derives models with an explicit
+fault factory. The reference comparison below adds individual model exports
+and two sampling paths to the physical-memory workflow.</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="gadget-verification.html">Verify an Authored Gadget</a></li>
+<li class="toctree-l1"><a class="reference internal" href="gadget-surface-memory.html">Physical Surface-Code Memory</a></li>
+<li class="toctree-l1"><a class="reference internal" href="stim-emission.html">Surface-Memory Stim Export</a></li>
+<li class="toctree-l1"><a class="reference internal" href="memory-edem.html">Surface-Memory Error Model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="surface-memory-circuit.html">Surface-Memory Reference Comparison</a></li>
+</ul>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../../getting-started/concepts.html" class="btn btn-neutral float-left" title="Core concepts" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="logical-resource-estimate.html" class="btn btn-neutral float-right" title="Logical Resource Estimate" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright Copyright © 2026, NVIDIA Corporation &amp; affiliates. All rights reserved..</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
