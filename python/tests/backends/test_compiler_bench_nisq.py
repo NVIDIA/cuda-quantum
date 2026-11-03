@@ -186,31 +186,40 @@ def prepare_1101_measure_each():
     mz(q[3])
 
 
+# The `quake-mapped` stage unrolls loops shorter than 1024 iterations whatever
+# the target's `max_unroll_iterations`, so the loop must be at least that long
+# to reach `qubit-mapping` rolled. Simulating each routed iteration is slow, so
+# it is only just longer.
 @cudaq.kernel
 def rolled_loop():
     q = cudaq.qvector(4)
     x(q[0])
-    for i in range(2000):
+    for i in range(1026):
         x.ctrl(q[0], q[3])
         h(q[1])
         h(q[2])
 
 
-def test_routed_sample_in_kernel_order():
+@pytest.mark.parametrize("level", range(4))
+def test_routed_sample_in_kernel_order(level):
     """`sample` applies the mapper's reorder index, except with
     `explicit_measurements`, whose results are in execution order. `q[2]` is
     idle, so the level-1 `dqe` would remove it unless `sample` measured first.
     A loop longer than the unroll limit carries device qubits into the
     simulator; it runs an even number of times."""
     set_target_on_device('path(4)')
-    counts = cudaq.sample(prepare_1101, shots_count=10)
+    counts = cudaq.sample(prepare_1101,
+                          shots_count=10,
+                          optimization_level=level)
     assert counts.most_probable() == '1101'
     assert len(counts) == 1
     counts = cudaq.sample(prepare_1101_measure_each,
                           shots_count=10,
-                          explicit_measurements=True)
+                          explicit_measurements=True,
+                          optimization_level=level)
     assert counts.get_sequential_data() == ['1101'] * 10
-    assert cudaq.sample(rolled_loop, shots_count=10).most_probable() == '1000'
+    assert cudaq.sample(rolled_loop, shots_count=10,
+                        optimization_level=level).most_probable() == '1000'
 
 
 @cudaq.kernel
