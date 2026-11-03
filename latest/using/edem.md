@@ -2133,9 +2133,30 @@ locate its package configuration through the same Python environment:
 :::
 :::
 
-Wheels use CPython and platform compatibility tags. CI produces wheel
-and source-distribution artifacts; public release publishing is a
-separate step.
+Wheels use CPython and platform compatibility tags. The Deployments
+workflow builds Linux wheels for CPython 3.11 through 3.14 in a
+[`manylinux_2_28`{.docutils .literal .notranslate}]{.pre} container
+([`.github/workflows/edem_wheels.yml`{.docutils .literal
+.notranslate}]{.pre}), repairs them with [`auditwheel`{.docutils
+.literal .notranslate}]{.pre}, and runs [`check_wheel.py`{.docutils
+.literal .notranslate}]{.pre} on the repaired wheel. It attaches the
+wheels and the source distribution to the draft release. The
+[`cudaq`{.docutils .literal .notranslate}]{.pre} package depends on the
+exact [`cudaq-edem`{.docutils .literal .notranslate}]{.pre} version from
+[`CUDAQ_EDEM_VERSION`{.docutils .literal .notranslate}]{.pre} on Linux,
+so [`pip`{.docutils .literal .notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`install`{.docutils .literal
+.notranslate}]{.pre}` `{.docutils .literal
+.notranslate}[`cudaq`{.docutils .literal .notranslate}]{.pre} installs
+it. PyPI never accepts a second upload of a version, so a Deployments
+run that creates a release fails if [`CUDAQ_EDEM_VERSION`{.docutils
+.literal .notranslate}]{.pre} is already on PyPI with different sources
+(see [`edem/scripts/check_pypi_version.py`{.docutils .literal
+.notranslate}]{.pre}). Bump the version before publishing changes. The
+Deployments release images also install the Python 3.12 wheel into the
+system Python. Publish [`cudaq-edem`{.docutils .literal
+.notranslate}]{.pre} to PyPI before [`cudaq`{.docutils .literal
+.notranslate}]{.pre}.
 :::
 
 ::: {#cuda-q-build .section}
