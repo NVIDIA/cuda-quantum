@@ -347,15 +347,17 @@ hybridLaunchKernel(const char *kernelName, KernelThunkType kernel, void *args,
 
 #define CONCAT(a, b) CONCAT_INNER(a, b)
 #define CONCAT_INNER(a, b) a##b
+// Not thread_local. The platform is process-wide and must outlive the thread
+// that created it.
 #define CUDAQ_REGISTER_PLATFORM(NAME, PRINTED_NAME)                            \
   extern "C" {                                                                 \
   cudaq::quantum_platform *getQuantumPlatform() {                              \
-    thread_local static std::unique_ptr<cudaq::quantum_platform> m_platform =  \
+    static std::unique_ptr<cudaq::quantum_platform> m_platform =               \
         std::make_unique<NAME>();                                              \
     return m_platform.get();                                                   \
   }                                                                            \
   cudaq::quantum_platform *CONCAT(getQuantumPlatform_, PRINTED_NAME)() {       \
-    thread_local static std::unique_ptr<cudaq::quantum_platform> m_platform =  \
+    static std::unique_ptr<cudaq::quantum_platform> m_platform =               \
         std::make_unique<NAME>();                                              \
     return m_platform.get();                                                   \
   }                                                                            \
