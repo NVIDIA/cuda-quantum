@@ -65,9 +65,8 @@ int main() {
   mlir::OwningOpRef<mlir::ModuleOp> module(
       mlir::ModuleOp::create(mlir::UnknownLoc::get(&context)));
   auto invoke = [&](cudaq_gf2_owned_buffer *output) {
-    return qlxDeriveGadgetEDEM(wrap(*module),
-                               mlirStringRefCreateFromCString(""),
-                               mlirStringRefCreateFromCString(""), output);
+    return qlxDeriveGadgetEDEM(wrap(*module), mlirStringRefCreate("", 0),
+                               mlirStringRefCreate("", 0), output);
   };
 
   require(mlirLogicalResultIsFailure(invoke(nullptr)), "reject null output");
