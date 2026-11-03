@@ -471,7 +471,6 @@ jobs:
           esac
 
           python -m pytest preview/logical/python/tests/cudaq/logical -v
-          python -m pytest docker/test/wheels/integration/test_logical_release_install.py -v
 
       - name: Upload schedule dumps from failed tests
         if: failure()

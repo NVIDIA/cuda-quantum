@@ -20,7 +20,7 @@ import zipfile
 
 import pytest
 
-ROOT = Path(__file__).resolve().parents[4]
+ROOT = Path(__file__).resolve().parents[6]
 INSTALLER = ROOT / "docker/release/install_logical_wheel.py"
 
 
