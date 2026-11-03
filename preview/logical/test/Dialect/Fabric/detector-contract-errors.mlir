@@ -15,6 +15,8 @@ fabric.gadget_contract @partial for @later {
   fabric.detector {constant = true}
   fabric.observable {idx = 0 : i64}
   fabric.observable {constant = true, idx = 1 : i64}
+  fabric.success {constant = true}
+  fabric.output_syndrome {port_index = 0 : i64, index = 0 : i64}
 }
 
 // -----
@@ -60,5 +62,23 @@ fabric.gadget_contract @nested_observable for @later {
   builtin.module {
     // expected-error @+1 {{must be a direct child of a fabric.gadget_contract}}
     fabric.observable {constant = true, idx = 99 : i64}
+  }
+}
+
+// -----
+
+fabric.gadget_contract @nested_success for @later {
+  builtin.module {
+    // expected-error @+1 {{must be a direct child of a fabric.gadget_contract}}
+    fabric.success {constant = true}
+  }
+}
+
+// -----
+
+fabric.gadget_contract @nested_output_syndrome for @later {
+  builtin.module {
+    // expected-error @+1 {{must be a direct child of a fabric.gadget_contract}}
+    fabric.output_syndrome {port_index = 0 : i64, index = 0 : i64}
   }
 }

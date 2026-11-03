@@ -8346,8 +8346,8 @@ LogicalResult TransportOp::verify() {
 }
 
 LogicalResult SuccessOp::verify() {
-  if (!(*this)->getParentOfType<GadgetContractOp>())
-    return emitOpError("must be nested in a fabric.gadget_contract");
+  if (!isa_and_nonnull<GadgetContractOp>((*this)->getParentOp()))
+    return emitOpError("must be a direct child of a fabric.gadget_contract");
   if ((*this)->hasAttr("expected") || (*this)->hasAttr("scope") ||
       (*this)->hasAttr("label"))
     return emitOpError(
@@ -8377,8 +8377,8 @@ LogicalResult ObservableOp::verify() {
 }
 
 LogicalResult OutputSyndromeOp::verify() {
-  if (!(*this)->getParentOfType<GadgetContractOp>())
-    return emitOpError("must be nested in a fabric.gadget_contract");
+  if (!isa_and_nonnull<GadgetContractOp>((*this)->getParentOp()))
+    return emitOpError("must be a direct child of a fabric.gadget_contract");
   if (getPortIndexAttr().getInt() < 0 || getIndexAttr().getInt() < 0)
     return emitOpError("requires nonnegative port_index and index");
   return success();
