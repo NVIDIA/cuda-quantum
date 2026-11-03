@@ -211,7 +211,7 @@ module attributes {qlx.profiles = ["p2n"]} {
       attributes {objective = #qlx.action<cz>} {
   ^bb0(%a: !fabric.patch<@Toric, @toric_encoding, @epoch0>,
        %state: !fabric.resource<@ccz_state>):
-    // expected-error @+1 {{payload_action must match the enclosing protocol objective}}
+    // expected-error @+1 {{payload_action must match the enclosing protocol action}}
     %next:2 = fabric.unpack_resource %state like(%a) {
       payload_action = #qlx.action<ccz>,
       payload_logical_block_ids = ["a_block", "a_block", "a_block"],

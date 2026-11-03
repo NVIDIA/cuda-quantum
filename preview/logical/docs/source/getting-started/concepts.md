@@ -15,7 +15,7 @@ For a runnable introduction to this workflow, see the
 A **logical program** specifies operations on logical qubits independently of
 a QEC code or device. Logical qubits represent the computation's quantum
 information; a QEC implementation protects it using physical qubits.
-Operations include unitary **actions**, such as Hadamard and controlled-X,
+Logical **actions** include unitary gates, such as Hadamard and controlled-X,
 and **instruments**, such as preparation and measurement.
 Measurements produce classical results; the Bell program returns two Boolean
 Z-basis outcomes. You can author the workload as a CUDA-Q kernel or directly
@@ -118,8 +118,8 @@ An **encoding** defines the interface to a code's logical qubits.
 encoded block; `cql.patch[Steane]` uses the default encoding, and `block.data`
 selects its data qubits.
 
-An **objective** states ideal logical behavior. A **gadget** implements that
-behavior on encoded patches, with `implements=` identifying the objective:
+An **action** states ideal logical behavior. A **gadget** implements that
+behavior on encoded patches, with `implements=` identifying the action:
 
 ```{literalinclude} ../../../examples/steane_bell_e2e_workflow.py
 :language: python
@@ -131,6 +131,21 @@ Here, `cql.standard.h` is the ideal logical Hadamard. The body applies Hadamard
 to each Steane data qubit, a **transversal** implementation. Construction and
 compilation check code algebra and gadget boundaries; logical-action
 verification depends on the supported realization class.
+
+A **gadget contract** declares detector relations, logical observables, and
+output-syndrome assignments using the realization's measurement records and
+encoded boundaries. `cql.gadgets.verify_gadget` checks detector contracts and
+supported Clifford unitary actions, single-logical signed X/Z preparations,
+and destructive or preserving X/Z measurements. A default call returns only
+when both checks pass; unsupported objectives raise with an inspection receipt. See
+[Gadgets and verification](../use-cases/gadgets-and-verification.md).
+
+`cql.analysis.edem_from_gadget` derives an extended detector error model from a
+gadget, its declared contract, and explicit faults or a standard noise policy.
+Library gadgets provide default contracts; custom gadgets can declare a
+default or pass `contract=`. EDEMs retain encoded boundaries for composition;
+a closed chain can be projected to a DEM. See
+[Derive an error model from gadgets](../use-cases/gadget-edems.md).
 
 A **QEC architecture** assembles an encoding and its available implementations.
 `QECArchitecture.link_roots` supplies the Bell program's preparation, gate,

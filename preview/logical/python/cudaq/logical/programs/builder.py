@@ -384,12 +384,12 @@ class UnplacedBuilder:
             pop_trace(token)
         self.finish(*_flatten_values(returned))
 
-    def objective_family(self) -> str:
-        """Infer the internal action/instrument family of an ideal objective."""
+    def action_family(self) -> str:
+        """Infer the internal action/instrument family of an ideal action."""
 
-        if self.definition.kind != "objective":
+        if self.definition.kind != "action":
             raise TypeError(
-                "objective-family inference requires @cudaq.logical.objective")
+                "action-family inference requires @cudaq.logical.action")
 
         operations = []
 
@@ -416,7 +416,7 @@ class UnplacedBuilder:
         used_forbidden = sorted(forbidden.intersection(operations))
         if used_forbidden:
             raise TypeError(
-                "@cudaq.logical.objective describes closed ideal behavior and cannot "
+                "@cudaq.logical.action describes closed ideal behavior and cannot "
                 f"contain runtime/resource operations: {used_forbidden!r}")
 
         instrument_ops = {
@@ -433,15 +433,19 @@ class UnplacedBuilder:
                         for value in self.input_types) != sum(
                             str(value) == "!qlx.logical_qubit"
                             for value in self.result_types) else "action")
-        claimed = self.definition.objective_kind
-        if claimed == "action" and inferred != "action":
+        claimed = self.definition.action_kind
+        if claimed == "unitary" and inferred != "action":
             raise TypeError(
-                "@cudaq.logical.objective(kind='action') contains outcome-bearing or "
+                "@cudaq.logical.action(kind='unitary') contains outcome-bearing or "
                 "nonunitary instrument semantics")
-        family = inferred if claimed == "auto" else claimed
+        family = (inferred if claimed == "auto" else
+                  "action" if claimed == "unitary" else claimed)
+        # Preserve the serialized attribute and unitary family spelling.
         self.operation.attributes["objective_kind"] = mlir_ir.StringAttr.get(
             family, context=self.context)
         return family
+
+    objective_family = action_family
 
     def _emit_selection(self, returned):
         selection = self.definition.selection
@@ -518,10 +522,10 @@ class UnplacedBuilder:
                 f"{leaked_linear!r}")
 
     def call(self, definition, args, kwargs):
-        if definition.kind == "objective":
+        if definition.kind == "action":
             if kwargs:
                 raise TypeError(
-                    "composite objective calls do not accept keyword operands")
+                    "composite action calls do not accept keyword operands")
             return self.apply_definition(definition, args, {})
 
         bound = definition.signature.bind(*args, **kwargs)
@@ -615,10 +619,9 @@ class UnplacedBuilder:
         ]
 
     def apply_definition(self, action, values, parameters):
-        if not isinstance(action,
-                          ProgramDefinition) or action.kind != "objective":
+        if not isinstance(action, ProgramDefinition) or action.kind != "action":
             raise TypeError("cudaq.logical.apply expects an "
-                            "@cudaq.logical.objective definition")
+                            "@cudaq.logical.action definition")
         handle = self.transaction.materialize(action)
         family = handle.kind
         if family not in {"action", "instrument"}:
@@ -842,7 +845,7 @@ class UnplacedBuilder:
         operands, parameters = self._pauli_parameters(product,
                                                       operands=covered_operands)
         values = self._consume_qubits(operands, "qlx.readout")
-        symbol = self.transaction.objective(
+        symbol = self.transaction.action(
             family="instrument",
             name="readout",
             inputs=(self.logical_type,) * len(values),
@@ -1196,11 +1199,10 @@ class UnplacedBuilder:
                     f"logical action {action.name!r} expects {action.arity} operands"
                 )
             objective = _builtin_action(self.context, action.name)
-        elif isinstance(action,
-                        ProgramDefinition) and action.kind == "objective":
+        elif isinstance(action, ProgramDefinition) and action.kind == "action":
             handle = self.transaction.materialize(action)
             if handle.kind != "action":
-                raise TypeError("consume action= requires an action objective")
+                raise TypeError("consume action= requires a unitary action")
             objective = mlir_ir.FlatSymbolRefAttr.get(handle.symbol,
                                                       context=self.context)
         else:

@@ -28,7 +28,7 @@ module attributes {qlx.profiles = ["p2n"]} {
     } : (!fabric.patch<@c>) -> (!fabric.patch<@c>, i1)
     fabric.return %next, %ready : !fabric.patch<@c>, i1
   } {realization_boundary = {}, spec = @retry_spec}
-  fabric.gadget_profile @retry_profile for @retry_attempt {
+  fabric.gadget_contract @retry_profile for @retry_attempt {
     fabric.success {records = ["retry_attempt.ready.outcome"]}
   }
   fabric.protocol @double_h : (!fabric.patch<@c>) -> !fabric.patch<@c> attributes {objective = #qlx.action<idle>} {

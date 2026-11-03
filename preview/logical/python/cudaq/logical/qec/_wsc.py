@@ -28,7 +28,7 @@ from inspect import Parameter, Signature
 from typing import Any
 
 from ..codes.pinnacle import pinnacle_gb, pinnacle_gb_instance
-from cudaq.logical.programs.decorators import objective
+from cudaq.logical.programs.decorators import action as _action
 from cudaq.logical.types.values import logical_qubit
 from cudaq.logical.ops._impl import (
     cx,
@@ -552,7 +552,7 @@ def _physical_measurement(state, row: PauliRow, check_ancilla: int, *,
     return mz(state.frame[(check_ancilla,)], record=record)
 
 
-def _measurement_objective(code, terms, name, *, sign: int = 1):
+def _measurement_action(code, terms, name, *, sign: int = 1):
     parameter_names = tuple(f"q{logical}" for logical, _ in terms)
 
     def intent(*values):
@@ -578,10 +578,10 @@ def _measurement_objective(code, terms, name, *, sign: int = 1):
         },
         "return": tuple[tuple([logical_qubit] * len(terms) + [bool])],
     }
-    return objective(intent, name=f"{name}_objective")
+    return _action(intent, name=f"{name}_objective")
 
 
-def _global_preparation_objective(code, logical_state, flip, name: str):
+def _global_preparation_action(code, logical_state, flip, name: str):
 
     def intent():
         values = []
@@ -594,10 +594,10 @@ def _global_preparation_objective(code, logical_state, flip, name: str):
     intent.__name__ = intent.__qualname__ = f"{name}_objective"
     intent.__signature__ = Signature((), return_annotation=result_annotation)
     intent.__annotations__ = {"return": result_annotation}
-    return objective(intent, name=intent.__name__)
+    return _action(intent, name=intent.__name__)
 
 
-def _global_cnot_objective(code, name: str):
+def _global_cnot_action(code, name: str):
     controls = tuple(f"control{index}" for index in range(code.k))
     targets = tuple(f"target{index}" for index in range(code.k))
     names = controls + targets
@@ -623,7 +623,7 @@ def _global_cnot_objective(code, name: str):
             item: logical_qubit for item in names
         }, "return": result_annotation
     }
-    return objective(intent, name=intent.__name__)
+    return _action(intent, name=intent.__name__)
 
 
 def _measurement_gadget(
@@ -659,7 +659,7 @@ def _measurement_gadget(
         evidence=
         "arXiv:2511.15989v1 WSC deformation; exact rank/span certificate",
     )
-    intent = _measurement_objective(code, terms, name, sign=sign)
+    intent = _measurement_action(code, terms, name, sign=sign)
 
     def realization(state):
         state = reset(state.frame[scratch])
@@ -775,7 +775,7 @@ class _CSSDefinitionBuilder:
             qubit for qubit in range(code.n) if (flip_mask >> qubit) & 1)
         suffix = "minus" if plus_basis else "one"
         operation = z if plus_basis else x
-        intent = _global_preparation_objective(
+        intent = _global_preparation_action(
             code,
             plus if plus_basis else zero,
             operation,
@@ -843,7 +843,7 @@ class _CSSDefinitionBuilder:
     def transversal_cx(self) -> GadgetDefinition:
         encoding = self.encoding
         code = self.code
-        intent = _global_cnot_objective(code, f"{code.name}_transversal_cx")
+        intent = _global_cnot_action(code, f"{code.name}_transversal_cx")
 
         def realization(control, target):
             return cx(control.data, target.data)

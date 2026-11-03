@@ -20,6 +20,7 @@ import weakref
 import cudaq.mlir.ir as mlir_ir
 
 from cudaq.logical.programs.definition import DefinitionHandle
+from cudaq.logical._core.compat import UNSET as _ALIAS_UNSET, resolve_alias
 from cudaq.logical.experiments.definition import Experiment
 from cudaq.logical.architecture.logical import ProgramValueSchema
 from cudaq.logical.stages import (
@@ -406,7 +407,7 @@ def _validate_v2_retained_p3_links(module) -> None:
         profile = _require_unique_link(
             top_level_index,
             _attr_text(sidecar.attributes["source_profile"]),
-            frozenset({"fabric.gadget_profile"}),
+            frozenset({"fabric.gadget_contract"}),
             "sidecar source profile",
         )
         gadget = _require_unique_link(
@@ -537,7 +538,7 @@ def _validate_v2_selected_p3_links(module, root, bundle) -> None:
                 _require_unique_link(
                     top_level_index,
                     _attr_text(operation.attributes["profile"]),
-                    frozenset({"fabric.gadget_profile"}),
+                    frozenset({"fabric.gadget_contract"}),
                     "call profile",
                 )
         elif operation.name == "phys.move":
@@ -2378,7 +2379,7 @@ class Build:
             "program",
             "kernel",
             "gadget",
-            "gadget_profile",
+            "gadget_contract",
             "protocol",
             "physical_graph",
             "control_plan",
@@ -2619,7 +2620,7 @@ class Build:
             if "kind" in handle.op.attributes:
                 kind = _attr_text(handle.op.attributes["kind"])
                 # "composite" is a family marker, not an objective name; the
-                # composite objective is addressed by its own symbol.
+                # composite action is addressed by its own symbol.
                 if kind != "composite":
                     names.add(kind)
             declared[symbol] = frozenset(names)
@@ -2667,21 +2668,25 @@ class Build:
         self._cache["objective_index"] = index
         return index
 
-    def protocol_for(self, objective):
-        """The gadget/protocol definition that implements ``objective``.
+    def protocol_for(self, action=_ALIAS_UNSET, *, objective=_ALIAS_UNSET):
+        """The gadget/protocol definition that implements ``action``.
 
-        Accepts an objective name (``"idle"``), a logical reference with a
+        Accepts an action name (``"idle"``), a logical reference with a
         ``.name`` (``cudaq.logical.logical.idle``, an
-        ``@cudaq.logical.objective`` definition),
+        ``@cudaq.logical.action`` definition),
         or a materialized handle with a ``.symbol``.  Resolution walks
-        ``fabric.gadget_spec`` objective links, ``fabric.protocol``
-        objective attributes, and ``qlx.qec_lowering`` ``generated_by``
+        legacy ``objective`` links in ``fabric.gadget_spec`` and
+        ``fabric.protocol``, and ``qlx.qec_lowering`` ``generated_by``
         provenance.  Returns ``None`` when nothing implements the
-        objective; when several candidates match, the build root wins if it
+        action; when several candidates match, the build root wins if it
         is among them, otherwise a :class:`LookupError` reports the
         candidate set.
         """
 
+        objective = resolve_alias(action,
+                                  objective,
+                                  name="action",
+                                  legacy_name="objective")
         name = objective
         for attribute in ("name", "symbol"):
             value = getattr(objective, attribute, None)
@@ -2690,7 +2695,7 @@ class Build:
                 break
         if not isinstance(name, str):
             raise TypeError(
-                "protocol_for expects an objective name, a logical objective "
+                "protocol_for expects an action name, a logical action "
                 "reference, or a definition handle")
         name = name.lstrip("@")
         matches = tuple(handle for handle, names in self._objective_index()
@@ -2705,7 +2710,7 @@ class Build:
         candidates = ", ".join(
             f"@{handle.symbol} ({handle.kind})" for handle in matches)
         raise LookupError(
-            f"objective {name!r} is ambiguous in this build: {candidates}")
+            f"action {name!r} is ambiguous in this build: {candidates}")
 
     @property
     def status(self) -> BuildStatus:

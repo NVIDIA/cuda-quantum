@@ -101,7 +101,7 @@ def compile(
     )
     from cudaq.logical.gadgets import (
         GadgetDefinition,
-        GadgetProfile,
+        GadgetContract,
     )
     from cudaq.logical.protocols.definition import ProtocolDefinition
     from cudaq.logical.devices.definition import Device
@@ -379,7 +379,7 @@ def compile(
                     _experiment=_experiment,
                     _transient=True,
                 )
-        elif isinstance(definition, (GadgetDefinition, GadgetProfile)):
+        elif isinstance(definition, (GadgetDefinition, GadgetContract)):
             source = compile(
                 definition,
                 pipeline=pipelines.gadgets(),
@@ -475,7 +475,7 @@ def compile(
                              "dependencies"),
             ),),
         )
-    if isinstance(definition, (GadgetDefinition, GadgetProfile)):
+    if isinstance(definition, (GadgetDefinition, GadgetContract)):
         pipeline = pipeline or pipelines.gadgets()
         if pipeline.output_profile != "p2a":
             raise ValueError("gadget materialization requires a P2A pipeline")
@@ -500,13 +500,13 @@ def compile(
             pipeline=pipeline,
             evidence=(
                 EvidenceRecord(
-                    kind=("gadget_profile_verification" if isinstance(
-                        definition, GadgetProfile) else "gadget_verification"),
+                    kind=("gadget_contract_verification" if isinstance(
+                        definition, GadgetContract) else "gadget_verification"),
                     producer="cudaq-logical-python@0.3",
                     result="pass",
                     obligations=(("typed-boundary", "logical-objective",
                                   "stable-record-expressions") if isinstance(
-                                      definition, GadgetProfile) else
+                                      definition, GadgetContract) else
                                  ("typed-boundary", "logical-objective")),
                 ),
                 linearity,
@@ -795,7 +795,7 @@ def compile(
             machine=None,
             selection=definition.selection,
             kind=definition.kind,
-            objective_kind=definition.objective_kind,
+            action_kind=definition.action_kind,
             name=definition.name,
             metadata=definition.metadata,
             type_hints=definition.type_hints,

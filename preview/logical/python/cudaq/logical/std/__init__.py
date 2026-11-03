@@ -12,22 +12,24 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True, slots=True)
 class LogicalActionRef:
+    """A built-in unitary action reference, distinct from an instrument."""
     name: str
     arity: int
 
     @property
     def operands(self):
         from cudaq.logical.programs.binding import (
-            ObjectiveOperands,
-            standard_objective_operand_names,
+            ActionOperands,
+            standard_action_operand_names,
         )
 
-        return ObjectiveOperands(
-            self, standard_objective_operand_names(self.name, self.arity))
+        return ActionOperands(
+            self, standard_action_operand_names(self.name, self.arity))
 
 
 @dataclass(frozen=True, slots=True)
 class LogicalInstrumentRef:
+    """A built-in action with preparation, measurement, or resource effects."""
     name: str
     arity: int
     result_arity: int
@@ -35,12 +37,12 @@ class LogicalInstrumentRef:
     @property
     def operands(self):
         from cudaq.logical.programs.binding import (
-            ObjectiveOperands,
-            standard_objective_operand_names,
+            ActionOperands,
+            standard_action_operand_names,
         )
 
-        return ObjectiveOperands(
-            self, standard_objective_operand_names(self.name, self.arity))
+        return ActionOperands(
+            self, standard_action_operand_names(self.name, self.arity))
 
 
 @dataclass(frozen=True, slots=True)
@@ -91,8 +93,8 @@ class FrameDomain:
     name: str
 
 
-class ObjectiveFamily(str):
-    """Typed name of one QEC-lowering objective family.
+class ActionFamily(str):
+    """Typed name of one QEC-lowering action family.
 
     A plain ``str`` subclass so ``QECLowering(objective_family=...)`` and
     ``ActionSiteHandle`` comparisons keep their existing string contract while
@@ -102,18 +104,18 @@ class ObjectiveFamily(str):
     __slots__ = ()
 
     def __repr__(self) -> str:
-        return f"ObjectiveFamily({str.__str__(self)!r})"
+        return f"ActionFamily({str.__str__(self)!r})"
 
 
 @dataclass(frozen=True, slots=True)
-class SyndromeExtractionObjective(LogicalInstrumentRef):
-    """Parameterized ideal objective: check extraction on one code.
+class SyndromeExtractionAction(LogicalInstrumentRef):
+    """Parameterized ideal action: check extraction on one code.
 
     ``cudaq.logical.logical.syndrome_extraction(code)`` instances compare
     equal exactly
     when they name the same code artifact. ``result_arity`` is the typed check-
     record width used by the extraction boundary; those records are QEC
-    analysis facts, not Boolean results in the ideal logical objective ABI.
+    analysis facts, not Boolean results in the ideal logical action ABI.
     """
 
     code: object = None
@@ -129,7 +131,7 @@ z = LogicalActionRef("z", 1)
 t = LogicalActionRef("t", 1)
 tdg = LogicalActionRef("tdg", 1)
 idle = LogicalActionRef("idle", 1)
-# ``memory`` is the documentation-friendly name of the idle/memory objective
+# ``memory`` is the documentation-friendly name of the idle/memory action
 # family; it is the same artifact, so selection treats them identically.
 memory = idle
 cx = LogicalActionRef("cx", 2)
@@ -137,7 +139,7 @@ cz = LogicalActionRef("cz", 2)
 ccz = LogicalActionRef("ccz", 3)
 ccx = LogicalActionRef("ccx", 3)
 # Toffoli is the conventional name for controlled-controlled X. Keep it as
-# an alias of the same typed objective, not a second selection family.
+# an alias of the same typed action, not a second selection family.
 toffoli = ccx
 
 prepare_zero = LogicalInstrumentRef("prepare_zero", 0, 1)
@@ -149,20 +151,20 @@ measure_z = LogicalInstrumentRef("measure_z", 1, 1)
 # instrument on typed realization/selection surfaces such as
 # ``@cudaq.logical.protocol(implements=cudaq.logical.logical.mpp)``.
 mpp = LogicalInstrumentRef("mpp", 2, 1)
-# Parameterized Pauli-product rotations use one typed objective name; masks,
+# Parameterized Pauli-product rotations use one typed action name; masks,
 # signs, and angles remain exact action-site specialization parameters.
 pauli_rotation = LogicalActionRef("pauli_rotation", 2)
 
-# Documentation-friendly names are aliases, not a second objective family.
+# Documentation-friendly names are aliases, not a second action family.
 H, S, SDG, X, Y, Z, T, TDG = h, s, sdg, x, y, z, t, tdg
 CX, CZ, CCZ, CCX, TOFFOLI = cx, cz, ccz, ccx, ccx
 PREPARE_ZERO, PREPARE_PLUS, PREPARE_T = prepare_zero, prepare_plus, prepare_t
 MEASURE_X, MEASURE_Z = measure_x, measure_z
 
-# Objective-family tags matched by QEC lowerings (see
+# Action-family tags matched by QEC lowerings (see
 # ``QECLowering(objective_family=...)`` and the P1 action-site classifier).
-pauli_product_measurement = ObjectiveFamily("pauli_product_measurement")
-pauli_product_rotation = ObjectiveFamily("pauli_product_rotation")
+pauli_product_measurement = ActionFamily("pauli_product_measurement")
+pauli_product_rotation = ActionFamily("pauli_product_rotation")
 
 T_STATE = ResourceKind("t_state", consume_action=t)
 Y_STATE = ResourceKind("y_state", consume_action=s)
@@ -203,8 +205,8 @@ def transport(resource: ResourceKind, *, source=None, destination=None):
                            destination=destination)
 
 
-def syndrome_extraction(code) -> SyndromeExtractionObjective:
-    """Typed ideal objective for one round of check extraction on ``code``."""
+def syndrome_extraction(code) -> SyndromeExtractionAction:
+    """Typed ideal action for one round of check extraction on ``code``."""
     from cudaq.logical.codes import (
         Code,
         Encoding,
@@ -220,9 +222,13 @@ def syndrome_extraction(code) -> SyndromeExtractionObjective:
               code.block.partitions.get("sz", 0)) or len(code.stabilizers)
     if not checks:
         raise ValueError(f"code {code.name!r} declares no checks to extract")
-    return SyndromeExtractionObjective(
+    return SyndromeExtractionAction(
         name=f"syndrome_extraction_{code.name}",
         arity=1,
         result_arity=checks,
         code=code,
     )
+
+
+ObjectiveFamily = ActionFamily
+SyndromeExtractionObjective = SyndromeExtractionAction

@@ -8,7 +8,7 @@
 """Rotated-surface QEC architecture recipes.
 
 The reusable definitions operate on live typed patches: four preparations,
-memory, orientation-correct H and fold-S layers, transversal CX, and an
+memory, orientation-correct H and fold-S layers, transversal CX, and a
 selectable WSC product measurement whose generated protocol owns its temporary
 auxiliary patch. The WSC algebra is exact but is not advertised as geometric
 distance-preserving lattice surgery; its serial check extractor has unknown
@@ -26,7 +26,8 @@ from dataclasses import dataclass
 from functools import lru_cache
 from inspect import Parameter, Signature
 from itertools import product as cartesian_product
-import cudaq.logical.architecture as architecture
+from typing import TYPE_CHECKING
+import cudaq.logical.architecture as _architecture
 import cudaq.logical.codes as codes
 import cudaq.logical.devices as devices
 import cudaq.logical.gadgets as gadgets
@@ -35,11 +36,109 @@ import cudaq.logical.protocols as protocols
 import cudaq.logical.qec as qec
 import cudaq.logical.std as standard
 import cudaq.logical.types as types
-from cudaq.logical.programs.decorators import objective as _objective
+from ._surface_profiles import clifford_profile, passthrough_profile
+from ._surface_interleaved import SurfaceInterleavedNZDefinitions
+from cudaq.logical.programs.decorators import action as _action
 
 from . import _wsc
 
-__all__ = ("SurfaceDefinitions", "definitions", "wsc")
+if TYPE_CHECKING:
+    from cudaq.logical.compiler import CliffordProjection, Depolarize1Placement
+
+__all__ = ("SurfaceDefinitions", "SurfaceInterleavedNZDefinitions",
+           "definitions", "interleaved_nz_definitions", "architecture", "wsc",
+           "gadget_contract", "data_depol")
+
+# Gadget identities and the recipe data needed to construct their contracts.
+_profile_specs = {}
+# Exact projections and physical sites declared by the concrete realizations.
+_data_depol_sites = {}
+
+
+def _register_contract(gadget, spec):
+    _profile_specs[gadget] = spec
+    gadget._attach_contract_factory(gadget_contract)
+
+
+@lru_cache(maxsize=None)
+def gadget_contract(gadget: gadgets.GadgetDefinition) -> gadgets.GadgetContract:
+    """Return a contract for a gadget created by this Surface recipe.
+
+    Contracts are cached by gadget identity. Unrelated gadgets raise ValueError,
+    even when they use the same code or name as a recipe gadget.
+    """
+    try:
+        spec = _profile_specs[gadget]
+    except KeyError:
+        raise ValueError(
+            "gadget does not belong to the surface recipe") from None
+    match spec:
+        case ("contract", contract):
+            return contract
+        case ("prepare", builder, basis, prefix):
+            contract = builder._preparation_profile(gadget, basis, prefix)
+            first = builder._check_records(gadget, prefix)[0]
+        case ("memory", builder, rounds):
+            contract = builder._memory_profile(gadget, rounds)
+            first = builder._check_records(gadget,
+                                           "" if rounds == 1 else "round0_")[0]
+        case ("clifford",):
+            return clifford_profile(gadget)
+        case ("readout",):
+            return gadgets.GadgetContract(gadget)
+        case ("pauli",):
+            return passthrough_profile(gadget)
+        case ("wsc", plan):
+            return _wsc.measurement_profile(plan,
+                                            name=f"{gadget.name}_analysis")
+    from cudaq.logical.compiler import compile, project_clifford
+
+    projection = project_clifford(compile(gadget), gadget=gadget.name)
+    measurement = projection.record_indices[first.name]
+    entry = next(op for op in projection.instructions
+                 if op.measurement_start == measurement)
+    port, = projection.interface.inputs or projection.interface.outputs
+    _data_depol_sites[gadget] = (projection, entry.site_id, port.data_carriers)
+    return contract
+
+
+def data_depol(
+    contract: gadgets.GadgetContract,
+    projection: CliffordProjection,
+    probability: float,
+    *,
+    site: str = "before_syndrome",
+) -> tuple[Depolarize1Placement, ...]:
+    """Place a depolarizing channel on each data qubit at a declared site.
+
+    ``contract`` is obtained from ``gadget_contract`` for a Surface gadget.
+    ``projection`` must match that gadget's registered realization, including
+    its physical operations, records and carrier bindings. This function does
+    not compile or change the realization.
+
+    ``before_syndrome`` precedes the first syndrome operation, after any
+    preparation resets and basis changes. It is available on the ideal-MPP
+    preparations and SEC, and on all three interleaved N/Z gadgets. A direct
+    logical readout has no such site and is rejected.
+
+    The result uses the ordinary explicit placements accepted by circuit
+    emission and standard fault construction. ``probability`` is the total
+    nonidentity probability per data qubit: X, Y and Z are exclusive
+    alternatives with probability ``probability / 3`` each. Callers choose
+    which gadget occurrences receive these placements.
+    """
+    from cudaq.logical.compiler import CliffordProjection, Depolarize1Placement
+
+    if not isinstance(contract, gadgets.GadgetContract):
+        raise TypeError("data_depol requires a Surface gadget contract")
+    if not isinstance(projection, CliffordProjection):
+        raise TypeError("data_depol requires a CliffordProjection")
+    if site != "before_syndrome" or contract.gadget not in _data_depol_sites:
+        raise ValueError(f"gadget has no data-noise site {site!r}")
+    expected, before, carriers = _data_depol_sites[contract.gadget]
+    if projection != expected:
+        raise ValueError("projection does not match the gadget realization")
+    return (Depolarize1Placement(before, carriers, probability),)
 
 
 @dataclass(frozen=True, slots=True)
@@ -117,7 +216,7 @@ def _in_packed_span(row: int, basis: tuple[int, ...]) -> bool:
     return row == 0
 
 
-def _global_preparation_objective(code, logical_state, flip, name: str):
+def _global_preparation_action(code, logical_state, flip, name: str):
 
     def intent():
         values = []
@@ -127,10 +226,10 @@ def _global_preparation_objective(code, logical_state, flip, name: str):
         return tuple(values)
 
     result_annotation = tuple[tuple([types.logical_qubit] * code.k)]
-    intent.__name__ = intent.__qualname__ = f"{name}_objective"
+    intent.__name__ = intent.__qualname__ = f"{name}_action"
     intent.__signature__ = Signature((), return_annotation=result_annotation)
     intent.__annotations__ = {"return": result_annotation}
-    return _objective(intent, name=intent.__name__)
+    return _action(intent, name=intent.__name__)
 
 
 def _surface_fold_image(
@@ -234,10 +333,7 @@ def _surface_auxiliary_code(kappa_count: int) -> codes.CSSCode:
     )
 
 
-def _surface_measurement_objective(terms: tuple[str, ...],
-                                   name: str,
-                                   *,
-                                   sign=1):
+def _surface_measurement_action(terms: tuple[str, ...], name: str, *, sign=1):
     names = tuple(f"block{index}" for index in range(len(terms)))
 
     def intent(*values):
@@ -248,7 +344,7 @@ def _surface_measurement_objective(terms: tuple[str, ...],
         return ops.mpp(product if sign > 0 else -product)
 
     result = tuple[tuple([types.logical_qubit] * len(terms) + [bool])]
-    intent.__name__ = intent.__qualname__ = f"{name}_objective"
+    intent.__name__ = intent.__qualname__ = f"{name}_action"
     intent.__signature__ = Signature(
         tuple(
             Parameter(
@@ -264,7 +360,7 @@ def _surface_measurement_objective(terms: tuple[str, ...],
         },
         "return": result,
     }
-    return _objective(intent, name=intent.__name__)
+    return _action(intent, name=intent.__name__)
 
 
 def _controlled_surface_pauli(blocks, auxiliary, control: int,
@@ -387,7 +483,7 @@ def _surface_measurement_artifacts(
     sign_key = "p" if sign > 0 else "m"
     name = (f"surface_{distance}_wsc_{''.join(terms).lower()}_"
             f"{sign_key}_r{rounds}")
-    intent = _surface_measurement_objective(terms, name, sign=sign)
+    intent = _surface_measurement_action(terms, name, sign=sign)
     block_names = tuple(f"block{index}" for index in range(len(terms)))
     result_annotation = tuple[tuple([types.patch[encoding]] * len(terms) +
                                     [bool])]
@@ -535,20 +631,81 @@ class _SurfaceBuilder:
     def n(self) -> int:
         return self.code.n
 
-    def prepare_zero(self):
-        return gadgets.prepare_zero(
-            self.encoding, name=f"surface_{self.distance}_prepare_zero")
+    def _measure_stabilizers(self, block, *, record_prefix=""):
+        for family, checks, pauli in (("x_check", self.code.hx, "X"),
+                                      ("z_check", self.code.hz, "Z")):
+            for index, support in enumerate(checks):
+                block, _ = ops.measure_pauli(
+                    block.data[support],
+                    paulis=pauli * len(support),
+                    record=f"{record_prefix}{family}{index}",
+                )
+        return block
 
+    def _define(self, realization, name, action, *, metadata=None):
+        realization.__name__ = realization.__qualname__ = name
+        realization.__annotations__ = {
+            "block": types.patch[self.encoding],
+            "return": types.patch[self.encoding],
+        }
+        return gadgets.gadget(realization, implements=action, metadata=metadata)
+
+    def _check_records(self, gadget, prefix=""):
+        return tuple(
+            gadget.record(f"{prefix}{family}{i}.outcome")
+            for family, checks in (("x_check", self.code.hx), ("z_check",
+                                                               self.code.hz))
+            for i in range(len(checks)))
+
+    def _preparation_profile(self, gadget, basis, prefix=""):
+        graph = gadgets.GadgetContractBuilder(gadget.interface)
+        records = self._check_records(gadget, prefix)
+        deterministic = (records[:len(self.code.hx)]
+                         if basis == "X" else records[len(self.code.hx):])
+        for record in deterministic:
+            graph.detector(record)
+        graph.bind(gadget.outputs.only().syndrome, records)
+        return graph.freeze()
+
+    def _memory_profile(self, gadget, rounds):
+        graph = gadgets.GadgetContractBuilder(gadget.interface)
+        incoming = gadget.inputs.only().syndrome
+        previous = tuple(incoming[i] for i in range(incoming.width))
+        for index in range(rounds):
+            records = self._check_records(
+                gadget, "" if rounds == 1 else f"round{index}_")
+            for old, current in zip(previous, records):
+                graph.detector(old ^ current)
+            previous = records
+        graph.bind(gadget.outputs.only().syndrome, previous)
+        return graph.freeze()
+
+    @lru_cache(maxsize=None)
+    def prepare_zero(self):
+
+        def realization(block):
+            return self._measure_stabilizers(ops.reset(block.data))
+
+        return self._define(realization, f"{self.code.name}_prepare_zero",
+                            standard.prepare_zero)
+
+    @lru_cache(maxsize=None)
     def prepare_plus(self):
-        return gadgets.prepare_plus(
-            self.encoding, name=f"surface_{self.distance}_prepare_plus")
+
+        def realization(block):
+            block = ops.reset(block.data)
+            block = ops.h(block.data)
+            return self._measure_stabilizers(block)
+
+        return self._define(realization, f"{self.code.name}_prepare_plus",
+                            standard.prepare_plus)
 
     def _flipped_preparation(self, *, plus_basis: bool):
         base = self.prepare_plus() if plus_basis else self.prepare_zero()
         support = self.code.lz[0] if plus_basis else self.code.lx[0]
         operation = ops.z if plus_basis else ops.x
         suffix = "minus" if plus_basis else "one"
-        intent = _global_preparation_objective(
+        intent = _global_preparation_action(
             self.code,
             types.plus if plus_basis else types.zero,
             operation,
@@ -578,30 +735,22 @@ class _SurfaceBuilder:
     def prepare_minus(self):
         return self._flipped_preparation(plus_basis=True)
 
-    def memory(self, rounds: int | None = None):
-        rounds = self.distance if rounds is None else rounds
+    def memory(self, rounds: int = 1):
         if not isinstance(rounds, int) or isinstance(rounds,
                                                      bool) or rounds <= 0:
             raise ValueError("rounds must be a positive int")
-        encoding = self.encoding
 
         def realization(block):
-            for _ in range(rounds):
-                block, _ = ops.extract_syndrome(block)
+            for index in range(rounds):
+                prefix = "" if rounds == 1 else f"round{index}_"
+                block = self._measure_stabilizers(block, record_prefix=prefix)
             return block
 
-        realization.__name__ = realization.__qualname__ = (
-            f"surface_{self.distance}_memory_r{rounds}")
-        realization.__annotations__ = {
-            "block": types.patch[encoding],
-            "return": types.patch[encoding],
-        }
-        return gadgets.gadget(
-            realization,
-            implements=standard.idle,
-            name=realization.__name__,
-            metadata={"syndrome_rounds": rounds},
-        )
+        return self._define(realization,
+                            f"{self.code.name}_memory_round" if rounds == 1 else
+                            f"{self.code.name}_memory_r{rounds}",
+                            standard.idle,
+                            metadata={"syndrome_rounds": rounds})
 
     def _h_permutation(self) -> tuple[int, ...]:
         d = self.distance
@@ -859,7 +1008,7 @@ class _SurfaceBuilder:
             frame_recovery=frame_recovery,
             sign=sign,
         )
-        return SurfaceWSCMeasurementPlan(
+        plan = SurfaceWSCMeasurementPlan(
             code=direct_sum,
             terms=terms,
             requested=requested,
@@ -874,6 +1023,8 @@ class _SurfaceBuilder:
             auxiliary_code=auxiliary,
             gadget=definition,
         )
+        _register_contract(definition, ("wsc", plan))
+        return plan
 
 
 def _surface_rounds(code: codes.Code,
@@ -927,7 +1078,7 @@ def _positive_zz_lowering(lowering: qec.QECLowering) -> qec.QECLowering:
     """Guard the stock seam primitive's exact demonstrated MPP contract."""
 
     def compile_site(site, context):
-        if site.objective_family != "pauli_product_measurement":
+        if site.action_family != "pauli_product_measurement":
             raise ValueError(
                 "surface ZZ lowering accepts only P0 MPP action sites")
         x_mask, z_mask, sign = _canonical_mpp_parameters(site)
@@ -948,8 +1099,8 @@ def _positive_zz_lowering(lowering: qec.QECLowering) -> qec.QECLowering:
     compile_site.__qualname__ = compile_site.__name__
     return qec.QECLowering(
         compile_site,
-        objective_family=lowering.objective_family,
-        objective=standard.mpp,
+        action_family=lowering.action_family,
+        action=standard.mpp,
         codes=lowering.codes,
         requires=lowering.requires,
         dependencies=lowering.dependencies,
@@ -970,7 +1121,7 @@ def _positive_zz_lowering(lowering: qec.QECLowering) -> qec.QECLowering:
 def _surface_site_product(site, context) -> tuple[types.PauliProduct, str]:
     """Derive one WSC product and data region from a placed MPP site."""
 
-    if site.objective_family != "pauli_product_measurement":
+    if site.action_family != "pauli_product_measurement":
         raise ValueError(
             "surface WSC lowering accepts only P0 MPP action sites")
     x_mask, z_mask, sign = _canonical_mpp_parameters(site)
@@ -1058,8 +1209,7 @@ def _wsc_measurement(
     return _wsc.WSCMeasurementBundle(
         product=product,
         realization=plan.gadget,
-        analysis=_wsc.measurement_profile(plan,
-                                          name=f"{plan.gadget.name}_analysis"),
+        analysis=gadget_contract(plan.gadget),
         evidence=plan.evidence,
         rounds=rounds,
         data_code=code,
@@ -1199,8 +1349,8 @@ def _make_wsc_lowering(
     compile_site.__qualname__ = compile_site.__name__
     return qec.QECLowering(
         compile_site,
-        objective_family="pauli_product_measurement",
-        objective=standard.mpp,
+        action_family="pauli_product_measurement",
+        action=standard.mpp,
         codes=(encoding,),
         plugin="cudaq.logical.architectures.surface_wsc",
         version="1.0.0",
@@ -1216,11 +1366,22 @@ def _make_wsc_lowering(
 
 @dataclass(frozen=True, slots=True)
 class SurfaceDefinitions:
-    """The complete reusable definition set for one surface-code distance."""
+    """The complete reusable definition set for one surface-code distance.
+
+    Preparation resets the data and measures its stabilizers; ``memory_round``
+    measures them again. Their records are ``x_check{i}.outcome`` and
+    ``z_check{i}.outcome``, in ``code.hx`` then ``code.hz`` order. Detector
+    contracts are available as ``gadget.contract`` for every fixed gadget
+    and through ``surface.gadget_contract(gadget)``. Preparations and memory
+    rounds bind their recorded syndromes;
+    Clifford layers transfer incoming syndromes through their physical action.
+    Readout's contract carries its logical observable. Generated WSC gadgets
+    expose the same contract as their measurement bundle's ``analysis`` field.
+    """
 
     distance: int
     code: codes.Code
-    square_patch_footprint: architecture.PhysicalFootprint
+    square_patch_footprint: _architecture.PhysicalFootprint
     prepare_zero: gadgets.GadgetDefinition
     prepare_one: gadgets.GadgetDefinition
     prepare_plus: gadgets.GadgetDefinition
@@ -1235,6 +1396,13 @@ class SurfaceDefinitions:
     surgery: qec.lattice_surgery.SurgeryPrimitives
     wsc_lowering: qec.QECLowering
     lattice_surgery_zz_lowering: qec.QECLowering
+
+    @property
+    def coordinates(self) -> tuple[tuple[float, float], ...]:
+        """Data-qubit coordinates of the ideal-MPP realization."""
+        from cudaq.logical.architecture.geometry import rotated_surface_lattice
+
+        return rotated_surface_lattice(self.distance).coordinates
 
     def wsc(self, *, max_product_weight: int = 2) -> devices.QECArchitecture:
         """Return the selectable QEC architecture for these definitions."""
@@ -1275,21 +1443,21 @@ def _definitions(distance: int) -> SurfaceDefinitions:
     surgery = qec.lattice_surgery.surface_primitives(code)
     logical_h = builder.logical_h()
     transversal_cx = builder.transversal_cx()
-    return SurfaceDefinitions(
+    result = SurfaceDefinitions(
         distance=distance,
         code=code,
-        square_patch_footprint=architecture.PhysicalFootprint(
+        square_patch_footprint=_architecture.PhysicalFootprint(
             "qubit",
             2 * (distance + 1)**2,
             "square rotated-surface-code patch; arXiv:1905.09749 section 2.14",
         ),
-        prepare_zero=gadgets.prepare_zero(code),
+        prepare_zero=builder.prepare_zero(),
         prepare_one=builder.prepare_one(),
-        prepare_plus=gadgets.prepare_plus(code),
+        prepare_plus=builder.prepare_plus(),
         prepare_minus=builder.prepare_minus(),
-        memory_round=gadgets.css_memory_round(code),
-        measure_z=gadgets.logical_measure(code, basis=architecture.Basis.Z),
-        measure_x=gadgets.logical_measure(code, basis=architecture.Basis.X),
+        memory_round=builder.memory(),
+        measure_z=gadgets.logical_measure(code, basis=_architecture.Basis.Z),
+        measure_x=gadgets.logical_measure(code, basis=_architecture.Basis.X),
         h=logical_h,
         fold_s=builder.fold_s(),
         transversal_cx=transversal_cx,
@@ -1315,6 +1483,22 @@ def _definitions(distance: int) -> SurfaceDefinitions:
             ),),
     )
 
+    for gadget, spec in {
+            result.prepare_zero: ("prepare", builder, "Z", ""),
+            result.prepare_one: ("prepare", builder, "Z", "__qlx_call0."),
+            result.prepare_plus: ("prepare", builder, "X", ""),
+            result.prepare_minus: ("prepare", builder, "X", "__qlx_call0."),
+            result.memory_round: ("memory", builder, 1),
+            result.measure_z: ("readout",),
+            result.measure_x: ("readout",),
+            result.h: ("clifford",),
+            result.fold_s: ("clifford",),
+            result.transversal_cx: ("clifford",),
+            result.cz: ("clifford",),
+    }.items():
+        _register_contract(gadget, spec)
+    return result
+
 
 class SurfaceFamily:
     """Indexable family of cached surface implementation definitions."""
@@ -1332,9 +1516,57 @@ _family = SurfaceFamily()
 
 
 def definitions(distance: int) -> SurfaceDefinitions:
-    """Return the reusable definitions and physical footprint for ``distance``."""
-
+    """Return the cached Surface definitions with ideal-MPP syndrome rounds."""
     return _family[distance]
+
+
+@lru_cache(maxsize=None)
+def interleaved_nz_definitions(
+        distance: int) -> SurfaceInterleavedNZDefinitions:
+    """Return preparation, SEC and SEC-plus-Z-readout with the N/Z schedule.
+
+    All three include a round of interleaved N/Z extraction. Their contracts
+    are available through ``gadget_contract``. ``syndrome_extraction`` resets
+    the check ancillas and measures the checks. ``measure_z_with_syndrome``
+    performs that SEC before destructively measuring all data qubits, then
+    closes the Z-check detectors and returns the logical-Z parity. Its
+    terminal ancilla resets preserve the standard physical schedule's reset
+    fault sites, including faults with zero response.
+    """
+    from ._surface_interleaved import build_definitions
+
+    result, contracts, sites = build_definitions(distance)
+    for contract in contracts:
+        _register_contract(contract.gadget, ("contract", contract))
+    for gadget, projection, before, carriers in sites:
+        _data_depol_sites[gadget] = (projection, before, carriers)
+    return result
+
+
+def architecture(distance: int = 3) -> devices.QECArchitecture:
+    """Bind surface preparation, a memory round, readout, and Pauli gadgets.
+
+    Preparation measures stabilizers to establish the encoded state. Callers
+    choose subsequent memory rounds; the recipe supplies their contracts.
+    """
+    selected = definitions(distance)
+    logical_x = gadgets.logical_pauli(selected.code, basis="x")
+    logical_z = gadgets.logical_pauli(selected.code, basis="z")
+    for gadget in (logical_x, logical_z):
+        _register_contract(gadget, ("pauli",))
+    return devices.QECArchitecture(
+        f"Surface{distance}Architecture",
+        selected.code.default_encoding,
+        link_roots=(
+            selected.prepare_zero,
+            selected.prepare_plus,
+            selected.memory_round,
+            selected.measure_x,
+            selected.measure_z,
+            logical_x,
+            logical_z,
+        ),
+    )
 
 
 def _admitted_auxiliary_regions(
