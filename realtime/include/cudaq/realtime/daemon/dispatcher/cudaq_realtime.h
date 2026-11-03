@@ -397,15 +397,17 @@ cudaq_dispatcher_set_launch_fn(cudaq_dispatcher_t *dispatcher,
 // the entry point for every bridge-backed dispatcher: the configured
 // `dispatch_path` + `kernel_type` name the shape, and the dispatcher asks the
 // bridge for the matching data plane:
-//   - HOST + REGULAR:               the RING_BUFFER context (the provider's TX
-//                                   pump owns the wire).
+//   - HOST + REGULAR:               the bridge's ring buffer
+//                                   (cudaq_bridge_get_ring_buffer; the
+//                                   provider's TX pump owns the wire).
 //   - HOST + UNIFIED:               the provider's CPU data plane.
-//   - DEVICE + REGULAR:             the RING_BUFFER context.  start() then
+//   - DEVICE + REGULAR:             the bridge's ring buffer.  start() then
 //                                   launches the 3-kernel dispatch kernel
 //                                   from libcudaq-realtime-dispatch.a; see
 //                                   cudaq_dispatcher_set_launch_fn.
-//   - DEVICE + UNIFIED:             the UNIFIED context's launch override, if
-//                                   the provider names one; otherwise the
+//   - DEVICE + UNIFIED:             the deprecated UNIFIED context's launch
+//                                   override, if the provider still names
+//                                   one; otherwise the
 //                                   provider's GPU data plane, linked
 //                                   on the first handler lookup
 //                                   (cudaq_dispatcher_get_device_handler).
