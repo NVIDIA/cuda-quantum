@@ -33,7 +33,7 @@ static bool isSupportedOutlineOp(Operation *op) {
 static FailureOr<cudaq::cc::CreateLambdaOp>
 outlinePartitionImpl(const cudaq::opt::PartitionToOutline &partition,
                      const DominanceInfo &dominance) {
-  llvm::ArrayRef<Operation *> partitionOps = partition.ops;
+  ArrayRef<Operation *> partitionOps = partition.ops;
   if (partitionOps.empty())
     return failure();
 
