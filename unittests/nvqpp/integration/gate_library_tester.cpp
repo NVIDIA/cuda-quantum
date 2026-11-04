@@ -56,6 +56,16 @@ CUDAQ_TEST(GateLibraryTester, checkGivensRotation) {
 }
 
 CUDAQ_TEST(GateLibraryTester, checkGivensRotationKernelBuilder) {
+  // Compile each parameterized circuit once and reuse it for every angle.
+  auto [test_01, theta_01] = cudaq::make_kernel<double>();
+  auto q_01 = test_01.qalloc(2);
+  test_01.x(q_01[0]);
+  cudaq_internal::builder::givens_rotation(test_01, theta_01, q_01[0], q_01[1]);
+  auto [test_10, theta_10] = cudaq::make_kernel<double>();
+  auto q_10 = test_10.qalloc(2);
+  test_10.x(q_10[1]);
+  cudaq_internal::builder::givens_rotation(test_10, theta_10, q_10[0], q_10[1]);
+
   for (const auto &angle : cudaq::linspace(-M_PI, M_PI, NUM_ANGLES)) {
     // Matrix
     //    [[1, 0, 0, 0],
@@ -67,21 +77,11 @@ CUDAQ_TEST(GateLibraryTester, checkGivensRotationKernelBuilder) {
     const double s = std::sin(angle);
     const double tol = std::is_same_v<cudaq::real, float> ? 1e-3 : 1e-6;
     {
-      auto [test_01, theta] = cudaq::make_kernel<double>();
-      // Allocate some qubits
-      auto q = test_01.qalloc(2);
-      test_01.x(q[0]);
-      cudaq_internal::builder::givens_rotation(test_01, theta, q[0], q[1]);
       auto ss_01 = cudaq::get_state(test_01, angle);
       EXPECT_NEAR(std::abs(ss_01[1] + s), 0.0, tol);
       EXPECT_NEAR(std::abs(ss_01[2] - c), 0.0, tol);
     }
     {
-      auto [test_10, theta] = cudaq::make_kernel<double>();
-      // Allocate some qubits
-      auto q = test_10.qalloc(2);
-      test_10.x(q[1]);
-      cudaq_internal::builder::givens_rotation(test_10, theta, q[0], q[1]);
       auto ss_10 = cudaq::get_state(test_10, angle);
       EXPECT_NEAR(std::abs(ss_10[1] - c), 0.0, tol);
       EXPECT_NEAR(std::abs(ss_10[2] - s), 0.0, tol);
@@ -179,24 +179,32 @@ CUDAQ_TEST(GateLibraryTester, checkFermionicSwap) {
 }
 
 CUDAQ_TEST(GateLibraryTester, checkFermionicSwapKernelBuilder) {
+  // Compile each parameterized circuit once and reuse it for every angle.
+  auto [test_00, theta_00] = cudaq::make_kernel<double>();
+  auto q_00 = test_00.qalloc(2);
+  cudaq_internal::builder::fermionic_swap(test_00, theta_00, q_00[0], q_00[1]);
+  auto [test_01, theta_01] = cudaq::make_kernel<double>();
+  auto q_01 = test_01.qalloc(2);
+  test_01.x(q_01[0]);
+  cudaq_internal::builder::fermionic_swap(test_01, theta_01, q_01[0], q_01[1]);
+  auto [test_10, theta_10] = cudaq::make_kernel<double>();
+  auto q_10 = test_10.qalloc(2);
+  test_10.x(q_10[1]);
+  cudaq_internal::builder::fermionic_swap(test_10, theta_10, q_10[0], q_10[1]);
+  auto [test_11, theta_11] = cudaq::make_kernel<double>();
+  auto q_11 = test_11.qalloc(2);
+  test_11.x(q_11);
+  cudaq_internal::builder::fermionic_swap(test_11, theta_11, q_11[0], q_11[1]);
+
   for (const auto &angle : cudaq::linspace(-M_PI, M_PI, NUM_ANGLES)) {
     const double c = std::cos(angle / 2.0);
     const double s = std::sin(angle / 2.0);
     constexpr std::complex<double> I{0.0, 1.0};
     {
-      auto [test_00, theta] = cudaq::make_kernel<double>();
-      // Allocate some qubits
-      auto q = test_00.qalloc(2);
-      cudaq_internal::builder::fermionic_swap(test_00, theta, q[0], q[1]);
       auto ss_00 = cudaq::get_state(test_00, angle);
       EXPECT_NEAR(std::norm(ss_00[0] - 1.0), 0.0, 1e-6);
     }
     {
-      auto [test_01, theta] = cudaq::make_kernel<double>();
-      // Allocate some qubits
-      auto q = test_01.qalloc(2);
-      test_01.x(q[0]);
-      cudaq_internal::builder::fermionic_swap(test_01, theta, q[0], q[1]);
       auto ss_01 = cudaq::get_state(test_01, angle);
       EXPECT_NEAR(std::norm(ss_01[1] - (-I * std::exp(I * angle / 2.0) * s)),
                   0.0, 1e-6);
@@ -204,11 +212,6 @@ CUDAQ_TEST(GateLibraryTester, checkFermionicSwapKernelBuilder) {
                   1e-6);
     }
     {
-      auto [test_10, theta] = cudaq::make_kernel<double>();
-      // Allocate some qubits
-      auto q = test_10.qalloc(2);
-      test_10.x(q[1]);
-      cudaq_internal::builder::fermionic_swap(test_10, theta, q[0], q[1]);
       auto ss_10 = cudaq::get_state(test_10, angle);
       EXPECT_NEAR(std::norm(ss_10[1] - (std::exp(I * angle / 2.0) * c)), 0.0,
                   1e-6);
@@ -216,11 +219,6 @@ CUDAQ_TEST(GateLibraryTester, checkFermionicSwapKernelBuilder) {
                   0.0, 1e-6);
     }
     {
-      auto [test_11, theta] = cudaq::make_kernel<double>();
-      // Allocate some qubits
-      auto q = test_11.qalloc(2);
-      test_11.x(q);
-      cudaq_internal::builder::fermionic_swap(test_11, theta, q[0], q[1]);
       auto ss_11 = cudaq::get_state(test_11, angle);
       EXPECT_NEAR(std::norm(ss_11[3] - std::exp(I * angle)), 0.0, 1e-6);
     }
