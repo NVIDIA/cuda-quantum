@@ -13,8 +13,8 @@ import pytest
 
 import cudaq
 import cudaq.logical
-from cudaq.core.backends import (CostModel, CustomTarget, LoopUnrolling,
-                                 NoiseSupport, QuakeUnmappedProfile)
+from cudaq.core._experimental import (CostModel, CustomTarget, LoopUnrolling,
+                                      NoiseSupport, QuakeUnmappedProfile)
 
 
 @cudaq.logical.program
