@@ -62,6 +62,14 @@ or decoding are added. See the
 [Steane Bernstein–Vazirani](../use-cases/examples/steane-bernstein-vazirani.md)
 and [T-factory](../use-cases/examples/t-factory-evaluation.md) execution examples.
 
+**A CUDA-Q kernel returns measured bits.** A `@cudaq.kernel` compiled for a
+Logical target can return nothing, a measurement as a `bool`, or a
+`tuple[bool, ...]` of measurements. P0 keeps one result per member, in order.
+Where the kernel returns a tuple, `cudaq.run` on the P3 Build returns a
+`list[bool]`. Compilation rejects a `list[bool]` result, a constant or computed
+bit such as `not m`, a member read back with `t[0]`, a branch on a measurement,
+and a gate after a measurement.
+
 **Execution covers a subset of P3.** Forms such as resource and factory flows,
 in-graph postselection, bounded retry, code epoch changes, and patch-granularity
 resources produce diagnostics instead of executable Quake. Support for compiling
