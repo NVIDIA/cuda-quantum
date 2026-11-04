@@ -407,3 +407,106 @@ def test_observe_list_multi_term_operators():
     results_id = cudaq.observe(simple_kernel, [op_with_id])
     result_id = cudaq.observe(simple_kernel, op_with_id)
     assert np.isclose(results_id[0].expectation(), result_id.expectation())
+
+    # Coefficients on the non-identity terms of a multi-term operator must
+    # be applied, so that the list form matches the per-operator form.
+    op_multi3 = 2.0 * spin.z(0) + 3.0 * spin.z(1)
+    results_coeff = cudaq.observe(simple_kernel, [op_multi3])
+    result_coeff = cudaq.observe(simple_kernel, op_multi3)
+    assert np.isclose(results_coeff[0].expectation(),
+                      result_coeff.expectation())
+
+
+def test_observe_list_multi_term_operators_broadcast():
+    """Broadcasting kernel arguments over a list of multi-term operators must
+    return one row per argument set, each matching a per-operator `observe`
+    call."""
+
+    @cudaq.kernel(disable_quantum_optimization=True)
+    def circuit(theta: float):
+        q = cudaq.qvector(2)
+        h(q[0])
+        ry(theta, q[1])
+
+    op_multi1 = 2.0 * spin.x(0) + 3.0 * spin.z(1)
+    op_multi2 = .5 * spin.x(0) * spin.z(1) + 1.0
+    operators = [op_multi1, op_multi2]
+
+    angles = [.0, .59, np.pi]
+    want = [[cudaq.observe(circuit, o, angle).expectation()
+             for o in operators]
+            for angle in angles]
+
+    results = cudaq.observe(circuit, operators, angles)
+    assert len(results) == len(angles)
+    for perAngleResults, wantRow in zip(results, want):
+        assert len(perAngleResults) == len(wantRow)
+        for r, want_expectation_value in zip(perAngleResults, wantRow):
+            assert np.isclose(r.expectation(), want_expectation_value)
+
+
+def test_observe_list_broadcast_matches_non_broadcast():
+    """The broadcast and the non-broadcast paths must agree, they cannot
+    report different expectation values for the same operator."""
+
+    @cudaq.kernel(disable_quantum_optimization=True)
+    def circuit(theta: float):
+        q = cudaq.qvector(2)
+        h(q[0])
+        ry(theta, q[1])
+
+    operators = [2.0 * spin.x(0) + 3.0 * spin.z(1), spin.z(1) + 1.0]
+
+    broadcast = cudaq.observe(circuit, operators, [.59])
+    plain = cudaq.observe(circuit, operators, .59)
+
+    assert len(broadcast) == 1
+    for r, plainResult in zip(broadcast[0], plain):
+        assert np.isclose(r.expectation(), plainResult.expectation())
+
+
+def test_observe_list_identity_broadcast():
+    """An entry holding only the identity term has no measurement register,
+    the broadcast path must not fail on it."""
+
+    @cudaq.kernel(disable_quantum_optimization=True)
+    def circuit(theta: float):
+        q = cudaq.qvector(2)
+        h(q[0])
+        ry(theta, q[1])
+
+    operators = [spin.identity(), spin.z(1) + 1.0]
+
+    results = cudaq.observe(circuit, operators, [.59])
+    assert len(results) == 1
+    want = [1.0, 1.0 + np.cos(.59)]
+    for r, want_expectation_value in zip(results[0], want):
+        assert np.isclose(r.expectation(), want_expectation_value)
+
+
+def test_observe_list_multi_term_operators_broadcast():
+    """Broadcasting kernel arguments over a list of multi-term operators
+    must return one row per argument set."""
+
+    @cudaq.kernel(disable_quantum_optimization=True)
+    def circuit(theta: float):
+        q = cudaq.qvector(2)
+        x(q[0])
+        ry(theta, q[1])
+
+    op_multi1 = 2.0 * spin.x(0) + 3.0 * spin.z(1)
+    op_multi2 = .5 * spin.x(0) * spin.z(1) + 1.0
+
+    angles = [.0, .59, np.pi]
+    want = [[
+        cudaq.observe(circuit, o, angle).expectation()
+        for o in [op_multi1, op_multi2]
+    ]
+            for angle in angles]
+
+    results = cudaq.observe(circuit, [op_multi1, op_multi2], angles)
+    assert len(results) == len(angles)
+    for perAngleResults, wantRow in zip(results, want):
+        assert len(perAngleResults) == len(wantRow)
+        for r, want_expectation_value in zip(perAngleResults, wantRow):
+            assert np.isclose(r.expectation(), want_expectation_value)
