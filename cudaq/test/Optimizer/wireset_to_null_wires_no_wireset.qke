@@ -1,0 +1,30 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --wireset-to-null-wires %s | FileCheck %s
+
+// `memtoreg` turns a dealloc into `quake.unwrap` and `quake.sink`, and
+// `assign-wire-indices` turns that sink into `quake.return_wire`. When every
+// qubit stays a `!quake.ref`, no `borrow_wire` uses the wire set, so
+// `symbol-dce` erases it. The `return_wire` must still become a sink.
+
+func.func @__nvqpp__mlirgen__kernel() attributes {"cudaq-entrypoint", "cudaq-kernel"} {
+  %0 = quake.alloca !quake.ref
+  %1 = quake.unwrap %0 : (!quake.ref) -> !quake.wire
+  %2 = quake.x %1 : (!quake.wire) -> !quake.wire
+  quake.return_wire %2 : !quake.wire
+  return
+}
+
+// CHECK-LABEL:   func.func @__nvqpp__mlirgen__kernel()
+// CHECK:           %[[VAL_0:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[VAL_1:.*]] = quake.unwrap %[[VAL_0]] : (!quake.ref) -> !quake.wire
+// CHECK:           %[[VAL_2:.*]] = quake.x %[[VAL_1]] : (!quake.wire) -> !quake.wire
+// CHECK:           quake.sink %[[VAL_2]] : !quake.wire
+// CHECK-NOT:       quake.return_wire
+// CHECK:           return
