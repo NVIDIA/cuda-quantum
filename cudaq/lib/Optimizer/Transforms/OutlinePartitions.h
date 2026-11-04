@@ -47,6 +47,6 @@ outlinePartition(const PartitionToOutline &partition);
 /// mustPrecede settings, returning failure if any is rejected.
 /// Successful rewrites are retained even if another partition is rejected.
 mlir::LogicalResult
-outlinePartitions(llvm::ArrayRef<PartitionToOutline> partitions);
+outlinePartitions(mlir::ArrayRef<PartitionToOutline> partitions);
 
 } // namespace cudaq::opt
