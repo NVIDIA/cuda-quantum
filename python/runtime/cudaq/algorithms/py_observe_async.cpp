@@ -68,7 +68,7 @@ static async_observe_result
 pyObserveAsync(const std::string &shortName, mlir::ModuleOp mod,
                std::shared_ptr<detail::CompiledModuleCache> cache,
                const spin_op &spin_operator, std::size_t qpu_id, int shots,
-               nanobind::args args) {
+               nanobind::args args, std::optional<OptimizationLevel> level) {
   auto &platform = get_platform();
   args = simplifiedValidateInputArguments(args);
   auto fnOp = getKernelFuncOp(mod, shortName);
@@ -84,11 +84,11 @@ pyObserveAsync(const std::string &shortName, mlir::ModuleOp mod,
       });
   return detail::runObservationAsync(
       detail::make_copyable_function([opaques = std::move(opaques), shortName,
-                                      clonedMod, cache]() mutable {
+                                      clonedMod, cache, level]() mutable {
         if (cudaq::getEnvBool("CUDAQ_DUMP_JIT_IR", false))
           clonedMod->dump();
         [[maybe_unused]] auto result =
-            clean_launch_module(shortName, *clonedMod, opaques, cache);
+            clean_launch_module(shortName, *clonedMod, opaques, cache, level);
       }),
       spin_operator, platform, shots, shortName, qpu_id);
 }
@@ -97,7 +97,9 @@ static async_observe_result
 observe_async_impl(const std::string &shortName, MlirModule module,
                    std::shared_ptr<detail::CompiledModuleCache> cache,
                    nanobind::object &spin_operator_obj, std::size_t qpu_id,
-                   int shots, nanobind::args args) {
+                   int shots, nanobind::args args,
+                   std::optional<int> optimizationLevel) {
+  auto level = toOptimizationLevel(optimizationLevel);
   // FIXME(OperatorCpp): Remove this when the operator class is implemented in
   // C++
   spin_op spin_operator = [](nanobind::object &obj) -> spin_op {
@@ -107,14 +109,15 @@ observe_async_impl(const std::string &shortName, MlirModule module,
   }(spin_operator_obj);
   auto mod = unwrap(module);
   return pyObserveAsync(shortName, mod, cache, spin_operator, qpu_id, shots,
-                        args);
+                        args, level);
 }
 
 /// @brief Run `cudaq::observe` on the provided kernel and spin operator.
 static observe_result pyObservePar(
     const PyParType &type, const std::string &shortName, mlir::ModuleOp module,
     std::shared_ptr<detail::CompiledModuleCache> cache, spin_op &spin_operator,
-    int shots, std::optional<noise_model> noise, nanobind::args args) {
+    int shots, std::optional<noise_model> noise, nanobind::args args,
+    std::optional<OptimizationLevel> level) {
   // Ensure the user input is correct.
   auto &platform = get_platform();
   if (!platform.supports_task_distribution())
@@ -138,7 +141,8 @@ static observe_result pyObservePar(
     return detail::distributeComputations(
         [&](std::size_t i, const spin_op &op) {
           nanobind::gil_scoped_acquire acquire;
-          return pyObserveAsync(shortName, module, cache, op, i, shots, args);
+          return pyObserveAsync(shortName, module, cache, op, i, shots, args,
+                                level);
         },
         spin_operator, nQpus);
   }
@@ -163,7 +167,8 @@ static observe_result pyObservePar(
   auto localRankResult = detail::distributeComputations(
       [&](std::size_t i, const spin_op &op) {
         nanobind::gil_scoped_acquire acquire;
-        return pyObserveAsync(shortName, module, cache, op, i, shots, args);
+        return pyObserveAsync(shortName, module, cache, op, i, shots, args,
+                              level);
       },
       localH, nQpus);
 
@@ -178,16 +183,18 @@ observe_parallel_impl(const std::string &shortName, MlirModule module,
                       std::shared_ptr<detail::CompiledModuleCache> cache,
                       nanobind::object execution, spin_op &spin_operator,
                       int shots, std::optional<noise_model> noise,
-                      nanobind::args arguments) {
+                      nanobind::args arguments,
+                      std::optional<int> optimizationLevel) {
+  auto level = toOptimizationLevel(optimizationLevel);
   std::string applicatorKey =
       std::string(nanobind::str(execution.attr("__name__")).c_str());
   auto mod = unwrap(module);
   if (applicatorKey == "thread")
     return pyObservePar(PyParType::thread, shortName, mod, cache, spin_operator,
-                        shots, noise, arguments);
+                        shots, noise, arguments, level);
   if (applicatorKey == "mpi")
     return pyObservePar(PyParType::mpi, shortName, mod, cache, spin_operator,
-                        shots, noise, arguments);
+                        shots, noise, arguments, level);
   throw std::runtime_error("invalid parallel execution context");
 }
 
@@ -205,7 +212,11 @@ void cudaq::bindObserveAsync(nanobind::module_ &mod) {
       "expectation value computations across available GPUs via standard C++ "
       "threads.");
 
-  mod.def("observe_async_impl", observe_async_impl,
+  mod.def("observe_async_impl", observe_async_impl, nanobind::arg("shortName"),
+          nanobind::arg("module"), nanobind::arg("cache"),
+          nanobind::arg("spin_operator"), nanobind::arg("qpu_id"),
+          nanobind::arg("shots"), nanobind::arg("args"),
+          nanobind::arg("optimization_level").none() = nanobind::none(),
           "See the python documentation for `observe_async`.");
 
   mod.def("isValidObserveKernel_impl", isValidObserveKernel_impl,
@@ -216,5 +227,6 @@ void cudaq::bindObserveAsync(nanobind::module_ &mod) {
           nanobind::arg("cache"), nanobind::arg("execution"),
           nanobind::arg("spin_operator"), nanobind::arg("shots"),
           nanobind::arg("noise").none(), nanobind::arg("arguments"),
+          nanobind::arg("optimization_level").none() = nanobind::none(),
           "See the python documentation for observe_parallel.");
 }

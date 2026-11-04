@@ -120,7 +120,8 @@ public:
   ExecutionManager *executionManager = nullptr;
 
   /// @brief Dispatcher towards the policy specific launch.
-  std::function<void(const AnyModule &module, const KernelArgs &args)>
+  std::function<void(const AnyModule &module, const KernelArgs &args,
+                     std::optional<OptimizationLevel> optimizationLevel)>
       executeKernelApi;
 
   /// @endcond

@@ -53,7 +53,7 @@ void kernel() {
   if (ctx->executeKernelApi) {
     cudaq::CompiledModule module{
         cudaq::SourceModule{"device_selection", kernelThunk}};
-    ctx->executeKernelApi(module, {});
+    ctx->executeKernelApi(module, {}, std::nullopt);
   } else {
     kernelBody();
   }

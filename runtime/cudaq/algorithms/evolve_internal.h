@@ -285,7 +285,8 @@ inline sample_result launchAnalogKernel(const std::string &kernel_name,
   return detail::launch(policy, qpu_id, ctx, platform, [&]() {
     [[maybe_unused]] auto dynamicResult = cudaq::altLaunchKernel(
         kernel_name.c_str(), KernelThunkType(nullptr),
-        const_cast<char *>(program.c_str()), program.size(), 0);
+        const_cast<char *>(program.c_str()), program.size(), 0,
+        static_cast<std::int32_t>(cudaq::defaultOptimizationLevel));
   });
 }
 
@@ -318,7 +319,8 @@ launchAnalogKernelAsync(const std::string &kernel_name,
   return detail::launch(policy, qpu_id, ctx, platform, [&]() {
     [[maybe_unused]] auto dynamicResult = cudaq::altLaunchKernel(
         kernel_name.c_str(), KernelThunkType(nullptr),
-        const_cast<char *>(program.c_str()), program.size(), 0);
+        const_cast<char *>(program.c_str()), program.size(), 0,
+        static_cast<std::int32_t>(cudaq::defaultOptimizationLevel));
   });
 }
 

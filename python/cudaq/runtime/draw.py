@@ -9,6 +9,7 @@
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.kernel.kernel_decorator import (mk_decorator, isa_kernel_decorator)
 from cudaq.util import trace
+from cudaq.kernel.utils import check_optimization_level
 
 
 def _detail_draw(format, decorator, *args, optimization_level=None):
@@ -19,11 +20,14 @@ def _detail_draw(format, decorator, *args, optimization_level=None):
                            str(len(args)) + " given and " +
                            str(decorator.formal_arity()) + " expected.")
     # Must handle arguments exactly like this is a `callsite` to the decorator.
-    processedArgs, module = decorator.prepare_call(
-        *args, optimization_level=optimization_level)
-    return cudaq_runtime.draw_impl(format, decorator.uniqName, module,
+    processedArgs, module = decorator.prepare_call(*args)
+    check_optimization_level(optimization_level)
+    return cudaq_runtime.draw_impl(format,
+                                   decorator.uniqName,
+                                   module,
                                    decorator.compiledModuleCache(),
-                                   *processedArgs)
+                                   *processedArgs,
+                                   optimization_level=optimization_level)
 
 
 @trace.traced

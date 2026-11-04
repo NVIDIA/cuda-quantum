@@ -1139,7 +1139,8 @@ void invokeCode(ImplicitLocOpBuilder &builder, ExecutionEngine *jit,
   auto resultOffset = reinterpret_cast<std::uint64_t>(*roPtr);
 
   [[maybe_unused]] auto uncheckedResult =
-      altLaunchKernel(properName.data(), thunk, rawArgs, size, resultOffset);
+      altLaunchKernel(properName.data(), thunk, rawArgs, size, resultOffset,
+                      static_cast<std::int32_t>(defaultOptimizationLevel));
   std::free(rawArgs);
   // TODO: any return values are dropped on the floor here.
 }

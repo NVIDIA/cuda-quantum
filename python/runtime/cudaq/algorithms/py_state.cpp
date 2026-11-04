@@ -18,6 +18,7 @@
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
 #include <limits>
 #include <nanobind/ndarray.h>
+#include <nanobind/stl/optional.h>
 #include <nanobind/stl/shared_ptr.h>
 
 using namespace cudaq;
@@ -206,9 +207,10 @@ static std::vector<int> bitStringToIntVec(const std::string &bitString) {
 /// @brief Run `cudaq::get_state` on the provided kernel and spin operator.
 static state get_state_impl(const std::string &shortName, MlirModule mod,
                             std::shared_ptr<detail::CompiledModuleCache> cache,
-                            nanobind::args args) {
+                            nanobind::args args,
+                            std::optional<OptimizationLevel> level) {
   auto closure = [=]() {
-    return marshal_and_launch_module(shortName, mod, args, cache);
+    return marshal_and_launch_module(shortName, mod, args, cache, level);
   };
   return detail::extractState(std::move(closure));
 }
@@ -216,7 +218,8 @@ static state get_state_impl(const std::string &shortName, MlirModule mod,
 static std::future<state>
 get_state_async_impl(const std::string &shortName, MlirModule module,
                      std::shared_ptr<detail::CompiledModuleCache> cache,
-                     std::size_t qpu_id, nanobind::args args) {
+                     std::size_t qpu_id, nanobind::args args,
+                     std::optional<OptimizationLevel> level) {
   // Launch the asynchronous execution.
   auto mod = unwrap(module);
   std::string kernelName = shortName;
@@ -233,9 +236,9 @@ get_state_async_impl(const std::string &shortName, MlirModule module,
       });
   return detail::runGetStateAsync(
       detail::make_copyable_function([opaques = std::move(opaques), kernelName,
-                                      clonedMod, cache]() mutable {
+                                      clonedMod, cache, level]() mutable {
         [[maybe_unused]] auto result =
-            clean_launch_module(kernelName, *clonedMod, opaques, cache);
+            clean_launch_module(kernelName, *clonedMod, opaques, cache, level);
       }),
       platform, qpu_id);
 }
@@ -922,7 +925,8 @@ index pair.
       "get_state_impl",
       [&](const std::string &shortName, MlirModule module,
           std::shared_ptr<detail::CompiledModuleCache> cache,
-          nanobind::args args) {
+          nanobind::args args, std::optional<int> optimizationLevel) {
+        auto level = toOptimizationLevel(optimizationLevel);
         // Check for unsupported cases.
         if (holder.getTarget().name == "orca-photonics")
           throw std::runtime_error(
@@ -930,8 +934,11 @@ index pair.
 
         if (is_remote_platform() || is_emulated_platform())
           return pyGetStateQPU(shortName, module, args);
-        return get_state_impl(shortName, module, std::move(cache), args);
+        return get_state_impl(shortName, module, std::move(cache), args, level);
       },
+      nanobind::arg("short_name"), nanobind::arg("module"),
+      nanobind::arg("cache"), nanobind::arg("args"),
+      nanobind::arg("optimization_level").none() = nanobind::none(),
       "See the python documentation for get_state.");
 
   nanobind::class_<async_state_result>(
@@ -952,15 +959,21 @@ for more information on this programming pattern.)#")
       "get_state_async_impl",
       [&](const std::string &shortName, MlirModule module,
           std::shared_ptr<detail::CompiledModuleCache> cache,
-          std::size_t qpu_id, nanobind::args args) {
+          std::size_t qpu_id, nanobind::args args,
+          std::optional<int> optimizationLevel) {
+        auto level = toOptimizationLevel(optimizationLevel);
         // Check for unsupported cases.
         if (holder.getTarget().name == "orca-photonics" ||
             is_remote_platform() || is_emulated_platform())
           throw std::runtime_error(
               "get_state_async is not supported in this context.");
 
-        return get_state_async_impl(shortName, module, cache, qpu_id, args);
+        return get_state_async_impl(shortName, module, cache, qpu_id, args,
+                                    level);
       },
+      nanobind::arg("short_name"), nanobind::arg("module"),
+      nanobind::arg("cache"), nanobind::arg("qpu_id"), nanobind::arg("args"),
+      nanobind::arg("optimization_level").none() = nanobind::none(),
       "See the python documentation for get_state_async.");
 
   mod.def("get_state_library_mode", &pyGetStateLibraryMode,

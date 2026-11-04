@@ -674,9 +674,10 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   func.func private @__quantum__rt__tuple_record_output(i64, !cc.ptr<i8>)
 )#"},
 
-    // altLaunchKernel(kernelName, thunk, commBuffer, buffSize, resultOffset)
+    // altLaunchKernel(kernelName, thunk, commBuffer, buffSize, resultOffset,
+    //                 optLevel)
     {cudaq::runtime::launchKernelFuncName, {}, R"#(
-  func.func private @altLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64) -> !cc.struct<{!cc.ptr<i8>, i64}>
+  func.func private @altLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, i32) -> !cc.struct<{!cc.ptr<i8>, i64}>
 )#"},
 
     {cudaq::runtime::CudaqRegisterArgsCreator, {}, R"#(
@@ -705,9 +706,9 @@ static constexpr IntrinsicCode intrinsicTable[] = {
 )#"},
 
     // hybridLaunchKernel(kernelName, thunk, commBuffer, buffSize,
-    //                    resultOffset, vectorArgPtrs)
+    //                    resultOffset, vectorArgPtrs, optLevel)
     {cudaq::runtime::launchKernelHybridFuncName, {}, R"#(
-  func.func private @hybridLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
+  func.func private @hybridLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>, i32) -> !cc.struct<{!cc.ptr<i8>, i64}>
 )#"},
 
     // llvm.memcpy.p0.p0.i64
@@ -863,9 +864,9 @@ static constexpr IntrinsicCode intrinsicTable[] = {
   !qir_llvmptr = !llvm.ptr
 )#"},
 
-    // streamlinedLaunchKernel(kernelName, vectorArgPtrs)
+    // streamlinedLaunchKernel(kernelName, vectorArgPtrs, optLevel)
     {cudaq::runtime::launchKernelStreamlinedFuncName, {}, R"#(
-  func.func private @streamlinedLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>) -> ()
+  func.func private @streamlinedLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, i32) -> ()
 )#"}};
 
 static constexpr std::size_t intrinsicTableSize =

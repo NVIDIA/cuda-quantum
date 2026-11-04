@@ -320,17 +320,32 @@ def get_optimization_level_attr(module, kernelName):
     return None if attr is None else attr.value
 
 
+def check_optimization_level(level, acceptNone=True):
+    """
+    Check that `level` is a valid quantum optimization level, or throws.
+    
+    Accepts either:
+     - An integer between 0 and 3, or
+     - if `acceptNone=True`, a `None` value.
+    """
+    if level is None:
+        if not acceptNone:
+            raise ValueError("`optimization_level` must not be `None`.")
+        return
+    if isinstance(level,
+                  bool) or not isinstance(level, int) or level < 0 or level > 3:
+        raise ValueError(
+            f"`optimization_level` must be an integer between 0 and 3, got "
+            f"{level!r}.")
+
+
 def set_optimization_level_attr(module, kernelName, level):
     """
     Set the `quake.optimizationLevel` attribute on the kernel `kernelName` in
      `module`, and on its `.run` entry point if it has one. `level` must be an
      integer between 0 and 3.
     """
-    if isinstance(level,
-                  bool) or not isinstance(level, int) or level < 0 or level > 3:
-        raise ValueError(
-            f"`optimization_level` must be an integer between 0 and 3, got "
-            f"{level!r}.")
+    check_optimization_level(level, acceptNone=False)
     levelAttr = IntegerAttr.get(
         IntegerType.get_signless(32, context=module.context), level)
     recover_func_op(module, nvqppPrefix + kernelName).attributes.__setitem__(

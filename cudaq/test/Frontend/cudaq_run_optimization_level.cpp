@@ -7,13 +7,14 @@
  ******************************************************************************/
 
 // The `.run` entry point that `cudaq::run` launches carries the optimization
-// level of the kernel it wraps.
+// level declared on the kernel it wraps. The level of the compilation unit is
+// passed to the runtime by the launch instead.
 
 // clang-format off
 // RUN: cudaq-quake %s | cudaq-opt --kernel-execution=generate-run-stack=1 | \
 // RUN:   FileCheck %s
-// RUN: cudaq-quake --quantum-opt-level=2 %s | \
-// RUN:   cudaq-opt --kernel-execution=generate-run-stack=1 | \
+// RUN: cudaq-quake %s | \
+// RUN:   cudaq-opt --kernel-execution="generate-run-stack=1 quantum-opt-level=2" | \
 // RUN:   FileCheck --check-prefix=LEVEL2 %s
 // clang-format on
 
@@ -38,4 +39,7 @@ __qpu__ bool unmarked() {
 // CHECK:  func.func @__nvqpp__mlirgen__function_unmarked._Z8unmarkedv.run() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this, quake.cudaq_run = [i1]} {
 
 // LEVEL2: func.func @__nvqpp__mlirgen__function_marked._Z6markedv.run() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this, quake.cudaq_run = [i1], quake.optimizationLevel = 0 : i32} {
-// LEVEL2: func.func @__nvqpp__mlirgen__function_unmarked._Z8unmarkedv.run() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this, quake.cudaq_run = [i1], quake.optimizationLevel = 2 : i32} {
+// LEVEL2: func.func @__nvqpp__mlirgen__function_unmarked._Z8unmarkedv.run() attributes {"cudaq-entrypoint", "cudaq-kernel", no_this, quake.cudaq_run = [i1]} {
+// LEVEL2: func.func @__nvqpp__mlirgen__function_unmarked._Z8unmarkedv.run.entry(
+// LEVEL2:   %[[LEVEL:.*]] = arith.constant 2 : i32
+// LEVEL2:   call @hybridLaunchKernel({{.*}}, %[[LEVEL]]) : ({{.*}}, i32) ->

@@ -11,6 +11,7 @@ from cudaq.mlir.ir import UnitAttr
 from cudaq.kernel.kernel_decorator import (mk_decorator, isa_kernel_decorator,
                                            _kernel_from_quake)
 from cudaq.util import trace
+from cudaq.kernel.utils import check_optimization_level
 import numpy as np
 
 
@@ -50,11 +51,16 @@ def run(decorator,
         raise RuntimeError(
             "Invalid `shots_count`. Must be a non-negative number.")
 
-    processedArgs, module = decorator.prepare_call(
-        *args, optimization_level=optimization_level)
-    return cudaq_runtime.run_impl(decorator.uniqName + ".run", module,
-                                  decorator.compiledModuleCache(), shots_count,
-                                  noise_model, qpu_id, *processedArgs)
+    processedArgs, module = decorator.prepare_call(*args)
+    check_optimization_level(optimization_level)
+    return cudaq_runtime.run_impl(decorator.uniqName + ".run",
+                                  module,
+                                  decorator.compiledModuleCache(),
+                                  shots_count,
+                                  noise_model,
+                                  qpu_id,
+                                  *processedArgs,
+                                  optimization_level=optimization_level)
 
 
 @trace.traced
@@ -114,9 +120,15 @@ Returns:
         if target.is_remote():
             raise ValueError("Noise model is not supported on hardware QPU.")
 
-    processedArgs, module = decorator.prepare_call(
-        *args, optimization_level=optimization_level)
+    processedArgs, module = decorator.prepare_call(*args)
+    check_optimization_level(optimization_level)
     async_results = cudaq_runtime.run_async_impl(
-        decorator.uniqName + ".run", module, decorator.compiledModuleCache(),
-        shots_count, noise_model, qpu_id, *processedArgs)
+        decorator.uniqName + ".run",
+        module,
+        decorator.compiledModuleCache(),
+        shots_count,
+        noise_model,
+        qpu_id,
+        *processedArgs,
+        optimization_level=optimization_level)
     return AsyncRunResult(async_results, module)

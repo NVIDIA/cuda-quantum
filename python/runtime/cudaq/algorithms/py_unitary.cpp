@@ -11,6 +11,7 @@
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "cudaq/algorithms/unitary.h"
 #include "mlir/Bindings/Python/NanobindAdaptors.h"
+#include <nanobind/stl/optional.h>
 #include <nanobind/stl/shared_ptr.h>
 
 using namespace cudaq;
@@ -19,9 +20,11 @@ using namespace cudaq;
 static nanobind::object
 get_unitary_impl(const std::string &shortName, MlirModule module,
                  std::shared_ptr<detail::CompiledModuleCache> cache,
-                 nanobind::args args) {
+                 nanobind::args args, std::optional<int> optimizationLevel) {
+  auto level = toOptimizationLevel(optimizationLevel);
   auto f = [=]() {
-    return cudaq::marshal_and_launch_module(shortName, module, args, cache);
+    return cudaq::marshal_and_launch_module(shortName, module, args, cache,
+                                            level);
   };
 
   // Return as numpy array (dim, dim), complex128
@@ -31,6 +34,9 @@ get_unitary_impl(const std::string &shortName, MlirModule module,
 
 /// Bind the get_unitary cudaq function
 void cudaq::bindPyUnitary(nanobind::module_ &mod) {
-  mod.def("get_unitary_impl", get_unitary_impl,
+  mod.def("get_unitary_impl", get_unitary_impl, nanobind::arg("short_name"),
+          nanobind::arg("module"), nanobind::arg("cache"),
+          nanobind::arg("args"),
+          nanobind::arg("optimization_level").none() = nanobind::none(),
           "See python documentation for get_unitary().");
 }

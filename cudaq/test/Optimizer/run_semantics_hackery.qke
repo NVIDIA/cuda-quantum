@@ -70,7 +70,7 @@ module attributes {quake.mangled_name_map = {__nvqpp__mlirgen__kernel..0x7de5b48
     call @llvm.memcpy.p0.p0.i64(%1, %arg0, %0, %false) : (!cc.ptr<i8>, !cc.ptr<i8>, i64, i1) -> ()
     return %1 : !cc.ptr<i8>
   }
-  func.func private @hybridLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>) -> !cc.struct<{!cc.ptr<i8>, i64}>
+  func.func private @hybridLaunchKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>, i64, i64, !cc.ptr<i8>, i32) -> !cc.struct<{!cc.ptr<i8>, i64}>
   func.func private @cudaqRegisterArgsCreator(!cc.ptr<i8>, !cc.ptr<i8>)
   llvm.func @cudaqRegisterLambdaName(!llvm.ptr, !llvm.ptr) attributes {sym_visibility = "private"}
   func.func private @__cudaq_registerLinkableKernel(!cc.ptr<i8>, !cc.ptr<i8>, !cc.ptr<i8>)

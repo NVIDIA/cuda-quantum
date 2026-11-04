@@ -954,7 +954,11 @@ if [ -n "${QUANTUM_OPT_LEVEL}" ]; then
         0|1|2|3) ;;
         *) error_exit "invalid -fquantum-opt-level=${QUANTUM_OPT_LEVEL}; expected an integer between 0 and 3" ;;
     esac
-    CUDAQ_QUAKE_ARGS="${CUDAQ_QUAKE_ARGS} --quantum-opt-level=${QUANTUM_OPT_LEVEL}"
+    # The level is compiled into the kernel launch stubs (see the
+    # kernel-execution pass below). AOT code generation only honors level 0.
+    if [ "${QUANTUM_OPT_LEVEL}" = "0" ]; then
+        CUDAQ_TRANSLATE_ARGS="${CUDAQ_TRANSLATE_ARGS} --fdisable-quantum-optimization"
+    fi
 fi
 
 # Configure the NVQIR link line if this is in refactored mode
@@ -1045,14 +1049,14 @@ fi
 if ${ENABLE_KERNEL_EXECUTION}; then
 	RUN_OPT=true
 	KERNEL_EXECUTION_OPTIONS=
-	if [[ -n "${AUTO_GENERATE_RUN_OPTION}" ]]; then
-		if [[ -n "${KERNEL_EXECUTION_KIND}" ]]; then
-			KERNEL_EXECUTION_OPTIONS="{${KERNEL_EXECUTION_KIND} ${AUTO_GENERATE_RUN_OPTION}}"
-		else
-			KERNEL_EXECUTION_OPTIONS="{${AUTO_GENERATE_RUN_OPTION}}"
-		fi
-	elif [[ -n "${KERNEL_EXECUTION_KIND}" ]]; then
-		KERNEL_EXECUTION_OPTIONS="{${KERNEL_EXECUTION_KIND}}"
+	for opt in ${KERNEL_EXECUTION_KIND} ${AUTO_GENERATE_RUN_OPTION}; do
+		KERNEL_EXECUTION_OPTIONS="${KERNEL_EXECUTION_OPTIONS} ${opt}"
+	done
+	if [ -n "${QUANTUM_OPT_LEVEL}" ]; then
+		KERNEL_EXECUTION_OPTIONS="${KERNEL_EXECUTION_OPTIONS} quantum-opt-level=${QUANTUM_OPT_LEVEL}"
+	fi
+	if [ -n "${KERNEL_EXECUTION_OPTIONS}" ]; then
+		KERNEL_EXECUTION_OPTIONS="{$(trim "${KERNEL_EXECUTION_OPTIONS}")}"
 	fi
 	OPT_PASSES=$(add_pass_to_pipeline "${OPT_PASSES}" "kernel-execution${KERNEL_EXECUTION_OPTIONS}")
 	if [[ -n "${AUTO_GENERATE_RUN_OPTION}" ]]; then

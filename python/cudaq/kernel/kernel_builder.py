@@ -38,7 +38,7 @@ from .utils import (boundaryDiagnostic, containsMeasureHandle, emitFatalError,
                     mlirTypeToPyType, cudaq__unique_attr_name,
                     mlirTypeFromPyType, emitErrorIfInvalidPauli,
                     globalRegisteredOperations, set_optimization_level_attr,
-                    get_optimization_level_attr)
+                    check_optimization_level)
 
 kDynamicPtrIndex: int = -2147483648
 
@@ -1897,17 +1897,13 @@ class PyKernel(object):
 
         self.compile()
         specialized = cudaq_runtime.cloneModule(self.qkeModule)
-        # An optimization level declared on the kernel (e.g. `disable_quantum_optimization`)
-        # overrides launch options.
-        if (optimization_level is not None and
-                get_optimization_level_attr(self.qkeModule, self.name) is None):
-            set_optimization_level_attr(specialized, self.name,
-                                        optimization_level)
+        check_optimization_level(optimization_level)
         cudaq_runtime.marshal_and_launch_module(
             self.name,
             specialized,
             *processedArgs,
-            cache=self.compiledModuleCache())
+            cache=self.compiledModuleCache(),
+            optimization_level=optimization_level)
 
     def __getattr__(self, attr_name):
         # Search attributes in instance, class, base classes

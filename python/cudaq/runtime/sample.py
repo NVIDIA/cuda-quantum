@@ -9,6 +9,7 @@
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.kernel.kernel_decorator import (mk_decorator, isa_kernel_decorator)
 from cudaq.kernel.utils import mlirTypeToPyType
+from cudaq.kernel.utils import check_optimization_level
 from cudaq.util import trace
 from .utils import (__isBroadcast, __createArgumentSet,
                     _kernel_has_conditionals_on_measure)
@@ -279,14 +280,21 @@ def sample_async(decorator,
         if target.is_remote():
             raise ValueError("Noise model is not supported on hardware QPU.")
 
-    processedArgs, module = decorator.prepare_call(
-        *args, optimization_level=optimization_level)
+    processedArgs, module = decorator.prepare_call(*args)
 
     _detail_check_conditionals_on_measure(kernel)
 
     _detail_check_explicit_measurements(explicit_measurements)
 
+    check_optimization_level(optimization_level)
     sample_results = cudaq_runtime.sample_async_impl(
-        decorator.uniqName, module, decorator.compiledModuleCache(),
-        shots_count, noise_model, explicit_measurements, qpu_id, *processedArgs)
+        decorator.uniqName,
+        module,
+        decorator.compiledModuleCache(),
+        shots_count,
+        noise_model,
+        explicit_measurements,
+        qpu_id,
+        *processedArgs,
+        optimization_level=optimization_level)
     return AsyncSampleResult(sample_results, module)

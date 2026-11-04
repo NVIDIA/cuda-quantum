@@ -26,7 +26,9 @@ static async_sample_result sample_async_impl(
     const std::string &shortName, MlirModule module,
     std::shared_ptr<detail::CompiledModuleCache> cache, std::size_t shots_count,
     std::optional<noise_model> noise_model, bool explicit_measurements,
-    std::size_t qpu_id, nanobind::args runtimeArgs) {
+    std::size_t qpu_id, nanobind::args runtimeArgs,
+    std::optional<int> optimizationLevel) {
+  auto level = toOptimizationLevel(optimizationLevel);
   mlir::ModuleOp mod = unwrap(module);
   runtimeArgs = simplifiedValidateInputArguments(runtimeArgs);
 
@@ -61,9 +63,9 @@ static async_sample_result sample_async_impl(
       // (2) This lambda might be executed multiple times, e.g, when
       // the kernel contains measurement feedback.
       detail::make_copyable_function([opaques = std::move(opaques), kernelName,
-                                      clonedMod, cache]() mutable {
+                                      clonedMod, cache, level]() mutable {
         [[maybe_unused]] auto result =
-            clean_launch_module(kernelName, *clonedMod, opaques, cache);
+            clean_launch_module(kernelName, *clonedMod, opaques, cache, level);
       }),
       platform, kernelName, shots_count, explicit_measurements, qpu_id,
       std::move(noise_model));
@@ -117,5 +119,6 @@ programming pattern.
           nanobind::arg("cache"), nanobind::arg("shots_count"),
           nanobind::arg("noise_model").none() = std::nullopt,
           nanobind::arg("explicit_measurements"), nanobind::arg("qpu_id"),
-          nanobind::arg("runtime_args"));
+          nanobind::arg("runtime_args"),
+          nanobind::arg("optimization_level").none() = nanobind::none());
 }

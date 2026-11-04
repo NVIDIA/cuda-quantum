@@ -9,8 +9,10 @@
 import numpy as np
 import pytest
 import cudaq
-from cudaq.kernel.kernel_decorator import PyKernelDecorator
-from cudaq.kernel.utils import get_optimization_level_attr
+from cudaq.kernel.utils import (get_optimization_level_attr, nvqppPrefix,
+                                recover_func_op)
+from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
+from cudaq.mlir.ir import Module
 
 OPT_LEVELS = [0, 1, 2, 3]
 
@@ -30,15 +32,37 @@ def empty():
     x.ctrl(q[0], q[1])
 
 
+# The runtime bindings we hijack to capture the execution flow just before
+# passing control to the C++ runtime.
+#
+# By overwriting these, we can investigate what the Python code passes to the
+# C++ runtime without going through with compilation or execution.
+LAUNCH_BINDINGS = [
+    "marshal_and_launch_module", "sample_async_impl", "observe_async_impl",
+    "run_impl", "run_async_impl", "get_state_impl", "get_state_async_impl",
+    "draw_impl", "get_unitary_impl", "estimate_impl"
+]
+
+
+class CapturedLaunch(Exception):
+
+    def __init__(self, module, level):
+        self.module = module
+        self.level = level
+
+
 @pytest.fixture
-def override_pykernel_method(monkeypatch):
-    """Record the optimization level on the module handed to the runtime,
-    then abort before compilation/execution."""
+def capture_launches(monkeypatch):
+    """Overwrite every function in `LAUNCH_BINDINGS` to raise `CapturedLaunch`
+    with the module and the optimization level it receives, instead of
+    compiling and executing."""
 
-    def fn(method_name, new_method):
-        monkeypatch.setattr(PyKernelDecorator, method_name, new_method)
+    def capture(*args, optimization_level=None, **kwargs):
+        module = next(a for a in args if isinstance(a, Module))
+        raise CapturedLaunch(module, optimization_level)
 
-    return fn
+    for name in LAUNCH_BINDINGS:
+        monkeypatch.setattr(cudaq_runtime, name, capture)
 
 
 op = cudaq.spin.z(0) * cudaq.spin.z(1)
@@ -73,32 +97,13 @@ LAUNCHES = {
 }
 
 
-@pytest.mark.parametrize("level", OPT_LEVELS)
+@pytest.mark.parametrize("level", OPT_LEVELS + [None])
 @pytest.mark.parametrize("launch", LAUNCHES)
-def test_prepare_call_stamps_optimization_level(override_pykernel_method,
-                                                launch, level):
-    # For all launch types, test that the `optimization_level` option gets
-    # stamped onto the IR module and that the call gets routed to `prepare_call`
-    # before execution.
-    class ThowModule(Exception):
-
-        def __init__(self, module, name):
-            self.module = module
-            self.name = name
-
-    orig = PyKernelDecorator.prepare_call
-
-    def mock_prepare_call(self, *args, **kwargs):
-        _, module = orig(self, *args, **kwargs)
-        raise ThowModule(module, self.uniqName)
-
-    # Hijack the PyKernelDecorator.prepare_call method to throw the module after execution
-    override_pykernel_method("prepare_call", mock_prepare_call)
-
-    with pytest.raises(ThowModule) as e:
+def test_launch_passes_optimization_level(capture_launches, launch, level):
+    # For all launch types, test that the `optimization_level` option is passed
+    # to the runtime as an argument, and not stamped onto the IR module.
+    with pytest.raises(CapturedLaunch) as e:
         LAUNCHES[launch](level)
-
-    assert level == get_optimization_level_attr(e.value.module, e.value.name)
 
 
 @pytest.mark.parametrize("level", [-1, 4, True, 1.5, "2"])
@@ -117,17 +122,18 @@ def test_kernel_level_0_wins_over_launch_level():
         q = cudaq.qubit()
         h(q)
 
-    _, module = marked.prepare_call(optimization_level=2)
+    _, module = marked.prepare_call()
     assert get_optimization_level_attr(module, marked.uniqName) == 0
     cudaq.sample(marked, shots_count=10, optimization_level=2)
 
 
 @pytest.mark.parametrize("level", OPT_LEVELS)
-def test_run_entry_point_has_launch_level(level):
-    # `cudaq.run` launches the `.run` entry point, not the kernel itself.
-    _, module = bell.prepare_call(optimization_level=level)
-    assert get_optimization_level_attr(module, bell.uniqName + ".run") == level
+def test_run_at_launch_level(level):
+    # `cudaq.run` launches the `.run` entry point, not the kernel itself. The
+    # launch level does not appear on it.
     assert len(cudaq.run(bell, shots_count=2, optimization_level=level)) == 2
+    assert get_optimization_level_attr(bell.qkeModule,
+                                       bell.uniqName + ".run") is None
 
 
 def test_run_entry_point_has_kernel_level_0():
@@ -139,7 +145,7 @@ def test_run_entry_point_has_kernel_level_0():
         h(q)
         return mz(q)
 
-    _, module = marked.prepare_call(optimization_level=2)
+    _, module = marked.prepare_call()
     assert get_optimization_level_attr(module, marked.uniqName + ".run") == 0
     assert cudaq.run(marked, shots_count=2) == [False, False]
 

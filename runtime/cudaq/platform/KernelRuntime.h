@@ -21,12 +21,13 @@ namespace detail {
 /// dependencies.
 struct KernelRuntimeCallbacks {
   KernelThunkResultType (*alt)(const char *, KernelThunkType, void *,
-                               std::uint64_t, std::uint64_t);
+                               std::uint64_t, std::uint64_t, std::int32_t);
   KernelThunkResultType (*streamlined)(const char *,
-                                       const std::vector<void *> &);
+                                       const std::vector<void *> &,
+                                       std::int32_t);
   KernelThunkResultType (*hybrid)(const char *, KernelThunkType, void *,
                                   std::uint64_t, std::uint64_t,
-                                  const std::vector<void *> &);
+                                  const std::vector<void *> &, std::int32_t);
   ExecutionManager *(*executionManager)();
   ExecutionManager *(*registeredExecutionManager)();
   ExecutionManager *(*contextExecutionManager)();

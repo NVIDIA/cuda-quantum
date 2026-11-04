@@ -663,7 +663,10 @@ public:
       launchResult = endifBlock->getArgument(0);
     };
 
-    // Generate the call to `launchKernel`.
+    // Generate the call to `launchKernel`. The default quantum optimization
+    // level of this compilation unit is passed along to the runtime.
+    Value optLevel =
+        arith::ConstantIntOp::create(builder, loc, quantumOptLevel, 32);
     switch (codegenKind) {
     case 0: {
       assert(vecArgPtrs && castLoadThunk);
@@ -671,7 +674,8 @@ public:
           builder, loc, cudaq::opt::factory::getDynamicBufferType(ctx),
           cudaq::runtime::launchKernelHybridFuncName,
           ArrayRef<Value>{castLoadKernName, castLoadThunk, castTemp,
-                          extendedStructSize, resultOffset, vecArgPtrs});
+                          extendedStructSize, resultOffset, vecArgPtrs,
+                          optLevel});
       decodeLaunchResults(launch.getResult(0));
     } break;
     case 1: {
@@ -680,14 +684,15 @@ public:
           builder, loc, cudaq::opt::factory::getDynamicBufferType(ctx),
           cudaq::runtime::launchKernelFuncName,
           ArrayRef<Value>{castLoadKernName, castLoadThunk, castTemp,
-                          extendedStructSize, resultOffset});
+                          extendedStructSize, resultOffset, optLevel});
       decodeLaunchResults(launch.getResult(0));
     } break;
     case 2: {
       assert(vecArgPtrs && !castLoadThunk);
-      func::CallOp::create(builder, loc, TypeRange{},
-                           cudaq::runtime::launchKernelStreamlinedFuncName,
-                           ArrayRef<Value>{castLoadKernName, vecArgPtrs});
+      func::CallOp::create(
+          builder, loc, TypeRange{},
+          cudaq::runtime::launchKernelStreamlinedFuncName,
+          ArrayRef<Value>{castLoadKernName, vecArgPtrs, optLevel});
       // For this codegen kind, we drop any results on the floor and return
       // random data in registers and/or off the stack. This maintains parity
       // with any pre-existing kernel launchers.
@@ -986,6 +991,12 @@ public:
 
   void runOnOperation() override {
     auto module = getOperation();
+    if (quantumOptLevel < 0 || quantumOptLevel > 3) {
+      module.emitError("invalid quantum-opt-level ")
+          << quantumOptLevel.getValue() << "; expected a value between 0 and 3";
+      signalPassFailure();
+      return;
+    }
     auto *ctx = module.getContext();
     auto builder = OpBuilder::atBlockEnd(module.getBody());
     std::error_code ec;
@@ -1039,7 +1050,7 @@ public:
             resultTys.emplace_back(TypeAttr::get(rt));
           auto arrAttr = ArrayAttr::get(ctx, resultTys);
           runKern->setAttr(cudaq::runtime::enableCudaqRun, arrAttr);
-          // Propagate the optimization level attribute
+          // Propagate an optimization level declared on the kernel.
           if (auto level = cudaq::runtime::getOptimizationLevel(epKern))
             cudaq::runtime::setOptimizationLevel(runKern, *level);
           OpBuilder::InsertionGuard guard(builder);

@@ -9,6 +9,7 @@
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.kernel.kernel_decorator import (mk_decorator, isa_kernel_decorator)
 from cudaq.util import trace
+from cudaq.kernel.utils import check_optimization_level
 
 EstimateResult = cudaq_runtime.EstimateResult
 
@@ -51,11 +52,15 @@ def estimate(kernel, *args, **kwargs):
         decorator = kernel
     else:
         decorator = mk_decorator(kernel)
-    processedArgs, module = decorator.prepare_call(
-        *args, optimization_level=kwargs.get("optimization_level", None))
+    processedArgs, module = decorator.prepare_call(*args)
     choice = kwargs.get("choice", None)
-    return cudaq_runtime.estimate_impl(decorator.uniqName, module, choice,
-                                       *processedArgs)
+    optimization_level = kwargs.get("optimization_level", None)
+    check_optimization_level(optimization_level)
+    return cudaq_runtime.estimate_impl(decorator.uniqName,
+                                       module,
+                                       choice,
+                                       *processedArgs,
+                                       optimization_level=optimization_level)
 
 
 @trace.traced

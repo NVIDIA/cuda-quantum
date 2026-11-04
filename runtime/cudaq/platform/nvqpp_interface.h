@@ -23,16 +23,19 @@ namespace cudaq {
 /// tied to the quantum platform instance somehow. Note that the compiler cannot
 /// provide that information.
 extern "C" {
+
 // Client-server (legacy) interface.
 [[nodiscard]] KernelThunkResultType
 altLaunchKernel(const char *kernelName, KernelThunkType kernel, void *args,
-                std::uint64_t argsSize, std::uint64_t resultOffset);
+                std::uint64_t argsSize, std::uint64_t resultOffset,
+                std::int32_t optLevel);
 
 // Streamlined interface for launching kernels. Argument synthesis and JIT
 // compilation *must* happen on the local machine.
 [[nodiscard]] KernelThunkResultType
 streamlinedLaunchKernel(const char *kernelName,
-                        const std::vector<void *> &rawArgs);
+                        const std::vector<void *> &rawArgs,
+                        std::int32_t optLevel);
 
 // Hybrid of the client-server and streamlined approaches. Letting JIT
 // compilation happen either early or late and can handle return values from
@@ -40,7 +43,7 @@ streamlinedLaunchKernel(const char *kernelName,
 [[nodiscard]] KernelThunkResultType
 hybridLaunchKernel(const char *kernelName, KernelThunkType kernel, void *args,
                    std::uint64_t argsSize, std::uint64_t resultOffset,
-                   const std::vector<void *> &rawArgs);
+                   const std::vector<void *> &rawArgs, std::int32_t optLevel);
 } // extern "C"
 
 //===----------------------------------------------------------------------===//

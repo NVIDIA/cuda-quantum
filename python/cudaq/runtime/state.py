@@ -10,6 +10,7 @@ from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.kernel.kernel_decorator import (mk_decorator, isa_kernel_decorator)
 from cudaq.handlers import get_target_handler
 from cudaq.util import trace
+from cudaq.kernel.utils import check_optimization_level
 
 
 @trace.traced
@@ -47,11 +48,13 @@ def get_state(kernel, *args, optimization_level=None):
         decorator = kernel
     else:
         decorator = mk_decorator(kernel)
-    processedArgs, module = decorator.prepare_call(
-        *args, optimization_level=optimization_level)
-    return cudaq_runtime.get_state_impl(decorator.uniqName, module,
+    processedArgs, module = decorator.prepare_call(*args)
+    check_optimization_level(optimization_level)
+    return cudaq_runtime.get_state_impl(decorator.uniqName,
+                                        module,
                                         decorator.compiledModuleCache(),
-                                        *processedArgs)
+                                        *processedArgs,
+                                        optimization_level=optimization_level)
 
 
 @trace.traced
@@ -79,11 +82,15 @@ def get_state_async(kernel, *args, qpu_id=0, optimization_level=None):
         decorator = kernel
     else:
         decorator = mk_decorator(kernel)
-    processedArgs, module = decorator.prepare_call(
-        *args, optimization_level=optimization_level)
-    return cudaq_runtime.get_state_async_impl(decorator.uniqName, module,
-                                              decorator.compiledModuleCache(),
-                                              qpu_id, *processedArgs)
+    processedArgs, module = decorator.prepare_call(*args)
+    check_optimization_level(optimization_level)
+    return cudaq_runtime.get_state_async_impl(
+        decorator.uniqName,
+        module,
+        decorator.compiledModuleCache(),
+        qpu_id,
+        *processedArgs,
+        optimization_level=optimization_level)
 
 
 def to_cupy(state, dtype=None):

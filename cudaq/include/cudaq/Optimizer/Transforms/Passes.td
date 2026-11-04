@@ -1049,7 +1049,10 @@ def GenerateKernelExecution : Pass<"kernel-execution", "mlir::ModuleOp"> {
       "Posit that the entry-point is nullary regardless of its signature.">,
     Option<"ignoreHostFunction", "ignore-host-function", "bool",
       /*default=*/"false",
-      "Assume that the kernel doesn't need a host function.">
+      "Assume that the kernel doesn't need a host function.">,
+    Option<"quantumOptLevel", "quantum-opt-level", "int", /*default=*/"2",
+      "Default quantum optimization level (0 to 3) passed to the runtime by "
+      "the generated kernel launches.">
   ];
 }
 

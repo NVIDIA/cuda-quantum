@@ -763,9 +763,12 @@ compileModuleImpl(const std::string &name, ModuleOp mod,
 static cudaq::KernelThunkResultType
 pyLaunchModule(const std::string &name, ModuleOp mod,
                std::shared_ptr<cudaq::detail::CompiledModuleCache> cache,
-               const std::vector<void *> &rawArgs) {
+               const std::vector<void *> &rawArgs,
+               std::optional<cudaq::OptimizationLevel> level) {
   auto config = getCompileConfig();
   auto &target = config.first;
+  if (level)
+    config.second.optimizationLevel = *level;
   auto func = cudaq::getKernelFuncOp(mod, name);
   // Resolve the level as the compiler does, so the key matches the compile.
   auto kernelOptLevel = cudaq::runtime::getOptimizationLevel(func).value_or(
@@ -830,7 +833,7 @@ pyLaunchModule(const std::string &name, ModuleOp mod,
     CUDAQ_INFO("Compiling module {}", name);
     prepareResolvedModule();
     auto compiled = compileModuleImpl(name, resolvedModule.get(), rawArgs, true,
-                                      std::move(target));
+                                      std::move(target), std::nullopt, level);
     return cudaq::streamlinedLaunchModule(compiled, rawArgs);
   }
 
@@ -841,8 +844,9 @@ pyLaunchModule(const std::string &name, ModuleOp mod,
         // wait for its result instead of repeating the compilation.
         CUDAQ_INFO("Compiling module {}", name);
         prepareResolvedModule();
-        return std::make_shared<cudaq::CompiledModule>(compileModuleImpl(
-            name, resolvedModule.get(), rawArgs, true, std::move(target)));
+        return std::make_shared<cudaq::CompiledModule>(
+            compileModuleImpl(name, resolvedModule.get(), rawArgs, true,
+                              std::move(target), std::nullopt, level));
       });
 
   switch (result.role) {
@@ -1063,7 +1067,8 @@ appendResultToArgsVector(cudaq::OpaqueArguments &runtimeArgs, Type returnType,
 cudaq::KernelThunkResultType
 cudaq::clean_launch_module(const std::string &name, ModuleOp mod,
                            cudaq::OpaqueArguments &args,
-                           std::shared_ptr<detail::CompiledModuleCache> cache) {
+                           std::shared_ptr<detail::CompiledModuleCache> cache,
+                           std::optional<OptimizationLevel> level) {
   // Release the GIL for MLIR compilation and JIT. PyEval_SaveThread requires
   // the GIL to be held, so guard with PyGILState_Check. Async paths invoke
   // this from worker threads that never held the GIL.
@@ -1074,7 +1079,7 @@ cudaq::clean_launch_module(const std::string &name, ModuleOp mod,
   Type retTy = cudaq::runtime::getReturnType(kernelFunc);
   // Append space for a result, as needed, to the vector of arguments.
   auto rawArgs = appendResultToArgsVector(args, retTy, mod, name);
-  return pyLaunchModule(name, mod, std::move(cache), rawArgs);
+  return pyLaunchModule(name, mod, std::move(cache), rawArgs, level);
 }
 
 bool cudaq::launchSpecializesArguments(std::size_t qpuId) {
@@ -1116,9 +1121,21 @@ cudaq::OpaqueArguments cudaq::marshal_arguments_for_module_launch(
   return args;
 }
 
+std::optional<cudaq::OptimizationLevel>
+cudaq::toOptimizationLevel(std::optional<int> optimizationLevel) {
+  if (!optimizationLevel)
+    return std::nullopt;
+  if (*optimizationLevel < 0 || *optimizationLevel > 3)
+    throw std::invalid_argument(
+        "`optimization_level` must be an integer between 0 and 3, got " +
+        std::to_string(*optimizationLevel) + ".");
+  return static_cast<OptimizationLevel>(*optimizationLevel);
+}
+
 nanobind::object cudaq::marshal_and_launch_module(
     const std::string &name, MlirModule module, nanobind::args runtimeArgs,
-    std::shared_ptr<detail::CompiledModuleCache> cache) {
+    std::shared_ptr<detail::CompiledModuleCache> cache,
+    std::optional<OptimizationLevel> level) {
   // Marker span identifying every nested pass / scoped trace as part of the
   // JIT-time pipeline. Paired with the cudaq.pipeline.aot span emitted around
   // aot-prep-pipeline in compile_to_mlir; tooling reads the trace ancestry to
@@ -1143,7 +1160,7 @@ nanobind::object cudaq::marshal_and_launch_module(
       launchSpecializesArguments(getCurrentQpuId()));
 
   [[maybe_unused]] auto resultPtr =
-      clean_launch_module(name, mod, args, std::move(cache));
+      clean_launch_module(name, mod, args, std::move(cache), level);
 
   if (!retTy)
     return nanobind::none();
@@ -1200,17 +1217,11 @@ static cudaq::CompiledModule compile_module(
     std::optional<bool> isRemote, std::optional<bool> isEmulated,
     std::optional<bool> supportsJit, std::optional<int> optimizationLevel) {
   ScopedTraceWithContext("compile_module", name);
-  if (optimizationLevel && (*optimizationLevel < 0 || *optimizationLevel > 3))
-    throw std::invalid_argument(
-        "`optimization_level` must be an integer between 0 and 3, got " +
-        std::to_string(*optimizationLevel) + ".");
+  auto level = cudaq::toOptimizationLevel(optimizationLevel);
   cudaq::RuntimeEndpoint endpoint;
   endpoint.isRemote = isRemote.value_or(cudaq::is_remote_platform());
   endpoint.isEmulated = isEmulated.value_or(cudaq::is_emulated_platform());
   endpoint.supportsJit = supportsJit.value_or(cudaq::platform_supports_jit());
-  std::optional<cudaq::OptimizationLevel> level;
-  if (optimizationLevel)
-    level = static_cast<cudaq::OptimizationLevel>(*optimizationLevel);
   return compileWithoutLaunch(name, module, isEntryPoint, runtimeArgs,
                               std::move(target), std::move(endpoint), level);
 }
@@ -1475,15 +1486,34 @@ void cudaq::bindAltLaunchKernel(nanobind::module_ &mod,
   mod.def("lower_to_codegen", lower_to_codegen,
           "Lower a kernel module to CC dialect. Never launches the kernel.");
 
-  mod.def("clean_launch_module", cudaq::clean_launch_module,
-          nanobind::arg("kernel_name"), nanobind::arg("module"),
-          nanobind::arg("args"), nanobind::arg("cache").none() = nullptr,
-          "Launch a kernel. Does not perform other mischief.");
-  mod.def("marshal_and_launch_module", cudaq::marshal_and_launch_module,
-          nanobind::arg("kernel_name"), nanobind::arg("module"),
-          nanobind::arg("args"), nanobind::arg("cache").none() = nullptr,
-          "Launch a kernel. Marshaling of arguments and unmarshalling of "
-          "results is performed.");
+  mod.def(
+      "clean_launch_module",
+      [](const std::string &name, mlir::ModuleOp mod,
+         cudaq::OpaqueArguments &args,
+         std::shared_ptr<cudaq::detail::CompiledModuleCache> cache,
+         std::optional<int> optimizationLevel) {
+        return cudaq::clean_launch_module(
+            name, mod, args, std::move(cache),
+            cudaq::toOptimizationLevel(optimizationLevel));
+      },
+      nanobind::arg("kernel_name"), nanobind::arg("module"),
+      nanobind::arg("args"), nanobind::arg("cache").none() = nullptr,
+      nanobind::arg("optimization_level").none() = nanobind::none(),
+      "Launch a kernel. Does not perform other mischief.");
+  mod.def(
+      "marshal_and_launch_module",
+      [](const std::string &name, MlirModule module, nanobind::args runtimeArgs,
+         std::shared_ptr<cudaq::detail::CompiledModuleCache> cache,
+         std::optional<int> optimizationLevel) {
+        return cudaq::marshal_and_launch_module(
+            name, module, runtimeArgs, std::move(cache),
+            cudaq::toOptimizationLevel(optimizationLevel));
+      },
+      nanobind::arg("kernel_name"), nanobind::arg("module"),
+      nanobind::arg("args"), nanobind::arg("cache").none() = nullptr,
+      nanobind::arg("optimization_level").none() = nanobind::none(),
+      "Launch a kernel. Marshaling of arguments and unmarshalling of "
+      "results is performed.");
   mod.def("marshal_and_retain_module", marshal_and_retain_module,
           "Compile (specialize + JIT) a kernel module. Returns a "
           "CompiledModule object that owns the JIT engine.");

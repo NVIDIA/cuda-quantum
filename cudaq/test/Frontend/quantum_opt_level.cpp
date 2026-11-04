@@ -7,11 +7,18 @@
  ******************************************************************************/
 
 // clang-format off
-// RUN: cudaq-quake %s | FileCheck --check-prefix=DEFAULT %s
-// RUN: cudaq-quake --quantum-opt-level=2 %s | FileCheck --check-prefix=LEVEL2 %s
-// RUN: not cudaq-quake --quantum-opt-level=4 %s 2>&1 | \
-// RUN:   FileCheck --check-prefix=INVALID %s
+// RUN: cudaq-quake %s | cudaq-opt --kernel-execution | \
+// RUN:   FileCheck --check-prefix=DEFAULT %s
+// RUN: cudaq-quake %s | cudaq-opt --kernel-execution=quantum-opt-level=1 | \
+// RUN:   FileCheck --check-prefix=LEVEL1 %s
+// RUN: cudaq-quake %s | not cudaq-opt --kernel-execution=quantum-opt-level=4 \
+// RUN:   2>&1 | FileCheck --check-prefix=INVALID4 %s
+// RUN: cudaq-quake %s | not cudaq-opt --kernel-execution=quantum-opt-level=-1 \
+// RUN:   2>&1 | FileCheck --check-prefix=INVALID-1 %s
 // clang-format on
+
+// The quantum optimization level is not stamped on the kernel. It is passed to
+// the runtime by the kernel launch.
 
 #include "cudaq/qis/qubit_qis.h"
 
@@ -21,9 +28,13 @@ __qpu__ void kernel() {
 }
 
 // clang-format off
-// DEFAULT-LABEL: func.func @__nvqpp__mlirgen__function_kernel
 // DEFAULT-NOT:   quake.optimizationLevel
+// DEFAULT:       %[[LEVEL:.*]] = arith.constant 2 : i32
+// DEFAULT:       call @hybridLaunchKernel({{.*}}, %[[LEVEL]]) : ({{.*}}, i32) ->
 
-// LEVEL2:        func.func @__nvqpp__mlirgen__function_kernel{{.*}} attributes {{.*}}quake.optimizationLevel = 2 : i32
+// LEVEL1-NOT:    quake.optimizationLevel
+// LEVEL1:        %[[LEVEL:.*]] = arith.constant 1 : i32
+// LEVEL1:        call @hybridLaunchKernel({{.*}}, %[[LEVEL]]) : ({{.*}}, i32) ->
 
-// INVALID:       Invalid --quantum-opt-level 4
+// INVALID4:      invalid quantum-opt-level 4
+// INVALID-1:     invalid quantum-opt-level -1

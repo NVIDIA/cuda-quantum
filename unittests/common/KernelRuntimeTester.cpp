@@ -32,14 +32,14 @@ cudaq::KernelThunkResultType thunk(void *args, bool remote) {
   return {args, 23};
 }
 
-cudaq::KernelThunkResultType packedLaunch(const char *name,
-                                          cudaq::KernelThunkType kernel,
-                                          void *args, std::uint64_t size,
-                                          std::uint64_t offset) {
+cudaq::KernelThunkResultType
+packedLaunch(const char *name, cudaq::KernelThunkType kernel, void *args,
+             std::uint64_t size, std::uint64_t offset, std::int32_t optLevel) {
   EXPECT_STREQ(name, "compiled_kernel");
   EXPECT_EQ(kernel, thunk);
   EXPECT_EQ(size, 42);
   EXPECT_EQ(offset, 17);
+  EXPECT_EQ(optLevel, 2);
   return kernel(args, false);
 }
 
@@ -48,36 +48,38 @@ class KernelRuntimeTest : public testing::Test {
 };
 
 TEST_F(KernelRuntimeTest, RequiresRuntimeInitialization) {
-  EXPECT_THROW((void)cudaq::altLaunchKernel("", nullptr, nullptr, 0, 0),
+  EXPECT_THROW((void)cudaq::altLaunchKernel("", nullptr, nullptr, 0, 0, 2),
                std::runtime_error);
-  EXPECT_THROW((void)cudaq::streamlinedLaunchKernel("", {}),
+  EXPECT_THROW((void)cudaq::streamlinedLaunchKernel("", {}, 2),
                std::runtime_error);
-  EXPECT_THROW((void)cudaq::hybridLaunchKernel("", nullptr, nullptr, 0, 0, {}),
-               std::runtime_error);
+  EXPECT_THROW(
+      (void)cudaq::hybridLaunchKernel("", nullptr, nullptr, 0, 0, {}, 2),
+      std::runtime_error);
 }
 
 TEST_F(KernelRuntimeTest, PreservesLaunchArgumentsAndResults) {
   cudaq::detail::KernelRuntimeCallbacks callbacks{};
   callbacks.alt = packedLaunch;
-  callbacks.streamlined = [](const char *name,
-                             const std::vector<void *> &args) {
+  callbacks.streamlined = [](const char *name, const std::vector<void *> &args,
+                             std::int32_t optLevel) {
     EXPECT_STREQ(name, "compiled_kernel");
     EXPECT_EQ(&args, &rawArgs);
+    EXPECT_EQ(optLevel, 2);
     return thunk(args[0], false);
   };
   callbacks.hybrid = [](const char *name, cudaq::KernelThunkType kernel,
                         void *args, std::uint64_t size, std::uint64_t offset,
-                        const std::vector<void *> &raw) {
+                        const std::vector<void *> &raw, std::int32_t optLevel) {
     EXPECT_EQ(&raw, &rawArgs);
-    return packedLaunch(name, kernel, args, size, offset);
+    return packedLaunch(name, kernel, args, size, offset, optLevel);
   };
   cudaqInitializeKernelRuntime(callbacks);
 
   for (auto result :
-       {cudaq::altLaunchKernel("compiled_kernel", thunk, &argument, 42, 17),
-        cudaq::streamlinedLaunchKernel("compiled_kernel", rawArgs),
+       {cudaq::altLaunchKernel("compiled_kernel", thunk, &argument, 42, 17, 2),
+        cudaq::streamlinedLaunchKernel("compiled_kernel", rawArgs, 2),
         cudaq::hybridLaunchKernel("compiled_kernel", thunk, &argument, 42, 17,
-                                  rawArgs)}) {
+                                  rawArgs, 2)}) {
     EXPECT_EQ(result.data_buffer, &argument);
     EXPECT_EQ(result.size, 23);
   }

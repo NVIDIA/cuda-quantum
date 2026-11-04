@@ -6,14 +6,17 @@
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
  ******************************************************************************/
 
-// Verify that nvq++ forwards -fquantum-opt-level=0 to cudaq-quake.
+// Verify that nvq++ compiles -fquantum-opt-level=0 into the kernel launches
+// and disables quantum optimization in the AOT code generation.
 
 // RUN: nvq++ -c %s -v -fquantum-opt-level=0 -o %t.o | FileCheck %s
 
 // -fno-quantum-optimization is an alias for -fquantum-opt-level=0.
 // RUN: nvq++ -c %s -v -fno-quantum-optimization -o %t.o | FileCheck %s
 
-// CHECK: cudaq-quake {{.*}}--quantum-opt-level=0
+// CHECK-NOT: cudaq-quake {{.*}}--quantum-opt-level
+// CHECK:     cudaq-opt {{.*}}kernel-execution{{[{][^}]*}}quantum-opt-level=0
+// CHECK:     cudaq-translate {{.*}}--fdisable-quantum-optimization
 
 #include "cudaq.h"
 

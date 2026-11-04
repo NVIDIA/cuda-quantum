@@ -70,7 +70,8 @@ auto launch(const Policy &policy, std::size_t qpu_id, ExecutionContext &ctx,
   typename Policy::result_type result;
   auto &qpu = platform.getRuntimeEndpoint(qpu_id);
   ctx.executeKernelApi = [&qpu, &result, &policy, &platform, qpu_id](
-                             const AnyModule &module, const KernelArgs &args) {
+                             const AnyModule &module, const KernelArgs &args,
+                             std::optional<OptimizationLevel> level) {
     CompiledModule compiled;
     if (const auto *source = std::get_if<SourceModule>(&module)) {
 #ifdef CUDAQ_DISABLE_JIT_COMPILER
@@ -82,6 +83,8 @@ auto launch(const Policy &policy, std::size_t qpu_id, ExecutionContext &ctx,
       CUDAQ_INFO("No compiled module found. Compiling.");
       auto options =
           platform.getCompileOptions(policy, cudaq::get_random_seed(), qpu_id);
+      if (level)
+        options.optimizationLevel = *level;
       auto target = platform.getCompileTarget(qpu_id);
       compiled = cudaq_internal::compiler::compileModule(target, options,
                                                          *source, args,

@@ -71,7 +71,8 @@ getFuncOpAndCheckResult(mlir::ModuleOp mod, const std::string &shortName) {
 static std::unique_ptr<RecordLogParser> pyRunTheKernel(
     const std::string &name, quantum_platform &platform, mlir::ModuleOp mod,
     std::shared_ptr<detail::CompiledModuleCache> cache, std::size_t shots_count,
-    std::size_t qpu_id, OpaqueArguments &opaques) {
+    std::size_t qpu_id, OpaqueArguments &opaques,
+    std::optional<OptimizationLevel> level) {
   if (!name.ends_with(".run"))
     throw std::runtime_error("`cudaq.run` only supports runnable kernels.");
   // Set the `run` attribute on the module to indicate this is a run context
@@ -97,7 +98,7 @@ static std::unique_ptr<RecordLogParser> pyRunTheKernel(
   cudaq::run_result runResult = detail::launchRun(
       [&]() mutable {
         [[maybe_unused]] auto result =
-            clean_launch_module(name, mod, opaques, cache);
+            clean_launch_module(name, mod, opaques, cache, level);
       },
       platform, name, shots_count, qpu_id);
 
@@ -123,7 +124,9 @@ static std::vector<nanobind::object>
 run_impl(const std::string &shortName, MlirModule module,
          std::shared_ptr<detail::CompiledModuleCache> cache,
          std::size_t shots_count, std::optional<noise_model> noise_model,
-         std::size_t qpu_id, nanobind::args runtimeArgs) {
+         std::size_t qpu_id, nanobind::args runtimeArgs,
+         std::optional<int> optimizationLevel) {
+  auto level = toOptimizationLevel(optimizationLevel);
   if (shots_count == 0)
     return {};
 
@@ -145,7 +148,7 @@ run_impl(const std::string &shortName, MlirModule module,
     parser = detail::try_finally(
         [&] {
           return pyRunTheKernel(shortName, platform, mod, std::move(cache),
-                                shots_count, qpu_id, opaques);
+                                shots_count, qpu_id, opaques, level);
         },
         [&] {
           if (noise_model.has_value())
@@ -173,7 +176,9 @@ static PyAsyncRunResult
 run_async_impl(const std::string &shortName, MlirModule module,
                std::shared_ptr<detail::CompiledModuleCache> cache,
                std::size_t shots_count, std::optional<noise_model> noise_model,
-               std::size_t qpu_id, nanobind::args runtimeArgs) {
+               std::size_t qpu_id, nanobind::args runtimeArgs,
+               std::optional<int> optimizationLevel) {
+  auto level = toOptimizationLevel(optimizationLevel);
   auto &platform = get_platform();
   auto numQPUs = platform.num_qpus();
   if (qpu_id >= numQPUs)
@@ -208,7 +213,7 @@ run_async_impl(const std::string &shortName, MlirModule module,
     QuantumTask wrapped = detail::make_copyable_function(
         [pp = std::move(parserPromise), noise_model = std::move(noise_model),
          qpu_id, name = shortName, opaques = std::move(opaques), shots_count,
-         cache,
+         cache, level,
          clonedMod = std::shared_ptr<mlir::ModuleOp>(
              new mlir::ModuleOp(mod.clone()), [](mlir::ModuleOp *p) {
                p->erase();
@@ -223,7 +228,7 @@ run_async_impl(const std::string &shortName, MlirModule module,
             if (noise_model.has_value())
               platform.set_noise(&noise_model.value(), qpu_id);
             parser = pyRunTheKernel(name, platform, *clonedMod, cache,
-                                    shots_count, qpu_id, opaques);
+                                    shots_count, qpu_id, opaques, level);
           } catch (...) {
             error = std::current_exception();
           }
@@ -251,6 +256,7 @@ void cudaq::bindPyRun(nanobind::module_ &mod) {
   mod.def("run_impl", run_impl, nanobind::arg(), nanobind::arg(),
           nanobind::arg(), nanobind::arg(), nanobind::arg().none(),
           nanobind::arg(), nanobind::arg(),
+          nanobind::arg("optimization_level").none() = nanobind::none(),
           R"#(
 Run the provided `kernel` with the given kernel arguments over the specified
 number of circuit executions (`shots_count`).
@@ -302,6 +308,7 @@ void cudaq::bindPyRunAsync(nanobind::module_ &mod) {
   mod.def("run_async_impl", run_async_impl, nanobind::arg(), nanobind::arg(),
           nanobind::arg(), nanobind::arg(), nanobind::arg().none(),
           nanobind::arg(), nanobind::arg(),
+          nanobind::arg("optimization_level").none() = nanobind::none(),
           R"#(
 Run the provided `kernel` with the given kernel arguments over the specified
 number of circuit executions (`shots_count`) asynchronously on the specified

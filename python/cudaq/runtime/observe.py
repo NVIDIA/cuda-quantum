@@ -11,6 +11,7 @@ from cudaq.util import trace
 from .utils import __isBroadcast, __createArgumentSet
 from cudaq.kernel.kernel_decorator import (mk_decorator, isa_kernel_decorator)
 from cudaq.kernel.kernel_builder import isa_dynamic_kernel
+from cudaq.kernel.utils import check_optimization_level
 
 
 def isValidObserveKernel(kernel):
@@ -272,12 +273,17 @@ def observe_async(kernel,
             str(len(args)) + " given and " + str(decorator.formal_arity()) +
             " expected.")
     shortName = decorator.uniqName
-    processedArgs, module = decorator.prepare_call(
-        *args, optimization_level=optimization_level)
-    return cudaq_runtime.observe_async_impl(shortName, module,
-                                            decorator.compiledModuleCache(),
-                                            spin_operator, qpu_id, shots_count,
-                                            *processedArgs)
+    processedArgs, module = decorator.prepare_call(*args)
+    check_optimization_level(optimization_level)
+    return cudaq_runtime.observe_async_impl(
+        shortName,
+        module,
+        decorator.compiledModuleCache(),
+        spin_operator,
+        qpu_id,
+        shots_count,
+        *processedArgs,
+        optimization_level=optimization_level)
 
 
 def observe_parallel(kernel,
@@ -341,10 +347,15 @@ def observe_parallel(kernel,
         raise RuntimeError(
             "unrecognized kernel - did you forget the @kernel attribute?")
     shortName = decorator.uniqName
-    processedArgs, module = decorator.prepare_call(
-        *args, optimization_level=optimization_level)
-    return cudaq_runtime.observe_parallel_impl(shortName, module,
-                                               decorator.compiledModuleCache(),
-                                               execution, spin_operator,
-                                               shots_count, noise_model,
-                                               *processedArgs)
+    processedArgs, module = decorator.prepare_call(*args)
+    check_optimization_level(optimization_level)
+    return cudaq_runtime.observe_parallel_impl(
+        shortName,
+        module,
+        decorator.compiledModuleCache(),
+        execution,
+        spin_operator,
+        shots_count,
+        noise_model,
+        *processedArgs,
+        optimization_level=optimization_level)

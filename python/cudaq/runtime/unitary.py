@@ -9,6 +9,7 @@
 from cudaq.mlir._mlir_libs._quakeDialects import cudaq_runtime
 from cudaq.kernel.kernel_decorator import (mk_decorator, isa_kernel_decorator)
 from cudaq.util import trace
+from cudaq.kernel.utils import check_optimization_level
 
 
 @trace.traced
@@ -40,8 +41,10 @@ def get_unitary(kernel, *args, optimization_level=None):
         decorator = kernel
     else:
         decorator = mk_decorator(kernel)
-    processedArgs, module = decorator.prepare_call(
-        *args, optimization_level=optimization_level)
-    return cudaq_runtime.get_unitary_impl(decorator.uniqName, module,
+    processedArgs, module = decorator.prepare_call(*args)
+    check_optimization_level(optimization_level)
+    return cudaq_runtime.get_unitary_impl(decorator.uniqName,
+                                          module,
                                           decorator.compiledModuleCache(),
-                                          *processedArgs)
+                                          *processedArgs,
+                                          optimization_level=optimization_level)

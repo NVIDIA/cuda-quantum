@@ -22,8 +22,9 @@ using namespace cudaq;
 
 static estimate_result
 estimate_impl(const std::string &kernelName, MlirModule kernelMod,
-              std::optional<std::function<bool()>> choice,
-              nanobind::args args) {
+              std::optional<std::function<bool()>> choice, nanobind::args args,
+              std::optional<int> optimizationLevel) {
+  auto level = toOptimizationLevel(optimizationLevel);
   auto &platform = cudaq::get_platform();
   args = simplifiedValidateInputArguments(args);
 
@@ -51,24 +52,29 @@ estimate_impl(const std::string &kernelName, MlirModule kernelMod,
     // the resource-counter hooks are installed in the scope above and only
     // fire while the kernel is freshly JIT-compiled. A cached binary would
     // bypass them.
-    [[maybe_unused]] auto result =
-        cudaq::marshal_and_launch_module(kernelName, kernelMod, args);
+    [[maybe_unused]] auto result = cudaq::marshal_and_launch_module(
+        kernelName, kernelMod, args, /*cache=*/nullptr, level);
   });
 }
 
 static Resources
 estimate_resources_impl(const std::string &kernelName, MlirModule kernelMod,
                         std::optional<std::function<bool()>> choice,
-                        nanobind::args args) {
-  return estimate_impl(kernelName, kernelMod, choice, args).get_resources();
+                        nanobind::args args,
+                        std::optional<int> optimizationLevel) {
+  return estimate_impl(kernelName, kernelMod, choice, args, optimizationLevel)
+      .get_resources();
 }
 
 void cudaq::bindCountResources(nanobind::module_ &mod) {
   mod.def("estimate_impl", estimate_impl, nanobind::arg("kernel_name"),
           nanobind::arg("kernel_mod"), nanobind::arg("choice").none(),
-          nanobind::arg("args"), "See python documentation for estimate.");
+          nanobind::arg("args"),
+          nanobind::arg("optimization_level").none() = nanobind::none(),
+          "See python documentation for estimate.");
   mod.def("estimate_resources_impl", estimate_resources_impl,
           nanobind::arg("kernel_name"), nanobind::arg("kernel_mod"),
           nanobind::arg("choice").none(), nanobind::arg("args"),
+          nanobind::arg("optimization_level").none() = nanobind::none(),
           "See python documentation for estimate_resources.");
 }

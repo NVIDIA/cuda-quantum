@@ -10,6 +10,7 @@
 #include "runtime/cudaq/platform/py_alt_launch_kernel.h"
 #include "cudaq/algorithms/draw.h"
 #include "cudaq/platform/nvqpp_interface.h"
+#include <nanobind/stl/optional.h>
 #include <nanobind/stl/shared_ptr.h>
 
 /// @brief Run `cudaq::contrib::draw`'s string overload on the provided kernel.
@@ -18,12 +19,14 @@
 static std::string
 pyDraw(const std::string &format, const std::string &shortName, MlirModule mod,
        std::shared_ptr<cudaq::detail::CompiledModuleCache> cache,
-       nanobind::args runtimeArgs) {
+       nanobind::args runtimeArgs,
+       std::optional<cudaq::OptimizationLevel> level) {
   if (format != "ascii" && format != "latex")
     throw std::runtime_error("format argument must be \"ascii\" or \"latex\".");
 
   auto f = [=]() {
-    return cudaq::marshal_and_launch_module(shortName, mod, runtimeArgs, cache);
+    return cudaq::marshal_and_launch_module(shortName, mod, runtimeArgs, cache,
+                                            level);
   };
   if (format == "ascii")
     return cudaq::contrib::extractTrace(std::move(f));
@@ -37,9 +40,14 @@ void cudaq::bindPyDraw(nanobind::module_ &mod) {
       [](const std::string &format, const std::string &shortName,
          MlirModule mod,
          std::shared_ptr<cudaq::detail::CompiledModuleCache> cache,
-         nanobind::args runtimeArgs) {
-        return pyDraw(format, shortName, mod, std::move(cache), runtimeArgs);
+         nanobind::args runtimeArgs, std::optional<int> optimizationLevel) {
+        return pyDraw(format, shortName, mod, std::move(cache), runtimeArgs,
+                      cudaq::toOptimizationLevel(optimizationLevel));
       },
+      nanobind::arg("format"), nanobind::arg("short_name"),
+      nanobind::arg("module"), nanobind::arg("cache"),
+      nanobind::arg("runtime_args"),
+      nanobind::arg("optimization_level").none() = nanobind::none(),
       R"#(
 Return a string representing the drawing of the execution path, in the format
 specified as the first argument. If the format is 'ascii', the output will be a

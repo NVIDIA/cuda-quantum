@@ -51,16 +51,26 @@ void bindAltLaunchKernel(nanobind::module_ &mod,
 /// resolved at this `callsite` \e prior to launching this module. In particular
 /// this means \p module is ready for beta reduction of callables. The return
 /// type is obtained from the kernel's FuncOp. \p module must be modifiable.
+/// \p level, if given, overrides the platform's default quantum optimization
+/// level for this launch.
 nanobind::object marshal_and_launch_module(
     const std::string &kernelName, MlirModule module,
     nanobind::args runtimeArgs,
-    std::shared_ptr<detail::CompiledModuleCache> cache = nullptr);
+    std::shared_ptr<detail::CompiledModuleCache> cache = nullptr,
+    std::optional<OptimizationLevel> level = std::nullopt);
 
 /// Pure C++ code that launches a kernel. Argument marshaling and result
-/// unmarshalling is \e not performed.
+/// unmarshalling is \e not performed. \p level, if given, overrides the
+/// platform's default quantum optimization level for this launch.
 KernelThunkResultType clean_launch_module(
     const std::string &kernelName, mlir::ModuleOp mod, OpaqueArguments &args,
-    std::shared_ptr<detail::CompiledModuleCache> cache = nullptr);
+    std::shared_ptr<detail::CompiledModuleCache> cache = nullptr,
+    std::optional<OptimizationLevel> level = std::nullopt);
+
+/// Convert the `optimization_level` passed from Python to an optimization
+/// level. Throws if it is not between 0 and 3.
+std::optional<OptimizationLevel>
+toOptimizationLevel(std::optional<int> optimizationLevel);
 
 /// Whether a launch on QPU \p qpuId compiles a kernel with its argument values
 /// substituted. See `cudaq_internal::compiler::specializesArguments`.

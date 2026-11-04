@@ -202,10 +202,11 @@ public:
   /// Launch \p module outside of a launch policy.
   ///
   /// If a `SourceModule` is passed, it is compiled against \p target and
-  /// \p options before being launched.
-  [[nodiscard]] KernelThunkResultType
-  compileAndLaunchKernel(const AnyModule &module, KernelArgs args,
-                         std::size_t qpu_id = 0);
+  /// \p options before being launched. \p optimizationLevel, if given,
+  /// overrides the default quantum optimization level of the compilation.
+  [[nodiscard]] KernelThunkResultType compileAndLaunchKernel(
+      const AnyModule &module, KernelArgs args, std::size_t qpu_id = 0,
+      std::optional<OptimizationLevel> optimizationLevel = std::nullopt);
 
   [[nodiscard]] cudaq::CompileTarget
   getCompileTarget(std::size_t qpu_id = 0) const;
@@ -329,13 +330,15 @@ extern "C" {
 // Client-server (legacy) interface.
 [[nodiscard]] KernelThunkResultType
 altLaunchKernel(const char *kernelName, KernelThunkType kernel, void *args,
-                std::uint64_t argsSize, std::uint64_t resultOffset);
+                std::uint64_t argsSize, std::uint64_t resultOffset,
+                std::int32_t optLevel);
 
 // Streamlined interface for launching kernels. Argument synthesis and JIT
 // compilation *must* happen on the local machine.
 [[nodiscard]] KernelThunkResultType
 streamlinedLaunchKernel(const char *kernelName,
-                        const std::vector<void *> &rawArgs);
+                        const std::vector<void *> &rawArgs,
+                        std::int32_t optLevel);
 
 // Hybrid of the client-server and streamlined approaches. Letting JIT
 // compilation happen either early or late and can handle return values from
@@ -343,7 +346,7 @@ streamlinedLaunchKernel(const char *kernelName,
 [[nodiscard]] KernelThunkResultType
 hybridLaunchKernel(const char *kernelName, KernelThunkType kernel, void *args,
                    std::uint64_t argsSize, std::uint64_t resultOffset,
-                   const std::vector<void *> &rawArgs);
+                   const std::vector<void *> &rawArgs, std::int32_t optLevel);
 } // extern "C"
 } // namespace cudaq
 

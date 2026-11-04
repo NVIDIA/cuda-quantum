@@ -397,8 +397,9 @@ cudaq_internal::compiler::Compiler::assembleCompiledModule(
 
 /// Resolve the quantum optimization level for a given kernel entry point.
 ///
-/// An explicit optimization level attribute on the kernel entry point takes
-/// precedence over the level in \p options.
+/// The level requested for this launch arrives in \p options. An optimization
+/// level attribute on the kernel entry point, which marks a kernel declared
+/// with `disable_quantum_optimization`, takes precedence over it.
 static cudaq::OptimizationLevel
 resolveOptimizationLevel(mlir::func::FuncOp epFunc,
                          const cudaq::CompileOptions &options) {
