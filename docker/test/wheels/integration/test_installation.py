@@ -8,6 +8,7 @@
 """Smoke-test installed candidate wheels, from outside the source/build trees.
 
 Run once with core only, once with --logical, and once with --logical --frontend.
+Add --edem to also check the independent cudaq-edem distribution.
 Environment creation and pip installation stay with the caller; no import hooks
 or source-path injection are used here.
 """
@@ -18,7 +19,7 @@ import re
 import sys
 
 
-def check_ownership(logical, frontend):
+def check_ownership(logical, frontend, edem=False):
     """Core owns its files and shared libraries, including after wheel repair."""
     core_files = {str(p) for p in distribution("cudaq-core").files}
     core_python_files = {
@@ -37,6 +38,8 @@ def check_ownership(logical, frontend):
         }
 
     dependents = ["cudaq-logical"] if logical else []
+    if edem:
+        dependents.append("cudaq-edem")
     if frontend:
         dependents.extend(d.metadata["Name"]
                           for d in distributions()
@@ -85,7 +88,7 @@ def check_core(frontend):
 
 def check_logical():
     import cudaq.logical as logical
-    from cudaq.core.backends import EstimateResult
+    from cudaq.core.results import EstimateResult
     from cudaq.util import trace
 
     @logical.program
@@ -107,14 +110,29 @@ def check_logical():
     }
 
 
+def check_edem():
+    """cudaq-edem is a separate distribution with its own native libraries."""
+    from importlib.metadata import version
+    import cudaq_edem
+
+    assert cudaq_edem.__version__ == version("cudaq-edem")
+    projected = cudaq_edem.project_DEM(
+        cudaq_edem.compose_chain([cudaq_edem.EDEM()]))
+    assert isinstance(projected, cudaq_edem.DEM)
+    assert cudaq_edem.DEM.from_bytes(projected.to_bytes()).is_dem
+    # The package carries the native libraries and CMake files for consumers.
+    cmake = Path(cudaq_edem.get_cmake_dir())
+    assert (cmake / "cudaq-edem-config.cmake").is_file()
+
+
 def check_frontend():
     import cudaq
-    from cudaq.core import backends
+    from cudaq.core import _experimental as core_experimental
     from cudaq._experimental import CompileTarget, CustomTarget
     from cudaq.mlir._mlir_libs import _backends, _quakeDialects
 
-    assert CompileTarget is backends.CompileTarget
-    assert CustomTarget is backends.CustomTarget
+    assert CompileTarget is core_experimental.CompileTarget
+    assert CustomTarget is core_experimental.CustomTarget
     assert _quakeDialects.cudaq_runtime.trace is _backends.trace
     cudaq.set_target("qpp-cpu")
     kernel = cudaq.make_kernel()
@@ -128,10 +146,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--logical", action="store_true")
     parser.add_argument("--frontend", action="store_true")
+    parser.add_argument("--edem", action="store_true")
     args = parser.parse_args()
-    check_ownership(args.logical, args.frontend)
+    check_ownership(args.logical, args.frontend, args.edem)
     if args.logical:
         check_logical()
+    if args.edem:
+        check_edem()
     if args.frontend:
         check_frontend()
     check_core(args.frontend)

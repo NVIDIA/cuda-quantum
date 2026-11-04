@@ -415,6 +415,8 @@ jobs:
           echo "${{ needs.wheel.outputs.cudaq_version }}" > python/metapackages/_version.txt
           # no cudaq-logical wheel on macOS
           echo "0.0.0" > python/metapackages/_logical_version.txt
+          # no cudaq-edem wheel on macOS yet
+          echo "0.0.0" > python/metapackages/_edem_version.txt
           python3 -m pip install build
           cd python/metapackages && CUDAQ_META_SDIST_BUILD=1 python3 -m build . --sdist
           mkdir -p "$GITHUB_WORKSPACE/metapackage"

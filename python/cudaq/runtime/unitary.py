@@ -12,13 +12,15 @@ from cudaq.util import trace
 
 
 @trace.traced
-def get_unitary(kernel, *args):
+def get_unitary(kernel, *args, optimization_level=None):
     """
     Return the unitary matrix of the execution path of the provided kernel.
 
     Args:
       kernel (:class:`Kernel`): The :class:`Kernel` to analyze.
       *arguments (Optional[Any]): The concrete values to evaluate the kernel at.
+      optimization_level (Optional[int]): The quantum optimization level to
+          compile the kernel with, an integer between 0 and 3.
 
     Returns:
       `numpy.ndarray`: The unitary matrix as a complex-valued NumPy array.
@@ -38,7 +40,8 @@ def get_unitary(kernel, *args):
         decorator = kernel
     else:
         decorator = mk_decorator(kernel)
-    processedArgs, module = decorator.prepare_call(*args)
+    processedArgs, module = decorator.prepare_call(
+        *args, optimization_level=optimization_level)
     return cudaq_runtime.get_unitary_impl(decorator.uniqName, module,
                                           decorator.compiledModuleCache(),
                                           *processedArgs)

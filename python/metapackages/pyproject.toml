@@ -61,6 +61,7 @@ core-metadata-version = "2.3"
 include = [
   "_version.txt",
   "_logical_version.txt",
+  "_edem_version.txt",
   "_deprecated.txt",
 ]
 
@@ -68,4 +69,5 @@ include = [
 include = [
     "_version.txt",
   "_logical_version.txt",
+  "_edem_version.txt",
 ]

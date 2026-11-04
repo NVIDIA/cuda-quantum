@@ -4,7 +4,7 @@
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 //
 // Textual / module-level helpers exposed to Python:
 //
@@ -14,6 +14,7 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "cudaq/edem/python.h"
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/string.h>
 
@@ -54,6 +55,7 @@
 #include "qlx/Dialect/QLX/Transforms/QLXVerifyPBC.h"
 #include "mlir/Dialect/Arith/IR/Arith.h"
 
+#include "AnalysisDiagnosticCapture.h"
 #include "PassDebug.h"
 
 #include "llvm/Support/MemoryBuffer.h"
@@ -74,6 +76,19 @@ static std::vector<std::string> &getPluginPaths() {
   return *paths;
 }
 namespace {
+
+struct GadgetEDEMCapsule {
+  cudaq_gf2_owned_buffer buffer{};
+  // Keep the module and its linked native callback code alive until after the
+  // adopted payload is released. The source record itself stays address-stable.
+  nb::object moduleKeepalive;
+  ~GadgetEDEMCapsule() { cudaq_gf2_owned_buffer_release(&buffer); }
+};
+
+void destroyGadgetEDEMCapsule(PyObject *capsule) noexcept {
+  // Context belongs to this producer regardless of the active/used name.
+  delete static_cast<GadgetEDEMCapsule *>(PyCapsule_GetContext(capsule));
+}
 
 struct ContextDiagnosticLockRegistry {
   std::mutex mutex;
@@ -677,4 +692,83 @@ NB_MODULE(_qlxRuntime, m) {
       },
       nb::arg("module"), nb::arg("name"),
       "Run a named MLIR translation on a module (no re-parse).");
+
+  m.def(
+      "project_clifford_json",
+      [](MlirModule pyModule, const std::string &gadget) {
+        mlir::ModuleOp module = unwrap(pyModule);
+        auto diagnosticMutex = contextDiagnosticMutex(module.getContext());
+        std::unique_lock<std::mutex> diagnosticLock(*diagnosticMutex);
+        qlx::python::AnalysisDiagnosticCapture capture(module.getContext());
+        std::string result;
+        auto status = qlxProjectCliffordJson(pyModule, toRef(gadget),
+                                             appendToString, &result);
+        auto diagnostics = capture.takeDiagnostics();
+        if (mlirLogicalResultIsFailure(status))
+          throw std::runtime_error("Clifford projection failed:\n" +
+                                   diagnostics);
+        return result;
+      },
+      nb::arg("module"), nb::arg("gadget") = "",
+      nb::call_guard<nb::gil_scoped_release>(),
+      "Project a selected Fabric realization without parsing Stim or mutating "
+      "IR.");
+
+  m.def(
+      "verify_gadget_json",
+      [](MlirModule pyModule, const std::string &profile,
+         const std::string &action) {
+        mlir::ModuleOp module = unwrap(pyModule);
+        auto diagnosticMutex = contextDiagnosticMutex(module.getContext());
+        std::unique_lock<std::mutex> diagnosticLock(*diagnosticMutex);
+        qlx::python::AnalysisDiagnosticCapture capture(module.getContext());
+        std::string result;
+        auto status = qlxVerifyGadgetContract(
+            pyModule, toRef(profile), toRef(action), appendToString, &result);
+        auto diagnostics = capture.takeDiagnostics();
+        if (mlirLogicalResultIsFailure(status))
+          throw std::runtime_error("Gadget verification failed:\n" +
+                                   diagnostics);
+        return result;
+      },
+      nb::arg("module"), nb::arg("profile") = "", nb::arg("action") = "",
+      nb::call_guard<nb::gil_scoped_release>(),
+      "Check a selected gadget detector contract and, optionally, the "
+      "declared stabilizer logical behavior against one Choi-state probe of "
+      "its "
+      "realization. Returns cudaq.logical.gadget-verification/v2 JSON.");
+
+  m.def(
+      "derive_edem_owned",
+      [](MlirModule pyModule, const std::string &profile,
+         const std::string &faults) {
+        auto result = std::make_unique<GadgetEDEMCapsule>();
+        result->moduleKeepalive =
+            nb::module_::import_("cudaq.mlir._mlir_libs._qlxRuntime");
+        {
+          nb::gil_scoped_release release;
+          mlir::ModuleOp module = unwrap(pyModule);
+          auto diagnosticMutex = contextDiagnosticMutex(module.getContext());
+          std::unique_lock<std::mutex> diagnosticLock(*diagnosticMutex);
+          qlx::python::AnalysisDiagnosticCapture capture(module.getContext());
+          auto status = qlxDeriveGadgetEDEM(pyModule, toRef(profile),
+                                            toRef(faults), &result->buffer);
+          auto diagnostics = capture.takeDiagnostics();
+          if (mlirLogicalResultIsFailure(status))
+            throw std::runtime_error("Gadget EDEM derivation failed:\n" +
+                                     diagnostics);
+        }
+        nb::object capsule = nb::steal<nb::object>(
+            PyCapsule_New(&result->buffer, CUDAQ_EDEM_OWNED_BUFFER_CAPSULE,
+                          destroyGadgetEDEMCapsule));
+        if (!capsule)
+          throw nb::python_error();
+        if (PyCapsule_SetContext(capsule.ptr(), result.get()) != 0)
+          throw nb::python_error();
+        result.release();
+        return capsule;
+      },
+      nb::arg("module"), nb::arg("profile"), nb::arg("faults"),
+      "Prove a gadget detector contract and transfer its owned packed EDEM "
+      "through an experimental adoption capsule without copying the payload.");
 }

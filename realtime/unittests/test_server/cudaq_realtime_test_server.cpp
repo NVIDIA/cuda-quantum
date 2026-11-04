@@ -62,9 +62,25 @@
 /// places, each a branch of a numbered step below: the dispatcher config [3],
 /// the function table [5], and the control variables [6], which the GPU must
 /// be able to read.  All device function-table construction is in
-/// build_device_table().  The dispatch kernels come from
+/// build_device_table().  The 3-kernel dispatch kernel comes from
 /// libcudaq-realtime-dispatch.a, device-linked into this binary with the
-/// handler, and the dispatcher finds their launchers there by itself.
+/// handler, and the dispatcher finds its launcher there by itself.  The
+/// unified kernel is linked at run time from libcudaq-realtime's own image,
+/// the bridge's hooks and this binary's device code.
+///
+/// AN APPLICATION'S OWN DISPATCH KERNEL
+///
+///     --path=device --dispatch=unified --dispatcher=single_thread_dispatcher
+///
+/// replaces the dispatcher's unified kernel with one of this binary's own:
+/// single_thread_dispatcher.cu (unittests/dispatchers/), which does RX,
+/// dispatch and TX on one thread.  Two things make that work, and they are
+/// all an application adds: the build embeds the kernel's LTO-IR in this
+/// binary's device code (one cudaq_realtime_add_dispatch_kernel call in this
+/// directory's CMakeLists.txt), so the run-time link that the handler lookup
+/// triggers also takes the kernel; and step [5k] looks the kernel up and
+/// hands the dispatcher a launcher, launch_own_dispatcher(), which
+/// cudaq_dispatcher_start calls in place of launching its own kernel.
 ///
 /// ORDERING RULE: the READY line is printed BEFORE cudaq_bridge_connect().
 /// A rendezvous transport blocks in connect() until the caller dials in, while
@@ -74,7 +90,8 @@
 ///
 /// Handshake, both parsed by cudaq::realtime::testing::ServerProcess:
 ///   CUDAQ_REALTIME_SERVER_READY <provider key=value...> path=<path>
-///       dispatch=<shape> slots=<N> slot_size=<M>   (one line; wrapped here)
+///       dispatch=<shape> [dispatcher=<name>] slots=<N> slot_size=<M>
+///       (one line; wrapped here; dispatcher= only with --dispatcher=)
 ///   CUDAQ_REALTIME_SERVER_PROCESSED count=<K>   (printed after shutdown)
 ///
 /// The processed count is only final once the dispatch loop has exited, so it
@@ -94,6 +111,7 @@
 #include <thread>
 
 #ifdef CUDAQ_REALTIME_TEST_SERVER_DEVICE_PATH
+#include "driver_launch.h"
 #include <cuda_runtime.h>
 #endif
 
@@ -107,6 +125,10 @@ setup_rpc_increment_function_table_host(cudaq_function_entry_t *h_entries);
 // entry, which must be taken on the device.
 extern "C" void
 setup_rpc_increment_function_table(cudaq_function_entry_t *d_entries);
+// The same entry, holding a handler address from a run-time linked module.
+extern "C" cudaq_status_t
+setup_rpc_increment_function_table_linked(cudaq_function_entry_t *d_entries,
+                                          cudaq_dispatcher_t *dispatcher);
 #endif
 
 namespace {
@@ -115,6 +137,9 @@ struct ServerConfig {
   std::string transport = "udp";
   bool device = false;
   bool unified = false;
+  // --dispatcher=: this binary's own dispatch kernel, run in place of the
+  // dispatcher's (DEVICE unified only).  Empty for the dispatcher's own.
+  std::string dispatcher;
   int timeout_sec = 60;
   // The bridge's own command line: the tokens after `--`, forwarded verbatim
   // and never interpreted here.  Points into main's argv, which outlives
@@ -149,6 +174,9 @@ void print_usage(const char *program) {
       << "  --dispatch=SHAPE    ring | unified            [default ring]\n"
       << "                      wires THIS SERVER only; the bridge needs its\n"
       << "                      own flag for the same shape (udp: --unified)\n"
+      << "  --dispatcher=NAME   run this binary's own dispatch kernel NAME\n"
+      << "                      in place of the dispatcher's; device\n"
+      << "                      unified only (single_thread_dispatcher)\n"
       << "  --timeout=N         run timeout in seconds    [default 60]\n\n"
       << "Bridge options (after --) are forwarded verbatim and never read\n"
       << "here, e.g. --port=N, --num-slots=N, --slot-size=N, --unified,\n"
@@ -198,6 +226,8 @@ bool parse_args(int argc, char **argv, ServerConfig &cfg, bool &help) {
         cfg.unified = false;
       else if (a == "--dispatch=unified")
         cfg.unified = true;
+      else if (starts_with(a, "--dispatcher="))
+        cfg.dispatcher = a.substr(13);
       else if (starts_with(a, "--timeout="))
         cfg.timeout_sec = std::stoi(a.substr(10));
       else {
@@ -286,14 +316,21 @@ struct ServerResources {
 // Fill the device function table `d_entries` (one entry) for `dispatcher`.
 // Every DEVICE_CALL entry holds a device-function address, which is only valid
 // inside the CUDA module the dispatch kernel runs in, so how the table is
-// built depends on where that kernel comes from.  Both shapes currently
-// device-link it into this binary, together with the handler, so both take
-// the address from an init kernel in that same module.
+// built depends on where that kernel comes from.  The 3-kernel shape
+// device-links it into this binary, together with the handler, so it takes
+// the address from an init kernel in that same module.  The unified kernel is
+// linked at run time with the bridge's hooks and this binary's device code
+// (rpc_increment_handler.cu exports the handler), so the address comes
+// from that module.
 bool build_device_table(cudaq_dispatcher_t *dispatcher, bool unified,
                         cudaq_function_entry_t *d_entries) {
-  (void)dispatcher;
-  (void)unified;
-  setup_rpc_increment_function_table(d_entries);
+  if (unified) {
+    if (setup_rpc_increment_function_table_linked(d_entries, dispatcher) !=
+        CUDAQ_OK)
+      return false;
+  } else {
+    setup_rpc_increment_function_table(d_entries);
+  }
   const cudaError_t err = cudaGetLastError();
   if (err != cudaSuccess) {
     std::cerr << "ERROR: building the device function table: "
@@ -301,6 +338,32 @@ bool build_device_table(cudaq_dispatcher_t *dispatcher, bool unified,
     return false;
   }
   return true;
+}
+
+// The --dispatcher= kernel, looked up in the dispatcher's linked module in
+// [5k].  cudaq_unified_launch_fn_t carries no user data, hence file scope.
+cudaKernel_t g_own_dispatcher = nullptr;
+
+// What cudaq_dispatcher_start calls in place of launching its own kernel when
+// --dispatcher= is given: the application picks the grid and launch form, and
+// launches through the driver API, the same on CUDA 12 and 13.
+// single_thread_dispatcher works on one thread, so one block of one thread,
+// where the block-partitioned increment handler does all of its bytes.  The
+// arguments are the kernel's parameters, in order.  Launched on `stream`,
+// which cudaq_dispatcher_stop waits on; a failure fails start().
+cudaq_status_t
+launch_own_dispatcher(void *transport_ctx, size_t tx_stride_sz,
+                      cudaq_function_entry_t *function_table, size_t func_count,
+                      volatile int *shutdown_flag, uint64_t *stats,
+                      uint32_t /*threads_per_block*/, cudaStream_t stream) {
+  void *args[] = {&transport_ctx,  &tx_stride_sz, &shutdown_flag,
+                  &function_table, &func_count,   &stats};
+  CUlaunchConfig launch{};
+  launch.gridDimX = launch.gridDimY = launch.gridDimZ = 1;
+  launch.blockDimX = launch.blockDimY = launch.blockDimZ = 1;
+  launch.hStream = stream;
+  return cudaq::realtime::testing::launch_kernel_ex(&launch, g_own_dispatcher,
+                                                    args);
 }
 #endif
 
@@ -318,6 +381,11 @@ int main(int argc, char **argv) {
   }
   const char *path = cfg.device ? "device" : "host";
   const char *shape = cfg.unified ? "unified" : "ring";
+  if (!cfg.dispatcher.empty() && !(cfg.device && cfg.unified)) {
+    std::cerr << "ERROR: --dispatcher= needs --path=device --dispatch=unified"
+              << std::endl;
+    return 1;
+  }
 
   std::signal(SIGINT, on_signal);
   std::signal(SIGTERM, on_signal);
@@ -419,6 +487,24 @@ int main(int argc, char **argv) {
     return 1;
   }
 
+#ifdef CUDAQ_REALTIME_TEST_SERVER_DEVICE_PATH
+  // [5k] --dispatcher= only: this binary's own dispatch kernel in place of
+  //      the dispatcher's.  The handler lookup in [5d] linked the module from
+  //      this binary's device code, which holds the kernel too (embedded by
+  //      the build), so the kernel is looked up the same way.  The launcher
+  //      takes the bridge's transport context, hence the NULL here.
+  if (!cfg.dispatcher.empty() &&
+      (cudaq_dispatcher_get_device_kernel(res.dispatcher,
+                                          cfg.dispatcher.c_str(),
+                                          &g_own_dispatcher) != CUDAQ_OK ||
+       cudaq_dispatcher_set_unified_launch(
+           res.dispatcher, launch_own_dispatcher, nullptr) != CUDAQ_OK)) {
+    std::cerr << "ERROR: cannot run dispatch kernel '" << cfg.dispatcher << "'"
+              << std::endl;
+    return 1;
+  }
+#endif
+
   // [6] Control variables, then start polling.  A HOST_CALL-only table needs
   //     no graph engine and therefore no GPU.
   volatile int host_shutdown_flag = 0;
@@ -462,8 +548,11 @@ int main(int argc, char **argv) {
   //     through so the harness needs no per-transport parsing.  std::endl
   //     flushes, which matters because stdout is a pipe here.
   std::cout << "CUDAQ_REALTIME_SERVER_READY " << endpoint << " path=" << path
-            << " dispatch=" << shape << " slots=" << num_slots
-            << " slot_size=" << slot_size << std::endl;
+            << " dispatch=" << shape;
+  if (!cfg.dispatcher.empty())
+    std::cout << " dispatcher=" << cfg.dispatcher;
+  std::cout << " slots=" << num_slots << " slot_size=" << slot_size
+            << std::endl;
 
   // [8] Connect: a no-op for connectionless transports, a blocking wait for
   //     the caller on a rendezvous transport.

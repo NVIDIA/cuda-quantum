@@ -222,7 +222,7 @@ module {
 // -----
 
 module {
-  // expected-error@+2 {{leaves 1 live quantum owner(s); measure, sink, or return every wire}}
+  // expected-error@+2 {{leaves 1 live quantum value(s); measure, sink, or return every wire}}
   // expected-error@+1 {{failed to legalize operation 'func.func'}}
   func.func @__nvqpp__mlirgen__entry_owner_leak()
       attributes {"cudaq-entrypoint", "cudaq-kernel"} {

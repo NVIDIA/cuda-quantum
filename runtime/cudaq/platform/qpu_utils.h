@@ -76,6 +76,7 @@ bool isAnalogHamiltonianKernel(const std::string &kernelName);
 /// into the executor, and populate the server helper's runtime target from
 /// @p targetConfig and @p backendConfig. Throws @c std::runtime_error if no
 /// @c ServerHelper is registered for @p qpuName.
+/// Emulation uses the generic executor to avoid initializing remote clients.
 void initServerHelperAndExecutor(
     const std::string &qpuName,
     const std::map<std::string, std::string> &backendConfig,
@@ -94,6 +95,10 @@ void unregisterExecutionQueue(QuantumExecutionQueue &queue);
 /// Note: Queues are reached directly rather than through the current platform:
 /// changing targets leaves previous platforms alive with their queues loaded.
 void shutdownExecutionQueues();
+
+/// Release platform resources at exit before plugin globals are destroyed.
+/// Call after initializing plugin clients and their statics.
+void registerPlatformCleanup();
 } // namespace detail
 
 } // namespace cudaq

@@ -54,6 +54,17 @@ def check_mpi(entity):
     expectation_value_no_shots = result_no_shots.expectation()
     assert np.isclose(want_expectation_value, expectation_value_no_shots)
 
+    # Per-term expectation values must match the thread-parallel result.
+    result_thread = cudaq.observe(entity,
+                                  hamiltonian,
+                                  0.59,
+                                  execution=cudaq.parallel.thread)
+    for term in hamiltonian:
+        assert np.isclose(result_no_shots.expectation(term),
+                          result_thread.expectation(term))
+    assert any(not np.isclose(result_thread.expectation(term), 0.0)
+               for term in hamiltonian)
+
     # Test all gather
     numRanks = cudaq.mpi.num_ranks()
     local = [1.0]

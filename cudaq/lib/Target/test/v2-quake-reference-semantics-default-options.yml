@@ -26,5 +26,7 @@ compile-target:
 
 # CHECK: name: v2-quake-reference-semantics-default-options
 # CHECK:   ir-output-profile=quake-reference-semantics
-# CHECK-NEXT:     measurement-type: any
-# CHECK-NEXT:     reset-after-measure: false
+# CHECK-NEXT:     options:
+# CHECK-NEXT:       basis-gates: []
+# CHECK-NEXT:       measurement-type: any
+# CHECK-NEXT:       reset-after-measure: false

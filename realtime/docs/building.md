@@ -17,7 +17,7 @@ ninja install
 
 - CMake 4.0+
 
-- CUDA toolkit (12+)
+- CUDA toolkit (12.6+ and 13.0+)
 
 In the above `cmake` command, we enabled unit testing with `-DCUDAQ_REALTIME_BUILD_TESTS=ON`.
 To execute those unit tests, run the `ctest` command from the `build` directory:

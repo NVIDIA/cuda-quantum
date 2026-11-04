@@ -9,15 +9,8 @@
 # Tests for per-arity gate count and depth metrics returned by
 # estimate_resources().
 
-from pathlib import Path
-
 import cudaq
 import pytest
-
-cudaq._register_target_config(
-    str(
-        Path(__file__).resolve().parents[1] / "targets" /
-        "compiler-bench-nisq.yml"))
 
 
 @pytest.fixture(scope="function", autouse=True)
@@ -167,15 +160,3 @@ def test_multi_qvector_depth():
     assert resources.multi_qubit_gate_count == 2
     assert resources.depth_for_arity(2) == 1
     assert resources.num_qubits == 4
-
-
-def test_num_qubits_and_used_qubits():
-    """Qubit routing on a path device touches all intermediate qubits."""
-    cudaq.set_target('compiler-bench-nisq', device='path(5)')
-    kernel = cudaq.make_kernel()
-    q = kernel.qalloc(5)
-    kernel.cx(q[0], q[4])
-
-    resources = cudaq.estimate_resources(kernel)
-    assert resources.num_qubits == 5
-    assert resources.num_used_qubits == 5

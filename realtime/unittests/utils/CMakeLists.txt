@@ -177,6 +177,12 @@ if (GPU_ROCE_TRANSCEIVER_LIB AND
     ${CUDAQ_REALTIME_INCLUDE_DIR}
     ${CUDAToolkit_INCLUDE_DIRS})
 
+  # The handler, defined once with its export, is compiled by each executable
+  # that links rpc_increment_ft: nothing on the host references it, so as an
+  # archive member it would be left out of the executable's device code.
+  target_sources(rpc_increment_ft INTERFACE
+    ${CMAKE_CURRENT_SOURCE_DIR}/rpc_increment_handler.cu)
+
   # Bridge executable (.cpp, linked with CUDA)
   add_executable(gpu_roce_bridge
     gpu_roce_bridge.cpp)

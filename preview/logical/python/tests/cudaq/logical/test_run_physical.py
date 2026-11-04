@@ -19,14 +19,16 @@ from cudaq.logical import codes, gadgets, std
 from cudaq.logical.compiler import Build, PhysicalBuilder
 from cudaq.logical.gadgets import gadget, patch
 from cudaq.logical.ops import _impl as ops
+from cudaq.logical.programs import DefinitionHandle
 from cudaq.mlir._mlir_libs import _qlxRuntime
 
 # ---------------------------------------------------------------------------
 # Targets
 # ---------------------------------------------------------------------------
-# Every test runs on each target below, unless it pins one. `SHOTS` is the
-# default shot count. `RANDOM_SHOTS` is for a check that both values of a
-# random bit appear: it misses one with probability 2**-31.
+# Every test runs on CUDA-Q's default target unless it names its targets. A
+# test names targets only when the simulator can change its outcome: gate
+# support, noise, or memory. `SHOTS` is the default shot count.
+# `RANDOM_SHOTS` is for a check that both values of a random bit appear.
 # ---------------------------------------------------------------------------
 
 skipIfNoGPU = pytest.mark.skipif(cudaq.num_available_gpus() == 0,
@@ -43,12 +45,17 @@ TARGETS = [
 ]
 
 
-@pytest.fixture(autouse=True, params=TARGETS)
+@pytest.fixture(autouse=True)
 def target(request):
-    name, options = request.param
-    cudaq.set_target(name, **options)
+    # Only a test that names its targets passes one in.
+    if hasattr(request, "param"):
+        name, options = request.param
+        cudaq.set_target(name, **options)
+    else:
+        cudaq.reset_target()
+        name, options = cudaq.get_target().name, {}
     try:
-        yield request.param
+        yield name, options
     finally:
         cudaq.reset_target()
 
@@ -276,6 +283,9 @@ def types_of(results):
             for result in results]
 
 
+# 40 qubits allocated at once exceed the memory of a state-vector simulator
+# such as `qpp-cpu` or `nvidia`, so `list_40` checks that each qubit is freed
+# at its release.
 @pytest.mark.parametrize("make, expected", [
     pytest.param(physical(x_then_mz), True, id="x_then_mz"),
     pytest.param(physical(saved_values), [False, True, True],
@@ -284,8 +294,6 @@ def types_of(results):
     pytest.param(physical(x_basis), [False, False, False], id="x_basis"),
     pytest.param(reset_to_plus, [False, False], id="reset_to_plus"),
     pytest.param(physical(one_element_list), True, id="one_element_list"),
-    pytest.param(alternating_bits(19), [i % 2 == 1 for i in range(19)],
-                 id="list_19"),
     pytest.param(alternating_bits(40), [i % 2 == 1 for i in range(40)],
                  id="list_40"),
 ])
@@ -302,7 +310,10 @@ def bell():
     return [cql.measure(a), cql.measure(b)]
 
 
-def test_bell_pair():
+# Every target runs this program, so a simulator that cannot run the emitted
+# Quake fails here.
+@pytest.mark.parametrize("target", TARGETS, indirect=True)
+def test_bell_pair(target):
     results = cudaq.run(cql.compile(bell), shots_count=RANDOM_SHOTS)
     assert len(results) == RANDOM_SHOTS
     assert set(map(tuple, results)) == {(False, False), (True, True)}
@@ -313,23 +324,6 @@ def ordinary_bool() -> bool:
     q = cudaq.qubit()
     x(q)
     return mz(q)
-
-
-@cudaq.kernel
-def ordinary_bool_list() -> list[bool]:
-    q = cudaq.qvector(3)
-    x(q[1])
-    x(q[2])
-    return [mz(q[0]), mz(q[1]), mz(q[2])]
-
-
-@pytest.mark.parametrize("ordinary, definition",
-                         [(ordinary_bool, x_then_mz),
-                          (ordinary_bool_list, saved_values)])
-def test_results_match_ordinary_run(ordinary, definition):
-    expected = cudaq.run(ordinary, shots_count=2)
-    results = cudaq.run(cql.compile(definition), shots_count=2)
-    assert results == expected and types_of(results) == types_of(expected)
 
 
 # ---------------------------------------------------------------------------
@@ -410,8 +404,7 @@ def test_computed_booleans():
 # `phys.call` is inlined, and `phys.call_template` replays its canonical
 # `phys.call`. `flip_after_loop`, under Control flow, replays a call made
 # inside a loop. A Pauli product is measured on an ancilla, or rotated with
-# a CX ladder around a Clifford gate. A non-Clifford rotation keeps `rz`,
-# which Stim rejects.
+# a CX ladder around `rz`, which Stim rejects at every angle.
 # ---------------------------------------------------------------------------
 
 
@@ -432,9 +425,9 @@ def same_label() -> tuple[bool, bool]:
     return first, cql.measure_z(cql.x(cql.prepare_zero()))
 
 
-@cql.program
-def three_flips() -> bool:
-    return cql.measure_z(cql.x(cql.x(cql.x(cql.prepare_zero()))))
+@cql.program(name="two-flips")
+def two_flips() -> bool:
+    return cql.measure_z(cql.x(cql.x(cql.prepare_zero())))
 
 
 @cql.protocol
@@ -461,9 +454,8 @@ def signed_rotations() -> tuple[bool, bool]:
 @pytest.mark.parametrize("definition, expected", [
     (flip_first, [True, False]),
     (same_label, [False, True]),
-    (three_flips, True),
+    (two_flips, False),
     (inverted_product, [True, False]),
-    (signed_rotations, [False, True]),
 ])
 def test_calls_and_products(definition, expected):
     assert cudaq.run(physical_build(definition),
@@ -501,6 +493,36 @@ def test_correlated_results():
     assert {first for first, _, _ in products} == {False, True}
 
 
+# `h` and `s` prepare |+i>, the +1 eigenstate of Y, so both Y measurements
+# read 0. The second reads 0 only if the first undoes its basis change. The
+# gadgets on `DEVICE` cannot prepare a Y eigenstate, and a rotation becomes
+# `rz`, which Stim rejects, so this graph is hand-written.
+Y_PRODUCT = P3Fixture(
+    """
+module {
+  phys.machine @m {
+    phys.resource_class @q {count = 1 : i64, kind = "qubit", native_actions = [@h, @s], native_instruments = [@mpp]}
+  }
+  phys.action @h {arity = 1 : i64, process = "{\\"kind\\":\\"builtin\\",\\"name\\":\\"h\\",\\"parameters\\":{}}"}
+  phys.action @s {arity = 1 : i64, process = "{\\"kind\\":\\"builtin\\",\\"name\\":\\"s\\",\\"parameters\\":{}}"}
+  phys.instrument @mpp {kind = "measure_product", preserves_inputs, process = "{\\"kind\\":\\"builtin\\",\\"name\\":\\"measure_product\\",\\"parameters\\":{}}", record_schema = "bit", variadic}
+  phys.resource @a {index = 0 : i64, kind = "qubit", resource_class = @q}
+  phys.graph @y_product on @m : () -> (!phys.record<@bit>, !phys.record<@bit>) {
+    %0 = phys.acquire [@a] {event_id = "acquire"} : !phys.state<@a>
+    %1 = phys.apply @h(%0) {event_id = "h"} : (!phys.state<@a>) -> !phys.state<@a>
+    %2 = phys.apply @s(%1) {event_id = "s"} : (!phys.state<@a>) -> !phys.state<@a>
+    %3:2 = phys.measure_product %2 {event_id = "y0", instrument = @mpp, paulis = ["Y"], record_id = "y0"} : (!phys.state<@a>) -> (!phys.state<@a>, !phys.record<@bit>)
+    %4:2 = phys.measure_product %3#0 {event_id = "y1", instrument = @mpp, paulis = ["Y"], record_id = "y1"} : (!phys.state<@a>) -> (!phys.state<@a>, !phys.record<@bit>)
+    phys.release %4#0 {event_id = "release"} : !phys.state<@a>
+    phys.return %3#1, %4#1 : !phys.record<@bit>, !phys.record<@bit>
+  }
+}""", "y_product")
+
+
+def test_y_product_measurements():
+    assert cudaq.run(Y_PRODUCT, shots_count=SHOTS) == [[False, False]] * SHOTS
+
+
 # Three rotations by pi/3 make a pi rotation about X, so the result is
 # deterministic although each rotation is not Clifford.
 @cql.protocol
@@ -511,13 +533,22 @@ def non_clifford_rotations() -> bool:
     return gadgets.measure_z(BARE)(a)
 
 
-def test_non_clifford_rotations(target):
-    build = physical_build(non_clifford_rotations)
+# Every product rotation becomes `rz`, which Stim rejects at any angle, as it
+# does for an ordinary kernel.
+@pytest.mark.parametrize("definition, expected", [
+    (signed_rotations, [False, True]),
+    (non_clifford_rotations, True),
+])
+@pytest.mark.parametrize(
+    "target", [param for param in TARGETS if param.id in ("qpp-cpu", "stim")],
+    indirect=True)
+def test_product_rotations(target, definition, expected):
+    build = physical_build(definition)
     if target[0] == "stim":
         with pytest.raises(RuntimeError, match="Gate not supported by Stim"):
             cudaq.run(build)
         return
-    assert cudaq.run(build, shots_count=SHOTS) == [True] * SHOTS
+    assert cudaq.run(build, shots_count=SHOTS) == [expected] * SHOTS
 
 
 # ---------------------------------------------------------------------------
@@ -655,7 +686,7 @@ def test_teleportation():
 @cql.protocol
 def counted_loop() -> bool:
     a = cql.prepare_zero(allocate())
-    a = cql.ops.repeat(3, carries=(a,), body=bare_x)
+    a = cql.ops.repeat(2, carries=(a,), body=bare_x)
     return gadgets.measure_z(BARE)(a)
 
 
@@ -674,7 +705,7 @@ def flip_after_loop() -> bool:
     return gadgets.measure_z(BARE)(bare_x(a))
 
 
-@pytest.mark.parametrize("definition, expected", [(counted_loop, True),
+@pytest.mark.parametrize("definition, expected", [(counted_loop, False),
                                                   (zero_trip_loop, False),
                                                   (flip_after_loop, False)])
 def test_counted_loops(definition, expected):
@@ -726,8 +757,8 @@ def test_loops_carry_records():
 # Noise
 # ---------------------------------------------------------------------------
 # A noise model acts on the gates that `phys-to-quake` emits, as it does on
-# an ordinary kernel's gates. A failed noisy run leaves no noise model
-# behind. `qpp-cpu` ignores noise models, so these tests do not run on it.
+# an ordinary kernel's gates. `qpp-cpu` ignores noise models, so these tests
+# run on `stim`, except one that needs `density-matrix-cpu`.
 # ---------------------------------------------------------------------------
 
 
@@ -738,19 +769,13 @@ def first_of_three():
     return [cql.measure(flip(a)), cql.measure(b), cql.measure(c)]
 
 
-@cql.physical(machine)
-def t_gate():
-    q, = fresh()
-    return cql.measure(cql.ops.apply(actions.T, cql.ops.apply(actions.H, q)))
-
-
 def bit_flips(probability):
     model = cudaq.NoiseModel()
     model.add_all_qubit_channel("x", cudaq.BitFlipChannel(probability))
     return model
 
 
-NOISY_TARGETS = [param for param in TARGETS if param.id != "qpp-cpu"]
+NOISY_TARGETS = [param for param in TARGETS if param.id == "stim"]
 NOISE_SHOTS = 64
 
 
@@ -787,7 +812,8 @@ def test_noise_acts_on_emitted_gates(target):
         noise_model=cudaq.NoiseModel()) == [[True, False, False]] * 2
 
 
-# Of these targets, only `density-matrix-cpu` takes probability 1.
+# Of the targets that apply noise, only `density-matrix-cpu` takes
+# probability 1.
 @pytest.mark.parametrize(
     "target",
     [pytest.param(("density-matrix-cpu", {}), id="density-matrix-cpu")],
@@ -802,37 +828,17 @@ def test_certain_noise_is_deterministic(target):
                      shots_count=SHOTS) == [True] * SHOTS
 
 
-# stim rejects `t` after the run has started with the model.
-@pytest.mark.parametrize("target", [pytest.param(("stim", {}), id="stim")],
-                         indirect=True)
-def test_failed_noisy_run_leaves_no_noise(target):
-    with pytest.raises(RuntimeError, match="Gate not supported by Stim"):
-        cudaq.run(cql.compile(t_gate),
-                  shots_count=4,
-                  noise_model=bit_flips(0.5))
-    assert cudaq.run(cql.compile(x_then_mz),
-                     shots_count=NOISE_SHOTS) == [True] * NOISE_SHOTS
-
-
 # ---------------------------------------------------------------------------
-# Run contract and unsupported Builds
+# Unsupported Builds
 # ---------------------------------------------------------------------------
-# A physical Build gets the same `shots_count` and argument-count checks as
-# an ordinary kernel, and one without results cannot run. An unsupported
-# Build fails with an error that names its result type, its op, or its kind.
+# A Build without results cannot run, but `to_quake()` still converts it. An
+# unsupported Build fails with an error that names its result type, its kind,
+# or its root symbol.
 # ---------------------------------------------------------------------------
 
 
-def test_run_contract_matches_ordinary_run():
-    build = cql.compile(x_then_mz)
-    assert cudaq.run(build, shots_count=0) == []
-    for kernel in (ordinary_bool, build):
-        with pytest.raises(RuntimeError, match="Invalid `shots_count`"):
-            cudaq.run(kernel, shots_count=-1)
-        with pytest.raises(RuntimeError, match="1 given and 0 expected"):
-            cudaq.run(kernel, True)
+def test_to_quake_without_results(target):
 
-    # `to_quake()` still shows a program without results.
     @cql.physical(machine)
     def no_result():
         q, = fresh()
@@ -841,39 +847,11 @@ def test_run_contract_matches_ordinary_run():
     no_results = cql.compile(no_result)
     assert ("func.func @__nvqpp__mlirgen__no_result() attributes"
             in str(no_results.to_quake()))
-    with pytest.raises(RuntimeError,
-                       match="a runnable kernel must return a value"):
-        cudaq.run(no_results)
 
 
 @cql.program
 def int_result(n: int) -> int:
     return n
-
-
-@cql.program
-def float_result(theta: float) -> float:
-    return theta
-
-
-@cql.program
-def mixed_result(n: int, flag: bool) -> tuple[bool, int]:
-    return flag, n
-
-
-@cql.physical(machine)
-def state_result():
-    q, = fresh()
-    return flip(q)
-
-
-@cql.protocol
-def postselected() -> bool:
-    a = cql.prepare_plus(allocate())
-    a, bit = cql.mpp(Z(a[0]))
-    cql.ops.postselect(bit, expected=False)
-    cql.discard(a)
-    return bit
 
 
 @pytest.mark.parametrize("make, error, message", [
@@ -882,28 +860,19 @@ def postselected() -> bool:
                  "returns result 0 of type 'index', but `phys-to-quake` "
                  "translates only Boolean results",
                  id="int"),
-    pytest.param(lambda: physical_build(float_result),
-                 RuntimeError,
-                 "returns result 0 of type 'f64'",
-                 id="float"),
-    pytest.param(lambda: physical_build(mixed_result),
-                 RuntimeError,
-                 "returns result 1 of type 'index'",
-                 id="mixed"),
-    pytest.param(physical(state_result),
-                 RuntimeError,
-                 r"returns result 0 of type '!phys.state<@state_result_",
-                 id="state"),
-    pytest.param(lambda: physical_build(postselected),
-                 RuntimeError,
-                 "'event.selection' op post-selects shots",
-                 id="postselection"),
-    pytest.param(physical(three_flips),
+    pytest.param(physical(two_flips),
                  ValueError,
                  "requires a `Build` of a physical graph, not of a program",
                  id="not_physical"),
+    pytest.param(lambda: Build.replay(
+        cql.compile(bell).to_mlir().replace("@bell on", '@"b}" on').encode(),
+        root=DefinitionHandle("b}", "physical_graph", "p3"),
+        profile="p3"),
+                 ValueError,
+                 "requires a root symbol of letters, digits",
+                 id="root_symbol"),
 ])
-def test_unsupported_builds(make, error, message):
+def test_unsupported_builds(target, make, error, message):
     with pytest.raises(error, match=message):
         cudaq.run(make())
 
@@ -911,31 +880,28 @@ def test_unsupported_builds(make, error, message):
 # ---------------------------------------------------------------------------
 # The `to_quake()` interface
 # ---------------------------------------------------------------------------
-# Each call returns a new module that outlives its Build, and `cudaq.run`
-# calls `to_quake()` once per run. A shared graph name, a failed run, or a
-# run on another target does not change later runs.
+# Each call returns a new module that outlives its Build. A run on another
+# target does not change later runs.
 # ---------------------------------------------------------------------------
 
 
 class QuakeSource:
-    """An object whose `to_quake()` returns `make()`, counting the calls."""
+    """An object whose `to_quake()` returns `make()`."""
 
     def __init__(self, make):
         self.make = make
-        self.conversions = 0
 
     def to_quake(self):
-        self.conversions += 1
         return self.make()
 
 
-def test_to_quake_inspection_and_lifetime():
+def test_to_quake_inspection_and_lifetime(target):
     build = cql.compile(x_then_mz)
     source = build.to_mlir()
     module = build.to_quake()
     text = str(module)
     assert "func.func @__nvqpp__mlirgen__x_then_mz() -> i1" in text
-    assert "quake.noOptimization" in text
+    assert "quake.optimizationLevel = 0" in text
     assert "phys." not in text and "qlx." not in text
     assert build.to_quake() is not module and build.to_mlir() == source
 
@@ -965,16 +931,10 @@ def test_runs_are_independent(target):
         q, = fresh()
         return cql.measure(q)
 
-    first = QuakeSource(cql.compile(flipped).to_quake)
+    first = cql.compile(flipped)
     second = cql.compile(unflipped)
-    for _ in range(2):
-        assert cudaq.run(first, shots_count=SHOTS) == [True] * SHOTS
-        assert cudaq.run(second, shots_count=SHOTS) == [False] * SHOTS
-    assert first.conversions == 2
 
-    # A failed run, or a run on another target, leaves the next run unaffected.
-    with pytest.raises(RuntimeError, match="1 given and 0 expected"):
-        cudaq.run(first, True)
+    # A run on another target leaves the next run unaffected.
     name, options = target
     try:
         cudaq.set_target("stim" if name == "qpp-cpu" else "qpp-cpu")

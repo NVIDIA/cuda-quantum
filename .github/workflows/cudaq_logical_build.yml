@@ -48,6 +48,17 @@ jobs:
       arch: ${{ steps.container.outputs.arch }}
       image: ${{ steps.container.outputs.image }}
     steps:
+      # An empty name makes download-artifact fetch every artifact of the run.
+      - name: Check wheel artifact names
+        env:
+          RUNTIME_NAME: ${{ inputs.runtime_artifact_name }}
+          DEVEL_NAME: ${{ inputs.devel_artifact_name }}
+        run: |
+          if [ -z "$RUNTIME_NAME" ] || [ -z "$DEVEL_NAME" ]; then
+            echo "::error::Missing wheel artifact name (runtime='$RUNTIME_NAME', devel='$DEVEL_NAME')."
+            exit 1
+          fi
+
       - name: Checkout repository
         uses: actions/checkout@v6
         with:
@@ -139,6 +150,13 @@ jobs:
           name: ${{ inputs.runtime_artifact_name }}
           path: dist
 
+      - name: Download cudaq-edem wheel
+        uses: actions/download-artifact@v8
+        with:
+          pattern: cudaq_edem-*-cp${{ needs.resolve.outputs.python_tag }}-*manylinux_2_28_${{ needs.resolve.outputs.arch }}.whl
+          path: dist
+          merge-multiple: true
+
       - name: Download devel wheel
         uses: actions/download-artifact@v8
         with:
@@ -219,6 +237,7 @@ jobs:
           # cudaq-devel without resolving the `cudaq` PyPI dependency.
           uv pip install -f dist "$runtime_wheel"
           uv pip install --no-deps -f dist "cudaq-devel==$CUDAQ_VERSION"
+          uv pip install --no-deps dist/cudaq_edem-*.whl
 
       # The release workflow also reaches this path. Exercise the SDK's external
       # consumer once per architecture, not only the Logical build itself.
@@ -276,6 +295,8 @@ jobs:
             --exclude libMLIRPythonSupport-cudaq.so \
             --exclude libgmp.so.10 \
             --exclude libmpfr.so.6 \
+            --exclude libcudaq-edem.so.0 \
+            --exclude libcudaq-gf2.so.0 \
             --wheel-dir dist "$RAW_WHEEL"
 
           wheel="$(find dist -name "cudaq_logical-*-cp${PY_TAG}-*${PLAT}.whl" -print -quit)"
@@ -355,6 +376,14 @@ jobs:
           name: ${{ env.METAPACKAGE_ARTIFACT_NAME }}
           path: dist
 
+      # Logical depends on EDEM even when no metapackage is requested.
+      - name: Download cudaq-edem wheels
+        uses: actions/download-artifact@v8
+        with:
+          pattern: cudaq_edem-*
+          path: dist
+          merge-multiple: true
+
       - name: Install uv
         uses: astral-sh/setup-uv@v10.3.2
         with:
@@ -418,6 +447,13 @@ jobs:
           python -c "from cudaq import logical; print(logical.std.idle)"
           python -c "from cudaq.logical import program; print(program)"
           python /tmp/test_installation.py --logical --frontend
+      - name: Test Logical release installer
+        shell: bash
+        run: |
+          set -euo pipefail
+          uv pip install "pytest>=7.0" "virtualenv>=20"
+          python -m pytest docker/test/installer/test_install_logical_wheel.py -v
+
       - name: Run cudaq.logical Python tests
         shell: bash
         timeout-minutes: 30
@@ -426,7 +462,7 @@ jobs:
           QLX_SCHEDULE_DUMP_DIR: ${{ runner.temp }}/qlx-schedule-dumps
         run: |
           set -euo pipefail
-          uv pip install "pytest>=7.0"
+          uv pip install -r preview/logical/requirements-test.txt
 
           # Run from the workspace root: `python -m pytest` puts the working
           # directory on sys.path, and preview/logical/python holds a source-only

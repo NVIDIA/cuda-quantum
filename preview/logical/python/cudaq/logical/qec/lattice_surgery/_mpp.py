@@ -12,7 +12,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from inspect import Parameter, Signature
 
-from cudaq.logical.programs.decorators import objective as _objective
+from cudaq.logical.programs.decorators import action as _action
 from cudaq.logical.ops._impl import all_false as _all_false
 from cudaq.logical.ops._impl import extract_syndrome as _extract_syndrome
 from cudaq.logical.ops._impl import mpp as _mpp
@@ -210,7 +210,7 @@ def mpp_compiler(
     compile_site.__module__ = _PUBLIC_MODULE
     return QECLowering(
         compile_site,
-        objective_family="pauli_product_measurement",
+        action_family="pauli_product_measurement",
         codes=(code,),
         requires=(capability.lattice_surgery,),
         dependencies=primitives,
@@ -237,7 +237,7 @@ def _surgery_stage_provider(
 
 
 _surgery_stage_provider.__module__ = _PUBLIC_MODULE
-_surgery_stage = _objective(name="qlx_surgery_stage")(_surgery_stage_provider)
+_surgery_stage = _action(name="qlx_surgery_stage")(_surgery_stage_provider)
 
 
 def _surgery_zz_provider(
@@ -249,7 +249,7 @@ def _surgery_zz_provider(
 
 
 _surgery_zz_provider.__module__ = _PUBLIC_MODULE
-_surgery_zz = _objective(name="qlx_surgery_zz")(_surgery_zz_provider)
+_surgery_zz = _action(name="qlx_surgery_zz")(_surgery_zz_provider)
 
 
 @dataclass(frozen=True, slots=True)

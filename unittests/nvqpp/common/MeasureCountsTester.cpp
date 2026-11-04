@@ -46,6 +46,76 @@ CUDAQ_TEST(sample_resultTester, checkMoveConstructionPreservesEmptyResult) {
   EXPECT_TRUE(result.sequential_data().empty());
 }
 
+namespace {
+/// Builds a result with both counts and sequential data, so concatenation has
+/// something to stitch and a move has something to steal.
+ExecutionResult shots(const std::string &name,
+                      const std::vector<std::string> &bitStrings) {
+  ExecutionResult result(name);
+  for (const auto &bitString : bitStrings)
+    result.appendResult(bitString, 1);
+  return result;
+}
+
+/// The two `append` overloads have to agree, so each case below runs both on
+/// the same starting point and compares.
+void expectAppendOverloadsAgree(const sample_result &seeded,
+                                const ExecutionResult &incoming,
+                                bool concatenate) {
+  sample_result copied = seeded;
+  copied.append(incoming, concatenate);
+
+  sample_result moved = seeded;
+  ExecutionResult consumable(incoming);
+  moved.append(std::move(consumable), concatenate);
+
+  EXPECT_EQ(copied, moved);
+  EXPECT_EQ(copied.get_total_shots(), moved.get_total_shots());
+  EXPECT_EQ(copied.register_names(), moved.register_names());
+}
+} // namespace
+
+CUDAQ_TEST(sample_resultTester, checkAppendOverloadsAgreeOnNewRegister) {
+  const sample_result seeded(shots("__global__", {"00", "01"}));
+
+  expectAppendOverloadsAgree(seeded, shots("other", {"10", "11"}), false);
+  expectAppendOverloadsAgree(seeded, shots("other", {"10", "11"}), true);
+}
+
+CUDAQ_TEST(sample_resultTester, checkAppendOverloadsAgreeOnExistingRegister) {
+  const sample_result seeded(shots("__global__", {"0", "1"}));
+
+  expectAppendOverloadsAgree(seeded, shots("__global__", {"1", "0"}), false);
+  expectAppendOverloadsAgree(seeded, shots("__global__", {"1", "0"}), true);
+}
+
+CUDAQ_TEST(sample_resultTester, checkAppendMoveConsumesWhenItInserts) {
+  sample_result result(shots("__global__", {"00", "01"}));
+  ExecutionResult incoming = shots("other", {"10", "11"});
+
+  // Concatenating onto a register that is not here inserts rather than
+  // stitches, so the incoming result is taken rather than read.
+  result.append(std::move(incoming), true);
+
+  EXPECT_TRUE(incoming.counts.empty());
+  EXPECT_TRUE(incoming.sequentialData.empty());
+  EXPECT_EQ(result.count("10", "other"), 1u);
+  EXPECT_EQ(result.count("11", "other"), 1u);
+}
+
+CUDAQ_TEST(sample_resultTester, checkAppendMoveLeavesSourceWhenItStitches) {
+  sample_result result(shots("__global__", {"0", "1"}));
+  ExecutionResult incoming = shots("__global__", {"1", "0"});
+
+  // Stitching reads the incoming bit strings into the entry already here, so
+  // the source has to survive the call.
+  result.append(std::move(incoming), true);
+
+  EXPECT_EQ(incoming.sequentialData.size(), 2u);
+  EXPECT_FALSE(incoming.counts.empty());
+  EXPECT_EQ(result.sequential_data(), (std::vector<std::string>{"01", "10"}));
+}
+
 CUDAQ_TEST(MeasureCountsTester, checkMoveConstructionTransfersShotStorage) {
   static_assert(std::is_nothrow_move_constructible_v<ExecutionResult>);
   ExecutionResult original("measurements");

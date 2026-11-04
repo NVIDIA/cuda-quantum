@@ -75,7 +75,7 @@ protected:
   std::string cachedDefaultSimulatorEnv;
 
   /// @brief Load a library on demand if not already loaded.
-  void ensureLibLoaded(const std::filesystem::path &path);
+  void *ensureLibLoaded(const std::filesystem::path &path);
 
   /// @brief Determine the default target based on available GPUs and
   /// simulators.
@@ -87,6 +87,11 @@ public:
 
   /// @brief Whether the full target setup has completed.
   bool isTargetInitialized() const { return targetInitialized; }
+
+  using SimulatorFactory = nvqir::CircuitSimulator *(*)();
+
+  /// @brief Return the factory for the given simulator.
+  SimulatorFactory getSimulatorFactory(const std::string &name);
 
   /// @brief Return the registered simulator with the given name.
   nvqir::CircuitSimulator *getSimulator(const std::string &name);

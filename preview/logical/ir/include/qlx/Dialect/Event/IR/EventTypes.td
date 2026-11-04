@@ -1,10 +1,10 @@
-/*******************************************************************************
+/***********************************************************-*- tablegen -*-****
  * Copyright (c) 2026 NVIDIA Corporation & Affiliates.                         *
  * All rights reserved.                                                        *
  *                                                                             *
  * This source code and the accompanying materials are made available under    *
  * the terms of the Apache License 2.0 which accompanies this distribution.    *
- *******************************************************************************/
+ ******************************************************************************/
 //
 //   !event.handle<payload, ownership, stream?> - one outstanding
 //     asynchronous delivery of a typed payload.
@@ -34,7 +34,7 @@ def Event_HandleType : TypeDef<Event_Dialect, "Handle"> {
     tier instantiates it with its own resource type.
 
     `ownership` states how the delivered payload may be used. `"linear"`
-    means it has exactly one owner and must be consumed exactly once;
+    means it is an SSI value: it has exactly one use and is consumed once;
     `"shared"` means it may be copied once ready. The parameter is an open
     string, checked only for non-emptiness, because which disciplines
     exist is a tier's decision rather than this dialect's. `event.await`,

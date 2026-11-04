@@ -1,0 +1,41 @@
+# ============================================================================ #
+# Copyright (c) 2026 NVIDIA Corporation & Affiliates.                          #
+# All rights reserved.                                                         #
+#                                                                              #
+# This source code and the accompanying materials are made available under     #
+# the terms of the Apache License 2.0 which accompanies this distribution.     #
+# ============================================================================ #
+
+[project]
+name = "cudaq-edem"
+dynamic = ["version"]
+description = "Shared EDEM data structures and operations with a C API and Python bindings"
+readme = "edem/README.md"
+authors = [{name = "NVIDIA Corporation & Affiliates"}]
+requires-python = ">=3.11"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE", "LICENSES/LICENSE.nanobind", "LICENSES/LICENSE.robin-map"]
+
+[build-system]
+requires = ["scikit-build-core==0.11.6", "nanobind>=2.12.0,<3"]
+build-backend = "scikit_build_core.build"
+
+[tool.scikit-build]
+minimum-version = "0.11"
+cmake.source-dir = "edem"
+cmake.version = ">=3.23"
+cmake.build-type = "Release"
+wheel.packages = []
+wheel.install-dir = "cudaq_edem"
+install.components = ["Runtime", "Development", "EDEMPython"]
+install.strip = false
+
+[tool.scikit-build.cmake.define]
+BUILD_SHARED_LIBS = true
+CUDAQ_EDEM_BUILD_PYTHON = true
+CUDAQ_EDEM_BUILD_TESTS = false
+
+[tool.scikit-build.metadata.version]
+provider = "scikit_build_core.metadata.regex"
+input = "edem/CMakeLists.txt"
+regex = 'set\(CUDAQ_EDEM_VERSION (?P<value>[0-9]+\.[0-9]+\.[0-9]+)\)'
