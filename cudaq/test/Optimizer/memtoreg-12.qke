@@ -1,0 +1,36 @@
+// ========================================================================== //
+// Copyright (c) 2026 NVIDIA Corporation & Affiliates.                        //
+// All rights reserved.                                                       //
+//                                                                            //
+// This source code and the accompanying materials are made available under   //
+// the terms of the Apache License 2.0 which accompanies this distribution.   //
+// ========================================================================== //
+
+// RUN: cudaq-opt --convert-to-linear-values %s | FileCheck %s
+
+// factor-quantum-alloc splits %q into two !quake.ref allocations and rebuilds
+// it with quake.concat for the run-time-indexed extract_ref. The quake.x
+// through the concat may act on %a, so the quake.h on %a must be stored back
+// before it and the quake.mz must reload %a after it.
+func.func @concat_operands_stay_in_memory(%i: i64) {
+  %q = quake.alloca !quake.veq<2>
+  %a = quake.extract_ref %q[0] : (!quake.veq<2>) -> !quake.ref
+  quake.h %a : (!quake.ref) -> ()
+  %qi = quake.extract_ref %q[%i] : (!quake.veq<2>, i64) -> !quake.ref
+  quake.x %qi : (!quake.ref) -> ()
+  %m = quake.mz %a : (!quake.ref) -> !quake.measure
+  quake.dealloc %q : !quake.veq<2>
+  return
+}
+
+// CHECK-LABEL:   func.func @concat_operands_stay_in_memory(
+// CHECK:           %[[A:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[B:.*]] = quake.alloca !quake.ref
+// CHECK:           %[[Q:.*]] = quake.concat %[[A]], %[[B]]
+// CHECK:           %[[W0:.*]] = quake.unwrap %[[A]]
+// CHECK:           %[[H:.*]] = quake.h %[[W0]]
+// CHECK:           quake.wrap %[[H]] to %[[A]]
+// CHECK:           quake.extract_ref %[[Q]]
+// CHECK:           quake.x
+// CHECK:           %[[W1:.*]] = quake.unwrap %[[A]]
+// CHECK:           quake.mz %[[W1]]
