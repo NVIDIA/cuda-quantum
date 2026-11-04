@@ -32,11 +32,12 @@ static bool isSupportedOutlineOp(Operation *op) {
 
 static FailureOr<cudaq::cc::CreateLambdaOp>
 outlinePartitionImpl(const cudaq::opt::PartitionToOutline &partition,
-                     const DominanceInfo &dominance,
-                     const bool acceptOrderedPartition) {
+                     const DominanceInfo &dominance) {
   llvm::ArrayRef<Operation *> partitionOps = partition.ops;
   if (partitionOps.empty())
     return failure();
+
+  bool acceptOrderedPartition = partition.acceptOrderedPartition;
 
   DenseSet<Operation *> inPartition(partitionOps.begin(), partitionOps.end());
 
@@ -243,22 +244,19 @@ outlinePartitionImpl(const cudaq::opt::PartitionToOutline &partition,
 }
 
 FailureOr<cudaq::cc::CreateLambdaOp>
-cudaq::opt::outlinePartition(const PartitionToOutline &partition,
-                             const bool acceptOrderedPartition) {
+cudaq::opt::outlinePartition(const PartitionToOutline &partition) {
   DominanceInfo dominance;
-  return outlinePartitionImpl(partition, dominance, acceptOrderedPartition);
+  return outlinePartitionImpl(partition, dominance);
 }
 
 LogicalResult
-cudaq::opt::outlinePartitions(ArrayRef<PartitionToOutline> partitions,
-                              const bool acceptOrderedPartition) {
+cudaq::opt::outlinePartitions(ArrayRef<PartitionToOutline> partitions) {
   // The CFG of existing regions is unchanged, so cached dominance information
   // remains valid across these rewrites.
   DominanceInfo dominance;
   auto result = success();
   for (const auto &partition : partitions)
-    if (failed(
-            outlinePartitionImpl(partition, dominance, acceptOrderedPartition)))
+    if (failed(outlinePartitionImpl(partition, dominance)))
       result = failure();
   return result;
 }

@@ -26,26 +26,27 @@ struct PartitionToOutline {
   /// This pointer is non-owning and must remain valid until this partition is
   /// processed; earlier partitions in a batch must not erase the operation.
   mlir::Operation *mustPrecede = nullptr;
+  /// If true, clone ops in the supplied order, rejecting duplicates and any
+  /// internal producer placed after its consumer. The caller must preserve
+  /// additional semantic ordering constraints. If false, ignore duplicates and
+  /// clone operations in block order.
+  bool acceptOrderedPartition = false;
 };
 
 /// Outline supported operations from one block into a lambda and a call.
-/// By default, duplicate operations are ignored and operations are cloned in
-/// block order. If acceptOrderedPartition is true, operations are cloned in the
-/// supplied order, which must contain no duplicates and place each internal
-/// producer before its consumers. The caller must preserve any additional
-/// semantic ordering constraints. All external inputs are captured.
+/// Cloning order is controlled by partition.acceptOrderedPartition, and
+/// placement is constrained by partition.mustPrecede. All external inputs are
+/// captured.
 /// Non-wire results precede wire results. Wire results follow the first-use
 /// order of their corresponding incoming wires. Returns failure without
 /// modifying the IR if the selection cannot be outlined.
 mlir::FailureOr<cudaq::cc::CreateLambdaOp>
-outlinePartition(const PartitionToOutline &partition,
-                 const bool acceptOrderedPartition = false);
+outlinePartition(const PartitionToOutline &partition);
 
-/// Outline each supplied partition using outlinePartition's ordering policy,
-/// returning failure if any is rejected.
+/// Outline each supplied partition using its own acceptOrderedPartition and
+/// mustPrecede settings, returning failure if any is rejected.
 /// Successful rewrites are retained even if another partition is rejected.
 mlir::LogicalResult
-outlinePartitions(llvm::ArrayRef<PartitionToOutline> partitions,
-                  const bool acceptOrderedPartition = false);
+outlinePartitions(llvm::ArrayRef<PartitionToOutline> partitions);
 
 } // namespace cudaq::opt

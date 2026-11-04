@@ -141,7 +141,7 @@ TEST(OutlinePartitions, SuppliedOrderPreserved) {
 
   SmallVector<Operation *> partition{rotation.getOperation(),
                                      measurement.getOperation()};
-  auto lambda = cudaq::opt::outlinePartition({partition}, true);
+  auto lambda = cudaq::opt::outlinePartition({partition, nullptr, true});
   ASSERT_TRUE(succeeded(lambda));
   EXPECT_TRUE(succeeded(verify(*mod)));
   EXPECT_TRUE(angle->isBeforeInBlock(lambda->getOperation()));
@@ -194,7 +194,7 @@ TEST(OutlinePartitions, SuppliedConsumerBeforeProducerRejected) {
   SmallVector<Operation *> partition{consumer.getOperation(),
                                      producer.getOperation()};
   std::string before = printModule(*mod);
-  EXPECT_TRUE(failed(cudaq::opt::outlinePartition({partition}, true)));
+  EXPECT_TRUE(failed(cudaq::opt::outlinePartition({partition, nullptr, true})));
   EXPECT_EQ(printModule(*mod), before);
   EXPECT_TRUE(succeeded(verify(*mod)));
 }
@@ -753,7 +753,7 @@ TEST(OutlinePartitions, SpecifyPartitionOrder) {
     // producer-before-consumer order of the other three gates.
     partition.insert(partition.begin(), t.getOperation());
     auto lambda = cudaq::opt::outlinePartition(
-        {partition, specifyBoundary ? boundary.getOperation() : nullptr}, true);
+        {partition, specifyBoundary ? boundary.getOperation() : nullptr, true});
     ASSERT_TRUE(succeeded(lambda));
     ASSERT_TRUE(succeeded(verify(*mod)));
 
