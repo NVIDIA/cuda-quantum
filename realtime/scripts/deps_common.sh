@@ -28,8 +28,9 @@ function retry {
 
 
 # Version pins and helpers shared by the CUDA-Q Realtime dependency scripts,
-# i.e., install_dev_prerequisites.sh (standard apt path) and install_devdeps.sh
-# (containers that already ship Mellanox OFED).
+# i.e., install_prerequisites.sh (run time only), install_dev_prerequisites.sh
+# (standard apt path) and install_devdeps.sh (containers that already ship
+# Mellanox OFED).
 #
 # Usage:
 # This file is meant to be sourced, not executed:
@@ -68,6 +69,33 @@ cudaq_realtime_cuda_version() {
     return 1
   fi
   printf '%s' "$_cudaq_realtime_cuda_version"
+}
+
+# Packages the installed libraries load at run time, beyond the CUDA toolkit
+# (apt only). Call after cudaq_realtime_add_doca_repo. They also pull in
+# libibverbs1, which the Mellanox OFED some containers ship provides instead.
+cudaq_realtime_install_runtime_packages() {
+  # The gpu_roce transport loads DOCA GPUNetIO, verbs and common.
+  DEBIAN_FRONTEND=noninteractive retry apt-get -y install --no-install-recommends \
+    doca-sdk-gpunetio
+}
+
+# Packages that building CUDA-Q Realtime needs and the installed libraries do
+# not (apt only). Call after cudaq_realtime_add_doca_repo. The build set is the
+# install set plus these. The dev packages pull in libibverbs-dev, which
+# conflicts with the Mellanox OFED some containers ship, so those containers
+# must provide it themselves. The CUDA package matches the toolkit nvcc reports
+# and is a no-op over a full toolkit; partial installs, such as the CUDA-Q dev
+# images, lack it.
+cudaq_realtime_install_build_packages() {
+  cudaq_realtime_install_runtime_packages || return 1
+  _cudaq_realtime_cuda_ver_dash=$(cudaq_realtime_cuda_version) || return 1
+  _cudaq_realtime_cuda_ver_dash=${_cudaq_realtime_cuda_ver_dash/./-}
+  # The gpu_roce transport builds against DOCA GPUNetIO.
+  DEBIAN_FRONTEND=noninteractive retry apt-get -y install --no-install-recommends \
+    libdoca-sdk-gpunetio-dev
+  # hololink_core links CUDA::nvrtc -- must match the exact toolkit version
+  retry apt-get install -y cuda-nvrtc-dev-$_cudaq_realtime_cuda_ver_dash 2>/dev/null || true
 }
 
 # CUDA architectures HSB is compiled for. A CUDA_NATIVE_ARCH set by the caller
