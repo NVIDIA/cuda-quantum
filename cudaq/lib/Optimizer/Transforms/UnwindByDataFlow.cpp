@@ -217,6 +217,10 @@ public:
       auto i8Ty = rewriter.getI8Type();
       rewriter.setInsertionPoint(&func.getBody().front().front());
       dfJump = cudaq::cc::AllocaOp::create(rewriter, loc, i8Ty);
+      // Set `dfJump` variable as None
+      auto noJump = arith::ConstantIntOp::create(
+          rewriter, loc, static_cast<int>(JumpKind::None), 8);
+      cudaq::cc::StoreOp::create(rewriter, loc, noJump, dfJump);
 
       for (auto *unwind : analysis.unwindOps)
         if (failed(genDominatingVars(rewriter, unwind, landingPadMap,
